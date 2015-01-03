@@ -254,7 +254,10 @@ static const blackboxConditionalFieldDefinition_t blackboxGpsGFields[] = {
     {"GPS_coord",          1, SIGNED,   PREDICT(HOME_COORD), ENCODING(SIGNED_VB),   CONDITION(ALWAYS)},
     {"GPS_altitude",      -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
     {"GPS_speed",         -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
-    {"GPS_ground_course", -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)}
+    {"GPS_ground_course", -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"GPS_VELNED",         0, SIGNED,   PREDICT(0),          ENCODING(SIGNED_VB),   CONDITION(ALWAYS)},
+    {"GPS_VELNED",         1, SIGNED,   PREDICT(0),          ENCODING(SIGNED_VB),   CONDITION(ALWAYS)},
+    {"GPS_VELNED",         2, SIGNED,   PREDICT(0),          ENCODING(SIGNED_VB),   CONDITION(ALWAYS)}
 };
 
 // GPS home frame
@@ -974,6 +977,9 @@ static void writeGPSFrame()
     blackboxWriteUnsignedVB(GPS_altitude);
     blackboxWriteUnsignedVB(GPS_speed);
     blackboxWriteUnsignedVB(GPS_ground_course);
+    blackboxWriteSignedVB(GPS_velned[0]);
+    blackboxWriteSignedVB(GPS_velned[1]);
+    blackboxWriteSignedVB(GPS_velned[2]);
 
     gpsHistory.GPS_numSat = GPS_numSat;
     gpsHistory.GPS_coord[0] = GPS_coord[0];
