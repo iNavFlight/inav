@@ -53,7 +53,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/altitudehold.h"
+#include "flight/navigation_rewrite.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
@@ -347,7 +347,7 @@ static void sendGPSLatLong(void)
 static void sendVario(void)
 {
     sendDataHead(ID_VERT_SPEED);
-    serialize16(vario);
+    serialize16((uint16_t)getEstimatedActualVelocity(Z));
 }
 
 /*

@@ -22,8 +22,8 @@
 #endif
 
 // Undefine this for use libc sinf/cosf. Keep this defined to use fast sin/cos approximations
-#define FAST_TRIGONOMETRY               // order 9 approximation
-//#define EVEN_FASTER_TRIGONOMETRY      // order 7 approximation
+#define FAST_MATH             // order 9 approximation
+//#define VERY_FAST_MATH      // order 7 approximation
 
 // Use floating point M_PI instead explicitly.
 #define M_PIf       3.14159265358979323846f
@@ -65,6 +65,17 @@ typedef union {
     fp_angles_def angles;
 } fp_angles_t;
 
+typedef struct filterWithBufferSample_s {
+    float value;
+    uint32_t timestamp;
+} filterWithBufferSample_t;
+
+typedef struct filterWithBufferState_s {
+    uint16_t filter_size;
+    uint16_t sample_index;
+    filterWithBufferSample_t * samples;
+} filterWithBufferState_t;
+
 int32_t applyDeadband(int32_t value, int32_t deadband);
 
 int constrain(int amt, int low, int high);
@@ -83,17 +94,31 @@ void normalizeV(struct fp_vector *src, struct fp_vector *dest);
 void rotateV(struct fp_vector *v, fp_angles_t *delta);
 void buildRotationMatrix(fp_angles_t *delta, float matrix[3][3]);
 
+int32_t wrap_18000(int32_t angle);
+int32_t wrap_36000(int32_t angle);
+
 int32_t quickMedianFilter3(int32_t * v);
 int32_t quickMedianFilter5(int32_t * v);
 int32_t quickMedianFilter7(int32_t * v);
 int32_t quickMedianFilter9(int32_t * v);
 
-#if defined(FAST_TRIGONOMETRY) || defined(EVEN_FASTER_TRIGONOMETRY)
+void filterWithBufferReset(filterWithBufferState_t * state);
+void filterWithBufferInit(filterWithBufferState_t * state, filterWithBufferSample_t * buffer, uint16_t size);
+void filterWithBufferUpdate(filterWithBufferState_t * state, float sample, uint32_t timestamp);
+float filterWithBufferApply_Derivative(filterWithBufferState_t * state);
+
+#if defined(FAST_MATH) || defined(VERY_FAST_MATH)
 float sin_approx(float x);
 float cos_approx(float x);
+float atan2_approx(float y, float x);
+float acos_approx(float x);
+#define tan_approx(x)       (sin_approx(x) / cos_approx(x))
 #else
-#define sin_approx(x)   sinf(x)
-#define cos_approx(x)   cosf(x)
+#define sin_approx(x)       sinf(x)
+#define cos_approx(x)       cosf(x)
+#define atan2_approx(y,x)   atan2f(y,x)
+#define acos_approx(x)      acosf(x)
+#define tan_approx(x)       tanf(x)
 #endif
 
 void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);

@@ -61,8 +61,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
-#include "flight/altitudehold.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
@@ -154,25 +153,25 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[YAW] = 85;
     pidProfile->I8[YAW] = 45;
     pidProfile->D8[YAW] = 0;
-    pidProfile->P8[PIDALT] = 50;
-    pidProfile->I8[PIDALT] = 0;
-    pidProfile->D8[PIDALT] = 0;
-    pidProfile->P8[PIDPOS] = 15; // POSHOLD_P * 100;
-    pidProfile->I8[PIDPOS] = 0; // POSHOLD_I * 100;
-    pidProfile->D8[PIDPOS] = 0;
-    pidProfile->P8[PIDPOSR] = 34; // POSHOLD_RATE_P * 10;
-    pidProfile->I8[PIDPOSR] = 14; // POSHOLD_RATE_I * 100;
-    pidProfile->D8[PIDPOSR] = 53; // POSHOLD_RATE_D * 1000;
-    pidProfile->P8[PIDNAVR] = 25; // NAV_P * 10;
-    pidProfile->I8[PIDNAVR] = 33; // NAV_I * 100;
-    pidProfile->D8[PIDNAVR] = 83; // NAV_D * 1000;
+    pidProfile->P8[PIDALT] = 30;    // NAV_POS_Z_P * 100
+    pidProfile->I8[PIDALT] = 150;   // NAV_VEL_Z_P * 100
+    pidProfile->D8[PIDALT] = 0;     // not used
+    pidProfile->P8[PIDPOS] = 15;    // NAV_POS_XY_P * 100
+    pidProfile->I8[PIDPOS] = 0;     // not used
+    pidProfile->D8[PIDPOS] = 0;     // not used
+    pidProfile->P8[PIDPOSR] = 90;   // NAV_VEL_XY_P * 100
+    pidProfile->I8[PIDPOSR] = 15;   // NAV_VEL_XY_I * 100
+    pidProfile->D8[PIDPOSR] = 1;    // NAV_VEL_XY_D * 1000
+    pidProfile->P8[PIDNAVR] = 0;    // not used
+    pidProfile->I8[PIDNAVR] = 0;    // not used
+    pidProfile->D8[PIDNAVR] = 0;    // not used
     pidProfile->P8[PIDLEVEL] = 90;
     pidProfile->I8[PIDLEVEL] = 10;
     pidProfile->D8[PIDLEVEL] = 100;
     pidProfile->P8[PIDMAG] = 40;
-    pidProfile->P8[PIDVEL] = 120;
-    pidProfile->I8[PIDVEL] = 45;
-    pidProfile->D8[PIDVEL] = 1;
+    pidProfile->P8[PIDVEL] = 80;    // NAV_ACC_Z_P * 100
+    pidProfile->I8[PIDVEL] = 50;    // NAV_ACC_Z_I * 100
+    pidProfile->D8[PIDVEL] = 50;    // NAV_ACC_Z_D * 1000
 
     pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
     pidProfile->dterm_cut_hz = 0;
@@ -208,24 +207,59 @@ static void resetPidProfile(pidProfile_t *pidProfile)
 }
 
 #ifdef GPS
-void resetGpsProfile(gpsProfile_t *gpsProfile)
+void resetNavConfig(navConfig_t * navConfig)
 {
-    gpsProfile->gps_wp_radius = 200;
-    gpsProfile->gps_lpf = 20;
-    gpsProfile->nav_slew_rate = 30;
-    gpsProfile->nav_controls_heading = 1;
-    gpsProfile->nav_speed_min = 100;
-    gpsProfile->nav_speed_max = 300;
-    gpsProfile->ap_mode = 40;
+    // Navigation flags
+    navConfig->flags.use_midrc_for_althold = 1;
+    navConfig->flags.throttle_tilt_comp = 1;
+    navConfig->flags.lock_nav_until_takeoff = 0;
+    navConfig->flags.user_control_mode = NAV_GPS_ATTI;
+    navConfig->flags.rth_alt_control_style = NAV_RTH_AT_LEAST_ALT;
+
+    // Inertial position estimator parameters
+    navConfig->inav.enable_dead_reckoning = 0;
+    navConfig->inav.gps_delay_ms = 200;
+
+    navConfig->inav.w_z_baro_p = 1.0f;
+    navConfig->inav.w_z_baro_v = 0.5f;
+
+    navConfig->inav.w_z_sonar_p = 2.0f;
+    navConfig->inav.w_z_sonar_v = 1.0f;
+
+    navConfig->inav.w_z_gps_p = 0.3f;
+    navConfig->inav.w_z_gps_v = 0.3f;
+
+    navConfig->inav.w_xy_gps_p = 1.0f;
+    navConfig->inav.w_xy_gps_v = 2.0f;
+
+    navConfig->inav.w_xy_dr_p = 0.05f;
+    navConfig->inav.w_xy_dr_v = 0.05f;
+
+    navConfig->inav.w_z_res_v = 0.5f;
+    navConfig->inav.w_xy_res_v = 0.5f;
+
+    navConfig->inav.max_eph_epv = 1000.0f;
+    navConfig->inav.sonar_epv = 20.0f;
+    navConfig->inav.baro_epv = 100.0f;
+
+    // General navigation parameters
+    navConfig->waypoint_radius = 300;
+    navConfig->pterm_cut_hz = 20;
+    navConfig->dterm_cut_hz = 15;
+    navConfig->max_speed = 500;
+    navConfig->max_manual_speed = 500;
+    navConfig->max_manual_climb_rate = 200;
+    navConfig->min_rth_distance = 500;   // If closer than 5m - land immediately
+    navConfig->rth_altitude = 1000;      // 10m
+    navConfig->pos_hold_deadband = 20;
+    navConfig->alt_hold_deadband = 50;
 }
 #endif
 
 void resetBarometerConfig(barometerConfig_t *barometerConfig)
 {
-    barometerConfig->baro_sample_count = 21;
-    barometerConfig->baro_noise_lpf = 0.6f;
-    barometerConfig->baro_cf_vel = 0.985f;
-    barometerConfig->baro_cf_alt = 0.965f;
+    barometerConfig->baro_sample_count = 7;
+    barometerConfig->baro_noise_lpf = 0.35f;
 }
 
 void resetSensorAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
@@ -326,8 +360,6 @@ static void resetControlRateConfig(controlRateConfig_t *controlRateConfig) {
 void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig) {
     rcControlsConfig->deadband = 0;
     rcControlsConfig->yaw_deadband = 0;
-    rcControlsConfig->alt_hold_deadband = 40;
-    rcControlsConfig->alt_hold_fast_change = 1;
 }
 
 void resetMixerConfig(mixerConfig_t *mixerConfig) {
@@ -384,6 +416,7 @@ static void resetConf(void)
     masterConfig.version = EEPROM_CONF_VERSION;
     masterConfig.mixerMode = MIXER_QUADX;
     featureClearAll();
+    persistentFlagClearAll();
 #if defined(CJMCU) || defined(SPARKY) || defined(COLIBRI_RACE) || defined(MOTOLAB)
     featureSet(FEATURE_RX_PPM);
 #endif
@@ -451,8 +484,6 @@ static void resetConf(void)
 
     resetMixerConfig(&masterConfig.mixerConfig);
 
-    masterConfig.airplaneConfig.fixedwing_althold_dir = 1;
-
     // Motor/ESC/Servo
     resetEscAndServoConfig(&masterConfig.escAndServoConfig);
     resetFlight3DConfig(&masterConfig.flight3DConfig);
@@ -472,6 +503,10 @@ static void resetConf(void)
     masterConfig.gpsConfig.autoBaud = GPS_AUTOBAUD_OFF;
 #endif
 
+#ifdef GPS
+    resetNavConfig(&masterConfig.navConfig);
+#endif
+
     resetSerialConfig(&masterConfig.serialConfig);
 
     masterConfig.looptime = 3500;
@@ -488,9 +523,6 @@ static void resetConf(void)
 
     currentProfile->mag_declination = 0;
     currentProfile->acc_lpf_factor = 4;
-    currentProfile->accz_lpf_cutoff = 5.0f;
-    currentProfile->accDeadband.xy = 40;
-    currentProfile->accDeadband.z = 40;
 
     resetBarometerConfig(&currentProfile->barometerConfig);
 
@@ -525,10 +557,6 @@ static void resetConf(void)
 
     // gimbal
     currentProfile->gimbalConfig.mode = GIMBAL_MODE_NORMAL;
-#endif
-
-#ifdef GPS
-    resetGpsProfile(&currentProfile->gpsProfile);
 #endif
 
     // custom mixer. clear by defaults.
@@ -724,11 +752,6 @@ void activateConfig(void)
 
     pidSetController(currentProfile->pidProfile.pidController);
 
-#ifdef GPS
-    gpsUseProfile(&currentProfile->gpsProfile);
-    gpsUsePIDs(&currentProfile->pidProfile);
-#endif
-
     useFailsafeConfig(&masterConfig.failsafeConfig);
     setAccelerationTrims(&masterConfig.accZero);
 
@@ -740,7 +763,6 @@ void activateConfig(void)
         &masterConfig.flight3DConfig,
         &masterConfig.escAndServoConfig,
         &masterConfig.mixerConfig,
-        &masterConfig.airplaneConfig,
         &masterConfig.rxConfig
     );
 
@@ -750,20 +772,13 @@ void activateConfig(void)
     imuRuntimeConfig.acc_unarmedcal = currentProfile->acc_unarmedcal;;
     imuRuntimeConfig.small_angle = masterConfig.small_angle;
 
-    imuConfigure(
-        &imuRuntimeConfig,
-        &currentProfile->pidProfile,
-        &currentProfile->accDeadband,
-        currentProfile->accz_lpf_cutoff,
-        currentProfile->throttle_correction_angle
-    );
+    imuConfigure(&imuRuntimeConfig, &currentProfile->pidProfile);
 
-    configureAltitudeHold(
-        &currentProfile->pidProfile,
-        &currentProfile->barometerConfig,
-        &currentProfile->rcControlsConfig,
-        &masterConfig.escAndServoConfig
-    );
+#ifdef GPS
+    navigationUseConfig(&masterConfig.navConfig);
+    navigationUsePIDs(&currentProfile->pidProfile);
+    navigationUseRcControlsConfig(&currentProfile->rcControlsConfig);
+#endif
 
 #ifdef BARO
     useBarometerConfig(&currentProfile->barometerConfig);
@@ -1057,3 +1072,22 @@ uint32_t featureMask(void)
     return masterConfig.enabledFeatures;
 }
 
+void persistentFlagClearAll()
+{
+    masterConfig.persistentFlags = 0;
+}
+
+bool persistentFlag(uint8_t mask)
+{
+    return masterConfig.persistentFlags & mask;
+}
+
+void persistentFlagSet(uint8_t mask)
+{
+    masterConfig.persistentFlags |= mask;
+}
+
+void persistentFlagClear(uint8_t mask)
+{
+    masterConfig.persistentFlags &= ~(mask);
+}

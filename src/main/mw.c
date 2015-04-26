@@ -69,10 +69,9 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/altitudehold.h"
 #include "flight/failsafe.h"
 #include "flight/gtune.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 #include "flight/filter.h"
 
 
@@ -428,9 +427,6 @@ typedef enum {
 #ifdef SONAR
     UPDATE_SONAR_TASK,
 #endif
-#if defined(BARO) || defined(SONAR)
-    CALCULATE_ALTITUDE_TASK,
-#endif
     UPDATE_DISPLAY_TASK
 } periodicTasks;
 
@@ -458,20 +454,6 @@ void executePeriodicTasks(void)
         break;
 #endif
 
-#if defined(BARO) || defined(SONAR)
-    case CALCULATE_ALTITUDE_TASK:
-        if (false
-#if defined(BARO)
-            || (sensors(SENSOR_BARO) && isBaroReady())
-#endif
-#if defined(SONAR)
-            || sensors(SENSOR_SONAR)
-#endif
-            ) {
-            calculateEstimatedAltitude(currentTime);
-        }
-        break;
-#endif
 #ifdef SONAR
     case UPDATE_SONAR_TASK:
         if (sensors(SENSOR_SONAR)) {
@@ -582,7 +564,7 @@ void processRx(void)
 
     bool canUseHorizonMode = true;
 
-    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || (feature(FEATURE_FAILSAFE) && failsafeIsActive())) && (sensors(SENSOR_ACC))) {
+    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || (feature(FEATURE_FAILSAFE) && failsafeIsActive()) || naivationRequiresAngleMode()) && sensors(SENSOR_ACC)) {
         // bumpless transfer to Level mode
     	canUseHorizonMode = false;
 
@@ -612,33 +594,37 @@ void processRx(void)
         LED1_OFF;
     }
 
-#ifdef  MAG
-    if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
-        if (IS_RC_MODE_ACTIVE(BOXMAG)) {
-            if (!FLIGHT_MODE(MAG_MODE)) {
-                ENABLE_FLIGHT_MODE(MAG_MODE);
-                magHold = heading;
+#if defined(MAG)
+#if defined(NAV)
+    if (naivationControlsHeadingNow()) {
+        DISABLE_FLIGHT_MODE(MAG_MODE);
+        DISABLE_FLIGHT_MODE(HEADFREE_MODE);
+    }
+    else {
+#endif
+        if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
+            if (IS_RC_MODE_ACTIVE(BOXMAG)) {
+                if (!FLIGHT_MODE(MAG_MODE)) {
+                    ENABLE_FLIGHT_MODE(MAG_MODE);
+                    magHold = heading;
+                }
+            } else {
+                DISABLE_FLIGHT_MODE(MAG_MODE);
             }
-        } else {
-            DISABLE_FLIGHT_MODE(MAG_MODE);
-        }
-        if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
-            if (!FLIGHT_MODE(HEADFREE_MODE)) {
-                ENABLE_FLIGHT_MODE(HEADFREE_MODE);
+            if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
+                if (!FLIGHT_MODE(HEADFREE_MODE)) {
+                    ENABLE_FLIGHT_MODE(HEADFREE_MODE);
+                }
+            } else {
+                DISABLE_FLIGHT_MODE(HEADFREE_MODE);
             }
-        } else {
-            DISABLE_FLIGHT_MODE(HEADFREE_MODE);
+            if (IS_RC_MODE_ACTIVE(BOXHEADADJ)) {
+                headFreeModeHold = heading; // acquire new heading
+            }
         }
-        if (IS_RC_MODE_ACTIVE(BOXHEADADJ)) {
-            headFreeModeHold = heading; // acquire new heading
-        }
+#if defined(NAV)        
     }
 #endif
-
-#ifdef GPS
-    if (sensors(SENSOR_GPS)) {
-        updateGpsWaypointsAndMode();
-    }
 #endif
 
     if (IS_RC_MODE_ACTIVE(BOXPASSTHRU)) {
@@ -705,7 +691,7 @@ void filterRc(void){
 void loop(void)
 {
     static uint32_t loopTime;
-#if defined(BARO) || defined(SONAR)
+#if defined(NAV)
     static bool haveProcessedAnnexCodeOnce = false;
 #endif
 
@@ -714,25 +700,12 @@ void loop(void)
     if (shouldProcessRx(currentTime)) {
         processRx();
         isRXDataNew = true;
-
-#ifdef BARO
+#if defined(NAV)
         // the 'annexCode' initialses rcCommand, updateAltHoldState depends on valid rcCommand data.
         if (haveProcessedAnnexCodeOnce) {
-            if (sensors(SENSOR_BARO)) {
-                updateAltHoldState();
-            }
+            updateWaypointsAndNavigationMode();
         }
 #endif
-
-#ifdef SONAR
-        // the 'annexCode' initialses rcCommand, updateAltHoldState depends on valid rcCommand data.
-        if (haveProcessedAnnexCodeOnce) {
-            if (sensors(SENSOR_SONAR)) {
-                updateSonarAltHoldState();
-            }
-        }
-#endif
-
     } else {
         // not processing rx this iteration
         executePeriodicTasks();
@@ -774,7 +747,7 @@ void loop(void)
             filterRc();
         }
 
-#if defined(BARO) || defined(SONAR)
+#if defined(NAV)
         haveProcessedAnnexCodeOnce = true;
 #endif
 
@@ -788,12 +761,9 @@ void loop(void)
         updateGtuneState();
 #endif
 
-#if defined(BARO) || defined(SONAR)
-        if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR)) {
-            if (FLIGHT_MODE(BARO_MODE) || FLIGHT_MODE(SONAR_MODE)) {
-                applyAltHold(&masterConfig.airplaneConfig);
-            }
-        }
+#if defined(NAV)
+        updatePositionEstimator();
+        applyWaypointNavigationAndAltitudeHold();
 #endif
 
         // If we're armed, at minimum throttle, and we do arming via the
@@ -810,18 +780,13 @@ void loop(void)
             rcCommand[YAW] = 0;
         }
 
-
-        if (currentProfile->throttle_correction_value && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            rcCommand[THROTTLE] += calculateThrottleAngleCorrection(currentProfile->throttle_correction_value);
-        }
-
-#ifdef GPS
-        if (sensors(SENSOR_GPS)) {
-            if ((FLIGHT_MODE(GPS_HOME_MODE) || FLIGHT_MODE(GPS_HOLD_MODE)) && STATE(GPS_FIX_HOME)) {
-                updateGpsStateForHomeAndHoldMode();
+        // Apply manual angle correction only if nav does not override it
+        if (!navigationControlsThrottleAngleCorrection()) {
+            if (currentProfile->throttle_correction_value && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+                rcCommand[THROTTLE] += calculateThrottleAngleCorrection(currentProfile->throttle_correction_value, 
+                                                                        currentProfile->throttle_correction_angle);
             }
         }
-#endif
 
         // PID - note this is function pointer set by setPIDController()
         pid_controller(

@@ -70,7 +70,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 #include "flight/failsafe.h"
 
 #include "telemetry/telemetry.h"
@@ -123,6 +123,8 @@ static void cliGet(char *cmdline);
 static void cliStatus(char *cmdline);
 static void cliVersion(char *cmdline);
 static void cliRxRange(char *cmdline);
+static void cliPFlags(char *cmdline);
+
 
 #ifdef GPS
 static void cliGpsPassthrough(char *cmdline);
@@ -286,6 +288,7 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("set", "change setting",
         "[<name>=<value>]", cliSet),
+    CLI_COMMAND_DEF("pflags", "get persistent flags", NULL, cliPFlags),
 #ifdef USE_SERVOS
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed> <min> <max> <box>\r\n"
@@ -353,8 +356,6 @@ const clivalue_t valueTable[] = {
     { "auto_disarm_delay",          VAR_UINT8  | MASTER_VALUE,  &masterConfig.auto_disarm_delay, 0, 60 },
     { "small_angle",                VAR_UINT8  | MASTER_VALUE,  &masterConfig.small_angle, 0, 180 },
 
-    { "fixedwing_althold_dir",      VAR_INT8   | MASTER_VALUE,  &masterConfig.airplaneConfig.fixedwing_althold_dir, -1, 1 },
-
     { "reboot_character",           VAR_UINT8  | MASTER_VALUE,  &masterConfig.serialConfig.reboot_character, 48, 126 },
 
 #ifdef GPS
@@ -372,11 +373,44 @@ const clivalue_t valueTable[] = {
     { "gps_nav_p",                  VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.P8[PIDNAVR], 0, 200 },
     { "gps_nav_i",                  VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.I8[PIDNAVR], 0, 200 },
     { "gps_nav_d",                  VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.D8[PIDNAVR], 0, 200 },
-    { "gps_wp_radius",              VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].gpsProfile.gps_wp_radius, 0, 2000 },
-    { "nav_controls_heading",       VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].gpsProfile.nav_controls_heading, 0, 1 },
-    { "nav_speed_min",              VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].gpsProfile.nav_speed_min, 10, 2000 },
-    { "nav_speed_max",              VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].gpsProfile.nav_speed_max, 10, 2000 },
-    { "nav_slew_rate",              VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].gpsProfile.nav_slew_rate, 0, 100 },
+#endif
+
+#ifdef NAV
+    { "inav_dead_reckoning",        VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.inav.enable_dead_reckoning, 0, 1 },
+    { "inav_gps_delay",             VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.inav.gps_delay_ms, 0, 500 },
+
+    { "inav_w_z_baro_p",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_baro_p, 0, 10 },
+    { "inav_w_z_baro_v",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_baro_v, 0, 10 },
+    { "inav_w_z_sonar_p",           VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_sonar_p, 0, 10 },
+    { "inav_w_z_sonar_v",           VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_sonar_v, 0, 10 },
+    { "inav_w_z_gps_p",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_gps_p, 0, 10 },
+    { "inav_w_z_gps_v",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_gps_v, 0, 10 },
+    { "inav_w_xy_gps_p",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_gps_p, 0, 10 },
+    { "inav_w_xy_gps_v",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_gps_v, 0, 10 },
+    { "inav_w_xy_dr_p",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_dr_p, 0, 10 },
+    { "inav_w_xy_dr_v",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_dr_v, 0, 10 },
+    { "inav_w_z_res_v",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_res_v, 0, 10 },
+    { "inav_w_xy_res_v",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_res_v, 0, 10 },
+
+    { "inav_max_eph_epv",           VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.max_eph_epv, 0, 9999 },
+    { "inav_sonar_epv",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.sonar_epv, 0, 9999 },
+    { "inav_baro_epv",              VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.baro_epv, 0, 9999 },
+
+    { "nav_use_midrc_for_althold",  VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.flags.use_midrc_for_althold, 0, 1 },
+    { "nav_throttle_tilt_comp",     VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.flags.throttle_tilt_comp, 0, 1 },
+    { "nav_lock_until_takeoff",     VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.flags.lock_nav_until_takeoff, 0, 1 },
+    { "nav_user_control_mode",      VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.flags.user_control_mode, 0, 1 },
+    { "nav_pterm_cut_hz",           VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.pterm_cut_hz, 0, 100 },
+    { "nav_dterm_cut_hz",           VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.dterm_cut_hz, 0, 100 },
+    { "nav_wp_radius",              VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.waypoint_radius, 0, 2000 },
+    { "nav_max_speed",              VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.max_speed, 10, 2000 },
+    { "nav_manual_speed",           VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.max_manual_speed, 10, 2000 },
+    { "nav_manual_climb_rate",      VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.max_manual_climb_rate, 10, 2000 },
+    { "pos_hold_deadband",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.pos_hold_deadband, 0, 250 },
+    { "alt_hold_deadband",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.alt_hold_deadband, 0, 250 },
+    { "nav_min_rth_distance",       VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.min_rth_distance, 0, 5000 },
+    { "nav_rth_alt_mode",           VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.flags.rth_alt_control_style, 0, 3 },
+    { "nav_rth_altitude",           VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.rth_altitude, 0, 10000 },
 #endif
 
     { "serialrx_provider",          VAR_UINT8  | MASTER_VALUE,  &masterConfig.rxConfig.serialrx_provider, 0, SERIALRX_PROVIDER_MAX },
@@ -416,8 +450,6 @@ const clivalue_t valueTable[] = {
     { "gyro_cmpf_factor",           VAR_UINT16 | MASTER_VALUE,  &masterConfig.gyro_cmpf_factor, 100, 1000 },
     { "gyro_cmpfm_factor",          VAR_UINT16 | MASTER_VALUE,  &masterConfig.gyro_cmpfm_factor, 100, 1000 },
 
-    { "alt_hold_deadband",          VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].rcControlsConfig.alt_hold_deadband, 1, 250 },
-    { "alt_hold_fast_change",       VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].rcControlsConfig.alt_hold_fast_change, 0, 1 },
     { "deadband",                   VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].rcControlsConfig.deadband, 0, 32 },
     { "yaw_deadband",               VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].rcControlsConfig.yaw_deadband, 0, 100 },
 
@@ -462,17 +494,12 @@ const clivalue_t valueTable[] = {
 
     { "acc_hardware",               VAR_UINT8  | MASTER_VALUE,  &masterConfig.acc_hardware, 0, ACC_MAX },
     { "acc_lpf_factor",             VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].acc_lpf_factor, 0, 250 },
-    { "accxy_deadband",             VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].accDeadband.xy, 0, 100 },
-    { "accz_deadband",              VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].accDeadband.z, 0, 100 },
-    { "accz_lpf_cutoff",            VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].accz_lpf_cutoff, 1, 20 },
     { "acc_unarmedcal",             VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].acc_unarmedcal, 0, 1 },
     { "acc_trim_pitch",             VAR_INT16  | PROFILE_VALUE, &masterConfig.profile[0].accelerometerTrims.values.pitch, -300, 300 },
     { "acc_trim_roll",              VAR_INT16  | PROFILE_VALUE, &masterConfig.profile[0].accelerometerTrims.values.roll, -300, 300 },
 
     { "baro_tab_size",              VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].barometerConfig.baro_sample_count, 0, BARO_SAMPLE_COUNT_MAX },
     { "baro_noise_lpf",             VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].barometerConfig.baro_noise_lpf, 0, 1 },
-    { "baro_cf_vel",                VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].barometerConfig.baro_cf_vel, 0, 1 },
-    { "baro_cf_alt",                VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].barometerConfig.baro_cf_alt, 0, 1 },
     { "baro_hardware",              VAR_UINT8  | MASTER_VALUE,  &masterConfig.baro_hardware, 0, BARO_MAX },
 
     { "mag_hardware",               VAR_UINT8  | MASTER_VALUE,  &masterConfig.mag_hardware, 0, MAG_MAX },
@@ -1455,6 +1482,9 @@ static void cliDump(char *cmdline)
         cliPrint("\r\n# version\r\n");
         cliVersion(NULL);
 
+        cliPrint("\r\n# pflags\r\n");
+        cliPFlags("");
+
         cliPrint("\r\n# dump master\r\n");
         cliPrint("\r\n# mixer\r\n");
 
@@ -2178,6 +2208,13 @@ static void cliVersion(char *cmdline)
         buildTime,
         shortGitRevision
     );
+}
+
+static void cliPFlags(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    printf("# Persistent config flags: 0x%08x", masterConfig.persistentFlags );
 }
 
 void cliProcess(void)

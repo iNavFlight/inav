@@ -49,6 +49,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/lowpass.h"
+#include "flight/navigation_rewrite.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
@@ -63,7 +64,6 @@ int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static mixerConfig_t *mixerConfig;
 static flight3DConfig_t *flight3DConfig;
 static escAndServoConfig_t *escAndServoConfig;
-static airplaneConfig_t *airplaneConfig;
 static rxConfig_t *rxConfig;
 
 static mixerMode_e currentMixerMode;
@@ -333,7 +333,6 @@ void mixerUseConfigs(
         flight3DConfig_t *flight3DConfigToUse,
         escAndServoConfig_t *escAndServoConfigToUse,
         mixerConfig_t *mixerConfigToUse,
-        airplaneConfig_t *airplaneConfigToUse,
         rxConfig_t *rxConfigToUse)
 {
 #ifdef USE_SERVOS
@@ -343,7 +342,6 @@ void mixerUseConfigs(
     flight3DConfig = flight3DConfigToUse;
     escAndServoConfig = escAndServoConfigToUse;
     mixerConfig = mixerConfigToUse;
-    airplaneConfig = airplaneConfigToUse;
     rxConfig = rxConfigToUse;
 }
 

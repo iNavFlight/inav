@@ -17,14 +17,14 @@
 
 #pragma once
 
+#include "flight/pid.h"
+
 extern int16_t throttleAngleCorrection;
-extern uint32_t accTimeSum;
-extern int accSumCount;
-extern float accVelScale;
 extern t_fp_vector EstG;
 extern int16_t accSmooth[XYZ_AXIS_COUNT];
-extern int32_t accSum[XYZ_AXIS_COUNT];
 extern int16_t smallAngle;
+extern t_fp_vector imuAverageVelocity;
+extern t_fp_vector imuAverageAcceleration;
 
 typedef struct rollAndPitchInclination_s {
     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
@@ -39,11 +39,6 @@ typedef union {
 
 extern rollAndPitchInclination_t inclination;
 
-typedef struct accDeadband_s {
-    uint8_t xy;                 // set the acc deadband for xy-Axis
-    uint8_t z;                  // set the acc deadband for z-Axis, this ignores small accelerations
-} accDeadband_t;
-
 typedef struct imuRuntimeConfig_s {
     uint8_t acc_lpf_factor;
     uint8_t acc_unarmedcal;
@@ -52,22 +47,15 @@ typedef struct imuRuntimeConfig_s {
     uint8_t small_angle;
 } imuRuntimeConfig_t;
 
-void imuConfigure(
-    imuRuntimeConfig_t *initialImuRuntimeConfig,
-    pidProfile_t *initialPidProfile,
-    accDeadband_t *initialAccDeadband,
-    float accz_lpf_cutoff,
-    uint16_t throttle_correction_angle
-);
+void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig, pidProfile_t *initialPidProfile);
 
 void calculateEstimatedAltitude(uint32_t currentTime);
 void imuUpdate(rollAndPitchTrims_t *accelerometerTrims);
 float calculateThrottleAngleScale(uint16_t throttle_correction_angle);
-int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value);
-float calculateAccZLowPassFilterRCTimeConstant(float accz_lpf_cutoff);
+int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value, int16_t throttle_correction_angle);
+int16_t calculateTiltAngle(void);
+float calculateAccLowPassFilterRCTimeConstant(float acc_lpf_cutoff);
+float calculateCosTiltAngle(void);
 
 int16_t imuCalculateHeading(t_fp_vector *vec);
-
-void imuResetAccelerationSum(void);
-
-
+void imuApplyFilterToActualVelocity(uint8_t axis, float cfFactor, float referenceVelocity);

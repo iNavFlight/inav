@@ -49,11 +49,21 @@ typedef enum {
 void handleOneshotFeatureChangeOnRestart(void);
 void latchActiveFeatures(void);
 bool featureConfigured(uint32_t mask);
+
+typedef enum {
+    FLAG_MAG_CALIBRATION_DONE = 1 << 0,
+} persistent_flags_e;
+
 bool feature(uint32_t mask);
 void featureSet(uint32_t mask);
 void featureClear(uint32_t mask);
 void featureClearAll(void);
 uint32_t featureMask(void);
+
+bool persistentFlag(uint8_t mask);
+void persistentFlagSet(uint8_t mask);
+void persistentFlagClear(uint8_t mask);
+void persistentFlagClearAll();
 
 void copyCurrentProfileToProfileSlot(uint8_t profileSlotIndex);
 

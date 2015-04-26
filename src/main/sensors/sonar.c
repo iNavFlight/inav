@@ -122,13 +122,16 @@ int32_t sonarRead(void)
  *
  * When the ground is too far away or the tilt is too strong, -1 is returned instead.
  */
-int32_t sonarCalculateAltitude(int32_t sonarAlt, int16_t tiltAngle)
+int32_t sonarCalculateAltitude(int32_t sonarAlt, float cosTiltAngle)
 {
-    // calculate sonar altitude only if the sonar is facing downwards(<25deg)
-    if (tiltAngle > 250)
+    if (sonarAlt < 0)
+        return sonarAlt;
+
+    // calculate sonar altitude only if the sonar is facing downwards(<30deg)
+    if (cosTiltAngle < 0.866f)
         calculatedAltitude = -1;
     else
-        calculatedAltitude = sonarAlt * (900.0f - tiltAngle) / 900.0f;
+        calculatedAltitude = sonarAlt * cosTiltAngle;
 
     return calculatedAltitude;
 }

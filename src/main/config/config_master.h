@@ -25,6 +25,7 @@ typedef struct master_t {
 
     uint8_t mixerMode;
     uint32_t enabledFeatures;
+    uint8_t persistentFlags;
     uint16_t looptime;                      // imu loop time in us
     uint8_t emf_avoidance;                   // change pll settings to avoid noise in the uhf band
 
@@ -74,10 +75,9 @@ typedef struct master_t {
     // mixer-related configuration
     mixerConfig_t mixerConfig;
 
-    airplaneConfig_t airplaneConfig;
-
 #ifdef GPS
     gpsConfig_t gpsConfig;
+    navConfig_t navConfig;
 #endif
 
     serialConfig_t serialConfig;

@@ -52,7 +52,7 @@
 #include "io/display.h"
 
 #include "flight/pid.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 #include "flight/failsafe.h"
 
 #include "blackbox/blackbox.h"
@@ -204,17 +204,6 @@ void processRcStickPositions(rxConfig_t *rxConfig, throttleStatus_e throttleStat
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {
         // GYRO calibration
         gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
-
-#ifdef GPS
-        if (feature(FEATURE_GPS)) {
-            GPS_reset_home_position();
-        }
-#endif
-
-#ifdef BARO
-        if (sensors(SENSOR_BARO))
-            baroSetCalibrationCycles(10); // calibrate baro to new ground level (10 * 25 ms = ~250 ms non blocking)
-#endif
 
         if (!sensors(SENSOR_MAG))
             heading = 0; // reset heading to zero after gyro calibration
