@@ -223,7 +223,6 @@ COMMON_SRC	 = build_config.c \
 		   common/encoding.c \
 		   main.c \
 		   mw.c \
-		   flight/altitudehold.c \
 		   flight/failsafe.c \
 		   flight/pid.c \
 		   flight/imu.c \
@@ -260,7 +259,7 @@ COMMON_SRC	 = build_config.c \
 		   $(DEVICE_STDPERIPH_SRC)
 
 HIGHEND_SRC  = flight/autotune.c \
-		   flight/navigation.c \
+           flight/navigation_rewrite.c \
 		   flight/gps_conversion.c \
 		   common/colorconversion.c \
 		   io/gps.c \

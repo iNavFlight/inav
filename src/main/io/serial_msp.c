@@ -68,8 +68,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
-#include "flight/navigation.h"
-#include "flight/altitudehold.h"
+#include "flight/navigation_rewrite.h"
 
 #include "mw.h"
 
@@ -318,15 +317,11 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXARM, "ARM;", 0 },
     { BOXANGLE, "ANGLE;", 1 },
     { BOXHORIZON, "HORIZON;", 2 },
-    { BOXBARO, "BARO;", 3 },
-    //{ BOXVARIO, "VARIO;", 4 },
     { BOXMAG, "MAG;", 5 },
     { BOXHEADFREE, "HEADFREE;", 6 },
     { BOXHEADADJ, "HEADADJ;", 7 },
     { BOXCAMSTAB, "CAMSTAB;", 8 },
     { BOXCAMTRIG, "CAMTRIG;", 9 },
-    { BOXGPSHOME, "GPS HOME;", 10 },
-    { BOXGPSHOLD, "GPS HOLD;", 11 },
     { BOXPASSTHRU, "PASSTHRU;", 12 },
     { BOXBEEPERON, "BEEPER;", 13 },
     { BOXLEDMAX, "LEDMAX;", 14 },
@@ -337,11 +332,13 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSD, "OSD SW;", 19 },
     { BOXTELEMETRY, "TELEMETRY;", 20 },
     { BOXAUTOTUNE, "AUTOTUNE;", 21 },
-    { BOXSONAR, "SONAR;", 22 },
     { BOXSERVO1, "SERVO1;", 23 },
     { BOXSERVO2, "SERVO2;", 24 },
     { BOXSERVO3, "SERVO3;", 25 },
-    
+    { BOXNAVALTHOLD, "NAV ALTHOLD;", 26 },
+    { BOXNAVPOSHOLD, "NAV POSHOLD;", 27 },
+    { BOXNAVRTH, "NAV RTH;", 28 },
+    { BOXNAVWP, "NAV WP;", 29 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -633,10 +630,6 @@ void mspInit(serialConfig_t *serialConfig)
         activeBoxIds[activeBoxIdCount++] = BOXHORIZON;
     }
 
-    if (sensors(SENSOR_BARO)) {
-        activeBoxIds[activeBoxIdCount++] = BOXBARO;
-    }
-
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
         activeBoxIds[activeBoxIdCount++] = BOXMAG;
         activeBoxIds[activeBoxIdCount++] = BOXHEADFREE;
@@ -647,9 +640,15 @@ void mspInit(serialConfig_t *serialConfig)
         activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
 #ifdef GPS
-    if (feature(FEATURE_GPS)) {
-        activeBoxIds[activeBoxIdCount++] = BOXGPSHOME;
-        activeBoxIds[activeBoxIdCount++] = BOXGPSHOLD;
+    if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR)) {
+        activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
+    }
+    if (feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) {
+        activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+    }
+    if (feature(FEATURE_GPS) && sensors(SENSOR_ACC) && sensors(SENSOR_MAG) && (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR))) {
+        activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
+        activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
     }
 #endif
 
@@ -676,10 +675,6 @@ void mspInit(serialConfig_t *serialConfig)
     activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
 #endif
 
-    if (feature(FEATURE_SONAR)){
-        activeBoxIds[activeBoxIdCount++] = BOXSONAR;
-    }
-
 #ifdef USE_SERVOS
     if (masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE) {
         activeBoxIds[activeBoxIdCount++] = BOXSERVO1;
@@ -700,7 +695,7 @@ static bool processOutCommand(uint8_t cmdMSP)
 
 #ifdef GPS
     uint8_t wp_no;
-    int32_t lat = 0, lon = 0;
+    int32_t lat = 0, lon = 0, alt = 0;
 #endif
 
     switch (cmdMSP) {
@@ -789,14 +784,11 @@ static bool processOutCommand(uint8_t cmdMSP)
         junk = 0;
         tmp = IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)) << BOXANGLE |
             IS_ENABLED(FLIGHT_MODE(HORIZON_MODE)) << BOXHORIZON |
-            IS_ENABLED(FLIGHT_MODE(BARO_MODE)) << BOXBARO |
             IS_ENABLED(FLIGHT_MODE(MAG_MODE)) << BOXMAG |
             IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)) << BOXHEADFREE |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)) << BOXHEADADJ |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)) << BOXCAMSTAB |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMTRIG)) << BOXCAMTRIG |
-            IS_ENABLED(FLIGHT_MODE(GPS_HOME_MODE)) << BOXGPSHOME |
-            IS_ENABLED(FLIGHT_MODE(GPS_HOLD_MODE)) << BOXGPSHOLD |
             IS_ENABLED(FLIGHT_MODE(PASSTHRU_MODE)) << BOXPASSTHRU |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)) << BOXBEEPERON |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDMAX)) << BOXLEDMAX |
@@ -807,7 +799,10 @@ static bool processOutCommand(uint8_t cmdMSP)
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSD)) << BOXOSD |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTELEMETRY)) << BOXTELEMETRY |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) << BOXAUTOTUNE |
-            IS_ENABLED(FLIGHT_MODE(SONAR_MODE)) << BOXSONAR |
+            IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)) << BOXNAVALTHOLD |
+            IS_ENABLED(FLIGHT_MODE(NAV_POSHOLD_MODE)) << BOXNAVPOSHOLD |
+            IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)) << BOXNAVRTH |
+            IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)) << BOXNAVWP |
             IS_ENABLED(ARMING_FLAG(ARMED)) << BOXARM;
         for (i = 0; i < activeBoxIdCount; i++) {
             int flag = (tmp & (1 << activeBoxIds[i]));
@@ -876,12 +871,13 @@ static bool processOutCommand(uint8_t cmdMSP)
         break;
     case MSP_ALTITUDE:
         headSerialReply(6);
-#if defined(BARO) || defined(SONAR)
-        serialize32(altitudeHoldGetEstimatedAltitude());
+#if defined(NAV)
+        serialize32(actualPosition.altitude);
+        serialize16(actualVerticalVelocity);
 #else
         serialize32(0);
+        serialize16(0);
 #endif
-        serialize16(vario);
         break;
     case MSP_SONAR_ALTITUDE:
         headSerialReply(4);
@@ -1051,24 +1047,26 @@ static bool processOutCommand(uint8_t cmdMSP)
         break;
     case MSP_COMP_GPS:
         headSerialReply(5);
-        serialize16(GPS_distanceToHome);
-        serialize16(GPS_directionToHome);
+        serialize16(distanceToHome);
+        serialize16(directionToHome);
         serialize8(GPS_update & 1);
         break;
     case MSP_WP:
         wp_no = read8();    // get the wp number
         headSerialReply(18);
         if (wp_no == 0) {
-            lat = GPS_home[LAT];
-            lon = GPS_home[LON];
+            lat = homePosition.coordinates[LAT];
+            lon = homePosition.coordinates[LON];
+            alt = homePosition.altitude;
         } else if (wp_no == 16) {
-            lat = GPS_hold[LAT];
-            lon = GPS_hold[LON];
+            lat = activeWpOrHoldPosition.coordinates[LAT];
+            lon = activeWpOrHoldPosition.coordinates[LON];
+            alt = activeWpOrHoldPosition.altitude;
         }
         serialize8(wp_no);
         serialize32(lat);
         serialize32(lon);
-        serialize32(AltHold);           // altitude (cm) will come here -- temporary implementation to test feature with apps
+        serialize32(alt);            // altitude (cm) will come here -- temporary implementation to test feature with apps
         serialize16(0);                 // heading  will come here (deg)
         serialize16(0);                 // time to stay (ms) will come here
         serialize8(0);                  // nav flag will come here
@@ -1515,19 +1513,14 @@ static bool processInCommand(void)
         read16();           // future: to set time to stay (ms)
         read8();            // future: to set nav flag
         if (wp_no == 0) {
-            GPS_home[LAT] = lat;
-            GPS_home[LON] = lon;
-            DISABLE_FLIGHT_MODE(GPS_HOME_MODE);        // with this flag, GPS_set_next_wp will be called in the next loop -- OK with SERIAL GPS / OK with I2C GPS
+            homePosition.coordinates[LAT] = lat;
+            homePosition.coordinates[LON] = lon;
+            homePosition.altitude = alt;
             ENABLE_STATE(GPS_FIX_HOME);
-            if (alt != 0)
-                AltHold = alt;          // temporary implementation to test feature with apps
+            updateHomePosition();
         } else if (wp_no == 16) {       // OK with SERIAL GPS  --  NOK for I2C GPS / needs more code dev in order to inject GPS coord inside I2C GPS
-            GPS_hold[LAT] = lat;
-            GPS_hold[LON] = lon;
-            if (alt != 0)
-                AltHold = alt;          // temporary implementation to test feature with apps
-            nav_mode = NAV_MODE_WP;
-            GPS_set_next_wp(&GPS_hold[LAT], &GPS_hold[LON]);
+            // FIXME: handle this correctly only if in WP mode
+            setNextWaypointAndCalculateBearing(lat, lon, alt);
         }
         break;
 #endif

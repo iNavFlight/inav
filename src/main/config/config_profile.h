@@ -55,6 +55,6 @@ typedef struct profile_s {
 #endif
 
 #ifdef GPS
-    gpsProfile_t gpsProfile;
+    navProfile_t navProfile;
 #endif
 } profile_t;

@@ -48,7 +48,7 @@
 
 #include "flight/gps_conversion.h"
 #include "flight/pid.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 
 #include "config/config.h"
 #include "config/runtime_config.h"
@@ -438,7 +438,7 @@ void gpsReadNewDataI2C(void)
                 else
                     GPS_update = 1;
 
-                onGpsNewData();
+                onNewGPSData(GPS_coord[LAT], GPS_coord[LON]);
             }
 
             // new data received and parsed, we're in business
@@ -485,7 +485,6 @@ void gpsReadNewData(void)
 
 void gpsThread(void)
 {
-    // read out available GPS bytes
     gpsReadNewData();
 
     switch (gpsData.state) {
@@ -545,7 +544,7 @@ static void gpsNewDataSerial(uint16_t c)
     debug[3] = GPS_update;
 #endif
 
-    onGpsNewData();
+    onNewGPSData(GPS_coord[LAT], GPS_coord[LON]);
 }
 
 bool gpsNewFrameFromSerial(uint8_t c)

@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <math.h>
 
 #include "platform.h"
 #include "version.h"
@@ -66,10 +67,9 @@
 #include "telemetry/telemetry.h"
 
 #include "flight/mixer.h"
-#include "flight/altitudehold.h"
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
@@ -218,7 +218,24 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"motor",      7, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_8)},
 
     /* Tricopter tail servo */
-    {"servo",      5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(TRICOPTER)}
+    {"servo",      5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(TRICOPTER)},
+
+#ifdef NAV_BLACKBOX
+    {"navPosErr",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navPosErr",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navPosErr",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navRealVel", 0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navRealVel", 1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navRealVel", 2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navTgtVel",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navTgtVel",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navTgtVel",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navTgtAlt", -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navGPSVel",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navGPSVel",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navHeading",-1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navThrAngC",-1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)}
+#endif
 };
 
 #ifdef GPS
@@ -284,6 +301,15 @@ typedef struct blackboxMainState_t {
     int32_t sonarRaw;
 #endif
     uint16_t rssi;
+#ifdef NAV_BLACKBOX
+    int16_t navPosError[XYZ_AXIS_COUNT];
+    int16_t navRealVel[XYZ_AXIS_COUNT];
+    int16_t navTargetVel[XYZ_AXIS_COUNT];
+    int16_t navTargetAlt;
+    int16_t navGPSVel[XYZ_AXIS_COUNT];
+    int16_t navHeading;
+    int16_t navThrottleAngleCorrection;
+#endif
 } blackboxMainState_t;
 
 typedef struct blackboxGpsState_t {
@@ -364,7 +390,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_7:
         case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_8:
             return motorCount >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1;
-        
+
         case FLIGHT_LOG_FIELD_CONDITION_TRICOPTER:
             return masterConfig.mixerMode == MIXER_TRI || masterConfig.mixerMode == MIXER_CUSTOM_TRI;
 
@@ -558,6 +584,30 @@ static void writeIntraframe(void)
         blackboxWriteSignedVB(blackboxHistory[0]->servo[5] - 1500);
     }
 
+#ifdef NAV_BLACKBOX
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navPosError[x]);
+    }
+
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navRealVel[x]);
+    }
+
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navTargetVel[x]);
+    }
+
+    blackboxWriteSignedVB(blackboxCurrent->navTargetAlt);
+
+    for (x = 0; x < 2; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navGPSVel[x]);
+    }
+
+    blackboxWriteSignedVB(blackboxCurrent->navHeading);
+
+    blackboxWriteSignedVB(blackboxCurrent->navThrottleAngleCorrection);
+#endif
+
     //Rotate our history buffers:
 
     //The current state becomes the new "before" state
@@ -599,7 +649,7 @@ static void writeInterframe(void)
      * that can pack all three fields into one byte in that situation.
      */
     blackboxWriteTag2_3S32(deltas);
-    
+
     /*
      * The PID D term is frequently set to zero for yaw, which makes the result from the calculation
      * always zero. So don't bother recording D results when PID D terms are zero.
@@ -673,6 +723,30 @@ static void writeInterframe(void)
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_TRICOPTER)) {
         blackboxWriteSignedVB(blackboxCurrent->servo[5] - blackboxLast->servo[5]);
     }
+
+#ifdef NAV_BLACKBOX
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxHistory[0]->navPosError[x] - (blackboxHistory[1]->navPosError[x] + blackboxHistory[2]->navPosError[x]) / 2);
+    }
+
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxHistory[0]->navRealVel[x] - (blackboxHistory[1]->navRealVel[x] + blackboxHistory[2]->navRealVel[x]) / 2);
+    }
+
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxHistory[0]->navTargetVel[x] - (blackboxHistory[1]->navTargetVel[x] + blackboxHistory[2]->navTargetVel[x]) / 2);
+    }
+
+    blackboxWriteSignedVB(blackboxCurrent->navTargetAlt - blackboxLast->navTargetAlt);
+
+    for (x = 0; x < 2; x++) {
+        blackboxWriteSignedVB(blackboxHistory[0]->navGPSVel[x] - (blackboxHistory[1]->navGPSVel[x] + blackboxHistory[2]->navGPSVel[x]) / 2);
+    }
+
+    blackboxWriteSignedVB(blackboxCurrent->navHeading - blackboxLast->navHeading);
+
+    blackboxWriteSignedVB(blackboxCurrent->navThrottleAngleCorrection - blackboxLast->navThrottleAngleCorrection);
+#endif
 
     //Rotate our history buffers
     blackboxHistory[2] = blackboxHistory[1];
@@ -831,12 +905,12 @@ static void writeGPSHomeFrame()
 {
     blackboxWrite('H');
 
-    blackboxWriteSignedVB(GPS_home[0]);
-    blackboxWriteSignedVB(GPS_home[1]);
+    blackboxWriteSignedVB(homePosition.coordinates[0]);
+    blackboxWriteSignedVB(homePosition.coordinates[1]);
     //TODO it'd be great if we could grab the GPS current time and write that too
 
-    gpsHistory.GPS_home[0] = GPS_home[0];
-    gpsHistory.GPS_home[1] = GPS_home[1];
+    gpsHistory.GPS_home[0] = homePosition.coordinates[0];
+    gpsHistory.GPS_home[1] = homePosition.coordinates[1];
 }
 
 static void writeGPSFrame()
@@ -926,6 +1000,20 @@ static void loadMainState(void)
 #ifdef USE_SERVOS
     //Tail servo for tricopters
     blackboxCurrent->servo[5] = servo[5];
+#endif
+
+#ifdef NAV_BLACKBOX
+    for (i = 0; i < XYZ_AXIS_COUNT; i++) {
+        blackboxCurrent->navRealVel[i] = navActualVelocity[i];
+        blackboxCurrent->navTargetVel[i] = navDesiredVelocity[i];
+        blackboxCurrent->navPosError[i] = navLatestPositionError[i];
+    }
+    for (i = 0; i < 2; i++) {
+        blackboxCurrent->navGPSVel[i] = navGPSVelocity[i];
+    }
+    blackboxCurrent->navHeading = navActualHeading;
+    blackboxCurrent->navTargetAlt = navTargetAltitude;
+    blackboxCurrent->navThrottleAngleCorrection = navThrottleAngleCorrection;
 #endif
 }
 
@@ -1201,7 +1289,7 @@ static void blackboxLogIteration()
              * We write it periodically so that if one Home Frame goes missing, the GPS coordinates can
              * still be interpreted correctly.
              */
-            if (GPS_home[0] != gpsHistory.GPS_home[0] || GPS_home[1] != gpsHistory.GPS_home[1]
+            if (homePosition.coordinates[0] != gpsHistory.GPS_home[0] || homePosition.coordinates[1] != gpsHistory.GPS_home[1]
                 || (blackboxPFrameIndex == BLACKBOX_I_INTERVAL / 2 && blackboxIFrameIndex % 128 == 0)) {
 
                 writeGPSHomeFrame();
