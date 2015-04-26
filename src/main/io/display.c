@@ -55,7 +55,7 @@
 
 #ifdef GPS
 #include "io/gps.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 #endif
 
 #include "config/runtime_config.h"

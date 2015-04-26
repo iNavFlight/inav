@@ -77,7 +77,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/failsafe.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
@@ -110,7 +110,6 @@ void mixerInit(mixerMode_e mixerMode, motorMixer_t *customMixers);
 void mixerUsePWMOutputConfiguration(pwmOutputConfiguration_t *pwmOutputConfiguration);
 void rxInit(rxConfig_t *rxConfig);
 void gpsInit(serialConfig_t *serialConfig, gpsConfig_t *initialGpsConfig);
-void navigationInit(gpsProfile_t *initialGpsProfile, pidProfile_t *pidProfile);
 void imuInit(void);
 void displayInit(rxConfig_t *intialRxConfig);
 void ledStripInit(ledConfig_t *ledConfigsToUse, hsvColor_t *colorsToUse);
@@ -406,10 +405,15 @@ void init(void)
             &masterConfig.serialConfig,
             &masterConfig.gpsConfig
         );
+        
+#ifdef NAV
         navigationInit(
-            &currentProfile->gpsProfile,
-            &currentProfile->pidProfile
+            &currentProfile->navProfile,
+            &currentProfile->pidProfile,
+            &currentProfile->barometerConfig,
+            &currentProfile->rcControlsConfig
         );
+#endif
     }
 #endif
 

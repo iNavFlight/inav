@@ -23,15 +23,11 @@ typedef enum {
     BOXARM = 0,
     BOXANGLE,
     BOXHORIZON,
-    BOXBARO,
-    // BOXVARIO,
     BOXMAG,
     BOXHEADFREE,
     BOXHEADADJ,
     BOXCAMSTAB,
     BOXCAMTRIG,
-    BOXGPSHOME,
-    BOXGPSHOLD,
     BOXPASSTHRU,
     BOXBEEPERON,
     BOXLEDMAX,
@@ -42,7 +38,10 @@ typedef enum {
     BOXOSD,
     BOXTELEMETRY,
     BOXAUTOTUNE,
-    BOXSONAR,
+    BOXNAVALTHOLD,
+    BOXNAVPOSHOLD,
+    BOXNAVRTH,
+    BOXNAVWP,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
@@ -137,7 +136,6 @@ typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
     uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.
     uint8_t alt_hold_deadband;              // defines the neutral zone of throttle stick during altitude hold, default setting is +/-40
-    uint8_t alt_hold_fast_change;           // when disabled, turn off the althold when throttle stick is out of deadband defined with alt_hold_deadband; when enabled, altitude changes slowly proportional to stick movement
 } rcControlsConfig_t;
 
 bool areUsingSticksToArm(void);
