@@ -52,7 +52,7 @@
 #include "io/display.h"
 
 #include "flight/pid.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 #include "flight/failsafe.h"
 
 #include "blackbox/blackbox.h"
@@ -207,7 +207,7 @@ void processRcStickPositions(rxConfig_t *rxConfig, throttleStatus_e throttleStat
 
 #ifdef GPS
         if (feature(FEATURE_GPS)) {
-            GPS_reset_home_position();
+            resetHomePosition();
         }
 #endif
 

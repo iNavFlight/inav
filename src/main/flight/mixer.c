@@ -49,6 +49,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/lowpass.h"
+#include "flight/navigation_rewrite.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"

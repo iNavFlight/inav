@@ -20,6 +20,8 @@
 
 #include <limits.h>
 
+#include <math.h>
+
 #define BARO
 
 extern "C" {
@@ -145,3 +147,57 @@ TEST(MathsUnittest, TestRotateVectorAroundAxis)
 
     expectVectorsAreEqual(&vector, &expected_result);
 }
+
+#if defined(FAST_MATH) || defined(VERY_FAST_MATH)
+TEST(MathsUnittest, TestFastTrigonometrySinCos)
+{
+    EXPECT_NEAR(sin_approx(0.0f),                        0.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(M_PIf / 2),                   1.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(-M_PIf / 2),                 -1.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(M_PIf),                       0.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(-M_PIf),                      0.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(3 * M_PIf / 2),              -1.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(-3 * M_PIf / 2),              1.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(2 * M_PIf),                   0.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(-2 * M_PIf),                  0.0f, 1e-6);
+    EXPECT_NEAR(sin_approx(3 * M_PIf / 4),               0.707106781f, 1e-6);
+    EXPECT_NEAR(sin_approx(-3 * M_PIf / 4),             -0.707106781f, 1e-6);
+    EXPECT_NEAR(sin_approx(2 * M_PIf + 3 * M_PIf / 4),   0.707106781f, 1e-6);
+    EXPECT_NEAR(sin_approx(-2 * M_PIf - 3 * M_PIf / 4), -0.707106781f, 1e-6);
+
+    EXPECT_NEAR(cos_approx(0.0f),                        1.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(M_PIf / 2),                   0.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(-M_PIf / 2),                  0.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(M_PIf),                      -1.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(-M_PIf),                     -1.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(3 * M_PIf / 2),               0.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(-3 * M_PIf / 2),              0.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(2 * M_PIf),                   1.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(-2 * M_PIf),                  1.0f, 1e-6);
+    EXPECT_NEAR(cos_approx(3 * M_PIf / 4),              -0.707106781f, 1e-6);
+    EXPECT_NEAR(cos_approx(-3 * M_PIf / 4),             -0.707106781f, 1e-6);
+    EXPECT_NEAR(cos_approx(2 * M_PIf + 3 * M_PIf / 4),  -0.707106781f, 1e-6);
+    EXPECT_NEAR(cos_approx(-2 * M_PIf - 3 * M_PIf / 4), -0.707106781f, 1e-6);
+}
+
+TEST(MathsUnittest, TestFastTrigonometryATan2)
+{
+    EXPECT_NEAR(atan2_approx(1, 1),          M_PIf / 4, 1e-6);
+    EXPECT_NEAR(atan2_approx(-1, 1),        -M_PIf / 4, 1e-6);
+    EXPECT_NEAR(atan2_approx(1, -1),     3 * M_PIf / 4, 1e-6);
+    EXPECT_NEAR(atan2_approx(-1, -1),   -3 * M_PIf / 4, 1e-6);
+    EXPECT_NEAR(atan2_approx(0, 1),                  0, 1e-6);
+    EXPECT_NEAR(atan2_approx(0, -1),             M_PIf, 1e-6);
+    EXPECT_NEAR(atan2_approx(1, 0),          M_PIf / 2, 1e-6);
+    EXPECT_NEAR(atan2_approx(-1, 0),        -M_PIf / 2, 1e-6);
+}
+
+TEST(MathsUnittest, TestFastTrigonometryACos)
+{
+    EXPECT_NEAR(acos_approx(0.0f),              M_PIf / 2, 1e-4);
+    EXPECT_NEAR(acos_approx(1.0f),                      0, 1e-4);
+    EXPECT_NEAR(acos_approx(-1.0f),                 M_PIf, 1e-4);
+    EXPECT_NEAR(acos_approx(0.707106781f),      M_PIf / 4, 1e-4);
+    EXPECT_NEAR(acos_approx(-0.707106781f), 3 * M_PIf / 4, 1e-4);
+}
+#endif

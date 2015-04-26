@@ -75,7 +75,7 @@
 #include "sensors/battery.h"
 
 #include "flight/pid.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 #include "io/gps.h"
 
 #include "telemetry/telemetry.h"
@@ -198,15 +198,15 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
     hottGPSMessage->gps_speed_L = speed & 0x00FF;
     hottGPSMessage->gps_speed_H = speed >> 8;
 
-    hottGPSMessage->home_distance_L = GPS_distanceToHome & 0x00FF;
-    hottGPSMessage->home_distance_H = GPS_distanceToHome >> 8;
+    hottGPSMessage->home_distance_L = distanceToHome & 0x00FF;
+    hottGPSMessage->home_distance_H = distanceToHome >> 8;
 
     uint16_t hottGpsAltitude = (GPS_altitude / 10) + HOTT_GPS_ALTITUDE_OFFSET; // 1 / 0.1f == 10, GPS_altitude of 1 == 0.1m
 
     hottGPSMessage->altitude_L = hottGpsAltitude & 0x00FF;
     hottGPSMessage->altitude_H = hottGpsAltitude >> 8;
 
-    hottGPSMessage->home_direction = GPS_directionToHome;
+    hottGPSMessage->home_direction = directionToHome;
 }
 #endif
 
