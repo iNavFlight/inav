@@ -205,6 +205,9 @@ static void gpsSetState(gpsState_e state)
     gpsData.state_position = 0;
     gpsData.state_ts = millis();
     gpsData.messageState = GPS_MESSAGE_STATE_IDLE;
+
+    if (state != GPS_RECEIVING_DATA)
+        gpsData.validData = GPS_VALID_NONE;
 }
 
 bool gpsDetectI2C(void);
@@ -431,6 +434,9 @@ void gpsReadNewDataI2C(void)
                 GPS_coord[LAT] = gpsMsg.latitude;
                 GPS_coord[LON] = gpsMsg.longitude;
 
+                // FIXME: Detect what data is actually valid
+                gpsData.validData = GPS_VALID_COORDINATES | GPS_VALID_ALTITUDE | GPS_VALID_SPEED | GPS_VALID_COURSE | GPS_VALID_HDOP;
+
                 GPS_packetCount++;
 
                 if (GPS_update == 1)
@@ -438,7 +444,7 @@ void gpsReadNewDataI2C(void)
                 else
                     GPS_update = 1;
 
-                onNewGPSData(GPS_coord[LAT], GPS_coord[LON]);
+                onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude, GPS_speed, GPS_ground_course);
             }
 
             // new data received and parsed, we're in business
@@ -544,7 +550,7 @@ static void gpsNewDataSerial(uint16_t c)
     debug[3] = GPS_update;
 #endif
 
-    onNewGPSData(GPS_coord[LAT], GPS_coord[LON]);
+    onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude, GPS_speed, GPS_ground_course);
 }
 
 bool gpsNewFrameFromSerial(uint8_t c)
@@ -800,12 +806,14 @@ static bool gpsNewFrameNMEA(char c)
                             GPS_coord[LON] = gps_Msg.longitude;
                             GPS_numSat = gps_Msg.numSat;
                             GPS_altitude = gps_Msg.altitude;
+                            gpsData.validData = gpsData.validData | GPS_VALID_COORDINATES | GPS_VALID_ALTITUDE;
                         }
                         break;
                     case FRAME_RMC:
                         *gpsPacketLogChar = LOG_NMEA_RMC;
                         GPS_speed = gps_Msg.speed;
                         GPS_ground_course = gps_Msg.ground_course;
+                        gpsData.validData = gpsData.validData | GPS_VALID_SPEED | GPS_VALID_COURSE;
                         break;
                     } // end switch
                 } else {
@@ -1010,6 +1018,7 @@ static bool UBLOX_parse_gps(void)
         } else {
             DISABLE_STATE(GPS_FIX);
         }
+        gpsData.validData = gpsData.validData | GPS_VALID_COORDINATES | GPS_VALID_ALTITUDE;
         _new_position = true;
         break;
     case MSG_STATUS:
@@ -1025,12 +1034,14 @@ static bool UBLOX_parse_gps(void)
             DISABLE_STATE(GPS_FIX);
         GPS_numSat = _buffer.solution.satellites;
         GPS_hdop = _buffer.solution.position_DOP;
+        gpsData.validData = gpsData.validData | GPS_VALID_HDOP;
         break;
     case MSG_VELNED:
         *gpsPacketLogChar = LOG_UBLOX_VELNED;
         // speed_3d                        = _buffer.velned.speed_3d;  // cm/s
         GPS_speed = _buffer.velned.speed_2d;    // cm/s
         GPS_ground_course = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsData.validData = gpsData.validData | GPS_VALID_SPEED | GPS_VALID_COURSE;
         _new_speed = true;
         break;
     case MSG_SVINFO:

@@ -166,7 +166,7 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->D8[PIDLEVEL] = 100;
     pidProfile->P8[PIDMAG] = 40;
     pidProfile->P8[PIDVEL] = 38;    // VARIO_P * 10
-    pidProfile->I8[PIDVEL] = 6;     // VARIO_I * 1000
+    pidProfile->I8[PIDVEL] = 25;    // VARIO_I * 100
     pidProfile->D8[PIDVEL] = 4;     // VARIO_D * 1000
 
     pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
@@ -194,16 +194,17 @@ void resetNavProfile(navProfile_t *navProfile)
     navProfile->flags.use_midrc_for_althold = 1;  // Don't use midrc for throttle control
     navProfile->flags.throttle_tilt_comp = 1;
     navProfile->flags.lock_nav_until_takeoff = 1;
+    navProfile->flags.user_control_mode = NAV_GPS_ATTI;
 
     navProfile->nav_wp_radius = 200;
     navProfile->nav_lpf = 20;
     navProfile->nav_speed_min = 100;
     navProfile->nav_speed_max = 300;
     navProfile->nav_manual_speed_horizontal = 300;
-    navProfile->nav_manual_speed_vertical = 300;
-    navProfile->nav_rc_deadband = 10;
+    navProfile->nav_manual_speed_vertical = 100;
+    navProfile->nav_rc_deadband = 20;
     navProfile->nav_min_rth_distance = 500;     // If closer than 5m - land immediately
-    navProfile->gps_cf_vel = 0.2f;  // GPS INS The LOWER the value the closer to gps speed // Dont go to high here
+    navProfile->nav_gps_cf = 0.6f;  // GPS INS The LOWER the value the closer to gps speed // Dont go to high here
     navProfile->nav_expo = 20;      // 1 - 99 % defines the actual Expo applied for GPS
 }
 #endif
@@ -312,7 +313,7 @@ static void resetControlRateConfig(controlRateConfig_t *controlRateConfig) {
 void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig) {
     rcControlsConfig->deadband = 0;
     rcControlsConfig->yaw_deadband = 0;
-    rcControlsConfig->alt_hold_deadband = 20;
+    rcControlsConfig->alt_hold_deadband = 50;
 }
 
 void resetMixerConfig(mixerConfig_t *mixerConfig) {
@@ -696,8 +697,7 @@ void activateConfig(void)
     imuConfigure(
         &imuRuntimeConfig,
         &currentProfile->pidProfile,
-        &currentProfile->accDeadband,
-        currentProfile->accz_lpf_cutoff
+        &currentProfile->accDeadband
     );
 
 #ifdef GPS

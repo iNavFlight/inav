@@ -374,7 +374,7 @@ void handleSmartPortTelemetry(void)
             //case FSSP_DATAID_CAP_USED   :
             case FSSP_DATAID_VARIO      :
                 if (sensors(SENSOR_BARO)) {
-                    smartPortSendPackage(id, actualVerticalVelocity); // unknown given unit but requested in 100 = 1m/s
+                    smartPortSendPackage(id, actualVelocity[Z]); // unknown given unit but requested in 100 = 1m/s
                     smartPortHasRequest = 0;
                 }
                 break;

@@ -221,6 +221,10 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"servo",      5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(TRICOPTER)},
 
 #ifdef NAV_BLACKBOX
+    {"navMode",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navPos",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navPos",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navPos",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navPosErr",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navPosErr",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navPosErr",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
@@ -234,7 +238,12 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"navGPSVel",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navGPSVel",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navHeading",-1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"navThrAngC",-1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)}
+    {"navTgtHead",-1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navThrAngC",-1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navDebug",   0, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navDebug",   1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navDebug",   2, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"navDebug",   3, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 };
 
@@ -302,13 +311,17 @@ typedef struct blackboxMainState_t {
 #endif
     uint16_t rssi;
 #ifdef NAV_BLACKBOX
+    int16_t navMode;
+    int32_t navPos[XYZ_AXIS_COUNT];
     int16_t navPosError[XYZ_AXIS_COUNT];
     int16_t navRealVel[XYZ_AXIS_COUNT];
     int16_t navTargetVel[XYZ_AXIS_COUNT];
     int16_t navTargetAlt;
     int16_t navGPSVel[XYZ_AXIS_COUNT];
     int16_t navHeading;
+    int16_t navTargetHeading;
     int16_t navThrottleAngleCorrection;
+    int16_t navDebug[4];
 #endif
 } blackboxMainState_t;
 
@@ -585,6 +598,12 @@ static void writeIntraframe(void)
     }
 
 #ifdef NAV_BLACKBOX
+    blackboxWriteSignedVB(blackboxCurrent->navMode);
+
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navPos[x]);
+    }
+
     for (x = 0; x < XYZ_AXIS_COUNT; x++) {
         blackboxWriteSignedVB(blackboxCurrent->navPosError[x]);
     }
@@ -605,7 +624,13 @@ static void writeIntraframe(void)
 
     blackboxWriteSignedVB(blackboxCurrent->navHeading);
 
+    blackboxWriteSignedVB(blackboxCurrent->navTargetHeading);
+
     blackboxWriteSignedVB(blackboxCurrent->navThrottleAngleCorrection);
+
+    for (x = 0; x < 4; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navDebug[x]);
+    }
 #endif
 
     //Rotate our history buffers:
@@ -725,6 +750,12 @@ static void writeInterframe(void)
     }
 
 #ifdef NAV_BLACKBOX
+    blackboxWriteSignedVB(blackboxCurrent->navMode - blackboxLast->navMode);
+
+    for (x = 0; x < XYZ_AXIS_COUNT; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navPos[x] - blackboxLast->navPos[x]);
+    }
+
     for (x = 0; x < XYZ_AXIS_COUNT; x++) {
         blackboxWriteSignedVB(blackboxHistory[0]->navPosError[x] - (blackboxHistory[1]->navPosError[x] + blackboxHistory[2]->navPosError[x]) / 2);
     }
@@ -745,7 +776,13 @@ static void writeInterframe(void)
 
     blackboxWriteSignedVB(blackboxCurrent->navHeading - blackboxLast->navHeading);
 
+    blackboxWriteSignedVB(blackboxCurrent->navTargetHeading - blackboxLast->navTargetHeading);
+
     blackboxWriteSignedVB(blackboxCurrent->navThrottleAngleCorrection - blackboxLast->navThrottleAngleCorrection);
+
+    for (x = 0; x < 4; x++) {
+        blackboxWriteSignedVB(blackboxCurrent->navDebug[x] - blackboxLast->navDebug[x]);
+    }
 #endif
 
     //Rotate our history buffers
@@ -1003,17 +1040,23 @@ static void loadMainState(void)
 #endif
 
 #ifdef NAV_BLACKBOX
+    blackboxCurrent->navMode = navCurrentMode;
     for (i = 0; i < XYZ_AXIS_COUNT; i++) {
+        blackboxCurrent->navPos[i] = navLatestActualPosition[i];
+        blackboxCurrent->navPosError[i] = navLatestPositionError[i];
         blackboxCurrent->navRealVel[i] = navActualVelocity[i];
         blackboxCurrent->navTargetVel[i] = navDesiredVelocity[i];
-        blackboxCurrent->navPosError[i] = navLatestPositionError[i];
     }
     for (i = 0; i < 2; i++) {
         blackboxCurrent->navGPSVel[i] = navGPSVelocity[i];
     }
     blackboxCurrent->navHeading = navActualHeading;
+    blackboxCurrent->navTargetHeading = navDesiredHeading;
     blackboxCurrent->navTargetAlt = navTargetAltitude;
     blackboxCurrent->navThrottleAngleCorrection = navThrottleAngleCorrection;
+    for (i = 0; i < 4; i++) {
+        blackboxCurrent->navDebug[i] = navDebug[i];
+    }
 #endif
 }
 

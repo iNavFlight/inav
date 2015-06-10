@@ -748,12 +748,8 @@ void loop(void)
 #endif
 
 #if defined(NAV)
-        // Update navigation heading state from IMU update
         updateEstimatedHeading();
-        updateEstimatedPositionFromIMU();
-
-        // Apply navigation adjustments to attitude and throttle. 
-        // Note that navigation can completely discard pilot's RC input (i.e. in RTH or WP mode)
+        updateEstimatedVelocityFromIMU();
         applyWaypointNavigationAndAltitudeHold();
 #endif
 
