@@ -28,6 +28,7 @@
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR 1.113195f  // MagicEarthNumber from APM
 
 #define LANDING_DETECTION_TIMEOUT       10000000     // 10 second timeout
+#define RADX10                          0.00174532925f
 #define RADX100                         0.000174532925f
 #define CROSSTRACK_GAIN                 1
 #define NAV_ROLL_PITCH_MAX              300 // Max control input from NAV
@@ -44,8 +45,8 @@
 #define navShouldApplyHeadingControl() ((navMode & (NAV_MODE_WP | NAV_MODE_RTH | NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D)) != 0)
 #define navShouldAdjustHeading() ((navMode & (NAV_MODE_WP | NAV_MODE_RTH)) != 0)
 
-#define navCanAdjustVerticalVelocityFromRCInput() ((navMode & (NAV_MODE_ALTHOLD | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH)) != 0)
-#define navCanAdjustHorizontalVelocityFromRCInput() ((navMode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH)) != 0)
+#define navCanAdjustVerticalVelocityFromRCInput() (((navMode & (NAV_MODE_ALTHOLD | NAV_MODE_POSHOLD_3D)) != 0) || ((navMode == NAV_MODE_RTH) && (navRthState == NAV_RTH_STATE_HEAD_HOME)))
+#define navCanAdjustHorizontalVelocityAndAttitudeFromRCInput() ((navMode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH)) != 0)
 #define navCanAdjustHeadingFromRCInput() ((navMode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH)) != 0)
 
 typedef enum {

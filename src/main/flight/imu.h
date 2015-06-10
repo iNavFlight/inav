@@ -55,17 +55,17 @@ typedef struct imuRuntimeConfig_s {
 void imuConfigure(
     imuRuntimeConfig_t *initialImuRuntimeConfig,
     pidProfile_t *initialPidProfile,
-    accDeadband_t *initialAccDeadband,
-    float accz_lpf_cutoff
+    accDeadband_t *initialAccDeadband
 );
 
 void calculateEstimatedAltitude(uint32_t currentTime);
 void imuUpdate(rollAndPitchTrims_t *accelerometerTrims);
 float calculateThrottleAngleScale(uint16_t throttle_correction_angle);
 int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value, int16_t throttle_correction_angle);
-uint8_t calculateThrottleCorrectionValue(uint16_t throttle_angle_correction, int16_t throttle_correction_angle);
+uint8_t calculateThrottleCorrectionValue(uint16_t throttle_tilt_compensation, int16_t throttle_correction_angle);
 int16_t calculateTiltAngle(void);
-float calculateAccZLowPassFilterRCTimeConstant(float accz_lpf_cutoff);
+float calculateAccLowPassFilterRCTimeConstant(float acc_lpf_cutoff);
 
 int16_t imuCalculateHeading(t_fp_vector *vec);
+void imuSampleAverageAccelerationAndVelocity(uint8_t axis);
 void imuApplyFilterToActualVelocity(uint8_t axis, float cfFactor, float referenceVelocity);

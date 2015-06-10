@@ -859,7 +859,7 @@ static bool processOutCommand(uint8_t cmdMSP)
         headSerialReply(6);
 #if defined(NAV)
         serialize32(actualPosition.altitude);
-        serialize16(actualVerticalVelocity);
+        serialize16(actualVelocity[Z]);
 #else
         serialize32(0);
         serialize16(0);

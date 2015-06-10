@@ -311,6 +311,15 @@ const clivalue_t valueTable[] = {
     { "gps_wp_radius",              VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_wp_radius, 0, 2000 },
     { "nav_speed_min",              VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_speed_min, 10, 2000 },
     { "nav_speed_max",              VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_speed_max, 10, 2000 },
+    { "nav_gps_cf",                 VAR_FLOAT  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_gps_cf, 0, 1 },
+    { "nav_expo",                   VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_expo, 0, 100 },
+    { "nav_lpf",                    VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_lpf, 0, 100 },
+    { "nav_rc_deadband",            VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_rc_deadband, 0, 250 },
+    { "nav_min_rth_distance",       VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_min_rth_distance, 0, 1000 },
+    { "nav_use_midrc_for_althold",  VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.flags.use_midrc_for_althold, 0, 1 },
+    { "nav_throttle_tilt_comp",     VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.flags.throttle_tilt_comp, 0, 1 },
+    { "nav_lock_until_takeoff",     VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.flags.lock_nav_until_takeoff, 0, 1 },
+    { "nav_user_control_mode",      VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.flags.user_control_mode, 0, 1 },
 #endif
 
     { "serialrx_provider",          VAR_UINT8  | MASTER_VALUE,  &masterConfig.rxConfig.serialrx_provider, 0, SERIALRX_PROVIDER_MAX },

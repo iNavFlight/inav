@@ -347,7 +347,7 @@ static void sendGPSLatLong(void)
 static void sendVario(void)
 {
     sendDataHead(ID_VERT_SPEED);
-    serialize16((uint16_t)actualVerticalVelocity);
+    serialize16((uint16_t)actualVelocity[Z]);
 }
 
 /*

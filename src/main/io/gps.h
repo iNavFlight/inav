@@ -82,6 +82,15 @@ typedef enum {
 
 #define GPS_MESSAGE_STATE_ENTRY_COUNT (GPS_MESSAGE_STATE_MAX + 1)
 
+typedef enum {
+    GPS_VALID_NONE              = 0,
+    GPS_VALID_COORDINATES       = 1 << 0,
+    GPS_VALID_ALTITUDE          = 1 << 1,
+    GPS_VALID_SPEED             = 1 << 2,
+    GPS_VALID_COURSE            = 1 << 3,
+    GPS_VALID_HDOP              = 1 << 4
+} gpsDataValidity_e;
+
 typedef struct gpsData_t {
     uint8_t state;                  // GPS thread state. Used for detecting cable disconnects and configuring attached devices
     uint8_t baudrateIndex;          // index into auto-detecting or current baudrate
@@ -93,6 +102,7 @@ typedef struct gpsData_t {
     uint32_t state_position;        // incremental variable for loops
     uint32_t state_ts;              // timestamp for last state_position increment
     gpsMessageState_e messageState;
+    gpsDataValidity_e validData;
 } gpsData_t;
 
 #define GPS_PACKET_LOG_ENTRY_COUNT 21 // To make this useful we should log as many packets as we can fit characters a single line of a OLED display.

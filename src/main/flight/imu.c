@@ -46,26 +46,23 @@
 
 #include "config/runtime_config.h"
 
-#define IMU_VELOCITY_CALCULATION_RATE_HZ    40  // Calculate velocity based on acceleration at this rate
-
 // Velocities and accelerations in ENU coordinates
-bool imuIsVelocityReferenceAvailable[XYZ_AXIS_COUNT];   // Automagically detect if we should use ACC to calculate velocities
 float imuAverageVelocity[XYZ_AXIS_COUNT];
 float imuAverageAcceleration[XYZ_AXIS_COUNT];
 
+// Variables for velocity estimation from accelerometer. Update rates can be different for each axis.
+// TODO: Make accCalcInterval automatically adjust according to reference velocity updates (from GPS or Baro/Sonar via NAV)
 static int32_t accSum[XYZ_AXIS_COUNT];
-static uint32_t accTimeSum = 0;        // keep track for integration of acc
-static int accSumCount = 0;
+static uint8_t accVelLPFHz[XYZ_AXIS_COUNT] = { 15, 15, 10 };
+static uint32_t accTimeSum[XYZ_AXIS_COUNT] = {0, 0, 0};
+static int accSumCount[XYZ_AXIS_COUNT] = {0, 0, 0};
 
 int16_t accSmooth[XYZ_AXIS_COUNT];
 
 int16_t smallAngle = 0;
 
-float fc_acc;
-
 float magneticDeclination = 0.0f;       // calculated at startup from config
 float gyroScaleRad;
-
 
 rollAndPitchInclination_t inclination = { { 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 float anglerad[2] = { 0.0f, 0.0f };    // absolute angle inclination in radians
@@ -77,14 +74,12 @@ static accDeadband_t *accDeadband;
 void imuConfigure(
     imuRuntimeConfig_t *initialImuRuntimeConfig,
     pidProfile_t *initialPidProfile,
-    accDeadband_t *initialAccDeadband,
-    float accz_lpf_cutoff
+    accDeadband_t *initialAccDeadband
 )
 {
     imuRuntimeConfig = initialImuRuntimeConfig;
     pidProfile = initialPidProfile;
     accDeadband = initialAccDeadband;
-    fc_acc = calculateAccZLowPassFilterRCTimeConstant(accz_lpf_cutoff);
 }
 
 void imuInit()
@@ -95,7 +90,6 @@ void imuInit()
     gyroScaleRad = gyro.scale * (M_PIf / 180.0f) * 0.000001f;
 
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuIsVelocityReferenceAvailable[axis] = false;
         imuAverageVelocity[axis] = 0;
         imuAverageAcceleration[axis] = 0;
     }
@@ -104,14 +98,6 @@ void imuInit()
 float calculateThrottleAngleScale(uint16_t throttle_correction_angle)
 {
     return (1800.0f / M_PIf) * (900.0f / throttle_correction_angle);
-}
-
-/*
-* Calculate RC time constant used in the accZ lpf.
-*/
-float calculateAccZLowPassFilterRCTimeConstant(float accz_lpf_cutoff)
-{
-    return 0.5f / (M_PIf * accz_lpf_cutoff);
 }
 
 // **************************************************
@@ -131,35 +117,39 @@ float calculateAccZLowPassFilterRCTimeConstant(float accz_lpf_cutoff)
 
 t_fp_vector EstG;
 
-static void imuResetAccelerationSum(void)
+static void imuResetAccelerationSum(int axis)
 {
-    accSum[0] = 0;
-    accSum[1] = 0;
-    accSum[2] = 0;
-    accSumCount = 0;
-    accTimeSum = 0;
+    accSum[axis] = 0;
+    accSumCount[axis] = 0;
+    accTimeSum[axis] = 0;
+}
+
+void imuSampleAverageAccelerationAndVelocity(uint8_t axis)
+{
+    if (accTimeSum[axis] <= 0)
+        return;
+
+    float accSumDt = accTimeSum[axis] * 1e-6f;
+
+    // RC-LPF: y[i] = y[i-1] + alpha * (x[i] - y[i-1])
+    imuAverageAcceleration[axis] = ((float)accSum[axis] / (float)accSumCount[axis]) * (100.0f * 9.80665f / acc_1G);   // cm/s^2
+    imuAverageVelocity[axis] += (accSumDt / ((0.5f / (M_PIf * accVelLPFHz[axis])) + accSumDt)) * (imuAverageAcceleration[axis] * accSumDt);
+    imuResetAccelerationSum(axis);
 }
 
 void imuApplyFilterToActualVelocity(uint8_t axis, float cfFactor, float referenceVelocity)
 {
     // apply Complimentary Filter to keep the calculated velocity based on reference (near real) velocity.
     imuAverageVelocity[axis] = imuAverageVelocity[axis] * cfFactor + referenceVelocity * (1.0f - cfFactor);
-    imuIsVelocityReferenceAvailable[axis] = true;
 }
 
 // rotate acc into Earth frame and calculate acceleration in it
-void imuCalculateAcceleration(uint32_t deltaT)
+static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
 {
     static int32_t accZoffset = 0;
-    static float accx_smooth = 0;
-    static float accy_smooth = 0;
-    static float accz_smooth = 0;
-    float dT;
+    int axis;
     fp_angles_t rpy;
     t_fp_vector accel_ned;
-
-    // deltaT is measured in us ticks
-    dT = (float)deltaT * 1e-6f;
 
     // the accel values have to be rotated into the earth frame
     rpy.angles.roll = -(float)anglerad[AI_ROLL];
@@ -181,34 +171,15 @@ void imuCalculateAcceleration(uint32_t deltaT)
     } else
         accel_ned.V.Z -= acc_1G;
 
-    accx_smooth = accx_smooth + (dT / (fc_acc + dT)) * (accel_ned.V.X - accx_smooth); // low pass filter
-    accy_smooth = accy_smooth + (dT / (fc_acc + dT)) * (accel_ned.V.Y - accy_smooth); // low pass filter
-    accz_smooth = accz_smooth + (dT / (fc_acc + dT)) * (accel_ned.V.Z - accz_smooth); // low pass filter
-
-    // Use accelerometer to calculate average acceleration and most recent velocity
-    // Inspired by and loosely based on CrashPilot's TestCode3
-
     // apply Deadband to reduce integration drift and vibration influence
-    accSum[X] += applyDeadband(lrintf(accx_smooth), accDeadband->xy);
-    accSum[Y] += applyDeadband(lrintf(accy_smooth), accDeadband->xy);
-    accSum[Z] += applyDeadband(lrintf(accz_smooth), accDeadband->z);
+    accSum[X] += applyDeadband(lrintf(accel_ned.V.X), accDeadband->xy);
+    accSum[Y] += applyDeadband(lrintf(accel_ned.V.Y), accDeadband->xy);
+    accSum[Z] += applyDeadband(lrintf(accel_ned.V.Z), accDeadband->z);
 
-    // sum up Values for later integration to get velocity and distance
-    accTimeSum += deltaT;
-    accSumCount++;
-
-    if (accTimeSum > (1000000 / IMU_VELOCITY_CALCULATION_RATE_HZ)) {
-        int axis;
-
-        for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            imuAverageAcceleration[axis] = ((float)accSum[axis] / (float)accSumCount) * (100.0f * 9.80665f / acc_1G);   // cm/s^2
-
-            if (imuIsVelocityReferenceAvailable[axis]) {
-                imuAverageVelocity[axis] += imuAverageAcceleration[axis] * (accTimeSum * 1e-6f);    // cm/s
-            }
-        }
-
-        imuResetAccelerationSum();
+    // Accumulate acceleration for averaging and integration to get velocity
+    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        accTimeSum[axis] += deltaT;
+        accSumCount[axis]++;
     }
 }
 
@@ -332,7 +303,7 @@ static void imuCalculateEstimatedAttitude(void)
         heading = imuCalculateHeading(&EstN);
     }
 
-    imuCalculateAcceleration(deltaT); // rotate acc vector into earth frame
+    imuCalculateAccelerationAndVelocity(deltaT); // rotate acc vector into earth frame
 }
 
 void imuUpdate(rollAndPitchTrims_t *accelerometerTrims)
@@ -369,7 +340,7 @@ int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value, int1
 }
 
 // this function does the opposite of the calculateThrottleAngleCorrection - takes an actual correction and returns throttle_correction_value
-uint8_t calculateThrottleCorrectionValue(uint16_t throttle_angle_correction, int16_t throttle_correction_angle)
+uint8_t calculateThrottleCorrectionValue(uint16_t throttle_tilt_compensation, int16_t throttle_correction_angle)
 {
     float cosZ = EstG.V.Z / sqrtf(EstG.V.X * EstG.V.X + EstG.V.Y * EstG.V.Y + EstG.V.Z * EstG.V.Z);
 
@@ -390,5 +361,5 @@ uint8_t calculateThrottleCorrectionValue(uint16_t throttle_angle_correction, int
     if (angle < 1) 
         return 0;
 
-    return lrintf(throttle_angle_correction / sinf(angle / (900.0f * M_PIf / 2.0f)));
+    return lrintf(throttle_tilt_compensation / sinf(angle / (900.0f * M_PIf / 2.0f)));
 }
