@@ -29,6 +29,8 @@
 #include "common/maths.h"
 #include "common/filter.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_mapping.h"
@@ -51,6 +53,7 @@
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 
+#include "config/parameter_group_ids.h"
 #include "config/runtime_config.h"
 #include "config/config.h"
 
@@ -65,17 +68,23 @@ bool motorLimitReached = false;
 
 static mixerConfig_t *mixerConfig;
 static flight3DConfig_t *flight3DConfig;
-static escAndServoConfig_t *escAndServoConfig;
 static rxConfig_t *rxConfig;
 
 static mixerMode_e currentMixerMode;
+
+motorMixer_t customMotorMixer[MAX_SUPPORTED_MOTORS];
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 
+static const pgRegistry_t motorMixerRegistry PG_REGISTRY_SECTION = {
+    .base = (uint8_t *)&customMotorMixer,
+    .size = sizeof(customMotorMixer),
+    .pgn = PG_MOTOR_MIXER,
+    .flags = PGC_SYSTEM
+};
 
 #ifdef USE_SERVOS
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
-static gimbalConfig_t *gimbalConfig;
 int16_t servo[MAX_SUPPORTED_SERVOS];
 static int useServo;
 STATIC_UNIT_TESTED uint8_t servoCount;
@@ -378,19 +387,15 @@ static motorMixer_t *customMixers;
 void mixerUseConfigs(
 #ifdef USE_SERVOS
         servoParam_t *servoConfToUse,
-        gimbalConfig_t *gimbalConfigToUse,
 #endif
         flight3DConfig_t *flight3DConfigToUse,
-        escAndServoConfig_t *escAndServoConfigToUse,
         mixerConfig_t *mixerConfigToUse,
         rxConfig_t *rxConfigToUse)
 {
 #ifdef USE_SERVOS
     servoConf = servoConfToUse;
-    gimbalConfig = gimbalConfigToUse;
 #endif
     flight3DConfig = flight3DConfigToUse;
-    escAndServoConfig = escAndServoConfigToUse;
     mixerConfig = mixerConfigToUse;
     rxConfig = rxConfigToUse;
 }
@@ -593,7 +598,7 @@ void mixerResetDisarmedMotors(void)
     int i;
     // set disarmed motor values
     for (i = 0; i < MAX_SUPPORTED_MOTORS; i++)
-        motor_disarmed[i] = feature(FEATURE_3D) ? flight3DConfig->neutral3d : escAndServoConfig->mincommand;
+        motor_disarmed[i] = feature(FEATURE_3D) ? flight3DConfig->neutral3d : escAndServoConfig.mincommand;
 }
 
 #ifdef USE_SERVOS
@@ -711,7 +716,7 @@ void writeAllMotors(int16_t mc)
 
 void stopMotors(void)
 {
-    writeAllMotors(feature(FEATURE_3D) ? flight3DConfig->neutral3d : escAndServoConfig->mincommand);
+    writeAllMotors(feature(FEATURE_3D) ? flight3DConfig->neutral3d : escAndServoConfig.mincommand);
 
     delay(50); // give the timers and ESCs a chance to react.
 }
@@ -838,23 +843,23 @@ void mixTable(void)
 
         if ((rcCommand[THROTTLE] <= (rxConfig->midrc - flight3DConfig->deadband3d_throttle))) { // Out of band handling
             throttleMax = flight3DConfig->deadband3d_low;
-            throttleMin = escAndServoConfig->minthrottle;
+            throttleMin = escAndServoConfig.minthrottle;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
         } else if (rcCommand[THROTTLE] >= (rxConfig->midrc + flight3DConfig->deadband3d_throttle)) { // Positive handling
-            throttleMax = escAndServoConfig->maxthrottle;
+            throttleMax = escAndServoConfig.maxthrottle;
             throttleMin = flight3DConfig->deadband3d_high;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
         } else if ((throttlePrevious <= (rxConfig->midrc - flight3DConfig->deadband3d_throttle)))  { // Deadband handling from negative to positive
             throttleCommand = throttleMax = flight3DConfig->deadband3d_low;
-            throttleMin = escAndServoConfig->minthrottle;
+            throttleMin = escAndServoConfig.minthrottle;
         } else {  // Deadband handling from positive to negative
-            throttleMax = escAndServoConfig->maxthrottle;
+            throttleMax = escAndServoConfig.maxthrottle;
             throttleCommand = throttleMin = flight3DConfig->deadband3d_high;
         }
     } else {
         throttleCommand = rcCommand[THROTTLE];
-        throttleMin = escAndServoConfig->minthrottle;
-        throttleMax = escAndServoConfig->maxthrottle;
+        throttleMin = escAndServoConfig.minthrottle;
+        throttleMax = escAndServoConfig.maxthrottle;
     }
 
     throttleRange = throttleMax - throttleMin;
@@ -886,21 +891,21 @@ void mixTable(void)
             motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (isFailsafeActive) {
-                motor[i] = constrain(motor[i], escAndServoConfig->mincommand, escAndServoConfig->maxthrottle);
+                motor[i] = constrain(motor[i], escAndServoConfig.mincommand, escAndServoConfig.maxthrottle);
             } else if (feature(FEATURE_3D)) {
                 if (throttlePrevious <= (rxConfig->midrc - flight3DConfig->deadband3d_throttle)) {
-                    motor[i] = constrain(motor[i], escAndServoConfig->minthrottle, flight3DConfig->deadband3d_low);
+                    motor[i] = constrain(motor[i], escAndServoConfig.minthrottle, flight3DConfig->deadband3d_low);
                 } else {
-                    motor[i] = constrain(motor[i], flight3DConfig->deadband3d_high, escAndServoConfig->maxthrottle);
+                    motor[i] = constrain(motor[i], flight3DConfig->deadband3d_high, escAndServoConfig.maxthrottle);
                 }
             } else {
-                motor[i] = constrain(motor[i], escAndServoConfig->minthrottle, escAndServoConfig->maxthrottle);
+                motor[i] = constrain(motor[i], escAndServoConfig.minthrottle, escAndServoConfig.maxthrottle);
             }
 
             // Motor stop handling
             if (feature(FEATURE_MOTOR_STOP) && ARMING_FLAG(ARMED) && !feature(FEATURE_3D) && !IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
                 if (((rcData[THROTTLE]) < rxConfig->mincheck)) {
-                    motor[i] = escAndServoConfig->mincommand;
+                    motor[i] = escAndServoConfig.mincommand;
                 }
             }
         }

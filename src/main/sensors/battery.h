@@ -49,6 +49,8 @@ typedef struct batteryConfig_s {
     uint16_t batteryCapacity;               // mAh
 } batteryConfig_t;
 
+extern batteryConfig_t batteryConfig;
+
 typedef enum {
     BATTERY_OK = 0,
     BATTERY_WARNING,
@@ -69,7 +71,7 @@ uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
 const  char * getBatteryStateString(void);
 void updateBattery(uint32_t vbatTimeDelta);
-void batteryInit(batteryConfig_t *initialBatteryConfig);
+void batteryInit(void);
 
 void updateCurrentMeter(int32_t lastUpdateAt, rxConfig_t *rxConfig, uint16_t deadband3d_throttle);
 int32_t currentMeterToCentiamps(uint16_t src);

@@ -27,8 +27,6 @@
 
 #define SERIAL_PORT_COUNT 4
 
-#define MAX_SIMULTANEOUS_ADJUSTMENT_COUNT 6
-
 typedef enum
 {
     Mode_TEST = 0x0,
@@ -45,6 +43,11 @@ typedef struct
     void* test;
 } TIM_TypeDef;
 
+typedef struct DMA_Channel_Struct DMA_Channel_TypeDef;
+typedef struct USART_Struct USART_TypeDef;
+
+#define MAX_SIMULTANEOUS_ADJUSTMENT_COUNT 6
+
 typedef enum {DISABLE = 0, ENABLE = !DISABLE} FunctionalState;
 
 typedef enum {TEST_IRQ = 0 } IRQn_Type;
@@ -59,5 +62,19 @@ void DMA_ClearFlag(uint32_t);
 
 #define WS2811_DMA_TC_FLAG 1
 #define WS2811_DMA_HANDLER_IDENTIFER 0
+
+typedef enum
+{
+  FLASH_BUSY = 1,
+  FLASH_ERROR_PG,
+  FLASH_ERROR_WRP,
+  FLASH_COMPLETE,
+  FLASH_TIMEOUT
+} FLASH_Status;
+
+void FLASH_Unlock(void);
+void FLASH_Lock(void);
+FLASH_Status FLASH_ErasePage(uint32_t Page_Address);
+FLASH_Status FLASH_ProgramWord(uint32_t Address, uint32_t Data);
 
 #include "target.h"

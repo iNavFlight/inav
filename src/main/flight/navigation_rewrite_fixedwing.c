@@ -27,13 +27,14 @@
 #include "common/maths.h"
 #include "common/filter.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/system.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
-#include "sensors/boardalignment.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -341,7 +342,7 @@ void applyFixedWingPitchRollThrottleController(void)
         // PITCH angle is measured in opposite direction ( >0 - dive, <0 - climb)
         pitchCorrection = constrain(pitchCorrection, -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_dive_angle), DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_climb_angle));
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection);
-        rcCommand[THROTTLE] = constrain(throttleCorrection, posControl.escAndServoConfig->minthrottle, posControl.escAndServoConfig->maxthrottle);
+        rcCommand[THROTTLE] = constrain(throttleCorrection, escAndServoConfig.minthrottle, escAndServoConfig.maxthrottle);
     }
 
     if (isRollAdjustmentValid) {

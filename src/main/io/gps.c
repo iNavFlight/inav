@@ -28,6 +28,8 @@
 #include "common/axis.h"
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/system.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
@@ -168,9 +170,8 @@ void gpsPreInit(gpsConfig_t *initialGpsConfig)
     gpsState.gpsConfig = initialGpsConfig;
 }
 
-void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
+void gpsInit(gpsConfig_t *initialGpsConfig)
 {
-    gpsState.serialConfig = initialSerialConfig;
     gpsState.gpsConfig = initialGpsConfig;
     gpsState.baudrateIndex = 0;
 

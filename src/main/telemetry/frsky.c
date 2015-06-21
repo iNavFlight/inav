@@ -30,13 +30,14 @@
 #include "common/maths.h"
 #include "common/axis.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/system.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
 #include "drivers/gpio.h"
 #include "drivers/timer.h"
 #include "drivers/serial.h"
-
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
@@ -70,9 +71,6 @@ static serialPortConfig_t *portConfig;
 static telemetryConfig_t *telemetryConfig;
 static bool frskyTelemetryEnabled =  false;
 static portSharing_e frskyPortSharing;
-
-
-extern batteryConfig_t *batteryConfig;
 
 extern int16_t telemTemperature1; // FIXME dependency on mw.c
 
@@ -203,7 +201,7 @@ static void sendThrottleOrBatterySizeAsRpm(rxConfig_t *rxConfig, uint16_t deadba
                     throttleForRPM = 0;
         serialize16(throttleForRPM);
     } else {
-        serialize16((batteryConfig->batteryCapacity / BLADE_NUMBER_DIVIDER));
+        serialize16((batteryConfig.batteryCapacity / BLADE_NUMBER_DIVIDER));
     }
 
 }
@@ -425,7 +423,7 @@ static void sendFuelLevel(void)
 {
     sendDataHead(ID_FUEL_LEVEL);
 
-    if (batteryConfig->batteryCapacity > 0) {
+    if (batteryConfig.batteryCapacity > 0) {
         serialize16((uint16_t)calculateBatteryCapacityRemainingPercentage());
     } else {
         serialize16((uint16_t)constrain(mAhDrawn, 0, 0xFFFF));

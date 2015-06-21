@@ -29,6 +29,8 @@
 #include "common/maths.h"
 #include "common/filter.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/system.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -40,8 +42,6 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/hil.h"
-#include "flight/navigation_rewrite.h"
-#include "flight/navigation_rewrite_private.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"

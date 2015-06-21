@@ -31,6 +31,8 @@
 #include "common/utils.h"
 #include "common/filter.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
 #include "drivers/compass.h"
@@ -293,7 +295,7 @@ void applyMagHold(void)
     dif *= masterConfig.yaw_control_direction;
 
     if (STATE(SMALL_ANGLE)) {
-        rcCommand[YAW] = dif * currentProfile->pidProfile.P8[PIDMAG] / 30;
+        rcCommand[YAW] = dif * pidProfile->P8[PIDMAG] / 30;
     }
 }
 
@@ -624,14 +626,14 @@ void taskMainPidLoop(void)
         }
 
         if (thrTiltCompStrength) {
-            rcCommand[THROTTLE] = constrain(masterConfig.escAndServoConfig.minthrottle
-                                            + (rcCommand[THROTTLE] - masterConfig.escAndServoConfig.minthrottle) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
-                                            masterConfig.escAndServoConfig.minthrottle,
-                                            masterConfig.escAndServoConfig.maxthrottle);
+            rcCommand[THROTTLE] = constrain(escAndServoConfig.minthrottle
+                                            + (rcCommand[THROTTLE] - escAndServoConfig.minthrottle) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
+                                            escAndServoConfig.minthrottle,
+                                            escAndServoConfig.maxthrottle);
         }
     }
 
-    pidController(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig);
+    pidController(currentControlRateProfile, &masterConfig.rxConfig);
 
 #ifdef HIL
     if (hilActive) {
@@ -718,7 +720,7 @@ bool taskUpdateRxCheck(uint32_t currentDeltaTime)
 void taskUpdateRxMain(void)
 {
     processRx();
-    updatePIDCoefficients(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig);
+    updatePIDCoefficients(currentControlRateProfile, &masterConfig.rxConfig);
     isRXDataNew = true;
 }
 
@@ -742,7 +744,7 @@ void taskProcessGPS(void)
 void taskUpdateCompass(void)
 {
     if (sensors(SENSOR_MAG)) {
-        updateCompass(&masterConfig.magZero);
+        updateCompass();
     }
 }
 #endif

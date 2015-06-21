@@ -63,9 +63,15 @@ extern "C" {
     #include "flight/navigation_rewrite.h"
 
     #include "config/runtime_config.h"
+<<<<<<< HEAD:src/test/unit/navigation_unittest.cc
     #include "config/config.h"
     #include "config/config_profile.h"
     #include "config/config_master.h"
+=======
+
+    pidProfile_t testPidProfile;
+    pidProfile_t *pidProfile = &testPidProfile;
+>>>>>>> f47786b... extract pidProfile from profile_t.  extract gtune fields to their own:src/test/unit/altitude_hold_unittest.cc
 }
 
 #include "unittest_macros.h"
@@ -147,6 +153,8 @@ bool persistentFlag(uint8_t mask)
     UNUSED(mask);
     return true;
 }
+
+escAndServoConfig_t escAndServoConfig;
 
 uint16_t enableFlightMode(flightModeFlags_e mask)
 {

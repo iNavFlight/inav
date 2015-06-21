@@ -29,6 +29,8 @@
 #include "common/atomic.h"
 #include "common/maths.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/nvic.h"
 
 #include "drivers/sensor.h"
@@ -104,9 +106,9 @@ serialPort_t *loopbackPort;
 void printfSupportInit(void);
 void timerInit(void);
 void telemetryInit(void);
-void serialInit(serialConfig_t *initialSerialConfig, bool softserialEnabled);
-void mspInit(serialConfig_t *serialConfig);
-void cliInit(serialConfig_t *serialConfig);
+void serialInit(bool softserialEnabled);
+void mspInit(void);
+void cliInit(void);
 void failsafeInit(rxConfig_t *intialRxConfig, uint16_t deadband3d_throttle);
 pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init);
 #ifdef USE_SERVOS
@@ -117,10 +119,10 @@ void mixerInit(mixerMode_e mixerMode, motorMixer_t *customMotorMixers);
 void mixerUsePWMIOConfiguration(pwmIOConfiguration_t *pwmIOConfiguration);
 void rxInit(rxConfig_t *rxConfig, modeActivationCondition_t *modeActivationConditions);
 void gpsPreInit(gpsConfig_t *initialGpsConfig);
-void gpsInit(serialConfig_t *serialConfig, gpsConfig_t *initialGpsConfig);
+void gpsInit(gpsConfig_t *initialGpsConfig);
 void imuInit(void);
 void displayInit(rxConfig_t *intialRxConfig);
-void ledStripInit(ledConfig_t *ledConfigsToUse, hsvColor_t *colorsToUse);
+void loop(void);
 void spektrumBind(rxConfig_t *rxConfig);
 const sonarHardware_t *sonarGetHardwareConfiguration(batteryConfig_t *batteryConfig);
 void sonarInit(const sonarHardware_t *sonarHardware);
@@ -219,12 +221,12 @@ void init(void)
 
     timerInit();  // timer must be initialized before any channel is allocated
 
-    serialInit(&masterConfig.serialConfig, feature(FEATURE_SOFTSERIAL));
+    serialInit(feature(FEATURE_SOFTSERIAL));
 
 #ifdef USE_SERVOS
-    mixerInit(masterConfig.mixerMode, masterConfig.customMotorMixer, masterConfig.customServoMixer);
+    mixerInit(masterConfig.mixerMode, customMotorMixer, masterConfig.customServoMixer);
 #else
-    mixerInit(masterConfig.mixerMode, masterConfig.customMotorMixer);
+    mixerInit(masterConfig.mixerMode, customMotorMixer);
 #endif
 
     memset(&pwm_params, 0, sizeof(pwm_params));
@@ -233,7 +235,7 @@ void init(void)
     const sonarHardware_t *sonarHardware = NULL;
 
     if (feature(FEATURE_SONAR)) {
-        sonarHardware = sonarGetHardwareConfiguration(&masterConfig.batteryConfig);
+        sonarHardware = sonarGetHardwareConfiguration(&batteryConfig);
         sonarGPIOConfig_t sonarGPIOConfig = {
             .gpio = SONAR_GPIO,
             .triggerPin = sonarHardware->echo_pin,
@@ -258,8 +260,10 @@ void init(void)
     pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
     pwm_params.useParallelPWM = feature(FEATURE_RX_PARALLEL_PWM);
     pwm_params.useRSSIADC = feature(FEATURE_RSSI_ADC);
-    pwm_params.useCurrentMeterADC = feature(FEATURE_CURRENT_METER)
-        && masterConfig.batteryConfig.currentMeterType == CURRENT_SENSOR_ADC;
+    pwm_params.useCurrentMeterADC = (
+        feature(FEATURE_CURRENT_METER)
+        && batteryConfig.currentMeterType == CURRENT_SENSOR_ADC
+    );
     pwm_params.useLEDStrip = feature(FEATURE_LED_STRIP);
     pwm_params.usePPM = feature(FEATURE_RX_PPM);
     pwm_params.useSerialRx = feature(FEATURE_RX_SERIAL);
@@ -270,13 +274,13 @@ void init(void)
 #ifdef USE_SERVOS
     pwm_params.useServos = isMixerUsingServos();
     pwm_params.useChannelForwarding = feature(FEATURE_CHANNEL_FORWARDING);
-    pwm_params.servoCenterPulse = masterConfig.escAndServoConfig.servoCenterPulse;
-    pwm_params.servoPwmRate = masterConfig.servo_pwm_rate;
+    pwm_params.servoCenterPulse = escAndServoConfig.servoCenterPulse;
+    pwm_params.servoPwmRate = escAndServoConfig.servo_pwm_rate;
 #endif
 
     pwm_params.useOneshot = feature(FEATURE_ONESHOT125);
-    pwm_params.motorPwmRate = masterConfig.motor_pwm_rate;
-    pwm_params.idlePulse = masterConfig.escAndServoConfig.mincommand;
+    pwm_params.motorPwmRate = escAndServoConfig.motor_pwm_rate;
+    pwm_params.idlePulse = escAndServoConfig.mincommand;
     if (feature(FEATURE_3D))
         pwm_params.idlePulse = masterConfig.flight3DConfig.neutral3d;
     if (pwm_params.motorPwmRate > 500)
@@ -383,7 +387,7 @@ void init(void)
     adcInit(&adc_params);
 #endif
 
-    initBoardAlignment(&masterConfig.boardAlignment);
+    initBoardAlignment();
 
 #ifdef DISPLAY
     if (feature(FEATURE_DISPLAY)) {
@@ -398,11 +402,9 @@ void init(void)
 #endif
 
     // Set gyro sampling rate divider before initialization
-    gyroSetSampleRate(masterConfig.looptime, masterConfig.gyro_lpf, masterConfig.gyroSync, masterConfig.gyroSyncDenominator);
+    gyroSetSampleRate(masterConfig.looptime, gyroConfig.gyro_lpf, masterConfig.gyroSync, masterConfig.gyroSyncDenominator);
 
-    if (!sensorsAutodetect(&masterConfig.sensorAlignmentConfig, masterConfig.gyro_lpf,
-        masterConfig.acc_hardware, masterConfig.mag_hardware, masterConfig.baro_hardware, currentProfile->mag_declination)) {
-
+    if (!sensorsAutodetect(currentProfile->mag_declination)) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
     }
@@ -429,10 +431,10 @@ void init(void)
 
     imuInit();
 
-    mspInit(&masterConfig.serialConfig);
+    mspInit();
 
 #ifdef USE_CLI
-    cliInit(&masterConfig.serialConfig);
+    cliInit();
 #endif
 
     failsafeInit(&masterConfig.rxConfig, masterConfig.flight3DConfig.deadband3d_throttle);
@@ -441,21 +443,16 @@ void init(void)
 
 #ifdef GPS
     if (feature(FEATURE_GPS)) {
-        gpsInit(
-            &masterConfig.serialConfig,
-            &masterConfig.gpsConfig
-        );
+        gpsInit(&masterConfig.gpsConfig);
     }
 #endif
 
 #ifdef NAV
         navigationInit(
             &masterConfig.navConfig,
-            &currentProfile->pidProfile,
             &currentProfile->rcControlsConfig,
             &masterConfig.rxConfig,
-            &masterConfig.flight3DConfig,
-            &masterConfig.escAndServoConfig
+            &masterConfig.flight3DConfig
         );
 #endif
 
@@ -522,7 +519,7 @@ void init(void)
     // Now that everything has powered up the voltage and cell count be determined.
 
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
-        batteryInit(&masterConfig.batteryConfig);
+        batteryInit();
 
 #ifdef CJMCU
     LED2_ON;

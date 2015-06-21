@@ -84,7 +84,6 @@ STATIC_UNIT_TESTED float rMat[3][3];
 attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
 static imuRuntimeConfig_t *imuRuntimeConfig;
-static pidProfile_t *pidProfile;
 
 static float gyroScale;
 
@@ -116,10 +115,9 @@ STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
     rMat[2][2] = 1.0f - 2.0f * q1q1 - 2.0f * q2q2;
 }
 
-void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig, pidProfile_t *initialPidProfile)
+void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig)
 {
     imuRuntimeConfig = initialImuRuntimeConfig;
-    pidProfile = initialPidProfile;
 }
 
 void imuInit(void)

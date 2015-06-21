@@ -18,8 +18,6 @@
 #pragma once
 
 typedef struct profile_s {
-    pidProfile_t pidProfile;
-
     uint8_t defaultRateProfileIndex;
 
     int16_t mag_declination;                // Get your magnetic decliniation from here : http://magnetic-declination.com/
@@ -38,7 +36,5 @@ typedef struct profile_s {
 #ifdef USE_SERVOS
     // Servo-related stuff
     servoParam_t servoConf[MAX_SUPPORTED_SERVOS]; // servo configuration
-    // gimbal-related configuration
-    gimbalConfig_t gimbalConfig;
 #endif
 } profile_t;

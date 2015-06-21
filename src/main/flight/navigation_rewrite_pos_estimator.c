@@ -27,6 +27,8 @@
 #include "common/axis.h"
 #include "common/maths.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/system.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -35,7 +37,6 @@
 #include "sensors/sonar.h"
 #include "sensors/barometer.h"
 #include "sensors/acceleration.h"
-#include "sensors/boardalignment.h"
 
 #include "io/gps.h"
 

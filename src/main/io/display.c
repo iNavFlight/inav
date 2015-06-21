@@ -37,6 +37,8 @@
 #include "common/axis.h"
 #include "common/typeconversion.h"
 
+#include "config/parameter_group.h"
+
 #ifdef DISPLAY
 
 #include "sensors/battery.h"

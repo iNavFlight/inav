@@ -22,7 +22,6 @@
 #define YAW_JUMP_PREVENTION_LIMIT_LOW 80
 #define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
 
-
 // Note: this is called MultiType/MULTITYPE_* in baseflight.
 typedef enum mixerMode
 {
@@ -67,6 +66,8 @@ typedef struct motorMixer_s {
     float pitch;
     float yaw;
 } motorMixer_t;
+
+extern motorMixer_t customMotorMixer[MAX_SUPPORTED_MOTORS];
 
 // Custom mixer configuration
 typedef struct mixer_s {
@@ -204,10 +205,8 @@ struct rxConfig_s;
 void mixerUseConfigs(
 #ifdef USE_SERVOS
         servoParam_t *servoConfToUse,
-        struct gimbalConfig_s *gimbalConfigToUse,
 #endif
         flight3DConfig_t *flight3DConfigToUse,
-        struct escAndServoConfig_s *escAndServoConfigToUse,
         mixerConfig_t *mixerConfigToUse,
 		struct rxConfig_s *rxConfigToUse);
 

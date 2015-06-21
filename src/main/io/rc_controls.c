@@ -28,6 +28,9 @@
 #include "common/axis.h"
 #include "common/maths.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "config/config.h"
 #include "config/runtime_config.h"
 
@@ -61,8 +64,14 @@
 
 #define AIRMODE_DEADBAND 25
 
-static escAndServoConfig_t *escAndServoConfig;
-static pidProfile_t *pidProfile;
+controlRateConfig_t controlRateProfiles[MAX_CONTROL_RATE_PROFILE_COUNT];
+
+static const pgRegistry_t controlRateProfilesRegistry PG_REGISTRY_SECTION = {
+    .base = (uint8_t *)&controlRateProfiles,
+    .size = sizeof(controlRateProfiles),
+    .pgn = PG_CONTROL_RATE_PROFILES,
+    .flags = PGC_SYSTEM
+};
 
 // true if arming is done via the sticks (as opposed to a switch)
 static bool isUsingSticksToArm = true;
@@ -228,6 +237,7 @@ void processRcStickPositions(rxConfig_t *rxConfig, throttleStatus_e throttleStat
         i = 3;
     if (i) {
         changeProfile(i - 1);
+        beeperConfirmationBeeps(i);
         return;
     }
 
@@ -471,7 +481,7 @@ void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t adjustm
         case ADJUSTMENT_THROTTLE_EXPO:
             newValue = constrain((int)controlRateConfig->thrExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
             controlRateConfig->thrExpo8 = newValue;
-            generateThrottleCurve(controlRateConfig, escAndServoConfig);
+            generateThrottleCurve(controlRateConfig, &escAndServoConfig);
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_THROTTLE_EXPO, newValue);
         break;
         case ADJUSTMENT_PITCH_ROLL_RATE:
@@ -658,11 +668,8 @@ int32_t getRcStickDeflection(int32_t axis, uint16_t midrc) {
     return MIN(ABS(rcData[axis] - midrc), 500);
 }
 
-void useRcControlsConfig(modeActivationCondition_t *modeActivationConditions, escAndServoConfig_t *escAndServoConfigToUse, pidProfile_t *pidProfileToUse)
+void useRcControlsConfig(modeActivationCondition_t *modeActivationConditions)
 {
-    escAndServoConfig = escAndServoConfigToUse;
-    pidProfile = pidProfileToUse;
-
     isUsingSticksToArm = !isModeActivationConditionPresent(modeActivationConditions, BOXARM);
 
 #ifdef NAV

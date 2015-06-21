@@ -48,7 +48,7 @@ typedef struct imuRuntimeConfig_s {
     uint8_t small_angle;
 } imuRuntimeConfig_t;
 
-void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig, pidProfile_t *initialPidProfile);
+void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig);
 
 void imuUpdateGyroAndAttitude(void);
 void imuUpdateAccelerometer(void);

@@ -38,15 +38,18 @@ extern "C" {
 
     #include "rx/rx.h"
 
+    #include "config/config.h"
+
     #include "flight/pid.h"
+
+    void useRcControlsConfig(modeActivationCondition_t *);
+
+    pidProfile_t testPidProfile[MAX_PROFILE_COUNT];
+    pidProfile_t *pidProfile = &testPidProfile[0];
 }
 
 #include "unittest_macros.h"
 #include "gtest/gtest.h"
-
-extern "C" {
-extern void useRcControlsConfig(modeActivationCondition_t *modeActivationConditions, escAndServoConfig_t *escAndServoConfig, pidProfile_t *pidProfile);
-}
 
 class RcControlsModesTest : public ::testing::Test {
 protected:
@@ -234,6 +237,8 @@ static const adjustmentConfig_t rateAdjustmentConfig = {
     .data = { { 1 } }
 };
 
+escAndServoConfig_t escAndServoConfig;
+
 class RcControlsAdjustmentsTest : public ::testing::Test {
 protected:
     controlRateConfig_t controlRateConfig = {
@@ -250,6 +255,8 @@ protected:
     virtual void SetUp() {
         adjustmentStateMask = 0;
         memset(&adjustmentStates, 0, sizeof(adjustmentStates));
+
+        memset(&escAndServoConfig, 0, sizeof (escAndServoConfig));
 
         memset(&rxConfig, 0, sizeof (rxConfig));
         rxConfig.mincheck = DEFAULT_MIN_CHECK;
@@ -536,21 +543,17 @@ TEST_F(RcControlsAdjustmentsTest, processPIDIncreasePidController0)
     modeActivationCondition_t modeActivationConditions[MAX_MODE_ACTIVATION_CONDITION_COUNT];
     memset(&modeActivationConditions, 0, sizeof (modeActivationConditions));
 
-    escAndServoConfig_t escAndServoConfig;
-    memset(&escAndServoConfig, 0, sizeof (escAndServoConfig));
-
-    pidProfile_t pidProfile;
-    memset(&pidProfile, 0, sizeof (pidProfile));
-    pidProfile.pidController = 0;
-    pidProfile.P8[PIDPITCH] = 0;
-    pidProfile.P8[PIDROLL] = 5;
-    pidProfile.P8[YAW] = 7;
-    pidProfile.I8[PIDPITCH] = 10;
-    pidProfile.I8[PIDROLL] = 15;
-    pidProfile.I8[YAW] = 17;
-    pidProfile.D8[PIDPITCH] = 20;
-    pidProfile.D8[PIDROLL] = 25;
-    pidProfile.D8[YAW] = 27;
+    memset(pidProfile, 0, sizeof (pidProfile_t));
+    pidProfile->pidController = 0;
+    pidProfile->P8[PIDPITCH] = 0;
+    pidProfile->P8[PIDROLL] = 5;
+    pidProfile->P8[YAW] = 7;
+    pidProfile->I8[PIDPITCH] = 10;
+    pidProfile->I8[PIDROLL] = 15;
+    pidProfile->I8[YAW] = 17;
+    pidProfile->D8[PIDPITCH] = 20;
+    pidProfile->D8[PIDROLL] = 25;
+    pidProfile->D8[YAW] = 27;
 
     // and
     controlRateConfig_t controlRateConfig;
@@ -588,7 +591,7 @@ TEST_F(RcControlsAdjustmentsTest, processPIDIncreasePidController0)
             (1 << 5);
 
     // when
-    useRcControlsConfig(modeActivationConditions, &escAndServoConfig, &pidProfile);
+    useRcControlsConfig(modeActivationConditions);
     processRcAdjustments(&controlRateConfig, &rxConfig);
 
     // then
@@ -596,15 +599,15 @@ TEST_F(RcControlsAdjustmentsTest, processPIDIncreasePidController0)
     EXPECT_EQ(adjustmentStateMask, expectedAdjustmentStateMask);
 
     // and
-    EXPECT_EQ(1, pidProfile.P8[PIDPITCH]);
-    EXPECT_EQ(6, pidProfile.P8[PIDROLL]);
-    EXPECT_EQ(8, pidProfile.P8[YAW]);
-    EXPECT_EQ(11, pidProfile.I8[PIDPITCH]);
-    EXPECT_EQ(16, pidProfile.I8[PIDROLL]);
-    EXPECT_EQ(18, pidProfile.I8[YAW]);
-    EXPECT_EQ(21, pidProfile.D8[PIDPITCH]);
-    EXPECT_EQ(26, pidProfile.D8[PIDROLL]);
-    EXPECT_EQ(28, pidProfile.D8[YAW]);
+    EXPECT_EQ(1, pidProfile->P8[PIDPITCH]);
+    EXPECT_EQ(6, pidProfile->P8[PIDROLL]);
+    EXPECT_EQ(8, pidProfile->P8[YAW]);
+    EXPECT_EQ(11, pidProfile->I8[PIDPITCH]);
+    EXPECT_EQ(16, pidProfile->I8[PIDROLL]);
+    EXPECT_EQ(18, pidProfile->I8[YAW]);
+    EXPECT_EQ(21, pidProfile->D8[PIDPITCH]);
+    EXPECT_EQ(26, pidProfile->D8[PIDROLL]);
+    EXPECT_EQ(28, pidProfile->D8[YAW]);
 }
 
 TEST_F(RcControlsAdjustmentsTest, processPIDIncreasePidController2)
@@ -613,21 +616,17 @@ TEST_F(RcControlsAdjustmentsTest, processPIDIncreasePidController2)
     modeActivationCondition_t modeActivationConditions[MAX_MODE_ACTIVATION_CONDITION_COUNT];
     memset(&modeActivationConditions, 0, sizeof (modeActivationConditions));
 
-    escAndServoConfig_t escAndServoConfig;
-    memset(&escAndServoConfig, 0, sizeof (escAndServoConfig));
-
-    pidProfile_t pidProfile;
-    memset(&pidProfile, 0, sizeof (pidProfile));
-    pidProfile.pidController = 2;
-    pidProfile.P_f[PIDPITCH] = 0.0f;
-    pidProfile.P_f[PIDROLL] = 5.0f;
-    pidProfile.P_f[PIDYAW] = 7.0f;
-    pidProfile.I_f[PIDPITCH] = 10.0f;
-    pidProfile.I_f[PIDROLL] = 15.0f;
-    pidProfile.I_f[PIDYAW] = 17.0f;
-    pidProfile.D_f[PIDPITCH] = 20.0f;
-    pidProfile.D_f[PIDROLL] = 25.0f;
-    pidProfile.D_f[PIDYAW] = 27.0f;
+    memset(pidProfile, 0, sizeof (pidProfile_t));
+    pidProfile->pidController = 2;
+    pidProfile->P_f[PIDPITCH] = 0.0f;
+    pidProfile->P_f[PIDROLL] = 5.0f;
+    pidProfile->P_f[PIDYAW] = 7.0f;
+    pidProfile->I_f[PIDPITCH] = 10.0f;
+    pidProfile->I_f[PIDROLL] = 15.0f;
+    pidProfile->I_f[PIDYAW] = 17.0f;
+    pidProfile->D_f[PIDPITCH] = 20.0f;
+    pidProfile->D_f[PIDROLL] = 25.0f;
+    pidProfile->D_f[PIDYAW] = 27.0f;
 
     // and
     controlRateConfig_t controlRateConfig;
@@ -665,7 +664,7 @@ TEST_F(RcControlsAdjustmentsTest, processPIDIncreasePidController2)
             (1 << 5);
 
     // when
-    useRcControlsConfig(modeActivationConditions, &escAndServoConfig, &pidProfile);
+    useRcControlsConfig(modeActivationConditions);
     processRcAdjustments(&controlRateConfig, &rxConfig);
 
     // then
@@ -673,15 +672,15 @@ TEST_F(RcControlsAdjustmentsTest, processPIDIncreasePidController2)
     EXPECT_EQ(adjustmentStateMask, expectedAdjustmentStateMask);
 
     // and
-    EXPECT_EQ(0.1f, pidProfile.P_f[PIDPITCH]);
-    EXPECT_EQ(5.1f, pidProfile.P_f[PIDROLL]);
-    EXPECT_EQ(7.1f, pidProfile.P_f[PIDYAW]);
-    EXPECT_EQ(10.01f, pidProfile.I_f[PIDPITCH]);
-    EXPECT_EQ(15.01f, pidProfile.I_f[PIDROLL]);
-    EXPECT_EQ(17.01f, pidProfile.I_f[PIDYAW]);
-    EXPECT_EQ(20.001f, pidProfile.D_f[PIDPITCH]);
-    EXPECT_EQ(25.001f, pidProfile.D_f[PIDROLL]);
-    EXPECT_EQ(27.001f, pidProfile.D_f[PIDYAW]);
+    EXPECT_EQ(0.1f, pidProfile->P_f[PIDPITCH]);
+    EXPECT_EQ(5.1f, pidProfile->P_f[PIDROLL]);
+    EXPECT_EQ(7.1f, pidProfile->P_f[PIDYAW]);
+    EXPECT_EQ(10.01f, pidProfile->I_f[PIDPITCH]);
+    EXPECT_EQ(15.01f, pidProfile->I_f[PIDROLL]);
+    EXPECT_EQ(17.01f, pidProfile->I_f[PIDYAW]);
+    EXPECT_EQ(20.001f, pidProfile->D_f[PIDPITCH]);
+    EXPECT_EQ(25.001f, pidProfile->D_f[PIDROLL]);
+    EXPECT_EQ(27.001f, pidProfile->D_f[PIDYAW]);
 
 }
 

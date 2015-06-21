@@ -24,6 +24,9 @@
 #include "common/axis.h"
 #include "common/maths.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/sensor.h"
 #include "drivers/compass.h"
 #include "drivers/compass_hmc5883l.h"
@@ -52,6 +55,17 @@ sensor_align_e magAlign = 0;
 static uint8_t magInit = 0;
 static uint8_t magUpdatedAtLeastOnce = 0;
 
+magConfig_t magConfig;
+
+static const pgRegistry_t magConfigRegistry PG_REGISTRY_SECTION =
+{
+    .base = (uint8_t *)&magConfig,
+    .size = sizeof(magConfig),
+    .pgn = PG_MAG_CONFIG,
+    .format = 0,
+    .flags = PGC_SYSTEM
+};
+
 void compassInit(void)
 {
     // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
@@ -68,7 +82,7 @@ bool isCompassReady(void)
 
 static sensorCalibrationState_t calState;
 
-void updateCompass(flightDynamicsTrims_t *magZero)
+void updateCompass(void)
 {
     static uint32_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
@@ -81,7 +95,7 @@ void updateCompass(flightDynamicsTrims_t *magZero)
         calStartedAt = currentTime;
 
         for (axis = 0; axis < 3; axis++) {
-            magZero->raw[axis] = 0;
+            magConfig.magZero.raw[axis] = 0;
             magPrev[axis] = 0;
         }
 
@@ -90,9 +104,9 @@ void updateCompass(flightDynamicsTrims_t *magZero)
     }
 
     if (magInit) {              // we apply offset only once mag calibration is done
-        magADC[X] -= magZero->raw[X];
-        magADC[Y] -= magZero->raw[Y];
-        magADC[Z] -= magZero->raw[Z];
+        magADC[X] -= magConfig.magZero.raw[X];
+        magADC[Y] -= magConfig.magZero.raw[Y];
+        magADC[Z] -= magConfig.magZero.raw[Z];
     }
 
     if (calStartedAt != 0) {
@@ -120,7 +134,7 @@ void updateCompass(flightDynamicsTrims_t *magZero)
             sensorCalibrationSolveForOffset(&calState, magZerof);
 
             for (axis = 0; axis < 3; axis++) {
-                magZero->raw[axis] = lrintf(magZerof[axis]);
+                magConfig.magZero.raw[axis] = lrintf(magZerof[axis]);
             }
 
             calStartedAt = 0;

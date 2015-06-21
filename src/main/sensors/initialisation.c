@@ -744,8 +744,8 @@ void reconfigureAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
     }
 }
 
-bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t gyroLpf, uint8_t accHardwareToUse, uint8_t magHardwareToUse, uint8_t baroHardwareToUse,
-        int16_t magDeclinationFromConfig) {
+bool sensorsAutodetect(int16_t magDeclinationFromConfig)
+{
 
     int16_t deg, min;
 
@@ -763,19 +763,21 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t g
     if (!detectGyro()) {
         return false;
     }
-    detectAcc(accHardwareToUse);
-    detectBaro(baroHardwareToUse);
+    detectAcc(sensorSelectionConfig.acc_hardware);
+    detectBaro(sensorSelectionConfig.baro_hardware);
 
 
     // Now time to init things, acc first
     if (sensors(SENSOR_ACC))
         acc.init(&acc);
 
-    gyro.init(gyroLpf);
+    gyro.init(gyroConfig.gyro_lpf);
 
-    detectMag(magHardwareToUse);
+#ifdef MAG
+    detectMag(sensorSelectionConfig.mag_hardware);
+#endif
 
-    reconfigureAlignment(sensorAlignmentConfig);
+    reconfigureAlignment(&sensorAlignmentConfig);
 
     // FIXME extract to a method to reduce dependencies, maybe move to sensors_compass.c
     if (sensors(SENSOR_MAG)) {

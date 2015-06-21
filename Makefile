@@ -218,6 +218,9 @@ COMMON_SRC = build_config.c \
 		   $(TARGET_SRC) \
 		   config/config.c \
 		   config/runtime_config.c \
+		   config/config_streamer.c \
+		   config/config_eeprom.c \
+           config/parameter_group.c \
 		   common/maths.c \
 		   common/printf.c \
 		   common/typeconversion.c \
@@ -240,6 +243,8 @@ COMMON_SRC = build_config.c \
 		   drivers/gyro_sync.c \
 		   drivers/buf_writer.c \
 		   io/beeper.c \
+		   io/gimbal.c \
+		   io/escservo.c \
 		   io/rc_controls.c \
 		   io/rc_curves.c \
 		   io/serial.c \
@@ -258,6 +263,7 @@ COMMON_SRC = build_config.c \
 		   rx/spektrum.c \
 		   rx/xbus.c \
 		   rx/ibus.c \
+		   sensors/sensors.c \
 		   sensors/acceleration.c \
 		   sensors/battery.c \
 		   sensors/boardalignment.c \

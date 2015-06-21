@@ -25,8 +25,11 @@
 
 #define GYRO_SATURATION_LIMIT   1800        // 1800dps
 #define PID_MAX_OUTPUT          1000
-#define YAW_P_LIMIT_MIN 100                 // Maximum value for yaw P limiter
-#define YAW_P_LIMIT_MAX 300                 // Maximum value for yaw P limiter
+#define YAW_P_LIMIT_MIN         100                 // Maximum value for yaw P limiter
+#define YAW_P_LIMIT_MAX         300                 // Maximum value for yaw P limiter
+
+#define PID_MIN                 0
+#define PID_MAX                 255
 
 typedef enum {
     PIDROLL,
@@ -49,8 +52,6 @@ typedef struct pidProfile_s {
 
     uint8_t dterm_lpf_hz;                   // (default 17Hz, Range 1-50Hz) Used for PT1 element in PID1, PID2 and PID5
     uint8_t yaw_pterm_lpf_hz;               // Used for filering Pterm noise on noisy frames
-    uint8_t gyro_soft_lpf_hz;               // Gyro FIR filtering
-    uint8_t acc_soft_lpf_hz;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
 
     uint16_t yaw_p_limit;
 
@@ -59,8 +60,9 @@ typedef struct pidProfile_s {
 
 extern int16_t axisPID[];
 extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
+extern pidProfile_t *pidProfile;
 
 void pidResetErrorAccumulators(void);
-void updatePIDCoefficients(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
+void updatePIDCoefficients(const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
 int16_t pidAngleToRcCommand(float angleDeciDegrees);
-void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
+void pidController(const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);

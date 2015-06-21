@@ -24,11 +24,14 @@
 #include "build_config.h"
 #include "debug.h"
 
-#include "config/runtime_config.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
+
+#include "config/parameter_group.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -47,6 +50,22 @@
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 
+#include "config/runtime_config.h"
+#include "config/config_unittest.h"
+#include "config/config.h"
+
+pidProfile_t pidProfileStorage[MAX_PROFILE_COUNT];
+pidProfile_t *pidProfile;
+
+static const pgRegistry_t pidProfileRegistry PG_REGISTRY_SECTION =
+{
+    .base = (uint8_t *)&pidProfileStorage,
+    .ptr = (uint8_t **)&pidProfile,
+    .size = sizeof(pidProfileStorage[0]),
+    .pgn = PG_PID_PROFILE,
+    .format = 0,
+    .flags = PGC_PROFILE
+};
 
 typedef struct {
     float kP;
@@ -126,7 +145,7 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 
 #define KD_ATTENUATION_BREAK        0.25f
 
-void updatePIDCoefficients(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
+void updatePIDCoefficients(const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
 {
     // TPA should be updated only when TPA is actually set
     if (controlRateConfig->dynThrPID == 0 || rcData[THROTTLE] < controlRateConfig->tpa_breakpoint) {
@@ -168,7 +187,7 @@ void updatePIDCoefficients(const pidProfile_t *pidProfile, const controlRateConf
     }
 }
 
-static void pidApplyHeadingLock(const pidProfile_t *pidProfile, pidState_t *pidState)
+static void pidApplyHeadingLock(pidState_t *pidState)
 {
     // Heading lock mode is different from Heading hold using compass.
     // Heading lock attempts to keep heading at current value even if there is an external disturbance.
@@ -184,7 +203,7 @@ static void pidApplyHeadingLock(const pidProfile_t *pidProfile, pidState_t *pidS
     }
 }
 
-static float calcHorizonLevelStrength(const pidProfile_t *pidProfile, const rxConfig_t *rxConfig)
+static float calcHorizonLevelStrength(const rxConfig_t *rxConfig)
 {
     float horizonLevelStrength = 1;
 
@@ -203,7 +222,7 @@ static float calcHorizonLevelStrength(const pidProfile_t *pidProfile, const rxCo
     return horizonLevelStrength;
 }
 
-static void pidLevel(const pidProfile_t *pidProfile, pidState_t *pidState, flight_dynamics_index_t axis, float horizonLevelStrength)
+static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonLevelStrength)
 {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
     const float angleTarget = pidRcCommandToAngle(rcCommand[axis]);
@@ -233,7 +252,7 @@ static void pidLevel(const pidProfile_t *pidProfile, pidState_t *pidState, fligh
     }
 }
 
-static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *pidState, flight_dynamics_index_t axis)
+static void pidApplyRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
@@ -292,7 +311,7 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
 #endif
 }
 
-void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
+void pidController(const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
 {
     for (int axis = 0; axis < 3; axis++) {
         // Step 1: Calculate gyro rates
@@ -305,18 +324,18 @@ void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *co
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
     if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
-        const float horizonLevelStrength = calcHorizonLevelStrength(pidProfile, rxConfig);
-        pidLevel(pidProfile, &pidState[FD_ROLL], FD_ROLL, horizonLevelStrength);
-        pidLevel(pidProfile, &pidState[FD_PITCH], FD_PITCH, horizonLevelStrength);
+        const float horizonLevelStrength = calcHorizonLevelStrength(rxConfig);
+        pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonLevelStrength);
+        pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonLevelStrength);
     }
 
     if (FLIGHT_MODE(HEADING_LOCK)) {
-        pidApplyHeadingLock(pidProfile, &pidState[FD_YAW]);
+        pidApplyHeadingLock(&pidState[FD_YAW]);
     }
 
     // Step 4: Run gyro-driven control
     for (int axis = 0; axis < 3; axis++) {
         // Apply PID setpoint controller
-        pidApplyRateController(pidProfile, &pidState[axis], axis);     // scale gyro rate to DPS
+        pidApplyRateController(&pidState[axis], axis);     // scale gyro rate to DPS
     }
 }

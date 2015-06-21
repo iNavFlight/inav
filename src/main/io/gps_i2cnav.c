@@ -38,7 +38,6 @@
 #include "flight/gps_conversion.h"
 #include "flight/pid.h"
 #include "flight/hil.h"
-#include "flight/navigation_rewrite.h"
 
 #include "config/config.h"
 #include "config/runtime_config.h"

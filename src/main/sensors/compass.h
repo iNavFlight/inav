@@ -30,9 +30,15 @@ typedef enum {
 
 #define MAG_MAX  MAG_FAKE
 
+typedef struct magConfig_s {
+    flightDynamicsTrims_t magZero;
+} magConfig_t;
+
+extern magConfig_t magConfig;
+
 #ifdef MAG
 void compassInit(void);
-void updateCompass(flightDynamicsTrims_t *magZero);
+void updateCompass();
 bool isCompassReady(void);
 #endif
 
