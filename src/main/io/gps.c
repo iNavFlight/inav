@@ -207,6 +207,8 @@ static void gpsSetState(gpsState_e state)
     gpsData.messageState = GPS_MESSAGE_STATE_IDLE;
 }
 
+bool gpsDetectI2C(void);
+
 void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
 {
     serialConfig = initialSerialConfig;
@@ -236,31 +238,39 @@ void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
     if (gpsConfig->provider == GPS_NMEA || gpsConfig->provider == GPS_UBLOX) {
         serialPortConfig_t *gpsPortConfig = findSerialPortConfig(FUNCTION_GPS);
         if (!gpsPortConfig) {
-            featureClear(FEATURE_GPS);
-            return;
-        }
-
-        while (gpsInitData[gpsData.baudrateIndex].baudrateIndex != gpsPortConfig->gps_baudrateIndex) {
-            gpsData.baudrateIndex++;
-            if (gpsData.baudrateIndex >= GPS_INIT_DATA_ENTRY_COUNT) {
-                gpsData.baudrateIndex = DEFAULT_BAUD_RATE_INDEX;
-                break;
+            // No port configured for SERIAL GPS - automatically fallback to I2C GPS if it is present
+            if (gpsDetectI2C()) {
+                gpsConfig->provider = GPS_I2C;
+            }
+            else {
+                featureClear(FEATURE_GPS);
+                return;
             }
         }
+        else {
+            while (gpsInitData[gpsData.baudrateIndex].baudrateIndex != gpsPortConfig->gps_baudrateIndex) {
+                gpsData.baudrateIndex++;
+                if (gpsData.baudrateIndex >= GPS_INIT_DATA_ENTRY_COUNT) {
+                    gpsData.baudrateIndex = DEFAULT_BAUD_RATE_INDEX;
+                    break;
+                }
+            }
 
-        portMode_t mode = MODE_RXTX;
-        // only RX is needed for NMEA-style GPS
-        if (gpsConfig->provider == GPS_NMEA)
-            mode &= ~MODE_TX;
+            portMode_t mode = MODE_RXTX;
+            // only RX is needed for NMEA-style GPS
+            if (gpsConfig->provider == GPS_NMEA)
+                mode &= ~MODE_TX;
 
-        // no callback - buffer will be consumed in gpsThread()
-        gpsPort = openSerialPort(gpsPortConfig->identifier, FUNCTION_GPS, NULL, gpsInitData[gpsData.baudrateIndex].baudrateIndex, mode, SERIAL_NOT_INVERTED);
-        if (!gpsPort) {
-            featureClear(FEATURE_GPS);
-            return;
+            // no callback - buffer will be consumed in gpsThread()
+            gpsPort = openSerialPort(gpsPortConfig->identifier, FUNCTION_GPS, NULL, gpsInitData[gpsData.baudrateIndex].baudrateIndex, mode, SERIAL_NOT_INVERTED);
+            if (!gpsPort) {
+                featureClear(FEATURE_GPS);
+                return;
+            }
         }
     }
-    else if (gpsConfig->provider == GPS_I2C) {
+
+    if (gpsConfig->provider == GPS_I2C) {
         // Nothing to do yet
     }
 
