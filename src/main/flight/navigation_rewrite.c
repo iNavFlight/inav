@@ -1502,16 +1502,16 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
             // FIXME: Test and verify this provides correct velocities, then switch to using this
             /*
             gpsVelocity[X] = (gpsVelocity[X] + (float)newVel * cosf(newCOG * RADX10)) / 2.0f;
-            gpsVelocity[Y] = (gpsVelocity[X] + (float)newVel * sinf(newCOG * RADX10)) / 2.0f;
+            gpsVelocity[Y] = (gpsVelocity[Y] + (float)newVel * sinf(newCOG * RADX10)) / 2.0f;
             */
 
+            /*
             gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
             gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
+            */
 
-            NAV_BLACKBOX_DEBUG(0, (float)newVel * cosf(newCOG * RADX10));
-            NAV_BLACKBOX_DEBUG(1, (float)newVel * sinf(newCOG * RADX10));
-            NAV_BLACKBOX_DEBUG(2, (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT));
-            NAV_BLACKBOX_DEBUG(3, (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT));
+            gpsVelocity[X] = (float)newVel * cosf(newCOG * RADX10);
+            gpsVelocity[Y] = (float)newVel * sinf(newCOG * RADX10);
         } else {
             float dT = getGPSDeltaTimeFilter(currentTime - previousTime) * 1e-6f;
 
