@@ -291,8 +291,17 @@ static void updateActualHorizontalVelocity(float newVelX, float newVelY)
 }
 #endif
 
+static void updateActualAltitude(float newAltitude)
+{
+    actualPosition.altitude = newAltitude;
+
+#if defined(NAV_BLACKBOX)
+    navLatestActualPosition[Z] = lrintf(newAltitude);
+#endif
+}
+
 #define AVERAGE_VERTICAL_VEL_INTERVAL   250000      // 250ms, 4Hz
-static void updateActualAltitudeAndVelocity(float newAltitude, float newVelocity)
+static void updateActualVerticalVelocity(float newVelocity)
 {
     static uint32_t averageVelocityLastUpdateTime = 0;
 
@@ -316,12 +325,10 @@ static void updateActualAltitudeAndVelocity(float newAltitude, float newVelocity
         averageVelocitySampleCount = 0;
     }
 
-    actualPosition.altitude = newAltitude;
     actualVelocity[Z] = newVelocity;
 
 #if defined(NAV_BLACKBOX)
     navActualVelocity[Z] = constrain(lrintf(newVelocity), -32678, 32767);
-    navLatestActualPosition[Z] = lrintf(newAltitude);
 #endif
 }
 
@@ -691,36 +698,6 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
                 // Heading PID controller takes degrees, not centidegrees (this pid duplicates MAGHOLD)
                 rcAdjustment[YAW] = pidGetP(headingError / 100.0f, &headingRatePID);
             }
-
-        /*
-#if 0
-            // Variant 1: Apply LPF to heading error, smooth out yaw control, should have no need to adjust PID value
-            #define NAV_HEADING_ERROR_LPF_FACTOR    0.9f
-            static float headingError = 0;
-            float newHeadingError = wrap_18000((actualPosition.heading - desiredHeading) * 100) * masterConfig.yaw_control_direction;
-            newHeadingError = constrain(newHeadingError, -3000, +3000); // limit error to +- 30 degrees to avoid fast rotation
-
-            // Apply smoothing to heading error (prevents high frequency jitter). This slows down PID response time, but that's ok for heading hold)
-            headingError = NAV_HEADING_ERROR_LPF_FACTOR * headingError + (1 - NAV_HEADING_ERROR_LPF_FACTOR) * newHeadingError;
-
-            // FIXME: SMALL_ANGLE might prevent NAV from adjusting yaw when banking is too high (i.e. nav in high wind)
-            if (STATE(SMALL_ANGLE)) {
-                // Heading PID controller takes degrees, not centidegrees (this pid duplicates MAGHOLD)
-                rcAdjustment[YAW] = pidGetP(headingError / 100.0f, &headingRatePID);
-            }
-#else
-            // Variant 2: Apply expo curve to heading hold PID output (as in pitch/roll), probably will need adjusting of MAGHOLD PID value
-            uint32_t headingError = wrap_18000((actualPosition.heading - desiredHeading) * 100) * masterConfig.yaw_control_direction;
-            headingError = constrain(headingError, -3000, +3000); // limit error to +- 30 degrees to avoid fast rotation
-
-            // FIXME: SMALL_ANGLE might prevent NAV from adjusting yaw when banking is too high (i.e. nav in high wind)
-            if (STATE(SMALL_ANGLE)) {
-                // Heading PID controller takes degrees, not centidegrees (this pid duplicates MAGHOLD)
-                float navExpo = constrain(navProfile->nav_expo, 0, 100) / 100.0f;
-                rcAdjustment[YAW] = applyExpoCurve(pidGetP(headingError / 100.0f, &headingRatePID) / 500.0f, navExpo) * 500.0f
-            }
-#endif
-*/
         }
 #endif
     }
@@ -786,6 +763,11 @@ static void calculateThrottleAdjustment(float dTnav)
 
                 rcAdjustment[THROTTLE] = pidGetPID(error, dTnav, &altitudeRatePID);
                 rcAdjustment[THROTTLE] = constrain(rcAdjustment[THROTTLE], -500, 500);
+
+                NAV_BLACKBOX_DEBUG(0, error);
+                NAV_BLACKBOX_DEBUG(1, error * altitudeRatePID.param.kP);
+                NAV_BLACKBOX_DEBUG(2, altitudeRatePID.integrator);
+                NAV_BLACKBOX_DEBUG(3, altitudeRatePID.param.kD * altitudeRatePID.last_derivative);
 
                 if (navProfile->flags.throttle_tilt_comp) {
                     rcAdjustment[THROTTLE] += calculateThrottleAngleCorrection(throttleAngleCorrectionValue, NAV_THROTTLE_CORRECTION_ANGLE);
@@ -1505,11 +1487,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
             gpsVelocity[Y] = (gpsVelocity[Y] + (float)newVel * sinf(newCOG * RADX10)) / 2.0f;
             */
 
-            /*
-            gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
-            gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
-            */
-
             gpsVelocity[X] = (float)newVel * cosf(newCOG * RADX10);
             gpsVelocity[Y] = (float)newVel * sinf(newCOG * RADX10);
         } else {
@@ -1531,9 +1508,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
 #endif
 
         // Update IMU velocities with complementary filter to keep them close to real velocities (as given by GPS)
-        imuSampleAverageAccelerationAndVelocity(X);
-        imuSampleAverageAccelerationAndVelocity(Y);
-
         imuApplyFilterToActualVelocity(X, navProfile->nav_gps_cf, gpsVelocity[X]);
         imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, gpsVelocity[Y]);
         
@@ -1555,14 +1529,15 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
     previousTime = currentTime;
 
     updateActualHorizontalPosition(newLat, newLon);
-    updateActualHorizontalVelocity(imuAverageVelocity[X], imuAverageVelocity[Y]);
     updateHomePosition();
 }
 
 #define IMU_VELOCITY_UPDATE_FREQUENCY_HZ    100
-void updateEstimatedVelocityFromIMU(void)
+void updateEstimatedVelocitiesFromIMU(void)
 {
     static uint32_t previousTime;
+    int axis;
+
     uint32_t currentTime = micros();
 
     if ((currentTime - previousTime) < (1000000 / IMU_VELOCITY_UPDATE_FREQUENCY_HZ))
@@ -1570,14 +1545,13 @@ void updateEstimatedVelocityFromIMU(void)
 
     previousTime = currentTime;
 
-    if (sensors(SENSOR_GPS) && sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE)) {
-        imuSampleAverageAccelerationAndVelocity(X);
-        imuSampleAverageAccelerationAndVelocity(Y);
-    }
+    // Sample all axis
+    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++)
+        imuSampleAverageAccelerationAndVelocity(axis);
 
-    if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR)) {
-        imuSampleAverageAccelerationAndVelocity(Z);
-    }
+    // Update actual velocities
+    updateActualVerticalVelocity(imuAverageVelocity[Z]);
+    updateActualHorizontalVelocity(imuAverageVelocity[X], imuAverageVelocity[Y]);
 }
 
 void updateEstimatedHeading(void)
@@ -1644,7 +1618,7 @@ void updateEstimatedAltitude(void)
         }
     }
 
-    // signal IMU that actualVelocity[Z] is ready to be used and updated
+    // Altitude calculation relies on IMU, update this forcibly - this might occur ahead of scheduled update by updateEstimatedVelocitiesFromIMU()
     imuSampleAverageAccelerationAndVelocity(Z);
 
     // Integrator - Altitude in cm
@@ -1667,13 +1641,12 @@ void updateEstimatedAltitude(void)
 
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
     imuApplyFilterToActualVelocity(Z, barometerConfig->baro_cf_vel, baroVel);
-    //imuApplyFilterToActualVelocity(Z, barometerConfig->baro_cf_vel, calculateReferenceVerticalVelocityForIMUUpdate());
 
     // Update NAV
     if (sonarAlt > 0 && sonarAlt < (SONAR_MAX_RANGE * 2 / 3)) {
-        updateActualAltitudeAndVelocity(BaroAlt, imuAverageVelocity[Z]);
+        updateActualAltitude(BaroAlt);
     } else {
-        updateActualAltitudeAndVelocity(accAlt, imuAverageVelocity[Z]);
+        updateActualAltitude(accAlt);
     }
 }
 

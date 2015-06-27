@@ -749,7 +749,7 @@ void loop(void)
 
 #if defined(NAV)
         updateEstimatedHeading();
-        updateEstimatedVelocityFromIMU();
+        updateEstimatedVelocitiesFromIMU();
         applyWaypointNavigationAndAltitudeHold();
 #endif
 

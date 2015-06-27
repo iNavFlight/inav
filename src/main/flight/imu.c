@@ -51,11 +51,15 @@ float imuAverageVelocity[XYZ_AXIS_COUNT];
 float imuAverageAcceleration[XYZ_AXIS_COUNT];
 
 // Variables for velocity estimation from accelerometer. Update rates can be different for each axis.
-// TODO: Make accCalcInterval automatically adjust according to reference velocity updates (from GPS or Baro/Sonar via NAV)
-static int32_t accSum[XYZ_AXIS_COUNT];
-static uint8_t accVelLPFHz[XYZ_AXIS_COUNT] = { 15, 15, 10 };
-static uint32_t accTimeSum[XYZ_AXIS_COUNT] = {0, 0, 0};
-static int accSumCount[XYZ_AXIS_COUNT] = {0, 0, 0};
+typedef struct {
+    int32_t accSum;             // sum of accelerometer samples (for averaging)
+    uint32_t accTimeSum;        // total time of accelerometer samples
+    uint32_t accSumCount;       // total number of accelerometer samples
+    uint8_t velLpfHz;           // cutoff frequency of 1-st order RC-filter for velocity calculation
+    uint32_t lastRefVelUpdate;  // last reference velocity update (when this happened too far in the past - decay estimated velocity to zero
+} imuAccVelContext_s;
+
+static imuAccVelContext_s accVel[XYZ_AXIS_COUNT];
 
 int16_t accSmooth[XYZ_AXIS_COUNT];
 
@@ -93,6 +97,11 @@ void imuInit()
         imuAverageVelocity[axis] = 0;
         imuAverageAcceleration[axis] = 0;
     }
+
+    // Set integrator LPF HZ
+    accVel[X].velLpfHz = 15;
+    accVel[Y].velLpfHz = 15;
+    accVel[Z].velLpfHz = 10;
 }
 
 float calculateThrottleAngleScale(uint16_t throttle_correction_angle)
@@ -114,33 +123,40 @@ float calculateThrottleAngleScale(uint16_t throttle_correction_angle)
 //
 // **************************************************
 
-
 t_fp_vector EstG;
 
 static void imuResetAccelerationSum(int axis)
 {
-    accSum[axis] = 0;
-    accSumCount[axis] = 0;
-    accTimeSum[axis] = 0;
+    accVel[axis].accSum = 0;
+    accVel[axis].accSumCount = 0;
+    accVel[axis].accTimeSum = 0;
 }
 
+#define MAX_REF_VEL_UPDATE_INTERVAL     1000000     // 1s = 1Hz
+#define REF_VEL_DECAY_FACTOR            0.995f
 void imuSampleAverageAccelerationAndVelocity(uint8_t axis)
 {
-    if (accTimeSum[axis] <= 0)
+    if (accVel[axis].accTimeSum == 0)
         return;
 
-    float accSumDt = accTimeSum[axis] * 1e-6f;
+    float accSumDt = accVel[axis].accTimeSum * 1e-6f;
 
     // RC-LPF: y[i] = y[i-1] + alpha * (x[i] - y[i-1])
-    imuAverageAcceleration[axis] = ((float)accSum[axis] / (float)accSumCount[axis]) * (100.0f * 9.80665f / acc_1G);   // cm/s^2
-    imuAverageVelocity[axis] += (accSumDt / ((0.5f / (M_PIf * accVelLPFHz[axis])) + accSumDt)) * (imuAverageAcceleration[axis] * accSumDt);
+    imuAverageAcceleration[axis] = ((float)accVel[axis].accSum / (float)accVel[axis].accSumCount) * (100.0f * 9.80665f / acc_1G);   // cm/s^2
+    imuAverageVelocity[axis] += (accSumDt / ((0.5f / (M_PIf * accVel[axis].velLpfHz)) + accSumDt)) * (imuAverageAcceleration[axis] * accSumDt);
     imuResetAccelerationSum(axis);
+
+    // If reference was updated far in the past - decay to zero. This provides somewhat accurate result in short-term perspective, but prevents accumulation of integration error
+    if ((micros() - accVel[axis].lastRefVelUpdate) > MAX_REF_VEL_UPDATE_INTERVAL) {
+        imuAverageVelocity[axis] = imuAverageVelocity[axis] * REF_VEL_DECAY_FACTOR;
+    }
 }
 
 void imuApplyFilterToActualVelocity(uint8_t axis, float cfFactor, float referenceVelocity)
 {
     // apply Complimentary Filter to keep the calculated velocity based on reference (near real) velocity.
     imuAverageVelocity[axis] = imuAverageVelocity[axis] * cfFactor + referenceVelocity * (1.0f - cfFactor);
+    accVel[axis].lastRefVelUpdate = micros();
 }
 
 // rotate acc into Earth frame and calculate acceleration in it
@@ -172,14 +188,14 @@ static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
         accel_ned.V.Z -= acc_1G;
 
     // apply Deadband to reduce integration drift and vibration influence
-    accSum[X] += applyDeadband(lrintf(accel_ned.V.X), accDeadband->xy);
-    accSum[Y] += applyDeadband(lrintf(accel_ned.V.Y), accDeadband->xy);
-    accSum[Z] += applyDeadband(lrintf(accel_ned.V.Z), accDeadband->z);
+    accVel[X].accSum += applyDeadband(lrintf(accel_ned.V.X), accDeadband->xy);
+    accVel[Y].accSum += applyDeadband(lrintf(accel_ned.V.Y), accDeadband->xy);
+    accVel[Z].accSum += applyDeadband(lrintf(accel_ned.V.Z), accDeadband->z);
 
     // Accumulate acceleration for averaging and integration to get velocity
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        accTimeSum[axis] += deltaT;
-        accSumCount[axis]++;
+        accVel[axis].accTimeSum += deltaT;
+        accVel[axis].accSumCount++;
     }
 }
 
