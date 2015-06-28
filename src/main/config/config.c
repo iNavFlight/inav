@@ -197,7 +197,7 @@ void resetNavProfile(navProfile_t *navProfile)
     navProfile->flags.user_control_mode = NAV_GPS_ATTI;
 
     navProfile->nav_wp_radius = 200;
-    navProfile->nav_lpf = 20;
+    navProfile->nav_lpf = 10;
     navProfile->nav_speed_min = 100;
     navProfile->nav_speed_max = 300;
     navProfile->nav_manual_speed_horizontal = 300;
