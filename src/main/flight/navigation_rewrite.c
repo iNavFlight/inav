@@ -630,7 +630,7 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
     else { // MULTIROTOR
         int axis;
 
-        // FIXME: Use normal PID for PH (remove d term zeroing on slow motion)
+        // FIXME: Use the same rate controller for WP and PH
 
         // Now calculate pitch/roll adjustments to achieve desired velocities
         if (navShouldApplyPosHold() || navShouldApplyWaypoint()) {
@@ -642,18 +642,7 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
                 // Calculate pitch/roll
                 for (axis = 0; axis < 2; axis++) {
                     error = constrainf(desiredVelocity[axis] - actualVelocity[axis], -500.0f, 500.0f); // limit error to 5 m/s
-
-                    axisAdjustment[axis] = pidGetPI(error, dTnav, &posholdRatePID[axis]);
-
-                    float d = pidGetD(error, dTnav, &posholdRatePID[axis]);
-                    d = constrainf(d, -2000.0f, 2000.0f);
-
-                    // get rid of noise
-                    if (ABS(actualVelocity[axis]) < 10)
-                        d = 0;
-
-                    axisAdjustment[axis] += d;
-                    navigationRatePID[axis].integrator = posholdRatePID[axis].integrator;
+                    axisAdjustment[axis] = pidGetPID(error, dTnav, &posholdRatePID[axis]);
                 }
             }
             else if (navShouldApplyWaypoint()) {
@@ -663,7 +652,7 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
                     axisAdjustment[axis] = pidGetPID(error, dTnav, &navigationRatePID[axis]);
                 }
             }
-            
+
             /* Apply some smoothing to attitude adjustments */
             for (axis = 0; axis < 2; axis++) {
                 axisAdjustment[axis] = (lastAxisAdjustment[axis] + axisAdjustment[axis]) * 0.5f;
@@ -715,7 +704,7 @@ static void calculateAndUpdateThrottleAngleCorrection(uint16_t throttle)
         return;
 
     // We keep track of two values:
-    //  1. level hover throttle, calculated when quad is hovering at a very small angle
+    //  1. level hover throttle, calculated when quad is hovering at a small angle
     //  2. angle hover throttle, calculated when quad is flying as a constant altitude
     // Then we use these two values to calculate desired throttle_correction_value
 
@@ -725,7 +714,7 @@ static void calculateAndUpdateThrottleAngleCorrection(uint16_t throttle)
 
     uint16_t tiltAngle = calculateTiltAngle();
 
-    if (tiltAngle < 100) {
+    if (tiltAngle < 100) {  // < 10 deg
         if (hoverThrottleAtZeroTiltInitialized) {
             // Apply IIR LPF to throttle - smooth spikes and variances
             hoverThrottleAtZeroTilt = hoverThrottleAtZeroTilt * NAV_THROTTLE_ANGLE_CORRECTION_CF + 
