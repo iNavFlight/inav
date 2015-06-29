@@ -140,7 +140,8 @@ static navRthState_t navRthState;
 #if defined(NAV_BLACKBOX)
 int16_t navCurrentMode;
 int16_t navActualVelocity[3];
-int16_t navGPSVelocity[2];
+int16_t navGPSVelocity[3];
+int16_t navBaroVelocity;
 int16_t navDesiredVelocity[3];
 int16_t navLatestPositionError[3];
 int16_t navActualHeading;
@@ -1410,6 +1411,7 @@ void navigationInit(navProfile_t *initialNavProfile,
  * this part of code and do not touch the above code (if possible)
  *-----------------------------------------------------------*/
 static float gpsVelocity[XYZ_AXIS_COUNT] = {0.0f, 0.0f, 0.0f};
+static bool gpsVelocityValid = false;
 
 /*
 static float lastKnownBaroVelocityZ = 0.0f;
@@ -1458,6 +1460,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
     // Don't have a valid GPS 3D fix, do nothing
     if (!(STATE(GPS_FIX) && GPS_numSat >= 5)) {
         isFirstUpdate = true;
+        gpsVelocityValid = false;
         return;
     }
 
@@ -1490,10 +1493,12 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
         }
 
         gpsVelocity[Z] = (gpsVelocity[Z] + (newAlt - previousAlt) / dT) / 2.0f;
+        gpsVelocityValid = true;
 
 #if defined(NAV_BLACKBOX)
         navGPSVelocity[X] = constrain(lrintf(gpsVelocity[X]), -32678, 32767);
         navGPSVelocity[Y] = constrain(lrintf(gpsVelocity[Y]), -32678, 32767);
+        navGPSVelocity[Z] = constrain(lrintf(gpsVelocity[Z]), -32678, 32767);
 #endif
 
         // Update IMU velocities with complementary filter to keep them close to real velocities (as given by GPS)
@@ -1630,6 +1635,10 @@ void updateEstimatedAltitude(void)
 
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
     imuApplyFilterToActualVelocity(Z, barometerConfig->baro_cf_vel, baroVel);
+
+#if defined(NAV_BLACKBOX)
+    navBaroVelocity = constrain(lrintf(baroVel), -32678, 32767);
+#endif
 
     // Update NAV
     if (sonarAlt > 0 && sonarAlt < (SONAR_MAX_RANGE * 2 / 3)) {
