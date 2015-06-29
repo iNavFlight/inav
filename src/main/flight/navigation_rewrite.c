@@ -1449,6 +1449,12 @@ static uint32_t getGPSDeltaTimeFilter(uint32_t dTus)
     return dTus;                                                    // Filter failed. Set GPS Hz by measurement
 }
 
+/*
+ * newLat, newLon - new coordinates
+ * newAlt - new MSL altitude (cm)
+ * newVel - new velocity (cm/s)
+ * newCOG - new course over ground (degrees * 10)
+ */
 void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel, int32_t newCOG)
 {
     static uint32_t previousTime;
@@ -1466,13 +1472,18 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
 
     uint32_t currentTime = micros();
 
+    // this is used to offset the shrinking longitude as we go towards the poles
+    gpsScaleLonDown = cosf((ABS(newLat) / 10000000.0f) * 0.0174532925f);
+
     // If not first update - calculate velocities
     if (!isFirstUpdate) {
         float dT = getGPSDeltaTimeFilter(currentTime - previousTime) * 1e-6f;
 
-        if ((gpsData.validData & (GPS_VALID_SPEED | GPS_VALID_COURSE)) == (GPS_VALID_SPEED | GPS_VALID_COURSE)) {
-            gpsScaleLonDown = cosf((ABS(newLat) / 10000000.0f) * 0.0174532925f);
+        // Vertical velocity
+        gpsVelocity[Z] = (gpsVelocity[Z] + (newAlt - previousAlt) / dT) / 2.0f;
 
+        // Horizontal velocity
+        if ((gpsData.validData & (GPS_VALID_SPEED | GPS_VALID_COURSE)) == (GPS_VALID_SPEED | GPS_VALID_COURSE)) {
             // FIXME: Test and verify this provides correct velocities, then switch to using this
             /*
             gpsVelocity[X] = (gpsVelocity[X] + (float)newVel * cosf(newCOG * RADX10)) / 2.0f;
@@ -1482,17 +1493,11 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
             gpsVelocity[X] = (float)newVel * cosf(newCOG * RADX10);
             gpsVelocity[Y] = (float)newVel * sinf(newCOG * RADX10);
         } else {
-            float dT = getGPSDeltaTimeFilter(currentTime - previousTime) * 1e-6f;
-
-            // this is used to offset the shrinking longitude as we go towards the poles
-            gpsScaleLonDown = cosf((ABS(newLat) / 10000000.0f) * 0.0174532925f);
-
             // Calculate velocities based on GPS coordinates change
             gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
             gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
         }
 
-        gpsVelocity[Z] = (gpsVelocity[Z] + (newAlt - previousAlt) / dT) / 2.0f;
         gpsVelocityValid = true;
 
 #if defined(NAV_BLACKBOX)
@@ -1504,9 +1509,8 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
         // Update IMU velocities with complementary filter to keep them close to real velocities (as given by GPS)
         imuApplyFilterToActualVelocity(X, navProfile->nav_gps_cf, gpsVelocity[X]);
         imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, gpsVelocity[Y]);
-        
-        //imuSampleAverageAccelerationAndVelocity(Z);
-        //imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, calculateReferenceVerticalVelocityForIMUUpdate[Z]);
+
+        //imuApplyFilterToActualVelocity(Z, navProfile->nav_gps_cf, calculateReferenceVerticalVelocityForIMUUpdate[Z]);
     }
     else {
         gpsVelocity[X] = 0.0f;
@@ -1519,7 +1523,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
     previousAlt = newAlt;
 
     isFirstUpdate = false;
-
     previousTime = currentTime;
 
     updateActualHorizontalPosition(newLat, newLon);
