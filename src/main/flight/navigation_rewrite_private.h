@@ -69,5 +69,6 @@ typedef struct {
     PID_PARAM param;
     float integrator;       // integrator value
     float last_error;       // last input for derivative
-    float last_derivative;  // last derivative for low-pass filter
+    float pterm_filter_state;
+    float dterm_filter_state;  // last derivative for low-pass filter
 } PID;

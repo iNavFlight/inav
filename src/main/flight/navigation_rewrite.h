@@ -70,7 +70,8 @@ typedef struct navProfile_s {
     uint16_t nav_manual_speed_vertical;     // manual velocity control max vertical speed
     uint16_t nav_rc_deadband;               // Adds ability to adjust the Hold-position when moving the sticks (assisted mode)
     uint16_t nav_min_rth_distance;          // 0 Disables. Minimal distance for RTL in m, otherwise it will just autoland, prevent Failsafe jump in your face, when arming copter and turning off TX
-    uint8_t  nav_lpf;                       // Low pass filter cut frequency for derivative calculation (default 20Hz)
+    uint8_t  nav_pterm_cut_hz;              // Low pass filter cut frequency for P-term calculation (default 20Hz)
+    uint8_t  nav_dterm_cut_hz;              // Low pass filter cut frequency for D-term calculation (default 5Hz)
     uint8_t  nav_expo;                      // 1 - 99 % defines the actual Expo applied for GPS
     float    nav_gps_cf;                    // GPS INS The LOWER the value the closer to gps speed // Dont go to high here
 } navProfile_t;
