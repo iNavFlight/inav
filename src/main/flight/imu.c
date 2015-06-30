@@ -73,12 +73,12 @@ float anglerad[2] = { 0.0f, 0.0f };    // absolute angle inclination in radians
 
 static imuRuntimeConfig_t *imuRuntimeConfig;
 static pidProfile_t *pidProfile;
-static accDeadband_t *accDeadband;
+static uint8_t accDeadband;
 
 void imuConfigure(
     imuRuntimeConfig_t *initialImuRuntimeConfig,
     pidProfile_t *initialPidProfile,
-    accDeadband_t *initialAccDeadband
+    uint8_t initialAccDeadband
 )
 {
     imuRuntimeConfig = initialImuRuntimeConfig;
@@ -188,9 +188,9 @@ static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
         accel_ned.V.Z -= acc_1G;
 
     // apply Deadband to reduce integration drift and vibration influence
-    accVel[X].accSum += applyDeadband(lrintf(accel_ned.V.X), accDeadband->xy);
-    accVel[Y].accSum += applyDeadband(lrintf(accel_ned.V.Y), accDeadband->xy);
-    accVel[Z].accSum += applyDeadband(lrintf(accel_ned.V.Z), accDeadband->z);
+    accVel[X].accSum += applyDeadband(lrintf(accel_ned.V.X), accDeadband);
+    accVel[Y].accSum += applyDeadband(lrintf(accel_ned.V.Y), accDeadband);
+    accVel[Z].accSum += applyDeadband(lrintf(accel_ned.V.Z), accDeadband);
 
     // Accumulate acceleration for averaging and integration to get velocity
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {

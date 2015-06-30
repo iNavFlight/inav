@@ -39,11 +39,6 @@ typedef union {
 
 extern rollAndPitchInclination_t inclination;
 
-typedef struct accDeadband_s {
-    uint8_t xy;                 // set the acc deadband for xy-Axis
-    uint8_t z;                  // set the acc deadband for z-Axis, this ignores small accelerations
-} accDeadband_t;
-
 typedef struct imuRuntimeConfig_s {
     uint8_t acc_lpf_factor;
     uint8_t acc_unarmedcal;
@@ -55,7 +50,7 @@ typedef struct imuRuntimeConfig_s {
 void imuConfigure(
     imuRuntimeConfig_t *initialImuRuntimeConfig,
     pidProfile_t *initialPidProfile,
-    accDeadband_t *initialAccDeadband
+    uint8_t initialAccDeadband
 );
 
 void calculateEstimatedAltitude(uint32_t currentTime);
