@@ -71,4 +71,8 @@ typedef struct {
     float last_error;       // last input for derivative
     float pterm_filter_state;
     float dterm_filter_state;  // last derivative for low-pass filter
+
+#if defined(NAV_BLACKBOX)
+    float lastP, lastI, lastD;
+#endif
 } PID;
