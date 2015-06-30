@@ -159,9 +159,23 @@ int16_t navDebug[4];
 /*-----------------------------------------------------------
  * PID implementation
  *-----------------------------------------------------------*/
-static float pidGetP(float error, PID *pid)
+static float pidApplyFilter(float input, uint8_t fCut, float dT, float * state)
 {
-    return error * pid->param.kP;
+    float RC = 1.0f / (2.0f * (float)M_PI * fCut);
+
+    *state = *state + dT / (RC + dT) * (input - *state);
+
+    return *state;
+}
+
+static float pidGetP(float error, float dt, PID *pid)
+{
+    float newPterm = error * pid->param.kP;
+
+    if (navProfile->nav_pterm_cut_hz)
+        return pidApplyFilter(newPterm, navProfile->nav_pterm_cut_hz, dt, &pid->pterm_filter_state);
+    else
+        return newPterm;
 }
 
 static float pidGetI(float error, float dt, PID *pid)
@@ -173,27 +187,31 @@ static float pidGetI(float error, float dt, PID *pid)
 
 static float pidGetD(float error, float dt, PID *pid)
 {
-    float pidFilter = 0.5f / (M_PIf * (float)navProfile->nav_lpf);
-    pid->last_derivative += (dt / (pidFilter + dt)) * (((error - pid->last_error) / dt) - pid->last_derivative);
+    float newDerivative = (error - pid->last_error) / dt;
     pid->last_error = error;
-    return pid->param.kD * pid->last_derivative;
+
+    if (navProfile->nav_dterm_cut_hz)
+        return pid->param.kD * pidApplyFilter(newDerivative, navProfile->nav_dterm_cut_hz, dt, &pid->dterm_filter_state);
+    else
+        return pid->param.kD * newDerivative;
 }
 
 static float pidGetPI(float error, float dt, PID *pid)
 {
-    return pidGetP(error, pid) + pidGetI(error, dt, pid);
+    return pidGetP(error, dt, pid) + pidGetI(error, dt, pid);
 }
 
 static float pidGetPID(float error, float dt, PID *pid)
 {
-    return pidGetP(error, pid) + pidGetI(error, dt, pid) + pidGetD(error, dt, pid);
+    return pidGetP(error, dt, pid) + pidGetI(error, dt, pid) + pidGetD(error, dt, pid);
 }
 
 static void pidReset(PID *pid)
 {
     pid->integrator = 0;
     pid->last_error = 0;
-    pid->last_derivative = 0;
+    pid->pterm_filter_state = 0;
+    pid->dterm_filter_state = 0;
 }
 
 static void pidInit(PID *pid, float _kP, float _kI, float _kD, float _Imax)
@@ -519,8 +537,6 @@ static void calculateDesiredVerticalVelocity(navPosition3D_t *currentPos, navPos
 {
     navPosition3D_t posError;
 
-    UNUSED(dTnav);
-
     // Calculate position error
     calculatePositionError(currentPos, destinationPos, &posError);
 
@@ -534,7 +550,7 @@ static void calculateDesiredVerticalVelocity(navPosition3D_t *currentPos, navPos
                 // Use only P term for PH velocity calculation
                 int32_t altitudeError = constrain(posError.altitude, -500, 500);
                 altitudeError = applyDeadband(altitudeError, 10); // remove small P parameter to reduce noise near zero position
-                desiredVelocity[Z] = pidGetP(altitudeError, &altitudePID);
+                desiredVelocity[Z] = pidGetP(altitudeError, dTnav, &altitudePID);
                 desiredVelocity[Z] = constrainf(desiredVelocity[Z], -300, 300); // hard limit velocity to +/- 3 m/s
             }
             else {
@@ -686,7 +702,7 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
             // FIXME: SMALL_ANGLE might prevent NAV from adjusting yaw when banking is too high (i.e. nav in high wind)
             if (STATE(SMALL_ANGLE)) {
                 // Heading PID controller takes degrees, not centidegrees (this pid duplicates MAGHOLD)
-                rcAdjustment[YAW] = pidGetP(headingError / 100.0f, &headingRatePID);
+                rcAdjustment[YAW] = pidGetP(headingError / 100.0f, dTnav, &headingRatePID);
             }
         }
 #endif
@@ -753,11 +769,6 @@ static void calculateThrottleAdjustment(float dTnav)
 
                 rcAdjustment[THROTTLE] = pidGetPID(error, dTnav, &altitudeRatePID);
                 rcAdjustment[THROTTLE] = constrain(rcAdjustment[THROTTLE], -500, 500);
-
-                NAV_BLACKBOX_DEBUG(0, error);
-                NAV_BLACKBOX_DEBUG(1, error * altitudeRatePID.param.kP);
-                NAV_BLACKBOX_DEBUG(2, altitudeRatePID.integrator);
-                NAV_BLACKBOX_DEBUG(3, altitudeRatePID.param.kD * altitudeRatePID.last_derivative);
 
                 if (navProfile->flags.throttle_tilt_comp) {
                     rcAdjustment[THROTTLE] += calculateThrottleAngleCorrection(throttleAngleCorrectionValue, NAV_THROTTLE_CORRECTION_ANGLE);
