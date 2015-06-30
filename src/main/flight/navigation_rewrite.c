@@ -173,15 +173,24 @@ static float pidGetP(float error, float dt, PID *pid)
     float newPterm = error * pid->param.kP;
 
     if (navProfile->nav_pterm_cut_hz)
-        return pidApplyFilter(newPterm, navProfile->nav_pterm_cut_hz, dt, &pid->pterm_filter_state);
-    else
-        return newPterm;
+        newPterm = pidApplyFilter(newPterm, navProfile->nav_pterm_cut_hz, dt, &pid->pterm_filter_state);
+
+#if defined(NAV_BLACKBOX)
+    pid->lastP = newPterm;
+#endif
+
+    return newPterm;
 }
 
 static float pidGetI(float error, float dt, PID *pid)
 {
     pid->integrator += ((float)error * pid->param.kI) * dt;
     pid->integrator = constrainf(pid->integrator, -pid->param.Imax, pid->param.Imax);
+
+#if defined(NAV_BLACKBOX)
+    pid->lastI = pid->integrator;
+#endif
+
     return pid->integrator;
 }
 
@@ -191,9 +200,15 @@ static float pidGetD(float error, float dt, PID *pid)
     pid->last_error = error;
 
     if (navProfile->nav_dterm_cut_hz)
-        return pid->param.kD * pidApplyFilter(newDerivative, navProfile->nav_dterm_cut_hz, dt, &pid->dterm_filter_state);
+        newDerivative = pid->param.kD * pidApplyFilter(newDerivative, navProfile->nav_dterm_cut_hz, dt, &pid->dterm_filter_state);
     else
-        return pid->param.kD * newDerivative;
+        newDerivative = pid->param.kD * newDerivative;
+
+#if defined(NAV_BLACKBOX)
+    pid->lastD = newDerivative;
+#endif
+
+    return newDerivative;
 }
 
 static float pidGetPI(float error, float dt, PID *pid)
@@ -769,6 +784,11 @@ static void calculateThrottleAdjustment(float dTnav)
 
                 rcAdjustment[THROTTLE] = pidGetPID(error, dTnav, &altitudeRatePID);
                 rcAdjustment[THROTTLE] = constrain(rcAdjustment[THROTTLE], -500, 500);
+
+                NAV_BLACKBOX_DEBUG(0, error);
+                NAV_BLACKBOX_DEBUG(1, altitudeRatePID.lastP);
+                NAV_BLACKBOX_DEBUG(2, altitudeRatePID.lastI);
+                NAV_BLACKBOX_DEBUG(3, altitudeRatePID.lastD);
 
                 if (navProfile->flags.throttle_tilt_comp) {
                     rcAdjustment[THROTTLE] += calculateThrottleAngleCorrection(throttleAngleCorrectionValue, NAV_THROTTLE_CORRECTION_ANGLE);
