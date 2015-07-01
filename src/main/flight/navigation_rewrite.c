@@ -1069,11 +1069,16 @@ void applyWaypointNavigationAndAltitudeHold(void)
  * NAV land detector
  *-----------------------------------------------------------*/
  #if defined(NAV_3D)
-static bool isLandingDetected(void)
+static bool isLandingDetected(bool resetDetector)
 {
     static uint32_t landingConditionsNotSatisfiedTime;
     bool landingConditionsSatisfied = true;
     uint32_t currentTime = micros();
+
+    if (resetDetector) {
+        landingConditionsNotSatisfiedTime = currentTime;
+        return false;
+    }
 
     // land detector can not use the following sensors because they are unreliable during landing
     // calculated vertical velocity or altitude : poor barometer and large acceleration from ground impact, ground effect
@@ -1317,6 +1322,7 @@ void updateWaypointsAndNavigationMode(void)
                 case NAV_RTH_STATE_HEAD_HOME:
                     // Stay at this state until home reached
                     if (navIsWaypointReached(&actualPosition, &homePosition)) {
+                        isLandingDetected(true);
                         navRthState = NAV_RTH_STATE_HOME_AUTOLAND;
                     }
                     break;
@@ -1324,7 +1330,7 @@ void updateWaypointsAndNavigationMode(void)
                     if (!ARMING_FLAG(ARMED)) {
                         navRthState = NAV_RTH_STATE_FINISHED;
                     }
-                    else if (isLandingDetected()) {
+                    else if (isLandingDetected(false)) {
                         navRthState = NAV_RTH_STATE_LANDED;
                     }
                     else {
@@ -1338,8 +1344,8 @@ void updateWaypointsAndNavigationMode(void)
                             setNextWaypointAndHeadingLock(homePosition.coordinates[LAT], homePosition.coordinates[LON], actualPosition.altitude - 50.0f / altitudePID.param.kP, homePosition.heading);
                         }
                         else {
-                            // Slow descent (altitude target below actual altitude, about 20 cm/s descent)
-                            setNextWaypointAndHeadingLock(homePosition.coordinates[LAT], homePosition.coordinates[LON], actualPosition.altitude - 20.0f / altitudePID.param.kP, homePosition.heading);
+                            // Slow descent (altitude target below actual altitude, about 25 cm/s descent)
+                            setNextWaypointAndHeadingLock(homePosition.coordinates[LAT], homePosition.coordinates[LON], actualPosition.altitude - 25.0f / altitudePID.param.kP, homePosition.heading);
                         }
                     }
                     break;
