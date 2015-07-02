@@ -466,7 +466,7 @@ static void resetConf(void)
 
     currentProfile->mag_declination = 0;
     currentProfile->acc_lpf_factor = 4;
-    currentProfile->acc_deadband = 40;
+    currentProfile->acc_deadband = 5;
 
     resetBarometerConfig(&currentProfile->barometerConfig);
 

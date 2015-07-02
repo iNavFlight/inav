@@ -76,3 +76,42 @@ typedef struct {
     float lastP, lastI, lastD;
 #endif
 } PID;
+
+typedef struct {
+    bool available;
+    float variance;
+    int32_t value;
+} navCLTAxisPos_s;
+
+typedef struct {
+    bool available;
+    float variance;
+    float value;
+} navCLTAxisVel_s;
+
+typedef struct {
+    struct {
+        // For GPS we are doing only altitude
+        navCLTAxisPos_s alt;
+        navCLTAxisVel_s vel[XYZ_AXIS_COUNT];
+    } gps;
+
+    struct {
+        navCLTAxisPos_s alt;
+        navCLTAxisVel_s vel;
+    } baro;
+
+    struct {
+        navCLTAxisPos_s alt;
+        navCLTAxisVel_s vel;
+    } sonar;
+
+    struct {
+        navCLTAxisVel_s vel[XYZ_AXIS_COUNT];
+    } imu;
+
+    struct {
+        navCLTAxisPos_s alt;
+        navCLTAxisVel_s vel[XYZ_AXIS_COUNT];
+    } estimated;
+} navCLTState_s;
