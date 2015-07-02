@@ -1448,25 +1448,6 @@ void navigationInit(navProfile_t *initialNavProfile,
  * this part of code and do not touch the above code (if possible)
  *-----------------------------------------------------------*/
 static float gpsVelocity[XYZ_AXIS_COUNT] = {0.0f, 0.0f, 0.0f};
-static bool gpsVelocityValid = false;
-
-/*
-static float lastKnownBaroVelocityZ = 0.0f;
-static float calculateReferenceVerticalVelocityForIMUUpdate(void) {
-    bool isGpsVelValid = (STATE(GPS_FIX) && GPS_numSat >= 5);
-    bool isBaroVelValid = sensors(SENSOR_BARO) && isBaroReady();
-
-    if (isGpsVelValid && isBaroVelValid) {
-        return (gpsVelocity[Z] + lastKnownBaroVelocityZ) / 2;
-    }
-    else if (isBaroVelValid) {
-        return lastKnownBaroVelocityZ;
-    }
-    else {
-        return gpsVelocity[Z];
-    }
-}
-*/
 
 #if defined(NAV_3D)
 // Why is this here: Because GPS will be sending at quiet a nailed rate (if not overloaded by junk tasks at the brink of its specs)
@@ -1503,7 +1484,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
     // Don't have a valid GPS 3D fix, do nothing
     if (!(STATE(GPS_FIX) && GPS_numSat >= 5)) {
         isFirstUpdate = true;
-        gpsVelocityValid = false;
         return;
     }
 
@@ -1534,8 +1514,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
             gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
             gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
         }
-
-        gpsVelocityValid = true;
 
 #if defined(NAV_BLACKBOX)
         navGPSVelocity[X] = constrain(lrintf(gpsVelocity[X]), -32678, 32767);
@@ -1595,8 +1573,8 @@ void updateEstimatedHeading(void)
 }
 #endif
 
-// max 25hz update rate
-#define BARO_UPDATE_FREQUENCY_HZ    25
+// max 35hz update rate (almost maximum possible rate for BMP085)
+#define BARO_UPDATE_FREQUENCY_HZ    35
 
 // TODO: this is mostly ported from CF's original althold code, need cleaning up
 void updateEstimatedAltitude(void)
@@ -1606,15 +1584,15 @@ void updateEstimatedAltitude(void)
     float sonarTransition;
     static int32_t baroAlt_offset = 0;
     int32_t baroVel;
-    static float accAlt = 0.0f;
     static int32_t lastBaroAlt;
-
-    // If we have baro and it is not ready - skip update
-    if (sensors(SENSOR_BARO) && !isBaroReady())
-        return;
+    static bool isFirstUpdate = true;
 
     // We currently can use only BARO and SONAR as sources of altitude
     if (!(sensors(SENSOR_BARO) || sensors(SENSOR_SONAR)))
+        return;
+
+    // If we have baro and it is not ready - skip update
+    if (sensors(SENSOR_BARO) && !isBaroReady())
         return;
 
     uint32_t currentTime = micros();
@@ -1629,16 +1607,17 @@ void updateEstimatedAltitude(void)
 #ifdef BARO
     if (!isBaroCalibrationComplete()) {
         performBaroCalibrationCycle();
-        accAlt = 0;
+        BaroAlt = 0;
     }
-    BaroAlt = baroCalculateAltitude();
+    else {
+        BaroAlt = baroCalculateAltitude();
+    }
 #else
     BaroAlt = 0;
 #endif
 
 #ifdef SONAR
     sonarAlt = sonarCalculateAltitude(sonarAlt, calculateTiltAngle());
-#endif
 
     // Use sonar up to 2/3 of maximum range, smoothly transit to baro if upper 1/3 sonar range
     if (sonarAlt > 0 && sonarAlt < (SONAR_MAX_RANGE * 2 / 3)) {
@@ -1651,13 +1630,10 @@ void updateEstimatedAltitude(void)
             BaroAlt = sonarAlt * sonarTransition + BaroAlt * (1.0f - sonarTransition);
         }
     }
+#endif
 
     // Altitude calculation relies on IMU, update this forcibly - this might occur ahead of scheduled update by updateEstimatedVelocitiesFromIMU()
     imuSampleAverageAccelerationAndVelocity(Z);
-
-    // Integrator - Altitude in cm
-    accAlt += (0.5f * imuAverageAcceleration[Z] * dT + imuAverageVelocity[Z]) * dT;  //  a * t^2 / 2 + v * t
-    accAlt = accAlt * barometerConfig->baro_cf_alt + (float)BaroAlt * (1.0f - barometerConfig->baro_cf_alt);    // complementary filter for altitude estimation (baro & acc)
 
 #ifdef BARO
     if (!isBaroCalibrationComplete()) {
@@ -1665,14 +1641,19 @@ void updateEstimatedAltitude(void)
     }
 #endif
 
-    baroVel = (BaroAlt - lastBaroAlt) / dT;
+    if (!isFirstUpdate) {
+        baroVel = (BaroAlt - lastBaroAlt) / dT;
+    }
+    else {
+        baroVel = 0;
+        isFirstUpdate = false;
+    }
+
     lastBaroAlt = BaroAlt;
 
-    baroVel = constrain(baroVel, -1500, 1500);  // constrain baro velocity +/- 1500cm/s
+    baroVel = constrainf(baroVel, -1500, 1500);  // constrain baro velocity +/- 1500cm/s
     baroVel = applyDeadband(baroVel, 10);       // to reduce noise near zero
     
-    //lastKnownBaroVelocityZ = baroVel;
-
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
     imuApplyFilterToActualVelocity(Z, barometerConfig->baro_cf_vel, baroVel);
 
@@ -1680,12 +1661,11 @@ void updateEstimatedAltitude(void)
     navBaroVelocity = constrain(lrintf(baroVel), -32678, 32767);
 #endif
 
-    // Update NAV
-    if (sonarAlt > 0 && sonarAlt < (SONAR_MAX_RANGE * 2 / 3)) {
-        updateActualAltitude(BaroAlt);
-    } else {
-        updateActualAltitude(accAlt);
-    }
+    updateActualAltitude(BaroAlt);
+
+debug[0] = baroVel;
+debug[1] = imuAverageVelocity[Z];
+debug[2] = BaroAlt;
 }
 
 #endif  // NAV
