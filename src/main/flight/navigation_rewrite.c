@@ -1586,8 +1586,8 @@ static void cltFilterUpdateNAV(void)
 */
 
     debug[0] = imuAverageVelocity[Z];
-    debug[0] = cltState.baro.vel.value;
-    debug[1] = cltState.estimated.vel[Z].value;
+    debug[1] = cltState.baro.vel.value;
+    debug[2] = cltState.estimated.vel[Z].value;
 
     NAV_BLACKBOX_DEBUG(0, cltState.estimated.alt.value);
     NAV_BLACKBOX_DEBUG(1, cltState.estimated.vel[X].value);
@@ -1605,7 +1605,7 @@ static void cltFilterUpdateFromIMU(float dT)
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         if (cltState.estimated.vel[axis].available) {
             cltState.imu.vel[axis].available = true;
-            cltState.imu.vel[axis].variance = 20;
+            cltState.imu.vel[axis].variance = 15.0f;
             cltState.imu.vel[axis].value = cltState.estimated.vel[axis].value + imuAverageAcceleration[axis] * dT;
         }
         else {
@@ -1637,7 +1637,7 @@ static void cltFilterUpdateFromBaro(int32_t alt, float vel)
     cltState.baro.alt.value = alt;
 
     cltState.baro.vel.available = true;
-    cltState.baro.vel.variance = 850;
+    cltState.baro.vel.variance = 1000.0f;
     cltState.baro.vel.value = vel;
 }
 
