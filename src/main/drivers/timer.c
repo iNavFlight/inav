@@ -66,6 +66,29 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 #define TIMER_APB2_PERIPHERALS (RCC_APB2Periph_TIM1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB)
 #endif
 
+#if defined (MAPLEMINI)
+const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+    { TIM3, GPIOB, Pin_0, TIM_Channel_3, TIM3_IRQn, 0, Mode_IPD},       // D3  - PWM1/PPM - RC1
+    { TIM3, GPIOA, Pin_7, TIM_Channel_2, TIM3_IRQn, 0, Mode_IPD},       // D4  - PWM2  - RC2/OUT5 (OUT6 if USE_VCP)
+    { TIM3, GPIOA, Pin_6, TIM_Channel_1, TIM3_IRQn, 0, Mode_IPD},       // D5  - PWM3  - RC3/OUT6 (OUT7 if USE_VCP)
+    { TIM2, GPIOA, Pin_1, TIM_Channel_2, TIM2_IRQn, 0, Mode_IPD},       // D10 - PWM4  - RC4/OUT7 (OUT8 if USE_VCP) 
+    { TIM2, GPIOA, Pin_0, TIM_Channel_1, TIM2_IRQn, 0, Mode_IPD},       // D11 - PWM5  - RC5/OUT8 (OUT9 if USE_VCP)
+    { TIM4, GPIOB, Pin_8, TIM_Channel_3, TIM4_IRQn, 0, Mode_IPD},       // BUT - PWM6  - RC6/OUT9 (OUT10 if USE_VCP)
+    { TIM4, GPIOB, Pin_7, TIM_Channel_2, TIM4_IRQn, 0, Mode_IPD},       // D15 - PWM7  - OUT1
+    { TIM4, GPIOB, Pin_6, TIM_Channel_1, TIM4_IRQn, 0, Mode_IPD},       // D16 - PWM8  - OUT2
+    { TIM1, GPIOA, Pin_11, TIM_Channel_4, TIM1_CC_IRQn, 1, Mode_IPD},   // D24 - PWM9  - OUT3/(#NA if  USE_VCP)
+    { TIM1, GPIOA, Pin_10, TIM_Channel_3, TIM1_CC_IRQn, 1, Mode_IPD},   // D25 - PWM10 - #NA/(OUT3 if USE_VCP)
+    { TIM1, GPIOA, Pin_9, TIM_Channel_2, TIM1_CC_IRQn, 1, Mode_IPD},    // D26 - PWM11 - #NA/(OUT4 if USE_VCP)
+ { TIM1, GPIOA, Pin_8, TIM_Channel_1, TIM1_CC_IRQn, 1, Mode_IPD}        // D27 - PWM12 - OUT4/(OUT5 if USE_VCP)
+ 
+ };
+
+
+#define USED_TIMERS         (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
+ 
+#define TIMER_APB1_PERIPHERALS (RCC_APB1Periph_TIM2 | RCC_APB1Periph_TIM3 | RCC_APB1Periph_TIM4)
+#define TIMER_APB2_PERIPHERALS (RCC_APB2Periph_TIM1 | RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB)
+#endif
 #ifdef CC3D
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM4, GPIOB, Pin_6, TIM_Channel_1, TIM4_IRQn, 0, Mode_IPD}, // S1_IN - PPM

@@ -292,7 +292,10 @@ void resetSerialConfig(serialConfig_t *serialConfig)
     // This allows MSP connection via USART & VCP so the board can be reconfigured.
     serialConfig->portConfigs[1].functionMask = FUNCTION_MSP;
 #endif
-
+#ifdef MAPLEMINI
+    // This allows MSP connection via USART & VCP so the board can be reconfigured.
+    serialConfig->portConfigs[1].functionMask = FUNCTION_MSP;
+#endif
     serialConfig->reboot_character = 'R';
 }
 
@@ -777,7 +780,11 @@ void validateAndFixConfig(void)
         featureClear(FEATURE_CURRENT_METER);
     }
 #endif
-
+#if defined(MAPLEMINI) && defined(SONAR)
+    if (featureConfigured(FEATURE_RX_PARALLEL_PWM) && featureConfigured(FEATURE_SONAR) && featureConfigured(FEATURE_CURRENT_METER) && masterConfig.batteryConfig.currentMeterType == CURRENT_SENSOR_ADC) {
+        featureClear(FEATURE_CURRENT_METER);
+    }
+#endif
 #if defined(OLIMEXINO) && defined(SONAR)
     if (feature(FEATURE_SONAR) && feature(FEATURE_CURRENT_METER) && masterConfig.batteryConfig.currentMeterType == CURRENT_SENSOR_ADC) {
         featureClear(FEATURE_CURRENT_METER);
