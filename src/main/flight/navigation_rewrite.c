@@ -373,8 +373,8 @@ static void updateActualHeading(int32_t newHeading)
     actualPosition.heading = newHeading;
 
     /* Pre-compute rotation matrix */
-    sinNEDtoXYZ = sinf(actualPosition.heading * RADX100);
-    cosNEDtoXYZ = cosf(actualPosition.heading * RADX100);
+    sinNEDtoXYZ = sin_approx(actualPosition.heading * RADX100);
+    cosNEDtoXYZ = cos_approx(actualPosition.heading * RADX100);
 
 #if defined(NAV_BLACKBOX)
     navActualHeading = constrain(lrintf(actualPosition.heading), -32678, 32767);
@@ -418,9 +418,9 @@ static void calculateDistanceAndBearingToDestination(navPosition3D_t *currentPos
         float lat2RAD = destinationPos->coordinates[LAT] * GPS_RAW_TO_RAD;
         dLonRAW *= GPS_RAW_TO_RAD;
 
-        float cosLat2RAD = cosf(lat2RAD);
-        float y = sinf(dLonRAW) * cosLat2RAD;
-        float x = cosf(lat1RAD) * sinf(lat2RAD) - sinf(lat1RAD) * cosLat2RAD * cosf(dLonRAW);
+        float cosLat2RAD = cos_approx(lat2RAD);
+        float y = sin_approx(dLonRAW) * cosLat2RAD;
+        float x = cos_approx(lat1RAD) * sin_approx(lat2RAD) - sin_approx(lat1RAD) * cosLat2RAD * cos_approx(dLonRAW);
         *bearing = wrap_36000(constrain((int32_t)(atan2f(y, x) * TAN_89_99_DEGREES), -18000, 18000));
     }
 }
@@ -1682,7 +1682,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
     uint32_t currentTime = micros();
 
     // this is used to offset the shrinking longitude as we go towards the poles
-    gpsScaleLonDown = cosf((ABS(newLat) / 10000000.0f) * 0.0174532925f);
+    gpsScaleLonDown = cos_approx((ABS(newLat) / 10000000.0f) * 0.0174532925f);
 
     // If not first update - calculate velocities
     if (!isFirstUpdate) {
@@ -1694,13 +1694,8 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
         // Horizontal velocity
         if ((gpsData.validData & (GPS_VALID_SPEED | GPS_VALID_COURSE)) == (GPS_VALID_SPEED | GPS_VALID_COURSE)) {
             // FIXME: Test and verify this provides correct velocities, then switch to using this
-            /*
-            gpsVelocity[X] = (gpsVelocity[X] + (float)newVel * cosf(newCOG * RADX10)) / 2.0f;
-            gpsVelocity[Y] = (gpsVelocity[Y] + (float)newVel * sinf(newCOG * RADX10)) / 2.0f;
-            */
-
-            gpsVelocity[X] = (float)newVel * cosf(newCOG * RADX10);
-            gpsVelocity[Y] = (float)newVel * sinf(newCOG * RADX10);
+            gpsVelocity[X] = (float)newVel * cos_approx(newCOG * RADX10);
+            gpsVelocity[Y] = (float)newVel * sin_approx(newCOG * RADX10);
         } else {
             // Calculate velocities based on GPS coordinates change
             gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
