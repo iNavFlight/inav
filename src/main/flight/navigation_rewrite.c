@@ -1617,15 +1617,15 @@ static void cltFilterUpdateFromIMU(float dT)
 static void cltFilterUpdateFromGPS(float vx, float vy, float vz)
 {
     // RMS for GPS vel is about 0.4 cm/s, variance = 0.16
-    cltState.gps.vel[X].available = true;
+    cltState.gps.vel[X].available = false;
     cltState.gps.vel[X].variance = 0.16;
     cltState.gps.vel[X].value = vx;
 
-    cltState.gps.vel[Y].available = true;
+    cltState.gps.vel[Y].available = false;
     cltState.gps.vel[Y].variance = 0.16;
     cltState.gps.vel[Y].value = vy;
 
-    cltState.gps.vel[Z].available = true;
+    cltState.gps.vel[Z].available = false;
     cltState.gps.vel[Z].variance = 0.16;
     cltState.gps.vel[Z].value = vz;
 }
