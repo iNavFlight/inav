@@ -421,7 +421,7 @@ static void calculateDistanceAndBearingToDestination(navPosition3D_t *currentPos
         float cosLat2RAD = cos_approx(lat2RAD);
         float y = sin_approx(dLonRAW) * cosLat2RAD;
         float x = cos_approx(lat1RAD) * sin_approx(lat2RAD) - sin_approx(lat1RAD) * cosLat2RAD * cos_approx(dLonRAW);
-        *bearing = wrap_36000(constrain((int32_t)(atan2f(y, x) * TAN_89_99_DEGREES), -18000, 18000));
+        *bearing = wrap_36000(constrain((int32_t)(atan2_approx(y, x) * TAN_89_99_DEGREES), -18000, 18000));
     }
 }
 

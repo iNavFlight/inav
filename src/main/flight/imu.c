@@ -244,7 +244,7 @@ int16_t imuCalculateHeading(t_fp_vector *vec)
     float Yh = vec->A[Y] * cosineRoll - vec->A[Z] * sineRoll;
     //TODO: Replace this comment with an explanation of why Yh and Xh can never simultanoeusly be zero,
     // or handle the case in which they are and (atan2f(0, 0) is undefined.
-    float hd = (atan2f(Yh, Xh) * 1800.0f / M_PIf + magneticDeclination) / 10.0f;
+    float hd = (atan2_approx(Yh, Xh) * 1800.0f / M_PIf + magneticDeclination) / 10.0f;
     head = lrintf(hd);
 
     // Arctan returns a value in the range -180 to 180 degrees. We 'normalize' negative angles to be positive.
@@ -303,8 +303,8 @@ static void imuCalculateEstimatedAttitude(void)
     }
 
     // Attitude of the estimated vector
-    anglerad[AI_ROLL] = atan2f(EstG.V.Y, EstG.V.Z);
-    anglerad[AI_PITCH] = atan2f(-EstG.V.X, sqrtf(EstG.V.Y * EstG.V.Y + EstG.V.Z * EstG.V.Z));
+    anglerad[AI_ROLL] = atan2_approx(EstG.V.Y, EstG.V.Z);
+    anglerad[AI_PITCH] = atan2_approx(-EstG.V.X, sqrtf(EstG.V.Y * EstG.V.Y + EstG.V.Z * EstG.V.Z));
     inclination.values.rollDeciDegrees = lrintf(anglerad[AI_ROLL] * (1800.0f / M_PIf));
     inclination.values.pitchDeciDegrees = lrintf(anglerad[AI_PITCH] * (1800.0f / M_PIf));
 
@@ -342,7 +342,7 @@ void imuUpdate(rollAndPitchTrims_t *accelerometerTrims)
 int16_t calculateTiltAngle(void)
 {
     float cosZ = EstG.V.Z / sqrtf(EstG.V.X * EstG.V.X + EstG.V.Y * EstG.V.Y + EstG.V.Z * EstG.V.Z);
-    return lrintf(fabsf(acosf(cosZ) * (1800.0f / M_PIf)));
+    return lrintf(fabsf(acos_approx(cosZ) * (1800.0f / M_PIf)));
 }
 
 int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value, int16_t throttle_correction_angle)
@@ -352,7 +352,7 @@ int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value, int1
     if (cosZ <= 0.015f)
         return 0;
 
-    int angle = lrintf(acosf(cosZ) * calculateThrottleAngleScale(throttle_correction_angle));
+    int angle = lrintf(acos_approx(cosZ) * calculateThrottleAngleScale(throttle_correction_angle));
     if (angle > 900)
         angle = 900;
     return lrintf(throttle_correction_value * sin_approx((angle / 900.0f) * (M_PIf / 2.0f)));
@@ -371,8 +371,7 @@ uint8_t calculateThrottleCorrectionValue(uint16_t throttle_tilt_compensation, in
     if (cosZ <= 0.015f) {
         return 0;
     }
-
-    int angle = lrintf(acosf(cosZ) * calculateThrottleAngleScale(throttle_correction_angle));
+    int angle = lrintf(acos_approx(cosZ) * calculateThrottleAngleScale(throttle_correction_angle));
     if (angle > 900)
         angle = 900;
     // a precaution to prevent DIV0 error
