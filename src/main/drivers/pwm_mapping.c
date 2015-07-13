@@ -74,7 +74,72 @@ enum {
     MAP_TO_MOTOR_OUTPUT,
     MAP_TO_SERVO_OUTPUT,
 };
+#if defined(MAPLEMINI)
+ 
+static const uint16_t multiPPM[] = {
+    PWM1  | (MAP_TO_PPM_INPUT << 8),     // PPM input
+    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),      // Swap to servo if needed    
+    PWM8 | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM9 | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM10 | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM11  | (MAP_TO_MOTOR_OUTPUT << 8),      // Switching the unused input pin to output so to be able to have hexa or also octo copter support
+    PWM12  | (MAP_TO_MOTOR_OUTPUT << 8),      // Swap to servo if needed
+    PWM2   | (MAP_TO_MOTOR_OUTPUT << 8),      // Swap to servo if needed
+    PWM3  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM4  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM5  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM6  | (MAP_TO_MOTOR_OUTPUT << 8),
+    0xFFFF
+};
 
+static const uint16_t multiPWM[] = {
+    PWM1  | (MAP_TO_PWM_INPUT << 8),     // input #1
+    PWM2  | (MAP_TO_PWM_INPUT << 8),
+    PWM3  | (MAP_TO_PWM_INPUT << 8),
+    PWM4  | (MAP_TO_PWM_INPUT << 8),
+    PWM5  | (MAP_TO_PWM_INPUT << 8),
+    PWM6  | (MAP_TO_PWM_INPUT << 8),     // input #6
+    PWM7  | (MAP_TO_MOTOR_OUTPUT  << 8),      // motor #1 or servo #1 (swap to servo if needed)
+    PWM8  | (MAP_TO_MOTOR_OUTPUT  << 8),     // motor #2 or servo #2 (swap to servo if needed)
+    PWM9  | (MAP_TO_MOTOR_OUTPUT  << 8),     // motor #1 or #3
+    PWM10 | (MAP_TO_MOTOR_OUTPUT  << 8),
+    PWM11 | (MAP_TO_MOTOR_OUTPUT  << 8),
+    PWM12 | (MAP_TO_MOTOR_OUTPUT  << 8),     // motor #4 or #6
+    0xFFFF
+};
+
+static const uint16_t airPPM[] = {
+    PWM1  | (MAP_TO_PPM_INPUT << 8),     // PPM input
+    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),      // motor  #1     
+    PWM8 | (MAP_TO_MOTOR_OUTPUT << 8),     // motor #2
+    PWM9 | (MAP_TO_MOTOR_OUTPUT << 8),     // servo #1
+    PWM10 | (MAP_TO_MOTOR_OUTPUT << 8),    //servo #2
+    PWM11  | (MAP_TO_MOTOR_OUTPUT << 8),      // servo #3
+    PWM12  | (MAP_TO_MOTOR_OUTPUT << 8),      //servo #4
+    PWM2   | (MAP_TO_MOTOR_OUTPUT << 8),      // servo #5
+    PWM3  | (MAP_TO_MOTOR_OUTPUT << 8),       // servo #6
+    PWM4  | (MAP_TO_MOTOR_OUTPUT << 8),       // servo #7
+    PWM5  | (MAP_TO_MOTOR_OUTPUT << 8),       // servo #8
+    PWM6  | (MAP_TO_MOTOR_OUTPUT << 8),       // servo #9
+    0xFFFF
+};
+
+static const uint16_t airPWM[] = {
+    PWM1  | (MAP_TO_PWM_INPUT << 8),     // input #1
+    PWM2  | (MAP_TO_PWM_INPUT << 8),
+    PWM3  | (MAP_TO_PWM_INPUT << 8),
+    PWM4  | (MAP_TO_PWM_INPUT << 8),
+    PWM5  | (MAP_TO_PWM_INPUT << 8),
+    PWM6  | (MAP_TO_PWM_INPUT << 8),
+    PWM7  | (MAP_TO_PWM_INPUT << 8),
+    PWM8  | (MAP_TO_PWM_INPUT << 8),     // input #8
+    PWM9  | (MAP_TO_MOTOR_OUTPUT  << 8),      // motor #1
+    PWM10 | (MAP_TO_MOTOR_OUTPUT  << 8),     // motor #2
+    PWM11 | (MAP_TO_SERVO_OUTPUT  << 8),     // servo #1
+    PWM12 | (MAP_TO_SERVO_OUTPUT  << 8),
+    0xFFFF
+};
+#endif
 #if defined(NAZE) || defined(OLIMEXINO) || defined(NAZE32PRO) || defined(STM32F3DISCOVERY) || defined(EUSTM32F103RC) || defined(PORT103R)
 static const uint16_t multiPPM[] = {
     PWM1  | (MAP_TO_PPM_INPUT << 8),     // PPM input
@@ -399,11 +464,23 @@ pwmOutputConfiguration_t *pwmInit(drv_pwm_config_t *init)
         if (timerIndex == PWM2)
             continue;
 #endif
+  #if defined(MAPLEMINI)
+ //skipping usb or serial ports accordingly
+  #if defined(USE_VCP)
+            if (timerIndex == PWM9)
+               continue;
+  #else
+           if ( timerIndex == PWM10 || timerIndex == PWM11)
 
+   continue;    
+  #endif
+ #endif
 #ifdef STM32F10X
+#ifndef MAPLEMINI
         // skip UART2 ports
         if (init->useUART2 && (timerIndex == PWM3 || timerIndex == PWM4))
             continue;
+	#endif
 #endif
 
 #if defined(STM32F303xC) && defined(USE_USART3)
