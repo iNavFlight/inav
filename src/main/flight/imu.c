@@ -175,6 +175,9 @@ static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
     accel_ned.V.X = accSmooth[0];
     accel_ned.V.Y = accSmooth[1];
     accel_ned.V.Z = accSmooth[2];
+    //accel_ned.V.X = accADC[0];
+    //accel_ned.V.Y = accADC[1];
+    //accel_ned.V.Z = accADC[2];
 
     rotateV(&accel_ned.V, &rpy);
 
@@ -352,7 +355,7 @@ int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value, int1
     int angle = lrintf(acosf(cosZ) * calculateThrottleAngleScale(throttle_correction_angle));
     if (angle > 900)
         angle = 900;
-    return lrintf(throttle_correction_value * sin_approx(angle / (900.0f * M_PIf / 2.0f)));
+    return lrintf(throttle_correction_value * sin_approx((angle / 900.0f) * (M_PIf / 2.0f)));
 }
 
 // this function does the opposite of the calculateThrottleAngleCorrection - takes an actual correction and returns throttle_correction_value
@@ -376,5 +379,5 @@ uint8_t calculateThrottleCorrectionValue(uint16_t throttle_tilt_compensation, in
     if (angle < 1) 
         return 0;
 
-    return lrintf(throttle_tilt_compensation / sin_approx(angle / (900.0f * M_PIf / 2.0f)));
+    return lrintf(throttle_tilt_compensation / sin_approx((angle / 900.0f) * (M_PIf / 2.0f)));
 }
