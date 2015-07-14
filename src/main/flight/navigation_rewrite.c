@@ -452,7 +452,7 @@ static void calculateDesiredHorizontalVelocity(navPosition3D_t *currentPos, navP
     else { // MULTIROTOR
         // Algorithm depends on navigation mode (WP/RTH or PH)
         // We use PH PID governors if explicitly in NAV_MODE_POSHOLD or within 2*waypoint radius
-        if (navShouldApplyPosHold() || (wpDistance < 2 * navProfile->nav_wp_radius)) {
+        if (navShouldApplyPosHold() || (navShouldApplyWaypoint() && (wpDistance < 2 * navProfile->nav_wp_radius))) {
             float newVelX = pidGetPI(posError.coordinates[LAT], dTnav, &positionPID[X]);
             float newVelY = pidGetPI(posError.coordinates[LON], dTnav, &positionPID[Y]);
             float newVel = sqrtf(sq(newVelX) + sq(newVelY));
@@ -1584,15 +1584,6 @@ static void cltFilterUpdateNAV(void)
     if (cltState.estimated.vel[X].available && cltState.estimated.vel[Y].available)
         updateActualHorizontalVelocity(cltState.estimated.vel[X].value, cltState.estimated.vel[Y].value);
 */
-
-    debug[0] = imuAverageVelocity[Z];
-    debug[1] = cltState.baro.vel.value;
-    debug[2] = cltState.estimated.vel[Z].value;
-
-    NAV_BLACKBOX_DEBUG(0, cltState.estimated.alt.value);
-    NAV_BLACKBOX_DEBUG(1, cltState.estimated.vel[X].value);
-    NAV_BLACKBOX_DEBUG(2, cltState.estimated.vel[Y].value);
-    NAV_BLACKBOX_DEBUG(3, cltState.estimated.vel[Z].value);
 }
 
 /*
@@ -1696,6 +1687,8 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
             // FIXME: Test and verify this provides correct velocities, then switch to using this
             gpsVelocity[X] = (float)newVel * cos_approx(newCOG * RADX10);
             gpsVelocity[Y] = (float)newVel * sin_approx(newCOG * RADX10);
+            //gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
+            //gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
         } else {
             // Calculate velocities based on GPS coordinates change
             gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
@@ -1708,12 +1701,16 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
         navGPSVelocity[Z] = constrain(lrintf(gpsVelocity[Z]), -32678, 32767);
 #endif
 
+        // Sample IMU
+        imuSampleAverageAccelerationAndVelocity(X);
+        imuSampleAverageAccelerationAndVelocity(Y);
+
         // Update IMU velocities with complementary filter to keep them close to real velocities (as given by GPS)
         imuApplyFilterToActualVelocity(X, navProfile->nav_gps_cf, gpsVelocity[X]);
         imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, gpsVelocity[Y]);
 
         // Update CLT
-        cltFilterUpdateFromGPS(gpsVelocity[X], gpsVelocity[Y], gpsVelocity[Z]);
+        //cltFilterUpdateFromGPS(gpsVelocity[X], gpsVelocity[Y], gpsVelocity[Z]);
     }
     else {
         gpsVelocity[X] = 0.0f;
@@ -1729,40 +1726,10 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
     previousTime = currentTime;
 
     updateActualHorizontalPosition(newLat, newLon);
-    updateHomePosition();
-}
-
-#define IMU_VELOCITY_UPDATE_FREQUENCY_HZ    100
-void updateEstimatedVelocitiesFromIMU(void)
-{
-    static uint32_t previousTime;
-    int axis;
-
-    uint32_t currentTime = micros();
-
-    if ((currentTime - previousTime) < (1000000 / IMU_VELOCITY_UPDATE_FREQUENCY_HZ))
-        return;
-
-    float dT = (currentTime - previousTime) * 1e-6f;
-    previousTime = currentTime;
-
-    // Sample all axis
-    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++)
-        imuSampleAverageAccelerationAndVelocity(axis);
-
-    // Update actual velocities
-    // FIXME: Migrate this to cltFilterUpdateNAV once CLT gets tested
-    updateActualVerticalVelocity(imuAverageVelocity[Z]);
     updateActualHorizontalVelocity(imuAverageVelocity[X], imuAverageVelocity[Y]);
+    //updateActualHorizontalVelocity((imuAverageVelocity[X] + gpsVelocity[X]) * 0.5f, (imuAverageVelocity[Y] + gpsVelocity[Y]) * 0.5f);
 
-    // Update CLT from IMU data
-    cltFilterUpdateFromIMU(dT);
-
-    // Calculate new estimate: correct stage
-    cltFilterUpdateEstimate();
-
-    // Update NAV internals
-    cltFilterUpdateNAV();
+    updateHomePosition();
 }
 
 void updateEstimatedHeading(void)
@@ -1773,9 +1740,8 @@ void updateEstimatedHeading(void)
 #endif
 
 // max 35hz update rate (almost maximum possible rate for BMP085)
-#define BARO_UPDATE_FREQUENCY_HZ    35
-
 // TODO: this is mostly ported from CF's original althold code, need cleaning up
+#define BARO_UPDATE_FREQUENCY_HZ    35
 void updateEstimatedAltitude(void)
 {
     static uint32_t previousTime = 0;
@@ -1861,8 +1827,9 @@ void updateEstimatedAltitude(void)
 #endif
 
     // Update CLT
-    cltFilterUpdateFromBaro(BaroAlt, baroVel);
+    //cltFilterUpdateFromBaro(BaroAlt, baroVel);
 
+    updateActualVerticalVelocity(imuAverageVelocity[Z]);
     updateActualAltitude(BaroAlt);
 }
 

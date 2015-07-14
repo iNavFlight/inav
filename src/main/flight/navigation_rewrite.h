@@ -99,7 +99,6 @@ void onNewGPSData(int32_t lat, int32_t lon, int32_t alt, int32_t vel, int32_t co
 void updateWaypointsAndNavigationMode(void);
 void updateEstimatedAltitude(void);
 void updateEstimatedHeading(void);
-void updateEstimatedVelocitiesFromIMU(void);
 void applyWaypointNavigationAndAltitudeHold(void);
 void resetHomePosition(void);
 void setNextWaypointAndCalculateBearing(uint32_t lat, uint32_t lon, int32_t alt);
