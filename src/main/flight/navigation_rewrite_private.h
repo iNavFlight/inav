@@ -59,6 +59,12 @@ typedef enum {
 } navRthState_t;
 
 typedef struct {
+    bool verticalPositionNewData;
+    bool horizontalPositionNewData;
+    bool headingNewData;
+} navigationFlags_s;
+
+typedef struct {
     float kP;
     float kI;
     float kD;

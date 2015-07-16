@@ -130,6 +130,7 @@ static int16_t rcAdjustment[4];
 // Current navigation mode & profile
 static bool navEnabled = false;
 static navigationMode_e navMode = NAV_MODE_NONE;    // Navigation mode
+static navigationFlags_s navFlags;
 static navProfile_t *navProfile;
 static barometerConfig_t *barometerConfig;
 static rcControlsConfig_t *rcControlsConfig;
@@ -302,45 +303,34 @@ void resetNavigation(void)
  *    so we update them separately
  *-----------------------------------------------------------*/
 #if defined(NAV_3D) 
-static void updateActualHorizontalPosition(int32_t newLat, int32_t newLon)
+static void updateActualHorizontalPositionAndVelocity(int32_t newLat, int32_t newLon, float newVelX, float newVelY)
 {
     actualPosition.coordinates[LAT] = newLat;
     actualPosition.coordinates[LON] = newLon;
 
-#if defined(NAV_BLACKBOX)
-    navLatestActualPosition[X] = newLat;
-    navLatestActualPosition[Y] = newLon;
-#endif
-}
-
-static void updateActualHorizontalVelocity(float newVelX, float newVelY)
-{
     actualVelocity[X] = newVelX;
     actualVelocity[Y] = newVelY;
 
 #if defined(NAV_BLACKBOX)
+    navLatestActualPosition[X] = newLat;
+    navLatestActualPosition[Y] = newLon;
     navActualVelocity[X] = constrain(lrintf(newVelX), -32678, 32767);
     navActualVelocity[Y] = constrain(lrintf(newVelY), -32678, 32767);
 #endif
+
+    navFlags.horizontalPositionNewData = 1;
 }
 #endif
-
-static void updateActualAltitude(float newAltitude)
-{
-    actualPosition.altitude = newAltitude;
-
-#if defined(NAV_BLACKBOX)
-    navLatestActualPosition[Z] = lrintf(newAltitude);
-#endif
-}
 
 #define AVERAGE_VERTICAL_VEL_INTERVAL   250000      // 250ms, 4Hz
-static void updateActualVerticalVelocity(float newVelocity)
+static void updateActualAltitudeAndClimbRate(float newAltitude, float newVelocity)
 {
     static uint32_t averageVelocityLastUpdateTime = 0;
-
     static float averageVelocityAccumulator = 0;
     static uint32_t averageVelocitySampleCount = 1;
+
+    actualPosition.altitude = newAltitude;
+    actualVelocity[Z] = newVelocity;
 
     averageVelocityAccumulator += newVelocity;
     averageVelocitySampleCount += 1;
@@ -359,11 +349,12 @@ static void updateActualVerticalVelocity(float newVelocity)
         averageVelocitySampleCount = 0;
     }
 
-    actualVelocity[Z] = newVelocity;
-
 #if defined(NAV_BLACKBOX)
+    navLatestActualPosition[Z] = lrintf(newAltitude);
     navActualVelocity[Z] = constrain(lrintf(newVelocity), -32678, 32767);
 #endif
+
+    navFlags.verticalPositionNewData = 1;
 }
 
 #if defined(NAV_3D)
@@ -379,6 +370,8 @@ static void updateActualHeading(int32_t newHeading)
 #if defined(NAV_BLACKBOX)
     navActualHeading = constrain(lrintf(actualPosition.heading), -32678, 32767);
 #endif
+
+    navFlags.headingNewData = 1;
 }
 #endif
 
@@ -654,7 +647,7 @@ static float applyExpoCurve(float value, float expo)
 }
 
 // slowNav - override mode and use PH PID for attitude calculations
-static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
+static void calculateAttitudeAdjustment(float dTnav, bool slowNav, float * axisAdjustment)
 {
     if (STATE(FIXED_WING)) { // FIXED_WING
         // TODO
@@ -666,7 +659,7 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
 
         // Now calculate pitch/roll adjustments to achieve desired velocities
         if (navShouldApplyPosHold() || navShouldApplyWaypoint()) {
-            float axisAdjustment[2], error;
+            float error;
             axisAdjustment[X] = 0;
             axisAdjustment[Y] = 0;
 
@@ -702,13 +695,13 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
                 for (axis = 0; axis < 2; axis++)
                     axisAdjustment[axis] = constrainf(axisAdjustment[axis] / 10.0f, -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
             }
-
-            // Rotate adjustments into aircraft frame of reference makes PIDs immune to heading variations
-            rcAdjustment[PITCH] = axisAdjustment[X] * cosNEDtoXYZ + axisAdjustment[Y] * sinNEDtoXYZ;
-            rcAdjustment[ROLL] = -axisAdjustment[X] * sinNEDtoXYZ + axisAdjustment[Y] * cosNEDtoXYZ;
         }
+    }
+}
 
 #if defined(NAV_HEADING_CONTROL_PID)
+static void calculateHeadingAdjustment(float dTnav)
+{
         // Calculate yaw correction
         if (navShouldApplyHeadingControl()) {
             int32_t headingError = wrap_18000(actualPosition.heading - desiredHeading) * masterConfig.yaw_control_direction;
@@ -720,9 +713,8 @@ static void calculateAttitudeAdjustment(float dTnav, bool slowNav)
                 rcAdjustment[YAW] = pidGetP(headingError / 100.0f, dTnav, &headingRatePID);
             }
         }
-#endif
-    }
 }
+#endif
 #endif
 
 #define NAV_THROTTLE_ANGLE_CORRECTION_VEL_MAX   5.0f
@@ -941,14 +933,106 @@ static void adjustHeadingFromRCInput()
  * NAV updates
  *-----------------------------------------------------------*/
 static navigationMode_e selectNavModeFromBoxModeInput(void);
-void applyWaypointNavigationAndAltitudeHold(void)
+
+static void applyAltitudeHold(void)
 {
     static uint32_t previousTime;
-    uint32_t currentTime = micros();
-    float dTnav = (currentTime - previousTime) / 1e6;
 
-    previousTime = currentTime;
-    
+    if (navFlags.verticalPositionNewData) {
+        // Calculate time quanta for altitude hold update
+        uint32_t currentTime = micros();
+        float dTnav = (currentTime - previousTime) / 1e6;
+        previousTime = currentTime;
+        
+        // Calculate desired vertical velocity & throttle adjustment
+        calculateDesiredVerticalVelocity(&actualPosition, &activeWpOrHoldPosition, dTnav);
+        adjustVerticalVelocityFromRCInput();
+        calculateThrottleAdjustment(dTnav);
+
+        // Indicate that information is no longer usable
+        navFlags.verticalPositionNewData = 0;
+    }
+
+    // Apply rcAdjustment to throttle regardless of state update, will use previous adjustment if no update occured
+    // FIXME: Add hover_throttle parameter and use it here instead of altholdInitialThrottle
+    rcCommand[THROTTLE] = constrain(altholdInitialThrottle + rcAdjustment[THROTTLE], masterConfig.escAndServoConfig.minthrottle, masterConfig.escAndServoConfig.maxthrottle);
+}
+
+static void applyPositionHoldAndWaypoint(void)
+{
+    static uint32_t previousTime;
+    static float axisAdjustment[2] = {0, 0};
+
+    if (navFlags.horizontalPositionNewData) {
+        // Calculate time quanta for altitude hold update
+        uint32_t currentTime = micros();
+        float dTnav = (currentTime - previousTime) / 1e6;
+        previousTime = currentTime;
+        
+        bool forceSlowNav = false;
+
+        calculateDesiredHorizontalVelocity(&actualPosition, &activeWpOrHoldPosition, dTnav, &forceSlowNav);
+
+        // This should be applied in NAV_GPS_CRUISE mode
+        if (navProfile->flags.user_control_mode == NAV_GPS_CRUISE) {
+            adjustHorizontalVelocityFromRCInput();
+        }
+
+        // Now correct desired velocities and heading to attitude corrections
+        calculateAttitudeAdjustment(dTnav, forceSlowNav, axisAdjustment);
+
+        // Control for NAV_GPS_ATTI mode
+        if (navProfile->flags.user_control_mode == NAV_GPS_ATTI) {
+            adjustAttitudeFromRCInput();
+        }
+
+        // Indicate that information is no longer usable
+        navFlags.horizontalPositionNewData = 0;
+    }
+
+    // Rotate axis adjustments into aircraft frame of reference. Recalculating this every loop allows us to account faster for heading variations
+    rcAdjustment[PITCH] = axisAdjustment[X] * cosNEDtoXYZ + axisAdjustment[Y] * sinNEDtoXYZ;
+    rcAdjustment[ROLL] = -axisAdjustment[X] * sinNEDtoXYZ + axisAdjustment[Y] * cosNEDtoXYZ;
+
+    // Apply rcAdjustment to pitch/roll
+    rcCommand[PITCH] = constrain(rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
+    rcCommand[ROLL] = constrain(rcAdjustment[ROLL], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
+}
+
+static void applyHeadingControl(void)
+{
+    static uint32_t previousTime;
+
+    if (navFlags.headingNewData) {
+        // Calculate time quanta for altitude hold update
+        uint32_t currentTime = micros();
+        float dTnav = (currentTime - previousTime) / 1e6;
+        previousTime = currentTime;
+        
+#if defined(NAV_HEADING_CONTROL_PID)
+        // Zero adjustments
+        calculateDesiredHeading(&actualPosition, &activeWpOrHoldPosition, dTnav);
+        calculateHeadingAdjustment(dTnav);
+        adjustHeadingFromRCInput();
+#else
+        calculateDesiredHeading(&actualPosition, &activeWpOrHoldPosition, dTnav);
+#endif
+
+        // Indicate that information is no longer usable
+        navFlags.headingNewData = 0;
+    }
+
+#if defined(NAV_HEADING_CONTROL_PID)
+    // Control yaw by NAV PID
+    rcCommand[YAW] = constrain(rcAdjustment[YAW], -500, 500);
+#else
+    // Simply set heading for mag heading hold
+    magHold = desiredHeading / 100;
+#endif
+}
+
+void applyWaypointNavigationAndAltitudeHold(void)
+{
     if (!ARMING_FLAG(ARMED)) {
         navEnabled = false;
         return;
@@ -989,71 +1073,21 @@ void applyWaypointNavigationAndAltitudeHold(void)
         // TODO
     }
     else { // MULTIROTOR
-        // Start with zero adjustments
-        int axis;
-        for (axis = 0; axis < 4; axis++)
-            rcAdjustment[axis] = 0;
-
         // We do adjustments NAZA-style and think for pilot. In NAV mode pilot does not control the THROTTLE, PITCH and ROLL angles/rates directly,
         // except for a few navigation modes. Instead of that pilot controls velocities in 3D space.
         if (navShouldApplyAltHold()) {
-            // Calculate desired vertical velocity & throttle adjustment
-            calculateDesiredVerticalVelocity(&actualPosition, &activeWpOrHoldPosition, dTnav);
-            adjustVerticalVelocityFromRCInput();
-            calculateThrottleAdjustment(dTnav);
-
-            // Apply rcAdjustment to throttle
-            // FIXME: Add hover_throttle parameter and use it here instead of altholdInitialThrottle
-            rcCommand[THROTTLE] = constrain(altholdInitialThrottle + rcAdjustment[THROTTLE], masterConfig.escAndServoConfig.minthrottle, masterConfig.escAndServoConfig.maxthrottle);
+            applyAltitudeHold();
         }
 
 #if defined(NAV_3D)
-        if (navShouldApplyPosHold() || navShouldApplyWaypoint() || navShouldApplyHeadingControl()) {
-            bool forceSlowNav = false;
-
-            // Calculate PH/RTH/WP and attitude adjustment
-            if (navShouldApplyPosHold() || navShouldApplyWaypoint()) {
-                calculateDesiredHorizontalVelocity(&actualPosition, &activeWpOrHoldPosition, dTnav, &forceSlowNav);
-
-                // This should be applied in NAV_GPS_CRUISE mode
-                if (navProfile->flags.user_control_mode == NAV_GPS_CRUISE) {
-                    adjustHorizontalVelocityFromRCInput();
-                }
-            }
-
-            // Apply rcAdjustment to yaw
-            if (navShouldApplyHeadingControl()) {
-                calculateDesiredHeading(&actualPosition, &activeWpOrHoldPosition, dTnav);
-            }
-
-            // Now correct desired velocities and heading to attitude corrections
-            calculateAttitudeAdjustment(dTnav, forceSlowNav);
-
-            // Control for NAV_GPS_ATTI mode
-            if (navProfile->flags.user_control_mode == NAV_GPS_ATTI) {
-                adjustAttitudeFromRCInput();
-            }
-
-#if defined(NAV_HEADING_CONTROL_PID)
-            // Check if YAW adjustment can be overridden by pilot
-            adjustHeadingFromRCInput();
-#endif
-
-            // Apply rcAdjustment to pitch/roll
-            if (navShouldApplyPosHold() || navShouldApplyWaypoint()) {
-                rcCommand[PITCH] = constrain(rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
-                rcCommand[ROLL] = constrain(rcAdjustment[ROLL], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
-            }
-
-            if (navShouldApplyHeadingControl()) {
-#if defined(NAV_HEADING_CONTROL_PID)
-                // Control yaw by NAV PID
-                rcCommand[YAW] = constrain(rcAdjustment[YAW], -500, 500);
-#else
-                // Simply set heading for mag heading hold
-                magHold = desiredHeading / 100;
-#endif
-            }
+        // Calculate PH/RTH/WP and attitude adjustment
+        if (navShouldApplyPosHold() || navShouldApplyWaypoint()) {
+            applyPositionHoldAndWaypoint();
+        }
+        
+        // Apply rcAdjustment to yaw
+        if (navShouldApplyHeadingControl()) {
+            applyHeadingControl();
         }
 #endif
 
@@ -1725,8 +1759,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int32_t newVel
     isFirstUpdate = false;
     previousTime = currentTime;
 
-    updateActualHorizontalPosition(newLat, newLon);
-    updateActualHorizontalVelocity(imuAverageVelocity[X], imuAverageVelocity[Y]);
+    updateActualHorizontalPositionAndVelocity(newLat, newLon, imuAverageVelocity[X], imuAverageVelocity[Y]);
     //updateActualHorizontalVelocity((imuAverageVelocity[X] + gpsVelocity[X]) * 0.5f, (imuAverageVelocity[Y] + gpsVelocity[Y]) * 0.5f);
 
     updateHomePosition();
@@ -1828,9 +1861,14 @@ void updateEstimatedAltitude(void)
 
     // Update CLT
     //cltFilterUpdateFromBaro(BaroAlt, baroVel);
+    
+    // Apply LPF to vertical velocity (5Hz should be enough)
+    /*
+    static float verticalVelLPFState = 0.0f;
+    float verticalVelLPF = pidApplyFilter(imuAverageVelocity[Z], 5.0f, dT, &pid->pterm_filter_state);
+    */
 
-    updateActualVerticalVelocity(imuAverageVelocity[Z]);
-    updateActualAltitude(BaroAlt);
+    updateActualAltitudeAndClimbRate(BaroAlt, imuAverageVelocity[Z]);
 }
 
 #endif  // NAV
