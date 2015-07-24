@@ -68,8 +68,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
-#include "flight/altitudehold.h"
-#include "flight/navigation.h"
+#include "flight/navigation_rewrite.h"
 
 #include "telemetry/telemetry.h"
 #include "telemetry/ltm.h"
@@ -148,7 +147,7 @@ static void ltm_gframe(void)
     ltm_serialise_8((uint8_t)(GPS_speed / 100));
 
 #if defined(BARO) || defined(SONAR)
-    ltm_alt = (sensors(SENSOR_SONAR) || sensors(SENSOR_BARO)) ? altitudeHoldGetEstimatedAltitude() : GPS_altitude * 100;
+    ltm_alt = (sensors(SENSOR_SONAR) || sensors(SENSOR_BARO)) ? getEstimatedActualPosition(Z) : GPS_altitude * 100;
 #else
     ltm_alt = GPS_altitude * 100;
 #endif
@@ -174,13 +173,13 @@ static void ltm_sframe(void)
     uint8_t lt_statemode;
     if (FLIGHT_MODE(PASSTHRU_MODE))
         lt_flightmode = 0;
-    else if (FLIGHT_MODE(GPS_HOME_MODE))
+    else if (FLIGHT_MODE(NAV_RTH_MODE))
         lt_flightmode = 13;
-    else if (FLIGHT_MODE(GPS_HOLD_MODE))
+    else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
         lt_flightmode = 9;
     else if (FLIGHT_MODE(HEADFREE_MODE))
         lt_flightmode = 4;
-    else if (FLIGHT_MODE(BARO_MODE))
+    else if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
         lt_flightmode = 8;
     else if (FLIGHT_MODE(ANGLE_MODE))
         lt_flightmode = 2;
@@ -222,8 +221,8 @@ static void ltm_aframe()
 static void ltm_oframe()
 {
     ltm_initialise_packet('O');
-    ltm_serialise_32(GPS_home[LAT]);
-    ltm_serialise_32(GPS_home[LON]);
+    ltm_serialise_32(homePosition.coordinates[LAT]);
+    ltm_serialise_32(homePosition.coordinates[LON]);
     ltm_serialise_32(0);                // Don't have GPS home altitude
     ltm_serialise_8(1);                 // OSD always ON
     ltm_serialise_8(STATE(GPS_FIX_HOME) ? 1 : 0);
