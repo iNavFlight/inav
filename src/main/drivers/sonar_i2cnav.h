@@ -17,4 +17,4 @@
 
 #pragma once
 #include "gps.h"
-uint16_t i2cnavsonarRead(void);
+int32_t i2cnavsonarRead(void);

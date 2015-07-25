@@ -34,9 +34,12 @@
 
 #ifdef SONAR_I2CNAV
 
-uint16_t i2cnavsonarRead(void){ 
+int32_t i2cnavsonarRead(void){ 
 uint16_t sonardistance;   
             i2cRead(I2C_GPS_ADDRESS, I2C_GPS_SONAR_DISTANCE, 2, (uint8_t*)&sonardistance);
-			return sonardistance;
+			if (sonardistance < 350)
+			return (int32_t)(sonardistance);
+		else
+			return -1;
 }
 #endif

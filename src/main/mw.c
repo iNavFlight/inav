@@ -444,7 +444,7 @@ typedef enum {
 #ifdef SONAR
     UPDATE_SONAR_TASK,
 #endif
-#if defined(BARO) || defined(SONAR)
+#if defined(BARO) || defined(SONAR) || defined (SONAR_I2CNAV)
     CALCULATE_ALTITUDE_TASK,
 #endif
     UPDATE_DISPLAY_TASK
@@ -474,7 +474,7 @@ void executePeriodicTasks(void)
         break;
 #endif
 
-#if defined(BARO) || defined(SONAR)
+#if defined(BARO) || defined(SONAR) || defined(SONAR_I2CNAV)
     case CALCULATE_ALTITUDE_TASK:
 #if defined(BARO) && !defined(SONAR)
         if (sensors(SENSOR_BARO) && isBaroReady()) {
@@ -482,7 +482,7 @@ void executePeriodicTasks(void)
 #if defined(BARO) && defined(SONAR)
         if ((sensors(SENSOR_BARO) && isBaroReady()) || sensors(SENSOR_SONAR)) {
 #endif
-#if !defined(BARO) && defined(SONAR)
+#if !defined(BARO) && (defined(SONAR)|| defined (SONAR_I2CNAV) )
         if (sensors(SENSOR_SONAR)) {
 #endif
             updateEstimatedAltitude();    // NAV will handle altitude sources on the fly
@@ -496,6 +496,13 @@ void executePeriodicTasks(void)
         }
         break;
 #endif
+// #ifdef SONAR_I2CNAV
+    // case UPDATE_SONAR_TASK:
+        // if (sensors(SENSOR_SONAR)) {
+            // sonarUpdate();
+        // }
+        // break;
+// #endif
 #ifdef DISPLAY
     case UPDATE_DISPLAY_TASK:
         if (feature(FEATURE_DISPLAY)) {

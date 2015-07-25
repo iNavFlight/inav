@@ -881,10 +881,16 @@ static bool processOutCommand(uint8_t cmdMSP)
         break;
     case MSP_SONAR_ALTITUDE:
         headSerialReply(4);
+#ifndef SONAR_I2CNAV
+	
 #if defined(SONAR)
+
         serialize32(sonarGetLatestAltitude());
 #else
         serialize32(0);
+#endif
+#else 
+	serialize32(i2cnavsonarRead());
 #endif
         break;
     case MSP_ANALOG:

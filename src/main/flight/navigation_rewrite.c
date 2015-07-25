@@ -67,7 +67,7 @@
 #include "config/config.h"
 #include "config/config_profile.h"
 #include "config/config_master.h"
-
+#include "drivers/sonar_i2cnav.h"
 #if defined(NAV)
 
 // Position hold / waypoint PIDs, take position error (cm) and output desired velocities (cm/s)
@@ -1814,7 +1814,7 @@ void updateEstimatedAltitude(void)
     BaroAlt = 0;
 #endif
 
-#ifdef SONAR
+#ifdef SONAR  
     sonarAlt = sonarCalculateAltitude(sonarAlt, calculateTiltAngle());
 
     // Use sonar up to 2/3 of maximum range, smoothly transit to baro if upper 1/3 sonar range
@@ -1829,6 +1829,21 @@ void updateEstimatedAltitude(void)
         }
     }
 #endif
+#ifdef SONAR_I2CNAV
+
+sonarAlt=i2cnavsonarRead();
+  if (sonarAlt > 0 && sonarAlt < (SONAR_MAX_RANGE * 2 / 3)) {
+        baroAlt_offset = BaroAlt - sonarAlt;
+        BaroAlt = sonarAlt;
+    } else {
+        BaroAlt -= baroAlt_offset;
+        if (sonarAlt > (SONAR_MAX_RANGE * 2 / 3) && sonarAlt < SONAR_MAX_RANGE) {
+            sonarTransition = (SONAR_MAX_RANGE - sonarAlt) / (SONAR_MAX_RANGE / 3);
+            BaroAlt = sonarAlt * sonarTransition + BaroAlt * (1.0f - sonarTransition);
+        }
+    }
+
+#endif 
 
     // Altitude calculation relies on IMU, update this forcibly - this might occur ahead of scheduled update by updateEstimatedVelocitiesFromIMU()
     imuSampleAverageAccelerationAndVelocity(Z);

@@ -21,7 +21,7 @@
 #define LED0_PIN    Pin_3 // PB3 (LED)
 #define LED0_PERIPHERAL RCC_APB2Periph_GPIOB
 #define LED0
-
+#define SONAR_I2CNAV
 #define INVERTER_PIN Pin_2 // PB2 (BOOT1) used as inverter select GPIO
 #define INVERTER_GPIO GPIOB
 #define INVERTER_PERIPHERAL RCC_APB2Periph_GPIOB

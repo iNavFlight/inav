@@ -430,7 +430,9 @@ void init(void)
         sonarInit(sonarHardware);
     }
 #endif
-
+#ifdef SONAR_I2CNAV
+sensorsSet(SENSOR_SONAR);
+#endif
 #ifdef LED_STRIP
     ledStripInit(masterConfig.ledConfigs, masterConfig.colors);
 
