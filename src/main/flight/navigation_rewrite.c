@@ -817,9 +817,9 @@ static void updatePositionTargetFromRCInput(uint32_t deltaMicros)
             float nedVelX = rcVelX * cosNEDtoXYZ - rcVelY * sinNEDtoXYZ;
             float nedVelY = rcVelX * sinNEDtoXYZ + rcVelY * cosNEDtoXYZ;
 
-            // Calculate new position target
-            posControl.desiredState.pos.coordinates[LAT] = lrintf(posControl.desiredState.pos.coordinates[LAT] + (nedVelX * US2S(deltaMicros) / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR));
-            posControl.desiredState.pos.coordinates[LON] = lrintf(posControl.desiredState.pos.coordinates[LON] + (nedVelY * US2S(deltaMicros) / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown)));
+            // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
+            posControl.desiredState.pos.coordinates[LAT] = posControl.actualState.pos.coordinates[LAT] + ((nedVelX / posControl.pids.pos[X].param.kP) / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
+            posControl.desiredState.pos.coordinates[LON] = posControl.actualState.pos.coordinates[LON] + ((nedVelY / posControl.pids.pos[X].param.kP) / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown));
         }
     }
 }
