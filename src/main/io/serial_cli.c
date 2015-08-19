@@ -367,7 +367,7 @@ const clivalue_t valueTable[] = {
     { "nav_lock_until_takeoff",     VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.flags.lock_nav_until_takeoff, 0, 1 },
     { "nav_user_control_mode",      VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.flags.user_control_mode, 0, 1 },
     { "nav_rth_alt_mode",           VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.flags.rth_alt_control_style, 0, 3 },
-    { "nav_rth_altitude",           VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_rth_altitude, 0, 10000 },
+    { "nav_rth_altitude",           VAR_UINT16 | PROFILE_VALUE, &masterConfig.profile[0].navProfile.nav_rth_altitude, 0, 10000 },
 #endif
 
     { "serialrx_provider",          VAR_UINT8  | MASTER_VALUE,  &masterConfig.rxConfig.serialrx_provider, 0, SERIALRX_PROVIDER_MAX },
