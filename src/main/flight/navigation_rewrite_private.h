@@ -137,15 +137,16 @@ typedef struct navigationPIDControllers_s {
 } navigationPIDControllers_t;
 
 typedef struct {
-    navPosition3D_t pos;
-    float           vel[XYZ_AXIS_COUNT];
+    int32_t pos[XYZ_AXIS_COUNT];
+    float   vel[XYZ_AXIS_COUNT];
+    int32_t yaw;
 } navigationEstimatedState_t;
 
 typedef struct {
-    navPosition3D_t pos;
-    float           vel[XYZ_AXIS_COUNT];
-    float           acc[XYZ_AXIS_COUNT];
-    int32_t         heading;
+    int32_t pos[XYZ_AXIS_COUNT];
+    float   vel[XYZ_AXIS_COUNT];
+    float   acc[XYZ_AXIS_COUNT];
+    int32_t yaw;
 } navigationDesiredState_t;
 
 typedef struct {
@@ -157,4 +158,5 @@ typedef struct {
 
     navigationEstimatedState_t  actualState;
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
+    navWaypointPosition_t       homeWaypoint;
 } navigationPosControl_t;

@@ -91,6 +91,11 @@ typedef struct navPosition3D_s {
     int32_t heading;
 } navPosition3D_t;
 
+typedef struct {
+    int32_t pos[XYZ_AXIS_COUNT];
+    int32_t yaw;
+} navWaypointPosition_t;
+
 #if defined(NAV) 
 
 void navigationUsePIDs(pidProfile_t *pidProfile);
@@ -117,6 +122,9 @@ bool navigationControlsThrottleAngleCorrection(void);
 
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
+
+void getHomePosition(navWaypointPosition_t * waypoint);
+void navXYZtoLLH(navWaypointPosition_t * waypoint, navLocation_t * llh);
 
 extern uint32_t distanceToHome;
 extern int32_t directionToHome;
