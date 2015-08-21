@@ -221,8 +221,8 @@ static void ltm_aframe()
 static void ltm_oframe()
 {
     ltm_initialise_packet('O');
-    ltm_serialise_32(homePosition.coordinates[LAT]);
-    ltm_serialise_32(homePosition.coordinates[LON]);
+    ltm_serialise_32(GPS_home.lat);
+    ltm_serialise_32(GPS_home.lon);
     ltm_serialise_32(0);                // Don't have GPS home altitude
     ltm_serialise_8(1);                 // OSD always ON
     ltm_serialise_8(STATE(GPS_FIX_HOME) ? 1 : 0);
