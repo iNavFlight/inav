@@ -123,12 +123,9 @@ bool navigationControlsThrottleAngleCorrection(void);
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
 
-void getHomePosition(navWaypointPosition_t * waypoint);
-void navXYZtoLLH(navWaypointPosition_t * waypoint, navLocation_t * llh);
-
-extern uint32_t distanceToHome;
-extern int32_t directionToHome;
-extern navPosition3D_t homePosition;
+extern navLocation_t GPS_home;
+extern uint16_t      GPS_distanceToHome;        // distance to home point in meters
+extern int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 #if defined(BLACKBOX)
 extern int16_t navCurrentMode;

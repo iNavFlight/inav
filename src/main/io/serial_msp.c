@@ -1058,8 +1058,8 @@ static bool processOutCommand(uint8_t cmdMSP)
         break;
     case MSP_COMP_GPS:
         headSerialReply(5);
-        serialize16(distanceToHome);
-        serialize16(directionToHome);
+        serialize16(GPS_distanceToHome);
+        serialize16(GPS_directionToHome);
         serialize8(GPS_update & 1);
         break;
     case MSP_WP:
@@ -1268,10 +1268,6 @@ static bool processInCommand(void)
     uint32_t i;
     uint16_t tmp;
     uint8_t rate;
-#ifdef GPS
-    uint8_t wp_no;
-    int32_t lat = 0, lon = 0, alt = 0;
-#endif
 
     switch (currentPort->cmdMSP) {
     case MSP_SELECT_SETTING:
@@ -1519,22 +1515,14 @@ static bool processInCommand(void)
         GPS_update |= 2;        // New data signalisation to GPS functions // FIXME Magic Numbers
         break;
     case MSP_SET_WP:
-        wp_no = read8();    //get the wp number
-        lat = read32();
-        lon = read32();
-        alt = read32();     // to set altitude (cm)
+        read8();            //get the wp number
+        read32();           // lat
+        read32();           // lon
+        read32();           // altitude (cm)
         read16();           // future: to set heading (deg)
         read16();           // future: to set time to stay (ms)
         read8();            // future: to set nav flag
-        if (wp_no == 0) {
-            homePosition.coordinates[LAT] = lat;
-            homePosition.coordinates[LON] = lon;
-            homePosition.altitude = alt;
-            ENABLE_STATE(GPS_FIX_HOME);
-            updateHomePosition();
-        } else if (wp_no == 16) {       // OK with SERIAL GPS  --  NOK for I2C GPS / needs more code dev in order to inject GPS coord inside I2C GPS
-            // FIXME: handle this correctly only if in WP mode
-        }
+        // FIXME: process this
         break;
 #endif
     case MSP_SET_FEATURE:

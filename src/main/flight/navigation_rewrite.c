@@ -407,26 +407,27 @@ static bool navIsWaypointReached(navWaypointPosition_t *waypoint)
     return (wpDistance <= navProfile->nav_wp_radius);
 }
 
-void getHomePosition(navWaypointPosition_t * waypoint)
-{
-    waypoint->pos[X] = posControl.homeWaypoint.pos[X];
-    waypoint->pos[Y] = posControl.homeWaypoint.pos[Y];
-    waypoint->pos[Z] = posControl.homeWaypoint.pos[Z];
-    waypoint->yaw = posControl.homeWaypoint.yaw;
-}
-
-void navXYZtoLLH(navWaypointPosition_t * waypoint, navLocation_t * llh)
+void navConvertLocalToGeodetic(int32_t * pos, navLocation_t * llh)
 {
     //Currently a stub, as we operate in LLH coordinates anyway
-    llh->lat = waypoint->pos[X];
-    llh->lon = waypoint->pos[Y];
-    llh->alt = waypoint->pos[Z];
+    llh->lat = pos[X];
+    llh->lon = pos[Y];
+    llh->alt = pos[Z];
 }
 
-// FIXME: remove this (compatibility)
-navPosition3D_t homePosition;
-uint32_t distanceToHome;    // Distance to launch point (meters)
-int32_t directionToHome;    // Bearing to launch point (degrees)
+/*-----------------------------------------------------------
+ * Compatibility for home position
+ *-----------------------------------------------------------*/
+navLocation_t GPS_home;
+uint16_t      GPS_distanceToHome;        // distance to home point in meters
+int16_t       GPS_directionToHome;       // direction to home point in degrees
+
+static void updateHomePositionCompatibility(void)
+{
+    navConvertLocalToGeodetic(posControl.homeWaypoint.pos, &GPS_home);
+    GPS_distanceToHome = posControl.homeDistance / 100;
+    GPS_directionToHome = posControl.homeDirection / 100;
+}
 
 /*-----------------------------------------------------------
  * Reset home position to current position
@@ -438,13 +439,10 @@ void resetHomePosition(void)
         posControl.homeWaypoint.pos[Y] = posControl.actualState.pos[Y];
         posControl.homeWaypoint.pos[Z] = posControl.actualState.pos[Z];
         posControl.homeWaypoint.yaw = posControl.actualState.yaw;
+        posControl.homeDistance = 0;
+        posControl.homeDirection = 0;
+        updateHomePositionCompatibility();
         ENABLE_STATE(GPS_FIX_HOME);
-
-        //FIXME: compatibility
-        homePosition.coordinates[LAT] = posControl.homeWaypoint.pos[X];
-        homePosition.coordinates[LON] = posControl.homeWaypoint.pos[Y];
-        homePosition.altitude = posControl.homeWaypoint.pos[Z];
-        homePosition.heading = posControl.homeWaypoint.yaw;
     }
 }
 
@@ -465,8 +463,7 @@ void updateHomePosition(void)
     // Update distance and direction to home
     if (STATE(GPS_FIX_HOME)) {
         calculateDistanceAndBearingToDestination(posControl.actualState.pos, posControl.homeWaypoint.pos, &posControl.homeDistance, &posControl.homeDirection);
-        distanceToHome = posControl.homeDistance / 100; // back to meters
-        directionToHome = posControl.homeDirection / 100; // directionToHome should be degrees
+        updateHomePositionCompatibility();
     }
 }
 
