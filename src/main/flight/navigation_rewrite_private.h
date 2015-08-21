@@ -22,9 +22,6 @@
 #include "io/rc_controls.h"
 #include "io/escservo.h"
 
-// Undefine this to use CF's native magHold PID and MAG mode to control heading, if defined, NAV will control YAW by itself
-#define NAV_HEADING_CONTROL_PID
-
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR 1.113195f  // MagicEarthNumber from APM
 
 #define LANDING_DETECTION_TIMEOUT       10000000     // 10 second timeout
@@ -131,9 +128,7 @@ typedef struct navigationPIDControllers_s {
     pController_t   pos[XYZ_AXIS_COUNT];
     pidController_t vel[XYZ_AXIS_COUNT];
     pidController_t accz;
-#if defined(NAV_HEADING_CONTROL_PID)
     pController_t   heading;
-#endif
 } navigationPIDControllers_t;
 
 typedef struct {
@@ -150,13 +145,20 @@ typedef struct {
 } navigationDesiredState_t;
 
 typedef struct {
+    /* Flags and navigation system state */
     bool                enabled;
     navigationMode_t    mode;
     navigationFlags_t   flags;
 
+    /* Navigation PID controllers */
     navigationPIDControllers_t  pids;
 
+    /* Local system state, both actual (estimated) and desired (target setpoint)*/
     navigationEstimatedState_t  actualState;
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
-    navWaypointPosition_t       homeWaypoint;
+
+    /* Home parameters */
+    navWaypointPosition_t       homeWaypoint;   // XYZ-coordinates and original yaw (heading when launched)
+    uint32_t                    homeDistance;   // cm
+    int32_t                     homeDirection;  // deg*100
 } navigationPosControl_t;

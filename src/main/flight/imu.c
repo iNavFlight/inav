@@ -171,10 +171,10 @@ static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
     } else
         accel_ned.V.Z -= acc_1G;
 
-    // apply Deadband to reduce integration drift and vibration influence
-    imuUpdateAccelerationAndVelocity(X, accel_ned.V.X, deltaT);
-    imuUpdateAccelerationAndVelocity(Y, accel_ned.V.Y, deltaT);
-    imuUpdateAccelerationAndVelocity(Z, accel_ned.V.Z, deltaT);
+    //FIXME: accel_ned is actually not NED, but NWU (rotated 180deg around X axis). We need NEU coordinates, so we simply reverse Y axis
+    imuUpdateAccelerationAndVelocity(X,  accel_ned.V.X, deltaT);
+    imuUpdateAccelerationAndVelocity(Y, -accel_ned.V.Y, deltaT);
+    imuUpdateAccelerationAndVelocity(Z,  accel_ned.V.Z, deltaT);
 }
 
 /*

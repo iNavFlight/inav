@@ -73,24 +73,17 @@
 // Navigation PosControl
 navigationPosControl_t   posControl;
 
-#if !defined(NAV_HEADING_CONTROL_PID)
-extern int16_t magHold;
-#endif
-
-// Current velocities in 3D space in global (NED) coordinate system
 float actualAverageVerticalVelocity;    // average climb rate (updated every 250ms)
 
 // Current position in 3D space for navigation purposes (may be different from GPS output)
 static float gpsScaleLonDown = 1.0f;
-static float sinNEDtoXYZ = 0.0f;   // rotation matrix from NED (GPS) to XYZ (IMU) frame of reference
-static float cosNEDtoXYZ = 1.0f;
+static float sinNEUtoXYZ = 0.0f;   // rotation matrix from global (GPS) to NEU (local) frame of reference
+static float cosNEUtoXYZ = 1.0f;
 
 static int16_t altholdInitialThrottle;  // Throttle input when althold was activated
 static int16_t lastAdjustedThrottle = 0;
 
 int32_t targetRTHAltitude;
-uint32_t distanceToHome;    // Distance to launch point (meters)
-int32_t directionToHome;    // Bearing to launch point (degrees)
 
 // Desired pitch/roll/yaw/throttle adjustments
 static int16_t rcAdjustment[4];
@@ -209,7 +202,6 @@ static void pInit(pController_t *p, float _kP)
     p->param.kP = _kP;
 }
 
-#if defined(NAV_HEADING_CONTROL_PID)
 /*-----------------------------------------------------------
  * Functions to wrap angles in centidegrees (deg*100)
  *-----------------------------------------------------------*/
@@ -221,7 +213,6 @@ static int32_t wrap_18000(int32_t error)
         error += 36000;
     return error;
 }
-#endif
 
 static int32_t wrap_36000(int32_t angle)
 {
@@ -361,8 +352,8 @@ static void updateActualHeading(int32_t newHeading)
     posControl.actualState.yaw = newHeading;
 
     /* Pre-compute rotation matrix */
-    sinNEDtoXYZ = sin_approx(posControl.actualState.yaw * RADX100);
-    cosNEDtoXYZ = cos_approx(posControl.actualState.yaw * RADX100);
+    sinNEUtoXYZ = sin_approx(posControl.actualState.yaw * RADX100);
+    cosNEUtoXYZ = cos_approx(posControl.actualState.yaw * RADX100);
 
 #if defined(NAV_BLACKBOX)
     navActualHeading = constrain(lrintf(posControl.actualState.yaw), -32678, 32767);
@@ -432,8 +423,10 @@ void navXYZtoLLH(navWaypointPosition_t * waypoint, navLocation_t * llh)
     llh->alt = waypoint->pos[Z];
 }
 
-// FIXME: remove this
+// FIXME: remove this (compatibility)
 navPosition3D_t homePosition;
+uint32_t distanceToHome;    // Distance to launch point (meters)
+int32_t directionToHome;    // Bearing to launch point (degrees)
 
 /*-----------------------------------------------------------
  * Reset home position to current position
@@ -471,9 +464,9 @@ void updateHomePosition(void)
 
     // Update distance and direction to home
     if (STATE(GPS_FIX_HOME)) {
-        calculateDistanceAndBearingToDestination(posControl.actualState.pos, posControl.homeWaypoint.pos, &distanceToHome, &directionToHome);
-        distanceToHome = distanceToHome / 100; // back to meters
-        directionToHome = directionToHome / 100; // directionToHome should be degrees
+        calculateDistanceAndBearingToDestination(posControl.actualState.pos, posControl.homeWaypoint.pos, &posControl.homeDistance, &posControl.homeDirection);
+        distanceToHome = posControl.homeDistance / 100; // back to meters
+        directionToHome = posControl.homeDirection / 100; // directionToHome should be degrees
     }
 }
 
@@ -505,7 +498,6 @@ void setDesiredPosition(int32_t * pos, int32_t yaw, navSetWaypointFlags_t useMas
     }
 }
 
-#if defined(NAV_HEADING_CONTROL_PID)
 /*-----------------------------------------------------------
  * Calculate rcAdjustment for YAW
  *-----------------------------------------------------------*/
@@ -525,7 +517,6 @@ static void calculateHeadingAdjustment(float dTnav)
         rcAdjustment[YAW] = (headingError / 100.0f) * posControl.pids.heading.param.kP;
     }
 }
-#endif
 
 // FIXME: Make this configurable, default to about 5% highet than minthrottle
 #define minFlyableThrottle  (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 5 / 100)
@@ -543,7 +534,6 @@ static void setAltHoldInitialThrottle(int16_t throttle)
     }
 }
 
-#if defined(NAV_HEADING_CONTROL_PID)
 /*-----------------------------------------------------------
  * Adjusts desired heading from pilot's input
  *-----------------------------------------------------------*/
@@ -569,7 +559,6 @@ static void adjustHeadingFromRCInput()
         }
     }
 }
-#endif
 
 /*-----------------------------------------------------------
  * NAV updates
@@ -779,12 +768,12 @@ static void updatePositionTargetFromRCInput(uint32_t deltaMicros)
             float rcVelY = rcRollAdjustment * navProfile->nav_manual_speed_horizontal / (500.0f - navProfile->nav_rc_deadband);
 
             // Rotate these velocities from body frame to to earth frame
-            float nedVelX = rcVelX * cosNEDtoXYZ - rcVelY * sinNEDtoXYZ;
-            float nedVelY = rcVelX * sinNEDtoXYZ + rcVelY * cosNEDtoXYZ;
+            float neuVelX = rcVelX * cosNEUtoXYZ - rcVelY * sinNEUtoXYZ;
+            float neuVelY = rcVelX * sinNEUtoXYZ + rcVelY * cosNEUtoXYZ;
 
             // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
-            posControl.desiredState.pos[X] = posControl.actualState.pos[X] + ((nedVelX / posControl.pids.pos[X].param.kP) / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
-            posControl.desiredState.pos[Y] = posControl.actualState.pos[Y] + ((nedVelY / posControl.pids.pos[Y].param.kP) / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown));
+            posControl.desiredState.pos[X] = posControl.actualState.pos[X] + ((neuVelX / posControl.pids.pos[X].param.kP) / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
+            posControl.desiredState.pos[Y] = posControl.actualState.pos[Y] + ((neuVelY / posControl.pids.pos[Y].param.kP) / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown));
         }
     }
 }
@@ -905,8 +894,8 @@ static void updatePositionLeanAngleController(uint32_t deltaMicros)
     UNUSED(deltaMicros);
 
     // Rotate acceleration target into forward-right frame (aircraft)
-    float accelForward = posControl.desiredState.acc[X] * cosNEDtoXYZ + posControl.desiredState.acc[Y] * sinNEDtoXYZ;
-    float accelRight = -posControl.desiredState.acc[X] * sinNEDtoXYZ + posControl.desiredState.acc[Y] * cosNEDtoXYZ;
+    float accelForward = posControl.desiredState.acc[X] * cosNEUtoXYZ + posControl.desiredState.acc[Y] * sinNEUtoXYZ;
+    float accelRight = -posControl.desiredState.acc[X] * sinNEUtoXYZ + posControl.desiredState.acc[Y] * cosNEUtoXYZ;
 
     // Calculate banking angles
     float desiredPitch = atan2_approx(accelForward, NAV_GRAVITY_CMSS) / RADX10;
@@ -1012,22 +1001,15 @@ static void applyHeadingController(uint32_t currentTime)
 #endif
         }
 
-#if defined(NAV_HEADING_CONTROL_PID)
         calculateHeadingAdjustment(dTnav);
         adjustHeadingFromRCInput();
-#endif
 
         // Indicate that information is no longer usable
         posControl.flags.headingNewData = 0;
     }
 
-#if defined(NAV_HEADING_CONTROL_PID)
     // Control yaw by NAV PID
     rcCommand[YAW] = constrain(rcAdjustment[YAW], -500, 500);
-#else
-    // Simply set heading for mag heading hold
-    magHold = posControl.desiredState.yaw / 100;
-#endif
 }
 
 /*-----------------------------------------------------------
@@ -1231,11 +1213,7 @@ bool naivationRequiresAngleMode(void)
  *-----------------------------------------------------------*/
 bool naivationControlsHeadingNow(void)
 {
-#if defined(NAV_HEADING_CONTROL_PID)
     return navShouldApplyHeadingControl();
-#else
-    return false;
-#endif
 }
 
 /*-----------------------------------------------------------
@@ -1348,7 +1326,7 @@ void updateWaypointsAndNavigationMode(void)
             // 3D RTH state machine
             switch (navRthState) {
                 case NAV_RTH_STATE_INIT:
-                    if (distanceToHome < (navProfile->nav_min_rth_distance / 100)) {
+                    if (posControl.homeDistance < navProfile->nav_min_rth_distance) {
                         // Prevent RTH jump in your face, when arming copter accidentally activating RTH (or RTH on failsafe)
                         // Inspired by CrashPilot1000's TestCode3
                         // Reset home to currect position
@@ -1422,7 +1400,7 @@ void updateWaypointsAndNavigationMode(void)
             // 2D RTH state machine (when no ALTHOLD is available)
             switch (navRthState) {
                 case NAV_RTH_STATE_INIT:
-                    if (distanceToHome < (navProfile->nav_min_rth_distance / 100)) {
+                    if (posControl.homeDistance < navProfile->nav_min_rth_distance) {
                         resetHomePosition();
                         setDesiredPosition(posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_WP_XY | NAV_WP_HEADING);
                         navRthState = NAV_RTH_STATE_FINISHED;
@@ -1497,10 +1475,8 @@ void navigationUsePIDs(pidProfile_t *initialPidProfile)
                                    (float)pidProfile->D8[PIDVEL] / 1000.0f,
                                    300.0);
 
-#if defined(NAV_HEADING_CONTROL_PID)
     // Heading PID (duplicates maghold)
     pInit(&posControl.pids.heading, (float)pidProfile->P8[PIDMAG] / 30.0f);
-#endif
 }
 
 void navigationInit(navProfile_t *initialNavProfile,
@@ -1600,7 +1576,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         newLon = quickMedianFilter3(lonFilterTable);
         newAlt = quickMedianFilter3(altFilterTable);
 
-        // Calculate NED velocities
+        // Calculate NEU velocities
         gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
         gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
         gpsVelocity[Z] = (gpsVelocity[Z] + (newAlt - previousAlt) / dT) / 2.0f;
