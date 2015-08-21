@@ -62,7 +62,7 @@
 // Should apply RTH-specific logic
 #define navShouldApplyRTHAltitudeLogic() (((posControl.mode & NAV_MODE_RTH) != 0) && (navRthState == NAV_RTH_STATE_HOME_AUTOLAND || navRthState == NAV_RTH_STATE_LANDED || navRthState == NAV_RTH_STATE_FINISHED))
 
-// 
+//
 #define navShouldApplyHeadingControl() ((posControl.mode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D  | NAV_MODE_WP | NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0)
 #define navShouldKeepHeadingToBearing() (((posControl.mode & NAV_MODE_WP) != 0) || (((posControl.mode & (NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0) && (navRthState == NAV_RTH_STATE_HEAD_HOME)))
 
@@ -80,11 +80,11 @@ typedef enum navRthState_e {
 } navRthState_t;
 
 typedef enum {
-    NAV_WP_NONE     = 0,
-    NAV_WP_XY       = 1 << 0,
-    NAV_WP_Z        = 1 << 1,
-    NAV_WP_HEADING  = 1 << 2,
-    NAV_WP_BEARING  = 1 << 3
+    NAV_POS_UPDATE_NONE     = 0,
+    NAV_POS_UPDATE_XY       = 1 << 0,
+    NAV_POS_UPDATE_Z        = 1 << 1,
+    NAV_POS_UPDATE_HEADING  = 1 << 2,
+    NAV_POS_UPDATE_BEARING  = 1 << 3
 } navSetWaypointFlags_t;
 
 typedef struct navigationFlags_s {
@@ -132,16 +132,16 @@ typedef struct navigationPIDControllers_s {
 } navigationPIDControllers_t;
 
 typedef struct {
-    int32_t pos[XYZ_AXIS_COUNT];
-    float   vel[XYZ_AXIS_COUNT];
-    int32_t yaw;
+    t_fp_vector pos;
+    t_fp_vector vel;
+    int32_t     yaw;
 } navigationEstimatedState_t;
 
 typedef struct {
-    int32_t pos[XYZ_AXIS_COUNT];
-    float   vel[XYZ_AXIS_COUNT];
-    float   acc[XYZ_AXIS_COUNT];
-    int32_t yaw;
+    t_fp_vector pos;
+    t_fp_vector vel;
+    t_fp_vector acc;
+    int32_t     yaw;
 } navigationDesiredState_t;
 
 typedef struct {
@@ -157,8 +157,12 @@ typedef struct {
     navigationEstimatedState_t  actualState;
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
 
-    /* Home parameters */
-    navWaypointPosition_t       homeWaypoint;   // XYZ-coordinates and original yaw (heading when launched)
+    /* INAV GPS origin (position where GPS fix was first acquired) */
+    navLocation_t               gpsOrigin;
+    bool                        gpsOriginValid;
+
+    /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
+    navWaypointPosition_t       homeWaypoint;   // NEU-coordinates and original yaw (heading when launched)
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
 } navigationPosControl_t;

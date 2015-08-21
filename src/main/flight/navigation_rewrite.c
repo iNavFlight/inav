@@ -76,13 +76,11 @@ navigationPosControl_t   posControl;
 float actualAverageVerticalVelocity;    // average climb rate (updated every 250ms)
 
 // Current position in 3D space for navigation purposes (may be different from GPS output)
-static float gpsScaleLonDown = 1.0f;
 static float sinNEUtoXYZ = 0.0f;   // rotation matrix from global (GPS) to NEU (local) frame of reference
 static float cosNEUtoXYZ = 1.0f;
 
 static int16_t altholdInitialThrottle;  // Throttle input when althold was activated
 static int16_t lastAdjustedThrottle = 0;
-
 int32_t targetRTHAltitude;
 
 // Desired pitch/roll/yaw/throttle adjustments
@@ -260,16 +258,16 @@ static void updateTargetRTHAltitude(void)
         if (!navShouldApplyRTH()) {
             switch (navProfile->flags.rth_alt_control_style) {
             case NAV_RTH_NO_ALT:
-                targetRTHAltitude = posControl.actualState.pos[Z];
+                targetRTHAltitude = posControl.actualState.pos.V.Z;
                 break;
             case NAX_RTH_EXTRA_ALT: // Maintain current altitude + predefined safety margin
-                targetRTHAltitude = posControl.actualState.pos[Z] + navProfile->nav_rth_altitude;
+                targetRTHAltitude = posControl.actualState.pos.V.Z + navProfile->nav_rth_altitude;
                 break;
             case NAV_RTH_CONST_ALT: // Climb to predefined altitude
                 targetRTHAltitude = navProfile->nav_rth_altitude;
                 break;
             case NAV_RTH_MAX_ALT:
-                targetRTHAltitude = MAX(targetRTHAltitude, posControl.actualState.pos[Z]);
+                targetRTHAltitude = MAX(targetRTHAltitude, posControl.actualState.pos.V.Z);
                 break;
             default: // same as NAV_RTH_CONST_ALT
                 targetRTHAltitude = navProfile->nav_rth_altitude;
@@ -285,17 +283,17 @@ static void updateTargetRTHAltitude(void)
 /*-----------------------------------------------------------
  * Processes an update to XY-position and velocity
  *-----------------------------------------------------------*/
-static void updateActualHorizontalPositionAndVelocity(int32_t newLat, int32_t newLon, float newVelX, float newVelY)
+static void updateActualHorizontalPositionAndVelocity(float newX, float newY, float newVelX, float newVelY)
 {
-    posControl.actualState.pos[X] = newLat;
-    posControl.actualState.pos[Y] = newLon;
+    posControl.actualState.pos.V.X = newX;
+    posControl.actualState.pos.V.Y = newY;
 
-    posControl.actualState.vel[X] = newVelX;
-    posControl.actualState.vel[Y] = newVelY;
+    posControl.actualState.vel.V.X = newVelX;
+    posControl.actualState.vel.V.Y = newVelY;
 
 #if defined(NAV_BLACKBOX)
-    navLatestActualPosition[X] = newLat;
-    navLatestActualPosition[Y] = newLon;
+    navLatestActualPosition[X] = newX;
+    navLatestActualPosition[Y] = newY;
     navActualVelocity[X] = constrain(lrintf(newVelX), -32678, 32767);
     navActualVelocity[Y] = constrain(lrintf(newVelY), -32678, 32767);
 #endif
@@ -313,8 +311,8 @@ static void updateActualAltitudeAndClimbRate(uint32_t currentTime, float newAlti
     static float averageVelocityAccumulator = 0;
     static uint32_t averageVelocitySampleCount = 1;
 
-    posControl.actualState.pos[Z] = newAltitude;
-    posControl.actualState.vel[Z] = newVelocity;
+    posControl.actualState.pos.V.Z = newAltitude;
+    posControl.actualState.vel.V.Z = newVelocity;
 
     averageVelocityAccumulator += newVelocity;
     averageVelocitySampleCount += 1;
@@ -375,24 +373,17 @@ static void updateActualHeading(int32_t newHeading)
 // var x = cos(lat1) * sin(lat2) - sin(lat1) * coslat2 * cos(dLon);
 // var brng = atan2(y, x).toDeg(); -180  0 +180
 // bearing is in deg*100!
-static void calculateDistanceAndBearingToDestination(int32_t *currentPos, int32_t *destinationPos, uint32_t *dist, int32_t *bearing)
+static void calculateDistanceAndBearingToDestination(t_fp_vector * currentPos, t_fp_vector * destinationPos, uint32_t *dist, int32_t *bearing)
 {
-    float dLatRAW = destinationPos[LAT] - currentPos[LAT];
-    float dLonRAW = destinationPos[LON] - currentPos[LON];
+    float deltaX = destinationPos->V.X - currentPos->V.X;
+    float deltaY = destinationPos->V.Y - currentPos->V.Y;
 
     if (dist) {
-        *dist = sqrtf(sq(dLatRAW) + sq(dLonRAW * gpsScaleLonDown)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+        *dist = sqrtf(sq(deltaX) + sq(deltaY));
     }
 
     if (bearing) {
-        float lat1RAD = currentPos[LAT] * GPS_RAW_TO_RAD;
-        float lat2RAD = destinationPos[LAT] * GPS_RAW_TO_RAD;
-        dLonRAW *= GPS_RAW_TO_RAD;
-
-        float cosLat2RAD = cos_approx(lat2RAD);
-        float y = sin_approx(dLonRAW) * cosLat2RAD;
-        float x = cos_approx(lat1RAD) * sin_approx(lat2RAD) - sin_approx(lat1RAD) * cosLat2RAD * cos_approx(dLonRAW);
-        *bearing = wrap_36000(constrain((int32_t)(atan2_approx(y, x) * TAN_89_99_DEGREES), -18000, 18000));
+        *bearing = wrap_36000(constrain((int32_t)(atan2_approx(deltaY, deltaX) * TAN_89_99_DEGREES), -18000, 18000));
     }
 }
 
@@ -403,16 +394,38 @@ static bool navIsWaypointReached(navWaypointPosition_t *waypoint)
 {
     // We consider waypoint reached if within specified radius
     uint32_t wpDistance;
-    calculateDistanceAndBearingToDestination(posControl.actualState.pos, waypoint->pos, &wpDistance, NULL);
+    calculateDistanceAndBearingToDestination(&posControl.actualState.pos, &waypoint->pos, &wpDistance, NULL);
     return (wpDistance <= navProfile->nav_wp_radius);
 }
 
-void navConvertLocalToGeodetic(int32_t * pos, navLocation_t * llh)
+void navConvertGeodeticToLocal(navLocation_t * llh, t_fp_vector * pos)
 {
-    //Currently a stub, as we operate in LLH coordinates anyway
-    llh->lat = pos[X];
-    llh->lon = pos[Y];
-    llh->alt = pos[Z];
+    if (posControl.gpsOriginValid) {
+        float gpsScaleLonDown = constrainf(cos_approx((ABS(posControl.gpsOrigin.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
+        pos->V.X = (llh->lat - posControl.gpsOrigin.lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+        pos->V.Y = (llh->lon - posControl.gpsOrigin.lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown);
+        pos->V.Z = (llh->alt - posControl.gpsOrigin.alt);
+    }
+    else {
+        pos->V.X = 0;
+        pos->V.Y = 0;
+        pos->V.Z = 0;
+    }
+}
+
+void navConvertLocalToGeodetic(t_fp_vector * pos, navLocation_t * llh)
+{
+    if (posControl.gpsOriginValid) {
+        float gpsScaleLonDown = constrainf(cos_approx((ABS(posControl.gpsOrigin.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
+        llh->lat = posControl.gpsOrigin.lat + pos->V.X / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+        llh->lon = posControl.gpsOrigin.lon + pos->V.Y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown);
+        llh->alt = posControl.gpsOrigin.alt + pos->V.Z;
+    }
+    else {
+        llh->lat = 0;
+        llh->lon = 0;
+        llh->alt = 0;
+    }
 }
 
 /*-----------------------------------------------------------
@@ -424,7 +437,7 @@ int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 static void updateHomePositionCompatibility(void)
 {
-    navConvertLocalToGeodetic(posControl.homeWaypoint.pos, &GPS_home);
+    navConvertLocalToGeodetic(&posControl.homeWaypoint.pos, &GPS_home);
     GPS_distanceToHome = posControl.homeDistance / 100;
     GPS_directionToHome = posControl.homeDirection / 100;
 }
@@ -435,9 +448,9 @@ static void updateHomePositionCompatibility(void)
 void resetHomePosition(void)
 {
     if (STATE(GPS_FIX) && GPS_numSat >= 5) {
-        posControl.homeWaypoint.pos[X] = posControl.actualState.pos[X];
-        posControl.homeWaypoint.pos[Y] = posControl.actualState.pos[Y];
-        posControl.homeWaypoint.pos[Z] = posControl.actualState.pos[Z];
+        posControl.homeWaypoint.pos.V.X = posControl.actualState.pos.V.X;
+        posControl.homeWaypoint.pos.V.Y = posControl.actualState.pos.V.Y;
+        posControl.homeWaypoint.pos.V.Z = posControl.actualState.pos.V.Z;
         posControl.homeWaypoint.yaw = posControl.actualState.yaw;
         posControl.homeDistance = 0;
         posControl.homeDirection = 0;
@@ -462,7 +475,7 @@ void updateHomePosition(void)
 
     // Update distance and direction to home
     if (STATE(GPS_FIX_HOME)) {
-        calculateDistanceAndBearingToDestination(posControl.actualState.pos, posControl.homeWaypoint.pos, &posControl.homeDistance, &posControl.homeDirection);
+        calculateDistanceAndBearingToDestination(&posControl.actualState.pos, &posControl.homeWaypoint.pos, &posControl.homeDistance, &posControl.homeDirection);
         updateHomePositionCompatibility();
     }
 }
@@ -470,27 +483,27 @@ void updateHomePosition(void)
 /*-----------------------------------------------------------
  * Set active XYZ-target and desired heading
  *-----------------------------------------------------------*/
-void setDesiredPosition(int32_t * pos, int32_t yaw, navSetWaypointFlags_t useMask)
+void setDesiredPosition(t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask)
 {
     // XY-position
-    if ((useMask & NAV_WP_XY) != 0) {
-        posControl.desiredState.pos[X] = pos[X];
-        posControl.desiredState.pos[Y] = pos[Y];
+    if ((useMask & NAV_POS_UPDATE_XY) != 0) {
+        posControl.desiredState.pos.V.X = pos->V.X;
+        posControl.desiredState.pos.V.Y = pos->V.Y;
     }
 
     // Z-position
-    if ((useMask & NAV_WP_Z) != 0) {
-        posControl.desiredState.pos[Z] = pos[Z];
+    if ((useMask & NAV_POS_UPDATE_Z) != 0) {
+        posControl.desiredState.pos.V.Z = pos->V.Z;
     }
 
     // Heading
-    if ((useMask & NAV_WP_HEADING) != 0) {
+    if ((useMask & NAV_POS_UPDATE_HEADING) != 0) {
         // Heading
         posControl.desiredState.yaw = yaw;
     }
-    else if ((useMask & NAV_WP_BEARING) != 0) {
+    else if ((useMask & NAV_POS_UPDATE_BEARING) != 0) {
         int32_t wpBearing;
-        calculateDistanceAndBearingToDestination(posControl.actualState.pos, pos, NULL, &wpBearing);
+        calculateDistanceAndBearingToDestination(&posControl.actualState.pos, pos, NULL, &wpBearing);
         posControl.desiredState.yaw = wpBearing;
     }
 }
@@ -580,7 +593,7 @@ static void resetAltitudeController()
 static void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate)
 {
     // Calculate new altitude target
-    posControl.desiredState.pos[Z] = lrintf(posControl.desiredState.pos[Z] + climbRate * US2S(deltaMicros));
+    posControl.desiredState.pos.V.Z = lrintf(posControl.desiredState.pos.V.Z + climbRate * US2S(deltaMicros));
 }
 
 static void updateAltitudeTargetFromRCInput(uint32_t deltaMicros)
@@ -608,7 +621,7 @@ static void updateAltitudeVelocityController(uint32_t deltaMicros)
 {
     UNUSED(deltaMicros);
 
-    float altitudeError = posControl.desiredState.pos[Z] - posControl.actualState.pos[Z];
+    float altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
 
     if (STATE(FIXED_WING)) { // FIXED_WING
         // TODO
@@ -617,14 +630,14 @@ static void updateAltitudeVelocityController(uint32_t deltaMicros)
         // Use only P term for PH velocity calculation
         altitudeError = constrainf(altitudeError, -500, 500);
         //altitudeError = applyDeadband(altitudeError, 10); // remove small P parameter to reduce noise near zero position
-        posControl.desiredState.vel[Z] = altitudeError * posControl.pids.pos[Z].param.kP;
-        posControl.desiredState.vel[Z] = constrainf(posControl.desiredState.vel[Z], -300, 300); // hard limit velocity to +/- 3 m/s
+        posControl.desiredState.vel.V.Z = altitudeError * posControl.pids.pos[Z].param.kP;
+        posControl.desiredState.vel.V.Z = constrainf(posControl.desiredState.vel.V.Z, -300, 300); // hard limit velocity to +/- 3 m/s
     }
 
 #if defined(NAV_BLACKBOX)
-    navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel[Z]), -32678, 32767);
+    navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
     navLatestPositionError[Z] = constrain(lrintf(altitudeError), -32678, 32767);
-    navTargetAltitude = constrain(lrintf(posControl.desiredState.pos[Z]), -32678, 32767);
+    navTargetAltitude = constrain(lrintf(posControl.desiredState.pos.V.Z), -32678, 32767);
 #endif
 }
 
@@ -633,15 +646,15 @@ static void updateAltitudeAccelController(uint32_t deltaMicros)
     static float velFilterState;
 
     // calculate rate error and filter with cut off frequency of 2 Hz
-    float velError = posControl.desiredState.vel[Z] - posControl.actualState.vel[Z];
+    float velError = posControl.desiredState.vel.V.Z - posControl.actualState.vel.V.Z;
     velError = navApplyFilter(velError, NAV_VEL_ERROR_CUTOFF_FREQENCY_HZ, US2S(deltaMicros), &velFilterState);
-    posControl.desiredState.acc[Z] = velError * posControl.pids.vel[Z].param.kP;
+    posControl.desiredState.acc.V.Z = velError * posControl.pids.vel[Z].param.kP;
 }
 
 static void updateAltitudeThrottleController(uint32_t deltaMicros)
 {
     static float throttleFilterState;
-    float accError = posControl.desiredState.acc[Z] - imuAverageAcceleration[Z];
+    float accError = posControl.desiredState.acc.V.Z - imuAverageAcceleration.V.Z;
 
     rcAdjustment[THROTTLE] = pidGetPID(accError, US2S(deltaMicros), &posControl.pids.accz);
     rcAdjustment[THROTTLE] = navApplyFilter(rcAdjustment[THROTTLE], NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros), &throttleFilterState);
@@ -673,10 +686,10 @@ static void applyAltitudeController(uint32_t currentTime)
 
         if (navShouldApplyRTHAltitudeLogic()) {
             // Gradually reduce descent speed depending on actual altitude. Descent from 20m should take about 50 seconds with default PIDs
-            if (posControl.actualState.pos[Z] > 1000) {
+            if (posControl.actualState.pos.V.Z > 1000) {
                 updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -100.0f);
             }
-            else if (posControl.actualState.pos[Z] > 250) {
+            else if (posControl.actualState.pos.V.Z > 250) {
                 updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -50.0f);
             }
             else {
@@ -769,8 +782,8 @@ static void updatePositionTargetFromRCInput(uint32_t deltaMicros)
             float neuVelY = rcVelX * sinNEUtoXYZ + rcVelY * cosNEUtoXYZ;
 
             // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
-            posControl.desiredState.pos[X] = posControl.actualState.pos[X] + ((neuVelX / posControl.pids.pos[X].param.kP) / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
-            posControl.desiredState.pos[Y] = posControl.actualState.pos[Y] + ((neuVelY / posControl.pids.pos[Y].param.kP) / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown));
+            posControl.desiredState.pos.V.X = posControl.actualState.pos.V.X + (neuVelX / posControl.pids.pos[X].param.kP);
+            posControl.desiredState.pos.V.Y = posControl.actualState.pos.V.Y + (neuVelY / posControl.pids.pos[Y].param.kP);
         }
     }
 }
@@ -800,8 +813,8 @@ static void updatePositionLeanAngleFromRCInput(uint32_t deltaMicros)
 
             // If we are in position hold mode, so adjust poshold position
             if (navShouldApplyPosHold()) {
-                posControl.desiredState.pos[X] = posControl.actualState.pos[X];
-                posControl.desiredState.pos[Y] = posControl.actualState.pos[Y];
+                posControl.desiredState.pos.V.X = posControl.actualState.pos.V.X;
+                posControl.desiredState.pos.V.Y = posControl.actualState.pos.V.Y;
 
                 // When sticks are released we should restart PIDs
                 pidReset(&posControl.pids.vel[X]);
@@ -819,12 +832,8 @@ static void updatePositionVelocityController(uint32_t deltaMicros)
 {
     UNUSED(deltaMicros);
 
-    uint32_t wpDistance;
-
-    float posErrorX = (posControl.desiredState.pos[X] - posControl.actualState.pos[X]) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-    float posErrorY = (posControl.desiredState.pos[Y] - posControl.actualState.pos[Y]) * gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-
-    calculateDistanceAndBearingToDestination(posControl.actualState.pos, posControl.desiredState.pos, &wpDistance, NULL);
+    float posErrorX = posControl.desiredState.pos.V.X - posControl.actualState.pos.V.X;
+    float posErrorY = posControl.desiredState.pos.V.Y - posControl.actualState.pos.V.Y;
 
     if (STATE(FIXED_WING)) { // FIXED_WING
         // TODO
@@ -840,13 +849,13 @@ static void updatePositionVelocityController(uint32_t deltaMicros)
             newVelY = navProfile->nav_speed_max * (newVelY / newVelTotal);
         }
 
-        posControl.desiredState.vel[X] = newVelX;
-        posControl.desiredState.vel[Y] = newVelY;
+        posControl.desiredState.vel.V.X = newVelX;
+        posControl.desiredState.vel.V.Y = newVelY;
     }
 
 #if defined(NAV_BLACKBOX)
-    navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel[X]), -32678, 32767);
-    navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel[Y]), -32678, 32767);
+    navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel.V.X), -32678, 32767);
+    navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel.V.Y), -32678, 32767);
     navLatestPositionError[X] = constrain(lrintf(posErrorX), -32678, 32767);
     navLatestPositionError[Y] = constrain(lrintf(posErrorY), -32678, 32767);
 #endif
@@ -858,7 +867,7 @@ static void updatePositionAccelController(uint32_t deltaMicros, float maxAccelLi
     float velError, newAccel[2];
 
     // Calculate acceleration target on X-axis
-    velError = constrainf(posControl.desiredState.vel[X] - posControl.actualState.vel[X], -500.0f, 500.0f); // limit error to 5 m/s
+    velError = constrainf(posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X, -500.0f, 500.0f); // limit error to 5 m/s
     newAccel[X] = pidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[X]);
 
 #if defined(NAV_BLACKBOX)
@@ -869,7 +878,7 @@ static void updatePositionAccelController(uint32_t deltaMicros, float maxAccelLi
 #endif
 
     // Calculate acceleration target on Y-axis
-    velError = constrainf(posControl.desiredState.vel[Y] - posControl.actualState.vel[Y], -500.0f, 500.0f); // limit error to 5 m/s
+    velError = constrainf(posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y, -500.0f, 500.0f); // limit error to 5 m/s
     newAccel[Y] = pidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[Y]);
 
     // Check if required acceleration exceeds maximum allowed accel
@@ -882,8 +891,8 @@ static void updatePositionAccelController(uint32_t deltaMicros, float maxAccelLi
     }
 
     // Apply LPF to acceleration target
-    posControl.desiredState.acc[X] = navApplyFilter(newAccel[X], NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterState[X]);
-    posControl.desiredState.acc[Y] = navApplyFilter(newAccel[Y], NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterState[Y]);
+    posControl.desiredState.acc.V.X = navApplyFilter(newAccel[X], NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterState[X]);
+    posControl.desiredState.acc.V.Y = navApplyFilter(newAccel[Y], NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterState[Y]);
 }
 
 static void updatePositionLeanAngleController(uint32_t deltaMicros)
@@ -891,8 +900,8 @@ static void updatePositionLeanAngleController(uint32_t deltaMicros)
     UNUSED(deltaMicros);
 
     // Rotate acceleration target into forward-right frame (aircraft)
-    float accelForward = posControl.desiredState.acc[X] * cosNEUtoXYZ + posControl.desiredState.acc[Y] * sinNEUtoXYZ;
-    float accelRight = -posControl.desiredState.acc[X] * sinNEUtoXYZ + posControl.desiredState.acc[Y] * cosNEUtoXYZ;
+    float accelForward = posControl.desiredState.acc.V.X * cosNEUtoXYZ + posControl.desiredState.acc.V.Y * sinNEUtoXYZ;
+    float accelRight = -posControl.desiredState.acc.V.X * sinNEUtoXYZ + posControl.desiredState.acc.V.Y * cosNEUtoXYZ;
 
     // Calculate banking angles
     float desiredPitch = atan2_approx(accelForward, NAV_GRAVITY_CMSS) / RADX10;
@@ -990,11 +999,11 @@ static void applyHeadingController(uint32_t currentTime)
         if (navShouldKeepHeadingToBearing()) {
             int32_t wpBearing;
 
-            calculateDistanceAndBearingToDestination(posControl.actualState.pos, posControl.desiredState.pos, NULL, &wpBearing);
+            calculateDistanceAndBearingToDestination(&posControl.actualState.pos, &posControl.desiredState.pos, NULL, &wpBearing);
             posControl.desiredState.yaw = wpBearing;
-            
+
 #if defined(NAV_BLACKBOX)
-            navDesiredHeading = constrain(lrintf(posControl.desiredState.yaw), -32678, 32767);            
+            navDesiredHeading = constrain(lrintf(posControl.desiredState.yaw), -32678, 32767);
 #endif
         }
 
@@ -1163,7 +1172,7 @@ static navigationMode_t selectNavModeFromBoxModeInput(void)
 {
     // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
     bool canActivateAltHold = sensors(SENSOR_BARO) || sensors(SENSOR_SONAR);
-    bool canActivatePosHold = sensors(SENSOR_ACC) && (sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5) && (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
+    bool canActivatePosHold = posControl.gpsOriginValid && sensors(SENSOR_ACC) && (sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5) && (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
 
     // Figure out, what mode pilot want to activate, also check if it is possible
     if (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME)) {
@@ -1238,12 +1247,12 @@ void updateWaypointsAndNavigationMode(void)
                     // Check if previous mode was using ALTHOLD, re-use target altitude if necessary
                     if (navShouldApplyAltHold() && !navShouldApplyRTHAltitudeLogic()) {
                         // We were already applying ALTHOLD, don't update anything
-                        setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_NONE);
+                        setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_NONE);
                     }
                     else {
                         // Update desired Z-position to actual position
                         setAltHoldInitialThrottle(rcCommand[THROTTLE]);
-                        setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_Z);
+                        setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
                     }
                 }
                 posControl.mode = NAV_MODE_ALTHOLD;
@@ -1251,11 +1260,11 @@ void updateWaypointsAndNavigationMode(void)
             case NAV_MODE_POSHOLD_2D:
                 if (navShouldApplyPosHold() && !navShouldApplyRTH()) {
                     // XY-controller already active, update nothing
-                    setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_NONE);
+                    setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_NONE);
                 }
                 else {
                     // Update XY-controller and Heading controller target
-                    setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_XY | NAV_WP_HEADING);
+                    setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
                 }
                 posControl.mode = NAV_MODE_POSHOLD_2D;
                 break;
@@ -1268,22 +1277,22 @@ void updateWaypointsAndNavigationMode(void)
                     if (navShouldApplyAltHold() && !navShouldApplyRTHAltitudeLogic()) {
                         if (navShouldApplyPosHold() && !navShouldApplyRTH()) {
                             // Already applying XY and Z-controllers
-                            setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_NONE);
+                            setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_NONE);
                         }
                         else {
                             // Already applying Z-controller, update only XY-controller
-                            setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_XY | NAV_WP_HEADING);
+                            setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
                         }
                     }
                     else {
                         setAltHoldInitialThrottle(rcCommand[THROTTLE]);
                         if (navShouldApplyPosHold() && !navShouldApplyRTH()) {
                             // No Z-controlller yet, update it
-                            setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_Z);
+                            setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
                         }
                         else {
                             // Update XY and Z-controller target
-                            setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_XY | NAV_WP_Z | NAV_WP_HEADING);
+                            setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
                         }
                     }
                 }
@@ -1297,7 +1306,7 @@ void updateWaypointsAndNavigationMode(void)
             case NAV_MODE_RTH:
             case NAV_MODE_RTH_2D:
                 // We fix @ current position and climb to safe altitude
-                setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_XY | NAV_WP_Z | NAV_WP_HEADING);
+                setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
                 posControl.mode = newNavMode;
                 navRthState = NAV_RTH_STATE_INIT;
                 break;
@@ -1329,26 +1338,26 @@ void updateWaypointsAndNavigationMode(void)
                         // Reset home to currect position
                         resetHomePosition();
                         // Set position lock on home and heading to original heading, altitude to current altitude
-                        setDesiredPosition(posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_WP_XY | NAV_WP_HEADING);
-                        setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_Z);
+                        setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+                        setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
                         navRthState = NAV_RTH_STATE_HOME_AUTOLAND;
                     }
                     else {
                         // Climb to safe altitude if needed
-                        if (posControl.actualState.pos[Z] <= targetRTHAltitude) {
-                            navWaypointPosition_t rthAltPos;
-                            rthAltPos.pos[Z] = targetRTHAltitude + 50.0f;
-                            setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_XY | NAV_WP_HEADING);
-                            setDesiredPosition(rthAltPos.pos, 0, NAV_WP_Z);
+                        if (posControl.actualState.pos.V.Z <= targetRTHAltitude) {
+                            t_fp_vector rthAltPos;
+                            rthAltPos.V.Z = targetRTHAltitude + 50.0f;
+                            setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+                            setDesiredPosition(&rthAltPos, 0, NAV_POS_UPDATE_Z);
                         }
                         navRthState = NAV_RTH_STATE_CLIMB_TO_SAVE_ALTITUDE;
                     }
                     break;
                 case NAV_RTH_STATE_CLIMB_TO_SAVE_ALTITUDE:
-                    if (posControl.actualState.pos[Z] > targetRTHAltitude) {
+                    if (posControl.actualState.pos.V.Z > targetRTHAltitude) {
                         // Set target position to home and calculate original bearing
-                        setDesiredPosition(posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_WP_XY | NAV_WP_BEARING);
-                        setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_Z);
+                        setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
+                        setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
                         navRthState = NAV_RTH_STATE_HEAD_HOME;
                     }
                     else {
@@ -1359,8 +1368,8 @@ void updateWaypointsAndNavigationMode(void)
                     // Stay at this state until home reached
                     if (navIsWaypointReached(&posControl.homeWaypoint)) {
                         // Set position lock on home and heading to original heading when lauched
-                        setDesiredPosition(posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_WP_XY | NAV_WP_HEADING);
-                        setDesiredPosition(posControl.actualState.pos, posControl.actualState.yaw, NAV_WP_Z);
+                        setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+                        setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
                         // Reset landing detector
                         isLandingDetected(true);
                         navRthState = NAV_RTH_STATE_HOME_AUTOLAND;
@@ -1399,12 +1408,12 @@ void updateWaypointsAndNavigationMode(void)
                 case NAV_RTH_STATE_INIT:
                     if (posControl.homeDistance < navProfile->nav_min_rth_distance) {
                         resetHomePosition();
-                        setDesiredPosition(posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_WP_XY | NAV_WP_HEADING);
+                        setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
                         navRthState = NAV_RTH_STATE_FINISHED;
                     }
                     else {
                         // In case of 2D RTH - head home immediately
-                        setDesiredPosition(posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_WP_XY | NAV_WP_BEARING);
+                        setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
                         navRthState = NAV_RTH_STATE_HEAD_HOME;
                     }
                     break;
@@ -1412,7 +1421,7 @@ void updateWaypointsAndNavigationMode(void)
                     // Stay at this state until home reached
                     if (navIsWaypointReached(&posControl.homeWaypoint)) {
                         // Set position lock on home and heading to original heading when lauched
-                        setDesiredPosition(posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_WP_XY | NAV_WP_HEADING);
+                        setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
                         navRthState = NAV_RTH_STATE_FINISHED;
                     }
                     else {
@@ -1481,6 +1490,14 @@ void navigationInit(navProfile_t *initialNavProfile,
                     barometerConfig_t *intialBarometerConfig,
                     rcControlsConfig_t *initialRcControlsConfig)
 {
+    /* Initial state */
+    posControl.enabled = 0;
+    posControl.mode = NAV_MODE_NONE;
+    posControl.flags.verticalPositionNewData = 0;
+    posControl.flags.horizontalPositionNewData = 0;
+    posControl.flags.headingNewData = 0;
+
+    /* Use system config */
     navigationUseProfile(initialNavProfile);
     navigationUsePIDs(initialPidProfile);
     navigationUseBarometerConfig(intialBarometerConfig);
@@ -1492,13 +1509,13 @@ void navigationInit(navProfile_t *initialNavProfile,
  *-----------------------------------------------------------*/
 float getEstimatedActualVelocity(int axis)
 {
-    return posControl.actualState.vel[axis];
+    return posControl.actualState.vel.A[axis];
 }
 
 float getEstimatedActualPosition(int axis)
 {
     if (axis == Z)
-        return posControl.actualState.pos[Z];
+        return posControl.actualState.pos.V.Z;
     else
         return 0;
 }
@@ -1547,20 +1564,29 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
     static int32_t altFilterTable[3];
     static int8_t  gpsFilterIndex;
 
+    navLocation_t newLLH;
+    t_fp_vector newPos;
+
     // Don't have a valid GPS 3D fix, do nothing and restart
     if (!(STATE(GPS_FIX) && GPS_numSat >= 5)) {
         isFirstUpdate = true;
         return;
     }
 
-    uint32_t currentTime = micros();
+    // Set GPS origin
+    if (!posControl.gpsOriginValid) {
+        posControl.gpsOrigin.lat = newLat;
+        posControl.gpsOrigin.lon = newLon;
+        posControl.gpsOrigin.alt = newAlt;
+        posControl.gpsOriginValid = true;
+    }
 
-    // this is used to offset the shrinking longitude as we go towards the poles
-    gpsScaleLonDown = constrainf(cos_approx((ABS(newLat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
+    uint32_t currentTime = micros();
 
     // If not first update - calculate velocities
     if (!isFirstUpdate) {
         float dT = US2S(getGPSDeltaTimeFilter(currentTime - previousTime));
+        float gpsScaleLonDown = constrainf(cos_approx((ABS(newLat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
 
         // Update filter table
         latFilterTable[gpsFilterIndex] = newLat;
@@ -1588,9 +1614,13 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         imuApplyFilterToActualVelocity(X, navProfile->nav_gps_cf, gpsVelocity[X]);
         imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, gpsVelocity[Y]);
 
-        // Update NAV
-        updateActualHorizontalPositionAndVelocity(newLat, newLon, imuAverageVelocity[X], imuAverageVelocity[Y]);
-        //updateActualHorizontalVelocity((imuAverageVelocity[X] + gpsVelocity[X]) * 0.5f, (imuAverageVelocity[Y] + gpsVelocity[Y]) * 0.5f);
+        // Convert to local coordinates
+        newLLH.lat = newLat;
+        newLLH.lon = newLon;
+        newLLH.alt = newAlt;
+        navConvertGeodeticToLocal(&newLLH, &newPos);
+
+        updateActualHorizontalPositionAndVelocity(newPos.V.X, newPos.V.Y, imuAverageVelocity.V.X, imuAverageVelocity.V.Y);
     }
     else {
         int i;
@@ -1608,7 +1638,13 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
             altFilterTable[i] = newAlt;
         }
 
-        updateActualHorizontalPositionAndVelocity(newLat, newLon, 0, 0);
+        // Convert to local coordinates
+        newLLH.lat = newLat;
+        newLLH.lon = newLon;
+        newLLH.alt = newAlt;
+        navConvertGeodeticToLocal(&newLLH, &newPos);
+
+        updateActualHorizontalPositionAndVelocity(newPos.V.X, newPos.V.Y, 0, 0);
     }
 
     previousLat = newLat;
@@ -1680,7 +1716,7 @@ void updateAltitudeAndClimbRate(void)
     navBaroVelocity = constrain(lrintf(baroClimbRate), -32678, 32767);
 #endif
 
-    updateActualAltitudeAndClimbRate(currentTime, newBaroAlt, imuAverageVelocity[Z]);
+    updateActualAltitudeAndClimbRate(currentTime, newBaroAlt, imuAverageVelocity.V.Z);
 }
 
 #endif  // NAV

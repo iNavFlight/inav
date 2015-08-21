@@ -47,8 +47,8 @@
 #include "config/runtime_config.h"
 
 // Velocities and accelerations in ENU coordinates
-float imuAverageVelocity[XYZ_AXIS_COUNT];
-float imuAverageAcceleration[XYZ_AXIS_COUNT];
+t_fp_vector imuAverageVelocity;
+t_fp_vector imuAverageAcceleration;
 
 // Variables for velocity estimation from accelerometer. Update rates can be different for each axis.
 typedef struct {
@@ -85,8 +85,8 @@ void imuInit()
     gyroScaleRad = gyro.scale * (M_PIf / 180.0f) * 0.000001f;
 
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuAverageVelocity[axis] = 0;
-        imuAverageAcceleration[axis] = 0;
+        imuAverageVelocity.A[axis] = 0;
+        imuAverageAcceleration.A[axis] = 0;
     }
 
     // Set integrator LPF HZ
@@ -126,21 +126,21 @@ void imuUpdateAccelerationAndVelocity(uint8_t axis, float accValue, uint32_t del
     accValue = accValue * (100.0f * 9.80665f / acc_1G);
 
     // Apply LPF to acceleration: y[i] = y[i-1] + alpha * (x[i] - y[i-1])
-    imuAverageAcceleration[axis] += (accDt / ((0.5f / (M_PIf * accVel[axis].accLpfHz)) + accDt)) * (accValue - imuAverageAcceleration[axis]);
+    imuAverageAcceleration.A[axis] += (accDt / ((0.5f / (M_PIf * accVel[axis].accLpfHz)) + accDt)) * (accValue - imuAverageAcceleration.A[axis]);
 
     // Integrate acceleration to get velocity
-    imuAverageVelocity[axis] += imuAverageAcceleration[axis] * accDt;
+    imuAverageVelocity.A[axis] += imuAverageAcceleration.A[axis] * accDt;
 
     // If reference was updated far in the past - decay to zero. This provides somewhat accurate result in short-term perspective, but prevents accumulation of integration error
     if ((micros() - accVel[axis].lastRefVelUpdate) > MAX_REF_VEL_UPDATE_INTERVAL) {
-        imuAverageVelocity[axis] = imuAverageVelocity[axis] * REF_VEL_DECAY_FACTOR;
+        imuAverageVelocity.A[axis] = imuAverageVelocity.A[axis] * REF_VEL_DECAY_FACTOR;
     }
 }
 
 void imuApplyFilterToActualVelocity(uint8_t axis, float cfFactor, float referenceVelocity)
 {
     // apply Complimentary Filter to keep the calculated velocity based on reference (near real) velocity.
-    imuAverageVelocity[axis] = imuAverageVelocity[axis] * cfFactor + referenceVelocity * (1.0f - cfFactor);
+    imuAverageVelocity.A[axis] = imuAverageVelocity.A[axis] * cfFactor + referenceVelocity * (1.0f - cfFactor);
     accVel[axis].lastRefVelUpdate = micros();
 }
 

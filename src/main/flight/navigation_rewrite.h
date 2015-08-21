@@ -24,6 +24,7 @@
 
 #include "io/rc_controls.h"
 #include "io/escservo.h"
+#include "common/maths.h"
 
 #define NAV
 
@@ -84,26 +85,19 @@ typedef struct navLocation_s {
     int32_t lon;    // Longitude * 1e+7
 } navLocation_t;
 
-// Define a position in 3D space (coordinates are in GPS points)
-typedef struct navPosition3D_s {
-    int32_t altitude;
-    int32_t coordinates[2];
-    int32_t heading;
-} navPosition3D_t;
-
 typedef struct {
-    int32_t pos[XYZ_AXIS_COUNT];
-    int32_t yaw;
+    t_fp_vector pos;
+    int32_t     yaw;
 } navWaypointPosition_t;
 
-#if defined(NAV) 
+#if defined(NAV)
 
 void navigationUsePIDs(pidProfile_t *pidProfile);
 void navigationUseProfile(navProfile_t *navProfileToUse);
 void navigationUseBarometerConfig(barometerConfig_t * intialBarometerConfig);
 void navigationUseRcControlsConfig(rcControlsConfig_t *initialRcControlsConfig);
-void navigationInit(navProfile_t *initialNavProfile, 
-                    pidProfile_t *initialPidProfile, 
+void navigationInit(navProfile_t *initialNavProfile,
+                    pidProfile_t *initialPidProfile,
                     barometerConfig_t *intialBarometerConfig,
                     rcControlsConfig_t *initialRcControlsConfig);
 

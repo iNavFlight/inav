@@ -22,9 +22,9 @@
 extern int16_t throttleAngleCorrection;
 extern t_fp_vector EstG;
 extern int16_t accSmooth[XYZ_AXIS_COUNT];
-extern float imuAverageVelocity[XYZ_AXIS_COUNT];
-extern float imuAverageAcceleration[XYZ_AXIS_COUNT];
 extern int16_t smallAngle;
+extern t_fp_vector imuAverageVelocity;
+extern t_fp_vector imuAverageAcceleration;
 
 typedef struct rollAndPitchInclination_s {
     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
