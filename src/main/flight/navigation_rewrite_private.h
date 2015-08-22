@@ -49,6 +49,8 @@
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s
 #define NAV_ACCEL_SLOW_XY_MAX               150.0f  // cm/s/s
 
+#define NAV_MIN_LEASH_LENGTH                100.0f  // minimum 1 meter
+
 #define HZ2US(hz)   (1000000 / (hz))
 #define US2S(us)    ((us) * 1e-6f)
 
@@ -62,10 +64,13 @@
 // Should apply RTH-specific logic
 #define navShouldApplyRTHAltitudeLogic() (((posControl.mode & NAV_MODE_RTH) != 0) && (navRthState == NAV_RTH_STATE_HOME_AUTOLAND || navRthState == NAV_RTH_STATE_LANDED || navRthState == NAV_RTH_STATE_FINISHED))
 
-//
+// Should apply heading control logic
 #define navShouldApplyHeadingControl() ((posControl.mode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D  | NAV_MODE_WP | NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0)
+
+// Should NAV continuously adjust heading towards destination
 #define navShouldKeepHeadingToBearing() (((posControl.mode & NAV_MODE_WP) != 0) || (((posControl.mode & (NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0) && (navRthState == NAV_RTH_STATE_HEAD_HOME)))
 
+// Define conditions when pilot can adjust NAV behaviour
 #define navCanAdjustAltitudeFromRCInput() ((posControl.mode & (NAV_MODE_ALTHOLD | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH)) != 0)
 #define navCanAdjustHorizontalVelocityAndAttitudeFromRCInput() ((posControl.mode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0)
 #define navCanAdjustHeadingFromRCInput() ((posControl.mode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0)
@@ -149,6 +154,9 @@ typedef struct {
     bool                enabled;
     navigationMode_t    mode;
     navigationFlags_t   flags;
+
+    /* Leash length (maximum setpoint offset) */
+    t_fp_vector         leashLength;
 
     /* Navigation PID controllers */
     navigationPIDControllers_t  pids;

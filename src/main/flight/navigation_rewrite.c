@@ -75,10 +75,6 @@ navigationPosControl_t   posControl;
 
 float actualAverageVerticalVelocity;    // average climb rate (updated every 250ms)
 
-// Current position in 3D space for navigation purposes (may be different from GPS output)
-static float sinNEUtoXYZ = 0.0f;   // rotation matrix from global (GPS) to NEU (local) frame of reference
-static float cosNEUtoXYZ = 1.0f;
-
 static int16_t altholdInitialThrottle;  // Throttle input when althold was activated
 static int16_t lastAdjustedThrottle = 0;
 int32_t targetRTHAltitude;
@@ -349,10 +345,6 @@ static void updateActualHeading(int32_t newHeading)
     /* Update heading */
     posControl.actualState.yaw = newHeading;
 
-    /* Pre-compute rotation matrix */
-    sinNEUtoXYZ = sin_approx(posControl.actualState.yaw * RADX100);
-    cosNEUtoXYZ = cos_approx(posControl.actualState.yaw * RADX100);
-
 #if defined(NAV_BLACKBOX)
     navActualHeading = constrain(lrintf(posControl.actualState.yaw), -32678, 32767);
 #endif
@@ -571,6 +563,22 @@ static void adjustHeadingFromRCInput()
 }
 
 /*-----------------------------------------------------------
+ * Calculate leash length - maximum setpoint offset for manual or automated position setpoint control
+ *-----------------------------------------------------------*/
+static void recalculateLeashLength(void)
+{
+    // Calculate leash (target position offset)
+    posControl.leashLength.V.X = (navProfile->nav_speed_max / posControl.pids.pos[X].param.kP) * 2.0f;
+    posControl.leashLength.V.Y = (navProfile->nav_speed_max / posControl.pids.pos[Y].param.kP) * 2.0f;
+    posControl.leashLength.V.Z = (navProfile->nav_speed_max / posControl.pids.pos[Z].param.kP) * 2.0f;
+
+    // ensure leash is at least 1m long
+    posControl.leashLength.V.X = MIN(NAV_MIN_LEASH_LENGTH, posControl.leashLength.V.X);
+    posControl.leashLength.V.Y = MIN(NAV_MIN_LEASH_LENGTH, posControl.leashLength.V.Y);
+    posControl.leashLength.V.Z = MIN(NAV_MIN_LEASH_LENGTH, posControl.leashLength.V.Z);
+}
+
+/*-----------------------------------------------------------
  * NAV updates
  *-----------------------------------------------------------*/
 static navigationMode_t selectNavModeFromBoxModeInput(void);
@@ -593,7 +601,10 @@ static void resetAltitudeController()
 static void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate)
 {
     // Calculate new altitude target
-    posControl.desiredState.pos.V.Z = lrintf(posControl.desiredState.pos.V.Z + climbRate * US2S(deltaMicros));
+    posControl.desiredState.pos.V.Z = posControl.desiredState.pos.V.Z + climbRate * US2S(deltaMicros);
+
+    // Do not let altitude target get too far from current altitude
+    posControl.desiredState.pos.V.Z = constrainf(posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z - posControl.leashLength.V.Z, posControl.actualState.pos.V.Z + posControl.leashLength.V.Z);
 }
 
 static void updateAltitudeTargetFromRCInput(uint32_t deltaMicros)
@@ -777,13 +788,21 @@ static void updatePositionTargetFromRCInput(uint32_t deltaMicros)
             float rcVelX = rcPitchAdjustment * navProfile->nav_manual_speed_horizontal / (500.0f - navProfile->nav_rc_deadband);
             float rcVelY = rcRollAdjustment * navProfile->nav_manual_speed_horizontal / (500.0f - navProfile->nav_rc_deadband);
 
+            // Calculate rotation coefficients
+            float sinYaw = sin_approx(posControl.actualState.yaw * RADX100);
+            float cosYaw = cos_approx(posControl.actualState.yaw * RADX100);
+
             // Rotate these velocities from body frame to to earth frame
-            float neuVelX = rcVelX * cosNEUtoXYZ - rcVelY * sinNEUtoXYZ;
-            float neuVelY = rcVelX * sinNEUtoXYZ + rcVelY * cosNEUtoXYZ;
+            float neuVelX = rcVelX * cosYaw - rcVelY * sinYaw;
+            float neuVelY = rcVelX * sinYaw + rcVelY * cosYaw;
 
             // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
             posControl.desiredState.pos.V.X = posControl.actualState.pos.V.X + (neuVelX / posControl.pids.pos[X].param.kP);
             posControl.desiredState.pos.V.Y = posControl.actualState.pos.V.Y + (neuVelY / posControl.pids.pos[Y].param.kP);
+
+            // Limit position target distance from current position
+            posControl.desiredState.pos.V.X = constrainf(posControl.desiredState.pos.V.X, posControl.actualState.pos.V.X - posControl.leashLength.V.X, posControl.actualState.pos.V.X + posControl.leashLength.V.X);
+            posControl.desiredState.pos.V.Y = constrainf(posControl.desiredState.pos.V.Y, posControl.actualState.pos.V.Y - posControl.leashLength.V.Y, posControl.actualState.pos.V.Y + posControl.leashLength.V.Y);
         }
     }
 }
@@ -815,15 +834,11 @@ static void updatePositionLeanAngleFromRCInput(uint32_t deltaMicros)
             if (navShouldApplyPosHold()) {
                 posControl.desiredState.pos.V.X = posControl.actualState.pos.V.X;
                 posControl.desiredState.pos.V.Y = posControl.actualState.pos.V.Y;
+            }
 
-                // When sticks are released we should restart PIDs
-                pidReset(&posControl.pids.vel[X]);
-                pidReset(&posControl.pids.vel[Y]);
-            }
-            else if (navShouldApplyWaypoint() || navShouldApplyRTH()) {
-                pidReset(&posControl.pids.vel[X]);
-                pidReset(&posControl.pids.vel[Y]);
-            }
+            // When sticks are released we should restart velocity PIDs
+            pidReset(&posControl.pids.vel[X]);
+            pidReset(&posControl.pids.vel[Y]);
         }
     }
 }
@@ -863,12 +878,12 @@ static void updatePositionVelocityController(uint32_t deltaMicros)
 
 static void updatePositionAccelController(uint32_t deltaMicros, float maxAccelLimit)
 {
-    static float accFilterState[2];
-    float velError, newAccel[2];
+    static float accFilterStateX = 0.0f, accFilterStateY = 0.0f;
+    float velError, newAccelX, newAccelY;
 
     // Calculate acceleration target on X-axis
     velError = constrainf(posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X, -500.0f, 500.0f); // limit error to 5 m/s
-    newAccel[X] = pidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[X]);
+    newAccelX = pidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[X]);
 
 #if defined(NAV_BLACKBOX)
     NAV_BLACKBOX_DEBUG(0, velError);
@@ -879,29 +894,33 @@ static void updatePositionAccelController(uint32_t deltaMicros, float maxAccelLi
 
     // Calculate acceleration target on Y-axis
     velError = constrainf(posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y, -500.0f, 500.0f); // limit error to 5 m/s
-    newAccel[Y] = pidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[Y]);
+    newAccelY = pidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[Y]);
 
     // Check if required acceleration exceeds maximum allowed accel
-    float newAccelTotal = sqrtf(sq(newAccel[X]) + sq(newAccel[Y]));
+    float newAccelTotal = sqrtf(sq(newAccelX) + sq(newAccelY));
 
     // Recalculate acceleration
     if (newAccelTotal > maxAccelLimit) {
-        newAccel[X] = maxAccelLimit * (newAccel[X] / newAccelTotal);
-        newAccel[Y] = maxAccelLimit * (newAccel[Y] / newAccelTotal);
+        newAccelX = maxAccelLimit * (newAccelX / newAccelTotal);
+        newAccelY = maxAccelLimit * (newAccelY / newAccelTotal);
     }
 
     // Apply LPF to acceleration target
-    posControl.desiredState.acc.V.X = navApplyFilter(newAccel[X], NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterState[X]);
-    posControl.desiredState.acc.V.Y = navApplyFilter(newAccel[Y], NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterState[Y]);
+    posControl.desiredState.acc.V.X = navApplyFilter(newAccelX, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterStateX);
+    posControl.desiredState.acc.V.Y = navApplyFilter(newAccelY, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros), &accFilterStateY);
 }
 
 static void updatePositionLeanAngleController(uint32_t deltaMicros)
 {
     UNUSED(deltaMicros);
 
+    // Calculate rotation matrix coefficients
+    float sinYaw = sin_approx(posControl.actualState.yaw * RADX100);
+    float cosYaw = cos_approx(posControl.actualState.yaw * RADX100);
+
     // Rotate acceleration target into forward-right frame (aircraft)
-    float accelForward = posControl.desiredState.acc.V.X * cosNEUtoXYZ + posControl.desiredState.acc.V.Y * sinNEUtoXYZ;
-    float accelRight = -posControl.desiredState.acc.V.X * sinNEUtoXYZ + posControl.desiredState.acc.V.Y * cosNEUtoXYZ;
+    float accelForward = posControl.desiredState.acc.V.X * cosYaw + posControl.desiredState.acc.V.Y * sinYaw;
+    float accelRight = -posControl.desiredState.acc.V.X * sinYaw + posControl.desiredState.acc.V.Y * cosYaw;
 
     // Calculate banking angles
     float desiredPitch = atan2_approx(accelForward, NAV_GRAVITY_CMSS) / RADX10;
@@ -1483,6 +1502,9 @@ void navigationUsePIDs(pidProfile_t *initialPidProfile)
 
     // Heading PID (duplicates maghold)
     pInit(&posControl.pids.heading, (float)pidProfile->P8[PIDMAG] / 30.0f);
+
+    // Calculate leash length (PID dependent)
+    recalculateLeashLength();
 }
 
 void navigationInit(navProfile_t *initialNavProfile,
@@ -1638,7 +1660,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
             altFilterTable[i] = newAlt;
         }
 
-        // Convert to local coordinates
+        // Convert to local coordinates (isFirstUpdate might be set, but this might also occur after GPS_FIX was lost and re-acquired)
         newLLH.lat = newLat;
         newLLH.lon = newLon;
         newLLH.alt = newAlt;

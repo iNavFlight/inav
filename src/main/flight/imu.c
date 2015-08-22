@@ -49,14 +49,7 @@
 // Velocities and accelerations in ENU coordinates
 t_fp_vector imuAverageVelocity;
 t_fp_vector imuAverageAcceleration;
-
-// Variables for velocity estimation from accelerometer. Update rates can be different for each axis.
-typedef struct {
-    uint8_t accLpfHz;           // cutoff frequency of 1-st order RC-filter for velocity calculation
-    uint32_t lastRefVelUpdate;  // last reference velocity update (when this happened too far in the past - decay estimated velocity to zero
-} imuAccVelContext_s;
-
-static imuAccVelContext_s accVel[XYZ_AXIS_COUNT];
+static uint32_t imuLastRefVelUpdate[XYZ_AXIS_COUNT];
 
 int16_t accSmooth[XYZ_AXIS_COUNT];
 
@@ -88,11 +81,6 @@ void imuInit()
         imuAverageVelocity.A[axis] = 0;
         imuAverageAcceleration.A[axis] = 0;
     }
-
-    // Set integrator LPF HZ
-    accVel[X].accLpfHz = 15;
-    accVel[Y].accLpfHz = 15;
-    accVel[Z].accLpfHz = 10;
 }
 
 float calculateThrottleAngleScale(uint16_t throttle_correction_angle)
@@ -118,30 +106,13 @@ t_fp_vector EstG;
 
 #define MAX_REF_VEL_UPDATE_INTERVAL     1000000     // 1s = 1Hz
 #define REF_VEL_DECAY_FACTOR            0.998f
-void imuUpdateAccelerationAndVelocity(uint8_t axis, float accValue, uint32_t deltaT)
-{
-    float accDt = deltaT * 1e-6f;
-
-    // Convert to cm/s^2
-    accValue = accValue * (100.0f * 9.80665f / acc_1G);
-
-    // Apply LPF to acceleration: y[i] = y[i-1] + alpha * (x[i] - y[i-1])
-    imuAverageAcceleration.A[axis] += (accDt / ((0.5f / (M_PIf * accVel[axis].accLpfHz)) + accDt)) * (accValue - imuAverageAcceleration.A[axis]);
-
-    // Integrate acceleration to get velocity
-    imuAverageVelocity.A[axis] += imuAverageAcceleration.A[axis] * accDt;
-
-    // If reference was updated far in the past - decay to zero. This provides somewhat accurate result in short-term perspective, but prevents accumulation of integration error
-    if ((micros() - accVel[axis].lastRefVelUpdate) > MAX_REF_VEL_UPDATE_INTERVAL) {
-        imuAverageVelocity.A[axis] = imuAverageVelocity.A[axis] * REF_VEL_DECAY_FACTOR;
-    }
-}
+#define ACCELERATION_LPF_HZ             10
 
 void imuApplyFilterToActualVelocity(uint8_t axis, float cfFactor, float referenceVelocity)
 {
     // apply Complimentary Filter to keep the calculated velocity based on reference (near real) velocity.
     imuAverageVelocity.A[axis] = imuAverageVelocity.A[axis] * cfFactor + referenceVelocity * (1.0f - cfFactor);
-    accVel[axis].lastRefVelUpdate = micros();
+    imuLastRefVelUpdate[axis] = micros();
 }
 
 // rotate acc into Earth frame and calculate acceleration in it
@@ -171,10 +142,27 @@ static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
     } else
         accel_ned.V.Z -= acc_1G;
 
-    //FIXME: accel_ned is actually not NED, but NWU (rotated 180deg around X axis). We need NEU coordinates, so we simply reverse Y axis
-    imuUpdateAccelerationAndVelocity(X,  accel_ned.V.X, deltaT);
-    imuUpdateAccelerationAndVelocity(Y, -accel_ned.V.Y, deltaT);
-    imuUpdateAccelerationAndVelocity(Z,  accel_ned.V.Z, deltaT);
+    // FIXME: accel_ned is actually not NED, but NWU (rotated 180deg around X axis). We need NEU coordinates, so we simply reverse Y axis
+    accel_ned.V.Y = -accel_ned.V.Y;
+
+    // Calculate acceleration and velocity based on IMU data
+    int axis;
+    float accDt = deltaT * 1e-6f;
+    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        // Convert to cm/s^2
+        float accValueCMSS = accel_ned.A[axis] * (100.0f * 9.80665f / acc_1G);
+
+        // Apply LPF to acceleration: y[i] = y[i-1] + alpha * (x[i] - y[i-1])
+        imuAverageAcceleration.A[axis] += (accDt / ((0.5f / (M_PIf * ACCELERATION_LPF_HZ)) + accDt)) * (accValueCMSS - imuAverageAcceleration.A[axis]);
+
+        // Integrate acceleration to get velocity
+        imuAverageVelocity.A[axis] += imuAverageAcceleration.A[axis] * accDt;
+
+        // If reference was updated far in the past - decay to zero. This provides somewhat accurate result in short-term perspective, but prevents accumulation of integration error
+        if ((micros() - imuLastRefVelUpdate[axis]) > MAX_REF_VEL_UPDATE_INTERVAL) {
+            imuAverageVelocity.A[axis] = imuAverageVelocity.A[axis] * REF_VEL_DECAY_FACTOR;
+        }
+    }
 }
 
 /*
