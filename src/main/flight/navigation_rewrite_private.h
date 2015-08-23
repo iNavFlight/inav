@@ -46,10 +46,8 @@
 #define NAV_ACCEL_CUTOFF_FREQUENCY_HZ       2       // low-pass filter on XY-acceleration target
 
 #define NAV_GRAVITY_CMSS                    980.665f
-#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s
-#define NAV_ACCEL_SLOW_XY_MAX               150.0f  // cm/s/s
-
-#define NAV_MIN_LEASH_LENGTH                100.0f  // minimum 1 meter
+#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
+#define NAV_ACCEL_SLOW_XY_MAX               550.0f  // cm/s/s       // approx 29 deg lean angle
 
 #define HZ2US(hz)   (1000000 / (hz))
 #define US2S(us)    ((us) * 1e-6f)
