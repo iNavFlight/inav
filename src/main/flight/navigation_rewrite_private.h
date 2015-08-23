@@ -155,9 +155,6 @@ typedef struct {
     navigationMode_t    mode;
     navigationFlags_t   flags;
 
-    /* Leash length (maximum setpoint offset) */
-    t_fp_vector         leashLength;
-
     /* Navigation PID controllers */
     navigationPIDControllers_t  pids;
 

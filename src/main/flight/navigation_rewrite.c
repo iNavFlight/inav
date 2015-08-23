@@ -563,22 +563,6 @@ static void adjustHeadingFromRCInput()
 }
 
 /*-----------------------------------------------------------
- * Calculate leash length - maximum setpoint offset for manual or automated position setpoint control
- *-----------------------------------------------------------*/
-static void recalculateLeashLength(void)
-{
-    // Calculate leash (target position offset)
-    posControl.leashLength.V.X = (navProfile->nav_speed_max / posControl.pids.pos[X].param.kP) * 2.0f;
-    posControl.leashLength.V.Y = (navProfile->nav_speed_max / posControl.pids.pos[Y].param.kP) * 2.0f;
-    posControl.leashLength.V.Z = (navProfile->nav_speed_max / posControl.pids.pos[Z].param.kP) * 2.0f;
-
-    // ensure leash is at least 1m long
-    posControl.leashLength.V.X = MIN(NAV_MIN_LEASH_LENGTH, posControl.leashLength.V.X);
-    posControl.leashLength.V.Y = MIN(NAV_MIN_LEASH_LENGTH, posControl.leashLength.V.Y);
-    posControl.leashLength.V.Z = MIN(NAV_MIN_LEASH_LENGTH, posControl.leashLength.V.Z);
-}
-
-/*-----------------------------------------------------------
  * NAV updates
  *-----------------------------------------------------------*/
 static navigationMode_t selectNavModeFromBoxModeInput(void);
@@ -600,11 +584,10 @@ static void resetAltitudeController()
 
 static void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate)
 {
-    // Calculate new altitude target
-    posControl.desiredState.pos.V.Z = posControl.desiredState.pos.V.Z + climbRate * US2S(deltaMicros);
+    UNUSED(deltaMicros);
 
-    // Do not let altitude target get too far from current altitude
-    posControl.desiredState.pos.V.Z = constrainf(posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z - posControl.leashLength.V.Z, posControl.actualState.pos.V.Z + posControl.leashLength.V.Z);
+    // Calculate new altitude target
+    posControl.desiredState.pos.V.Z = posControl.actualState.pos.V.Z + (climbRate / posControl.pids.pos[Z].param.kP);
 }
 
 static void updateAltitudeTargetFromRCInput(uint32_t deltaMicros)
@@ -799,10 +782,6 @@ static void updatePositionTargetFromRCInput(uint32_t deltaMicros)
             // Calculate new position target, so Pos-to-Vel P-controller would yield desired velocity
             posControl.desiredState.pos.V.X = posControl.actualState.pos.V.X + (neuVelX / posControl.pids.pos[X].param.kP);
             posControl.desiredState.pos.V.Y = posControl.actualState.pos.V.Y + (neuVelY / posControl.pids.pos[Y].param.kP);
-
-            // Limit position target distance from current position
-            posControl.desiredState.pos.V.X = constrainf(posControl.desiredState.pos.V.X, posControl.actualState.pos.V.X - posControl.leashLength.V.X, posControl.actualState.pos.V.X + posControl.leashLength.V.X);
-            posControl.desiredState.pos.V.Y = constrainf(posControl.desiredState.pos.V.Y, posControl.actualState.pos.V.Y - posControl.leashLength.V.Y, posControl.actualState.pos.V.Y + posControl.leashLength.V.Y);
         }
     }
 }
@@ -1502,9 +1481,6 @@ void navigationUsePIDs(pidProfile_t *initialPidProfile)
 
     // Heading PID (duplicates maghold)
     pInit(&posControl.pids.heading, (float)pidProfile->P8[PIDMAG] / 30.0f);
-
-    // Calculate leash length (PID dependent)
-    recalculateLeashLength();
 }
 
 void navigationInit(navProfile_t *initialNavProfile,
