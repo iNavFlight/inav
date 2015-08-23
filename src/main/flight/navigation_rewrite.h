@@ -127,13 +127,9 @@ extern int32_t navLatestActualPosition[3];
 extern int16_t navActualVelocity[3];
 extern int16_t navDesiredVelocity[3];
 extern int16_t navLatestPositionError[3];
-extern int16_t navGPSVelocity[3];
-extern int16_t navBaroVelocity;
 extern int16_t navActualHeading;
 extern int16_t navDesiredHeading;
-extern int16_t navThrottleAngleCorrection;
-extern int16_t navTargetAltitude;
-extern int16_t navWindCompensation[2];
+extern int16_t navTargetPosition[3];
 extern int16_t navDebug[4];
 #endif
 

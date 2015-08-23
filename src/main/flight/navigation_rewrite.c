@@ -92,14 +92,11 @@ static navRthState_t navRthState;
 #if defined(NAV_BLACKBOX)
 int16_t navCurrentMode;
 int16_t navActualVelocity[3];
-int16_t navGPSVelocity[3];
-int16_t navBaroVelocity;
 int16_t navDesiredVelocity[3];
 int16_t navLatestPositionError[3];
 int16_t navActualHeading;
 int16_t navDesiredHeading;
-int16_t navThrottleAngleCorrection;
-int16_t navTargetAltitude;
+int16_t navTargetPosition[3];
 int32_t navLatestActualPosition[3];
 
 int16_t navDebug[4];
@@ -631,7 +628,7 @@ static void updateAltitudeVelocityController(uint32_t deltaMicros)
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
     navLatestPositionError[Z] = constrain(lrintf(altitudeError), -32678, 32767);
-    navTargetAltitude = constrain(lrintf(posControl.desiredState.pos.V.Z), -32678, 32767);
+    navTargetPosition[Z] = constrain(lrintf(posControl.desiredState.pos.V.Z), -32678, 32767);
 #endif
 }
 
@@ -852,6 +849,8 @@ static void updatePositionVelocityController(uint32_t deltaMicros)
     navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel.V.Y), -32678, 32767);
     navLatestPositionError[X] = constrain(lrintf(posErrorX), -32678, 32767);
     navLatestPositionError[Y] = constrain(lrintf(posErrorY), -32678, 32767);
+    navTargetPosition[X] = constrain(lrintf(posControl.desiredState.pos.V.X), -32678, 32767);
+    navTargetPosition[Y] = constrain(lrintf(posControl.desiredState.pos.V.Y), -32678, 32767);
 #endif
 }
 
@@ -999,11 +998,11 @@ static void applyHeadingController(uint32_t currentTime)
 
             calculateDistanceAndBearingToDestination(&posControl.actualState.pos, &posControl.desiredState.pos, NULL, &wpBearing);
             posControl.desiredState.yaw = wpBearing;
+        }
 
 #if defined(NAV_BLACKBOX)
             navDesiredHeading = constrain(lrintf(posControl.desiredState.yaw), -32678, 32767);
 #endif
-        }
 
         calculateHeadingAdjustment(dTnav);
         adjustHeadingFromRCInput();
@@ -1602,12 +1601,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
         gpsVelocity[Z] = (gpsVelocity[Z] + (newAlt - previousAlt) / dT) / 2.0f;
 
-#if defined(NAV_BLACKBOX)
-        navGPSVelocity[X] = constrain(lrintf(gpsVelocity[X]), -32678, 32767);
-        navGPSVelocity[Y] = constrain(lrintf(gpsVelocity[Y]), -32678, 32767);
-        navGPSVelocity[Z] = constrain(lrintf(gpsVelocity[Z]), -32678, 32767);
-#endif
-
         // Update IMU velocities with complementary filter to keep them close to real velocities (as given by GPS)
         imuApplyFilterToActualVelocity(X, navProfile->nav_gps_cf, gpsVelocity[X]);
         imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, gpsVelocity[Y]);
@@ -1709,10 +1702,6 @@ void updateAltitudeAndClimbRate(void)
 
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
     imuApplyFilterToActualVelocity(Z, barometerConfig->baro_cf_vel, baroClimbRate);
-
-#if defined(NAV_BLACKBOX)
-    navBaroVelocity = constrain(lrintf(baroClimbRate), -32678, 32767);
-#endif
 
     updateActualAltitudeAndClimbRate(currentTime, newBaroAlt, imuAverageVelocity.V.Z);
 }
