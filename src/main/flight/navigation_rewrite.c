@@ -257,13 +257,13 @@ static void updateTargetRTHAltitude(void)
                 targetRTHAltitude = posControl.actualState.pos.V.Z + navProfile->nav_rth_altitude;
                 break;
             case NAV_RTH_CONST_ALT: // Climb to predefined altitude
-                targetRTHAltitude = navProfile->nav_rth_altitude;
+                targetRTHAltitude = posControl.homeWaypoint.pos.V.Z + navProfile->nav_rth_altitude;
                 break;
             case NAV_RTH_MAX_ALT:
                 targetRTHAltitude = MAX(targetRTHAltitude, posControl.actualState.pos.V.Z);
                 break;
             default: // same as NAV_RTH_CONST_ALT
-                targetRTHAltitude = navProfile->nav_rth_altitude;
+                targetRTHAltitude = posControl.homeWaypoint.pos.V.Z + navProfile->nav_rth_altitude;
                 break;
             }
         }
@@ -676,15 +676,15 @@ static void applyAltitudeController(uint32_t currentTime)
         previousTimeTargetPositionUpdate = currentTime;
 
         if (navShouldApplyRTHAltitudeLogic()) {
-            // Gradually reduce descent speed depending on actual altitude. Descent from 20m should take about 50 seconds with default PIDs
-            if (posControl.actualState.pos.V.Z > 1000) {
-                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -100.0f);
+            // Gradually reduce descent speed depending on actual altitude.
+            if (posControl.actualState.pos.V.Z > (posControl.homeWaypoint.pos.V.Z + 1000)) {
+                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -150.0f);
             }
-            else if (posControl.actualState.pos.V.Z > 250) {
-                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -50.0f);
+            else if (posControl.actualState.pos.V.Z > (posControl.homeWaypoint.pos.V.Z + 250)) {
+                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -75.0f);
             }
             else {
-                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -20.0f);
+                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -35.0f);
             }
         }
 
