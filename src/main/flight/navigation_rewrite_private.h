@@ -164,6 +164,9 @@ typedef struct {
     navLocation_t               gpsOrigin;
     bool                        gpsOriginValid;
 
+    /* Barometer offset (origin) */
+    float                       baroOffset;
+
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
     navWaypointPosition_t       homeWaypoint;   // NEU-coordinates and original yaw (heading when launched)
     uint32_t                    homeDistance;   // cm

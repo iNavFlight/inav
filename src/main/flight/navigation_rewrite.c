@@ -1494,6 +1494,8 @@ void navigationInit(navProfile_t *initialNavProfile,
     posControl.flags.horizontalPositionNewData = 0;
     posControl.flags.headingNewData = 0;
 
+    posControl.baroOffset = 0.0f;
+
     /* Use system config */
     navigationUseProfile(initialNavProfile);
     navigationUsePIDs(initialPidProfile);
@@ -1611,6 +1613,10 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         newLLH.alt = newAlt;
         navConvertGeodeticToLocal(&newLLH, &newPos);
 
+        // Adjust barometer offset to compensate for barometric drift
+        float gpsPosCorrectionZ = newPos.V.Z - posControl.actualState.pos.V.Z;
+        posControl.baroOffset -= gpsPosCorrectionZ * 0.01f * dT;   // FIXME: Explain 0.01f
+
         updateActualHorizontalPositionAndVelocity(newPos.V.X, newPos.V.Y, imuAverageVelocity.V.X, imuAverageVelocity.V.Y);
     }
     else {
@@ -1681,7 +1687,7 @@ void updateAltitudeAndClimbRate(void)
     // For NAV to work good baro altitude must not be delayed much. Large delay means slow response, means low PID gains to avoid oscillations
     // One should keep baro_tab_size small, but this will lead to high noise. NAV is OK with noisy measures, LPFs in altitude control
     // code and new CLT fusion will handle that just fine
-    int32_t newBaroAlt = baroCalculateAltitude();
+    float newBaroAlt = baroCalculateAltitude() - posControl.baroOffset;
     float baroClimbRate;
 
     if (isBaroCalibrationComplete()) {

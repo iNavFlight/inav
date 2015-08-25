@@ -207,7 +207,7 @@ void inavUpdateEstimate(void)
 
         /* Correct baro offset */
         if (useGpsZ) {
-            navPosState.baro.offset -= correctionGPSPos[X] * w_z_gps_p * dt;
+            navPosState.baro.offset -= correctionGPSPos[X] * INAV_W_Z_GPS_P * dt;
         }
 
         /* Calculate altitude correction */
