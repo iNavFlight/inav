@@ -17,7 +17,6 @@
 
 #pragma once
 
-
 #include "flight/pid.h"
 
 #include "sensors/barometer.h"
@@ -27,8 +26,6 @@
 #include "common/maths.h"
 
 #define NAV
-
-// Log nav data to blackbox
 #define NAV_BLACKBOX
 
 // Maximum number of waypoints, special waypoint 0 = home, waypoint (NAV_MAX_WAYPOINTS + 1) = active WP

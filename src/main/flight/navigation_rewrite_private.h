@@ -38,6 +38,8 @@
 #define POSITION_TARGET_UPDATE_RATE_HZ      5
 #define ALTITUDE_UPDATE_FREQUENCY_HZ        10      // max 30hz update rate (almost maximum possible rate for BMP085)
 
+#define MIN_SONAR_UPDATE_FREQUENCY_HZ       3
+
 #define MIN_ALTITUDE_UPDATE_FREQUENCY_HZ    5       // althold will not be applied if update rate is less than this constant
 #define MIN_POSITION_UPDATE_FREQUENCY_HZ    5       // GPS navigation (PH/WP/RTH) won't be applied unless update rate is above this
 
@@ -164,8 +166,11 @@ typedef struct {
     navLocation_t               gpsOrigin;
     bool                        gpsOriginValid;
 
+#if defined(BARO)
     /* Barometer offset (origin) */
+    float                       latestBaroAlt;
     float                       baroOffset;
+#endif
 
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
     navWaypointPosition_t       homeWaypoint;   // NEU-coordinates and original yaw (heading when launched)

@@ -1613,9 +1613,11 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         newLLH.alt = newAlt;
         navConvertGeodeticToLocal(&newLLH, &newPos);
 
+#if defined(BARO)
         // Adjust barometer offset to compensate for barometric drift
-        float gpsPosCorrectionZ = newPos.V.Z - posControl.actualState.pos.V.Z;
+        float gpsPosCorrectionZ = newPos.V.Z - posControl.latestBaroAlt;
         posControl.baroOffset -= gpsPosCorrectionZ * 0.01f * dT;   // FIXME: Explain 0.01f
+#endif
 
         updateActualHorizontalPositionAndVelocity(newPos.V.X, newPos.V.Y, imuAverageVelocity.V.X, imuAverageVelocity.V.Y);
     }
@@ -1662,8 +1664,20 @@ void updateEstimatedHeading(void)
 
 void updateAltitudeAndClimbRate(void)
 {
+    float estimatedAlt, estimatedClimbRate, imuFilterWeight;
+
+#if defined(BARO)
+    float newBaroAlt, baroClimbRate;
+#endif
+
+#if defined(SONAR)
+    float newSonarAlt, sonarClimbRate;
+#endif
+
+#if defined(BARO)
     static filterWithBufferSample_t baroClimbRateFilterBuffer[NAV_BARO_CLIMB_RATE_FILTER_SIZE];
     static filterWithBufferState_t baroClimbRateFilter;
+#endif
     static bool climbRateFiltersInitialized = false;
 
     static uint32_t previousTimeUpdate = 0;
@@ -1678,38 +1692,118 @@ void updateAltitudeAndClimbRate(void)
 
     // Initialize climb rate filter
     if (!climbRateFiltersInitialized) {
+#if defined(BARO)
+        // If BARO compiled in - initialize filter
         filterWithBufferInit(&baroClimbRateFilter, &baroClimbRateFilterBuffer[0], NAV_BARO_CLIMB_RATE_FILTER_SIZE);
+#endif
         climbRateFiltersInitialized = true;
     }
 
-#ifdef BARO
+#if defined(BARO)
     // Calculate barometric altitude and climb rate
     // For NAV to work good baro altitude must not be delayed much. Large delay means slow response, means low PID gains to avoid oscillations
     // One should keep baro_tab_size small, but this will lead to high noise. NAV is OK with noisy measures, LPFs in altitude control
     // code and new CLT fusion will handle that just fine
-    float newBaroAlt = baroCalculateAltitude() - posControl.baroOffset;
-    float baroClimbRate;
+    newBaroAlt = baroCalculateAltitude() - posControl.baroOffset;
 
-    if (isBaroCalibrationComplete()) {
+    if (sensors(SENSOR_BARO) && isBaroCalibrationComplete()) {
         filterWithBufferUpdate(&baroClimbRateFilter, newBaroAlt, currentTime);
         baroClimbRate = filterWithBufferApply_Derivative(&baroClimbRateFilter) * 1e6f;
+
+        baroClimbRate = constrainf(baroClimbRate, -1500, 1500);  // constrain baro velocity +/- 1500cm/s
+        baroClimbRate = applyDeadband(baroClimbRate, 10);       // to reduce noise near zero
     }
     else {
         newBaroAlt = 0;
         baroClimbRate = 0.0f;
     }
-#else
-    int32_t newBaroAlt = 0;
-    baroClimbRate = 0.0f;
+
+    // Save baro altitude for valid baro offset correction via GPS
+    posControl.latestBaroAlt = newBaroAlt;
 #endif
 
-    baroClimbRate = constrainf(baroClimbRate, -1500, 1500);  // constrain baro velocity +/- 1500cm/s
-    baroClimbRate = applyDeadband(baroClimbRate, 10);       // to reduce noise near zero
+#if defined(SONAR)
+    // Calculate sonar altitude above surface and climb rate above surface
+    if (sensors(SENSOR_SONAR)) {
+        static uint32_t lastValidSonarUpdateTime = 0;
+        static float lastValidSonarAlt;
+
+        // Read sonar
+        newSonarAlt = sonarRead();
+
+        // FIXME: Add sonar tilt compensation
+
+        if (newSonarAlt >= 0) {
+            // We have a valid reading
+
+            if ((currentTime - lastValidSonarUpdateTime) < HZ2US(MIN_SONAR_UPDATE_FREQUENCY_HZ)) {
+                // Sonar updated within valid time, use this measurement to calculate climb rate
+                sonarClimbRate = (newSonarAlt - lastValidSonarAlt) / ((currentTime - lastValidSonarUpdateTime) * 1e-6f);
+            }
+            else {
+                // Previous sonar update was delayed too much - we can't trust sonarClimbRate yet
+                sonarClimbRate = 0.0f;
+            }
+
+            lastValidSonarAlt = newSonarAlt;
+            lastValidSonarUpdateTime = currentTime;
+        }
+    }
+    else {
+        // No sonar
+        newSonarAlt = -1;
+        sonarClimbRate = 0.0f;
+    }
+#endif
+
+#if defined(BARO) && defined(SONAR)
+    if (newSonarAlt < 0) {
+        // Can't trust sonar - rely on baro
+        estimatedAlt = newBaroAlt;
+        estimatedClimbRate = baroClimbRate;
+        imuFilterWeight = barometerConfig->baro_cf_vel;
+    }
+    else {
+        // Fuse altitude
+        if (newSonarAlt <= (SONAR_MAX_RANGE * 2 / 3)) {
+            // If within 2/3 sonar range - use only sonar
+            estimatedAlt = newSonarAlt;
+        }
+        else if (newSonarAlt <= SONAR_MAX_RANGE) {
+            // Squeze difference between sonar and baro into upper 1/3 sonar range.
+            // FIXME: this will give us totally wrong altitude in the upper 
+            //        1/3 sonar range but will allow graceful transition from SONAR to BARO
+            float sonarToBaroTransition = constrainf((SONAR_MAX_RANGE - newSonarAlt) / (SONAR_MAX_RANGE / 3.0f), 0, 1);
+            estimatedAlt = newSonarAlt * sonarToBaroTransition + newBaroAlt * (1.0f - sonarToBaroTransition);
+        }
+
+        // FIXME: Make all this configurable
+        // Fuse velocity - trust sonar more and baro less
+        estimatedClimbRate = 0.333f * baroClimbRate + 0.667f * sonarClimbRate;
+        imuFilterWeight = barometerConfig->baro_cf_vel;
+    }
+#elif defined(BARO)
+    estimatedAlt = newBaroAlt;
+    estimatedClimbRate = baroClimbRate;
+    imuFilterWeight = barometerConfig->baro_cf_vel;
+#elif defined(SONAR)
+    // If sonar reading is not valid, assume that we are outside valid sonar range and set measured altitude to SONAR_MAX_RANGE
+    // This will allow us to enable althold above sonar range and not hit the ground when going within range
+    if (newSonarAlt < 0)
+        estimatedAlt = SONAR_MAX_RANGE;
+    else
+        estimatedAlt = newSonarAlt;
+
+    estimatedClimbRate = sonarClimbRate;
+    imuFilterWeight = 0.900f; // FIXME: make configurable
+#else
+    #error "FIXME - Shouldn't happen (no baro or sonar)"
+#endif
 
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
-    imuApplyFilterToActualVelocity(Z, barometerConfig->baro_cf_vel, baroClimbRate);
+    imuApplyFilterToActualVelocity(Z, imuFilterWeight, estimatedClimbRate);
 
-    updateActualAltitudeAndClimbRate(currentTime, newBaroAlt, imuAverageVelocity.V.Z);
+    updateActualAltitudeAndClimbRate(currentTime, estimatedAlt, imuAverageVelocity.V.Z);
 }
 
 #endif  // NAV
