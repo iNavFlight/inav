@@ -17,13 +17,15 @@
 
 #pragma once
 
+#include "common/axis.h"
+#include "common/maths.h"
+
 #include "flight/pid.h"
 
 #include "sensors/barometer.h"
 
 #include "io/rc_controls.h"
 #include "io/escservo.h"
-#include "common/maths.h"
 
 #define NAV
 #define NAV_BLACKBOX
@@ -78,9 +80,9 @@ typedef struct navProfile_s {
 
 // LLH Location in NEU axis system
 typedef struct gpsLocation_s {
-    int32_t alt;    // Altitude in centimeters (meters * 100)
     int32_t lat;    // Lattitude * 1e+7
     int32_t lon;    // Longitude * 1e+7
+    int32_t alt;    // Altitude in centimeters (meters * 100)
 } gpsLocation_t;
 
 typedef struct {
@@ -114,6 +116,9 @@ bool navigationControlsThrottleAngleCorrection(void);
 
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
+
+void gpsConvertGeodeticToLocal(gpsLocation_t * origin, bool originValid, gpsLocation_t * llh, t_fp_vector * pos);
+void gpsConvertLocalToGeodetic(gpsLocation_t * origin, bool originValid, t_fp_vector * pos, gpsLocation_t * llh);
 
 extern gpsLocation_t GPS_home;
 extern uint16_t      GPS_distanceToHome;        // distance to home point in meters

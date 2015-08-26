@@ -100,7 +100,7 @@ LIBCLEANFLIGHT_SRC = \
 	drivers/barometer_ms5611.c \
 	drivers/barometer_bmp085.c \
 	drivers/light_ws2811strip.c \
-	flight/altitudehold.c \
+	flight/navigation_rewrite.c \
 	flight/failsafe.c \
 	flight/gps_conversion.c \
 	flight/imu.c \
