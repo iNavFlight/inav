@@ -205,17 +205,6 @@ void processRcStickPositions(rxConfig_t *rxConfig, throttleStatus_e throttleStat
         // GYRO calibration
         gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
 
-#ifdef GPS
-        if (feature(FEATURE_GPS)) {
-            resetHomePosition();
-        }
-#endif
-
-#ifdef BARO
-        if (sensors(SENSOR_BARO))
-            baroSetCalibrationCycles(10); // calibrate baro to new ground level (10 * 25 ms = ~250 ms non blocking)
-#endif
-
         if (!sensors(SENSOR_MAG))
             heading = 0; // reset heading to zero after gyro calibration
 
