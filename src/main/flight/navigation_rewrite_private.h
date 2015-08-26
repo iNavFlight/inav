@@ -163,7 +163,7 @@ typedef struct {
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
 
     /* INAV GPS origin (position where GPS fix was first acquired) */
-    navLocation_t               gpsOrigin;
+    gpsLocation_t               gpsOrigin;
     bool                        gpsOriginValid;
 
 #if defined(BARO)

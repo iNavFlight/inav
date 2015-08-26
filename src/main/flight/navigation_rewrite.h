@@ -77,11 +77,11 @@ typedef struct navProfile_s {
 } navProfile_t;
 
 // LLH Location in NEU axis system
-typedef struct navLocation_s {
+typedef struct gpsLocation_s {
     int32_t alt;    // Altitude in centimeters (meters * 100)
     int32_t lat;    // Lattitude * 1e+7
     int32_t lon;    // Longitude * 1e+7
-} navLocation_t;
+} gpsLocation_t;
 
 typedef struct {
     t_fp_vector pos;
@@ -115,7 +115,7 @@ bool navigationControlsThrottleAngleCorrection(void);
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
 
-extern navLocation_t GPS_home;
+extern gpsLocation_t GPS_home;
 extern uint16_t      GPS_distanceToHome;        // distance to home point in meters
 extern int16_t       GPS_directionToHome;       // direction to home point in degrees
 

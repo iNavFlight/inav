@@ -364,13 +364,13 @@ static bool navIsWaypointReached(navWaypointPosition_t *waypoint)
     return (wpDistance <= navProfile->nav_wp_radius);
 }
 
-void navConvertGeodeticToLocal(navLocation_t * llh, t_fp_vector * pos)
+void gpsConvertGeodeticToLocal(gpsLocation_t * origin, gpsLocation_t * llh, t_fp_vector * pos)
 {
     if (posControl.gpsOriginValid) {
-        float gpsScaleLonDown = constrainf(cos_approx((ABS(posControl.gpsOrigin.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-        pos->V.X = (llh->lat - posControl.gpsOrigin.lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-        pos->V.Y = (llh->lon - posControl.gpsOrigin.lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown);
-        pos->V.Z = (llh->alt - posControl.gpsOrigin.alt);
+        float gpsScaleLonDown = constrainf(cos_approx((ABS(origin->lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
+        pos->V.X = (llh->lat - origin->lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+        pos->V.Y = (llh->lon - origin->lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown);
+        pos->V.Z = (llh->alt - origin->alt);
     }
     else {
         pos->V.X = 0;
@@ -379,13 +379,13 @@ void navConvertGeodeticToLocal(navLocation_t * llh, t_fp_vector * pos)
     }
 }
 
-void navConvertLocalToGeodetic(t_fp_vector * pos, navLocation_t * llh)
+void gpsConvertLocalToGeodetic(gpsLocation_t * origin, t_fp_vector * pos, gpsLocation_t * llh)
 {
     if (posControl.gpsOriginValid) {
-        float gpsScaleLonDown = constrainf(cos_approx((ABS(posControl.gpsOrigin.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-        llh->lat = posControl.gpsOrigin.lat + pos->V.X / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-        llh->lon = posControl.gpsOrigin.lon + pos->V.Y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown);
-        llh->alt = posControl.gpsOrigin.alt + pos->V.Z;
+        float gpsScaleLonDown = constrainf(cos_approx((ABS(origin->lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
+        llh->lat = origin->lat + pos->V.X / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+        llh->lon = origin->lon + pos->V.Y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown);
+        llh->alt = origin->alt + pos->V.Z;
     }
     else {
         llh->lat = 0;
@@ -397,13 +397,13 @@ void navConvertLocalToGeodetic(t_fp_vector * pos, navLocation_t * llh)
 /*-----------------------------------------------------------
  * Compatibility for home position
  *-----------------------------------------------------------*/
-navLocation_t GPS_home;
+gpsLocation_t GPS_home;
 uint16_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 static void updateHomePositionCompatibility(void)
 {
-    navConvertLocalToGeodetic(&posControl.homeWaypoint.pos, &GPS_home);
+    gpsConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.homeWaypoint.pos, &GPS_home);
     GPS_distanceToHome = posControl.homeDistance / 100;
     GPS_directionToHome = posControl.homeDirection / 100;
 }
@@ -1534,7 +1534,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
 
     static float gpsVelocityX = 0.0f, gpsVelocityY = 0.0f;
 
-    navLocation_t newLLH;
+    gpsLocation_t newLLH;
     t_fp_vector newGPSPos;
 
     // Don't have a valid GPS 3D fix, do nothing and restart
@@ -1581,7 +1581,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         newLLH.lat = newLat;
         newLLH.lon = newLon;
         newLLH.alt = newAlt;
-        navConvertGeodeticToLocal(&newLLH, &newGPSPos);
+        gpsConvertGeodeticToLocal(&posControl.gpsOrigin, &newLLH, &newGPSPos);
 
 #if defined(BARO)
         if (sensors(SENSOR_BARO)) {
@@ -1612,7 +1612,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         newLLH.lat = newLat;
         newLLH.lon = newLon;
         newLLH.alt = newAlt;
-        navConvertGeodeticToLocal(&newLLH, &newGPSPos);
+        gpsConvertGeodeticToLocal(&posControl.gpsOrigin, &newLLH, &newGPSPos);
 
         updateActualHorizontalPositionAndVelocity(newGPSPos.V.X, newGPSPos.V.Y, 0, 0);
     }
