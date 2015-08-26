@@ -1497,8 +1497,6 @@ float getEstimatedActualPosition(int axis)
  * Adding new sensors, implementing EKF, etc. should modify
  * this part of code and do not touch the above code (if possible)
  *-----------------------------------------------------------*/
-static float gpsVelocity[XYZ_AXIS_COUNT] = {0.0f, 0.0f, 0.0f};
-
 // Why is this here: Because GPS will be sending at quiet a nailed rate (if not overloaded by junk tasks at the brink of its specs)
 // but we might read out with timejitter because Irq might be off by a few us so we do a +-10% margin around the time between GPS
 // datasets representing the most common Hz-rates today. You might want to extend the list or find a smarter way.
@@ -1528,15 +1526,16 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
     static bool isFirstUpdate = true;
     static int32_t previousLat;
     static int32_t previousLon;
-    static int32_t previousAlt;
 
     static int32_t latFilterTable[3];
     static int32_t lonFilterTable[3];
     static int32_t altFilterTable[3];
     static int8_t  gpsFilterIndex;
 
+    static float gpsVelocityX = 0.0f, gpsVelocityY = 0.0f;
+
     navLocation_t newLLH;
-    t_fp_vector newPos;
+    t_fp_vector newGPSPos;
 
     // Don't have a valid GPS 3D fix, do nothing and restart
     if (!(STATE(GPS_FIX) && GPS_numSat >= 5)) {
@@ -1571,35 +1570,35 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         newAlt = quickMedianFilter3(altFilterTable);
 
         // Calculate NEU velocities
-        gpsVelocity[X] = (gpsVelocity[X] + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
-        gpsVelocity[Y] = (gpsVelocity[Y] + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
-        gpsVelocity[Z] = (gpsVelocity[Z] + (newAlt - previousAlt) / dT) / 2.0f;
+        gpsVelocityX = (gpsVelocityX + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
+        gpsVelocityY = (gpsVelocityY + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
 
         // Update IMU velocities with complementary filter to keep them close to real velocities (as given by GPS)
-        imuApplyFilterToActualVelocity(X, navProfile->nav_gps_cf, gpsVelocity[X]);
-        imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, gpsVelocity[Y]);
+        imuApplyFilterToActualVelocity(X, navProfile->nav_gps_cf, gpsVelocityX);
+        imuApplyFilterToActualVelocity(Y, navProfile->nav_gps_cf, gpsVelocityY);
 
         // Convert to local coordinates
         newLLH.lat = newLat;
         newLLH.lon = newLon;
         newLLH.alt = newAlt;
-        navConvertGeodeticToLocal(&newLLH, &newPos);
+        navConvertGeodeticToLocal(&newLLH, &newGPSPos);
 
 #if defined(BARO)
-        // Adjust barometer offset to compensate for barometric drift
-        float gpsPosCorrectionZ = newPos.V.Z - posControl.latestBaroAlt;
-        posControl.baroOffset -= gpsPosCorrectionZ * 0.01f * dT;   // FIXME: Explain 0.01f
+        if (sensors(SENSOR_BARO)) {
+            // Adjust barometer offset to compensate for barometric drift
+            float gpsPosCorrectionZ = newGPSPos.V.Z - posControl.latestBaroAlt;
+            posControl.baroOffset -= gpsPosCorrectionZ * 0.01f * dT;   // FIXME: Explain 0.01f
+        }
 #endif
 
-        updateActualHorizontalPositionAndVelocity(newPos.V.X, newPos.V.Y, imuAverageVelocity.V.X, imuAverageVelocity.V.Y);
+        updateActualHorizontalPositionAndVelocity(newGPSPos.V.X, newGPSPos.V.Y, imuAverageVelocity.V.X, imuAverageVelocity.V.Y);
     }
     else {
         int i;
 
         // Initialize GPS velocity
-        for (i = 0; i < 3; i++) {
-            gpsVelocity[i] = 0.0f;
-        }
+        gpsVelocityX = 0.0f;
+        gpsVelocityY = 0.0f;
 
         // Initialize GPS filter table
         gpsFilterIndex = 0;
@@ -1613,14 +1612,13 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         newLLH.lat = newLat;
         newLLH.lon = newLon;
         newLLH.alt = newAlt;
-        navConvertGeodeticToLocal(&newLLH, &newPos);
+        navConvertGeodeticToLocal(&newLLH, &newGPSPos);
 
-        updateActualHorizontalPositionAndVelocity(newPos.V.X, newPos.V.Y, 0, 0);
+        updateActualHorizontalPositionAndVelocity(newGPSPos.V.X, newGPSPos.V.Y, 0, 0);
     }
 
     previousLat = newLat;
     previousLon = newLon;
-    previousAlt = newAlt;
 
     isFirstUpdate = false;
     previousTime = currentTime;
