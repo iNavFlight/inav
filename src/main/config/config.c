@@ -149,14 +149,14 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[YAW] = 85;
     pidProfile->I8[YAW] = 45;
     pidProfile->D8[YAW] = 0;
-    pidProfile->P8[PIDALT] = 30;   // NAV_POS_Z_P * 100
-    pidProfile->I8[PIDALT] = 150;    // NAV_VEL_Z_P * 100
+    pidProfile->P8[PIDALT] = 30;    // NAV_POS_Z_P * 100
+    pidProfile->I8[PIDALT] = 150;   // NAV_VEL_Z_P * 100
     pidProfile->D8[PIDALT] = 0;     // not used
     pidProfile->P8[PIDPOS] = 30;    // NAV_POS_XY_P * 100
     pidProfile->I8[PIDPOS] = 0;     // not used
     pidProfile->D8[PIDPOS] = 0;     // not used
     pidProfile->P8[PIDPOSR] = 70;   // NAV_VEL_XY_P * 100
-    pidProfile->I8[PIDPOSR] = 15;    // NAV_VEL_XY_I * 100
+    pidProfile->I8[PIDPOSR] = 15;   // NAV_VEL_XY_I * 100
     pidProfile->D8[PIDPOSR] = 50;   // NAV_VEL_XY_D * 1000
     pidProfile->P8[PIDNAVR] = 0;    // not used
     pidProfile->I8[PIDNAVR] = 0;    // not used

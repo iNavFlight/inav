@@ -24,7 +24,7 @@
 
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR 1.113195f  // MagicEarthNumber from APM
 
-#define LANDING_DETECTION_TIMEOUT       10000000     // 10 second timeout
+#define LAND_DETECTOR_TRIGGER_TIME      2000000
 #define RADX10                          0.00174532925f
 #define RADX100                         0.000174532925f
 #define CROSSTRACK_GAIN                 1
@@ -62,7 +62,7 @@
 // Should apply altitude PID controller
 #define navShouldApplyAltHold() ((posControl.mode & (NAV_MODE_ALTHOLD | NAV_MODE_POSHOLD_3D | NAV_MODE_WP | NAV_MODE_RTH)) != 0)
 // Should apply RTH-specific logic
-#define navShouldApplyRTHAltitudeLogic() (((posControl.mode & NAV_MODE_RTH) != 0) && (navRthState == NAV_RTH_STATE_HOME_AUTOLAND || navRthState == NAV_RTH_STATE_LANDED || navRthState == NAV_RTH_STATE_FINISHED))
+#define navShouldApplyRTHLandingLogic() (((posControl.mode & NAV_MODE_RTH) != 0) && (navRthState == NAV_RTH_STATE_HOME_AUTOLAND || navRthState == NAV_RTH_STATE_LANDED || navRthState == NAV_RTH_STATE_FINISHED))
 
 // Should apply heading control logic
 #define navShouldApplyHeadingControl() ((posControl.mode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D  | NAV_MODE_WP | NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0)

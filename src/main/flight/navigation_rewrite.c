@@ -73,12 +73,10 @@
 // Navigation PosControl
 navigationPosControl_t   posControl;
 
-float actualAverageVerticalVelocity;    // average climb rate (updated every 250ms)
-
 static int16_t altholdInitialThrottle;  // Throttle input when althold was activated
-static int16_t lastAdjustedThrottle = 0;
 
 // Desired pitch/roll/yaw/throttle adjustments
+static int16_t rcCommandAdjustedThrottle;
 static int16_t rcAdjustment[4];
 
 // Current navigation mode & profile
@@ -297,31 +295,10 @@ static void updateActualHorizontalPositionAndVelocity(float newX, float newY, fl
 /*-----------------------------------------------------------
  * Processes an update to Z-position and velocity
  *-----------------------------------------------------------*/
-#define AVERAGE_VERTICAL_VEL_INTERVAL   250000      // 250ms, 4Hz
-static void updateActualAltitudeAndClimbRate(uint32_t currentTime, float newAltitude, float newVelocity)
+static void updateActualAltitudeAndClimbRate(float newAltitude, float newVelocity)
 {
-    static uint32_t averageVelocityLastUpdateTime = 0;
-    static float averageVelocityAccumulator = 0;
-    static uint32_t averageVelocitySampleCount = 1;
-
     posControl.actualState.pos.V.Z = newAltitude;
     posControl.actualState.vel.V.Z = newVelocity;
-
-    averageVelocityAccumulator += newVelocity;
-    averageVelocitySampleCount += 1;
-
-    if ((currentTime - averageVelocityLastUpdateTime) >= AVERAGE_VERTICAL_VEL_INTERVAL) {
-        if (averageVelocitySampleCount) {
-            actualAverageVerticalVelocity = averageVelocityAccumulator / averageVelocitySampleCount;
-            averageVelocityLastUpdateTime = currentTime;
-        }
-        else {
-            actualAverageVerticalVelocity = 0;
-        }
-
-        averageVelocityAccumulator = 0;
-        averageVelocitySampleCount = 0;
-    }
 
     // Update altitude that would be used when executing RTH
     updateTargetRTHAltitude();
@@ -680,16 +657,16 @@ static void applyAltitudeController(uint32_t currentTime)
         uint32_t deltaMicrosPositionTargetUpdate = currentTime - previousTimeTargetPositionUpdate;
         previousTimeTargetPositionUpdate = currentTime;
 
-        if (navShouldApplyRTHAltitudeLogic()) {
+        if (navShouldApplyRTHLandingLogic()) {
             // Gradually reduce descent speed depending on actual altitude.
             if (posControl.actualState.pos.V.Z > (posControl.homeWaypoint.pos.V.Z + 1000)) {
-                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -150.0f);
+                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -200.0f);
             }
             else if (posControl.actualState.pos.V.Z > (posControl.homeWaypoint.pos.V.Z + 250)) {
-                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -75.0f);
+                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -100.0f);
             }
             else {
-                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -35.0f);
+                updateAltitudeTargetFromClimbRate(deltaMicrosPositionTargetUpdate, -50.0f);
             }
         }
 
@@ -1082,7 +1059,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     }
 
     // Save processed throttle for future use
-    lastAdjustedThrottle = rcCommand[THROTTLE];
+    rcCommandAdjustedThrottle = rcCommand[THROTTLE];
 }
 
 /*-----------------------------------------------------------
@@ -1090,44 +1067,38 @@ void applyWaypointNavigationAndAltitudeHold(void)
  *-----------------------------------------------------------*/
 static bool isLandingDetected(bool resetDetector)
 {
-    static uint32_t landingConditionsNotSatisfiedTime;
-    bool landingConditionsSatisfied = true;
+    static uint32_t landingTimer;
     uint32_t currentTime = micros();
 
     if (resetDetector) {
-        landingConditionsNotSatisfiedTime = currentTime;
+        landingTimer = currentTime;
         return false;
     }
 
-    // land detector can not use the following sensors because they are unreliable during landing
-    // calculated vertical velocity or altitude : poor barometer and large acceleration from ground impact, ground effect
-    // earth frame angle or angle error :         landing on an uneven surface will force the airframe to match the ground angle
-    // gyro output :                              on uneven surface the airframe may rock back an forth after landing
-    // input throttle :                           in slow land the input throttle may be only slightly less than hover
-
-    // TODO
-
-    // Throttle should be less than 25%. We use lastAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
-    // from processRx() and rcCommand holds rc input, not adjusted values from NAV core)
-    if (lastAdjustedThrottle >= (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) / 4)) {
-        landingConditionsSatisfied = false;
-    }
-
-    // Average climb rate should be less than 20 cm/s
-    if (fabsf(actualAverageVerticalVelocity) > 20) {
-        landingConditionsSatisfied = false;
-    }
-
-    if (landingConditionsSatisfied) {
-        if ((currentTime - landingConditionsNotSatisfiedTime) > LANDING_DETECTION_TIMEOUT) {
-            return true;
-        }
+    if (STATE(FIXED_WING)) { // FIXED_WING
+        // TODO
+        return false;
     }
     else {
-        landingConditionsNotSatisfiedTime = currentTime;
-    }
+        // Average climb rate should be low enough
+        bool verticalMovement = fabsf(posControl.actualState.vel.V.Z) > 25.0f;
 
-    return false;
+        // check if we are moving horizontally
+        bool horizontalMovement = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y)) > 100.0f;
+
+        // Throttle should be low enough
+        // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
+        // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
+        bool minimalThrust = rcCommandAdjustedThrottle <= (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 0.25f);
+
+        if (!minimalThrust || !navShouldApplyRTHLandingLogic() || verticalMovement || horizontalMovement) {
+            landingTimer = currentTime;
+            return false;
+        }
+        else {
+            return ((currentTime - landingTimer) > LAND_DETECTOR_TRIGGER_TIME) ? true : false;
+        }
+    }
 }
 
 /*-----------------------------------------------------------
@@ -1247,7 +1218,7 @@ void updateWaypointsAndNavigationMode(void)
                 }
                 else {
                     // Check if previous mode was using ALTHOLD, re-use target altitude if necessary
-                    if (navShouldApplyAltHold() && !navShouldApplyRTHAltitudeLogic()) {
+                    if (navShouldApplyAltHold() && !navShouldApplyRTHLandingLogic()) {
                         // We were already applying ALTHOLD, don't update anything
                         setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_NONE);
                     }
@@ -1276,7 +1247,7 @@ void updateWaypointsAndNavigationMode(void)
                 }
                 else {
                     // Depending on current navMode we can re-use target position and/or altitude
-                    if (navShouldApplyAltHold() && !navShouldApplyRTHAltitudeLogic()) {
+                    if (navShouldApplyAltHold() && !navShouldApplyRTHLandingLogic()) {
                         if (navShouldApplyPosHold() && !navShouldApplyRTH()) {
                             // Already applying XY and Z-controllers
                             setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_NONE);
@@ -1477,7 +1448,7 @@ void navigationUsePIDs(pidProfile_t *initialPidProfile)
     pidInit(&posControl.pids.accz, (float)pidProfile->P8[PIDVEL] / 100.0f,
                                    (float)pidProfile->I8[PIDVEL] / 100.0f,
                                    (float)pidProfile->D8[PIDVEL] / 1000.0f,
-                                   300.0);
+                                   400.0);
 
     // Heading PID (duplicates maghold)
     pInit(&posControl.pids.heading, (float)pidProfile->P8[PIDMAG] / 30.0f);
@@ -1804,7 +1775,7 @@ void updateAltitudeAndClimbRate(void)
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
     imuApplyFilterToActualVelocity(Z, imuFilterWeight, estimatedClimbRate);
 
-    updateActualAltitudeAndClimbRate(currentTime, estimatedAlt, imuAverageVelocity.V.Z);
+    updateActualAltitudeAndClimbRate(estimatedAlt, imuAverageVelocity.V.Z);
 }
 
 #endif  // NAV
