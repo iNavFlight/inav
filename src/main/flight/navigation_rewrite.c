@@ -77,7 +77,6 @@ float actualAverageVerticalVelocity;    // average climb rate (updated every 250
 
 static int16_t altholdInitialThrottle;  // Throttle input when althold was activated
 static int16_t lastAdjustedThrottle = 0;
-int32_t targetRTHAltitude;
 
 // Desired pitch/roll/yaw/throttle adjustments
 static int16_t rcAdjustment[4];
@@ -251,25 +250,26 @@ static void updateTargetRTHAltitude(void)
         if (!navShouldApplyRTH()) {
             switch (navProfile->flags.rth_alt_control_style) {
             case NAV_RTH_NO_ALT:
-                targetRTHAltitude = posControl.actualState.pos.V.Z;
+                posControl.homeWaypointAbove.pos.V.Z = posControl.actualState.pos.V.Z;
                 break;
             case NAX_RTH_EXTRA_ALT: // Maintain current altitude + predefined safety margin
-                targetRTHAltitude = posControl.actualState.pos.V.Z + navProfile->nav_rth_altitude;
-                break;
-            case NAV_RTH_CONST_ALT: // Climb to predefined altitude
-                targetRTHAltitude = posControl.homeWaypoint.pos.V.Z + navProfile->nav_rth_altitude;
+                posControl.homeWaypointAbove.pos.V.Z = posControl.actualState.pos.V.Z + navProfile->nav_rth_altitude;
                 break;
             case NAV_RTH_MAX_ALT:
-                targetRTHAltitude = MAX(targetRTHAltitude, posControl.actualState.pos.V.Z);
+                posControl.homeWaypointAbove.pos.V.Z = MAX(posControl.homeWaypointAbove.pos.V.Z, posControl.actualState.pos.V.Z);
                 break;
-            default: // same as NAV_RTH_CONST_ALT
-                targetRTHAltitude = posControl.homeWaypoint.pos.V.Z + navProfile->nav_rth_altitude;
+            case NAV_RTH_AT_LEAST_ALT:  // Climb to at least some predefined altitude above home
+                posControl.homeWaypointAbove.pos.V.Z = MAX(posControl.homeWaypoint.pos.V.Z + navProfile->nav_rth_altitude, posControl.actualState.pos.V.Z);
+                break;
+            case NAV_RTH_CONST_ALT:     // Climb/descend to predefined altitude above home
+            default:
+                posControl.homeWaypointAbove.pos.V.Z = posControl.homeWaypoint.pos.V.Z + navProfile->nav_rth_altitude;
                 break;
             }
         }
     }
     else {
-        targetRTHAltitude = navProfile->nav_rth_altitude;
+        posControl.homeWaypointAbove.pos.V.Z = posControl.actualState.pos.V.Z;
     }
 }
 
@@ -443,6 +443,11 @@ void resetHomePosition(void)
         posControl.homeWaypoint.yaw = posControl.actualState.yaw;
         posControl.homeDistance = 0;
         posControl.homeDirection = 0;
+
+        // Update target RTH altitude as a waypoint above home
+        posControl.homeWaypointAbove = posControl.homeWaypoint;
+        updateTargetRTHAltitude();
+
         updateHomePositionCompatibility();
         ENABLE_STATE(GPS_FIX_HOME);
     }
@@ -1340,18 +1345,14 @@ void updateWaypointsAndNavigationMode(void)
                         navRthState = NAV_RTH_STATE_HOME_AUTOLAND;
                     }
                     else {
-                        // Climb to safe altitude if needed
-                        if (posControl.actualState.pos.V.Z <= targetRTHAltitude) {
-                            t_fp_vector rthAltPos;
-                            rthAltPos.V.Z = targetRTHAltitude + 50.0f;
-                            setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
-                            setDesiredPosition(&rthAltPos, 0, NAV_POS_UPDATE_Z);
-                        }
+                        // Climb/descend to safe altitude if needed
+                        setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+                        setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z);
                         navRthState = NAV_RTH_STATE_CLIMB_TO_SAVE_ALTITUDE;
                     }
                     break;
                 case NAV_RTH_STATE_CLIMB_TO_SAVE_ALTITUDE:
-                    if (posControl.actualState.pos.V.Z > targetRTHAltitude) {
+                    if (fabsf(posControl.actualState.pos.V.Z - posControl.homeWaypointAbove.pos.V.Z) < 50.0f) {
                         // Set target position to home and calculate original bearing
                         setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
                         setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);

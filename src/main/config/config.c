@@ -195,7 +195,7 @@ void resetNavProfile(navProfile_t *navProfile)
     navProfile->flags.throttle_tilt_comp = 1;
     navProfile->flags.lock_nav_until_takeoff = 0;
     navProfile->flags.user_control_mode = NAV_GPS_ATTI;
-    navProfile->flags.rth_alt_control_style = NAV_RTH_CONST_ALT;
+    navProfile->flags.rth_alt_control_style = NAV_RTH_AT_LEAST_ALT;
 
     navProfile->nav_wp_radius = 200;
     navProfile->nav_pterm_cut_hz = 20;

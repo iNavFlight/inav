@@ -50,8 +50,9 @@ enum {
 enum {
     NAV_RTH_NO_ALT          = 0,            // Maintain current altitude
     NAX_RTH_EXTRA_ALT       = 1,            // Maintain current altitude + predefined safety margin
-    NAV_RTH_CONST_ALT       = 2,            // Climb to predefined altitude
+    NAV_RTH_CONST_ALT       = 2,            // Climb/descend to predefined altitude
     NAV_RTH_MAX_ALT         = 3,            // Track maximum altitude and climb to it when RTH
+    NAV_RTH_AT_LEAST_ALT    = 4,            // Climb to predefined altitude if below it
 };
 
 typedef struct navProfile_s {

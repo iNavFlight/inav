@@ -173,7 +173,9 @@ typedef struct {
 #endif
 
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
-    navWaypointPosition_t       homeWaypoint;   // NEU-coordinates and original yaw (heading when launched)
+    navWaypointPosition_t       homeWaypoint;       // NEU-coordinates and original yaw (heading when launched)
+    navWaypointPosition_t       homeWaypointAbove;  // NEU-coordinates and original yaw (heading when launched + desired RTH altitude)
+
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
 } navigationPosControl_t;
