@@ -22,14 +22,14 @@
 #include "io/rc_controls.h"
 #include "io/escservo.h"
 
-#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR 1.113195f  // MagicEarthNumber from APM
+#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
+#define NAV_GRAVITY_CMSS                                    980.665f
 
 #define LAND_DETECTOR_TRIGGER_TIME      2000000
+
 #define RADX10                          0.00174532925f
 #define RADX100                         0.000174532925f
-#define CROSSTRACK_GAIN                 1
 #define NAV_ROLL_PITCH_MAX              300 // Max control input from NAV (30 deg)
-#define NAV_THROTTLE_CORRECTION_ANGLE   450
 
 // Size of barometer derivative filter
 #define NAV_BARO_CLIMB_RATE_FILTER_SIZE  7
@@ -38,8 +38,7 @@
 #define POSITION_TARGET_UPDATE_RATE_HZ      5
 #define ALTITUDE_UPDATE_FREQUENCY_HZ        10      // max 30hz update rate (almost maximum possible rate for BMP085)
 
-#define MIN_SONAR_UPDATE_FREQUENCY_HZ       3
-
+#define MIN_SONAR_UPDATE_FREQUENCY_HZ       3       // Sonar velocity won't be calculated if readings updated slower than this
 #define MIN_ALTITUDE_UPDATE_FREQUENCY_HZ    5       // althold will not be applied if update rate is less than this constant
 #define MIN_POSITION_UPDATE_FREQUENCY_HZ    5       // GPS navigation (PH/WP/RTH) won't be applied unless update rate is above this
 
@@ -47,7 +46,6 @@
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     2       // low-pass filter on throttle output
 #define NAV_ACCEL_CUTOFF_FREQUENCY_HZ       2       // low-pass filter on XY-acceleration target
 
-#define NAV_GRAVITY_CMSS                    980.665f
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 #define NAV_ACCEL_SLOW_XY_MAX               550.0f  // cm/s/s       // approx 29 deg lean angle
 
@@ -62,13 +60,13 @@
 // Should apply altitude PID controller
 #define navShouldApplyAltHold() ((posControl.mode & (NAV_MODE_ALTHOLD | NAV_MODE_POSHOLD_3D | NAV_MODE_WP | NAV_MODE_RTH)) != 0)
 // Should apply RTH-specific logic
-#define navShouldApplyRTHLandingLogic() (((posControl.mode & NAV_MODE_RTH) != 0) && (navRthState == NAV_RTH_STATE_HOME_AUTOLAND || navRthState == NAV_RTH_STATE_LANDED || navRthState == NAV_RTH_STATE_FINISHED))
+#define navShouldApplyRTHLandingLogic() (((posControl.mode & NAV_MODE_RTH) != 0) && (posControl.navRthState == NAV_RTH_STATE_HOME_AUTOLAND || posControl.navRthState == NAV_RTH_STATE_LANDED || posControl.navRthState == NAV_RTH_STATE_FINISHED))
 
 // Should apply heading control logic
 #define navShouldApplyHeadingControl() ((posControl.mode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D  | NAV_MODE_WP | NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0)
 
 // Should NAV continuously adjust heading towards destination
-#define navShouldKeepHeadingToBearing() (((posControl.mode & NAV_MODE_WP) != 0) || (((posControl.mode & (NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0) && (navRthState == NAV_RTH_STATE_HEAD_HOME)))
+#define navShouldKeepHeadingToBearing() (((posControl.mode & NAV_MODE_WP) != 0) || (((posControl.mode & (NAV_MODE_RTH | NAV_MODE_RTH_2D)) != 0) && (posControl.navRthState == NAV_RTH_STATE_HEAD_HOME)))
 
 // Define conditions when pilot can adjust NAV behaviour
 #define navCanAdjustAltitudeFromRCInput() ((posControl.mode & (NAV_MODE_ALTHOLD | NAV_MODE_POSHOLD_3D | NAV_MODE_RTH)) != 0)
@@ -178,4 +176,38 @@ typedef struct {
 
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+
+    /* Internals */
+    int16_t                     rcAdjustment[4];
+
+    navProfile_t *              navProfile;
+    rcControlsConfig_t *        rcControlsConfig;
+    navRthState_t               navRthState;
+    pidProfile_t *              pidProfile;
 } navigationPosControl_t;
+
+extern navigationPosControl_t posControl;
+
+/* Internally used functions */
+bool isThrustFacingDownwards(rollAndPitchInclination_t *inclination);
+void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate);
+void calculateDistanceAndBearingToDestination(t_fp_vector * currentPos, t_fp_vector * destinationPos, uint32_t *dist, int32_t *bearing);
+float navApplyFilter(float input, float fCut, float dT, float * state);
+float navPidGetP(float error, float dt, pidController_t *pid);
+float navPidGetI(float error, float dt, pidController_t *pid);
+float navPidGetD(float error, float dt, pidController_t *pid);
+float navPidGetPID(float error, float dt, pidController_t *pid);
+void navPidReset(pidController_t *pid);
+void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _Imax);
+void navPInit(pController_t *p, float _kP);
+
+/* Multicopter altitude controller */
+void setupMulticopterAltitudeController(void);
+void resetMulticopterAltitudeController();
+void applyMulticopterAltitudeController(uint32_t currentTime);
+
+void resetMulticopterHeadingController(void);
+void applyMulticopterHeadingController(uint32_t currentTime);
+
+void resetMulticopterPositionController(void);
+void applyMulticopterPositionController(uint32_t currentTime);

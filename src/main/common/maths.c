@@ -97,6 +97,24 @@ float acos_approx(float x)
 }
 #endif
 
+int32_t wrap_18000(int32_t angle)
+{
+    if (angle > 18000)
+        angle -= 36000;
+    if (angle < -18000)
+        angle += 36000;
+    return angle;
+}
+
+int32_t wrap_36000(int32_t angle)
+{
+    if (angle > 36000)
+        angle -= 36000;
+    if (angle < 0)
+        angle += 36000;
+    return angle;
+}
+
 int32_t applyDeadband(int32_t value, int32_t deadband)
 {
     if (ABS(value) < deadband) {

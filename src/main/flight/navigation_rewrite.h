@@ -134,6 +134,9 @@ extern int16_t navActualHeading;
 extern int16_t navDesiredHeading;
 extern int16_t navTargetPosition[3];
 extern int16_t navDebug[4];
+#define NAV_BLACKBOX_DEBUG(x,y) navDebug[x] = constrain((y), -32678, 32767)
+#else
+#define NAV_BLACKBOX_DEBUG(x,y)
 #endif
 
 #else
