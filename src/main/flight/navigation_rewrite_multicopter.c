@@ -74,6 +74,7 @@
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static int16_t altholdInitialThrottle;  // Throttle input when althold was activated
+static int16_t rcCommandAdjustedThrottle;
 
 static void updateAltitudeTargetFromRCInput_MC(uint32_t deltaMicros)
 {
@@ -217,6 +218,9 @@ void applyMulticopterAltitudeController(uint32_t currentTime)
     }
 
     rcCommand[THROTTLE] = constrain(newThrottle, masterConfig.escAndServoConfig.minthrottle, masterConfig.escAndServoConfig.maxthrottle);
+
+    // Save processed throttle for future use
+    rcCommandAdjustedThrottle = rcCommand[THROTTLE];
 }
 
 /*-----------------------------------------------------------
@@ -525,6 +529,33 @@ void applyMulticopterPositionController(uint32_t currentTime)
         // Most PID controllers use 2 * rcCommand as target angle for ANGLE mode
         rcCommand[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) / 2;
         rcCommand[ROLL] = constrain(posControl.rcAdjustment[ROLL], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) / 2;
+    }
+}
+
+/*-----------------------------------------------------------
+ * Multicopter land detector
+ *-----------------------------------------------------------*/
+bool isMulticopterLandingDetected(uint32_t * landingTimer)
+{
+    uint32_t currentTime = micros();
+
+    // Average climb rate should be low enough
+    bool verticalMovement = fabsf(posControl.actualState.vel.V.Z) > 25.0f;
+
+    // check if we are moving horizontally
+    bool horizontalMovement = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y)) > 100.0f;
+
+    // Throttle should be low enough
+    // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
+    // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
+    bool minimalThrust = rcCommandAdjustedThrottle <= (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 0.25f);
+
+    if (!minimalThrust || !navShouldApplyRTHLandingLogic() || !navShouldApplyAltHold() || verticalMovement || horizontalMovement) {
+        *landingTimer = currentTime;
+        return false;
+    }
+    else {
+        return ((currentTime - *landingTimer) > LAND_DETECTOR_TRIGGER_TIME) ? true : false;
     }
 }
 

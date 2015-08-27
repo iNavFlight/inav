@@ -122,15 +122,13 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         return;
     }
 
-    // Set GPS origin
-    if (!posControl.gpsOriginValid) {
-        posControl.gpsOrigin.lat = newLat;
-        posControl.gpsOrigin.lon = newLon;
-        posControl.gpsOrigin.alt = newAlt;
-        posControl.gpsOriginValid = true;
-    }
-
     uint32_t currentTime = micros();
+
+    // Convert to local coordinates
+    newLLH.lat = newLat;
+    newLLH.lon = newLon;
+    newLLH.alt = newAlt;
+    gpsConvertGeodeticToLocal(&posControl.gpsOrigin, &newLLH, &newGPSPos);
 
     // If not first update - calculate velocities
     if (!isFirstUpdate) {
@@ -156,12 +154,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
         imuApplyFilterToActualVelocity(X, posControl.navProfile->nav_gps_cf, gpsVelocityX);
         imuApplyFilterToActualVelocity(Y, posControl.navProfile->nav_gps_cf, gpsVelocityY);
 
-        // Convert to local coordinates
-        newLLH.lat = newLat;
-        newLLH.lon = newLon;
-        newLLH.alt = newAlt;
-        gpsConvertGeodeticToLocal(&posControl.gpsOrigin, posControl.gpsOriginValid, &newLLH, &newGPSPos);
-
 #if defined(BARO)
         if (sensors(SENSOR_BARO)) {
             // Adjust barometer offset to compensate for barometric drift
@@ -186,12 +178,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
             lonFilterTable[i] = newLon;
             altFilterTable[i] = newAlt;
         }
-
-        // Convert to local coordinates (isFirstUpdate might be set, but this might also occur after GPS_FIX was lost and re-acquired)
-        newLLH.lat = newLat;
-        newLLH.lon = newLon;
-        newLLH.alt = newAlt;
-        gpsConvertGeodeticToLocal(&posControl.gpsOrigin, posControl.gpsOriginValid, &newLLH, &newGPSPos);
 
         updateActualHorizontalPositionAndVelocity(newGPSPos.V.X, newGPSPos.V.Y, 0, 0);
     }

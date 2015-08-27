@@ -70,11 +70,7 @@
 
 #if defined(NAV)
 
-// Navigation PosControl
 navigationPosControl_t   posControl;
-
-// Desired pitch/roll/yaw/throttle adjustments
-static int16_t rcCommandAdjustedThrottle;
 
 #if defined(NAV_BLACKBOX)
 int16_t navCurrentMode;
@@ -275,27 +271,26 @@ static bool navIsWaypointReached(navWaypointPosition_t *waypoint)
 /*-----------------------------------------------------------
  * Coordinate conversions
  *-----------------------------------------------------------*/
-void gpsConvertGeodeticToLocal(gpsLocation_t * origin, bool originValid, gpsLocation_t * llh, t_fp_vector * pos)
+void gpsConvertGeodeticToLocal(gpsOrigin_s * origin, gpsLocation_t * llh, t_fp_vector * pos)
 {
-    if (originValid) {
-        float gpsScaleLonDown = constrainf(cos_approx((ABS(origin->lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-        pos->V.X = (llh->lat - origin->lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-        pos->V.Y = (llh->lon - origin->lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown);
-        pos->V.Z = (llh->alt - origin->alt);
+    if (!origin->valid) {
+        origin->valid = true;
+        origin->lat = llh->lat;
+        origin->lon = llh->lon;
+        origin->alt = llh->alt;
+        origin->scale = constrainf(cos_approx((ABS(origin->lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
     }
-    else {
-        pos->V.X = 0;
-        pos->V.Y = 0;
-        pos->V.Z = 0;
-    }
+
+    pos->V.X = (llh->lat - origin->lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+    pos->V.Y = (llh->lon - origin->lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * origin->scale);
+    pos->V.Z = (llh->alt - origin->alt);
 }
 
-void gpsConvertLocalToGeodetic(gpsLocation_t * origin, bool originValid, t_fp_vector * pos, gpsLocation_t * llh)
+void gpsConvertLocalToGeodetic(gpsOrigin_s * origin, t_fp_vector * pos, gpsLocation_t * llh)
 {
-    if (originValid) {
-        float gpsScaleLonDown = constrainf(cos_approx((ABS(origin->lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
+    if (origin->valid) {
         llh->lat = origin->lat + lrintf(pos->V.X / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
-        llh->lon = origin->lon + lrintf(pos->V.Y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * gpsScaleLonDown));
+        llh->lon = origin->lon + lrintf(pos->V.Y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * origin->scale));
         llh->alt = origin->alt + lrintf(pos->V.Z);
     }
     else {
@@ -314,7 +309,7 @@ int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 static void updateHomePositionCompatibility(void)
 {
-    gpsConvertLocalToGeodetic(&posControl.gpsOrigin, posControl.gpsOriginValid, &posControl.homeWaypoint.pos, &GPS_home);
+    gpsConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.homeWaypoint.pos, &GPS_home);
     GPS_distanceToHome = posControl.homeDistance / 100;
     GPS_directionToHome = posControl.homeDirection / 100;
 }
@@ -391,44 +386,23 @@ void setDesiredPosition(t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t us
 /*-----------------------------------------------------------
  * NAV land detector
  *-----------------------------------------------------------*/
-static bool isLandingDetected(bool resetDetector)
+static uint32_t landingTimer;
+
+void resetLandingDetector(void)
 {
-    static uint32_t landingTimer;
-    uint32_t currentTime = micros();
+    landingTimer = micros();
+}
 
-    if (resetDetector) {
-        landingTimer = currentTime;
-        return false;
-    }
-
+bool isLandingDetected(void)
+{
     if (STATE(FIXED_WING)) { // FIXED_WING
         // TODO
         return false;
     }
     else {
-        // Average climb rate should be low enough
-        bool verticalMovement = fabsf(posControl.actualState.vel.V.Z) > 25.0f;
-
-        // check if we are moving horizontally
-        bool horizontalMovement = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y)) > 100.0f;
-
-        // Throttle should be low enough
-        // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
-        // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
-        bool minimalThrust = rcCommandAdjustedThrottle <= (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 0.25f);
-
-        if (!minimalThrust || !navShouldApplyRTHLandingLogic() || verticalMovement || horizontalMovement) {
-            landingTimer = currentTime;
-            return false;
-        }
-        else {
-            return ((currentTime - landingTimer) > LAND_DETECTOR_TRIGGER_TIME) ? true : false;
-        }
+        return isMulticopterLandingDetected(&landingTimer);
     }
 }
-
-// FIXME: Make this configurable, default to about 5% highet than minthrottle
-#define minFlyableThrottle  (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 5 / 100)
 
 /*-----------------------------------------------------------
  * Z-position controller
@@ -593,8 +567,7 @@ static void applyRTHController(void)
                     // Set position lock on home and heading to original heading when lauched
                     setDesiredPosition(&posControl.homeWaypoint.pos, posControl.homeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
                     setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
-                    // Reset landing detector
-                    isLandingDetected(true);
+                    resetLandingDetector();
                     posControl.navRthState = NAV_RTH_STATE_HOME_AUTOLAND;
                 }
                 else {
@@ -605,7 +578,7 @@ static void applyRTHController(void)
                 if (!ARMING_FLAG(ARMED)) {
                     posControl.navRthState = NAV_RTH_STATE_FINISHED;
                 }
-                else if (isLandingDetected(false)) {
+                else if (isLandingDetected()) {
                     posControl.navRthState = NAV_RTH_STATE_LANDED;
                 }
                 else {
@@ -725,9 +698,6 @@ void applyWaypointNavigationAndAltitudeHold(void)
     if (navShouldApplyHeadingControl()) {
         applyHeadingController(currentTime);
     }
-
-    // Save processed throttle for future use
-    rcCommandAdjustedThrottle = rcCommand[THROTTLE];
 }
 
 /*-----------------------------------------------------------
@@ -774,7 +744,7 @@ static navigationMode_t selectNavModeFromBoxModeInput(void)
 {
     // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
     bool canActivateAltHold = sensors(SENSOR_BARO) || sensors(SENSOR_SONAR);
-    bool canActivatePosHold = posControl.gpsOriginValid && sensors(SENSOR_ACC) && (sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5) && (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
+    bool canActivatePosHold = posControl.gpsOrigin.valid && sensors(SENSOR_ACC) && (sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5) && (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
 
     // Figure out, what mode pilot want to activate, also check if it is possible
     if (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME)) {

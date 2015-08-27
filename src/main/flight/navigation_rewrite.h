@@ -85,6 +85,14 @@ typedef struct gpsLocation_s {
     int32_t alt;    // Altitude in centimeters (meters * 100)
 } gpsLocation_t;
 
+typedef struct gpsOrigin_s {
+    bool    valid;
+    float   scale;
+    int32_t lat;    // Lattitude * 1e+7
+    int32_t lon;    // Longitude * 1e+7
+    int32_t alt;    // Altitude in centimeters (meters * 100)
+} gpsOrigin_s;
+
 typedef struct {
     t_fp_vector pos;
     int32_t     yaw;
@@ -117,8 +125,8 @@ bool navigationControlsThrottleAngleCorrection(void);
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
 
-void gpsConvertGeodeticToLocal(gpsLocation_t * origin, bool originValid, gpsLocation_t * llh, t_fp_vector * pos);
-void gpsConvertLocalToGeodetic(gpsLocation_t * origin, bool originValid, t_fp_vector * pos, gpsLocation_t * llh);
+void gpsConvertGeodeticToLocal(gpsOrigin_s * origin, gpsLocation_t * llh, t_fp_vector * pos);
+void gpsConvertLocalToGeodetic(gpsOrigin_s * origin, t_fp_vector * pos, gpsLocation_t * llh);
 
 extern gpsLocation_t GPS_home;
 extern uint16_t      GPS_distanceToHome;        // distance to home point in meters

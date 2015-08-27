@@ -52,6 +52,9 @@
 #define HZ2US(hz)   (1000000 / (hz))
 #define US2S(us)    ((us) * 1e-6f)
 
+// FIXME: Make this configurable, default to about 5% highet than minthrottle
+#define minFlyableThrottle  (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 5 / 100)
+
 // Should apply position hold logic
 #define navShouldApplyPosHold() ((posControl.mode & (NAV_MODE_POSHOLD_2D | NAV_MODE_POSHOLD_3D)) != 0)
 // Should apply waypoint navigation logic (WP/RTH)
@@ -161,8 +164,7 @@ typedef struct {
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
 
     /* INAV GPS origin (position where GPS fix was first acquired) */
-    gpsLocation_t               gpsOrigin;
-    bool                        gpsOriginValid;
+    gpsOrigin_s                 gpsOrigin;
 
 #if defined(BARO)
     /* Barometer offset (origin) */
@@ -206,7 +208,7 @@ void updateActualHorizontalPositionAndVelocity(float newX, float newY, float new
 void updateActualAltitudeAndClimbRate(float newAltitude, float newVelocity);
 void updateActualHeading(int32_t newHeading);
 
-/* Multicopter altitude controller */
+/* Multicopter-specific functions */
 void setupMulticopterAltitudeController(void);
 void resetMulticopterAltitudeController();
 void applyMulticopterAltitudeController(uint32_t currentTime);
@@ -216,3 +218,5 @@ void applyMulticopterHeadingController(uint32_t currentTime);
 
 void resetMulticopterPositionController(void);
 void applyMulticopterPositionController(uint32_t currentTime);
+
+bool isMulticopterLandingDetected(uint32_t * landingTimer);
