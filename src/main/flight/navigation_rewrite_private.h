@@ -184,6 +184,7 @@ typedef struct {
     rcControlsConfig_t *        rcControlsConfig;
     navRthState_t               navRthState;
     pidProfile_t *              pidProfile;
+    barometerConfig_t *         barometerConfig;
 } navigationPosControl_t;
 
 extern navigationPosControl_t posControl;
@@ -200,6 +201,10 @@ float navPidGetPID(float error, float dt, pidController_t *pid);
 void navPidReset(pidController_t *pid);
 void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _Imax);
 void navPInit(pController_t *p, float _kP);
+
+void updateActualHorizontalPositionAndVelocity(float newX, float newY, float newVelX, float newVelY);
+void updateActualAltitudeAndClimbRate(float newAltitude, float newVelocity);
+void updateActualHeading(int32_t newHeading);
 
 /* Multicopter altitude controller */
 void setupMulticopterAltitudeController(void);

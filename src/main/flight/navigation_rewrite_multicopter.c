@@ -529,4 +529,3 @@ void applyMulticopterPositionController(uint32_t currentTime)
 }
 
 #endif  // NAV
-
