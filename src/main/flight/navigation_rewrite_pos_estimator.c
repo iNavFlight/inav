@@ -282,7 +282,7 @@ void updateAltitudeAndClimbRate(void)
 
         // FIXME: Add sonar tilt compensation
 
-        if (newSonarAlt >= 0) {
+        if (newSonarAlt > 0) {
             // We have a valid reading
 
             if ((currentTime - lastValidSonarUpdateTime) < HZ2US(MIN_SONAR_UPDATE_FREQUENCY_HZ)) {
@@ -306,7 +306,7 @@ void updateAltitudeAndClimbRate(void)
 #endif
 
 #if defined(BARO) && defined(SONAR)
-    if (newSonarAlt < 0) {
+    if (newSonarAlt <= 0) {
         // Can't trust sonar - rely on baro
         estimatedAlt = newBaroAlt;
         estimatedClimbRate = baroClimbRate;
@@ -325,6 +325,10 @@ void updateAltitudeAndClimbRate(void)
             float sonarToBaroTransition = constrainf((SONAR_MAX_RANGE - newSonarAlt) / (SONAR_MAX_RANGE / 3.0f), 0, 1);
             estimatedAlt = newSonarAlt * sonarToBaroTransition + newBaroAlt * (1.0f - sonarToBaroTransition);
         }
+        else {
+            // Sonar driver returned a value > SONAR_MAX_RANGE, ignore it, rely on baro altitude
+            estimatedAlt = newBaroAlt;
+        }
 
         // FIXME: Make all this configurable
         // Fuse velocity - trust sonar more and baro less
@@ -338,7 +342,7 @@ void updateAltitudeAndClimbRate(void)
 #elif defined(SONAR)
     // If sonar reading is not valid, assume that we are outside valid sonar range and set measured altitude to SONAR_MAX_RANGE
     // This will allow us to enable althold above sonar range and not hit the ground when going within range
-    if (newSonarAlt < 0)
+    if (newSonarAlt <= 0)
         estimatedAlt = SONAR_MAX_RANGE;
     else
         estimatedAlt = newSonarAlt;
