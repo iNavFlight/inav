@@ -495,6 +495,9 @@ void applyMulticopterPositionController(uint32_t currentTime)
                 // In case of PH limit acceleration to some high value
                 updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX);
             }
+
+            // Update lean angle controller.
+            updatePositionLeanAngleController_MC(deltaMicros);
         }
         else {
             resetMulticopterPositionController();
@@ -504,22 +507,22 @@ void applyMulticopterPositionController(uint32_t currentTime)
         posControl.flags.horizontalPositionNewData = 0;
     }
 
-    // Update lean angle controller. This update occurs at loop rate
-    // TODO: Investigate if PositionLeanAngle controller need to be run @ looprate
-    // All updates occur at GPS rate and lean angle should probably be recalculated at that rate as well
-    updatePositionLeanAngleController_MC(deltaMicros);
+    // We should we able to process user input even if GPS is no longer updated, in such case GPS_ATTI mode is forced
     updatePositionLeanAngleFromRCInput_MC(deltaMicros);
 
-    // Convert target angle (rcAdjustment) to rcCommand, account for the way PID controllers treat the value
-    if (posControl.pidProfile->pidController == PID_CONTROLLER_LUX_FLOAT) {
-        // LuxFloat is the only PID controller that uses raw rcCommand as target angle
-        rcCommand[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
-        rcCommand[ROLL] = constrain(posControl.rcAdjustment[ROLL], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
-    }
-    else {
-        // Most PID controllers use 2 * rcCommand as target angle for ANGLE mode
-        rcCommand[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) / 2;
-        rcCommand[ROLL] = constrain(posControl.rcAdjustment[ROLL], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) / 2;
+    // Check if GPS was updated too long ago (fix lost or hardware error)
+    if ((currentTime - previousTimePositionUpdate) <= HZ2US(MIN_POSITION_UPDATE_FREQUENCY_HZ)) {
+        // Convert target angle (rcAdjustment) to rcCommand, account for the way PID controllers treat the value
+        if (posControl.pidProfile->pidController == PID_CONTROLLER_LUX_FLOAT) {
+            // LuxFloat is the only PID controller that uses raw rcCommand as target angle
+            rcCommand[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
+            rcCommand[ROLL] = constrain(posControl.rcAdjustment[ROLL], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX);
+        }
+        else {
+            // Most PID controllers use 2 * rcCommand as target angle for ANGLE mode
+            rcCommand[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) / 2;
+            rcCommand[ROLL] = constrain(posControl.rcAdjustment[ROLL], -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) / 2;
+        }
     }
 }
 
