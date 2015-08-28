@@ -220,3 +220,16 @@ void resetMulticopterPositionController(void);
 void applyMulticopterPositionController(uint32_t currentTime);
 
 bool isMulticopterLandingDetected(uint32_t * landingTimer);
+
+/* Fixed-wing specific functions */
+void setupFixedWingAltitudeController(void);
+void resetFixedWingAltitudeController();
+void applyFixedWingAltitudeController(uint32_t currentTime);
+
+void resetFixedWingHeadingController(void);
+void applyFixedWingHeadingController(uint32_t currentTime);
+
+void resetFixedWingPositionController(void);
+void applyFixedWingPositionController(uint32_t currentTime);
+
+bool isFixedWingLandingDetected(uint32_t * landingTimer);

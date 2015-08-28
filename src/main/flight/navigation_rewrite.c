@@ -396,8 +396,7 @@ void resetLandingDetector(void)
 bool isLandingDetected(void)
 {
     if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
-        return false;
+        return isFixedWingLandingDetected(&landingTimer);
     }
     else {
         return isMulticopterLandingDetected(&landingTimer);
@@ -417,8 +416,8 @@ void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate)
 
 static void resetAltitudeController()
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
+    if (STATE(FIXED_WING)) {
+        resetFixedWingAltitudeController();
     }
     else {
         resetMulticopterAltitudeController();
@@ -427,8 +426,8 @@ static void resetAltitudeController()
 
 static void setupAltitudeController(void)
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
+    if (STATE(FIXED_WING)) {
+        setupFixedWingAltitudeController();
     }
     else {
         setupMulticopterAltitudeController();
@@ -437,8 +436,8 @@ static void setupAltitudeController(void)
 
 static void applyAltitudeController(uint32_t currentTime)
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
+    if (STATE(FIXED_WING)) {
+        applyFixedWingAltitudeController(currentTime);
     }
     else {
         applyMulticopterAltitudeController(currentTime);
@@ -450,8 +449,8 @@ static void applyAltitudeController(uint32_t currentTime)
  *-----------------------------------------------------------*/
 static void resetHeadingController()
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
+    if (STATE(FIXED_WING)) {
+        resetFixedWingHeadingController();
     }
     else {
         resetMulticopterHeadingController();
@@ -460,8 +459,8 @@ static void resetHeadingController()
 
 static void applyHeadingController(uint32_t currentTime)
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
+    if (STATE(FIXED_WING)) {
+        applyFixedWingHeadingController(currentTime);
     }
     else {
         applyMulticopterHeadingController(currentTime);
@@ -473,8 +472,8 @@ static void applyHeadingController(uint32_t currentTime)
  *-----------------------------------------------------------*/
 static void resetPositionController()
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
+    if (STATE(FIXED_WING)) {
+        resetFixedWingPositionController();
     }
     else {
         resetMulticopterPositionController();
@@ -483,8 +482,8 @@ static void resetPositionController()
 
 static void applyPositionController(uint32_t currentTime)
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
-        // TODO
+    if (STATE(FIXED_WING)) {
+        applyFixedWingPositionController(currentTime);
     }
     else {
         applyMulticopterPositionController(currentTime);
@@ -655,7 +654,6 @@ void applyWaypointNavigationAndAltitudeHold(void)
         return;
     }
 
-    // FIXME: Make this compliant with FIXED_WING
     if (!posControl.enabled) {
         if (posControl.navProfile->flags.lock_nav_until_takeoff) {
             if (posControl.navProfile->flags.use_midrc_for_althold) {

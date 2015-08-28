@@ -234,8 +234,6 @@ static void calculateHeadingAdjustment_MC(float dTnav)
 {
     UNUSED(dTnav);
 
-    // FIXME: Account for fixed-wing config without rudder (flying wing)
-
     // Calculate yaw correction
     int32_t headingError = wrap_18000(posControl.actualState.yaw - posControl.desiredState.yaw) * masterConfig.yaw_control_direction;
     headingError = constrain(headingError, -3000, +3000); // limit error to +- 30 degrees to avoid fast rotation
@@ -417,13 +415,6 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     // Calculate acceleration target on X-axis
     velError = constrainf(posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X, -500.0f, 500.0f); // limit error to 5 m/s
     newAccelX = navPidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[X]);
-
-#if defined(NAV_BLACKBOX)
-    NAV_BLACKBOX_DEBUG(0, velError);
-    NAV_BLACKBOX_DEBUG(1, posControl.pids.vel[X].lastP);
-    NAV_BLACKBOX_DEBUG(2, posControl.pids.vel[X].lastI);
-    NAV_BLACKBOX_DEBUG(3, posControl.pids.vel[X].lastD);
-#endif
 
     // Calculate acceleration target on Y-axis
     velError = constrainf(posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y, -500.0f, 500.0f); // limit error to 5 m/s

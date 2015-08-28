@@ -261,6 +261,7 @@ COMMON_SRC	 = build_config.c \
 HIGHEND_SRC  = flight/autotune.c \
            flight/navigation_rewrite.c \
            flight/navigation_rewrite_multicopter.c \
+           flight/navigation_rewrite_fixedwing.c \
            flight/navigation_rewrite_pos_estimator.c \
 		   flight/gps_conversion.c \
 		   common/colorconversion.c \
