@@ -742,7 +742,8 @@ static navigationMode_t selectNavModeFromBoxModeInput(void)
 {
     // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
     bool canActivateAltHold = sensors(SENSOR_BARO) || sensors(SENSOR_SONAR);
-    bool canActivatePosHold = posControl.gpsOrigin.valid && sensors(SENSOR_ACC) && (sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5) && (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
+    bool canActivatePosHold = posControl.gpsOrigin.valid && sensors(SENSOR_ACC) && (sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5) && 
+                                (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
 
     // Figure out, what mode pilot want to activate, also check if it is possible
     if (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME)) {

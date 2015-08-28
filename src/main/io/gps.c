@@ -452,7 +452,7 @@ void gpsReadNewDataI2C(void)
                 gpsData.lastLastMessage = gpsData.lastMessage;
                 gpsData.lastMessage = millis();
 
-                onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude);
+                onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude * 100);
             }
 
             sensorsSet(SENSOR_GPS);
@@ -555,7 +555,7 @@ static void gpsNewDataSerial(uint16_t c)
     debug[3] = GPS_update;
 #endif
 
-    onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude);
+    onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude * 100);
 }
 
 bool gpsNewFrameFromSerial(uint8_t c)

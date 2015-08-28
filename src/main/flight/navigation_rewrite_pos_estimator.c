@@ -93,11 +93,12 @@ static uint32_t getGPSDeltaTimeFilter(uint32_t dTus)
     return dTus;                                                 // Filter failed. Set GPS Hz by measurement
 }
 
-/*
- * newLat, newLon - new coordinates
- * newAlt - new MSL altitude (cm)
- * newVel - new velocity (cm/s)
- * newCOG - new course over ground (degrees * 10)
+/**
+ * Calculate estimated heading and feed it to NAV Position Controller
+ *  Update rate: loop/imu
+ *  Params:
+ *      newLat, newLon - new coordinates
+ *      newAlt - new MSL altitude (cm)
  */
 void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
 {
@@ -191,6 +192,10 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
     updateHomePosition();
 }
 
+/**
+ * Calculate estimated heading and feed it to NAV Position Controller
+ *  Update rate: loop/imu
+ */
 void updateEstimatedHeading(void)
 {
     // NAV uses heading in centidegrees
