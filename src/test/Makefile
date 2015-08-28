@@ -101,6 +101,9 @@ LIBCLEANFLIGHT_SRC = \
 	drivers/barometer_bmp085.c \
 	drivers/light_ws2811strip.c \
 	flight/navigation_rewrite.c \
+    flight/navigation_rewrite_fixedwing.c \
+    flight/navigation_rewrite_multicopter.c \
+    flight/navigation_rewrite_pos_estimator.c \
 	flight/failsafe.c \
 	flight/gps_conversion.c \
 	flight/imu.c \

@@ -28,7 +28,9 @@
 #include "io/escservo.h"
 
 #define NAV
+#if defined(BLACKBOX)
 #define NAV_BLACKBOX
+#endif
 
 // Maximum number of waypoints, special waypoint 0 = home, waypoint (NAV_MAX_WAYPOINTS + 1) = active WP
 #define NAV_MAX_WAYPOINTS       15
