@@ -70,6 +70,11 @@
 
 #if defined(NAV)
 
+/* latest update for GPS local position and velocity*/
+static t_fp_vector newGPSPos;
+static t_fp_vector newGPSVel;
+static bool newGPSDataAvailable;
+
 /*-----------------------------------------------------------
  * NAV data collection and pre-processing code
  * This is the largest sensor-dependent part of nav-rewrite.
@@ -106,16 +111,9 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
     static bool isFirstUpdate = true;
     static int32_t previousLat;
     static int32_t previousLon;
-
-    static int32_t latFilterTable[3];
-    static int32_t lonFilterTable[3];
-    static int32_t altFilterTable[3];
-    static int8_t  gpsFilterIndex;
-
-    static float gpsVelocityX = 0.0f, gpsVelocityY = 0.0f;
+    static int32_t previousAlt;
 
     gpsLocation_t newLLH;
-    t_fp_vector newGPSPos;
 
     // Don't have a valid GPS 3D fix, do nothing and restart
     if (!(STATE(GPS_FIX) && GPS_numSat >= 5)) {
@@ -131,60 +129,38 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
     newLLH.alt = newAlt;
     gpsConvertGeodeticToLocal(&posControl.gpsOrigin, &newLLH, &newGPSPos);
 
+    navDebug[3] = newAlt;
+
     // If not first update - calculate velocities
     if (!isFirstUpdate) {
         float dT = US2S(getGPSDeltaTimeFilter(currentTime - previousTime));
         float gpsScaleLonDown = constrainf(cos_approx((ABS(newLat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
 
-        // Update filter table
-        latFilterTable[gpsFilterIndex] = newLat;
-        lonFilterTable[gpsFilterIndex] = newLon;
-        altFilterTable[gpsFilterIndex] = newAlt;
-        if (++gpsFilterIndex >= 3) gpsFilterIndex = 0;
-
-        // Apply median filter
-        newLat = quickMedianFilter3(latFilterTable);
-        newLon = quickMedianFilter3(lonFilterTable);
-        newAlt = quickMedianFilter3(altFilterTable);
-
         // Calculate NEU velocities
-        gpsVelocityX = (gpsVelocityX + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
-        gpsVelocityY = (gpsVelocityY + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
+        newGPSVel.V.X = (newGPSVel.V.X + (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLat - previousLat) / dT)) / 2.0f;
+        newGPSVel.V.Y = (newGPSVel.V.Y + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (newLon - previousLon) / dT)) / 2.0f;
+        newGPSVel.V.Z = (newGPSVel.V.Z + (newAlt - previousAlt) / dT) / 2.0f;
 
         // Update IMU velocities with complementary filter to keep them close to real velocities (as given by GPS)
-        imuApplyFilterToActualVelocity(X, posControl.navProfile->nav_gps_cf, gpsVelocityX);
-        imuApplyFilterToActualVelocity(Y, posControl.navProfile->nav_gps_cf, gpsVelocityY);
-
-#if defined(BARO)
-        if (sensors(SENSOR_BARO)) {
-            // Adjust barometer offset to compensate for barometric drift
-            float gpsPosCorrectionZ = newGPSPos.V.Z - posControl.latestBaroAlt;
-            posControl.baroOffset -= gpsPosCorrectionZ * 0.01f * dT;   // FIXME: Explain 0.01f
-        }
-#endif
+        imuApplyFilterToActualVelocity(X, posControl.navProfile->nav_gps_cf, newGPSVel.V.X);
+        imuApplyFilterToActualVelocity(Y, posControl.navProfile->nav_gps_cf, newGPSVel.V.Y);
 
         updateActualHorizontalPositionAndVelocity(newGPSPos.V.X, newGPSPos.V.Y, imuAverageVelocity.V.X, imuAverageVelocity.V.Y);
+        newGPSDataAvailable = true;
     }
     else {
-        int i;
-
         // Initialize GPS velocity
-        gpsVelocityX = 0.0f;
-        gpsVelocityY = 0.0f;
-
-        // Initialize GPS filter table
-        gpsFilterIndex = 0;
-        for (i = 0; i < 3; i++) {
-            latFilterTable[i] = newLat;
-            lonFilterTable[i] = newLon;
-            altFilterTable[i] = newAlt;
-        }
+        newGPSVel.V.X = 0.0f;
+        newGPSVel.V.Y = 0.0f;
+        newGPSVel.V.Z = 0.0f;
 
         updateActualHorizontalPositionAndVelocity(newGPSPos.V.X, newGPSPos.V.Y, 0, 0);
+        newGPSDataAvailable = false;
     }
 
     previousLat = newLat;
     previousLon = newLon;
+    previousAlt = newAlt;
 
     isFirstUpdate = false;
     previousTime = currentTime;
@@ -194,7 +170,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt)
 
 /**
  * Calculate estimated heading and feed it to NAV Position Controller
- *  Update rate: loop/imu
+ *  Update rate: ALTITUDE_UPDATE_FREQUENCY_HZ (10Hz)
  */
 void updateEstimatedHeading(void)
 {
@@ -202,6 +178,10 @@ void updateEstimatedHeading(void)
     updateActualHeading((int32_t)heading * 100);
 }
 
+/**
+ * Calculate estimated altitude and climb rate and update NAV Position Controller
+ *  Update rate: loop/imu
+ */
 void updateAltitudeAndClimbRate(void)
 {
     float estimatedAlt, estimatedClimbRate, imuFilterWeight;
@@ -230,119 +210,137 @@ void updateAltitudeAndClimbRate(void)
 
     previousTimeUpdate = currentTime;
 
-    // Initialize climb rate filter
-    if (!climbRateFiltersInitialized) {
+    if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR)) {
+        // Initialize climb rate filter
+        if (!climbRateFiltersInitialized) {
 #if defined(BARO)
-        // If BARO compiled in - initialize filter
-        filterWithBufferInit(&baroClimbRateFilter, &baroClimbRateFilterBuffer[0], NAV_BARO_CLIMB_RATE_FILTER_SIZE);
+            // If BARO compiled in - initialize filter
+            filterWithBufferInit(&baroClimbRateFilter, &baroClimbRateFilterBuffer[0], NAV_BARO_CLIMB_RATE_FILTER_SIZE);
 #endif
-        climbRateFiltersInitialized = true;
-    }
+            climbRateFiltersInitialized = true;
+        }
 
 #if defined(BARO)
-    // Calculate barometric altitude and climb rate
-    // For NAV to work good baro altitude must not be delayed much. Large delay means slow response, means low PID gains to avoid oscillations
-    // One should keep baro_tab_size small, but this will lead to high noise. NAV is OK with noisy measures, LPFs in altitude control
-    // code and new CLT fusion will handle that just fine
-    newBaroAlt = baroCalculateAltitude() - posControl.baroOffset;
+        // Calculate barometric altitude and climb rate
+        // For NAV to work good baro altitude must not be delayed much. Large delay means slow response, means low PID gains to avoid oscillations
+        // One should keep baro_tab_size small, but this will lead to high noise. NAV is OK with noisy measures, LPFs in altitude control
+        // code and new CLT fusion will handle that just fine
+        newBaroAlt = baroCalculateAltitude();
 
-    if (sensors(SENSOR_BARO) && isBaroCalibrationComplete()) {
-        filterWithBufferUpdate(&baroClimbRateFilter, newBaroAlt, currentTime);
-        baroClimbRate = filterWithBufferApply_Derivative(&baroClimbRateFilter) * 1e6f;
+        if (sensors(SENSOR_BARO) && isBaroCalibrationComplete()) {
+            filterWithBufferUpdate(&baroClimbRateFilter, newBaroAlt, currentTime);
+            baroClimbRate = filterWithBufferApply_Derivative(&baroClimbRateFilter) * 1e6f;
 
-        baroClimbRate = constrainf(baroClimbRate, -1500, 1500);  // constrain baro velocity +/- 1500cm/s
-        baroClimbRate = applyDeadband(baroClimbRate, 10);       // to reduce noise near zero
-    }
-    else {
-        newBaroAlt = 0;
-        baroClimbRate = 0.0f;
-    }
+            baroClimbRate = constrainf(baroClimbRate, -1500, 1500);  // constrain baro velocity +/- 1500cm/s
+            baroClimbRate = applyDeadband(baroClimbRate, 10);       // to reduce noise near zero
 
-    // Save baro altitude for valid baro offset correction via GPS
-    posControl.latestBaroAlt = newBaroAlt;
+            posControl.flags.hasValidAltitudeSensor = true;
+        }
+        else {
+            newBaroAlt = 0;
+            baroClimbRate = 0.0f;
+        }
 #endif
 
 #if defined(SONAR)
-    // Calculate sonar altitude above surface and climb rate above surface
-    if (sensors(SENSOR_SONAR)) {
-        static uint32_t lastValidSonarUpdateTime = 0;
-        static float lastValidSonarAlt;
+        // Calculate sonar altitude above surface and climb rate above surface
+        if (sensors(SENSOR_SONAR)) {
+            static uint32_t lastValidSonarUpdateTime = 0;
+            static float lastValidSonarAlt;
 
-        // Read sonar
-        newSonarAlt = sonarRead();
+            // Read sonar
+            newSonarAlt = sonarRead();
 
-        // FIXME: Add sonar tilt compensation
+            // FIXME: Add sonar tilt compensation
 
-        if (newSonarAlt > 0) {
-            // We have a valid reading
+            if (newSonarAlt > 0) {
+                // We have a valid reading
 
-            if ((currentTime - lastValidSonarUpdateTime) < HZ2US(MIN_SONAR_UPDATE_FREQUENCY_HZ)) {
-                // Sonar updated within valid time, use this measurement to calculate climb rate
-                sonarClimbRate = (newSonarAlt - lastValidSonarAlt) / ((currentTime - lastValidSonarUpdateTime) * 1e-6f);
+                if ((currentTime - lastValidSonarUpdateTime) < HZ2US(MIN_SONAR_UPDATE_FREQUENCY_HZ)) {
+                    // Sonar updated within valid time, use this measurement to calculate climb rate
+                    sonarClimbRate = (newSonarAlt - lastValidSonarAlt) / ((currentTime - lastValidSonarUpdateTime) * 1e-6f);
+                }
+                else {
+                    // Previous sonar update was delayed too much - we can't trust sonarClimbRate yet
+                    sonarClimbRate = 0.0f;
+                }
+
+                lastValidSonarAlt = newSonarAlt;
+                lastValidSonarUpdateTime = currentTime;
+
+                posControl.flags.hasValidAltitudeSensor = true;
             }
-            else {
-                // Previous sonar update was delayed too much - we can't trust sonarClimbRate yet
-                sonarClimbRate = 0.0f;
-            }
-
-            lastValidSonarAlt = newSonarAlt;
-            lastValidSonarUpdateTime = currentTime;
         }
-    }
-    else {
-        // No sonar
-        newSonarAlt = -1;
-        sonarClimbRate = 0.0f;
-    }
+        else {
+            // No sonar
+            newSonarAlt = -1;
+            sonarClimbRate = 0.0f;
+        }
 #endif
 
 #if defined(BARO) && defined(SONAR)
-    if (newSonarAlt <= 0) {
-        // Can't trust sonar - rely on baro
+        if (newSonarAlt <= 0) {
+            // Can't trust sonar - rely on baro
+            estimatedAlt = newBaroAlt;
+            estimatedClimbRate = baroClimbRate;
+            imuFilterWeight = posControl.barometerConfig->baro_cf_vel;
+        }
+        else {
+            // Fuse altitude
+            if (newSonarAlt <= (SONAR_MAX_RANGE * 2 / 3)) {
+                // If within 2/3 sonar range - use only sonar
+                estimatedAlt = newSonarAlt;
+            }
+            else if (newSonarAlt <= SONAR_MAX_RANGE) {
+                // Squeze difference between sonar and baro into upper 1/3 sonar range.
+                // FIXME: this will give us totally wrong altitude in the upper
+                //        1/3 sonar range but will allow graceful transition from SONAR to BARO
+                float sonarToBaroTransition = constrainf((SONAR_MAX_RANGE - newSonarAlt) / (SONAR_MAX_RANGE / 3.0f), 0, 1);
+                estimatedAlt = newSonarAlt * sonarToBaroTransition + newBaroAlt * (1.0f - sonarToBaroTransition);
+            }
+            else {
+                // Sonar driver returned a value > SONAR_MAX_RANGE, ignore it, rely on baro altitude
+                estimatedAlt = newBaroAlt;
+            }
+
+            // FIXME: Make all this configurable
+            // Fuse velocity - trust sonar more and baro less
+            estimatedClimbRate = 0.333f * baroClimbRate + 0.667f * sonarClimbRate;
+            imuFilterWeight = posControl.barometerConfig->baro_cf_vel;
+        }
+#elif defined(BARO)
         estimatedAlt = newBaroAlt;
         estimatedClimbRate = baroClimbRate;
         imuFilterWeight = posControl.barometerConfig->baro_cf_vel;
-    }
-    else {
-        // Fuse altitude
-        if (newSonarAlt <= (SONAR_MAX_RANGE * 2 / 3)) {
-            // If within 2/3 sonar range - use only sonar
-            estimatedAlt = newSonarAlt;
-        }
-        else if (newSonarAlt <= SONAR_MAX_RANGE) {
-            // Squeze difference between sonar and baro into upper 1/3 sonar range.
-            // FIXME: this will give us totally wrong altitude in the upper 
-            //        1/3 sonar range but will allow graceful transition from SONAR to BARO
-            float sonarToBaroTransition = constrainf((SONAR_MAX_RANGE - newSonarAlt) / (SONAR_MAX_RANGE / 3.0f), 0, 1);
-            estimatedAlt = newSonarAlt * sonarToBaroTransition + newBaroAlt * (1.0f - sonarToBaroTransition);
-        }
-        else {
-            // Sonar driver returned a value > SONAR_MAX_RANGE, ignore it, rely on baro altitude
-            estimatedAlt = newBaroAlt;
-        }
-
-        // FIXME: Make all this configurable
-        // Fuse velocity - trust sonar more and baro less
-        estimatedClimbRate = 0.333f * baroClimbRate + 0.667f * sonarClimbRate;
-        imuFilterWeight = posControl.barometerConfig->baro_cf_vel;
-    }
-#elif defined(BARO)
-    estimatedAlt = newBaroAlt;
-    estimatedClimbRate = baroClimbRate;
-    imuFilterWeight = posControl.barometerConfig->baro_cf_vel;
 #elif defined(SONAR)
-    // If sonar reading is not valid, assume that we are outside valid sonar range and set measured altitude to SONAR_MAX_RANGE
-    // This will allow us to enable althold above sonar range and not hit the ground when going within range
-    if (newSonarAlt <= 0)
-        estimatedAlt = SONAR_MAX_RANGE;
-    else
-        estimatedAlt = newSonarAlt;
+        // If sonar reading is not valid, assume that we are outside valid sonar range and set measured altitude to SONAR_MAX_RANGE
+        // This will allow us to enable althold above sonar range and not hit the ground when going within range
+        if (newSonarAlt <= 0)
+            estimatedAlt = SONAR_MAX_RANGE;
+        else
+            estimatedAlt = newSonarAlt;
 
-    estimatedClimbRate = sonarClimbRate;
-    imuFilterWeight = 0.900f; // FIXME: make configurable
+        estimatedClimbRate = sonarClimbRate;
+        imuFilterWeight = 0.900f; // FIXME: make configurable
 #else
-    #error "FIXME - Shouldn't happen (no baro or sonar)"
+        #error "FIXME - Shouldn't happen (no baro or sonar)"
 #endif
+    }
+    else if (sensors(SENSOR_GPS) && newGPSDataAvailable) {
+        // It is possible that we have GPS but don't have a BARO or SONAR. In such rare case rely on GPS
+        //  This is the worst case scenario, GPS does not provide reliable climb rate and GPS Z-position is very noisy
+        //  This CAN NOT be used on a multicopter
+        static float gpsAltFilterLPFState = 0.0f;
+        static float gpsVelFilterLPFState = 0.0f;
+
+        // Apply LPF to GPS altitude (posControl will also add it's own LPFs, so we shouldn't go too low in frequency here)
+        estimatedAlt = navApplyFilter(newGPSPos.V.Z, 2.0f, deltaMicros * 1e-6, &gpsAltFilterLPFState);
+        estimatedClimbRate = navApplyFilter(newGPSVel.V.Z, 2.0f, deltaMicros * 1e-6, &gpsVelFilterLPFState);
+        imuFilterWeight = posControl.barometerConfig->baro_cf_vel;  // FIXME
+
+        newGPSDataAvailable = false;
+        posControl.flags.hasValidAltitudeSensor = true;
+    }
 
     // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
     imuApplyFilterToActualVelocity(Z, imuFilterWeight, estimatedClimbRate);

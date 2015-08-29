@@ -741,9 +741,19 @@ void swithNavigationFlightModes(navigationMode_t navMode)
 static navigationMode_t selectNavModeFromBoxModeInput(void)
 {
     // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
-    bool canActivateAltHold = sensors(SENSOR_BARO) || sensors(SENSOR_SONAR);
-    bool canActivatePosHold = posControl.gpsOrigin.valid && sensors(SENSOR_ACC) && (sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5) && 
-                                (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
+    bool canActivateAltHold, canActivatePosHold;
+
+    if (STATE(FIXED_WING)) {
+        // Fixed wing is more tolerant to altitude noise, we can use GPS here
+        canActivateAltHold = posControl.flags.hasValidAltitudeSensor && (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR) || sensors(SENSOR_GPS));
+        canActivatePosHold = false; // FIXME
+    }
+    else {
+        canActivateAltHold = posControl.flags.hasValidAltitudeSensor && (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR));
+        canActivatePosHold = sensors(SENSOR_ACC) &&
+                             (posControl.gpsOrigin.valid && sensors(SENSOR_GPS) && STATE(GPS_FIX) && (GPS_numSat >= 5)) && 
+                             (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE));
+    }
 
     // Figure out, what mode pilot want to activate, also check if it is possible
     if (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME)) {
@@ -947,8 +957,7 @@ void navigationInit(navProfile_t *initialNavProfile,
     posControl.flags.verticalPositionNewData = 0;
     posControl.flags.horizontalPositionNewData = 0;
     posControl.flags.headingNewData = 0;
-
-    posControl.baroOffset = 0.0f;
+    posControl.flags.hasValidAltitudeSensor = 0;
 
     /* Use system config */
     navigationUseProfile(initialNavProfile);

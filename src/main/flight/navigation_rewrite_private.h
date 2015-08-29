@@ -97,6 +97,7 @@ typedef struct navigationFlags_s {
     bool verticalPositionNewData;
     bool horizontalPositionNewData;
     bool headingNewData;
+    bool hasValidAltitudeSensor;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
 } navigationFlags_t;
 
 typedef struct {
@@ -165,12 +166,6 @@ typedef struct {
 
     /* INAV GPS origin (position where GPS fix was first acquired) */
     gpsOrigin_s                 gpsOrigin;
-
-#if defined(BARO)
-    /* Barometer offset (origin) */
-    float                       latestBaroAlt;
-    float                       baroOffset;
-#endif
 
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
     navWaypointPosition_t       homeWaypoint;       // NEU-coordinates and original yaw (heading when launched)
