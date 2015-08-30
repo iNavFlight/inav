@@ -83,6 +83,41 @@ void resetFixedWingAltitudeController()
     // TODO
 }
 
+// Position to velocity controller for Z axis
+static void updateAltitudeVelocityController_FW(uint32_t deltaMicros)
+{
+    UNUSED(deltaMicros);
+
+    static float velzFilterState;
+
+    float altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
+
+    // FIXME: Rework PIDs for fixed-wing
+    posControl.desiredState.vel.V.Z = navPidGetPID(altitudeError, US2S(deltaMicros), &posControl.pids.accz);
+    posControl.desiredState.vel.V.Z = navApplyFilter(posControl.desiredState.vel.V.Z, NAV_FW_VEL_CUTOFF_FREQENCY_HZ, US2S(deltaMicros), &velzFilterState);
+    posControl.desiredState.vel.V.Z = constrainf(posControl.desiredState.vel.V.Z, -300, 300); // hard limit velocity to +/- 3 m/s
+
+#if defined(NAV_BLACKBOX)
+    navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
+    navLatestPositionError[Z] = constrain(lrintf(altitudeError), -32678, 32767);
+    navTargetPosition[Z] = constrain(lrintf(posControl.desiredState.pos.V.Z), -32678, 32767);
+#endif
+}
+
+static void updateAltitudePitchController_FW(uint32_t deltaMicros)
+{
+    UNUSED(deltaMicros);
+
+    // On a fixed wing we might not have a reliable climb rate source (if no BARO available)
+
+    float velocityXY = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y));
+    velocityXY = MAX(velocityXY, 600.0f);   // Limit min velocity for PID controller at about 20 km/h
+
+    // Calculate pitch angle from target climb rate and actual horizontal velocity
+    posControl.rcAdjustment[PITCH] = atan2_approx(posControl.desiredState.vel.V.Z, velocityXY) / RADX10;
+    posControl.rcAdjustment[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX_FW, NAV_ROLL_PITCH_MAX_FW);
+}
+
 void applyFixedWingAltitudeController(uint32_t currentTime)
 {
     static uint32_t previousTimeTargetPositionUpdate;   // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
@@ -120,7 +155,7 @@ void applyFixedWingAltitudeController(uint32_t currentTime)
 
         // Check if last correction was too log ago - ignore this update
         if (deltaMicrosPositionUpdate < HZ2US(MIN_ALTITUDE_UPDATE_FREQUENCY_HZ)) {
-            // TODO
+            updateAltitudeVelocityController_FW(deltaMicrosPositionUpdate);
         }
         else {
             // due to some glitch position update has not occurred in time, reset altitude controller
@@ -130,6 +165,8 @@ void applyFixedWingAltitudeController(uint32_t currentTime)
         // Indicate that information is no longer usable
         posControl.flags.verticalPositionNewData = 0;
     }
+
+    updateAltitudePitchController_FW(deltaMicros);
 }
 
 /*-----------------------------------------------------------

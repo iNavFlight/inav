@@ -30,6 +30,7 @@
 #define RADX10                          0.00174532925f
 #define RADX100                         0.000174532925f
 #define NAV_ROLL_PITCH_MAX              300 // Max control input from NAV (30 deg)
+#define NAV_ROLL_PITCH_MAX_FW           150 // Max control input from NAV-FW (15 deg)
 
 // Size of barometer derivative filter
 #define NAV_BARO_CLIMB_RATE_FILTER_SIZE  7
@@ -45,6 +46,8 @@
 #define NAV_VEL_ERROR_CUTOFF_FREQENCY_HZ    4       // low-pass filter on Z-velocity error
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     2       // low-pass filter on throttle output
 #define NAV_ACCEL_CUTOFF_FREQUENCY_HZ       2       // low-pass filter on XY-acceleration target
+
+#define NAV_FW_VEL_CUTOFF_FREQENCY_HZ       1       // low-pass filter on Z-velocity for fixed wing
 
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 #define NAV_ACCEL_SLOW_XY_MAX               550.0f  // cm/s/s       // approx 29 deg lean angle
