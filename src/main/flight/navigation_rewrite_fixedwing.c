@@ -93,7 +93,7 @@ static void updateAltitudeVelocityController_FW(uint32_t deltaMicros)
     float altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
 
     // FIXME: Rework PIDs for fixed-wing
-    posControl.desiredState.vel.V.Z = navPidGetPID(altitudeError, US2S(deltaMicros), &posControl.pids.accz);
+    posControl.desiredState.vel.V.Z = navPidGetPID(altitudeError, US2S(deltaMicros), &posControl.pids.accz, false);
     posControl.desiredState.vel.V.Z = navApplyFilter(posControl.desiredState.vel.V.Z, NAV_FW_VEL_CUTOFF_FREQENCY_HZ, US2S(deltaMicros), &velzFilterState);
     posControl.desiredState.vel.V.Z = constrainf(posControl.desiredState.vel.V.Z, -300, 300); // hard limit velocity to +/- 3 m/s
 

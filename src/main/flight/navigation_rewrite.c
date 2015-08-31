@@ -116,9 +116,20 @@ float navPidGetP(float error, float dt, pidController_t *pid)
     return newPterm;
 }
 
-float navPidGetI(float error, float dt, pidController_t *pid)
+float navPidGetI(float error, float dt, pidController_t *pid, bool onlyShrinkI)
 {
-    pid->integrator += ((float)error * pid->param.kI) * dt;
+    float newIntegrator = pid->integrator + ((float)error * pid->param.kI) * dt;
+
+    if (onlyShrinkI) {
+        // Only allow I to shrink
+        if (fabsf(newIntegrator) < fabsf(pid->integrator)) {
+            pid->integrator = newIntegrator;
+        }
+    }
+    else {
+        pid->integrator = newIntegrator;
+    }
+
     pid->integrator = constrainf(pid->integrator, -pid->param.Imax, pid->param.Imax);
 
 #if defined(NAV_BLACKBOX)
@@ -145,9 +156,9 @@ float navPidGetD(float error, float dt, pidController_t *pid)
     return newDerivative;
 }
 
-float navPidGetPID(float error, float dt, pidController_t *pid)
+float navPidGetPID(float error, float dt, pidController_t *pid, bool onlyShrinkI)
 {
-    return navPidGetP(error, dt, pid) + navPidGetI(error, dt, pid) + navPidGetD(error, dt, pid);
+    return navPidGetP(error, dt, pid) + navPidGetI(error, dt, pid, onlyShrinkI) + navPidGetD(error, dt, pid);
 }
 
 void navPidReset(pidController_t *pid)

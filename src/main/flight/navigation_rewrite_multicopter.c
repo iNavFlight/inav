@@ -73,8 +73,9 @@
 /*-----------------------------------------------------------
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
-static int16_t altholdInitialThrottle;  // Throttle input when althold was activated
+static int16_t altholdInitialThrottle;      // Throttle input when althold was activated
 static int16_t rcCommandAdjustedThrottle;
+static bool accelLimitingXY = false;        // true if acceleration limiting active
 
 static void updateAltitudeTargetFromRCInput_MC(uint32_t deltaMicros)
 {
@@ -126,7 +127,7 @@ static void updateAltitudeThrottleController_MC(uint32_t deltaMicros)
     static float throttleFilterState;
     float accError = posControl.desiredState.acc.V.Z - imuAverageAcceleration.V.Z;
 
-    posControl.rcAdjustment[THROTTLE] = navPidGetPID(accError, US2S(deltaMicros), &posControl.pids.accz);
+    posControl.rcAdjustment[THROTTLE] = navPidGetPID(accError, US2S(deltaMicros), &posControl.pids.accz, false);
     posControl.rcAdjustment[THROTTLE] = navApplyFilter(posControl.rcAdjustment[THROTTLE], NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros), &throttleFilterState);
     posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], -500, 500);
 }
@@ -413,20 +414,24 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     float velError, newAccelX, newAccelY;
 
     // Calculate acceleration target on X-axis
-    velError = constrainf(posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X, -500.0f, 500.0f); // limit error to 5 m/s
-    newAccelX = navPidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[X]);
+    velError = posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X;
+    newAccelX = navPidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[X], accelLimitingXY);
 
     // Calculate acceleration target on Y-axis
-    velError = constrainf(posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y, -500.0f, 500.0f); // limit error to 5 m/s
-    newAccelY = navPidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[Y]);
+    velError = posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y;
+    newAccelY = navPidGetPID(velError, US2S(deltaMicros), &posControl.pids.vel[Y], accelLimitingXY);
 
     // Check if required acceleration exceeds maximum allowed accel
     float newAccelTotal = sqrtf(sq(newAccelX) + sq(newAccelY));
 
     // Recalculate acceleration
     if (newAccelTotal > maxAccelLimit) {
+        accelLimitingXY = true;
         newAccelX = maxAccelLimit * (newAccelX / newAccelTotal);
         newAccelY = maxAccelLimit * (newAccelY / newAccelTotal);
+    }
+    else {
+        accelLimitingXY = false;
     }
 
     // Apply LPF to acceleration target
