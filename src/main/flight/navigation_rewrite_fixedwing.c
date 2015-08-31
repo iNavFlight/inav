@@ -84,6 +84,21 @@ void resetFixedWingAltitudeController()
     posControl.rcAdjustment[PITCH] = 0;
 }
 
+static void updateAltitudeTargetFromRCInput_FW(uint32_t deltaMicros)
+{
+    // In some cases pilot has no control over flight direction
+    if (!navCanAdjustAltitudeFromRCInput())
+        return;
+
+    int16_t rcAdjustment = applyDeadband(rcCommand[PITCH], posControl.rcControlsConfig->alt_hold_deadband);
+
+    if (rcAdjustment) {
+        // set velocity proportional to stick movement
+        float rcClimbRate = rcAdjustment * posControl.navProfile->nav_manual_speed_vertical / (500.0f - posControl.rcControlsConfig->alt_hold_deadband);
+        updateAltitudeTargetFromClimbRate(deltaMicros, rcClimbRate);
+    }
+}
+
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_FW(uint32_t deltaMicros)
 {
@@ -146,7 +161,7 @@ void applyFixedWingAltitudeController(uint32_t currentTime)
             // TODO
         }
         
-        // TODO
+        updateAltitudeTargetFromRCInput_FW(deltaMicrosPositionTargetUpdate);
     }
 
     // If we have an update on vertical position data - update velocity and accel targets
