@@ -80,7 +80,8 @@ void setupFixedWingAltitudeController(void)
 
 void resetFixedWingAltitudeController()
 {
-    // TODO
+    navPidReset(&posControl.pids.accz);
+    posControl.rcAdjustment[PITCH] = 0;
 }
 
 // Position to velocity controller for Z axis
