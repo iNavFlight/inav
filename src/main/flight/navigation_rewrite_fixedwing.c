@@ -130,8 +130,8 @@ static void updateAltitudePitchController_FW(uint32_t deltaMicros)
     velocityXY = MAX(velocityXY, 600.0f);   // Limit min velocity for PID controller at about 20 km/h
 
     // Calculate pitch angle from target climb rate and actual horizontal velocity
-    posControl.rcAdjustment[PITCH] = atan2_approx(posControl.desiredState.vel.V.Z, velocityXY) / RADX10;
-    posControl.rcAdjustment[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX_FW, NAV_ROLL_PITCH_MAX_FW);
+    posControl.rcAdjustment[PITCH] = atan2_approx(posControl.desiredState.vel.V.Z, velocityXY) / RADX100;
+    posControl.rcAdjustment[PITCH] = constrain(posControl.rcAdjustment[PITCH], -NAV_ROLL_PITCH_MAX_FW, NAV_ROLL_PITCH_MAX_FW) * 0.1f;
 }
 
 void applyFixedWingAltitudeController(uint32_t currentTime)

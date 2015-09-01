@@ -27,10 +27,9 @@
 
 #define LAND_DETECTOR_TRIGGER_TIME      2000000
 
-#define RADX10                          0.00174532925f
 #define RADX100                         0.000174532925f
-#define NAV_ROLL_PITCH_MAX              300 // Max control input from NAV (30 deg)
-#define NAV_ROLL_PITCH_MAX_FW           150 // Max control input from NAV-FW (15 deg)
+#define NAV_ROLL_PITCH_MAX              (30 * 100) // Max control input from NAV (30 deg)
+#define NAV_ROLL_PITCH_MAX_FW           (15 * 100) // Max control input from NAV-FW (15 deg)
 
 // Size of barometer derivative filter
 #define NAV_BARO_CLIMB_RATE_FILTER_SIZE  7
