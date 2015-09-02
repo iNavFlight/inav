@@ -645,13 +645,15 @@ void mspInit(serialConfig_t *serialConfig)
         activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
 #ifdef GPS
-    if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR)) {
+    bool isFixedWing = masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE;
+
+    if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR) || (isFixedWing && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
     }
-    if (feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) {
+    if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (isFixedWing && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
     }
-    if (feature(FEATURE_GPS) && sensors(SENSOR_ACC) && sensors(SENSOR_MAG) && (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR))) {
+    if ((feature(FEATURE_GPS) && sensors(SENSOR_ACC) && sensors(SENSOR_MAG) && (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR))) || (isFixedWing && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
     }
