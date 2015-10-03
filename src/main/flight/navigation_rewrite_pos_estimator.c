@@ -565,7 +565,9 @@ static void publishEstimatedTopic(uint32_t currentTime)
 
     /* Acceleration and heading are published each loop (at max rate) */
     updateActualAcceleration(posEstimator.imu.accelNEU.V.X, posEstimator.imu.accelNEU.V.Y, posEstimator.imu.accelNEU.V.Z);
-    updateActualHeading((int32_t)heading * 100);
+    
+    /* IMU operates in decidegrees while INAV operates in centidegrees */
+    updateActualHeading(attitude.values.yaw * 10);
 
     /* Position and velocity are published with INAV_POSITION_PUBLISH_RATE_HZ */
     if (updateTimer(&posPublishTimer, HZ2US(INAV_POSITION_PUBLISH_RATE_HZ), currentTime)) {

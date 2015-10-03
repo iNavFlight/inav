@@ -176,10 +176,9 @@ void navPInit(pController_t *p, float _kP)
 /*-----------------------------------------------------------
  * Detects if thrust vector is facing downwards
  *-----------------------------------------------------------*/
-#define DEGREES_80_IN_DECIDEGREES 800
-bool isThrustFacingDownwards(rollAndPitchInclination_t *inclination)
+bool isThrustFacingDownwards(void)
 {
-    return ABS(inclination->values.rollDeciDegrees) < DEGREES_80_IN_DECIDEGREES && ABS(inclination->values.pitchDeciDegrees) < DEGREES_80_IN_DECIDEGREES;
+    return ABS(attitude.values.roll) < DEGREES_TO_DECIDEGREES(80) && ABS(attitude.values.pitch) < DEGREES_TO_DECIDEGREES(80);
 }
 
 /*-----------------------------------------------------------
@@ -643,7 +642,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     }
     else {
         // Apply navigation adjustments
-        if (navShouldApplyAltHold() && isThrustFacingDownwards(&inclination)) {
+        if (navShouldApplyAltHold() && isThrustFacingDownwards()) {
             applyAltitudeController(currentTime);
         }
 

@@ -233,7 +233,7 @@ void navPidReset(pidController_t *pid);
 void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _Imax);
 void navPInit(pController_t *p, float _kP);
 
-bool isThrustFacingDownwards(rollAndPitchInclination_t *inclination);
+bool isThrustFacingDownwards(void);
 void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate);
 uint32_t calculateDistanceToDestination(t_fp_vector * destinationPos);
 int32_t calculateBearingToDestination(t_fp_vector * destinationPos);
