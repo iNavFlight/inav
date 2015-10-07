@@ -17,30 +17,16 @@
 
 #pragma once
 
-#include "flight/pid.h"
-#include "sensors/barometer.h"
-#include "io/rc_controls.h"
-#include "io/escservo.h"
-
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
-#define NAV_GRAVITY_CMSS                                    980.665f
 
 #define LAND_DETECTOR_TRIGGER_TIME_MS       2000
-#define POSITION_SENSOR_TIMEOUT_MS          500    // If GPS updates do not happen for this much time, consider position sensor lost
 
 #define RADX100                             0.000174532925f
 #define NAV_ROLL_PITCH_MAX                  (30 * 100) // Max control input from NAV (30 deg)
 #define NAV_ROLL_PITCH_MAX_FW               (15 * 100) // Max control input from NAV-FW (15 deg)
 
-// Size of barometer derivative filter
-#define NAV_BARO_CLIMB_RATE_FILTER_SIZE     7
-
 #define POSITION_TARGET_UPDATE_RATE_HZ      5       // Rate manual position target update (minumum possible speed in cms will be this value)
-#define ALTITUDE_UPDATE_RATE_HZ             10      // Rate at which altitude sensors would be read and updated
-
-#define MIN_SONAR_UPDATE_RATE_HZ            3       // Sonar velocity won't be calculated if readings updated slower than this
-#define MIN_ALTITUDE_UPDATE_RATE_HZ         5       // Althold will not be applied if update rate is less than this constant
-#define MIN_POSITION_UPDATE_FREQUENCY_HZ    2       // GPS navigation (PH/WP/RTH) won't be applied unless update rate is above this
+#define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 
 #define NAV_VEL_ERROR_CUTOFF_FREQENCY_HZ    4       // low-pass filter on Z-velocity error
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     2       // low-pass filter on throttle output
@@ -56,7 +42,7 @@
 #define MS2US(ms)   ((ms) * 1000)
 
 // FIXME: Make this configurable, default to about 5% highet than minthrottle
-#define minFlyableThrottle  (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 5 / 100)
+#define minFlyableThrottle  (posControl.escAndServoConfig->minthrottle + (posControl.escAndServoConfig->maxthrottle - posControl.escAndServoConfig->minthrottle) * 5 / 100)
 
 #define IS_NAV_MODE_ALTHOLD     (posControl.mode == NAV_MODE_ALTHOLD)
 #define IS_NAV_MODE_POSHOLD_2D  (posControl.mode == NAV_MODE_POSHOLD_2D)
@@ -77,10 +63,10 @@
 #define navShouldApplyWaypoint() (IS_NAV_MODE_WP)
 #define navShouldApplyRTH()      (IS_NAV_MODE_RTH || IS_NAV_MODE_RTH_2D)
 // Should apply altitude PID controller
-#define navShouldApplyAltHold()  (IS_NAV_MODE_ALTHOLD || IS_NAV_MODE_POSHOLD_2D || IS_NAV_MODE_POSHOLD_3D || IS_NAV_MODE_WP || IS_NAV_MODE_RTH )
+#define navShouldApplyAltHold()  (IS_NAV_MODE_ALTHOLD || IS_NAV_MODE_POSHOLD_3D || IS_NAV_MODE_WP || IS_NAV_MODE_RTH )
 // Should apply RTH-specific logic
 #define navShouldApplyAutonomousLandingLogic()  ((IS_NAV_MODE_RTH || IS_NAV_MODE_WP) && \
-                                                (IS_NAV_AUTO_AUTOLAND || IS_NAV_AUTO_LANDED || IS_NAV_AUTO_FINISHED))
+                                                 (IS_NAV_AUTO_AUTOLAND || IS_NAV_AUTO_LANDED || IS_NAV_AUTO_FINISHED))
 // Should NAV apply emergency landing sequence
 #define navShouldApplyEmergencyLanding() ((IS_NAV_MODE_RTH || IS_NAV_MODE_RTH_2D || IS_NAV_MODE_WP) && IS_NAV_EMERG_LANDING)
 
@@ -134,6 +120,11 @@ typedef struct navigationFlags_s {
 } navigationFlags_t;
 
 typedef struct {
+    uint32_t    lastTriggeredTime;
+    uint32_t    deltaTime;
+} navigationTimer_t;
+
+typedef struct {
     float kP;
     float kI;
     float kD;
@@ -174,6 +165,7 @@ typedef struct navigationPIDControllers_s {
 typedef struct {
     t_fp_vector pos;
     t_fp_vector vel;
+    t_fp_vector acc;
     int32_t     yaw;
 } navigationEstimatedState_t;
 
@@ -214,13 +206,22 @@ typedef struct {
     /* Internals */
     int16_t                     rcAdjustment[4];
 
+    navAutonomousMissionState_t navMissionState;
+
     navConfig_t *               navConfig;
     rcControlsConfig_t *        rcControlsConfig;
-    navAutonomousMissionState_t navMissionState;
     pidProfile_t *              pidProfile;
+    rxConfig_t *                rxConfig;
+    escAndServoConfig_t *       escAndServoConfig;
+    int8_t                      yawControlDirection;
 } navigationPosControl_t;
 
 extern navigationPosControl_t posControl;
+
+/* Timer infrastructure */
+bool updateTimer(navigationTimer_t * tim, uint32_t interval, uint32_t currentTime);
+#define resetTimer(tim, currentTime) { (tim)->deltaTime = 0; (tim)->lastTriggeredTime = currentTime; }
+#define getTimerDeltaMicros(tim) ((tim)->deltaTime)
 
 /* Internally used functions */
 float navApplyFilter(float input, float fCut, float dT, float * state);
@@ -242,6 +243,10 @@ void setHomePosition(t_fp_vector * pos, int32_t yaw);
 void setDesiredPosition(t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 bool isWaypointReached(navWaypointPosition_t *waypoint);
 
+int16_t rcCommandToLeanAngle(int16_t rcCommand);
+int16_t leanAngleToRcCommand(int16_t leanAngle);
+
+void updateActualAcceleration(float accX, float accY, float accZ);
 void updateActualHorizontalPositionAndVelocity(float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(float newAltitude, float newVelocity);
 void updateActualHeading(int32_t newHeading);
@@ -262,6 +267,7 @@ void resetMulticopterPositionController(void);
 void applyMulticopterPositionController(uint32_t currentTime);
 void applyMulticopterEmergencyLandingController(void);
 bool isMulticopterLandingDetected(uint32_t * landingTimer);
+void updateMulticopterSpecificData(uint32_t currentTime);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
@@ -273,3 +279,4 @@ void resetFixedWingPositionController(void);
 void applyFixedWingPositionController(uint32_t currentTime);
 void applyFixedWingEmergencyLandingController(void);
 bool isFixedWingLandingDetected(uint32_t * landingTimer);
+void updateFixedWingSpecificData(uint32_t currentTime);

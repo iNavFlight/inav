@@ -267,6 +267,7 @@ HIGHEND_SRC = \
            flight/navigation_rewrite_fixedwing.c \
            flight/navigation_rewrite_autonomous.c \
            flight/navigation_rewrite_pos_estimator.c \
+           flight/navigation_rewrite_geo.c \
 		   flight/gps_conversion.c \
 		   common/colorconversion.c \
 		   io/gps.c \

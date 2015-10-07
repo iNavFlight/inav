@@ -24,58 +24,52 @@
 #include "debug.h"
 
 #include "common/axis.h"
-#include "common/color.h"
 #include "common/maths.h"
 
-#include "drivers/sensor.h"
 #include "drivers/system.h"
-#include "drivers/gpio.h"
-#include "drivers/timer.h"
-#include "drivers/serial.h"
+#include "drivers/sensor.h"
 #include "drivers/accgyro.h"
-#include "drivers/compass.h"
-#include "drivers/pwm_rx.h"
-
-#include "rx/rx.h"
 
 #include "sensors/sensors.h"
-#include "sensors/sonar.h"
-#include "sensors/barometer.h"
-#include "sensors/compass.h"
 #include "sensors/acceleration.h"
-#include "sensors/gyro.h"
-#include "sensors/battery.h"
 #include "sensors/boardalignment.h"
-
-#include "io/serial.h"
-#include "io/gps.h"
-#include "io/gimbal.h"
-#include "io/ledstrip.h"
-
-#include "telemetry/telemetry.h"
-#include "blackbox/blackbox.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/mixer.h"
-#include "flight/failsafe.h"
-#include "flight/gps_conversion.h"
 #include "flight/navigation_rewrite.h"
 #include "flight/navigation_rewrite_private.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
-#include "config/config_profile.h"
-#include "config/config_master.h"
 
 #if defined(NAV)
+
+#define HOVER_ACCZ_THRESHOLD    5.0f    // cm/s/s
+#define HOVER_THR_FILTER        0.025f
 
 /*-----------------------------------------------------------
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static int16_t altholdInitialThrottle;      // Throttle input when althold was activated
+static float hoverThrottle = 0;
 static int16_t rcCommandAdjustedThrottle;
 static bool accelLimitingXY = false;        // true if acceleration limiting active
+
+static void updateHoverThrottle(void)
+{
+    if (hoverThrottle <= posControl.escAndServoConfig->minthrottle) {
+        // FIXME: make this configurable
+        hoverThrottle = posControl.rxConfig->midrc;
+    }
+    else {
+        if (posControl.flags.hasValidAltitudeSensor && posControl.actualState.acc.V.Z <= HOVER_ACCZ_THRESHOLD) {
+            hoverThrottle += (rcCommand[THROTTLE] - hoverThrottle) * HOVER_THR_FILTER;
+        }
+    }
+
+    // FIXME: Make us of this after verification that it works
+    NAV_BLACKBOX_DEBUG(0, hoverThrottle);
+}
 
 static void updateAltitudeTargetFromRCInput_MC(uint32_t deltaMicros)
 {
@@ -126,7 +120,7 @@ static void updateAltitudeAccelController_MC(uint32_t deltaMicros)
 static void updateAltitudeThrottleController_MC(uint32_t deltaMicros)
 {
     static float throttleFilterState;
-    float accError = posControl.desiredState.acc.V.Z - imuAverageAcceleration.V.Z;
+    float accError = posControl.desiredState.acc.V.Z - posControl.actualState.acc.V.Z;
     posControl.rcAdjustment[THROTTLE] = navPidGetPID(accError, US2S(deltaMicros), &posControl.pids.accz, false);
     posControl.rcAdjustment[THROTTLE] = navApplyFilter(posControl.rcAdjustment[THROTTLE], NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros), &throttleFilterState);
     posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], -500, 500);
@@ -135,7 +129,7 @@ static void updateAltitudeThrottleController_MC(uint32_t deltaMicros)
 void setupMulticopterAltitudeController(void)
 {
     if (posControl.navConfig->flags.use_midrc_for_althold) {
-        altholdInitialThrottle = masterConfig.rxConfig.midrc;
+        altholdInitialThrottle = posControl.rxConfig->midrc;
     }
     else {
         altholdInitialThrottle = rcCommand[THROTTLE];
@@ -151,7 +145,7 @@ void resetMulticopterAltitudeController()
 
 void applyMulticopterAltitudeController(uint32_t currentTime)
 {
-    static uint32_t previousTimeTargetPositionUpdate;   // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
+    static navigationTimer_t targetPositionUpdateTimer; // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
     static uint32_t previousTimePositionUpdate;         // Occurs @ altitude sensor update rate (max MAX_ALTITUDE_UPDATE_RATE_HZ)
     static uint32_t previousTimeUpdate;                 // Occurs @ looptime rate
 
@@ -159,18 +153,17 @@ void applyMulticopterAltitudeController(uint32_t currentTime)
     previousTimeUpdate = currentTime;
 
     // If last position update was too long in the past - ignore it (likely restarting altitude controller)
-    if (deltaMicros > HZ2US(MIN_ALTITUDE_UPDATE_RATE_HZ)) {
+    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+        resetTimer(&targetPositionUpdateTimer, currentTime);
         previousTimeUpdate = currentTime;
-        previousTimeTargetPositionUpdate = currentTime;
         previousTimePositionUpdate = currentTime;
         resetMulticopterAltitudeController();
         return;
     }
 
     // Update altitude target from RC input or RTL controller
-    if (currentTime - previousTimeTargetPositionUpdate >= HZ2US(POSITION_TARGET_UPDATE_RATE_HZ)) {
-        uint32_t deltaMicrosPositionTargetUpdate = currentTime - previousTimeTargetPositionUpdate;
-        previousTimeTargetPositionUpdate = currentTime;
+    if (updateTimer(&targetPositionUpdateTimer, HZ2US(POSITION_TARGET_UPDATE_RATE_HZ), currentTime)) {
+        uint32_t deltaMicrosPositionTargetUpdate = getTimerDeltaMicros(&targetPositionUpdateTimer);
 
         if (navShouldApplyAutonomousLandingLogic()) {
             // Gradually reduce descent speed depending on actual altitude.
@@ -194,7 +187,7 @@ void applyMulticopterAltitudeController(uint32_t currentTime)
         previousTimePositionUpdate = currentTime;
 
         // Check if last correction was too log ago - ignore this update
-        if (deltaMicrosPositionUpdate < HZ2US(MIN_ALTITUDE_UPDATE_RATE_HZ)) {
+        if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
             updateAltitudeVelocityController_MC();
             updateAltitudeAccelController_MC(deltaMicrosPositionUpdate);
         }
@@ -212,13 +205,7 @@ void applyMulticopterAltitudeController(uint32_t currentTime)
     // regardless of available altitude and velocity data
     updateAltitudeThrottleController_MC(deltaMicros);
 
-    uint16_t newThrottle = constrain(altholdInitialThrottle + posControl.rcAdjustment[THROTTLE], masterConfig.escAndServoConfig.minthrottle, masterConfig.escAndServoConfig.maxthrottle);
-    if (posControl.navConfig->flags.throttle_tilt_comp && isThrustFacingDownwards(&inclination)) {
-        float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
-        newThrottle *= tiltCompFactor;
-    }
-
-    rcCommand[THROTTLE] = constrain(newThrottle, masterConfig.escAndServoConfig.minthrottle, masterConfig.escAndServoConfig.maxthrottle);
+    rcCommand[THROTTLE] = constrain(altholdInitialThrottle + posControl.rcAdjustment[THROTTLE], posControl.escAndServoConfig->minthrottle, posControl.escAndServoConfig->maxthrottle);
 
     // Save processed throttle for future use
     rcCommandAdjustedThrottle = rcCommand[THROTTLE];
@@ -234,7 +221,7 @@ void applyMulticopterAltitudeController(uint32_t currentTime)
 static void calculateHeadingAdjustment_MC(void)
 {
     // Calculate yaw correction
-    int32_t headingError = wrap_18000(posControl.actualState.yaw - posControl.desiredState.yaw) * masterConfig.yaw_control_direction;
+    int32_t headingError = wrap_18000(posControl.actualState.yaw - posControl.desiredState.yaw) * posControl.yawControlDirection;
     headingError = constrain(headingError, -3000, 3000); // limit error to +- 30 degrees to avoid fast rotation
 
     // FIXME: SMALL_ANGLE might prevent NAV from adjusting yaw when banking is too high (i.e. nav in high wind)
@@ -316,9 +303,6 @@ void resetMulticopterPositionController(void)
 
 static void updatePositionTargetFromRCInput_MC(void)
 {
-    if (posControl.navConfig->flags.user_control_mode != NAV_GPS_CRUISE)
-        return;
-
     // In some cases pilot has no control over flight direction
     if (!navCanAdjustHorizontalVelocityAndAttitudeFromRCInput()) {
         posControl.flags.isAdjustingPosition = false;
@@ -357,24 +341,21 @@ static void updatePositionTargetFromRCInput_MC(void)
     }
 }
 
-static void updatePositionLeanAngleFromRCInput_MC(void)
+static void updatePositionLeanAngleFromRCInput_MC()
 {
-    if (posControl.navConfig->flags.user_control_mode != NAV_GPS_ATTI)
-        return;
-
     // In some cases pilot has no control over flight direction
     if (!navCanAdjustHorizontalVelocityAndAttitudeFromRCInput()) {
         posControl.flags.isAdjustingPosition = false;
         return;
     }
 
-    int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], posControl.navConfig->pos_hold_deadband);
     int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], posControl.navConfig->pos_hold_deadband);
+    int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], posControl.navConfig->pos_hold_deadband);
 
     if (rcPitchAdjustment || rcRollAdjustment) {
         // Direct attitude control
-        posControl.rcAdjustment[PITCH] = rcPitchAdjustment;
-        posControl.rcAdjustment[ROLL] = rcRollAdjustment;
+        posControl.rcAdjustment[ROLL] = rcCommandToLeanAngle(rcCommand[ROLL]);
+        posControl.rcAdjustment[PITCH] = rcCommandToLeanAngle(rcCommand[PITCH]);
 
         // If we are in position hold mode, so adjust poshold position
         if (navShouldApplyPosHold()) {
@@ -480,8 +461,8 @@ static void updatePositionLeanAngleController_MC(void)
     float accelRight = -posControl.desiredState.acc.V.X * sinYaw + posControl.desiredState.acc.V.Y * cosYaw;
 
     // Calculate banking angles
-    float desiredPitch = atan2_approx(accelForward, NAV_GRAVITY_CMSS) / RADX100;
-    float desiredRoll = atan2_approx(accelRight * cos_approx(desiredPitch * RADX100), NAV_GRAVITY_CMSS) / RADX100;
+    float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS) / RADX100;
+    float desiredRoll = atan2_approx(accelRight * cos_approx(desiredPitch * RADX100), GRAVITY_CMSS) / RADX100;
 
     posControl.rcAdjustment[ROLL] = constrainf(desiredRoll, -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) * 0.1f;
     posControl.rcAdjustment[PITCH] = constrainf(desiredPitch, -NAV_ROLL_PITCH_MAX, NAV_ROLL_PITCH_MAX) * 0.1f;
@@ -489,17 +470,18 @@ static void updatePositionLeanAngleController_MC(void)
 
 void applyMulticopterPositionController(uint32_t currentTime)
 {
-    static uint32_t previousTimeTargetPositionUpdate;   // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
+    static navigationTimer_t targetPositionUpdateTimer; // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
     static uint32_t previousTimePositionUpdate;         // Occurs @ GPS update rate
     static uint32_t previousTimeUpdate;                 // Occurs @ looptime rate
+    bool forceGPSAttiMode = false;
 
     uint32_t deltaMicros = currentTime - previousTimeUpdate;
     previousTimeUpdate = currentTime;
 
     // If last position update was too long in the past - ignore it (likely restarting position controller)
-    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_FREQUENCY_HZ)) {
+    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+        resetTimer(&targetPositionUpdateTimer, currentTime);
         previousTimeUpdate = currentTime;
-        previousTimeTargetPositionUpdate = currentTime;
         previousTimePositionUpdate = currentTime;
         resetMulticopterPositionController();
         return;
@@ -509,9 +491,10 @@ void applyMulticopterPositionController(uint32_t currentTime)
     // and pilots input would be passed thru to PID controller
     if (posControl.flags.hasValidPositionSensor) {
         // Update position target from RC input
-        if (currentTime - previousTimeTargetPositionUpdate >= HZ2US(POSITION_TARGET_UPDATE_RATE_HZ)) {
-            previousTimeTargetPositionUpdate = currentTime;
-            updatePositionTargetFromRCInput_MC();
+        if (updateTimer(&targetPositionUpdateTimer, HZ2US(POSITION_TARGET_UPDATE_RATE_HZ), currentTime)) {
+            if (posControl.navConfig->flags.user_control_mode == NAV_GPS_CRUISE && !forceGPSAttiMode) {
+                updatePositionTargetFromRCInput_MC();
+            }
         }
 
         // If we have new position - update velocity and acceleration controllers
@@ -519,7 +502,7 @@ void applyMulticopterPositionController(uint32_t currentTime)
             uint32_t deltaMicrosPositionUpdate = currentTime - previousTimePositionUpdate;
             previousTimePositionUpdate = currentTime;
 
-            if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_FREQUENCY_HZ)) {
+            if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
                 updatePositionVelocityController_MC();
 
                 if (navShouldApplyWaypoint() || navShouldApplyRTH()) {
@@ -541,21 +524,23 @@ void applyMulticopterPositionController(uint32_t currentTime)
             // Indicate that information is no longer usable
             posControl.flags.horizontalPositionNewData = 0;
         }
-
-        updatePositionLeanAngleFromRCInput_MC();
-
-        // Convert target angle (rcAdjustment) to rcCommand, account for the way PID controllers treat the value
-        if (posControl.pidProfile->pidController == PID_CONTROLLER_LUX_FLOAT) {
-            // LuxFloat is the only PID controller that uses raw rcCommand as target angle
-            rcCommand[PITCH] = posControl.rcAdjustment[PITCH];
-            rcCommand[ROLL] = posControl.rcAdjustment[ROLL];
-        }
-        else {
-            // Most PID controllers use 2 * rcCommand as target angle for ANGLE mode
-            rcCommand[PITCH] = posControl.rcAdjustment[PITCH] / 2;
-            rcCommand[ROLL] = posControl.rcAdjustment[ROLL] / 2;
-        }
     }
+    else {
+        /* No position data, disable automatic adjustment */
+        posControl.rcAdjustment[PITCH] = 0;
+        posControl.rcAdjustment[ROLL] = 0;
+
+        /* Force GPS_ATTI mode */
+        forceGPSAttiMode = true;
+    }
+
+    /* Process pilot input (only GPS_ATTI mode) */
+    if (posControl.navConfig->flags.user_control_mode == NAV_GPS_ATTI || forceGPSAttiMode) {
+        updatePositionLeanAngleFromRCInput_MC();
+    }
+
+    rcCommand[PITCH] = leanAngleToRcCommand(posControl.rcAdjustment[PITCH]);
+    rcCommand[ROLL] = leanAngleToRcCommand(posControl.rcAdjustment[ROLL]);
 }
 
 /*-----------------------------------------------------------
@@ -574,7 +559,7 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     // Throttle should be low enough
     // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
     // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
-    bool minimalThrust = rcCommandAdjustedThrottle <= (masterConfig.escAndServoConfig.minthrottle + (masterConfig.escAndServoConfig.maxthrottle - masterConfig.escAndServoConfig.minthrottle) * 0.25f);
+    bool minimalThrust = rcCommandAdjustedThrottle <= (posControl.escAndServoConfig->minthrottle + (posControl.escAndServoConfig->maxthrottle - posControl.escAndServoConfig->minthrottle) * 0.25f);
 
     if (!minimalThrust || !navShouldApplyAutonomousLandingLogic() || !navShouldApplyAltHold() || verticalMovement || horizontalMovement) {
         *landingTimer = currentTime;
@@ -594,6 +579,15 @@ void applyMulticopterEmergencyLandingController(void)
     rcCommand[PITCH] = 0;
     rcCommand[YAW] = 0;
     rcCommand[THROTTLE] = 1300; // FIXME
+}
+
+/*-----------------------------------------------------------
+ * Multicopter-specific automatic parameter update 
+ *-----------------------------------------------------------*/
+void updateMulticopterSpecificData(uint32_t currentTime)
+{
+    UNUSED(currentTime);
+    updateHoverThrottle();
 }
 
 #endif  // NAV

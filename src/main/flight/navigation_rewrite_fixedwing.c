@@ -24,49 +24,24 @@
 #include "debug.h"
 
 #include "common/axis.h"
-#include "common/color.h"
 #include "common/maths.h"
 
-#include "drivers/sensor.h"
 #include "drivers/system.h"
-#include "drivers/gpio.h"
-#include "drivers/timer.h"
-#include "drivers/serial.h"
+#include "drivers/sensor.h"
 #include "drivers/accgyro.h"
-#include "drivers/compass.h"
-#include "drivers/pwm_rx.h"
-
-#include "rx/rx.h"
 
 #include "sensors/sensors.h"
-#include "sensors/sonar.h"
-#include "sensors/barometer.h"
-#include "sensors/compass.h"
 #include "sensors/acceleration.h"
-#include "sensors/gyro.h"
-#include "sensors/battery.h"
 #include "sensors/boardalignment.h"
-
-#include "io/serial.h"
-#include "io/gps.h"
-#include "io/gimbal.h"
-#include "io/ledstrip.h"
-
-#include "telemetry/telemetry.h"
-#include "blackbox/blackbox.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/mixer.h"
-#include "flight/failsafe.h"
-#include "flight/gps_conversion.h"
 #include "flight/navigation_rewrite.h"
 #include "flight/navigation_rewrite_private.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
-#include "config/config_profile.h"
-#include "config/config_master.h"
+
 
 #if defined(NAV)
 
@@ -138,7 +113,7 @@ static void updateAltitudePitchController_FW(void)
 
 void applyFixedWingAltitudeController(uint32_t currentTime)
 {
-    static uint32_t previousTimeTargetPositionUpdate;   // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
+    static navigationTimer_t targetPositionUpdateTimer; // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
     static uint32_t previousTimePositionUpdate;         // Occurs @ altitude sensor update rate (max MAX_ALTITUDE_UPDATE_RATE_HZ)
     static uint32_t previousTimeUpdate;                 // Occurs @ looptime rate
 
@@ -146,24 +121,21 @@ void applyFixedWingAltitudeController(uint32_t currentTime)
     previousTimeUpdate = currentTime;
 
     // If last position update was too long in the past - ignore it (likely restarting altitude controller)
-    if (deltaMicros > HZ2US(MIN_ALTITUDE_UPDATE_RATE_HZ)) {
+    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+        resetTimer(&targetPositionUpdateTimer, currentTime);
         previousTimeUpdate = currentTime;
-        previousTimeTargetPositionUpdate = currentTime;
         previousTimePositionUpdate = currentTime;
         resetFixedWingAltitudeController();
         return;
     }
 
     // Update altitude target from RC input or RTL controller
-    if (currentTime - previousTimeTargetPositionUpdate >= HZ2US(POSITION_TARGET_UPDATE_RATE_HZ)) {
-        uint32_t deltaMicrosPositionTargetUpdate = currentTime - previousTimeTargetPositionUpdate;
-        previousTimeTargetPositionUpdate = currentTime;
-
+    if (updateTimer(&targetPositionUpdateTimer, HZ2US(POSITION_TARGET_UPDATE_RATE_HZ), currentTime)) {
         if (navShouldApplyAutonomousLandingLogic()) {
             // TODO
         }
         
-        updateAltitudeTargetFromRCInput_FW(deltaMicrosPositionTargetUpdate);
+        updateAltitudeTargetFromRCInput_FW(getTimerDeltaMicros(&targetPositionUpdateTimer));
     }
 
     // If we have an update on vertical position data - update velocity and accel targets
@@ -172,7 +144,7 @@ void applyFixedWingAltitudeController(uint32_t currentTime)
         previousTimePositionUpdate = currentTime;
 
         // Check if last correction was too log ago - ignore this update
-        if (deltaMicrosPositionUpdate < HZ2US(MIN_ALTITUDE_UPDATE_RATE_HZ)) {
+        if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
             updateAltitudeVelocityController_FW(deltaMicrosPositionUpdate);
         }
         else {
@@ -222,7 +194,7 @@ void resetFixedWingPositionController(void)
 
 void applyFixedWingPositionController(uint32_t currentTime)
 {
-    static uint32_t previousTimeTargetPositionUpdate;   // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
+    static navigationTimer_t targetPositionUpdateTimer; // Occurs @ POSITION_TARGET_UPDATE_RATE_HZ
     static uint32_t previousTimePositionUpdate;         // Occurs @ GPS update rate
     static uint32_t previousTimeUpdate;                 // Occurs @ looptime rate
 
@@ -230,19 +202,16 @@ void applyFixedWingPositionController(uint32_t currentTime)
     previousTimeUpdate = currentTime;
 
     // If last position update was too long in the past - ignore it (likely restarting altitude controller)
-    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_FREQUENCY_HZ)) {
+    if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
+        resetTimer(&targetPositionUpdateTimer, currentTime);
         previousTimeUpdate = currentTime;
-        previousTimeTargetPositionUpdate = currentTime;
         previousTimePositionUpdate = currentTime;
         resetFixedWingPositionController();
         return;
     }
 
-    // Update altitude target from RC input
-    if (currentTime - previousTimeTargetPositionUpdate >= HZ2US(POSITION_TARGET_UPDATE_RATE_HZ)) {
-        uint32_t deltaMicrosPositionTargetUpdate = currentTime - previousTimeTargetPositionUpdate;
-        previousTimeTargetPositionUpdate = currentTime;
-
+    // Update position target from RC input
+    if (updateTimer(&targetPositionUpdateTimer, HZ2US(POSITION_TARGET_UPDATE_RATE_HZ), currentTime)) {
         // TODO
     }
 
@@ -251,7 +220,7 @@ void applyFixedWingPositionController(uint32_t currentTime)
         uint32_t deltaMicrosPositionUpdate = currentTime - previousTimePositionUpdate;
         previousTimePositionUpdate = currentTime;
 
-        if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_FREQUENCY_HZ)) {
+        if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
             // TODO
         }
         else {
@@ -284,6 +253,14 @@ bool isFixedWingLandingDetected(uint32_t * landingTimer)
 void applyFixedWingEmergencyLandingController(void)
 {
     // TODO
+}
+
+/*-----------------------------------------------------------
+ * Fixed-wing-specific automatic parameter update 
+ *-----------------------------------------------------------*/
+void updateFixedWingSpecificData(uint32_t currentTime)
+{
+    UNUSED(currentTime);
 }
 
 #endif  // NAV

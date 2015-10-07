@@ -17,13 +17,7 @@
 
 #pragma once
 
-#include "common/axis.h"
 #include "common/maths.h"
-
-#include "flight/pid.h"
-
-#include "sensors/barometer.h"
-
 #include "io/rc_controls.h"
 #include "io/escservo.h"
 
@@ -31,6 +25,9 @@
 #if defined(BLACKBOX)
 #define NAV_BLACKBOX
 #endif
+
+// Features
+#define INAV_ENABLE_AUTO_MAG_DECLINATION
 
 // Maximum number of waypoints, special waypoint 0 = home,
 #define NAV_MAX_WAYPOINTS       15
@@ -69,13 +66,16 @@ typedef enum {
 typedef struct navConfig_s {
     struct {
         uint8_t use_midrc_for_althold;      // Don't remember throttle when althold was initiated, assume that throttle is at middle = zero climb rate
-        uint8_t throttle_tilt_comp;         // Calculate and use automatic throttle tilt compensation
+        uint8_t throttle_tilt_comp;         // Forcibly apply 100% throttle tilt compensation
         uint8_t lock_nav_until_takeoff;     // Easy mode, NAV won't mess up with controls on the ground
         uint8_t user_control_mode;          // NAV_GPS_ATTI or NAV_GPS_CRUISE
         uint8_t rth_alt_control_style;      // Controls how RTH controls altitude
     } flags;
 
     struct {
+#if defined(INAV_ENABLE_AUTO_MAG_DECLINATION)
+        uint8_t automatic_mag_declination;
+#endif
         uint8_t enable_dead_reckoning;
         uint16_t gps_delay_ms;
 
@@ -96,6 +96,8 @@ typedef struct navConfig_s {
 
         float w_z_res_v;    // When velocity sources lost slowly decrease estimated velocity with this weight
         float w_xy_res_v;
+
+        float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
 
         float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
         float sonar_epv;    // Sonar position error
@@ -139,9 +141,15 @@ typedef struct {
 void navigationUsePIDs(pidProfile_t *pidProfile);
 void navigationUseConfig(navConfig_t *navConfigToUse);
 void navigationUseRcControlsConfig(rcControlsConfig_t *initialRcControlsConfig);
+void navigationUseRxConfig(rxConfig_t * initialRxConfig);
+void navigationUseEscAndServoConfig(escAndServoConfig_t * initialEscAndServoConfig);
+void navigationUseYawControlDirection(uint8_t initialYawControlDirection);
 void navigationInit(navConfig_t *initialnavConfig,
                     pidProfile_t *initialPidProfile,
-                    rcControlsConfig_t *initialRcControlsConfig);
+                    rcControlsConfig_t *initialRcControlsConfig,
+                    rxConfig_t * initialRxConfig,
+                    escAndServoConfig_t * initialEscAndServoConfig,
+                    uint8_t initialYawControlDirection);
 
 void onNewGPSData(int32_t lat, int32_t lon, int32_t alt);
 
@@ -153,7 +161,7 @@ void updateHomePosition(void);
 
 bool naivationRequiresAngleMode(void);
 bool naivationControlsHeadingNow(void);
-bool navigationControlsThrottleAngleCorrection(void);
+bool navigationRequiresThrottleTiltCompensation(void);
 
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
@@ -161,8 +169,9 @@ float getEstimatedActualPosition(int axis);
 void getWaypoint(uint8_t wpNumber, int32_t * wpLat, int32_t * wpLon, int32_t * wpAlt);
 void setWaypoint(uint8_t wpNumber, int32_t wpLat, int32_t wpLon, int32_t wpAlt);
 
-void gpsConvertGeodeticToLocal(gpsOrigin_s * origin, gpsLocation_t * llh, t_fp_vector * pos);
-void gpsConvertLocalToGeodetic(gpsOrigin_s * origin, t_fp_vector * pos, gpsLocation_t * llh);
+void geoConvertGeodeticToLocal(gpsOrigin_s * origin, gpsLocation_t * llh, t_fp_vector * pos);
+void geoConvertLocalToGeodetic(gpsOrigin_s * origin, t_fp_vector * pos, gpsLocation_t * llh);
+float geoCalculateMagDeclination(gpsLocation_t * llh); // degrees units
 
 bool canActivateForcedRTH(void);
 void activateForcedRTH(void);

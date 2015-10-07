@@ -780,11 +780,13 @@ void loop(void)
             rcCommand[YAW] = 0;
         }
 
-        // Apply manual angle correction only if nav does not override it
-        if (!navigationControlsThrottleAngleCorrection()) {
-            if (currentProfile->throttle_correction_value && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-                rcCommand[THROTTLE] += calculateThrottleAngleCorrection(currentProfile->throttle_correction_value, 
-                                                                        currentProfile->throttle_correction_angle);
+        // Apply throttle tilt compensation
+        if (!STATE(FIXED_WING)) {
+            if (navigationRequiresThrottleTiltCompensation()) {
+                rcCommand[THROTTLE] *= calculateThrottleTiltCompensationFactor(100);
+            }
+            else if (currentProfile->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+                rcCommand[THROTTLE] *= calculateThrottleTiltCompensationFactor(currentProfile->throttle_tilt_compensation_strength);
             }
         }
 

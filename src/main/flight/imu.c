@@ -47,14 +47,10 @@
 #include "config/runtime_config.h"
 
 // Velocities and accelerations in ENU coordinates
-t_fp_vector imuAverageVelocity;
-t_fp_vector imuAverageAcceleration;
-static uint32_t imuLastRefVelUpdate[XYZ_AXIS_COUNT];
+t_fp_vector imuAccelInBodyFrame;
 
 int16_t accSmooth[XYZ_AXIS_COUNT];
-
 int16_t smallAngle = 0;
-
 float magneticDeclination = 0.0f;       // calculated at startup from config
 float gyroScaleRad;
 
@@ -78,14 +74,8 @@ void imuInit(void)
     gyroScaleRad = gyro.scale * (M_PIf / 180.0f) * 0.000001f;
 
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuAverageVelocity.A[axis] = 0;
-        imuAverageAcceleration.A[axis] = 0;
+        imuAccelInBodyFrame.A[axis] = 0;
     }
-}
-
-float calculateThrottleAngleScale(uint16_t throttle_correction_angle)
-{
-    return (1800.0f / M_PIf) * (900.0f / throttle_correction_angle);
 }
 
 // **************************************************
@@ -105,35 +95,50 @@ float calculateThrottleAngleScale(uint16_t throttle_correction_angle)
 t_fp_vector EstG;
 static float cosTiltAngleZ = 1.0f;
 
-#define MAX_REF_VEL_UPDATE_INTERVAL     1000000     // 1s = 1Hz
-#define REF_VEL_DECAY_FACTOR            0.998f
 #define ACCELERATION_LPF_HZ             10
 
-void imuApplyFilterToActualVelocity(uint8_t axis, float cfFactor, float referenceVelocity)
+/* Transform vector from Forward-Right-Down to North-East-Up*/
+void imuTransformVectorBodyToEarth(t_fp_vector * v)
 {
-    // apply Complimentary Filter to keep the calculated velocity based on reference (near real) velocity.
-    imuAverageVelocity.A[axis] = imuAverageVelocity.A[axis] * cfFactor + referenceVelocity * (1.0f - cfFactor);
-    imuLastRefVelUpdate[axis] = micros();
-}
-
-// rotate acc into Earth frame and calculate acceleration in it
-static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
-{
-    static int32_t accZoffset = 0;
     fp_angles_t rpy;
-    t_fp_vector accel_ned;
 
-    // the accel values have to be rotated into the earth frame
     rpy.angles.roll = -(float)anglerad[AI_ROLL];
     rpy.angles.pitch = -(float)anglerad[AI_PITCH];
     rpy.angles.yaw = (float)heading * RAD;
 
-    accel_ned.V.X = accADC[0];
-    accel_ned.V.Y = accADC[1];
-    accel_ned.V.Z = accADC[2];
+    rotateV(&v->V, &rpy);
 
-    rotateV(&accel_ned.V, &rpy);
+    // After rotateV we actually have NWU (rotated 180deg around X axis). We need NEU coordinates, so we simply reverse Y axis
+    v->V.Y = -v->V.Y;
+}
 
+void imuTransformVectorEarthToBody(t_fp_vector * v)
+{
+    fp_angles_t rpy;
+
+    rpy.angles.roll = (float)anglerad[AI_ROLL];
+    rpy.angles.pitch = (float)anglerad[AI_PITCH];
+    rpy.angles.yaw = -(float)heading * RAD;
+
+    v->V.Y = -v->V.Y;
+
+    rotateV(&v->V, &rpy);
+}
+
+// rotate acc into Earth frame and calculate acceleration in it
+static void imuCalculateAcceleration(uint32_t deltaT)
+{
+    int axis;
+    float accDt = deltaT * 1e-6f;
+    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        // Read sensor and Convert to cm/s^2
+        float accValueCMSS = accADC[axis] * (GRAVITY_CMSS / acc_1G);
+
+        // Apply LPF to acceleration: y[i] = y[i-1] + alpha * (x[i] - y[i-1])
+        imuAccelInBodyFrame.A[axis] += (accDt / ((0.5f / (M_PIf * ACCELERATION_LPF_HZ)) + accDt)) * (accValueCMSS - imuAccelInBodyFrame.A[axis]);
+    }
+
+    /*
     if (imuRuntimeConfig->acc_unarmedcal == 1) {
         if (!ARMING_FLAG(ARMED)) {
             accZoffset -= accZoffset / 64;
@@ -142,28 +147,7 @@ static void imuCalculateAccelerationAndVelocity(uint32_t deltaT)
         accel_ned.V.Z -= accZoffset / 64;  // compensate for gravitation on z-axis
     } else
         accel_ned.V.Z -= acc_1G;
-
-    // FIXME: accel_ned is actually not NED, but NWU (rotated 180deg around X axis). We need NEU coordinates, so we simply reverse Y axis
-    accel_ned.V.Y = -accel_ned.V.Y;
-
-    // Calculate acceleration and velocity based on IMU data
-    int axis;
-    float accDt = deltaT * 1e-6f;
-    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        // Convert to cm/s^2
-        float accValueCMSS = accel_ned.A[axis] * (100.0f * 9.80665f / acc_1G);
-
-        // Apply LPF to acceleration: y[i] = y[i-1] + alpha * (x[i] - y[i-1])
-        imuAverageAcceleration.A[axis] += (accDt / ((0.5f / (M_PIf * ACCELERATION_LPF_HZ)) + accDt)) * (accValueCMSS - imuAverageAcceleration.A[axis]);
-
-        // Integrate acceleration to get velocity
-        imuAverageVelocity.A[axis] += imuAverageAcceleration.A[axis] * accDt;
-
-        // If reference was updated far in the past - decay to zero. This provides somewhat accurate result in short-term perspective, but prevents accumulation of integration error
-        if ((micros() - imuLastRefVelUpdate[axis]) > MAX_REF_VEL_UPDATE_INTERVAL) {
-            imuAverageVelocity.A[axis] = imuAverageVelocity.A[axis] * REF_VEL_DECAY_FACTOR;
-        }
-    }
+    */
 }
 
 /*
@@ -295,7 +279,7 @@ static void imuCalculateEstimatedAttitude(void)
         heading = imuCalculateHeading(&EstN);
     }
 
-    imuCalculateAccelerationAndVelocity(deltaT); // rotate acc vector into earth frame
+    imuCalculateAcceleration(deltaT);
 }
 
 void imuUpdate(rollAndPitchTrims_t *accelerometerTrims)
@@ -317,18 +301,13 @@ float calculateCosTiltAngle(void)
     return cosTiltAngleZ;
 }
 
-int16_t calculateTiltAngle(void)
+float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompensationStrength)
 {
-    return lrintf(fabsf(acos_approx(cosTiltAngleZ) * (1800.0f / M_PIf)));
-}
-
-int16_t calculateThrottleAngleCorrection(uint8_t throttle_correction_value, int16_t throttle_correction_angle)
-{
-    if (cosTiltAngleZ <= 0.015f)
-        return 0;
-
-    int angle = lrintf(acos_approx(cosTiltAngleZ) * calculateThrottleAngleScale(throttle_correction_angle));
-    if (angle > 900)
-        angle = 900;
-    return lrintf(throttle_correction_value * sin_approx((angle / 900.0f) * (M_PIf / 2.0f)));
+    if (throttleTiltCompensationStrength && cosTiltAngleZ >= 0.6f) {
+        float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
+        return 1.0f + (tiltCompFactor - 1.0f) * (throttleTiltCompensationStrength / 100.f);
+    }
+    else {
+        return 1.0f;
+    }
 }

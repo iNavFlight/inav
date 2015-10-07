@@ -24,49 +24,24 @@
 #include "debug.h"
 
 #include "common/axis.h"
-#include "common/color.h"
 #include "common/maths.h"
 
-#include "drivers/sensor.h"
 #include "drivers/system.h"
-#include "drivers/gpio.h"
-#include "drivers/timer.h"
-#include "drivers/serial.h"
+#include "drivers/sensor.h"
 #include "drivers/accgyro.h"
-#include "drivers/compass.h"
-#include "drivers/pwm_rx.h"
-
-#include "rx/rx.h"
 
 #include "sensors/sensors.h"
-#include "sensors/sonar.h"
-#include "sensors/barometer.h"
-#include "sensors/compass.h"
 #include "sensors/acceleration.h"
-#include "sensors/gyro.h"
-#include "sensors/battery.h"
 #include "sensors/boardalignment.h"
-
-#include "io/serial.h"
-#include "io/gps.h"
-#include "io/gimbal.h"
-#include "io/ledstrip.h"
-
-#include "telemetry/telemetry.h"
-#include "blackbox/blackbox.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/mixer.h"
-#include "flight/failsafe.h"
-#include "flight/gps_conversion.h"
 #include "flight/navigation_rewrite.h"
 #include "flight/navigation_rewrite_private.h"
 
 #include "config/runtime_config.h"
 #include "config/config.h"
-#include "config/config_profile.h"
-#include "config/config_master.h"
+
 
 #if defined(NAV)
 
@@ -86,6 +61,18 @@ uint16_t navFlags;
 #endif
 
 static navigationMode_t selectNavModeFromBoxModeInput(void);
+
+bool updateTimer(navigationTimer_t * tim, uint32_t interval, uint32_t currentTime)
+{
+    if ((currentTime - tim->lastTriggeredTime) >= interval) {
+        tim->deltaTime = currentTime - tim->lastTriggeredTime;
+        tim->lastTriggeredTime = currentTime;
+        return true;
+    }
+    else {
+        return false;
+    }
+}
 
 /*-----------------------------------------------------------
  * A simple 1-st order LPF filter implementation
@@ -196,6 +183,16 @@ bool isThrustFacingDownwards(rollAndPitchInclination_t *inclination)
 }
 
 /*-----------------------------------------------------------
+ * Processes an update to XYZ-acceleration
+ *-----------------------------------------------------------*/
+void updateActualAcceleration(float accX, float accY, float accZ)
+{
+    posControl.actualState.acc.V.X = accX;
+    posControl.actualState.acc.V.Y = accY;
+    posControl.actualState.acc.V.Z = accZ;
+}
+
+/*-----------------------------------------------------------
  * Processes an update to XY-position and velocity
  *-----------------------------------------------------------*/
 void updateActualHorizontalPositionAndVelocity(float newX, float newY, float newVelX, float newVelY)
@@ -281,38 +278,6 @@ bool isWaypointReached(navWaypointPosition_t *waypoint)
 }
 
 /*-----------------------------------------------------------
- * Coordinate conversions
- *-----------------------------------------------------------*/
-void gpsConvertGeodeticToLocal(gpsOrigin_s * origin, gpsLocation_t * llh, t_fp_vector * pos)
-{
-    if (!origin->valid) {
-        origin->valid = true;
-        origin->lat = llh->lat;
-        origin->lon = llh->lon;
-        origin->alt = llh->alt;
-        origin->scale = constrainf(cos_approx((ABS(origin->lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-    }
-
-    pos->V.X = (llh->lat - origin->lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-    pos->V.Y = (llh->lon - origin->lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * origin->scale);
-    pos->V.Z = (llh->alt - origin->alt);
-}
-
-void gpsConvertLocalToGeodetic(gpsOrigin_s * origin, t_fp_vector * pos, gpsLocation_t * llh)
-{
-    if (origin->valid) {
-        llh->lat = origin->lat + lrintf(pos->V.X / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
-        llh->lon = origin->lon + lrintf(pos->V.Y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * origin->scale));
-        llh->alt = origin->alt + lrintf(pos->V.Z);
-    }
-    else {
-        llh->lat = 0;
-        llh->lon = 0;
-        llh->alt = 0;
-    }
-}
-
-/*-----------------------------------------------------------
  * Compatibility for home position
  *-----------------------------------------------------------*/
 gpsLocation_t GPS_home;
@@ -321,7 +286,7 @@ int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 static void updateHomePositionCompatibility(void)
 {
-    gpsConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.homePosition.pos, &GPS_home);
+    geoConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.homePosition.pos, &GPS_home);
     GPS_distanceToHome = posControl.homeDistance / 100;
     GPS_directionToHome = posControl.homeDirection / 100;
 }
@@ -331,19 +296,17 @@ static void updateHomePositionCompatibility(void)
  *-----------------------------------------------------------*/
 void setHomePosition(t_fp_vector * pos, int32_t yaw)
 {
-    if (STATE(GPS_FIX) && GPS_numSat >= 5) {
-        posControl.homePosition.pos = *pos;
-        posControl.homePosition.yaw = yaw;
-        posControl.homeDistance = 0;
-        posControl.homeDirection = 0;
+    posControl.homePosition.pos = *pos;
+    posControl.homePosition.yaw = yaw;
+    posControl.homeDistance = 0;
+    posControl.homeDirection = 0;
 
-        // Update target RTH altitude as a waypoint above home
-        posControl.homeWaypointAbove = posControl.homePosition;
-        setupAutonomousControllerRTH();
+    // Update target RTH altitude as a waypoint above home
+    posControl.homeWaypointAbove = posControl.homePosition;
+    setupAutonomousControllerRTH();
 
-        updateHomePositionCompatibility();
-        ENABLE_STATE(GPS_FIX_HOME);
-    }
+    updateHomePositionCompatibility();
+    ENABLE_STATE(GPS_FIX_HOME);
 }
 
 /*-----------------------------------------------------------
@@ -352,15 +315,21 @@ void setHomePosition(t_fp_vector * pos, int32_t yaw)
 void updateHomePosition(void)
 {
     // Disarmed and have a valid position, constantly update home
-    if (!ARMING_FLAG(ARMED) && posControl.flags.hasValidPositionSensor) {
-        setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw);
+    if (!ARMING_FLAG(ARMED)) {
+        if (posControl.flags.hasValidPositionSensor) {
+            setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw);
+        }
+        else {
+            DISABLE_STATE(GPS_FIX_HOME);
+        }
     }
-
-    // Update distance and direction to home
-    if (STATE(GPS_FIX_HOME)) {
-        posControl.homeDistance = calculateDistanceToDestination(&posControl.homePosition.pos);
-        posControl.homeDirection = calculateBearingToDestination(&posControl.homePosition.pos);
-        updateHomePositionCompatibility();
+    else {
+        // Update distance and direction to home if armed (home is not updated when armed)
+        if (STATE(GPS_FIX_HOME)) {
+            posControl.homeDistance = calculateDistanceToDestination(&posControl.homePosition.pos);
+            posControl.homeDirection = calculateBearingToDestination(&posControl.homePosition.pos);
+            updateHomePositionCompatibility();
+        }
     }
 }
 
@@ -497,6 +466,16 @@ static void applyPositionController(uint32_t currentTime)
     }
 }
 
+static void updatePlatformSpecificData(uint32_t currentTime)
+{
+    if (STATE(FIXED_WING)) {
+        updateFixedWingSpecificData(currentTime);
+    }
+    else {
+        updateMulticopterSpecificData(currentTime);
+    }
+}
+
 /*-----------------------------------------------------------
  * WP controller
  *-----------------------------------------------------------*/
@@ -529,12 +508,12 @@ void getWaypoint(uint8_t wpNumber, int32_t * wpLat, int32_t * wpLon, int32_t * w
     }
     // WP #255 - special waypoint - directly get actualPosition
     else if (wpNumber == 255) {
-        gpsConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.actualState.pos, &wpLLH);
+        geoConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.actualState.pos, &wpLLH);
     }
     // WP #1 - #15 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {
         if (wpNumber <= posControl.waypointCount) {
-            gpsConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.waypointList[wpNumber - 1].pos, &wpLLH);
+            geoConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.waypointList[wpNumber - 1].pos, &wpLLH);
         }
     }
 
@@ -549,14 +528,14 @@ void setWaypoint(uint8_t wpNumber, int32_t wpLat, int32_t wpLon, int32_t wpAlt)
     navWaypointPosition_t wpPos;
 
     // Ignore mission updates if position estimator is not ready yet
-    if (!(STATE(GPS_FIX) && GPS_numSat >= 5))
+    if (posControl.flags.hasValidPositionSensor)
         return;
 
     // Convert to local coordinates
     wpLLH.lat = wpLat;
     wpLLH.lon = wpLon;
     wpLLH.alt = wpAlt;
-    gpsConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos);
+    geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos);
     wpPos.yaw = 0;  // FIXME
 
     // WP #0 - special waypoint - HOME
@@ -631,7 +610,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     if (!posControl.enabled) {
         if (posControl.navConfig->flags.lock_nav_until_takeoff) {
             if (posControl.navConfig->flags.use_midrc_for_althold) {
-                if (rcCommand[THROTTLE] > (masterConfig.rxConfig.midrc + posControl.navConfig->alt_hold_deadband)) {
+                if (rcCommand[THROTTLE] > (posControl.rxConfig->midrc + posControl.navConfig->alt_hold_deadband)) {
                     resetNavigation();
                     posControl.enabled = true;
                 }
@@ -653,7 +632,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     if (!posControl.enabled) {
         // If lock_nav_until_takeoff & some NAV mode enabled, lock throttle to minimum, prevent accidental takeoff
         if ((selectNavModeFromBoxModeInput() != NAV_MODE_NONE) && posControl.navConfig->flags.lock_nav_until_takeoff) { // && posControl.navConfig->flags.use_midrc_for_althold
-            rcCommand[THROTTLE] = masterConfig.escAndServoConfig.minthrottle;
+            rcCommand[THROTTLE] = posControl.escAndServoConfig->minthrottle;
         }
         return;
     }
@@ -676,6 +655,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
             applyHeadingController();
         }
     }
+
+    // Update some platform-specific parameters, unknown to position estimator, i.e. hover throttle
+    updatePlatformSpecificData(currentTime);
 
 #if defined(NAV_BLACKBOX)
     navFlags = 0;
@@ -801,11 +783,11 @@ static navigationMode_t selectNavModeFromBoxModeInput(void)
 }
 
 /*-----------------------------------------------------------
- * An indicator that throttle tilt compensation for multirotors is controlled by NAV
+ * An indicator that throttle tilt compensation is forced
  *-----------------------------------------------------------*/
-bool navigationControlsThrottleAngleCorrection(void)
+bool navigationRequiresThrottleTiltCompensation(void)
 {
-    return posControl.navConfig->flags.throttle_tilt_comp && navShouldApplyAltHold();
+    return !STATE(FIXED_WING) && posControl.navConfig->flags.throttle_tilt_comp;
 }
 
 /*-----------------------------------------------------------
@@ -899,6 +881,9 @@ void updateWaypointsAndNavigationMode(void)
         }
     }
 
+    // Initiate home position update
+    updateHomePosition();
+
     // Map navMode back to enabled flight modes
     swithNavigationFlightModes(posControl.mode);
 
@@ -921,6 +906,21 @@ void navigationUseConfig(navConfig_t *navConfigToUse)
 void navigationUseRcControlsConfig(rcControlsConfig_t *initialRcControlsConfig)
 {
     posControl.rcControlsConfig = initialRcControlsConfig;
+}
+
+void navigationUseRxConfig(rxConfig_t * initialRxConfig)
+{
+    posControl.rxConfig = initialRxConfig;
+}
+
+void navigationUseEscAndServoConfig(escAndServoConfig_t * initialEscAndServoConfig)
+{
+    posControl.escAndServoConfig = initialEscAndServoConfig;
+}
+
+void navigationUseYawControlDirection(uint8_t initialYawControlDirection)
+{
+    posControl.yawControlDirection = initialYawControlDirection;
 }
 
 void navigationUsePIDs(pidProfile_t *initialPidProfile)
@@ -955,7 +955,10 @@ void navigationUsePIDs(pidProfile_t *initialPidProfile)
 
 void navigationInit(navConfig_t *initialnavConfig,
                     pidProfile_t *initialPidProfile,
-                    rcControlsConfig_t *initialRcControlsConfig)
+                    rcControlsConfig_t *initialRcControlsConfig,
+                    rxConfig_t * initialRxConfig,
+                    escAndServoConfig_t * initialEscAndServoConfig,
+                    uint8_t initialYawControlDirection)
 {
     /* Initial state */
     posControl.enabled = 0;
@@ -972,6 +975,9 @@ void navigationInit(navConfig_t *initialnavConfig,
     navigationUseConfig(initialnavConfig);
     navigationUsePIDs(initialPidProfile);
     navigationUseRcControlsConfig(initialRcControlsConfig);
+    navigationUseRxConfig(initialRxConfig);
+    navigationUseEscAndServoConfig(initialEscAndServoConfig);
+    navigationUseYawControlDirection(initialYawControlDirection);
 }
 
 /*-----------------------------------------------------------
@@ -985,6 +991,33 @@ float getEstimatedActualVelocity(int axis)
 float getEstimatedActualPosition(int axis)
 {
     return posControl.actualState.pos.A[axis];
+}
+
+/*-----------------------------------------------------------
+ * Interface with PIDs: Angle-Command transformation
+ *-----------------------------------------------------------*/
+int16_t rcCommandToLeanAngle(int16_t rcCommand)
+{
+    if (posControl.pidProfile->pidController == PID_CONTROLLER_LUX_FLOAT) {
+        // LuxFloat is the only PID controller that uses raw rcCommand as target angle
+        return rcCommand;
+    }
+    else {
+        // Most PID controllers use 2 * rcCommand as target angle for ANGLE mode
+        return rcCommand * 2;
+    }
+}
+
+int16_t leanAngleToRcCommand(int16_t leanAngle)
+{
+    if (posControl.pidProfile->pidController == PID_CONTROLLER_LUX_FLOAT) {
+        // LuxFloat is the only PID controller that uses raw rcCommand as target angle
+        return leanAngle;
+    }
+    else {
+        // Most PID controllers use 2 * rcCommand as target angle for ANGLE mode
+        return leanAngle / 2;
+    }
 }
 
 /*-----------------------------------------------------------

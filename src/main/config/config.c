@@ -159,9 +159,9 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[PIDPOS] = 15;    // NAV_POS_XY_P * 100
     pidProfile->I8[PIDPOS] = 0;     // not used
     pidProfile->D8[PIDPOS] = 0;     // not used
-    pidProfile->P8[PIDPOSR] = 90;   // NAV_VEL_XY_P * 100
-    pidProfile->I8[PIDPOSR] = 15;   // NAV_VEL_XY_I * 100
-    pidProfile->D8[PIDPOSR] = 1;    // NAV_VEL_XY_D * 1000
+    pidProfile->P8[PIDPOSR] = 70;   // NAV_VEL_XY_P * 100
+    pidProfile->I8[PIDPOSR] = 20;   // NAV_VEL_XY_I * 100
+    pidProfile->D8[PIDPOSR] = 0;    // NAV_VEL_XY_D * 1000
     pidProfile->P8[PIDNAVR] = 0;    // not used
     pidProfile->I8[PIDNAVR] = 0;    // not used
     pidProfile->D8[PIDNAVR] = 0;    // not used
@@ -217,6 +217,9 @@ void resetNavConfig(navConfig_t * navConfig)
     navConfig->flags.rth_alt_control_style = NAV_RTH_AT_LEAST_ALT;
 
     // Inertial position estimator parameters
+#if defined(INAV_ENABLE_AUTO_MAG_DECLINATION)
+    navConfig->inav.automatic_mag_declination = 1;
+#endif
     navConfig->inav.enable_dead_reckoning = 0;
     navConfig->inav.gps_delay_ms = 200;
 
@@ -238,6 +241,8 @@ void resetNavConfig(navConfig_t * navConfig)
     navConfig->inav.w_z_res_v = 0.5f;
     navConfig->inav.w_xy_res_v = 0.5f;
 
+    navConfig->inav.w_acc_bias = 0.05f;
+
     navConfig->inav.max_eph_epv = 1000.0f;
     navConfig->inav.sonar_epv = 20.0f;
     navConfig->inav.baro_epv = 100.0f;
@@ -246,7 +251,7 @@ void resetNavConfig(navConfig_t * navConfig)
     navConfig->waypoint_radius = 300;
     navConfig->pterm_cut_hz = 20;
     navConfig->dterm_cut_hz = 15;
-    navConfig->max_speed = 500;
+    navConfig->max_speed = 250;
     navConfig->max_manual_speed = 500;
     navConfig->max_manual_climb_rate = 200;
     navConfig->min_rth_distance = 500;   // If closer than 5m - land immediately
@@ -533,8 +538,7 @@ static void resetConf(void)
 
     resetRcControlsConfig(&currentProfile->rcControlsConfig);
 
-    currentProfile->throttle_correction_value = 0;      // could 10 with althold or 40 for fpv
-    currentProfile->throttle_correction_angle = 800;    // could be 80.0 deg with atlhold or 45.0 for fpv
+    currentProfile->throttle_tilt_compensation_strength = 0;      // 0-100, 0 - disabled
 
     // Failsafe Variables
     masterConfig.failsafeConfig.failsafe_delay = 10;              // 1sec
@@ -778,6 +782,9 @@ void activateConfig(void)
     navigationUseConfig(&masterConfig.navConfig);
     navigationUsePIDs(&currentProfile->pidProfile);
     navigationUseRcControlsConfig(&currentProfile->rcControlsConfig);
+    navigationUseRxConfig(&masterConfig.rxConfig);
+    navigationUseEscAndServoConfig(&masterConfig.escAndServoConfig);
+    navigationUseYawControlDirection(masterConfig.yaw_control_direction);
 #endif
 
 #ifdef BARO

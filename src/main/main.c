@@ -418,7 +418,10 @@ void init(void)
         navigationInit(
             &masterConfig.navConfig,
             &currentProfile->pidProfile,
-            &currentProfile->rcControlsConfig
+            &currentProfile->rcControlsConfig,
+            &masterConfig.rxConfig,
+            &masterConfig.escAndServoConfig,
+            masterConfig.yaw_control_direction
         );
 #endif
     }
