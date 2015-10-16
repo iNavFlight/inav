@@ -207,12 +207,6 @@ void processRcStickPositions(rxConfig_t *rxConfig, throttleStatus_e throttleStat
         return;
     }
 
-    if (feature(FEATURE_INFLIGHT_ACC_CAL) && (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_HI)) {
-        // Inflight ACC Calibration
-        handleInflightCalibrationStickPosition();
-        return;
-    }
-
     // Multiple configuration profiles
     if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
         i = 1;
@@ -259,27 +253,21 @@ void processRcStickPositions(rxConfig_t *rxConfig, throttleStatus_e throttleStat
 
 
     // Accelerometer Trim
-
-    rollAndPitchTrims_t accelerometerTrimsDelta;
-    memset(&accelerometerTrimsDelta, 0, sizeof(accelerometerTrimsDelta));
-
-    bool shouldApplyRollAndPitchTrimDelta = false;
     if (rcSticks == THR_HI + YAW_CE + PIT_HI + ROL_CE) {
-        accelerometerTrimsDelta.values.pitch = 2;
-        shouldApplyRollAndPitchTrimDelta = true;
+        applyAndSaveBoardAlignmentDelta(0, -2);
+        rcDelayCommand = 10;
+        return;
     } else if (rcSticks == THR_HI + YAW_CE + PIT_LO + ROL_CE) {
-        accelerometerTrimsDelta.values.pitch = -2;
-        shouldApplyRollAndPitchTrimDelta = true;
+        applyAndSaveBoardAlignmentDelta(0, 2);
+        rcDelayCommand = 10;
+        return;
     } else if (rcSticks == THR_HI + YAW_CE + PIT_CE + ROL_HI) {
-        accelerometerTrimsDelta.values.roll = 2;
-        shouldApplyRollAndPitchTrimDelta = true;
+        applyAndSaveBoardAlignmentDelta(-2, 0);
+        rcDelayCommand = 10;
+        return;
     } else if (rcSticks == THR_HI + YAW_CE + PIT_CE + ROL_LO) {
-        accelerometerTrimsDelta.values.roll = -2;
-        shouldApplyRollAndPitchTrimDelta = true;
-    }
-    if (shouldApplyRollAndPitchTrimDelta) {
-        applyAndSaveAccelerometerTrimsDelta(&accelerometerTrimsDelta);
-        rcDelayCommand = 0; // allow autorepetition
+        applyAndSaveBoardAlignmentDelta(2, 0);
+        rcDelayCommand = 10;
         return;
     }
 

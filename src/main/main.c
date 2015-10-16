@@ -121,6 +121,7 @@ void loop(void);
 void spektrumBind(rxConfig_t *rxConfig);
 const sonarHardware_t *sonarGetHardwareConfiguration(batteryConfig_t *batteryConfig);
 void sonarInit(const sonarHardware_t *sonarHardware);
+void selectFIRFilterFromLooptime(void);
 
 #ifdef STM32F303xC
 // from system_stm32f30x.c
@@ -420,8 +421,7 @@ void init(void)
             &currentProfile->pidProfile,
             &currentProfile->rcControlsConfig,
             &masterConfig.rxConfig,
-            &masterConfig.escAndServoConfig,
-            masterConfig.yaw_control_direction
+            &masterConfig.escAndServoConfig
         );
 #endif
     }
@@ -512,6 +512,9 @@ void init(void)
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     motorControlEnable = true;
+
+    // Select appropriate FIR filter
+    selectFIRFilterFromLooptime();
 
     systemState |= SYSTEM_STATE_READY;
 }

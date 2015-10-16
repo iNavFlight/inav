@@ -180,6 +180,8 @@
 #define USE_SERVOS
 #define USE_CLI
 
+#define SKIP_CLI_COMMAND_HELP
+
 #define SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PORT  GPIOA

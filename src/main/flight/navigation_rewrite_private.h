@@ -20,19 +20,15 @@
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
 
 #define LAND_DETECTOR_TRIGGER_TIME_MS       2000
-
-#define RADX100                             0.000174532925f
-#define NAV_ROLL_PITCH_MAX                  (30 * 100) // Max control input from NAV (30 deg)
-#define NAV_ROLL_PITCH_MAX_FW               (15 * 100) // Max control input from NAV-FW (15 deg)
+#define NAV_ROLL_PITCH_MAX_DECIDEGREES      (30 * 10)      // Max control input from NAV (30 deg)
 
 #define POSITION_TARGET_UPDATE_RATE_HZ      5       // Rate manual position target update (minumum possible speed in cms will be this value)
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 
-#define NAV_VEL_ERROR_CUTOFF_FREQENCY_HZ    4       // low-pass filter on Z-velocity error
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     2       // low-pass filter on throttle output
 #define NAV_ACCEL_CUTOFF_FREQUENCY_HZ       2       // low-pass filter on XY-acceleration target
 
-#define NAV_FW_VEL_CUTOFF_FREQENCY_HZ       1       // low-pass filter on Z-velocity for fixed wing
+#define NAV_FW_VEL_CUTOFF_FREQENCY_HZ       2       // low-pass filter on Z-velocity for fixed wing
 
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 #define NAV_ACCEL_SLOW_XY_MAX               550.0f  // cm/s/s       // approx 29 deg lean angle
@@ -40,6 +36,7 @@
 #define HZ2US(hz)   (1000000 / (hz))
 #define US2S(us)    ((us) * 1e-6f)
 #define MS2US(ms)   ((ms) * 1000)
+#define HZ2S(hz)    US2S(HZ2US(hz))
 
 // FIXME: Make this configurable, default to about 5% highet than minthrottle
 #define minFlyableThrottle  (posControl.escAndServoConfig->minthrottle + (posControl.escAndServoConfig->maxthrottle - posControl.escAndServoConfig->minthrottle) * 5 / 100)
@@ -87,6 +84,7 @@ typedef enum navAutonomousMissionState_e {
     NAV_AUTO_RTH_INIT = 0,
     NAV_AUTO_RTH_CLIMB_TO_SAVE_ALTITUDE,
     NAV_AUTO_RTH_HEAD_HOME,
+    NAV_AUTO_RTH_AUTOLAND_INIT,
     // Waypoint mission mode
     NAV_AUTO_WP_INIT,
     NAV_AUTO_WP,
@@ -108,14 +106,19 @@ typedef enum {
 } navSetWaypointFlags_t;
 
 typedef struct navigationFlags_s {
-    bool verticalPositionNewData;
     bool horizontalPositionNewData;
+    bool verticalPositionNewData;
+    bool surfaceDistanceNewData;
     bool headingNewData;
+
     bool hasValidAltitudeSensor;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
     bool hasValidPositionSensor;        // Indicates that GPS is working (or not)
+    bool hasValidSurfaceSensor;
+
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
     bool isAdjustingHeading;
+
     bool forcedRTHActivated;
 } navigationFlags_t;
 
@@ -128,7 +131,7 @@ typedef struct {
     float kP;
     float kI;
     float kD;
-    float Imax;
+    float kT;   // Tracking gain (anti-windup)
 } pidControllerParam_t;
 
 typedef struct {
@@ -137,14 +140,9 @@ typedef struct {
 
 typedef struct {
     pidControllerParam_t param;
+    filterStatePt1_t dterm_filter_state;  // last derivative for low-pass filter
     float integrator;       // integrator value
-    float last_error;       // last input for derivative
-    float pterm_filter_state;
-    float dterm_filter_state;  // last derivative for low-pass filter
-
-#if defined(NAV_BLACKBOX)
-    float lastP, lastI, lastD;
-#endif
+    float last_input;       // last input for derivative
 } pidController_t;
 
 typedef struct {
@@ -156,24 +154,29 @@ typedef struct {
 } pController_t;
 
 typedef struct navigationPIDControllers_s {
+    /* Multicopter PIDs */
     pController_t   pos[XYZ_AXIS_COUNT];
     pidController_t vel[XYZ_AXIS_COUNT];
-    pidController_t accz;
-    pController_t   heading;
+
+    /* Fixed-wing PIDs */
+    pidController_t fw_alt;
+    pidController_t fw_nav;
 } navigationPIDControllers_t;
 
 typedef struct {
     t_fp_vector pos;
     t_fp_vector vel;
-    t_fp_vector acc;
     int32_t     yaw;
+    float       sinYaw;
+    float       cosYaw;
+    float       surface;
 } navigationEstimatedState_t;
 
 typedef struct {
     t_fp_vector pos;
     t_fp_vector vel;
-    t_fp_vector acc;
     int32_t     yaw;
+    float       surface;
 } navigationDesiredState_t;
 
 typedef struct {
@@ -213,7 +216,6 @@ typedef struct {
     pidProfile_t *              pidProfile;
     rxConfig_t *                rxConfig;
     escAndServoConfig_t *       escAndServoConfig;
-    int8_t                      yawControlDirection;
 } navigationPosControl_t;
 
 extern navigationPosControl_t posControl;
@@ -224,32 +226,31 @@ bool updateTimer(navigationTimer_t * tim, uint32_t interval, uint32_t currentTim
 #define getTimerDeltaMicros(tim) ((tim)->deltaTime)
 
 /* Internally used functions */
-float navApplyFilter(float input, float fCut, float dT, float * state);
-float navPidGetP(float error, float dt, pidController_t *pid);
-float navPidGetI(float error, float dt, pidController_t *pid, bool onlyShrinkI);
-float navPidGetD(float error, float dt, pidController_t *pid);
-float navPidGetPID(float error, float dt, pidController_t *pid, bool onlyShrinkI);
+float navPidApply2(float setpoint, float measurement, float dt, pidController_t *pid, float outMin, float outMax);
 void navPidReset(pidController_t *pid);
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _Imax);
+void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD);
 void navPInit(pController_t *p, float _kP);
 
 bool isThrustFacingDownwards(void);
-void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate);
+void updateAltitudeTargetFromClimbRate(float climbRate);
 uint32_t calculateDistanceToDestination(t_fp_vector * destinationPos);
 int32_t calculateBearingToDestination(t_fp_vector * destinationPos);
 void resetLandingDetector(void);
 bool isLandingDetected(void);
 void setHomePosition(t_fp_vector * pos, int32_t yaw);
 void setDesiredPosition(t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask);
-bool isWaypointReached(navWaypointPosition_t *waypoint);
+void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
+bool isWaypointReached(navWaypointPosition_t * waypoint);
+bool isWaypointMissed(navWaypointPosition_t * waypoint);
+bool isApproachingLastWaypoint(void);
 
 int16_t rcCommandToLeanAngle(int16_t rcCommand);
 int16_t leanAngleToRcCommand(int16_t leanAngle);
 
-void updateActualAcceleration(float accX, float accY, float accZ);
-void updateActualHorizontalPositionAndVelocity(float newX, float newY, float newVelX, float newVelY);
-void updateActualAltitudeAndClimbRate(float newAltitude, float newVelocity);
 void updateActualHeading(int32_t newHeading);
+void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, float newY, float newVelX, float newVelY);
+void updateActualAltitudeAndClimbRate(bool hasValidSensor, float newAltitude, float newVelocity);
+void updateActualSurfaceDistance(bool hasValidSensor, float surfaceDistance);
 
 /* Autonomous navigation functions */
 void setupAutonomousControllerRTH(void);
@@ -267,7 +268,6 @@ void resetMulticopterPositionController(void);
 void applyMulticopterPositionController(uint32_t currentTime);
 void applyMulticopterEmergencyLandingController(void);
 bool isMulticopterLandingDetected(uint32_t * landingTimer);
-void updateMulticopterSpecificData(uint32_t currentTime);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
@@ -279,4 +279,3 @@ void resetFixedWingPositionController(void);
 void applyFixedWingPositionController(uint32_t currentTime);
 void applyFixedWingEmergencyLandingController(void);
 bool isFixedWingLandingDetected(uint32_t * landingTimer);
-void updateFixedWingSpecificData(uint32_t currentTime);

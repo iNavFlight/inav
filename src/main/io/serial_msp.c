@@ -338,7 +338,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXLEDMAX, "LEDMAX;", 14 },
     { BOXLEDLOW, "LEDLOW;", 15 },
     { BOXLLIGHTS, "LLIGHTS;", 16 },
-    { BOXCALIB, "CALIB;", 17 },
+    //{ BOXCALIB, "CALIB;", 17 },
     { BOXGOV, "GOVERNOR;", 18 },
     { BOXOSD, "OSD SW;", 19 },
     { BOXTELEMETRY, "TELEMETRY;", 20 },
@@ -652,7 +652,7 @@ void mspInit(serialConfig_t *serialConfig)
 #ifdef GPS
     bool isFixedWing = masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE;
 
-    if (sensors(SENSOR_BARO) || sensors(SENSOR_SONAR) || (isFixedWing && feature(FEATURE_GPS))) {
+    if (sensors(SENSOR_BARO) || (isFixedWing && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
     }
     if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (isFixedWing && feature(FEATURE_GPS)) || (sensors(SENSOR_ACC) && masterConfig.navConfig.inav.enable_dead_reckoning)) {
@@ -664,7 +664,7 @@ void mspInit(serialConfig_t *serialConfig)
     }
 #endif
 
-    if (masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE)
+    if (masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE)
         activeBoxIds[activeBoxIdCount++] = BOXPASSTHRU;
 
     activeBoxIds[activeBoxIdCount++] = BOXBEEPERON;
@@ -674,9 +674,6 @@ void mspInit(serialConfig_t *serialConfig)
         activeBoxIds[activeBoxIdCount++] = BOXLEDLOW;
     }
 #endif
-
-    if (feature(FEATURE_INFLIGHT_ACC_CAL))
-        activeBoxIds[activeBoxIdCount++] = BOXCALIB;
 
     activeBoxIds[activeBoxIdCount++] = BOXOSD;
 
@@ -823,7 +820,6 @@ static bool processOutCommand(uint8_t cmdMSP)
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDMAX)) << BOXLEDMAX |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)) << BOXLEDLOW |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLLIGHTS)) << BOXLLIGHTS |
-            IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCALIB)) << BOXCALIB |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGOV)) << BOXGOV |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSD)) << BOXOSD |
             IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTELEMETRY)) << BOXTELEMETRY |
@@ -1117,13 +1113,6 @@ static bool processOutCommand(uint8_t cmdMSP)
             serialize16(debug[i]);      // 4 variables are here for general monitoring purpose
         break;
 
-    // Additional commands that are not compatible with MultiWii
-    case MSP_ACC_TRIM:
-        headSerialReply(4);
-        serialize16(currentProfile->accelerometerTrims.values.pitch);
-        serialize16(currentProfile->accelerometerTrims.values.roll);
-        break;
-
     case MSP_UID:
         headSerialReply(12);
         serialize32(U_ID_0);
@@ -1138,9 +1127,9 @@ static bool processOutCommand(uint8_t cmdMSP)
 
     case MSP_BOARD_ALIGNMENT:
         headSerialReply(6);
-        serialize16(masterConfig.boardAlignment.rollDegrees);
-        serialize16(masterConfig.boardAlignment.pitchDegrees);
-        serialize16(masterConfig.boardAlignment.yawDegrees);
+        serialize16(masterConfig.boardAlignment.rollDeciDegrees);
+        serialize16(masterConfig.boardAlignment.pitchDeciDegrees);
+        serialize16(masterConfig.boardAlignment.yawDeciDegrees);
         break;
 
     case MSP_VOLTAGE_METER_CONFIG:
@@ -1209,9 +1198,9 @@ static bool processOutCommand(uint8_t cmdMSP)
 
         serialize8(masterConfig.rxConfig.serialrx_provider);
 
-        serialize16(masterConfig.boardAlignment.rollDegrees);
-        serialize16(masterConfig.boardAlignment.pitchDegrees);
-        serialize16(masterConfig.boardAlignment.yawDegrees);
+        serialize16(masterConfig.boardAlignment.rollDeciDegrees);
+        serialize16(masterConfig.boardAlignment.pitchDeciDegrees);
+        serialize16(masterConfig.boardAlignment.yawDeciDegrees);
 
         serialize16(masterConfig.batteryConfig.currentMeterScale);
         serialize16(masterConfig.batteryConfig.currentMeterOffset);
@@ -1333,10 +1322,6 @@ static bool processInCommand(void)
                 rxMspFrameReceive(frame, channelCount);
             }
         }
-        break;
-    case MSP_SET_ACC_TRIM:
-        currentProfile->accelerometerTrims.values.pitch = read16();
-        currentProfile->accelerometerTrims.values.roll  = read16();
         break;
     case MSP_SET_ARMING_CONFIG:
         masterConfig.auto_disarm_delay = read8();
@@ -1552,7 +1537,7 @@ static bool processInCommand(void)
         GPS_altitude = read16();
         GPS_speed = read16();
         // Feed data to navigation
-        onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude);
+        onNewGPSData(GPS_coord[LAT], GPS_coord[LON], GPS_altitude, 0, 0, 0, false, false, 9999);
         break;
     case MSP_SET_WP:
         msp_wp.wp_no = read8();     // get the wp number
@@ -1573,9 +1558,9 @@ static bool processInCommand(void)
         break;
 
     case MSP_SET_BOARD_ALIGNMENT:
-        masterConfig.boardAlignment.rollDegrees = read16();
-        masterConfig.boardAlignment.pitchDegrees = read16();
-        masterConfig.boardAlignment.yawDegrees = read16();
+        masterConfig.boardAlignment.rollDeciDegrees = read16();
+        masterConfig.boardAlignment.pitchDeciDegrees = read16();
+        masterConfig.boardAlignment.yawDeciDegrees = read16();
         break;
 
     case MSP_SET_VOLTAGE_METER_CONFIG:
@@ -1653,9 +1638,9 @@ static bool processInCommand(void)
 
         masterConfig.rxConfig.serialrx_provider = read8(); // serialrx_type
 
-        masterConfig.boardAlignment.rollDegrees = read16(); // board_align_roll
-        masterConfig.boardAlignment.pitchDegrees = read16(); // board_align_pitch
-        masterConfig.boardAlignment.yawDegrees = read16(); // board_align_yaw
+        masterConfig.boardAlignment.rollDeciDegrees = read16(); // board_align_roll
+        masterConfig.boardAlignment.pitchDeciDegrees = read16(); // board_align_pitch
+        masterConfig.boardAlignment.yawDeciDegrees = read16(); // board_align_yaw
 
         masterConfig.batteryConfig.currentMeterScale = read16();
         masterConfig.batteryConfig.currentMeterOffset = read16();

@@ -25,6 +25,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/filter.h"
 
 #include "drivers/system.h"
 #include "drivers/sensor.h"
@@ -51,7 +52,6 @@ navigationPosControl_t   posControl;
 int16_t navCurrentMode;
 int16_t navActualVelocity[3];
 int16_t navDesiredVelocity[3];
-int16_t navLatestPositionError[3];
 int16_t navActualHeading;
 int16_t navDesiredHeading;
 int16_t navTargetPosition[3];
@@ -75,93 +75,58 @@ bool updateTimer(navigationTimer_t * tim, uint32_t interval, uint32_t currentTim
 }
 
 /*-----------------------------------------------------------
- * A simple 1-st order LPF filter implementation
- *-----------------------------------------------------------*/
-float navApplyFilter(float input, float fCut, float dT, float * state)
-{
-    float RC = 1.0f / (2.0f * (float)M_PI * fCut);
-
-    *state = *state + dT / (RC + dT) * (input - *state);
-
-    return *state;
-}
-
-/*-----------------------------------------------------------
  * Float point PID-controller implementation
  *-----------------------------------------------------------*/
-float navPidGetP(float error, float dt, pidController_t *pid)
+// Implementation of PID with back-calculation I-term anti-windup
+// Control System Design, Lecture Notes for ME 155A by Karl Johan Åström (p.228)
+// http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
+float navPidApply2(float setpoint, float measurement, float dt, pidController_t *pid, float outMin, float outMax)
 {
-    float newPterm = error * pid->param.kP;
+    float newProportional, newDerivative;
+    float error = setpoint - measurement;
 
-    if (posControl.navConfig->pterm_cut_hz)
-        newPterm = navApplyFilter(newPterm, posControl.navConfig->pterm_cut_hz, dt, &pid->pterm_filter_state);
+    newProportional = error * pid->param.kP;
 
-#if defined(NAV_BLACKBOX)
-    pid->lastP = newPterm;
-#endif
-
-    return newPterm;
-}
-
-float navPidGetI(float error, float dt, pidController_t *pid, bool onlyShrinkI)
-{
-    float newIntegrator = pid->integrator + ((float)error * pid->param.kI) * dt;
-
-    if (onlyShrinkI) {
-        // Only allow I to shrink
-        if (fabsf(newIntegrator) < fabsf(pid->integrator)) {
-            pid->integrator = newIntegrator;
-        }
-    }
-    else {
-        pid->integrator = newIntegrator;
-    }
-
-    pid->integrator = constrainf(pid->integrator, -pid->param.Imax, pid->param.Imax);
-
-#if defined(NAV_BLACKBOX)
-    pid->lastI = pid->integrator;
-#endif
-
-    return pid->integrator;
-}
-
-float navPidGetD(float error, float dt, pidController_t *pid)
-{
-    float newDerivative = (error - pid->last_error) / dt;
-    pid->last_error = error;
-
+    newDerivative = -(measurement - pid->last_input) / dt;
+    pid->last_input = measurement;
     if (posControl.navConfig->dterm_cut_hz)
-        newDerivative = pid->param.kD * navApplyFilter(newDerivative, posControl.navConfig->dterm_cut_hz, dt, &pid->dterm_filter_state);
+        newDerivative = pid->param.kD * filterApplyPt1(newDerivative, &pid->dterm_filter_state, posControl.navConfig->dterm_cut_hz, dt);
     else
         newDerivative = pid->param.kD * newDerivative;
 
-#if defined(NAV_BLACKBOX)
-    pid->lastD = newDerivative;
-#endif
+    float outVal = newProportional + pid->integrator + newDerivative;
+    float outValConstrained = constrainf(outVal, outMin, outMax);
 
-    return newDerivative;
-}
+    // Update integral
+    pid->integrator += (error * pid->param.kI * dt) + ((outValConstrained - outVal) * pid->param.kT * dt);
 
-float navPidGetPID(float error, float dt, pidController_t *pid, bool onlyShrinkI)
-{
-    return navPidGetP(error, dt, pid) + navPidGetI(error, dt, pid, onlyShrinkI) + navPidGetD(error, dt, pid);
+    return outValConstrained;
 }
 
 void navPidReset(pidController_t *pid)
 {
-    pid->integrator = 0;
-    pid->last_error = 0;
-    pid->pterm_filter_state = 0;
-    pid->dterm_filter_state = 0;
+    pid->integrator = 0.0f;
+    pid->last_input = 0.0f;
+    pid->dterm_filter_state.state = 0.0f;
+    pid->dterm_filter_state.RC = 0.0f;
 }
 
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _Imax)
+void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD)
 {
     pid->param.kP = _kP;
     pid->param.kI = _kI;
     pid->param.kD = _kD;
-    pid->param.Imax = _Imax;
+
+    if (_kI > 1e-6f && _kP > 1e-6f) {
+        float Ti = _kP / _kI;
+        float Td = _kD / _kP;
+        pid->param.kT = 2.0f / (Ti + Td);
+    }
+    else {
+        pid->param.kI = 0.0;
+        pid->param.kT = 0.0;
+    }
+
     navPidReset(pid);
 }
 
@@ -178,23 +143,14 @@ void navPInit(pController_t *p, float _kP)
  *-----------------------------------------------------------*/
 bool isThrustFacingDownwards(void)
 {
-    return ABS(attitude.values.roll) < DEGREES_TO_DECIDEGREES(80) && ABS(attitude.values.pitch) < DEGREES_TO_DECIDEGREES(80);
-}
-
-/*-----------------------------------------------------------
- * Processes an update to XYZ-acceleration
- *-----------------------------------------------------------*/
-void updateActualAcceleration(float accX, float accY, float accZ)
-{
-    posControl.actualState.acc.V.X = accX;
-    posControl.actualState.acc.V.Y = accY;
-    posControl.actualState.acc.V.Z = accZ;
+    // Tilt angle <= 80 deg; cos(80) = 0.17364817766693034885171662676931
+    return (calculateCosTiltAngle() >= 0.173648178f);
 }
 
 /*-----------------------------------------------------------
  * Processes an update to XY-position and velocity
  *-----------------------------------------------------------*/
-void updateActualHorizontalPositionAndVelocity(float newX, float newY, float newVelX, float newVelY)
+void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, float newY, float newVelX, float newVelY)
 {
     posControl.actualState.pos.V.X = newX;
     posControl.actualState.pos.V.Y = newY;
@@ -202,33 +158,62 @@ void updateActualHorizontalPositionAndVelocity(float newX, float newY, float new
     posControl.actualState.vel.V.X = newVelX;
     posControl.actualState.vel.V.Y = newVelY;
 
+    posControl.flags.hasValidPositionSensor = hasValidSensor;
+
+    if (hasValidSensor) {
+        posControl.flags.horizontalPositionNewData = 1;
+    }
+    else {
+        posControl.flags.horizontalPositionNewData = 0;
+    }
+
 #if defined(NAV_BLACKBOX)
     navLatestActualPosition[X] = newX;
     navLatestActualPosition[Y] = newY;
-    navActualVelocity[X] = constrain(lrintf(newVelX), -32678, 32767);
-    navActualVelocity[Y] = constrain(lrintf(newVelY), -32678, 32767);
+    navActualVelocity[X] = constrain(newVelX, -32678, 32767);
+    navActualVelocity[Y] = constrain(newVelY, -32678, 32767);
 #endif
-
-    posControl.flags.horizontalPositionNewData = 1;
 }
 
 /*-----------------------------------------------------------
  * Processes an update to Z-position and velocity
  *-----------------------------------------------------------*/
-void updateActualAltitudeAndClimbRate(float newAltitude, float newVelocity)
+void updateActualAltitudeAndClimbRate(bool hasValidSensor, float newAltitude, float newVelocity)
 {
     posControl.actualState.pos.V.Z = newAltitude;
     posControl.actualState.vel.V.Z = newVelocity;
 
+    posControl.flags.hasValidAltitudeSensor = hasValidSensor;
+
     // Update altitude that would be used when executing RTH
-    setupAutonomousControllerRTH();
+    if (hasValidSensor) {
+        setupAutonomousControllerRTH();
+        posControl.flags.verticalPositionNewData = 1;
+    }
+    else {
+        posControl.flags.verticalPositionNewData = 0;
+    }
 
 #if defined(NAV_BLACKBOX)
-    navLatestActualPosition[Z] = lrintf(newAltitude);
-    navActualVelocity[Z] = constrain(lrintf(newVelocity), -32678, 32767);
+    navLatestActualPosition[Z] = constrain(newAltitude, -32678, 32767);
+    navActualVelocity[Z] = constrain(newVelocity, -32678, 32767);
 #endif
+}
 
-    posControl.flags.verticalPositionNewData = 1;
+/*-----------------------------------------------------------
+ * Processes an update to surface distance
+ *-----------------------------------------------------------*/
+void updateActualSurfaceDistance(bool hasValidSensor, float surfaceDistance)
+{
+    posControl.actualState.surface = surfaceDistance;
+    posControl.flags.hasValidSurfaceSensor = hasValidSensor;
+
+    if (hasValidSensor) {
+        posControl.flags.surfaceDistanceNewData = 1;
+    }
+    else {
+        posControl.flags.surfaceDistanceNewData = 0;
+    }
 }
 
 /*-----------------------------------------------------------
@@ -239,9 +224,9 @@ void updateActualHeading(int32_t newHeading)
     /* Update heading */
     posControl.actualState.yaw = newHeading;
 
-#if defined(NAV_BLACKBOX)
-    navActualHeading = constrain(lrintf(posControl.actualState.yaw), -32678, 32767);
-#endif
+    /* Precompute sin/cos of yaw angle */
+    posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(newHeading));
+    posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(newHeading));
 
     posControl.flags.headingNewData = 1;
 }
@@ -249,13 +234,12 @@ void updateActualHeading(int32_t newHeading)
 /*-----------------------------------------------------------
  * Calculates distance and bearing to destination point
  *-----------------------------------------------------------*/
-#define TAN_89_99_DEGREES 5729.577951308f
 uint32_t calculateDistanceToDestination(t_fp_vector * destinationPos)
 {
     float deltaX = destinationPos->V.X - posControl.actualState.pos.V.X;
     float deltaY = destinationPos->V.Y - posControl.actualState.pos.V.Y;
 
-    return lrintf(sqrtf(sq(deltaX) + sq(deltaY)));
+    return sqrtf(sq(deltaX) + sq(deltaY));
 }
 
 int32_t calculateBearingToDestination(t_fp_vector * destinationPos)
@@ -263,13 +247,27 @@ int32_t calculateBearingToDestination(t_fp_vector * destinationPos)
     float deltaX = destinationPos->V.X - posControl.actualState.pos.V.X;
     float deltaY = destinationPos->V.Y - posControl.actualState.pos.V.Y;
 
-    return wrap_36000(constrain((int32_t)(atan2_approx(deltaY, deltaX) * TAN_89_99_DEGREES), -18000, 18000));
+    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
 }
 
 /*-----------------------------------------------------------
  * Check if waypoint is/was reached
  *-----------------------------------------------------------*/
-bool isWaypointReached(navWaypointPosition_t *waypoint)
+bool isWaypointMissed(navWaypointPosition_t * waypoint)
+{
+    // We only can miss not home waypoint
+    if (waypoint->flags.isHomeWaypoint) {
+        return false;
+    }
+    else {
+        int32_t bearingError = calculateBearingToDestination(&waypoint->pos) - waypoint->yaw;
+        bearingError = wrap_18000(bearingError);
+
+        return ABS(bearingError) > 10000; // TRUE if we passed the waypoint by 100 degrees
+    }
+}
+
+bool isWaypointReached(navWaypointPosition_t * waypoint)
 {
     // We consider waypoint reached if within specified radius
     uint32_t wpDistance = calculateDistanceToDestination(&waypoint->pos);
@@ -295,8 +293,10 @@ static void updateHomePositionCompatibility(void)
  *-----------------------------------------------------------*/
 void setHomePosition(t_fp_vector * pos, int32_t yaw)
 {
+    posControl.homePosition.flags.isHomeWaypoint = true;
     posControl.homePosition.pos = *pos;
     posControl.homePosition.yaw = yaw;
+
     posControl.homeDistance = 0;
     posControl.homeDirection = 0;
 
@@ -333,6 +333,19 @@ void updateHomePosition(void)
 }
 
 /*-----------------------------------------------------------
+ * Set surface tracking target
+ *-----------------------------------------------------------*/
+void setDesiredSurfaceOffset(float surfaceOffset)
+{
+    if (surfaceOffset > 0) {
+        posControl.desiredState.surface = constrainf(surfaceOffset, 10.0f, 250.0f);
+    }
+    else {
+        posControl.desiredState.surface = -1;
+    }
+}
+
+/*-----------------------------------------------------------
  * Set active XYZ-target and desired heading
  *-----------------------------------------------------------*/
 void setDesiredPosition(t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask)
@@ -345,6 +358,7 @@ void setDesiredPosition(t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t us
 
     // Z-position
     if ((useMask & NAV_POS_UPDATE_Z) != 0) {
+        posControl.desiredState.surface = -1;           // When we directly set altitude target we must reset surface tracking
         posControl.desiredState.pos.V.Z = pos->V.Z;
     }
 
@@ -356,6 +370,17 @@ void setDesiredPosition(t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t us
     else if ((useMask & NAV_POS_UPDATE_BEARING) != 0) {
         posControl.desiredState.yaw = calculateBearingToDestination(pos);
     }
+}
+
+void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask)
+{
+    t_fp_vector farAwayPos;
+
+    farAwayPos.V.X = posControl.actualState.pos.V.X + distance * cos_approx(CENTIDEGREES_TO_RADIANS(yaw));
+    farAwayPos.V.Y = posControl.actualState.pos.V.Y + distance * sin_approx(CENTIDEGREES_TO_RADIANS(yaw));
+    farAwayPos.V.Z = posControl.actualState.pos.V.Z;
+
+    setDesiredPosition(&farAwayPos, yaw, useMask);
 }
 
 /*-----------------------------------------------------------
@@ -381,11 +406,16 @@ bool isLandingDetected(void)
 /*-----------------------------------------------------------
  * Z-position controller
  *-----------------------------------------------------------*/
-void updateAltitudeTargetFromClimbRate(uint32_t deltaMicros, float climbRate)
+void updateAltitudeTargetFromClimbRate(float climbRate)
 {
-    UNUSED(deltaMicros);
-
+    // FIXME: On FIXED_WING and multicopter this should work in a different way
     // Calculate new altitude target
+
+    /* Move surface tracking setpoint if it is set */
+    if (posControl.desiredState.surface > 0.0f && posControl.actualState.surface > 0.0f && posControl.flags.hasValidSurfaceSensor) {
+        posControl.desiredState.surface = constrainf(posControl.actualState.surface + (climbRate / posControl.pids.pos[Z].param.kP), 10.0f, 200.0f);
+    }
+
     posControl.desiredState.pos.V.Z = posControl.actualState.pos.V.Z + (climbRate / posControl.pids.pos[Z].param.kP);
 }
 
@@ -465,16 +495,6 @@ static void applyPositionController(uint32_t currentTime)
     }
 }
 
-static void updatePlatformSpecificData(uint32_t currentTime)
-{
-    if (STATE(FIXED_WING)) {
-        updateFixedWingSpecificData(currentTime);
-    }
-    else {
-        updateMulticopterSpecificData(currentTime);
-    }
-}
-
 /*-----------------------------------------------------------
  * WP controller
  *-----------------------------------------------------------*/
@@ -495,9 +515,9 @@ void getWaypoint(uint8_t wpNumber, int32_t * wpLat, int32_t * wpLon, int32_t * w
 {
     gpsLocation_t wpLLH;
 
-    wpLLH.lat = 0;
-    wpLLH.lon = 0;
-    wpLLH.alt = 0;
+    wpLLH.lat = 0.0f;
+    wpLLH.lon = 0.0f;
+    wpLLH.alt = 0.0f;
 
     // WP #0 - special waypoint - HOME
     if (wpNumber == 0) {
@@ -568,6 +588,7 @@ void setWaypoint(uint8_t wpNumber, int32_t wpLat, int32_t wpLon, int32_t wpAlt)
         uint8_t wpIndex = wpNumber - 1;
         /* Sanity check - can set waypoints only sequentially - one by one */
         if (wpIndex <= posControl.waypointCount) {
+            wpPos.flags.isHomeWaypoint = false;
             posControl.waypointList[wpIndex] = wpPos;
             posControl.waypointCount = wpIndex + 1;
         }
@@ -655,11 +676,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         }
     }
 
-    // Update some platform-specific parameters, unknown to position estimator, i.e. hover throttle
-    updatePlatformSpecificData(currentTime);
-
 #if defined(NAV_BLACKBOX)
-    navFlags = 0;
     if (posControl.flags.isAdjustingPosition)       navFlags |= (1 << 4);
     if (posControl.flags.isAdjustingAltitude)       navFlags |= (1 << 5);
     if (posControl.flags.isAdjustingHeading)        navFlags |= (1 << 6);
@@ -732,7 +749,7 @@ static navigationMode_t selectNavModeFromBoxModeInput(void)
     bool canActivateAltHold = canActivateAltHoldMode();
     bool canActivatePosHold = canActivatePosHoldMode();
 
-    /* Figure out, what mode pilot want to activate, also check if it is possible 
+    /* Figure out, what mode pilot want to activate, also check if it is possible
        Once activated, GPS-aware modes should stay activated to cope with possible GPS loss.
        We don't want to have RTH activated from RATE mode being disabled and quad re-entering RATE mode. We'd rather stay in
        forced ANGLE mode and wait for GPS to re-connect or pilot to control the copter directly. */
@@ -786,7 +803,7 @@ static navigationMode_t selectNavModeFromBoxModeInput(void)
  *-----------------------------------------------------------*/
 bool navigationRequiresThrottleTiltCompensation(void)
 {
-    return !STATE(FIXED_WING) && posControl.navConfig->flags.throttle_tilt_comp;
+    return !STATE(FIXED_WING) && navShouldApplyAltHold() && posControl.navConfig->flags.throttle_tilt_comp;
 }
 
 /*-----------------------------------------------------------
@@ -818,6 +835,14 @@ static void setInitialDesiredPositionForZController(void)
         setupAltitudeController();
         setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
     }
+
+    /* If we have a valid surface offset and surface sensor is healthy - enter surface tracking mode */
+    if (posControl.actualState.surface > 0 && posControl.flags.hasValidSurfaceSensor) {
+        setDesiredSurfaceOffset(posControl.actualState.surface);
+    }
+    else {
+        setDesiredSurfaceOffset(-1.0f);
+    }
 }
 
 static void setInitialDesiredPositionForXYController(void)
@@ -832,11 +857,7 @@ static void setInitialDesiredPositionForXYController(void)
     }
 }
 
-/**
- * Process NAV mode transition and WP/RTH state machine
- *  Update rate: RX (data driven or 50Hz)
- */
-void updateWaypointsAndNavigationMode(void)
+static void processNavigationModeSwitch(void)
 {
     navigationMode_t newNavMode = NAV_MODE_NONE;
 
@@ -879,6 +900,16 @@ void updateWaypointsAndNavigationMode(void)
                 break;
         }
     }
+}
+
+/**
+ * Process NAV mode transition and WP/RTH state machine
+ *  Update rate: RX (data driven or 50Hz)
+ */
+void updateWaypointsAndNavigationMode(void)
+{
+    // Process switch to a different navigation mode (if needed)
+    processNavigationModeSwitch();
 
     // Initiate home position update
     updateHomePosition();
@@ -917,11 +948,6 @@ void navigationUseEscAndServoConfig(escAndServoConfig_t * initialEscAndServoConf
     posControl.escAndServoConfig = initialEscAndServoConfig;
 }
 
-void navigationUseYawControlDirection(uint8_t initialYawControlDirection)
-{
-    posControl.yawControlDirection = initialYawControlDirection;
-}
-
 void navigationUsePIDs(pidProfile_t *initialPidProfile)
 {
     int axis;
@@ -934,39 +960,44 @@ void navigationUsePIDs(pidProfile_t *initialPidProfile)
 
         navPidInit(&posControl.pids.vel[axis], (float)posControl.pidProfile->P8[PIDPOSR] / 100.0f,
                                                (float)posControl.pidProfile->I8[PIDPOSR] / 100.0f,
-                                               (float)posControl.pidProfile->D8[PIDPOSR] / 1000.0f,
-                                               400.0);
+                                               (float)posControl.pidProfile->D8[PIDPOSR] / 1000.0f);
     }
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
     navPInit(&posControl.pids.pos[Z], (float)posControl.pidProfile->P8[PIDALT] / 100.0f);
 
-    navPidInit(&posControl.pids.vel[Z], (float)posControl.pidProfile->I8[PIDALT] / 100.0f, 0, 0, 0);
+    navPidInit(&posControl.pids.vel[Z], (float)posControl.pidProfile->P8[PIDVEL] / 100.0f,
+                                        (float)posControl.pidProfile->I8[PIDVEL] / 100.0f,
+                                        (float)posControl.pidProfile->D8[PIDVEL] / 1000.0f);
 
-    navPidInit(&posControl.pids.accz, (float)posControl.pidProfile->P8[PIDVEL] / 100.0f,
-                                      (float)posControl.pidProfile->I8[PIDVEL] / 100.0f,
-                                      (float)posControl.pidProfile->D8[PIDVEL] / 1000.0f,
-                                      400.0);
+    // Initialize fixed wing PID controllers
+    navPidInit(&posControl.pids.fw_nav, (float)posControl.pidProfile->P8[PIDNAVR] / 100.0f,
+                                        (float)posControl.pidProfile->I8[PIDNAVR] / 100.0f,
+                                        (float)posControl.pidProfile->D8[PIDNAVR] / 1000.0f);
 
-    // Heading PID (duplicates maghold)
-    navPInit(&posControl.pids.heading, (float)posControl.pidProfile->P8[PIDMAG] / 30.0f);
+    navPidInit(&posControl.pids.fw_alt, (float)posControl.pidProfile->P8[PIDALT] / 100.0f,
+                                        (float)posControl.pidProfile->I8[PIDALT] / 100.0f,
+                                        (float)posControl.pidProfile->D8[PIDALT] / 1000.0f);
 }
 
 void navigationInit(navConfig_t *initialnavConfig,
                     pidProfile_t *initialPidProfile,
                     rcControlsConfig_t *initialRcControlsConfig,
                     rxConfig_t * initialRxConfig,
-                    escAndServoConfig_t * initialEscAndServoConfig,
-                    uint8_t initialYawControlDirection)
+                    escAndServoConfig_t * initialEscAndServoConfig)
 {
     /* Initial state */
     posControl.enabled = 0;
     posControl.mode = NAV_MODE_NONE;
-    posControl.flags.verticalPositionNewData = 0;
     posControl.flags.horizontalPositionNewData = 0;
+    posControl.flags.verticalPositionNewData = 0;
+    posControl.flags.surfaceDistanceNewData = 0;
     posControl.flags.headingNewData = 0;
+
     posControl.flags.hasValidAltitudeSensor = 0;
     posControl.flags.hasValidPositionSensor = 0;
+    posControl.flags.hasValidSurfaceSensor = 0;
+
     posControl.flags.forcedRTHActivated = 0;
     posControl.waypointCount = 0;
 
@@ -976,7 +1007,6 @@ void navigationInit(navConfig_t *initialnavConfig,
     navigationUseRcControlsConfig(initialRcControlsConfig);
     navigationUseRxConfig(initialRxConfig);
     navigationUseEscAndServoConfig(initialEscAndServoConfig);
-    navigationUseYawControlDirection(initialYawControlDirection);
 }
 
 /*-----------------------------------------------------------
@@ -1022,19 +1052,16 @@ int16_t leanAngleToRcCommand(int16_t leanAngle)
 /*-----------------------------------------------------------
  * Ability to execute RTH on external event
  *-----------------------------------------------------------*/
-bool canActivateForcedRTH(void)
-{
-    return canActivatePosHoldMode() && STATE(GPS_FIX_HOME);
-}
-
 void activateForcedRTH(void)
 {
     posControl.flags.forcedRTHActivated = true;
+    processNavigationModeSwitch();
 }
 
 void abortForcedRTH(void)
 {
     posControl.flags.forcedRTHActivated = false;
+    processNavigationModeSwitch();
 }
 
 rthState_e getStateOfForcedRTH(void)

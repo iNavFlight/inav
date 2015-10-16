@@ -18,8 +18,13 @@
 #pragma once
 
 #include "common/maths.h"
+#include "common/filter.h"
+
 #include "io/rc_controls.h"
 #include "io/escservo.h"
+
+#include "flight/pid.h"
+#include "flight/failsafe.h"
 
 #define NAV
 #if defined(BLACKBOX)
@@ -27,7 +32,7 @@
 #endif
 
 // Features
-#define INAV_ENABLE_AUTO_MAG_DECLINATION
+//#define INAV_ENABLE_AUTO_MAG_DECLINATION
 
 // Maximum number of waypoints, special waypoint 0 = home,
 #define NAV_MAX_WAYPOINTS       15
@@ -56,13 +61,6 @@ enum {
     NAV_RTH_AT_LEAST_ALT    = 4,            // Climb to predefined altitude if below it
 };
 
-typedef enum {
-    RTH_IDLE = 0,               // RTH is waiting
-    RTH_IN_PROGRESS_OK,         // RTH is active
-    RTH_IN_PROGRESS_LOST_GPS,   // RTH is active but has lost GPS lock
-    RTH_HAS_LANDED              // RTH is active and has landed.
-} rthState_e;
-
 typedef struct navConfig_s {
     struct {
         uint8_t use_midrc_for_althold;      // Don't remember throttle when althold was initiated, assume that throttle is at middle = zero climb rate
@@ -77,6 +75,7 @@ typedef struct navConfig_s {
         uint8_t automatic_mag_declination;
 #endif
         uint8_t enable_dead_reckoning;
+        uint8_t accz_unarmed_cal;
         uint16_t gps_delay_ms;
 
         float w_z_baro_p;   // Weight (cutoff frequency) for barometer altitude measurements
@@ -91,8 +90,7 @@ typedef struct navConfig_s {
         float w_xy_gps_p;   // Weight (cutoff frequency) for GPS position measurements
         float w_xy_gps_v;   // Weight (cutoff frequency) for GPS velocity measurements
 
-        float w_xy_dr_p;    // When we are using dead reckoning, loosely assume that we don't move and stay at the same place
-        float w_xy_dr_v;
+        float w_xy_dr_v;    // When we are using dead reckoning, loosely assume that we don't move and stay at the same place
 
         float w_z_res_v;    // When velocity sources lost slowly decrease estimated velocity with this weight
         float w_xy_res_v;
@@ -100,7 +98,6 @@ typedef struct navConfig_s {
         float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
 
         float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
-        float sonar_epv;    // Sonar position error
         float baro_epv;     // Baro position error
     } inav;
 
@@ -110,10 +107,17 @@ typedef struct navConfig_s {
     uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
     uint16_t rth_altitude;                  // altitude to maintain when RTH is active (depends on rth_alt_control_style) (cm)
     uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTL in cm, otherwise it will just autoland
-    uint8_t  pterm_cut_hz;                  // Low pass filter cut frequency for P-term calculation (default 20Hz)
     uint8_t  dterm_cut_hz;                  // Low pass filter cut frequency for D-term calculation (default 5Hz)
     uint8_t  pos_hold_deadband;             // Adds ability to adjust the Hold-position when moving the sticks (assisted mode)
     uint8_t  alt_hold_deadband;             // Defines the neutral zone of throttle stick during altitude hold
+
+    uint8_t fw_max_bank_angle;              // Fixed wing max banking angle (deg)
+    uint8_t fw_max_climb_angle;             // Fixed wing max banking angle (deg)
+    uint8_t fw_max_dive_angle;              // Fixed wing max banking angle (deg)
+    uint16_t fw_cruise_throttle;            // Cruise throttle
+    uint16_t fw_min_throttle;               // Minimum allowed throttle in auto mode
+    uint16_t fw_max_throttle;               // Maximum allowed throttle in auto mode
+    uint8_t  fw_pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
 } navConfig_t;
 
 // LLH Location in NEU axis system
@@ -132,26 +136,27 @@ typedef struct gpsOrigin_s {
 } gpsOrigin_s;
 
 typedef struct {
-    t_fp_vector pos;
-    int32_t     yaw;
+    struct {
+        bool isHomeWaypoint;       // for home waypoint yaw is set to "launch heading", for common waypoints - to "initial bearing"
+    }              flags;
+    t_fp_vector    pos;
+    int32_t        yaw;             // deg * 100
 } navWaypointPosition_t;
 
 #if defined(NAV)
-
 void navigationUsePIDs(pidProfile_t *pidProfile);
 void navigationUseConfig(navConfig_t *navConfigToUse);
 void navigationUseRcControlsConfig(rcControlsConfig_t *initialRcControlsConfig);
 void navigationUseRxConfig(rxConfig_t * initialRxConfig);
 void navigationUseEscAndServoConfig(escAndServoConfig_t * initialEscAndServoConfig);
-void navigationUseYawControlDirection(uint8_t initialYawControlDirection);
 void navigationInit(navConfig_t *initialnavConfig,
                     pidProfile_t *initialPidProfile,
                     rcControlsConfig_t *initialRcControlsConfig,
                     rxConfig_t * initialRxConfig,
-                    escAndServoConfig_t * initialEscAndServoConfig,
-                    uint8_t initialYawControlDirection);
+                    escAndServoConfig_t * initialEscAndServoConfig);
 
-void onNewGPSData(int32_t lat, int32_t lon, int32_t alt);
+void onNewGPSData(int32_t lat, int32_t lon, int32_t alt, int16_t vel_n, int16_t vel_e, int16_t vel_d, bool vel_ne_valid, bool vel_d_valid, int16_t hdop);
+
 
 void updateWaypointsAndNavigationMode(void);
 void updatePositionEstimator(void);
@@ -173,7 +178,6 @@ void geoConvertGeodeticToLocal(gpsOrigin_s * origin, gpsLocation_t * llh, t_fp_v
 void geoConvertLocalToGeodetic(gpsOrigin_s * origin, t_fp_vector * pos, gpsLocation_t * llh);
 float geoCalculateMagDeclination(gpsLocation_t * llh); // degrees units
 
-bool canActivateForcedRTH(void);
 void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
@@ -184,13 +188,10 @@ extern int16_t       GPS_directionToHome;       // direction to home point in de
 
 #if defined(BLACKBOX)
 extern int16_t navCurrentMode;
-extern int32_t navLatestActualPosition[3];
 extern int16_t navActualVelocity[3];
 extern int16_t navDesiredVelocity[3];
-extern int16_t navLatestPositionError[3];
-extern int16_t navActualHeading;
-extern int16_t navDesiredHeading;
 extern int16_t navTargetPosition[3];
+extern int32_t navLatestActualPosition[3];
 extern int16_t navDebug[4];
 extern uint16_t navFlags;
 #define NAV_BLACKBOX_DEBUG(x,y) navDebug[x] = constrain((y), -32678, 32767)

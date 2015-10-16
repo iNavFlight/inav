@@ -21,11 +21,13 @@
 #include <math.h>
 
 #include "platform.h"
+#include "debug.h"
 
 #include "common/maths.h"
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/utils.h"
+#include "common/filter.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -72,7 +74,6 @@
 #include "flight/failsafe.h"
 #include "flight/gtune.h"
 #include "flight/navigation_rewrite.h"
-#include "flight/filter.h"
 
 
 #include "config/runtime_config.h"
@@ -109,17 +110,49 @@ extern uint8_t dynP8[3], dynI8[3], dynD8[3], PIDweight[3];
 
 static bool isRXDataNew;
 
+/**
+ * Typical quadcopter motor noise frequency (at 50% throttle):
+ *  450-sized, 920kv, 9.4x4.3 props, 3S : 4622rpm = 77Hz
+ *  250-sized, 2300kv, 5x4.5 props, 4S : 14139rpm = 235Hz
+ */
+static int16_t gyroFIR[3][9];
+static int8_t gyroFIRCoeff_1000[3][9] = { { 0, 0, 12, 23, 40, 51, 52, 40, 38 },    // looptime=1000; group delay 2.5ms; -0.5db = 32Hz ; -1db = 45Hz; -5db = 97Hz; -10db = 132Hz
+                                          { 18, 30, 42, 46, 40, 34, 22, 8, 8},     // looptime=1000; group delay 3ms;   -0.5db = 18Hz ; -1db = 33Hz; -5db = 81Hz; -10db = 113Hz
+                                          { 18, 12, 28, 40, 44, 40, 32, 22, 20} }; // looptime=1000; group delay 4ms;   -0.5db = 23Hz ; -1db = 35Hz; -5db = 75Hz; -10db = 103Hz
+static int8_t gyroFIRCoeff_2000[3][9] = { { 0, 0, 0, 6, 24, 58, 82, 64, 20 },      // looptime=2000, group delay 4ms;   -0.5db = 21Hz ; -1db = 31Hz; -5db = 71Hz; -10db = 99Hz
+                                          { 0, 0, 14, 22, 46, 60, 56, 40, 24},     // looptime=2000, group delay 5ms;   -0.5db = 20Hz ; -1db = 26Hz; -5db = 52Hz; -10db = 71Hz
+                                          { 14, 12, 26, 38, 44, 42, 34, 24, 20} }; // looptime=2000, group delay 7ms;   -0.5db = 11Hz ; -1db = 18Hz; -5db = 38Hz; -10db = 52Hz
+static int8_t gyroFIRCoeff_3000[3][9] = { { 0, 0, 0, 0, 4, 36, 88, 88, 44 },       // looptime=3000, group delay 4.5ms; -0.5db = 18Hz ; -1db = 26Hz; -5db = 57Hz; -10db = 78Hz
+                                          { 0, 0, 0, 14, 32, 64, 72, 54, 28},      // looptime=3000, group delay 6.5ms; -0.5db = 16Hz ; -1db = 21Hz; -5db = 42Hz; -10db = 57Hz
+                                          { 0, 6, 10, 28, 44, 54, 54, 38, 22} };   // looptime=3000, group delay 9ms;   -0.5db = 10Hz ; -1db = 13Hz; -5db = 32Hz; -10db = 45Hz
+
+int8_t * gyroFIRCoeffActive = gyroFIRCoeff_3000[0];
+
 typedef void (*pidControllerFuncPtr)(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig,
-        uint16_t max_angle_inclination, rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig);            // pid controller function prototype
+        uint16_t max_angle_inclination, rxConfig_t *rxConfig);            // pid controller function prototype
 
 extern pidControllerFuncPtr pid_controller;
 
-void applyAndSaveAccelerometerTrimsDelta(rollAndPitchTrims_t *rollAndPitchTrimsDelta)
+void selectFIRFilterFromLooptime(void)
 {
-    currentProfile->accelerometerTrims.values.roll += rollAndPitchTrimsDelta->values.roll;
-    currentProfile->accelerometerTrims.values.pitch += rollAndPitchTrimsDelta->values.pitch;
+    if (currentProfile->pidProfile.gyro_soft_filter == 0) {
+        return;
+    }
 
-    saveConfigAndNotify();
+    int firIndex = constrain(currentProfile->pidProfile.gyro_soft_filter, 1, 3) - 1;
+
+    // For looptimes faster than 1499 (and looptime=0) use filter for 1kHz looptime
+    if (masterConfig.looptime < 1500) {
+        gyroFIRCoeffActive = gyroFIRCoeff_1000[firIndex];
+    }
+    // 1500 ... 2499
+    else if (masterConfig.looptime < 2500) {
+        gyroFIRCoeffActive = gyroFIRCoeff_2000[firIndex];
+    }
+    // > 2500
+    else {
+        gyroFIRCoeffActive = gyroFIRCoeff_3000[firIndex];
+    }
 }
 
 #ifdef GTUNE
@@ -363,58 +396,40 @@ void mwArm(void)
     }
 }
 
-// Automatic ACC Offset Calibration
-bool AccInflightCalibrationArmed = false;
-bool AccInflightCalibrationMeasurementDone = false;
-bool AccInflightCalibrationSavetoEEProm = false;
-bool AccInflightCalibrationActive = false;
-uint16_t InflightcalibratingA = 0;
-
-void handleInflightCalibrationStickPosition(void)
+void applyMagHold(void)
 {
-    if (AccInflightCalibrationMeasurementDone) {
-        // trigger saving into eeprom after landing
-        AccInflightCalibrationMeasurementDone = false;
-        AccInflightCalibrationSavetoEEProm = true;
-    } else {
-        AccInflightCalibrationArmed = !AccInflightCalibrationArmed;
-        if (AccInflightCalibrationArmed) {
-            beeper(BEEPER_ACC_CALIBRATION);
-        } else {
-            beeper(BEEPER_ACC_CALIBRATION_FAIL);
-        }
-    }
-}
+    int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
 
-void updateInflightCalibrationState(void)
-{
-    if (AccInflightCalibrationArmed && ARMING_FLAG(ARMED) && rcData[THROTTLE] > masterConfig.rxConfig.mincheck && !IS_RC_MODE_ACTIVE(BOXARM)) {   // Copter is airborne and you are turning it off via boxarm : start measurement
-        InflightcalibratingA = 50;
-        AccInflightCalibrationArmed = false;
+    if (dif <= -180) {
+        dif += 360;
     }
-    if (IS_RC_MODE_ACTIVE(BOXCALIB)) {      // Use the Calib Option to activate : Calib = TRUE Meausrement started, Land and Calib = 0 measurement stored
-        if (!AccInflightCalibrationActive && !AccInflightCalibrationMeasurementDone)
-            InflightcalibratingA = 50;
-        AccInflightCalibrationActive = true;
-    } else if (AccInflightCalibrationMeasurementDone && !ARMING_FLAG(ARMED)) {
-        AccInflightCalibrationMeasurementDone = false;
-        AccInflightCalibrationSavetoEEProm = true;
+
+    if (dif >= +180) {
+        dif -= 360;
+    }
+
+    dif *= masterConfig.yaw_control_direction;
+
+    if (STATE(SMALL_ANGLE)) {
+        rcCommand[YAW] = dif * currentProfile->pidProfile.P8[PIDMAG] / 30;
     }
 }
 
 void updateMagHold(void)
 {
+#if defined(NAV)
+    // NAV will prevent MAG_MODE from activating, but require heading control
+    if (naivationControlsHeadingNow()) {
+        applyMagHold();
+    }
+    else
+#endif
     if (ABS(rcCommand[YAW]) < 70 && FLIGHT_MODE(MAG_MODE)) {
-        int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
-        if (dif <= -180)
-            dif += 360;
-        if (dif >= +180)
-            dif -= 360;
-        dif *= -masterConfig.yaw_control_direction;
-        if (STATE(SMALL_ANGLE))
-            rcCommand[YAW] -= dif * currentProfile->pidProfile.P8[PIDMAG] / 30;    // 18 deg
-    } else
+        applyMagHold();
+    }
+    else {
         magHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+    }
 }
 
 typedef enum {
@@ -551,10 +566,6 @@ void processRx(void)
 
     processRcStickPositions(&masterConfig.rxConfig, throttleStatus, masterConfig.retarded_arm, masterConfig.disarm_kill_switch);
 
-    if (feature(FEATURE_INFLIGHT_ACC_CAL)) {
-        updateInflightCalibrationState();
-    }
-
     updateActivatedModes(currentProfile->modeActivationConditions);
 
     if (!cliMode) {
@@ -633,7 +644,7 @@ void processRx(void)
         DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
     }
 
-    if (masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE) {
+    if (masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 
@@ -663,7 +674,7 @@ void filterRc(void){
     // Set RC refresh rate for sampling and channels to filter
    	initRxRefreshRate(&rxRefreshRate);
 
-    filteredCycleTime = filterApplyPt1(cycleTime, &filteredCycleTimeState, 1);
+    filteredCycleTime = filterApplyPt1(cycleTime, &filteredCycleTimeState, 1, cycleTime * 1e-6);
     rcInterpolationFactor = rxRefreshRate / filteredCycleTime + 1;
 
     if (isRXDataNew) {
@@ -724,7 +735,7 @@ void loop(void)
     if (masterConfig.looptime == 0 || (int32_t)(currentTime - loopTime) >= 0) {
         loopTime = currentTime + masterConfig.looptime;
 
-        imuUpdate(&currentProfile->accelerometerTrims);
+        imuUpdate();
 
         // Measure loop rate just after reading the sensors
         currentTime = micros();
@@ -732,13 +743,8 @@ void loop(void)
         previousTime = currentTime;
 
         // Gyro Low Pass
-        if (currentProfile->pidProfile.gyro_cut_hz) {
-            int axis;
-            static filterStatePt1_t gyroADCState[XYZ_AXIS_COUNT];
-
-            for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        	    gyroADC[axis] = filterApplyPt1(gyroADC[axis], &gyroADCState[axis], currentProfile->pidProfile.gyro_cut_hz);
-            }
+        if (currentProfile->pidProfile.gyro_soft_filter) {
+            filterApply9TapFIR(gyroADC, gyroFIR, gyroFIRCoeffActive);
         }
 
         annexCode();
@@ -751,12 +757,6 @@ void loop(void)
         haveProcessedAnnexCodeOnce = true;
 #endif
 
-#ifdef MAG
-        if (sensors(SENSOR_MAG)) {
-        	updateMagHold();
-        }
-#endif
-
 #ifdef GTUNE
         updateGtuneState();
 #endif
@@ -764,6 +764,13 @@ void loop(void)
 #if defined(NAV)
         updatePositionEstimator();
         applyWaypointNavigationAndAltitudeHold();
+#endif
+
+#ifdef MAG
+        // Apply this after navigation (iNav needs rcCommand to hold actual values)
+        if (sensors(SENSOR_MAG)) {
+            updateMagHold();
+        }
 #endif
 
         // If we're armed, at minimum throttle, and we do arming via the
@@ -775,6 +782,7 @@ void loop(void)
                 && !((masterConfig.mixerMode == MIXER_TRI || masterConfig.mixerMode == MIXER_CUSTOM_TRI) && masterConfig.mixerConfig.tri_unarmed_servo)
                 && masterConfig.mixerMode != MIXER_AIRPLANE
                 && masterConfig.mixerMode != MIXER_FLYING_WING
+                && masterConfig.mixerMode != MIXER_CUSTOM_AIRPLANE
 #endif
         ) {
             rcCommand[YAW] = 0;
@@ -782,11 +790,18 @@ void loop(void)
 
         // Apply throttle tilt compensation
         if (!STATE(FIXED_WING)) {
+            int16_t thrTiltCompStrength = 0;
+
             if (navigationRequiresThrottleTiltCompensation()) {
-                rcCommand[THROTTLE] *= calculateThrottleTiltCompensationFactor(100);
+                thrTiltCompStrength = 100;
             }
             else if (currentProfile->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-                rcCommand[THROTTLE] *= calculateThrottleTiltCompensationFactor(currentProfile->throttle_tilt_compensation_strength);
+                thrTiltCompStrength = currentProfile->throttle_tilt_compensation_strength;
+            }
+
+            if (thrTiltCompStrength) {
+                rcCommand[THROTTLE] = masterConfig.escAndServoConfig.minthrottle
+                                       + (rcCommand[THROTTLE] - masterConfig.escAndServoConfig.minthrottle) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength);
             }
         }
 
@@ -795,7 +810,6 @@ void loop(void)
             &currentProfile->pidProfile,
             currentControlRateProfile,
             masterConfig.max_angle_inclination,
-            &currentProfile->accelerometerTrims,
             &masterConfig.rxConfig
         );
 

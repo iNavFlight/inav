@@ -25,7 +25,7 @@
 typedef enum {
     FEATURE_RX_PPM = 1 << 0,
     FEATURE_VBAT = 1 << 1,
-    FEATURE_INFLIGHT_ACC_CAL = 1 << 2,
+    //FEATURE_INFLIGHT_ACC_CAL = 1 << 2,
     FEATURE_RX_SERIAL = 1 << 3,
     FEATURE_MOTOR_STOP = 1 << 4,
     FEATURE_SERVO_TILT = 1 << 5,
@@ -82,5 +82,7 @@ uint8_t getCurrentControlRateProfile(void);
 void changeControlRateProfile(uint8_t profileIndex);
 
 bool canSoftwareSerialBeUsed(void);
+
+void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);
 
 uint16_t getCurrentMinthrottle(void);

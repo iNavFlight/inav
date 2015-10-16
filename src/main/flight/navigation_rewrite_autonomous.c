@@ -44,10 +44,11 @@
 
 #if defined(NAV)
 
+static uint8_t activeWaypointIndex = 0;
+
 /*-----------------------------------------------------------
  * Autonomous navigation controller (RTH/WP)
  *-----------------------------------------------------------*/
-
 void setupAutonomousControllerRTH(void)
 {
     if (ARMING_FLAG(ARMED)) {
@@ -97,14 +98,38 @@ void setDesiredPositionToWaypointAndUpdateInitialBearing(navWaypointPosition_t *
 }
 
 /**
+ * Returns TRUE if we are in WP mode and executing last waypoint on the list, or in RTH mode, or in PH mode
+ *  In RTH mode our only and last waypoint is home
+ *  In PH mode our waypoint is hold position
+ */
+bool isApproachingLastWaypoint(void)
+{
+    if (navShouldApplyWaypoint()) {
+        if (posControl.waypointCount == 0) {
+            /* No waypoints, holding current position */
+            return true;
+        }
+        else if (activeWaypointIndex == (posControl.waypointCount - 1)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    else if (navShouldApplyRTH() || navShouldApplyPosHold()) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+/**
  * Executed autonomous navigation - WP, RTH or AUTOLAND
  *  Update rate: RX (data driven or 50Hz)
  */
 void applyAutonomousController(void)
 {
-    /* Local variables */
-    static uint8_t activeWaypointIndex;
-
     /* Check if we should apply autonomous functions */
     if (!(navShouldApplyWaypoint() || navShouldApplyRTH()))
         return;
@@ -120,10 +145,7 @@ void applyAutonomousController(void)
                     if (posControl.homeDistance < posControl.navConfig->min_rth_distance) {
                         // Close to original home - reset home to currect position
                         setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw);
-                        // Set position lock on home and heading to original heading, altitude to current altitude
-                        setDesiredPosition(&posControl.homeWaypointAbove.pos, posControl.homeWaypointAbove.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
-                        setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_Z);
-                        posControl.navMissionState = NAV_AUTO_AUTOLAND_INIT;
+                        posControl.navMissionState = NAV_AUTO_RTH_AUTOLAND_INIT;
                         reprocessState = true;
                     }
                     else {
@@ -144,9 +166,8 @@ void applyAutonomousController(void)
                     }
                     else {
                         // In case of 2D RTH - head home immediately
-                        setDesiredPosition(&posControl.homeWaypointAbove.pos, posControl.homeWaypointAbove.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
                         posControl.navMissionState = NAV_AUTO_RTH_HEAD_HOME;
-                        reprocessState = false;
+                        reprocessState = true;
                     }
                 }
                 else {
@@ -157,14 +178,18 @@ void applyAutonomousController(void)
             /* Climb to safe altitude */
             case NAV_AUTO_RTH_CLIMB_TO_SAVE_ALTITUDE:
                 if (posControl.mode == NAV_MODE_RTH) {
-                    if (fabsf(posControl.actualState.pos.V.Z - posControl.homeWaypointAbove.pos.V.Z) < 50.0f) {
-                        // Set target position to home and calculate original bearing
-                        setDesiredPosition(&posControl.homeWaypointAbove.pos, posControl.homeWaypointAbove.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
-                        setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z);
+                    /* If we have to climb - stay here, if descent if necessary - do it on the way home */
+                    if ((posControl.actualState.pos.V.Z - posControl.homeWaypointAbove.pos.V.Z) > -50.0f) {
                         posControl.navMissionState = NAV_AUTO_RTH_HEAD_HOME;
-                        reprocessState = false;
+                        reprocessState = true;
                     }
                     else {
+                        /* Set altitude and position target for climbout on airplanes */
+                        if (STATE(FIXED_WING)) {
+                            /* Airplane is special, we can't stay at the current position and climb in spiral - fly straight line until target altitude is reached */
+                            setDesiredPositionToFarAwayTarget(posControl.actualState.yaw, 100000.0f, NAV_POS_UPDATE_XY);
+                        }
+
                         /* Check for emergency condition: GPS loss */
                         /*
                         if (!posControl.flags.hasValidPositionSensor)
@@ -184,15 +209,12 @@ void applyAutonomousController(void)
                 if (posControl.mode == NAV_MODE_RTH) {
                     // Stay at this state until home reached
                     if (isWaypointReached(&posControl.homeWaypointAbove)) {
-                        // Set position lock on home and heading to original heading when lauched
-                        setDesiredPosition(&posControl.homePosition.pos, posControl.homePosition.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
-                        setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z);
-                        posControl.navMissionState = NAV_AUTO_AUTOLAND_INIT;
+                        posControl.navMissionState = NAV_AUTO_RTH_AUTOLAND_INIT;
                         reprocessState = true;
                     }
                     else {
-                        // Update XY-position target
-                        setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
+                        // Update XYZ-position target
+                        setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
 
                         /* Check for emergency condition: GPS loss */
                         /*
@@ -228,10 +250,18 @@ void applyAutonomousController(void)
                 }
                 break;
 
+            /* Initiate autolanding from RTH sequence */
+            case NAV_AUTO_RTH_AUTOLAND_INIT:
+                setDesiredPosition(&posControl.homePosition.pos, posControl.homePosition.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
+                posControl.navMissionState = NAV_AUTO_AUTOLAND_INIT;
+                reprocessState = true;
+                break;
+
             /* Init waypoint mission */
             case NAV_AUTO_WP_INIT:
                 if (posControl.waypointCount == 0) {
-                    /* No waypoints to cycle through */
+                    /* No waypoints to go through, however XY-controller will execute regardless, so set desiredPosition to something sane */
+                    setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z);
                     posControl.navMissionState = NAV_AUTO_FINISHED;
                     reprocessState = true;
                 }
@@ -244,7 +274,7 @@ void applyAutonomousController(void)
                 break;
 
             case NAV_AUTO_WP:
-                if (isWaypointReached(&posControl.waypointList[activeWaypointIndex])) {
+                if (isWaypointReached(&posControl.waypointList[activeWaypointIndex]) || isWaypointMissed(&posControl.waypointList[activeWaypointIndex])) {
                     // Waypoint reached - go to next waypoint
                     activeWaypointIndex++;
                     if (activeWaypointIndex >= posControl.waypointCount) {
@@ -274,6 +304,9 @@ void applyAutonomousController(void)
 
             /* Initialize autolanding sequence */
             case NAV_AUTO_AUTOLAND_INIT:
+                // Update Z-controller setpoint to current altitude
+                // No need to update XY-position setpoint - it is already set to desired landing position
+                setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_Z);
                 resetLandingDetector();
                 posControl.navMissionState = NAV_AUTO_AUTOLAND;
                 reprocessState = true;

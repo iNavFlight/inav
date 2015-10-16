@@ -25,6 +25,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/filter.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -42,7 +43,6 @@
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 #include "flight/gtune.h"
-#include "flight/filter.h"
 
 #include "config/runtime_config.h"
 
@@ -64,10 +64,10 @@ static int32_t errorAngleI[2] = { 0, 0 };
 static float errorAngleIf[2] = { 0.0f, 0.0f };
 
 static void pidMultiWii(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig,
-        uint16_t max_angle_inclination, rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig);
+        uint16_t max_angle_inclination, rxConfig_t *rxConfig);
 
 typedef void (*pidControllerFuncPtr)(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig,
-        uint16_t max_angle_inclination, rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig);            // pid controller function prototype
+        uint16_t max_angle_inclination, rxConfig_t *rxConfig);            // pid controller function prototype
 
 pidControllerFuncPtr pid_controller = pidMultiWii; // which pid controller are we using, defaultMultiWii
 
@@ -96,7 +96,7 @@ const angle_index_t rcAliasToAngleIndexMap[] = { AI_ROLL, AI_PITCH };
 static filterStatePt1_t PTermState[3], DTermState[3];
 
 static void pidLuxFloat(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig,
-        uint16_t max_angle_inclination, rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
+        uint16_t max_angle_inclination, rxConfig_t *rxConfig)
 {
     float RateError, errorAngle, AngleRate, gyroRate;
     float ITerm,PTerm,DTerm;
@@ -143,7 +143,7 @@ static void pidLuxFloat(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
          } else {
             // calculate error and limit the angle to the max inclination
             errorAngle = (constrain(rcCommand[axis], -((int) max_angle_inclination),
-                    +max_angle_inclination) - attitude.raw[axis] + angleTrim->raw[axis]) / 10.0f; // 16 bits is ok here
+                    +max_angle_inclination) - attitude.raw[axis]) / 10.0f; // 16 bits is ok here
 
             if (FLIGHT_MODE(ANGLE_MODE)) {
                 // it's the ANGLE mode - control is angle based, so control loop is needed
@@ -171,7 +171,7 @@ static void pidLuxFloat(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
 
         // Pterm low pass
         if (pidProfile->pterm_cut_hz) {
-            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz);
+            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz, dT);
         }
 
         // -----calculate I component.
@@ -195,7 +195,7 @@ static void pidLuxFloat(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
 
         // Dterm low pass
         if (pidProfile->dterm_cut_hz) {
-            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz);
+            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz, dT);
         }
 
         DTerm = constrainf((deltaSum / 3.0f) * pidProfile->D_f[axis] * PIDweight[axis] / 100, -300.0f, 300.0f);
@@ -218,7 +218,7 @@ static void pidLuxFloat(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
 }
 
 static void pidMultiWii(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig,
-        uint16_t max_angle_inclination, rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
+        uint16_t max_angle_inclination, rxConfig_t *rxConfig)
 {
     UNUSED(rxConfig);
 
@@ -239,7 +239,7 @@ static void pidMultiWii(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
         if ((FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) && (axis == FD_ROLL || axis == FD_PITCH)) { // MODE relying on ACC
             // observe max inclination
             errorAngle = constrain(2 * rcCommand[axis], -((int) max_angle_inclination),
-                    +max_angle_inclination) - attitude.raw[axis] + angleTrim->raw[axis];
+                    +max_angle_inclination) - attitude.raw[axis];
 
             PTermACC = errorAngle * pidProfile->P8[PIDLEVEL] / 100; // 32 bits is needed for calculation: errorAngle*P8[PIDLEVEL] could exceed 32768   16 bits is ok for result
             PTermACC = constrain(PTermACC, -pidProfile->D8[PIDLEVEL] * 5, +pidProfile->D8[PIDLEVEL] * 5);
@@ -276,7 +276,7 @@ static void pidMultiWii(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
 
         // Pterm low pass
         if (pidProfile->pterm_cut_hz) {
-            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz);
+            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz, cycleTime * 1e-6);
         }
 
         delta = (gyroADC[axis] - lastGyro[axis]) / 4;
@@ -287,7 +287,7 @@ static void pidMultiWii(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
 
         // Dterm low pass
         if (pidProfile->dterm_cut_hz) {
-            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz);
+            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz, cycleTime * 1e-6);
         }
 
         DTerm = (deltaSum * dynD8[axis]) / 32;
@@ -307,8 +307,7 @@ static void pidMultiWii(pidProfile_t *pidProfile, controlRateConfig_t *controlRa
     }
 }
 
-static void pidMultiWii23(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, uint16_t max_angle_inclination,
-            rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
+static void pidMultiWii23(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, uint16_t max_angle_inclination, rxConfig_t *rxConfig)
 {
     UNUSED(rxConfig);
 
@@ -342,7 +341,7 @@ static void pidMultiWii23(pidProfile_t *pidProfile, controlRateConfig_t *control
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {   // axis relying on ACC
             // 50 degrees max inclination
             errorAngle = constrain(2 * rcCommand[axis], -((int) max_angle_inclination),
-                +max_angle_inclination) - attitude.raw[axis] + angleTrim->raw[axis];
+                +max_angle_inclination) - attitude.raw[axis];
 
             errorAngleI[axis]  = constrain(errorAngleI[axis] + errorAngle, -10000, +10000);                                                // WindUp     //16 bits is ok here
 
@@ -361,7 +360,7 @@ static void pidMultiWii23(pidProfile_t *pidProfile, controlRateConfig_t *control
 
         // Pterm low pass
         if (pidProfile->pterm_cut_hz) {
-            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz);
+            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz, cycleTime * 1e-6);
         }
 
         delta = (gyroADC[axis] - lastGyro[axis]) / 4;   // 16 bits is ok here, the dif between 2 consecutive gyro reads is limited to 800
@@ -372,7 +371,7 @@ static void pidMultiWii23(pidProfile_t *pidProfile, controlRateConfig_t *control
 
         // Dterm low pass
         if (pidProfile->dterm_cut_hz) {
-            DTerm = filterApplyPt1(DTerm, &DTermState[axis], pidProfile->dterm_cut_hz);
+            DTerm = filterApplyPt1(DTerm, &DTermState[axis], pidProfile->dterm_cut_hz, cycleTime * 1e-6);
         }
 
         DTerm = ((int32_t)DTerm * dynD8[axis]) >> 5;   // 32 bits is needed for calculation
@@ -428,7 +427,7 @@ static void pidMultiWii23(pidProfile_t *pidProfile, controlRateConfig_t *control
 }
 
 static void pidMultiWiiHybrid(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig,
-        uint16_t max_angle_inclination, rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
+        uint16_t max_angle_inclination, rxConfig_t *rxConfig)
 {
     UNUSED(rxConfig);
 
@@ -449,7 +448,7 @@ static void pidMultiWiiHybrid(pidProfile_t *pidProfile, controlRateConfig_t *con
         if ((FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) { // MODE relying on ACC
             // observe max inclination
             errorAngle = constrain(2 * rcCommand[axis], -((int) max_angle_inclination),
-                    +max_angle_inclination) - attitude.raw[axis] + angleTrim->raw[axis];
+                    +max_angle_inclination) - attitude.raw[axis];
 
             PTermACC = errorAngle * pidProfile->P8[PIDLEVEL] / 100; // 32 bits is needed for calculation: errorAngle*P8[PIDLEVEL] could exceed 32768   16 bits is ok for result
             PTermACC = constrain(PTermACC, -pidProfile->D8[PIDLEVEL] * 5, +pidProfile->D8[PIDLEVEL] * 5);
@@ -486,7 +485,7 @@ static void pidMultiWiiHybrid(pidProfile_t *pidProfile, controlRateConfig_t *con
 
         // Pterm low pass
         if (pidProfile->pterm_cut_hz) {
-            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz);
+            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz, cycleTime * 1e-6);
         }
         delta = (gyroADC[axis] - lastGyro[axis]) / 4;
         lastGyro[axis] = gyroADC[axis];
@@ -496,7 +495,7 @@ static void pidMultiWiiHybrid(pidProfile_t *pidProfile, controlRateConfig_t *con
 
         // Dterm low pass
         if (pidProfile->dterm_cut_hz) {
-            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz);
+            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz, cycleTime * 1e-6);
         }
 
         DTerm = (deltaSum * dynD8[axis]) / 32;
@@ -549,8 +548,7 @@ static void pidMultiWiiHybrid(pidProfile_t *pidProfile, controlRateConfig_t *con
 #endif
 }
 
-static void pidHarakiri(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, uint16_t max_angle_inclination,
-rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
+static void pidHarakiri(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, uint16_t max_angle_inclination, rxConfig_t *rxConfig)
 {
     UNUSED(rxConfig);
 
@@ -578,7 +576,7 @@ rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
         gyroADCQuant = (float)tmp * 3.2f;                                     // but delivers more accuracy and also reduces jittery flight
         rcCommandAxis = (float)rcCommand[axis];                               // Calculate common values for pid controllers
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
-            error = constrain(2.0f * rcCommandAxis, -((int) max_angle_inclination), +max_angle_inclination) - attitude.raw[axis] + angleTrim->raw[axis];
+            error = constrain(2.0f * rcCommandAxis, -((int) max_angle_inclination), +max_angle_inclination) - attitude.raw[axis];
 
             PTermACC = error * (float)pidProfile->P8[PIDLEVEL] * 0.008f;
             float limitf = (float)pidProfile->D8[PIDLEVEL] * 5.0f;
@@ -613,7 +611,7 @@ rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
 
         // Pterm low pass
         if (pidProfile->pterm_cut_hz) {
-            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz);
+            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz, ACCDeltaTimeINS);
         }
 
         delta = (gyroADCQuant - lastGyro[axis]) / ACCDeltaTimeINS;
@@ -671,7 +669,7 @@ rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
 
     // Pterm low pass
     if (pidProfile->pterm_cut_hz) {
-        PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz);
+        PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz, ACCDeltaTimeINS);
     }
 
     axisPID[FD_YAW] = PTerm + ITerm;
@@ -690,8 +688,7 @@ rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
 #endif
 }
 
-static void pidRewrite(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, uint16_t max_angle_inclination,
-        rollAndPitchTrims_t *angleTrim, rxConfig_t *rxConfig)
+static void pidRewrite(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, uint16_t max_angle_inclination, rxConfig_t *rxConfig)
 {
     UNUSED(rxConfig);
 
@@ -737,7 +734,7 @@ static void pidRewrite(pidProfile_t *pidProfile, controlRateConfig_t *controlRat
         } else {
             // calculate error and limit the angle to max configured inclination
             errorAngle = constrain(2 * rcCommand[axis], -((int) max_angle_inclination),
-                    +max_angle_inclination) - attitude.raw[axis] + angleTrim->raw[axis]; // 16 bits is ok here
+                    +max_angle_inclination) - attitude.raw[axis]; // 16 bits is ok here
 
             if (!FLIGHT_MODE(ANGLE_MODE)) { //control is GYRO based (ACRO and HORIZON - direct sticks control is applied to rate PID
                 AngleRateTmp = ((int32_t)(rate + 27) * rcCommand[axis]) >> 4;
@@ -761,7 +758,7 @@ static void pidRewrite(pidProfile_t *pidProfile, controlRateConfig_t *controlRat
 
         // Pterm low pass
         if (pidProfile->pterm_cut_hz) {
-            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz);
+            PTerm = filterApplyPt1(PTerm, &PTermState[axis], pidProfile->pterm_cut_hz, cycleTime * 1e-6);
         }
 
         // -----calculate I component
@@ -790,7 +787,7 @@ static void pidRewrite(pidProfile_t *pidProfile, controlRateConfig_t *controlRat
 
         // Dterm delta low pass
         if (pidProfile->dterm_cut_hz) {
-            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz);
+            deltaSum = filterApplyPt1(deltaSum, &DTermState[axis], pidProfile->dterm_cut_hz, cycleTime * 1e-6);
         }
 
         DTerm = (deltaSum * pidProfile->D8[axis] * PIDweight[axis] / 100) >> 8;
@@ -835,4 +832,3 @@ void pidSetController(pidControllerType_e type)
             pid_controller = pidHarakiri;
     }
 }
-

@@ -200,4 +200,33 @@ TEST(MathsUnittest, TestFastTrigonometryACos)
     EXPECT_NEAR(acos_approx(0.707106781f),      M_PIf / 4, 1e-4);
     EXPECT_NEAR(acos_approx(-0.707106781f), 3 * M_PIf / 4, 1e-4);
 }
+
+TEST(MathsUnittest, TestSensorScaleUnitTest)
+{
+    sensorCalibrationState_t calState;
+    float result[3];
+
+    int16_t samples[6][3] = {
+        {  2896,  2896,      0 },
+        { -2897,  2896,      0 },
+        {     0,  4096,      0 },
+        {     0, -4096,      0 },
+        {     0,  2895,  -2897 },
+        {     0,     0,  -4096 } };
+
+    /* Given */
+    sensorCalibrationResetState(&calState);
+    sensorCalibrationPushSampleForScaleCalculation(&calState, 0, samples[0], 4096 );
+    sensorCalibrationPushSampleForScaleCalculation(&calState, 0, samples[1], 4096 );
+    sensorCalibrationPushSampleForScaleCalculation(&calState, 1, samples[2], 4096 );
+    sensorCalibrationPushSampleForScaleCalculation(&calState, 1, samples[3], 4096 );
+    sensorCalibrationPushSampleForScaleCalculation(&calState, 2, samples[4], 4096 );
+    sensorCalibrationPushSampleForScaleCalculation(&calState, 2, samples[5], 4096 );
+    sensorCalibrationSolveForScale(&calState, result);
+    
+    EXPECT_NEAR(result[0], 1, 1e-4);
+    EXPECT_NEAR(result[1], 1, 1e-4);
+    EXPECT_NEAR(result[2], 1, 1e-4);
+}
+
 #endif

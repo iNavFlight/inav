@@ -225,6 +225,9 @@ void updateFailsafeStatus(void)
         case FAILSAFE_RX_LOSS_DETECTED:
             failsafeIndicator = 'R';
             break;
+        case FAILSAFE_RETURN_TO_HOME:
+            failsafeIndicator = 'H';
+            break;
         case FAILSAFE_LANDING:
             failsafeIndicator = 'l';
             break;

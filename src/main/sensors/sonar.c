@@ -108,12 +108,38 @@ void sonarUpdate(void)
     hcsr04_start_reading();
 }
 
+#define SONAR_SAMPLES_MEDIAN 3
+
 /**
  * Get the last distance measured by the sonar in centimeters. When the ground is too far away, -1 is returned instead.
  */
 int32_t sonarRead(void)
 {
-    return hcsr04_get_distance();
+    static int32_t sonarFilterSamples[SONAR_SAMPLES_MEDIAN];
+    static int currentFilterSampleIndex = 0;
+    static bool medianFilterReady = false;
+
+    int32_t newSonarReading = hcsr04_get_distance();
+    int nextSampleIndex;
+
+    if (newSonarReading > 0) {
+        nextSampleIndex = (currentFilterSampleIndex + 1);
+        if (nextSampleIndex == SONAR_SAMPLES_MEDIAN) {
+            nextSampleIndex = 0;
+            medianFilterReady = true;
+        }
+
+        sonarFilterSamples[currentFilterSampleIndex] = newSonarReading;
+        currentFilterSampleIndex = nextSampleIndex;
+
+        if (medianFilterReady)
+            return quickMedianFilter3(sonarFilterSamples);
+        else
+            return newSonarReading;
+    }
+    else {
+        return -1;
+    }
 }
 
 /**
