@@ -23,6 +23,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/filter.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -46,6 +47,8 @@ uint16_t calibratingA = 0;      // the calibration is done is the main loop. Cal
 
 static flightDynamicsTrims_t * accZero;
 static flightDynamicsTrims_t * accGain;
+static int8_t * accFIRTable = 0L;
+static int16_t accFIRState[3][9];
 
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired)
 {
@@ -174,11 +177,16 @@ void updateAccelerationReadings(void)
         return;
     }
 
+    if (accFIRTable) {
+        filterApply9TapFIR(accADC, accFIRState, accFIRTable);
+    }
+
     if (!isAccelerationCalibrationComplete()) {
         performAcclerationCalibration();
     }
 
     alignSensors(accADC, accADC, accAlign);
+
     applyAccelerationZero(accZero, accGain);
 }
 
@@ -190,4 +198,9 @@ void setAccelerationZero(flightDynamicsTrims_t * accZeroToUse)
 void setAccelerationGain(flightDynamicsTrims_t * accGainToUse)
 {
     accGain = accGainToUse;
+}
+
+void setAccelerationFilter(int8_t * filterTableToUse)
+{
+    accFIRTable = filterTableToUse;
 }

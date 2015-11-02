@@ -49,6 +49,7 @@ int16_t magADC[XYZ_AXIS_COUNT];
 sensor_align_e magAlign = 0;
 #ifdef MAG
 static uint8_t magInit = 0;
+static uint8_t magUpdatedAtLeastOnce = 0;
 
 void compassInit(void)
 {
@@ -57,6 +58,11 @@ void compassInit(void)
     mag.init();
     LED1_OFF;
     magInit = 1;
+}
+
+bool isCompassReady(void)
+{
+    return magUpdatedAtLeastOnce;
 }
 
 static sensorCalibrationState_t calState;
@@ -129,5 +135,7 @@ void updateCompass(flightDynamicsTrims_t *magZero)
     }
 
     alignSensors(magADC, magADC, magAlign);
+
+    magUpdatedAtLeastOnce = 1;
 }
 #endif

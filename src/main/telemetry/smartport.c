@@ -383,18 +383,18 @@ void handleSmartPortTelemetry(void)
                 smartPortHasRequest = 0;
                 break;
             case FSSP_DATAID_ACCX       :
-                smartPortSendPackage(id, accSmooth[X] / 44);
+                smartPortSendPackage(id, accADC[X] / 44);
                 // unknown input and unknown output unit
                 // we can only show 00.00 format, another digit won't display right on Taranis
                 // dividing by roughly 44 will give acceleration in G units
                 smartPortHasRequest = 0;
                 break;
             case FSSP_DATAID_ACCY       :
-                smartPortSendPackage(id, accSmooth[Y] / 44);
+                smartPortSendPackage(id, accADC[Y] / 44);
                 smartPortHasRequest = 0;
                 break;
             case FSSP_DATAID_ACCZ       :
-                smartPortSendPackage(id, accSmooth[Z] / 44);
+                smartPortSendPackage(id, accADC[Z] / 44);
                 smartPortHasRequest = 0;
                 break;
             case FSSP_DATAID_T1         :

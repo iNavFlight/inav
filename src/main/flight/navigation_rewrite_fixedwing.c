@@ -96,7 +96,7 @@ static void updateAltitudeVelocityAndPitchController_FW(uint32_t deltaMicros)
     float maxVelocityClimb = forwardVelocity * sin_approx(DEGREES_TO_RADIANS(posControl.navConfig->fw_max_climb_angle));
     float maxVelocityDive = -forwardVelocity * sin_approx(DEGREES_TO_RADIANS(posControl.navConfig->fw_max_dive_angle));
 
-    posControl.desiredState.vel.V.Z = navPidApply2(posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z, US2S(deltaMicros), &posControl.pids.fw_alt, maxVelocityDive, maxVelocityClimb);
+    posControl.desiredState.vel.V.Z = navPidApply2(posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z, US2S(deltaMicros), &posControl.pids.fw_alt, maxVelocityDive, maxVelocityClimb, false);
     posControl.desiredState.vel.V.Z = filterApplyPt1(posControl.desiredState.vel.V.Z, &velzFilterState, NAV_FW_VEL_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
 
     // Calculate pitch angle (plane should be trimmed to horizontal flight with PITCH=0
@@ -298,8 +298,9 @@ static void updatePositionHeadingController_FW(uint32_t deltaMicros)
 
     // Input error in (deg*100), output pitch angle (deg*100)
     float rollAdjustment = navPidApply2(posControl.actualState.yaw + headingError, posControl.actualState.yaw, US2S(deltaMicros), &posControl.pids.fw_nav,
-                                        -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle),
-                                         DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle));
+                                       -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle),
+                                        DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle),
+                                        false);
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);

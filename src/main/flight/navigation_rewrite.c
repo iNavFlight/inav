@@ -80,24 +80,36 @@ bool updateTimer(navigationTimer_t * tim, uint32_t interval, uint32_t currentTim
 // Implementation of PID with back-calculation I-term anti-windup
 // Control System Design, Lecture Notes for ME 155A by Karl Johan Åström (p.228)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
-float navPidApply2(float setpoint, float measurement, float dt, pidController_t *pid, float outMin, float outMax)
+float navPidApply2(float setpoint, float measurement, float dt, pidController_t *pid, float outMin, float outMax, bool dTermErrorTracking)
 {
     float newProportional, newDerivative;
     float error = setpoint - measurement;
 
+    /* P-term */
     newProportional = error * pid->param.kP;
 
-    newDerivative = -(measurement - pid->last_input) / dt;
-    pid->last_input = measurement;
+    /* D-term */
+    if (dTermErrorTracking) {
+        /* Error-tracking D-term */
+        newDerivative = (error - pid->last_input) / dt;
+        pid->last_input = error;
+    }
+    else {
+        /* Measurement tracking D-term */
+        newDerivative = -(measurement - pid->last_input) / dt;
+        pid->last_input = measurement;
+    }
+
     if (posControl.navConfig->dterm_cut_hz)
         newDerivative = pid->param.kD * filterApplyPt1(newDerivative, &pid->dterm_filter_state, posControl.navConfig->dterm_cut_hz, dt);
     else
         newDerivative = pid->param.kD * newDerivative;
 
+    /* Pre-calculate output and limit it if actuator is saturating */
     float outVal = newProportional + pid->integrator + newDerivative;
     float outValConstrained = constrainf(outVal, outMin, outMax);
 
-    // Update integral
+    /* Update I-term */
     pid->integrator += (error * pid->param.kI * dt) + ((outValConstrained - outVal) * pid->param.kT * dt);
 
     return outValConstrained;

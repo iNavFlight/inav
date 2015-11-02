@@ -25,6 +25,7 @@
 
 #include "platform.h"
 #include "debug.h"
+#include "build_config.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
@@ -49,14 +50,19 @@
 
 #include "config/runtime_config.h"
 
+// the limit (in degrees/second) beyond which we stop integrating
+// omega_I. At larger spin rates the DCM PI controller can get 'dizzy'
+// which results in false gyro drift. See
+// http://gentlenav.googlecode.com/files/fastRotations.pdf
+#define SPIN_RATE_LIMIT 20
+
 t_fp_vector imuAccelInBodyFrame;
-int16_t accSmooth[XYZ_AXIS_COUNT];
 float smallAngleCosZ = 0;
 
 float magneticDeclination = 0.0f;       // calculated at startup from config
 
-static float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;    // quaternion of sensor frame relative to earth frame
-static float rMat[3][3];
+STATIC_UNIT_TESTED float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;    // quaternion of sensor frame relative to earth frame
+STATIC_UNIT_TESTED float rMat[3][3];
 
 attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
@@ -65,7 +71,7 @@ static pidProfile_t *pidProfile;
 
 static float gyroScale;
 
-static void imuCompureRotationMatrix(void)
+STATIC_UNIT_TESTED void imuCompureRotationMatrix(void)
 {
     float q1q1 = q1 * q1;
     float q2q2 = q2 * q2;
@@ -160,16 +166,20 @@ static float invSqrt(float x)
     return 1.0f / sqrtf(x);
 }
 
-static void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t initialPitch, int16_t initialYaw)
+STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t initialPitch, int16_t initialYaw)
 {
+    if (initialRoll > 1800) initialRoll -= 3600;
+    if (initialPitch > 1800) initialPitch -= 3600;
+    if (initialYaw > 1800) initialYaw -= 3600;
+
     float cosRoll = cos_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
     float sinRoll = sin_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
 
     float cosPitch = cos_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
     float sinPitch = sin_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
 
-    float cosYaw = cos_approx(DECIDEGREES_TO_RADIANS(initialYaw) * 0.5f);
-    float sinYaw = sin_approx(DECIDEGREES_TO_RADIANS(initialYaw) * 0.5f);
+    float cosYaw = cos_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
+    float sinYaw = sin_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
 
     q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
     q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
@@ -177,6 +187,32 @@ static void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t initialPitc
     q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
 
     imuCompureRotationMatrix();
+}
+
+static bool imuUseFastGains(void)
+{
+    return !ARMING_FLAG(ARMED) && millis() < 20000;
+}
+
+// Taken from http://gentlenav.googlecode.com/files/fastRotations.pdf
+static float imuGetPGainScaleFactor(float spin_rate)
+{
+    if (imuUseFastGains()) {
+        return 10.0f;
+    }
+    else {
+        /* FIXME: More reliance on accel at high speed rotation is a VERY BAD idea unless you do some centripetal accel compensation */
+        return 1.0f;
+
+        if (spin_rate < DEGREES_TO_RADIANS(50)) {
+            return 1.0f;
+        }
+        else if (spin_rate > DEGREES_TO_RADIANS(500)) {
+            return 10.0f;
+        }
+
+        return spin_rate / DEGREES_TO_RADIANS(50);
+    }
 }
 
 static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
@@ -191,90 +227,112 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
     float ex, ey, ez;
     float qa, qb, qc;
 
+    /* Calculate general spin rate (rad/s) */
+    float spin_rate = sqrtf(sq(gx) + sq(gy) + sq(gz));
+
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
-    recipNorm = mx * mx + my * my + mz * mz;
-    if (useMag && recipNorm > 0.01f) {
-        // Normalise magnetometer measurement
-        recipNorm = invSqrt(recipNorm);
-        mx *= recipNorm;
-        my *= recipNorm;
-        mz *= recipNorm;
+    if (useMag || useYaw) {
+        float kpMag = imuRuntimeConfig->dcm_kp_mag * imuGetPGainScaleFactor(spin_rate);
 
-        // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
-        // This way magnetic field will only affect heading and wont mess roll/pitch angles
+        recipNorm = mx * mx + my * my + mz * mz;
+        if (useMag && recipNorm > 0.01f) {
+            // Normalise magnetometer measurement
+            recipNorm = invSqrt(recipNorm);
+            mx *= recipNorm;
+            my *= recipNorm;
+            mz *= recipNorm;
 
-        // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
-        // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
-        hx = rMat[0][0] * mx + rMat[0][1] * my + rMat[0][2] * mz;
-        hy = rMat[1][0] * mx + rMat[1][1] * my + rMat[1][2] * mz;
-        bx = sqrtf(hx * hx + hy * hy);
+            // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
+            // This way magnetic field will only affect heading and wont mess roll/pitch angles
 
-        // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-        float ez_ef = -(hy * bx);
+            // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
+            // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
+            hx = rMat[0][0] * mx + rMat[0][1] * my + rMat[0][2] * mz;
+            hy = rMat[1][0] * mx + rMat[1][1] * my + rMat[1][2] * mz;
+            bx = sqrtf(hx * hx + hy * hy);
 
-        // Rotate mag error vector back to BF and accumulate
-        ex = rMat[2][0] * ez_ef;
-        ey = rMat[2][1] * ez_ef;
-        ez = rMat[2][2] * ez_ef;
+            // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
+            float ez_ef = -(hy * bx);
+
+            // Rotate mag error vector back to BF and accumulate
+            ex = rMat[2][0] * ez_ef;
+            ey = rMat[2][1] * ez_ef;
+            ez = rMat[2][2] * ez_ef;
+        }
+        else if (useYaw) {
+            // Use raw heading error (from GPS or whatever else)
+            while (yawError >  M_PIf) yawError -= (2.0f * M_PIf);
+            while (yawError < -M_PIf) yawError += (2.0f * M_PIf);
+
+            ex = 0;
+            ey = 0;
+            ez = sin_approx(yawError / 2.0f);
+        }
+        else {
+            ex = 0;
+            ey = 0;
+            ez = 0;
+        }
+
+        // Compute and apply integral feedback if enabled
+        if(imuRuntimeConfig->dcm_ki_mag > 0.0f) {
+            // Stop integrating if spinning beyond the certain limit
+            if (spin_rate < DEGREES_TO_RADIANS(SPIN_RATE_LIMIT)) {
+                integralMagX += imuRuntimeConfig->dcm_ki_mag * ex * dt;    // integral error scaled by Ki
+                integralMagY += imuRuntimeConfig->dcm_ki_mag * ey * dt;
+                integralMagZ += imuRuntimeConfig->dcm_ki_mag * ez * dt;
+
+                gx += integralMagX;
+                gy += integralMagY;
+                gz += integralMagZ;
+            }
+        }
+
+        // Calculate kP gain and apply proportional feedback
+        gx += kpMag * ex;
+        gy += kpMag * ey;
+        gz += kpMag * ez;
     }
-    else if (useYaw) {
-        // Use raw heading error (from GPS or whatever else)
-        while (yawError >  M_PIf) yawError -= (2.0f * M_PIf);
-        while (yawError < -M_PIf) yawError += (2.0f * M_PIf);
-
-        ex = 0;
-        ey = 0;
-        ez = sin_approx(yawError / 2.0f);
-    }
-
-    // Compute and apply integral feedback if enabled
-    if(imuRuntimeConfig->dcm_ki_mag > 0.0f) {
-        integralMagX += imuRuntimeConfig->dcm_ki_mag * ex * dt;    // integral error scaled by Ki
-        integralMagY += imuRuntimeConfig->dcm_ki_mag * ey * dt;
-        integralMagZ += imuRuntimeConfig->dcm_ki_mag * ez * dt;
-
-        gx += integralMagX;
-        gy += integralMagY;
-        gz += integralMagZ;
-    }
-
-    // Calculate kP gain and apply proportional feedback
-    gx += imuRuntimeConfig->dcm_kp_mag * ex;
-    gy += imuRuntimeConfig->dcm_kp_mag * ey;
-    gz += imuRuntimeConfig->dcm_kp_mag * ez;
 
 
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
-    recipNorm = ax * ax + ay * ay + az * az;
-    if (useAcc && recipNorm > 0.01f) {
-        // Normalise accelerometer measurement
-        recipNorm = invSqrt(recipNorm);
-        ax *= recipNorm;
-        ay *= recipNorm;
-        az *= recipNorm;
+    if (useAcc) {
+        float kpAcc = imuRuntimeConfig->dcm_kp_acc * imuGetPGainScaleFactor(spin_rate);
 
-        // Error is sum of cross product between estimated direction and measured direction of gravity
-        ex = (ay * rMat[2][2] - az * rMat[2][1]);
-        ey = (az * rMat[2][0] - ax * rMat[2][2]);
-        ez = (ax * rMat[2][1] - ay * rMat[2][0]);
+        recipNorm = ax * ax + ay * ay + az * az;
+        if (recipNorm > 0.01f) {
+            // Normalise accelerometer measurement
+            recipNorm = invSqrt(recipNorm);
+            ax *= recipNorm;
+            ay *= recipNorm;
+            az *= recipNorm;
+
+            // Error is sum of cross product between estimated direction and measured direction of gravity
+            ex = (ay * rMat[2][2] - az * rMat[2][1]);
+            ey = (az * rMat[2][0] - ax * rMat[2][2]);
+            ez = (ax * rMat[2][1] - ay * rMat[2][0]);
+
+            // Compute and apply integral feedback if enabled
+            if(imuRuntimeConfig->dcm_ki_acc > 0.0f) {
+                // Stop integrating if spinning beyond the certain limit
+                if (spin_rate < DEGREES_TO_RADIANS(SPIN_RATE_LIMIT)) {
+                    integralAccX += imuRuntimeConfig->dcm_ki_acc * ex * dt;    // integral error scaled by Ki
+                    integralAccY += imuRuntimeConfig->dcm_ki_acc * ey * dt;
+                    integralAccZ += imuRuntimeConfig->dcm_ki_acc * ez * dt;
+
+                    gx += integralAccX;
+                    gy += integralAccY;
+                    gz += integralAccZ;
+                }
+            }
+
+            // Calculate kP gain and apply proportional feedback
+            gx += kpAcc * ex;
+            gy += kpAcc * ey;
+            gz += kpAcc * ez;
+        }
     }
-
-    // Compute and apply integral feedback if enabled
-    if(imuRuntimeConfig->dcm_ki_acc > 0.0f) {
-        integralAccX += imuRuntimeConfig->dcm_ki_acc * ex * dt;    // integral error scaled by Ki
-        integralAccY += imuRuntimeConfig->dcm_ki_acc * ey * dt;
-        integralAccZ += imuRuntimeConfig->dcm_ki_acc * ez * dt;
-
-        gx += integralAccX;
-        gy += integralAccY;
-        gz += integralAccZ;
-    }
-
-    // Calculate kP gain and apply proportional feedback
-    gx += imuRuntimeConfig->dcm_kp_acc * ex;
-    gy += imuRuntimeConfig->dcm_kp_acc * ey;
-    gz += imuRuntimeConfig->dcm_kp_acc * ez;
 
     // Integrate rate of change of quaternion
     gx *= (0.5f * dt);
@@ -300,7 +358,7 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
     imuCompureRotationMatrix();
 }
 
-static void imuUpdateEulerAngles(void)
+STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
     /* Compute pitch/roll angles */
     attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
@@ -329,8 +387,8 @@ static bool imuIsAccelerometerHealthy(void)
 
     accMagnitude = accMagnitude * 100 / ((int32_t)acc_1G * acc_1G);
 
-    // Accept accel readings only in range 0.85g - 1.15g
-    return (72 < accMagnitude) && (accMagnitude < 133);
+    // Accept accel readings only in range 0.90g - 1.10g
+    return (81 < accMagnitude) && (accMagnitude < 121);
 }
 
 static bool isMagnetometerHealthy(void)
@@ -340,11 +398,10 @@ static bool isMagnetometerHealthy(void)
 
 static void imuCalculateEstimatedAttitude(void)
 {
-    static filterStatePt1_t accLPFState[3];
     static uint32_t previousIMUUpdateTime;
     static bool isImuInitialized = false;
     float rawYawError;
-    int32_t axis;
+
     bool useAcc = false;
     bool useMag = false;
     bool useYaw = false;
@@ -358,43 +415,41 @@ static void imuCalculateEstimatedAttitude(void)
         attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(accADC[Y], accADC[Z]));
         attitude.values.pitch = RADIANS_TO_DECIDEGREES(atan2_approx(-accADC[X], sqrtf(accADC[Y] * accADC[Y] + accADC[Z] * accADC[Z])));
 
-        if (sensors(SENSOR_MAG) && isMagnetometerHealthy()) {
-            t_fp_vector estM;
+        imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, 0);
 
-            estM.V.X = magADC[X];
-            estM.V.Y = magADC[Y];
-            estM.V.Z = magADC[Z];
+#if defined(MAG)
+        if (sensors(SENSOR_MAG)) {
+            /* Wait until compass is read at least once */
+            if (isCompassReady()) {
+                t_fp_vector estM;
 
-            /* Pre-compute orientation quaternion and rotate measured mag field vector to earth frame */
-            imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, 0);
-            imuTransformVectorBodyToEarth(&estM);
+                estM.V.X = magADC[X];
+                estM.V.Y = magADC[Y];
+                estM.V.Z = magADC[Z];
 
-            /* Calculate yaw from mag vector */
-            attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(estM.V.Y, estM.V.X)) + magneticDeclination;
+                /* Pre-compute orientation quaternion and rotate measured mag field vector to earth frame */
+                imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, 0);
+                imuTransformVectorBodyToEarth(&estM);
 
-            if (attitude.values.yaw < 0)
-                attitude.values.yaw += 3600;
+                /* Calculate yaw from mag vector */
+                attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(estM.V.Y, estM.V.X));
+
+                if (attitude.values.yaw < 0)
+                    attitude.values.yaw += 3600;
+
+                imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
+                isImuInitialized = true;
+            }
         }
         else {
-            attitude.values.yaw = 0;
+            isImuInitialized = true;
         }
-
-        /* We now have all RPY angles - regenerate quaternion */
-        imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
+#else
         isImuInitialized = true;
+#endif
     }
     else {
-        // Smooth and use only valid accelerometer readings
         if (imuIsAccelerometerHealthy()) {
-            // If reading is considered valid - apply filter
-            for (axis = 0; axis < 3; axis++) {
-                if (imuRuntimeConfig->acc_cut_hz > 0) {
-                    accSmooth[axis] = filterApplyPt1(accADC[axis], &accLPFState[axis], imuRuntimeConfig->acc_cut_hz, dT);
-                } else {
-                    accSmooth[axis] = accADC[axis];
-                }
-            }
-
             useAcc = true;
         }
 
@@ -420,7 +475,7 @@ static void imuCalculateEstimatedAttitude(void)
 
         imuMahonyAHRSupdate(dT,
                             gyroADC[X] * gyroScale, gyroADC[Y] * gyroScale, gyroADC[Z] * gyroScale,
-                            useAcc, accSmooth[X], accSmooth[Y], accSmooth[Z],
+                            useAcc, accADC[X], accADC[Y], accADC[Z],
                             useMag, magADC[X], magADC[Y], magADC[Z],
                             useYaw, rawYawError);
     }

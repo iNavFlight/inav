@@ -462,7 +462,7 @@ void showSensorsPage(void)
     i2c_OLED_send_string("        X     Y     Z");
 
     if (sensors(SENSOR_ACC)) {
-        tfp_sprintf(lineBuffer, format, "ACC", accSmooth[X], accSmooth[Y], accSmooth[Z]);
+        tfp_sprintf(lineBuffer, format, "ACC", accADC[X], accADC[Y], accADC[Z]);
         padLineBuffer();
         i2c_OLED_set_line(rowIndex++);
         i2c_OLED_send_string(lineBuffer);

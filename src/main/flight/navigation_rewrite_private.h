@@ -226,7 +226,7 @@ bool updateTimer(navigationTimer_t * tim, uint32_t interval, uint32_t currentTim
 #define getTimerDeltaMicros(tim) ((tim)->deltaTime)
 
 /* Internally used functions */
-float navPidApply2(float setpoint, float measurement, float dt, pidController_t *pid, float outMin, float outMax);
+float navPidApply2(float setpoint, float measurement, float dt, pidController_t *pid, float outMin, float outMax, bool dTermErrorTracking);
 void navPidReset(pidController_t *pid);
 void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD);
 void navPInit(pController_t *p, float _kP);

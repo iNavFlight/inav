@@ -26,7 +26,8 @@ typedef struct profile_s {
                                             // For example, -6deg 37min, = -637 Japan, format is [sign]dddmm (degreesminutes) default is zero.
 
     // sensor-related stuff
-    uint8_t acc_cut_hz;                     // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
+    uint8_t gyro_soft_filter;               // Used for soft gyro filtering
+    uint8_t acc_soft_filter;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
 
     barometerConfig_t barometerConfig;
 

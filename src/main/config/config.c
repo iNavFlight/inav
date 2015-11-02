@@ -157,7 +157,7 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[YAW] = 85;
     pidProfile->I8[YAW] = 45;
     pidProfile->D8[YAW] = 0;
-    pidProfile->P8[PIDALT] = 30;    // NAV_POS_Z_P * 100
+    pidProfile->P8[PIDALT] = 50;    // NAV_POS_Z_P * 100
     pidProfile->I8[PIDALT] = 0;     // not used
     pidProfile->D8[PIDALT] = 0;     // not used
     pidProfile->P8[PIDPOS] = 15;    // NAV_POS_XY_P * 100
@@ -174,12 +174,11 @@ static void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->D8[PIDLEVEL] = 100;
     pidProfile->P8[PIDMAG] = 40;
     pidProfile->P8[PIDVEL] = 100;   // NAV_VEL_Z_P * 100
-    pidProfile->I8[PIDVEL] = 20;    // NAV_VEL_Z_I * 100
-    pidProfile->D8[PIDVEL] = 0;     // NAV_VEL_Z_D * 1000
+    pidProfile->I8[PIDVEL] = 5;     // NAV_VEL_Z_I * 100
+    pidProfile->D8[PIDVEL] = 100;   // NAV_VEL_Z_D * 1000
 
     pidProfile->dterm_cut_hz = 40;
     pidProfile->pterm_cut_hz = 0;
-    pidProfile->gyro_soft_filter = 0;
 
     pidProfile->P_f[ROLL] = 1.5f;     // new PID with preliminary defaults test carefully
     pidProfile->I_f[ROLL] = 0.4f;
@@ -441,10 +440,10 @@ static void resetConf(void)
 
     // global settings
     masterConfig.current_profile_index = 0;     // default profile
-    masterConfig.dcm_kp_acc = 10000;            // 1.0 * 10000
-    masterConfig.dcm_ki_acc = 0;                // 0.0 * 10000
-    masterConfig.dcm_kp_mag = 50000;            // 5.0 * 10000
-    masterConfig.dcm_ki_mag = 0;                // 0.0 * 10000
+    masterConfig.dcm_kp_acc = 2500;             // 0.25 * 10000
+    masterConfig.dcm_ki_acc = 0;                // 0.00 * 10000
+    masterConfig.dcm_kp_mag = 10000;            // 1.00 * 10000
+    masterConfig.dcm_ki_mag = 0;                // 0.00 * 10000
     masterConfig.gyro_lpf = 42;                 // supported by all gyro drivers now. In case of ST gyro, will default to 32Hz instead
 
     resetAccelerometerTrims(&masterConfig.accZero, &masterConfig.accGain);
@@ -532,7 +531,8 @@ static void resetConf(void)
     //     cfg.activate[i] = 0;
 
     currentProfile->mag_declination = 0;
-    currentProfile->acc_cut_hz = 15;
+    currentProfile->acc_soft_filter = 3;    // heavy filtering by default
+    currentProfile->gyro_soft_filter = 0;   // no filtering by default
 
     resetBarometerConfig(&currentProfile->barometerConfig);
 
@@ -752,7 +752,7 @@ void activateConfig(void)
         &currentProfile->pidProfile
     );
 
-    useGyroConfig(&masterConfig.gyroConfig);
+    useGyroConfig(&masterConfig.gyroConfig, filterGetFIRCoefficientsTable(currentProfile->gyro_soft_filter, masterConfig.looptime));
 
 #ifdef TELEMETRY
     telemetryUseConfig(&masterConfig.telemetryConfig);
@@ -761,8 +761,10 @@ void activateConfig(void)
     pidSetController(currentProfile->pidProfile.pidController);
 
     useFailsafeConfig(&masterConfig.failsafeConfig);
+
     setAccelerationZero(&masterConfig.accZero);
     setAccelerationGain(&masterConfig.accGain);
+    setAccelerationFilter(filterGetFIRCoefficientsTable(currentProfile->acc_soft_filter, masterConfig.looptime));
 
     mixerUseConfigs(
 #ifdef USE_SERVOS
@@ -779,7 +781,6 @@ void activateConfig(void)
     imuRuntimeConfig.dcm_ki_acc = masterConfig.dcm_ki_acc / 10000.0f;
     imuRuntimeConfig.dcm_kp_mag = masterConfig.dcm_kp_mag / 10000.0f;
     imuRuntimeConfig.dcm_ki_mag = masterConfig.dcm_ki_mag / 10000.0f;
-    imuRuntimeConfig.acc_cut_hz = currentProfile->acc_cut_hz;
     imuRuntimeConfig.small_angle = masterConfig.small_angle;
 
     imuConfigure(&imuRuntimeConfig, &currentProfile->pidProfile);

@@ -22,7 +22,6 @@
 #define GRAVITY_CMSS    980.665f
 
 extern int16_t throttleAngleCorrection;
-extern int16_t accSmooth[XYZ_AXIS_COUNT];
 extern int16_t smallAngle;
 extern t_fp_vector imuAccelInBodyFrame;
 
@@ -39,7 +38,6 @@ typedef union {
 extern attitudeEulerAngles_t attitude;
 
 typedef struct imuRuntimeConfig_s {
-    uint8_t acc_cut_hz;
     float dcm_kp_acc;
     float dcm_ki_acc;
     float dcm_kp_mag;

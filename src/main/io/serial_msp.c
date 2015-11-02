@@ -846,7 +846,7 @@ static bool processOutCommand(uint8_t cmdMSP)
         uint8_t scale = (acc_1G > 1024) ? 8 : 1;
 
         for (i = 0; i < 3; i++)
-            serialize16(accSmooth[i] / scale);
+            serialize16(accADC[i] / scale);
         for (i = 0; i < 3; i++)
             serialize16(gyroADC[i]);
         for (i = 0; i < 3; i++)

@@ -110,50 +110,10 @@ extern uint8_t dynP8[3], dynI8[3], dynD8[3], PIDweight[3];
 
 static bool isRXDataNew;
 
-/**
- * Typical quadcopter motor noise frequency (at 50% throttle):
- *  450-sized, 920kv, 9.4x4.3 props, 3S : 4622rpm = 77Hz
- *  250-sized, 2300kv, 5x4.5 props, 4S : 14139rpm = 235Hz
- */
-static int16_t gyroFIR[3][9];
-static int8_t gyroFIRCoeff_1000[3][9] = { { 0, 0, 12, 23, 40, 51, 52, 40, 38 },    // looptime=1000; group delay 2.5ms; -0.5db = 32Hz ; -1db = 45Hz; -5db = 97Hz; -10db = 132Hz
-                                          { 18, 30, 42, 46, 40, 34, 22, 8, 8},     // looptime=1000; group delay 3ms;   -0.5db = 18Hz ; -1db = 33Hz; -5db = 81Hz; -10db = 113Hz
-                                          { 18, 12, 28, 40, 44, 40, 32, 22, 20} }; // looptime=1000; group delay 4ms;   -0.5db = 23Hz ; -1db = 35Hz; -5db = 75Hz; -10db = 103Hz
-static int8_t gyroFIRCoeff_2000[3][9] = { { 0, 0, 0, 6, 24, 58, 82, 64, 20 },      // looptime=2000, group delay 4ms;   -0.5db = 21Hz ; -1db = 31Hz; -5db = 71Hz; -10db = 99Hz
-                                          { 0, 0, 14, 22, 46, 60, 56, 40, 24},     // looptime=2000, group delay 5ms;   -0.5db = 20Hz ; -1db = 26Hz; -5db = 52Hz; -10db = 71Hz
-                                          { 14, 12, 26, 38, 44, 42, 34, 24, 20} }; // looptime=2000, group delay 7ms;   -0.5db = 11Hz ; -1db = 18Hz; -5db = 38Hz; -10db = 52Hz
-static int8_t gyroFIRCoeff_3000[3][9] = { { 0, 0, 0, 0, 4, 36, 88, 88, 44 },       // looptime=3000, group delay 4.5ms; -0.5db = 18Hz ; -1db = 26Hz; -5db = 57Hz; -10db = 78Hz
-                                          { 0, 0, 0, 14, 32, 64, 72, 54, 28},      // looptime=3000, group delay 6.5ms; -0.5db = 16Hz ; -1db = 21Hz; -5db = 42Hz; -10db = 57Hz
-                                          { 0, 6, 10, 28, 44, 54, 54, 38, 22} };   // looptime=3000, group delay 9ms;   -0.5db = 10Hz ; -1db = 13Hz; -5db = 32Hz; -10db = 45Hz
-
-int8_t * gyroFIRCoeffActive = gyroFIRCoeff_3000[0];
-
 typedef void (*pidControllerFuncPtr)(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig,
         uint16_t max_angle_inclination, rxConfig_t *rxConfig);            // pid controller function prototype
 
 extern pidControllerFuncPtr pid_controller;
-
-void selectFIRFilterFromLooptime(void)
-{
-    if (currentProfile->pidProfile.gyro_soft_filter == 0) {
-        return;
-    }
-
-    int firIndex = constrain(currentProfile->pidProfile.gyro_soft_filter, 1, 3) - 1;
-
-    // For looptimes faster than 1499 (and looptime=0) use filter for 1kHz looptime
-    if (masterConfig.looptime < 1500) {
-        gyroFIRCoeffActive = gyroFIRCoeff_1000[firIndex];
-    }
-    // 1500 ... 2499
-    else if (masterConfig.looptime < 2500) {
-        gyroFIRCoeffActive = gyroFIRCoeff_2000[firIndex];
-    }
-    // > 2500
-    else {
-        gyroFIRCoeffActive = gyroFIRCoeff_3000[firIndex];
-    }
-}
 
 #ifdef GTUNE
 
@@ -741,11 +701,6 @@ void loop(void)
         currentTime = micros();
         cycleTime = (int32_t)(currentTime - previousTime);
         previousTime = currentTime;
-
-        // Gyro Low Pass
-        if (currentProfile->pidProfile.gyro_soft_filter) {
-            filterApply9TapFIR(gyroADC, gyroFIR, gyroFIRCoeffActive);
-        }
 
         annexCode();
 

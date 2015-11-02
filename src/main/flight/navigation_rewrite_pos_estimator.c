@@ -187,6 +187,10 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int16_t velN, 
     newLLH.lon = newLon;
     newLLH.alt = newAlt;
 
+    /* FIXME: Force GPS vel invalid */
+    velNEValid = false;
+    velDValid = false;
+
     if (sensors(SENSOR_GPS)) {
         if (!(STATE(GPS_FIX) && GPS_numSat >= INAV_MIN_GPS_SAT_COUNT)) {
             isFirstGPSUpdate = true;
