@@ -108,8 +108,8 @@
 #define RSSI_ADC_CHANNEL            ADC_Channel_1
 
 #define GPS
-#define LED_STRIP
-#define LED_STRIP_TIMER TIM3
+//#define LED_STRIP
+//#define LED_STRIP_TIMER TIM3
 
 #define BLACKBOX
 #define TELEMETRY
