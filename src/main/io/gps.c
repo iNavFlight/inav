@@ -36,11 +36,13 @@
 #include "drivers/gpio.h"
 #include "drivers/light_led.h"
 #include "drivers/sensor.h"
+#include "drivers/compass.h"
 
 #include "drivers/gps.h"
 #include "drivers/gps_i2cnav.h"
 
 #include "sensors/sensors.h"
+#include "sensors/compass.h"
 
 #include "io/serial.h"
 #include "io/display.h"
@@ -94,6 +96,8 @@ uint8_t GPS_svinfo_chn[GPS_SV_MAXSATS];     // Channel number
 uint8_t GPS_svinfo_svid[GPS_SV_MAXSATS];    // Satellite ID
 uint8_t GPS_svinfo_quality[GPS_SV_MAXSATS]; // Bitfield Qualtity
 uint8_t GPS_svinfo_cno[GPS_SV_MAXSATS];     // Carrier to Noise Ratio (Signal Strength)
+
+int16_t GPS_MAG[3]; // NAZA GPS mag data XYZ
 
 static gpsConfig_t *gpsConfig;
 
@@ -211,6 +215,7 @@ static void shiftPacketLog(void)
 static void gpsNewDataSerial(uint16_t c);
 static bool gpsNewFrameNMEA(char c);
 static bool gpsNewFrameUBLOX(uint8_t data);
+static bool gpsNewFrameNAZA(uint8_t data);
 
 static void gpsSetState(gpsState_e state)
 {
@@ -248,7 +253,7 @@ void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
 
     gpsData.lastMessage = millis();
 
-    if (gpsConfig->provider == GPS_NMEA || gpsConfig->provider == GPS_UBLOX) {
+    if (gpsConfig->provider == GPS_NMEA || gpsConfig->provider == GPS_UBLOX || gpsConfig->provider == GPS_NAZA) {
         serialPortConfig_t *gpsPortConfig = findSerialPortConfig(FUNCTION_GPS);
         if (!gpsPortConfig) {
             // No port configured for SERIAL GPS - automatically fallback to I2C GPS if it is present
@@ -271,7 +276,7 @@ void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
 
             portMode_t mode = MODE_RXTX;
             // only RX is needed for NMEA-style GPS
-            if (gpsConfig->provider == GPS_NMEA)
+            if (gpsConfig->provider == GPS_NMEA || gpsConfig->provider == GPS_NAZA)
                 mode &= ~MODE_TX;
 
             // no callback - buffer will be consumed in gpsThread()
@@ -284,6 +289,7 @@ void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
     }
     else if (gpsConfig->provider == GPS_I2C) {
         // Nothing to do yet
+
     }
 
     // signal GPS "thread" to initialize when it gets to it
@@ -299,6 +305,17 @@ void gpsInitNmea(void)
             gpsSetState(GPS_RECEIVING_DATA);
             break;
     }
+}
+
+void gpsInitNaza(void)
+{
+    switch(gpsData.state) {
+        case GPS_INITIALIZING:
+        case GPS_CHANGE_BAUD:
+            serialSetBaudRate(gpsPort, baudRates[gpsInitData[gpsData.baudrateIndex].baudrateIndex]);
+            gpsSetState(GPS_RECEIVING_DATA);
+            break;
+   }
 }
 
 void gpsInitUblox(void)
@@ -486,13 +503,16 @@ void gpsInitHardware(void)
 
         case GPS_I2C:
             gpsInitI2C();
+
+        case GPS_NAZA:
+            gpsInitNaza();
             break;
     }
 }
 
 void gpsReadNewData(void)
 {
-    if (gpsConfig->provider == GPS_NMEA || gpsConfig->provider == GPS_UBLOX) {
+    if (gpsConfig->provider == GPS_NMEA || gpsConfig->provider == GPS_UBLOX || gpsConfig->provider == GPS_NAZA) {
         if (gpsPort) {
             while (serialRxBytesWaiting(gpsPort))
                 gpsNewDataSerial(serialRead(gpsPort));
@@ -576,6 +596,8 @@ bool gpsNewFrameFromSerial(uint8_t c)
             return gpsNewFrameUBLOX(c);
         case GPS_I2C:           // Shouldn't happen
             return false;
+        case GPS_NAZA:         // NAZA binary
+            return gpsNewFrameNAZA(c);
     }
 
     return false;
@@ -943,6 +965,54 @@ enum {
     MSG_CFG_NAV_SETTINGS = 0x24
 } ubx_protocol_bytes;
 
+typedef struct {
+    uint8_t res[4]; // 0
+    uint8_t fw[4]; // 4
+    uint8_t hw[4]; // 8
+} naza_ver;
+
+typedef struct {
+    uint16_t x; // 0
+    uint16_t y; // 2
+    uint16_t z; // 4
+} naza_mag;
+
+typedef struct {
+    uint32_t time; // GPS msToW 0
+    int32_t longitude; // 4
+    int32_t latitude; // 8
+    int32_t altitude_msl; // 12
+    int32_t h_acc; // 16
+    int32_t v_acc; // 20
+    int32_t reserved;
+    int32_t ned_north; // 28
+    int32_t ned_east; // 32
+    int32_t ned_down;  // 36
+    uint16_t pdop;  // 40
+    uint16_t vdop;  // 42
+    uint16_t ndop; // 44
+    uint16_t edop;	// 46
+    uint8_t satellites; // 48
+    uint8_t reserved3; //
+    uint8_t fix_type; // 50
+    uint8_t reserved4; //
+    uint8_t fix_status; // 52
+    uint8_t reserved5;
+    uint8_t reserved6;
+    uint8_t mask;	// 55
+} naza_nav;
+
+enum {
+    HEADER1 = 0x55,
+    HEADER2 = 0xAA,
+    ID_NAV = 0x10,
+    ID_MAG = 0x20,
+    ID_VER = 0x30,
+    LEN_NAV = 0x3A,
+    LEN_MAG = 0x06,
+} naza_protocol_bytes;
+
+
 enum {
     FIX_NONE = 0,
     FIX_DEAD_RECKONING = 1,
@@ -991,6 +1061,15 @@ static bool _new_speed;
 // from the UBlox6 document, the largest payout we receive i the NAV-SVINFO and the payload size
 // is calculated as 8 + 12*numCh.  numCh in the case of a Glonass receiver is 28.
 #define UBLOX_PAYLOAD_SIZE 344
+
+
+// Receive buffer
+static union {
+    naza_mag mag;
+    naza_nav nav;
+    naza_ver ver;
+    uint8_t bytes[UBLOX_PAYLOAD_SIZE];
+} _buffernaza;
 
 
 // Receive buffer
@@ -1169,6 +1248,219 @@ static bool gpsNewFrameUBLOX(uint8_t data)
     }
     return parsed;
 }
+
+int32_t decodeLong(uint32_t idx, uint8_t mask)
+{
+  union { uint32_t l; uint8_t b[4]; } val;
+  val.l=idx;
+  for(int i = 0; i < 4; i++) val.b[i] ^= mask;
+  return val.l;
+}
+
+int16_t decodeShort(uint16_t idx, uint8_t mask)
+{
+  union { uint16_t s; uint8_t b[2]; } val;
+  val.s=idx;
+  for(int i = 0; i < 2; i++) val.b[i] ^= mask;
+  return val.s;
+}
+
+
+static bool NAZA_parse_gps(void)
+{
+    uint32_t i;
+
+    *gpsPacketLogChar = LOG_IGNORED;
+
+    switch (_msg_id) {
+    case ID_NAV:
+        *gpsPacketLogChar = LOG_UBLOX_POSLLH;
+        uint8_t mask = _buffernaza.nav.mask;
+
+        uint32_t time = decodeLong(_buffernaza.nav.time, mask);
+        uint32_t second = time & 0b00111111; time >>= 6;
+        uint32_t minute = time & 0b00111111; time >>= 6;
+        uint32_t hour = time & 0b00001111; time >>= 4;
+        uint32_t day = time & 0b00011111; time >>= 5;
+        uint32_t month = time & 0b00001111; time >>= 4;
+        uint32_t year = time & 0b01111111;
+
+        GPS_coord[LON] = decodeLong(_buffernaza.nav.longitude, mask);
+        GPS_coord[LAT] = decodeLong(_buffernaza.nav.latitude, mask);
+        GPS_altitude = decodeLong(_buffernaza.nav.altitude_msl, mask) / 1000.0f;  //alt in m
+
+        uint8_t fixType = _buffernaza.nav.fix_type ^ mask;
+        uint8_t fixFlags = _buffernaza.nav.fix_status ^ mask;
+
+        uint8_t r3 = _buffernaza.nav.reserved3 ^ mask;
+        uint8_t r4 = _buffernaza.nav.reserved4 ^ mask;
+        uint8_t r5 = _buffernaza.nav.reserved5 ^ mask;
+        uint8_t r6 = _buffernaza.nav.reserved6 ^ mask;
+
+        next_fix = (fixType == FIX_3D);
+        if (next_fix) {
+            ENABLE_STATE(GPS_FIX);
+        } else {
+            DISABLE_STATE(GPS_FIX);
+        }
+        uint32_t h_acc = decodeLong(_buffernaza.nav.h_acc, mask); // mm
+        uint32_t v_acc = decodeLong(_buffernaza.nav.v_acc, mask); // mm
+        uint32_t test = decodeLong(_buffernaza.nav.reserved, mask);
+
+        GPS_velned[0]=decodeLong(_buffernaza.nav.ned_north, mask)*10;  // mm/s
+        GPS_velned[1]=decodeLong(_buffernaza.nav.ned_east, mask)*10;   // mm/s
+        GPS_velned[2]=decodeLong(_buffernaza.nav.ned_down, mask)*10;   // mm/s
+
+
+        uint16_t pdop = decodeShort(_buffernaza.nav.pdop, mask); // pdop
+        uint16_t vdop = decodeShort(_buffernaza.nav.vdop, mask); // vdop
+        uint16_t ndop = decodeShort(_buffernaza.nav.ndop, mask);
+        uint16_t edop = decodeShort(_buffernaza.nav.edop, mask);
+
+        GPS_numSat = _buffernaza.nav.satellites;
+        GPS_hdop = sqrtf(powf(ndop,2)+powf(edop,2));
+        GPS_speed = sqrtf(powf(GPS_velned[0],2)+powf(GPS_velned[1],2)); //mm/s
+        GPS_ground_course = (uint16_t) (test);
+
+        GPS_have_horizontal_velocity = true;
+        GPS_have_vertical_velocity = true;
+        _new_position = true;
+        _new_speed = true;
+        break;
+    case ID_MAG:
+        *gpsPacketLogChar = LOG_UBLOX_STATUS;
+        uint8_t mask_mag = (_buffernaza.mag.z)&0xFF;
+        mask_mag = (((mask_mag ^ (mask_mag >> 4)) & 0x0F) | ((mask_mag << 3) & 0xF0)) ^ (((mask_mag & 0x01) << 3) | ((mask_mag & 0x01) << 7));
+        int16_t x = decodeShort(_buffernaza.mag.x, mask_mag);
+        int16_t y = decodeShort(_buffernaza.mag.y, mask_mag);
+        int16_t z = (_buffernaza.mag.z ^ (mask_mag<<8));
+
+        GPS_MAG[0] = x;
+        GPS_MAG[1] = y;
+        GPS_MAG[2] = z;
+
+        //debug[0]=x;
+        //debug[1]=y;
+        //debug[2]=z;
+        //debug[3]=mask_mag;
+        break;
+    case ID_VER:
+        *gpsPacketLogChar = LOG_UBLOX_STATUS;
+        break;
+    default:
+        return false;
+    }
+
+    // we only return true when we get new position and speed data
+    // this ensures we don't use stale data
+    if (_new_position && _new_speed) {
+        _new_speed = _new_position = false;
+        return true;
+    }
+    return false;
+}
+
+void nazaGPSInit()
+{
+    bool ack;
+    UNUSED(ack);
+}
+
+bool nazaGPSRead(int16_t *magData)
+{
+    magData[X] = GPS_MAG[0];
+    magData[Y] = GPS_MAG[1];
+    magData[Z] = GPS_MAG[2];
+    return true;
+}
+
+bool nazaGPSdetect(mag_t *mag)
+{
+	// we dont know provider here yet
+	//if(gpsConfig->provider != GPS_NAZA)
+	//	return false;
+
+    mag->init = nazaGPSInit;
+    mag->read = nazaGPSRead;
+    return true;
+}
+
+static bool gpsNewFrameNAZA(uint8_t data)
+{
+    bool parsed = false;
+
+    switch (_step) {
+        case 0: // Sync char 1 (0x55)
+            if (HEADER1 == data) {
+                _skip_packet = false;
+                _step++;
+            }
+            break;
+        case 1: // Sync char 2 (0xAA)
+            if (HEADER2 != data) {
+                _step = 0;
+                break;
+            }
+            _step++;
+            break;
+        case 2: // Id
+            _step++;
+            _ck_b = _ck_a = data;   // reset the checksum accumulators
+            _msg_id = data;
+            break;
+        case 3: // Payload length
+            _step++;
+            _ck_b += (_ck_a += data);       // checksum byte
+            _payload_length = data; // payload length low byte
+            if (_payload_length > UBLOX_PAYLOAD_SIZE) {
+                _skip_packet = true;
+            }
+            _payload_counter = 0;   // prepare to receive payload
+            if (_payload_length == 0) {
+                _step = 6;
+            }
+            break;
+        case 4:
+            _ck_b += (_ck_a += data);       // checksum byte
+            if (_payload_counter < UBLOX_PAYLOAD_SIZE) {
+                _buffernaza.bytes[_payload_counter] = data;
+            }
+            if (++_payload_counter >= _payload_length) {
+                _step++;
+            }
+            break;
+        case 5:
+            _step++;
+            if (_ck_a != data) {
+                _skip_packet = true;          // bad checksum
+                gpsData.errors++;
+            }
+            break;
+        case 6:
+            _step = 0;
+
+            shiftPacketLog();
+
+            if (_ck_b != data) {
+                *gpsPacketLogChar = LOG_ERROR;
+                gpsData.errors++;
+                break;              // bad checksum
+            }
+
+            GPS_packetCount++;
+
+            if (_skip_packet) {
+                *gpsPacketLogChar = LOG_SKIPPED;
+                break;
+            }
+
+            if (NAZA_parse_gps()) {
+                parsed = true;
+            }
+    }
+    return parsed;
+}
+
 
 void gpsEnablePassthrough(serialPort_t *gpsPassthroughPort)
 {

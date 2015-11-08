@@ -597,6 +597,17 @@ retry:
             }
 #endif
             ; // fallthrough
+        case MAG_NAZA:
+#ifdef USE_MAG_NAZA
+            if (nazaGPSdetect(&mag)) {
+#ifdef MAG_NAZA_ALIGN
+                magAlign = MAG_NAZA_ALIGN;
+#endif
+                magHardware = MAG_NAZA;
+                break;
+            }
+#endif
+            ; // fallthrough
 
         case MAG_NONE:
             magHardware = MAG_NONE;

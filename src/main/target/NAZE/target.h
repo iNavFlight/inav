@@ -116,6 +116,10 @@
 
 #define MAG_HMC5883_ALIGN CW180_DEG
 
+//Naza example usage
+//#define USE_MAG_NAZA
+//#define MAG_NAZA_ALIGN CW180_DEG_FLIP
+
 #define SONAR
 #define BEEPER
 #define LED0
