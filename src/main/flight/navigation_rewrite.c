@@ -1870,7 +1870,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     if (posControl.flags.hasValidAltitudeSensor)    navFlags |= (1 << 0);
     if (posControl.flags.hasValidSurfaceSensor)     navFlags |= (1 << 1);
     if (posControl.flags.hasValidPositionSensor)    navFlags |= (1 << 2);
-    if ((STATE(GPS_FIX) && GPS_numSat >= posControl.navConfig->inav.gps_min_sats)) navFlags |= (1 << 3);
+    if ((STATE(GPS_FIX) && gpsSol.numSat >= posControl.navConfig->inav.gps_min_sats)) navFlags |= (1 << 3);
     if (isGPSGlitchDetected())                      navFlags |= (1 << 4);
 #endif
 
@@ -2227,6 +2227,7 @@ rthState_e getStateOfForcedRTH(void)
 
 #else // NAV
 
+#ifdef GPS
 /* Fallback if navigation is not compiled in - handle GPS home coordinates */
 static float GPS_scaleLonDown;
 
@@ -2252,7 +2253,7 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int16_t velN, 
     UNUSED(velDValid);
     UNUSED(hdop);
 
-    if (!(sensors(SENSOR_GPS) && STATE(GPS_FIX) && GPS_numSat >= 5))
+    if (!(sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5))
         return;
 
     if (ARMING_FLAG(ARMED)) {
@@ -2278,5 +2279,6 @@ void onNewGPSData(int32_t newLat, int32_t newLon, int32_t newAlt, int16_t velN, 
         GPS_scaleLonDown = cos_approx((ABS((float)newLat) / 10000000.0f) * 0.0174532925f);
     }
 }
+#endif
 
 #endif  // NAV

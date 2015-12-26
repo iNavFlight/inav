@@ -108,7 +108,12 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_Channel_4
 
 #define BLACKBOX
+
 #define GPS
+#define GPS_PROTO_NMEA
+#define GPS_PROTO_UBLOX
+#define GPS_PROTO_I2C_NAV
+
 #define GTUNE
 #define DISPLAY
 #define SERIAL_RX
