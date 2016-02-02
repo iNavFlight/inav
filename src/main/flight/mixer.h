@@ -188,6 +188,7 @@ void filterServos(void);
 
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
+extern bool motorLimitReached;
 
 struct escAndServoConfig_s;
 struct rxConfig_s;

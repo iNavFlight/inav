@@ -127,7 +127,6 @@
 #define LED_STRIP_TIMER TIM3
 
 #define BLACKBOX
-#define GTUNE
 #define TELEMETRY
 #define SERIAL_RX
 #define USE_SERVOS

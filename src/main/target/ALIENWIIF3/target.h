@@ -118,7 +118,6 @@
 //#define GPS_PROTO_I2C_NAV
 //#define GPS_PROTO_NAZA
 
-#define GTUNE
 //#define DISPLAY
 #define USE_SERVOS
 #define USE_CLI
