@@ -44,6 +44,7 @@
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
 #include "sensors/gyro.h"
+#include "sensors/barometer.h"
 
 #include "rx/rx.h"
 
@@ -84,12 +85,13 @@ static char lineBuffer[SCREEN_CHARACTER_COLUMN_COUNT + 1];
 #define IS_SCREEN_CHARACTER_COLUMN_COUNT_ODD (SCREEN_CHARACTER_COLUMN_COUNT & 1)
 
 static const char* const pageTitles[] = {
-    "CLEANFLIGHT",
-    "ARMED",
-    "BATTERY",
-    "SENSORS",
-    "RX",
-    "PROFILE"
+    "CLEANFLIGHT"
+    ,"ARMED"
+    ,"BATTERY"
+    ,"SENSORS"
+    ,"RX"
+    ,"PROFILE"
+    ,"STATUS"
 #ifdef GPS
     ,"GPS"
 #endif
@@ -105,15 +107,16 @@ static const char* const gpsFixTypeText[] = {
 };
 
 const pageId_e cyclePageIds[] = {
-    PAGE_PROFILE,
+    PAGE_STATUS
+    ,PAGE_PROFILE
 #ifdef GPS
-    PAGE_GPS,
+    ,PAGE_GPS
 #endif
-    PAGE_RX,
-    PAGE_BATTERY,
-    PAGE_SENSORS
+    ,PAGE_RX
+    ,PAGE_BATTERY
+    ,PAGE_SENSORS
 #ifdef ENABLE_DEBUG_OLED_PAGE
-    ,PAGE_DEBUG,
+    ,PAGE_DEBUG
 #endif
 };
 
@@ -147,23 +150,24 @@ void LCDprint(uint8_t i) {
    i2c_OLED_send_char(i);
 }
 
-void padLineBuffer(void)
+void padLineBufferToChar(uint8_t toChar)
 {
     uint8_t length = strlen(lineBuffer);
-    while (length < sizeof(lineBuffer) - 1) {
+    while (length < toChar - 1) {
         lineBuffer[length++] = ' ';
     }
     lineBuffer[length] = 0;
 }
 
+void padLineBuffer(void)
+{
+    padLineBufferToChar(sizeof(lineBuffer));
+}
+
 void padHalfLineBuffer(void)
 {
     uint8_t halfLineIndex = sizeof(lineBuffer) / 2;
-    uint8_t length = strlen(lineBuffer);
-    while (length < halfLineIndex - 1) {
-        lineBuffer[length++] = ' ';
-    }
-    lineBuffer[length] = 0;
+    padLineBufferToChar(halfLineIndex);
 }
 
 // LCDbar(n,v) : draw a bar graph - n number of chars for width, v value in % to display
@@ -481,33 +485,79 @@ void showSensorsPage(void)
     padLineBuffer();
     i2c_OLED_set_line(rowIndex++);
     i2c_OLED_send_string(lineBuffer);
+}
 
-    /*
-    uint8_t length;
+void showStatusPage(void)
+{
+    
+    uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
 
-    ftoa(EstG.A[X], lineBuffer);
-    length = strlen(lineBuffer);
-    while (length < HALF_SCREEN_CHARACTER_COLUMN_COUNT) {
-        lineBuffer[length++] = ' ';
-        lineBuffer[length+1] = 0;
+    if (feature(FEATURE_VBAT)) {
+        i2c_OLED_set_line(rowIndex++);        
+        tfp_sprintf(lineBuffer, "V: %d.%1d ", vbat / 10, vbat % 10);
+        padLineBufferToChar(12);
+        i2c_OLED_send_string(lineBuffer);
+        
+        uint8_t batteryPercentage = calculateBatteryPercentage();
+        drawHorizonalPercentageBar(10, batteryPercentage);
     }
-    ftoa(EstG.A[Y], lineBuffer + length);
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
 
-    ftoa(EstG.A[Z], lineBuffer);
-    length = strlen(lineBuffer);
-    while (length < HALF_SCREEN_CHARACTER_COLUMN_COUNT) {
-        lineBuffer[length++] = ' ';
-        lineBuffer[length+1] = 0;
+    if (feature(FEATURE_CURRENT_METER)) {
+        i2c_OLED_set_line(rowIndex++);
+        tfp_sprintf(lineBuffer, "mAh: %d", mAhDrawn);
+        padLineBufferToChar(12);
+        i2c_OLED_send_string(lineBuffer);
+        
+        uint8_t capacityPercentage = calculateBatteryCapacityRemainingPercentage();
+        drawHorizonalPercentageBar(10, capacityPercentage);
     }
-    ftoa(smallAngle, lineBuffer + length);
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-    */
+    
+    rowIndex++;
+    
+#ifdef GPS
+    if (feature(FEATURE_GPS)) {
+        tfp_sprintf(lineBuffer, "Sats: %d", gpsSol.numSat);
+        padHalfLineBuffer();
+        i2c_OLED_set_line(rowIndex);
+        i2c_OLED_send_string(lineBuffer);
+        
+        tfp_sprintf(lineBuffer, "Fix: %s", gpsFixTypeText[gpsSol.fixType]);
+        padHalfLineBuffer();
+        i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
+        i2c_OLED_send_string(lineBuffer);
+        
+        tfp_sprintf(lineBuffer, "HDOP: %d.%1d", gpsSol.hdop / 100, gpsSol.hdop % 100);
+        padLineBuffer();
+        i2c_OLED_set_line(rowIndex++);
+        i2c_OLED_send_string(lineBuffer);
 
+        tfp_sprintf(lineBuffer, "La/Lo: %d/%d", gpsSol.llh.lat / GPS_DEGREES_DIVIDER, gpsSol.llh.lon / GPS_DEGREES_DIVIDER);
+        padLineBuffer();
+        i2c_OLED_set_line(rowIndex++);
+        i2c_OLED_send_string(lineBuffer);
+        
+    }
+#endif
+    
+#ifdef MAG
+    if (sensors(SENSOR_MAG)) {  
+        tfp_sprintf(lineBuffer, "HDG: %d", DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+        padHalfLineBuffer();
+        i2c_OLED_set_line(rowIndex);
+        i2c_OLED_send_string(lineBuffer);
+    }
+#endif
+
+#ifdef BARO
+    if (sensors(SENSOR_BARO)) {  
+        int32_t alt = baroCalculateAltitude();
+        tfp_sprintf(lineBuffer, "Alt: %d", alt / 100);
+        padHalfLineBuffer();
+        i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex);
+        i2c_OLED_send_string(lineBuffer);
+    }
+#endif    
+    
 }
 
 #ifdef ENABLE_DEBUG_OLED_PAGE
@@ -600,6 +650,9 @@ void updateDisplay(void)
             break;
         case PAGE_PROFILE:
             showProfilePage();
+            break;
+        case PAGE_STATUS:
+            showStatusPage();
             break;
 #ifdef GPS
         case PAGE_GPS:
