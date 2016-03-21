@@ -254,12 +254,6 @@ void showTitle()
     i2c_OLED_send_string(pageTitles[pageState.pageId]);
 }
 
-void handlePageChange(void)
-{
-    i2c_OLED_clear_display_quick();
-    showTitle();
-}
-
 void drawRxChannel(uint8_t channelIndex, uint8_t width)
 {
     uint32_t percentage;
@@ -599,11 +593,20 @@ void updateDisplay(void)
 
         pageState.pageChanging = (pageState.pageFlags & PAGE_STATE_FLAG_FORCE_PAGE_CHANGE) ||
                 (((int32_t)(now - pageState.nextPageAt) >= 0L && (pageState.pageFlags & PAGE_STATE_FLAG_CYCLE_ENABLED)));
+                
+        uint8_t prevCycleIndex = pageState.cycleIndex;
+                
         if (pageState.pageChanging && (pageState.pageFlags & PAGE_STATE_FLAG_CYCLE_ENABLED)) {
             pageState.cycleIndex++;
             pageState.cycleIndex = pageState.cycleIndex % CYCLE_PAGE_ID_COUNT;
             pageState.pageId = cyclePageIds[pageState.cycleIndex];
+            
+            if (prevCycleIndex == pageState.cycleIndex) {
+                pageState.pageChanging = false;
+            }
+            
         }
+        
     }
 
     if (pageState.pageChanging) {
@@ -613,12 +616,16 @@ void updateDisplay(void)
         // Some OLED displays do not respond on the first initialisation so refresh the display
         // when the page changes in the hopes the hardware responds.  This also allows the
         // user to power off/on the display or connect it while powered.
-        resetDisplay();
+        if (!displayPresent) {
+            resetDisplay();
+        }
 
         if (!displayPresent) {
             return;
         }
-        handlePageChange();
+        
+        i2c_OLED_clear_display_quick();
+        showTitle();
     }
 
     if (!displayPresent) {
