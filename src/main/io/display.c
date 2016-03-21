@@ -108,13 +108,6 @@ static const char* const gpsFixTypeText[] = {
 
 const pageId_e cyclePageIds[] = {
     PAGE_STATUS
-    ,PAGE_PROFILE
-#ifdef GPS
-    ,PAGE_GPS
-#endif
-    ,PAGE_RX
-    ,PAGE_BATTERY
-    ,PAGE_SENSORS
 #ifdef ENABLE_DEBUG_OLED_PAGE
     ,PAGE_DEBUG
 #endif
