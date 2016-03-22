@@ -20,14 +20,7 @@
 typedef enum {
     PAGE_WELCOME
     ,PAGE_ARMED
-    ,PAGE_BATTERY
-    ,PAGE_SENSORS
-    ,PAGE_RX
-    ,PAGE_PROFILE
     ,PAGE_STATUS
-#ifdef GPS
-    ,PAGE_GPS
-#endif
 #ifdef ENABLE_DEBUG_OLED_PAGE
     ,PAGE_DEBUG
 #endif

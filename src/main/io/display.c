@@ -85,16 +85,9 @@ static char lineBuffer[SCREEN_CHARACTER_COLUMN_COUNT + 1];
 #define IS_SCREEN_CHARACTER_COLUMN_COUNT_ODD (SCREEN_CHARACTER_COLUMN_COUNT & 1)
 
 static const char* const pageTitles[] = {
-    "CLEANFLIGHT"
+    FC_NAME
     ,"ARMED"
-    ,"BATTERY"
-    ,"SENSORS"
-    ,"RX"
-    ,"PROFILE"
     ,"STATUS"
-#ifdef GPS
-    ,"GPS"
-#endif
 #ifdef ENABLE_DEBUG_OLED_PAGE
     ,"DEBUG"
 #endif
@@ -182,19 +175,6 @@ void drawHorizonalPercentageBar(uint8_t width,uint8_t percent) {
         LCDprint(154); // empty
 }
 
-#if 0
-void fillScreenWithCharacters()
-{
-    for (uint8_t row = 0; row < SCREEN_CHARACTER_ROW_COUNT; row++) {
-        for (uint8_t column = 0; column < SCREEN_CHARACTER_COLUMN_COUNT; column++) {
-            i2c_OLED_set_xy(column, row);
-            i2c_OLED_send_char('A' + column);
-        }
-    }
-}
-#endif
-
-
 void updateTicker(void)
 {
     static uint8_t tickerIndex = 0;
@@ -254,37 +234,6 @@ void showTitle()
     i2c_OLED_send_string(pageTitles[pageState.pageId]);
 }
 
-void drawRxChannel(uint8_t channelIndex, uint8_t width)
-{
-    uint32_t percentage;
-
-    LCDprint(rcChannelLetters[channelIndex]);
-
-    percentage = (constrain(rcData[channelIndex], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
-    drawHorizonalPercentageBar(width - 1, percentage);
-}
-
-#define RX_CHANNELS_PER_PAGE_COUNT 14
-void showRxPage(void)
-{
-
-    for (uint8_t channelIndex = 0; channelIndex < rxRuntimeConfig.channelCount && channelIndex < RX_CHANNELS_PER_PAGE_COUNT; channelIndex += 2) {
-        i2c_OLED_set_line((channelIndex / 2) + PAGE_TITLE_LINE_COUNT);
-
-        drawRxChannel(channelIndex, HALF_SCREEN_CHARACTER_COLUMN_COUNT);
-
-        if (channelIndex >= rxRuntimeConfig.channelCount) {
-            continue;
-        }
-
-        if (IS_SCREEN_CHARACTER_COLUMN_COUNT_ODD) {
-            LCDprint(' ');
-        }
-
-        drawRxChannel(channelIndex + PAGE_TITLE_LINE_COUNT, HALF_SCREEN_CHARACTER_COLUMN_COUNT);
-    }
-}
-
 void showWelcomePage(void)
 {
     uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
@@ -299,179 +248,6 @@ void showWelcomePage(void)
 
 void showArmedPage(void)
 {
-}
-
-void showProfilePage(void)
-{
-    uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
-
-    tfp_sprintf(lineBuffer, "Profile: %d", getCurrentProfile());
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    uint8_t currentRateProfileIndex = getCurrentControlRateProfile();
-    tfp_sprintf(lineBuffer, "Rate profile: %d", currentRateProfileIndex);
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    controlRateConfig_t *controlRateConfig = getControlRateConfig(currentRateProfileIndex);
-
-    tfp_sprintf(lineBuffer, "RCE: %d, RCR: %d",
-        controlRateConfig->rcExpo8,
-        controlRateConfig->rcRate8
-    );
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "RR:%d PR:%d YR:%d",
-        controlRateConfig->rates[FD_ROLL],
-        controlRateConfig->rates[FD_PITCH],
-        controlRateConfig->rates[FD_YAW]
-    );
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-}
-
-#ifdef GPS
-void showGpsPage() {
-    uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
-
-    static uint8_t gpsTicker = 0;
-    static uint8_t lastGPSHeartbeat = 0;
-    if (gpsSol.flags.gpsHeartbeat != lastGPSHeartbeat) {
-        lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
-        gpsTicker++;
-        gpsTicker = gpsTicker % TICKER_CHARACTER_COUNT;
-    }
-
-    i2c_OLED_set_xy(0, rowIndex);
-    i2c_OLED_send_char(tickerCharacters[gpsTicker]);
-        
-    tfp_sprintf(lineBuffer, "Sats: %d Fix: %s", gpsSol.numSat, gpsFixTypeText[gpsSol.fixType]);
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "HDOP: %d", gpsSol.hdop);
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "La/Lo: %d/%d", gpsSol.llh.lat / GPS_DEGREES_DIVIDER, gpsSol.llh.lon / GPS_DEGREES_DIVIDER);
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "Spd: %d", gpsSol.groundSpeed);
-    padHalfLineBuffer();
-    i2c_OLED_set_line(rowIndex);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "GC: %d", gpsSol.groundCourse);
-    padHalfLineBuffer();
-    i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "RX: %d", gpsStats.packetCount);
-    padHalfLineBuffer();
-    i2c_OLED_set_line(rowIndex);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "ERRs: %d", gpsStats.errors);
-    padHalfLineBuffer();
-    i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "Dt: %d", gpsStats.lastMessageDt);
-    padHalfLineBuffer();
-    i2c_OLED_set_line(rowIndex);
-    i2c_OLED_send_string(lineBuffer);
-
-    tfp_sprintf(lineBuffer, "TOs: %d", gpsStats.timeouts);
-    padHalfLineBuffer();
-    i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-
-#ifdef GPS_PH_DEBUG
-    tfp_sprintf(lineBuffer, "Angles: P:%d R:%d", GPS_angle[PITCH], GPS_angle[ROLL]);
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-#endif
-
-#if 0
-    tfp_sprintf(lineBuffer, "%d %d %d %d", debug[0], debug[1], debug[2], debug[3]);
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
-#endif
-}
-#endif
-
-void showBatteryPage(void)
-{
-    uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
-
-    if (feature(FEATURE_VBAT)) {
-        tfp_sprintf(lineBuffer, "Volts: %d.%1d Cells: %d", vbat / 10, vbat % 10, batteryCellCount);
-        padLineBuffer();
-        i2c_OLED_set_line(rowIndex++);
-        i2c_OLED_send_string(lineBuffer);
-
-        uint8_t batteryPercentage = calculateBatteryPercentage();
-        i2c_OLED_set_line(rowIndex++);
-        drawHorizonalPercentageBar(SCREEN_CHARACTER_COLUMN_COUNT, batteryPercentage);
-    }
-
-    if (feature(FEATURE_CURRENT_METER)) {
-        tfp_sprintf(lineBuffer, "Amps: %d.%2d mAh: %d", amperage / 100, amperage % 100, mAhDrawn);
-        padLineBuffer();
-        i2c_OLED_set_line(rowIndex++);
-        i2c_OLED_send_string(lineBuffer);
-
-        uint8_t capacityPercentage = calculateBatteryCapacityRemainingPercentage();
-        i2c_OLED_set_line(rowIndex++);
-        drawHorizonalPercentageBar(SCREEN_CHARACTER_COLUMN_COUNT, capacityPercentage);
-    }
-}
-
-void showSensorsPage(void)
-{
-    uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
-    static const char *format = "%s %5d %5d %5d";
-
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string("        X     Y     Z");
-
-    if (sensors(SENSOR_ACC)) {
-        tfp_sprintf(lineBuffer, format, "ACC", accADC[X], accADC[Y], accADC[Z]);
-        padLineBuffer();
-        i2c_OLED_set_line(rowIndex++);
-        i2c_OLED_send_string(lineBuffer);
-    }
-
-    if (sensors(SENSOR_GYRO)) {
-        tfp_sprintf(lineBuffer, format, "GYR", gyroADC[X], gyroADC[Y], gyroADC[Z]);
-        padLineBuffer();
-        i2c_OLED_set_line(rowIndex++);
-        i2c_OLED_send_string(lineBuffer);
-    }
-
-#ifdef MAG
-    if (sensors(SENSOR_MAG)) {
-        tfp_sprintf(lineBuffer, format, "MAG", magADC[X], magADC[Y], magADC[Z]);
-        padLineBuffer();
-        i2c_OLED_set_line(rowIndex++);
-        i2c_OLED_send_string(lineBuffer);
-    }
-#endif
-
-    tfp_sprintf(lineBuffer, format, "I&H", attitude.values.roll, attitude.values.pitch, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-    padLineBuffer();
-    i2c_OLED_set_line(rowIndex++);
-    i2c_OLED_send_string(lineBuffer);
 }
 
 void showStatusPage(void)
@@ -595,13 +371,14 @@ void updateDisplay(void)
                 (((int32_t)(now - pageState.nextPageAt) >= 0L && (pageState.pageFlags & PAGE_STATE_FLAG_CYCLE_ENABLED)));
                 
         uint8_t prevCycleIndex = pageState.cycleIndex;
+        uint8_t pageId = pageState.pageId;
                 
         if (pageState.pageChanging && (pageState.pageFlags & PAGE_STATE_FLAG_CYCLE_ENABLED)) {
             pageState.cycleIndex++;
             pageState.cycleIndex = pageState.cycleIndex % CYCLE_PAGE_ID_COUNT;
             pageState.pageId = cyclePageIds[pageState.cycleIndex];
             
-            if (prevCycleIndex == pageState.cycleIndex) {
+            if (prevCycleIndex == pageState.cycleIndex && pageId != PAGE_WELCOME) {
                 pageState.pageChanging = false;
             }
             
@@ -639,30 +416,9 @@ void updateDisplay(void)
         case PAGE_ARMED:
             showArmedPage();
             break;
-        case PAGE_BATTERY:
-            showBatteryPage();
-            break;
-        case PAGE_SENSORS:
-            showSensorsPage();
-            break;
-        case PAGE_RX:
-            showRxPage();
-            break;
-        case PAGE_PROFILE:
-            showProfilePage();
-            break;
         case PAGE_STATUS:
             showStatusPage();
             break;
-#ifdef GPS
-        case PAGE_GPS:
-            if (feature(FEATURE_GPS)) {
-                showGpsPage();
-            } else {
-                pageState.pageFlags |= PAGE_STATE_FLAG_FORCE_PAGE_CHANGE;
-            }
-            break;
-#endif
 #ifdef ENABLE_DEBUG_OLED_PAGE
         case PAGE_DEBUG:
             showDebugPage();
