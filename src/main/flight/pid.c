@@ -79,14 +79,14 @@ extern uint8_t motorCount;
 extern bool motorLimitReached;
 extern float dT;
 
+// Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenyation is applied
+float tpaFactor;
+
 int16_t axisPID[3];
 
 #ifdef BLACKBOX
 int32_t axisPID_P[3], axisPID_I[3], axisPID_D[3], axisPID_Setpoint[3];
 #endif
-
-// PIDweight is a scale factor for PIDs which is derived from the throttle and TPA setting, and 1 = 100% scale means no PID reduction
-float PIDweight[3];
 
 static pidState_t pidState[3];
 
@@ -256,9 +256,15 @@ static void pidInnerLoop(pidProfile_t *pidProfile)
 
     for (axis = 0; axis < 3; axis++) {
         /* Calculate PID gains */
-        pidState[axis].kP = pidProfile->P8[axis] / FP_PID_RATE_P_MULTIPLIER * PIDweight[axis];
+        pidState[axis].kP = pidProfile->P8[axis] / FP_PID_RATE_P_MULTIPLIER;
         pidState[axis].kI = pidProfile->I8[axis] / FP_PID_RATE_I_MULTIPLIER;
-        pidState[axis].kD = pidProfile->D8[axis] / FP_PID_RATE_D_MULTIPLIER * PIDweight[axis];
+        pidState[axis].kD = pidProfile->D8[axis] / FP_PID_RATE_D_MULTIPLIER;
+
+        // Apply TPA to ROLL and PITCH axises
+        if (axis != FD_YAW) {
+            pidState[axis].kP *= tpaFactor;
+            pidState[axis].kD *= tpaFactor;
+        }
 
         if ((pidProfile->P8[axis] != 0) && (pidProfile->I8[axis] != 0)) {
             pidState[axis].kT = 2.0f / ((pidState[axis].kP / pidState[axis].kI) + (pidState[axis].kD / pidState[axis].kP));
@@ -286,6 +292,17 @@ static void getRateTarget(controlRateConfig_t *controlRateConfig)
     }
 }
 
+static void computeTpaFactor(controlRateConfig_t *controlRateConfig) {
+    
+    if (rcData[THROTTLE] < controlRateConfig->tpa_breakpoint) {
+        tpaFactor = 1.0f;
+    } else if (rcData[THROTTLE] < 2000) {
+        tpaFactor = (100 - (uint16_t)controlRateConfig->dynThrPID * (rcData[THROTTLE] - controlRateConfig->tpa_breakpoint) / (2000 - controlRateConfig->tpa_breakpoint)) / 100.0f;
+    } else {
+        tpaFactor = (100 - controlRateConfig->dynThrPID) / 100.0f;
+    }
+}
+
 static void getGyroRate(void)
 {
     uint8_t axis;
@@ -296,6 +313,9 @@ static void getGyroRate(void)
 
 void pidController(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, rxConfig_t *rxConfig)
 {
+    
+    computeTpaFactor(controlRateConfig);
+    
     /* Step 1: Calculate gyro rates */
     getGyroRate();
 
