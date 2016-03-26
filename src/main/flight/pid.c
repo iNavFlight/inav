@@ -292,7 +292,7 @@ static void getRateTarget(controlRateConfig_t *controlRateConfig)
     }
 }
 
-void computeTpaFactor(controlRateConfig_t *controlRateConfig) {
+void updatePIDCoefficients(controlRateConfig_t *controlRateConfig) {
     
     if (rcData[THROTTLE] < controlRateConfig->tpa_breakpoint) {
         tpaFactor = 1.0f;
