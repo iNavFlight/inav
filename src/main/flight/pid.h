@@ -61,6 +61,7 @@ extern int16_t axisPID[XYZ_AXIS_COUNT];
 extern int32_t axisPID_P[3], axisPID_I[3], axisPID_D[3], axisPID_Setpoint[3];
 
 void pidResetErrorGyro(void);
+void resetHeadingLock(void);
 
 float pidRcCommandToAngle(int16_t stick);
 int16_t pidAngleToRcCommand(float angleDeciDegrees);
