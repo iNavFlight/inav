@@ -292,7 +292,7 @@ static void getRateTarget(controlRateConfig_t *controlRateConfig)
     }
 }
 
-static void computeTpaFactor(controlRateConfig_t *controlRateConfig) {
+void computeTpaFactor(controlRateConfig_t *controlRateConfig) {
     
     if (rcData[THROTTLE] < controlRateConfig->tpa_breakpoint) {
         tpaFactor = 1.0f;
@@ -313,8 +313,6 @@ static void getGyroRate(void)
 
 void pidController(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, rxConfig_t *rxConfig)
 {
-    
-    computeTpaFactor(controlRateConfig);
     
     /* Step 1: Calculate gyro rates */
     getGyroRate();
