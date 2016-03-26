@@ -191,6 +191,10 @@ static void pidOuterLoop(pidProfile_t *pidProfile, rxConfig_t *rxConfig)
     }
 }
 
+void resetHeadingLock(void) {
+    pidState[FD_YAW].axisLockAccum = 0;
+}
+
 static void pidApplyRateController(pidProfile_t *pidProfile, pidState_t *pidState, int axis)
 {
     int n;

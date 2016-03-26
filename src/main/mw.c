@@ -267,6 +267,8 @@ void mwArm(void)
             ENABLE_ARMING_FLAG(ARMED);
             headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
+            resetHeadingLock();
+
 #ifdef BLACKBOX
             if (feature(FEATURE_BLACKBOX)) {
                 serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
