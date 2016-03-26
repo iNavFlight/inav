@@ -255,23 +255,6 @@ static void pidInnerLoop(pidProfile_t *pidProfile)
     int axis;
 
     for (axis = 0; axis < 3; axis++) {
-        /* Calculate PID gains */
-        pidState[axis].kP = pidProfile->P8[axis] / FP_PID_RATE_P_MULTIPLIER;
-        pidState[axis].kI = pidProfile->I8[axis] / FP_PID_RATE_I_MULTIPLIER;
-        pidState[axis].kD = pidProfile->D8[axis] / FP_PID_RATE_D_MULTIPLIER;
-
-        // Apply TPA to ROLL and PITCH axises
-        if (axis != FD_YAW) {
-            pidState[axis].kP *= tpaFactor;
-            pidState[axis].kD *= tpaFactor;
-        }
-
-        if ((pidProfile->P8[axis] != 0) && (pidProfile->I8[axis] != 0)) {
-            pidState[axis].kT = 2.0f / ((pidState[axis].kP / pidState[axis].kI) + (pidState[axis].kD / pidState[axis].kP));
-        }
-        else {
-            pidState[axis].kT = 0;
-        }
 
         /* Limit desired rate to something gyro can measure reliably */
         pidState[axis].rateTarget = constrainf(pidState[axis].rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
@@ -292,14 +275,42 @@ static void getRateTarget(controlRateConfig_t *controlRateConfig)
     }
 }
 
-void updatePIDCoefficients(controlRateConfig_t *controlRateConfig) {
+void updatePIDCoefficients(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig) {
     
-    if (rcData[THROTTLE] < controlRateConfig->tpa_breakpoint) {
+    uint8_t axis;
+    
+    /*
+     * TPA should be updated only when TPA is actaully set
+     */
+    if (controlRateConfig->dynThrPID == 0 || rcData[THROTTLE] < controlRateConfig->tpa_breakpoint) {
         tpaFactor = 1.0f;
     } else if (rcData[THROTTLE] < 2000) {
         tpaFactor = (100 - (uint16_t)controlRateConfig->dynThrPID * (rcData[THROTTLE] - controlRateConfig->tpa_breakpoint) / (2000 - controlRateConfig->tpa_breakpoint)) / 100.0f;
     } else {
         tpaFactor = (100 - controlRateConfig->dynThrPID) / 100.0f;
+    }
+    
+    // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
+    //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
+    for (axis = 0; axis < 3; axis++) {
+        
+        pidState[axis].kP = pidProfile->P8[axis] / FP_PID_RATE_P_MULTIPLIER;
+        pidState[axis].kI = pidProfile->I8[axis] / FP_PID_RATE_I_MULTIPLIER;
+        pidState[axis].kD = pidProfile->D8[axis] / FP_PID_RATE_D_MULTIPLIER;
+
+        // Apply TPA to ROLL and PITCH axises
+        if (axis != FD_YAW) {
+            pidState[axis].kP *= tpaFactor;
+            pidState[axis].kD *= tpaFactor;
+        }
+        
+        if ((pidProfile->P8[axis] != 0) && (pidProfile->I8[axis] != 0)) {
+            pidState[axis].kT = 2.0f / ((pidState[axis].kP / pidState[axis].kI) + (pidState[axis].kD / pidState[axis].kP));
+        }
+        else {
+            pidState[axis].kT = 0;
+        }
+        
     }
 }
 

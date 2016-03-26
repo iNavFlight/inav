@@ -710,7 +710,7 @@ bool taskUpdateRxCheck(uint32_t currentDeltaTime)
 void taskUpdateRxMain(void)
 {
     processRx();
-    updatePIDCoefficients(currentControlRateProfile);
+    updatePIDCoefficients(&currentProfile->pidProfile, currentControlRateProfile);
     isRXDataNew = true;
 }
 
