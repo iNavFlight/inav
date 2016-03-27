@@ -504,7 +504,7 @@ void processRx(void)
                 }
             }
             else {
-                pidResetErrorGyro();
+                pidResetErrorAccumulators();
             }
         }
         else {
