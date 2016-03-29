@@ -40,7 +40,7 @@ typedef struct gyroConfig_s {
     uint8_t gyro_soft_lpf_hz;               // Gyro FIR filtering
 } gyroConfig_t;
 
-extern gyroConfig_t gyroConfig;
+PG_DECLARE(gyroConfig_t, gyroConfig);
 
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 void gyroUpdate(void);

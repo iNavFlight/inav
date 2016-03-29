@@ -34,7 +34,7 @@ typedef struct magConfig_s {
     flightDynamicsTrims_t magZero;
 } magConfig_t;
 
-extern magConfig_t magConfig;
+PG_DECLARE(magConfig_t, magConfig);
 
 #ifdef MAG
 void compassInit(void);

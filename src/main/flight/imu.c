@@ -31,6 +31,10 @@
 #include "common/axis.h"
 #include "common/filter.h"
 
+#include "config/config.h"
+#include "config/runtime_config.h"
+#include "config/parameter_group.h"
+
 #include "drivers/system.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -49,8 +53,9 @@
 #include "flight/hil.h"
 
 #include "io/gps.h"
-#include "config/runtime_config.h"
-#include "config/config.h"
+
+//#include "config/runtime_config.h"
+//#include "config/config.h"
 
 /**
  * In Cleanflight accelerometer is aligned in the following way:

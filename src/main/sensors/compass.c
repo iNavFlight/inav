@@ -55,16 +55,7 @@ sensor_align_e magAlign = 0;
 static uint8_t magInit = 0;
 static uint8_t magUpdatedAtLeastOnce = 0;
 
-magConfig_t magConfig;
-
-static const pgRegistry_t magConfigRegistry PG_REGISTRY_SECTION =
-{
-    .base = (uint8_t *)&magConfig,
-    .size = sizeof(magConfig),
-    .pgn = PG_MAG_CONFIG,
-    .format = 0,
-    .flags = PGC_SYSTEM
-};
+PG_REGISTER(magConfig_t, magConfig, PG_MAG_CONFIG, 0);
 
 void compassInit(void)
 {

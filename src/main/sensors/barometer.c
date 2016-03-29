@@ -43,16 +43,7 @@ int32_t baroTemperature = 0;
 int32_t BaroAlt = 0;
 
 #ifdef BARO
-barometerConfig_t barometerConfig;
-
-static const pgRegistry_t baroConfigRegistry PG_REGISTRY_SECTION =
-{
-    .base = (uint8_t *)&barometerConfig,
-    .size = sizeof(barometerConfig),
-    .pgn = PG_BARO_CONFIG,
-    .format = 0,
-    .flags = PGC_SYSTEM
-};
+PG_REGISTER(barometerConfig_t, barometerConfig, PG_BARO_CONFIG, 0);
 
 static int32_t baroGroundAltitude = 0;
 static int32_t baroGroundPressure = 0;

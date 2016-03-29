@@ -75,6 +75,6 @@ typedef struct master_t {
     uint32_t prefered_beeper_off_flags;
 } master_t;
 
-extern master_t masterConfig;
-extern profile_t *currentProfile;
+PG_DECLARE(master_t, masterConfig);
+
 extern controlRateConfig_t *currentControlRateProfile;

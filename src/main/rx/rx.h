@@ -134,7 +134,7 @@ typedef struct rxRuntimeConfig_s {
     uint8_t auxChannelCount;
 } rxRuntimeConfig_t;
 
-extern rxRuntimeConfig_t rxRuntimeConfig;
+PG_DECLARE(rxRuntimeConfig_t,rxRuntimeConfig);
 
 void useRxConfig(rxConfig_t *rxConfigToUse);
 

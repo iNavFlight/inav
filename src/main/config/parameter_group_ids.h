@@ -38,6 +38,7 @@
 #define PG_DRIVER_PWM_RX_CONFIG 100
 
 // FIXME remove/adjust after migration
+#define PG_SENSOR_TRIMS 251
 #define PG_BARO_CONFIG 252
 #define PG_ACC_CONFIG 253
 #define PG_PROFILE 254

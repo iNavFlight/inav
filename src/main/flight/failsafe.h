@@ -81,8 +81,9 @@ typedef struct failsafeState_s {
     failsafeRxLinkState_e rxLinkState;
 } failsafeState_t;
 
-extern failsafeConfig_t failsafeConfig;
-void useFailsafeConfig(void);
+PG_DECLARE(failsafeConfig_t, failsafeConfig);
+
+void useFailsafeConfig();
 
 void failsafeStartMonitoring(void);
 void failsafeUpdateState(void);

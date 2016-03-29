@@ -24,14 +24,13 @@
 #include "build_config.h"
 #include "debug.h"
 
+#include "config/config.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
-
-#include "config/parameter_group.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -50,22 +49,7 @@
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 
-#include "config/runtime_config.h"
-#include "config/config_unittest.h"
-#include "config/config.h"
-
-pidProfile_t pidProfileStorage[MAX_PROFILE_COUNT];
-pidProfile_t *pidProfile;
-
-static const pgRegistry_t pidProfileRegistry PG_REGISTRY_SECTION =
-{
-    .base = (uint8_t *)&pidProfileStorage,
-    .ptr = (uint8_t **)&pidProfile,
-    .size = sizeof(pidProfileStorage[0]),
-    .pgn = PG_PID_PROFILE,
-    .format = 0,
-    .flags = PGC_PROFILE
-};
+PG_REGISTER_PROFILE(pidProfile_t,  pidProfile, PG_PID_PROFILE, 0);
 
 #define MAG_HOLD_ERROR_LPF_FREQ 2
 

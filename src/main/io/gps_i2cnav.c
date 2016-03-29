@@ -36,11 +36,11 @@
 #include "io/gps_private.h"
 
 #include "flight/gps_conversion.h"
-#include "flight/pid.h"
 #include "flight/hil.h"
 
 #include "config/config.h"
 #include "config/runtime_config.h"
+#include "config/parameter_group.h"
 
 #if defined(GPS) && defined(GPS_PROTO_I2C_NAV)
 

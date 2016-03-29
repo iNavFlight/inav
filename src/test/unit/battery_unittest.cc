@@ -21,6 +21,10 @@
 //#define DEBUG_BATTERY
 
 extern "C" {
+    #include "config/parameter_group.h"
+
+    #include "io/rc_controls.h"
+
     #include "sensors/battery.h"
     
     #include "io/rc_controls.h"

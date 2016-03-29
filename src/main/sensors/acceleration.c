@@ -51,16 +51,8 @@ static int16_t accADCRaw[XYZ_AXIS_COUNT];
 static biquad_t accFilterState[XYZ_AXIS_COUNT];
 static bool accFilterInitialised = false;
 
-accConfig_t accConfig;
+PG_REGISTER(accConfig_t, accConfig, PG_ACC_CONFIG, 0);
 
-static const pgRegistry_t accConfigRegistry PG_REGISTRY_SECTION =
-{
-    .base = (uint8_t *)&accConfig,
-    .size = sizeof(accConfig),
-    .pgn = PG_ACC_CONFIG,
-    .format = 0,
-    .flags = PGC_SYSTEM
-};
 
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired)
 {

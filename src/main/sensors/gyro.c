@@ -40,6 +40,8 @@
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 
+PG_REGISTER(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 0);
+
 static biquad_t gyroFilterState[XYZ_AXIS_COUNT];
 static bool gyroFilterInitialised = false;
 static uint32_t calibratingG = 0;
@@ -47,18 +49,8 @@ static int32_t gyroZero[XYZ_AXIS_COUNT];
 static int16_t gyroADCRaw[XYZ_AXIS_COUNT];
 
 gyro_t gyro;                      // gyro access functions
-gyroConfig_t gyroConfig;
 sensor_align_e gyroAlign = 0;
 int32_t gyroADC[XYZ_AXIS_COUNT];
-
-static const pgRegistry_t gyroConfigRegistry PG_REGISTRY_SECTION =
-{
-    .base = (uint8_t *)&gyroConfig,
-    .size = sizeof(gyroConfig),
-    .pgn = PG_GYRO_CONFIG,
-    .format = 0,
-    .flags = PGC_SYSTEM
-};
 
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired)
 {

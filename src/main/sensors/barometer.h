@@ -33,7 +33,7 @@ typedef struct barometerConfig_s {
     uint8_t use_median_filtering;       // Use 3-point median filtering
 } barometerConfig_t;
 
-extern barometerConfig_t barometerConfig;
+PG_DECLARE(barometerConfig_t, barometerConfig);
 
 extern int32_t BaroAlt;
 extern int32_t baroTemperature;             // Use temperature for telemetry

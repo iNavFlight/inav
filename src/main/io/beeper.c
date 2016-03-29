@@ -22,6 +22,12 @@
 #include "platform.h"
 #include "build_config.h"
 
+#include "config/runtime_config.h"
+#include "config/config.h"
+#include "config/parameter_group.h"
+
+#include "io/rc_controls.h"
+
 #include "drivers/gpio.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/system.h"
@@ -35,9 +41,6 @@
 #ifdef GPS
 #include "io/gps.h"
 #endif
-
-#include "config/runtime_config.h"
-#include "config/config.h"
 
 #include "io/beeper.h"
 

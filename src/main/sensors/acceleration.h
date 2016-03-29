@@ -39,7 +39,7 @@ typedef struct accConfig_s {
     uint8_t acc_soft_lpf_hz;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
 } accConfig_t;
 
-extern accConfig_t accConfig;
+PG_DECLARE(accConfig_t, accConfig);
 
 extern sensor_align_e accAlign;
 extern acc_t acc;

@@ -17,15 +17,17 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <math.h>
 
 #include "build_config.h"
-
 #include "platform.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
+
+#include "config/parameter_group.h"
 
 #include "system.h"
 #include "gpio.h"
