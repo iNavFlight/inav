@@ -137,6 +137,17 @@ static void resetGyroConfig(void)
     gyroConfig.gyroMovementCalibrationThreshold = 32;
 }
 
+// FIXME this should probably be defined in a separate file.  Drivers should be aware of parameter groups.
+
+static const pgRegistry_t pwmRxConfigRegistry PG_REGISTRY_SECTION =
+{
+    .base = (uint8_t *)&pwmRxConfig,
+    .size = sizeof(pwmRxConfig),
+    .pgn = PG_DRIVER_PWM_RX_CONFIG,
+    .format = 0,
+    .flags = PGC_SYSTEM
+};
+
 void resetPidProfile(pidProfile_t *pidProfile)
 {
     pidProfile->P8[ROLL] = 30;
@@ -466,7 +477,7 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     resetAllRxChannelRangeConfigurations(masterConfig.rxConfig.channelRanges);
 
-    masterConfig.inputFilteringMode = INPUT_FILTERING_DISABLED;
+    pwmRxConfig.inputFilteringMode = INPUT_FILTERING_DISABLED;
 
     masterConfig.disarm_kill_switch = 1;
     masterConfig.auto_disarm_delay = 5;
