@@ -58,6 +58,7 @@
 #include "io/rc_controls.h"
 #include "io/rc_curves.h"
 #include "io/ledstrip.h"
+#include "io/transponder_ir.h"
 #include "io/gps.h"
 
 #include "rx/rx.h"
@@ -569,6 +570,12 @@ STATIC_UNIT_TESTED void resetConf(void)
 #ifdef LED_STRIP
     applyDefaultColors(masterConfig.colors, CONFIGURABLE_COLOR_COUNT);
     applyDefaultLedStripConfig(masterConfig.ledConfigs);
+#endif
+
+#ifdef TRANSPONDER
+    static const uint8_t defaultTransponderData[6] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC }; // Note, this is NOT a valid transponder code, it's just for testing production hardware
+
+    memcpy(&transponderConfig.data, &defaultTransponderData, sizeof(defaultTransponderData));
 #endif
 
 #ifdef BLACKBOX

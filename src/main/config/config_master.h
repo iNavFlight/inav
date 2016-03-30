@@ -71,7 +71,7 @@ typedef struct master_t {
 #endif
 
     uint8_t current_profile_index;
-    controlRateConfig_t controlRateProfiles[MAX_CONTROL_RATE_PROFILE_COUNT];
+    //controlRateConfig_t controlRateProfiles[MAX_CONTROL_RATE_PROFILE_COUNT];
 
     uint32_t beeper_off_flags;
     uint32_t prefered_beeper_off_flags;

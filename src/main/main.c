@@ -476,6 +476,19 @@ void init(void)
     }
 #endif
 
+#ifdef USB_CABLE_DETECTION
+    usbCableDetectInit();
+#endif
+
+#ifdef TRANSPONDER
+    if (feature(FEATURE_TRANSPONDER)) {
+        transponderInit(transponderConfig.data);
+        transponderEnable();
+        transponderStartRepeating();
+        systemState |= SYSTEM_STATE_TRANSPONDER_ENABLED;
+    }
+#endif
+
 #ifdef USE_FLASHFS
 #ifdef NAZE
     if (hardwareRevision == NAZE32_REV5) {
