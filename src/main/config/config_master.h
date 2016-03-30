@@ -51,6 +51,8 @@ typedef struct master_t {
     // mixer-related configuration
     mixerConfig_t mixerConfig;
 
+    //int8_t yaw_control_direction;           // change control direction of yaw (inverted, normal)
+
 #ifdef GPS
     gpsConfig_t gpsConfig;
 #endif

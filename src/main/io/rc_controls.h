@@ -156,6 +156,15 @@ typedef struct rcControlsConfig_s {
     uint8_t alt_hold_deadband;             // Defines the neutral zone of throttle stick during altitude hold
 } rcControlsConfig_t;
 
+typedef struct armingConfig_s {
+    // Arming configuration
+    uint8_t disarm_kill_switch;             // allow disarm via AUX switch regardless of throttle value
+    uint8_t auto_disarm_delay;              // allow automatically disarming multicopters after auto_disarm_delay seconds of zero throttle. Disabled when 0
+    uint8_t max_arm_angle;                  // specifies the maximum angle allow arming at.
+} armingConfig_t;
+
+extern armingConfig_t armingConfig;
+
 bool areUsingSticksToArm(void);
 
 bool areSticksInApModePosition(uint16_t ap_mode);

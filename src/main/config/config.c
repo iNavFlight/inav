@@ -444,6 +444,8 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     resetSensorAlignment(&sensorAlignmentConfig);
 
+    masterConfig.small_angle = 25;
+
     /*
     masterConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
     masterConfig.mag_hardware = MAG_DEFAULT;     // default/autodetect
@@ -477,11 +479,9 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     resetAllRxChannelRangeConfigurations(masterConfig.rxConfig.channelRanges);
 
-    pwmRxConfig.inputFilteringMode = INPUT_FILTERING_DISABLED;
-
-    masterConfig.disarm_kill_switch = 1;
-    masterConfig.auto_disarm_delay = 5;
-    masterConfig.small_angle = 25;
+    armingConfig.disarm_kill_switch = 1;
+    armingConfig.auto_disarm_delay = 5;
+    armingConfig.max_arm_angle = 25;
 
     resetMixerConfig(&masterConfig.mixerConfig);
 
@@ -826,10 +826,11 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#if defined(OLIMEXINO) && defined(SONAR)
-    if (feature(FEATURE_SONAR) && feature(FEATURE_CURRENT_METER) && batteryConfig.currentMeterType == CURRENT_SENSOR_ADC) {
-        featureClear(FEATURE_CURRENT_METER);
-    }
+#ifdef STM32F303xC
+    // hardware supports serial port inversion, make users life easier for those that want to connect SBus RX's
+#ifdef TELEMETRY
+    masterConfig.telemetryConfig.telemetry_inversion = 1;
+#endif
 #endif
 
 #if defined(CC3D) && defined(DISPLAY) && defined(USE_USART3)

@@ -60,4 +60,4 @@ bool isImuHeadingValid(void);
 void imuTransformVectorBodyToEarth(t_fp_vector * v);
 void imuTransformVectorEarthToBody(t_fp_vector * v);
 
-int16_t imuCalculateHeading(t_fp_vector *vec);
+bool imuIsAircraftArmable(uint8_t arming_angle);

@@ -376,6 +376,14 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
+bool imuIsAircraftArmable(uint8_t arming_angle)
+{
+    /* Update small angle state */
+    float armingAngleCosZ = cos_approx(degreesToRadians(arming_angle));
+    
+    return (rMat[2][2] > armingAngleCosZ);
+}
+
 // Idea by MasterZap
 static int imuCalculateAccelerometerConfidence(void)
 {

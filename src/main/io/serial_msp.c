@@ -825,8 +825,8 @@ static bool processOutCommand(uint8_t cmdMSP)
         break;
     case MSP_ARMING_CONFIG:
         headSerialReply(2);
-        serialize8(masterConfig.auto_disarm_delay);
-        serialize8(masterConfig.disarm_kill_switch);
+        serialize8(armingConfig.auto_disarm_delay);
+        serialize8(armingConfig.disarm_kill_switch);
         break;
     case MSP_LOOP_TIME:
         headSerialReply(2);
@@ -1282,8 +1282,8 @@ static bool processInCommand(void)
         }
         break;
     case MSP_SET_ARMING_CONFIG:
-        masterConfig.auto_disarm_delay = read8();
-        masterConfig.disarm_kill_switch = read8();
+        armingConfig.auto_disarm_delay = read8();
+        armingConfig.disarm_kill_switch = read8();
         break;
     case MSP_SET_LOOP_TIME:
         masterConfig.looptime = read16();
