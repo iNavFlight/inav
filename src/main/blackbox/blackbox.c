@@ -26,22 +26,16 @@
 
 #include "common/maths.h"
 #include "common/axis.h"
-#include "common/color.h"
 #include "common/encoding.h"
 #include "common/utils.h"
 
 #include "config/parameter_group_ids.h"
 #include "config/parameter_group.h"
 
-#include "drivers/gpio.h"
 #include "drivers/sensor.h"
 #include "drivers/system.h"
-#include "drivers/serial.h"
 #include "drivers/compass.h"
-#include "drivers/timer.h"
-#include "drivers/pwm_rx.h"
 #include "drivers/accgyro.h"
-#include "drivers/light_led.h"
 
 #include "sensors/sensors.h"
 #include "sensors/boardalignment.h"
@@ -53,21 +47,9 @@
 #include "sensors/battery.h"
 
 #include "io/beeper.h"
-#include "io/display.h"
-#include "io/escservo.h"
-#include "io/rc_controls.h"
-#include "io/gimbal.h"
+
 #include "io/gps.h"
-#include "io/ledstrip.h"
-#include "io/serial.h"
-#include "io/serial_cli.h"
-#include "io/serial_msp.h"
-#include "io/statusindicator.h"
 
-#include "rx/rx.h"
-#include "rx/msp.h"
-
-#include "telemetry/telemetry.h"
 
 #include "flight/mixer.h"
 #include "flight/failsafe.h"
@@ -77,7 +59,6 @@
 #include "config/runtime_config.h"
 #include "config/config.h"
 #include "config/config_profile.h"
-#include "config/config_master.h"
 #include "config/feature.h"
 #include "config/profile.h"
 
@@ -416,7 +397,7 @@ static blackboxMainState_t* blackboxHistory[3];
 static bool blackboxModeActivationConditionPresent = false;
 
 /**
- * Return true if it is safe to edit the Blackbox configuration in the masterConfig.
+ * Return true if it is safe to edit the Blackbox configuration.
  */
 bool blackboxMayEditConfig()
 {
