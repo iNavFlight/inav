@@ -50,13 +50,17 @@ extern "C" {
     extern uint8_t servoCount;
     void forwardAuxChannelsToServos(uint8_t firstServoIndex);
 
-    void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMixers, servoMixer_t *initialCustomServoMixers);
-    void mixerUsePWMOutputConfiguration(pwmOutputConfiguration_t *pwmOutputConfiguration);
+    void mixerInit(motorMixer_t *initialCustomMixers, servoMixer_t *initialCustomServoMixers);
+    void mixerUsePWMIOConfiguration(pwmIOConfiguration_t *pwmIOConfiguration);
 
     gimbalConfig_t testGimbalConfig;
     gimbalConfig_t *gimbalConfig = &testGimbalConfig;
 
     escAndServoConfig_t escAndServoConfig;
+
+    motorMixer_t customMotorMixer[MAX_SUPPORTED_MOTORS];
+    servoMixer_t customServoMixer[MAX_SERVO_RULES];
+
 }
 
 #include "unittest_macros.h"
@@ -160,15 +164,11 @@ TEST_F(ChannelForwardingTest, TestForwardAuxChannelsToServosWithLessRemainingSer
 
 class BasicMixerIntegrationTest : public ::testing::Test {
 protected:
-    mixerConfig_t mixerConfig;
     rxConfig_t rxConfig;
     servoParam_t servoConf[MAX_SUPPORTED_SERVOS];
     gimbalConfig_t gimbalConfig = {
         .mode = GIMBAL_MODE_NORMAL
     };
-
-    motorMixer_t customMotorMixer[MAX_SUPPORTED_MOTORS];
-    servoMixer_t customServoMixer[MAX_SUPPORTED_SERVOS];
 
     virtual void SetUp() {
         updatedServoCount = 0;
@@ -194,7 +194,8 @@ protected:
         rxConfig.midrc = 1500;
     }
 
-    virtual void configureMixer(void) {
+    virtual void configureMixer(uint8_t mixerMode) {
+        mixerConfig.mixerMode = mixerMode;
         mixerUseConfigs(
             servoConf,
             NULL,
@@ -220,9 +221,9 @@ TEST_F(BasicMixerIntegrationTest, TestTricopterServo)
     servoConf[5].rate = 100;
     servoConf[5].forwardFromChannel = CHANNEL_FORWARDING_DISABLED;
 
-    configureMixer();
+    configureMixer(MIXER_TRI);
 
-    mixerInit(MIXER_TRI, customMotorMixer, customServoMixer);
+    mixerInit(customMotorMixer, customServoMixer);
 
     // and
     pwmOutputConfiguration_t pwmOutputConfiguration = {
@@ -249,9 +250,9 @@ TEST_F(BasicMixerIntegrationTest, TestQuadMotors)
     // given
     withDefaultEscAndServoConfiguration();
 
-    configureMixer();
+    configureMixer(MIXER_QUADX);
 
-    mixerInit(MIXER_QUADX, customMotorMixer, customServoMixer);
+    mixerInit(customMotorMixer, customServoMixer);
 
     // and
     pwmOutputConfiguration_t pwmOutputConfiguration = {
@@ -302,7 +303,7 @@ protected:
         withDefaultEscAndServoConfiguration();
         withDefaultRxConfig();
 
-        configureMixer();
+        configureMixer(MIXER_QUADX);
 
         memset(&customMotorMixer, 0, sizeof(customMotorMixer));
         memset(&customServoMixer, 0, sizeof(customServoMixer));
@@ -334,7 +335,9 @@ TEST_F(CustomMixerIntegrationTest, TestCustomMixer)
     };
     memcpy(customMotorMixer, testMotorMixer, sizeof(testMotorMixer));
 
-    mixerInit(MIXER_CUSTOM_AIRPLANE, customMotorMixer, customServoMixer);
+    configureMixer(MIXER_CUSTOM_AIRPLANE);
+
+    mixerInit(customMotorMixer, customServoMixer);
 
     pwmOutputConfiguration_t pwmOutputConfiguration = {
             .servoCount = 6,
