@@ -64,6 +64,7 @@
 #include "config/runtime_config.h"
 #include "config/config.h"
 #include "config/feature.h"
+#include "config/profile.h"
 
 #include "display.h"
 

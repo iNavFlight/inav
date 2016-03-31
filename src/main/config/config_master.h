@@ -19,14 +19,12 @@
 
 // System-wide
 typedef struct master_t {
-    uint8_t mixerMode;
     uint8_t persistentFlags;
 
     // Profile configuration
     uint8_t current_profile_index;
 
     flight3DConfig_t flight3DConfig;
-
 
     rxConfig_t rxConfig;
 

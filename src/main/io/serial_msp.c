@@ -90,6 +90,7 @@
 #include "config/parameter_group_ids.h"
 #include "config/parameter_group.h"
 #include "config/feature.h"
+#include "config/profile.h"
 
 #include "version.h"
 #ifdef NAZE
@@ -723,7 +724,7 @@ static bool processOutCommand(uint8_t cmdMSP)
 #endif
         serialize16(sensors(SENSOR_ACC) | sensors(SENSOR_BARO) << 1 | sensors(SENSOR_MAG) << 2 | sensors(SENSOR_GPS) << 3 | sensors(SENSOR_SONAR) << 4);
         serialize32(packFlightModeFlags());
-        serialize8(masterConfig.current_profile_index);
+        serialize8(getCurrentProfile());
         serialize16(averageSystemLoadPercent);
         break;
 
@@ -737,7 +738,7 @@ static bool processOutCommand(uint8_t cmdMSP)
 #endif
         serialize16(sensors(SENSOR_ACC) | sensors(SENSOR_BARO) << 1 | sensors(SENSOR_MAG) << 2 | sensors(SENSOR_GPS) << 3 | sensors(SENSOR_SONAR) << 4);
         serialize32(packFlightModeFlags());
-        serialize8(masterConfig.current_profile_index);
+        serialize8(getCurrentProfile());
         break;
     case MSP_RAW_IMU:
         headSerialReply(18);
@@ -1256,10 +1257,7 @@ static bool processInCommand(void)
 #endif
     case MSP_SELECT_SETTING:
         if (!ARMING_FLAG(ARMED)) {
-            i = masterConfig.current_profile_index = read8();
-            if (i > 2) {
-                i = 0;
-            }
+            i = read8();
             changeProfile(i);
         }
         break;

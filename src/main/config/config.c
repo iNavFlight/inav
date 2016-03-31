@@ -79,6 +79,7 @@
 #include "config/parameter_group.h"
 #include "config/config_streamer.h"
 #include "config/feature.h"
+#include "config/profile.h"
 
 #include "config/config_profile.h"
 #include "config/config_master.h"
@@ -353,16 +354,6 @@ static void resetMixerConfig(mixerConfig_t *mixerConfig) {
 #endif
 }
 
-uint8_t getCurrentProfile(void)
-{
-    return masterConfig.current_profile_index;
-}
-
-static void setProfile(uint8_t profileIndex)
-{
-    activateProfile(profileIndex);
-}
-
 uint8_t getCurrentControlRateProfile(void)
 {
     return currentControlRateProfileIndex;
@@ -391,6 +382,8 @@ STATIC_UNIT_TESTED void resetConf(void)
     pgResetAll(MAX_PROFILE_COUNT);
 
     setProfile(0);
+    pgActivateProfile(0);
+
     setControlRateProfile(0);
 
     featureClearAll();
@@ -840,8 +833,8 @@ void validateAndFixConfig(void)
     /*
      * If provided predefined mixer setup is disabled, fallback to default one
      */
-     if (!isMixerEnabled(masterConfig.mixerMode)) {
-         masterConfig.mixerMode = DEFAULT_MIXER;
+     if (!isMixerEnabled(mixerConfig.mixerMode)) {
+         mixerConfig.mixerMode = DEFAULT_MIXER;
      }
 }
 
@@ -862,11 +855,7 @@ void readEEPROM(void)
         failureMode(FAILURE_INVALID_EEPROM_CONTENTS);
     }
 
-
-    if (masterConfig.current_profile_index > MAX_PROFILE_COUNT - 1) // sanity check
-        masterConfig.current_profile_index = 0;
-
-    setProfile(masterConfig.current_profile_index);
+    pgActivateProfile(getCurrentProfile());
 
     if (currentProfile->defaultRateProfileIndex > MAX_CONTROL_RATE_PROFILE_COUNT - 1) // sanity check
         currentProfile->defaultRateProfileIndex = 0;
@@ -877,13 +866,6 @@ void readEEPROM(void)
     activateConfig();
 
     resumeRxSignal();
-}
-
-void readEEPROMAndNotify(void)
-{
-    // re-read written data
-    readEEPROM();
-    beeperConfirmationBeeps(1);
 }
 
 void writeEEPROM(void)
@@ -913,12 +895,13 @@ void resetEEPROM(void)
 void saveConfigAndNotify(void)
 {
     writeEEPROM();
-    readEEPROMAndNotify();
+    readEEPROM();
+    beeperConfirmationBeeps(1);
 }
 
 void changeProfile(uint8_t profileIndex)
 {
-    masterConfig.current_profile_index = profileIndex;
+    setProfile(profileIndex);
     writeEEPROM();
     readEEPROM();
 }
