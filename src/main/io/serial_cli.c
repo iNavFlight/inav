@@ -518,13 +518,20 @@ const clivalue_t valueTable[] = {
     { "gyro_sync",                  VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_IMU_CONFIG, offsetof(imuConfig_t, gyroSync)},
     { "gyro_sync_denom",            VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 1,  32 } , PG_IMU_CONFIG, offsetof(imuConfig_t, gyroSyncDenominator)},
 
-    { "mid_rc",                     VAR_UINT16 | MASTER_VALUE,  &masterConfig.rxConfig.midrc, .config.minmax = { 1200,  1700 }, 0 },
-    { "min_check",                  VAR_UINT16 | MASTER_VALUE,  &masterConfig.rxConfig.mincheck, .config.minmax = { PWM_RANGE_ZERO,  PWM_RANGE_MAX }, 0 },
-    { "max_check",                  VAR_UINT16 | MASTER_VALUE,  &masterConfig.rxConfig.maxcheck, .config.minmax = { PWM_RANGE_ZERO,  PWM_RANGE_MAX }, 0 },
-    { "rssi_channel",               VAR_INT8   | MASTER_VALUE,  &masterConfig.rxConfig.rssi_channel, .config.minmax = { 0,  MAX_SUPPORTED_RC_CHANNEL_COUNT }, 0 },
-    { "rssi_scale",                 VAR_UINT8  | MASTER_VALUE,  &masterConfig.rxConfig.rssi_scale, .config.minmax = { RSSI_SCALE_MIN,  RSSI_SCALE_MAX }, 0 },
-    { "rssi_ppm_invert",            VAR_INT8   | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.rxConfig.rssi_ppm_invert, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "rc_smoothing",               VAR_INT8   | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.rxConfig.rcSmoothing, .config.lookup = { TABLE_OFF_ON }, 0 },
+    { "mid_rc",                     VAR_UINT16 | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 1200,  1700 } , PG_RX_CONFIG, offsetof(rxConfig_t, midrc)},
+    { "min_check",                  VAR_UINT16 | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { PWM_RANGE_ZERO,  PWM_RANGE_MAX } , PG_RX_CONFIG, offsetof(rxConfig_t, mincheck)},
+    { "max_check",                  VAR_UINT16 | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { PWM_RANGE_ZERO,  PWM_RANGE_MAX } , PG_RX_CONFIG, offsetof(rxConfig_t, maxcheck)},
+    { "rssi_channel",               VAR_INT8   | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 0,  MAX_SUPPORTED_RC_CHANNEL_COUNT } , PG_RX_CONFIG, offsetof(rxConfig_t, rssi_channel)},
+    { "rssi_scale",                 VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { RSSI_SCALE_MIN,  RSSI_SCALE_MAX } , PG_RX_CONFIG, offsetof(rxConfig_t, rssi_scale)},
+    { "rssi_ppm_invert",            VAR_INT8   | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_RX_CONFIG, offsetof(rxConfig_t, rssi_ppm_invert)},
+    { "rc_smoothing",               VAR_INT8   | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_RX_CONFIG, offsetof(rxConfig_t, rcSmoothing)},
+
+    { "rx_min_usec",                VAR_UINT16 | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { PWM_PULSE_MIN,  PWM_PULSE_MAX } , PG_RX_CONFIG, offsetof(rxConfig_t, rx_min_usec)},
+    { "rx_max_usec",                VAR_UINT16 | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { PWM_PULSE_MIN,  PWM_PULSE_MAX } , PG_RX_CONFIG, offsetof(rxConfig_t, rx_max_usec)},
+
+    { "serialrx_provider",          VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_SERIAL_RX } , PG_RX_CONFIG, offsetof(rxConfig_t, serialrx_provider)},
+    { "sbus_inversion",             VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_RX_CONFIG, offsetof(rxConfig_t, sbus_inversion)},
+    { "spektrum_sat_bind",          VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { SPEKTRUM_SAT_BIND_DISABLED,  SPEKTRUM_SAT_BIND_MAX} , PG_RX_CONFIG, offsetof(rxConfig_t, spektrum_sat_bind)},
 
     { "input_filtering_mode",       VAR_INT8   | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_DRIVER_PWM_RX_CONFIG, offsetof(pwmRxConfig_t, inputFilteringMode)},
 
@@ -577,6 +584,7 @@ const clivalue_t valueTable[] = {
     { "nav_navr_p",                 VAR_UINT8  | PROFILE_VALUE, 0, .config.minmax = { 0,  255 }, PG_PID_PROFILE, offsetof(pidProfile_t, P8[PIDNAVR]) },
     { "nav_navr_i",                 VAR_UINT8  | PROFILE_VALUE, 0, .config.minmax = { 0,  255 }, PG_PID_PROFILE, offsetof(pidProfile_t, I8[PIDNAVR]) },
     { "nav_navr_d",                 VAR_UINT8  | PROFILE_VALUE, 0, .config.minmax = { 0,  255 }, PG_PID_PROFILE, offsetof(pidProfile_t, D8[PIDNAVR]) },
+#endif
 
 #if defined(NAV_AUTO_MAG_DECLINATION)
     { "inav_auto_mag_decl",         VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.inav.automatic_mag_declination, .config.lookup = { TABLE_OFF_ON }, 0 },
@@ -595,9 +603,6 @@ const clivalue_t valueTable[] = {
     { "inav_w_z_res_v",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_res_v, .config.minmax = { 0,  10 }, 0 },
     { "inav_w_xy_res_v",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_res_v, .config.minmax = { 0,  10 }, 0 },
     { "inav_w_acc_bias",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_acc_bias, .config.minmax = { 0,  1 }, 0 },
-
-    { "inav_max_eph_epv",           VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.max_eph_epv, .config.minmax = { 0,  9999 }, 0 },
-    { "inav_baro_epv",              VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.baro_epv, .config.minmax = { 0,  9999 }, 0 },
 
     { "nav_disarm_on_landing",      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.disarm_on_landing, .config.lookup = { TABLE_OFF_ON }, 0 },
     { "nav_use_midthr_for_althold", VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.use_thr_mid_for_althold, .config.lookup = { TABLE_OFF_ON }, 0 },
@@ -630,19 +635,17 @@ const clivalue_t valueTable[] = {
     { "nav_fw_pitch2thr",           VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.fw_pitch_to_throttle, .config.minmax = { 0,  100 }, 0 },
     { "nav_fw_roll2pitch",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.fw_roll_to_pitch, .config.minmax = { 0,  200 }, 0 },
     { "nav_fw_loiter_radius",       VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.fw_loiter_radius, .config.minmax = { 0,  10000 }, 0 },
+
+#ifdef TELEMETRY
+    { "telemetry_switch",           VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.telemetryConfig.telemetry_switch, .config.lookup = { TABLE_OFF_ON } },
+    { "telemetry_inversion",        VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.telemetryConfig.telemetry_inversion, .config.lookup = { TABLE_OFF_ON } },
+    { "frsky_default_lattitude",    VAR_FLOAT  | MASTER_VALUE,  &masterConfig.telemetryConfig.gpsNoFixLatitude, .config.minmax = { -90.0,  90.0 } },
+    { "frsky_default_longitude",    VAR_FLOAT  | MASTER_VALUE,  &masterConfig.telemetryConfig.gpsNoFixLongitude, .config.minmax = { -180.0,  180.0 } },
+    { "frsky_coordinates_format",   VAR_UINT8  | MASTER_VALUE,  &masterConfig.telemetryConfig.frsky_coordinate_format, .config.minmax = { 0,  FRSKY_FORMAT_NMEA } },
+    { "frsky_unit",                 VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.telemetryConfig.frsky_unit, .config.lookup = { TABLE_UNIT } },
+    { "frsky_vfas_precision",       VAR_UINT8  | MASTER_VALUE,  &masterConfig.telemetryConfig.frsky_vfas_precision, .config.minmax = { FRSKY_VFAS_PRECISION_LOW,  FRSKY_VFAS_PRECISION_HIGH } },
+    { "hott_alarm_sound_interval",  VAR_UINT8  | MASTER_VALUE,  &masterConfig.telemetryConfig.hottAlarmSoundInterval, .config.minmax = { 0,  120 } },
 #endif
-
-    { "serialrx_provider",          VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.rxConfig.serialrx_provider, .config.lookup = { TABLE_SERIAL_RX }, 0 },
-    { "spektrum_sat_bind",          VAR_UINT8  | MASTER_VALUE,  &masterConfig.rxConfig.spektrum_sat_bind, .config.minmax = { SPEKTRUM_SAT_BIND_DISABLED,  SPEKTRUM_SAT_BIND_MAX}, 0 },
-
-    { "telemetry_switch",           VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.telemetryConfig.telemetry_switch, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "telemetry_inversion",        VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.telemetryConfig.telemetry_inversion, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "frsky_default_lattitude",    VAR_FLOAT  | MASTER_VALUE,  &masterConfig.telemetryConfig.gpsNoFixLatitude, .config.minmax = { -90.0,  90.0 }, 0 },
-    { "frsky_default_longitude",    VAR_FLOAT  | MASTER_VALUE,  &masterConfig.telemetryConfig.gpsNoFixLongitude, .config.minmax = { -180.0,  180.0 }, 0 },
-    { "frsky_coordinates_format",   VAR_UINT8  | MASTER_VALUE,  &masterConfig.telemetryConfig.frsky_coordinate_format, .config.minmax = { 0,  FRSKY_FORMAT_NMEA }, 0 },
-    { "frsky_unit",                 VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.telemetryConfig.frsky_unit, .config.lookup = { TABLE_UNIT }, 0 },
-    { "frsky_vfas_precision",       VAR_UINT8  | MASTER_VALUE,  &masterConfig.telemetryConfig.frsky_vfas_precision, .config.minmax = { FRSKY_VFAS_PRECISION_LOW,  FRSKY_VFAS_PRECISION_HIGH }, 0 },
-    { "hott_alarm_sound_interval",  VAR_UINT8  | MASTER_VALUE,  &masterConfig.telemetryConfig.hottAlarmSoundInterval, .config.minmax = { 0,  120 }, 0 },
 
     { "battery_capacity",           VAR_UINT16 | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 0,  20000 } , PG_BATTERY_CONFIG, offsetof(batteryConfig_t, batteryCapacity)},
     { "vbat_scale",                 VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { VBAT_SCALE_MIN,  VBAT_SCALE_MAX } , PG_BATTERY_CONFIG, offsetof(batteryConfig_t, vbatscale)},
@@ -704,9 +707,6 @@ const clivalue_t valueTable[] = {
     { "failsafe_kill_switch",       VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_FAILSAFE_CONFIG, offsetof(failsafeConfig_t, failsafe_kill_switch)},
     { "failsafe_throttle_low_delay",VAR_UINT16 | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 0,  300 } , PG_FAILSAFE_CONFIG, offsetof(failsafeConfig_t, failsafe_throttle_low_delay)},
     { "failsafe_procedure",         VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 0,  1 } , PG_FAILSAFE_CONFIG, offsetof(failsafeConfig_t, failsafe_procedure)},
-
-    { "rx_min_usec",                VAR_UINT16 | MASTER_VALUE,  &masterConfig.rxConfig.rx_min_usec, .config.minmax = { PWM_PULSE_MIN,  PWM_PULSE_MAX }, 0 },
-    { "rx_max_usec",                VAR_UINT16 | MASTER_VALUE,  &masterConfig.rxConfig.rx_max_usec, .config.minmax = { PWM_PULSE_MIN,  PWM_PULSE_MAX }, 0 },
 
 #ifdef USE_SERVOS
     { "gimbal_mode",                VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_GIMBAL_MODE }, PG_GIMBAL_CONFIG, offsetof(gimbalConfig_t, mode), 0},
@@ -838,7 +838,7 @@ static void cliRxFail(char *cmdline)
         channel = atoi(ptr++);
         if ((channel < MAX_SUPPORTED_RC_CHANNEL_COUNT)) {
 
-            rxFailsafeChannelConfiguration_t *channelFailsafeConfiguration = &masterConfig.rxConfig.failsafe_channel_configurations[channel];
+            rxFailsafeChannelConfiguration_t *channelFailsafeConfiguration = &rxConfig.failsafe_channel_configurations[channel];
 
             uint16_t value;
             rxFailsafeChannelType_e type = (channel < NON_AUX_CHANNEL_COUNT) ? RX_FAILSAFE_TYPE_FLIGHT : RX_FAILSAFE_TYPE_AUX;
@@ -1215,11 +1215,11 @@ static void cliRxRange(char *cmdline)
 
     if (isEmpty(cmdline)) {
         for (i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
-            rxChannelRangeConfiguration_t *channelRangeConfiguration = &masterConfig.rxConfig.channelRanges[i];
+            rxChannelRangeConfiguration_t *channelRangeConfiguration = &rxConfig.channelRanges[i];
             cliPrintf("rxrange %u %u %u\r\n", i, channelRangeConfiguration->min, channelRangeConfiguration->max);
         }
     } else if (strcasecmp(cmdline, "reset") == 0) {
-        resetAllRxChannelRangeConfigurations(masterConfig.rxConfig.channelRanges);
+        resetAllRxChannelRangeConfigurations(rxConfig.channelRanges);
     } else {
         ptr = cmdline;
         i = atoi(ptr);
@@ -1243,7 +1243,7 @@ static void cliRxRange(char *cmdline)
             } else if (rangeMin < PWM_PULSE_MIN || rangeMin > PWM_PULSE_MAX || rangeMax < PWM_PULSE_MIN || rangeMax > PWM_PULSE_MAX) {
                 cliShowParseError();
             } else {
-                rxChannelRangeConfiguration_t *channelRangeConfiguration = &masterConfig.rxConfig.channelRanges[i];
+                rxChannelRangeConfiguration_t *channelRangeConfiguration = &rxConfig.channelRanges[i];
                 channelRangeConfiguration->min = rangeMin;
                 channelRangeConfiguration->max = rangeMax;
             }
@@ -1763,7 +1763,7 @@ static void cliDump(char *cmdline)
         cliPrint("\r\n\r\n# map\r\n");
 
         for (i = 0; i < 8; i++)
-            buf[masterConfig.rxConfig.rcmap[i]] = rcChannelLetters[i];
+            buf[rxConfig.rcmap[i]] = rcChannelLetters[i];
         buf[i] = '\0';
         cliPrintf("map %s\r\n", buf);
 
@@ -2058,11 +2058,11 @@ static void cliMap(char *cmdline)
             cliShowParseError();
             return;
         }
-        parseRcChannels(cmdline, &masterConfig.rxConfig);
+        parseRcChannels(cmdline, &rxConfig);
     }
     cliPrint("Map: ");
     for (i = 0; i < 8; i++)
-        out[masterConfig.rxConfig.rcmap[i]] = rcChannelLetters[i];
+        out[rxConfig.rcmap[i]] = rcChannelLetters[i];
     out[i] = '\0';
     cliPrintf("%s\r\n", out);
 }

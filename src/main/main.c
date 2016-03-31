@@ -112,7 +112,7 @@ void telemetryInit(void);
 void serialInit(bool softserialEnabled);
 void mspInit(void);
 void cliInit(void);
-void failsafeInit(rxConfig_t *intialRxConfig, uint16_t deadband3d_throttle);
+void failsafeInit(uint16_t deadband3d_throttle);
 pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init);
 #ifdef USE_SERVOS
 void mixerInit(motorMixer_t *customMotorMixers, servoMixer_t *customServoMixers);
@@ -120,12 +120,13 @@ void mixerInit(motorMixer_t *customMotorMixers, servoMixer_t *customServoMixers)
 void mixerInit(motorMixer_t *customMotorMixers);
 #endif
 void mixerUsePWMIOConfiguration(pwmIOConfiguration_t *pwmIOConfiguration);
-void rxInit(rxConfig_t *rxConfig, modeActivationCondition_t *modeActivationConditions);
+void rxInit(modeActivationCondition_t *modeActivationConditions);
 void gpsPreInit(gpsConfig_t *initialGpsConfig);
 void gpsInit(gpsConfig_t *initialGpsConfig);
 void imuInit(void);
-void displayInit(rxConfig_t *intialRxConfig);
 void loop(void);
+void displayInit(void);
+void ledStripInit(ledConfig_t *ledConfigsToUse, hsvColor_t *colorsToUse);
 void spektrumBind(rxConfig_t *rxConfig);
 const sonarHardware_t *sonarGetHardwareConfiguration(batteryConfig_t *batteryConfig);
 void sonarInit(const sonarHardware_t *sonarHardware);
@@ -210,13 +211,13 @@ void init(void)
 
 #ifdef SPEKTRUM_BIND
     if (feature(FEATURE_RX_SERIAL)) {
-        switch (masterConfig.rxConfig.serialrx_provider) {
+        switch (rxConfig.serialrx_provider) {
             case SERIALRX_SPEKTRUM1024:
             case SERIALRX_SPEKTRUM2048:
                 // Spektrum satellite binding if enabled on startup.
                 // Must be called before that 100ms sleep so that we don't lose satellite's binding window after startup.
                 // The rest of Spektrum initialization will happen later - via spektrumInit()
-                spektrumBind(&masterConfig.rxConfig);
+                spektrumBind(&rxConfig);
                 break;
         }
     }
@@ -396,7 +397,7 @@ void init(void)
 
 #ifdef DISPLAY
     if (feature(FEATURE_DISPLAY)) {
-        displayInit(&masterConfig.rxConfig);
+        displayInit();
     }
 #endif
 
@@ -442,9 +443,9 @@ void init(void)
     cliInit();
 #endif
 
-    failsafeInit(&masterConfig.rxConfig, masterConfig.flight3DConfig.deadband3d_throttle);
+    failsafeInit(masterConfig.flight3DConfig.deadband3d_throttle);
 
-    rxInit(&masterConfig.rxConfig, currentProfile->modeActivationConditions);
+    rxInit(currentProfile->modeActivationConditions);
 
 #ifdef GPS
     if (feature(FEATURE_GPS)) {
@@ -456,7 +457,7 @@ void init(void)
         navigationInit(
             &masterConfig.navConfig,
             &currentProfile->rcControlsConfig,
-            &masterConfig.rxConfig,
+            &rxConfig,
             &masterConfig.flight3DConfig
         );
 #endif

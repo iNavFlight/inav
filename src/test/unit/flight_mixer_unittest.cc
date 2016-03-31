@@ -57,6 +57,7 @@ extern "C" {
     gimbalConfig_t *gimbalConfig = &testGimbalConfig;
 
     escAndServoConfig_t escAndServoConfig;
+    rxConfig_t rxConfig;
 
     motorMixer_t customMotorMixer[MAX_SUPPORTED_MOTORS];
     servoMixer_t customServoMixer[MAX_SERVO_RULES];
@@ -164,7 +165,6 @@ TEST_F(ChannelForwardingTest, TestForwardAuxChannelsToServosWithLessRemainingSer
 
 class BasicMixerIntegrationTest : public ::testing::Test {
 protected:
-    rxConfig_t rxConfig;
     servoParam_t servoConf[MAX_SUPPORTED_SERVOS];
     gimbalConfig_t gimbalConfig = {
         .mode = GIMBAL_MODE_NORMAL
@@ -199,8 +199,7 @@ protected:
         mixerUseConfigs(
             servoConf,
             NULL,
-            NULL,
-            &rxConfig
+            NULL
         );
     }
 };

@@ -68,7 +68,6 @@ int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 bool motorLimitReached = false;
 
 static flight3DConfig_t *flight3DConfig;
-static rxConfig_t *rxConfig;
 
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 PG_REGISTER_ARR(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer, PG_MOTOR_MIXER, 0);
@@ -385,14 +384,12 @@ void mixerUseConfigs(
 #ifdef USE_SERVOS
         servoParam_t *servoConfToUse,
 #endif
-        flight3DConfig_t *flight3DConfigToUse,
-        rxConfig_t *rxConfigToUse)
+        flight3DConfig_t *flight3DConfigToUse)
 {
 #ifdef USE_SERVOS
     servoConf = servoConfToUse;
 #endif
     flight3DConfig = flight3DConfigToUse;
-    rxConfig = rxConfigToUse;
 }
 
 #ifdef USE_SERVOS
@@ -739,7 +736,7 @@ STATIC_UNIT_TESTED void servoMixer(void)
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
         // Reverse yaw servo when inverted in 3D mode
-        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig->midrc)) {
+        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig.midrc)) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }
@@ -755,14 +752,14 @@ STATIC_UNIT_TESTED void servoMixer(void)
     // 2000 - 1500 = +500
     // 1500 - 1500 = 0
     // 1000 - 1500 = -500
-    input[INPUT_RC_ROLL]     = rcData[ROLL]     - rxConfig->midrc;
-    input[INPUT_RC_PITCH]    = rcData[PITCH]    - rxConfig->midrc;
-    input[INPUT_RC_YAW]      = rcData[YAW]      - rxConfig->midrc;
-    input[INPUT_RC_THROTTLE] = rcData[THROTTLE] - rxConfig->midrc;
-    input[INPUT_RC_AUX1]     = rcData[AUX1]     - rxConfig->midrc;
-    input[INPUT_RC_AUX2]     = rcData[AUX2]     - rxConfig->midrc;
-    input[INPUT_RC_AUX3]     = rcData[AUX3]     - rxConfig->midrc;
-    input[INPUT_RC_AUX4]     = rcData[AUX4]     - rxConfig->midrc;
+    input[INPUT_RC_ROLL]     = rcData[ROLL]     - rxConfig.midrc;
+    input[INPUT_RC_PITCH]    = rcData[PITCH]    - rxConfig.midrc;
+    input[INPUT_RC_YAW]      = rcData[YAW]      - rxConfig.midrc;
+    input[INPUT_RC_THROTTLE] = rcData[THROTTLE] - rxConfig.midrc;
+    input[INPUT_RC_AUX1]     = rcData[AUX1]     - rxConfig.midrc;
+    input[INPUT_RC_AUX2]     = rcData[AUX2]     - rxConfig.midrc;
+    input[INPUT_RC_AUX3]     = rcData[AUX3]     - rxConfig.midrc;
+    input[INPUT_RC_AUX4]     = rcData[AUX4]     - rxConfig.midrc;
 
     for (i = 0; i < MAX_SUPPORTED_SERVOS; i++)
         servo[i] = 0;
@@ -832,17 +829,17 @@ void mixTable(void)
 
     // Find min and max throttle based on condition.
     if (feature(FEATURE_3D)) {
-        if (!ARMING_FLAG(ARMED)) throttlePrevious = rxConfig->midrc; // When disarmed set to mid_rc. It always results in positive direction after arming.
+        if (!ARMING_FLAG(ARMED)) throttlePrevious = rxConfig.midrc; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
-        if ((rcCommand[THROTTLE] <= (rxConfig->midrc - flight3DConfig->deadband3d_throttle))) { // Out of band handling
+        if ((rcCommand[THROTTLE] <= (rxConfig.midrc - flight3DConfig->deadband3d_throttle))) { // Out of band handling
             throttleMax = flight3DConfig->deadband3d_low;
             throttleMin = escAndServoConfig.minthrottle;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if (rcCommand[THROTTLE] >= (rxConfig->midrc + flight3DConfig->deadband3d_throttle)) { // Positive handling
+        } else if (rcCommand[THROTTLE] >= (rxConfig.midrc + flight3DConfig->deadband3d_throttle)) { // Positive handling
             throttleMax = escAndServoConfig.maxthrottle;
             throttleMin = flight3DConfig->deadband3d_high;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if ((throttlePrevious <= (rxConfig->midrc - flight3DConfig->deadband3d_throttle)))  { // Deadband handling from negative to positive
+        } else if ((throttlePrevious <= (rxConfig.midrc - flight3DConfig->deadband3d_throttle)))  { // Deadband handling from negative to positive
             throttleCommand = throttleMax = flight3DConfig->deadband3d_low;
             throttleMin = escAndServoConfig.minthrottle;
         } else {  // Deadband handling from positive to negative
@@ -886,7 +883,7 @@ void mixTable(void)
             if (isFailsafeActive) {
                 motor[i] = constrain(motor[i], escAndServoConfig.mincommand, escAndServoConfig.maxthrottle);
             } else if (feature(FEATURE_3D)) {
-                if (throttlePrevious <= (rxConfig->midrc - flight3DConfig->deadband3d_throttle)) {
+                if (throttlePrevious <= (rxConfig.midrc - flight3DConfig->deadband3d_throttle)) {
                     motor[i] = constrain(motor[i], escAndServoConfig.minthrottle, flight3DConfig->deadband3d_low);
                 } else {
                     motor[i] = constrain(motor[i], flight3DConfig->deadband3d_high, escAndServoConfig.maxthrottle);
@@ -897,7 +894,7 @@ void mixTable(void)
 
             // Motor stop handling
             if (feature(FEATURE_MOTOR_STOP) && ARMING_FLAG(ARMED) && !feature(FEATURE_3D) && !IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
-                if (((rcData[THROTTLE]) < rxConfig->mincheck)) {
+                if (((rcData[THROTTLE]) < rxConfig.mincheck)) {
                     motor[i] = escAndServoConfig.mincommand;
                 }
             }

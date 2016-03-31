@@ -26,13 +26,8 @@ typedef struct master_t {
 
     flight3DConfig_t flight3DConfig;
 
-    rxConfig_t rxConfig;
-
     uint8_t disarm_kill_switch;             // allow disarm via AUX switch regardless of throttle value
     uint8_t auto_disarm_delay;              // allow automatically disarming multicopters after auto_disarm_delay seconds of zero throttle. Disabled when 0
-
-    // mixer-related configuration
-    mixerConfig_t mixerConfig;
 
 #ifdef GPS
     gpsConfig_t gpsConfig;

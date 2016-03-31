@@ -421,26 +421,29 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     resetTelemetryConfig(&masterConfig.telemetryConfig);
 
-    masterConfig.rxConfig.serialrx_provider = 0;
-    masterConfig.rxConfig.spektrum_sat_bind = 0;
-    masterConfig.rxConfig.midrc = 1500;
-    masterConfig.rxConfig.mincheck = 1100;
-    masterConfig.rxConfig.maxcheck = 1900;
-    masterConfig.rxConfig.rx_min_usec = 885;          // any of first 4 channels below this value will trigger rx loss detection
-    masterConfig.rxConfig.rx_max_usec = 2115;         // any of first 4 channels above this value will trigger rx loss detection
+    rxConfig.serialrx_provider = 0;
+    rxConfig.sbus_inversion = 1;
+    rxConfig.spektrum_sat_bind = 0;
+    rxConfig.midrc = 1500;
+    rxConfig.mincheck = 1100;
+    rxConfig.maxcheck = 1900;
+    rxConfig.rx_min_usec = 885;          // any of first 4 channels below this value will trigger rx loss detection
+    rxConfig.rx_max_usec = 2115;         // any of first 4 channels above this value will trigger rx loss detection
+
+    rxConfig.rssi_channel = 0;
+    rxConfig.rssi_scale = RSSI_SCALE_DEFAULT;
+    rxConfig.rssi_ppm_invert = 0;
+    rxConfig.rcSmoothing = 1;
 
     for (i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
-        rxFailsafeChannelConfiguration_t *channelFailsafeConfiguration = &masterConfig.rxConfig.failsafe_channel_configurations[i];
+        rxFailsafeChannelConfiguration_t *channelFailsafeConfiguration = &rxConfig.failsafe_channel_configurations[i];
         channelFailsafeConfiguration->mode = (i < NON_AUX_CHANNEL_COUNT) ? RX_FAILSAFE_MODE_AUTO : RX_FAILSAFE_MODE_HOLD;
-        channelFailsafeConfiguration->step = (i == THROTTLE) ? CHANNEL_VALUE_TO_RXFAIL_STEP(masterConfig.rxConfig.rx_min_usec) : CHANNEL_VALUE_TO_RXFAIL_STEP(masterConfig.rxConfig.midrc);
+        channelFailsafeConfiguration->step = (i == THROTTLE) ? CHANNEL_VALUE_TO_RXFAIL_STEP(rxConfig.rx_min_usec) : CHANNEL_VALUE_TO_RXFAIL_STEP(rxConfig.midrc);
     }
 
-    masterConfig.rxConfig.rssi_channel = 0;
-    masterConfig.rxConfig.rssi_scale = RSSI_SCALE_DEFAULT;
-    masterConfig.rxConfig.rssi_ppm_invert = 0;
-    masterConfig.rxConfig.rcSmoothing = 1;
+    resetAllRxChannelRangeConfigurations(rxConfig.channelRanges);
 
-    resetAllRxChannelRangeConfigurations(masterConfig.rxConfig.channelRanges);
+    parseRcChannels("AETR1234", &rxConfig);
 
     armingConfig.disarm_kill_switch = 1;
     armingConfig.auto_disarm_delay = 5;
@@ -489,7 +492,6 @@ STATIC_UNIT_TESTED void resetConf(void)
     resetBarometerConfig(&barometerConfig);
 
     // Radio
-    parseRcChannels("AETR1234", &masterConfig.rxConfig);
 
     resetRcControlsConfig(&currentProfile->rcControlsConfig);
 
@@ -555,14 +557,7 @@ STATIC_UNIT_TESTED void resetConf(void)
 #if defined(COLIBRI_RACE)
     imuConfig.looptime = 1000;
 
-    masterConfig.rxConfig.rcmap[0] = 1;
-    masterConfig.rxConfig.rcmap[1] = 2;
-    masterConfig.rxConfig.rcmap[2] = 3;
-    masterConfig.rxConfig.rcmap[3] = 0;
-    masterConfig.rxConfig.rcmap[4] = 4;
-    masterConfig.rxConfig.rcmap[5] = 5;
-    masterConfig.rxConfig.rcmap[6] = 6;
-    masterConfig.rxConfig.rcmap[7] = 7;
+    parseRcChannels("TAER1234", &rxConfig);
 
     featureSet(FEATURE_ONESHOT125);
     featureSet(FEATURE_VBAT);
@@ -580,8 +575,8 @@ STATIC_UNIT_TESTED void resetConf(void)
 #else
     serialConfig.portConfigs[1].functionMask = FUNCTION_RX_SERIAL;
 #endif
-    masterConfig.rxConfig.serialrx_provider = 1;
-    masterConfig.rxConfig.spektrum_sat_bind = 5;
+    rxConfig.serialrx_provider = 1;
+    rxConfig.spektrum_sat_bind = 5;
     escAndServoConfig.minthrottle = 1000;
     escAndServoConfig.maxthrottle = 2000;
     escAndServoConfig.motor_pwm_rate = 32000;
@@ -591,10 +586,10 @@ STATIC_UNIT_TESTED void resetConf(void)
     failsafeConfig.failsafe_delay = 2;
     failsafeConfig.failsafe_off_delay = 0;
     currentControlRateProfile->rcRate8 = 130;
-    currentControlRateProfile->rates[FD_PITCH] = 20;
-    currentControlRateProfile->rates[FD_ROLL] = 20;
-    currentControlRateProfile->rates[FD_YAW] = 100;
-    parseRcChannels("TAER1234", &masterConfig.rxConfig);
+    currentControlRateProfile->rates[ROLL] = 20;
+    currentControlRateProfile->rates[PITCH] = 20;
+    currentControlRateProfile->rates[YAW] = 100;
+    parseRcChannels("TAER1234", &rxConfig);
 
     //  { 1.0f, -0.414178f,  1.0f, -1.0f },          // REAR_R
     customMotorMixer[0].throttle = 1.0f;
@@ -694,8 +689,7 @@ void activateConfig(void)
 #ifdef USE_SERVOS
         currentProfile->servoConf,
 #endif
-        &masterConfig.flight3DConfig,
-        &masterConfig.rxConfig
+        &masterConfig.flight3DConfig
     );
 
     imuRuntimeConfig.dcm_kp_acc = imuConfig.dcm_kp_acc / 10000.0f;
@@ -710,7 +704,7 @@ void activateConfig(void)
     navigationUseConfig(&masterConfig.navConfig);
     navigationUsePIDs();
     navigationUseRcControlsConfig(&currentProfile->rcControlsConfig);
-    navigationUseRxConfig(&masterConfig.rxConfig);
+    navigationUseRxConfig(&rxConfig);
     navigationUseFlight3DConfig(&masterConfig.flight3DConfig);
 #endif
 }
@@ -823,8 +817,6 @@ void validateAndFixConfig(void)
         serialConfig.portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
     }
 #endif
-
-    useRxConfig(&masterConfig.rxConfig);
 
     if (!isSerialConfigValid(&serialConfig)) {
         resetSerialConfig(&serialConfig);

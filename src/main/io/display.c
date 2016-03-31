@@ -78,8 +78,6 @@ controlRateConfig_t *getControlRateConfig(uint8_t profileIndex);
 static uint32_t nextDisplayUpdateAt = 0;
 static bool displayPresent = false;
 
-static rxConfig_t *rxConfig;
-
 #define PAGE_TITLE_LINE_COUNT 1
 
 static char lineBuffer[SCREEN_CHARACTER_COLUMN_COUNT + 1];
@@ -460,13 +458,11 @@ void displaySetPage(pageId_e newPageId)
     forcePageChange = true;
 }
 
-void displayInit(rxConfig_t *rxConfigToUse)
+void displayInit(void)
 {
     delay(200);
     resetDisplay();
     delay(200);
-
-    rxConfig = rxConfigToUse;
 
     displaySetPage(PAGE_WELCOME);
     displaySetNextPageChangeAt(micros() + (1000 * 1000 * 5));

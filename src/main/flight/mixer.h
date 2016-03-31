@@ -204,15 +204,12 @@ extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 extern bool motorLimitReached;
 
-struct escAndServoConfig_s;
-struct rxConfig_s;
-
 void mixerUseConfigs(
 #ifdef USE_SERVOS
         servoParam_t *servoConfToUse,
 #endif
-        flight3DConfig_t *flight3DConfigToUse,
-        struct rxConfig_s *rxConfigToUse);
+        flight3DConfig_t *flight3DConfigToUse
+);
 
 void writeAllMotors(int16_t mc);
 void mixerLoadMix(int index, motorMixer_t *customMixers);
