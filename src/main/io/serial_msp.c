@@ -475,7 +475,7 @@ void mspInit(void)
     if (feature(FEATURE_SERVO_TILT))
         activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
-    bool isFixedWing = masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE;
+    bool isFixedWing = mixerConfig.mixerMode == MIXER_FLYING_WING || mixerConfig.mixerMode == MIXER_AIRPLANE || mixerConfig.mixerMode == MIXER_CUSTOM_AIRPLANE;
 
 #ifdef GPS
     if (sensors(SENSOR_BARO) || (isFixedWing && feature(FEATURE_GPS))) {
@@ -508,7 +508,7 @@ void mspInit(void)
         activeBoxIds[activeBoxIdCount++] = BOXTELEMETRY;
 
 #ifdef USE_SERVOS
-    if (masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE) {
+    if (mixerConfig.mixerMode == MIXER_CUSTOM_AIRPLANE) {
         activeBoxIds[activeBoxIdCount++] = BOXSERVO1;
         activeBoxIds[activeBoxIdCount++] = BOXSERVO2;
         activeBoxIds[activeBoxIdCount++] = BOXSERVO3;
@@ -698,7 +698,7 @@ static bool processOutCommand(uint8_t cmdMSP)
     case MSP_IDENT:
         headSerialReply(7);
         serialize8(MW_VERSION);
-        serialize8(masterConfig.mixerMode);
+        serialize8(mixerConfig.mixerMode);
         serialize8(MSP_PROTOCOL_VERSION);
         serialize32(CAP_PLATFORM_32BIT | CAP_DYNBALANCE | CAP_FLAPS | CAP_NAVCAP | CAP_EXTAUX); // "capability"
         break;
@@ -772,13 +772,13 @@ static bool processOutCommand(uint8_t cmdMSP)
     case MSP_SERVO_MIX_RULES:
         headSerialReply(MAX_SERVO_RULES * sizeof(servoMixer_t));
         for (i = 0; i < MAX_SERVO_RULES; i++) {
-            serialize8(masterConfig.customServoMixer[i].targetChannel);
-            serialize8(masterConfig.customServoMixer[i].inputSource);
-            serialize8(masterConfig.customServoMixer[i].rate);
-            serialize8(masterConfig.customServoMixer[i].speed);
-            serialize8(masterConfig.customServoMixer[i].min);
-            serialize8(masterConfig.customServoMixer[i].max);
-            serialize8(masterConfig.customServoMixer[i].box);
+            serialize8(customServoMixer[i].targetChannel);
+            serialize8(customServoMixer[i].inputSource);
+            serialize8(customServoMixer[i].rate);
+            serialize8(customServoMixer[i].speed);
+            serialize8(customServoMixer[i].min);
+            serialize8(customServoMixer[i].max);
+            serialize8(customServoMixer[i].box);
         }
         break;
 #endif
@@ -1048,7 +1048,7 @@ static bool processOutCommand(uint8_t cmdMSP)
 
     case MSP_MIXER:
         headSerialReply(1);
-        serialize8(masterConfig.mixerMode);
+        serialize8(mixerConfig.mixerMode);
         break;
 
     case MSP_RX_CONFIG:
@@ -1083,7 +1083,7 @@ static bool processOutCommand(uint8_t cmdMSP)
 
     case MSP_BF_CONFIG:
         headSerialReply(1 + 4 + 1 + 2 + 2 + 2 + 2 + 2);
-        serialize8(masterConfig.mixerMode);
+        serialize8(mixerConfig.mixerMode);
 
         serialize32(featureMask());
 
@@ -1422,13 +1422,13 @@ static bool processInCommand(void)
         if (i >= MAX_SERVO_RULES) {
             headSerialError(0);
         } else {
-            masterConfig.customServoMixer[i].targetChannel = read8();
-            masterConfig.customServoMixer[i].inputSource = read8();
-            masterConfig.customServoMixer[i].rate = read8();
-            masterConfig.customServoMixer[i].speed = read8();
-            masterConfig.customServoMixer[i].min = read8();
-            masterConfig.customServoMixer[i].max = read8();
-            masterConfig.customServoMixer[i].box = read8();
+            customServoMixer[i].targetChannel = read8();
+            customServoMixer[i].inputSource = read8();
+            customServoMixer[i].rate = read8();
+            customServoMixer[i].speed = read8();
+            customServoMixer[i].min = read8();
+            customServoMixer[i].max = read8();
+            customServoMixer[i].box = read8();
             loadCustomServoMixer();
         }
 #endif
@@ -1572,7 +1572,7 @@ static bool processInCommand(void)
 
 #ifndef USE_QUAD_MIXER_ONLY
     case MSP_SET_MIXER:
-        masterConfig.mixerMode = read8();
+        mixerConfig.mixerMode = read8();
         break;
 #endif
 
@@ -1613,7 +1613,7 @@ static bool processInCommand(void)
 #ifdef USE_QUAD_MIXER_ONLY
         read8(); // mixerMode ignored
 #else
-        masterConfig.mixerMode = read8(); // mixerMode
+        mixerConfig.mixerMode = read8(); // mixerMode
 #endif
 
         featureClearAll();

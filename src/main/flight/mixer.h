@@ -78,6 +78,7 @@ typedef struct mixer_s {
 } mixer_t;
 
 typedef struct mixerConfig_s {
+    uint8_t mixerMode;
     int8_t yaw_motor_direction;
     uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
 #ifdef USE_SERVOS
@@ -86,6 +87,8 @@ typedef struct mixerConfig_s {
     int8_t servo_lowpass_enable;            // enable/disable lowpass filter
 #endif
 } mixerConfig_t;
+
+PG_DECLARE(mixerConfig_t, mixerConfig);
 
 typedef struct flight3DConfig_s {
     uint16_t deadband3d_low;                // min 3d value
@@ -168,6 +171,8 @@ typedef struct servoMixer_s {
 #define MAX_SERVO_SPEED UINT8_MAX
 #define MAX_SERVO_BOXES 3
 
+extern servoMixer_t customServoMixer[MAX_SERVO_RULES];
+
 // Custom mixer configuration
 typedef struct mixerRules_s {
     uint8_t servoRuleCount;
@@ -207,8 +212,7 @@ void mixerUseConfigs(
         servoParam_t *servoConfToUse,
 #endif
         flight3DConfig_t *flight3DConfigToUse,
-        mixerConfig_t *mixerConfigToUse,
-		struct rxConfig_s *rxConfigToUse);
+        struct rxConfig_s *rxConfigToUse);
 
 void writeAllMotors(int16_t mc);
 void mixerLoadMix(int index, motorMixer_t *customMixers);

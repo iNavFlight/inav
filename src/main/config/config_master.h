@@ -29,10 +29,6 @@ typedef struct master_t {
     uint8_t gyroSync;                       // Enable interrupt based loop
     uint8_t gyroSyncDenominator;            // Gyro sync Denominator
 
-#ifdef USE_SERVOS
-    servoMixer_t customServoMixer[MAX_SERVO_RULES];
-#endif
-
     flight3DConfig_t flight3DConfig;
 
     uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer

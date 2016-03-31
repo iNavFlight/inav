@@ -342,7 +342,8 @@ void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig) {
     rcControlsConfig->alt_hold_deadband = 50;
 }
 
-void resetMixerConfig(mixerConfig_t *mixerConfig) {
+static void resetMixerConfig(mixerConfig_t *mixerConfig) {
+    mixerConfig->mixerMode = MIXER_QUADX;
     mixerConfig->yaw_motor_direction = 1;
     mixerConfig->yaw_jump_prevention_limit = 200;
 #ifdef USE_SERVOS
@@ -392,7 +393,6 @@ STATIC_UNIT_TESTED void resetConf(void)
     setProfile(0);
     setControlRateProfile(0);
 
-    masterConfig.mixerMode = MIXER_QUADX;
     featureClearAll();
     persistentFlagClearAll();
 #if defined(CJMCU) || defined(SPARKY) || defined(COLIBRI_RACE) || defined(MOTOLAB) || defined(LUX_RACE)
@@ -456,8 +456,6 @@ STATIC_UNIT_TESTED void resetConf(void)
     armingConfig.auto_disarm_delay = 5;
     armingConfig.max_arm_angle = 25;
 
-    resetMixerConfig(&masterConfig.mixerConfig);
-
     // Motor/ESC/Servo
     resetEscAndServoConfig(&escAndServoConfig);
     resetFlight3DConfig(&masterConfig.flight3DConfig);
@@ -518,6 +516,8 @@ STATIC_UNIT_TESTED void resetConf(void)
     failsafeConfig.failsafe_kill_switch = 0;         // default failsafe switch action is identical to rc link loss
     failsafeConfig.failsafe_throttle_low_delay = 100; // default throttle low delay for "just disarm" on failsafe condition
     failsafeConfig.failsafe_procedure = 0;           // default full failsafe procedure is 0: auto-landing
+
+    resetMixerConfig(&mixerConfig);
 
 #ifdef USE_SERVOS
     // servos
@@ -709,7 +709,6 @@ void activateConfig(void)
         currentProfile->servoConf,
 #endif
         &masterConfig.flight3DConfig,
-        &masterConfig.mixerConfig,
         &masterConfig.rxConfig
     );
 

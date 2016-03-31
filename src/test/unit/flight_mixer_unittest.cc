@@ -198,7 +198,6 @@ protected:
         mixerUseConfigs(
             servoConf,
             NULL,
-            &mixerConfig,
             NULL,
             &rxConfig
         );
