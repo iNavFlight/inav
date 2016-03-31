@@ -2279,7 +2279,7 @@ static void cliPrintVar(const clivalue_t *var, uint32_t full)
     if ((var->type & VALUE_SECTION_MASK) == CONTROL_RATE_VALUE) {
         const pgRegistry_t* rec = pgFind(var->pgn);
 
-        ptr = rec->base + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile()) + var->offset;
+        ptr = rec->address + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile()) + var->offset;
     }
 
     if ((var->type & VALUE_SECTION_MASK) == PROFILE_VALUE) {
@@ -2291,7 +2291,7 @@ static void cliPrintVar(const clivalue_t *var, uint32_t full)
     if ((var->type & VALUE_SECTION_MASK) == MIGRATED_MASTER_VALUE) {
         const pgRegistry_t* rec = pgFind(var->pgn);
 
-        ptr = rec->base + var->offset;
+        ptr = rec->address + var->offset;
     }
 
 
@@ -2353,7 +2353,7 @@ static void cliSetVar(const clivalue_t *var, const int_float_value_t value)
     if ((var->type & VALUE_SECTION_MASK) == CONTROL_RATE_VALUE) {
         const pgRegistry_t* rec = pgFind(var->pgn);
 
-        ptr = rec->base + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile()) + var->offset;
+        ptr = rec->address + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile()) + var->offset;
     }
 
     if ((var->type & VALUE_SECTION_MASK) == PROFILE_VALUE) {
@@ -2365,7 +2365,7 @@ static void cliSetVar(const clivalue_t *var, const int_float_value_t value)
     if ((var->type & VALUE_SECTION_MASK) == MIGRATED_MASTER_VALUE) {
         const pgRegistry_t* rec = pgFind(var->pgn);
 
-        ptr = rec->base + var->offset;
+        ptr = rec->address + var->offset;
     }
 
 
