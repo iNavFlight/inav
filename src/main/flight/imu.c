@@ -33,6 +33,7 @@
 
 #include "config/config.h"
 #include "config/runtime_config.h"
+#include "config/parameter_group_ids.h"
 #include "config/parameter_group.h"
 
 #include "drivers/system.h"
@@ -67,6 +68,8 @@
  *      Y-axis = East/Right
  *      Z-axis = Up
  */
+
+PG_REGISTER(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
 
 // the limit (in degrees/second) beyond which we stop integrating
 // omega_I. At larger spin rates the DCM PI controller can get 'dizzy'

@@ -407,7 +407,7 @@ void init(void)
 #endif
 
     // Set gyro sampling rate divider before initialization
-    gyroSetSampleRate(masterConfig.looptime, gyroConfig.gyro_lpf, masterConfig.gyroSync, masterConfig.gyroSyncDenominator);
+    gyroSetSampleRate(imuConfig.looptime, gyroConfig.gyro_lpf, imuConfig.gyroSync, imuConfig.gyroSyncDenominator);
 
     if (!sensorsAutodetect(currentProfile->mag_declination)) {
         // if gyro was not detected due to whatever reason, we give up now.
@@ -570,7 +570,13 @@ int main(void) {
     /* Setup scheduler */
     schedulerInit();
 
-    rescheduleTask(TASK_GYROPID, targetLooptime);
+    if (imuConfig.gyroSync) {
+        rescheduleTask(TASK_GYROPID, targetLooptime - INTERRUPT_WAIT_TIME);
+    }
+    else {
+        rescheduleTask(TASK_GYROPID, targetLooptime);
+    }
+
     setTaskEnabled(TASK_GYROPID, true);
 
     setTaskEnabled(TASK_SERIAL, true);

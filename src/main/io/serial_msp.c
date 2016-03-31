@@ -831,7 +831,7 @@ static bool processOutCommand(uint8_t cmdMSP)
         break;
     case MSP_LOOP_TIME:
         headSerialReply(2);
-        serialize16(masterConfig.looptime);
+        serialize16(imuConfig.looptime);
         break;
     case MSP_RC_TUNING:
         headSerialReply(11);
@@ -1287,7 +1287,7 @@ static bool processInCommand(void)
         armingConfig.disarm_kill_switch = read8();
         break;
     case MSP_SET_LOOP_TIME:
-        masterConfig.looptime = read16();
+        imuConfig.looptime = read16();
         break;
     case MSP_SET_PID_CONTROLLER:
         // FIXME: Do nothing

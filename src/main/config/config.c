@@ -407,25 +407,22 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     featureSet(FEATURE_FAILSAFE);
 
-    // global settings
-    masterConfig.dcm_kp_acc = 2500;             // 0.25 * 10000
-    masterConfig.dcm_ki_acc = 50;               // 0.005 * 10000
-    masterConfig.dcm_kp_mag = 10000;            // 1.00 * 10000
-    masterConfig.dcm_ki_mag = 0;                // 0.00 * 10000
+    // imu settings
+    imuConfig.small_angle = 25;
+    imuConfig.dcm_kp_acc = 2500;             // 0.25 * 10000
+    imuConfig.dcm_ki_acc = 50;               // 0.005 * 10000
+    imuConfig.dcm_kp_mag = 10000;            // 1.00 * 10000
+    imuConfig.dcm_ki_mag = 0;                // 0.00 * 10000
+
+    imuConfig.looptime = 2000;
+    imuConfig.gyroSync = 1;
+    imuConfig.gyroSyncDenominator = 2;
 
     resetGyroConfig();
 
     resetAccelerometerConfig();
 
     resetSensorAlignment(&sensorAlignmentConfig);
-
-    masterConfig.small_angle = 25;
-
-    /*
-    masterConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
-    masterConfig.mag_hardware = MAG_DEFAULT;     // default/autodetect
-    masterConfig.baro_hardware = BARO_DEFAULT;   // default/autodetect
-    */
 
     resetBatteryConfig(&batteryConfig);
 
@@ -481,10 +478,6 @@ STATIC_UNIT_TESTED void resetConf(void)
 #endif
 
     resetSerialConfig(&serialConfig);
-
-    masterConfig.looptime = 2000;
-    masterConfig.gyroSync = 1;
-    masterConfig.gyroSyncDenominator = 2;
 
     systemConfig.i2c_highspeed = 1;
 
@@ -712,11 +705,11 @@ void activateConfig(void)
         &masterConfig.rxConfig
     );
 
-    imuRuntimeConfig.dcm_kp_acc = masterConfig.dcm_kp_acc / 10000.0f;
-    imuRuntimeConfig.dcm_ki_acc = masterConfig.dcm_ki_acc / 10000.0f;
-    imuRuntimeConfig.dcm_kp_mag = masterConfig.dcm_kp_mag / 10000.0f;
-    imuRuntimeConfig.dcm_ki_mag = masterConfig.dcm_ki_mag / 10000.0f;
-    imuRuntimeConfig.small_angle = masterConfig.small_angle;
+    imuRuntimeConfig.dcm_kp_acc = imuConfig.dcm_kp_acc / 10000.0f;
+    imuRuntimeConfig.dcm_ki_acc = imuConfig.dcm_ki_acc / 10000.0f;
+    imuRuntimeConfig.dcm_kp_mag = imuConfig.dcm_kp_mag / 10000.0f;
+    imuRuntimeConfig.dcm_ki_mag = imuConfig.dcm_ki_mag / 10000.0f;
+    imuRuntimeConfig.small_angle = imuConfig.small_angle;
 
     imuConfigure(&imuRuntimeConfig);
 
@@ -776,13 +769,13 @@ void validateAndFixConfig(void)
 
 #ifdef STM32F10X
     // avoid overloading the CPU on F1 targets when using gyro sync and GPS.
-    if (masterConfig.gyroSync && masterConfig.gyroSyncDenominator < 2 && featureConfigured(FEATURE_GPS)) {
-        masterConfig.gyroSyncDenominator = 2;
+    if (imuConfig.gyroSync && imuConfig.gyroSyncDenominator < 2 && featureConfigured(FEATURE_GPS)) {
+        imuConfig.gyroSyncDenominator = 2;
     }
 
     // avoid overloading the CPU when looptime < 2000 and GPS
-    if (masterConfig.looptime && featureConfigured(FEATURE_GPS)) {
-        masterConfig.looptime = 2000;
+    if (imuConfig.looptime && featureConfigured(FEATURE_GPS)) {
+        imuConfig.looptime = 2000;
     }
 #endif
 

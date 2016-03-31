@@ -40,6 +40,22 @@ typedef union {
 
 extern attitudeEulerAngles_t attitude;
 
+typedef struct imuConfig_s {
+    // IMU configuration
+    uint16_t looptime;                      // imu loop time in us
+
+    uint8_t gyroSync;                       // Enable interrupt based loop
+    uint8_t gyroSyncDenominator;            // Gyro sync Denominator
+
+    uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer
+    uint16_t dcm_ki_acc;                    // DCM filter integral gain ( x 10000) for accelerometer
+    uint16_t dcm_kp_mag;                    // DCM filter proportional gain ( x 10000) for magnetometer and GPS heading
+    uint16_t dcm_ki_mag;                    // DCM filter integral gain ( x 10000) for magnetometer and GPS heading
+    uint8_t small_angle;
+} imuConfig_t;
+
+PG_DECLARE(imuConfig_t, imuConfig);
+
 typedef struct imuRuntimeConfig_s {
     float dcm_kp_acc;
     float dcm_ki_acc;
