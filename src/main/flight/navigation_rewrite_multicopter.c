@@ -145,7 +145,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 
 void setupMulticopterAltitudeController(void)
 {
-    throttleStatus_e throttleStatus = calculateThrottleStatus(posControl.rxConfig, posControl.flight3DConfig->deadband3d_throttle);
+    throttleStatus_e throttleStatus = calculateThrottleStatus(posControl.rxConfig, rcControlsConfig->deadband3d_throttle);
 
     if (posControl.navConfig->flags.use_thr_mid_for_althold) {
         altHoldThrottleRCZero = lookupThrottleRCMid;

@@ -217,11 +217,9 @@ void navigationUsePIDs(void);
 void navigationUseConfig(navConfig_t *navConfigToUse);
 void navigationUseRcControlsConfig(rcControlsConfig_t *initialRcControlsConfig);
 void navigationUseRxConfig(rxConfig_t * initialRxConfig);
-void navigationUseFlight3DConfig(flight3DConfig_t * initialFlight3DConfig);
 void navigationInit(navConfig_t *initialnavConfig,
                     rcControlsConfig_t *initialRcControlsConfig,
-                    rxConfig_t * initialRxConfig,
-                    flight3DConfig_t * initialFlight3DConfig);
+                    rxConfig_t * initialRxConfig);
 
 /* Navigation system updates */
 void updateWaypointsAndNavigationMode(void);

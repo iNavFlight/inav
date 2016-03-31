@@ -135,9 +135,9 @@ void annexCode(void)
     for (axis = 0; axis < 3; axis++) {
         tmp = MIN(ABS(rcData[axis] - rxConfig.midrc), 500);
         if (axis == ROLL || axis == PITCH) {
-            if (currentProfile->rcControlsConfig.deadband) {
-                if (tmp > currentProfile->rcControlsConfig.deadband) {
-                    tmp -= currentProfile->rcControlsConfig.deadband;
+            if (rcControlsConfig->deadband) {
+                if (tmp > rcControlsConfig->deadband) {
+                    tmp -= rcControlsConfig->deadband;
                 } else {
                     tmp = 0;
                 }
@@ -146,9 +146,9 @@ void annexCode(void)
             tmp2 = tmp / 100;
             rcCommand[axis] = lookupPitchRollRC[tmp2] + (tmp - tmp2 * 100) * (lookupPitchRollRC[tmp2 + 1] - lookupPitchRollRC[tmp2]) / 100;
         } else if (axis == YAW) {
-            if (currentProfile->rcControlsConfig.yaw_deadband) {
-                if (tmp > currentProfile->rcControlsConfig.yaw_deadband) {
-                    tmp -= currentProfile->rcControlsConfig.yaw_deadband;
+            if (rcControlsConfig->yaw_deadband) {
+                if (tmp > rcControlsConfig->yaw_deadband) {
+                    tmp -= rcControlsConfig->yaw_deadband;
                 } else {
                     tmp = 0;
                 }
@@ -306,7 +306,7 @@ void processRx(void)
         failsafeUpdateState();
     }
 
-    throttleStatus_e throttleStatus = calculateThrottleStatus(&rxConfig, masterConfig.flight3DConfig.deadband3d_throttle);
+    throttleStatus_e throttleStatus = calculateThrottleStatus(&rxConfig, rcControlsConfig->deadband3d_throttle);
 
     // When armed and motors aren't spinning, do beeps and then disarm
     // board after delay so users without buzzer won't lose fingers.
@@ -669,7 +669,7 @@ void taskUpdateBattery(void)
 
         if (ibatTimeSinceLastServiced >= IBATINTERVAL) {
             ibatLastServiced = currentTime;
-            updateCurrentMeter(ibatTimeSinceLastServiced, &rxConfig, masterConfig.flight3DConfig.deadband3d_throttle);
+            updateCurrentMeter(ibatTimeSinceLastServiced, &rxConfig, rcControlsConfig->deadband3d_throttle);
         }
     }
 }
@@ -751,7 +751,7 @@ void taskTelemetry(void)
     telemetryCheckState();
 
     if (!cliMode && feature(FEATURE_TELEMETRY)) {
-        telemetryProcess(masterConfig.flight3DConfig.deadband3d_throttle);
+        telemetryProcess(rcControlsConfig->deadband3d_throttle);
     }
 }
 #endif

@@ -256,12 +256,11 @@ void resetEscAndServoConfig(escAndServoConfig_t *escAndServoConfig)
     escAndServoConfig->servoCenterPulse = 1500;
 }
 
-void resetFlight3DConfig(flight3DConfig_t *flight3DConfig)
+void resetMotor3DConfig(motor3DConfig_t *motor3DConfig)
 {
-    flight3DConfig->deadband3d_low = 1406;
-    flight3DConfig->deadband3d_high = 1514;
-    flight3DConfig->neutral3d = 1460;
-    flight3DConfig->deadband3d_throttle = 50;
+    motor3DConfig->deadband3d_low = 1406;
+    motor3DConfig->deadband3d_high = 1514;
+    motor3DConfig->neutral3d = 1460;
 }
 
 void resetTelemetryConfig(telemetryConfig_t *telemetryConfig)
@@ -337,10 +336,10 @@ static void resetControlRateConfig(controlRateConfig_t *controlRateConfig) {
 }
 
 void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig) {
-    rcControlsConfig->deadband = 5;
-    rcControlsConfig->yaw_deadband = 5;
-    rcControlsConfig->pos_hold_deadband = 20;
-    rcControlsConfig->alt_hold_deadband = 50;
+    rcControlsConfig->deadband = 0;
+    rcControlsConfig->yaw_deadband = 0;
+    rcControlsConfig->alt_hold_deadband = 40;
+    rcControlsConfig->deadband3d_throttle = 50;
 }
 
 static void resetMixerConfig(mixerConfig_t *mixerConfig) {
@@ -451,7 +450,7 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     // Motor/ESC/Servo
     resetEscAndServoConfig(&escAndServoConfig);
-    resetFlight3DConfig(&masterConfig.flight3DConfig);
+    resetMotor3DConfig(&motor3DConfig);
 
 #ifdef BRUSHED_MOTORS
     escAndServoConfig.motor_pwm_rate = BRUSHED_MOTORS_PWM_RATE;
@@ -493,7 +492,7 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     // Radio
 
-    resetRcControlsConfig(&currentProfile->rcControlsConfig);
+    resetRcControlsConfig(rcControlsConfig);
 
     currentProfile->throttle_tilt_compensation_strength = 0;      // 0-100, 0 - disabled
 
@@ -687,9 +686,8 @@ void activateConfig(void)
 
     mixerUseConfigs(
 #ifdef USE_SERVOS
-        currentProfile->servoConf,
+        currentProfile->servoConf
 #endif
-        &masterConfig.flight3DConfig
     );
 
     imuRuntimeConfig.dcm_kp_acc = imuConfig.dcm_kp_acc / 10000.0f;
@@ -705,7 +703,6 @@ void activateConfig(void)
     navigationUsePIDs();
     navigationUseRcControlsConfig(&currentProfile->rcControlsConfig);
     navigationUseRxConfig(&rxConfig);
-    navigationUseFlight3DConfig(&masterConfig.flight3DConfig);
 #endif
 }
 

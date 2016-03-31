@@ -24,7 +24,6 @@ typedef struct master_t {
     // Profile configuration
     uint8_t current_profile_index;
 
-    flight3DConfig_t flight3DConfig;
 
     uint8_t disarm_kill_switch;             // allow disarm via AUX switch regardless of throttle value
     uint8_t auto_disarm_delay;              // allow automatically disarming multicopters after auto_disarm_delay seconds of zero throttle. Disabled when 0

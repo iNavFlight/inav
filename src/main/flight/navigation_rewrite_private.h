@@ -270,7 +270,6 @@ typedef struct {
     navConfig_t *               navConfig;
     rcControlsConfig_t *        rcControlsConfig;
     rxConfig_t *                rxConfig;
-    flight3DConfig_t *          flight3DConfig;
 } navigationPosControl_t;
 
 extern navigationPosControl_t posControl;
