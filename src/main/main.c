@@ -30,6 +30,7 @@
 #include "common/maths.h"
 
 #include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/nvic.h"
 
@@ -89,6 +90,8 @@
 #include "config/config.h"
 #include "config/config_profile.h"
 #include "config/config_master.h"
+#include "config/config_system.h"
+#include "config/feature.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -135,6 +138,8 @@ void SetSysClock(void);
 // from system_stm32f10x.c
 void SetSysClock(bool overclock);
 #endif
+
+PG_REGISTER(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 0);
 
 typedef enum {
     SYSTEM_STATE_INITIALISING   = 0,
@@ -188,9 +193,9 @@ void init(void)
 #ifdef STM32F10X
     // Configure the System clock frequency, HCLK, PCLK2 and PCLK1 prescalers
     // Configure the Flash Latency cycles and enable prefetch buffer
-    SetSysClock(masterConfig.emf_avoidance);
+    SetSysClock(systemConfig.emf_avoidance);
 #endif
-    i2cSetOverclock(masterConfig.i2c_overclock);
+    i2cSetOverclock(systemConfig.i2c_highspeed);
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
     detectHardwareRevision();

@@ -20,12 +20,12 @@
 // System-wide
 typedef struct master_t {
     uint8_t mixerMode;
-    uint32_t enabledFeatures;
     uint8_t persistentFlags;
 
+    // Profile configuration
+    uint8_t current_profile_index;
+
     uint16_t looptime;                      // imu loop time in us
-    uint8_t emf_avoidance;                   // change pll settings to avoid noise in the uhf band
-    uint8_t i2c_overclock;                  // Overclock i2c Bus for faster IMU readings
     uint8_t gyroSync;                       // Enable interrupt based loop
     uint8_t gyroSyncDenominator;            // Gyro sync Denominator
 
@@ -67,9 +67,6 @@ typedef struct master_t {
     ledConfig_t ledConfigs[MAX_LED_STRIP_LENGTH];
     hsvColor_t colors[CONFIGURABLE_COLOR_COUNT];
 #endif
-
-    uint8_t current_profile_index;
-    //controlRateConfig_t controlRateProfiles[MAX_CONTROL_RATE_PROFILE_COUNT];
 
     uint32_t beeper_off_flags;
     uint32_t prefered_beeper_off_flags;

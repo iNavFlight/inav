@@ -46,18 +46,11 @@ typedef enum {
 } features_e;
 
 void handleOneshotFeatureChangeOnRestart(void);
-void latchActiveFeatures(void);
-bool featureConfigured(uint32_t mask);
 
 typedef enum {
     FLAG_MAG_CALIBRATION_DONE = 1 << 0,
 } persistent_flags_e;
 
-bool feature(uint32_t mask);
-void featureSet(uint32_t mask);
-void featureClear(uint32_t mask);
-void featureClearAll(void);
-uint32_t featureMask(void);
 void beeperOffSet(uint32_t mask);
 void beeperOffSetAll(uint8_t beeperCount);
 void beeperOffClear(uint32_t mask);
