@@ -592,7 +592,7 @@ STATIC_UNIT_TESTED void resetConf(void)
     escAndServoConfig.minthrottle = 1000;
     escAndServoConfig.maxthrottle = 2000;
     escAndServoConfig.motor_pwm_rate = 32000;
-    masterConfig.looptime = 2000;
+    imuConfig.looptime = 2000;
     pidProfile->P8[PIDROLL] = 36;
     pidProfile->P8[PIDPITCH] = 36;
     failsafeConfig.failsafe_delay = 2;
