@@ -541,7 +541,7 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     resetRcControlsConfig(rcControlsConfig);
 
-    currentProfile->throttle_tilt_compensation_strength = 0;      // 0-100, 0 - disabled
+    throttleCorrectionConfig->throttle_tilt_compensation_strength = 0;      // 0-100, 0 - disabled
 
     // Failsafe Variables
     failsafeConfig.failsafe_delay = 10;              // 1sec

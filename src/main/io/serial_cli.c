@@ -671,13 +671,13 @@ const clivalue_t valueTable[] = {
     { "imu_dcm_kp_mag",             VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0,  65535 }, PG_IMU_CONFIG, offsetof(imuConfig_t, dcm_kp_mag)},
     { "imu_dcm_ki_mag",             VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0,  65535 }, PG_IMU_CONFIG, offsetof(imuConfig_t, dcm_ki_mag)},
 
-    { "deadband",                   VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 0,  32 } , PG_PROFILE, offsetof(profile_t, rcControlsConfig.deadband)},
-    { "yaw_deadband",               VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 0,  100 } , PG_PROFILE, offsetof(profile_t, rcControlsConfig.yaw_deadband)},
-    { "pos_hold_deadband",          VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 10,  250 } , PG_PROFILE, offsetof(profile_t, rcControlsConfig.pos_hold_deadband)},
-    { "alt_hold_deadband",          VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 10,  250 } , PG_PROFILE, offsetof(profile_t, rcControlsConfig.alt_hold_deadband)},
+    { "deadband",                   VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 0,  32 } , PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, deadband)},
+    { "yaw_deadband",               VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 0,  100 } , PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, yaw_deadband)},
+    { "pos_hold_deadband",          VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 10,  250 } , PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, pos_hold_deadband)},
+    { "alt_hold_deadband",          VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 10,  250 } , PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, alt_hold_deadband)},
     { "3d_deadband_throttle",       VAR_UINT16 | PROFILE_VALUE, .config.minmax = { PWM_RANGE_ZERO,  PWM_RANGE_MAX }, PG_RC_CONTROLS_CONFIG, offsetof(rcControlsConfig_t, deadband3d_throttle) },
 
-    { "throttle_tilt_comp_str",     VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 0,  100 } , PG_PROFILE, offsetof(profile_t, throttle_tilt_compensation_strength)},
+    { "throttle_tilt_comp_str",     VAR_UINT8  | PROFILE_VALUE, .config.minmax = { 0,  100 } , PG_THROTTLE_CORRECTION_CONFIG, offsetof(throttleCorrectionConfig_t, throttle_tilt_compensation_strength)},
 
     { "yaw_motor_direction",        VAR_INT8   | MASTER_VALUE, .config.minmax = { -1,  1 } , PG_MIXER_CONFIG, offsetof(mixerConfig_t, yaw_motor_direction)},
     { "yaw_jump_prevention_limit",  VAR_UINT16 | MASTER_VALUE, .config.minmax = { YAW_JUMP_PREVENTION_LIMIT_LOW,  YAW_JUMP_PREVENTION_LIMIT_HIGH } , PG_MIXER_CONFIG, offsetof(mixerConfig_t, yaw_jump_prevention_limit)},
@@ -713,7 +713,7 @@ const clivalue_t valueTable[] = {
 #endif
 
 #ifdef BARO
-    { "baro_use_median_filter",     VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON } , PG_BARO_CONFIG, offsetof(barometerConfig_t, use_median_filtering)},
+    { "baro_use_median_filter",     VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON } , PG_BAROMETER_CONFIG, offsetof(barometerConfig_t, use_median_filtering)},
     { "baro_hardware",              VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0,  BARO_MAX } , PG_SENSOR_SELECTION_CONFIG, offsetof(sensorSelectionConfig_t, baro_hardware)},
 #endif
 

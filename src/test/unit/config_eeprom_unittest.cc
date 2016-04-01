@@ -82,7 +82,12 @@ extern "C" {
 =======
     PG_REGISTER_PROFILE(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 0);
     PG_REGISTER_PROFILE(rateProfileSelection_t, rateProfileSelection, PG_RATE_PROFILE_SELECTION, 0);
+<<<<<<< HEAD
 >>>>>>> 68b571d... extract adjustmentRanges and defaultRateProfileIndex from profile_t.
+=======
+    PG_REGISTER_PROFILE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
+    PG_REGISTER_PROFILE(throttleCorrectionConfig_t, throttleCorrectionConfig, PG_THROTTLE_CORRECTION_CONFIG, 0);
+>>>>>>> 4b5ea29... extract throttle angle correction config from profile_t.
 
     typedef struct someProfileSpecificData_s {
         uint8_t uint8;

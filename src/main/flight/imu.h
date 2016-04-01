@@ -56,6 +56,12 @@ typedef struct imuConfig_s {
 
 PG_DECLARE(imuConfig_t, imuConfig);
 
+typedef struct throttleCorrectionConfig_s {
+    uint8_t throttle_tilt_compensation_strength;      // the correction that will be applied at throttle_correction_angle.
+} throttleCorrectionConfig_t;
+
+PG_DECLARE_PROFILE(throttleCorrectionConfig_t, throttleCorrectionConfig);
+
 typedef struct imuRuntimeConfig_s {
     float dcm_kp_acc;
     float dcm_ki_acc;
@@ -63,7 +69,6 @@ typedef struct imuRuntimeConfig_s {
     float dcm_ki_mag;
     uint8_t small_angle;
 } imuRuntimeConfig_t;
-
 
 void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig);
 

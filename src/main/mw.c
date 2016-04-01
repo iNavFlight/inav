@@ -588,8 +588,8 @@ void taskMainPidLoop(void)
         if (navigationRequiresThrottleTiltCompensation()) {
             thrTiltCompStrength = 100;
         }
-        else if (currentProfile->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            thrTiltCompStrength = currentProfile->throttle_tilt_compensation_strength;
+        else if (throttleCorrectionConfig->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+            thrTiltCompStrength = throttleCorrectionConfig->throttle_tilt_compensation_strength;
         }
 
         if (thrTiltCompStrength) {

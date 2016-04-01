@@ -35,6 +35,7 @@
 #include "config/runtime_config.h"
 #include "config/parameter_group_ids.h"
 #include "config/parameter_group.h"
+#include "config/config.h"
 
 #include "drivers/system.h"
 #include "drivers/sensor.h"
@@ -71,6 +72,7 @@
  */
 
 PG_REGISTER(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
+PG_REGISTER_PROFILE(throttleCorrectionConfig_t, throttleCorrectionConfig, PG_THROTTLE_CORRECTION_CONFIG, 0);
 
 // the limit (in degrees/second) beyond which we stop integrating
 // omega_I. At larger spin rates the DCM PI controller can get 'dizzy'
@@ -93,9 +95,7 @@ STATIC_UNIT_TESTED float rMat[3][3];
 attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
 static imuRuntimeConfig_t *imuRuntimeConfig;
-
 static float gyroScale;
-
 static bool gpsHeadingInitialized = false;
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)

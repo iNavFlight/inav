@@ -53,6 +53,8 @@
 #define PG_ACCELEROMETER_CONFIG 35
 #define PG_RATE_PROFILE_SELECTION 36
 #define PG_ADJUSTMENT_PROFILE 37
+#define PG_BAROMETER_CONFIG 38
+#define PG_THROTTLE_CORRECTION_CONFIG 39
 
 // Driver configuration
 #define PG_DRIVER_PWM_RX_CONFIG 100
@@ -62,6 +64,5 @@
 // FIXME remove/adjust after migration
 #define PG_BEEPER_CONFIG 250
 #define PG_SENSOR_TRIMS 251
-#define PG_BARO_CONFIG 252
 #define PG_PROFILE 254
 #define PG_MASTER 255
