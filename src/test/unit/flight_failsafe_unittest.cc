@@ -42,8 +42,6 @@ extern "C" {
     #include "rx/rx.h"
     #include "flight/failsafe.h"
 
-    failsafeState_t* failsafeInit(rxConfig_t *intialRxConfig);
-
     rcControlsConfig_t testRcControlsConfig[MAX_PROFILE_COUNT];
     rcControlsConfig_t *rcControlsConfig = &testRcControlsConfig[0];
 }
@@ -105,8 +103,13 @@ TEST(FlightFailsafeTest, TestFailsafeInitialState)
     DISABLE_ARMING_FLAG(ARMED);
 
     // when
+<<<<<<< HEAD
     useFailsafeConfig(&failsafeConfig);
     failsafeInit(&rxConfig);
+=======
+    useFailsafeConfig();
+    failsafeInit();
+>>>>>>> 4e714d4... delete config_master.h and cleanup. re-enable CJMCU target - it fits
 
     // then
     EXPECT_EQ(false, failsafeIsMonitoring());
@@ -373,8 +376,13 @@ TEST(FlightFailsafeTest, TestFailsafeNotActivatedWhenDisarmedAndRXLossIsDetected
     configureFailsafe();
 
     // and
+<<<<<<< HEAD
     useFailsafeConfig(&failsafeConfig);
     failsafeInit(&rxConfig);
+=======
+    useFailsafeConfig();
+    failsafeInit();
+>>>>>>> 4e714d4... delete config_master.h and cleanup. re-enable CJMCU target - it fits
 
     // and
     DISABLE_ARMING_FLAG(ARMED);

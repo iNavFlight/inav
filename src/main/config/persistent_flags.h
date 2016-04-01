@@ -15,15 +15,19 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 typedef enum {
-    PAGE_WELCOME,
-    PAGE_ARMED,
-    PAGE_STATUS
-} pageId_e;
+    FLAG_MAG_CALIBRATION_DONE = 1 << 0,
+} persistent_flags_e;
 
-void displayInit(void);
+typedef struct persistentFlags_s {
+    uint8_t persistentFlags;
+} persistentFlags_t;
 
-void updateDisplay(void);
+PG_DECLARE(persistentFlags_t, persistentFlags);
 
-void displaySetPage(pageId_e newPageId);
-void displaySetNextPageChangeAt(uint32_t futureMicros);
+bool persistentFlag(uint8_t mask);
+void persistentFlagSet(uint8_t mask);
+void persistentFlagClear(uint8_t mask);
+void persistentFlagClearAll(void);

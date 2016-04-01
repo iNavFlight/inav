@@ -83,6 +83,8 @@ typedef struct failsafeState_s {
 
 PG_DECLARE(failsafeConfig_t, failsafeConfig);
 
+void failsafeInit(void);
+
 void useFailsafeConfig();
 
 void failsafeStartMonitoring(void);

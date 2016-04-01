@@ -134,5 +134,6 @@ typedef struct {
 extern gpsSolutionData_t gpsSol;
 extern gpsStatistics_t   gpsStats;
 
+void gpsInit(void);
 void gpsThread(void);
 void updateGpsIndicator(uint32_t currentTime);

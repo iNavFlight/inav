@@ -53,8 +53,9 @@ extern const pgRegistry_t __pg_registry_end[];
 #define PG_REGISTER_ATTRIBUTES __attribute__ ((section(".pg_registry"), used, aligned(4)))
 #endif
 
-// Helper to iterate over the PG register.  Cheaper than a visitor
-// style callback.
+#define PG_REGISTRY_SIZE (__pg_registry_end - __pg_registry_end)
+
+// Helper to iterate over the PG register.  Cheaper than a visitor style callback.
 #define PG_FOREACH(_name) \
     for (const pgRegistry_t *(_name) = __pg_registry_start; (_name) < __pg_registry_end; (_name)++)
 

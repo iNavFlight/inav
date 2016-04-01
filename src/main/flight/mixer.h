@@ -206,11 +206,18 @@ extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 extern bool motorLimitReached;
 
+#ifdef USE_SERVOS
+void mixerInit(motorMixer_t *customMotorMixers, servoMixer_t *customServoMixers);
+#else
+void mixerInit(motorMixer_t *customMotorMixers);
+#endif
+
 void mixerUseConfigs(
 #ifdef USE_SERVOS
         servoParam_t *servoConfToUse
 #endif
 );
+
 
 void writeAllMotors(int16_t mc);
 void mixerLoadMix(int index, motorMixer_t *customMixers);

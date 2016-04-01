@@ -53,9 +53,6 @@
 #include "io/rc_controls.h"
 #include "io/gps.h"
 
-#include "rx/rx.h"
-
-#include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"

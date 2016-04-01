@@ -15,11 +15,34 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdbool.h>
+#include <stdint.h>
 
-// System-wide
-typedef struct master_t {
-    uint8_t dummy;
-} master_t;
+#include <platform.h>
 
-PG_DECLARE(master_t, masterConfig);
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "config/persistent_flags.h"
+
+PG_REGISTER(persistentFlags_t, persistentFlags, PG_PERSISTENT_FLAGS_CONFIG, 0);
+
+void persistentFlagClearAll()
+{
+    persistentFlags.persistentFlags = 0;
+}
+
+bool persistentFlag(uint8_t mask)
+{
+    return persistentFlags.persistentFlags & mask;
+}
+
+void persistentFlagSet(uint8_t mask)
+{
+    persistentFlags.persistentFlags |= mask;
+}
+
+void persistentFlagClear(uint8_t mask)
+{
+    persistentFlags.persistentFlags &= ~(mask);
+}
