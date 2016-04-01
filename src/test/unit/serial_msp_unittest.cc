@@ -121,7 +121,11 @@ extern "C" {
 >>>>>>> 68b571d... extract adjustmentRanges and defaultRateProfileIndex from profile_t.
 =======
     PG_REGISTER_PROFILE(compassConfig_t, compassConfig, PG_COMPASS_CONFIGURATION, 0);
+<<<<<<< HEAD
 >>>>>>> 7d63772... extract magnetic declination from profile_t.  fix magnetic declination
+=======
+    PG_REGISTER_PROFILE(modeActivationProfile_t, modeActivationProfile, PG_MODE_ACTIVATION_PROFILE, 0);
+>>>>>>> 9974066... extract mode activation conditions from profile_t into
 }
 
 profile_t profile;

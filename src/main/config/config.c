@@ -712,7 +712,7 @@ void activateConfig(void)
     resetAdjustmentStates();
 
     useRcControlsConfig(
-        currentProfile->modeActivationConditions
+            modeActivationProfile->modeActivationConditions
     );
 
     useFailsafeConfig();

@@ -358,7 +358,7 @@ void processRx(void)
 
     processRcStickPositions(&rxConfig, throttleStatus, armingConfig.disarm_kill_switch);
 
-    updateActivatedModes(currentProfile->modeActivationConditions);
+    updateActivatedModes(modeActivationProfile->modeActivationConditions);
 
     if (!cliMode) {
         updateAdjustmentStates(adjustmentProfile->adjustmentRanges);

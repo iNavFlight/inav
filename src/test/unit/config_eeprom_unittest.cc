@@ -101,6 +101,7 @@ extern "C" {
     PG_REGISTER_PROFILE(compassConfig_t, compassConfig, PG_COMPASS_CONFIGURATION, 0);
 >>>>>>> 7d63772... extract magnetic declination from profile_t.  fix magnetic declination
     PG_REGISTER_PROFILE(gpsProfile_t, gpsProfile, PG_NAVIGATION_CONFIG, 0);
+    PG_REGISTER_PROFILE(modeActivationProfile_t, modeActivationProfile, PG_MODE_ACTIVATION_PROFILE, 0);
 
     PG_REGISTER(escAndServoConfig_t, escAndServoConfig, PG_ESC_AND_SERVO_CONFIG, 0);
     PG_REGISTER(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 0);
