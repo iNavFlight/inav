@@ -461,11 +461,11 @@ STATIC_UNIT_TESTED void resetConf(void)
 
 #ifdef GPS
     // gps/nav stuff
-    masterConfig.gpsConfig.provider = GPS_UBLOX;
-    masterConfig.gpsConfig.sbasMode = SBAS_AUTO;
-    masterConfig.gpsConfig.autoConfig = GPS_AUTOCONFIG_ON;
-    masterConfig.gpsConfig.autoBaud = GPS_AUTOBAUD_ON;
-    masterConfig.gpsConfig.dynModel = GPS_DYNMODEL_AIR_1G;
+    gpsConfig.provider = GPS_UBLOX;
+    gpsConfig.sbasMode = SBAS_AUTO;
+    gpsConfig.autoConfig = GPS_AUTOCONFIG_ON;
+    gpsConfig.autoBaud = GPS_AUTOBAUD_ON;
+    gpsConfig.dynModel = GPS_DYNMODEL_AIR_1G;
 #endif
 
 #ifdef NAV

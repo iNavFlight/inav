@@ -85,6 +85,8 @@ typedef struct gpsConfig_s {
     gpsDynModel_e dynModel;
 } gpsConfig_t;
 
+PG_DECLARE(gpsConfig_t, gpsConfig);
+
 typedef struct gpsCoordinateDDDMMmmmm_s {
     int16_t dddmm;
     int16_t mmmm;

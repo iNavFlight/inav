@@ -32,7 +32,6 @@ typedef enum {
 } gpsState_e;
 
 typedef struct {
-    gpsConfig_t *   gpsConfig;
     serialPort_t *  gpsPort;                // Serial GPS only
 
     uint32_t        hwVersion;

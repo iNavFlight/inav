@@ -121,8 +121,7 @@ void mixerInit(motorMixer_t *customMotorMixers);
 #endif
 void mixerUsePWMIOConfiguration(pwmIOConfiguration_t *pwmIOConfiguration);
 void rxInit(modeActivationCondition_t *modeActivationConditions);
-void gpsPreInit(gpsConfig_t *initialGpsConfig);
-void gpsInit(gpsConfig_t *initialGpsConfig);
+void gpsInit();
 void imuInit(void);
 void loop(void);
 void displayInit(void);
@@ -401,12 +400,6 @@ void init(void)
     }
 #endif
 
-#ifdef GPS
-    if (feature(FEATURE_GPS)) {
-        gpsPreInit(&masterConfig.gpsConfig);
-    }
-#endif
-
     // Set gyro sampling rate divider before initialization
     gyroSetSampleRate(imuConfig.looptime, gyroConfig.gyro_lpf, imuConfig.gyroSync, imuConfig.gyroSyncDenominator);
 
@@ -449,7 +442,7 @@ void init(void)
 
 #ifdef GPS
     if (feature(FEATURE_GPS)) {
-        gpsInit(&masterConfig.gpsConfig);
+        gpsInit();
     }
 #endif
 
