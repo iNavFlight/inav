@@ -41,7 +41,7 @@
 #include "rx/rx.h"
 
 #include "io/gimbal.h"
-#include "io/escservo.h"
+#include "io/motor_and_servo.h"
 #include "io/rc_controls.h"
 #include "io/rate_profile.h"
 
@@ -565,7 +565,7 @@ void mixerResetDisarmedMotors(void)
     int i;
     // set disarmed motor values
     for (i = 0; i < MAX_SUPPORTED_MOTORS; i++)
-        motor_disarmed[i] = feature(FEATURE_3D) ? motor3DConfig.neutral3d : escAndServoConfig.mincommand;
+        motor_disarmed[i] = feature(FEATURE_3D) ? motor3DConfig.neutral3d : motorAndServoConfig.mincommand;
 }
 
 #ifdef USE_SERVOS
@@ -642,7 +642,7 @@ void writeAllMotors(int16_t mc)
 
 void stopMotors(void)
 {
-    writeAllMotors(feature(FEATURE_3D) ? motor3DConfig.neutral3d : escAndServoConfig.mincommand);
+    writeAllMotors(feature(FEATURE_3D) ? motor3DConfig.neutral3d : motorAndServoConfig.mincommand);
 
     delay(50); // give the timers and ESCs a chance to react.
 }
@@ -688,23 +688,23 @@ void mixTable(void)
 
         if ((rcCommand[THROTTLE] <= (rxConfig.midrc - rcControlsConfig->deadband3d_throttle))) { // Out of band handling
             throttleMax = motor3DConfig.deadband3d_low;
-            throttleMin = escAndServoConfig.minthrottle;
+            throttleMin = motorAndServoConfig.minthrottle;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
         } else if (rcCommand[THROTTLE] >= (rxConfig.midrc + rcControlsConfig->deadband3d_throttle)) { // Positive handling
-            throttleMax = escAndServoConfig.maxthrottle;
+            throttleMax = motorAndServoConfig.maxthrottle;
             throttleMin = motor3DConfig.deadband3d_high;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
         } else if ((throttlePrevious <= (rxConfig.midrc - rcControlsConfig->deadband3d_throttle)))  { // Deadband handling from negative to positive
             throttleCommand = throttleMax = motor3DConfig.deadband3d_low;
-            throttleMin = escAndServoConfig.minthrottle;
+            throttleMin = motorAndServoConfig.minthrottle;
         } else {  // Deadband handling from positive to negative
-            throttleMax = escAndServoConfig.maxthrottle;
+            throttleMax = motorAndServoConfig.maxthrottle;
             throttleCommand = throttleMin = motor3DConfig.deadband3d_high;
         }
     } else {
         throttleCommand = rcCommand[THROTTLE];
-        throttleMin = escAndServoConfig.minthrottle;
-        throttleMax = escAndServoConfig.maxthrottle;
+        throttleMin = motorAndServoConfig.minthrottle;
+        throttleMax = motorAndServoConfig.maxthrottle;
     }
 
     throttleRange = throttleMax - throttleMin;
@@ -736,21 +736,21 @@ void mixTable(void)
             motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (isFailsafeActive) {
-                motor[i] = constrain(motor[i], escAndServoConfig.mincommand, escAndServoConfig.maxthrottle);
+                motor[i] = constrain(motor[i], motorAndServoConfig.mincommand, motorAndServoConfig.maxthrottle);
             } else if (feature(FEATURE_3D)) {
                 if (throttlePrevious <= (rxConfig.midrc - rcControlsConfig->deadband3d_throttle)) {
-                    motor[i] = constrain(motor[i], escAndServoConfig.minthrottle, motor3DConfig.deadband3d_low);
+                    motor[i] = constrain(motor[i], motorAndServoConfig.minthrottle, motor3DConfig.deadband3d_low);
                 } else {
-                    motor[i] = constrain(motor[i], motor3DConfig.deadband3d_high, escAndServoConfig.maxthrottle);
+                    motor[i] = constrain(motor[i], motor3DConfig.deadband3d_high, motorAndServoConfig.maxthrottle);
                 }
             } else {
-                motor[i] = constrain(motor[i], escAndServoConfig.minthrottle, escAndServoConfig.maxthrottle);
+                motor[i] = constrain(motor[i], motorAndServoConfig.minthrottle, motorAndServoConfig.maxthrottle);
             }
 
             // Motor stop handling
             if (feature(FEATURE_MOTOR_STOP) && ARMING_FLAG(ARMED) && !feature(FEATURE_3D) && !IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
                 if (((rcData[THROTTLE]) < rxConfig.mincheck)) {
-                    motor[i] = escAndServoConfig.mincommand;
+                    motor[i] = motorAndServoConfig.mincommand;
                 }
             }
         }

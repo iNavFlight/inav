@@ -49,8 +49,6 @@
 
 #include "io/gps.h"
 #include "io/beeper.h"
-#include "io/escservo.h"
-#include "io/rc_controls.h"
 #include "io/rc_curves.h"
 #include "io/rate_profile.h"
 

@@ -21,7 +21,7 @@
 #include "common/filter.h"
 
 #include "io/rc_controls.h"
-#include "io/escservo.h"
+#include "io/motor_and_servo.h"
 #include "io/gps.h"
 
 #include "flight/mixer.h"

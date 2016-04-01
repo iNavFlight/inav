@@ -246,7 +246,7 @@ COMMON_SRC = build_config.c \
 		   drivers/buf_writer.c \
 		   io/beeper.c \
 		   io/gimbal.c \
-		   io/escservo.c \
+		   io/motor_and_servo.c \
 		   io/rate_profile.c \
 		   io/rc_adjustments.c \
 		   io/rc_controls.c \

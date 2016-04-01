@@ -53,8 +53,7 @@
 #include "io/beeper.h"
 #include "io/serial.h"
 #include "io/gimbal.h"
-#include "io/escservo.h"
-#include "io/rc_controls.h"
+#include "io/motor_and_servo.h"
 #include "io/rc_curves.h"
 #include "io/ledstrip.h"
 #include "io/gps.h"
@@ -234,9 +233,9 @@ void resetSensorAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
     );
 }
 
-void resetEscAndServoConfig(escAndServoConfig_t *escAndServoConfig)
+void resetmotorAndServoConfig(motorAndServoConfig_t *motorAndServoConfig)
 {
-    RESET_CONFIG(escAndServoConfig_t, escAndServoConfig,
+    RESET_CONFIG(motorAndServoConfig_t, motorAndServoConfig,
         .minthrottle = 1150,
         .maxthrottle = 1850,
         .mincommand = 1000,
@@ -409,7 +408,7 @@ static void resetGyroConfig(gyroConfig_t * gyroConfig)
 
 uint16_t getCurrentMinthrottle(void)
 {
-    return escAndServoConfig.minthrottle;
+    return motorAndServoConfig.minthrottle;
 }
 
 // Default settings
@@ -484,15 +483,15 @@ STATIC_UNIT_TESTED void resetConf(void)
     armingConfig.max_arm_angle = 25;
 
     // Motor/ESC/Servo
-    resetEscAndServoConfig(&escAndServoConfig);
+    resetmotorAndServoConfig(&motorAndServoConfig);
     resetMotor3DConfig(&motor3DConfig);
 
 #ifdef BRUSHED_MOTORS
-    escAndServoConfig.motor_pwm_rate = BRUSHED_MOTORS_PWM_RATE;
+    motorAndServoConfig.motor_pwm_rate = BRUSHED_MOTORS_PWM_RATE;
 #else
-    escAndServoConfig.motor_pwm_rate = BRUSHLESS_MOTORS_PWM_RATE;
+    motorAndServoConfig.motor_pwm_rate = BRUSHLESS_MOTORS_PWM_RATE;
 #endif
-    escAndServoConfig.servo_pwm_rate = 50;
+    motorAndServoConfig.servo_pwm_rate = 50;
 
 #ifdef GPS
     // gps/nav stuff
@@ -608,9 +607,9 @@ STATIC_UNIT_TESTED void resetConf(void)
 #endif
     rxConfig.serialrx_provider = 1;
     rxConfig.spektrum_sat_bind = 5;
-    escAndServoConfig.minthrottle = 1000;
-    escAndServoConfig.maxthrottle = 2000;
-    escAndServoConfig.motor_pwm_rate = 32000;
+    motorAndServoConfig.minthrottle = 1000;
+    motorAndServoConfig.maxthrottle = 2000;
+    motorAndServoConfig.motor_pwm_rate = 32000;
     imuConfig.looptime = 2000;
     pidProfile->P8[PIDROLL] = 36;
     pidProfile->P8[PIDPITCH] = 36;
