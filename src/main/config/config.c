@@ -122,43 +122,44 @@ PG_REGISTER(pwmRxConfig_t, pwmRxConfig, PG_DRIVER_PWM_RX_CONFIG, 0);
 
 void resetPidProfile(pidProfile_t *pidProfile)
 {
-    pidProfile->P8[ROLL] = 30;
-    pidProfile->I8[ROLL] = 20;
-    pidProfile->D8[ROLL] = 70;
-    pidProfile->P8[PITCH] = 30;
-    pidProfile->I8[PITCH] = 20;
-    pidProfile->D8[PITCH] = 70;
-    pidProfile->P8[YAW] = 100;      // 2.5 * 40
-    pidProfile->I8[YAW] = 40;       // 4.0 * 10
-    pidProfile->D8[YAW] = 0;        // not used
-    pidProfile->P8[PIDALT] = 50;    // NAV_POS_Z_P * 100
-    pidProfile->I8[PIDALT] = 0;     // not used
-    pidProfile->D8[PIDALT] = 0;     // not used
-    pidProfile->P8[PIDPOS] = 65;    // NAV_POS_XY_P * 100
-    pidProfile->I8[PIDPOS] = 120;   // posDecelerationTime * 100
-    pidProfile->D8[PIDPOS] = 10;    // posResponseExpo * 100
-    pidProfile->P8[PIDPOSR] = 180;  // NAV_VEL_XY_P * 100
-    pidProfile->I8[PIDPOSR] = 15;   // NAV_VEL_XY_I * 100
-    pidProfile->D8[PIDPOSR] = 100;  // NAV_VEL_XY_D * 100
-    pidProfile->P8[PIDNAVR] = 10;   // FW_NAV_P * 100
-    pidProfile->I8[PIDNAVR] = 5;    // FW_NAV_I * 100
-    pidProfile->D8[PIDNAVR] = 8;    // FW_NAV_D * 100
-    pidProfile->P8[PIDLEVEL] = 120; // Self-level strength * 40 (4 * 40)
-    pidProfile->I8[PIDLEVEL] = 15;  // Self-leveing low-pass frequency (0 - disabled)
-    pidProfile->D8[PIDLEVEL] = 75;  // 75% horizon strength
-    pidProfile->P8[PIDMAG] = 60;
-    pidProfile->P8[PIDVEL] = 100;   // NAV_VEL_Z_P * 100
-    pidProfile->I8[PIDVEL] = 50;    // NAV_VEL_Z_I * 100
-    pidProfile->D8[PIDVEL] = 10;    // NAV_VEL_Z_D * 100
+    static const pidProfile_t pidProfile_Reset = {
+        .P8[PIDROLL] = 30,
+        .I8[PIDROLL] = 20,
+        .D8[PIDROLL] = 70,
+        .P8[PIDPITCH] = 30,
+        .I8[PIDPITCH] = 20,
+        .D8[PIDPITCH] = 70,
+        .P8[PIDYAW] = 100,
+        .I8[PIDYAW] = 40,
+        .D8[PIDYAW] = 0,
+        .P8[PIDALT] = 50,       // NAV_POS_Z_P * 100
+        .I8[PIDALT] = 0,        // not used
+        .D8[PIDALT] = 0,        // not used
+        .P8[PIDPOS] = 65,       // NAV_POS_XY_P * 100
+        .I8[PIDPOS] = 120,      // posDecelerationTime * 100
+        .D8[PIDPOS] = 10,       // posResponseExpo * 100
+        .P8[PIDPOSR] = 180,     // NAV_VEL_XY_P * 100
+        .I8[PIDPOSR] = 15,      // NAV_VEL_XY_I * 100
+        .D8[PIDPOSR] = 100,     // NAV_VEL_XY_D * 100
+        .P8[PIDNAVR] = 10,      // FW_NAV_P * 100
+        .I8[PIDNAVR] = 5,       // FW_NAV_I * 100
+        .D8[PIDNAVR] = 8,       // FW_NAV_D * 100
+        .P8[PIDLEVEL] = 120,    // Self-level strength * 40 (4 * 40)
+        .I8[PIDLEVEL] = 15,     // Self-leveing low-pass frequency (0 - disabled)
+        .D8[PIDLEVEL] = 75,     // 75% horizon strength
+        .P8[PIDMAG] = 60,
+        .P8[PIDVEL] = 100,      // NAV_VEL_Z_P * 100
+        .I8[PIDVEL] = 50,       // NAV_VEL_Z_I * 100
+        .D8[PIDVEL] = 10,       // NAV_VEL_Z_D * 100
 
-    pidProfile->dterm_lpf_hz = 30;
-    pidProfile->yaw_lpf_hz = 30;
-
-    pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
-    pidProfile->mag_hold_rate_limit = MAG_HOLD_RATE_LIMIT_DEFAULT;
-
-    pidProfile->max_angle_inclination[FD_ROLL] = 300;    // 30 degrees
-    pidProfile->max_angle_inclination[FD_PITCH] = 300;    // 30 degrees
+        .dterm_lpf_hz = 30,
+        .yaw_lpf_hz = 30,
+        .yaw_p_limit = YAW_P_LIMIT_MAX,
+        .mag_hold_rate_limit = MAG_HOLD_RATE_LIMIT_DEFAULT,
+        .max_angle_inclination[FD_ROLL] = 300,
+        .max_angle_inclination[FD_PITCH] = 300
+    };
+    memcpy(pidProfile, &pidProfile_Reset, sizeof(*pidProfile));
 }
 
 #ifdef NAV
