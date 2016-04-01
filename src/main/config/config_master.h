@@ -33,8 +33,6 @@ typedef struct master_t {
 
     serialConfig_t serialConfig;
 
-    telemetryConfig_t telemetryConfig;
-
     uint32_t beeper_off_flags;
     uint32_t prefered_beeper_off_flags;
 } master_t;

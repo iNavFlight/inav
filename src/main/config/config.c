@@ -66,6 +66,8 @@
 #include "blackbox/blackbox.h"
 
 #include "telemetry/telemetry.h"
+#include "telemetry/frsky.h"
+#include "telemetry/hott.h"
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -263,16 +265,18 @@ void resetMotor3DConfig(motor3DConfig_t *motor3DConfig)
     motor3DConfig->neutral3d = 1460;
 }
 
-void resetTelemetryConfig(telemetryConfig_t *telemetryConfig)
+void resetTelemetryConfig(void)
 {
-    telemetryConfig->telemetry_inversion = 0;
-    telemetryConfig->telemetry_switch = 0;
-    telemetryConfig->gpsNoFixLatitude = 0;
-    telemetryConfig->gpsNoFixLongitude = 0;
-    telemetryConfig->frsky_coordinate_format = FRSKY_FORMAT_DMS;
-    telemetryConfig->frsky_unit = FRSKY_UNIT_METRICS;
-    telemetryConfig->frsky_vfas_precision = 0;
-    telemetryConfig->hottAlarmSoundInterval = 5;
+    telemetryConfig.telemetry_inversion = 0;
+    telemetryConfig.telemetry_switch = 0;
+
+    frskyTelemetryConfig.gpsNoFixLatitude = 0;
+    frskyTelemetryConfig.gpsNoFixLongitude = 0;
+    frskyTelemetryConfig.frsky_coordinate_format = FRSKY_FORMAT_DMS;
+    frskyTelemetryConfig.frsky_unit = FRSKY_UNIT_METRICS;
+    frskyTelemetryConfig.frsky_vfas_precision = 0;
+    
+    hottTelemetryConfig.hottAlarmSoundInterval = 5;
 }
 
 void resetBatteryConfig(batteryConfig_t *batteryConfig)
@@ -418,7 +422,9 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     resetBatteryConfig(&batteryConfig);
 
-    resetTelemetryConfig(&masterConfig.telemetryConfig);
+#ifdef TELEMETRY
+    resetTelemetryConfig();
+#endif
 
     rxConfig.serialrx_provider = 0;
     rxConfig.sbus_inversion = 1;
@@ -678,10 +684,6 @@ void activateConfig(void)
         currentProfile->modeActivationConditions
     );
 
-#ifdef TELEMETRY
-    telemetryUseConfig(&masterConfig.telemetryConfig);
-#endif
-
     useFailsafeConfig();
 
     mixerUseConfigs(
@@ -787,7 +789,7 @@ void validateAndFixConfig(void)
 #ifdef STM32F303xC
     // hardware supports serial port inversion, make users life easier for those that want to connect SBus RX's
 #ifdef TELEMETRY
-    masterConfig.telemetryConfig.telemetry_inversion = 1;
+    telemetryConfig.telemetry_inversion = 1;
 #endif
 #endif
 

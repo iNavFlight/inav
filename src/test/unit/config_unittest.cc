@@ -46,6 +46,8 @@ extern "C" {
     #include "io/transponder_ir.h"
 
     #include "telemetry/telemetry.h"
+    #include "telemetry/frsky.h"
+    #include "telemetry/hott.h"
 
     #include "sensors/sensors.h"
     #include "sensors/acceleration.h"
@@ -105,7 +107,13 @@ extern "C" {
 =======
     airplaneConfig_t airplaneConfig;
     gpsConfig_t gpsConfig;
+<<<<<<< HEAD
 >>>>>>> 3a52e51... extract gpsConfig_t from master_t.
+=======
+    telemetryConfig_t telemetryConfig;
+    frskyTelemetryConfig_t frskyTelemetryConfig;
+    hottTelemetryConfig_t hottTelemetryConfig;
+>>>>>>> 206bbee... extract telemetryConfig_t from master_t and split into
 
     motor3DConfig_t motor3DConfig;
 
@@ -143,7 +151,13 @@ extern "C" {
 =======
         memset(&airplaneConfig, 0x00, sizeof(airplaneConfig));
         memset(&gpsConfig, 0x00, sizeof(gpsConfig));
+<<<<<<< HEAD
 >>>>>>> 3a52e51... extract gpsConfig_t from master_t.
+=======
+        memset(&telemetryConfig, 0x00, sizeof(telemetryConfig));
+        memset(&frskyTelemetryConfig, 0x00, sizeof(frskyTelemetryConfig));
+        memset(&hottTelemetryConfig, 0x00, sizeof(hottTelemetryConfig));
+>>>>>>> 206bbee... extract telemetryConfig_t from master_t and split into
     }
 
     void pgActivateProfile(uint8_t) {
@@ -184,13 +198,14 @@ TEST(ConfigUnittest, TestResetConfigZeroValues)
     EXPECT_EQ(0, batteryConfig.currentMeterOffset);
     EXPECT_EQ(0, batteryConfig.batteryCapacity);
 
-    EXPECT_EQ(0, masterConfig.telemetryConfig.telemetry_inversion);
-    EXPECT_EQ(0, masterConfig.telemetryConfig.telemetry_switch);
-    EXPECT_EQ(0, masterConfig.telemetryConfig.gpsNoFixLatitude);
-    EXPECT_EQ(0, masterConfig.telemetryConfig.gpsNoFixLongitude);
-    EXPECT_EQ(FRSKY_FORMAT_DMS, masterConfig.telemetryConfig.frsky_coordinate_format);
-    EXPECT_EQ(FRSKY_UNIT_METRICS, masterConfig.telemetryConfig.frsky_unit);
-    EXPECT_EQ(0, masterConfig.telemetryConfig.frsky_vfas_precision);
+    EXPECT_EQ(0, telemetryConfig.telemetry_inversion);
+    EXPECT_EQ(0, telemetryConfig.telemetry_switch);
+
+    EXPECT_EQ(0, frskyTelemetryConfig.gpsNoFixLatitude);
+    EXPECT_EQ(0, frskyTelemetryConfig.gpsNoFixLongitude);
+    EXPECT_EQ(FRSKY_FORMAT_DMS, frskyTelemetryConfig.frsky_coordinate_format);
+    EXPECT_EQ(FRSKY_UNIT_METRICS, frskyTelemetryConfig.frsky_unit);
+    EXPECT_EQ(0, frskyTelemetryConfig.frsky_vfas_precision);
 
     EXPECT_EQ(0, rxConfig.serialrx_provider);
     EXPECT_EQ(0, rxConfig.spektrum_sat_bind);

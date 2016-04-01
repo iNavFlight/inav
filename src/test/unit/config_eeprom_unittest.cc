@@ -58,6 +58,8 @@ extern "C" {
     #include "flight/failsafe.h"
 
     #include "telemetry/telemetry.h"
+    #include "telemetry/frsky.h"
+    #include "telemetry/hott.h"
 
     #include "config/config.h"
     #include "config/config_eeprom.h"
@@ -104,7 +106,13 @@ extern "C" {
 =======
     PG_REGISTER(airplaneConfig_t, airplaneConfig, PG_AIRPLANE_ALT_HOLD_CONFIG, 0);
     PG_REGISTER(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 0);
+<<<<<<< HEAD
 >>>>>>> 3a52e51... extract gpsConfig_t from master_t.
+=======
+    PG_REGISTER(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
+    PG_REGISTER(frskyTelemetryConfig_t, frskyTelemetryConfig, PG_FRSKY_TELEMETRY_CONFIG, 0);
+    PG_REGISTER(hottTelemetryConfig_t, hottTelemetryConfig, PG_HOTT_TELEMETRY_CONFIG, 0);
+>>>>>>> 206bbee... extract telemetryConfig_t from master_t and split into
 }
 
 #include "unittest_macros.h"
@@ -179,7 +187,6 @@ void useRxConfig(rxConfig_t *) {}
 void useRcControlsConfig(modeActivationCondition_t *) {}
 void useFailsafeConfig(void) {}
 void useBarometerConfig(barometerConfig_t *) {}
-void telemetryUseConfig(telemetryConfig_t *) {}
 void suspendRxSignal(void) {}
 void setAccelerationTrims(flightDynamicsTrims_t *) {}
 void resumeRxSignal(void) {}
