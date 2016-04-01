@@ -719,8 +719,7 @@ const clivalue_t valueTable[] = {
 
 #ifdef MAG
     { "mag_hardware",               VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0,  MAG_MAX } , PG_SENSOR_SELECTION_CONFIG, offsetof(sensorSelectionConfig_t, mag_hardware)},
-    { "mag_declination",            VAR_INT16  | PROFILE_VALUE, .config.minmax = { -18000,  18000 } , PG_PROFILE, offsetof(profile_t, mag_declination)},
-
+    { "mag_declination",            VAR_INT16  | PROFILE_VALUE, .config.minmax = { -18000,  18000 } , PG_COMPASS_CONFIGURATION, offsetof(compassConfig_t, mag_declination)},
     { "mag_hold_rate_limit",        VAR_UINT8  | PROFILE_VALUE, .config.minmax = { MAG_HOLD_RATE_LIMIT_MIN,  MAG_HOLD_RATE_LIMIT_MAX } , PG_PID_PROFILE, offsetof(pidProfile_t, mag_hold_rate_limit)},
 #endif
 
@@ -754,9 +753,9 @@ const clivalue_t valueTable[] = {
     { "blackbox_device",            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_BLACKBOX_DEVICE } , PG_BLACKBOX_CONFIG, offsetof(blackboxConfig_t, device)},
 #endif
 
-    { "magzero_x",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[X])},
-    { "magzero_y",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Y])},
-    { "magzero_z",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Z])},
+    { "magzero_x",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_COMPASS_CONFIGURATION, offsetof(compassConfig_t, magZero.raw[X])},
+    { "magzero_y",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_COMPASS_CONFIGURATION, offsetof(compassConfig_t, magZero.raw[Y])},
+    { "magzero_z",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_COMPASS_CONFIGURATION, offsetof(compassConfig_t, magZero.raw[Z])},
 
     { "acczero_x",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accZero.raw[X])},
     { "acczero_y",                  VAR_INT16  | MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accZero.raw[Y])},

@@ -87,6 +87,7 @@ extern "C" {
 =======
     PG_REGISTER_PROFILE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
     PG_REGISTER_PROFILE(throttleCorrectionConfig_t, throttleCorrectionConfig, PG_THROTTLE_CORRECTION_CONFIG, 0);
+<<<<<<< HEAD
 >>>>>>> 4b5ea29... extract throttle angle correction config from profile_t.
 
     typedef struct someProfileSpecificData_s {
@@ -96,6 +97,9 @@ extern "C" {
     } PG_PACKED someProfileSpecificData_t;
 
     PG_REGISTER_PROFILE(someProfileSpecificData_t, someProfileSpecificData, PG_RESERVED_FOR_TESTING_1, 0);
+=======
+    PG_REGISTER_PROFILE(compassConfig_t, compassConfig, PG_COMPASS_CONFIGURATION, 0);
+>>>>>>> 7d63772... extract magnetic declination from profile_t.  fix magnetic declination
     PG_REGISTER_PROFILE(gpsProfile_t, gpsProfile, PG_NAVIGATION_CONFIG, 0);
 
     PG_REGISTER(escAndServoConfig_t, escAndServoConfig, PG_ESC_AND_SERVO_CONFIG, 0);
@@ -133,7 +137,19 @@ extern "C" {
     PG_REGISTER(sensorSelectionConfig_t, sensorSelectionConfig, PG_SENSOR_SELECTION_CONFIG, 0);
     PG_REGISTER(sensorAlignmentConfig_t, sensorAlignmentConfig, PG_SENSOR_ALIGNMENT_CONFIG, 0);
     PG_REGISTER_ARR(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer, PG_MOTOR_MIXER, 0);
+<<<<<<< HEAD
 >>>>>>> 0e1cb3c... extract gpsProfile_t from profile_t.  Update PG_REGISTER_PROFILE so when
+=======
+
+    typedef struct someProfileSpecificData_s {
+        uint8_t uint8;
+        uint16_t uint16;
+        uint32_t uint32;
+    } PG_PACKED someProfileSpecificData_t;
+
+    PG_REGISTER_PROFILE(someProfileSpecificData_t, someProfileSpecificData, PG_RESERVED_FOR_TESTING_1, 0);
+
+>>>>>>> 7d63772... extract magnetic declination from profile_t.  fix magnetic declination
 }
 
 #include "unittest_macros.h"
@@ -309,6 +325,8 @@ void setControlRateProfile(uint8_t) {}
 void resetControlRateConfig(controlRateConfig_t *) {}
 void configureRateProfileSelection(uint8_t, uint8_t) {}
 void activateControlRateConfig() {}
+
+void recalculateMagneticDeclination(void) {}
 
 const serialPortIdentifier_e serialPortIdentifiers[SERIAL_PORT_COUNT] = {
 #ifdef USE_VCP

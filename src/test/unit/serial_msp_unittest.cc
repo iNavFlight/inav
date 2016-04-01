@@ -63,6 +63,7 @@ extern "C" {
     #include "sensors/battery.h"
     #include "sensors/acceleration.h"
     #include "sensors/barometer.h"
+    #include "sensors/compass.h"
 
     #include "flight/mixer.h"
     #include "flight/pid.h"
@@ -116,7 +117,11 @@ extern "C" {
 =======
     PG_REGISTER_PROFILE(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 0);
     PG_REGISTER_PROFILE(adjustmentProfile_t, adjustmentProfile, PG_ADJUSTMENT_PROFILE, 0);
+<<<<<<< HEAD
 >>>>>>> 68b571d... extract adjustmentRanges and defaultRateProfileIndex from profile_t.
+=======
+    PG_REGISTER_PROFILE(compassConfig_t, compassConfig, PG_COMPASS_CONFIGURATION, 0);
+>>>>>>> 7d63772... extract magnetic declination from profile_t.  fix magnetic declination
 }
 
 profile_t profile;

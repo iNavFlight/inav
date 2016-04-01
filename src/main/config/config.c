@@ -530,10 +530,7 @@ STATIC_UNIT_TESTED void resetConf(void)
 
     resetControlRateConfig(&controlRateProfiles[0]);
 
-    // for (i = 0; i < CHECKBOXITEMS; i++)
-    //     cfg.activate[i] = 0;
-
-    currentProfile->mag_declination = 0;
+    compassConfig->mag_declination = 0;
 
     resetBarometerConfig(&barometerConfig);
 
@@ -730,7 +727,8 @@ void activateConfig(void)
     imuRuntimeConfig.dcm_ki_acc = imuConfig.dcm_ki_acc / 10000.0f;
     imuRuntimeConfig.dcm_kp_mag = imuConfig.dcm_kp_mag / 10000.0f;
     imuRuntimeConfig.dcm_ki_mag = imuConfig.dcm_ki_mag / 10000.0f;
-    imuRuntimeConfig.small_angle = imuConfig.small_angle;
+
+    recalculateMagneticDeclination();
 
     imuConfigure(&imuRuntimeConfig);
 

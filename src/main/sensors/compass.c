@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+#include "build_config.h"
+
 #include "common/axis.h"
 #include "common/maths.h"
 
@@ -44,7 +46,11 @@
 #include "hardware_revision.h"
 #endif
 
+PG_REGISTER_PROFILE(compassConfig_t, compassConfig, PG_COMPASS_CONFIGURATION, 0);
+
 mag_t mag;                   // mag access functions
+
+float magneticDeclination = 0.0f;
 
 extern uint32_t currentTime; // FIXME dependency on global variable, pass it in instead.
 
@@ -54,8 +60,6 @@ sensor_align_e magAlign = 0;
 #ifdef MAG
 static uint8_t magInit = 0;
 static uint8_t magUpdatedAtLeastOnce = 0;
-
-PG_REGISTER(magConfig_t, magConfig, PG_MAG_CONFIG, 0);
 
 void compassInit(void)
 {
@@ -86,7 +90,7 @@ void updateCompass(void)
         calStartedAt = currentTime;
 
         for (axis = 0; axis < 3; axis++) {
-            magConfig.magZero.raw[axis] = 0;
+            compassConfig->magZero.raw[axis] = 0;
             magPrev[axis] = 0;
         }
 
@@ -95,9 +99,9 @@ void updateCompass(void)
     }
 
     if (magInit) {              // we apply offset only once mag calibration is done
-        magADC[X] -= magConfig.magZero.raw[X];
-        magADC[Y] -= magConfig.magZero.raw[Y];
-        magADC[Z] -= magConfig.magZero.raw[Z];
+        magADC[X] -= compassConfig->magZero.raw[X];
+        magADC[Y] -= compassConfig->magZero.raw[Y];
+        magADC[Z] -= compassConfig->magZero.raw[Z];
     }
 
     if (calStartedAt != 0) {
@@ -125,7 +129,7 @@ void updateCompass(void)
             sensorCalibrationSolveForOffset(&calState, magZerof);
 
             for (axis = 0; axis < 3; axis++) {
-                magConfig.magZero.raw[axis] = lrintf(magZerof[axis]);
+                compassConfig->magZero.raw[axis] = lrintf(magZerof[axis]);
             }
 
             calStartedAt = 0;
@@ -138,3 +142,19 @@ void updateCompass(void)
     magUpdatedAtLeastOnce = 1;
 }
 #endif
+
+void recalculateMagneticDeclination(void)
+{
+    int16_t deg, min;
+
+    if (sensors(SENSOR_MAG)) {
+        // calculate magnetic declination
+        deg = compassConfig->mag_declination / 100;
+        min = compassConfig->mag_declination % 100;
+
+        magneticDeclination = (deg + ((float)min * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
+    } else {
+        magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
+    }
+
+}
