@@ -125,7 +125,11 @@ extern "C" {
 >>>>>>> 7d63772... extract magnetic declination from profile_t.  fix magnetic declination
 =======
     PG_REGISTER_PROFILE(modeActivationProfile_t, modeActivationProfile, PG_MODE_ACTIVATION_PROFILE, 0);
+<<<<<<< HEAD
 >>>>>>> 9974066... extract mode activation conditions from profile_t into
+=======
+    PG_REGISTER_PROFILE(servoProfile_t, servoProfile, PG_SERVO_PROFILE, 0);
+>>>>>>> a25b03c... extract servo configuration from profile_t into servoProfile_t.
 }
 
 profile_t profile;

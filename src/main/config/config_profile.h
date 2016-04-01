@@ -19,10 +19,6 @@
 
 typedef struct profile_s {
 
-#ifdef USE_SERVOS
-    // Servo-related stuff
-    servoParam_t servoConf[MAX_SUPPORTED_SERVOS]; // servo configuration
-#endif
 } profile_t;
 
 PG_DECLARE_PROFILE(profile_t, currentProfile);
