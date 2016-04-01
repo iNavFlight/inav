@@ -57,14 +57,9 @@
 #define PG_COMPASS_CONFIGURATION 40
 #define PG_MODE_ACTIVATION_PROFILE 41
 #define PG_SERVO_PROFILE 42
+#define PG_BEEPER_CONFIG 43
 
 // Driver configuration
 #define PG_DRIVER_PWM_RX_CONFIG 100
 
 #define PG_RESERVED_FOR_TESTING_1 253
-
-// FIXME remove/adjust after migration
-#define PG_BEEPER_CONFIG 250
-#define PG_SENSOR_TRIMS 251
-#define PG_PROFILE 254
-#define PG_MASTER 255

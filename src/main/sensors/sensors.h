@@ -76,11 +76,5 @@ typedef struct sensorSelectionConfig_s {
     uint8_t baro_hardware;                  // Barometer hardware to use
 } sensorSelectionConfig_t;
 
-typedef struct sensorTrims_s {
-    flightDynamicsTrims_t accZero;
-    flightDynamicsTrims_t magZero;
-} sensorTrims_t;
-
 PG_DECLARE(sensorSelectionConfig_t, sensorSelectionConfig);
 PG_DECLARE(sensorAlignmentConfig_t, sensorAlignmentConfig);
-PG_DECLARE(sensorTrims_t, sensorTrims);

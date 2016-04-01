@@ -31,4 +31,3 @@
 
 PG_REGISTER(sensorSelectionConfig_t, sensorSelectionConfig, PG_SENSOR_SELECTION_CONFIG, 0);
 PG_REGISTER(sensorAlignmentConfig_t, sensorAlignmentConfig, PG_SENSOR_ALIGNMENT_CONFIG, 0);
-PG_REGISTER(sensorTrims_t, sensorTrims, PG_SENSOR_TRIMS, 0);
