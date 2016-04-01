@@ -39,6 +39,8 @@
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
 
+#include "io/rate_profile.h"
+
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/hil.h"

@@ -50,6 +50,7 @@
 #include "sensors/battery.h"
 
 #include "io/serial.h"
+#include "io/rate_profile.h"
 #include "io/rc_controls.h"
 #include "io/gps.h"
 

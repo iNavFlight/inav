@@ -65,6 +65,7 @@
 #include "io/gps.h"
 #include "io/escservo.h"
 #include "io/rc_controls.h"
+#include "io/rate_profile.h"
 #include "io/gimbal.h"
 #include "io/ledstrip.h"
 #include "io/display.h"

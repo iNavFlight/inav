@@ -41,6 +41,9 @@
 
 #ifdef DISPLAY
 
+#include "io/rate_profile.h"
+#include "io/rc_controls.h"
+
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
 #include "sensors/compass.h"

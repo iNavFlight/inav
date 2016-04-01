@@ -43,7 +43,7 @@
 #include "rx/rx.h"
 
 #include "io/rc_controls.h"
-#include "io/gps.h"
+#include "io/rate_profile.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"

@@ -76,9 +76,11 @@
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
 
+#include "io/gps.h"
+#include "io/rate_profile.h"
+
 #include "flight/pid.h"
 #include "flight/navigation_rewrite.h"
-#include "io/gps.h"
 
 #include "telemetry/telemetry.h"
 #include "telemetry/hott.h"

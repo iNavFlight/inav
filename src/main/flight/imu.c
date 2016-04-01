@@ -48,12 +48,13 @@
 #include "sensors/barometer.h"
 #include "sensors/sonar.h"
 
+#include "io/gps.h"
+#include "io/rate_profile.h"
+
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/hil.h"
-
-#include "io/gps.h"
 
 //#include "config/runtime_config.h"
 //#include "config/config.h"

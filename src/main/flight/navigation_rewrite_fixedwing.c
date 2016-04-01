@@ -36,6 +36,10 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 
+#include "io/rc_controls.h"
+#include "io/rc_curves.h"
+#include "io/rate_profile.h"
+
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"

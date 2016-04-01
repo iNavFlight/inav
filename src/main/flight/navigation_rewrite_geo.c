@@ -35,8 +35,6 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 
-#include "flight/pid.h"
-#include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 #include "flight/navigation_rewrite_private.h"
 

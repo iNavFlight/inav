@@ -39,6 +39,7 @@
 #include "sensors/acceleration.h"
 
 #include "io/gps.h"
+#include "io/rate_profile.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"

@@ -43,6 +43,7 @@
 #include "io/gimbal.h"
 #include "io/escservo.h"
 #include "io/rc_controls.h"
+#include "io/rate_profile.h"
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"

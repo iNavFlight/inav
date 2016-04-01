@@ -24,7 +24,6 @@
 #include "io/escservo.h"
 #include "io/gps.h"
 
-#include "flight/pid.h"
 #include "flight/mixer.h"
 #include "flight/failsafe.h"
 

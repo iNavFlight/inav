@@ -28,9 +28,6 @@
 #define YAW_P_LIMIT_MIN         100                 // Maximum value for yaw P limiter
 #define YAW_P_LIMIT_MAX         300                 // Maximum value for yaw P limiter
 
-#define PID_MIN                 0
-#define PID_MAX                 255
-
 #define MAG_HOLD_RATE_LIMIT_MIN 10
 #define MAG_HOLD_RATE_LIMIT_MAX 250
 #define MAG_HOLD_RATE_LIMIT_DEFAULT 90

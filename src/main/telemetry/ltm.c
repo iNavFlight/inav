@@ -53,6 +53,7 @@
 
 #include "io/serial.h"
 #include "io/gps.h"
+#include "io/rate_profile.h"
 
 #include "rx/rx.h"
 
