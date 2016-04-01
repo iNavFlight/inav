@@ -96,33 +96,27 @@ controlRateConfig_t *currentControlRateProfile;
 
 PG_REGISTER_PROFILE(profile_t, currentProfile, PG_PROFILE, 0);
 
-static void resetAccelerometerConfig(void)
-{
-    accConfig.accZero.values.pitch = 0;
-    accConfig.accZero.values.roll = 0;
-    accConfig.accZero.values.yaw = 0;
-
-    accConfig.accGain.values.pitch = 4096;
-    accConfig.accGain.values.roll = 4096;
-    accConfig.accGain.values.yaw = 4096;
-
-    accConfig.acc_soft_lpf_hz = 15;
-}
-
-static void resetGyroConfig(void)
-{
-    gyroConfig.gyro_lpf = 3;                  // INV_FILTER_42HZ, In case of ST gyro, will default to 32Hz instead
-    gyroConfig.gyro_soft_lpf_hz = 60;
-    gyroConfig.gyroMovementCalibrationThreshold = 32;
-}
-
 // FIXME this should probably be defined in a separate file.  Drivers should NOT be aware of parameter groups.
 
 PG_REGISTER(pwmRxConfig_t, pwmRxConfig, PG_DRIVER_PWM_RX_CONFIG, 0);
 
+#define RESET_CONFIG(_type, _name, ...)                 \
+    static const _type _name ## _reset = {               \
+        __VA_ARGS__                                     \
+    };                                                  \
+    memcpy(_name, &_name ## _reset, sizeof(*_name));    \
+    /**/
+
+#define RESET_CONFIG_2(_type, _name, ...)                  \
+    *_name = (_type) {                                    \
+        __VA_ARGS__                                       \
+    };                                                    \
+    /**/
+
+
 void resetPidProfile(pidProfile_t *pidProfile)
 {
-    static const pidProfile_t pidProfile_Reset = {
+    RESET_CONFIG(pidProfile_t, pidProfile,
         .P8[PIDROLL] = 30,
         .I8[PIDROLL] = 20,
         .D8[PIDROLL] = 70,
@@ -158,74 +152,74 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .mag_hold_rate_limit = MAG_HOLD_RATE_LIMIT_DEFAULT,
         .max_angle_inclination[FD_ROLL] = 300,
         .max_angle_inclination[FD_PITCH] = 300
-    };
-    memcpy(pidProfile, &pidProfile_Reset, sizeof(*pidProfile));
+    );
 }
 
 #ifdef NAV
 void resetNavConfig(navConfig_t * navConfig)
 {
-    // Navigation flags
-    navConfig->flags.use_thr_mid_for_althold = 1;
-    navConfig->flags.extra_arming_safety = 1;
-    navConfig->flags.user_control_mode = NAV_GPS_ATTI;
-    navConfig->flags.rth_alt_control_style = NAV_RTH_AT_LEAST_ALT;
-    navConfig->flags.rth_tail_first = 0;
-    navConfig->flags.disarm_on_landing = 0;
+    RESET_CONFIG(navConfig_t, navConfig,
+        // Navigation flags
+        .flags = {
+            .use_thr_mid_for_althold = 1,
+            .extra_arming_safety = 1,
+            .user_control_mode = NAV_GPS_ATTI,
+            .rth_alt_control_style = NAV_RTH_AT_LEAST_ALT,
+            .rth_tail_first = 0,
+            .disarm_on_landing = 0,
+        },
 
-    // Inertial position estimator parameters
+        // Inertial position estimator parameters
+        .inav = {
+            .gps_min_sats = 6,
+            .gps_delay_ms = 200,
+            .accz_unarmed_cal = 1,
+            .use_gps_velned = 0,
+            .w_z_baro_p = 0.35f,
+            .w_z_gps_p = 0.2f,
+            .w_z_gps_v = 0.2f,
+            .w_xy_gps_p = 1.0f,
+            .w_xy_gps_v = 2.0f,
+            .w_z_res_v = 0.5f,
+            .w_xy_res_v = 0.5f,
+            .w_acc_bias = 0.01f,
+            .max_eph_epv = 1000.0f,
+            .baro_epv = 100.0f,
+        },
+
+        // General navigation parameters
+        .pos_failure_timeout = 5,           // 5 sec
+        .waypoint_radius = 100,             // 2m diameter
+        .max_speed = 300,                   // 3 m/s = 10.8 km/h
+        .max_manual_speed = 500,
+        .max_manual_climb_rate = 200,
+        .land_descent_rate = 200,           // 2 m/s
+        .land_slowdown_minalt = 500,        // 5 meters of altitude
+        .land_slowdown_maxalt = 2000,       // 20 meters of altitude
+        .emerg_descent_rate = 500,          // 5 m/s
+        .min_rth_distance = 500,            // If closer than 5m - land immediately
+        .rth_altitude = 1000,               // 10m
+
+        // MC-specific
+        .mc_max_bank_angle = 30,            // 30 deg
+        .mc_hover_throttle = 1500,
+        .mc_min_fly_throttle = 1200,
+
+        // Fixed wing
+        .fw_max_bank_angle = 20,            // 30 deg
+        .fw_max_climb_angle = 20,
+        .fw_max_dive_angle = 15,
+        .fw_cruise_throttle = 1400,
+        .fw_max_throttle = 1700,
+        .fw_min_throttle = 1200,
+        .fw_pitch_to_throttle = 10,
+        .fw_roll_to_pitch = 75,
+        .fw_loiter_radius = 5000            // 50m
+    );
+
 #if defined(NAV_AUTO_MAG_DECLINATION)
     navConfig->inav.automatic_mag_declination = 1;
 #endif
-    navConfig->inav.gps_min_sats = 6;
-    navConfig->inav.gps_delay_ms = 200;
-    navConfig->inav.accz_unarmed_cal = 1;
-    navConfig->inav.use_gps_velned = 0;         // "Disabled" is mandatory with gps_nav_model = LOW_G
-
-    navConfig->inav.w_z_baro_p = 0.35f;
-
-    navConfig->inav.w_z_gps_p = 0.2f;
-    navConfig->inav.w_z_gps_v = 0.2f;
-
-    navConfig->inav.w_xy_gps_p = 1.0f;
-    navConfig->inav.w_xy_gps_v = 2.0f;
-
-    navConfig->inav.w_z_res_v = 0.5f;
-    navConfig->inav.w_xy_res_v = 0.5f;
-
-    navConfig->inav.w_acc_bias = 0.01f;
-
-    navConfig->inav.max_eph_epv = 1000.0f;
-    navConfig->inav.baro_epv = 100.0f;
-
-    // General navigation parameters
-    navConfig->pos_failure_timeout = 5;     // 5 sec
-    navConfig->waypoint_radius = 100;       // 2m diameter
-    navConfig->max_speed = 300;             // 3 m/s = 10.8 km/h
-    navConfig->max_manual_speed = 500;
-    navConfig->max_manual_climb_rate = 200;
-    navConfig->land_descent_rate = 200;     // 2 m/s
-    navConfig->land_slowdown_minalt = 500;  // 5 meters of altitude
-    navConfig->land_slowdown_maxalt = 2000; // 20 meters of altitude
-    navConfig->emerg_descent_rate = 500;    // 5 m/s
-    navConfig->min_rth_distance = 500;      // If closer than 5m - land immediately
-    navConfig->rth_altitude = 1000;         // 10m
-
-    // MC-specific
-    navConfig->mc_max_bank_angle = 30;      // 30 deg
-    navConfig->mc_hover_throttle = 1500;
-    navConfig->mc_min_fly_throttle = 1200;
-
-    // Fixed wing
-    navConfig->fw_max_bank_angle = 20;      // 30 deg
-    navConfig->fw_max_climb_angle = 20;
-    navConfig->fw_max_dive_angle = 15;
-    navConfig->fw_cruise_throttle = 1400;
-    navConfig->fw_max_throttle = 1700;
-    navConfig->fw_min_throttle = 1200;
-    navConfig->fw_pitch_to_throttle = 10;
-    navConfig->fw_roll_to_pitch = 75;
-    navConfig->fw_loiter_radius = 5000;     // 50m
 }
 
 void validateNavConfig(navConfig_t * navConfig)
@@ -237,61 +231,77 @@ void validateNavConfig(navConfig_t * navConfig)
 
 void resetBarometerConfig(barometerConfig_t *barometerConfig)
 {
-    barometerConfig->use_median_filtering = 1;
+    RESET_CONFIG(barometerConfig_t, barometerConfig,
+        .use_median_filtering = 1
+    );
 }
 
 void resetSensorAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
 {
-    sensorAlignmentConfig->gyro_align = ALIGN_DEFAULT;
-    sensorAlignmentConfig->acc_align = ALIGN_DEFAULT;
-    sensorAlignmentConfig->mag_align = ALIGN_DEFAULT;
+    RESET_CONFIG(sensorAlignmentConfig_t, sensorAlignmentConfig,
+        .gyro_align = ALIGN_DEFAULT,
+        .acc_align = ALIGN_DEFAULT,
+        .mag_align = ALIGN_DEFAULT,
+    );
 }
 
 void resetEscAndServoConfig(escAndServoConfig_t *escAndServoConfig)
 {
-    escAndServoConfig->minthrottle = 1150;
-    escAndServoConfig->maxthrottle = 1850;
-    escAndServoConfig->mincommand = 1000;
-    escAndServoConfig->servoCenterPulse = 1500;
+    RESET_CONFIG(escAndServoConfig_t, escAndServoConfig,
+        .minthrottle = 1150,
+        .maxthrottle = 1850,
+        .mincommand = 1000,
+        .servoCenterPulse = 1500,
+    );
 }
 
 void resetMotor3DConfig(motor3DConfig_t *motor3DConfig)
 {
-    motor3DConfig->deadband3d_low = 1406;
-    motor3DConfig->deadband3d_high = 1514;
-    motor3DConfig->neutral3d = 1460;
+    RESET_CONFIG(motor3DConfig_t, motor3DConfig,
+        .deadband3d_low = 1406,
+        .deadband3d_high = 1514,
+        .neutral3d = 1460,
+    );
 }
 
 void resetTelemetryConfig(void)
 {
-    telemetryConfig.telemetry_inversion = 0;
-    telemetryConfig.telemetry_switch = 0;
+    RESET_CONFIG_2(telemetryConfig_t, &telemetryConfig,
+        .telemetry_inversion = 0,
+        .telemetry_switch = 0,
+    )
 
 #if defined(TELEMETRY_FRSKY)
-    frskyTelemetryConfig.gpsNoFixLatitude = 0;
-    frskyTelemetryConfig.gpsNoFixLongitude = 0;
-    frskyTelemetryConfig.frsky_coordinate_format = FRSKY_FORMAT_DMS;
-    frskyTelemetryConfig.frsky_unit = FRSKY_UNIT_METRICS;
-    frskyTelemetryConfig.frsky_vfas_precision = 0;
+    RESET_CONFIG_2(frskyTelemetryConfig_t, &frskyTelemetryConfig,
+        .gpsNoFixLatitude = 0,
+        .gpsNoFixLongitude = 0,
+        .frsky_coordinate_format = FRSKY_FORMAT_DMS,
+        .frsky_unit = FRSKY_UNIT_METRICS,
+        .frsky_vfas_precision = 0,
+    );
 #endif
 
 #if defined(TELEMETRY_HOTT)
-    hottTelemetryConfig.hottAlarmSoundInterval = 5;
+    RESET_CONFIG_2(hottTelemetryConfig_t, &hottTelemetryConfig,
+        .hottAlarmSoundInterval = 5,
+    );
 #endif
 }
 
 void resetBatteryConfig(batteryConfig_t *batteryConfig)
 {
-    batteryConfig->vbatscale = VBAT_SCALE_DEFAULT;
-    batteryConfig->vbatresdivval = VBAT_RESDIVVAL_DEFAULT;
-    batteryConfig->vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT;
-    batteryConfig->vbatmaxcellvoltage = 43;
-    batteryConfig->vbatmincellvoltage = 33;
-    batteryConfig->vbatwarningcellvoltage = 35;
-    batteryConfig->currentMeterOffset = 0;
-    batteryConfig->currentMeterScale = 400; // for Allegro ACS758LCB-100U (40mV/A)
-    batteryConfig->batteryCapacity = 0;
-    batteryConfig->currentMeterType = CURRENT_SENSOR_ADC;
+    RESET_CONFIG(batteryConfig_t, batteryConfig,
+        .vbatscale = VBAT_SCALE_DEFAULT,
+        .vbatresdivval = VBAT_RESDIVVAL_DEFAULT,
+        .vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT,
+        .vbatmaxcellvoltage = 43,
+        .vbatmincellvoltage = 33,
+        .vbatwarningcellvoltage = 35,
+        .currentMeterOffset = 0,
+        .currentMeterScale = 400, // for Allegro ACS758LCB-100U (40mV/A)
+        .batteryCapacity = 0,
+        .currentMeterType = CURRENT_SENSOR_ADC,
+    );
 }
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
@@ -304,15 +314,18 @@ void resetBatteryConfig(batteryConfig_t *batteryConfig)
 
 void resetSerialConfig(serialConfig_t *serialConfig)
 {
-    uint8_t index;
     memset(serialConfig, 0, sizeof(serialConfig_t));
 
-    for (index = 0; index < SERIAL_PORT_COUNT; index++) {
-        serialConfig->portConfigs[index].identifier = serialPortIdentifiers[index];
-        serialConfig->portConfigs[index].msp_baudrateIndex = BAUD_115200;
-        serialConfig->portConfigs[index].gps_baudrateIndex = BAUD_38400;
-        serialConfig->portConfigs[index].telemetry_baudrateIndex = BAUD_AUTO;
-        serialConfig->portConfigs[index].blackbox_baudrateIndex = BAUD_115200;
+    serialPortConfig_t portConfig_Reset = {
+        .msp_baudrateIndex = BAUD_115200,
+        .gps_baudrateIndex = BAUD_38400,
+        .telemetry_baudrateIndex = BAUD_AUTO,
+        .blackbox_baudrateIndex = BAUD_115200,
+    };
+
+    for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
+        memcpy(&serialConfig->portConfigs[i], &portConfig_Reset, sizeof(serialConfig->portConfigs[i]));
+        serialConfig->portConfigs[i].identifier = serialPortIdentifiers[i];
     }
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
@@ -325,37 +338,100 @@ void resetSerialConfig(serialConfig_t *serialConfig)
     serialConfig->reboot_character = 'R';
 }
 
-static void resetControlRateConfig(controlRateConfig_t *controlRateConfig) {
-    controlRateConfig->rcRate8 = 90;
-    controlRateConfig->rcExpo8 = 70;
-    controlRateConfig->thrMid8 = 50;
-    controlRateConfig->thrExpo8 = 0;
-    controlRateConfig->dynThrPID = 0;
-    controlRateConfig->rcYawExpo8 = 20;
-    controlRateConfig->tpa_breakpoint = 1500;
-
-    for (uint8_t axis = 0; axis < FLIGHT_DYNAMICS_INDEX_COUNT; axis++) {
-        controlRateConfig->rates[axis] = 0;
-    }
-
+static void resetControlRateConfig(controlRateConfig_t *controlRateConfig)
+{
+    RESET_CONFIG(controlRateConfig_t, controlRateConfig,
+        .rcRate8 = 90,
+        .rcExpo8 = 70,
+        .thrMid8 = 50,
+        .thrExpo8 = 0,
+        .dynThrPID = 0,
+        .rcYawExpo8 = 20,
+        .tpa_breakpoint = 1500,
+        .rates[FD_ROLL] = 0,
+        .rates[FD_PITCH] = 0,
+        .rates[FD_YAW] = 0,
+    );
 }
 
-void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig) {
-    rcControlsConfig->deadband = 0;
-    rcControlsConfig->yaw_deadband = 0;
-    rcControlsConfig->alt_hold_deadband = 40;
-    rcControlsConfig->deadband3d_throttle = 50;
+void resetRcControlsConfig(rcControlsConfig_t *rcControlsConfig)
+{
+    RESET_CONFIG(rcControlsConfig_t, rcControlsConfig,
+        .deadband = 0,
+        .yaw_deadband = 0,
+        .pos_hold_deadband = 20,
+        .alt_hold_deadband = 40,
+        .deadband3d_throttle = 50
+    );
 }
 
-static void resetMixerConfig(mixerConfig_t *mixerConfig) {
-    mixerConfig->mixerMode = MIXER_QUADX;
-    mixerConfig->yaw_motor_direction = 1;
-    mixerConfig->yaw_jump_prevention_limit = 200;
+static void resetMixerConfig(mixerConfig_t *mixerConfig)
+{
 #ifdef USE_SERVOS
-    mixerConfig->tri_unarmed_servo = 1;
-    mixerConfig->servo_lowpass_freq = 400;
-    mixerConfig->servo_lowpass_enable = 0;
+    RESET_CONFIG(mixerConfig_t, mixerConfig,
+        .mixerMode = MIXER_QUADX,
+        .yaw_motor_direction = 1,
+        .yaw_jump_prevention_limit = 200,
+        .tri_unarmed_servo = 1,
+        .servo_lowpass_freq = 400,
+        .servo_lowpass_enable = 0
+    );
+#else
+    RESET_CONFIG(mixerConfig_t, mixerConfig,
+        .mixerMode = MIXER_QUADX,
+        .yaw_motor_direction = 1,
+        .yaw_jump_prevention_limit = 200,
+    );
 #endif
+}
+
+static void resetIMUConfig(imuConfig_t * imuConfig)
+{
+    RESET_CONFIG(imuConfig_t, imuConfig,
+        .small_angle = 25,
+
+        .dcm_kp_acc = 2500,
+        .dcm_ki_acc = 50,
+        .dcm_kp_mag = 10000,
+        .dcm_ki_mag = 0,
+
+        .looptime = 2000,
+
+        .gyroSync = 1,
+        .gyroSyncDenominator = 2
+    );
+}
+
+static void resetAccelerometerConfig(accConfig_t * accConfig)
+{
+    RESET_CONFIG(accConfig_t, accConfig,
+        .accZero = {
+            .values = {
+                .pitch = 0,
+                .roll = 0,
+                .yaw = 0
+            }
+        },
+
+        .accGain = {
+            .values = {
+                .pitch = 4096,
+                .roll = 4096,
+                .yaw = 4096
+            }
+        },
+
+        .acc_soft_lpf_hz = 15,
+    );
+}
+
+static void resetGyroConfig(gyroConfig_t * gyroConfig)
+{
+    RESET_CONFIG(gyroConfig_t, gyroConfig,
+        .gyro_lpf = 3,                  // INV_FILTER_42HZ, In case of ST gyro, will default to 32Hz instead
+        .gyro_soft_lpf_hz = 60,
+        .gyroMovementCalibrationThreshold = 32
+    );
 }
 
 uint8_t getCurrentControlRateProfile(void)
@@ -407,20 +483,11 @@ STATIC_UNIT_TESTED void resetConf(void)
     beeperConfig.beeper_off_flags = 0;
     beeperConfig.prefered_beeper_off_flags = 0;
 
-    // imu settings
-    imuConfig.small_angle = 25;
-    imuConfig.dcm_kp_acc = 2500;             // 0.25 * 10000
-    imuConfig.dcm_ki_acc = 50;               // 0.005 * 10000
-    imuConfig.dcm_kp_mag = 10000;            // 1.00 * 10000
-    imuConfig.dcm_ki_mag = 0;                // 0.00 * 10000
+    resetIMUConfig(&imuConfig);
 
-    imuConfig.looptime = 2000;
-    imuConfig.gyroSync = 1;
-    imuConfig.gyroSyncDenominator = 2;
+    resetGyroConfig(&gyroConfig);
 
-    resetGyroConfig();
-
-    resetAccelerometerConfig();
+    resetAccelerometerConfig(&accConfig);
 
     resetSensorAlignment(&sensorAlignmentConfig);
 
