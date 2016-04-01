@@ -2272,30 +2272,36 @@ static void cliWrite(uint8_t ch)
     bufWriterAppend(cliWriter, ch);
 }
 
+static void* cliVarPtr(const clivalue_t *var)
+{
+    const pgRegistry_t* rec = pgFind(var->pgn);
+
+    switch (var->type & VALUE_SECTION_MASK) {
+        case CONTROL_RATE_VALUE:
+            return rec->address + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile()) + var->offset;
+        case PROFILE_VALUE:
+            return *rec->ptr + var->offset;
+        case MIGRATED_MASTER_VALUE:
+            return rec->address + var->offset;
+    }
+    return NULL;
+}
+
 static void cliPrintVar(const clivalue_t *var, uint32_t full)
 {
     int32_t value = 0;
     char ftoaBuffer[FTOA_BUFFER_SIZE];
 
-    uint8_t *ptr;
-    const pgRegistry_t* rec = pgFind(var->pgn);
+    void *ptr = cliVarPtr(var);
 
-    if ((var->type & VALUE_SECTION_MASK) == CONTROL_RATE_VALUE) {
-        ptr = rec->address + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile()) + var->offset;
+    if(!ptr) {
+        cliPrintf("*invalid var type*");
+        return;
     }
-
-    if ((var->type & VALUE_SECTION_MASK) == PROFILE_VALUE) {
-        ptr = *rec->ptr + var->offset;
-    }
-
-    if ((var->type & VALUE_SECTION_MASK) == MIGRATED_MASTER_VALUE) {
-        ptr = rec->address + var->offset;
-    }
-
 
     switch (var->type & VALUE_TYPE_MASK) {
         case VAR_UINT8:
-            value = *ptr;
+            value = *(uint8_t*)ptr;
             break;
 
         case VAR_INT8:
@@ -2346,22 +2352,10 @@ static void cliPrintVar(const clivalue_t *var, uint32_t full)
 
 static void cliSetVar(const clivalue_t *var, const int_float_value_t value)
 {
-    void *ptr;
+    void *ptr = cliVarPtr(var);
 
-    const pgRegistry_t* rec = pgFind(var->pgn);
-
-    if ((var->type & VALUE_SECTION_MASK) == CONTROL_RATE_VALUE) {
-        ptr = rec->address + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile()) + var->offset;
-    }
-
-    if ((var->type & VALUE_SECTION_MASK) == PROFILE_VALUE) {
-        ptr = *rec->ptr + var->offset;
-    }
-
-    if ((var->type & VALUE_SECTION_MASK) == MIGRATED_MASTER_VALUE) {
-        ptr = rec->address + var->offset;
-    }
-
+    if(!ptr)
+        return;
 
     switch (var->type & VALUE_TYPE_MASK) {
         case VAR_UINT8:

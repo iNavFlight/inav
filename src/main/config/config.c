@@ -267,13 +267,17 @@ void resetTelemetryConfig(void)
     telemetryConfig.telemetry_inversion = 0;
     telemetryConfig.telemetry_switch = 0;
 
+#if defined(TELEMETRY_FRSKY)
     frskyTelemetryConfig.gpsNoFixLatitude = 0;
     frskyTelemetryConfig.gpsNoFixLongitude = 0;
     frskyTelemetryConfig.frsky_coordinate_format = FRSKY_FORMAT_DMS;
     frskyTelemetryConfig.frsky_unit = FRSKY_UNIT_METRICS;
     frskyTelemetryConfig.frsky_vfas_precision = 0;
-    
+#endif
+
+#if defined(TELEMETRY_HOTT)
     hottTelemetryConfig.hottAlarmSoundInterval = 5;
+#endif
 }
 
 void resetBatteryConfig(batteryConfig_t *batteryConfig)
