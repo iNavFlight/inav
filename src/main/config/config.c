@@ -117,7 +117,7 @@ static void resetGyroConfig(void)
     gyroConfig.gyroMovementCalibrationThreshold = 32;
 }
 
-// FIXME this should probably be defined in a separate file.  Drivers should be aware of parameter groups.
+// FIXME this should probably be defined in a separate file.  Drivers should NOT be aware of parameter groups.
 
 PG_REGISTER(pwmRxConfig_t, pwmRxConfig, PG_DRIVER_PWM_RX_CONFIG, 0);
 
