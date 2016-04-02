@@ -1774,7 +1774,6 @@ static void cliDump(char *cmdline)
 #endif
         printSectionBreak();
         dumpValues(MASTER_VALUE);
-        dumpValues(MASTER_VALUE);
 
         cliPrint("\r\n# rxfail\r\n");
         cliRxFail("");
