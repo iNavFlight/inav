@@ -43,7 +43,6 @@
 int16_t sonarMaxRangeCm;
 int16_t sonarMaxAltWithTiltCm;
 int16_t sonarCfAltCm; // Complimentary Filter altitude
-
 STATIC_UNIT_TESTED int16_t sonarMaxTiltDeciDegrees;
 static sonarFunctionPointers_t sonarFunctionPointers;
 float sonarMaxTiltCos;
@@ -53,7 +52,7 @@ static int32_t calculatedAltitude;
 static const sonarHardware_t *sonarGetHardwareConfigurationForHCSR04(currentSensor_e currentSensor)
 {
 #if defined(NAZE) || defined(EUSTM32F103RC) || defined(PORT103R) || defined(PORT103V)
-    static const sonarHardware_t sonarPWM56 = {
+    static const sonarHardware_t const sonarPWM56 = {
         .trigger_pin = Pin_8,   // PWM5 (PB8) - 5v tolerant
         .trigger_gpio = GPIOB,
         .echo_pin = Pin_9,      // PWM6 (PB9) - 5v tolerant
@@ -139,19 +138,18 @@ STATIC_UNIT_TESTED void sonarSetFunctionPointers(sonarHardwareType_e sonarHardwa
 {
 
     switch (sonarHardwareType) {
-    default:
+    case SONAR_NONE:
+        break;
     case SONAR_HCSR04:
         sonarFunctionPointers.init = hcsr04_init;
         sonarFunctionPointers.update = hcsr04_start_reading;
         sonarFunctionPointers.read = hcsr04_get_distance;
         break;
-#ifdef USE_SONAR_SRF10
     case SONAR_SRF10:
         sonarFunctionPointers.init = srf10_init;
         sonarFunctionPointers.update = srf10_start_reading;
         sonarFunctionPointers.read = srf10_get_distance;
         break;
-#endif
     }
 }
 
@@ -172,14 +170,14 @@ const sonarHardware_t *sonarGetHardwareConfiguration(currentSensor_e currentSens
  */
 static sonarHardwareType_e sonarDetect(void)
 {
-    // the user has set the sonar feature, so assume they have an HC-SR04 plugged in,
-    // since there is no way to detect it
-    sonarHardwareType_e sonarHardwareType = SONAR_HCSR04;
-#ifdef USE_SONAR_SRF10
+    sonarHardwareType_e sonarHardwareType;
     if (srf10_detect()) {
         sonarHardwareType = SONAR_SRF10;
+    } else {
+        // the user has set the sonar feature, so assume they have an HC-SR04 plugged in,
+        // since there is no way to detect it
+        sonarHardwareType = SONAR_HCSR04;
     }
-#endif
     sensorsSet(SENSOR_SONAR);
 #ifndef UNIT_TEST
     sonarSetFunctionPointers(sonarHardwareType);
