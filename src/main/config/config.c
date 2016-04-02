@@ -79,6 +79,7 @@
 #include "config/profile.h"
 
 #include "config/config_system.h"
+#include "config/config_reset.h"
 
 #ifndef DEFAULT_RX_FEATURE
 #define DEFAULT_RX_FEATURE FEATURE_RX_PARALLEL_PWM
@@ -86,21 +87,6 @@
 
 #define BRUSHED_MOTORS_PWM_RATE 16000
 #define BRUSHLESS_MOTORS_PWM_RATE 400
-
-
-#define RESET_CONFIG(_type, _name, ...)                 \
-    static const _type _name ## _reset = {               \
-        __VA_ARGS__                                     \
-    };                                                  \
-    memcpy(_name, &_name ## _reset, sizeof(*_name));    \
-    /**/
-
-#define RESET_CONFIG_2(_type, _name, ...)                  \
-    *_name = (_type) {                                    \
-        __VA_ARGS__                                       \
-    };                                                    \
-    /**/
-
 
 void resetPidProfile(pidProfile_t *pidProfile)
 {
