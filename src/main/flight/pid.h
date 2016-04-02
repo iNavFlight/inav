@@ -64,7 +64,8 @@ typedef struct pidProfile_s {
 
 extern int16_t axisPID[];
 extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
-extern pidProfile_t *pidProfile;
+
+PG_DECLARE_PROFILE(pidProfile_t, pidProfile);
 
 void pidResetErrorAccumulators(void);
 void updatePIDCoefficients(const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);

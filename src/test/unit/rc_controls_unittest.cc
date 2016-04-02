@@ -21,12 +21,18 @@
 //#define DEBUG_RC_CONTROLS
 
 extern "C" {
+<<<<<<< HEAD
     #include "platform.h"
+=======
+    #include <platform.h>
+    #include "build_config.h"
+>>>>>>> 19f4e95... Convert extern to PG_DECLARE
 
     #include "common/maths.h"
     #include "common/axis.h"
 
     #include "config/parameter_group.h"
+    #include "config/parameter_group_ids.h"
 
     #include "drivers/sensor.h"
     #include "drivers/accgyro.h"
@@ -48,8 +54,9 @@ extern "C" {
 
     void useRcControlsConfig(modeActivationCondition_t *);
 
-    pidProfile_t testPidProfile[MAX_PROFILE_COUNT];
-    pidProfile_t *pidProfile = &testPidProfile[0];
+    PG_REGISTER_PROFILE(pidProfile_t, pidProfile, PG_PID_PROFILE, 0);
+    PG_REGISTER(rxConfig_t, rxConfig, PG_RX_CONFIG, 0);
+    PG_REGISTER(motorAndServoConfig_t, motorAndServoConfig, PG_MOTOR_AND_SERVO_CONFIG, 0);
 }
 
 #include "unittest_macros.h"
@@ -230,11 +237,10 @@ void resetMillis(void) {
 #define DEFAULT_MIN_CHECK 1100
 #define DEFAULT_MAX_CHECK 1900
 
-rxConfig_t rxConfig;
-
 extern uint8_t adjustmentStateMask;
 extern adjustmentState_t adjustmentStates[MAX_SIMULTANEOUS_ADJUSTMENT_COUNT];
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 static const adjustmentConfig_t rateAdjustmentConfig = {
     .adjustmentFunction = ADJUSTMENT_RC_RATE,
@@ -246,6 +252,8 @@ escAndServoConfig_t escAndServoConfig;
 =======
 motorAndServoConfig_t motorAndServoConfig;
 >>>>>>> b90714b... rename escAndServ to motorAndServo
+=======
+>>>>>>> 19f4e95... Convert extern to PG_DECLARE
 
 class RcControlsAdjustmentsTest : public ::testing::Test {
 protected:

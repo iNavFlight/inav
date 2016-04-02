@@ -148,6 +148,7 @@ extern "C" {
         uint32_t uint32;
     } PG_PACKED someProfileSpecificData_t;
 
+    PG_DECLARE_PROFILE(someProfileSpecificData_t, someProfileSpecificData);
     PG_REGISTER_PROFILE(someProfileSpecificData_t, someProfileSpecificData, PG_RESERVED_FOR_TESTING_1, 0);
 
 >>>>>>> 7d63772... extract magnetic declination from profile_t.  fix magnetic declination
