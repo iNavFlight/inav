@@ -55,10 +55,13 @@ typedef enum {
 } navUpdateAltitudeFromRateMode_e;
 
 typedef struct navigationFlags_s {
-    bool horizontalPositionNewData;
-    bool verticalPositionNewData;
-    bool surfaceDistanceNewData;
-    bool headingNewData;
+    bool horizontalPositionDataNew;
+    bool verticalPositionDataNew;
+    bool surfaceDistanceDataNew;
+    bool headingDataNew;
+
+    bool horizontalPositionDataConsumed;
+    bool verticalPositionDataConsumed;
 
     bool hasValidAltitudeSensor;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
     bool hasValidPositionSensor;        // Indicates that GPS is working (or not)
