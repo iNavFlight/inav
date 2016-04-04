@@ -1316,11 +1316,11 @@ void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, 
     posControl.flags.hasValidHeadingSensor = isImuHeadingValid();
 
     if (hasValidSensor) {
-        posControl.flags.horizontalPositionNewData = 1;
+        posControl.flags.horizontalPositionDataNew = 1;
         posControl.lastValidPositionTimeMs = millis();
     }
     else {
-        posControl.flags.horizontalPositionNewData = 0;
+        posControl.flags.horizontalPositionDataNew = 0;
     }
 
 #if defined(NAV_BLACKBOX)
@@ -1344,11 +1344,11 @@ void updateActualAltitudeAndClimbRate(bool hasValidSensor, float newAltitude, fl
     // Update altitude that would be used when executing RTH
     if (hasValidSensor) {
         updateDesiredRTHAltitude();
-        posControl.flags.verticalPositionNewData = 1;
+        posControl.flags.verticalPositionDataNew = 1;
         posControl.lastValidAltitudeTimeMs = millis();
     }
     else {
-        posControl.flags.verticalPositionNewData = 0;
+        posControl.flags.verticalPositionDataNew = 0;
     }
 
 #if defined(NAV_BLACKBOX)
@@ -1382,10 +1382,10 @@ void updateActualSurfaceDistance(bool hasValidSensor, float surfaceDistance, flo
     posControl.flags.hasValidSurfaceSensor = hasValidSensor;
 
     if (hasValidSensor) {
-        posControl.flags.surfaceDistanceNewData = 1;
+        posControl.flags.surfaceDistanceDataNew = 1;
     }
     else {
-        posControl.flags.surfaceDistanceNewData = 0;
+        posControl.flags.surfaceDistanceDataNew = 0;
     }
 
 #if defined(NAV_BLACKBOX)
@@ -1405,7 +1405,7 @@ void updateActualHeading(int32_t newHeading)
     posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(newHeading));
     posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(newHeading));
 
-    posControl.flags.headingNewData = 1;
+    posControl.flags.headingDataNew = 1;
 }
 
 /*-----------------------------------------------------------
@@ -1970,6 +1970,10 @@ void applyWaypointNavigationAndAltitudeHold(void)
         return;
     }
 
+    /* Reset flags */
+    posControl.flags.horizontalPositionDataConsumed = 0;
+    posControl.flags.verticalPositionDataConsumed = 0;
+
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
     if (STATE(FIXED_WING)) {
@@ -1978,6 +1982,14 @@ void applyWaypointNavigationAndAltitudeHold(void)
     else {
         applyMulticopterNavigationController(navStateFlags, currentTime);
     }
+
+    /* Consume position data */
+    if (posControl.flags.horizontalPositionDataConsumed)
+        posControl.flags.horizontalPositionDataNew = 0;
+
+    if (posControl.flags.verticalPositionDataConsumed)
+        posControl.flags.verticalPositionDataNew = 0;
+
 
 #if defined(NAV_BLACKBOX)
     if (posControl.flags.isAdjustingPosition)       navFlags |= (1 << 5);
@@ -2245,10 +2257,10 @@ void navigationInit(navConfig_t *initialnavConfig,
     /* Initial state */
     posControl.navState = NAV_STATE_IDLE;
 
-    posControl.flags.horizontalPositionNewData = 0;
-    posControl.flags.verticalPositionNewData = 0;
-    posControl.flags.surfaceDistanceNewData = 0;
-    posControl.flags.headingNewData = 0;
+    posControl.flags.horizontalPositionDataNew = 0;
+    posControl.flags.verticalPositionDataNew = 0;
+    posControl.flags.surfaceDistanceDataNew = 0;
+    posControl.flags.headingDataNew = 0;
 
     posControl.flags.hasValidAltitudeSensor = 0;
     posControl.flags.hasValidPositionSensor = 0;

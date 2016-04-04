@@ -206,7 +206,7 @@ static void applyMulticopterAltitudeController(uint32_t currentTime)
     }
 
     // If we have an update on vertical position data - update velocity and accel targets
-    if (posControl.flags.verticalPositionNewData) {
+    if (posControl.flags.verticalPositionDataNew) {
         uint32_t deltaMicrosPositionUpdate = currentTime - previousTimePositionUpdate;
         previousTimePositionUpdate = currentTime;
 
@@ -222,7 +222,7 @@ static void applyMulticopterAltitudeController(uint32_t currentTime)
         }
 
         // Indicate that information is no longer usable
-        posControl.flags.verticalPositionNewData = 0;
+        posControl.flags.verticalPositionDataConsumed = 1;
     }
 
     // Update throttle controller
@@ -438,7 +438,7 @@ static void applyMulticopterPositionController(uint32_t currentTime)
     // and pilots input would be passed thru to PID controller
     if (posControl.flags.hasValidPositionSensor) {
         // If we have new position - update velocity and acceleration controllers
-        if (posControl.flags.horizontalPositionNewData) {
+        if (posControl.flags.horizontalPositionDataNew) {
             uint32_t deltaMicrosPositionUpdate = currentTime - previousTimePositionUpdate;
             previousTimePositionUpdate = currentTime;
 
@@ -454,7 +454,7 @@ static void applyMulticopterPositionController(uint32_t currentTime)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionNewData = 0;
+            posControl.flags.horizontalPositionDataConsumed = 1;
         }
     }
     else {
@@ -529,7 +529,7 @@ static void applyMulticopterEmergencyLandingController(uint32_t currentTime)
             return;
         }
 
-        if (posControl.flags.verticalPositionNewData) {
+        if (posControl.flags.verticalPositionDataNew) {
             uint32_t deltaMicrosPositionUpdate = currentTime - previousTimePositionUpdate;
             previousTimePositionUpdate = currentTime;
 
@@ -545,7 +545,7 @@ static void applyMulticopterEmergencyLandingController(uint32_t currentTime)
             }
 
             // Indicate that information is no longer usable
-            posControl.flags.verticalPositionNewData = 0;
+            posControl.flags.verticalPositionDataConsumed = 1;
         }
 
         // Update throttle controller
