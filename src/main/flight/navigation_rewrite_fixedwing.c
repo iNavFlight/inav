@@ -337,13 +337,13 @@ int16_t applyFixedWingMinSpeedController(uint32_t currentTime)
 
             if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
                 float forwardVelocity = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y));
-                float velThrottleBoost = (500.0f - forwardVelocity) * 0.1f;
+                float velThrottleBoost = (500.0f - forwardVelocity) * 0.5f * US2S(deltaMicrosPositionUpdate);
 
                 if (ABS(forwardVelocity - 500.0f) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
                 }
 
-                throttleSpeedAdjustment = constrain(throttleSpeedAdjustment, 0, 500);
+                throttleSpeedAdjustment = constrainf(throttleSpeedAdjustment, 0.0f, 500.0f);
             }
             else {
                 throttleSpeedAdjustment = 0;
