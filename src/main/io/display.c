@@ -22,6 +22,7 @@
 
 #include "platform.h"
 #include "version.h"
+#include "debug.h"
 
 #include "build_config.h"
 
@@ -118,7 +119,11 @@ static uint8_t armedBitmapRLE [] = { 128, 32,
 static const char* const pageTitles[] = {
     FC_NAME,
     "ARMED",
+    #ifdef ENABLE_DEBUG_OLED_PAGE
     "STATUS"
+    #else
+    "DEBUG"
+    #endif
 };
 
 static const char* const gpsFixTypeText[] = {
@@ -241,11 +246,26 @@ void showTitle(void)
         i2c_OLED_set_line(0);
         i2c_OLED_send_string(pageTitles[currentPageId]);
     }
-#else 
+#else
     i2c_OLED_set_line(0);
     i2c_OLED_send_string(pageTitles[currentPageId]);
 #endif
 }
+
+#ifdef ENABLE_DEBUG_OLED_PAGE
+
+void showDebugPage(void)
+{
+    uint8_t rowIndex;
+
+    for (rowIndex = 0; rowIndex < 4; rowIndex++) {
+        tfp_sprintf(lineBuffer, "%d = %5d", rowIndex, debug[rowIndex]);
+        padLineBuffer();
+        i2c_OLED_set_line(rowIndex + PAGE_TITLE_LINE_COUNT);
+        i2c_OLED_send_string(lineBuffer);
+    }
+}
+#endif
 
 void showWelcomePage(void)
 {
@@ -304,11 +324,11 @@ void showStatusPage(void)
     uint8_t rowIndex = PAGE_TITLE_LINE_COUNT;
 
     if (feature(FEATURE_VBAT)) {
-        i2c_OLED_set_line(rowIndex++);        
+        i2c_OLED_set_line(rowIndex++);
         tfp_sprintf(lineBuffer, "V: %d.%1d ", vbat / 10, vbat % 10);
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
-        
+
         uint8_t batteryPercentage = calculateBatteryPercentage();
         drawHorizonalPercentageBar(10, batteryPercentage);
     }
@@ -318,25 +338,25 @@ void showStatusPage(void)
         tfp_sprintf(lineBuffer, "mAh: %d", mAhDrawn);
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
-        
+
         uint8_t capacityPercentage = calculateBatteryCapacityRemainingPercentage();
         drawHorizonalPercentageBar(10, capacityPercentage);
     }
-    
+
     rowIndex++;
-    
+
 #ifdef GPS
     if (feature(FEATURE_GPS)) {
         tfp_sprintf(lineBuffer, "Sats: %d", gpsSol.numSat);
         padHalfLineBuffer();
         i2c_OLED_set_line(rowIndex);
         i2c_OLED_send_string(lineBuffer);
-        
+
         tfp_sprintf(lineBuffer, "Fix: %s", gpsFixTypeText[gpsSol.fixType]);
         padHalfLineBuffer();
         i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
         i2c_OLED_send_string(lineBuffer);
-        
+
         tfp_sprintf(lineBuffer, "HDOP: %d.%1d", gpsSol.hdop / 100, gpsSol.hdop % 100);
         padLineBuffer();
         i2c_OLED_set_line(rowIndex++);
@@ -346,12 +366,12 @@ void showStatusPage(void)
         padLineBuffer();
         i2c_OLED_set_line(rowIndex++);
         i2c_OLED_send_string(lineBuffer);
-        
+
     }
 #endif
-    
+
 #ifdef MAG
-    if (sensors(SENSOR_MAG)) {  
+    if (sensors(SENSOR_MAG)) {
         tfp_sprintf(lineBuffer, "HDG: %d", DECIDEGREES_TO_DEGREES(attitude.values.yaw));
         padHalfLineBuffer();
         i2c_OLED_set_line(rowIndex);
@@ -360,15 +380,15 @@ void showStatusPage(void)
 #endif
 
 #ifdef BARO
-    if (sensors(SENSOR_BARO)) {  
+    if (sensors(SENSOR_BARO)) {
         int32_t alt = baroCalculateAltitude();
         tfp_sprintf(lineBuffer, "Alt: %d", alt / 100);
         padHalfLineBuffer();
         i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex);
         i2c_OLED_send_string(lineBuffer);
     }
-#endif    
-    
+#endif
+
 }
 
 void updateDisplay(void)
@@ -397,12 +417,20 @@ void updateDisplay(void)
         pageChanging = true;
     } else {
         if (armedStateChanged) {
+            #ifndef ENABLE_DEBUG_OLED_PAGE
             currentPageId = PAGE_STATUS;
+            #else
+            currentPageId = PAGE_DEBUG;
+            #endif
             pageChanging = true;
         }
 
         if ((currentPageId == PAGE_WELCOME) && ((int32_t)(now - nextPageAt) >= 0L)) {
+            #ifndef ENABLE_DEBUG_OLED_PAGE
             currentPageId = PAGE_STATUS;
+            #else
+            currentPageId = PAGE_DEBUG;
+            #endif
             pageChanging = true;
         }
 
@@ -423,7 +451,7 @@ void updateDisplay(void)
         if (!displayPresent) {
             return;
         }
-        
+
         i2c_OLED_clear_display_quick();
         showTitle();
     }
@@ -439,9 +467,15 @@ void updateDisplay(void)
         case PAGE_ARMED:
             showArmedPage();
             break;
+        #ifndef ENABLE_DEBUG_OLED_PAGE
         case PAGE_STATUS:
             showStatusPage();
             break;
+        #else
+        case PAGE_DEBUG:
+            showDebugPage();
+            break;
+        #endif
     }
 
     if (!armedState) {
