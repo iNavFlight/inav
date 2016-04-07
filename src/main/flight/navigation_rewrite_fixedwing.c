@@ -75,7 +75,7 @@ bool adjustFixedWingAltitudeFromRCInput(void)
     if (rcAdjustment) {
         // set velocity proportional to stick movement
         float rcClimbRate = -rcAdjustment * posControl.navConfig->max_manual_climb_rate / (500.0f - posControl.rcControlsConfig->alt_hold_deadband);
-        updateAltitudeTargetFromClimbRate(rcClimbRate);
+        updateAltitudeTargetFromClimbRate(rcClimbRate, CLIMB_RATE_RESET_SURFACE_TARGET);
         return true;
     }
     else {
@@ -340,13 +340,13 @@ void applyFixedWingPitchRollThrottleController(void)
     if (isPitchAndThrottleAdjustmentValid) {
         // PITCH angle is measured in opposite direction ( >0 - dive, <0 - climb)
         pitchCorrection = constrain(pitchCorrection, -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_dive_angle), DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_climb_angle));
-        rcCommand[PITCH] = -leanAngleToRcCommand(pitchCorrection);
+        rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection);
         rcCommand[THROTTLE] = constrain(throttleCorrection, posControl.escAndServoConfig->minthrottle, posControl.escAndServoConfig->maxthrottle);
     }
 
     if (isRollAdjustmentValid) {
         rollCorrection = constrain(rollCorrection, -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle), DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle));
-        rcCommand[ROLL] = leanAngleToRcCommand(rollCorrection);
+        rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection);
     }
 }
 

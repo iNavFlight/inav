@@ -70,7 +70,6 @@
 
 #define INAV_SONAR_W1                       0.8461f // Sonar predictive filter gain for altitude
 #define INAV_SONAR_W2                       6.2034f // Sonar predictive filter gain for velocity
-#define INAV_SONAR_MAX_DISTANCE             70      // Sonar is unreliable above 70cm due to noise from propellers
 
 #define INAV_HISTORY_BUF_SIZE               (INAV_POSITION_PUBLISH_RATE_HZ / 2)     // Enough to hold 0.5 sec historical data
 
@@ -116,6 +115,12 @@ typedef struct {
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
+    uint32_t    baroGroundTimeout;
+    float       baroGroundAlt;
+    bool        isBaroGroundValid;
+} navPositionEstimatorSTATE_t;
+
+typedef struct {
     uint8_t     index;
     t_fp_vector pos[INAV_HISTORY_BUF_SIZE];
     t_fp_vector vel[INAV_HISTORY_BUF_SIZE];
@@ -140,6 +145,9 @@ typedef struct {
 
     // Estimation history
     navPosisitonEstimatorHistory_t  history;
+
+    // Extra state variables
+    navPositionEstimatorSTATE_t state;
 } navigationPosEstimator_s;
 
 static navigationPosEstimator_s posEstimator;
@@ -378,7 +386,7 @@ static void updateSonarTopic(uint32_t currentTime)
             newSonarAlt = sonarCalculateAltitude(newSonarAlt, calculateCosTiltAngle());
 
             /* Apply predictive filter to sonar readings (inspired by PX4Flow) */
-            if (posEstimator.sonar.alt > 0 && posEstimator.sonar.alt <= INAV_SONAR_MAX_DISTANCE) {
+            if (newSonarAlt > 0 && newSonarAlt <= INAV_SONAR_MAX_DISTANCE) {
                 float sonarPredVel, sonarPredAlt;
                 float sonarDt = (currentTime - posEstimator.sonar.lastUpdateTime) * 1e-6;
                 posEstimator.sonar.lastUpdateTime = currentTime;
@@ -476,6 +484,33 @@ static void updateEstimatedTopic(uint32_t currentTime)
     bool isBaroValid = sensors(SENSOR_BARO) && ((currentTime - posEstimator.baro.lastUpdateTime) <= MS2US(INAV_BARO_TIMEOUT_MS));
     bool isSonarValid = sensors(SENSOR_SONAR) && ((currentTime - posEstimator.sonar.lastUpdateTime) <= MS2US(INAV_SONAR_TIMEOUT_MS));
 
+    /* Do some preparations to data */
+    if (isBaroValid) {
+        if (!ARMING_FLAG(ARMED)) {
+            posEstimator.state.baroGroundAlt = posEstimator.est.pos.V.Z;
+            posEstimator.state.isBaroGroundValid = true;
+            posEstimator.state.baroGroundTimeout = currentTime + 250000;   // 0.25 sec
+        }
+        else {
+            if (posEstimator.est.vel.V.Z > 15) {
+                if (currentTime > posEstimator.state.baroGroundTimeout) {
+                    posEstimator.state.isBaroGroundValid = false;
+                }
+            }
+            else {
+                posEstimator.state.baroGroundTimeout = currentTime + 250000;   // 0.25 sec
+            }
+        }
+    }
+    else {
+        posEstimator.state.isBaroGroundValid = false;
+    }
+
+    /* We might be experiencing air cushion effect - use sonar or baro groung altitude to detect it */
+    bool isAirCushionEffectDetected = ARMING_FLAG(ARMED) &&
+                                        ((isSonarValid && posEstimator.sonar.alt < 20.0f && posEstimator.state.isBaroGroundValid) ||
+                                         (isBaroValid && posEstimator.state.isBaroGroundValid && posEstimator.baro.alt < posEstimator.state.baroGroundAlt));
+
 #if defined(INAV_ENABLE_GPS_GLITCH_DETECTION)
     //isGPSValid = isGPSValid && !posEstimator.gps.glitchDetected;
 #endif
@@ -509,7 +544,7 @@ static void updateEstimatedTopic(uint32_t currentTime)
         }
 
         /* accelerometer bias correction for baro */
-        if (isBaroValid) {
+        if (isBaroValid && !isAirCushionEffectDetected) {
             accelBiasCorr.V.Z -= (posEstimator.baro.alt - posEstimator.est.pos.V.Z) * sq(posControl.navConfig->inav.w_z_baro_p);
         }
 
@@ -529,8 +564,10 @@ static void updateEstimatedTopic(uint32_t currentTime)
 
 #if defined(BARO)
         if (isBaroValid) {
+            float baroError = (isAirCushionEffectDetected ? posEstimator.state.baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.V.Z;
+
             /* Apply only baro correction, no sonar */
-            inavFilterCorrectPos(Z, dt, posEstimator.baro.alt - posEstimator.est.pos.V.Z, posControl.navConfig->inav.w_z_baro_p);
+            inavFilterCorrectPos(Z, dt, baroError, posControl.navConfig->inav.w_z_baro_p);
 
             /* Adjust EPV */
             posEstimator.est.epv = MIN(posEstimator.est.epv, posEstimator.baro.epv);
