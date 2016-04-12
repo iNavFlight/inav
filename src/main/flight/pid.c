@@ -259,6 +259,9 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
     const float newOutput = newPTerm + pidState->errorGyroIf + newDTerm;
     const float newOutputLimited = constrainf(newOutput, -PID_MAX_OUTPUT, +PID_MAX_OUTPUT);
 
+    if (STATE(PID_ATTENUATE))
+        newOutputLimited *= 0.33f;
+
     // Integrate only if we can do backtracking
     pidState->errorGyroIf += (rateError * pidState->kI * dT) + ((newOutputLimited - newOutput) * pidState->kT * dT);
 

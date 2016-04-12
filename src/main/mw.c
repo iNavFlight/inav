@@ -489,8 +489,11 @@ void processRx(void)
             else {
                 pidResetErrorAccumulators();
             }
+
+            ENABLE_STATE(PID_ATTENUATE);
         }
         else {
+            DISABLE_STATE(PID_ATTENUATE);
             DISABLE_STATE(ANTI_WINDUP);
         }
     }
