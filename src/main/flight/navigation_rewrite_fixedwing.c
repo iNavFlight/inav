@@ -45,7 +45,12 @@
 
 #if defined(NAV)
 
-#define FW_THROTTLE_BOOST_GAIN      1.0f
+// If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
+#define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.0f
+#define NAV_FW_MIN_VEL_SPEED_BOOST              500.0f
+
+// If this is enabled navigation won't be applied if velocity is below 3 m/s
+//#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
 
 static bool isPitchAdjustmentValid = false;
 static bool isRollAdjustmentValid = false;
@@ -330,7 +335,7 @@ int16_t applyFixedWingMinSpeedController(uint32_t currentTime)
         return 0;
     }
 
-    // Apply controller only if position source is valid. In absence of valid pos sensor (GPS loss), we'd stick in forced ANGLE mode
+    // Apply controller only if position source is valid
     if (posControl.flags.hasValidPositionSensor) {
         // If we have new position - update velocity and acceleration controllers
         if (posControl.flags.horizontalPositionDataNew) {
@@ -339,9 +344,10 @@ int16_t applyFixedWingMinSpeedController(uint32_t currentTime)
 
             if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
                 float forwardVelocity = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y));
-                float velThrottleBoost = (500.0f - forwardVelocity) * FW_THROTTLE_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
+                float velThrottleBoost = (NAV_FW_MIN_VEL_SPEED_BOOST - forwardVelocity) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
-                if (ABS(forwardVelocity - 500.0f) > 50) {
+                // If we are in the deadband of 50cm/s - don't update speed boost
+                if (ABS(forwardVelocity - NAV_FW_MIN_VEL_SPEED_BOOST) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
                 }
 
@@ -356,7 +362,7 @@ int16_t applyFixedWingMinSpeedController(uint32_t currentTime)
         }
     }
     else {
-        // No valid pos sensor data, don't adjust pitch automatically, rcCommand[ROLL] is passed through to PID controller
+        // No valid pos sensor data, we can't calculate speed
         throttleSpeedAdjustment = 0;
     }
 
@@ -442,8 +448,6 @@ void resetFixedWingHeadingController(void)
 {
     updateMagHoldHeading(CENTIDEGREES_TO_DEGREES(posControl.actualState.yaw));
 }
-
-//#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
 
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, uint32_t currentTime)
 {
