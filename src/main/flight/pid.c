@@ -236,7 +236,8 @@ static void pidApplyRateController(pidProfile_t *pidProfile, pidState_t *pidStat
 
     // Calculate new D-term
     float newDTerm;
-    if (axis == FD_YAW) {
+    if (pidProfile->D8[axis] == 0) {
+        // optimisation for when D8 is zero, often used by YAW axis
         newDTerm = 0;
     } else {
         // Shift old rate values
