@@ -83,13 +83,13 @@ extern float dT;
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenyation is applied
 float tpaFactor;
 
-int16_t axisPID[3];
+int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 #ifdef BLACKBOX
-int32_t axisPID_P[3], axisPID_I[3], axisPID_D[3], axisPID_Setpoint[3];
+int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
 #endif
 
-static pidState_t pidState[3];
+static pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 void pidResetErrorAccumulators(void)
 {
@@ -102,7 +102,7 @@ void pidResetErrorAccumulators(void)
     pidState[FD_YAW].axisLockAccum = 0;
 }
 
-float pidRcCommandToAngle(int16_t stick)
+static float pidRcCommandToAngle(int16_t stick)
 {
     return stick * 2.0f;
 }
