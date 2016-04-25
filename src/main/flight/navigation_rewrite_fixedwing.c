@@ -367,10 +367,14 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     int16_t rollCorrection = 0;         // >0 right, <0 left
     int16_t throttleCorrection = 0;     // raw throttle
 
+    int16_t minThrottleCorrection = posControl.navConfig->fw_min_throttle - posControl.navConfig->fw_cruise_throttle;
+    int16_t maxThrottleCorrection = posControl.navConfig->fw_max_throttle - posControl.navConfig->fw_cruise_throttle;
+
     // Mix Pitch/Roll/Throttle
     if (isPitchAdjustmentValid && (navStateFlags & NAV_CTL_ALT)) {
         pitchCorrection += posControl.rcAdjustment[PITCH];
         throttleCorrection += DECIDEGREES_TO_DEGREES(posControl.rcAdjustment[PITCH]) * posControl.navConfig->fw_pitch_to_throttle;
+        throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
     }
 
     if (isRollAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
@@ -381,6 +385,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     // Speed controller - only apply in POS mode
     if (navStateFlags & NAV_CTL_POS) {
         throttleCorrection += applyFixedWingMinSpeedController(currentTime);
+        throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
     }
 
     // Limit and apply
@@ -396,8 +401,8 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     }
 
     if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS)) {
-        throttleCorrection = constrain(posControl.navConfig->fw_cruise_throttle + throttleCorrection, posControl.navConfig->fw_min_throttle, posControl.navConfig->fw_max_throttle);
-        rcCommand[THROTTLE] = constrain(throttleCorrection, posControl.escAndServoConfig->minthrottle, posControl.escAndServoConfig->maxthrottle);
+        uint16_t correctedThrottleValue = constrain(posControl.navConfig->fw_cruise_throttle + throttleCorrection, posControl.navConfig->fw_min_throttle, posControl.navConfig->fw_max_throttle);
+        rcCommand[THROTTLE] = constrain(correctedThrottleValue, posControl.escAndServoConfig->minthrottle, posControl.escAndServoConfig->maxthrottle);
     }
 }
 
