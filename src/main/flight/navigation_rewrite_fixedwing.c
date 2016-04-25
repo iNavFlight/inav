@@ -45,6 +45,8 @@
 
 #if defined(NAV)
 
+#define FW_THROTTLE_BOOST_GAIN      1.0f
+
 static bool isPitchAdjustmentValid = false;
 static bool isRollAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
@@ -337,7 +339,7 @@ int16_t applyFixedWingMinSpeedController(uint32_t currentTime)
 
             if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
                 float forwardVelocity = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y));
-                float velThrottleBoost = (500.0f - forwardVelocity) * 0.5f * US2S(deltaMicrosPositionUpdate);
+                float velThrottleBoost = (500.0f - forwardVelocity) * FW_THROTTLE_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
                 if (ABS(forwardVelocity - 500.0f) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
