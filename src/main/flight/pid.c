@@ -80,8 +80,8 @@ extern uint8_t motorCount;
 extern bool motorLimitReached;
 extern float dT;
 
-// Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenyation is applied
-float tpaFactor;
+// Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
+static float tpaFactor;
 
 int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
@@ -223,12 +223,10 @@ static void pidLevel(const pidProfile_t *pidProfile, pidState_t *pidState, fligh
 
 static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *pidState, flight_dynamics_index_t axis)
 {
-
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
     // Calculate new P-term
     float newPTerm = rateError * pidState->kP;
-
     // Constrain YAW by yaw_p_limit value if not servo driven (in that case servo limits apply)
     if (axis == FD_YAW && (motorCount >= 4 && pidProfile->yaw_p_limit)) {
         newPTerm = constrain(newPTerm, -pidProfile->yaw_p_limit, pidProfile->yaw_p_limit);
@@ -247,9 +245,16 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
         // Store new rate value
         pidState->dTermBuf[0] = pidState->gyroRate;
 
-        // Calculate derivative using 5-point noise-robust differentiator by Pavel Holoborodko
-        newDTerm = -((2 * (pidState->dTermBuf[1] - pidState->dTermBuf[3]) + (pidState->dTermBuf[0] - pidState->dTermBuf[4])) / (8 * dT)) * pidState->kD;
-
+        // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
+        // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+#ifdef PID_ONE_SIDED_DIFFERENTIATOR
+        // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
+        newDTerm =  5*pidState->dTermBuf[0] + 2*pidState->dTermBuf[1] - 8*pidState->dTermBuf[2] - 2*pidState->dTermBuf[3] + 3*pidState->dTermBuf[4];
+#else
+        // centered differentiator
+        newDTerm = pidState->dTermBuf[0] + 2*(pidState->dTermBuf[1] - pidState->dTermBuf[3]) - pidState->dTermBuf[4];
+#endif
+        newDTerm *= -pidState->kD / (8 * dT);
         // Apply additional lowpass
         if (pidProfile->dterm_lpf_hz) {
             if (!pidState->deltaFilterInit) {
