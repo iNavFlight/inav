@@ -111,6 +111,11 @@ int16_t pidAngleToRcCommand(float angleDeciDegrees)
     return angleDeciDegrees / 2.0f;
 }
 
+float pidRateToRcCommand(float rateDPS, uint8_t rate)
+{
+    return (rateDPS * 50.0f) / (rate + 20.0f);
+}
+
 float pidRcCommandToRate(int16_t stick, uint8_t rate)
 {
     // Map stick position from 200dps to 1200dps

@@ -121,6 +121,7 @@ typedef struct {
     float       surface;
     float       surfaceVel;
     float       surfaceMin;
+    float       velXY;
 } navigationEstimatedState_t;
 
 typedef struct {
