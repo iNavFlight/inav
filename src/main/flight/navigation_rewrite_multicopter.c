@@ -479,7 +479,7 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer, bool * hasHadSomeVelo
     bool verticalMovement = fabsf(posControl.actualState.vel.V.Z) > 25.0f;
 
     // check if we are moving horizontally
-    bool horizontalMovement = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y)) > 100.0f;
+    bool horizontalMovement = posControl.actualState.velXY > 100.0f;
 
     // Throttle should be low enough
     // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed

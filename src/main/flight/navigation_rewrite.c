@@ -1314,6 +1314,7 @@ void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, 
 
     posControl.actualState.vel.V.X = newVelX;
     posControl.actualState.vel.V.Y = newVelY;
+    posControl.actualState.velXY = sqrtf(sq(newVelX) + sq(newVelY));
 
     posControl.flags.hasValidPositionSensor = hasValidSensor;
     posControl.flags.hasValidHeadingSensor = isImuHeadingValid();
