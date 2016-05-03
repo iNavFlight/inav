@@ -2107,7 +2107,8 @@ bool naivationRequiresAngleMode(void)
  */
 int8_t naivationGetHeadingControlState(void)
 {
-    if (navGetStateFlags(posControl.navState) & NAV_REQUIRE_MAGHOLD) {
+    // No explicit MAG_HOLD mode for airplanes
+    if ((navGetStateFlags(posControl.navState) & NAV_REQUIRE_MAGHOLD) && !STATE(FIXED_WING)) {
         if (posControl.flags.isAdjustingHeading) {
             return NAV_HEADING_CONTROL_MANUAL;
         }
