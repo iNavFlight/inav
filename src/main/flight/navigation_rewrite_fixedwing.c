@@ -60,6 +60,7 @@ static float throttleSpeedAdjustment = 0;
  * Backdoor to MW heading controller
  *-----------------------------------------------------------*/
 extern int16_t magHold;
+extern controlRateConfig_t *currentControlRateProfile;
 
 /*-----------------------------------------------------------
  * Altitude controller
@@ -101,8 +102,7 @@ static void updateAltitudeVelocityAndPitchController_FW(uint32_t deltaMicros)
     // velocity error. We use PID controller on altitude error and calculate desired pitch angle from desired climb rate and forward velocity
 
     // FIXME: Use airspeed here
-    float forwardVelocity = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y));
-    forwardVelocity = MAX(forwardVelocity, 300.0f);   // Limit min velocity for PID controller at about 10 km/h
+    float forwardVelocity = MAX(posControl.actualState.velXY, 300.0f);   // Limit min velocity for PID controller at about 10 km/h
 
     // Calculate max climb rate from current forward velocity and maximum pitch angle (climb angle is fairly small, approximate tan=sin)
     float maxVelocityClimb = forwardVelocity * sin_approx(DEGREES_TO_RADIANS(posControl.navConfig->fw_max_climb_angle));
@@ -195,10 +195,9 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     float posErrorY = posControl.desiredState.pos.V.Y - posControl.actualState.pos.V.Y;
 
     float distanceToActualTarget = sqrtf(sq(posErrorX) + sq(posErrorY));
-    float forwardVelocity = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y));
 
     // Limit minimum forward velocity to 1 m/s
-    float trackingDistance = trackingPeriod * MAX(forwardVelocity, 100.0f);
+    float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
     // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
     #define TAN_15DEG    0.26795f
@@ -348,11 +347,10 @@ int16_t applyFixedWingMinSpeedController(uint32_t currentTime)
             previousTimePositionUpdate = currentTime;
 
             if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
-                float forwardVelocity = sqrtf(sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y));
-                float velThrottleBoost = (NAV_FW_MIN_VEL_SPEED_BOOST - forwardVelocity) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
+                float velThrottleBoost = (NAV_FW_MIN_VEL_SPEED_BOOST - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
                 // If we are in the deadband of 50cm/s - don't update speed boost
-                if (ABS(forwardVelocity - NAV_FW_MIN_VEL_SPEED_BOOST) > 50) {
+                if (ABS(posControl.actualState.velXY - NAV_FW_MIN_VEL_SPEED_BOOST) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
                 }
 
@@ -411,6 +409,15 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     if (isRollAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
         rollCorrection = constrain(rollCorrection, -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle), DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle));
         rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection);
+
+        // Calculate coordinated turn rate based on velocity and banking angle
+        if (posControl.actualState.velXY >= 300.0f) {
+            float targetYawRateDPS = RADIANS_TO_DEGREES(tan_approx(DECIDEGREES_TO_RADIANS(-rollCorrection)) * GRAVITY_CMSS / posControl.actualState.velXY);
+            rcCommand[YAW] = pidRateToRcCommand(targetYawRateDPS, currentControlRateProfile->rates[FD_YAW]);
+        }
+        else {
+            rcCommand[YAW] = 0;
+        }
     }
 
     if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS)) {
@@ -462,8 +469,7 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
     else {
 #ifdef NAV_FW_LIMIT_MIN_FLY_VELOCITY
         // Don't apply anything if ground speed is too low (<3m/s)
-        float forwardVelocitySquared = sq(posControl.actualState.vel.V.X) + sq(posControl.actualState.vel.V.Y);
-        if (forwardVelocitySquared > (300 * 300)) {
+        if (posControl.actualState.velXY > 300) {
             if (navStateFlags & NAV_CTL_ALT)
                 applyFixedWingAltitudeController(currentTime);
 

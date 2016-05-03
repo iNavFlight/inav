@@ -65,6 +65,7 @@ void pidResetErrorAccumulators(void);
 void updatePIDCoefficients(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig);
 
 float pidRcCommandToAngle(int16_t stick);
+float pidRateToRcCommand(float rateDPS, uint8_t rate);
 int16_t pidAngleToRcCommand(float angleDeciDegrees);
 
 void pidController(pidProfile_t *pidProfile, controlRateConfig_t *controlRateConfig, rxConfig_t *rxConfig);
