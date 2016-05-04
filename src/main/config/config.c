@@ -239,6 +239,7 @@ void resetNavConfig(navConfig_t * navConfig)
 
     // MC-specific
     navConfig->mc_max_bank_angle = 30;      // 30 deg
+    navConfig->mc_max_rate = 90;            // 90 deg/s
     navConfig->mc_hover_throttle = 1500;
     navConfig->mc_min_fly_throttle = 1200;
 

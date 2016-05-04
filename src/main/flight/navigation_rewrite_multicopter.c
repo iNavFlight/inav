@@ -381,7 +381,7 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
 
     // In this case rate limit and jerk limit is the same thing, so this is set in deg/s.
     // 45 deg to reach 980cm/s^2, or 1 G
-    float maxJerk = US2S(deltaMicros) * ((980.0f/45.0f) * 90.0f); // jerk limit = 90deg/s
+    float maxJerk = US2S(deltaMicros) * ((980.0f/45.0f) * posControl.navConfig->mc_max_rate); // jerk limit = 90deg/s
     float accelLimitXMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerk, 0);
     float accelLimitXMax = constrainf(maxAccelLimit - lastAccelTargetX, 0, +maxJerk);
     float accelLimitYMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerk, 0);
