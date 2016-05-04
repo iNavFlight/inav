@@ -2208,7 +2208,7 @@ void navigationUsePIDs(pidProfile_t *initialPidProfile)
     for (axis = 0; axis < 2; axis++) {
         navPInit(&posControl.pids.pos[axis], (float)posControl.pidProfile->P8[PIDPOS] / 100.0f);
 
-        navPidInit(&posControl.pids.vel[axis], (float)posControl.pidProfile->P8[PIDPOSR] / 100.0f,
+        navPidInit(&posControl.pids.vel[axis], (float)posControl.pidProfile->P8[PIDPOSR] / 10.0f,
                                                (float)posControl.pidProfile->I8[PIDPOSR] / 100.0f,
                                                (float)posControl.pidProfile->D8[PIDPOSR] / 100.0f);
     }
