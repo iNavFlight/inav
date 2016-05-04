@@ -164,13 +164,13 @@ void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[PIDPOS] = 65;    // NAV_POS_XY_P * 100
     pidProfile->I8[PIDPOS] = 120;   // posDecelerationTime * 100
     pidProfile->D8[PIDPOS] = 10;    // posResponseExpo * 100
-    pidProfile->P8[PIDPOSR] = 10;  // NAV_VEL_XY_P * 100
-    pidProfile->I8[PIDPOSR] = 0;   // NAV_VEL_XY_I * 100
-    pidProfile->D8[PIDPOSR] = 10;  // NAV_VEL_XY_D * 100
+    pidProfile->P8[PIDPOSR] = 10;   // NAV_VEL_XY_P * 100
+    pidProfile->I8[PIDPOSR] = 0;    // NAV_VEL_XY_I * 100
+    pidProfile->D8[PIDPOSR] = 10;   // NAV_VEL_XY_D * 100
     pidProfile->P8[PIDNAVR] = 10;   // FW_NAV_P * 100
     pidProfile->I8[PIDNAVR] = 5;    // FW_NAV_I * 100
     pidProfile->D8[PIDNAVR] = 8;    // FW_NAV_D * 100
-    pidProfile->P8[PIDLEVEL] = 120; // Self-level strength * 40 (4 * 40)
+    pidProfile->P8[PIDLEVEL] = 12;  // Self-level strength * 40 (4 * 40)
     pidProfile->I8[PIDLEVEL] = 15;  // Self-leveing low-pass frequency (0 - disabled)
     pidProfile->D8[PIDLEVEL] = 75;  // 75% horizon strength
     pidProfile->P8[PIDMAG] = 40;
