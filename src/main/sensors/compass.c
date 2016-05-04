@@ -37,6 +37,8 @@
 #include "sensors/sensors.h"
 #include "sensors/compass.h"
 
+#include "io/rc_controls.h"
+
 #ifdef NAZE
 #include "hardware_revision.h"
 #endif
@@ -70,7 +72,7 @@ static sensorCalibrationState_t calState;
 
 #define COMPASS_UPDATE_FREQUENCY_10HZ   (1000 * 100)
 
-void updateCompass(flightDynamicsTrims_t *magZero)
+void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZeroHover)
 {
     static uint32_t nextUpdateAt, calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
@@ -98,9 +100,15 @@ void updateCompass(flightDynamicsTrims_t *magZero)
     }
 
     if (magInit) {              // we apply offset only once mag calibration is done
-        magADC[X] -= magZero->raw[X];
-        magADC[Y] -= magZero->raw[Y];
-        magADC[Z] -= magZero->raw[Z];
+        float thrComp = 0;
+        if (ARMING_FLAG(ARMED)) {
+            // TODO: Read min/max throttle settings. Is rcCommand the correct one to use?
+            thrComp = (float)(rcCommand[THROTTLE]-1000)/(1300-1000); //(thr-thr_min)/(thr_hover-thr_min)
+        }
+
+        magADC[X] -= magZero->raw[X] + magZeroHover->raw[X] * thrComp;
+        magADC[Y] -= magZero->raw[Y] + magZeroHover->raw[Y] * thrComp;
+        magADC[Z] -= magZero->raw[Z] + magZeroHover->raw[Z] * thrComp;
     }
 
     if (calStartedAt != 0) {

@@ -32,7 +32,7 @@ typedef enum {
 
 #ifdef MAG
 void compassInit(void);
-void updateCompass(flightDynamicsTrims_t *magZero);
+void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZeroHover);
 bool isCompassReady(void);
 #endif
 
