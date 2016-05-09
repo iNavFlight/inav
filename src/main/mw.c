@@ -296,8 +296,7 @@ void applyMagHold(void)
      * Try limiting diff. If big diff appeared that means that probably this is due to WAYPOINT or RTH fligh mode
      * Too much diff might cause rapid yaw response and general UAV instability
      */
-
-     dif = constrain(dif, -30, 30);
+    dif = constrain(dif, (int) (-1 * masterConfig.mag_hold_heading_diff_limit), masterConfig.mag_hold_heading_diff_limit);
 
     if (STATE(SMALL_ANGLE)) {
         rcCommand[YAW] = dif * currentProfile->pidProfile.P8[PIDMAG] / 30;

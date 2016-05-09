@@ -707,6 +707,7 @@ const clivalue_t valueTable[] = {
 
     { "mag_hardware",               VAR_UINT8  | MASTER_VALUE,  &masterConfig.mag_hardware, .config.minmax = { 0,  MAG_MAX }, 0 },
     { "mag_declination",            VAR_INT16  | PROFILE_VALUE, &masterConfig.profile[0].mag_declination, .config.minmax = { -18000,  18000 }, 0 },
+    { "mag_hold_heading_diff_limit",    VAR_UINT8  | MASTER_VALUE,  &masterConfig.mag_hold_heading_diff_limit, .config.minmax = { 20,  180 }, 0 },
 
     { "p_pitch",                    VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.P8[PITCH], .config.minmax = { 0,  200 }, 0 },
     { "i_pitch",                    VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.I8[PITCH], .config.minmax = { 0,  200 }, 0 },
@@ -1830,7 +1831,7 @@ void cliEnter(serialPort_t *serialPort)
     setPrintfSerialPort(cliPort);
     cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer),
                               (bufWrite_t)serialWriteBufShim, serialPort);
-    
+
     cliPrint("\r\nEntering CLI Mode, type 'exit' to return, or 'help'\r\n");
     cliPrompt();
     ENABLE_ARMING_FLAG(PREVENT_ARMING);
@@ -1842,7 +1843,7 @@ static void cliExit(char *cmdline)
 
     cliPrint("\r\nLeaving CLI mode, unsaved changes lost.\r\n");
     bufWriterFlush(cliWriter);
-    
+
     *cliBuffer = '\0';
     bufferIndex = 0;
     cliMode = 0;
@@ -2558,7 +2559,7 @@ void cliProcess(void)
 
     // Be a little bit tricky.  Flush the last inputs buffer, if any.
     bufWriterFlush(cliWriter);
-    
+
     while (serialRxBytesWaiting(cliPort)) {
         uint8_t c = serialRead(cliPort);
         if (c == '\t' || c == '?') {

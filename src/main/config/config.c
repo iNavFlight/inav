@@ -452,6 +452,7 @@ static void resetConf(void)
     masterConfig.boardAlignment.yawDeciDegrees = 0;
     masterConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
     masterConfig.yaw_control_direction = 1;
+    masterConfig.mag_hold_heading_diff_limit = 180;
     masterConfig.gyroConfig.gyroMovementCalibrationThreshold = 32;
 
     masterConfig.mag_hardware = MAG_DEFAULT;     // default/autodetect
