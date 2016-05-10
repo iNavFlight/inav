@@ -101,7 +101,6 @@ uint16_t cycleTime = 0;         // this is the number in micro second to achieve
 
 float dT;
 
-int16_t magHold;
 int16_t headFreeModeHold;
 
 uint8_t motorControlEnable = false;
@@ -280,7 +279,7 @@ void mwArm(void)
 
 void applyMagHold(void)
 {
-    int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
+    int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - getMagHoldHeading();
 
     if (dif <= -180) {
         dif += 360;
@@ -305,23 +304,14 @@ void applyMagHold(void)
 
 void updateMagHold(void)
 {
-#if defined(NAV)
-    int navHeadingState = naivationGetHeadingControlState();
-    // NAV will prevent MAG_MODE from activating, but require heading control
-    if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
-        // Apply maghold only if heading control is in auto mode
-        if (navHeadingState == NAV_HEADING_CONTROL_AUTO) {
-            applyMagHold();
-        }
-    }
-    else
-#endif
-    if (ABS(rcCommand[YAW]) < 15 && FLIGHT_MODE(MAG_MODE)) {
+    uint8_t magState = getMagHoldState();
+
+    if (magState == MAG_HOLD_ENABLED) {
         applyMagHold();
+    } else if (magState == MAG_HOLD_UPDATE_HEADING) {
+        updateMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
     }
-    else {
-        magHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
-    }
+
 }
 
 void processRx(void)
@@ -446,7 +436,7 @@ void processRx(void)
         if (IS_RC_MODE_ACTIVE(BOXMAG)) {
             if (!FLIGHT_MODE(MAG_MODE)) {
                 ENABLE_FLIGHT_MODE(MAG_MODE);
-                magHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+                updateMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
             }
         } else {
             DISABLE_FLIGHT_MODE(MAG_MODE);

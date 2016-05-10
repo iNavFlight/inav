@@ -80,6 +80,8 @@ extern uint8_t motorCount;
 extern bool motorLimitReached;
 extern float dT;
 
+int16_t magHold;
+
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 static float tpaFactor;
 int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
@@ -291,6 +293,35 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
     axisPID_D[axis] = newDTerm;
     axisPID_Setpoint[axis] = pidState->rateTarget;
 #endif
+}
+
+void updateMagHoldHeading(int16_t heading)
+{
+    magHold = heading;
+}
+
+int16_t getMagHoldHeading() {
+    return magHold;
+}
+
+uint8_t getMagHoldState()
+{
+#if defined(NAV)
+    int navHeadingState = naivationGetHeadingControlState();
+    // NAV will prevent MAG_MODE from activating, but require heading control
+    if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
+        // Apply maghold only if heading control is in auto mode
+        if (navHeadingState == NAV_HEADING_CONTROL_AUTO) {
+            return MAG_HOLD_ENABLED;
+        }
+    }
+    else
+#endif
+    if (ABS(rcCommand[YAW]) < 15 && FLIGHT_MODE(MAG_MODE)) {
+        return MAG_HOLD_ENABLED;
+    } else {
+        return MAG_HOLD_UPDATE_HEADING;
+    }
 }
 
 void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)

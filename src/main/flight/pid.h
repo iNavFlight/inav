@@ -65,3 +65,12 @@ void pidResetErrorAccumulators(void);
 void updatePIDCoefficients(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
 int16_t pidAngleToRcCommand(float angleDeciDegrees);
 void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
+
+enum {
+    MAG_HOLD_DISABLED = 0,
+    MAG_HOLD_UPDATE_HEADING,
+    MAG_HOLD_ENABLED
+};
+
+void updateMagHoldHeading(int16_t heading);
+int16_t getMagHoldHeading();
