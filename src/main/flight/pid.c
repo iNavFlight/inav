@@ -47,6 +47,25 @@
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 
+/*
+    FIXME Here we have a depenency nighmare... try to resolve it by extending PID profile
+*/
+#include "io/gimbal.h"
+#include "sensors/barometer.h"
+#include "sensors/battery.h"
+#include "common/color.h"
+#include "io/ledstrip.h"
+#include "drivers/gpio.h"
+#include "drivers/serial.h"
+#include "drivers/timer.h"
+#include "io/serial.h"
+#include "telemetry/telemetry.h"
+#include "drivers/pwm_rx.h"
+#include "sensors/boardalignment.h"
+
+#include "config/config.h"
+#include "config/config_profile.h"
+#include "config/config_master.h"
 
 typedef struct {
     float kP;
@@ -306,6 +325,15 @@ int16_t getMagHoldHeading() {
 
 uint8_t getMagHoldState()
 {
+
+    #ifndef MAG
+        return MAG_HOLD_DISABLED;
+    #endif
+
+    if (!sensors(SENSOR_MAG) || !STATE(SMALL_ANGLE)) {
+        return MAG_HOLD_DISABLED;
+    }
+
 #if defined(NAV)
     int navHeadingState = naivationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
@@ -324,13 +352,55 @@ uint8_t getMagHoldState()
     }
 }
 
+int16_t pidMagHold(const pidProfile_t *pidProfile)
+{
+    int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
+
+    if (dif <= -180) {
+        dif += 360;
+    }
+
+    if (dif >= +180) {
+        dif -= 360;
+    }
+
+    dif *= masterConfig.yaw_control_direction;
+
+    /*
+     * Try limiting diff. If big diff appeared that means that probably this is due to WAYPOINT or RTH fligh mode
+     * Too much diff might cause rapid yaw response and general UAV instability
+     */
+    dif = constrain(dif, (int) (-1 * masterConfig.mag_hold_heading_diff_limit), masterConfig.mag_hold_heading_diff_limit);
+
+    //Let's scale it down and replace with something usefull
+    return dif * pidProfile->P8[PIDMAG] / 30;
+
+}
+
 void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
 {
+
+    uint8_t magHoldState = getMagHoldState();
+
+    if (magHoldState == MAG_HOLD_UPDATE_HEADING) {
+        updateMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+    }
+
     for (int axis = 0; axis < 3; axis++) {
         // Step 1: Calculate gyro rates
         pidState[axis].gyroRate = gyroADC[axis] * gyro.scale;
-        // Step 2: Read sticks
-        const float rateTarget = pidRcCommandToRate(rcCommand[axis], controlRateConfig->rates[axis]);
+
+        // Step 2: Read target
+        int16_t command;
+
+        if (axis == FD_YAW && magHoldState == MAG_HOLD_ENABLED) {
+            command = pidMagHold(pidProfile);
+        } else {
+            command = rcCommand[axis];
+        }
+
+        const float rateTarget = pidRcCommandToRate(command, controlRateConfig->rates[axis]);
+
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
     }

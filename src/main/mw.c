@@ -277,43 +277,6 @@ void mwArm(void)
     }
 }
 
-void applyMagHold(void)
-{
-    int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - getMagHoldHeading();
-
-    if (dif <= -180) {
-        dif += 360;
-    }
-
-    if (dif >= +180) {
-        dif -= 360;
-    }
-
-    dif *= masterConfig.yaw_control_direction;
-
-    /*
-     * Try limiting diff. If big diff appeared that means that probably this is due to WAYPOINT or RTH fligh mode
-     * Too much diff might cause rapid yaw response and general UAV instability
-     */
-    dif = constrain(dif, (int) (-1 * masterConfig.mag_hold_heading_diff_limit), masterConfig.mag_hold_heading_diff_limit);
-
-    if (STATE(SMALL_ANGLE)) {
-        rcCommand[YAW] = dif * currentProfile->pidProfile.P8[PIDMAG] / 30;
-    }
-}
-
-void updateMagHold(void)
-{
-    uint8_t magState = getMagHoldState();
-
-    if (magState == MAG_HOLD_ENABLED) {
-        applyMagHold();
-    } else if (magState == MAG_HOLD_UPDATE_HEADING) {
-        updateMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-    }
-
-}
-
 void processRx(void)
 {
     static bool armedBeeperOn = false;
@@ -583,12 +546,6 @@ void taskMainPidLoop(void)
 #if defined(NAV)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
-#endif
-
-#ifdef MAG
-    if (sensors(SENSOR_MAG)) {
-        updateMagHold();
-    }
 #endif
 
     // If we're armed, at minimum throttle, and we do arming via the
