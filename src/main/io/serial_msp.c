@@ -640,7 +640,7 @@ static bool processOutCommand(uint8_t cmdMSP)
         headSerialReply(18);
 
         // Hack scale due to choice of units for sensor data in multiwii
-        uint8_t scale = (acc_1G > 1024) ? 8 : 1;
+        const uint8_t scale = (acc.acc_1G > 1024) ? 8 : 1;
 
         for (i = 0; i < 3; i++)
             serialize16(accADC[i] / scale);
@@ -842,7 +842,7 @@ static bool processOutCommand(uint8_t cmdMSP)
 #ifdef GPS
     case MSP_RAW_GPS:
         headSerialReply(18);
-        serialize8(STATE(GPS_FIX));
+        serialize8(gpsSol.fixType);
         serialize8(gpsSol.numSat);
         serialize32(gpsSol.llh.lat);
         serialize32(gpsSol.llh.lon);

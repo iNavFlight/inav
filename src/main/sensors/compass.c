@@ -70,25 +70,18 @@ bool isCompassReady(void)
 
 static sensorCalibrationState_t calState;
 
-#define COMPASS_UPDATE_FREQUENCY_10HZ   (1000 * 100)
-
 void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZeroHover)
 {
-    static uint32_t nextUpdateAt, calStartedAt = 0;
+    static uint32_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
     uint32_t axis;
-
-    if ((int32_t)(currentTime - nextUpdateAt) < 0)
-        return;
-
-    nextUpdateAt = currentTime + COMPASS_UPDATE_FREQUENCY_10HZ;
 
     mag.read(magADCRaw);
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) magADC[axis] = magADCRaw[axis];  // int32_t copy to work with
     alignSensors(magADC, magADC, magAlign);
 
     if (STATE(CALIBRATE_MAG)) {
-        calStartedAt = nextUpdateAt;
+        calStartedAt = currentTime;
 
         for (axis = 0; axis < 3; axis++) {
             magZero->raw[axis] = 0;
@@ -112,7 +105,7 @@ void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZer
     }
 
     if (calStartedAt != 0) {
-        if ((nextUpdateAt - calStartedAt) < 30000000) {    // 30s: you have 30s to turn the multi in all directions
+        if ((currentTime - calStartedAt) < 30000000) {    // 30s: you have 30s to turn the multi in all directions
             LED0_TOGGLE;
 
             float diffMag = 0;
