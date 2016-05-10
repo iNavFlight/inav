@@ -67,6 +67,8 @@
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
+#define MAG_HOLD_ERROR_LPF_FREQ 2
+
 typedef struct {
     float kP;
     float kI;
@@ -354,26 +356,32 @@ uint8_t getMagHoldState()
 
 int16_t pidMagHold(const pidProfile_t *pidProfile)
 {
-    int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
 
-    if (dif <= -180) {
-        dif += 360;
+    static filterStatePt1_t magHoldErrorFilter;
+
+    int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
+
+    //Apply LPF filter to smoothen response
+    error = filterApplyPt1(error, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
+
+    if (error <= -180) {
+        error += 360;
     }
 
-    if (dif >= +180) {
-        dif -= 360;
+    if (error >= +180) {
+        error -= 360;
     }
 
-    dif *= masterConfig.yaw_control_direction;
+    error *= masterConfig.yaw_control_direction;
 
     /*
      * Try limiting diff. If big diff appeared that means that probably this is due to WAYPOINT or RTH fligh mode
      * Too much diff might cause rapid yaw response and general UAV instability
      */
-    dif = constrain(dif, (int) (-1 * masterConfig.mag_hold_heading_diff_limit), masterConfig.mag_hold_heading_diff_limit);
+    error = constrain(error, (int) (-1 * masterConfig.mag_hold_heading_diff_limit), masterConfig.mag_hold_heading_diff_limit);
 
     //Let's scale it down and replace with something usefull
-    return dif * pidProfile->P8[PIDMAG] / 30;
+    return error * pidProfile->P8[PIDMAG] / 30;
 
 }
 
