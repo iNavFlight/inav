@@ -101,7 +101,7 @@ extern uint8_t motorCount;
 extern bool motorLimitReached;
 extern float dT;
 
-int16_t magHold;
+int16_t magHoldTargetHeading;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 static float tpaFactor;
@@ -318,11 +318,11 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
 
 void updateMagHoldHeading(int16_t heading)
 {
-    magHold = heading;
+    magHoldTargetHeading = heading;
 }
 
 int16_t getMagHoldHeading() {
-    return magHold;
+    return magHoldTargetHeading;
 }
 
 uint8_t getMagHoldState()
@@ -359,7 +359,7 @@ int16_t pidMagHold(const pidProfile_t *pidProfile)
 
     static filterStatePt1_t magHoldErrorFilter;
 
-    int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
+    int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHoldTargetHeading;
 
     //Apply LPF filter to smoothen response
     error = filterApplyPt1(error, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
