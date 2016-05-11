@@ -151,7 +151,7 @@ void annexCode(void)
                 }
             }
             tmp2 = tmp / 100;
-            rcCommand[axis] = (lookupYawRC[tmp2] + (tmp - tmp2 * 100) * (lookupYawRC[tmp2 + 1] - lookupYawRC[tmp2]) / 100) * -masterConfig.yaw_control_direction;
+            rcCommand[axis] = (lookupYawRC[tmp2] + (tmp - tmp2 * 100) * (lookupYawRC[tmp2 + 1] - lookupYawRC[tmp2]) / 100) * -1;
         }
 
         if (rcData[axis] < masterConfig.rxConfig.midrc)
@@ -584,7 +584,7 @@ void taskMainPidLoop(void)
         }
     }
 
-    pidController(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig, &masterConfig.yaw_control_direction);
+    pidController(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig);
 
 #ifdef HIL
     if (hilActive) {

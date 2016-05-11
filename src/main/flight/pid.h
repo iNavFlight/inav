@@ -70,7 +70,7 @@ extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
 void pidResetErrorAccumulators(void);
 void updatePIDCoefficients(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
 int16_t pidAngleToRcCommand(float angleDeciDegrees);
-void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig, const int8_t *yaw_control_direction);
+void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
 
 enum {
     MAG_HOLD_DISABLED = 0,

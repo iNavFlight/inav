@@ -334,7 +334,7 @@ uint8_t getMagHoldState()
     }
 }
 
-int16_t pidMagHold(const pidProfile_t *pidProfile, int8_t yaw_control_direction)
+int16_t pidMagHold(const pidProfile_t *pidProfile)
 {
 
     static filterStatePt1_t magHoldErrorFilter;
@@ -348,8 +348,6 @@ int16_t pidMagHold(const pidProfile_t *pidProfile, int8_t yaw_control_direction)
     if (error >= +180) {
         error -= 360;
     }
-
-    error *= yaw_control_direction;
 
     /*
      * Try limiting diff. If big diff appeared that means that probably this is due to WAYPOINT or RTH fligh mode
@@ -365,7 +363,7 @@ int16_t pidMagHold(const pidProfile_t *pidProfile, int8_t yaw_control_direction)
 
 }
 
-void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig, const int8_t *yaw_control_direction)
+void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
 {
 
     uint8_t magHoldState = getMagHoldState();
@@ -382,7 +380,7 @@ void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *co
         int16_t command;
 
         if (axis == FD_YAW && magHoldState == MAG_HOLD_ENABLED) {
-            command = pidMagHold(pidProfile, yaw_control_direction);
+            command = pidMagHold(pidProfile);
         } else {
             command = rcCommand[axis];
         }
