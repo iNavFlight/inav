@@ -184,6 +184,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->yaw_lpf_hz = 30;
 
     pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
+    pidProfile->mag_hold_heading_diff_limit = MAG_HOLD_HEADING_DIFF_LIMIT_MAX;
 
     pidProfile->max_angle_inclination[FD_ROLL] = 300;    // 30 degrees
     pidProfile->max_angle_inclination[FD_PITCH] = 300;    // 30 degrees
@@ -452,7 +453,6 @@ static void resetConf(void)
     masterConfig.boardAlignment.yawDeciDegrees = 0;
     masterConfig.acc_hardware = ACC_DEFAULT;     // default/autodetect
     masterConfig.yaw_control_direction = 1;
-    masterConfig.mag_hold_heading_diff_limit = 180;
     masterConfig.gyroConfig.gyroMovementCalibrationThreshold = 32;
 
     masterConfig.mag_hardware = MAG_DEFAULT;     // default/autodetect

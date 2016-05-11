@@ -47,26 +47,6 @@
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 
-/*
-    FIXME Here we have a depenency nighmare... try to resolve it by extending PID profile
-*/
-#include "io/gimbal.h"
-#include "sensors/barometer.h"
-#include "sensors/battery.h"
-#include "common/color.h"
-#include "io/ledstrip.h"
-#include "drivers/gpio.h"
-#include "drivers/serial.h"
-#include "drivers/timer.h"
-#include "io/serial.h"
-#include "telemetry/telemetry.h"
-#include "drivers/pwm_rx.h"
-#include "sensors/boardalignment.h"
-
-#include "config/config.h"
-#include "config/config_profile.h"
-#include "config/config_master.h"
-
 #define MAG_HOLD_ERROR_LPF_FREQ 2
 
 typedef struct {
@@ -354,7 +334,7 @@ uint8_t getMagHoldState()
     }
 }
 
-int16_t pidMagHold(const pidProfile_t *pidProfile)
+int16_t pidMagHold(const pidProfile_t *pidProfile, int8_t yaw_control_direction)
 {
 
     static filterStatePt1_t magHoldErrorFilter;
@@ -369,13 +349,13 @@ int16_t pidMagHold(const pidProfile_t *pidProfile)
         error -= 360;
     }
 
-    error *= masterConfig.yaw_control_direction;
+    error *= yaw_control_direction;
 
     /*
      * Try limiting diff. If big diff appeared that means that probably this is due to WAYPOINT or RTH fligh mode
      * Too much diff might cause rapid yaw response and general UAV instability
      */
-    error = constrain(error, (int) (-1 * masterConfig.mag_hold_heading_diff_limit), masterConfig.mag_hold_heading_diff_limit);
+    error = constrain(error, (int) (-pidProfile->mag_hold_heading_diff_limit), pidProfile->mag_hold_heading_diff_limit);
 
     //Apply LPF filter to smoothen response
     error = filterApplyPt1(error, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
@@ -385,7 +365,7 @@ int16_t pidMagHold(const pidProfile_t *pidProfile)
 
 }
 
-void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
+void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig, const int8_t *yaw_control_direction)
 {
 
     uint8_t magHoldState = getMagHoldState();
@@ -402,7 +382,7 @@ void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *co
         int16_t command;
 
         if (axis == FD_YAW && magHoldState == MAG_HOLD_ENABLED) {
-            command = pidMagHold(pidProfile);
+            command = pidMagHold(pidProfile, yaw_control_direction);
         } else {
             command = rcCommand[axis];
         }

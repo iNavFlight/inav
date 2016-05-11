@@ -584,7 +584,7 @@ void taskMainPidLoop(void)
         }
     }
 
-    pidController(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig);
+    pidController(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig, &masterConfig.yaw_control_direction);
 
 #ifdef HIL
     if (hilActive) {

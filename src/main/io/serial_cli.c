@@ -707,7 +707,7 @@ const clivalue_t valueTable[] = {
 
     { "mag_hardware",               VAR_UINT8  | MASTER_VALUE,  &masterConfig.mag_hardware, .config.minmax = { 0,  MAG_MAX }, 0 },
     { "mag_declination",            VAR_INT16  | PROFILE_VALUE, &masterConfig.profile[0].mag_declination, .config.minmax = { -18000,  18000 }, 0 },
-    { "mag_hold_heading_diff_limit",    VAR_UINT8  | MASTER_VALUE,  &masterConfig.mag_hold_heading_diff_limit, .config.minmax = { 20,  180 }, 0 },
+    { "mag_hold_heading_diff_limit",    VAR_UINT8  | MASTER_VALUE, &masterConfig.profile[0].pidProfile.mag_hold_heading_diff_limit, .config.minmax = { MAG_HOLD_HEADING_DIFF_LIMIT_MIN,  MAG_HOLD_HEADING_DIFF_LIMIT_MAX }, 0 },
 
     { "p_pitch",                    VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.P8[PITCH], .config.minmax = { 0,  200 }, 0 },
     { "i_pitch",                    VAR_UINT8  | PROFILE_VALUE, &masterConfig.profile[0].pidProfile.I8[PITCH], .config.minmax = { 0,  200 }, 0 },

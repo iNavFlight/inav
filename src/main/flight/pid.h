@@ -28,6 +28,9 @@
 #define YAW_P_LIMIT_MIN 100                 // Maximum value for yaw P limiter
 #define YAW_P_LIMIT_MAX 300                 // Maximum value for yaw P limiter
 
+#define MAG_HOLD_HEADING_DIFF_LIMIT_MIN 20
+#define MAG_HOLD_HEADING_DIFF_LIMIT_MAX 180
+
 typedef enum {
     PIDROLL,
     PIDPITCH,
@@ -56,6 +59,9 @@ typedef struct pidProfile_s {
     uint8_t yaw_lpf_hz;
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
+
+    uint8_t mag_hold_heading_diff_limit;    // Max MAG_HOLD heading error that can be applied in single controll loop iteration
+
 } pidProfile_t;
 
 extern int16_t axisPID[];
@@ -64,7 +70,7 @@ extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
 void pidResetErrorAccumulators(void);
 void updatePIDCoefficients(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
 int16_t pidAngleToRcCommand(float angleDeciDegrees);
-void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
+void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig, const int8_t *yaw_control_direction);
 
 enum {
     MAG_HOLD_DISABLED = 0,
