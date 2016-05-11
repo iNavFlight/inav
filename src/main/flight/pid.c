@@ -361,9 +361,6 @@ int16_t pidMagHold(const pidProfile_t *pidProfile)
 
     int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHoldTargetHeading;
 
-    //Apply LPF filter to smoothen response
-    error = filterApplyPt1(error, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
-
     if (error <= -180) {
         error += 360;
     }
@@ -379,6 +376,9 @@ int16_t pidMagHold(const pidProfile_t *pidProfile)
      * Too much diff might cause rapid yaw response and general UAV instability
      */
     error = constrain(error, (int) (-1 * masterConfig.mag_hold_heading_diff_limit), masterConfig.mag_hold_heading_diff_limit);
+
+    //Apply LPF filter to smoothen response
+    error = filterApplyPt1(error, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
 
     //Let's scale it down and replace with something usefull
     return error * pidProfile->P8[PIDMAG] / 30;
