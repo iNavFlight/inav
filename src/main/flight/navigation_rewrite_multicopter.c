@@ -359,7 +359,7 @@ static void updatePositionVelocityController_MC(void)
 
 static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAccelLimit)
 {
-    float newAccelX, newAccelY;
+    //float newAccelX, newAccelY;
     // TODO: is this part needed? Unclear what it does, flies okay without it.
     // float velErrorX, velErrorY, newAccelX, newAccelY;
     // 
@@ -389,7 +389,7 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     
     float maxJerkX, maxJerkY;
     float velError = sqrtf(sq(velErrorX) + sq(velErrorY));
-    if (velErrorMagnitude > 10.0f) {
+    if (velError > 10.0f) {
         maxJerkX = maxJerk / velError * fabsf(velErrorX);
         maxJerkY = maxJerk / velError * fabsf(velErrorX);
     } else {
