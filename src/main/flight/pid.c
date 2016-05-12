@@ -334,7 +334,10 @@ uint8_t getMagHoldState()
     }
 }
 
-int16_t pidMagHold(const pidProfile_t *pidProfile)
+/*
+ * MAG_HOLD P Controller returns desired rotation rate in dps to be fed to Rate controller
+ */
+float pidMagHold(const pidProfile_t *pidProfile)
 {
 
     static filterStatePt1_t magHoldErrorFilter;
@@ -358,9 +361,12 @@ int16_t pidMagHold(const pidProfile_t *pidProfile)
     //Apply LPF filter to smoothen response
     error = filterApplyPt1(error, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
 
-    //Let's scale it down and replace with something usefull
-    return error * pidProfile->P8[PIDMAG] / 30;
-
+    /*
+    We expect this controller to return desired dps (degrees per second) yaw rotation rate
+    that will be fed directly to rate controller.
+    Magic number 75 scales default P gain (40) to 96dps at 180degrees error
+    */
+    return error * pidProfile->P8[PIDMAG] / 75;
 }
 
 void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
@@ -377,15 +383,13 @@ void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *co
         pidState[axis].gyroRate = gyroADC[axis] * gyro.scale;
 
         // Step 2: Read target
-        int16_t command;
+        float rateTarget;
 
         if (axis == FD_YAW && magHoldState == MAG_HOLD_ENABLED) {
-            command = pidMagHold(pidProfile);
+            rateTarget = pidMagHold(pidProfile);
         } else {
-            command = rcCommand[axis];
+            rateTarget = pidRcCommandToRate(rcCommand[axis], controlRateConfig->rates[axis]);
         }
-
-        const float rateTarget = pidRcCommandToRate(command, controlRateConfig->rates[axis]);
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
