@@ -378,14 +378,31 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     //     accelLimitX = maxAccelLimit / 1.414213f;
     //     accelLimitY = accelLimitX;
     // }
+    
+    float velErrorX, velErrorY, newAccelX, newAccelY;
+    
+    // Calculate velocity error
+    velErrorX = posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X;
+    velErrorY = posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y;
+    
+    float maxJerk = US2S(deltaMicros) * ((980.0f/45.0f) * posControl.navConfig->mc_max_rate); // jerk limit = 90deg/s
+    
+    float maxJerkX, maxJerkY;
+    float velError = sqrtf(sq(velErrorX) + sq(velErrorY));
+    if (velErrorMagnitude > 10.0f) {
+        maxJerkX = maxJerk / velError * fabsf(velErrorX);
+        maxJerkY = maxJerk / velError * fabsf(velErrorX);
+    } else {
+        maxJerkX = maxJerk;
+        maxJerkY = maxJerk;
+    }
 
     // In this case rate limit and jerk limit is the same thing, so this is set in deg/s.
     // 45 deg to reach 980cm/s^2, or 1 G
-    float maxJerk = US2S(deltaMicros) * ((980.0f/45.0f) * posControl.navConfig->mc_max_rate); // jerk limit = 90deg/s
-    float accelLimitXMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerk, 0);
-    float accelLimitXMax = constrainf(maxAccelLimit - lastAccelTargetX, 0, +maxJerk);
-    float accelLimitYMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerk, 0);
-    float accelLimitYMax = constrainf(maxAccelLimit - lastAccelTargetY, 0, +maxJerk);
+    float accelLimitXMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerkX, 0);
+    float accelLimitXMax = constrainf(maxAccelLimit - lastAccelTargetX, 0, +maxJerkX);
+    float accelLimitYMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerkY, 0);
+    float accelLimitYMax = constrainf(maxAccelLimit - lastAccelTargetY, 0, +maxJerkY);
 
     // TODO: Verify if we need jerk limiting after all
 
