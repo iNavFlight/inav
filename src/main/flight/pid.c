@@ -340,7 +340,7 @@ uint8_t getMagHoldState()
 float pidMagHold(const pidProfile_t *pidProfile)
 {
 
-    static filterStatePt1_t magHoldErrorFilter;
+    static filterStatePt1_t magHoldRateFilter;
     float magHoldRate;
 
     int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHoldTargetHeading;
@@ -388,7 +388,7 @@ float pidMagHold(const pidProfile_t *pidProfile)
 
     magHoldRate = error * pidProfile->P8[PIDMAG] / 30;
     magHoldRate = constrainf(magHoldRate, -pidProfile->mag_hold_rate_limit, pidProfile->mag_hold_rate_limit);
-    magHoldRate = filterApplyPt1(magHoldRate, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
+    magHoldRate = filterApplyPt1(magHoldRate, &magHoldRateFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
 
     return magHoldRate;
 }
