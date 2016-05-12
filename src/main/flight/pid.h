@@ -28,8 +28,9 @@
 #define YAW_P_LIMIT_MIN 100                 // Maximum value for yaw P limiter
 #define YAW_P_LIMIT_MAX 300                 // Maximum value for yaw P limiter
 
-#define MAG_HOLD_HEADING_DIFF_LIMIT_MIN 20
-#define MAG_HOLD_HEADING_DIFF_LIMIT_MAX 180
+#define MAG_HOLD_RATE_LIMIT_MIN 10
+#define MAG_HOLD_RATE_LIMIT_MAX 255
+#define MAG_HOLD_RATE_LIMIT_DEFAULT 40
 
 typedef enum {
     PIDROLL,
@@ -60,7 +61,7 @@ typedef struct pidProfile_s {
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
 
-    uint8_t mag_hold_heading_diff_limit;    // Max MAG_HOLD heading error that can be applied in single controll loop iteration
+    uint8_t mag_hold_rate_limit;    //Maximum rotation rate MAG_HOLD mode cas feed to yaw rate PID controller
 
 } pidProfile_t;
 

@@ -341,9 +341,13 @@ float pidMagHold(const pidProfile_t *pidProfile)
 {
 
     static filterStatePt1_t magHoldErrorFilter;
+    float magHoldRate;
 
     int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHoldTargetHeading;
 
+    /*
+     * Convert absolute error into relative to current heading
+     */
     if (error <= -180) {
         error += 360;
     }
@@ -353,20 +357,40 @@ float pidMagHold(const pidProfile_t *pidProfile)
     }
 
     /*
-     * Try limiting diff. If big diff appeared that means that probably this is due to WAYPOINT or RTH fligh mode
-     * Too much diff might cause rapid yaw response and general UAV instability
-     */
-    error = constrain(error, (int) (-pidProfile->mag_hold_heading_diff_limit), pidProfile->mag_hold_heading_diff_limit);
+        New MAG_HOLD controller work slightly different that previous one.
+        Old one mapped error to rotation speed in following way:
+            - on rate 0 it gave about 0.5dps for each degree of error
+            - error 0 = rotation speed of 0dps
+            - error 180 = rotation speed of 96 degrees per second
+            - output
+            - that gives about 2 seconds to correct any error, no matter how big. Of course, usually more because of inertia.
+        That was making him quite "soft" for small changes and rapid for big ones that started to appear
+        when iNav introduced real RTH and WAYPOINT that might require rapid heading changes.
 
-    //Apply LPF filter to smoothen response
-    error = filterApplyPt1(error, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
+        New approach uses modified principle:
+            - manual yaw rate is not used. MAG_HOLD is decoupled from manual input settings
+            - instead, mag_hold_rate_limit is used. It defines max rotation speed in dps that MAG_HOLD controller can require from RateController
+            - computed rotation speed is capped at -mag_hold_rate_limit and mag_hold_rate_limit
+            - Default mag_hold_rate_limit = 40dps and default MAG_HOLD P-gain is 40
+            - With those values, maximum rotation speed will be required from Rate Controller when error is greater that 30 degrees
+            - For smaller error, required rate will be proportional.
+            - It uses LPF filter set at 2Hz to additionally smoothen out any rapid changes
+            - That makes correction of smaller errors stronger, and those of big errors softer
 
-    /*
-    We expect this controller to return desired dps (degrees per second) yaw rotation rate
-    that will be fed directly to rate controller.
-    Magic number 75 scales default P gain (40) to 96dps at 180degrees error
+        This make looks as very slow rotation rate, but please remember this is automatic mode.
+        Manual override with YAW input when MAG_HOLD is enabled will still use "manual" rates, not MAG_HOLD rates.
+        Highest possible correction is 180 degrees and it will take more less 4.5 seconds. It is even more than sufficient
+        to run RTH or WAYPOINT missions. My favourite rate range here is 20dps - 30dps that gives nice and smooth turns.
+
+        Correction for small errors is much faster now. For example, old contrioller for 2deg errors required 1dps (correction in 2 seconds).
+        New controller for 2deg error requires 2,6dps. 4dps for 3deg and so on up until mag_hold_rate_limit is reached.
     */
-    return error * pidProfile->P8[PIDMAG] / 75;
+
+    magHoldRate = error * pidProfile->P8[PIDMAG] / 30;
+    magHoldRate = constrainf(magHoldRate, -pidProfile->mag_hold_rate_limit, pidProfile->mag_hold_rate_limit);
+    magHoldRate = filterApplyPt1(magHoldRate, &magHoldErrorFilter, MAG_HOLD_ERROR_LPF_FREQ, dT);
+
+    return magHoldRate;
 }
 
 void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
