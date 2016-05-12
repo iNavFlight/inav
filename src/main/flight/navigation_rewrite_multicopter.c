@@ -391,7 +391,7 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     float velError = sqrtf(sq(velErrorX) + sq(velErrorY));
     if (velError > 10.0f) {
         maxJerkX = maxJerk / velError * fabsf(velErrorX);
-        maxJerkY = maxJerk / velError * fabsf(velErrorX);
+        maxJerkY = maxJerk / velError * fabsf(velErrorY);
     } else {
         maxJerkX = maxJerk;
         maxJerkY = maxJerk;
