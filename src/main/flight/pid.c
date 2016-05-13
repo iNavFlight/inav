@@ -332,6 +332,8 @@ uint8_t getMagHoldState()
     } else {
         return MAG_HOLD_UPDATE_HEADING;
     }
+
+    return MAG_HOLD_UPDATE_HEADING;
 }
 
 /*
