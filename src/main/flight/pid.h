@@ -29,8 +29,8 @@
 #define YAW_P_LIMIT_MAX 300                 // Maximum value for yaw P limiter
 
 #define MAG_HOLD_RATE_LIMIT_MIN 10
-#define MAG_HOLD_RATE_LIMIT_MAX 255
-#define MAG_HOLD_RATE_LIMIT_DEFAULT 40
+#define MAG_HOLD_RATE_LIMIT_MAX 250
+#define MAG_HOLD_RATE_LIMIT_DEFAULT 80
 
 typedef enum {
     PIDROLL,
