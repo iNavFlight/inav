@@ -266,10 +266,6 @@ typedef struct {
 
     /* Internals */
     int16_t                     rcAdjustment[4];
-
-    navConfig_t *               navConfig;
-    rcControlsConfig_t *        rcControlsConfig;
-    rxConfig_t *                rxConfig;
 } navigationPosControl_t;
 
 extern navigationPosControl_t posControl;

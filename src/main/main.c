@@ -304,7 +304,7 @@ void init(void)
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
 #ifdef BEEPER
-    beeperConfig_t beeperConfig = {
+    beeperRuntimeConfig_t beeperRuntimeConfig = {
         .gpioPeripheral = BEEP_PERIPHERAL,
         .gpioPin = BEEP_PIN,
         .gpioPort = BEEP_GPIO,
@@ -319,12 +319,12 @@ void init(void)
 #ifdef NAZE
     if (hardwareRevision >= NAZE32_REV5) {
         // naze rev4 and below used opendrain to PNP for buzzer. Rev5 and above use PP to NPN.
-        beeperConfig.gpioMode = Mode_Out_PP;
-        beeperConfig.isInverted = true;
+        beeperRuntimeConfig.gpioMode = Mode_Out_PP;
+        beeperRuntimeConfig.isInverted = true;
     }
 #endif
 
-    beeperInit(&beeperConfig);
+    beeperInit(&beeperRuntimeConfig);
 #endif
 
 #ifdef INVERTER
@@ -447,11 +447,7 @@ void init(void)
 #endif
 
 #ifdef NAV
-        navigationInit(
-            &masterConfig.navConfig,
-            &currentProfile->rcControlsConfig,
-            &rxConfig
-        );
+        navigationInit();
 #endif
 
 #ifdef SONAR

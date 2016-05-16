@@ -19,22 +19,7 @@
 
 // System-wide
 typedef struct master_t {
-    uint8_t persistentFlags;
-
-    // Profile configuration
-    uint8_t current_profile_index;
-
-    uint8_t disarm_kill_switch;             // allow disarm via AUX switch regardless of throttle value
-    uint8_t auto_disarm_delay;              // allow automatically disarming multicopters after auto_disarm_delay seconds of zero throttle. Disabled when 0
-
-#ifdef NAV
-    navConfig_t navConfig;
-#endif
-
-    serialConfig_t serialConfig;
-
-    uint32_t beeper_off_flags;
-    uint32_t prefered_beeper_off_flags;
+    uint8_t dummy;
 } master_t;
 
 PG_DECLARE(master_t, masterConfig);

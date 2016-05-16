@@ -22,9 +22,11 @@
 #include "platform.h"
 #include "build_config.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "config/runtime_config.h"
 #include "config/config.h"
-#include "config/parameter_group.h"
 #include "config/feature.h"
 
 #include "io/rc_controls.h"
@@ -44,6 +46,8 @@
 #endif
 
 #include "io/beeper.h"
+
+PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
 
 #if FLASH_SIZE > 64
 #define BEEPER_NAMES
@@ -388,4 +392,44 @@ const char *beeperNameForTableIndex(int idx)
 int beeperTableEntryCount(void)
 {
     return (int)BEEPER_TABLE_ENTRY_COUNT;
+}
+
+void beeperOffSet(uint32_t mask)
+{
+    beeperConfig.beeper_off_flags |= mask;
+}
+
+void beeperOffSetAll(uint8_t beeperCount)
+{
+    beeperConfig.beeper_off_flags = (1 << beeperCount) -1;
+}
+
+void beeperOffClear(uint32_t mask)
+{
+    beeperConfig.beeper_off_flags &= ~(mask);
+}
+
+void beeperOffClearAll(void)
+{
+    beeperConfig.beeper_off_flags = 0;
+}
+
+uint32_t getBeeperOffMask(void)
+{
+    return beeperConfig.beeper_off_flags;
+}
+
+void setBeeperOffMask(uint32_t mask)
+{
+    beeperConfig.beeper_off_flags = mask;
+}
+
+uint32_t getPreferedBeeperOffMask(void)
+{
+    return beeperConfig.prefered_beeper_off_flags;
+}
+
+void setPreferedBeeperOffMask(uint32_t mask)
+{
+    beeperConfig.prefered_beeper_off_flags = mask;
 }

@@ -47,24 +47,6 @@ typedef enum {
 
 void handleOneshotFeatureChangeOnRestart(void);
 
-typedef enum {
-    FLAG_MAG_CALIBRATION_DONE = 1 << 0,
-} persistent_flags_e;
-
-void beeperOffSet(uint32_t mask);
-void beeperOffSetAll(uint8_t beeperCount);
-void beeperOffClear(uint32_t mask);
-void beeperOffClearAll(void);
-uint32_t getBeeperOffMask(void);
-void setBeeperOffMask(uint32_t mask);
-uint32_t getPreferedBeeperOffMask(void);
-void setPreferedBeeperOffMask(uint32_t mask);
-
-bool persistentFlag(uint8_t mask);
-void persistentFlagSet(uint8_t mask);
-void persistentFlagClear(uint8_t mask);
-void persistentFlagClearAll();
-
 void copyCurrentProfileToProfileSlot(uint8_t profileSlotIndex);
 
 void initEEPROM(void);

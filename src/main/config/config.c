@@ -24,8 +24,6 @@
 
 #include "build_config.h"
 
-#include "config/parameter_group.h"
-
 #include "common/color.h"
 #include "common/axis.h"
 #include "common/maths.h"
@@ -81,6 +79,7 @@
 #include "config/parameter_group.h"
 #include "config/config_streamer.h"
 #include "config/feature.h"
+#include "config/persistent_flags.h"
 #include "config/profile.h"
 
 #include "config/config_profile.h"
@@ -402,6 +401,10 @@ STATIC_UNIT_TESTED void resetConf(void)
 #endif
 
     featureSet(FEATURE_FAILSAFE);
+    
+    // beeper config
+    beeperConfig.beeper_off_flags = 0;
+    beeperConfig.prefered_beeper_off_flags = 0;
 
     // imu settings
     imuConfig.small_angle = 25;
@@ -475,7 +478,7 @@ STATIC_UNIT_TESTED void resetConf(void)
 #endif
 
 #ifdef NAV
-    resetNavConfig(&masterConfig.navConfig);
+    resetNavConfig(&navConfig);
 #endif
 
     resetSerialConfig(&serialConfig);
@@ -701,10 +704,7 @@ void activateConfig(void)
     imuConfigure(&imuRuntimeConfig);
 
 #ifdef NAV
-    navigationUseConfig(&masterConfig.navConfig);
     navigationUsePIDs();
-    navigationUseRcControlsConfig(&currentProfile->rcControlsConfig);
-    navigationUseRxConfig(&rxConfig);
 #endif
 }
 
@@ -731,7 +731,7 @@ void validateAndFixConfig(void)
 
 #if defined(NAV)
     // Ensure sane values of navConfig settings
-    validateNavConfig(&masterConfig.navConfig);
+    validateNavConfig(&navConfig);
 #endif
 
     if (featureConfigured(FEATURE_RX_PARALLEL_PWM)) {
@@ -915,64 +915,4 @@ void handleOneshotFeatureChangeOnRestart(void)
     if (feature(FEATURE_ONESHOT125) && !featureConfigured(FEATURE_ONESHOT125)) {
         delay(ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS);
     }
-}
-
-void persistentFlagClearAll()
-{
-    masterConfig.persistentFlags = 0;
-}
-
-bool persistentFlag(uint8_t mask)
-{
-    return masterConfig.persistentFlags & mask;
-}
-
-void persistentFlagSet(uint8_t mask)
-{
-    masterConfig.persistentFlags |= mask;
-}
-
-void persistentFlagClear(uint8_t mask)
-{
-    masterConfig.persistentFlags &= ~(mask);
-}
-
-void beeperOffSet(uint32_t mask)
-{
-    masterConfig.beeper_off_flags |= mask;
-}
-
-void beeperOffSetAll(uint8_t beeperCount)
-{
-    masterConfig.beeper_off_flags = (1 << beeperCount) -1;
-}
-
-void beeperOffClear(uint32_t mask)
-{
-    masterConfig.beeper_off_flags &= ~(mask);
-}
-
-void beeperOffClearAll(void)
-{
-    masterConfig.beeper_off_flags = 0;
-}
-
-uint32_t getBeeperOffMask(void)
-{
-    return masterConfig.beeper_off_flags;
-}
-
-void setBeeperOffMask(uint32_t mask)
-{
-    masterConfig.beeper_off_flags = mask;
-}
-
-uint32_t getPreferedBeeperOffMask(void)
-{
-    return masterConfig.prefered_beeper_off_flags;
-}
-
-void setPreferedBeeperOffMask(uint32_t mask)
-{
-    masterConfig.prefered_beeper_off_flags = mask;
 }

@@ -128,6 +128,8 @@ typedef struct navConfig_s {
     uint16_t fw_loiter_radius;              // Loiter radius when executing PH on a fixed wing
 } navConfig_t;
 
+PG_DECLARE(navConfig_t, navConfig);
+
 typedef struct gpsOrigin_s {
     bool    valid;
     float   scale;
@@ -214,12 +216,7 @@ typedef struct {
 } navSystemStatus_t;
 
 void navigationUsePIDs(void);
-void navigationUseConfig(navConfig_t *navConfigToUse);
-void navigationUseRcControlsConfig(rcControlsConfig_t *initialRcControlsConfig);
-void navigationUseRxConfig(rxConfig_t * initialRxConfig);
-void navigationInit(navConfig_t *initialnavConfig,
-                    rcControlsConfig_t *initialRcControlsConfig,
-                    rxConfig_t * initialRxConfig);
+void navigationInit(void);
 
 /* Navigation system updates */
 void updateWaypointsAndNavigationMode(void);

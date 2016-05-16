@@ -66,11 +66,11 @@ void resetFixedWingAltitudeController()
 
 bool adjustFixedWingAltitudeFromRCInput(void)
 {
-    int16_t rcAdjustment = applyDeadband(rcCommand[PITCH], posControl.rcControlsConfig->alt_hold_deadband);
+    int16_t rcAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig->alt_hold_deadband);
 
     if (rcAdjustment) {
         // set velocity proportional to stick movement
-        float rcClimbRate = -rcAdjustment * posControl.navConfig->max_manual_climb_rate / (500.0f - posControl.rcControlsConfig->alt_hold_deadband);
+        float rcClimbRate = -rcAdjustment * navConfig.max_manual_climb_rate / (500.0f - rcControlsConfig->alt_hold_deadband);
         updateAltitudeTargetFromClimbRate(rcClimbRate, CLIMB_RATE_RESET_SURFACE_TARGET);
         return true;
     }
@@ -92,20 +92,20 @@ static void updateAltitudeVelocityAndPitchController_FW(uint32_t deltaMicros)
     forwardVelocity = MAX(forwardVelocity, 300.0f);   // Limit min velocity for PID controller at about 10 km/h
 
     // Calculate max climb rate from current forward velocity and maximum pitch angle (climb angle is fairly small, approximate tan=sin)
-    float maxVelocityClimb = forwardVelocity * sin_approx(DEGREES_TO_RADIANS(posControl.navConfig->fw_max_climb_angle));
-    float maxVelocityDive = -forwardVelocity * sin_approx(DEGREES_TO_RADIANS(posControl.navConfig->fw_max_dive_angle));
+    float maxVelocityClimb = forwardVelocity * sin_approx(DEGREES_TO_RADIANS(navConfig.fw_max_climb_angle));
+    float maxVelocityDive = -forwardVelocity * sin_approx(DEGREES_TO_RADIANS(navConfig.fw_max_dive_angle));
 
     posControl.desiredState.vel.V.Z = navPidApply2(posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z, US2S(deltaMicros), &posControl.pids.fw_alt, maxVelocityDive, maxVelocityClimb, false);
     posControl.desiredState.vel.V.Z = filterApplyPt1(posControl.desiredState.vel.V.Z, &velzFilterState, NAV_FW_VEL_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
 
     // Calculate climb angle ( >0 - climb, <0 - dive)
     int16_t climbAngleDeciDeg = RADIANS_TO_DECIDEGREES(atan2_approx(posControl.desiredState.vel.V.Z, forwardVelocity));
-    climbAngleDeciDeg = constrain(climbAngleDeciDeg, -posControl.navConfig->fw_max_dive_angle * 10, posControl.navConfig->fw_max_climb_angle * 10);
+    climbAngleDeciDeg = constrain(climbAngleDeciDeg, -navConfig.fw_max_dive_angle * 10, navConfig.fw_max_climb_angle * 10);
     posControl.rcAdjustment[PITCH] = climbAngleDeciDeg;
 
     // Calculate throttle adjustment
-    posControl.rcAdjustment[THROTTLE] = posControl.navConfig->fw_cruise_throttle + DECIDEGREES_TO_DEGREES(climbAngleDeciDeg) * posControl.navConfig->fw_pitch_to_throttle;
-    posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], posControl.navConfig->fw_min_throttle, posControl.navConfig->fw_max_throttle);
+    posControl.rcAdjustment[THROTTLE] = navConfig.fw_cruise_throttle + DECIDEGREES_TO_DEGREES(climbAngleDeciDeg) * navConfig.fw_pitch_to_throttle;
+    posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], navConfig.fw_min_throttle, navConfig.fw_max_throttle);
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(posControl.desiredState.vel.V.Z, -32678, 32767);
@@ -194,7 +194,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
     #define TAN_15DEG    0.26795f
     bool needToCalculateCircularLoiter = isApproachingLastWaypoint()
-                                            && (distanceToActualTarget <= (posControl.navConfig->fw_loiter_radius / TAN_15DEG))
+                                            && (distanceToActualTarget <= (navConfig.fw_loiter_radius / TAN_15DEG))
                                             && (distanceToActualTarget > 50.0f);
 
     // Calculate virtual position for straight movement
@@ -202,8 +202,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         // We are closing in on a waypoint, calculate circular loiter
         float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(45.0f);
 
-        float loiterTargetX = posControl.desiredState.pos.V.X + posControl.navConfig->fw_loiter_radius * cos_approx(loiterAngle);
-        float loiterTargetY = posControl.desiredState.pos.V.Y + posControl.navConfig->fw_loiter_radius * sin_approx(loiterAngle);
+        float loiterTargetX = posControl.desiredState.pos.V.X + navConfig.fw_loiter_radius * cos_approx(loiterAngle);
+        float loiterTargetY = posControl.desiredState.pos.V.Y + navConfig.fw_loiter_radius * sin_approx(loiterAngle);
 
         // We have temporary loiter target. Recalculate distance and position error
         posErrorX = loiterTargetX - posControl.actualState.pos.V.X;
@@ -217,10 +217,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 
     // Shift position according to pilot's ROLL input (up to max_manual_speed velocity)
     if (posControl.flags.isAdjustingPosition) {
-        int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], posControl.rcControlsConfig->pos_hold_deadband);
+        int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig->pos_hold_deadband);
 
         if (rcRollAdjustment) {
-            float rcShiftY = rcRollAdjustment * posControl.navConfig->max_manual_speed / 500.0f * trackingPeriod;
+            float rcShiftY = rcRollAdjustment * navConfig.max_manual_speed / 500.0f * trackingPeriod;
 
             // Rotate this target shift from body frame to to earth frame and apply to position target
             virtualDesiredPosition.V.X += -rcShiftY * posControl.actualState.sinYaw;
@@ -233,7 +233,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 
 bool adjustFixedWingPositionFromRCInput(void)
 {
-    int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], posControl.rcControlsConfig->pos_hold_deadband);
+    int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig->pos_hold_deadband);
     return (rcRollAdjustment);
 }
 
@@ -252,8 +252,8 @@ static void updatePositionHeadingController_FW(uint32_t deltaMicros)
 
     // Input error in (deg*100), output pitch angle (deg*100)
     float rollAdjustment = navPidApply2(posControl.actualState.yaw + headingError, posControl.actualState.yaw, US2S(deltaMicros), &posControl.pids.fw_nav,
-                                       -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle),
-                                        DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle),
+                                       -DEGREES_TO_CENTIDEGREES(navConfig.fw_max_bank_angle),
+                                        DEGREES_TO_CENTIDEGREES(navConfig.fw_max_bank_angle),
                                         true);
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
@@ -328,20 +328,20 @@ void applyFixedWingPitchRollThrottleController(void)
     }
 
     if (isRollAdjustmentValid) {
-        pitchCorrection += ABS(posControl.rcAdjustment[ROLL]) * (posControl.navConfig->fw_roll_to_pitch / 100.0f);
+        pitchCorrection += ABS(posControl.rcAdjustment[ROLL]) * (navConfig.fw_roll_to_pitch / 100.0f);
         rollCorrection += posControl.rcAdjustment[ROLL];
     }
 
     // Limit and apply
     if (isPitchAndThrottleAdjustmentValid) {
         // PITCH angle is measured in opposite direction ( >0 - dive, <0 - climb)
-        pitchCorrection = constrain(pitchCorrection, -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_dive_angle), DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_climb_angle));
+        pitchCorrection = constrain(pitchCorrection, -DEGREES_TO_CENTIDEGREES(navConfig.fw_max_dive_angle), DEGREES_TO_CENTIDEGREES(navConfig.fw_max_climb_angle));
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection);
         rcCommand[THROTTLE] = constrain(throttleCorrection, escAndServoConfig.minthrottle, escAndServoConfig.maxthrottle);
     }
 
     if (isRollAdjustmentValid) {
-        rollCorrection = constrain(rollCorrection, -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle), DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle));
+        rollCorrection = constrain(rollCorrection, -DEGREES_TO_CENTIDEGREES(navConfig.fw_max_bank_angle), DEGREES_TO_CENTIDEGREES(navConfig.fw_max_bank_angle));
         rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection);
     }
 }

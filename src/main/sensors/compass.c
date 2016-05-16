@@ -35,6 +35,7 @@
 
 #include "sensors/boardalignment.h"
 #include "config/runtime_config.h"
+#include "config/persistent_flags.h"
 #include "config/config.h"
 
 #include "sensors/sensors.h"

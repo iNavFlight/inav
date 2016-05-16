@@ -61,7 +61,7 @@ void systemBeep(bool onoff)
 #endif
 }
 
-void beeperInit(beeperConfig_t *config)
+void beeperInit(beeperRuntimeConfig_t *config)
 {
 #ifndef BEEPER
     UNUSED(config);

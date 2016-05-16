@@ -92,6 +92,7 @@
 #include "config/config_system.h"
 #include "config/feature.h"
 #include "config/profile.h"
+#include "config/persistent_flags.h"
 
 #include "common/printf.h"
 
@@ -587,54 +588,56 @@ const clivalue_t valueTable[] = {
 #endif
 
 #if defined(NAV_AUTO_MAG_DECLINATION)
-    { "inav_auto_mag_decl",         VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.inav.automatic_mag_declination, .config.lookup = { TABLE_OFF_ON }, 0 },
+    { "inav_auto_mag_decl",         VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_OFF_ON }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.automatic_mag_declination)},
 #endif
 
-    { "inav_accz_unarmedcal",       VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.inav.accz_unarmed_cal, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "inav_use_gps_velned",        VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.inav.use_gps_velned, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "inav_gps_delay",             VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.inav.gps_delay_ms, .config.minmax = { 0,  500 }, 0 },
-    { "inav_gps_min_sats",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.inav.gps_min_sats, .config.minmax = { 5,  10}, 0 },
+    { "inav_accz_unarmedcal",       VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_OFF_ON }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.accz_unarmed_cal)},
+    { "inav_use_gps_velned",        VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_OFF_ON }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.use_gps_velned)},
+    { "inav_gps_delay",             VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  500 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.gps_delay_ms)},
+    { "inav_gps_min_sats",          VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 5,  10}, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.gps_min_sats)},
 
-    { "inav_w_z_baro_p",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_baro_p, .config.minmax = { 0,  10 }, 0 },
-    { "inav_w_z_gps_p",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_gps_p, .config.minmax = { 0,  10 }, 0 },
-    { "inav_w_z_gps_v",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_gps_v, .config.minmax = { 0,  10 }, 0 },
-    { "inav_w_xy_gps_p",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_gps_p, .config.minmax = { 0,  10 }, 0 },
-    { "inav_w_xy_gps_v",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_gps_v, .config.minmax = { 0,  10 }, 0 },
-    { "inav_w_z_res_v",             VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_z_res_v, .config.minmax = { 0,  10 }, 0 },
-    { "inav_w_xy_res_v",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_xy_res_v, .config.minmax = { 0,  10 }, 0 },
-    { "inav_w_acc_bias",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.navConfig.inav.w_acc_bias, .config.minmax = { 0,  1 }, 0 },
+    { "inav_w_z_baro_p",            VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_z_baro_p)},
+    { "inav_w_z_gps_p",             VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_z_gps_p)},
+    { "inav_w_z_gps_v",             VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_z_gps_v)},
+    { "inav_w_xy_gps_p",            VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_xy_gps_p)},
+    { "inav_w_xy_gps_v",            VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_xy_gps_v)},
+    { "inav_w_z_res_v",             VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_z_res_v)},
+    { "inav_w_xy_res_v",            VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_xy_res_v)},
+    { "inav_w_acc_bias",            VAR_FLOAT  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  1 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, inav.w_acc_bias)},
 
-    { "nav_disarm_on_landing",      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.disarm_on_landing, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "nav_use_midthr_for_althold", VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.use_thr_mid_for_althold, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "nav_extra_arming_safety",    VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.extra_arming_safety, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "nav_user_control_mode",      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.user_control_mode, .config.lookup = { TABLE_NAV_USER_CTL_MODE }, 0 },
-    { "nav_position_timeout",       VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.pos_failure_timeout, .config.minmax = { 0,  10 }, 0 },
-    { "nav_wp_radius",              VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.waypoint_radius, .config.minmax = { 10,  10000 }, 0 },
-    { "nav_max_speed",              VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.max_speed, .config.minmax = { 10,  2000 }, 0 },
-    { "nav_manual_speed",           VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.max_manual_speed, .config.minmax = { 10,  2000 }, 0 },
-    { "nav_manual_climb_rate",      VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.max_manual_climb_rate, .config.minmax = { 10,  2000 }, 0 },
-    { "nav_landing_speed",          VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.land_descent_rate, .config.minmax = { 100,  2000 }, 0 },
-    { "nav_land_slowdown_minalt",   VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.land_slowdown_minalt, .config.minmax = { 50,  1000 }, 0 },
-    { "nav_land_slowdown_maxalt",   VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.land_slowdown_maxalt, .config.minmax = { 500,  4000 }, 0 },
-    { "nav_emerg_landing_speed",    VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.emerg_descent_rate, .config.minmax = { 100,  2000 }, 0 },
-    { "nav_min_rth_distance",       VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.min_rth_distance, .config.minmax = { 0,  5000 }, 0 },
-    { "nav_rth_tail_first",         VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.rth_tail_first, .config.lookup = { TABLE_OFF_ON }, 0 },
-    { "nav_rth_alt_mode",           VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.navConfig.flags.rth_alt_control_style, .config.lookup = { TABLE_NAV_RTH_ALT_MODE }, 0 },
-    { "nav_rth_altitude",           VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.rth_altitude, .config.minmax = { 100,  65000 }, 0 },
+    { "nav_disarm_on_landing",      VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_OFF_ON }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, flags.disarm_on_landing)},
+    { "nav_use_midthr_for_althold", VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_OFF_ON }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, flags.use_thr_mid_for_althold)},
+    { "nav_extra_arming_safety",    VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_OFF_ON }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, flags.extra_arming_safety)},
+    { "nav_user_control_mode",      VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_NAV_USER_CTL_MODE }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, flags.user_control_mode)},
 
-    { "nav_mc_bank_angle",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.mc_max_bank_angle, .config.minmax = { 15,  45 }, 0 },
-    { "nav_mc_hover_thr",           VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.mc_hover_throttle, .config.minmax = { 1000,  2000 }, 0 },
-    { "nav_mc_min_fly_thr",         VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.mc_min_fly_throttle, .config.minmax = { 1000,  2000 }, 0 },
+    { "nav_position_timeout",       VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, pos_failure_timeout)},
+    { "nav_wp_radius",              VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 10,  10000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, waypoint_radius)},
+    { "nav_max_speed",              VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 10,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, max_speed)},
+    { "nav_manual_speed",           VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 10,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, max_manual_speed)},
+    { "nav_manual_climb_rate",      VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 10,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, max_manual_climb_rate)},
+    { "nav_landing_speed",          VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 100,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, land_descent_rate)},
+    { "nav_land_slowdown_minalt",   VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 50,  1000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, land_slowdown_minalt)},
+    { "nav_land_slowdown_maxalt",   VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 500,  4000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, land_slowdown_maxalt)},
+    { "nav_emerg_landing_speed",    VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 100,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, emerg_descent_rate)},
 
-    { "nav_fw_cruise_thr",          VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.fw_cruise_throttle, .config.minmax = { 1000,  2000 }, 0 },
-    { "nav_fw_min_thr",             VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.fw_min_throttle, .config.minmax = { 1000,  2000 }, 0 },
-    { "nav_fw_max_thr",             VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.fw_max_throttle, .config.minmax = { 1000,  2000 }, 0 },
-    { "nav_fw_bank_angle",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.fw_max_bank_angle, .config.minmax = { 5,  45 }, 0 },
-    { "nav_fw_climb_angle",         VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.fw_max_climb_angle, .config.minmax = { 5,  45 }, 0 },
-    { "nav_fw_dive_angle",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.fw_max_dive_angle, .config.minmax = { 5,  45 }, 0 },
-    { "nav_fw_pitch2thr",           VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.fw_pitch_to_throttle, .config.minmax = { 0,  100 }, 0 },
-    { "nav_fw_roll2pitch",          VAR_UINT8  | MASTER_VALUE, &masterConfig.navConfig.fw_roll_to_pitch, .config.minmax = { 0,  200 }, 0 },
-    { "nav_fw_loiter_radius",       VAR_UINT16 | MASTER_VALUE, &masterConfig.navConfig.fw_loiter_radius, .config.minmax = { 0,  10000 }, 0 },
+    { "nav_min_rth_distance",       VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  5000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, min_rth_distance)},
+    { "nav_rth_tail_first",         VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_OFF_ON }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, flags.rth_tail_first)},
+    { "nav_rth_alt_mode",           VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_NAV_RTH_ALT_MODE }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, flags.rth_alt_control_style)},
+    { "nav_rth_altitude",           VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 100,  65000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, rth_altitude)},
+
+    { "nav_mc_bank_angle",          VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 15,  45 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, mc_max_bank_angle)},
+    { "nav_mc_hover_thr",           VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 1000,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, mc_hover_throttle)},
+    { "nav_mc_min_fly_thr",         VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 1000,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, mc_min_fly_throttle)},
+
+    { "nav_fw_cruise_thr",          VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 1000,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_cruise_throttle)},
+    { "nav_fw_min_thr",             VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 1000,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_min_throttle)},
+    { "nav_fw_max_thr",             VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 1000,  2000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_max_throttle)},
+    { "nav_fw_bank_angle",          VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 5,  45 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_max_bank_angle)},
+    { "nav_fw_climb_angle",         VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 5,  45 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_max_climb_angle)},
+    { "nav_fw_dive_angle",          VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 5,  45 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_max_dive_angle)},
+    { "nav_fw_pitch2thr",           VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  100 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_pitch_to_throttle)},
+    { "nav_fw_roll2pitch",          VAR_UINT8  | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  200 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_roll_to_pitch)},
+    { "nav_fw_loiter_radius",       VAR_UINT16 | MIGRATED_MASTER_VALUE, 0, .config.minmax = { 0,  10000 }, PG_NAVIGATION_CONFIG, offsetof(navConfig_t, fw_loiter_radius)},
 
 #ifdef TELEMETRY
     { "telemetry_switch",           VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, telemetry_switch)},
@@ -2600,7 +2603,7 @@ static void cliPFlags(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrintf("# Persistent config flags: 0x%08x", masterConfig.persistentFlags );
+    cliPrintf("# Persistent config flags: 0x%08x", persistentFlags.persistentFlags );
 }
 
 void cliProcess(void)
