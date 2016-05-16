@@ -39,6 +39,9 @@
 
 #include "io/rc_controls.h"
 
+// TODO: Remove when compass-mot is done
+//#include "debug.h"
+
 #ifdef NAZE
 #include "hardware_revision.h"
 #endif
@@ -70,7 +73,7 @@ bool isCompassReady(void)
 
 static sensorCalibrationState_t calState;
 
-void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZeroHover)
+void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZeroHover, escAndServoConfig_t *escAndServoConfig, navConfig_t *navConfig)
 {
     static uint32_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
@@ -96,12 +99,22 @@ void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZer
         float thrComp = 0;
         if (ARMING_FLAG(ARMED)) {
             // TODO: Read min/max throttle settings. Is rcCommand the correct one to use?
-            thrComp = (float)(rcCommand[THROTTLE]-1000)/(1300-1000); //(thr-thr_min)/(thr_hover-thr_min)
+            //thrComp = (float)(rcCommand[THROTTLE]-1000)/(1300-1000); //(thr-thr_min)/(thr_hover-thr_min)
+            thrComp = (float)(rcCommand[THROTTLE] - escAndServoConfig->minthrottle) / (navConfig->mc_hover_throttle - escAndServoConfig->minthrottle); //(thr-thr_min)/(thr_hover-thr_min)
         }
 
         magADC[X] -= magZero->raw[X] + magZeroHover->raw[X] * thrComp;
         magADC[Y] -= magZero->raw[Y] + magZeroHover->raw[Y] * thrComp;
         magADC[Z] -= magZero->raw[Z] + magZeroHover->raw[Z] * thrComp;
+        
+        // debug[0] = escAndServoConfig->minthrottle;
+        // debug[1] = escAndServoConfig->maxthrottle;
+        // debug[2] = navConfig->mc_hover_throttle;
+        // debug[3] = thrComp * 1000;
+        
+        // debug[0] = rcCommand[THROTTLE];
+        // debug[1] = thrComp * 1000;
+        // debug[2] = magZeroHover->raw[X] * thrComp;
     }
 
     if (calStartedAt != 0) {
