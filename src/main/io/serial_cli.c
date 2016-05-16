@@ -91,7 +91,6 @@
 #include "config/config_system.h"
 #include "config/feature.h"
 #include "config/profile.h"
-#include "config/persistent_flags.h"
 
 #include "common/printf.h"
 
@@ -140,8 +139,6 @@ static void cliTasks(char *cmdline);
 #endif
 static void cliVersion(char *cmdline);
 static void cliRxRange(char *cmdline);
-static void cliPFlags(char *cmdline);
-
 
 #ifdef GPS
 static void cliGpsPassthrough(char *cmdline);
@@ -302,7 +299,6 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("set", "change setting",
         "[<name>=<value>]", cliSet),
-    CLI_COMMAND_DEF("pflags", "get persistent flags", NULL, cliPFlags),
 #ifdef USE_SERVOS
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed> <min> <max> <box>\r\n"
@@ -508,7 +504,6 @@ typedef struct {
     const cliValueConfig_t config;
     pgn_t pgn;
     uint16_t offset;
-    persistent_flags_e pflags;
 } __attribute__((packed)) clivalue_t;
 
 const clivalue_t valueTable[] = {
@@ -713,7 +708,7 @@ const clivalue_t valueTable[] = {
     { "failsafe_procedure",         VAR_UINT8  | MIGRATED_MASTER_VALUE, .config.minmax = { 0,  1 } , PG_FAILSAFE_CONFIG, offsetof(failsafeConfig_t, failsafe_procedure)},
 
 #ifdef USE_SERVOS
-    { "gimbal_mode",                VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GIMBAL_MODE }, PG_GIMBAL_CONFIG, offsetof(gimbalConfig_t, mode), 0},
+    { "gimbal_mode",                VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_GIMBAL_MODE }, PG_GIMBAL_CONFIG, offsetof(gimbalConfig_t, mode)},
 #endif
 
 #ifdef BARO
@@ -758,9 +753,9 @@ const clivalue_t valueTable[] = {
     { "blackbox_device",            VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_BLACKBOX_DEVICE } , PG_BLACKBOX_CONFIG, offsetof(blackboxConfig_t, device)},
 #endif
 
-    { "magzero_x",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[X]), FLAG_MAG_CALIBRATION_DONE },
-    { "magzero_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Y]), FLAG_MAG_CALIBRATION_DONE },
-    { "magzero_z",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Z]), FLAG_MAG_CALIBRATION_DONE },
+    { "magzero_x",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[X])},
+    { "magzero_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Y])},
+    { "magzero_z",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Z])},
 
     { "acczero_x",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accZero.raw[X])},
     { "acczero_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accZero.raw[Y])},
@@ -1679,9 +1674,6 @@ static void cliDump(char *cmdline)
         cliPrint("\r\n# version\r\n");
         cliVersion(NULL);
 
-        cliPrint("\r\n# pflags\r\n");
-        cliPFlags("");
-
         cliPrint("\r\n# dump master\r\n");
         cliPrint("\r\n# mixer\r\n");
 
@@ -2376,10 +2368,6 @@ static void cliSetVar(const clivalue_t *var, const int_float_value_t value)
             *(float *)ptr = (float)value.float_value;
             break;
     }
-
-    if (var->pflags) {
-        persistentFlagSet(var->pflags);
-    }
 }
 
 static void cliSet(char *cmdline)
@@ -2579,13 +2567,6 @@ static void cliVersion(char *cmdline)
         buildTime,
         shortGitRevision
     );
-}
-
-static void cliPFlags(char *cmdline)
-{
-    UNUSED(cmdline);
-
-    cliPrintf("# Persistent config flags: 0x%08x", persistentFlags.persistentFlags );
 }
 
 void cliProcess(void)

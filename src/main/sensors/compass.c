@@ -35,7 +35,6 @@
 
 #include "sensors/boardalignment.h"
 #include "config/runtime_config.h"
-#include "config/persistent_flags.h"
 #include "config/config.h"
 
 #include "sensors/sensors.h"
@@ -130,7 +129,6 @@ void updateCompass(void)
             }
 
             calStartedAt = 0;
-            persistentFlagSet(FLAG_MAG_CALIBRATION_DONE);
             saveConfigAndNotify();
         }
     }

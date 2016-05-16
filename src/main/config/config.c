@@ -79,7 +79,6 @@
 #include "config/parameter_group.h"
 #include "config/config_streamer.h"
 #include "config/feature.h"
-#include "config/persistent_flags.h"
 #include "config/profile.h"
 
 #include "config/config_profile.h"
@@ -391,7 +390,6 @@ STATIC_UNIT_TESTED void resetConf(void)
     setControlRateProfile(0);
 
     featureClearAll();
-    persistentFlagClearAll();
 #if defined(CJMCU) || defined(SPARKY) || defined(COLIBRI_RACE) || defined(MOTOLAB) || defined(LUX_RACE)
     featureSet(FEATURE_RX_PPM);
 #endif

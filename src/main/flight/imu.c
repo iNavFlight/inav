@@ -35,7 +35,6 @@
 #include "config/runtime_config.h"
 #include "config/parameter_group_ids.h"
 #include "config/parameter_group.h"
-#include "config/persistent_flags.h"
 
 #include "drivers/system.h"
 #include "drivers/sensor.h"
@@ -560,7 +559,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE)) || (STATE(FIXED_WING) && gpsHeadingInitialized);
+    return sensors(SENSOR_MAG) || (STATE(FIXED_WING) && gpsHeadingInitialized);
 }
 
 float calculateCosTiltAngle(void)
