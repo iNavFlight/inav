@@ -746,7 +746,7 @@ const clivalue_t valueTable[] = {
     { "max_angle_inclination_pit",  VAR_INT16  | PROFILE_VALUE, .config.minmax = {100, 900 } , PG_PID_PROFILE, offsetof(pidProfile_t, max_angle_inclination[FD_PITCH])},
     
     { "gyro_soft_lpf_hz",           VAR_UINT8  | MIGRATED_MASTER_VALUE, .config.minmax = {0, 200 } , PG_GYRO_CONFIG, offsetof(gyroConfig_t, gyro_soft_lpf_hz)},
-    { "acc_soft_lpf_hz",            VAR_UINT8  | MIGRATED_MASTER_VALUE, .config.minmax = {0, 200 } , PG_ACC_CONFIG, offsetof(accConfig_t, acc_soft_lpf_hz)},
+    { "acc_soft_lpf_hz",            VAR_UINT8  | MIGRATED_MASTER_VALUE, .config.minmax = {0, 200 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, acc_soft_lpf_hz)},
     { "dterm_lpf_hz",               VAR_UINT8  | PROFILE_VALUE, .config.minmax = {0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, dterm_lpf_hz)},
     { "yaw_lpf_hz",                 VAR_UINT8  | PROFILE_VALUE, .config.minmax = {0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_lpf_hz) },
 
@@ -762,13 +762,13 @@ const clivalue_t valueTable[] = {
     { "magzero_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Y]), FLAG_MAG_CALIBRATION_DONE },
     { "magzero_z",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_MAG_CONFIG, offsetof(magConfig_t, magZero.raw[Z]), FLAG_MAG_CALIBRATION_DONE },
 
-    { "acczero_x",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACC_CONFIG, offsetof(accConfig_t, accZero.raw[X])},
-    { "acczero_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACC_CONFIG, offsetof(accConfig_t, accZero.raw[Y])},
-    { "acczero_z",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACC_CONFIG, offsetof(accConfig_t, accZero.raw[Z])},
+    { "acczero_x",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accZero.raw[X])},
+    { "acczero_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accZero.raw[Y])},
+    { "acczero_z",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accZero.raw[Z])},
 
-    { "accgain_x",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACC_CONFIG, offsetof(accConfig_t, accGain.raw[X])},
-    { "accgain_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACC_CONFIG, offsetof(accConfig_t, accGain.raw[Y])},
-    { "accgain_z",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACC_CONFIG, offsetof(accConfig_t, accGain.raw[Z])},
+    { "accgain_x",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accGain.raw[X])},
+    { "accgain_y",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accGain.raw[Y])},
+    { "accgain_z",                  VAR_INT16  | MIGRATED_MASTER_VALUE, .config.minmax = { -32768,  32767 } , PG_ACCELEROMETER_CONFIG, offsetof(accConfig_t, accGain.raw[Z])},
 };
 
 typedef union {

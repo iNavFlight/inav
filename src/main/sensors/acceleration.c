@@ -52,7 +52,7 @@ static int16_t accADCRaw[XYZ_AXIS_COUNT];
 static biquad_t accFilterState[XYZ_AXIS_COUNT];
 static bool accFilterInitialised = false;
 
-PG_REGISTER(accConfig_t, accConfig, PG_ACC_CONFIG, 0);
+PG_REGISTER(accConfig_t, accConfig, PG_ACCELEROMETER_CONFIG, 0);
 
 
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired)
