@@ -35,8 +35,6 @@ typedef struct master_t {
 
     flight3DConfig_t flight3DConfig;
 
-    int8_t yaw_control_direction;           // change control direction of yaw (inverted, normal)
-
     uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer
     uint16_t dcm_ki_acc;                    // DCM filter integral gain ( x 10000) for accelerometer
     uint16_t dcm_kp_mag;                    // DCM filter proportional gain ( x 10000) for magnetometer and GPS heading

@@ -58,7 +58,6 @@
 #include "io/rc_controls.h"
 #include "io/rc_curves.h"
 #include "io/ledstrip.h"
-#include "io/transponder_ir.h"
 #include "io/gps.h"
 
 #include "rx/rx.h"
@@ -133,7 +132,7 @@ static void resetAccelerometerConfig(void)
 
 static void resetGyroConfig(void)
 {
-    gyroConfig.gyro_lpf = 2;                  // BITS_DLPF_CFG_98HZ, In case of ST gyro, will default to 54Hz instead
+    gyroConfig.gyro_lpf = 3;                  // INV_FILTER_42HZ, In case of ST gyro, will default to 32Hz instead
     gyroConfig.gyro_soft_lpf_hz = 60;
     gyroConfig.gyroMovementCalibrationThreshold = 32;
 }
@@ -175,14 +174,16 @@ void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[PIDLEVEL] = 120; // Self-level strength * 40 (4 * 40)
     pidProfile->I8[PIDLEVEL] = 15;  // Self-leveing low-pass frequency (0 - disabled)
     pidProfile->D8[PIDLEVEL] = 75;  // 75% horizon strength
-    pidProfile->P8[PIDMAG] = 40;
+    pidProfile->P8[PIDMAG] = 60;
     pidProfile->P8[PIDVEL] = 100;   // NAV_VEL_Z_P * 100
     pidProfile->I8[PIDVEL] = 50;    // NAV_VEL_Z_I * 100
     pidProfile->D8[PIDVEL] = 10;    // NAV_VEL_Z_D * 100
 
     pidProfile->dterm_lpf_hz = 30;
+    pidProfile->yaw_lpf_hz = 30;
 
     pidProfile->yaw_p_limit = YAW_P_LIMIT_MAX;
+    pidProfile->mag_hold_rate_limit = MAG_HOLD_RATE_LIMIT_DEFAULT;
 
     pidProfile->max_angle_inclination[FD_ROLL] = 300;    // 30 degrees
     pidProfile->max_angle_inclination[FD_PITCH] = 300;    // 30 degrees
@@ -453,8 +454,6 @@ STATIC_UNIT_TESTED void resetConf(void)
     masterConfig.baro_hardware = BARO_DEFAULT;   // default/autodetect
     */
 
-    masterConfig.yaw_control_direction = 1;
-
     resetBatteryConfig(&batteryConfig);
 
     resetTelemetryConfig(&masterConfig.telemetryConfig);
@@ -503,7 +502,7 @@ STATIC_UNIT_TESTED void resetConf(void)
     masterConfig.gpsConfig.sbasMode = SBAS_AUTO;
     masterConfig.gpsConfig.autoConfig = GPS_AUTOCONFIG_ON;
     masterConfig.gpsConfig.autoBaud = GPS_AUTOBAUD_ON;
-    masterConfig.gpsConfig.navModel = GPS_MODEL_LOW_G;
+    masterConfig.gpsConfig.dynModel = GPS_DYNMODEL_AIR_1G;
 #endif
 
 #ifdef NAV

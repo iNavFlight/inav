@@ -365,7 +365,7 @@ static navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     [NAV_STATE_RTH_3D_HEAD_HOME] = {
         .onEntry = navOnEnteringState_NAV_STATE_RTH_3D_HEAD_HOME,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_RTH_ENROUTE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -383,7 +383,7 @@ static navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     [NAV_STATE_RTH_3D_GPS_FAILING] = {
         .onEntry = navOnEnteringState_NAV_STATE_RTH_3D_GPS_FAILING,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_RTH_MODE,
         .mwState = MW_NAV_STATE_RTH_ENROUTE,
         .mwError = MW_NAV_ERROR_SPOILED_GPS,
@@ -398,7 +398,7 @@ static navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     [NAV_STATE_RTH_3D_HOVER_PRIOR_TO_LANDING] = {
         .onEntry = navOnEnteringState_NAV_STATE_RTH_3D_HOVER_PRIOR_TO_LANDING,
         .timeoutMs = 5000,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LAND_SETTLE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -2013,6 +2013,8 @@ static bool canActivatePosHoldMode(void)
 
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 {
+    static bool canActivateWaypoint = false;
+
     //We can switch modes only when ARMED
     if (ARMING_FLAG(ARMED)) {
         // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
@@ -2023,17 +2025,23 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         if (posControl.flags.forcedRTHActivated || IS_RC_MODE_ACTIVE(BOXNAVRTH)) {
             // If we request forced RTH - attempt to activate it no matter what
             // This might switch to emergency landing controller if GPS is unavailable
+            canActivateWaypoint = false;    // Block WP mode if we switched to RTH for whatever reason
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
 
         // PASSTHRU mode has priority over WP/PH/AH
         if (IS_RC_MODE_ACTIVE(BOXPASSTHRU)) {
+            canActivateWaypoint = false;    // Block WP mode if we are in PASSTHROUGH mode
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
 
         if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
-            if ((FLIGHT_MODE(NAV_WP_MODE)) || (canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME) && ARMING_FLAG(ARMED) && posControl.waypointListValid && (posControl.waypointCount > 0)))
+            if ((FLIGHT_MODE(NAV_WP_MODE)) || (canActivateWaypoint && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME) && ARMING_FLAG(ARMED) && posControl.waypointListValid && (posControl.waypointCount > 0)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
+        }
+        else {
+            // Arm the state variable if the WP BOX mode is not enabled
+            canActivateWaypoint = true;
         }
 
         if (IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) {
@@ -2050,6 +2058,9 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             if ((FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_ALTHOLD;
         }
+    }
+    else {
+        canActivateWaypoint = false;
     }
 
     return NAV_FSM_EVENT_SWITCH_TO_IDLE;

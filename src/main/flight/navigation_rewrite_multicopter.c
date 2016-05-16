@@ -52,11 +52,6 @@
 #if defined(NAV)
 
 /*-----------------------------------------------------------
- * Backdoor to MW heading controller
- *-----------------------------------------------------------*/
-extern int16_t magHold;
-
-/*-----------------------------------------------------------
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static int16_t rcCommandAdjustedThrottle;
@@ -577,12 +572,12 @@ void calculateMulticopterInitialHoldPosition(t_fp_vector * pos)
 
 void resetMulticopterHeadingController(void)
 {
-    magHold = CENTIDEGREES_TO_DEGREES(posControl.actualState.yaw);
+    updateMagHoldHeading(CENTIDEGREES_TO_DEGREES(posControl.actualState.yaw));
 }
 
 static void applyMulticopterHeadingController(void)
 {
-    magHold = CENTIDEGREES_TO_DEGREES(posControl.desiredState.yaw);
+    updateMagHoldHeading(CENTIDEGREES_TO_DEGREES(posControl.desiredState.yaw));
 }
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, uint32_t currentTime)

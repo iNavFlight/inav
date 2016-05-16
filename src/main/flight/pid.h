@@ -31,6 +31,10 @@
 #define PID_MIN                 0
 #define PID_MAX                 255
 
+#define MAG_HOLD_RATE_LIMIT_MIN 10
+#define MAG_HOLD_RATE_LIMIT_MAX 250
+#define MAG_HOLD_RATE_LIMIT_DEFAULT 90
+
 typedef enum {
     PIDROLL,
     PIDPITCH,
@@ -54,8 +58,12 @@ typedef struct pidProfile_s {
     uint8_t yaw_pterm_lpf_hz;               // Used for filering Pterm noise on noisy frames
 
     uint16_t yaw_p_limit;
+    uint8_t yaw_lpf_hz;
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
+
+    uint8_t mag_hold_rate_limit;    //Maximum rotation rate MAG_HOLD mode cas feed to yaw rate PID controller
+
 } pidProfile_t;
 
 extern int16_t axisPID[];
@@ -66,3 +74,12 @@ void pidResetErrorAccumulators(void);
 void updatePIDCoefficients(const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
 int16_t pidAngleToRcCommand(float angleDeciDegrees);
 void pidController(const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig);
+
+enum {
+    MAG_HOLD_DISABLED = 0,
+    MAG_HOLD_UPDATE_HEADING,
+    MAG_HOLD_ENABLED
+};
+
+void updateMagHoldHeading(int16_t heading);
+int16_t getMagHoldHeading();

@@ -344,11 +344,11 @@ static const char * const lookupTableGPSProvider[] = {
 };
 
 static const char * const lookupTableGPSSBASMode[] = {
-    "AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN"
+    "AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"
 };
 
 static const char * const lookupTableGpsModel[] = {
-    "LOW_G", "HIGH_G"
+    "PEDESTRIAN", "AIR_1G", "AIR_4G"
 };
 #endif
 
@@ -377,10 +377,6 @@ static const char * const lookupTableSerialRX[] = {
     "XB-B",
     "XB-B-RJ01",
     "IBUS"
-};
-
-static const char * const lookupTableGyroFilter[] = {
-    "OFF", "LOW", "MEDIUM", "HIGH"
 };
 
 static const char * const lookupTableGyroLpf[] = {
@@ -418,7 +414,7 @@ typedef enum {
 #ifdef GPS
     TABLE_GPS_PROVIDER,
     TABLE_GPS_SBAS_MODE,
-    TABLE_GPS_NAV_MODEL,
+    TABLE_GPS_DYN_MODEL,
 #endif
 #ifdef BLACKBOX
     TABLE_BLACKBOX_DEVICE,
@@ -553,7 +549,7 @@ const clivalue_t valueTable[] = {
 #ifdef GPS
     { "gps_provider",               VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.provider, .config.lookup = { TABLE_GPS_PROVIDER }, 0 },
     { "gps_sbas_mode",              VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.sbasMode, .config.lookup = { TABLE_GPS_SBAS_MODE }, 0 },
-    { "gps_nav_model",              VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.navModel, .config.lookup = { TABLE_GPS_NAV_MODEL }, 0 },
+    { "gps_dyn_model",              VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.dynModel, .config.lookup = { TABLE_GPS_DYN_MODEL }, 0 },
     { "gps_auto_config",            VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.autoConfig, .config.lookup = { TABLE_OFF_ON }, 0 },
     { "gps_auto_baud",              VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.autoBaud, .config.lookup = { TABLE_OFF_ON }, 0 },
 #endif
@@ -678,11 +674,8 @@ const clivalue_t valueTable[] = {
 
     { "throttle_tilt_comp_str",     VAR_UINT8  | PROFILE_VALUE, 0,  .config.minmax = { 0,  100 } , PG_PROFILE, offsetof(profile_t, throttle_tilt_compensation_strength)},
 
-    { "yaw_control_direction",      VAR_INT8   | MASTER_VALUE,  &masterConfig.yaw_control_direction, .config.minmax = { -1,  1 }, 0 },
-
     { "yaw_motor_direction",        VAR_INT8   | MASTER_VALUE, &masterConfig.mixerConfig.yaw_motor_direction, .config.minmax = { -1,  1 }, 0 },
     { "yaw_jump_prevention_limit",  VAR_UINT16 | MASTER_VALUE, &masterConfig.mixerConfig.yaw_jump_prevention_limit, .config.minmax = { YAW_JUMP_PREVENTION_LIMIT_LOW,  YAW_JUMP_PREVENTION_LIMIT_HIGH }, 0 },
-    { "yaw_p_limit",                VAR_UINT16 | PROFILE_VALUE, 0,  .config.minmax = { YAW_P_LIMIT_MIN, YAW_P_LIMIT_MAX } , PG_PID_PROFILE, offsetof(pidProfile_t, yaw_p_limit)},
 
 #ifdef USE_SERVOS
     { "tri_unarmed_servo",          VAR_INT8   | MASTER_VALUE | MODE_LOOKUP, &masterConfig.mixerConfig.tri_unarmed_servo, .config.lookup = { TABLE_OFF_ON }, 0 },
@@ -716,8 +709,6 @@ const clivalue_t valueTable[] = {
     { "gimbal_mode",                VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP, 0, .config.lookup = { TABLE_GIMBAL_MODE }, PG_GIMBAL_CONFIG, offsetof(gimbalConfig_t, mode), 0},
 #endif
 
-    { "acc_hardware",               VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 0,  ACC_MAX } , PG_SENSOR_SELECTION_CONFIG, offsetof(sensorSelectionConfig_t, acc_hardware)},
-
 #ifdef BARO
     { "baro_use_median_filter",     VAR_UINT8  | MIGRATED_MASTER_VALUE | MODE_LOOKUP, 0,  .config.lookup = { TABLE_OFF_ON } , PG_BARO_CONFIG, offsetof(barometerConfig_t, use_median_filtering)},
     { "baro_hardware",              VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 0,  BARO_MAX } , PG_SENSOR_SELECTION_CONFIG, offsetof(sensorSelectionConfig_t, baro_hardware)},
@@ -726,6 +717,8 @@ const clivalue_t valueTable[] = {
 #ifdef MAG
     { "mag_hardware",               VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 0,  MAG_MAX } , PG_SENSOR_SELECTION_CONFIG, offsetof(sensorSelectionConfig_t, mag_hardware)},
     { "mag_declination",            VAR_INT16  | PROFILE_VALUE, 0,  .config.minmax = { -18000,  18000 } , PG_PROFILE, offsetof(profile_t, mag_declination)},
+
+    { "mag_hold_rate_limit",        VAR_UINT8  | PROFILE_VALUE, 0,  .config.minmax = { MAG_HOLD_RATE_LIMIT_MIN,  MAG_HOLD_RATE_LIMIT_MAX } , PG_PID_PROFILE, offsetof(pidProfile_t, mag_hold_rate_limit)},
 #endif
 
     { "p_pitch",                    VAR_UINT8  | PROFILE_VALUE, 0,  .config.minmax = { PID_MIN,  PID_MAX } , PG_PID_PROFILE, offsetof(pidProfile_t, P8[FD_PITCH])},
@@ -747,8 +740,10 @@ const clivalue_t valueTable[] = {
     
     { "gyro_soft_lpf_hz",           VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = {0, 200 } , PG_GYRO_CONFIG, offsetof(gyroConfig_t, gyro_soft_lpf_hz)},
     { "acc_soft_lpf_hz",            VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = {0, 200 } , PG_ACC_CONFIG, offsetof(accConfig_t, acc_soft_lpf_hz)},
+    { "dterm_lpf_hz",               VAR_UINT8  | PROFILE_VALUE, 0,  .config.minmax = {0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, dterm_lpf_hz)},
+    { "yaw_lpf_hz",                 VAR_UINT8  | PROFILE_VALUE, 0,  .config.minmax = {0, 200 }, PG_PID_PROFILE, offsetof(pidProfile_t, yaw_lpf_hz) },
 
-    { "dterm_lpf_hz",               VAR_UINT8  | PROFILE_VALUE, 0,  .config.minmax = {0, 200 } , PG_PID_PROFILE, offsetof(pidProfile_t, dterm_lpf_hz)},
+    { "yaw_p_limit",                VAR_UINT16 | PROFILE_VALUE, 0,  .config.minmax = { YAW_P_LIMIT_MIN, YAW_P_LIMIT_MAX } , PG_PID_PROFILE, offsetof(pidProfile_t, yaw_p_limit)},
 
 #ifdef BLACKBOX
     { "blackbox_rate_num",          VAR_UINT8  | MIGRATED_MASTER_VALUE, 0,  .config.minmax = { 1,  32 } , PG_BLACKBOX_CONFIG, offsetof(blackboxConfig_t, rate_num)},
@@ -1846,7 +1841,7 @@ void cliEnter(serialPort_t *serialPort)
     setPrintfSerialPort(cliPort);
     cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer),
                               (bufWrite_t)serialWriteBufShim, serialPort);
-    
+
     cliPrint("\r\nEntering CLI Mode, type 'exit' to return, or 'help'\r\n");
     cliPrompt();
     ENABLE_ARMING_FLAG(PREVENT_ARMING);
@@ -1858,7 +1853,7 @@ static void cliExit(char *cmdline)
 
     cliPrint("\r\nLeaving CLI mode, unsaved changes lost.\r\n");
     bufWriterFlush(cliWriter);
-    
+
     *cliBuffer = '\0';
     bufferIndex = 0;
     cliMode = 0;
@@ -2321,23 +2316,31 @@ static void cliPrintVar(const clivalue_t *var, uint32_t full)
             break;
 
         case VAR_FLOAT:
-            cliPrintf("%s", ftoa(*(float *)ptr, ftoaBuffer));
             if (full && (var->type & VALUE_MODE_MASK) == MODE_DIRECT) {
-                cliPrintf(" %s", ftoa((float)var->config.minmax.min, ftoaBuffer));
-                cliPrintf(" %s", ftoa((float)var->config.minmax.max, ftoaBuffer));
+                cliPrintf("%s", ftoa((float)var->config.minmax.min, ftoaBuffer));
+                cliPrintf(" - %s", ftoa((float)var->config.minmax.max, ftoaBuffer));
+            } else {
+                cliPrintf("%s", ftoa(*(float *)ptr, ftoaBuffer));
             }
             return; // return from case for float only
     }
 
     switch(var->type & VALUE_MODE_MASK) {
         case MODE_DIRECT:
-            cliPrintf("%d", value);
             if (full) {
-                cliPrintf(" %d %d", var->config.minmax.min, var->config.minmax.max);
+                cliPrintf("%d - %d", var->config.minmax.min, var->config.minmax.max);
+            } else {
+                cliPrintf("%d", value);
             }
             break;
         case MODE_LOOKUP:
-            cliPrintf(lookupTables[var->config.lookup.tableIndex].values[value]);
+            if (full) {
+                for (int i=0; i<lookupTables[var->config.lookup.tableIndex].valueCount; i++) {
+                    cliPrintf("%s ", lookupTables[var->config.lookup.tableIndex].values[i]);
+                }
+            } else {
+                cliPrintf(lookupTables[var->config.lookup.tableIndex].values[value]);
+            }
             break;
     }
 }
@@ -2431,20 +2434,22 @@ static void cliSet(char *cmdline)
                 int_float_value_t tmp;
                 switch (valueTable[i].type & VALUE_MODE_MASK) {
                     case MODE_DIRECT: {
-                            int32_t value = 0;
-                            float valuef = 0;
+                            if(*eqptr != 0 && strspn(eqptr, "0123456789.+-") == strlen(eqptr)) {
+                                int32_t value = 0;
+                                float valuef = 0;
 
-                            value = atoi(eqptr);
-                            valuef = fastA2F(eqptr);
+                                value = atoi(eqptr);
+                                valuef = fastA2F(eqptr);
 
-                            if (valuef >= valueTable[i].config.minmax.min && valuef <= valueTable[i].config.minmax.max) { // note: compare float value
+                                if (valuef >= valueTable[i].config.minmax.min && valuef <= valueTable[i].config.minmax.max) { // note: compare float value
 
-                                if ((valueTable[i].type & VALUE_TYPE_MASK) == VAR_FLOAT)
-                                    tmp.float_value = valuef;
-                                else
-                                    tmp.int_value = value;
+                                    if ((valueTable[i].type & VALUE_TYPE_MASK) == VAR_FLOAT)
+                                        tmp.float_value = valuef;
+                                    else
+                                        tmp.int_value = value;
 
-                                changeValue = true;
+                                    changeValue = true;
+                                }
                             }
                         }
                         break;
@@ -2469,7 +2474,9 @@ static void cliSet(char *cmdline)
                     cliPrintf("%s set to ", valueTable[i].name);
                     cliPrintVar(val, 0);
                 } else {
-                    cliPrint("Invalid value\r\n");
+                    cliPrint("Invalid value. Allowed values are: ");
+                    cliPrintVar(val, 1); // print out min/max/table values
+                    cliPrint("\r\n");
                 }
 
                 return;
@@ -2600,7 +2607,7 @@ void cliProcess(void)
 
     // Be a little bit tricky.  Flush the last inputs buffer, if any.
     bufWriterFlush(cliWriter);
-    
+
     while (serialRxBytesWaiting(cliPort)) {
         uint8_t c = serialRead(cliPort);
         if (c == '\t' || c == '?') {

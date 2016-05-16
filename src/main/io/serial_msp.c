@@ -220,7 +220,7 @@ static uint32_t read32(void)
 static void headSerialResponse(uint8_t err, uint8_t responseBodySize)
 {
     serialBeginWrite(mspSerialPort);
-    
+
     serialize8('$');
     serialize8('M');
     serialize8(err ? '!' : '>');
@@ -968,7 +968,7 @@ static bool processOutCommand(uint8_t cmdMSP)
         serialize8(NAV_Status.activeWpNumber);
         serialize8(NAV_Status.error);
         //serialize16( (int16_t)(target_bearing/100));
-        serialize16(magHold);
+        serialize16(getMagHoldHeading());
         break;
     case MSP_WP:
         msp_wp_no = read8();    // get the wp number
@@ -1263,7 +1263,7 @@ static bool processInCommand(void)
         }
         break;
     case MSP_SET_HEAD:
-        magHold = read16();
+        updateMagHoldHeading(read16());
         break;
     case MSP_SET_RAW_RC:
         {
@@ -1706,7 +1706,7 @@ static bool processInCommand(void)
         // switch all motor lines HI
         // reply the count of ESC found
         headSerialReply(1);
-        serialize8(Initialize4WayInterface());
+        serialize8(esc4wayInit());
         // because we do not come back after calling Process4WayInterface
         // proceed with a success reply first
         tailSerialReply();
@@ -1717,7 +1717,7 @@ static bool processInCommand(void)
         // rem: App: Wait at least appx. 500 ms for BLHeli to jump into
         // bootloader mode before try to connect any ESC
         // Start to activate here
-        Process4WayInterface(currentPort, writer);
+        esc4wayProcess(currentPort->port);
         // former used MSP uart is still active
         // proceed as usual with MSP commands
         break;
