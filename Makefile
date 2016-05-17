@@ -340,6 +340,7 @@ NAZE_SRC = startup_stm32f10x_md_gcc.S \
 		   drivers/light_ws2811strip.c \
 		   drivers/light_ws2811strip_stm32f10x.c \
 		   drivers/sonar_hcsr04.c \
+		   drivers/sonar_srf10.c \
 		   drivers/pwm_mapping.c \
 		   drivers/pwm_output.c \
 		   drivers/pwm_rx.c \
@@ -390,6 +391,7 @@ EUSTM32F103RC_SRC = startup_stm32f10x_hd_gcc.S \
 		   drivers/serial_uart.c \
 		   drivers/serial_uart_stm32f10x.c \
 		   drivers/sonar_hcsr04.c \
+		   drivers/sonar_srf10.c \
 		   drivers/sound_beeper_stm32f10x.c \
 		   drivers/system_stm32f10x.c \
 		   drivers/timer.c \
@@ -422,6 +424,7 @@ OLIMEXINO_SRC = startup_stm32f10x_md_gcc.S \
 		   drivers/serial_uart.c \
 		   drivers/serial_uart_stm32f10x.c \
 		   drivers/sonar_hcsr04.c \
+		   drivers/sonar_srf10.c \
 		   drivers/sound_beeper_stm32f10x.c \
 		   drivers/system_stm32f10x.c \
 		   drivers/timer.c \
@@ -483,6 +486,7 @@ CC3D_SRC = \
 		   drivers/serial_uart.c \
 		   drivers/serial_uart_stm32f10x.c \
 		   drivers/sonar_hcsr04.c \
+		   drivers/sonar_srf10.c \
 		   drivers/sound_beeper_stm32f10x.c \
 		   drivers/system_stm32f10x.c \
 		   drivers/timer.c \
@@ -611,6 +615,7 @@ RMDO_SRC = \
 		   drivers/flash_m25p16.c \
 		   drivers/serial_softserial.c \
 		   drivers/sonar_hcsr04.c \
+		   drivers/sonar_srf10.c \
 		   io/flashfs.c \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
@@ -629,6 +634,7 @@ SPRACINGF3_SRC = \
 		   drivers/flash_m25p16.c \
 		   drivers/serial_softserial.c \
 		   drivers/sonar_hcsr04.c \
+		   drivers/sonar_srf10.c \
 		   io/flashfs.c \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)

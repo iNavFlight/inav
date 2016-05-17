@@ -112,8 +112,6 @@ serialPort_t *loopbackPort;
 
 void mixerUsePWMIOConfiguration(pwmIOConfiguration_t *pwmIOConfiguration);
 void rxInit(modeActivationCondition_t *modeActivationConditions);
-const sonarHardware_t *sonarGetHardwareConfiguration(batteryConfig_t *batteryConfig);
-void sonarInit(const sonarHardware_t *sonarHardware);
 
 #ifdef STM32F303xC
 // from system_stm32f30x.c
@@ -223,12 +221,11 @@ void init(void)
     memset(&pwm_params, 0, sizeof(pwm_params));
 
 #ifdef SONAR
-    const sonarHardware_t *sonarHardware = NULL;
-
+    const sonarHardware_t *sonarHardware;
     if (feature(FEATURE_SONAR)) {
-        sonarHardware = sonarGetHardwareConfiguration(&batteryConfig);
+        sonarHardware = sonarGetHardwareConfiguration(batteryConfig.currentMeterType);
         sonarGPIOConfig_t sonarGPIOConfig = {
-            .gpio = SONAR_GPIO,
+            .gpio = sonarHardware->echo_gpio,
             .triggerPin = sonarHardware->echo_pin,
             .echoPin = sonarHardware->trigger_pin,
         };
@@ -263,7 +260,7 @@ void init(void)
 #endif
 
 #ifdef USE_SERVOS
-    pwm_params.useServos = isMixerUsingServos();
+    pwm_params.useServos = isServoOutputEnabled();
     pwm_params.useChannelForwarding = feature(FEATURE_CHANNEL_FORWARDING);
     pwm_params.servoCenterPulse = escAndServoConfig.servoCenterPulse;
     pwm_params.servoPwmRate = escAndServoConfig.servo_pwm_rate;
@@ -485,9 +482,6 @@ void init(void)
     initBlackbox();
 #endif
 
-    if (mixerConfig.mixerMode == MIXER_GIMBAL) {
-        accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
-    }
     gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
 #ifdef BARO
     baroSetCalibrationCycles(CALIBRATING_BARO_CYCLES);

@@ -31,6 +31,7 @@
 
 #include "config/parameter_group_ids.h"
 #include "config/parameter_group.h"
+#include "config/profile.h"
 
 #include "drivers/sensor.h"
 #include "drivers/system.h"
