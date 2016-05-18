@@ -46,8 +46,8 @@
 #if defined(NAV)
 
 // If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
-#define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.0f
-#define NAV_FW_MIN_VEL_SPEED_BOOST              500.0f
+#define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
+#define NAV_FW_MIN_VEL_SPEED_BOOST              1000.0f
 
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
