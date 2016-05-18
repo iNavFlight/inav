@@ -31,6 +31,8 @@
 #include "common/utils.h"
 #include "common/filter.h"
 
+#include "config/parameter_group.h"
+
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
 #include "drivers/compass.h"
@@ -39,25 +41,23 @@
 #include "drivers/gpio.h"
 #include "drivers/system.h"
 #include "drivers/serial.h"
-#include "drivers/timer.h"
-#include "drivers/pwm_rx.h"
 #include "drivers/gyro_sync.h"
 
+#include "io/rc_controls.h"
+#include "io/rate_profile.h"
+#include "io/rc_adjustments.h"
+
 #include "sensors/sensors.h"
-#include "sensors/boardalignment.h"
 #include "sensors/sonar.h"
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
-#include "sensors/barometer.h"
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
+#include "sensors/barometer.h"
 
 #include "io/beeper.h"
 #include "io/display.h"
-#include "io/escservo.h"
-#include "io/rc_controls.h"
 #include "io/rc_curves.h"
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
@@ -80,8 +80,7 @@
 
 #include "config/runtime_config.h"
 #include "config/config.h"
-#include "config/config_profile.h"
-#include "config/config_master.h"
+#include "config/feature.h"
 
 // June 2013     V2.2-dev
 
@@ -130,11 +129,11 @@ void annexCode(void)
     int32_t tmp, tmp2, axis;
 
     for (axis = 0; axis < 3; axis++) {
-        tmp = MIN(ABS(rcData[axis] - masterConfig.rxConfig.midrc), 500);
+        tmp = MIN(ABS(rcData[axis] - rxConfig.midrc), 500);
         if (axis == ROLL || axis == PITCH) {
-            if (currentProfile->rcControlsConfig.deadband) {
-                if (tmp > currentProfile->rcControlsConfig.deadband) {
-                    tmp -= currentProfile->rcControlsConfig.deadband;
+            if (rcControlsConfig->deadband) {
+                if (tmp > rcControlsConfig->deadband) {
+                    tmp -= rcControlsConfig->deadband;
                 } else {
                     tmp = 0;
                 }
@@ -143,9 +142,9 @@ void annexCode(void)
             tmp2 = tmp / 100;
             rcCommand[axis] = lookupPitchRollRC[tmp2] + (tmp - tmp2 * 100) * (lookupPitchRollRC[tmp2 + 1] - lookupPitchRollRC[tmp2]) / 100;
         } else if (axis == YAW) {
-            if (currentProfile->rcControlsConfig.yaw_deadband) {
-                if (tmp > currentProfile->rcControlsConfig.yaw_deadband) {
-                    tmp -= currentProfile->rcControlsConfig.yaw_deadband;
+            if (rcControlsConfig->yaw_deadband) {
+                if (tmp > rcControlsConfig->yaw_deadband) {
+                    tmp -= rcControlsConfig->yaw_deadband;
                 } else {
                     tmp = 0;
                 }
@@ -154,12 +153,12 @@ void annexCode(void)
             rcCommand[axis] = (lookupYawRC[tmp2] + (tmp - tmp2 * 100) * (lookupYawRC[tmp2 + 1] - lookupYawRC[tmp2]) / 100) * -1;
         }
 
-        if (rcData[axis] < masterConfig.rxConfig.midrc)
+        if (rcData[axis] < rxConfig.midrc)
             rcCommand[axis] = -rcCommand[axis];
     }
 
-    tmp = constrain(rcData[THROTTLE], masterConfig.rxConfig.mincheck, PWM_RANGE_MAX);
-    tmp = (uint32_t)(tmp - masterConfig.rxConfig.mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - masterConfig.rxConfig.mincheck);       // [MINCHECK;2000] -> [0;1000]
+    tmp = constrain(rcData[THROTTLE], rxConfig.mincheck, PWM_RANGE_MAX);
+    tmp = (uint32_t)(tmp - rxConfig.mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig.mincheck);       // [MINCHECK;2000] -> [0;1000]
     tmp2 = tmp / 100;
     rcCommand[THROTTLE] = lookupThrottleRC[tmp2] + (tmp - tmp2 * 100) * (lookupThrottleRC[tmp2 + 1] - lookupThrottleRC[tmp2]) / 100;    // [0;1000] -> expo -> [MINTHROTTLE;MAXTHROTTLE]
 
@@ -179,8 +178,9 @@ void annexCode(void)
             ENABLE_ARMING_FLAG(OK_TO_ARM);
         }
 
-        if (!STATE(SMALL_ANGLE)) {
+        if (!imuIsAircraftArmable(armingConfig.max_arm_angle)) {
             DISABLE_ARMING_FLAG(OK_TO_ARM);
+            debug[3] = ARMING_FLAG(OK_TO_ARM);
         }
 
         if (isCalibrating() || isSystemOverloaded()) {
@@ -199,6 +199,8 @@ void annexCode(void)
         } else {
             warningLedFlash();
         }
+
+        debug[3] = ARMING_FLAG(OK_TO_ARM);
 
         warningLedUpdate();
     }
@@ -256,7 +258,7 @@ void mwArm(void)
                 startBlackbox();
             }
 #endif
-            disarmAt = millis() + masterConfig.auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
+            disarmAt = millis() + armingConfig.auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
             //beep to indicate arming
 #ifdef NAV
@@ -300,7 +302,7 @@ void processRx(void)
         failsafeUpdateState();
     }
 
-    throttleStatus_e throttleStatus = calculateThrottleStatus(&masterConfig.rxConfig, masterConfig.flight3DConfig.deadband3d_throttle);
+    throttleStatus_e throttleStatus = calculateThrottleStatus(&rxConfig, rcControlsConfig->deadband3d_throttle);
 
     // When armed and motors aren't spinning, do beeps and then disarm
     // board after delay so users without buzzer won't lose fingers.
@@ -311,7 +313,7 @@ void processRx(void)
     ) {
         if (isUsingSticksForArming()) {
             if (throttleStatus == THROTTLE_LOW) {
-                if (masterConfig.auto_disarm_delay != 0
+                if (armingConfig.auto_disarm_delay != 0
                     && (int32_t)(disarmAt - millis()) < 0
                 ) {
                     // auto-disarm configured and delay is over
@@ -324,9 +326,9 @@ void processRx(void)
                 }
             } else {
                 // throttle is not low
-                if (masterConfig.auto_disarm_delay != 0) {
+                if (armingConfig.auto_disarm_delay != 0) {
                     // extend disarm time
-                    disarmAt = millis() + masterConfig.auto_disarm_delay * 1000;
+                    disarmAt = millis() + armingConfig.auto_disarm_delay * 1000;
                 }
 
                 if (armedBeeperOn) {
@@ -342,17 +344,18 @@ void processRx(void)
             } else if (armedBeeperOn) {
                 beeperSilence();
                 armedBeeperOn = false;
+                armedBeeperOn = false;
             }
         }
     }
 
-    processRcStickPositions(&masterConfig.rxConfig, throttleStatus, masterConfig.disarm_kill_switch);
+    processRcStickPositions(&rxConfig, throttleStatus, armingConfig.disarm_kill_switch);
 
-    updateActivatedModes(currentProfile->modeActivationConditions);
+    updateActivatedModes(modeActivationProfile->modeActivationConditions);
 
     if (!cliMode) {
-        updateAdjustmentStates(currentProfile->adjustmentRanges);
-        processRcAdjustments(currentControlRateProfile, &masterConfig.rxConfig);
+        updateAdjustmentStates(adjustmentProfile->adjustmentRanges);
+        processRcAdjustments(currentControlRateProfile, &rxConfig);
     }
 
     bool canUseHorizonMode = true;
@@ -434,7 +437,7 @@ void processRx(void)
     else {
         if (throttleStatus == THROTTLE_LOW) {
             if (IS_RC_MODE_ACTIVE(BOXAIRMODE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
-                rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus(&masterConfig.rxConfig);
+                rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus(&rxConfig);
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
                 if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING))) {
@@ -463,14 +466,14 @@ void processRx(void)
         }
     }
 
-    if (masterConfig.mixerMode == MIXER_FLYING_WING || masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE) {
+    if (mixerConfig.mixerMode == MIXER_FLYING_WING || mixerConfig.mixerMode == MIXER_AIRPLANE || mixerConfig.mixerMode == MIXER_CUSTOM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 
 #ifdef TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
-        if ((!masterConfig.telemetryConfig.telemetry_switch && ARMING_FLAG(ARMED)) ||
-                (masterConfig.telemetryConfig.telemetry_switch && IS_RC_MODE_ACTIVE(BOXTELEMETRY))) {
+        if ((!telemetryConfig.telemetry_switch && ARMING_FLAG(ARMED)) ||
+                (telemetryConfig.telemetry_switch && IS_RC_MODE_ACTIVE(BOXTELEMETRY))) {
 
             releaseSharedTelemetryPorts();
         } else {
@@ -537,7 +540,7 @@ void taskMainPidLoop(void)
 
     annexCode();
 
-    if (masterConfig.rxConfig.rcSmoothing) {
+    if (rxConfig.rcSmoothing) {
         filterRc(isRXDataNew);
     }
 
@@ -558,14 +561,14 @@ void taskMainPidLoop(void)
     // sticks, do not process yaw input from the rx.  We do this so the
     // motors do not spin up while we are trying to arm or disarm.
     // Allow yaw control for tricopters if the user wants the servo to move even when unarmed.
-    if (isUsingSticksForArming() && rcData[THROTTLE] <= masterConfig.rxConfig.mincheck
+    if (isUsingSticksForArming() && rcData[THROTTLE] <= rxConfig.mincheck
 #ifndef USE_QUAD_MIXER_ONLY
 #ifdef USE_SERVOS
-            && !((masterConfig.mixerMode == MIXER_TRI || masterConfig.mixerMode == MIXER_CUSTOM_TRI) && masterConfig.mixerConfig.tri_unarmed_servo)
+            && !((mixerConfig.mixerMode == MIXER_TRI || mixerConfig.mixerMode == MIXER_CUSTOM_TRI) && mixerConfig.tri_unarmed_servo)
 #endif
-            && masterConfig.mixerMode != MIXER_AIRPLANE
-            && masterConfig.mixerMode != MIXER_FLYING_WING
-            && masterConfig.mixerMode != MIXER_CUSTOM_AIRPLANE
+            && mixerConfig.mixerMode != MIXER_AIRPLANE
+            && mixerConfig.mixerMode != MIXER_FLYING_WING
+            && mixerConfig.mixerMode != MIXER_CUSTOM_AIRPLANE
 #endif
     ) {
         rcCommand[YAW] = 0;
@@ -578,19 +581,19 @@ void taskMainPidLoop(void)
         if (navigationRequiresThrottleTiltCompensation()) {
             thrTiltCompStrength = 100;
         }
-        else if (currentProfile->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            thrTiltCompStrength = currentProfile->throttle_tilt_compensation_strength;
+        else if (throttleCorrectionConfig->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+            thrTiltCompStrength = throttleCorrectionConfig->throttle_tilt_compensation_strength;
         }
 
         if (thrTiltCompStrength) {
-            rcCommand[THROTTLE] = constrain(masterConfig.escAndServoConfig.minthrottle
-                                            + (rcCommand[THROTTLE] - masterConfig.escAndServoConfig.minthrottle) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
-                                            masterConfig.escAndServoConfig.minthrottle,
-                                            masterConfig.escAndServoConfig.maxthrottle);
+            rcCommand[THROTTLE] = constrain(motorAndServoConfig.minthrottle
+                                            + (rcCommand[THROTTLE] - motorAndServoConfig.minthrottle) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
+                                            motorAndServoConfig.minthrottle,
+                                            motorAndServoConfig.maxthrottle);
         }
     }
 
-    pidController(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig);
+    pidController(currentControlRateProfile, &rxConfig);
 
 #ifdef HIL
     if (hilActive) {
@@ -635,7 +638,7 @@ void taskMainPidLoopChecker(void) {
     // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
     uint32_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
 
-    if (masterConfig.gyroSync) {
+    if (imuConfig.gyroSync) {
         while (1) {
             if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (targetLooptime + GYRO_WATCHDOG_DELAY))) {
                 break;
@@ -674,7 +677,7 @@ void taskUpdateBattery(void)
 
         if (ibatTimeSinceLastServiced >= IBATINTERVAL) {
             ibatLastServiced = currentTime;
-            updateCurrentMeter(ibatTimeSinceLastServiced, &masterConfig.rxConfig, masterConfig.flight3DConfig.deadband3d_throttle);
+            updateCurrentMeter(ibatTimeSinceLastServiced, &rxConfig, rcControlsConfig->deadband3d_throttle);
         }
     }
 }
@@ -689,7 +692,7 @@ bool taskUpdateRxCheck(uint32_t currentDeltaTime)
 void taskUpdateRxMain(void)
 {
     processRx();
-    updatePIDCoefficients(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig);
+    updatePIDCoefficients(currentControlRateProfile, &rxConfig);
     isRXDataNew = true;
 }
 
@@ -713,7 +716,7 @@ void taskProcessGPS(void)
 void taskUpdateCompass(void)
 {
     if (sensors(SENSOR_MAG)) {
-        updateCompass(&masterConfig.magZero);
+        updateCompass();
     }
 }
 #endif
@@ -756,7 +759,7 @@ void taskTelemetry(void)
     telemetryCheckState();
 
     if (!cliMode && feature(FEATURE_TELEMETRY)) {
-        telemetryProcess(&masterConfig.rxConfig, masterConfig.flight3DConfig.deadband3d_throttle);
+        telemetryProcess(rcControlsConfig->deadband3d_throttle);
     }
 }
 #endif

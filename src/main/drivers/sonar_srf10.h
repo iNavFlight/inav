@@ -24,4 +24,3 @@ bool srf10_detect();
 void srf10_init(sonarRange_t *sonarRange);
 void srf10_start_reading(void);
 int32_t srf10_get_distance(void);
-

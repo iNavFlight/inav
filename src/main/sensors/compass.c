@@ -21,8 +21,13 @@
 
 #include "platform.h"
 
+#include "build_config.h"
+
 #include "common/axis.h"
 #include "common/maths.h"
+
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/sensor.h"
 #include "drivers/compass.h"
@@ -41,7 +46,11 @@
 #include "hardware_revision.h"
 #endif
 
+PG_REGISTER_PROFILE(compassConfig_t, compassConfig, PG_COMPASS_CONFIGURATION, 0);
+
 mag_t mag;                   // mag access functions
+
+float magneticDeclination = 0.0f;
 
 extern uint32_t currentTime; // FIXME dependency on global variable, pass it in instead.
 
@@ -68,7 +77,7 @@ bool isCompassReady(void)
 
 static sensorCalibrationState_t calState;
 
-void updateCompass(flightDynamicsTrims_t *magZero)
+void updateCompass(void)
 {
     static uint32_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
@@ -81,7 +90,7 @@ void updateCompass(flightDynamicsTrims_t *magZero)
         calStartedAt = currentTime;
 
         for (axis = 0; axis < 3; axis++) {
-            magZero->raw[axis] = 0;
+            compassConfig->magZero.raw[axis] = 0;
             magPrev[axis] = 0;
         }
 
@@ -90,9 +99,9 @@ void updateCompass(flightDynamicsTrims_t *magZero)
     }
 
     if (magInit) {              // we apply offset only once mag calibration is done
-        magADC[X] -= magZero->raw[X];
-        magADC[Y] -= magZero->raw[Y];
-        magADC[Z] -= magZero->raw[Z];
+        magADC[X] -= compassConfig->magZero.raw[X];
+        magADC[Y] -= compassConfig->magZero.raw[Y];
+        magADC[Z] -= compassConfig->magZero.raw[Z];
     }
 
     if (calStartedAt != 0) {
@@ -120,11 +129,10 @@ void updateCompass(flightDynamicsTrims_t *magZero)
             sensorCalibrationSolveForOffset(&calState, magZerof);
 
             for (axis = 0; axis < 3; axis++) {
-                magZero->raw[axis] = lrintf(magZerof[axis]);
+                compassConfig->magZero.raw[axis] = lrintf(magZerof[axis]);
             }
 
             calStartedAt = 0;
-            persistentFlagSet(FLAG_MAG_CALIBRATION_DONE);
             saveConfigAndNotify();
         }
     }
@@ -134,3 +142,19 @@ void updateCompass(flightDynamicsTrims_t *magZero)
     magUpdatedAtLeastOnce = 1;
 }
 #endif
+
+void recalculateMagneticDeclination(void)
+{
+    int16_t deg, min;
+
+    if (sensors(SENSOR_MAG)) {
+        // calculate magnetic declination
+        deg = compassConfig->mag_declination / 100;
+        min = compassConfig->mag_declination % 100;
+
+        magneticDeclination = (deg + ((float)min * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
+    } else {
+        magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
+    }
+
+}

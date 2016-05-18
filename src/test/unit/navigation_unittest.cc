@@ -19,7 +19,17 @@
 
 #include <limits.h>
 
+<<<<<<< HEAD:src/test/unit/navigation_unittest.cc
 #define SERIAL_PORT_COUNT   1
+=======
+#include <platform.h>
+
+#include "build_config.h"
+
+//#define DEBUG_ALTITUDE_HOLD
+
+#define BARO
+>>>>>>> b6830de... extract rcControlsConfig from profile_t.  extract flight3DConfig from:src/test/unit/altitude_hold_unittest.cc
 
 extern "C" {
     #include "debug.h"
@@ -27,6 +37,9 @@ extern "C" {
     #include "common/axis.h"
     #include "common/color.h"
     #include "common/maths.h"
+
+    #include "config/parameter_group_ids.h"
+    #include "config/parameter_group.h"
 
     #include "drivers/sensor.h"
     #include "drivers/accgyro.h"
@@ -63,9 +76,24 @@ extern "C" {
     #include "flight/navigation_rewrite.h"
 
     #include "config/runtime_config.h"
+<<<<<<< HEAD:src/test/unit/navigation_unittest.cc
+<<<<<<< HEAD:src/test/unit/navigation_unittest.cc
     #include "config/config.h"
     #include "config/config_profile.h"
     #include "config/config_master.h"
+=======
+
+    pidProfile_t testPidProfile;
+    pidProfile_t *pidProfile = &testPidProfile;
+>>>>>>> f47786b... extract pidProfile from profile_t.  extract gtune fields to their own:src/test/unit/altitude_hold_unittest.cc
+=======
+    #include "config/config.h"
+
+    pidProfile_t testPidProfile;
+    pidProfile_t *pidProfile = &testPidProfile;
+
+    PG_REGISTER_PROFILE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 0);
+>>>>>>> b6830de... extract rcControlsConfig from profile_t.  extract flight3DConfig from:src/test/unit/altitude_hold_unittest.cc
 }
 
 #include "unittest_macros.h"
@@ -147,6 +175,8 @@ bool persistentFlag(uint8_t mask)
     UNUSED(mask);
     return true;
 }
+
+escAndServoConfig_t escAndServoConfig;
 
 uint16_t enableFlightMode(flightModeFlags_e mask)
 {

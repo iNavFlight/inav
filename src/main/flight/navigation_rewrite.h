@@ -21,12 +21,11 @@
 #include "common/filter.h"
 
 #include "io/rc_controls.h"
-#include "io/escservo.h"
+#include "io/motor_and_servo.h"
 #include "io/gps.h"
 
-#include "flight/pid.h"
-#include "flight/failsafe.h"
 #include "flight/mixer.h"
+#include "flight/failsafe.h"
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
@@ -128,6 +127,8 @@ typedef struct navConfig_s {
     uint16_t fw_loiter_radius;              // Loiter radius when executing PH on a fixed wing
 } navConfig_t;
 
+PG_DECLARE(navConfig_t, navConfig);
+
 typedef struct gpsOrigin_s {
     bool    valid;
     float   scale;
@@ -213,18 +214,8 @@ typedef struct {
     navWaypointActions_e    activeWpAction;
 } navSystemStatus_t;
 
-void navigationUsePIDs(pidProfile_t *pidProfile);
-void navigationUseConfig(navConfig_t *navConfigToUse);
-void navigationUseRcControlsConfig(rcControlsConfig_t *initialRcControlsConfig);
-void navigationUseRxConfig(rxConfig_t * initialRxConfig);
-void navigationUseEscAndServoConfig(escAndServoConfig_t * initialEscAndServoConfig);
-void navigationUseFlight3DConfig(flight3DConfig_t * initialFlight3DConfig);
-void navigationInit(navConfig_t *initialnavConfig,
-                    pidProfile_t *initialPidProfile,
-                    rcControlsConfig_t *initialRcControlsConfig,
-                    rxConfig_t * initialRxConfig,
-                    flight3DConfig_t * initialFlight3DConfig,
-                    escAndServoConfig_t * initialEscAndServoConfig);
+void navigationUsePIDs(void);
+void navigationInit(void);
 
 /* Navigation system updates */
 void updateWaypointsAndNavigationMode(void);

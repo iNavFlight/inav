@@ -64,24 +64,30 @@
 
 #include "common/axis.h"
 
+#include "config/runtime_config.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/system.h"
 
 #include "drivers/serial.h"
 #include "io/serial.h"
 
-#include "config/runtime_config.h"
-
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
 
+#include "io/gps.h"
+#include "io/rate_profile.h"
+
 #include "flight/pid.h"
 #include "flight/navigation_rewrite.h"
-#include "io/gps.h"
 
 #include "telemetry/telemetry.h"
 #include "telemetry/hott.h"
 
 //#define HOTT_DEBUG
+
+PG_REGISTER(hottTelemetryConfig_t, hottTelemetryConfig, PG_HOTT_TELEMETRY_CONFIG, 0);
 
 #define HOTT_MESSAGE_PREPARATION_FREQUENCY_5_HZ ((1000 * 1000) / 5)
 #define HOTT_RX_SCHEDULE 4000
@@ -106,7 +112,6 @@ static uint8_t hottMsgCrc;
 static serialPort_t *hottPort = NULL;
 static serialPortConfig_t *portConfig;
 
-static telemetryConfig_t *telemetryConfig;
 static bool hottTelemetryEnabled =  false;
 static portSharing_e hottPortSharing;
 
@@ -212,7 +217,7 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
 
 static bool shouldTriggerBatteryAlarmNow(void)
 {
-    return ((millis() - lastHottAlarmSoundTime) >= (telemetryConfig->hottAlarmSoundInterval * MILLISECONDS_IN_A_SECOND));
+    return ((millis() - lastHottAlarmSoundTime) >= (hottTelemetryConfig.hottAlarmSoundInterval * MILLISECONDS_IN_A_SECOND));
 }
 
 static inline void updateAlarmBatteryStatus(HOTT_EAM_MSG_t *hottEAMMessage)
@@ -282,9 +287,8 @@ void freeHoTTTelemetryPort(void)
     hottTelemetryEnabled = false;
 }
 
-void initHoTTTelemetry(telemetryConfig_t *initialTelemetryConfig)
+void initHoTTTelemetry(void)
 {
-    telemetryConfig = initialTelemetryConfig;
     portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_HOTT);
     hottPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_HOTT);
 

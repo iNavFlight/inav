@@ -30,7 +30,11 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
+
 #include "config/config.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "io/serial.h"
 #include "io/serial_msp.h"
 #include "io/serial_4way.h"

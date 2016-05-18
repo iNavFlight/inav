@@ -31,6 +31,12 @@
 #include "common/axis.h"
 #include "common/filter.h"
 
+#include "config/config.h"
+#include "config/runtime_config.h"
+#include "config/parameter_group_ids.h"
+#include "config/parameter_group.h"
+#include "config/config.h"
+
 #include "drivers/system.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
@@ -43,14 +49,16 @@
 #include "sensors/barometer.h"
 #include "sensors/sonar.h"
 
+#include "io/gps.h"
+#include "io/rate_profile.h"
+
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/hil.h"
 
-#include "io/gps.h"
-#include "config/runtime_config.h"
-#include "config/config.h"
+//#include "config/runtime_config.h"
+//#include "config/config.h"
 
 /**
  * In Cleanflight accelerometer is aligned in the following way:
@@ -62,6 +70,9 @@
  *      Y-axis = East/Right
  *      Z-axis = Up
  */
+
+PG_REGISTER(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
+PG_REGISTER_PROFILE(throttleCorrectionConfig_t, throttleCorrectionConfig, PG_THROTTLE_CORRECTION_CONFIG, 0);
 
 // the limit (in degrees/second) beyond which we stop integrating
 // omega_I. At larger spin rates the DCM PI controller can get 'dizzy'
@@ -75,7 +86,6 @@ t_fp_vector imuMeasuredGravityBF;
 t_fp_vector imuMeasuredRotationBF;
 float smallAngleCosZ = 0;
 
-float magneticDeclination = 0.0f;       // calculated at startup from config
 static bool isAccelUpdatedAtLeastOnce = false;
 
 STATIC_UNIT_TESTED float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;    // quaternion of sensor frame relative to earth frame
@@ -84,10 +94,7 @@ STATIC_UNIT_TESTED float rMat[3][3];
 attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
 static imuRuntimeConfig_t *imuRuntimeConfig;
-static pidProfile_t *pidProfile;
-
 static float gyroScale;
-
 static bool gpsHeadingInitialized = false;
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -116,10 +123,9 @@ STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
     rMat[2][2] = 1.0f - 2.0f * q1q1 - 2.0f * q2q2;
 }
 
-void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig, pidProfile_t *initialPidProfile)
+void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig)
 {
     imuRuntimeConfig = initialImuRuntimeConfig;
-    pidProfile = initialPidProfile;
 }
 
 void imuInit(void)
@@ -378,6 +384,14 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
+bool imuIsAircraftArmable(uint8_t arming_angle)
+{
+    /* Update small angle state */
+    float armingAngleCosZ = cos_approx(degreesToRadians(arming_angle));
+    
+    return (rMat[2][2] > armingAngleCosZ);
+}
+
 // Idea by MasterZap
 static int imuCalculateAccelerometerConfidence(void)
 {
@@ -545,7 +559,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && persistentFlag(FLAG_MAG_CALIBRATION_DONE)) || (STATE(FIXED_WING) && gpsHeadingInitialized);
+    return sensors(SENSOR_MAG) || (STATE(FIXED_WING) && gpsHeadingInitialized);
 }
 
 float calculateCosTiltAngle(void)

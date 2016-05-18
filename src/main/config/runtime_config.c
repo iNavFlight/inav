@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "config/parameter_group.h"
 #include "config/runtime_config.h"
 #include "io/beeper.h"
 

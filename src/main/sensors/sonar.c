@@ -24,8 +24,10 @@
 
 #include "common/maths.h"
 
-#include "config/config.h"
+#include "config/parameter_group.h"
 #include "config/runtime_config.h"
+#include "config/config.h"
+#include "config/feature.h"
 
 #include "drivers/gpio.h"
 #include "drivers/sonar_hcsr04.h"

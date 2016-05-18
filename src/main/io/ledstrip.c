@@ -30,31 +30,39 @@
 #include <common/color.h>
 #include <common/maths.h>
 #include <common/typeconversion.h>
+#include <common/printf.h>
+#include <common/axis.h>
+#include <common/utils.h>
+
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/light_ws2811strip.h"
 #include "drivers/system.h"
 #include "drivers/serial.h"
 
-#include <common/printf.h>
+#include "io/rc_controls.h"
+#include "io/ledstrip.h"
+#include "io/rate_profile.h"
+
+#include "flight/pid.h"
+#include "flight/failsafe.h"
 
 #include "sensors/battery.h"
 
-#include "io/rc_controls.h"
-#include "io/ledstrip.h"
-
-#include "rx/rx.h"
-
-#include "flight/failsafe.h"
-
 #include "config/runtime_config.h"
 #include "config/config.h"
+#include "config/feature.h"
+
+PG_REGISTER_ARR(ledConfig_t, MAX_LED_STRIP_LENGTH, ledConfigs, PG_LED_STRIP_CONFIG, 0);
+PG_REGISTER_ARR(hsvColor_t, CONFIGURABLE_COLOR_COUNT, colors, PG_COLOR_CONFIG, 0);
 
 static bool ledStripInitialised = false;
 static bool ledStripEnabled = true;
 
 static void ledStripDisable(void);
 
-//#define USE_LED_ANIMATION
+#define USE_LED_ANIMATION
 //#define USE_LED_RING_DEFAULT_CONFIG
 
 // timers
@@ -226,10 +234,6 @@ uint8_t ledGridWidth;
 uint8_t ledGridHeight;
 uint8_t ledCount;
 uint8_t ledsInRingCount;
-
-ledConfig_t *ledConfigs;
-hsvColor_t *colors;
-
 
 #ifdef USE_LED_RING_DEFAULT_CONFIG
 const ledConfig_t defaultLedStripConfig[] = {
@@ -1019,26 +1023,28 @@ bool parseColor(uint8_t index, const char *colorConfig)
     return ok;
 }
 
-void applyDefaultColors(hsvColor_t *colors, uint8_t colorCount)
+void applyDefaultColors(void)
 {
-    memset(colors, 0, colorCount * sizeof(hsvColor_t));
-    for (uint8_t colorIndex = 0; colorIndex < colorCount && colorIndex < (sizeof(defaultColors) / sizeof(defaultColors[0])); colorIndex++) {
-        *colors++ = *defaultColors[colorIndex];
+    BUILD_BUG_ON(ARRAYLEN(colors) <= ARRAYLEN(defaultColors));
+
+    memset(&colors, 0, sizeof(colors));
+
+    hsvColor_t *color = &colors[0];
+    for (uint8_t colorIndex = 0; colorIndex < ARRAYLEN(defaultColors); colorIndex++) {
+        *color++ = *defaultColors[colorIndex];
     }
 }
 
-void applyDefaultLedStripConfig(ledConfig_t *ledConfigs)
+void applyDefaultLedStripConfig(void)
 {
-    memset(ledConfigs, 0, MAX_LED_STRIP_LENGTH * sizeof(ledConfig_t));
-    memcpy(ledConfigs, &defaultLedStripConfig, sizeof(defaultLedStripConfig));
+    memset(&ledConfigs, 0, sizeof(ledConfigs));
+    memcpy(&ledConfigs, &defaultLedStripConfig, sizeof(defaultLedStripConfig));
 
     reevalulateLedConfig();
 }
 
-void ledStripInit(ledConfig_t *ledConfigsToUse, hsvColor_t *colorsToUse)
+void ledStripInit(void)
 {
-    ledConfigs = ledConfigsToUse;
-    colors = colorsToUse;
     ledStripInitialised = false;
 }
 

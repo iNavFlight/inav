@@ -37,7 +37,12 @@
 #include "common/axis.h"
 #include "common/typeconversion.h"
 
+#include "config/parameter_group.h"
+
 #ifdef DISPLAY
+
+#include "io/rate_profile.h"
+#include "io/rc_controls.h"
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
@@ -60,8 +65,9 @@
 #endif
 
 #include "config/runtime_config.h"
-
 #include "config/config.h"
+#include "config/feature.h"
+#include "config/profile.h"
 
 #include "display.h"
 
@@ -74,8 +80,6 @@ controlRateConfig_t *getControlRateConfig(uint8_t profileIndex);
 
 static uint32_t nextDisplayUpdateAt = 0;
 static bool displayPresent = false;
-
-static rxConfig_t *rxConfig;
 
 #define PAGE_TITLE_LINE_COUNT 1
 
@@ -457,13 +461,11 @@ void displaySetPage(pageId_e newPageId)
     forcePageChange = true;
 }
 
-void displayInit(rxConfig_t *rxConfigToUse)
+void displayInit(void)
 {
     delay(200);
     resetDisplay();
     delay(200);
-
-    rxConfig = rxConfigToUse;
 
     displaySetPage(PAGE_WELCOME);
     displaySetNextPageChangeAt(micros() + (1000 * 1000 * 5));

@@ -33,6 +33,14 @@ typedef enum {
 
 #define ACC_MAX  ACC_FAKE
 
+typedef struct accConfig_s {
+    flightDynamicsTrims_t accZero;          // Accelerometer offset
+    flightDynamicsTrims_t accGain;          // Accelerometer gain to read exactly 1G
+    uint8_t acc_soft_lpf_hz;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
+} accConfig_t;
+
+PG_DECLARE(accConfig_t, accConfig);
+
 extern sensor_align_e accAlign;
 extern acc_t acc;
 
@@ -41,6 +49,3 @@ extern int32_t accADC[XYZ_AXIS_COUNT];
 bool isAccelerationCalibrationComplete(void);
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 void updateAccelerationReadings(void);
-void setAccelerationZero(flightDynamicsTrims_t * accZeroToUse);
-void setAccelerationGain(flightDynamicsTrims_t * accGainToUse);
-void setAccelerationFilter(int8_t initialAccLpfCutHz);

@@ -25,37 +25,32 @@
 #include "common/maths.h"
 #include "common/filter.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
 #include "drivers/gyro_sync.h"
 
+#include "sensors/sensors.h"
+
 #include "io/beeper.h"
 #include "io/statusindicator.h"
 
-#include "sensors/sensors.h"
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 
-gyro_t gyro;                      // gyro access functions
-sensor_align_e gyroAlign = 0;
+PG_REGISTER(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 0);
 
-int32_t gyroADC[XYZ_AXIS_COUNT];
-
-static gyroConfig_t *gyroConfig;
-
-static uint16_t calibratingG = 0;
-static int16_t gyroADCRaw[XYZ_AXIS_COUNT];
-static int32_t gyroZero[FLIGHT_DYNAMICS_INDEX_COUNT] = { 0, 0, 0 };
-
-static int8_t gyroLpfCutHz = 0;
 static biquad_t gyroFilterState[XYZ_AXIS_COUNT];
 static bool gyroFilterInitialised = false;
+static uint32_t calibratingG = 0;
+static int32_t gyroZero[XYZ_AXIS_COUNT];
+static int16_t gyroADCRaw[XYZ_AXIS_COUNT];
 
-void useGyroConfig(gyroConfig_t *gyroConfigToUse, int8_t initialGyroLpfCutHz)
-{
-    gyroConfig = gyroConfigToUse;
-    gyroLpfCutHz = initialGyroLpfCutHz;
-}
+gyro_t gyro;                      // gyro access functions
+sensor_align_e gyroAlign = 0;
+int32_t gyroADC[XYZ_AXIS_COUNT];
 
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired)
 {
@@ -133,11 +128,11 @@ void gyroUpdate(void)
     // Prepare a copy of int32_t gyroADC for mangling to prevent overflow
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) gyroADC[axis] = gyroADCRaw[axis];
 
-    if (gyroLpfCutHz) {
+    if (gyroConfig.gyro_soft_lpf_hz) {
         if (!gyroFilterInitialised) {
             if (targetLooptime) {  /* Initialisation needs to happen once sample rate is known */
                 for (int axis = 0; axis < 3; axis++) {
-                    filterInitBiQuad(gyroLpfCutHz, &gyroFilterState[axis], 0);
+                    filterInitBiQuad(gyroConfig.gyro_soft_lpf_hz, &gyroFilterState[axis], 0);
                 }
 
                 gyroFilterInitialised = true;
@@ -152,7 +147,7 @@ void gyroUpdate(void)
     }
 
     if (!isGyroCalibrationComplete()) {
-        performAcclerationCalibration(gyroConfig->gyroMovementCalibrationThreshold);
+        performAcclerationCalibration(gyroConfig.gyroMovementCalibrationThreshold);
     }
 
     applyGyroZero();

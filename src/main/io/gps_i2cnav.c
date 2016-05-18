@@ -27,6 +27,9 @@
 #include "common/axis.h"
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/system.h"
 #include "drivers/serial.h"
 #include "drivers/gps_i2cnav.h"
@@ -36,12 +39,11 @@
 #include "io/gps_private.h"
 
 #include "flight/gps_conversion.h"
-#include "flight/pid.h"
 #include "flight/hil.h"
-#include "flight/navigation_rewrite.h"
 
 #include "config/config.h"
 #include "config/runtime_config.h"
+#include "config/parameter_group.h"
 
 #if defined(GPS) && defined(GPS_PROTO_I2C_NAV)
 

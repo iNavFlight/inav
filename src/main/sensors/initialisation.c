@@ -60,6 +60,7 @@
 #include "drivers/sonar_hcsr04.h"
 
 #include "config/runtime_config.h"
+#include "config/parameter_group.h"
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
@@ -76,8 +77,6 @@
 #ifdef GPS
 extern bool gpsMagDetect(mag_t *mag);
 #endif
-
-extern float magneticDeclination;
 
 extern gyro_t gyro;
 extern baro_t baro;
@@ -744,11 +743,8 @@ void reconfigureAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
     }
 }
 
-bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t gyroLpf, uint8_t accHardwareToUse, uint8_t magHardwareToUse, uint8_t baroHardwareToUse,
-        int16_t magDeclinationFromConfig) {
-
-    int16_t deg, min;
-
+bool sensorsAutodetect(void)
+{
     memset(&acc, 0, sizeof(acc));
     memset(&gyro, 0, sizeof(gyro));
 
@@ -763,30 +759,21 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t g
     if (!detectGyro()) {
         return false;
     }
-    detectAcc(accHardwareToUse);
-    detectBaro(baroHardwareToUse);
+    detectAcc(sensorSelectionConfig.acc_hardware);
+    detectBaro(sensorSelectionConfig.baro_hardware);
 
 
     // Now time to init things, acc first
     if (sensors(SENSOR_ACC))
         acc.init(&acc);
 
-    gyro.init(gyroLpf);
+    gyro.init(gyroConfig.gyro_lpf);
 
-    detectMag(magHardwareToUse);
+#ifdef MAG
+    detectMag(sensorSelectionConfig.mag_hardware);
+#endif
 
-    reconfigureAlignment(sensorAlignmentConfig);
-
-    // FIXME extract to a method to reduce dependencies, maybe move to sensors_compass.c
-    if (sensors(SENSOR_MAG)) {
-        // calculate magnetic declination
-        deg = magDeclinationFromConfig / 100;
-        min = magDeclinationFromConfig % 100;
-
-        magneticDeclination = (deg + ((float)min * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
-    } else {
-        magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
-    }
+    reconfigureAlignment(&sensorAlignmentConfig);
 
     return true;
 }

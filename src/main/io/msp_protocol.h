@@ -97,6 +97,9 @@
 #define MSP_BOARD_INFO                  4    //out message
 #define MSP_BUILD_INFO                  5    //out message
 
+#define MSP_SET_HIL_STATE               11    // in message  roll , pitch , trueHeading, baroAltitude, accel forward, right, up
+#define MSP_HIL_STATE                   12    // out message
+
 //
 // MSP commands for Cleanflight original features
 //
@@ -157,6 +160,14 @@
 
 #define MSP_RXFAIL_CONFIG               77 //out message         Returns RXFAIL settings
 #define MSP_SET_RXFAIL_CONFIG           78 //in message          Sets RXFAIL settings
+
+#define MSP_SDCARD_SUMMARY              79 //out message         Get the state of the SD card
+
+#define MSP_BLACKBOX_CONFIG             80 //out message         Get blackbox settings
+#define MSP_SET_BLACKBOX_CONFIG         81 //in message          Set blackbox settings
+
+#define MSP_TRANSPONDER_CONFIG          82 //out message         Get transponder settings
+#define MSP_SET_TRANSPONDER_CONFIG      83 //in  message         Set transponder settings
 
 //
 // Baseflight MSP commands (if enabled they exist in Cleanflight)

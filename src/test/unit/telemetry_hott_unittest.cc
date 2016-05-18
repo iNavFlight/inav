@@ -28,6 +28,9 @@ extern "C" {
 
     #include "common/axis.h"
 
+    #include "config/parameter_group.h"
+    #include "config/runtime_config.h"
+
     #include "drivers/system.h"
     #include "drivers/serial.h"
 
@@ -42,8 +45,6 @@ extern "C" {
 
     #include "flight/pid.h"
     #include "flight/gps_conversion.h"
-
-    #include "config/runtime_config.h"
 }
 
 #include "unittest_macros.h"

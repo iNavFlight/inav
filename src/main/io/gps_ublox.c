@@ -30,6 +30,9 @@
 #include "common/axis.h"
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/system.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
@@ -555,7 +558,7 @@ static bool gpsConfigure(void)
 {
     switch (gpsState.autoConfigStep) {
     case 0: // NAV5
-        switch (gpsState.gpsConfig->dynModel) {
+        switch (gpsConfig.dynModel) {
             case GPS_DYNMODEL_PEDESTRIAN:
                 ubxTransmitAutoConfigCommands(ubloxInit_NAV5_Pedestrian, sizeof(ubloxInit_NAV5_Pedestrian));
                 break;
@@ -605,7 +608,7 @@ static bool gpsConfigure(void)
         break;
 
     case 5: // SBAS
-        ubxTransmitAutoConfigCommands(ubloxSbas[gpsState.gpsConfig->sbasMode].message, UBLOX_SBAS_MESSAGE_LENGTH);
+        ubxTransmitAutoConfigCommands(ubloxSbas[gpsConfig.sbasMode].message, UBLOX_SBAS_MESSAGE_LENGTH);
         break;
 
     default:
@@ -668,7 +671,7 @@ static bool gpsInitialize(void)
 
 static bool gpsChangeBaud(void)
 {
-    if ((gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) && (gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT)) {
+    if ((gpsConfig.autoBaud != GPS_AUTOBAUD_OFF) && (gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT)) {
         // Do the switch only if TX buffer is empty - make sure all init string was sent at the same baud
         if (isSerialTransmitBufferEmpty(gpsState.gpsPort)) {
             // Cycle through all possible bauds and send init string
@@ -706,7 +709,7 @@ bool gpsHandleUBLOX(void)
 
     case GPS_CONFIGURE:
         // Either use specific config file for GPS or let dynamically upload config
-        if (gpsState.gpsConfig->autoConfig == GPS_AUTOCONFIG_OFF) {
+        if (gpsConfig.autoConfig == GPS_AUTOCONFIG_OFF) {
             gpsSetState(GPS_RECEIVING_DATA);
             return false;
         }

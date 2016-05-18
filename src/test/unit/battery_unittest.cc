@@ -21,11 +21,18 @@
 //#define DEBUG_BATTERY
 
 extern "C" {
+    #include "config/parameter_group.h"
+    #include "config/parameter_group_ids.h"
+
+    #include "io/rc_controls.h"
+
     #include "sensors/battery.h"
     
     #include "io/rc_controls.h"
     #include "flight/lowpass.h"
     #include "io/beeper.h"
+
+    PG_REGISTER(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 0);
 }
 
 #include "unittest_macros.h"
@@ -42,7 +49,7 @@ typedef struct batteryAdcToVoltageExpectation_s {
 TEST(BatteryTest, BatteryADCToVoltage)
 {
     // batteryInit() reads a bunch of fields including vbatscale, so set up the config with useful initial values:
-    batteryConfig_t batteryConfig = {
+    batteryConfig_t testBatteryConfig = {
         .vbatscale = VBAT_SCALE_DEFAULT,
         .vbatresdivval = VBAT_RESDIVVAL_DEFAULT,
         .vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT,
@@ -55,8 +62,9 @@ TEST(BatteryTest, BatteryADCToVoltage)
         .multiwiiCurrentMeterOutput = 0,
         .batteryCapacity = 2200,
     };
+    memcpy(&batteryConfig, &testBatteryConfig, sizeof(batteryConfig));
 
-    batteryInit(&batteryConfig);
+    batteryInit();
 
     batteryAdcToVoltageExpectation_t batteryAdcToVoltageExpectations[] = {
             {1420, 126 /*125.88*/, ELEVEN_TO_ONE_VOLTAGE_DIVIDER},
@@ -102,7 +110,7 @@ typedef struct batteryAdcToBatteryStateExpectation_s
 TEST(BatteryTest, BatteryState)
 {
     // batteryInit() reads a bunch of fields including vbatscale, so set up the config with useful initial values:
-    batteryConfig_t batteryConfig = {
+    batteryConfig_t testBatteryConfig = {
         .vbatscale = VBAT_SCALE_DEFAULT,
         .vbatresdivval = VBAT_RESDIVVAL_DEFAULT,
         .vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT,
@@ -115,8 +123,9 @@ TEST(BatteryTest, BatteryState)
         .multiwiiCurrentMeterOutput = 0,
         .batteryCapacity = 2200,
     };
+    memcpy(&batteryConfig, &testBatteryConfig, sizeof(batteryConfig));
 
-    batteryInit(&batteryConfig);
+    batteryInit();
 
     batteryAdcToBatteryStateExpectation_t batteryAdcToBatteryStateExpectations[] = {
             {1420, 126, BATTERY_OK, ELEVEN_TO_ONE_VOLTAGE_DIVIDER},
@@ -161,7 +170,7 @@ typedef struct batteryAdcToCellCountExpectation_s
 TEST(BatteryTest, CellCount)
 {
     // batteryInit() reads a bunch of fields including vbatscale, so set up the config with useful initial values:
-    batteryConfig_t batteryConfig = {
+    batteryConfig_t testBatteryConfig = {
         .vbatscale = VBAT_SCALE_DEFAULT,
         .vbatresdivval = VBAT_RESDIVVAL_DEFAULT,
         .vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT,
@@ -175,7 +184,9 @@ TEST(BatteryTest, CellCount)
         .batteryCapacity = 2200,
     };
 
-    batteryInit(&batteryConfig);
+    memcpy(&batteryConfig, &testBatteryConfig, sizeof(batteryConfig));
+
+    batteryInit();
 
     batteryAdcToCellCountExpectation_t batteryAdcToCellCountExpectations[] = {
             {0, 0, ELEVEN_TO_ONE_VOLTAGE_DIVIDER, 1},

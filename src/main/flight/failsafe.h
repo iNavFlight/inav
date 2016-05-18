@@ -34,7 +34,7 @@ typedef struct failsafeConfig_s {
     uint8_t failsafe_kill_switch;           // failsafe switch action is 0: identical to rc link loss, 1: disarms instantly
     uint16_t failsafe_throttle_low_delay;   // Time throttle stick must have been below 'min_check' to "JustDisarm" instead of "full failsafe procedure".
     uint8_t failsafe_procedure;             // selected full failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
-} failsafeConfig_t;
+} PG_PACKED failsafeConfig_t;
 
 typedef enum {
     FAILSAFE_IDLE = 0,
@@ -81,8 +81,11 @@ typedef struct failsafeState_s {
     failsafeRxLinkState_e rxLinkState;
 } failsafeState_t;
 
-void useFailsafeConfig(failsafeConfig_t *failsafeConfigToUse);
-failsafeConfig_t * getActiveFailsafeConfig(void);
+PG_DECLARE(failsafeConfig_t, failsafeConfig);
+
+void failsafeInit(void);
+
+void useFailsafeConfig();
 
 void failsafeStartMonitoring(void);
 void failsafeUpdateState(void);

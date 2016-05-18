@@ -18,7 +18,6 @@
 #pragma once
 
 #define MAX_PROFILE_COUNT 3
-#define MAX_CONTROL_RATE_PROFILE_COUNT 3
 #define ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS 1500
 
 
@@ -47,43 +46,16 @@ typedef enum {
 } features_e;
 
 void handleOneshotFeatureChangeOnRestart(void);
-void latchActiveFeatures(void);
-bool featureConfigured(uint32_t mask);
-
-typedef enum {
-    FLAG_MAG_CALIBRATION_DONE = 1 << 0,
-} persistent_flags_e;
-
-bool feature(uint32_t mask);
-void featureSet(uint32_t mask);
-void featureClear(uint32_t mask);
-void featureClearAll(void);
-uint32_t featureMask(void);
-void beeperOffSet(uint32_t mask);
-void beeperOffSetAll(uint8_t beeperCount);
-void beeperOffClear(uint32_t mask);
-void beeperOffClearAll(void);
-uint32_t getBeeperOffMask(void);
-void setBeeperOffMask(uint32_t mask);
-uint32_t getPreferedBeeperOffMask(void);
-void setPreferedBeeperOffMask(uint32_t mask);
-
-bool persistentFlag(uint8_t mask);
-void persistentFlagSet(uint8_t mask);
-void persistentFlagClear(uint8_t mask);
-void persistentFlagClearAll();
 
 void copyCurrentProfileToProfileSlot(uint8_t profileSlotIndex);
 
 void initEEPROM(void);
 void resetEEPROM(void);
 void readEEPROM(void);
-void readEEPROMAndNotify(void);
 void writeEEPROM();
 void ensureEEPROMContainsValidData(void);
 void saveConfigAndNotify(void);
 
-uint8_t getCurrentProfile(void);
 void changeProfile(uint8_t profileIndex);
 
 uint8_t getCurrentControlRateProfile(void);

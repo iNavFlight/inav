@@ -25,6 +25,9 @@
 
 #include "common/maths.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/barometer.h"
 #include "drivers/system.h"
 #include "config/config.h"
@@ -40,16 +43,10 @@ int32_t baroTemperature = 0;
 int32_t BaroAlt = 0;
 
 #ifdef BARO
+PG_REGISTER(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
 
 static int32_t baroGroundAltitude = 0;
 static int32_t baroGroundPressure = 0;
-
-static barometerConfig_t *barometerConfig;
-
-void useBarometerConfig(barometerConfig_t *barometerConfigToUse)
-{
-    barometerConfig = barometerConfigToUse;
-}
 
 bool isBaroCalibrationComplete(void)
 {
@@ -113,7 +110,7 @@ uint32_t baroUpdate(void)
             baro.get_up();
             baro.start_ut();
             baro.calculate(&baroPressure, &baroTemperature);
-            if (barometerConfig->use_median_filtering) {
+            if (barometerConfig.use_median_filtering) {
                 baroPressure = applyBarometerMedianFilter(baroPressure);
             }
             state = BAROMETER_NEEDS_SAMPLES;

@@ -28,6 +28,12 @@
 #include "common/axis.h"
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+#include "config/config.h"
+#include "config/runtime_config.h"
+#include "config/feature.h"
+
 #include "drivers/system.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
@@ -46,10 +52,9 @@
 
 #include "flight/navigation_rewrite.h"
 
-#include "config/config.h"
-#include "config/runtime_config.h"
-
 #ifdef GPS
+
+PG_REGISTER(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 0);
 
 // GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 2000 ms)
 #define GPS_TIMEOUT             (2000)
@@ -120,8 +125,8 @@ static void gpsHandleProtocol(void)
     bool newDataReceived = false;
 
     // Call protocol-specific code
-    if (gpsProviders[gpsState.gpsConfig->provider].read) {
-        newDataReceived = gpsProviders[gpsState.gpsConfig->provider].read();
+    if (gpsProviders[gpsConfig.provider].read) {
+        newDataReceived = gpsProviders[gpsConfig.provider].read();
     }
 
     // Received new update for solution data
@@ -162,16 +167,8 @@ static void gpsResetSolution(void)
     gpsSol.flags.validMag = 0;
 }
 
-void gpsPreInit(gpsConfig_t *initialGpsConfig)
+void gpsInit(void)
 {
-    // Make sure gpsProvider is known when gpsMagDetect is called
-    gpsState.gpsConfig = initialGpsConfig;
-}
-
-void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
-{
-    gpsState.serialConfig = initialSerialConfig;
-    gpsState.gpsConfig = initialGpsConfig;
     gpsState.baudrateIndex = 0;
 
     gpsStats.errors = 0;
@@ -184,12 +181,12 @@ void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
     gpsState.lastMessageMs = millis();
     gpsSetState(GPS_UNKNOWN);
 
-    if (gpsProviders[gpsState.gpsConfig->provider].type == GPS_TYPE_BUS) {
+    if (gpsProviders[gpsConfig.provider].type == GPS_TYPE_BUS) {
         gpsSetState(GPS_INITIALIZING);
         return;
     }
 
-    if (gpsProviders[gpsState.gpsConfig->provider].type == GPS_TYPE_SERIAL) {
+    if (gpsProviders[gpsConfig.provider].type == GPS_TYPE_SERIAL) {
         serialPortConfig_t * gpsPortConfig = findSerialPortConfig(FUNCTION_GPS);
         if (!gpsPortConfig) {
             featureClear(FEATURE_GPS);
@@ -203,7 +200,7 @@ void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
                 }
             }
 
-            portMode_t mode = gpsProviders[gpsState.gpsConfig->provider].portMode;
+            portMode_t mode = gpsProviders[gpsConfig.provider].portMode;
 
             // no callback - buffer will be consumed in gpsThread()
             gpsState.gpsPort = openSerialPort(gpsPortConfig->identifier, FUNCTION_GPS, NULL, gpsToSerialBaudRate[gpsState.baudrateIndex], mode, SERIAL_NOT_INVERTED);
@@ -254,7 +251,7 @@ static void gpsFakeGPSUpdate(void)
 // Finish baud rate change sequence - wait for TX buffer to empty and switch to the desired port speed
 void gpsFinalizeChangeBaud(void)
 {
-    if ((gpsProviders[gpsState.gpsConfig->provider].type == GPS_TYPE_SERIAL) && (gpsState.gpsPort != NULL)) {
+    if ((gpsProviders[gpsConfig.provider].type == GPS_TYPE_SERIAL) && (gpsState.gpsPort != NULL)) {
         // Wait for GPS_INIT_DELAY before switching to required baud rate
         if ((millis() - gpsState.lastStateSwitchMs) >= GPS_BAUD_CHANGE_DELAY && isSerialTransmitBufferEmpty(gpsState.gpsPort)) {
             // Switch to required serial port baud
@@ -282,7 +279,7 @@ void gpsThread(void)
 #else
 
     // Serial-based GPS
-    if ((gpsProviders[gpsState.gpsConfig->provider].type == GPS_TYPE_SERIAL) && (gpsState.gpsPort != NULL)) {
+    if ((gpsProviders[gpsConfig.provider].type == GPS_TYPE_SERIAL) && (gpsState.gpsPort != NULL)) {
         switch (gpsState.state) {
         default:
         case GPS_INITIALIZING:
@@ -326,7 +323,7 @@ void gpsThread(void)
         case GPS_LOST_COMMUNICATION:
             gpsStats.timeouts++;
             // Handle autobaud - switch to next port baud rate
-            if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
+            if (gpsConfig.autoBaud != GPS_AUTOBAUD_OFF) {
                 gpsState.baudrateIndex++;
                 gpsState.baudrateIndex %= GPS_BAUDRATE_COUNT;
             }
@@ -335,7 +332,7 @@ void gpsThread(void)
         }
     }
     // Driver-based GPS (I2C)
-    else if (gpsProviders[gpsState.gpsConfig->provider].type == GPS_TYPE_BUS) {
+    else if (gpsProviders[gpsConfig.provider].type == GPS_TYPE_BUS) {
         switch (gpsState.state) {
         default:
         case GPS_INITIALIZING:
@@ -343,7 +340,7 @@ void gpsThread(void)
             if ((millis() - gpsState.lastStateSwitchMs) >= GPS_BUS_INIT_DELAY) {
                 gpsResetSolution();
 
-                if (gpsProviders[gpsState.gpsConfig->provider].detect && gpsProviders[gpsState.gpsConfig->provider].detect()) {
+                if (gpsProviders[gpsConfig.provider].detect && gpsProviders[gpsConfig.provider].detect()) {
                     gpsState.hwVersion = 0;
                     gpsState.autoConfigStep = 0;
                     gpsState.autoConfigPosition = 0;
@@ -436,10 +433,10 @@ bool gpsMagRead(int16_t *magData)
 
 bool gpsMagDetect(mag_t *mag)
 {
-    if (!(feature(FEATURE_GPS) && gpsProviders[gpsState.gpsConfig->provider].hasCompass))
+    if (!(feature(FEATURE_GPS) && gpsProviders[gpsConfig.provider].hasCompass))
         return false;
 
-    if (gpsProviders[gpsState.gpsConfig->provider].type == GPS_TYPE_SERIAL && (!findSerialPortConfig(FUNCTION_GPS))) {
+    if (gpsProviders[gpsConfig.provider].type == GPS_TYPE_SERIAL && (!findSerialPortConfig(FUNCTION_GPS))) {
         return false;
     }
 
