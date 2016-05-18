@@ -175,7 +175,8 @@ bool adjustFixedWingHeadingFromRCInput(void)
 /*-----------------------------------------------------------
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
-t_fp_vector virtualDesiredPosition;
+static t_fp_vector virtualDesiredPosition;
+static filterStatePt1_t fwPosControllerCorrectionFilterState;
 
 void resetFixedWingPositionController(void)
 {
@@ -186,6 +187,8 @@ void resetFixedWingPositionController(void)
     navPidReset(&posControl.pids.fw_nav);
     posControl.rcAdjustment[ROLL] = 0;
     isRollAdjustmentValid = false;
+
+    filterResetPt1(&fwPosControllerCorrectionFilterState, 0.0f);
 }
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
@@ -262,6 +265,9 @@ static void updatePositionHeadingController_FW(uint32_t deltaMicros)
                                        -DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle),
                                         DEGREES_TO_CENTIDEGREES(posControl.navConfig->fw_max_bank_angle),
                                         true);
+
+    // Apply low-pass filter to prevent rapid correction
+    rollAdjustment = filterApplyPt1(rollAdjustment, &fwPosControllerCorrectionFilterState, NAV_FW_ROLL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
 
     // Convert rollAdjustment to decidegrees (rcAdjustment holds decidegrees)
     posControl.rcAdjustment[ROLL] = CENTIDEGREES_TO_DECIDEGREES(rollAdjustment);
