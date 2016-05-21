@@ -468,16 +468,12 @@ static void applyMulticopterPositionController(uint32_t currentTime)
 /*-----------------------------------------------------------
  * Multicopter land detector
  *-----------------------------------------------------------*/
-bool isMulticopterLandingDetected(uint32_t * landingTimer)
+bool isMulticopterLandingDetected(uint32_t * landingTimer, bool * hasHadSomeVelocity)
 {
     uint32_t currentTime = micros();
     
-    static bool hasHadSomeVelocity = false;
-    // TODO: hasHadSomeVelocity needs to be reset when rth restarts, ugly hack used for now.
-    if ((currentTime - *landingTimer) > 2500000) hasHadSomeVelocity = false;
-    
     // When descend stage is activated velocity is ~0, so wait until we have descended faster than -25cm/s
-    if (!hasHadSomeVelocity && posControl.actualState.vel.V.Z < -25.0f) hasHadSomeVelocity = true;
+    if (!*hasHadSomeVelocity && posControl.actualState.vel.V.Z < -25.0f) *hasHadSomeVelocity = true;
 
     // Average climb rate should be low enough
     bool verticalMovement = fabsf(posControl.actualState.vel.V.Z) > 25.0f;
@@ -489,9 +485,9 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
     // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
     bool minimalThrust = rcCommandAdjustedThrottle < posControl.navConfig->mc_min_fly_throttle;
-    
+
     /*
-    Do not trust the sonar, it want to kill you!
+    Do not trust the sonar, it wants to kill you!
     // If we have surface sensor - use it to detect touchdown (surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed)
     bool surfaceDetected = (posControl.flags.hasValidSurfaceSensor && posControl.actualState.surface >= 0 && posControl.actualState.surfaceMin >= 0)
                                 && (posControl.actualState.surface <= (posControl.actualState.surfaceMin + 5.0f));
@@ -499,7 +495,7 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     bool possibleLandingDetected = (surfaceDetected) || (minimalThrust && !verticalMovement && !horizontalMovement);
     */
     bool possibleLandingDetected = hasHadSomeVelocity && minimalThrust && !verticalMovement && !horizontalMovement;
-    navDebug[0] = hasHadSomeVelocity;
+    navDebug[0] = *hasHadSomeVelocity;
     navDebug[1] = rcCommandAdjustedThrottle;
     navDebug[2] = !verticalMovement;
     navDebug[3] = (currentTime - *landingTimer) / 1000;
