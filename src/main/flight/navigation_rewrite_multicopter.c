@@ -472,8 +472,9 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
 {
     uint32_t currentTime = micros();
     
-    // TODO: Do we need to reset this? How?
     static bool hasHadSomeVelocity = false;
+    // TODO: hasHadSomeVelocity needs to be reset when rth restarts, ugly hack used for now.
+    if ((currentTime - *landingTimer) > 1000000) hasHadSomeVelocity = false;
     
     // When descend stage is activated velocity is ~0, so wait until we have descended faster than -25cm/s
     if (!hasHadSomeVelocity && posControl.actualState.vel.V.Z < -25.0f) hasHadSomeVelocity = true;
@@ -501,13 +502,14 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     navDebug[0] = hasHadSomeVelocity;
     navDebug[1] = rcCommandAdjustedThrottle;
     navDebug[2] = !verticalMovement;
-    navDebug[3] = (currentTime - *landingTimer) / 1000;
 
     if (!possibleLandingDetected) {
         *landingTimer = currentTime;
+        navDebug[3] = (currentTime - *landingTimer) / 1000;
         return false;
     }
     else {
+        navDebug[3] = (currentTime - *landingTimer) / 1000;
         return ((currentTime - *landingTimer) > (LAND_DETECTOR_TRIGGER_TIME_MS * 1000)) ? true : false;
     }
 }
