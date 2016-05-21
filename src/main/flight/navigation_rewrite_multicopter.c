@@ -474,7 +474,7 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     
     static bool hasHadSomeVelocity = false;
     // TODO: hasHadSomeVelocity needs to be reset when rth restarts, ugly hack used for now.
-    if ((currentTime - *landingTimer) > 1000000) hasHadSomeVelocity = false;
+    if ((currentTime - *landingTimer) > 2500000) hasHadSomeVelocity = false;
     
     // When descend stage is activated velocity is ~0, so wait until we have descended faster than -25cm/s
     if (!hasHadSomeVelocity && posControl.actualState.vel.V.Z < -25.0f) hasHadSomeVelocity = true;
