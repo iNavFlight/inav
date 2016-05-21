@@ -477,7 +477,6 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     
     // When descend stage is activated velocity is ~0, so wait until we have descended faster than -25cm/s
     if (!hasHadSomeVelocity && posControl.actualState.vel.V.Z < -25.0f) hasHadSomeVelocity = true;
-    navDebug[0] = hasHadSomeVelocity;
 
     // Average climb rate should be low enough
     bool verticalMovement = fabsf(posControl.actualState.vel.V.Z) > 25.0f;
@@ -489,7 +488,6 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
     // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
     bool minimalThrust = rcCommandAdjustedThrottle < posControl.navConfig->mc_min_fly_throttle;
-    navDebug[1] = posControl.navConfig->mc_min_fly_throttle;
     
     /*
     Do not trust the sonar, it want to kill you!
@@ -500,7 +498,9 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     bool possibleLandingDetected = (surfaceDetected) || (minimalThrust && !verticalMovement && !horizontalMovement);
     */
     bool possibleLandingDetected = hasHadSomeVelocity && minimalThrust && !verticalMovement && !horizontalMovement;
-    navDebug[2] = possibleLandingDetected;
+    navDebug[0] = hasHadSomeVelocity;
+    navDebug[1] = rcCommandAdjustedThrottle;
+    navDebug[2] = !verticalMovement;
     navDebug[3] = (currentTime - *landingTimer) / 1000;
 
     if (!possibleLandingDetected) {
