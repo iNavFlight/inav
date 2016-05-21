@@ -502,14 +502,13 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer)
     navDebug[0] = hasHadSomeVelocity;
     navDebug[1] = rcCommandAdjustedThrottle;
     navDebug[2] = !verticalMovement;
+    navDebug[3] = (currentTime - *landingTimer) / 1000;
 
     if (!possibleLandingDetected) {
         *landingTimer = currentTime;
-        navDebug[3] = (currentTime - *landingTimer) / 1000;
         return false;
     }
     else {
-        navDebug[3] = (currentTime - *landingTimer) / 1000;
         return ((currentTime - *landingTimer) > (LAND_DETECTOR_TRIGGER_TIME_MS * 1000)) ? true : false;
     }
 }
