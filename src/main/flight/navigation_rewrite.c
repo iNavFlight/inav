@@ -948,7 +948,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_3D_LANDING(navigati
         // A safeguard - if sonar is available and it is reading < 50cm altitude - drop to low descend speed
         if (posControl.flags.hasValidSurfaceSensor && posControl.actualState.surface >= 0 && posControl.actualState.surface < 50.0f) {
             // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
-            updateAltitudeTargetFromClimbRate(-0.15f * posControl.navConfig->land_descent_rate, CLIMB_RATE_RESET_SURFACE_TARGET);
+            // Do not allow descent velocity slower than -30cm/s so the landing detector works.
+            float descentVelLimited = MIN(-0.15f * posControl.navConfig->land_descent_rate, -30.0f);
+            updateAltitudeTargetFromClimbRate(descentVelLimited, CLIMB_RATE_RESET_SURFACE_TARGET);
         }
         else {
             // Ramp down descent velocity from 100% at maxAlt altitude to 25% from minAlt to 0cm.
