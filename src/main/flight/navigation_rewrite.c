@@ -956,7 +956,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_3D_LANDING(navigati
                                         / (posControl.navConfig->land_slowdown_maxalt - posControl.navConfig->land_slowdown_minalt) * 0.75f + 0.25f;  // Yield 1.0 at 2000 alt and 0.25 at 500 alt
 
             descentVelScaling = constrainf(descentVelScaling, 0.25f, 1.0f);
-            updateAltitudeTargetFromClimbRate(-descentVelScaling * posControl.navConfig->land_descent_rate, CLIMB_RATE_RESET_SURFACE_TARGET);
+            
+            // Do not allow descent velocity slower than -50cm/s so the landing detector works.
+            float descentVelLimited = MIN(-descentVelScaling * posControl.navConfig->land_descent_rate, -50.0f);
+            updateAltitudeTargetFromClimbRate(descentVelLimited, CLIMB_RATE_RESET_SURFACE_TARGET);
         }
 
         return NAV_FSM_EVENT_NONE;
