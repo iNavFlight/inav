@@ -485,16 +485,17 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer, bool * hasHadSomeVelo
     // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
     // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
     bool minimalThrust = rcCommandAdjustedThrottle < posControl.navConfig->mc_min_fly_throttle;
-
-    /*
-    Do not trust the sonar, it wants to kill you!
-    // If we have surface sensor - use it to detect touchdown (surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed)
-    bool surfaceDetected = (posControl.flags.hasValidSurfaceSensor && posControl.actualState.surface >= 0 && posControl.actualState.surfaceMin >= 0)
-                                && (posControl.actualState.surface <= (posControl.actualState.surfaceMin + 5.0f));
-
-    bool possibleLandingDetected = (surfaceDetected) || (minimalThrust && !verticalMovement && !horizontalMovement);
-    */
+    
     bool possibleLandingDetected = hasHadSomeVelocity && minimalThrust && !verticalMovement && !horizontalMovement;
+    
+    // If we have surface sensor (for example sonar) - use it to detect touchdown
+    if (posControl.flags.hasValidSurfaceSensor && posControl.actualState.surface >= 0 && posControl.actualState.surfaceMin >= 0) {
+        // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
+        // TODO: Out of range sonar may give reading that looks like we landed, find a way to check if sonar is healthy.
+        // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
+        possibleLandingDetected = possibleLandingDetected && posControl.actualState.surface <= (posControl.actualState.surfaceMin + 5.0f);
+    }
+    
     navDebug[0] = *hasHadSomeVelocity;
     navDebug[1] = rcCommandAdjustedThrottle;
     navDebug[2] = !verticalMovement;
