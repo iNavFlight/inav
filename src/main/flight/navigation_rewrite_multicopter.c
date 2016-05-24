@@ -495,11 +495,6 @@ bool isMulticopterLandingDetected(uint32_t * landingTimer, bool * hasHadSomeVelo
         // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
         possibleLandingDetected = possibleLandingDetected && posControl.actualState.surface <= (posControl.actualState.surfaceMin + 5.0f);
     }
-    
-    navDebug[0] = *hasHadSomeVelocity;
-    navDebug[1] = rcCommandAdjustedThrottle;
-    navDebug[2] = !verticalMovement;
-    navDebug[3] = (currentTime - *landingTimer) / 1000;
 
     if (!possibleLandingDetected) {
         *landingTimer = currentTime;
