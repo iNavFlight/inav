@@ -569,6 +569,10 @@ int main(void)
 #endif
 #ifdef MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
+#if defined(MPU6500_SPI_INSTANCE) && defined(USE_MAG_AK8963)
+    // fixme temporary solution for AK6983 via slave I2C on MPU9250
+    rescheduleTask(TASK_COMPASS, 1000000 / 40);
+#endif
 #endif
 #ifdef BARO
     setTaskEnabled(TASK_BARO, sensors(SENSOR_BARO));

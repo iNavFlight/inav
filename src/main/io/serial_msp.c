@@ -84,6 +84,8 @@
 #include "config/config_profile.h"
 #include "config/config_master.h"
 
+#include "blackbox/blackbox.h"
+
 #include "version.h"
 #ifdef NAZE
 #include "hardware_revision.h"
