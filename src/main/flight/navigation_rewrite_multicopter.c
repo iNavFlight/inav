@@ -89,9 +89,12 @@ static void updateAltitudeVelocityController_MC(uint32_t deltaMicros)
     // hard limit desired target velocity to max_climb_rate
     targetVel = constrainf(targetVel, -posControl.navConfig->max_climb_rate, posControl.navConfig->max_climb_rate);
 
-    // limit max vertical acceleration to 1/5G (~200 cm/s/s)
-    float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS / 5.0f);
-    posControl.desiredState.vel.V.Z = constrainf(targetVel, posControl.desiredState.vel.V.Z - maxVelDifference, posControl.desiredState.vel.V.Z + maxVelDifference);
+    // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing velocity.
+    // if we are decelerating - don't limit (allow better recovery from falling)
+    if (ABS(targetVel) > ABS(posControl.desiredState.vel.V.Z)) {
+        float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS / 5.0f);
+        posControl.desiredState.vel.V.Z = constrainf(targetVel, posControl.desiredState.vel.V.Z - maxVelDifference, posControl.desiredState.vel.V.Z + maxVelDifference);
+    }
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
