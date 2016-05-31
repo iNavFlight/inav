@@ -27,16 +27,19 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
-
-#include "config/config.h"
-#include "config/runtime_config.h"
+#include "common/color.h"
 
 #include "drivers/system.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
+#include "drivers/serial.h"
+#include "drivers/gpio.h"
+#include "drivers/timer.h"
+#include "drivers/pwm_rx.h"
 
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
+#include "sensors/boardalignment.h"
 #include "sensors/sensors.h"
 #include "sensors/gyro.h"
 #include "sensors/acceleration.h"
@@ -46,6 +49,9 @@
 #include "io/gps.h"
 #include "io/beeper.h"
 #include "io/escservo.h"
+#include "io/serial.h"
+#include "io/ledstrip.h"
+#include "io/gimbal.h"
 #include "io/rc_controls.h"
 #include "io/rc_curves.h"
 
@@ -54,6 +60,13 @@
 #include "flight/pid.h"
 #include "flight/navigation_rewrite.h"
 #include "flight/failsafe.h"
+
+#include "telemetry/telemetry.h"
+
+#include "config/config.h"
+#include "config/runtime_config.h"
+#include "config/config_profile.h"
+#include "config/config_master.h"
 
 #include "blackbox/blackbox.h"
 
@@ -305,15 +318,53 @@ bool isRangeActive(uint8_t auxChannelIndex, channelRange_t *range) {
 
 void updateActivatedModes(modeActivationCondition_t *modeActivationConditions)
 {
-    rcModeActivationMask = 0;
+    uint8_t modeIndex;
 
-    uint8_t index;
+    // Unfortunately for AND logic it's not enough to simply check if any of the specified channel range conditions are valid for a mode.
+    // We need to count the total number of conditions specified for each mode, and check that all those conditions are currently valid.
 
-    for (index = 0; index < MAX_MODE_ACTIVATION_CONDITION_COUNT; index++) {
-        modeActivationCondition_t *modeActivationCondition = &modeActivationConditions[index];
+    uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
+    uint8_t validConditionCountPerMode[CHECKBOX_ITEM_COUNT];
+
+    memset(specifiedConditionCountPerMode, 0, CHECKBOX_ITEM_COUNT);
+    memset(validConditionCountPerMode, 0, CHECKBOX_ITEM_COUNT);
+
+    for (modeIndex = 0; modeIndex < MAX_MODE_ACTIVATION_CONDITION_COUNT; modeIndex++) {
+        modeActivationCondition_t *modeActivationCondition = &modeActivationConditions[modeIndex];
+
+        // Increment the number of specified conditions for this mode
+        specifiedConditionCountPerMode[modeActivationCondition->modeId]++;
 
         if (isRangeActive(modeActivationCondition->auxChannelIndex, &modeActivationCondition->range)) {
-            ACTIVATE_RC_MODE(modeActivationCondition->modeId);
+            // Increment the number of valid conditions for this mode
+            validConditionCountPerMode[modeActivationCondition->modeId]++;
+        }
+    }
+
+    // Disable all modes to begin with
+    rcModeActivationMask = 0;
+
+    // Now see which modes should be enabled
+    for (modeIndex = 0; modeIndex < CHECKBOX_ITEM_COUNT; modeIndex++) {
+
+        // only modes with conditions specified are considered
+        if ( specifiedConditionCountPerMode[modeIndex] > 0 ) {
+
+            // For AND logic, the specified condition count and valid condition count must be the same.
+            // For OR logic, the valid condition count must be greater than zero.
+
+            if ( masterConfig.and_mode_conditions == 1 ) {
+                // AND the conditions
+                if ( validConditionCountPerMode[modeIndex] == specifiedConditionCountPerMode[modeIndex] ) {
+                    ACTIVATE_RC_MODE(modeIndex);
+                }
+            }
+            else {
+                // OR the conditions
+                if ( validConditionCountPerMode[modeIndex] > 0 ) {
+                    ACTIVATE_RC_MODE(modeIndex);
+                }
+            }
         }
     }
 }
