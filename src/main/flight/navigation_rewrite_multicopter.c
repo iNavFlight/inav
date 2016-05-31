@@ -95,6 +95,9 @@ static void updateAltitudeVelocityController_MC(uint32_t deltaMicros)
         float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS / 5.0f);
         posControl.desiredState.vel.V.Z = constrainf(targetVel, posControl.desiredState.vel.V.Z - maxVelDifference, posControl.desiredState.vel.V.Z + maxVelDifference);
     }
+    else {
+        posControl.desiredState.vel.V.Z = targetVel;
+    }
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
