@@ -534,6 +534,8 @@ const clivalue_t valueTable[] = {
 
     { "reboot_character",           VAR_UINT8  | MASTER_VALUE,  &masterConfig.serialConfig.reboot_character, .config.minmax = { 48,  126 }, 0 },
 
+    { "and_mode_conditions",        VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.and_mode_conditions, .config.lookup = { TABLE_OFF_ON }, 0 },
+
 #ifdef GPS
     { "gps_provider",               VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.provider, .config.lookup = { TABLE_GPS_PROVIDER }, 0 },
     { "gps_sbas_mode",              VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.sbasMode, .config.lookup = { TABLE_GPS_SBAS_MODE }, 0 },
