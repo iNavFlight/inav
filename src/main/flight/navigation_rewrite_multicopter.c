@@ -407,8 +407,8 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     // TODO: Verify if we need jerk limiting after all
 
     // Apply PID with output limiting and I-term anti-windup
-    newAccelX = navPidApply2(posControl.desiredState.vel.V.X, posControl.actualState.vel.V.X, US2S(deltaMicros), &posControl.pids.vel[X], accelLimitXMin, accelLimitXMax, false);
-    newAccelY = navPidApply2(posControl.desiredState.vel.V.Y, posControl.actualState.vel.V.Y, US2S(deltaMicros), &posControl.pids.vel[Y], accelLimitYMin, accelLimitYMax, false);
+    newAccelX = navPidApply2(posControl.desiredState.vel.V.X, posControl.actualState.vel.V.X, US2S(deltaMicros), &posControl.pids.vel[X], accelLimitXMin, accelLimitXMax, true);
+    newAccelY = navPidApply2(posControl.desiredState.vel.V.Y, posControl.actualState.vel.V.Y, US2S(deltaMicros), &posControl.pids.vel[Y], accelLimitYMin, accelLimitYMax, true);
 
     // Add acceleration change to acceleration target, this is the incremental part.
     // TODO: constrainf should not be needed here, confirm that navPidApply2 never exceeds maxAccelLimit.
