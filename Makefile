@@ -398,6 +398,7 @@ COMMON_SRC = \
             drivers/sound_beeper.c \
             drivers/system.c \
             drivers/timer.c \
+			drivers/io_pca9685.c \
             flight/failsafe.c \
             flight/imu.c \
             flight/hil.c \
@@ -566,7 +567,6 @@ ifneq ($(filter VCP,$(FEATURES)),)
 TARGET_SRC += $(VCP_SRC)
 endif
 # end target specific make file checks
-
 
 # Search path and source files for the ST stdperiph library
 VPATH        := $(VPATH):$(STDPERIPH_DIR)/src

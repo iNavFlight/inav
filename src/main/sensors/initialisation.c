@@ -61,6 +61,8 @@
 #include "drivers/compass_ak8963.h"
 #include "drivers/compass_mag3110.h"
 
+#include "drivers/io_pca9685.h"
+
 #include "drivers/sonar_hcsr04.h"
 #include "drivers/sonar_srf10.h"
 
@@ -785,6 +787,7 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig,
 #endif
     reconfigureAlignment(sensorAlignmentConfig);
 
+    pca9685Detect();
+
     return true;
 }
-
