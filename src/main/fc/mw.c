@@ -484,6 +484,12 @@ void processRx(void)
     }
 #endif
 
+#ifdef USE_PCA9685
+    if (isPca9685Enabled()) {
+        pca9685sync(currentTime);
+    }
+#endif
+
 }
 
 void filterRc(bool isRXDataNew)
@@ -698,15 +704,6 @@ void taskUpdateRxMain(void)
     processRx();
     updatePIDCoefficients(&currentProfile->pidProfile, currentControlRateProfile, &masterConfig.rxConfig);
     isRXDataNew = true;
-
-    // debug[0] = isPca9685Enabled();
-
-    if (isPca9685Enabled()) {
-        // debug[1] = 7;
-        // debug[2] = rcData[THROTTLE];
-        pca9685setServoPulse(0, rcData[THROTTLE]);
-    }
-
 }
 
 #ifdef GPS

@@ -62,6 +62,7 @@
 #include "drivers/gyro_sync.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
+#include "drivers/io_pca9685.h"
 
 #include "rx/rx.h"
 #include "rx/spektrum.h"
@@ -571,6 +572,10 @@ void init(void)
 
 #ifdef CJMCU
     LED2_ON;
+#endif
+
+#ifdef USE_PCA9685
+    pca9685Detect();
 #endif
 
     // Latch active features AGAIN since some may be modified by init().
