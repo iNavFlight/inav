@@ -283,6 +283,16 @@ void init(void)
     pwmRxInit(masterConfig.inputFilteringMode);
 #endif
 
+#ifdef USE_PCA9685
+    /*
+    If external PWM driver is enabled, for example PCA9685, disable internal
+    servo handling mechanism, since external device will do that
+    */
+    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
+        pwm_params.useServos = false;
+    }
+#endif
+
     // pwmInit() needs to be called as soon as possible for ESC compatibility reasons
     pwmInit(&pwm_params);
 

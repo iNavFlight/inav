@@ -11,7 +11,8 @@
 
 #include "common/maths.h"
 
-#include "build_config.h"
+#include "config/config.h"
+#include "config/runtime_config.h"
 
 #define PCA9685_ADDR 0x40
 #define PCA9685_MODE1 0x00
@@ -110,6 +111,7 @@ void pca9685Detect(void) {
 
     if (!ack) {
         pca9685Enabled = 0;
+        featureClear(FEATURE_PWM_SERVO_DRIVER);
     } else {
         pca9685Enabled = 1;
 

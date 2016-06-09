@@ -485,7 +485,7 @@ void processRx(void)
 #endif
 
 #ifdef USE_PCA9685
-    if (isPca9685Enabled()) {
+    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pca9685sync(currentTime);
     }
 #endif
