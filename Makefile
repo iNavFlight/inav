@@ -385,13 +385,15 @@ COMMON_SRC = build_config.c \
             $(DEVICE_STDPERIPH_SRC)
 
 HIGHEND_SRC = \
+            blackbox/blackbox.c \
+            blackbox/blackbox_io.c \
+            common/colorconversion.c \
             flight/navigation_rewrite.c \
             flight/navigation_rewrite_multicopter.c \
             flight/navigation_rewrite_fixedwing.c \
             flight/navigation_rewrite_pos_estimator.c \
             flight/navigation_rewrite_geo.c \
             flight/gps_conversion.c \
-            common/colorconversion.c \
             io/gps.c \
             io/gps_ublox.c \
             io/gps_nmea.c \
@@ -399,16 +401,14 @@ HIGHEND_SRC = \
             io/gps_i2cnav.c \
             io/ledstrip.c \
             io/display.c \
+            sensors/rangefinder.c \
+            sensors/barometer.c \
+            sensors/pitotmeter.c \
             telemetry/telemetry.c \
             telemetry/frsky.c \
             telemetry/hott.c \
             telemetry/smartport.c \
-            telemetry/ltm.c \
-            sensors/sonar.c \
-            sensors/barometer.c \
-            sensors/pitotmeter.c \
-            blackbox/blackbox.c \
-            blackbox/blackbox_io.c
+            telemetry/ltm.c
 
 VCP_SRC = \
             vcp/hw_config.c \

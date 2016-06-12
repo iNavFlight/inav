@@ -32,7 +32,7 @@
 #include "drivers/accgyro.h"
 
 #include "sensors/sensors.h"
-#include "sensors/sonar.h"
+#include "sensors/rangefinder.h"
 #include "sensors/barometer.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/acceleration.h"
@@ -412,8 +412,8 @@ static void updateSonarTopic(uint32_t currentTime)
     if (updateTimer(&sonarUpdateTimer, HZ2US(INAV_SONAR_UPDATE_RATE), currentTime)) {
         if (sensors(SENSOR_SONAR)) {
             /* Read sonar */
-            float newSonarAlt = sonarRead();
-            newSonarAlt = sonarCalculateAltitude(newSonarAlt, calculateCosTiltAngle());
+            float newSonarAlt = rangefinderRead();
+            newSonarAlt = rangefinderCalculateAltitude(newSonarAlt, calculateCosTiltAngle());
 
             /* Apply predictive filter to sonar readings (inspired by PX4Flow) */
             if (newSonarAlt > 0 && newSonarAlt <= INAV_SONAR_MAX_DISTANCE) {
