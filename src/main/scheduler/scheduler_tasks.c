@@ -31,6 +31,7 @@ void taskUpdateRxMain(void);
 void taskProcessGPS(void);
 void taskUpdateCompass(void);
 void taskUpdateBaro(void);
+void taskUpdatePitot(void);
 void taskUpdateSonar(void);
 void taskUpdateDisplay(void);
 void taskTelemetry(void);
@@ -104,6 +105,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "BARO",
         .taskFunc = taskUpdateBaro,
         .desiredPeriod = 1000000 / 20,
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef PITOT
+    [TASK_PITOT] = {
+        .taskName = "PITOT",
+        .taskFunc = taskUpdatePitot,
+        .desiredPeriod = 1000000 / 10,
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

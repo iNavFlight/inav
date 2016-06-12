@@ -66,6 +66,10 @@ typedef struct drv_pwm_config_s {
 #ifdef STM32F303xC
     bool useUART3;
 #endif
+#ifdef STM32F40_41xxx
+    bool useUART2;
+    bool useUART6;
+#endif
     bool useVbat;
     bool useOneshot;
     bool useSoftSerial;

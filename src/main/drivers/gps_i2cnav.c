@@ -47,7 +47,7 @@ bool i2cnavGPSModuleDetect(void)
     bool ack;
     uint8_t i2cGpsStatus;
     
-    ack = i2cRead(I2C_GPS_ADDRESS, I2C_GPS_STATUS_00, 1, &i2cGpsStatus); /* status register */ 
+    ack = i2cRead(I2C_GPS_ADDRESS, I2C_GPS_STATUS_00, 1, &i2cGpsStatus, I2CGPS_BUS); /* status register */
     
     if (ack) 
         return true;
@@ -64,7 +64,7 @@ void i2cnavGPSModuleRead(gpsDataI2CNAV_t * gpsMsg)
     gpsMsg->flags.fix3D = 0;
     gpsMsg->flags.gpsOk = 0;
     
-    ack = i2cRead(I2C_GPS_ADDRESS, I2C_GPS_STATUS_00, 1, &i2cGpsStatus); /* status register */ 
+    ack = i2cRead(I2C_GPS_ADDRESS, I2C_GPS_STATUS_00, 1, &i2cGpsStatus, I2CGPS_BUS); /* status register */
 
     if (!ack)
         return;
@@ -76,11 +76,11 @@ void i2cnavGPSModuleRead(gpsDataI2CNAV_t * gpsMsg)
         gpsMsg->flags.fix3D = 1;
         
         if (i2cGpsStatus & I2C_GPS_STATUS_NEW_DATA) {   
-            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_LOCATION,      4, (uint8_t*)&gpsMsg->latitude);
-            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_LOCATION + 4,  4, (uint8_t*)&gpsMsg->longitude);
-            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_GROUND_SPEED,  2, (uint8_t*)&gpsMsg->speed);
-            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_GROUND_COURSE, 2, (uint8_t*)&gpsMsg->ground_course);
-            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_ALTITUDE,      2, (uint8_t*)&gpsMsg->altitude);
+            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_LOCATION,      4, (uint8_t*)&gpsMsg->latitude, I2CGPS_BUS);
+            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_LOCATION + 4,  4, (uint8_t*)&gpsMsg->longitude, I2CGPS_BUS);
+            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_GROUND_SPEED,  2, (uint8_t*)&gpsMsg->speed, I2CGPS_BUS);
+            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_GROUND_COURSE, 2, (uint8_t*)&gpsMsg->ground_course, I2CGPS_BUS);
+            i2cRead(I2C_GPS_ADDRESS, I2C_GPS_ALTITUDE,      2, (uint8_t*)&gpsMsg->altitude, I2CGPS_BUS);
             
             gpsMsg->hdop = 0;
             

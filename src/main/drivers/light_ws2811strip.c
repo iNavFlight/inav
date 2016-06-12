@@ -35,7 +35,7 @@
 #include "common/colorconversion.h"
 #include "drivers/light_ws2811strip.h"
 
-uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 volatile uint8_t ws2811LedDataTransferInProgress = 0;
 
 static hsvColor_t ledColorBuffer[WS2811_LED_STRIP_LENGTH];

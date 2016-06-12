@@ -62,13 +62,18 @@
 // External I2C BARO
 #define BARO
 #define USE_BARO_MS5611
+#define MS5611_BUS I2C_DEVICE_EXT
 #define USE_BARO_BMP085
+#define BMP085_BUS I2C_DEVICE_EXT
 
 // External I2C MAG
 #define MAG
 #define USE_MAG_HMC5883
+#define HMC5883_BUS I2C_DEVICE_EXT
 #define USE_MAG_AK8975
 #define USE_MAG_MAG3110
+
+#define UG2864_BUS I2C_DEVICE_EXT
 
 #define USE_VCP
 #define USE_USART1
@@ -92,6 +97,7 @@
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2) // Flex port - SCL/PB10, SDA/PB11
+#define I2C_DEVICE_EXT (I2CDEV_2)
 
 #define USE_ADC
 
@@ -140,7 +146,7 @@
 #define BIND_PIN   Pin_11
 
 #define TARGET_MOTOR_COUNT 6
-
+//Disables uncommon predefined mixer settings like BiCopter, H6 and similar exotics
 #undef TELEMETRY_FRSKY
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
@@ -154,11 +160,11 @@
 #undef SPEKTRUM_BIND
 #undef USE_SERIAL_4WAY_BLHELI_INTERFACE
 #endif
-
 // DEBUG
 //#define HIL
 //#define USE_FAKE_MAG
 //#define USE_FAKE_BARO
+//#define USE_FAKE_GPS
 //#define USE_FAKE_GPS
 
 #define USED_TIMERS         (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))

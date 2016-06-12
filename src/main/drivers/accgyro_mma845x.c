@@ -85,7 +85,7 @@ bool mma8452Detect(acc_t *acc)
     bool ack = false;
     uint8_t sig = 0;
 
-    ack = i2cRead(MMA8452_ADDRESS, MMA8452_WHO_AM_I, 1, &sig);
+    ack = i2cRead(MMA8452_ADDRESS, MMA8452_WHO_AM_I, 1, &sig, MMA8452_BUS);
     if (!ack || (sig != MMA8452_DEVICE_SIGNATURE && sig != MMA8451_DEVICE_SIGNATURE))
         return false;
 
@@ -112,22 +112,22 @@ static inline void mma8451ConfigureInterrupt(void)
     gpioInit(GPIOA, &gpio);
 #endif
 
-    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG3, MMA8452_CTRL_REG3_IPOL); // Interrupt polarity (active HIGH)
-    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG4, MMA8452_CTRL_REG4_INT_EN_DRDY); // Enable DRDY interrupt (unused by this driver)
-    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG5, 0); // DRDY routed to INT2
+    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG3, MMA8452_CTRL_REG3_IPOL, MMA8452_BUS); // Interrupt polarity (active HIGH)
+    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG4, MMA8452_CTRL_REG4_INT_EN_DRDY, MMA8452_BUS); // Enable DRDY interrupt (unused by this driver)
+    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG5, 0, MMA8452_BUS); // DRDY routed to INT2
 }
 
 static void mma8452Init(acc_t *acc)
 {
 
-    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG1, 0); // Put device in standby to configure stuff
-    i2cWrite(MMA8452_ADDRESS, MMA8452_XYZ_DATA_CFG, MMA8452_FS_RANGE_8G);
-    i2cWrite(MMA8452_ADDRESS, MMA8452_HP_FILTER_CUTOFF, MMA8452_HPF_CUTOFF_LV4);
-    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG2, MMA8452_CTRL_REG2_MODS_HR | MMA8452_CTRL_REG2_MODS_HR << 3); // High resolution measurement in both sleep and active modes
+    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG1, 0, MMA8452_BUS); // Put device in standby to configure stuff
+    i2cWrite(MMA8452_ADDRESS, MMA8452_XYZ_DATA_CFG, MMA8452_FS_RANGE_8G, MMA8452_BUS);
+    i2cWrite(MMA8452_ADDRESS, MMA8452_HP_FILTER_CUTOFF, MMA8452_HPF_CUTOFF_LV4, MMA8452_BUS);
+    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG2, MMA8452_CTRL_REG2_MODS_HR | MMA8452_CTRL_REG2_MODS_HR << 3, MMA8452_BUS); // High resolution measurement in both sleep and active modes
 
     mma8451ConfigureInterrupt();
 
-    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG1, MMA8452_CTRL_REG1_LNOISE | MMA8452_CTRL_REG1_ACTIVE); // Turn on measurements, low noise at max scale mode, Data Rate 800Hz. LNoise mode makes range +-4G.
+    i2cWrite(MMA8452_ADDRESS, MMA8452_CTRL_REG1, MMA8452_CTRL_REG1_LNOISE | MMA8452_CTRL_REG1_ACTIVE, MMA8452_BUS); // Turn on measurements, low noise at max scale mode, Data Rate 800Hz. LNoise mode makes range +-4G.
 
     acc->acc_1G = 256;
 }
@@ -136,7 +136,7 @@ static bool mma8452Read(int16_t *accelData)
 {
     uint8_t buf[6];
 
-    if (!i2cRead(MMA8452_ADDRESS, MMA8452_OUT_X_MSB, 6, buf)) {
+    if (!i2cRead(MMA8452_ADDRESS, MMA8452_OUT_X_MSB, 6, buf, MMA8452_BUS)) {
         return false;
     }
 

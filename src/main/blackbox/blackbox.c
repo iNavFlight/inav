@@ -46,6 +46,7 @@
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
 
@@ -197,6 +198,9 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
 #ifdef BARO
     {"BaroAlt",    -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_BARO},
 #endif
+#ifdef PITOT
+    {"AirSpeed",    -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_PITOT},
+#endif
 #ifdef SONAR
     {"sonarRaw",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_SONAR},
 #endif
@@ -261,6 +265,9 @@ static const blackboxConditionalFieldDefinition_t blackboxGpsGFields[] = {
     {"GPS_altitude",      -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
     {"GPS_speed",         -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
     {"GPS_ground_course", -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"GPS_velned",         0, SIGNED,   PREDICT(0),          ENCODING(SIGNED_VB),   CONDITION(ALWAYS)},
+    {"GPS_velned",         1, SIGNED,   PREDICT(0),          ENCODING(SIGNED_VB),   CONDITION(ALWAYS)},
+    {"GPS_velned",         2, SIGNED,   PREDICT(0),          ENCODING(SIGNED_VB),   CONDITION(ALWAYS)},
     {"GPS_hdop",          -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
     {"GPS_eph",           -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
     {"GPS_epv",           -1, UNSIGNED, PREDICT(0),          ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)}
@@ -317,6 +324,9 @@ typedef struct blackboxMainState_s {
 
 #ifdef BARO
     int32_t BaroAlt;
+#endif
+#ifdef PITOT
+    int32_t AirSpeed;
 #endif
 #ifdef MAG
     int16_t magADC[XYZ_AXIS_COUNT];
@@ -444,6 +454,13 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         case FLIGHT_LOG_FIELD_CONDITION_BARO:
 #ifdef BARO
             return sensors(SENSOR_BARO);
+#else
+            return false;
+#endif
+
+        case FLIGHT_LOG_FIELD_CONDITION_PITOT:
+#ifdef PITOT
+            return sensors(SENSOR_PITOT);
 #else
             return false;
 #endif
@@ -578,6 +595,12 @@ static void writeIntraframe(void)
 #ifdef BARO
         if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_BARO)) {
             blackboxWriteSignedVB(blackboxCurrent->BaroAlt);
+        }
+#endif
+
+#ifdef PITOT
+        if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_PITOT)) {
+            blackboxWriteSignedVB(blackboxCurrent->AirSpeed);
         }
 #endif
 
@@ -734,6 +757,12 @@ static void writeInterframe(void)
 #ifdef BARO
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_BARO)) {
         deltas[optionalFieldCount++] = blackboxCurrent->BaroAlt - blackboxLast->BaroAlt;
+    }
+#endif
+
+#ifdef PITOT
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_PITOT)) {
+        deltas[optionalFieldCount++] = blackboxCurrent->AirSpeed - blackboxLast->AirSpeed;
     }
 #endif
 
@@ -992,6 +1021,9 @@ static void writeGPSFrame()
     blackboxWriteUnsignedVB(gpsSol.llh.alt / 100); // meters
     blackboxWriteUnsignedVB(gpsSol.groundSpeed);
     blackboxWriteUnsignedVB(gpsSol.groundCourse);
+    blackboxWriteSignedVB(gpsSol.velNED[0]);
+    blackboxWriteSignedVB(gpsSol.velNED[1]);
+    blackboxWriteSignedVB(gpsSol.velNED[2]);
     blackboxWriteUnsignedVB(gpsSol.hdop);
     blackboxWriteUnsignedVB(gpsSol.eph);
     blackboxWriteUnsignedVB(gpsSol.epv);
@@ -1056,6 +1088,10 @@ static void loadMainState(void)
 
 #ifdef BARO
     blackboxCurrent->BaroAlt = BaroAlt;
+#endif
+
+#ifdef PITOT
+    blackboxCurrent->AirSpeed = AirSpeed;
 #endif
 
 #ifdef SONAR

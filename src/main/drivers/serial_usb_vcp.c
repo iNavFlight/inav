@@ -26,8 +26,12 @@
 #include "common/utils.h"
 
 #include "usb_core.h"
+#ifdef STM32F40_41xxx
+#include "usbd_cdc_vcp.h"
+#else
 #include "usb_init.h"
 #include "hw_config.h"
+#endif
 
 #include "drivers/system.h"
 
@@ -64,6 +68,8 @@ bool isUsbVcpTransmitBufferEmpty(serialPort_t *instance)
 uint8_t usbVcpAvailable(serialPort_t *instance)
 {
     UNUSED(instance);
+    if(receiveLength>0xFF)
+    	return 0xFF;
 
     return receiveLength & 0xFF; // FIXME use uint32_t return type everywhere
 }
@@ -173,10 +179,18 @@ serialPort_t *usbVcpOpen(void)
 {
     vcpPort_t *s;
 
+#ifdef STM32F40_41xxx
+	USBD_Init(&USB_OTG_dev,
+             USB_OTG_FS_CORE_ID,
+             &USR_desc,
+             &USBD_CDC_cb,
+             &USR_cb);
+#else
     Set_System();
     Set_USBClock();
     USB_Interrupts_Config();
     USB_Init();
+#endif
 
     s = &vcpPort;
     s->port.vTable = usbVTable;

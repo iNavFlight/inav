@@ -44,6 +44,7 @@
 #define JEDEC_ID_MICRON_M25P16         0x202015
 #define JEDEC_ID_MICRON_N25Q064        0x20BA17
 #define JEDEC_ID_WINBOND_W25Q64        0xEF4017
+#define JEDEC_ID_MACRONIX_MX25L3206E   0xC22016
 #define JEDEC_ID_MICRON_N25Q128        0x20ba18
 #define JEDEC_ID_WINBOND_W25Q128       0xEF4018
 
@@ -164,6 +165,10 @@ static bool m25p16_readIdentification()
             geometry.sectors = 128;
             geometry.pagesPerSector = 256;
         break;
+        case JEDEC_ID_MACRONIX_MX25L3206E:
+            geometry.sectors = 64;
+            geometry.pagesPerSector = 256;
+        break;
         case JEDEC_ID_MICRON_N25Q128:
         case JEDEC_ID_WINBOND_W25Q128:
             geometry.sectors = 256;
@@ -196,7 +201,7 @@ static bool m25p16_readIdentification()
 bool m25p16_init()
 {
     //Maximum speed for standard READ command is 20mHz, other commands tolerate 25mHz
-    spiSetDivisor(M25P16_SPI_INSTANCE, SPI_18MHZ_CLOCK_DIVIDER);
+    spiSetDivisor(M25P16_SPI_INSTANCE, HIGH_SPEED_SPI);
 
     return m25p16_readIdentification();
 }

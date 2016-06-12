@@ -66,6 +66,7 @@
 #include "sensors/sonar.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 
@@ -92,6 +93,9 @@
 
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
 #include "io/serial_4way.h"
+#endif
+#ifdef USE_ESCSERIAL
+#include "drivers/serial_escserial.h"
 #endif
 static serialPort_t *mspSerialPort;
 
@@ -1576,8 +1580,8 @@ static bool processInCommand(void)
 
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
     case MSP_SET_4WAY_IF:
-        // switch all motor lines HI
-        // reply the count of ESC found
+        // get channel number
+        // we do not give any data back, assume channel number is transmitted OK
         headSerialReply(1);
         serialize8(esc4wayInit());
         // because we do not come back after calling Process4WayInterface
@@ -1595,6 +1599,49 @@ static bool processInCommand(void)
         // proceed as usual with MSP commands
         break;
 #endif
+
+#ifdef USE_ESCSERIAL
+    case MSP_SET_ESCSERIAL:
+        // get channel number
+        i = read8();
+        // we do not give any data back, assume channel number is transmitted OK
+        if (i == 0xFF) {
+            // 0xFF -> preinitialize the Passthrough
+            // switch all motor lines HI
+            escSerialInitialize();
+
+            // and come back right afterwards
+            // rem: App: Wait at least appx. 500 ms for BLHeli to jump into
+            // bootloader mode before try to connect any ESC
+        }
+        else {
+            // Check for channel number 1..USABLE_TIMER_CHANNEL_COUNT-1
+            if ((i > 0) && (i < USABLE_TIMER_CHANNEL_COUNT)) {
+                // because we do not come back after calling escEnablePassthrough
+                // proceed with a success reply first
+                headSerialReply(0);
+                tailSerialReply();
+                // wait for all data to send
+                while (!isSerialTransmitBufferEmpty(mspSerialPort)) {
+                    delay(50);
+                }
+                // Start to activate here
+                // motor 1 => index 0
+                escEnablePassthrough(mspSerialPort,i,0); //sk blmode
+                // MPS uart is active again
+            } else {
+                // ESC channel higher than max. allowed
+                // rem: BLHeliSuite will not support more than 8
+                headSerialError(0);
+            }
+            // proceed as usual with MSP commands
+            // and wait to switch to next channel
+            // rem: App needs to call MSP_BOOT to deinitialize Passthrough
+        }
+        break;
+#endif
+
+
     default:
         // we do not know how to handle the (valid) message, indicate error MSP $M!
         return false;

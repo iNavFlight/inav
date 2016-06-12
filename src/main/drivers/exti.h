@@ -19,6 +19,9 @@
 #pragma once
 
 typedef struct extiConfig_s {
+#ifdef STM32F40_41xxx
+    uint32_t gpioAHB1Peripherals;
+#endif
 #ifdef STM32F303
     uint32_t gpioAHBPeripherals;
 #endif

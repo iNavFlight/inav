@@ -42,6 +42,7 @@
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/boardalignment.h"
 #include "sensors/battery.h"
 
@@ -98,6 +99,10 @@ void useRcControlsConfig(modeActivationCondition_t *modeActivationConditions, es
     #ifdef STM32F10X_HD
         #define FLASH_PAGE_SIZE                 ((uint16_t)0x800)
     #endif
+
+    #ifdef STM32F40_41xxx
+        #define FLASH_PAGE_SIZE                 ((uint32_t)0x20000)
+    #endif
 #endif
 
 #if !defined(FLASH_SIZE) && !defined(FLASH_PAGE_COUNT)
@@ -111,7 +116,11 @@ void useRcControlsConfig(modeActivationCondition_t *modeActivationConditions, es
 #endif
 
 #if defined(FLASH_SIZE)
-#define FLASH_PAGE_COUNT ((FLASH_SIZE * 0x400) / FLASH_PAGE_SIZE)
+#ifdef STM32F40_41xxx
+    #define FLASH_PAGE_COUNT 8 // just to make calculations work
+#else
+    #define FLASH_PAGE_COUNT ((FLASH_SIZE * 0x400) / FLASH_PAGE_SIZE)
+#endif
 #endif
 
 #if !defined(FLASH_PAGE_SIZE)
@@ -270,6 +279,13 @@ void validateNavConfig(navConfig_t * navConfig)
 void resetBarometerConfig(barometerConfig_t *barometerConfig)
 {
     barometerConfig->use_median_filtering = 1;
+}
+
+void resetPitotmeterConfig(pitotmeterConfig_t *pitotmeterConfig)
+{
+    pitotmeterConfig->pitot_sample_count = 21;
+    pitotmeterConfig->pitot_noise_lpf = 0.6f;
+    pitotmeterConfig->pitot_scale = 1.00f;
 }
 
 void resetSensorAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
@@ -535,6 +551,7 @@ static void resetConf(void)
     currentProfile->mag_declination = 0;
 
     resetBarometerConfig(&masterConfig.barometerConfig);
+    resetPitotmeterConfig(&masterConfig.pitotmeterConfig);
 
     // Radio
     parseRcChannels("AETR1234", &masterConfig.rxConfig);
@@ -790,6 +807,9 @@ void activateConfig(void)
 #ifdef BARO
     useBarometerConfig(&masterConfig.barometerConfig);
 #endif
+#ifdef PITOT
+    usePitotmeterConfig(&masterConfig.pitotmeterConfig);
+#endif
 }
 
 void validateAndFixConfig(void)
@@ -996,6 +1016,9 @@ void writeEEPROM(void)
     // write it
     FLASH_Unlock();
     while (attemptsRemaining--) {
+#ifdef STM32F40_41xxx
+        FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+#endif
 #ifdef STM32F303
         FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
 #endif
@@ -1004,7 +1027,11 @@ void writeEEPROM(void)
 #endif
         for (wordOffset = 0; wordOffset < sizeof(master_t); wordOffset += 4) {
             if (wordOffset % FLASH_PAGE_SIZE == 0) {
+#ifdef STM32F40_41xxx
+                status = FLASH_EraseSector(FLASH_Sector_11, VoltageRange_3);
+#else
                 status = FLASH_ErasePage(CONFIG_START_FLASH_ADDRESS + wordOffset);
+#endif
                 if (status != FLASH_COMPLETE) {
                     break;
                 }

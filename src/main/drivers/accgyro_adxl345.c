@@ -66,7 +66,7 @@ bool adxl345Detect(drv_adxl345_config_t *init, acc_t *acc)
     bool ack = false;
     uint8_t sig = 0;
 
-    ack = i2cRead(ADXL345_ADDRESS, 0x00, 1, &sig);
+    ack = i2cRead(ADXL345_ADDRESS, 0x00, 1, &sig, ADXL345_BUS);
     if (!ack || sig != 0xE5)
         return false;
 
@@ -82,14 +82,14 @@ static void adxl345Init(acc_t *acc)
 {
     if (useFifo) {
         uint8_t fifoDepth = 16;
-        i2cWrite(ADXL345_ADDRESS, ADXL345_POWER_CTL, ADXL345_POWER_MEAS);
-        i2cWrite(ADXL345_ADDRESS, ADXL345_DATA_FORMAT, ADXL345_FULL_RANGE | ADXL345_RANGE_8G);
-        i2cWrite(ADXL345_ADDRESS, ADXL345_BW_RATE, ADXL345_RATE_400);
-        i2cWrite(ADXL345_ADDRESS, ADXL345_FIFO_CTL, (fifoDepth & 0x1F) | ADXL345_FIFO_STREAM);
+        i2cWrite(ADXL345_ADDRESS, ADXL345_POWER_CTL, ADXL345_POWER_MEAS, ADXL345_BUS);
+        i2cWrite(ADXL345_ADDRESS, ADXL345_DATA_FORMAT, ADXL345_FULL_RANGE | ADXL345_RANGE_8G, ADXL345_BUS);
+        i2cWrite(ADXL345_ADDRESS, ADXL345_BW_RATE, ADXL345_RATE_400, ADXL345_BUS);
+        i2cWrite(ADXL345_ADDRESS, ADXL345_FIFO_CTL, (fifoDepth & 0x1F) | ADXL345_FIFO_STREAM, ADXL345_BUS);
     } else {
-        i2cWrite(ADXL345_ADDRESS, ADXL345_POWER_CTL, ADXL345_POWER_MEAS);
-        i2cWrite(ADXL345_ADDRESS, ADXL345_DATA_FORMAT, ADXL345_FULL_RANGE | ADXL345_RANGE_8G);
-        i2cWrite(ADXL345_ADDRESS, ADXL345_BW_RATE, ADXL345_RATE_100);
+        i2cWrite(ADXL345_ADDRESS, ADXL345_POWER_CTL, ADXL345_POWER_MEAS, ADXL345_BUS);
+        i2cWrite(ADXL345_ADDRESS, ADXL345_DATA_FORMAT, ADXL345_FULL_RANGE | ADXL345_RANGE_8G, ADXL345_BUS);
+        i2cWrite(ADXL345_ADDRESS, ADXL345_BW_RATE, ADXL345_RATE_100, ADXL345_BUS);
     }
     acc->acc_1G = 256; // 3.3V operation
 }
@@ -110,7 +110,7 @@ static bool adxl345Read(int16_t *accelData)
         do {
             i++;
 
-            if (!i2cRead(ADXL345_ADDRESS, ADXL345_DATA_OUT, 8, buf)) {
+            if (!i2cRead(ADXL345_ADDRESS, ADXL345_DATA_OUT, 8, buf, ADXL345_BUS)) {
                 return false;
             }
 
@@ -125,7 +125,7 @@ static bool adxl345Read(int16_t *accelData)
         acc_samples = i;
     } else {
 
-        if (!i2cRead(ADXL345_ADDRESS, ADXL345_DATA_OUT, 6, buf)) {
+        if (!i2cRead(ADXL345_ADDRESS, ADXL345_DATA_OUT, 6, buf, ADXL345_BUS)) {
             return false;
         }
 

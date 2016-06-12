@@ -192,13 +192,13 @@ bool bmp085Detect(const bmp085Config_t *config, baro_t *baro)
 
     delay(200); // datasheet says 10ms, we'll be careful and do 200.
 
-    ack = i2cRead(BMP085_I2C_ADDR, BMP085_CHIP_ID__REG, 1, &data); /* read Chip Id */ 
+    ack = i2cRead(BMP085_I2C_ADDR, BMP085_CHIP_ID__REG, 1, &data, BMP085_BUS); /* read Chip Id */ 
     if (ack) {
         bmp085.chip_id = BMP085_GET_BITSLICE(data, BMP085_CHIP_ID);
         bmp085.oversampling_setting = 3;
 
         if (bmp085.chip_id == BMP085_CHIP_ID) { /* get bitslice */
-            i2cRead(BMP085_I2C_ADDR, BMP085_VERSION_REG, 1, &data); /* read Version reg */
+            i2cRead(BMP085_I2C_ADDR, BMP085_VERSION_REG, 1, &data, BMP085_BUS); /* read Version reg */
             bmp085.ml_version = BMP085_GET_BITSLICE(data, BMP085_ML_VERSION); /* get ML Version */
             bmp085.al_version = BMP085_GET_BITSLICE(data, BMP085_AL_VERSION); /* get AL Version */
             bmp085_get_cal_param(); /* readout bmp085 calibparam structure */
@@ -290,7 +290,7 @@ static void bmp085_start_ut(void)
 #if defined(BARO_EOC_GPIO)
     isConversionComplete = false;
 #endif
-    i2cWrite(BMP085_I2C_ADDR, BMP085_CTRL_MEAS_REG, BMP085_T_MEASURE);
+    i2cWrite(BMP085_I2C_ADDR, BMP085_CTRL_MEAS_REG, BMP085_T_MEASURE, BMP085_BUS);
 }
 
 static void bmp085_get_ut(void)
@@ -304,7 +304,7 @@ static void bmp085_get_ut(void)
     }
 #endif
 
-    i2cRead(BMP085_I2C_ADDR, BMP085_ADC_OUT_MSB_REG, 2, data);
+    i2cRead(BMP085_I2C_ADDR, BMP085_ADC_OUT_MSB_REG, 2, data, BMP085_BUS);
     bmp085_ut = (data[0] << 8) | data[1];
 }
 
@@ -318,7 +318,7 @@ static void bmp085_start_up(void)
     isConversionComplete = false;
 #endif
 
-    i2cWrite(BMP085_I2C_ADDR, BMP085_CTRL_MEAS_REG, ctrl_reg_data);
+    i2cWrite(BMP085_I2C_ADDR, BMP085_CTRL_MEAS_REG, ctrl_reg_data, BMP085_BUS);
 }
 
 /** read out up for pressure conversion
@@ -336,7 +336,7 @@ static void bmp085_get_up(void)
     }
 #endif
 
-    i2cRead(BMP085_I2C_ADDR, BMP085_ADC_OUT_MSB_REG, 3, data);
+    i2cRead(BMP085_I2C_ADDR, BMP085_ADC_OUT_MSB_REG, 3, data, BMP085_BUS);
     bmp085_up = (((uint32_t) data[0] << 16) | ((uint32_t) data[1] << 8) | (uint32_t) data[2])
             >> (8 - bmp085.oversampling_setting);
 }
@@ -356,7 +356,7 @@ STATIC_UNIT_TESTED void bmp085_calculate(int32_t *pressure, int32_t *temperature
 static void bmp085_get_cal_param(void)
 {
     uint8_t data[22];
-    i2cRead(BMP085_I2C_ADDR, BMP085_PROM_START__ADDR, BMP085_PROM_DATA__LEN, data);
+    i2cRead(BMP085_I2C_ADDR, BMP085_PROM_START__ADDR, BMP085_PROM_DATA__LEN, data, BMP085_BUS);
 
     /*parameters AC1-AC6*/
     bmp085.cal_param.ac1 = (data[0] << 8) | data[1];

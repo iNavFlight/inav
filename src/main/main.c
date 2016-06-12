@@ -67,6 +67,7 @@
 #include "sensors/sensors.h"
 #include "sensors/sonar.h"
 #include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
 #include "sensors/gyro.h"
@@ -131,6 +132,10 @@ void SetSysClock(void);
 // from system_stm32f10x.c
 void SetSysClock(bool overclock);
 #endif
+#ifdef STM32F40_41xxx
+// from system_stm32f4xx.c
+void SetSysClock(void);
+#endif
 
 typedef enum {
     SYSTEM_STATE_INITIALISING   = 0,
@@ -185,6 +190,9 @@ void init(void)
     // Configure the System clock frequency, HCLK, PCLK2 and PCLK1 prescalers
     // Configure the Flash Latency cycles and enable prefetch buffer
     SetSysClock(masterConfig.emf_avoidance);
+#endif
+#ifdef STM32F40_41xxx
+    SetSysClock();
 #endif
     i2cSetOverclock(masterConfig.i2c_overclock);
 
@@ -249,6 +257,12 @@ void init(void)
 #endif
 #ifdef STM32F303xC
     pwm_params.useUART3 = doesConfigurationUsePort(SERIAL_PORT_USART3);
+#endif
+#if defined(USE_USART2) && defined(STM32F40_41xxx)
+    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);
+#endif
+#if defined(USE_USART6) && defined(STM32F40_41xxx)
+    pwm_params.useUART6 = doesConfigurationUsePort(SERIAL_PORT_USART6);
 #endif
     pwm_params.useVbat = feature(FEATURE_VBAT);
     pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
@@ -319,6 +333,7 @@ void init(void)
 #ifdef USE_SPI
     spiInit(SPI1);
     spiInit(SPI2);
+    spiInit(SPI3);
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
@@ -354,7 +369,14 @@ void init(void)
         i2cInit(I2C_DEVICE);
     }
 #else
-    i2cInit(I2C_DEVICE);
+    i2cInit(I2C_DEVICE_INT);
+#if defined(ANYFC) || defined(COLIBRI) || defined(REVO)
+    if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
+#ifdef I2C_DEVICE_EXT
+        i2cInit(I2C_DEVICE_EXT);
+#endif
+    }
+#endif
 #endif
 #endif
 
@@ -462,7 +484,13 @@ void init(void)
     ledStripInit(masterConfig.ledConfigs, masterConfig.colors);
 
     if (feature(FEATURE_LED_STRIP)) {
+#ifdef COLIBRI
+        if (!doesConfigurationUsePort(SERIAL_PORT_USART1)) {
+            ledStripEnable();
+        }
+#else
         ledStripEnable();
+#endif
     }
 #endif
 
@@ -562,6 +590,9 @@ int main(void) {
 #endif
 #ifdef BARO
     setTaskEnabled(TASK_BARO, sensors(SENSOR_BARO));
+#endif
+#ifdef PITOT
+    setTaskEnabled(TASK_PITOT, sensors(SENSOR_PITOT));
 #endif
 #ifdef SONAR
     setTaskEnabled(TASK_SONAR, sensors(SENSOR_SONAR));

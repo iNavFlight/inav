@@ -38,9 +38,9 @@
 // SCL  PB6
 // SDA  PB7
 
-static void i2c_er_handler(void);
-static void i2c_ev_handler(void);
-static void i2cUnstick(void);
+static void i2c_er_handler(I2CDevice bus);
+static void i2c_ev_handler(I2CDevice bus);
+static void i2cUnstick(I2CDevice bus);
 
 typedef struct i2cDevice_s {
     I2C_TypeDef *dev;
@@ -69,22 +69,22 @@ void i2cSetOverclock(uint8_t OverClock) {
 
 void I2C1_ER_IRQHandler(void)
 {
-    i2c_er_handler();
+    i2c_er_handler(I2CDEV_1);
 }
 
 void I2C1_EV_IRQHandler(void)
 {
-    i2c_ev_handler();
+    i2c_ev_handler(I2CDEV_1);
 }
 
 void I2C2_ER_IRQHandler(void)
 {
-    i2c_er_handler();
+    i2c_er_handler(I2CDEV_2);
 }
 
 void I2C2_EV_IRQHandler(void)
 {
-    i2c_ev_handler();
+    i2c_ev_handler(I2CDEV_2);
 }
 
 #define I2C_DEFAULT_TIMEOUT 30000
@@ -101,16 +101,17 @@ static volatile uint8_t reading;
 static volatile uint8_t* write_p;
 static volatile uint8_t* read_p;
 
-static bool i2cHandleHardwareFailure(void)
+static bool i2cHandleHardwareFailure(I2CDevice bus)
 {
     i2cErrorCount++;
     // reinit peripheral + clock out garbage
-    i2cInit(I2Cx_index);
+    i2cInit(bus);
     return false;
 }
 
-bool i2cWriteBuffer(uint8_t addr_, uint8_t reg_, uint8_t len_, uint8_t *data)
+bool i2cWriteBuffer(uint8_t addr_, uint8_t reg_, uint8_t len_, uint8_t *data, I2CDevice bus)
 {
+	I2C_TypeDef *I2Cx = i2cHardwareMap[bus].dev;
     uint32_t timeout = I2C_DEFAULT_TIMEOUT;
 
     addr = addr_ << 1;
@@ -130,7 +131,7 @@ bool i2cWriteBuffer(uint8_t addr_, uint8_t reg_, uint8_t len_, uint8_t *data)
         if (!(I2Cx->CR1 & 0x0100)) {                                    // ensure sending a start
             while (I2Cx->CR1 & 0x0200 && --timeout > 0) { ; }           // wait for any stop to finish sending
             if (timeout == 0) {
-                return i2cHandleHardwareFailure();
+                return i2cHandleHardwareFailure(bus);
             }
             I2C_GenerateSTART(I2Cx, ENABLE);                            // send the start for the new job
         }
@@ -140,19 +141,20 @@ bool i2cWriteBuffer(uint8_t addr_, uint8_t reg_, uint8_t len_, uint8_t *data)
     timeout = I2C_DEFAULT_TIMEOUT;
     while (busy && --timeout > 0) { ; }
     if (timeout == 0) {
-        return i2cHandleHardwareFailure();
+        return i2cHandleHardwareFailure(bus);
     }
 
     return !error;
 }
 
-bool i2cWrite(uint8_t addr_, uint8_t reg_, uint8_t data)
+bool i2cWrite(uint8_t addr_, uint8_t reg_, uint8_t data, I2CDevice bus)
 {
-    return i2cWriteBuffer(addr_, reg_, 1, &data);
+    return i2cWriteBuffer(addr_, reg_, 1, &data, bus);
 }
 
-bool i2cRead(uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf)
+bool i2cRead(uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, I2CDevice bus)
 {
+	I2C_TypeDef *I2Cx = i2cHardwareMap[bus].dev;
     uint32_t timeout = I2C_DEFAULT_TIMEOUT;
 
     addr = addr_ << 1;
@@ -172,7 +174,7 @@ bool i2cRead(uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf)
         if (!(I2Cx->CR1 & 0x0100)) {                                    // ensure sending a start
             while (I2Cx->CR1 & 0x0200 && --timeout > 0) { ; }           // wait for any stop to finish sending
             if (timeout == 0)
-                return i2cHandleHardwareFailure();
+                return i2cHandleHardwareFailure(bus);
             I2C_GenerateSTART(I2Cx, ENABLE);                            // send the start for the new job
         }
         I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR, ENABLE);            // allow the interrupts to fire off again
@@ -181,13 +183,14 @@ bool i2cRead(uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf)
     timeout = I2C_DEFAULT_TIMEOUT;
     while (busy && --timeout > 0) { ; }
     if (timeout == 0)
-        return i2cHandleHardwareFailure();
+        return i2cHandleHardwareFailure(bus);
 
     return !error;
 }
 
-static void i2c_er_handler(void)
+static void i2c_er_handler(I2CDevice bus)
 {
+	I2C_TypeDef *I2Cx = i2cHardwareMap[bus].dev;
     // Read the I2Cx status register
     uint32_t SR1Register = I2Cx->SR1;
 
@@ -205,7 +208,7 @@ static void i2c_er_handler(void)
                 while (I2Cx->CR1 & 0x0100) { ; }                        // wait for any start to finish sending
                 I2C_GenerateSTOP(I2Cx, ENABLE);                         // send stop to finalise bus transaction
                 while (I2Cx->CR1 & 0x0200) { ; }                        // wait for stop to finish sending
-                i2cInit(I2Cx_index);                                    // reset and configure the hardware
+                i2cInit(bus);                                    // reset and configure the hardware
             } else {
                 I2C_GenerateSTOP(I2Cx, ENABLE);                         // stop to free up the bus
                 I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR, DISABLE);   // Disable EVT and ERR interrupts while bus inactive
@@ -216,8 +219,9 @@ static void i2c_er_handler(void)
     busy = 0;
 }
 
-void i2c_ev_handler(void)
+void i2c_ev_handler(I2CDevice bus)
 {
+	I2C_TypeDef *I2Cx = i2cHardwareMap[bus].dev;
     static uint8_t subaddress_sent, final_stop;                         // flag to indicate if subaddess sent, flag to indicate final bus condition
     static int8_t index;                                                // index is signed -1 == send the subaddress
     uint8_t SReg_1 = I2Cx->SR1;                                         // read the status register here
@@ -326,8 +330,8 @@ void i2cInit(I2CDevice index)
         index = I2CDEV_MAX;
 
     // Turn on peripheral clock, save device and index
-    I2Cx = i2cHardwareMap[index].dev;
-    I2Cx_index = index;
+	I2C_TypeDef *I2Cx = i2cHardwareMap[index].dev;
+
     RCC_APB1PeriphClockCmd(i2cHardwareMap[index].peripheral, ENABLE);
 
     // diable I2C interrrupts first to avoid ER handler triggering
@@ -335,7 +339,7 @@ void i2cInit(I2CDevice index)
 
     // clock out stuff to make sure slaves arent stuck
     // This will also configure GPIO as AF_OD at the end
-    i2cUnstick();
+    i2cUnstick(index);
 
     // Init I2C peripheral
     I2C_DeInit(I2Cx);
@@ -374,7 +378,7 @@ uint16_t i2cGetErrorCounter(void)
     return i2cErrorCount;
 }
 
-static void i2cUnstick(void)
+static void i2cUnstick(I2CDevice bus)
 {
     GPIO_TypeDef *gpio;
     gpio_config_t cfg;
@@ -382,9 +386,9 @@ static void i2cUnstick(void)
     int i;
 
     // prepare pins
-    gpio = i2cHardwareMap[I2Cx_index].gpio;
-    scl = i2cHardwareMap[I2Cx_index].scl;
-    sda = i2cHardwareMap[I2Cx_index].sda;
+    gpio = i2cHardwareMap[bus].gpio;
+    scl = i2cHardwareMap[bus].scl;
+    sda = i2cHardwareMap[bus].sda;
 
     digitalHi(gpio, scl | sda);
 

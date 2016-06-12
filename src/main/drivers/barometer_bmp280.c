@@ -108,14 +108,14 @@ bool bmp280Detect(baro_t *baro)
 
     delay(20);
 
-    i2cRead(BMP280_I2C_ADDR, BMP280_CHIP_ID_REG, 1, &bmp280_chip_id);  /* read Chip Id */
+    i2cRead(BMP280_I2C_ADDR, BMP280_CHIP_ID_REG, 1, &bmp280_chip_id, BMP280_BUS);  /* read Chip Id */
     if (bmp280_chip_id != BMP280_DEFAULT_CHIP_ID)
         return false;
 
     // read calibration
-    i2cRead(BMP280_I2C_ADDR, BMP280_TEMPERATURE_CALIB_DIG_T1_LSB_REG, 24, (uint8_t *)&bmp280_cal);
+    i2cRead(BMP280_I2C_ADDR, BMP280_TEMPERATURE_CALIB_DIG_T1_LSB_REG, 24, (uint8_t *)&bmp280_cal, BMP280_BUS);
     // set oversampling + power mode (forced), and start sampling
-    i2cWrite(BMP280_I2C_ADDR, BMP280_CTRL_MEAS_REG, BMP280_MODE);
+    i2cWrite(BMP280_I2C_ADDR, BMP280_CTRL_MEAS_REG, BMP280_MODE, BMP280_BUS);
 
     bmp280InitDone = true;
 
@@ -147,7 +147,7 @@ static void bmp280_start_up(void)
 {
     // start measurement
     // set oversampling + power mode (forced), and start sampling
-    i2cWrite(BMP280_I2C_ADDR, BMP280_CTRL_MEAS_REG, BMP280_MODE);
+    i2cWrite(BMP280_I2C_ADDR, BMP280_CTRL_MEAS_REG, BMP280_MODE, BMP280_BUS);
 }
 
 static void bmp280_get_up(void)
@@ -155,7 +155,7 @@ static void bmp280_get_up(void)
     uint8_t data[BMP280_DATA_FRAME_SIZE];
 
     // read data from sensor
-    i2cRead(BMP280_I2C_ADDR, BMP280_PRESSURE_MSB_REG, BMP280_DATA_FRAME_SIZE, data);
+    i2cRead(BMP280_I2C_ADDR, BMP280_PRESSURE_MSB_REG, BMP280_DATA_FRAME_SIZE, data, BMP280_BUS);
     bmp280_up = (int32_t)((((uint32_t)(data[0])) << 12) | (((uint32_t)(data[1])) << 4) | ((uint32_t)data[2] >> 4));
     bmp280_ut = (int32_t)((((uint32_t)(data[3])) << 12) | (((uint32_t)(data[4])) << 4) | ((uint32_t)data[5] >> 4));
 }

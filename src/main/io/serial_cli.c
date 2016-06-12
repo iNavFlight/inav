@@ -68,6 +68,7 @@
 #include "sensors/gyro.h"
 #include "sensors/compass.h"
 #include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -82,6 +83,8 @@
 #include "config/config.h"
 #include "config/config_profile.h"
 #include "config/config_master.h"
+
+#include "drivers/serial_escserial.h"
 
 #include "common/printf.h"
 
@@ -135,6 +138,9 @@ static void cliPFlags(char *cmdline);
 
 #ifdef GPS
 static void cliGpsPassthrough(char *cmdline);
+#endif
+#ifdef USE_ESCSERIAL
+static void cliEscPassthrough(char *cmdline);
 #endif
 
 static void cliHelp(char *cmdline);
@@ -207,7 +213,7 @@ static const char * const sensorHardwareNames[4][11] = {
     { "", "None", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "FAKE", NULL },
     { "", "None", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "FAKE", NULL },
     { "", "None", "BMP085", "MS5611", "BMP280", "FAKE", NULL },
-    { "", "None", "HMC5883", "AK8975", "FAKE", NULL }
+    { "", "None", "HMC5883", "AK8975", "GPS", "FAKE", NULL }
 };
 #endif
 
@@ -262,6 +268,9 @@ const clicmd_t cmdTable[] = {
             "[name]", cliGet),
 #ifdef GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
+#endif
+#ifdef USE_ESCSERIAL
+    CLI_COMMAND_DEF("escprog", "passthrough esc to serial", "<mode [sk/bl]> <index>", cliEscPassthrough),
 #endif
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef LED_STRIP
@@ -699,6 +708,10 @@ const clivalue_t valueTable[] = {
 
     { "baro_use_median_filter",     VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, &masterConfig.barometerConfig.use_median_filtering, .config.lookup = { TABLE_OFF_ON }, 0 },
     { "baro_hardware",              VAR_UINT8  | MASTER_VALUE,  &masterConfig.baro_hardware, .config.minmax = { 0,  BARO_MAX }, 0 },
+
+    { "pitot_tab_size",             VAR_UINT8  | MASTER_VALUE, &masterConfig.pitotmeterConfig.pitot_sample_count, .config.minmax = { 0, PITOT_SAMPLE_COUNT_MAX }, 0 },
+    { "pitot_noise_lpf",            VAR_FLOAT  | MASTER_VALUE, &masterConfig.pitotmeterConfig.pitot_noise_lpf, .config.minmax = { 0, 1 }, 0 },
+    { "pitot_scale",                VAR_FLOAT  | MASTER_VALUE, &masterConfig.pitotmeterConfig.pitot_scale, .config.minmax = { 0, 100 }, 0 },
 
     { "mag_hardware",               VAR_UINT8  | MASTER_VALUE,  &masterConfig.mag_hardware, .config.minmax = { 0,  MAG_MAX }, 0 },
     { "mag_declination",            VAR_INT16  | PROFILE_VALUE, &masterConfig.profile[0].mag_declination, .config.minmax = { -18000,  18000 }, 0 },
@@ -2003,6 +2016,57 @@ static void cliGpsPassthrough(char *cmdline)
     gpsEnablePassthrough(cliPort);
 }
 #endif
+
+#ifdef USE_ESCSERIAL
+static void cliEscPassthrough(char *cmdline)
+{
+    uint8_t mode = 0;
+    int index = 0;
+    int i = 0;
+    char *pch = NULL;
+    char *saveptr;
+
+    if (isEmpty(cmdline)) {
+        cliShowParseError();
+        return;
+    }
+
+    pch = strtok_r(cmdline, " ", &saveptr);
+    while (pch != NULL) {
+        switch (i) {
+            case 0:
+            	if(strncasecmp(pch, "sk", strlen(pch)) == 0)
+            	{
+            		mode = 0;
+            	}
+            	else if(strncasecmp(pch, "bl", strlen(pch)) == 0)
+            	{
+            		mode = 1;
+            	}
+            	else
+            	{
+                    cliShowParseError();
+                    return;
+            	}
+                break;
+            case 1:
+            	index = atoi(pch);
+                if ((index >= 0) && (index < USABLE_TIMER_CHANNEL_COUNT)) {
+                    printf("passthru at pwm output %d enabled\r\n", index);
+                }
+                else {
+                    printf("invalid pwm output, valid range: 0 to %d\r\n", USABLE_TIMER_CHANNEL_COUNT);
+                    return;
+                }
+                break;
+        }
+        i++;
+        pch = strtok_r(NULL, " ", &saveptr);
+    }
+    escEnablePassthrough(cliPort,index,mode);
+}
+#endif
+
 
 static void cliHelp(char *cmdline)
 {

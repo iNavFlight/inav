@@ -49,12 +49,12 @@
 #define BARO_EOC_PIN     Pin_14
 #define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
 
+
 // SPI2
 // PB15 28 SPI2_MOSI
 // PB14 27 SPI2_MISO
 // PB13 26 SPI2_SCK
 // PB12 25 SPI2_NSS
-
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 
@@ -88,6 +88,7 @@
 
 #define GYRO
 #define USE_GYRO_MPU3050
+#define MPU3050_BUS I2C_DEVICE_INT
 #define USE_GYRO_MPU6050
 #define USE_GYRO_MPU6500
 #define USE_GYRO_SPI_MPU6500
@@ -98,12 +99,17 @@
 #define GYRO_MPU6500_ALIGN CW0_DEG
 
 #define ACC
-#define USE_ACC_ADXL345
+//#define USE_ACC_ADXL345
+#define ADXL345_BUS I2C_DEVICE_INT
 //#define USE_ACC_BMA280
+#define BMA280_BUS I2C_DEVICE_INT
 //#define USE_ACC_MMA8452
+#define MMA8452_BUS I2C_DEVICE_INT
 #define USE_ACC_MPU6050
 #define USE_ACC_MPU6500
 #define USE_ACC_SPI_MPU6500
+#define MPU6050_BUS I2C_DEVICE_INT
+#define L3G4200D_BUS I2C_DEVICE_INT
 
 #define ACC_ADXL345_ALIGN CW270_DEG
 #define ACC_MPU6050_ALIGN CW0_DEG
@@ -113,11 +119,15 @@
 
 #define BARO
 #define USE_BARO_MS5611
+#define MS5611_BUS I2C_DEVICE_INT
 #define USE_BARO_BMP085
+#define BMP085_BUS I2C_DEVICE_INT
 #define USE_BARO_BMP280
+#define BMP280_BUS I2C_DEVICE_INT
 
 #define MAG
 #define USE_MAG_HMC5883
+#define HMC5883_BUS I2C_DEVICE_INT
 #define USE_MAG_AK8975
 #define USE_MAG_MAG3110
 
@@ -139,6 +149,7 @@
 #define SONAR_EXTI_LINE             EXTI_Line1
 #define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource1
 #define SONAR_EXTI_IRQN             EXTI1_IRQn
+#define UG2864_BUS I2C_DEVICE_INT
 
 #define USE_USART1
 #define USE_USART2
@@ -163,6 +174,7 @@
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2)
+#define I2C_DEVICE_INT (I2CDEV_2)
 
 // #define SOFT_I2C // enable to test software i2c
 // #define SOFT_I2C_PB1011 // If SOFT_I2C is enabled above, need to define pinout as well (I2C1 = PB67, I2C2 = PB1011)
@@ -193,7 +205,7 @@
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
 
-
+//#define TELEMETRY_FRSKY
 #define SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PORT  GPIOA
@@ -202,7 +214,7 @@
 //#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_MOTOR_COUNT 8
-
+// alternative defaults for AlienWii32 F1 target
 // alternative defaults for AlienWii32 F1 target
 #ifdef ALIENWII32
 #undef TARGET_BOARD_IDENTIFIER
@@ -213,7 +225,7 @@
 #define DEFAULT_FEATURES FEATURE_MOTOR_STOP
 
 #define HARDWARE_BIND_PLUG
-// Hardware bind plug at PB5 (Pin 41)
+
 #define BINDPLUG_PORT  GPIOB
 #define BINDPLUG_PIN   Pin_5
 #endif

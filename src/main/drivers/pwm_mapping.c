@@ -117,6 +117,16 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         if (init->useUART2 && (timerIndex == PWM3 || timerIndex == PWM4))
             continue;
 #endif
+#ifdef STM32F40_41xxx
+#ifdef ANYFC
+        // skip UART6 ports
+        if (init->useUART2 && (timerIndex == PWM9 || timerIndex == PWM10))
+            continue;
+        // skip UART6 ports
+        if (init->useUART6 && (timerIndex == PWM3 || timerIndex == PWM4))
+            continue;
+#endif
+#endif
 
 #if defined(STM32F303xC) && defined(USE_USART3)
         // skip UART3 ports (PB10/PB11)

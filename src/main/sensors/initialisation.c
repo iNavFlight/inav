@@ -52,6 +52,9 @@
 #include "drivers/barometer_bmp280.h"
 #include "drivers/barometer_ms5611.h"
 
+#include "drivers/pitotmeter.h"
+#include "drivers/pitotmeter_ms4525.h"
+
 #include "drivers/compass.h"
 #include "drivers/compass_hmc5883l.h"
 #include "drivers/compass_ak8975.h"
@@ -64,6 +67,7 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/gyro.h"
 #include "sensors/compass.h"
 #include "sensors/sonar.h"
@@ -82,6 +86,7 @@ extern float magneticDeclination;
 extern gyro_t gyro;
 extern baro_t baro;
 extern acc_t acc;
+extern pitot_t pitot;
 
 uint8_t detectedSensors[MAX_SENSORS_TO_DETECT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE };
 
@@ -141,6 +146,58 @@ const extiConfig_t *selectMPUIntExtiConfig(void)
             .exti_irqn = EXTI3_IRQn
     };
     return &cc3dMPUIntExtiConfig;
+#endif
+
+#if defined(COLIBRI_RACE)
+    static const extiConfig_t colibriRaceMPUIntExtiConfig = {
+            .gpioAHBPeripherals = RCC_AHBPeriph_GPIOA,
+            .gpioPort = GPIOA,
+            .gpioPin = Pin_5,
+            .exti_port_source = EXTI_PortSourceGPIOA,
+            .exti_pin_source = EXTI_PinSource5,
+            .exti_line = EXTI_Line5,
+            .exti_irqn = EXTI9_5_IRQn
+    };
+    return &colibriRaceMPUIntExtiConfig;
+#endif
+
+#if defined(ANYFC)
+    static const extiConfig_t anyFCMPUIntExtiConfig = {
+            .gpioAHB1Peripherals = RCC_AHB1Periph_GPIOC,
+            .gpioPort = GPIOC,
+            .gpioPin = Pin_4,
+            .exti_port_source = EXTI_PortSourceGPIOC,
+            .exti_pin_source = EXTI_PinSource4,
+            .exti_line = EXTI_Line4,
+            .exti_irqn = EXTI4_IRQn
+    };
+    return &anyFCMPUIntExtiConfig;
+#endif
+
+#if defined(REVO)
+    static const extiConfig_t revoMPUIntExtiConfig = {
+            .gpioAHB1Peripherals = RCC_AHB1Periph_GPIOC,
+            .gpioPort = GPIOC,
+            .gpioPin = Pin_4,
+            .exti_port_source = EXTI_PortSourceGPIOC,
+            .exti_pin_source = EXTI_PinSource4,
+            .exti_line = EXTI_Line4,
+            .exti_irqn = EXTI4_IRQn
+    };
+    return &revoMPUIntExtiConfig;
+#endif
+
+#if defined(COLIBRI)
+    static const extiConfig_t colibriMPUIntExtiConfig = {
+            .gpioAHB1Peripherals = RCC_AHB1Periph_GPIOC,
+            .gpioPort = GPIOC,
+            .gpioPin = Pin_0,
+            .exti_port_source = EXTI_PortSourceGPIOC,
+            .exti_pin_source = EXTI_PinSource0,
+            .exti_line = EXTI_Line0,
+            .exti_irqn = EXTI0_IRQn
+    };
+    return &colibriMPUIntExtiConfig;
 #endif
 
 #ifdef MOTOLAB
@@ -595,6 +652,22 @@ static void detectBaro(baroSensor_e baroHardwareToUse)
 #endif
 }
 
+
+static void detectPitot()
+{
+    // Detect what pressure sensors are available. baro->update() is set to sensor-specific update function
+#ifdef PITOT
+#ifdef USE_PITOT_MS4525
+    if (ms4525Detect(&pitot)) {
+    	sensorsSet(SENSOR_PITOT);
+    	return;
+    }
+#endif
+#endif
+    sensorsClear(SENSOR_PITOT);
+}
+
+
 static void detectMag(magSensor_e magHardwareToUse)
 {
     magSensor_e magHardware;
@@ -630,7 +703,26 @@ static void detectMag(magSensor_e magHardwareToUse)
         hmc5883Config = &nazeHmc5883Config_v5;
     }
 #endif
-
+#ifdef ANYFC
+    hmc5883Config_t anyfcHmc5883Config;
+    anyfcHmc5883Config.gpioAHB1Peripherals = RCC_AHB1Periph_GPIOB;
+    anyfcHmc5883Config.gpioPin = Pin_7;
+    anyfcHmc5883Config.gpioPort = GPIOB;
+    hmc5883Config = &anyfcHmc5883Config;
+#endif
+#ifdef COLIBRI
+    hmc5883Config_t colibriHmc5883Config;
+    static const hmc5883Config_t colibriHmc5883Config = {
+		.gpioAHB1Peripherals = RCC_AHB1Periph_GPIOC,
+		.gpioPin = Pin_1,
+		.gpioPort = GPIOC,
+		.exti_port_source = EXTI_PortSourceGPIOC,
+		.exti_pin_source = EXTI_PinSource1,
+		.exti_line = EXTI_Line1,
+		.exti_irqn = EXTI1_IRQn
+	};
+    hmc5883Config = &colibriHmc5883Config;
+#endif
 #ifdef SPRACINGF3
     static const hmc5883Config_t spRacingF3Hmc5883Config = {
         .gpioAHBPeripherals = RCC_AHBPeriph_GPIOC,
@@ -644,7 +736,6 @@ static void detectMag(magSensor_e magHardwareToUse)
 
     hmc5883Config = &spRacingF3Hmc5883Config;
 #endif
-
 #endif
 
 retry:
@@ -760,6 +851,7 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t g
     }
     detectAcc(accHardwareToUse);
     detectBaro(baroHardwareToUse);
+    detectPitot();
 
 
     // Now time to init things, acc first

@@ -22,6 +22,7 @@
 
 #define LAT 0
 #define LON 1
+#define ALT 2
 
 #define GPS_DEGREES_DIVIDER 10000000L
 
