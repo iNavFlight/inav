@@ -216,9 +216,9 @@
 #define TARGET_MOTOR_COUNT 8
 // alternative defaults for AlienWii32 F1 target
 // alternative defaults for AlienWii32 F1 target
-#ifdef ALIENWII32
+#ifdef ALIENFLIGHTF1
 #undef TARGET_BOARD_IDENTIFIER
-#define TARGET_BOARD_IDENTIFIER "AWF1" // AlienWii32 F1.
+#define TARGET_BOARD_IDENTIFIER "AFF1" // ALIENFLIGHTF1
 #undef BOARD_HAS_VOLTAGE_DIVIDER
 
 #define DEFAULT_RX_FEATURE FEATURE_RX_SERIAL
