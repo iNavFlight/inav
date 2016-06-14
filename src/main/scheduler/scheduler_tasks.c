@@ -23,6 +23,10 @@
 #include "scheduler.h"
 #include "scheduler_tasks.h"
 
+#ifdef USE_PCA9685
+void taskSyncPwmDriver(void);
+#endif
+
 cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_SYSTEM] = {
         .taskName = "SYSTEM",
@@ -129,4 +133,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
+
+#ifdef USE_PCA9685
+    [TASK_PWMDRIVER] = {
+        .taskName = "PWMDRIVER",
+        .taskFunc = taskSyncPwmDriver,
+        .desiredPeriod = 1000000 / 50,         // 50 Hz
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
+#endif
+
 };

@@ -68,6 +68,9 @@ typedef enum {
 #ifdef LED_STRIP
     TASK_LEDSTRIP,
 #endif
+#ifdef USE_PCA9685
+    TASK_PWMDRIVER,
+#endif
 
     /* Count of real tasks */
     TASK_COUNT,

@@ -26,7 +26,6 @@
 #define PCA9685_SERVO_FREQUENCY 60
 #define PCA9685_SERVO_COUNT 16
 #define PCA9685_SYNC_THRESHOLD 5
-#define PCA9685_UPDATE_FREQUENCY 50
 
 uint8_t pca9685Enabled = 0;
 
@@ -37,6 +36,11 @@ uint8_t isPca9685Enabled(void) {
 uint16_t currentOutputState[PCA9685_SERVO_FREQUENCY] = {0};
 uint16_t temporaryOutputState[PCA9685_SERVO_FREQUENCY] = {0};
 
+/*
+TODO: investigate if it is required to write LED_ON_L and LED_ON_H
+every cycle. It should be 0 in all the cases. This can lower bandwidch
+usege by half and allow to faster looptimes
+*/
 void pca9685setPWM(uint8_t servoIndex, uint16_t on, uint16_t off) {
     if (servoIndex < PCA9685_SERVO_COUNT) {
         i2cWrite(PCA9685_ADDR, LED0_ON_L + (servoIndex * 4), on);
@@ -57,22 +61,14 @@ Also, because of resultion of PCA9685 internal counter of about 5us, do not writ
 small changes, since thwy will only clog the bandwidch and will not
 be represented on output
 */
-//TODO move it to separate task
-void pca9685sync(uint32_t currentTime) {
+void pca9685sync() {
+    uint8_t i;
 
-    static uint32_t lastProcessTime = 0;
-
-    if (currentTime - lastProcessTime > 1000000 / PCA9685_UPDATE_FREQUENCY) {
-        uint8_t i;
-
-        for (i = 0; i < PCA9685_SERVO_COUNT; i++) {
-            if (ABS(temporaryOutputState[i] - currentOutputState[i]) > PCA9685_SYNC_THRESHOLD) {
-                pca9685setPWM(i, 0, temporaryOutputState[i]);
-                currentOutputState[i] = temporaryOutputState[i];
-            }
+    for (i = 0; i < PCA9685_SERVO_COUNT; i++) {
+        if (ABS(temporaryOutputState[i] - currentOutputState[i]) > PCA9685_SYNC_THRESHOLD) {
+            pca9685setPWM(i, 0, temporaryOutputState[i]);
+            currentOutputState[i] = temporaryOutputState[i];
         }
-
-        lastProcessTime = currentTime;
     }
 }
 
