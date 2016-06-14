@@ -37,6 +37,15 @@ uint8_t isPca9685Enabled(void) {
 uint16_t currentOutputState[PCA9685_SERVO_FREQUENCY] = {0};
 uint16_t temporaryOutputState[PCA9685_SERVO_FREQUENCY] = {0};
 
+void pca9685setPWM(uint8_t servoIndex, uint16_t on, uint16_t off) {
+    if (servoIndex < PCA9685_SERVO_COUNT) {
+        i2cWrite(PCA9685_ADDR, LED0_ON_L + (servoIndex * 4), on);
+        i2cWrite(PCA9685_ADDR, LED0_ON_H + (servoIndex * 4), on>>8);
+        i2cWrite(PCA9685_ADDR, LED0_OFF_L + (servoIndex * 4), off);
+        i2cWrite(PCA9685_ADDR, LED0_OFF_H + (servoIndex * 4), off>>8);
+    }
+}
+
 /*
 Writing new state every cycle for each servo is extremely time consuming
 and does not makes sense.
@@ -77,15 +86,6 @@ void pca9685setServoPulse(uint8_t servoIndex, uint16_t pulse) {
     pulse /= pulselength;
 
     temporaryOutputState[servoIndex] = pulse;
-}
-
-void pca9685setPWM(uint8_t servoIndex, uint16_t on, uint16_t off) {
-    if (servoIndex < PCA9685_SERVO_COUNT) {
-        i2cWrite(PCA9685_ADDR, LED0_ON_L + (servoIndex * 4), on);
-        i2cWrite(PCA9685_ADDR, LED0_ON_H + (servoIndex * 4), on>>8);
-        i2cWrite(PCA9685_ADDR, LED0_OFF_L + (servoIndex * 4), off);
-        i2cWrite(PCA9685_ADDR, LED0_OFF_H + (servoIndex * 4), off>>8);
-    }
 }
 
 void pca9685setPWMFreq(uint16_t freq) {
