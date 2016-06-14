@@ -249,6 +249,8 @@ bool adjustFixedWingPositionFromRCInput(void)
 
 static void updatePositionHeadingController_FW(uint32_t deltaMicros)
 {
+    static bool forceTurnDirection = false;
+    
     // We have virtual position target, calculate heading error
     int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
 
@@ -256,8 +258,17 @@ static void updatePositionHeadingController_FW(uint32_t deltaMicros)
     int32_t headingError = wrap_18000(virtualTargetBearing - posControl.actualState.yaw);
 
     // Forced turn direction
+    // If heading error is close to 180 deg we initiate forced turn and only disable it when heading error goes below 90 deg
     if (ABS(headingError) > 17000) {
-        headingError = 17500;
+        forceTurnDirection = true;
+    }
+    else if (ABS(headingError) < 9000 && forceTurnDirection) {
+        forceTurnDirection = false;
+    }
+
+    // If forced turn direction flag is enabled we fix the sign of the direction
+    if (forceTurnDirection) {
+        headingError = ABS(headingError);
     }
 
     // Input error in (deg*100), output pitch angle (deg*100)
