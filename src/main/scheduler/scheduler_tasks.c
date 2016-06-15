@@ -23,10 +23,6 @@
 #include "scheduler.h"
 #include "scheduler_tasks.h"
 
-#ifdef USE_PCA9685
-void taskSyncPwmDriver(void);
-#endif
-
 cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_SYSTEM] = {
         .taskName = "SYSTEM",

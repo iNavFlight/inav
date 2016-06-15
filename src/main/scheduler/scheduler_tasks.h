@@ -33,4 +33,6 @@ void taskUpdateDisplay(void);
 void taskTelemetry(void);
 void taskLedStrip(void);
 void taskSystem(void);
-
+#ifdef USE_PCA9685
+void taskSyncPwmDriver(void);
+#endif
