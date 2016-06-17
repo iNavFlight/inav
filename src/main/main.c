@@ -283,7 +283,7 @@ void init(void)
     pwmRxInit(masterConfig.inputFilteringMode);
 #endif
 
-#ifdef USE_PCA9685
+#ifdef USE_PMW_SERVO_DRIVER
     /*
     If external PWM driver is enabled, for example PCA9685, disable internal
     servo handling mechanism, since external device will do that
@@ -584,7 +584,7 @@ void init(void)
     LED2_ON;
 #endif
 
-#ifdef USE_PCA9685
+#ifdef USE_PMW_SERVO_DRIVER
     pca9685Detect();
 #endif
 
@@ -652,7 +652,7 @@ int main(void)
     setTaskEnabled(TASK_LEDSTRIP, feature(FEATURE_LED_STRIP));
 #endif
 
-#ifdef USE_PCA9685
+#ifdef USE_PMW_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
 

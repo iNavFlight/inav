@@ -222,7 +222,7 @@ void pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, ui
 
 void pwmWriteServo(uint8_t index, uint16_t value)
 {
-#ifdef USE_PCA9685
+#ifdef USE_PMW_SERVO_DRIVER
 
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pca9685setServoPulse(index, value);

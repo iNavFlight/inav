@@ -68,7 +68,7 @@ typedef enum {
 #ifdef LED_STRIP
     TASK_LEDSTRIP,
 #endif
-#ifdef USE_PCA9685
+#ifdef USE_PMW_SERVO_DRIVER
     TASK_PWMDRIVER,
 #endif
 

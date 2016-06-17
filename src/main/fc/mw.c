@@ -778,7 +778,7 @@ void taskLedStrip(void)
 }
 #endif
 
-#ifdef USE_PCA9685
+#ifdef USE_PMW_SERVO_DRIVER
 void taskSyncPwmDriver(void) {
 
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {

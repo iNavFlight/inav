@@ -130,7 +130,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_PCA9685
+#ifdef USE_PMW_SERVO_DRIVER
     [TASK_PWMDRIVER] = {
         .taskName = "PWMDRIVER",
         .taskFunc = taskSyncPwmDriver,

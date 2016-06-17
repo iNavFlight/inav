@@ -883,7 +883,7 @@ void validateAndFixConfig(void)
 #endif // CC3D_PPM1
 #endif // CC3D
 
-#ifndef USE_PCA9685
+#ifndef USE_PMW_SERVO_DRIVER
     featureClear(FEATURE_PWM_SERVO_DRIVER);
 #endif
 
