@@ -47,7 +47,8 @@ void generateRcCurves(controlRateConfig_t *controlRateConfig)
     }
 
     for (i = 0; i < YAW_LOOKUP_LENGTH; i++) {
-        lookupYawRC[i] = computeRcCurvePoint(controlRateConfig->rcYawExpo8, i);
+        // Yaw command is reversed compared to actual stick travel
+        lookupYawRC[i] = -computeRcCurvePoint(controlRateConfig->rcYawExpo8, i);
     }
 }
 
