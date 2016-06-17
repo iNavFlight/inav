@@ -62,28 +62,17 @@
 // External I2C BARO
 #define BARO
 #define USE_BARO_MS5611
-#define MS5611_BUS I2C_DEVICE_EXT
 #define USE_BARO_BMP085
-#define BMP085_BUS I2C_DEVICE_EXT
 
 // External I2C MAG
 #define MAG
 #define USE_MAG_HMC5883
-#define HMC5883_BUS I2C_DEVICE_EXT
 #define USE_MAG_AK8975
 #define USE_MAG_MAG3110
-
-#define UG2864_BUS I2C_DEVICE_EXT
 
 #define USE_VCP
 #define USE_USART1
 #define USE_USART3
-#define USE_SOFTSERIAL1
-#define SERIAL_PORT_COUNT 4
-
-#define SOFTSERIAL_1_TIMER TIM3
-#define SOFTSERIAL_1_TIMER_TX_HARDWARE 1 // PWM 2
-#define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
 
 #define USART3_RX_PIN Pin_11
 #define USART3_TX_PIN Pin_10
@@ -97,7 +86,63 @@
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2) // Flex port - SCL/PB10, SDA/PB11
-#define I2C_DEVICE_EXT (I2CDEV_2)
+
+#if defined(CC3D_NRF24) || defined(CC3D_NRF24_OPBL)
+#define USE_RX_NRF24
+#endif
+
+#ifdef USE_RX_NRF24
+#define DEFAULT_RX_FEATURE FEATURE_RX_NRF24
+#define DEFAULT_FEATURES FEATURE_SOFTSPI
+#define USE_RX_SYMA
+#define USE_RX_V202
+#define USE_RX_CX10
+//#define USE_RX_H8_3D
+#define USE_RX_REF
+#define NRF24_DEFAULT_PROTOCOL NRF24RX_SYMA_X5C
+//#define NRF24_DEFAULT_PROTOCOL NRF24RX_V202_1M
+//#define NRF24_DEFAULT_PROTOCOL NRF24RX_H8_3D
+
+#define USE_SOFTSPI
+#define USE_NRF24_SOFTSPI
+
+// RC pinouts
+// RC3  PB6/TIM4    unused
+// RC4  PB5/TIM3    SCK / softserial1 TX / sonar trigger
+// RC5  PB0/TIM3    MISO / softserial1 RX / sonar echo / RSSI ADC
+// RC6  PB1/TIM3    MOSI / current
+// RC7  PA0/TIM2    CSN / battery voltage
+// RC8  PA1/TIM2    CE / RX_PPM
+
+// Nordic Semiconductor uses 'CSN', STM uses 'NSS'
+#define NRF24_CE_GPIO                   GPIOA
+#define NRF24_CE_PIN                    GPIO_Pin_1
+#define NRF24_CE_GPIO_CLK_PERIPHERAL    RCC_APB2Periph_GPIOA
+#define NRF24_CSN_GPIO                  GPIOA
+#define NRF24_CSN_PIN                   GPIO_Pin_0
+#define NRF24_CSN_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
+#define NRF24_SCK_GPIO                  GPIOB
+#define NRF24_SCK_PIN                   GPIO_Pin_5
+#define NRF24_MOSI_GPIO                 GPIOB
+#define NRF24_MOSI_PIN                  GPIO_Pin_1
+#define NRF24_MISO_GPIO                 GPIOB
+#define NRF24_MISO_PIN                  GPIO_Pin_0
+
+#define SERIAL_PORT_COUNT 3
+
+#else
+
+#define USE_SOFTSERIAL1
+#define SERIAL_PORT_COUNT 4
+
+#define SOFTSERIAL_1_TIMER TIM3
+#define SOFTSERIAL_1_TIMER_TX_HARDWARE 1 // PWM 2
+#define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
+
+#define DEFAULT_RX_FEATURE FEATURE_RX_PPM
+
+#endif // USE_RX_NRF24
+
 
 #define USE_ADC
 
@@ -119,15 +164,6 @@
 #define RSSI_ADC_CHANNEL            ADC_Channel_8
 #endif
 
-#define NAV
-//#define NAV_AUTO_MAG_DECLINATION
-#define NAV_GPS_GLITCH_DETECTION
-
-//#define LED_STRIP
-//#define LED_STRIP_TIMER TIM3
-
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-
 #define SONAR
 #define USE_SONAR_SRF10
 #define SONAR_TRIGGER_PIN           Pin_5   // (PB5)
@@ -138,31 +174,62 @@
 #define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource0
 #define SONAR_EXTI_IRQN             EXTI0_IRQn
 
-#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+// LED strip is on PWM5 output pin
+//#define LED_STRIP
+#define LED_STRIP_TIMER TIM3
 
 #define SPEKTRUM_BIND
 // USART3, PB11 (Flexport)
 #define BIND_PORT  GPIOB
 #define BIND_PIN   Pin_11
 
-#define TARGET_MOTOR_COUNT 6
-//Disables uncommon predefined mixer settings like BiCopter, H6 and similar exotics
+//#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+#define NAV
+//#define NAV_AUTO_MAG_DECLINATION
+#define NAV_GPS_GLITCH_DETECTION
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+
 #undef TELEMETRY_FRSKY
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
 
-#ifdef CC3D_OPBL
+#ifdef OPBL
+#ifdef USE_RX_NRF24
 #undef USE_SERVOS
+#define TARGET_MOTOR_COUNT 6
+#else
+#define TARGET_MOTOR_COUNT 4
+#endif
 #undef BLACKBOX
 #undef TELEMETRY
 #undef TELEMETRY_LTM
 #endif
+
+#ifdef USE_RX_NRF24
+#define SKIP_RX_PWM_PPM
+#define SKIP_RX_MSP
+#undef SERIAL_RX
+#undef SPEKTRUM_BIND
+#undef TELEMETRY
+#undef TELEMETRY_LTM
+#ifndef CC3D_OPBL
+#define LED_STRIP
+#endif
+#endif
+
+
 // DEBUG
 //#define HIL
 //#define USE_FAKE_MAG
 //#define USE_FAKE_BARO
 //#define USE_FAKE_GPS
-//#define USE_FAKE_GPS
+
+// IO - from schematics
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC (BIT(14))
 
 #define USED_TIMERS         (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
 

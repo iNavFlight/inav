@@ -99,6 +99,24 @@
 #define I2C2_SDA_PIN_SOURCE  GPIO_PinSource10
 #define I2C2_SDA_CLK_SOURCE  RCC_AHBPeriph_GPIOA
 
+// SPI3
+// PA15 38 SPI3_NSS
+// PB3  39 SPI3_SCK
+// PB4  40 SPI3_MISO
+// PB5  41 SPI3_MOSI
+
+#define USE_SPI
+#define USE_SPI_DEVICE_3
+
+#define M25P16_CS_GPIO        GPIOA
+#define M25P16_CS_PIN         GPIO_Pin_15
+#define M25P16_SPI_INSTANCE   SPI3
+
+#define MPU6500_CS_GPIO_CLK_PERIPHERAL   RCC_AHBPeriph_GPIOA
+#define MPU6500_CS_GPIO                  GPIOA
+#define MPU6500_CS_PIN                   GPIO_Pin_15
+#define MPU6500_SPI_INSTANCE             SPI3
+
 #define USE_ADC
 
 #define ADC_INSTANCE         ADC2
@@ -136,6 +154,13 @@
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
 #undef TELEMETRY_LTM
+
+// IO - assuming 303 in 64pin package, TODO
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD (BIT(2))
+#define TARGET_IO_PORTF (BIT(0)|BIT(1)|BIT(4))
 
 
 #define USED_TIMERS  (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(15) | TIM_N(17))

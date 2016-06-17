@@ -18,9 +18,9 @@
 #pragma once
 
 #ifdef BEEPER
-#define BEEP_TOGGLE              digitalToggle(BEEP_GPIO, BEEP_PIN)
-#define BEEP_OFF                 systemBeep(false)
-#define BEEP_ON                  systemBeep(true)
+#define BEEP_TOGGLE             {digitalToggle(BEEP_GPIO, BEEP_PIN);}
+#define BEEP_OFF                {systemBeep(false);}
+#define BEEP_ON                 {systemBeep(true);}
 #else
 #define BEEP_TOGGLE             {}
 #define BEEP_OFF                {}

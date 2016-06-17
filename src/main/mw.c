@@ -24,6 +24,7 @@
 #include "debug.h"
 
 #include "scheduler/scheduler.h"
+#include "scheduler/scheduler_tasks.h"
 
 #include "common/maths.h"
 #include "common/axis.h"
@@ -113,7 +114,7 @@ extern uint32_t currentTime;
 
 static bool isRXDataNew;
 
-bool isCalibrating()
+bool isCalibrating(void)
 {
 #ifdef BARO
     if (sensors(SENSOR_BARO) && !isBaroCalibrationComplete()) {
@@ -126,40 +127,46 @@ bool isCalibrating()
     return (!isAccelerationCalibrationComplete() && sensors(SENSOR_ACC)) || (!isGyroCalibrationComplete());
 }
 
-void annexCode(void)
+int16_t getAxisRcCommand(int16_t rawData, int16_t (*loopupTable)(int32_t), int16_t deadband)
 {
-    int32_t tmp;
+    int16_t command, absoluteDeflection;
 
-    for (int axis = 0; axis < 3; axis++) {
-        tmp = MIN(ABS(rcData[axis] - masterConfig.rxConfig.midrc), 500);
-        if (axis == ROLL || axis == PITCH) {
-            if (currentProfile->rcControlsConfig.deadband) {
-                if (tmp > currentProfile->rcControlsConfig.deadband) {
-                    tmp -= currentProfile->rcControlsConfig.deadband;
-                } else {
-                    tmp = 0;
-                }
-            }
-            rcCommand[axis] = rcLookupPitchRoll(tmp);
-        } else if (axis == YAW) {
-            if (currentProfile->rcControlsConfig.yaw_deadband) {
-                if (tmp > currentProfile->rcControlsConfig.yaw_deadband) {
-                    tmp -= currentProfile->rcControlsConfig.yaw_deadband;
-                } else {
-                    tmp = 0;
-                }
-            }
-            rcCommand[axis] = rcLookupYaw(tmp) * -1;
-        }
+    absoluteDeflection = MIN(ABS(rawData - masterConfig.rxConfig.midrc), 500);
 
-        if (rcData[axis] < masterConfig.rxConfig.midrc) {
-            rcCommand[axis] = -rcCommand[axis];
+    if (deadband) {
+        if (absoluteDeflection > deadband) {
+            absoluteDeflection -= deadband;
+        } else {
+            absoluteDeflection = 0;
         }
     }
 
-    tmp = constrain(rcData[THROTTLE], masterConfig.rxConfig.mincheck, PWM_RANGE_MAX);
-    tmp = (uint32_t)(tmp - masterConfig.rxConfig.mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - masterConfig.rxConfig.mincheck);       // [MINCHECK;2000] -> [0;1000]
-    rcCommand[THROTTLE] = rcLookupThrottle(tmp);
+    /*
+        Get command from lookup table after applying deadband
+    */
+    command = loopupTable(absoluteDeflection);
+
+    if (rawData < masterConfig.rxConfig.midrc) {
+        command = -command;
+    }
+
+    return command;
+}
+
+void annexCode(void)
+{
+
+    int32_t throttleValue;
+
+    // Compute ROLL PITCH and YAW command
+    rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], rcLookupPitchRoll, currentProfile->rcControlsConfig.deadband);
+    rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], rcLookupPitchRoll, currentProfile->rcControlsConfig.deadband);
+    rcCommand[YAW] = getAxisRcCommand(rcData[YAW], rcLookupYaw, currentProfile->rcControlsConfig.yaw_deadband);
+
+    //Compute THROTTLE command
+    throttleValue = constrain(rcData[THROTTLE], masterConfig.rxConfig.mincheck, PWM_RANGE_MAX);
+    throttleValue = (uint32_t)(throttleValue - masterConfig.rxConfig.mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - masterConfig.rxConfig.mincheck);       // [MINCHECK;2000] -> [0;1000]
+    rcCommand[THROTTLE] = rcLookupThrottle(throttleValue);
 
     if (FLIGHT_MODE(HEADFREE_MODE)) {
         const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
@@ -221,7 +228,7 @@ void mwDisarm(void)
     }
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM)
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK)
 
 void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);

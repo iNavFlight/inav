@@ -139,6 +139,7 @@ float devStandardDeviation(stdev_t *dev);
 float degreesToRadians(int16_t degrees);
 
 int scaleRange(int x, int srcMin, int srcMax, int destMin, int destMax);
+int scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax);
 
 void normalizeV(struct fp_vector *src, struct fp_vector *dest);
 
@@ -168,3 +169,4 @@ float acos_approx(float x);
 #endif
 
 void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);
+uint16_t crc16_ccitt(uint16_t crc, unsigned char a);

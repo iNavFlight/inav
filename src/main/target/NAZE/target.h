@@ -177,8 +177,41 @@
 #define I2C_DEVICE_INT (I2CDEV_2)
 
 // #define SOFT_I2C // enable to test software i2c
+#ifdef USE_RX_NRF24
+// #define SOFT_I2C_PB1011 // If SOFT_I2C is enabled above, need to define pinout as well (I2C1 = PB67, I2C2 = PB1011)
+#define USE_RX_SYMA
+// #define SOFT_I2C_PB67
+#define NRF24_DEFAULT_PROTOCOL NRF24RX_SYMA_X5C
+
+#define USE_SOFTSPI
+#define USE_NRF24_SOFTSPI
+// #define SOFT_I2C // enable to test software i2c
 // #define SOFT_I2C_PB1011 // If SOFT_I2C is enabled above, need to define pinout as well (I2C1 = PB67, I2C2 = PB1011)
 // #define SOFT_I2C_PB67
+// RC pinouts
+// RC3              RX_PPM
+// RC4  PA1         CE / RSSI_ADC
+// RC5  PA2         USART2 TX
+// RC6  PA3         USART2 RX
+// RC7  PA6/TIM3    CSN / softserial1 RX / LED_STRIP
+// RC8  PA7         SCK / softserial1 TX
+// RC9  PB0         MISO / softserial2 RX / sonar trigger
+// RC10 PB1         MOSI /softserial2 TX / sonar echo / current
+
+// Nordic Semiconductor uses 'CSN', STM uses 'NSS'
+#define NRF24_CE_GPIO                   GPIOA
+#define NRF24_CE_PIN                    GPIO_Pin_1
+#define NRF24_CE_GPIO_CLK_PERIPHERAL    RCC_APB2Periph_GPIOA
+#define NRF24_CSN_GPIO                  GPIOA
+#define NRF24_CSN_PIN                   GPIO_Pin_6
+#define NRF24_CSN_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
+#define NRF24_SCK_GPIO                  GPIOA
+#define NRF24_SCK_PIN                   GPIO_Pin_7
+#define NRF24_MOSI_GPIO                 GPIOB
+#define NRF24_MOSI_PIN                  GPIO_Pin_1
+#define NRF24_MISO_GPIO                 GPIOB
+#define NRF24_MISO_PIN                  GPIO_Pin_0
+#endif // USE_NRF24
 
 #define USE_ADC
 
@@ -205,7 +238,6 @@
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
 
-//#define TELEMETRY_FRSKY
 #define SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PORT  GPIOA
@@ -230,7 +262,7 @@
 #define BINDPLUG_PIN   Pin_5
 #endif // ALIENWII32
 
-#ifdef MICROSKYSKY
+#ifdef MICROSCISKY
 #undef TARGET_BOARD_IDENTIFIER
 #define TARGET_BOARD_IDENTIFIER "MSKY" // Micro SKYsci
 #define BRUSHED_MOTORS
@@ -244,6 +276,12 @@
 #undef TELEMETRY_FRSKY
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
+
+
+// IO - assuming all IOs on 48pin package
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC (BIT(13)|BIT(14)|BIT(15))
 
 
 #define USED_TIMERS         (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
