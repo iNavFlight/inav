@@ -27,24 +27,18 @@
 #define PCA9685_SERVO_COUNT 16
 #define PCA9685_SYNC_THRESHOLD 5
 
-uint8_t pca9685Enabled = 0;
-
-uint8_t isPca9685Enabled(void) {
-    return pca9685Enabled;
-}
-
 uint16_t currentOutputState[PCA9685_SERVO_FREQUENCY] = {0};
 uint16_t temporaryOutputState[PCA9685_SERVO_FREQUENCY] = {0};
 
-/*
-TODO: investigate if it is required to write LED_ON_L and LED_ON_H
-every cycle. It should be 0 in all the cases. This can lower bandwidch
-usege by half and allow to faster looptimes
-*/
-void pca9685setPWM(uint8_t servoIndex, uint16_t on, uint16_t off) {
+void pca9685setPWMOn(uint8_t servoIndex, uint16_t on) {
     if (servoIndex < PCA9685_SERVO_COUNT) {
         i2cWrite(PCA9685_ADDR, LED0_ON_L + (servoIndex * 4), on);
         i2cWrite(PCA9685_ADDR, LED0_ON_H + (servoIndex * 4), on>>8);
+    }
+}
+
+void pca9685setPWMOff(uint8_t servoIndex, uint16_t off) {
+    if (servoIndex < PCA9685_SERVO_COUNT) {
         i2cWrite(PCA9685_ADDR, LED0_OFF_L + (servoIndex * 4), off);
         i2cWrite(PCA9685_ADDR, LED0_OFF_H + (servoIndex * 4), off>>8);
     }
@@ -66,19 +60,21 @@ void pca9685sync() {
 
     for (i = 0; i < PCA9685_SERVO_COUNT; i++) {
         if (ABS(temporaryOutputState[i] - currentOutputState[i]) > PCA9685_SYNC_THRESHOLD) {
-            pca9685setPWM(i, 0, temporaryOutputState[i]);
+            pca9685setPWMOff(i, temporaryOutputState[i]);
             currentOutputState[i] = temporaryOutputState[i];
         }
     }
 }
 
 void pca9685setServoPulse(uint8_t servoIndex, uint16_t pulse) {
-    double pulselength;
 
-    pulselength = 1000000;   // 1,000,000 us per second
-    pulselength /= PCA9685_SERVO_FREQUENCY;
-    pulselength /= 4096;  // 12 bits of resolution
+    static double pulselength = 0;
 
+    if (pulselength == 0) {
+        pulselength = 1000000;   // 1,000,000 us per second
+        pulselength /= PCA9685_SERVO_FREQUENCY;
+        pulselength /= 4096;  // 12 bits of resolution
+    }
     pulse /= pulselength;
 
     temporaryOutputState[servoIndex] = pulse;
@@ -98,7 +94,7 @@ void pca9685setPWMFreq(uint16_t freq) {
   i2cWrite(PCA9685_ADDR, PCA9685_MODE1, 128);
 }
 
-void pca9685Detect(void) {
+bool pca9685Initialize(void) {
 
     bool ack = false;
     uint8_t sig;
@@ -106,11 +102,8 @@ void pca9685Detect(void) {
     ack = i2cRead(PCA9685_ADDR, PCA9685_MODE1, 1, &sig);
 
     if (!ack) {
-        pca9685Enabled = 0;
-        featureClear(FEATURE_PWM_SERVO_DRIVER);
+        return false;
     } else {
-        pca9685Enabled = 1;
-
         /*
         Reset device
         */
@@ -120,5 +113,14 @@ void pca9685Detect(void) {
         Set refresh rate
         */
         pca9685setPWMFreq(PCA9685_SERVO_FREQUENCY);
+
+        delay(1);
+
+        for (uint8_t i = 0; i < PCA9685_SERVO_COUNT; i++) {
+            pca9685setPWMOn(i, 0);
+            pca9685setPWMOff(i, 1500);
+        }
+
+        return true;
     }
 }

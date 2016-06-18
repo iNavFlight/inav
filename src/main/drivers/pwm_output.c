@@ -29,6 +29,7 @@
 #include "pwm_mapping.h"
 #include "pwm_output.h"
 #include "drivers/io_pca9685.h"
+#include "io/pwmdriver_i2c.h"
 #include "config/config.h"
 #include "config/runtime_config.h"
 
@@ -225,7 +226,7 @@ void pwmWriteServo(uint8_t index, uint16_t value)
 #ifdef USE_PMW_SERVO_DRIVER
 
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
-        pca9685setServoPulse(index, value);
+        pwmDriverSetPulse(index, value);
     } else if (servos[index] && index < MAX_SERVOS) {
         *servos[index]->ccr = value;
     }

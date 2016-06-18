@@ -585,7 +585,7 @@ void init(void)
 #endif
 
 #ifdef USE_PMW_SERVO_DRIVER
-    pca9685Detect();
+    pwmDriverInitialize();
 #endif
 
     // Latch active features AGAIN since some may be modified by init().

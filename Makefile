@@ -415,6 +415,7 @@ COMMON_SRC = \
             io/serial_msp.c \
             io/statusindicator.c \
             fc/msp_server_fc.c \
+			io/pwmdriver_i2c.c \
             rx/ibus.c \
             rx/jetiexbus.c \
             rx/msp.c \
