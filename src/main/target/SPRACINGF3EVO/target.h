@@ -119,7 +119,6 @@
 #define SPI2_MOSI_PIN           Pin_15
 #define SPI2_MOSI_PIN_SOURCE    GPIO_PinSource15
 
-/*
 #define USE_SDCARD
 #define USE_SDCARD_SPI2
 
@@ -145,7 +144,7 @@
 // Note, this is the same DMA channel as USART1_RX. Luckily we don't use DMA for USART Rx.
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC5
-*/
+
 
 #define MPU6500_CS_GPIO_CLK_PERIPHERAL   SPI1_GPIO_PERIPHERAL
 #define MPU6500_CS_GPIO                  SPI1_GPIO
