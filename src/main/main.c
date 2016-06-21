@@ -62,6 +62,7 @@
 #include "drivers/gyro_sync.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
+#include "io/pwmdriver_i2c.h"
 #include "drivers/io_pca9685.h"
 
 #include "rx/rx.h"
