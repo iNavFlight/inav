@@ -355,6 +355,15 @@ void mixerUseConfigs(
 }
 
 #ifdef USE_SERVOS
+
+int16_t getFlaperonDirection(uint8_t servoPin) {
+    if (servoPin == SERVO_FLAPPERON_2) {
+        return -1;
+    } else {
+        return 1;
+    }
+}
+
 int16_t determineServoMiddleOrForwardFromChannel(servoIndex_e servoIndex)
 {
     uint8_t channelToForwardFrom = servoConf[servoIndex].forwardFromChannel;
@@ -464,7 +473,7 @@ void mixerUsePWMIOConfiguration(void)
     int i;
 
     motorCount = 0;
-    
+
     if (currentMixerMode == MIXER_CUSTOM || currentMixerMode == MIXER_CUSTOM_TRI || currentMixerMode == MIXER_CUSTOM_AIRPLANE) {
         // load custom mixer into currentMixer
         for (i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
@@ -835,13 +844,21 @@ void servoMixer(void)
             int16_t min = currentServoMixer[i].min * servo_width / 100 - servo_width / 2;
             int16_t max = currentServoMixer[i].max * servo_width / 100 - servo_width / 2;
 
-            if (currentServoMixer[i].speed == 0)
+            if (currentServoMixer[i].speed == 0) {
                 currentOutput[i] = input[from];
-            else {
-                if (currentOutput[i] < input[from])
+            } else {
+                if (currentOutput[i] < input[from]) {
                     currentOutput[i] = constrain(currentOutput[i] + currentServoMixer[i].speed, currentOutput[i], input[from]);
-                else if (currentOutput[i] > input[from])
+                } else if (currentOutput[i] > input[from]) {
                     currentOutput[i] = constrain(currentOutput[i] - currentServoMixer[i].speed, input[from], currentOutput[i]);
+                }
+            }
+
+            /*
+            Flaperon fligh mode
+            */
+            if (FLIGHT_MODE(FLAPERON) && (target == SERVO_FLAPPERON_1 || target == SERVO_FLAPPERON_2)) {
+                currentOutput[i] += 300 * getFlaperonDirection(target);
             }
 
             servo[target] += servoDirection(target, from) * constrain(((int32_t)currentOutput[i] * currentServoMixer[i].rate) / 100, min, max);
