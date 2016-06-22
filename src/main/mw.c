@@ -610,7 +610,7 @@ void taskMainPidLoop(void)
 #ifdef USE_SERVOS
 
     if (isMixerUsingServos()) {
-        servoMixer();
+        servoMixer(currentProfile->flaperon_throw_offset, currentProfile->flaperon_throw_inverted);
     }
 
     if (feature(FEATURE_SERVO_TILT)) {

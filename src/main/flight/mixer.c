@@ -53,6 +53,7 @@
 
 #include "config/runtime_config.h"
 #include "config/config.h"
+#include "config/config_profile.h"
 
 //#define MIXER_DEBUG
 
@@ -788,7 +789,7 @@ void mixTable(void)
 
 #ifdef USE_SERVOS
 
-void servoMixer(void)
+void servoMixer(uint16_t flaperon_throw_offset, uint8_t flaperon_throw_inverted)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
     static int16_t currentOutput[MAX_SERVO_RULES];
@@ -858,7 +859,12 @@ void servoMixer(void)
             Flaperon fligh mode
             */
             if (FLIGHT_MODE(FLAPERON) && (target == SERVO_FLAPPERON_1 || target == SERVO_FLAPPERON_2)) {
-                currentOutput[i] += 300 * getFlaperonDirection(target);
+                int8_t multiplier = 1;
+
+                if (flaperon_throw_inverted == 1) {
+                    multiplier = -1;
+                }
+                currentOutput[i] += flaperon_throw_offset * getFlaperonDirection(target) * multiplier;
             }
 
             servo[target] += servoDirection(target, from) * constrain(((int32_t)currentOutput[i] * currentServoMixer[i].rate) / 100, min, max);
