@@ -63,6 +63,7 @@
 #define BARO
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_BMP280
 
 // External I2C MAG
 #define MAG
@@ -202,6 +203,7 @@
 #else
 #define TARGET_MOTOR_COUNT 4
 #endif
+#undef USE_BARO_MS5611
 #undef BLACKBOX
 #undef TELEMETRY
 #undef TELEMETRY_LTM
