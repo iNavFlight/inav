@@ -240,17 +240,17 @@ DEVICE_STDPERIPH_SRC := $(STDPERIPH_SRC) \
                         $(USBCDC_SRC)
 
 #CMSIS
-VPATH           := $(VPATH):$(CMSIS_DIR)/CM4/CoreSupport:$(CMSIS_DIR)/CM4/DeviceSupport/ST/STM32F4xx
-CMSIS_SRC       = $(notdir $(wildcard $(CMSIS_DIR)/CM4/CoreSupport/*.c \
-                  $(CMSIS_DIR)/CM4/DeviceSupport/ST/STM32F4xx/*.c))
+VPATH           := $(VPATH):$(CMSIS_DIR)/CM1/CoreSupport:$(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F4xx
+CMSIS_SRC       = $(notdir $(wildcard $(CMSIS_DIR)/CM1/CoreSupport/*.c \
+                  $(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F4xx/*.c))
 INCLUDE_DIRS    := $(INCLUDE_DIRS) \
                    $(STDPERIPH_DIR)/inc \
                    $(USBOTG_DIR)/inc \
                    $(USBCORE_DIR)/inc \
                    $(USBCDC_DIR)/inc \
                    $(USBFS_DIR)/inc \
-                   $(CMSIS_DIR)/CM4/CoreSupport \
-                   $(CMSIS_DIR)/CM4/DeviceSupport/ST/STM32F4xx \
+                   $(CMSIS_DIR)/CM1/CoreSupport \
+                   $(CMSIS_DIR)/CM1/DeviceSupport/ST/STM32F4xx \
                    $(ROOT)/src/main/vcpf4
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
@@ -338,7 +338,7 @@ TARGET_DIR_SRC = $(notdir $(wildcard $(TARGET_DIR)/*.c))
 ifeq ($(OPBL),yes)
 TARGET_FLAGS := -DOPBL $(TARGET_FLAGS)
 ifeq ($(TARGET), $(filter $(TARGET),$(F405_TARGETS)))
-LD_SCRIPT = $(LINKER_DIR)/stm32_flash_f405_opbl.ld
+LD_SCRIPT = $(LINKER_DIR)/stm32_flash_f405_bl.ld
 else ifeq ($(TARGET), $(filter $(TARGET),$(F411_TARGETS)))
 LD_SCRIPT = $(LINKER_DIR)/stm32_flash_f411_opbl.ld
 else ifeq ($(TARGET), $(filter $(TARGET),$(F3_TARGETS)))
@@ -476,15 +476,6 @@ VCP_SRC = \
             drivers/serial_usb_vcp.c
 endif
 
-VCPF4_SRC = \
-            vcpf4/stm32f4xx_it.c \
-            vcpf4/usb_bsp.c \
-            vcpf4/usbd_desc.c \
-            vcpf4/usbd_usr.c \
-            vcpf4/usbd_cdc_vcp.c \
-            drivers/serial_usb_vcp.c
-
-
 STM32F10x_COMMON_SRC = \
             startup_stm32f10x_md_gcc.S \
             drivers/adc_stm32f10x.c \
@@ -514,18 +505,20 @@ STM32F30x_COMMON_SRC = \
 
 STM32F4xx_COMMON_SRC = \
             startup_stm32f40xx.s \
-            target/system_stm32f4xx.c \
             drivers/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
-            drivers/adc_stm32f4xx.c \
-            drivers/bus_i2c_stm32f10x.c \
+            drivers/bus_i2c_stm32f4xx.c \
             drivers/gpio_stm32f4xx.c \
             drivers/inverter.c \
+            drivers/light_led_stm32f4xx.c \
+            drivers/light_ws2811strip.c \
+            drivers/light_ws2811strip_stm32f4xx.c \
             drivers/serial_softserial.c \
             drivers/serial_uart_stm32f4xx.c \
+            drivers/sound_beeper_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
             drivers/timer_stm32f4xx.c \
-            drivers/dma_stm32f4xx.c
+            target/system_stm32f4xx.c
 
 # check if target.mk supplied
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
