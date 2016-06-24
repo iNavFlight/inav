@@ -32,7 +32,7 @@
 #include "pwm_output.h"
 
 #if (MAX_MOTORS > MAX_SERVOS)
-#define MAX_PWM_OUTPUT_PORTS MAX_MOTORS
+#define MAX_PWM_OUTPUT_PORTS (MAX_MOTORS+MAX_SERVOS)
 #else
 #define MAX_PWM_OUTPUT_PORTS MAX_SERVOS
 #endif
