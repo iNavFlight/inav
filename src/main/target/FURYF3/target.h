@@ -85,8 +85,11 @@
 #define SPI2_MOSI_PIN           Pin_15
 #define SPI2_MOSI_PIN_SOURCE    GPIO_PinSource15
 
+#ifdef FURYF3_SPIFLASH
 #define USE_FLASHFS
-//#define USE_SDCARD
+#else
+#define USE_SDCARD
+#endif
 
 #ifdef USE_FLASHFS
 #define USE_FLASH_M25P16
