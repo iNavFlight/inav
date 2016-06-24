@@ -117,14 +117,16 @@ void pidResetErrorAccumulators(void)
     pidState[FD_YAW].axisLockAccum = 0;
 }
 
-static float pidRcCommandToAngle(int16_t stick)
+static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
 {
-    return stick * 2.0f;
+    stick = constrain(stick, -500, 500);
+    return scaleRangef((float) stick, -500.0f, 500.0f, (float) -maxInclination, (float) maxInclination);
 }
 
-int16_t pidAngleToRcCommand(float angleDeciDegrees)
+int16_t pidAngleToRcCommand(float angleDeciDegrees, int16_t maxInclination)
 {
-    return angleDeciDegrees / 2.0f;
+    angleDeciDegrees = constrainf(angleDeciDegrees, (float) -maxInclination, (float) maxInclination);
+    return scaleRangef((float) angleDeciDegrees, (float) -maxInclination, (float) maxInclination, -500.0f, 500.0f);
 }
 
 /*
@@ -234,8 +236,8 @@ static float calcHorizonLevelStrength(const pidProfile_t *pidProfile, const rxCo
 static void pidLevel(const pidProfile_t *pidProfile, pidState_t *pidState, flight_dynamics_index_t axis, float horizonLevelStrength)
 {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
-    const float angleTarget = pidRcCommandToAngle(rcCommand[axis]);
-    const float angleError = constrain(angleTarget, -pidProfile->max_angle_inclination[axis], +pidProfile->max_angle_inclination[axis]) - attitude.raw[axis];
+    const float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile->max_angle_inclination[axis]);
+    const float angleError = angleTarget - attitude.raw[axis];
 
     // P[LEVEL] defines self-leveling strength (both for ANGLE and HORIZON modes)
     if (FLIGHT_MODE(HORIZON_MODE)) {
