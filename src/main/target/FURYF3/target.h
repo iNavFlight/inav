@@ -87,6 +87,7 @@
 
 #ifdef FURYF3_SPIFLASH
 #define USE_FLASHFS
+#undef BEEPER_INVERTED
 #else
 #define USE_SDCARD
 #endif
