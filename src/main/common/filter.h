@@ -17,24 +17,24 @@
 
 #pragma once
 
-typedef struct filterStatePt1_s {
-	float state;
-	float RC;
-	float constdT;
-} filterStatePt1_t;
+typedef struct pt1Filter_s {
+    float state;
+    float RC;
+    float dT;
+} pt1Filter_t;
 
 /* this holds the data required to update samples thru a filter */
-typedef struct biquad_s {
+typedef struct biquadFilter_s {
     float b0, b1, b2, a1, a2;
     float d1, d2;
-} biquad_t;
+} biquadFilter_t;
 
-float filterApplyPt1(float input, filterStatePt1_t *filter, float f_cut, float dt);
-float filterApplyPt1WithRateLimit(float input, filterStatePt1_t *filter, float f_cut, float rate_limit, float dT);
-void filterResetPt1(filterStatePt1_t *filter, float input);
+float pt1FilterApply(pt1Filter_t *filter, float input, float f_cut, float dt);
+float pt1FilterApplyWithRateLimit(pt1Filter_t *filter, float input, float f_cut, float rate_limit, float dT);
+void pt1FilterReset(pt1Filter_t *filter, float input);
 
-void filterInitBiQuad(uint8_t filterCutFreq, biquad_t *newState, int16_t samplingRate);
-float filterApplyBiQuad(float sample, biquad_t *state);
+void biquadFilterInit(biquadFilter_t *filter, uint8_t filterCutFreq, int16_t samplingRate);
+float biquadFilterApply(biquadFilter_t *filter, float sample);
 
-void filterUpdateFIR(int filterLength, float *shiftBuf, float newSample);
-float filterApplyFIR(int filterLength, const float *shiftBuf, const float *coeffBuf, float commonMultiplier);
+void firFilterUpdate(int filterLength, float *shiftBuf, float sample);
+float firFilterApply(int filterLength, const float *shiftBuf, const float *coeffBuf, float commonMultiplier);
