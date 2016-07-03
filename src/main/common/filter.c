@@ -17,7 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 
 #include "common/axis.h"
@@ -27,6 +27,7 @@
 #include "drivers/gyro_sync.h"
 
 #define BIQUAD_Q    (1.0f / 1.41421356f)     /* quality factor - butterworth (1 / sqrt(2)) */
+#define M_PI_FLOAT  3.14159265358979323846f
 
 /* sets up a biquad Filter */
 void biquadFilterInit(biquadFilter_t *newState, uint8_t filterCutFreq, int16_t samplingRate)
@@ -75,27 +76,40 @@ float biquadFilterApply(biquadFilter_t *state, float sample)
     return result;
 }
 
-// PT1 Low Pass filter (when no dT specified it will be calculated from the cycleTime)
-float pt1FilterApply(pt1Filter_t *filter, float input, float f_cut, float dT)
+// PT1 Low Pass filter
+
+// f_cut = cutoff frequency
+void pt1FilterInit(pt1Filter_t *filter, uint8_t f_cut, float dT)
 {
-	// Pre calculate and store RC
-	if (!filter->RC) {
-		filter->RC = 1.0f / ( 2.0f * (float)M_PI * f_cut );
-	}
+    filter->RC = 1.0f / ( 2.0f * M_PI_FLOAT * f_cut );
+    filter->dT = dT;
+}
+
+float pt1FilterApply(pt1Filter_t *filter, float input)
+{
+    filter->state = filter->state + filter->dT / (filter->RC + filter->dT) * (input - filter->state);
+    return filter->state;
+}
+
+float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
+{
+    // Pre calculate and store RC
+    if (!filter->RC) {
+        filter->RC = 1.0f / ( 2.0f * (float)M_PI * f_cut );
+    }
 
     filter->state = filter->state + dT / (filter->RC + dT) * (input - filter->state);
     return filter->state;
 }
 
-// PT1 Low Pass filter (when no dT specified it will be calculated from the cycleTime)
 // f_cut = cutoff frequency
 // rate_limit = maximum rate of change of the output value in units per second
 float pt1FilterApplyWithRateLimit(pt1Filter_t *filter, float input, float f_cut, float rate_limit, float dT)
 {
-	// Pre calculate and store RC
-	if (!filter->RC) {
-		filter->RC = 1.0f / ( 2.0f * (float)M_PI * f_cut );
-	}
+    // Pre calculate and store RC
+    if (!filter->RC) {
+        filter->RC = 1.0f / ( 2.0f * (float)M_PI * f_cut );
+    }
 
     const float newState = filter->state + dT / (filter->RC + dT) * (input - filter->state);
     const float rateLimitPerSample = rate_limit * dT;
@@ -109,21 +123,32 @@ void pt1FilterReset(pt1Filter_t *filter, float input)
     filter->state = input;
 }
 
-void firFilterUpdate(int filterLength, float *shiftBuf, float newSample)
+// FIR filter
+void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength)
 {
-    // Shift history buffer and push new sample
-    for (int i = filterLength - 1; i > 0; i--)
-        shiftBuf[i] = shiftBuf[i - 1];
-
-    shiftBuf[0] = newSample;
+    filter->buf = buf;
+    filter->bufLength = bufLength;
+    filter->coeffs = coeffs;
+    filter->coeffsLength = coeffsLength;
+    memset(filter->buf, 0, sizeof(float) * filter->bufLength);
 }
 
-float firFilterApply(int filterLength, const float *shiftBuf, const float *coeffBuf, float commonMultiplier)
+void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs)
 {
-    float accum = 0;
+    firFilterInit2(filter, buf, bufLength, coeffs, bufLength);
+}
 
-    for (int i = 0; i < filterLength; i++)
-        accum += shiftBuf[i] * coeffBuf[i];
+void firFilterUpdate(firFilter_t *filter, float input)
+{
+    memmove(&filter->buf[1], &filter->buf[0], (filter->bufLength-1) * sizeof(float));
+    filter->buf[0] = input;
+}
 
-    return accum * commonMultiplier;
+float firFilterApply(firFilter_t *filter)
+{
+    float ret = 0.0f;
+    for (int ii = 0; ii < filter->coeffsLength; ++ii) {
+        ret += filter->coeffs[ii] * filter->buf[ii];
+    }
+    return ret;
 }
