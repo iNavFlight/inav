@@ -7,7 +7,7 @@ env:
   - TARGET=SPARKY
   - TARGET=FURYF3
   - TARGET=FURYF3_SPIFLASH
-
+  
 # use new docker environment
 sudo: false
 
