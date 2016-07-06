@@ -19,7 +19,8 @@ env:
   - TARGET=STM32F3DISCOVERY
   - TARGET=ALIENWIIF1
   - TARGET=ALIENWIIF3
-
+  - TARGET=RCEXPLORERF3
+  
 # use new docker environment
 sudo: false
 
