@@ -253,14 +253,7 @@ static void pidLevel(const pidProfile_t *pidProfile, const controlRateConfig_t *
     const float angleError = angleTarget - attitude.raw[axis];
     const float angleRateTarget = constrainf(angleError * (pidProfile->P8[PIDLEVEL] / FP_PID_LEVEL_P_MULTIPLIER), -controlRateConfig->rates[axis] * 10.0f, controlRateConfig->rates[axis] * 10.0f);
 
-    // P[LEVEL] defines self-leveling strength (both for ANGLE and HORIZON modes)
-    if (FLIGHT_MODE(HORIZON_MODE)) {
-        pidState->rateTarget = (1.0f - horizonRateMagnitude) * angleRateTarget + horizonRateMagnitude * pidState->rateTarget;
-    } else {
-        pidState->rateTarget = angleRateTarget;
-    }
-
-    // Apply simple LPF to rateTarget to make response less jerky
+    // Apply simple LPF to angleRateTarget to make response less jerky
     // Ideas behind this:
     //  1) Attitude is updated at gyro rate, rateTarget for ANGLE mode is calculated from attitude
     //  2) If this rateTarget is passed directly into gyro-base PID controller this effectively doubles the rateError.
@@ -273,7 +266,14 @@ static void pidLevel(const pidProfile_t *pidProfile, const controlRateConfig_t *
     //     response to rapid attitude changes and smoothing out self-leveling reaction
     if (pidProfile->I8[PIDLEVEL]) {
         // I8[PIDLEVEL] is filter cutoff frequency (Hz). Practical values of filtering frequency is 5-10 Hz
-        pidState->rateTarget = pt1FilterApply4(&pidState->angleFilterState, pidState->rateTarget, pidProfile->I8[PIDLEVEL], dT);
+        angleRateTarget = pt1FilterApply4(&pidState->angleFilterState, angleRateTarget, pidProfile->I8[PIDLEVEL], dT);
+    }
+
+    // P[LEVEL] defines self-leveling strength (both for ANGLE and HORIZON modes)
+    if (FLIGHT_MODE(HORIZON_MODE)) {
+        pidState->rateTarget = (1.0f - horizonRateMagnitude) * angleRateTarget + horizonRateMagnitude * pidState->rateTarget;
+    } else {
+        pidState->rateTarget = angleRateTarget;
     }
 }
 
