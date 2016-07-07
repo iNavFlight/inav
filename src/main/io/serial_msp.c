@@ -440,6 +440,13 @@ void mspInit(void)
 
     if (isFixedWing) {
         activeBoxIds[activeBoxIdCount++] = BOXPASSTHRU;
+    }
+
+    /*
+     * FLAPERON mode active only in case of airplane and custom airplane. Activating on
+     * flying wing can cause bad thing
+     */
+    if (masterConfig.mixerMode == MIXER_AIRPLANE || masterConfig.mixerMode == MIXER_CUSTOM_AIRPLANE) {
         activeBoxIds[activeBoxIdCount++] = BOXFLAPERON;
     }
 
