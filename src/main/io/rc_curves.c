@@ -24,35 +24,39 @@
 
 #include "io/rc_curves.h"
 
-int16_t lookupPitchRollRC[PITCH_LOOKUP_LENGTH];     // lookup table for expo & RC rate PITCH+ROLL
-int16_t lookupYawRC[YAW_LOOKUP_LENGTH];     // lookup table for expo & RC rate YAW
-int16_t lookupThrottleRC[THROTTLE_LOOKUP_LENGTH];   // lookup table for expo & mid THROTTLE
-int16_t lookupThrottleRCMid;                        // THROTTLE curve mid point
+#define PITCH_LOOKUP_LENGTH 7
+#define YAW_LOOKUP_LENGTH 7
+#define THROTTLE_LOOKUP_LENGTH 12
 
-void generatePitchRollCurve(controlRateConfig_t *controlRateConfig)
+static int16_t lookupPitchRollRC[PITCH_LOOKUP_LENGTH];      // lookup table for expo & RC rate PITCH+ROLL
+static int16_t lookupYawRC[YAW_LOOKUP_LENGTH];              // lookup table for expo & RC rate YAW
+static int16_t lookupThrottleRC[THROTTLE_LOOKUP_LENGTH];    // lookup table for expo & mid THROTTLE
+int16_t lookupThrottleRCMid;                         // THROTTLE curve mid point
+
+int16_t computeRcCurvePoint(uint8_t expo, uint8_t i)
 {
-    uint8_t i;
-
-    for (i = 0; i < PITCH_LOOKUP_LENGTH; i++)
-        lookupPitchRollRC[i] = (2500 + controlRateConfig->rcExpo8 * (i * i - 25)) * i * (int32_t) controlRateConfig->rcRate8 / 2500;
+    return (2500 + expo * (i * i - 25)) * i / 25;
 }
 
-void generateYawCurve(controlRateConfig_t *controlRateConfig)
+void generateRcCurves(controlRateConfig_t *controlRateConfig)
 {
     uint8_t i;
 
-    for (i = 0; i < YAW_LOOKUP_LENGTH; i++)
-        lookupYawRC[i] = (2500 + controlRateConfig->rcYawExpo8 * (i * i - 25)) * i / 25;
+    for (i = 0; i < PITCH_LOOKUP_LENGTH; i++) {
+        lookupPitchRollRC[i] = computeRcCurvePoint(controlRateConfig->rcExpo8, i);
+    }
+
+    for (i = 0; i < YAW_LOOKUP_LENGTH; i++) {
+        lookupYawRC[i] = computeRcCurvePoint(controlRateConfig->rcYawExpo8, i);
+    }
 }
 
 void generateThrottleCurve(controlRateConfig_t *controlRateConfig, escAndServoConfig_t *escAndServoConfig)
 {
-    uint8_t i;
-
     lookupThrottleRCMid = escAndServoConfig->minthrottle + (int32_t)(escAndServoConfig->maxthrottle - escAndServoConfig->minthrottle) * controlRateConfig->thrMid8 / 100; // [MINTHROTTLE;MAXTHROTTLE]
 
-    for (i = 0; i < THROTTLE_LOOKUP_LENGTH; i++) {
-        int16_t tmp = 10 * i - controlRateConfig->thrMid8;
+    for (int i = 0; i < THROTTLE_LOOKUP_LENGTH; i++) {
+        const int16_t tmp = 10 * i - controlRateConfig->thrMid8;
         uint8_t y = 1;
         if (tmp > 0)
             y = 100 - controlRateConfig->thrMid8;
@@ -61,4 +65,30 @@ void generateThrottleCurve(controlRateConfig_t *controlRateConfig, escAndServoCo
         lookupThrottleRC[i] = 10 * controlRateConfig->thrMid8 + tmp * (100 - controlRateConfig->thrExpo8 + (int32_t) controlRateConfig->thrExpo8 * (tmp * tmp) / (y * y)) / 10;
         lookupThrottleRC[i] = escAndServoConfig->minthrottle + (int32_t) (escAndServoConfig->maxthrottle - escAndServoConfig->minthrottle) * lookupThrottleRC[i] / 1000; // [MINTHROTTLE;MAXTHROTTLE]
     }
+}
+
+int16_t rcLookupTable(int16_t lookupTable[], int32_t absoluteDeflection)
+{
+    const int32_t lookupStep = absoluteDeflection / 100;
+    return lookupTable[lookupStep] + (absoluteDeflection - lookupStep * 100) * (lookupTable[lookupStep + 1] - lookupTable[lookupStep]) / 100;
+}
+
+int16_t rcLookupPitchRoll(int32_t absoluteDeflection)
+{
+    return rcLookupTable(lookupPitchRollRC, absoluteDeflection);
+}
+
+int16_t rcLookupYaw(int32_t absoluteDeflection)
+{
+    return rcLookupTable(lookupYawRC, absoluteDeflection);
+}
+
+int16_t rcLookupThrottle(int32_t absoluteDeflection)
+{
+    return rcLookupTable(lookupThrottleRC, absoluteDeflection);
+}
+
+int16_t rcLookupThrottleMid(void)
+{
+    return lookupThrottleRCMid;
 }

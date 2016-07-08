@@ -58,15 +58,17 @@
 #include "drivers/compass_mag3110.h"
 
 #include "drivers/sonar_hcsr04.h"
+#include "drivers/sonar_srf10.h"
 
 #include "config/runtime_config.h"
+#include "config/config.h"
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/gyro.h"
 #include "sensors/compass.h"
-#include "sensors/sonar.h"
+#include "sensors/rangefinder.h"
 #include "sensors/initialisation.h"
 
 #ifdef NAZE
@@ -83,7 +85,7 @@ extern gyro_t gyro;
 extern baro_t baro;
 extern acc_t acc;
 
-uint8_t detectedSensors[MAX_SENSORS_TO_DETECT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE };
+uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE };
 
 
 const extiConfig_t *selectMPUIntExtiConfig(void)
@@ -173,7 +175,7 @@ const extiConfig_t *selectMPUIntExtiConfig(void)
 }
 
 #ifdef USE_FAKE_GYRO
-static void fakeGyroInit(uint16_t lpf)
+static void fakeGyroInit(uint8_t lpf)
 {
     UNUSED(lpf);
 }
@@ -200,7 +202,7 @@ bool fakeGyroDetect(gyro_t *gyro)
 #endif
 
 #ifdef USE_FAKE_ACC
-static void fakeAccInit(void) {}
+static void fakeAccInit(acc_t *acc) {UNUSED(acc);}
 static bool fakeAccRead(int16_t *accData) {
     memset(accData, 0, sizeof(int16_t[XYZ_AXIS_COUNT]));
     return true;
@@ -731,7 +733,35 @@ retry:
     sensorsSet(SENSOR_MAG);
 }
 
-void reconfigureAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
+#ifdef SONAR
+/*
+ * Detect which rangefinder is present
+ */
+static rangefinderType_e detectRangefinder(void)
+{
+    rangefinderType_e rangefinderType = RANGEFINDER_NONE;
+    if (feature(FEATURE_SONAR)) {
+        // the user has set the sonar feature, so assume they have an HC-SR04 plugged in,
+        // since there is no way to detect it
+        rangefinderType = RANGEFINDER_HCSR04;
+    }
+#ifdef USE_SONAR_SRF10
+    if (srf10_detect()) {
+        // if an SFR10 sonar rangefinder is detected then use it in preference to the assumed HC-SR04
+        rangefinderType = RANGEFINDER_SRF10;
+    }
+#endif
+    detectedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderType;
+
+    if (rangefinderType != RANGEFINDER_NONE) {
+        sensorsSet(SENSOR_SONAR);
+    }
+
+    return rangefinderType;
+}
+#endif
+
+static void reconfigureAlignment(const sensorAlignmentConfig_t *sensorAlignmentConfig)
 {
     if (sensorAlignmentConfig->gyro_align != ALIGN_DEFAULT) {
         gyroAlign = sensorAlignmentConfig->gyro_align;
@@ -747,17 +777,12 @@ void reconfigureAlignment(sensorAlignmentConfig_t *sensorAlignmentConfig)
 bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t gyroLpf, uint8_t accHardwareToUse, uint8_t magHardwareToUse, uint8_t baroHardwareToUse,
         int16_t magDeclinationFromConfig) {
 
-    int16_t deg, min;
-
     memset(&acc, 0, sizeof(acc));
     memset(&gyro, 0, sizeof(gyro));
 
 #if defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU3050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) || defined(USE_ACC_MPU6050)
-
-    const extiConfig_t *extiConfig = selectMPUIntExtiConfig();
-
-    mpuDetectionResult_t *mpuDetectionResult = detectMpu(extiConfig);
-    UNUSED(mpuDetectionResult);
+    const extiConfig_t *mpuExtiConfig = selectMPUIntExtiConfig();
+    detectMpu(mpuExtiConfig);
 #endif
 
     if (!detectGyro()) {
@@ -768,8 +793,9 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t g
 
 
     // Now time to init things, acc first
-    if (sensors(SENSOR_ACC))
+    if (sensors(SENSOR_ACC)) {
         acc.init(&acc);
+    }
 
     gyro.init(gyroLpf);
 
@@ -780,13 +806,17 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig, uint8_t g
     // FIXME extract to a method to reduce dependencies, maybe move to sensors_compass.c
     if (sensors(SENSOR_MAG)) {
         // calculate magnetic declination
-        deg = magDeclinationFromConfig / 100;
-        min = magDeclinationFromConfig % 100;
-
+        const int deg = magDeclinationFromConfig / 100;
+        const int min = magDeclinationFromConfig % 100;
         magneticDeclination = (deg + ((float)min * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
     } else {
         magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
     }
+
+#ifdef SONAR
+    const rangefinderType_e rangefinderType = detectRangefinder();
+    rangefinderInit(rangefinderType);
+#endif
 
     return true;
 }

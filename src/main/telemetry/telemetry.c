@@ -23,6 +23,8 @@
 
 #ifdef TELEMETRY
 
+#include "common/utils.h"
+
 #include "drivers/gpio.h"
 #include "drivers/timer.h"
 #include "drivers/serial.h"
@@ -40,6 +42,7 @@
 #include "telemetry/hott.h"
 #include "telemetry/smartport.h"
 #include "telemetry/ltm.h"
+#include "telemetry/mavlink.h"
 
 static telemetryConfig_t *telemetryConfig;
 
@@ -64,6 +67,10 @@ void telemetryInit(void)
 
 #if defined(TELEMETRY_LTM)
     initLtmTelemetry(telemetryConfig);
+#endif
+
+#if defined(TELEMETRY_MAVLINK)
+    initMAVLinkTelemetry();
 #endif
 
     telemetryCheckState();
@@ -100,12 +107,19 @@ void telemetryCheckState(void)
 #if defined(TELEMETRY_LTM)
     checkLtmTelemetryState();
 #endif
+
+#if defined(TELEMETRY_MAVLINK)
+    checkMAVLinkTelemetryState();
+#endif
 }
 
 void telemetryProcess(rxConfig_t *rxConfig, uint16_t deadband3d_throttle)
 {
 #if defined(TELEMETRY_FRSKY)
     handleFrSkyTelemetry(rxConfig, deadband3d_throttle);
+#else
+    UNUSED(rxConfig);
+    UNUSED(deadband3d_throttle);
 #endif
 
 #if defined(TELEMETRY_HOTT)
@@ -118,6 +132,10 @@ void telemetryProcess(rxConfig_t *rxConfig, uint16_t deadband3d_throttle)
 
 #if defined(TELEMETRY_LTM)
     handleLtmTelemetry();
+#endif
+
+#if defined(TELEMETRY_MAVLINK)
+    handleMAVLinkTelemetry();
 #endif
 }
 

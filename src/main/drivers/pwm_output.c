@@ -23,6 +23,8 @@
 #include "platform.h"
 
 #include "gpio.h"
+#include "io.h"
+#include "io_impl.h"
 #include "timer.h"
 
 #include "flight/failsafe.h" // FIXME dependency into the main code from a driver
@@ -30,6 +32,12 @@
 #include "pwm_mapping.h"
 
 #include "pwm_output.h"
+
+#if (MAX_MOTORS > MAX_SERVOS)
+#define MAX_PWM_OUTPUT_PORTS MAX_MOTORS
+#else
+#define MAX_PWM_OUTPUT_PORTS MAX_SERVOS
+#endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
 
@@ -51,7 +59,7 @@ static pwmOutputPort_t *servos[MAX_PWM_SERVOS];
 static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
-static void pwmOCConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t value)
+static void pwmOCConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t value, uint8_t outputPolarity)
 {
     TIM_OCInitTypeDef  TIM_OCInitStructure;
 
@@ -60,7 +68,7 @@ static void pwmOCConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t value)
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
     TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
     TIM_OCInitStructure.TIM_Pulse = value;
-    TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_Low;
+    TIM_OCInitStructure.TIM_OCPolarity = outputPolarity ? TIM_OCPolarity_High : TIM_OCPolarity_Low;
     TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
 
     switch (channel) {
@@ -98,12 +106,12 @@ static pwmOutputPort_t *pwmOutConfig(const timerHardware_t *timerHardware, uint8
     pwmOutputPort_t *p = &pwmOutputPorts[allocatedOutputPortCount++];
 
     configTimeBase(timerHardware->tim, period, mhz);
-    pwmGPIOConfig(timerHardware->gpio, timerHardware->pin, Mode_AF_PP);
+    pwmGPIOConfig(IO_GPIOBYTAG(timerHardware->tag), IO_PINBYTAG(timerHardware->tag), Mode_AF_PP);
 
-
-    pwmOCConfig(timerHardware->tim, timerHardware->channel, value);
-    if (timerHardware->outputEnable)
+    pwmOCConfig(timerHardware->tim, timerHardware->channel, value, timerHardware->output & TIMER_OUTPUT_INVERTED);
+    if (timerHardware->output & TIMER_OUTPUT_ENABLED) {
         TIM_CtrlPWMOutputs(timerHardware->tim, ENABLE);
+    }
     TIM_Cmd(timerHardware->tim, ENABLE);
 
     switch (timerHardware->channel) {
@@ -167,12 +175,11 @@ void pwmCompleteOneshotMotorUpdate(uint8_t motorCount)
     uint8_t index;
     TIM_TypeDef *lastTimerPtr = NULL;
 
-    for(index = 0; index < motorCount; index++){
+    for (index = 0; index < motorCount; index++) {
 
         // Force the timer to overflow if it's the first motor to output, or if we change timers
-        if(motors[index]->tim != lastTimerPtr){
+        if (motors[index]->tim != lastTimerPtr) {
             lastTimerPtr = motors[index]->tim;
-
             timerForceOverflow(motors[index]->tim);
         }
 

@@ -20,6 +20,8 @@
 
 #include "platform.h"
 
+#include "build_config.h"
+
 #include "debug.h"
 
 #include "common/axis.h"
@@ -192,7 +194,6 @@ void failsafeUpdateState(void)
     }
 
     bool reprocessState;
-    bool rthIdleOrLanded;
 
     do {
         reprocessState = false;
@@ -276,6 +277,7 @@ void failsafeUpdateState(void)
                     if (armed) {
                         beeperMode = BEEPER_RX_LOST_LANDING;
                     }
+                    bool rthIdleOrLanded;
                     switch (getStateOfForcedRTH()) {
                         case RTH_IN_PROGRESS:
                             rthIdleOrLanded = false;

@@ -22,27 +22,32 @@
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 
+#define LED0
 #define LED0_GPIO   GPIOB
 #define LED0_PIN    Pin_3 // PB3 (LED)
 #define LED0_PERIPHERAL RCC_APB2Periph_GPIOB
+
+#define LED1
 #define LED1_GPIO   GPIOB
 #define LED1_PIN    Pin_4 // PB4 (LED)
 #define LED1_PERIPHERAL RCC_APB2Periph_GPIOB
 
+#define BEEPER
 #define BEEP_GPIO   GPIOA
 #define BEEP_PIN    Pin_12 // PA12 (Beeper)
 #define BEEP_PERIPHERAL RCC_APB2Periph_GPIOA
+
+#define INVERTER
+#define INVERTER_PIN Pin_2 // PB2 (BOOT1) abused as inverter select GPIO
+#define INVERTER_GPIO GPIOB
+#define INVERTER_PERIPHERAL RCC_APB2Periph_GPIOB
+#define INVERTER_USART USART2
 
 #define BARO_XCLR_GPIO   GPIOC
 #define BARO_XCLR_PIN    Pin_13
 #define BARO_EOC_GPIO    GPIOC
 #define BARO_EOC_PIN     Pin_14
 #define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
-
-#define INVERTER_PIN Pin_2 // PB2 (BOOT1) abused as inverter select GPIO
-#define INVERTER_GPIO GPIOB
-#define INVERTER_PERIPHERAL RCC_APB2Periph_GPIOB
-#define INVERTER_USART USART2
 
 // SPI2
 // PB15 28 SPI2_MOSI
@@ -119,12 +124,21 @@
 #define MAG_HMC5883_ALIGN CW180_DEG
 
 #define SONAR
-#define BEEPER
-#define LED0
-#define LED1
-#define INVERTER
-#define DISPLAY
-#define DISPLAY_ARMED_BITMAP
+#define USE_SONAR_SRF10
+#define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
+#define SONAR_PWM_TRIGGER_GPIO      GPIOB
+#define SONAR_PWM_ECHO_PIN          Pin_9   // PWM6 (PB9) - 5v tolerant
+#define SONAR_PWM_ECHO_GPIO         GPIOB
+#define SONAR_PWM_EXTI_LINE         EXTI_Line9
+#define SONAR_PWM_EXTI_PIN_SOURCE   GPIO_PinSource9
+#define SONAR_PWM_EXTI_IRQN         EXTI9_5_IRQn
+#define SONAR_TRIGGER_PIN           Pin_0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_TRIGGER_GPIO          GPIOB
+#define SONAR_ECHO_PIN              Pin_1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_ECHO_GPIO             GPIOB
+#define SONAR_EXTI_LINE             EXTI_Line1
+#define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource1
+#define SONAR_EXTI_IRQN             EXTI1_IRQn
 
 #define USE_USART1
 #define USE_USART2
@@ -150,9 +164,42 @@
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2)
 
+//#define USE_RX_NRF24
+#ifdef USE_RX_NRF24
+
+#define USE_RX_SYMA
+//#define USE_RX_V202
+#define NRF24_DEFAULT_PROTOCOL NRF24RX_SYMA_X5C
+
+#define USE_SOFTSPI
+#define USE_NRF24_SOFTSPI
 // #define SOFT_I2C // enable to test software i2c
 // #define SOFT_I2C_PB1011 // If SOFT_I2C is enabled above, need to define pinout as well (I2C1 = PB67, I2C2 = PB1011)
 // #define SOFT_I2C_PB67
+// RC pinouts
+// RC3              RX_PPM
+// RC4  PA1         CE / RSSI_ADC
+// RC5  PA2         USART2 TX
+// RC6  PA3         USART2 RX
+// RC7  PA6/TIM3    CSN / softserial1 RX / LED_STRIP
+// RC8  PA7         SCK / softserial1 TX
+// RC9  PB0         MISO / softserial2 RX / sonar trigger
+// RC10 PB1         MOSI /softserial2 TX / sonar echo / current
+
+// Nordic Semiconductor uses 'CSN', STM uses 'NSS'
+#define NRF24_CE_GPIO                   GPIOA
+#define NRF24_CE_PIN                    GPIO_Pin_1
+#define NRF24_CE_GPIO_CLK_PERIPHERAL    RCC_APB2Periph_GPIOA
+#define NRF24_CSN_GPIO                  GPIOA
+#define NRF24_CSN_PIN                   GPIO_Pin_6
+#define NRF24_CSN_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
+#define NRF24_SCK_GPIO                  GPIOA
+#define NRF24_SCK_PIN                   GPIO_Pin_7
+#define NRF24_MOSI_GPIO                 GPIOB
+#define NRF24_MOSI_PIN                  GPIO_Pin_1
+#define NRF24_MISO_GPIO                 GPIOB
+#define NRF24_MISO_PIN                  GPIO_Pin_0
+#endif // USE_NRF24
 
 #define USE_ADC
 
@@ -172,31 +219,12 @@
 #define EXTERNAL1_ADC_GPIO_PIN      GPIO_Pin_5
 #define EXTERNAL1_ADC_CHANNEL       ADC_Channel_5
 
-#define GPS
-#define GPS_PROTO_NMEA
-#define GPS_PROTO_UBLOX
-#define GPS_PROTO_I2C_NAV
-#define GPS_PROTO_NAZA
-
 #define NAV
 //#define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
-
-#define BLACKBOX
-#define TELEMETRY
-//#define TELEMETRY_FRSKY
-//#define TELEMETRY_HOTT
-//#define TELEMETRY_SMARTPORT
-#define TELEMETRY_LTM
-
-#define SERIAL_RX
-#define USE_SERVOS
-#define USE_CLI
-
-#define SKIP_CLI_COMMAND_HELP
 
 #define SPEKTRUM_BIND
 // USART2, PA3
@@ -205,16 +233,42 @@
 
 //#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-// alternative defaults for AlienWii32 F1 target
-#ifdef ALIENWII32
-#undef TARGET_BOARD_IDENTIFIER
-#define TARGET_BOARD_IDENTIFIER "AWF1" // AlienWii32 F1.
-#undef BOARD_HAS_VOLTAGE_DIVIDER
-#define HARDWARE_BIND_PLUG
+#define TARGET_MOTOR_COUNT 8
 
+// alternative defaults for ALIENFLIGHTF1 F1 target
+#ifdef ALIENFLIGHTF1
+#undef TARGET_BOARD_IDENTIFIER
+#define TARGET_BOARD_IDENTIFIER "AFF1" // ALIENFLIGHTF1
+#undef BOARD_HAS_VOLTAGE_DIVIDER
+
+#define DEFAULT_RX_FEATURE FEATURE_RX_SERIAL
+#define DEFAULT_FEATURES FEATURE_MOTOR_STOP
+
+#define HARDWARE_BIND_PLUG
 // Hardware bind plug at PB5 (Pin 41)
 #define BINDPLUG_PORT  GPIOB
 #define BINDPLUG_PIN   Pin_5
+#endif // ALIENFLIGHTF1
+
+#ifdef MICROSCISKY
+#undef TARGET_BOARD_IDENTIFIER
+#define TARGET_BOARD_IDENTIFIER "MSKY" // Micro sciSKY
+#define BRUSHED_MOTORS
+#define USE_QUAD_MIXER_ONLY
+#undef USE_SERVOS
+#undef BEEPER
+#define DEFAULT_RX_FEATURE FEATURE_RX_SERIAL
+
 #endif
 
-#define DISABLE_UNCOMMON_MIXERS
+#undef TELEMETRY_FRSKY
+#undef TELEMETRY_HOTT
+#undef TELEMETRY_SMARTPORT
+
+
+// IO - assuming all IOs on 48pin package
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC ( BIT(13) | BIT(14) | BIT(15) )
+
+#define USED_TIMERS     ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) )

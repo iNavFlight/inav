@@ -21,21 +21,7 @@
 
 #include "platform.h"
 #include "scheduler.h"
-
-void taskMainPidLoopChecker(void);
-void taskHandleSerial(void);
-void taskUpdateBeeper(void);
-void taskUpdateBattery(void);
-bool taskUpdateRxCheck(uint32_t currentDeltaTime);
-void taskUpdateRxMain(void);
-void taskProcessGPS(void);
-void taskUpdateCompass(void);
-void taskUpdateBaro(void);
-void taskUpdateSonar(void);
-void taskUpdateDisplay(void);
-void taskTelemetry(void);
-void taskLedStrip(void);
-void taskSystem(void);
+#include "scheduler_tasks.h"
 
 cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_SYSTEM] = {
@@ -112,7 +98,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_SONAR] = {
         .taskName = "SONAR",
         .taskFunc = taskUpdateSonar,
-        .desiredPeriod = 1000000 / 20,
+        .desiredPeriod = 70000,                 // every 70 ms, approximately 14 Hz
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

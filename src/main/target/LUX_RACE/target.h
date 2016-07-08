@@ -20,18 +20,22 @@
 #define TARGET_BOARD_IDENTIFIER "LUX"
 #define BOARD_HAS_VOLTAGE_DIVIDER
 
+#define LED0
 #define LED0_GPIO   GPIOC
 #define LED0_PIN    Pin_15
 #define LED0_PERIPHERAL RCC_AHBPeriph_GPIOC
 
+#define LED1
 #define LED1_GPIO   GPIOC
 #define LED1_PIN    Pin_14
 #define LED1_PERIPHERAL RCC_AHBPeriph_GPIOC
 
+#define LED2
 #define LED2_GPIO   GPIOC
 #define LED2_PIN    Pin_13
 #define LED2_PERIPHERAL RCC_AHBPeriph_GPIOC
 
+#define BEEPER
 #define BEEP_GPIO   GPIOB
 #define BEEP_PIN    Pin_13
 #define BEEP_PERIPHERAL RCC_AHBPeriph_GPIOB
@@ -67,11 +71,6 @@
 #define USE_ACC_MPU6500
 #define USE_ACC_SPI_MPU6500
 #define ACC_MPU6500_ALIGN CW270_DEG
-
-#define BEEPER
-#define LED0
-#define LED1
-#define LED2
 
 #define USB_IO
 
@@ -124,11 +123,7 @@
 #define EXTERNAL1_ADC_GPIO_PIN      GPIO_Pin_3
 #define EXTERNAL1_ADC_CHANNEL       ADC_Channel_9
 
-#define BLACKBOX
-#define GPS
-#define GTUNE
 #define LED_STRIP
-
 #define LED_STRIP_TIMER TIM16
 
 #define WS2811_GPIO                     GPIOA
@@ -149,19 +144,25 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define TELEMETRY
-#define TELEMETRY_FRSKY
-#define TELEMETRY_HOTT
-#define TELEMETRY_SMARTPORT
-#define TELEMETRY_LTM
-
-#define SERIAL_RX
-#define USE_SERVOS
-#define USE_CLI
-
 #define SPEKTRUM_BIND
 // USART1, PC5
 #define BIND_PORT  GPIOC
 #define BIND_PIN   Pin_5
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+#undef GPS_PROTO_NMEA
+#undef GPS_PROTO_UBLOX
+#undef GPS_PROTO_I2C_NAV
+#undef GPS_PROTO_NAZA
+
+#define DEFAULT_RX_FEATURE FEATURE_RX_PPM
+
+// IO - assuming 303 in 64pin package, TODO
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD (BIT(2))
+#define TARGET_IO_PORTF (BIT(0)|BIT(1)|BIT(4))
+
+#define USED_TIMERS  (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(15))
+

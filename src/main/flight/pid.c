@@ -47,6 +47,7 @@
 #include "flight/imu.h"
 #include "flight/navigation_rewrite.h"
 
+#define MAG_HOLD_ERROR_LPF_FREQ 2
 
 typedef struct {
     float kP;
@@ -58,8 +59,9 @@ typedef struct {
     float rateTarget;
 
     // Buffer for derivative calculation
-#define DTERM_BUF_COUNT 5
-    float dTermBuf[DTERM_BUF_COUNT];
+#define PID_GYRO_RATE_BUF_LENGTH 5
+    float gyroRateBuf[PID_GYRO_RATE_BUF_LENGTH];
+    firFilter_t gyroRateFilter;
 
     // Rate integrator
     float errorGyroIf;
@@ -69,16 +71,18 @@ typedef struct {
     float axisLockAccum;
 
     // Used for ANGLE filtering
-    filterStatePt1_t angleFilterState;
+    pt1Filter_t angleFilterState;
 
     // Rate filtering
-    biquad_t deltaBiQuadState;
-    bool deltaFilterInit;
+    pt1Filter_t ptermLpfState;
+    pt1Filter_t deltaLpfState;
 } pidState_t;
 
 extern uint8_t motorCount;
 extern bool motorLimitReached;
 extern float dT;
+
+int16_t magHoldTargetHeading;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 static float tpaFactor;
@@ -89,6 +93,17 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 #endif
 
 static pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
+
+void pidInit(void)
+{
+    // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
+    // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+    // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
+    static const float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH] = {5.0f/8, 2.0f/8, -8.0f/8, -2.0f/8, 3.0f/8};
+    for (int axis = 0; axis < 3; ++ axis) {
+        firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
+    }
+}
 
 void pidResetErrorAccumulators(void)
 {
@@ -112,16 +127,36 @@ int16_t pidAngleToRcCommand(float angleDeciDegrees)
     return angleDeciDegrees / 2.0f;
 }
 
-float pidRcCommandToRate(int16_t stick, uint8_t rate)
+/*
+Map stick positions to desired rotatrion rate in given axis.
+Rotation rate in dps at full stick deflection is defined by axis rate measured in dps/10
+Rate 20 means 200dps at full stick deflection
+*/
+float pidRateToRcCommand(float rateDPS, uint8_t rate)
 {
-    // Map stick position from 200dps to 1200dps
-    return (float)((rate + 20) * stick) / 50.0f;
+    const float rateDPS_10 = constrainf(rateDPS / 10.0f, (float) -rate, (float) rate);
+    return scaleRangef(rateDPS_10, (float) -rate, (float) rate, -500.0f, 500.0f);
 }
 
+float pidRcCommandToRate(int16_t stick, uint8_t rate)
+{
+    return scaleRangef((float) stick, (float) -500, (float) 500, (float) -rate, (float) rate) * 10;
+}
+
+<<<<<<< HEAD
 #define FP_PID_RATE_P_MULTIPLIER    40.0f       // betaflight - 40.0
 #define FP_PID_RATE_I_MULTIPLIER    10.0f       // betaflight - 10.0
 #define FP_PID_RATE_D_MULTIPLIER    4000.0f     // betaflight - 1000.0
 #define FP_PID_LEVEL_P_MULTIPLIER   4.0f        // betaflight - 10.0
+=======
+/*
+FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
+*/
+#define FP_PID_RATE_P_MULTIPLIER    31.0f
+#define FP_PID_RATE_I_MULTIPLIER    4.0f
+#define FP_PID_RATE_D_MULTIPLIER    1905.0f
+#define FP_PID_LEVEL_P_MULTIPLIER   65.6f
+>>>>>>> master
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
 #define KD_ATTENUATION_BREAK        0.25f
@@ -207,7 +242,7 @@ static void pidLevel(const pidProfile_t *pidProfile, pidState_t *pidState, fligh
 {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
     const float angleTarget = pidRcCommandToAngle(rcCommand[axis]);
-    const float angleError = (constrain(angleTarget, -pidProfile->max_angle_inclination[axis], +pidProfile->max_angle_inclination[axis]) - attitude.raw[axis]) / 10.0f;
+    const float angleError = constrain(angleTarget, -pidProfile->max_angle_inclination[axis], +pidProfile->max_angle_inclination[axis]) - attitude.raw[axis];
 
     // P[LEVEL] defines self-leveling strength (both for ANGLE and HORIZON modes)
     if (FLIGHT_MODE(HORIZON_MODE)) {
@@ -229,7 +264,7 @@ static void pidLevel(const pidProfile_t *pidProfile, pidState_t *pidState, fligh
     //     response to rapid attitude changes and smoothing out self-leveling reaction
     if (pidProfile->I8[PIDLEVEL]) {
         // I8[PIDLEVEL] is filter cutoff frequency (Hz). Practical values of filtering frequency is 5-10 Hz
-        pidState->rateTarget = filterApplyPt1(pidState->rateTarget, &pidState->angleFilterState, pidProfile->I8[PIDLEVEL], dT);
+        pidState->rateTarget = pt1FilterApply4(&pidState->angleFilterState, pidState->rateTarget, pidProfile->I8[PIDLEVEL], dT);
     }
 }
 
@@ -244,26 +279,23 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
         newPTerm = constrain(newPTerm, -pidProfile->yaw_p_limit, pidProfile->yaw_p_limit);
     }
 
+    // Additional P-term LPF on YAW axis
+    if (axis == FD_YAW && pidProfile->yaw_lpf_hz) {
+        newPTerm = pt1FilterApply4(&pidState->ptermLpfState, newPTerm, pidProfile->yaw_lpf_hz, dT);
+    }
+
     // Calculate new D-term
     float newDTerm;
     if (pidProfile->D8[axis] == 0) {
         // optimisation for when D8 is zero, often used by YAW axis
         newDTerm = 0;
     } else {
-        // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
-        // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
-        // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
-        static const float dtermCoeffs[DTERM_BUF_COUNT] = {5.0f, 2.0f, -8.0f, -2.0f, 3.0f};
-        filterUpdateFIR(DTERM_BUF_COUNT, pidState->dTermBuf, pidState->gyroRate);
-        newDTerm = filterApplyFIR(DTERM_BUF_COUNT, pidState->dTermBuf, dtermCoeffs, -pidState->kD / (8 * dT));
+        firFilterUpdate(&pidState->gyroRateFilter, pidState->gyroRate);
+        newDTerm = firFilterApply(&pidState->gyroRateFilter) * (-pidState->kD / dT);
 
         // Apply additional lowpass
         if (pidProfile->dterm_lpf_hz) {
-            if (!pidState->deltaFilterInit) {
-                filterInitBiQuad(pidProfile->dterm_lpf_hz, &pidState->deltaBiQuadState, 0);
-                pidState->deltaFilterInit = true;
-            }
-            newDTerm = filterApplyBiQuad(newDTerm, &pidState->deltaBiQuadState);
+            newDTerm = pt1FilterApply4(&pidState->deltaLpfState, newDTerm, pidProfile->dterm_lpf_hz, dT);
         }
     }
 
@@ -292,13 +324,127 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
 #endif
 }
 
+void updateMagHoldHeading(int16_t heading)
+{
+    magHoldTargetHeading = heading;
+}
+
+int16_t getMagHoldHeading() {
+    return magHoldTargetHeading;
+}
+
+uint8_t getMagHoldState()
+{
+
+    #ifndef MAG
+        return MAG_HOLD_DISABLED;
+    #endif
+
+    if (!sensors(SENSOR_MAG) || !STATE(SMALL_ANGLE)) {
+        return MAG_HOLD_DISABLED;
+    }
+
+#if defined(NAV)
+    int navHeadingState = naivationGetHeadingControlState();
+    // NAV will prevent MAG_MODE from activating, but require heading control
+    if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
+        // Apply maghold only if heading control is in auto mode
+        if (navHeadingState == NAV_HEADING_CONTROL_AUTO) {
+            return MAG_HOLD_ENABLED;
+        }
+    }
+    else
+#endif
+    if (ABS(rcCommand[YAW]) < 15 && FLIGHT_MODE(MAG_MODE)) {
+        return MAG_HOLD_ENABLED;
+    } else {
+        return MAG_HOLD_UPDATE_HEADING;
+    }
+
+    return MAG_HOLD_UPDATE_HEADING;
+}
+
+/*
+ * MAG_HOLD P Controller returns desired rotation rate in dps to be fed to Rate controller
+ */
+float pidMagHold(const pidProfile_t *pidProfile)
+{
+
+    static pt1Filter_t magHoldRateFilter;
+    float magHoldRate;
+
+    int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHoldTargetHeading;
+
+    /*
+     * Convert absolute error into relative to current heading
+     */
+    if (error <= -180) {
+        error += 360;
+    }
+
+    if (error >= +180) {
+        error -= 360;
+    }
+
+    /*
+        New MAG_HOLD controller work slightly different that previous one.
+        Old one mapped error to rotation speed in following way:
+            - on rate 0 it gave about 0.5dps for each degree of error
+            - error 0 = rotation speed of 0dps
+            - error 180 = rotation speed of 96 degrees per second
+            - output
+            - that gives about 2 seconds to correct any error, no matter how big. Of course, usually more because of inertia.
+        That was making him quite "soft" for small changes and rapid for big ones that started to appear
+        when iNav introduced real RTH and WAYPOINT that might require rapid heading changes.
+
+        New approach uses modified principle:
+            - manual yaw rate is not used. MAG_HOLD is decoupled from manual input settings
+            - instead, mag_hold_rate_limit is used. It defines max rotation speed in dps that MAG_HOLD controller can require from RateController
+            - computed rotation speed is capped at -mag_hold_rate_limit and mag_hold_rate_limit
+            - Default mag_hold_rate_limit = 40dps and default MAG_HOLD P-gain is 40
+            - With those values, maximum rotation speed will be required from Rate Controller when error is greater that 30 degrees
+            - For smaller error, required rate will be proportional.
+            - It uses LPF filter set at 2Hz to additionally smoothen out any rapid changes
+            - That makes correction of smaller errors stronger, and those of big errors softer
+
+        This make looks as very slow rotation rate, but please remember this is automatic mode.
+        Manual override with YAW input when MAG_HOLD is enabled will still use "manual" rates, not MAG_HOLD rates.
+        Highest possible correction is 180 degrees and it will take more less 4.5 seconds. It is even more than sufficient
+        to run RTH or WAYPOINT missions. My favourite rate range here is 20dps - 30dps that gives nice and smooth turns.
+
+        Correction for small errors is much faster now. For example, old contrioller for 2deg errors required 1dps (correction in 2 seconds).
+        New controller for 2deg error requires 2,6dps. 4dps for 3deg and so on up until mag_hold_rate_limit is reached.
+    */
+
+    magHoldRate = error * pidProfile->P8[PIDMAG] / 30;
+    magHoldRate = constrainf(magHoldRate, -pidProfile->mag_hold_rate_limit, pidProfile->mag_hold_rate_limit);
+    magHoldRate = pt1FilterApply4(&magHoldRateFilter, magHoldRate, MAG_HOLD_ERROR_LPF_FREQ, dT);
+
+    return magHoldRate;
+}
+
 void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *controlRateConfig, const rxConfig_t *rxConfig)
 {
+
+    uint8_t magHoldState = getMagHoldState();
+
+    if (magHoldState == MAG_HOLD_UPDATE_HEADING) {
+        updateMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+    }
+
     for (int axis = 0; axis < 3; axis++) {
         // Step 1: Calculate gyro rates
         pidState[axis].gyroRate = gyroADC[axis] * gyro.scale;
-        // Step 2: Read sticks
-        const float rateTarget = pidRcCommandToRate(rcCommand[axis], controlRateConfig->rates[axis]);
+
+        // Step 2: Read target
+        float rateTarget;
+
+        if (axis == FD_YAW && magHoldState == MAG_HOLD_ENABLED) {
+            rateTarget = pidMagHold(pidProfile);
+        } else {
+            rateTarget = pidRcCommandToRate(rcCommand[axis], controlRateConfig->rates[axis]);
+        }
+
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
     }
@@ -310,7 +456,7 @@ void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *co
         pidLevel(pidProfile, &pidState[FD_PITCH], FD_PITCH, horizonLevelStrength);
     }
 
-    if (FLIGHT_MODE(HEADING_LOCK)) {
+    if (FLIGHT_MODE(HEADING_LOCK) && magHoldState != MAG_HOLD_ENABLED) {
         pidApplyHeadingLock(pidProfile, &pidState[FD_YAW]);
     }
 

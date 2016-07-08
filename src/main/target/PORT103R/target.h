@@ -19,32 +19,37 @@
 
 #define TARGET_BOARD_IDENTIFIER "103R"
 
+#define LED0
 #define LED0_GPIO   GPIOB
 #define LED0_PIN    Pin_3 // PB3 (LED)
 #define LED0_PERIPHERAL RCC_APB2Periph_GPIOB
 
+#define LED1
 #define LED1_GPIO   GPIOB
 #define LED1_PIN    Pin_4 // PB4 (LED)
 #define LED1_PERIPHERAL RCC_APB2Periph_GPIOB
 
+#define LED2
 #define LED2_GPIO   GPIOD
 #define LED2_PIN    Pin_2 // PD2 (LED) - Labelled LED4
 #define LED2_PERIPHERAL RCC_APB2Periph_GPIOD
 
+#define BEEPER
 #define BEEP_GPIO   GPIOA
 #define BEEP_PIN    Pin_12 // PA12 (Beeper)
 #define BEEP_PERIPHERAL RCC_APB2Periph_GPIOA
+
+#define INVERTER
+#define INVERTER_PIN Pin_2 // PB2 (BOOT1) abused as inverter select GPIO
+#define INVERTER_GPIO GPIOB
+#define INVERTER_PERIPHERAL RCC_APB2Periph_GPIOB
+#define INVERTER_USART USART2
 
 #define BARO_XCLR_GPIO   GPIOC
 #define BARO_XCLR_PIN    Pin_13
 #define BARO_EOC_GPIO    GPIOC
 #define BARO_EOC_PIN     Pin_14
 #define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
-
-#define INVERTER_PIN Pin_2 // PB2 (BOOT1) abused as inverter select GPIO
-#define INVERTER_GPIO GPIOB
-#define INVERTER_PERIPHERAL RCC_APB2Periph_GPIOB
-#define INVERTER_USART USART2
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2
@@ -98,13 +103,20 @@
 #define USE_FLASH_M25P16
 
 #define SONAR
-#define BEEPER
-#define LED0
-#define LED1
-#define LED2
-#define INVERTER
-#define DISPLAY
-//#define DISPLAY_ARMED_BITMAP
+#define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
+#define SONAR_PWM_TRIGGER_GPIO      GPIOB
+#define SONAR_PWM_ECHO_PIN          Pin_9   // PWM6 (PB9) - 5v tolerant
+#define SONAR_PWM_ECHO_GPIO         GPIOB
+#define SONAR_PWM_EXTI_LINE         EXTI_Line9
+#define SONAR_PWM_EXTI_PIN_SOURCE   GPIO_PinSource9
+#define SONAR_PWM_EXTI_IRQN         EXTI9_5_IRQn
+#define SONAR_TRIGGER_PIN           Pin_0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_TRIGGER_GPIO          GPIOB
+#define SONAR_ECHO_PIN              Pin_1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_ECHO_GPIO             GPIOB
+#define SONAR_EXTI_LINE             EXTI_Line1
+#define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource1
+#define SONAR_EXTI_IRQN             EXTI1_IRQn
 
 #define USE_USART1
 #define USE_USART2
@@ -144,29 +156,18 @@
 #define EXTERNAL1_ADC_GPIO_PIN      GPIO_Pin_5
 #define EXTERNAL1_ADC_CHANNEL       ADC_Channel_5
 
-#define LED0
-
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
 
-#define BLACKBOX
-
-#define GPS
-#define GPS_PROTO_NMEA
-#define GPS_PROTO_UBLOX
-#define GPS_PROTO_I2C_NAV
-#define GPS_PROTO_NAZA
-
-#define SERIAL_RX
-#define TELEMETRY
-#define TELEMETRY_FRSKY
-#define TELEMETRY_HOTT
-#define TELEMETRY_SMARTPORT
-#define TELEMETRY_LTM
-
-#define USE_SERVOS
-#define USE_CLI
-
-#define DISABLE_UNCOMMON_MIXERS
-
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+// IO - stm32f103RCT6 in 64pin package
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD (BIT(0)|BIT(1)|BIT(2))
+
+
+#define USED_TIMERS     (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
+
+

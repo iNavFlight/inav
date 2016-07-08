@@ -24,6 +24,7 @@
 #include "debug.h"
 
 #include "scheduler/scheduler.h"
+#include "scheduler/scheduler_tasks.h"
 
 #include "common/maths.h"
 #include "common/axis.h"
@@ -45,7 +46,7 @@
 
 #include "sensors/sensors.h"
 #include "sensors/boardalignment.h"
-#include "sensors/sonar.h"
+#include "sensors/rangefinder.h"
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -101,7 +102,6 @@ uint16_t cycleTime = 0;         // this is the number in micro second to achieve
 
 float dT;
 
-int16_t magHold;
 int16_t headFreeModeHold;
 
 uint8_t motorControlEnable = false;
@@ -113,7 +113,7 @@ extern uint32_t currentTime;
 
 static bool isRXDataNew;
 
-bool isCalibrating()
+bool isCalibrating(void)
 {
 #ifdef BARO
     if (sensors(SENSOR_BARO) && !isBaroCalibrationComplete()) {
@@ -126,49 +126,52 @@ bool isCalibrating()
     return (!isAccelerationCalibrationComplete() && sensors(SENSOR_ACC)) || (!isGyroCalibrationComplete());
 }
 
-void annexCode(void)
+int16_t getAxisRcCommand(int16_t rawData, int16_t (*loopupTable)(int32_t), int16_t deadband)
 {
-    int32_t tmp, tmp2, axis;
+    int16_t command, absoluteDeflection;
 
-    for (axis = 0; axis < 3; axis++) {
-        tmp = MIN(ABS(rcData[axis] - masterConfig.rxConfig.midrc), 500);
-        if (axis == ROLL || axis == PITCH) {
-            if (currentProfile->rcControlsConfig.deadband) {
-                if (tmp > currentProfile->rcControlsConfig.deadband) {
-                    tmp -= currentProfile->rcControlsConfig.deadband;
-                } else {
-                    tmp = 0;
-                }
-            }
+    absoluteDeflection = MIN(ABS(rawData - masterConfig.rxConfig.midrc), 500);
 
-            tmp2 = tmp / 100;
-            rcCommand[axis] = lookupPitchRollRC[tmp2] + (tmp - tmp2 * 100) * (lookupPitchRollRC[tmp2 + 1] - lookupPitchRollRC[tmp2]) / 100;
-        } else if (axis == YAW) {
-            if (currentProfile->rcControlsConfig.yaw_deadband) {
-                if (tmp > currentProfile->rcControlsConfig.yaw_deadband) {
-                    tmp -= currentProfile->rcControlsConfig.yaw_deadband;
-                } else {
-                    tmp = 0;
-                }
-            }
-            tmp2 = tmp / 100;
-            rcCommand[axis] = (lookupYawRC[tmp2] + (tmp - tmp2 * 100) * (lookupYawRC[tmp2 + 1] - lookupYawRC[tmp2]) / 100) * -masterConfig.yaw_control_direction;
+    if (deadband) {
+        if (absoluteDeflection > deadband) {
+            absoluteDeflection -= deadband;
+        } else {
+            absoluteDeflection = 0;
         }
-
-        if (rcData[axis] < masterConfig.rxConfig.midrc)
-            rcCommand[axis] = -rcCommand[axis];
     }
 
-    tmp = constrain(rcData[THROTTLE], masterConfig.rxConfig.mincheck, PWM_RANGE_MAX);
-    tmp = (uint32_t)(tmp - masterConfig.rxConfig.mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - masterConfig.rxConfig.mincheck);       // [MINCHECK;2000] -> [0;1000]
-    tmp2 = tmp / 100;
-    rcCommand[THROTTLE] = lookupThrottleRC[tmp2] + (tmp - tmp2 * 100) * (lookupThrottleRC[tmp2 + 1] - lookupThrottleRC[tmp2]) / 100;    // [0;1000] -> expo -> [MINTHROTTLE;MAXTHROTTLE]
+    /*
+        Get command from lookup table after applying deadband
+    */
+    command = loopupTable(absoluteDeflection);
+
+    if (rawData < masterConfig.rxConfig.midrc) {
+        command = -command;
+    }
+
+    return command;
+}
+
+void annexCode(void)
+{
+
+    int32_t throttleValue;
+
+    // Compute ROLL PITCH and YAW command
+    rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], rcLookupPitchRoll, currentProfile->rcControlsConfig.deadband);
+    rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], rcLookupPitchRoll, currentProfile->rcControlsConfig.deadband);
+    rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], rcLookupYaw, currentProfile->rcControlsConfig.yaw_deadband);
+
+    //Compute THROTTLE command
+    throttleValue = constrain(rcData[THROTTLE], masterConfig.rxConfig.mincheck, PWM_RANGE_MAX);
+    throttleValue = (uint32_t)(throttleValue - masterConfig.rxConfig.mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - masterConfig.rxConfig.mincheck);       // [MINCHECK;2000] -> [0;1000]
+    rcCommand[THROTTLE] = rcLookupThrottle(throttleValue);
 
     if (FLIGHT_MODE(HEADFREE_MODE)) {
-        float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
-        float cosDiff = cos_approx(radDiff);
-        float sinDiff = sin_approx(radDiff);
-        int16_t rcCommand_PITCH = rcCommand[PITCH] * cosDiff + rcCommand[ROLL] * sinDiff;
+        const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
+        const float cosDiff = cos_approx(radDiff);
+        const float sinDiff = sin_approx(radDiff);
+        const int16_t rcCommand_PITCH = rcCommand[PITCH] * cosDiff + rcCommand[ROLL] * sinDiff;
         rcCommand[ROLL] = rcCommand[ROLL] * cosDiff - rcCommand[PITCH] * sinDiff;
         rcCommand[PITCH] = rcCommand_PITCH;
     }
@@ -224,7 +227,7 @@ void mwDisarm(void)
     }
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM)
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK)
 
 void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
@@ -275,46 +278,6 @@ void mwArm(void)
 
     if (!ARMING_FLAG(ARMED)) {
         beeperConfirmationBeeps(1);
-    }
-}
-
-void applyMagHold(void)
-{
-    int16_t dif = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - magHold;
-
-    if (dif <= -180) {
-        dif += 360;
-    }
-
-    if (dif >= +180) {
-        dif -= 360;
-    }
-
-    dif *= masterConfig.yaw_control_direction;
-
-    if (STATE(SMALL_ANGLE)) {
-        rcCommand[YAW] = dif * currentProfile->pidProfile.P8[PIDMAG] / 30;
-    }
-}
-
-void updateMagHold(void)
-{
-#if defined(NAV)
-    int navHeadingState = naivationGetHeadingControlState();
-    // NAV will prevent MAG_MODE from activating, but require heading control
-    if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
-        // Apply maghold only if heading control is in auto mode
-        if (navHeadingState == NAV_HEADING_CONTROL_AUTO) {
-            applyMagHold();
-        }
-    }
-    else
-#endif
-    if (ABS(rcCommand[YAW]) < 15 && FLIGHT_MODE(MAG_MODE)) {
-        applyMagHold();
-    }
-    else {
-        magHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
     }
 }
 
@@ -440,7 +403,7 @@ void processRx(void)
         if (IS_RC_MODE_ACTIVE(BOXMAG)) {
             if (!FLIGHT_MODE(MAG_MODE)) {
                 ENABLE_FLIGHT_MODE(MAG_MODE);
-                magHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+                updateMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
             }
         } else {
             DISABLE_FLIGHT_MODE(MAG_MODE);
@@ -469,8 +432,7 @@ void processRx(void)
        This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
        Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
     if (FLIGHT_MODE(PASSTHRU_MODE) || !ARMING_FLAG(ARMED)) {
-        /* In PASSTHRU mode anti-windup must be explicitly enabled to prevent I-term wind-up (PID output is not used in PASSTHRU) */
-        //ENABLE_STATE(ANTI_WINDUP);
+        /* In PASSTHRU mode we reset integrators prevent I-term wind-up (PID output is not used in PASSTHRU) */
         pidResetErrorAccumulators();
     }
     else {
@@ -487,10 +449,17 @@ void processRx(void)
                 }
             }
             else {
+                DISABLE_STATE(ANTI_WINDUP);
                 pidResetErrorAccumulators();
             }
 
-            ENABLE_STATE(PID_ATTENUATE);
+            // Enable low-throttle PID attenuation on multicopters
+            if (!STATE(FIXED_WING)) {
+                ENABLE_STATE(PID_ATTENUATE);
+            }
+            else {
+                DISABLE_STATE(PID_ATTENUATE);
+            }
         }
         else {
             DISABLE_STATE(PID_ATTENUATE);
@@ -523,7 +492,7 @@ void filterRc(bool isRXDataNew)
     static int16_t lastCommand[4] = { 0, 0, 0, 0 };
     static int16_t deltaRC[4] = { 0, 0, 0, 0 };
     static int16_t factor, rcInterpolationFactor;
-    static biquad_t filteredCycleTimeState;
+    static biquadFilter_t filteredCycleTimeState;
     static bool filterInitialised;
     uint16_t filteredCycleTime;
     uint16_t rxRefreshRate;
@@ -533,11 +502,11 @@ void filterRc(bool isRXDataNew)
 
     // Calculate average cycle time (1Hz LPF on cycle time)
     if (!filterInitialised) {
-        filterInitBiQuad(1, &filteredCycleTimeState, 0);
+        biquadFilterInit(&filteredCycleTimeState, 1, 0);
         filterInitialised = true;
     }
 
-    filteredCycleTime = filterApplyBiQuad((float) cycleTime, &filteredCycleTimeState);
+    filteredCycleTime = biquadFilterApply(&filteredCycleTimeState, (float) cycleTime);
 
     rcInterpolationFactor = rxRefreshRate / filteredCycleTime + 1;
 
@@ -589,12 +558,6 @@ void taskMainPidLoop(void)
     applyWaypointNavigationAndAltitudeHold();
 #endif
 
-#ifdef MAG
-    if (sensors(SENSOR_MAG)) {
-        updateMagHold();
-    }
-#endif
-
     // If we're armed, at minimum throttle, and we do arming via the
     // sticks, do not process yaw input from the rx.  We do this so the
     // motors do not spin up while we are trying to arm or disarm.
@@ -643,8 +606,20 @@ void taskMainPidLoop(void)
     mixTable();
 
 #ifdef USE_SERVOS
-    filterServos();
-    writeServos();
+
+    if (isMixerUsingServos()) {
+        servoMixer();
+    }
+
+    if (feature(FEATURE_SERVO_TILT)) {
+        processServoTilt();
+    }
+
+    //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
+    if (isServoOutputEnabled()) {
+        filterServos();
+        writeServos();
+    }
 #endif
 
     if (motorControlEnable) {
@@ -763,7 +738,7 @@ void taskUpdateBaro(void)
 void taskUpdateSonar(void)
 {
     if (sensors(SENSOR_SONAR)) {
-        sonarUpdate();
+        rangefinderUpdate();
     }
 
     //updatePositionEstimator_SonarTopic(currentTime);

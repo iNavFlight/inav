@@ -35,7 +35,7 @@ set telemetry_inversion = 1
 
 ### Precision setting for VFAS
 
-Cleanflight can send VFAS (FrSky Ampere Sensor Voltage) in two ways:
+INAV can send VFAS (FrSky Ampere Sensor Voltage) in two ways:
 
 ```
 set frsky_vfas_precision  = 0
@@ -89,13 +89,13 @@ Note: The SoftSerial ports may not be 5V tolerant on your board.  Verify if you 
 LTM is a lightweight streaming telemetry protocol supported by a
 number of OSDs, ground stations and antenna trackers.
 
-The Cleanflight implementation of LTM implements the following frames:
+The INAV implementation of LTM implements the following frames:
 
 * G-FRAME: GPS information (lat, long, ground speed, altitude, sat
   info)
 * A-FRAME: Attitude (pitch, roll, heading)
 * S-FRAME: Status (voltage, current+, RSSI, airspeed+, status). Item
-  suffixed '+' not implemented in Cleanflight.
+  suffixed '+' not implemented in INAV.
 * O-FRAME: Origin (home position, lat, long, altitude, fix)
 
 In addition, in the inav (navigation-rewrite) fork:
@@ -103,12 +103,20 @@ In addition, in the inav (navigation-rewrite) fork:
   Waypoint number, Nav Error, Nav Flags).
 
 LTM is transmit only, and can work at any supported baud rate. It is
-designed to operate over 2400 baud (9600 in Cleanflight) and does not
+designed to operate over 2400 baud (9600 in INAV) and does not
 benefit from higher rates. It is thus usable on soft serial.
 
 More information about the fields, encoding and enumerations may be
 found at
 https://github.com/stronnag/mwptools/blob/master/docs/ltm-definition.txt
+
+## MAVLink telemetry
+
+MAVLink is a very lightweight, header-only message marshalling library for micro air vehicles. 
+Cleanflight supports MAVLink for compatibility with ground stations, OSDs and antenna trackers built
+for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
+
+MAVLink implementation in Cleanflight is transmit-only and usable on low baud rates and can be used over soft serial.
 
 ## SmartPort (S.Port)
 

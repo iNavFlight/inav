@@ -23,18 +23,18 @@
 //#define OLIMEXINO_UNCUT_LED2_E_JUMPER
 
 #ifdef OLIMEXINO_UNCUT_LED1_E_JUMPER
+#define LED0
 #define LED0_GPIO   GPIOA
 #define LED0_PIN    Pin_5 // D13, PA5/SPI1_SCK/ADC5 - "LED1" on silkscreen, Green
 #define LED0_PERIPHERAL RCC_APB2Periph_GPIOA
-#define LED0
 #endif
 
 #ifdef OLIMEXINO_UNCUT_LED2_E_JUMPER
 // "LED2" is using one of the PWM pins (CH2/PWM2), so we must not use PWM2 unless the jumper is cut.  @See pwmInit()
+#define LED1
 #define LED1_GPIO   GPIOA
 #define LED1_PIN    Pin_1 // D3, PA1/USART2_RTS/ADC1/TIM2_CH3 - "LED2" on silkscreen, Yellow
 #define LED1_PERIPHERAL RCC_APB2Periph_GPIOA
-#define LED1
 #endif
 
 #define GYRO
@@ -64,6 +64,13 @@
 #define USE_MAG_HMC5883
 
 #define SONAR
+#define SONAR_TRIGGER_PIN           Pin_0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_TRIGGER_GPIO          GPIOB
+#define SONAR_ECHO_PIN              Pin_1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_ECHO_GPIO             GPIOB
+#define SONAR_EXTI_LINE             EXTI_Line1
+#define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource1
+#define SONAR_EXTI_IRQN             EXTI1_IRQn
 
 #define USE_USART1
 #define USE_USART2
@@ -103,24 +110,14 @@
 #define EXTERNAL1_ADC_GPIO_PIN      GPIO_Pin_5
 #define EXTERNAL1_ADC_CHANNEL       ADC_Channel_5
 
-#define GPS
-#define GPS_PROTO_NMEA
-#define GPS_PROTO_UBLOX
-#define GPS_PROTO_I2C_NAV
-#define GPS_PROTO_NAZA
-
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
 
-#define TELEMETRY
-#define TELEMETRY_FRSKY
-#define TELEMETRY_HOTT
-#define TELEMETRY_SMARTPORT
-#define TELEMETRY_LTM
+// IO - assuming all IOs on smt32f103rb LQFP64 package
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD (BIT(2))
 
-#define SERIAL_RX
-#define BLACKBOX
-#define USE_SERVOS
-#define USE_CLI
 
-#define DISABLE_UNCOMMON_MIXERS
+#define USED_TIMERS     (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
