@@ -406,17 +406,11 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     newAccelX = navPidApply2(posControl.desiredState.vel.V.X, posControl.actualState.vel.V.X, US2S(deltaMicros), &posControl.pids.vel[X], accelLimitXMin, accelLimitXMax, true);
     newAccelY = navPidApply2(posControl.desiredState.vel.V.Y, posControl.actualState.vel.V.Y, US2S(deltaMicros), &posControl.pids.vel[Y], accelLimitYMin, accelLimitYMax, true);
 
-<<<<<<< HEAD
     // Add acceleration change to acceleration target, this is the incremental part.
     // TODO: constrainf should not be needed here, confirm that navPidApply2 never exceeds maxAccelLimit.
     // TODO: rename lastAccelTarget* to somewthing like accelN and accelE (that alread exsists but is unused now).
     lastAccelTargetX = constrainf(lastAccelTargetX + newAccelX, -maxAccelLimit, +maxAccelLimit);
     lastAccelTargetY = constrainf(lastAccelTargetY + newAccelY, -maxAccelLimit, +maxAccelLimit);
-=======
-    // Apply LPF to jerk limited acceleration target
-    float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
-    float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
->>>>>>> master
 
     // Rotate acceleration target into forward-right frame (aircraft)
     float accelForward = lastAccelTargetX * posControl.actualState.cosYaw + lastAccelTargetY * posControl.actualState.sinYaw;

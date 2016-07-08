@@ -143,12 +143,6 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
     return scaleRangef((float) stick, (float) -500, (float) 500, (float) -rate, (float) rate) * 10;
 }
 
-<<<<<<< HEAD
-#define FP_PID_RATE_P_MULTIPLIER    40.0f       // betaflight - 40.0
-#define FP_PID_RATE_I_MULTIPLIER    10.0f       // betaflight - 10.0
-#define FP_PID_RATE_D_MULTIPLIER    4000.0f     // betaflight - 1000.0
-#define FP_PID_LEVEL_P_MULTIPLIER   4.0f        // betaflight - 10.0
-=======
 /*
 FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 */
@@ -156,7 +150,6 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_RATE_I_MULTIPLIER    4.0f
 #define FP_PID_RATE_D_MULTIPLIER    1905.0f
 #define FP_PID_LEVEL_P_MULTIPLIER   65.6f
->>>>>>> master
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
 #define KD_ATTENUATION_BREAK        0.25f
