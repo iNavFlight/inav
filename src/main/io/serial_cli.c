@@ -2248,7 +2248,7 @@ static void cliReboot(void) {
     cliPrint("\r\nRebooting");
     bufWriterFlush(cliWriter);
     waitForSerialPortToFinishTransmitting(cliPort);
-    stopMotors();
+    stopPwmAllMotors();
     handleOneshotFeatureChangeOnRestart();
     systemReset();
 }

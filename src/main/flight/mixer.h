@@ -238,6 +238,6 @@ void writeMotors(void);
 void servoMixer(void);
 void processServoTilt(void);
 void stopMotors(void);
-void StopPwmAllMotors(void);
+void stopPwmAllMotors(void);
 
 bool isMixerEnabled(mixerMode_e mixerMode);
