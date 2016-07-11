@@ -414,6 +414,12 @@ void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMotorMixers, se
         DISABLE_STATE(FIXED_WING);
     }
 
+    if (currentMixerMode == MIXER_AIRPLANE || currentMixerMode == MIXER_CUSTOM_AIRPLANE) {
+        ENABLE_STATE(FLAPERON_AVAILABLE);
+    } else {
+        DISABLE_STATE(FLAPERON_AVAILABLE);
+    }
+
     customMixers = initialCustomMotorMixers;
     customServoMixers = initialCustomServoMixers;
 

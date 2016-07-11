@@ -401,7 +401,7 @@ void processRx(void)
     /*
     Flaperon mode
     */
-    if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && STATE(FIXED_WING)) {
+    if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && STATE(FLAPERON_AVAILABLE)) {
         if (!FLIGHT_MODE(FLAPERON)) {
             ENABLE_FLIGHT_MODE(FLAPERON);
         }
