@@ -735,7 +735,7 @@ retry:
     if (magHardware == MAG_NONE && magHardwareToUse != MAG_DEFAULT && magHardwareToUse != MAG_NONE) {
         // Nothing was found and we have a forced sensor that isn't present.
         magHardwareToUse = MAG_NONE;
-        goto retry;
+        return;
     }
 
     if (magHardware == MAG_NONE) {
