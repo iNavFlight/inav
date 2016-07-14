@@ -662,8 +662,6 @@ static void detectMag(magSensor_e magHardwareToUse)
 
 #endif
 
-retry:
-
     magAlign = ALIGN_DEFAULT;
 
     switch(magHardwareToUse) {
