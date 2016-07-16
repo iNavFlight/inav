@@ -23,9 +23,11 @@
 
 #if defined(SONAR)
 
-#include "drivers/system.h"
-#include "drivers/gpio.h"
-#include "drivers/nvic.h"
+#include "system.h"
+#include "exti.h"
+#include "io.h"
+#include "gpio.h"
+#include "nvic.h"
 
 #include "drivers/rangefinder.h"
 #include "drivers/sonar_hcsr04.h"
@@ -48,9 +50,10 @@ STATIC_UNIT_TESTED volatile int32_t hcsr04SonarPulseTravelTime = 0;
 sonarHcsr04Hardware_t sonarHcsr04Hardware;
 
 #if !defined(UNIT_TEST)
-static void ECHO_EXTI_IRQHandler(void)
+void hcsr04_extiHandler(extiCallbackRec_t* cb)
 {
     static uint32_t timing_start;
+    UNUSED(cb);
 
     if (digitalIn(sonarHcsr04Hardware.echo_gpio, sonarHcsr04Hardware.echo_pin) != 0) {
         timing_start = micros();
@@ -60,23 +63,6 @@ static void ECHO_EXTI_IRQHandler(void)
             hcsr04SonarPulseTravelTime = timing_stop - timing_start;
         }
     }
-
-    EXTI_ClearITPendingBit(sonarHcsr04Hardware.exti_line);
-}
-
-void EXTI0_IRQHandler(void)
-{
-    ECHO_EXTI_IRQHandler();
-}
-
-void EXTI1_IRQHandler(void)
-{
-    ECHO_EXTI_IRQHandler();
-}
-
-void EXTI9_5_IRQHandler(void)
-{
-    ECHO_EXTI_IRQHandler();
 }
 #endif
 
@@ -116,21 +102,12 @@ void hcsr04_set_sonar_hardware(void)
     gpioExtiLineConfig(EXTI_PortSourceGPIOB, sonarHcsr04Hardware.exti_pin_source);
 #endif
 
-    EXTI_ClearITPendingBit(sonarHcsr04Hardware.exti_line);
+#ifdef USE_EXTI
+    EXTIHandlerInit(&hcsr04_extiCallbackRec, hcsr04_extiHandler);
+    EXTIConfig(echoIO, &hcsr04_extiCallbackRec, NVIC_PRIO_SONAR_EXTI, EXTI_Trigger_Rising_Falling); // TODO - priority!
+    EXTIEnable(echoIO, true);
+#endif
 
-    EXTI_InitTypeDef EXTIInit;
-    EXTIInit.EXTI_Line = sonarHcsr04Hardware.exti_line;
-    EXTIInit.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTIInit.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
-    EXTIInit.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&EXTIInit);
-
-    NVIC_InitTypeDef NVIC_InitStructure;
-    NVIC_InitStructure.NVIC_IRQChannel = sonarHcsr04Hardware.exti_irqn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SONAR_ECHO);
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(NVIC_PRIO_SONAR_ECHO);
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
 #endif
 }
 

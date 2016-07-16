@@ -15,15 +15,17 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #pragma once
 
+#define I2C1_OVERCLOCK false
+#define I2C2_OVERCLOCK false
+
 #define USE_SERVOS
-#define USE_CLI
 #define SERIAL_RX
-#define BLACKBOX
+#define USE_CLI
 
 #if (FLASH_SIZE > 64)
+#define BLACKBOX
 #define GPS
 #define GPS_PROTO_NMEA
 #define GPS_PROTO_UBLOX

@@ -33,11 +33,11 @@
 #define INVERTER            PB2 // PB2 (BOOT1) abused as inverter select GPIO
 #define INVERTER_USART      USART2
 
-#define BARO_XCLR_GPIO   GPIOC
-#define BARO_XCLR_PIN    Pin_13
-#define BARO_EOC_GPIO    GPIOC
-#define BARO_EOC_PIN     Pin_14
+#define BARO_XCLR_PIN           PC13
+#define BARO_EOC_PIN            PC14
 #define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
+
+#define USE_EXTI
 
 // SPI2
 // PB15 28 SPI2_MOSI
@@ -63,9 +63,7 @@
 #define MPU6500_CS_PIN                   NAZE_SPI_CS_PIN
 #define MPU6500_SPI_INSTANCE             NAZE_SPI_INSTANCE
 
-
 #define USE_FLASHFS
-
 #define USE_FLASH_M25P16
 
 #define EXTI_CALLBACK_HANDLER_COUNT 3 // MPU data ready, MAG data ready, BMP085 EOC
@@ -75,6 +73,7 @@
 
 //#define DEBUG_MAG_DATA_READY_INTERRUPT
 #define USE_MAG_DATA_READY_SIGNAL
+#define MAG_INT_EXTI PC14
 
 #define GYRO
 #define USE_GYRO_MPU3050
@@ -82,10 +81,9 @@
 #define USE_GYRO_MPU6500
 #define USE_GYRO_SPI_MPU6500
 
-
-#define GYRO_MPU3050_ALIGN CW0_DEG
-#define GYRO_MPU6050_ALIGN CW0_DEG
-#define GYRO_MPU6500_ALIGN CW0_DEG
+#define GYRO_MPU3050_ALIGN      CW0_DEG
+#define GYRO_MPU6050_ALIGN      CW0_DEG
+#define GYRO_MPU6500_ALIGN      CW0_DEG
 
 #define ACC
 #define USE_ACC_ADXL345
@@ -95,11 +93,11 @@
 #define USE_ACC_MPU6500
 #define USE_ACC_SPI_MPU6500
 
-#define ACC_ADXL345_ALIGN CW270_DEG
-#define ACC_MPU6050_ALIGN CW0_DEG
-#define ACC_MMA8452_ALIGN CW90_DEG
-#define ACC_BMA280_ALIGN CW0_DEG
-#define ACC_MPU6500_ALIGN CW0_DEG
+#define ACC_ADXL345_ALIGN       CW270_DEG
+#define ACC_MPU6050_ALIGN       CW0_DEG
+#define ACC_MMA8452_ALIGN       CW90_DEG
+#define ACC_BMA280_ALIGN        CW0_DEG
+#define ACC_MPU6500_ALIGN       CW0_DEG
 
 #define BARO
 //#define USE_BARO_MS5611
@@ -113,8 +111,8 @@
 
 #define MAG_HMC5883_ALIGN CW180_DEG
 
-#define SONAR
-//#define USE_SONAR_SRF10
+//#define SONAR
+#define USE_SONAR_SRF10
 #define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
 #define SONAR_PWM_TRIGGER_GPIO      GPIOB
 #define SONAR_PWM_ECHO_PIN          Pin_9   // PWM6 (PB9) - 5v tolerant
@@ -258,8 +256,8 @@
 #undef GPS_PROTO_NAZA
 
 // IO - assuming all IOs on 48pin package
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC ( BIT(13) | BIT(14) | BIT(15) )
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         ( BIT(13) | BIT(14) | BIT(15) )
 
-#define USED_TIMERS     ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) )
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) )
