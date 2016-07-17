@@ -19,9 +19,10 @@
 #include <stdint.h>
 
 #include <platform.h>
-#include "build_config.h"
 
 #if defined(SONAR)
+
+#include "build_config.h"
 
 #include "system.h"
 #include "exti.h"
@@ -49,13 +50,20 @@
 STATIC_UNIT_TESTED volatile int32_t hcsr04SonarPulseTravelTime = 0;
 sonarHcsr04Hardware_t sonarHcsr04Hardware;
 
+#ifdef USE_EXTI
+static extiCallbackRec_t hcsr04_extiCallbackRec;
+#endif
+
+static IO_t echoIO;
+static IO_t triggerIO;
+
 #if !defined(UNIT_TEST)
 void hcsr04_extiHandler(extiCallbackRec_t* cb)
 {
     static uint32_t timing_start;
     UNUSED(cb);
 
-    if (digitalIn(sonarHcsr04Hardware.echo_gpio, sonarHcsr04Hardware.echo_pin) != 0) {
+    if (IORead(echoIO) != 0) {
         timing_start = micros();
     } else {
         const uint32_t timing_stop = micros();
@@ -82,25 +90,15 @@ void hcsr04_set_sonar_hardware(void)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 #endif
 
-    gpio_config_t gpio;
     // trigger pin
-    gpio.pin = sonarHcsr04Hardware.trigger_pin;
-    gpio.mode = Mode_Out_PP;
-    gpio.speed = Speed_2MHz;
-    gpioInit(sonarHcsr04Hardware.trigger_gpio, &gpio);
+    triggerIO = IOGetByTag(sonarHcsr04Hardware.triggerTag);
+    IOInit(triggerIO, OWNER_SONAR, RESOURCE_OUTPUT, 0);
+    IOConfigGPIO(triggerIO, IOCFG_OUT_PP);
+
     // echo pin
-    gpio.pin = sonarHcsr04Hardware.echo_pin;
-    gpio.mode = Mode_IN_FLOATING;
-    gpioInit(sonarHcsr04Hardware.echo_gpio, &gpio);
-
-#ifdef STM32F10X
-    // setup external interrupt on echo pin
-    gpioExtiLineConfig(GPIO_PortSourceGPIOB, sonarHcsr04Hardware.exti_pin_source);
-#endif
-
-#ifdef STM32F303xC
-    gpioExtiLineConfig(EXTI_PortSourceGPIOB, sonarHcsr04Hardware.exti_pin_source);
-#endif
+    echoIO = IOGetByTag(sonarHcsr04Hardware.echoTag);
+    IOInit(echoIO, OWNER_SONAR, RESOURCE_INPUT, 0);
+    IOConfigGPIO(echoIO, IOCFG_IN_FLOATING);
 
 #ifdef USE_EXTI
     EXTIHandlerInit(&hcsr04_extiCallbackRec, hcsr04_extiHandler);
@@ -108,7 +106,7 @@ void hcsr04_set_sonar_hardware(void)
     EXTIEnable(echoIO, true);
 #endif
 
-#endif
+#endif // UNIT_TEST
 }
 
 void hcsr04_init(rangefinder_t *rangefinder)
@@ -133,10 +131,10 @@ void hcsr04_start_reading(void)
     const uint32_t timeNowMs = millis();
     if (timeNowMs > timeOfLastMeasurementMs + HCSR04_MinimumFiringIntervalMs) {
         timeOfLastMeasurementMs = timeNowMs;
-        digitalHi(sonarHcsr04Hardware.trigger_gpio, sonarHcsr04Hardware.trigger_pin);
+        IOHi(triggerIO);
         //  The width of trigger signal must be greater than 10us, according to device spec
         delayMicroseconds(11);
-        digitalLo(sonarHcsr04Hardware.trigger_gpio, sonarHcsr04Hardware.trigger_pin);
+        IOLo(triggerIO);
     }
 #endif
 }

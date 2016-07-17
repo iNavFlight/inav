@@ -49,6 +49,7 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 11
 
+#define USE_EXTI
 #define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 
 #define GYRO

@@ -34,15 +34,18 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 11
 
+#define USE_EXTI
+#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
+//#define DEBUG_MPU_DATA_READY_INTERRUPT
+#define USE_MPU_DATA_READY_SIGNAL
+
 // Using MPU6050 for the moment.
 #define GYRO
 #define USE_GYRO_MPU6050
-
 #define GYRO_MPU6050_ALIGN CW270_DEG
 
 #define ACC
 #define USE_ACC_MPU6050
-
 #define ACC_MPU6050_ALIGN CW270_DEG
 
 // No baro support.
@@ -52,8 +55,7 @@
 // No mag support for now (option to use MPU9150 in the future).
 //#define MAG
 //#define USE_MAG_AK8975
-
-#define MAG_AK8975_ALIGN CW0_DEG_FLIP
+//#define MAG_AK8975_ALIGN CW0_DEG_FLIP
 
 #define USE_VCP
 #define USE_USART1 // Not connected - TX (PB6) RX PB7 (AF7)

@@ -38,7 +38,7 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 12
 
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
+#define DEBUG_MPU_DATA_READY_INTERRUPT
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define GYRO
@@ -148,13 +148,8 @@
 
 //#define SONAR
 #define USE_SONAR_SRF10
-#define SONAR_TRIGGER_PIN           Pin_5   // (PB5)
-#define SONAR_TRIGGER_GPIO          GPIOB
-#define SONAR_ECHO_PIN              Pin_0   // (PB0) - only 3.3v ( add a 1K Ohms resistor )
-#define SONAR_ECHO_GPIO             GPIOB
-#define SONAR_EXTI_LINE             EXTI_Line0
-#define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource0
-#define SONAR_EXTI_IRQN             EXTI0_IRQn
+#define SONAR_ECHO_PIN          PB0
+#define SONAR_TRIGGER_PIN       PB5
 
 // LED strip is on PWM5 output pin
 //#define LED_STRIP

@@ -28,11 +28,9 @@
 #define INVERTER            PB2 // PB2 (BOOT1) abused as inverter select GPIO
 #define INVERTER_USART      USART2
 
-#define BARO_XCLR_GPIO   GPIOC
-#define BARO_XCLR_PIN    Pin_13
-#define BARO_EOC_GPIO    GPIOC
-#define BARO_EOC_PIN     Pin_14
-#define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
+#define BARO_XCLR_PIN           PC13
+#define BARO_EOC_PIN            PC14
+#define BARO_APB2_PERIPHERALS   RCC_APB2Periph_GPIOC
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2
@@ -86,20 +84,10 @@
 #define USE_FLASH_M25P16
 
 #define SONAR
-#define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
-#define SONAR_PWM_TRIGGER_GPIO      GPIOB
-#define SONAR_PWM_ECHO_PIN          Pin_9   // PWM6 (PB9) - 5v tolerant
-#define SONAR_PWM_ECHO_GPIO         GPIOB
-#define SONAR_PWM_EXTI_LINE         EXTI_Line9
-#define SONAR_PWM_EXTI_PIN_SOURCE   GPIO_PinSource9
-#define SONAR_PWM_EXTI_IRQN         EXTI9_5_IRQn
-#define SONAR_TRIGGER_PIN           Pin_0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
-#define SONAR_TRIGGER_GPIO          GPIOB
-#define SONAR_ECHO_PIN              Pin_1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
-#define SONAR_ECHO_GPIO             GPIOB
-#define SONAR_EXTI_LINE             EXTI_Line1
-#define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource1
-#define SONAR_EXTI_IRQN             EXTI1_IRQn
+#define SONAR_TRIGGER_PIN       PB0 // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_ECHO_PIN          PB1 // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_TRIGGER_PIN_PWM   PB8 // PWM5 (PB8) - 5v tolerant
+#define SONAR_ECHO_PIN_PWM      PB9 // PWM6 (PB9) - 5v tolerant
 
 #define USE_USART1
 #define USE_USART2
