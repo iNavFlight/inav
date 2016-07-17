@@ -19,30 +19,24 @@
 
 #define TARGET_BOARD_IDENTIFIER "SRF3"
 
-#define LED0                PB3
+#define LED0                    PB3
 
-#define BEEPER              PC15
+#define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define USABLE_TIMER_CHANNEL_COUNT 17
-
-#define EXTI_CALLBACK_HANDLER_COUNT 2 // MPU data ready and MAG data ready
 #define USE_EXTI
 #define MPU_INT_EXTI            PC13
-
+#define EXTI_CALLBACK_HANDLER_COUNT 2 // MPU data ready and MAG data ready
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define USE_MAG_DATA_READY_SIGNAL
-#define ENSURE_MAG_DATA_READY_IS_HIGH
-
 #define GYRO
 #define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN CW270_DEG
+#define GYRO_MPU6050_ALIGN      CW270_DEG
 
 #define ACC
 #define USE_ACC_MPU6050
-#define ACC_MPU6050_ALIGN CW270_DEG
+#define ACC_MPU6050_ALIGN       CW270_DEG
 
 #define BARO
 #define USE_BARO_MS5611
@@ -158,11 +152,11 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // IO - stm32f303cc in 48pin package
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC (BIT(13)|BIT(14)|BIT(15))
-#define TARGET_IO_PORTF (BIT(0)|BIT(1)|BIT(3)|BIT(4))
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         (BIT(13)|BIT(14)|BIT(15))
+#define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(3)|BIT(4))
 
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(15) | TIM_N(16) | TIM_N(17) )
-
+#define USABLE_TIMER_CHANNEL_COUNT 17
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(15) | TIM_N(16) | TIM_N(17) )
 

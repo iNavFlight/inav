@@ -19,20 +19,20 @@
 
 #define TARGET_BOARD_IDENTIFIER "EUF1"
 
-#define LED0                PB3
-#define LED1                PB4
+#define LED0                    PB3
+#define LED1                    PB4
 
-#define INVERTER            PB2
-#define INVERTER_USART USART2
+#define INVERTER                PB2
+#define INVERTER_USART          USART2
 
-#define MPU6000_CS_GPIO       GPIOB
-#define MPU6000_CS_PIN        GPIO_Pin_12
-#define MPU6000_SPI_INSTANCE  SPI2
+#define MPU6000_CS_GPIO         GPIOB
+#define MPU6000_CS_PIN          GPIO_Pin_12
+#define MPU6000_SPI_INSTANCE    SPI2
 
 #define MPU6500_CS_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOB
-#define MPU6500_CS_GPIO       GPIOB
-#define MPU6500_CS_PIN        GPIO_Pin_12
-#define MPU6500_SPI_INSTANCE  SPI2
+#define MPU6500_CS_GPIO         GPIOB
+#define MPU6500_CS_PIN          GPIO_Pin_12
+#define MPU6500_SPI_INSTANCE    SPI2
 
 #define GYRO
 #define USE_FAKE_GYRO
@@ -43,7 +43,7 @@
 #define USE_GYRO_SPI_MPU6000
 #define USE_GYRO_SPI_MPU6500
 
-#define GYRO_MPU6050_ALIGN CW0_DEG
+#define GYRO_MPU6050_ALIGN      CW0_DEG
 
 #define ACC
 #define USE_FAKE_ACC
@@ -54,16 +54,17 @@
 //#define USE_ACC_SPI_MPU6000
 #define USE_ACC_SPI_MPU6500
 
-#define ACC_MPU6050_ALIGN CW0_DEG
+#define ACC_MPU6050_ALIGN       CW0_DEG
 
 #define BARO
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_BMP280
 
 #define MAG
 #define USE_MAG_HMC5883
 #define USE_MAG_AK8975
-#define MAG_AK8975_ALIGN CW180_DEG_FLIP
+#define MAG_AK8975_ALIGN        CW180_DEG_FLIP
 
 #define SONAR
 #define SONAR_TRIGGER_PIN       PB0
@@ -106,11 +107,10 @@
 #define BIND_PIN   Pin_3
 
 // IO - stm32f103RCT6 in 64pin package (TODO)
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC 0xffff
-#define TARGET_IO_PORTD (BIT(0)|BIT(1)|BIT(2))
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         (BIT(0)|BIT(1)|BIT(2))
 
-
-#define USED_TIMERS     (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
+#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
 

@@ -24,7 +24,10 @@
 #define SERIAL_RX
 #define USE_CLI
 
-#if (FLASH_SIZE > 64)
+#if (FLASH_SIZE <= 64)
+#define SKIP_TASK_STATISTICS
+#define SKIP_CLI_COMMAND_HELP
+#else
 #define BLACKBOX
 #define GPS
 #define GPS_PROTO_NMEA

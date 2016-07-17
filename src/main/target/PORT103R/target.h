@@ -19,14 +19,14 @@
 
 #define TARGET_BOARD_IDENTIFIER "103R"
 
-#define LED0                PB3
-#define LED1                PB4
-#define LED2                PD2 // Labelled LED4
+#define LED0                    PB3
+#define LED1                    PB4
+#define LED2                    PD2 // Labelled LED4
 
-#define BEEPER              PA12 // PA12 (Beeper)
+#define BEEPER                  PA12 // PA12 (Beeper)
 
-#define INVERTER            PB2 // PB2 (BOOT1) abused as inverter select GPIO
-#define INVERTER_USART      USART2
+#define INVERTER                PB2 // PB2 (BOOT1) abused as inverter select GPIO
+#define INVERTER_USART          USART2
 
 #define BARO_XCLR_PIN           PC13
 #define BARO_EOC_PIN            PC14
@@ -74,6 +74,7 @@
 #define BARO
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
+#define USE_BARO_BMP280
 
 #define MAG
 #define USE_MAG_HMC5883
@@ -121,12 +122,10 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // IO - stm32f103RCT6 in 64pin package
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC 0xffff
-#define TARGET_IO_PORTD (BIT(0)|BIT(1)|BIT(2))
-
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         (BIT(0)|BIT(1)|BIT(2))
 
 #define USED_TIMERS     (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))
-
 

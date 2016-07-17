@@ -17,13 +17,19 @@
 
 #define TARGET_BOARD_IDENTIFIER "CC3D" // CopterControl 3D
 
-#define LED0                  PB3
+#define LED0                    PB3
 
-#define BEEPER                PA15
-#define BEEPER_OPT            PB2
+#define BEEPER                  PA15
+#define BEEPER_OPT              PB2
 
-#define INVERTER              PB2 // PB2 (BOOT1) used as inverter select GPIO
-#define INVERTER_USART        USART1
+#define INVERTER                PB2 // PB2 (BOOT1) used as inverter select GPIO
+#define INVERTER_USART          USART1
+
+#define USE_EXTI
+#define MPU_INT_EXTI            PA3
+#define EXTI15_10_CALLBACK_HANDLER_COUNT 1 // MPU data ready
+#define USE_MPU_DATA_READY_SIGNAL
+//#define DEBUG_MPU_DATA_READY_INTERRUPT
 
 #define MPU6000_CS_GPIO       GPIOA
 #define MPU6000_CS_PIN        GPIO_Pin_4
@@ -36,20 +42,13 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define USABLE_TIMER_CHANNEL_COUNT 12
-
-#define DEBUG_MPU_DATA_READY_INTERRUPT
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define GYRO
 #define USE_GYRO_SPI_MPU6000
-
-#define GYRO_MPU6000_ALIGN    CW270_DEG
+#define GYRO_MPU6000_ALIGN      CW270_DEG
 
 #define ACC
 #define USE_ACC_SPI_MPU6000
-
-#define ACC_MPU6000_ALIGN     CW270_DEG
+#define ACC_MPU6000_ALIGN       CW270_DEG
 
 // External I2C BARO
 #define BARO
@@ -85,14 +84,14 @@
 #endif
 
 #ifdef USE_RX_NRF24
-#define DEFAULT_RX_FEATURE FEATURE_RX_NRF24
-#define DEFAULT_FEATURES FEATURE_SOFTSPI
+#define DEFAULT_RX_FEATURE      FEATURE_RX_NRF24
+#define DEFAULT_FEATURES        FEATURE_SOFTSPI
 #define USE_RX_SYMA
-#define USE_RX_V202
+//#define USE_RX_V202
 #define USE_RX_CX10
 //#define USE_RX_H8_3D
 #define USE_RX_REF
-#define NRF24_DEFAULT_PROTOCOL NRF24RX_SYMA_X5C
+#define NRF24_DEFAULT_PROTOCOL  NRF24RX_SYMA_X5C
 //#define NRF24_DEFAULT_PROTOCOL NRF24RX_V202_1M
 //#define NRF24_DEFAULT_PROTOCOL NRF24RX_H8_3D
 
@@ -212,8 +211,9 @@
 //#define USE_FAKE_GPS
 
 // IO - from schematics
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC ( BIT(14) )
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         ( BIT(14) )
 
-#define USED_TIMERS     ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) )
+#define USABLE_TIMER_CHANNEL_COUNT 12
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) )

@@ -22,22 +22,29 @@
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 
-#define LED0                PB3
-#define LED1                PB4
+#define LED0                    PB3
+#define LED1                    PB4
 
-#define BEEPER              PA12
+#define BEEPER                  PA12
 #ifdef AFROMINI
 #define BEEPER_INVERTED
 #endif
 
-#define INVERTER            PB2 // PB2 (BOOT1) abused as inverter select GPIO
-#define INVERTER_USART      USART2
+#define INVERTER                PB2 // PB2 (BOOT1) abused as inverter select GPIO
+#define INVERTER_USART          USART2
 
 #define BARO_XCLR_PIN           PC13
 #define BARO_EOC_PIN            PC14
 #define BARO_APB2_PERIPHERALS   RCC_APB2Periph_GPIOC
 
 #define USE_EXTI
+#define EXTI_CALLBACK_HANDLER_COUNT 3 // MPU data ready, MAG data ready, BMP085 EOC
+//#define DEBUG_MPU_DATA_READY_INTERRUPT
+#define USE_MPU_DATA_READY_SIGNAL
+//#define DEBUG_MAG_DATA_READY_INTERRUPT
+#define USE_MAG_DATA_READY_SIGNAL
+#define MAG_INT_EXTI PC14
+
 
 // SPI2
 // PB15 28 SPI2_MOSI
@@ -65,15 +72,6 @@
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-
-#define EXTI_CALLBACK_HANDLER_COUNT 3 // MPU data ready, MAG data ready, BMP085 EOC
-
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
-#define USE_MPU_DATA_READY_SIGNAL
-
-//#define DEBUG_MAG_DATA_READY_INTERRUPT
-#define USE_MAG_DATA_READY_SIGNAL
-#define MAG_INT_EXTI PC14
 
 #define GYRO
 #define USE_GYRO_MPU3050
