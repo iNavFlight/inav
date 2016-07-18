@@ -32,7 +32,6 @@
 #include "gpio.h"
 #include "exti.h"
 #include "bus_i2c.h"
-#include "gyro_sync.h"
 
 #include "sensor.h"
 #include "accgyro.h"

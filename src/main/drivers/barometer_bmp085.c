@@ -172,7 +172,7 @@ bool bmp085Detect(const bmp085Config_t *config, baro_t *baro)
     if (config && config->eocIO) {
         eocIO = IOGetByTag(config->eocIO);
         // EXTI interrupt for barometer EOC
-        IOInit(eocIO, OWNER_SYSTEM, RESOURCE_INPUT | RESOURCE_EXTI, 0);
+        IOInit(eocIO, OWNER_SYSTEM, RESOURCE_INPUT | RESOURCE_EXTI);
         IOConfigGPIO(eocIO, Mode_IN_FLOATING);
         EXTIHandlerInit(&bmp085_extiCallbackRec, bmp085_extiHandler);
         EXTIConfig(eocIO, &bmp085_extiCallbackRec, NVIC_PRIO_BARO_EXTI, EXTI_Trigger_Rising);
