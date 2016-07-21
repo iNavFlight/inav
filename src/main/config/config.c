@@ -530,6 +530,8 @@ static void resetConf(void)
     masterConfig.auto_disarm_delay = 5;
     masterConfig.small_angle = 25;
 
+    masterConfig.and_mode_conditions = 0; // default is to OR multiple-channel mode activation conditions
+
     resetMixerConfig(&masterConfig.mixerConfig);
 
     // Motor/ESC/Servo

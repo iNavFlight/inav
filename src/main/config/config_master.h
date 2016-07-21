@@ -79,6 +79,8 @@ typedef struct master_t {
     uint8_t auto_disarm_delay;              // allow automatically disarming multicopters after auto_disarm_delay seconds of zero throttle. Disabled when 0
     uint8_t small_angle;
 
+    uint8_t and_mode_conditions;            // When using multiple AUX channels to activate modes, the default is to OR the activation conditions. This allows the conditions to be ANDed instead.
+
     // mixer-related configuration
     mixerConfig_t mixerConfig;
 
