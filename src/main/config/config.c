@@ -535,8 +535,6 @@ static void resetConf(void)
     masterConfig.auto_disarm_delay = 5;
     masterConfig.small_angle = 25;
 
-    masterConfig.and_mode_conditions = 0; // default is to OR multiple-channel mode activation conditions
-
     resetMixerConfig(&masterConfig.mixerConfig);
 
     // Motor/ESC/Servo
@@ -579,6 +577,8 @@ static void resetConf(void)
     //     cfg.activate[i] = 0;
 
     currentProfile->mag_declination = 0;
+
+    currentProfile->modeActivationOperator = MODE_OPERATOR_OR; // default is to OR multiple-channel mode activation conditions
 
     resetBarometerConfig(&masterConfig.barometerConfig);
 

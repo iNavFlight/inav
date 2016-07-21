@@ -422,6 +422,10 @@ static const char * const lookupTableNavRthAltMode[] = {
 };
 #endif
 
+static const char * const lookupTableAuxOperator[] = {
+    "OR", "AND"
+};
+
 typedef struct lookupTableEntry_s {
     const char * const *values;
     const uint8_t valueCount;
@@ -456,6 +460,7 @@ typedef enum {
     TABLE_NAV_USER_CTL_MODE,
     TABLE_NAV_RTH_ALT_MODE,
 #endif
+    TABLE_AUX_OPERATOR,
 } lookupTableIndex_e;
 
 static const lookupTableEntry_t lookupTables[] = {
@@ -487,6 +492,7 @@ static const lookupTableEntry_t lookupTables[] = {
     { lookupTableNavControlMode, sizeof(lookupTableNavControlMode) / sizeof(char *) },
     { lookupTableNavRthAltMode, sizeof(lookupTableNavRthAltMode) / sizeof(char *) },
 #endif
+    { lookupTableAuxOperator, sizeof(lookupTableAuxOperator) / sizeof(char *) },
 };
 
 #define VALUE_TYPE_OFFSET 0
@@ -576,8 +582,6 @@ const clivalue_t valueTable[] = {
     { "small_angle",                VAR_UINT8  | MASTER_VALUE,  &masterConfig.small_angle, .config.minmax = { 0,  180 }, 0 },
 
     { "reboot_character",           VAR_UINT8  | MASTER_VALUE,  &masterConfig.serialConfig.reboot_character, .config.minmax = { 48,  126 }, 0 },
-
-    { "and_mode_conditions",        VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.and_mode_conditions, .config.lookup = { TABLE_OFF_ON }, 0 },
 
 #ifdef GPS
     { "gps_provider",               VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.gpsConfig.provider, .config.lookup = { TABLE_GPS_PROVIDER }, 0 },
@@ -726,6 +730,7 @@ const clivalue_t valueTable[] = {
     { "servo_lowpass_enable",       VAR_INT8   | MASTER_VALUE | MODE_LOOKUP, &masterConfig.mixerConfig.servo_lowpass_enable, .config.lookup = { TABLE_OFF_ON }, 0 },
 #endif
 
+    { "mode_range_logic_operator",  VAR_UINT8  | PROFILE_VALUE | MODE_LOOKUP,  &masterConfig.profile[0].modeActivationOperator, .config.lookup = { TABLE_AUX_OPERATOR }, 0 },
     { "default_rate_profile",       VAR_UINT8  | PROFILE_VALUE , &masterConfig.profile[0].defaultRateProfileIndex, .config.minmax = { 0,  MAX_CONTROL_RATE_PROFILE_COUNT - 1 }, 0 },
     { "rc_expo",                    VAR_UINT8  | CONTROL_RATE_VALUE, &masterConfig.controlRateProfiles[0].rcExpo8, .config.minmax = { 0,  100 }, 0 },
     { "rc_yaw_expo",                VAR_UINT8  | CONTROL_RATE_VALUE, &masterConfig.controlRateProfiles[0].rcYawExpo8, .config.minmax = { 0,  100 }, 0 },
