@@ -134,15 +134,13 @@ void gyroUpdate(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) gyroADC[axis] = gyroADCRaw[axis];
 
     if (gyroLpfCutHz) {
-        if (!gyroFilterInitialised) {
-            if (targetLooptime) {  /* Initialisation needs to happen once sample rate is known */
-                for (int axis = 0; axis < 3; axis++) {
-                    //FIXME hardcoded 1000us = 1kHz
-                    biquadFilterInit(&gyroFilterState[axis], gyroLpfCutHz, 1000000 / 1000);
-                }
-
-                gyroFilterInitialised = true;
+        /* Initialisation needs to happen once sample rate is known */
+        if (!gyroFilterInitialised && targetGyroLooptime) {
+            for (int axis = 0; axis < 3; axis++) {
+                biquadFilterInit(&gyroFilterState[axis], gyroLpfCutHz, 1000000 / targetGyroLooptime);
             }
+
+            gyroFilterInitialised = true;
         }
 
         if (gyroFilterInitialised) {

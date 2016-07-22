@@ -42,7 +42,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "GYRO",
         .taskFunc = taskGyro,
         .desiredPeriod = 1000000 / 1000, //Run at 1000Hz
-        .staticPriority = TASK_PRIORITY_HIGH
+        .staticPriority = TASK_PRIORITY_REALTIME
     },
 
     [TASK_SERIAL] = {

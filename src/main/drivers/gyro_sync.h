@@ -17,7 +17,7 @@
 
 #define INTERRUPT_WAIT_TIME 10
 
-extern uint32_t targetLooptime;
+extern uint32_t targetGyroLooptime;
 
 bool gyroSyncCheckUpdate(void);
 uint8_t gyroMPU6xxxCalculateDivider(void);

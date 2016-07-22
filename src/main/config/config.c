@@ -425,6 +425,10 @@ void resetMixerConfig(mixerConfig_t *mixerConfig) {
 #endif
 }
 
+uint32_t getLooptime(void) {
+    return masterConfig.looptime;
+}
+
 uint8_t getCurrentProfile(void)
 {
     return masterConfig.current_profile_index;
@@ -997,7 +1001,7 @@ static void validateAndFixConfig(void)
 
     //FIXME this is only override for separated gyro/pid loop, has to be fixed at one point
     masterConfig.gyroSync = 1;
-    masterConfig.gyroSyncDenominator = 8; //Run at 1000Hz
+    // masterConfig.gyroSyncDenominator = 8; //Run at 1000Hz
     masterConfig.gyro_lpf = 0; //Force 256Hz LPF on gyro
 
     useRxConfig(&masterConfig.rxConfig);
