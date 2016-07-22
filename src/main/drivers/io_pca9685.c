@@ -54,12 +54,17 @@ table and write it to PCA9685 only when there a need.
 Also, because of resultion of PCA9685 internal counter of about 5us, do not write
 small changes, since thwy will only clog the bandwidch and will not
 be represented on output
+PWM Driver runs at 200Hz, every cycle every 4th servo output is updated:
+cycle 0: servo 0, 4, 8, 12
+cycle 1: servo 1, 5, 9, 13
+cycle 2: servo 2, 6, 10, 14
+cycle 3: servo3, 7, 11, 15
 */
-void pca9685sync() {
+void pca9685sync(uint8_t cycleIndex) {
     uint8_t i;
 
     for (i = 0; i < PCA9685_SERVO_COUNT; i++) {
-        if (ABS(temporaryOutputState[i] - currentOutputState[i]) > PCA9685_SYNC_THRESHOLD) {
+        if (cycleIndex == i % 4 && ABS(temporaryOutputState[i] - currentOutputState[i]) > PCA9685_SYNC_THRESHOLD) {
             pca9685setPWMOff(i, temporaryOutputState[i]);
             currentOutputState[i] = temporaryOutputState[i];
         }

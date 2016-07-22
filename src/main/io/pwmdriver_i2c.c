@@ -6,6 +6,7 @@
 #include "config/runtime_config.h"
 
 #define PWM_DRIVER_IMPLEMENTATION_COUNT 1
+#define PWM_DRIVER_MAX_CYCLE 4
 
 static bool driverEnabled = false;
 static uint8_t driverImplementationIndex = 0;
@@ -14,7 +15,7 @@ typedef struct {
     bool (*initFunction)(void);
     void (*writeFunction)(uint8_t servoIndex, uint16_t off);
     void (*setFrequencyFunction)(float freq);
-    void (*syncFunction)(void);
+    void (*syncFunction)(uint8_t cycleIndex);
 } pwmDriverDriver_t;
 
 pwmDriverDriver_t pwmDrivers[PWM_DRIVER_IMPLEMENTATION_COUNT] = {
@@ -44,5 +45,12 @@ void pwmDriverInitialize(void) {
 }
 
 void pwmDriverSync(void) {
-    (pwmDrivers[driverImplementationIndex].syncFunction)();
+    static uint8_t cycle = 0;
+
+    (pwmDrivers[driverImplementationIndex].syncFunction)(cycle);
+
+    cycle++;
+    if (cycle == PWM_DRIVER_MAX_CYCLE) {
+        cycle = 0;
+    }
 }
