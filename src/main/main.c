@@ -555,10 +555,10 @@ int main(void)
     /* Setup scheduler */
     schedulerInit();
 
-    //FIXME right now we want to run with looptime 2000, so no rescheduling is required
-    // rescheduleTask(TASK_PID, targetLooptime);
+    rescheduleTask(TASK_PID, masterConfig.looptime);
     setTaskEnabled(TASK_PID, true);
 
+    rescheduleTask(TASK_GYRO, targetGyroLooptime);
     setTaskEnabled(TASK_GYRO, true);
 
     setTaskEnabled(TASK_SERIAL, true);

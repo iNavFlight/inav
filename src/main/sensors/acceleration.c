@@ -91,7 +91,7 @@ int getPrimaryAxisIndex(int32_t sample[3])
         //Y-axis
         return (sample[Y] > 0) ? 4 : 5;
     }
-    else 
+    else
         return -1;
 }
 
@@ -181,14 +181,13 @@ void updateAccelerationReadings(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) accADC[axis] = accADCRaw[axis];
 
     if (accLpfCutHz) {
-        if (!accFilterInitialised) {
-            if (targetLooptime) {  /* Initialisation needs to happen once sample rate is known */
-                for (int axis = 0; axis < 3; axis++) {
-                    biquadFilterInit(&accFilterState[axis], accLpfCutHz, 0);
-                }
-
-                accFilterInitialised = true;
+        /* Initialisation needs to happen once sample rate is known */
+        if (!accFilterInitialised && targetGyroLooptime) {
+            for (int axis = 0; axis < 3; axis++) {
+                biquadFilterInit(&accFilterState[axis], accLpfCutHz, 1000000 / getLooptime());
             }
+
+            accFilterInitialised = true;
         }
 
         if (accFilterInitialised) {
