@@ -652,7 +652,7 @@ void taskGyro(void) {
 
     if (masterConfig.gyroSync) {
         while (1) {
-            if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (500 + GYRO_WATCHDOG_DELAY))) {
+            if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (1000 + GYRO_WATCHDOG_DELAY))) {
                 break;
             }
         }
