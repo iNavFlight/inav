@@ -37,7 +37,8 @@ void biquadFilterInit(biquadFilter_t *newState, uint8_t filterCutFreq, int16_t s
 
     /* If sampling rate == 0 - use main loop target rate */
     if (!samplingRate) {
-        samplingRate = 1000000 / targetLooptime;
+        //FIXME here we use hardcoded 2000us looptime
+        samplingRate = 1000000 / 2000;
     }
 
     /* setup variables */

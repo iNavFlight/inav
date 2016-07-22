@@ -628,17 +628,37 @@ void taskMainPidLoop(void)
 void taskMainPidLoopChecker(void) {
     // getTaskDeltaTime() returns delta time freezed at the moment of entering the scheduler. currentTime is freezed at the very same point.
     // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
+    // uint32_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
+
+    // if (masterConfig.gyroSync) {
+    //     while (1) {
+    //         if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (targetLooptime + GYRO_WATCHDOG_DELAY))) {
+    //             break;
+    //         }
+    //     }
+    // }
+
+    /*
+     * Right now we run it with much lower precission since we do not do gyro here
+     */
+    taskMainPidLoop();
+}
+
+/*
+ * This task does only gyro reading and filtering
+ */
+void taskGyro(void) {
     uint32_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
 
     if (masterConfig.gyroSync) {
         while (1) {
-            if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (targetLooptime + GYRO_WATCHDOG_DELAY))) {
+            if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (500 + GYRO_WATCHDOG_DELAY))) {
                 break;
             }
         }
     }
 
-    taskMainPidLoop();
+    gyroUpdate();
 }
 
 void taskHandleSerial(void)

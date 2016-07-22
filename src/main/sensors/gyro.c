@@ -137,7 +137,8 @@ void gyroUpdate(void)
         if (!gyroFilterInitialised) {
             if (targetLooptime) {  /* Initialisation needs to happen once sample rate is known */
                 for (int axis = 0; axis < 3; axis++) {
-                    biquadFilterInit(&gyroFilterState[axis], gyroLpfCutHz, 0);
+                    //FIXME hardcoded 500us = 2kHz
+                    biquadFilterInit(&gyroFilterState[axis], gyroLpfCutHz, 1000000 / 500);
                 }
 
                 gyroFilterInitialised = true;
