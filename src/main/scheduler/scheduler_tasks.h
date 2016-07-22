@@ -33,4 +33,4 @@ void taskUpdateDisplay(void);
 void taskTelemetry(void);
 void taskLedStrip(void);
 void taskSystem(void);
-
+void taskGyro(void);

@@ -489,7 +489,7 @@ void blackboxWriteFloat(float value)
 
 /**
  * If there is data waiting to be written to the blackbox device, attempt to write (a portion of) that now.
- * 
+ *
  * Returns true if all data has been flushed to the device.
  */
 bool blackboxDeviceFlush(void)
@@ -551,7 +551,8 @@ bool blackboxDeviceOpen(void)
                  *                              = floor((looptime_ns * 3) / 500.0)
                  *                              = (looptime_ns * 3) / 500
                  */
-                blackboxMaxHeaderBytesPerIteration = constrain((targetLooptime * 3) / 500, 1, BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION);
+                 //FIXME here we store hardcoded 2000us looptime
+                blackboxMaxHeaderBytesPerIteration = constrain((2000 * 3) / 500, 1, BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION);
 
                 return blackboxPort != NULL;
             }

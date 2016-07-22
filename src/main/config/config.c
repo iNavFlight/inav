@@ -158,7 +158,7 @@ size_t custom_flash_memory_address = 0;
 #define CONFIG_START_FLASH_ADDRESS (custom_flash_memory_address)
 #else
 // use the last flash pages for storage
-#ifndef CONFIG_START_FLASH_ADDRESS 
+#ifndef CONFIG_START_FLASH_ADDRESS
 #define CONFIG_START_FLASH_ADDRESS (0x08000000 + (uint32_t)((FLASH_PAGE_SIZE * FLASH_PAGE_COUNT) - FLASH_TO_RESERVE_FOR_CONFIG))
 #endif
 #endif
@@ -983,6 +983,11 @@ static void validateAndFixConfig(void)
 	    masterConfig.serialConfig.portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
     }
 #endif
+
+    //FIXME this is only override for separated gyro/pid loop, has to be fixed at one point
+    masterConfig.gyroSync = 1;
+    masterConfig.gyroSyncDenominator = 4; //Run at 2000Hz
+    masterConfig.gyro_lpf = 0; //Force 256Hz LPF on gyro
 
     useRxConfig(&masterConfig.rxConfig);
 

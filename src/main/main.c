@@ -555,8 +555,11 @@ int main(void)
     /* Setup scheduler */
     schedulerInit();
 
-    rescheduleTask(TASK_GYROPID, targetLooptime);
-    setTaskEnabled(TASK_GYROPID, true);
+    //FIXME right now we want to run with looptime 2000, so no rescheduling is required
+    // rescheduleTask(TASK_PID, targetLooptime);
+    setTaskEnabled(TASK_PID, true);
+
+    setTaskEnabled(TASK_GYRO, true);
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER

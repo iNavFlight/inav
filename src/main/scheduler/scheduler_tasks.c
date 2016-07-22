@@ -31,11 +31,18 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 
-    [TASK_GYROPID] = {
-        .taskName = "GYRO/PID",
+    [TASK_PID] = {
+        .taskName = "PID",
         .taskFunc = taskMainPidLoopChecker,
-        .desiredPeriod = 1000,
+        .desiredPeriod = 1000000 / 500, // Run at 500Hz
         .staticPriority = TASK_PRIORITY_REALTIME,
+    },
+
+    [TASK_GYRO] = {
+        .taskName = "GYRO",
+        .taskFunc = taskGyro,
+        .desiredPeriod = 1000000 / 2000, //Run at 2000Hz
+        .staticPriority = TASK_PRIORITY_REALTIME
     },
 
     [TASK_SERIAL] = {
