@@ -178,13 +178,12 @@
 
 #ifdef USE_RX_NRF24
 #undef USE_SERVOS
-#define TARGET_MOTOR_COUNT 4
 #undef USE_SONAR
 #else
-#define TARGET_MOTOR_COUNT 4
 #undef USE_SONAR_SRF10
 #endif // USE_RX_NRF24
 
+#define TARGET_MOTOR_COUNT 4
 #undef USE_MAG_AK8975
 #undef USE_MAG_MAG3110
 #undef BLACKBOX
