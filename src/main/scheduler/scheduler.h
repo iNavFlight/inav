@@ -44,6 +44,7 @@ typedef enum {
     TASK_SYSTEM = 0,
     TASK_PID,
     TASK_GYRO,
+    TASK_ACC,
     TASK_SERIAL,
     TASK_BEEPER,
     TASK_BATTERY,

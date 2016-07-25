@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 
-void taskMainPidLoopChecker(void);
+void taskMainPidLoop(void);
 void taskHandleSerial(void);
 void taskUpdateBeeper(void);
 void taskUpdateBattery(void);
@@ -34,3 +34,4 @@ void taskTelemetry(void);
 void taskLedStrip(void);
 void taskSystem(void);
 void taskGyro(void);
+void taskAcc(void);

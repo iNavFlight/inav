@@ -33,7 +33,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
 
     [TASK_PID] = {
         .taskName = "PID",
-        .taskFunc = taskMainPidLoopChecker,
+        .taskFunc = taskMainPidLoop,
         .desiredPeriod = 1000000 / 500, // Run at 500Hz
         .staticPriority = TASK_PRIORITY_REALTIME,
     },
@@ -42,7 +42,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "GYRO",
         .taskFunc = taskGyro,
         .desiredPeriod = 1000000 / 1000, //Run at 1000Hz
-        .staticPriority = TASK_PRIORITY_REALTIME
+        .staticPriority = TASK_PRIORITY_REALTIME,
+    },
+
+    [TASK_ACC] = {
+        .taskName = "ACC",
+        .taskFunc = taskAcc,
+        .desiredPeriod = 1000000 / 120, //Run at 120Hz, with LPF at 15Hz this is even too much
+        .staticPriority = TASK_PRIORITY_HIGH,
     },
 
     [TASK_SERIAL] = {
