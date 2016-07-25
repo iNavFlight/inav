@@ -555,8 +555,11 @@ int main(void)
     /* Setup scheduler */
     schedulerInit();
 
-    rescheduleTask(TASK_GYROPID, targetLooptime);
-    setTaskEnabled(TASK_GYROPID, true);
+    rescheduleTask(TASK_PID, masterConfig.looptime);
+    setTaskEnabled(TASK_PID, true);
+
+    rescheduleTask(TASK_GYRO, targetGyroLooptime);
+    setTaskEnabled(TASK_GYRO, true);
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER

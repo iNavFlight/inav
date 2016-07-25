@@ -94,7 +94,7 @@ STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
     float q1q1 = q1 * q1;
     float q2q2 = q2 * q2;
     float q3q3 = q3 * q3;
-    
+
     float q0q1 = q0 * q1;
     float q0q2 = q0 * q2;
     float q0q3 = q0 * q3;
@@ -154,7 +154,7 @@ void imuTransformVectorEarthToBody(t_fp_vector * v)
     float x,y,z;
 
     v->V.Y = -v->V.Y;
-    
+
     /* From earth frame to body frame */
     x = rMat[0][0] * v->V.X + rMat[1][0] * v->V.Y + rMat[2][0] * v->V.Z;
     y = rMat[0][1] * v->V.X + rMat[1][1] * v->V.Y + rMat[2][1] * v->V.Z;
@@ -300,8 +300,8 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
     if (accWeight > 0) {
         float kpAcc = imuRuntimeConfig->dcm_kp_acc * imuGetPGainScaleFactor();
 
-        // Just scale by 1G length - That's our vector adjustment. Rather than 
-        // using one-over-exact length (which needs a costly square root), we already 
+        // Just scale by 1G length - That's our vector adjustment. Rather than
+        // using one-over-exact length (which needs a costly square root), we already
         // know the vector is enough "roughly unit length" and since it is only weighted
         // in by a certain amount anyway later, having that exact is meaningless. (c) MasterZap
         recipNorm = 1.0f / GRAVITY_CMSS;
@@ -505,6 +505,7 @@ void imuUpdateAccelerometer(void)
 #endif
 }
 
+//TODO rename it, since its not updating gyro anymore
 void imuUpdateGyroAndAttitude(void)
 {
     /* Calculate dT */
@@ -514,7 +515,8 @@ void imuUpdateGyroAndAttitude(void)
     previousIMUUpdateTime = currentTime;
 
     /* Update gyroscope */
-    gyroUpdate();
+    //No, we do not, gyro is updated somewhere else
+    // gyroUpdate();
 
     if (sensors(SENSOR_ACC) && isAccelUpdatedAtLeastOnce) {
 #ifdef HIL
