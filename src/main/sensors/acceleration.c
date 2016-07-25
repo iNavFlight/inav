@@ -38,6 +38,8 @@
 
 #include "sensors/acceleration.h"
 
+#include "debug.h"
+
 acc_t acc;                       // acc access functions
 int32_t accADC[XYZ_AXIS_COUNT];
 sensor_align_e accAlign = 0;
@@ -50,6 +52,7 @@ static flightDynamicsTrims_t * accGain;
 
 static int8_t accLpfCutHz = 0;
 static biquadFilter_t accFilterState[XYZ_AXIS_COUNT];
+static decimalBiquadFilter_t decimalAccFilterState[XYZ_AXIS_COUNT];
 static bool accFilterInitialised = false;
 
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired)
@@ -185,6 +188,7 @@ void updateAccelerationReadings(void)
         if (!accFilterInitialised && targetGyroLooptime) {
             for (int axis = 0; axis < 3; axis++) {
                 biquadFilterInit(&accFilterState[axis], accLpfCutHz, 1000000 / getLooptime());
+                decimalBiquadFilterInit(&decimalAccFilterState[axis], accLpfCutHz, 1000000 / getLooptime());
             }
 
             accFilterInitialised = true;
@@ -193,6 +197,13 @@ void updateAccelerationReadings(void)
         if (accFilterInitialised) {
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 accADC[axis] = lrintf(biquadFilterApply(&accFilterState[axis], (float) accADC[axis]));
+
+                if (axis == 0) {
+                    debug[0] = accADC[0];
+                    debug[1] = decimalBiquadFilterApply(&decimalAccFilterState[axis], accADC[axis]);
+                    debug[2] = debug[0] - debug[1];
+                }
+
             }
         }
     }

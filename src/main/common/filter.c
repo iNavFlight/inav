@@ -30,6 +30,50 @@
 #define BIQUAD_Q    (1.0f / 1.41421356f)     /* quality factor - butterworth (1 / sqrt(2)) */
 #define M_PI_FLOAT  3.14159265358979323846f
 
+void decimalBiquadFilterInit(decimalBiquadFilter_t *newState, uint8_t filterCutFreq, int16_t samplingRate) {
+    float omega, sn, cs, alpha;
+    float a0, a1, a2, b0, b1, b2;
+
+    /* If sampling rate == 0 - use main loop target rate */
+    if (!samplingRate) {
+        samplingRate = 1000000 / getLooptime();
+    }
+
+    /* setup variables */
+    omega = 2 * M_PIf * (float)filterCutFreq / (float)samplingRate;
+    sn = sin_approx(omega);
+    cs = cos_approx(omega);
+    alpha = sn / (2 * BIQUAD_Q);
+
+    b0 = (1 - cs) / 2;
+    b1 = 1 - cs;
+    b2 = (1 - cs) / 2;
+    a0 = 1 + alpha;
+    a1 = -2 * cs;
+    a2 = 1 - alpha;
+
+    /* precompute the coefficients */
+    newState->b0 = lrintf((b0 / a0) * 100);
+    newState->b1 = lrintf((b1 / a0) * 100);
+    newState->b2 = lrintf((b2 / a0) * 100);
+    newState->a1 = lrintf((a1 / a0) * 100);
+    newState->a2 = lrintf((a2 / a0) * 100);
+
+    /* zero initial samples */
+    newState->d1 = newState->d2 = 1;
+}
+
+int32_t decimalBiquadFilterApply(decimalBiquadFilter_t *state, int32_t sample)
+{
+    int32_t result;
+
+    result = state->b0 * sample + state->d1;
+    state->d1 = state->b1 * sample - state->a1 * result + state->d2;
+    state->d2 = state->b2 * sample - state->a2 * result;
+
+    return result / 100;
+}
+
 /* sets up a biquad Filter */
 void biquadFilterInit(biquadFilter_t *newState, uint8_t filterCutFreq, int16_t samplingRate)
 {

@@ -29,6 +29,11 @@ typedef struct biquadFilter_s {
     float d1, d2;
 } biquadFilter_t;
 
+typedef struct decimalBiquadFilter_s {
+    int32_t b0, b1, b2, a1, a2;
+    int32_t d1, d2;
+} decimalBiquadFilter_t;
+
 typedef struct firFilter_s {
     float *buf;
     const float *coeffs;
@@ -49,3 +54,5 @@ void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const fl
 void firFilterUpdate(firFilter_t *filter, float input);
 float firFilterApply(firFilter_t *filter);
 
+void decimalBiquadFilterInit(decimalBiquadFilter_t *newState, uint8_t filterCutFreq, int16_t samplingRate);
+int32_t decimalBiquadFilterApply(decimalBiquadFilter_t *state, int32_t sample);
