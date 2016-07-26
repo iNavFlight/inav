@@ -29,11 +29,6 @@ typedef struct biquadFilter_s {
     float d1, d2;
 } biquadFilter_t;
 
-typedef struct decimalBiquadFilter_s {
-    int32_t b0, b1, b2, a1, a2;
-    int32_t d1, d2;
-} decimalBiquadFilter_t;
-
 typedef struct firFilter_s {
     float *buf;
     const float *coeffs;
@@ -41,6 +36,7 @@ typedef struct firFilter_s {
     uint8_t coeffsLength;
 } firFilter_t;
 
+void pt1FilterInit(pt1Filter_t *filter, uint8_t f_cut, float dT);
 float pt1FilterApply(pt1Filter_t *filter, float input);
 float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dt);
 float pt1FilterApplyWithRateLimit(pt1Filter_t *filter, float input, float f_cut, float rate_limit, float dT);
@@ -53,6 +49,3 @@ void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const flo
 void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength);
 void firFilterUpdate(firFilter_t *filter, float input);
 float firFilterApply(firFilter_t *filter);
-
-void decimalBiquadFilterInit(decimalBiquadFilter_t *newState, uint8_t filterCutFreq, int16_t samplingRate);
-int32_t decimalBiquadFilterApply(decimalBiquadFilter_t *state, int32_t sample);

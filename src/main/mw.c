@@ -523,9 +523,13 @@ void taskMainPidLoop(void)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    //Acc and IMU moved to separate task
-    // imuUpdateAccelerometer();
-    // imuUpdateGyroAndAttitude();
+    /*
+     * Acc update is run in sync with PID loop only when RACE mode is not enabled
+     */
+    if (!feature(FEATURE_RACE) && sensors(SENSOR_ACC)) {
+        imuUpdateAccelerometer();
+        imuUpdateAttitude();
+    }
 
     annexCode();
 
@@ -631,8 +635,6 @@ void taskMainPidLoop(void)
 void taskGyro(void) {
     uint32_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
 
-    // debug[0] = currentDeltaTime;
-
     if (masterConfig.gyroSync) {
         while (1) {
             if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (targetGyroLooptime + GYRO_WATCHDOG_DELAY))) {
@@ -645,10 +647,8 @@ void taskGyro(void) {
 }
 
 void taskAcc(void) {
-    // debug[1] = getTaskDeltaTime(TASK_SELF);
-
     imuUpdateAccelerometer();
-    imuUpdateGyroAndAttitude();
+    imuUpdateAttitude();
 }
 
 void taskHandleSerial(void)

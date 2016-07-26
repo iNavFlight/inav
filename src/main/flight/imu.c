@@ -493,20 +493,17 @@ void imuHILUpdate(void)
 void imuUpdateAccelerometer(void)
 {
 #ifdef HIL
-    if (sensors(SENSOR_ACC) && !hilActive) {
+    if (!hilActive) {
         updateAccelerationReadings();
         isAccelUpdatedAtLeastOnce = true;
     }
 #else
-    if (sensors(SENSOR_ACC)) {
-        updateAccelerationReadings();
-        isAccelUpdatedAtLeastOnce = true;
-    }
+    updateAccelerationReadings();
+    isAccelUpdatedAtLeastOnce = true;
 #endif
 }
 
-//TODO rename it, since its not updating gyro anymore
-void imuUpdateGyroAndAttitude(void)
+void imuUpdateAttitude(void)
 {
     /* Calculate dT */
     static uint32_t previousIMUUpdateTime;
@@ -514,11 +511,7 @@ void imuUpdateGyroAndAttitude(void)
     float dT = (currentTime - previousIMUUpdateTime) * 1e-6;
     previousIMUUpdateTime = currentTime;
 
-    /* Update gyroscope */
-    //No, we do not, gyro is updated somewhere else
-    // gyroUpdate();
-
-    if (sensors(SENSOR_ACC) && isAccelUpdatedAtLeastOnce) {
+    if (isAccelUpdatedAtLeastOnce) {
 #ifdef HIL
         if (!hilActive) {
             imuUpdateMeasuredRotationRate();    // Calculate gyro rate in body frame in rad/s

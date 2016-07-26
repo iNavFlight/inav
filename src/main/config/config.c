@@ -429,6 +429,14 @@ uint32_t getLooptime(void) {
     return masterConfig.looptime;
 }
 
+uint32_t getAccUpdateFrequency(void) {
+    if (feature(FEATURE_RACE)) {
+        return ACC_TASK_FREQUENCY;
+    } else {
+        return 1000000 / getLooptime();
+    }
+}
+
 uint8_t getCurrentProfile(void)
 {
     return masterConfig.current_profile_index;
