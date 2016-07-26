@@ -47,8 +47,15 @@
 #define DISPLAY
 #define DISPLAY_ARMED_BITMAP
 #define TELEMETRY_MAVLINK
+<<<<<<< 8432a3c385f8fbd1bac5c682551e5a216b21f666
 #define BOOTLOG_DESCRIPTIONS
 #define TELEMETRY_IBUS
+=======
+
+#define USE_PMW_SERVO_DRIVER
+#define PWM_DRIVER_PCA9685
+
+>>>>>>> feature enabled only on target with >128 flash
 #else
 #define SKIP_CLI_COMMAND_HELP
 #define SKIP_RX_MSP
