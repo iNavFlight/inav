@@ -495,7 +495,8 @@ void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *co
         pidApplyHeadingLock(pidProfile, &pidState[FD_YAW]);
     }
 
-    if (FLIGHT_MODE(TURN_ASSISTANT)) {
+    // Turn assistant is enabled explicitly in HANGLE/HORIZON mode to improve yaw stability
+    if (FLIGHT_MODE(TURN_ASSISTANT) || ((FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) && !STATE(FIXED_WING))) {
         pidTurnAssistant(pidState);
     }
 
