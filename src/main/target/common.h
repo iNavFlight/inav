@@ -15,26 +15,50 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #pragma once
 
-#define USE_SERVOS
-#define USE_CLI
+#define I2C1_OVERCLOCK false
+#define I2C2_OVERCLOCK false
+
+
+/* STM32F4 specific settings that apply to all F4 targets */
+#ifdef STM32F4
+
+#define TASK_GYROPID_DESIRED_PERIOD 125
+#define SCHEDULER_DELAY_LIMIT 10
+#define USE_SLOW_SERIAL_CLI
+#define I2C3_OVERCLOCK false
+
+#else /* when not an F4 */
+
+#define TASK_GYROPID_DESIRED_PERIOD 1000
+#define SCHEDULER_DELAY_LIMIT 100
+
+#endif
+
+#ifdef STM32F1
+// Using RX DMA disables the use of receive callbacks
+#define USE_UART1_RX_DMA
+
+#endif
+
 #define SERIAL_RX
-#define BLACKBOX
+#define USE_CLI
 
 #if (FLASH_SIZE > 64)
+#define BLACKBOX
 #define GPS
 #define GPS_PROTO_NMEA
 #define GPS_PROTO_UBLOX
 #define GPS_PROTO_I2C_NAV
 #define GPS_PROTO_NAZA
-
 #define TELEMETRY
 #define TELEMETRY_FRSKY
 #define TELEMETRY_HOTT
 #define TELEMETRY_SMARTPORT
 #define TELEMETRY_LTM
+
+#define USE_SERVOS
 #endif
 
 #if (FLASH_SIZE > 128)
@@ -46,4 +70,3 @@
 #define SKIP_RX_MSP
 #define DISABLE_UNCOMMON_MIXERS
 #endif
-
