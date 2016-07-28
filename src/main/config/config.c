@@ -431,7 +431,7 @@ uint32_t getLooptime(void) {
 
 uint32_t getAccUpdateFrequency(void) {
     if (feature(FEATURE_RACE)) {
-        return ACC_TASK_FREQUENCY;
+        return masterConfig.accTaskFrequency;
     } else {
         return 1000000 / getLooptime();
     }
@@ -580,6 +580,7 @@ static void resetConf(void)
     masterConfig.i2c_overclock = 0;
     masterConfig.gyroSync = 0;
     masterConfig.gyroSyncDenominator = 8;
+    masterConfig.accTaskFrequency = ACC_TASK_FREQUENCY;
 
     resetPidProfile(&currentProfile->pidProfile);
 
