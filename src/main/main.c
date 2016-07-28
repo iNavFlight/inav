@@ -49,6 +49,8 @@
 #include "drivers/sonar_hcsr04.h"
 #include "drivers/sdcard.h"
 #include "drivers/gyro_sync.h"
+#include "drivers/io.h"
+#include "drivers/exti.h"
 
 #include "rx/rx.h"
 
@@ -132,6 +134,10 @@ void SetSysClock(void);
 // from system_stm32f10x.c
 void SetSysClock(bool overclock);
 #endif
+#ifdef STM32F40_41xxx
+// from system_stm32f4xx.c
+void SetSysClock(void);
+#endif
 
 typedef enum {
     SYSTEM_STATE_INITIALISING   = 0,
@@ -171,6 +177,8 @@ void init(void)
 
     systemState |= SYSTEM_STATE_CONFIG_LOADED;
 
+    systemInit();
+
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
 
@@ -179,21 +187,11 @@ void init(void)
     SCB->CPACR = (0x3 << (10*2)) | (0x3 << (11*2));
 #endif
 
-#ifdef STM32F303xC
-    SetSysClock();
-#endif
-#ifdef STM32F10X
-    // Configure the System clock frequency, HCLK, PCLK2 and PCLK1 prescalers
-    // Configure the Flash Latency cycles and enable prefetch buffer
-    SetSysClock(masterConfig.emf_avoidance);
-#endif
-    i2cSetOverclock(masterConfig.i2c_overclock);
+    //i2cSetOverclock(masterConfig.i2c_overclock);
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
     detectHardwareRevision();
 #endif
-
-    systemInit();
 
     // Latch active features to be used for feature() in the remainder of init().
     latchActiveFeatures();
@@ -202,6 +200,10 @@ void init(void)
     ledInit(hardwareRevision == AFF3_REV_1 ? false : true);
 #else
     ledInit(false);
+#endif
+
+#ifdef USE_EXTI
+    EXTIInit();
 #endif
 
 #ifdef SPEKTRUM_BIND
@@ -257,6 +259,12 @@ void init(void)
 #endif
 #ifdef STM32F303xC
     pwm_params.useUART3 = doesConfigurationUsePort(SERIAL_PORT_USART3);
+#endif
+#if defined(USE_UART2) && defined(STM32F40_41xxx)
+    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);
+#endif
+#if defined(USE_UART6) && defined(STM32F40_41xxx)
+    pwm_params.useUART6 = doesConfigurationUsePort(SERIAL_PORT_USART6);
 #endif
     pwm_params.useVbat = feature(FEATURE_VBAT);
     pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
@@ -325,8 +333,21 @@ void init(void)
 
 
 #ifdef USE_SPI
-    spiInit(SPI1);
-    spiInit(SPI2);
+#ifdef USE_SPI_DEVICE_1
+    spiInit(SPIDEV_1);
+#endif
+#ifdef USE_SPI_DEVICE_2
+    spiInit(SPIDEV_2);
+#endif
+#ifdef USE_SPI_DEVICE_3
+#ifdef ALIENFLIGHTF3
+    if (hardwareRevision == AFF3_REV_2) {
+        spiInit(SPIDEV_3);
+    }
+#else
+    spiInit(SPIDEV_3);
+#endif
+#endif
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
@@ -368,6 +389,14 @@ void init(void)
     }
 #else
     i2cInit(I2C_DEVICE);
+#if defined(ANYFC) || defined(COLIBRI) || defined(REVO)
+    if (!doesConfigurationUsePort(SERIAL_PORT_USART3))
+#endif
+    {
+#ifdef I2C_DEVICE_EXT
+        i2cInit(I2C_DEVICE_EXT);
+#endif
+    }
 #endif
 #endif
 
@@ -473,7 +502,13 @@ void init(void)
     ledStripInit(masterConfig.ledConfigs, masterConfig.colors, masterConfig.modeColors, &masterConfig.specialColors);
 
     if (feature(FEATURE_LED_STRIP)) {
+#ifdef COLIBRI
+        if (!doesConfigurationUsePort(SERIAL_PORT_USART1)) {
+            ledStripEnable();
+        }
+#else
         ledStripEnable();
+#endif
     }
 #endif
 

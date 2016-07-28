@@ -375,6 +375,7 @@ COMMON_SRC = \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/bus_spi_soft.c \
+            drivers/exti.c \
             drivers/gps_i2cnav.c \
             drivers/gyro_sync.c \
             drivers/io.c \
@@ -482,6 +483,7 @@ STM32F10x_COMMON_SRC = \
             startup_stm32f10x_md_gcc.S \
             drivers/adc_stm32f10x.c \
             drivers/bus_i2c_stm32f10x.c \
+            drivers/dma.c \
             drivers/gpio_stm32f10x.c \
             drivers/inverter.c \
             drivers/serial_softserial.c \
@@ -494,6 +496,7 @@ STM32F30x_COMMON_SRC = \
             target/system_stm32f30x.c \
             drivers/adc_stm32f30x.c \
             drivers/bus_i2c_stm32f30x.c \
+            drivers/dma.c \
             drivers/gpio_stm32f30x.c \
             drivers/light_ws2811strip.c \
             drivers/light_ws2811strip_stm32f30x.c \
@@ -503,18 +506,19 @@ STM32F30x_COMMON_SRC = \
 
 STM32F4xx_COMMON_SRC = \
             startup_stm32f40xx.s \
-            target/system_stm32f4xx.c \
             drivers/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
-            drivers/adc_stm32f4xx.c \
             drivers/bus_i2c_stm32f10x.c \
+            drivers/dma_stm32f4xx.c \
             drivers/gpio_stm32f4xx.c \
             drivers/inverter.c \
+            drivers/light_ws2811strip.c \
+            drivers/light_ws2811strip_stm32f4xx.c \
             drivers/serial_softserial.c \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
             drivers/timer_stm32f4xx.c \
-            drivers/dma_stm32f4xx.c
+            target/system_stm32f4xx.c
 
 # check if target.mk supplied
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
