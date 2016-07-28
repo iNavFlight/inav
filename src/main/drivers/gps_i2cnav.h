@@ -34,3 +34,7 @@ typedef struct {
 
 bool i2cnavGPSModuleDetect(void);
 void i2cnavGPSModuleRead(gpsDataI2CNAV_t * gpsMsg);
+
+#ifndef GPS_I2C_INSTANCE
+#define GPS_I2C_INSTANCE I2C_DEVICE
+#endif
