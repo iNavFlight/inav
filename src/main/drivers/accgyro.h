@@ -17,12 +17,17 @@
 
 #pragma once
 
+#ifndef MPU_I2C_INSTANCE
+#define MPU_I2C_INSTANCE I2C_DEVICE
+#endif
+
 typedef struct gyro_s {
     sensorGyroInitFuncPtr init;                             // initialize function
     sensorReadFuncPtr read;                                 // read 3 axis data function
     sensorReadFuncPtr temperature;                          // read temperature if available
     sensorInterruptFuncPtr intStatus;
     float scale;                                            // scalefactor
+    uint32_t targetLooptime;
 } gyro_t;
 
 typedef struct acc_s {
