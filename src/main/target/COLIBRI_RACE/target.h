@@ -96,9 +96,11 @@
 #define WS2811_DMA_IRQ                  DMA1_Channel3_IRQn
 
 // MPU6500 interrupt
+#define USE_EXTI
 //#define DEBUG_MPU_DATA_READY_INTERRUPT
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
+#define MPU_INT_EXTI PA5
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

@@ -33,10 +33,8 @@
 #define INVERTER            PB2 // PB2 (BOOT1) abused as inverter select GPIO
 #define INVERTER_USART      USART2
 
-#define BARO_XCLR_GPIO   GPIOC
-#define BARO_XCLR_PIN    Pin_13
-#define BARO_EOC_GPIO    GPIOC
-#define BARO_EOC_PIN     Pin_14
+#define BARO_XCLR_PIN    PC13
+#define BARO_EOC_PIN     PC14
 #define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
 
 
@@ -64,6 +62,8 @@
 
 #define USE_FLASH_M25P16
 
+#define USE_EXTI
+#define MAG_INT_EXTI PC14
 #define EXTI_CALLBACK_HANDLER_COUNT 3 // MPU data ready, MAG data ready, BMP085 EOC
 
 //#define DEBUG_MPU_DATA_READY_INTERRUPT
@@ -109,7 +109,7 @@
 
 #define MAG_HMC5883_ALIGN CW180_DEG
 
-#define SONAR
+//#define SONAR
 //#define USE_SONAR_SRF10
 #define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
 #define SONAR_PWM_TRIGGER_GPIO      GPIOB
@@ -198,7 +198,10 @@
 #define NAV_MAX_WAYPOINTS       30
 
 //#define LED_STRIP
-#define LED_STRIP_TIMER     TIM3
+#define WS2811_PIN                      PB4
+#define WS2811_TIMER                    TIM3
+#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
 #define SPEKTRUM_BIND
 // USART2, PA3

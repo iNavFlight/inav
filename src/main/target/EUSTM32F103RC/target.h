@@ -25,13 +25,11 @@
 #define INVERTER            PB2
 #define INVERTER_USART USART2
 
-#define MPU6000_CS_GPIO       GPIOB
-#define MPU6000_CS_PIN        GPIO_Pin_12
+#define MPU6000_CS_PIN        PB12
 #define MPU6000_SPI_INSTANCE  SPI2
 
 #define MPU6500_CS_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOB
-#define MPU6500_CS_GPIO       GPIOB
-#define MPU6500_CS_PIN        GPIO_Pin_12
+#define MPU6500_CS_PIN        PB12
 #define MPU6500_SPI_INSTANCE  SPI2
 
 #define GYRO
@@ -67,7 +65,7 @@
 #define MAG_AK8975_ALIGN CW180_DEG_FLIP
 
 
-#define SONAR
+//#define SONAR
 #define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
 #define SONAR_PWM_TRIGGER_GPIO      GPIOB
 #define SONAR_PWM_ECHO_PIN          Pin_9   // PWM6 (PB9) - 5v tolerant
@@ -110,7 +108,10 @@
 #define EXTERNAL1_ADC_PIN       PA5
 
 #define LED_STRIP
-#define LED_STRIP_TIMER TIM3
+#define WS2811_PIN                      PB4
+#define WS2811_TIMER                    TIM3
+#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
 #define SPEKTRUM_BIND
 // USART2, PA3

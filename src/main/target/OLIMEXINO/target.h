@@ -57,7 +57,7 @@
 #define MAG
 #define USE_MAG_HMC5883
 
-#define SONAR
+//#define SONAR
 #define SONAR_TRIGGER_PIN           Pin_0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
 #define SONAR_TRIGGER_GPIO          GPIOB
 #define SONAR_ECHO_PIN              Pin_1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
@@ -93,7 +93,10 @@
 #define EXTERNAL1_ADC_PIN       PA5
 
 #define LED_STRIP
-#define LED_STRIP_TIMER TIM3
+#define WS2811_PIN                      PB4
+#define WS2811_TIMER                    TIM3
+#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
 // IO - assuming all IOs on smt32f103rb LQFP64 package
 #define TARGET_IO_PORTA 0xffff

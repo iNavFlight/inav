@@ -28,29 +28,23 @@
 #define INVERTER            PB2 // PB2 (BOOT1) abused as inverter select GPIO
 #define INVERTER_USART      USART2
 
-#define BARO_XCLR_GPIO   GPIOC
-#define BARO_XCLR_PIN    Pin_13
-#define BARO_EOC_GPIO    GPIOC
-#define BARO_EOC_PIN     Pin_14
+#define BARO_XCLR_PIN    PC13
+#define BARO_EOC_PIN     PC14
 #define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 
 #define PORT103R_SPI_INSTANCE     SPI2
-#define PORT103R_SPI_CS_GPIO      GPIOB
-#define PORT103R_SPI_CS_PIN       GPIO_Pin_12
+#define PORT103R_SPI_CS_PIN       PB12
 
 // We either have this 16mbit flash chip on SPI or the MPU6500 acc/gyro depending on board revision:
-#define M25P16_CS_GPIO        PORT103R_SPI_CS_GPIO
 #define M25P16_CS_PIN         PORT103R_SPI_CS_PIN
 #define M25P16_SPI_INSTANCE   PORT103R_SPI_INSTANCE
 
-#define MPU6000_CS_GPIO       PORT103R_SPI_CS_GPIO
 #define MPU6000_CS_PIN        PORT103R_SPI_CS_PIN
 #define MPU6000_SPI_INSTANCE  PORT103R_SPI_INSTANCE
 
-#define MPU6500_CS_GPIO       PORT103R_SPI_CS_GPIO
 #define MPU6500_CS_PIN        PORT103R_SPI_CS_PIN
 #define MPU6500_SPI_INSTANCE  PORT103R_SPI_INSTANCE
 #define MPU6500_CS_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOB
@@ -85,17 +79,17 @@
 #define USE_FLASHTOOLS
 #define USE_FLASH_M25P16
 
-#define SONAR
-#define SONAR_PWM_TRIGGER_PIN       Pin_8   // PWM5 (PB8) - 5v tolerant
+//#define SONAR
+#define SONAR_PWM_TRIGGER_PIN       PB8   // PWM5 (PB8) - 5v tolerant
 #define SONAR_PWM_TRIGGER_GPIO      GPIOB
-#define SONAR_PWM_ECHO_PIN          Pin_9   // PWM6 (PB9) - 5v tolerant
+#define SONAR_PWM_ECHO_PIN          PB9   // PWM6 (PB9) - 5v tolerant
 #define SONAR_PWM_ECHO_GPIO         GPIOB
 #define SONAR_PWM_EXTI_LINE         EXTI_Line9
 #define SONAR_PWM_EXTI_PIN_SOURCE   GPIO_PinSource9
 #define SONAR_PWM_EXTI_IRQN         EXTI9_5_IRQn
-#define SONAR_TRIGGER_PIN           Pin_0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_TRIGGER_PIN           PB0   // RX7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
 #define SONAR_TRIGGER_GPIO          GPIOB
-#define SONAR_ECHO_PIN              Pin_1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define SONAR_ECHO_PIN              PB1   // RX8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
 #define SONAR_ECHO_GPIO             GPIOB
 #define SONAR_EXTI_LINE             EXTI_Line1
 #define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource1
@@ -128,7 +122,10 @@
 #define EXTERNAL1_ADC_PIN       PA5
 
 #define LED_STRIP
-#define LED_STRIP_TIMER TIM3
+#define WS2811_PIN                      PB4
+#define WS2811_TIMER                    TIM3
+#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

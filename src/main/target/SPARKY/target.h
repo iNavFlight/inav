@@ -26,6 +26,7 @@
 #define BEEPER_INVERTED
 
 #define USABLE_TIMER_CHANNEL_COUNT 11
+#define USE_EXTI
 
 // MPU 9150 INT connected to PA15, pulled up to VCC by 10K Resistor, contains MPU6050 and AK8975 in single component.
 #define GYRO
@@ -82,7 +83,7 @@
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_MAX_WAYPOINTS       60
 
-#define SONAR
+//#define SONAR
 #define SONAR_TRIGGER_PIN           PA2   // PWM6 (PA2) - only 3.3v ( add a 1K Ohms resistor )
 #define SONAR_ECHO_PIN              PA1   // PWM7 (PB1) - only 3.3v ( add a 1K Ohms resistor )
 #define SONAR_EXTI_LINE             EXTI_Line1

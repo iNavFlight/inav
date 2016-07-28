@@ -38,8 +38,7 @@
 
 #define L3GD20_SPI                      SPI1
 #define L3GD20_CS_GPIO_CLK_PERIPHERAL   RCC_AHBPeriph_GPIOE
-#define L3GD20_CS_GPIO                  GPIOE
-#define L3GD20_CS_PIN                   GPIO_Pin_3
+#define L3GD20_CS_PIN                   PE3
 
 #define GYRO_L3GD20_ALIGN CW270_DEG
 #define GYRO_MPU6050_ALIGN CW0_DEG
@@ -78,21 +77,25 @@
 
 #define LED_STRIP
 #if 1
-#define LED_STRIP_TIMER TIM16
+#define WS2811_PIN                      PA6
+#define WS2811_TIMER                    TIM16
+#define WS2811_TIMER_CHANNEL            TIM_Channel_1
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
+#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF3
+#define WS2811_DMA_IT                   DMA_IT_TCIF3
+#define WS2811_DMA_CHANNEL              DMA1_Channel3
+#define WS2811_DMA_IRQ                  DMA1_Channel3_IRQn
+
 #else
 // alternative LED strip configuration, tested working.
-#define LED_STRIP_TIMER TIM1
-
-#define USE_LED_STRIP_ON_DMA1_CHANNEL2
-#define WS2811_GPIO                     GPIOA
-#define WS2811_GPIO_AHB_PERIPHERAL      RCC_AHBPeriph_GPIOA
-#define WS2811_GPIO_AF                  GPIO_AF_6
-#define WS2811_PIN                      GPIO_Pin_8
-#define WS2811_PIN_SOURCE               GPIO_PinSource8
+#define WS2811_PIN                      PA8
 #define WS2811_TIMER                    TIM1
-#define WS2811_TIMER_APB2_PERIPHERAL    RCC_APB2Periph_TIM1
+#define WS2811_TIMER_CHANNEL            TIM_Channel_1
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
+#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF2
+#define WS2811_DMA_IT                   DMA_IT_TCIF2
 #define WS2811_DMA_CHANNEL              DMA1_Channel2
-#define WS2811_IRQ                      DMA1_Channel2_IRQn
+#define WS2811_DMA_IRQ                  DMA1_Channel2_IRQn
 #endif
 
 // IO - assuming 303 in 64pin package, TODO
