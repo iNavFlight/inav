@@ -25,12 +25,10 @@
 #define INVERTER              PB2 // PB2 (BOOT1) used as inverter select GPIO
 #define INVERTER_USART        USART1
 
-#define MPU6000_CS_GPIO       GPIOA
-#define MPU6000_CS_PIN        GPIO_Pin_4
+#define MPU6000_CS_PIN        PA4
 #define MPU6000_SPI_INSTANCE  SPI1
 
-#define M25P16_CS_GPIO        GPIOB
-#define M25P16_CS_PIN         GPIO_Pin_12
+#define M25P16_CS_PIN         PB12
 #define M25P16_SPI_INSTANCE   SPI2
 
 #define USE_FLASHFS
@@ -67,9 +65,8 @@
 #define USE_USART1
 #define USE_USART3
 
-#define USART3_RX_PIN Pin_11
-#define USART3_TX_PIN Pin_10
-#define USART3_GPIO GPIOB
+#define USART3_RX_PIN PB11
+#define USART3_TX_PIN PB10
 #define USART3_APB1_PERIPHERALS RCC_APB1Periph_USART3
 #define USART3_APB2_PERIPHERALS RCC_APB2Periph_GPIOB
 
@@ -148,10 +145,8 @@
 
 //#define SONAR
 #define USE_SONAR_SRF10
-#define SONAR_TRIGGER_PIN           Pin_5   // (PB5)
-#define SONAR_TRIGGER_GPIO          GPIOB
-#define SONAR_ECHO_PIN              Pin_0   // (PB0) - only 3.3v ( add a 1K Ohms resistor )
-#define SONAR_ECHO_GPIO             GPIOB
+#define SONAR_TRIGGER_PIN           PB5   // (PB5)
+#define SONAR_ECHO_PIN              PB0   // (PB0) - only 3.3v ( add a 1K Ohms resistor )
 #define SONAR_EXTI_LINE             EXTI_Line0
 #define SONAR_EXTI_PIN_SOURCE       GPIO_PinSource0
 #define SONAR_EXTI_IRQN             EXTI0_IRQn

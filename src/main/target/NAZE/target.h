@@ -39,27 +39,23 @@
 #define BARO_EOC_PIN     Pin_14
 #define BARO_APB2_PERIPHERALS RCC_APB2Periph_GPIOC
 
+
 // SPI2
 // PB15 28 SPI2_MOSI
 // PB14 27 SPI2_MISO
 // PB13 26 SPI2_SCK
 // PB12 25 SPI2_NSS
-
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 
 #define NAZE_SPI_INSTANCE     SPI2
-#define NAZE_SPI_CS_GPIO      GPIOB
-#define NAZE_SPI_CS_PIN       GPIO_Pin_12
+#define NAZE_SPI_CS_PIN       PB12
 #define NAZE_CS_GPIO_CLK_PERIPHERAL RCC_APB2Periph_GPIOB
 
 // We either have this 16mbit flash chip on SPI or the MPU6500 acc/gyro depending on board revision:
-#define M25P16_CS_GPIO        NAZE_SPI_CS_GPIO
 #define M25P16_CS_PIN         NAZE_SPI_CS_PIN
 #define M25P16_SPI_INSTANCE   NAZE_SPI_INSTANCE
 
-#define MPU6500_CS_GPIO_CLK_PERIPHERAL   NAZE_CS_GPIO_CLK_PERIPHERAL
-#define MPU6500_CS_GPIO                  NAZE_SPI_CS_GPIO
 #define MPU6500_CS_PIN                   NAZE_SPI_CS_PIN
 #define MPU6500_SPI_INSTANCE             NAZE_SPI_INSTANCE
 
@@ -88,7 +84,7 @@
 #define GYRO_MPU6500_ALIGN CW0_DEG
 
 #define ACC
-#define USE_ACC_ADXL345
+//#define USE_ACC_ADXL345
 //#define USE_ACC_BMA280
 //#define USE_ACC_MMA8452
 #define USE_ACC_MPU6050
@@ -108,7 +104,7 @@
 
 #define MAG
 #define USE_MAG_HMC5883
-//#define USE_MAG_AK8975
+
 //#define USE_MAG_MAG3110
 
 #define MAG_HMC5883_ALIGN CW180_DEG
@@ -145,20 +141,19 @@
 #define SOFTSERIAL_2_TIMER_TX_HARDWARE 7 // PWM 8
 
 // USART3 only on NAZE32_SP - Flex Port
-#define USART3_RX_PIN Pin_11
-#define USART3_TX_PIN Pin_10
-#define USART3_GPIO GPIOB
+#define USART3_RX_PIN PB11
+#define USART3_TX_PIN PB10
 #define USART3_APB1_PERIPHERALS RCC_APB1Periph_USART3
 #define USART3_APB2_PERIPHERALS RCC_APB2Periph_GPIOB
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2)
 
-//#define USE_RX_NRF24
+// #define SOFT_I2C // enable to test software i2c
 #ifdef USE_RX_NRF24
-
+// #define SOFT_I2C_PB1011 // If SOFT_I2C is enabled above, need to define pinout as well (I2C1 = PB67, I2C2 = PB1011)
 #define USE_RX_SYMA
-//#define USE_RX_V202
+// #define SOFT_I2C_PB67
 #define NRF24_DEFAULT_PROTOCOL NRF24RX_SYMA_X5C
 
 #define USE_SOFTSPI
@@ -202,7 +197,7 @@
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_MAX_WAYPOINTS       30
 
-#define LED_STRIP
+//#define LED_STRIP
 #define LED_STRIP_TIMER     TIM3
 
 #define SPEKTRUM_BIND
@@ -213,8 +208,8 @@
 //#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_MOTOR_COUNT 8
-
-// alternative defaults for ALIENFLIGHTF1 F1 target
+// alternative defaults for AlienWii32 F1 target
+// alternative defaults for AlienWii32 F1 target
 #ifdef ALIENFLIGHTF1
 #undef TARGET_BOARD_IDENTIFIER
 #define TARGET_BOARD_IDENTIFIER "AFF1" // ALIENFLIGHTF1
@@ -224,14 +219,14 @@
 #define DEFAULT_FEATURES FEATURE_MOTOR_STOP
 
 #define HARDWARE_BIND_PLUG
-// Hardware bind plug at PB5 (Pin 41)
+
 #define BINDPLUG_PORT  GPIOB
 #define BINDPLUG_PIN   Pin_5
-#endif // ALIENFLIGHTF1
+#endif // ALIENWII32
 
 #ifdef MICROSCISKY
 #undef TARGET_BOARD_IDENTIFIER
-#define TARGET_BOARD_IDENTIFIER "MSKY" // Micro sciSKY
+#define TARGET_BOARD_IDENTIFIER "MSKY" // Micro SKYsci
 #define BRUSHED_MOTORS
 #define USE_QUAD_MIXER_ONLY
 #undef USE_SERVOS
