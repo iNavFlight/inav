@@ -15,26 +15,41 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
 
-#pragma once
+#include "platform.h"
+#include "io.h"
+#include "system.h"
 
-#include "drivers/io.h"
+static IO_t usbDetectPin = IO_NONE;
 
-// old EXTI interface, to be replaced
-typedef struct extiConfig_s {
-    ioTag_t tag;
-} extiConfig_t;
+void usbCableDetectDeinit(void)
+{
+#ifdef USB_DETECT_PIN
+    IOInit(usbDetectPin, OWNER_FREE, RESOURCE_NONE);
+    IOConfigGPIO(usbDetectPin, IOCFG_IN_FLOATING);
+    usbDetectPin = IO_NONE;
+#endif
+}
 
-typedef struct extiCallbackRec_s extiCallbackRec_t;
-typedef void extiHandlerCallback(extiCallbackRec_t *self);
+void usbCableDetectInit(void)
+{
+#ifdef USB_DETECT_PIN
+    usbDetectPin = IOGetByTag(IO_TAG(USB_DETECT_PIN));
 
-struct extiCallbackRec_s {
-    extiHandlerCallback *fn;
-};
+    IOInit(usbDetectPin, OWNER_USB, RESOURCE_INPUT);
+    IOConfigGPIO(usbDetectPin, IOCFG_OUT_PP);
+#endif
+}
 
-void EXTIInit(void);
+bool usbCableIsInserted(void)
+{
+    bool result = false;
 
-void EXTIHandlerInit(extiCallbackRec_t *cb, extiHandlerCallback *fn);
-void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_TypeDef trigger);
-void EXTIRelease(IO_t io);
-void EXTIEnable(IO_t io, bool enable);
+#ifdef USB_DETECT_PIN
+    result = IORead(usbDetectPin) != 0;
+#endif
+
+    return result;
+}

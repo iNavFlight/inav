@@ -15,26 +15,10 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #pragma once
 
-#include "drivers/io.h"
+void usbGenerateDisconnectPulse(void);
 
-// old EXTI interface, to be replaced
-typedef struct extiConfig_s {
-    ioTag_t tag;
-} extiConfig_t;
-
-typedef struct extiCallbackRec_s extiCallbackRec_t;
-typedef void extiHandlerCallback(extiCallbackRec_t *self);
-
-struct extiCallbackRec_s {
-    extiHandlerCallback *fn;
-};
-
-void EXTIInit(void);
-
-void EXTIHandlerInit(extiCallbackRec_t *cb, extiHandlerCallback *fn);
-void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_TypeDef trigger);
-void EXTIRelease(IO_t io);
-void EXTIEnable(IO_t io, bool enable);
+void usbCableDetectDeinit(void);
+void usbCableDetectInit(void);
+bool usbCableIsInserted(void);
