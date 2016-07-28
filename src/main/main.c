@@ -110,7 +110,7 @@ void serialInit(serialConfig_t *initialSerialConfig, bool softserialEnabled);
 void mspInit();
 void cliInit(serialConfig_t *serialConfig);
 void failsafeInit(rxConfig_t *intialRxConfig, uint16_t deadband3d_throttle);
-pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init);
+pwmOutputConfiguration_t *pwmInit(drv_pwm_config_t *init);
 #ifdef USE_SERVOS
 void mixerInit(mixerMode_e mixerMode, motorMixer_t *customMotorMixers, servoMixer_t *customServoMixers);
 #else
@@ -283,7 +283,7 @@ void init(void)
     pwm_params.servoPwmRate = masterConfig.servo_pwm_rate;
 #endif
 
-    pwm_params.useOneshot = feature(FEATURE_ONESHOT125);
+    pwm_params.useFastPwm = feature(FEATURE_ONESHOT125);
     pwm_params.motorPwmRate = masterConfig.motor_pwm_rate;
     pwm_params.idlePulse = masterConfig.escAndServoConfig.mincommand;
     if (feature(FEATURE_3D))
