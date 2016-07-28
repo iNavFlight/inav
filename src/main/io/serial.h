@@ -33,7 +33,8 @@ typedef enum {
     FUNCTION_TELEMETRY_SMARTPORT = (1 << 5), // 32
     FUNCTION_RX_SERIAL           = (1 << 6), // 64
     FUNCTION_BLACKBOX            = (1 << 7), // 128
-    FUNCTION_TELEMETRY_MAVLINK   = (1 << 8)  // 256
+    FUNCTION_PASSTHROUGH         = (1 << 8), // 256
+    FUNCTION_TELEMETRY_MAVLINK   = (1 << 9), // 512
 } serialPortFunction_e;
 
 typedef enum {
@@ -56,6 +57,8 @@ typedef enum {
     SERIAL_PORT_USART2,
     SERIAL_PORT_USART3,
     SERIAL_PORT_USART4,
+    SERIAL_PORT_USART5,
+    SERIAL_PORT_USART6,
     SERIAL_PORT_USB_VCP = 20,
     SERIAL_PORT_SOFTSERIAL1 = 30,
     SERIAL_PORT_SOFTSERIAL2,
@@ -93,6 +96,7 @@ typedef struct serialConfig_s {
     serialPortConfig_t portConfigs[SERIAL_PORT_COUNT];
 } serialConfig_t;
 
+typedef void serialConsumer(uint8_t);
 
 //
 // configuration
@@ -109,7 +113,7 @@ serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function);
 portSharing_e determinePortSharing(serialPortConfig_t *portConfig, serialPortFunction_e function);
 bool isSerialPortShared(serialPortConfig_t *portConfig, uint16_t functionMask, serialPortFunction_e sharedWithFunction);
 
-
+serialPortUsage_t *findSerialPortUsageByIdentifier(serialPortIdentifier_e identifier);
 
 //
 // runtime
@@ -134,3 +138,7 @@ baudRate_e lookupBaudRateIndex(uint32_t baudRate);
 //
 void evaluateOtherData(serialPort_t *serialPort, uint8_t receivedChar);
 void handleSerial(void);
+
+void evaluateOtherData(serialPort_t *serialPort, uint8_t receivedChar);
+void handleSerial(void);
+void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer *leftC, serialConsumer *rightC);
