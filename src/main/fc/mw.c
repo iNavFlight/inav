@@ -282,7 +282,7 @@ void processRx(void)
 
     updateRSSI(currentTime);
 
-    if (feature(FEATURE_FAILSAFE)) {
+    if (feature(FEATURE_FAILSAFE) && (rcData[THROTTLE] > 1050 || !(masterConfig.failsafeConfig.disable_failsafe_on_throttle_cut))) {
 
         if (currentTime > FAILSAFE_POWER_ON_DELAY_US && !failsafeIsMonitoring()) {
             failsafeStartMonitoring();
