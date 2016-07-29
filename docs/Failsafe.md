@@ -39,6 +39,8 @@ Note that:
 
 * Prior to starting a stage 2 intervention it is checked if the throttle position was below `min_throttle` level for the last `failsafe_throttle_low_delay` seconds. If it was, the craft is assumed to be on the ground and is only disarmed. It may be re-armed without a power cycle.     
 
+* Failsafe activation is disabled if `disable_failsafe_on_throttle_cut` is set to `ON` and throttle is below 1050.
+
 Some notes about **SAFETY**:
 * The failsafe system will be activated regardless of current throttle position. So when the failsafe intervention is aborted (RC signal restored/failsafe switch set to OFF) the current stick position will direct the craft !
 * The craft may already be on the ground with motors stopped and that motors and props could spin again - the software does not currently detect if the craft is on the ground.  Take care when using `MOTOR_STOP` feature. **Props will spin up without warning**, when armed with `MOTOR_STOP` feature ON (props are not spinning) **_and_** failsafe is activated !
@@ -98,6 +100,10 @@ Configure the rc switched failsafe action: the same action as when the rc link i
 Time throttle level must have been below 'min_throttle' to _only disarm_ instead of _full failsafe procedure_.
 
 Use standard RX usec values.  See Rx documentation.
+
+### `disable_failsafe_on_throttle_cut`
+
+Prevent failsafe activation if throttle is below 1050.
 
 ### `failsafe_procedure`
 
