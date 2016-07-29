@@ -35,3 +35,4 @@ void taskLedStrip(void);
 void taskSystem(void);
 void taskGyro(void);
 void taskAcc(void);
+void taskAttitude(void);

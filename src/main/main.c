@@ -586,6 +586,7 @@ int main(void)
 
     rescheduleTask(TASK_ACC, 1000000 / getAccUpdateFrequency());
     setTaskEnabled(TASK_ACC, feature(FEATURE_RACE) && sensors(SENSOR_ACC));
+    setTaskEnabled(TASK_ATTI, feature(FEATURE_RACE) && sensors(SENSOR_ACC));
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER
