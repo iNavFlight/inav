@@ -81,6 +81,7 @@ static uint8_t  skipRxSamples = 0;
 
 int16_t rcRaw[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
+int16_t rcDataLastValidThrottleValue;                    // interval [1000;2000]
 uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 #define MAX_INVALID_PULS_TIME    300
@@ -553,6 +554,9 @@ static void detectAndApplySignalLossBehaviour(void)
         } else {
             rcData[channel] = calculateNonDataDrivenChannel(channel, sample);
         }
+
+        if (validPulse && useValueFromRx && channel == THROTTLE)
+            rcDataLastValidThrottleValue = rcData[THROTTLE];
     }
 
     rxFlightChannelsValid = rxHaveValidFlightChannels();
