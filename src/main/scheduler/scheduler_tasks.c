@@ -35,7 +35,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "PID",
         .taskFunc = taskMainPidLoopChecker,
         .desiredPeriod = 1000000 / 500, // Run at 500Hz
-        .staticPriority = TASK_PRIORITY_REALTIME,
+        .staticPriority = TASK_PRIORITY_HIGH,
     },
 
     [TASK_GYRO] = {
