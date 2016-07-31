@@ -35,22 +35,22 @@
  */
 
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+
+#include "platform.h"
+
+#ifdef TELEMETRY
 
 #include "common/utils.h"
-#include "platform.h"
 #include "build_config.h"
 #include "drivers/system.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
 #include "io/serial.h"
+#include "rx/rx.h"
 #include "rx/jetiexbus.h"
 
-
-#ifdef TELEMETRY
-
-#include <string.h>
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
 #include "sensors/barometer.h"
