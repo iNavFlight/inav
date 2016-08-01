@@ -36,11 +36,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "platform.h"
-
-#ifdef TELEMETRY
 
 #include "common/utils.h"
 #include "build_config.h"
@@ -51,10 +48,15 @@
 #include "rx/rx.h"
 #include "rx/jetiexbus.h"
 
+
+#ifdef TELEMETRY
+
+#include <string.h>
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
 #include "sensors/barometer.h"
 #include "telemetry/telemetry.h"
+#include "telemetry/jetiexbus.h"
 
 #endif //TELEMETRY
 
