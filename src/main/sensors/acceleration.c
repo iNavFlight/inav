@@ -52,7 +52,6 @@ static flightDynamicsTrims_t * accGain;
 
 static int8_t accLpfCutHz = 0;
 static biquadFilter_t accFilterState[XYZ_AXIS_COUNT];
-static pt1Filter_t fastAccFilterState[XYZ_AXIS_COUNT];
 static bool accFilterInitialised = false;
 
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired)
@@ -186,28 +185,14 @@ void updateAccelerationReadings(void)
     if (accLpfCutHz) {
         /* Initialisation needs to happen once sample rate is known */
         if (!accFilterInitialised) {
-            for (int axis = 0; axis < 3; axis++) {
-                // if (feature(FEATURE_RACE)) {
-                    double dT = 1 / getAccUpdateFrequency();
-                    pt1FilterInit(&fastAccFilterState[axis], accLpfCutHz, dT);
-                // } else {
-                    biquadFilterInit(&accFilterState[axis], accLpfCutHz, getAccUpdateFrequency());
-                // }
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                biquadFilterInit(&accFilterState[axis], accLpfCutHz, getAccUpdateFrequency());
             }
 
             accFilterInitialised = true;
         } else {
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-                // if (feature(FEATURE_RACE)) {
-                    // accADC[axis] = lrintf(pt1FilterApply(&fastAccFilterState[axis], (float) accADC[axis]));
-                // } else {
-                    accADC[axis] = lrintf(biquadFilterApply(&accFilterState[axis], (float) accADC[axis]));
-                    if (axis == 0) {
-                        debug[0] = accADC[0];
-                        debug[1] = lrintf(pt1FilterApply(&fastAccFilterState[axis], (float) accADC[0]));
-                        debug[2] = debug[0] - debug[1];
-                    }
-                // }
+                accADC[axis] = lrintf(biquadFilterApply(&accFilterState[axis], (float) accADC[axis]));
             }
         }
     }
