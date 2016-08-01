@@ -114,9 +114,9 @@
 #define SONAR_TRIGGER_PIN_PWM   PB8
 #define SONAR_ECHO_PIN_PWM      PB9
 
-#define USE_USART1
-#define USE_USART2
-#define USE_USART3
+#define USE_UART1
+#define USE_UART2
+#define USE_UART3
 #define USE_SOFTSERIAL1
 #define USE_SOFTSERIAL2
 #define SERIAL_PORT_COUNT       5
@@ -129,11 +129,8 @@
 #define SOFTSERIAL_2_TIMER_TX_HARDWARE 7 // PWM 8
 
 // USART3 only on NAZE32_SP - Flex Port
-#define USART3_RX_PIN           Pin_11
-#define USART3_TX_PIN           Pin_10
-#define USART3_GPIO             GPIOB
-#define USART3_APB1_PERIPHERALS RCC_APB1Periph_USART3
-#define USART3_APB2_PERIPHERALS RCC_APB2Periph_GPIOB
+#define UART3_RX_PIN            PB11
+#define UART3_TX_PIN            PB10
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2)
@@ -197,12 +194,14 @@
 #define NAV_MAX_WAYPOINTS       30
 
 //#define LED_STRIP
-#define LED_STRIP_TIMER     TIM3
+#define WS2811_TIMER                    TIM3
+#define WS2811_PIN                      PA6
+#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
 #define SPEKTRUM_BIND
 // USART2, PA3
-#define BIND_PORT  GPIOA
-#define BIND_PIN   Pin_3
+#define BIND_PIN                        PA3
 
 //#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

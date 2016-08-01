@@ -56,32 +56,20 @@
 //#define MAG_AK8975_ALIGN CW0_DEG_FLIP
 
 #define USE_VCP
-#define USE_USART1 // Not connected - TX (PB6) RX PB7 (AF7)
-#define USE_USART2 // Receiver - RX (PA3)
-#define USE_USART3 // Not connected - 10/RX (PB11) 11/TX (PB10)
-#define SERIAL_PORT_COUNT   4
+#define USE_UART1 // Not connected - TX (PB6) RX PB7 (AF7)
+#define USE_UART2 // Receiver - RX (PA3)
+#define USE_UART3 // Not connected - 10/RX (PB11) 11/TX (PB10)
+#define SERIAL_PORT_COUNT       4
+#define AVOID_UART3_FOR_PWM_PPM
 
-#define UART1_TX_PIN        GPIO_Pin_6 // PB6
-#define UART1_RX_PIN        GPIO_Pin_7 // PB7
-#define UART1_GPIO          GPIOB
-#define UART1_GPIO_AF       GPIO_AF_7
-#define UART1_TX_PINSOURCE  GPIO_PinSource6
-#define UART1_RX_PINSOURCE  GPIO_PinSource7
+#define UART1_TX_PIN            PB6
+#define UART1_RX_PIN            PB7
 
-#define UART2_TX_PIN        GPIO_Pin_2 // PA2
-#define UART2_RX_PIN        GPIO_Pin_3 // PA3
-#define UART2_GPIO          GPIOA
-#define UART2_GPIO_AF       GPIO_AF_7
-#define UART2_TX_PINSOURCE  GPIO_PinSource2
-#define UART2_RX_PINSOURCE  GPIO_PinSource3
+#define UART2_TX_PIN            PA2
+#define UART2_RX_PIN            PA3
 
-#define UART3_TX_PIN        GPIO_Pin_10 // PB10 (AF7)
-#define UART3_RX_PIN        GPIO_Pin_11 // PB11 (AF7)
-#define UART3_GPIO_AF       GPIO_AF_7
-#define UART3_GPIO          GPIOB
-#define UART3_TX_PINSOURCE  GPIO_PinSource10
-#define UART3_RX_PINSOURCE  GPIO_PinSource11
-
+#define UART3_TX_PIN            PB10
+#define UART3_RX_PIN            PB11
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_2) // SDA (PA10/AF4), SCL (PA9/AF4)
@@ -106,9 +94,9 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_3
 
-#define M25P16_CS_GPIO        GPIOA
-#define M25P16_CS_PIN         GPIO_Pin_15
-#define M25P16_SPI_INSTANCE   SPI3
+#define M25P16_CS_GPIO          GPIOA
+#define M25P16_CS_PIN           GPIO_Pin_15
+#define M25P16_SPI_INSTANCE     SPI3
 
 #define MPU6500_CS_GPIO_CLK_PERIPHERAL   RCC_AHBPeriph_GPIOA
 #define MPU6500_CS_GPIO                  GPIOA
@@ -116,15 +104,14 @@
 #define MPU6500_SPI_INSTANCE             SPI3
 
 #define USE_ADC
-#define ADC_INSTANCE          ADC2
-#define ADC_DMA_CHANNEL       DMA2_Channel1
-#define ADC_AHB_PERIPHERAL    RCC_AHBPeriph_DMA2
-#define VBAT_ADC_PIN          PA4
+#define ADC_INSTANCE            ADC2
+#define ADC_DMA_CHANNEL         DMA2_Channel1
+#define ADC_AHB_PERIPHERAL      RCC_AHBPeriph_DMA2
+#define VBAT_ADC_PIN            PA4
 
 #define SPEKTRUM_BIND
 // USART2, PA3
-#define BIND_PORT  GPIOA
-#define BIND_PIN   Pin_3
+#define BIND_PIN                PA3
 
 // alternative defaults for ALIENFLIGHTF3 target
 #define HARDWARE_BIND_PLUG
@@ -146,6 +133,12 @@
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
 #undef TELEMETRY_LTM
+
+#define BRUSHED_MOTORS
+#define DEFAULT_FEATURES        FEATURE_MOTOR_STOP
+#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define SERIALRX_PROVIDER       SERIALRX_SPEKTRUM2048
+#define SERIALRX_UART           SERIAL_PORT_USART3
 
 // IO - assuming 303 in 64pin package, TODO
 #define TARGET_IO_PORTA         0xffff
