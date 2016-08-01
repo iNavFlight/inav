@@ -20,8 +20,6 @@
 #define TARGET_BOARD_IDENTIFIER "AFNA" // AFroNAze - NAZE might be considered misleading on Naze clones like the flip32.
 #define USE_HARDWARE_REVISION_DETECTION
 
-#define BOARD_HAS_VOLTAGE_DIVIDER
-
 #define LED0                    PB3
 #define LED1                    PB4
 
@@ -121,10 +119,10 @@
 #define USE_SOFTSERIAL2
 #define SERIAL_PORT_COUNT       5
 
-#define SOFTSERIAL_1_TIMER TIM3
+#define SOFTSERIAL_1_TIMER      TIM3
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 4 // PWM 5
 #define SOFTSERIAL_1_TIMER_TX_HARDWARE 5 // PWM 6
-#define SOFTSERIAL_2_TIMER TIM3
+#define SOFTSERIAL_2_TIMER      TIM3
 #define SOFTSERIAL_2_TIMER_RX_HARDWARE 6 // PWM 7
 #define SOFTSERIAL_2_TIMER_TX_HARDWARE 7 // PWM 8
 
@@ -145,7 +143,7 @@
 #define USE_RX_CX10
 #define USE_RX_H8_3D
 #define USE_RX_REF
-#define USE_RX_SYMA
+//#define USE_RX_SYMA
 //#define USE_RX_V202
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_SYMA_X5C
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_REF
@@ -207,6 +205,8 @@
 
 #define TARGET_MOTOR_COUNT      6
 #define DISABLE_UNCOMMON_MIXERS
+
+#define DEFAULT_FEATURES        FEATURE_VBAT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 
 #undef TELEMETRY_FRSKY

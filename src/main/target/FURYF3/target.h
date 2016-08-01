@@ -136,12 +136,9 @@
 #define UART2_TX_PIN            PA14
 #define UART2_RX_PIN            PA15
 
-<<<<<<< HEAD
-=======
 #define UART3_TX_PIN            PB10 // PB10 (AF7)
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
->>>>>>> New IO for UARTs, LED_STRIP and BIND_PIN
 #define SOFTSERIAL_1_TIMER      TIM3
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 1
 #define SOFTSERIAL_1_TIMER_TX_HARDWARE 2
