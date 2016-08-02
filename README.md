@@ -2,18 +2,20 @@
 
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
 
+[![Join the chat at https://gitter.im/iNavFlight/inav](https://badges.gitter.im/iNavFlight/inav.svg)](https://gitter.im/iNavFlight/inav?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Clean-code version of baseflight flight-controller - flight controllers are used to fly multi-rotor craft and fixed wing craft.
 
-This fork differs from baseflight in that it attempts to use modern software development practices which result in:
+## Important: PID values and scaling
 
-1. greater reliability through code robustness and automated testing.
-2. easier maintenance through code cleanliness.
-3. easier to develop new features.
-4. easier to re-use code though code de-coupling and modularisation.
+Starting at 22-06-2016 INAV uses the same scaling for PIDs as Cleanflight/Betaflight LuxFloat and MWRewrite PID controllers. That means the following:
 
-The MultiWii software, from which baseflight originated, violates many good software development best-practices. Hopefully this fork will go some way to address them. If you see any bad code in this fork please immediately raise an issue so it can be fixed, or better yet submit a pull request.
+* PIDs from CF/BF can be used in INAV, no need to retune for INAV
+* INAV uses the same PID defaults that Cleanflight and Betaflight
+* Current INAV tunes can be converted to new using [this guide](https://github.com/iNavFlight/inav/wiki/PID-conversion-from-pre-1.2-to-1.2). This applies to all INAV 1.1
+* [Conversion spreadsheet](https://docs.google.com/spreadsheets/d/133vfzz6_38W5nUmoRNuP7ZX9V1E-8IG6x0FxuxkBuQg/edit?usp=sharing)
 
-## Additional Features
+## Features
 
 * Multi-color RGB LED Strip support (each LED can be a different color using variable length WS2811 Addressable RGB strips - use for Orientation Indicators, Low Battery Warning, Flight Mode Status, etc)
 * Oneshot ESC support.
