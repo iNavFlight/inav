@@ -158,7 +158,7 @@ size_t custom_flash_memory_address = 0;
 #define CONFIG_START_FLASH_ADDRESS (custom_flash_memory_address)
 #else
 // use the last flash pages for storage
-#ifndef CONFIG_START_FLASH_ADDRESS 
+#ifndef CONFIG_START_FLASH_ADDRESS
 #define CONFIG_START_FLASH_ADDRESS (0x08000000 + (uint32_t)((FLASH_PAGE_SIZE * FLASH_PAGE_COUNT) - FLASH_TO_RESERVE_FOR_CONFIG))
 #endif
 #endif
@@ -425,6 +425,18 @@ void resetMixerConfig(mixerConfig_t *mixerConfig) {
 #endif
 }
 
+uint32_t getLooptime(void) {
+    return masterConfig.looptime;
+}
+
+uint32_t getAccUpdateFrequency(void) {
+    if (feature(FEATURE_RACE)) {
+        return masterConfig.accTaskFrequency;
+    } else {
+        return 1000000 / getLooptime();
+    }
+}
+
 uint8_t getCurrentProfile(void)
 {
     return masterConfig.current_profile_index;
@@ -566,7 +578,8 @@ static void resetConf(void)
     masterConfig.looptime = 2000;
     masterConfig.i2c_overclock = 0;
     masterConfig.gyroSync = 0;
-    masterConfig.gyroSyncDenominator = 2;
+    masterConfig.gyroSyncDenominator = 8;
+    masterConfig.accTaskFrequency = ACC_TASK_FREQUENCY;
 
     resetPidProfile(&currentProfile->pidProfile);
 
@@ -918,8 +931,8 @@ static void validateAndFixConfig(void)
 
 #ifdef STM32F10X
     // avoid overloading the CPU on F1 targets when using gyro sync and GPS.
-    if (masterConfig.gyroSync && masterConfig.gyroSyncDenominator < 2 && featureConfigured(FEATURE_GPS)) {
-        masterConfig.gyroSyncDenominator = 2;
+    if (masterConfig.gyroSyncDenominator < 8 && featureConfigured(FEATURE_GPS)) {
+        masterConfig.gyroSyncDenominator = 8;
     }
 
     // avoid overloading the CPU when looptime < 2000 and GPS
@@ -993,6 +1006,11 @@ static void validateAndFixConfig(void)
         masterConfig.serialConfig.portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
     }
 #endif
+
+    //FIXME this is only override for separated gyro/pid loop, has to be fixed at one point
+    masterConfig.gyroSync = 1;
+    // masterConfig.gyroSyncDenominator = 8; //Run at 1000Hz
+    masterConfig.gyro_lpf = 0; //Force 256Hz LPF on gyro
 
     useRxConfig(&masterConfig.rxConfig);
 

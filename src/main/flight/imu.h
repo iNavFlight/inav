@@ -50,7 +50,7 @@ typedef struct imuRuntimeConfig_s {
 
 void imuConfigure(imuRuntimeConfig_t *initialImuRuntimeConfig, pidProfile_t *initialPidProfile);
 
-void imuUpdateGyroAndAttitude(void);
+void imuUpdateAttitude(void);
 void imuUpdateAccelerometer(void);
 float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompensationStrength);
 float calculateCosTiltAngle(void);

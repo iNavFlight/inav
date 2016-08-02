@@ -31,11 +31,32 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 
-    [TASK_GYROPID] = {
-        .taskName = "GYRO/PID",
-        .taskFunc = taskMainPidLoopChecker,
-        .desiredPeriod = 1000,
+    [TASK_PID] = {
+        .taskName = "PID",
+        .taskFunc = taskMainPidLoop,
+        .desiredPeriod = 1000000 / 500, // Run at 500Hz
         .staticPriority = TASK_PRIORITY_REALTIME,
+    },
+
+    [TASK_GYRO] = {
+        .taskName = "GYRO",
+        .taskFunc = taskGyro,
+        .desiredPeriod = 1000000 / 1000, //Run at 1000Hz
+        .staticPriority = TASK_PRIORITY_REALTIME,
+    },
+
+    [TASK_ACC] = {
+        .taskName = "ACC",
+        .taskFunc = taskAcc,
+        .desiredPeriod = 1000000 / 520, //520Hz is ACC bandwidth (260Hz) * 2
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
+
+    [TASK_ATTI] = {
+        .taskName = "ATTITUDE",
+        .taskFunc = taskAttitude,
+        .desiredPeriod = 1000000 / 60, //With acc LPF at 15Hz 60Hz attitude refresh should be enough
+        .staticPriority = TASK_PRIORITY_HIGH,
     },
 
     [TASK_SERIAL] = {

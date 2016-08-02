@@ -562,8 +562,15 @@ int main(void)
     /* Setup scheduler */
     schedulerInit();
 
-    rescheduleTask(TASK_GYROPID, targetLooptime);
-    setTaskEnabled(TASK_GYROPID, true);
+    rescheduleTask(TASK_PID, getLooptime());
+    setTaskEnabled(TASK_PID, true);
+
+    rescheduleTask(TASK_GYRO, targetGyroLooptime);
+    setTaskEnabled(TASK_GYRO, true);
+
+    rescheduleTask(TASK_ACC, 1000000 / getAccUpdateFrequency());
+    setTaskEnabled(TASK_ACC, feature(FEATURE_RACE) && sensors(SENSOR_ACC));
+    setTaskEnabled(TASK_ATTI, feature(FEATURE_RACE) && sensors(SENSOR_ACC));
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER

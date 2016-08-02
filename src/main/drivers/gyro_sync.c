@@ -33,7 +33,7 @@
 
 extern gyro_t gyro;
 
-uint32_t targetLooptime;
+uint32_t targetGyroLooptime;
 static uint8_t mpuDividerDrops;
 
 bool getMpuDataStatus(gyro_t *gyro)
@@ -52,16 +52,15 @@ void gyroSetSampleRate(uint32_t looptime, uint8_t lpf, uint8_t gyroSync, uint8_t
         int gyroSamplePeriod;
         if (lpf == 0) {
             gyroSamplePeriod = 125;
-
         } else {
             gyroSamplePeriod = 1000;
         }
 
         mpuDividerDrops  = gyroSyncDenominator - 1;
-        targetLooptime = gyroSyncDenominator * gyroSamplePeriod;
+        targetGyroLooptime = gyroSyncDenominator * gyroSamplePeriod;
     } else {
         mpuDividerDrops = 0;
-        targetLooptime = looptime;
+        targetGyroLooptime = looptime;
     }
 }
 

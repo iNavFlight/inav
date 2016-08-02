@@ -25,6 +25,7 @@
 #include "common/maths.h"
 
 #include "drivers/gyro_sync.h"
+#include "config/config.h"
 
 #define BIQUAD_Q    (1.0f / 1.41421356f)     /* quality factor - butterworth (1 / sqrt(2)) */
 #define M_PI_FLOAT  3.14159265358979323846f
@@ -37,7 +38,7 @@ void biquadFilterInit(biquadFilter_t *newState, uint8_t filterCutFreq, int16_t s
 
     /* If sampling rate == 0 - use main loop target rate */
     if (!samplingRate) {
-        samplingRate = 1000000 / targetLooptime;
+        samplingRate = 1000000 / getLooptime();
     }
 
     /* setup variables */

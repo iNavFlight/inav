@@ -38,6 +38,8 @@
 
 #include "sensors/acceleration.h"
 
+#include "debug.h"
+
 acc_t acc;                       // acc access functions
 int32_t accADC[XYZ_AXIS_COUNT];
 sensor_align_e accAlign = 0;
@@ -91,7 +93,7 @@ int getPrimaryAxisIndex(int32_t sample[3])
         //Y-axis
         return (sample[Y] > 0) ? 4 : 5;
     }
-    else 
+    else
         return -1;
 }
 
@@ -181,17 +183,14 @@ void updateAccelerationReadings(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) accADC[axis] = accADCRaw[axis];
 
     if (accLpfCutHz) {
+        /* Initialisation needs to happen once sample rate is known */
         if (!accFilterInitialised) {
-            if (targetLooptime) {  /* Initialisation needs to happen once sample rate is known */
-                for (int axis = 0; axis < 3; axis++) {
-                    biquadFilterInit(&accFilterState[axis], accLpfCutHz, 0);
-                }
-
-                accFilterInitialised = true;
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                biquadFilterInit(&accFilterState[axis], accLpfCutHz, getAccUpdateFrequency());
             }
-        }
 
-        if (accFilterInitialised) {
+            accFilterInitialised = true;
+        } else {
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 accADC[axis] = lrintf(biquadFilterApply(&accFilterState[axis], (float) accADC[axis]));
             }

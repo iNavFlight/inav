@@ -523,8 +523,13 @@ void taskMainPidLoop(void)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    imuUpdateAccelerometer();
-    imuUpdateGyroAndAttitude();
+    /*
+     * Acc update is run in sync with PID loop only when RACE mode is not enabled
+     */
+    if (!feature(FEATURE_RACE) && sensors(SENSOR_ACC)) {
+        imuUpdateAccelerometer();
+        imuUpdateAttitude();
+    }
 
     annexCode();
 
@@ -624,21 +629,29 @@ void taskMainPidLoop(void)
 #endif
 }
 
-// Function for loop trigger
-void taskMainPidLoopChecker(void) {
-    // getTaskDeltaTime() returns delta time freezed at the moment of entering the scheduler. currentTime is freezed at the very same point.
-    // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
+/*
+ * This task does only gyro reading and filtering
+ */
+void taskGyro(void) {
     uint32_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
 
     if (masterConfig.gyroSync) {
         while (1) {
-            if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (targetLooptime + GYRO_WATCHDOG_DELAY))) {
+            if (gyroSyncCheckUpdate() || ((currentDeltaTime + (micros() - currentTime)) >= (targetGyroLooptime + GYRO_WATCHDOG_DELAY))) {
                 break;
             }
         }
     }
 
-    taskMainPidLoop();
+    gyroUpdate();
+}
+
+void taskAttitude(void) {
+    imuUpdateAttitude();
+}
+
+void taskAcc(void) {
+    imuUpdateAccelerometer();
 }
 
 void taskHandleSerial(void)
