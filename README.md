@@ -64,8 +64,10 @@ https://gitter.im/iNavFlight/inav
 
 ## Configuration Tool
 
-To configure INAV you should use the INAV-configurator GUI tool (Windows/OSX/Linux) [//]: # (that can be found here:
-https://chrome.google.com/webstore/detail/inav-configurator/)
+To configure INAV you should use the INAV-configurator GUI tool (Windows/OSX/Linux).
+
+[//]: # (Can be found here: https://chrome.google.com/webstore/detail/inav-configurator/)
+
 The source for it is here:
 https://github.com/iNavFlight/inav-configurator
 
