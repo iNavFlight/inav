@@ -60,17 +60,13 @@ If what you need is not covered then refer to the baseflight documentation. If y
 
 There's a dedicated IRC channel here:
 
-irc://irc.freenode.net/#inavflight
-
-If you are using windows and don't have an IRC client installed then take a look at HydraIRC - here: http://hydrairc.com/
-
-Etiquette: Don't ask to ask and please wait around long enough for a reply - sometimes people are out flying, asleep or at work and can't answer immediately.
+https://gitter.im/iNavFlight/inav
 
 ## Configuration Tool
 
-To configure INAV you should use the INAV-configurator GUI tool (Windows/OSX/Linux).
+To configure INAV you should use the INAV-configurator GUI tool (Windows/OSX/Linux) [//]: # (that can be found here:
+https://chrome.google.com/webstore/detail/inav-configurator/)
 The source for it is here:
-
 https://github.com/iNavFlight/inav-configurator
 
 ## Contributing
@@ -83,8 +79,11 @@ Contributions are welcome and encouraged.  You can contribute in many ways:
 * New features.
 * Telling us your ideas and suggestions.
 
-The best place to start is the IRC channel on freenode (see above), drop in, say hi. Next place is the github issue tracker:
+The best place to start is the IRC channel (see above) or the RCG Thread, drop in, say hi. 
 
+http://www.rcgroups.com/forums/showthread.php?t=2495732
+
+Next place is the github issue tracker:
 https://github.com/iNavFlight/inav/issues
 https://github.com/iNavFlight/inav-configurator/issues
 
@@ -92,7 +91,7 @@ Before creating new issues please check to see if there is an existing one, sear
 
 ## Developers
 
-Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav-configurator/tree/master/docs/development) folder.
+Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
 
 ## INAV Releases
 https://github.com/iNavFlight/inav-configurator/releases
