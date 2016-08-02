@@ -68,14 +68,21 @@ https://gitter.im/iNavFlight/inav
 
 To configure INAV you should use the INAV-configurator GUI tool (Windows/OSX/Linux).
 
-[//]: # (Can be found here: https://chrome.google.com/webstore/detail/inav-configurator/)
+Currently you have to download the sourcecode and load into Chrome manually from the github page [//]: # (Can be found here: https://chrome.google.com/webstore/detail/inav-configurator/)
 
 The source for it is here:
 https://github.com/iNavFlight/inav-configurator
 
+If you rather just want to use Cleanflight configurator you can download from here:
+https://chrome.google.com/webstore/detail/cleanflight-configurator/enacoimjcgeinfnnnpajinjgmkahmfgb
+
+
 ## Contributing
 
 Contributions are welcome and encouraged.  You can contribute in many ways:
+If you rather just want to use Cleanflight configurator you can download from here:
+https://chrome.google.com/webstore/detail/cleanflight-configurator/enacoimjcgeinfnnnpajinjgmkahmfgb
+
 
 * Documentation updates and corrections.
 * How-To guides - received help?  help others!
@@ -89,6 +96,7 @@ http://www.rcgroups.com/forums/showthread.php?t=2495732
 
 Next place is the github issue tracker:
 https://github.com/iNavFlight/inav/issues
+
 https://github.com/iNavFlight/inav-configurator/issues
 
 Before creating new issues please check to see if there is an existing one, search first otherwise you waste peoples time when they could be coding instead!
