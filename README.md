@@ -56,7 +56,7 @@ See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 
 There is lots of documentation here: https://github.com/iNavFlight/inav/tree/master/docs
 
-If what you need is not covered then refer to the baseflight documentation. If you still can't find what you need then visit the #cleanflight on the Freenode IRC network
+If what you need is not covered then refer to the baseflight documentation. If you still can't find what you need then visit the #iNavflight on the Freenode IRC network
 
 ## IRC Support and Developers Channel
 
@@ -80,9 +80,6 @@ https://chrome.google.com/webstore/detail/cleanflight-configurator/enacoimjcgein
 ## Contributing
 
 Contributions are welcome and encouraged.  You can contribute in many ways:
-If you rather just want to use Cleanflight configurator you can download from here:
-https://chrome.google.com/webstore/detail/cleanflight-configurator/enacoimjcgeinfnnnpajinjgmkahmfgb
-
 
 * Documentation updates and corrections.
 * How-To guides - received help?  help others!
@@ -90,11 +87,8 @@ https://chrome.google.com/webstore/detail/cleanflight-configurator/enacoimjcgein
 * New features.
 * Telling us your ideas and suggestions.
 
-The best place to start is the IRC channel (see above) or the RCG Thread, drop in, say hi. 
+The best place to start is the IRC channel on freenode (see above), drop in, say hi. Next place is the github issue tracker:
 
-http://www.rcgroups.com/forums/showthread.php?t=2495732
-
-Next place is the github issue tracker:
 https://github.com/iNavFlight/inav/issues
 
 https://github.com/iNavFlight/inav-configurator/issues
@@ -105,5 +99,6 @@ Before creating new issues please check to see if there is an existing one, sear
 
 Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
 
+
 ## INAV Releases
-https://github.com/iNavFlight/inav-configurator/releases
+https://github.com/iNavFlight/inav/releases
