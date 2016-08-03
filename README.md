@@ -68,7 +68,7 @@ https://gitter.im/iNavFlight/inav
 
 To configure INAV you should use the INAV-configurator GUI tool (Windows/OSX/Linux).
 
-Currently you have to download the sourcecode and load into Chrome manually from the github page [//]: # (Can be found here: https://chrome.google.com/webstore/detail/inav-configurator/)
+Currently you have to download the sourcecode and load into Chrome manually from the github page 
 
 The source for it is here:
 https://github.com/iNavFlight/inav-configurator
