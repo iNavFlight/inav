@@ -31,6 +31,7 @@
 #include "drivers/sensor.h"
 #include "drivers/system.h"
 #include "drivers/dma.h"
+#include "drivers/exti.h"
 #include "drivers/gpio.h"
 #include "drivers/light_led.h"
 #include "drivers/sound_beeper.h"
