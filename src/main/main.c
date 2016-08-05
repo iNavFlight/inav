@@ -126,8 +126,6 @@ void displayInit(rxConfig_t *intialRxConfig);
 void spektrumBind(rxConfig_t *rxConfig);
 const sonarHcsr04Hardware_t *sonarGetHardwareConfiguration(currentSensor_e currentSensor);
 
-void SetSysClock(void);
-
 typedef enum {
     SYSTEM_STATE_INITIALISING   = 0,
     SYSTEM_STATE_CONFIG_LOADED  = (1 << 0),
@@ -167,7 +165,6 @@ void init(void)
 
     systemState |= SYSTEM_STATE_CONFIG_LOADED;
 
-    SetSysClock();
     systemInit();
 
     i2cSetOverclock(masterConfig.i2c_overclock);
