@@ -284,19 +284,8 @@ static void pidApplySetpointRateLimiting(const pidProfile_t *pidProfile, pidStat
 {
     const uint32_t axisAccelLimit = (axis == FD_YAW) ? pidProfile->axisAccelerationLimitYaw : pidProfile->axisAccelerationLimitRollPitch;
 
-    float originalSetpoint;
-    if (axis == FD_YAW) {
-        originalSetpoint = pidState->rateTarget;
-    }
-
     if (axisAccelLimit > AXIS_ACCEL_MIN_LIMIT) {
         pidState->rateTarget = rateLimitFilterApply4(&pidState->axisAccelFilter, pidState->rateTarget, (float)axisAccelLimit, dT);
-    }
-
-    if (axis == FD_YAW) {
-        debug[0] = originalSetpoint;
-        debug[1] = pidState->rateTarget;
-        debug[2] = originalSetpoint - pidState->rateTarget;
     }
 }
 
