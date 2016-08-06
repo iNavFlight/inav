@@ -20,8 +20,6 @@
 #define TARGET_BOARD_IDENTIFIER "CJM1" // CJMCU
 #define USE_HARDWARE_REVISION_DETECTION
 
-#define BRUSHED_MOTORS
-
 #define LED0                    PC14
 #define LED1                    PC13
 #define LED2                    PC15
@@ -54,22 +52,19 @@
 #define USE_NRF24_SPI1
 
 // Nordic Semiconductor uses 'CSN', STM uses 'NSS'
-#define NRF24_CE_GPIO                   GPIOA
-#define NRF24_CE_PIN                    GPIO_Pin_4
 #define NRF24_CE_GPIO_CLK_PERIPHERAL    RCC_APB2Periph_GPIOA
-#define NRF24_CSN_GPIO                  GPIOA
-#define NRF24_CSN_PIN                   GPIO_Pin_11
+#define NRF24_CE_PIN                    PA4
 #define NRF24_CSN_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
-#define NRF24_IRQ_GPIO                  GPIOA
-#define NRF24_IRQ_PIN                   GPIO_Pin_8
+#define NRF24_CSN_PIN                   PA11
 #define NRF24_IRQ_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
+#define NRF24_IRQ_PIN                   PA8
 
 #define USE_RX_NRF24
 #define USE_RX_CX10
 #define USE_RX_H8_3D
 #define USE_RX_REF
 #define USE_RX_SYMA
-#define USE_RX_V202
+//#define USE_RX_V202
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_SYMA_X5C
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_REF
 #define NRF24_DEFAULT_PROTOCOL  NRF24RX_H8_3D
@@ -78,6 +73,7 @@
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_NRF24
 #define SKIP_RX_PWM_PPM
+#undef SERIAL_RX
 #else
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 #undef SKIP_RX_MSP
@@ -87,16 +83,15 @@
 #define BIND_PIN                PA3
 #endif //USE_RX_NRF24
 
+#define BRUSHED_MOTORS
 #define DEFAULT_FEATURES        FEATURE_MOTOR_STOP
+#define SKIP_SERIAL_PASSTHROUGH
 
 // Since the CJMCU PCB has holes for 4 motors in each corner we can save same flash space by disabling support for other mixers.
 #define USE_QUAD_MIXER_ONLY
 #undef USE_SERVOS
 
 #if (FLASH_SIZE <= 64)
-//#define SKIP_TASK_STATISTICS
-//#define SKIP_CLI_COMMAND_HELP
-#undef SERIAL_RX
 #undef BLACKBOX
 #endif
 
