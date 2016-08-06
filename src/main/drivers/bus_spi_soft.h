@@ -17,16 +17,17 @@
 
 #pragma once
 
+typedef enum softSPIDevice {
+    SOFT_SPIDEV_1   = 0,
+    SOFT_SPIDEV_MAX = SOFT_SPIDEV_1,
+} softSPIDevice_e;
+
 typedef struct softSPIDevice_s {
-    GPIO_TypeDef* sck_gpio;
-    uint16_t sck_pin;
-    GPIO_TypeDef* mosi_gpio;
-    uint16_t mosi_pin;
-    GPIO_TypeDef* miso_gpio;
-    uint16_t miso_pin;
+    ioTag_t sckTag;
+    ioTag_t mosiTag;
+    ioTag_t misoTag;
 #ifdef SOFTSPI_NSS_PIN
-    GPIO_TypeDef* nss_gpio;
-    uint16_t nss_pin;
+    ioTag_t nssTag;
 #endif
 } softSPIDevice_t;
 

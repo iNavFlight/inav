@@ -20,17 +20,40 @@
 
 #include <platform.h>
 
-#include "build_config.h"
-
 #ifdef USE_SOFTSPI
 
-#include "gpio.h"
+#include "build_config.h"
+
+#include "io.h"
+#include "bus_spi.h"
 #include "bus_spi_soft.h"
 
 
-void softSpiInit(const softSPIDevice_t *dev)
+void softSpiInit(const softSPIDevice_t *spi)
 {
-    GPIO_InitTypeDef GPIO_InitStructure;
+    IOInit(IOGetByTag(spi->sckTag),  OWNER_SOFTSPI, RESOURCE_SPI_SCK,  SOFT_SPIDEV_1 + 1);
+    IOInit(IOGetByTag(spi->misoTag), OWNER_SPI, RESOURCE_SPI_MISO, SOFT_SPIDEV_1 + 1);
+    IOInit(IOGetByTag(spi->mosiTag), OWNER_SPI, RESOURCE_SPI_MOSI, SOFT_SPIDEV_1 + 1);
+#ifdef SOFTSPI_NSS_PIN
+    IOInit(IOGetByTag(spi->nssTag), OWNER_SPI, RESOURCE_SPI_CS, SOFT_SPIDEV_1 + 1);
+#endif
+
+#if defined(STM32F3) || defined(STM32F4)
+    IOConfigGPIOAF(IOGetByTag(spi->sck),  SPI_IO_AF_CFG, 0);
+    IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_CFG, 0);
+    IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, 0);
+#ifdef SOFTSPI_NSS_PIN
+    IOConfigGPIOAF(IOGetByTag(spi->nss), SPI_IO_CS_CFG, 0);
+#endif
+#elif defined(STM32F10X)
+    IOConfigGPIO(IOGetByTag(spi->sckTag), SPI_IO_AF_SCK_CFG);
+    IOConfigGPIO(IOGetByTag(spi->misoTag), SPI_IO_AF_MISO_CFG);
+    IOConfigGPIO(IOGetByTag(spi->mosiTag), SPI_IO_AF_MOSI_CFG);
+#ifdef SOFTSPI_NSS_PIN
+    IOConfigGPIO(IOGetByTag(spi->nssTag), SPI_IO_CS_CFG);
+#endif
+#endif
+/*    GPIO_InitTypeDef GPIO_InitStructure;
 
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
@@ -50,23 +73,23 @@ void softSpiInit(const softSPIDevice_t *dev)
     GPIO_InitStructure.GPIO_Pin = dev->nss_pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(dev->nss_gpio, &GPIO_InitStructure);
-#endif
+#endif*/
 }
 
 uint8_t softSpiTransferByte(const softSPIDevice_t *dev, uint8_t byte)
 {
-    for(int ii = 0; ii < 8; ++ii) {
+    for (int ii = 0; ii < 8; ++ii) {
         if (byte & 0x80) {
-            GPIO_SetBits(dev->mosi_gpio, dev->mosi_pin);
+            IOHi(IOGetByTag(dev->mosiTag));
         } else {
-            GPIO_ResetBits(dev->mosi_gpio, dev->mosi_pin);
+            IOLo(IOGetByTag(dev->mosiTag));
         }
-        GPIO_SetBits(dev->sck_gpio, dev->sck_pin);
+        IOHi(IOGetByTag(dev->sckTag));
         byte <<= 1;
-        if (GPIO_ReadInputDataBit(dev->miso_gpio, dev->miso_pin) == 1) {
+        if (IORead(IOGetByTag(dev->misoTag)) == 1) {
             byte |= 1;
         }
-        GPIO_ResetBits(dev->sck_gpio, dev->sck_pin);
+        IOLo(IOGetByTag(dev->sckTag));
     }
     return byte;
 }

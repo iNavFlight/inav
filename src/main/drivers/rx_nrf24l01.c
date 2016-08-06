@@ -27,7 +27,9 @@
 #ifdef USE_RX_NRF24
 
 #include "system.h"
-#include "gpio.h"
+#include "io.h"
+#include "io_impl.h"
+#include "rcc.h"
 #include "rx_nrf24l01.h"
 
 #ifdef UNIT_TEST
@@ -41,25 +43,21 @@ void NRF24L01_SpiInit(void) {}
 #include "bus_spi.h"
 #include "bus_spi_soft.h"
 
-#define DISABLE_NRF24()     {GPIO_SetBits(NRF24_CSN_GPIO, NRF24_CSN_PIN);}
-#define ENABLE_NRF24()      {GPIO_ResetBits(NRF24_CSN_GPIO, NRF24_CSN_PIN);}
-#define NRF24_CE_HI()       {GPIO_SetBits(NRF24_CE_GPIO, NRF24_CE_PIN);}
-#define NRF24_CE_LO()       {GPIO_ResetBits(NRF24_CE_GPIO, NRF24_CE_PIN);}
+#define DISABLE_NRF24()     {IOHi(IOGetByTag(IO_TAG(NRF24_CSN_PIN)));}
+#define ENABLE_NRF24()      {IOLo(IOGetByTag(IO_TAG(NRF24_CSN_PIN)));}
+#define NRF24_CE_HI()       {IOHi(IOGetByTag(IO_TAG(NRF24_CE_PIN)));}
+#define NRF24_CE_LO()       {IOLo(IOGetByTag(IO_TAG(NRF24_CE_PIN)));}
 
 #ifdef USE_NRF24_SOFTSPI
 static const softSPIDevice_t softSPIDevice = {
-    .sck_gpio = NRF24_SCK_GPIO,
-    .mosi_gpio = NRF24_MOSI_GPIO,
-    .miso_gpio = NRF24_MISO_GPIO,
-    .sck_pin = NRF24_SCK_PIN,
-    .mosi_pin = NRF24_MOSI_PIN,
-    .miso_pin = NRF24_MISO_PIN,
+    .sckTag = IO_TAG(NRF24_SCK_PIN),
+    .mosiTag = IO_TAG(NRF24_MOSI_PIN),
+    .misoTag = IO_TAG(NRF24_MISO_PIN),
 #ifdef SOFTSPI_NSS_PIN
-    .nss_pin = NRF24_CSN_PIN,
-    .nss_gpio = NRF24_CSN_GPIO
+    .nssTag = IO_TAG(NRF24_CSN_PIN),
 #endif
 };
-#endif
+#endif // USE_NRF24_SOFTSPI
 
 #ifdef USE_NRF24_SOFTSPI
 static bool useSoftSPI = false;
@@ -71,12 +69,29 @@ void NRF24L01_SpiInit(nfr24l01_spi_type_e spiType)
     if (hardwareInitialised) {
         return;
     }
+    // Note: Nordic Semiconductor uses 'CSN', STM uses 'NSS'
     if (spiType == NFR24L01_SOFTSPI) {
 #ifdef USE_NRF24_SOFTSPI
         useSoftSPI = true;
         softSpiInit(&softSPIDevice);
 #endif
     }
+    IOInit(IOGetByTag(IO_TAG(NRF24_CE_PIN)),  OWNER_NRF24, RESOURCE_NRF24_CE,  SOFT_SPIDEV_1 + 1);
+#if defined(STM32F3) || defined(STM32F4)
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(NRF24_CE_PIN)), SPI_IO_CS_CFG, 0);
+#ifndef SOFTSPI_NSS_PIN
+    IOInit(IOGetByTag(IO_TAG(NRF24_CSN_PIN)),  OWNER_SOFTSPI, RESOURCE_SPI_CS,  SOFT_SPIDEV_1 + 1);
+    IOConfigGPIOAF(IOGetByTag(IO_TAG(NRF24_CSN_PIN)), SPI_IO_CS_CFG, 0);
+#endif
+#elif defined(STM32F10X)
+    IOConfigGPIO(IOGetByTag(IO_TAG(NRF24_CE_PIN)), SPI_IO_CS_CFG);
+#ifndef SOFTSPI_NSS_PIN
+    IOInit(IOGetByTag(IO_TAG(NRF24_CSN_PIN)),  OWNER_SOFTSPI, RESOURCE_SPI_CS,  SOFT_SPIDEV_1 + 1);
+    IOConfigGPIO(IOGetByTag(IO_TAG(NRF24_CSN_PIN)), SPI_IO_CS_CFG);
+#endif
+#endif
+
+    /*
     // Note: Nordic Semiconductor uses 'CSN', STM uses 'NSS'
     GPIO_InitTypeDef GPIO_InitStructure;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -97,13 +112,14 @@ void NRF24L01_SpiInit(nfr24l01_spi_type_e spiType)
     // CE as OUTPUT
     RCC_AHBPeriphClockCmd(NRF24_CE_GPIO_CLK_PERIPHERAL, ENABLE);
     GPIO_InitStructure.GPIO_Pin = NRF24_CE_PIN;
-    GPIO_Init(NRF24_CE_GPIO, &GPIO_InitStructure);
+    GPIO_Init(NRF24_CE_GPIO, &GPIO_InitStructure);*/
 
+    RCC_AHBPeriphClockCmd(NRF24_CE_GPIO_CLK_PERIPHERAL, ENABLE);
     DISABLE_NRF24();
     NRF24_CE_LO();
 
 #ifdef NRF24_SPI_INSTANCE
-    spiSetDivisor(NRF24_SPI_INSTANCE, SPI_9MHZ_CLOCK_DIVIDER);
+    spiSetDivisor(NRF24_SPI_INSTANCE, SPI_CLOCK_STANDARD);
 #endif
     hardwareInitialised = true;
 }
