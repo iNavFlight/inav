@@ -834,6 +834,11 @@ const clivalue_t valueTable[] = {
     { "magzero_z",                  VAR_INT16  | MASTER_VALUE, &masterConfig.magZero.raw[Z], .config.minmax = { -32768,  32767 }, FLAG_MAG_CALIBRATION_DONE },
 #endif
 
+    // TODO: Should these use FLAG_MAG_CALIBRATION_DONE ?
+    { "magzero_hover_x",            VAR_INT16  | MASTER_VALUE, &masterConfig.magZeroHover.raw[X], .config.minmax = { -32768,  32767 }, 0 },
+    { "magzero_hover_y",            VAR_INT16  | MASTER_VALUE, &masterConfig.magZeroHover.raw[Y], .config.minmax = { -32768,  32767 }, 0 },
+    { "magzero_hover_z",            VAR_INT16  | MASTER_VALUE, &masterConfig.magZeroHover.raw[Z], .config.minmax = { -32768,  32767 }, 0 },
+
     { "acczero_x",                  VAR_INT16  | MASTER_VALUE, &masterConfig.accZero.raw[X], .config.minmax = { -32768,  32767 }, 0 },
     { "acczero_y",                  VAR_INT16  | MASTER_VALUE, &masterConfig.accZero.raw[Y], .config.minmax = { -32768,  32767 }, 0 },
     { "acczero_z",                  VAR_INT16  | MASTER_VALUE, &masterConfig.accZero.raw[Z], .config.minmax = { -32768,  32767 }, 0 },

@@ -66,6 +66,7 @@ typedef struct master_t {
     flightDynamicsTrims_t accZero;          // Accelerometer offset
     flightDynamicsTrims_t accGain;          // Accelerometer gain to read exactly 1G
     flightDynamicsTrims_t magZero;          // Compass offset
+    flightDynamicsTrims_t magZeroHover;     // Extra compass offset during hover
 
     batteryConfig_t batteryConfig;
 

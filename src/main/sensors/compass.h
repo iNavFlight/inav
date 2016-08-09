@@ -17,6 +17,10 @@
 
 #pragma once
 
+#include "io/escservo.h"
+
+#include "flight/navigation_rewrite.h"
+
 // Type of magnetometer used/detected
 typedef enum {
     MAG_DEFAULT = 0,
@@ -33,7 +37,7 @@ typedef enum {
 
 #ifdef MAG
 void compassInit(void);
-void updateCompass(flightDynamicsTrims_t *magZero);
+void updateCompass(flightDynamicsTrims_t *magZero, flightDynamicsTrims_t *magZeroHover, escAndServoConfig_t *escAndServoConfig, navConfig_t *navConfig);
 bool isCompassReady(void);
 #endif
 

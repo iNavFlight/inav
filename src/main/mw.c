@@ -715,7 +715,7 @@ void taskProcessGPS(void)
 void taskUpdateCompass(void)
 {
     if (sensors(SENSOR_MAG)) {
-        updateCompass(&masterConfig.magZero);
+        updateCompass(&masterConfig.magZero, &masterConfig.magZeroHover, &masterConfig.escAndServoConfig, &masterConfig.navConfig);
     }
 }
 #endif
