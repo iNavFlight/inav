@@ -3,7 +3,7 @@
 #include "drivers/io_pca9685.h"
 
 #include "config/config.h"
-#include "config/runtime_config.h"
+#include "fc/runtime_config.h"
 
 #define PWM_DRIVER_IMPLEMENTATION_COUNT 1
 #define PWM_DRIVER_MAX_CYCLE 4

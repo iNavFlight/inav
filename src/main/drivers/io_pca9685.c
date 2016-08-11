@@ -7,12 +7,10 @@
 #include "system.h"
 #include "bus_i2c.h"
 
-#include "debug.h"
-
 #include "common/maths.h"
 
 #include "config/config.h"
-#include "config/runtime_config.h"
+#include "fc/runtime_config.h"
 
 #define PCA9685_ADDR 0x40
 #define PCA9685_MODE1 0x00
@@ -32,15 +30,15 @@ uint16_t temporaryOutputState[PCA9685_SERVO_FREQUENCY] = {0};
 
 void pca9685setPWMOn(uint8_t servoIndex, uint16_t on) {
     if (servoIndex < PCA9685_SERVO_COUNT) {
-        i2cWrite(PCA9685_ADDR, LED0_ON_L + (servoIndex * 4), on);
-        i2cWrite(PCA9685_ADDR, LED0_ON_H + (servoIndex * 4), on>>8);
+        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_ON_L + (servoIndex * 4), on);
+        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_ON_H + (servoIndex * 4), on>>8);
     }
 }
 
 void pca9685setPWMOff(uint8_t servoIndex, uint16_t off) {
     if (servoIndex < PCA9685_SERVO_COUNT) {
-        i2cWrite(PCA9685_ADDR, LED0_OFF_L + (servoIndex * 4), off);
-        i2cWrite(PCA9685_ADDR, LED0_OFF_H + (servoIndex * 4), off>>8);
+        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_OFF_L + (servoIndex * 4), off);
+        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_OFF_H + (servoIndex * 4), off>>8);
     }
 }
 
@@ -92,11 +90,11 @@ void pca9685setPWMFreq(uint16_t freq) {
   prescaleval /= freq;
   prescaleval -= 1;
 
-  i2cWrite(PCA9685_ADDR, PCA9685_MODE1, 16);
+  i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 16);
   delay(1);
-  i2cWrite(PCA9685_ADDR, PCA9685_PRESCALE, (uint8_t) prescaleval);
+  i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_PRESCALE, (uint8_t) prescaleval);
   delay(1);
-  i2cWrite(PCA9685_ADDR, PCA9685_MODE1, 128);
+  i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 128);
 }
 
 bool pca9685Initialize(void) {
@@ -104,7 +102,7 @@ bool pca9685Initialize(void) {
     bool ack = false;
     uint8_t sig;
 
-    ack = i2cRead(PCA9685_ADDR, PCA9685_MODE1, 1, &sig);
+    ack = i2cRead(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 1, &sig);
 
     if (!ack) {
         return false;
@@ -112,7 +110,7 @@ bool pca9685Initialize(void) {
         /*
         Reset device
         */
-        i2cWrite(PCA9685_ADDR, PCA9685_MODE1, 0x0);
+        i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 0x0);
 
         /*
         Set refresh rate
