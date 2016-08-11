@@ -42,6 +42,7 @@
 acc_t acc;                       // acc access functions
 int32_t accADC[XYZ_AXIS_COUNT];
 sensor_align_e accAlign = 0;
+const uint32_t accTargetLooptime = 1000;
 
 static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 static int16_t accADCRaw[XYZ_AXIS_COUNT];
@@ -166,7 +167,7 @@ void performAcclerationCalibration(void)
     calibratingA--;
 }
 
-void applyAccelerationZero(flightDynamicsTrims_t * accZero, flightDynamicsTrims_t * accGain)
+static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const flightDynamicsTrims_t * accGain)
 {
     accADC[X] = (accADC[X] - accZero->raw[X]) * accGain->raw[X] / 4096;
     accADC[Y] = (accADC[Y] - accZero->raw[Y]) * accGain->raw[Y] / 4096;
@@ -183,9 +184,9 @@ void updateAccelerationReadings(void)
 
     if (accLpfCutHz) {
         if (!accFilterInitialised) {
-            if (targetLooptime) {  /* Initialisation needs to happen once sample rate is known */
+            if (accTargetLooptime) {  /* Initialisation needs to happen once sample rate is known */
                 for (int axis = 0; axis < 3; axis++) {
-                    biquadFilterInit(&accFilterState[axis], accLpfCutHz, 0);
+                    biquadFilterInit(&accFilterState[axis], accLpfCutHz, accTargetLooptime);
                 }
 
                 accFilterInitialised = true;

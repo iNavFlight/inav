@@ -35,11 +35,6 @@ void biquadFilterInit(biquadFilter_t *newState, uint8_t filterCutFreq, int16_t s
     float omega, sn, cs, alpha;
     float a0, a1, a2, b0, b1, b2;
 
-    /* If sampling rate == 0 - use main loop target rate */
-    if (!samplingRate) {
-        samplingRate = 1000000 / targetLooptime;
-    }
-
     /* setup variables */
     omega = 2 * M_PIf * (float)filterCutFreq / (float)samplingRate;
     sn = sin_approx(omega);
