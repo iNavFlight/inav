@@ -1,3 +1,4 @@
+#include "build/assert.h"
 #include "common/utils.h"
 
 #include "io.h"
@@ -69,6 +70,10 @@ const char * const resourceNames[RESOURCE_TOTAL_COUNT] = {
 
 ioRec_t* IO_Rec(IO_t io)
 {
+    ASSERT(io != NULL);
+    ASSERT((ioRec_t*)io >= &ioRecs[0]);
+    ASSERT((ioRec_t*)io < &ioRecs[DEFIO_IO_USED_COUNT]);
+
     return io;
 }
 

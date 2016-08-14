@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "build/assert.h"
 #include "platform.h"
 
 #include "nvic.h"
@@ -72,6 +73,10 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_Typ
     chIdx = IO_GPIOPinIdx(io);
     if(chIdx < 0)
         return;
+
+    // we have only 16 extiChannelRecs
+    ASSERT(chIdx < 16);
+
     extiChannelRec_t *rec = &extiChannelRecs[chIdx];
     int group = extiGroups[chIdx];
 
@@ -117,6 +122,10 @@ void EXTIRelease(IO_t io)
     chIdx = IO_GPIOPinIdx(io);
     if(chIdx < 0)
         return;
+
+    // we have only 16 extiChannelRecs
+    ASSERT(chIdx < 16);
+
     extiChannelRec_t *rec = &extiChannelRecs[chIdx];
     rec->handler = NULL;
 }
