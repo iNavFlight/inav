@@ -42,7 +42,7 @@
 acc_t acc;                       // acc access functions
 int32_t accADC[XYZ_AXIS_COUNT];
 sensor_align_e accAlign = 0;
-const uint32_t accTargetLooptime = 1000;
+uint32_t accTargetLooptime;
 
 static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 static int16_t accADCRaw[XYZ_AXIS_COUNT];
@@ -50,9 +50,18 @@ static int16_t accADCRaw[XYZ_AXIS_COUNT];
 static flightDynamicsTrims_t * accZero;
 static flightDynamicsTrims_t * accGain;
 
-static int8_t accLpfCutHz = 0;
-static biquadFilter_t accFilterState[XYZ_AXIS_COUNT];
-static bool accFilterInitialised = false;
+static uint8_t accLpfCutHz = 0;
+static biquadFilter_t accFilter[XYZ_AXIS_COUNT];
+
+void accInit(uint32_t targetLooptime)
+{
+    accTargetLooptime = targetLooptime;
+    if (accLpfCutHz) {
+        for (int axis = 0; axis < 3; axis++) {
+            biquadFilterInit(&accFilter[axis], accLpfCutHz, accTargetLooptime);
+        }
+    }
+}
 
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired)
 {
@@ -180,23 +189,13 @@ void updateAccelerationReadings(void)
         return;
     }
 
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) accADC[axis] = accADCRaw[axis];
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        accADC[axis] = accADCRaw[axis];
+    }
 
     if (accLpfCutHz) {
-        if (!accFilterInitialised) {
-            if (accTargetLooptime) {  /* Initialisation needs to happen once sample rate is known */
-                for (int axis = 0; axis < 3; axis++) {
-                    biquadFilterInit(&accFilterState[axis], accLpfCutHz, accTargetLooptime);
-                }
-
-                accFilterInitialised = true;
-            }
-        }
-
-        if (accFilterInitialised) {
-            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-                accADC[axis] = lrintf(biquadFilterApply(&accFilterState[axis], (float) accADC[axis]));
-            }
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            accADC[axis] = lrintf(biquadFilterApply(&accFilter[axis], (float) accADC[axis]));
         }
     }
 
@@ -219,7 +218,12 @@ void setAccelerationGain(flightDynamicsTrims_t * accGainToUse)
     accGain = accGainToUse;
 }
 
-void setAccelerationFilter(int8_t initialAccLpfCutHz)
+void setAccelerationFilter(uint8_t initialAccLpfCutHz)
 {
     accLpfCutHz = initialAccLpfCutHz;
+    if (accTargetLooptime) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            biquadFilterInit(&accFilter[axis], accLpfCutHz, accTargetLooptime);
+        }
+    }
 }

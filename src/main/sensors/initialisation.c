@@ -725,15 +725,16 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig,
     }
     // this is safe because either mpu6050 or mpu3050 or lg3d20 sets it, and in case of fail, we never get here.
     gyro.targetLooptime = gyroSetSampleRate(looptime, gyroLpf, gyroSync, gyroSyncDenominator);    // Set gyro sample rate before initialisation
-    gyro.init(gyroLpf);
-    gyroInit();
+    gyro.init(gyroLpf); // driver initialisation
+    gyroInit(); // sensor initialisation
 
     if (detectAcc(accHardwareToUse)) {
         acc.acc_1G = 256; // set default
         acc.init(&acc);
+        accInit(gyro.targetLooptime); // acc and gyro updated at same frequency in taskMainPidLoop in mw.c
     }
 
-    #ifdef BARO
+#ifdef BARO
     detectBaro(baroHardwareToUse);
 #else
     UNUSED(baroHardwareToUse);
@@ -753,12 +754,11 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig,
     UNUSED(magDeclinationFromConfig);
 #endif
 
-    reconfigureAlignment(sensorAlignmentConfig);
-
 #ifdef SONAR
     const rangefinderType_e rangefinderType = detectRangefinder();
     rangefinderInit(rangefinderType);
 #endif
+    reconfigureAlignment(sensorAlignmentConfig);
 
     return true;
 }
