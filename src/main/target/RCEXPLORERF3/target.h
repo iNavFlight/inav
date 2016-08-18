@@ -136,6 +136,9 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
+// Number of available PWM outputs
+#define MAX_PWM_OUTPUT_PORTS    6
+
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC (BIT(13)|BIT(14)|BIT(15))
