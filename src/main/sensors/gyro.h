@@ -41,7 +41,7 @@ typedef struct gyroConfig_s {
 
 
 void gyroInit(void);
-void gyroUseConfig(const gyroConfig_t *gyroConfigToUse, int8_t initialGyroLpfCutHz);
+void gyroUseConfig(const gyroConfig_t *gyroConfigToUse, uint8_t initialGyroLpfCutHz);
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 void gyroUpdate(void);
 bool isGyroCalibrationComplete(void);

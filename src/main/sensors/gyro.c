@@ -47,9 +47,9 @@ static const gyroConfig_t *gyroConfig;
 static uint16_t calibratingG = 0;
 
 static biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
-static int8_t gyroSoftLpfHz = 0;
+static uint8_t gyroSoftLpfHz = 0;
 
-void gyroUseConfig(const gyroConfig_t *gyroConfigToUse, int8_t gyro_soft_lpf_hz)
+void gyroUseConfig(const gyroConfig_t *gyroConfigToUse, uint8_t gyro_soft_lpf_hz)
 {
     gyroConfig = gyroConfigToUse;
     gyroSoftLpfHz = gyro_soft_lpf_hz;
