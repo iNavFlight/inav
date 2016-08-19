@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "build/assert.h"
 #include "platform.h"
+#include "build/assert.h"
 
 #include "nvic.h"
 #include "io_impl.h"

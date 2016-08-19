@@ -1,4 +1,3 @@
-#include "build/assert.h"
 #include "common/utils.h"
 
 #include "io.h"
@@ -6,6 +5,7 @@
 #include "rcc.h"
 
 #include "target.h"
+#include "build/assert.h"
 
 // io ports defs are stored in array by index now
 struct ioPortDef_s {
