@@ -98,13 +98,15 @@ typedef struct gpsDataNmea_s {
     uint16_t hdop;
 } gpsDataNmea_t;
 
+#define NMEA_BUFFER_SIZE        16
+
 static bool gpsNewFrameNMEA(char c)
 {
     static gpsDataNmea_t gps_Msg;
 
     uint8_t frameOK = 0;
     static uint8_t param = 0, offset = 0, parity = 0;
-    static char string[15];
+    static char string[NMEA_BUFFER_SIZE];
     static uint8_t checksum_param, gps_frame = NO_FRAME;
 
     switch (c) {
@@ -224,10 +226,13 @@ static bool gpsNewFrameNMEA(char c)
             checksum_param = 0;
             break;
         default:
-            if (offset < 15)
+            if (offset < (NMEA_BUFFER_SIZE-1)) {    // leave 1 byte to trailing zero
                 string[offset++] = c;
-            if (!checksum_param)
-                parity ^= c;
+
+                // only checksum if character is recorded and used (will cause checksum failure on dropped characters)
+                if (!checksum_param)
+                    parity ^= c;
+            }
     }
     return frameOK;
 }
