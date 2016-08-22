@@ -120,10 +120,12 @@ static bool gpsNewFrameNMEA(char c)
             string[offset] = 0;
             if (param == 0) {       //frame identification
                 gps_frame = NO_FRAME;
-                if (string[0] == 'G' && string[1] == 'P' && string[2] == 'G' && string[3] == 'G' && string[4] == 'A')
+                if (strcmp(string, "GPGGA") == 0 || strcmp(string, "GNGGA") == 0) {
                     gps_frame = FRAME_GGA;
-                if (string[0] == 'G' && string[1] == 'P' && string[2] == 'R' && string[3] == 'M' && string[4] == 'C')
+                }
+                else if (strcmp(string, "GPRMC") == 0 || strcmp(string, "GNRMC") == 0) {
                     gps_frame = FRAME_RMC;
+                }
             }
 
             switch (gps_frame) {
