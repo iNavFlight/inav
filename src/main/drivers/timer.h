@@ -164,3 +164,7 @@ rccPeriphTag_t timerRCC(TIM_TypeDef *tim);
 #if defined(STM32F3) || defined(STM32F4)
 uint8_t timerGPIOAF(TIM_TypeDef *tim);
 #endif
+
+#if defined(USE_HAL_DRIVER)
+TIM_HandleTypeDef* timerFindTimerHandle(TIM_TypeDef *tim);
+#endif
