@@ -49,6 +49,7 @@
 #include "drivers/sonar_hcsr04.h"
 #include "drivers/sdcard.h"
 #include "drivers/gyro_sync.h"
+#include "drivers/exti.h"
 
 #include "rx/rx.h"
 
@@ -202,6 +203,10 @@ void init(void)
     ledInit(hardwareRevision == AFF3_REV_1 ? false : true);
 #else
     ledInit(false);
+#endif
+
+#ifdef USE_EXTI
+    EXTIInit();
 #endif
 
 #ifdef SPEKTRUM_BIND
