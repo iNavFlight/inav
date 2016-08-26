@@ -15,32 +15,21 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "stdbool.h"
-#include "stdint.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 
 #include "platform.h"
 
 #if defined(USE_ASSERT)
-char * assertFailureFile = 0L;
+const char * assertFailureFile = NULL;
 int assertFailureLine = 0;
 
 void assertFailed2(const char * file, int line)
 {
     if (!assertFailureLine) {
-        assertFailureFile = (char *)file;
-        assertFailureLine = line;
-    }
-#if defined(USE_ASSERT_STOP)
-    while(1) {
-        __asm("BKPT #0\n") ; // Break into the debugger
-    }
-#endif
-}
-
-void assertFailed1(int line)
-{
-    if (!assertFailureLine) {
-        assertFailureFile = 0L;
+        assertFailureFile = file;
         assertFailureLine = line;
     }
 #if defined(USE_ASSERT_STOP)

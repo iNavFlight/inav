@@ -22,15 +22,14 @@ extern char * assertFailureFile;
 extern int assertFailureLine;
 
 extern void assertFailed2(const char * file, int line);
-extern void assertFailed1(int line);
 #endif
 
 #if defined(USE_ASSERT) && defined(USE_ASSERT_CHECK)
     #if defined(USE_ASSERT_FULL)
         #define ASSERT(expr)        if (expr) { } else assertFailed2(__FILE__, __LINE__)
     #else
-        #define ASSERT(expr)        if (expr) { } else assertFailed1(__LINE__)
+        #define ASSERT(expr)        if (expr) { } else assertFailed2(NULL, __LINE__)
     #endif
 #else
-    #define ASSERT(expr)        while (0) { }
+    #define ASSERT(expr)            do {} while (0)
 #endif
