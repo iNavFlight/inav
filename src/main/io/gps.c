@@ -148,9 +148,6 @@ static void gpsHandleProtocol(void)
         // Update statistics
         gpsStats.lastMessageDt = gpsState.lastMessageMs - gpsState.lastLastMessageMs;
     }
-
-    debug[0] = gpsSol.fixType;
-    debug[1] = STATE(GPS_FIX);
 }
 
 static void gpsResetSolution(void)
