@@ -109,5 +109,7 @@ typedef struct dmaChannelDescriptor_s {
 #endif
 
 void dmaInit(void);
+dmaHandlerIdentifier_e dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel);
+void dmaEnableClock(dmaHandlerIdentifier_e identifier);
 void dmaSetHandler(dmaHandlerIdentifier_e identifier, dmaCallbackHandlerFuncPtr callback, uint32_t priority, uint32_t userParam);
 

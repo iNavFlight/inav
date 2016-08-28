@@ -69,11 +69,31 @@ void dmaInit(void)
     // TODO: Do we need this?
 }
 
+dmaHandlerIdentifier_e dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel)
+{
+    dmaHandlerIdentifier_e i;
+
+    for (i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
+        if (channel == dmaDescriptors[i].channel) {
+            return i;
+        }
+    }
+
+    // Shouldn't get here
+    return 0;
+}
+
+void dmaEnableClock(dmaHandlerIdentifier_e identifier)
+{
+    RCC_AHBPeriphClockCmd(dmaDescriptors[identifier].rcc, ENABLE);
+}
+
 void dmaSetHandler(dmaHandlerIdentifier_e identifier, dmaCallbackHandlerFuncPtr callback, uint32_t priority, uint32_t userParam)
 {
     NVIC_InitTypeDef NVIC_InitStructure;
 
-    RCC_AHBPeriphClockCmd(dmaDescriptors[identifier].rcc, ENABLE);
+    dmaEnableClock(identifier);
+
     dmaDescriptors[identifier].irqHandlerCallback = callback;
     dmaDescriptors[identifier].userParam = userParam;
 
