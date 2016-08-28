@@ -169,14 +169,13 @@ static void hmc5883lConfigureDataReadyInterruptHandling(void)
 
 bool hmc5883lDetect(mag_t* mag, const hmc5883Config_t *hmc5883ConfigToUse)
 {
-    bool ack = false;
-    uint8_t sig = 0;
-
     hmc5883Config = hmc5883ConfigToUse;
 
-    ack = i2cRead(MAG_I2C_INSTANCE, MAG_ADDRESS, 0x0A, 1, &sig);
-    if (!ack || sig != 'H')
+    uint8_t sig = 0;
+    bool ack = i2cRead(MAG_I2C_INSTANCE, MAG_ADDRESS, 0x0A, 1, &sig);
+    if (!ack || sig != 'H') {
         return false;
+    }
 
     mag->init = hmc5883lInit;
     mag->read = hmc5883lRead;
@@ -198,10 +197,13 @@ void hmc5883lInit(void)
     delay(100);
     hmc5883lRead(magADC);
 
-    for (int i = 0; i < 10; i++) {  // Collect 10 samples
+    int validSamples = 0;
+    int failedSamples = 0;
+    while (validSamples < 10 && failedSamples < 5) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
         delay(50);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
+            ++validSamples;
             // Since the measurements are noisy, they should be averaged rather than taking the max.
             xyz_total[X] += magADC[X];
             xyz_total[Y] += magADC[Y];
@@ -211,16 +213,21 @@ void hmc5883lInit(void)
                 bret = false;
                 break;              // Breaks out of the for loop.  No sense in continuing if we saturated.
             }
+        } else {
+            ++failedSamples;
         }
         LED1_TOGGLE;
     }
 
     // Apply the negative bias. (Same gain)
     i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_CONFA, 0x010 + HMC_NEG_BIAS);   // Reg A DOR = 0x010 + MS1, MS0 set to negative bias.
-    for (int i = 0; i < 10; i++) {
+    validSamples = 0;
+    failedSamples = 0;
+    while (validSamples < 10 && failedSamples < 5) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
         delay(50);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
+            ++validSamples;
             // Since the measurements are noisy, they should be averaged.
             xyz_total[X] -= magADC[X];
             xyz_total[Y] -= magADC[Y];
@@ -230,6 +237,8 @@ void hmc5883lInit(void)
                 bret = false;
                 break;              // Breaks out of the for loop.  No sense in continuing if we saturated.
             }
+        } else {
+            ++failedSamples;
         }
         LED1_TOGGLE;
     }
