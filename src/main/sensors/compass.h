@@ -32,7 +32,7 @@ typedef enum {
 #define MAG_MAX  MAG_FAKE
 
 #ifdef MAG
-void compassInit(void);
+bool compassInit(void);
 void updateCompass(flightDynamicsTrims_t *magZero);
 bool isCompassReady(void);
 #endif

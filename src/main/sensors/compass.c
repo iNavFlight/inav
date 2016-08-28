@@ -53,13 +53,16 @@ sensor_align_e magAlign = 0;
 static uint8_t magInit = 0;
 static uint8_t magUpdatedAtLeastOnce = 0;
 
-void compassInit(void)
+bool compassInit(void)
 {
     // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
     LED1_ON;
-    mag.init();
+    const bool ret = mag.init();
     LED1_OFF;
-    magInit = 1;
+    if (ret) {
+        magInit = 1;
+    }
+    return ret;
 }
 
 bool isCompassReady(void)
