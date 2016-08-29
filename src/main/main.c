@@ -424,14 +424,6 @@ void init(void)
 
     flashLedsAndBeep();
 
-#ifdef MAG
-    if (sensors(SENSOR_MAG)) {
-        if (!compassInit()) {
-            sensorsClear(SENSOR_MAG);
-        }
-    }
-#endif
-
     imuInit();
 
     mspInit();
