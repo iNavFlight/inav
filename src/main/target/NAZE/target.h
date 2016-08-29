@@ -96,7 +96,7 @@
 #define BARO
 #define USE_BARO_MS5611 // needed for Flip32 board
 #define USE_BARO_BMP085
-//#define USE_BARO_BMP280
+#define USE_BARO_BMP280
 
 #define MAG
 #define USE_MAG_HMC5883
@@ -203,9 +203,10 @@
 #define DEFAULT_FEATURES        FEATURE_VBAT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 
-// Disable HOTT and S.Port telemetry
+//#undef TELEMETRY_FRSKY
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
+#undef TELEMETRY_LTM
 
 // Disable all GPS protocols except UBLOX
 #undef GPS_PROTO_NMEA
