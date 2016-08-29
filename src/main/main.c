@@ -392,6 +392,7 @@ void init(void)
 #endif
 
     /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
+#if defined(GPS) || defined(MAG)
     if (!isMPUSoftReset()) {
         LED1_ON;
         LED0_OFF;
@@ -405,6 +406,7 @@ void init(void)
         LED0_OFF;
         LED1_OFF;
     }
+#endif
 
     initBoardAlignment(&masterConfig.boardAlignment);
 
