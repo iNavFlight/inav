@@ -104,7 +104,7 @@
 //#define USE_MAG_MAG3110
 #define MAG_HMC5883_ALIGN       CW180_DEG
 
-//#define SONAR
+#define SONAR
 //#define USE_SONAR_SRF10
 #define SONAR_TRIGGER_PIN       PB0
 #define SONAR_ECHO_PIN          PB1
@@ -195,7 +195,7 @@
 // USART2, PA3
 #define BIND_PIN                        PA3
 
-#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+//#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_MOTOR_COUNT      6
 #define DISABLE_UNCOMMON_MIXERS
@@ -203,10 +203,8 @@
 #define DEFAULT_FEATURES        FEATURE_VBAT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 
-//#undef TELEMETRY_FRSKY
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
-#undef TELEMETRY_LTM
 
 // Disable all GPS protocols except UBLOX
 #undef GPS_PROTO_NMEA
