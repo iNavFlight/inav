@@ -1037,11 +1037,16 @@ static void cliBootlog(char *cmdline)
 
     int bootEventCount = getBootlogEventCount();
 
+#if defined(BOOTLOG_DESCRIPTIONS)
+    cliPrintf("Time Evt            Description  Parameters\r\n");
+#else
+    cliPrintf("Time Evt Parameters\r\n");
+#endif
+
     for (int idx = 0; idx < bootEventCount; idx++) {
         bootLogEntry_t * event = getBootlogEvent(idx);
 
 #if defined(BOOTLOG_DESCRIPTIONS)
-//cliPrintf("%2d - %12s  %6d   %5d   %5d %4d.%1d%% %4d.%1d%%  %8d\r\n",
         const char * eventDescription = getBootlogEventDescription(event->eventCode);
         if (!eventDescription) {
             eventDescription = "";

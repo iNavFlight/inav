@@ -21,8 +21,6 @@
 
 #include "logging_codes.h"
 
-#define MAX_BOOTLOG_ENTRIES     64
-
 typedef struct bootLogEntry_s {
     uint32_t    timestamp;
     uint16_t    eventCode;

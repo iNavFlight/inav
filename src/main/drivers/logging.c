@@ -26,6 +26,8 @@
 #include "logging.h"
 #include "system.h"
 
+#define MAX_BOOTLOG_ENTRIES     64
+
 static bootLogEntry_t   events[MAX_BOOTLOG_ENTRIES];
 static int              eventCount;
 static bool             eventOverflow;
@@ -46,8 +48,11 @@ static const char *     eventDescription[BOOT_EVENT_CODE_COUNT] = {
     [BOOT_EVENT_BARO_DETECTION]             = "BARO_DETECTION",
     [BOOT_EVENT_MAG_DETECTION]              = "MAG_DETECTION",
     [BOOT_EVENT_RANGEFINDER_DETECTION]      = "RANGEFINDER_DETECTION",
-    [BOOT_EVENT_MAG_INIT_FAILED]            = "MAG_INIT_FAILED"
-    
+    [BOOT_EVENT_MAG_INIT_FAILED]            = "MAG_INIT_FAILED",
+    [BOOT_EVENT_HMC5883L_READ_FAILED]       = "HMC5883L_READ_FAILED",
+    [BOOT_EVENT_HMC5883L_SATURATION]        = "HMC5883L_SATURATION",
+    [BOOT_EVENT_TIMER_CH_SKIPPED]           = "TIMER_CHANNEL_SKIPPED",
+    [BOOT_EVENT_TIMER_CH_MAPPED]            = "TIMER_CHANNEL_MAPPED"
 };
 
 const char * getBootlogEventDescription(bootLogEventCode_e eventCode)
