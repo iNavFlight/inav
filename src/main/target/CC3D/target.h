@@ -172,6 +172,7 @@
 #undef TELEMETRY_SMARTPORT
 
 #undef GPS_PROTO_NAZA
+#undef GPS_PROTO_I2C_NAV
 
 #ifdef OPBL
 
@@ -208,8 +209,8 @@
 #define MAX_PWM_OUTPUT_PORTS    11
 
 // DEBUG
-#define USE_ASSERT          // include assertion support code
-#define USE_ASSERT_FULL     // Provide file information
+//#define USE_ASSERT          // include assertion support code
+//#define USE_ASSERT_FULL     // Provide file information
 //#define USE_ASSERT_STOP   // stop on failed assertion
 //#define USE_ASSERT_CHECK    // include assertion check code (should in general a per-file define)
 
