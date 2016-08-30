@@ -202,7 +202,7 @@ bool hmc5883lInit(void)
     int failedSamples = 0;
     while (validSamples < 10 && failedSamples < INIT_MAX_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
-        delay(50);
+        delay(100);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
             ++validSamples;
             // Since the measurements are noisy, they should be averaged rather than taking the max.
@@ -229,7 +229,7 @@ bool hmc5883lInit(void)
     failedSamples = 0;
     while (validSamples < 10 && failedSamples < INIT_MAX_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
-        delay(50);
+        delay(100);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
             ++validSamples;
             // Since the measurements are noisy, they should be averaged.
