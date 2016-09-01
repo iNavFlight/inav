@@ -435,7 +435,7 @@ void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMotorMixers, se
     mixerUsesServos = mixers[currentMixerMode].useServo;
 
     // if we want camstab/trig, that also enables servos, even if mixer doesn't
-    servoOutputEnabled = mixerUsesServos || feature(FEATURE_SERVO_TILT) || feature(FEATURE_CHANNEL_FORWARDING);
+    servoOutputEnabled = mixerUsesServos || feature(FEATURE_SERVO_TILT);
 
     // give all servos a default command
     for (i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
