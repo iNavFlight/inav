@@ -205,7 +205,7 @@ bool hmc5883lInit(void)
     int saturatedSamples1 = 0;
     while (validSamples1 < 10 && failedSamples1 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
-        delay(50);
+        delay(70);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
             // Detect saturation.
             if (-4096 >= MIN(magADC[X], MIN(magADC[Y], magADC[Z]))) {
@@ -232,7 +232,7 @@ bool hmc5883lInit(void)
     int saturatedSamples2 = 0;
     while (validSamples2 < 10 && failedSamples2 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
-        delay(50);
+        delay(70);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
             // Detect saturation.
             if (-4096 >= MIN(magADC[X], MIN(magADC[Y], magADC[Z]))) {
