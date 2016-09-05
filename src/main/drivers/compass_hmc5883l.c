@@ -200,10 +200,10 @@ bool hmc5883lInit(void)
     delay(100);
     hmc5883lRead(magADC);
 
-    int validSamples = 0;
+    int validSamples1 = 0;
     int failedSamples1 = 0;
     int saturatedSamples1 = 0;
-    while (validSamples < 10 && failedSamples1 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
+    while (validSamples1 < 10 && failedSamples1 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
         delay(50);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
@@ -212,7 +212,7 @@ bool hmc5883lInit(void)
                 ++saturatedSamples1;
                 ++failedSamples1;
             } else {
-                ++validSamples;
+                ++validSamples1;
                 // Since the measurements are noisy, they should be averaged rather than taking the max.
                 xyz_total[X] += magADC[X];
                 xyz_total[Y] += magADC[Y];
@@ -227,10 +227,10 @@ bool hmc5883lInit(void)
 
     // Apply the negative bias. (Same gain)
     i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_CONFA, 0x010 + HMC_NEG_BIAS);   // Reg A DOR = 0x010 + MS1, MS0 set to negative bias.
-    validSamples = 0;
+    int validSamples2 = 0;
     int failedSamples2 = 0;
     int saturatedSamples2 = 0;
-    while (validSamples < 10 && failedSamples2 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
+    while (validSamples2 < 10 && failedSamples2 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
         delay(50);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
@@ -239,7 +239,7 @@ bool hmc5883lInit(void)
                 ++saturatedSamples2;
                 ++failedSamples2;
             } else {
-                ++validSamples;
+                ++validSamples2;
                 // Since the measurements are noisy, they should be averaged.
                 xyz_total[X] -= magADC[X];
                 xyz_total[Y] -= magADC[Y];
@@ -252,6 +252,7 @@ bool hmc5883lInit(void)
     }
 
     if (failedSamples1 >= INITIALISATION_MAX_READ_FAILURES || failedSamples2 >= INITIALISATION_MAX_READ_FAILURES) {
+        addBootlogEvent4(BOOT_EVENT_HMC5883L_READ_OK_COUNT, BOOT_EVENT_FLAGS_NONE, validSamples1, validSamples2);
         addBootlogEvent4(BOOT_EVENT_HMC5883L_READ_FAILED, BOOT_EVENT_FLAGS_WARNING, failedSamples1, failedSamples2);
         bret = false;
     }
