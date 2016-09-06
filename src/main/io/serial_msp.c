@@ -1848,7 +1848,7 @@ void mspProcess(void)
 
         if (isRebootScheduled) {
             waitForSerialPortToFinishTransmitting(candidatePort->port);
-            stopMotors();
+            stopPwmAllMotors();
             handleOneshotFeatureChangeOnRestart();
             systemReset();
         }
