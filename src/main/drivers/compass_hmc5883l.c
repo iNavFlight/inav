@@ -36,6 +36,8 @@
 #include "bus_i2c.h"
 #include "light_led.h"
 
+#include "logging.h"
+
 #include "sensor.h"
 #include "compass.h"
 
@@ -183,7 +185,8 @@ bool hmc5883lDetect(mag_t* mag, const hmc5883Config_t *hmc5883ConfigToUse)
     return true;
 }
 
-void hmc5883lInit(void)
+#define INITIALISATION_MAX_READ_FAILURES 5
+bool hmc5883lInit(void)
 {
     int16_t magADC[3];
     int32_t xyz_total[3] = { 0, 0, 0 }; // 32 bit totals so they won't overflow.
@@ -197,55 +200,76 @@ void hmc5883lInit(void)
     delay(100);
     hmc5883lRead(magADC);
 
-    int validSamples = 0;
-    int failedSamples = 0;
-    while (validSamples < 10 && failedSamples < 5) { // Collect 10 samples
+    int validSamples1 = 0;
+    int failedSamples1 = 0;
+    int saturatedSamples1 = 0;
+    while (validSamples1 < 10 && failedSamples1 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
-        delay(50);
+        delay(70);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
-            ++validSamples;
-            // Since the measurements are noisy, they should be averaged rather than taking the max.
-            xyz_total[X] += magADC[X];
-            xyz_total[Y] += magADC[Y];
-            xyz_total[Z] += magADC[Z];
             // Detect saturation.
             if (-4096 >= MIN(magADC[X], MIN(magADC[Y], magADC[Z]))) {
-                bret = false;
-                break;              // Breaks out of the for loop.  No sense in continuing if we saturated.
+                ++saturatedSamples1;
+                ++failedSamples1;
+            } else {
+                ++validSamples1;
+                // Since the measurements are noisy, they should be averaged rather than taking the max.
+                xyz_total[X] += magADC[X];
+                xyz_total[Y] += magADC[Y];
+                xyz_total[Z] += magADC[Z];
+
             }
         } else {
-            ++failedSamples;
+            ++failedSamples1;
         }
         LED1_TOGGLE;
     }
 
     // Apply the negative bias. (Same gain)
     i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_CONFA, 0x010 + HMC_NEG_BIAS);   // Reg A DOR = 0x010 + MS1, MS0 set to negative bias.
-    validSamples = 0;
-    failedSamples = 0;
-    while (validSamples < 10 && failedSamples < 5) { // Collect 10 samples
+    int validSamples2 = 0;
+    int failedSamples2 = 0;
+    int saturatedSamples2 = 0;
+    while (validSamples2 < 10 && failedSamples2 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
         i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 1);
-        delay(50);
+        delay(70);
         if (hmc5883lRead(magADC)) { // Get the raw values in case the scales have already been changed.
-            ++validSamples;
-            // Since the measurements are noisy, they should be averaged.
-            xyz_total[X] -= magADC[X];
-            xyz_total[Y] -= magADC[Y];
-            xyz_total[Z] -= magADC[Z];
             // Detect saturation.
             if (-4096 >= MIN(magADC[X], MIN(magADC[Y], magADC[Z]))) {
-                bret = false;
-                break;              // Breaks out of the for loop.  No sense in continuing if we saturated.
+                ++saturatedSamples2;
+                ++failedSamples2;
+            } else {
+                ++validSamples2;
+                // Since the measurements are noisy, they should be averaged.
+                xyz_total[X] -= magADC[X];
+                xyz_total[Y] -= magADC[Y];
+                xyz_total[Z] -= magADC[Z];
             }
         } else {
-            ++failedSamples;
+            ++failedSamples2;
         }
         LED1_TOGGLE;
     }
 
-    magGain[X] = fabsf(660.0f * HMC58X3_X_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[X]);
-    magGain[Y] = fabsf(660.0f * HMC58X3_Y_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[Y]);
-    magGain[Z] = fabsf(660.0f * HMC58X3_Z_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[Z]);
+    if (failedSamples1 >= INITIALISATION_MAX_READ_FAILURES || failedSamples2 >= INITIALISATION_MAX_READ_FAILURES) {
+        addBootlogEvent4(BOOT_EVENT_HMC5883L_READ_OK_COUNT, BOOT_EVENT_FLAGS_NONE, validSamples1, validSamples2);
+        addBootlogEvent4(BOOT_EVENT_HMC5883L_READ_FAILED, BOOT_EVENT_FLAGS_WARNING, failedSamples1, failedSamples2);
+        bret = false;
+    }
+    if (saturatedSamples1 > 0 || saturatedSamples2 > 0) {
+        addBootlogEvent4(BOOT_EVENT_HMC5883L_SATURATION, BOOT_EVENT_FLAGS_WARNING, saturatedSamples1, saturatedSamples2);
+    }
+
+    if (bret) {
+        magGain[X] = fabsf(660.0f * HMC58X3_X_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[X]);
+        magGain[Y] = fabsf(660.0f * HMC58X3_Y_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[Y]);
+        magGain[Z] = fabsf(660.0f * HMC58X3_Z_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[Z]);
+    } else {
+        // Something went wrong so get a best guess
+        magGain[X] = 1.0f;
+        magGain[Y] = 1.0f;
+        magGain[Z] = 1.0f;
+    }
 
     // leave test mode
     i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_CONFA, 0x70);   // Configuration Register A  -- 0 11 100 00  num samples: 8 ; output rate: 15Hz ; normal measurement mode
@@ -253,13 +277,9 @@ void hmc5883lInit(void)
     i2cWrite(MAG_I2C_INSTANCE, MAG_ADDRESS, HMC58X3_R_MODE, 0x00);    // Mode register             -- 000000 00    continuous Conversion Mode
     delay(100);
 
-    if (!bret) {                // Something went wrong so get a best guess
-        magGain[X] = 1.0f;
-        magGain[Y] = 1.0f;
-        magGain[Z] = 1.0f;
-    }
-
     hmc5883lConfigureDataReadyInterruptHandling();
+
+    return bret;
 }
 
 bool hmc5883lRead(int16_t *magData)

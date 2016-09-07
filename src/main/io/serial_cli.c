@@ -36,6 +36,8 @@
 #include "common/color.h"
 #include "common/typeconversion.h"
 
+#include "drivers/logging.h"
+
 #include "drivers/system.h"
 
 #include "drivers/sensor.h"
@@ -111,6 +113,10 @@ static uint8_t cliWriteBuffer[sizeof(*cliWriter) + 16];
 
 #if defined(USE_ASSERT)
 static void cliAssert(char *cmdline);
+#endif
+
+#if defined(BOOTLOG)
+static void cliBootlog(char *cmdline);
 #endif
 
 static void cliAux(char *cmdline);
@@ -225,7 +231,7 @@ static const char * const sensorTypeNames[] = {
 // sync with gyroSensor_e
 static const char * const gyroNames[] = { "", "None", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "FAKE"};
 // sync with accelerationSensor_e
-static const char * const accNames[] = { "None", "", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "FAKE"};
+static const char * const accNames[] = { "None", "", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "FAKE"};
 // sync with baroSensor_e
 static const char * const baroNames[] = { "", "None", "BMP085", "MS5611", "BMP280", "FAKE"};
 // sync with magSensor_e
@@ -269,6 +275,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("assert", "", NULL, cliAssert),
 #endif
     CLI_COMMAND_DEF("aux", "configure modes", NULL, cliAux),
+#if defined(BOOTLOG)
+    CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),
+#endif
 #ifdef LED_STRIP
     CLI_COMMAND_DEF("color", "configure colors", NULL, cliColor),
     CLI_COMMAND_DEF("mode_color", "configure mode and special colors", NULL, cliModeColor),
@@ -698,7 +707,7 @@ const clivalue_t valueTable[] = {
 #ifdef USE_RX_NRF24
     { "nrf24rx_protocol",           VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.rxConfig.nrf24rx_protocol, .config.lookup = { TABLE_NRF24_RX }, 0 },
     { "nrf24rx_id",                 VAR_UINT32 | MASTER_VALUE,  &masterConfig.rxConfig.nrf24rx_id, .config.minmax = { 0, 0 }, 0 },
-    { "nrf24rx_channel_count",      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP,  &masterConfig.rxConfig.nrf24rx_channel_count,  .config.minmax = { 0, 8 }, 0 },
+    { "nrf24rx_rf_channel_count",   VAR_UINT8  | MASTER_VALUE,  &masterConfig.rxConfig.nrf24rx_rf_channel_count, .config.minmax = { 0, 8 }, 0 },
 #endif
 #ifdef SPEKTRUM_BIND
     { "spektrum_sat_bind",          VAR_UINT8  | MASTER_VALUE,  &masterConfig.rxConfig.spektrum_sat_bind, .config.minmax = { SPEKTRUM_SAT_BIND_DISABLED,  SPEKTRUM_SAT_BIND_MAX}, 0 },
@@ -1017,6 +1026,46 @@ static void cliAssert(char *cmdline)
     }
     else {
         cliPrintf("No assert() failed\r\n");
+    }
+}
+#endif
+
+#if defined(BOOTLOG)
+static void cliBootlog(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    int bootEventCount = getBootlogEventCount();
+
+#if defined(BOOTLOG_DESCRIPTIONS)
+    cliPrintf("Time Evt            Description  Parameters\r\n");
+#else
+    cliPrintf("Time Evt Parameters\r\n");
+#endif
+
+    for (int idx = 0; idx < bootEventCount; idx++) {
+        bootLogEntry_t * event = getBootlogEvent(idx);
+
+#if defined(BOOTLOG_DESCRIPTIONS)
+        const char * eventDescription = getBootlogEventDescription(event->eventCode);
+        if (!eventDescription) {
+            eventDescription = "";
+        }
+
+        cliPrintf("%4d: %2d %22s ", event->timestamp, event->eventCode, eventDescription);
+#else
+        cliPrintf("%4d: %2d ", event->timestamp, event->eventCode);
+#endif
+
+        if (event->eventFlags & BOOT_EVENT_FLAGS_PARAM16) {
+            cliPrintf(" (%d, %d, %d, %d)\r\n", event->params.u16[0], event->params.u16[1], event->params.u16[2], event->params.u16[3]);
+        }
+        else if (event->eventFlags & BOOT_EVENT_FLAGS_PARAM32) {
+            cliPrintf(" (%d, %d)\r\n", event->params.u32[0], event->params.u32[1]);
+        }
+        else {
+            cliPrintf("\r\n");
+        }
     }
 }
 #endif
@@ -1375,7 +1424,7 @@ static void cliLed(char *cmdline)
 
     if (isEmpty(cmdline)) {
         for (i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
-            generateLedConfig(i, ledConfigBuffer, sizeof(ledConfigBuffer));
+            generateLedConfig(&masterConfig.ledConfigs[i], ledConfigBuffer, sizeof(ledConfigBuffer));
             cliPrintf("led %u %s\r\n", i, ledConfigBuffer);
         }
     } else {

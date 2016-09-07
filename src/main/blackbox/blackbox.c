@@ -379,9 +379,6 @@ extern uint32_t currentTime;
 //From rx.c:
 extern uint16_t rssi;
 
-//From gyro.c
-extern uint32_t targetLooptime;
-
 static BlackboxState blackboxState = BLACKBOX_STATE_DISABLED;
 
 static uint32_t blackboxLastArmingBeep = 0;
@@ -680,6 +677,8 @@ static void writeIntraframe(void)
     blackboxHistory[2] = blackboxHistory[0];
     //And advance the current state over to a blank space ready to be filled
     blackboxHistory[0] = ((blackboxHistory[0] - blackboxHistoryRing + 1) % 3) + blackboxHistoryRing;
+
+    blackboxLoggedAnyFrames = true;
 }
 
 static void blackboxWriteMainStateArrayUsingAveragePredictor(int arrOffsetInHistory, int count)
@@ -831,6 +830,8 @@ static void writeInterframe(void)
     blackboxHistory[2] = blackboxHistory[1];
     blackboxHistory[1] = blackboxHistory[0];
     blackboxHistory[0] = ((blackboxHistory[0] - blackboxHistoryRing + 1) % 3) + blackboxHistoryRing;
+
+    blackboxLoggedAnyFrames = true;
 }
 
 /* Write the contents of the global "slowHistory" to the log as an "S" frame. Because this data is logged so
@@ -1299,7 +1300,7 @@ static bool blackboxWriteSysinfo()
             }
             );
 
-        BLACKBOX_PRINT_HEADER_LINE("looptime:%d",                           targetLooptime);
+        BLACKBOX_PRINT_HEADER_LINE("looptime:%d",                           gyro.targetLooptime);
         BLACKBOX_PRINT_HEADER_LINE("rcExpo:%d",                             masterConfig.controlRateProfiles[masterConfig.current_profile_index].rcExpo8);
         BLACKBOX_PRINT_HEADER_LINE("rcYawExpo:%d",                          masterConfig.controlRateProfiles[masterConfig.current_profile_index].rcYawExpo8);
         BLACKBOX_PRINT_HEADER_LINE("thrMid:%d",                             masterConfig.controlRateProfiles[masterConfig.current_profile_index].thrMid8);

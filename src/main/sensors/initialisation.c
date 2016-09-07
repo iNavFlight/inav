@@ -24,6 +24,8 @@
 
 #include "common/axis.h"
 
+#include "drivers/logging.h"
+
 #include "drivers/io.h"
 #include "drivers/system.h"
 #include "drivers/exti.h"
@@ -66,6 +68,8 @@
 
 #include "config/config.h"
 
+#include "io/gps.h"
+
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -78,15 +82,9 @@
 #include "hardware_revision.h"
 #endif
 
-#ifdef GPS
-extern bool gpsMagDetect(mag_t *mag);
-#endif
-
-extern float magneticDeclination;
-
-extern gyro_t gyro;
 extern baro_t baro;
-extern acc_t acc;
+extern mag_t mag;
+extern sensor_align_e gyroAlign;
 
 uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE };
 
@@ -184,8 +182,9 @@ bool fakeBaroDetect(baro_t *baro)
 #endif
 
 #ifdef USE_FAKE_MAG
-static void fakeMagInit(void)
+static bool fakeMagInit(void)
 {
+    return true;
 }
 
 static bool fakeMagRead(int16_t *magData)
@@ -316,6 +315,8 @@ bool detectGyro(void)
             gyroHardware = GYRO_NONE;
     }
 
+    addBootlogEvent6(BOOT_EVENT_GYRO_DETECTION, BOOT_EVENT_FLAGS_NONE, gyroHardware, 0, 0, 0);
+
     if (gyroHardware == GYRO_NONE) {
         return false;
     }
@@ -326,7 +327,7 @@ bool detectGyro(void)
     return true;
 }
 
-static void detectAcc(accelerationSensor_e accHardwareToUse)
+static bool detectAcc(accelerationSensor_e accHardwareToUse)
 {
     accelerationSensor_e accHardware;
 
@@ -431,7 +432,16 @@ retry:
                 break;
             }
 #endif
-
+        case ACC_MPU9250:
+#ifdef USE_ACC_SPI_MPU9250
+            if (mpu9250SpiAccDetect(&acc)) {
+#ifdef ACC_MPU9250_ALIGN
+                accAlign = ACC_MPU9250_ALIGN;
+#endif
+                accHardware = ACC_MPU9250;
+                break;
+            }
+#endif
             ; // fallthrough
         case ACC_FAKE:
 #ifdef USE_FAKE_ACC
@@ -454,20 +464,20 @@ retry:
         goto retry;
     }
 
+    addBootlogEvent6(BOOT_EVENT_ACC_DETECTION, BOOT_EVENT_FLAGS_NONE, accHardware, 0, 0, 0);
 
     if (accHardware == ACC_NONE) {
-        return;
+        return false;
     }
 
     detectedSensors[SENSOR_INDEX_ACC] = accHardware;
     sensorsSet(SENSOR_ACC);
+    return true;
 }
 
-static void detectBaro(baroSensor_e baroHardwareToUse)
+#ifdef BARO
+static bool detectBaro(baroSensor_e baroHardwareToUse)
 {
-#ifndef BARO
-    UNUSED(baroHardwareToUse);
-#else
     // Detect what pressure sensors are available. baro->update() is set to sensor-specific update function
 
     baroSensor_e baroHardware = baroHardwareToUse;
@@ -496,14 +506,6 @@ static void detectBaro(baroSensor_e baroHardwareToUse)
         case BARO_DEFAULT:
             ; // fallthough
 
-        case BARO_MS5611:
-#ifdef USE_BARO_MS5611
-            if (ms5611Detect(&baro)) {
-                baroHardware = BARO_MS5611;
-                break;
-            }
-#endif
-            ; // fallthough
         case BARO_BMP085:
 #ifdef USE_BARO_BMP085
             if (bmp085Detect(bmp085Config, &baro)) {
@@ -512,6 +514,14 @@ static void detectBaro(baroSensor_e baroHardwareToUse)
             }
 #endif
         ; // fallthough
+        case BARO_MS5611:
+#ifdef USE_BARO_MS5611
+            if (ms5611Detect(&baro)) {
+                baroHardware = BARO_MS5611;
+                break;
+            }
+#endif
+            ; // fallthough
         case BARO_BMP280:
 #ifdef USE_BARO_BMP280
             if (bmp280Detect(&baro)) {
@@ -533,16 +543,20 @@ static void detectBaro(baroSensor_e baroHardwareToUse)
             break;
     }
 
+    addBootlogEvent6(BOOT_EVENT_BARO_DETECTION, BOOT_EVENT_FLAGS_NONE, baroHardware, 0, 0, 0);
+
     if (baroHardware == BARO_NONE) {
-        return;
+        return false;
     }
 
     detectedSensors[SENSOR_INDEX_BARO] = baroHardware;
     sensorsSet(SENSOR_BARO);
-#endif
+    return true;
 }
+#endif // BARO
 
-static void detectMag(magSensor_e magHardwareToUse)
+#ifdef MAG
+static bool detectMag(magSensor_e magHardwareToUse)
 {
     magSensor_e magHardware = MAG_NONE;
 
@@ -653,14 +667,18 @@ static void detectMag(magSensor_e magHardwareToUse)
             break;
     }
 
+    addBootlogEvent6(BOOT_EVENT_MAG_DETECTION, BOOT_EVENT_FLAGS_NONE, magHardware, 0, 0, 0);
+
     // If not in autodetect mode and detected the wrong chip - disregard the compass even if detected
     if ((magHardwareToUse != MAG_DEFAULT && magHardware != magHardwareToUse) || (magHardware == MAG_NONE)) {
-        return;
+        return false;
     }
 
     detectedSensors[SENSOR_INDEX_MAG] = magHardware;
     sensorsSet(SENSOR_MAG);
+    return true;
 }
+#endif // MAG
 
 #ifdef SONAR
 /*
@@ -680,6 +698,9 @@ static rangefinderType_e detectRangefinder(void)
         rangefinderType = RANGEFINDER_SRF10;
     }
 #endif
+
+    addBootlogEvent6(BOOT_EVENT_RANGEFINDER_DETECTION, BOOT_EVENT_FLAGS_NONE, rangefinderType, 0, 0, 0);
+
     detectedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderType;
 
     if (rangefinderType != RANGEFINDER_NONE) {
@@ -704,12 +725,15 @@ static void reconfigureAlignment(const sensorAlignmentConfig_t *sensorAlignmentC
 }
 
 bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig,
-        uint8_t gyroLpf,
         uint8_t accHardwareToUse,
         uint8_t magHardwareToUse,
         uint8_t baroHardwareToUse,
-        int16_t magDeclinationFromConfig) {
-
+        int16_t magDeclinationFromConfig,
+        uint32_t looptime,
+        uint8_t gyroLpf,
+        uint8_t gyroSync,
+        uint8_t gyroSyncDenominator)
+{
     memset(&acc, 0, sizeof(acc));
     memset(&gyro, 0, sizeof(gyro));
 
@@ -721,35 +745,44 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig,
     if (!detectGyro()) {
         return false;
     }
-    detectAcc(accHardwareToUse);
-    detectBaro(baroHardwareToUse);
 
-    // Now time to init things, acc first
-    if (sensors(SENSOR_ACC)) {
+    // this is safe because either mpu6050 or mpu3050 or lg3d20 sets it, and in case of fail, we never get here.
+    gyro.targetLooptime = gyroSetSampleRate(looptime, gyroLpf, gyroSync, gyroSyncDenominator);    // Set gyro sample rate before initialisation
+    gyro.init(gyroLpf); // driver initialisation
+    gyroInit(); // sensor initialisation
+
+    if (detectAcc(accHardwareToUse)) {
         acc.acc_1G = 256; // set default
         acc.init(&acc);
+        accInit(gyro.targetLooptime); // acc and gyro updated at same frequency in taskMainPidLoop in mw.c
     }
 
-    gyro.init(gyroLpf);
-
-    detectMag(magHardwareToUse);
-
-    reconfigureAlignment(sensorAlignmentConfig);
+#ifdef BARO
+    detectBaro(baroHardwareToUse);
+#else
+    UNUSED(baroHardwareToUse);
+#endif
 
     // FIXME extract to a method to reduce dependencies, maybe move to sensors_compass.c
-    if (sensors(SENSOR_MAG)) {
+    magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
+#ifdef MAG
+    if (detectMag(magHardwareToUse)) {
         // calculate magnetic declination
-        const int deg = magDeclinationFromConfig / 100;
-        const int min = magDeclinationFromConfig % 100;
-        magneticDeclination = (deg + ((float)min * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
-    } else {
-        magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
+        if (!compassInit(magDeclinationFromConfig)) {
+            addBootlogEvent2(BOOT_EVENT_MAG_INIT_FAILED, BOOT_EVENT_FLAGS_ERROR);
+            sensorsClear(SENSOR_MAG);
+        }
     }
+#else
+    UNUSED(magHardwareToUse);
+    UNUSED(magDeclinationFromConfig);
+#endif
 
 #ifdef SONAR
     const rangefinderType_e rangefinderType = detectRangefinder();
     rangefinderInit(rangefinderType);
 #endif
+    reconfigureAlignment(sensorAlignmentConfig);
 
     return true;
 }

@@ -39,6 +39,7 @@
 #include "sensors/barometer.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
+#include "sensors/compass.h"
 
 #include "io/gps.h"
 
@@ -73,8 +74,6 @@
 #define INAV_SONAR_W2                       6.2034f // Sonar predictive filter gain for velocity
 
 #define INAV_HISTORY_BUF_SIZE               (INAV_POSITION_PUBLISH_RATE_HZ / 2)     // Enough to hold 0.5 sec historical data
-
-extern float magneticDeclination;
 
 typedef struct {
     uint32_t    lastTriggeredTime;
@@ -452,10 +451,12 @@ static void updateIMUTopic(void)
 
         posEstimator.imu.accelNEU.V.Z -= calibratedGravityCMSS;
 
+#if defined(NAV_BLACKBOX)
         /* Update blackbox values */
         navAccNEU[X] = posEstimator.imu.accelNEU.A[X];
         navAccNEU[Y] = posEstimator.imu.accelNEU.A[Y];
         navAccNEU[Z] = posEstimator.imu.accelNEU.A[Z];
+#endif
     }
 }
 

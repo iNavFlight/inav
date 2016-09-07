@@ -63,7 +63,7 @@
 // External I2C MAG
 #define MAG
 #define USE_MAG_HMC5883
-#define USE_MAG_AK8975
+//#define USE_MAG_AK8975
 //#define USE_MAG_MAG3110
 
 #define USE_VCP
@@ -171,6 +171,9 @@
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
 
+// Disable all GPS protocols except UBLOX
+#undef GPS_PROTO_NMEA
+#undef GPS_PROTO_I2C_NAV
 #undef GPS_PROTO_NAZA
 
 #ifdef OPBL
@@ -208,8 +211,8 @@
 #define MAX_PWM_OUTPUT_PORTS    11
 
 // DEBUG
-#define USE_ASSERT          // include assertion support code
-#define USE_ASSERT_FULL     // Provide file information
+//#define USE_ASSERT          // include assertion support code
+//#define USE_ASSERT_FULL     // Provide file information
 //#define USE_ASSERT_STOP   // stop on failed assertion
 //#define USE_ASSERT_CHECK    // include assertion check code (should in general a per-file define)
 

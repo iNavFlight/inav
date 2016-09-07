@@ -34,27 +34,31 @@
 #define ENSURE_MPU_DATA_READY_IS_LOW
 //#define DEBUG_MPU_DATA_READY_INTERRUPT
 
-#define MPU6500_CS_GPIO_CLK_PERIPHERAL   RCC_AHBPeriph_GPIOA
-#define MPU6500_CS_PIN                   PA4
-#define MPU6500_SPI_INSTANCE             SPI1
-
-#define MPU6000_CS_PIN                   PA4
-#define MPU6000_SPI_INSTANCE             SPI1
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#define SPI1_GPIO_PERIPHERAL    RCC_AHBPeriph_GPIOB
 #define SPI1_SCK_PIN            PB3
 #define SPI1_MISO_PIN           PB4
 #define SPI1_MOSI_PIN           PB5
+#define SPI1_NSS_PIN            PA4
+
+#define MPU6500_CS_PIN          SPI1_NSS_PIN
+#define MPU6500_SPI_INSTANCE    SPI1
+
+#define MPU6000_CS_PIN          SPI1_NSS_PIN
+#define MPU6000_SPI_INSTANCE    SPI1
 
 #define GYRO
+#define USE_GYRO_SPI_MPU6000
+#define GYRO_MPU6000_ALIGN      CW270_DEG
 #define USE_GYRO_MPU6500
 #define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW270_DEG
 
 #define ACC
+#define USE_ACC_SPI_MPU6000
+#define ACC_MPU6000_ALIGN       CW270_DEG
 #define USE_ACC_MPU6500
 #define USE_ACC_SPI_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
@@ -65,7 +69,10 @@
 #define MAG
 #define USE_MPU9250_MAG     // Bypass enable
 #define USE_MAG_HMC5883
+#define USE_MAG_AK8963
 #define USE_MAG_AK8975
+
+#define USB_IO
 
 #define USE_VCP
 #define USE_UART1
@@ -96,14 +103,17 @@
 #define EXTERNAL1_ADC_PIN       PC3
 
 #define LED_STRIP
-#define USE_COLIBTI_RACE_LED_DEFAULT_CONFIG
-
 #define WS2811_PIN                      PA6 // TIM16_CH1
 #define WS2811_TIMER                    TIM16
 #define WS2811_DMA_CHANNEL              DMA1_Channel3
 #define WS2811_IRQ                      DMA1_Channel3_IRQn
 #define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC3
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
+
+#define NAV
+#define NAV_AUTO_MAG_DECLINATION
+#define NAV_GPS_GLITCH_DETECTION
+#define NAV_MAX_WAYPOINTS       60
 
 #define DEFAULT_FEATURES        FEATURE_VBAT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL

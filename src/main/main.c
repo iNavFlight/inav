@@ -31,6 +31,8 @@
 #include "common/maths.h"
 #include "common/printf.h"
 
+#include "drivers/logging.h"
+
 #include "drivers/nvic.h"
 
 #include "drivers/sensor.h"
@@ -145,6 +147,8 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
+    initBootlog();
+
     printfSupportInit();
 
     initEEPROM();
@@ -152,6 +156,7 @@ void init(void)
     ensureEEPROMContainsValidData();
     readEEPROM();
 
+    addBootlogEvent2(BOOT_EVENT_CONFIG_LOADED, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_CONFIG_LOADED;
 
     systemInit();
@@ -177,6 +182,8 @@ void init(void)
 #ifdef USE_EXTI
     EXTIInit();
 #endif
+
+    addBootlogEvent2(BOOT_EVENT_SYSTEM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
 
 #ifdef SPEKTRUM_BIND
     if (feature(FEATURE_RX_SERIAL)) {
@@ -256,7 +263,7 @@ void init(void)
     pwm_params.useSerialRx = feature(FEATURE_RX_SERIAL);
 
 #ifdef USE_SERVOS
-    pwm_params.useServos = isServoOutputEnabled();
+    pwm_params.useServos = isMixerUsingServos();
     pwm_params.useChannelForwarding = feature(FEATURE_CHANNEL_FORWARDING);
     pwm_params.servoCenterPulse = masterConfig.escAndServoConfig.servoCenterPulse;
     pwm_params.servoPwmRate = masterConfig.servo_pwm_rate;
@@ -282,6 +289,7 @@ void init(void)
     if (!feature(FEATURE_ONESHOT125))
         motorControlEnable = true;
 
+    addBootlogEvent2(BOOT_EVENT_PWM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
 #ifdef BEEPER
@@ -391,6 +399,24 @@ void init(void)
     adcInit(&adc_params);
 #endif
 
+    /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
+#if defined(GPS) || defined(MAG)
+    if (!isMPUSoftReset()) {
+        addBootlogEvent2(BOOT_EVENT_EXTRA_BOOT_DELAY, BOOT_EVENT_FLAGS_NONE);
+
+        LED1_ON;
+        LED0_OFF;
+
+        for (int i = 0; i < 5; i++) {
+            LED1_TOGGLE;
+            LED0_TOGGLE;
+            delay(100);
+        }
+
+        LED0_OFF;
+        LED1_OFF;
+    }
+#endif
 
     initBoardAlignment(&masterConfig.boardAlignment);
 
@@ -406,28 +432,24 @@ void init(void)
     }
 #endif
 
-    // Set gyro sampling rate divider before initialization
-    gyroSetSampleRate(masterConfig.looptime, masterConfig.gyro_lpf, masterConfig.gyroSync, masterConfig.gyroSyncDenominator);
-
     if (!sensorsAutodetect(&masterConfig.sensorAlignmentConfig,
-            masterConfig.gyro_lpf,
             masterConfig.acc_hardware,
             masterConfig.mag_hardware,
             masterConfig.baro_hardware,
-            currentProfile->mag_declination)) {
+            currentProfile->mag_declination,
+            masterConfig.looptime,
+            masterConfig.gyro_lpf,
+            masterConfig.gyroSync,
+            masterConfig.gyroSyncDenominator)) {
 
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
     }
 
+    addBootlogEvent2(BOOT_EVENT_SENSOR_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_SENSORS_READY;
 
     flashLedsAndBeep();
-
-#ifdef MAG
-    if (sensors(SENSOR_MAG))
-        compassInit();
-#endif
 
     imuInit();
 
@@ -447,18 +469,20 @@ void init(void)
             &masterConfig.serialConfig,
             &masterConfig.gpsConfig
         );
+
+        addBootlogEvent2(BOOT_EVENT_GPS_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     }
 #endif
 
 #ifdef NAV
-        navigationInit(
-            &masterConfig.navConfig,
-            &currentProfile->pidProfile,
-            &currentProfile->rcControlsConfig,
-            &masterConfig.rxConfig,
-            &masterConfig.flight3DConfig,
-            &masterConfig.escAndServoConfig
-        );
+    navigationInit(
+        &masterConfig.navConfig,
+        &currentProfile->pidProfile,
+        &currentProfile->rcControlsConfig,
+        &masterConfig.rxConfig,
+        &masterConfig.flight3DConfig,
+        &masterConfig.escAndServoConfig
+    );
 #endif
 
 #ifdef LED_STRIP
@@ -466,12 +490,14 @@ void init(void)
 
     if (feature(FEATURE_LED_STRIP)) {
         ledStripEnable();
+        addBootlogEvent2(BOOT_EVENT_LEDSTRIP_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     }
 #endif
 
 #ifdef TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         telemetryInit();
+        addBootlogEvent2(BOOT_EVENT_TELEMETRY_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     }
 #endif
 
@@ -550,6 +576,7 @@ void init(void)
     latchActiveFeatures();
     motorControlEnable = true;
 
+    addBootlogEvent2(BOOT_EVENT_SYSTEM_READY, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_READY;
 }
 
@@ -574,7 +601,7 @@ int main(void)
     /* Setup scheduler */
     schedulerInit();
 
-    rescheduleTask(TASK_GYROPID, targetLooptime);
+    rescheduleTask(TASK_GYROPID, gyro.targetLooptime);
     setTaskEnabled(TASK_GYROPID, true);
 
     setTaskEnabled(TASK_SERIAL, true);
@@ -588,7 +615,7 @@ int main(void)
 #endif
 #ifdef MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
-#if defined(MPU6500_SPI_INSTANCE) && defined(USE_MAG_AK8963)
+#if (defined(MPU6500_SPI_INSTANCE) || defined(MPU9250_SPI_INSTANCE)) && defined(USE_MAG_AK8963)
     // fixme temporary solution for AK6983 via slave I2C on MPU9250
     rescheduleTask(TASK_COMPASS, 1000000 / 40);
 #endif

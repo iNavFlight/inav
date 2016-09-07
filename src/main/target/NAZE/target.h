@@ -36,12 +36,11 @@
 #define INVERTER_USART          USART2
 
 #define USE_EXTI
-#define MAG_INT_EXTI PC14
-#define EXTI_CALLBACK_HANDLER_COUNT 3 // MPU data ready, MAG data ready, BMP085 EOC
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
+#define MAG_INT_EXTI            PC14
 #define USE_MPU_DATA_READY_SIGNAL
+//#define USE_MAG_DATA_READY_SIGNAL
+//#define DEBUG_MPU_DATA_READY_INTERRUPT
 //#define DEBUG_MAG_DATA_READY_INTERRUPT
-#define USE_MAG_DATA_READY_SIGNAL
 
 // SPI2
 // PB15 28 SPI2_MOSI
@@ -81,7 +80,7 @@
 #define GYRO_MPU6500_ALIGN      CW0_DEG
 
 #define ACC
-//#define USE_ACC_ADXL345
+#define USE_ACC_ADXL345
 //#define USE_ACC_BMA280
 //#define USE_ACC_MMA8452
 #define USE_ACC_MPU6050
@@ -105,7 +104,7 @@
 //#define USE_MAG_MAG3110
 #define MAG_HMC5883_ALIGN       CW180_DEG
 
-//#define SONAR
+#define SONAR
 //#define USE_SONAR_SRF10
 #define SONAR_TRIGGER_PIN       PB0
 #define SONAR_ECHO_PIN          PB1
@@ -196,7 +195,7 @@
 // USART2, PA3
 #define BIND_PIN                        PA3
 
-#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+//#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_MOTOR_COUNT      6
 #define DISABLE_UNCOMMON_MIXERS
@@ -204,7 +203,6 @@
 #define DEFAULT_FEATURES        FEATURE_VBAT
 #define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
 
-// Disable HOTT and S.Port telemetry
 #undef TELEMETRY_HOTT
 #undef TELEMETRY_SMARTPORT
 

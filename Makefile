@@ -372,6 +372,7 @@ COMMON_SRC = \
             common/streambuf.c \
             config/config.c \
             fc/runtime_config.c \
+            drivers/logging.c \
             drivers/adc.c \
             drivers/buf_writer.c \
             drivers/bus_i2c_soft.c \
@@ -440,6 +441,8 @@ HIGHEND_SRC = \
             blackbox/blackbox_io.c \
             common/colorconversion.c \
             drivers/display_ug2864hsweg01.c \
+            drivers/sonar_hcsr04.c \
+            drivers/sonar_srf10.c \
             flight/navigation_rewrite.c \
             flight/navigation_rewrite_multicopter.c \
             flight/navigation_rewrite_fixedwing.c \

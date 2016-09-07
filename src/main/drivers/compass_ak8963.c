@@ -17,10 +17,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <math.h>
 
 #include "platform.h"
+
+#ifdef USE_MAG_AK8963
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -218,7 +221,7 @@ bool ak8963Detect(mag_t *mag)
     return false;
 }
 
-void ak8963Init()
+bool ak8963Init()
 {
     bool ack;
     UNUSED(ack);
@@ -251,6 +254,7 @@ void ak8963Init()
 #else
     ack = ak8963SensorWrite(AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_CNTL, CNTL_MODE_ONCE);
 #endif
+    return true;
 }
 
 bool ak8963Read(int16_t *magData)
@@ -258,12 +262,13 @@ bool ak8963Read(int16_t *magData)
     bool ack = false;
     uint8_t buf[7];
 
-    // set magData to zero for case of failed read
-    magData[X] = 0;
-    magData[Y] = 0;
-    magData[Z] = 0;
+    static bool lastReadResult = false;
 
 #if defined(USE_SPI) && defined(MPU9250_SPI_INSTANCE)
+    static int16_t cachedMagData[3];
+
+    // set magData to latest cached value
+    memcpy(magData, cachedMagData, sizeof(cachedMagData));
 
     // we currently need a different approach for the MPU9250 connected via SPI.
     // we cannot use the ak8963SensorRead() method for SPI, it is to slow and blocks for far too long.
@@ -277,12 +282,12 @@ restart:
         case CHECK_STATUS:
             ak8963SensorStartRead(AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_STATUS1, 1);
             state++;
-            return false;
+            return lastReadResult;
 
         case WAITING_FOR_STATUS: {
             uint32_t timeRemaining = ak8963SensorQueuedReadTimeRemaining();
             if (timeRemaining) {
-                return false;
+                return lastReadResult;
             }
 
             ack = ak8963SensorCompleteRead(&buf[0]);
@@ -296,22 +301,23 @@ restart:
                     retry = false;
                     goto restart;
                 }
-                return false;
-            }
 
+                lastReadResult = false;
+                return lastReadResult;
+            }
 
             // read the 6 bytes of data and the status2 register
             ak8963SensorStartRead(AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_HXL, 7);
 
             state++;
 
-            return false;
+            return lastReadResult;
         }
 
         case WAITING_FOR_DATA: {
             uint32_t timeRemaining = ak8963SensorQueuedReadTimeRemaining();
             if (timeRemaining) {
-                return false;
+                return lastReadResult;
             }
 
             ack = ak8963SensorCompleteRead(&buf[0]);
@@ -323,14 +329,17 @@ restart:
     uint8_t status = buf[0];
 
     if (!ack || (status & STATUS1_DATA_READY) == 0) {
-        return false;
+        lastReadResult = false;
+        return lastReadResult;
     }
 
     ack = ak8963SensorRead(AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_HXL, 7, &buf[0]);
 #endif
+
     uint8_t status2 = buf[6];
     if (!ack || (status2 & STATUS2_DATA_ERROR) || (status2 & STATUS2_MAG_SENSOR_OVERFLOW)) {
-        return false;
+        lastReadResult = false;
+        return lastReadResult;
     }
 
     magData[X] = -(int16_t)(buf[1] << 8 | buf[0]) * magGain[X];
@@ -338,9 +347,14 @@ restart:
     magData[Z] = -(int16_t)(buf[5] << 8 | buf[4]) * magGain[Z];
 
 #if defined(USE_SPI) && defined(MPU9250_SPI_INSTANCE)
+    // cache mag data for reuse
+    memcpy(cachedMagData, magData, sizeof(cachedMagData));
     state = CHECK_STATUS;
-    return true;
+    lastReadResult = true;
 #else
-    return ak8963SensorWrite(AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_CNTL, CNTL_MODE_ONCE); // start reading again
+    lastReadResult = ak8963SensorWrite(AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_CNTL, CNTL_MODE_ONCE); // start reading again
 #endif
+
+    return lastReadResult;
 }
+#endif
