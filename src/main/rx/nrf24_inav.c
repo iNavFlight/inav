@@ -35,7 +35,7 @@
 #include "telemetry/ltm.h"
 
 // debug build flags
-#define DEBUG_NRF24_INAV
+//#define DEBUG_NRF24_INAV
 //#define NO_RF_CHANNEL_HOPPING
 //#define USE_BIND_ADDRESS_FOR_DATA_STATE
 
@@ -105,6 +105,8 @@ typedef enum {
 STATIC_UNIT_TESTED protocol_state_t protocolState;
 
 STATIC_UNIT_TESTED uint8_t ackPayload[NRF24L01_MAX_PAYLOAD_SIZE];
+#define BIND_PAYLOAD0 0xae // 10101110
+#define BIND_PAYLOAD1 0xc9 // 11001001
 #define BIND_ACK_PAYLOAD0 0x83 // 10000111
 #define BIND_ACK_PAYLOAD1 0xa5 // 10100101
 
@@ -135,7 +137,7 @@ static const uint32_t hopTimeout = 5000; // 5ms
 STATIC_UNIT_TESTED bool inavCheckBindPacket(const uint8_t *payload)
 {
     bool bindPacket = false;
-    if (payload[0] == 0xae  && payload[1] == 0xc9) {
+    if (payload[0] == BIND_PAYLOAD0  && payload[1] == BIND_PAYLOAD1) {
         bindPacket = true;
         if (protocolState ==STATE_BIND) {
             rxTxAddr[0] = payload[2];
