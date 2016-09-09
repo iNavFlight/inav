@@ -34,6 +34,7 @@ typedef struct failsafeConfig_s {
     uint8_t failsafe_kill_switch;           // failsafe switch action is 0: identical to rc link loss, 1: disarms instantly
     uint16_t failsafe_throttle_low_delay;   // Time throttle stick must have been below 'min_check' to "JustDisarm" instead of "full failsafe procedure".
     uint8_t failsafe_procedure;             // selected full failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
+    uint8_t disable_failsafe_on_throttle_cut; // disable failsafe activation when throttle is < 1050 (for FW crafts, for example to disable failsafe activation on the electric motors while running on the gas engine)
 } failsafeConfig_t;
 
 typedef enum {

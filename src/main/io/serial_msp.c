@@ -1067,13 +1067,14 @@ static bool processOutCommand(uint8_t cmdMSP)
         break;
 
     case MSP_FAILSAFE_CONFIG:
-        headSerialReply(8);
+        headSerialReply(9);
         serialize8(masterConfig.failsafeConfig.failsafe_delay);
         serialize8(masterConfig.failsafeConfig.failsafe_off_delay);
         serialize16(masterConfig.failsafeConfig.failsafe_throttle);
         serialize8(masterConfig.failsafeConfig.failsafe_kill_switch);
         serialize16(masterConfig.failsafeConfig.failsafe_throttle_low_delay);
         serialize8(masterConfig.failsafeConfig.failsafe_procedure);
+        serialize8(masterConfig.failsafeConfig.disable_failsafe_on_throttle_cut);
         break;
 
     case MSP_RXFAIL_CONFIG:
