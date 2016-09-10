@@ -153,6 +153,10 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
+#ifdef USE_HAL_DRIVER
+    HAL_Init();
+#endif
+
     systemState = SYSTEM_STATE_INITIALISING;
     initBootlog();
 
@@ -210,7 +214,9 @@ void init(void)
 
     timerInit();  // timer must be initialized before any channel is allocated
 
+#if !defined(USE_HAL_DRIVER)
     dmaInit();
+#endif
 
 #if defined(AVOID_UART2_FOR_PWM_PPM)
     serialInit(&masterConfig.serialConfig, feature(FEATURE_SOFTSERIAL),
