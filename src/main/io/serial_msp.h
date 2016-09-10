@@ -17,38 +17,85 @@
 
 #pragma once
 
+
+/**
+ * MSP Guidelines, emphasis is used to clarify.
+ *
+ * Each FlightController (FC, Server) MUST change the API version when any MSP command is added, deleted, or changed.
+ *
+ * If you fork the FC source code and release your own version, you MUST change the Flight Controller Identifier.
+ *
+ * NEVER release a modified copy of this code that shares the same Flight controller IDENT and API version
+ * if the API doesn't match EXACTLY.
+ *
+ * Consumers of the API (API clients) SHOULD first attempt to get a response from the MSP_API_VERSION command.
+ * If no response is obtained then client MAY try the legacy MSP_IDENT command.
+ *
+ * API consumers should ALWAYS handle communication failures gracefully and attempt to continue
+ * without the information if possible.  Clients MAY log/display a suitable message.
+ *
+ * API clients should NOT attempt any communication if they can't handle the returned API MAJOR VERSION.
+ *
+ * API clients SHOULD attempt communication if the API MINOR VERSION has increased from the time
+ * the API client was written and handle command failures gracefully.  Clients MAY disable
+ * functionality that depends on the commands while still leaving other functionality intact.
+ * Clients SHOULD operate in READ-ONLY mode and SHOULD present a warning to the user to state
+ * that the newer API version may cause problems before using API commands that change FC state.
+ *
+ * It is for this reason that each MSP command should be specific as possible, such that changes
+ * to commands break as little client functionality as possible.
+ *
+ * API client authors MAY use a compatibility matrix/table when determining if they can support
+ * a given command from a given flight controller at a given api version level.
+ *
+ * Developers MUST NOT create new MSP commands that do more than one thing.
+ *
+ * Failure to follow these guidelines will likely invoke the wrath of developers trying to write tools
+ * that use the API and the users of those tools.
+ */
+
 // Each MSP port requires state and a receive buffer, revisit this default if someone needs more than 2 MSP ports.
 #define MAX_MSP_PORT_COUNT 2
 
 typedef enum {
     IDLE,
-    HEADER_START,
     HEADER_M,
     HEADER_ARROW,
     HEADER_SIZE,
     HEADER_CMD,
-    COMMAND_RECEIVED
+    HEADER_DATA,
+    MESSAGE_RECEIVED
 } mspState_e;
 
-#define MSP_PORT_INBUF_SIZE 64
+typedef bool (*mspCommandSenderFuncPtr)(); // msp command sender function prototype
 
-struct serial_port_s;
+#define MSP_PORT_INBUF_SIZE 64
+#define MSP_PORT_OUTBUF_SIZE 256
+
+typedef enum {
+    MSP_MODE_SERVER,
+    MSP_MODE_CLIENT
+} mspPortMode_e;
+
+struct serialPort_s;
 typedef struct mspPort_s {
-    struct serialPort_s *port; // null when port unused.
+    struct serialPort_s *port;                      // NULL when unused.
+    mspPortMode_e mode;
+
+    mspCommandSenderFuncPtr commandSenderFn;   // NULL when unused.
+
+    mspState_e c_state;
     uint8_t offset;
     uint8_t dataSize;
-    uint8_t checksum;
-    uint8_t indRX;
-    uint8_t inBuf[MSP_PORT_INBUF_SIZE];
-    mspState_e c_state;
     uint8_t cmdMSP;
+    uint8_t inBuf[MSP_PORT_INBUF_SIZE];
 } mspPort_t;
 
 extern mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
-extern mspPort_t *currentPort;
-struct bufWriter_s;
-extern struct bufWriter_s *writer;
-extern bool isRebootScheduled;
+
+typedef void (*mspPostProcessFuncPtr)(mspPort_t *); // msp post process function, used for gracefully handling reboots, etc.
+
+extern mspPostProcessFuncPtr mspPostProcessFn;
 
 void mspSerialInit(void);
 void mspSerialProcess(void);

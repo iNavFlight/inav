@@ -17,4 +17,11 @@
 
 #pragma once
 
-void mspProcessReceivedCommand(void);
+typedef struct mspPacket_s {
+    sbuf_t buf;
+    int16_t cmd;
+    int16_t result;
+} mspPacket_t;
+
+void mspInit(void);
+int mspProcessCommand(mspPacket_t *cmd, mspPacket_t *reply);
