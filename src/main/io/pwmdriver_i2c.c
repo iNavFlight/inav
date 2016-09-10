@@ -4,6 +4,7 @@
 
 #include "config/config.h"
 #include "fc/runtime_config.h"
+#include "config/feature.h"
 
 #define PWM_DRIVER_IMPLEMENTATION_COUNT 1
 #define PWM_DRIVER_MAX_CYCLE 4
