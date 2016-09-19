@@ -19,6 +19,7 @@
 
 #include <platform.h>
 #include "drivers/io.h"
+#include "drivers/bus.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
@@ -112,4 +113,3 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM3, IO_TAG(PB4), TIM_Channel_1, TIM3_IRQn,    1, IOCFG_AF_PP }, // S5_OUT - GPIO_PartialRemap_TIM3 - LED Strip
     { TIM2, IO_TAG(PA2), TIM_Channel_3, TIM2_IRQn,    1, IOCFG_AF_PP }  // S6_OUT
 };
-

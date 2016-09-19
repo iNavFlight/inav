@@ -20,6 +20,7 @@
 
 #include <platform.h>
 
+#include "bus.h"
 #include "bus_spi.h"
 #include "exti.h"
 #include "io.h"
@@ -70,6 +71,19 @@
 #define SPI3_NSS_PIN NONE
 #endif
 
+typedef struct SPIDevice_s {
+    SPI_TypeDef *dev;
+    ioTag_t nss;
+    ioTag_t sck;
+    ioTag_t mosi;
+    ioTag_t miso;
+    rccPeriphTag_t rcc;
+    uint8_t af;
+    volatile uint16_t errorCount;
+    bool sdcard;
+    bool nrf24l01;
+} spiDevice_t;
+
 static spiDevice_t spiHardwareMap[] = {
 #if defined(STM32F1)
     { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = 0, false },
@@ -83,7 +97,15 @@ static spiDevice_t spiHardwareMap[] = {
 #endif
 };
 
-SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
+typedef enum SPIDevice {
+    SPIINVALID = -1,
+    SPIDEV_1   = 0,
+    SPIDEV_2,
+    SPIDEV_3,
+    SPIDEV_MAX = SPIDEV_3,
+} SPIDevice;
+
+static SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
 {
     if (instance == SPI1)
         return SPIDEV_1;
@@ -97,7 +119,7 @@ SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
     return SPIINVALID;
 }
 
-void spiInitDevice(SPIDevice device)
+static void spiInitDevice(SPIDevice device)
 {
     SPI_InitTypeDef spiInit;
 
@@ -181,120 +203,7 @@ void spiInitDevice(SPIDevice device)
     }
 }
 
-bool spiInit(SPIDevice device)
-{
-    switch (device)
-    {
-    case SPIINVALID:
-        return false;
-    case SPIDEV_1:
-#ifdef USE_SPI_DEVICE_1
-        spiInitDevice(device);
-        return true;
-#else
-        break;
-#endif
-    case SPIDEV_2:
-#ifdef USE_SPI_DEVICE_2
-        spiInitDevice(device);
-        return true;
-#else
-        break;
-#endif
-    case SPIDEV_3:
-#if defined(USE_SPI_DEVICE_3) && (defined(STM32F303xC) || defined(STM32F4))
-        spiInitDevice(device);
-        return true;
-#else
-        break;
-#endif
-    }
-    return false;
-}
-
-uint32_t spiTimeoutUserCallback(SPI_TypeDef *instance)
-{
-    SPIDevice device = spiDeviceByInstance(instance);
-    if (device == SPIINVALID)
-        return -1;
-    spiHardwareMap[device].errorCount++;
-    return spiHardwareMap[device].errorCount;
-}
-
-// return uint8_t value or -1 when failure
-uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t data)
-{
-    uint16_t spiTimeout = 1000;
-
-    while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_TXE) == RESET)
-        if ((spiTimeout--) == 0)
-            return spiTimeoutUserCallback(instance);
-
-#ifdef STM32F303xC
-    SPI_SendData8(instance, data);
-#else
-    SPI_I2S_SendData(instance, data);
-#endif
-    spiTimeout = 1000;
-    while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_RXNE) == RESET)
-        if ((spiTimeout--) == 0)
-            return spiTimeoutUserCallback(instance);
-
-#ifdef STM32F303xC
-    return ((uint8_t)SPI_ReceiveData8(instance));
-#else
-    return ((uint8_t)SPI_I2S_ReceiveData(instance));
-#endif
-}
-
-/**
- * Return true if the bus is currently in the middle of a transmission.
- */
-bool spiIsBusBusy(SPI_TypeDef *instance)
-{
-#ifdef STM32F303xC
-    return SPI_GetTransmissionFIFOStatus(instance) != SPI_TransmissionFIFOStatus_Empty || SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_BSY) == SET;
-#else
-    return SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_TXE) == RESET || SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_BSY) == SET;
-#endif
-
-}
-
-bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len)
-{
-    uint16_t spiTimeout = 1000;
-
-    uint8_t b;
-    instance->DR;
-    while (len--) {
-        b = in ? *(in++) : 0xFF;
-        while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_TXE) == RESET) {
-            if ((spiTimeout--) == 0)
-                return spiTimeoutUserCallback(instance);
-        }
-#ifdef STM32F303xC
-        SPI_SendData8(instance, b);
-#else
-        SPI_I2S_SendData(instance, b);
-#endif
-        spiTimeout = 1000;
-        while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_RXNE) == RESET) {
-            if ((spiTimeout--) == 0)
-                return spiTimeoutUserCallback(instance);
-        }
-#ifdef STM32F303xC
-        b = SPI_ReceiveData8(instance);
-#else
-        b = SPI_I2S_ReceiveData(instance);
-#endif
-        if (out)
-            *(out++) = b;
-    }
-
-    return true;
-}
-
-void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
+static void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
 {
 #define BR_CLEAR_MASK 0xFFC7
 
@@ -351,17 +260,150 @@ void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
     SPI_Cmd(instance, ENABLE);
 }
 
-uint16_t spiGetErrorCounter(SPI_TypeDef *instance)
+static uint32_t spiTimeoutUserCallback(SPI_TypeDef *instance)
 {
     SPIDevice device = spiDeviceByInstance(instance);
     if (device == SPIINVALID)
-        return 0;
+        return -1;
+    spiHardwareMap[device].errorCount++;
     return spiHardwareMap[device].errorCount;
 }
 
-void spiResetErrorCounter(SPI_TypeDef *instance)
+static int spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len)
 {
-    SPIDevice device = spiDeviceByInstance(instance);
-    if (device != SPIINVALID)
-        spiHardwareMap[device].errorCount = 0;
+    int bytes_done = 0;
+    uint16_t spiTimeout = 1000;
+
+    uint8_t b;
+    instance->DR;
+    while (len--) {
+        b = in ? *(in++) : 0xFF;
+        while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_TXE) == RESET) {
+            if ((spiTimeout--) == 0) {
+                spiTimeoutUserCallback(instance);
+                return bytes_done;
+            }
+        }
+#ifdef STM32F303xC
+        SPI_SendData8(instance, b);
+#else
+        SPI_I2S_SendData(instance, b);
+#endif
+        spiTimeout = 1000;
+        while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_RXNE) == RESET) {
+            if ((spiTimeout--) == 0) {
+                spiTimeoutUserCallback(instance);
+                return bytes_done;
+            }
+        }
+#ifdef STM32F303xC
+        b = SPI_ReceiveData8(instance);
+#else
+        b = SPI_I2S_ReceiveData(instance);
+#endif
+        if (out) {
+            *(out++) = b;
+        }
+
+        bytes_done++;
+    }
+
+    return bytes_done;
+}
+
+
+
+
+
+bool busSpiInit(const void * hwDesc)
+{
+    SPIDevice spiDev = spiDeviceByInstance((SPI_TypeDef *) hwDesc);
+
+    if (spiDev == SPIINVALID) {
+        return false;
+    }
+
+    spiInitDevice(spiDev);
+    return true;
+}
+
+void busSpiProcessTxn(const void * hwDesc, BusTransaction_t * txn)
+{
+    SPI_TypeDef * instance = (SPI_TypeDef *)hwDesc;
+    uint8_t * buf_rx;
+    uint8_t * buf_tx;
+
+    switch (txn->state) {
+        case TXN_QUEUED:    // TXN is not yet executed, mark as busy and fall-through
+            if (txn->type == BUS_READ) {
+                buf_tx = NULL;
+                buf_rx = txn->payload;
+            }
+            else {
+                buf_tx = txn->payload;
+                buf_rx = NULL;
+            }
+
+        case TXN_BUSY_SETUP:
+            IOLo((IO_t)txn->device);
+
+        case TXN_BUSY_COMMAND:
+            if (txn->command_bytes != 0) {
+                spiTransfer(instance, NULL, txn->command, txn->command_bytes);
+            }
+
+        case TXN_BUSY_PAYLOAD:
+            if (txn->payload_bytes) {
+                txn->transfered_bytes = spiTransfer(instance, buf_rx, buf_tx, txn->payload_bytes);
+            }
+
+        case TXN_BUSY_COMPLETE:
+            IOHi((IO_t)txn->device);
+            txn->state = TXN_DONE;
+            break;
+
+        default:    // Driver shouldn't receive TXN descriptor which is IDLE -> do nothing
+            break;
+    }
+}
+
+void busSpiSetSpeed(const void * hwDesc, const BusSpeed_e speed)
+{
+    SPI_TypeDef * instance = (SPI_TypeDef *)hwDesc;
+    uint16_t divisor;
+
+    switch (speed) {
+        case BUS_SPEED_LOWEST:
+            divisor = 256;
+            break;
+#if defined(STM32F4)
+        case BUS_SPEED_SLOW:
+            divisor = 128;  //00.65625 MHz
+            break;
+        case BUS_SPEED_STANDARD:
+            divisor = 8;    //10.50000 MHz
+            break;
+        case BUS_SPEED_FAST:
+            divisor = 4;    //21.00000 MHz
+            break;
+        case BUS_SPEED_ULTRAFAST:
+            divisor = 2;    //42.00000 MHz
+            break;
+#else
+        case BUS_SPEED_SLOW:
+            divisor = 128;  //00.56250 MHz
+            break;
+        case BUS_SPEED_STANDARD:
+            divisor = 4;    //09.00000 MHz
+            break;
+        case BUS_SPEED_FAST:
+            divisor = 2;    //18.00000 MHz
+            break;
+        case BUS_SPEED_ULTRAFAST:
+            divisor = 2;    //18.00000 MHz
+            break;
+#endif
+    }
+
+    spiSetDivisor(instance, divisor);
 }

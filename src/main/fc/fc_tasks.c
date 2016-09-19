@@ -32,6 +32,7 @@
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/bus.h"
 
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
@@ -256,6 +257,7 @@ void fcTasksInit(void)
 {
     schedulerInit();
 
+    setTaskEnabled(TASK_BUS, true);
 #ifdef ASYNC_GYRO_PROCESSING
     rescheduleTask(TASK_PID, getPidUpdateRate());
     setTaskEnabled(TASK_PID, true);
@@ -335,6 +337,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "SYSTEM",
         .taskFunc = taskSystem,
         .desiredPeriod = TASK_PERIOD_HZ(10),              // run every 100 ms, 10Hz
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
+
+    [TASK_BUS] = {
+        .taskName = "BUS",
+        .checkFunc = taskBusCheck,
+        .taskFunc = taskBus,
+        .desiredPeriod = TASK_PERIOD_HZ(1000), // Run at 1000Hz
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 

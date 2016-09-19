@@ -346,21 +346,23 @@ void init(void)
     initInverter();
 #endif
 
+    /* Initialize bus drivers */
+    busInit();
 
 #ifdef USE_SPI
 #ifdef USE_SPI_DEVICE_1
-    spiInit(SPIDEV_1);
+    busInitDriver(BUS_SPI1);
 #endif
 #ifdef USE_SPI_DEVICE_2
-    spiInit(SPIDEV_2);
+    busInitDriver(BUS_SPI2);
 #endif
 #ifdef USE_SPI_DEVICE_3
 #ifdef ALIENFLIGHTF3
     if (hardwareRevision == AFF3_REV_2) {
-        spiInit(SPIDEV_3);
+        busInitDriver(BUS_SPI3);
     }
 #else
-    spiInit(SPIDEV_3);
+    busInitDriver(BUS_SPI3);
 #endif
 #endif
 #endif

@@ -15,24 +15,28 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
+#include <stdbool.h>
 #include <stdint.h>
-#include "flash.h"
-#include "io_types.h"
+#include <string.h>
 
-#define M25P16_PAGESIZE 256
+#include "platform.h"
 
-bool m25p16_init(ioTag_t csTag);
+#include "build/atomic.h"
+#include "build/build_config.h"
+#include "build/assert.h"
+#include "build/debug.h"
 
-void m25p16_eraseSector(uint32_t address);
-void m25p16_eraseCompletely();
+#include "bus.h"
+#include "bus_spi.h"
 
-void m25p16_pageProgram(uint32_t address, uint8_t *data, int length);
-
-int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length);
-
-bool m25p16_isReady();
-bool m25p16_waitForReady(uint32_t timeoutMillis);
-
-const flashGeometry_t* m25p16_getGeometry();
+const BusDescriptor_t busHwDesc[MAX_BUS_COUNT] = {
+#ifdef USE_SPI_DEVICE_1
+    [BUS_SPI1] = { SPI1, &busSpiInit, &busSpiProcessTxn, &busSpiSetSpeed },
+#endif
+#ifdef USE_SPI_DEVICE_2
+    [BUS_SPI2] = { SPI2, &busSpiInit, &busSpiProcessTxn, &busSpiSetSpeed },
+#endif
+#ifdef USE_SPI_DEVICE_3
+    [BUS_SPI3] = { SPI3, &busSpiInit, &busSpiProcessTxn, &busSpiSetSpeed },
+#endif
+};

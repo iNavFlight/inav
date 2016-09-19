@@ -164,6 +164,8 @@ const flashGeometry_t* flashfsGetGeometry()
  */
 static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSizes, int bufferCount, bool sync)
 {
+    uint8_t writeBuffer[M25P16_PAGESIZE];
+    int writeBufferPtr = 0;
     uint32_t bytesTotal = 0;
 
     int i;
@@ -200,15 +202,14 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
             break;
         }
 
-        m25p16_pageProgramBegin(tailAddress);
-
         bytesRemainThisIteration = bytesTotalThisIteration;
 
         for (i = 0; i < bufferCount; i++) {
             if (bufferSizes[i] > 0) {
                 // Is buffer larger than our write limit? Write our limit out of it
                 if (bufferSizes[i] >= bytesRemainThisIteration) {
-                    m25p16_pageProgramContinue(buffers[i], bytesRemainThisIteration);
+                    memcpy(&writeBuffer[writeBufferPtr], buffers[i], bytesRemainThisIteration);
+                    writeBufferPtr += bytesRemainThisIteration;
 
                     buffers[i] += bytesRemainThisIteration;
                     bufferSizes[i] -= bytesRemainThisIteration;
@@ -217,7 +218,8 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
                     break;
                 } else {
                     // We'll still have more to write after finishing this buffer off
-                    m25p16_pageProgramContinue(buffers[i], bufferSizes[i]);
+                    memcpy(&writeBuffer[writeBufferPtr], buffers[i], bufferSizes[i]);
+                    writeBufferPtr += bufferSizes[i];
 
                     bytesRemainThisIteration -= bufferSizes[i];
 
@@ -227,7 +229,7 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
             }
         }
 
-        m25p16_pageProgramFinish();
+        m25p16_pageProgram(tailAddress, writeBuffer, bytesTotalThisIteration);
 
         bytesTotalRemaining -= bytesTotalThisIteration;
 
