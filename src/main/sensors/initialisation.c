@@ -67,6 +67,7 @@
 #include "fc/runtime_config.h"
 
 #include "config/config.h"
+#include "config/feature.h"
 
 #include "io/gps.h"
 
@@ -786,4 +787,3 @@ bool sensorsAutodetect(sensorAlignmentConfig_t *sensorAlignmentConfig,
 
     return true;
 }
-

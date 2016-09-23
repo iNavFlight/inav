@@ -59,6 +59,7 @@
 
 #include "config/config.h"
 #include "config/config_profile.h"
+#include "config/feature.h"
 
 //#define MIXER_DEBUG
 
@@ -341,19 +342,11 @@ static servoMixer_t *customServoMixers;
 static motorMixer_t *customMixers;
 
 void mixerUseConfigs(
-#ifdef USE_SERVOS
-        servoParam_t *servoConfToUse,
-        gimbalConfig_t *gimbalConfigToUse,
-#endif
         flight3DConfig_t *flight3DConfigToUse,
         escAndServoConfig_t *escAndServoConfigToUse,
         mixerConfig_t *mixerConfigToUse,
         rxConfig_t *rxConfigToUse)
 {
-#ifdef USE_SERVOS
-    servoConf = servoConfToUse;
-    gimbalConfig = gimbalConfigToUse;
-#endif
     flight3DConfig = flight3DConfigToUse;
     escAndServoConfig = escAndServoConfigToUse;
     mixerConfig = mixerConfigToUse;
@@ -361,6 +354,11 @@ void mixerUseConfigs(
 }
 
 #ifdef USE_SERVOS
+void servosUseConfigs(servoParam_t *servoConfToUse, gimbalConfig_t *gimbalConfigToUse)
+{
+    servoConf = servoConfToUse;
+    gimbalConfig = gimbalConfigToUse;
+}
 
 int16_t getFlaperonDirection(uint8_t servoPin) {
     if (servoPin == SERVO_FLAPPERON_2) {
@@ -403,11 +401,9 @@ bool isMixerEnabled(mixerMode_e mixerMode)
 }
 
 #ifdef USE_SERVOS
-void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMotorMixers, servoMixer_t *initialCustomServoMixers)
+void servosInit(servoMixer_t *initialCustomServoMixers)
 {
     int i;
-
-    currentMixerMode = mixerMode;
 
     // set flag that we're on something with wings
     if (currentMixerMode == MIXER_FLYING_WING ||
@@ -425,7 +421,6 @@ void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMotorMixers, se
         DISABLE_STATE(FLAPERON_AVAILABLE);
     }
 
-    customMixers = initialCustomMotorMixers;
     customServoMixers = initialCustomServoMixers;
 
     minServoIndex = servoMixers[currentMixerMode].minServoIndex;
@@ -471,13 +466,14 @@ void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMotorMixers, se
 
     }
 }
-#else
+#endif
+
+// mixerInit must be called before servosInit
 void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMixers)
 {
     currentMixerMode = mixerMode;
     customMixers = initialCustomMixers;
 }
-#endif
 
 #ifdef USE_SERVOS
 void mixerUsePWMIOConfiguration(void)
@@ -925,7 +921,7 @@ void filterServos(void)
         // Initialize servo lowpass filter (servos are calculated at looptime rate)
         if (!servoFilterIsSet) {
             for (servoIdx = 0; servoIdx < MAX_SUPPORTED_SERVOS; servoIdx++) {
-                biquadFilterInit(&servoFitlerState[servoIdx], mixerConfig->servo_lowpass_freq, gyro.targetLooptime);
+                biquadFilterInitLPF(&servoFitlerState[servoIdx], mixerConfig->servo_lowpass_freq, gyro.targetLooptime);
             }
 
             servoFilterIsSet = true;

@@ -99,11 +99,11 @@ static i2cState_t i2cState[] = {
     { false, false, false, 0, 0, 0, 0, 0, 0, 0 }
 };
 
-static bool i2cOverClock;
-
 void i2cSetOverclock(uint8_t overClock)
 {
-    i2cOverClock = overClock ? true : false;
+    for (unsigned int i = 0; i < sizeof(i2cHardwareMap) / sizeof(i2cHardwareMap[0]); i++) {
+        i2cHardwareMap[i].overClock = overClock;
+    }
 }
 
 void I2C1_ER_IRQHandler(void) {
@@ -170,7 +170,7 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
     if (!(I2Cx->CR2 & I2C_IT_EVT)) {                                    // if we are restarting the driver
         if (!(I2Cx->CR1 & I2C_CR1_START)) {                             // ensure sending a start
             while (I2Cx->CR1 & I2C_CR1_STOP && --timeout > 0) {; }     // wait for any stop to finish sending
-            if (timeout == 0)
+            if (state->error || timeout == 0)
                 return i2cHandleHardwareFailure(device);
             I2C_GenerateSTART(I2Cx, ENABLE);                            // send the start for the new job
         }
@@ -179,10 +179,10 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
 
     timeout = I2C_DEFAULT_TIMEOUT;
     while (state->busy && --timeout > 0) {; }
-    if (timeout == 0)
+    if (state->error || timeout == 0)
         return i2cHandleHardwareFailure(device);
 
-    return !(state->error);
+    return true;
 }
 
 bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data)
@@ -219,7 +219,7 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
     if (!(I2Cx->CR2 & I2C_IT_EVT)) {                                    // if we are restarting the driver
         if (!(I2Cx->CR1 & I2C_CR1_START)) {                             // ensure sending a start
             while (I2Cx->CR1 & I2C_CR1_STOP && --timeout > 0) {; }     // wait for any stop to finish sending
-            if (timeout == 0)
+            if (state->error || timeout == 0)
                 return i2cHandleHardwareFailure(device);
             I2C_GenerateSTART(I2Cx, ENABLE);                            // send the start for the new job
         }
@@ -228,10 +228,10 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
 
     timeout = I2C_DEFAULT_TIMEOUT;
     while (state->busy && --timeout > 0) {; }
-    if (timeout == 0)
+    if (state->error || timeout == 0)
         return i2cHandleHardwareFailure(device);
 
-    return !(state->error);
+    return true;
 }
 
 static void i2c_er_handler(I2CDevice device) {

@@ -86,6 +86,10 @@
 #include "config/config.h"
 #include "config/config_profile.h"
 #include "config/config_master.h"
+#include "config/feature.h"
+
+#include "io/pwmdriver_i2c.h"
+#include "drivers/io_pca9685.h"
 
 // June 2013     V2.2-dev
 
@@ -214,12 +218,12 @@ void mwDisarm(void)
     }
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK)
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 
 void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
     while (sharedPort) {
-        mspReleasePortIfAllocated(sharedPort);
+        mspSerialReleasePortIfAllocated(sharedPort);
         sharedPort = findNextSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
     }
 }
@@ -242,7 +246,7 @@ void mwArm(void)
             if (feature(FEATURE_BLACKBOX)) {
                 serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
                 if (sharedBlackboxAndMspPort) {
-                    mspReleasePortIfAllocated(sharedBlackboxAndMspPort);
+                    mspSerialReleasePortIfAllocated(sharedBlackboxAndMspPort);
                 }
                 startBlackbox();
             }
@@ -476,7 +480,7 @@ void processRx(void)
         } else {
             // the telemetry state must be checked immediately so that shared serial ports are released.
             telemetryCheckState();
-            mspAllocateSerialPorts();
+            mspSerialAllocatePorts();
         }
     }
 #endif
@@ -498,7 +502,7 @@ void filterRc(bool isRXDataNew)
 
     // Calculate average cycle time (1Hz LPF on cycle time)
     if (!filterInitialised) {
-        biquadFilterInit(&filteredCycleTimeState, 1, gyro.targetLooptime);
+        biquadFilterInitLPF(&filteredCycleTimeState, 1, gyro.targetLooptime);
         filterInitialised = true;
     }
 
@@ -631,6 +635,7 @@ void taskMainPidLoop(void)
         handleBlackbox();
     }
 #endif
+
 }
 
 // Function for loop trigger
@@ -772,6 +777,15 @@ void taskLedStrip(void)
 {
     if (feature(FEATURE_LED_STRIP)) {
         updateLedStrip();
+    }
+}
+#endif
+
+#ifdef USE_PMW_SERVO_DRIVER
+void taskSyncPwmDriver(void) {
+
+    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
+        pwmDriverSync();
     }
 }
 #endif

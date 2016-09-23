@@ -17,7 +17,11 @@
 
 #pragma once
 
+#if FLASH_SIZE <= 128
+#define MAX_PROFILE_COUNT 2
+#else
 #define MAX_PROFILE_COUNT 3
+#endif
 #define MAX_CONTROL_RATE_PROFILE_COUNT 3
 #define ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS 1500
 
@@ -48,8 +52,9 @@ typedef enum {
     FEATURE_AIRMODE = 1 << 22,
     FEATURE_SUPEREXPO_RATES = 1 << 23,
     FEATURE_VTX = 1 << 24,
-    FEATURE_RX_NRF24 = 1 << 25,
+    FEATURE_RX_SPI = 1 << 25,
     FEATURE_SOFTSPI = 1 << 26,
+    FEATURE_PWM_SERVO_DRIVER = 1 << 27,
 } features_e;
 
 typedef enum {
@@ -57,13 +62,6 @@ typedef enum {
 } persistent_flags_e;
 
 void handleOneshotFeatureChangeOnRestart(void);
-void latchActiveFeatures(void);
-bool featureConfigured(uint32_t mask);
-bool feature(uint32_t mask);
-void featureSet(uint32_t mask);
-void featureClear(uint32_t mask);
-void featureClearAll(void);
-uint32_t featureMask(void);
 void beeperOffSet(uint32_t mask);
 void beeperOffSetAll(uint8_t beeperCount);
 void beeperOffClear(uint32_t mask);
@@ -80,16 +78,19 @@ void persistentFlagClearAll();
 
 void copyCurrentProfileToProfileSlot(uint8_t profileSlotIndex);
 
-void initEEPROM(void);
 void resetEEPROM(void);
-void readEEPROM(void);
 void readEEPROMAndNotify(void);
-void writeEEPROM();
 void ensureEEPROMContainsValidData(void);
+
 void saveConfigAndNotify(void);
+void validateAndFixConfig(void);
+void activateConfig(void);
 
 uint8_t getCurrentProfile(void);
 void changeProfile(uint8_t profileIndex);
+
+void setProfile(uint8_t profileIndex);
+void setControlRateProfile(uint8_t profileIndex);
 
 uint8_t getCurrentControlRateProfile(void);
 void changeControlRateProfile(uint8_t profileIndex);
@@ -97,3 +98,6 @@ bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);
 
 uint16_t getCurrentMinthrottle(void);
+struct master_s;
+void targetConfiguration(struct master_s *config);
+
