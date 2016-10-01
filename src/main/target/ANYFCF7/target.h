@@ -129,9 +129,17 @@
 
 #define USE_I2C
 #define I2C_DEVICE (I2CDEV_4)
-//#define I2C_DEVICE_EXT (I2CDEV_2)
+#define I2C_DEVICE_EXT (I2CDEV_2)
+
+//#define HIL
+
+#define MAG_GPS_ALIGN           CW180_DEG_FLIP
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
+
+#define NAV
+#define NAV_AUTO_MAG_DECLINATION
+#define NAV_GPS_GLITCH_DETECTION
 
 #define USE_ADC
 #define VBAT_ADC_PIN                PC0
@@ -158,6 +166,9 @@
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+// Number of available PWM outputs
+#define MAX_PWM_OUTPUT_PORTS    15
 
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff

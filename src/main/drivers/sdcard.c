@@ -551,8 +551,10 @@ void sdcard_init(bool useDMA)
 {
 #ifdef SDCARD_DMA_CHANNEL_TX
     useDMAForTx = useDMA;
+#if !defined(USE_HAL_DRIVER)
     dmaEnableClock(dmaFindHandlerIdentifier(SDCARD_DMA_CHANNEL_TX));
     DMA_Cmd(SDCARD_DMA_CHANNEL_TX, DISABLE);
+#endif
 #else
     // DMA is not available
     (void) useDMA;

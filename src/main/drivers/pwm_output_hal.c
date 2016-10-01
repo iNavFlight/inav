@@ -26,6 +26,12 @@
 #include "pwm_mapping.h"
 #include "pwm_output.h"
 
+#define ONESHOT125_TIMER_MHZ  9
+#define ONESHOT42_TIMER_MHZ   27
+#define MULTISHOT_TIMER_MHZ   54
+#define PWM_BRUSHED_TIMER_MHZ 27
+
+
 #define MULTISHOT_5US_PW    (MULTISHOT_TIMER_MHZ * 5)
 #define MULTISHOT_20US_MULT (MULTISHOT_TIMER_MHZ * 20 / 1000.0f)
 
@@ -181,6 +187,11 @@ void pwmCompleteOneshotMotorUpdate(uint8_t motorCount)
     }
 }
 
+bool isMotorBrushed(uint16_t motorPwmRate)
+{
+    return (motorPwmRate > 500);
+}
+
 void pwmBrushedMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate)
 {
     const uint32_t hz = PWM_BRUSHED_TIMER_MHZ * 1000000;
@@ -195,33 +206,16 @@ void pwmBrushlessMotorConfig(const timerHardware_t *timerHardware, uint8_t motor
     motors[motorIndex]->pwmWritePtr = pwmWriteStandard;
 }
 
-void pwmFastPwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, uint16_t idlePulse, uint8_t fastPwmProtocolType)
+void pwmOneshotMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex)
+
+//void pwmFastPwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, uint16_t idlePulse, uint8_t fastPwmProtocolType)
 {
     uint32_t timerMhzCounter;
     pwmWriteFuncPtr pwmWritePtr;
 
-    switch (fastPwmProtocolType) {
-    default:
-    case (PWM_TYPE_ONESHOT125):
-        timerMhzCounter = ONESHOT125_TIMER_MHZ;
-        pwmWritePtr = pwmWriteOneShot125;
-        break;
-    case (PWM_TYPE_ONESHOT42):
-        timerMhzCounter = ONESHOT42_TIMER_MHZ;
-        pwmWritePtr = pwmWriteOneShot42;
-        break;
-    case (PWM_TYPE_MULTISHOT):
-        timerMhzCounter = MULTISHOT_TIMER_MHZ;
-        pwmWritePtr = pwmWriteMultiShot;
-        break;
-    }
-
-    if (motorPwmRate > 0) {
-        const uint32_t hz = timerMhzCounter * 1000000;
-        motors[motorIndex] = pwmOutConfig(timerHardware, timerMhzCounter, hz / motorPwmRate, idlePulse);
-    } else {
-        motors[motorIndex] = pwmOutConfig(timerHardware, timerMhzCounter, 0xFFFF, 0);
-    }
+    timerMhzCounter = ONESHOT125_TIMER_MHZ;
+    pwmWritePtr = pwmWriteOneShot125;
+    motors[motorIndex] = pwmOutConfig(timerHardware, timerMhzCounter, 0xFFFF, 0);
     motors[motorIndex]->pwmWritePtr = pwmWritePtr;
 }
 

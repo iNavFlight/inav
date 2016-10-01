@@ -108,7 +108,7 @@ typedef struct dmaChannelDescriptor_s {
 
 #endif
 
-#ifdef STM32F4
+#if defined(STM32F4) || defined(STM32F7)
 dmaHandlerIdentifier_e dmaFindHandlerIdentifier(DMA_Stream_TypeDef* stream);
 #else
 dmaHandlerIdentifier_e dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel);
