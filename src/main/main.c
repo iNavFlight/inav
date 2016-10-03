@@ -30,6 +30,7 @@
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/printf.h"
+#include "common/streambuf.h"
 
 #include "drivers/logging.h"
 
@@ -81,6 +82,8 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/serial_msp.h"
 #include "io/serial_cli.h"
+
+#include "msp/msp.h"
 
 #include "scheduler/scheduler.h"
 
@@ -466,7 +469,10 @@ void init(void)
 
     imuInit();
 
+#ifndef SKIP_MSP
+    mspInit();
     mspSerialInit();
+#endif
 
 #ifdef USE_CLI
     cliInit(&masterConfig.serialConfig);
