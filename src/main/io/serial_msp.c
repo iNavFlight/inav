@@ -100,12 +100,10 @@ static bool mspProcessReceivedData(mspPort_t * mspPort, uint8_t c)
     } else if (mspPort->c_state == HEADER_ARROW) {
         if (c > MSP_PORT_INBUF_SIZE) {
             mspPort->c_state = IDLE;
-
         } else {
             mspPort->dataSize = c;
             mspPort->offset = 0;
             mspPort->checksum = 0;
-            mspPort->indRX = 0;
             mspPort->checksum ^= c;
             mspPort->c_state = HEADER_SIZE;
         }

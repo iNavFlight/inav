@@ -211,15 +211,6 @@ static void mspRebootFn(serialPort_t *serialPort)
     while(1) ;
 }
 
-
-
-static void serializeNames(sbuf_t *dst, const char *s)
-{
-    const char *c;
-    for (c = s; *c; c++)
-        sbufWriteU8(dst, *c);
-}
-
 static const box_t *findBoxByActiveBoxId(uint8_t activeBoxId)
 {
     uint8_t boxIndex;
@@ -369,13 +360,10 @@ static void initActiveBoxIds(void)
 
 static uint32_t packFlightModeFlags(void)
 {
-    uint32_t i, junk, tmp;
-
     // Serialize the flags in the order we delivered them, ignoring BOXNAMES and BOXINDEXES
     // Requires new Multiwii protocol version to fix
     // It would be preferable to setting the enabled bits based on BOXINDEX.
-    junk = 0;
-    tmp = IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)) << BOXANGLE |
+    const uint32_t tmp = IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)) << BOXANGLE |
         IS_ENABLED(FLIGHT_MODE(HORIZON_MODE)) << BOXHORIZON |
         IS_ENABLED(FLIGHT_MODE(MAG_MODE)) << BOXMAG |
         IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)) << BOXHEADFREE |
@@ -405,13 +393,14 @@ static uint32_t packFlightModeFlags(void)
         IS_ENABLED(FLIGHT_MODE(TURN_ASSISTANT)) << BOXTURNASSIST |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHOMERESET)) << BOXHOMERESET;
 
-    for (i = 0; i < activeBoxIdCount; i++) {
-        int flag = (tmp & (1 << activeBoxIds[i]));
-        if (flag)
-            junk |= 1 << i;
+    uint32_t ret = 0;
+    for (uint32_t i = 0; i < activeBoxIdCount; i++) {
+        const int flag = (tmp & (1 << activeBoxIds[i]));
+        if (flag) {
+            ret |= 1 << i;
+        }
     }
-
-    return junk;
+    return ret;
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
@@ -715,7 +704,9 @@ static bool processOutCommand(uint8_t cmdMSP, sbuf_t *dst, sbuf_t *src)
         break;
 
     case MSP_PIDNAMES:
-        serializeNames(dst, pidnames);
+        for (const char *c = pidnames; *c; c++) {
+            sbufWriteU8(dst, *c);
+        }
         break;
 
     case MSP_PID_CONTROLLER:
