@@ -31,6 +31,7 @@ typedef enum {
 } mspState_e;
 
 #define MSP_PORT_INBUF_SIZE 64
+#define MSP_PORT_OUTBUF_SIZE 256
 
 struct serialPort_s;
 typedef struct mspPort_s {
