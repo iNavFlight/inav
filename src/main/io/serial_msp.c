@@ -134,7 +134,7 @@ static void mspSerialEncode(mspPort_t *msp, mspPacket_t *packet)
 {
     serialBeginWrite(msp->port);
     const int len = sbufBytesRemaining(&packet->buf);
-    uint8_t hdr[5] = {'$', 'M', packet->result == MSP_RESULT_ERROR ? '!' : '>', len, packet->cmd};
+    const uint8_t hdr[5] = {'$', 'M', packet->result == MSP_RESULT_ERROR ? '!' : '>', len, packet->cmd};
     serialWriteBuf(msp->port, hdr, sizeof(hdr));
     uint8_t checksum = mspSerialChecksumBuf(0, hdr + 3, 2); // checksum starts from len field
     if (len > 0) {
