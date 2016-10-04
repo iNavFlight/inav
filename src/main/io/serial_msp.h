@@ -31,11 +31,7 @@ typedef enum {
 } mspState_e;
 
 #define MSP_PORT_INBUF_SIZE 64
-#ifdef USE_FLASHFS
 #define MSP_PORT_OUTBUF_SIZE 256
-#else
-#define MSP_PORT_OUTBUF_SIZE 2048 // to enable large frames for transferring blackbox logs
-#endif
 
 struct serialPort_s;
 typedef struct mspPort_s {

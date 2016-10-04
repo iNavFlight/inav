@@ -239,32 +239,17 @@ static const box_t *findBoxByPermenantId(uint8_t permenantId)
 
 static void serializeBoxNamesReply(sbuf_t *dst)
 {
-    int i, activeBoxId, j, flag = 1, count = 0, len;
-    const box_t *box;
-
-reset:
     // in first run of the loop, we grab total size of junk to be sent
     // then come back and actually send it
-    for (i = 0; i < activeBoxIdCount; i++) {
-        activeBoxId = activeBoxIds[i];
-
-        box = findBoxByActiveBoxId(activeBoxId);
-        if (!box) {
-            continue;
-        }
-
-        len = strlen(box->boxName);
-        if (flag) {
-            count += len;
-        } else {
-            for (j = 0; j < len; j++)
+    for (int i = 0; i < activeBoxIdCount; i++) {
+        const int activeBoxId = activeBoxIds[i];
+        const box_t *box = findBoxByActiveBoxId(activeBoxId);
+        if (box) {
+            const int len = strlen(box->boxName);
+            for (int j = 0; j < len; j++) {
                 sbufWriteU8(dst, box->boxName[j]);
+            }
         }
-    }
-
-    if (flag) {
-        flag = 0;
-        goto reset;
     }
 }
 
