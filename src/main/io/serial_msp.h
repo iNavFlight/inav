@@ -21,17 +21,21 @@
 #define MAX_MSP_PORT_COUNT 2
 
 typedef enum {
-    IDLE,
-    HEADER_START,
-    HEADER_M,
-    HEADER_ARROW,
-    HEADER_SIZE,
-    HEADER_CMD,
-    COMMAND_RECEIVED
+    MSP_IDLE,
+    MSP_HEADER_START,
+    MSP_HEADER_M,
+    MSP_HEADER_ARROW,
+    MSP_HEADER_SIZE,
+    MSP_HEADER_CMD,
+    MSP_COMMAND_RECEIVED
 } mspState_e;
 
 #define MSP_PORT_INBUF_SIZE 64
+#ifdef USE_FLASHFS
 #define MSP_PORT_OUTBUF_SIZE 256
+#else
+#define MSP_PORT_OUTBUF_SIZE 2048 // to enable large frames for transferring blackbox logs
+#endif
 
 struct serialPort_s;
 typedef struct mspPort_s {

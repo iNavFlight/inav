@@ -24,7 +24,6 @@
 #include "common/streambuf.h"
 #include "common/utils.h"
 
-#include "drivers/buf_writer.h"
 #include "drivers/serial.h"
 
 #include "fc/runtime_config.h"
@@ -36,7 +35,6 @@
 
 
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
-bufWriter_t *writer;
 
 
 static void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
@@ -87,38 +85,38 @@ void mspSerialInit(void)
 
 static bool mspProcessReceivedData(mspPort_t * mspPort, uint8_t c)
 {
-    if (mspPort->c_state == IDLE) {
+    if (mspPort->c_state == MSP_IDLE) {
         if (c == '$') {
-            mspPort->c_state = HEADER_START;
+            mspPort->c_state = MSP_HEADER_START;
         } else {
             return false;
         }
-    } else if (mspPort->c_state == HEADER_START) {
-        mspPort->c_state = (c == 'M') ? HEADER_M : IDLE;
-    } else if (mspPort->c_state == HEADER_M) {
-        mspPort->c_state = (c == '<') ? HEADER_ARROW : IDLE;
-    } else if (mspPort->c_state == HEADER_ARROW) {
+    } else if (mspPort->c_state == MSP_HEADER_START) {
+        mspPort->c_state = (c == 'M') ? MSP_HEADER_M : MSP_IDLE;
+    } else if (mspPort->c_state == MSP_HEADER_M) {
+        mspPort->c_state = (c == '<') ? MSP_HEADER_ARROW : MSP_IDLE;
+    } else if (mspPort->c_state == MSP_HEADER_ARROW) {
         if (c > MSP_PORT_INBUF_SIZE) {
-            mspPort->c_state = IDLE;
+            mspPort->c_state = MSP_IDLE;
         } else {
             mspPort->dataSize = c;
             mspPort->offset = 0;
             mspPort->checksum = 0;
             mspPort->checksum ^= c;
-            mspPort->c_state = HEADER_SIZE;
+            mspPort->c_state = MSP_HEADER_SIZE;
         }
-    } else if (mspPort->c_state == HEADER_SIZE) {
+    } else if (mspPort->c_state == MSP_HEADER_SIZE) {
         mspPort->cmdMSP = c;
         mspPort->checksum ^= c;
-        mspPort->c_state = HEADER_CMD;
-    } else if (mspPort->c_state == HEADER_CMD && mspPort->offset < mspPort->dataSize) {
+        mspPort->c_state = MSP_HEADER_CMD;
+    } else if (mspPort->c_state == MSP_HEADER_CMD && mspPort->offset < mspPort->dataSize) {
         mspPort->checksum ^= c;
         mspPort->inBuf[mspPort->offset++] = c;
-    } else if (mspPort->c_state == HEADER_CMD && mspPort->offset >= mspPort->dataSize) {
+    } else if (mspPort->c_state == MSP_HEADER_CMD && mspPort->offset >= mspPort->dataSize) {
         if (mspPort->checksum == c) {
-            mspPort->c_state = COMMAND_RECEIVED;
+            mspPort->c_state = MSP_COMMAND_RECEIVED;
         } else {
-            mspPort->c_state = IDLE;
+            mspPort->c_state = MSP_IDLE;
         }
     }
     return true;
@@ -149,7 +147,7 @@ static void mspSerialEncode(mspPort_t *msp, mspPacket_t *packet)
 
 static mspPostProcessFuncPtr mspSerialProcessReceivedCommand(mspPort_t *msp)
 {
-    uint8_t outBuf[MSP_PORT_OUTBUF_SIZE];
+    static uint8_t outBuf[MSP_PORT_OUTBUF_SIZE];
 
     mspPacket_t reply = {
         .buf = { .ptr = outBuf, .end = ARRAYEND(outBuf), },
@@ -172,7 +170,7 @@ static mspPostProcessFuncPtr mspSerialProcessReceivedCommand(mspPort_t *msp)
         mspSerialEncode(msp, &reply);
     }
 
-    msp->c_state = IDLE;
+    msp->c_state = MSP_IDLE;
     return mspPostProcessFn;
 }
 
@@ -193,7 +191,7 @@ void mspSerialProcess(void)
                 evaluateOtherData(mspPort->port, c);
             }
 
-            if (mspPort->c_state == COMMAND_RECEIVED) {
+            if (mspPort->c_state == MSP_COMMAND_RECEIVED) {
                 mspPostProcessFn = mspSerialProcessReceivedCommand(mspPort);
                 break; // process one command at a time so as not to block.
             }
