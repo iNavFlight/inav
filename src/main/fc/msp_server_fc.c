@@ -1574,6 +1574,8 @@ mspResult_e mspProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProce
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
     const uint8_t cmdMSP = cmd->cmd;
+    // initialize reply by default
+    reply->cmd = cmd->cmd;
 
     if (processOutCommand(cmdMSP, dst, src)) {
         ret = MSP_RESULT_ACK;
