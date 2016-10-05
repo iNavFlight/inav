@@ -94,9 +94,9 @@ static i2cDevice_t i2cHardwareMap[] = {
 static volatile uint16_t i2cErrorCount = 0;
 
 static i2cState_t i2cState[] = {
-    { false, false, false, 0, 0, 0, 0, 0, 0, 0 },
-    { false, false, false, 0, 0, 0, 0, 0, 0, 0 },
-    { false, false, false, 0, 0, 0, 0, 0, 0, 0 }
+    { false, false, false, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { false, false, false, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { false, false, false, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
 void i2cSetOverclock(uint8_t overClock)
@@ -132,11 +132,14 @@ void I2C3_EV_IRQHandler(void) {
 }
 #endif
 
-static bool i2cHandleHardwareFailure(I2CDevice device)
+static bool i2cHandleHardwareFailure(I2CDevice device, bool unstick)
 {
     i2cErrorCount++;
     // reinit peripheral + clock out garbage
-    i2cInit(device);
+    if (unstick) {
+        i2cInit(device);
+    }
+
     return false;
 }
 
@@ -166,12 +169,13 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
     state->bytes = len_;
     state->busy = 1;
     state->error = false;
+    state->unstick = false;
 
     if (!(I2Cx->CR2 & I2C_IT_EVT)) {                                    // if we are restarting the driver
         if (!(I2Cx->CR1 & I2C_CR1_START)) {                             // ensure sending a start
             while (I2Cx->CR1 & I2C_CR1_STOP && --timeout > 0) {; }     // wait for any stop to finish sending
             if (state->error || timeout == 0)
-                return i2cHandleHardwareFailure(device);
+                return i2cHandleHardwareFailure(device, state->unstick);
             I2C_GenerateSTART(I2Cx, ENABLE);                            // send the start for the new job
         }
         I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR, ENABLE);            // allow the interrupts to fire off again
@@ -179,10 +183,10 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
 
     timeout = I2C_DEFAULT_TIMEOUT;
     while (state->busy && --timeout > 0) {; }
-    if (state->error || timeout == 0)
-        return i2cHandleHardwareFailure(device);
+    if (timeout == 0)
+        return i2cHandleHardwareFailure(device, state->unstick);
 
-    return true;
+    return !state->error;
 }
 
 bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data)
@@ -215,12 +219,13 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
     state->bytes = len;
     state->busy = 1;
     state->error = false;
+    state->unstick = false;
 
     if (!(I2Cx->CR2 & I2C_IT_EVT)) {                                    // if we are restarting the driver
         if (!(I2Cx->CR1 & I2C_CR1_START)) {                             // ensure sending a start
             while (I2Cx->CR1 & I2C_CR1_STOP && --timeout > 0) {; }     // wait for any stop to finish sending
             if (state->error || timeout == 0)
-                return i2cHandleHardwareFailure(device);
+                return i2cHandleHardwareFailure(device, state->unstick);
             I2C_GenerateSTART(I2Cx, ENABLE);                            // send the start for the new job
         }
         I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR, ENABLE);            // allow the interrupts to fire off again
@@ -229,7 +234,7 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
     timeout = I2C_DEFAULT_TIMEOUT;
     while (state->busy && --timeout > 0) {; }
     if (state->error || timeout == 0)
-        return i2cHandleHardwareFailure(device);
+        return i2cHandleHardwareFailure(device, state->unstick);
 
     return true;
 }
@@ -245,8 +250,13 @@ static void i2c_er_handler(I2CDevice device) {
     // Read the I2C1 status register
     volatile uint32_t SR1Register = I2Cx->SR1;
 
-    if (SR1Register & 0x0F00)                                           // an error
+    if (SR1Register & 0x0F00) {                                         // an error
         state->error = true;
+
+        // Only re-initialise bus if bus error indicated, don't reset bus when ARLO or AF
+        if (SR1Register & I2C_SR1_BERR)
+            state->unstick = true;
+    }
 
     // If AF, BERR or ARLO, abandon the current job and commence new if there are jobs
     if (SR1Register & 0x0700) {
@@ -468,7 +478,6 @@ uint16_t i2cGetErrorCounter(void)
 static void i2cUnstick(IO_t scl, IO_t sda)
 {
     int i;
-    int timeout = 100;
 
     IOHi(scl);
     IOHi(sda);
@@ -476,27 +485,31 @@ static void i2cUnstick(IO_t scl, IO_t sda)
     IOConfigGPIO(scl, IOCFG_OUT_OD);
     IOConfigGPIO(sda, IOCFG_OUT_OD);
 
-    for (i = 0; i < 8; i++) {
+    // Analog Devices AN-686
+    // We need 9 clock pulses + STOP condition
+    for (i = 0; i < 9; i++) {
         // Wait for any clock stretching to finish
+        int timeout = 100;
         while (!IORead(scl) && timeout) {
-            delayMicroseconds(10);
+            delayMicroseconds(5);
             timeout--;
         }
 
         // Pull low
         IOLo(scl); // Set bus low
-        delayMicroseconds(10);
+        delayMicroseconds(5);
         IOHi(scl); // Set bus high
-        delayMicroseconds(10);
+        delayMicroseconds(5);
     }
 
-    // Generate a start then stop condition
-    IOLo(sda); // Set bus data low
-    delayMicroseconds(10);
-    IOLo(scl); // Set bus scl low
-    delayMicroseconds(10);
+    // Generate a stop condition in case there was none
+    IOLo(scl);
+    delayMicroseconds(5);
+    IOLo(sda);
+    delayMicroseconds(5);
+
     IOHi(scl); // Set bus scl high
-    delayMicroseconds(10);
+    delayMicroseconds(5);
     IOHi(sda); // Set bus sda high
 }
 
