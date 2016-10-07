@@ -111,11 +111,11 @@
     #define USE_MAG_HMC5883
     #define USE_MAG_MAG3110
 
-    #define MAX_PWM_OUTPUT_PORTS        4
+    #define MAX_PWM_OUTPUT_PORTS        8
     #define TARGET_MOTOR_COUNT          4
     #define USABLE_TIMER_CHANNEL_COUNT  12
 #else
-    #define MAX_PWM_OUTPUT_PORTS        6
+    #define MAX_PWM_OUTPUT_PORTS        10
     #define TARGET_MOTOR_COUNT          6
     #define USABLE_TIMER_CHANNEL_COUNT  14
 #endif
