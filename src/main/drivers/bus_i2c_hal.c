@@ -76,6 +76,21 @@ static i2cDevice_t i2cHardwareMap[] = {
     { .dev = I2C4, .scl = IO_TAG(I2C4_SCL), .sda = IO_TAG(I2C4_SDA), .rcc = RCC_APB1(I2C4), .overClock = I2C2_OVERCLOCK, .ev_irq = I2C4_EV_IRQn, .er_irq = I2C4_ER_IRQn, .af = GPIO_AF4_I2C4 }
 };
 
+static volatile uint16_t i2cErrorCount = 0;
+
+static i2cState_t i2cState[] = {
+    { false, false, false, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { false, false, false, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { false, false, false, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { false, false, false, 0, 0, 0, 0, 0, 0, 0, 0 }
+};
+
+void i2cSetOverclock(uint8_t overClock)
+{
+    for (unsigned int i = 0; i < sizeof(i2cHardwareMap) / sizeof(i2cHardwareMap[0]); i++) {
+        i2cHardwareMap[i].overClock = overClock;
+    }
+}
 
 typedef struct{
     I2C_HandleTypeDef Handle;
@@ -122,25 +137,30 @@ void I2C4_EV_IRQHandler(void)
     HAL_I2C_EV_IRQHandler(&i2cHandle[I2CDEV_4].Handle);
 }
 
-static volatile uint16_t i2cErrorCount = 0;
-
-static bool i2cOverClock;
-
-void i2cSetOverclock(uint8_t OverClock) {
-    i2cOverClock = (OverClock) ? true : false;
-}
 
 static bool i2cHandleHardwareFailure(I2CDevice device)
 {
-    (void)device;
+    const i2cState_t *state = &(i2cState[device]);
+
     i2cErrorCount++;
+
     // reinit peripheral + clock out garbage
-    //i2cInit(device);
+    i2cInit(device);
+
     return false;
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, uint8_t *data)
 {
+    if (device == I2CINVALID)
+        return false;
+
+    i2cState_t *state;
+    state = &(i2cState[device]);
+
+    if (!state->initialised)
+        return false;
+
     HAL_StatusTypeDef status;
     
     if(reg_ == 0xFF)
@@ -161,6 +181,15 @@ bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data)
 
 bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf)
 {
+    if (device == I2CINVALID)
+        return false;
+
+    i2cState_t *state;
+    state = &(i2cState[device]);
+
+    if (!state->initialised)
+        return false;
+
     HAL_StatusTypeDef status;
     
     if(reg_ == 0xFF)
@@ -198,34 +227,31 @@ void i2cInit(I2CDevice device)
     default:
         break;
     }
-        if (device == I2CINVALID)
-            return;
+    if (device == I2CINVALID)
+        return;
 
-        i2cDevice_t *i2c;
-        i2c = &(i2cHardwareMap[device]);
+    i2cDevice_t *i2c;
+    i2c = &(i2cHardwareMap[device]);
 
-        //I2C_InitTypeDef i2cInit;
+    i2cState_t *state;
+    state = &(i2cState[device]);
 
-        IO_t scl = IOGetByTag(i2c->scl);
-        IO_t sda = IOGetByTag(i2c->sda);
+    IO_t scl = IOGetByTag(i2c->scl);
+    IO_t sda = IOGetByTag(i2c->sda);
 
-        IOInit(scl, OWNER_I2C, RESOURCE_I2C_SCL, RESOURCE_INDEX(device));
-        IOInit(sda, OWNER_I2C, RESOURCE_I2C_SDA, RESOURCE_INDEX(device));
+    IOInit(scl, OWNER_I2C, RESOURCE_I2C_SCL, RESOURCE_INDEX(device));
+    IOInit(sda, OWNER_I2C, RESOURCE_I2C_SDA, RESOURCE_INDEX(device));
 
-        // Enable RCC
-        RCC_ClockCmd(i2c->rcc, ENABLE);
+    // Enable RCC
+    RCC_ClockCmd(i2c->rcc, ENABLE);
 
 
-        i2cUnstick(scl, sda);
+    i2cUnstick(scl, sda);
 
-        // Init pins
-    #ifdef STM32F7
-        IOConfigGPIOAF(scl, IOCFG_I2C, i2c->af);
-        IOConfigGPIOAF(sda, IOCFG_I2C, i2c->af);
-    #else
-        IOConfigGPIO(scl, IOCFG_AF_OD);
-        IOConfigGPIO(sda, IOCFG_AF_OD);
-    #endif
+    // Init pins
+    IOConfigGPIOAF(scl, IOCFG_I2C, i2c->af);
+    IOConfigGPIOAF(sda, IOCFG_I2C, i2c->af);
+
     // Init I2C peripheral
     HAL_I2C_DeInit(&i2cHandle[device].Handle);
     
@@ -249,6 +275,7 @@ void i2cInit(I2CDevice device)
     HAL_NVIC_EnableIRQ(i2cHardwareMap[device].er_irq);
     HAL_NVIC_SetPriority(i2cHardwareMap[device].ev_irq, NVIC_PRIORITY_BASE(NVIC_PRIO_I2C_EV), NVIC_PRIORITY_SUB(NVIC_PRIO_I2C_EV));
     HAL_NVIC_EnableIRQ(i2cHardwareMap[device].ev_irq);
+    state->initialised = true;
 }
 
 uint16_t i2cGetErrorCounter(void)
@@ -259,7 +286,6 @@ uint16_t i2cGetErrorCounter(void)
 static void i2cUnstick(IO_t scl, IO_t sda)
 {
     int i;
-    int timeout = 100;
 
     IOHi(scl);
     IOHi(sda);
@@ -267,27 +293,31 @@ static void i2cUnstick(IO_t scl, IO_t sda)
     IOConfigGPIO(scl, IOCFG_OUT_OD);
     IOConfigGPIO(sda, IOCFG_OUT_OD);
 
-    for (i = 0; i < 8; i++) {
+    // Analog Devices AN-686
+    // We need 9 clock pulses + STOP condition
+    for (i = 0; i < 9; i++) {
         // Wait for any clock stretching to finish
+        int timeout = 100;
         while (!IORead(scl) && timeout) {
-            delayMicroseconds(10);
+            delayMicroseconds(5);
             timeout--;
         }
 
         // Pull low
         IOLo(scl); // Set bus low
-        delayMicroseconds(10);
+        delayMicroseconds(5);
         IOHi(scl); // Set bus high
-        delayMicroseconds(10);
+        delayMicroseconds(5);
     }
 
-    // Generate a start then stop condition
-    IOLo(sda); // Set bus data low
-    delayMicroseconds(10);
-    IOLo(scl); // Set bus scl low
-    delayMicroseconds(10);
+    // Generate a stop condition in case there was none
+    IOLo(scl);
+    delayMicroseconds(5);
+    IOLo(sda);
+    delayMicroseconds(5);
+
     IOHi(scl); // Set bus scl high
-    delayMicroseconds(10);
+    delayMicroseconds(5);
     IOHi(sda); // Set bus sda high
 }
 
