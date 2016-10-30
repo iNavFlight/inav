@@ -70,6 +70,11 @@ bool compassInit(int16_t magDeclinationFromConfig)
     return ret;
 }
 
+bool compassIsWorking(void)
+{
+	return (magADC[X] | magADC[Y] | magADC[Z]) != 0;
+}
+
 bool isCompassReady(void)
 {
     return magUpdatedAtLeastOnce;
