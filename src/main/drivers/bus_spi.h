@@ -80,6 +80,11 @@ typedef struct SPIDevice_s {
     volatile uint16_t errorCount;
     bool sdcard;
     bool nrf24l01;
+#if defined(STM32F7)
+    SPI_HandleTypeDef hspi;
+    DMA_HandleTypeDef hdma;
+    uint8_t dmaIrqHandler;
+#endif
 } spiDevice_t;
 
 bool spiInit(SPIDevice device);
