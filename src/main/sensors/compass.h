@@ -35,7 +35,7 @@ typedef enum {
 bool compassInit(int16_t magDeclinationFromConfig);
 void updateCompass(flightDynamicsTrims_t *magZero);
 bool isCompassReady(void);
-bool compassIsWorking(void);
+bool isCompassHealthy(void);
 #endif
 
 extern int32_t magADC[XYZ_AXIS_COUNT];

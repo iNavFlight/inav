@@ -398,11 +398,6 @@ static int imuCalculateAccelerometerConfidence(void)
     return (nearness > MAX_ACC_SQ_NEARNESS) ? 0 : MAX_ACC_SQ_NEARNESS - nearness;
 }
 
-static bool isMagnetometerHealthy(void)
-{
-    return (magADC[X] != 0) && (magADC[Y] != 0) && (magADC[Z] != 0);
-}
-
 static void imuCalculateEstimatedAttitude(float dT)
 {
     float courseOverGround = 0;
@@ -413,7 +408,7 @@ static void imuCalculateEstimatedAttitude(float dT)
 
     accWeight = imuCalculateAccelerometerConfidence();
 
-    if (sensors(SENSOR_MAG) && isMagnetometerHealthy()) {
+    if (sensors(SENSOR_MAG) && isCompassHealthy()) {
         useMag = true;
     }
 #if defined(GPS)
