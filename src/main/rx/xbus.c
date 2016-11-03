@@ -33,7 +33,7 @@
 //
 // Serial driver for JR's XBus (MODE B) receiver
 //
-#ifndef SKIP_SERIALRX_XBUS
+#ifdef USE_SERIALRX_XBUS
 
 #define XBUS_CHANNEL_COUNT 12
 #define XBUS_RJ01_CHANNEL_COUNT 12

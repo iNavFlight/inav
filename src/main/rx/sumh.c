@@ -39,7 +39,7 @@
 #include "rx/rx.h"
 #include "rx/sumh.h"
 
-#ifndef SKIP_SERIALRX_SUMH
+#ifdef USE_SERIALRX_SUMH
 // driver for SUMH receiver using UART2
 
 #define SUMH_BAUDRATE 115200

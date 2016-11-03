@@ -39,7 +39,7 @@
 #include "rx/rx.h"
 #include "rx/ibus.h"
 
-#ifndef SKIP_SERIALRX_IBUS
+#ifdef USE_SERIALRX_IBUS
 
 #define IBUS_MAX_CHANNEL 10
 #define IBUS_BUFFSIZE 32

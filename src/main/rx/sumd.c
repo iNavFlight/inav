@@ -33,7 +33,7 @@
 #include "rx/rx.h"
 #include "rx/sumd.h"
 
-#ifndef SKIP_SERIALRX_SUMD
+#ifdef USE_SERIALRX_SUMD
 
 // driver for SUMD receiver using UART2
 

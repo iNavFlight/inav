@@ -36,7 +36,7 @@
 #include "rx/rx.h"
 #include "rx/sbus.h"
 
-#ifndef SKIP_SERIALRX_SBUS
+#ifdef USE_SERIALRX_SBUS
 
 /*
  * Observations

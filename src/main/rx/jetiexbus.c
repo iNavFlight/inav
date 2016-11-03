@@ -49,7 +49,7 @@
 #include "rx/rx.h"
 #include "rx/jetiexbus.h"
 
-#ifndef SKIP_SERIALRX_JETIEXBUS
+#ifdef USE_SERIALRX_JETIEXBUS
 
 #ifdef TELEMETRY
 

@@ -42,7 +42,7 @@
 #include "rx/rx.h"
 #include "rx/spektrum.h"
 
-#ifndef SKIP_SERIALRX_SPEKTRUM
+#ifdef USE_SERIALRX_SPEKTRUM
 
 // driver for spektrum satellite receiver / sbus
 
