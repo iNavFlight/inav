@@ -36,6 +36,8 @@ bool compassInit(int16_t magDeclinationFromConfig);
 void updateCompass(flightDynamicsTrims_t *magZero);
 bool isCompassReady(void);
 bool isCompassHealthy(void);
+#else
+static inline bool isCompassHealthy(void) {return true;}
 #endif
 
 extern int32_t magADC[XYZ_AXIS_COUNT];
