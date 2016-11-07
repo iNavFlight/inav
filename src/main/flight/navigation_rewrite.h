@@ -117,6 +117,7 @@ typedef struct navConfig_s {
     uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTL in cm, otherwise it will just autoland
 
     uint8_t  mc_max_bank_angle;             // multicopter max banking angle (deg)
+    uint16_t mc_max_rate;                   // multicopter max jerk limit (deg/s)
     uint16_t mc_hover_throttle;             // multicopter hover throttle
     uint16_t mc_auto_disarm_delay;          // multicopter safety delay for landing detector
 

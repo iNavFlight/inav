@@ -125,9 +125,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
     pidProfile->P8[PIDPOS] = 65;    // NAV_POS_XY_P * 100
     pidProfile->I8[PIDPOS] = 120;   // posDecelerationTime * 100
     pidProfile->D8[PIDPOS] = 10;    // posResponseExpo * 100
-    pidProfile->P8[PIDPOSR] = 180;  // NAV_VEL_XY_P * 100
-    pidProfile->I8[PIDPOSR] = 15;   // NAV_VEL_XY_I * 100
-    pidProfile->D8[PIDPOSR] = 100;  // NAV_VEL_XY_D * 100
+    pidProfile->P8[PIDPOSR] = 10;   // NAV_VEL_XY_P * 100
+    pidProfile->I8[PIDPOSR] = 0;    // NAV_VEL_XY_I * 100
+    pidProfile->D8[PIDPOSR] = 10;   // NAV_VEL_XY_D * 100
     pidProfile->P8[PIDNAVR] = 10;   // FW_NAV_P * 100
     pidProfile->I8[PIDNAVR] = 5;    // FW_NAV_I * 100
     pidProfile->D8[PIDNAVR] = 8;    // FW_NAV_D * 100
@@ -213,6 +213,7 @@ void resetNavConfig(navConfig_t * navConfig)
 
     // MC-specific
     navConfig->mc_max_bank_angle = 30;      // 30 deg
+    navConfig->mc_max_rate = 90;            // 90 deg/s
     navConfig->mc_hover_throttle = 1500;
     navConfig->mc_auto_disarm_delay = 2000;
 

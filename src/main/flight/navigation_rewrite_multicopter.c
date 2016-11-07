@@ -362,51 +362,66 @@ static void updatePositionVelocityController_MC(void)
 
 static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAccelLimit)
 {
+    //float newAccelX, newAccelY;
+    // TODO: is this part needed? Unclear what it does, flies okay without it.
+    // float velErrorX, velErrorY, newAccelX, newAccelY;
+    // 
+    // // Calculate velocity error
+    // velErrorX = posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X;
+    // velErrorY = posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y;
+    // 
+    // // Calculate XY-acceleration limit according to velocity error limit
+    // float accelLimitX, accelLimitY;
+    // float velErrorMagnitude = sqrtf(sq(velErrorX) + sq(velErrorY));
+    // if (velErrorMagnitude > 0.1f) {
+    //     accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
+    //     accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
+    // }
+    // else {
+    //     accelLimitX = maxAccelLimit / 1.414213f;
+    //     accelLimitY = accelLimitX;
+    // }
+    
     float velErrorX, velErrorY, newAccelX, newAccelY;
-
+    
     // Calculate velocity error
     velErrorX = posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X;
     velErrorY = posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y;
-
-    // Calculate XY-acceleration limit according to velocity error limit
-    float accelLimitX, accelLimitY;
-    float velErrorMagnitude = sqrtf(sq(velErrorX) + sq(velErrorY));
-    if (velErrorMagnitude > 0.1f) {
-        accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
-        accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
+    
+    float maxJerk = US2S(deltaMicros) * ((980.0f/45.0f) * posControl.navConfig->mc_max_rate); // jerk limit = 90deg/s
+    
+    float maxJerkX, maxJerkY;
+    float velError = sqrtf(sq(velErrorX) + sq(velErrorY));
+    if (velError > 10.0f) {
+        maxJerkX = maxJerk / velError * fabsf(velErrorX);
+        maxJerkY = maxJerk / velError * fabsf(velErrorY);
+    } else {
+        maxJerkX = maxJerk;
+        maxJerkY = maxJerk;
     }
-    else {
-        accelLimitX = maxAccelLimit / 1.414213f;
-        accelLimitY = accelLimitX;
-    }
 
-    // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
-    // This will assure that we wont't saturate out LEVEL and RATE PID controller
-    float maxAccelChange = US2S(deltaMicros) * 1700.0f;
-    float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
-    float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
-    float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
-    float accelLimitYMax = constrainf(lastAccelTargetY + maxAccelChange, -accelLimitY, +accelLimitY);
+    // In this case rate limit and jerk limit is the same thing, so this is set in deg/s.
+    // 45 deg to reach 980cm/s^2, or 1 G
+    float accelLimitXMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerkX, 0);
+    float accelLimitXMax = constrainf(maxAccelLimit - lastAccelTargetX, 0, +maxJerkX);
+    float accelLimitYMin = constrainf((-maxAccelLimit) - lastAccelTargetX, -maxJerkY, 0);
+    float accelLimitYMax = constrainf(maxAccelLimit - lastAccelTargetY, 0, +maxJerkY);
 
     // TODO: Verify if we need jerk limiting after all
 
     // Apply PID with output limiting and I-term anti-windup
-    // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
-    // Thus we don't need to do anything else with calculated acceleration
-    newAccelX = navPidApply2(posControl.desiredState.vel.V.X, posControl.actualState.vel.V.X, US2S(deltaMicros), &posControl.pids.vel[X], accelLimitXMin, accelLimitXMax, false);
-    newAccelY = navPidApply2(posControl.desiredState.vel.V.Y, posControl.actualState.vel.V.Y, US2S(deltaMicros), &posControl.pids.vel[Y], accelLimitYMin, accelLimitYMax, false);
+    newAccelX = navPidApply2(posControl.desiredState.vel.V.X, posControl.actualState.vel.V.X, US2S(deltaMicros), &posControl.pids.vel[X], accelLimitXMin, accelLimitXMax, true);
+    newAccelY = navPidApply2(posControl.desiredState.vel.V.Y, posControl.actualState.vel.V.Y, US2S(deltaMicros), &posControl.pids.vel[Y], accelLimitYMin, accelLimitYMax, true);
 
-    // Save last acceleration target
-    lastAccelTargetX = newAccelX;
-    lastAccelTargetY = newAccelY;
-
-    // Apply LPF to jerk limited acceleration target
-    float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
-    float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
+    // Add acceleration change to acceleration target, this is the incremental part.
+    // TODO: constrainf should not be needed here, confirm that navPidApply2 never exceeds maxAccelLimit.
+    // TODO: rename lastAccelTarget* to somewthing like accelN and accelE (that alread exsists but is unused now).
+    lastAccelTargetX = constrainf(lastAccelTargetX + newAccelX, -maxAccelLimit, +maxAccelLimit);
+    lastAccelTargetY = constrainf(lastAccelTargetY + newAccelY, -maxAccelLimit, +maxAccelLimit);
 
     // Rotate acceleration target into forward-right frame (aircraft)
-    float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
-    float accelRight = -accelN * posControl.actualState.sinYaw + accelE * posControl.actualState.cosYaw;
+    float accelForward = lastAccelTargetX * posControl.actualState.cosYaw + lastAccelTargetY * posControl.actualState.sinYaw;
+    float accelRight = -lastAccelTargetX * posControl.actualState.sinYaw + lastAccelTargetY * posControl.actualState.cosYaw;
 
     // Calculate banking angles
     float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);
@@ -415,6 +430,11 @@ static void updatePositionAccelController_MC(uint32_t deltaMicros, float maxAcce
     int16_t maxBankAngle = DEGREES_TO_DECIDEGREES(posControl.navConfig->mc_max_bank_angle);
     posControl.rcAdjustment[ROLL] = constrain(RADIANS_TO_DECIDEGREES(desiredRoll), -maxBankAngle, maxBankAngle);
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
+    
+    // navDebug[0] = velErrorX;
+    // navDebug[1] = newAccelX;
+    // navDebug[2] = lastAccelTargetX;
+    // navDebug[3] = US2S(deltaMicros) * ((980.0f/45.0f)*90);
 }
 
 static void applyMulticopterPositionController(uint32_t currentTime)
