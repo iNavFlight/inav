@@ -115,10 +115,14 @@ typedef struct BusContext_s {
 
 void busSetupTransfer(BusTransaction_t * txn, uint8_t * rxBuf, uint8_t * txBuf, int byteCount);
 
+/* Asynchronous operations */
 bool busQueueRead(const Bus_t busId, const BusDevice_t dev, uint8_t * cmd, const int cmd_size, uint8_t * data, const int data_size, busTransactionCallback callback, const void * callbackParam);
 bool busQueueWrite(const Bus_t busId, const BusDevice_t dev, uint8_t * cmd, const int cmd_size, uint8_t * data, const int data_size, busTransactionCallback callback, const void * callbackParam);
+
+/* Synchronous operations - won't return until transaction is complete */
 bool busRead(const Bus_t busId, const BusDevice_t dev, uint8_t * cmd, const int cmd_size, uint8_t * data, const int data_size);
 bool busWrite(const Bus_t busId, const BusDevice_t dev, uint8_t * cmd, const int cmd_size, uint8_t * data, const int data_size);
+
 void busSetSpeed(const Bus_t busId, const BusSpeed_e speed);
 bool busIsBusy(const Bus_t busId);
 
