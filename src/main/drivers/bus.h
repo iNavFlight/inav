@@ -67,9 +67,10 @@ typedef enum BusTransactionState_e {
 
 struct BusTransaction_s;
 
-typedef void busTransactionCallback(const void * param, const uint8_t * payload, const int transfered_bytes);
+typedef void busTransactionCallback(const void * param, const uint8_t * payload, const int completed_bytes);
 
 typedef struct BusTransaction_s {
+    /* Transaction state */
     volatile BusTransactionState_e  state;
     BusTransactionType_e            type;
     BusDevice_t                     device;
@@ -77,13 +78,21 @@ typedef struct BusTransaction_s {
     uint8_t *                       payload;
     int                             command_bytes;
     int                             payload_bytes;
-    int                             transfered_bytes;
+    int                             completed_bytes;
     busTransactionCallback *        callback;
     const void *                    callbackParam;
+
+    /* Bus transfer state - this may change more than once per transaction */
+    int                             busSequence;
+    uint8_t *                       busRxBufPtr;
+    uint8_t *                       busTxBufPtr;
+    int                             busBytesRemaining;
+    int                             busBytesCompleted;
+    uint32_t                        busTimeoutUs;
 } BusTransaction_t;
 
 typedef bool busHardwareInit(const void * hwDesc);
-typedef void busHardwareProcessTxn(const void * hwDesc, BusTransaction_t * txn);
+typedef void busHardwareProcessTxn(const void * hwDesc, BusTransaction_t * txn, uint32_t currentTime);
 typedef void busHardwareSetSpeed(const void * hwDesc, const BusSpeed_e speed);
 
 /* Bus hardware descriptor (read-only, defined per-target) */
@@ -103,6 +112,8 @@ typedef struct BusContext_s {
     int                 queueTail;
     int                 queueCount;
 } BusContext_t;
+
+void busSetupTransfer(BusTransaction_t * txn, uint8_t * rxBuf, uint8_t * txBuf, int byteCount);
 
 bool busQueueRead(const Bus_t busId, const BusDevice_t dev, uint8_t * cmd, const int cmd_size, uint8_t * data, const int data_size, busTransactionCallback callback, const void * callbackParam);
 bool busQueueWrite(const Bus_t busId, const BusDevice_t dev, uint8_t * cmd, const int cmd_size, uint8_t * data, const int data_size, busTransactionCallback callback, const void * callbackParam);

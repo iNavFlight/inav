@@ -34,5 +34,5 @@
 #endif
 
 bool busSpiInit(const void * hwDesc);
-void busSpiProcessTxn(const void * hwDesc, BusTransaction_t * txn);
+void busSpiProcessTxn(const void * hwDesc, BusTransaction_t * txn, uint32_t currentTime);
 void busSpiSetSpeed(const void * hwDesc, const BusSpeed_e speed);

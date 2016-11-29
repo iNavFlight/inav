@@ -35,7 +35,7 @@ extern const BusDescriptor_t busHwDesc[MAX_BUS_COUNT];
 static BusContext_t          bus[MAX_BUS_COUNT];
 static volatile int          busTotalQueueCount = 0;
 
-static void busProcessPendingTransactions(void);
+static void busProcessPendingTransactions(uint32_t currentTime);
 
 static void busDequeueTransaction(const Bus_t busId)
 {
@@ -68,7 +68,7 @@ static BusTransaction_t * busQueueTransaction(const Bus_t busId, const BusDevice
             txn->payload = data;
             txn->command_bytes = cmd_size;
             txn->payload_bytes = data_size;
-            txn->transfered_bytes = 0;
+            txn->completed_bytes = 0;
             txn->callback = callback;
             txn->callbackParam = callbackParam;
 
@@ -101,7 +101,7 @@ static bool busExecuteBlockingTransaction(const Bus_t busId, const BusDevice_t d
     else {
         // Wait for transaction to complete
         while (txn->state != TXN_IDLE) {
-            busProcessPendingTransactions();
+            busProcessPendingTransactions(micros());
         }
     }
 
@@ -154,14 +154,14 @@ void busSetSpeed(const Bus_t busId, const BusSpeed_e speed)
 
     // Wait until queue is flushed - this call shouldn't affect already queued transactions
     while (bus[busId].queueCount != 0) {
-        busProcessPendingTransactions();
+        busProcessPendingTransactions(micros());
     }
 
     // Call the hardware driver
     bus[busId].desc.setSpeed(bus[busId].desc.hw, speed);
 }
 
-static void busProcessPendingTransactions(void)
+static void busProcessPendingTransactions(uint32_t currentTime)
 {
     for (Bus_t busId = 0; busId < MAX_BUS_COUNT; busId++) {
         // Count is non-zero, queueHead transaction is valid
@@ -174,13 +174,13 @@ static void busProcessPendingTransactions(void)
                 case TXN_BUSY_COMMAND:
                 case TXN_BUSY_PAYLOAD:
                 case TXN_BUSY_COMPLETE:
-                    bus[busId].desc.processTxn(bus[busId].desc.hw, txn);
+                    bus[busId].desc.processTxn(bus[busId].desc.hw, txn, currentTime);
                     break;
 
                 case TXN_DONE:      // TXN is moved to this state only by HW IOCTL
                     if (txn->callback) {
                         // Call callback if available
-                        txn->callback(txn->callbackParam, txn->payload, txn->transfered_bytes);
+                        txn->callback(txn->callbackParam, txn->payload, txn->completed_bytes);
                     }
 
                     txn->state = TXN_IDLE;
@@ -217,6 +217,15 @@ bool busInitDriver(const Bus_t busId)
     return bus[busId].initialised;
 }
 
+void busSetupTransfer(BusTransaction_t * txn, uint8_t * rxBuf, uint8_t * txBuf, int byteCount)
+{
+    txn->busSequence = 0;
+    txn->busRxBufPtr = rxBuf;
+    txn->busTxBufPtr = txBuf;
+    txn->busBytesRemaining = byteCount;
+    txn->busBytesCompleted = 0;
+}
+
 bool taskBusCheck(uint32_t currentTime, uint32_t currentDeltaTime)
 {
     UNUSED(currentTime);
@@ -226,6 +235,5 @@ bool taskBusCheck(uint32_t currentTime, uint32_t currentDeltaTime)
 
 void taskBus(uint32_t currentTime)
 {
-    UNUSED(currentTime);
-    busProcessPendingTransactions();
+    busProcessPendingTransactions(currentTime);
 }
