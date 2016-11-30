@@ -98,6 +98,7 @@ extern pitot_t pitot;
 
 uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE };
 
+#define SENSOR_DETECTION_RETRY_COUNT    5
 
 const extiConfig_t *selectMPUIntExtiConfig(void)
 {
@@ -385,71 +386,78 @@ retry:
 static bool detectBaro(baroSensor_e baroHardwareToUse)
 {
     // Detect what pressure sensors are available. baro->update() is set to sensor-specific update function
-
     baroSensor_e baroHardware = baroHardwareToUse;
+    int retry;
 
 #ifdef USE_BARO_BMP085
 
-    const bmp085Config_t *bmp085Config = NULL;
+        const bmp085Config_t *bmp085Config = NULL;
 
 #if defined(BARO_XCLR_GPIO) && defined(BARO_EOC_GPIO)
-    static const bmp085Config_t defaultBMP085Config = {
-        .xclrIO = IO_TAG(BARO_XCLR_PIN),
-        .eocIO = IO_TAG(BARO_EOC_PIN),
-    };
-    bmp085Config = &defaultBMP085Config;
+        static const bmp085Config_t defaultBMP085Config = {
+            .xclrIO = IO_TAG(BARO_XCLR_PIN),
+            .eocIO = IO_TAG(BARO_EOC_PIN),
+        };
+        bmp085Config = &defaultBMP085Config;
 #endif
 
 #ifdef NAZE
-    if (hardwareRevision == NAZE32) {
-        bmp085Disable(bmp085Config);
-    }
+        if (hardwareRevision == NAZE32) {
+            bmp085Disable(bmp085Config);
+        }
 #endif
 
 #endif
 
-    switch (baroHardware) {
-        case BARO_DEFAULT:
-            ; // fallthough
+    for (retry = 0; retry < SENSOR_DETECTION_RETRY_COUNT; retry++) {
+        baroHardware = baroHardwareToUse;
 
-        case BARO_BMP085:
+        switch (baroHardware) {
+            case BARO_DEFAULT:
+                ; // fallthough
+
+            case BARO_BMP085:
 #ifdef USE_BARO_BMP085
-            if (bmp085Detect(bmp085Config, &baro)) {
-                baroHardware = BARO_BMP085;
-                break;
-            }
-#endif
-        ; // fallthough
-        case BARO_MS5611:
-#ifdef USE_BARO_MS5611
-            if (ms5611Detect(&baro)) {
-                baroHardware = BARO_MS5611;
-                break;
-            }
+                if (bmp085Detect(bmp085Config, &baro)) {
+                    baroHardware = BARO_BMP085;
+                    break;
+                }
 #endif
             ; // fallthough
-        case BARO_BMP280:
+            case BARO_MS5611:
+#ifdef USE_BARO_MS5611
+                if (ms5611Detect(&baro)) {
+                    baroHardware = BARO_MS5611;
+                    break;
+                }
+#endif
+                ; // fallthough
+            case BARO_BMP280:
 #if defined(USE_BARO_BMP280) || defined(USE_BARO_SPI_BMP280)
-            if (bmp280Detect(&baro)) {
-                baroHardware = BARO_BMP280;
-                break;
-            }
+                if (bmp280Detect(&baro)) {
+                    baroHardware = BARO_BMP280;
+                    break;
+                }
 #endif
-            ; // fallthrough
-        case BARO_FAKE:
+                ; // fallthrough
+            case BARO_FAKE:
 #ifdef USE_FAKE_BARO
-            if (fakeBaroDetect(&baro)) {
-                baroHardware = BARO_FAKE;
-                break;
-            }
+                if (fakeBaroDetect(&baro)) {
+                    baroHardware = BARO_FAKE;
+                    break;
+                }
 #endif
-            ; // fallthrough
-        case BARO_NONE:
-            baroHardware = BARO_NONE;
+                ; // fallthrough
+            case BARO_NONE:
+                baroHardware = BARO_NONE;
+                break;
+        }
+
+        if (baroHardware != BARO_NONE)
             break;
     }
 
-    addBootlogEvent6(BOOT_EVENT_BARO_DETECTION, BOOT_EVENT_FLAGS_NONE, baroHardware, 0, 0, 0);
+    addBootlogEvent6(BOOT_EVENT_BARO_DETECTION, BOOT_EVENT_FLAGS_NONE, baroHardware, retry, 0, 0);
 
     if (baroHardware == BARO_NONE) {
         return false;
@@ -510,6 +518,7 @@ static bool detectPitot(uint8_t pitotHardwareToUse)
 static bool detectMag(magSensor_e magHardwareToUse)
 {
     magSensor_e magHardware = MAG_NONE;
+    int retry;
 
 #ifdef USE_MAG_HMC5883
     const hmc5883Config_t *hmc5883Config = 0;
@@ -540,85 +549,92 @@ static bool detectMag(magSensor_e magHardwareToUse)
 
     magAlign = ALIGN_DEFAULT;
 
-    switch(magHardwareToUse) {
-        case MAG_DEFAULT:
-            ; // fallthrough
+    for (retry = 0; retry < SENSOR_DETECTION_RETRY_COUNT; retry++) {
+        magHardware = MAG_NONE;
 
-        case MAG_HMC5883:
+        switch(magHardwareToUse) {
+            case MAG_DEFAULT:
+                ; // fallthrough
+
+            case MAG_HMC5883:
 #ifdef USE_MAG_HMC5883
-            if (hmc5883lDetect(&mag, hmc5883Config)) {
+                if (hmc5883lDetect(&mag, hmc5883Config)) {
 #ifdef MAG_HMC5883_ALIGN
-                magAlign = MAG_HMC5883_ALIGN;
+                    magAlign = MAG_HMC5883_ALIGN;
 #endif
-                magHardware = MAG_HMC5883;
-                break;
-            }
+                    magHardware = MAG_HMC5883;
+                    break;
+                }
 #endif
-            ; // fallthrough
+                ; // fallthrough
 
-        case MAG_AK8975:
+            case MAG_AK8975:
 #ifdef USE_MAG_AK8975
-            if (ak8975Detect(&mag)) {
+                if (ak8975Detect(&mag)) {
 #ifdef MAG_AK8975_ALIGN
-                magAlign = MAG_AK8975_ALIGN;
+                    magAlign = MAG_AK8975_ALIGN;
 #endif
-                magHardware = MAG_AK8975;
-                break;
-            }
+                    magHardware = MAG_AK8975;
+                    break;
+                }
 #endif
-            ; // fallthrough
+                ; // fallthrough
 
-        case MAG_AK8963:
+            case MAG_AK8963:
 #ifdef USE_MAG_AK8963
-            if (ak8963Detect(&mag)) {
+                if (ak8963Detect(&mag)) {
 #ifdef MAG_AK8963_ALIGN
-                magAlign = MAG_AK8963_ALIGN;
+                    magAlign = MAG_AK8963_ALIGN;
 #endif
-                magHardware = MAG_AK8963;
-                break;
-            }
+                    magHardware = MAG_AK8963;
+                    break;
+                }
 #endif
-            ; // fallthrough
+                ; // fallthrough
 
-        case MAG_GPS:
+            case MAG_GPS:
 #ifdef GPS
-            if (gpsMagDetect(&mag)) {
+                if (gpsMagDetect(&mag)) {
 #ifdef MAG_GPS_ALIGN
-                magAlign = MAG_GPS_ALIGN;
+                    magAlign = MAG_GPS_ALIGN;
 #endif
-                magHardware = MAG_GPS;
-                break;
-            }
+                    magHardware = MAG_GPS;
+                    break;
+                }
 #endif
-            ; // fallthrough
+                ; // fallthrough
 
-        case MAG_MAG3110:
+            case MAG_MAG3110:
 #ifdef USE_MAG_MAG3110
-            if (mag3110detect(&mag)) {
+                if (mag3110detect(&mag)) {
 #ifdef MAG_MAG3110_ALIGN
-                magAlign = MAG_MAG3110_ALIGN;
+                    magAlign = MAG_MAG3110_ALIGN;
 #endif
-                magHardware = MAG_MAG3110;
-                break;
-            }
+                    magHardware = MAG_MAG3110;
+                    break;
+                }
 #endif
-            ; // fallthrough
+                ; // fallthrough
 
-        case MAG_FAKE:
+            case MAG_FAKE:
 #ifdef USE_FAKE_MAG
-            if (fakeMagDetect(&mag)) {
-                magHardware = MAG_FAKE;
-                break;
-            }
+                if (fakeMagDetect(&mag)) {
+                    magHardware = MAG_FAKE;
+                    break;
+                }
 #endif
-            ; // fallthrough
+                ; // fallthrough
 
-        case MAG_NONE:
-            magHardware = MAG_NONE;
+            case MAG_NONE:
+                magHardware = MAG_NONE;
+                break;
+        }
+
+        if (magHardware != MAG_NONE)
             break;
     }
 
-    addBootlogEvent6(BOOT_EVENT_MAG_DETECTION, BOOT_EVENT_FLAGS_NONE, magHardware, 0, 0, 0);
+    addBootlogEvent6(BOOT_EVENT_MAG_DETECTION, BOOT_EVENT_FLAGS_NONE, magHardware, retry, 0, 0);
 
     // If not in autodetect mode and detected the wrong chip - disregard the compass even if detected
     if ((magHardwareToUse != MAG_DEFAULT && magHardware != magHardwareToUse) || (magHardware == MAG_NONE)) {
