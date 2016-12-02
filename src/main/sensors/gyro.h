@@ -33,6 +33,10 @@ typedef enum {
     GYRO_MAX = GYRO_FAKE
 } gyroSensor_e;
 
+typedef struct gyro_s {
+    gyroDev_t dev;
+} gyro_t;
+
 extern gyro_t gyro;
 
 extern int32_t gyroADC[XYZ_AXIS_COUNT];

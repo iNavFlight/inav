@@ -122,7 +122,7 @@ bool detectGyro(void)
             ; // fallthrough
         case GYRO_MPU6050:
 #ifdef USE_GYRO_MPU6050
-            if (mpu6050GyroDetect(&gyro)) {
+            if (mpu6050GyroDetect(&gyro.dev)) {
                 gyroHardware = GYRO_MPU6050;
 #ifdef GYRO_MPU6050_ALIGN
                 gyroAlign = GYRO_MPU6050_ALIGN;
@@ -133,7 +133,7 @@ bool detectGyro(void)
             ; // fallthrough
         case GYRO_L3G4200D:
 #ifdef USE_GYRO_L3G4200D
-            if (l3g4200dDetect(&gyro)) {
+            if (l3g4200dDetect(&gyro.dev)) {
                 gyroHardware = GYRO_L3G4200D;
 #ifdef GYRO_L3G4200D_ALIGN
                 gyroAlign = GYRO_L3G4200D_ALIGN;
@@ -145,7 +145,7 @@ bool detectGyro(void)
 
         case GYRO_MPU3050:
 #ifdef USE_GYRO_MPU3050
-            if (mpu3050Detect(&gyro)) {
+            if (mpu3050Detect(&gyro.dev)) {
                 gyroHardware = GYRO_MPU3050;
 #ifdef GYRO_MPU3050_ALIGN
                 gyroAlign = GYRO_MPU3050_ALIGN;
@@ -157,7 +157,7 @@ bool detectGyro(void)
 
         case GYRO_L3GD20:
 #ifdef USE_GYRO_L3GD20
-            if (l3gd20Detect(&gyro)) {
+            if (l3gd20Detect(&gyro.dev)) {
                 gyroHardware = GYRO_L3GD20;
 #ifdef GYRO_L3GD20_ALIGN
                 gyroAlign = GYRO_L3GD20_ALIGN;
@@ -169,7 +169,7 @@ bool detectGyro(void)
 
         case GYRO_MPU6000:
 #ifdef USE_GYRO_SPI_MPU6000
-            if (mpu6000SpiGyroDetect(&gyro)) {
+            if (mpu6000SpiGyroDetect(&gyro.dev)) {
                 gyroHardware = GYRO_MPU6000;
 #ifdef GYRO_MPU6000_ALIGN
                 gyroAlign = GYRO_MPU6000_ALIGN;
@@ -182,9 +182,9 @@ bool detectGyro(void)
         case GYRO_MPU6500:
 #if defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500)
 #ifdef USE_GYRO_SPI_MPU6500
-            if (mpu6500GyroDetect(&gyro) || mpu6500SpiGyroDetect(&gyro)) {
+            if (mpu6500GyroDetect(&gyro.dev) || mpu6500SpiGyroDetect(&gyro.dev)) {
 #else
-            if (mpu6500GyroDetect(&gyro)) {
+            if (mpu6500GyroDetect(&gyro.dev)) {
 #endif
                 gyroHardware = GYRO_MPU6500;
 #ifdef GYRO_MPU6500_ALIGN
@@ -198,7 +198,7 @@ bool detectGyro(void)
 
     case GYRO_MPU9250:
 #ifdef USE_GYRO_SPI_MPU9250
-        if (mpu9250SpiGyroDetect(&gyro))
+        if (mpu9250SpiGyroDetect(&gyro.dev))
         {
             gyroHardware = GYRO_MPU9250;
 #ifdef GYRO_MPU9250_ALIGN
@@ -211,7 +211,7 @@ bool detectGyro(void)
         ; // fallthrough
         case GYRO_FAKE:
 #ifdef USE_FAKE_GYRO
-            if (fakeGyroDetect(&gyro)) {
+            if (fakeGyroDetect(&gyro.dev)) {
                 gyroHardware = GYRO_FAKE;
                 break;
             }
@@ -252,9 +252,9 @@ retry:
             acc_params.useFifo = false;
             acc_params.dataRate = 800; // unused currently
 #ifdef NAZE
-            if (hardwareRevision < NAZE32_REV5 && adxl345Detect(&acc_params, &acc)) {
+            if (hardwareRevision < NAZE32_REV5 && adxl345Detect(&acc_params, &acc.dev)) {
 #else
-            if (adxl345Detect(&acc_params, &acc)) {
+            if (adxl345Detect(&acc_params, &acc.dev)) {
 #endif
 #ifdef ACC_ADXL345_ALIGN
                 accAlign = ACC_ADXL345_ALIGN;
@@ -266,7 +266,7 @@ retry:
             ; // fallthrough
         case ACC_LSM303DLHC:
 #ifdef USE_ACC_LSM303DLHC
-            if (lsm303dlhcAccDetect(&acc)) {
+            if (lsm303dlhcAccDetect(&acc.dev)) {
 #ifdef ACC_LSM303DLHC_ALIGN
                 accAlign = ACC_LSM303DLHC_ALIGN;
 #endif
@@ -277,7 +277,7 @@ retry:
             ; // fallthrough
         case ACC_MPU6050: // MPU6050
 #ifdef USE_ACC_MPU6050
-            if (mpu6050AccDetect(&acc)) {
+            if (mpu6050AccDetect(&acc.dev)) {
 #ifdef ACC_MPU6050_ALIGN
                 accAlign = ACC_MPU6050_ALIGN;
 #endif
@@ -290,9 +290,9 @@ retry:
 #ifdef USE_ACC_MMA8452
 #ifdef NAZE
             // Not supported with this frequency
-            if (hardwareRevision < NAZE32_REV5 && mma8452Detect(&acc)) {
+            if (hardwareRevision < NAZE32_REV5 && mma8452Detect(&acc.dev)) {
 #else
-            if (mma8452Detect(&acc)) {
+            if (mma8452Detect(&acc.dev)) {
 #endif
 #ifdef ACC_MMA8452_ALIGN
                 accAlign = ACC_MMA8452_ALIGN;
@@ -304,7 +304,7 @@ retry:
             ; // fallthrough
         case ACC_BMA280: // BMA280
 #ifdef USE_ACC_BMA280
-            if (bma280Detect(&acc)) {
+            if (bma280Detect(&acc.dev)) {
 #ifdef ACC_BMA280_ALIGN
                 accAlign = ACC_BMA280_ALIGN;
 #endif
@@ -315,7 +315,7 @@ retry:
             ; // fallthrough
         case ACC_MPU6000:
 #ifdef USE_ACC_SPI_MPU6000
-            if (mpu6000SpiAccDetect(&acc)) {
+            if (mpu6000SpiAccDetect(&acc.dev)) {
 #ifdef ACC_MPU6000_ALIGN
                 accAlign = ACC_MPU6000_ALIGN;
 #endif
@@ -327,9 +327,9 @@ retry:
         case ACC_MPU6500:
 #if defined(USE_ACC_MPU6500) || defined(USE_ACC_SPI_MPU6500)
 #ifdef USE_ACC_SPI_MPU6500
-            if (mpu6500AccDetect(&acc) || mpu6500SpiAccDetect(&acc)) {
+            if (mpu6500AccDetect(&acc.dev) || mpu6500SpiAccDetect(&acc.dev)) {
 #else
-            if (mpu6500AccDetect(&acc)) {
+            if (mpu6500AccDetect(&acc.dev)) {
 #endif
 #ifdef ACC_MPU6500_ALIGN
                 accAlign = ACC_MPU6500_ALIGN;
@@ -340,7 +340,7 @@ retry:
 #endif
         case ACC_MPU9250:
 #ifdef USE_ACC_SPI_MPU9250
-            if (mpu9250SpiAccDetect(&acc)) {
+            if (mpu9250SpiAccDetect(&acc.dev)) {
 #ifdef ACC_MPU9250_ALIGN
                 accAlign = ACC_MPU9250_ALIGN;
 #endif
@@ -351,7 +351,7 @@ retry:
             ; // fallthrough
         case ACC_FAKE:
 #ifdef USE_FAKE_ACC
-            if (fakeAccDetect(&acc)) {
+            if (fakeAccDetect(&acc.dev)) {
                 accHardware = ACC_FAKE;
                 break;
             }
@@ -694,13 +694,13 @@ bool sensorsAutodetect(const sensorAlignmentConfig_t *sensorAlignmentConfig,
 
     // this is safe because either mpu6050 or mpu3050 or lg3d20 sets it, and in case of fail, we never get here.
     // Set gyro sample rate before initialisation
-    gyro.targetLooptime = gyroSetSampleRate(gyroConfig->looptime, gyroConfig->gyro_lpf, gyroConfig->gyroSync, gyroConfig->gyroSyncDenominator);
-    gyro.init(gyroConfig->gyro_lpf); // driver initialisation
+    gyro.dev.targetLooptime = gyroSetSampleRate(gyroConfig->looptime, gyroConfig->gyro_lpf, gyroConfig->gyroSync, gyroConfig->gyroSyncDenominator);
+    gyro.dev.init(&gyro.dev); // driver initialisation
     gyroInit(gyroConfig); // sensor initialisation
 
     if (detectAcc(sensorSelectionConfig->acc_hardware)) {
-        acc.acc_1G = 256; // set default
-        acc.init(&acc);
+        acc.dev.acc_1G = 256; // set default
+        acc.dev.init(&acc.dev);
     #ifdef ASYNC_GYRO_PROCESSING
         /*
          * ACC will be updated at its own rate
@@ -710,7 +710,7 @@ bool sensorsAutodetect(const sensorAlignmentConfig_t *sensorAlignmentConfig,
         /*
          * acc updated at same frequency in taskMainPidLoop in mw.c
          */
-        accInit(gyro.targetLooptime);
+        accInit(gyro.dev.targetLooptime);
     #endif
     }
 

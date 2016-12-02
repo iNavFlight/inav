@@ -125,17 +125,15 @@ static void performAcclerationCalibration(uint8_t gyroMovementCalibrationThresho
 
 void gyroUpdate(void)
 {
-    int16_t gyroADCRaw[XYZ_AXIS_COUNT];
-
     // range: +/- 8192; +/- 2000 deg/sec
-    if (!gyro.read(gyroADCRaw)) {
+    if (!gyro.dev.read(&gyro.dev)) {
         return;
     }
 
     // Prepare a copy of int32_t gyroADC for mangling to prevent overflow
-    gyroADC[X] = gyroADCRaw[X];
-    gyroADC[Y] = gyroADCRaw[Y];
-    gyroADC[Z] = gyroADCRaw[Z];
+    gyroADC[X] = gyro.dev.gyroADCRaw[X];
+    gyroADC[Y] = gyro.dev.gyroADCRaw[Y];
+    gyroADC[Z] = gyro.dev.gyroADCRaw[Z];
 
     if (gyroConfig->gyro_soft_lpf_hz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
