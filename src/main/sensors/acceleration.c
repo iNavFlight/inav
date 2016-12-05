@@ -159,7 +159,7 @@ void performAcclerationCalibration(void)
             accSample[Y] = accSamples[axis][Y] / CALIBRATING_ACC_CYCLES - accZero->raw[Y];
             accSample[Z] = accSamples[axis][Z] / CALIBRATING_ACC_CYCLES - accZero->raw[Z];
 
-            sensorCalibrationPushSampleForScaleCalculation(&calState, axis / 2, accSample, acc.acc_1G);
+            sensorCalibrationPushSampleForScaleCalculation(&calState, axis / 2, accSample, acc.dev.acc_1G);
         }
 
         sensorCalibrationSolveForScale(&calState, accTmp);
@@ -183,7 +183,7 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
 
 void updateAccelerationReadings(void)
 {
-    if (!acc.read(accADCRaw)) {
+    if (!acc.dev.read(accADCRaw)) {
         return;
     }
 
