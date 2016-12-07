@@ -213,7 +213,7 @@ void writeEEPROM(void)
         {
             for (wordOffset = 0; wordOffset < sizeof(master_t); wordOffset += 4)
             {
-                status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, CONFIG_START_FLASH_ADDRESS + wordOffset, *(uint32_t *) ((char *) &masterConfig + wordOffset));
+                status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, (uint32_t)&__config_start + wordOffset, *(uint32_t *) ((char *) &masterConfig + wordOffset));
                 if(status != HAL_OK)
                 {
                     break;
