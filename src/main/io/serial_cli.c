@@ -25,28 +25,40 @@
 
 #include "platform.h"
 
-#include "build/version.h"
+// FIXME remove this for targets that don't need a CLI.  Perhaps use a no-op macro when USE_CLI is not enabled
+// signal that we're in cli mode
+uint8_t cliMode = 0;
+
+#ifdef USE_CLI
+
+#if FLASH_SIZE > 128
+#define PLAY_SOUND
+#endif
+
 #include "build/build_config.h"
+#include "build/debug.h"
+#include "build/version.h"
 #include "build/assert.h"
 
 #include "scheduler/scheduler.h"
 
 #include "common/axis.h"
-#include "common/maths.h"
 #include "common/color.h"
+#include "common/maths.h"
+#include "common/printf.h"
 #include "common/typeconversion.h"
 
 #include "drivers/logging.h"
-
 #include "drivers/system.h"
-
 #include "drivers/sensor.h"
 #include "drivers/accgyro.h"
 #include "drivers/compass.h"
 #include "drivers/serial.h"
 #include "drivers/bus_i2c.h"
+#include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
+#include "drivers/dma.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_rx.h"
 #include "drivers/sdcard.h"
@@ -54,13 +66,15 @@
 
 #include "drivers/buf_writer.h"
 
+#include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
+
 #include "io/motors.h"
 #include "io/servos.h"
 #include "io/gps.h"
 #include "io/gimbal.h"
-#include "fc/rc_controls.h"
-
 #include "io/serial.h"
+#include "io/serial_cli.h"
 #include "io/ledstrip.h"
 #include "io/flashfs.h"
 #include "io/beeper.h"
@@ -69,6 +83,8 @@
 
 #include "rx/rx.h"
 #include "rx/spektrum.h"
+
+#include "scheduler/scheduler.h"
 
 #include "sensors/battery.h"
 #include "sensors/boardalignment.h"
@@ -89,27 +105,11 @@
 #include "telemetry/telemetry.h"
 #include "telemetry/frsky.h"
 
-#include "fc/runtime_config.h"
-
 #include "config/config.h"
 #include "config/config_eeprom.h"
 #include "config/config_profile.h"
 #include "config/config_master.h"
 #include "config/feature.h"
-
-#include "common/printf.h"
-
-#include "serial_cli.h"
-
-// FIXME remove this for targets that don't need a CLI.  Perhaps use a no-op macro when USE_CLI is not enabled
-// signal that we're in cli mode
-uint8_t cliMode = 0;
-
-#ifdef USE_CLI
-
-#if FLASH_SIZE > 128
-#define PLAY_SOUND
-#endif
 
 extern uint16_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
@@ -133,7 +133,12 @@ static void cliRxFail(char *cmdline);
 static void cliAdjustmentRange(char *cmdline);
 static void cliMotorMix(char *cmdline);
 static void cliDefaults(char *cmdline);
+void cliDfu(char *cmdLine);
 static void cliDump(char *cmdLine);
+static void cliDiff(char *cmdLine);
+static void printConfig(char *cmdLine, bool doDiff);
+static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask, master_t *defaultProfile);
+static void cliDumpRateProfile(uint8_t rateProfileIndex, uint8_t dumpMask, master_t *defaultProfile) ;
 static void cliExit(char *cmdline);
 static void cliFeature(char *cmdline);
 static void cliMotor(char *cmdline);
@@ -143,8 +148,12 @@ static void cliPlaySound(char *cmdline);
 static void cliProfile(char *cmdline);
 static void cliRateProfile(char *cmdline);
 static void cliReboot(void);
+static void cliRebootEx(bool bootLoader);
 static void cliSave(char *cmdline);
 static void cliSerial(char *cmdline);
+#ifndef SKIP_SERIAL_PASSTHROUGH
+static void cliSerialPassthrough(char *cmdline);
+#endif
 
 #ifdef USE_SERVOS
 static void cliServo(char *cmdline);
@@ -160,12 +169,15 @@ static void cliTasks(char *cmdline);
 static void cliVersion(char *cmdline);
 static void cliRxRange(char *cmdline);
 static void cliPFlags(char *cmdline);
-
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
+static void printResource(uint8_t dumpMask, master_t *defaultConfig);
 static void cliResource(char *cmdline);
 #endif
 #ifdef GPS
 static void cliGpsPassthrough(char *cmdline);
+#endif
+#ifdef USE_ESCSERIAL
+static void cliEscPassthrough(char *cmdline);
 #endif
 
 static void cliHelp(char *cmdline);
@@ -190,6 +202,10 @@ static void cliFlashRead(char *cmdline);
 #endif
 #endif
 
+#ifdef VTX
+static void cliVtx(char *cmdline);
+#endif
+
 #ifdef USE_SDCARD
 static void cliSdInfo(char *cmdline);
 #endif
@@ -201,6 +217,18 @@ static void cliBeeper(char *cmdline);
 // buffer
 static char cliBuffer[48];
 static uint32_t bufferIndex = 0;
+
+typedef enum {
+    DUMP_MASTER = (1 << 0),
+    DUMP_PROFILE = (1 << 1),
+    DUMP_RATES = (1 << 2),
+    DUMP_ALL = (1 << 3),
+    DO_DIFF = (1 << 4),
+    SHOW_DEFAULTS = (1 << 5),
+    HIDE_UNUSED = (1 << 6),
+} dumpFlags_e;
+
+static const char* const emptyName = "-";
 
 #ifndef USE_QUAD_MIXER_ONLY
 // sync this with mixerMode_e
@@ -304,7 +332,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("mode_color", "configure mode and special colors", NULL, cliModeColor),
 #endif
     CLI_COMMAND_DEF("defaults", "reset to defaults and reboot", NULL, cliDefaults),
-    CLI_COMMAND_DEF("dump", "dump configuration", "[master|profile]", cliDump),
+    CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
+    CLI_COMMAND_DEF("diff", "list configuration changes from default",
+        "[master|profile|rates|all] {showdefaults}", cliDiff),
+    CLI_COMMAND_DEF("dump", "dump configuration",
+        "[master|profile|rates|all] {showdefaults}", cliDump),
     CLI_COMMAND_DEF("exit", NULL, NULL, cliExit),
     CLI_COMMAND_DEF("feature", "configure features",
         "list\r\n"
@@ -321,6 +353,9 @@ const clicmd_t cmdTable[] = {
             "[name]", cliGet),
 #ifdef GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
+#endif
+#ifdef USE_ESCSERIAL
+    CLI_COMMAND_DEF("escprog", "passthrough esc to serial", "<mode [sk/bl/ki]> <index>", cliEscPassthrough),
 #endif
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef LED_STRIP
@@ -350,6 +385,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("rxfail", "show/set rx failsafe settings", NULL, cliRxFail),
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
+#ifndef SKIP_SERIAL_PASSTHROUGH
+    CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port",
+                    "<id> [baud] [mode] : passthrough to serial",
+                    cliSerialPassthrough),
+#endif
 #ifdef USE_SERVOS
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
 #endif
@@ -374,6 +414,9 @@ const clicmd_t cmdTable[] = {
 #ifdef BEEPER
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
+#endif
+#ifdef VTX
+    CLI_COMMAND_DEF("vtx", "vtx channels on switch", NULL, cliVtx),
 #endif
 };
 #define CMD_COUNT (sizeof(cmdTable) / sizeof(clicmd_t))
@@ -963,10 +1006,22 @@ typedef union {
 
 static void cliSetVar(const clivalue_t *var, const int_float_value_t value);
 static void cliPrintVar(const clivalue_t *var, uint32_t full);
+static void cliPrintVarDefault(const clivalue_t *var, uint32_t full, master_t *defaultConfig);
 static void cliPrintVarRange(const clivalue_t *var);
 static void cliPrint(const char *str);
 static void cliPrintf(const char *fmt, ...);
 static void cliWrite(uint8_t ch);
+
+static bool cliDumpPrintf(uint8_t dumpMask, bool equalsDefault, const char *format, ...);
+static bool cliDefaultPrintf(uint8_t dumpMask, bool equalsDefault, const char *format, ...);
+
+static void cliBreak(const char *str, uint8_t len)
+{
+    for (int i = 0; i < len; i++) {
+        cliPrint(str);
+    }
+    cliPrint("\r\n");
+}
 
 static void cliPrompt(void)
 {
@@ -984,14 +1039,24 @@ static void cliShowArgumentRangeError(char *name, int min, int max)
     cliPrintf("%s must be between %d and %d\r\n", name, min, max);
 }
 
+static char *nextArg(char *currentArg)
+{
+    char *ptr = strchr(currentArg, ' ');
+    while (ptr && *ptr == ' ') {
+        ptr++;
+    }
+
+    return ptr;
+}
+
 static char *processChannelRangeArgs(char *ptr, channelRange_t *range, uint8_t *validArgumentCount)
 {
     int val;
 
-    for (int argIndex = 0; argIndex < 2; argIndex++) {
-        ptr = strchr(ptr, ' ');
+    for (uint32_t argIndex = 0; argIndex < 2; argIndex++) {
+        ptr = nextArg(ptr);
         if (ptr) {
-            val = atoi(++ptr);
+            val = atoi(ptr);
             val = CHANNEL_VALUE_TO_STEP(val);
             if (val >= MIN_MODE_RANGE_STEP && val <= MAX_MODE_RANGE_STEP) {
                 if (argIndex == 0) {
@@ -1011,6 +1076,45 @@ static char *processChannelRangeArgs(char *ptr, channelRange_t *range, uint8_t *
 static bool isEmpty(const char *string)
 {
     return *string == '\0';
+}
+
+static void printRxFail(uint8_t dumpMask, master_t *defaultConfig)
+{
+    // print out rxConfig failsafe settings
+    rxFailsafeChannelConfiguration_t *channelFailsafeConfiguration;
+    rxFailsafeChannelConfiguration_t *channelFailsafeConfigurationDefault;
+    bool equalsDefault;
+    bool requireValue;
+    for (uint32_t channel = 0; channel < MAX_SUPPORTED_RC_CHANNEL_COUNT; channel++) {
+        channelFailsafeConfiguration = &masterConfig.rxConfig.failsafe_channel_configurations[channel];
+        channelFailsafeConfigurationDefault = &defaultConfig->rxConfig.failsafe_channel_configurations[channel];
+        equalsDefault = channelFailsafeConfiguration->mode == channelFailsafeConfigurationDefault->mode
+            && channelFailsafeConfiguration->step == channelFailsafeConfigurationDefault->step;
+        requireValue = channelFailsafeConfiguration->mode == RX_FAILSAFE_MODE_SET;
+        if (requireValue) {
+            const char *format = "rxfail %u %c %d\r\n";
+            cliDefaultPrintf(dumpMask, equalsDefault, format,
+                channel,
+                rxFailsafeModeCharacters[channelFailsafeConfigurationDefault->mode],
+                RXFAIL_STEP_TO_CHANNEL_VALUE(channelFailsafeConfigurationDefault->step)
+            );
+            cliDumpPrintf(dumpMask, equalsDefault, format,
+                channel,
+                rxFailsafeModeCharacters[channelFailsafeConfiguration->mode],
+                RXFAIL_STEP_TO_CHANNEL_VALUE(channelFailsafeConfiguration->step)
+            );
+        } else {
+            const char *format = "rxfail %u %c\r\n";
+            cliDefaultPrintf(dumpMask, equalsDefault, format,
+                channel,
+                rxFailsafeModeCharacters[channelFailsafeConfigurationDefault->mode]
+            );
+            cliDumpPrintf(dumpMask, equalsDefault, format,
+                channel,
+                rxFailsafeModeCharacters[channelFailsafeConfiguration->mode]
+            );
+        }
+    }
 }
 
 static void cliRxFail(char *cmdline)
@@ -1035,9 +1139,9 @@ static void cliRxFail(char *cmdline)
             rxFailsafeChannelMode_e mode = channelFailsafeConfiguration->mode;
             bool requireValue = channelFailsafeConfiguration->mode == RX_FAILSAFE_MODE_SET;
 
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                char *p = strchr(rxFailsafeModeCharacters, *(++ptr));
+                char *p = strchr(rxFailsafeModeCharacters, *(ptr));
                 if (p) {
                     uint8_t requestedMode = p - rxFailsafeModeCharacters;
                     mode = rxFailsafeModesTable[type][requestedMode];
@@ -1051,13 +1155,13 @@ static void cliRxFail(char *cmdline)
 
                 requireValue = mode == RX_FAILSAFE_MODE_SET;
 
-                ptr = strchr(ptr, ' ');
+                ptr = nextArg(ptr);
                 if (ptr) {
                     if (!requireValue) {
                         cliShowParseError();
                         return;
                     }
-                    value = atoi(++ptr);
+                    value = atoi(ptr);
                     value = CHANNEL_VALUE_TO_RXFAIL_STEP(value);
                     if (value > MAX_RXFAIL_RANGE_STEP) {
                         cliPrint("Value out of range\r\n");
@@ -1075,10 +1179,9 @@ static void cliRxFail(char *cmdline)
 
             char modeCharacter = rxFailsafeModeCharacters[channelFailsafeConfiguration->mode];
 
-            // triple use of cliPrintf below
+            // double use of cliPrintf below
             // 1. acknowledge interpretation on command,
             // 2. query current setting on single item,
-            // 3. recursive use for full list.
 
             if (requireValue) {
                 cliPrintf("rxfail %u %c %d\r\n",
@@ -1157,40 +1260,61 @@ static void cliBootlog(char *cmdline)
 }
 #endif
 
+static void printAux(uint8_t dumpMask, master_t *defaultConfig)
+{
+    // print out aux channel settings
+    modeActivationCondition_t *mac;
+    modeActivationCondition_t *macDefault;
+    bool equalsDefault;
+    for (uint32_t i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
+        mac = &currentProfile->modeActivationConditions[i];
+        macDefault = &defaultConfig->profile[0].modeActivationConditions[i];
+        equalsDefault = mac->modeId == macDefault->modeId
+            && mac->auxChannelIndex == macDefault->auxChannelIndex
+            && mac->range.startStep == macDefault->range.startStep
+            && mac->range.endStep == macDefault->range.endStep;
+        const char *format = "aux %u %u %u %u %u\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            macDefault->modeId,
+            macDefault->auxChannelIndex,
+            MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.startStep),
+            MODE_STEP_TO_CHANNEL_VALUE(macDefault->range.endStep)
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            mac->modeId,
+            mac->auxChannelIndex,
+            MODE_STEP_TO_CHANNEL_VALUE(mac->range.startStep),
+            MODE_STEP_TO_CHANNEL_VALUE(mac->range.endStep)
+        );
+    }
+}
+
 static void cliAux(char *cmdline)
 {
     int i, val = 0;
     char *ptr;
 
     if (isEmpty(cmdline)) {
-        // print out aux channel settings
-        for (i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
-            modeActivationCondition_t *mac = &currentProfile->modeActivationConditions[i];
-            cliPrintf("aux %u %u %u %u %u\r\n",
-                i,
-                mac->modeId,
-                mac->auxChannelIndex,
-                MODE_STEP_TO_CHANNEL_VALUE(mac->range.startStep),
-                MODE_STEP_TO_CHANNEL_VALUE(mac->range.endStep)
-            );
-        }
+        printAux(DUMP_MASTER, NULL);
     } else {
         ptr = cmdline;
         i = atoi(ptr++);
         if (i < MAX_MODE_ACTIVATION_CONDITION_COUNT) {
             modeActivationCondition_t *mac = &currentProfile->modeActivationConditions[i];
             uint8_t validArgumentCount = 0;
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                val = atoi(++ptr);
+                val = atoi(ptr);
                 if (val >= 0 && val < CHECKBOX_ITEM_COUNT) {
                     mac->modeId = val;
                     validArgumentCount++;
                 }
             }
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                val = atoi(++ptr);
+                val = atoi(ptr);
                 if (val >= 0 && val < MAX_AUX_CHANNEL_COUNT) {
                     mac->auxChannelIndex = val;
                     validArgumentCount++;
@@ -1207,28 +1331,53 @@ static void cliAux(char *cmdline)
     }
 }
 
+static void printSerial(uint8_t dumpMask, master_t *defaultConfig)
+{
+    serialConfig_t *serialConfig;
+    serialConfig_t *serialConfigDefault;
+    bool equalsDefault;
+    for (uint32_t i = 0; i < SERIAL_PORT_COUNT; i++) {
+    serialConfig = &masterConfig.serialConfig;
+        if (!serialIsPortAvailable(serialConfig->portConfigs[i].identifier)) {
+            continue;
+        };
+    serialConfigDefault = &defaultConfig->serialConfig;
+    equalsDefault = serialConfig->portConfigs[i].identifier == serialConfigDefault->portConfigs[i].identifier
+            && serialConfig->portConfigs[i].functionMask == serialConfigDefault->portConfigs[i].functionMask
+            && serialConfig->portConfigs[i].msp_baudrateIndex == serialConfigDefault->portConfigs[i].msp_baudrateIndex
+            && serialConfig->portConfigs[i].gps_baudrateIndex == serialConfigDefault->portConfigs[i].gps_baudrateIndex
+            && serialConfig->portConfigs[i].telemetry_baudrateIndex == serialConfigDefault->portConfigs[i].telemetry_baudrateIndex
+            && serialConfig->portConfigs[i].blackbox_baudrateIndex == serialConfigDefault->portConfigs[i].blackbox_baudrateIndex;
+        const char *format = "serial %d %d %ld %ld %ld %ld\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            serialConfigDefault->portConfigs[i].identifier,
+            serialConfigDefault->portConfigs[i].functionMask,
+            baudRates[serialConfigDefault->portConfigs[i].msp_baudrateIndex],
+            baudRates[serialConfigDefault->portConfigs[i].gps_baudrateIndex],
+            baudRates[serialConfigDefault->portConfigs[i].telemetry_baudrateIndex],
+            baudRates[serialConfigDefault->portConfigs[i].blackbox_baudrateIndex]
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            serialConfig->portConfigs[i].identifier,
+            serialConfig->portConfigs[i].functionMask,
+            baudRates[serialConfig->portConfigs[i].msp_baudrateIndex],
+            baudRates[serialConfig->portConfigs[i].gps_baudrateIndex],
+            baudRates[serialConfig->portConfigs[i].telemetry_baudrateIndex],
+            baudRates[serialConfig->portConfigs[i].blackbox_baudrateIndex]
+            );
+    }
+}
+
 static void cliSerial(char *cmdline)
 {
     int i, val;
     char *ptr;
 
     if (isEmpty(cmdline)) {
-        for (i = 0; i < SERIAL_PORT_COUNT; i++) {
-            if (!serialIsPortAvailable(masterConfig.serialConfig.portConfigs[i].identifier)) {
-                continue;
-            };
-            cliPrintf("serial %d %d %ld %ld %ld %ld\r\n" ,
-                masterConfig.serialConfig.portConfigs[i].identifier,
-                masterConfig.serialConfig.portConfigs[i].functionMask,
-                baudRates[masterConfig.serialConfig.portConfigs[i].msp_baudrateIndex],
-                baudRates[masterConfig.serialConfig.portConfigs[i].gps_baudrateIndex],
-                baudRates[masterConfig.serialConfig.portConfigs[i].telemetry_baudrateIndex],
-                baudRates[masterConfig.serialConfig.portConfigs[i].blackbox_baudrateIndex]
-            );
-        }
-        return;
-    }
+        printSerial(DUMP_MASTER, NULL);
 
+    return;
+    }
     serialPortConfig_t portConfig;
     memset(&portConfig, 0 , sizeof(portConfig));
 
@@ -1245,20 +1394,20 @@ static void cliSerial(char *cmdline)
         validArgumentCount++;
     }
 
-    ptr = strchr(ptr, ' ');
+    ptr = nextArg(ptr);
     if (ptr) {
-        val = atoi(++ptr);
+        val = atoi(ptr);
         portConfig.functionMask = val & 0xFFFF;
         validArgumentCount++;
     }
 
     for (i = 0; i < 4; i ++) {
-        ptr = strchr(ptr, ' ');
+        ptr = nextArg(ptr);
         if (!ptr) {
             break;
         }
 
-        val = atoi(++ptr);
+        val = atoi(ptr);
 
         uint8_t baudRateIndex = lookupBaudRateIndex(val);
         if (baudRates[baudRateIndex] != (uint32_t) val) {
@@ -1304,25 +1453,120 @@ static void cliSerial(char *cmdline)
 
 }
 
+#ifndef SKIP_SERIAL_PASSTHROUGH
+static void cliSerialPassthrough(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        cliShowParseError();
+        return;
+    }
+
+    int id = -1;
+    uint32_t baud = 0;
+    unsigned mode = 0;
+    char* tok = strtok(cmdline, " ");
+    int index = 0;
+
+    while (tok != NULL) {
+        switch(index) {
+            case 0:
+                id = atoi(tok);
+                break;
+            case 1:
+                baud = atoi(tok);
+                break;
+            case 2:
+                if (strstr(tok, "rx") || strstr(tok, "RX"))
+                    mode |= MODE_RX;
+                if (strstr(tok, "tx") || strstr(tok, "TX"))
+                    mode |= MODE_TX;
+                break;
+        }
+        index++;
+        tok = strtok(NULL, " ");
+    }
+
+    serialPort_t *passThroughPort;
+    serialPortUsage_t *passThroughPortUsage = findSerialPortUsageByIdentifier(id);
+    if (!passThroughPortUsage || passThroughPortUsage->serialPort == NULL) {
+        if (!baud) {
+            printf("Port %d is not open, you must specify baud\r\n", id);
+            return;
+        }
+        if (!mode)
+            mode = MODE_RXTX;
+
+        passThroughPort = openSerialPort(id, FUNCTION_NONE, NULL,
+                                         baud, mode,
+                                         SERIAL_NOT_INVERTED);
+        if (!passThroughPort) {
+            printf("Port %d could not be opened\r\n", id);
+            return;
+        }
+        printf("Port %d opened, baud=%d\r\n", id, baud);
+    } else {
+        passThroughPort = passThroughPortUsage->serialPort;
+        // If the user supplied a mode, override the port's mode, otherwise
+        // leave the mode unchanged. serialPassthrough() handles one-way ports.
+        printf("Port %d already open\r\n", id);
+        if (mode && passThroughPort->mode != mode) {
+            printf("Adjusting mode from configured value %d to %d\r\n",
+                   passThroughPort->mode, mode);
+            serialSetMode(passThroughPort, mode);
+        }
+    }
+
+    printf("Relaying data to device on port %d, Reset your board to exit "
+           "serial passthrough mode.\r\n");
+
+    serialPassthrough(cliPort, passThroughPort, NULL, NULL);
+}
+#endif
+
+static void printAdjustmentRange(uint8_t dumpMask, master_t *defaultConfig)
+{
+    // print out adjustment ranges channel settings
+    adjustmentRange_t *ar;
+    adjustmentRange_t *arDefault;
+    bool equalsDefault;
+    for (uint32_t i = 0; i < MAX_ADJUSTMENT_RANGE_COUNT; i++) {
+        ar = &currentProfile->adjustmentRanges[i];
+        arDefault = &defaultConfig->profile[0].adjustmentRanges[i];
+        equalsDefault = ar->auxChannelIndex == arDefault->auxChannelIndex
+            && ar->range.startStep == arDefault->range.startStep
+            && ar->range.endStep == arDefault->range.endStep
+            && ar->adjustmentFunction == arDefault->adjustmentFunction
+            && ar->auxSwitchChannelIndex == arDefault->auxSwitchChannelIndex
+            && ar->adjustmentIndex == arDefault->adjustmentIndex;
+        const char *format = "adjrange %u %u %u %u %u %u %u\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            arDefault->adjustmentIndex,
+            arDefault->auxChannelIndex,
+            MODE_STEP_TO_CHANNEL_VALUE(arDefault->range.startStep),
+            MODE_STEP_TO_CHANNEL_VALUE(arDefault->range.endStep),
+            arDefault->adjustmentFunction,
+            arDefault->auxSwitchChannelIndex
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            ar->adjustmentIndex,
+            ar->auxChannelIndex,
+            MODE_STEP_TO_CHANNEL_VALUE(ar->range.startStep),
+            MODE_STEP_TO_CHANNEL_VALUE(ar->range.endStep),
+            ar->adjustmentFunction,
+            ar->auxSwitchChannelIndex
+        );
+    }
+}
+
 static void cliAdjustmentRange(char *cmdline)
 {
     int i, val = 0;
     char *ptr;
 
     if (isEmpty(cmdline)) {
-        // print out adjustment ranges channel settings
-        for (i = 0; i < MAX_ADJUSTMENT_RANGE_COUNT; i++) {
-            adjustmentRange_t *ar = &currentProfile->adjustmentRanges[i];
-            cliPrintf("adjrange %u %u %u %u %u %u %u\r\n",
-                i,
-                ar->adjustmentIndex,
-                ar->auxChannelIndex,
-                MODE_STEP_TO_CHANNEL_VALUE(ar->range.startStep),
-                MODE_STEP_TO_CHANNEL_VALUE(ar->range.endStep),
-                ar->adjustmentFunction,
-                ar->auxSwitchChannelIndex
-            );
-        }
+        printAdjustmentRange(DUMP_MASTER, NULL);
     } else {
         ptr = cmdline;
         i = atoi(ptr++);
@@ -1330,17 +1574,17 @@ static void cliAdjustmentRange(char *cmdline)
             adjustmentRange_t *ar = &currentProfile->adjustmentRanges[i];
             uint8_t validArgumentCount = 0;
 
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                val = atoi(++ptr);
+                val = atoi(ptr);
                 if (val >= 0 && val < MAX_SIMULTANEOUS_ADJUSTMENT_COUNT) {
                     ar->adjustmentIndex = val;
                     validArgumentCount++;
                 }
             }
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                val = atoi(++ptr);
+                val = atoi(ptr);
                 if (val >= 0 && val < MAX_AUX_CHANNEL_COUNT) {
                     ar->auxChannelIndex = val;
                     validArgumentCount++;
@@ -1349,17 +1593,17 @@ static void cliAdjustmentRange(char *cmdline)
 
             ptr = processChannelRangeArgs(ptr, &ar->range, &validArgumentCount);
 
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                val = atoi(++ptr);
+                val = atoi(ptr);
                 if (val >= 0 && val < ADJUSTMENT_FUNCTION_COUNT) {
                     ar->adjustmentFunction = val;
                     validArgumentCount++;
                 }
             }
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                val = atoi(++ptr);
+                val = atoi(ptr);
                 if (val >= 0 && val < MAX_AUX_CHANNEL_COUNT) {
                     ar->auxSwitchChannelIndex = val;
                     validArgumentCount++;
@@ -1376,39 +1620,63 @@ static void cliAdjustmentRange(char *cmdline)
     }
 }
 
+#ifndef USE_QUAD_MIXER_ONLY
+static void printMotorMix(uint8_t dumpMask, master_t *defaultConfig)
+{
+    char buf0[8];
+    char buf1[8];
+    char buf2[8];
+    char buf3[8];
+    for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        if (masterConfig.customMotorMixer[i].throttle == 0.0f)
+            break;
+        float thr = masterConfig.customMotorMixer[i].throttle;
+        float roll = masterConfig.customMotorMixer[i].roll;
+        float pitch = masterConfig.customMotorMixer[i].pitch;
+        float yaw = masterConfig.customMotorMixer[i].yaw;
+        float thrDefault = defaultConfig->customMotorMixer[i].throttle;
+        float rollDefault = defaultConfig->customMotorMixer[i].roll;
+        float pitchDefault = defaultConfig->customMotorMixer[i].pitch;
+        float yawDefault = defaultConfig->customMotorMixer[i].yaw;
+        bool equalsDefault = thr == thrDefault && roll == rollDefault && pitch == pitchDefault && yaw == yawDefault;
+
+        const char *format = "mmix %d %s %s %s %s\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            ftoa(thrDefault, buf0),
+            ftoa(rollDefault, buf1),
+            ftoa(pitchDefault, buf2),
+            ftoa(yawDefault, buf3));
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            ftoa(thr, buf0),
+            ftoa(roll, buf1),
+            ftoa(pitch, buf2),
+            ftoa(yaw, buf3));
+    }
+}
+#endif // USE_QUAD_MIXER_ONLY
+
 static void cliMotorMix(char *cmdline)
 {
 #ifdef USE_QUAD_MIXER_ONLY
     UNUSED(cmdline);
 #else
-    int i, check = 0;
-    int num_motors = 0;
+    int check = 0;
     uint8_t len;
-    char ftoaBuffer[FTOA_BUFFER_SIZE];
     char *ptr;
 
     if (isEmpty(cmdline)) {
-        cliPrint("Motor\tThr\tRoll\tPitch\tYaw\r\n");
-        for (i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            if (masterConfig.customMotorMixer[i].throttle == 0.0f)
-                break;
-            num_motors++;
-            cliPrintf("#%d:\t", i);
-            cliPrintf("%s\t", ftoa(masterConfig.customMotorMixer[i].throttle, ftoaBuffer));
-            cliPrintf("%s\t", ftoa(masterConfig.customMotorMixer[i].roll, ftoaBuffer));
-            cliPrintf("%s\t", ftoa(masterConfig.customMotorMixer[i].pitch, ftoaBuffer));
-            cliPrintf("%s\r\n", ftoa(masterConfig.customMotorMixer[i].yaw, ftoaBuffer));
-        }
-        return;
+        printMotorMix(DUMP_MASTER, NULL);
     } else if (strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
-        for (i = 0; i < MAX_SUPPORTED_MOTORS; i++)
+        for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
             masterConfig.customMotorMixer[i].throttle = 0.0f;
     } else if (strncasecmp(cmdline, "load", 4) == 0) {
-        ptr = strchr(cmdline, ' ');
+        ptr = nextArg(cmdline);
         if (ptr) {
-            len = strlen(++ptr);
-            for (i = 0; ; i++) {
+            len = strlen(ptr);
+            for (uint32_t i = 0; ; i++) {
                 if (mixerNames[i] == NULL) {
                     cliPrint("Invalid name\r\n");
                     break;
@@ -1423,32 +1691,32 @@ static void cliMotorMix(char *cmdline)
         }
     } else {
         ptr = cmdline;
-        i = atoi(ptr); // get motor number
+        uint32_t i = atoi(ptr); // get motor number
         if (i < MAX_SUPPORTED_MOTORS) {
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                masterConfig.customMotorMixer[i].throttle = fastA2F(++ptr);
+                masterConfig.customMotorMixer[i].throttle = fastA2F(ptr);
                 check++;
             }
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                masterConfig.customMotorMixer[i].roll = fastA2F(++ptr);
+                masterConfig.customMotorMixer[i].roll = fastA2F(ptr);
                 check++;
             }
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                masterConfig.customMotorMixer[i].pitch = fastA2F(++ptr);
+                masterConfig.customMotorMixer[i].pitch = fastA2F(ptr);
                 check++;
             }
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                masterConfig.customMotorMixer[i].yaw = fastA2F(++ptr);
+                masterConfig.customMotorMixer[i].yaw = fastA2F(ptr);
                 check++;
             }
             if (check != 4) {
                 cliShowParseError();
             } else {
-                cliMotorMix("");
+                printMotorMix(DUMP_MASTER, NULL);
             }
         } else {
             cliShowArgumentRangeError("index", 0, MAX_SUPPORTED_MOTORS - 1);
@@ -1457,16 +1725,37 @@ static void cliMotorMix(char *cmdline)
 #endif
 }
 
+static void printRxRange(uint8_t dumpMask, master_t *defaultConfig)
+{
+    rxChannelRangeConfiguration_t *channelRangeConfiguration;
+    rxChannelRangeConfiguration_t *channelRangeConfigurationDefault;
+    bool equalsDefault;
+    for (uint32_t i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+        channelRangeConfiguration = &masterConfig.rxConfig.channelRanges[i];
+        channelRangeConfigurationDefault = &defaultConfig->rxConfig.channelRanges[i];
+        equalsDefault = channelRangeConfiguration->min == channelRangeConfigurationDefault->min
+            && channelRangeConfiguration->max == channelRangeConfigurationDefault->max;
+        const char *format = "rxrange %u %u %u\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            channelRangeConfigurationDefault->min,
+            channelRangeConfigurationDefault->max
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            channelRangeConfiguration->min,
+            channelRangeConfiguration->max
+        );
+    }
+}
+
 static void cliRxRange(char *cmdline)
 {
     int i, validArgumentCount = 0;
     char *ptr;
 
     if (isEmpty(cmdline)) {
-        for (i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
-            rxChannelRangeConfiguration_t *channelRangeConfiguration = &masterConfig.rxConfig.channelRanges[i];
-            cliPrintf("rxrange %u %u %u\r\n", i, channelRangeConfiguration->min, channelRangeConfiguration->max);
-        }
+        printRxRange(DUMP_MASTER, NULL);
     } else if (strcasecmp(cmdline, "reset") == 0) {
         resetAllRxChannelRangeConfigurations(masterConfig.rxConfig.channelRanges);
     } else {
@@ -1475,15 +1764,15 @@ static void cliRxRange(char *cmdline)
         if (i >= 0 && i < NON_AUX_CHANNEL_COUNT) {
             int rangeMin, rangeMax;
 
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                rangeMin = atoi(++ptr);
+                rangeMin = atoi(ptr);
                 validArgumentCount++;
             }
 
-            ptr = strchr(ptr, ' ');
+            ptr = nextArg(ptr);
             if (ptr) {
-                rangeMax = atoi(++ptr);
+                rangeMax = atoi(ptr);
                 validArgumentCount++;
             }
 
@@ -1503,28 +1792,70 @@ static void cliRxRange(char *cmdline)
 }
 
 #ifdef LED_STRIP
+static void printLed(uint8_t dumpMask, master_t *defaultConfig)
+{
+    bool equalsDefault;
+    ledConfig_t ledConfig;
+    ledConfig_t ledConfigDefault;
+    char ledConfigBuffer[20];
+    char ledConfigDefaultBuffer[20];
+    for (uint32_t i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
+        ledConfig = masterConfig.ledConfigs[i];
+        ledConfigDefault = defaultConfig->ledConfigs[i];
+        equalsDefault = ledConfig == ledConfigDefault;
+        generateLedConfig(&ledConfig, ledConfigBuffer, sizeof(ledConfigBuffer));
+        generateLedConfig(&ledConfigDefault, ledConfigDefaultBuffer, sizeof(ledConfigDefaultBuffer));
+        const char *format = "led %u %s\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format, i, ledConfigDefaultBuffer);
+        cliDumpPrintf(dumpMask, equalsDefault, format, i, ledConfigBuffer);
+    }
+}
+
 static void cliLed(char *cmdline)
 {
     int i;
     char *ptr;
-    char ledConfigBuffer[20];
 
     if (isEmpty(cmdline)) {
-        for (i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
-            generateLedConfig(&masterConfig.ledConfigs[i], ledConfigBuffer, sizeof(ledConfigBuffer));
-            cliPrintf("led %u %s\r\n", i, ledConfigBuffer);
-        }
+        printLed(DUMP_MASTER, NULL);
     } else {
         ptr = cmdline;
         i = atoi(ptr);
         if (i < LED_MAX_STRIP_LENGTH) {
-            ptr = strchr(cmdline, ' ');
-            if (!parseLedStripConfig(i, ++ptr)) {
+            ptr = nextArg(cmdline);
+            if (!parseLedStripConfig(i, ptr)) {
                 cliShowParseError();
             }
         } else {
             cliShowArgumentRangeError("index", 0, LED_MAX_STRIP_LENGTH - 1);
         }
+    }
+}
+
+static void printColor(uint8_t dumpMask, master_t *defaultConfig)
+{
+    hsvColor_t *color;
+    hsvColor_t *colorDefault;
+    bool equalsDefault;
+    for (uint32_t i = 0; i < LED_CONFIGURABLE_COLOR_COUNT; i++) {
+        color = &masterConfig.colors[i];
+        colorDefault = &defaultConfig->colors[i];
+        equalsDefault = color->h == colorDefault->h
+            && color->s == colorDefault->s
+            && color->v == colorDefault->v;
+        const char *format = "color %u %d,%u,%u\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            colorDefault->h,
+            colorDefault->s,
+            colorDefault->v
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            color->h,
+            color->s,
+            color->v
+        );
     }
 }
 
@@ -1534,20 +1865,13 @@ static void cliColor(char *cmdline)
     char *ptr;
 
     if (isEmpty(cmdline)) {
-        for (i = 0; i < LED_CONFIGURABLE_COLOR_COUNT; i++) {
-            cliPrintf("color %u %d,%u,%u\r\n",
-                i,
-                masterConfig.colors[i].h,
-                masterConfig.colors[i].s,
-                masterConfig.colors[i].v
-            );
-        }
+        printColor(DUMP_MASTER, NULL);
     } else {
         ptr = cmdline;
         i = atoi(ptr);
         if (i < LED_CONFIGURABLE_COLOR_COUNT) {
-            ptr = strchr(cmdline, ' ');
-            if (!parseColor(i, ++ptr)) {
+            ptr = nextArg(cmdline);
+            if (!parseColor(i, ptr)) {
                 cliShowParseError();
             }
         } else {
@@ -1556,20 +1880,32 @@ static void cliColor(char *cmdline)
     }
 }
 
+static void printModeColor(uint8_t dumpMask, master_t *defaultConfig)
+{
+    for (uint32_t i = 0; i < LED_MODE_COUNT; i++) {
+        for (uint32_t j = 0; j < LED_DIRECTION_COUNT; j++) {
+            int colorIndex = modeColors[i].color[j];
+            int colorIndexDefault = defaultConfig->modeColors[i].color[j];
+            const char *format = "mode_color %u %u %u\r\n";
+            cliDefaultPrintf(dumpMask, colorIndex == colorIndexDefault, format, i, j, colorIndexDefault);
+            cliDumpPrintf(dumpMask, colorIndex == colorIndexDefault, format, i, j, colorIndex);
+        }
+    }
+
+    const char *format = "mode_color %u %u %u\r\n";
+    for (uint32_t j = 0; j < LED_SPECIAL_COLOR_COUNT; j++) {
+        int colorIndex = specialColors.color[j];
+        int colorIndexDefault = defaultConfig->specialColors.color[j];
+        cliDefaultPrintf(dumpMask, colorIndex == colorIndexDefault, format, LED_SPECIAL, j, colorIndexDefault);
+        cliDumpPrintf(dumpMask, colorIndex == colorIndexDefault, format, LED_SPECIAL, j, colorIndex);
+    }
+
+}
+
 static void cliModeColor(char *cmdline)
 {
     if (isEmpty(cmdline)) {
-        for (int i = 0; i < LED_MODE_COUNT; i++) {
-            for (int j = 0; j < LED_DIRECTION_COUNT; j++) {
-                int colorIndex = modeColors[i].color[j];
-                cliPrintf("mode_color %u %u %u\r\n", i, j, colorIndex);
-            }
-        }
-
-        for (int j = 0; j < LED_SPECIAL_COLOR_COUNT; j++) {
-            int colorIndex = specialColors.color[j];
-            cliPrintf("mode_color %u %u %u\r\n", LED_SPECIAL, j, colorIndex);
-        }
+        printModeColor(DUMP_MASTER, NULL);
     } else {
         enum {MODE = 0, FUNCTION, COLOR, ARGS_COUNT};
         int args[ARGS_COUNT];
@@ -1599,6 +1935,42 @@ static void cliModeColor(char *cmdline)
 #endif
 
 #ifdef USE_SERVOS
+static void printServo(uint8_t dumpMask, master_t *defaultConfig)
+{
+    // print out servo settings
+    for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        servoParam_t *servoConf = &currentProfile->servoConf[i];
+        servoParam_t *servoConfDefault = &defaultConfig->profile[0].servoConf[i];
+        bool equalsDefault = servoConf->min == servoConfDefault->min
+            && servoConf->max == servoConfDefault->max
+            && servoConf->middle == servoConfDefault->middle
+            && servoConf->angleAtMin == servoConfDefault->angleAtMax
+            && servoConf->rate == servoConfDefault->rate
+            && servoConf->forwardFromChannel == servoConfDefault->forwardFromChannel;
+        const char *format = "servo %u %d %d %d %d %d %d %d\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            servoConfDefault->min,
+            servoConfDefault->max,
+            servoConfDefault->middle,
+            servoConfDefault->angleAtMin,
+            servoConfDefault->angleAtMax,
+            servoConfDefault->rate,
+            servoConfDefault->forwardFromChannel
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            servoConf->min,
+            servoConf->max,
+            servoConf->middle,
+            servoConf->angleAtMin,
+            servoConf->angleAtMax,
+            servoConf->rate,
+            servoConf->forwardFromChannel
+        );
+    }
+}
+
 static void cliServo(char *cmdline)
 {
     enum { SERVO_ARGUMENT_COUNT = 8 };
@@ -1610,21 +1982,7 @@ static void cliServo(char *cmdline)
     char *ptr;
 
     if (isEmpty(cmdline)) {
-        // print out servo settings
-        for (i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            servo = &currentProfile->servoConf[i];
-
-            cliPrintf("servo %u %d %d %d %d %d %d %d\r\n",
-                i,
-                servo->min,
-                servo->max,
-                servo->middle,
-                servo->angleAtMin,
-                servo->angleAtMax,
-                servo->rate,
-                servo->forwardFromChannel
-            );
-        }
+        printServo(DUMP_MASTER, NULL);
     } else {
         int validArgumentCount = 0;
 
@@ -1691,46 +2049,67 @@ static void cliServo(char *cmdline)
 #endif
 
 #ifdef USE_SERVOS
+static void printServoMix(uint8_t dumpMask, master_t *defaultConfig)
+{
+    for (uint32_t i = 0; i < MAX_SERVO_RULES; i++) {
+        servoMixer_t customServoMixer = masterConfig.customServoMixer[i];
+        servoMixer_t customServoMixerDefault = defaultConfig->customServoMixer[i];
+        if (customServoMixer.rate == 0) {
+            break;
+        }
+
+        bool equalsDefault = customServoMixer.targetChannel == customServoMixerDefault.targetChannel
+            && customServoMixer.inputSource == customServoMixerDefault.inputSource
+            && customServoMixer.rate == customServoMixerDefault.rate
+            && customServoMixer.speed == customServoMixerDefault.speed
+            && customServoMixer.min == customServoMixerDefault.min
+            && customServoMixer.max == customServoMixerDefault.max;
+
+        const char *format = "smix %d %d %d %d %d %d %d %d\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            customServoMixerDefault.targetChannel,
+            customServoMixerDefault.inputSource,
+            customServoMixerDefault.rate,
+            customServoMixerDefault.speed,
+            customServoMixerDefault.min,
+            customServoMixerDefault.max
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            customServoMixer.targetChannel,
+            customServoMixer.inputSource,
+            customServoMixer.rate,
+            customServoMixer.speed,
+            customServoMixer.min,
+            customServoMixer.max
+        );
+    }
+
+    cliPrint("\r\n");
+
+}
+
 static void cliServoMix(char *cmdline)
 {
-    int i;
     uint8_t len;
     char *ptr;
     int args[8], check = 0;
     len = strlen(cmdline);
 
     if (len == 0) {
-
-        cliPrint("Rule\tServo\tSource\tRate\tSpeed\tMin\tMax\tBox\r\n");
-
-        for (i = 0; i < MAX_SERVO_RULES; i++) {
-            if (masterConfig.customServoMixer[i].rate == 0)
-                break;
-
-            cliPrintf("#%d:\t%d\t%d\t%d\t%d\t%d\t%d\t%d\r\n",
-                i,
-                masterConfig.customServoMixer[i].targetChannel,
-                masterConfig.customServoMixer[i].inputSource,
-                masterConfig.customServoMixer[i].rate,
-                masterConfig.customServoMixer[i].speed,
-                masterConfig.customServoMixer[i].min,
-                masterConfig.customServoMixer[i].max,
-                0
-            );
-        }
-        cliPrintf("\r\n");
-        return;
+        printServoMix(DUMP_MASTER, NULL);
     } else if (strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
         memset(masterConfig.customServoMixer, 0, sizeof(masterConfig.customServoMixer));
-        for (i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
             currentProfile->servoConf[i].reversedSources = 0;
         }
     } else if (strncasecmp(cmdline, "load", 4) == 0) {
-        ptr = strchr(cmdline, ' ');
+        ptr = nextArg(cmdline);
         if (ptr) {
-            len = strlen(++ptr);
-            for (i = 0; ; i++) {
+            len = strlen(ptr);
+            for (uint32_t i = 0; ; i++) {
                 if (mixerNames[i] == NULL) {
                     cliPrintf("Invalid name\r\n");
                     break;
@@ -1745,19 +2124,18 @@ static void cliServoMix(char *cmdline)
         }
     } else if (strncasecmp(cmdline, "reverse", 7) == 0) {
         enum {SERVO = 0, INPUT, REVERSE, ARGS_COUNT};
-        int servoIndex, inputSource;
         ptr = strchr(cmdline, ' ');
 
         len = strlen(ptr);
         if (len == 0) {
             cliPrintf("s");
-            for (inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
+            for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
                 cliPrintf("\ti%d", inputSource);
             cliPrintf("\r\n");
 
-            for (servoIndex = 0; servoIndex < MAX_SUPPORTED_SERVOS; servoIndex++) {
+            for (uint32_t servoIndex = 0; servoIndex < MAX_SUPPORTED_SERVOS; servoIndex++) {
                 cliPrintf("%d", servoIndex);
-                for (inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
+                for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
                     cliPrintf("\t%s  ", (currentProfile->servoConf[servoIndex].reversedSources & (1 << inputSource)) ? "r" : "n");
                 cliPrintf("\r\n");
             }
@@ -1799,7 +2177,7 @@ static void cliServoMix(char *cmdline)
             return;
         }
 
-        i = args[RULE];
+        int32_t i = args[RULE];
         if (i >= 0 && i < MAX_SERVO_RULES &&
             args[TARGET] >= 0 && args[TARGET] < MAX_SUPPORTED_SERVOS &&
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
@@ -1823,6 +2201,7 @@ static void cliServoMix(char *cmdline)
 #endif
 
 #ifdef USE_SDCARD
+
 static void cliWriteBytes(const uint8_t *buffer, int count)
 {
     while (count > 0) {
@@ -1832,8 +2211,7 @@ static void cliWriteBytes(const uint8_t *buffer, int count)
     }
 }
 
-static void cliSdInfo(char *cmdline)
-{
+static void cliSdInfo(char *cmdline) {
     UNUSED(cmdline);
 
     cliPrint("SD card: ");
@@ -1886,13 +2264,12 @@ static void cliSdInfo(char *cmdline)
                     ; // Nothing more detailed to print
                 break;
             }
-
-            cliPrint("\r\n");
         break;
     }
+    cliPrint("\r\n");
 }
-#endif
 
+#endif
 
 #ifdef USE_FLASHFS
 
@@ -1942,7 +2319,6 @@ static void cliFlashRead(char *cmdline)
 {
     uint32_t address = atoi(cmdline);
     uint32_t length;
-    int i;
 
     uint8_t buffer[32];
 
@@ -1956,11 +2332,9 @@ static void cliFlashRead(char *cmdline)
         cliPrintf("Reading %u bytes at %u:\r\n", length, address);
 
         while (length > 0) {
-            int bytesRead;
+            int bytesRead = flashfsReadAbs(address, buffer, length < sizeof(buffer) ? length : sizeof(buffer));
 
-            bytesRead = flashfsReadAbs(address, buffer, length < sizeof(buffer) ? length : sizeof(buffer));
-
-            for (i = 0; i < bytesRead; i++) {
+            for (int i = 0; i < bytesRead; i++) {
                 cliWrite(buffer[i]);
             }
 
@@ -1979,268 +2353,122 @@ static void cliFlashRead(char *cmdline)
 #endif
 #endif
 
-static void dumpValues(uint16_t valueSection)
+#ifdef VTX
+static void printVtx(uint8_t dumpMask, master_t *defaultConfig)
 {
-    uint32_t i;
-    const clivalue_t *value;
-    for (i = 0; i < VALUE_COUNT; i++) {
-        value = &valueTable[i];
-
-        if ((value->type & VALUE_SECTION_MASK) != valueSection) {
-            continue;
-        }
-
-        cliPrintf("set %s = ", valueTable[i].name);
-        cliPrintVar(value, 0);
-        cliPrint("\r\n");
+    // print out vtx channel settings
+    vtxChannelActivationCondition_t *cac;
+    vtxChannelActivationCondition_t *cacDefault;
+    bool equalsDefault;
+    for (uint32_t i = 0; i < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT; i++) {
+        cac = &masterConfig.vtxChannelActivationConditions[i];
+        cacDefault = &defaultConfig->vtxChannelActivationConditions[i];
+        equalsDefault = cac->auxChannelIndex == cacDefault->auxChannelIndex
+            && cac->band == cacDefault->band
+            && cac->channel == cacDefault->channel
+            && cac->range.startStep == cacDefault->range.startStep
+            && cac->range.endStep == cacDefault->range.endStep;
+        const char *format = "vtx %u %u %u %u %u %u\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, format,
+            i,
+            cacDefault->auxChannelIndex,
+            cacDefault->band,
+            cacDefault->channel,
+            MODE_STEP_TO_CHANNEL_VALUE(cacDefault->range.startStep),
+            MODE_STEP_TO_CHANNEL_VALUE(cacDefault->range.endStep)
+        );
+        cliDumpPrintf(dumpMask, equalsDefault, format,
+            i,
+            cac->auxChannelIndex,
+            cac->band,
+            cac->channel,
+            MODE_STEP_TO_CHANNEL_VALUE(cac->range.startStep),
+            MODE_STEP_TO_CHANNEL_VALUE(cac->range.endStep)
+        );
     }
 }
 
-typedef enum {
-    DUMP_MASTER = (1 << 0),
-    DUMP_PROFILE = (1 << 1),
-    DUMP_CONTROL_RATE_PROFILE = (1 << 2)
-} dumpFlags_e;
-
-#define DUMP_ALL (DUMP_MASTER | DUMP_PROFILE | DUMP_CONTROL_RATE_PROFILE)
-
-
-static const char* const sectionBreak = "\r\n";
-
-#define printSectionBreak() cliPrintf((char *)sectionBreak)
-
-static void cliDump(char *cmdline)
+static void cliVtx(char *cmdline)
 {
-    unsigned int i;
-    char buf[16];
-    uint32_t mask;
+    int i, val = 0;
+    char *ptr;
 
-#ifndef USE_QUAD_MIXER_ONLY
-    float thr, roll, pitch, yaw;
-#endif
-
-    uint8_t dumpMask = DUMP_ALL;
-    if (strcasecmp(cmdline, "master") == 0) {
-        dumpMask = DUMP_MASTER; // only
-    }
-    if (strcasecmp(cmdline, "profile") == 0) {
-        dumpMask = DUMP_PROFILE; // only
-    }
-    if (strcasecmp(cmdline, "rates") == 0) {
-        dumpMask = DUMP_CONTROL_RATE_PROFILE; // only
-    }
-
-    if (dumpMask & DUMP_MASTER) {
-
-        cliPrint("\r\n# version\r\n");
-        cliVersion(NULL);
-
-        cliPrint("\r\n# pflags\r\n");
-        cliPFlags("");
-
-        cliPrint("\r\n# dump master\r\n");
-        cliPrint("\r\n# mixer\r\n");
-
-#ifndef USE_QUAD_MIXER_ONLY
-        cliPrintf("mixer %s\r\n", mixerNames[masterConfig.mixerConfig.mixerMode - 1]);
-
-        cliPrintf("mmix reset\r\n");
-
-        for (i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            if (masterConfig.customMotorMixer[i].throttle == 0.0f)
-                break;
-            thr = masterConfig.customMotorMixer[i].throttle;
-            roll = masterConfig.customMotorMixer[i].roll;
-            pitch = masterConfig.customMotorMixer[i].pitch;
-            yaw = masterConfig.customMotorMixer[i].yaw;
-            cliPrintf("mmix %d", i);
-            if (thr < 0)
-                cliWrite(' ');
-            cliPrintf("%s", ftoa(thr, buf));
-            if (roll < 0)
-                cliWrite(' ');
-            cliPrintf("%s", ftoa(roll, buf));
-            if (pitch < 0)
-                cliWrite(' ');
-            cliPrintf("%s", ftoa(pitch, buf));
-            if (yaw < 0)
-                cliWrite(' ');
-            cliPrintf("%s\r\n", ftoa(yaw, buf));
-        }
-#ifdef USE_SERVOS
-        // print custom servo mixer if exists
-        cliPrintf("smix reset\r\n");
-
-        for (i = 0; i < MAX_SERVO_RULES; i++) {
-
-            if (masterConfig.customServoMixer[i].rate == 0)
-                break;
-
-            cliPrintf("smix %d %d %d %d %d %d %d %d\r\n",
-                i,
-                masterConfig.customServoMixer[i].targetChannel,
-                masterConfig.customServoMixer[i].inputSource,
-                masterConfig.customServoMixer[i].rate,
-                masterConfig.customServoMixer[i].speed,
-                masterConfig.customServoMixer[i].min,
-                masterConfig.customServoMixer[i].max,
-                0
-            );
-        }
-#endif // USE_SERVOS
-#endif // USE_QUAD_MIXER_ONLY
-
-        cliPrint("\r\n\r\n# feature\r\n");
-
-        mask = featureMask();
-        for (i = 0; ; i++) { // disable all feature first
-            if (featureNames[i] == NULL)
-                break;
-            cliPrintf("feature -%s\r\n", featureNames[i]);
-        }
-        for (i = 0; ; i++) {  // reenable what we want.
-            if (featureNames[i] == NULL)
-                break;
-            if (mask & (1 << i))
-                cliPrintf("feature %s\r\n", featureNames[i]);
-        }
-
-
-#ifdef BEEPER
-        cliPrint("\r\n\r\n# beeper\r\n");
-
-        uint8_t beeperCount = beeperTableEntryCount();
-        mask = getBeeperOffMask();
-        for (int i = 0; i < (beeperCount-2); i++) {
-            if (mask & (1 << i))
-                cliPrintf("beeper -%s\r\n", beeperNameForTableIndex(i));
-            else
-                cliPrintf("beeper %s\r\n", beeperNameForTableIndex(i));
-        }
-#endif
-
-
-        cliPrint("\r\n\r\n# map\r\n");
-
-        for (i = 0; i < 8; i++)
-            buf[masterConfig.rxConfig.rcmap[i]] = rcChannelLetters[i];
-        buf[i] = '\0';
-        cliPrintf("map %s\r\n", buf);
-
-        cliPrint("\r\n\r\n# serial\r\n");
-        cliSerial("");
-
-#ifdef LED_STRIP
-        cliPrint("\r\n\r\n# led\r\n");
-        cliLed("");
-
-        cliPrint("\r\n\r\n# color\r\n");
-        cliColor("");
-
-        cliPrint("\r\n\r\n# mode_color\r\n");
-        cliModeColor("");
-#endif
-        printSectionBreak();
-        dumpValues(MASTER_VALUE);
-
-        cliPrint("\r\n# rxfail\r\n");
-        cliRxFail("");
-    }
-
-    if (dumpMask & DUMP_PROFILE) {
-        cliPrint("\r\n# dump profile\r\n");
-
-        cliPrint("\r\n# profile\r\n");
-        cliProfile("");
-
-        cliPrint("\r\n# aux\r\n");
-
-        cliAux("");
-
-        cliPrint("\r\n# adjrange\r\n");
-
-        cliAdjustmentRange("");
-
-        cliPrintf("\r\n# rxrange\r\n");
-
-        cliRxRange("");
-
-#ifdef USE_SERVOS
-        cliPrint("\r\n# servo\r\n");
-
-        cliServo("");
-
-        // print servo directions
-        unsigned int channel;
-
-        for (i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            for (channel = 0; channel < INPUT_SOURCE_COUNT; channel++) {
-                if (servoDirection(i, channel) < 0) {
-                    cliPrintf("smix reverse %d %d r\r\n", i , channel);
+    if (isEmpty(cmdline)) {
+        printVtx(DUMP_MASTER, NULL);
+    } else {
+        ptr = cmdline;
+        i = atoi(ptr++);
+        if (i < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT) {
+            vtxChannelActivationCondition_t *cac = &masterConfig.vtxChannelActivationConditions[i];
+            uint8_t validArgumentCount = 0;
+            ptr = nextArg(ptr);
+            if (ptr) {
+                val = atoi(ptr);
+                if (val >= 0 && val < MAX_AUX_CHANNEL_COUNT) {
+                    cac->auxChannelIndex = val;
+                    validArgumentCount++;
                 }
             }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                val = atoi(ptr);
+                if (val >= VTX_BAND_MIN && val <= VTX_BAND_MAX) {
+                    cac->band = val;
+                    validArgumentCount++;
+                }
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                val = atoi(ptr);
+                if (val >= VTX_CHANNEL_MIN && val <= VTX_CHANNEL_MAX) {
+                    cac->channel = val;
+                    validArgumentCount++;
+                }
+            }
+            ptr = processChannelRangeArgs(ptr, &cac->range, &validArgumentCount);
+
+            if (validArgumentCount != 5) {
+                memset(cac, 0, sizeof(vtxChannelActivationCondition_t));
+            }
+        } else {
+            cliShowArgumentRangeError("index", 0, MAX_CHANNEL_ACTIVATION_CONDITION_COUNT - 1);
         }
+    }
+}
 #endif
 
-        printSectionBreak();
-
-        dumpValues(PROFILE_VALUE);
-    }
-
-    if (dumpMask & DUMP_CONTROL_RATE_PROFILE) {
-        cliPrint("\r\n# dump rates\r\n");
-
-        cliPrint("\r\n# rateprofile\r\n");
-        cliRateProfile("");
-
-        printSectionBreak();
-
-        dumpValues(CONTROL_RATE_VALUE);
-    }
-}
-
-void cliEnter(serialPort_t *serialPort)
+static void printFeature(uint8_t dumpMask, master_t *defaultConfig)
 {
-    cliMode = 1;
-    cliPort = serialPort;
-    setPrintfSerialPort(cliPort);
-    cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer),
-                              (bufWrite_t)serialWriteBufShim, serialPort);
-
-    cliPrint("\r\nEntering CLI Mode, type 'exit' to return, or 'help'\r\n");
-    cliPrompt();
-    ENABLE_ARMING_FLAG(PREVENT_ARMING);
-}
-
-static void cliExit(char *cmdline)
-{
-    UNUSED(cmdline);
-
-    cliPrint("\r\nLeaving CLI mode, unsaved changes lost.\r\n");
-    bufWriterFlush(cliWriter);
-
-    *cliBuffer = '\0';
-    bufferIndex = 0;
-    cliMode = 0;
-    // incase a motor was left running during motortest, clear it here
-    mixerResetDisarmedMotors();
-    cliReboot();
-
-    cliWriter = NULL;
+    uint32_t mask = featureMask();
+    uint32_t defaultMask = defaultConfig->enabledFeatures;
+    for (uint32_t i = 0; ; i++) { // disable all feature first
+        if (featureNames[i] == NULL)
+            break;
+        const char *format = "feature -%s\r\n";
+        cliDefaultPrintf(dumpMask, (defaultMask | ~mask) & (1 << i), format, featureNames[i]);
+        cliDumpPrintf(dumpMask, (~defaultMask | mask) & (1 << i), format, featureNames[i]);
+    }
+    for (uint32_t i = 0; ; i++) {  // reenable what we want.
+        if (featureNames[i] == NULL)
+            break;
+        const char *format = "feature %s\r\n";
+        if (defaultMask & (1 << i)) {
+            cliDefaultPrintf(dumpMask, (~defaultMask | mask) & (1 << i), format, featureNames[i]);
+        }
+        if (mask & (1 << i)) {
+            cliDumpPrintf(dumpMask, (defaultMask | ~mask) & (1 << i), format, featureNames[i]);
+        }
+    }
 }
 
 static void cliFeature(char *cmdline)
 {
-    uint32_t i;
-    uint32_t len;
-    uint32_t mask;
-
-    len = strlen(cmdline);
-    mask = featureMask();
+    uint32_t len = strlen(cmdline);
+    uint32_t mask = featureMask();
 
     if (len == 0) {
         cliPrint("Enabled: ");
-        for (i = 0; ; i++) {
+        for (uint32_t i = 0; ; i++) {
             if (featureNames[i] == NULL)
                 break;
             if (mask & (1 << i))
@@ -2249,7 +2477,7 @@ static void cliFeature(char *cmdline)
         cliPrint("\r\n");
     } else if (strncasecmp(cmdline, "list", len) == 0) {
         cliPrint("Available: ");
-        for (i = 0; ; i++) {
+        for (uint32_t i = 0; ; i++) {
             if (featureNames[i] == NULL)
                 break;
             cliPrintf("%s ", featureNames[i]);
@@ -2265,7 +2493,7 @@ static void cliFeature(char *cmdline)
             len--;
         }
 
-        for (i = 0; ; i++) {
+        for (uint32_t i = 0; ; i++) {
             if (featureNames[i] == NULL) {
                 cliPrint("Invalid name\r\n");
                 break;
@@ -2301,17 +2529,29 @@ static void cliFeature(char *cmdline)
 }
 
 #ifdef BEEPER
+static void printBeeper(uint8_t dumpMask, master_t *defaultConfig)
+{
+    uint8_t beeperCount = beeperTableEntryCount();
+    uint32_t mask = getBeeperOffMask();
+    uint32_t defaultMask = defaultConfig->beeper_off_flags;
+    for (int32_t i = 0; i < beeperCount - 2; i++) {
+        const char *formatOff = "beeper -%s\r\n";
+        const char *formatOn = "beeper %s\r\n";
+        cliDefaultPrintf(dumpMask, ~(mask ^ defaultMask) & (1 << i), mask & (1 << i) ? formatOn : formatOff, beeperNameForTableIndex(i));
+        cliDumpPrintf(dumpMask, ~(mask ^ defaultMask) & (1 << i), mask & (1 << i) ? formatOff : formatOn, beeperNameForTableIndex(i));
+    }
+}
+
 static void cliBeeper(char *cmdline)
 {
-    uint32_t i;
-    uint32_t len = strlen(cmdline);;
+    uint32_t len = strlen(cmdline);
     uint8_t beeperCount = beeperTableEntryCount();
     uint32_t mask = getBeeperOffMask();
 
     if (len == 0) {
         cliPrintf("Disabled:");
-        for (int i = 0; ; i++) {
-            if (i == beeperCount-2){
+        for (int32_t i = 0; ; i++) {
+            if (i == beeperCount - 2){
                 if (mask == 0)
                     cliPrint("  none");
                 break;
@@ -2322,7 +2562,7 @@ static void cliBeeper(char *cmdline)
         cliPrint("\r\n");
     } else if (strncasecmp(cmdline, "list", len) == 0) {
         cliPrint("Available:");
-        for (i = 0; i < beeperCount; i++)
+        for (uint32_t i = 0; i < beeperCount; i++)
             cliPrintf("  %s", beeperNameForTableIndex(i));
         cliPrint("\r\n");
         return;
@@ -2334,7 +2574,7 @@ static void cliBeeper(char *cmdline)
             len--;
         }
 
-        for (i = 0; ; i++) {
+        for (uint32_t i = 0; ; i++) {
             if (i == beeperCount) {
                 cliPrint("Invalid name\r\n");
                 break;
@@ -2372,6 +2612,397 @@ static void cliBeeper(char *cmdline)
 }
 #endif
 
+static void printMap(uint8_t dumpMask, master_t *defaultConfig)
+{
+    bool equalsDefault = true;
+    char buf[16];
+    char bufDefault[16];
+    uint32_t i;
+    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+        buf[masterConfig.rxConfig.rcmap[i]] = rcChannelLetters[i];
+        bufDefault[defaultConfig->rxConfig.rcmap[i]] = rcChannelLetters[i];
+        equalsDefault = equalsDefault && (masterConfig.rxConfig.rcmap[i] == defaultConfig->rxConfig.rcmap[i]);
+    }
+    buf[i] = '\0';
+
+    const char *formatMap = "map %s\r\n";
+    cliDefaultPrintf(dumpMask, equalsDefault, formatMap, bufDefault);
+    cliDumpPrintf(dumpMask, equalsDefault, formatMap, buf);
+}
+
+static void cliMap(char *cmdline)
+{
+    uint32_t len;
+    char out[9];
+
+    len = strlen(cmdline);
+
+    if (len == 8) {
+        // uppercase it
+        for (uint32_t i = 0; i < 8; i++)
+            cmdline[i] = toupper((unsigned char)cmdline[i]);
+        for (uint32_t i = 0; i < 8; i++) {
+            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i]))
+                continue;
+            cliShowParseError();
+            return;
+        }
+        parseRcChannels(cmdline, &masterConfig.rxConfig);
+    }
+    cliPrint("Map: ");
+    uint32_t i;
+    for (i = 0; i < 8; i++)
+        out[masterConfig.rxConfig.rcmap[i]] = rcChannelLetters[i];
+    out[i] = '\0';
+    cliPrintf("%s\r\n", out);
+}
+
+void *getValuePointer(const clivalue_t *value)
+{
+    void *ptr = value->ptr;
+
+    if ((value->type & VALUE_SECTION_MASK) == PROFILE_VALUE) {
+        ptr = ((uint8_t *)ptr) + (sizeof(profile_t) * masterConfig.current_profile_index);
+    }
+
+    if ((value->type & VALUE_SECTION_MASK) == CONTROL_RATE_VALUE) {
+        ptr = ((uint8_t *)ptr) + (sizeof(profile_t) * masterConfig.current_profile_index) + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile());
+    }
+
+    return ptr;
+}
+
+static void *getDefaultPointer(void *valuePointer, master_t *defaultConfig)
+{
+    return ((uint8_t *)valuePointer) - (uint32_t)&masterConfig + (uint32_t)defaultConfig;
+}
+
+static bool valueEqualsDefault(const clivalue_t *value, master_t *defaultConfig)
+{
+    void *ptr = getValuePointer(value);
+
+    void *ptrDefault = getDefaultPointer(ptr, defaultConfig);
+
+    bool result = false;
+    switch (value->type & VALUE_TYPE_MASK) {
+        case VAR_UINT8:
+            result = *(uint8_t *)ptr == *(uint8_t *)ptrDefault;
+            break;
+
+        case VAR_INT8:
+            result = *(int8_t *)ptr == *(int8_t *)ptrDefault;
+            break;
+
+        case VAR_UINT16:
+            result = *(uint16_t *)ptr == *(uint16_t *)ptrDefault;
+            break;
+
+        case VAR_INT16:
+            result = *(int16_t *)ptr == *(int16_t *)ptrDefault;
+            break;
+
+        case VAR_UINT32:
+            result = *(uint32_t *)ptr == *(uint32_t *)ptrDefault;
+            break;
+
+        case VAR_FLOAT:
+            result = *(float *)ptr == *(float *)ptrDefault;
+            break;
+    }
+    return result;
+}
+
+static void dumpValues(uint16_t valueSection, uint8_t dumpMask, master_t *defaultConfig)
+{
+    const clivalue_t *value;
+    for (uint32_t i = 0; i < VALUE_COUNT; i++) {
+        value = &valueTable[i];
+
+        if ((value->type & VALUE_SECTION_MASK) != valueSection) {
+            continue;
+        }
+
+        const char *format = "set %s = ";
+        if (cliDefaultPrintf(dumpMask, valueEqualsDefault(value, defaultConfig), format, valueTable[i].name)) {
+            cliPrintVarDefault(value, 0, defaultConfig);
+            cliPrint("\r\n");
+        }
+        if (cliDumpPrintf(dumpMask, valueEqualsDefault(value, defaultConfig), format, valueTable[i].name)) {
+            cliPrintVar(value, 0);
+            cliPrint("\r\n");
+        }
+    }
+}
+
+static void cliDump(char *cmdline)
+{
+    printConfig(cmdline, false);
+}
+
+static void cliDiff(char *cmdline)
+{
+    printConfig(cmdline, true);
+}
+
+char *checkCommand(char *cmdLine, const char *command)
+{
+    if(!strncasecmp(cmdLine, command, strlen(command))   // command names match
+        && !isalnum((unsigned)cmdLine[strlen(command)])) {   // next characted in bufffer is not alphanumeric (command is correctly terminated)
+        return cmdLine + strlen(command) + 1;
+    } else {
+        return 0;
+    }
+}
+
+static void printConfig(char *cmdline, bool doDiff)
+{
+    uint8_t dumpMask = DUMP_MASTER;
+    char *options;
+    if ((options = checkCommand(cmdline, "master"))) {
+        dumpMask = DUMP_MASTER; // only
+    } else if ((options = checkCommand(cmdline, "profile"))) {
+        dumpMask = DUMP_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "rates"))) {
+        dumpMask = DUMP_RATES; // only
+    } else if ((options = checkCommand(cmdline, "all"))) {
+        dumpMask = DUMP_ALL;   // all profiles and rates
+    } else {
+        options = cmdline;
+    }
+
+    static master_t defaultConfig;
+    if (doDiff) {
+        dumpMask = dumpMask | DO_DIFF;
+    }
+
+    createDefaultConfig(&defaultConfig);
+
+    if (checkCommand(options, "showdefaults")) {
+        dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
+    }
+
+    if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# version\r\n");
+#endif
+        cliVersion(NULL);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# pflags\r\n");
+#endif
+        cliPFlags("");
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        if ((dumpMask & (DUMP_ALL | DO_DIFF)) == (DUMP_ALL | DO_DIFF)) {
+            cliPrint("\r\n# reset configuration to default settings\r\ndefaults\r\n");
+        }
+#endif
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# resources\r\n");
+#endif
+        //printResource(dumpMask, &defaultConfig);
+
+#ifndef USE_QUAD_MIXER_ONLY
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# mixer\r\n");
+#endif
+        const bool equalsDefault = masterConfig.mixerConfig.mixerMode == defaultConfig.mixerConfig.mixerMode;
+        const char *formatMixer = "mixer %s\r\n";
+        cliDefaultPrintf(dumpMask, equalsDefault, formatMixer, mixerNames[defaultConfig.mixerConfig.mixerMode - 1]);
+        cliDumpPrintf(dumpMask, equalsDefault, formatMixer, mixerNames[masterConfig.mixerConfig.mixerMode - 1]);
+
+        cliDumpPrintf(dumpMask, masterConfig.customMotorMixer[0].throttle == 0.0f, "\r\nmmix reset\r\n\r\n");
+
+        printMotorMix(dumpMask, &defaultConfig);
+
+#ifdef USE_SERVOS
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# servo\r\n");
+#endif
+        printServo(dumpMask, &defaultConfig);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# servo mix\r\n");
+#endif
+        // print custom servo mixer if exists
+        cliDumpPrintf(dumpMask, masterConfig.customServoMixer[0].rate == 0, "smix reset\r\n\r\n");
+        printServoMix(dumpMask, &defaultConfig);
+#endif
+#endif
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# feature\r\n");
+#endif
+        printFeature(dumpMask, &defaultConfig);
+
+#ifdef BEEPER
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# beeper\r\n");
+#endif
+        printBeeper(dumpMask, &defaultConfig);
+#endif
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# map\r\n");
+#endif
+        printMap(dumpMask, &defaultConfig);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# serial\r\n");
+#endif
+        printSerial(dumpMask, &defaultConfig);
+
+#ifdef LED_STRIP
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# led\r\n");
+#endif
+        printLed(dumpMask, &defaultConfig);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# color\r\n");
+#endif
+        printColor(dumpMask, &defaultConfig);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# mode_color\r\n");
+#endif
+        printModeColor(dumpMask, &defaultConfig);
+#endif
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# aux\r\n");
+#endif
+        printAux(dumpMask, &defaultConfig);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# adjrange\r\n");
+#endif
+        printAdjustmentRange(dumpMask, &defaultConfig);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# rxrange\r\n");
+#endif
+        printRxRange(dumpMask, &defaultConfig);
+
+#ifdef VTX
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# vtx\r\n");
+#endif
+        printVtx(dumpMask, &defaultConfig);
+#endif
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# rxfail\r\n");
+#endif
+        printRxFail(dumpMask, &defaultConfig);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+        cliPrint("\r\n# master\r\n");
+#endif
+        dumpValues(MASTER_VALUE, dumpMask, &defaultConfig);
+
+        if (dumpMask & DUMP_ALL) {
+            uint8_t activeProfile = masterConfig.current_profile_index;
+            for (uint32_t profileCount=0; profileCount<MAX_PROFILE_COUNT;profileCount++) {
+                cliDumpProfile(profileCount, dumpMask, &defaultConfig);
+            }
+
+            changeProfile(activeProfile);
+#ifndef CLI_MINIMAL_VERBOSITY
+            cliPrint("\r\n# restore original profile selection\r\n");
+            cliProfile("");
+#endif
+
+            uint8_t currentRateIndex = getCurrentControlRateProfile();
+            for (uint32_t rateCount = 0; rateCount<MAX_CONTROL_RATE_PROFILE_COUNT; rateCount++) {
+                cliDumpRateProfile(rateCount, dumpMask, &defaultConfig);
+            }
+            changeControlRateProfile(currentRateIndex);
+#ifndef CLI_MINIMAL_VERBOSITY
+            cliPrint("\r\n# restore original rateprofile selection\r\n");
+            cliRateProfile("");
+
+            cliPrint("\r\n# save configuration\r\nsave\r\n");
+#endif
+        } else {
+            cliDumpProfile(masterConfig.current_profile_index, dumpMask, &defaultConfig);
+            cliDumpRateProfile(getCurrentControlRateProfile(), dumpMask, &defaultConfig);
+        }
+    }
+
+    if (dumpMask & DUMP_PROFILE) {
+        cliDumpProfile(masterConfig.current_profile_index, dumpMask, &defaultConfig);
+    }
+
+    if (dumpMask & DUMP_RATES) {
+        cliDumpRateProfile(getCurrentControlRateProfile(), dumpMask, &defaultConfig);
+    }
+}
+
+static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask, master_t *defaultConfig)
+{
+    if (profileIndex >= MAX_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    changeProfile(profileIndex);
+#ifndef CLI_MINIMAL_VERBOSITY
+    cliPrint("\r\n# profile\r\n");
+#endif
+    cliProfile("");
+    cliPrint("\r\n");
+    dumpValues(PROFILE_VALUE, dumpMask, defaultConfig);
+}
+
+static void cliDumpRateProfile(uint8_t rateProfileIndex, uint8_t dumpMask, master_t *defaultConfig)
+{
+    if (rateProfileIndex >= MAX_CONTROL_RATE_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    changeControlRateProfile(rateProfileIndex);
+#ifndef CLI_MINIMAL_VERBOSITY
+    cliPrint("\r\n# rateprofile\r\n");
+#endif
+    cliRateProfile("");
+    cliPrint("\r\n");
+    dumpValues(CONTROL_RATE_VALUE, dumpMask, defaultConfig);
+}
+
+void cliEnter(serialPort_t *serialPort)
+{
+    cliMode = 1;
+    cliPort = serialPort;
+    setPrintfSerialPort(cliPort);
+    cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer),
+                              (bufWrite_t)serialWriteBufShim, serialPort);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+    cliPrint("\r\nEntering CLI Mode, type 'exit' to return, or 'help'\r\n");
+#endif
+    cliPrompt();
+    ENABLE_ARMING_FLAG(PREVENT_ARMING);
+}
+
+static void cliExit(char *cmdline)
+{
+    UNUSED(cmdline);
+
+#ifndef CLI_MINIMAL_VERBOSITY
+    cliPrint("\r\nLeaving CLI mode, unsaved changes lost.\r\n");
+#endif
+    bufWriterFlush(cliWriter);
+
+    *cliBuffer = '\0';
+    bufferIndex = 0;
+    cliMode = 0;
+    // incase a motor was left running during motortest, clear it here
+    mixerResetDisarmedMotors();
+    cliReboot();
+
+    cliWriter = NULL;
+}
 
 #ifdef GPS
 static void cliGpsPassthrough(char *cmdline)
@@ -2382,13 +3013,75 @@ static void cliGpsPassthrough(char *cmdline)
 }
 #endif
 
+#ifdef USE_ESCSERIAL
+static void cliEscPassthrough(char *cmdline)
+{
+    uint8_t mode = 0;
+    int index = 0;
+    int i = 0;
+    char *pch = NULL;
+    char *saveptr;
+
+    if (isEmpty(cmdline)) {
+        cliShowParseError();
+        return;
+    }
+
+    pch = strtok_r(cmdline, " ", &saveptr);
+    while (pch != NULL) {
+        switch (i) {
+            case 0:
+                if(strncasecmp(pch, "sk", strlen(pch)) == 0)
+                {
+                    mode = 0;
+                }
+                else if(strncasecmp(pch, "bl", strlen(pch)) == 0)
+                {
+                    mode = 1;
+                }
+                else if(strncasecmp(pch, "ki", strlen(pch)) == 0)
+                {
+                    mode = 2;
+                }
+                else if(strncasecmp(pch, "cc", strlen(pch)) == 0)
+                {
+                    mode = 4;
+                }
+                else
+                {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 1:
+                index = atoi(pch);
+                if(mode == 2 && index == 255)
+                {
+                    printf("passthru on all pwm outputs enabled\r\n");
+                }
+                else{
+                    if ((index >= 0) && (index < USABLE_TIMER_CHANNEL_COUNT)) {
+                        printf("passthru at pwm output %d enabled\r\n", index);
+                    }
+                    else {
+                        printf("invalid pwm output, valid range: 1 to %d\r\n", USABLE_TIMER_CHANNEL_COUNT);
+                        return;
+                    }
+                }
+                break;
+        }
+        i++;
+        pch = strtok_r(NULL, " ", &saveptr);
+    }
+    escEnablePassthrough(cliPort,index,mode);
+}
+#endif
+
 static void cliHelp(char *cmdline)
 {
-    uint32_t i = 0;
-
     UNUSED(cmdline);
 
-    for (i = 0; i < CMD_COUNT; i++) {
+    for (uint32_t i = 0; i < CMD_COUNT; i++) {
         cliPrint(cmdTable[i].name);
 #ifndef SKIP_CLI_COMMAND_HELP
         if (cmdTable[i].description) {
@@ -2402,37 +3095,9 @@ static void cliHelp(char *cmdline)
     }
 }
 
-static void cliMap(char *cmdline)
-{
-    uint32_t len;
-    uint32_t i;
-    char out[9];
-
-    len = strlen(cmdline);
-
-    if (len == 8) {
-        // uppercase it
-        for (i = 0; i < 8; i++)
-            cmdline[i] = toupper((unsigned char)cmdline[i]);
-        for (i = 0; i < 8; i++) {
-            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i]))
-                continue;
-            cliShowParseError();
-            return;
-        }
-        parseRcChannels(cmdline, &masterConfig.rxConfig);
-    }
-    cliPrint("Map: ");
-    for (i = 0; i < 8; i++)
-        out[masterConfig.rxConfig.rcmap[i]] = rcChannelLetters[i];
-    out[i] = '\0';
-    cliPrintf("%s\r\n", out);
-}
-
 #ifndef USE_QUAD_MIXER_ONLY
 static void cliMixer(char *cmdline)
 {
-    int i;
     int len;
 
     len = strlen(cmdline);
@@ -2442,7 +3107,7 @@ static void cliMixer(char *cmdline)
         return;
     } else if (strncasecmp(cmdline, "list", len) == 0) {
         cliPrint("Available mixers: ");
-        for (i = 0; ; i++) {
+        for (uint32_t i = 0; ; i++) {
             if (mixerNames[i] == NULL)
                 break;
             cliPrintf("%s ", mixerNames[i]);
@@ -2451,7 +3116,7 @@ static void cliMixer(char *cmdline)
         return;
     }
 
-    for (i = 0; ; i++) {
+    for (uint32_t i = 0; ; i++) {
         if (mixerNames[i] == NULL) {
             cliPrint("Invalid name\r\n");
             return;
@@ -2513,6 +3178,9 @@ static void cliMotor(char *cmdline)
 #ifdef PLAY_SOUND
 static void cliPlaySound(char *cmdline)
 {
+#if (FLASH_SIZE <= 64) && !defined(CLI_MINIMAL_VERBOSITY)
+    UNUSED(cmdline);
+#else
     int i;
     const char *name;
     static int lastSoundIdx = -1;
@@ -2542,6 +3210,7 @@ static void cliPlaySound(char *cmdline)
     beeperSilence();
     cliPrintf("Playing sound %d: %s\r\n", i, name);
     beeper(beeperModeForTableIndex(i));
+#endif
 }
 #endif
 
@@ -2579,15 +3248,21 @@ static void cliRateProfile(char *cmdline)
     }
 }
 
-static void cliReboot(void) {
+static void cliReboot(void)
+{
+    cliRebootEx(false);
+}
+
+static void cliRebootEx(bool bootLoader)
+{
     cliPrint("\r\nRebooting");
     bufWriterFlush(cliWriter);
     waitForSerialPortToFinishTransmitting(cliPort);
-
-    stopMotors();
     stopPwmAllMotors();
-
-    delay(1000);
+    if (bootLoader) {
+        systemResetToBootloader();
+        return;
+    }
     systemReset();
 }
 
@@ -2596,7 +3271,6 @@ static void cliSave(char *cmdline)
     UNUSED(cmdline);
 
     cliPrint("Saving");
-    //copyCurrentProfileToProfileSlot(masterConfig.current_profile_index);
     writeEEPROM();
     cliReboot();
 }
@@ -2612,13 +3286,44 @@ static void cliDefaults(char *cmdline)
 
 static void cliPrint(const char *str)
 {
-    while (*str)
+    while (*str) {
         bufWriterAppend(cliWriter, *str++);
+    }
 }
 
 static void cliPutp(void *p, char ch)
 {
     bufWriterAppend(p, ch);
+}
+
+static bool cliDumpPrintf(uint8_t dumpMask, bool equalsDefault, const char *format, ...)
+{
+    if (!((dumpMask & DO_DIFF) && equalsDefault)) {
+        va_list va;
+        va_start(va, format);
+        tfp_format(cliWriter, cliPutp, format, va);
+        va_end(va);
+
+        return true;
+    } else {
+        return false;
+    }
+}
+
+static bool cliDefaultPrintf(uint8_t dumpMask, bool equalsDefault, const char *format, ...)
+{
+    if ((dumpMask & SHOW_DEFAULTS) && !equalsDefault) {
+        cliWrite('#');
+
+        va_list va;
+        va_start(va, format);
+        tfp_format(cliWriter, cliPutp, format, va);
+        va_end(va);
+
+        return true;
+    } else {
+        return false;
+    }
 }
 
 static void cliPrintf(const char *fmt, ...)
@@ -2634,68 +3339,68 @@ static void cliWrite(uint8_t ch)
     bufWriterAppend(cliWriter, ch);
 }
 
-static void cliPrintVar(const clivalue_t *var, uint32_t full)
+static void printValuePointer(const clivalue_t *var, void *valuePointer, uint32_t full)
 {
     int32_t value = 0;
-    char ftoaBuffer[FTOA_BUFFER_SIZE];
-
-    void *ptr = var->ptr;
-    if ((var->type & VALUE_SECTION_MASK) == PROFILE_VALUE) {
-        ptr = ((uint8_t *)ptr) + (sizeof(profile_t) * masterConfig.current_profile_index);
-    }
-    if ((var->type & VALUE_SECTION_MASK) == CONTROL_RATE_VALUE) {
-        ptr = ((uint8_t *)ptr) + (sizeof(controlRateConfig_t) * getCurrentControlRateProfile());
-    }
+    char buf[8];
 
     switch (var->type & VALUE_TYPE_MASK) {
         case VAR_UINT8:
-            value = *(uint8_t *)ptr;
+            value = *(uint8_t *)valuePointer;
             break;
 
         case VAR_INT8:
-            value = *(int8_t *)ptr;
+            value = *(int8_t *)valuePointer;
             break;
 
         case VAR_UINT16:
-            value = *(uint16_t *)ptr;
+            value = *(uint16_t *)valuePointer;
             break;
 
         case VAR_INT16:
-            value = *(int16_t *)ptr;
+            value = *(int16_t *)valuePointer;
             break;
 
         case VAR_UINT32:
-            value = *(uint32_t *)ptr;
+            value = *(uint32_t *)valuePointer;
             break;
 
         case VAR_FLOAT:
+            cliPrintf("%s", ftoa(*(float *)valuePointer, buf));
             if (full && (var->type & VALUE_MODE_MASK) == MODE_DIRECT) {
-                cliPrintf("%s", ftoa((float)var->config.minmax.min, ftoaBuffer));
-                cliPrintf(" - %s", ftoa((float)var->config.minmax.max, ftoaBuffer));
-            } else {
-                cliPrintf("%s", ftoa(*(float *)ptr, ftoaBuffer));
+                cliPrintf(" %s", ftoa((float)var->config.minmax.min, buf));
+                cliPrintf(" %s", ftoa((float)var->config.minmax.max, buf));
             }
             return; // return from case for float only
     }
 
     switch(var->type & VALUE_MODE_MASK) {
         case MODE_DIRECT:
+            cliPrintf("%d", value);
             if (full) {
-                cliPrintf("%d - %d", var->config.minmax.min, var->config.minmax.max);
-            } else {
-                cliPrintf("%d", value);
+                cliPrintf(" %d %d", var->config.minmax.min, var->config.minmax.max);
             }
             break;
         case MODE_LOOKUP:
-            if (full) {
-                for (int i=0; i<lookupTables[var->config.lookup.tableIndex].valueCount; i++) {
-                    cliPrintf("%s ", lookupTables[var->config.lookup.tableIndex].values[i]);
-                }
-            } else {
-                cliPrintf(lookupTables[var->config.lookup.tableIndex].values[value]);
-            }
+            cliPrintf(lookupTables[var->config.lookup.tableIndex].values[value]);
             break;
     }
+}
+
+static void cliPrintVar(const clivalue_t *var, uint32_t full)
+{
+    void *ptr = getValuePointer(var);
+
+    printValuePointer(var, ptr, full);
+}
+
+static void cliPrintVarDefault(const clivalue_t *var, uint32_t full, master_t *defaultConfig)
+{
+    void *ptr = getValuePointer(var);
+
+    void *defaultPtr = getDefaultPointer(ptr, defaultConfig);
+
+    printValuePointer(var, defaultPtr, full);
 }
 
 static void cliPrintVarRange(const clivalue_t *var)
@@ -2708,8 +3413,7 @@ static void cliPrintVarRange(const clivalue_t *var)
         case (MODE_LOOKUP): {
             const lookupTableEntry_t *tableEntry = &lookupTables[var->config.lookup.tableIndex];
             cliPrint("Allowed values:");
-            uint8_t i;
-            for (i = 0; i < tableEntry->valueCount ; i++) {
+            for (uint32_t i = 0; i < tableEntry->valueCount ; i++) {
                 if (i > 0)
                     cliPrint(",");
                 cliPrintf(" %s", tableEntry->values[i]);
@@ -2757,7 +3461,6 @@ static void cliSetVar(const clivalue_t *var, const int_float_value_t value)
 
 static void cliSet(char *cmdline)
 {
-    uint32_t i;
     uint32_t len;
     const clivalue_t *val;
     char *eqptr = NULL;
@@ -2766,7 +3469,7 @@ static void cliSet(char *cmdline)
 
     if (len == 0 || (len == 1 && cmdline[0] == '*')) {
         cliPrint("Current settings: \r\n");
-        for (i = 0; i < VALUE_COUNT; i++) {
+        for (uint32_t i = 0; i < VALUE_COUNT; i++) {
             val = &valueTable[i];
             cliPrintf("%s = ", valueTable[i].name);
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
@@ -2787,39 +3490,36 @@ static void cliSet(char *cmdline)
             eqptr++;
         }
 
-        for (i = 0; i < VALUE_COUNT; i++) {
+        for (uint32_t i = 0; i < VALUE_COUNT; i++) {
             val = &valueTable[i];
             // ensure exact match when setting to prevent setting variables with shorter names
             if (strncasecmp(cmdline, valueTable[i].name, strlen(valueTable[i].name)) == 0 && variableNameLength == strlen(valueTable[i].name)) {
 
                 bool changeValue = false;
-                int_float_value_t tmp = {0};
+                int_float_value_t tmp = { 0 };
                 switch (valueTable[i].type & VALUE_MODE_MASK) {
                     case MODE_DIRECT: {
-                            if(*eqptr != 0 && strspn(eqptr, "0123456789.+-") == strlen(eqptr)) {
-                                int32_t value = 0;
-                                float valuef = 0;
+                            int32_t value = 0;
+                            float valuef = 0;
 
-                                value = atoi(eqptr);
-                                valuef = fastA2F(eqptr);
+                            value = atoi(eqptr);
+                            valuef = fastA2F(eqptr);
 
-                                if ((valuef >= valueTable[i].config.minmax.min && valuef <= valueTable[i].config.minmax.max) // note: compare float value
-                                        || (valueTable[i].config.minmax.min == 0 && valueTable[i].config.minmax.max == 0)) {  // setting both min and max to zero allows full range
+                            if (valuef >= valueTable[i].config.minmax.min && valuef <= valueTable[i].config.minmax.max) { // note: compare float value
 
-                                    if ((valueTable[i].type & VALUE_TYPE_MASK) == VAR_FLOAT)
-                                        tmp.float_value = valuef;
-                                    else
-                                        tmp.int_value = value;
+                                if ((valueTable[i].type & VALUE_TYPE_MASK) == VAR_FLOAT)
+                                    tmp.float_value = valuef;
+                                else
+                                    tmp.int_value = value;
 
-                                    changeValue = true;
-                                }
+                                changeValue = true;
                             }
                         }
                         break;
                     case MODE_LOOKUP: {
                             const lookupTableEntry_t *tableEntry = &lookupTables[valueTable[i].config.lookup.tableIndex];
                             bool matched = false;
-                            for (uint8_t tableValueIndex = 0; tableValueIndex < tableEntry->valueCount && !matched; tableValueIndex++) {
+                            for (uint32_t tableValueIndex = 0; tableValueIndex < tableEntry->valueCount && !matched; tableValueIndex++) {
                                 matched = strcasecmp(tableEntry->values[tableValueIndex], eqptr) == 0;
 
                                 if (matched) {
@@ -2837,9 +3537,8 @@ static void cliSet(char *cmdline)
                     cliPrintf("%s set to ", valueTable[i].name);
                     cliPrintVar(val, 0);
                 } else {
-                    cliPrint("Invalid value.");
+                    cliPrint("Invalid value\r\n");
                     cliPrintVarRange(val);
-                    cliPrint("\r\n");
                 }
 
                 return;
@@ -2854,16 +3553,15 @@ static void cliSet(char *cmdline)
 
 static void cliGet(char *cmdline)
 {
-    uint32_t i;
     const clivalue_t *val;
     int matchedCommands = 0;
 
-    for (i = 0; i < VALUE_COUNT; i++) {
+    for (uint32_t i = 0; i < VALUE_COUNT; i++) {
         if (strstr(valueTable[i].name, cmdline)) {
             val = &valueTable[i];
             cliPrintf("%s = ", valueTable[i].name);
             cliPrintVar(val, 0);
-            cliPrint("\n");
+            cliPrint("\r\n");
             cliPrintVarRange(val);
             cliPrint("\r\n");
 
@@ -2883,20 +3581,30 @@ static void cliStatus(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrintf("System Uptime: %d seconds, Voltage: %d * 0.1V (%dS battery - %s), System load: %d.%02d\r\n",
-        millis() / 1000, vbat, batteryCellCount, getBatteryStateString(), averageSystemLoadPercent / 100, averageSystemLoadPercent % 100);
+    cliPrintf("System Uptime: %d seconds, Voltage: %d * 0.1V (%dS battery - %s), CPU:%d%%\r\n",
+        millis() / 1000,
+        vbat,
+        batteryCellCount,
+        getBatteryStateString(),
+        constrain(averageSystemLoadPercent, 0, 100)
+    );
 
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
-#if (FLASH_SIZE > 64)
-    const uint32_t detectedSensorsMask = sensorsMask();
+#if (FLASH_SIZE > 64) && !defined(CLI_MINIMAL_VERBOSITY)
+    uint32_t mask;
+    uint32_t detectedSensorsMask = sensorsMask();
 
-    for (int i = 0; i < SENSOR_INDEX_COUNT; i++) {
+    for (uint32_t i = 0; ; i++) {
 
-        const uint32_t mask = (1 << i);
+        if (sensorTypeNames[i] == NULL)
+            break;
+
+        mask = (1 << i);
         if ((detectedSensorsMask & mask) && (mask & SENSOR_NAMES_MASK)) {
-            const int sensorHardwareIndex = detectedSensors[i];
-            const char *sensorHardware = sensorHardwareNames[i][sensorHardwareIndex];
+            const char *sensorHardware;
+            uint8_t sensorHardwareIndex = detectedSensors[i];
+            sensorHardware = sensorHardwareNames[i][sensorHardwareIndex];
 
             cliPrintf(", %s=%s", sensorTypeNames[i], sensorHardware);
 
@@ -2909,9 +3617,9 @@ static void cliStatus(char *cmdline)
     cliPrint("\r\n");
 
 #ifdef USE_I2C
-    const uint16_t i2cErrorCounter = i2cGetErrorCounter();
+    uint16_t i2cErrorCounter = i2cGetErrorCounter();
 #else
-    const uint16_t i2cErrorCounter = 0;
+    uint16_t i2cErrorCounter = 0;
 #endif
 
 #ifdef STACK_CHECK
@@ -2920,6 +3628,10 @@ static void cliStatus(char *cmdline)
     cliPrintf("Stack size: %d, Stack address: 0x%x\r\n", stackTotalSize(), stackHighMem());
 
     cliPrintf("Cycle Time: %d, I2C Errors: %d, config size: %d\r\n", cycleTime, i2cErrorCounter, sizeof(master_t));
+
+#ifdef USE_SDCARD
+    cliSdInfo(NULL);
+#endif
 }
 
 #ifndef SKIP_TASK_STATISTICS
@@ -2930,7 +3642,7 @@ static void cliTasks(char *cmdline)
     int averageLoadSum = 0;
     cfCheckFuncInfo_t checkFuncInfo;
 
-    cliPrintf("Task list         rate/hz  max/us  avg/us maxload avgload     total/ms\r\n");
+    cliPrintf("Task list          rate/hz  max/us  avg/us maxload avgload     total/ms\r\n");
     for (cfTaskId_e taskId = 0; taskId < TASK_COUNT; taskId++) {
         cfTaskInfo_t taskInfo;
         getTaskInfo(taskId, &taskInfo);
@@ -2945,19 +3657,19 @@ static void cliTasks(char *cmdline)
             cliPrintf("%2d - %12s  %6d   %5d   %5d %4d.%1d%% %4d.%1d%%  %8d\r\n",
                     taskId, taskInfo.taskName, taskFrequency, taskInfo.maxExecutionTime, taskInfo.averageExecutionTime,
                     maxLoad/10, maxLoad%10, averageLoad/10, averageLoad%10, taskInfo.totalExecutionTime / 1000);
+            }
         }
-    }
     getCheckFuncInfo(&checkFuncInfo);
     cliPrintf("Task check function %13d %7d %25d\r\n", checkFuncInfo.maxExecutionTime, checkFuncInfo.averageExecutionTime, checkFuncInfo.totalExecutionTime / 1000);
     cliPrintf("Total (excluding SERIAL) %21d.%1d%% %4d.%1d%%\r\n", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
-}
+    }
 #endif
 
 static void cliVersion(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrintf("# %s/%s %s %s / %s (%s)",
+    cliPrintf("# %s/%s %s %s / %s (%s)\r\n",
         FC_NAME,
         targetName,
         FC_VERSION_STRING,
@@ -3049,13 +3761,14 @@ void cliProcess(void)
                 cliBuffer[bufferIndex] = 0; // null terminate
 
                 const clicmd_t *cmd;
+                char *options;
                 for (cmd = cmdTable; cmd < cmdTable + CMD_COUNT; cmd++) {
-                    if(!strncasecmp(cliBuffer, cmd->name, strlen(cmd->name))   // command names match
-                       && !isalnum((unsigned)cliBuffer[strlen(cmd->name)]))    // next characted in bufffer is not alphanumeric (command is correctly terminated)
+                    if ((options = checkCommand(cliBuffer, cmd->name))) {
                         break;
+            }
                 }
                 if(cmd < cmdTable + CMD_COUNT)
-                    cmd->func(cliBuffer + strlen(cmd->name) + 1);
+                    cmd->func(options);
                 else
                     cliPrint("Unknown command, try 'help'");
                 bufferIndex = 0;
@@ -3089,20 +3802,29 @@ static void cliResource(char *cmdline)
     UNUSED(cmdline);
     cliPrintf("IO:\r\n----------------------\r\n");
     for (unsigned i = 0; i < DEFIO_IO_USED_COUNT; i++) {
-        const char* owner;
-        owner = ownerNames[ioRecs[i].owner];
+            const char* owner;
+            owner = ownerNames[ioRecs[i].owner];
 
         const char* resource;
         resource = resourceNames[ioRecs[i].resource];
 
-        if (ioRecs[i].index > 0) {
+            if (ioRecs[i].index > 0) {
             cliPrintf("%c%02d: %s%d %s\r\n", IO_GPIOPortIdx(ioRecs + i) + 'A', IO_GPIOPinIdx(ioRecs + i), owner, ioRecs[i].index, resource);
-        } else {
+            } else {
             cliPrintf("%c%02d: %s %s\r\n", IO_GPIOPortIdx(ioRecs + i) + 'A', IO_GPIOPinIdx(ioRecs + i), owner, resource);
+            }
         }
-    }
-}
+            }
 #endif
+
+void cliDfu(char *cmdLine)
+{
+    UNUSED(cmdLine);
+#ifndef CLI_MINIMAL_VERBOSITY
+    cliPrint("\r\nRestarting in DFU mode");
+#endif
+    cliRebootEx(true);
+}
 
 void cliInit(serialConfig_t *serialConfig)
 {
