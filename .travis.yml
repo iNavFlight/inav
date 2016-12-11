@@ -28,8 +28,7 @@ addons:
 language: cpp
 compiler: clang
 
-before_install:
-  - curl --retry 10 --retry-max-time 120 -L "https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q2-update/+download/gcc-arm-none-eabi-5_4-2016q2-20160622-linux.tar.bz2" | tar xfj -
+before_install: ./install-toolchain.sh
 
 install:
   - export PATH=$PATH:$PWD/gcc-arm-none-eabi-5_4-2016q2/bin
@@ -38,11 +37,12 @@ before_script: arm-none-eabi-gcc --version
 script: ./.travis.sh
 
 cache: 
+  apt: true
   directories:
   - $PWD/gcc-arm-none-eabi-5_4-2016q2
 
 notifications:
-  slack: inavflight:UWRoWFJ4cbbpHXT8HJJlAPXa
+  #slack: inavflight:UWRoWFJ4cbbpHXT8HJJlAPXa
   email: false
   webhooks:
     urls:
