@@ -1,18 +1,21 @@
 env:
-  - TARGET=CC3D
-  - TARGET=CJMCU
-  - TARGET=NAZE
-  - TARGET=STM32F3DISCOVERY
-  - TARGET=RMDO
-  - TARGET=SPRACINGF3
-  - TARGET=SPRACINGF3EVO
-  - TARGET=SPARKY
-  - TARGET=FURYF3
-  - TARGET=RCEXPLORERF3
-  - TARGET=REVO
+#  - TARGET=CC3D
+#  - TARGET=CJMCU
+#  - TARGET=NAZE
+#  - TARGET=STM32F3DISCOVERY
+#  - TARGET=RMDO
+#  - TARGET=SPRACINGF3
+#  - TARGET=SPRACINGF3EVO
+#  - TARGET=SPARKY
+#  - TARGET=FURYF3
+#  - TARGET=RCEXPLORERF3
+#  - TARGET=REVO
   
 # use new docker environment
 sudo: false
+
+git:
+  depth: 5
 
 addons:
   apt:
@@ -20,11 +23,6 @@ addons:
       - build-essential
       - git
       - libc6-i386
-      - zlib1g-dev
-      - libssl-dev
-      - wkhtmltopdf
-      - libxml2-dev
-      - libxslt-dev
 
 # We use cpp for unit tests, and c for the main project.
 language: cpp
@@ -39,7 +37,9 @@ install:
 before_script: arm-none-eabi-gcc --version
 script: ./.travis.sh
 
-cache: apt
+cache: 
+  directories:
+  - $PWD/gcc-arm-none-eabi-5_4-2016q2
 
 notifications:
   email: false
