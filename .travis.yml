@@ -42,6 +42,7 @@ cache:
   - $PWD/gcc-arm-none-eabi-5_4-2016q2
 
 notifications:
+  slack: inavflight:UWRoWFJ4cbbpHXT8HJJlAPXa
   email: false
   webhooks:
     urls:
