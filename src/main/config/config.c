@@ -657,7 +657,7 @@ static void resetConf(void)
 
     // alternative defaults settings for COLIBRI RACE targets
 #if defined(COLIBRI_RACE)
-    masterConfig.looptime = 1000;
+    masterConfig.gyroConfig.looptime = 1000;
 
     masterConfig.rxConfig.rcmap[0] = 1;
     masterConfig.rxConfig.rcmap[1] = 2;
@@ -685,7 +685,7 @@ static void resetConf(void)
     masterConfig.motorConfig.minthrottle = 1000;
     masterConfig.motorConfig.maxthrottle = 2000;
     masterConfig.motorConfig.motorPwmRate = 32000;
-    masterConfig.looptime = 2000;
+    masterConfig.gyroConfig.looptime = 2000;
     currentProfile->pidProfile.P8[ROLL] = 36;
     currentProfile->pidProfile.P8[PITCH] = 36;
     masterConfig.failsafeConfig.failsafe_delay = 2;
