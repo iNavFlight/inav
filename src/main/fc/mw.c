@@ -708,7 +708,7 @@ bool taskUpdateRxCheck(timeUs_t currentTimeUs, uint32_t currentDeltaTime)
 {
     UNUSED(currentDeltaTime);
 
-    return updateRx(currentTimeUs);
+    return rxUpdateCheck(currentTimeUs, currentDeltaTime);
 }
 
 void taskUpdateRxMain(timeUs_t currentTimeUs)
