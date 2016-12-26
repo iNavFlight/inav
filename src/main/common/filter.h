@@ -58,6 +58,7 @@ void pt1FilterReset(pt1Filter_t *filter, float input);
 void rateLimitFilterInit(rateLimitFilter_t *filter);
 float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_limit, float dT);
 
+void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t refreshRate, uint16_t filterFreq, uint16_t cutoffHz);
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t refreshRate);
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType);
 float biquadFilterApply(biquadFilter_t *filter, float sample);
