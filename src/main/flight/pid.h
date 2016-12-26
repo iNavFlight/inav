@@ -57,7 +57,9 @@ typedef struct pidProfile_s {
     uint8_t dterm_lpf_hz;                   // (default 17Hz, Range 1-50Hz) Used for PT1 element in PID1, PID2 and PID5
     uint8_t yaw_pterm_lpf_hz;               // Used for filering Pterm noise on noisy frames
     uint8_t gyro_soft_lpf_hz;               // Gyro FIR filtering
-    uint8_t acc_soft_lpf_hz;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
+    uint16_t gyro_soft_notch_hz;			// Gyro Notch frequency
+	uint16_t gyro_soft_notch_cutoff_hz;		// Gyro Notch Cutoff frequency
+	uint8_t acc_soft_lpf_hz;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
 
     uint16_t yaw_p_limit;
     uint8_t yaw_lpf_hz;
@@ -87,7 +89,7 @@ struct controlRateConfig_s;
 struct motorConfig_s;
 struct rxConfig_s;
 
-void signalRequiredPIDCoefficientsUpdate(void);
+void schedulePidGainsUpdate(void);
 void updatePIDCoefficients(const pidProfile_t *pidProfile, const struct controlRateConfig_s *controlRateConfig, const struct motorConfig_s *motorConfig);
 void pidController(const pidProfile_t *pidProfile, const struct controlRateConfig_s *controlRateConfig, const struct rxConfig_s *rxConfig);
 
