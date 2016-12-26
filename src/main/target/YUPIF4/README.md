@@ -9,7 +9,7 @@ The YuPiF4 is a 36x36mm (30.5x30.5 mounting holes) board with an F4 microcontrol
 ## MCU, Sensors and Features
 ### Hardware  
 - MCU: STM32F405RTG6  
-- IMU: not yet defined  
+- IMU: ICM-20689  
 - IMU Interrupt: Yes  
 - BARO: No  
 - VCP: Yes  
@@ -37,4 +37,4 @@ The YuPiF4 is a 36x36mm (30.5x30.5 mounting holes) board with an F4 microcontrol
 
 This board is currently in the prototype phase. Only small batches were manufactured for testing.Website : http://www.yupif4.com/
 
-![YuPiF4 - Logo](http://www.yupif4.com/imgs/YuPiF4.jpg)
+![YuPiF4 - Logo](https://www.yupif4.com/wp-content/uploads/2016/10/fc1.jpg)
