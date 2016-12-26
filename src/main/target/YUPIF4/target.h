@@ -34,10 +34,23 @@
 #define INVERTER_USART          USART6
 
 
-// MPU6500 interrupt
+// Gyro interrupt
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 #define MPU_INT_EXTI            PC4
+
+//ICM 20689
+#define ICM20689_CS_PIN          PA4
+#define ICM20689_SPI_INSTANCE    SPI1
+
+#define ACC
+#define USE_ACC_SPI_ICM20689
+#define ACC_ICM20689_ALIGN       CW90_DEG
+
+#define GYRO
+#define USE_GYRO_SPI_ICM20689
+#define GYRO_ICM20689_ALIGN      CW90_DEG
+
 // MPU6500
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_INSTANCE    SPI1
@@ -51,9 +64,6 @@
 #define USE_GYRO_MPU6500
 #define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW90_DEG
-
-#define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
 
 #define MAG
 #define USE_MAG_HMC5883
@@ -79,7 +89,7 @@
 #define SERIAL_PORT_COUNT       4 // VCP, UART1, UART3, UART6
 
 #define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0
+#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
 
 
 // SD Card
@@ -100,7 +110,6 @@
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 
-
 // SPI ports definition
 #define USE_SPI
 
@@ -110,6 +119,13 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
+/*
+#define USE_SPI_DEVICE_2 //Free
+#define SPI2_NSS_PIN            PB12
+#define SPI2_SCK_PIN            PB13
+#define SPI2_MISO_PIN           PC2
+*/
+
 #define USE_SPI_DEVICE_3 // SD Card
 #define SPI3_NSS_PIN            PB3
 #define SPI3_SCK_PIN            PC10
@@ -118,8 +134,7 @@
 
 // I2C port definition
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define USE_I2C_PULLUP
+#define I2C_DEVICE              (I2CDEV_1) // SCL PB8 - SDA PB9
 
 // ADC inputs
 #define BOARD_HAS_VOLTAGE_DIVIDER
