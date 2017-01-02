@@ -13,5 +13,8 @@ TARGET_SRC = \
             drivers/flash_m25p16.c \
             drivers/light_ws2811strip.c \
             drivers/light_ws2811strip_stm32f10x.c \
+            drivers/sonar_hcsr04.c \
+            drivers/sonar_srf10.c \
+            drivers/opflow_adns3080.c \
             io/flashfs.c
 

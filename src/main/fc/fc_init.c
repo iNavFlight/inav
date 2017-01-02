@@ -100,6 +100,7 @@
 #include "sensors/battery.h"
 #include "sensors/boardalignment.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/opflow.h"
 #include "sensors/initialisation.h"
 #include "sensors/sonar.h"
 
@@ -503,7 +504,8 @@ void init(void)
             &masterConfig.accelerometerConfig,
             &masterConfig.compassConfig,
             &masterConfig.barometerConfig,
-            &masterConfig.pitotmeterConfig
+            &masterConfig.pitotmeterConfig,
+            &masterConfig.opflowConfig
             )) {
 
         // if gyro was not detected due to whatever reason, we give up now.

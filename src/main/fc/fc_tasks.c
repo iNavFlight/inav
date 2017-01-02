@@ -66,6 +66,7 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/opflow.h"
 #include "sensors/rangefinder.h"
 
 #include "telemetry/telemetry.h"
@@ -172,6 +173,18 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
 
     if (sensors(SENSOR_PITOT)) {
         pitotUpdate();
+    }
+}
+#endif
+
+#ifdef OPTICAL_FLOW
+void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    if (sensors(SENSOR_OPTICAL_FLOW)) {
+        timeDelta_t deltaTimeUs = getTaskDeltaTime(TASK_SELF);
+        opticalFlowUpdate(deltaTimeUs);
     }
 }
 #endif
@@ -299,6 +312,9 @@ void fcTasksInit(void)
 #endif
 #ifdef PITOT
     setTaskEnabled(TASK_PITOT, sensors(SENSOR_PITOT));
+#endif
+#ifdef OPTICAL_FLOW
+    setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPTICAL_FLOW));
 #endif
 #ifdef SONAR
     setTaskEnabled(TASK_SONAR, sensors(SENSOR_SONAR));
@@ -443,6 +459,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
         .desiredPeriod = TASK_PERIOD_HZ(10),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef OPTICAL_FLOW
+    [TASK_OPFLOW] = {
+        .taskName = "OPFLOW",
+        .taskFunc = taskUpdateOpticalFlow,
+        .desiredPeriod = 1000000 / 250,         // The more - the better
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

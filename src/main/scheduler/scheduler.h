@@ -68,6 +68,9 @@ typedef enum {
 #ifdef PITOT
     TASK_PITOT,
 #endif
+#ifdef OPTICAL_FLOW
+    TASK_OPFLOW,
+#endif
 #ifdef SONAR
     TASK_SONAR,
 #endif

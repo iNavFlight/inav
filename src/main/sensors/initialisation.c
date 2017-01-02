@@ -26,6 +26,7 @@
 
 #include "drivers/logging.h"
 
+
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
@@ -36,6 +37,7 @@
 #include "sensors/gyro.h"
 #include "sensors/compass.h"
 #include "sensors/rangefinder.h"
+#include "sensors/opflow.h"
 #include "sensors/initialisation.h"
 
 uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE };
@@ -46,7 +48,8 @@ bool sensorsAutodetect(const gyroConfig_t *gyroConfig,
                 accelerometerConfig_t *accConfig,
                 compassConfig_t *compassConfig,
                 barometerConfig_t *baroConfig,
-                pitotmeterConfig_t *pitotConfig)
+                pitotmeterConfig_t *pitotConfig,
+                opticalFlowConfig_t *opflowConfig)
 {
     bool eepromUpdatePending = false;
 
@@ -74,6 +77,14 @@ bool sensorsAutodetect(const gyroConfig_t *gyroConfig,
     UNUSED(pitotConfig);
 #endif
 
+#ifdef OPTICAL_FLOW
+    if (opticalFlowDetect(&opflow.dev, opflowConfig->opflow_hardware)) {
+        opticalFlowInit();
+    }
+#else
+    UNUSED(opflowConfig);
+#endif
+
     // FIXME extract to a method to reduce dependencies, maybe move to sensors_compass.c
     mag.magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
 #ifdef MAG
@@ -92,6 +103,7 @@ bool sensorsAutodetect(const gyroConfig_t *gyroConfig,
     const rangefinderType_e rangefinderType = rangefinderDetect();
     rangefinderInit(rangefinderType);
 #endif
+
     if (gyroConfig->gyro_align != ALIGN_DEFAULT) {
         gyro.dev.gyroAlign = gyroConfig->gyro_align;
     }
@@ -120,6 +132,11 @@ bool sensorsAutodetect(const gyroConfig_t *gyroConfig,
 
     if (pitotConfig->pitot_hardware == PITOT_AUTODETECT) {
         pitotConfig->pitot_hardware = detectedSensors[SENSOR_INDEX_PITOT];
+        eepromUpdatePending = true;
+    }
+
+    if (opflowConfig->opflow_hardware == OPTICAL_FLOW_AUTODETECT) {
+        opflowConfig->opflow_hardware = detectedSensors[SENSOR_INDEX_OPTICAL_FLOW];
         eepromUpdatePending = true;
     }
 

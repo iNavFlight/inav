@@ -62,6 +62,7 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/opflow.h"
 
 #include "telemetry/telemetry.h"
 
@@ -153,6 +154,8 @@ typedef struct master_s {
     compassConfig_t compassConfig;
 
     pitotmeterConfig_t pitotmeterConfig;
+
+    opticalFlowConfig_t opflowConfig;
 
     batteryConfig_t batteryConfig;
 
