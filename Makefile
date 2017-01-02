@@ -592,6 +592,7 @@ HIGHEND_SRC = \
             io/osd.c \
             sensors/rangefinder.c \
             sensors/barometer.c \
+            sensors/opflow.c \
             sensors/pitotmeter.c \
             telemetry/telemetry.c \
             telemetry/frsky.c \

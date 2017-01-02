@@ -259,6 +259,8 @@ static const char * const magNames[] = { "NONE", "AUTO", "HMC5883", "AK8975", "G
 static const char * const rangefinderNames[] = { "NONE", "HCSR04", "SRF10"};
 // sync with pitotSensor_e
 static const char * const pitotmeterNames[] = { "NONE", "AUTO", "MS4525", "FAKE"};
+// sync with opticalFlowType_e
+static const char * const opflowNames[] = { "NONE", "AUTO", "ADNS3080"};
 
 #if (FLASH_SIZE > 64)
 // sync this with sensors_e
@@ -266,13 +268,13 @@ static const char * const sensorTypeNames[] = {
     "GYRO", "ACC", "BARO", "MAG", "SONAR", "PITOT", "GPS", "GPS+MAG", NULL
 };
 
-#define SENSOR_NAMES_MASK (SENSOR_GYRO | SENSOR_ACC | SENSOR_BARO | SENSOR_MAG | SENSOR_SONAR | SENSOR_PITOT)
+#define SENSOR_NAMES_MASK (SENSOR_GYRO | SENSOR_ACC | SENSOR_BARO | SENSOR_MAG | SENSOR_SONAR | SENSOR_PITOT | SENSOR_OPTICAL_FLOW)
 
 static const char * const hardwareSensorStatusNames[] = {
     "NONE", "OK", "UNAVAILABLE", "FAILING"
 };
 
-static const char * const *sensorHardwareNames[] = {gyroNames, accNames, baroNames, magNames, rangefinderNames, pitotmeterNames};
+static const char * const *sensorHardwareNames[] = {gyroNames, accNames, baroNames, magNames, rangefinderNames, pitotmeterNames, opflowNames};
 #endif
 
 #ifdef OSD

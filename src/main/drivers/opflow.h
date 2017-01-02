@@ -17,9 +17,20 @@
 
 #pragma once
 
-bool sensorsAutodetect(const gyroConfig_t *gyroConfig,
-                accelerometerConfig_t *accConfig,
-                compassConfig_t *compassConfig,
-                barometerConfig_t *baroConfig,
-                pitotmeterConfig_t *pitotConfig,
-                opticalFlowConfig_t *opflowConfig);
+typedef struct opflow_data_s {
+    union {
+        int16_t A[2];
+        struct {
+            int16_t X;
+            int16_t Y;
+        } V;
+    } delta;
+
+    int16_t quality;
+} opflow_data_t;
+
+typedef struct opflowDev_s {
+    sensorInitFuncPtr init;     // initialize function
+    sensorReadFuncPtr read;     // read DX, DY (in pixels) and surface quality (0-255)
+    bool hasSoftSPI;            // Has software SPI
+} opflowDev_t;

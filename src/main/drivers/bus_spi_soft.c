@@ -70,18 +70,29 @@ void softSpiInit(const softSPIDevice_t *dev)
 
 uint8_t softSpiTransferByte(const softSPIDevice_t *dev, uint8_t byte)
 {
+    volatile int jj;
+
     for(int ii = 0; ii < 8; ++ii) {
         if (byte & 0x80) {
             IOHi(IOGetByTag(dev->mosiTag));
         } else {
             IOLo(IOGetByTag(dev->mosiTag));
         }
+
+        jj = 3; 
+        while(jj) jj--;
+
         IOHi(IOGetByTag(dev->sckTag));
+
         byte <<= 1;
         if (IORead(IOGetByTag(dev->misoTag)) == 1) {
             byte |= 1;
         }
+
         IOLo(IOGetByTag(dev->sckTag));
+ 
+        jj = 3; 
+        while(jj) jj--;
     }
     return byte;
 }

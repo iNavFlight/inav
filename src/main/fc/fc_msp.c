@@ -392,13 +392,13 @@ static uint16_t packSensorStatus(void)
 {
     // Sensor bits
     uint16_t sensorStatus =
-            IS_ENABLED(sensors(SENSOR_ACC))     << 0 |
-            IS_ENABLED(sensors(SENSOR_BARO))    << 1 |
-            IS_ENABLED(sensors(SENSOR_MAG))     << 2 |
-            IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
-            IS_ENABLED(sensors(SENSOR_SONAR))   << 4 |
-            //IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
-            IS_ENABLED(sensors(SENSOR_PITOT))   << 6;
+            IS_ENABLED(sensors(SENSOR_ACC))             << 0 |
+            IS_ENABLED(sensors(SENSOR_BARO))            << 1 |
+            IS_ENABLED(sensors(SENSOR_MAG))             << 2 |
+            IS_ENABLED(sensors(SENSOR_GPS))             << 3 |
+            IS_ENABLED(sensors(SENSOR_SONAR))           << 4 |
+            IS_ENABLED(sensors(SENSOR_OPTICAL_FLOW))    << 5 |
+            IS_ENABLED(sensors(SENSOR_PITOT))           << 6;
 
     // Hardware failure indication bit
     if (!isHardwareHealthy()) {
@@ -557,7 +557,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, getHwGPSStatus());
         sbufWriteU8(dst, getHwRangefinderStatus());
         sbufWriteU8(dst, getHwPitotmeterStatus());
-        sbufWriteU8(dst, HW_SENSOR_NONE);                   // Optical flow
+        sbufWriteU8(dst, getHwOpticalFlowStatus());
         break;
 
     case MSP_STATUS_EX:

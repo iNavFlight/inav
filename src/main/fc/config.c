@@ -43,6 +43,7 @@
 #include "sensors/battery.h"
 #include "sensors/boardalignment.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/opflow.h"
 
 #include "io/beeper.h"
 #include "io/serial.h"
@@ -534,6 +535,12 @@ void createDefaultConfig(master_t *config)
     config->pitotmeterConfig.pitot_hardware = PITOT_AUTODETECT;
 #else
     config->pitotmeterConfig.pitot_hardware = PITOT_NONE;
+#endif
+
+#ifdef OPTICAL_FLOW
+    config->opflowConfig.opflow_hardware = OPTICAL_FLOW_AUTODETECT;
+#else
+    config->opflowConfig.opflow_hardware = PITOT_NONE;
 #endif
 
     resetBatteryConfig(&config->batteryConfig);

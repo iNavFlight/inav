@@ -15,6 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+ 
 #define TARGET_BOARD_IDENTIFIER "CC3D" // CopterControl 3D
 
 #define LED0                    PB3
@@ -76,72 +78,96 @@
 
 
 #if defined(CC3D_NRF24) || defined(CC3D_NRF24_OPBL)
-#define USE_RX_NRF24
+    #define USE_RX_NRF24
 #endif
 
 #ifdef USE_RX_NRF24
-#define USE_RX_SPI
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SPI
-#define DEFAULT_FEATURES        FEATURE_SOFTSPI
-#define USE_RX_SYMA
-//#define USE_RX_V202
-#define USE_RX_CX10
-//#define USE_RX_H8_3D
-#define USE_RX_INAV
-#define RX_SPI_DEFAULT_PROTOCOL  NRF24RX_SYMA_X5C
-//#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_V202_1M
-//#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_H8_3D
+    #define USE_RX_SPI
+    #define DEFAULT_RX_FEATURE      FEATURE_RX_SPI
+    #define DEFAULT_FEATURES        FEATURE_SOFTSPI
+    #define USE_RX_SYMA
+    //#define USE_RX_V202
+    #define USE_RX_CX10
+    //#define USE_RX_H8_3D
+    #define USE_RX_INAV
+    #define RX_SPI_DEFAULT_PROTOCOL  NRF24RX_SYMA_X5C
+    //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_V202_1M
+    //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_H8_3D
 
-#define USE_SOFTSPI
-#define USE_RX_SOFTSPI
+    #define USE_SOFTSPI
+    #define USE_RX_SOFTSPI
 
-// RC pinouts
-// RC1              GND
-// RC2              power
-// RC3  PB6/TIM4    unused
-// RC4  PB5/TIM3    SCK / softserial1 TX / sonar trigger
-// RC5  PB0/TIM3    MISO / softserial1 RX / sonar echo / RSSI ADC
-// RC6  PB1/TIM3    MOSI / current
-// RC7  PA0/TIM2    CSN / battery voltage
-// RC8  PA1/TIM2    CE / RX_PPM
+    // RC pinouts
+    // RC1              GND
+    // RC2              power
+    // RC3  PB6/TIM4    unused
+    // RC4  PB5/TIM3    SCK / softserial1 TX / sonar trigger
+    // RC5  PB0/TIM3    MISO / softserial1 RX / sonar echo / RSSI ADC
+    // RC6  PB1/TIM3    MOSI / current
+    // RC7  PA0/TIM2    CSN / battery voltage
+    // RC8  PA1/TIM2    CE / RX_PPM
 
-// Nordic Semiconductor uses 'CSN', STM uses 'NSS'
-#define RX_NSS_GPIO_CLK_PERIPHERAL  RCC_APB2Periph_GPIOA
-#define RX_NSS_PIN                  PA0
-#define RX_CE_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
-#define RX_CE_PIN                   PA1
-#define RX_NSS_PIN                  PA0
-#define RX_SCK_PIN                  PB5
-#define RX_MOSI_PIN                 PB1
-#define RX_MISO_PIN                 PB0
+    // Nordic Semiconductor uses 'CSN', STM uses 'NSS'
+    #define RX_NSS_GPIO_CLK_PERIPHERAL  RCC_APB2Periph_GPIOA
+    #define RX_NSS_PIN                  PA0
+    #define RX_CE_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
+    #define RX_CE_PIN                   PA1
+    #define RX_NSS_PIN                  PA0
+    #define RX_SCK_PIN                  PB5
+    #define RX_MOSI_PIN                 PB1
+    #define RX_MISO_PIN                 PB0
 
-#define SERIAL_PORT_COUNT 3
-
+    #define SERIAL_PORT_COUNT 3
 #else
+    #define USE_SOFTSERIAL1
+    #define SERIAL_PORT_COUNT       4
 
-#define USE_SOFTSERIAL1
-#define SERIAL_PORT_COUNT       4
+    #ifdef USE_UART1_RX_DMA
+        #undef USE_UART1_RX_DMA
+    #endif
 
-#ifdef USE_UART1_RX_DMA
-#undef USE_UART1_RX_DMA
-#endif
+    #define SOFTSERIAL_1_TIMER      TIM3
+    #define SOFTSERIAL_1_TIMER_TX_HARDWARE 1 // PWM 2
+    #define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
 
-#define SOFTSERIAL_1_TIMER      TIM3
-#define SOFTSERIAL_1_TIMER_TX_HARDWARE 1 // PWM 2
-#define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
-
-#define DEFAULT_RX_FEATURE FEATURE_RX_PPM
-
+    #define DEFAULT_RX_FEATURE FEATURE_RX_PPM
 #endif // USE_RX_NRF24
+
+
+#if defined(CC3D_OPFLOW)
+    #define DEFAULT_FEATURES        FEATURE_SOFTSPI
+
+    #ifdef DEFAULT_RX_FEATURE
+        #undef DEFAULT_RX_FEATURE
+        #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+    #endif
+
+    #ifdef USE_SOFTSERIAL1
+        #undef USE_SOFTSERIAL1
+        #undef SERIAL_PORT_COUNT
+        #define SERIAL_PORT_COUNT    3
+    #endif
+
+    #define USE_SOFTSPI
+
+    #define OPTICAL_FLOW
+    #define USE_OPTICAL_FLOW_ADNS3080_SOFTSPI
+
+    #define ADNS3080_NSS_GPIO_CLK_PERIPHERAL    RCC_APB2Periph_GPIOA
+    #define ADNS3080_NSS_PIN                    PA0
+    #define ADNS3080_SCK_PIN                    PB5
+    #define ADNS3080_MOSI_PIN                   PB1
+    #define ADNS3080_MISO_PIN                   PB0
+#endif
 
 
 #define USE_ADC
 #define CURRENT_METER_ADC_PIN   PB1
 #define VBAT_ADC_PIN            PA0
 #ifdef CC3D_PPM1
-#define RSSI_ADC_PIN            PA1
+    #define RSSI_ADC_PIN            PA1
 #else
-#define RSSI_ADC_PIN            PB0
+    #define RSSI_ADC_PIN            PB0
 #endif
 
 // LED strip is on PWM5 output pin
@@ -169,16 +195,19 @@
 
 #ifdef OPBL
 
-#ifdef USE_RX_NRF24
-#undef USE_SERVOS
-#endif // USE_RX_NRF24
+    #ifdef USE_RX_NRF24
+        #undef USE_SERVOS
+        #undef USE_SONAR
+    #else
+        #undef USE_SONAR_SRF10
+    #endif // USE_RX_NRF24
 
-#define TARGET_MOTOR_COUNT 4
-#undef USE_MAG_AK8975
-#undef USE_MAG_MAG3110
-#undef BLACKBOX
-#undef SERIAL_RX
-#undef SPEKTRUM_BIND
+    #define TARGET_MOTOR_COUNT 4
+    #undef USE_MAG_AK8975
+    #undef USE_MAG_MAG3110
+    #undef BLACKBOX
+    #undef SERIAL_RX
+    #undef SPEKTRUM_BIND
 
 #else
 #define TARGET_MOTOR_COUNT 4
@@ -188,9 +217,12 @@
 
 
 #ifdef USE_RX_NRF24
-#define SKIP_RX_PWM_PPM
-#undef SERIAL_RX
-#undef SPEKTRUM_BIND
+    #define SKIP_RX_PWM_PPM
+    #undef SERIAL_RX
+    #undef SPEKTRUM_BIND
+    #undef TELEMETRY
+    #undef TELEMETRY_LTM
+    #undef TELEMETRY_IBUS
 #endif
 
 // Number of available PWM outputs

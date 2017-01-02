@@ -23,6 +23,7 @@
 #include "sensors/barometer.h"
 #include "sensors/rangefinder.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/opflow.h"
 
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
@@ -176,6 +177,32 @@ hardwareSensorStatus_e getHwGPSStatus(void)
     }
     else {
         if (feature(FEATURE_GPS) && gpsStats.timeouts > 3) {
+            // Selected but not detected
+            return HW_SENSOR_UNAVAILABLE;
+        }
+        else {
+            // Not selected and not detected
+            return HW_SENSOR_NONE;
+        }
+    }
+#else
+    return HW_SENSOR_NONE;
+#endif
+}
+
+hardwareSensorStatus_e getHwOpticalFlowStatus(void)
+{
+#if defined(OPTICAL_FLOW)
+    if (detectedSensors[SENSOR_INDEX_OPTICAL_FLOW] != OPTICAL_FLOW_NONE) {
+        if (isOpticalFlowHealthy()) {
+            return HW_SENSOR_OK;
+        }
+        else {
+            return HW_SENSOR_UNHEALTHY;
+        }
+    }
+    else {
+        if (requestedSensors[SENSOR_INDEX_OPTICAL_FLOW] != OPTICAL_FLOW_NONE) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
         }

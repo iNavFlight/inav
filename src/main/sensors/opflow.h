@@ -17,9 +17,29 @@
 
 #pragma once
 
-bool sensorsAutodetect(const gyroConfig_t *gyroConfig,
-                accelerometerConfig_t *accConfig,
-                compassConfig_t *compassConfig,
-                barometerConfig_t *baroConfig,
-                pitotmeterConfig_t *pitotConfig,
-                opticalFlowConfig_t *opflowConfig);
+#include <stdint.h>
+#include "drivers/opflow.h"
+
+typedef enum {
+    OPTICAL_FLOW_NONE = 0,
+    OPTICAL_FLOW_AUTODETECT = 1,
+    OPTICAL_FLOW_ADNS3080
+} opticalFlowSensor_e;
+
+typedef struct opticalFlowConfig_s {
+    uint8_t opflow_hardware;                 // Pitotmeter hardware to use
+} opticalFlowConfig_t;
+
+typedef struct opflow_s {
+    opflowDev_t dev;
+    int         flowQuality;          // 0 to 100
+    float       flowVelX;
+    float       flowVelY;
+} opflow_t;
+
+extern opflow_t opflow;
+
+extern bool opticalFlowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse);
+extern void opticalFlowUpdate(timeDelta_t deltaTime);
+extern bool opticalFlowInit(void);
+extern bool isOpticalFlowHealthy(void);
