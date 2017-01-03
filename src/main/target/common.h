@@ -97,6 +97,8 @@
 #define USE_RCSPLIT
 #define PITOT
 #define USE_PITOT_ADC
+#define VTX_CONTROL
+#define VTX_SMARTAUDIO
 #else
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
