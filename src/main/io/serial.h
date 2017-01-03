@@ -42,6 +42,7 @@ typedef enum {
     FUNCTION_TELEMETRY_MAVLINK   = (1 << 8), // 256
     FUNCTION_TELEMETRY_IBUS      = (1 << 9), // 512
     FUNCTION_RCSPLIT             = (1 << 10) // 1024
+    FUNCTION_VTX_CONTROL         = (1 << 11),// 2048
 } serialPortFunction_e;
 
 typedef enum {
