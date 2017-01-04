@@ -540,7 +540,7 @@ void createDefaultConfig(master_t *config)
 #ifdef OPTICAL_FLOW
     config->opflowConfig.opflow_hardware = OPTICAL_FLOW_AUTODETECT;
 #else
-    config->opflowConfig.opflow_hardware = PITOT_NONE;
+    config->opflowConfig.opflow_hardware = OPTICAL_FLOW_NONE;
 #endif
 
     resetBatteryConfig(&config->batteryConfig);
