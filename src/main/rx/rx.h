@@ -153,7 +153,7 @@ extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only need
 struct modeActivationCondition_s;
 void rxInit(const rxConfig_t *rxConfig, const struct modeActivationCondition_s *modeActivationConditions);
 void useRxConfig(const rxConfig_t *rxConfigToUse);
-bool updateRx(timeUs_t currentTimeUs);
+bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime);
 bool rxIsReceivingSignal(void);
 bool rxAreFlightChannelsValid(void);
 void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
