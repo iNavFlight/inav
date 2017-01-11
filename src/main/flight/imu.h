@@ -18,6 +18,7 @@
 #pragma once
 
 #include "common/time.h"
+#include "common/maths.h"
 
 #define GRAVITY_CMSS    980.665f
 
@@ -39,6 +40,7 @@ typedef union {
 } attitudeEulerAngles_t;
 
 extern attitudeEulerAngles_t attitude;
+extern fpQuaternion_t        orientation;
 
 typedef struct imuConfig_s {
     uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer

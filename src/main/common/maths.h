@@ -110,6 +110,11 @@ typedef union {
     fp_angles_def angles;
 } fp_angles_t;
 
+// Quaternion type
+typedef struct {
+    float q0, q1, q2, q3;
+} fpQuaternion_t;
+
 typedef struct filterWithBufferSample_s {
     float value;
     uint32_t timestamp;
