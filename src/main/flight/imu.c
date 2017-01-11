@@ -78,10 +78,9 @@ float smallAngleCosZ = 0;
 
 static bool isAccelUpdatedAtLeastOnce = false;
 
-STATIC_UNIT_TESTED float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;    // quaternion of sensor frame relative to earth frame
-STATIC_UNIT_TESTED float rMat[3][3];
-
-attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
+STATIC_UNIT_TESTED float    rMat[3][3];
+fpQuaternion_t              orientation = { 1.0f, 0.0f, 0.0f, 0.0f }; // quaternion of sensor frame relative to earth frame
+attitudeEulerAngles_t       attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
 static imuRuntimeConfig_t imuRuntimeConfig;
 
@@ -115,16 +114,16 @@ void imuUpdateGyroscope(uint32_t gyroUpdateDeltaUs)
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
 {
-    float q1q1 = q1 * q1;
-    float q2q2 = q2 * q2;
-    float q3q3 = q3 * q3;
+    float q1q1 = orientation.q1 * orientation.q1;
+    float q2q2 = orientation.q2 * orientation.q2;
+    float q3q3 = orientation.q3 * orientation.q3;
 
-    float q0q1 = q0 * q1;
-    float q0q2 = q0 * q2;
-    float q0q3 = q0 * q3;
-    float q1q2 = q1 * q2;
-    float q1q3 = q1 * q3;
-    float q2q3 = q2 * q3;
+    float q0q1 = orientation.q0 * orientation.q1;
+    float q0q2 = orientation.q0 * orientation.q2;
+    float q0q3 = orientation.q0 * orientation.q3;
+    float q1q2 = orientation.q1 * orientation.q2;
+    float q1q3 = orientation.q1 * orientation.q3;
+    float q2q3 = orientation.q2 * orientation.q3;
 
     rMat[0][0] = 1.0f - 2.0f * q2q2 - 2.0f * q3q3;
     rMat[0][1] = 2.0f * (q1q2 + -q0q3);
@@ -214,10 +213,10 @@ STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t
     float cosYaw = cos_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
     float sinYaw = sin_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
 
-    q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
-    q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
-    q2 = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
-    q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
+    orientation.q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
+    orientation.q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
+    orientation.q2 = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
+    orientation.q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
 
     imuComputeRotationMatrix();
 }
@@ -368,20 +367,20 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
     gy *= (0.5f * dt);
     gz *= (0.5f * dt);
 
-    qa = q0;
-    qb = q1;
-    qc = q2;
-    q0 += (-qb * gx - qc * gy - q3 * gz);
-    q1 += (qa * gx + qc * gz - q3 * gy);
-    q2 += (qa * gy - qb * gz + q3 * gx);
-    q3 += (qa * gz + qb * gy - qc * gx);
+    qa = orientation.q0;
+    qb = orientation.q1;
+    qc = orientation.q2;
+    orientation.q0 += (-qb * gx - qc * gy - orientation.q3 * gz);
+    orientation.q1 += (qa * gx + qc * gz - orientation.q3 * gy);
+    orientation.q2 += (qa * gy - qb * gz + orientation.q3 * gx);
+    orientation.q3 += (qa * gz + qb * gy - qc * gx);
 
     // Normalise quaternion
-    recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-    q0 *= recipNorm;
-    q1 *= recipNorm;
-    q2 *= recipNorm;
-    q3 *= recipNorm;
+    recipNorm = invSqrt(orientation.q0 * orientation.q0 + orientation.q1 * orientation.q1 + orientation.q2 * orientation.q2 + orientation.q3 * orientation.q3);
+    orientation.q0 *= recipNorm;
+    orientation.q1 *= recipNorm;
+    orientation.q2 *= recipNorm;
+    orientation.q3 *= recipNorm;
 
     // Pre-compute rotation matrix from quaternion
     imuComputeRotationMatrix();
