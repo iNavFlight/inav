@@ -615,8 +615,8 @@ void pidController(const pidProfile_t *pidProfile, const controlRateConfig_t *co
     }
 
     for (int axis = 0; axis < 3; axis++) {
-        // Step 1: Calculate gyro rates
-        pidState[axis].gyroRate = gyro.gyroADC[axis] * gyro.dev.scale;
+        // Step 1: Calculate gyro rates and use bias calculated by IMU to improve accuracy
+        pidState[axis].gyroRate = gyro.gyroADC[axis] * gyro.dev.scale + imuEstimatedGyroBiasDPS.A[axis];
 
         // Step 2: Read target
         float rateTarget;
