@@ -690,7 +690,9 @@ HIGHEND_SRC = \
             telemetry/mavlink.c \
             telemetry/smartport.c \
             telemetry/telemetry.c \
-            io/vtx_smartaudio.c
+            io/vtx_common.c \
+            io/vtx_smartaudio.c \
+            io/vtx_tramp.c
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 VCP_SRC = \
