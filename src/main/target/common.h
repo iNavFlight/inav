@@ -92,6 +92,7 @@
 #define USE_RCSPLIT
 #define VTX_CONTROL
 #define VTX_SMARTAUDIO
+#define VTX_TRAMP
 #else
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS

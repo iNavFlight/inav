@@ -100,6 +100,7 @@
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/vtx_smartaudio.h"
+#include "io/vtx_tramp.h"
 
 #include "msp/msp_serial.h"
 
@@ -618,9 +619,22 @@ void init(void)
 #ifdef BARO
     baroStartCalibration();
 #endif
+
 #ifdef PITOT
     pitotStartCalibration();
 #endif
+
+#ifdef VTX_CONTROL
+
+#ifdef VTX_SMARTAUDIO
+    smartAudioInit();
+#endif
+
+#ifdef VTX_TRAMP
+    trampInit();
+#endif
+
+#endif // VTX_CONTROL
 
     // start all timers
     // TODO - not implemented yet
