@@ -452,9 +452,17 @@ static void pidApplyRateController(const pidProfile_t *pidProfile, pidState_t *p
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf;
     const float newOutputLimited = constrainf(newOutput, -pidProfile->pidSumLimit, +pidProfile->pidSumLimit);
 
-    // Prevent strong Iterm accumulation during stick inputs
-    const float integratorThreshold = (axis == FD_YAW) ? pidProfile->yawItermIgnoreRate : pidProfile->rollPitchItermIgnoreRate;
-    const float antiWindupScaler = constrainf(1.0f - (ABS(pidState->rateTarget) / integratorThreshold), 0.0f, 1.0f);
+    /*
+     * Prevent strong Iterm accumulation during stick inputs
+     * This is valid only for non-fixed wings. Fixed Wings use full scaling
+     */
+    float antiWindupScaler;
+    if (STATE(FIXED_WING)) {
+        antiWindupScaler = 1.0f;
+    } else {
+        const float integratorThreshold = (axis == FD_YAW) ? pidProfile->yawItermIgnoreRate : pidProfile->rollPitchItermIgnoreRate;
+        antiWindupScaler = constrainf(1.0f - (ABS(pidState->rateTarget) / integratorThreshold), 0.0f, 1.0f);
+    }
 
     pidState->errorGyroIf += (rateError * pidState->kI * antiWindupScaler * dT) + ((newOutputLimited - newOutput) * pidState->kT * dT);
 
