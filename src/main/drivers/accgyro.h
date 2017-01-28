@@ -19,6 +19,7 @@
 
 #include "common/axis.h"
 #include "drivers/exti.h"
+#include "drivers/io_types.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro_mpu.h"
 
@@ -48,6 +49,7 @@ typedef struct gyroDev_s {
     sensorGyroInterruptStatusFuncPtr intStatus;
     sensorGyroUpdateFuncPtr update;
     extiCallbackRec_t exti;
+    IO_t mpuSpiCsPin;
     float scale;                                            // scalefactor
     int16_t gyroADCRaw[XYZ_AXIS_COUNT];
     int16_t gyroZero[XYZ_AXIS_COUNT];
@@ -64,6 +66,7 @@ typedef struct gyroDev_s {
 typedef struct accDev_s {
     sensorAccInitFuncPtr init;                              // initialize function
     sensorAccReadFuncPtr read;                              // read 3 axis data function
+    IO_t mpuSpiCsPin;
     uint16_t acc_1G;
     int16_t ADCRaw[XYZ_AXIS_COUNT];
     char revisionCode;                                      // a revision code for the sensor, if known

@@ -252,8 +252,8 @@ bool gyroInit(void)
     memset(&gyro, 0, sizeof(gyro));
     const extiConfig_t *extiConfig = selectMPUIntExtiConfig();
 #ifdef USE_GYRO_MPU
-    mpuDetect(&gyro.dev);
-    mpuReset = gyro.dev.mpuConfiguration.reset;
+    mpuDetect(&gyro.dev, IOTAG_NONE);
+    mpuResetFn = gyro.dev.mpuConfiguration.resetFn;
 #endif
     gyro.dev.mpuIntExtiConfig =  extiConfig;
     if (gyroDetect(&gyro.dev, GYRO_AUTODETECT) == GYRO_NONE) {
