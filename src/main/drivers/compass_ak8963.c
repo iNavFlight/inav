@@ -40,7 +40,7 @@
 
 #include "accgyro.h"
 #include "accgyro_mpu.h"
-#include "accgyro_spi_mpu9250.h"
+#include "accgyro_spi_mpu6500.h"
 #include "compass_ak8963.h"
 
 // This sensor is available in MPU-9250.
@@ -228,7 +228,7 @@ static bool ak8963Read(int16_t *magData)
     // set magData to latest cached value
     memcpy(magData, cachedMagData, sizeof(cachedMagData));
 
-    // we currently need a different approach for the MPU9250 connected via SPI.
+    // we currently need a different approach for the MPU6500 connected via SPI.
     // we cannot use the ak8963SensorRead() method for SPI, it is to slow and blocks for far too long.
 
     static ak8963ReadState_e state = CHECK_STATUS;
@@ -324,15 +324,15 @@ bool ak8963Detect(magDev_t *mag)
         uint8_t sig = 0;
 
 #if defined(USE_SPI) && defined(MPU6500_SPI_INSTANCE)
-        // initialze I2C master via SPI bus (MPU9250)
+        // initialze I2C master via SPI bus (MPU6500)
 
-        ack = mpu9250WriteRegister(mag->mpuSpiCsPin, MPU_RA_INT_PIN_CFG, 0x10);               // INT_ANYRD_2CLEAR
+        ack = mpu6500SpiWriteRegister(mag->mpuSpiCsPin, MPU_RA_INT_PIN_CFG, 0x10);               // INT_ANYRD_2CLEAR
         delay(10);
 
-        ack = mpu9250WriteRegister(mag->mpuSpiCsPin, MPU_RA_I2C_MST_CTRL, 0x0D);              // I2C multi-master / 400kHz
+        ack = mpu6500SpiWriteRegister(mag->mpuSpiCsPin, MPU_RA_I2C_MST_CTRL, 0x0D);              // I2C multi-master / 400kHz
         delay(10);
 
-        ack = mpu9250WriteRegister(mag->mpuSpiCsPin, MPU_RA_USER_CTRL, 0x30);                 // I2C master mode, SPI mode only
+        ack = mpu6500SpiWriteRegister(mag->mpuSpiCsPin, MPU_RA_USER_CTRL, 0x30);                 // I2C master mode, SPI mode only
         delay(10);
 #endif
 
