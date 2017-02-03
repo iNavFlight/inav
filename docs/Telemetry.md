@@ -163,17 +163,17 @@ It shares 1 line for both TX and RX, the rx pin cannot be used for other serial 
 It runs at a fixed baud rate of 115200, so it need hardware uart (softserial is limit to 19200).
 ```
      _______
-    /       \                                             /---------\
-    | STM32 |--UART TX-->[Bi-directional @ 115200 baud]<--| IBUS RX |
-    |  uC   |--UART RX--x[not connected]                  \---------/
+    /       \                                              /---------\
+    | STM32 |<->UART TX-->[Bi-directional @ 115200 baud]<->| IBUS RX |
+    |  uC   |-  UART RX--x[not connected]                  \---------/
     \_______/
 ```
 It is possible to daisy chain multiple sensors with ibus, but telemetry sensor will be overwrite by value sensor.
-In this case sensor should be connected to FC and RX to sensor.
+In this case sensor should be connected to RX and FC to sensor.
 ```
      _______
     /       \                                             /---------\   /-------------\   /---------\
-    | STM32 |--UART TX-->[Bi-directional @ 115200 baud]<--| CVT-01  |<--|others sensor|<--| IBUS RX |
+    | STM32 |--UART TX-->[Bi-directional @ 115200 baud]-->| CVT-01  |-->|others sensor|-->| IBUS RX |
     |  uC   |--UART RX--x[not connected]                  \---------/   \-------------/   \---------/
     \_______/
 ```
