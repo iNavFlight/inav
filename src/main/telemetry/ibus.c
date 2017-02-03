@@ -38,6 +38,7 @@
 
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 #include "scheduler/scheduler.h"
 
 #include "io/serial.h"
@@ -373,7 +374,7 @@ static void pushOntoTail(uint8_t buffer[IBUS_MIN_LEN], size_t bufferLength, uint
 void initIbusTelemetry(void) {
     ibusSerialPortConfig = findSerialPortConfig(FUNCTION_TELEMETRY_IBUS);
 #if defined(GPS)
-    if (telemetryConfig->ibusTelemetryType == 1) SENSOR_ADDRESS_TYPE_LOOKUP[15] = IBUS_MEAS_TYPE_SPE;
+    if (telemetryConfig()->ibusTelemetryType == 1) SENSOR_ADDRESS_TYPE_LOOKUP[15] = IBUS_MEAS_TYPE_SPE;
 #endif
     ibusPortSharing = determinePortSharing(ibusSerialPortConfig, FUNCTION_TELEMETRY_IBUS);
 }
