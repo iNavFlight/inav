@@ -173,26 +173,34 @@ static void updatePreArmingChecks(void)
 
 void annexCode(void)
 {
-
     int32_t throttleValue;
 
-    // Compute ROLL PITCH and YAW command
-    rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-    rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-    rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
+    if (failsafeIsActive()) {
+        // Failsafe will apply rcCommand for us
+        failsafeApplyControlInput();
+    }
+    else {
+        // Compute ROLL PITCH and YAW command
+        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
 
-    //Compute THROTTLE command
-    throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
-    throttleValue = (uint32_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);       // [MINCHECK;2000] -> [0;1000]
-    rcCommand[THROTTLE] = rcLookupThrottle(throttleValue);
+        //Compute THROTTLE command
+        throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
+        throttleValue = (uint32_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);       // [MINCHECK;2000] -> [0;1000]
+        rcCommand[THROTTLE] = rcLookupThrottle(throttleValue);
 
-    if (FLIGHT_MODE(HEADFREE_MODE)) {
-        const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
-        const float cosDiff = cos_approx(radDiff);
-        const float sinDiff = sin_approx(radDiff);
-        const int16_t rcCommand_PITCH = rcCommand[PITCH] * cosDiff + rcCommand[ROLL] * sinDiff;
-        rcCommand[ROLL] = rcCommand[ROLL] * cosDiff - rcCommand[PITCH] * sinDiff;
-        rcCommand[PITCH] = rcCommand_PITCH;
+        // Signal updated rcCommand values to Failsafe system
+        failsafeUpdateRcCommandValues();
+
+        if (FLIGHT_MODE(HEADFREE_MODE)) {
+            const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
+            const float cosDiff = cos_approx(radDiff);
+            const float sinDiff = sin_approx(radDiff);
+            const int16_t rcCommand_PITCH = rcCommand[PITCH] * cosDiff + rcCommand[ROLL] * sinDiff;
+            rcCommand[ROLL] = rcCommand[ROLL] * cosDiff - rcCommand[PITCH] * sinDiff;
+            rcCommand[PITCH] = rcCommand_PITCH;
+        }
     }
 
     if (ARMING_FLAG(ARMED)) {
@@ -304,16 +312,14 @@ void processRx(timeUs_t currentTimeUs)
 
     updateRSSI(currentTimeUs);
 
-    if (feature(FEATURE_FAILSAFE)) {
-
-        if (currentTimeUs > FAILSAFE_POWER_ON_DELAY_US && !failsafeIsMonitoring()) {
-            failsafeStartMonitoring();
-        }
-
-        failsafeUpdateState();
+    // Update failsafe monitoring system
+    if (currentTimeUs > FAILSAFE_POWER_ON_DELAY_US && !failsafeIsMonitoring()) {
+        failsafeStartMonitoring();
     }
 
-    const throttleStatus_e throttleStatus = calculateThrottleStatus(flight3DConfig()->deadband3d_throttle);
+    failsafeUpdateState();
+
+    const throttleStatus_e throttleStatus = calculateThrottleStatus();
 
     // When armed and motors aren't spinning, do beeps and then disarm
     // board after delay so users without buzzer won't lose fingers.
@@ -370,7 +376,7 @@ void processRx(timeUs_t currentTimeUs)
 
     bool canUseHorizonMode = true;
 
-    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || (feature(FEATURE_FAILSAFE) && failsafeIsActive()) || naivationRequiresAngleMode()) && sensors(SENSOR_ACC)) {
+    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || failsafeRequiresAngleMode() || naivationRequiresAngleMode()) && sensors(SENSOR_ACC)) {
         // bumpless transfer to Level mode
         canUseHorizonMode = false;
 

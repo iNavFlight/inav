@@ -324,9 +324,7 @@ static void initActiveBoxIds(void)
     }
 #endif
 
-    if (feature(FEATURE_FAILSAFE)){
-        activeBoxIds[activeBoxIdCount++] = BOXFAILSAFE;
-    }
+    activeBoxIds[activeBoxIdCount++] = BOXFAILSAFE;
 }
 
 #define IS_ENABLED(mask) (mask == 0 ? 0 : 1)
@@ -587,7 +585,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
                 sbufWriteU16(dst, acc.accADC[i] / scale);
             }
             for (int i = 0; i < 3; i++) {
-                sbufWriteU16(dst, gyro.gyroADC[i]);
+                sbufWriteU16(dst, lrintf(gyro.gyroADCf[i] / gyro.dev.scale));
             }
             for (int i = 0; i < 3; i++) {
                 sbufWriteU16(dst, mag.magADC[i]);
@@ -644,11 +642,16 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
 
     case MSP_ALTITUDE:
 #if defined(NAV)
-        sbufWriteU32(dst, (uint32_t)lrintf(getEstimatedActualPosition(Z)));
-        sbufWriteU16(dst, (uint32_t)lrintf(getEstimatedActualVelocity(Z)));
+        sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
+        sbufWriteU16(dst, lrintf(getEstimatedActualVelocity(Z)));
 #else
         sbufWriteU32(dst, 0);
         sbufWriteU16(dst, 0);
+#endif
+#if defined(BARO)
+        sbufWriteU32(dst, baroGetLatestAltitude());
+#else
+        sbufWriteU32(dst, 0);
 #endif
         break;
 
@@ -903,13 +906,6 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, failsafeConfig()->failsafe_recovery_delay);
         break;
 
-    case MSP_RXFAIL_CONFIG:
-        for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU8(dst, rxFailsafeChannelConfigs(i)->mode);
-            sbufWriteU16(dst, RXFAIL_STEP_TO_CHANNEL_VALUE(rxFailsafeChannelConfigs(i)->step));
-        }
-        break;
-
     case MSP_RSSI_CONFIG:
         sbufWriteU8(dst, rxConfig()->rssi_channel);
         break;
@@ -1041,7 +1037,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, rcControlsConfig()->deadband);
         sbufWriteU8(dst, rcControlsConfig()->yaw_deadband);
         sbufWriteU8(dst, rcControlsConfig()->alt_hold_deadband);
-        sbufWriteU16(dst, flight3DConfig()->deadband3d_throttle);
+        sbufWriteU16(dst, rcControlsConfig()->deadband3d_throttle);
         break;
 
     case MSP_SENSOR_ALIGNMENT:
@@ -1155,7 +1151,11 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
 #else
         sbufWriteU8(dst, 0);
 #endif
-        sbufWriteU8(dst, 0);    // rangefinder hardware
+#ifdef SONAR
+        sbufWriteU8(dst, rangefinderConfig()->rangefinder_hardware);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         sbufWriteU8(dst, 0);    // optical flow hardware
         break;
 
@@ -1509,13 +1509,13 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         flight3DConfigMutable()->deadband3d_low = sbufReadU16(src);
         flight3DConfigMutable()->deadband3d_high = sbufReadU16(src);
         flight3DConfigMutable()->neutral3d = sbufReadU16(src);
-        flight3DConfigMutable()->deadband3d_throttle = sbufReadU16(src);
         break;
 
     case MSP_SET_RC_DEADBAND:
         rcControlsConfigMutable()->deadband = sbufReadU8(src);
         rcControlsConfigMutable()->yaw_deadband = sbufReadU8(src);
         rcControlsConfigMutable()->alt_hold_deadband = sbufReadU8(src);
+        rcControlsConfigMutable()->deadband3d_throttle = sbufReadU16(src);
         break;
 
     case MSP_SET_RESET_CURR_PID:
@@ -1883,16 +1883,6 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         failsafeConfigMutable()->failsafe_procedure = sbufReadU8(src);
         if (dataSize > 8) {
             failsafeConfigMutable()->failsafe_recovery_delay = sbufReadU8(src);
-        }
-        break;
-
-    case MSP_SET_RXFAIL_CONFIG:
-        i = sbufReadU8(src);
-        if (i < MAX_SUPPORTED_RC_CHANNEL_COUNT) {
-            rxFailsafeChannelConfigsMutable(i)->mode = sbufReadU8(src);
-            rxFailsafeChannelConfigsMutable(i)->step = CHANNEL_VALUE_TO_RXFAIL_STEP(sbufReadU16(src));
-        } else {
-            return MSP_RESULT_ERROR;
         }
         break;
 

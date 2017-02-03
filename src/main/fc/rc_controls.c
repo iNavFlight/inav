@@ -78,7 +78,8 @@ PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .deadband = 5,
     .yaw_deadband = 5,
     .pos_hold_deadband = 20,
-    .alt_hold_deadband = 50
+    .alt_hold_deadband = 50,
+    .deadband3d_throttle = 50
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 0);
@@ -108,8 +109,9 @@ bool areSticksInApModePosition(uint16_t ap_mode)
     return ABS(rcCommand[ROLL]) < ap_mode && ABS(rcCommand[PITCH]) < ap_mode;
 }
 
-throttleStatus_e calculateThrottleStatus(uint16_t deadband3d_throttle)
+throttleStatus_e calculateThrottleStatus(void)
 {
+    const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;
     if (feature(FEATURE_3D) && (rcData[THROTTLE] > (rxConfig()->midrc - deadband3d_throttle) && rcData[THROTTLE] < (rxConfig()->midrc + deadband3d_throttle)))
         return THROTTLE_LOW;
     else if (!feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->mincheck))
@@ -165,7 +167,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
             // Disarming via ARM BOX
             // Don't disarm via switch if failsafe is active or receiver doesn't receive data - we can't trust receiver
             // and can't afford to risk disarming in the air
-            if (ARMING_FLAG(ARMED) && !(IS_RC_MODE_ACTIVE(BOXFAILSAFE) && feature(FEATURE_FAILSAFE)) && rxIsReceivingSignal() && !failsafeIsActive()) {
+            if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
                 rcDisarmTicks++;
                 if (rcDisarmTicks > 3) {    // Wait for at least 3 RX ticks (60ms @ 50Hz RX)
                     if (disarm_kill_switch) {

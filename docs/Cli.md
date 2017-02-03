@@ -231,8 +231,7 @@ Re-apply any new defaults as desired.
 |  yaw_motor_direction  | 1 | Use if you need to inverse yaw motor direction. |
 |  yaw_jump_prevention_limit  | 200 | Prevent yaw jumps during yaw stops and rapid YAW input. To disable set to 500. Adjust this if your aircraft 'skids out'. Higher values increases YAW authority but can cause roll/pitch instability in case of underpowered UAVs. Lower values makes yaw adjustments more gentle but can cause UAV unable to keep heading |
 |  tri_unarmed_servo  | ON | On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF. |
-|  servo_lowpass_freq  | 400 | Selects the servo PWM output cutoff frequency. Value is in [Hz] |
-|  servo_lowpass_enable  | OFF |  |
+|  servo_lpf_hz  | 0 | Selects the servo PWM output cutoff frequency. Value is in [Hz] |
 |  servo_center_pulse  | 1500 | Servo midpoint |
 |  servo_pwm_rate  | 50 | Output frequency (in Hz) servo pins. Default is 50Hz. When using tricopters or gimbal with digital servo, this rate can be increased. Max of 498Hz (for 500Hz pwm period), and min of 50Hz. Most digital servos will support for example 330Hz. |
 |  failsafe_delay  | 5 | Time in deciseconds to wait before activating failsafe when signal is lost. See [Failsafe documentation](Failsafe.md#failsafe_delay). |
@@ -242,8 +241,10 @@ Re-apply any new defaults as desired.
 |  failsafe_kill_switch  | OFF | Set to ON to use an AUX channel as a failsafe kill switch. |
 |  failsafe_throttle_low_delay  | 100 | Activate failsafe when throttle is low and no RX data has been received since this value, in 10th of seconds |
 |  failsafe_procedure  | SET-THR | What failsafe procedure to initiate in Stage 2. See [Failsafe documentation](Failsafe.md#failsafe_throttle). |
+|  failsafe_stick_threshold  | 0 | Threshold for stick motion to consider failsafe condition resolved. If non-zero failsafe won't clear even if RC link is restored - you have to move sticks to exit failsafe. |
 |  rx_min_usec  | 885 | Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 |  rx_max_usec  | 2115 | Defines the longest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value higher than this value then the channel will be marked as bad and will default to the value of mid_rc. |
+|  rx_nosignal_throttle  | HOLD | Defines behavior of throttle channel after signal loss is detected and until `failsafe_procedure` kicks in. Possible values - `HOLD` and `DROP`. |
 |  acc_hardware  | AUTO | Selection of acc hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
 |  baro_use_median_filter  | ON | 3-point median filtering for barometer readouts. Default: ON. No reason to change this setting |
 |  baro_hardware  | AUTO | Selection of baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
@@ -251,13 +252,39 @@ Re-apply any new defaults as desired.
 |  blackbox_rate_num  | 1 | Blackbox logging rate numerator. Use num/denom settings to decide if a frame should be logged, allowing control of the portion of logged loop iterations |
 |  blackbox_rate_denom  | 1 | Blackbox logging rate denominator. See blackbox_rate_num. |
 |  blackbox_device  | SPIFLASH | Selection of where to write blackbox data |
+|  ledstrip_visual_beeper  | OFF |  |
+|  osd_video_system     | 0     |  |
+|  osd_row_shiftdown    | 0     |  |
+|  osd_units            | 0     |  |
+|  osd_rssi_alarm       | 20    |  |
+|  osd_cap_alarm        | 2200  |  |
+|  osd_time_alarm       | 10    |  |
+|  osd_alt_alarm        | 100   |  |
+|  osd_main_voltage_pos | 0     |  |
+|  osd_rssi_pos         | 0     |  |
+|  osd_flytimer_pos     | 0     |  |
+|  osd_ontime_pos       | 0     |  |
+|  osd_flymode_pos      | 0     |  |
+|  osd_throttle_pos     | 0     |  |
+|  osd_vtx_channel_pos  | 0     |  |
+|  osd_crosshairs       | 0     |  |
+|  osd_artificial_horizon  | 0  |  |
+|  osd_current_draw_pos | 0     |  |
+|  osd_mah_drawn_pos    | 0     |  |
+|  osd_craft_name_pos   | 0     |  |
+|  osd_gps_speed_pos    | 0     |  |
+|  osd_gps_sats_pos     | 0     |  |
+|  osd_altitude_pos     | 0     |  |
+|  osd_pid_roll_pos     | 0     |  |
+|  osd_pid_pitch_pos    | 0     |  |
+|  osd_pid_yaw_pos      | 0     |  |
+|  osd_power_pos        | 0     |  |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_z  | 0 | Magnetometer calibration Z offset. If its 0 none offset has been applied and calibration is failed. |
 |  acczero_x  | 0 | Calculated value after '6 position avanced calibration'. See Wiki page. |
 |  acczero_y  | 0 | Calculated value after '6 position avanced calibration'. See Wiki page. |
 |  acczero_z  | 0 | Calculated value after '6 position avanced calibration'. See Wiki page. |
-|  ledstrip_visual_beeper  | OFF |  |
 |  accgain_x  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
 |  accgain_y  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
 |  accgain_z  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
@@ -287,7 +314,8 @@ Re-apply any new defaults as desired.
 |  default_rate_profile  | 0 | Default = profile number |
 |  mag_declination  | 0 | Current location magnetic declination in format. For example, -6deg 37min = -637 for Japan. Leading zero in ddd not required. Get your local magnetic declination here: http://magnetic-declination.com/ . Not in use if inav_auto_mag_decl  is turned on and you aquirre valid GPS fix. |
 |  mag_hold_rate_limit  | 90 | This setting limits yaw rotation rate that MAG_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when MAG_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
-| `mc_p_pitch` | 40 | Multicopter rate stabilisation P-gain for PITCH               |
+| `mag_calibration_time` | 30 | Adjust how long time the Calibration of mag will last. |
+| `mc_p_pitch` | 40 | Multicopter rate stabilisation P-gain for PITCH               |
 | `mc_i_pitch` | 30 | Multicopter rate stabilisation I-gain for PITCH               |
 | `mc_d_pitch` | 23 | Multicopter rate stabilisation D-gain for PITCH               |
 | `mc_p_roll`  | 40 | Multicopter rate stabilisation P-gain for ROLL                |
@@ -313,8 +341,8 @@ Re-apply any new defaults as desired.
 | `fw_d_level` | 75 | Fixed-wing attitude stabilisation HORIZON transition point    |
 |  max_angle_inclination_rll  | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 |  max_angle_inclination_pit  | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
-|  gyro_soft_lpf_hz  | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. Default 60Hz |
-|  acc_soft_lpf_hz  | 15 | Software-based filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. Default 15Hz |
+|  gyro_lpf_hz  | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. Default 60Hz |
+|  acc_lpf_hz  | 15 | Software-based filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. Default 15Hz |
 |  dterm_lpf_hz  | 40 |  |
 |  yaw_lpf_hz  | 30 |  |
 |  pidsum_limit  | 500 | A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch/Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help |

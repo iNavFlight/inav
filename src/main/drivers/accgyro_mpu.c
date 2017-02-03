@@ -42,6 +42,7 @@
 #include "accgyro_mpu6500.h"
 #include "accgyro_spi_mpu6000.h"
 #include "accgyro_spi_mpu6500.h"
+#include "accgyro_spi_mpu9250.h"
 #include "accgyro_mpu.h"
 
 //#define DEBUG_MPU_DATA_READY_INTERRUPT
@@ -242,6 +243,19 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
     }
 #endif
 
+#ifdef  USE_GYRO_SPI_MPU9250
+    if (mpu9250SpiDetect()) {
+        gyro->mpuDetectionResult.sensor = MPU_9250_SPI;
+        gyro->mpuConfiguration.gyroReadXRegister = MPU_RA_GYRO_XOUT_H;
+        gyro->mpuConfiguration.read = mpu9250ReadRegister;
+        gyro->mpuConfiguration.slowread = mpu9250SlowReadRegister;
+        gyro->mpuConfiguration.verifywrite = verifympu9250WriteRegister;
+        gyro->mpuConfiguration.write = mpu9250WriteRegister;
+        gyro->mpuConfiguration.reset = mpu9250ResetGyro;
+        return true;
+    }
+#endif
+
 #ifdef USE_GYRO_SPI_ICM20608
     if (icm20608SpiDetect()) {
         mpuDetectionResult.sensor = ICM_20608_SPI;
@@ -267,20 +281,17 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
 }
 #endif
 
-mpuDetectionResult_t *mpuDetect(gyroDev_t *gyro)
+void mpuDetect(gyroDev_t *gyro)
 {
-    bool ack;
-    uint8_t sig;
-    uint8_t inquiryResult;
-
     // MPU datasheet specifies 30ms.
     delay(35);
 
 #ifndef USE_I2C
-    ack = false;
-    sig = 0;
+    uint8_t sig = 0;
+    bool ack = false;
 #else
-    ack = mpuReadRegisterI2C(MPU_RA_WHO_AM_I, 1, &sig);
+    uint8_t sig;
+    bool ack = mpuReadRegisterI2C(MPU_RA_WHO_AM_I, 1, &sig);
 #endif
     if (ack) {
         gyro->mpuConfiguration.read = mpuReadRegisterI2C;
@@ -290,33 +301,30 @@ mpuDetectionResult_t *mpuDetect(gyroDev_t *gyro)
         bool detectedSpiSensor = detectSPISensorsAndUpdateDetectionResult(gyro);
         UNUSED(detectedSpiSensor);
 #endif
-
-        return &gyro->mpuDetectionResult;
+        return;
     }
 
     gyro->mpuConfiguration.gyroReadXRegister = MPU_RA_GYRO_XOUT_H;
 
     // If an MPU3050 is connected sig will contain 0.
+    uint8_t inquiryResult;
     ack = mpuReadRegisterI2C(MPU_RA_WHO_AM_I_LEGACY, 1, &inquiryResult);
     inquiryResult &= MPU_INQUIRY_MASK;
     if (ack && inquiryResult == MPUx0x0_WHO_AM_I_CONST) {
         gyro->mpuDetectionResult.sensor = MPU_3050;
         gyro->mpuConfiguration.gyroReadXRegister = MPU3050_GYRO_OUT;
-        return &gyro->mpuDetectionResult;
+        return;
     }
 
     sig &= MPU_INQUIRY_MASK;
 
     if (sig == MPUx0x0_WHO_AM_I_CONST) {
-
         gyro->mpuDetectionResult.sensor = MPU_60x0;
-
         mpu6050FindRevision(gyro);
     } else if (sig == MPU6500_WHO_AM_I_CONST) {
         gyro->mpuDetectionResult.sensor = MPU_65xx_I2C;
     }
-
-    return &gyro->mpuDetectionResult;
+    return;
 }
 
 void mpuGyroInit(gyroDev_t *gyro)

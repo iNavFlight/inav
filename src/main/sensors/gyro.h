@@ -30,13 +30,14 @@ typedef enum {
     GYRO_L3GD20,
     GYRO_MPU6000,
     GYRO_MPU6500,
+    GYRO_MPU9250,
     GYRO_FAKE
 } gyroSensor_e;
 
 typedef struct gyro_s {
     gyroDev_t dev;
     uint32_t targetLooptime;
-    int32_t gyroADC[XYZ_AXIS_COUNT];
+    float gyroADCf[XYZ_AXIS_COUNT];
 } gyro_t;
 
 extern gyro_t gyro;

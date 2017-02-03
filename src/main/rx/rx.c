@@ -120,7 +120,8 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssi_channel = 0,
     .rssi_scale = RSSI_SCALE_DEFAULT,
     .rssi_ppm_invert = 0,
-    .rcSmoothing = 1
+    .rcSmoothing = 1,
+    .rxNoSignalThrottleBehavior = RX_NOSIGNAL_THROTTLE_HOLD,
 );
 
 void resetAllRxChannelRangeConfigurations(void)
@@ -140,21 +141,6 @@ void pgResetFn_rxChannelRangeConfigs(rxChannelRangeConfig_t *rxChannelRangeConfi
     for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
         rxChannelRangeConfigs[i].min = PWM_RANGE_MIN;
         rxChannelRangeConfigs[i].max = PWM_RANGE_MAX;
-    }
-}
-
-PG_REGISTER_ARRAY_WITH_RESET_FN(rxFailsafeChannelConfig_t, MAX_SUPPORTED_RC_CHANNEL_COUNT, rxFailsafeChannelConfigs, PG_RX_FAILSAFE_CHANNEL_CONFIG, 0);
-
-void pgResetFn_rxFailsafeChannelConfigs(rxFailsafeChannelConfig_t *rxFailsafeChannelConfigs)
-{
-    for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
-        if (i== THROTTLE) {
-            rxFailsafeChannelConfigs[i].mode = RX_FAILSAFE_MODE_HOLD;
-            rxFailsafeChannelConfigs[i].step = CHANNEL_VALUE_TO_RXFAIL_STEP(RX_MIN_USEX);
-        } else {
-            rxFailsafeChannelConfigs[i].mode = (i < NON_AUX_CHANNEL_COUNT) ? RX_FAILSAFE_MODE_AUTO : RX_FAILSAFE_MODE_HOLD;
-            rxFailsafeChannelConfigs[i].step = CHANNEL_VALUE_TO_RXFAIL_STEP(RX_MIDRC);
-        }
     }
 }
 
@@ -423,30 +409,24 @@ static uint16_t calculateNonDataDrivenChannel(uint8_t chan, uint16_t sample)
     return rcDataMean[chan] / PPM_AND_PWM_SAMPLE_COUNT;
 }
 
-static uint16_t getRxfailValue(uint8_t channel)
+static uint16_t getRxNosignalValue(uint8_t channel)
 {
-    switch(rxFailsafeChannelConfigs(channel)->mode) {
-    case RX_FAILSAFE_MODE_AUTO:
-        switch (channel) {
+    switch (channel) {
         case ROLL:
         case PITCH:
         case YAW:
             return rxConfig()->midrc;
+
         case THROTTLE:
-            if (feature(FEATURE_3D))
-                return rxConfig()->midrc;
-            else
-                return rxConfig()->rx_min_usec;
-        }
-        /* no break */
+            if (rxConfig()->rxNoSignalThrottleBehavior == RX_NOSIGNAL_THROTTLE_DROP) {
+                return feature(FEATURE_3D) ? rxConfig()->midrc : rxConfig()->rx_min_usec;
+            }
+            else {
+                return rcData[channel];
+            }
 
-    default:
-    case RX_FAILSAFE_MODE_INVALID:
-    case RX_FAILSAFE_MODE_HOLD:
-        return rcData[channel];
-
-    case RX_FAILSAFE_MODE_SET:
-        return RXFAIL_STEP_TO_CHANNEL_VALUE(rxFailsafeChannelConfigs(channel)->step);
+        default:
+            return rcData[channel];
     }
 }
 
@@ -514,7 +494,7 @@ static void detectAndApplySignalLossBehaviour(void)
             if (currentMilliTime < rcInvalidPulsPeriod[channel]) {
                 sample = rcData[channel];           // hold channel for MAX_INVALID_PULS_TIME
             } else {
-                sample = getRxfailValue(channel);   // after that apply rxfail value
+                sample = getRxNosignalValue(channel);   // after that apply rxfail value
                 rxUpdateFlightChannelStatus(channel, validPulse);
             }
         } else {
@@ -530,14 +510,14 @@ static void detectAndApplySignalLossBehaviour(void)
 
     rxFlightChannelsValid = rxHaveValidFlightChannels();
 
-    if ((rxFlightChannelsValid) && !(IS_RC_MODE_ACTIVE(BOXFAILSAFE) && feature(FEATURE_FAILSAFE))) {
+    if (rxFlightChannelsValid && !IS_RC_MODE_ACTIVE(BOXFAILSAFE)) {
         failsafeOnValidDataReceived();
     } else {
         rxIsInFailsafeMode = rxIsInFailsafeModeNotDataDriven = true;
         failsafeOnValidDataFailed();
 
         for (int channel = 0; channel < rxRuntimeConfig.channelCount; channel++) {
-            rcData[channel] = getRxfailValue(channel);
+            rcData[channel] = getRxNosignalValue(channel);
         }
     }
 
