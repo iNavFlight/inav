@@ -49,8 +49,9 @@
 #include "io/gps.h"
 
 #include "flight/imu.h"
-#include "flight/navigation_rewrite.h"
 #include "flight/failsafe.h"
+
+#include "navigation/navigation.h"
 
 #include "telemetry/ibus.h"
 #include "telemetry/telemetry.h"
