@@ -55,7 +55,7 @@
 
 #include "telemetry/ibus.h"
 #include "telemetry/telemetry.h"
-#include "config/config.h"
+#include "fc/config.h"
 #include "config/feature.h"
 
 /*
