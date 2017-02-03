@@ -154,3 +154,55 @@ set telemetry_inversion = OFF
 ```
 
 This has been tested with Flip32 F4 / Airbot F4 and FrSky X4R-SB receiver.
+
+## Ibus telemetry
+
+Ibus telemetry requires a single connection from the TX pin of a bidirectional serial port to the Ibus sens pin on an FlySky telemetry receiver. (tested with fs-iA6B receiver, iA10 should work)
+
+It shares 1 line for both TX and RX, the rx pin cannot be used for other serial port stuff.
+It runs at a fixed baud rate of 115200, so it need hardware uart (softserial is limit to 19200).
+```
+     _______
+    /       \                                             /---------\
+    | STM32 |--UART TX-->[Bi-directional @ 115200 baud]<--| IBUS RX |
+    |  uC   |--UART RX--x[not connected]                  \---------/
+    \_______/
+```
+It is possible to daisy chain multiple sensors with ibus, but telemetry sensor will be overwrite by value sensor.
+In this case sensor should be connected to FC and RX to sensor.
+```
+     _______
+    /       \                                             /---------\   /-------------\   /---------\
+    | STM32 |--UART TX-->[Bi-directional @ 115200 baud]<--| CVT-01  |<--|others sensor|<--| IBUS RX |
+    |  uC   |--UART RX--x[not connected]                  \---------/   \-------------/   \---------/
+    \_______/
+```
+
+### Configuration
+
+Ibus telemetry is default enabled in the all firmware.
+IBUS telemetry is disabled on ALIENWIIF3, RMDO at build time using defines in target.h.
+```
+#undef TELEMETRY_IBUS
+```
+### Available sensors
+
+The following sensors are transmitted :
+
+Tmp1 : gyro temp.
+
+RPM : throttle value
+
+Vbatt : battery voltage.
+
+### RX hardware ###
+
+These receivers are reported to work with i-bus telemetry:
+
+- FlySky/Turnigy FS-iA6B 6-Channel Receiver (http://www.flysky-cn.com/products_detail/&productId=51.html)
+- FlySky/Turnigy FS-iA10B 10-Channel Receiver (http://www.flysky-cn.com/products_detail/productId=52.html)
+
+Note that the FlySky/Turnigy FS-iA4B 4-Channel Receiver (http://www.flysky-cn.com/products_detail/productId=46.html) seems to work but has a bug that might lose the binding, DO NOT FLY the FS-iA4B!
+
+
+
