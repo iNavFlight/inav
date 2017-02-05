@@ -373,9 +373,11 @@ static void pushOntoTail(uint8_t buffer[IBUS_MIN_LEN], size_t bufferLength, uint
 
 void initIbusTelemetry(void) {
     ibusSerialPortConfig = findSerialPortConfig(FUNCTION_TELEMETRY_IBUS);
+    uint8_t type = telemetryConfig()->ibusTelemetryType;
 #if defined(GPS)
-    if (telemetryConfig()->ibusTelemetryType == 1) SENSOR_ADDRESS_TYPE_LOOKUP[15] = IBUS_MEAS_TYPE_SPE;
-#endif
+    if (type == 1 || type == 2) SENSOR_ADDRESS_TYPE_LOOKUP[15] = IBUS_MEAS_TYPE_SPE;
+    if (type == 2) SENSOR_ADDRESS_TYPE_LOOKUP[10] = IBUS_MEAS_TYPE_ALT;
+#endif	
     ibusPortSharing = determinePortSharing(ibusSerialPortConfig, FUNCTION_TELEMETRY_IBUS);
 }
 
