@@ -59,9 +59,15 @@ enum {
     NAV_HEADING_CONTROL_MANUAL
 };
 
+enum {
+    NAV_RESET_ALTITUDE_NEVER = 0,
+    NAV_RESET_ALTITUDE_ON_FIRST_ARM,
+    NAV_RESET_ALTITUDE_ON_EACH_ARM,
+};
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
-    uint8_t gps_min_sats;
+    uint8_t reset_altitude_type;
     uint8_t accz_unarmed_cal;
     uint8_t use_gps_velned;
     uint16_t gps_delay_ms;
@@ -99,10 +105,13 @@ typedef struct navConfig_s {
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
             uint8_t rth_tail_first;             // Return to home tail first
             uint8_t disarm_on_landing;          //
+            uint8_t rth_allow_landing;          // Enable landing as last stage of RTH
+            uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;               // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
+        uint16_t waypoint_safe_distance;        // Waypoint mission sanity check distance
         uint16_t max_speed;                     // autonomous navigation speed cm/sec
         uint16_t max_climb_rate;                // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;              // manual velocity control max horizontal speed
