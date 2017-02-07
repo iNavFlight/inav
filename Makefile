@@ -533,6 +533,7 @@ COMMON_SRC = \
             io/statusindicator.c \
             msp/msp_serial.c \
             rx/ibus.c \
+	    telemetry/ibus_shared.c \
             rx/jetiexbus.c \
             rx/msp.c \
             rx/nrf24_cx10.c \
