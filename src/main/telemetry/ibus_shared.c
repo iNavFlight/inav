@@ -62,22 +62,6 @@ typedef enum {
     IBUS_COMMAND_MEASUREMENT          = 0xA0
 } ibusCommand_e;
 
-typedef enum {
-    IBUS_MEAS_TYPE_INTERNAL_VOLTAGE = 0x00, // Internal Voltage
-    IBUS_MEAS_TYPE_TEMPERATURE      = 0x01, // Temperature -##0.0 C, 0=-40.0 C, 400=0.0 C, 65535=6513.5 C
-    IBUS_MEAS_TYPE_RPM              = 0x02, // Rotation RPM, ####0RPM, 0=0RPM, 65535=65535RPM
-    IBUS_MEAS_TYPE_EXTERNAL_VOLTAGE = 0x03, // External Voltage, -##0.00V, 0=0.00V, 32767=327.67V, 32768=na, 32769=-327.67V, 65535=-0.01V
-    IBUS_MEAS_TYPE_PRES             = 0x41, // Pressure, not work
-    IBUS_MEAS_TYPE_ODO1             = 0x7c, // Odometer1, 0.0km, 0.0 only
-    IBUS_MEAS_TYPE_ODO2             = 0x7d, // Odometer2, 0.0km, 0.0 only
-    IBUS_MEAS_TYPE_SPE              = 0x7e, // Speed km/h, ###0km/h, 0=0Km/h, 1000=100Km/h
-    IBUS_MEAS_TYPE_ALT              = 0xf9, // Altitude m, not work
-    IBUS_MEAS_TYPE_SNR              = 0xfa, // SNR, not work
-    IBUS_MEAS_TYPE_NOISE            = 0xfb, // Noise, not work
-    IBUS_MEAS_TYPE_RSSI             = 0xfc, // RSSI, not work
-    IBUS_MEAS_TYPE_ERR              = 0xfe  // Error rate, #0%
-} ibusSensorType_e;
-
 static uint8_t SENSOR_ADDRESS_TYPE_LOOKUP[] = {
     IBUS_MEAS_TYPE_INTERNAL_VOLTAGE,  // Address 0, sensor 1, not usable since it is reserved for internal voltage
     IBUS_MEAS_TYPE_EXTERNAL_VOLTAGE,  // Address 1 ,sensor 2, VBAT
@@ -197,7 +181,7 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         if (sensors(SENSOR_GPS)) return sendIbusMeasurement(address, (uint16_t) (gpsSol.llh.lat / 100000)); 
         else return sendIbusMeasurement(address, 0);
     } else if (address == 14) { //15. GPS_LON1 //Longitude * 1e+7
-        if (sensors(SENSOR_GPS)) sendIbusMeasurement(address, (uint16_t) (gpsSol.llh.lon / 100000));
+        if (sensors(SENSOR_GPS)) return sendIbusMeasurement(address, (uint16_t) (gpsSol.llh.lon / 100000));
         else return sendIbusMeasurement(address, 0);
     } else if (address == 15) { //16. GPS_SPEED //In cm/s => km/h, 1cm/s = 0.0194384449 knots
         if (sensors(SENSOR_GPS)) return sendIbusMeasurement(address, (uint16_t) gpsSol.groundSpeed * 1944 / 10000); //int16_t
@@ -223,6 +207,10 @@ static uint8_t respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]) 
 
 void initSharedIbusTelemetry(serialPort_t *port) {
 	ibusSerialPort = port;
+}
+
+void changeTypeIbusTelemetry(uint8_t id, uint8_t type) {
+    SENSOR_ADDRESS_TYPE_LOOKUP[id] = type;
 }
 
 #endif //defined(TELEMETRY) && defined(TELEMETRY_IBUS)
