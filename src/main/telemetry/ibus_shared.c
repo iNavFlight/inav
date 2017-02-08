@@ -46,6 +46,7 @@
 
 #include "navigation/navigation.h"
 
+#include "telemetry/ibus_shared.h"
 #include "telemetry/ibus.h"
 #include "telemetry/telemetry.h"
 #include "fc/config.h"
