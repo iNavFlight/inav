@@ -533,7 +533,6 @@ COMMON_SRC = \
             io/statusindicator.c \
             msp/msp_serial.c \
             rx/ibus.c \
-	    telemetry/ibus_shared.c \
             rx/jetiexbus.c \
             rx/msp.c \
             rx/nrf24_cx10.c \
@@ -599,6 +598,7 @@ HIGHEND_SRC = \
             telemetry/crsf.c \
             telemetry/frsky.c \
             telemetry/hott.c \
+	    telemetry/ibus_shared.c \
             telemetry/ibus.c \
             telemetry/ltm.c \
             telemetry/mavlink.c \
