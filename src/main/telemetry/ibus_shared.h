@@ -21,7 +21,6 @@
 
 #define IBUS_CHECKSUM_SIZE (2)
 #define IBUS_TASK_PERIOD_US (500)
-#define IBUS_UART_MODE     (MODE_RXTX)
 #define IBUS_BAUDRATE      (115200)
 #define IBUS_CYCLE_TIME_MS (8)
 #define IBUS_MIN_LEN       (2 + IBUS_CHECKSUM_SIZE)
