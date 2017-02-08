@@ -170,8 +170,6 @@
 #define IBUS_BAUDRATE      (115200)
 #define IBUS_CYCLE_TIME_MS (8)
 
-#define IBUS_CHECKSUM_SIZE (2)
-
 #define IBUS_MIN_LEN       (2 + IBUS_CHECKSUM_SIZE)
 #define IBUS_MAX_TX_LEN    (6)
 #define IBUS_MAX_RX_LEN    (4)
@@ -379,20 +377,22 @@ void initIbusTelemetry(void) {
     if (type == 2) SENSOR_ADDRESS_TYPE_LOOKUP[10] = IBUS_MEAS_TYPE_ALT;
 #endif	
     ibusPortSharing = determinePortSharing(ibusSerialPortConfig, FUNCTION_TELEMETRY_IBUS);
+    ibusTelemetryEnabled = false;
 }
 
 void handleIbusTelemetry(void) {
     if (!ibusTelemetryEnabled) {
         return;
     }
-
     while (serialRxBytesWaiting(ibusSerialPort) > 0) {
         uint8_t c = serialRead(ibusSerialPort);
+        if (outboundBytesToIgnoreOnRxCount) {
+            outboundBytesToIgnoreOnRxCount--;
+            continue;
+        }
         pushOntoTail(ibusReceiveBuffer, IBUS_RX_BUF_LEN, c);
-        uint16_t expectedChecksum = calculateChecksum(ibusReceiveBuffer, IBUS_RX_BUF_LEN);
-
-        if (isChecksumOk(ibusReceiveBuffer, IBUS_RX_BUF_LEN, expectedChecksum)) {
-            respondToIbusRequest(ibusReceiveBuffer);
+        if (isChecksumOk(ibusReceiveBuffer, IBUS_RX_BUF_LEN)) {
+            outboundBytesToIgnoreOnRxCount += respondToIbusRequest(ibusReceiveBuffer);
         }
     }
 }
@@ -413,21 +413,20 @@ void checkIbusTelemetryState(void) {
 }
 
 void configureIbusTelemetryPort(void) {
-    portOptions_t portOptions;
-
     if (!ibusSerialPortConfig) {
         return;
     }
-
-    portOptions = SERIAL_BIDIR;
-
-    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, IBUS_BAUDRATE, IBUS_UART_MODE, portOptions);
-
+    if (isSerialPortShared(ibusSerialPortConfig, FUNCTION_RX_SERIAL, FUNCTION_TELEMETRY_IBUS)) {
+        // serialRx will open port and handle telemetry
+        return;
+    }
+    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, IBUS_BAUDRATE, IBUS_UART_MODE, SERIAL_BIDIR);
     if (!ibusSerialPort) {
         return;
     }
-
+    initSharedIbusTelemetry(ibusSerialPort);
     ibusTelemetryEnabled = true;
+    outboundBytesToIgnoreOnRxCount = 0;
 }
 
 void freeIbusTelemetryPort(void) {
