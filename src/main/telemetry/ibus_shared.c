@@ -85,6 +85,8 @@ static uint8_t SENSOR_ADDRESS_TYPE_LOOKUP[] = {
 
 static serialPort_t *ibusSerialPort = NULL;
 
+static uint16_t calculateChecksum(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength);
+
 static uint8_t transmitIbusPacket(uint8_t ibusPacket[static IBUS_MIN_LEN], size_t packetLength) {
     uint16_t checksum = calculateChecksum(ibusPacket, packetLength);
     ibusPacket[packetLength - IBUS_CHECKSUM_SIZE] = (checksum & 0xFF);
