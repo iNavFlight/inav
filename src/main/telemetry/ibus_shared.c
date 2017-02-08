@@ -223,7 +223,7 @@ static uint16_t calculateChecksum(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE],
 }
 
 static bool isChecksumOk(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength) {
-    uint16_t calculatedChecksum = calculateChecksum(ibusPacket, length);
+    uint16_t calculatedChecksum = calculateChecksum(ibusPacket, packetLength);
     // Note that there's a byte order swap to little endian here
     return (calculatedChecksum >> 8) == ibusPacket[packetLength - 1]
             && (calculatedChecksum & 0xFF) == ibusPacket[packetLength - 2];
