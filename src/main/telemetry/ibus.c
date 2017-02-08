@@ -28,7 +28,7 @@
 
 #include "platform.h"
 
-#ifdef TELEMETRY
+#if defined(TELEMETRY) && defined(TELEMETRY_IBUS)
 
 #include "common/maths.h"
 #include "common/axis.h"
@@ -55,6 +55,7 @@
 #include "navigation/navigation.h"
 
 #include "telemetry/ibus.h"
+#include "telemetry/ibus_shared.h"
 #include "telemetry/telemetry.h"
 #include "fc/config.h"
 #include "config/feature.h"
@@ -177,7 +178,7 @@
 
 static serialPort_t *ibusSerialPort = NULL;
 static serialPortConfig_t *ibusSerialPortConfig;
-
+static uint8_t outboundBytesToIgnoreOnRxCount = 0;
 static bool ibusTelemetryEnabled = false;
 static portSharing_e ibusPortSharing;
 
@@ -194,8 +195,8 @@ void initIbusTelemetry(void) {
     ibusSerialPortConfig = findSerialPortConfig(FUNCTION_TELEMETRY_IBUS);
     uint8_t type = telemetryConfig()->ibusTelemetryType;
 #if defined(GPS)
-    if (type == 1 || type == 2) SENSOR_ADDRESS_TYPE_LOOKUP[15] = IBUS_MEAS_TYPE_SPE;
-    if (type == 2) SENSOR_ADDRESS_TYPE_LOOKUP[10] = IBUS_MEAS_TYPE_ALT;
+    if (type == 1 || type == 2) changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE_SPE);
+    if (type == 2) changeTypeIbusTelemetry(10, IBUS_MEAS_TYPE_ALT);
 #endif	
     ibusPortSharing = determinePortSharing(ibusSerialPortConfig, FUNCTION_TELEMETRY_IBUS);
     ibusTelemetryEnabled = false;
@@ -218,11 +219,11 @@ void handleIbusTelemetry(void) {
     }
 }
 
-void checkIbusTelemetryState(void) {
+bool checkIbusTelemetryState(void) {
     bool newTelemetryEnabledValue = telemetryDetermineEnabledState(ibusPortSharing);
 
     if (newTelemetryEnabledValue == ibusTelemetryEnabled) {
-        return;
+        return false;
     }
 
     if (newTelemetryEnabledValue) {
@@ -231,6 +232,8 @@ void checkIbusTelemetryState(void) {
     } else {
         freeIbusTelemetryPort();
     }
+    
+    return true;
 }
 
 void configureIbusTelemetryPort(void) {
