@@ -47,10 +47,10 @@ typedef enum {
     IBUS_MEAS_TYPE_ERR              = 0xfe  // Error rate, #0%
 } ibusSensorType_e;
 
-static uint8_t respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]);
+uint8_t respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]);
 void initSharedIbusTelemetry(serialPort_t *port);
 void changeTypeIbusTelemetry(uint8_t id, uint8_t type);
 
 #endif //defined(TELEMETRY) && defined(TELEMETRY_IBUS)
 
-static bool isChecksumOk(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength);
+bool isChecksumOk(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength);
