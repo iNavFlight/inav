@@ -234,7 +234,7 @@ void configureIbusTelemetryPort(void) {
         // serialRx will open port and handle telemetry
         return;
     }
-    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, IBUS_BAUDRATE, IBUS_UART_MODE, SERIAL_BIDIR);
+    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, IBUS_BAUDRATE, MODE_RXTX, SERIAL_BIDIR | SERIAL_NOT_INVERTED);
     if (!ibusSerialPort) {
         return;
     }
