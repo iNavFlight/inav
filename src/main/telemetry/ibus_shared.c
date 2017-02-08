@@ -40,7 +40,6 @@
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
-#include "io/gps.h"
 
 #include "flight/imu.h"
 #include "flight/failsafe.h"
@@ -51,7 +50,7 @@
 #include "telemetry/telemetry.h"
 #include "fc/config.h"
 #include "config/feature.h"
-
+#include "io/gps.h"
 #define IBUS_TEMPERATURE_OFFSET (0x0190)
 
 typedef uint8_t ibusAddress_t;
