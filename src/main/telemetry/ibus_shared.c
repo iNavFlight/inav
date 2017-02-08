@@ -27,7 +27,6 @@
 #include "common/axis.h"
 
 #include "drivers/serial.h"
-#include "drivers/time.h"
 
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
