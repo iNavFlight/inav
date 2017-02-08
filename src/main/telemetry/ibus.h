@@ -16,6 +16,7 @@
  */
 
 #pragma once
+#include <stdbool.h>
 
 void initIbusTelemetry(void);
 
