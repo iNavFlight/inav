@@ -18,8 +18,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-
 #include "platform.h"
+#include "telemetry/ibus_shared.h"
 
 #if defined(TELEMETRY) && defined(TELEMETRY_IBUS)
 
@@ -45,7 +45,6 @@
 
 #include "navigation/navigation.h"
 
-#include "telemetry/ibus_shared.h"
 #include "telemetry/ibus.h"
 #include "telemetry/telemetry.h"
 #include "fc/config.h"
@@ -190,7 +189,7 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
 	else return 0;
 }
 
-static uint8_t respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]) {
+uint8_t respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]) {
     ibusAddress_t returnAddress = getAddress(ibusPacket);
     if (returnAddress < sizeof SENSOR_ADDRESS_TYPE_LOOKUP) {
         if (isCommand(IBUS_COMMAND_DISCOVER_SENSOR, ibusPacket)) {
@@ -222,7 +221,7 @@ static uint16_t calculateChecksum(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE],
     return checksum;
 }
 
-static bool isChecksumOk(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength) {
+bool isChecksumOk(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength) {
     uint16_t calculatedChecksum = calculateChecksum(ibusPacket, packetLength);
     // Note that there's a byte order swap to little endian here
     return (calculatedChecksum >> 8) == ibusPacket[packetLength - 1]
