@@ -121,6 +121,11 @@ devices with a different label, therefore they also work.
 
 If you are using a 6ch tx such as the FS-I6 or TGY-I6 then you must flash a 10ch
 firmware on the tx to make use of these extra channels.
+The flash is avaliable here: https://github.com/benb0jangles/FlySky-i6-Mod-
+
+After flash "10ch Timer Mod i6 Updater", it is passible to get RSSI signal on selected Aux channel from FS-i6 Err sensor.
+
+It is possible to use ibus RX and ibus telemetry on only one port of the hardware UART. More information in Telemetry.md.
 
 ## MultiWii serial protocol (MSP)
 
