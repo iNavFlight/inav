@@ -21,35 +21,39 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "common/maths.h"
-
 #include "build/build_config.h"
 
 #include "platform.h"
-#include "build/debug.h"
 
+#include "blackbox/blackbox.h"
 #include "build/build_config.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
+#include "common/maths.h"
 
-#include "drivers/system.h"
+#include "config/feature.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
-#include "sensors/sensors.h"
-#include "sensors/gyro.h"
-#include "sensors/compass.h"
-#include "sensors/acceleration.h"
-#include "sensors/barometer.h"
+#include "drivers/time.h"
 
-#include "flight/mixer.h"
-#include "flight/pid.h"
-#include "flight/imu.h"
-#include "flight/hil.h"
-
-#include "io/gps.h"
+#include "fc/config.h"
 #include "fc/runtime_config.h"
 
-#include "config/config.h"
+#include "flight/hil.h"
+#include "flight/imu.h"
+#include "flight/mixer.h"
+#include "flight/pid.h"
+
+#include "io/gps.h"
+
+#include "sensors/acceleration.h"
+#include "sensors/barometer.h"
+#include "sensors/compass.h"
+#include "sensors/gyro.h"
+#include "sensors/sensors.h"
+
 
 /**
  * In Cleanflight accelerometer is aligned in the following way:
@@ -74,7 +78,7 @@
 t_fp_vector imuAccelInBodyFrame;
 t_fp_vector imuMeasuredGravityBF;
 t_fp_vector imuMeasuredRotationBF;
-float smallAngleCosZ = 0;
+static float smallAngleCosZ = 0;
 
 static bool isAccelUpdatedAtLeastOnce = false;
 
@@ -85,30 +89,39 @@ attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclinat
 
 static imuRuntimeConfig_t imuRuntimeConfig;
 
-static pidProfile_t *pidProfile;
-
-static float gyroScale;
+static const float gyroScale = (M_PIf / 180.0f);  // gyro output scaled to rad per second
 
 static bool gpsHeadingInitialized = false;
+
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
+
+PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
+    .dcm_kp_acc = 2500,             // 0.25 * 10000
+    .dcm_ki_acc = 50,               // 0.005 * 10000
+    .dcm_kp_mag = 10000,            // 1.00 * 10000
+    .dcm_ki_mag = 0,                // 0.00 * 10000
+    .small_angle = 25
+
+);
 
 #ifdef ASYNC_GYRO_PROCESSING
 /* Asynchronous update accumulators */
 static float imuAccumulatedRate[XYZ_AXIS_COUNT];
-static float imuAccumulatedRateTime;
+static timeUs_t imuAccumulatedRateTimeUs;
 static float imuAccumulatedAcc[XYZ_AXIS_COUNT];
 static int   imuAccumulatedAccCount;
 #endif
 
 #ifdef ASYNC_GYRO_PROCESSING
-void imuUpdateGyroscope(uint32_t gyroUpdateDeltaUs)
+void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs)
 {
     const float gyroUpdateDelta = gyroUpdateDeltaUs * 1e-6f;
 
     for (int axis = 0; axis < 3; axis++) {
-        imuAccumulatedRate[axis] += gyro.gyroADC[axis] * gyroScale * gyroUpdateDelta;
+        imuAccumulatedRate[axis] += gyro.gyroADCf[axis] * gyroScale * gyroUpdateDelta;
     }
 
-    imuAccumulatedRateTime += gyroUpdateDelta;
+    imuAccumulatedRateTimeUs += gyroUpdateDeltaUs;
 }
 #endif
 
@@ -139,24 +152,20 @@ STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
     rMat[2][2] = 1.0f - 2.0f * q1q1 - 2.0f * q2q2;
 }
 
-void imuConfigure(imuConfig_t *imuConfig, pidProfile_t *initialPidProfile)
+void imuConfigure(void)
 {
-    imuRuntimeConfig.dcm_kp_acc = imuConfig->dcm_kp_acc / 10000.0f;
-    imuRuntimeConfig.dcm_ki_acc = imuConfig->dcm_ki_acc / 10000.0f;
-    imuRuntimeConfig.dcm_kp_mag = imuConfig->dcm_kp_mag / 10000.0f;
-    imuRuntimeConfig.dcm_ki_mag = imuConfig->dcm_ki_mag / 10000.0f;
-    imuRuntimeConfig.small_angle = imuConfig->small_angle;
-    pidProfile = initialPidProfile;
+    imuRuntimeConfig.dcm_kp_acc = imuConfig()->dcm_kp_acc / 10000.0f;
+    imuRuntimeConfig.dcm_ki_acc = imuConfig()->dcm_ki_acc / 10000.0f;
+    imuRuntimeConfig.dcm_kp_mag = imuConfig()->dcm_kp_mag / 10000.0f;
+    imuRuntimeConfig.dcm_ki_mag = imuConfig()->dcm_ki_mag / 10000.0f;
+    imuRuntimeConfig.small_angle = imuConfig()->small_angle;
 }
 
 void imuInit(void)
 {
-    int axis;
-
     smallAngleCosZ = cos_approx(degreesToRadians(imuRuntimeConfig.small_angle));
-    gyroScale = gyro.dev.scale * (M_PIf / 180.0f);  // gyro output scaled to rad per second
 
-    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         imuAccelInBodyFrame.A[axis] = 0;
     }
 
@@ -165,12 +174,10 @@ void imuInit(void)
 
 void imuTransformVectorBodyToEarth(t_fp_vector * v)
 {
-    float x,y,z;
-
     /* From body frame to earth frame */
-    x = rMat[0][0] * v->V.X + rMat[0][1] * v->V.Y + rMat[0][2] * v->V.Z;
-    y = rMat[1][0] * v->V.X + rMat[1][1] * v->V.Y + rMat[1][2] * v->V.Z;
-    z = rMat[2][0] * v->V.X + rMat[2][1] * v->V.Y + rMat[2][2] * v->V.Z;
+    const float x = rMat[0][0] * v->V.X + rMat[0][1] * v->V.Y + rMat[0][2] * v->V.Z;
+    const float y = rMat[1][0] * v->V.X + rMat[1][1] * v->V.Y + rMat[1][2] * v->V.Z;
+    const float z = rMat[2][0] * v->V.X + rMat[2][1] * v->V.Y + rMat[2][2] * v->V.Z;
 
     v->V.X = x;
     v->V.Y = -y;
@@ -179,14 +186,12 @@ void imuTransformVectorBodyToEarth(t_fp_vector * v)
 
 void imuTransformVectorEarthToBody(t_fp_vector * v)
 {
-    float x,y,z;
-
     v->V.Y = -v->V.Y;
 
     /* From earth frame to body frame */
-    x = rMat[0][0] * v->V.X + rMat[1][0] * v->V.Y + rMat[2][0] * v->V.Z;
-    y = rMat[0][1] * v->V.X + rMat[1][1] * v->V.Y + rMat[2][1] * v->V.Z;
-    z = rMat[0][2] * v->V.X + rMat[1][2] * v->V.Y + rMat[2][2] * v->V.Z;
+    const float x = rMat[0][0] * v->V.X + rMat[1][0] * v->V.Y + rMat[2][0] * v->V.Z;
+    const float y = rMat[0][1] * v->V.X + rMat[1][1] * v->V.Y + rMat[2][1] * v->V.Z;
+    const float z = rMat[0][2] * v->V.X + rMat[1][2] * v->V.Y + rMat[2][2] * v->V.Z;
 
     v->V.X = x;
     v->V.Y = y;
@@ -205,14 +210,14 @@ STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t
     if (initialPitch > 1800) initialPitch -= 3600;
     if (initialYaw > 1800) initialYaw -= 3600;
 
-    float cosRoll = cos_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
-    float sinRoll = sin_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
+    const float cosRoll = cos_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
+    const float sinRoll = sin_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
 
-    float cosPitch = cos_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
-    float sinPitch = sin_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
+    const float cosPitch = cos_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
+    const float sinPitch = sin_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
 
-    float cosYaw = cos_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
-    float sinYaw = sin_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
+    const float cosYaw = cos_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
+    const float sinYaw = sin_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
 
     q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
     q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
@@ -238,8 +243,45 @@ static float imuGetPGainScaleFactor(void)
     }
 }
 
+static void imuResetOrientationQuaternion(const float ax, const float ay, const float az)
+{
+    const float accNorm = sqrtf(ax * ax + ay * ay + az * az);
+
+    q0 = az + accNorm;
+    q1 = ay;
+    q2 = -ax;
+    q3 = 0.0f;
+
+    const float recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+
+    q0 *= recipNorm;
+    q1 *= recipNorm;
+    q2 *= recipNorm;
+    q3 *= recipNorm;
+}
+
+static void imuCheckAndResetOrientationQuaternion(const float ax, const float ay, const float az)
+{
+    // Check if some calculation in IMU update yield NAN or zero quaternion
+    // Reset quaternion from accelerometer - this might be incorrect, but it's better than no attitude at all
+
+    const bool isNan = (isnan(q0) || isnan(q1) || isnan(q2) || isnan(q3));
+    const bool isInf = (isinf(q0) || isinf(q1) || isinf(q2) || isinf(q3));
+    const bool isZero = (ABS(q0) < 1e-3f && ABS(q1) < 1e-3f && ABS(q2) < 1e-3f && ABS(q3) < 1e-3f);
+
+    if (isNan || isZero || isInf) {
+        imuResetOrientationQuaternion(ax, ay, az);
+
+#ifdef BLACKBOX
+        if (feature(FEATURE_BLACKBOX)) {
+            blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, NULL);
+        }
+#endif
+    }
+}
+
 static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
-                                int accWeight, float ax, float ay, float az,
+                                bool useAcc, float ax, float ay, float az,
                                 bool useMag, float mx, float my, float mz,
                                 bool useCOG, float courseOverGround)
 {
@@ -247,10 +289,9 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
     static float integralMagX = 0.0f,  integralMagY = 0.0f, integralMagZ = 0.0f;    // integral error terms scaled by Ki
     float recipNorm;
     float ex, ey, ez;
-    float qa, qb, qc;
 
     /* Calculate general spin rate (rad/s) */
-    float spin_rate_sq = sq(gx) + sq(gy) + sq(gz);
+    const float spin_rate_sq = sq(gx) + sq(gy) + sq(gz);
 
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
@@ -270,12 +311,12 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
 
             // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
             // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
-            float hx = rMat[0][0] * mx + rMat[0][1] * my + rMat[0][2] * mz;
-            float hy = rMat[1][0] * mx + rMat[1][1] * my + rMat[1][2] * mz;
-            float bx = sqrtf(hx * hx + hy * hy);
+            const float hx = rMat[0][0] * mx + rMat[0][1] * my + rMat[0][2] * mz;
+            const float hy = rMat[1][0] * mx + rMat[1][1] * my + rMat[1][2] * mz;
+            const float bx = sqrtf(hx * hx + hy * hy);
 
             // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-            float ez_ef = -(hy * bx);
+            const float ez_ef = -(hy * bx);
 
             // Rotate mag error vector back to BF and accumulate
             ex = rMat[2][0] * ez_ef;
@@ -291,7 +332,7 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
             // (Rxx; Ryx) - measured (estimated) heading vector (EF)
             // (cos(COG), sin(COG)) - reference heading vector (EF)
             // error is cross product between reference heading and estimated heading (calculated in EF)
-            float ez_ef = - sin_approx(courseOverGround) * rMat[0][0] - cos_approx(courseOverGround) * rMat[1][0];
+            const float ez_ef = - sin_approx(courseOverGround) * rMat[0][0] - cos_approx(courseOverGround) * rMat[1][0];
 
             ex = rMat[2][0] * ez_ef;
             ey = rMat[2][1] * ez_ef;
@@ -325,7 +366,7 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
 
 
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
-    if (accWeight > 0) {
+    if (useAcc) {
         float kpAcc = imuRuntimeConfig.dcm_kp_acc * imuGetPGainScaleFactor();
 
         // Just scale by 1G length - That's our vector adjustment. Rather than
@@ -336,12 +377,10 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
         ay *= (1.0f / GRAVITY_CMSS);
         az *= (1.0f / GRAVITY_CMSS);
 
-        float fAccWeightScaler = accWeight / (float)MAX_ACC_SQ_NEARNESS;
-
         // Error is sum of cross product between estimated direction and measured direction of gravity
-        ex = (ay * rMat[2][2] - az * rMat[2][1]) * fAccWeightScaler;
-        ey = (az * rMat[2][0] - ax * rMat[2][2]) * fAccWeightScaler;
-        ez = (ax * rMat[2][1] - ay * rMat[2][0]) * fAccWeightScaler;
+        ex = (ay * rMat[2][2] - az * rMat[2][1]);
+        ey = (az * rMat[2][0] - ax * rMat[2][2]);
+        ez = (ax * rMat[2][1] - ay * rMat[2][0]);
 
         // Compute and apply integral feedback if enabled
         if(imuRuntimeConfig.dcm_ki_acc > 0.0f) {
@@ -368,9 +407,9 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
     gy *= (0.5f * dt);
     gz *= (0.5f * dt);
 
-    qa = q0;
-    qb = q1;
-    qc = q2;
+    const float qa = q0;
+    const float qb = q1;
+    const float qc = q2;
     q0 += (-qb * gx - qc * gy - q3 * gz);
     q1 += (qa * gx + qc * gz - q3 * gy);
     q2 += (qa * gy - qb * gz + q3 * gx);
@@ -382,6 +421,9 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
     q1 *= recipNorm;
     q2 *= recipNorm;
     q3 *= recipNorm;
+
+    // Check for invalid quaternion
+    imuCheckAndResetOrientationQuaternion(ax, ay, az);
 
     // Pre-compute rotation matrix from quaternion
     imuComputeRotationMatrix();
@@ -405,33 +447,30 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-// Idea by MasterZap
-static int imuCalculateAccelerometerConfidence(void)
+static bool imuCanUseAccelerometerForCorrection(void)
 {
     int32_t axis;
-    int32_t accMagnitude = 0;
+    int32_t accMagnitudeSq = 0;
 
     for (axis = 0; axis < 3; axis++) {
-        accMagnitude += (int32_t)acc.accADC[axis] * acc.accADC[axis];
+        accMagnitudeSq += (int32_t)acc.accADC[axis] * acc.accADC[axis];
     }
 
     // Magnitude^2 in percent of G^2
-    accMagnitude = accMagnitude * 100 / ((int32_t)acc.dev.acc_1G * acc.dev.acc_1G);
+    const int nearness = ABS(100 - (accMagnitudeSq * 100 / ((int32_t)acc.dev.acc_1G * acc.dev.acc_1G)));
 
-    int32_t nearness = ABS(100 - accMagnitude);
-
-    return (nearness > MAX_ACC_SQ_NEARNESS) ? 0 : MAX_ACC_SQ_NEARNESS - nearness;
+    return (nearness > MAX_ACC_SQ_NEARNESS) ? false : true;
 }
 
 static void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(MAG)
-    const bool canUseMAG = sensors(SENSOR_MAG) && isCompassHealthy();
+    const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();
 #else
     const bool canUseMAG = false;
 #endif
 
-    const int accWeight = imuCalculateAccelerometerConfidence();
+    const bool useAcc = imuCanUseAccelerometerForCorrection();
 
     float courseOverGround = 0;
     bool useMag = false;
@@ -479,7 +518,7 @@ static void imuCalculateEstimatedAttitude(float dT)
 #endif
 
     imuMahonyAHRSupdate(dT,     imuMeasuredRotationBF.A[X], imuMeasuredRotationBF.A[Y], imuMeasuredRotationBF.A[Z],
-                        accWeight, imuMeasuredGravityBF.A[X], imuMeasuredGravityBF.A[Y], imuMeasuredGravityBF.A[Z],
+                        useAcc, imuMeasuredGravityBF.A[X], imuMeasuredGravityBF.A[Y], imuMeasuredGravityBF.A[Z],
                         useMag, mag.magADC[X], mag.magADC[Y], mag.magADC[Z],
                         useCOG, courseOverGround);
 
@@ -492,15 +531,16 @@ static void imuUpdateMeasuredRotationRate(void)
     int axis;
 
 #ifdef ASYNC_GYRO_PROCESSING
+    const float imuAccumulatedRateTime = imuAccumulatedRateTimeUs * 1e-6;
+    imuAccumulatedRateTimeUs = 0;
+
     for (axis = 0; axis < 3; axis++) {
         imuMeasuredRotationBF.A[axis] = imuAccumulatedRate[axis] / imuAccumulatedRateTime;
         imuAccumulatedRate[axis] = 0.0f;
     }
-
-    imuAccumulatedRateTime = 0.0f;
 #else
     for (axis = 0; axis < 3; axis++) {
-        imuMeasuredRotationBF.A[axis] = gyro.gyroADC[axis] * gyroScale;
+        imuMeasuredRotationBF.A[axis] = gyro.gyroADCf[axis] * gyroScale;
     }
 #endif
 }
@@ -560,12 +600,12 @@ void imuUpdateAccelerometer(void)
 {
 #ifdef HIL
     if (sensors(SENSOR_ACC) && !hilActive) {
-        updateAccelerationReadings();
+        accUpdate();
         isAccelUpdatedAtLeastOnce = true;
     }
 #else
     if (sensors(SENSOR_ACC)) {
-        updateAccelerationReadings();
+        accUpdate();
         isAccelUpdatedAtLeastOnce = true;
     }
 #endif
@@ -610,7 +650,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
 
 bool isImuReady(void)
 {
-    return sensors(SENSOR_ACC) && isGyroCalibrationComplete();
+    return sensors(SENSOR_ACC) && gyroIsCalibrationComplete();
 }
 
 bool isImuHeadingValid(void)
@@ -621,15 +661,4 @@ bool isImuHeadingValid(void)
 float calculateCosTiltAngle(void)
 {
     return rMat[2][2];
-}
-
-float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompensationStrength)
-{
-    if (throttleTiltCompensationStrength) {
-        float tiltCompFactor = 1.0f / constrainf(rMat[2][2], 0.6f, 1.0f);  // max tilt about 50 deg
-        return 1.0f + (tiltCompFactor - 1.0f) * (throttleTiltCompensationStrength / 100.f);
-    }
-    else {
-        return 1.0f;
-    }
 }
