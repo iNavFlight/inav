@@ -31,6 +31,9 @@ typedef struct pt1Filter_s {
 typedef struct biquadFilter_s {
     float b0, b1, b2, a1, a2;
     float d1, d2;
+    uint32_t refreshRate;
+    uint16_t filterFreq;
+    bool running;         // Set it to false when filter stops receiving samples for any period
 } biquadFilter_t;
 
 typedef enum {
@@ -59,6 +62,7 @@ void rateLimitFilterInit(rateLimitFilter_t *filter);
 float rateLimitFilterApply4(rateLimitFilter_t *filter, float input, float rate_limit, float dT);
 
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t refreshRate);
+void biquadFilterChangeLPF(biquadFilter_t *filter, uint16_t filterFreq);
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType);
 float biquadFilterApply(biquadFilter_t *filter, float sample);
 float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff);

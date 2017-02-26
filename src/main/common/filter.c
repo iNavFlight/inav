@@ -83,10 +83,16 @@ float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff)
     return sqrtf(powf(2, octaves)) / (powf(2, octaves) - 1);
 }
 
-// sets up a biquad Filter
+// sets up a biquad LPF
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t refreshRate)
 {
     biquadFilterInit(filter, filterFreq, refreshRate, BIQUAD_Q, FILTER_LPF);
+}
+
+// changes a biquad LPF on the fly
+void biquadFilterChangeLPF(biquadFilter_t *filter, uint16_t filterFreq)
+{
+    biquadFilterInit(filter, filterFreq, filter->refreshRate, BIQUAD_Q, FILTER_LPF);
 }
 
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t refreshRate, float Q, biquadFilterType_e filterType)
@@ -122,16 +128,25 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t refr
     filter->a1 = a1 / a0;
     filter->a2 = a2 / a0;
 
-    // zero initial samples
-    filter->d1 = filter->d2 = 0;
+    filter->filterFreq = filterFreq;
+    filter->refreshRate = refreshRate;
+    filter->running = false;
 }
 
 // Computes a biquad_t filter on a sample
 float biquadFilterApply(biquadFilter_t *filter, float input)
 {
-    const float result = filter->b0 * input + filter->d1;
-    filter->d1 = filter->b1 * input - filter->a1 * result + filter->d2;
-    filter->d2 = filter->b2 * input - filter->a2 * result;
+    float result;
+    if (!filter->running) {
+        result = input;
+        filter->d2 = filter->b2 * input - filter->a2 * result;
+        filter->d1 = filter->b1 * input - filter->a1 * result + filter->d2;
+        filter->running = true;
+    } else {
+        result = filter->b0 * input + filter->d1;
+        filter->d1 = filter->b1 * input - filter->a1 * result + filter->d2;
+        filter->d2 = filter->b2 * input - filter->a2 * result;
+    }
     return result;
 }
 
