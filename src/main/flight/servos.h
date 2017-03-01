@@ -121,6 +121,7 @@ typedef struct servoConfig_s {
     uint16_t flaperon_throw_offset;
     uint8_t flaperon_throw_inverted;
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
+    uint8_t tri_servo_lpf_hz;               // stop tail from shaking when on the ground
 } servoConfig_t;
 
 PG_DECLARE(servoConfig_t, servoConfig);

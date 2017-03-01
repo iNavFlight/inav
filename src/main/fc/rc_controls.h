@@ -160,6 +160,7 @@ bool areUsingSticksToArm(void);
 
 bool areSticksInApModePosition(uint16_t ap_mode);
 throttleStatus_e calculateThrottleStatus(void);
+int8_t calculateThrottlePercent(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_switch, bool fixed_wing_auto_arm);
 
