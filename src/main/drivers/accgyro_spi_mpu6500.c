@@ -82,10 +82,20 @@ static void mpu6500SpiInit(void)
 
 bool mpu6500SpiDetect(void)
 {
-    uint8_t tmp;
+    uint8_t tmp, detectRetries = 0;
 
     mpu6500SpiInit();
 
+    delayMicroseconds(15);
+
+    // Wait for the chip to finish reset and enter sleep mode
+    do {
+        mpu6500ReadRegister(MPU_RA_PWR_MGMT_1, 1, &tmp);
+        delayMicroseconds(5);
+        detectRetries++;
+    } while ((tmp & MPU6500_BIT_SLEEP) == 0 && detectRetries < 30);
+
+    // Query the chip regardless of sleep state - worst case is that extra 150ms delay will manifest itself
     mpu6500ReadRegister(MPU_RA_WHO_AM_I, 1, &tmp);
 
     if (tmp == MPU6500_WHO_AM_I_CONST ||
