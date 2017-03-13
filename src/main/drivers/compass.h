@@ -17,11 +17,13 @@
 
 #pragma once
 
+#include "drivers/io_types.h"
 #include "sensor.h"
 
 typedef struct magDev_s {
     sensorInitFuncPtr init;                                 // initialize function
     sensorReadFuncPtr read;                                 // read 3 axis data function
+    IO_t mpuSpiCsPin;
     sensor_align_e magAlign;
 } magDev_t;
 

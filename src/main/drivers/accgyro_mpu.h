@@ -18,6 +18,7 @@
 #pragma once
 
 #include "exti.h"
+#include "io_types.h"
 #include "sensor.h"
 
 // MPU6050
@@ -118,18 +119,16 @@
 // RF = Register Flag
 #define MPU_RF_DATA_RDY_EN (1 << 0)
 
-typedef bool (*mpuReadRegisterFunc)(uint8_t reg, uint8_t length, uint8_t* data);
-typedef bool (*mpuWriteRegisterFunc)(uint8_t reg, uint8_t data);
-typedef void(*mpuResetFuncPtr)(void);
+typedef bool (*mpuReadRegisterFnPtr)(IO_t mpuCsPin, uint8_t reg, uint8_t length, uint8_t* data);
+typedef bool (*mpuWriteRegisterFnPtr)(IO_t mpuCsPin, uint8_t reg, uint8_t data);
+typedef void(*mpuResetFnPtr)(void);
 
-extern mpuResetFuncPtr mpuReset;
+extern mpuResetFnPtr mpuResetFn;
 
 typedef struct mpuConfiguration_s {
-    mpuReadRegisterFunc read;
-    mpuWriteRegisterFunc write;
-    mpuReadRegisterFunc slowread;
-    mpuWriteRegisterFunc verifywrite;
-    mpuResetFuncPtr reset;
+    mpuReadRegisterFnPtr readFn;
+    mpuWriteRegisterFnPtr writeFn;
+    mpuResetFnPtr resetFn;
     uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
 } mpuConfiguration_t;
 
@@ -187,12 +186,15 @@ typedef struct mpuDetectionResult_s {
     mpu6050Resolution_e resolution;
 } mpuDetectionResult_t;
 
+bool mpuI2CReadRegister(uint8_t reg, uint8_t length, uint8_t *data);
+bool mpuI2CWriteRegister(uint8_t reg, uint8_t data);
+
 struct gyroDev_s;
 void mpuGyroInit(struct gyroDev_s *gyro);
 struct accDev_s;
 bool mpuAccRead(struct accDev_s *acc);
 bool mpuGyroRead(struct gyroDev_s *gyro);
-void mpuDetect(struct gyroDev_s *gyro);
+void mpuDetect(struct gyroDev_s *gyro, IO_t mpuSpiCsPin);
 bool mpuCheckDataReady(struct gyroDev_s *gyro);
 void mpuGyroSetIsrUpdate(struct gyroDev_s *gyro, sensorGyroUpdateFuncPtr updateFn);
 

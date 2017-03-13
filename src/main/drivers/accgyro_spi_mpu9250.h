@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "io_types.h"
+
 #define mpu9250_CONFIG                      0x1A
 
 /* We should probably use these. :)
@@ -25,12 +27,12 @@
 
 void mpu9250ResetGyro(void);
 
-bool mpu9250SpiDetect(void);
+bool mpu9250SpiDetect(IO_t mpuCsPin);
 
 bool mpu9250SpiAccDetect(accDev_t *acc);
 bool mpu9250SpiGyroDetect(gyroDev_t *gyro);
 
-bool mpu9250WriteRegister(uint8_t reg, uint8_t data);
-bool verifympu9250WriteRegister(uint8_t reg, uint8_t data);
-bool mpu9250ReadRegister(uint8_t reg, uint8_t length, uint8_t *data);
-bool mpu9250SlowReadRegister(uint8_t reg, uint8_t length, uint8_t *data);
+bool mpu9250WriteRegister(IO_t mpuCsPin, uint8_t reg, uint8_t data);
+bool verifympu9250WriteRegister(IO_t mpuCsPin, uint8_t reg, uint8_t data);
+bool mpu9250ReadRegister(IO_t mpuCsPin, uint8_t reg, uint8_t length, uint8_t *data);
+bool mpu9250SlowReadRegister(IO_t mpuCsPin, uint8_t reg, uint8_t length, uint8_t *data);

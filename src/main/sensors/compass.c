@@ -46,8 +46,9 @@
 #include "io/gps.h"
 
 #include "sensors/boardalignment.h"
-#include "sensors/sensors.h"
+#include "sensors/gyro.h"
 #include "sensors/compass.h"
+#include "sensors/sensors.h"
 
 #ifdef NAZE
 #include "hardware_revision.h"
@@ -236,6 +237,8 @@ bool compassInit(void)
     if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
         return false;
     }
+    // copy over SPI CS pin for AK8963 compass
+    mag.dev.mpuSpiCsPin = gyro.dev.mpuSpiCsPin;
     // initialize and calibration. turn on led during mag calibration (calibration routine blinks it)
     LED1_ON;
     const bool ret = mag.dev.init();
