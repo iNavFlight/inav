@@ -28,7 +28,6 @@
 #define USE_EXTI
 #define MPU_INT_EXTI            PA3
 #define USE_MPU_DATA_READY_SIGNAL
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -58,7 +57,7 @@
 // External I2C BARO
 #define BARO
 //#define USE_BARO_MS5611
-#define USE_BARO_BMP085
+//#define USE_BARO_BMP085
 #define USE_BARO_BMP280
 
 // External I2C MAG
@@ -75,123 +74,111 @@
 #define UART3_TX_PIN            PB10
 
 
-#if defined(CC3D_NRF24) || defined(CC3D_NRF24_OPBL)
-#define USE_RX_NRF24
+#if defined(CC3D_NRF24)
+    #define USE_RX_NRF24
 #endif
 
 #ifdef USE_RX_NRF24
-#define USE_RX_SPI
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SPI
-#define DEFAULT_FEATURES        FEATURE_SOFTSPI
-#define USE_RX_SYMA
-//#define USE_RX_V202
-#define USE_RX_CX10
-//#define USE_RX_H8_3D
-#define USE_RX_INAV
-#define RX_SPI_DEFAULT_PROTOCOL  NRF24RX_SYMA_X5C
-//#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_V202_1M
-//#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_H8_3D
+    #define USE_RX_SPI
+    #define DEFAULT_RX_FEATURE      FEATURE_RX_SPI
+    #define DEFAULT_FEATURES        FEATURE_SOFTSPI
+    #define USE_RX_SYMA
+    //#define USE_RX_V202
+    #define USE_RX_CX10
+    //#define USE_RX_H8_3D
+    #define USE_RX_INAV
+    #define RX_SPI_DEFAULT_PROTOCOL  NRF24RX_SYMA_X5C
+    //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_V202_1M
+    //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_H8_3D
 
-#define USE_SOFTSPI
-#define USE_RX_SOFTSPI
+    #define USE_SOFTSPI
+    #define USE_RX_SOFTSPI
 
-// RC pinouts
-// RC1              GND
-// RC2              power
-// RC3  PB6/TIM4    unused
-// RC4  PB5/TIM3    SCK / softserial1 TX / sonar trigger
-// RC5  PB0/TIM3    MISO / softserial1 RX / sonar echo / RSSI ADC
-// RC6  PB1/TIM3    MOSI / current
-// RC7  PA0/TIM2    CSN / battery voltage
-// RC8  PA1/TIM2    CE / RX_PPM
+    // RC pinouts
+    // RC1              GND
+    // RC2              power
+    // RC3  PB6/TIM4    unused
+    // RC4  PB5/TIM3    SCK / softserial1 TX / sonar trigger
+    // RC5  PB0/TIM3    MISO / softserial1 RX / sonar echo / RSSI ADC
+    // RC6  PB1/TIM3    MOSI / current
+    // RC7  PA0/TIM2    CSN / battery voltage
+    // RC8  PA1/TIM2    CE / RX_PPM
 
-// Nordic Semiconductor uses 'CSN', STM uses 'NSS'
-#define RX_NSS_GPIO_CLK_PERIPHERAL  RCC_APB2Periph_GPIOA
-#define RX_NSS_PIN                  PA0
-#define RX_CE_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
-#define RX_CE_PIN                   PA1
-#define RX_NSS_PIN                  PA0
-#define RX_SCK_PIN                  PB5
-#define RX_MOSI_PIN                 PB1
-#define RX_MISO_PIN                 PB0
+    // Nordic Semiconductor uses 'CSN', STM uses 'NSS'
+    #define RX_NSS_GPIO_CLK_PERIPHERAL  RCC_APB2Periph_GPIOA
+    #define RX_NSS_PIN                  PA0
+    #define RX_CE_GPIO_CLK_PERIPHERAL   RCC_APB2Periph_GPIOA
+    #define RX_CE_PIN                   PA1
+    #define RX_NSS_PIN                  PA0
+    #define RX_SCK_PIN                  PB5
+    #define RX_MOSI_PIN                 PB1
+    #define RX_MISO_PIN                 PB0
 
-#define SERIAL_PORT_COUNT 3
-
+    #define SERIAL_PORT_COUNT 3
 #else
+    #define USE_SOFTSERIAL1
+    #define SERIAL_PORT_COUNT       4
 
-#define USE_SOFTSERIAL1
-#define SERIAL_PORT_COUNT       4
+    #ifdef USE_UART1_RX_DMA
+        #undef USE_UART1_RX_DMA
+    #endif
 
-#ifdef USE_UART1_RX_DMA
-#undef USE_UART1_RX_DMA
-#endif
+    #define SOFTSERIAL_1_TIMER      TIM3
+    #define SOFTSERIAL_1_TIMER_TX_HARDWARE 1 // PWM 2
+    #define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
 
-#define SOFTSERIAL_1_TIMER      TIM3
-#define SOFTSERIAL_1_TIMER_TX_HARDWARE 1 // PWM 2
-#define SOFTSERIAL_1_TIMER_RX_HARDWARE 2 // PWM 3
-
-#define DEFAULT_RX_FEATURE FEATURE_RX_PPM
-
+    #define DEFAULT_RX_FEATURE FEATURE_RX_PPM
 #endif // USE_RX_NRF24
 
+#undef USE_FLM_TURN_ASSIST
+#undef TELEMETRY_FRSKY
+#undef USE_SERIALRX_SPEKTRUM
+#undef USE_SERIALRX_IBUS
 
 #define USE_ADC
 #define CURRENT_METER_ADC_PIN   PB1
 #define VBAT_ADC_PIN            PA0
+
 #ifdef CC3D_PPM1
-#define RSSI_ADC_PIN            PA1
+    #define RSSI_ADC_PIN            PA1
 #else
-#define RSSI_ADC_PIN            PB0
+    #define RSSI_ADC_PIN            PB0
 #endif
 
 // LED strip is on PWM5 output pin
-//#define LED_STRIP
-#define WS2811_PIN                      PB4
-#define WS2811_TIMER                    TIM3
-#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
+// #define LED_STRIP
+// #define WS2811_PIN                      PB4
+// #define WS2811_TIMER                    TIM3
+// #define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
+// #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
-#define SPEKTRUM_BIND
 // USART3, PB11 (Flexport)
-#define BIND_PIN                PB11
+// #define SPEKTRUM_BIND
+// #define BIND_PIN                PB11
 
-//#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+// #define SONAR
+// #define USE_SONAR_SRF10
+// #define SONAR_ECHO_PIN          PB0
+// #define SONAR_TRIGGER_PIN       PB5
 
-//#define SONAR
-//#define USE_SONAR_SRF10
-#define SONAR_ECHO_PIN          PB0
-#define SONAR_TRIGGER_PIN       PB5
+// #define NAV_AUTO_MAG_DECLINATION
+// #define NAV_GPS_GLITCH_DETECTION
+// #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-//#define NAV_AUTO_MAG_DECLINATION
-//#define NAV_GPS_GLITCH_DETECTION
+// #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#ifdef OPBL
-
-#ifdef USE_RX_NRF24
-#undef USE_SERVOS
-#endif // USE_RX_NRF24
-
-#define TARGET_MOTOR_COUNT 4
-#undef USE_MAG_AK8975
-#undef USE_MAG_MAG3110
-#undef BLACKBOX
-#undef SERIAL_RX
-#undef SPEKTRUM_BIND
-
-#else
 #define TARGET_MOTOR_COUNT 4
 #define DISABLE_UNCOMMON_MIXERS
-#undef BLACKBOX
-#endif //OPBL
+//#undef BLACKBOX
 
 
 #ifdef USE_RX_NRF24
-#undef USE_RX_PWM
-#undef USE_RX_PPM
-#undef SERIAL_RX
-#undef SPEKTRUM_BIND
+    #undef USE_RX_PWM
+    #undef USE_RX_PPM
+    #undef SERIAL_RX
+    #undef SPEKTRUM_BIND
 #endif
 
 // Number of available PWM outputs

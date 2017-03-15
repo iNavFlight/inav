@@ -77,8 +77,10 @@ typedef struct navigationFlags_s {
     bool isAdjustingHeading;
 
     // Behaviour modifiers
+#ifdef USE_FLM_GCSNAV
     bool isGCSAssistedNavigationEnabled;    // Does iNav accept WP#255 - follow-me etc.
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
+#endif
     bool isTerrainFollowEnabled;            // Does iNav use sonar for terrain following (adjusting baro altitude target according to sonar readings)
 
     bool forcedRTHActivated;

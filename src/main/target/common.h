@@ -33,14 +33,14 @@
 
 #if (FLASH_SIZE > 64)
 #define BLACKBOX
+#define NAV_BLACKBOX
 #define GPS
 #define GPS_PROTO_UBLOX
 #define NAV
 #define TELEMETRY
 #define TELEMETRY_LTM
-#define USE_FLM_HEADLOCK
-#define USE_FLM_TURN_ASSIST
 #define TELEMETRY_FRSKY
+#define USE_FLM_TURN_ASSIST
 #endif
 
 #if defined(STM_FAST_TARGET)
@@ -83,6 +83,7 @@
 #define PWM_DRIVER_PCA9685
 #define NAV_MAX_WAYPOINTS       60
 #define MAX_BOOTLOG_ENTRIES     64
+#define USE_FLM_GCSNAV
 #else
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
