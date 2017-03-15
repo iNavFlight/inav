@@ -71,9 +71,6 @@ typedef struct {
     float errorGyroIf;
     float errorGyroIfLimit;
 
-    // Axis lock accumulator
-    float axisLockAccum;
-
     // Used for ANGLE filtering
     pt1Filter_t angleFilterState;
 
@@ -225,9 +222,6 @@ void pidResetErrorAccumulators(void)
         pidState[axis].errorGyroIf = 0.0f;
         pidState[axis].errorGyroIfLimit = 0.0f;
     }
-
-    // Reset yaw heading lock accumulator
-    pidState[FD_YAW].axisLockAccum = 0;
 }
 
 static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
