@@ -12,7 +12,9 @@ There is currently no way to change the information on the display
 
 ## Supported Hardware
 I2c IIC Serial Oled LCD LED Module 12864 (<a href="http://a.co/5hxXEvZ">http://a.co/5hxXEvZ</a> used in status image above)
+
 SSD1306
+
 UG-2864HSWEG01
 
 ## Configuration
