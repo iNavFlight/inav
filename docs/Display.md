@@ -3,6 +3,7 @@
 INAV supports displays to provide information to you about your aircraft and iNav state.
 
 When the aircraft is armed, an "Armed" message is displayed. When it is disarmed, a summary page is displayed. Page cycling has been removed and no other information is currently available
+
 ![Stick Positions](assets/images/inav_display_armed.jpg)
 ![Stick Positions](assets/images/inav_display_status.jpg)
 
