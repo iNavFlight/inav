@@ -61,6 +61,7 @@
 #include "sensors/sensors.h"
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
+#include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/barometer.h"
 
@@ -420,6 +421,10 @@ static void showStatusPage(void)
     }
 #endif
 
+    rowIndex++;
+    tfp_sprintf(lineBuffer, "Acc: %dR, %dP", boardAlignment()->rollDeciDegrees, boardAlignment()->pitchDeciDegrees );
+    i2c_OLED_set_line(rowIndex++);
+    i2c_OLED_send_string(lineBuffer);
 }
 
 void dashboardUpdate(timeUs_t currentTimeUs)
