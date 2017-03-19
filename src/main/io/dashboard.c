@@ -333,8 +333,6 @@ static void showStatusPage(void)
         drawHorizonalPercentageBar(10, capacityPercentage);
     }
 
-    rowIndex++;
-
 #ifdef GPS
     if (feature(FEATURE_GPS)) {
         tfp_sprintf(lineBuffer, "Sats: %d", gpsSol.numSat);
