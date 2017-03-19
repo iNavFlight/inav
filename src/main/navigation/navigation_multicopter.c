@@ -519,10 +519,6 @@ bool isMulticopterLandingDetected(void)
 
     bool possibleLandingDetected = isAtMinimalThrust && !verticalMovement && !horizontalMovement;
 
-    navDebug[0] = isAtMinimalThrust * 100 + !verticalMovement * 10 + !horizontalMovement * 1;
-    navDebug[1] = (landingThrSamples == 0) ? (navDebug[1] = 0) : (rcCommandAdjustedThrottle - (landingThrSum / landingThrSamples));
-    navDebug[2] = (currentTimeUs - landingTimer) / 1000;
-
     // If we have surface sensor (for example sonar) - use it to detect touchdown
     if (posControl.flags.hasValidSurfaceSensor && posControl.actualState.surfaceMin >= 0) {
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.

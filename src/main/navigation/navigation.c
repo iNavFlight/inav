@@ -753,7 +753,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE(navi
 {
     const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
+#ifdef USE_FLM_GCSNAV
     resetGCSFlags();
+#endif
 
     if ((prevFlags & NAV_CTL_ALT) == 0) {
         resetAltitudeController();
@@ -771,11 +773,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_ALTHOLD_IN_PROGRESS(nav
 {
     UNUSED(previousState);
 
+#ifdef USE_FLM_GCSNAV
     // If GCS was disabled - reset altitude setpoint
     if (posControl.flags.isGCSAssistedNavigationReset) {
         setDesiredPosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
         resetGCSFlags();
     }
+#endif
 
     // If we enable terrain mode and surface offset is not set yet - do it
     if (posControl.flags.hasValidSurfaceSensor && posControl.flags.isTerrainFollowEnabled && posControl.desiredState.surface < 0) {
@@ -789,7 +793,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_2D_INITIALIZE(n
 {
     const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
+#ifdef USE_FLM_GCSNAV
     resetGCSFlags();
+#endif
 
     if ((prevFlags & NAV_CTL_POS) == 0) {
         resetPositionController();
@@ -808,6 +814,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_2D_IN_PROGRESS(
 {
     UNUSED(previousState);
 
+#ifdef USE_FLM_GCSNAV
     // If GCS was disabled - reset 2D pos setpoint
     if (posControl.flags.isGCSAssistedNavigationReset) {
         t_fp_vector targetHoldPos;
@@ -815,6 +822,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_2D_IN_PROGRESS(
         setDesiredPosition(&targetHoldPos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
         resetGCSFlags();
     }
+#endif
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -823,7 +831,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE(n
 {
     const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
+#ifdef USE_FLM_GCSNAV
     resetGCSFlags();
+#endif
 
     if ((prevFlags & NAV_CTL_POS) == 0) {
         resetPositionController();
@@ -851,6 +861,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS(
 {
     UNUSED(previousState);
 
+#ifdef USE_FLM_GCSNAV
     // If GCS was disabled - reset 2D pos setpoint
     if (posControl.flags.isGCSAssistedNavigationReset) {
         t_fp_vector targetHoldPos;
@@ -859,6 +870,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS(
         setDesiredPosition(&targetHoldPos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
         resetGCSFlags();
     }
+#endif
 
     // If we enable terrain mode and surface offset is not set yet - do it
     if (posControl.flags.hasValidSurfaceSensor && posControl.flags.isTerrainFollowEnabled && posControl.desiredState.surface < 0) {
@@ -2153,11 +2165,13 @@ static bool adjustPositionFromRCInput(void)
 /*-----------------------------------------------------------
  * WP controller
  *-----------------------------------------------------------*/
+#ifdef USE_FLM_GCSNAV
 void resetGCSFlags(void)
 {
     posControl.flags.isGCSAssistedNavigationReset = false;
     posControl.flags.isGCSAssistedNavigationEnabled = false;
 }
+#endif
 
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
 {
@@ -2199,6 +2213,7 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
 
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
 {
+#ifdef USE_FLM_GCSNAV
     gpsLocation_t wpLLH;
     navWaypointPosition_t wpPos;
 
@@ -2234,6 +2249,9 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
 
         setDesiredPosition(&wpPos.pos, DEGREES_TO_CENTIDEGREES(wpData->p1), waypointUpdateFlags);
     }
+#else
+    if (0) {}
+#endif
     // WP #1 - #15 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !ARMING_FLAG(ARMED)) {
         if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_RTH) {
@@ -2661,11 +2679,14 @@ static void updateReadyStatus(void)
 
 void updateFlightBehaviorModifiers(void)
 {
+#ifdef USE_FLM_GCSNAV
     if (posControl.flags.isGCSAssistedNavigationEnabled && !IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
         posControl.flags.isGCSAssistedNavigationReset = true;
     }
 
     posControl.flags.isGCSAssistedNavigationEnabled = IS_RC_MODE_ACTIVE(BOXGCSNAV);
+#endif
+
     posControl.flags.isTerrainFollowEnabled = IS_RC_MODE_ACTIVE(BOXSURFACE);
 }
 
