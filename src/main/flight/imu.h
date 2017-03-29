@@ -61,6 +61,8 @@ typedef struct imuRuntimeConfig_s {
 
 void imuConfigure(void);
 
+void imuReceiveGPSUpdate(const bool isFirstGPSUpdate, const float gpsDt, const t_fp_vector * gpsVel);
+
 void imuUpdateAttitude(timeUs_t currentTimeUs);
 void imuUpdateAccelerometer(void);
 void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs);

@@ -182,6 +182,13 @@ void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const flo
     firFilterInit2(filter, buf, bufLength, coeffs, bufLength);
 }
 
+void firFilterReset(firFilter_t *filter, const float value)
+{
+    for (int i = 0; i < filter->bufLength; i++) {
+        filter->buf[0] = value;
+    }
+}
+
 void firFilterUpdate(firFilter_t *filter, float input)
 {
     memmove(&filter->buf[1], &filter->buf[0], (filter->bufLength-1) * sizeof(float));

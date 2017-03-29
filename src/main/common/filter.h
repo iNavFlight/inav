@@ -71,5 +71,6 @@ float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff);
 void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs);
 void firFilterInit2(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs, uint8_t coeffsLength);
 void firFilterUpdate(firFilter_t *filter, float input);
+void firFilterReset(firFilter_t *filter, const float value);
 float firFilterApply(const firFilter_t *filter);
 
