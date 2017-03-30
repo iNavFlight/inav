@@ -160,8 +160,8 @@ Re-apply any new defaults as desired.
 |  nav_position_timeout  | 5 | If GPS fails wait for this much seconds before switching to emergency landing mode (0 - disable) |
 |  nav_wp_radius  | 100 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
 |  nav_wp_safe_distance  | 10000 | First waypoint in the mission should be closer than this value (cm) |
-|  nav_max_speed  | 300 | Maximum velocity firmware is allowed in full auto modes (POSHOLD, RTH, WP) [cm/s] [Multirotor only] |
-|  nav_max_climb_rate  | 500 | Maximum climb/descent rate that UAV is allowed to reach during navigation modes. In cm/s |
+|  nav_auto_speed  | 300 | Maximum velocity firmware is allowed in full auto modes (POSHOLD, RTH, WP) [cm/s] [Multirotor only] |
+|  nav_auto_climb_rate  | 500 | Maximum climb/descent rate that UAV is allowed to reach during navigation modes. In cm/s |
 |  nav_manual_speed  | 500 | Maximum velocity firmware is allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only] |
 |  nav_manual_climb_rate  | 200 | Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s] |
 |  nav_landing_speed  | 200 | Vertical descent velocity during the RTH landing phase. [cm/s] |
@@ -175,10 +175,11 @@ Re-apply any new defaults as desired.
 |  nav_rth_climb_ignore_emerg  | ON | If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status. |
 |  nav_rth_alt_mode  | AT_LEAST | Configure how the aircraft will manage altitude on the way home, se Navigation modes on wiki for more details |
 |  nav_rth_altitude  | 1000 | Used in EXTRA, FIXED and AT_LEAST rth alt modes (Default 1000 means 10 meters) |
+|  nav_rth_abort_threshold  | 50000 | RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. |
 |  nav_mc_bank_angle  | 30 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
 |  nav_mc_hover_thr  | 1500 | Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering. |
 |  nav_mc_auto_disarm_delay  | 2000 |  |
-|  nav_fw_cruise_thr  | 1400 | Cruise throttle in GPS assisted modes. Should be set high enough to avoid stalling |
+|  nav_fw_cruise_thr  | 1400 | Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addiotional it will increase throttle if GPS speed gets below 7m/s ( hardcoded )  |
 |  nav_fw_min_thr  | 1200 | Minimum throttle for flying wing in GPS assisted modes |
 |  nav_fw_max_thr  | 1700 | Maximum throttle for flying wing in GPS assisted modes |
 |  nav_fw_bank_angle  | 20 | Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll |
@@ -195,7 +196,7 @@ Re-apply any new defaults as desired.
 |  nav_fw_launch_motor_delay    | 500 | Delay between detected launch and launch sequence start and throttling up (ms) |
 |  nav_fw_launch_spinup_time    | 100 | Time to bring power from min_throttle to nav_fw_launch_thr - to avoid big stress on ESC and large torque from propeller |
 |  nav_fw_launch_timeout  | 5000 | Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms) |
-|  nav_fw_launch_climb_angle  | 10 | Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
+|  nav_fw_launch_climb_angle  | 18 | Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
 |  serialrx_provider  | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 |  sbus_inversion     | OFF | Standard SBUS (Futaba, FrSKY) uses an inverted signal. Some OpenLRS receivers produce a non-inverted SBUS signal. This setting is to support this type of receivers (including modified FrSKY). This only works on supported hardware (mainly F3 based flight controllers). |
 |  spektrum_sat_bind  | 0 | 0 = disabled. Used to bind the spektrum satellite to RX |
@@ -209,7 +210,8 @@ Re-apply any new defaults as desired.
 |  frsky_vfas_cell_voltage  | OFF |  |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
 |  smartport_uart_unidir  | OFF | Turn UART into UNIDIR for smartport telemetry for usage on F1 and F4 target. See Telemertry.md for details |
-|  ibus_telemetry_type  | 0 | Type compatibility ibus telemetry for transmitters. See Telemertry.md label IBUS for details. |
+|  ibus_telemetry_type  | 0 | Type compatibility ibus telemetry for transmitters. See Telemetry.md label IBUS for details. |
+|  ltm_update_rate  | NORMAL | Defines the LTM update rate (use of bandwidth [NORMAL/MEDIUM/SLOW]). See Telemetry.md, LTM section for details. |
 |  battery_capacity  | 0 | Battery capacity in mAH. This value is used in conjunction with the current meter to determine remaining battery capacity. |
 |  vbat_scale  | 110 | Result is Vbatt in 0.1V steps. 3.3V = ADC Vref, 4095 = 12bit adc, 110 = 11:1 voltage divider (10k:1k) x 10 for 0.1V. Adjust this slightly if reported pack voltage is different from multimeter reading. You can get current voltage by typing "status" in cli. |
 |  vbat_max_cell_voltage  | 43 | Maximum voltage per cell, used for auto-detecting battery voltage in 0.1V units, default is 43 (4.3V) |
@@ -225,7 +227,7 @@ Re-apply any new defaults as desired.
 |  align_board_roll  | 0 | Arbitrary board rotation in degrees, to allow mounting it sideways / upside down / rotated etc |
 |  align_board_pitch  | 0 | Arbitrary board rotation in degrees, to allow mounting it sideways / upside down / rotated etc |
 |  align_board_yaw  | 0 | Arbitrary board rotation in degrees, to allow mounting it sideways / upside down / rotated etc |
-|  gyro_lpf  | 42HZ | Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first. |
+|  gyro_hardware_lpf  | 42HZ | Hardware lowpass filter for gyro. Allowed values depend on the driver - For example MPU6050 allows 10HZ,20HZ,42HZ,98HZ,188HZ,256Hz (8khz mode). If you have to set gyro lpf below 42Hz generally means the frame is vibrating too much, and that should be fixed first. |
 |  moron_threshold  | 32 | When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold (default of 32) means how much average gyro reading could differ before re-calibration is triggered. |
 |  imu_dcm_kp  | 2500 | Inertial Measurement Unit KP Gain for accelerometer measurements |
 |  imu_dcm_ki  | 50 | Inertial Measurement Unit KI Gain for accelerometer measurements |
@@ -241,12 +243,14 @@ Re-apply any new defaults as desired.
 |  servo_pwm_rate  | 50 | Output frequency (in Hz) servo pins. Default is 50Hz. When using tricopters or gimbal with digital servo, this rate can be increased. Max of 498Hz (for 500Hz pwm period), and min of 50Hz. Most digital servos will support for example 330Hz. |
 |  failsafe_delay  | 5 | Time in deciseconds to wait before activating failsafe when signal is lost. See [Failsafe documentation](Failsafe.md#failsafe_delay). |
 |  failsafe_recovery_delay  | 5 | Time in deciseconds to wait before aborting failsafe when signal is recovered. See [Failsafe documentation](Failsafe.md#failsafe_recovery_delay). |
-|  failsafe_off_delay  | 200 | Time in deciseconds to wait before turning off motors when failsafe is activated. See [Failsafe documentation](Failsafe.md#failsafe_off_delay). |
+|  failsafe_off_delay  | 200 | Time in deciseconds to wait before turning off motors when failsafe is activated. 0 = No timeout. See [Failsafe documentation](Failsafe.md#failsafe_off_delay). |
 |  failsafe_throttle  | 1000 | Throttle level used for landing when failsafe is enabled. See [Failsafe documentation](Failsafe.md#failsafe_throttle). |
-|  failsafe_kill_switch  | OFF | Set to ON to use an AUX channel as a failsafe kill switch. |
-|  failsafe_throttle_low_delay  | 100 | Activate failsafe when throttle is low and no RX data has been received since this value, in 10th of seconds |
+|  failsafe_throttle_low_delay  | 100 | If failsafe activated when throttle is low for this much time - bypass failsafe and disarm, in 10th of seconds. 0 = No timeout |
 |  failsafe_procedure  | SET-THR | What failsafe procedure to initiate in Stage 2. See [Failsafe documentation](Failsafe.md#failsafe_throttle). |
 |  failsafe_stick_threshold  | 0 | Threshold for stick motion to consider failsafe condition resolved. If non-zero failsafe won't clear even if RC link is restored - you have to move sticks to exit failsafe. |
+|  failsafe_fw_roll_angle  | -200 | Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll |
+|  failsafe_fw_pitch_angle  | 100 | Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb |
+|  failsafe_fw_yaw_rate  | -45 | Requested yaw rate to execute when `SET-THR` failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn |
 |  rx_min_usec  | 885 | Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 |  rx_max_usec  | 2115 | Defines the longest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value higher than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 |  rx_nosignal_throttle  | HOLD | Defines behavior of throttle channel after signal loss is detected and until `failsafe_procedure` kicks in. Possible values - `HOLD` and `DROP`. |
@@ -293,32 +297,34 @@ Re-apply any new defaults as desired.
 |  accgain_x  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
 |  accgain_y  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
 |  accgain_z  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
-|  nav_alt_p  | 50 | P gain of altitude PID controller |
-|  nav_alt_i  | 0 | I gain of altitude PID controller |
-|  nav_alt_d  | 0 | D gain of altitude PID controller |
-|  nav_vel_p  | 100 | P gain of velocity PID controller |
-|  nav_vel_i  | 50 | I gain of velocity PID controller |
-|  nav_vel_d  | 10 | D gain of velocity PID controller |
-|  nav_pos_p  | 65 | Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity |
-|  nav_pos_i  | 120 | Controls deceleration time. Measured in 1/100 sec. Expected hold position is placed at a distance calculated as decelerationTime * currentVelocity |
-|  nav_pos_d  | 10 |  |
-|  nav_posr_p  | 180 | P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P means stronger response when position error occurs. Too much P might cause "nervous" behavior and oscillations |
-|  nav_posr_i  | 15 | I gain of Position-Rate (Velocity to Acceleration) PID controller. Used for drift compensation (caused by wind for example). Higher I means stronger response to drift. Too much I gain might cause target overshot |
-|  nav_posr_d  | 100 | D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target. |
-|  nav_navr_p  | 10 | P gain of 2D trajectory PID controller. Play with this to get a straigh line between waypoints or a straight RTH |
-|  nav_navr_i  | 5 | I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tunning with zero |
-|  nav_navr_d  | 8 | D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tunning with zero |
+|  nav_mc_pos_z_p  | 50 | P gain of altitude PID controller (Multirotor) |
+|  nav_fw_pos_z_p  | 50 | P gain of altitude PID controller (Fixdwing) |
+|  nav_mc_pos_z_i  | 0 | I gain of altitude PID controller (Multirotor) |
+|  nav_fw_pos_z_i  | 0 | I gain of altitude PID controller (Fixdwing) |
+|  nav_mc_pos_z_d  | 0 | D gain of altitude PID controller (Multirotor) |
+|  nav_fw_pos_z_d  | 0 | D gain of altitude PID controller (Fixdwing) |
+|  nav_mc_vel_z_p  | 100 | P gain of velocity PID controller |
+|  nav_mc_vel_z_i  | 50 | I gain of velocity PID controller |
+|  nav_mc_vel_z_d  | 10 | D gain of velocity PID controller |
+|  nav_mc_pos_xy_p  | 65 | Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity |
+|  nav_mc_pos_xy_i  | 120 | Controls deceleration time. Measured in 1/100 sec. Expected hold position is placed at a distance calculated as decelerationTime * currentVelocity |
+|  nav_mc_pos_xy_d  | 10 |  |
+|  nav_mc_vel_xy_p  | 180 | P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P means stronger response when position error occurs. Too much P might cause "nervous" behavior and oscillations |
+|  nav_mc_vel_xy_i  | 15 | I gain of Position-Rate (Velocity to Acceleration) PID controller. Used for drift compensation (caused by wind for example). Higher I means stronger response to drift. Too much I gain might cause target overshot |
+|  nav_mc_vel_xy_d  | 100 | D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target. |
+|  nav_fw_pos_xy_p  | 10 | P gain of 2D trajectory PID controller. Play with this to get a straigh line between waypoints or a straight RTH |
+|  nav_fw_pos_xy_i  | 5 | I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tunning with zero |
+|  nav_fw_pos_xy_d  | 8 | D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tunning with zero |
 |  deadband  | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 |  yaw_deadband  | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 |  throttle_tilt_comp_str  | 0 | Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled. |
-|  flaperon_throw_offset  | 250 | Defines throw range in us for both ailerons that will be applied (before scaling) when FLAPERON mode is activated. |
-|  flaperon_throw_inverted  | OFF | Inverts throw offset on both ailerons. Can be used to create SPOILERON or just to change throw direction |
+|  flaperon_throw_offset  | 250 | Defines throw range in us for both ailerons that will be passed to servo mixer via input source 14 (`FEATURE FLAPS`) when FLAPERON mode is activated. |
 |  gimbal_mode  | NORMAL | When feature SERVO_TILT is enabled, this can be either NORMAL or MIXTILT |
 |  fw_iterm_throw_limit  | 165 | Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely. |
 |  mode_range_logic_operator  | OR | Control how Mode selection works in flight modes. If you example have Angle mode configured on two different Aux channels, this controls if you need both activated ( AND ) or if you only need one activated ( OR ) to active angle mode. |
 |  default_rate_profile  | 0 | Default = profile number |
 |  mag_declination  | 0 | Current location magnetic declination in format. For example, -6deg 37min = -637 for Japan. Leading zero in ddd not required. Get your local magnetic declination here: http://magnetic-declination.com/ . Not in use if inav_auto_mag_decl  is turned on and you aquirre valid GPS fix. |
-|  mag_hold_rate_limit  | 90 | This setting limits yaw rotation rate that MAG_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when MAG_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
+|  heading_hold_rate_limit  | 90 | This setting limits yaw rotation rate that MAG_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when MAG_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
 | `mag_calibration_time` | 30 | Adjust how long time the Calibration of mag will last. |
 | `mc_p_pitch` | 40 | Multicopter rate stabilisation P-gain for PITCH               |
 | `mc_i_pitch` | 30 | Multicopter rate stabilisation I-gain for PITCH               |
@@ -365,6 +371,11 @@ Re-apply any new defaults as desired.
 |  yaw_rate  | 20 | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tenths of degrees per second [dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 |  tpa_rate  | 0 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 |  tpa_breakpoint  | 1500 | See tpa_rate. |
+|  fw_autotune_overshoot_time  | 100 | Time [ms] to detect sustained overshoot |
+|  fw_autotune_undershoot_time | 200 | Time [ms] to detect sustained undershoot |
+|  fw_autotune_threshold       | 50  | Threshold [%] of max rate to consider overshoot/undershoot detection |
+|  fw_autotune_ff_to_p_gain    | 10  | FF to P gain (strength relationship) [%] |
+|  fw_autotune_ff_to_i_tc      | 600 | FF to I time (defines time for I to reach the same level of response as FF) [ms]  |
 
 This Markdown table is made by MarkdwonTableMaker addon for google spreadsheet.
 Original Spreadsheet used to make this table can be found here https://docs.google.com/spreadsheets/d/1ubjYdMGmZ2aAMUNYkdfe3hhIF7wRfIjcuPOi_ysmp00/edit?usp=sharing

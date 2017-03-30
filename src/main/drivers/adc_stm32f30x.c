@@ -20,7 +20,7 @@
 #include <string.h>
 
 #include "platform.h"
-#include "system.h"
+#include "time.h"
 #include "gpio.h"
 
 #include "sensor.h"
@@ -126,6 +126,12 @@ void adcInit(drv_adc_config_t *init)
 #ifdef EXTERNAL1_ADC_PIN
     if (init->enableExternal1) {
         adcConfig[ADC_EXTERNAL1].tag = IO_TAG(EXTERNAL1_ADC_PIN);
+    }
+#endif
+
+#ifdef AIRSPEED_ADC_PIN
+    if (init->enableAirSpeed) {
+        adcConfig[ADC_AIRSPEED].tag = IO_TAG(AIRSPEED_ADC_PIN);
     }
 #endif
 

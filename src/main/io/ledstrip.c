@@ -40,7 +40,7 @@
 
 #include "drivers/light_ws2811strip.h"
 #include "drivers/serial.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
@@ -440,9 +440,7 @@ static const struct {
     uint8_t ledMode;
 } flightModeToLed[] = {
     {HEADFREE_MODE, LED_MODE_HEADFREE},
-#ifdef MAG
-    {MAG_MODE,      LED_MODE_MAG},
-#endif
+    {HEADING_MODE,  LED_MODE_MAG},
 #ifdef BARO
     {NAV_ALTHOLD_MODE, LED_MODE_BARO},
 #endif

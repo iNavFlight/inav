@@ -27,7 +27,7 @@
 
 #include "common/utils.h"
 
-#include "system.h"
+#include "time.h"
 
 #include "nvic.h"
 #include "io.h"
@@ -40,7 +40,7 @@
 
 #define DEBUG_PPM_ISR
 
-#define PPM_CAPTURE_COUNT 12
+#define PPM_CAPTURE_COUNT 16
 #define PWM_INPUT_PORT_COUNT 8
 
 #if PPM_CAPTURE_COUNT > MAX_PWM_INPUT_PORTS

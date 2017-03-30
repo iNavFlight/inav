@@ -129,6 +129,7 @@ Custom servo mixing rules can be applied to each servo.  Rules are applied in th
 | 11 | RC AUX 4 |
 | 12 | GIMBAL PITCH |
 | 13 | GIMBAL ROLL |
+| 13 | FEATURE FLAPS |
 
 Note: the `smix` command may show a servo mix that is not active, custom servo mixes are only active for models that use custom mixers.
 
@@ -230,10 +231,10 @@ mmix 0 1.0 0.0 0.0 0.3  # Left Engine
 mmix 1 1.0 0.0 0.0 -0.3  # Right Engine
 
 smix reset
-# Rule	Servo	Source	Rate	Speed	Min	Max	Box
-smix 0 3 0 100 0 0 100 0  # Roll / Aileron
-smix 1 4 0 100 0 0 100 0  # Roll / Aileron
-smix 3 5 2 100 0 0 100 0  # Yaw / Rudder
-smix 2 2 1 100 0 0 100 0  # Pitch / Elevator
+# Rule	Servo	Source	Rate	Speed	Min	Max
+smix 0 3 0 100 0 0 100  # Roll / Aileron
+smix 1 4 0 100 0 0 100  # Roll / Aileron
+smix 3 5 2 100 0 0 100  # Yaw / Rudder
+smix 2 2 1 100 0 0 100  # Pitch / Elevator
 
 ```

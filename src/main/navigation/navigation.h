@@ -72,6 +72,8 @@ typedef struct positionEstimationConfig_s {
     uint8_t use_gps_velned;
     uint16_t gps_delay_ms;
 
+    uint16_t max_sonar_altitude;
+
     float w_z_baro_p;   // Weight (cutoff frequency) for barometer altitude measurements
 
     float w_z_sonar_p;  // Weight (cutoff frequency) for sonar altitude measurements
@@ -112,8 +114,8 @@ typedef struct navConfig_s {
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
         uint16_t waypoint_radius;               // if we are within this distance to a waypoint then we consider it reached (distance is in cm)
         uint16_t waypoint_safe_distance;        // Waypoint mission sanity check distance
-        uint16_t max_speed;                     // autonomous navigation speed cm/sec
-        uint16_t max_climb_rate;                // max vertical speed limitation cm/sec
+        uint16_t max_auto_speed;                // autonomous navigation speed cm/sec
+        uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;              // manual velocity control max horizontal speed
         uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
         uint16_t land_descent_rate;             // normal RTH landing descent rate
@@ -244,10 +246,12 @@ typedef struct {
 void navigationUsePIDs(void);
 void navigationInit(void);
 
-/* Navigation system updates */
-void updateWaypointsAndNavigationMode(void);
+/* Position estimator update functions */
 void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs);
 void updatePositionEstimator_SonarTopic(timeUs_t currentTimeUs);
+
+/* Navigation system updates */
+void updateWaypointsAndNavigationMode(void);
 void updatePositionEstimator(void);
 void applyWaypointNavigationAndAltitudeHold(void);
 
@@ -261,11 +265,16 @@ bool navigationPositionEstimateIsHealthy(void);
 /* Access to estimated position and velocity */
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
+int32_t getTotalTravelDistance(void);
 
 /* Waypoint list access functions */
+int getWaypointCount(void);
+bool isWaypointListValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
+bool loadNonVolatileWaypointList(void);
+bool saveNonVolatileWaypointList(void);
 
 /* Geodetic functions */
 typedef enum {

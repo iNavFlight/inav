@@ -88,7 +88,9 @@
 #define PG_OSD_CONFIG 1004
 #define PG_BEEPER_CONFIG 1005
 #define PG_RANGEFINDER_CONFIG 1006
-#define PG_INAV_END 1006
+#define PG_WAYPOINT_MISSION_STORAGE 1007
+#define PG_PID_AUTOTUNE_CONFIG 1008
+#define PG_INAV_END 1008
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047

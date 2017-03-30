@@ -26,6 +26,7 @@
 #define BLINK(x)      ((x & BLINK_FLAG) && blinkState)
 #define BLINK_OFF(x)  (x & ~BLINK_FLAG)
 #define OSD_POS_MAX   0x3FF
+#define OSD_POS_MAX_CLI   (OSD_POS_MAX | VISIBLE_FLAG | BLINK_FLAG)
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -48,6 +49,13 @@ typedef enum {
     OSD_PITCH_PIDS,
     OSD_YAW_PIDS,
     OSD_POWER,
+    OSD_GPS_LON,
+    OSD_GPS_LAT,
+    OSD_HOME_DIR,
+    OSD_HOME_DIST,
+    OSD_HEADING,
+    OSD_VARIO,
+    OSD_VARIO_NUM,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

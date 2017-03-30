@@ -30,6 +30,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/system.h"
+#include "drivers/time.h"
 #include "drivers/serial.h"
 #if defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2)
 #include "drivers/serial_softserial.h"
@@ -95,7 +96,7 @@ const serialPortIdentifier_e serialPortIdentifiers[SERIAL_PORT_COUNT] = {
 
 static uint8_t serialPortCount;
 
-const uint32_t baudRates[] = {0, 9600, 19200, 38400, 57600, 115200, 230400, 250000}; // see baudRate_e
+const uint32_t baudRates[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000, 460800, 921600}; // see baudRate_e
 
 #define BAUD_RATE_COUNT (sizeof(baudRates) / sizeof(baudRates[0]))
 
@@ -115,9 +116,13 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
 
-#ifdef CC3D
-    // This allows MSP connection via USART & VCP so the board can be reconfigured.
-    serialConfig->portConfigs[1].functionMask = FUNCTION_MSP;
+#ifdef USE_VCP
+    if (serialConfig->portConfigs[0].identifier == SERIAL_PORT_USB_VCP) {
+        serialPortConfig_t * uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
+        if (uart1Config) {
+            uart1Config->functionMask = FUNCTION_MSP;
+        }
+    }
 #endif
 
     serialConfig->reboot_character = 'R';

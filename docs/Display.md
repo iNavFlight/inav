@@ -1,14 +1,21 @@
 # Display
 
-INAV supports displays to provide information to you about your aircraft and cleanflight state.
+INAV supports displays to provide information to you about your aircraft and iNav state.
 
-When the aircraft is armed the display does not update so flight is not affected.  When disarmed the display cycles between various pages.
+When the aircraft is armed, an "Armed" message is displayed. When it is disarmed, a summary page is displayed. Page cycling has been removed and no other information is currently available
 
-There is currently no way to change the information on the pages, the list of pages or the time between pages - Code submissions via pull-requests are welcomed!
+![Stick Positions](assets/images/inav_display_armed.jpg)
+
+![Stick Positions](assets/images/inav_display_status.jpg)
+
+There is currently no way to change the information on the display
 
 ## Supported Hardware
+I2c IIC Serial Oled LCD LED Module 12864 (<a href="http://a.co/5hxXEvZ">http://a.co/5hxXEvZ</a> used in status image above)
 
-At this time no other displays are supported other than the SSD1306 / UG-2864HSWEG01.
+SSD1306
+
+UG-2864HSWEG01
 
 ## Configuration
 

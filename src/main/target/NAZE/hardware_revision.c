@@ -25,6 +25,7 @@
 
 
 #include "drivers/system.h"
+#include "drivers/time.h"
 #include "drivers/bus_spi.h"
 #include "drivers/sensor.h"
 #include "drivers/io.h"
@@ -34,13 +35,6 @@
 #include "drivers/accgyro_mpu6500.h"
 
 #include "hardware_revision.h"
-
-static const char * const hardwareRevisionNames[] = {
-        "Unknown",
-        "Naze 32",
-        "Naze32 rev.5",
-        "Naze32 SP"
-};
 
 uint8_t hardwareRevision = UNKNOWN;
 

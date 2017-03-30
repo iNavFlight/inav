@@ -33,7 +33,7 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -183,6 +183,11 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
         }
     }
 
+    // KILLSWITCH disarms instantly
+    if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
+        mwDisarm();
+    }
+
     if (rcDelayCommand != 20) {
         return;
     }
@@ -212,12 +217,27 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
     // actions during not armed
     i = 0;
 
+    // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {
-        // GYRO calibration
         gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
         return;
     }
 
+
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
+    // Save waypoint list
+    if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_LO) {
+        const bool success = saveNonVolatileWaypointList();
+        beeper(success ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
+    }
+
+    // Load waypoint list
+    if (rcSticks == THR_LO + YAW_CE + PIT_HI + ROL_HI) {
+        const bool success = loadNonVolatileWaypointList();
+        beeper(success ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
+    }
+#endif
+    
     // Multiple configuration profiles
     if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
         i = 1;
@@ -230,17 +250,17 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
         return;
     }
 
-
+    // Save config
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_HI) {
         saveConfigAndNotify();
     }
 
 
+    // Arming by sticks
     if (isUsingSticksToArm) {
         if (STATE(FIXED_WING) && feature(FEATURE_MOTOR_STOP) && fixed_wing_auto_arm) {
             // Auto arm on throttle when using fixedwing and motorstop
             if (throttleStatus != THROTTLE_LOW) {
-                // Arm via YAW
                 mwArm();
                 return;
             }
@@ -255,15 +275,15 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
     }
 
 
+    // Calibrating Acc
     if (rcSticks == THR_HI + YAW_LO + PIT_LO + ROL_CE) {
-        // Calibrating Acc
         accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
         return;
     }
 
 
+    // Calibrating Mag
     if (rcSticks == THR_HI + YAW_HI + PIT_LO + ROL_CE) {
-        // Calibrating Mag
         ENABLE_STATE(CALIBRATE_MAG);
         return;
     }
@@ -362,7 +382,7 @@ int32_t getRcStickDeflection(int32_t axis, uint16_t midrc) {
     return MIN(ABS(rcData[axis] - midrc), 500);
 }
 
-void useRcControlsConfig(void)
+void updateUsedModeActivationConditionFlags(void)
 {
     isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM);
 

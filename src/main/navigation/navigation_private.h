@@ -40,6 +40,7 @@
 #define US2S(us)    ((us) * 1e-6f)
 #define US2MS(us)   ((us) * 1e-3f)
 #define MS2US(ms)   ((ms) * 1000)
+#define MS2S(ms)    ((ms) * 1e-3f)
 #define HZ2S(hz)    US2S(HZ2US(hz))
 
 typedef enum {
@@ -153,15 +154,13 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_POSHOLD_2D,
     NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D,
     NAV_FSM_EVENT_SWITCH_TO_RTH,
-    NAV_FSM_EVENT_SWITCH_TO_RTH_2D,
-    NAV_FSM_EVENT_SWITCH_TO_RTH_3D,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT,
     NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING,
     NAV_FSM_EVENT_SWITCH_TO_LAUNCH,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
-    NAV_FSM_EVENT_SWITCH_TO_RTH_3D_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_1,
+    NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
 
@@ -182,37 +181,30 @@ typedef enum {
     NAV_STATE_POSHOLD_3D_INITIALIZE,            // 6
     NAV_STATE_POSHOLD_3D_IN_PROGRESS,           // 7
 
-    NAV_STATE_RTH_INITIALIZE,                   // 8
+    NAV_STATE_RTH_INITIALIZE,                // 8
+    NAV_STATE_RTH_CLIMB_TO_SAFE_ALT,         // 9
+    NAV_STATE_RTH_HEAD_HOME,                 // 10
+    NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING,    // 11
+    NAV_STATE_RTH_LANDING,                   // 12
+    NAV_STATE_RTH_FINISHING,                 // 13
+    NAV_STATE_RTH_FINISHED,                  // 14
 
-    NAV_STATE_RTH_2D_INITIALIZE,                // 9
-    NAV_STATE_RTH_2D_HEAD_HOME,                 // 10
-    NAV_STATE_RTH_2D_FINISHING,                 // 11
-    NAV_STATE_RTH_2D_FINISHED,                  // 12
+    NAV_STATE_WAYPOINT_INITIALIZE,              // 15
+    NAV_STATE_WAYPOINT_PRE_ACTION,              // 16
+    NAV_STATE_WAYPOINT_IN_PROGRESS,             // 17
+    NAV_STATE_WAYPOINT_REACHED,                 // 18
+    NAV_STATE_WAYPOINT_NEXT,                    // 19
+    NAV_STATE_WAYPOINT_FINISHED,                // 20
+    NAV_STATE_WAYPOINT_RTH_LAND,                // 21
 
-    NAV_STATE_RTH_3D_INITIALIZE,                // 13
-    NAV_STATE_RTH_3D_CLIMB_TO_SAFE_ALT,         // 14
-    NAV_STATE_RTH_3D_HEAD_HOME,                 // 15
-    NAV_STATE_RTH_3D_HOVER_PRIOR_TO_LANDING,    // 16
-    NAV_STATE_RTH_3D_LANDING,                   // 17
-    NAV_STATE_RTH_3D_FINISHING,                 // 18
-    NAV_STATE_RTH_3D_FINISHED,                  // 19
+    NAV_STATE_EMERGENCY_LANDING_INITIALIZE,     // 22
+    NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS,    // 23
+    NAV_STATE_EMERGENCY_LANDING_FINISHED,       // 24
 
-    NAV_STATE_WAYPOINT_INITIALIZE,              // 20
-    NAV_STATE_WAYPOINT_PRE_ACTION,              // 21
-    NAV_STATE_WAYPOINT_IN_PROGRESS,             // 22
-    NAV_STATE_WAYPOINT_REACHED,                 // 23
-    NAV_STATE_WAYPOINT_NEXT,                    // 24
-    NAV_STATE_WAYPOINT_FINISHED,                // 25
-    NAV_STATE_WAYPOINT_RTH_LAND,                // 26
-
-    NAV_STATE_EMERGENCY_LANDING_INITIALIZE,     // 27
-    NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS,    // 28
-    NAV_STATE_EMERGENCY_LANDING_FINISHED,       // 29
-
-    NAV_STATE_LAUNCH_INITIALIZE,                // 30
-    NAV_STATE_LAUNCH_WAIT,                      // 31
-    NAV_STATE_LAUNCH_MOTOR_DELAY,               // 32
-    NAV_STATE_LAUNCH_IN_PROGRESS,               // 33
+    NAV_STATE_LAUNCH_INITIALIZE,                // 25
+    NAV_STATE_LAUNCH_WAIT,                      // 26
+    NAV_STATE_LAUNCH_MOTOR_DELAY,               // 27
+    NAV_STATE_LAUNCH_IN_PROGRESS,               // 28
 
     NAV_STATE_COUNT,
 } navigationFSMState_t;
@@ -294,9 +286,9 @@ typedef struct {
     navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
 
-    /* Internals */
+    /* Internals & statistics */
     int16_t                     rcAdjustment[4];
-
+    float                       totalTripDistance;
 } navigationPosControl_t;
 
 extern navigationPosControl_t posControl;
@@ -321,7 +313,7 @@ void setDesiredPosition(const t_fp_vector * pos, int32_t yaw, navSetWaypointFlag
 void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
 
-bool isWaypointReached(const navWaypointPosition_t * waypoint);
+bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
 bool isWaypointMissed(const navWaypointPosition_t * waypoint);
 bool isApproachingLastWaypoint(void);
 float getActiveWaypointSpeed(void);

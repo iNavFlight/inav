@@ -31,19 +31,15 @@ The stick positions are combined to activate different functions:
 | Calibrate Gyro                | LOW      | LOW     | LOW    | CENTER |
 | Calibrate Acc                 | HIGH     | LOW     | LOW    | CENTER |
 | Calibrate Mag/Compass         | HIGH     | HIGH    | LOW    | CENTER |
-| Inflight calibration controls | LOW      | LOW     | HIGH   | HIGH   |
 | Trim Acc Left                 | HIGH     | CENTER  | CENTER | LOW    |
 | Trim Acc Right                | HIGH     | CENTER  | CENTER | HIGH   |
 | Trim Acc Forwards             | HIGH     | CENTER  | HIGH   | CENTER |
 | Trim Acc Backwards            | HIGH     | CENTER  | LOW    | CENTER |
-| Disable LCD Page Cycling      | LOW      | CENTER  | HIGH   | LOW    |
-| Enable LCD Page Cycling       | LOW      | CENTER  | HIGH   | HIGH   |
+| Save current waypoint mission | LOW      | CENTER  | HIGH   | LOW    |
+| Load current waypoint mission | LOW      | CENTER  | HIGH   | HIGH   |
 | Save setting                  | LOW      | LOW     | LOW    | HIGH   |
 
 ![Stick Positions](assets/images/StickPositions.png)
-
-Download a graphic [cheat sheet](https://multiwii.googlecode.com/svn/branches/Hamburger/MultiWii-StickConfiguration-23_v0-5772156649.pdf) with Tx stick commands (the latest version can always be found
-[here](https://code.google.com/p/multiwii/source/browse/#svn%2Fbranches%2FHamburger)).
 
 ## Yaw control
 

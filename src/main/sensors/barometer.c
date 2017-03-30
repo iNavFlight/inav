@@ -30,7 +30,7 @@
 #include "drivers/barometer_bmp085.h"
 #include "drivers/barometer_bmp280.h"
 #include "drivers/barometer_fake.h"
-#include "drivers/barometer_ms5611.h"
+#include "drivers/barometer_ms56xx.h"
 #include "drivers/logging.h"
 
 #include "fc/runtime_config.h"
@@ -63,7 +63,7 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
 static uint16_t calibratingB = 0;      // baro calibration = get new ground pressure value
 static int32_t baroPressure = 0;
 static int32_t baroGroundAltitude = 0;
-static int32_t baroGroundPressure = 0;
+static int32_t baroGroundPressure = 8*101325;
 
 bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 {
@@ -105,9 +105,21 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
             break;
         }
 
+    case BARO_MS5607:
+#ifdef USE_BARO_MS5607
+        if (ms56xxDetect(dev, BARO_MS5607)) {
+            baroHardware = BARO_MS5607;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+
     case BARO_MS5611:
 #ifdef USE_BARO_MS5611
-        if (ms5611Detect(dev)) {
+        if (ms56xxDetect(dev, BARO_MS5611)) {
             baroHardware = BARO_MS5611;
             break;
         }
@@ -240,11 +252,18 @@ uint32_t baroUpdate(void)
 
 static void performBaroCalibrationCycle(void)
 {
+    static int32_t savedGroundPressure = 0;
+
     baroGroundPressure -= baroGroundPressure / 8;
     baroGroundPressure += baroPressure;
     baroGroundAltitude = (1.0f - powf((baroGroundPressure / 8) / 101325.0f, 0.190295f)) * 4433000.0f;
 
-    calibratingB--;
+    if (baroGroundPressure == savedGroundPressure)
+        calibratingB = 0;
+    else {
+        calibratingB--;
+        savedGroundPressure = baroGroundPressure;
+    }
 }
 
 int32_t baroCalculateAltitude(void)

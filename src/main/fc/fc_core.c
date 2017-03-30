@@ -34,7 +34,7 @@
 #include "drivers/light_led.h"
 #include "drivers/gyro_sync.h"
 #include "drivers/serial.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -175,7 +175,7 @@ void annexCode(void)
 {
     int32_t throttleValue;
 
-    if (failsafeIsActive()) {
+    if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
         failsafeApplyControlInput();
     }
@@ -220,11 +220,6 @@ void annexCode(void)
 
         warningLedUpdate();
     }
-
-    // Read out gyro temperature. can use it for something somewhere. maybe get MCU temperature instead? lots of fun possibilities.
-    if (gyro.dev.temperature) {
-        gyro.dev.temperature(&gyro.dev, &telemTemperature1);
-    }
 }
 
 void mwDisarm(void)
@@ -258,7 +253,7 @@ void mwArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
-        if (IS_RC_MODE_ACTIVE(BOXFAILSAFE)) {
+        if (IS_RC_MODE_ACTIVE(BOXFAILSAFE) || IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
             return;
         }
         if (!ARMING_FLAG(PREVENT_ARMING)) {
@@ -266,7 +261,7 @@ void mwArm(void)
             ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
             headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
-            resetMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+            resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 
 #ifdef BLACKBOX
             if (feature(FEATURE_BLACKBOX)) {
@@ -404,17 +399,6 @@ void processRx(timeUs_t currentTimeUs)
         LED1_OFF;
     }
 
-#ifdef USE_FLM_HEADLOCK
-    /* Heading lock mode */
-    if (IS_RC_MODE_ACTIVE(BOXHEADINGLOCK)) {
-        if (!FLIGHT_MODE(HEADING_LOCK)) {
-            ENABLE_FLIGHT_MODE(HEADING_LOCK);
-        }
-    } else {
-        DISABLE_FLIGHT_MODE(HEADING_LOCK);
-    }
-#endif
-
 #ifdef USE_SERVOS
     /* Flaperon mode */
     if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && STATE(FLAPERON_AVAILABLE)) {
@@ -437,16 +421,19 @@ void processRx(timeUs_t currentTimeUs)
     }
 #endif
 
-#if defined(MAG)
-    if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
-        if (IS_RC_MODE_ACTIVE(BOXMAG)) {
-            if (!FLIGHT_MODE(MAG_MODE)) {
-                resetMagHoldHeading(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-                ENABLE_FLIGHT_MODE(MAG_MODE);
+    if (sensors(SENSOR_ACC)) {
+        if (IS_RC_MODE_ACTIVE(BOXHEADINGHOLD)) {
+            if (!FLIGHT_MODE(HEADING_MODE)) {
+                resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+                ENABLE_FLIGHT_MODE(HEADING_MODE);
             }
         } else {
-            DISABLE_FLIGHT_MODE(MAG_MODE);
+            DISABLE_FLIGHT_MODE(HEADING_MODE);
         }
+    }
+
+#if defined(MAG)
+    if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
         if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
             if (!FLIGHT_MODE(HEADFREE_MODE)) {
                 ENABLE_FLIGHT_MODE(HEADFREE_MODE);
@@ -461,7 +448,7 @@ void processRx(timeUs_t currentTimeUs)
 #endif
 
     // Navigation may override PASSTHRU_MODE
-    if (IS_RC_MODE_ACTIVE(BOXPASSTHRU) && !naivationRequiresAngleMode()) {
+    if (IS_RC_MODE_ACTIVE(BOXPASSTHRU) && !naivationRequiresAngleMode() && !failsafeRequiresAngleMode()) {
         ENABLE_FLIGHT_MODE(PASSTHRU_MODE);
     } else {
         DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
@@ -500,6 +487,10 @@ void processRx(timeUs_t currentTimeUs)
     if (mixerConfig()->mixerMode == MIXER_FLYING_WING || mixerConfig()->mixerMode == MIXER_AIRPLANE || mixerConfig()->mixerMode == MIXER_CUSTOM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
+
+#if defined(AUTOTUNE_FIXED_WING) || defined(AUTOTUNE_MULTIROTOR)
+    autotuneUpdateState();
+#endif
 
 #ifdef TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
@@ -563,7 +554,7 @@ void taskGyro(timeUs_t currentTimeUs) {
 
     if (gyroConfig()->gyroSync) {
         while (true) {
-            if (gyroSyncCheckUpdate(&gyro.dev) || ((currentDeltaTime + cmpTimeUs(micros(), currentTimeUs)) >= (getGyroUpdateRate() + GYRO_WATCHDOG_DELAY))) {
+            if (gyroSyncCheckUpdate() || ((currentDeltaTime + cmpTimeUs(micros(), currentTimeUs)) >= (getGyroUpdateRate() + GYRO_WATCHDOG_DELAY))) {
                 break;
             }
         }

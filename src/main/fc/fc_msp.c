@@ -41,6 +41,7 @@
 #include "drivers/sdcard.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -92,7 +93,7 @@
 
 #include "telemetry/telemetry.h"
 
-#ifdef NAZE
+#ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
 
@@ -114,7 +115,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXANGLE, "ANGLE;", 1 },
     { BOXHORIZON, "HORIZON;", 2 },
     { BOXNAVALTHOLD, "NAV ALTHOLD;", 3 },   // old BARO
-    { BOXMAG, "MAG;", 5 },
+    { BOXHEADINGHOLD, "HEADING HOLD;", 5 },
     { BOXHEADFREE, "HEADFREE;", 6 },
     { BOXHEADADJ, "HEADADJ;", 7 },
     { BOXCAMSTAB, "CAMSTAB;", 8 },
@@ -126,19 +127,20 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXLLIGHTS, "LLIGHTS;", 16 },
     { BOXOSD, "OSD SW;", 19 },
     { BOXTELEMETRY, "TELEMETRY;", 20 },
-    //{ BOXGTUNE, "GTUNE;", 21 },
+    { BOXAUTOTUNE, "AUTO TUNE;", 21 },
     { BOXBLACKBOX, "BLACKBOX;", 26 },
     { BOXFAILSAFE, "FAILSAFE;", 27 },
     { BOXNAVWP, "NAV WP;", 28 },
     { BOXAIRMODE, "AIR MODE;", 29 },
     { BOXHOMERESET, "HOME RESET;", 30 },
     { BOXGCSNAV, "GCS NAV;", 31 },
-    { BOXHEADINGLOCK, "HEADING LOCK;", 32 },
+    //{ BOXHEADINGLOCK, "HEADING LOCK;", 32 },
     { BOXSURFACE, "SURFACE;", 33 },
     { BOXFLAPERON, "FLAPERON;", 34 },
     { BOXTURNASSIST, "TURN ASSIST;", 35 },
     { BOXNAVLAUNCH, "NAV LAUNCH;", 36 },
     { BOXAUTOTRIM, "SERVO AUTOTRIM;", 37 },
+    { BOXKILLSWITCH, "KILLSWITCH;", 38 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -260,12 +262,9 @@ static void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXAIRMODE;
 
-#ifdef USE_FLM_HEADLOCK
-    activeBoxIds[activeBoxIdCount++] = BOXHEADINGLOCK;
-#endif
+    activeBoxIds[activeBoxIdCount++] = BOXHEADINGHOLD;
 
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
-        activeBoxIds[activeBoxIdCount++] = BOXMAG;
         activeBoxIds[activeBoxIdCount++] = BOXHEADFREE;
         activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
     }
@@ -291,6 +290,9 @@ static void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXPASSTHRU;
         activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
+#if defined(AUTOTUNE_FIXED_WING)
+        activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
+#endif
     }
 
 #ifdef USE_SERVOS
@@ -324,6 +326,7 @@ static void initActiveBoxIds(void)
     }
 #endif
 
+    activeBoxIds[activeBoxIdCount++] = BOXKILLSWITCH;
     activeBoxIds[activeBoxIdCount++] = BOXFAILSAFE;
 }
 
@@ -336,7 +339,7 @@ static uint32_t packFlightModeFlags(void)
     // It would be preferable to setting the enabled bits based on BOXINDEX.
     const uint32_t tmp = IS_ENABLED(FLIGHT_MODE(ANGLE_MODE)) << BOXANGLE |
         IS_ENABLED(FLIGHT_MODE(HORIZON_MODE)) << BOXHORIZON |
-        IS_ENABLED(FLIGHT_MODE(MAG_MODE)) << BOXMAG |
+        IS_ENABLED(FLIGHT_MODE(HEADING_MODE)) << BOXHEADINGHOLD |
         IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)) << BOXHEADFREE |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)) << BOXHEADADJ |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)) << BOXCAMSTAB |
@@ -355,9 +358,6 @@ static uint32_t packFlightModeFlags(void)
         IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)) << BOXNAVWP |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)) << BOXAIRMODE |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGCSNAV)) << BOXGCSNAV |
-#ifdef USE_FLM_HEADLOCK
-        IS_ENABLED(FLIGHT_MODE(HEADING_LOCK)) << BOXHEADINGLOCK |
-#endif
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSURFACE)) << BOXSURFACE |
 #ifdef USE_FLM_FLAPERON
         IS_ENABLED(FLIGHT_MODE(FLAPERON)) << BOXFLAPERON |
@@ -366,7 +366,9 @@ static uint32_t packFlightModeFlags(void)
         IS_ENABLED(FLIGHT_MODE(TURN_ASSISTANT)) << BOXTURNASSIST |
 #endif
         IS_ENABLED(FLIGHT_MODE(NAV_LAUNCH_MODE)) << BOXNAVLAUNCH |
+        IS_ENABLED(FLIGHT_MODE(AUTO_TUNE)) << BOXAUTOTUNE |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) << BOXAUTOTRIM |
+        IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) << BOXKILLSWITCH |
         IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHOMERESET)) << BOXHOMERESET;
 
     uint32_t ret = 0;
@@ -508,7 +510,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
 
     case MSP_BOARD_INFO:
         sbufWriteData(dst, boardIdentifier, BOARD_IDENTIFIER_LENGTH);
-#ifdef NAZE
+#ifdef USE_HARDWARE_REVISION_DETECTION
         sbufWriteU16(dst, hardwareRevision);
 #else
         sbufWriteU16(dst, 0); // No other build targets currently have hardware revision detection.
@@ -585,7 +587,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
                 sbufWriteU16(dst, acc.accADC[i] / scale);
             }
             for (int i = 0; i < 3; i++) {
-                sbufWriteU16(dst, lrintf(gyro.gyroADCf[i] / gyro.dev.scale));
+                sbufWriteU16(dst, gyroRateDps(i));
             }
             for (int i = 0; i < 3; i++) {
                 sbufWriteU16(dst, mag.magADC[i]);
@@ -812,7 +814,7 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, NAV_Status.activeWpNumber);
         sbufWriteU8(dst, NAV_Status.error);
         //sbufWriteU16(dst,  (int16_t)(target_bearing/100));
-        sbufWriteU16(dst, getMagHoldHeading());
+        sbufWriteU16(dst, getHeadingHoldTarget());
         break;
 #endif
 
@@ -900,10 +902,14 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, failsafeConfig()->failsafe_delay);
         sbufWriteU8(dst, failsafeConfig()->failsafe_off_delay);
         sbufWriteU16(dst, failsafeConfig()->failsafe_throttle);
-        sbufWriteU8(dst, failsafeConfig()->failsafe_kill_switch);
+        sbufWriteU8(dst, 0);    // was failsafe_kill_switch
         sbufWriteU16(dst, failsafeConfig()->failsafe_throttle_low_delay);
         sbufWriteU8(dst, failsafeConfig()->failsafe_procedure);
         sbufWriteU8(dst, failsafeConfig()->failsafe_recovery_delay);
+        sbufWriteU16(dst, failsafeConfig()->failsafe_fw_roll_angle);
+        sbufWriteU16(dst, failsafeConfig()->failsafe_fw_pitch_angle);
+        sbufWriteU16(dst, failsafeConfig()->failsafe_fw_yaw_rate);
+        sbufWriteU16(dst, failsafeConfig()->failsafe_stick_motion_threshold);
         break;
 
     case MSP_RSSI_CONFIG:
@@ -1118,13 +1124,8 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
     #endif
-    #ifdef MAG
-        sbufWriteU8(dst, compassConfig()->mag_hold_rate_limit);
-        sbufWriteU8(dst, MAG_HOLD_ERROR_LPF_FREQ);
-    #else
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-    #endif
+        sbufWriteU8(dst, pidProfile()->heading_hold_rate_limit);
+        sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
         sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
         sbufWriteU8(dst, gyroConfig()->gyro_lpf);
         sbufWriteU8(dst, pidProfile()->acc_soft_lpf_hz);
@@ -1162,8 +1163,8 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
 #ifdef NAV
     case MSP_NAV_POSHOLD:
         sbufWriteU8(dst, navConfig()->general.flags.user_control_mode);
-        sbufWriteU16(dst, navConfig()->general.max_speed);
-        sbufWriteU16(dst, navConfig()->general.max_climb_rate);
+        sbufWriteU16(dst, navConfig()->general.max_auto_speed);
+        sbufWriteU16(dst, navConfig()->general.max_auto_climb_rate);
         sbufWriteU16(dst, navConfig()->general.max_manual_speed);
         sbufWriteU16(dst, navConfig()->general.max_manual_climb_rate);
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
@@ -1203,12 +1204,12 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
     case MSP_POSITION_ESTIMATION_CONFIG:
     #ifdef NAV
 
-        sbufWriteU16(dst, positionEstimationConfig()->w_z_baro_p * 100);     // inav_w_z_baro_p	float as value * 100
+        sbufWriteU16(dst, positionEstimationConfig()->w_z_baro_p * 100); // inav_w_z_baro_p	float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_p * 100);  // 2	inav_w_z_gps_p	float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_v * 100);  // 2	inav_w_z_gps_v	float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_p * 100); // 2	inav_w_xy_gps_p	float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_v * 100); // 2	inav_w_xy_gps_v	float as value * 100
-        sbufWriteU8(dst, 0);                                             // 1	not used (was inav_gps_min_sats)
+        sbufWriteU8(dst, gpsConfigMutable()->gpsMinSats);                // 1	
         sbufWriteU8(dst, positionEstimationConfig()->use_gps_velned);    // 1	inav_use_gps_velned	ON/OFF
 
     #else
@@ -1306,7 +1307,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_HEAD:
-        updateMagHoldHeading(sbufReadU16(src));
+        updateHeadingHoldTarget(sbufReadU16(src));
         break;
 
     case MSP_SET_RAW_RC:
@@ -1363,7 +1364,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
                 mac->range.startStep = sbufReadU8(src);
                 mac->range.endStep = sbufReadU8(src);
 
-                useRcControlsConfig();
+                updateUsedModeActivationConditionFlags();
             } else {
                 return MSP_RESULT_ERROR;
             }
@@ -1595,13 +1596,8 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);
             sbufReadU16(src);
         #endif
-        #ifdef MAG
-            compassConfigMutable()->mag_hold_rate_limit = sbufReadU8(src);
-            sbufReadU8(src); //MAG_HOLD_ERROR_LPF_FREQ
-        #else
-            sbufReadU8(src);
-            sbufReadU8(src);
-        #endif
+            pidProfileMutable()->heading_hold_rate_limit = sbufReadU8(src);
+            sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
             mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
             pidProfileMutable()->acc_soft_lpf_hz = sbufReadU8(src);
@@ -1628,15 +1624,19 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 #else
         sbufReadU8(src);
 #endif
+#ifdef SONAR
+        rangefinderConfigMutable()->rangefinder_hardware = sbufReadU8(src);
+#else
         sbufReadU8(src);        // rangefinder hardware
+#endif
         sbufReadU8(src);        // optical flow hardware
         break;
 
 #ifdef NAV
     case MSP_SET_NAV_POSHOLD:
         navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
-        navConfigMutable()->general.max_speed = sbufReadU16(src);
-        navConfigMutable()->general.max_climb_rate = sbufReadU16(src);
+        navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
+        navConfigMutable()->general.max_auto_climb_rate = sbufReadU16(src);
         navConfigMutable()->general.max_manual_speed = sbufReadU16(src);
         navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
         navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
@@ -1680,7 +1680,7 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         positionEstimationConfigMutable()->w_z_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
         positionEstimationConfigMutable()->w_xy_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
         positionEstimationConfigMutable()->w_xy_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-        //positionEstimationConfigMutable()->gps_min_sats = constrain(sbufReadU8(src), 5, 10); 
+        gpsConfigMutable()->gpsMinSats = constrain(sbufReadU8(src), 5, 10);
         positionEstimationConfigMutable()->use_gps_velned = constrain(sbufReadU8(src), 0, 1); 
     #endif
         break;
@@ -1878,11 +1878,17 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
         failsafeConfigMutable()->failsafe_off_delay = sbufReadU8(src);
         failsafeConfigMutable()->failsafe_throttle = sbufReadU16(src);
-        failsafeConfigMutable()->failsafe_kill_switch = sbufReadU8(src);
+        sbufReadU8(src);    // was failsafe_kill_switch
         failsafeConfigMutable()->failsafe_throttle_low_delay = sbufReadU16(src);
         failsafeConfigMutable()->failsafe_procedure = sbufReadU8(src);
         if (dataSize > 8) {
             failsafeConfigMutable()->failsafe_recovery_delay = sbufReadU8(src);
+        }
+        if (dataSize > 9) {
+            failsafeConfigMutable()->failsafe_fw_roll_angle = sbufReadU16(src);
+            failsafeConfigMutable()->failsafe_fw_pitch_angle = sbufReadU16(src);
+            failsafeConfigMutable()->failsafe_fw_yaw_rate = sbufReadU16(src);
+            failsafeConfigMutable()->failsafe_stick_motion_threshold = sbufReadU16(src);
         }
         break;
 
@@ -1975,6 +1981,22 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 
             if (!setModeColor(modeIdx, funIdx, color))
                 return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
+#ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
+    case MSP_WP_MISSION_LOAD:
+        sbufReadU8(src);    // Mission ID (reserved)
+        if (!loadNonVolatileWaypointList()) {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP_WP_MISSION_SAVE:
+        sbufReadU8(src);    // Mission ID (reserved)
+        if (!saveNonVolatileWaypointList()) {
+            return MSP_RESULT_ERROR;
         }
         break;
 #endif

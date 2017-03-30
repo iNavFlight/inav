@@ -64,7 +64,7 @@ void imuConfigure(void);
 
 void imuUpdateAttitude(timeUs_t currentTimeUs);
 void imuUpdateAccelerometer(void);
-void imuUpdateGyroscope(uint32_t gyroUpdateDeltaUs);
+void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
@@ -72,5 +72,4 @@ bool isImuHeadingValid(void);
 void imuTransformVectorBodyToEarth(t_fp_vector * v);
 void imuTransformVectorEarthToBody(t_fp_vector * v);
 
-int16_t imuCalculateHeading(t_fp_vector *vec);
 void imuInit(void);
