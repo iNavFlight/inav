@@ -14,6 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+//Speical version of SPRACINGF3EVO with one SoftSerial instead of two which enables two motors and four servos for airplanes with Rudder, Elevator and two Ailerons
+
 
 #pragma once
 
@@ -62,8 +65,8 @@
 #define USE_UART2
 #define USE_UART3
 #define USE_SOFTSERIAL1
-#define USE_SOFTSERIAL2
-#define SERIAL_PORT_COUNT       6
+//#define USE_SOFTSERIAL2
+#define SERIAL_PORT_COUNT       5
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -75,12 +78,9 @@
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
 #define SOFTSERIAL_1_TIMER      TIM3
-#define SOFTSERIAL_1_TIMER_RX_HARDWARE 5
-#define SOFTSERIAL_1_TIMER_TX_HARDWARE 6
+#define SOFTSERIAL_1_TIMER_RX_HARDWARE 7
+#define SOFTSERIAL_1_TIMER_TX_HARDWARE 8
 
-#define SOFTSERIAL_2_TIMER      TIM3
-#define SOFTSERIAL_2_TIMER_RX_HARDWARE 7
-#define SOFTSERIAL_2_TIMER_TX_HARDWARE 8
 
 #define USE_I2C
 #define I2C_DEVICE              (I2CDEV_1) // PB6/SCL, PB7/SDA
@@ -154,4 +154,4 @@
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
 
 #define USABLE_TIMER_CHANNEL_COUNT 12 // PPM, 8 PWM, UART3 RX/TX, LED Strip
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(15))
+#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(15)| TIM_N(16) | TIM_N(17))
