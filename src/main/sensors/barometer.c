@@ -241,7 +241,7 @@ uint32_t baroUpdate(void)
             baro.dev.start_ut();
             baro.dev.calculate(&baro.baroPressure, &baro.baroTemperature);
             if (barometerConfig()->use_median_filtering) {
-                baroPressure = applyBarometerMedianFilter(baro.baroPressure);
+                baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
             }
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;
