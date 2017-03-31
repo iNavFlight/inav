@@ -103,5 +103,8 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(HORIZON_MODE))
         return FLM_HORIZON;
 
+    if (FLIGHT_MODE(NAV_LAUNCH_MODE))
+        return FLM_LAUNCH;
+    
     return FLM_ACRO;
 }
