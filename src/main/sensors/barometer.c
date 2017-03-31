@@ -61,7 +61,6 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
 #ifdef BARO
 
 static uint16_t calibratingB = 0;      // baro calibration = get new ground pressure value
-static int32_t baroPressure = 0;
 static int32_t baroGroundAltitude = 0;
 static int32_t baroGroundPressure = 8*101325;
 
@@ -240,9 +239,9 @@ uint32_t baroUpdate(void)
         case BAROMETER_NEEDS_CALCULATION:
             baro.dev.get_up();
             baro.dev.start_ut();
-            baro.dev.calculate(&baroPressure, &baro.baroTemperature);
+            baro.dev.calculate(&baro.baroPressure, &baro.baroTemperature);
             if (barometerConfig()->use_median_filtering) {
-                baroPressure = applyBarometerMedianFilter(baroPressure);
+                baroPressure = applyBarometerMedianFilter(baro.baroPressure);
             }
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;
@@ -255,7 +254,7 @@ static void performBaroCalibrationCycle(void)
     static int32_t savedGroundPressure = 0;
 
     baroGroundPressure -= baroGroundPressure / 8;
-    baroGroundPressure += baroPressure;
+    baroGroundPressure += baro.baroPressure;
     baroGroundAltitude = (1.0f - powf((baroGroundPressure / 8) / 101325.0f, 0.190295f)) * 4433000.0f;
 
     if (baroGroundPressure == savedGroundPressure)
@@ -281,7 +280,7 @@ int32_t baroCalculateAltitude(void)
 #endif
         // calculates height from ground via baro readings
         // see: https://github.com/diydrones/ardupilot/blob/master/libraries/AP_Baro/AP_Baro.cpp#L140
-        baro.BaroAlt = lrintf((1.0f - powf((float)(baroPressure) / 101325.0f, 0.190295f)) * 4433000.0f); // in cm
+        baro.BaroAlt = lrintf((1.0f - powf((float)(baro.baroPressure) / 101325.0f, 0.190295f)) * 4433000.0f); // in cm
         baro.BaroAlt -= baroGroundAltitude;
     }
 
