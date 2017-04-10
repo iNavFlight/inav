@@ -262,7 +262,6 @@ bool adjustMulticopterHeadingFromRCInput(void)
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static pt1Filter_t mcPosControllerAccFilterStateX, mcPosControllerAccFilterStateY;
-static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
 
 void resetMulticopterPositionController(void)
 {
@@ -271,8 +270,6 @@ void resetMulticopterPositionController(void)
         posControl.rcAdjustment[axis] = 0;
         pt1FilterReset(&mcPosControllerAccFilterStateX, 0.0f);
         pt1FilterReset(&mcPosControllerAccFilterStateY, 0.0f);
-        lastAccelTargetX = 0.0f;
-        lastAccelTargetY = 0.0f;
     }
 }
 
@@ -323,18 +320,7 @@ static float getVelocityHeadingAttenuationFactor(void)
     }
 }
 
-static float getVelocityExpoAttenuationFactor(float velTotal, float velMax)
-{
-    // Calculate factor of how velocity with applied expo is different from unchanged velocity
-    const float velScale = constrainf(velTotal / velMax, 0.01f, 1.0f);
-
-    // navConfig()->max_speed * ((velScale * velScale * velScale) * posControl.posResponseExpo + velScale * (1 - posControl.posResponseExpo)) / velTotal;
-    // ((velScale * velScale * velScale) * posControl.posResponseExpo + velScale * (1 - posControl.posResponseExpo)) / velScale
-    // ((velScale * velScale) * posControl.posResponseExpo + (1 - posControl.posResponseExpo));
-    return 1.0f - posControl.posResponseExpo * (1.0f - (velScale * velScale));  // x^3 expo factor
-}
-
-static void updatePositionVelocityController_MC(void)
+static void updatePositionVelocityController_MC(float maxSpeed)
 {
     const float posErrorX = posControl.desiredState.pos.V.X - posControl.actualState.pos.V.X;
     const float posErrorY = posControl.desiredState.pos.V.Y - posControl.actualState.pos.V.Y;
@@ -342,9 +328,6 @@ static void updatePositionVelocityController_MC(void)
     // Calculate target velocity
     float newVelX = posErrorX * posControl.pids.pos[X].param.kP;
     float newVelY = posErrorY * posControl.pids.pos[Y].param.kP;
-
-    // Get max speed from generic NAV (waypoint specific), don't allow to move slower than 0.5 m/s
-    const float maxSpeed = getActiveWaypointSpeed();
 
     // Scale velocity to respect max_speed
     float newVelTotal = sqrtf(sq(newVelX) + sq(newVelY));
@@ -356,9 +339,8 @@ static void updatePositionVelocityController_MC(void)
 
     // Apply expo & attenuation if heading in wrong direction - turn first, accelerate later (effective only in WP mode)
     const float velHeadFactor = getVelocityHeadingAttenuationFactor();
-    const float velExpoFactor = getVelocityExpoAttenuationFactor(newVelTotal, maxSpeed);
-    posControl.desiredState.vel.V.X = newVelX * velHeadFactor * velExpoFactor;
-    posControl.desiredState.vel.V.Y = newVelY * velHeadFactor * velExpoFactor;
+    posControl.desiredState.vel.V.X = newVelX * velHeadFactor;
+    posControl.desiredState.vel.V.Y = newVelY * velHeadFactor;
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel.V.X), -32678, 32767);
@@ -387,25 +369,21 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
-    const float maxAccelChange = US2S(deltaMicros) * 1700.0f;
-    const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
-    const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
-    const float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
-    const float accelLimitYMax = constrainf(lastAccelTargetY + maxAccelChange, -accelLimitY, +accelLimitY);
-
-    // TODO: Verify if we need jerk limiting after all
+    //const float maxAccelChange = US2S(deltaMicros) * 1700.0f;
 
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
     // Thus we don't need to do anything else with calculated acceleration
-    const float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.V.X, posControl.actualState.vel.V.X, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
-    const float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.V.Y, posControl.actualState.vel.V.Y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
+    float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.V.X, posControl.actualState.vel.V.X, US2S(deltaMicros), -accelLimitX, accelLimitX, 0);
+    float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.V.Y, posControl.actualState.vel.V.Y, US2S(deltaMicros), -accelLimitY, accelLimitY, 0);
 
-    // Save last acceleration target
-    lastAccelTargetX = newAccelX;
-    lastAccelTargetY = newAccelY;
+    // Calculate and apply expo factor - attenuate small corrections
+    float accelRelativeMagnitude = constrainf(sqrtf(sq(newAccelX) + sq(newAccelY)) / maxAccelLimit, 0.0f, 1.0f);
+    float accelExpoScaler = 1.0f + (accelRelativeMagnitude * accelRelativeMagnitude * accelRelativeMagnitude - 1.0f) * posControl.posResponseExpo;
+    newAccelX *= accelExpoScaler;
+    newAccelY *= accelExpoScaler;
 
-    // Apply LPF to jerk limited acceleration target
+    // Apply LPF
     const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
     const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
 
@@ -453,7 +431,9 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
             if (!bypassPositionController) {
                 // Update position controller
                 if (deltaMicrosPositionUpdate < HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
-                    updatePositionVelocityController_MC();
+                    // Get max speed from generic NAV (waypoint specific)
+                    const float maxSpeed = getActiveWaypointSpeed();
+                    updatePositionVelocityController_MC(maxSpeed);
                     updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX);
                 }
                 else {
