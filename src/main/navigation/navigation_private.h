@@ -32,6 +32,7 @@
 #define NAV_FW_ROLL_CUTOFF_FREQUENCY_HZ     20      // low-pass filter on roll correction for fixed wing
 #define NAV_DTERM_CUT_HZ                    10
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
+#define NAV_MC_DECELERATION_THRESHOLD       50.0f   // cm/s
 
 #define INAV_SONAR_MAX_DISTANCE             55      // Sonar is unreliable above 50cm due to noise from propellers
 #define INAV_SURFACE_MAX_DISTANCE           40
@@ -346,7 +347,7 @@ void resetMulticopterLandingDetector(void);
 bool isMulticopterLandingDetected(void);
 bool isFixedWingLandingDetected(void);
 
-void calculateMulticopterInitialHoldPosition(t_fp_vector * pos);
+void signalMulticopterInitialHoldActivation(t_fp_vector * pos);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
@@ -361,7 +362,7 @@ bool adjustFixedWingPositionFromRCInput(void);
 
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
-void calculateFixedWingInitialHoldPosition(t_fp_vector * pos);
+void signalFixedWingInitialHoldActivation(t_fp_vector * pos);
 
 /* Fixed-wing launch controller */
 void resetFixedWingLaunchController(timeUs_t currentTimeUs);

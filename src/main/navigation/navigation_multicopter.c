@@ -261,10 +261,18 @@ bool adjustMulticopterHeadingFromRCInput(void)
 /*-----------------------------------------------------------
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
+typedef enum {
+    MC_MODE_NORMAL,
+    MC_MODE_DECELERATE
+} mcPositionControllerMode_e;
+
 static pt1Filter_t mcPosControllerAccFilterStateX, mcPosControllerAccFilterStateY;
+static mcPositionControllerMode_e mcPosControllerMode = MC_MODE_NORMAL;
 
 void resetMulticopterPositionController(void)
 {
+    mcPosControllerMode = MC_MODE_NORMAL;
+
     for (int axis = 0; axis < 2; axis++) {
         navPidReset(&posControl.pids.vel[axis]);
         posControl.rcAdjustment[axis] = 0;
@@ -299,7 +307,7 @@ bool adjustMulticopterPositionFromRCInput(void)
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingPosition) {
             t_fp_vector stopPosition;
-            calculateMulticopterInitialHoldPosition(&stopPosition);
+            signalMulticopterInitialHoldActivation(&stopPosition);
             setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
         }
 
@@ -322,25 +330,37 @@ static float getVelocityHeadingAttenuationFactor(void)
 
 static void updatePositionVelocityController_MC(float maxSpeed)
 {
-    const float posErrorX = posControl.desiredState.pos.V.X - posControl.actualState.pos.V.X;
-    const float posErrorY = posControl.desiredState.pos.V.Y - posControl.actualState.pos.V.Y;
+    // If we are in deceleration mode - don't use position target and set velocity goal to zero
+    if (mcPosControllerMode == MC_MODE_DECELERATE) {
+        posControl.desiredState.vel.V.X = 0;
+        posControl.desiredState.vel.V.Y = 0;
 
-    // Calculate target velocity
-    float newVelX = posErrorX * posControl.pids.pos[X].param.kP;
-    float newVelY = posErrorY * posControl.pids.pos[Y].param.kP;
-
-    // Scale velocity to respect max_speed
-    float newVelTotal = sqrtf(sq(newVelX) + sq(newVelY));
-    if (newVelTotal > maxSpeed) {
-        newVelX = maxSpeed * (newVelX / newVelTotal);
-        newVelY = maxSpeed * (newVelY / newVelTotal);
-        newVelTotal = maxSpeed;
+        // If we are going slow enough - switch to normal control mode
+        if (posControl.actualState.velXY < NAV_MC_DECELERATION_THRESHOLD) {
+            mcPosControllerMode = MC_MODE_NORMAL;
+        }
     }
+    else {
+        const float posErrorX = posControl.desiredState.pos.V.X - posControl.actualState.pos.V.X;
+        const float posErrorY = posControl.desiredState.pos.V.Y - posControl.actualState.pos.V.Y;
 
-    // Apply expo & attenuation if heading in wrong direction - turn first, accelerate later (effective only in WP mode)
-    const float velHeadFactor = getVelocityHeadingAttenuationFactor();
-    posControl.desiredState.vel.V.X = newVelX * velHeadFactor;
-    posControl.desiredState.vel.V.Y = newVelY * velHeadFactor;
+        // Calculate target velocity
+        float newVelX = posErrorX * posControl.pids.pos[X].param.kP;
+        float newVelY = posErrorY * posControl.pids.pos[Y].param.kP;
+
+        // Scale velocity to respect max_speed
+        float newVelTotal = sqrtf(sq(newVelX) + sq(newVelY));
+        if (newVelTotal > maxSpeed) {
+            newVelX = maxSpeed * (newVelX / newVelTotal);
+            newVelY = maxSpeed * (newVelY / newVelTotal);
+            newVelTotal = maxSpeed;
+        }
+
+        // Apply expo & attenuation if heading in wrong direction - turn first, accelerate later (effective only in WP mode)
+        const float velHeadFactor = getVelocityHeadingAttenuationFactor();
+        posControl.desiredState.vel.V.X = newVelX * velHeadFactor;
+        posControl.desiredState.vel.V.Y = newVelY * velHeadFactor;
+    }
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel.V.X), -32678, 32767);
@@ -350,7 +370,6 @@ static void updatePositionVelocityController_MC(float maxSpeed)
 
 static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit)
 {
-
     // Calculate velocity error
     const float velErrorX = posControl.desiredState.vel.V.X - posControl.actualState.vel.V.X;
     const float velErrorY = posControl.desiredState.vel.V.Y - posControl.actualState.vel.V.Y;
@@ -366,10 +385,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         accelLimitX = maxAccelLimit / 1.414213f;
         accelLimitY = accelLimitX;
     }
-
-    // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
-    // This will assure that we wont't saturate out LEVEL and RATE PID controller
-    //const float maxAccelChange = US2S(deltaMicros) * 1700.0f;
 
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
@@ -587,13 +602,17 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 /*-----------------------------------------------------------
  * Calculate loiter target based on current position and velocity
  *-----------------------------------------------------------*/
-void calculateMulticopterInitialHoldPosition(t_fp_vector * pos)
+void signalMulticopterInitialHoldActivation(t_fp_vector * pos)
 {
+    // Calculate expected deceleration target
     const float stoppingDistanceX = posControl.actualState.vel.V.X * posControl.posDecelerationTime;
     const float stoppingDistanceY = posControl.actualState.vel.V.Y * posControl.posDecelerationTime;
 
     pos->V.X = posControl.actualState.pos.V.X + stoppingDistanceX;
     pos->V.Y = posControl.actualState.pos.V.Y + stoppingDistanceY;
+
+    // Switch position controller into deceleration mode
+    mcPosControllerMode = MC_MODE_DECELERATE;
 }
 
 void resetMulticopterHeadingController(void)
