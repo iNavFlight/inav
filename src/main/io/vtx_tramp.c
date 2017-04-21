@@ -300,7 +300,7 @@ bool trampInit()
     return true;
 }
 
-void trampProcess(uint32_t currentTimeUs)
+void trampProcess(timeUs_t currentTimeUs)
 {
     static uint32_t lastQueryTimeUs = 0;
 
@@ -437,9 +437,9 @@ uint8_t trampCmsBand = 1;
 uint8_t trampCmsChan = 1;
 uint16_t trampCmsFreqRef;
 
-static OSD_TAB_t trampCmsEntBand = { &trampCmsBand, 5, vtx58BandNames, NULL };
+static OSD_TAB_t trampCmsEntBand = { &trampCmsBand, 5, vtx58BandNames };
 
-static OSD_TAB_t trampCmsEntChan = { &trampCmsChan, 8, vtx58ChannelNames, NULL };
+static OSD_TAB_t trampCmsEntChan = { &trampCmsChan, 8, vtx58ChannelNames };
 
 static OSD_UINT16_t trampCmsEntFreqRef = { &trampCmsFreqRef, 5600, 5900, 0 };
 
@@ -453,7 +453,7 @@ static const uint16_t trampCmsPowerTable[] = {
 
 static uint8_t trampCmsPower = 0;
 
-static OSD_TAB_t trampCmsEntPower = { &trampCmsPower, 4, trampCmsPowerNames, NULL };
+static OSD_TAB_t trampCmsEntPower = { &trampCmsPower, 4, trampCmsPowerNames };
 
 static void trampCmsUpdateFreqRef(void)
 {
@@ -495,7 +495,7 @@ static const char * const trampCmsPitmodeNames[] = {
     "---", "OFF", "ON "
 };
 
-static OSD_TAB_t trampCmsEntPitmode = { &trampCmsPitmode, 2, trampCmsPitmodeNames, NULL };
+static OSD_TAB_t trampCmsEntPitmode = { &trampCmsPitmode, 2, trampCmsPitmodeNames };
 
 static long trampCmsSetPitmode(displayPort_t *pDisp, const void *self)
 {

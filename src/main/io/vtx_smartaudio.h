@@ -2,7 +2,7 @@
 // For generic API use, but here for now
 
 bool smartAudioInit();
-void smartAudioProcess(uint32_t);
+void smartAudioProcess(timeUs_t);
 
 #if 0
 #ifdef CMS

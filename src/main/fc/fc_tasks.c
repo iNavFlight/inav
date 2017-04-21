@@ -261,16 +261,16 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 
 #ifdef VTX_CONTROL
 // Everything that listens to VTX devices
-void taskVtxControl(uint32_t currentTime)
+void taskVtxControl(timeUs_t currentTimeUs)
 {
     if (ARMING_FLAG(ARMED))
         return;
 
 #ifdef VTX_SMARTAUDIO
-    smartAudioProcess(currentTime);
+    smartAudioProcess(currentTimeUs);
 #endif
 #ifdef VTX_TRAMP
-    trampProcess(currentTime);
+    trampProcess(currentTimeUs);
 #endif
 }
 #endif

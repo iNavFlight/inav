@@ -29,10 +29,12 @@
 #include "cms/cms_types.h"
 
 #include "string.h"
+#include "common/axis.h"
 #include "common/printf.h"
 #include "common/utils.h"
 #include "drivers/system.h"
 #include "drivers/serial.h"
+#include "drivers/time.h"
 #include "io/serial.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_common.h"
@@ -664,7 +666,7 @@ bool smartAudioInit()
     return true;
 }
 
-void smartAudioProcess(uint32_t now)
+void smartAudioProcess(timeUs_t now)
 {
     static bool initialSent = false;
 
@@ -983,9 +985,9 @@ static CMS_Menu saCmsMenuStats = {
     .entries = saCmsMenuStatsEntries
 };
 
-static OSD_TAB_t saCmsEntBand = { &saCmsBand, 5, vtx58BandNames, NULL };
+static OSD_TAB_t saCmsEntBand = { &saCmsBand, 5, vtx58BandNames };
 
-static OSD_TAB_t saCmsEntChan = { &saCmsChan, 8, &vtx58ChannelNames[0], NULL };
+static OSD_TAB_t saCmsEntChan = { &saCmsChan, 8, vtx58ChannelNames };
 
 static const char * const saCmsPowerNames[] = {
     "---",
