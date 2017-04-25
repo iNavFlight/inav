@@ -41,6 +41,10 @@
 #define DEFAULT_SERVO_MIDDLE 1500
 #define DEFAULT_SERVO_MAX 2000
 
+#define DELAY_50_HZ (1000000 / 50)
+#define DELAY_10_HZ (1000000 / 10)
+#define DELAY_5_HZ (1000000 / 5)
+
 typedef enum {
     RX_FRAME_PENDING = 0,
     RX_FRAME_COMPLETE = (1 << 0),
@@ -122,6 +126,7 @@ typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
     timeUs_t rxRefreshRate;
     timeUs_t rxSignalTimeout;
+    bool requireFiltering;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
 } rxRuntimeConfig_t;
