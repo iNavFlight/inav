@@ -120,7 +120,8 @@ typedef uint8_t (*rcFrameStatusFnPtr)(void);
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
-    uint16_t rxRefreshRate;
+    timeUs_t rxRefreshRate;
+    timeUs_t rxSignalTimeout;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
 } rxRuntimeConfig_t;
