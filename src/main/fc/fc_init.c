@@ -359,8 +359,8 @@ void init(void)
     beeperInit(&beeperDevConfig);
 #endif
 
-#ifdef INVERTER
-    initInverter();
+#ifdef USE_INVERTER
+    initInverters();
 #endif
 
 
@@ -474,12 +474,6 @@ void init(void)
     }
 #endif
 
-#ifdef OSD
-    if (feature(FEATURE_OSD)) {
-        osdInit();
-    }
-#endif
-
 #ifdef GPS
     if (feature(FEATURE_GPS)) {
         gpsPreInit();
@@ -516,6 +510,12 @@ void init(void)
     failsafeInit();
 
     rxInit();
+
+#ifdef OSD
+    if (feature(FEATURE_OSD)) {
+        osdInit();
+    }
+#endif
 
 #ifdef GPS
     if (feature(FEATURE_GPS)) {
@@ -587,10 +587,10 @@ void init(void)
 
     gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
 #ifdef BARO
-    baroSetCalibrationCycles(CALIBRATING_BARO_CYCLES);
+    baroStartCalibration();
 #endif
 #ifdef PITOT
-    pitotSetCalibrationCycles(CALIBRATING_PITOT_CYCLES);
+    pitotStartCalibration();
 #endif
 
     // start all timers

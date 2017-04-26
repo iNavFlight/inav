@@ -45,6 +45,7 @@
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
 
+#include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -103,6 +104,7 @@ int16_t telemTemperature1;      // gyro sensor temperature
 static uint32_t disarmAt;     // Time of automatic disarm when "Don't spin the motors when armed" is enabled and auto_disarm_delay is nonzero
 
 static bool isRXDataNew;
+static disarmReason_t lastDisarmReason = DISARM_NONE;
 
 bool isCalibrating(void)
 {
@@ -112,9 +114,27 @@ bool isCalibrating(void)
     }
 #endif
 
-    // Note: compass calibration is handled completely differently, outside of the main loop, see f.CALIBRATE_MAG
+#ifdef PITOT
+    if (sensors(SENSOR_PITOT) && !pitotIsCalibrationComplete()) {
+        return true;
+    }
+#endif
 
-    return (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) || (!gyroIsCalibrationComplete());
+#ifdef NAV
+    if (!navIsCalibrationComplete()) {
+        return true;
+    }
+#endif
+
+    if (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) {
+        return true;
+    }
+
+    if (!gyroIsCalibrationComplete()) {
+        return true;
+    }
+
+    return false;
 }
 
 int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
@@ -222,9 +242,10 @@ void annexCode(void)
     }
 }
 
-void mwDisarm(void)
+void mwDisarm(disarmReason_t disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
+        lastDisarmReason = disarmReason;
         DISABLE_ARMING_FLAG(ARMED);
 
 #ifdef BLACKBOX
@@ -235,6 +256,11 @@ void mwDisarm(void)
 
         beeper(BEEPER_DISARMING);      // emit disarm tone
     }
+}
+
+disarmReason_t getDisarmReason(void)
+{
+    return lastDisarmReason;
 }
 
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
@@ -302,7 +328,7 @@ void processRx(timeUs_t currentTimeUs)
     // in 3D mode, we need to be able to disarm by switch at any time
     if (feature(FEATURE_3D)) {
         if (!IS_RC_MODE_ACTIVE(BOXARM))
-            mwDisarm();
+            mwDisarm(DISARM_SWITCH_3D);
     }
 
     updateRSSI(currentTimeUs);
@@ -329,7 +355,7 @@ void processRx(timeUs_t currentTimeUs)
                     && (int32_t)(disarmAt - millis()) < 0
                 ) {
                     // auto-disarm configured and delay is over
-                    mwDisarm();
+                    mwDisarm(DISARM_TIMEOUT);
                     armedBeeperOn = false;
                 } else {
                     // still armed; do warning beeps while armed

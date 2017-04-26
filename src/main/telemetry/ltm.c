@@ -50,6 +50,7 @@
 #include "io/serial.h"
 
 #include "fc/config.h"
+#include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
@@ -259,7 +260,7 @@ void ltm_xframe(sbuf_t *dst)
 #endif
     ltm_serialise_8(dst, sensorStatus);
     ltm_serialise_8(dst, ltm_x_counter);
-    ltm_serialise_8(dst, 0);
+    ltm_serialise_8(dst, getDisarmReason());
     ltm_serialise_8(dst, 0);
     ltm_x_counter++; // overflow is OK
 }
@@ -452,13 +453,20 @@ void configureLtmTelemetryPort(void)
 
 void checkLtmTelemetryState(void)
 {
-    bool newTelemetryEnabledValue = telemetryDetermineEnabledState(ltmPortSharing);
-    if (newTelemetryEnabledValue == ltmEnabled)
-        return;
-    if (newTelemetryEnabledValue)
-        configureLtmTelemetryPort();
-    else
-        freeLtmTelemetryPort();
+    if (portConfig && telemetryCheckRxPortShared(portConfig)) {
+        if (!ltmEnabled && telemetrySharedPort != NULL) {
+            ltmPort = telemetrySharedPort;
+            ltmEnabled = true;
+        }
+    } else {
+        bool newTelemetryEnabledValue = telemetryDetermineEnabledState(ltmPortSharing);
+        if (newTelemetryEnabledValue == ltmEnabled)
+            return;
+        if (newTelemetryEnabledValue)
+            configureLtmTelemetryPort();
+        else
+            freeLtmTelemetryPort();
+    }
 }
 
 int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType)

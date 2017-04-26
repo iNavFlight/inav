@@ -48,6 +48,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/fc_core.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -256,7 +257,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"motor",      7, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_8)},
 
     /* Tricopter tail servo */
-    {"servo",      5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(TRICOPTER)},
+    {"servo",      5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(TRICOPTER)},
 
 #ifdef NAV_BLACKBOX
     {"navState",  -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
@@ -1337,7 +1338,7 @@ static bool blackboxWriteSysinfo()
         BLACKBOX_PRINT_HEADER_LINE("rcRate", ":%d",                         100); //For compatibility reasons write rc_rate 100
         BLACKBOX_PRINT_HEADER_LINE("min_throttle", ":%d",                   motorConfig()->minthrottle);
         BLACKBOX_PRINT_HEADER_LINE("max_throttle", ":%d",                   motorConfig()->maxthrottle);
-        BLACKBOX_PRINT_HEADER_LINE("gyro_scale", "0x%x",                    castFloatBytesToInt(1.0f));
+        BLACKBOX_PRINT_HEADER_LINE("gyro_scale", ":0x%x",                    castFloatBytesToInt(1.0f));
         BLACKBOX_PRINT_HEADER_LINE("acc_1G", ":%u",                         acc.dev.acc_1G);
 
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
@@ -1453,7 +1454,7 @@ void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data)
             blackboxWrite(0);
         break;
         case FLIGHT_LOG_EVENT_LOG_END:
-            blackboxPrint("End of log");
+            blackboxPrintf("End of log (disarm reason:%d)", getDisarmReason());
             blackboxWrite(0);
         break;
     }

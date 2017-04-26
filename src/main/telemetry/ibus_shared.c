@@ -87,10 +87,8 @@ static IBUS_SENSOR SENSOR_ADDRESS_TYPE_LOOKUP[] = {
 
 static serialPort_t *ibusSerialPort = NULL;
 
-static uint16_t calculateChecksum(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength);
-
 static uint8_t transmitIbusPacket(uint8_t ibusPacket[static IBUS_MIN_LEN], size_t packetLength) {
-    uint16_t checksum = calculateChecksum(ibusPacket, packetLength);
+    uint16_t checksum = ibusCalculateChecksum(ibusPacket, packetLength);
     ibusPacket[packetLength - IBUS_CHECKSUM_SIZE] = (checksum & 0xFF);
     ibusPacket[packetLength - IBUS_CHECKSUM_SIZE + 1] = (checksum >> 8);
     for (size_t i = 0; i < packetLength; i++) {
@@ -288,18 +286,3 @@ void changeTypeIbusTelemetry(uint8_t id, uint8_t type, uint8_t value) {
 }
 
 #endif //defined(TELEMETRY) && defined(TELEMETRY_IBUS)
-
-static uint16_t calculateChecksum(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength) {
-    uint16_t checksum = 0xFFFF;
-    for (size_t i = 0; i < packetLength - IBUS_CHECKSUM_SIZE; i++) {
-        checksum -= ibusPacket[i];
-    }
-    return checksum;
-}
-
-bool isChecksumOk(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength) {
-    uint16_t calculatedChecksum = calculateChecksum(ibusPacket, packetLength);
-    // Note that there's a byte order swap to little endian here
-    return (calculatedChecksum >> 8) == ibusPacket[packetLength - 1]
-            && (calculatedChecksum & 0xFF) == ibusPacket[packetLength - 2];
-}

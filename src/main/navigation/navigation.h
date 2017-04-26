@@ -68,7 +68,7 @@ enum {
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type;
-    uint8_t accz_unarmed_cal;
+    uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
     uint16_t gps_delay_ms;
 
@@ -141,7 +141,6 @@ typedef struct navConfig_s {
         uint16_t min_throttle;               // Minimum allowed throttle in auto mode
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
-        uint8_t  roll_to_pitch;              // Roll to pitch compensation (in %)
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
 
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
@@ -258,9 +257,11 @@ void applyWaypointNavigationAndAltitudeHold(void);
 /* Functions to signal navigation requirements to main loop */
 bool naivationRequiresAngleMode(void);
 bool navigationRequiresThrottleTiltCompensation(void);
+bool naivationRequiresTurnAssistance(void);
 int8_t naivationGetHeadingControlState(void);
 bool naivationBlockArming(void);
 bool navigationPositionEstimateIsHealthy(void);
+bool navIsCalibrationComplete(void);
 
 /* Access to estimated position and velocity */
 float getEstimatedActualVelocity(int axis);

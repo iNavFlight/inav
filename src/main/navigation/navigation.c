@@ -34,6 +34,7 @@
 
 #include "drivers/time.h"
 
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -115,7 +116,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,   // pwm units per degree of pitch (10pwm units ~ 1% throttle)
-        .roll_to_pitch = 75,       // percent of coupling
         .loiter_radius = 5000,     // 50m
 
         // Fixed wing launch
@@ -856,7 +856,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if (posControl.flags.hasValidPositionSensor || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
-        if (((posControl.actualState.pos.V.Z - posControl.homeWaypointAbove.pos.V.Z) > -50.0f) || (!navConfig()->general.flags.rth_climb_first)) {
+        const float rthAltitudeMargin = STATE(FIXED_WING) ?
+                            MIN(100.0f, 0.10f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z)) :  // Airplane: 10% of target altitude but no less than 1m
+                            MIN( 50.0f, 0.05f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z));   // Copters:   5% of target altitude but no less than 50cm
+
+        if (((posControl.actualState.pos.V.Z - posControl.homeWaypointAbove.pos.V.Z) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
             if (STATE(FIXED_WING)) {
                 initializeRTHSanityChecker(&posControl.actualState.pos);
@@ -1015,7 +1019,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHING(navigatio
     UNUSED(previousState);
 
     if (navConfig()->general.flags.disarm_on_landing) {
-        mwDisarm();
+        mwDisarm(DISARM_NAVIGATION);
     }
 
     return NAV_FSM_EVENT_SUCCESS;
@@ -1955,17 +1959,21 @@ static void resetPositionController(void)
 
 static bool adjustPositionFromRCInput(void)
 {
+    bool retValue;
+
     if (STATE(FIXED_WING)) {
-        return adjustFixedWingPositionFromRCInput();
+        retValue = adjustFixedWingPositionFromRCInput();
     }
     else {
-        return adjustMulticopterPositionFromRCInput();
+        retValue = adjustMulticopterPositionFromRCInput();
     }
 
 #if defined(NAV_BLACKBOX)
     navTargetPosition[X] = constrain(lrintf(posControl.desiredState.pos.V.X), -32678, 32767);
     navTargetPosition[Y] = constrain(lrintf(posControl.desiredState.pos.V.Y), -32678, 32767);
 #endif
+
+    return retValue;
 }
 
 /*-----------------------------------------------------------
@@ -2419,13 +2427,33 @@ bool naivationRequiresAngleMode(void)
     return (currentState & NAV_REQUIRE_ANGLE) || ((currentState & NAV_REQUIRE_ANGLE_FW) && STATE(FIXED_WING));
 }
 
+/*-----------------------------------------------------------
+ * An indicator that TURN ASSISTANCE is required for navigation
+ *-----------------------------------------------------------*/
+bool naivationRequiresTurnAssistance(void)
+{
+    const navigationFSMStateFlags_t currentState = navGetStateFlags(posControl.navState);
+    if (STATE(FIXED_WING)) {
+        // For airplanes turn assistant is always required when controlling position
+        return (currentState & NAV_CTL_POS);
+    }
+    else {
+        return false;
+    }
+}
+
 /**
  * An indicator that NAV is in charge of heading control (a signal to disable other heading controllers)
  */
 int8_t naivationGetHeadingControlState(void)
 {
-    // No explicit MAG_HOLD mode for airplanes
-    if ((navGetStateFlags(posControl.navState) & NAV_REQUIRE_MAGHOLD) && !STATE(FIXED_WING)) {
+    // For airplanes report as manual heading control
+    if (STATE(FIXED_WING)) {
+        return NAV_HEADING_CONTROL_MANUAL;
+    }
+
+    // For multirotors it depends on navigation system mode
+    if (navGetStateFlags(posControl.navState) & NAV_REQUIRE_MAGHOLD) {
         if (posControl.flags.isAdjustingHeading) {
             return NAV_HEADING_CONTROL_MANUAL;
         }

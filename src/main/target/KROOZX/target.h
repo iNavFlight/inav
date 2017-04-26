@@ -28,9 +28,6 @@
 #define BEEPER                  PC1
 #define BEEPER_INVERTED
 
-#define INVERTER                PB12
-#define INVERTER_USART          USART6
-
 #define INVERTER_PIN_UART1      PB13
 #define INVERTER_PIN_UART6      PB12
 
@@ -57,6 +54,7 @@
 
 #define BARO
 #define USE_BARO_MS5611
+#define BARO_I2C_INSTANCE       I2CDEV_3
 
 #define USE_SDCARD
 #define SDCARD_DETECT_INVERTED
@@ -114,8 +112,8 @@
 #define SERIAL_PORT_COUNT       6
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_3)
-#define I2C_DEVICE_EXT          (I2CDEV_1)
+#define I2C_DEVICE              (I2CDEV_1)
+#define I2C_DEVICE_EXT          (I2CDEV_3)
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 #define I2C3_SCL                PA8
