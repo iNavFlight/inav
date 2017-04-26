@@ -152,7 +152,7 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         if (feature(FEATURE_CURRENT_METER)) return sendIbusMeasurement2(address, (uint16_t) amperage); //int32_t
         else return sendIbusMeasurement2(address, 0); 
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_CLIMB) {
-        return sendIbusMeasurement2(address, (uint16_t) (getEstimatedActualVelocity(Z) / 100)); //
+        return sendIbusMeasurement2(address, (int16_t) (getEstimatedActualVelocity(Z))); //
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_ACC_Z) { //MAG_COURSE 0-360*, 0=north
         return sendIbusMeasurement2(address, (uint16_t) (attitude.values.yaw * 10)); //in ddeg -> cdeg, 1ddeg = 10cdeg
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_ACC_Y) { //PITCH in 
