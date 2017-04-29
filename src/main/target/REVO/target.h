@@ -17,11 +17,18 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "REVO"
+#if defined(REVOLT)
+#define TARGET_BOARD_IDENTIFIER "RVLT"
+#define USBD_PRODUCT_STRING     "Revolt"
 
+#else
+#define TARGET_BOARD_IDENTIFIER "REVO"
 #define USBD_PRODUCT_STRING     "Revolution"
+
 #ifdef OPBL
 #define USBD_SERIALNUMBER_STRING "0x8020000"
+#endif
+
 #endif
 
 #define LED0                    PB5
@@ -40,14 +47,26 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_INSTANCE    SPI1
 
+#define MPU6500_CS_PIN          PA4
+#define MPU6500_SPI_INSTANCE    SPI1
+
 #define GYRO
 #define USE_GYRO_SPI_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
+
+#define USE_GYRO_MPU6500
+#define USE_GYRO_SPI_MPU6500
+#define GYRO_MPU9250_ALIGN      CW270_DEG
 
 #define ACC
 #define USE_ACC_SPI_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 
+#define USE_ACC_MPU6500
+#define USE_ACC_SPI_MPU6500
+#define ACC_MPU6500_ALIGN       CW270_DEG
+
+#if !defined(REVOLT)
 #define MAG
 #define USE_MAG_AK8963
 #define USE_MAG_AK8975
@@ -62,6 +81,7 @@
 
 //#define PITOT
 //#define USE_PITOT_MS4525
+#endif
 #define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
 
 #define M25P16_CS_PIN           PB3
