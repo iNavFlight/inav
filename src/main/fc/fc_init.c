@@ -657,10 +657,6 @@ void init(void)
     }
 #endif
 
-#ifdef VTX_SMARTAUDIO
-    smartAudioInit();
-#endif
-
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     motorControlEnable = true;
