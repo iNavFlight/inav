@@ -103,7 +103,7 @@ static uint8_t sendIbusCommand(ibusAddress_t address) {
 }
 
 static uint8_t sendIbusSensorType(ibusAddress_t address) {
-    uint8_t sendBuffer[] = { 0x06, IBUS_COMMAND_SENSOR_TYPE | address, SENSOR_ADDRESS_TYPE_LOOKUP[address].type, SENSOR_ADDRESS_TYPE_LOOKUP[address].size, 0x02, 0x0, 0x0 };
+    uint8_t sendBuffer[] = { 0x06, IBUS_COMMAND_SENSOR_TYPE | address, SENSOR_ADDRESS_TYPE_LOOKUP[address].type, SENSOR_ADDRESS_TYPE_LOOKUP[address].size, 0x0, 0x0 };
     return transmitIbusPacket(sendBuffer, sizeof sendBuffer);
 }
 
@@ -148,7 +148,10 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         return sendIbusMeasurement2(address, vbat * 10);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_CURRENT) { //CURR in 10*mA, 1 = 10 mA
         if (feature(FEATURE_CURRENT_METER)) return sendIbusMeasurement2(address, (uint16_t) amperage); //int32_t
-        else return sendIbusMeasurement2(address, 0); 
+        else return sendIbusMeasurement2(address, 0);
+    } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_FUEL) { //capacity in mAh
+        if (feature(FEATURE_CURRENT_METER)) return sendIbusMeasurement2(address, (uint16_t) mAhDrawn); //int32_t
+        else return sendIbusMeasurement2(address, 0);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_CLIMB) {
         return sendIbusMeasurement2(address, (int16_t) (getEstimatedActualVelocity(Z))); //
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_ACC_Z) { //MAG_COURSE 0-360*, 0=north
@@ -249,6 +252,11 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         if (sensors(SENSOR_GPS)) return sendIbusMeasurement2(address, (uint16_t) ((gpsSol.llh.lon % 100000)/10)); else 
 #endif
         return sendIbusMeasurement2(address, 0);
+    } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_GALT4) { //GPS_ALT //In cm => m
+#if defined(GPS)
+        if (sensors(SENSOR_GPS)) return sendIbusMeasurement4(address, (int32_t) (gpsSol.llh.alt)); else //int32_t
+#endif
+        return sendIbusMeasurement4(address, 0);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_GALT) { //GPS_ALT //In cm => m
 #if defined(GPS)
         if (sensors(SENSOR_GPS)) return sendIbusMeasurement2(address, (uint16_t) (gpsSol.llh.alt / 100)); else //int32_t
@@ -280,7 +288,7 @@ void changeTypeIbusTelemetry(uint8_t id, uint8_t type, uint8_t value) {
     SENSOR_ADDRESS_TYPE_LOOKUP[id].type = type;
     SENSOR_ADDRESS_TYPE_LOOKUP[id].value = value;
     if (value == IBUS_MEAS_VALUE_GPS) SENSOR_ADDRESS_TYPE_LOOKUP[id].size = 14;
-    else if (value == IBUS_MEAS_VALUE_GPS_LAT || value == IBUS_MEAS_VALUE_GPS_LON || value == IBUS_MEAS_VALUE_ALT4) 
+    else if (value == IBUS_MEAS_VALUE_GPS_LAT || value == IBUS_MEAS_VALUE_GPS_LON || value == IBUS_MEAS_VALUE_ALT4 || value == IBUS_MEAS_VALUE_GALT4) 
       SENSOR_ADDRESS_TYPE_LOOKUP[id].size = 4;
     else SENSOR_ADDRESS_TYPE_LOOKUP[id].size = 2;
 }
