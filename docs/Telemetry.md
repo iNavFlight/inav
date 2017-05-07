@@ -274,13 +274,28 @@ sensor 10 is of type GALT,
 sensor 12 is of type GPS_LON,
 sensor 13 is of type GPS_LAT,
 sensor 14 is of type ACC_X,
-sensor 15 is of type ACC_Y.
+sensor 15 is of type ACC_Y, 
+sensor 16 is of type SPEED.
 
 4.This same as 3, but support 4 byte sensors. (fix_updater_03_16_21_33_1 from https://github.com/qba667/FlySkyI6/tree/master/release):
 sensor 7 is 4byte ALT, 12 is PRESURE or PITOT_SPEED if avaliable, 13 is GPS_STATUS, 14 is 4byte GPS_LON, 15 is 4byte GPS_LAT.
 This required a receiver with new firmware that support SNR, RSSI and long frames (For FS-IA6B since August 2016 or need upgrade to wersion 1.6 https://github.com/povlhp/FlySkyRxFirmware).
 
 5.This same as 4, but sensor 3 is ARMED, 4 is MODE, 12 is CLIMB.
+
+6.For hali9_updater_04_21_23_13.bin from https://www.rcgroups.com/forums/showthread.php?2486545-FlySky-FS-i6-8-channels-firmware-patch%21/page118 or https://github.com/benb0jangles/FlySky-i6-Mod-/tree/master/10ch%20qba667_hali9%20Updater sensor 4 is of type CURRENT, sensor 5 is of type HEADING, sensor 6 is of type COG, sensor 7 is of type CLIMB, sensor 8 is of type YAW, sensor 9 is of type DIST, sensor 10 is of type PRESURE or PITOT_SPEED if avaliable, sensor 11 is of type SPEED, sensor 12 is of type GPS_LAT, sensor 13 is of type GPS_LON, sensor 14 is of type GALT, sensor 15 is of type ALT, sensor 16 is of type S85.
+
+7.This same as 6, but sensor 3 is GPS_STATUS, 10 is ARMED, 16 is MODE.
+
+131.This same as 3, but sensor 16 (type SPEED) is in m/s.
+
+132.This same as 4, but sensor 16 (type SPEED) is in m/s.
+
+133.This same as 5, but sensor 16 (type SPEED) is in m/s.
+
+134.This same as 6, but sensor 11 (type SPEED) is in m/s.
+
+135.This same as 7, but sensor 11 (type SPEED) is in m/s.
 
 ### RX hardware
 
@@ -295,7 +310,7 @@ Note that the FlySky/Turnigy FS-iA4B 4-Channel Receiver (http://www.flysky-cn.co
 
 Case:
 
-A. For use only IBUS RX connect directly Flysky IBUS-SERVO to FC-UART-TX.
+A. For use only IBUS RX connect directly Flysky IBUS-SERVO to FC-UART-RX.
 In configurator set RX on selected port, set receiver mode to RX_SERIAL and Receiver provider to IBUS.
 
 B. For use only IBUS telemetry connect directly Flysky IBUS-SENS to FC-UART-TX.
