@@ -228,7 +228,36 @@ void initIbusTelemetry(void) {
     if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5) 
         changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE_SPE, IBUS_MEAS_VALUE_SPE);
     if ((type == 3 || type == 4 || type == 5) && speed) 	
-        changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE_SPEED, IBUS_MEAS_VALUE_SPEED);	 
+        changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE_SPEED, IBUS_MEAS_VALUE_SPEED);
+    if (type == 6) {
+#ifdef PITOT
+        if (sensors(SENSOR_PITOT)) changeTypeIbusTelemetry(9,IBUS_MEAS_TYPE1_VERTICAL_SPEED, IBUS_MEAS_VALUE_VSPEED);
+        else 
+#endif
+            changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE1_PRES, IBUS_MEAS_VALUE_PRES);
+        changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE1_S85, IBUS_MEAS_VALUE_STATUS);
+    }
+    if (type == 7) {
+        changeTypeIbusTelemetry(2, IBUS_MEAS_TYPE1_GPS_STATUS, IBUS_MEAS_VALUE_GPS_STATUS);
+        changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE1_ARMED, IBUS_MEAS_VALUE_ARMED);
+        changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE1_FLIGHT_MODE, IBUS_MEAS_VALUE_MODE);	
+    }
+    if (type == 6 || type == 7) {
+	if (batteryConfig()->currentMeterType == CURRENT_SENSOR_VIRTUAL) 
+             changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_FUEL, IBUS_MEAS_VALUE_FUEL);
+        else changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_BAT_CURR, IBUS_MEAS_VALUE_CURRENT);
+        changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE1_CMP_HEAD, IBUS_MEAS_VALUE_HEADING);
+        changeTypeIbusTelemetry(6, IBUS_MEAS_TYPE1_CLIMB_RATE, IBUS_MEAS_VALUE_CLIMB);
+        changeTypeIbusTelemetry(5, IBUS_MEAS_TYPE1_COG, IBUS_MEAS_VALUE_COG);
+        changeTypeIbusTelemetry(7, IBUS_MEAS_TYPE1_YAW, IBUS_MEAS_VALUE_ACC_Z);
+        changeTypeIbusTelemetry(8, IBUS_MEAS_TYPE1_GPS_DIST, IBUS_MEAS_VALUE_DIST);		
+        if (speed) changeTypeIbusTelemetry(10,IBUS_MEAS_TYPE1_GROUND_SPEED, IBUS_MEAS_VALUE_SPEED);
+		else changeTypeIbusTelemetry(10, IBUS_MEAS_TYPE1_SPE, IBUS_MEAS_VALUE_SPE);		
+        changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE1_GPS_LAT, IBUS_MEAS_VALUE_GPS_LAT);
+        changeTypeIbusTelemetry(12,IBUS_MEAS_TYPE1_GPS_LON, IBUS_MEAS_VALUE_GPS_LON);
+        changeTypeIbusTelemetry(13,IBUS_MEAS_TYPE1_GPS_ALT, IBUS_MEAS_VALUE_GALT4);
+        changeTypeIbusTelemetry(14,IBUS_MEAS_TYPE1_ALT, IBUS_MEAS_VALUE_ALT4);
+    }
     ibusPortSharing = determinePortSharing(ibusSerialPortConfig, FUNCTION_TELEMETRY_IBUS);
     ibusTelemetryEnabled = false;
 }
