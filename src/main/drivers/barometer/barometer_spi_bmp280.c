@@ -30,8 +30,8 @@
 #define DISABLE_BMP280       IOHi(bmp280CsPin)
 #define ENABLE_BMP280        IOLo(bmp280CsPin)
 
-extern int32_t bmp280_up;
-extern int32_t bmp280_ut;
+extern static int32_t bmp280_up;
+extern static int32_t bmp280_ut;
 
 static IO_t bmp280CsPin = IO_NONE;
 
