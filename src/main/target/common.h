@@ -97,6 +97,7 @@
 #define USE_RCSPLIT
 #define PITOT
 #define USE_PITOT_ADC
+#define VTX_COMMON
 #define VTX_CONTROL
 #define VTX_SMARTAUDIO
 #define VTX_TRAMP

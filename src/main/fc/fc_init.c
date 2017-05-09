@@ -71,6 +71,12 @@
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/vcd.h"
+#include "drivers/gyro_sync.h"
+#include "drivers/io.h"
+#include "drivers/exti.h"
+#include "drivers/io_pca9685.h"
+#include "drivers/vtx_rtc6705.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -99,6 +105,7 @@
 #include "io/rcsplit.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
+#include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
 
@@ -628,13 +635,16 @@ void init(void)
 #endif
 
 #ifdef VTX_CONTROL
+    vtxControlInit();
+
+    vtxCommonInit();
 
 #ifdef VTX_SMARTAUDIO
-    smartAudioInit();
+    vtxSmartAudioInit();
 #endif
 
 #ifdef VTX_TRAMP
-    trampInit();
+    vtxTrampInit();
 #endif
 
 #endif // VTX_CONTROL

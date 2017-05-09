@@ -2,8 +2,7 @@
 
 #if defined(VTX_TRAMP) && defined(VTX_CONTROL)
 
-bool trampInit();
-void trampProcess(timeUs_t currentTimeUs);
+bool vtxTrampInit();
 
 #ifdef CMS
 #include "cms/cms.h"

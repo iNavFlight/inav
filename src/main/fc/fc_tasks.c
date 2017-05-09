@@ -32,6 +32,7 @@
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -55,8 +56,6 @@
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
 #include "io/rcsplit.h"
-#include "io/vtx_smartaudio.h"
-#include "io/vtx_tramp.h"
 
 #include "msp/msp_serial.h"
 
@@ -266,11 +265,8 @@ void taskVtxControl(timeUs_t currentTimeUs)
     if (ARMING_FLAG(ARMED))
         return;
 
-#ifdef VTX_SMARTAUDIO
-    smartAudioProcess(currentTimeUs);
-#endif
-#ifdef VTX_TRAMP
-    trampProcess(currentTimeUs);
+#ifdef VTX_COMMON
+    vtxCommonProcess(currentTimeUs);
 #endif
 }
 #endif
@@ -555,6 +551,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = rcSplitProcess,
         .desiredPeriod = TASK_PERIOD_HZ(10),        // 10 Hz, 100ms
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
 #endif
 
 #ifdef VTX_CONTROL
