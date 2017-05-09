@@ -25,9 +25,9 @@
 #include "platform.h"
 #include "build/debug.h"
 
-#if defined(VTX_CONTROL)
+#if defined(VTX_COMMON)
 
-const uint16_t vtx58FreqTable[5][8] =
+const uint16_t vtx58frequencyTable[5][8] =
 {
     { 5865, 5845, 5825, 5805, 5785, 5765, 5745, 5725 }, // Boscam A
     { 5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866 }, // Boscam B
@@ -51,23 +51,25 @@ const char * const vtx58ChannelNames[] = {
     "-", "1", "2", "3", "4", "5", "6", "7", "8",
 };
 
-bool vtx58_Freq2Bandchan(uint16_t freq, uint8_t *pBand, uint8_t *pChan)
+bool vtx58_Freq2Bandchan(uint16_t freq, uint8_t *pBand, uint8_t *pChannel)
 {
-    uint8_t band;
-    uint8_t chan;
+    int8_t band;
+    uint8_t channel;
 
-    for (band = 0 ; band < 5 ; band++) {
-        for (chan = 0 ; chan < 8 ; chan++) {
-            if (vtx58FreqTable[band][chan] == freq) {
+    // Use reverse lookup order so that 5880Mhz
+    // get Raceband 7 instead of Fatshark 8.
+    for (band = 4 ; band >= 0 ; band--) {
+        for (channel = 0 ; channel < 8 ; channel++) {
+            if (vtx58frequencyTable[band][channel] == freq) {
                 *pBand = band + 1;
-                *pChan = chan + 1;
+                *pChannel = channel + 1;
                 return true;
             }
         }
     }
 
     *pBand = 0;
-    *pChan = 0;
+    *pChannel = 0;
 
     return false;
 }
