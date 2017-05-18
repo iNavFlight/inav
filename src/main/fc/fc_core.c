@@ -167,7 +167,7 @@ static void updatePreArmingChecks(void)
     }
 
 #if defined(NAV)
-    if (naivationBlockArming()) {
+    if (navigationBlockArming()) {
         ENABLE_ARMING_FLAG(BLOCKED_NAVIGATION_SAFETY);
         DISABLE_ARMING_FLAG(OK_TO_ARM);
     }
@@ -397,7 +397,7 @@ void processRx(timeUs_t currentTimeUs)
 
     bool canUseHorizonMode = true;
 
-    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || failsafeRequiresAngleMode() || naivationRequiresAngleMode()) && sensors(SENSOR_ACC)) {
+    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || failsafeRequiresAngleMode() || navigationRequiresAngleMode()) && sensors(SENSOR_ACC)) {
         // bumpless transfer to Level mode
         canUseHorizonMode = false;
 
@@ -474,7 +474,7 @@ void processRx(timeUs_t currentTimeUs)
 #endif
 
     // Navigation may override PASSTHRU_MODE
-    if (IS_RC_MODE_ACTIVE(BOXPASSTHRU) && !naivationRequiresAngleMode() && !failsafeRequiresAngleMode()) {
+    if (IS_RC_MODE_ACTIVE(BOXPASSTHRU) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) {
         ENABLE_FLIGHT_MODE(PASSTHRU_MODE);
     } else {
         DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
