@@ -1863,19 +1863,27 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
     static timeUs_t lastUpdateTimeUs;
     timeUs_t currentTimeUs = micros();
 
+    DEBUG_SET(DEBUG_FW_DESCEND, 0, desiredClimbRate);
+
     if (mode == ROC_TO_ALT_RESET) {
         lastUpdateTimeUs = currentTimeUs;
         posControl.desiredState.pos.V.Z = posControl.actualState.pos.V.Z;
     }
     else {
         if (STATE(FIXED_WING)) {
-            // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
-            float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
-            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ)) {
-                posControl.desiredState.pos.V.Z = desiredClimbRate * timeDelta;
-                posControl.desiredState.pos.V.Z = constrainf(posControl.desiredState.pos.V.Z,           // FIXME: calculate sanity limits in a smarter way
-                                                             posControl.actualState.pos.V.Z - 500,
-                                                             posControl.actualState.pos.V.Z + 500);
+
+            if (!sensors(SENSOR_BARO)) {
+                // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
+                float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
+                if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ)) {
+                    posControl.desiredState.pos.V.Z = desiredClimbRate * timeDelta;
+                    posControl.desiredState.pos.V.Z = constrainf(posControl.desiredState.pos.V.Z,           // FIXME: calculate sanity limits in a smarter way
+                                                                posControl.actualState.pos.V.Z - 500,
+                                                                posControl.actualState.pos.V.Z + 500);
+                }
+            } else {
+                // Closed loop FW altitude controller
+                posControl.desiredState.pos.V.Z = posControl.actualState.pos.V.Z + (desiredClimbRate / posControl.pids.fw_alt.param.kP);
             }
         }
         else {
@@ -2600,6 +2608,12 @@ void navigationUsePIDs(void)
     navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 100.0f);
+
+    navPidInit(&posControl.pids.fw_pos_to_pitch, (float)pidProfile()->bank_fw.pid[PID_VEL_Z].P / 100.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_VEL_Z].I / 100.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_VEL_Z].D / 100.0f);
+
+
 }
 
 void navigationInit(void)
