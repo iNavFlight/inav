@@ -119,6 +119,7 @@ typedef struct navigationPIDControllers_s {
 
     /* Fixed-wing PIDs */
     pidController_t fw_alt;
+    pidController_t fw_pos_to_pitch;
     pidController_t fw_nav;
 } navigationPIDControllers_t;
 

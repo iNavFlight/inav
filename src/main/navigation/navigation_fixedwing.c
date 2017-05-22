@@ -107,7 +107,16 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     int maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
     int minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
 
-    float targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0);
+    float targetPitchAngle;
+
+    if (sensors(SENSOR_BARO)) {
+        targetPitchAngle = navPidApply2(&posControl.pids.fw_pos_to_pitch, posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0);
+    } else {
+        targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, posControl.desiredState.pos.V.Z, posControl.actualState.pos.V.Z, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0);
+    }
+    
+    DEBUG_SET(DEBUG_FW_DESCEND, 1, targetPitchAngle);
+
     targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, NAV_FW_PITCH_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
 
     // Calculate climb angle ( >0 - climb, <0 - dive)
