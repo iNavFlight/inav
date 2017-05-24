@@ -564,3 +564,15 @@ void formatTrimDegrees ( char *formattedTrim, int16_t trimValue ) {
 }
 
 #endif
+
+void formatTrimDegrees ( char *formattedTrim, int16_t trimValue ) {
+	char trim[6];
+	sprintf(trim, "%d", trimValue);
+	int x = strlen(trim)-1;
+	strncpy(formattedTrim,trim,x);
+	formattedTrim[x] = '\0';
+	if (trimValue !=0) {
+		strcat(formattedTrim,".");
+	}
+	strcat(formattedTrim,trim+x);
+}
