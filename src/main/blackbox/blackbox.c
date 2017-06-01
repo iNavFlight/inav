@@ -114,7 +114,8 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
 #define SIGNED FLIGHT_LOG_FIELD_SIGNED
 
 static const char blackboxHeader[] =
-    "H Product:INAV Blackbox\n";
+    "H Product:BB recorder by N. Sherlock\n"
+    "H Data version:2\n";
 
 static const char* const blackboxFieldHeaderNames[] = {
     "name",
