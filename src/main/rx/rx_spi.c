@@ -37,6 +37,7 @@
 #include "rx/nrf24_v202.h"
 #include "rx/nrf24_h8_3d.h"
 #include "rx/nrf24_inav.h"
+#include "rx/nrf24_mdrp.h"
 
 
 uint16_t rxSpiRcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];
@@ -104,6 +105,13 @@ STATIC_UNIT_TESTED bool rxSpiSetProtocol(rx_spi_protocol_e protocol)
         protocolInit = inavNrf24Init;
         protocolDataReceived = inavNrf24DataReceived;
         protocolSetRcDataFromPayload = inavNrf24SetRcDataFromPayload;
+        break;
+#endif
+#ifdef USE_RX_MDRP
+    case NRF24RX_MDRP:
+        protocolInit = mdrpNrf24Init;
+        protocolDataReceived = mdrpNrf24DataReceived;
+        protocolSetRcDataFromPayload = mdrpNrf24SetRcDataFromPayload;
         break;
 #endif
     }
