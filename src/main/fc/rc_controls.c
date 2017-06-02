@@ -44,6 +44,7 @@
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
+#include "flight/mixer.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -121,6 +122,21 @@ throttleStatus_e calculateThrottleStatus(void)
         return THROTTLE_LOW;
 
     return THROTTLE_HIGH;
+}
+
+int8_t calculateThrottlePercent(void)
+{
+    int maxPos, minPos, pos;
+
+    pos = rcData[THROTTLE];
+    if (feature(FEATURE_3D)) {
+        minPos = rxConfig()->midrc;
+        maxPos = (pos>=minPos) ? motorConfig()->maxthrottle : motorConfig()->mincommand;
+    } else {
+        minPos = motorConfig()->mincommand;
+        maxPos = motorConfig()->maxthrottle;
+    }
+    return (100 * (pos - minPos) / (maxPos - minPos));  // Negative percent for inverted flight
 }
 
 rollPitchStatus_e calculateRollPitchCenterStatus(void)

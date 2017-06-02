@@ -100,7 +100,7 @@ static uint8_t mixerUsesServos;
 static uint8_t minServoIndex;
 static uint8_t maxServoIndex;
 
-static biquadFilter_t servoFitlerState[MAX_SUPPORTED_SERVOS];
+static biquadFilter_t servoFilterState[MAX_SUPPORTED_SERVOS];
 static bool servoFilterIsSet;
 
 #define COUNT_SERVO_RULES(rules) (sizeof(rules) / sizeof(servoMixer_t))
@@ -293,20 +293,54 @@ STATIC_UNIT_TESTED void forwardAuxChannelsToServos(uint8_t firstServoIndex)
     }
 }
 
+static void biquadFilterInitd1d2(biquadFilter_t *filter, float sample)
+{
+    filter->d2 = filter->b2 * sample - filter->a2 * sample;
+    filter->d1 = filter->b1 * sample - filter->a1 * sample + filter->d2;
+}
+
 static void filterServos(void)
 {
-    if (servoConfig()->servo_lowpass_freq) {
+    static uint16_t rudderFilterFreq;
+
+    if (servoConfig()->servo_lowpass_freq || servoConfig()->tri_servo_lpf_hz) {
         // Initialize servo lowpass filter (servos are calculated at looptime rate)
         if (!servoFilterIsSet) {
             for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-                biquadFilterInitLPF(&servoFitlerState[i], servoConfig()->servo_lowpass_freq, gyro.targetLooptime);
+                biquadFilterInitLPF(&servoFilterState[i], servoConfig()->servo_lowpass_freq, gyro.targetLooptime);
+                biquadFilterInitd1d2(&servoFilterState[i], (float)servo[i]);
             }
+            rudderFilterFreq = servoConfig()->servo_lowpass_freq;
             servoFilterIsSet = true;
         }
 
+        bool rudderFilterEnable = false;
+        if (servoConfig()->tri_servo_lpf_hz) {
+            if (mixerConfig()->mixerMode == MIXER_TRI || mixerConfig()->mixerMode == MIXER_CUSTOM_TRI) {
+                int8_t throttlePercent = calculateThrottlePercent();
+                if (!ARMING_FLAG(ARMED) || (throttlePercent >=0 && throttlePercent < 20)) rudderFilterEnable = true;
+            }
+        }
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            // Apply servo lowpass filter and do sanity cheching
-            servo[i] = (int16_t) biquadFilterApply(&servoFitlerState[i], (float)servo[i]);
+            if (i == SERVO_RUDDER && rudderFilterEnable) {
+                if (rudderFilterFreq == servoConfig()->tri_servo_lpf_hz)
+                    servo[i] = (int16_t)biquadFilterApply(&servoFilterState[i], (float)servo[i]);
+                else {
+                    biquadFilterInitLPF(&servoFilterState[i], servoConfig()->tri_servo_lpf_hz, gyro.targetLooptime);
+                    biquadFilterInitd1d2(&servoFilterState[i], (float)servo[i]);
+                    rudderFilterFreq = servoConfig()->tri_servo_lpf_hz;
+                }
+            } else if (servoConfig()->servo_lowpass_freq) {
+                if (i != SERVO_RUDDER || rudderFilterFreq == servoConfig()->servo_lowpass_freq)
+                    servo[i] = (int16_t)biquadFilterApply(&servoFilterState[i], (float)servo[i]);
+                else {
+                    biquadFilterInitLPF(&servoFilterState[i], servoConfig()->servo_lowpass_freq, gyro.targetLooptime);
+                    biquadFilterInitd1d2(&servoFilterState[i], (float)servo[i]);
+                    rudderFilterFreq = servoConfig()->servo_lowpass_freq;
+                }
+            } else if (i == SERVO_RUDDER) {
+                rudderFilterFreq = 0;
+            }
         }
     }
 
