@@ -6,6 +6,7 @@
 
 #ifdef USE_RX_MDRP
 
+
 #include "build/build_config.h"
 
 #include "build/debug.h"
@@ -36,9 +37,9 @@ uint32_t *rxSpiIdPtr;
 
 uint8_t ltmCurrentFrame = 0;
 #if defined(GPS)
-static ltmFrameType[4] = {LTM_SFRAME, LTM_GFRAME, LTM_OFRAME, LTM_NFRAME};
+static uint8_t ltmFrameType[4] = {LTM_SFRAME, LTM_GFRAME, LTM_OFRAME, LTM_NFRAME};
 #else
-static ltmFrameType[4] = {LTM_SFRAME};
+static uint8_t ltmFrameType[4] = {LTM_SFRAME};
 #endif
 
 typedef enum {
@@ -86,31 +87,31 @@ void mdrpNrf24SetRcDataFromPayload(uint16_t *rcData, const uint8_t *payload) {
   memset(rcData, 0, MAX_SUPPORTED_RC_CHANNEL_COUNT * sizeof(uint16_t));
   uint8_t Exbyte = payload[4]; //bit 8 and 9 of 10 bit value
   //
-  rcData[RC_SPI_ROLL] = mapRCRange(payload[0] + (Exbyte & 0xC0) << 2);
+  rcData[RC_SPI_ROLL] = mapRCRange((payload[0] + ((Exbyte & 0xC0) << 2)));
   Exbyte <<= 2;
-  rcData[RC_SPI_PITCH] = mapRCRange(payload[1] + (Exbyte & 0xC0) << 2);
+  rcData[RC_SPI_PITCH] = mapRCRange((payload[1] + ((Exbyte & 0xC0) << 2)));
   Exbyte <<= 2;
-  rcData[RC_SPI_THROTTLE] = mapRCRange(payload[2] + (Exbyte & 0xC0) << 2);
+  rcData[RC_SPI_THROTTLE] = mapRCRange((payload[2] + ((Exbyte & 0xC0) << 2)));
   Exbyte <<= 2;
-  rcData[RC_SPI_YAW] = mapRCRange(payload[3] + (Exbyte & 0xC0) << 2);
+  rcData[RC_SPI_YAW] = mapRCRange((payload[3] + ((Exbyte & 0xC0) << 2)));
 
   uint8_t Switch = payload[5];
-  if (Switch & 3 == 2) rcData[RC_SPI_AUX1] = PWM_RANGE_MAX;
-  if (Switch & 3 == 1) rcData[RC_SPI_AUX1] = PWM_RANGE_MIDDLE;
-  if (Switch & 3 == 0) rcData[RC_SPI_AUX1] = PWM_RANGE_MIN;
+  if ((Switch & 3) == 2) rcData[RC_SPI_AUX1] = PWM_RANGE_MAX;
+  if ((Switch & 3) == 1) rcData[RC_SPI_AUX1] = PWM_RANGE_MIDDLE;
+  if ((Switch & 3) == 0) rcData[RC_SPI_AUX1] = PWM_RANGE_MIN;
   Switch >>= 2;
 
-  if (Switch & 3 == 2) rcData[RC_SPI_AUX2] = PWM_RANGE_MAX;
-  if (Switch & 3 == 1) rcData[RC_SPI_AUX2] = PWM_RANGE_MIDDLE;
-  if (Switch & 3 == 0) rcData[RC_SPI_AUX2] = PWM_RANGE_MIN;
+  if ((Switch & 3) == 2) rcData[RC_SPI_AUX2] = PWM_RANGE_MAX;
+  if ((Switch & 3) == 1) rcData[RC_SPI_AUX2] = PWM_RANGE_MIDDLE;
+  if ((Switch & 3) == 0) rcData[RC_SPI_AUX2] = PWM_RANGE_MIN;
   Switch >>= 2;
 
-  if (Switch & 1 == 1) rcData[RC_SPI_AUX3] = PWM_RANGE_MAX;
-  if (Switch & 1 == 0) rcData[RC_SPI_AUX3] = PWM_RANGE_MIN;
+  if ((Switch & 1) == 1) rcData[RC_SPI_AUX3] = PWM_RANGE_MAX;
+  if ((Switch & 1) == 0) rcData[RC_SPI_AUX3] = PWM_RANGE_MIN;
   Switch >>= 1;
 
-  if (Switch & 1 == 1) rcData[RC_SPI_AUX4] = PWM_RANGE_MAX;
-  if (Switch & 1 == 0) rcData[RC_SPI_AUX4] = PWM_RANGE_MIN;
+  if ((Switch & 1) == 1) rcData[RC_SPI_AUX4] = PWM_RANGE_MAX;
+  if ((Switch & 1) == 0) rcData[RC_SPI_AUX4] = PWM_RANGE_MIN;
   Switch >>= 1;
 
   rcData[RC_SPI_AUX11] = PWM_RANGE_MIN + payload[6];
@@ -118,14 +119,14 @@ void mdrpNrf24SetRcDataFromPayload(uint16_t *rcData, const uint8_t *payload) {
 
 }
 
-static void mdrpBound(void)
+static void mdrpSetBound(void)
 {
     protocolState = STATE_DATA;
     NRF24L01_WriteRegisterMulti(NRF24L01_0A_RX_ADDR_P0, RxTxAddr, RX_TX_ADDR_LEN);
     NRF24L01_WriteRegisterMulti(NRF24L01_10_TX_ADDR, RxTxAddr, RX_TX_ADDR_LEN);
 }
 
-static void writeAckPayload(uint8_t *payload, ackSize) {
+static void writeAckPayload(uint8_t *payload, uint8_t ackSize) {
   NRF24L01_WriteReg(NRF24L01_07_STATUS, BV(NRF24L01_07_STATUS_MAX_RT));
   NRF24L01_WriteAckPayload(payload, ackSize, NRF24L01_PIPE0);
 }
@@ -141,7 +142,7 @@ static uint8_t getAckCheck(uint8_t ackSize) {
 static void writeTelemetryAck(void) {
   ackPayload[0] = ltmFrameType[ltmCurrentFrame];
   uint8_t ltmSize = getLtmFrame(&ackPayload[1], ltmFrameType[ltmCurrentFrame]);
-  ackPayload[ltmSize + 1] = getackCheck(ltmSize + 2);
+  ackPayload[ltmSize + 1] = getAckCheck(ltmSize + 2);
   ltmCurrentFrame ++;
   if(ltmCurrentFrame >= 4) ltmCurrentFrame = 0;
   writeAckPayload(ackPayload, ltmSize +2);
@@ -160,7 +161,7 @@ static void writeBindAck(void) {
 rx_spi_received_e mdrpNrf24DataReceived(uint8_t *payload)
 {
     rx_spi_received_e ret = RX_SPI_RECEIVED_NONE;
-    timeUs_t timeNowUs;
+
     switch (protocolState) {
     case STATE_BIND:
         if (NRF24L01_ReadPayloadIfAvailable(payload, payloadSize)) {
@@ -169,12 +170,12 @@ rx_spi_received_e mdrpNrf24DataReceived(uint8_t *payload)
             if (validPacket && bindPacket) {
                 ret = RX_SPI_RECEIVED_BIND;
                 writeBindAck();
-                mdrpBound();
+                mdrpSetBound();
             }
         }
         break;
     case STATE_DATA:
-        timeNowUs = micros();
+
         // read the payload, processing of payload is deferred
         if (NRF24L01_ReadPayloadIfAvailable(payload, payloadSize)) {
             const bool validPacket = checkPayload(payload);
