@@ -199,7 +199,7 @@ static const beeperTableEntry_t *currentBeeperEntry = NULL;
  */
 void beeper(beeperMode_e mode)
 {
-    if (mode == BEEPER_SILENCE || ((getBeeperOffMask() & (1 << (BEEPER_USB-1))) && (feature(FEATURE_VBAT) && (batteryCellCount < 2)))) {
+    if (mode == BEEPER_SILENCE || ((getBeeperOffMask() & (1 << BEEPER_USB)) && (feature(FEATURE_VBAT) && (batteryCellCount < 2)))) {
         beeperSilence();
         return;
     }
@@ -326,7 +326,7 @@ void beeperUpdate(timeUs_t currentTimeUs)
     if (!beeperIsOn) {
         beeperIsOn = 1;
         if (currentBeeperEntry->sequence[beeperPos] != 0) {
-            if (!(getBeeperOffMask() & (1 << (currentBeeperEntry->mode - 1))))
+            if (!(getBeeperOffMask() & (1 << (currentBeeperEntry->mode))))
                 BEEP_ON;
 
             warningLedEnable();
