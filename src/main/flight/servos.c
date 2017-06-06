@@ -418,6 +418,12 @@ void servoMixer(void)
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = ((int32_t)servoParams(i)->rate * servo[i]) / 100L;
+        if (servoConfig()->aileron_differential && !FLIGHT_MODE(FLAPERON)) {
+        	if ((servo[i] > 0 && i == SERVO_FLAPPERON_1) ||
+        			(servo[i] < 0 && i == SERVO_FLAPPERON_2)) {
+        		servo[i] = (servo[i] * (100L - ((int32_t)servoConfig()->aileron_differential))) / 100L;
+        	}
+        }
         servo[i] += determineServoMiddleOrForwardFromChannel(i);
     }
 }

@@ -118,6 +118,7 @@ typedef struct servoConfig_s {
     uint16_t flaperon_throw_offset;
     uint8_t __reserved;
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
+    uint8_t aileron_differential;			// 0 to 100 - the greater, the less down deflections of ailerons
 } servoConfig_t;
 
 PG_DECLARE(servoConfig_t, servoConfig);
