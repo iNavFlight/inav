@@ -106,7 +106,7 @@ static const int32_t blackboxSInterval = 4096;
 #define SIGNED FLIGHT_LOG_FIELD_SIGNED
 
 static const char blackboxHeader[] =
-    "H Product:Blackbox flight data recorder by Nicholas Sherlock\n"
+    "H Product:BB recorder by N. Sherlock\n"
     "H Data version:2\n";
 
 static const char* const blackboxFieldHeaderNames[] = {
