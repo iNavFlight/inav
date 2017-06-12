@@ -98,11 +98,15 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
+#if defined(OMNIBUSF4V3)
+#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART3, USART6
+#else
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 4 // CH5
 #define SOFTSERIAL_1_TIMER_TX_HARDWARE 5 // CH6
 
 #define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
+#endif
 
 #define USE_SPI
 
