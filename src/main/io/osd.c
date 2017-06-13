@@ -123,69 +123,63 @@ static displayPort_t *osd7456DisplayPort;
 
 PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
 
-/**
- * Converts altitude/distance based on the current unit system (cm or 1/100th of ft).
- * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt)
- */
-static int32_t osdConvertDistanceToUnit(int32_t dist)
-{
-    switch (osdConfig()->units) {
-        case OSD_UNIT_IMPERIAL:
-            return (dist * 328) / 100; // Convert to feet / 100
-        default:
-            return dist;               // Already in meter / 100
-    }
-}
+#define OSD_UNIT_DIST osdConfig()->units
+#define OSD_UNIT_DIST_ICON(unit) (((unit) == OSD_UNIT_METRIC) ? SYM_DISTHOME_M : SYM_DISTHOME_FT)
+
+#define OSD_UNIT_ALT osdConfig()->units
+#define OSD_UNIT_ALT_ICON(unit) (((unit) == OSD_UNIT_METRIC) ? SYM_ALTM : SYM_ALTFT)
+
+#define OSD_UNIT_VEL osdConfig()->units
 
 /**
  * Converts altitude/distance into a string based on the current unit system.
  * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt in centimeters)
+ * @param showUnit Show unit behind numeric value
  */
-static void osdFormatDistanceStr(char* buff, int32_t dist)
+static void osdFormatDistanceStr(char* buff, int32_t dist, bool showUnit)
 {
-	int32_t dist_abs = abs(osdConvertDistanceToUnit(dist));
-
-    switch (osdConfig()->units) {
+    int32_t dist_abs = abs(dist);
+    switch (OSD_UNIT_DIST) {
         case OSD_UNIT_IMPERIAL:
-	        if (dist < 0)
-	            sprintf(buff, "-%d%c", dist_abs / 100, SYM_FT);
-	        else
-	            sprintf(buff, "%d%c", dist_abs / 100, SYM_FT);
-	        break;
-        default: // Metric
-            if (dist < 0)
-                sprintf(buff, "-%d.%01d%c", dist_abs / 100, (dist_abs % 100) / 10, SYM_M);
+            if (showUnit)
+                sprintf(buff, "%d%c", CM_TO_FT(dist), SYM_FT);
             else
-                sprintf(buff, "%d.%01d%c", dist_abs / 100, (dist_abs % 100) / 10, SYM_M);
-    }
-}
-
-/**
- * Converts velocity based on the current unit system (kmh or mph).
- * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/second)
- */
-static int32_t osdConvertVelocityToUnit(int32_t vel)
-{
-    switch (osdConfig()->units) {
-        case OSD_UNIT_IMPERIAL:
-            return (vel * 224) / 10000; // Convert to mph
-        default:
-            return (vel * 36) / 1000;   // Convert to kmh
+                sprintf(buff, "%d", CM_TO_FT(dist));
+            break;
+        default: // Metric
+            if (dist < 0) {
+                if (showUnit)
+                    sprintf(buff, "-%d.%01d%c", dist_abs / 100, (dist_abs % 100) / 10, SYM_M);
+                else
+                    sprintf(buff, "-%d.%01d", dist_abs / 100, (dist_abs % 100) / 10);
+            } else {
+                if (showUnit)
+                    sprintf(buff, "%d.%01d%c", dist_abs / 100, (dist_abs % 100) / 10, SYM_M);
+                else
+                    sprintf(buff, "%d.%01d", dist_abs / 100, (dist_abs % 100) / 10);
+            }
     }
 }
 
 /**
  * Converts velocity into a string based on the current unit system.
- * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
+ * @param vel Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
+ * @param showUnit Show unit behind numeric value
  */
-static void osdFormatVelocityStr(char* buff, int32_t vel)
+static void osdFormatVelocityStr(char* buff, int32_t vel, bool showUnit)
 {
-    switch (osdConfig()->units) {
+    switch (OSD_UNIT_DIST) {
         case OSD_UNIT_IMPERIAL:
-            sprintf(buff, "%d%c", osdConvertVelocityToUnit(vel), SYM_MPH);
+            if (showUnit)
+                sprintf(buff, "%d%c", CM_S_TO_MPH(vel), SYM_MPH);
+            else
+                sprintf(buff, "%d", CM_S_TO_MPH(vel));
             break;
         default: // Metric
-            sprintf(buff, "%d%c", osdConvertVelocityToUnit(vel), SYM_KMH);
+            if (showUnit)
+                sprintf(buff, "%d%c", CM_S_TO_KM_H(vel), SYM_KMH);
+            else
+                sprintf(buff, "%d", CM_S_TO_KM_H(vel));
     }
 }
 
@@ -215,7 +209,7 @@ static void osdDrawSingleElement(uint8_t item)
             uint8_t p = calculateBatteryPercentage();
             p = (100 - p) / 16.6;
             buff[0] = SYM_BATT_FULL + p;
-            sprintf(buff + 1, "%d.%1dV", vbat / 10, vbat % 10);
+            sprintf(buff + 1, "%d.%1d%c", vbat / 10, vbat % 10, SYM_VOLT);
             break;
         }
 
@@ -236,15 +230,15 @@ static void osdDrawSingleElement(uint8_t item)
 #ifdef GPS
         case OSD_GPS_SATS:
         {
-            buff[0] = 0x1e;
-            buff[1] = 0x1f;
+            buff[0] = SYM_SAT_L;
+            buff[1] = SYM_SAT_R;
             sprintf(buff + 2, "%d", gpsSol.numSat);
             break;
         }
 
         case OSD_GPS_SPEED:
         {
-            osdFormatVelocityStr(buff, gpsSol.groundSpeed);
+            osdFormatVelocityStr(buff, gpsSol.groundSpeed, true);
             break;
         }
 
@@ -255,12 +249,12 @@ static void osdDrawSingleElement(uint8_t item)
 
             if (item == OSD_GPS_LAT)
             {
-                buff[0] = 0xA6;
+                buff[0] = SYM_LAT;
                 val = gpsSol.llh.lat;
             }
             else
             {
-                buff[0] = 0xA7;
+                buff[0] = SYM_LON;
                 val = gpsSol.llh.lon;
             }
 
@@ -292,15 +286,15 @@ static void osdDrawSingleElement(uint8_t item)
 
             h = h*2/45;
 
-            buff[0] = SYM_ARROW_UP + h;
+            buff[0] = SYM_ARROW_SOUTH + h; // TODO: Verify that this is correct
             buff[1] = 0;
             break;
         }
 
         case OSD_HOME_DIST:
         {
-            buff[0] = 0xA0;
-            osdFormatDistanceStr(&buff[1], GPS_distanceToHome * 100);
+            buff[0] = OSD_UNIT_DIST_ICON(OSD_UNIT_DIST);
+            osdFormatDistanceStr(&buff[1], GPS_distanceToHome * 100, false);
             break;
         }
 
@@ -309,19 +303,19 @@ static void osdDrawSingleElement(uint8_t item)
             int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
             if (h < 0) h+=360;
 
-            buff[0] = 0xA9;
-            sprintf(&buff[1], "%d%c", h , 0xA8 );
+            // buff[0] = 0xA9;
+            sprintf(&buff[0], "%d%c", h , SYM_DEGREES );
             break;
         }
 #endif // GPS
 
         case OSD_ALTITUDE:
         {
-            buff[0] = SYM_ALT;
+            buff[0] = OSD_UNIT_ALT_ICON(OSD_UNIT_ALT);
 #ifdef NAV
-            osdFormatDistanceStr(&buff[1], getEstimatedActualPosition(Z));
+            osdFormatDistanceStr(&buff[1], getEstimatedActualPosition(Z), false);
 #else
-            osdFormatDistanceStr(&buff[1], baro.BaroAlt));
+            osdFormatDistanceStr(&buff[1], baro.BaroAlt, false));
 #endif
             break;
         }
@@ -353,9 +347,9 @@ static void osdDrawSingleElement(uint8_t item)
             if (FLIGHT_MODE(PASSTHRU_MODE))
                 p="PASS";
             else if (FLIGHT_MODE(FAILSAFE_MODE))
-                p="!FS!";
+                p="*FS*";
             else if (FLIGHT_MODE(HEADFREE_MODE))
-                p="!HF!";
+                p="*HF*";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p="RTL ";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
@@ -464,7 +458,7 @@ static void osdDrawSingleElement(uint8_t item)
             // Draw AH sides
             int8_t hudwidth = AH_SIDEBAR_WIDTH_POS;
             int8_t hudheight = AH_SIDEBAR_HEIGHT_POS;
-            for (int8_t y = -hudheight; y <= hudheight; y++) {
+            for (int8_t y = -hudheight; y <= hudheight; y++) { // TODO: Implement scrolling
                 max7456WriteChar(elemPosX - hudwidth, elemPosY + y, SYM_AH_DECORATION);
                 max7456WriteChar(elemPosX + hudwidth, elemPosY + y, SYM_AH_DECORATION);
             }
@@ -710,9 +704,9 @@ void osdUpdateAlarms(void)
     // uint16_t *itemPos = osdConfig()->item_pos;
 
 #ifdef NAV
-    int32_t alt = osdConvertDistanceToUnit(getEstimatedActualPosition(Z)) / 100;
+    int32_t alt = getEstimatedActualPosition(Z) / 100;
 #else
-    int32_t alt = osdConvertDistanceToUnit(baro.BaroAlt) / 100;
+    int32_t alt = baro.BaroAlt / 100;
 #endif
     statRssi = rssi * 100 / 1024;
 
@@ -809,15 +803,15 @@ static void osdShowStats(void)
 
     if (STATE(GPS_FIX)) {
         max7456Write(2, top, "MAX SPEED        :");
-        osdFormatVelocityStr(buff, stats.max_speed);
+        osdFormatVelocityStr(buff, stats.max_speed, true);
         max7456Write(22, top++, buff);
         
         max7456Write(2, top, "MAX DISTANCE     :");
-        osdFormatDistanceStr(buff, stats.max_distance*100);
+        osdFormatDistanceStr(buff, stats.max_distance*100, true);
         max7456Write(22, top++, buff);
 
         max7456Write(2, top, "TRAVELED DISTANCE:");
-        osdFormatDistanceStr(buff, getTotalTravelDistance());
+        osdFormatDistanceStr(buff, getTotalTravelDistance(), true);
         max7456Write(22, top++, buff);
     }
 
@@ -843,7 +837,7 @@ static void osdShowStats(void)
     }
 
     max7456Write(2, top, "MAX ALTITUDE     :");
-    osdFormatDistanceStr(buff, stats.max_altitude);
+    osdFormatDistanceStr(buff, stats.max_altitude, true);
     max7456Write(22, top++, buff);
 
     refreshTimeout = 60 * REFRESH_1S;
