@@ -142,7 +142,7 @@ typedef struct navConfig_s {
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
-
+        int8_t land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
@@ -152,6 +152,7 @@ typedef struct navConfig_s {
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
         uint16_t launch_timeout;             // Launch timeout to disable launch mode and swith to normal flight (ms)
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
+        uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
     } fw;
 } navConfig_t;
 
@@ -255,11 +256,11 @@ void updatePositionEstimator(void);
 void applyWaypointNavigationAndAltitudeHold(void);
 
 /* Functions to signal navigation requirements to main loop */
-bool naivationRequiresAngleMode(void);
+bool navigationRequiresAngleMode(void);
 bool navigationRequiresThrottleTiltCompensation(void);
-bool naivationRequiresTurnAssistance(void);
-int8_t naivationGetHeadingControlState(void);
-bool naivationBlockArming(void);
+bool navigationRequiresTurnAssistance(void);
+int8_t navigationGetHeadingControlState(void);
+bool navigationBlockArming(void);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
 
@@ -315,8 +316,8 @@ extern int16_t navAccNEU[3];
 
 #else
 
-#define naivationRequiresAngleMode() (0)
-#define naivationGetHeadingControlState() (0)
+#define navigationRequiresAngleMode() (0)
+#define navigationGetHeadingControlState() (0)
 #define navigationRequiresThrottleTiltCompensation() (0)
 #define getEstimatedActualVelocity(axis) (0)
 

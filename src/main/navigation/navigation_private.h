@@ -53,10 +53,9 @@ typedef enum {
 } navSetWaypointFlags_t;
 
 typedef enum {
-    CLIMB_RATE_KEEP_SURFACE_TARGET,
-    CLIMB_RATE_RESET_SURFACE_TARGET,
-    CLIMB_RATE_UPDATE_SURFACE_TARGET,
-} navUpdateAltitudeFromRateMode_e;
+    ROC_TO_ALT_RESET,
+    ROC_TO_ALT_NORMAL
+} climbRateToAltitudeControllerMode_e;
 
 typedef struct navigationFlags_s {
     bool horizontalPositionDataNew;
@@ -231,6 +230,9 @@ typedef enum {
     NAV_RC_ALT              = (1 << 11),
     NAV_RC_POS              = (1 << 12),
     NAV_RC_YAW              = (1 << 13),
+
+    /* Additional flags */
+    NAV_CTL_LAND            = (1 << 14),
 } navigationFSMStateFlags_t;
 
 typedef struct {
@@ -300,7 +302,6 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD);
 void navPInit(pController_t *p, float _kP);
 
 bool isThrustFacingDownwards(void);
-void updateAltitudeTargetFromClimbRate(float climbRate, navUpdateAltitudeFromRateMode_e mode);
 uint32_t calculateDistanceToDestination(const t_fp_vector * destinationPos);
 int32_t calculateBearingToDestination(const t_fp_vector * destinationPos);
 void resetLandingDetector(void);
@@ -312,6 +313,7 @@ void setHomePosition(const t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t
 void setDesiredPosition(const t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
+void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
 
 bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
 bool isWaypointMissed(const navWaypointPosition_t * waypoint);

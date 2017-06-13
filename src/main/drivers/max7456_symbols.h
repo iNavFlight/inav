@@ -85,7 +85,7 @@
 // GPS Coordinates and Altitude
 #define SYM_LAT 0xCA
 #define SYM_LON 0xCB
-#define SYM_ALT 0xCC
+#define SYM_ALT 0xAA
 
 // GPS Mode and Autopilot
 #define SYM_3DFIX     0xDF
@@ -159,7 +159,7 @@
 
 // Unit Icon´s (Metric)
 #define SYM_MS          0x9F
-#define SYM_KMH         0xA5
+#define SYM_KMH         0xA1
 #define SYM_ALTM        0xA7
 #define SYM_DISTHOME_M  0xBB
 // #define SYM_DISTHOME_KM 0xDF // N/A
@@ -168,7 +168,7 @@
 
 // Unit Icon´s (Imperial)
 #define SYM_FTS         0x99
-#define SYM_MPH         0xA6
+#define SYM_MPH         0x20
 #define SYM_ALTFT       0xA8
 #define SYM_DISTHOME_FT 0xB9
 // #define SYM_DISTHOME_MI 0xBB // N/A
