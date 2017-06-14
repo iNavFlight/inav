@@ -114,13 +114,7 @@ static displayPort_t *osdDisplayPort;
 
 PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
 
-#define OSD_UNIT_DIST osdConfig()->units
-#define OSD_UNIT_DIST_ICON(unit) (((unit) == OSD_UNIT_METRIC) ? SYM_DISTHOME_M : SYM_DISTHOME_FT)
-
-#define OSD_UNIT_ALT osdConfig()->units
-#define OSD_UNIT_ALT_ICON(unit) (((unit) == OSD_UNIT_METRIC) ? SYM_ALTM : SYM_ALTFT)
-
-#define OSD_UNIT_VEL osdConfig()->units
+#define OSD_UNIT_ALT_ICON(unit) (((unit) ==
 
 /**
  * Converts altitude/distance into a string based on the current unit system.
@@ -130,7 +124,7 @@ PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
 static void osdFormatDistanceStr(char* buff, int32_t dist, bool showUnit)
 {
     int32_t dist_abs = abs(dist);
-    switch (OSD_UNIT_DIST) {
+    switch (osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
             if (showUnit)
                 sprintf(buff, "%d%c", CM_TO_FT(dist), SYM_FT);
@@ -159,7 +153,7 @@ static void osdFormatDistanceStr(char* buff, int32_t dist, bool showUnit)
  */
 static void osdFormatVelocityStr(char* buff, int32_t vel, bool showUnit)
 {
-    switch (OSD_UNIT_DIST) {
+    switch (osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
             if (showUnit)
                 tfp_sprintf(buff, "%d%c", CM_S_TO_MPH(vel), SYM_MPH);
@@ -264,7 +258,7 @@ static void osdDrawSingleElement(uint8_t item)
     }
 
     case OSD_HOME_DIST:
-        buff[0] = OSD_UNIT_DIST_ICON(OSD_UNIT_DIST);
+        buff[0] = (osdConfig()->units == OSD_UNIT_METRIC) ? SYM_DISTHOME_M : SYM_DISTHOME_FT;
         osdFormatDistanceStr(&buff[1], GPS_distanceToHome * 100, false);
         break;
 
@@ -278,7 +272,7 @@ static void osdDrawSingleElement(uint8_t item)
 #endif // GPS
 
     case OSD_ALTITUDE:
-        buff[0] = OSD_UNIT_ALT_ICON(OSD_UNIT_ALT);
+        buff[0] = (osdConfig()->units == OSD_UNIT_METRIC) ? SYM_ALTM : SYM_ALTFT;
 #ifdef NAV
         osdFormatDistanceStr(&buff[1], getEstimatedActualPosition(Z), false);
 #else
