@@ -486,7 +486,7 @@ static void osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_POWER:
-        tfp_sprintf(buff, "%dW", amperage * vbat / 1000);
+        tfp_sprintf(buff, "%d%c", amperage * vbat / 1000, SYM_WATT);
         break;
 
     default:
