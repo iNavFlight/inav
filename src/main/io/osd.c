@@ -252,7 +252,7 @@ static void osdDrawSingleElement(uint8_t item)
 
         h = h*2/45;
 
-        buff[0] = SYM_ARROW_SOUTH + h; // TODO: Verify that this is correct
+        buff[0] = SYM_ARROW_DOWN + h; // TODO: Verify that this is correct
         buff[1] = 0;
         break;
     }
