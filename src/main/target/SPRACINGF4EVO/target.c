@@ -72,40 +72,54 @@ const uint16_t airPWM[] = {
 
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-/*
-    DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
-    DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX
-
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MOTOR,               1, 1), // ESC 1
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MOTOR,               1, 1), // ESC 2
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MOTOR,               1, 0), // ESC 3
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MOTOR,               1, 1), // ESC 4
-
+//    DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
+      { TIM9, IO_TAG(PA3), TIM_Channel_2, TIM1_BRK_TIM9_IRQn,0, IOCFG_AF_PP, GPIO_AF_TIM9 }, // PPM / PWM1 / UART2 RX
+//    DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX
+      { TIM9, IO_TAG(PA2), TIM_Channel_1, TIM1_BRK_TIM9_IRQn,0, IOCFG_AF_PP, GPIO_AF_TIM9 }, // PPM / PWM1 / UART2 RX
+//    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MOTOR,               1, 1), // ESC 1
+      { TIM8, IO_TAG(PC6),  TIM_Channel_1, TIM8_CC_IRQn,     1, IOCFG_AF_PP, GPIO_AF_TIM8 }, // ESC 1
+//    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MOTOR,               1, 1), // ESC 2
+      { TIM8, IO_TAG(PC7),  TIM_Channel_2, TIM8_CC_IRQn,     1, IOCFG_AF_PP, GPIO_AF_TIM8 }, // ESC 2
+//    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MOTOR,               1, 0), // ESC 3
+      { TIM8, IO_TAG(PC9),  TIM_Channel_4, TIM8_CC_IRQn,     1, IOCFG_AF_PP, GPIO_AF_TIM8 }, // ESC 3
+//    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MOTOR,               1, 1), // ESC 4
+      { TIM8, IO_TAG(PC8),  TIM_Channel_3, TIM8_CC_IRQn,     1, IOCFG_AF_PP, GPIO_AF_TIM8 }, // ESC 4
 #if defined(SPRACINGF4EVO_REV) && (SPRACINGF4EVO_REV >= 2)
-    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MOTOR,               1, 0), // ESC 5 / Conflicts with USART5_RX / SPI3_RX - SPI3_RX can be mapped to DMA1_ST3_CH0
-    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_MOTOR,               1, 0), // ESC 6 / Conflicts with USART3_RX
+//    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MOTOR,               1, 0), // ESC 5 / Conflicts with USART5_RX / SPI3_RX - SPI3_RX can be mapped to DMA1_ST3_CH0
+      { TIM4, IO_TAG(PB6),  TIM_Channel_1, TIM4_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM4 }, // ESC 5 / Conflicts with USART5_RX / SPI3_RX - SPI3_RX can be mapped to DMA1_ST3_CH0
+//    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_MOTOR,               1, 0), // ESC 6 / Conflicts with USART3_RX
+      { TIM4, IO_TAG(PB7),  TIM_Channel_2, TIM4_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM4 }, // ESC 6 / Conflicts with USART3_RX
 #else
 #ifdef USE_TIM10_TIM11_FOR_MOTORS
-    DEF_TIM(TIM10, CH1, PB8,  TIM_USE_MOTOR,               1, 0), // ESC 5
-    DEF_TIM(TIM11, CH1, PB9,  TIM_USE_MOTOR,               1, 0), // ESC 6
+//    DEF_TIM(TIM10, CH1, PB8,  TIM_USE_MOTOR,               1, 0), // ESC 5
+      { TIM10, IO_TAG(PB8),  TIM_Channel_1, TIM10_IRQn,    1, IOCFG_AF_PP, GPIO_AF_TIM10 }, // ESC 5
+//    DEF_TIM(TIM11, CH1, PB9,  TIM_USE_MOTOR,               1, 0), // ESC 6
+      { TIM11, IO_TAG(PB9),  TIM_Channel_1, TIM11_IRQn,    1, IOCFG_AF_PP, GPIO_AF_TIM11 }, // ESC 6
 #else
-    DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_MOTOR,               1, 0), // ESC 5
-    DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_MOTOR,               1, 0), // ESC 6
+//    DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_MOTOR,               1, 0), // ESC 5
+      { TIM4, IO_TAG(PB8),  TIM_Channel_3, TIM4_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM4 }, // ESC 5
+//    DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_MOTOR,               1, 0), // ESC 6
+      { TIM4, IO_TAG(PB9),  TIM_Channel_4, TIM4_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM4 }, // ESC 6
 #endif
 #endif
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MOTOR,               1, 0), // ESC 7
-    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MOTOR,               1, 0), // ESC 8
-
-    DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_LED,                 1, 0), // LED Strip
+//    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MOTOR,               1, 0), // ESC 7
+      { TIM3, IO_TAG(PB1),  TIM_Channel_4, TIM5_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM3 }, // ESC 7
+//    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MOTOR,               1, 0), // ESC 8
+      { TIM3, IO_TAG(PB0),  TIM_Channel_3, TIM5_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM3 }, // ESC 8
+//    DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_LED,                 1, 0), // LED Strip
+      { TIM2, IO_TAG(PA1),  TIM_Channel_2, TIM2_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM2 }, // LED Strip
     // Additional 2 PWM channels available on UART3 RX/TX pins
     // However, when using led strip the timer cannot be used, but no code appears to prevent that right now
-    DEF_TIM(TIM2,  CH3, PB10, TIM_USE_MOTOR,               1, 0), // Shared with UART3 TX PIN and SPI3 TX (OSD)
-    DEF_TIM(TIM2,  CH4, PB11, TIM_USE_MOTOR,               1, 1), // Shared with UART3 RX PIN
-
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_TRANSPONDER,         1, 0), // Transponder
+//    DEF_TIM(TIM2,  CH3, PB10, TIM_USE_MOTOR,               1, 0), // Shared with UART3 TX PIN and SPI3 TX (OSD)
+      { TIM2, IO_TAG(PB10),  TIM_Channel_3, TIM2_IRQn,       1, IOCFG_AF_PP, GPIO_AF_TIM2 }, // Shared with UART3 TX PIN and SPI3 TX (OSD)
+//    DEF_TIM(TIM2,  CH4, PB11, TIM_USE_MOTOR,               1, 1), // Shared with UART3 RX PIN
+      { TIM2, IO_TAG(PB11),  TIM_Channel_4, TIM2_IRQn,       1, IOCFG_AF_PP, GPIO_AF_TIM2 }, // Shared with UART3 RX PIN
+//    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_TRANSPONDER,         1, 0), // Transponder
+      { TIM1, IO_TAG(PA8),  TIM_Channel_1, TIM2_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM1 }, // Shared with UART3 RX PIN
     // Additional 2 PWM channels available on UART1 RX/TX pins
     // However, when using transponder the timer cannot be used, but no code appears to prevent that right now
-    DEF_TIM(TIM1,  CH2, PA9,  TIM_USE_SERVO | TIM_USE_PWM, 1, 1), // PWM 3
-    DEF_TIM(TIM1,  CH3, PA10, TIM_USE_SERVO | TIM_USE_PWM, 1, 1), // PWM 4
-*/
+//    DEF_TIM(TIM1,  CH2, PA9,  TIM_USE_SERVO | TIM_USE_PWM, 1, 1), // PWM 3
+      { TIM1, IO_TAG(PA9),  TIM_Channel_2, TIM1_CC_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM1 }, // Shared with UART3 RX PIN
+//    DEF_TIM(TIM1,  CH3, PA10, TIM_USE_SERVO | TIM_USE_PWM, 1, 1), // PWM 4
+      { TIM1, IO_TAG(PA10), TIM_Channel_3, TIM1_CC_IRQn,        1, IOCFG_AF_PP, GPIO_AF_TIM1 }, // Shared with UART3 RX PIN
 };
