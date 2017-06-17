@@ -645,9 +645,9 @@ void osdUpdateAlarms(void)
     // uint16_t *itemPos = osdConfig()->item_pos;
 
 #ifdef NAV
-    int32_t alt = getEstimatedActualPosition(Z) / 100;
+    int32_t alt = getEstimatedActualPosition(Z);
 #else
-    int32_t alt = baro.BaroAlt / 100;
+    int32_t alt = baro.BaroAlt;
 #endif
     statRssi = rssi * 100 / 1024;
 
