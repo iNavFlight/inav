@@ -168,6 +168,32 @@ static void osdFormatVelocityStr(char* buff, int32_t vel, bool showUnit)
     }
 }
 
+/**
+ * Converts vertical velocity into a string based on the current unit system for numerical vario.
+ * @param vel Raw velocity (centimeters/seconds)
+ * @param showUnit Show unit behind numeric value
+ */
+static void osdFormatVerticalVelocityStr(char* buff, int32_t vel, bool showUnit)
+{
+    int32_t vel_abs = abs(vel);
+    uint8_t prefix = vel < 0 ? '-' : ' ';
+    // Unnecessary copy & paste, but makes it easier to change the precision later down the road.
+    switch (osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            vel_abs = CM_TO_FT(vel_abs);
+            if (showUnit)
+                tfp_sprintf(buff, "%c%d.%01d%c", prefix, vel_abs / 100, vel_abs % 100, SYM_FTS);
+            else
+                tfp_sprintf(buff, "%c%d.%01d", prefix, vel_abs / 100, vel_abs % 100);
+            break;
+        default: // Metric
+            if (showUnit)
+                tfp_sprintf(buff, "%c%d.%01d%c", prefix, vel_abs / 100, vel_abs % 100, SYM_MS);
+            else
+                tfp_sprintf(buff, "%c%d.%01d", prefix, vel_abs / 100, vel_abs % 100);
+    }
+}
+
 static void osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item]) || BLINK(osdConfig()->item_pos[item])) {
@@ -424,46 +450,25 @@ static void osdDrawSingleElement(uint8_t item)
 
     case OSD_VARIO:
     {
-        int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 arrow
-        uint8_t vchars[] = {0x20,0x20,0x20,0x20,0x20};
+        int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 increment
+        uint8_t vchars[] = {SYM_VARIO, SYM_VARIO, SYM_VARIO};
 
-        if (v >= 6)
-            vchars[0] = 0xA2;
-        else if (v == 5)
-            vchars[0] = 0xA3;
-        if (v >=4)
-            vchars[1] = 0xA2;
-        else if (v == 3)
-            vchars[1] = 0xA3;
-        if (v >=2)
-            vchars[2] = 0xA2;
-        else if (v == 1)
-            vchars[2] = 0xA3;
-        if (v <= -2)
-            vchars[2] = 0xA5;
-        else if (v == -1)
-            vchars[2] = 0xA4;
-        if (v <= -4)
-            vchars[3] = 0xA5;
-        else if (v == -3)
-            vchars[3] = 0xA4;
-        if (v <= -6)
-            vchars[4] = 0xA5;
-        else if (v == -5)
-            vchars[4] = 0xA4;
+        if (v > 8)
+            v = 8;
+        else if (v < -9)
+            v = -9;
+        v += 3;
+        vchars[(v / 6) + 1] = SYM_VARIO_1 + (uint8_t)(v % 6);
 
         max7456WriteChar(elemPosX, elemPosY, vchars[0]);
         max7456WriteChar(elemPosX, elemPosY+1, vchars[1]);
         max7456WriteChar(elemPosX, elemPosY+2, vchars[2]);
-        max7456WriteChar(elemPosX, elemPosY+3, vchars[3]);
-        max7456WriteChar(elemPosX, elemPosY+4, vchars[4]);
         return;
     }
 
     case OSD_VARIO_NUM:
     {
-        int16_t value = getEstimatedActualVelocity(Z) / 10; //limit precision to 10cm
-        tfp_sprintf(buff, "%c%d.%01d%c", value < 0 ? '-' : ' ', abs(value / 10), abs((value % 10)), 0x9F);
+        osdFormatVerticalVelocityStr(&buff[0], getEstimatedActualVelocity(Z), true);
         break;
     }
 
