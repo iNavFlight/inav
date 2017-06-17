@@ -322,34 +322,55 @@ static void osdDrawSingleElement(uint8_t item)
 
     case OSD_FLYMODE:
     {
-        char *p = "ACRO";
-
 #if 0
-        if (isAirmodeActive())
-            p = "AIR";
+        if (isAirmodeActive()) {
+            buff[0] = SYM_AIR;
+            buff[1] = SYM_AIR1;
+        }
 #endif
+        if (FLIGHT_MODE(PASSTHRU_MODE)) {
+            buff[0] = SYM_PASS;
+            buff[1] = SYM_PASS1;
+        }
+        else if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            buff[0] = 'F';
+            buff[1] = 'S';
+        }
+        else if (FLIGHT_MODE(HEADFREE_MODE)) {
+            buff[0] = 'H';
+            buff[1] = 'F';
+        }
+        else if (FLIGHT_MODE(NAV_RTH_MODE)) {
+            buff[0] = SYM_GHOME;
+            buff[1] = SYM_GHOME1;
+        }
+        else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+            buff[0] = SYM_GHOLD;
+            buff[1] = SYM_GHOLD1;
+        }
+        else if (FLIGHT_MODE(NAV_WP_MODE)) {
+            buff[0] = SYM_GMISSION;
+            buff[1] = SYM_GMISSION1;
+        }
+        else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            buff[0] = SYM_GHOLD;
+            buff[1] = SYM_GHOLD1;
+        }
+        else if (FLIGHT_MODE(ANGLE_MODE)) {
+            buff[0] = SYM_STABLE;
+            buff[1] = SYM_STABLE1;
+        }
+        else if (FLIGHT_MODE(HORIZON_MODE)) {
+            buff[0] = SYM_HORIZON;
+            buff[1] = SYM_HORIZON1;
+        }
+        else { // ACRO
+            buff[0] = SYM_ACRO;
+            buff[1] = SYM_ACRO1;
+        }
 
-        if (FLIGHT_MODE(PASSTHRU_MODE))
-            p = "PASS";
-        else if (FLIGHT_MODE(FAILSAFE_MODE))
-            p="*FS*";
-        else if (FLIGHT_MODE(HEADFREE_MODE))
-            p="*HF*";
-        else if (FLIGHT_MODE(NAV_RTH_MODE))
-            p = "RTL ";
-        else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
-            p = " PH ";
-        else if (FLIGHT_MODE(NAV_WP_MODE))
-            p = " WP ";
-        else if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
-            p = " AH ";
-        else if (FLIGHT_MODE(ANGLE_MODE))
-            p = "STAB";
-        else if (FLIGHT_MODE(HORIZON_MODE))
-            p = "HOR";
-
-        max7456Write(elemPosX, elemPosY, p);
-        return;
+        buff[2] = 0;
+        break;
     }
 
     case OSD_CRAFT_NAME:
