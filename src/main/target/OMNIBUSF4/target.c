@@ -24,13 +24,23 @@
 
 const uint16_t multiPPM[] = {
     PWM1  | (MAP_TO_PPM_INPUT << 8),     // PPM input
-    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),  // Swap to servo if needed
-    PWM8  | (MAP_TO_MOTOR_OUTPUT << 8),  // Swap to servo if needed
+#if defined(OMNIBUSF4V3)
+    PWM5  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM6  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM8  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM9  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM10 | (MAP_TO_MOTOR_OUTPUT << 8),
+    0xFFFF
+#else
+    PWM7  | (MAP_TO_MOTOR_OUTPUT << 8),
+    PWM8  | (MAP_TO_MOTOR_OUTPUT << 8),
     PWM9  | (MAP_TO_MOTOR_OUTPUT << 8),
     PWM10 | (MAP_TO_MOTOR_OUTPUT << 8),
     PWM11 | (MAP_TO_MOTOR_OUTPUT << 8),
     PWM12 | (MAP_TO_MOTOR_OUTPUT << 8),
     0xFFFF
+#endif
 };
 
 /*
@@ -38,23 +48,41 @@ const uint16_t multiPPM[] = {
  */
 const uint16_t multiPWM[] = {
     PWM1  | (MAP_TO_PWM_INPUT << 8),     // input #1
+#if defined(OMNIBUSF4V3)
+    PWM5  | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #1 or servo #1 (swap to servo if needed)
+    PWM6  | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #2 or servo #2 (swap to servo if needed)
+    PWM7  | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #1 or #3
+    PWM8  | (MAP_TO_MOTOR_OUTPUT  << 8),
+    PWM9  | (MAP_TO_MOTOR_OUTPUT  << 8),
+    PWM10 | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #4 or #6
+#else
     PWM7  | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #1 or servo #1 (swap to servo if needed)
     PWM8  | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #2 or servo #2 (swap to servo if needed)
     PWM9  | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #1 or #3
     PWM10 | (MAP_TO_MOTOR_OUTPUT  << 8),
     PWM11 | (MAP_TO_MOTOR_OUTPUT  << 8),
     PWM12 | (MAP_TO_MOTOR_OUTPUT  << 8), // motor #4 or #6
+#endif
     0xFFFF
 };
 
 const uint16_t airPPM[] = {
     PWM1  | (MAP_TO_PPM_INPUT << 8),     // PPM input
+#if defined(OMNIBUSF4V3)
+    PWM5  | (MAP_TO_MOTOR_OUTPUT  << 8),
+    PWM6  | (MAP_TO_MOTOR_OUTPUT  << 8),
+    PWM7  | (MAP_TO_SERVO_OUTPUT  << 8),
+    PWM8  | (MAP_TO_SERVO_OUTPUT  << 8),
+    PWM9  | (MAP_TO_SERVO_OUTPUT  << 8),
+    PWM10 | (MAP_TO_SERVO_OUTPUT  << 8),
+#else
     PWM7  | (MAP_TO_MOTOR_OUTPUT  << 8),
     PWM8  | (MAP_TO_MOTOR_OUTPUT  << 8),
     PWM9  | (MAP_TO_SERVO_OUTPUT  << 8),
     PWM10 | (MAP_TO_SERVO_OUTPUT  << 8),
     PWM11 | (MAP_TO_SERVO_OUTPUT  << 8),
     PWM12 | (MAP_TO_SERVO_OUTPUT  << 8),
+#endif
     0xFFFF
 };
 
@@ -74,7 +102,7 @@ const uint16_t airPWM[] = {
 
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
-#ifdef OMNIBUSF4PRO
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
     { TIM4,  IO_TAG(PB8),  TIM_Channel_3, TIM4_IRQn,           0, IOCFG_AF_PP_PD, GPIO_AF_TIM4}, // PPM
     { TIM4,  IO_TAG(PB9),  TIM_Channel_4, TIM4_IRQn,           0, IOCFG_AF_PP_PD, GPIO_AF_TIM4}, // S2_IN
 #else
@@ -83,8 +111,10 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 #endif
     { TIM8,  IO_TAG(PC6),  TIM_Channel_1, TIM8_CC_IRQn,        0, IOCFG_AF_PP_PD, GPIO_AF_TIM8  }, // Connected: UART6 TX, not used as PWM, definition inherited from REVO target
     { TIM8,  IO_TAG(PC7),  TIM_Channel_2, TIM8_CC_IRQn,        0, IOCFG_AF_PP_PD, GPIO_AF_TIM8  }, // Connected: UART6 RX, not used as PWM, definition inherited from REVO target
+#if !defined(OMNIBUSF4V3)
     { TIM8,  IO_TAG(PC8),  TIM_Channel_3, TIM8_CC_IRQn,        0, IOCFG_AF_PP_PD, GPIO_AF_TIM8  }, // Connected: small CH5 pad, not used as PWM, definition inherited from REVO target
     { TIM8,  IO_TAG(PC9),  TIM_Channel_4, TIM8_CC_IRQn,        0, IOCFG_AF_PP_PD, GPIO_AF_TIM8  }, // Connected: small CH6 pad, not used as PWM, definition inherited from REVO target
+#endif
     { TIM3,  IO_TAG(PB0),  TIM_Channel_3, TIM3_IRQn,           1, IOCFG_AF_PP_PD, GPIO_AF_TIM3 }, // MOTOR_1
     { TIM3,  IO_TAG(PB1),  TIM_Channel_4, TIM3_IRQn,           1, IOCFG_AF_PP_PD, GPIO_AF_TIM3 }, // MOTOR_2
     { TIM9,  IO_TAG(PA3),  TIM_Channel_2, TIM1_BRK_TIM9_IRQn,  1, IOCFG_AF_PP_PD, GPIO_AF_TIM9 }, // MOTOR_3

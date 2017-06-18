@@ -19,6 +19,8 @@
 
 #ifdef OMNIBUSF4PRO
 #define TARGET_BOARD_IDENTIFIER "OBSD"
+#elif defined(OMNIBUSF4V3)
+#define TARGET_BOARD_IDENTIFIER "OB43"
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
@@ -30,7 +32,11 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
+#if defined(OMNIBUSF4V3)
+  #define INVERTER_PIN_UART6      PC8
+#else
+  #define INVERTER_PIN_UART1      PC0 // PC0 has never been used as inverter control on genuine OMNIBUS F4 variants, but leave it as is since some clones actually implement it.
+#endif
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -45,7 +51,7 @@
 #define ACC
 #define USE_ACC_SPI_MPU6000
 
-#ifdef OMNIBUSF4PRO
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define GYRO_MPU6000_ALIGN      CW270_DEG
   #define ACC_MPU6000_ALIGN       CW270_DEG
 #else
@@ -65,7 +71,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
-#ifdef OMNIBUSF4PRO
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define USE_BARO_SPI_BMP280
   #define BMP280_SPI_INSTANCE     SPI3
   #define BMP280_CS_PIN           PB3 // v1
@@ -92,17 +98,21 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
+#if defined(OMNIBUSF4V3)
+#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART3, USART6
+#else
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TIMER_RX_HARDWARE 4 // CH5
 #define SOFTSERIAL_1_TIMER_TX_HARDWARE 5 // CH6
 
 #define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
+#endif
 
 #define USE_SPI
 
 #define USE_SPI_DEVICE_1
 
-#ifdef OMNIBUSF4PRO
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define USE_SPI_DEVICE_2
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
@@ -111,7 +121,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#ifdef OMNIBUSF4PRO
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -127,7 +137,7 @@
 #define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
 #define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
 
-#ifdef OMNIBUSF4PRO
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
   #define USE_SDCARD_SPI2
@@ -196,11 +206,15 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#define USABLE_TIMER_CHANNEL_COUNT 12
+#if defined(OMNIBUSF4V3)
+  #define USABLE_TIMER_CHANNEL_COUNT 10
+#else
+  #define USABLE_TIMER_CHANNEL_COUNT 12
+#endif
 
-#ifdef OMNIBUSF4PRO
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(4) | TIM_N(8) | TIM_N(9) )
-#else 
+#else
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9) )
 #endif
 
