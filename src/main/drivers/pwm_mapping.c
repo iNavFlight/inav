@@ -271,8 +271,8 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 #endif
 
 #if defined(OMNIBUSF4)
-            // remap PWM12 (OUT6) as servo
-            if (timerIndex == PWM12)
+            // remap PWM10 (OUT4) as servo
+            if (timerIndex == PWM10)
                 type = MAP_TO_SERVO_OUTPUT;
 #endif
 
