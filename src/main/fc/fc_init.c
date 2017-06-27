@@ -436,13 +436,10 @@ void init(void)
 #ifdef USE_ADC
     drv_adc_config_t adc_params;
 
-    adc_params.enableVBat = feature(FEATURE_VBAT);
-    adc_params.enableRSSI = feature(FEATURE_RSSI_ADC);
-    adc_params.enableCurrentMeter = feature(FEATURE_CURRENT_METER);
-    adc_params.enableExternal1 = false;
-#ifdef OLIMEXINO
-    adc_params.enableExternal1 = true;
-#endif
+    adc_params.channelVBat = feature(FEATURE_VBAT) ? adcChannelConfig()->adcFunctionChannel[ADC_BATTERY] : ADC_CHANNEL_NONE;
+    adc_params.channelRSSI = feature(FEATURE_RSSI_ADC) ? adcChannelConfig()->adcFunctionChannel[ADC_RSSI] : ADC_CHANNEL_NONE;
+    adc_params.channelCurrentMeter = feature(FEATURE_CURRENT_METER) ? adcChannelConfig()->adcFunctionChannel[ADC_CURRENT] : ADC_CHANNEL_NONE;
+    adc_params.channelAirSpeed = adcChannelConfig()->adcFunctionChannel[ADC_AIRSPEED];
     adcInit(&adc_params);
 #endif
 

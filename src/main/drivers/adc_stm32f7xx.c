@@ -131,7 +131,7 @@ static void adcInstanceInit(ADCDevice adcDevice)
     __HAL_LINKDMA(&adc->ADCHandle, DMA_Handle, adc->DmaHandle);
 
     uint8_t rank = 1;
-    for (int i = 0; i < ADC_CHANNEL_COUNT; i++) {
+    for (int i = ADC_CHANNEL_1; i < ADC_CHANNEL_COUNT; i++) {
         if (!adcConfig[i].enabled || adcConfig[i].adcDevice != adcDevice) {
             continue;
         }
@@ -163,7 +163,7 @@ void adcHardwareInit(drv_adc_config_t *init)
     UNUSED(init);
     int configuredAdcChannels = 0;
 
-    for (int i = 0; i < ADC_CHANNEL_COUNT; i++) {
+    for (int i = ADC_CHANNEL_1; i < ADC_CHANNEL_COUNT; i++) {
         if (!adcConfig[i].tag)
             continue;
             

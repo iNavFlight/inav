@@ -22,21 +22,28 @@
 typedef enum {
     ADC_BATTERY = 0,
     ADC_RSSI = 1,
-    ADC_EXTERNAL1 = 2,
-    ADC_CURRENT = 3,
-	ADC_AIRSPEED = 4,
-    ADC_CHANNEL_MAX = ADC_AIRSPEED
-} AdcChannel;
+    ADC_CURRENT = 2,
+	ADC_AIRSPEED = 3,
+    ADC_FUNCTION_COUNT
+} adcFunction_e;
 
-#define ADC_CHANNEL_COUNT (ADC_CHANNEL_MAX + 1)
+typedef enum {
+    ADC_CHANNEL_NONE = 0,
+    ADC_CHANNEL_1 = 1,
+    ADC_CHANNEL_2,
+    ADC_CHANNEL_3,
+    ADC_CHANNEL_4,
+    ADC_CHANNEL_MAX = ADC_CHANNEL_4,
+    ADC_CHANNEL_COUNT
+} adcChannel_e;
 
 typedef struct drv_adc_config_s {
-    bool enableVBat;
-    bool enableRSSI;
-    bool enableCurrentMeter;
-    bool enableExternal1;
-    bool enableAirSpeed;
+    uint8_t channelVBat;
+    uint8_t channelRSSI;
+    uint8_t channelCurrentMeter;
+    uint8_t channelAirSpeed;
 } drv_adc_config_t;
 
 void adcInit(drv_adc_config_t *init);
 uint16_t adcGetChannel(uint8_t channel);
+bool adcIsFunctionAssigned(uint8_t function);
