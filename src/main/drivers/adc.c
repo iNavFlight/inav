@@ -102,7 +102,7 @@ static void disableChannelMapping(int channel)
 {
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
         if (adcFunctionMap[i] == channel) {
-            adcFunctionMap[i] == ADC_CHANNEL_NONE
+            adcFunctionMap[i] = ADC_CHANNEL_NONE;
         }
     }
 }
