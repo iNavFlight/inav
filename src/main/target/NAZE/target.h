@@ -170,7 +170,7 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 //#define NAV_AUTO_MAG_DECLINATION
-#define NAV_GPS_GLITCH_DETECTION
+//#define NAV_GPS_GLITCH_DETECTION
 
 //#define LED_STRIP
 #define WS2811_PIN                      PA6
@@ -178,6 +178,7 @@
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
 #undef USE_SERIALRX_SPEKTRUM
+#undef USE_SERIALRX_IBUS
 //#define SPEKTRUM_BIND
 //#define BIND_PIN                PA3
 
