@@ -114,19 +114,19 @@ PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHA
 
 PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     .adcFunctionChannel = {
-#if defined VBAT_ADC_CHANNEL
+#if defined(VBAT_ADC_CHANNEL)
         [ADC_BATTERY]   = VBAT_ADC_CHANNEL,
 #endif
 
-#if defined VBAT_ADC_CHANNEL
+#if defined(RSSI_ADC_CHANNEL)
         [ADC_RSSI]      = RSSI_ADC_CHANNEL,
 #endif
 
-#if defined CURRENT_METER_ADC_CHANNEL
+#if defined(CURRENT_METER_ADC_CHANNEL)
         [ADC_CURRENT]   = CURRENT_METER_ADC_CHANNEL,
 #endif
 
-#if defined AIRSPEED_ADC_CHANNEL
+#if defined(AIRSPEED_ADC_CHANNEL)
         [ADC_AIRSPEED]  = AIRSPEED_ADC_CHANNEL,
 #endif
     }
