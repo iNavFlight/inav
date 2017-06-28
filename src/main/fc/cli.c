@@ -531,10 +531,10 @@ static const clivalue_t valueTable[] = {
 #endif
 
 // PG_ADC_CHANNEL_CONFIG
-    { "vbat_adc_channel",           VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHANNEL_NONE, ADC_CHANNEL_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_BATTERY]) },
-    { "rssi_adc_channel",           VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHANNEL_NONE, ADC_CHANNEL_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_RSSI]) },
-    { "current_adc_channel",        VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHANNEL_NONE, ADC_CHANNEL_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_CURRENT]) },
-    { "airspeed_adc_channel",       VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHANNEL_NONE, ADC_CHANNEL_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_AIRSPEED]) },
+    { "vbat_adc_channel",           VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHN_NONE, ADC_CHN_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_BATTERY]) },
+    { "rssi_adc_channel",           VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHN_NONE, ADC_CHN_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_RSSI]) },
+    { "current_adc_channel",        VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHN_NONE, ADC_CHN_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_CURRENT]) },
+    { "airspeed_adc_channel",       VAR_UINT8 | MASTER_VALUE, .config.minmax = {ADC_CHN_NONE, ADC_CHN_MAX}, PG_ADC_CHANNEL_CONFIG, offsetof(adcChannelConfig_t, adcFunctionChannel[ADC_AIRSPEED]) },
 
 // PG_ACCELEROMETER_CONFIG
     { "align_acc",                  VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_ALIGNMENT }, PG_ACCELEROMETER_CONFIG, offsetof(accelerometerConfig_t, acc_align) },
@@ -3149,7 +3149,7 @@ static void cliStatus(char *cmdline)
         cliPrintf("  %8s :", adcFunctions[i]);
 
         cliPrint(" configured = ");
-        if (adcChannelConfig()->adcFunctionChannel[i] == ADC_CHANNEL_NONE) {
+        if (adcChannelConfig()->adcFunctionChannel[i] == ADC_CHN_NONE) {
             cliPrint("none");
         }
         else {
@@ -3157,7 +3157,7 @@ static void cliStatus(char *cmdline)
         }
 
         cliPrint(", used = ");
-        if (adcGetFunctionChannelAllocation(i) == ADC_CHANNEL_NONE) {
+        if (adcGetFunctionChannelAllocation(i) == ADC_CHN_NONE) {
             cliPrint("none\r\n");
         }
         else {

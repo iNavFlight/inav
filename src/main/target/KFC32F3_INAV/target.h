@@ -118,9 +118,9 @@
 #define ADC_CHANNEL_1_PIN               PA4
 #define ADC_CHANNEL_2_PIN               PA6
 #define ADC_CHANNEL_3_PIN               PA5
-#define VBAT_ADC_CHANNEL                ADC_CHANNEL_1
-#define RSSI_ADC_CHANNEL                ADC_CHANNEL_2
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHANNEL_3
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define RSSI_ADC_CHANNEL                ADC_CHN_2
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_3
 
 #define LED_STRIP
 #define WS2811_PIN                      PA8

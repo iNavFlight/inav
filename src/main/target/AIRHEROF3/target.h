@@ -86,8 +86,8 @@
 #define ADC_CHANNEL_2_PIN               PA1
 #define ADC_CHANNEL_2_INSTANCE          ADC1
 
-#define VBAT_ADC_CHANNEL                ADC_CHANNEL_1
-#define AIRSPEED_ADC_CHANNEL            ADC_CHANNEL_2
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define AIRSPEED_ADC_CHANNEL            ADC_CHN_2
 
 
 /*

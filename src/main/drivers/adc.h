@@ -28,13 +28,13 @@ typedef enum {
 } adcFunction_e;
 
 typedef enum {
-    ADC_CHANNEL_NONE = 0,
-    ADC_CHANNEL_1 = 1,
-    ADC_CHANNEL_2,
-    ADC_CHANNEL_3,
-    ADC_CHANNEL_4,
-    ADC_CHANNEL_MAX = ADC_CHANNEL_4,
-    ADC_CHANNEL_COUNT
+    ADC_CHN_NONE = 0,
+    ADC_CHN_1 = 1,
+    ADC_CHN_2,
+    ADC_CHN_3,
+    ADC_CHN_4,
+    ADC_CHN_MAX = ADC_CHN_4,
+    ADC_CHN_COUNT
 } adcChannel_e;
 
 typedef struct drv_adc_config_s {

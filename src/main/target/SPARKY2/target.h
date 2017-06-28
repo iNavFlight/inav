@@ -113,8 +113,8 @@
 // PC2 shared with SONAR
 #define ADC_CHANNEL_1_PIN               PC2
 #define ADC_CHANNEL_2_PIN               PC1
-#define VBAT_ADC_CHANNEL                ADC_CHANNEL_2
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHANNEL_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
 #define CURRENT_METER_ADC_PIN   PC2
 #define VBAT_ADC_PIN            PC1

@@ -143,9 +143,9 @@
 #define ADC_CHANNEL_3_PIN               PB0
 #endif
 
-#define VBAT_ADC_CHANNEL                ADC_CHANNEL_1
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHANNEL_2
-#define RSSI_ADC_CHANNEL                ADC_CHANNEL_3
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 // LED strip is on PWM5 output pin
 //#define LED_STRIP

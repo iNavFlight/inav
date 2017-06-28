@@ -103,8 +103,8 @@
 #define ADC_INSTANCE             ADC1
 #define ADC_CHANNEL_1_PIN        PF4
 #define ADC_CHANNEL_2_PIN        PA1
-#define VBAT_ADC_CHANNEL         ADC_CHANNEL_1
-#define RSSI_ADC_CHANNEL         ADC_CHANNEL_2
+#define VBAT_ADC_CHANNEL         ADC_CHN_1
+#define RSSI_ADC_CHANNEL         ADC_CHN_2
 
 #define LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL2

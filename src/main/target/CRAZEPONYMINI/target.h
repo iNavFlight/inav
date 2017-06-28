@@ -42,7 +42,7 @@
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PB0
-#define VBAT_ADC_CHANNEL                ADC_CHANNEL_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
 
 #define USE_I2C
 #define I2C_DEVICE              (I2CDEV_1)

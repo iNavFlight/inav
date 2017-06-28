@@ -107,9 +107,9 @@
 #define ADC_CHANNEL_2_PIN               PA4
 #define ADC_CHANNEL_3_PIN               PA1
 #define ADC_CHANNEL_4_PIN               PA5
-#define VBAT_ADC_CHANNEL                ADC_CHANNEL_2
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHANNEL_1
-#define RSSI_ADC_CHANNEL                ADC_CHANNEL_3
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 //#define USE_DASHBOARD
 

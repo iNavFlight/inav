@@ -78,8 +78,8 @@
 #define ADC_INSTANCE            ADC2
 #define ADC_CHANNEL_1_PIN               PA4
 #define ADC_CHANNEL_2_PIN               PA7
-#define VBAT_ADC_CHANNEL                ADC_CHANNEL_1
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHANNEL_2
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 
 // LED strip configuration using PWM motor output pin 5.
 #define LED_STRIP
