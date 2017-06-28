@@ -36,9 +36,6 @@
 #define ADC_INSTANCE                ADC1
 #endif
 
-#ifndef ADC_CHANNEL_0_INSTANCE
-#define ADC_CHANNEL_0_INSTANCE  ADC_INSTANCE
-#endif
 #ifndef ADC_CHANNEL_1_INSTANCE
 #define ADC_CHANNEL_1_INSTANCE  ADC_INSTANCE
 #endif
@@ -67,6 +64,11 @@ uint8_t adcChannelByTag(ioTag_t ioTag)
     return 0;
 }
 
+int adcGetFunctionChannelAllocation(uint8_t function)
+{
+    return adcFunctionMap[function];
+}
+
 bool adcIsFunctionAssigned(uint8_t function)
 {
     // Map function to ADC channel
@@ -76,7 +78,7 @@ bool adcIsFunctionAssigned(uint8_t function)
 uint16_t adcGetChannel(uint8_t function)
 {
     int channel = adcFunctionMap[function];
-    if (channel == ADC_CHANNEL_NONE || channel > ADC_CHANNEL_MAX)
+    if (channel == ADC_CHANNEL_NONE)
         return 0;
 
     if (adcConfig[channel].adcDevice != ADCINVALID && adcConfig[channel].enabled) {
@@ -101,10 +103,14 @@ void adcInit(drv_adc_config_t *init)
     memset(&adcConfig, 0, sizeof(adcConfig));
 
     // Remember ADC function to ADC channel mapping
-    adcFunctionMap[ADC_BATTERY] = init->channelVBat;
-    adcFunctionMap[ADC_RSSI] = init->channelRSSI;
-    adcFunctionMap[ADC_CURRENT] = init->channelCurrentMeter;
-    adcFunctionMap[ADC_AIRSPEED] = init->channelAirSpeed;
+    for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
+        if (init->adcFunctionChannel[i] >= ADC_CHANNEL_1 && init->adcFunctionChannel[i] <= ADC_CHANNEL_MAX) {
+            adcFunctionMap[i] = init->adcFunctionChannel[i];
+        }
+        else {
+            adcFunctionMap[i] = ADC_CHANNEL_NONE;
+        }
+    }
 
 #ifdef ADC_CHANNEL_1_PIN
     if (isChannelInUse(ADC_CHANNEL_1)) {

@@ -435,11 +435,27 @@ void init(void)
 
 #ifdef USE_ADC
     drv_adc_config_t adc_params;
+    memset(&adc_params, 0, sizeof(adc_params));
 
-    adc_params.channelVBat = feature(FEATURE_VBAT) ? adcChannelConfig()->adcFunctionChannel[ADC_BATTERY] : ADC_CHANNEL_NONE;
-    adc_params.channelRSSI = feature(FEATURE_RSSI_ADC) ? adcChannelConfig()->adcFunctionChannel[ADC_RSSI] : ADC_CHANNEL_NONE;
-    adc_params.channelCurrentMeter = feature(FEATURE_CURRENT_METER) ? adcChannelConfig()->adcFunctionChannel[ADC_CURRENT] : ADC_CHANNEL_NONE;
-    adc_params.channelAirSpeed = adcChannelConfig()->adcFunctionChannel[ADC_AIRSPEED];
+    // Allocate and initialize ADC channels if features are configured - can't rely on sensor detection here, it's done later
+    if (feature(FEATURE_VBAT)) {
+        adc_params.adcFunctionChannel[ADC_BATTERY] = adcChannelConfig()->adcFunctionChannel[ADC_BATTERY];
+    }
+
+    if (feature(FEATURE_RSSI_ADC)) {
+        adc_params.adcFunctionChannel[ADC_RSSI] = adcChannelConfig()->adcFunctionChannel[ADC_RSSI];
+    }
+
+    if (feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
+        adc_params.adcFunctionChannel[ADC_CURRENT] =  adcChannelConfig()->adcFunctionChannel[ADC_CURRENT];
+    }
+
+#if defined(PITOT) && defined(USE_PITOT_ADC)
+    if (pitotmeterConfig()->pitot_hardware == PITOT_ADC || pitotmeterConfig()->pitot_hardware == PITOT_AUTODETECT) {
+        adc_params.adcFunctionChannel[ADC_AIRSPEED] = adcChannelConfig()->adcFunctionChannel[ADC_AIRSPEED];
+    }
+#endif
+
     adcInit(&adc_params);
 #endif
 

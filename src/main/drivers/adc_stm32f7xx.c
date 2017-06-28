@@ -169,7 +169,7 @@ void adcHardwareInit(drv_adc_config_t *init)
             
         adcDevice_t * adc = &adcHardware[adcConfig[i].adcDevice];
 
-        IOInit(IOGetByTag(adcConfig[i].tag), OWNER_ADC, RESOURCE_ADC_BATTERY + i, 0);
+        IOInit(IOGetByTag(adcConfig[i].tag), OWNER_ADC, RESOURCE_ADC_CH1 + (i - ADC_CHANNEL_1), 0);
         IOConfigGPIO(IOGetByTag(adcConfig[i].tag), IO_CONFIG(GPIO_MODE_ANALOG, 0, GPIO_NOPULL));
 
         adcConfig[i].adcChannel = adcChannelByTag(adcConfig[i].tag);

@@ -38,12 +38,10 @@ typedef enum {
 } adcChannel_e;
 
 typedef struct drv_adc_config_s {
-    uint8_t channelVBat;
-    uint8_t channelRSSI;
-    uint8_t channelCurrentMeter;
-    uint8_t channelAirSpeed;
+    uint8_t adcFunctionChannel[ADC_FUNCTION_COUNT];
 } drv_adc_config_t;
 
 void adcInit(drv_adc_config_t *init);
 uint16_t adcGetChannel(uint8_t channel);
 bool adcIsFunctionAssigned(uint8_t function);
+int adcGetFunctionChannelAllocation(uint8_t function);

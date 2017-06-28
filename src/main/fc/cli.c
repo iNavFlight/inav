@@ -3124,19 +3124,6 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
-
-    static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
-    cliPrint("ADC channel usage:\r\n");
-    for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
-        cliPrintf("  %8s = ", adcFunctions[i]);
-        if (adcChannelConfig()->adcFunctionChannel[i] == ADC_CHANNEL_NONE) {
-            cliPrint("none\r\n");
-        }
-        else {
-            cliPrintf("ADC %d\r\n", adcChannelConfig()->adcFunctionChannel[i]);
-        }
-    }
-
 #endif
 
 #ifdef USE_SDCARD
@@ -3154,6 +3141,30 @@ static void cliStatus(char *cmdline)
     cliPrintf("Stack size: %d, Stack address: 0x%x\r\n", stackTotalSize(), stackHighMem());
 
     cliPrintf("I2C Errors: %d, config size: %d, max available config: %d\r\n", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
+
+#ifdef USE_ADC
+    static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
+    cliPrint("ADC channel usage:\r\n");
+    for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
+        cliPrintf("  %8s :", adcFunctions[i]);
+
+        cliPrint(" configured = ");
+        if (adcChannelConfig()->adcFunctionChannel[i] == ADC_CHANNEL_NONE) {
+            cliPrint("none");
+        }
+        else {
+            cliPrintf("ADC %d", adcChannelConfig()->adcFunctionChannel[i]);
+        }
+
+        cliPrint(", used = ");
+        if (adcGetFunctionChannelAllocation(i) == ADC_CHANNEL_NONE) {
+            cliPrint("none\r\n");
+        }
+        else {
+            cliPrintf("ADC %d\r\n", adcGetFunctionChannelAllocation(i));
+        }
+    }
+#endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
 #ifdef ASYNC_GYRO_PROCESSING
