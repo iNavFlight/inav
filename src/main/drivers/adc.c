@@ -98,6 +98,15 @@ static bool isChannelInUse(int channel)
     return false;
 }
 
+static void disableChannelMapping(int channel)
+{
+    for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
+        if (adcFunctionMap[i] == channel) {
+            adcFunctionMap[i] == ADC_CHANNEL_NONE
+        }
+    }
+}
+
 void adcInit(drv_adc_config_t *init)
 {
     memset(&adcConfig, 0, sizeof(adcConfig));
@@ -119,6 +128,8 @@ void adcInit(drv_adc_config_t *init)
             adcConfig[ADC_CHANNEL_1].tag = IO_TAG(ADC_CHANNEL_1_PIN);
         }
     }
+#else
+    disableChannelMapping(ADC_CHANNEL_1);
 #endif
 
 #ifdef ADC_CHANNEL_2_PIN
@@ -128,6 +139,8 @@ void adcInit(drv_adc_config_t *init)
             adcConfig[ADC_CHANNEL_2].tag = IO_TAG(ADC_CHANNEL_2_PIN);
         }
     }
+#else
+    disableChannelMapping(ADC_CHANNEL_2);
 #endif
 
 #ifdef ADC_CHANNEL_3_PIN
@@ -137,6 +150,8 @@ void adcInit(drv_adc_config_t *init)
             adcConfig[ADC_CHANNEL_3].tag = IO_TAG(ADC_CHANNEL_3_PIN);
         }
     }
+#else
+    disableChannelMapping(ADC_CHANNEL_3);
 #endif
 
 #ifdef ADC_CHANNEL_4_PIN
@@ -146,6 +161,8 @@ void adcInit(drv_adc_config_t *init)
             adcConfig[ADC_CHANNEL_4].tag = IO_TAG(ADC_CHANNEL_4_PIN);
         }
     }
+#else
+    disableChannelMapping(ADC_CHANNEL_4);
 #endif
 
 
