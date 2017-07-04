@@ -53,6 +53,10 @@
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
+#define CM_S_TO_KM_H(centimetersPerSecond) (((centimetersPerSecond) * 36) / 1000)
+#define CM_S_TO_MPH(centimetersPerSecond) (((centimetersPerSecond) * 224) / 10000)
+#define CM_TO_FT(centimeters) (((centimeters) * 328) / 10000)
+
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
     ( __extension__ ({                                      \
