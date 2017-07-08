@@ -83,12 +83,14 @@ typedef enum {
 } failsafeChannelBehavior_e;
 
 typedef struct {
+    bool                        bypassNavigation;
     bool                        forceAngleMode;
     failsafeChannelBehavior_e   channelBehavior[4];
 } failsafeProcedureLogic_t;
 
 static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     [FAILSAFE_PROCEDURE_AUTO_LANDING] = {
+            .bypassNavigation = true,
             .forceAngleMode = true,
             .channelBehavior = {
                 FAILSAFE_CHANNEL_AUTO,          // ROLL
@@ -99,6 +101,7 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     },
 
     [FAILSAFE_PROCEDURE_DROP_IT] = {
+            .bypassNavigation = true,
             .forceAngleMode = true,
             .channelBehavior = {
                 FAILFAFE_CHANNEL_NEUTRAL,       // ROLL
@@ -109,6 +112,7 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     },
 
     [FAILSAFE_PROCEDURE_RTH] = {
+            .bypassNavigation = false,
             .forceAngleMode = true,
             .channelBehavior = {
                 FAILFAFE_CHANNEL_NEUTRAL,       // ROLL
@@ -119,6 +123,7 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     },
 
     [FAILSAFE_PROCEDURE_NONE] = {
+            .bypassNavigation = false,
             .forceAngleMode = false,
             .channelBehavior = {
                 FAILSAFE_CHANNEL_HOLD,          // ROLL
@@ -160,6 +165,11 @@ void failsafeInit(void)
 }
 
 #ifdef NAV
+bool failsafeBypassNavigation(void)
+{
+    return failsafeState.active && failsafeState.controlling && failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
+}
+
 bool failsafeMayRequireNavigationMode(void)
 {
     return failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_RTH;
