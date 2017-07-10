@@ -1195,7 +1195,11 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         sbufWriteU8(dst, navConfig()->fw.max_climb_angle);
         sbufWriteU8(dst, navConfig()->fw.max_dive_angle);
         sbufWriteU8(dst, navConfig()->fw.pitch_to_throttle);
+#if defined(NAV_FW_CIRCULAR_LOITER)
         sbufWriteU16(dst, navConfig()->fw.loiter_radius);
+#else
+        sbufWriteU16(dst, 0);
+#endif
         break;
 #endif
 
@@ -1705,7 +1709,11 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         navConfigMutable()->fw.max_climb_angle = sbufReadU8(src);
         navConfigMutable()->fw.max_dive_angle = sbufReadU8(src);
         navConfigMutable()->fw.pitch_to_throttle = sbufReadU8(src);
+#if defined(NAV_FW_CIRCULAR_LOITER)
         navConfigMutable()->fw.loiter_radius = sbufReadU16(src);
+#else
+        sbufReadU16(src);
+#endif
         break;
 
 #endif

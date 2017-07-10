@@ -194,29 +194,50 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Limit minimum forward velocity to 1 m/s
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
-    // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
-    #define TAN_15DEG    0.26795f
-    bool needToCalculateCircularLoiter = isApproachingLastWaypoint()
-                                            && (distanceToActualTarget <= (navConfig()->fw.loiter_radius / TAN_15DEG))
-                                            && (distanceToActualTarget > 50.0f);
+#if defined(NAV_FW_CIRCULAR_LOITER)
+    if (navConfig()->fw.loiter_radius > 0) {
+        // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
+        #define TAN_15DEG    0.26795f
+        bool needToCalculateCircularLoiter = isApproachingLastWaypoint()
+                                                && (distanceToActualTarget <= (navConfig()->fw.loiter_radius / TAN_15DEG))
+                                                && (distanceToActualTarget > 50.0f);
 
-    // Calculate virtual position for straight movement
-    if (needToCalculateCircularLoiter) {
-        // We are closing in on a waypoint, calculate circular loiter
-        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(45.0f);
+        // Calculate virtual position for straight movement
+        if (needToCalculateCircularLoiter) {
+            // We are closing in on a waypoint, calculate circular loiter
+            float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(45.0f);
 
-        float loiterTargetX = posControl.desiredState.pos.V.X + navConfig()->fw.loiter_radius * cos_approx(loiterAngle);
-        float loiterTargetY = posControl.desiredState.pos.V.Y + navConfig()->fw.loiter_radius * sin_approx(loiterAngle);
+            float loiterTargetX = posControl.desiredState.pos.V.X + navConfig()->fw.loiter_radius * cos_approx(loiterAngle);
+            float loiterTargetY = posControl.desiredState.pos.V.Y + navConfig()->fw.loiter_radius * sin_approx(loiterAngle);
 
-        // We have temporary loiter target. Recalculate distance and position error
-        posErrorX = loiterTargetX - posControl.actualState.pos.V.X;
-        posErrorY = loiterTargetY - posControl.actualState.pos.V.Y;
-        distanceToActualTarget = sqrtf(sq(posErrorX) + sq(posErrorY));
+            // We have temporary loiter target. Recalculate distance and position error
+            posErrorX = loiterTargetX - posControl.actualState.pos.V.X;
+            posErrorY = loiterTargetY - posControl.actualState.pos.V.Y;
+            distanceToActualTarget = sqrtf(sq(posErrorX) + sq(posErrorY));
+        }
+
+        // Calculate virtual waypoint
+        if (distanceToActualTarget >= 1.0f) {
+            virtualDesiredPosition.V.X = posControl.actualState.pos.V.X + posErrorX * (trackingDistance / distanceToActualTarget);
+            virtualDesiredPosition.V.Y = posControl.actualState.pos.V.Y + posErrorY * (trackingDistance / distanceToActualTarget);
+        }
+        else {
+            virtualDesiredPosition.V.X = posControl.actualState.pos.V.X + trackingDistance * posControl.actualState.cosYaw;
+            virtualDesiredPosition.V.Y = posControl.actualState.pos.V.Y + trackingDistance * posControl.actualState.sinYaw;
+        }
     }
-
-    // Calculate virtual waypoint
-    virtualDesiredPosition.V.X = posControl.actualState.pos.V.X + posErrorX * (trackingDistance / distanceToActualTarget);
-    virtualDesiredPosition.V.Y = posControl.actualState.pos.V.Y + posErrorY * (trackingDistance / distanceToActualTarget);
+    else
+#endif
+    {
+        if (distanceToActualTarget >= navConfig()->general.waypoint_radius) {
+            virtualDesiredPosition.V.X = posControl.actualState.pos.V.X + posErrorX * (trackingDistance / distanceToActualTarget);
+            virtualDesiredPosition.V.Y = posControl.actualState.pos.V.Y + posErrorY * (trackingDistance / distanceToActualTarget);
+        }
+        else {
+            virtualDesiredPosition.V.X = posControl.actualState.pos.V.X + trackingDistance * posControl.actualState.cosYaw;
+            virtualDesiredPosition.V.Y = posControl.actualState.pos.V.Y + trackingDistance * posControl.actualState.sinYaw;
+        }
+    }
 
     // Shift position according to pilot's ROLL input (up to max_manual_speed velocity)
     if (posControl.flags.isAdjustingPosition) {
@@ -246,6 +267,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     static float previousHeadingError;
     static bool errorIsDecreasing;
     static bool forceTurnDirection = false;
+    static int forceTurnDirectionSign = 1;
 
     // We have virtual position target, calculate heading error
     int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
@@ -260,11 +282,12 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     }
     else if (ABS(headingError) < 9000 && forceTurnDirection) {
         forceTurnDirection = false;
+        forceTurnDirectionSign = (forceTurnDirectionSign > 0) ? -1 : 1;
     }
 
     // If forced turn direction flag is enabled we fix the sign of the direction
     if (forceTurnDirection) {
-        headingError = ABS(headingError);
+        headingError = forceTurnDirectionSign * ABS(headingError);
     }
 
     // Slow error monitoring (2Hz rate)

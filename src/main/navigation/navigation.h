@@ -141,7 +141,9 @@ typedef struct navConfig_s {
         uint16_t min_throttle;               // Minimum allowed throttle in auto mode
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
+#if defined(NAV_FW_CIRCULAR_LOITER)
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
+#endif
         int8_t land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)

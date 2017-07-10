@@ -66,7 +66,7 @@ PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 2);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -116,7 +116,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,   // pwm units per degree of pitch (10pwm units ~ 1% throttle)
-        .loiter_radius = 5000,     // 50m
+#if defined(NAV_FW_CIRCULAR_LOITER)
+        .loiter_radius = 0,
+#endif
 
         //Fixed wing landing
         .land_dive_angle = 2,   // 2 degrees dive by default
@@ -1589,8 +1591,12 @@ bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWayp
 
     if (STATE(FIXED_WING) && isWaypointHome) {
         // Airplane will do a circular loiter over home and might never approach it closer than waypoint_radius - need extra check
+#if defined(NAV_FW_CIRCULAR_LOITER)
         return (wpDistance <= navConfig()->general.waypoint_radius)
                 || (wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
+#else
+        return (wpDistance <= navConfig()->general.waypoint_radius);
+#endif
     }
     else {
         return (wpDistance <= navConfig()->general.waypoint_radius);
