@@ -42,7 +42,7 @@ void systemBeep(bool onoff)
 #if !defined(BEEPER)
     UNUSED(onoff);
 #elif defined(BEEPER_PWM)
-    TIM_CtrlPWMOutputs(BEEPER_PWM_TIMER, onoff ? ENABLE : DISABLE);
+    TIM_Cmd(BEEPER_PWM_TIMER, onoff ? ENABLE : DISABLE);
     beeperState = onoff;
 #else
     IOWrite(beeperIO, beeperInverted ? onoff : !onoff);

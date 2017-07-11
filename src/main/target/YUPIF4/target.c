@@ -74,5 +74,6 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM2, IO_TAG(PA3), TIM_Channel_4, TIM2_IRQn,    1, IOCFG_AF_PP, GPIO_AF_TIM2 },
     { TIM3, IO_TAG(PB0), TIM_Channel_3, TIM3_IRQn,    1, IOCFG_AF_PP, GPIO_AF_TIM3 },
     { TIM3, IO_TAG(PB1), TIM_Channel_4, TIM3_IRQn,    1, IOCFG_AF_PP, GPIO_AF_TIM3 },
+    { TIM12, IO_TAG(PB14), TIM_Channel_1, TIM3_IRQn,    1, IOCFG_AF_PP, GPIO_AF_TIM12 },
 };
 
