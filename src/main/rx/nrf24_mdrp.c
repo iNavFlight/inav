@@ -25,12 +25,13 @@
 
 #define RX_TX_ADDR_LEN 5
 #define RC_CHANNEL_COUNT 14
-#define RC_CHANNEL_COUNT_MAX MAX_SUPPORTED_RC_CHANNEL_COUNT
 #define PAYLOAD_SIZE 10
-#define Bind_ackSize 5
+#define Bind_ackSize 5 //TODO
 #define BIND_PAYLOAD0 0
 #define BIND_PAYLOAD1 1
-#define DataHeader 255
+#define BIND_CHANNEL 100
+#define DATA_HEADER 255
+#define CHANNEL_COUNT 5
 STATIC_UNIT_TESTED uint8_t ackPayload[];
 STATIC_UNIT_TESTED const uint8_t payloadSize = PAYLOAD_SIZE;
 STATIC_UNIT_TESTED uint8_t RxTxAddr[RX_TX_ADDR_LEN] =
@@ -45,6 +46,8 @@ static uint8_t ltmFrameType[4] =
   { LTM_SFRAME};
 #endif
 
+uint8_t Channel[CHANNEL_COUNT];
+
 typedef enum
   {
     STATE_BIND = 0,
@@ -55,6 +58,7 @@ STATIC_UNIT_TESTED protocol_state_t protocolState;
 static void mdrpSetBound(void)
   {
     protocolState = STATE_DATA;
+    NRF24L01_SetChannel(Channel[0]);
     NRF24L01_WriteRegisterMulti(NRF24L01_0A_RX_ADDR_P0, RxTxAddr, RX_TX_ADDR_LEN);
     NRF24L01_WriteRegisterMulti(NRF24L01_10_TX_ADDR, RxTxAddr, RX_TX_ADDR_LEN);
     rxConfigMutable()->rx_spi_id = *RxTxAddr;
@@ -62,7 +66,7 @@ static void mdrpSetBound(void)
 
 static uint16_t mapRCRange(uint16_t in)
   {
-    return ((in * 1000) / 1023) + 1000;
+    return ((in * (PWM_RANGE_MAX - PWM_RANGE_MIN) / 1023) + PWM_RANGE_MIN);
   }
 
 STATIC_UNIT_TESTED bool mdrpCheckPayload(uint8_t *payload)
@@ -97,27 +101,34 @@ STATIC_UNIT_TESTED bool mdrpCheckBindPacket(const uint8_t *payload)
 
 STATIC_UNIT_TESTED bool mdrpCheckDataPacket(const uint8_t *payload) {
   bool dataPacket = false;
-  if(payload[0] == DataHeader) {
+  if(payload[0] == DATA_HEADER) {
       dataPacket = true;
   }
   return dataPacket;
+}
+
+void mdrpGetChannels() {
+  uint8_t index = RxTxAddr[4];
+  for(uint8_t i; i < CHANNEL_COUNT; i++) {
+      Channel[i] = index; //TODO prooper channel gen
+  }
 }
 
 void mdrpNrf24SetRcDataFromPayload(uint16_t *rcData, const uint8_t *payload)
   {
 
     memset(rcData, 0, MAX_SUPPORTED_RC_CHANNEL_COUNT * sizeof(uint16_t));
-    uint8_t Exbyte = payload[4]; //bit 8 and 9 of 10 bit value
+    uint8_t Exbyte = payload[5]; //bit 8 and 9 of 10 bit value
     //
-    rcData[RC_SPI_ROLL] = mapRCRange((payload[0] + ((Exbyte & 0xC0) << 2)));
+    rcData[RC_SPI_ROLL] = mapRCRange((payload[1] + ((Exbyte & 0xC0) << 2)));
     Exbyte <<= 2;
-    rcData[RC_SPI_PITCH] = mapRCRange((payload[1] + ((Exbyte & 0xC0) << 2)));
+    rcData[RC_SPI_PITCH] = mapRCRange((payload[2] + ((Exbyte & 0xC0) << 2)));
     Exbyte <<= 2;
-    rcData[RC_SPI_THROTTLE] = mapRCRange((payload[2] + ((Exbyte & 0xC0) << 2)));
+    rcData[RC_SPI_THROTTLE] = mapRCRange((payload[3] + ((Exbyte & 0xC0) << 2)));
     Exbyte <<= 2;
-    rcData[RC_SPI_YAW] = mapRCRange((payload[3] + ((Exbyte & 0xC0) << 2)));
+    rcData[RC_SPI_YAW] = mapRCRange((payload[4] + ((Exbyte & 0xC0) << 2)));
 
-    uint8_t Switch = payload[5];
+    uint8_t Switch = payload[6];
     if ((Switch & 3) == 2) rcData[RC_SPI_AUX1] = PWM_RANGE_MAX;
     if ((Switch & 3) == 1) rcData[RC_SPI_AUX1] = PWM_RANGE_MIDDLE;
     if ((Switch & 3) == 0) rcData[RC_SPI_AUX1] = PWM_RANGE_MIN;
@@ -136,9 +147,8 @@ void mdrpNrf24SetRcDataFromPayload(uint16_t *rcData, const uint8_t *payload)
     if ((Switch & 1) == 0) rcData[RC_SPI_AUX4] = PWM_RANGE_MIN;
     Switch >>= 1;
 
-    rcData[RC_SPI_AUX11] = PWM_RANGE_MIN + payload[6];
-    rcData[RC_SPI_AUX12] = PWM_RANGE_MIN + payload[7];
-
+    rcData[RC_SPI_AUX11] = PWM_RANGE_MIN + payload[7];
+    rcData[RC_SPI_AUX12] = PWM_RANGE_MIN + payload[8];
   }
 
 static void writeAckPayload(uint8_t *payload, uint8_t ackSize)
@@ -163,7 +173,9 @@ static void writeTelemetryAck(void)
     uint8_t ltmSize = getLtmFrame(&ackPayload[1], ltmFrameType[ltmCurrentFrame]);
     ackPayload[ltmSize + 1] = getAckCheck(ltmSize + 2);
     ltmCurrentFrame ++;
-    if(ltmCurrentFrame >= 4) ltmCurrentFrame = 0;
+    if(ltmCurrentFrame >= 4) {
+        ltmCurrentFrame = 0;
+    }
     writeAckPayload(ackPayload, ltmSize +2);
   }
 
@@ -171,8 +183,8 @@ static void writeBindAck(void)
   {
     ackPayload[0] = BIND_PAYLOAD0;
     ackPayload[1] = BIND_PAYLOAD1;
-    //ackPayload[2] = HoppingChannel1
-    //ackPayload[3] = HoppingChannel2
+    ackPayload[2] = Channel[0];
+    ackPayload[3] = Channel[4];
     ackPayload[4] = getAckCheck(Bind_ackSize);
     writeAckPayload(ackPayload, Bind_ackSize);
   }
@@ -191,6 +203,7 @@ rx_spi_received_e mdrpNrf24DataReceived(uint8_t *payload)
             if (validPacket && bindPacket)
               {
                 ret = RX_SPI_RECEIVED_BIND;
+                mdrpGetChannels();
                 writeBindAck();
                 mdrpSetBound();
               }
@@ -233,7 +246,7 @@ static void mdrpNrf24Setup(rx_spi_protocol_e protocol, const uint32_t *rxSpiId, 
     NRF24L01_WriteReg(NRF24L01_02_EN_RXADDR, BV(NRF24L01_02_EN_RXADDR_ERX_P0));
     NRF24L01_WriteReg(NRF24L01_03_SETUP_AW, NRF24L01_03_SETUP_AW_5BYTES);// 5-byte RX/TX address
     NRF24L01_WriteReg(NRF24L01_04_SETUP_RETR, 0);
-    NRF24L01_Activate(0x73);// activate R_RX_PL_WID, W_ACK_PAYLOAD, and W_TX_PAYLOAD_NOACK registers
+    //NRF24L01_Activate(0x73);// activate R_RX_PL_WID, W_ACK_PAYLOAD, and W_TX_PAYLOAD_NOACK registers
     NRF24L01_WriteReg(NRF24L01_1D_FEATURE, BV(NRF24L01_1D_FEATURE_EN_ACK_PAY) | BV(NRF24L01_1D_FEATURE_EN_DPL));
     NRF24L01_WriteReg(NRF24L01_1C_DYNPD, BV(NRF24L01_1C_DYNPD_DPL_P0));// enable dynamic payload length on P0
     //NRF24L01_Activate(0x73); // deactivate R_RX_PL_WID, W_ACK_PAYLOAD, and W_TX_PAYLOAD_NOACK registers
@@ -247,11 +260,12 @@ static void mdrpNrf24Setup(rx_spi_protocol_e protocol, const uint32_t *rxSpiId, 
     if (rxSpiId == NULL || *rxSpiId == 0)
       {
         protocolState = STATE_BIND;
-        NRF24L01_SetChannel(100);
+        NRF24L01_SetChannel(BIND_CHANNEL);
       }
     else
       {
         memcpy(RxTxAddr, rxSpiId, sizeof(uint32_t));
+        mdrpGetChannels();
         mdrpSetBound();
       }
     NRF24L01_SetRxMode();
@@ -260,7 +274,7 @@ static void mdrpNrf24Setup(rx_spi_protocol_e protocol, const uint32_t *rxSpiId, 
 
 void mdrpNrf24Init(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
   {
-    rxRuntimeConfig->channelCount = RC_CHANNEL_COUNT_MAX;
+    rxRuntimeConfig->channelCount = RC_CHANNEL_COUNT;
     mdrpNrf24Setup((rx_spi_protocol_e)rxConfig->rx_spi_protocol, &rxConfig->rx_spi_id, rxConfig->rx_spi_rf_channel_count);
   }
 #endif
