@@ -154,6 +154,20 @@
   #define USE_FLASH_M25P16
 #endif
 
+#ifdef OMNIBUSF4PRO
+  #define RX_SPI_INSTANCE             SPI3
+  #define RX_NSS_PIN                  PB6
+  #define RX_CE_PIN                   PA8
+  #define USE_RX_NRF24
+  #define USE_RX_CX10
+  #define USE_RX_H8_3D
+  #define USE_RX_INAV
+  #define USE_RX_SYMA
+  #define USE_RX_V202
+  #define USE_RX_INAV
+  #define USE_RX_MDRP
+#endif
+
 #define USE_I2C
 #define I2C_DEVICE              (I2CDEV_2)
 #define I2C_DEVICE_SHARES_UART3

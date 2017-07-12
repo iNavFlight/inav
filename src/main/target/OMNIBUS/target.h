@@ -116,9 +116,20 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-//#define USE_RX_SPI
-#define RX_SPI_INSTANCE SPI2
-#define RX_NSS_PIN PB3
+
+#define RX_SPI_INSTANCE             SPI2
+#define RX_NSS_PIN                  PB3
+#define RX_CE_PIN                   PB7
+#define USE_RX_NRF24
+#define USE_RX_CX10
+#define USE_RX_H8_3D
+#define USE_RX_INAV
+#define USE_RX_SYMA
+#define USE_RX_V202
+#define USE_RX_INAV
+#define USE_RX_MDRP
+#define RX_DEFAULT_PROTOCOL         NRF24RX_INAV
+
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI2
