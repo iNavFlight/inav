@@ -35,6 +35,7 @@
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
+#include "sensors/rangefinder.h"
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
@@ -61,6 +62,9 @@ static bool prepareForTakeoffOnReset = false;
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
+    static bool previousIsTerrainFollowingEnabled = false; 
+    static bool previousIsSurfaceAltitudeValid = false;
+
     const float altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
     float targetVel = altitudeError * posControl.pids.pos[Z].param.kP;
 
@@ -81,6 +85,9 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     else {
         posControl.desiredState.vel.V.Z = targetVel;
     }
+
+    previousIsSurfaceAltitudeValid = isSurfaceAltitudeValid();
+    previousIsTerrainFollowingEnabled = posControl.flags.isTerrainFollowEnabled; 
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
