@@ -62,10 +62,64 @@ static bool prepareForTakeoffOnReset = false;
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    static bool previousIsTerrainFollowingEnabled = false; 
-    static bool previousIsSurfaceAltitudeValid = false;
+    bool surfaceValid = isSurfaceAltitudeValid();
 
-    const float altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
+    /*
+     * In this case we switch surface mode ON, store current surface altitude as target
+     * It is possible only is surface tracking is valid
+     * Only when we switched ON when we had valid AGL surface can be really enabled
+     */
+    if (
+        surfaceValid && 
+        posControl.surfaceState.previousIsTerrainFollowingEnabled == false && 
+        posControl.flags.isTerrainFollowEnabled == true
+    ) {
+        posControl.desiredState.pos.V.Z = rangefinderGetLatestAltitude();
+        posControl.surfaceState.surfaceAllowed = true;
+    }
+
+    /*
+     * We swithced surface OFF
+     */
+    if (
+        posControl.surfaceState.previousIsTerrainFollowingEnabled == true && 
+        posControl.flags.isTerrainFollowEnabled == false
+    ) {
+        posControl.desiredState.pos.V.Z = posControl.actualState.pos.V.Z;
+        posControl.surfaceState.surfaceAllowed = false;
+    }
+
+    if (
+        posControl.flags.isTerrainFollowEnabled == true && 
+        posControl.surfaceState.surfaceAllowed == true
+    ) {
+
+        /*
+         * We regained valid AGL
+         */
+        if (posControl.surfaceState.previousIsSurfaceAltitudeValid == false && surfaceValid == true) {
+            posControl.desiredState.pos.V.Z = rangefinderGetLatestAltitude();
+        }
+
+        /*
+         * We lost AGL
+         */
+        if (posControl.surfaceState.previousIsSurfaceAltitudeValid == true && surfaceValid == false) {
+            posControl.desiredState.pos.V.Z = posControl.actualState.pos.V.Z;
+        }
+    }
+
+    float altitudeError;
+    if (
+        posControl.flags.isTerrainFollowEnabled == true && 
+        surfaceValid == true && 
+        posControl.surfaceState.surfaceAllowed == true
+    ) {
+        altitudeError = posControl.desiredState.pos.V.Z - rangefinderGetLatestAltitude();
+    } else {
+        altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
+    }
+    
     float targetVel = altitudeError * posControl.pids.pos[Z].param.kP;
 
     // hard limit desired target velocity to max_climb_rate
@@ -86,8 +140,8 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
         posControl.desiredState.vel.V.Z = targetVel;
     }
 
-    previousIsSurfaceAltitudeValid = isSurfaceAltitudeValid();
-    previousIsTerrainFollowingEnabled = posControl.flags.isTerrainFollowEnabled; 
+    posControl.surfaceState.previousIsSurfaceAltitudeValid = surfaceValid;
+    posControl.surfaceState.previousIsTerrainFollowingEnabled = posControl.flags.isTerrainFollowEnabled; 
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
@@ -170,6 +224,10 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
     posControl.rcAdjustment[THROTTLE] = 0;
+
+    posControl.surfaceState.surfaceAllowed = false;
+    posControl.surfaceState.previousIsSurfaceAltitudeValid = false;
+    posControl.surfaceState.previousIsTerrainFollowingEnabled = false;
 
     if (prepareForTakeoffOnReset) {
         /* If we are preparing for takeoff - start with lowset possible climb rate, adjust alt target and make sure throttle doesn't jump */

@@ -251,6 +251,12 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
+    bool surfaceAllowed;
+    bool previousIsSurfaceAltitudeValid;
+    bool previousIsTerrainFollowingEnabled;
+} surfacePosControl_t;
+
+typedef struct {
     /* Flags and navigation system state */
     navigationFSMState_t        navState;
 
@@ -264,6 +270,8 @@ typedef struct {
     /* Local system state, both actual (estimated) and desired (target setpoint)*/
     navigationEstimatedState_t  actualState;
     navigationDesiredState_t    desiredState;   // waypoint coordinates + velocity
+
+    surfacePosControl_t         surfaceState;
 
     uint32_t                    lastValidPositionTimeMs;
     uint32_t                    lastValidAltitudeTimeMs;
