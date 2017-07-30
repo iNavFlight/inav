@@ -56,6 +56,12 @@ typedef enum {
     ROC_TO_ALT_NORMAL
 } climbRateToAltitudeControllerMode_e;
 
+typedef enum {
+    EST_NONE = 0,       // No valid sensor present
+    EST_USABLE = 1,     // Estimate is usable but may be inaccurate
+    EST_TRUSTED = 2     // Estimate is usable and based on actual sensor data
+} navigationEstimateStatus_e;
+
 typedef struct navigationFlags_s {
     bool horizontalPositionDataNew;
     bool verticalPositionDataNew;
@@ -65,10 +71,10 @@ typedef struct navigationFlags_s {
     bool horizontalPositionDataConsumed;
     bool verticalPositionDataConsumed;
 
-    bool hasValidAltitudeSensor;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
-    bool hasValidPositionSensor;        // Indicates that GPS is working (or not)
-    bool hasValidSurfaceSensor;
-    bool hasValidHeadingSensor;         // Indicate valid heading - wither mag or GPS at certain speed on airplane
+    navigationEstimateStatus_e estAltStatus;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
+    navigationEstimateStatus_e estPosStatue;        // Indicates that GPS is working (or not)
+    navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
+    navigationEstimateStatus_e estSurfaceStatus;
 
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
@@ -321,9 +327,9 @@ bool isApproachingLastWaypoint(void);
 float getActiveWaypointSpeed(void);
 
 void updateActualHeading(int32_t newHeading);
-void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, float newY, float newVelX, float newVelY);
-void updateActualAltitudeAndClimbRate(bool hasValidSensor, float newAltitude, float newVelocity);
-void updateActualSurfaceDistance(bool hasValidSensor, float surfaceDistance, float surfaceVelocity);
+void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, float newY, float newVelX, float newVelY);
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity);
+void updateActualAGLAndClimgRate(bool estimateValid, bool estimateReliable, float surfaceDistance, float surfaceVelocity);
 
 bool checkForPositionSensorTimeout(void);
 

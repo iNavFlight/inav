@@ -696,11 +696,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_ALTHOLD_IN_PROGRESS(nav
         resetGCSFlags();
     }
 
-    // If we enable terrain mode and surface offset is not set yet - do it
-    if (posControl.flags.hasValidSurfaceSensor && posControl.flags.isTerrainFollowEnabled && posControl.desiredState.surface < 0) {
-        setDesiredSurfaceOffset(posControl.actualState.surface);
-    }
-
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -779,11 +774,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS(
         resetGCSFlags();
     }
 
-    // If we enable terrain mode and surface offset is not set yet - do it
-    if (posControl.flags.hasValidSurfaceSensor && posControl.flags.isTerrainFollowEnabled && posControl.desiredState.surface < 0) {
-        setDesiredSurfaceOffset(posControl.actualState.surface);
-    }
-
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -791,7 +781,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 {
     navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
-    if (!posControl.flags.hasValidHeadingSensor || !posControl.flags.hasValidAltitudeSensor || !STATE(GPS_FIX_HOME)) {
+    if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || !STATE(GPS_FIX_HOME)) {
         // Heading sensor, altitude sensor and HOME fix are mandatory for RTH. If not satisfied - switch to emergency landing
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
@@ -802,7 +792,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
     }
 
     // If we have valid position sensor or configured to ignore it's loss at initial stage - continue
-    if (posControl.flags.hasValidPositionSensor || navConfig()->general.flags.rth_climb_ignore_emerg) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE) || navConfig()->general.flags.rth_climb_ignore_emerg) {
         // Reset altitude and position controllers if necessary
         if ((prevFlags & NAV_CTL_POS) == 0) {
             resetPositionController();
@@ -854,12 +844,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 {
     UNUSED(previousState);
 
-    if (!posControl.flags.hasValidHeadingSensor) {
+    if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
     // If we have valid pos sensor OR we are configured to ignore GPS loss
-    if (posControl.flags.hasValidPositionSensor || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
         const float rthAltitudeMargin = STATE(FIXED_WING) ?
                             MAX(100.0f, 0.10f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z)) :  // Airplane: 10% of target altitude but no less than 1m
                             MAX( 50.0f, 0.05f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z));   // Copters:   5% of target altitude but no less than 50cm
@@ -906,12 +896,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 {
     UNUSED(previousState);
 
-    if (!posControl.flags.hasValidHeadingSensor) {
+    if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
     // If we have position sensor - continue home
-    if (posControl.flags.hasValidPositionSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE)) {
         if (isWaypointReached(&posControl.homeWaypointAbove, true)) {
             // Successfully reached position target - update XYZ-position
             setDesiredPosition(&posControl.homeWaypointAbove.pos, posControl.homeWaypointAbove.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
@@ -946,12 +936,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
 {
     UNUSED(previousState);
 
-    if (!posControl.flags.hasValidHeadingSensor) {
+    if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
     // If position ok OR within valid timeout - continue
-    if (posControl.flags.hasValidPositionSensor || !checkForPositionSensorTimeout()) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE) || !checkForPositionSensorTimeout()) {
         // Wait until target heading is reached (with 15 deg margin for error)
         if (STATE(FIXED_WING)) {
             resetLandingDetector();
@@ -997,7 +987,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
             float descentVelLimited = 0;
 
             // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
-            if (posControl.flags.hasValidSurfaceSensor && posControl.actualState.surface < 50.0f) {
+            if ((posControl.flags.estSurfaceStatus == EST_TRUSTED) && posControl.actualState.surface < 50.0f) {
                 // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
                 // Do not allow descent velocity slower than -30cm/s so the landing detector works.
                 descentVelLimited = MIN(-0.15f * navConfig()->general.land_descent_rate, -30.0f);
@@ -1080,7 +1070,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
     UNUSED(previousState);
 
     // If no position sensor available - land immediately
-    if (posControl.flags.hasValidPositionSensor && posControl.flags.hasValidHeadingSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE)) {
         const bool isDoingRTH = (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_RTH);
 
         switch (posControl.waypointList[posControl.activeWaypointIndex].action) {
@@ -1164,7 +1154,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navig
     UNUSED(previousState);
 
     // If no position sensor available - land immediately
-    if (posControl.flags.hasValidPositionSensor && posControl.flags.hasValidHeadingSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE)) {
         return NAV_FSM_EVENT_NONE;
     }
     /* No pos sensor available for NAV_WAIT_FOR_GPS_TIMEOUT_MS - land */
@@ -1435,7 +1425,7 @@ bool isThrustFacingDownwards(void)
 bool checkForPositionSensorTimeout(void)
 {
     if (navConfig()->general.pos_failure_timeout) {
-        if (!posControl.flags.hasValidPositionSensor && ((millis() - posControl.lastValidPositionTimeMs) > (1000 * navConfig()->general.pos_failure_timeout))) {
+        if ((posControl.flags.estPosStatue == EST_NONE) && ((millis() - posControl.lastValidPositionTimeMs) > (1000 * navConfig()->general.pos_failure_timeout))) {
             return true;
         }
         else {
@@ -1451,7 +1441,7 @@ bool checkForPositionSensorTimeout(void)
 /*-----------------------------------------------------------
  * Processes an update to XY-position and velocity
  *-----------------------------------------------------------*/
-void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, float newY, float newVelX, float newVelY)
+void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, float newY, float newVelX, float newVelY)
 {
     posControl.actualState.pos.V.X = newX;
     posControl.actualState.pos.V.Y = newY;
@@ -1460,16 +1450,17 @@ void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, 
     posControl.actualState.vel.V.Y = newVelY;
     posControl.actualState.velXY = sqrtf(sq(newVelX) + sq(newVelY));
 
-    posControl.flags.hasValidPositionSensor = hasValidSensor;
-    posControl.flags.hasValidHeadingSensor = isImuHeadingValid();
-
-    if (hasValidSensor) {
+    if (estimateValid) {
+        posControl.flags.estPosStatue = EST_TRUSTED;
         posControl.flags.horizontalPositionDataNew = 1;
         posControl.lastValidPositionTimeMs = millis();
     }
     else {
+        posControl.flags.estPosStatue = EST_NONE;
         posControl.flags.horizontalPositionDataNew = 0;
     }
+
+    posControl.flags.estHeadingStatus = isImuHeadingValid() ? EST_TRUSTED : EST_NONE;
 
 #if defined(NAV_BLACKBOX)
     navLatestActualPosition[X] = newX;
@@ -1482,20 +1473,20 @@ void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, 
 /*-----------------------------------------------------------
  * Processes an update to Z-position and velocity
  *-----------------------------------------------------------*/
-void updateActualAltitudeAndClimbRate(bool hasValidSensor, float newAltitude, float newVelocity)
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity)
 {
     posControl.actualState.pos.V.Z = newAltitude;
     posControl.actualState.vel.V.Z = newVelocity;
 
-    posControl.flags.hasValidAltitudeSensor = hasValidSensor;
-
     // Update altitude that would be used when executing RTH
-    if (hasValidSensor) {
+    if (estimateValid) {
         updateDesiredRTHAltitude();
+        posControl.flags.estAltStatus = EST_TRUSTED;
         posControl.flags.verticalPositionDataNew = 1;
         posControl.lastValidAltitudeTimeMs = millis();
     }
     else {
+        posControl.flags.estAltStatus = EST_NONE;
         posControl.flags.verticalPositionDataNew = 0;
     }
 
@@ -1508,25 +1499,24 @@ void updateActualAltitudeAndClimbRate(bool hasValidSensor, float newAltitude, fl
 /*-----------------------------------------------------------
  * Processes an update to surface distance
  *-----------------------------------------------------------*/
-void updateActualSurfaceDistance(bool hasValidSensor, float surfaceDistance, float surfaceVelocity)
+void updateActualAGLAndClimgRate(bool estimateValid, bool estimateReliable, float surfaceDistance, float surfaceVelocity)
 {
     posControl.actualState.surface = surfaceDistance;
     posControl.actualState.surfaceVel = surfaceVelocity;
 
     // Update validity
-    // Update validity
-    if (hasValidSensor) {
-        posControl.flags.hasValidSurfaceSensor = true;
+    if (estimateValid) {
+        posControl.flags.estSurfaceStatus = estimateReliable ? EST_TRUSTED : EST_USABLE;
         posControl.flags.surfaceDistanceDataNew = 1;
     }
     else {
-        posControl.flags.hasValidSurfaceSensor = false;
+        posControl.flags.estSurfaceStatus = EST_NONE;
         posControl.flags.surfaceDistanceDataNew = 0;
     }
 
     // Update minimum surface distance (landing detection threshold)
     if (ARMING_FLAG(ARMED)) {
-        if (hasValidSensor && posControl.actualState.surface > 0) {
+        if ((posControl.flags.estSurfaceStatus == EST_TRUSTED) && posControl.actualState.surface > 0) {
             if (posControl.actualState.surfaceMin > 0) {
                 posControl.actualState.surfaceMin = MIN(posControl.actualState.surfaceMin, posControl.actualState.surface);
             }
@@ -1723,7 +1713,7 @@ void updateHomePosition(void)
 {
     // Disarmed and have a valid position, constantly update home
     if (!ARMING_FLAG(ARMED)) {
-        if (posControl.flags.hasValidPositionSensor) {
+        if ((posControl.flags.estPosStatue >= EST_USABLE)) {
             setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING );
         }
     }
@@ -1732,7 +1722,7 @@ void updateHomePosition(void)
 
         // If pilot so desires he may reset home position to current position
         if (IS_RC_MODE_ACTIVE(BOXHOMERESET)) {
-            if (isHomeResetAllowed && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && posControl.flags.hasValidPositionSensor) {
+            if (isHomeResetAllowed && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && (posControl.flags.estPosStatue >= EST_USABLE)) {
                 const navSetWaypointFlags_t homeUpdateFlags = STATE(GPS_FIX_HOME) ? (NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING) : (NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
                 setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw, homeUpdateFlags);
                 isHomeResetAllowed = false;
@@ -1769,23 +1759,6 @@ static void updateNavigationFlightStatistics(void)
 int32_t getTotalTravelDistance(void)
 {
     return lrintf(posControl.totalTripDistance);
-}
-
-/*-----------------------------------------------------------
- * Set surface tracking target
- *-----------------------------------------------------------*/
-void setDesiredSurfaceOffset(float surfaceOffset)
-{
-    if (surfaceOffset > 0) {
-        posControl.desiredState.surface = constrainf(surfaceOffset, 1.0f, INAV_SURFACE_MAX_DISTANCE);
-    }
-    else {
-        posControl.desiredState.surface = -1;
-    }
-
-#if defined(NAV_BLACKBOX)
-    navTargetSurface = constrain(lrintf(posControl.desiredState.surface), -32678, 32767);
-#endif
 }
 
 /*-----------------------------------------------------------
@@ -2040,7 +2013,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     wpLLH.alt = wpData->alt;
 
     // WP #0 - special waypoint - HOME
-    if ((wpNumber == 0) && ARMING_FLAG(ARMED) && posControl.flags.hasValidPositionSensor && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled) {
+    if ((wpNumber == 0) && ARMING_FLAG(ARMED) && (posControl.flags.estPosStatue >= EST_USABLE) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled) {
         // Forcibly set home position. Note that this is only valid if already armed, otherwise home will be reset instantly
         geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos, GEO_ALT_RELATIVE);
         setHomePosition(&wpPos.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
@@ -2048,7 +2021,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     // WP #255 - special waypoint - directly set desiredPosition
     // Only valid when armed and in poshold mode
     else if ((wpNumber == 255) && (wpData->action == NAV_WP_ACTION_WAYPOINT) &&
-             ARMING_FLAG(ARMED) && posControl.flags.hasValidPositionSensor && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
+             ARMING_FLAG(ARMED) && (posControl.flags.estPosStatue >= EST_USABLE) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
              (posControl.navState == NAV_STATE_POSHOLD_2D_IN_PROGRESS || posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
         // Convert to local coordinates
         geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos, GEO_ALT_RELATIVE);
@@ -2265,14 +2238,13 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
 #if defined(NAV_BLACKBOX)
     navFlags = 0;
-    if (posControl.flags.hasValidAltitudeSensor)    navFlags |= (1 << 0);
-    if (posControl.flags.hasValidSurfaceSensor)     navFlags |= (1 << 1);
-    if (posControl.flags.hasValidPositionSensor)    navFlags |= (1 << 2);
-    //if (STATE(GPS_FIX))                             navFlags |= (1 << 3);
+    if (posControl.flags.estAltStatus == EST_TRUSTED)       navFlags |= (1 << 0);
+    if (posControl.flags.estSurfaceStatus == EST_TRUSTED)   navFlags |= (1 << 1);
+    if (posControl.flags.estPosStatue == EST_TRUSTED)       navFlags |= (1 << 2);
 #if defined(NAV_GPS_GLITCH_DETECTION)
-    if (isGPSGlitchDetected())                      navFlags |= (1 << 4);
+    if (isGPSGlitchDetected())                              navFlags |= (1 << 4);
 #endif
-    if (posControl.flags.hasValidHeadingSensor)     navFlags |= (1 << 5);
+    if (posControl.flags.estHeadingStatus == EST_TRUSTED)   navFlags |= (1 << 5);
 #endif
 
     // Reset all navigation requests - NAV controllers will set them if necessary
@@ -2334,12 +2306,12 @@ void swithNavigationFlightModes(void)
  *-----------------------------------------------------------*/
 static bool canActivateAltHoldMode(void)
 {
-    return posControl.flags.hasValidAltitudeSensor;
+    return (posControl.flags.estAltStatus >= EST_USABLE);
 }
 
 static bool canActivatePosHoldMode(void)
 {
-    return posControl.flags.hasValidPositionSensor && posControl.flags.hasValidHeadingSensor;
+    return (posControl.flags.estPosStatue >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE);
 }
 
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
@@ -2487,7 +2459,7 @@ bool navigationBlockArming(void)
         return false;
 
     // Apply extra arming safety only if pilot has any of GPS modes configured
-    if ((isUsingNavigationModes() || failsafeMayRequireNavigationMode()) && !(posControl.flags.hasValidPositionSensor && STATE(GPS_FIX_HOME))) {
+    if ((isUsingNavigationModes() || failsafeMayRequireNavigationMode()) && !((posControl.flags.estPosStatue >= EST_USABLE) && STATE(GPS_FIX_HOME))) {
         shouldBlockArming = true;
     }
 
@@ -2514,7 +2486,7 @@ bool navigationBlockArming(void)
 
 bool navigationPositionEstimateIsHealthy(void)
 {
-    return posControl.flags.hasValidPositionSensor && STATE(GPS_FIX_HOME);
+    return (posControl.flags.estPosStatue >= EST_USABLE) && STATE(GPS_FIX_HOME);
 }
 
 /**
@@ -2627,10 +2599,10 @@ void navigationInit(void)
     posControl.flags.surfaceDistanceDataNew = 0;
     posControl.flags.headingDataNew = 0;
 
-    posControl.flags.hasValidAltitudeSensor = 0;
-    posControl.flags.hasValidPositionSensor = 0;
-    posControl.flags.hasValidSurfaceSensor = 0;
-    posControl.flags.hasValidHeadingSensor = 0;
+    posControl.flags.estAltStatus = EST_NONE;
+    posControl.flags.estPosStatue = EST_NONE;
+    posControl.flags.estHeadingStatus = EST_NONE;
+    posControl.flags.estSurfaceStatus = EST_NONE;
 
     posControl.flags.forcedRTHActivated = 0;
     posControl.waypointCount = 0;
