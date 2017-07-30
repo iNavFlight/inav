@@ -177,6 +177,7 @@ void updateActivatedModes(void);
 
 bool isUsingSticksForArming(void);
 bool isUsingNavigationModes(void);
+bool isAirmodeActive(void);
 
 int32_t getRcStickDeflection(int32_t axis, uint16_t midrc);
 bool isModeActivationConditionPresent(boxId_e modeId);

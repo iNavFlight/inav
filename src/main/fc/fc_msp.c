@@ -260,7 +260,9 @@ static void initActiveBoxIds(void)
 #endif
     }
 
-    activeBoxIds[activeBoxIdCount++] = BOXAIRMODE;
+    if (!feature(FEATURE_AIRMODE)) {
+        activeBoxIds[activeBoxIdCount++] = BOXAIRMODE;
+    }
 
     activeBoxIds[activeBoxIdCount++] = BOXHEADINGHOLD;
 
