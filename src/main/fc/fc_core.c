@@ -322,6 +322,15 @@ void mwArm(void)
             beeper(BEEPER_ARMING);
 #endif
             statsOnArm();
+
+#ifdef USE_RANGEFINDER
+            /*
+             * Since each arm can happen over different surface type, we have to reset
+             * previously computed max. dynamic range threshold
+             */ 
+            rangefinderResetDynamicThreshold();
+#endif
+
             return;
         }
     }
@@ -504,7 +513,7 @@ void processRx(timeUs_t currentTimeUs)
     }
     else {
         if (throttleStatus == THROTTLE_LOW) {
-            if (IS_RC_MODE_ACTIVE(BOXAIRMODE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
+            if (isAirmodeActive() && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs

@@ -112,6 +112,11 @@ bool isUsingNavigationModes(void)
 }
 #endif
 
+bool isAirmodeActive(void)
+{
+    return feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
+}
+
 bool areSticksInApModePosition(uint16_t ap_mode)
 {
     return ABS(rcCommand[ROLL]) < ap_mode && ABS(rcCommand[PITCH]) < ap_mode;

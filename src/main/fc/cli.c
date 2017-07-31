@@ -169,7 +169,7 @@ static const char * const lookupTableBaroHardware[] = { "NONE", "AUTO", "BMP085"
 // sync with magSensor_e
 static const char * const lookupTableMagHardware[] = { "NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "FAKE"};
 // sycn with rangefinderType_e
-static const char * const lookupTableRangefinderHardware[] = { "NONE", "HCSR04", "SRF10"};
+static const char * const lookupTableRangefinderHardware[] = { "NONE", "HCSR04", "SRF10", "HCSR04I2C"};
 // sync with pitotSensor_e
 static const char * const lookupTablePitotHardware[] = { "NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"};
 
@@ -216,7 +216,7 @@ static const char * const lookupTableAlignment[] = {
 
 #ifdef GPS
 static const char * const lookupTableGPSProvider[] = {
-    "NMEA", "UBLOX", "I2C-NAV", "NAZA", "UBLOX7"
+    "NMEA", "UBLOX", "I2C-NAV", "NAZA", "UBLOX7", "MTK"
 };
 
 static const char * const lookupTableGPSSBASMode[] = {
@@ -330,7 +330,8 @@ static const char * const lookupTableDebug[DEBUG_COUNT] = {
     "NOTCH",
     "NAV_LANDING",
     "FW_ALTITUDE",
-    "RANGEFINDER"
+    "RFIND",
+    "RFIND_Q"
 };
 
 #ifdef TELEMETRY_LTM
