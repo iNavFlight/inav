@@ -40,6 +40,7 @@
 #define TELEMETRY
 #define TELEMETRY_LTM
 #define TELEMETRY_FRSKY
+#define USE_RCSPLIT
 #endif
 
 #if defined(STM_FAST_TARGET)
