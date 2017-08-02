@@ -504,6 +504,16 @@ void serialEvaluateNonMspData(serialPort_t *serialPort, uint8_t receivedChar)
     UNUSED(serialPort);
 #else
     if (receivedChar == '#') {
+            // A 100ms guard delay to make sure CLI is followed by silence
+        // If anything is received during the guard period - CLI character is ignored
+        // Note: duplicating code is 8 bytes shorter than a new function()
+
+        for (int i = 0; i < 10; i++) {
+            delay(10);
+            if (serialRxBytesWaiting(serialPort)) {
+                return;
+            }
+        }
         cliEnter(serialPort);
     }
 #endif
