@@ -40,7 +40,6 @@
 #define TELEMETRY
 #define TELEMETRY_LTM
 #define TELEMETRY_FRSKY
-#define USE_RCSPLIT
 #endif
 
 #if defined(STM_FAST_TARGET)
@@ -90,6 +89,7 @@
 #define PWM_DRIVER_PCA9685
 #define NAV_MAX_WAYPOINTS       60
 #define MAX_BOOTLOG_ENTRIES     64
+#define USE_RCSPLIT
 #else
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
