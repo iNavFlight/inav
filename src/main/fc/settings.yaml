@@ -1,0 +1,263 @@
+tables:
+  - name: alignment
+    values: ["DEFAULT", "CW0", "CW90", "CW180", "CW270", "CW0FLIP", "CW90FLIP", "CW180FLIP", "CW270FLIP"]
+  - name: gyro_lpf
+    values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
+  - name: acc_hardware
+    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "FAKE"]
+    enum: accelerationSensor_e
+  - name: rangefinder_hardware
+    values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X"]
+    enum: rangefinderType_e
+  - name: mag_hardware
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "FAKE"]
+    enum: magSensor_e
+  - name: baro_hardware
+    values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "FAKE"]
+    enum: baroSensor_e
+  - name: pitot_hardware
+    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
+    enum: pitotSensor_e
+  - name: serial_rx
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF"]
+  - name: rx_spi_protocol
+    values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
+    enum: rx_spi_protocol_e
+
+groups:
+  - name: PG_GYRO_CONFIG
+    type: gyroConfig_t
+    members:
+      - name: looptime
+        max: 9000
+      - name: gyro_sync
+        field: gyroSync
+        type: bool
+      - name: gyro_sync_denom
+        field: gyroSyncDenominator
+        min: 1
+        max: 32
+      - name: align_gyro
+        field: gyro_align
+        type: uint8_t
+        table: alignment
+      - name: gyro_hardware_lpf
+        field: gyro_lpf
+        table: gyro_lpf
+      - name: gyro_lpf_hz
+        field: gyro_soft_lpf_hz
+        max: 200
+      - name: moron_threshold
+        field: gyroMovementCalibrationThreshold
+        max: 128
+      - name: gyro_notch1_hz
+        field: gyro_soft_notch_hz_1
+        condition: USE_GYRO_NOTCH_1
+        max: 500
+      - name: gyro_notch1_cutoff
+        field: gyro_soft_notch_cutoff_1
+        condition: USE_GYRO_NOTCH_1
+        min: 1
+        max: 500
+      - name: gyro_notch2_hz
+        field: gyro_soft_notch_hz_2
+        condition: USE_GYRO_NOTCH_2
+        max: 500
+      - name: gyro_notch2_cutoff
+        field: gyro_soft_notch_cutoff_2
+        condition: USE_GYRO_NOTCH_2
+        min: 1
+        max: 500
+      - name: gyro_to_use
+        condition: USE_DUAL_GYRO
+        min: 0
+        max: 1
+
+  - name: PG_ADC_CHANNEL_CONFIG
+    type: adcChannelConfig_t
+    condition: USE_ADC
+    members:
+      - name: vbat_adc_channel
+        field: adcFunctionChannel[ADC_BATTERY]
+        min: ADC_CHN_NONE
+        max: ADC_CHN_MAX
+      - name: rssi_adc_channel
+        field: adcFunctionChannel[ADC_RSSI]
+        min: ADC_CHN_NONE
+        max: ADC_CHN_MAX
+      - name: current_adc_channel
+        field: adcFunctionChannel[ADC_CURRENT]
+        min: ADC_CHN_NONE
+        max: ADC_CHN_MAX
+      - name: airspeed_adc_channel
+        field: adcFunctionChannel[ADC_AIRSPEED]
+        min: ADC_CHN_NONE
+        max: ADC_CHN_MAX
+        
+  - name: PG_ACCELEROMETER_CONFIG
+    type: accelerometerConfig_t
+    members:
+      - name: acc_notch_hz
+        condition: USE_ACC_NOTCH
+        min: 0
+        max: 255
+      - name: acc_notch_cutoff
+        condition: USE_ACC_NOTCH
+        min: 1
+        max: 255
+      - name: align_acc
+        field: acc_align
+        type: uint8_t
+        table: alignment
+      - name: acc_hardware
+        table: acc_hardware
+      - name: acc_lpf_hz
+        max: 200
+      - name: acczero_x
+        field: accZero.raw[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: acczero_y
+        field: accZero.raw[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: acczero_z
+        field: accZero.raw[Z]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: accgain_x
+        field: accGain.raw[X]
+        min: 1
+        max: 8192
+      - name: accgain_y
+        field: accGain.raw[Y]
+        min: 1
+        max: 8192
+      - name: accgain_z
+        field: accGain.raw[Z]
+        min: 1
+        max: 8192
+
+  - name: PG_RANGEFINDER_CONFIG
+    type: rangefinderConfig_t
+    condition: USE_RANGEFINDER
+    members:
+      - name: rangefinder_hardware
+        table: rangefinder_hardware
+
+  - name: PG_COMPASS_CONFIG
+    type: compassConfig_t
+    condition: MAG
+    members:
+      - name: align_mag
+        field: mag_align
+        type: uint8_t
+        table: alignment
+      - name: mag_hardware
+        table: mag_hardware
+      - name: mag_declination
+        min: -18000
+        max: 18000
+      - name: magzero_x
+        field: magZero.raw[X]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: magzero_y
+        field: magZero.raw[Y]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: magzero_z
+        field: magZero.raw[Z]
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: mag_calibration_time
+        field: magCalibrationTimeLimit
+        min: 30
+        max: 120
+
+  - name: PG_BAROMETER_CONFIG
+    type: barometerConfig_t
+    condition: BARO
+    members:
+      - name: baro_hardware
+        table: baro_hardware
+      - name: baro_use_median_filter
+        field: use_median_filtering
+        type: bool
+
+  - name: PG_PITOTMETER_CONFIG
+    type: pitotmeterConfig_t
+    condition: PITOT
+    members:
+      - name: pitot_hardware
+        table: pitot_hardware
+      - name: pitot_use_median_filter
+        field: use_median_filtering
+        type: bool
+      - name: pitot_noise_lpf
+        min: 0
+        max: 1
+      - name: pitot_scale
+        min: 0
+        max: 100
+
+  - name: PG_RX_CONFIG
+    type: rxConfig_t
+    members:
+      - name: mid_rc
+        field: midrc
+        min: 1200
+        max: 1700
+      - name: min_check
+        field: mincheck
+        min: PWM_RANGE_ZERO
+        max: PWM_RANGE_MAX
+      - name: max_check
+        field: maxcheck
+        min: PWM_RANGE_ZERO
+        max: PWM_RANGE_MAX
+      - name: rssi_channel
+        min: 0
+        max: MAX_SUPPORTED_RC_CHANNEL_COUNT
+      - name: rssi_scale
+        min: RSSI_SCALE_MIN
+        max: RSSI_SCALE_MAX
+      - name: rssi_invert
+        field: rssiInvert
+        type: bool
+      - name: rc_smoothing
+        field: rcSmoothing
+        type: bool
+      - name: serialrx_provider
+        condition: SERIAL_RX
+        table: serial_rx
+      - name: sbus_inversion
+        condition: SERIAL_RX
+        type: bool
+      - name: rx_spi_protocol
+        condition: USE_RX_SPI
+        table: rx_spi_protocol
+      - name: rx_spi_id
+        condition: USE_RX_SPI
+        min: 0
+        max: 0
+      - name: rx_spi_rf_channel_count
+        min: 0
+        max: 8
+      - name: spektrum_sat_bind
+        condition: SPEKTRUM_BIND
+        min: SPEKTRUM_SAT_BIND_DISABLED
+        max: SPEKTRUM_SAT_BIND_MAX
+      - name: rx_min_usec
+        min: PWM_PULSE_MIN
+        max: PWM_PULSE_MAX
+      - name: rx_max_usec
+        min: PWM_PULSE_MIN
+        max: PWM_PULSE_MAX
+      - name: serialrx_halfduplex
+        field: halfDuplex
+        condition: STM32F4
+        type: bool
+        
+        
+
