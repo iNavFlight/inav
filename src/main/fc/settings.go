@@ -17,6 +17,7 @@ import (
 
 const (
 	settingsFile = "settings.yaml"
+	compactNames = true
 )
 
 type Table struct {
@@ -84,6 +85,16 @@ type Group struct {
 	Members   []*Member `yaml:"members"`
 }
 
+func (g *Group) DefaultValueType() string {
+	switch g.Name {
+	case "PG_CONTROLRATE_PROFILE":
+		return "CONTROL_RATE_VALUE"
+	case "PG_PID_PROFILE":
+		return "PROFILE_VALUE"
+	}
+	return "MASTER_VALUE"
+}
+
 type Member struct {
 	Name      string  `yaml:"name"`
 	Field     string  `yaml:"field"`
@@ -135,12 +146,18 @@ func findHeaders(rootDir string) ([]string, error) {
 	return headers, nil
 }
 
+func splitWords(s string) []string {
+	return strings.Split(s, "_")
+}
+
 var (
 	typeRe = regexp.MustCompile("In instantiation of 'void type_detect_helper\\(T\\) \\[with T = (.*?)\\]'\\:")
 )
 
 func detectType(gr *Group, m *Member, rootDir string, headers []string) (string, error) {
 	var buf bytes.Buffer
+	buf.WriteString("#define NAV\n")
+	buf.WriteString("#define STATS\n")
 	for _, h := range headers {
 		buf.WriteString("#include \"")
 		buf.WriteString(filepath.ToSlash(h))
@@ -188,6 +205,8 @@ func detectType(gr *Group, m *Member, rootDir string, headers []string) (string,
 		return "int16_t", nil
 	case "short unsigned int":
 		return "uint16_t", nil
+	case "signed char":
+		return "int8_t", nil
 	case "unsigned char":
 		return "uint8_t", nil
 	case "long unsigned int":
@@ -256,9 +275,11 @@ func main() {
 		tables[tbl.Name] = tbl
 	}
 
-	words := make(map[string]bool)
+	words := make(map[string]struct{})
 	var direct int
 	var indexed int
+	var maxWordCount int
+	var maxNameLength int
 
 	hasBooleans := false
 
@@ -291,18 +312,26 @@ func main() {
 				m.Table = "off_on"
 			}
 			direct += len(m.Name) + 1
-			nameWords := strings.Split(m.Name, "_")
+			nameWords := splitWords(m.Name)
 			indexed += len(nameWords)
+			if c := len(nameWords); c > maxWordCount {
+				maxWordCount = c
+			}
+			if nl := len(m.Name); nl > maxNameLength {
+				maxNameLength = nl
+			}
 			for _, w := range nameWords {
 				if _, ok := words[w]; !ok {
-					words[w] = true
+					words[w] = struct{}{}
 					indexed += len(w) + 1
 				}
 			}
 		}
 	}
+
 	fmt.Println(len(words), "WORDS")
 	fmt.Println(direct, "DIRECT", indexed, "INDEXED")
+	fmt.Println(maxWordCount, "MAX WORDS")
 
 	if hasBooleans {
 		tables["off_on"] = &Table{
@@ -340,6 +369,46 @@ func main() {
 	}
 
 	var buf bytes.Buffer
+
+	var formatValueName func(s string) string
+	if compactNames {
+		var compactedWords []string
+		for k := range words {
+			compactedWords = append(compactedWords, k)
+		}
+		sort.Strings(compactedWords)
+		buf.WriteString("static const char *words[] = {\n")
+		buf.WriteString("\tNULL,\n")
+		for _, w := range compactedWords {
+			fmt.Fprintf(&buf, "\t%q,\n", w)
+		}
+		buf.WriteString("};\n")
+		formatValueName = func(s string) string {
+			words := splitWords(s)
+			data := make([]byte, maxWordCount)
+			for ii, w := range words {
+				var pos int
+				for jj, cw := range compactedWords {
+					if w == cw {
+						pos = jj
+						break
+					}
+				}
+				data[ii] = byte(pos)
+			}
+			var sbuf bytes.Buffer
+			sbuf.WriteByte('{')
+			for ii := 0; ii < len(data); ii++ {
+				fmt.Fprintf(&sbuf, "%d, ", data[ii])
+			}
+			sbuf.WriteByte('}')
+			return sbuf.String()
+		}
+	} else {
+		formatValueName = func(s string) string {
+			return fmt.Sprintf("%q", s)
+		}
+	}
 
 	// Write the tables
 	var tableNames []string
@@ -410,13 +479,12 @@ func main() {
 					fmt.Fprintf(&buf, "#ifdef %s\n", m.Condition)
 				}
 			}
-			fmt.Fprintf(&buf, "\t{ %q, ", m.Name)
+			fmt.Fprintf(&buf, "\t{ %s, ", formatValueName(m.Name))
 			typ, err := varType(m.Type)
 			if err != nil {
 				panic(err)
 			}
-			buf.WriteString(typ)
-			buf.WriteString(" | MASTER_VALUE")
+			fmt.Fprintf(&buf, "%s | %s", typ, gr.DefaultValueType())
 			if m.Table != "" {
 				tbl := tables[m.Table]
 				buf.WriteString(" | MODE_LOOKUP")
@@ -445,11 +513,24 @@ func main() {
 		}
 	}
 	buf.WriteString("};\n")
-	if err := ioutil.WriteFile("settings.c", buf.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile("settings_generated.c", buf.Bytes(), 0644); err != nil {
 		panic(err)
 	}
 
 	buf.WriteString("}\n")
+
+	buf.Reset()
+
+	// Generate the header file
+	buf.WriteString("#pragma once\n")
+	if compactNames {
+		buf.WriteString("#define CLIVALUE_COMPACT_NAMES\n")
+	}
+	fmt.Fprintf(&buf, "#define CLIVALUE_MAX_NAME_BYTES %d\n", maxWordCount)
+	fmt.Fprintf(&buf, "#define CLIVALUE_MAX_NAME_LENGTH %d\n", maxNameLength)
+	if err := ioutil.WriteFile("settings_generated.h", buf.Bytes(), 0644); err != nil {
+		panic(err)
+	}
 
 	for _, t := range s.Tables {
 		if !t.Used() {

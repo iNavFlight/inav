@@ -54,10 +54,18 @@ typedef union {
 } cliValueConfig_t;
 
 typedef struct {
+#ifdef CLIVALUE_COMPACT_NAMES
+    const uint8_t compact_name[CLIVALUE_MAX_NAME_BYTES];
+#else
     const char *name;
+#endif
     const uint8_t type; // see cliValueFlag_e
     const cliValueConfig_t config;
 
     pgn_t pgn;
     uint16_t offset;
 } __attribute__((packed)) clivalue_t;
+
+void clivalue_get_name(const clivalue_t *val, char *buf);
+uint8_t clivalue_name_contains(const clivalue_t *val, const char *cmdline);
+uint8_t clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8_t var_name_length);
