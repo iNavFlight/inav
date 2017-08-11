@@ -63,5 +63,5 @@ typedef struct {
 } __attribute__((packed)) clivalue_t;
 
 void clivalue_get_name(const clivalue_t *val, char *buf);
-uint8_t clivalue_name_contains(const clivalue_t *val, const char *cmdline);
-uint8_t clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8_t var_name_length);
+bool clivalue_name_contains(const clivalue_t *val, const char *cmdline);
+bool clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8_t var_name_length);
