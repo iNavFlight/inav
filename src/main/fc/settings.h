@@ -54,11 +54,7 @@ typedef union {
 } cliValueConfig_t;
 
 typedef struct {
-#ifdef CLIVALUE_COMPACT_NAMES
-    const uint8_t compact_name[CLIVALUE_MAX_NAME_BYTES];
-#else
-    const char *name;
-#endif
+    const uint8_t encoded_name[CLIVALUE_ENCODED_NAME_MAX_BYTES];
     const uint8_t type; // see cliValueFlag_e
     const cliValueConfig_t config;
 

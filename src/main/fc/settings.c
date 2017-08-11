@@ -8,39 +8,48 @@
 
 void clivalue_get_name(const clivalue_t *val, char *buf)
 {
-#ifdef CLIVALUE_COMPACT_NAMES
 	uint8_t bpos = 0;
-	for (uint8_t ii = 0; val->compact_name[ii] && ii <= CLIVALUE_MAX_NAME_BYTES; ii++) {
-		if (ii > 0) {
+	uint16_t n = 0;
+	uint8_t shift = 0;
+	for (uint8_t ii = 0; ii <= CLIVALUE_ENCODED_NAME_MAX_BYTES; ii++) {
+		// Decode a variable size uint
+		uint16_t b = val->encoded_name[ii];
+		if (b >= 0x80) {
+			// More bytes follow
+			n |= (b&0x7f) << shift;
+			shift += 7;
+			continue;
+		}
+		// Final byte
+		n |= b << shift;
+		const char *word = words[n];
+		if (!word) {
+			// No more words
+			break;
+		}
+		if (bpos > 0) {
+			// Word separator
 			buf[bpos++] = '_';
 		}
-		const char *word = words[val->compact_name[ii]];
 		strcpy(&buf[bpos], word);
 		bpos += strlen(word);
+		// Reset shift and n
+		shift = 0;
+		n = 0;
 	}
-#else
-	strcpy(buf, val->name);
-#endif
+	buf[bpos] = '\0';
 }
 
 uint8_t clivalue_name_contains(const clivalue_t *val, const char *cmdline)
 {
-#ifdef CLIVALUE_COMPACT_NAMES
 	char name[CLIVALUE_MAX_NAME_LENGTH];
 	clivalue_get_name(val, name);
-#else
-	const char *name = val->name;
-#endif
 	return strstr(name, cmdline) != NULL;
 }
 
 uint8_t clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8_t var_name_length)
 {
-#ifdef CLIVALUE_COMPACT_NAMES
 	char name[CLIVALUE_MAX_NAME_LENGTH];
 	clivalue_get_name(val, name);
-#else
-	const char *name = val->name;
-#endif
 	return sl_strncasecmp(cmdline, name, strlen(name)) == 0 && var_name_length == strlen(name);
 }

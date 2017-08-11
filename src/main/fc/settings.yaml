@@ -375,7 +375,7 @@ groups:
         min: -1000
         max: 1000
 
-  - name: PG_BOARDALIGNMENT_CONFIG
+  - name: PG_BOARD_ALIGNMENT
     type: boardAlignment_t
     members:
       - name: align_board_roll
@@ -490,7 +490,7 @@ groups:
       - name: tri_unarmed_servo
         type: bool
 
-  - name: PG_CONTROLRATE_PROFILE
+  - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
     members:
       - name: rc_expo
@@ -1223,7 +1223,7 @@ groups:
         max: 1800
       - name: eleres_signature
         field: eleresSignature
-        max: 4294967295
+        max: UINT32_MAX
 
   - name: PG_LED_STRIP_CONFIG
     type: ledStripConfig_t
