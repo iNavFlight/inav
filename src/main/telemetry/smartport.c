@@ -380,7 +380,6 @@ void handleSmartPortTelemetry(void)
                 }
                 break;
 #endif
-            //case FSSP_DATAID_CAP_USED   :
             case FSSP_DATAID_VARIO      :
                 if (sensors(SENSOR_BARO)) {
                     smartPortSendPackage(id, lrintf(getEstimatedActualVelocity(Z))); // unknown given unit but requested in 100 = 1m/s
@@ -474,7 +473,7 @@ void handleSmartPortTelemetry(void)
 #endif
 #ifdef GPS
             case FSSP_DATAID_A3         :
-                if (sensors(SENSOR_GPS) && gpsConfig()->gpsMinSats > 0) {
+                if (sensors(SENSOR_GPS) && gpsConfig()->gpsMinSats) {
                     // GPS fixed: 0-50% for 3D fix + 0-35% for HDOP + 0-15% for number of satellites locked
                     smartPortSendPackage(id, (5000 * gpsSol.numSat / gpsConfig()->gpsMinSats) + ((10 - constrain(gpsSol.hdop / 1000, 0, 10)) * 350) + (constrain(gpsSol.numSat, 0, 15) * 100));
                 }
