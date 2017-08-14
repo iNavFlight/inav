@@ -78,7 +78,6 @@ enum
     FSSP_DATAID_ADC1       = 0xF102 ,
     FSSP_DATAID_ADC2       = 0xF103 ,
     FSSP_DATAID_LATLONG    = 0x0800 ,
-    FSSP_DATAID_CAP_USED   = 0x0600 ,
     FSSP_DATAID_VARIO      = 0x0110 ,
     FSSP_DATAID_CELLS      = 0x0300 ,
     FSSP_DATAID_CELLS_LAST = 0x030F ,
@@ -106,7 +105,6 @@ const uint16_t frSkyDataIdTable[] = {
     //FSSP_DATAID_ADC2      ,
     FSSP_DATAID_LATLONG   ,
     FSSP_DATAID_LATLONG   , // twice
-    //FSSP_DATAID_CAP_USED  ,
     FSSP_DATAID_VARIO     ,
     //FSSP_DATAID_CELLS     ,
     //FSSP_DATAID_CELLS_LAST,
@@ -118,6 +116,7 @@ const uint16_t frSkyDataIdTable[] = {
     FSSP_DATAID_T2        ,
     FSSP_DATAID_GPS_ALT   ,
     FSSP_DATAID_ASPD      ,
+    FSSP_DATAID_A3        ,
     FSSP_DATAID_A4        ,
     FSSP_DATAID_HOME_DIST ,
     0
@@ -126,7 +125,7 @@ const uint16_t frSkyDataIdTable[] = {
 #define __USE_C99_MATH // for roundf()
 #define SMARTPORT_BAUD 57600
 #define SMARTPORT_UART_MODE MODE_RXTX
-#define SMARTPORT_SERVICE_TIMEOUT_MS 1 // max allowed time to find a value to send
+#define SMARTPORT_SERVICE_TIMEOUT_MS 3 // max allowed time to find a value to send
 #define SMARTPORT_NOT_CONNECTED_TIMEOUT_MS 7000
 
 static serialPort_t *smartPortSerialPort = NULL; // The 'SmartPort'(tm) Port.
@@ -349,7 +348,11 @@ void handleSmartPortTelemetry(void)
                 break;
             case FSSP_DATAID_FUEL       :
                 if (feature(FEATURE_CURRENT_METER)) {
-                    smartPortSendPackage(id, mAhDrawn); // given in mAh, unknown requested unit
+                    if (batteryConfig()->batteryCapacity > 0) {
+                        smartPortSendPackage(id, calculateBatteryCapacityRemainingPercentage()); // Show as remaining battery percentage as battery capacity is set
+                    } else {
+                        smartPortSendPackage(id, mAhDrawn); // given in mAh, unknown requested unit
+                    }
                     smartPortHasRequest = 0;
                 }
                 break;
@@ -467,6 +470,15 @@ void handleSmartPortTelemetry(void)
                     smartPortSendPackage(id, pitot.airSpeed*0.194384449f); // cm/s to knots*10
                     smartPortHasRequest = 0;
                 }
+                break;
+#endif
+#ifdef GPS
+            case FSSP_DATAID_A3         :
+                if (sensors(SENSOR_GPS) && gpsConfig()->gpsMinSats > 0) {
+                    // GPS fixed: 0-50% for 3D fix + 0-35% for HDOP + 0-15% for number of satellites locked
+                    smartPortSendPackage(id, (5000 * gpsSol.numSat / gpsConfig()->gpsMinSats) + ((10 - constrain(gpsSol.hdop / 1000, 0, 10)) * 350) + (constrain(gpsSol.numSat, 0, 15) * 100));
+                }
+                smartPortHasRequest = 0;
                 break;
 #endif
             case FSSP_DATAID_A4         :
