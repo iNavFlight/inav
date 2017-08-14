@@ -473,7 +473,7 @@ void handleSmartPortTelemetry(void)
 #endif
 #ifdef GPS
             case FSSP_DATAID_A3         :
-                if (sensors(SENSOR_GPS) && gpsConfig()->gpsMinSats) {
+                if (sensors(SENSOR_GPS) && gpsConfig()->gpsMinSats > 0) {
                     // GPS fixed: 0-50% for 3D fix + 0-35% for HDOP + 0-15% for number of satellites locked
                     smartPortSendPackage(id, (5000 * gpsSol.numSat / gpsConfig()->gpsMinSats) + ((10 - constrain(gpsSol.hdop / 1000, 0, 10)) * 350) + (constrain(gpsSol.numSat, 0, 15) * 100));
                 }
