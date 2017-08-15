@@ -15,9 +15,72 @@ HoTT V4, SmartPort (S.Port) and LightTelemetry (LTM)
 
 All telemetry systems use serial ports, configure serial ports to use the telemetry system required.
 
+## SmartPort (S.Port) telemetry
+
+Smartport is a telemetry system used by newer FrSky transmitters and receivers such as the Taranis/XJR and X8R, X6R and X4R(SB).
+
+More information about the implementation can be found here: https://github.com/frank26080115/cleanflight/wiki/Using-Smart-Port
+
+Smartport devices can be connected directly to STM32F3 boards such as the SPRacingF3 and Sparky, with a single straight through cable without the need for any hardware modifications on the FC or the receiver.
+
+For Smartport on F3 based boards, enable the telemetry inversion setting.
+
+```
+set telemetry_inversion = ON
+```
+
+### SmartPort (S.Port) with external hardware inverter
+
+It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require hardware hack of S.Port receiver.
+
+#### SmartPort inverter using bipolar transistors
+![Inverter](assets/images/smartport_inverter.png)
+
+#### SmartPort inverter using unipolar transistors
+![Inverter](assets/images/smartport_inverter_2n7000.png)
+
+**Warning** Chosen UART has to be 5V tolerant. If not, use 3.3V power supply instead (not tested)
+
+When external inverter is used, following configuration has to be applied:
+
+```
+set smartport_uart_unidir = ON
+set telemetry_inversion = OFF
+```
+
+This has been tested with Flip32 F4 / Airbot F4 and FrSky X4R-SB receiver.
+
+### Available SmartPort (S.Port) sensors
+
+The following sensors are transmitted
+
+* **VFAS** : actual vbat value.
+* **Curr** : actual current comsuption, in amp.
+* **Alt** : barometer based altitude, init level is zero.
+* **Fuel** : if capacity set and smartport_fuel_percent=ON remaining battery percentage, mAh drawn otherwise.
+* **VSpd** : vertical speed, unit is cm/s.
+* **Hdg** : heading, North is 0°, South is 180°.
+* **AccX,Y,Z** : accelerometer values.
+* **Tmp2** : GPS lock status, GPS accuracy, and number of satellites.  Number is sent as ABCD :
+  * A : 1 = GPS fix, 2 = GPS home fix (numbers are additive)
+  * B : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
+  * C : number of satellites locked (digit C & D are the number of locked satellites)
+  * D : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
+* **A4** : average cell value. Warning : unlike FLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
+* **GAlt** : GPS altitude, sea level is zero.
+* **420** : distance to GPS home fix, in Meters
+* **GSpd** : current speed, calculated by GPS.
+* **GPS** : GPS coordinates.
+* **Tmp1** : flight mode, sent as 5 digits. Number is sent as ABCDE. Please ignore the first digit (a), it's always 1 and just there to ensure the number as always 5 digits (the B - E digits of actual data). The numbers are additives (for example, if digit C is 6, it means both position hold and altitude hold are active) :
+  * A : 1 = placeholder
+  * B : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
+  * C : 1 = heading hold, 2 = altitude hold, 4 = position hold
+  * D : 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode (passthru can lead to an overflow, in which case passthru mode is excluded)
+  * E : 1 = ok to arm, 2 = arming is prevented, 4 = armed
+
 ## FrSky telemetry
 
-**Note** For newer FrSky transmitters and receivers such as the Taranis/XJR, QX7 and X8R, X6R and X4R(SB) see the SmartPort (S.Port) telemetry section below.  FrSky telemetry is for older FrSky transmitters and receivers.
+FrSky telemetry is for older FrSky transmitters and receivers.  For newer Taranis/XJR and X8R, X6R and X4R(SB) see SmartPort (S.Port) telemetry above.
 
 FrSky telemetry is transmit only and just requires a single connection from the TX pin of a serial port to the RX pin on an FrSky telemetry receiver.
 
@@ -132,71 +195,6 @@ INAV supports MAVLink for compatibility with ground stations, OSDs and antenna t
 for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
 MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial.
-
-## SmartPort (S.Port) telemetry
-
-Smartport is a telemetry system used by newer FrSky transmitters and receivers such as the Taranis/XJR and X8R, X6R and X4R(SB).
-
-More information about the implementation can be found here: https://github.com/frank26080115/cleanflight/wiki/Using-Smart-Port
-
-In time this documentation will be updated with further details.
-
-Smartport devices can be connected directly to STM32F3 boards such as the SPRacingF3 and Sparky, with a single straight through cable without the need for any hardware modifications on the FC or the receiver.
-
-For Smartport on F3 based boards, enable the telemetry inversion setting.
-
-```
-set telemetry_inversion = ON
-```
-
-### SmartPort (S.Port) with external hardware inverter
-
-It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and F4 based flight controllers. This method does not require hardware hack of S.Port receiver.
-
-#### SmartPort inverter using bipolar transistors
-![Inverter](assets/images/smartport_inverter.png)
-
-#### SmartPort inverter using unipolar transistors
-![Inverter](assets/images/smartport_inverter_2n7000.png)
-
-**Warning** Chosen UART has to be 5V tolerant. If not, use 3.3V power supply instead (not tested)
-
-When external inverter is used, following configuration has to be applied:
-
-```
-set smartport_uart_unidir = ON
-set telemetry_inversion = OFF
-```
-
-This has been tested with Flip32 F4 / Airbot F4 and FrSky X4R-SB receiver.
-
-### Available SmartPort (S.Port) sensors
-
-The following sensors are transmitted
-
-* VFAS : actual vbat value.
-* Curr : actual current comsuption, in amp.
-* Alt : barometer based altitude, init level is zero.
-* Fuel : if capacity set and smartport_fuel_percent=ON remaining battery percentage, mAh drawn otherwise.
-* VSpd : vertical speed, unit is cm/s.
-* Hdg : heading, North is 0°, South is 180°.
-* AccX,Y,Z : accelerometer values.
-* Tmp2 : GPS lock status, GPS accuracy, and number of satellites.  Number is sent as ABCD :
-  * A : 1 = GPS fix, 2 = GPS home fix (numbers are additive)
-  * B : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
-  * C : number of satellites locked (digit C & D are the number of locked satellites)
-  * D : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
-* A4 : average cell value. Warning : unlike FLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
-* GAlt : GPS altitude, sea level is zero.
-* 420 : distance to GPS home fix, in Meters
-* GSpd : current speed, calculated by GPS.
-* GPS : GPS coordinates.
-* Tmp1 : flight mode, sent as 5 digits. Number is sent as ABCDE. Please ignore the first digit (a), it's always 1 and just there to ensure the number as always 5 digits (the B - E digits of actual data). The numbers are additives (for example, if digit C is 6, it means both position hold and altitude hold are active) :
-  * A : 1 = placeholder
-  * B : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
-  * C : 1 = heading hold, 2 = altitude hold, 4 = position hold
-  * D : 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode (passthru can lead to an overflow, in which case passthru mode is excluded)
-  * E : 1 = ok to arm, 2 = arming is prevented, 4 = armed
 
 ## Ibus telemetry
 
