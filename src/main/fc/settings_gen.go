@@ -545,7 +545,7 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 		}
 	}
 	// Write word list
-	buf.WriteString("const char *cliValueWords[] = {\n")
+	buf.WriteString("static const char *cliValueWords[] = {\n")
 	buf.WriteString("\tNULL,\n")
 	for _, w := range g.wordsByUsage {
 		fmt.Fprintf(&buf, "\t%q,\n", w)

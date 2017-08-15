@@ -595,7 +595,6 @@ COMMON_SRC = \
             fc/rc_modes.c \
             fc/runtime_config.c \
             fc/settings.c \
-            fc/settings_generated.c \
             fc/stats.c \
             flight/failsafe.c \
             flight/hil.c \
@@ -923,9 +922,10 @@ $(SETTINGS_GENERATOR): $(SETTINGS_GENERATOR_SRC)
 	$(V0) cd $(dir $(SETTINGS_GENERATOR_SRC)) && go build $(notdir $(SETTINGS_GENERATOR_SRC))
 
 # Rebuild the settings for each target
+.PHONY: FORCE_REBUILD
 GENERATED_SETTINGS	= fc/settings_generated.h fc/settings_generated.c
 SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
-$(GENERATED_SETTINGS): $(subst fc/settings_generated.c, ,$(TARGET_SRC)) $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
+$(GENERATED_SETTINGS): FORCE_REBUILD $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
 	$(V0) CFLAGS="$(CFLAGS)" $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
 settings: $(GENERATED_SETTINGS)
@@ -939,9 +939,9 @@ $(TARGET_HEX): $(TARGET_ELF)
 $(TARGET_BIN): $(TARGET_ELF)
 	$(V0) $(OBJCOPY) -O binary $< $@
 
-$(TARGET_ELF):  $(TARGET_OBJS)
+$(TARGET_ELF): settings $(TARGET_OBJS)
 	$(V1) echo Linking $(TARGET)
-	$(V1) $(CROSS_CC) -o $@ $^ $(LDFLAGS)
+	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
 
 # Compile
