@@ -18,9 +18,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const (
-	maxEncodedWordLength = 6
-)
+func writeUVarInt(w *bytes.Buffer, x uint32) {
+	for x >= 0x80 {
+		w.WriteByte(byte(x) | 0x80)
+		x >>= 7
+	}
+	w.WriteByte(byte(x))
+}
 
 type Table struct {
 	Name   string   `yaml:"name"`
@@ -36,22 +40,20 @@ func (t *Table) ConstantName() string {
 	return fmt.Sprintf("TABLE_%s", strings.ToUpper(t.Name))
 }
 
-func (t *Table) Conditions() string {
-	var or []string
+func (t *Table) Enabled(trueConditions map[string]struct{}) bool {
 	for _, v := range t.uses {
-		if len(v) == 0 {
-			// An use without #ifdef, should always be included
-			return ""
+		enabled := true
+		for _, cond := range v {
+			if _, found := trueConditions[cond]; !found {
+				enabled = false
+				break
+			}
 		}
-		defines := make([]string, len(v))
-		for ii, c := range v {
-			defines[ii] = fmt.Sprintf("defined(%s)", c)
-		}
-		if len(defines) > 0 {
-			or = append(or, strings.Join(defines, " && "))
+		if enabled {
+			return true
 		}
 	}
-	return strings.Join(or, " || ")
+	return false
 }
 
 func (t *Table) hasUse(conditions []string) bool {
@@ -108,32 +110,165 @@ type Member struct {
 	Table     string  `yaml:"table"`
 }
 
+type NameEncoder struct {
+	MaxEncodedLength int
+	Names            []string
+	// Value is number of uses
+	words map[string]int
+	// Most used words first
+	wordsByUsage []string
+	// Words that shouldn't be split because
+	// their encoding is too long
+	nonSplit map[string]struct{}
+	// Key is the word, value is its encoding
+	encodedWords map[string][]byte
+}
+
+func (e *NameEncoder) Initialize() error {
+	e.nonSplit = make(map[string]struct{})
+	if err := e.updateWords(); err != nil {
+		return err
+	}
+	if err := e.encodeNames(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *NameEncoder) indexOfWord(s string) int {
+	for ii, v := range e.wordsByUsage {
+		if v == s {
+			return ii + 1
+		}
+	}
+	return -1
+}
+
+func (e *NameEncoder) splitWords(s string) []string {
+	if _, ok := e.nonSplit[s]; ok {
+		return []string{s}
+	}
+	split := strings.Split(s, "_")
+	/* TODO:	if len(split) >= 4 {
+		return []string{s}
+	}
+	*/
+	return split
+}
+
+func (e *NameEncoder) updateWords() error {
+	e.words = make(map[string]int)
+	for _, v := range e.Names {
+		nameWords := e.splitWords(v)
+		for _, w := range nameWords {
+			e.words[w]++
+		}
+	}
+	e.wordsByUsage = e.wordsByUsage[:0]
+	for k := range e.words {
+		e.wordsByUsage = append(e.wordsByUsage, k)
+	}
+	// Sort words by use, most used first
+	sort.Slice(e.wordsByUsage, func(i, j int) bool {
+		return e.words[e.wordsByUsage[i]] > e.words[e.wordsByUsage[j]]
+	})
+	return nil
+}
+
+func (e *NameEncoder) encodeNames() error {
+	e.encodedWords = make(map[string][]byte)
+	for _, v := range e.Names {
+		words := e.splitWords(v)
+		var indexes []int
+		for _, w := range words {
+			pos := e.indexOfWord(w)
+			if pos < 0 {
+				return fmt.Errorf("word %q not in the words list", w)
+			}
+			indexes = append(indexes, pos)
+		}
+		var buf bytes.Buffer
+		for _, v := range indexes {
+			if e.UsesDirectIndexing() {
+				buf.WriteByte(byte(v))
+			} else {
+				writeUVarInt(&buf, uint32(v))
+			}
+		}
+		data := buf.Bytes()
+		if len(data) > e.MaxEncodedLength {
+			// TODO: print in verbose mode
+			//fmt.Printf("encoding %q took %d bytes (>%d), adding it as single word\n", v, len(data), e.MaxEncodedLength)
+			e.nonSplit[v] = struct{}{}
+			e.updateWords()
+			return e.encodeNames()
+		}
+		e.encodedWords[v] = data
+	}
+	return nil
+}
+
+func (e *NameEncoder) UsesDirectIndexing() bool {
+	return len(e.wordsByUsage) < 255
+}
+
+func (e *NameEncoder) WordList() []string {
+	words := make([]string, len(e.wordsByUsage))
+	copy(words, e.wordsByUsage)
+	return words
+}
+
+func (e *NameEncoder) NWords() int {
+	return len(e.wordsByUsage)
+}
+
+func (e *NameEncoder) FormatEncodedName(s string) (string, error) {
+	enc := e.encodedWords[s]
+	if len(enc) == 0 {
+		return "", fmt.Errorf("name %q was not encoded", s)
+	}
+	if len(enc) < e.MaxEncodedLength {
+		bs := make([]byte, e.MaxEncodedLength)
+		copy(bs, enc)
+		enc = bs
+	}
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for ii := 0; ii < len(enc); ii++ {
+		fmt.Fprintf(&buf, "%d, ", enc[ii])
+	}
+	buf.WriteByte('}')
+	return buf.String(), nil
+}
+
+func (e *NameEncoder) EstimatedSize(settingsCount int) int {
+	var size int
+	for k := range e.words {
+		size += len(k) + 1
+	}
+	return size + e.MaxEncodedLength*settingsCount
+}
+
 type Settings struct {
 	Tables []*Table `yaml:"tables"`
 	Groups []*Group `yaml:"groups"`
 }
 
 type SettingsGenerator struct {
-	rootDir       string
-	outputDir     string
-	s             *Settings
-	tables        map[string]*Table
-	hasBooleans   bool
-	settingsCount int
+	rootDir        string
+	outputDir      string
+	s              *Settings
+	trueConditions map[string]struct{}
+	tables         map[string]*Table
+	hasBooleans    bool
+	settingsCount  int
 	// Types that need to be resolved
 	pendingTypes map[*Member]*Group
 	// Maximum unpacked name length, so
 	// the C code can allocate an appropiately
 	// sized buffer.
 	maxNameLength int
-	// Words that shouldn't be split because
-	// their encoding is too long
-	nonSplit map[string]struct{}
-	// Value is number of uses
-	words map[string]int
-	// Most used words first
-	wordsByUsage []string
-	encodedWords map[string][]byte
+	nameEncoder   *NameEncoder
 }
 
 func New(rootDir string, settingsFile string) (*SettingsGenerator, error) {
@@ -151,17 +286,56 @@ func New(rootDir string, settingsFile string) (*SettingsGenerator, error) {
 	if err := g.mapTables(); err != nil {
 		return nil, err
 	}
+	if err := g.checkConditions(); err != nil {
+		return nil, err
+	}
 	if err := g.sanitizeFields(); err != nil {
 		return nil, err
 	}
 	g.initilizeTableUsage()
-	g.updateWords()
-	fmt.Printf("word table has %d entries\n", len(g.words))
+	if err := g.initializeNameEncoder(); err != nil {
+		return nil, err
+	}
 	return g, nil
 }
 
 func (g *SettingsGenerator) SettingsCount() int {
 	return g.settingsCount
+}
+
+func (g *SettingsGenerator) checkConditions() error {
+	var buf bytes.Buffer
+	g.addHeader(&buf, "platform.h")
+	conds := make(map[string]struct{})
+	addCondition := func(c string) {
+		if c == "" {
+			return
+		}
+		if _, found := conds[c]; found {
+			return
+		}
+		conds[c] = struct{}{}
+		fmt.Fprintf(&buf, "#ifdef %s\n", c)
+		fmt.Fprintf(&buf, "#pragma message(%q)\n", c)
+		buf.WriteString("#endif\n")
+	}
+	for _, gr := range g.s.Groups {
+		addCondition(gr.Condition)
+		for _, m := range gr.Members {
+			addCondition(m.Condition)
+		}
+	}
+	_, stderr, err := g.compileTestFile(&buf)
+	if err != nil {
+		return err
+	}
+	pragmaRe := regexp.MustCompile("#pragma message\\(\"(.*)\"\\)")
+	matches := pragmaRe.FindAllStringSubmatch(string(stderr), -1)
+	g.trueConditions = make(map[string]struct{})
+	for _, m := range matches {
+		g.trueConditions[m[1]] = struct{}{}
+	}
+	return nil
 }
 
 func (g *SettingsGenerator) mapTables() error {
@@ -180,16 +354,12 @@ func (g *SettingsGenerator) mapTables() error {
 
 func (g *SettingsGenerator) sanitizeFields() error {
 	for _, gr := range g.s.Groups {
-		g.settingsCount += len(gr.Members)
 		if gr.Name == "" {
 			return errors.New("empty group name")
 		}
 		for _, m := range gr.Members {
 			if m.Name == "" {
 				return fmt.Errorf("empty name in member in group %q", gr.Name)
-			}
-			if nl := len(m.Name); nl > g.maxNameLength {
-				g.maxNameLength = nl
 			}
 			if m.Table != "" {
 				if g.tables[m.Table] == nil {
@@ -221,11 +391,60 @@ func (g *SettingsGenerator) sanitizeFields() error {
 	if err := g.resolveTypes(); err != nil {
 		return err
 	}
-	return nil
+	return g.forEachEnabledMember(func(_ *Group, m *Member) error {
+		g.settingsCount++
+		if nl := len(m.Name); nl > g.maxNameLength {
+			g.maxNameLength = nl
+		}
+		return nil
+	})
 }
 
 func (g *SettingsGenerator) addHeader(w io.Writer, h string) {
 	fmt.Fprintf(w, "#include \"%s\"\n", h)
+}
+
+func (g *SettingsGenerator) compileTestFile(r io.Reader) (stdout []byte, stderr []byte, err error) {
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return nil, nil, err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile := filepath.Join(tmpDir, "test.cpp")
+	if err := ioutil.WriteFile(tmpFile, data, 0644); err != nil {
+		return nil, nil, err
+	}
+
+	cflags := strings.Split(os.Getenv("CFLAGS"), " ")
+	var args []string
+	for _, flag := range cflags {
+		// Don't generate temporary files
+		if flag == "-MMD" || flag == "-MP" || strings.HasPrefix(flag, "-save-temps") {
+			continue
+		}
+		if flag != "" {
+			if strings.HasPrefix(flag, "-D'") {
+				// Cleanup flag. Done by the shell when called from
+				// it but we must do it ourselves becase we're not
+				// calling the compiler via shell.
+				flag = "-D" + flag[3:len(flag)-1]
+			}
+			args = append(args, flag)
+		}
+	}
+	args = append(args, tmpFile)
+	cmd := exec.Command("arm-none-eabi-g++", args...)
+	var stdoutBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
+	cmd.Run()
+	return stdoutBuf.Bytes(), stderrBuf.Bytes(), nil
 }
 
 func (g *SettingsGenerator) resolveTypes() error {
@@ -252,41 +471,12 @@ func (g *SettingsGenerator) resolveTypes() error {
 	buf.WriteString("return 0;\n")
 	buf.WriteString("}\n")
 
-	tmpDir, err := ioutil.TempDir("", "")
+	_, stderr, err := g.compileTestFile(&buf)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmpDir)
 
-	tmpFile := filepath.Join(tmpDir, "detect.cpp")
-	if err := ioutil.WriteFile(tmpFile, buf.Bytes(), 0644); err != nil {
-		return err
-	}
-
-	cflags := strings.Split(os.Getenv("CFLAGS"), " ")
-	var args []string
-	for _, flag := range cflags {
-		// Don't generate temporary files
-		if flag == "-MMD" || flag == "-MP" || strings.HasPrefix(flag, "-save-temps") {
-			continue
-		}
-		if flag != "" {
-			if strings.HasPrefix(flag, "-D'") {
-				// Cleanup flag. Done by the shell when called from
-				// it but we must do it ourselves becase we're not
-				// calling the compiler via shell.
-				flag = "-D" + flag[3:len(flag)-1]
-			}
-			args = append(args, flag)
-		}
-	}
-	args = append(args, tmpFile)
-	cmd := exec.Command("arm-none-eabi-g++", args...)
-	cmd.Stdout = os.Stdout
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	cmd.Run()
-	sc := bufio.NewScanner(bytes.NewReader(stderr.Bytes()))
+	sc := bufio.NewScanner(bytes.NewReader(stderr))
 	typeRe := regexp.MustCompile("which is of non-class type '(.*)'")
 
 	for sc.Scan() {
@@ -300,7 +490,7 @@ func (g *SettingsGenerator) resolveTypes() error {
 			}
 			m := lines[line]
 			if m == nil {
-				return fmt.Errorf("no member found at line %d, compiler output: %s", line, stderr.String())
+				return fmt.Errorf("no member found at line %d, compiler output: %s", line, string(stderr))
 			}
 			match := typeRe.FindStringSubmatch(text[sep2:])
 			if len(match) != 2 {
@@ -352,44 +542,30 @@ func (g *SettingsGenerator) varType(typ string) (string, error) {
 	return "", fmt.Errorf("unknown variable type %q", typ)
 }
 
-func (g *SettingsGenerator) writeUVarInt(w *bytes.Buffer, x uint32) {
-	for x >= 0x80 {
-		w.WriteByte(byte(x) | 0x80)
-		x >>= 7
+func (g *SettingsGenerator) initializeNameEncoder() error {
+	var best *NameEncoder
+	var names []string
+	err := g.forEachEnabledMember(func(_ *Group, m *Member) error {
+		names = append(names, m.Name)
+		return nil
+	})
+	if err != nil {
+		return err
 	}
-	w.WriteByte(byte(x))
-}
-
-func (g *SettingsGenerator) splitWords(s string) []string {
-	if _, ok := g.nonSplit[s]; ok {
-		return []string{s}
-	}
-	split := strings.Split(s, "_")
-	/* TODO:	if len(split) >= 4 {
-		return []string{s}
-	}
-	*/
-	return split
-}
-
-func (g *SettingsGenerator) updateWords() {
-	g.words = make(map[string]int)
-	for _, gr := range g.s.Groups {
-		for _, m := range gr.Members {
-			nameWords := g.splitWords(m.Name)
-			for _, w := range nameWords {
-				g.words[w]++
-			}
+	for ii := 3; ii < 7; ii++ {
+		enc := &NameEncoder{
+			MaxEncodedLength: ii,
+			Names:            names,
+		}
+		if err := enc.Initialize(); err != nil {
+			return err
+		}
+		if best == nil || best.EstimatedSize(g.settingsCount) > enc.EstimatedSize(g.settingsCount) {
+			best = enc
 		}
 	}
-	g.wordsByUsage = g.wordsByUsage[:0]
-	for k := range g.words {
-		g.wordsByUsage = append(g.wordsByUsage, k)
-	}
-	// Sort words by use, most used first
-	sort.Slice(g.wordsByUsage, func(i, j int) bool {
-		return g.words[g.wordsByUsage[i]] > g.words[g.wordsByUsage[j]]
-	})
+	g.nameEncoder = best
+	return nil
 }
 
 func (g *SettingsGenerator) initilizeTableUsage() {
@@ -422,66 +598,25 @@ func (g *SettingsGenerator) initilizeTableUsage() {
 	}
 }
 
-func (g *SettingsGenerator) indexOfWord(s string) int {
-	for ii, v := range g.wordsByUsage {
-		if v == s {
-			return ii + 1
-		}
-	}
-	return -1
-}
-
-func (g *SettingsGenerator) encodeNames() error {
-	g.encodedWords = make(map[string][]byte)
+func (g *SettingsGenerator) forEachEnabledMember(f func(*Group, *Member) error) error {
 	for _, gr := range g.s.Groups {
+		if gr.Condition != "" {
+			if _, found := g.trueConditions[gr.Condition]; !found {
+				continue
+			}
+		}
 		for _, m := range gr.Members {
-			words := g.splitWords(m.Name)
-			var indexes []int
-			for _, w := range words {
-				pos := g.indexOfWord(w)
-				if pos < 0 {
-					return fmt.Errorf("word %q not in the words list", w)
+			if m.Condition != "" {
+				if _, found := g.trueConditions[m.Condition]; !found {
+					continue
 				}
-				indexes = append(indexes, pos)
 			}
-			var buf bytes.Buffer
-			for _, v := range indexes {
-				g.writeUVarInt(&buf, uint32(v))
+			if err := f(gr, m); err != nil {
+				return err
 			}
-			data := buf.Bytes()
-			if len(data) > maxEncodedWordLength {
-				fmt.Printf("encoding %q took %d bytes (>%d), adding it as single word\n", m.Name, len(data), maxEncodedWordLength)
-				if g.nonSplit == nil {
-					g.nonSplit = make(map[string]struct{})
-				}
-				g.nonSplit[m.Name] = struct{}{}
-				g.updateWords()
-				return g.encodeNames()
-			}
-			g.encodedWords[m.Name] = data
 		}
 	}
 	return nil
-}
-
-func (g *SettingsGenerator) formatEncodedWord(s string) (string, error) {
-	enc := g.encodedWords[s]
-	if len(enc) == 0 {
-		return "", fmt.Errorf("word %q was not encoded", s)
-	}
-	if len(enc) < maxEncodedWordLength {
-		bs := make([]byte, maxEncodedWordLength)
-		copy(bs, enc)
-		enc = bs
-	}
-	var buf bytes.Buffer
-	buf.WriteByte('{')
-	for ii := 0; ii < len(enc); ii++ {
-		fmt.Fprintf(&buf, "%d, ", enc[ii])
-	}
-	buf.WriteByte('}')
-
-	return buf.String(), nil
 }
 
 func (g *SettingsGenerator) orderedTableNames() []string {
@@ -500,35 +635,30 @@ func (g *SettingsGenerator) writeHeaderFile() error {
 	buf.WriteString("#pragma once\n")
 	// Write clivalue_t size constants
 	fmt.Fprintf(&buf, "#define CLIVALUE_MAX_NAME_LENGTH %d\n", g.maxNameLength)
-	fmt.Fprintf(&buf, "#define CLIVALUE_ENCODED_NAME_MAX_BYTES %d\n", maxEncodedWordLength)
+	fmt.Fprintf(&buf, "#define CLIVALUE_ENCODED_NAME_MAX_BYTES %d\n", g.nameEncoder.MaxEncodedLength)
+	if g.nameEncoder.UsesDirectIndexing() {
+		buf.WriteString("#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n")
+	}
 	fmt.Fprintf(&buf, "#define CLIVALUE_TABLE_COUNT %d\n", g.SettingsCount())
 	// Write lookup table constants
 	tableNames := g.orderedTableNames()
 	buf.WriteString("enum {\n")
 	for _, k := range tableNames {
 		tbl := g.tables[k]
-		cond := tbl.Conditions()
-		if cond != "" {
-			fmt.Fprintf(&buf, "#if %s\n", cond)
+		if !tbl.Enabled(g.trueConditions) {
+			continue
 		}
 		fmt.Fprintf(&buf, "\t%s,\n", tbl.ConstantName())
-		if cond != "" {
-			buf.WriteString("#endif\n")
-		}
 	}
 	buf.WriteString("\tLOOKUP_TABLE_COUNT,\n")
 	buf.WriteString("};\n")
 	// Write table pointers
 	for _, k := range tableNames {
 		tbl := g.tables[k]
-		cond := tbl.Conditions()
-		if cond != "" {
-			fmt.Fprintf(&buf, "#if %s\n", cond)
+		if !tbl.Enabled(g.trueConditions) {
+			continue
 		}
 		fmt.Fprintf(&buf, "extern const char *%s[];\n", tbl.VarName())
-		if cond != "" {
-			buf.WriteString("#endif\n")
-		}
 	}
 
 	return ioutil.WriteFile(filepath.Join(g.outputDir, "settings_generated.h"), buf.Bytes(), 0644)
@@ -547,7 +677,7 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 	// Write word list
 	buf.WriteString("static const char *cliValueWords[] = {\n")
 	buf.WriteString("\tNULL,\n")
-	for _, w := range g.wordsByUsage {
+	for _, w := range g.nameEncoder.WordList() {
 		fmt.Fprintf(&buf, "\t%q,\n", w)
 	}
 	buf.WriteString("};\n")
@@ -556,102 +686,81 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 	tableNames := g.orderedTableNames()
 	for _, k := range tableNames {
 		tbl := g.tables[k]
-		cond := tbl.Conditions()
-		if cond != "" {
-			fmt.Fprintf(&buf, "#if %s\n", cond)
+		if !tbl.Enabled(g.trueConditions) {
+			continue
 		}
 		fmt.Fprintf(&buf, "const char *%s[] = {\n", tbl.VarName())
 		for _, v := range tbl.Values {
 			fmt.Fprintf(&buf, "\t%q,\n", v)
 		}
 		buf.WriteString("};\n")
-		if cond != "" {
-			buf.WriteString("#endif\n")
-		}
 	}
 
 	buf.WriteString("const lookupTableEntry_t cliLookupTables[] = {\n")
 	for _, k := range tableNames {
 		tbl := g.tables[k]
-		cond := tbl.Conditions()
-		if cond != "" {
-			fmt.Fprintf(&buf, "#if %s\n", cond)
+		if !tbl.Enabled(g.trueConditions) {
+			continue
 		}
 		fmt.Fprintf(&buf, "\t{ %s, sizeof(%s) / sizeof(char*) },\n", tbl.VarName(), tbl.VarName())
-		if cond != "" {
-			buf.WriteString("#endif\n")
-		}
 	}
 
 	buf.WriteString("};\n")
 
 	// Write values
-	var conditions []string
-
 	buf.WriteString("const clivalue_t cliValueTable[] = {\n")
 
-	for _, gr := range g.s.Groups {
-		fmt.Fprintf(&buf, "// %s\n", gr.Name)
-		if gr.Condition != "" {
-			conditions = append(conditions, gr.Condition)
-			fmt.Fprintf(&buf, "#ifdef %s\n", gr.Condition)
+	var lastGroup *Group
+	err := g.forEachEnabledMember(func(gr *Group, m *Member) error {
+		if gr != lastGroup {
+			fmt.Fprintf(&buf, "// %s\n", gr.Name)
+			lastGroup = gr
 		}
-		for ii, m := range gr.Members {
-			if m.Condition != "" {
-				if len(conditions) == 0 || conditions[len(conditions)-1] != m.Condition {
-					conditions = append(conditions, m.Condition)
-					fmt.Fprintf(&buf, "#ifdef %s\n", m.Condition)
-				}
-			}
-			enc, err := g.formatEncodedWord(m.Name)
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(&buf, "\t{ %s, ", enc)
-			typ, err := g.varType(m.Type)
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(&buf, "%s | %s", typ, gr.DefaultValueType())
-			if m.Table != "" {
-				tbl := g.tables[m.Table]
-				buf.WriteString(" | MODE_LOOKUP")
-				fmt.Fprintf(&buf, ", .config.lookup = { %s }", tbl.ConstantName())
-			} else {
-				if m.Min != nil && m.Max != nil {
-					fmt.Fprintf(&buf, ", .config.minmax = {%s, %s}", *m.Min, *m.Max)
-				} else if m.Max != nil {
-					buf.WriteString(" | MODE_MAX")
-					fmt.Fprintf(&buf, ", .config.max = {%s}", *m.Max)
-				}
-			}
-			fmt.Fprintf(&buf, ", %s, ", gr.Name)
-			fmt.Fprintf(&buf, "offsetof(%s, %s) },\n", gr.Type, m.Field)
-			if m.Condition != "" {
-				if conditions[len(conditions)-1] == m.Condition &&
-					!(ii < len(gr.Members)-1 && gr.Members[ii+1].Condition == m.Condition) {
-					conditions = conditions[:len(conditions)-1]
-					buf.WriteString("#endif\n")
-				}
+		enc, err := g.nameEncoder.FormatEncodedName(m.Name)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(&buf, "\t{ %s, ", enc)
+		typ, err := g.varType(m.Type)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(&buf, "%s | %s", typ, gr.DefaultValueType())
+		if m.Table != "" {
+			tbl := g.tables[m.Table]
+			buf.WriteString(" | MODE_LOOKUP")
+			fmt.Fprintf(&buf, ", .config.lookup = { %s }", tbl.ConstantName())
+		} else {
+			if m.Min != nil && m.Max != nil {
+				fmt.Fprintf(&buf, ", .config.minmax = {%s, %s}", *m.Min, *m.Max)
+			} else if m.Max != nil {
+				buf.WriteString(" | MODE_MAX")
+				fmt.Fprintf(&buf, ", .config.max = {%s}", *m.Max)
 			}
 		}
-		if gr.Condition != "" {
-			conditions = conditions[:len(conditions)-1]
-			buf.WriteString("#endif\n")
-		}
+		fmt.Fprintf(&buf, ", %s, ", gr.Name)
+		fmt.Fprintf(&buf, "offsetof(%s, %s) },\n", gr.Type, m.Field)
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	buf.WriteString("};\n")
 	return ioutil.WriteFile(filepath.Join(g.outputDir, "settings_generated.c"), buf.Bytes(), 0644)
 }
 
 func (g *SettingsGenerator) WriteFiles() error {
-	if err := g.encodeNames(); err != nil {
-		return err
-	}
 	if err := g.writeHeaderFile(); err != nil {
 		return err
 	}
 	return g.writeImplementationFile()
+}
+
+func (g *SettingsGenerator) PrintStats() {
+	fmt.Println(g.SettingsCount(), "settings")
+	fmt.Printf("word table has %d entries\n", g.nameEncoder.NWords())
+	fmt.Printf("each setting name uses %d bytes\n", g.nameEncoder.MaxEncodedLength)
+	fmt.Printf("%d bytes estimated for setting name storage\n", g.nameEncoder.EstimatedSize(g.SettingsCount()))
 }
 
 func (g *SettingsGenerator) PrintWarnings() {
@@ -669,10 +778,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(gen.SettingsCount(), "settings")
 	if err := gen.WriteFiles(); err != nil {
 		panic(err)
 	}
 
+	gen.PrintStats()
 	gen.PrintWarnings()
 }

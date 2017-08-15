@@ -13,8 +13,13 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 {
 	uint8_t bpos = 0;
 	uint16_t n = 0;
+#ifndef CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING
 	uint8_t shift = 0;
+#endif
 	for (uint8_t ii = 0; ii <= CLIVALUE_ENCODED_NAME_MAX_BYTES; ii++) {
+#ifdef CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING
+		n = val->encoded_name[ii];
+#else
 		// Decode a variable size uint
 		uint16_t b = val->encoded_name[ii];
 		if (b >= 0x80) {
@@ -25,6 +30,7 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 		}
 		// Final byte
 		n |= b << shift;
+#endif
 		const char *word = cliValueWords[n];
 		if (!word) {
 			// No more words
@@ -36,9 +42,11 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 		}
 		strcpy(&buf[bpos], word);
 		bpos += strlen(word);
+#ifndef CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING
 		// Reset shift and n
 		shift = 0;
 		n = 0;
+#endif
 	}
 	buf[bpos] = '\0';
 }
