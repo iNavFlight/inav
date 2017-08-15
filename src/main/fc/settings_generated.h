@@ -1,3 +1,0 @@
-#pragma once
-#define CLIVALUE_MAX_NAME_LENGTH 29
-#define CLIVALUE_ENCODED_NAME_MAX_BYTES 6

@@ -1,11 +1,18 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
+
+#include "config/parameter_group.h"
+
+#include "fc/settings_generated.h"
 
 typedef struct lookupTableEntry_s {
     const char * const *values;
     const uint8_t valueCount;
 } lookupTableEntry_t;
+
+extern const lookupTableEntry_t cliLookupTables[];
 
 #define VALUE_TYPE_OFFSET 0
 #define VALUE_SECTION_OFFSET 4
@@ -61,6 +68,8 @@ typedef struct {
     pgn_t pgn;
     uint16_t offset;
 } __attribute__((packed)) clivalue_t;
+
+extern const clivalue_t cliValueTable[];
 
 void clivalue_get_name(const clivalue_t *val, char *buf);
 bool clivalue_name_contains(const clivalue_t *val, const char *cmdline);

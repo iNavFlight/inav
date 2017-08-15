@@ -594,6 +594,8 @@ COMMON_SRC = \
             fc/rc_curves.c \
             fc/rc_modes.c \
             fc/runtime_config.c \
+            fc/settings.c \
+            fc/settings_generated.c \
             fc/stats.c \
             flight/failsafe.c \
             flight/hil.c \
@@ -913,6 +915,21 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 # Make sure build date and revision is updated on every incremental build
 $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 
+# Settings generator
+SETTINGS_GENERATOR      = $(SRC_DIR)/fc/settings_gen
+SETTINGS_GENERATOR_SRC  = $(SRC_DIR)/fc/settings_gen.go
+
+$(SETTINGS_GENERATOR): $(SETTINGS_GENERATOR_SRC)
+	$(V0) cd $(dir $(SETTINGS_GENERATOR_SRC)) && go build $(notdir $(SETTINGS_GENERATOR_SRC))
+
+# Rebuild the settings for each target
+GENERATED_SETTINGS	= fc/settings_generated.h fc/settings_generated.c
+SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
+$(GENERATED_SETTINGS): $(subst fc/settings_generated.c, ,$(TARGET_SRC)) $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
+	$(V0) CFLAGS="$(CFLAGS)" $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+
+settings: $(GENERATED_SETTINGS)
+
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
 
@@ -959,6 +976,8 @@ clean:
 	$(V0) echo "Cleaning $(TARGET)"
 	$(V0) rm -f $(CLEAN_ARTIFACTS)
 	$(V0) rm -rf $(OBJECT_DIR)/$(TARGET)
+	$(V0) rm -f $(SETTINGS_GENERATOR)
+	$(V0) rm -f $(SRC_DIR)/$(GENERATED_SETTINGS)
 	$(V0) echo "Cleaning $(TARGET) succeeded."
 
 ## clean_test        : clean up all temporary / machine-generated files (tests)

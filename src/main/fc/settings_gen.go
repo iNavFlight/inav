@@ -1,22 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
 const (
-	settingsFile         = "settings.yaml"
 	maxEncodedWordLength = 6
 )
 
@@ -81,6 +83,7 @@ func (t *Table) Used() bool {
 type Group struct {
 	Name      string    `yaml:"name"`
 	Type      string    `yaml:"type"`
+	Headers   []string  `yaml:"headers"`
 	Condition string    `yaml:"condition"`
 	Members   []*Member `yaml:"members"`
 }
@@ -110,18 +113,15 @@ type Settings struct {
 	Groups []*Group `yaml:"groups"`
 }
 
-var (
-	typeRe = regexp.MustCompile("In instantiation of 'void type_detect_helper\\(T\\) \\[with T = (.*?)\\]'\\:")
-)
-
 type SettingsGenerator struct {
-	rootDir              string
-	allHeaders           []string
-	typeDetectionHeaders []string
-	s                    *Settings
-	tables               map[string]*Table
-	hasBooleans          bool
-	settingsCount        int
+	rootDir       string
+	outputDir     string
+	s             *Settings
+	tables        map[string]*Table
+	hasBooleans   bool
+	settingsCount int
+	// Types that need to be resolved
+	pendingTypes map[*Member]*Group
 	// Maximum unpacked name length, so
 	// the C code can allocate an appropiately
 	// sized buffer.
@@ -138,10 +138,8 @@ type SettingsGenerator struct {
 
 func New(rootDir string, settingsFile string) (*SettingsGenerator, error) {
 	g := &SettingsGenerator{
-		rootDir: rootDir,
-	}
-	if err := g.findHeaders(); err != nil {
-		return nil, err
+		rootDir:   rootDir,
+		outputDir: filepath.Dir(settingsFile),
 	}
 	data, err := ioutil.ReadFile(settingsFile)
 	if err != nil {
@@ -158,44 +156,12 @@ func New(rootDir string, settingsFile string) (*SettingsGenerator, error) {
 	}
 	g.initilizeTableUsage()
 	g.updateWords()
+	fmt.Printf("word table has %d entries\n", len(g.words))
 	return g, nil
 }
 
 func (g *SettingsGenerator) SettingsCount() int {
 	return g.settingsCount
-}
-
-func (g *SettingsGenerator) findHeaders() error {
-	skipDirs := map[string]struct{}{
-		"target":  struct{}{},
-		"vcp":     struct{}{},
-		"vcpf4":   struct{}{},
-		"vcp_hal": struct{}{},
-	}
-	err := filepath.Walk(g.rootDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			if _, skip := skipDirs[info.Name()]; skip {
-				return filepath.SkipDir
-			}
-		}
-		if filepath.Ext(path) == ".h" {
-			rel, err := filepath.Rel(g.rootDir, path)
-			if err != nil {
-				return err
-			}
-			g.allHeaders = append(g.allHeaders, rel)
-			base := filepath.Base(path)
-			if strings.Contains(base, "stm32") {
-				return nil
-			}
-			g.typeDetectionHeaders = append(g.typeDetectionHeaders, rel)
-		}
-		return nil
-	})
-	return err
 }
 
 func (g *SettingsGenerator) mapTables() error {
@@ -227,7 +193,6 @@ func (g *SettingsGenerator) sanitizeFields() error {
 			}
 			if m.Table != "" {
 				if g.tables[m.Table] == nil {
-					fmt.Println("TABLES", g.tables)
 					return fmt.Errorf("field %q references non-existing table %q", m.Name, m.Table)
 				}
 			}
@@ -235,11 +200,10 @@ func (g *SettingsGenerator) sanitizeFields() error {
 				m.Field = m.Name
 			}
 			if m.Type == "" {
-				typ, err := g.detectType(gr, m)
-				if err != nil {
-					return fmt.Errorf("could not detect type for member %q in group %q: %v", m.Name, gr.Name, err)
+				if g.pendingTypes == nil {
+					g.pendingTypes = make(map[*Member]*Group)
 				}
-				m.Type = typ
+				g.pendingTypes[m] = gr
 			}
 			if m.Type == "bool" {
 				g.hasBooleans = true
@@ -254,70 +218,120 @@ func (g *SettingsGenerator) sanitizeFields() error {
 			Values: []string{"OFF", "ON"},
 		}
 	}
+	if err := g.resolveTypes(); err != nil {
+		return err
+	}
 	return nil
 }
 
-func (g *SettingsGenerator) detectType(gr *Group, m *Member) (string, error) {
+func (g *SettingsGenerator) addHeader(w io.Writer, h string) {
+	fmt.Fprintf(w, "#include \"%s\"\n", h)
+}
+
+func (g *SettingsGenerator) resolveTypes() error {
 	var buf bytes.Buffer
 	buf.WriteString("#define NAV\n")
 	buf.WriteString("#define STATS\n")
-	for _, h := range g.typeDetectionHeaders {
-		buf.WriteString("#include \"")
-		buf.WriteString(filepath.ToSlash(h))
-		buf.WriteString("\"\n")
+	g.addHeader(&buf, "target.h")
+	for _, gr := range g.s.Groups {
+		for _, h := range gr.Headers {
+			g.addHeader(&buf, h)
+		}
 	}
-	buf.WriteString("template <typename T> void type_detect_helper(T t) {\n")
-	buf.WriteString("t.__this_method_does_not_exist();\n")
-	buf.WriteString("}\n")
-
 	buf.WriteString("int main() {\n")
-	buf.WriteString(gr.Type)
-	buf.WriteString(" var;\n")
-	buf.WriteString("type_detect_helper(var.")
-	buf.WriteString(m.Field)
-	buf.WriteString(");\n")
-	buf.WriteString("return 0;")
+	ii := 0
+	lines := make(map[int]*Member)
+	curLine := strings.Count(buf.String(), "\n") + 1
+	for k, v := range g.pendingTypes {
+		ii++
+		lines[curLine] = k
+		curLine++
+		varName := fmt.Sprintf("var_%d", ii)
+		fmt.Fprintf(&buf, "%s %s; %s.%s.__type_detect_;\n", v.Type, varName, varName, k.Field)
+	}
+	buf.WriteString("return 0;\n")
 	buf.WriteString("}\n")
 
 	tmpDir, err := ioutil.TempDir("", "")
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer os.RemoveAll(tmpDir)
 
 	tmpFile := filepath.Join(tmpDir, "detect.cpp")
 	if err := ioutil.WriteFile(tmpFile, buf.Bytes(), 0644); err != nil {
-		return "", err
+		return err
 	}
 
-	// Create a dummy target.h
-	if err := ioutil.WriteFile(filepath.Join(tmpDir, "target.h"), nil, 0644); err != nil {
-		return "", err
+	cflags := strings.Split(os.Getenv("CFLAGS"), " ")
+	var args []string
+	for _, flag := range cflags {
+		// Don't generate temporary files
+		if flag == "-MMD" || flag == "-MP" || strings.HasPrefix(flag, "-save-temps") {
+			continue
+		}
+		if flag != "" {
+			if strings.HasPrefix(flag, "-D'") {
+				// Cleanup flag. Done by the shell when called from
+				// it but we must do it ourselves becase we're not
+				// calling the compiler via shell.
+				flag = "-D" + flag[3:len(flag)-1]
+			}
+			args = append(args, flag)
+		}
 	}
-
-	cmd := exec.Command("arm-none-eabi-g++", "-I", g.rootDir, "-I", tmpDir, tmpFile)
+	args = append(args, tmpFile)
+	cmd := exec.Command("arm-none-eabi-g++", args...)
+	cmd.Stdout = os.Stdout
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	cmd.Run()
-	match := typeRe.FindStringSubmatch(stderr.String())
-	if len(match) != 2 {
-		return "", errors.New(stderr.String())
+	sc := bufio.NewScanner(bytes.NewReader(stderr.Bytes()))
+	typeRe := regexp.MustCompile("which is of non-class type '(.*)'")
+
+	for sc.Scan() {
+		text := sc.Text()
+		if strings.Contains(text, "error: request for member '__type_detect_'") {
+			sep1 := strings.IndexByte(text, ':')
+			sep2 := strings.IndexByte(text[sep1+1:], ':') + sep1 + 1
+			line, err := strconv.Atoi(text[sep1+1 : sep2])
+			if err != nil {
+				return err
+			}
+			m := lines[line]
+			if m == nil {
+				return fmt.Errorf("no member found at line %d, compiler output: %s", line, stderr.String())
+			}
+			match := typeRe.FindStringSubmatch(text[sep2:])
+			if len(match) != 2 {
+				return fmt.Errorf("malformed output line %q", text)
+			}
+			switch match[1] {
+			case "int8_t {aka signed char}":
+				m.Type = "int8_t"
+			case "uint8_t {aka unsigned char}":
+				m.Type = "uint8_t"
+			case "int16_t {aka short int}":
+				m.Type = "int16_t"
+			case "uint16_t {aka short unsigned int}":
+				m.Type = "uint16_t"
+			case "uint32_t {aka long unsigned int}":
+				m.Type = "uint32_t"
+			case "float":
+				m.Type = "float"
+			default:
+				return fmt.Errorf("unknown type %q for setting %q (field %s)", match[1], m.Name, m.Field)
+			}
+		}
 	}
-	switch match[1] {
-	case "short int":
-		return "int16_t", nil
-	case "short unsigned int":
-		return "uint16_t", nil
-	case "signed char":
-		return "int8_t", nil
-	case "unsigned char":
-		return "uint8_t", nil
-	case "long unsigned int":
-		return "uint32_t", nil
-	case "float":
-		return "float", nil
+	for _, gr := range g.s.Groups {
+		for _, m := range gr.Members {
+			if m.Type == "" {
+				return fmt.Errorf("could not determine type for %q (field %s in %s)", m.Name, m.Field, gr.Type)
+			}
+		}
 	}
-	return "", fmt.Errorf("unknown type %q\n%s", match[1], stderr.String())
+	return nil
 }
 
 func (g *SettingsGenerator) varType(typ string) (string, error) {
@@ -470,25 +484,7 @@ func (g *SettingsGenerator) formatEncodedWord(s string) (string, error) {
 	return buf.String(), nil
 }
 
-func (g *SettingsGenerator) writeHeaderFile() error {
-	var buf bytes.Buffer
-	buf.WriteString("#pragma once\n")
-	fmt.Fprintf(&buf, "#define CLIVALUE_MAX_NAME_LENGTH %d\n", g.maxNameLength)
-	fmt.Fprintf(&buf, "#define CLIVALUE_ENCODED_NAME_MAX_BYTES %d\n", maxEncodedWordLength)
-	return ioutil.WriteFile("settings_generated.h", buf.Bytes(), 0644)
-}
-
-func (g *SettingsGenerator) writeImplementationFile() error {
-	var buf bytes.Buffer
-	// Write word list
-	buf.WriteString("static const char *words[] = {\n")
-	buf.WriteString("\tNULL,\n")
-	for _, w := range g.wordsByUsage {
-		fmt.Fprintf(&buf, "\t%q,\n", w)
-	}
-	buf.WriteString("};\n")
-
-	// Write the tables
+func (g *SettingsGenerator) orderedTableNames() []string {
 	var tableNames []string
 	for k, v := range g.tables {
 		if v.Used() {
@@ -496,22 +492,18 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 		}
 	}
 	sort.Strings(tableNames)
-	for _, k := range tableNames {
-		tbl := g.tables[k]
-		cond := tbl.Conditions()
-		if cond != "" {
-			fmt.Fprintf(&buf, "#if %s\n", cond)
-		}
-		fmt.Fprintf(&buf, "static const char *%s[] = {\n", tbl.VarName())
-		for _, v := range tbl.Values {
-			fmt.Fprintf(&buf, "\t%q,\n", v)
-		}
-		buf.WriteString("};\n")
-		if cond != "" {
-			buf.WriteString("#endif\n")
-		}
-	}
+	return tableNames
+}
 
+func (g *SettingsGenerator) writeHeaderFile() error {
+	var buf bytes.Buffer
+	buf.WriteString("#pragma once\n")
+	// Write clivalue_t size constants
+	fmt.Fprintf(&buf, "#define CLIVALUE_MAX_NAME_LENGTH %d\n", g.maxNameLength)
+	fmt.Fprintf(&buf, "#define CLIVALUE_ENCODED_NAME_MAX_BYTES %d\n", maxEncodedWordLength)
+	fmt.Fprintf(&buf, "#define CLIVALUE_TABLE_COUNT %d\n", g.SettingsCount())
+	// Write lookup table constants
+	tableNames := g.orderedTableNames()
 	buf.WriteString("enum {\n")
 	for _, k := range tableNames {
 		tbl := g.tables[k]
@@ -526,8 +518,59 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 	}
 	buf.WriteString("\tLOOKUP_TABLE_COUNT,\n")
 	buf.WriteString("};\n")
+	// Write table pointers
+	for _, k := range tableNames {
+		tbl := g.tables[k]
+		cond := tbl.Conditions()
+		if cond != "" {
+			fmt.Fprintf(&buf, "#if %s\n", cond)
+		}
+		fmt.Fprintf(&buf, "extern const char *%s[];\n", tbl.VarName())
+		if cond != "" {
+			buf.WriteString("#endif\n")
+		}
+	}
 
-	buf.WriteString("static const lookupTableEntry_t lookupTables[] = {\n")
+	return ioutil.WriteFile(filepath.Join(g.outputDir, "settings_generated.h"), buf.Bytes(), 0644)
+}
+
+func (g *SettingsGenerator) writeImplementationFile() error {
+	var buf bytes.Buffer
+	g.addHeader(&buf, "platform.h")
+	g.addHeader(&buf, "config/parameter_group_ids.h")
+	g.addHeader(&buf, "settings.h")
+	for _, gr := range g.s.Groups {
+		for _, h := range gr.Headers {
+			g.addHeader(&buf, h)
+		}
+	}
+	// Write word list
+	buf.WriteString("const char *cliValueWords[] = {\n")
+	buf.WriteString("\tNULL,\n")
+	for _, w := range g.wordsByUsage {
+		fmt.Fprintf(&buf, "\t%q,\n", w)
+	}
+	buf.WriteString("};\n")
+
+	// Write the tables
+	tableNames := g.orderedTableNames()
+	for _, k := range tableNames {
+		tbl := g.tables[k]
+		cond := tbl.Conditions()
+		if cond != "" {
+			fmt.Fprintf(&buf, "#if %s\n", cond)
+		}
+		fmt.Fprintf(&buf, "const char *%s[] = {\n", tbl.VarName())
+		for _, v := range tbl.Values {
+			fmt.Fprintf(&buf, "\t%q,\n", v)
+		}
+		buf.WriteString("};\n")
+		if cond != "" {
+			buf.WriteString("#endif\n")
+		}
+	}
+
+	buf.WriteString("const lookupTableEntry_t cliLookupTables[] = {\n")
 	for _, k := range tableNames {
 		tbl := g.tables[k]
 		cond := tbl.Conditions()
@@ -545,7 +588,7 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 	// Write values
 	var conditions []string
 
-	buf.WriteString("const clivalue_t valueTable[] = {\n")
+	buf.WriteString("const clivalue_t cliValueTable[] = {\n")
 
 	for _, gr := range g.s.Groups {
 		fmt.Fprintf(&buf, "// %s\n", gr.Name)
@@ -598,7 +641,7 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 		}
 	}
 	buf.WriteString("};\n")
-	return ioutil.WriteFile("settings_generated.c", buf.Bytes(), 0644)
+	return ioutil.WriteFile(filepath.Join(g.outputDir, "settings_generated.c"), buf.Bytes(), 0644)
 }
 
 func (g *SettingsGenerator) WriteFiles() error {
@@ -620,29 +663,13 @@ func (g *SettingsGenerator) PrintWarnings() {
 }
 
 func main() {
-	wd, err := os.Getwd()
+	srcRoot := os.Args[1]
+	settingsFile := os.Args[2]
+	gen, err := New(srcRoot, settingsFile)
 	if err != nil {
 		panic(err)
 	}
-	var settingsDir string
-	if len(os.Args) > 1 {
-		settingsDir = filepath.Join(wd, os.Args[1])
-	} else {
-		settingsDir = wd
-	}
-	abs, err := filepath.Abs(settingsDir)
-	if err != nil {
-		panic(err)
-	}
-	srcRoot := filepath.Join(abs, "..", "..", "main")
-
-	gen, err := New(srcRoot, filepath.Join(settingsDir, settingsFile))
-	if err != nil {
-		panic(err)
-	}
-
 	fmt.Println(gen.SettingsCount(), "settings")
-
 	if err := gen.WriteFiles(); err != nil {
 		panic(err)
 	}

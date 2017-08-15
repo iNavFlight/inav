@@ -4,7 +4,8 @@
 
 #include "fc/settings_generated.h"
 #include "fc/settings.h"
-#include "fc/settings_generated.c"
+
+extern const char *cliValueWords[];
 
 void clivalue_get_name(const clivalue_t *val, char *buf)
 {
@@ -22,7 +23,7 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 		}
 		// Final byte
 		n |= b << shift;
-		const char *word = words[n];
+		const char *word = cliValueWords[n];
 		if (!word) {
 			// No more words
 			break;

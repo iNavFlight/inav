@@ -74,7 +74,7 @@ extern uint8_t __config_end;
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/settings_generated.h"
+#include "fc/settings.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -113,8 +113,6 @@ extern uint8_t __config_end;
 #include "telemetry/frsky.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
-
-#include "fc/settings.c"
 
 #if FLASH_SIZE > 128
 #define PLAY_SOUND
@@ -335,8 +333,8 @@ static void printValuePointer(const clivalue_t *var, const void *valuePointer, u
         }
         break;
     case MODE_LOOKUP:
-        if (var->config.lookup.tableIndex < ARRAYLEN(lookupTables)) {
-            cliPrintf(lookupTables[var->config.lookup.tableIndex].values[value]);
+        if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
+            cliPrintf(cliLookupTables[var->config.lookup.tableIndex].values[value]);
         } else {
             clivalue_get_name(var, buf);
             cliPrintf("VALUE %s OUT OF RANGE\r\n", buf);
@@ -419,8 +417,8 @@ static void dumpPgValue(const clivalue_t *value, uint8_t dumpMask)
 
 static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
 {
-    for (uint32_t i = 0; i < ARRAYLEN(valueTable); i++) {
-        const clivalue_t *value = &valueTable[i];
+    for (uint32_t i = 0; i < CLIVALUE_TABLE_COUNT; i++) {
+        const clivalue_t *value = &cliValueTable[i];
         bufWriterFlush(cliWriter);
         if ((value->type & VALUE_SECTION_MASK) == valueSection) {
             dumpPgValue(value, dumpMask);
@@ -448,7 +446,7 @@ static void cliPrintVarRange(const clivalue_t *var)
             cliPrintf("Allowed range: 0- %d\r\n", var->config.max.max);
         break;
     case (MODE_LOOKUP): {
-        const lookupTableEntry_t *tableEntry = &lookupTables[var->config.lookup.tableIndex];
+        const lookupTableEntry_t *tableEntry = &cliLookupTables[var->config.lookup.tableIndex];
         cliPrint("Allowed values:");
         for (uint32_t i = 0; i < tableEntry->valueCount ; i++) {
             if (i > 0)
@@ -2187,8 +2185,8 @@ static void cliGet(char *cmdline)
     int matchedCommands = 0;
     char name[CLIVALUE_MAX_NAME_LENGTH];
 
-    for (uint32_t i = 0; i < ARRAYLEN(valueTable); i++) {
-        val = &valueTable[i];
+    for (uint32_t i = 0; i < CLIVALUE_TABLE_COUNT; i++) {
+        val = &cliValueTable[i];
         if (clivalue_name_contains(val, cmdline)) {
             clivalue_get_name(val, name);
             cliPrintf("%s = ", name);
@@ -2220,8 +2218,8 @@ static void cliSet(char *cmdline)
 
     if (len == 0 || (len == 1 && cmdline[0] == '*')) {
         cliPrint("Current settings: \r\n");
-        for (uint32_t i = 0; i < ARRAYLEN(valueTable); i++) {
-            val = &valueTable[i];
+        for (uint32_t i = 0; i < CLIVALUE_TABLE_COUNT; i++) {
+            val = &cliValueTable[i];
             clivalue_get_name(val, name);
             cliPrintf("%s = ", name);
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
@@ -2242,13 +2240,13 @@ static void cliSet(char *cmdline)
             eqptr++;
         }
 
-        for (uint32_t i = 0; i < ARRAYLEN(valueTable); i++) {
-            val = &valueTable[i];
+        for (uint32_t i = 0; i < CLIVALUE_TABLE_COUNT; i++) {
+            val = &cliValueTable[i];
             // ensure exact match when setting to prevent setting variables with shorter names
             if (clivalue_name_exact_match(val, cmdline, variableNameLength)) {
                 bool changeValue = false;
                 int_float_value_t tmp = {0};
-                const int mode = valueTable[i].type & VALUE_MODE_MASK;
+                const int mode = cliValueTable[i].type & VALUE_MODE_MASK;
                 switch (mode) {
                     case MODE_MAX:
                     case MODE_DIRECT: {
@@ -2261,12 +2259,12 @@ static void cliSet(char *cmdline)
                                 valuef = fastA2F(eqptr);
                                 uvalue = fastA2UL(eqptr);
                                 // note: compare float values
-                                if ((mode == MODE_DIRECT && (valuef >= valueTable[i].config.minmax.min && valuef <= valueTable[i].config.minmax.max))
-                                     || (mode == MODE_MAX && (valuef >= 0 && valuef <= valueTable[i].config.max.max))) {
+                                if ((mode == MODE_DIRECT && (valuef >= cliValueTable[i].config.minmax.min && valuef <= cliValueTable[i].config.minmax.max))
+                                     || (mode == MODE_MAX && (valuef >= 0 && valuef <= cliValueTable[i].config.max.max))) {
 
-                                    if ((valueTable[i].type & VALUE_TYPE_MASK) == VAR_FLOAT)
+                                    if ((cliValueTable[i].type & VALUE_TYPE_MASK) == VAR_FLOAT)
                                         tmp.float_value = valuef;
-                                    else if ((valueTable[i].type & VALUE_TYPE_MASK) == VAR_UINT32)
+                                    else if ((cliValueTable[i].type & VALUE_TYPE_MASK) == VAR_UINT32)
                                         tmp.uint_value = uvalue;
                                     else
                                         tmp.int_value = value;
@@ -2277,7 +2275,7 @@ static void cliSet(char *cmdline)
                         }
                         break;
                     case MODE_LOOKUP: {
-                            const lookupTableEntry_t *tableEntry = &lookupTables[valueTable[i].config.lookup.tableIndex];
+                            const lookupTableEntry_t *tableEntry = &cliLookupTables[cliValueTable[i].config.lookup.tableIndex];
                             bool matched = false;
                             for (uint32_t tableValueIndex = 0; tableValueIndex < tableEntry->valueCount && !matched; tableValueIndex++) {
                                 matched = sl_strcasecmp(tableEntry->values[tableValueIndex], eqptr) == 0;
@@ -2294,7 +2292,7 @@ static void cliSet(char *cmdline)
                 if (changeValue) {
                     cliSetVar(val, tmp);
 
-                    clivalue_get_name(&valueTable[i], name);
+                    clivalue_get_name(&cliValueTable[i], name);
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
                 } else {
@@ -2907,6 +2905,5 @@ void cliEnter(serialPort_t *serialPort)
 void cliInit(const serialConfig_t *serialConfig)
 {
     UNUSED(serialConfig);
-    BUILD_BUG_ON(LOOKUP_TABLE_COUNT != ARRAYLEN(lookupTables));
 }
-#endif// USE_CLI
+#endif // USE_CLI

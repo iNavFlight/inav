@@ -66,6 +66,7 @@ tables:
 groups:
   - name: PG_GYRO_CONFIG
     type: gyroConfig_t
+    headers: ["sensors/gyro.h"]
     members:
       - name: looptime
         max: 9000
@@ -114,6 +115,7 @@ groups:
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
+    headers: ["fc/config.h"]
     condition: USE_ADC
     members:
       - name: vbat_adc_channel
@@ -135,6 +137,7 @@ groups:
         
   - name: PG_ACCELEROMETER_CONFIG
     type: accelerometerConfig_t
+    headers: ["sensors/acceleration.h"]
     members:
       - name: acc_notch_hz
         condition: USE_ACC_NOTCH
@@ -179,6 +182,7 @@ groups:
 
   - name: PG_RANGEFINDER_CONFIG
     type: rangefinderConfig_t
+    headers: ["sensors/rangefinder.h"]
     condition: USE_RANGEFINDER
     members:
       - name: rangefinder_hardware
@@ -186,6 +190,7 @@ groups:
 
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t
+    headers: ["sensors/compass.h"]
     condition: MAG
     members:
       - name: align_mag
@@ -216,6 +221,7 @@ groups:
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t
+    headers: ["sensors/barometer.h"]
     condition: BARO
     members:
       - name: baro_hardware
@@ -226,6 +232,7 @@ groups:
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
+    headers: ["sensors/pitotmeter.h"]
     condition: PITOT
     members:
       - name: pitot_hardware
@@ -242,6 +249,7 @@ groups:
 
   - name: PG_RX_CONFIG
     type: rxConfig_t
+    headers: ["rx/rx.h", "rx/spektrum.h"]
     members:
       - name: mid_rc
         field: midrc
@@ -300,6 +308,7 @@ groups:
         
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
+    headers: ["blackbox/blackbox.h"]
     condition: BLACKBOX
     members:
       - name: blackbox_rate_num
@@ -320,6 +329,7 @@ groups:
 
   - name: PG_MOTOR_CONFIG
     type: motorConfig_t
+    headers: ["flight/mixer.h"]
     members:
       - name: min_throttle
         field: minthrottle
@@ -377,6 +387,7 @@ groups:
 
   - name: PG_BOARD_ALIGNMENT
     type: boardAlignment_t
+    headers: ["sensors/boardalignment.h"]
     members:
       - name: align_board_roll
         field: rollDeciDegrees
@@ -393,6 +404,7 @@ groups:
 
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
+    headers: ["io/gimbal.h"]
     condition: USE_SERVOS
     members:
       - name: gimbal_mode
@@ -401,6 +413,7 @@ groups:
 
   - name: PG_BATTERY_CONFIG
     type: batteryConfig_t
+    headers: ["sensors/battery.h"]
     members:
       - name: battery_capacity
         field: batteryCapacity
@@ -470,6 +483,7 @@ groups:
 
   - name: PG_SERVO_CONFIG
     type: servoConfig_t
+    headers: ["flight/servos.h"]
     condition: USE_SERVOS
     members:
       - name: servo_center_pulse
@@ -492,6 +506,7 @@ groups:
 
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
+    headers: ["fc/controlrate_profile.h"]
     members:
       - name: rc_expo
         field: rcExpo8
@@ -540,6 +555,7 @@ groups:
 
   - name: PG_IMU_CONFIG
     type: imuConfig_t
+    headers: ["flight/imu.h"]
     members:
       - name: imu_dcm_kp
         field: dcm_kp_acc
@@ -597,6 +613,7 @@ groups:
 
   - name: PG_RC_CONTROLS_CONFIG
     type: rcControlsConfig_t
+    headers: ["fc/rc_controls.h"]
     members:
       - name: deadband
         min: 0
@@ -617,6 +634,7 @@ groups:
 
   - name: PG_PID_PROFILE
     type: pidProfile_t
+    headers: ["flight/pid.h"]
     members:
       - name: mc_p_pitch
         field: bank_mc.pid[PID_PITCH].P
@@ -974,6 +992,7 @@ groups:
 
   - name: PG_NAV_CONFIG
     type: navConfig_t
+    headers: ["navigation/navigation.h"]
     condition: NAV
     members:
       - name: nav_disarm_on_landing
@@ -1151,6 +1170,7 @@ groups:
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
+    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky.h"]
     condition: TELEMETRY
     members:
       - name: telemetry_switch
@@ -1197,6 +1217,7 @@ groups:
 
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
+    headers: ["rx/eleres.h"]
     condition: USE_RX_ELERES
     members:
       - name: eleres_freq
@@ -1227,6 +1248,7 @@ groups:
 
   - name: PG_LED_STRIP_CONFIG
     type: ledStripConfig_t
+    headers: ["common/color.h", "io/ledstrip.h"]
     condition: LED_STRIP
     members:
       - name: ledstrip_visual_beeper
@@ -1234,6 +1256,7 @@ groups:
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
+    headers: ["io/osd.h"]
     condition: OSD
     members:
       - name: osd_video_system
