@@ -445,8 +445,8 @@ void handleSmartPortTelemetry(void)
             case FSSP_DATAID_T2         :
                 if (sensors(SENSOR_GPS)) {
 #ifdef GPS
-                    // provide GPS lock status
-                    smartPortSendPackage(id, (STATE(GPS_FIX) ? 1000 : 0) + (STATE(GPS_FIX_HOME) ? 2000 : 0) + gpsSol.numSat);
+                    // provide GPS lock status, GPS quality, and number of locked satellites
+                    smartPortSendPackage(id, (STATE(GPS_FIX) ? 1000 : 0) + (STATE(GPS_FIX_HOME) ? 2000 : 0) + ((9 - constrain(gpsSol.hdop / 1000, 0, 9)) * 100) + constrain(gpsSol.numSat, 0, 99));
                     smartPortHasRequest = 0;
 #endif
                 }
