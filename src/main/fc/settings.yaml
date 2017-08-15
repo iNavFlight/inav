@@ -1267,7 +1267,7 @@ groups:
         max: 10000
 
       - name: osd_main_voltage_pos
-        field: item_pos[OSD_MAIN_BATT_VOLTAGE
+        field: item_pos[OSD_MAIN_BATT_VOLTAGE]
         min: 0
         max: OSD_POS_MAX_CLI
       - name: osd_rssi_pos
