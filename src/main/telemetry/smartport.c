@@ -348,8 +348,8 @@ void handleSmartPortTelemetry(void)
                 break;
             case FSSP_DATAID_FUEL       :
                 if (feature(FEATURE_CURRENT_METER)) {
-                    if (batteryConfig()->batteryCapacity > 0) {
-                        smartPortSendPackage(id, calculateBatteryCapacityRemainingPercentage()); // Show as remaining battery percentage as battery capacity is set
+                    if (telemetryConfig()->smartportFuelPercent && batteryConfig()->batteryCapacity > 0) {
+                        smartPortSendPackage(id, calculateBatteryCapacityRemainingPercentage()); // Show remaining battery % if smartport_fuel_percent=ON and battery_capacity set
                     } else {
                         smartPortSendPackage(id, mAhDrawn); // given in mAh, unknown requested unit
                     }

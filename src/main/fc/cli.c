@@ -912,6 +912,7 @@ static const clivalue_t valueTable[] = {
     { "hott_alarm_sound_interval",  VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0,  120 }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, hottAlarmSoundInterval) },
 #ifdef TELEMETRY_SMARTPORT
     { "smartport_uart_unidir",      VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, smartportUartUnidirectional) },
+    { "smartport_fuel_percent",     VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, smartportFuelPercent) },
 #endif
     { "ibus_telemetry_type",       VAR_UINT8  | MASTER_VALUE, .config.minmax = { 0,  255 }, PG_TELEMETRY_CONFIG, offsetof(telemetryConfig_t, ibusTelemetryType ) },
 #ifdef TELEMETRY_LTM
