@@ -17,6 +17,8 @@ All telemetry systems use serial ports, configure serial ports to use the teleme
 
 ## FrSky telemetry
 
+**Note** For newer FrSky transmitters and receivers such as the Taranis/XJR, QX7 and X8R, X6R and X4R(SB) see the SmartPort (S.Port) telemetry section below.  FrSky telemetry is for older FrSky transmitters and receivers.
+
 FrSky telemetry is transmit only and just requires a single connection from the TX pin of a serial port to the RX pin on an FrSky telemetry receiver.
 
 FrSky telemetry signals are inverted.  To connect a INAV capable board to an FrSKy receiver you have some options.
@@ -131,7 +133,7 @@ for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
 MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial.
 
-## SmartPort (S.Port)
+## SmartPort (S.Port) telemetry
 
 Smartport is a telemetry system used by newer FrSky transmitters and receivers such as the Taranis/XJR and X8R, X6R and X4R(SB).
 
@@ -180,21 +182,21 @@ The following sensors are transmitted
 * Hdg : heading, North is 0°, South is 180°.
 * AccX,Y,Z : accelerometers values.
 * Tmp2 : GPS lock status, GPS accuracy, and number of satellites.  Number is sent as ABCD :
-  A 1 = GPS fix, 2 = GOS home fix (numbers are aditives)
-  B GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
-  C number of sats locked (digit C & D are the number of locked satellites)
-  D number of sats locked (if 14 satellites are locked, C = 1 & D = 4)
+  A. 1 = GPS fix, 2 = GOS home fix (numbers are aditives)
+  B. GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
+  C. number of sats locked (digit C & D are the number of locked satellites)
+  D. number of sats locked (if 14 satellites are locked, C = 1 & D = 4)
 * A4 : average cell value. Warning : unlike FLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
 * GAlt : GPS altitude, sea level is zero.
 * 420 : distance to GPS home fix, in Meters
 * GSpd : current speed, calculated by GPS.
 * GPS : GPS coordinates.
 * Tmp1 : flight mode, sent as 5 digits. Number is sent as ABCDE. Please ignore the first digit (a), it's always 1 and just there to ensure the number as always 5 digits (the B - E digits of actual data). The numbers are aditives (for example, if digit C is 6, it means both position hold and altitude hold are active) :
-  A 1 = laceholder
-  B 1 = return to home, 2 = waypoint mode, 4 = headfree mode
-  C 1 = heading hold, 2 = altitude hold, 4 = position hold
-  D 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode (passthru can lead to an overflow, in which case passthru mode is excluded)
-  E 1 = ok to arm, 2 = arming is prevented, 4 = armed
+  A. 1 = laceholder
+  B. 1 = return to home, 2 = waypoint mode, 4 = headfree mode
+  C. 1 = heading hold, 2 = altitude hold, 4 = position hold
+  D. 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode (passthru can lead to an overflow, in which case passthru mode is excluded)
+  E. 1 = ok to arm, 2 = arming is prevented, 4 = armed
 
 ## Ibus telemetry
 
