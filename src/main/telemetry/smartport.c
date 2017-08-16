@@ -306,7 +306,6 @@ void handleSmartPortTelemetry(void)
                     smartPortHasRequest = 0;
                 }
                 break;
-
             case FSSP_DATAID_HOME_DIST  :
                 if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
                     smartPortSendPackage(id, GPS_distanceToHome);
@@ -458,16 +457,6 @@ void handleSmartPortTelemetry(void)
             case FSSP_DATAID_ASPD    :
                 if (sensors(SENSOR_PITOT)) {
                     smartPortSendPackage(id, pitot.airSpeed * 0.194384449f); // cm/s to knots*10
-                    smartPortHasRequest = 0;
-                }
-                break;
-#else
-            case FSSP_DATAID_ASPD    :
-                if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
-                    //convert to knots: 1cm/s = 0.0194384449 knots
-                    //Speed should be sent in knots/1000 (GPS speed is in cm/s)
-                    uint32_t tmpui = gpsSol.groundSpeed * 1944 / 100;
-                    smartPortSendPackage(id, tmpui);
                     smartPortHasRequest = 0;
                 }
                 break;
