@@ -184,9 +184,12 @@ void init(void)
 #endif
 
     initEEPROM();
-
     ensureEEPROMContainsValidData();
     readEEPROM();
+
+#ifdef STM32F3
+    systemClockSetup(systemConfig()->cpuUnderclock);
+#endif
 
     i2cSetSpeed(systemConfig()->i2c_speed);
 

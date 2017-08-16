@@ -983,9 +983,13 @@ static const clivalue_t valueTable[] = {
     { "osd_power_pos",              VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, OSD_POS_MAX_CLI }, PG_OSD_CONFIG, offsetof(osdConfig_t, item_pos[OSD_POWER]) },
     { "osd_air_speed",              VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, OSD_POS_MAX_CLI }, PG_OSD_CONFIG, offsetof(osdConfig_t, item_pos[OSD_AIR_SPEED]) },
 #endif
+
 // PG_SYSTEM_CONFIG
+#if defined(STM32F3)
+    { "cpu_underclock",             VAR_INT8   | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_SYSTEM_CONFIG, offsetof(systemConfig_t, cpuUnderclock) },
+#endif
 #ifdef USE_I2C
-    { "i2c_speed",              VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_I2C_SPEED }, PG_SYSTEM_CONFIG, offsetof(systemConfig_t, i2c_speed) },
+    { "i2c_speed",                  VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_I2C_SPEED }, PG_SYSTEM_CONFIG, offsetof(systemConfig_t, i2c_speed) },
 #endif
     { "debug_mode",                 VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_DEBUG }, PG_SYSTEM_CONFIG, offsetof(systemConfig_t, debug_mode) },
 #ifdef ASYNC_GYRO_PROCESSING
