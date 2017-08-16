@@ -191,6 +191,10 @@ void init(void)
     systemClockSetup(systemConfig()->cpuUnderclock);
 #endif
 
+#ifdef STM32F1
+    systemClockSetup(systemConfig()->cpuUnderclock);
+#endif
+    
     i2cSetSpeed(systemConfig()->i2c_speed);
 
 #ifdef USE_HARDWARE_PREBOOT_SETUP
