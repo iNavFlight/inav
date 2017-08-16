@@ -77,7 +77,7 @@ The following sensors are transmitted
 * **GAlt** : GPS altitude, sea level is zero.
 * **ASpd** : true air speed, from pitot sensor.
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
-* **420** : distance to GPS home fix, in meters
+* **0420** : distance to GPS home fix, in meters
 
 ## FrSky telemetry
 
