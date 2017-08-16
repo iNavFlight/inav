@@ -461,7 +461,7 @@ void handleSmartPortTelemetry(void)
                     smartPortHasRequest = 0;
                 }
                 break;
-#elif GPS
+#else
             case FSSP_DATAID_ASPD    :
                 if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
                     //convert to knots: 1cm/s = 0.0194384449 knots
