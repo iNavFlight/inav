@@ -656,6 +656,25 @@ func (g *SettingsGenerator) orderedTableNames() []string {
 	return tableNames
 }
 
+func (g *SettingsGenerator) CanUseByteOffsetoff() bool {
+	var buf bytes.Buffer
+	g.addHeader(&buf, "cstddef")
+	g.forEachEnabledGroup(func(gr *Group) error {
+		for _, h := range gr.Headers {
+			g.addHeader(&buf, h)
+		}
+		return nil
+	})
+	g.forEachEnabledMember(func(gr *Group, m *Member) error {
+
+		fmt.Fprintf(&buf, "static_assert(offsetof(%s, %s) < 255, \"%s.%s is too big\");\n",
+			gr.Type, m.Field, gr.Type, m.Field)
+		return nil
+	})
+	_, stderr, _ := g.compileTestFile(&buf)
+	return !strings.Contains(string(stderr), "static assertion failed")
+}
+
 func (g *SettingsGenerator) writeHeaderFile() error {
 	var buf bytes.Buffer
 	buf.WriteString("#pragma once\n")
@@ -666,6 +685,8 @@ func (g *SettingsGenerator) writeHeaderFile() error {
 		buf.WriteString("#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n")
 	}
 	fmt.Fprintf(&buf, "#define CLIVALUE_TABLE_COUNT %d\n", g.SettingsCount())
+	g.CanUseByteOffsetoff()
+	buf.WriteString("#define CLIVALUE_USE_BYTE_OFFSETOF\n")
 	var pgnCount int
 	err := g.forEachEnabledGroup(func(g *Group) error {
 		pgnCount++

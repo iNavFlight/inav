@@ -65,7 +65,11 @@ typedef struct {
     const uint8_t type; // see cliValueFlag_e
     const cliValueConfig_t config;
 
+#ifdef CLIVALUE_USE_BYTE_OFFSETOF
+    uint8_t offset;
+#else
     uint16_t offset;
+#endif
 } __attribute__((packed)) clivalue_t;
 
 extern const clivalue_t cliValueTable[];
