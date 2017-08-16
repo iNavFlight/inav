@@ -988,6 +988,9 @@ static const clivalue_t valueTable[] = {
 #if defined(STM32F3)
     { "cpu_underclock",             VAR_INT8   | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_SYSTEM_CONFIG, offsetof(systemConfig_t, cpuUnderclock) },
 #endif
+#if defined(STM32F1)
+    { "cpu_underclock",             VAR_INT8   | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_OFF_ON }, PG_SYSTEM_CONFIG, offsetof(systemConfig_t, cpuUnderclock) },
+#endif
 #ifdef USE_I2C
     { "i2c_speed",                  VAR_UINT8  | MASTER_VALUE | MODE_LOOKUP, .config.lookup = { TABLE_I2C_SPEED }, PG_SYSTEM_CONFIG, offsetof(systemConfig_t, i2c_speed) },
 #endif
