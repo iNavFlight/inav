@@ -54,30 +54,30 @@ This has been tested with Flip32 F4 / Airbot F4 and FrSky X4R-SB receiver.
 
 The following sensors are transmitted
 
+* **GSpd** : current horizontal ground speed, calculated by GPS.
 * **VFAS** : actual vbat value.
 * **Curr** : actual current comsuption, in amps.
 * **Alt** : barometer based altitude, relative to home location.
 * **Fuel** : if `battery_capacity` variable set and variable `smartport_fuel_percent = ON` remaining battery percentage, mAh drawn otherwise.
+* **GPS** : GPS coordinates.
 * **VSpd** : vertical speed, unit is cm/s.
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values.
-* **Tmp2** : GPS lock status, GPS accuracy, and number of satellites.  Number is sent as **ABCD** detailed below :
-  * **A** : 1 = GPS fix, 2 = GPS home fix (numbers are additive)
-  * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
-  * **C** : number of satellites locked (digit C & D are the number of locked satellites)
-  * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
-* **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
-* **GAlt** : GPS altitude, sea level is zero.
-* **420** : distance to GPS home fix, in meters
-* **GSpd** : current horizontal groud speed, calculated by GPS.
-* **ASpd** : true air speed, from pitot sensor.
-* **GPS** : GPS coordinates.
 * **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. Please ignore the first digit (A), it's always 1 and just there to ensure the number as always 5 digits (the B - E digits of actual data). The numbers are additives (for example, if digit C is 6, it means both position hold and altitude hold are active) :
   * **A** : 1 = placeholder so flight mode is always 5 digits long
   * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
   * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
   * **D** : 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode (passthru can lead to an overflow, in which case passthru mode is excluded)
   * **E** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
+* **Tmp2** : GPS lock status, GPS accuracy, and number of satellites.  Number is sent as **ABCD** detailed below :
+  * **A** : 1 = GPS fix, 2 = GPS home fix (numbers are additive)
+  * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
+  * **C** : number of satellites locked (digit C & D are the number of locked satellites)
+  * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
+* **GAlt** : GPS altitude, sea level is zero.
+* **ASpd** : true air speed, from pitot sensor.
+* **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
+* **420** : distance to GPS home fix, in meters
 
 ## FrSky telemetry
 
