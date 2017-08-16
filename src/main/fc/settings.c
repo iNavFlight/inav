@@ -64,3 +64,16 @@ bool clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8
 	clivalue_get_name(val, name);
 	return sl_strncasecmp(cmdline, name, strlen(name)) == 0 && var_name_length == strlen(name);
 }
+
+pgn_t clivalue_get_pgn(const clivalue_t *val)
+{
+	uint16_t pos = val - (const clivalue_t *)cliValueTable;
+	uint16_t acc = 0;
+	for (uint8_t ii = 0; ii < CLIVALUE_PGN_COUNT; ii++) {
+		acc += cliValuePgnCounts[ii];
+		if (acc > pos) {
+			return cliValuePgn[ii];
+		}
+	}
+	return -1;
+}

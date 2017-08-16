@@ -597,6 +597,32 @@ func (g *SettingsGenerator) initilizeTableUsage() {
 		panic(errors.New("unbalanced conditions"))
 	}
 }
+func (g *SettingsGenerator) forEachEnabledGroup(f func(*Group) error) error {
+	for _, gr := range g.s.Groups {
+		if gr.Condition != "" {
+			if _, found := g.trueConditions[gr.Condition]; !found {
+				continue
+			}
+		}
+		if err := f(gr); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (g *SettingsGenerator) enabledMemberCount(gr *Group) int {
+	var count int
+	for _, m := range gr.Members {
+		if m.Condition != "" {
+			if _, found := g.trueConditions[m.Condition]; !found {
+				continue
+			}
+		}
+		count++
+	}
+	return count
+}
 
 func (g *SettingsGenerator) forEachEnabledMember(f func(*Group, *Member) error) error {
 	for _, gr := range g.s.Groups {
@@ -640,6 +666,15 @@ func (g *SettingsGenerator) writeHeaderFile() error {
 		buf.WriteString("#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n")
 	}
 	fmt.Fprintf(&buf, "#define CLIVALUE_TABLE_COUNT %d\n", g.SettingsCount())
+	var pgnCount int
+	err := g.forEachEnabledGroup(func(g *Group) error {
+		pgnCount++
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(&buf, "#define CLIVALUE_PGN_COUNT %d\n", pgnCount)
 	// Write lookup table constants
 	tableNames := g.orderedTableNames()
 	buf.WriteString("enum {\n")
@@ -674,6 +709,27 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 			g.addHeader(&buf, h)
 		}
 	}
+	// Write PGN arrays
+	var pgnSteps []int
+	var pgns []string
+	err := g.forEachEnabledGroup(func(gr *Group) error {
+		pgnSteps = append(pgnSteps, g.enabledMemberCount(gr))
+		pgns = append(pgns, gr.Name)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	buf.WriteString("const pgn_t cliValuePgn[] = {\n")
+	for _, pgn := range pgns {
+		fmt.Fprintf(&buf, "\t%s,\n", pgn)
+	}
+	buf.WriteString("};\n")
+	buf.WriteString("const uint8_t cliValuePgnCounts[] = {\n")
+	for _, v := range pgnSteps {
+		fmt.Fprintf(&buf, "\t%d,\n", v)
+	}
+	buf.WriteString("};\n")
 	// Write word list
 	buf.WriteString("static const char *cliValueWords[] = {\n")
 	buf.WriteString("\tNULL,\n")
@@ -711,9 +767,9 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 	buf.WriteString("const clivalue_t cliValueTable[] = {\n")
 
 	var lastGroup *Group
-	err := g.forEachEnabledMember(func(gr *Group, m *Member) error {
+	err = g.forEachEnabledMember(func(gr *Group, m *Member) error {
 		if gr != lastGroup {
-			fmt.Fprintf(&buf, "// %s\n", gr.Name)
+			fmt.Fprintf(&buf, "\t// %s\n", gr.Name)
 			lastGroup = gr
 		}
 		enc, err := g.nameEncoder.FormatEncodedName(m.Name)
@@ -738,8 +794,7 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 				fmt.Fprintf(&buf, ", .config.max = {%s}", *m.Max)
 			}
 		}
-		fmt.Fprintf(&buf, ", %s, ", gr.Name)
-		fmt.Fprintf(&buf, "offsetof(%s, %s) },\n", gr.Type, m.Field)
+		fmt.Fprintf(&buf, ", offsetof(%s, %s) },\n", gr.Type, m.Field)
 		return nil
 	})
 	if err != nil {

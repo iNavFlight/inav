@@ -65,7 +65,6 @@ typedef struct {
     const uint8_t type; // see cliValueFlag_e
     const cliValueConfig_t config;
 
-    pgn_t pgn;
     uint16_t offset;
 } __attribute__((packed)) clivalue_t;
 
@@ -74,3 +73,4 @@ extern const clivalue_t cliValueTable[];
 void clivalue_get_name(const clivalue_t *val, char *buf);
 bool clivalue_name_contains(const clivalue_t *val, const char *cmdline);
 bool clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8_t var_name_length);
+pgn_t clivalue_get_pgn(const clivalue_t *val);

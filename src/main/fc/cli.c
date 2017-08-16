@@ -389,13 +389,13 @@ static uint16_t getValueOffset(const clivalue_t *value)
 
 static void *getValuePointer(const clivalue_t *value)
 {
-    const pgRegistry_t* pg = pgFind(value->pgn);
+    const pgRegistry_t* pg = pgFind(clivalue_get_pgn(value));
     return pg->address + getValueOffset(value);
 }
 
 static void dumpPgValue(const clivalue_t *value, uint8_t dumpMask)
 {
-    const pgRegistry_t* pg = pgFind(value->pgn);
+    const pgRegistry_t* pg = pgFind(clivalue_get_pgn(value));
     char name[CLIVALUE_MAX_NAME_LENGTH];
 
     const char *format = "set %s = ";
