@@ -57,7 +57,7 @@ The following sensors are transmitted
 * **VFAS** : actual vbat value.
 * **Curr** : actual current comsuption, in amp.
 * **Alt** : barometer based altitude, init level is zero.
-* **Fuel** : if capacity set and smartport_fuel_percent=ON remaining battery percentage, mAh drawn otherwise.
+* **Fuel** : if `battery_capacity` variable set and variable `smartport_fuel_percent = ON` remaining battery percentage, mAh drawn otherwise.
 * **VSpd** : vertical speed, unit is cm/s.
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values.
