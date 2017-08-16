@@ -55,8 +55,8 @@ This has been tested with Flip32 F4 / Airbot F4 and FrSky X4R-SB receiver.
 The following sensors are transmitted
 
 * **VFAS** : actual vbat value.
-* **Curr** : actual current comsuption, in amp.
-* **Alt** : barometer based altitude, init level is zero.
+* **Curr** : actual current comsuption, in amps.
+* **Alt** : barometer based altitude, relative to home location.
 * **Fuel** : if `battery_capacity` variable set and variable `smartport_fuel_percent = ON` remaining battery percentage, mAh drawn otherwise.
 * **VSpd** : vertical speed, unit is cm/s.
 * **Hdg** : heading, North is 0°, South is 180°.
@@ -66,10 +66,11 @@ The following sensors are transmitted
   * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
   * **C** : number of satellites locked (digit C & D are the number of locked satellites)
   * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
-* **A4** : average cell value. Warning : unlike FLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
+* **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
 * **GAlt** : GPS altitude, sea level is zero.
-* **420** : distance to GPS home fix, in Meters
-* **GSpd** : current speed, calculated by GPS.
+* **420** : distance to GPS home fix, in meters
+* **GSpd** : current horizontal groud speed, calculated by GPS.
+* **ASpd** : true air speed, from pitot sensor.
 * **GPS** : GPS coordinates.
 * **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. Please ignore the first digit (A), it's always 1 and just there to ensure the number as always 5 digits (the B - E digits of actual data). The numbers are additives (for example, if digit C is 6, it means both position hold and altitude hold are active) :
   * **A** : 1 = placeholder so flight mode is always 5 digits long
