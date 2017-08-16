@@ -211,25 +211,21 @@ void configureSmartPortTelemetryPort(void)
 {
     portOptions_t portOptions;
 
-    if (!portConfig) {
+    if (!portConfig)
         return;
-    }
 
-    if (telemetryConfig()->smartportUartUnidirectional) {
+    if (telemetryConfig()->smartportUartUnidirectional)
         portOptions = SERIAL_UNIDIR;
-    } else {
+    else
         portOptions = SERIAL_BIDIR;
-    }
 
-    if (telemetryConfig()->telemetry_inversion) {
+    if (telemetryConfig()->telemetry_inversion)
         portOptions |= SERIAL_INVERTED;
-    }
 
     smartPortSerialPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_SMARTPORT, NULL, SMARTPORT_BAUD, SMARTPORT_UART_MODE, portOptions);
 
-    if (!smartPortSerialPort) {
+    if (!smartPortSerialPort)
         return;
-    }
 
     smartPortState = SPSTATE_INITIALIZED;
     smartPortTelemetryEnabled = true;
@@ -250,9 +246,8 @@ void checkSmartPortTelemetryState(void)
 {
     bool newTelemetryEnabledValue = telemetryDetermineEnabledState(smartPortPortSharing);
 
-    if (newTelemetryEnabledValue == smartPortTelemetryEnabled) {
+    if (newTelemetryEnabledValue == smartPortTelemetryEnabled)
         return;
-    }
 
     if (newTelemetryEnabledValue)
         configureSmartPortTelemetryPort();
@@ -264,13 +259,11 @@ void handleSmartPortTelemetry(void)
 {
     uint32_t smartPortLastServiceTime = millis();
 
-    if (!smartPortTelemetryEnabled) {
+    if (!smartPortTelemetryEnabled)
         return;
-    }
 
-    if (!canSendSmartPortTelemetry()) {
+    if (!canSendSmartPortTelemetry())
         return;
-    }
 
     while (serialRxBytesWaiting(smartPortSerialPort) > 0) {
         uint8_t c = serialRead(smartPortSerialPort);
@@ -324,11 +317,10 @@ void handleSmartPortTelemetry(void)
             case FSSP_DATAID_VFAS       :
                 if (feature(FEATURE_VBAT)) {
                     uint16_t vfasVoltage;
-                    if (telemetryConfig()->frsky_vfas_cell_voltage) {
+                    if (telemetryConfig()->frsky_vfas_cell_voltage)
                         vfasVoltage = vbat / batteryCellCount;
-                    } else {
+                    else
                         vfasVoltage = vbat;
-                    }
                     smartPortSendPackage(id, vfasVoltage * 10); // given in 0.1V, convert to volts
                     smartPortHasRequest = 0;
                 }
@@ -348,11 +340,10 @@ void handleSmartPortTelemetry(void)
                 break;
             case FSSP_DATAID_FUEL       :
                 if (feature(FEATURE_CURRENT_METER)) {
-                    if (telemetryConfig()->smartportFuelPercent && batteryConfig()->batteryCapacity > 0) {
+                    if (telemetryConfig()->smartportFuelPercent && batteryConfig()->batteryCapacity > 0)
                         smartPortSendPackage(id, calculateBatteryCapacityRemainingPercentage()); // Show remaining battery % if smartport_fuel_percent=ON and battery_capacity set
-                    } else {
+                    else
                         smartPortSendPackage(id, mAhDrawn); // given in mAh, unknown requested unit
-                    }
                     smartPortHasRequest = 0;
                 }
                 break;
@@ -466,7 +457,7 @@ void handleSmartPortTelemetry(void)
 #ifdef PITOT
             case FSSP_DATAID_ASPD    :
                 if (sensors(SENSOR_PITOT)) {
-                    smartPortSendPackage(id, pitot.airSpeed*0.194384449f); // cm/s to knots*10
+                    smartPortSendPackage(id, pitot.airSpeed * 0.194384449f); // cm/s to knots*10
                     smartPortHasRequest = 0;
                 }
                 break;
