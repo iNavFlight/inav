@@ -32,6 +32,7 @@
 #define USE_SERIALRX_IBUS       // Cheap FlySky & Turnigy receivers
 
 #if (FLASH_SIZE > 64)
+#define USE_64BIT_TIME
 //#define BLACKBOX
 #define GPS
 #define GPS_PROTO_UBLOX
