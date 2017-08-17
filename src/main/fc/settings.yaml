@@ -1426,6 +1426,7 @@ groups:
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
     type: modeActivationOperatorConfig_t
+    headers: ["fc/rc_modes.h"]
     members:
       - name: mode_range_logic_operator
         field: modeActivationOperator
