@@ -500,7 +500,7 @@ void mixTable(void)
     // Find min and max throttle based on condition.
     if (feature(FEATURE_3D)) {
         if (!ARMING_FLAG(ARMED)) throttlePrevious = rxConfig()->midrc; // When disarmed set to mid_rc. It always results in positive direction after arming.
-
+        rcCommand[THROTTLE] = rcCommand[THROTTLE] + 57; //Adjust Center Stick Accuracy, Issue #1879
         if ((rcCommand[THROTTLE] <= (rxConfig()->midrc - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
             throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
