@@ -685,8 +685,9 @@ func (g *SettingsGenerator) writeHeaderFile() error {
 		buf.WriteString("#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n")
 	}
 	fmt.Fprintf(&buf, "#define CLIVALUE_TABLE_COUNT %d\n", g.SettingsCount())
-	g.CanUseByteOffsetoff()
-	buf.WriteString("#define CLIVALUE_USE_BYTE_OFFSETOF\n")
+	if g.CanUseByteOffsetoff() {
+		buf.WriteString("#define CLIVALUE_USE_BYTE_OFFSETOF\n")
+	}
 	var pgnCount int
 	err := g.forEachEnabledGroup(func(g *Group) error {
 		pgnCount++
