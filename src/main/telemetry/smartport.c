@@ -125,7 +125,7 @@ const uint16_t frSkyDataIdTable[] = {
 #define __USE_C99_MATH // for roundf()
 #define SMARTPORT_BAUD 57600
 #define SMARTPORT_UART_MODE MODE_RXTX
-#define SMARTPORT_SERVICE_TIMEOUT_MS 3 // max allowed time to find a value to send
+#define SMARTPORT_SERVICE_TIMEOUT_MS 1 // max allowed time to find a value to send
 #define SMARTPORT_NOT_CONNECTED_TIMEOUT_MS 7000
 
 static serialPort_t *smartPortSerialPort = NULL; // The 'SmartPort'(tm) Port.
@@ -271,6 +271,7 @@ void handleSmartPortTelemetry(void)
     }
 
     uint32_t now = millis();
+    int8_t tmp1 = 0;
 
     // if timed out, reconfigure the UART back to normal so the GUI or CLI works
     if ((now - smartPortLastRequestTime) > SMARTPORT_NOT_CONNECTED_TIMEOUT_MS) {
@@ -395,7 +396,11 @@ void handleSmartPortTelemetry(void)
             case FSSP_DATAID_T1         :
                 // we send all the flags as decimal digits for easy reading
 
-                tmpi =  10000; // start off with at least one digit so the most significant 0 won't be cut off
+                tmp1++;
+                if (tmp1 >= 3)
+                    tmp1 = 1;
+
+                tmpi =  10000 * tmp1; // start off with at least one digit so the most significant 0 won't be cut off
                 // the Taranis seems to be able to fit 5 digits on the screen
                 // the Taranis seems to consider this number a signed 16 bit integer
 
