@@ -679,7 +679,7 @@ func (g *SettingsGenerator) writeHeaderFile() error {
 	var buf bytes.Buffer
 	buf.WriteString("#pragma once\n")
 	// Write clivalue_t size constants
-	fmt.Fprintf(&buf, "#define CLIVALUE_MAX_NAME_LENGTH %d\n", g.maxNameLength)
+	fmt.Fprintf(&buf, "#define CLIVALUE_MAX_NAME_LENGTH %d\n", g.maxNameLength+1) // +1 for the terminating '\0'
 	fmt.Fprintf(&buf, "#define CLIVALUE_ENCODED_NAME_MAX_BYTES %d\n", g.nameEncoder.MaxEncodedLength)
 	if g.nameEncoder.UsesDirectIndexing() {
 		buf.WriteString("#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n")
