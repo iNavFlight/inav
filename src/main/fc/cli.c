@@ -2291,7 +2291,6 @@ static void cliSet(char *cmdline)
                 if (changeValue) {
                     cliSetVar(val, tmp);
 
-                    clivalue_get_name(&cliValueTable[i], name);
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
                 } else {
