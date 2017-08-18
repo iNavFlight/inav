@@ -51,18 +51,16 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 	buf[bpos] = '\0';
 }
 
-bool clivalue_name_contains(const clivalue_t *val, const char *cmdline)
+bool clivalue_name_contains(const clivalue_t *val, char *buf, const char *cmdline)
 {
-	char name[CLIVALUE_MAX_NAME_LENGTH];
-	clivalue_get_name(val, name);
-	return strstr(name, cmdline) != NULL;
+	clivalue_get_name(val, buf);
+	return strstr(buf, cmdline) != NULL;
 }
 
-bool clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8_t var_name_length)
+bool clivalue_name_exact_match(const clivalue_t *val, char *buf, const char *cmdline, uint8_t var_name_length)
 {
-	char name[CLIVALUE_MAX_NAME_LENGTH];
-	clivalue_get_name(val, name);
-	return sl_strncasecmp(cmdline, name, strlen(name)) == 0 && var_name_length == strlen(name);
+	clivalue_get_name(val, buf);
+	return sl_strncasecmp(cmdline, buf, strlen(buf)) == 0 && var_name_length == strlen(buf);
 }
 
 pgn_t clivalue_get_pgn(const clivalue_t *val)

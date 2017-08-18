@@ -75,6 +75,6 @@ typedef struct {
 extern const clivalue_t cliValueTable[];
 
 void clivalue_get_name(const clivalue_t *val, char *buf);
-bool clivalue_name_contains(const clivalue_t *val, const char *cmdline);
-bool clivalue_name_exact_match(const clivalue_t *val, const char *cmdline, uint8_t var_name_length);
+bool clivalue_name_contains(const clivalue_t *val, char *buf, const char *cmdline);
+bool clivalue_name_exact_match(const clivalue_t *val, char *buf, const char *cmdline, uint8_t var_name_length);
 pgn_t clivalue_get_pgn(const clivalue_t *val);

@@ -2187,8 +2187,7 @@ static void cliGet(char *cmdline)
 
     for (uint32_t i = 0; i < CLIVALUE_TABLE_COUNT; i++) {
         val = &cliValueTable[i];
-        if (clivalue_name_contains(val, cmdline)) {
-            clivalue_get_name(val, name);
+        if (clivalue_name_contains(val, name, cmdline)) {
             cliPrintf("%s = ", name);
             cliPrintVar(val, 0);
             cliPrint("\r\n");
@@ -2243,7 +2242,7 @@ static void cliSet(char *cmdline)
         for (uint32_t i = 0; i < CLIVALUE_TABLE_COUNT; i++) {
             val = &cliValueTable[i];
             // ensure exact match when setting to prevent setting variables with shorter names
-            if (clivalue_name_exact_match(val, cmdline, variableNameLength)) {
+            if (clivalue_name_exact_match(val, name, cmdline, variableNameLength)) {
                 bool changeValue = false;
                 int_float_value_t tmp = {0};
                 const int mode = cliValueTable[i].type & VALUE_MODE_MASK;
