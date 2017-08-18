@@ -192,7 +192,6 @@ static const char * const *sensorHardwareNames[] = {
         table_pitot_hardware
 #endif
 };
-#endif
 
 static void cliPrint(const char *str)
 {
@@ -1682,6 +1681,7 @@ static void cliFlashRead(char *cmdline)
     }
 }
 
+#endif
 #endif
 
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
