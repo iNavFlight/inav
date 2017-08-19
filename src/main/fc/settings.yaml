@@ -264,6 +264,18 @@ groups:
         condition: USE_DUAL_MAG
         min: 0
         max: 1
+      - name: align_mag_roll
+        field: rollDeciDegrees
+        min: -1800
+        max: 3600
+      - name: align_mag_pitch
+        field: pitchDeciDegrees
+        min: -1800
+        max: 3600
+      - name: align_mag_yaw
+        field: yawDeciDegrees
+        min: -1800
+        max: 3600
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t
