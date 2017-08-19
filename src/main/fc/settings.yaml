@@ -222,6 +222,18 @@ groups:
         field: magCalibrationTimeLimit
         min: 30
         max: 120
+      - name: align_mag_roll
+        field: rollDeciDegrees
+        min: -1800
+        max: 3600
+      - name: align_mag_pitch
+        field: pitchDeciDegrees
+        min: -1800
+        max: 3600
+      - name: align_mag_yaw
+        field: yawDeciDegrees
+        min: -1800
+        max: 3600
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t

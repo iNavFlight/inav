@@ -371,7 +371,33 @@ void compassUpdate(timeUs_t currentTimeUs)
         }
     }
 
-    alignSensors(mag.magADC, mag.dev.magAlign);
+    if (compassConfig()->rollDeciDegrees != 0 ||
+        compassConfig()->pitchDeciDegrees != 0 ||
+        compassConfig()->yawDeciDegrees != 0) {
+
+        // Externally aligned compass
+        struct fp_vector v = {
+            .X = mag.magADC[X],
+            .Y = mag.magADC[Y],
+            .Z = mag.magADC[Z],
+         };
+
+         fp_angles_t r = {
+             .angles.roll = DECIDEGREES_TO_RADIANS(compassConfig()->rollDeciDegrees),
+             .angles.pitch = DECIDEGREES_TO_RADIANS(compassConfig()->pitchDeciDegrees),
+             .angles.yaw = DECIDEGREES_TO_RADIANS(compassConfig()->yawDeciDegrees),
+         };
+
+         rotateV(&v, &r);
+
+         mag.magADC[X] = v.X;
+         mag.magADC[Y] = v.Y;
+         mag.magADC[Z] = v.Z;
+
+    } else {
+        // On-board compass
+        alignSensors(mag.magADC, mag.dev.magAlign);
+    }
 
     magUpdatedAtLeastOnce = 1;
 }
