@@ -915,8 +915,9 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
-SETTINGS_GENERATOR      = $(SRC_DIR)/fc/settings_gen
-SETTINGS_GENERATOR_SRC  = $(SRC_DIR)/fc/settings_gen.go
+TOOL_DIR		= $(ROOT)/tools
+SETTINGS_GENERATOR	= $(TOOL_DIR)/settings
+SETTINGS_GENERATOR_SRC	= $(TOOL_DIR)/settings.go
 
 $(SETTINGS_GENERATOR): $(SETTINGS_GENERATOR_SRC)
 	$(V1) cd $(dir $(SETTINGS_GENERATOR_SRC)) && go build $(notdir $(SETTINGS_GENERATOR_SRC))
