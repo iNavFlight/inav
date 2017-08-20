@@ -1113,6 +1113,7 @@ func (g *SettingsGenerator) PrintWarnings() {
 }
 
 func main() {
+	verbose := os.Getenv("V") == "1"
 	srcRoot := os.Args[1]
 	settingsFile := os.Args[2]
 	gen, err := New(srcRoot, settingsFile)
@@ -1123,6 +1124,8 @@ func main() {
 		panic(err)
 	}
 
-	gen.PrintStats()
+	if verbose {
+		gen.PrintStats()
+	}
 	gen.PrintWarnings()
 }
