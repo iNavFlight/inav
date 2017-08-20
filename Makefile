@@ -915,6 +915,7 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
+.PHONY: settings clean-settings
 TOOL_DIR		= $(ROOT)/tools
 SETTINGS_GENERATOR	= $(TOOL_DIR)/settings
 SETTINGS_GENERATOR_SRC	= $(TOOL_DIR)/settings.go
@@ -922,19 +923,23 @@ SETTINGS_GENERATOR_SRC	= $(TOOL_DIR)/settings.go
 $(SETTINGS_GENERATOR): $(SETTINGS_GENERATOR_SRC)
 	$(V1) cd $(dir $(SETTINGS_GENERATOR_SRC)) && go build $(notdir $(SETTINGS_GENERATOR_SRC))
 
-# Rebuild the settings for each target
-.PHONY: settings clean-settings
 GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
 SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
 $(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
+
+# Use a pattern rule, since they're different than normal rules.
+# See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
+%generated.h %generated.c:
+	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c"
 	$(V1) CFLAGS="$(CFLAGS)" $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
 settings: $(GENERATED_SETTINGS)
 clean-settings:
 	$(V1) $(RM) $(GENERATED_SETTINGS)
 
-fc/cli.c: settings
-fc/settings.c: settings
+# Files that depend on the generated settings
+$(OBJECT_DIR)/$(TARGET)/fc/cli.o: settings
+$(OBJECT_DIR)/$(TARGET)/fc/settings.o: settings
 
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
