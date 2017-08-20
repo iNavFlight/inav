@@ -919,16 +919,21 @@ SETTINGS_GENERATOR      = $(SRC_DIR)/fc/settings_gen
 SETTINGS_GENERATOR_SRC  = $(SRC_DIR)/fc/settings_gen.go
 
 $(SETTINGS_GENERATOR): $(SETTINGS_GENERATOR_SRC)
-	$(V0) cd $(dir $(SETTINGS_GENERATOR_SRC)) && go build $(notdir $(SETTINGS_GENERATOR_SRC))
+	$(V1) cd $(dir $(SETTINGS_GENERATOR_SRC)) && go build $(notdir $(SETTINGS_GENERATOR_SRC))
 
 # Rebuild the settings for each target
-.PHONY: FORCE_REBUILD
-GENERATED_SETTINGS	= fc/settings_generated.h fc/settings_generated.c
+.PHONY: settings clean-settings
+GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
 SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
-$(GENERATED_SETTINGS): FORCE_REBUILD $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
-	$(V0) CFLAGS="$(CFLAGS)" $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
+	$(V1) CFLAGS="$(CFLAGS)" $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
 settings: $(GENERATED_SETTINGS)
+clean-settings:
+	$(V1) $(RM) $(GENERATED_SETTINGS)
+
+fc/cli.c: settings
+fc/settings.c: settings
 
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
@@ -939,7 +944,7 @@ $(TARGET_HEX): $(TARGET_ELF)
 $(TARGET_BIN): $(TARGET_ELF)
 	$(V0) $(OBJCOPY) -O binary $< $@
 
-$(TARGET_ELF): settings $(TARGET_OBJS)
+$(TARGET_ELF): clean-settings $(TARGET_OBJS)
 	$(V1) echo Linking $(TARGET)
 	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
@@ -977,7 +982,7 @@ clean:
 	$(V0) rm -f $(CLEAN_ARTIFACTS)
 	$(V0) rm -rf $(OBJECT_DIR)/$(TARGET)
 	$(V0) rm -f $(SETTINGS_GENERATOR)
-	$(V0) rm -f $(SRC_DIR)/$(GENERATED_SETTINGS)
+	$(V0) rm -f $(GENERATED_SETTINGS)
 	$(V0) echo "Cleaning $(TARGET) succeeded."
 
 ## clean_test        : clean up all temporary / machine-generated files (tests)
