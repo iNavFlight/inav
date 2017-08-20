@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +15,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v2"
 )
@@ -24,6 +27,16 @@ func writeUVarInt(w *bytes.Buffer, x uint32) {
 		x >>= 7
 	}
 	w.WriteByte(byte(x))
+}
+
+func encodeBytes(bs []byte) string {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for _, b := range bs {
+		fmt.Fprintf(&buf, "%d, ", int(b))
+	}
+	buf.WriteByte('}')
+	return buf.String()
 }
 
 type Table struct {
@@ -232,13 +245,7 @@ func (e *NameEncoder) FormatEncodedName(s string) (string, error) {
 		copy(bs, enc)
 		enc = bs
 	}
-	var buf bytes.Buffer
-	buf.WriteByte('{')
-	for ii := 0; ii < len(enc); ii++ {
-		fmt.Fprintf(&buf, "%d, ", enc[ii])
-	}
-	buf.WriteByte('}')
-	return buf.String(), nil
+	return encodeBytes(enc), nil
 }
 
 func (e *NameEncoder) EstimatedSize(settingsCount int) int {
@@ -247,6 +254,107 @@ func (e *NameEncoder) EstimatedSize(settingsCount int) int {
 		size += len(k) + 1
 	}
 	return size + e.MaxEncodedLength*settingsCount
+}
+
+type ValueEncoder struct {
+	values         map[int64]int
+	sortedValues   []int64
+	constantValues map[string]int64
+	min            int64
+	max            int64
+}
+
+func NewValueEncoder(values []int64, constantValues map[string]int64) (*ValueEncoder, error) {
+	m := make(map[int64]int)
+	var min, max int64
+	for _, v := range values {
+		if v < min {
+			min = v
+		}
+		if v > max {
+			max = v
+		}
+		m[v]++
+	}
+	var sortedValues []int64
+	for k := range m {
+		sortedValues = append(sortedValues, k)
+	}
+	sort.SliceStable(sortedValues, func(i, j int) bool {
+		return sortedValues[i] < sortedValues[j]
+	})
+	return &ValueEncoder{
+		values:         m,
+		sortedValues:   sortedValues,
+		constantValues: constantValues,
+		min:            min,
+		max:            max,
+	}, nil
+}
+
+func (e *ValueEncoder) MinValueType() (string, error) {
+	boundaries := []int{8, 16, 32}
+	for _, b := range boundaries {
+		if float64(e.min) >= -math.Pow(2, float64(b-1)) {
+			return fmt.Sprintf("int%d_t", b), nil
+		}
+	}
+	return "", fmt.Errorf("cannot represent minimum value %d with int32_t", e.min)
+}
+
+func (e *ValueEncoder) MaxValueType() (string, error) {
+	boundaries := []int{8, 16, 32}
+	for _, b := range boundaries {
+		if float64(e.max) < math.Pow(2, float64(b)) {
+			return fmt.Sprintf("uint%d_t", b), nil
+		}
+	}
+	return "", fmt.Errorf("cannot represent maximum value %d with uint32_t", e.max)
+}
+
+func (e *ValueEncoder) Values() []int64 {
+	return e.sortedValues
+}
+
+func (e *ValueEncoder) RequiredIndexBytes() (int, error) {
+	bits := math.Ceil(math.Log2(float64(len(e.values))))
+	bytes := int(math.Ceil(bits / 8))
+	if bytes > 1 {
+		return 0, fmt.Errorf("too many bytes required for value index: %d", bytes)
+	}
+	return bytes, nil
+}
+
+func (e *ValueEncoder) EncodeValues(values ...*string) (string, error) {
+	var buf bytes.Buffer
+	for _, v := range values {
+		sv := "0" // Default value
+		if v != nil && *v != "" {
+			sv = *v
+		}
+		// Check if it's a constant
+		iv, ok := e.constantValues[sv]
+		if !ok {
+			// Parse it
+			var err error
+			iv, err = strconv.ParseInt(sv, 0, 64)
+			if err != nil {
+				return "", err
+			}
+		}
+		pos := -1
+		for ii, ev := range e.sortedValues {
+			if ev == iv {
+				pos = ii
+				break
+			}
+		}
+		if pos < 0 {
+			return "", fmt.Errorf("value %q was not encoded", sv)
+		}
+		buf.WriteByte(byte(pos))
+	}
+	return encodeBytes(buf.Bytes()), nil
 }
 
 type Settings struct {
@@ -267,8 +375,10 @@ type SettingsGenerator struct {
 	// Maximum unpacked name length, so
 	// the C code can allocate an appropiately
 	// sized buffer.
-	maxNameLength int
-	nameEncoder   *NameEncoder
+	maxNameLength  int
+	nameEncoder    *NameEncoder
+	constantValues map[string]int64
+	valueEncoder   *ValueEncoder
 }
 
 func New(rootDir string, settingsFile string) (*SettingsGenerator, error) {
@@ -294,6 +404,9 @@ func New(rootDir string, settingsFile string) (*SettingsGenerator, error) {
 	}
 	g.initilizeTableUsage()
 	if err := g.initializeNameEncoder(); err != nil {
+		return nil, err
+	}
+	if err := g.initializeValueEncoder(); err != nil {
 		return nil, err
 	}
 	return g, nil
@@ -366,6 +479,9 @@ func (g *SettingsGenerator) sanitizeFields() error {
 					return fmt.Errorf("field %q references non-existing table %q", m.Name, m.Table)
 				}
 			}
+			if m.Min != nil && *m.Min == "" {
+				m.Min = nil
+			}
 			if m.Field == "" {
 				m.Field = m.Name
 			}
@@ -426,6 +542,9 @@ func (g *SettingsGenerator) compileTestFile(r io.Reader) (stdout []byte, stderr 
 		// Don't generate temporary files
 		if flag == "-MMD" || flag == "-MP" || strings.HasPrefix(flag, "-save-temps") {
 			continue
+		}
+		if strings.HasPrefix(flag, "-std") {
+			flag = "-std=c++11"
 		}
 		if flag != "" {
 			if strings.HasPrefix(flag, "-D'") {
@@ -597,6 +716,114 @@ func (g *SettingsGenerator) initilizeTableUsage() {
 		panic(errors.New("unbalanced conditions"))
 	}
 }
+
+func (g *SettingsGenerator) initializeValueEncoder() error {
+	var values []int64
+	var constants []string
+	addValue := func(sval string) error {
+		r, sz := utf8.DecodeRuneInString(sval)
+		if sz == 0 {
+			return fmt.Errorf("invalid rune decoded in value %q", sval)
+		}
+		if unicode.IsDigit(r) || r == '-' {
+			val, err := strconv.ParseInt(sval, 10, 64)
+			if err != nil {
+				return err
+			}
+			values = append(values, val)
+		} else {
+			constants = append(constants, sval)
+		}
+		return nil
+	}
+	err := g.forEachEnabledMember(func(gr *Group, m *Member) error {
+		if m.Min != nil && *m.Min != "" {
+			if err := addValue(*m.Min); err != nil {
+				return err
+			}
+		}
+		if m.Max != nil && *m.Max != "" {
+			if err := addValue(*m.Max); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	var constantValues map[string]int64
+	if len(constants) > 0 {
+		// Since we're relying on errors rather than
+		// warnings to find these constants, the compiler
+		// might reach the maximum number of errors and stop
+		// compilation, so we might need multiple passes.
+		uniqueConstants := make(map[string]struct{})
+		for _, v := range constants {
+			uniqueConstants[v] = struct{}{}
+		}
+		re := regexp.MustCompile("required from 'class expr_(.*?)<(.*)ll>'")
+		constantValues = make(map[string]int64)
+		for len(constantValues) < len(uniqueConstants) {
+			var buf bytes.Buffer
+			g.addHeader(&buf, "platform.h")
+			for _, gr := range g.s.Groups {
+				for _, h := range gr.Headers {
+					g.addHeader(&buf, h)
+				}
+			}
+			buf.WriteString(`template <int64_t V> class Fail
+				{
+					static_assert(V == 42 && 0 == 1, "FAIL");
+					public:
+						Fail() { };
+						int64_t v = V;
+				};
+				`)
+
+			ii := 0
+			for v := range uniqueConstants {
+				if _, found := constantValues[v]; found {
+					continue
+				}
+				cls := fmt.Sprintf("expr_%s", v)
+				fmt.Fprintf(&buf, "template <int64_t V> class %s: public Fail<V> {};\n", cls)
+				fmt.Fprintf(&buf, "%s<%s> var_%d;\n", cls, v, ii)
+				ii++
+			}
+			_, stderr, err := g.compileTestFile(&buf)
+			if err != nil {
+				return err
+			}
+			matches := re.FindAllStringSubmatch(string(stderr), -1)
+			if len(matches) == 0 {
+				fmt.Println(string(stderr))
+				return fmt.Errorf("no more matches")
+			}
+			for _, m := range matches {
+				c := m[1]
+				v := m[2]
+				val, err := strconv.ParseInt(v, 0, 64)
+				if err != nil {
+					return fmt.Errorf("error parsing value for %s: %v", c, err)
+				}
+				constantValues[c] = val
+			}
+		}
+		for _, c := range constants {
+			v, ok := constantValues[c]
+			if !ok {
+				return fmt.Errorf("could not resolve constant %q", c)
+			}
+			values = append(values, v)
+		}
+	}
+
+	enc, err := NewValueEncoder(values, constantValues)
+	if err != nil {
+		return err
+	}
+	g.valueEncoder = enc
+	return nil
+}
+
 func (g *SettingsGenerator) forEachEnabledGroup(f func(*Group) error) error {
 	for _, gr := range g.s.Groups {
 		if gr.Condition != "" {
@@ -685,9 +912,11 @@ func (g *SettingsGenerator) writeHeaderFile() error {
 		buf.WriteString("#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n")
 	}
 	fmt.Fprintf(&buf, "#define CLIVALUE_TABLE_COUNT %d\n", g.SettingsCount())
+	cliValueOffsetType := "uint16_t"
 	if g.CanUseByteOffsetoff() {
-		buf.WriteString("#define CLIVALUE_USE_BYTE_OFFSETOF\n")
+		cliValueOffsetType = "uint8_t"
 	}
+	fmt.Fprintf(&buf, "typedef %s clivalue_offset_t;\n", cliValueOffsetType)
 	var pgnCount int
 	err := g.forEachEnabledGroup(func(g *Group) error {
 		pgnCount++
@@ -697,6 +926,22 @@ func (g *SettingsGenerator) writeHeaderFile() error {
 		return err
 	}
 	fmt.Fprintf(&buf, "#define CLIVALUE_PGN_COUNT %d\n", pgnCount)
+	// Write type definitions and constants for min/max values
+	minType, err := g.valueEncoder.MinValueType()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(&buf, "typedef %s clivalue_min_t;\n", minType)
+	maxType, err := g.valueEncoder.MaxValueType()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(&buf, "typedef %s clivalue_max_t;\n", maxType)
+	requiredIndexBytes, err := g.valueEncoder.RequiredIndexBytes()
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(&buf, "#define CLIVALUE_MIN_MAX_INDEX_BYTES %d\n", requiredIndexBytes*2)
 	// Write lookup table constants
 	tableNames := g.orderedTableNames()
 	buf.WriteString("enum {\n")
@@ -785,7 +1030,27 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 
 	buf.WriteString("};\n")
 
-	// Write values
+	// Write min/max values table
+	buf.WriteString("const uint32_t cliValueMinMaxTable[] = {\n")
+	for _, v := range g.valueEncoder.Values() {
+		fmt.Fprintf(&buf, "\t%d,\n", v)
+	}
+	buf.WriteString("};\n")
+
+	indexBytes, err := g.valueEncoder.RequiredIndexBytes()
+	if err != nil {
+		return err
+	}
+	switch indexBytes {
+	case 1:
+		buf.WriteString("typedef uint8_t clivalue_min_max_idx_t;\n")
+		buf.WriteString("#define CLIVALUE_INDEXES_GET_MIN(val) (val->config.minmax.indexes[0])\n")
+		buf.WriteString("#define CLIVALUE_INDEXES_GET_MAX(val) (val->config.minmax.indexes[1])\n")
+	default:
+		return fmt.Errorf("can't encode indexed values requiring %d bytes", indexBytes)
+	}
+
+	// Write clivalues
 	buf.WriteString("const clivalue_t cliValueTable[] = {\n")
 
 	var lastGroup *Group
@@ -809,12 +1074,11 @@ func (g *SettingsGenerator) writeImplementationFile() error {
 			buf.WriteString(" | MODE_LOOKUP")
 			fmt.Fprintf(&buf, ", .config.lookup = { %s }", tbl.ConstantName())
 		} else {
-			if m.Min != nil && m.Max != nil {
-				fmt.Fprintf(&buf, ", .config.minmax = {%s, %s}", *m.Min, *m.Max)
-			} else if m.Max != nil {
-				buf.WriteString(" | MODE_MAX")
-				fmt.Fprintf(&buf, ", .config.max = {%s}", *m.Max)
+			encoded, err := g.valueEncoder.EncodeValues(m.Min, m.Max)
+			if err != nil {
+				return err
 			}
+			fmt.Fprintf(&buf, ", .config.minmax.indexes = %s", encoded)
 		}
 		fmt.Fprintf(&buf, ", offsetof(%s, %s) },\n", gr.Type, m.Field)
 		return nil

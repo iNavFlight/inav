@@ -34,7 +34,6 @@ typedef enum {
     // value mode, bits 6-7
     MODE_DIRECT = (0 << VALUE_MODE_OFFSET),
     MODE_LOOKUP = (1 << VALUE_MODE_OFFSET), // 0x40
-    MODE_MAX = (2 << VALUE_MODE_OFFSET), // 0x80
 } cliValueFlag_e;
 
 #define VALUE_TYPE_MASK (0x0F)
@@ -42,13 +41,8 @@ typedef enum {
 #define VALUE_MODE_MASK (0xC0)
 
 typedef struct cliMinMaxConfig_s {
-    const int16_t min;
-    const int16_t max;
+    const uint8_t indexes[CLIVALUE_MIN_MAX_INDEX_BYTES];
 } cliMinMaxConfig_t;
-
-typedef struct cliMaxConfig_s {
-    const uint32_t max;
-} cliMaxConfig_t;
 
 typedef struct cliLookupTableConfig_s {
     const uint8_t tableIndex;
@@ -57,19 +51,14 @@ typedef struct cliLookupTableConfig_s {
 typedef union {
     cliLookupTableConfig_t lookup;
     cliMinMaxConfig_t minmax;
-    cliMaxConfig_t max;
 } cliValueConfig_t;
 
 typedef struct {
     const uint8_t encoded_name[CLIVALUE_ENCODED_NAME_MAX_BYTES];
     const uint8_t type; // see cliValueFlag_e
     const cliValueConfig_t config;
+    clivalue_offset_t offset;
 
-#ifdef CLIVALUE_USE_BYTE_OFFSETOF
-    uint8_t offset;
-#else
-    uint16_t offset;
-#endif
 } __attribute__((packed)) clivalue_t;
 
 extern const clivalue_t cliValueTable[];
@@ -78,3 +67,11 @@ void clivalue_get_name(const clivalue_t *val, char *buf);
 bool clivalue_name_contains(const clivalue_t *val, char *buf, const char *cmdline);
 bool clivalue_name_exact_match(const clivalue_t *val, char *buf, const char *cmdline, uint8_t var_name_length);
 pgn_t clivalue_get_pgn(const clivalue_t *val);
+// Returns the minimum valid value for the given clivalue_t. clivalue_min_t
+// depends on the target and build options, but will always be a signed
+// integer (e.g. intxx_t,)
+clivalue_min_t clivalue_get_min(const clivalue_t *val);
+// Returns the maximum valid value for the given clivalue_t. clivalue_max_t
+// depends on the target and build options, but will always be an unsigned
+// integer (e.g. uintxx_t,)
+clivalue_max_t clivalue_get_max(const clivalue_t *val);

@@ -304,17 +304,14 @@ static void printValuePointer(const clivalue_t *var, const void *valuePointer, u
         cliPrintf("%s", ftoa(*(float *)valuePointer, buf));
         if (full) {
             if ((var->type & VALUE_MODE_MASK) == MODE_DIRECT) {
-                cliPrintf(" %s", ftoa((float)var->config.minmax.min, buf));
-                cliPrintf(" %s", ftoa((float)var->config.minmax.max, buf));
-            } else if ((var->type & VALUE_MODE_MASK) == MODE_MAX) {
-                cliPrintf("0 %s", ftoa((float)var->config.max.max, buf));
+                cliPrintf(" %s", ftoa((float)clivalue_get_min(var), buf));
+                cliPrintf(" %s", ftoa((float)clivalue_get_max(var), buf));
             }
         }
         return; // return from case for float only
     }
 
     switch (var->type & VALUE_MODE_MASK) {
-    case MODE_MAX:
     case MODE_DIRECT:
         if ((var->type & VALUE_TYPE_MASK) == VAR_UINT32)
             cliPrintf("%u", value);
@@ -322,12 +319,7 @@ static void printValuePointer(const clivalue_t *var, const void *valuePointer, u
             cliPrintf("%d", value);
         if (full) {
             if ((var->type & VALUE_MODE_MASK) == MODE_DIRECT) {
-                cliPrintf(" %d %d", var->config.minmax.min, var->config.minmax.max);
-            } else {
-                if ((var->type & VALUE_TYPE_MASK) == VAR_UINT32)
-                    cliPrintf(" 0 %u", var->config.max.max);
-                else
-                    cliPrintf(" 0 %d", var->config.max.max);
+                cliPrintf(" %d %u", clivalue_get_min(var), clivalue_get_max(var));
             }
         }
         break;
@@ -436,13 +428,9 @@ static void cliPrintVarRange(const clivalue_t *var)
 {
     switch (var->type & VALUE_MODE_MASK) {
     case (MODE_DIRECT):
-        cliPrintf("Allowed range: %d - %d\r\n", var->config.minmax.min, var->config.minmax.max);
-        break;
-    case (MODE_MAX):
-        if ((var->type & VALUE_TYPE_MASK) == VAR_UINT32)
-            cliPrintf("Allowed range: 0- %u\r\n", var->config.max.max);
-        else
-            cliPrintf("Allowed range: 0- %d\r\n", var->config.max.max);
+        cliPrintf("Allowed range: %d - %u\r\n",
+            clivalue_get_min(var),
+            clivalue_get_max(var));
         break;
     case (MODE_LOOKUP): {
         const lookupTableEntry_t *tableEntry = &cliLookupTables[var->config.lookup.tableIndex];
@@ -2245,28 +2233,20 @@ static void cliSet(char *cmdline)
             if (clivalue_name_exact_match(val, name, cmdline, variableNameLength)) {
                 bool changeValue = false;
                 int_float_value_t tmp = {0};
-                const int mode = cliValueTable[i].type & VALUE_MODE_MASK;
+                const int mode = val->type & VALUE_MODE_MASK;
                 switch (mode) {
-                    case MODE_MAX:
                     case MODE_DIRECT: {
                             if (*eqptr != 0 && strspn(eqptr, "0123456789.+-") == strlen(eqptr)) {
-                                int32_t value = 0;
-                                uint32_t uvalue = 0;
-                                float valuef = 0;
-
-                                value = fastA2I(eqptr);
-                                valuef = fastA2F(eqptr);
-                                uvalue = fastA2UL(eqptr);
+                                float valuef = fastA2F(eqptr);
                                 // note: compare float values
-                                if ((mode == MODE_DIRECT && (valuef >= cliValueTable[i].config.minmax.min && valuef <= cliValueTable[i].config.minmax.max))
-                                     || (mode == MODE_MAX && (valuef >= 0 && valuef <= cliValueTable[i].config.max.max))) {
+                                if (valuef >= (float)clivalue_get_min(val) && valuef <= (float)clivalue_get_max(val)) {
 
                                     if ((cliValueTable[i].type & VALUE_TYPE_MASK) == VAR_FLOAT)
                                         tmp.float_value = valuef;
                                     else if ((cliValueTable[i].type & VALUE_TYPE_MASK) == VAR_UINT32)
-                                        tmp.uint_value = uvalue;
+                                        tmp.uint_value = fastA2UL(eqptr);
                                     else
-                                        tmp.int_value = value;
+                                        tmp.int_value = fastA2I(eqptr);
 
                                     changeValue = true;
                                 }

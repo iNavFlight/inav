@@ -75,3 +75,13 @@ pgn_t clivalue_get_pgn(const clivalue_t *val)
 	}
 	return -1;
 }
+
+clivalue_min_t clivalue_get_min(const clivalue_t *val)
+{
+	return cliValueMinMaxTable[CLIVALUE_INDEXES_GET_MIN(val)];
+}
+
+clivalue_max_t clivalue_get_max(const clivalue_t *val)
+{
+	return cliValueMinMaxTable[CLIVALUE_INDEXES_GET_MAX(val)];
+}
