@@ -759,7 +759,7 @@ func (g *SettingsGenerator) initializeValueEncoder() error {
 		for _, v := range constants {
 			uniqueConstants[v] = struct{}{}
 		}
-		re := regexp.MustCompile("required from 'class expr_(.*?)<(.*)ll>'")
+		re := regexp.MustCompile("required from 'class expr_(.*?)<(.*)>'")
 		constantValues = make(map[string]int64)
 		for len(constantValues) < len(uniqueConstants) {
 			var buf bytes.Buffer
@@ -800,6 +800,9 @@ func (g *SettingsGenerator) initializeValueEncoder() error {
 			for _, m := range matches {
 				c := m[1]
 				v := m[2]
+				// gcc 6.3 includes an ul or ll prefix after the
+				// constant expansion, while gcc 7.1 does not
+				v = strings.Trim(v, "ul")
 				val, err := strconv.ParseInt(v, 0, 64)
 				if err != nil {
 					return fmt.Errorf("error parsing value for %s: %v", c, err)
