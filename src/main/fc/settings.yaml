@@ -1435,6 +1435,7 @@ groups:
 
   - name: PG_STATS_CONFIG
     type: statsConfig_t
+    headers: ["fc/stats.h"]
     condition: STATS
     members:
       - name: stats
