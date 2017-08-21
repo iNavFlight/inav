@@ -185,8 +185,16 @@ func (e *NameEncoder) updateWords() error {
 		e.wordsByUsage = append(e.wordsByUsage, k)
 	}
 	// Sort words by use, most used first
-	sort.Slice(e.wordsByUsage, func(i, j int) bool {
-		return e.words[e.wordsByUsage[i]] > e.words[e.wordsByUsage[j]]
+	sort.SliceStable(e.wordsByUsage, func(i, j int) bool {
+		ui := e.words[e.wordsByUsage[i]]
+		uj := e.words[e.wordsByUsage[j]]
+		if ui > uj {
+			return true
+		}
+		if uj > ui {
+			return false
+		}
+		return e.wordsByUsage[i] < e.wordsByUsage[j]
 	})
 	return nil
 }
@@ -284,6 +292,14 @@ func NewValueEncoder(values []int64, constantValues map[string]int64) (*ValueEnc
 		sortedValues = append(sortedValues, k)
 	}
 	sort.SliceStable(sortedValues, func(i, j int) bool {
+		ui := m[sortedValues[i]]
+		uj := m[sortedValues[j]]
+		if ui > uj {
+			return true
+		}
+		if uj > ui {
+			return false
+		}
 		return sortedValues[i] < sortedValues[j]
 	})
 	return &ValueEncoder{
