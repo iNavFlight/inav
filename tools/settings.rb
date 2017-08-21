@@ -24,7 +24,7 @@ class String
     end
 end
 
-module StringIOBytes
+class StringIO
     def write_byte(b)
         self << [b].pack("C*")
     end
@@ -41,8 +41,6 @@ module StringIOBytes
         return string.bytes.to_s.sub('[', '{').sub(']', '}')
     end
 end
-
-StringIO.class_eval { include StringIOBytes }
 
 class NameEncoder
     attr_reader :max_length
