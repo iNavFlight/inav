@@ -432,13 +432,7 @@ class Generator
     end
 
     def value_type(group)
-        case group["name"]
-        when "PG_CONTROL_RATE_PROFILES"
-            return "CONTROL_RATE_VALUE"
-        when "PG_PID_PROFILE"
-            return "PROFILE_VALUE"
-        end
-        return "MASTER_VALUE"
+        return group["value_type"] || "MASTER_VALUE"
     end
 
     def is_condition_enabled(cond)

@@ -508,6 +508,7 @@ groups:
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
     headers: ["fc/controlrate_profile.h"]
+    value_type: CONTROL_RATE_VALUE
     members:
       - name: rc_expo
         field: rcExpo8
@@ -637,6 +638,7 @@ groups:
   - name: PG_PID_PROFILE
     type: pidProfile_t
     headers: ["flight/pid.h"]
+    value_type: PROFILE_VALUE
     members:
       - name: mc_p_pitch
         field: bank_mc.pid[PID_PITCH].P
