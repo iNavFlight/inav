@@ -32,8 +32,11 @@ func writeUVarInt(w *bytes.Buffer, x uint32) {
 func encodeBytes(bs []byte) string {
 	var buf bytes.Buffer
 	buf.WriteByte('{')
-	for _, b := range bs {
-		fmt.Fprintf(&buf, "%d, ", int(b))
+	for ii, b := range bs {
+		if ii > 0 {
+			buf.WriteString(", ")
+		}
+		fmt.Fprintf(&buf, "%d", int(b))
 	}
 	buf.WriteByte('}')
 	return buf.String()
