@@ -586,7 +586,7 @@ class Generator
         pending_types = Hash.new
         has_booleans = false
 
-        foreach_member do |group, member|
+        foreach_enabled_member do |group, member|
             if !group["name"]
                 raise "Missing group name"
             end
@@ -668,7 +668,7 @@ class Generator
             member["type"] = typ
         end
         # Make sure all types have been resolved
-        foreach_member do |group, member|
+        foreach_enabled_member do |group, member|
             if !member["type"]
                 raise "Could not resolve type for member #{member["name"]} in group #{group["name"]}"
             end
