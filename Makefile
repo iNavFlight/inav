@@ -917,11 +917,7 @@ $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 # Settings generator
 .PHONY: settings clean-settings
 TOOL_DIR		= $(ROOT)/tools
-SETTINGS_GENERATOR	= $(TOOL_DIR)/settings
-SETTINGS_GENERATOR_SRC	= $(TOOL_DIR)/settings.go
-
-$(SETTINGS_GENERATOR): $(SETTINGS_GENERATOR_SRC)
-	$(V1) cd $(dir $(SETTINGS_GENERATOR_SRC)) && go build $(notdir $(SETTINGS_GENERATOR_SRC))
+SETTINGS_GENERATOR	= $(TOOL_DIR)/settings.rb
 
 GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
 SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
@@ -931,7 +927,7 @@ $(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
 # See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
 %generated.h %generated.c:
 	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c"
-	$(V1) CFLAGS="$(CFLAGS)" $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+	$(V1) CFLAGS="$(CFLAGS)" ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
 settings: $(GENERATED_SETTINGS)
 clean-settings:
@@ -987,7 +983,6 @@ clean:
 	$(V0) echo "Cleaning $(TARGET)"
 	$(V0) rm -f $(CLEAN_ARTIFACTS)
 	$(V0) rm -rf $(OBJECT_DIR)/$(TARGET)
-	$(V0) rm -f $(SETTINGS_GENERATOR)
 	$(V0) rm -f $(GENERATED_SETTINGS)
 	$(V0) echo "Cleaning $(TARGET) succeeded."
 
