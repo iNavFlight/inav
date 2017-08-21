@@ -353,6 +353,7 @@ groups:
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
+    headers: ["flight/failsafe.h"]
     members:
       - name: failsafe_delay
         min: 0
@@ -548,6 +549,7 @@ groups:
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t
+    headers: ["io/serial.h"]
     members:
       - name: reboot_character
         min: 48
@@ -1396,6 +1398,7 @@ groups:
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
+    headers: ["fc/config.h"]
     members:
       - name: i2c_speed
         condition: USE_I2C
