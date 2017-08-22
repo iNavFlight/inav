@@ -62,7 +62,7 @@ class NameEncoder
         encode_names
     end
 
-    def uses_direct_indexing
+    def uses_byte_indexing
         @words.length < 255
     end
 
@@ -121,7 +121,7 @@ class NameEncoder
                 # Zero indicates end of words, first word in
                 # the array starts at 1 ([0] is NULL).
                 p = pos + 1
-                if uses_direct_indexing
+                if uses_byte_indexing
                     buf.write_byte(p)
                 else
                     buf.write_uvarint(p)
@@ -256,7 +256,24 @@ class Generator
     end
 
     def print_stats
-        puts "PRINT_STATS"
+        puts "#{@count} settings"
+        puts "words table has #{@name_encoder.words.length} words"
+        word_idx = @name_encoder.uses_byte_indexing ? "byte" : "uvarint"
+        puts "name encoder uses #{word_idx} word indexing"
+        puts "each setting name uses #{@name_encoder.max_length} bytes"
+        puts "#{@name_encoder.estimated_size(@count)} bytes estimated for setting name storage"
+        values_size = @value_encoder.values.length * 4
+        puts "value storage uses #{values_size} bytes"
+        value_idx_size = @value_encoder.index_bytes * 2
+        value_idx_total = value_idx_size * @count
+        puts "value indexing uses #{value_idx_size} per setting, #{value_idx_total} bytes total"
+        puts "#{value_idx_size+value_idx_total} bytes estimated for value storage"
+
+        buf = StringIO.new
+        buf << "#include \"fc/settings.h\"\n"
+        buf << "char (*dummy)[sizeof(clivalue_t)] = 1;\n"
+        stderr = compile_test_file(buf)
+        puts "sizeof(clivalue_t) = #{/char \(\*\)\[(\d+)\]/.match(stderr)[1]}"
     end
 
     private
@@ -267,7 +284,7 @@ class Generator
         # Write clivalue_t size constants
         buf << "#define CLIVALUE_MAX_NAME_LENGTH #{@max_name_length+1}\n" # +1 for the terminating '\0'
         buf << "#define CLIVALUE_ENCODED_NAME_MAX_BYTES #{@name_encoder.max_length}\n"
-        if @name_encoder.uses_direct_indexing
+        if @name_encoder.uses_byte_indexing
             buf << "#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n"
         end
         buf << "#define CLIVALUE_TABLE_COUNT #{@count}\n"
