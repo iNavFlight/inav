@@ -18,6 +18,12 @@ def lputs(s)
     puts if DEBUG or INFO
 end
 
+class Object
+    def is_number_kind?
+        self.kind_of?(Integer) || self.kind_of?(Float)
+    end
+end
+
 class String
     def is_number?
       true if Float(self) rescue false
@@ -210,7 +216,7 @@ class ValueEncoder
     private
     def encode_value(buf, val)
         v = val || 0
-        if v.class != Fixnum
+        if !v.is_number_kind?
             v = @constants[val]
             if v == nil
                 raise "Could not resolve constant #{val}"
@@ -713,7 +719,7 @@ class Generator
         constants = []
         add_value = -> (v) {
             v = v || 0
-            if v.class == Fixnum || (v.class == String && v.is_number?)
+            if v.is_number_kind? || (v.class == String && v.is_number?)
                 values << v.to_i
             else
                 constants << v
