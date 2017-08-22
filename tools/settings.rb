@@ -285,7 +285,7 @@ class Generator
         buf << "#define CLIVALUE_MAX_NAME_LENGTH #{@max_name_length+1}\n" # +1 for the terminating '\0'
         buf << "#define CLIVALUE_ENCODED_NAME_MAX_BYTES #{@name_encoder.max_length}\n"
         if @name_encoder.uses_byte_indexing
-            buf << "#define CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING\n"
+            buf << "#define CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING\n"
         end
         buf << "#define CLIVALUE_TABLE_COUNT #{@count}\n"
         offset_type = "uint16_t"

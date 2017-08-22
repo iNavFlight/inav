@@ -13,11 +13,11 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 {
 	uint8_t bpos = 0;
 	uint16_t n = 0;
-#ifndef CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING
+#ifndef CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING
 	uint8_t shift = 0;
 #endif
 	for (uint8_t ii = 0; ii < CLIVALUE_ENCODED_NAME_MAX_BYTES; ii++) {
-#ifdef CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING
+#ifdef CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING
 		n = val->encoded_name[ii];
 #else
 		// Decode a variable size uint
@@ -42,7 +42,7 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 		}
 		strcpy(&buf[bpos], word);
 		bpos += strlen(word);
-#ifndef CLIVALUE_ENCODED_NAME_USES_DIRECT_INDEXING
+#ifndef CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING
 		// Reset shift and n
 		shift = 0;
 		n = 0;
