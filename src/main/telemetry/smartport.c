@@ -649,51 +649,52 @@ void handleSmartPortTelemetry(void)
                 smartPortSendPackage(id, 100 * acc.accADC[Z] / acc.dev.acc_1G);
                 break;
             case FSSP_DATAID_T1         :
-                ; // empty statement after label so we can declare a value
-                uint32_t tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
+                {
+                    uint32_t tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
 
-                // ones column
-                if (ARMING_FLAG(OK_TO_ARM))
-                    tmpi += 1;
-                if (ARMING_FLAG(PREVENT_ARMING))
-                    tmpi += 2;
-                if (ARMING_FLAG(ARMED))
-                    tmpi += 4;
+                    // ones column
+                    if (ARMING_FLAG(OK_TO_ARM))
+                        tmpi += 1;
+                    if (ARMING_FLAG(PREVENT_ARMING))
+                        tmpi += 2;
+                    if (ARMING_FLAG(ARMED))
+                        tmpi += 4;
 
-                // tens column
-                if (FLIGHT_MODE(ANGLE_MODE))
-                    tmpi += 10;
-                if (FLIGHT_MODE(HORIZON_MODE))
-                    tmpi += 20;
-                if (FLIGHT_MODE(AUTO_TUNE))
-                    tmpi += 40;
-                if (FLIGHT_MODE(PASSTHRU_MODE) && tmpi < 60)
-                    tmpi += 40;
+                    // tens column
+                    if (FLIGHT_MODE(ANGLE_MODE))
+                        tmpi += 10;
+                    if (FLIGHT_MODE(HORIZON_MODE))
+                        tmpi += 20;
+                    if (FLIGHT_MODE(AUTO_TUNE))
+                        tmpi += 40;
+                    if (FLIGHT_MODE(PASSTHRU_MODE) && tmpi < 60)
+                        tmpi += 40;
 
-                // hundreds column
-                if (FLIGHT_MODE(HEADING_MODE))
-                    tmpi += 100;
-                if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
-                    tmpi += 200;
-                if (FLIGHT_MODE(NAV_POSHOLD_MODE))
-                    tmpi += 400;
+                    // hundreds column
+                    if (FLIGHT_MODE(HEADING_MODE))
+                        tmpi += 100;
+                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
+                        tmpi += 200;
+                    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
+                        tmpi += 400;
 
-                // thousands column
-                if (FLIGHT_MODE(NAV_RTH_MODE))
-                    tmpi += 1000;
-                if (FLIGHT_MODE(NAV_WP_MODE))
-                    tmpi += 2000;
-                if (FLIGHT_MODE(HEADFREE_MODE))
-                    tmpi += 4000;
+                    // thousands column
+                    if (FLIGHT_MODE(NAV_RTH_MODE))
+                        tmpi += 1000;
+                    if (FLIGHT_MODE(NAV_WP_MODE))
+                        tmpi += 2000;
+                    if (FLIGHT_MODE(HEADFREE_MODE))
+                        tmpi += 4000;
 
-                // ten thousands column
-                if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && posControl.flags.hasValidPositionSensor)
-                    tmpi += 20000; // home reset
-                if (FLIGHT_MODE(FAILSAFE_MODE))
-                    tmpi += 40000;
+                    // ten thousands column
+                    if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && posControl.flags.hasValidPositionSensor)
+                        tmpi += 20000; // home reset
+                    if (FLIGHT_MODE(FAILSAFE_MODE))
+                        tmpi += 40000;
 
-                smartPortSendPackage(id, tmpi);
-                break;
+                    smartPortSendPackage(id, tmpi);
+                    break;
+                }
             case FSSP_DATAID_T2         :
                 if (sensors(SENSOR_GPS)) {
 #ifdef GPS
