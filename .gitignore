@@ -20,6 +20,5 @@ docs/Manual.pdf
 README.pdf
 
 # build generated files
-/tools/settings
 /src/main/fc/settings_generated.h
 /src/main/fc/settings_generated.c
