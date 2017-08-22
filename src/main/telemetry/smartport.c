@@ -687,7 +687,7 @@ void handleSmartPortTelemetry(void)
                         tmpi += 4000;
 
                     // ten thousands column
-#ifdef GPS
+#if defined(GPS) && defined(IS_RC_MODE_ACTIVE) && defined(BOXHOMERESET)
                     if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && posControl.flags.hasValidPositionSensor)
                         tmpi += 20000; // home reset
 #endif
