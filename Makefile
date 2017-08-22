@@ -926,7 +926,7 @@ $(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
 # Use a pattern rule, since they're different than normal rules.
 # See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
 %generated.h %generated.c:
-	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c"
+	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
 	$(V1) CFLAGS="$(CFLAGS)" ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
 settings: $(GENERATED_SETTINGS)
