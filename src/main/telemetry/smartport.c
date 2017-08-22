@@ -34,6 +34,7 @@
 #include "io/serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -571,8 +572,6 @@ void handleSmartPortTelemetry(void)
             smartPortIdCnt = 0; // end of table reached, loop back
         uint16_t id = smartPortDataIdTable[smartPortIdCnt];
 
-        uint32_t tmpi;
-
         switch (id) {
 #ifdef GPS
             case FSSP_DATAID_SPEED      :
@@ -650,10 +649,10 @@ void handleSmartPortTelemetry(void)
                 smartPortSendPackage(id, 100 * acc.accADC[Z] / acc.dev.acc_1G);
                 break;
             case FSSP_DATAID_T1         :
-                // we send all the flags as decimal digits for easy reading
+                ; // empty statement after label so we can declare a value
+                uint32_t tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
 
-                tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
-
+                // ones column
                 if (ARMING_FLAG(OK_TO_ARM))
                     tmpi += 1;
                 if (ARMING_FLAG(PREVENT_ARMING))
@@ -661,6 +660,7 @@ void handleSmartPortTelemetry(void)
                 if (ARMING_FLAG(ARMED))
                     tmpi += 4;
 
+                // tens column
                 if (FLIGHT_MODE(ANGLE_MODE))
                     tmpi += 10;
                 if (FLIGHT_MODE(HORIZON_MODE))
@@ -670,6 +670,7 @@ void handleSmartPortTelemetry(void)
                 if (FLIGHT_MODE(PASSTHRU_MODE) && tmpi < 60)
                     tmpi += 40;
 
+                // hundreds column
                 if (FLIGHT_MODE(HEADING_MODE))
                     tmpi += 100;
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
@@ -677,6 +678,7 @@ void handleSmartPortTelemetry(void)
                 if (FLIGHT_MODE(NAV_POSHOLD_MODE))
                     tmpi += 400;
 
+                // thousands column
                 if (FLIGHT_MODE(NAV_RTH_MODE))
                     tmpi += 1000;
                 if (FLIGHT_MODE(NAV_WP_MODE))
@@ -684,13 +686,32 @@ void handleSmartPortTelemetry(void)
                 if (FLIGHT_MODE(HEADFREE_MODE))
                     tmpi += 4000;
 
+                // ten thousands column
+                if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && posControl.flags.hasValidPositionSensor)
+                    tmpi += 20000; // home reset
+                if (FLIGHT_MODE(FAILSAFE_MODE))
+                    tmpi += 40000;
+
                 smartPortSendPackage(id, tmpi);
                 break;
             case FSSP_DATAID_T2         :
                 if (sensors(SENSOR_GPS)) {
 #ifdef GPS
-                    // provide GPS lock status, GPS accuracy, and number of locked satellites
-                    smartPortSendPackage(id, (STATE(GPS_FIX) ? 1000 : 0) + (STATE(GPS_FIX_HOME) ? 2000 : 0) + ((9 - constrain(gpsSol.hdop / 1000, 0, 9)) * 100) + constrain(gpsSol.numSat, 0, 99));
+                    uint32_t tmpi = 0;
+
+                    // ones and tens columns (# of satellites 0 - 99)
+                    tmpi += constrain(gpsSol.numSat, 0, 99);
+
+                    // hundreds column (satellite accuracy HDOP: 0 = worst, 9 = best)
+                    tmpi += constrain(gpsSol.hdop / 1000, 0, 9) * 100;
+
+                    // thousands column (GPS fix status)
+                    if (STATE(GPS_FIX))
+                        tmpi += 1000;
+                    if (STATE(GPS_FIX_HOME))
+                        tmpi += 2000;
+
+                    smartPortSendPackage(id, tmpi);
 #endif
                 } else if (feature(FEATURE_GPS))
                     smartPortSendPackage(id, 0);
