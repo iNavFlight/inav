@@ -7,7 +7,7 @@ require 'stringio'
 require 'tmpdir'
 require 'yaml'
 
-DEBUG = true
+DEBUG = false
 INFO = false
 
 def dputs(s)
