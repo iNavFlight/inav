@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'fileutils'
 require 'open3'
 require 'set'
 require 'shellwords'
@@ -534,6 +535,17 @@ class Generator
         return !stderr.include?("static assertion failed")
     end
 
+    def mktmpdir
+        # Use a temporary dir reachable by relative path
+        # since g++ in cygwin fails to open files
+        # with absolute paths
+        tmp = "tmp"
+        Dir.mkdir(tmp) unless File.directory?(tmp)
+        value = yield(tmp)
+        FileUtils.remove_dir(tmp)
+        value
+    end
+
     def compile_test_file(prog)
         buf = StringIO.new
         # cstddef for offsetof()
@@ -551,7 +563,7 @@ class Generator
         end
         buf << "\n"
         buf << prog.string
-        Dir.mktmpdir do |dir|
+        mktmpdir do |dir|
             file = File.join(dir, "test.cpp")
             File.open(file, 'w') {|file| file.write(buf.string)}
             cflags = Shellwords.split(ENV["CFLAGS"] || "")
