@@ -9,6 +9,64 @@ Refer to the product web page:
 
 TODO...
 
+
+### Developer Notes
+
+| Board I/O             | CPU Pin # | CPU Pin Name | AF?       | AFs
+|-----------------------|-----------|--------------|-----------|---------------------------------------------------------------------------------------------|
+| M1 / PWM1             | 46        | PB9          |           | I2C1_SDA, CAN_TX, TIM17_CH1, TIM4_CH4, TIM8_CH3, IR_OUT, COMP2_OUT, EVENTOUT |
+| M2 / PWM2             | 45        | PB8          |           | I2C1_SCL, CAN_RX, TIM16_CH1, TIM4_CH3, TIM8_CH2, TIM1_BKIN, TSC_SYNC, COMP1_OUT, EVENTOUT |
+| M3 / PWM3             | 19        | PB1          |           | TIM3_CH4, TIM1_CH3N, TIM8_CH3N, COMP4_OUT, TSC_G3_IO3, EVENTOUT -- ADC3_IN1, OPAMP3_VOUT- |
+| M4 / PWM4             | 11        | PA1          |           | USART2_RTS_DE, TIM2_CH2, TSC_G1_IO2, TIM15_CH1N, RTC_REFIN, EVENTOUT -- ADC1_IN2, COMP1_INP, OPAMP1_VINP, OPAMP3_VINP |
+| PWM5                  | 12        | PA2          | USART2_TX (AF7) | USART2_TX, TIM2_CH3, TIM15_CH1, TSC_G1_IO3, COMP2_OUT, EVENTOUT -- ADC1_IN3, COMP2_INM, OPAMP1_VOUT |
+| PWM6                  | 13        | PA3          | USART2_TX (AF7) | USART2_RX, TIM2_CH4, TIM15_CH2, TSC_G1_IO4, EVENTOUT -- ADC1_IN4, OPAMP1_VINP, COMP2_INP, OPAMP1_VINM |
+| PWM7                  | 10        | PA0          |           | USART2_CTS, TIM2_CH1_ETR,TIM8_BKIN, TIM8_ETR,TSC_G1_IO1, COMP1_OUT, EVENTOUT -- ADC1_IN1, COMP1_INM, RTC_ TAMP2, WKUP1, COMP7_INP |
+| PWM8                  | 18        | PB0          |           | TIM3_CH3, TIM1_CH2N, TIM8_CH2N,TSC_G3_IO2, EVENTOUT -- ADC3_IN12, COMP4_INP, OPAMP3_VINP, OPAMP2_VINP |
+| LED                   | 29        | PA8          |           | I2C2_SMBA,I2S2_MCK, USART1_CK, TIM1_CH1, TIM4_ETR, MCO, COMP3_OUT, EVENTOUT |
+| Buzzer -              | ??        | PXX          |           | 
+| UART1 TX / PIN #3     | 30        | PA9          |           | I2C2_SCL,I2S3_MCK, USART1_TX, TIM1_CH2, TIM2_CH3, TIM15_BKIN, TSC_G4_IO1, COMP5_OUT, EVENTOUT |
+| UART1 RX / PIN #4     | 31        | PA10         |           | I2C2_SDA, USART1_RX, TIM1_CH3, TIM2_CH4, TIM8_BKIN, TIM17_BKIN, TSC_G4_IO2, COMP6_OUT, EVENTOUT |
+
+
+TODO: Add pin direction to table above
+
+SBUS output from the XSR goes to:  RC Channel 8 is mapped to RSSI
+UART2_TX - PA14
+UART2_RX - PA15 
+
+Smart port from the XSR goes to:
+UART3_TX - PB10
+UART3_RX - PB11
+
+led red, green, blue
+OSD spi + gpio
+
+SWD pinout
+
+Analog input info:
+	Voltage Sense:
+		100K and 10K voltage divider.  Max voltage 36.3V (Confirm this is true...)
+
+	Current Sense:
+		Direct input to processor.  Max Voltage 3.3V
+
+
+### Misc Info
+
+Where to feed vin?
+vin range?
+Which LDO powers what?
+	- Can a separate battery run the rx and beeper only?
+
+
+What is powered when plugged into usb?
+	: Beeper, UART1/GPS @ 3.3V, Smart Port @ 5V,  
+
+VBattery voltage divider: 100K, 10K.  Max vin: 36.3V ? ADC: 12-6 bits of resolution
+
+
+### Obsolete
+
 There are few things to note on how things are connected on the board.
 
 1. VBAT (J4)
