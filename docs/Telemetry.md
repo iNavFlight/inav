@@ -64,7 +64,7 @@ The following sensors are transmitted
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values.
 * **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
-  * **A** : 1 = placeholder so flight mode is always 5 digits long, 2 = gps home fix reset, 4 = failsafe mode
+  * **A** : 1 = placeholder so flight mode is always 5 digits long, 4 = failsafe mode
   * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
   * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
   * **D** : 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode

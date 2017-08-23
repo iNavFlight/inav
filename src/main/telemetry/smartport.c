@@ -34,7 +34,6 @@
 #include "io/serial.h"
 
 #include "navigation/navigation.h"
-#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -687,10 +686,8 @@ void handleSmartPortTelemetry(void)
                         tmpi += 4000;
 
                     // ten thousands column
-#if defined(GPS) && defined(IS_RC_MODE_ACTIVE) && defined(BOXHOMERESET)
-                    if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && posControl.flags.hasValidPositionSensor)
-                        tmpi += 20000; // home reset
-#endif
+                    if (true == false) // placeholder, would like to use this for home reset indicator
+                        tmpi += 20000;
                     if (FLIGHT_MODE(FAILSAFE_MODE))
                         tmpi += 40000;
 
@@ -706,7 +703,7 @@ void handleSmartPortTelemetry(void)
                     tmpi += constrain(gpsSol.numSat, 0, 99);
 
                     // hundreds column (satellite accuracy HDOP: 0 = worst, 9 = best)
-                    tmpi += constrain(gpsSol.hdop / 1000, 0, 9) * 100;
+                    tmpi += (9 - constrain(gpsSol.hdop / 1000, 0, 9)) * 100;
 
                     // thousands column (GPS fix status)
                     if (STATE(GPS_FIX))
