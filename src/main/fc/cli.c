@@ -983,6 +983,7 @@ static const clivalue_t valueTable[] = {
     { "osd_pid_yaw_pos",            VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, OSD_POS_MAX_CLI }, PG_OSD_CONFIG, offsetof(osdConfig_t, item_pos[OSD_YAW_PIDS]) },
     { "osd_power_pos",              VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, OSD_POS_MAX_CLI }, PG_OSD_CONFIG, offsetof(osdConfig_t, item_pos[OSD_POWER]) },
     { "osd_air_speed",              VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, OSD_POS_MAX_CLI }, PG_OSD_CONFIG, offsetof(osdConfig_t, item_pos[OSD_AIR_SPEED]) },
+    { "osd_nav_mode",               VAR_UINT16 | MASTER_VALUE, .config.minmax = { 0, OSD_POS_MAX_CLI }, PG_OSD_CONFIG, offsetof(osdConfig_t, item_pos[OSD_NAV_MODE]) },
 #endif
 // PG_SYSTEM_CONFIG
 #ifdef USE_I2C
