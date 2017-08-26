@@ -563,8 +563,8 @@ class Generator
         # Use a temporary dir reachable by relative path
         # since g++ in cygwin fails to open files
         # with absolute paths
-        tmp = "tmp"
-        Dir.mkdir(tmp) unless File.directory?(tmp)
+        tmp = File.join("obj", "tmp")
+        FileUtils.mkdir_p(tmp) unless File.directory?(tmp)
         value = yield(tmp)
         FileUtils.remove_dir(tmp)
         value
