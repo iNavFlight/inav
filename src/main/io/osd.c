@@ -357,14 +357,6 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
             } else if (FLIGHT_MODE(HEADFREE_MODE))
                 p = "!HF!";
-            else if (FLIGHT_MODE(NAV_RTH_MODE))
-                p = "RTL ";
-            else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
-                p = " PH ";
-            else if (FLIGHT_MODE(NAV_WP_MODE))
-                p = " WP ";
-            else if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
-                p = " AH ";
             else if (FLIGHT_MODE(ANGLE_MODE))
                 p = "STAB";
             else if (FLIGHT_MODE(HORIZON_MODE))
@@ -553,12 +545,42 @@ static bool osdDrawSingleElement(uint8_t item)
         {
         #ifdef PITOT
             osdFormatVelocityStr(buff, pitot.airSpeed);
-        #else 
-            return false;
+        #else
+            buff[0] = '\0';
         #endif
             break;
         }
-
+    case OSD_NAV_MODE:
+        {
+#ifdef NAV
+            if (FLIGHT_MODE(NAV_RTH_MODE)) {
+                buff[0] = SYM_RTH0;
+                buff[1] = SYM_RTH1;
+            } else if (FLIGHT_MODE(NAV_WP_MODE)) {
+                buff[0] = SYM_WPT0;
+                buff[1] = SYM_WPT1;
+            } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+                if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+                    buff[0] = SYM_ALTPOSH0;
+                    buff[1] = SYM_ALTPOSH1;
+                } else {
+                    buff[0] = SYM_POSH0;
+                    buff[1] = SYM_POSH1;
+                }
+            } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+                buff[0] = SYM_ALTH0;
+                buff[1] = SYM_ALTH1;
+            } else {
+#else
+                buff[0] = SYM_BLANK;
+                buff[1] = SYM_BLANK;
+#endif
+#ifdef NAV
+            }
+#endif
+            buff[2] = '\0';
+            break;
+        }
     default:
         return false;
     }
@@ -710,6 +732,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_POWER] = OSD_POS(15, 1);
 
     osdConfig->item_pos[OSD_AIR_SPEED] = OSD_POS(3, 5);
+    // TODO: By default put this just above FLYMODE, centered
+    osdConfig->item_pos[OSD_NAV_MODE] = OSD_POS(13, 11) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
     osdConfig->cap_alarm = 2200;

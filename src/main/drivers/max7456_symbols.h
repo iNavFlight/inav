@@ -105,6 +105,18 @@
 #define SYM_GLAND     0xB7
 #define SYM_GLAND1    0xB8
 
+// INAV navigation modes
+#define SYM_ALTH0      178
+#define SYM_ALTH1      179
+#define SYM_POSH0      180
+#define SYM_POSH1      181
+#define SYM_ALTPOSH0   182
+#define SYM_ALTPOSH1   183
+#define SYM_WPT0       184
+#define SYM_WPT1       185
+#define SYM_RTH0       186
+#define SYM_RTH1       187
+
 // Gimbal active Mode
 #define SYM_GIMBAL  0x16
 #define SYM_GIMBAL1 0x17
