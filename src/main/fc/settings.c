@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdint.h>
 
 #include "common/string_light.h"
 
