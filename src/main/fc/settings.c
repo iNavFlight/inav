@@ -8,8 +8,6 @@
 
 #include "fc/settings_generated.c"
 
-extern const char *cliValueWords[];
-
 void clivalue_get_name(const clivalue_t *val, char *buf)
 {
 	uint8_t bpos = 0;
