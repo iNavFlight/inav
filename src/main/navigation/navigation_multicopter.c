@@ -62,6 +62,9 @@ static bool prepareForTakeoffOnReset = false;
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
+    float altitudeError;
+
+#ifdef USE_RANGEFINDER
     bool surfaceValid = isSurfaceAltitudeValid();
 
     /*
@@ -109,7 +112,6 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
         }
     }
 
-    float altitudeError;
     if (
         posControl.flags.isTerrainFollowEnabled == true && 
         surfaceValid == true && 
@@ -120,6 +122,10 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
         altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
     }
     
+#else 
+    altitudeError = posControl.desiredState.pos.V.Z - posControl.actualState.pos.V.Z;
+#endif
+
     float targetVel = altitudeError * posControl.pids.pos[Z].param.kP;
 
     // hard limit desired target velocity to max_climb_rate
@@ -139,9 +145,11 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     else {
         posControl.desiredState.vel.V.Z = targetVel;
     }
-
+    
+#ifdef USE_RANGEFINDER
     posControl.surfaceState.previousIsSurfaceAltitudeValid = surfaceValid;
     posControl.surfaceState.previousIsTerrainFollowingEnabled = posControl.flags.isTerrainFollowEnabled; 
+#endif
 
 #if defined(NAV_BLACKBOX)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.V.Z), -32678, 32767);
