@@ -209,7 +209,7 @@ void ltm_sframe(sbuf_t *dst)
         lt_statemode |= 2;
     sbufWriteU8(dst, 'S');
     ltm_serialise_16(dst, vbat * 100);    //vbat converted to mv
-    ltm_serialise_16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF));    // current mAh (65535 mAh max)
+    ltm_serialise_16(dst, amperage);    // current amps
     ltm_serialise_8(dst, (uint8_t)((rssi * 254) / 1023));        // scaled RSSI (uchar)
 #if defined(PITOT)
     ltm_serialise_8(dst, sensors(SENSOR_PITOT) ? pitot.airSpeed / 100.0f : 0);  // in m/s
