@@ -723,9 +723,8 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             break;
 
         case OME_Funcall:
-            long retval;
             if (p->func && key == KEY_RIGHT) {
-                retval = p->func(pDisplay, p->data);
+                long retval = p->func(pDisplay, p->data);
                 if (retval == MENU_CHAIN_BACK)
                     cmsMenuBack(pDisplay);
                 res = BUTTON_PAUSE;
