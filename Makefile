@@ -545,6 +545,7 @@ COMMON_SRC = \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
+            common/huffman.c \
             common/maths.c \
             common/printf.c \
             common/streambuf.c \
