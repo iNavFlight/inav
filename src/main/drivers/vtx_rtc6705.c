@@ -38,7 +38,6 @@
 
 #include "drivers/vtx_rtc6705.h"
 
-
 #define RTC6705_SET_HEAD 0x3210 //fosc=8mhz r=400
 #define RTC6705_SET_A1 0x8F3031 //5865
 #define RTC6705_SET_A2 0x8EB1B1 //5845

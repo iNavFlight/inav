@@ -104,6 +104,10 @@ typedef enum {
 #ifdef USE_RCSPLIT
     TASK_RCSPLIT,
 #endif
+#ifdef VTX_CONTROL
+    TASK_VTXCTRL,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 
