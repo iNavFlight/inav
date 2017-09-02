@@ -35,7 +35,11 @@
 
 static adcDevice_t adcHardware[ADCDEV_COUNT] = {
     { .ADCx = ADC1, .rccADC = RCC_AHB(ADC12), .rccDMA = RCC_AHB(DMA1), .DMAy_Channelx = DMA1_Channel1, .enabled = false, .usedChannelCount = 0 },
-    { .ADCx = ADC2, .rccADC = RCC_AHB(ADC12), .rccDMA = RCC_AHB(DMA2), .DMAy_Channelx = DMA2_Channel1, .enabled = false, .usedChannelCount = 0 }
+#ifdef ADC24_DMA_REMAP
+    { .ADCx = ADC2, .rccADC = RCC_AHB(ADC12), .rccDMA = RCC_AHB(DMA2), .DMAy_Channelx = DMA2_Channel3, .enabled = false, .usedChannelCount = 0 },
+#else
+    { .ADCx = ADC2, .rccADC = RCC_AHB(ADC12), .rccDMA = RCC_AHB(DMA2), .DMAy_Channelx = DMA2_Channel1, .enabled = false, .usedChannelCount = 0 },
+#endif
 };
 
 const adcTagMap_t adcTagMap[] = {
