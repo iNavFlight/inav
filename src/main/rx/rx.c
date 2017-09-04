@@ -536,15 +536,14 @@ static void updateRSSIPWM(void)
 }
 
 #define RSSI_ADC_SAMPLE_COUNT 16
-//#define RSSI_SCALE (0xFFF / 100.0f)
 
 static void updateRSSIADC(timeUs_t currentTimeUs)
 {
 #ifndef USE_ADC
     UNUSED(currentTimeUs);
 #else
-    static uint8_t adcRssiSamples[RSSI_ADC_SAMPLE_COUNT];
-    static uint8_t adcRssiSampleIndex = 0;
+    static uint16_t adcRssiSamples[RSSI_ADC_SAMPLE_COUNT];
+    static uint16_t adcRssiSampleIndex = 0;
     static timeUs_t rssiUpdateAtUs = 0;
 
     if ((int32_t)(currentTimeUs - rssiUpdateAtUs) < 0) {
@@ -552,21 +551,15 @@ static void updateRSSIADC(timeUs_t currentTimeUs)
     }
     rssiUpdateAtUs = currentTimeUs + DELAY_50_HZ;
 
-    const uint16_t adcRssiSample = adcGetChannel(ADC_RSSI);
-    const uint8_t rssiPercentage = adcRssiSample / rxConfig()->rssi_scale;
-
     adcRssiSampleIndex = (adcRssiSampleIndex + 1) % RSSI_ADC_SAMPLE_COUNT;
-
-    adcRssiSamples[adcRssiSampleIndex] = rssiPercentage;
+    adcRssiSamples[adcRssiSampleIndex] = adcGetChannel(ADC_RSSI);
 
     int16_t adcRssiMean = 0;
     for (int sampleIndex = 0; sampleIndex < RSSI_ADC_SAMPLE_COUNT; sampleIndex++) {
         adcRssiMean += adcRssiSamples[sampleIndex];
     }
 
-    adcRssiMean = adcRssiMean / RSSI_ADC_SAMPLE_COUNT;
-
-    rssi = (uint16_t)((constrain(adcRssiMean, 0, 100) / 100.0f) * 1023.0f);
+    rssi = (adcRssiMean / RSSI_ADC_SAMPLE_COUNT) / 4;    // Reduce to [0;1023]
 #endif
 }
 
@@ -588,6 +581,8 @@ void updateRSSI(timeUs_t currentTimeUs)
         rssi = 1023 - rssi;
     }
 
+    // Apply scaling
+    rssi = constrain((uint32_t)rssi * rxConfig()->rssi_scale / 100, 0, 1023);
 }
 
 uint16_t rxGetRefreshRate(void)
