@@ -214,6 +214,16 @@ static void osdFormatTime(char *buff, uint32_t seconds, char sym_m, char sym_h)
     tfp_sprintf(buff + 1, "%02d:%02d", value / 60, value % 60);
 }
 
+static inline void osdFormatOnTime(char *buff)
+{
+    osdFormatTime(buff, micros() / 1000000, SYM_ON_M, SYM_ON_H);
+}
+
+static inline void osdFormatFlyTime(char *buff)
+{
+    osdFormatTime(buff, flyTime / 1000000, SYM_FLY_M, SYM_FLY_H);
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item]) || BLINK(osdConfig()->item_pos[item])) {
@@ -330,13 +340,23 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ONTIME:
         {
-            osdFormatTime(buff, micros() / 1000000, SYM_ON_M, SYM_ON_H);
+            osdFormatOnTime(buff);
             break;
         }
 
     case OSD_FLYTIME:
         {
-            osdFormatTime(buff, flyTime / 1000000, SYM_FLY_M, SYM_FLY_H);
+            osdFormatFlyTime(buff);
+            break;
+        }
+
+    case OSD_ONTIME_FLYTIME:
+        {
+            if (ARMING_FLAG(ARMED)) {
+                osdFormatFlyTime(buff);
+            } else {
+                osdFormatOnTime(buff);
+            }
             break;
         }
 
@@ -710,8 +730,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdConfig->item_pos[OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
-    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 10) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 9);
+    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 10);
+    osdConfig->item_pos[OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_GPS_SATS] = OSD_POS(0, 11) | VISIBLE_FLAG;
 
     osdConfig->item_pos[OSD_GPS_LAT] = OSD_POS(0, 12);
