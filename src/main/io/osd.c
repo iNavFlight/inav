@@ -201,6 +201,19 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
     }
 }
 
+static void osdFormatTime(char *buff, uint32_t seconds, char sym_m, char sym_h)
+{
+    uint32_t value = seconds;
+    char sym = sym_m;
+    // Maximum value we can show in minutes is 99 minutes and 59 seconds
+    if (seconds > (99 * 60) + 59) {
+        sym = sym_h;
+        value = seconds / 60;
+    }
+    buff[0] = sym;
+    tfp_sprintf(buff + 1, "%02d:%02d", value / 60, value % 60);
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item]) || BLINK(osdConfig()->item_pos[item])) {
@@ -317,17 +330,13 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ONTIME:
         {
-            const uint32_t seconds = micros() / 1000000;
-            buff[0] = SYM_ON_M;
-            tfp_sprintf(buff + 1, "%02d:%02d", seconds / 60, seconds % 60);
+            osdFormatTime(buff, micros() / 1000000, SYM_ON_M, SYM_ON_H);
             break;
         }
 
     case OSD_FLYTIME:
         {
-            const uint32_t seconds = flyTime / 1000000;
-            buff[0] = SYM_FLY_M;
-            tfp_sprintf(buff + 1, "%02d:%02d", seconds / 60, seconds % 60);
+            osdFormatTime(buff, flyTime / 1000000, SYM_FLY_M, SYM_FLY_H);
             break;
         }
 
