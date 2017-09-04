@@ -103,6 +103,10 @@ static void adcInstanceInit(ADCDevice adcDevice)
 
     adcDevice_t * adc = &adcHardware[adcDevice];
 
+#ifdef ADC24_DMA_REMAP
+    SYSCFG_DMAChannelRemapConfig(SYSCFG_DMARemap_ADC2ADC4, ENABLE);
+#endif
+
     RCC_ClockCmd(adc->rccADC, ENABLE);
     RCC_ClockCmd(adc->rccDMA, ENABLE);
 
