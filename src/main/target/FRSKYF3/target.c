@@ -22,13 +22,9 @@
 #include "drivers/timer.h"
 #include "drivers/dma.h"
 
-/* Enable the FRSKYF3_M2_ON_PWM5 define to put the 2nd motor */
-/* channel on the first 3 pin output header labeled output 5 */
-#define FRSKYF3_M2_ON_PWM5 1
-
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM8, IO_TAG(PB9),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_10, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // M1 / PWM1
-#if defined(FRSKYF3_M2_ON_PWM5)
+#ifdef FRSKYF3_M2_ON_PWM5
     { TIM2, IO_TAG(PA2),  TIM_Channel_3, 1, IOCFG_AF_PP,  GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // PWM5 / USART2_TX (AF7)
 #else
     { TIM2, IO_TAG(PA2),  TIM_Channel_3, 1, IOCFG_AF_PP,  GPIO_AF_1, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO | TIM_USE_MC_CHNFW },  // PWM5 / USART2_TX (AF7)
