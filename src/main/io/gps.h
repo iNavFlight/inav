@@ -21,6 +21,8 @@
 
 #include "config/parameter_group.h"
 
+#include "drivers/rtc.h"
+
 #define GPS_DBHZ_MIN 0
 #define GPS_DBHZ_MAX 55
 
@@ -113,6 +115,7 @@ typedef struct gpsSolutionData_s {
         bool validVelD;
         bool validMag;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
+        bool validTime;
     } flags;
 
     gpsFixType_e fixType;
@@ -129,6 +132,9 @@ typedef struct gpsSolutionData_s {
     uint16_t epv;   // vertical accuracy (cm)
 
     uint16_t hdop;  // generic HDOP value (*100)
+
+    date_time_t time; // Time in UTC
+
 } gpsSolutionData_t;
 
 typedef struct {

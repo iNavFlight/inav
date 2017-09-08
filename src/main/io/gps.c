@@ -146,6 +146,13 @@ void gpsSetState(gpsState_e state)
     gpsState.lastStateSwitchMs = millis();
 }
 
+static void gpsUpdateTime(void)
+{
+    if (!rtc_has_time() && gpsSol.flags.validTime) {
+        rtc_set_dt(&gpsSol.time);
+    }
+}
+
 static void gpsHandleProtocol(void)
 {
     bool newDataReceived = false;
@@ -174,6 +181,9 @@ static void gpsHandleProtocol(void)
         sensorsSet(SENSOR_GPS);
         onNewGPSData();
 
+        // Update time
+        gpsUpdateTime();
+
         // Update timeout
         gpsState.lastLastMessageMs = gpsState.lastMessageMs;
         gpsState.lastMessageMs = millis();
@@ -194,6 +204,7 @@ static void gpsResetSolution(void)
     gpsSol.flags.validVelD = 0;
     gpsSol.flags.validMag = 0;
     gpsSol.flags.validEPE = 0;
+    gpsSol.flags.validTime = 0;
 }
 
 void gpsPreInit(void)
@@ -270,11 +281,19 @@ static void gpsFakeGPSUpdate(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
+        gpsSol.flags.validTime = 1;
         gpsSol.eph = 100;
         gpsSol.epv = 100;
+        gpsSol.time.year = 1983;
+        gpsSol.time.month = 1;
+        gpsSol.time.day = 1;
+        gpsSol.time.hours = 3;
+        gpsSol.time.minutes = 15;
+        gpsSol.time.seconds = 42;
 
         ENABLE_STATE(GPS_FIX);
         sensorsSet(SENSOR_GPS);
+        gpsUpdateTime();
         onNewGPSData();
 
         gpsState.lastLastMessageMs = gpsState.lastMessageMs;
