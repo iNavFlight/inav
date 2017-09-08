@@ -108,7 +108,7 @@
 #endif
 
 // VTX control enabled only on F4 and F7 CPUs
-#if defined(STM32F1) || defined(STM32F3)
+#if defined(STM32F4) || defined(STM32F7)
 #define VTX_COMMON
 #define VTX_CONTROL
 #define VTX_SMARTAUDIO
