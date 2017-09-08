@@ -41,6 +41,7 @@
 
 #include "common/axis.h"
 #include "common/printf.h"
+#include "common/string_light.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -395,7 +396,7 @@ static bool osdDrawSingleElement(uint8_t item)
             strcpy(buff, "CRAFT_NAME");
         else {
             for (int i = 0; i < MAX_NAME_LENGTH; i++) {
-                buff[i] = toupper((unsigned char)systemConfig()->name[i]);
+                buff[i] = sl_toupper((unsigned char)systemConfig()->name[i]);
                 if (systemConfig()->name[i] == 0)
                     break;
             }
