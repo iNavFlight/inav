@@ -42,6 +42,7 @@
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
+#include "drivers/rtc.h"
 #include "drivers/sensor.h"
 #include "drivers/time.h"
 
@@ -1002,6 +1003,8 @@ void blackboxStart(void)
         return;
     }
 
+    blackboxSaveStartDateTime();
+
     memset(&gpsHistory, 0, sizeof(gpsHistory));
 
     blackboxHistory[0] = &blackboxHistoryRing[0];
@@ -1706,19 +1709,29 @@ void blackboxUpdate(timeUs_t currentTimeUs)
 }
 
 /*
- * Returns start time in ISO 8601 format, YYYY-MM-DDThh:mm:ss
- * Year value of "0000" indicates time not set
+ * Formats start time in ISO 8601 format, YYYY-MM-DDThh:mm:ss
+ * Year value of "0000" indicates time not set.
  */
-static char startDateTime[20] = "0000-01-01T00:00:00";
-const char *blackboxGetStartDateTime(void)
+
+static char started_buf[FORMATTED_DATE_TIME_BUFSIZE];
+const char * blackboxGetStartDateTime()
 {
-    return startDateTime;
+    return started_buf;
 }
 
-void blackboxSetStartDateTime(const char *dateTime, timeMs_t timeNowMs)
+void blackboxSaveStartDateTime()
 {
-    (void)dateTime;
-    (void)timeNowMs;
+    date_time_t dt;
+    if (!rtc_get_dt(&dt)) {
+        dt.year = 0;
+        dt.month = 1;
+        dt.day = 1;
+        dt.hours = 0;
+        dt.minutes = 0;
+        dt.seconds = 0;
+        dt.nanos = 0;
+    }
+    date_time_format(started_buf, &dt);
 }
 
 static bool canUseBlackboxWithCurrentConfiguration(void)
