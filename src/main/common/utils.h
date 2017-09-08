@@ -91,7 +91,7 @@ void * memcpy_fn ( void * destination, const void * source, size_t num ) asm("me
 
 #endif
 
-#if __GNUC__ >= 7
+#if __GNUC__ > 6
 #define FALLTHROUGH __attribute__ ((fallthrough))
 #else
 #define FALLTHROUGH do {} while(0)

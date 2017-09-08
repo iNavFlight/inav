@@ -1048,8 +1048,8 @@ void blackboxFinish(void)
     case BLACKBOX_STATE_RUNNING:
     case BLACKBOX_STATE_PAUSED:
         blackboxLogEvent(FLIGHT_LOG_EVENT_LOG_END, NULL);
+        FALLTHROUGH;
 
-        // Fall through
     default:
         blackboxSetState(BLACKBOX_STATE_SHUTTING_DOWN);
     }
