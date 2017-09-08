@@ -575,6 +575,7 @@ COMMON_SRC = \
             drivers/pwm_mapping.c \
             drivers/pwm_output.c \
             drivers/rcc.c \
+            drivers/rtc.c \
             drivers/rx_pwm.c \
             drivers/serial.c \
             drivers/serial_uart.c \

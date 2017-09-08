@@ -39,6 +39,7 @@
 #include "drivers/compass/compass.h"
 #include "drivers/max7456.h"
 #include "drivers/pwm_mapping.h"
+#include "drivers/rtc.h"
 #include "drivers/sdcard.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
@@ -2112,6 +2113,14 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+
+    case MSP_SET_RTC:
+        {
+            int32_t unix = (int32_t)sbufReadU32(src);
+            uint32_t nanos = sbufReadU32(src);
+            rtc_set(timestamp_unix(unix, nanos));
+        }
+        break;
 
     default:
         return MSP_RESULT_ERROR;
