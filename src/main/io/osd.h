@@ -20,8 +20,6 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
-#define OSD_TASK_FREQUENCY_HZ   100
-
 #define VISIBLE_FLAG  0x0800
 #define BLINK_FLAG    0x0400
 #define VISIBLE(x)    (x & VISIBLE_FLAG)
@@ -64,7 +62,8 @@ typedef enum {
 
 typedef enum {
     OSD_UNIT_IMPERIAL,
-    OSD_UNIT_METRIC
+    OSD_UNIT_METRIC,
+    OSD_UNIT_UK, // Show speed in mp/h, other values in metric
 } osd_unit_e;
 
 typedef struct osdConfig_s {
@@ -84,6 +83,7 @@ typedef struct osdConfig_s {
 
 PG_DECLARE(osdConfig_t, osdConfig);
 
-void osdInit(void);
+struct displayPort_s;
+void osdInit(struct displayPort_s *osdDisplayPort);
 void osdResetAlarms(void);
 void osdUpdate(timeUs_t currentTimeUs);

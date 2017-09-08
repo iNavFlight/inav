@@ -83,6 +83,7 @@
 #define MAX7456_SPI_INSTANCE    SPI2
 #define MAX7456_SPI_CS_PIN      PB10
 // *************** UART *****************************
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PB12
 #define VBUS_SENSING_ENABLED
@@ -135,6 +136,7 @@
 #define USE_MAG_HMC5883 // External
 #define USE_MAG_AK8963  // External
 #define USE_MAG_AK8975  // External
+#define USE_MAG_QMC5883 // External
 
 // *************** ADC *****************************
 #define USE_ADC

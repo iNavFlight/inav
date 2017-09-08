@@ -57,10 +57,10 @@
    field setters.
 */
 
-#define MSP_PROTOCOL_VERSION                0
+#define MSP_PROTOCOL_VERSION                0   // Same version over MSPv1 & MSPv2 - message format didn't change and it backward compatible
 
-#define API_VERSION_MAJOR                   1 // increment when major changes are made
-#define API_VERSION_MINOR                   27 // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
+#define API_VERSION_MAJOR                   2   // increment when major changes are made
+#define API_VERSION_MINOR                   0   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
 
 #define API_VERSION_LENGTH                  2
 
@@ -319,3 +319,6 @@
 #define MSP_SERVO_MIX_RULES      241    //out message         Returns servo mixer configuration
 #define MSP_SET_SERVO_MIX_RULE   242    //in message          Sets servo mixer configuration
 #define MSP_SET_4WAY_IF          245    //in message          Sets 4way interface
+
+// MSPv2 includes
+#include "msp_protocol_v2_inav.h"

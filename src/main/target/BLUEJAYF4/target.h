@@ -59,6 +59,7 @@
 #define USE_MAG_AK8975
 #define USE_MAG_MAG3110
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 
 #define BARO
 #define USE_BARO_BMP085
@@ -94,6 +95,7 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
+#define USB_IO
 #define USE_VCP
 //#define VBUS_SENSING_PIN PA8
 //#define VBUS_SENSING_ENABLED
