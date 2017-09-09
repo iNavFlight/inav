@@ -29,6 +29,10 @@
 *****************************************************************************
 */
 
+/* Stack & Heap sizes */
+_Min_Heap_Size = 0;
+_Min_Stack_Size = 0x1800;
+
 /* Entry Point */
 ENTRY(Reset_Handler)
 

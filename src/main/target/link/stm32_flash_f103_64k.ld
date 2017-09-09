@@ -9,6 +9,10 @@
 *****************************************************************************
 */
 
+/* Stack & Heap sizes */
+_Min_Heap_Size = 0;
+_Min_Stack_Size = 0x800;
+
 /* Specify the memory areas. */
 MEMORY
 {
