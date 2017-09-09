@@ -95,9 +95,11 @@ LoopCopyDataInit:
   adds  r2, r0, r1
   cmp  r2, r3
   bcc  CopyDataInit
+
+/* Zero fill the bss segment. */  
   ldr  r2, =_sbss
   b  LoopFillZerobss
-/* Zero fill the bss segment. */  
+
 FillZerobss:
   movs  r3, #0
   str  r3, [r2], #4
@@ -106,6 +108,32 @@ LoopFillZerobss:
   ldr  r3, = _ebss
   cmp  r2, r3
   bcc  FillZerobss
+
+/* Zero fill FASTRAM */ 
+  ldr  r2, =__fastram_bss_start__
+  b  LoopFillZeroFASTRAM
+
+FillZeroFASTRAM:
+  movs  r3, #0
+  str  r3, [r2], #4
+   
+LoopFillZeroFASTRAM:
+  ldr  r3, = __fastram_bss_end__
+  cmp  r2, r3
+  bcc  FillZeroFASTRAM
+
+/* Mark the heap and stack */
+    ldr	r2, =_heap_stack_begin
+    b	LoopMarkHeapStack
+
+MarkHeapStack:
+	movs	r3, 0xa5a5a5a5
+	str	r3, [r2], #4
+
+LoopMarkHeapStack:
+	ldr	r3, = _heap_stack_end
+	cmp	r2, r3
+	bcc	MarkHeapStack
 
 /* Call the clock system initialization function.*/
   bl  SystemInit   

@@ -126,6 +126,20 @@ SECTIONS
     __bss_end__ = _ebss;
   } >RAM
 
+  
+  .bss_fast :
+  {
+    _sbss_fast = .;         /* define a global symbol at bss start */
+    __bss_fast_start__ = _sbss_fast;
+    *(.bss_fast)
+    *(SORT_BY_ALIGNMENT(.bss_fast*))
+    *(COMMON)
+
+    . = ALIGN(4);
+    _ebss_fast = .;         /* define a global symbol at bss end */
+    __bss_fast_end__ = _ebss_fast;
+  } >FASTRAM
+
   /* User_heap_stack section, used to check that there is enough RAM left */
   _heap_stack_end = ORIGIN(STACKRAM)+LENGTH(STACKRAM) - 8; /* 8 bytes to allow for alignment */
   _heap_stack_begin = _heap_stack_end - _Min_Stack_Size  - _Min_Heap_Size;
