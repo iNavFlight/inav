@@ -346,7 +346,7 @@ class Generator
         buf << "};\n"
         # Write table pointers
         table_names.each do |name|
-            buf << "extern const char *#{table_variable_name(name)}[];\n"
+            buf << "extern const char * const #{table_variable_name(name)}[];\n"
         end
 
         File.open(file, 'w') {|file| file.write(buf.string)}
@@ -403,7 +403,7 @@ class Generator
         # Write the tables
         table_names = ordered_table_names()
         table_names.each do |name|
-            buf << "const char *#{table_variable_name(name)}[] = {\n"
+            buf << "const char * const #{table_variable_name(name)}[] = {\n"
             tbl = @tables[name]
             tbl["values"].each do |v|
                 buf << "\t#{v.inspect},\n"
