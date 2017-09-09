@@ -64,15 +64,15 @@
 #endif
 
 
-acc_t acc;                       // acc access functions
+FASTRAM acc_t acc;                       // acc access functions
 
 static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 
-static biquadFilter_t accFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM biquadFilter_t accFilter[XYZ_AXIS_COUNT];
 
 #ifdef USE_ACC_NOTCH
-static filterApplyFnPtr accNotchFilterApplyFn;
-static void *accNotchFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
+STATIC_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 #endif
 
 PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 1);
@@ -500,7 +500,7 @@ void accInitFilters(void)
     }
 
 #ifdef USE_ACC_NOTCH
-    static biquadFilter_t accFilterNotch[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t accFilterNotch[XYZ_AXIS_COUNT];
     accNotchFilterApplyFn = nullFilterApply;
 
     if (acc.accTargetLooptime && accelerometerConfig()->acc_notch_hz) {
