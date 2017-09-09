@@ -39,3 +39,6 @@
 #define REQUIRE_PRINTF_LONG_SUPPORT
 #endif
 
+#define FASTRAM                     __attribute__ ((section(".fastram_bss"), aligned(4)))
+#define STATIC_FASTRAM              static FASTRAM
+#define STATIC_FASTRAM_UNIT_TESTED  STATIC_UNIT_TESTED FASTRAM
