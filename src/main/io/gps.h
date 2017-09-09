@@ -21,7 +21,7 @@
 
 #include "config/parameter_group.h"
 
-#include "drivers/rtc.h"
+#include "common/time.h"
 
 #define GPS_DBHZ_MIN 0
 #define GPS_DBHZ_MAX 55
@@ -133,7 +133,7 @@ typedef struct gpsSolutionData_s {
 
     uint16_t hdop;  // generic HDOP value (*100)
 
-    date_time_t time; // Time in UTC
+    dateTime_t time; // GPS time in UTC
 
 } gpsSolutionData_t;
 

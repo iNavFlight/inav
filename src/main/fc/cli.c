@@ -43,8 +43,9 @@ extern uint8_t __config_end;
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/printf.h"
-#include "common/typeconversion.h"
 #include "common/string_light.h"
+#include "common/time.h"
+#include "common/typeconversion.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -58,7 +59,6 @@ extern uint8_t __config_end;
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/logging.h"
-#include "drivers/rtc.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/sdcard.h"
 #include "drivers/sensor.h"
@@ -2321,17 +2321,13 @@ static void cliStatus(char *cmdline)
 {
     UNUSED(cmdline);
 
+    char buf[FORMATTED_DATE_TIME_BUFSIZE];
+    dateTime_t dt;
+
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
-    cliPrint("Current Time: ");
-    date_time_t dt;
-    if (rtc_get_dt(&dt)) {
-        char buf[FORMATTED_DATE_TIME_BUFSIZE];
-        date_time_format(buf, &dt);
-        cliPrint(buf);
-    } else {
-        cliPrint("unknown");
-    }
-    cliPrintLinefeed();
+    rtcGetDateTime(&dt);
+    dateTimeFormat(buf, &dt);
+    cliPrintLinef("Current Time: %s", buf);
     cliPrintLinef("Voltage: %d * 0.1V (%dS battery - %s)", vbat, batteryCellCount, getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 

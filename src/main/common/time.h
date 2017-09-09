@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "platform.h"
@@ -35,3 +36,38 @@ typedef uint32_t timeUs_t;
 #endif
 
 static inline timeDelta_t cmpTimeUs(timeUs_t a, timeUs_t b) { return (timeDelta_t)(a - b); }
+
+// Milliseconds since Jan 1 1970
+typedef int64_t rtcTime_t;
+
+rtcTime_t rtcTimeMake(int32_t secs, uint16_t millis);
+
+typedef struct _dateTime_s {
+    // full year
+    uint16_t year;
+    // 1-12
+    uint8_t month;
+    // 1-31
+    uint8_t day;
+    // 0-23
+    uint8_t hours;
+    // 0-59
+    uint8_t minutes;
+    // 0-59
+    uint8_t seconds;
+    // 0-999
+    uint16_t millis;
+} dateTime_t;
+
+#define FORMATTED_DATE_TIME_BUFSIZE 24
+
+// buf must be at least FORMATTED_DATE_TIME_BUFSIZE
+void dateTimeFormat(char *buf, dateTime_t *dt);
+
+bool rtcHasTime();
+
+bool rtcGet(rtcTime_t *t);
+bool rtcSet(rtcTime_t *t);
+
+bool rtcGetDateTime(dateTime_t *dt);
+bool rtcSetDateTime(dateTime_t *dt);

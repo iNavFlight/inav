@@ -34,8 +34,6 @@ void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data);
 
 void blackboxInit(void);
 void blackboxUpdate(timeUs_t currentTimeUs);
-const char *blackboxGetStartDateTime(void);
-void blackboxSaveStartDateTime(void);
 void blackboxStart(void);
 void blackboxFinish(void);
 bool blackboxMayEditConfig(void);

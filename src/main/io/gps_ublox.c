@@ -489,7 +489,7 @@ static bool gpsParceFrameUBLOX(void)
             gpsSol.time.hours = _buffer.pvt.hour;
             gpsSol.time.minutes = _buffer.pvt.min;
             gpsSol.time.seconds = _buffer.pvt.sec;
-            gpsSol.time.nanos = _buffer.pvt.nano;
+            gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
 
             gpsSol.flags.validTime = 1;
         } else {

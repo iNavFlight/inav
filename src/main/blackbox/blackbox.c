@@ -34,6 +34,7 @@
 #include "common/axis.h"
 #include "common/encoding.h"
 #include "common/maths.h"
+#include "common/time.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -42,7 +43,6 @@
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
-#include "drivers/rtc.h"
 #include "drivers/sensor.h"
 #include "drivers/time.h"
 
@@ -1003,8 +1003,6 @@ void blackboxStart(void)
         return;
     }
 
-    blackboxSaveStartDateTime();
-
     memset(&gpsHistory, 0, sizeof(gpsHistory));
 
     blackboxHistory[0] = &blackboxHistoryRing[0];
@@ -1297,6 +1295,17 @@ static bool sendFieldDefinition(char mainFrameChar, char deltaFrameChar, const v
     return xmitState.headerIndex < headerCount;
 }
 
+// Buf must be at least FORMATTED_DATE_TIME_BUFSIZE
+static char *blackboxGetStartDateTime(char *buf)
+{
+    dateTime_t dt;
+    // rtcGetDateTime will fill dt with 0000-01-01T00:00:00
+    // when time is not known.
+    rtcGetDateTime(&dt);
+    dateTimeFormat(buf, &dt);
+    return buf;
+}
+
 #ifndef BLACKBOX_PRINT_HEADER_LINE
 #define BLACKBOX_PRINT_HEADER_LINE(name, format, ...) case __COUNTER__: \
                                                 blackboxPrintfHeaderLine(name, format, __VA_ARGS__); \
@@ -1317,11 +1326,13 @@ static bool blackboxWriteSysinfo(void)
         return false;
     }
 
+    char buf[FORMATTED_DATE_TIME_BUFSIZE];
+
     switch (xmitState.headerIndex) {
         BLACKBOX_PRINT_HEADER_LINE("Firmware type", "%s",                   "Cleanflight");
         BLACKBOX_PRINT_HEADER_LINE("Firmware revision", "INAV %s (%s) %s",  FC_VERSION_STRING, shortGitRevision, targetName);
         BLACKBOX_PRINT_HEADER_LINE("Firmware date", "%s %s",                buildDate, buildTime);
-        BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime());
+        BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime(buf));
         BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->name);
         BLACKBOX_PRINT_HEADER_LINE("P interval", "%d/%d",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
         BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     motorConfig()->minthrottle);
@@ -1706,32 +1717,6 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     if (isBlackboxDeviceFull()) {
         blackboxSetState(BLACKBOX_STATE_STOPPED);
     }
-}
-
-/*
- * Formats start time in ISO 8601 format, YYYY-MM-DDThh:mm:ss
- * Year value of "0000" indicates time not set.
- */
-
-static char started_buf[FORMATTED_DATE_TIME_BUFSIZE];
-const char * blackboxGetStartDateTime()
-{
-    return started_buf;
-}
-
-void blackboxSaveStartDateTime()
-{
-    date_time_t dt;
-    if (!rtc_get_dt(&dt)) {
-        dt.year = 0;
-        dt.month = 1;
-        dt.day = 1;
-        dt.hours = 0;
-        dt.minutes = 0;
-        dt.seconds = 0;
-        dt.nanos = 0;
-    }
-    date_time_format(started_buf, &dt);
 }
 
 static bool canUseBlackboxWithCurrentConfiguration(void)

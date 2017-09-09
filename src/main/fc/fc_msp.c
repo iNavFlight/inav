@@ -32,6 +32,7 @@
 #include "common/maths.h"
 #include "common/streambuf.h"
 #include "common/bitarray.h"
+#include "common/time.h"
 #include "common/utils.h"
 
 #include "drivers/accgyro/accgyro.h"
@@ -39,7 +40,6 @@
 #include "drivers/compass/compass.h"
 #include "drivers/max7456.h"
 #include "drivers/pwm_mapping.h"
-#include "drivers/rtc.h"
 #include "drivers/sdcard.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
@@ -2116,9 +2116,13 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_RTC:
         {
-            int32_t unix = (int32_t)sbufReadU32(src);
-            uint32_t nanos = sbufReadU32(src);
-            rtc_set(timestamp_unix(unix, nanos));
+            // Use seconds and milliseconds to make senders
+            // easier to implement. Generating a 64 bit value
+            // might not be trivial in some platforms.
+            int32_t secs = (int32_t)sbufReadU32(src);
+            uint16_t millis = sbufReadU16(src);
+            rtcTime_t t = rtcTimeMake(secs, millis);
+            rtcSet(&t);
         }
         break;
 
