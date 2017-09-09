@@ -23,6 +23,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
@@ -661,27 +662,27 @@ void handleSmartPortTelemetry(void)
                         tmpi += 4;
 
                     // tens column
-                    if (FLIGHT_MODE(ANGLE_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXANGLE))
                         tmpi += 10;
-                    if (FLIGHT_MODE(HORIZON_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXHORIZON))
                         tmpi += 20;
-                    if (FLIGHT_MODE(PASSTHRU_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXPASSTHRU))
                         tmpi += 40;
 
                     // hundreds column
-                    if (FLIGHT_MODE(HEADING_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXHEADINGHOLD))
                         tmpi += 100;
-                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXNAVALTHOLD))
                         tmpi += 200;
-                    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD))
                         tmpi += 400;
 
                     // thousands column
-                    if (FLIGHT_MODE(NAV_RTH_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXNAVRTH))
                         tmpi += 1000;
-                    if (FLIGHT_MODE(NAV_WP_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXNAVWP))
                         tmpi += 2000;
-                    if (FLIGHT_MODE(HEADFREE_MODE))
+                    if (IS_RC_MODE_ACTIVE(BOXHEADFREE))
                         tmpi += 4000;
 
                     // ten thousands column
