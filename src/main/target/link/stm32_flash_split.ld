@@ -126,18 +126,13 @@ SECTIONS
     __bss_end__ = _ebss;
   } >RAM
 
-  
-  .bss_fast :
+  .fastram_bss (NOLOAD) :
   {
-    _sbss_fast = .;         /* define a global symbol at bss start */
-    __bss_fast_start__ = _sbss_fast;
-    *(.bss_fast)
-    *(SORT_BY_ALIGNMENT(.bss_fast*))
-    *(COMMON)
-
+    __fastram_bss_start__ = .;
+    *(.fastram_bss)
+    *(SORT_BY_ALIGNMENT(.fastram_bss*))
     . = ALIGN(4);
-    _ebss_fast = .;         /* define a global symbol at bss end */
-    __bss_fast_end__ = _ebss_fast;
+    __fastram_bss_end__ = .;
   } >FASTRAM
 
   /* User_heap_stack section, used to check that there is enough RAM left */
