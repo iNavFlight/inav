@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 // simple buffer-based serializer/deserializer without implicit size check
