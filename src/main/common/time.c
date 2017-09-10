@@ -24,8 +24,6 @@
  * @author Alberto Garcia Hierro <alberto@garciahierro.com>
  */
 
-#include <stdint.h> // required for common/maths.h
-
 #include "common/maths.h"
 #include "common/printf.h"
 #include "common/time.h"
