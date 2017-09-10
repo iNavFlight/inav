@@ -30,6 +30,7 @@
 #include "drivers/time.h"
 
 #define UNIX_REFERENCE_YEAR 1970
+#define MILLIS_PER_SECOND 1000
 
 // rtcTime_t when the system was started.
 // Calculated in rtcSet().
@@ -58,7 +59,7 @@ static rtcTime_t dateTimeToRtcTime(dateTime_t *dt)
 
 static void rtcTimeToDateTime(dateTime_t *dt, rtcTime_t *t)
 {
-    int32_t unix = *t / 1000;
+    int32_t unix = *t / MILLIS_PER_SECOND;
     dt->seconds = unix % 60;
     unix /= 60;
     dt->minutes = unix % 60;
@@ -86,12 +87,22 @@ static void rtcTimeToDateTime(dateTime_t *dt, rtcTime_t *t)
     dt->year = years + year + UNIX_REFERENCE_YEAR;
     dt->month = month + 1;
     dt->day = unix - days[year][month] + 1;
-    dt->millis = *t % 1000;
+    dt->millis = *t % MILLIS_PER_SECOND;
 }
 
 rtcTime_t rtcTimeMake(int32_t secs, uint16_t millis)
 {
-    return ((rtcTime_t)secs) * 1000 + millis;
+    return ((rtcTime_t)secs) * MILLIS_PER_SECOND + millis;
+}
+
+int32_t rtcTimeGetSeconds(rtcTime_t *t)
+{
+    return *t / MILLIS_PER_SECOND;
+}
+
+uint16_t rtcTimeGetMillis(rtcTime_t *t)
+{
+    return *t % MILLIS_PER_SECOND;
 }
 
 void dateTimeFormat(char *buf, dateTime_t *dt)

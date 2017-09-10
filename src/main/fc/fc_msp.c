@@ -1319,6 +1319,20 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
 #endif
         break;
 
+    case MSP_RTC:
+        {
+            int32_t seconds = 0;
+            uint16_t millis = 0;
+            rtcTime_t t;
+            if (rtcGet(&t)) {
+                seconds = rtcTimeGetSeconds(&t);
+                millis = rtcTimeGetMillis(&t);
+            }
+            sbufWriteU32(dst, (uint32_t)seconds);
+            sbufWriteU16(dst, millis);
+        }
+        break;
+
     default:
         return false;
     }

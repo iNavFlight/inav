@@ -41,6 +41,8 @@ static inline timeDelta_t cmpTimeUs(timeUs_t a, timeUs_t b) { return (timeDelta_
 typedef int64_t rtcTime_t;
 
 rtcTime_t rtcTimeMake(int32_t secs, uint16_t millis);
+int32_t rtcTimeGetSeconds(rtcTime_t *t);
+uint16_t rtcTimeGetMillis(rtcTime_t *t);
 
 typedef struct _dateTime_s {
     // full year
