@@ -30,6 +30,7 @@
 #include "common/encoding.h"
 #include "common/maths.h"
 #include "common/printf.h"
+#include "common/typeconversion.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -389,7 +390,7 @@ static bool blackboxSDCardBeginLog()
                     memcpy(logSequenceNumberString, directoryEntry->filename + 3, 5);
                     logSequenceNumberString[5] = '\0';
 
-                    blackboxSDCard.largestLogFileNumber = MAX((uint32_t) atoi(logSequenceNumberString), blackboxSDCard.largestLogFileNumber);
+                    blackboxSDCard.largestLogFileNumber = MAX((uint32_t) fastA2I(logSequenceNumberString), blackboxSDCard.largestLogFileNumber);
                 }
             } else {
                 // We're done checking all the files on the card, now we can create a new log file
