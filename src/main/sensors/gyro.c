@@ -67,10 +67,10 @@
 #include "hardware_revision.h"
 #endif
 
-gyro_t gyro; // gyro sensor object
+FASTRAM gyro_t gyro; // gyro sensor object
 
-STATIC_UNIT_TESTED gyroDev_t gyroDev0;
-static int16_t gyroTemperature0;
+STATIC_UNIT_TESTED gyroDev_t gyroDev0;  // Not in FASTRAM since it may hold DMA buffers
+STATIC_FASTRAM int16_t gyroTemperature0;
 
 typedef struct gyroCalibration_s {
     int32_t g[XYZ_AXIS_COUNT];
@@ -78,19 +78,19 @@ typedef struct gyroCalibration_s {
     uint16_t calibratingG;
 } gyroCalibration_t;
 
-STATIC_UNIT_TESTED gyroCalibration_t gyroCalibration;
-static int32_t gyroADC[XYZ_AXIS_COUNT];
+STATIC_FASTRAM_UNIT_TESTED gyroCalibration_t gyroCalibration;
+STATIC_FASTRAM int32_t gyroADC[XYZ_AXIS_COUNT];
 
-static filterApplyFnPtr softLpfFilterApplyFn;
-static void *softLpfFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr softLpfFilterApplyFn;
+STATIC_FASTRAM void *softLpfFilter[XYZ_AXIS_COUNT];
 
 #ifdef USE_GYRO_NOTCH_1
-static filterApplyFnPtr notchFilter1ApplyFn;
-static void *notchFilter1[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr notchFilter1ApplyFn;
+STATIC_FASTRAM void *notchFilter1[XYZ_AXIS_COUNT];
 #endif
 #ifdef USE_GYRO_NOTCH_2
-static filterApplyFnPtr notchFilter2ApplyFn;
-static void *notchFilter2[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr notchFilter2ApplyFn;
+STATIC_FASTRAM void *notchFilter2[XYZ_AXIS_COUNT];
 #endif
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 1);
@@ -303,14 +303,14 @@ bool gyroInit(void)
 
 void gyroInitFilters(void)
 {
-    static biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
     softLpfFilterApplyFn = nullFilterApply;
 #ifdef USE_GYRO_NOTCH_1
-    static biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
     notchFilter1ApplyFn = nullFilterApply;
 #endif
 #ifdef USE_GYRO_NOTCH_2
-    static biquadFilter_t gyroFilterNotch_2[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t gyroFilterNotch_2[XYZ_AXIS_COUNT];
     notchFilter2ApplyFn = nullFilterApply;
 #endif
 
