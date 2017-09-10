@@ -1333,6 +1333,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+    case MSP2_INAV_TZ:
+        sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
+        break;
+
     default:
         return false;
     }
@@ -2126,6 +2130,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             rtcTime_t t = rtcTimeMake(secs, millis);
             rtcSet(&t);
         }
+        break;
+
+    case MSP2_INAV_SET_TZ:
+        timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
         break;
 
     default:

@@ -16,3 +16,5 @@
  */
 
 //#define MSP2_INAV_STATUS            0x1000
+#define MSP2_INAV_TZ                0x1001  //out message   Gets the TZ offset for the local time (returns: minutes(i16))
+#define MSP2_INAV_SET_TZ            0x1002  //in message    Sets the TZ offset for the local time (args: minutes(i16))
