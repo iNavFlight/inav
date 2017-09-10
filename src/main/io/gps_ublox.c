@@ -61,6 +61,10 @@
 #define UBX_FIXMODE_3D_ONLY 2
 #define UBX_FIXMODE_AUTO    3
 
+#define UBX_VALID_GPS_DATE(valid) (valid & 1 << 0)
+#define UBX_VALID_GPS_TIME(valid) (valid & 1 << 1)
+#define UBX_VALID_GPS_DATE_TIME(valid) (UBX_VALID_GPS_DATE(valid) && UBX_VALID_GPS_TIME(valid))
+
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
 static const uint32_t ubloxScanMode1[] = {
     0x00000000, 0x00000851, 0x0004E004, 0x00020200, 0x00000180, 0x00000000,
@@ -477,6 +481,21 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
+
+        if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
+            gpsSol.time.year = _buffer.pvt.year;
+            gpsSol.time.month = _buffer.pvt.month;
+            gpsSol.time.day = _buffer.pvt.day;
+            gpsSol.time.hours = _buffer.pvt.hour;
+            gpsSol.time.minutes = _buffer.pvt.min;
+            gpsSol.time.seconds = _buffer.pvt.sec;
+            gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
+
+            gpsSol.flags.validTime = 1;
+        } else {
+            gpsSol.flags.validTime = 0;
+        }
+
         _new_position = true;
         _new_speed = true;
         break;
