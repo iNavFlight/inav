@@ -18,14 +18,18 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // simple buffer-based serializer/deserializer without implicit size check
 // little-endian encoding implemneted now
 
 typedef struct sbuf_s {
-    uint8_t *ptr;          // data pointer must be first (sbuff_t* is equivalent to uint8_t **)
-    uint8_t *end;
+    uint8_t *bufPtr;          // data pointer must be first (sbuff_t* is equivalent to uint8_t **)
+    uint8_t *bufEnd;
+    bool overflow;
 } sbuf_t;
+
+void sbufInitialize(sbuf_t *buf, uint8_t *base, uint8_t *end);
 
 void sbufWriteU8(sbuf_t *dst, uint8_t val);
 void sbufWriteU16(sbuf_t *dst, uint16_t val);
@@ -46,3 +50,5 @@ const uint8_t* sbufConstPtr(const sbuf_t *buf);
 void sbufAdvance(sbuf_t *buf, int size);
 
 void sbufSwitchToReader(sbuf_t *buf, uint8_t * base);
+
+bool sbufWasOverflown(sbuf_t *buf);

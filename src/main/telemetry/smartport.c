@@ -345,9 +345,7 @@ void checkSmartPortTelemetryState(void)
 
 static void initSmartPortMspReply(int16_t cmd)
 {
-    smartPortMspReply.buf.ptr    = smartPortMspTxBuffer;
-    smartPortMspReply.buf.end    = ARRAYEND(smartPortMspTxBuffer);
-
+    sbufInitialize(&smartPortMspReply.buf, smartPortMspTxBuffer, ARRAYEND(smartPortMspTxBuffer));
     smartPortMspReply.cmd    = cmd;
     smartPortMspReply.result = 0;
 }
@@ -397,7 +395,7 @@ bool smartPortSendMspReply()
     sbuf_t* txBuf = &smartPortMspReply.buf;
 
     // detect first reply packet
-    if (txBuf->ptr == smartPortMspTxBuffer) {
+    if (sbufPtr(txBuf) == smartPortMspTxBuffer) {
 
         // header
         uint8_t head = SMARTPORT_MSP_START_FLAG | (seq++ & SMARTPORT_MSP_SEQ_MASK);
@@ -490,8 +488,7 @@ void handleSmartPortMspFrame(smartPortFrame_t* sp_frame)
         cmd.cmd = *p++;
         cmd.result = 0;
 
-        cmd.buf.ptr = mspBuffer;
-        cmd.buf.end = mspBuffer + p_size;
+        sbufInitialize(&cmd.buf, mspBuffer, mspBuffer + p_size);
 
         checksum = p_size ^ cmd.cmd;
         mspStarted = 1;
