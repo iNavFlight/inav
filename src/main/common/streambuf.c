@@ -136,7 +136,7 @@ bool sbufReadU32Safe(uint32_t *dst, sbuf_t *src)
 
 // reader - return bytes remaining in buffer
 // writer - return available space
-int sbufBytesRemaining(const sbuf_t *buf)
+unsigned int sbufBytesRemaining(const sbuf_t *buf)
 {
     return buf->end - buf->ptr;
 }

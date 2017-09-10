@@ -44,7 +44,7 @@ bool sbufReadU8Safe(uint8_t *dst, sbuf_t *src);
 bool sbufReadU16Safe(uint16_t *dst, sbuf_t *src);
 bool sbufReadU32Safe(uint32_t *dst, sbuf_t *src);
 
-int sbufBytesRemaining(const sbuf_t *buf);
+unsigned int sbufBytesRemaining(const sbuf_t *buf);
 uint8_t* sbufPtr(sbuf_t *buf);
 const uint8_t* sbufConstPtr(const sbuf_t *buf);
 void sbufAdvance(sbuf_t *buf, int size);
