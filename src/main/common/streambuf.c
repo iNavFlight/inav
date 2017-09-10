@@ -107,6 +107,33 @@ void sbufReadData(const sbuf_t *src, void *data, int len)
     memcpy(data, src->ptr, len);
 }
 
+bool sbufReadU8Safe(uint8_t *dst, sbuf_t *src)
+{
+    if (sbufBytesRemaining(src)) {
+        *dst = sbufReadU8(src);
+        return true;
+    }
+    return false;
+}
+
+bool sbufReadU16Safe(uint16_t *dst, sbuf_t *src)
+{
+    if (sbufBytesRemaining(src) >= sizeof(uint16_t)) {
+        *dst = sbufReadU16(src);
+        return true;
+    }
+    return false;
+}
+
+bool sbufReadU32Safe(uint32_t *dst, sbuf_t *src)
+{
+    if (sbufBytesRemaining(src) >= sizeof(uint32_t)) {
+        *dst = sbufReadU32(src);
+        return true;
+    }
+    return false;
+}
+
 // reader - return bytes remaining in buffer
 // writer - return available space
 int sbufBytesRemaining(const sbuf_t *buf)

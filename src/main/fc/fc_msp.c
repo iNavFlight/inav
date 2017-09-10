@@ -1376,20 +1376,23 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
     switch (cmdMSP) {
 #ifdef HIL
     case MSP_SET_HIL_STATE:
-        hilToFC.rollAngle = sbufReadU16(src);
-        hilToFC.pitchAngle = sbufReadU16(src);
-        hilToFC.yawAngle = sbufReadU16(src);
-        hilToFC.baroAlt = sbufReadU32(src);
-        hilToFC.bodyAccel[0] = sbufReadU16(src);
-        hilToFC.bodyAccel[1] = sbufReadU16(src);
-        hilToFC.bodyAccel[2] = sbufReadU16(src);
-        hilActive = true;
+        sbufReadU16(&hilToFC.rollAngle, src);
+        sbufReadU16(&hilToFC.pitchAngle, src);
+        sbufReadU16(&hilToFC.yawAngle, src);
+        sbufReadU32(&hilToFC.baroAlt, src);
+        sbufReadU16(&hilToFC.bodyAccel[0], src);
+        sbufReadU16(&hilToFC.bodyAccel[1], src);
+        if (sbufReadU16(&hilToFC.bodyAccel[2], src) {
+            hilActive = true;
+        }
         break;
 #endif
     case MSP_SELECT_SETTING:
         if (!ARMING_FLAG(ARMED)) {
-            const uint8_t profileIndex = sbufReadU8(src);
-            setConfigProfileAndWriteEEPROM(profileIndex);
+            uint8_t profileIndex;
+            if (sbufReadU8Safe(&profileIndex, src)) {
+                setConfigProfileAndWriteEEPROM(profileIndex);
+            }
         }
         break;
 

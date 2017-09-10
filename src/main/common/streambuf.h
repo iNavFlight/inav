@@ -39,6 +39,9 @@ uint8_t sbufReadU8(sbuf_t *src);
 uint16_t sbufReadU16(sbuf_t *src);
 uint32_t sbufReadU32(sbuf_t *src);
 void sbufReadData(const sbuf_t *dst, void *data, int len);
+bool sbufReadU8Safe(uint8_t *dst, sbuf_t *src);
+bool sbufReadU16Safe(uint16_t *dst, sbuf_t *src);
+bool sbufReadU32Safe(uint32_t *dst, sbuf_t *src);
 
 int sbufBytesRemaining(const sbuf_t *buf);
 uint8_t* sbufPtr(sbuf_t *buf);
