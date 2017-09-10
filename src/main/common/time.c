@@ -149,6 +149,8 @@ static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
         retVal = false;
     }
 
+    // XXX: Changes to this format might require updates in
+    // dateTimeSplitFormatted()
     tfp_sprintf(buf, "%04u-%02u-%02uT%02u:%02u:%02u.%03u%c%02d:%02d",
         dateTime->year, dateTime->month, dateTime->day,
         dateTime->hours, dateTime->minutes, dateTime->seconds, dateTime->millis,
@@ -185,6 +187,21 @@ bool dateTimeFormatLocal(char *buf, dateTime_t *dt)
 void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime)
 {
     dateTimeWithOffset(localDateTime, utcDateTime, timeConfig()->tz_offset);
+}
+
+bool dateTimeSplitFormatted(char *formatted, char **date, char **time)
+{
+    // Just look for the T and replace it with a zero
+    // XXX: Keep in sync with dateTimeFormat()
+    for (char *p = formatted; *p; p++) {
+        if (*p == 'T') {
+            *date = formatted;
+            *time = (p+1);
+            *p = '\0';
+            return true;
+        }
+    }
+    return false;
 }
 
 bool rtcHasTime()
