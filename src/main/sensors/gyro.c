@@ -28,6 +28,7 @@
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -155,7 +156,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 
     switch (gyroHardware) {
     case GYRO_AUTODETECT:
-        // fallthrough
+        FALLTHROUGH;
 
 #ifdef USE_GYRO_MPU6050
     case GYRO_MPU6050:
@@ -166,7 +167,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_L3G4200D
@@ -178,7 +179,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_MPU3050
@@ -190,7 +191,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_L3GD20
@@ -202,7 +203,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_SPI_MPU6000
@@ -214,7 +215,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #if defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500)
@@ -230,7 +231,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_SPI_MPU9250
@@ -242,7 +243,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_FAKE_GYRO
@@ -251,7 +252,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
             gyroHardware = GYRO_FAKE;
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
     default:

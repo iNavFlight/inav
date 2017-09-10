@@ -25,6 +25,7 @@
 
 #include "common/maths.h"
 #include "common/time.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -108,6 +109,7 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         if (baroHardwareToUse != BARO_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case BARO_MS5607:
 #ifdef USE_BARO_MS5607
@@ -120,6 +122,7 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         if (baroHardwareToUse != BARO_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case BARO_MS5611:
 #ifdef USE_BARO_MS5611
@@ -132,6 +135,7 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         if (baroHardwareToUse != BARO_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case BARO_BMP280:
 #if defined(USE_BARO_BMP280) || defined(USE_BARO_SPI_BMP280)
@@ -144,6 +148,7 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         if (baroHardwareToUse != BARO_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case BARO_FAKE:
 #ifdef USE_FAKE_BARO
@@ -156,6 +161,7 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         if (baroHardwareToUse != BARO_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case BARO_NONE:
         baroHardware = BARO_NONE;

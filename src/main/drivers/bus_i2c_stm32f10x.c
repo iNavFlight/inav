@@ -185,7 +185,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_GenerateSTART(I2Cx, ENABLE);
             i2cBusState->state = I2C_STATE_STARTING_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_STARTING_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT) != ERROR) {
@@ -205,7 +205,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_Send7bitAddress(I2Cx, i2cBusState->addr, I2C_Direction_Transmitter);
             i2cBusState->state = I2C_STATE_R_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_ADDR_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != ERROR) {
@@ -223,7 +223,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_SendData(I2Cx, i2cBusState->reg);
             i2cBusState->state = I2C_STATE_R_REGISTER_WAIT;
             i2cBusState->timeout = currentTicks;
-            /* Fallthrough */
+            FALLTHROUGH;
 
         case I2C_STATE_R_REGISTER_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED) != ERROR) {
@@ -248,7 +248,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_GenerateSTART(I2Cx, ENABLE);
             i2cBusState->state = I2C_STATE_R_RESTARTING_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_RESTARTING_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT) != ERROR) {
@@ -263,7 +263,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_Send7bitAddress(I2Cx, i2cBusState->addr, I2C_Direction_Receiver);
             i2cBusState->state = I2C_STATE_R_RESTART_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_RESTART_ADDR_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) != ERROR) {
@@ -384,7 +384,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_Send7bitAddress(I2Cx, i2cBusState->addr, I2C_Direction_Transmitter);
             i2cBusState->state = I2C_STATE_W_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_W_ADDR_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != ERROR) {
@@ -402,7 +402,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_SendData(I2Cx, i2cBusState->reg);
             i2cBusState->state = I2C_STATE_W_TRANSFER_WAIT;
             i2cBusState->timeout = currentTicks;
-            /* Fallthrough */
+            FALLTHROUGH;
 
         case I2C_STATE_W_TRANSFER_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED) != ERROR) {
