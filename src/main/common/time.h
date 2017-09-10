@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#include "config/parameter_group.h"
+
 // time difference, 32 bits always sufficient
 typedef int32_t timeDelta_t;
 // millisecond time
@@ -36,6 +38,12 @@ typedef uint32_t timeUs_t;
 #endif
 
 static inline timeDelta_t cmpTimeUs(timeUs_t a, timeUs_t b) { return (timeDelta_t)(a - b); }
+
+typedef struct timeConfig_s {
+    int16_t tz_offset; // Offset from UTC in minutes, might be positive or negative
+} timeConfig_t;
+
+PG_DECLARE(timeConfig_t, timeConfig);
 
 // Milliseconds since Jan 1 1970
 typedef int64_t rtcTime_t;
@@ -61,10 +69,11 @@ typedef struct _dateTime_s {
     uint16_t millis;
 } dateTime_t;
 
-#define FORMATTED_DATE_TIME_BUFSIZE 24
+#define FORMATTED_DATE_TIME_BUFSIZE 30
 
 // buf must be at least FORMATTED_DATE_TIME_BUFSIZE
-void dateTimeFormat(char *buf, dateTime_t *dt);
+void dateTimeFormatUTC(char *buf, dateTime_t *dt);
+void dateTimeFormatLocal(char *buf, dateTime_t *dt);
 
 bool rtcHasTime();
 

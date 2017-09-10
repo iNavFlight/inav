@@ -24,8 +24,13 @@
  * @author Alberto Garcia Hierro <alberto@garciahierro.com>
  */
 
+#include <stdint.h> // required for common/maths.h
+
+#include "common/maths.h"
 #include "common/printf.h"
 #include "common/time.h"
+
+#include "config/parameter_group_ids.h"
 
 #include "drivers/time.h"
 
@@ -44,6 +49,11 @@ static const uint16_t days[4][12] =
     {1096,  1127,   1155,   1186,   1216,   1247,   1277,   1308,   1339,   1369,   1400,   1430},
 };
 
+PG_REGISTER_WITH_RESET_TEMPLATE(timeConfig_t, timeConfig, PG_TIME_CONFIG, 0);
+
+PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
+    .tz_offset = 0,
+);
 
 static rtcTime_t dateTimeToRtcTime(dateTime_t *dt)
 {
@@ -90,6 +100,29 @@ static void rtcTimeToDateTime(dateTime_t *dt, rtcTime_t *t)
     dt->millis = *t % MILLIS_PER_SECOND;
 }
 
+static void dateTimeFormat(char *buf, dateTime_t *dt, int16_t offset)
+{
+    dateTime_t local;
+    rtcTime_t utcTime;
+    rtcTime_t localTime;
+
+    int tz_hours = 0;
+    int tz_minutes = 0;
+
+    if (offset != 0) {
+        tz_hours = offset / 60;
+        tz_minutes = ABS(offset % 60);
+        utcTime = dateTimeToRtcTime(dt);
+        localTime = rtcTimeMake(rtcTimeGetSeconds(&utcTime) + offset * 60, rtcTimeGetMillis(&utcTime));
+        rtcTimeToDateTime(&local, &localTime);
+        dt = &local;
+    }
+    tfp_sprintf(buf, "%04u-%02u-%02uT%02u:%02u:%02u.%03u%c%02d:%02d",
+        dt->year, dt->month, dt->day,
+        dt->hours, dt->minutes, dt->seconds, dt->millis,
+        tz_hours >= 0 ? '+' : '-', ABS(tz_hours), tz_minutes);
+}
+
 rtcTime_t rtcTimeMake(int32_t secs, uint16_t millis)
 {
     return ((rtcTime_t)secs) * MILLIS_PER_SECOND + millis;
@@ -105,11 +138,14 @@ uint16_t rtcTimeGetMillis(rtcTime_t *t)
     return *t % MILLIS_PER_SECOND;
 }
 
-void dateTimeFormat(char *buf, dateTime_t *dt)
+void dateTimeFormatUTC(char *buf, dateTime_t *dt)
 {
-    tfp_sprintf(buf, "%04u-%02u-%02uT%02u:%02u:%02u.%03d",
-        dt->year, dt->month, dt->day,
-        dt->hours, dt->minutes, dt->seconds, dt->millis);
+    dateTimeFormat(buf, dt, 0);
+}
+
+void dateTimeFormatLocal(char *buf, dateTime_t *dt)
+{
+    dateTimeFormat(buf, dt, timeConfig()->tz_offset);
 }
 
 bool rtcHasTime()

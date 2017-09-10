@@ -93,7 +93,8 @@
 #define PG_PID_AUTOTUNE_CONFIG 1008
 #define PG_STATS_CONFIG 1009
 #define PG_ADC_CHANNEL_CONFIG 1010
-#define PG_INAV_END 1010
+#define PG_TIME_CONFIG 1011
+#define PG_INAV_END 1011
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047
