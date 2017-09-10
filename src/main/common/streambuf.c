@@ -22,7 +22,10 @@
 
 void sbufWriteU8(sbuf_t *dst, uint8_t val)
 {
-    *dst->ptr++ = val;
+    // Silently discard if buffer is overflown
+    if (dst->ptr < dst->end) {
+        *dst->ptr++ = val;
+    }
 }
 
 void sbufWriteU16(sbuf_t *dst, uint16_t val)
@@ -55,6 +58,12 @@ void sbufWriteU32BigEndian(sbuf_t *dst, uint32_t val)
 
 void sbufWriteData(sbuf_t *dst, const void *data, int len)
 {
+    // Silently discard bytes overflowing the buffer
+    const int remainingBytes = sbufBytesRemaining(dst);
+    if (remainingBytes < len) {
+        len = remainingBytes;
+    }
+
     memcpy(dst->ptr, data, len);
     dst->ptr += len;
 }
@@ -66,7 +75,13 @@ void sbufWriteString(sbuf_t *dst, const char *string)
 
 uint8_t sbufReadU8(sbuf_t *src)
 {
-    return *src->ptr++;
+    // Return zero if buffer is overrun
+    if (src->ptr < src->end) {
+        return *src->ptr++;
+    }
+    else {
+        return 0;
+    }
 }
 
 uint16_t sbufReadU16(sbuf_t *src)
