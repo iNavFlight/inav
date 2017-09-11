@@ -1376,13 +1376,13 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
     switch (cmdMSP) {
 #ifdef HIL
     case MSP_SET_HIL_STATE:
-        sbufReadU16(&hilToFC.rollAngle, src);
-        sbufReadU16(&hilToFC.pitchAngle, src);
-        sbufReadU16(&hilToFC.yawAngle, src);
-        sbufReadU32(&hilToFC.baroAlt, src);
-        sbufReadU16(&hilToFC.bodyAccel[0], src);
-        sbufReadU16(&hilToFC.bodyAccel[1], src);
-        if (sbufReadU16(&hilToFC.bodyAccel[2], src) {
+        sbufReadU16Safe(&hilToFC.rollAngle, src);
+        sbufReadU16Safe(&hilToFC.pitchAngle, src);
+        sbufReadU16Safe(&hilToFC.yawAngle, src);
+        sbufReadU32Safe(&hilToFC.baroAlt, src);
+        sbufReadU16Safe(&hilToFC.bodyAccel[0], src);
+        sbufReadU16Safe(&hilToFC.bodyAccel[1], src);
+        if (sbufReadU16Safe(&hilToFC.bodyAccel[2], src) {
             hilActive = true;
         }
         break;

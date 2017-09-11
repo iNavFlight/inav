@@ -74,6 +74,17 @@ void sbufWriteData(sbuf_t *dst, const void *data, int len)
     dst->ptr += len;
 }
 
+bool sbufWriteDataSafe(sbuf_t *dst, const void *data, int len)
+{
+    // only write if data does not overflow buffer
+    if (sbufBytesRemaining(dst) >= (unsigned int)len) {
+        memcpy(dst->ptr, data, len);
+        dst->ptr += len;
+        return true;
+    }
+    return false;
+}
+
 void sbufWriteString(sbuf_t *dst, const char *string)
 {
     sbufWriteData(dst, string, strlen(string));
@@ -171,8 +182,8 @@ bool sbufReadI32Safe(int32_t *dst, sbuf_t *src)
 
 bool sbufReadDataSafe(const sbuf_t *src, void *data, int len)
 {
-    if (sbufBytesRemaining(src) >= len) {
-        sbufReadData(data, src, len);
+    if (sbufBytesRemaining(src) >= (unsigned int)len) {
+        sbufReadData(src, data, len);
         return true;
     }
     return false;
