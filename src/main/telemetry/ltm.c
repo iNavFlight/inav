@@ -91,8 +91,7 @@ static uint8_t ltm_x_counter;
 
 static void ltm_initialise_packet(sbuf_t *dst)
 {
-    dst->ptr = ltmFrame;
-    dst->end = ARRAYEND(ltmFrame);
+    sbufInitialize(dst, ltmFrame, ARRAYEND(ltmFrame));
 
     sbufWriteU8(dst, '$');
     sbufWriteU8(dst, 'T');
@@ -101,7 +100,7 @@ static void ltm_initialise_packet(sbuf_t *dst)
 static void ltm_finalise(sbuf_t *dst)
 {
     uint8_t crc = 0;
-    for (const uint8_t *ptr = &ltmFrame[3]; ptr < dst->ptr; ++ptr) {
+    for (const uint8_t *ptr = &ltmFrame[3]; ptr < sbufPtr(dst); ++ptr) {
         crc ^= *ptr;
     }
     sbufWriteU8(dst, crc);
@@ -454,8 +453,9 @@ int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType)
 {
     static uint8_t ltmFrame[LTM_MAX_MESSAGE_SIZE];
 
-    sbuf_t ltmFrameBuf = { .ptr = ltmFrame, .end =ARRAYEND(ltmFrame) };
+    sbuf_t ltmFrameBuf;
     sbuf_t * const sbuf = &ltmFrameBuf;
+    sbufInitialize(sbuf, ltmFrame, ARRAYEND(ltmFrame));
 
     switch (ltmFrameType) {
     default:

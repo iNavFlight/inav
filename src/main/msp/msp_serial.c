@@ -367,25 +367,25 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
     uint8_t outBuf[MSP_PORT_OUTBUF_SIZE];
 
     mspPacket_t reply = {
-        .buf = { .ptr = outBuf, .end = ARRAYEND(outBuf), },
         .cmd = -1,
         .flags = 0,
         .result = 0,
     };
-    uint8_t *outBufHead = reply.buf.ptr;
+    sbufInitialize(&reply.buf, outBuf, ARRAYEND(outBuf));
 
     mspPacket_t command = {
-        .buf = { .ptr = msp->inBuf, .end = msp->inBuf + msp->dataSize, },
         .cmd = msp->cmdMSP,
         .flags = msp->cmdFlags,
         .result = 0,
     };
+    sbufInitialize(&command.buf, msp->inBuf, msp->inBuf + msp->dataSize);
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
     const mspResult_e status = mspProcessCommandFn(&command, &reply, &mspPostProcessFn);
 
-    if (status != MSP_RESULT_NO_REPLY) {
-        sbufSwitchToReader(&reply.buf, outBufHead); // change streambuf direction
+    // Reply only if we have a reply and it's not truncated by sbuf overflow protection
+    if (status != MSP_RESULT_NO_REPLY && !sbufWasOverflown(&reply.buf)) {
+        sbufSwitchToReader(&reply.buf, outBuf); // change streambuf direction
         mspSerialEncode(msp, &reply, msp->mspVersion);
     }
 
@@ -439,10 +439,10 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
     int ret = 0;
 
     mspPacket_t push = {
-        .buf = { .ptr = pushBuf, .end = ARRAYEND(pushBuf), },
         .cmd = cmd,
         .result = 0,
     };
+    sbufInitialize(&push.buf, pushBuf, ARRAYEND(pushBuf));
 
     for (int portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
         mspPort_t * const mspPort = &mspPorts[portIndex];

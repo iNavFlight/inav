@@ -66,9 +66,7 @@ static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX];
 static void crsfInitializeFrame(sbuf_t *dst)
 {
     crsfCrc = 0;
-    dst->ptr = crsfFrame;
-    dst->end = ARRAYEND(crsfFrame);
-
+    sbufInitialize(dst, crsfFrame, ARRAYEND(crsfFrame));
     sbufWriteU8(dst, CRSF_ADDRESS_BROADCAST);
 }
 

@@ -20,11 +20,21 @@
 
 #include "streambuf.h"
 
+void sbufInitialize(sbuf_t *buf, uint8_t *base, uint8_t *end)
+{
+    buf->bufPtr = base;
+    buf->bufEnd = end;
+    buf->overflow = false;
+}
+
 void sbufWriteU8(sbuf_t *dst, uint8_t val)
 {
     // Silently discard if buffer is overflown
-    if (dst->ptr < dst->end) {
-        *dst->ptr++ = val;
+    if (dst->bufPtr < dst->bufEnd) {
+        *dst->bufPtr++ = val;
+    }
+    else {
+        dst->overflow = true;
     }
 }
 
@@ -62,10 +72,11 @@ void sbufWriteData(sbuf_t *dst, const void *data, int len)
     const int remainingBytes = sbufBytesRemaining(dst);
     if (remainingBytes < len) {
         len = remainingBytes;
+        dst->overflow = true;
     }
 
-    memcpy(dst->ptr, data, len);
-    dst->ptr += len;
+    memcpy(dst->bufPtr, data, len);
+    dst->bufPtr += len;
 }
 
 void sbufWriteString(sbuf_t *dst, const char *string)
@@ -76,10 +87,11 @@ void sbufWriteString(sbuf_t *dst, const char *string)
 uint8_t sbufReadU8(sbuf_t *src)
 {
     // Return zero if buffer is overrun
-    if (src->ptr < src->end) {
-        return *src->ptr++;
+    if (src->bufPtr < src->bufEnd) {
+        return *src->bufPtr++;
     }
     else {
+        src->overflow = true;
         return 0;
     }
 }
@@ -104,7 +116,7 @@ uint32_t sbufReadU32(sbuf_t *src)
 
 void sbufReadData(const sbuf_t *src, void *data, int len)
 {
-    memcpy(data, src->ptr, len);
+    memcpy(data, src->bufPtr, len);
 }
 
 bool sbufReadU8Safe(uint8_t *dst, sbuf_t *src)
@@ -138,17 +150,17 @@ bool sbufReadU32Safe(uint32_t *dst, sbuf_t *src)
 // writer - return available space
 unsigned int sbufBytesRemaining(const sbuf_t *buf)
 {
-    return buf->end - buf->ptr;
+    return buf->bufEnd - buf->bufPtr;
 }
 
 uint8_t* sbufPtr(sbuf_t *buf)
 {
-    return buf->ptr;
+    return buf->bufPtr;
 }
 
 const uint8_t* sbufConstPtr(const sbuf_t *buf)
 {
-    return buf->ptr;
+    return buf->bufPtr;
 }
 
 // advance buffer pointer
@@ -156,12 +168,17 @@ const uint8_t* sbufConstPtr(const sbuf_t *buf)
 // writer - commit written data
 void sbufAdvance(sbuf_t *buf, int size)
 {
-    buf->ptr += size;
+    buf->bufPtr += size;
 }
 
 // modifies streambuf so that written data are prepared for reading
 void sbufSwitchToReader(sbuf_t *buf, uint8_t *base)
 {
-    buf->end = buf->ptr;
-    buf->ptr = base;
+    buf->bufEnd = buf->bufPtr;
+    buf->bufPtr = base;
+}
+
+bool sbufWasOverflown(sbuf_t *buf)
+{
+    return buf->overflow;
 }
