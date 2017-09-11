@@ -1302,7 +1302,7 @@ static char *blackboxGetStartDateTime(char *buf)
     // rtcGetDateTime will fill dt with 0000-01-01T00:00:00
     // when time is not known.
     rtcGetDateTime(&dt);
-    dateTimeFormat(buf, &dt);
+    dateTimeFormatUTC(buf, &dt);
     return buf;
 }
 

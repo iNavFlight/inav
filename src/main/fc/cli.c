@@ -2326,7 +2326,7 @@ static void cliStatus(char *cmdline)
 
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
     rtcGetDateTime(&dt);
-    dateTimeFormat(buf, &dt);
+    dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
     cliPrintLinef("Voltage: %d * 0.1V (%dS battery - %s)", vbat, batteryCellCount, getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));

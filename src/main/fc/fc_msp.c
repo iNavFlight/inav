@@ -532,7 +532,7 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
  */
-static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
+static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
 {
     switch (cmdMSP) {
     case MSP_API_VERSION:
@@ -1319,6 +1319,24 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
 #endif
         break;
 
+    case MSP_RTC:
+        {
+            int32_t seconds = 0;
+            uint16_t millis = 0;
+            rtcTime_t t;
+            if (rtcGet(&t)) {
+                seconds = rtcTimeGetSeconds(&t);
+                millis = rtcTimeGetMillis(&t);
+            }
+            sbufWriteU32(dst, (uint32_t)seconds);
+            sbufWriteU16(dst, millis);
+        }
+        break;
+
+    case MSP2_COMMON_TZ:
+        sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
+        break;
+
     default:
         return false;
     }
@@ -1365,7 +1383,7 @@ static void mspFcDataFlashReadCommand(sbuf_t *dst, sbuf_t *src)
 }
 #endif
 
-static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
+static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     uint32_t i;
     uint16_t tmp;
@@ -2114,6 +2132,10 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         }
         break;
 
+    case MSP2_COMMON_SET_TZ:
+        timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
+        break;
+
     default:
         return MSP_RESULT_ERROR;
     }
@@ -2128,7 +2150,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     int ret = MSP_RESULT_ACK;
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
-    const uint8_t cmdMSP = cmd->cmd;
+    const uint16_t cmdMSP = cmd->cmd;
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
