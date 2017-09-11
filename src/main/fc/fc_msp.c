@@ -1333,7 +1333,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-    case MSP2_INAV_TZ:
+    case MSP2_COMMON_TZ:
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
         break;
 
@@ -2132,7 +2132,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
-    case MSP2_INAV_SET_TZ:
+    case MSP2_COMMON_SET_TZ:
         timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
         break;
 

@@ -323,4 +323,5 @@
 #define MSP_SET_RTC              247    //in message          Sets the RTC clock (args: secs(i32) millis(u16))
 
 // MSPv2 includes
+#include "msp_protocol_v2_common.h"
 #include "msp_protocol_v2_inav.h"
