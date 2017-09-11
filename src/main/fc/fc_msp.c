@@ -1376,13 +1376,13 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
     switch (cmdMSP) {
 #ifdef HIL
     case MSP_SET_HIL_STATE:
-        sbufReadU16(&hilToFC.rollAngle, src);
-        sbufReadU16(&hilToFC.pitchAngle, src);
-        sbufReadU16(&hilToFC.yawAngle, src);
-        sbufReadU32(&hilToFC.baroAlt, src);
-        sbufReadU16(&hilToFC.bodyAccel[0], src);
-        sbufReadU16(&hilToFC.bodyAccel[1], src);
-        if (sbufReadU16(&hilToFC.bodyAccel[2], src) {
+        sbufReadU16Safe(&hilToFC.rollAngle, src);
+        sbufReadU16Safe(&hilToFC.pitchAngle, src);
+        sbufReadU16Safe(&hilToFC.yawAngle, src);
+        sbufReadU32Safe(&hilToFC.baroAlt, src);
+        sbufReadU16Safe(&hilToFC.bodyAccel[0], src);
+        sbufReadU16Safe(&hilToFC.bodyAccel[1], src);
+        if (sbufReadU16Safe(&hilToFC.bodyAccel[2], src) {
             hilActive = true;
         }
         break;
@@ -1964,52 +1964,37 @@ static mspResult_e mspFcProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 #endif
 
     case MSP_SET_RX_CONFIG:
-        rxConfigMutable()->serialrx_provider = sbufReadU8(src);
-        rxConfigMutable()->maxcheck = sbufReadU16(src);
-        rxConfigMutable()->midrc = sbufReadU16(src);
-        rxConfigMutable()->mincheck = sbufReadU16(src);
-        rxConfigMutable()->spektrum_sat_bind = sbufReadU8(src);
-        if (dataSize > 8) {
-            rxConfigMutable()->rx_min_usec = sbufReadU16(src);
-            rxConfigMutable()->rx_max_usec = sbufReadU16(src);
-        }
-        if (dataSize > 12) {
-            // for compatibility with betaflight
-            sbufReadU8(src);
-            sbufReadU8(src);
-            sbufReadU16(src);
-        }
-        if (dataSize > 16) {
-            rxConfigMutable()->rx_spi_protocol = sbufReadU8(src);
-        }
-        if (dataSize > 17) {
-            rxConfigMutable()->rx_spi_id = sbufReadU32(src);
-        }
-        if (dataSize > 21) {
-            rxConfigMutable()->rx_spi_rf_channel_count = sbufReadU8(src);
-        }
+        sbufReadU8Safe(&rxConfigMutable()->serialrx_provider, src);
+        sbufReadU16Safe(&rxConfigMutable()->maxcheck, src);
+        sbufReadU16Safe(&rxConfigMutable()->midrc, src);
+        sbufReadU16Safe(&rxConfigMutable()->mincheck, src);
+        sbufReadU8Safe(&rxConfigMutable()->spektrum_sat_bind, src);
+        sbufReadU16Safe(&rxConfigMutable()->rx_min_usec, src);
+        sbufReadU16Safe(&rxConfigMutable()->rx_max_usec, src);
+        sbufReadU8Safe(NULL, src); // for compatibility with betaflight
+        sbufReadU8Safe(NULL, src); // for compatibility with betaflight
+        sbufReadU16Safe(NULL, src); // for compatibility with betaflight
+        sbufReadU8Safe(&rxConfigMutable()->rx_spi_protocol, src);
+        sbufReadU32Safe(&rxConfigMutable()->rx_spi_id, src);
+        sbufReadU8Safe(&rxConfigMutable()->rx_spi_rf_channel_count, src);
         break;
 
     case MSP_SET_FAILSAFE_CONFIG:
-        failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
-        failsafeConfigMutable()->failsafe_off_delay = sbufReadU8(src);
-        failsafeConfigMutable()->failsafe_throttle = sbufReadU16(src);
-        sbufReadU8(src);    // was failsafe_kill_switch
-        failsafeConfigMutable()->failsafe_throttle_low_delay = sbufReadU16(src);
-        failsafeConfigMutable()->failsafe_procedure = sbufReadU8(src);
-        if (dataSize > 8) {
-            failsafeConfigMutable()->failsafe_recovery_delay = sbufReadU8(src);
-        }
-        if (dataSize > 9) {
-            failsafeConfigMutable()->failsafe_fw_roll_angle = sbufReadU16(src);
-            failsafeConfigMutable()->failsafe_fw_pitch_angle = sbufReadU16(src);
-            failsafeConfigMutable()->failsafe_fw_yaw_rate = sbufReadU16(src);
-            failsafeConfigMutable()->failsafe_stick_motion_threshold = sbufReadU16(src);
-        }
+        sbufReadU8Safe(&failsafeConfigMutable()->failsafe_delay, src);
+        sbufReadU8Safe(&failsafeConfigMutable()->failsafe_off_delay, src);
+        sbufReadU16Safe(&failsafeConfigMutable()->failsafe_throttle, src);
+        sbufReadU8Safe(NULL, src); // was failsafe_kill_switch
+        sbufReadU16Safe(&failsafeConfigMutable()->failsafe_throttle_low_delay, src);
+        sbufReadU8Safe(&failsafeConfigMutable()->failsafe_procedure, src);
+        sbufReadU8Safe(&failsafeConfigMutable()->failsafe_recovery_delay, src);
+        sbufReadI16Safe(&failsafeConfigMutable()->failsafe_fw_roll_angle, src);
+        sbufReadI16Safe(&failsafeConfigMutable()->failsafe_fw_pitch_angle, src);
+        sbufReadI16Safe(&failsafeConfigMutable()->failsafe_fw_yaw_rate, src);
+        sbufReadU16Safe(&failsafeConfigMutable()->failsafe_stick_motion_threshold, src);
         break;
 
     case MSP_SET_RSSI_CONFIG:
-        rxConfigMutable()->rssi_channel = sbufReadU8(src);
+        sbufReadU8Safe(&rxConfigMutable()->rssi_channel, src);
         break;
 
     case MSP_SET_RX_MAP:
