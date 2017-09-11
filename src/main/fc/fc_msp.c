@@ -260,10 +260,22 @@ static const box_t *findBoxByPermenantId(uint8_t permenantId)
     return NULL;
 }
 
-static void serializeBoxNamesReply(sbuf_t *dst)
+static bool serializeBoxNamesReply(sbuf_t *dst)
 {
-    // in first run of the loop, we grab total size of junk to be sent
-    // then come back and actually send it
+    // First run of the loop - calculate total length of the reply
+    int replyLengthTotal = 0;
+    for (int i = 0; i < activeBoxIdCount; i++) {
+        const box_t *box = findBoxByActiveBoxId(activeBoxIds[i]);
+        if (box) {
+            replyLengthTotal += strlen(box->boxName);
+        }
+    }
+
+    // Check if we have enough space to send a reply
+    if (sbufBytesRemaining(dst) < replyLengthTotal) {
+        return false;
+    }
+
     for (int i = 0; i < activeBoxIdCount; i++) {
         const int activeBoxId = activeBoxIds[i];
         const box_t *box = findBoxByActiveBoxId(activeBoxId);
@@ -272,6 +284,8 @@ static void serializeBoxNamesReply(sbuf_t *dst)
             sbufWriteData(dst, box->boxName, len);
         }
     }
+
+    return true;
 }
 
 static void initActiveBoxIds(void)
@@ -787,7 +801,9 @@ static bool mspFcProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst, mspPostProcessFn
         break;
 
     case MSP_BOXNAMES:
-        serializeBoxNamesReply(dst);
+        if (!serializeBoxNamesReply(dst)) {
+            return false;
+        }
         break;
 
     case MSP_BOXIDS:
