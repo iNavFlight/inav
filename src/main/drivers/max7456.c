@@ -18,14 +18,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "platform.h"
 
 #ifdef USE_MAX7456
 
+#include "common/bitarray.h"
 #include "common/printf.h"
+#include "common/utils.h"
 
 #include "drivers/bus_spi.h"
 #include "drivers/light_led.h"
@@ -178,11 +179,25 @@
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
-// we write everything in screenBuffer and then comapre
-// screenBuffer with shadowBuffer to upgrade only changed chars
-// this solution is faster then redraw all screen
-static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL+40]; //for faster writes we use memcpy so we need some space to don't overwrite buffer
-static uint8_t shadowBuffer[VIDEO_BUFFER_CHARS_PAL];
+// we write everything in screenBuffer and set a dirty bit
+// in screenIsDirty to upgrade only changed chars this solution
+// is faster than redrawing the whole screen on each frame
+static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL];
+static uint8_t screenIsDirty[VIDEO_BUFFER_CHARS_PAL/8] = {0,};
+
+STATIC_ASSERT(VIDEO_BUFFER_CHARS_PAL % 4 == 0, VIDEO_BUFFER_CHARS_PAL_not_multiple_of_4);
+// Needs to be multiple of 32 because we're using 1 bit per
+// character in screenIsDirty and then setting it via aliasing
+// to uint32_t.
+STATIC_ASSERT(VIDEO_BUFFER_CHARS_PAL % 32 == 0, VIDEO_BUFFER_CHARS_PAL_not_multiple_of_32);
+
+#define BYTE_ARRAY_SET_BY_WORDS(arr, x) \
+    do { \
+        uint32_t *__ptr = (uint32_t*)&arr[0]; \
+        for (unsigned ii = 0; ii < sizeof(arr) / 4; ii++) { \
+            __ptr[ii] = (x << 24) | (x << 16) | (x << 8) | x; \
+        } \
+    } while(0)
 
 //max chars to update in one idle
 #define MAX_CHARS2UPDATE    50
@@ -370,8 +385,8 @@ void max7456ReInit(void)
     max7456Send(MAX7456ADD_DMM, CLEAR_DISPLAY);
     DISABLE_MAX7456();
 
-    //clear shadow to force redraw all screen in non-dma mode
-    memset(shadowBuffer, 0, maxScreenSize);
+    // force redrawing all screen in non-dma mode
+    BYTE_ARRAY_SET_BY_WORDS(screenIsDirty, 0xFF);
     if (firstInit)
     {
         max7456RefreshAll();
@@ -405,10 +420,8 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
 //just fill with spaces with some tricks
 void max7456ClearScreen(void)
 {
-    uint16_t x;
-    uint32_t *p = (uint32_t*)&screenBuffer[0];
-    for (x = 0; x < VIDEO_BUFFER_CHARS_PAL/4; x++)
-        p[x] = 0x20202020;
+    BYTE_ARRAY_SET_BY_WORDS(screenBuffer, 0x20);
+    BYTE_ARRAY_SET_BY_WORDS(screenIsDirty, 0xFF);
 }
 
 uint8_t* max7456GetScreenBuffer(void) {
@@ -418,14 +431,18 @@ uint8_t* max7456GetScreenBuffer(void) {
 void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 {
     screenBuffer[y*30+x] = c;
+    bitArraySet(screenIsDirty, y*30+x);
 }
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
     uint8_t i = 0;
     for (i = 0; *(buff+i); i++)
-        if (x+i < 30) //do not write over screen
+        //do not write over screen
+        if (x+i < 30) {
             screenBuffer[y*30+x+i] = *(buff+i);
+            bitArraySet(screenIsDirty, y*30+x+i);
+        }
 }
 
 bool max7456DmaInProgress(void)
@@ -490,14 +507,14 @@ void max7456DrawScreenPartial(void)
         //------------   end of (re)init-------------------------------------
 
         for (k=0; k< MAX_CHARS2UPDATE; k++) {
-            if (screenBuffer[pos] != shadowBuffer[pos]) {
+            if (bitArrayGet(screenIsDirty, pos)) {
                 spiBuff[buff_len++] = MAX7456ADD_DMAH;
                 spiBuff[buff_len++] = pos >> 8;
                 spiBuff[buff_len++] = MAX7456ADD_DMAL;
                 spiBuff[buff_len++] = pos & 0xff;
                 spiBuff[buff_len++] = MAX7456ADD_DMDI;
                 spiBuff[buff_len++] = screenBuffer[pos];
-                shadowBuffer[pos] = screenBuffer[pos];
+                bitArrayClr(screenIsDirty, pos);
                 k++;
             }
 
@@ -539,8 +556,8 @@ void max7456RefreshAll(void)
         for (xx = 0; xx < maxScreenSize; ++xx)
         {
             max7456Send(MAX7456ADD_DMDI, screenBuffer[xx]);
-            shadowBuffer[xx] = screenBuffer[xx];
         }
+        BYTE_ARRAY_SET_BY_WORDS(screenIsDirty, 0);
 
         max7456Send(MAX7456ADD_DMDI, 0xFF);
         max7456Send(MAX7456ADD_DMM, 0);
