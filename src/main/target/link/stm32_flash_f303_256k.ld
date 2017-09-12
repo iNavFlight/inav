@@ -9,6 +9,10 @@
 *****************************************************************************
 */
 
+/* Stack & Heap sizes */
+_Min_Heap_Size = 0;
+_Min_Stack_Size = 0x1800;
+
 /* Specify the memory areas. */
 MEMORY
 {
@@ -21,5 +25,6 @@ MEMORY
 }
 
 REGION_ALIAS("STACKRAM", CCM)
+REGION_ALIAS("FASTRAM", CCM)
 
 INCLUDE "stm32_flash.ld"

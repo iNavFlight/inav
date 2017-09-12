@@ -17,7 +17,11 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "config/parameter_group.h"
+
+#include "common/time.h"
 
 #define GPS_DBHZ_MIN 0
 #define GPS_DBHZ_MAX 55
@@ -99,18 +103,19 @@ typedef struct gpsCoordinateDDDMMmmmm_s {
 
 /* LLH Location in NEU axis system */
 typedef struct gpsLocation_s {
-    int32_t lat;    // Lattitude * 1e+7
+    int32_t lat;    // Latitude * 1e+7
     int32_t lon;    // Longitude * 1e+7
     int32_t alt;    // Altitude in centimeters (meters * 100)
 } gpsLocation_t;
 
 typedef struct gpsSolutionData_s {
     struct {
-        unsigned gpsHeartbeat   : 1;     // Toggle each update
-        unsigned validVelNE     : 1;
-        unsigned validVelD      : 1;
-        unsigned validMag       : 1;
-        unsigned validEPE       : 1;    // EPH/EPV values are valid - actual accuracy
+        bool gpsHeartbeat;  // Toggle each update
+        bool validVelNE;
+        bool validVelD;
+        bool validMag;
+        bool validEPE;      // EPH/EPV values are valid - actual accuracy
+        bool validTime;
     } flags;
 
     gpsFixType_e fixType;
@@ -127,6 +132,9 @@ typedef struct gpsSolutionData_s {
     uint16_t epv;   // vertical accuracy (cm)
 
     uint16_t hdop;  // generic HDOP value (*100)
+
+    dateTime_t time; // GPS time in UTC
+
 } gpsSolutionData_t;
 
 typedef struct {

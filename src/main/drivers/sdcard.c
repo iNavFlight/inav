@@ -22,6 +22,8 @@
 
 #ifdef USE_SDCARD
 
+#include "common/utils.h"
+
 #include "drivers/nvic.h"
 #include "drivers/io.h"
 #include "dma.h"
@@ -54,9 +56,6 @@
  * per call to sdcard_poll().
  */
 #define SDCARD_NON_DMA_CHUNK_SIZE 256
-
-#define STATIC_ASSERT(condition, name ) \
-    typedef char assert_failed_ ## name [(condition) ? 1 : -1 ]
 
 typedef enum {
     // In these states we run at the initialization 400kHz clockspeed:
@@ -894,6 +893,7 @@ bool sdcard_poll(void)
                         break; // Timeout not reached yet so keep waiting
                     }
                     // Timeout has expired, so fall through to convert to a fatal error
+                    FALLTHROUGH;
 
                 case SDCARD_RECEIVE_ERROR:
                     sdcard_deselect();

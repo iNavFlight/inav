@@ -48,6 +48,7 @@
 
 #define MAG
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 #define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 //#define MAG_HMC5883_ALIGN       CW90_DEG
@@ -59,10 +60,10 @@
 #define BARO
 #define USE_BARO_MS5611
 
-#define PITOT
 #define USE_PITOT_MS4525
 #define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
 
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
 

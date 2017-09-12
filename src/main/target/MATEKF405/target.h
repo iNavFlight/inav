@@ -83,6 +83,7 @@
 #define MAX7456_SPI_INSTANCE    SPI2
 #define MAX7456_SPI_CS_PIN      PB10
 // *************** UART *****************************
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PB12
 #define VBUS_SENSING_ENABLED
@@ -119,10 +120,21 @@
 
 // *************** I2C ****************************
 // SLC clash with WS2812 LED
-#define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C1_SCL                PB6
-#define I2C1_SDA                PB7
+#ifdef MATEKF405OSD
+    // OSD - no native I2C
+    #define USE_I2C
+    #define SOFT_I2C
+    #define I2C_DEVICE              (I2CINVALID)
+    #define SOFT_I2C_SCL            PC10
+    #define SOFT_I2C_SDA            PC11
+    #define I2C_DEVICE_SHARES_UART3
+#else
+    // AIO
+    #define USE_I2C
+    #define I2C_DEVICE              (I2CDEV_1)
+    #define I2C1_SCL                PB6
+    #define I2C1_SDA                PB7
+#endif
 
 
 #define BARO
@@ -135,6 +147,7 @@
 #define USE_MAG_HMC5883 // External
 #define USE_MAG_AK8963  // External
 #define USE_MAG_AK8975  // External
+#define USE_MAG_QMC5883 // External
 
 // *************** ADC *****************************
 #define USE_ADC

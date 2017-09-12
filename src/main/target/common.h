@@ -31,7 +31,12 @@
 #define USE_SERIALRX_SBUS       // Very common protocol
 #define USE_SERIALRX_IBUS       // Cheap FlySky & Turnigy receivers
 
+#if defined(STM32F1) || defined(STM32F3)
+#define USE_UNDERCLOCK
+#endif
+
 #if (FLASH_SIZE > 64)
+#define USE_64BIT_TIME
 #define BLACKBOX
 #define GPS
 #define GPS_PROTO_UBLOX
@@ -90,6 +95,8 @@
 #define NAV_MAX_WAYPOINTS       60
 #define MAX_BOOTLOG_ENTRIES     64
 #define USE_RCSPLIT
+#define PITOT
+#define USE_PITOT_ADC
 #else
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
