@@ -98,6 +98,17 @@ static void rtcTimeToDateTime(dateTime_t *dt, rtcTime_t t)
     dt->millis = t % MILLIS_PER_SECOND;
 }
 
+static void rtcGetDefaultDateTime(dateTime_t *dateTime)
+{
+    dateTime->year = 0;
+    dateTime->month = 1;
+    dateTime->day = 1;
+    dateTime->hours = 0;
+    dateTime->minutes = 0;
+    dateTime->seconds = 0;
+    dateTime->millis = 0;
+}
+
 static bool rtcIsDateTimeValid(dateTime_t *dateTime)
 {
     return (dateTime->year >= UNIX_REFERENCE_YEAR) &&
@@ -109,7 +120,7 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
            (dateTime->millis <= 999);
 }
 
-static void dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
+static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
 {
     dateTime_t local;
     rtcTime_t utcTime;
@@ -117,19 +128,32 @@ static void dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
 
     int tz_hours = 0;
     int tz_minutes = 0;
+    bool retVal = false;
+    
+    if (rtcIsDateTimeValid(dateTime)) {
+        if (offset != 0) {
+            tz_hours = offset / 60;
+            tz_minutes = ABS(offset % 60);
+            utcTime = dateTimeToRtcTime(dateTime);
+            localTime = rtcTimeMake(rtcTimeGetSeconds(&utcTime) + offset * 60, rtcTimeGetMillis(&utcTime));
+            rtcTimeToDateTime(&local, localTime);
+            dateTime = &local;
+        }
 
-    if (offset != 0 && rtcIsDateTimeValid(dateTime)) {
-        tz_hours = offset / 60;
-        tz_minutes = ABS(offset % 60);
-        utcTime = dateTimeToRtcTime(dateTime);
-        localTime = rtcTimeMake(rtcTimeGetSeconds(&utcTime) + offset * 60, rtcTimeGetMillis(&utcTime));
-        rtcTimeToDateTime(&local, localTime);
+        retVal = true;
+    }
+    else {
+        // If date is not valid - format the default one instead
+        rtcGetDefaultDateTime(&local);
         dateTime = &local;
     }
+
     tfp_sprintf(buf, "%04u-%02u-%02uT%02u:%02u:%02u.%03u%c%02d:%02d",
         dateTime->year, dateTime->month, dateTime->day,
         dateTime->hours, dateTime->minutes, dateTime->seconds, dateTime->millis,
         tz_hours >= 0 ? '+' : '-', ABS(tz_hours), tz_minutes);
+
+    return retVal;
 }
 
 rtcTime_t rtcTimeMake(int32_t secs, uint16_t millis)
@@ -147,14 +171,14 @@ uint16_t rtcTimeGetMillis(rtcTime_t *t)
     return *t % MILLIS_PER_SECOND;
 }
 
-void dateTimeFormatUTC(char *buf, dateTime_t *dt)
+bool dateTimeFormatUTC(char *buf, dateTime_t *dt)
 {
-    dateTimeFormat(buf, dt, 0);
+    return dateTimeFormat(buf, dt, 0);
 }
 
-void dateTimeFormatLocal(char *buf, dateTime_t *dt)
+bool dateTimeFormatLocal(char *buf, dateTime_t *dt)
 {
-    dateTimeFormat(buf, dt, timeConfig()->tz_offset);
+    return dateTimeFormat(buf, dt, timeConfig()->tz_offset);
 }
 
 bool rtcHasTime()
@@ -185,13 +209,7 @@ bool rtcGetDateTime(dateTime_t *dt)
         return true;
     }
     // No time stored, fill dt with 0000-01-01T00:00:00.000
-    dt->year = 0;
-    dt->month = 1;
-    dt->day = 1;
-    dt->hours = 0;
-    dt->minutes = 0;
-    dt->seconds = 0;
-    dt->millis = 0;
+    rtcGetDefaultDateTime(dt);
     return false;
 }
 
