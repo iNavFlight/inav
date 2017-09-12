@@ -128,24 +128,22 @@ static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
 
     int tz_hours = 0;
     int tz_minutes = 0;
-    bool retVal = false;
-    
-    if (rtcIsDateTimeValid(dateTime)) {
-        if (offset != 0) {
-            tz_hours = offset / 60;
-            tz_minutes = ABS(offset % 60);
-            utcTime = dateTimeToRtcTime(dateTime);
-            localTime = rtcTimeMake(rtcTimeGetSeconds(&utcTime) + offset * 60, rtcTimeGetMillis(&utcTime));
-            rtcTimeToDateTime(&local, localTime);
-            dateTime = &local;
-        }
+    bool retVal = true;
 
-        retVal = true;
+    // Apply offset if necessary
+    if (offset != 0) {
+        tz_hours = offset / 60;
+        tz_minutes = ABS(offset % 60);
+        utcTime = dateTimeToRtcTime(dateTime);
+        localTime = rtcTimeMake(rtcTimeGetSeconds(&utcTime) + offset * 60, rtcTimeGetMillis(&utcTime));
+        rtcTimeToDateTime(&local, localTime);
+        dateTime = &local;
     }
-    else {
-        // If date is not valid - format the default one instead
+
+    if (!rtcIsDateTimeValid(dateTime)) {
         rtcGetDefaultDateTime(&local);
         dateTime = &local;
+        retVal = false;
     }
 
     tfp_sprintf(buf, "%04u-%02u-%02uT%02u:%02u:%02u.%03u%c%02d:%02d",
