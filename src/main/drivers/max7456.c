@@ -506,7 +506,10 @@ void max7456DrawScreenPartial(void)
 
         //------------   end of (re)init-------------------------------------
 
-        for (k=0; k< MAX_CHARS2UPDATE; k++) {
+        // Note that k should not be incremented on each
+        // iteration, only when we find a character that
+        // we need to send to the OSD.
+        for (k=0; k< MAX_CHARS2UPDATE;) {
             if (bitArrayGet(screenIsDirty, pos)) {
                 spiBuff[buff_len++] = MAX7456ADD_DMAH;
                 spiBuff[buff_len++] = pos >> 8;
