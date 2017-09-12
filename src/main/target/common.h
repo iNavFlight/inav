@@ -97,6 +97,13 @@
 #define USE_RCSPLIT
 #define PITOT
 #define USE_PITOT_ADC
+
+//Enable VTX controll
+#define VTX_COMMON
+#define VTX_CONTROL
+#define VTX_SMARTAUDIO
+#define VTX_TRAMP
+
 #else
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
@@ -105,12 +112,4 @@
 #define DISABLE_UNCOMMON_MIXERS
 #define NAV_MAX_WAYPOINTS       30
 #define MAX_BOOTLOG_ENTRIES     32
-#endif
-
-// VTX control enabled only on F4 and F7 CPUs
-#if defined(STM32F4) || defined(STM32F7)
-#define VTX_COMMON
-#define VTX_CONTROL
-#define VTX_SMARTAUDIO
-#define VTX_TRAMP
 #endif
