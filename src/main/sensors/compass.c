@@ -24,6 +24,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -127,6 +128,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_AK8975:
 #ifdef USE_MAG_AK8975
@@ -142,6 +144,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_AK8963:
 #ifdef USE_MAG_AK8963
@@ -157,6 +160,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_GPS:
 #ifdef GPS
@@ -172,6 +176,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_MAG3110:
 #ifdef USE_MAG_MAG3110
@@ -187,6 +192,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_IST8310:
 #ifdef USE_MAG_IST8310
@@ -202,6 +208,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_QMC5883:
 #ifdef USE_MAG_QMC5883
@@ -217,6 +224,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_FAKE:
 #ifdef USE_FAKE_MAG
@@ -229,6 +237,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_NONE:
         magHardware = MAG_NONE;

@@ -1462,3 +1462,11 @@ groups:
         max: INT32_MAX
       - name: stats_total_dist
         max: INT32_MAX
+
+  - name: PG_TIME_CONFIG
+    type: timeConfig_t
+    headers: ["common/time.h"]
+    members:
+      - name: tz_offset
+        min: -1440
+        max: 1440

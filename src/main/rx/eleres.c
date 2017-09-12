@@ -16,6 +16,8 @@
 #include "build/version.h"
 
 #include "common/axis.h"
+#include "common/utils.h"
+
 #include "config/config_master.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -318,6 +320,8 @@ static void telemetryRX(void)
             break;
         }
         telem_state++;
+        FALLTHROUGH;
+
     case 2:
         if (sensors(SENSOR_GPS)) {
             uint16_t gpsspeed =  (gpsSol.groundSpeed*9L)/250L;
@@ -344,6 +348,8 @@ static void telemetryRX(void)
             break;
         }
         telem_state++;
+        FALLTHROUGH;
+
     default:
         rfTxBuffer[0] = 'D';
         memcpy(rfTxBuffer+1,&debug[0],2);
@@ -736,4 +742,3 @@ uint8_t eleresBind(void)
 }
 
 #endif //RX_ELERES
-

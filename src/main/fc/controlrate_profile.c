@@ -38,7 +38,7 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_CO
 void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
 {
     for (int i = 0; i < MAX_CONTROL_RATE_PROFILE_COUNT; i++) {
-        RESET_CONFIG(const controlRateConfig_t, &instance[i],
+        RESET_CONFIG(controlRateConfig_t, &instance[i],
             .rcExpo8 = 70,
             .thrMid8 = 50,
             .thrExpo8 = 0,

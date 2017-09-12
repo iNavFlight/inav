@@ -548,6 +548,7 @@ COMMON_SRC = \
             common/maths.c \
             common/printf.c \
             common/streambuf.c \
+            common/time.c \
             common/typeconversion.c \
             common/string_light.c \
             config/config_eeprom.c \

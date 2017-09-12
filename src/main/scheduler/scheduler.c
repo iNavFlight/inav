@@ -32,21 +32,21 @@
 
 #include "drivers/time.h"
 
-static cfTask_t *currentTask = NULL;
+STATIC_FASTRAM cfTask_t *currentTask = NULL;
 
-static uint32_t totalWaitingTasks;
-static uint32_t totalWaitingTasksSamples;
+STATIC_FASTRAM uint32_t totalWaitingTasks;
+STATIC_FASTRAM uint32_t totalWaitingTasksSamples;
 
-uint16_t averageSystemLoadPercent = 0;
+FASTRAM uint16_t averageSystemLoadPercent = 0;
 
 
-static int taskQueuePos = 0;
-static int taskQueueSize = 0;
+STATIC_FASTRAM int taskQueuePos = 0;
+STATIC_FASTRAM int taskQueueSize = 0;
 // No need for a linked list for the queue, since items are only inserted at startup
 #ifdef UNIT_TEST
-STATIC_UNIT_TESTED cfTask_t* taskQueueArray[TASK_COUNT + 2]; // 1 extra space so test code can check for buffer overruns
+STATIC_FASTRAM_UNIT_TESTED cfTask_t* taskQueueArray[TASK_COUNT + 2]; // 1 extra space so test code can check for buffer overruns
 #else
-static cfTask_t* taskQueueArray[TASK_COUNT + 1]; // extra item for NULL pointer at end of queue
+STATIC_FASTRAM cfTask_t* taskQueueArray[TASK_COUNT + 1]; // extra item for NULL pointer at end of queue
 #endif
 STATIC_UNIT_TESTED void queueClear(void)
 {
@@ -131,9 +131,9 @@ void taskSystem(timeUs_t currentTimeUs)
 
 #ifndef SKIP_TASK_STATISTICS
 #define TASK_MOVING_SUM_COUNT           32
-timeUs_t checkFuncMaxExecutionTime;
-timeUs_t checkFuncTotalExecutionTime;
-timeUs_t checkFuncMovingSumExecutionTime;
+FASTRAM timeUs_t checkFuncMaxExecutionTime;
+FASTRAM timeUs_t checkFuncTotalExecutionTime;
+FASTRAM timeUs_t checkFuncMovingSumExecutionTime;
 
 void getCheckFuncInfo(cfCheckFuncInfo_t *checkFuncInfo)
 {

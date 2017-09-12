@@ -93,6 +93,8 @@ typedef struct gpsDataNmea_s {
     uint16_t speed;
     uint16_t ground_course;
     uint16_t hdop;
+    uint32_t time;
+    uint32_t date;
 } gpsDataNmea_t;
 
 #define NMEA_BUFFER_SIZE        16
@@ -163,12 +165,19 @@ static bool gpsNewFrameNMEA(char c)
                     }
                     break;
                 case FRAME_RMC:        //************* GPRMC FRAME parsing
+                                       // $GNRMC,130059.00,V,,,,,,,110917,,,N*62
                     switch (param) {
+                        case 1:
+                            gps_Msg.time = grab_fields(string, 2);
+                            break;
                         case 7:
                             gps_Msg.speed = ((grab_fields(string, 1) * 5144L) / 1000L);    // speed in cm/s added by Mis
                             break;
                         case 8:
                             gps_Msg.ground_course = (grab_fields(string, 1));      // ground course deg * 10
+                            break;
+                        case 9:
+                            gps_Msg.date = grab_fields(string, 0);
                             break;
                     }
                     break;
@@ -215,6 +224,22 @@ static bool gpsNewFrameNMEA(char c)
                     case FRAME_RMC:
                         gpsSol.groundSpeed = gps_Msg.speed;
                         gpsSol.groundCourse = gps_Msg.ground_course;
+
+                        // This check will miss 00:00:00.00, but we shouldn't care - next report will be valid
+                        if (gps_Msg.date != 0 && gps_Msg.time != 0) {
+                            gpsSol.time.year = (gps_Msg.date % 100) + 2000;
+                            gpsSol.time.month = (gps_Msg.date / 100) % 100;
+                            gpsSol.time.day = (gps_Msg.date / 10000) % 100;
+                            gpsSol.time.hours = (gps_Msg.time / 1000000) % 100;
+                            gpsSol.time.minutes = (gps_Msg.time / 10000) % 100;
+                            gpsSol.time.seconds = (gps_Msg.time / 100) % 100;
+                            gpsSol.time.millis = (gps_Msg.time & 100) * 10;
+                            gpsSol.flags.validTime = 1;
+                        }
+                        else {
+                            gpsSol.flags.validTime = 0;
+                        }
+
                         break;
                     } // end switch
                 }

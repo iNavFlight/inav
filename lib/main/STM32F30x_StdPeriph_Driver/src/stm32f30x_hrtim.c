@@ -5,102 +5,102 @@
   * @version V1.1.1
   * @date    04-April-2014
   * @brief   HRTIMx module driver.
-  *    
-  *          This file provides firmware functions to manage the following 
+  *
+  *          This file provides firmware functions to manage the following
   *          functionalities of the HRTIMx peripheral:
   *           + Initialization/de-initialization methods
   *           + I/O operation methods
-  *           + Peripheral Control methods 
-  *         
+  *           + Peripheral Control methods
+  *
   @verbatim
 ================================================================================
                     ##### <HRTIM specific features> #####
 ================================================================================
-           
-  [..] < HRTIM introduction: 
+
+  [..] < HRTIM introduction:
        (#) The high-resolution timer can generate up to 10 digital signals with
            highly accurate timings.
-           It is primarily intended to drive power conversion systems such as 
-           switch mode power supplies or lighting systems, 
-           but can be of general purpose usage, whenever a very fine timing 
+           It is primarily intended to drive power conversion systems such as
+           switch mode power supplies or lighting systems,
+           but can be of general purpose usage, whenever a very fine timing
            resolution is expected.
 
-       (#) Its modular architecture allows to generate either independent or 
-           coupled waveforms. 
-           The wave-shape is defined by self-contained timings 
+       (#) Its modular architecture allows to generate either independent or
+           coupled waveforms.
+           The wave-shape is defined by self-contained timings
            (using counters and compare units) and a broad range of external events,
-           such as analog or digital feedbacks and synchronisation signals. 
+           such as analog or digital feedbacks and synchronisation signals.
            This allows to produce a large variety of control signal (PWM, phase-shifted,
            constant Ton,...) and address most of conversion topologies.
 
-       (#) For control and monitoring purposes, the timer has also timing measure 
-           capabilities and links to built-in ADC and DAC converters. 
-           Last, it features light-load management mode and is able to handle 
+       (#) For control and monitoring purposes, the timer has also timing measure
+           capabilities and links to built-in ADC and DAC converters.
+           Last, it features light-load management mode and is able to handle
            various fault schemes for safe shut-down purposes.
-                 
-   
+
+
             ##### How to use this driver #####
 ================================================================================
-        [..] This driver provides functions to configure and program the HRTIM 
+        [..] This driver provides functions to configure and program the HRTIM
         of all stm32f33x devices.
-        These functions are split in 9 groups: 
-     
-        (#) HRTIM Simple TimeBase management: this group includes all needed functions 
+        These functions are split in 9 groups:
+
+        (#) HRTIM Simple TimeBase management: this group includes all needed functions
             to configure the HRTIM Timebase unit:
-                 (++) Initializes the HRTIMx timer in simple time base mode 
+                 (++) Initializes the HRTIMx timer in simple time base mode
                  (++) Start/Stop the time base generation
-                 (++) Deinitialize the HRTIM peripheral  
-    
-                   
-       (#) HRTIM simple Output Compare management: this group includes all needed 
-           functions to configure the Compare unit used in Output compare mode: 
-                 (++) Initializes the HRTIMx timer time base unit 
+                 (++) Deinitialize the HRTIM peripheral
+
+
+       (#) HRTIM simple Output Compare management: this group includes all needed
+           functions to configure the Compare unit used in Output compare mode:
+                 (++) Initializes the HRTIMx timer time base unit
                  (++) Configure the compare unit in in simple Output Compare mode
-                 (++) Start/Stop the Output compare generation    
-                    
-       (#) HRTIM simple PWM management: this group includes all needed 
-           functions to configure the Compare unit used in PWM mode: 
-                 (++) Initializes the HRTIMx timer time base unit 
+                 (++) Start/Stop the Output compare generation
+
+       (#) HRTIM simple PWM management: this group includes all needed
+           functions to configure the Compare unit used in PWM mode:
+                 (++) Initializes the HRTIMx timer time base unit
                  (++) Configure the compare unit in in simple PWM mode
-                 (++) Start/Stop the PWM generation      
-                     
-       (#) HRTIM simple Capture management: this group includes all needed 
-           functions to configure the Capture unit used in Capture mode: 
-                 (++) Initializes the HRTIMx timer time base unit 
+                 (++) Start/Stop the PWM generation
+
+       (#) HRTIM simple Capture management: this group includes all needed
+           functions to configure the Capture unit used in Capture mode:
+                 (++) Initializes the HRTIMx timer time base unit
                  (++) Configure the compare unit in in simple Capture mode
                  (++) Start/Stop the Capture mode
 
-       (#) HRTIM simple One Pulse management: this group includes all needed 
-           functions to configure the Capture unit and Compare unit used in One Pulse mode: 
-                 (++) Initializes the HRTIMx timer time base unit 
+       (#) HRTIM simple One Pulse management: this group includes all needed
+           functions to configure the Capture unit and Compare unit used in One Pulse mode:
+                 (++) Initializes the HRTIMx timer time base unit
                  (++) Configure the compare unit and the capture unit in in simple One Pulse mode
-                 (++) Start/Stop the One Pulse mode generation 
-                   
-       (#) HRTIM Waveform management: this group includes all needed 
-           functions to configure the HRTIM possible waveform mode: 
-                 (++) Initializes the HRTIMx timer Master time base unit 
+                 (++) Start/Stop the One Pulse mode generation
+
+       (#) HRTIM Waveform management: this group includes all needed
+           functions to configure the HRTIM possible waveform mode:
+                 (++) Initializes the HRTIMx timer Master time base unit
                  (++) Initializes the HRTIMx timer Slaves time base unit
-                 (++) Configures the HRTIMx timer Compare unit  
-                 (++) Configures the HRTIMx Slave timer Capture unit 
-                 (++) Configures the HRTIMx timer Output unit 
-                 (++) Configures the HRTIMx timer DeadTime / Chopper / Burst features 
-                 (++) Configures the HRTIMx timer Fault / External event features 
-                 (++) Configures the HRTIMx timer Synchronization features: Internal/External connection, DACs,... 
-                 (++) Configures the HRTIMx timer Synchronization features: ADCs Triggers  
-                 (++) HRTIMx timer Outputs Start/Stop  
-                 (++) Start/Stop the HRTIMx Timer counters            
-                               
+                 (++) Configures the HRTIMx timer Compare unit
+                 (++) Configures the HRTIMx Slave timer Capture unit
+                 (++) Configures the HRTIMx timer Output unit
+                 (++) Configures the HRTIMx timer DeadTime / Chopper / Burst features
+                 (++) Configures the HRTIMx timer Fault / External event features
+                 (++) Configures the HRTIMx timer Synchronization features: Internal/External connection, DACs,...
+                 (++) Configures the HRTIMx timer Synchronization features: ADCs Triggers
+                 (++) HRTIMx timer Outputs Start/Stop
+                 (++) Start/Stop the HRTIMx Timer counters
+
         (#) HRTIM interrupts, DMA and flags management
                  (++) Enable/Disable interrupt sources
                  (++) Get flags status
                  (++) Clear flags/ Pending bits
-                 (++) Enable/Disable DMA requests 
+                 (++) Enable/Disable DMA requests
                  (++) Configure DMA burst mode
-       
-        (#) TIM specific interface management, this group includes all 
+
+        (#) TIM specific interface management, this group includes all
             needed functions to use the specific TIM interface:
-                 (++) HRTIMx timer DLL calibration      
-  
+                 (++) HRTIMx timer DLL calibration
+
   @endverbatim
   ******************************************************************************
   * @attention
@@ -113,22 +113,23 @@
   *
   *        http://www.st.com/software_license_agreement_liberty_v2
   *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   * See the License for the specific language governing permissions and
   * limitations under the License.
   *
-  ******************************************************************************  
-  */ 
+  ******************************************************************************
+  */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f30x_hrtim.h"
+#include "common/utils.h"
 
 /** @addtogroup STM32F30x_StdPeriph_Driver
   * @{
   */
 
-/** @defgroup HRTIM 
+/** @defgroup HRTIM
   * @brief HRTIM driver module
   * @{
   */
@@ -151,7 +152,7 @@
 #define HRTIM_TIM_OFFSET      (uint32_t)0x00000080
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-static uint32_t TimerIdxToTimerId[] = 
+static uint32_t TimerIdxToTimerId[] =
 {
   HRTIM_TIMERID_TIMER_A,
   HRTIM_TIMERID_TIMER_B,
@@ -166,8 +167,8 @@ static uint32_t TimerIdxToTimerId[] =
 static void HRTIM_MasterBase_Config(HRTIM_TypeDef* HRTIMx, HRTIM_BaseInitTypeDef* HRTIM_BaseInitStruc);
 static void HRTIM_TimingUnitBase_Config(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTIM_BaseInitTypeDef* HRTIM_BaseInitStruct);
 static void HRTIM_MasterWaveform_Config(HRTIM_TypeDef * HRTIMx, HRTIM_TimerInitTypeDef * TimerInit);
-static void HRTIM_TimingUnitWaveform_Config(HRTIM_TypeDef * HRTIMx, 
-                                            uint32_t TimerIdx, 
+static void HRTIM_TimingUnitWaveform_Config(HRTIM_TypeDef * HRTIMx,
+                                            uint32_t TimerIdx,
                                             HRTIM_TimerInitTypeDef * TimerInit);
 static void HRTIM_CompareUnitConfig(HRTIM_TypeDef * HRTIMx,
                                     uint32_t TimerIdx,
@@ -186,15 +187,15 @@ static void HRTIM_ExternalEventConfig(HRTIM_TypeDef * HRTIMx,
                                       HRTIM_EventCfgTypeDef * EventCfg);
 static void HRTIM_TIM_ResetConfig(HRTIM_TypeDef * HRTIMx,
                                   uint32_t TimerIdx,
-                                  uint32_t Event);  
+                                  uint32_t Event);
   /** @defgroup HRTIM_Private_Functions
   * @{
   */
 
-/** @defgroup HRTIM_Group1 Initialization/de-initialization methods 
- *  @brief    Initialization and Configuration functions 
+/** @defgroup HRTIM_Group1 Initialization/de-initialization methods
+ *  @brief    Initialization and Configuration functions
  *
-@verbatim    
+@verbatim
  ===============================================================================
               ##### Initialization/de-initialization methods #####
  ===============================================================================
@@ -206,13 +207,13 @@ static void HRTIM_TIM_ResetConfig(HRTIM_TypeDef * HRTIMx,
           (+)Initializes timer in One Pulse mode
           (+)Initializes a timer operating in waveform mode
           (+)De-initializes the HRTIMx timer
- 
+
 @endverbatim
   * @{
   */
 
 /**
-  * @brief  Initializes the HRTIMx timer in basic time base mode 
+  * @brief  Initializes the HRTIMx timer in basic time base mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
@@ -221,7 +222,7 @@ static void HRTIM_TIM_ResetConfig(HRTIM_TypeDef * HRTIMx,
   * @note   The time-base unit initialization parameters specify:
   *           The timer counter operating mode (continuous, one shot)
   *           The timer clock prescaler
-  *           The timer period 
+  *           The timer period
   *           The timer repetition counter.
   * @retval None
   */
@@ -230,7 +231,7 @@ void HRTIM_SimpleBase_Init(HRTIM_TypeDef* HRTIMx, uint32_t TimerIdx, HRTIM_BaseI
   /* Check the parameters */
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
   assert_param(IS_HRTIM_MODE(HRTIM_BaseInitStruct->Mode));
-   
+
   if (TimerIdx == HRTIM_TIMERINDEX_MASTER)
   {
     /* Configure master timer */
@@ -244,8 +245,8 @@ void HRTIM_SimpleBase_Init(HRTIM_TypeDef* HRTIMx, uint32_t TimerIdx, HRTIM_BaseI
 }
 
 /**
-  * @brief  De-initializes a timer operating in all mode 
-  * @param  HRTIMx: pointer to HRTIMx peripheral 
+  * @brief  De-initializes a timer operating in all mode
+  * @param  HRTIMx: pointer to HRTIMx peripheral
   * @retval None
   */
 #ifdef __GNUC__
@@ -256,14 +257,14 @@ void HRTIM_DeInit(HRTIM_TypeDef* HRTIMx)
 {
   /* Check the parameters */
     RCC_APB2PeriphResetCmd(RCC_APB2Periph_HRTIM1, ENABLE);
-    RCC_APB2PeriphResetCmd(RCC_APB2Periph_HRTIM1, DISABLE);  
+    RCC_APB2PeriphResetCmd(RCC_APB2Periph_HRTIM1, DISABLE);
  }
 #ifdef __GNUC__
 # pragma GCC diagnostic pop
 #endif
 
 /**
-  * @brief  Initializes the HRTIMx timer in basic output compare mode 
+  * @brief  Initializes the HRTIMx timer in basic output compare mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
@@ -277,13 +278,13 @@ void HRTIM_SimpleOC_Init(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTIM_BaseIn
   /* Check the parameters */
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
   assert_param(IS_HRTIM_MODE(HRTIM_BaseInitStruct->Mode));
-   
+
   /* Configure timing unit */
   HRTIM_TimingUnitBase_Config(HRTIMx, TimerIdx, HRTIM_BaseInitStruct);
 }
 
 /**
-  * @brief  Initializes the HRTIMx timer in basic PWM mode 
+  * @brief  Initializes the HRTIMx timer in basic PWM mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
@@ -297,17 +298,17 @@ void HRTIM_SimplePWM_Init(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTIM_BaseI
   /* Check the parameters */
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
   assert_param(IS_HRTIM_MODE(HRTIM_BaseInitStruct->Mode));
-  
+
   /* Configure timing unit */
   HRTIM_TimingUnitBase_Config(HRTIMx, TimerIdx, HRTIM_BaseInitStruct);
 }
 
 /**
-  * @brief  Initializes a timer operating in basic capture mode 
+  * @brief  Initializes a timer operating in basic capture mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x1 to 0x5 for timers A to E 
+  *                   @arg 0x1 to 0x5 for timers A to E
   * @retval None
   */
 void HRTIM_SimpleCapture_Init(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTIM_BaseInitTypeDef* HRTIM_BaseInitStruct)
@@ -315,13 +316,13 @@ void HRTIM_SimpleCapture_Init(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTIM_B
   /* Check the parameters */
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
   assert_param(IS_HRTIM_MODE(HRTIM_BaseInitStruct->Mode));
-  
+
   /* Configure timing unit */
   HRTIM_TimingUnitBase_Config(HRTIMx, TimerIdx, HRTIM_BaseInitStruct);
 }
 
 /**
-  * @brief  Initializes the HRTIMx timer in basic one pulse mode 
+  * @brief  Initializes the HRTIMx timer in basic one pulse mode
   * @param  HRTIMx: pointer to  HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
@@ -336,18 +337,18 @@ void HRTIM_SimpleOnePulse_Init(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTIM_
   /* Check the parameters */
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
   assert_param(IS_HRTIM_MODE(HRTIM_BaseInitStruct->Mode));
-  
+
   /* Configure timing unit */
   HRTIM_TimingUnitBase_Config(HRTIMx, TimerIdx, HRTIM_BaseInitStruct);
 }
 
 /**
-  * @brief  Initializes a timer operating in waveform mode 
+  * @brief  Initializes a timer operating in waveform mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
   *                   @arg 0x0 for master timer
-  *                   @arg 0x1 to 0x5 for timers A to E 
+  *                   @arg 0x1 to 0x5 for timers A to E
   * @param  pTimerInit: pointer to the timer initialization data structure
   * @retval None
   */
@@ -364,12 +365,12 @@ void HRTIM_Waveform_Init(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_PRELOAD(HRTIM_TimerInitStruct->PreloadEnable));
   assert_param(IS_HRTIM_TIMERBURSTMODE(HRTIM_TimerInitStruct->BurstMode));
   assert_param(IS_HRTIM_UPDATEONREPETITION(HRTIM_TimerInitStruct->RepetitionUpdate));
- 
+
   if (TimerIdx == HRTIM_TIMERINDEX_MASTER)
   {
     /* Check parameters */
-    assert_param(IS_HRTIM_UPDATEGATING_MASTER(HRTIM_TimerInitStruct->UpdateGating));  
-    
+    assert_param(IS_HRTIM_UPDATEGATING_MASTER(HRTIM_TimerInitStruct->UpdateGating));
+
     /* Configure master timer */
     HRTIM_MasterBase_Config(HRTIMx, HRTIM_BaseInitStruct);
     HRTIM_MasterWaveform_Config(HRTIMx, HRTIM_TimerInitStruct);
@@ -377,8 +378,8 @@ void HRTIM_Waveform_Init(HRTIM_TypeDef * HRTIMx,
   else
   {
     /* Check parameters */
-    assert_param(IS_HRTIM_UPDATEGATING_TIM(HRTIM_TimerInitStruct->UpdateGating));  
-    
+    assert_param(IS_HRTIM_UPDATEGATING_TIM(HRTIM_TimerInitStruct->UpdateGating));
+
     /* Configure timing unit */
     HRTIM_TimingUnitBase_Config(HRTIMx, TimerIdx, HRTIM_BaseInitStruct);
     HRTIM_TimingUnitWaveform_Config(HRTIMx, TimerIdx, HRTIM_TimerInitStruct);
@@ -389,15 +390,15 @@ void HRTIM_Waveform_Init(HRTIM_TypeDef * HRTIMx,
   * @}
   */
 
-/** @defgroup HRTIM_Group2 I/O operation methods 
- *  @brief   Data transfers functions 
+/** @defgroup HRTIM_Group2 I/O operation methods
+ *  @brief   Data transfers functions
  *
-@verbatim   
+@verbatim
  ===============================================================================
                       ##### IO operation methods #####
- ===============================================================================  
+ ===============================================================================
     [..]
-    This subsection provides a set of functions allowing to manage the HRTIMx data 
+    This subsection provides a set of functions allowing to manage the HRTIMx data
     transfers.
     (+) Starts the DLL calibration.
     (+) Starts / stops the counter of a timer operating in basic time base mode
@@ -424,18 +425,18 @@ void HRTIM_Waveform_Init(HRTIM_TypeDef * HRTIMx,
 void HRTIM_DLLCalibrationStart(HRTIM_TypeDef * HRTIMx, uint32_t CalibrationRate)
 {
   uint32_t HRTIM_dllcr;
-  
+
    /* Check the parameters */
   assert_param(IS_HRTIM_CALIBRATIONRATE(CalibrationRate));
 
   /* Configure DLL Calibration */
   HRTIM_dllcr = (HRTIMx->HRTIM_COMMON).DLLCR;
-  
+
   if (CalibrationRate == HRTIM_SINGLE_CALIBRATION)
   {
     /* One shot DLL calibration */
     HRTIM_dllcr &= ~(HRTIM_DLLCR_CALEN);
-    HRTIM_dllcr |= HRTIM_DLLCR_CAL;    
+    HRTIM_dllcr |= HRTIM_DLLCR_CAL;
   }
   else
   {
@@ -443,10 +444,10 @@ void HRTIM_DLLCalibrationStart(HRTIM_TypeDef * HRTIMx, uint32_t CalibrationRate)
     HRTIM_dllcr &= ~(HRTIM_DLLCR_CALRTE | HRTIM_DLLCR_CAL);
     HRTIM_dllcr |= (CalibrationRate | HRTIM_DLLCR_CALEN);
   }
-               
+
   /* Update HRTIMx register */
   HRTIMx->HRTIM_COMMON.DLLCR = HRTIM_dllcr;
-  
+
 }
 /**
   * @brief  Starts the counter of a timer operating in basic time base mode
@@ -454,14 +455,14 @@ void HRTIM_DLLCalibrationStart(HRTIM_TypeDef * HRTIMx, uint32_t CalibrationRate)
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
   *                   @arg 0x5 for master timer
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @retval None
   */
 void HRTIM_SimpleBaseStart(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx)
-{  
+{
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
-  
+
   /* Enable the timer counter */
   __HRTIM_ENABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
 }
@@ -472,24 +473,24 @@ void HRTIM_SimpleBaseStart(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx)
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
   *                   @arg 0x5 for master timer
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @retval None
   */
 void HRTIM_SimpleBaseStop(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx)
 {
    /* Check the parameters */
-  assert_param(IS_HRTIM_TIMERINDEX(TimerIdx)); 
-  
+  assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
+
   /* Disable the timer counter */
   __HRTIM_DISABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
 }
 
 /**
-  * @brief  Starts the output compare signal generation on the designed timer output 
+  * @brief  Starts the output compare signal generation on the designed timer output
   * @param  HRTIMx: pointer to HRTIM peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  OCChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -510,21 +511,21 @@ void HRTIM_SimpleOCStart(HRTIM_TypeDef * HRTIMx,
 {
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, OCChannel));
-  
+
   /* Enable the timer output */
    (HRTIMx->HRTIM_COMMON).OENR |= OCChannel;
-       
+
     /* Enable the timer counter */
   __HRTIM_ENABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
-  
+
 }
 
 /**
-  * @brief  Stops the output compare signal generation on the designed timer output 
+  * @brief  Stops the output compare signal generation on the designed timer output
   * @param  HRTIMx: pointer to HRTIM peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  OCChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -545,10 +546,10 @@ void HRTIM_SimpleOCStop(HRTIM_TypeDef * HRTIMx,
 {
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, OCChannel));
-  
+
   /* Disable the timer output */
   HRTIMx->HRTIM_COMMON.DISR |= OCChannel;
-    
+
   /* Disable the timer counter */
    __HRTIM_DISABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
 }
@@ -558,7 +559,7 @@ void HRTIM_SimpleOCStop(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIM peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  PWMChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -579,10 +580,10 @@ void HRTIM_SimplePWMStart(HRTIM_TypeDef * HRTIMx,
 {
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, PWMChannel));
-  
+
   /* Enable the timer output */
   HRTIMx->HRTIM_COMMON.OENR |= PWMChannel;
-    
+
   /* Enable the timer counter */
   __HRTIM_ENABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
 }
@@ -592,7 +593,7 @@ void HRTIM_SimplePWMStart(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIM peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  PWMChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -613,10 +614,10 @@ void HRTIM_SimplePWMStop(HRTIM_TypeDef * HRTIMx,
 {
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, PWMChannel));
- 
+
   /* Disable the timer output */
   HRTIMx->HRTIM_COMMON.DISR |= PWMChannel;
-    
+
   /* Disable the timer counter */
    __HRTIM_DISABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
 }
@@ -626,14 +627,14 @@ void HRTIM_SimplePWMStop(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIM peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  CaptureChannel: Timer output
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_CAPTUREUNIT_1: Capture unit 1
   *                    @arg HRTIM_CAPTUREUNIT_2: Capture unit 2
   * @retval None
-  * @note  The external event triggering the capture is available for all timing 
-  *        units. It can be used directly and is active as soon as the timing 
+  * @note  The external event triggering the capture is available for all timing
+  *        units. It can be used directly and is active as soon as the timing
   *        unit counter is enabled.
   */
 #ifdef __GNUC__
@@ -653,13 +654,13 @@ void HRTIM_SimpleCaptureStart(HRTIM_TypeDef * HRTIMx,
 #endif
 
 /**
-  * @brief  Disables a basic capture on the designed capture unit 
+  * @brief  Disables a basic capture on the designed capture unit
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  CaptureChannel: Timer output
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_CAPTUREUNIT_1: Capture unit 1
   *                    @arg HRTIM_CAPTUREUNIT_2: Capture unit 2
   * @retval None
@@ -671,7 +672,7 @@ void HRTIM_SimpleCaptureStop(HRTIM_TypeDef * HRTIMx,
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
   assert_param(IS_HRTIM_CAPTUREUNIT(CaptureChannel));
-    
+
   /* Set the capture unit trigger */
   switch (CaptureChannel)
   {
@@ -686,24 +687,24 @@ void HRTIM_SimpleCaptureStop(HRTIM_TypeDef * HRTIMx,
     }
     break;
     default:
-    break;  
+    break;
   }
-  
+
   /* Disable the timer counter */
   if ((HRTIMx->HRTIM_TIMERx[TimerIdx].CPT1xCR == HRTIM_CAPTURETRIGGER_NONE) &&
       (HRTIMx->HRTIM_TIMERx[TimerIdx].CPT2xCR == HRTIM_CAPTURETRIGGER_NONE))
   {
     __HRTIM_DISABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
   }
-  
+
 }
 
 /**
-  * @brief  Enables the basic one pulse signal generation on the designed output 
+  * @brief  Enables the basic one pulse signal generation on the designed output
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  OnePulseChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -724,20 +725,20 @@ void HRTIM_SimpleOnePulseStart(HRTIM_TypeDef * HRTIMx,
 {
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, OnePulseChannel));
-  
+
   /* Enable the timer output */
   HRTIMx->HRTIM_COMMON.OENR |= OnePulseChannel;
-    
+
   /* Enable the timer counter */
   __HRTIM_ENABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
 }
 
 /**
-  * @brief  Disables the basic one pulse signal generation on the designed output 
+  * @brief  Disables the basic one pulse signal generation on the designed output
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  OnePulseChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -758,10 +759,10 @@ void HRTIM_SimpleOnePulseStop(HRTIM_TypeDef * HRTIMx,
 {
    /* Check the parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, OnePulseChannel));
-   
+
   /* Disable the timer output */
   HRTIMx->HRTIM_COMMON.DISR |= OnePulseChannel;
-  
+
   /* Disable the timer counter */
   __HRTIM_DISABLE(HRTIMx, TimerIdxToTimerId[TimerIdx]);
 }
@@ -772,17 +773,17 @@ void HRTIM_SimpleOnePulseStop(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimersToStart: Timer counter(s) to start
   *                   This parameter can be any combination of the following values:
-  *                   @arg HRTIM_TIMERID_MASTER 
-  *                   @arg HRTIM_TIMERID_TIMER_A 
-  *                   @arg HRTIM_TIMERID_TIMER_B 
-  *                   @arg HRTIM_TIMERID_TIMER_C 
-  *                   @arg HRTIM_TIMERID_TIMER_D 
-  *                   @arg HRTIM_TIMERID_TIMER_E 
+  *                   @arg HRTIM_TIMERID_MASTER
+  *                   @arg HRTIM_TIMERID_TIMER_A
+  *                   @arg HRTIM_TIMERID_TIMER_B
+  *                   @arg HRTIM_TIMERID_TIMER_C
+  *                   @arg HRTIM_TIMERID_TIMER_D
+  *                   @arg HRTIM_TIMERID_TIMER_E
   * @retval None
   */
 void HRTIM_WaveformCounterStart(HRTIM_TypeDef * HRTIMx,
                                                  uint32_t TimersToStart)
-{ 
+{
    /* Enable timer(s) counter */
    HRTIMx->HRTIM_MASTER.MCR |= TimersToStart;
 }
@@ -793,12 +794,12 @@ void HRTIM_WaveformCounterStart(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimersToStop: Timer counter(s) to stop
   *                   This parameter can be any combination of the following values:
-  *                   @arg HRTIM_TIMERID_MASTER 
-  *                   @arg HRTIM_TIMERID_TIMER_A 
-  *                   @arg HRTIM_TIMERID_TIMER_B 
-  *                   @arg HRTIM_TIMERID_TIMER_C 
-  *                   @arg HRTIM_TIMERID_TIMER_D 
-  *                   @arg HRTIM_TIMERID_TIMER_E 
+  *                   @arg HRTIM_TIMERID_MASTER
+  *                   @arg HRTIM_TIMERID_TIMER_A
+  *                   @arg HRTIM_TIMERID_TIMER_B
+  *                   @arg HRTIM_TIMERID_TIMER_C
+  *                   @arg HRTIM_TIMERID_TIMER_D
+  *                   @arg HRTIM_TIMERID_TIMER_E
   * @retval None
   */
 void HRTIM_WaveformCounterStop(HRTIM_TypeDef * HRTIMx,
@@ -863,7 +864,7 @@ void HRTIM_WaveformOutputStop(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  HRTIM_IT: specifies the HRTIM interrupts sources to be enabled or disabled.
   *          This parameter can be any combination of the following values:
   *            @arg HRTIM_MASTER_IT_MCMP1: Master compare 1 interrupt source
@@ -894,7 +895,7 @@ void HRTIM_WaveformOutputStop(HRTIM_TypeDef * HRTIMx,
 void HRTIM_ITConfig(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_IT, FunctionalState NewState)
 {
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
-   
+
   switch(TimerIdx)
   {
     case HRTIM_TIMERINDEX_MASTER:
@@ -906,7 +907,7 @@ void HRTIM_ITConfig(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_IT
       else
       {
         HRTIMx->HRTIM_MASTER.MDIER &= ~HRTIM_IT;
-      }  
+      }
     }
     break;
     case HRTIM_TIMERINDEX_TIMER_A:
@@ -925,10 +926,10 @@ void HRTIM_ITConfig(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_IT
       }
     }
     break;
-    
+
     default:
-    break;  
-  }    
+    break;
+  }
 }
 
 /**
@@ -965,7 +966,7 @@ void HRTIM_ITCommonConfig(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonIT, Funct
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  HRTIM_FLAG: specifies the HRTIM flags sources to be cleared.
   *          This parameter can be any combination of the following values:
   *            @arg HRTIM_MASTER_FLAG_MCMP1: Master compare 1 interrupt flag
@@ -994,7 +995,7 @@ void HRTIM_ITCommonConfig(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonIT, Funct
 void HRTIM_ClearFlag(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_FLAG)
 {
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
-  
+
   switch(TimerIdx)
   {
     case HRTIM_TIMERINDEX_MASTER:
@@ -1011,10 +1012,10 @@ void HRTIM_ClearFlag(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_F
       HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxICR |= HRTIM_FLAG;
     }
     break;
-    
+
     default:
-    break;  
-  }    
+    break;
+  }
 }
 
 /**
@@ -1042,7 +1043,7 @@ void HRTIM_ClearCommonFlag(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonFLAG)
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  HRTIM_IT: specifies the HRTIM interrupts sources to be enabled or disabled.
   *          This parameter can be any combination of the following values:
   *            @arg HRTIM_MASTER_IT_MCMP1: Master compare 1 interrupt source
@@ -1071,7 +1072,7 @@ void HRTIM_ClearCommonFlag(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonFLAG)
 void HRTIM_ClearITPendingBit(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_IT)
 {
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
-  
+
   switch(TimerIdx)
   {
     case HRTIM_TIMERINDEX_MASTER:
@@ -1088,10 +1089,10 @@ void HRTIM_ClearITPendingBit(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t
       HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxICR |= HRTIM_IT;
     }
     break;
- 
+
     default:
-    break;  
-  }    
+    break;
+  }
 }
 
 /**
@@ -1120,7 +1121,7 @@ void HRTIM_ClearCommonITPendingBit(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_Common
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  HRTIM_FLAG: specifies the HRTIM flags to check.
   *          This parameter can be any combination of the following values:
   *            @arg HRTIM_MASTER_FLAG_MCMP1: Master compare 1 interrupt flag
@@ -1149,9 +1150,9 @@ void HRTIM_ClearCommonITPendingBit(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_Common
 FlagStatus HRTIM_GetFlagStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_FLAG)
 {
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
-  
-  FlagStatus bitstatus = RESET;  
-  
+
+  FlagStatus bitstatus = RESET;
+
   switch(TimerIdx)
   {
     case HRTIM_TIMERINDEX_MASTER:
@@ -1166,7 +1167,7 @@ FlagStatus HRTIM_GetFlagStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32
       }
     }
     break;
-    
+
     case HRTIM_TIMERINDEX_TIMER_A:
     case HRTIM_TIMERINDEX_TIMER_B:
     case HRTIM_TIMERINDEX_TIMER_C:
@@ -1183,10 +1184,10 @@ FlagStatus HRTIM_GetFlagStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32
       }
     }
     break;
- 
+
     default:
-    break;  
-  }    
+    break;
+  }
   return bitstatus;
 }
 
@@ -1207,7 +1208,7 @@ FlagStatus HRTIM_GetFlagStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32
   */
 FlagStatus HRTIM_GetCommonFlagStatus(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonFLAG)
 {
-  FlagStatus bitstatus = RESET;  
+  FlagStatus bitstatus = RESET;
 
   if((HRTIMx->HRTIM_COMMON.ISR & HRTIM_CommonFLAG) != RESET)
     {
@@ -1219,51 +1220,51 @@ FlagStatus HRTIM_GetCommonFlagStatus(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_Comm
     }
   return bitstatus;
 }
-                                       
+
 /**
   * @brief  Checks whether the specified HRTIM interrupt has occurred or not.
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  HRTIM_IT: specifies the HRTIM flags sources to be cleared.
   *          This parameter can be any combination of the following values:
-  *            @arg HRTIM_MASTER_IT_MCMP1: Master compare 1 interrupt 
-  *            @arg HRTIM_MASTER_IT_MCMP2: Master compare 2 interrupt 
-  *            @arg HRTIM_MASTER_IT_MCMP3: Master compare 3 interrupt Interrupt 
-  *            @arg HRTIM_MASTER_IT_MCMP4: Master compare 4 Interrupt 
-  *            @arg HRTIM_MASTER_IT_MREP: Master Repetition Interrupt 
-  *            @arg HRTIM_MASTER_IT_SYNC: Synchronization input Interrupt 
-  *            @arg HRTIM_MASTER_IT_MUPD: Master update Interrupt 
-  *            @arg HRTIM_TIM_IT_CMP1: Timer compare 1 Interrupt 
-  *            @arg HRTIM_TIM_IT_CMP2: Timer compare 2 Interrupt 
-  *            @arg HRTIM_TIM_IT_CMP3: Timer compare 3 Interrupt 
-  *            @arg HRTIM_TIM_IT_CMP4: Timer compare 4 Interrupt 
-  *            @arg HRTIM_TIM_IT_REP: Timer repetition Interrupt 
-  *            @arg HRTIM_TIM_IT_UPD: Timer update Interrupt 
-  *            @arg HRTIM_TIM_IT_CPT1: Timer capture 1 Interrupt 
-  *            @arg HRTIM_TIM_IT_CPT2: Timer capture 2 Interrupt 
-  *            @arg HRTIM_TIM_IT_SET1: Timer output 1 set Interrupt 
-  *            @arg HRTIM_TIM_IT_RST1: Timer output 1 reset Interrupt 
-  *            @arg HRTIM_TIM_IT_SET2: Timer output 2 set Interrupt 
-  *            @arg HRTIM_TIM_IT_RST2: Timer output 2 reset Interrupt 
-  *            @arg HRTIM_TIM_IT_RST: Timer reset Interrupt 
-  *            @arg HRTIM_TIM_IT_DLYPRT: Timer delay protection Interrupt 
+  *            @arg HRTIM_MASTER_IT_MCMP1: Master compare 1 interrupt
+  *            @arg HRTIM_MASTER_IT_MCMP2: Master compare 2 interrupt
+  *            @arg HRTIM_MASTER_IT_MCMP3: Master compare 3 interrupt Interrupt
+  *            @arg HRTIM_MASTER_IT_MCMP4: Master compare 4 Interrupt
+  *            @arg HRTIM_MASTER_IT_MREP: Master Repetition Interrupt
+  *            @arg HRTIM_MASTER_IT_SYNC: Synchronization input Interrupt
+  *            @arg HRTIM_MASTER_IT_MUPD: Master update Interrupt
+  *            @arg HRTIM_TIM_IT_CMP1: Timer compare 1 Interrupt
+  *            @arg HRTIM_TIM_IT_CMP2: Timer compare 2 Interrupt
+  *            @arg HRTIM_TIM_IT_CMP3: Timer compare 3 Interrupt
+  *            @arg HRTIM_TIM_IT_CMP4: Timer compare 4 Interrupt
+  *            @arg HRTIM_TIM_IT_REP: Timer repetition Interrupt
+  *            @arg HRTIM_TIM_IT_UPD: Timer update Interrupt
+  *            @arg HRTIM_TIM_IT_CPT1: Timer capture 1 Interrupt
+  *            @arg HRTIM_TIM_IT_CPT2: Timer capture 2 Interrupt
+  *            @arg HRTIM_TIM_IT_SET1: Timer output 1 set Interrupt
+  *            @arg HRTIM_TIM_IT_RST1: Timer output 1 reset Interrupt
+  *            @arg HRTIM_TIM_IT_SET2: Timer output 2 set Interrupt
+  *            @arg HRTIM_TIM_IT_RST2: Timer output 2 reset Interrupt
+  *            @arg HRTIM_TIM_IT_RST: Timer reset Interrupt
+  *            @arg HRTIM_TIM_IT_DLYPRT: Timer delay protection Interrupt
   * @retval The new state of the HRTIM_IT(SET or RESET).
   */
 ITStatus HRTIM_GetITStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_IT)
 {
-  ITStatus bitstatus = RESET;  
+  ITStatus bitstatus = RESET;
   uint16_t itstatus = 0x0, itenable = 0x0;
-  
+
   assert_param(IS_HRTIM_TIMERINDEX(TimerIdx));
-  
+
   switch(TimerIdx)
   {
     case HRTIM_TIMERINDEX_MASTER:
     {
       itstatus = HRTIMx->HRTIM_MASTER.MISR & HRTIM_IT;
-  
+
       itenable = HRTIMx->HRTIM_MASTER.MDIER & HRTIM_IT;
       if ((itstatus != (uint16_t)RESET) && (itenable != (uint16_t)RESET))
       {
@@ -1275,7 +1276,7 @@ ITStatus HRTIM_GetITStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t H
       }
     }
     break;
-    
+
     case HRTIM_TIMERINDEX_TIMER_A:
     case HRTIM_TIMERINDEX_TIMER_B:
     case HRTIM_TIMERINDEX_TIMER_C:
@@ -1283,7 +1284,7 @@ ITStatus HRTIM_GetITStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t H
     case HRTIM_TIMERINDEX_TIMER_E:
     {
       itstatus = HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxISR & HRTIM_IT;
-  
+
       itenable = HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxDIER & HRTIM_IT;
       if ((itstatus != (uint16_t)RESET) && (itenable != (uint16_t)RESET))
       {
@@ -1295,10 +1296,10 @@ ITStatus HRTIM_GetITStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t H
       }
     }
     break;
- 
+
     default:
-    break;  
-  }    
+    break;
+  }
   return bitstatus;
 }
 
@@ -1307,24 +1308,24 @@ ITStatus HRTIM_GetITStatus(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, uint32_t H
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  HRTIM_IT: specifies the HRTIM interrupt source to check.
   *          This parameter can be any combination of the following values:
-  *            @arg HRTIM_IT_FLT1: Fault 1 interrupt 
-  *            @arg HRTIM_IT_FLT2: Fault 2 interrupt 
-  *            @arg HRTIM_IT_FLT3: Fault 3 interrupt Interrupt 
-  *            @arg HRTIM_IT_FLT4: Fault 4 Interrupt 
-  *            @arg HRTIM_IT_FLT5: Fault 5  Interrupt 
-  *            @arg HRTIM_IT_SYSFLT: System Fault Interrupt 
+  *            @arg HRTIM_IT_FLT1: Fault 1 interrupt
+  *            @arg HRTIM_IT_FLT2: Fault 2 interrupt
+  *            @arg HRTIM_IT_FLT3: Fault 3 interrupt Interrupt
+  *            @arg HRTIM_IT_FLT4: Fault 4 Interrupt
+  *            @arg HRTIM_IT_FLT5: Fault 5  Interrupt
+  *            @arg HRTIM_IT_SYSFLT: System Fault Interrupt
   *            @arg HRTIM_IT_DLLRDY: DLL ready Interrupt flag
-  *            @arg HRTIM_IT_BMPER: Burst mode period Interrupt 
+  *            @arg HRTIM_IT_BMPER: Burst mode period Interrupt
   * @retval The new state of HRTIM_FLAG (SET or RESET).
   */
 ITStatus HRTIM_GetCommonITStatus(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonIT)
 {
-  ITStatus bitstatus = RESET;  
+  ITStatus bitstatus = RESET;
   uint16_t itstatus = 0x0, itenable = 0x0;
- 
-  itstatus = HRTIMx->HRTIM_COMMON.ISR & HRTIM_CommonIT; 
+
+  itstatus = HRTIMx->HRTIM_COMMON.ISR & HRTIM_CommonIT;
   itenable = HRTIMx->HRTIM_COMMON.IER & HRTIM_CommonIT;
-  
+
   if ((itstatus != (uint16_t)RESET) && (itenable != (uint16_t)RESET))
   {
     bitstatus = SET;
@@ -1342,7 +1343,7 @@ ITStatus HRTIM_GetCommonITStatus(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonIT
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  HRTIM_DMA: specifies the DMA Request sources.
   *          This parameter can be any combination of the following values:
   *            @arg HRTIM_MASTER_DMA_MCMP1: Master compare 1 DMA request source
@@ -1352,20 +1353,20 @@ ITStatus HRTIM_GetCommonITStatus(HRTIM_TypeDef * HRTIMx, uint32_t HRTIM_CommonIT
   *            @arg HRTIM_MASTER_DMA_MREP: Master Repetition DMA request source
   *            @arg HRTIM_MASTER_DMA_SYNC: Synchronization input DMA request source
   *            @arg HRTIM_MASTER_DMA_MUPD:Master update DMA request source
-  *            @arg HRTIM_TIM_DMA_CMP1: Timer compare 1 DMA request source 
-  *            @arg HRTIM_TIM_DMA_CMP2: Timer compare 2 DMA request source 
-  *            @arg HRTIM_TIM_DMA_CMP3: Timer compare 3 DMA request source 
-  *            @arg HRTIM_TIM_DMA_CMP4: Timer compare 4 DMA request source 
-  *            @arg HRTIM_TIM_DMA_REP: Timer repetition DMA request source 
-  *            @arg HRTIM_TIM_DMA_UPD: Timer update DMA request source 
-  *            @arg HRTIM_TIM_DMA_CPT1: Timer capture 1 DMA request source 
-  *            @arg HRTIM_TIM_DMA_CPT2: Timer capture 2 DMA request source 
-  *            @arg HRTIM_TIM_DMA_SET1: Timer output 1 set DMA request source 
-  *            @arg HRTIM_TIM_DMA_RST1: Timer output 1 reset DMA request source 
-  *            @arg HRTIM_TIM_DMA_SET2: Timer output 2 set DMA request source 
-  *            @arg HRTIM_TIM_DMA_RST2: Timer output 2 reset DMA request source 
-  *            @arg HRTIM_TIM_DMA_RST: Timer reset DMA request source 
-  *            @arg HRTIM_TIM_DMA_DLYPRT: Timer delay protection DMA request source 
+  *            @arg HRTIM_TIM_DMA_CMP1: Timer compare 1 DMA request source
+  *            @arg HRTIM_TIM_DMA_CMP2: Timer compare 2 DMA request source
+  *            @arg HRTIM_TIM_DMA_CMP3: Timer compare 3 DMA request source
+  *            @arg HRTIM_TIM_DMA_CMP4: Timer compare 4 DMA request source
+  *            @arg HRTIM_TIM_DMA_REP: Timer repetition DMA request source
+  *            @arg HRTIM_TIM_DMA_UPD: Timer update DMA request source
+  *            @arg HRTIM_TIM_DMA_CPT1: Timer capture 1 DMA request source
+  *            @arg HRTIM_TIM_DMA_CPT2: Timer capture 2 DMA request source
+  *            @arg HRTIM_TIM_DMA_SET1: Timer output 1 set DMA request source
+  *            @arg HRTIM_TIM_DMA_RST1: Timer output 1 reset DMA request source
+  *            @arg HRTIM_TIM_DMA_SET2: Timer output 2 set DMA request source
+  *            @arg HRTIM_TIM_DMA_RST2: Timer output 2 reset DMA request source
+  *            @arg HRTIM_TIM_DMA_RST: Timer reset DMA request source
+  *            @arg HRTIM_TIM_DMA_DLYPRT: Timer delay protection DMA request source
   * @param  NewState: new state of the DMA Request sources.
   *          This parameter can be: ENABLE or DISABLE.
   * @retval None
@@ -1385,7 +1386,7 @@ void HRTIM_DMACmd(HRTIM_TypeDef* HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_DMA, 
       else
       {
         HRTIMx->HRTIM_MASTER.MDIER &= ~HRTIM_DMA;
-      }  
+      }
     }
     break;
     case HRTIM_TIMERINDEX_TIMER_A:
@@ -1404,25 +1405,25 @@ void HRTIM_DMACmd(HRTIM_TypeDef* HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_DMA, 
       }
     }
     break;
-    
+
     default:
-    break;  
-  }      
+    break;
+  }
 }
 
 /**
   * @}
   */
 
-/** @defgroup HRTIM_Group3 Peripheral Control methods 
- *  @brief   management functions 
+/** @defgroup HRTIM_Group3 Peripheral Control methods
+ *  @brief   management functions
  *
-@verbatim   
+@verbatim
  ===============================================================================
                       ##### Peripheral Control methods #####
- ===============================================================================  
+ ===============================================================================
     [..]
-    This subsection provides a set of functions allowing to control the HRTIMx data 
+    This subsection provides a set of functions allowing to control the HRTIMx data
     transfers.
 
 @endverbatim
@@ -1430,11 +1431,11 @@ void HRTIM_DMACmd(HRTIM_TypeDef* HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_DMA, 
   */
 
 /**
-  * @brief  Configures an output in basic output compare mode 
+  * @brief  Configures an output in basic output compare mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  OCChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -1446,7 +1447,7 @@ void HRTIM_DMACmd(HRTIM_TypeDef* HRTIMx, uint32_t TimerIdx, uint32_t HRTIM_DMA, 
   *                    @arg HRTIM_OUTPUT_TD1: Timer D - Output 1
   *                    @arg HRTIM_OUTPUT_TD2: Timer D - Output 2
   *                    @arg HRTIM_OUTPUT_TE1: Timer E - Output 1
-  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2 
+  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2
   * @param  pBasicOCChannelCfg: pointer to the basic output compare output configuration structure
   * @note When the timer operates in basic output compare mode:
   *         Output 1 is implicitely controled by the compare unit 1
@@ -1465,14 +1466,14 @@ void HRTIM_SimpleOCChannelConfig(HRTIM_TypeDef * HRTIMx,
   uint32_t CompareUnit = HRTIM_COMPAREUNIT_1;
   HRTIM_CompareCfgTypeDef CompareCfg;
   HRTIM_OutputCfgTypeDef OutputCfg;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, OCChannel));
   assert_param(IS_HRTIM_BASICOCMODE(pBasicOCChannelCfg->Mode));
   assert_param(IS_HRTIM_OUTPUTPOLARITY(pBasicOCChannelCfg->Polarity));
   assert_param(IS_HRTIM_OUTPUTIDLESTATE(pBasicOCChannelCfg->IdleState));
-    
-  /* Configure timer compare unit */  
+
+  /* Configure timer compare unit */
   switch (OCChannel)
   {
     case HRTIM_OUTPUT_TA1:
@@ -1496,16 +1497,16 @@ void HRTIM_SimpleOCChannelConfig(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
+
   CompareCfg.CompareValue = pBasicOCChannelCfg->Pulse;
   CompareCfg.AutoDelayedMode = HRTIM_AUTODELAYEDMODE_REGULAR;
   CompareCfg.AutoDelayedTimeout = 0;
-  
+
   HRTIM_CompareUnitConfig(HRTIMx,
                           TimerIdx,
                           CompareUnit,
                           &CompareCfg);
-  
+
   /* Configure timer output */
   OutputCfg.Polarity = pBasicOCChannelCfg->Polarity;
   OutputCfg.IdleState = pBasicOCChannelCfg->IdleState;
@@ -1513,7 +1514,7 @@ void HRTIM_SimpleOCChannelConfig(HRTIM_TypeDef * HRTIMx,
   OutputCfg.IdleMode = HRTIM_OUTPUTIDLEMODE_NONE;
   OutputCfg.ChopperModeEnable = HRTIM_OUTPUTCHOPPERMODE_DISABLED;
   OutputCfg.BurstModeEntryDelayed = HRTIM_OUTPUTBURSTMODEENTRY_REGULAR;
-  
+
   switch (pBasicOCChannelCfg->Mode)
   {
     case HRTIM_BASICOCMODE_TOGGLE:
@@ -1556,18 +1557,18 @@ void HRTIM_SimpleOCChannelConfig(HRTIM_TypeDef * HRTIMx,
     }
     break;
     default:
-    break;  
+    break;
   }
-  
-  HRTIM_OutputConfig(HRTIMx, TimerIdx, OCChannel, &OutputCfg);   
+
+  HRTIM_OutputConfig(HRTIMx, TimerIdx, OCChannel, &OutputCfg);
 }
 
 /**
-  * @brief  Configures an output in basic PWM mode 
+  * @brief  Configures an output in basic PWM mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  PWMChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -1579,7 +1580,7 @@ void HRTIM_SimpleOCChannelConfig(HRTIM_TypeDef * HRTIMx,
   *                    @arg HRTIM_OUTPUT_TD1: Timer D - Output 1
   *                    @arg HRTIM_OUTPUT_TD2: Timer D - Output 2
   *                    @arg HRTIM_OUTPUT_TE1: Timer E - Output 1
-  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2 
+  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2
   * @param  pBasicPWMChannelCfg: pointer to the basic PWM output configuration structure
   * @note When the timer operates in basic PWM output mode:
   *         Output 1 is implicitly controled by the compare unit 1
@@ -1603,7 +1604,7 @@ void HRTIM_SimplePWMChannelConfig(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_OUTPUTPOLARITY(pBasicPWMChannelCfg->Polarity));
   assert_param(IS_HRTIM_OUTPUTIDLESTATE(pBasicPWMChannelCfg->IdleState));
 
-  /* Configure timer compare unit */  
+  /* Configure timer compare unit */
   switch (PWMChannel)
   {
     case HRTIM_OUTPUT_TA1:
@@ -1625,18 +1626,18 @@ void HRTIM_SimplePWMChannelConfig(HRTIM_TypeDef * HRTIMx,
     }
     break;
     default:
-    break;  
+    break;
   }
-  
+
   CompareCfg.CompareValue = pBasicPWMChannelCfg->Pulse;
   CompareCfg.AutoDelayedMode = HRTIM_AUTODELAYEDMODE_REGULAR;
   CompareCfg.AutoDelayedTimeout = 0;
-  
+
   HRTIM_CompareUnitConfig(HRTIMx,
                           TimerIdx,
                           CompareUnit,
                           &CompareCfg);
-  
+
   /* Configure timer output */
   OutputCfg.Polarity = pBasicPWMChannelCfg->Polarity;
   OutputCfg.IdleState = pBasicPWMChannelCfg->IdleState;
@@ -1644,7 +1645,7 @@ void HRTIM_SimplePWMChannelConfig(HRTIM_TypeDef * HRTIMx,
   OutputCfg.IdleMode = HRTIM_OUTPUTIDLEMODE_NONE;
   OutputCfg.ChopperModeEnable = HRTIM_OUTPUTCHOPPERMODE_DISABLED;
   OutputCfg.BurstModeEntryDelayed = HRTIM_OUTPUTBURSTMODEENTRY_REGULAR;
-  
+
   if (CompareUnit == HRTIM_COMPAREUNIT_1)
   {
     OutputCfg.SetSource = HRTIM_OUTPUTSET_TIMCMP1;
@@ -1654,18 +1655,18 @@ void HRTIM_SimplePWMChannelConfig(HRTIM_TypeDef * HRTIMx,
     OutputCfg.SetSource = HRTIM_OUTPUTSET_TIMCMP2;
   }
   OutputCfg.ResetSource = HRTIM_OUTPUTSET_TIMPER;
-  
-  HRTIM_OutputConfig(HRTIMx, TimerIdx, PWMChannel, &OutputCfg);  
+
+  HRTIM_OutputConfig(HRTIMx, TimerIdx, PWMChannel, &OutputCfg);
 }
 
 /**
-  * @brief  Configures a basic capture 
+  * @brief  Configures a basic capture
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  CaptureChannel: Capture unit
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_CAPTUREUNIT_1: Capture unit 1
   *                    @arg HRTIM_CAPTUREUNIT_2: Capture unit 2
   * @param  pBasicCaptureChannelCfg: pointer to the basic capture configuration structure
@@ -1681,7 +1682,7 @@ void HRTIM_SimpleCaptureChannelConfig(HRTIM_TypeDef * HRTIMx,
                                                       HRTIM_BasicCaptureChannelCfgTypeDef* pBasicCaptureChannelCfg)
 {
   HRTIM_EventCfgTypeDef EventCfg;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
   assert_param(IS_HRTIM_CAPTUREUNIT(CaptureChannel));
@@ -1689,31 +1690,31 @@ void HRTIM_SimpleCaptureChannelConfig(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_EVENTPOLARITY(pBasicCaptureChannelCfg->EventPolarity));
   assert_param(IS_HRTIM_EVENTSENSITIVITY(pBasicCaptureChannelCfg->EventSensitivity));
   assert_param(IS_HRTIM_EVENTFILTER(pBasicCaptureChannelCfg->EventFilter));
-  
+
   /* Configure external event channel */
   EventCfg.FastMode = HRTIM_EVENTFASTMODE_DISABLE;
   EventCfg.Filter = pBasicCaptureChannelCfg->EventFilter;
   EventCfg.Polarity = pBasicCaptureChannelCfg->EventPolarity;
   EventCfg.Sensitivity = pBasicCaptureChannelCfg->EventSensitivity;
   EventCfg.Source = HRTIM_EVENTSRC_1;
-    
+
   HRTIM_ExternalEventConfig(HRTIMx,
                     pBasicCaptureChannelCfg->Event,
                     &EventCfg);
 
-  /* Memorize capture trigger (will be configured when the capture is started */  
+  /* Memorize capture trigger (will be configured when the capture is started */
   HRTIM_CaptureUnitConfig(HRTIMx,
                           TimerIdx,
                           CaptureChannel,
-                          pBasicCaptureChannelCfg->Event); 
+                          pBasicCaptureChannelCfg->Event);
 }
 
 /**
-  * @brief  Configures an output basic one pulse mode 
+  * @brief  Configures an output basic one pulse mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  OnePulseChannel: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -1725,7 +1726,7 @@ void HRTIM_SimpleCaptureChannelConfig(HRTIM_TypeDef * HRTIMx,
   *                    @arg HRTIM_OUTPUT_TD1: Timer D - Output 1
   *                    @arg HRTIM_OUTPUT_TD2: Timer D - Output 2
   *                    @arg HRTIM_OUTPUT_TE1: Timer E - Output 1
-  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2 
+  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2
   * @param  pBasicOnePulseChannelCfg: pointer to the basic one pulse output configuration structure
   * @note When the timer operates in basic one pulse mode:
   *         the timer counter is implicitly started by the reset event,
@@ -1748,7 +1749,7 @@ void HRTIM_SimpleOnePulseChannelConfig(HRTIM_TypeDef * HRTIMx,
   HRTIM_CompareCfgTypeDef CompareCfg;
   HRTIM_OutputCfgTypeDef OutputCfg;
   HRTIM_EventCfgTypeDef EventCfg;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, OnePulseChannel));
   assert_param(IS_HRTIM_OUTPUTPOLARITY(pBasicOnePulseChannelCfg->OutputPolarity));
@@ -1757,8 +1758,8 @@ void HRTIM_SimpleOnePulseChannelConfig(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_EVENTPOLARITY(pBasicOnePulseChannelCfg->EventPolarity));
   assert_param(IS_HRTIM_EVENTSENSITIVITY(pBasicOnePulseChannelCfg->EventSensitivity));
   assert_param(IS_HRTIM_EVENTFILTER(pBasicOnePulseChannelCfg->EventFilter));
-  
-  /* Configure timer compare unit */  
+
+  /* Configure timer compare unit */
   switch (OnePulseChannel)
   {
     case HRTIM_OUTPUT_TA1:
@@ -1780,18 +1781,18 @@ void HRTIM_SimpleOnePulseChannelConfig(HRTIM_TypeDef * HRTIMx,
     }
     break;
     default:
-    break;      
+    break;
   }
-  
+
   CompareCfg.CompareValue = pBasicOnePulseChannelCfg->Pulse;
   CompareCfg.AutoDelayedMode = HRTIM_AUTODELAYEDMODE_REGULAR;
   CompareCfg.AutoDelayedTimeout = 0;
-  
+
   HRTIM_CompareUnitConfig(HRTIMx,
                           TimerIdx,
                           CompareUnit,
                           &CompareCfg);
-  
+
   /* Configure timer output */
   OutputCfg.Polarity = pBasicOnePulseChannelCfg->OutputPolarity;
   OutputCfg.IdleState = pBasicOnePulseChannelCfg->OutputIdleState;
@@ -1799,7 +1800,7 @@ void HRTIM_SimpleOnePulseChannelConfig(HRTIM_TypeDef * HRTIMx,
   OutputCfg.IdleMode = HRTIM_OUTPUTIDLEMODE_NONE;
   OutputCfg.ChopperModeEnable = HRTIM_OUTPUTCHOPPERMODE_DISABLED;
   OutputCfg.BurstModeEntryDelayed = HRTIM_OUTPUTBURSTMODEENTRY_REGULAR;
-  
+
   if (CompareUnit == HRTIM_COMPAREUNIT_1)
   {
     OutputCfg.SetSource = HRTIM_OUTPUTSET_TIMCMP1;
@@ -1809,35 +1810,35 @@ void HRTIM_SimpleOnePulseChannelConfig(HRTIM_TypeDef * HRTIMx,
     OutputCfg.SetSource = HRTIM_OUTPUTSET_TIMCMP2;
   }
   OutputCfg.ResetSource = HRTIM_OUTPUTSET_TIMPER;
-  
+
   HRTIM_OutputConfig(HRTIMx,
                      TimerIdx,
                      OnePulseChannel,
-                     &OutputCfg);  
-  
+                     &OutputCfg);
+
   /* Configure external event channel */
   EventCfg.FastMode = HRTIM_EVENTFASTMODE_DISABLE;
   EventCfg.Filter = pBasicOnePulseChannelCfg->EventFilter;
   EventCfg.Polarity = pBasicOnePulseChannelCfg->EventPolarity;
   EventCfg.Sensitivity = pBasicOnePulseChannelCfg->EventSensitivity;
   EventCfg.Source = HRTIM_EVENTSRC_1;
-    
+
   HRTIM_ExternalEventConfig(HRTIMx,
                     pBasicOnePulseChannelCfg->Event,
                     &EventCfg);
 
   /* Configure the timer reset register */
   HRTIM_TIM_ResetConfig(HRTIMx,
-                        TimerIdx, 
-                        pBasicOnePulseChannelCfg->Event);  
+                        TimerIdx,
+                        pBasicOnePulseChannelCfg->Event);
 }
 
 /**
-  * @brief  Configures the general behavior of a timer operating in waveform mode 
+  * @brief  Configures the general behavior of a timer operating in waveform mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  pTimerCfg: pointer to the timer configuration structure
   * @note When the timer operates in waveform mode, all the features supported by
   *       the HRTIMx are available without any limitation.
@@ -1859,7 +1860,7 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_TIMFAULTLOCK(pTimerCfg->FaultLock));
   assert_param(IS_HRTIM_TIMDEADTIMEINSERTION(pTimerCfg->DeadTimeInsertion));
   assert_param(IS_HRTIM_TIMDELAYEDPROTECTION(pTimerCfg->DelayedProtectionMode));
-  assert_param(IS_HRTIM_TIMUPDATETRIGGER(pTimerCfg->UpdateTrigger)); 
+  assert_param(IS_HRTIM_TIMUPDATETRIGGER(pTimerCfg->UpdateTrigger));
   assert_param(IS_HRTIM_TIMRESETTRIGGER(pTimerCfg->ResetTrigger));
   assert_param(IS_HRTIM_TIMUPDATEONRESET(pTimerCfg->ResetUpdate));
 
@@ -1868,27 +1869,27 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
   HRTIM_timfltr  = HRTIMx->HRTIM_TIMERx[TimerIdx].FLTxR;
   HRTIM_timoutr  = HRTIMx->HRTIM_TIMERx[TimerIdx].OUTxR;
   HRTIM_timrstr  = HRTIMx->HRTIM_TIMERx[TimerIdx].RSTxR;
-  
+
   /* Set the push-pull mode */
   HRTIM_timcr &= ~(HRTIM_TIMCR_PSHPLL);
   HRTIM_timcr |= pTimerCfg->PushPull;
-  
+
   /* Enable/Disable registers update on timer counter reset */
   HRTIM_timcr &= ~(HRTIM_TIMCR_TRSTU);
   HRTIM_timcr |= pTimerCfg->ResetUpdate;
-  
+
   /* Set the timer update trigger */
   HRTIM_timcr &= ~(HRTIM_TIMCR_TIMUPDATETRIGGER);
   HRTIM_timcr |= pTimerCfg->UpdateTrigger;
-  
+
   /* Enable/Disable the fault channel at timer level */
   HRTIM_timfltr &= ~(HRTIM_FLTR_FLTxEN);
   HRTIM_timfltr |= (pTimerCfg->FaultEnable & HRTIM_FLTR_FLTxEN);
-  
+
   /* Lock/Unlock fault sources at timer level */
   HRTIM_timfltr &= ~(HRTIM_FLTR_FLTCLK);
   HRTIM_timfltr |= pTimerCfg->FaultLock;
-  
+
   /* Enable/Disable dead time insertion at timer level */
   HRTIM_timoutr &= ~(HRTIM_OUTR_DTEN);
   HRTIM_timoutr |= pTimerCfg->DeadTimeInsertion;
@@ -1896,7 +1897,7 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
   /* Enable/Disable delayed protection at timer level */
   HRTIM_timoutr &= ~(HRTIM_OUTR_DLYPRT| HRTIM_OUTR_DLYPRTEN);
   HRTIM_timoutr |= pTimerCfg->DelayedProtectionMode;
-  
+
   /* Set the timer counter reset trigger */
   HRTIM_timrstr = pTimerCfg->ResetTrigger;
 
@@ -1908,21 +1909,21 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
  }
 
 /**
-  * @brief  Configures the compare unit of a timer operating in waveform mode 
+  * @brief  Configures the compare unit of a timer operating in waveform mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   0xFF for master timer
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  CompareUnit: Compare unit to configure
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_COMPAREUNIT_1: Compare unit 1
   *                    @arg HRTIM_COMPAREUNIT_2: Compare unit 2
   *                    @arg HRTIM_COMPAREUNIT_3: Compare unit 3
   *                    @arg HRTIM_COMPAREUNIT_4: Compare unit 4
   * @param  pCompareCfg: pointer to the compare unit configuration structure
-  * @note When auto delayed mode is required for compare unit 2 or compare unit 4, 
-  *       application has to configure separately the capture unit. Capture unit 
+  * @note When auto delayed mode is required for compare unit 2 or compare unit 4,
+  *       application has to configure separately the capture unit. Capture unit
   *       to configure in that case depends on the compare unit auto delayed mode
   *       is applied to (see below):
   *         Auto delayed on output compare 2: capture unit 1 must be configured
@@ -1939,7 +1940,7 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
   /* Check parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
   assert_param(IS_HRTIM_COMPAREUNIT_AUTODELAYEDMODE(CompareUnit, pCompareCfg->AutoDelayedMode));
-  
+
   /* Configure the compare unit */
   switch (CompareUnit)
   {
@@ -1953,7 +1954,7 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
     {
       /* Set the compare value */
       HRTIMx->HRTIM_TIMERx[TimerIdx].CMP2xR = pCompareCfg->CompareValue;
-      
+
       if (pCompareCfg->AutoDelayedMode != HRTIM_AUTODELAYEDMODE_REGULAR)
       {
         /* Configure auto-delayed mode */
@@ -1961,7 +1962,7 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
         HRTIM_timcr &= ~HRTIM_TIMCR_DELCMP2;
         HRTIM_timcr |= pCompareCfg->AutoDelayedMode;
         HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR = HRTIM_timcr;
-        
+
         /* Set the compare value for timeout compare unit (if any) */
         if (pCompareCfg->AutoDelayedMode == HRTIM_AUTODELAYEDMODE_AUTODELAYED_TIMEOUTCMP1)
         {
@@ -1984,7 +1985,7 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
     {
       /* Set the compare value */
       HRTIMx->HRTIM_TIMERx[TimerIdx].CMP4xR = pCompareCfg->CompareValue;
-      
+
       if (pCompareCfg->AutoDelayedMode != HRTIM_AUTODELAYEDMODE_REGULAR)
       {
         /* Configure auto-delayed mode */
@@ -1992,7 +1993,7 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
         HRTIM_timcr &= ~HRTIM_TIMCR_DELCMP4;
         HRTIM_timcr |= (pCompareCfg->AutoDelayedMode << 2);
         HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR = HRTIM_timcr;
-        
+
         /* Set the compare value for timeout compare unit (if any) */
         if (pCompareCfg->AutoDelayedMode == HRTIM_AUTODELAYEDMODE_AUTODELAYED_TIMEOUTCMP1)
         {
@@ -2006,15 +2007,15 @@ void HRTIM_WaveformTimerConfig(HRTIM_TypeDef * HRTIMx,
     }
     break;
     default:
-    break;  
+    break;
   }
 }
 
 /**
-  * @brief  Sets the HRTIMx Master Comparex Register value 
+  * @brief  Sets the HRTIMx Master Comparex Register value
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  CompareUnit: Compare unit to configure
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_COMPAREUNIT_1: Compare unit 1
   *                    @arg HRTIM_COMPAREUNIT_2: Compare unit 2
   *                    @arg HRTIM_COMPAREUNIT_3: Compare unit 3
@@ -2028,7 +2029,7 @@ void HRTIM_MasterSetCompare(HRTIM_TypeDef * HRTIMx,
 {
   /* Check parameters */
   assert_param(IS_HRTIM_COMPAREUNIT(CompareUnit));
-  
+
   /* Configure the compare unit */
   switch (CompareUnit)
   {
@@ -2058,14 +2059,14 @@ void HRTIM_MasterSetCompare(HRTIM_TypeDef * HRTIMx,
     break;
     default:
     break;
-  }  
+  }
 }
 
 /**
-  * @brief  Sets the HRTIMx Slave Comparex Register value 
+  * @brief  Sets the HRTIMx Slave Comparex Register value
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  CompareUnit: Compare unit to configure
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_COMPAREUNIT_1: Compare unit 1
   *                    @arg HRTIM_COMPAREUNIT_2: Compare unit 2
   *                    @arg HRTIM_COMPAREUNIT_3: Compare unit 3
@@ -2080,7 +2081,7 @@ void HRTIM_SlaveSetCompare(HRTIM_TypeDef * HRTIMx,
 {
     /* Check parameters */
   assert_param(IS_HRTIM_COMPAREUNIT(CompareUnit));
-  
+
   /* Configure the compare unit */
   switch (CompareUnit)
   {
@@ -2110,16 +2111,16 @@ void HRTIM_SlaveSetCompare(HRTIM_TypeDef * HRTIMx,
     break;
     default:
     break;
-  }  
+  }
 }
 /**
-  * @brief  Configures the capture unit of a timer operating in waveform mode 
+  * @brief  Configures the capture unit of a timer operating in waveform mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  CaptureChannel: Capture unit to configure
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_CAPTUREUNIT_1: Capture unit 1
   *                    @arg HRTIM_CAPTUREUNIT_2: Capture unit 2
   * @param  pCaptureCfg: pointer to the compare unit configuration structure
@@ -2149,11 +2150,11 @@ void HRTIM_WaveformCaptureConfig(HRTIM_TypeDef * HRTIMx,
 }
 
 /**
-  * @brief  Configures the output of a timer operating in waveform mode 
+  * @brief  Configures the output of a timer operating in waveform mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  Output: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -2165,7 +2166,7 @@ void HRTIM_WaveformCaptureConfig(HRTIM_TypeDef * HRTIMx,
   *                    @arg HRTIM_OUTPUT_TD1: Timer D - Output 1
   *                    @arg HRTIM_OUTPUT_TD2: Timer D - Output 2
   *                    @arg HRTIM_OUTPUT_TE1: Timer E - Output 1
-  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2 
+  *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2
   * @param  pOutputCfg: pointer to the timer output configuration structure
   * @retval None
   */
@@ -2184,15 +2185,15 @@ void HRTIM_WaveformOutputConfig(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_OUTPUTBURSTMODEENTRY(pOutputCfg->BurstModeEntryDelayed));
 
   /* Configure the timer output */
-  HRTIM_OutputConfig(HRTIMx, TimerIdx, Output, pOutputCfg);  
+  HRTIM_OutputConfig(HRTIMx, TimerIdx, Output, pOutputCfg);
 }
 
 /**
-  * @brief  Configures the event filtering capabilities of a timer (blanking, windowing) 
+  * @brief  Configures the event filtering capabilities of a timer (blanking, windowing)
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  Event: external event for which timer event filtering must be configured
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_EVENT_1: External event 1
@@ -2214,7 +2215,7 @@ void HRTIM_TimerEventFilteringConfig(HRTIM_TypeDef * HRTIMx,
                                                       HRTIM_TimerEventFilteringCfgTypeDef* pTimerEventFilteringCfg)
 {
   uint32_t HRTIM_eefr;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
   assert_param(IS_HRTIM_EVENT(Event));
@@ -2316,11 +2317,11 @@ void HRTIM_TimerEventFilteringConfig(HRTIM_TypeDef * HRTIMx,
 }
 
 /**
-  * @brief  Configures the dead time insertion feature for a timer 
+  * @brief  Configures the dead time insertion feature for a timer
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  pDeadTimeCfg: pointer to the dead time insertion configuration structure
   * @retval None
   */
@@ -2329,7 +2330,7 @@ void HRTIM_DeadTimeConfig(HRTIM_TypeDef * HRTIMx,
                                            HRTIM_DeadTimeCfgTypeDef* pDeadTimeCfg)
 {
   uint32_t HRTIM_dtr;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
   assert_param(IS_HRTIM_TIMDEADTIME_RISINGSIGN(pDeadTimeCfg->RisingSign));
@@ -2340,12 +2341,12 @@ void HRTIM_DeadTimeConfig(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_TIMDEADTIME_FALLINGSIGNLOCK(pDeadTimeCfg->FallingSignLock));
 
   HRTIM_dtr = HRTIMx->HRTIM_TIMERx[TimerIdx].DTxR;
-     
+
   /* Clear timer dead times configuration */
   HRTIM_dtr &= ~(HRTIM_DTR_DTR | HRTIM_DTR_SDTR | HRTIM_DTR_DTPRSC |
                  HRTIM_DTR_DTRSLK | HRTIM_DTR_DTRLK | HRTIM_DTR_SDTF |
                  HRTIM_DTR_SDTR | HRTIM_DTR_DTFSLK | HRTIM_DTR_DTFLK);
-  
+
   /* Set timer dead times configuration */
   HRTIM_dtr |= (pDeadTimeCfg->Prescaler << 10);
   HRTIM_dtr |= pDeadTimeCfg->RisingValue;
@@ -2356,17 +2357,17 @@ void HRTIM_DeadTimeConfig(HRTIM_TypeDef * HRTIMx,
   HRTIM_dtr |= pDeadTimeCfg->FallingSign;
   HRTIM_dtr |= pDeadTimeCfg->FallingSignLock;
   HRTIM_dtr |= pDeadTimeCfg->FallingLock;
-    
-  /* Update the HRTIMx registers */  
+
+  /* Update the HRTIMx registers */
   HRTIMx->HRTIM_TIMERx[TimerIdx].DTxR = HRTIM_dtr;
 }
 
 /**
-  * @brief  Configures the chopper mode feature for a timer 
+  * @brief  Configures the chopper mode feature for a timer
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  pChopperModeCfg: pointer to the chopper mode configuration structure
   * @retval None
   */
@@ -2375,31 +2376,31 @@ void HRTIM_ChopperModeConfig(HRTIM_TypeDef * HRTIMx,
                                               HRTIM_ChopperModeCfgTypeDef* pChopperModeCfg)
 {
   uint32_t HRTIM_chpr;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
 
   HRTIM_chpr = HRTIMx->HRTIM_TIMERx[TimerIdx].CHPxR;
-     
+
   /* Clear timer chopper mode configuration */
   HRTIM_chpr &= ~(HRTIM_CHPR_CARFRQ | HRTIM_CHPR_CARDTY | HRTIM_CHPR_STRPW);
-  
+
   /* Set timer chopper mode configuration */
   HRTIM_chpr |= pChopperModeCfg->CarrierFreq;
   HRTIM_chpr |= (pChopperModeCfg->DutyCycle << 4);
   HRTIM_chpr |= (pChopperModeCfg->StartPulse << 7);
-    
-  /* Update the HRTIMx registers */  
+
+  /* Update the HRTIMx registers */
   HRTIMx->HRTIM_TIMERx[TimerIdx].CHPxR = HRTIM_chpr;
 }
 
 /**
-  * @brief  Configures the burst DMA controller for a timer 
+  * @brief  Configures the burst DMA controller for a timer
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
    *                  This parameter can be one of the following values:
  *                    @arg 0x5 for master timer
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  RegistersToUpdate: registers to be written by DMA
   *                    This parameter can be any combination of the following values:
   *                    @arg HRTIM_BURSTDMA_CR: HRTIM_MCR or HRTIM_TIMxCR
@@ -2431,9 +2432,9 @@ void HRTIM_BurstDMAConfig(HRTIM_TypeDef * HRTIMx,
 {
   /* Check parameters */
   assert_param(IS_HRTIM_TIMER_BURSTDMA(TimerIdx, RegistersToUpdate));
-  
+
   /* Set the burst DMA timer update register */
-  switch (TimerIdx) 
+  switch (TimerIdx)
   {
     case HRTIM_TIMERINDEX_TIMER_A:
     {
@@ -2471,7 +2472,7 @@ void HRTIM_BurstDMAConfig(HRTIM_TypeDef * HRTIMx,
 }
 
 /**
-  * @brief  Configures the external input/output synchronization of the HRTIMx 
+  * @brief  Configures the external input/output synchronization of the HRTIMx
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  pSynchroCfg: pointer to the input/output synchronization configuration structure
   * @retval None
@@ -2479,32 +2480,32 @@ void HRTIM_BurstDMAConfig(HRTIM_TypeDef * HRTIMx,
 void HRTIM_SynchronizationConfig(HRTIM_TypeDef *HRTIMx, HRTIM_SynchroCfgTypeDef * pSynchroCfg)
 {
   uint32_t HRTIM_mcr;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_SYNCINPUTSOURCE(pSynchroCfg->SyncInputSource));
   assert_param(IS_HRTIM_SYNCOUTPUTSOURCE(pSynchroCfg->SyncOutputSource));
   assert_param(IS_HRTIM_SYNCOUTPUTPOLARITY(pSynchroCfg->SyncOutputPolarity));
-    
+
   HRTIM_mcr = HRTIMx->HRTIM_MASTER.MCR;
 
   /* Set the synchronization input source */
   HRTIM_mcr &= ~(HRTIM_MCR_SYNC_IN);
   HRTIM_mcr |= pSynchroCfg->SyncInputSource;
-  
+
   /* Set the event to be sent on the synchronization output */
   HRTIM_mcr &= ~(HRTIM_MCR_SYNC_SRC);
   HRTIM_mcr |= pSynchroCfg->SyncOutputSource;
-  
+
   /* Set the polarity of the synchronization output */
   HRTIM_mcr &= ~(HRTIM_MCR_SYNC_OUT);
   HRTIM_mcr |= pSynchroCfg->SyncOutputPolarity;
-  
-  /* Update the HRTIMx registers */  
+
+  /* Update the HRTIMx registers */
   HRTIMx->HRTIM_MASTER.MCR = HRTIM_mcr;
 }
 
 /**
-  * @brief  Configures the burst mode feature of the HRTIMx 
+  * @brief  Configures the burst mode feature of the HRTIMx
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  pBurstModeCfg: pointer to the burst mode configuration structure
   * @retval None
@@ -2519,35 +2520,35 @@ void HRTIM_BurstModeConfig(HRTIM_TypeDef * HRTIMx,
   assert_param(IS_HRTIM_BURSTMODECLOCKSOURCE(pBurstModeCfg->ClockSource));
   assert_param(IS_HRTIM_HRTIM_BURSTMODEPRESCALER(pBurstModeCfg->Prescaler));
   assert_param(IS_HRTIM_BURSTMODEPRELOAD(pBurstModeCfg->PreloadEnable));
-  
+
   HRTIM_bmcr = HRTIMx->HRTIM_COMMON.BMCR;
 
   /* Set the burst mode operating mode */
   HRTIM_bmcr &= ~(HRTIM_BMCR_BMOM);
   HRTIM_bmcr |= pBurstModeCfg->Mode;
-  
+
   /* Set the burst mode clock source */
   HRTIM_bmcr &= ~(HRTIM_BMCR_BMCLK);
   HRTIM_bmcr |= pBurstModeCfg->ClockSource;
-  
+
   /* Set the burst mode prescaler */
   HRTIM_bmcr &= ~(HRTIM_BMCR_BMPSC);
   HRTIM_bmcr |= pBurstModeCfg->Prescaler;
- 
+
   /* Enable/disable burst mode registers preload */
   HRTIM_bmcr &= ~(HRTIM_BMCR_BMPREN);
   HRTIM_bmcr |= pBurstModeCfg->PreloadEnable;
- 
+
   /* Set the burst mode trigger */
   HRTIMx->HRTIM_COMMON.BMTRGR = pBurstModeCfg->Trigger;
-  
+
   /* Set the burst mode compare value */
   HRTIMx->HRTIM_COMMON.BMCMPR = pBurstModeCfg->IdleDuration;
-  
+
   /* Set the burst mode period */
   HRTIMx->HRTIM_COMMON.BMPER = pBurstModeCfg->Period;
-  
-  /* Update the HRTIMx registers */  
+
+  /* Update the HRTIMx registers */
   HRTIMx->HRTIM_COMMON.BMCR = HRTIM_bmcr;
 }
 
@@ -2574,15 +2575,15 @@ void HRTIM_EventConfig(HRTIM_TypeDef * HRTIMx,
                                         HRTIM_EventCfgTypeDef* pEventCfg)
 {
   /* Check parameters */
-  assert_param(IS_HRTIM_EVENTSRC(pEventCfg->Source)); 
-  assert_param(IS_HRTIM_EVENTPOLARITY(pEventCfg->Polarity)); 
-  assert_param(IS_HRTIM_EVENTSENSITIVITY(pEventCfg->Sensitivity)); 
-  assert_param(IS_HRTIM_EVENTFASTMODE(pEventCfg->FastMode)); 
-  assert_param(IS_HRTIM_EVENTFILTER(pEventCfg->Filter)); 
+  assert_param(IS_HRTIM_EVENTSRC(pEventCfg->Source));
+  assert_param(IS_HRTIM_EVENTPOLARITY(pEventCfg->Polarity));
+  assert_param(IS_HRTIM_EVENTSENSITIVITY(pEventCfg->Sensitivity));
+  assert_param(IS_HRTIM_EVENTFASTMODE(pEventCfg->FastMode));
+  assert_param(IS_HRTIM_EVENTFILTER(pEventCfg->Filter));
 
   /* Configure the event channel */
   HRTIM_ExternalEventConfig(HRTIMx, Event, pEventCfg);
- 
+
 }
 
 /**
@@ -2608,11 +2609,11 @@ void HRTIM_EventPrescalerConfig(HRTIM_TypeDef * HRTIMx,
   HRTIM_eecr3 = HRTIMx->HRTIM_COMMON.EECR3;
   HRTIM_eecr3 &= ~(HRTIM_EECR3_EEVSD);
   HRTIM_eecr3 |= Prescaler;
-  
+
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_COMMON.EECR3 = HRTIM_eecr3;
 }
- 
+
 /**
   * @brief  Configures the conditioning of fault input
   * @param  HRTIMx: pointer to HRTIMx peripheral
@@ -2643,7 +2644,7 @@ void HRTIM_FaultConfig(HRTIM_TypeDef * HRTIMx,
   /* Configure fault channel */
   HRTIM_fltinr1 = HRTIMx->HRTIM_COMMON.FLTINxR1;
   HRTIM_fltinr2 = HRTIMx->HRTIM_COMMON.FLTINxR2;
-  
+
   switch (Fault)
   {
     case HRTIM_FAULT_1:
@@ -2718,12 +2719,12 @@ void HRTIM_FaultPrescalerConfig(HRTIM_TypeDef * HRTIMx,
 
   /* Check parameters */
   assert_param(IS_HRTIM_FAULTPRESCALER(Prescaler));
-  
+
   /* Set the external event prescaler */
   HRTIM_fltinr2 = HRTIMx->HRTIM_COMMON.FLTINxR2;
   HRTIM_fltinr2 &= ~(HRTIM_FLTINR2_FLTSD);
   HRTIM_fltinr2 |= Prescaler;
-  
+
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_COMMON.FLTINxR2 = HRTIM_fltinr2;
 }
@@ -2748,7 +2749,7 @@ void HRTIM_FaultModeCtl(HRTIM_TypeDef * HRTIMx, uint32_t Fault, uint32_t Enable)
 {
   uint32_t HRTIM_fltinr1;
   uint32_t HRTIM_fltinr2;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_FAULT(Fault));
   assert_param(IS_HRTIM_FAULTCTL(Enable));
@@ -2756,7 +2757,7 @@ void HRTIM_FaultModeCtl(HRTIM_TypeDef * HRTIMx, uint32_t Fault, uint32_t Enable)
   /* Configure fault channel */
   HRTIM_fltinr1 = HRTIMx->HRTIM_COMMON.FLTINxR1;
   HRTIM_fltinr2 = HRTIMx->HRTIM_COMMON.FLTINxR2;
-  
+
   switch (Fault)
   {
     case HRTIM_FAULT_1:
@@ -2779,7 +2780,7 @@ void HRTIM_FaultModeCtl(HRTIM_TypeDef * HRTIMx, uint32_t Fault, uint32_t Enable)
     break;
     case HRTIM_FAULT_4:
     {
-      HRTIM_fltinr1 &= ~HRTIM_FLTINR1_FLT4E; 
+      HRTIM_fltinr1 &= ~HRTIM_FLTINR1_FLT4E;
       HRTIM_fltinr1 |= (Enable << 24);
     }
     break;
@@ -2796,7 +2797,7 @@ void HRTIM_FaultModeCtl(HRTIM_TypeDef * HRTIMx, uint32_t Fault, uint32_t Enable)
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_COMMON.FLTINxR1 = HRTIM_fltinr1;
   HRTIMx->HRTIM_COMMON.FLTINxR2 = HRTIM_fltinr2;
-}                              
+}
 
 /**
   * @brief  Configures both the ADC trigger register update source and the ADC
@@ -2816,21 +2817,21 @@ void HRTIM_ADCTriggerConfig(HRTIM_TypeDef * HRTIMx,
                                              HRTIM_ADCTriggerCfgTypeDef* pADCTriggerCfg)
 {
   uint32_t HRTIM_cr1;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_ADCTRIGGER(ADCTrigger));
   assert_param(IS_HRTIM_ADCTRIGGERUPDATE(pADCTriggerCfg->UpdateSource));
 
   /* Set the ADC trigger update source */
   HRTIM_cr1 = HRTIMx->HRTIM_COMMON.CR1;
-  
+
   switch (ADCTrigger)
   {
     case HRTIM_ADCTRIGGER_1:
     {
       HRTIM_cr1 &= ~(HRTIM_CR1_ADC1USRC);
       HRTIM_cr1 |= pADCTriggerCfg->UpdateSource;
-      
+
       /* Set the ADC trigger 1 source */
       HRTIMx->HRTIM_COMMON.ADC1R = pADCTriggerCfg->Trigger;
     }
@@ -2838,7 +2839,7 @@ void HRTIM_ADCTriggerConfig(HRTIM_TypeDef * HRTIMx,
     case HRTIM_ADCTRIGGER_2:
     {
       HRTIM_cr1 &= ~(HRTIM_CR1_ADC2USRC);
-      HRTIM_cr1 |= (pADCTriggerCfg->UpdateSource << 3); 
+      HRTIM_cr1 |= (pADCTriggerCfg->UpdateSource << 3);
 
       /* Set the ADC trigger 2 source */
       HRTIMx->HRTIM_COMMON.ADC2R = pADCTriggerCfg->Trigger;
@@ -2847,16 +2848,18 @@ void HRTIM_ADCTriggerConfig(HRTIM_TypeDef * HRTIMx,
     case HRTIM_ADCTRIGGER_3:
     {
       HRTIM_cr1 &= ~(HRTIM_CR1_ADC3USRC);
-      HRTIM_cr1 |= (pADCTriggerCfg->UpdateSource << 6); 
-      
+      HRTIM_cr1 |= (pADCTriggerCfg->UpdateSource << 6);
+
       /* Set the ADC trigger 3 source */
       HRTIMx->HRTIM_COMMON.ADC3R = pADCTriggerCfg->Trigger;
     }
+    FALLTHROUGH;
+
     case HRTIM_ADCTRIGGER_4:
     {
       HRTIM_cr1 &= ~(HRTIM_CR1_ADC4USRC);
-      HRTIM_cr1 |= (pADCTriggerCfg->UpdateSource << 9); 
-      
+      HRTIM_cr1 |= (pADCTriggerCfg->UpdateSource << 9);
+
       /* Set the ADC trigger 4 source */
       HRTIMx->HRTIM_COMMON.ADC4R = pADCTriggerCfg->Trigger;
     }
@@ -2864,7 +2867,7 @@ void HRTIM_ADCTriggerConfig(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
+
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_COMMON.CR1 = HRTIM_cr1;
 }
@@ -2882,15 +2885,15 @@ void HRTIM_ADCTriggerConfig(HRTIM_TypeDef * HRTIMx,
 void HRTIM_BurstModeCtl(HRTIM_TypeDef * HRTIMx, uint32_t Enable)
 {
   uint32_t HRTIM_bmcr;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_BURSTMODECTL(Enable));
-  
+
   /* Enable/Disable the burst mode controller */
   HRTIM_bmcr = HRTIMx->HRTIM_COMMON.BMCR;
   HRTIM_bmcr &= ~(HRTIM_BMCR_BME);
   HRTIM_bmcr |= Enable;
-  
+
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_COMMON.BMCR = HRTIM_bmcr;
 }
@@ -2900,9 +2903,9 @@ void HRTIM_BurstModeCtl(HRTIM_TypeDef * HRTIMx, uint32_t Enable)
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  CaptureUnit: Capture unit to trig
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_CAPTUREUNIT_1: Capture unit 1
   *                    @arg HRTIM_CAPTUREUNIT_2: Capture unit 2
   * @retval None
@@ -2916,7 +2919,7 @@ void HRTIM_SoftwareCapture(HRTIM_TypeDef * HRTIMx,
   /* Check parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
   assert_param(IS_HRTIM_CAPTUREUNIT(CaptureUnit));
-  
+
   /* Force a software capture on concerned capture unit */
   switch (CaptureUnit)
   {
@@ -2940,12 +2943,12 @@ void HRTIM_SoftwareCapture(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimersToUpdate: timers concerned with the software register update
   *                   This parameter can be any combination of the following values:
-  *                   @arg HRTIM_TIMERUPDATE_MASTER 
-  *                   @arg HRTIM_TIMERUPDATE_A 
-  *                   @arg HRTIM_TIMERUPDATE_B 
-  *                   @arg HRTIM_TIMERUPDATE_C 
-  *                   @arg HRTIM_TIMERUPDATE_D 
-  *                   @arg HRTIM_TIMERUPDATE_E 
+  *                   @arg HRTIM_TIMERUPDATE_MASTER
+  *                   @arg HRTIM_TIMERUPDATE_A
+  *                   @arg HRTIM_TIMERUPDATE_B
+  *                   @arg HRTIM_TIMERUPDATE_C
+  *                   @arg HRTIM_TIMERUPDATE_D
+  *                   @arg HRTIM_TIMERUPDATE_E
   * @retval None
   * @note The 'software update' bits in the HRTIMx control register 2 register are
   *       automatically reset by hardware
@@ -2955,10 +2958,10 @@ void HRTIM_SoftwareUpdate(HRTIM_TypeDef * HRTIMx,
 {
   /* Check parameters */
   assert_param(IS_HRTIM_TIMERUPDATE(TimersToUpdate));
-  
+
   /* Force timer(s) registers update */
   HRTIMx->HRTIM_COMMON.CR2 |= TimersToUpdate;
-  
+
 }
 
 /**
@@ -2966,12 +2969,12 @@ void HRTIM_SoftwareUpdate(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimersToUpdate: timers concerned with the software counter reset
   *                   This parameter can be any combination of the following values:
-  *                   @arg HRTIM_TIMER_MASTER 
-  *                   @arg HRTIM_TIMER_A 
-  *                   @arg HRTIM_TIMER_B 
-  *                   @arg HRTIM_TIMER_C 
-  *                   @arg HRTIM_TIMER_D 
-  *                   @arg HRTIM_TIMER_E 
+  *                   @arg HRTIM_TIMER_MASTER
+  *                   @arg HRTIM_TIMER_A
+  *                   @arg HRTIM_TIMER_B
+  *                   @arg HRTIM_TIMER_C
+  *                   @arg HRTIM_TIMER_D
+  *                   @arg HRTIM_TIMER_E
   * @retval None
   * @note The 'software reset' bits in the HRTIMx control register 2  are
   *       automatically reset by hardware
@@ -2981,18 +2984,18 @@ void HRTIM_SoftwareReset(HRTIM_TypeDef * HRTIMx,
 {
   /* Check parameters */
   assert_param(IS_HRTIM_TIMERRESET(TimersToReset));
-  
+
   /* Force timer(s) registers update */
   HRTIMx->HRTIM_COMMON.CR2 |= TimersToReset;
- 
+
 }
 
 /**
-  * @brief  Forces the timer output to its active or inactive state 
+  * @brief  Forces the timer output to its active or inactive state
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  Output: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -3010,7 +3013,7 @@ void HRTIM_SoftwareReset(HRTIM_TypeDef * HRTIMx,
   *                    @arg HRTIM_OUTPUTLEVEL_ACTIVE: output is forced to its active state
   *                    @arg HRTIM_OUTPUTLEVEL_INACTIVE: output is forced to its inactive state
   * @retval None
-  * @note The 'software set/reset trigger' bit in the output set/reset registers 
+  * @note The 'software set/reset trigger' bit in the output set/reset registers
   *       is automatically reset by hardware
   */
 void HRTIM_WaveformSetOutputLevel(HRTIM_TypeDef * HRTIMx,
@@ -3063,7 +3066,7 @@ void HRTIM_WaveformSetOutputLevel(HRTIM_TypeDef * HRTIMx,
     break;
     default:
     break;
-  } 
+  }
 }
 
 
@@ -3071,15 +3074,15 @@ void HRTIM_WaveformSetOutputLevel(HRTIM_TypeDef * HRTIMx,
   * @}
   */
 
-/** @defgroup HRTIM_Group4 Peripheral State methods 
- *  @brief   Peripheral State functions 
+/** @defgroup HRTIM_Group4 Peripheral State methods
+ *  @brief   Peripheral State functions
  *
-@verbatim   
+@verbatim
  ===============================================================================
                       ##### Peripheral State methods #####
- ===============================================================================  
+ ===============================================================================
     [..]
-    This subsection permit to get in run-time the status of the peripheral 
+    This subsection permit to get in run-time the status of the peripheral
     and the data flow.
 
 @endverbatim
@@ -3087,13 +3090,13 @@ void HRTIM_WaveformSetOutputLevel(HRTIM_TypeDef * HRTIMx,
   */
 
 /**
-  * @brief  Returns actual value of the capture register of the designated capture unit 
+  * @brief  Returns actual value of the capture register of the designated capture unit
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  CaptureUnit: Capture unit to trig
-  *                    This parameter can be one of the following values: 
+  *                    This parameter can be one of the following values:
   *                    @arg HRTIM_CAPTUREUNIT_1: Capture unit 1
   *                    @arg HRTIM_CAPTUREUNIT_2: Capture unit 2
   * @retval Captured value
@@ -3103,7 +3106,7 @@ uint32_t HRTIM_GetCapturedValue(HRTIM_TypeDef * HRTIMx,
                                     uint32_t CaptureUnit)
 {
   uint32_t captured_value = 0;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMING_UNIT(TimerIdx));
   assert_param(IS_HRTIM_CAPTUREUNIT(CaptureUnit));
@@ -3124,16 +3127,16 @@ uint32_t HRTIM_GetCapturedValue(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
-  return captured_value; 
+
+  return captured_value;
 }
 
 /**
-  * @brief  Returns actual level (active or inactive) of the designated output 
+  * @brief  Returns actual level (active or inactive) of the designated output
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  Output: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -3147,7 +3150,7 @@ uint32_t HRTIM_GetCapturedValue(HRTIM_TypeDef * HRTIMx,
   *                    @arg HRTIM_OUTPUT_TE1: Timer E - Output 1
   *                    @arg HRTIM_OUTPUT_TE2: Timer E - Output 2
   * @retval Output level
-  * @note Returned output level is taken before the output stage (chopper, 
+  * @note Returned output level is taken before the output stage (chopper,
   *        polarity).
   */
 uint32_t HRTIM_WaveformGetOutputLevel(HRTIM_TypeDef * HRTIMx,
@@ -3155,10 +3158,10 @@ uint32_t HRTIM_WaveformGetOutputLevel(HRTIM_TypeDef * HRTIMx,
                                           uint32_t Output)
 {
   uint32_t output_level = HRTIM_OUTPUTLEVEL_INACTIVE;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, Output));
-  
+
   /* Read the output level */
   switch (Output)
   {
@@ -3197,16 +3200,16 @@ uint32_t HRTIM_WaveformGetOutputLevel(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
-  return output_level; 
+
+  return output_level;
 }
 
 /**
-  * @brief  Returns actual state (RUN, IDLE, FAULT) of the designated output 
+  * @brief  Returns actual state (RUN, IDLE, FAULT) of the designated output
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  Output: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -3231,10 +3234,10 @@ uint32_t HRTIM_WaveformGetOutputState(HRTIM_TypeDef * HRTIMx,
 {
   uint32_t output_bit = 0;
   uint32_t output_state = HRTIM_OUTPUTSTATE_IDLE;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, Output));
-  
+
   /* Set output state according to output control status and output disable status */
   switch (Output)
   {
@@ -3291,7 +3294,7 @@ uint32_t HRTIM_WaveformGetOutputState(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
+
   if ((HRTIMx->HRTIM_COMMON.OENR & output_bit) != RESET)
   {
     /* Output is enabled: output in RUN state (whatever ouput disable status is)*/
@@ -3310,20 +3313,20 @@ uint32_t HRTIM_WaveformGetOutputState(HRTIM_TypeDef * HRTIMx,
       output_state = HRTIM_OUTPUTSTATE_IDLE;
     }
   }
-  
-  return(output_state);  
+
+  return(output_state);
 }
 #ifdef __GNUC__
 # pragma GCC diagnostic pop
 #endif
 
 /**
-  * @brief  Returns the level (active or inactive) of the designated output 
-  *         when the delayed protection was triggered 
+  * @brief  Returns the level (active or inactive) of the designated output
+  *         when the delayed protection was triggered
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
+  *                   @arg 0x0 to 0x4 for timers A to E
   * @param  Output: Timer output
   *                    This parameter can be one of the following values:
   *                    @arg HRTIM_OUTPUT_TA1: Timer A - Output 1
@@ -3336,14 +3339,14 @@ uint32_t HRTIM_WaveformGetOutputState(HRTIM_TypeDef * HRTIMx,
   *                    @arg HRTIM_OUTPUT_TD2: Timer D - Output 2
   *                    @arg HRTIM_OUTPUT_TD1: Timer E - Output 1
   *                    @arg HRTIM_OUTPUT_TD2: Timer E - Output 2
-  * @retval Delayed protection status 
+  * @retval Delayed protection status
   */
 uint32_t HRTIM_GetDelayedProtectionStatus(HRTIM_TypeDef * HRTIMx,
                                               uint32_t TimerIdx,
                                               uint32_t Output)
 {
   uint32_t delayed_protection_status = HRTIM_OUTPUTLEVEL_INACTIVE;
-  
+
   /* Check parameters */
   assert_param(IS_HRTIM_TIMER_OUTPUT(TimerIdx, Output));
 
@@ -3389,14 +3392,14 @@ uint32_t HRTIM_GetDelayedProtectionStatus(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
+
   return delayed_protection_status;
 }
 
 /**
-  * @brief  Returns the actual status (active or inactive) of the burst mode controller 
+  * @brief  Returns the actual status (active or inactive) of the burst mode controller
   * @param  HRTIMx: pointer to HRTIMx peripheral
-  * @retval Burst mode controller status 
+  * @retval Burst mode controller status
   */
 uint32_t HRTIM_GetBurstStatus(HRTIM_TypeDef * HRTIMx)
 {
@@ -3404,8 +3407,8 @@ uint32_t HRTIM_GetBurstStatus(HRTIM_TypeDef * HRTIMx)
 
   /* Read burst mode status */
   burst_mode_status = (HRTIMx->HRTIM_COMMON.BMCR & HRTIM_BMCR_BMSTAT);
-  
-  return burst_mode_status; 
+
+  return burst_mode_status;
 }
 
 /**
@@ -3414,8 +3417,8 @@ uint32_t HRTIM_GetBurstStatus(HRTIM_TypeDef * HRTIMx)
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
-  * @retval Burst mode controller status 
+  *                   @arg 0x0 to 0x4 for timers A to E
+  * @retval Burst mode controller status
   */
 uint32_t HRTIM_GetCurrentPushPullStatus(HRTIM_TypeDef * HRTIMx,
                                             uint32_t TimerIdx)
@@ -3427,8 +3430,8 @@ uint32_t HRTIM_GetCurrentPushPullStatus(HRTIM_TypeDef * HRTIMx,
 
   /* Read current push pull status */
   current_pushpull_status = (HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxISR & HRTIM_TIMISR_CPPSTAT);
-  
-  return current_pushpull_status; 
+
+  return current_pushpull_status;
 }
 
 
@@ -3438,8 +3441,8 @@ uint32_t HRTIM_GetCurrentPushPullStatus(HRTIM_TypeDef * HRTIMx,
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   *                   This parameter can be one of the following values:
-  *                   @arg 0x0 to 0x4 for timers A to E 
-  * @retval Idle Push Pull Status 
+  *                   @arg 0x0 to 0x4 for timers A to E
+  * @retval Idle Push Pull Status
   */
 uint32_t HRTIM_GetIdlePushPullStatus(HRTIM_TypeDef * HRTIMx,
                                          uint32_t TimerIdx)
@@ -3451,8 +3454,8 @@ uint32_t HRTIM_GetIdlePushPullStatus(HRTIM_TypeDef * HRTIMx,
 
   /* Read current push pull status */
   idle_pushpull_status = (HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxISR & HRTIM_TIMISR_IPPSTAT);
-  
-  return idle_pushpull_status; 
+
+  return idle_pushpull_status;
 }
 
 /**
@@ -3461,15 +3464,15 @@ uint32_t HRTIM_GetIdlePushPullStatus(HRTIM_TypeDef * HRTIMx,
   * @retval None
   */
 void  HRTIM_MasterBase_Config(HRTIM_TypeDef * HRTIMx, HRTIM_BaseInitTypeDef* HRTIM_BaseInitStruct)
-{  
+{
   /* Set the prescaler ratio */
   HRTIMx->HRTIM_MASTER.MCR &= (uint32_t) ~(HRTIM_MCR_CK_PSC);
   HRTIMx->HRTIM_MASTER.MCR  |= (uint32_t)HRTIM_BaseInitStruct->PrescalerRatio;
-  
+
   /* Set the operating mode */
   HRTIMx->HRTIM_MASTER.MCR  &= (uint32_t) ~(HRTIM_MCR_CONT | HRTIM_MCR_RETRIG);
   HRTIMx->HRTIM_MASTER.MCR  |= (uint32_t)HRTIM_BaseInitStruct->Mode;
-  
+
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_MASTER.MPER = HRTIM_BaseInitStruct->Period;
   HRTIMx->HRTIM_MASTER.MREP = HRTIM_BaseInitStruct->RepetitionCounter;
@@ -3482,7 +3485,7 @@ void  HRTIM_MasterBase_Config(HRTIM_TypeDef * HRTIMx, HRTIM_BaseInitTypeDef* HRT
   * @retval None
   */
 void HRTIM_TimingUnitBase_Config(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTIM_BaseInitTypeDef* HRTIM_BaseInitStruct)
-{   
+{
   /* Set the prescaler ratio */
   HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR &= (uint32_t) ~(HRTIM_TIMCR_CK_PSC);
   HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR |= (uint32_t)HRTIM_BaseInitStruct->PrescalerRatio;
@@ -3490,7 +3493,7 @@ void HRTIM_TimingUnitBase_Config(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTI
   /* Set the operating mode */
   HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR &= (uint32_t) ~(HRTIM_TIMCR_CONT | HRTIM_TIMCR_RETRIG);
   HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR |= (uint32_t)HRTIM_BaseInitStruct->Mode;
-  
+
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_TIMERx[TimerIdx].PERxR = HRTIM_BaseInitStruct->Period;
   HRTIMx->HRTIM_TIMERx[TimerIdx].REPxR = HRTIM_BaseInitStruct->RepetitionCounter;
@@ -3503,44 +3506,44 @@ void HRTIM_TimingUnitBase_Config(HRTIM_TypeDef * HRTIMx, uint32_t TimerIdx, HRTI
   * @param  pTimerInit: pointer to the timer initialization data structure
   * @retval None
   */
-void  HRTIM_MasterWaveform_Config(HRTIM_TypeDef * HRTIMx, 
+void  HRTIM_MasterWaveform_Config(HRTIM_TypeDef * HRTIMx,
                                 HRTIM_TimerInitTypeDef * pTimerInit)
 {
   uint32_t HRTIM_mcr;
   uint32_t HRTIM_bmcr;
-  
+
   /* Configure master timer */
   HRTIM_mcr = HRTIMx->HRTIM_MASTER.MCR;
   HRTIM_bmcr = HRTIMx->HRTIM_COMMON.BMCR;
-  
+
   /* Enable/Disable the half mode */
   HRTIM_mcr &= ~(HRTIM_MCR_HALF);
   HRTIM_mcr |= pTimerInit->HalfModeEnable;
-  
+
   /* Enable/Disable the timer start upon synchronization event reception */
   HRTIM_mcr &= ~(HRTIM_MCR_SYNCSTRTM);
   HRTIM_mcr |= pTimerInit->StartOnSync;
- 
+
   /* Enable/Disable the timer reset upon synchronization event reception */
   HRTIM_mcr &= ~(HRTIM_MCR_SYNCRSTM);
   HRTIM_mcr |= pTimerInit->ResetOnSync;
-  
+
   /* Enable/Disable the DAC synchronization event generation */
   HRTIM_mcr &= ~(HRTIM_MCR_DACSYNC);
   HRTIM_mcr |= pTimerInit->DACSynchro;
-  
+
   /* Enable/Disable preload mechanism for timer registers */
   HRTIM_mcr &= ~(HRTIM_MCR_PREEN);
   HRTIM_mcr |= pTimerInit->PreloadEnable;
-  
+
   /* Master timer registers update handling */
   HRTIM_mcr &= ~(HRTIM_MCR_BRSTDMA);
   HRTIM_mcr |= (pTimerInit->UpdateGating << 2);
-  
+
   /* Enable/Disable registers update on repetition */
   HRTIM_mcr &= ~(HRTIM_MCR_MREPU);
   HRTIM_mcr |= pTimerInit->RepetitionUpdate;
-  
+
   /* Set the timer burst mode */
   HRTIM_bmcr &= ~(HRTIM_BMCR_MTBM);
   HRTIM_bmcr |= pTimerInit->BurstMode;
@@ -3548,51 +3551,51 @@ void  HRTIM_MasterWaveform_Config(HRTIM_TypeDef * HRTIMx,
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_MASTER.MCR  = HRTIM_mcr;
   HRTIMx->HRTIM_COMMON.BMCR = HRTIM_bmcr;
-  
+
 }
 
 /**
-  * @brief  Configures timing unit (timer A to timer E) in waveform mode 
+  * @brief  Configures timing unit (timer A to timer E) in waveform mode
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   * @param  pTimerInit: pointer to the timer initialization data structure
   * @retval None
   */
-void HRTIM_TimingUnitWaveform_Config(HRTIM_TypeDef * HRTIMx, 
-                                    uint32_t TimerIdx, 
+void HRTIM_TimingUnitWaveform_Config(HRTIM_TypeDef * HRTIMx,
+                                    uint32_t TimerIdx,
                                     HRTIM_TimerInitTypeDef * pTimerInit)
 {
   uint32_t HRTIM_timcr;
   uint32_t HRTIM_bmcr;
-  
+
   /* Configure timing unit */
   HRTIM_timcr = HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR;
   HRTIM_bmcr = HRTIMx->HRTIM_COMMON.BMCR;
-  
+
   /* Enable/Disable the half mode */
   HRTIM_timcr &= ~(HRTIM_TIMCR_HALF);
   HRTIM_timcr |= pTimerInit->HalfModeEnable;
-  
+
   /* Enable/Disable the timer start upon synchronization event reception */
   HRTIM_timcr &= ~(HRTIM_TIMCR_SYNCSTRT);
   HRTIM_timcr |= pTimerInit->StartOnSync;
- 
+
   /* Enable/Disable the timer reset upon synchronization event reception */
   HRTIM_timcr &= ~(HRTIM_TIMCR_SYNCRST);
   HRTIM_timcr |= pTimerInit->ResetOnSync;
-  
+
   /* Enable/Disable the DAC synchronization event generation */
   HRTIM_timcr &= ~(HRTIM_TIMCR_DACSYNC);
   HRTIM_timcr |= pTimerInit->DACSynchro;
-  
+
   /* Enable/Disable preload mechanism for timer registers */
   HRTIM_timcr &= ~(HRTIM_TIMCR_PREEN);
   HRTIM_timcr |= pTimerInit->PreloadEnable;
-  
+
   /* Timing unit registers update handling */
   HRTIM_timcr &= ~(HRTIM_TIMCR_UPDGAT);
   HRTIM_timcr |= pTimerInit->UpdateGating;
-  
+
   /* Enable/Disable registers update on repetition */
   HRTIM_timcr &= ~(HRTIM_TIMCR_TREPU);
   if (pTimerInit->RepetitionUpdate == HRTIM_UPDATEONREPETITION_ENABLED)
@@ -3636,14 +3639,14 @@ void HRTIM_TimingUnitWaveform_Config(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
+
   /* Update the HRTIMx registers */
   HRTIMx->HRTIM_TIMERx[TimerIdx].TIMxCR = HRTIM_timcr;
   HRTIMx->HRTIM_COMMON.BMCR = HRTIM_bmcr;
 }
 
 /**
-  * @brief  Configures a compare unit 
+  * @brief  Configures a compare unit
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   * @param  CompareUnit: Compare unit identifier
@@ -3716,7 +3719,7 @@ void  HRTIM_CompareUnitConfig(HRTIM_TypeDef * HRTIMx,
 }
 
 /**
-  * @brief  Configures a capture unit 
+  * @brief  Configures a capture unit
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   * @param  CaptureUnit: Capture unit identifier
@@ -3729,7 +3732,7 @@ void HRTIM_CaptureUnitConfig(HRTIM_TypeDef * HRTIMx,
                              uint32_t Event)
 {
   uint32_t CaptureTrigger = HRTIM_CAPTURETRIGGER_EEV_1;
-  
+
   switch (Event)
   {
     case HRTIM_EVENT_1:
@@ -3783,9 +3786,9 @@ void HRTIM_CaptureUnitConfig(HRTIM_TypeDef * HRTIMx,
     }
     break;
     default:
-    break;  
-    
-  }  
+    break;
+
+  }
   switch (CaptureUnit)
   {
     case HRTIM_CAPTUREUNIT_1:
@@ -3799,12 +3802,12 @@ void HRTIM_CaptureUnitConfig(HRTIM_TypeDef * HRTIMx,
     }
     break;
     default:
-    break;  
+    break;
   }
 }
 
 /**
-  * @brief  Configures the output of a timing unit 
+  * @brief  Configures the output of a timing unit
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   * @param  Output: timing unit output identifier
@@ -3818,9 +3821,9 @@ void  HRTIM_OutputConfig(HRTIM_TypeDef * HRTIMx,
 {
   uint32_t HRTIM_outr;
   uint32_t shift = 0;
-  
+
   HRTIM_outr = HRTIMx->HRTIM_TIMERx[TimerIdx].OUTxR;
-  
+
   switch (Output)
   {
     case HRTIM_OUTPUT_TA1:
@@ -3832,7 +3835,7 @@ void  HRTIM_OutputConfig(HRTIM_TypeDef * HRTIMx,
       /* Set the output set/reset crossbar */
       HRTIMx->HRTIM_TIMERx[TimerIdx].SETx1R = pOutputCfg->SetSource;
       HRTIMx->HRTIM_TIMERx[TimerIdx].RSTx1R = pOutputCfg->ResetSource;
-      
+
       shift = 0;
     }
     break;
@@ -3852,7 +3855,7 @@ void  HRTIM_OutputConfig(HRTIM_TypeDef * HRTIMx,
     default:
     break;
   }
-  
+
   /* Clear output config */
   HRTIM_outr &= ~((HRTIM_OUTR_POL1 |
                    HRTIM_OUTR_IDLM1 |
@@ -3860,31 +3863,31 @@ void  HRTIM_OutputConfig(HRTIM_TypeDef * HRTIMx,
                    HRTIM_OUTR_FAULT1|
                    HRTIM_OUTR_CHP1 |
                    HRTIM_OUTR_DIDL1)  << shift);
-  
+
   /* Set the polarity */
   HRTIM_outr |= (pOutputCfg->Polarity << shift);
-  
+
   /* Set the IDLE mode */
   HRTIM_outr |= (pOutputCfg->IdleMode << shift);
-  
+
   /* Set the IDLE state */
   HRTIM_outr |= (pOutputCfg->IdleState << shift);
-  
+
   /* Set the FAULT state */
   HRTIM_outr |= (pOutputCfg->FaultState << shift);
-  
+
   /* Set the chopper mode */
   HRTIM_outr |= (pOutputCfg->ChopperModeEnable << shift);
 
   /* Set the burst mode entry mode */
   HRTIM_outr |= (pOutputCfg->BurstModeEntryDelayed << shift);
-  
+
   /* Update HRTIMx register */
   HRTIMx->HRTIM_TIMERx[TimerIdx].OUTxR = HRTIM_outr;
 }
 
 /**
-  * @brief  Configures an external event channel 
+  * @brief  Configures an external event channel
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  Event: Event channel identifier
   * @param  pEventCfg: pointer to the event channel configuration data structure
@@ -3902,7 +3905,7 @@ static void HRTIM_ExternalEventConfig(HRTIM_TypeDef * HRTIMx,
   hrtim_eecr1 = HRTIMx->HRTIM_COMMON.EECR1;
   hrtim_eecr2 = HRTIMx->HRTIM_COMMON.EECR2;
   hrtim_eecr3 = HRTIMx->HRTIM_COMMON.EECR3;
-  
+
   switch (Event)
   {
     case HRTIM_EVENT_1:
@@ -4041,7 +4044,7 @@ static void HRTIM_ExternalEventConfig(HRTIM_TypeDef * HRTIMx,
 }
 
 /**
-  * @brief  Configures the timer counter reset 
+  * @brief  Configures the timer counter reset
   * @param  HRTIMx: pointer to HRTIMx peripheral
   * @param  TimerIdx: Timer index
   * @param  Event: Event channel identifier
@@ -4119,6 +4122,3 @@ void HRTIM_TIM_ResetConfig(HRTIM_TypeDef * HRTIMx,
   */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
-
-
