@@ -944,6 +944,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, rxConfig()->rx_spi_protocol);
         sbufWriteU32(dst, rxConfig()->rx_spi_id);
         sbufWriteU8(dst, rxConfig()->rx_spi_rf_channel_count);
+        sbufWriteU8(dst, rxConfig()->receiverType);
         break;
 
     case MSP_FAILSAFE_CONFIG:
@@ -1995,6 +1996,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU8Safe(&rxConfigMutable()->rx_spi_protocol, src);
         sbufReadU32Safe(&rxConfigMutable()->rx_spi_id, src);
         sbufReadU8Safe(&rxConfigMutable()->rx_spi_rf_channel_count, src);
+        sbufReadU8Safe(&rxConfigMutable()->receiverType, src);              // Won't be modified if buffer is not large enough
         break;
 
     case MSP_SET_FAILSAFE_CONFIG:

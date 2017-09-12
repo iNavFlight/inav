@@ -43,10 +43,10 @@ typedef enum {
 } asyncMode_e;
 
 typedef enum {
-    FEATURE_RX_PPM = 1 << 0,
+    FEATURE_UNUSED_5 = 1 << 0,          // RX_PPM
     FEATURE_VBAT = 1 << 1,
     FEATURE_UNUSED_1 = 1 << 2,          // Unused in INAV
-    FEATURE_RX_SERIAL = 1 << 3,
+    FEATURE_UNUSED_6 = 1 << 3,          // RX_SERIAL
     FEATURE_MOTOR_STOP = 1 << 4,
     FEATURE_SERVO_TILT = 1 << 5,
     FEATURE_SOFTSERIAL = 1 << 6,
@@ -56,8 +56,8 @@ typedef enum {
     FEATURE_TELEMETRY = 1 << 10,
     FEATURE_CURRENT_METER = 1 << 11,
     FEATURE_3D = 1 << 12,
-    FEATURE_RX_PARALLEL_PWM = 1 << 13,
-    FEATURE_RX_MSP = 1 << 14,
+    FEATURE_UNUSED_7 = 1 << 13,         // RX_PARALLEL_PWM
+    FEATURE_UNUSED_8 = 1 << 14,         // RX_MSP
     FEATURE_RSSI_ADC = 1 << 15,
     FEATURE_LED_STRIP = 1 << 16,
     FEATURE_DASHBOARD = 1 << 17,
@@ -68,7 +68,7 @@ typedef enum {
     FEATURE_AIRMODE = 1 << 22,
     FEATURE_SUPEREXPO_RATES = 1 << 23,
     FEATURE_VTX = 1 << 24,
-    FEATURE_RX_SPI = 1 << 25,
+    FEATURE_UNUSED_9 = 1 << 25,         // RX_SPI
     FEATURE_SOFTSPI = 1 << 26,
     FEATURE_PWM_SERVO_DRIVER = 1 << 27,
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,

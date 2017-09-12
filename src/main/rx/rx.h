@@ -52,6 +52,15 @@ typedef enum {
 } rxFrameState_e;
 
 typedef enum {
+    RX_TYPE_NONE        = 0,
+    RX_TYPE_PWM         = 1,
+    RX_TYPE_PPM         = 2,
+    RX_TYPE_SERIAL      = 3,
+    RX_TYPE_MSP         = 4,
+    RX_TYPE_SPI         = 5,
+} rxReceiverType_e;
+
+typedef enum {
     SERIALRX_SPEKTRUM1024 = 0,
     SERIALRX_SPEKTRUM2048 = 1,
     SERIALRX_SBUS = 2,
@@ -94,6 +103,7 @@ typedef struct rxChannelRangeConfig_s {
 PG_DECLARE_ARRAY(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeConfigs);
 
 typedef struct rxConfig_s {
+    uint8_t receiverType;
     uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_provider;              // type of UART-based receiver (0 = spek 10, 1 = spek 11, 2 = sbus). Must be enabled by FEATURE_RX_SERIAL first.
     uint8_t sbus_inversion;                 // default sbus (Futaba, FrSKY) is inverted. Support for uninverted OpenLRS (and modified FrSKY) receivers.

@@ -80,7 +80,7 @@ int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 #define MAX_INVALID_PULS_TIME    300
-#define PPM_AND_PWM_SAMPLE_COUNT 3
+#define FILTERING_SAMPLE_COUNT   3
 
 #define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)
 #define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)
@@ -88,7 +88,7 @@ uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 2);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -97,9 +97,14 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 1);
 #define SERIALRX_PROVIDER 0
 #endif
 
+#ifndef DEFAULT_RX_TYPE
+#define DEFAULT_RX_TYPE   RX_TYPE_NONE
+#endif
+
 #define RX_MIDRC 1500
 #define RX_MIN_USEX 885
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
+    .receiverType = DEFAULT_RX_TYPE,
     .halfDuplex = 0,
     .serialrx_provider = SERIALRX_PROVIDER,
     .rx_spi_protocol = RX_SPI_DEFAULT_PROTOCOL,
@@ -240,39 +245,45 @@ void rxInit(void)
         }
     }
 
+    switch (rxConfig()->receiverType) {
+#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
+        case RX_TYPE_PWM:
+        case RX_TYPE_PPM:
+            rxPwmInit(rxConfig(), &rxRuntimeConfig);
+            break;
+#endif
+
 #ifdef SERIAL_RX
-    if (feature(FEATURE_RX_SERIAL)) {
-        const bool enabled = serialRxInit(rxConfig(), &rxRuntimeConfig);
-        if (!enabled) {
-            featureClear(FEATURE_RX_SERIAL);
-            rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
-            rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
-        }
-    }
+        case RX_TYPE_SERIAL:
+            if (!serialRxInit(rxConfig(), &rxRuntimeConfig)) {
+                rxConfigMutable()->receiverType = RX_TYPE_NONE;
+                rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
+                rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
+            }
+            break;
 #endif
 
 #ifdef USE_RX_MSP
-    if (feature(FEATURE_RX_MSP)) {
-        rxMspInit(rxConfig(), &rxRuntimeConfig);
-    }
+        case RX_TYPE_MSP:
+            rxMspInit(rxConfig(), &rxRuntimeConfig);
+            break;
 #endif
 
 #ifdef USE_RX_SPI
-    if (feature(FEATURE_RX_SPI)) {
-        const bool enabled = rxSpiInit(rxConfig(), &rxRuntimeConfig);
-        if (!enabled) {
-            featureClear(FEATURE_RX_SPI);
-            rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
-            rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
-        }
-    }
+        case RX_TYPE_SPI:
+            if (!rxSpiInit(rxConfig(), &rxRuntimeConfig)) {
+                featureClear(FEATURE_RX_SPI);
+                rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
+                rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
+            }
+            break;
 #endif
 
-#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
-    if (feature(FEATURE_RX_PPM) || feature(FEATURE_RX_PARALLEL_PWM)) {
-        rxPwmInit(rxConfig(), &rxRuntimeConfig);
+        case RX_TYPE_NONE:
+        default:
+            // Already configured for NONE
+            break;
     }
-#endif
 }
 
 static uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap)
@@ -311,7 +322,7 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
     const uint8_t frameStatus = rxRuntimeConfig.rcFrameStatusFn();
     if (frameStatus & RX_FRAME_COMPLETE) {
         rxDataReceived = true;
-        rxSignalReceived = (frameStatus & RX_FRAME_FAILSAFE) == 0;
+        rxSignalReceived = ((frameStatus & RX_FRAME_FAILSAFE) == 0);
         rxLastValidFrameTimeUs = currentTimeUs;
     }
     else {  // RX_FRAME_PENDING
@@ -326,28 +337,22 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 
 static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
 {
-    static int16_t rcSamples[MAX_SUPPORTED_RX_PARALLEL_PWM_OR_PPM_CHANNEL_COUNT][PPM_AND_PWM_SAMPLE_COUNT];
-    static int16_t rcDataMean[MAX_SUPPORTED_RX_PARALLEL_PWM_OR_PPM_CHANNEL_COUNT];
+    static int32_t rcSamples[MAX_SUPPORTED_RC_CHANNEL_COUNT][FILTERING_SAMPLE_COUNT];
     static bool rxSamplesCollected = false;
 
-    const uint8_t currentSampleIndex = rcSampleIndex % PPM_AND_PWM_SAMPLE_COUNT;
+    // Update the recent samples
+    rcSamples[chan][rcSampleIndex % FILTERING_SAMPLE_COUNT] = sample;
 
-    // update the recent samples and compute the average of them
-    rcSamples[chan][currentSampleIndex] = sample;
-
-    // avoid returning an incorrect average which would otherwise occur before enough samples
+    // Until we have enough data - return unfiltered samples
     if (!rxSamplesCollected) {
-        if (rcSampleIndex < PPM_AND_PWM_SAMPLE_COUNT) {
+        if (rcSampleIndex < FILTERING_SAMPLE_COUNT) {
             return sample;
         }
         rxSamplesCollected = true;
     }
 
-    rcDataMean[chan] = 0;
-    for (int sampleIndex = 0; sampleIndex < PPM_AND_PWM_SAMPLE_COUNT; sampleIndex++) {
-        rcDataMean[chan] += rcSamples[chan][sampleIndex];
-    }
-    return rcDataMean[chan] / PPM_AND_PWM_SAMPLE_COUNT;
+    // Apply median filtering
+    return quickMedianFilter3(rcSamples[chan]);
 }
 
 void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
@@ -356,7 +361,7 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     rxLastUpdateTimeUs = currentTimeUs + DELAY_50_HZ;
 
     rxFlightChannelsValid = true;
-
+    
     // Read and process channel data
     for (int channel = 0; channel < rxRuntimeConfig.channelCount; channel++) {
         const uint8_t rawChannel = calculateChannelRemapping(rxConfig()->rcmap, REMAPPABLE_CHANNEL_COUNT, channel);

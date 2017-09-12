@@ -93,17 +93,15 @@ static uint8_t ppmFrameStatus(void)
 
 void rxPwmInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
-    UNUSED(rxConfig);
-
     rxRuntimeConfig->rxRefreshRate = RC_PWM_50HZ_UPDATE;
     rxRuntimeConfig->requireFiltering = true;
 
     // configure PWM/CPPM read function and max number of channels. serial rx below will override both of these, if enabled
-    if (feature(FEATURE_RX_PARALLEL_PWM)) {
+    if (rxConfig->receiverType == RX_TYPE_PWM) {
         rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT;
         rxRuntimeConfig->rcReadRawFn = readRawRC;
         rxRuntimeConfig->rcFrameStatusFn = pwmFrameStatus;
-    } else if (feature(FEATURE_RX_PPM)) {
+    } else if (rxConfig->receiverType == RX_TYPE_PPM) {
         rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT;
         rxRuntimeConfig->rcReadRawFn = readRawRC;
         rxRuntimeConfig->rcFrameStatusFn = ppmFrameStatus;

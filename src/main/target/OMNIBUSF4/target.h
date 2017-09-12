@@ -190,7 +190,7 @@
 #define WS2811_DMA_STREAM               DMA1_Stream4
 #define WS2811_DMA_CHANNEL              DMA_Channel_6
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT)
 
