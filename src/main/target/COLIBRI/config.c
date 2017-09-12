@@ -33,6 +33,6 @@ void targetConfiguration(void)
 {
     mixerConfigMutable()->mixerMode = MIXER_HEX6X;
     rxConfigMutable()->serialrx_provider = 2;
-    featureSet(FEATURE_RX_SERIAL);
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
 }

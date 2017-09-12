@@ -272,7 +272,7 @@ void rxInit(void)
 #ifdef USE_RX_SPI
         case RX_TYPE_SPI:
             if (!rxSpiInit(rxConfig(), &rxRuntimeConfig)) {
-                featureClear(FEATURE_RX_SPI);
+                rxConfigMutable()->receiverType = RX_TYPE_NONE;
                 rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
                 rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
             }
@@ -476,7 +476,7 @@ void updateRSSI(timeUs_t currentTimeUs)
     } else if (feature(FEATURE_RSSI_ADC)) {
         updateRSSIADC(currentTimeUs);
 #ifdef USE_RX_ELERES
-    } else if (feature(FEATURE_RX_SPI) && rxConfig()->rx_spi_protocol == RFM22_ELERES) {
+    } else if (rxConfig()->receiverType == RX_TYPE_SPI && rxConfig()->rx_spi_protocol == RFM22_ELERES) {
         updateRSSIeleres(currentTimeUs);
 #endif
     }
