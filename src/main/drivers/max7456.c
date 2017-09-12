@@ -18,14 +18,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "platform.h"
 
 #ifdef USE_MAX7456
 
+#include "common/bitarray.h"
 #include "common/printf.h"
+#include "common/utils.h"
 
 #include "drivers/bus_spi.h"
 #include "drivers/light_led.h"
@@ -150,7 +151,7 @@
 #define NVM_RAM_SIZE            54
 #define WRITE_NVR               0xA0
 
-#define CHARS_PER_LINE      30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
+#define CHARS_PER_LINE          30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
 
 // On shared SPI buss we want to change clock for OSD chip and restore for other devices.
 
@@ -178,11 +179,11 @@
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
-// we write everything in screenBuffer and then comapre
-// screenBuffer with shadowBuffer to upgrade only changed chars
-// this solution is faster then redraw all screen
-static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL+40]; //for faster writes we use memcpy so we need some space to don't overwrite buffer
-static uint8_t shadowBuffer[VIDEO_BUFFER_CHARS_PAL];
+// we write everything in screenBuffer and set a dirty bit
+// in screenIsDirty to upgrade only changed chars this solution
+// is faster than redrawing the whole screen on each frame
+static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL];
+static uint8_t screenIsDirty[VIDEO_BUFFER_CHARS_PAL/8] = {0,};
 
 //max chars to update in one idle
 #define MAX_CHARS2UPDATE    50
@@ -370,8 +371,8 @@ void max7456ReInit(void)
     max7456Send(MAX7456ADD_DMM, CLEAR_DISPLAY);
     DISABLE_MAX7456();
 
-    //clear shadow to force redraw all screen in non-dma mode
-    memset(shadowBuffer, 0, maxScreenSize);
+    // force redrawing all screen in non-dma mode
+    memset(screenIsDirty, 0xFF, sizeof(screenIsDirty));
     if (firstInit)
     {
         max7456RefreshAll();
@@ -405,10 +406,8 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
 //just fill with spaces with some tricks
 void max7456ClearScreen(void)
 {
-    uint16_t x;
-    uint32_t *p = (uint32_t*)&screenBuffer[0];
-    for (x = 0; x < VIDEO_BUFFER_CHARS_PAL/4; x++)
-        p[x] = 0x20202020;
+    memset(screenBuffer, 0x20, sizeof(screenBuffer));
+    memset(screenIsDirty, 0xFF, sizeof(screenIsDirty));
 }
 
 uint8_t* max7456GetScreenBuffer(void) {
@@ -417,15 +416,29 @@ uint8_t* max7456GetScreenBuffer(void) {
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
 {
-    screenBuffer[y*30+x] = c;
+    unsigned pos = y * CHARS_PER_LINE + x;
+    if (screenBuffer[pos] != c) {
+        screenBuffer[pos] = c;
+        bitArraySet(screenIsDirty, pos);
+    }
 }
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff)
 {
     uint8_t i = 0;
-    for (i = 0; *(buff+i); i++)
-        if (x+i < 30) //do not write over screen
-            screenBuffer[y*30+x+i] = *(buff+i);
+    uint8_t c;
+    unsigned pos = y * CHARS_PER_LINE + x;
+    for (i = 0; *buff; i++, buff++, pos++) {
+        //do not write past screen's end of line
+        if (x + i >= CHARS_PER_LINE) {
+            break;
+        }
+        c = *buff;
+        if (screenBuffer[pos] != c) {
+            screenBuffer[pos] = c;
+            bitArraySet(screenIsDirty, pos);
+        }
+    }
 }
 
 bool max7456DmaInProgress(void)
@@ -490,14 +503,14 @@ void max7456DrawScreenPartial(void)
         //------------   end of (re)init-------------------------------------
 
         for (k=0; k< MAX_CHARS2UPDATE; k++) {
-            if (screenBuffer[pos] != shadowBuffer[pos]) {
+            if (bitArrayGet(screenIsDirty, pos)) {
                 spiBuff[buff_len++] = MAX7456ADD_DMAH;
                 spiBuff[buff_len++] = pos >> 8;
                 spiBuff[buff_len++] = MAX7456ADD_DMAL;
                 spiBuff[buff_len++] = pos & 0xff;
                 spiBuff[buff_len++] = MAX7456ADD_DMDI;
                 spiBuff[buff_len++] = screenBuffer[pos];
-                shadowBuffer[pos] = screenBuffer[pos];
+                bitArrayClr(screenIsDirty, pos);
                 k++;
             }
 
@@ -539,8 +552,8 @@ void max7456RefreshAll(void)
         for (xx = 0; xx < maxScreenSize; ++xx)
         {
             max7456Send(MAX7456ADD_DMDI, screenBuffer[xx]);
-            shadowBuffer[xx] = screenBuffer[xx];
         }
+        memset(screenIsDirty, 0, sizeof(screenIsDirty));
 
         max7456Send(MAX7456ADD_DMDI, 0xFF);
         max7456Send(MAX7456ADD_DMM, 0);
