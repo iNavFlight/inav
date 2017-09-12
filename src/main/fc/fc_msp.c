@@ -1878,6 +1878,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     osdConfigMutable()->item_pos[addr] = pos;
                 }
             }
+            // Either a element position change or a units change needs
+            // a full redraw, since an element can change size significantly
+            // and the old position or the now unused space due to the
+            // size change need to be erased.
+            osdStartFullRedraw();
         }
         break;
     case MSP_OSD_CHAR_WRITE:

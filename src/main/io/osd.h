@@ -87,3 +87,4 @@ struct displayPort_s;
 void osdInit(struct displayPort_s *osdDisplayPort);
 void osdResetAlarms(void);
 void osdUpdate(timeUs_t currentTimeUs);
+void osdStartFullRedraw(void);

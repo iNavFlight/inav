@@ -104,6 +104,8 @@ static statistic_t stats;
 uint32_t resumeRefreshAt = 0;
 #define REFRESH_1S    (1000*1000)
 
+static bool fullRedraw = false;
+
 static uint8_t armState;
 
 static displayPort_t *osdDisplayPort;
@@ -949,6 +951,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
 #ifdef CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
+        if (fullRedraw) {
+            displayClearScreen(osdDisplayPort);
+            fullRedraw = false;
+        }
         osdUpdateAlarms();
         osdDrawNextElement();
         displayHeartbeat(osdDisplayPort);
@@ -997,4 +1003,10 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif
 }
+
+void osdStartFullRedraw(void)
+{
+    fullRedraw = true;
+}
+
 #endif // OSD
