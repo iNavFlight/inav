@@ -388,7 +388,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "HOR ";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
-            return true;
+            break;
         }
 
     case OSD_CRAFT_NAME:
@@ -455,8 +455,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
             osdDrawSingleElement(OSD_CROSSHAIRS);
-
-            return true;
+            break;
         }
 
     case OSD_HORIZON_SIDEBARS:
@@ -479,8 +478,7 @@ static bool osdDrawSingleElement(uint8_t item)
             // AH level indicators
             displayWriteChar(osdDisplayPort, elemPosX - hudwidth + 1, elemPosY, SYM_AH_LEFT);
             displayWriteChar(osdDisplayPort, elemPosX + hudwidth - 1, elemPosY, SYM_AH_RIGHT);
-
-            return true;
+            break;
         }
 
 #if defined(BARO) || defined(GPS)
@@ -519,7 +517,7 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+2, vchars[2]);
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+3, vchars[3]);
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+4, vchars[4]);
-            return true;
+            break;
         }
 
     case OSD_VARIO_NUM:
