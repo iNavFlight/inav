@@ -98,6 +98,17 @@ static void rtcTimeToDateTime(dateTime_t *dt, rtcTime_t t)
     dt->millis = t % MILLIS_PER_SECOND;
 }
 
+static bool rtcIsDateTimeValid(dateTime_t *dateTime)
+{
+    return (dateTime->year >= UNIX_REFERENCE_YEAR) &&
+           (dateTime->month >= 1 && dateTime->month <= 12) &&
+           (dateTime->day >= 1 && dateTime->day <= 31) &&
+           (dateTime->hours <= 23) &&
+           (dateTime->minutes <= 59) &&
+           (dateTime->seconds <= 59) &&
+           (dateTime->millis <= 999);
+}
+
 static void dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
 {
     dateTime_t local;
@@ -107,7 +118,7 @@ static void dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
     int tz_hours = 0;
     int tz_minutes = 0;
 
-    if (offset != 0) {
+    if (offset != 0 && rtcIsDateTimeValid(dateTime)) {
         tz_hours = offset / 60;
         tz_minutes = ABS(offset % 60);
         utcTime = dateTimeToRtcTime(dateTime);
