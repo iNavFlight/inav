@@ -72,8 +72,8 @@ typedef struct _dateTime_s {
 #define FORMATTED_DATE_TIME_BUFSIZE 30
 
 // buf must be at least FORMATTED_DATE_TIME_BUFSIZE
-void dateTimeFormatUTC(char *buf, dateTime_t *dt);
-void dateTimeFormatLocal(char *buf, dateTime_t *dt);
+bool dateTimeFormatUTC(char *buf, dateTime_t *dt);
+bool dateTimeFormatLocal(char *buf, dateTime_t *dt);
 
 bool rtcHasTime();
 
