@@ -529,8 +529,7 @@ void max7456DrawScreenPartial(void)
                 max7456SendDma(spiBuff, NULL, buff_len);
             #else
             ENABLE_MAX7456();
-            for (k=0; k < buff_len; k++)
-                spiTransferByte(MAX7456_SPI_INSTANCE, spiBuff[k]);
+            spiTransfer(MAX7456_SPI_INSTANCE, NULL, spiBuff, buff_len);
             DISABLE_MAX7456();
             #endif // MAX7456_DMA_CHANNEL_TX
         }
