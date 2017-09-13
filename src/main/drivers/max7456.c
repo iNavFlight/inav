@@ -403,7 +403,6 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
     //real init will be made letter when driver idle detect
 }
 
-//just fill with spaces with some tricks
 void max7456ClearScreen(void)
 {
     memset(screenBuffer, 0x20, sizeof(screenBuffer));
