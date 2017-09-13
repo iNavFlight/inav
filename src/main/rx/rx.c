@@ -80,7 +80,6 @@ int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 #define MAX_INVALID_PULS_TIME    300
-#define FILTERING_SAMPLE_COUNT   3
 
 #define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)
 #define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)
@@ -335,9 +334,10 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
     return rxDataReceived || ((int32_t)(currentTimeUs - rxLastUpdateTimeUs) >= 0); // data driven or 50Hz
 }
 
+#define FILTERING_SAMPLE_COUNT  5
 static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
 {
-    static int32_t rcSamples[MAX_SUPPORTED_RC_CHANNEL_COUNT][FILTERING_SAMPLE_COUNT];
+    static int16_t rcSamples[MAX_SUPPORTED_RC_CHANNEL_COUNT][FILTERING_SAMPLE_COUNT];
     static bool rxSamplesCollected = false;
 
     // Update the recent samples
@@ -351,8 +351,20 @@ static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
         rxSamplesCollected = true;
     }
 
-    // Apply median filtering
-    return quickMedianFilter3(rcSamples[chan]);
+    // Assuming a step transition from 1000 -> 2000 different filters will yield the following output:
+    //  No filter:              1000, 2000, 2000, 2000, 2000        - 0 samples delay
+    //  3-point moving average: 1000, 1333, 1667, 2000, 2000        - 2 samples delay
+    //  3-point median:         1000, 1000, 2000, 2000, 2000        - 1 sample delay
+    //  5-point median:         1000, 1000, 1000, 2000, 2000        - 2 sample delay
+
+    // For the same filters - noise rejection capabilities (2 out of 5 outliers
+    //  No filter:              1000, 2000, 1000, 2000, 1000, 1000, 1000
+    //  3-point MA:             1000, 1333, 1333, 1667, 1333, 1333, 1000    - noise has reduced magnitude, but spread over more samples
+    //  3-point median:         1000, 1000, 1000, 2000, 1000, 1000, 1000    - high density noise is not removed
+    //  5-point median:         1000, 1000, 1000, 1000, 1000, 1000, 1000    - only 3 out of 5 outlier noise will get through
+
+    // Apply 5-point median filtering. This filter has the same delay as 3-point moving average, but better noise rejection
+    return quickMedianFilter5_16(rcSamples[chan]);
 }
 
 void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)

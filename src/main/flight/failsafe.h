@@ -130,7 +130,7 @@ typedef enum {
 typedef struct failsafeState_s {
     int16_t events;
     bool monitoring;                        // Flag that failsafe is monitoring RC link
-    bool suspended;                         // Failsafe is temporary suspended
+    bool suspended;                         // Failsafe is temporary suspended. This happens when we temporary suspend RX system due to EEPROM write/read
     bool active;                            // Failsafe is active (on RC link loss)
     bool controlling;                       // Failsafe is driving the sticks instead of pilot
     timeMs_t rxDataFailurePeriod;

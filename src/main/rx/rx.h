@@ -46,9 +46,9 @@
 #define DELAY_5_HZ (1000000 / 5)
 
 typedef enum {
-    RX_FRAME_PENDING = 0,
-    RX_FRAME_COMPLETE = (1 << 0),
-    RX_FRAME_FAILSAFE = (1 << 1)
+    RX_FRAME_PENDING = 0,               // No new data available from receiver
+    RX_FRAME_COMPLETE = (1 << 0),       // There is new data available
+    RX_FRAME_FAILSAFE = (1 << 1)        // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
 } rxFrameState_e;
 
 typedef enum {
@@ -71,7 +71,7 @@ typedef enum {
     SERIALRX_IBUS = 7,
     SERIALRX_JETIEXBUS = 8,
     SERIALRX_CRSF = 9
-} SerialRXType;
+} rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
 #define MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT  8
@@ -105,7 +105,7 @@ PG_DECLARE_ARRAY(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeCo
 typedef struct rxConfig_s {
     uint8_t receiverType;
     uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
-    uint8_t serialrx_provider;              // type of UART-based receiver (0 = spek 10, 1 = spek 11, 2 = sbus). Only used if recevierType is RX_TYPE_SERIAL
+    uint8_t serialrx_provider;              // Type of UART-based receiver. Only used if receiverType is RX_TYPE_SERIAL
     uint8_t sbus_inversion;                 // default sbus (Futaba, FrSKY) is inverted. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode on F4, ignored for F1 and F3.
     uint8_t rx_spi_protocol;                // type of SPI receiver protocol. Only used if receiverType is RX_TYPE_SPI
