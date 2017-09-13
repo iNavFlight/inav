@@ -390,7 +390,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "HOR ";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
-            return true;
+            break;
         }
 
     case OSD_CRAFT_NAME:
@@ -457,8 +457,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
             osdDrawSingleElement(OSD_CROSSHAIRS);
-
-            return true;
+            break;
         }
 
     case OSD_HORIZON_SIDEBARS:
@@ -481,8 +480,7 @@ static bool osdDrawSingleElement(uint8_t item)
             // AH level indicators
             displayWriteChar(osdDisplayPort, elemPosX - hudwidth + 1, elemPosY, SYM_AH_LEFT);
             displayWriteChar(osdDisplayPort, elemPosX + hudwidth - 1, elemPosY, SYM_AH_RIGHT);
-
-            return true;
+            break;
         }
 
 #if defined(BARO) || defined(GPS)
@@ -521,7 +519,7 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+2, vchars[2]);
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+3, vchars[3]);
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+4, vchars[4]);
-            return true;
+            break;
         }
 
     case OSD_VARIO_NUM:
@@ -612,74 +610,6 @@ void osdDrawNextElement(void)
     }
     elementIndex = osdIncElementIndex(elementIndex);
 }
-
-void osdDrawElements(void)
-{
-    displayClearScreen(osdDisplayPort);
-
-#if 0
-    if (currentElement)
-        osdDrawElementPositioningHelp();
-#else
-    if (false)
-        ;
-#endif
-#ifdef CMS
-    else if (sensors(SENSOR_ACC) || displayIsGrabbed(osdDisplayPort))
-#else
-    else if (sensors(SENSOR_ACC))
-#endif
-    {
-        osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    }
-
-    osdDrawSingleElement(OSD_MAIN_BATT_VOLTAGE);
-    osdDrawSingleElement(OSD_RSSI_VALUE);
-    osdDrawSingleElement(OSD_FLYTIME);
-    osdDrawSingleElement(OSD_ONTIME);
-    osdDrawSingleElement(OSD_FLYMODE);
-    osdDrawSingleElement(OSD_THROTTLE_POS);
-    osdDrawSingleElement(OSD_VTX_CHANNEL);
-    if (feature(FEATURE_CURRENT_METER)) {
-        osdDrawSingleElement(OSD_CURRENT_DRAW);
-        osdDrawSingleElement(OSD_MAH_DRAWN);
-    }
-    osdDrawSingleElement(OSD_CRAFT_NAME);
-    osdDrawSingleElement(OSD_ALTITUDE);
-    osdDrawSingleElement(OSD_ROLL_PIDS);
-    osdDrawSingleElement(OSD_PITCH_PIDS);
-    osdDrawSingleElement(OSD_YAW_PIDS);
-    osdDrawSingleElement(OSD_POWER);
-
-#ifdef GPS
-#ifdef CMS
-    if (sensors(SENSOR_GPS) || displayIsGrabbed(osdDisplayPort))
-#else
-    if (sensors(SENSOR_GPS))
-#endif
-    {
-        osdDrawSingleElement(OSD_GPS_SATS);
-        osdDrawSingleElement(OSD_GPS_SPEED);
-        osdDrawSingleElement(OSD_GPS_LAT);
-        osdDrawSingleElement(OSD_GPS_LON);
-        osdDrawSingleElement(OSD_HOME_DIR);
-        osdDrawSingleElement(OSD_HOME_DIST);
-        osdDrawSingleElement(OSD_HEADING);
-    }
-#endif // GPS
-
-#if defined(BARO) || defined(GPS)
-    osdDrawSingleElement(OSD_VARIO);
-    osdDrawSingleElement(OSD_VARIO_NUM);
-#endif // defined
-
-#ifdef PITOT
-    if (sensors(SENSOR_PITOT)) {
-        osdDrawSingleElement(OSD_AIR_SPEED);
-    }
-#endif
-}
-
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
