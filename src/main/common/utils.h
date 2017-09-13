@@ -96,3 +96,5 @@ void * memcpy_fn ( void * destination, const void * source, size_t num ) asm("me
 #else
 #define FALLTHROUGH do {} while(0)
 #endif
+
+#define ALIGNED(x) __attribute__ ((aligned(x)))
