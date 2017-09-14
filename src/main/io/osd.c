@@ -918,15 +918,12 @@ void osdUpdate(timeUs_t currentTimeUs)
         osdUpdateStats();
     }
 
-    timeUs_t start = micros();
     if ((counter & DRAW_FREQ_DENOM) == 0) {
         // redraw values in buffer
         osdRefresh(currentTimeUs);
-        debug[0] = micros() - start;
     } else {
         // rest of time redraw screen
         displayDrawScreen(osdDisplayPort);
-        debug[1] = micros() - start;
     }
 
 #ifdef CMS
