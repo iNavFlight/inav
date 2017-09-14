@@ -21,11 +21,17 @@
 #define TARGET_BOARD_IDENTIFIER "OBSD"
 #elif defined(OMNIBUSF4V3)
 #define TARGET_BOARD_IDENTIFIER "OB43"
+#elif defined(DYSF4PRO)
+#define TARGET_BOARD_IDENTIFIER "DYS4"
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
 
+#if defined(DYSF4PRO)
+#define USBD_PRODUCT_STRING "DysF4Pro"
+#else
 #define USBD_PRODUCT_STRING     "Omnibus F4"
+#endif
 
 #define LED0                    PB5
 
@@ -54,6 +60,16 @@
 
 #define ACC
 #define USE_ACC_SPI_MPU6000
+
+// Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
+#if defined (OMNIBUSF4PRO)
+  #define USE_ACC_SPI_MPU6500
+  #define USE_GYRO_SPI_MPU6500
+  #define MPU6500_CS_PIN          MPU6000_CS_PIN
+  #define MPU6500_SPI_INSTANCE    MPU6000_SPI_INSTANCE
+  #define GYRO_MPU6500_ALIGN      GYRO_MPU6000_ALIGN
+  #define ACC_MPU6500_ALIGN       ACC_MPU6000_ALIGN
+#endif
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define GYRO_MPU6000_ALIGN      CW270_DEG
@@ -176,7 +192,13 @@
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
-#define ADC_CHANNEL_3_PIN               PA0
+
+#ifdef DYSF4PRO
+    #define ADC_CHANNEL_3_PIN               PC3
+#else
+    #define ADC_CHANNEL_3_PIN               PA0
+#endif
+
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
