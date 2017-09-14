@@ -157,7 +157,7 @@
 
 #ifdef MAX7456_SPI_CLK
     #define ENABLE_MAX7456()    do { \
-                                    spiSetDivisor(MAX7456_SPI_INSTANCE, MAX7456_SPI_CLK); \
+                                    spiSetSpeed(MAX7456_SPI_INSTANCE, MAX7456_SPI_CLK); \
                                     IOLo(max7456CsPin); \
                                 } while(0)
 #else
@@ -169,7 +169,7 @@
 #ifdef MAX7456_RESTORE_CLK
     #define DISABLE_MAX7456()   do { \
                                     IOHi(max7456CsPin); \
-                                    spiSetDivisor(MAX7456_SPI_INSTANCE, MAX7456_RESTORE_CLK); \
+                                    spiSetSpeed(MAX7456_SPI_INSTANCE, MAX7456_RESTORE_CLK); \
                                 } while(0)
 #else
     #define DISABLE_MAX7456()   do { \
@@ -390,7 +390,7 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
     IOInit(max7456CsPin, OWNER_OSD, RESOURCE_SPI_CS, 0);
     IOConfigGPIO(max7456CsPin, SPI_IO_CS_CFG);
 
-    spiSetDivisor(MAX7456_SPI_INSTANCE, SPI_CLOCK_STANDARD);
+    spiSetSpeed(MAX7456_SPI_INSTANCE, SPI_CLOCK_STANDARD);
     // force soft reset on Max7456
     ENABLE_MAX7456();
     max7456Send(MAX7456ADD_VM0, MAX7456_RESET);
@@ -461,7 +461,7 @@ void max7456DrawScreenPartial(void)
 
     if (!max7456Lock && !fontIsLoading) {
         // (Re)Initialize MAX7456 at startup or stall is detected.
-        
+
         max7456Lock = true;
         ENABLE_MAX7456();
         stallCheck = max7456Send(MAX7456ADD_VM0|MAX7456ADD_READ, 0x00);

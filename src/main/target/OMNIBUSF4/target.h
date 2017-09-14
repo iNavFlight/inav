@@ -143,8 +143,8 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI3
 #define MAX7456_SPI_CS_PIN      PA15
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+// #define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
+// #define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
@@ -155,11 +155,6 @@
   #define SDCARD_DETECT_PIN               PB7
   #define SDCARD_SPI_INSTANCE             SPI2
   #define SDCARD_SPI_CS_PIN               SPI2_NSS_PIN
-
-  // SPI2 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-  #define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-  // Divide to under 25MHz for normal operation:
-  #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 4 // 21MHz
 
   #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
   #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4

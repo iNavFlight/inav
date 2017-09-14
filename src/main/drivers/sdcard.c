@@ -204,7 +204,7 @@ static void sdcard_reset(void)
     }
 
     if (sdcard.state >= SDCARD_STATE_READY) {
-        spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER);
+        spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
     }
 
     sdcard.failureCount++;
@@ -567,7 +567,7 @@ void sdcard_init(bool useDMA)
 #endif // SDCARD_SPI_CS_PIN
 
     // Max frequency is initially 400kHz
-    spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER);
+    spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
 
     // SDCard wants 1ms minimum delay after power is applied to it
     delay(1000);
@@ -727,7 +727,7 @@ bool sdcard_poll(void)
                 }
 
                 // Now we're done with init and we can switch to the full speed clock (<25MHz)
-                spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER);
+                spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_FAST);
 
                 sdcard.multiWriteBlocksRemain = 0;
 
