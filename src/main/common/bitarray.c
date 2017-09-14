@@ -20,7 +20,9 @@
 
 #include "bitarray.h"
 
-#define BITARRAY_BIT_OP(array, bit, op) ((array)[(bit) / (sizeof((array)[0]) * 8)] op (1 << ((bit) % (sizeof((array)[0]) * 8))))
+// bit[0] in an element must be the MSB to allow using clz
+// to find set bits faster.
+#define BITARRAY_BIT_OP(array, bit, op) ((array)[(bit) / (sizeof((array)[0]) * 8)] op ((1u<<31) >> ((bit) % (sizeof((array)[0]) * 8))))
 
 bool bitArrayGet(const void *array, unsigned bit)
 {
