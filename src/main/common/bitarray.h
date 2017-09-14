@@ -16,6 +16,7 @@
  */
 
 #include <stdbool.h>
+#include <stddef.h>
 
 /*
  * These functions expect array to be 4-byte aligned since they alias array
@@ -25,3 +26,10 @@
 bool bitArrayGet(const void *array, unsigned bit);
 void bitArraySet(void *array, unsigned bit);
 void bitArrayClr(void *array, unsigned bit);
+// Returns the first set bit with pos >= start_bit, or -1 if all bits
+// are zero.
+// Note that size must indicate the size of array in bytes.
+//
+// WARNING: This function only works for arrays where size is a multiple
+// of 4.
+int bitArrayFindFirstSet(const void *array, unsigned start_bit, size_t size);
