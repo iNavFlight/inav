@@ -75,6 +75,8 @@ typedef struct _dateTime_s {
 bool dateTimeFormatUTC(char *buf, dateTime_t *dt);
 bool dateTimeFormatLocal(char *buf, dateTime_t *dt);
 
+void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime);
+
 bool rtcHasTime();
 
 bool rtcGet(rtcTime_t *t);

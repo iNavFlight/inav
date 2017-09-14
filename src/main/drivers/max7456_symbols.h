@@ -202,6 +202,7 @@
 #define SYM_FLY_M 0x9C
 #define SYM_ON_H  0x70
 #define SYM_FLY_H 0x71
+#define SYM_CLOCK 0xBC
 
 // Throttle Position (%)
 #define SYM_THR   0x04

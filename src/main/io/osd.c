@@ -596,6 +596,18 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_RTC_TIME:
+        {
+            // RTC not configured will show 00:00
+            dateTime_t dateTime;
+            if (rtcGetDateTime(&dateTime)) {
+                dateTimeUTCToLocal(&dateTime, &dateTime);
+            }
+            buff[0] = SYM_CLOCK;
+            tfp_sprintf(buff + 1, "%02u:%02u", dateTime.hours, dateTime.minutes);
+            break;
+        }
+
     default:
         return false;
     }
@@ -665,9 +677,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdConfig->item_pos[OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
-    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 9);
-    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 10);
+    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 8);
+    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 9);
     osdConfig->item_pos[OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_RTC_TIME] = OSD_POS(23, 12);
+
     osdConfig->item_pos[OSD_GPS_SATS] = OSD_POS(0, 11) | VISIBLE_FLAG;
 
     osdConfig->item_pos[OSD_GPS_LAT] = OSD_POS(0, 12);
