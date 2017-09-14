@@ -910,8 +910,8 @@ void osdUpdate(timeUs_t currentTimeUs)
         return;
     }
 
-#define DRAW_FREQ_DENOM     1
-#define STATS_FREQ_DENOM    20
+#define DRAW_FREQ_DENOM     4
+#define STATS_FREQ_DENOM    50
     counter++;
 
     if ((counter % STATS_FREQ_DENOM) == 0) {
@@ -922,7 +922,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         // redraw values in buffer
         osdRefresh(currentTimeUs);
     } else {
-        // rest of time redraw screen 10 chars per idle so it doesn't lock the main idle
+        // rest of time redraw screen
         displayDrawScreen(osdDisplayPort);
     }
 
