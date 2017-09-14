@@ -15,6 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
+
 bool bitArrayGet(const void *array, unsigned bit);
 void bitArraySet(void *array, unsigned bit);
 void bitArrayClr(void *array, unsigned bit);
