@@ -17,6 +17,11 @@
 
 #include <stdbool.h>
 
+/*
+ * These functions expect array to be 4-byte aligned since they alias array
+ * to an uint32_t pointer in order to work fast.
+ */
+
 bool bitArrayGet(const void *array, unsigned bit);
 void bitArraySet(void *array, unsigned bit);
 void bitArrayClr(void *array, unsigned bit);
