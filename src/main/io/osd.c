@@ -204,6 +204,29 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
     }
 }
 
+static void osdFormatTime(char *buff, uint32_t seconds, char sym_m, char sym_h)
+{
+    uint32_t value = seconds;
+    char sym = sym_m;
+    // Maximum value we can show in minutes is 99 minutes and 59 seconds
+    if (seconds > (99 * 60) + 59) {
+        sym = sym_h;
+        value = seconds / 60;
+    }
+    buff[0] = sym;
+    tfp_sprintf(buff + 1, "%02d:%02d", value / 60, value % 60);
+}
+
+static inline void osdFormatOnTime(char *buff)
+{
+    osdFormatTime(buff, micros() / 1000000, SYM_ON_M, SYM_ON_H);
+}
+
+static inline void osdFormatFlyTime(char *buff)
+{
+    osdFormatTime(buff, flyTime / 1000000, SYM_FLY_M, SYM_FLY_H);
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item]) || BLINK(osdConfig()->item_pos[item])) {
@@ -320,17 +343,23 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ONTIME:
         {
-            const uint32_t seconds = micros() / 1000000;
-            buff[0] = SYM_ON_M;
-            tfp_sprintf(buff + 1, "%02d:%02d", seconds / 60, seconds % 60);
+            osdFormatOnTime(buff);
             break;
         }
 
     case OSD_FLYTIME:
         {
-            const uint32_t seconds = flyTime / 1000000;
-            buff[0] = SYM_FLY_M;
-            tfp_sprintf(buff + 1, "%02d:%02d", seconds / 60, seconds % 60);
+            osdFormatFlyTime(buff);
+            break;
+        }
+
+    case OSD_ONTIME_FLYTIME:
+        {
+            if (ARMING_FLAG(ARMED)) {
+                osdFormatFlyTime(buff);
+            } else {
+                osdFormatOnTime(buff);
+            }
             break;
         }
 
@@ -636,8 +665,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdConfig->item_pos[OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
-    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 10) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 9);
+    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 10);
+    osdConfig->item_pos[OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_GPS_SATS] = OSD_POS(0, 11) | VISIBLE_FLAG;
 
     osdConfig->item_pos[OSD_GPS_LAT] = OSD_POS(0, 12);
