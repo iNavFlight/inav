@@ -120,11 +120,16 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
            (dateTime->millis <= 999);
 }
 
+static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, uint16_t minutes)
+{
+    rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
+    rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + minutes * 60, rtcTimeGetMillis(&initialTime));
+    rtcTimeToDateTime(dateTimeOffset, offsetTime);
+}
+
 static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
 {
     dateTime_t local;
-    rtcTime_t utcTime;
-    rtcTime_t localTime;
 
     int tz_hours = 0;
     int tz_minutes = 0;
@@ -134,9 +139,7 @@ static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
     if (offset != 0) {
         tz_hours = offset / 60;
         tz_minutes = ABS(offset % 60);
-        utcTime = dateTimeToRtcTime(dateTime);
-        localTime = rtcTimeMake(rtcTimeGetSeconds(&utcTime) + offset * 60, rtcTimeGetMillis(&utcTime));
-        rtcTimeToDateTime(&local, localTime);
+        dateTimeWithOffset(&local, dateTime, offset);
         dateTime = &local;
     }
 
@@ -177,6 +180,11 @@ bool dateTimeFormatUTC(char *buf, dateTime_t *dt)
 bool dateTimeFormatLocal(char *buf, dateTime_t *dt)
 {
     return dateTimeFormat(buf, dt, timeConfig()->tz_offset);
+}
+
+void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime)
+{
+    dateTimeWithOffset(localDateTime, utcDateTime, timeConfig()->tz_offset);
 }
 
 bool rtcHasTime()
