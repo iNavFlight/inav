@@ -831,6 +831,7 @@ static void osdUpdateStats(void)
 static void osdShowStats(void)
 {
     uint8_t top = 2;
+    const uint8_t statValuesX = 21;
     char buff[10];
 
     displayClearScreen(osdDisplayPort);
@@ -839,41 +840,50 @@ static void osdShowStats(void)
     if (STATE(GPS_FIX)) {
         displayWrite(osdDisplayPort, 2, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_speed);
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, 2, top, "MAX DISTANCE     :");
         osdFormatDistanceStr(buff, stats.max_distance*100);
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, 2, top, "TRAVELED DISTANCE:");
         osdFormatDistanceStr(buff, getTotalTravelDistance());
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
     }
 
     displayWrite(osdDisplayPort, 2, top, "MIN BATTERY      :");
     tfp_sprintf(buff, "%d.%1dV", stats.min_voltage / 10, stats.min_voltage % 10);
-    displayWrite(osdDisplayPort, 22, top++, buff);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, 2, top, "MIN RSSI         :");
     itoa(stats.min_rssi, buff, 10);
     strcat(buff, "%");
-    displayWrite(osdDisplayPort, 22, top++, buff);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     if (feature(FEATURE_CURRENT_METER)) {
         displayWrite(osdDisplayPort, 2, top, "MAX CURRENT      :");
         itoa(stats.max_current, buff, 10);
         strcat(buff, "A");
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, 2, top, "USED MAH         :");
         itoa(mAhDrawn, buff, 10);
         strcat(buff, "\x07");
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
     }
 
     displayWrite(osdDisplayPort, 2, top, "MAX ALTITUDE     :");
     osdFormatDistanceStr(buff, stats.max_altitude);
-    displayWrite(osdDisplayPort, 22, top++, buff);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    displayWrite(osdDisplayPort, 2, top, "FLY TIME         :");
+    uint32_t flySeconds = flyTime / 1000000;
+    uint16_t flyMinutes = flySeconds / 60;
+    flySeconds %= 60;
+    uint16_t flyHours = flyMinutes / 60;
+    flyMinutes %= 60;
+    tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 }
 
 // called when motors armed
