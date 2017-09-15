@@ -183,7 +183,7 @@ uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 // in screenIsDirty to upgrade only changed chars this solution
 // is faster than redrawing the whole screen on each frame
 static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL] ALIGNED(4);
-static uint8_t screenIsDirty[VIDEO_BUFFER_CHARS_PAL/8] ALIGNED(4) = {0,};
+static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
 
 //max chars to update in one idle
 #define MAX_CHARS2UPDATE    5

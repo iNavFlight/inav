@@ -706,6 +706,20 @@ $(OBJECT_DIR)/time_unittest : \
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
+$(OBJECT_DIR)/bitarray_unittest.o : \
+	$(TEST_DIR)/bitarray_unittest.cc \
+	$(USER_DIR)/common/bitarray.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/bitarray_unittest.cc -o $@
+
+$(OBJECT_DIR)/bitarray_unittest : \
+	$(OBJECT_DIR)/common/bitarray.o \
+	$(OBJECT_DIR)/bitarray_unittest.o \
+	$(OBJECT_DIR)/gtest_main.a
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
 
 test: $(TESTS:%=test-%)

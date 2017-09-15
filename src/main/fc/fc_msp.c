@@ -417,7 +417,7 @@ static void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {
-            bitArraySet(mspBoxModeFlags, i);
+            bitArraySet(mspBoxModeFlags->bits, i);
         }
     }
 }
