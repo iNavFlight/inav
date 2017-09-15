@@ -76,6 +76,10 @@ bool dateTimeFormatUTC(char *buf, dateTime_t *dt);
 bool dateTimeFormatLocal(char *buf, dateTime_t *dt);
 
 void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime);
+// dateTimeSplitFormatted splits a formatted date into its date
+// and time parts. Note that the string pointed by formatted will
+// be modifed and will become invalid after calling this function.
+bool dateTimeSplitFormatted(char *formatted, char **date, char **time);
 
 bool rtcHasTime();
 

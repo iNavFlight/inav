@@ -42,6 +42,7 @@
 #include "common/axis.h"
 #include "common/printf.h"
 #include "common/string_light.h"
+#include "common/time.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -227,6 +228,16 @@ static inline void osdFormatFlyTime(char *buff)
     osdFormatTime(buff, flyTime / 1000000, SYM_FLY_M, SYM_FLY_H);
 }
 
+static void osdFormatCoordinate(char *buff, char sym, int32_t val)
+{
+    buff[0] = sym;
+    char wholeDegreeString[5];
+    tfp_sprintf(wholeDegreeString, "%d", val / GPS_DEGREES_DIVIDER);
+    char wholeUnshifted[32];
+    tfp_sprintf(wholeUnshifted, "%d", val);
+    tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item]) || BLINK(osdConfig()->item_pos[item])) {
@@ -280,23 +291,12 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_LAT:
+        osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
+        break;
+
     case OSD_GPS_LON:
-        {
-            int32_t val;
-            if (item == OSD_GPS_LAT) {
-                buff[0] = 0xA6;
-                val = gpsSol.llh.lat;
-            } else {
-                buff[0] = 0xA7;
-                val = gpsSol.llh.lon;
-            }
-            char wholeDegreeString[5];
-            tfp_sprintf(wholeDegreeString, "%d", val / GPS_DEGREES_DIVIDER);
-            char wholeUnshifted[32];
-            tfp_sprintf(wholeUnshifted, "%d", val);
-            tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
-            break;
-        }
+        osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
+        break;
 
     case OSD_HOME_DIR:
         {
@@ -879,8 +879,31 @@ static void osdShowStats(void)
 // called when motors armed
 static void osdShowArmed(void)
 {
+    dateTime_t dt;
+    char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
+    char *date;
+    char *time;
+    uint8_t y = 7;
+
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12, 7, "ARMED");
+    displayWrite(osdDisplayPort, 12, y, "ARMED");
+    y += 2;
+
+    if (STATE(GPS_FIX)) {
+        osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
+        osdFormatCoordinate(buf, SYM_LON, gpsSol.llh.lon);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
+        y += 3;
+    }
+
+    if (rtcGetDateTime(&dt)) {
+        dateTimeFormatLocal(buf, &dt);
+        dateTimeSplitFormatted(buf, &date, &time);
+
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(date)) / 2, y, date);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(time)) / 2, y + 1, time);
+    }
 }
 
 static void osdRefresh(timeUs_t currentTimeUs)

@@ -88,8 +88,8 @@
 #define SYM_DIRECTION  0x72
 
 // GPS Coordinates and Altitude
-#define SYM_LAT 0xCA
-#define SYM_LON 0xCB
+#define SYM_LAT 0xA6
+#define SYM_LON 0xA7
 #define SYM_ALT 0xAA
 
 // GPS Mode and Autopilot
