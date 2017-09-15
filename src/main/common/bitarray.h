@@ -20,16 +20,22 @@
 
 /*
  * These functions expect array to be 4-byte aligned since they alias array
- * to an uint32_t pointer in order to work fast.
+ * to an uint32_t pointer in order to work fast. Use the BITARRAY_DECLARE()
+ * macro to declare a bit array that can be safely used by them.
  */
 
-bool bitArrayGet(const void *array, unsigned bit);
-void bitArraySet(void *array, unsigned bit);
-void bitArrayClr(void *array, unsigned bit);
+typedef uint32_t bitarrayElement_t;
+
+#define BITARRAY_DECLARE(name, bits) bitarrayElement_t name[(bits + 31) / 32]
+
+bool bitArrayGet(const bitarrayElement_t *array, unsigned bit);
+void bitArraySet(bitarrayElement_t *array, unsigned bit);
+void bitArrayClr(bitarrayElement_t *array, unsigned bit);
+
 // Returns the first set bit with pos >= start_bit, or -1 if all bits
-// are zero.
-// Note that size must indicate the size of array in bytes.
-//
-// WARNING: This function only works for arrays where size is a multiple
-// of 4.
-int bitArrayFindFirstSet(const void *array, unsigned start_bit, size_t size);
+// are zero. Note that size must indicate the size of array in bytes.
+// In most cases, you should use the BITARRAY_FIND_FIRST_SET() macro
+// to call this function.
+int bitArrayFindFirstSet(const bitarrayElement_t *array, unsigned start_bit, size_t size);
+
+#define BITARRAY_FIND_FIRST_SET(array, start_bit) bitArrayFindFirstSet(array, start_bit, sizeof(array))

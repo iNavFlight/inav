@@ -24,17 +24,17 @@
 // to find set bits faster.
 #define BITARRAY_BIT_OP(array, bit, op) ((array)[(bit) / (sizeof((array)[0]) * 8)] op ((1u<<31) >> ((bit) % (sizeof((array)[0]) * 8))))
 
-bool bitArrayGet(const void *array, unsigned bit)
+bool bitArrayGet(const bitarrayElement_t *array, unsigned bit)
 {
     return BITARRAY_BIT_OP((uint32_t*)array, bit, &);
 }
 
-void bitArraySet(void *array, unsigned bit)
+void bitArraySet(bitarrayElement_t *array, unsigned bit)
 {
     BITARRAY_BIT_OP((uint32_t*)array, bit, |=);
 }
 
-void bitArrayClr(void *array, unsigned bit)
+void bitArrayClr(bitarrayElement_t *array, unsigned bit)
 {
     BITARRAY_BIT_OP((uint32_t*)array, bit, &=~);
 }
@@ -52,7 +52,7 @@ __attribute__((always_inline)) static inline uint8_t __CLZ(uint32_t val)
 #endif
 }
 
-int bitArrayFindFirstSet(const void *array, unsigned start, size_t size)
+int bitArrayFindFirstSet(const bitarrayElement_t *array, unsigned start, size_t size)
 {
     const uint32_t *ptr = (uint32_t*)array;
     const uint32_t *end = ptr + (size / 4);
