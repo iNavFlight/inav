@@ -152,6 +152,7 @@
 #define WRITE_NVR               0xA0
 
 #define CHARS_PER_LINE          30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
+#define CHAR_BLANK              0x20
 
 // On shared SPI buss we want to change clock for OSD chip and restore for other devices.
 
@@ -186,12 +187,14 @@ static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL] ALIGNED(4);
 static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
 
 //max chars to update in one idle
-#define MAX_CHARS2UPDATE    5
+#define MAX_CHARS2UPDATE        10
+#define BYTES_PER_CHAR2UPDATE   6 // 3 spi regs + 3 values
 #ifdef MAX7456_DMA_CHANNEL_TX
 volatile bool dmaTransactionInProgress = false;
 #endif
 
-static uint8_t spiBuff[MAX_CHARS2UPDATE*6];
+#define SPI_BUFF_SIZE (MAX_CHARS2UPDATE*BYTES_PER_CHAR2UPDATE)
+static uint8_t spiBuff[SPI_BUFF_SIZE];
 
 static uint8_t  videoSignalCfg   = 0;
 static uint8_t  videoSignalReg   = VIDEO_MODE_PAL | OSD_ENABLE; //PAL by default
@@ -326,7 +329,8 @@ uint8_t max7456GetRowsCount(void)
 }
 
 //because MAX7456 need some time to detect video system etc. we need to wait for a while to initialize it at startup
-//and in case of restart we need to reinitialize chip
+//and in case of restart we need to reinitialize chip. Note that we can't touch screenBuffer here, since
+//it might already have some data by the first time this function is called.
 void max7456ReInit(void)
 {
     uint8_t maxScreenRows;
@@ -397,6 +401,9 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
     DISABLE_MAX7456();
     videoSignalCfg = pVcdProfile->video_system;
 
+    // Set screenbuffer to all blanks
+    memset(screenBuffer, CHAR_BLANK, sizeof(screenBuffer));
+
 #ifdef MAX7456_DMA_CHANNEL_TX
     dmaSetHandler(MAX7456_DMA_IRQ_HANDLER_ID, max7456_dma_irq_handler, NVIC_PRIO_MAX7456_DMA, 0);
 #endif
@@ -405,8 +412,12 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
 
 void max7456ClearScreen(void)
 {
-    memset(screenBuffer, 0x20, sizeof(screenBuffer));
-    memset(screenIsDirty, 0xFF, sizeof(screenIsDirty));
+    for (uint_fast16_t ii = 0; ii < sizeof(screenBuffer); ii++) {
+        if (screenBuffer[ii] != CHAR_BLANK) {
+            screenBuffer[ii] = CHAR_BLANK;
+            bitArraySet(screenIsDirty, ii);
+        }
+    }
 }
 
 uint8_t* max7456GetScreenBuffer(void) {
@@ -451,13 +462,14 @@ bool max7456DmaInProgress(void)
 
 void max7456DrawScreenPartial(void)
 {
+    static uint32_t lastSigCheckMs = 0;
+    static uint32_t videoDetectTimeMs = 0;
+
     uint8_t stallCheck;
     uint8_t videoSense;
-    static uint32_t lastSigCheckMs = 0;
     uint32_t nowMs;
-    static uint32_t videoDetectTimeMs = 0;
-    static uint16_t pos = 0;
-    int k = 0, buff_len=0;
+    int pos;
+    int buff_len = 0;
 
     if (!max7456Lock && !fontIsLoading) {
         // (Re)Initialize MAX7456 at startup or stall is detected.
@@ -501,25 +513,28 @@ void max7456DrawScreenPartial(void)
 
         //------------   end of (re)init-------------------------------------
 
-        // Note that k should not be incremented on each
-        // iteration, only when we find a character that
-        // we need to send to the OSD.
-        for (k=0; k< MAX_CHARS2UPDATE;) {
-            if (bitArrayGet(screenIsDirty, pos)) {
-                spiBuff[buff_len++] = MAX7456ADD_DMAH;
-                spiBuff[buff_len++] = pos >> 8;
-                spiBuff[buff_len++] = MAX7456ADD_DMAL;
-                spiBuff[buff_len++] = pos & 0xff;
-                spiBuff[buff_len++] = MAX7456ADD_DMDI;
-                spiBuff[buff_len++] = screenBuffer[pos];
-                bitArrayClr(screenIsDirty, pos);
-                k++;
-            }
-
-            if (++pos >= maxScreenSize) {
-                pos = 0;
+        for (pos = 0;;) {
+            pos = BITARRAY_FIND_FIRST_SET(screenIsDirty, pos);
+            if (pos < 0 || pos >= maxScreenSize) {
+                // No more dirty chars.
                 break;
             }
+            // Found one dirty character to send
+            spiBuff[buff_len++] = MAX7456ADD_DMAH;
+            spiBuff[buff_len++] = pos >> 8;
+            spiBuff[buff_len++] = MAX7456ADD_DMAL;
+            spiBuff[buff_len++] = pos & 0xff;
+            spiBuff[buff_len++] = MAX7456ADD_DMDI;
+            spiBuff[buff_len++] = screenBuffer[pos];
+            bitArrayClr(screenIsDirty, pos);
+            if (buff_len == SPI_BUFF_SIZE) {
+                // If the buffer is full, don't increment
+                // pos since we won't check the buffer
+                // until the next iteration.
+                break;
+            }
+            // Start next search at next bit
+            pos++;
         }
 
         if (buff_len) {
