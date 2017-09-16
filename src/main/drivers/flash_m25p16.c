@@ -234,7 +234,7 @@ bool m25p16_init(ioTag_t csTag)
 
 #ifndef M25P16_SPI_SHARED
     //Maximum speed for standard READ command is 20mHz, other commands tolerate 25mHz
-    spiSetDivisor(M25P16_SPI_INSTANCE, SPI_CLOCK_FAST);
+    spiSetSpeed(M25P16_SPI_INSTANCE, SPI_CLOCK_FAST);
 #endif
 
     return m25p16_readIdentification();

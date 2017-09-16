@@ -120,11 +120,16 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
            (dateTime->millis <= 999);
 }
 
+static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, uint16_t minutes)
+{
+    rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
+    rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + minutes * 60, rtcTimeGetMillis(&initialTime));
+    rtcTimeToDateTime(dateTimeOffset, offsetTime);
+}
+
 static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
 {
     dateTime_t local;
-    rtcTime_t utcTime;
-    rtcTime_t localTime;
 
     int tz_hours = 0;
     int tz_minutes = 0;
@@ -134,9 +139,7 @@ static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
     if (offset != 0) {
         tz_hours = offset / 60;
         tz_minutes = ABS(offset % 60);
-        utcTime = dateTimeToRtcTime(dateTime);
-        localTime = rtcTimeMake(rtcTimeGetSeconds(&utcTime) + offset * 60, rtcTimeGetMillis(&utcTime));
-        rtcTimeToDateTime(&local, localTime);
+        dateTimeWithOffset(&local, dateTime, offset);
         dateTime = &local;
     }
 
@@ -146,6 +149,8 @@ static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
         retVal = false;
     }
 
+    // XXX: Changes to this format might require updates in
+    // dateTimeSplitFormatted()
     tfp_sprintf(buf, "%04u-%02u-%02uT%02u:%02u:%02u.%03u%c%02d:%02d",
         dateTime->year, dateTime->month, dateTime->day,
         dateTime->hours, dateTime->minutes, dateTime->seconds, dateTime->millis,
@@ -177,6 +182,26 @@ bool dateTimeFormatUTC(char *buf, dateTime_t *dt)
 bool dateTimeFormatLocal(char *buf, dateTime_t *dt)
 {
     return dateTimeFormat(buf, dt, timeConfig()->tz_offset);
+}
+
+void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime)
+{
+    dateTimeWithOffset(localDateTime, utcDateTime, timeConfig()->tz_offset);
+}
+
+bool dateTimeSplitFormatted(char *formatted, char **date, char **time)
+{
+    // Just look for the T and replace it with a zero
+    // XXX: Keep in sync with dateTimeFormat()
+    for (char *p = formatted; *p; p++) {
+        if (*p == 'T') {
+            *date = formatted;
+            *time = (p+1);
+            *p = '\0';
+            return true;
+        }
+    }
+    return false;
 }
 
 bool rtcHasTime()

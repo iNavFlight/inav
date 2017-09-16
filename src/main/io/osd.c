@@ -42,6 +42,7 @@
 #include "common/axis.h"
 #include "common/printf.h"
 #include "common/string_light.h"
+#include "common/time.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -103,6 +104,8 @@ static statistic_t stats;
 
 uint32_t resumeRefreshAt = 0;
 #define REFRESH_1S    (1000*1000)
+
+static bool fullRedraw = false;
 
 static uint8_t armState;
 
@@ -202,6 +205,39 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
     }
 }
 
+static void osdFormatTime(char *buff, uint32_t seconds, char sym_m, char sym_h)
+{
+    uint32_t value = seconds;
+    char sym = sym_m;
+    // Maximum value we can show in minutes is 99 minutes and 59 seconds
+    if (seconds > (99 * 60) + 59) {
+        sym = sym_h;
+        value = seconds / 60;
+    }
+    buff[0] = sym;
+    tfp_sprintf(buff + 1, "%02d:%02d", value / 60, value % 60);
+}
+
+static inline void osdFormatOnTime(char *buff)
+{
+    osdFormatTime(buff, micros() / 1000000, SYM_ON_M, SYM_ON_H);
+}
+
+static inline void osdFormatFlyTime(char *buff)
+{
+    osdFormatTime(buff, flyTime / 1000000, SYM_FLY_M, SYM_FLY_H);
+}
+
+static void osdFormatCoordinate(char *buff, char sym, int32_t val)
+{
+    buff[0] = sym;
+    char wholeDegreeString[5];
+    tfp_sprintf(wholeDegreeString, "%d", val / GPS_DEGREES_DIVIDER);
+    char wholeUnshifted[32];
+    tfp_sprintf(wholeUnshifted, "%d", val);
+    tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item]) || BLINK(osdConfig()->item_pos[item])) {
@@ -255,23 +291,12 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_LAT:
+        osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
+        break;
+
     case OSD_GPS_LON:
-        {
-            int32_t val;
-            if (item == OSD_GPS_LAT) {
-                buff[0] = 0xA6;
-                val = gpsSol.llh.lat;
-            } else {
-                buff[0] = 0xA7;
-                val = gpsSol.llh.lon;
-            }
-            char wholeDegreeString[5];
-            tfp_sprintf(wholeDegreeString, "%d", val / GPS_DEGREES_DIVIDER);
-            char wholeUnshifted[32];
-            tfp_sprintf(wholeUnshifted, "%d", val);
-            tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
-            break;
-        }
+        osdFormatCoordinate(buff, SYM_LON, gpsSol.llh.lon);
+        break;
 
     case OSD_HOME_DIR:
         {
@@ -318,17 +343,23 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ONTIME:
         {
-            const uint32_t seconds = micros() / 1000000;
-            buff[0] = SYM_ON_M;
-            tfp_sprintf(buff + 1, "%02d:%02d", seconds / 60, seconds % 60);
+            osdFormatOnTime(buff);
             break;
         }
 
     case OSD_FLYTIME:
         {
-            const uint32_t seconds = flyTime / 1000000;
-            buff[0] = SYM_FLY_M;
-            tfp_sprintf(buff + 1, "%02d:%02d", seconds / 60, seconds % 60);
+            osdFormatFlyTime(buff);
+            break;
+        }
+
+    case OSD_ONTIME_FLYTIME:
+        {
+            if (ARMING_FLAG(ARMED)) {
+                osdFormatFlyTime(buff);
+            } else {
+                osdFormatOnTime(buff);
+            }
             break;
         }
 
@@ -565,6 +596,18 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_RTC_TIME:
+        {
+            // RTC not configured will show 00:00
+            dateTime_t dateTime;
+            if (rtcGetDateTime(&dateTime)) {
+                dateTimeUTCToLocal(&dateTime, &dateTime);
+            }
+            buff[0] = SYM_CLOCK;
+            tfp_sprintf(buff + 1, "%02u:%02u", dateTime.hours, dateTime.minutes);
+            break;
+        }
+
     default:
         return false;
     }
@@ -611,74 +654,6 @@ void osdDrawNextElement(void)
     elementIndex = osdIncElementIndex(elementIndex);
 }
 
-void osdDrawElements(void)
-{
-    displayClearScreen(osdDisplayPort);
-
-#if 0
-    if (currentElement)
-        osdDrawElementPositioningHelp();
-#else
-    if (false)
-        ;
-#endif
-#ifdef CMS
-    else if (sensors(SENSOR_ACC) || displayIsGrabbed(osdDisplayPort))
-#else
-    else if (sensors(SENSOR_ACC))
-#endif
-    {
-        osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    }
-
-    osdDrawSingleElement(OSD_MAIN_BATT_VOLTAGE);
-    osdDrawSingleElement(OSD_RSSI_VALUE);
-    osdDrawSingleElement(OSD_FLYTIME);
-    osdDrawSingleElement(OSD_ONTIME);
-    osdDrawSingleElement(OSD_FLYMODE);
-    osdDrawSingleElement(OSD_THROTTLE_POS);
-    osdDrawSingleElement(OSD_VTX_CHANNEL);
-    if (feature(FEATURE_CURRENT_METER)) {
-        osdDrawSingleElement(OSD_CURRENT_DRAW);
-        osdDrawSingleElement(OSD_MAH_DRAWN);
-    }
-    osdDrawSingleElement(OSD_CRAFT_NAME);
-    osdDrawSingleElement(OSD_ALTITUDE);
-    osdDrawSingleElement(OSD_ROLL_PIDS);
-    osdDrawSingleElement(OSD_PITCH_PIDS);
-    osdDrawSingleElement(OSD_YAW_PIDS);
-    osdDrawSingleElement(OSD_POWER);
-
-#ifdef GPS
-#ifdef CMS
-    if (sensors(SENSOR_GPS) || displayIsGrabbed(osdDisplayPort))
-#else
-    if (sensors(SENSOR_GPS))
-#endif
-    {
-        osdDrawSingleElement(OSD_GPS_SATS);
-        osdDrawSingleElement(OSD_GPS_SPEED);
-        osdDrawSingleElement(OSD_GPS_LAT);
-        osdDrawSingleElement(OSD_GPS_LON);
-        osdDrawSingleElement(OSD_HOME_DIR);
-        osdDrawSingleElement(OSD_HOME_DIST);
-        osdDrawSingleElement(OSD_HEADING);
-    }
-#endif // GPS
-
-#if defined(BARO) || defined(GPS)
-    osdDrawSingleElement(OSD_VARIO);
-    osdDrawSingleElement(OSD_VARIO_NUM);
-#endif // defined
-
-#ifdef PITOT
-    if (sensors(SENSOR_PITOT)) {
-        osdDrawSingleElement(OSD_AIR_SPEED);
-    }
-#endif
-}
-
-
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
     osdConfig->item_pos[OSD_ALTITUDE] = OSD_POS(1, 0) | VISIBLE_FLAG;
@@ -702,8 +677,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdConfig->item_pos[OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
-    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 10) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_ONTIME] = OSD_POS(23, 8);
+    osdConfig->item_pos[OSD_FLYTIME] = OSD_POS(23, 9);
+    osdConfig->item_pos[OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_RTC_TIME] = OSD_POS(23, 12);
+
     osdConfig->item_pos[OSD_GPS_SATS] = OSD_POS(0, 11) | VISIBLE_FLAG;
 
     osdConfig->item_pos[OSD_GPS_LAT] = OSD_POS(0, 12);
@@ -853,6 +831,7 @@ static void osdUpdateStats(void)
 static void osdShowStats(void)
 {
     uint8_t top = 2;
+    const uint8_t statValuesX = 21;
     char buff[10];
 
     displayClearScreen(osdDisplayPort);
@@ -861,48 +840,80 @@ static void osdShowStats(void)
     if (STATE(GPS_FIX)) {
         displayWrite(osdDisplayPort, 2, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_speed);
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, 2, top, "MAX DISTANCE     :");
         osdFormatDistanceStr(buff, stats.max_distance*100);
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, 2, top, "TRAVELED DISTANCE:");
         osdFormatDistanceStr(buff, getTotalTravelDistance());
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
     }
 
     displayWrite(osdDisplayPort, 2, top, "MIN BATTERY      :");
     tfp_sprintf(buff, "%d.%1dV", stats.min_voltage / 10, stats.min_voltage % 10);
-    displayWrite(osdDisplayPort, 22, top++, buff);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, 2, top, "MIN RSSI         :");
     itoa(stats.min_rssi, buff, 10);
     strcat(buff, "%");
-    displayWrite(osdDisplayPort, 22, top++, buff);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     if (feature(FEATURE_CURRENT_METER)) {
         displayWrite(osdDisplayPort, 2, top, "MAX CURRENT      :");
         itoa(stats.max_current, buff, 10);
         strcat(buff, "A");
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, 2, top, "USED MAH         :");
         itoa(mAhDrawn, buff, 10);
         strcat(buff, "\x07");
-        displayWrite(osdDisplayPort, 22, top++, buff);
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
     }
 
     displayWrite(osdDisplayPort, 2, top, "MAX ALTITUDE     :");
     osdFormatDistanceStr(buff, stats.max_altitude);
-    displayWrite(osdDisplayPort, 22, top++, buff);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    displayWrite(osdDisplayPort, 2, top, "FLY TIME         :");
+    uint32_t flySeconds = flyTime / 1000000;
+    uint16_t flyMinutes = flySeconds / 60;
+    flySeconds %= 60;
+    uint16_t flyHours = flyMinutes / 60;
+    flyMinutes %= 60;
+    tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 }
 
 // called when motors armed
 static void osdShowArmed(void)
 {
+    dateTime_t dt;
+    char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
+    char *date;
+    char *time;
+    uint8_t y = 7;
+
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, 12, 7, "ARMED");
+    displayWrite(osdDisplayPort, 12, y, "ARMED");
+    y += 2;
+
+    if (STATE(GPS_FIX)) {
+        osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
+        osdFormatCoordinate(buf, SYM_LON, gpsSol.llh.lon);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
+        y += 3;
+    }
+
+    if (rtcGetDateTime(&dt)) {
+        dateTimeFormatLocal(buf, &dt);
+        dateTimeSplitFormatted(buf, &date, &time);
+
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(date)) / 2, y, date);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(time)) / 2, y + 1, time);
+    }
 }
 
 static void osdRefresh(timeUs_t currentTimeUs)
@@ -949,6 +960,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
 #ifdef CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
+        if (fullRedraw) {
+            displayClearScreen(osdDisplayPort);
+            fullRedraw = false;
+        }
         osdUpdateAlarms();
         osdDrawNextElement();
         displayHeartbeat(osdDisplayPort);
@@ -972,8 +987,8 @@ void osdUpdate(timeUs_t currentTimeUs)
         return;
     }
 
-#define DRAW_FREQ_DENOM     1
-#define STATS_FREQ_DENOM    20
+#define DRAW_FREQ_DENOM     4
+#define STATS_FREQ_DENOM    50
     counter++;
 
     if ((counter % STATS_FREQ_DENOM) == 0) {
@@ -984,7 +999,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         // redraw values in buffer
         osdRefresh(currentTimeUs);
     } else {
-        // rest of time redraw screen 10 chars per idle so it doesn't lock the main idle
+        // rest of time redraw screen
         displayDrawScreen(osdDisplayPort);
     }
 
@@ -997,4 +1012,10 @@ void osdUpdate(timeUs_t currentTimeUs)
     }
 #endif
 }
+
+void osdStartFullRedraw(void)
+{
+    fullRedraw = true;
+}
+
 #endif // OSD

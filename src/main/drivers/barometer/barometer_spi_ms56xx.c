@@ -67,7 +67,7 @@ void ms56xxSpiInit(void)
 
     DISABLE_MS56XX(spiCsnPin);
 
-    spiSetDivisor(MS56XX_SPI_INSTANCE, SPI_CLOCK_STANDARD);
+    spiSetSpeed(MS56XX_SPI_INSTANCE, SPI_CLOCK_STANDARD);
 
     hardwareInitialised = true;
 }

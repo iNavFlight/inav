@@ -630,11 +630,11 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
     cmsInMenu = false;
 
+    displayClearScreen(pDisplay);
     displayRelease(pDisplay);
     currentCtx.menu = NULL;
 
     if (exitType == CMS_EXIT_SAVEREBOOT) {
-        displayClearScreen(pDisplay);
         displayWrite(pDisplay, 5, 3, "REBOOTING...");
 
         displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
@@ -722,10 +722,9 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             }
             break;
 
-        case OME_Funcall:;
-            long retval;
+        case OME_Funcall:
             if (p->func && key == KEY_RIGHT) {
-                retval = p->func(pDisplay, p->data);
+                long retval = p->func(pDisplay, p->data);
                 if (retval == MENU_CHAIN_BACK)
                     cmsMenuBack(pDisplay);
                 res = BUTTON_PAUSE;

@@ -69,7 +69,7 @@ void bmp280SpiInit(void)
 
     DISABLE_BMP280;
 
-    spiSetDivisor(BMP280_SPI_INSTANCE, SPI_CLOCK_STANDARD);
+    spiSetSpeed(BMP280_SPI_INSTANCE, SPI_CLOCK_STANDARD);
 
     hardwareInitialised = true;
 }

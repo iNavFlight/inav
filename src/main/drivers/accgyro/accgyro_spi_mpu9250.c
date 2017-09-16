@@ -122,7 +122,7 @@ static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
         return;
     }
 
-    spiSetDivisor(MPU9250_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON); //low speed for writing to slow registers
+    spiSetSpeed(MPU9250_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON); //low speed for writing to slow registers
 
     mpu9250SpiWriteRegister(&gyro->bus, MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);
     delay(50);
@@ -150,7 +150,7 @@ static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
     verifympu9250SpiWriteRegister(&gyro->bus, MPU_RA_INT_ENABLE, 0x01); //this resets register MPU_RA_PWR_MGMT_1 and won't read back correctly.
 #endif
 
-    spiSetDivisor(MPU9250_SPI_INSTANCE, SPI_CLOCK_FAST);
+    spiSetSpeed(MPU9250_SPI_INSTANCE, SPI_CLOCK_FAST);
 
     mpuSpi9250InitDone = true; //init done
 }
@@ -161,7 +161,7 @@ bool mpu9250SpiDetect(const busDevice_t *bus)
     IOInit(bus->spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
     IOConfigGPIO(bus->spi.csnPin, SPI_IO_CS_CFG);
 
-    spiSetDivisor(MPU9250_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON); //low speed
+    spiSetSpeed(MPU9250_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON); //low speed
     mpu9250SpiWriteRegister(bus, MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);
 
     uint8_t attemptsRemaining = 20;
@@ -177,7 +177,7 @@ bool mpu9250SpiDetect(const busDevice_t *bus)
         }
     } while (attemptsRemaining--);
 
-    spiSetDivisor(MPU9250_SPI_INSTANCE, SPI_CLOCK_FAST);
+    spiSetSpeed(MPU9250_SPI_INSTANCE, SPI_CLOCK_FAST);
 
     return true;
 }
@@ -207,7 +207,7 @@ static void mpu9250SpiGyroInit(gyroDev_t *gyro)
 
     spiResetErrorCounter(MPU9250_SPI_INSTANCE);
 
-    spiSetDivisor(MPU9250_SPI_INSTANCE, SPI_CLOCK_FAST); //high speed now that we don't need to write to the slow registers
+    spiSetSpeed(MPU9250_SPI_INSTANCE, SPI_CLOCK_FAST); //high speed now that we don't need to write to the slow registers
 
     mpuGyroRead(gyro);
 

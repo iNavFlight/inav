@@ -19,6 +19,8 @@
 
 #include <stdbool.h>
 
+#include "common/bitarray.h"
+
 #include "config/parameter_group.h"
 
 typedef enum {
@@ -58,7 +60,7 @@ typedef enum {
 } boxId_e;
 
 // type to hold enough bits for CHECKBOX_ITEM_COUNT. Struct used for value-like behavior
-typedef struct boxBitmask_s { uint32_t bits[(CHECKBOX_ITEM_COUNT + 31) / 32]; } boxBitmask_t;
+typedef struct boxBitmask_s { BITARRAY_DECLARE(bits, CHECKBOX_ITEM_COUNT); } boxBitmask_t;
 
 #define MAX_MODE_ACTIVATION_CONDITION_COUNT 20
 

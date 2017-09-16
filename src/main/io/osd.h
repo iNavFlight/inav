@@ -57,6 +57,8 @@ typedef enum {
     OSD_VARIO,
     OSD_VARIO_NUM,
     OSD_AIR_SPEED,
+    OSD_ONTIME_FLYTIME,
+    OSD_RTC_TIME,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -87,3 +89,4 @@ struct displayPort_s;
 void osdInit(struct displayPort_s *osdDisplayPort);
 void osdResetAlarms(void);
 void osdUpdate(timeUs_t currentTimeUs);
+void osdStartFullRedraw(void);

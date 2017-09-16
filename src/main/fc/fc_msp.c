@@ -417,7 +417,7 @@ static void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {
-            bitArraySet(mspBoxModeFlags, i);
+            bitArraySet(mspBoxModeFlags->bits, i);
         }
     }
 }
@@ -1879,6 +1879,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     osdConfigMutable()->item_pos[addr] = pos;
                 }
             }
+            // Either a element position change or a units change needs
+            // a full redraw, since an element can change size significantly
+            // and the old position or the now unused space due to the
+            // size change need to be erased.
+            osdStartFullRedraw();
         }
         break;
     case MSP_OSD_CHAR_WRITE:
