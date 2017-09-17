@@ -1401,7 +1401,7 @@ groups:
         field: item_pos[OSD_POWER]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_air_speed
+      - name: osd_air_speed_pos
         field: item_pos[OSD_AIR_SPEED]
         min: 0
         max: OSD_POS_MAX_CLI
