@@ -52,6 +52,9 @@ void displayGrab(displayPort_t *instance)
 void displayRelease(displayPort_t *instance)
 {
     instance->vTable->release(instance);
+    // displayPort_t is changing owner. Clear it, since
+    // the new owner might expect a clear canvas.
+    instance->vTable->clearScreen(instance);
     --instance->grabCount;
 }
 
