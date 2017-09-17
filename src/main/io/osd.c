@@ -89,7 +89,6 @@
 bool blinkState = true;
 
 static timeUs_t flyTime = 0;
-static uint8_t statRssi;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -223,9 +222,27 @@ static inline void osdFormatOnTime(char *buff)
     osdFormatTime(buff, micros() / 1000000, SYM_ON_M, SYM_ON_H);
 }
 
-static inline void osdFormatFlyTime(char *buff)
+static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
 {
-    osdFormatTime(buff, flyTime / 1000000, SYM_FLY_M, SYM_FLY_H);
+    uint32_t seconds = flyTime / 1000000;
+    osdFormatTime(buff, seconds, SYM_FLY_M, SYM_FLY_H);
+    if (attr) {
+       if (seconds / 60 >= osdConfig()->time_alarm && ARMING_FLAG(ARMED)) {
+            TEXT_ATTRIBUTES_ADD_BLINK(*attr);
+        }
+    }
+}
+
+/**
+ * Converts RSSI into a % value used by the OSD.
+ */
+static uint16_t osdConvertRSSI(void)
+{
+    uint16_t osdRssi = rssi * 100 / 1024; // change range
+    if (osdRssi >= 100) {
+        osdRssi = 99;
+    }
+    return osdRssi;
 }
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
@@ -240,23 +257,24 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 
 static bool osdDrawSingleElement(uint8_t item)
 {
-    if (!VISIBLE(osdConfig()->item_pos[item]) || BLINK(osdConfig()->item_pos[item])) {
+    if (!VISIBLE(osdConfig()->item_pos[item])) {
         return false;
     }
 
     uint8_t elemPosX = OSD_X(osdConfig()->item_pos[item]);
     uint8_t elemPosY = OSD_Y(osdConfig()->item_pos[item]);
+    textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
     char buff[32];
 
     switch (item) {
     case OSD_RSSI_VALUE:
         {
-            uint16_t osdRssi = rssi * 100 / 1024; // change range
-            if (osdRssi >= 100)
-                osdRssi = 99;
-
+            uint16_t osdRssi = osdConvertRSSI();
             buff[0] = SYM_RSSI;
             tfp_sprintf(buff + 1, "%2d", osdRssi);
+            if (osdRssi < osdConfig()->rssi_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             break;
         }
 
@@ -266,6 +284,9 @@ static bool osdDrawSingleElement(uint8_t item)
             p = (100 - p) / 16.6;
             buff[0] = SYM_BATT_FULL + p;
             tfp_sprintf(buff + 1, "%d.%1dV ", vbat / 10, vbat % 10);
+            if (vbat <= (batteryWarningVoltage - 1)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             break;
         }
 
@@ -277,6 +298,9 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
         tfp_sprintf(buff + 1, "%d", abs(mAhDrawn));
+        if (mAhDrawn >= osdConfig()->cap_alarm) {
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        }
         break;
 
 #ifdef GPS
@@ -284,6 +308,9 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[0] = 0x1e;
         buff[1] = 0x1f;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
+        if (!STATE(GPS_FIX)) {
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        }
         break;
 
     case OSD_GPS_SPEED:
@@ -332,12 +359,17 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ALTITUDE:
         {
-            buff[0] = SYM_ALT;
+            uint32_t alt;
 #ifdef NAV
-            osdFormatDistanceStr(&buff[1], getEstimatedActualPosition(Z));
+            alt = getEstimatedActualPosition(Z);
 #else
-            osdFormatDistanceStr(&buff[1], baro.BaroAlt));
+            alt = baro.alt;
 #endif
+            buff[0] = SYM_ALT;
+            osdFormatDistanceStr(&buff[1], alt);
+            if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             break;
         }
 
@@ -349,14 +381,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_FLYTIME:
         {
-            osdFormatFlyTime(buff);
+            osdFormatFlyTime(buff, &elemAttr);
             break;
         }
 
     case OSD_ONTIME_FLYTIME:
         {
             if (ARMING_FLAG(ARMED)) {
-                osdFormatFlyTime(buff);
+                osdFormatFlyTime(buff, &elemAttr);
             } else {
                 osdFormatOnTime(buff);
             }
@@ -612,7 +644,7 @@ static bool osdDrawSingleElement(uint8_t item)
         return false;
     }
 
-    displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+    displayWriteAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
     return true;
 }
 
@@ -734,58 +766,6 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     resumeRefreshAt = micros() + (4 * REFRESH_1S);
 }
 
-void osdUpdateAlarms(void)
-{
-    // This is overdone?
-    // uint16_t *itemPos = osdConfig()->item_pos;
-
-#ifdef NAV
-    int32_t alt = osdConvertDistanceToUnit(getEstimatedActualPosition(Z)) / 100;
-#else
-    int32_t alt = osdConvertDistanceToUnit(baro.BaroAlt) / 100;
-#endif
-    statRssi = rssi * 100 / 1024;
-
-    if (statRssi < osdConfig()->rssi_alarm)
-        osdConfigMutable()->item_pos[OSD_RSSI_VALUE] |= BLINK_FLAG;
-    else
-        osdConfigMutable()->item_pos[OSD_RSSI_VALUE] &= ~BLINK_FLAG;
-
-    if (vbat <= (batteryWarningVoltage - 1))
-        osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE] |= BLINK_FLAG;
-    else
-        osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE] &= ~BLINK_FLAG;
-
-    if (STATE(GPS_FIX) == 0)
-        osdConfigMutable()->item_pos[OSD_GPS_SATS] |= BLINK_FLAG;
-    else
-        osdConfigMutable()->item_pos[OSD_GPS_SATS] &= ~BLINK_FLAG;
-
-    if ((flyTime / 1000000) / 60 >= osdConfig()->time_alarm && ARMING_FLAG(ARMED))
-        osdConfigMutable()->item_pos[OSD_FLYTIME] |= BLINK_FLAG;
-    else
-        osdConfigMutable()->item_pos[OSD_FLYTIME] &= ~BLINK_FLAG;
-
-    if (mAhDrawn >= osdConfig()->cap_alarm)
-        osdConfigMutable()->item_pos[OSD_MAH_DRAWN] |= BLINK_FLAG;
-    else
-        osdConfigMutable()->item_pos[OSD_MAH_DRAWN] &= ~BLINK_FLAG;
-
-    if (alt >= osdConfig()->alt_alarm)
-        osdConfigMutable()->item_pos[OSD_ALTITUDE] |= BLINK_FLAG;
-    else
-        osdConfigMutable()->item_pos[OSD_ALTITUDE] &= ~BLINK_FLAG;
-}
-
-void osdResetAlarms(void)
-{
-    osdConfigMutable()->item_pos[OSD_RSSI_VALUE] &= ~BLINK_FLAG;
-    osdConfigMutable()->item_pos[OSD_MAIN_BATT_VOLTAGE] &= ~BLINK_FLAG;
-    osdConfigMutable()->item_pos[OSD_GPS_SATS] &= ~BLINK_FLAG;
-    osdConfigMutable()->item_pos[OSD_FLYTIME] &= ~BLINK_FLAG;
-    osdConfigMutable()->item_pos[OSD_MAH_DRAWN] &= ~BLINK_FLAG;
-}
-
 static void osdResetStats(void)
 {
     stats.max_current = 0;
@@ -816,8 +796,9 @@ static void osdUpdateStats(void)
     if (stats.max_current < value)
         stats.max_current = value;
 
-    if (stats.min_rssi > statRssi)
-        stats.min_rssi = statRssi;
+    value = osdConvertRSSI();
+    if (stats.min_rssi > value)
+        stats.min_rssi = value;
 
 #ifdef NAV
     if (stats.max_altitude < getEstimatedActualPosition(Z))
@@ -964,7 +945,6 @@ static void osdRefresh(timeUs_t currentTimeUs)
             displayClearScreen(osdDisplayPort);
             fullRedraw = false;
         }
-        osdUpdateAlarms();
         osdDrawNextElement();
         displayHeartbeat(osdDisplayPort);
 #ifdef OSD_CALLS_CMS

@@ -32,7 +32,6 @@
 #include "drivers/vcd.h"
 
 #include "io/displayport_max7456.h"
-#include "io/osd.h"
 
 displayPort_t max7456DisplayPort;
 
@@ -53,12 +52,7 @@ static uint8_t max7456Mode(textAttributes_t attr)
 
 static int grab(displayPort_t *displayPort)
 {
-    // FIXME this should probably not have a dependency on the OSD or OSD slave code
     UNUSED(displayPort);
-#ifdef OSD
-    osdResetAlarms();
-#endif
-
     return 0;
 }
 

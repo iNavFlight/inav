@@ -21,12 +21,9 @@
 #include "config/parameter_group.h"
 
 #define VISIBLE_FLAG  0x0800
-#define BLINK_FLAG    0x0400
 #define VISIBLE(x)    (x & VISIBLE_FLAG)
-#define BLINK(x)      ((x & BLINK_FLAG) && blinkState)
-#define BLINK_OFF(x)  (x & ~BLINK_FLAG)
 #define OSD_POS_MAX   0x3FF
-#define OSD_POS_MAX_CLI   (OSD_POS_MAX | VISIBLE_FLAG | BLINK_FLAG)
+#define OSD_POS_MAX_CLI   (OSD_POS_MAX | VISIBLE_FLAG)
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -87,6 +84,5 @@ PG_DECLARE(osdConfig_t, osdConfig);
 
 struct displayPort_s;
 void osdInit(struct displayPort_s *osdDisplayPort);
-void osdResetAlarms(void);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
