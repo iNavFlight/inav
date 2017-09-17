@@ -462,6 +462,25 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
     }
 }
 
+/**
+ * Formats throttle position prefixed by its symbol. If autoThr
+ * is true and the navigation system is controlling THR, it
+ * uses the THR value applied by the system rather than the
+ * input value received by the sticks.
+ **/
+static void osdFormatThrottlePosition(char *buff, bool autoThr)
+{
+    buff[0] = SYM_THR;
+    buff[1] = SYM_THR1;
+    int16_t thr = rcData[THROTTLE];
+    if (autoThr && navigationIsControllingThrottle()) {
+        buff[0] = SYM_AUTO_THR0;
+        buff[1] = SYM_AUTO_THR1;
+        thr = rcCommand[THROTTLE];
+    }
+    tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item])) {
@@ -647,10 +666,10 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_THROTTLE_POS:
-        buff[0] = SYM_THR;
-        buff[1] = SYM_THR1;
-        tfp_sprintf(buff + 2, "%3d", (constrain(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
+    {
+        osdFormatThrottlePosition(buff, false);
         break;
+    }
 
 #ifdef VTX
     case OSD_VTX_CHANNEL:
@@ -926,6 +945,12 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_THROTTLE_POS_AUTO_THR:
+        {
+            osdFormatThrottlePosition(buff, true);
+            break;
+        }
+
     default:
         return false;
     }
@@ -986,6 +1011,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_GPS_SPEED] = OSD_POS(23, 1);
 
     osdConfig->item_pos[OSD_THROTTLE_POS] = OSD_POS(1, 2) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
     osdConfig->item_pos[OSD_HEADING] = OSD_POS(12, 2);
     osdConfig->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;

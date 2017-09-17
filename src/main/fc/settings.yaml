@@ -1431,6 +1431,8 @@ groups:
         max: OSD_POS_MAX_CLI
       - name: osd_main_cell_voltage_pos
         field: item_pos[OSD_MAIN_BATT_CELL_VOLTAGE]
+      - name: osd_throttle_auto_thr_pos
+        field: item_pos[OSD_THROTTLE_POS_AUTO_THR]
         max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG

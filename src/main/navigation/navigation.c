@@ -2693,6 +2693,11 @@ rthState_e getStateOfForcedRTH(void)
     }
 }
 
+bool navigationIsControllingThrottle(void)
+{
+    return posControl.navState != NAV_STATE_IDLE;
+}
+
 #else // NAV
 
 #ifdef GPS
