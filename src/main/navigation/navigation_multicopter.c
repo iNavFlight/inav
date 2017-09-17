@@ -130,6 +130,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
     }
 }
 
+static bool FlipInProcess=false;  //kbi
 void setupMulticopterAltitudeController(void)
 {
     const throttleStatus_e throttleStatus = calculateThrottleStatus();
@@ -152,9 +153,10 @@ void setupMulticopterAltitudeController(void)
                                       motorConfig()->minthrottle + rcControlsConfig()->alt_hold_deadband + 10,
                                       motorConfig()->maxthrottle - rcControlsConfig()->alt_hold_deadband - 10);
 
-    /* Force AH controller to initialize althold integral for pending takeoff on reset */
-    if (throttleStatus == THROTTLE_LOW) {
+   //If Inverted Reverse Motors KBI
+    if ( !isThrustFacingDownwards() ){
         prepareForTakeoffOnReset = true;
+        FlipInProcess = true; //Set Flag So We Can Reset HOLD Altitude and change motor direction at Top Of Flip
     }
 }
 
@@ -213,6 +215,14 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
         posControl.flags.verticalPositionDataConsumed = 1;
     }
 
+        if ( isThrustFacingDownwards()  & FlipInProcess ){  //KBI
+            FlipInProcess = false;
+            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+            resetMulticopterAltitudeController();
+		    posControl.desiredState.vel.V.Z = 5;
+    }
+    
+    
     // Update throttle controller
     rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], motorConfig()->minthrottle, motorConfig()->maxthrottle);
 
