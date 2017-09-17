@@ -80,7 +80,7 @@ int displayWrite(displayPort_t *instance, uint8_t x, uint8_t y, const char *s)
     return instance->vTable->writeString(instance, x, y, s, TEXT_ATTRIBUTES_NONE);
 }
 
-int displayWriteAttr(displayPort_t *instance, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
+int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
 {
     instance->posX = x + strlen(s);
     instance->posY = y;
@@ -94,7 +94,7 @@ int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c)
     return instance->vTable->writeChar(instance, x, y, c, TEXT_ATTRIBUTES_NONE);
 }
 
-int displayWriteCharAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr)
+int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr)
 {
     instance->posX = x + 1;
     instance->posY = y;

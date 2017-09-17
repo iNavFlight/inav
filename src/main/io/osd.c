@@ -644,7 +644,7 @@ static bool osdDrawSingleElement(uint8_t item)
         return false;
     }
 
-    displayWriteAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
     return true;
 }
 
