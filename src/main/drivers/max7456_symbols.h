@@ -29,6 +29,8 @@
 // Satellite Graphics
 #define SYM_SAT_L 0x1E
 #define SYM_SAT_R 0x1F
+#define SYM_HDP_L 0xBD
+#define SYM_HDP_R 0xBE
 //#define SYM_SAT 0x0F  // Not used
 
 // Degrees symbol (°) for HEADING/DIRECTION HOME

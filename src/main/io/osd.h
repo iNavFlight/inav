@@ -57,6 +57,7 @@ typedef enum {
     OSD_ONTIME_FLYTIME,
     OSD_RTC_TIME,
     OSD_MESSAGES,
+    OSD_GPS_HDOP,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

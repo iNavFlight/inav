@@ -1414,6 +1414,9 @@ groups:
       - name: osd_messages_pos
         field: item_pos[OSD_MESSAGES]
         max: OSD_POS_MAX_CLI
+      - name: osd_gps_hdop_pos
+        field: item_pos[OSD_GPS_HDOP]
+        max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
