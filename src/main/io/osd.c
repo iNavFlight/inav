@@ -476,7 +476,7 @@ static bool osdDrawSingleElement(uint8_t item)
             for (int x = -4; x <= 4; x++) {
                 // clear the y area before writing the new horizon character
                 for (int y = 0; y <= 8; y++) {
-                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + y, 0x20);
+                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + y, SYM_BLANK);
                 }
                 const int y = (-rollAngle * x) / 64 - pitchAngle;
                 if (y >= 0 && y <= 80) {
