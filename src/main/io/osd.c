@@ -315,7 +315,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_HOME_DIST:
-        buff[0] = 0xA0;
+        buff[0] = SYM_HOME_DIST;
         osdFormatDistanceStr(&buff[1], GPS_distanceToHome * 100);
         break;
 

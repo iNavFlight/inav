@@ -106,6 +106,7 @@
 #define SYM_GMISSION1 0xB6
 #define SYM_GLAND     0xB7
 #define SYM_GLAND1    0xB8
+#define SYM_HOME_DIST 0xA0
 
 // Gimbal active Mode
 #define SYM_GIMBAL  0x16
