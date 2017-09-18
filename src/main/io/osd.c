@@ -630,7 +630,7 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         }
 
     }
-    if (!sensors(SENSOR_GPS)) {
+    if (!feature(FEATURE_GPS)) {
         if (elementIndex == OSD_GPS_SPEED) {
             elementIndex = OSD_ALTITUDE;
         }
