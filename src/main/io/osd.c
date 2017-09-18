@@ -557,7 +557,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int16_t value = getEstimatedActualVelocity(Z) / 10; //limit precision to 10cm
 
-            tfp_sprintf(buff, "%c%d.%01d%c ", value < 0 ? '-' : ' ', abs(value / 10), abs((value % 10)), 0x9F);
+            tfp_sprintf(buff, "%c%d.%01d%c ", value < 0 ? '-' : ' ', abs(value / 10), abs((value % 10)), SYM_MS);
             break;
         }
 #endif
