@@ -324,8 +324,8 @@ static bool osdDrawSingleElement(uint8_t item)
             int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
             if (h < 0) h+=360;
 
-            buff[0] = 0xA9;
-            tfp_sprintf(&buff[1], "%3d%c", h , 0xA8 );
+            buff[0] = SYM_HEADING;
+            tfp_sprintf(&buff[1], "%3d%c", h , SYM_DEGREES);
             break;
         }
 #endif // GPS

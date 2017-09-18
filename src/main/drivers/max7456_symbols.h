@@ -31,8 +31,10 @@
 #define SYM_SAT_R 0x1F
 //#define SYM_SAT 0x0F  // Not used
 
-// Degrees Icon for HEADING/DIRECTION HOME
-#define SYM_DEGREES 0xBD
+// Degrees symbol (°) for HEADING/DIRECTION HOME
+#define SYM_DEGREES 0xA8
+// Heading symbol (looks like a semicircular double arrow)
+#define SYM_HEADING 0xA9
 
 // Direction arrows
 #define SYM_ARROW_UP    0x60
