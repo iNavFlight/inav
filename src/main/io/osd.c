@@ -518,32 +518,32 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_VARIO:
         {
             int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 arrow
-            uint8_t vchars[] = {0x20,0x20,0x20,0x20,0x20};
+            uint8_t vchars[] = {SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK};
 
             if (v >= 6)
-                vchars[0] = 0xA2;
+                vchars[0] = SYM_VARIO_UP_2A;
             else if (v == 5)
-                vchars[0] = 0xA3;
+                vchars[0] = SYM_VARIO_UP_1A;
             if (v >=4)
-                vchars[1] = 0xA2;
+                vchars[1] = SYM_VARIO_UP_2A;
             else if (v == 3)
-                vchars[1] = 0xA3;
+                vchars[1] = SYM_VARIO_UP_1A;
             if (v >=2)
-                vchars[2] = 0xA2;
+                vchars[2] = SYM_VARIO_UP_2A;
             else if (v == 1)
-                vchars[2] = 0xA3;
+                vchars[2] = SYM_VARIO_UP_1A;
             if (v <= -2)
-                vchars[2] = 0xA5;
+                vchars[2] = SYM_VARIO_DOWN_2A;
             else if (v == -1)
-                vchars[2] = 0xA4;
+                vchars[2] = SYM_VARIO_DOWN_1A;
             if (v <= -4)
-                vchars[3] = 0xA5;
+                vchars[3] = SYM_VARIO_DOWN_2A;
             else if (v == -3)
-                vchars[3] = 0xA4;
+                vchars[3] = SYM_VARIO_DOWN_1A;
             if (v <= -6)
-                vchars[4] = 0xA5;
+                vchars[4] = SYM_VARIO_DOWN_2A;
             else if (v == -5)
-                vchars[4] = 0xA4;
+                vchars[4] = SYM_VARIO_DOWN_1A;
 
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, vchars[0]);
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+1, vchars[1]);

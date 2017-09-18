@@ -149,7 +149,10 @@
 #define SYM_BATT_EMPTY  0x96
 
 // Vario
-#define SYM_VARIO 0x7F
+#define SYM_VARIO_UP_2A     0xA2
+#define SYM_VARIO_UP_1A     0xA3
+#define SYM_VARIO_DOWN_1A   0xA4
+#define SYM_VARIO_DOWN_2A   0xA5
 
 // Glidescope
 #define SYM_GLIDESCOPE 0xE0
