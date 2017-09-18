@@ -281,8 +281,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
 #ifdef GPS
     case OSD_GPS_SATS:
-        buff[0] = 0x1e;
-        buff[1] = 0x1f;
+        buff[0] = SYM_SAT_L;
+        buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
         break;
 
