@@ -70,6 +70,7 @@
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
+#include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
 
@@ -280,6 +281,29 @@ static const char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_ARM_SWITCH:
             return "DISABLE ARM SWITCH FIRST";
         case ARMING_DISABLED_HARDWARE_FAILURE:
+            {
+                if (!HW_SENSOR_IS_HEALTHY(getHwGyroStatus())) {
+                    return "GYRO FAILURE";
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwAccelerometerStatus())) {
+                    return "ACCELEROMETER FAILURE";
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwCompassStatus())) {
+                    return "COMPASS FAILURE";
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwBarometerStatus())) {
+                    return "BAROMETER FAILURE";
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwGPSStatus())) {
+                    return "GPS FAILURE";
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwRangefinderStatus())) {
+                    return "RANGE FINDER FAILURE";
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwPitotmeterStatus())) {
+                    return "PITOT METER FAILURE";
+                }
+            }
             return "HARDWARE FAILURE";
         case ARMING_DISABLED_BOXFAILSAFE:
             return "FAILSAFE MODE ENABLED";
