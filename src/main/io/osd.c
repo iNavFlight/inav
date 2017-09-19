@@ -84,6 +84,11 @@
 #define OSD_X(x)      (x & 0x001F)
 #define OSD_Y(x)      ((x >> 5) & 0x001F)
 
+// Adjust OSD_MESSAGE's default position when
+// changing OSD_MESSAGE_LENGTH
+#define OSD_MESSAGE_LENGTH 28
+#define OSD_ALTERNATING_TEXT(ms, num_choices) ((millis() / ms) % num_choices)
+
 // Things in both OSD and CMS
 
 bool blinkState = true;
@@ -253,6 +258,66 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     char wholeUnshifted[32];
     tfp_sprintf(wholeUnshifted, "%d", val);
     tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
+}
+
+static const char * osdArmingDisabledReasonMessage(void)
+{
+    switch (isArmingDisabledReason()) {
+        case ARMING_DISABLED_FAILSAFE_SYSTEM:
+            return "FAILSAFE SYSTEM IS ACTIVE";
+        case ARMING_DISABLED_NOT_LEVEL:
+            return "AIRCRAFT IS NOT LEVEL";
+        case ARMING_DISABLED_SENSORS_CALIBRATING:
+            return "SENSORS CALIBRATING";
+        case ARMING_DISABLED_SYSTEM_OVERLOADED:
+            return "SYSTEM OVERLOADED";
+        case ARMING_DISABLED_NAVIGATION_UNSAFE:
+            return "NAVIGATION IS UNSAFE";
+        case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
+            return "COMPASS NOT CALIBRATED";
+        case ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED:
+            return "ACCELEROMETER NOT CALIBRATED";
+        case ARMING_DISABLED_ARM_SWITCH:
+            return "DISABLE ARM SWITCH FIRST";
+        case ARMING_DISABLED_HARDWARE_FAILURE:
+            return "HARDWARE FAILURE";
+        case ARMING_DISABLED_BOXFAILSAFE:
+            return "FAILSAFE MODE ENABLED";
+        case ARMING_DISABLED_BOXKILLSWITCH:
+            return "KILLSWITCH MODE ENABLED";
+        case ARMING_DISABLED_RC_LINK:
+            return "NO RC LINK";
+        case ARMING_DISABLED_THROTTLE:
+            return "THROTTLE IS NOT LOW";
+        case ARMING_DISABLED_CLI:
+            return "CLI IS ACTIVE";
+        case ARMING_DISABLED_CMS_MENU:
+            return "CMS MODE IS ACTIVE";
+        case ARMING_DISABLED_OSD_MENU:
+            return "OSD MENU IS ACTIVE";
+        // Cases without message
+        case ARMING_DISABLED_ALL_FLAGS:
+            FALLTHROUGH;
+        case ARMED:
+            FALLTHROUGH;
+        case WAS_EVER_ARMED:
+            break;
+    }
+    return NULL;
+}
+
+static void osdFormatMessage(char *buff, size_t size, const char *message)
+{
+    memset(buff, SYM_BLANK, size);
+    if (message) {
+        int messageLength = strlen(message);
+        int rem = MAX(0, OSD_MESSAGE_LENGTH - (int)messageLength);
+        // Don't finish the string at the end of the message,
+        // write the rest of the blanks.
+        strncpy(buff + rem / 2, message, MIN(OSD_MESSAGE_LENGTH - rem / 2, messageLength));
+    }
+    // Ensure buff is zero terminated
+    buff[size - 1] = '\0';
 }
 
 static bool osdDrawSingleElement(uint8_t item)
@@ -640,6 +705,25 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_MESSAGES:
+        {
+            const char *message = NULL;
+            if (ARMING_FLAG(ARMED)) {
+                // TODO: Add some messages here
+            } else if (IS_RC_MODE_ACTIVE(BOXARM)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                if (OSD_ALTERNATING_TEXT(1000, 2) == 0) {
+                    message = "UNABLE TO ARM";
+                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                } else {
+                    // Show the reason for not arming
+                    message = osdArmingDisabledReasonMessage();
+                }
+            }
+            osdFormatMessage(buff, sizeof(buff), message);
+            break;
+        }
+
     default:
         return false;
     }
@@ -726,6 +810,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_POWER] = OSD_POS(15, 1);
 
     osdConfig->item_pos[OSD_AIR_SPEED] = OSD_POS(3, 5);
+
+    // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
+    // FIXME: | VISIBLE_FLAG for testing. Will be probably
+    // removed before merging final version.
+    osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
     osdConfig->cap_alarm = 2200;
