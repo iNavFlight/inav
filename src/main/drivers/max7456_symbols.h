@@ -31,8 +31,10 @@
 #define SYM_SAT_R 0x1F
 //#define SYM_SAT 0x0F  // Not used
 
-// Degrees Icon for HEADING/DIRECTION HOME
-#define SYM_DEGREES 0xBD
+// Degrees symbol (°) for HEADING/DIRECTION HOME
+#define SYM_DEGREES 0xA8
+// Heading symbol (looks like a semicircular double arrow)
+#define SYM_HEADING 0xA9
 
 // Direction arrows
 #define SYM_ARROW_UP    0x60
@@ -104,24 +106,11 @@
 #define SYM_GMISSION1 0xB6
 #define SYM_GLAND     0xB7
 #define SYM_GLAND1    0xB8
+#define SYM_HOME_DIST 0xA0
 
 // Gimbal active Mode
 #define SYM_GIMBAL  0x16
 #define SYM_GIMBAL1 0x17
-
-// Sensor´s Presence
-#define SYM_ACC     0xA0
-#define SYM_MAG     0xA1
-#define SYM_BAR     0xA2
-#define SYM_GPS     0xA3
-#define SYM_MAN     0xC0
-#define SYM_MAN1    0xC1
-#define SYM_MAN2    0xC2
-#define SYM_CHECK   0xBE
-#define SYM_BARO10  0xB7
-#define SYM_BARO11  0xB8
-#define SYM_MAG10   0xB5
-#define SYM_MAG11   0xB6
 
 // AH Center screen Graphics
 #define SYM_AH_CENTER_LINE        0x26
@@ -149,7 +138,10 @@
 #define SYM_BATT_EMPTY  0x96
 
 // Vario
-#define SYM_VARIO 0x7F
+#define SYM_VARIO_UP_2A     0xA2
+#define SYM_VARIO_UP_1A     0xA3
+#define SYM_VARIO_DOWN_1A   0xA4
+#define SYM_VARIO_DOWN_2A   0xA5
 
 // Glidescope
 #define SYM_GLIDESCOPE 0xE0

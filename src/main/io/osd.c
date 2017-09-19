@@ -281,8 +281,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
 #ifdef GPS
     case OSD_GPS_SATS:
-        buff[0] = 0x1e;
-        buff[1] = 0x1f;
+        buff[0] = SYM_SAT_L;
+        buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
         break;
 
@@ -315,7 +315,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_HOME_DIST:
-        buff[0] = 0xA0;
+        buff[0] = SYM_HOME_DIST;
         osdFormatDistanceStr(&buff[1], GPS_distanceToHome * 100);
         break;
 
@@ -324,8 +324,8 @@ static bool osdDrawSingleElement(uint8_t item)
             int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
             if (h < 0) h+=360;
 
-            buff[0] = 0xA9;
-            tfp_sprintf(&buff[1], "%3d%c", h , 0xA8 );
+            buff[0] = SYM_HEADING;
+            tfp_sprintf(&buff[1], "%3d%c", h , SYM_DEGREES);
             break;
         }
 #endif // GPS
@@ -476,7 +476,7 @@ static bool osdDrawSingleElement(uint8_t item)
             for (int x = -4; x <= 4; x++) {
                 // clear the y area before writing the new horizon character
                 for (int y = 0; y <= 8; y++) {
-                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + y, 0x20);
+                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + y, SYM_BLANK);
                 }
                 const int y = (-rollAngle * x) / 64 - pitchAngle;
                 if (y >= 0 && y <= 80) {
@@ -518,32 +518,32 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_VARIO:
         {
             int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 arrow
-            uint8_t vchars[] = {0x20,0x20,0x20,0x20,0x20};
+            uint8_t vchars[] = {SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK};
 
             if (v >= 6)
-                vchars[0] = 0xA2;
+                vchars[0] = SYM_VARIO_UP_2A;
             else if (v == 5)
-                vchars[0] = 0xA3;
+                vchars[0] = SYM_VARIO_UP_1A;
             if (v >=4)
-                vchars[1] = 0xA2;
+                vchars[1] = SYM_VARIO_UP_2A;
             else if (v == 3)
-                vchars[1] = 0xA3;
+                vchars[1] = SYM_VARIO_UP_1A;
             if (v >=2)
-                vchars[2] = 0xA2;
+                vchars[2] = SYM_VARIO_UP_2A;
             else if (v == 1)
-                vchars[2] = 0xA3;
+                vchars[2] = SYM_VARIO_UP_1A;
             if (v <= -2)
-                vchars[2] = 0xA5;
+                vchars[2] = SYM_VARIO_DOWN_2A;
             else if (v == -1)
-                vchars[2] = 0xA4;
+                vchars[2] = SYM_VARIO_DOWN_1A;
             if (v <= -4)
-                vchars[3] = 0xA5;
+                vchars[3] = SYM_VARIO_DOWN_2A;
             else if (v == -3)
-                vchars[3] = 0xA4;
+                vchars[3] = SYM_VARIO_DOWN_1A;
             if (v <= -6)
-                vchars[4] = 0xA5;
+                vchars[4] = SYM_VARIO_DOWN_2A;
             else if (v == -5)
-                vchars[4] = 0xA4;
+                vchars[4] = SYM_VARIO_DOWN_1A;
 
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, vchars[0]);
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+1, vchars[1]);
@@ -557,7 +557,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int16_t value = getEstimatedActualVelocity(Z) / 10; //limit precision to 10cm
 
-            tfp_sprintf(buff, "%c%d.%01d%c ", value < 0 ? '-' : ' ', abs(value / 10), abs((value % 10)), 0x9F);
+            tfp_sprintf(buff, "%c%d.%01d%c ", value < 0 ? '-' : ' ', abs(value / 10), abs((value % 10)), SYM_MS);
             break;
         }
 #endif
