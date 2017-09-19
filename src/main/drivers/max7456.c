@@ -108,9 +108,11 @@
 #define MAX7456_SIGNAL_CHECK_INTERVAL_MS 1000 // msec
 
 // DMM special bits
-#define CLEAR_DISPLAY 0x04
-#define CLEAR_DISPLAY_VERT 0x06
-#define INVERT_PIXEL_COLOR 0x08
+#define DMM_BLINK (1 << 4)
+#define DMM_INVERT_PIXEL_COLOR (1 << 3)
+#define DMM_CLEAR_DISPLAY (1 << 2)
+#define DMM_CLEAR_DISPLAY_VERT (DMM_CLEAR_DISPLAY | 1 << 1)
+#define DMM_AUTOINCREMENT (1 << 0)
 
 // Special address for terminating incremental write
 #define END_STRING 0xff
@@ -152,7 +154,10 @@
 #define WRITE_NVR               0xA0
 
 #define CHARS_PER_LINE          30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
-#define CHAR_BLANK              0x20
+#define MAKE_CHAR_MODE(c, m)    ((((uint16_t)c) << 8) | m)
+#define CHAR_BLANK              MAKE_CHAR_MODE(0x20, 0)
+#define CHAR_BYTE(x)            (x >> 8)
+#define MODE_BYTE(x)            (x & 0xFF)
 
 // On shared SPI buss we want to change clock for OSD chip and restore for other devices.
 
@@ -183,12 +188,12 @@ uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 // we write everything in screenBuffer and set a dirty bit
 // in screenIsDirty to upgrade only changed chars this solution
 // is faster than redrawing the whole screen on each frame
-static uint8_t screenBuffer[VIDEO_BUFFER_CHARS_PAL] ALIGNED(4);
+static uint16_t screenBuffer[VIDEO_BUFFER_CHARS_PAL] ALIGNED(4);
 static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
 
 //max chars to update in one idle
 #define MAX_CHARS2UPDATE        10
-#define BYTES_PER_CHAR2UPDATE   6 // 3 spi regs + 3 values
+#define BYTES_PER_CHAR2UPDATE   8 // [3-4] spi regs + values for them
 #ifdef MAX7456_DMA_CHANNEL_TX
 volatile bool dmaTransactionInProgress = false;
 #endif
@@ -372,7 +377,7 @@ void max7456ReInit(void)
 
     // make sure the Max7456 is enabled
     max7456Send(MAX7456ADD_VM0, videoSignalReg);
-    max7456Send(MAX7456ADD_DMM, CLEAR_DISPLAY);
+    max7456Send(MAX7456ADD_DMM, DMM_CLEAR_DISPLAY);
     DISABLE_MAX7456();
 
     // force redrawing all screen in non-dma mode
@@ -402,7 +407,9 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
     videoSignalCfg = pVcdProfile->video_system;
 
     // Set screenbuffer to all blanks
-    memset(screenBuffer, CHAR_BLANK, sizeof(screenBuffer));
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
+        screenBuffer[ii] = CHAR_BLANK;
+    }
 
 #ifdef MAX7456_DMA_CHANNEL_TX
     dmaSetHandler(MAX7456_DMA_IRQ_HANDLER_ID, max7456_dma_irq_handler, NVIC_PRIO_MAX7456_DMA, 0);
@@ -412,7 +419,7 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
 
 void max7456ClearScreen(void)
 {
-    for (uint_fast16_t ii = 0; ii < sizeof(screenBuffer); ii++) {
+    for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
         if (screenBuffer[ii] != CHAR_BLANK) {
             screenBuffer[ii] = CHAR_BLANK;
             bitArraySet(screenIsDirty, ii);
@@ -420,30 +427,27 @@ void max7456ClearScreen(void)
     }
 }
 
-uint8_t* max7456GetScreenBuffer(void) {
-    return screenBuffer;
-}
-
-void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c)
+void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode)
 {
     unsigned pos = y * CHARS_PER_LINE + x;
-    if (screenBuffer[pos] != c) {
-        screenBuffer[pos] = c;
+    uint16_t val = MAKE_CHAR_MODE(c, mode);
+    if (screenBuffer[pos] != val) {
+        screenBuffer[pos] = val;
         bitArraySet(screenIsDirty, pos);
     }
 }
 
-void max7456Write(uint8_t x, uint8_t y, const char *buff)
+void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
 {
     uint8_t i = 0;
-    uint8_t c;
+    uint16_t c;
     unsigned pos = y * CHARS_PER_LINE + x;
     for (i = 0; *buff; i++, buff++, pos++) {
         //do not write past screen's end of line
         if (x + i >= CHARS_PER_LINE) {
             break;
         }
-        c = *buff;
+        c = MAKE_CHAR_MODE(*buff, mode);
         if (screenBuffer[pos] != c) {
             screenBuffer[pos] = c;
             bitArraySet(screenIsDirty, pos);
@@ -464,12 +468,17 @@ void max7456DrawScreenPartial(void)
 {
     static uint32_t lastSigCheckMs = 0;
     static uint32_t videoDetectTimeMs = 0;
+    // Save this between updates. The default value
+    // in the MAX7456 is all bits to zero.
+    static uint8_t setMode = 0;
 
     uint8_t stallCheck;
     uint8_t videoSense;
     uint32_t nowMs;
     int pos;
     int buff_len = 0;
+    uint_fast16_t updatedCharCount;
+    uint8_t currentMode;
 
     if (!max7456Lock && !fontIsLoading) {
         // (Re)Initialize MAX7456 at startup or stall is detected.
@@ -513,24 +522,30 @@ void max7456DrawScreenPartial(void)
 
         //------------   end of (re)init-------------------------------------
 
-        for (pos = 0;;) {
+        for (pos = 0, updatedCharCount = 0;;) {
             pos = BITARRAY_FIND_FIRST_SET(screenIsDirty, pos);
             if (pos < 0 || pos >= maxScreenSize) {
                 // No more dirty chars.
                 break;
             }
+            currentMode = MODE_BYTE(screenBuffer[pos]);
             // Found one dirty character to send
+            if (setMode != currentMode) {
+                setMode = currentMode;
+                // Send the attributes for the character run. They
+                // will be applied to all characters until we change
+                // the DMM register.
+                spiBuff[buff_len++] = MAX7456ADD_DMM;
+                spiBuff[buff_len++] = currentMode;
+            }
             spiBuff[buff_len++] = MAX7456ADD_DMAH;
             spiBuff[buff_len++] = pos >> 8;
             spiBuff[buff_len++] = MAX7456ADD_DMAL;
             spiBuff[buff_len++] = pos & 0xff;
             spiBuff[buff_len++] = MAX7456ADD_DMDI;
-            spiBuff[buff_len++] = screenBuffer[pos];
+            spiBuff[buff_len++] = CHAR_BYTE(screenBuffer[pos]);
             bitArrayClr(screenIsDirty, pos);
-            if (buff_len == SPI_BUFF_SIZE) {
-                // If the buffer is full, don't increment
-                // pos since we won't check the buffer
-                // until the next iteration.
+            if (++updatedCharCount == MAX_CHARS2UPDATE) {
                 break;
             }
             // Start next search at next bit
@@ -551,29 +566,58 @@ void max7456DrawScreenPartial(void)
     }
 }
 
-// this funcktion refresh all and should not be used when copter is armed
+// this function redraws the whole display at once and
+// might a long time to complete. It should not the used
+// when copter is armed.
 void max7456RefreshAll(void)
 {
     if (!max7456Lock) {
 #ifdef MAX7456_DMA_CHANNEL_TX
-    while (dmaTransactionInProgress);
+        while (dmaTransactionInProgress);
 #endif
         uint16_t xx;
         max7456Lock = true;
         ENABLE_MAX7456();
+
+        // Write characters. Start at character zero.
         max7456Send(MAX7456ADD_DMAH, 0);
         max7456Send(MAX7456ADD_DMAL, 0);
-        max7456Send(MAX7456ADD_DMM, 1);
-
-        for (xx = 0; xx < maxScreenSize; ++xx)
-        {
-            max7456Send(MAX7456ADD_DMDI, screenBuffer[xx]);
+        // Enable auto-increment mode
+        max7456Send(MAX7456ADD_DMM, DMM_AUTOINCREMENT);
+        for (xx = 0; xx < maxScreenSize; ++xx) {
+            max7456Send(MAX7456ADD_DMDI, CHAR_BYTE(screenBuffer[xx]));
         }
-        memset(screenIsDirty, 0, sizeof(screenIsDirty));
-
+        // Exit auto-increment mode by writing the 0xFF escape
+        // sequence to DMDI.
         max7456Send(MAX7456ADD_DMDI, 0xFF);
-        max7456Send(MAX7456ADD_DMM, 0);
+
+        // Write character attributes. Start at zero, but
+        // set DMAH[1] = 1, to signal that we're sending
+        // attributes rather than characters. Process is the
+        // same as for the characters a few lines up.
+        max7456Send(MAX7456ADD_DMAH, 1<<1);
+        max7456Send(MAX7456ADD_DMAL, 0);
+        max7456Send(MAX7456ADD_DMM, DMM_AUTOINCREMENT);
+        for (xx = 0; xx < maxScreenSize; ++xx) {
+            // Note that atttribute bits in DMDI are in different
+            // positions than in DMM (DMM is used for partial writes),
+            // and we store the attributes in the format expected by
+            // DMM.
+            //      | LBC | BLK | INV
+            // ----------------------
+            // DMDI:|  7  |  6  |  5
+            // DMM: |  5  |  4  |  3
+            //
+            // Thus, we need to shift the bits by 2 when writing character
+            // attributes to DMDI.
+            max7456Send(MAX7456ADD_DMDI, MODE_BYTE(screenBuffer[xx]) << 2);
+        }
+        max7456Send(MAX7456ADD_DMDI, 0xFF);
+
         DISABLE_MAX7456();
+
+        // All characters have been set to the MAX7456, none is dirty now.
+        memset(screenIsDirty, 0, sizeof(screenIsDirty));
         max7456Lock = false;
     }
 }
