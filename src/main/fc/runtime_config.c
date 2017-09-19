@@ -20,7 +20,10 @@
 
 #include "platform.h"
 
+#include "common/utils.h"
+
 #include "fc/runtime_config.h"
+
 #include "io/beeper.h"
 
 uint32_t armingFlags = 0;
@@ -28,6 +31,37 @@ uint32_t stateFlags = 0;
 uint32_t flightModeFlags = 0;
 
 static uint32_t enabledSensors = 0;
+
+// XXX: This function assumes that all flags in ARMING_DISABLED_ALL_FLAGS
+// are contiguous
+armingFlag_e isArmingDisabledReason(void)
+{
+    STATIC_ASSERT(sizeof(armingFlag_e) == 4, size_of_armingFlag_e_not_4);
+
+    armingFlag_e flag;
+    uint8_t first_flag;
+    uint8_t last_flag;
+    uint8_t clz;
+
+    __asm__ ("clz %0, %1"
+            : "=r" (clz)
+            : "r" ((uint32_t)ARMING_DISABLED_ALL_FLAGS));
+
+    __asm__ ("rbit %1, %1\n\t"
+            "clz %0, %1"
+            : "=r" (first_flag)
+            : "r" ((uint32_t)ARMING_DISABLED_ALL_FLAGS));
+
+    last_flag = 32 - clz - 1;
+
+    for (uint8_t ii = first_flag; ii <= last_flag; ii++) {
+        flag = 1 << ii;
+        if (armingFlags & flag) {
+            return flag;
+        }
+    }
+    return 0;
+}
 
 /**
  * Enables the given flight mode.  A beep is sounded if the flight mode
