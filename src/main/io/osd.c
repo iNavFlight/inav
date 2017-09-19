@@ -89,6 +89,13 @@
 // changing OSD_MESSAGE_LENGTH
 #define OSD_MESSAGE_LENGTH 28
 #define OSD_ALTERNATING_TEXT(ms, num_choices) ((millis() / ms) % num_choices)
+#define _CONST_STR_SIZE(s) ((sizeof(s)/sizeof(s[0]))-1) // -1 to avoid counting final '\0'
+// Wrap all string constants intenteded for display as messages with
+// this macro to ensure compile time length validation.
+#define OSD_MESSAGE_STR(x) ({ \
+    STATIC_ASSERT(_CONST_STR_SIZE(x) <= OSD_MESSAGE_LENGTH, message_string_ ## __COUNTER__ ## _too_long); \
+    x; \
+})
 
 // Things in both OSD and CMS
 
@@ -265,60 +272,60 @@ static const char * osdArmingDisabledReasonMessage(void)
 {
     switch (isArmingDisabledReason()) {
         case ARMING_DISABLED_FAILSAFE_SYSTEM:
-            return "FAILSAFE SYSTEM IS ACTIVE";
+            return OSD_MESSAGE_STR("FAILSAFE SYSTEM IS ACTIVE");
         case ARMING_DISABLED_NOT_LEVEL:
-            return "AIRCRAFT IS NOT LEVEL";
+            return OSD_MESSAGE_STR("AIRCRAFT IS NOT LEVEL");
         case ARMING_DISABLED_SENSORS_CALIBRATING:
-            return "SENSORS CALIBRATING";
+            return OSD_MESSAGE_STR("SENSORS CALIBRATING");
         case ARMING_DISABLED_SYSTEM_OVERLOADED:
-            return "SYSTEM OVERLOADED";
+            return OSD_MESSAGE_STR("SYSTEM OVERLOADED");
         case ARMING_DISABLED_NAVIGATION_UNSAFE:
-            return "NAVIGATION IS UNSAFE";
+            return OSD_MESSAGE_STR("NAVIGATION IS UNSAFE");
         case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
-            return "COMPASS NOT CALIBRATED";
+            return OSD_MESSAGE_STR("COMPASS NOT CALIBRATED");
         case ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED:
-            return "ACCELEROMETER NOT CALIBRATED";
+            return OSD_MESSAGE_STR("ACCELEROMETER NOT CALIBRATED");
         case ARMING_DISABLED_ARM_SWITCH:
-            return "DISABLE ARM SWITCH FIRST";
+            return OSD_MESSAGE_STR("DISABLE ARM SWITCH FIRST");
         case ARMING_DISABLED_HARDWARE_FAILURE:
             {
                 if (!HW_SENSOR_IS_HEALTHY(getHwGyroStatus())) {
-                    return "GYRO FAILURE";
+                    return OSD_MESSAGE_STR("GYRO FAILURE");
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwAccelerometerStatus())) {
-                    return "ACCELEROMETER FAILURE";
+                    return OSD_MESSAGE_STR("ACCELEROMETER FAILURE");
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwCompassStatus())) {
-                    return "COMPASS FAILURE";
+                    return OSD_MESSAGE_STR("COMPASS FAILURE");
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwBarometerStatus())) {
-                    return "BAROMETER FAILURE";
+                    return OSD_MESSAGE_STR("BAROMETER FAILURE");
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwGPSStatus())) {
-                    return "GPS FAILURE";
+                    return OSD_MESSAGE_STR("GPS FAILURE");
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwRangefinderStatus())) {
-                    return "RANGE FINDER FAILURE";
+                    return OSD_MESSAGE_STR("RANGE FINDER FAILURE");
                 }
                 if (!HW_SENSOR_IS_HEALTHY(getHwPitotmeterStatus())) {
-                    return "PITOT METER FAILURE";
+                    return OSD_MESSAGE_STR("PITOT METER FAILURE");
                 }
             }
-            return "HARDWARE FAILURE";
+            return OSD_MESSAGE_STR("HARDWARE FAILURE");
         case ARMING_DISABLED_BOXFAILSAFE:
-            return "FAILSAFE MODE ENABLED";
+            return OSD_MESSAGE_STR("FAILSAFE MODE ENABLED");
         case ARMING_DISABLED_BOXKILLSWITCH:
-            return "KILLSWITCH MODE ENABLED";
+            return OSD_MESSAGE_STR("KILLSWITCH MODE ENABLED");
         case ARMING_DISABLED_RC_LINK:
-            return "NO RC LINK";
+            return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
-            return "THROTTLE IS NOT LOW";
+            return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
         case ARMING_DISABLED_CLI:
-            return "CLI IS ACTIVE";
+            return OSD_MESSAGE_STR("CLI IS ACTIVE");
         case ARMING_DISABLED_CMS_MENU:
-            return "CMS MODE IS ACTIVE";
+            return OSD_MESSAGE_STR("CMS MODE IS ACTIVE");
         case ARMING_DISABLED_OSD_MENU:
-            return "OSD MENU IS ACTIVE";
+            return OSD_MESSAGE_STR("OSD MENU IS ACTIVE");
         // Cases without message
         case ARMING_DISABLED_ALL_FLAGS:
             FALLTHROUGH;
