@@ -268,11 +268,30 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
 }
 
+// Used twice, make sure it's exactly the same string
+// to save some memory
+#define RC_RX_LINK_LOST_MSG "!RC RX LINK LOST!"
+
 static const char * osdArmingDisabledReasonMessage(void)
 {
     switch (isArmingDisabledReason()) {
         case ARMING_DISABLED_FAILSAFE_SYSTEM:
-            return OSD_MESSAGE_STR("FAILSAFE SYSTEM IS ACTIVE");
+            // See handling of FAILSAFE_RX_LOSS_MONITORING in failsafe.c
+            if (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) {
+                if (failsafeIsReceivingRxData()) {
+                    if (isUsingSticksForArming()) {
+                        // Need to power-cycle
+                        return OSD_MESSAGE_STR("POWER CYCLE TO ARM");
+                    }
+                    // If we're not using sticks, it means the ARM switch
+                    // hasn't been off since entering FAILSAFE_RX_LOSS_MONITORING
+                    // yet
+                    return OSD_MESSAGE_STR("TURN ARM SWITCH OFF");
+                }
+                // Not receiving RX data
+                return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
+            }
+            return OSD_MESSAGE_STR("DISABLED BY FAILSAFE");
         case ARMING_DISABLED_NOT_LEVEL:
             return OSD_MESSAGE_STR("AIRCRAFT IS NOT LEVEL");
         case ARMING_DISABLED_SENSORS_CALIBRATING:
@@ -335,6 +354,58 @@ static const char * osdArmingDisabledReasonMessage(void)
             break;
     }
     return NULL;
+}
+
+static const char * osdFailsafePhaseMessage(void)
+{
+    // See failsafe.h for each phase explanation
+    switch (failsafePhase()) {
+#ifdef NAV
+        case FAILSAFE_RETURN_TO_HOME:
+            // XXX: Keep this in sync with OSD_FLYMODE.
+            // Should we show RTH instead?
+            return OSD_MESSAGE_STR("(RTL)");
+#endif
+        case FAILSAFE_LANDING:
+            // This should be considered an emergengy landing
+            return OSD_MESSAGE_STR("(EMERGENCY LANDING)");
+        case FAILSAFE_RX_LOSS_MONITORING:
+            // Only reachable from FAILSAFE_LANDED, which performs
+            // a disarm. Since aircraft has been disarmed, we no
+            // longer show failsafe details.
+            FALLTHROUGH;
+        case FAILSAFE_LANDED:
+            // Very brief, disarms and transitions into
+            // FAILSAFE_RX_LOSS_MONITORING. Note that it prevents
+            // further rearming via ARMING_DISABLED_FAILSAFE_SYSTEM,
+            // so we'll show the user how to re-arm in when
+            // that flag is the reason to prevent arming.
+            FALLTHROUGH;
+        case FAILSAFE_RX_LOSS_IDLE:
+            // This only happens when user has chosen NONE as FS
+            // procedure. The recovery messages should be enough.
+            FALLTHROUGH;
+        case FAILSAFE_IDLE:
+            // Failsafe not active
+            FALLTHROUGH;
+        case FAILSAFE_RX_LOSS_DETECTED:
+            // Very brief, changes to FAILSAFE_RX_LOSS_RECOVERED
+            // or the FS procedure immediately.
+            FALLTHROUGH;
+        case FAILSAFE_RX_LOSS_RECOVERED:
+            // Exiting failsafe
+            break;
+    }
+    return NULL;
+}
+
+static const char * osdFailsafeInfoMessage(void)
+{
+    if (failsafeIsReceivingRxData()) {
+        // User must move sticks to exit FS mode
+        return OSD_MESSAGE_STR("!MOVE STICKS TO EXIT FS!");
+    }
+    return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
 }
 
 static void osdFormatMessage(char *buff, size_t size, const char *message)
@@ -503,34 +574,6 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "PASS";
             else if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 p = "!FS!";
-                // See failsafe.h for each phase explanation
-                switch (failsafePhase()) {
-                    case FAILSAFE_RX_LOSS_IDLE:
-                        p = "F:RX"; // RX to indicate that failsafe is waiting
-                                   // for the RX to become available
-                        break;
-#ifdef NAV
-                    case FAILSAFE_RETURN_TO_HOME:
-                        p = "F:RT"; // RT for RETURN
-                        break;
-#endif
-                    case FAILSAFE_LANDING:
-                        p = "F:LA"; // LA for LANDING
-                        break;
-                    case FAILSAFE_LANDED:
-                        p = "F:DR"; // DR for DROP
-                        break;
-                    case FAILSAFE_RX_LOSS_MONITORING:
-                        p = "F:WA"; // WA for WAITING
-                        break;
-                    case FAILSAFE_IDLE:
-                    case FAILSAFE_RX_LOSS_DETECTED:
-                    case FAILSAFE_RX_LOSS_RECOVERED:
-                        /* Failsafe not active or phase is very brief.
-                         * Nothing interesting to show.
-                         */
-                        break;
-                }
             } else if (FLIGHT_MODE(HEADFREE_MODE))
                 p = "!HF!";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
@@ -740,7 +783,27 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const char *message = NULL;
             if (ARMING_FLAG(ARMED)) {
-                // TODO: Add some messages here
+                if (FLIGHT_MODE(FAILSAFE_MODE)) {
+                    // In FS mode while being armed too
+                    const char *failsafePhaseMessage = osdFailsafePhaseMessage();
+                    const char *failsafeInfoMessage = osdFailsafeInfoMessage();
+                    if (failsafePhaseMessage && (!failsafeInfoMessage && OSD_ALTERNATING_TEXT(1000, 2) == 1)) {
+                        // We have failsafePhaseMessage and we're in the
+                        // phase message stage. Don't BLINK here since
+                        // having this text available might be crucial
+                        // during a lost aircraft recovery and blinking
+                        // will cause it to be missing from some frames.
+                        message = failsafePhaseMessage;
+                    } else if (failsafeInfoMessage) {
+                        // Either no failsafePhaseMessage or we're in
+                        // the info message stage. This message is
+                        // not useful for recovering a lost model, but
+                        // might help avoiding a crash. Blink to
+                        // grab user attention.
+                        message = failsafeInfoMessage;
+                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                }
             } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
                 // Check if we're unable to arm for some reason
                 if (OSD_ALTERNATING_TEXT(1000, 2) == 0) {
