@@ -322,11 +322,11 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
+            // Cases without message
         case ARMING_DISABLED_CMS_MENU:
-            return OSD_MESSAGE_STR("CMS MODE IS ACTIVE");
+            FALLTHROUGH;
         case ARMING_DISABLED_OSD_MENU:
-            return OSD_MESSAGE_STR("OSD MENU IS ACTIVE");
-        // Cases without message
+            FALLTHROUGH;
         case ARMING_DISABLED_ALL_FLAGS:
             FALLTHROUGH;
         case ARMED:
