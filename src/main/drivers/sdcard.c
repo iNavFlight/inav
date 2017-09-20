@@ -57,6 +57,10 @@
  */
 #define SDCARD_NON_DMA_CHUNK_SIZE 256
 
+#ifndef SDCARD_SPI_CLOCK
+#define SDCARD_SPI_CLOCK    SPI_CLOCK_STANDARD
+#endif
+
 typedef enum {
     // In these states we run at the initialization 400kHz clockspeed:
     SDCARD_STATE_NOT_PRESENT = 0,
@@ -727,7 +731,7 @@ bool sdcard_poll(void)
                 }
 
                 // Now we're done with init and we can switch to the full speed clock (<25MHz)
-                spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_FAST);
+                spiSetSpeed(SDCARD_SPI_INSTANCE, SDCARD_SPI_CLOCK);
 
                 sdcard.multiWriteBlocksRemain = 0;
 

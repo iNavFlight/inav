@@ -2348,6 +2348,21 @@ static void cliStatus(char *cmdline)
     }
     cliPrintLinefeed();
 
+    cliPrintLine("STM32 system clocks:");
+#if defined(USE_HAL_DRIVER)
+    cliPrintLinef("  SYSCLK = %d MHz", HAL_RCC_GetSysClockFreq() / 1000000);
+    cliPrintLinef("  HCLK   = %d MHz", HAL_RCC_GetHCLKFreq() / 1000000);
+    cliPrintLinef("  PCLK1  = %d MHz", HAL_RCC_GetPCLK1Freq() / 1000000);
+    cliPrintLinef("  PCLK2  = %d MHz", HAL_RCC_GetPCLK2Freq() / 1000000);
+#else
+    RCC_ClocksTypeDef clocks;
+    RCC_GetClocksFreq(&clocks);
+    cliPrintLinef("  SYSCLK = %d MHz", clocks.SYSCLK_Frequency / 1000000);
+    cliPrintLinef("  HCLK   = %d MHz", clocks.HCLK_Frequency / 1000000);
+    cliPrintLinef("  PCLK1  = %d MHz", clocks.PCLK1_Frequency / 1000000);
+    cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
+#endif
+
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
