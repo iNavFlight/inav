@@ -57,6 +57,7 @@
 #include "io/gps.h"
 #include "io/osd.h"
 
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -811,6 +812,7 @@ static void osdUpdateStats(void)
 
 static void osdShowStats(void)
 {
+    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FS", "NAV" };
     uint8_t top = 2;
     const uint8_t statValuesX = 21;
     char buff[10];
@@ -865,6 +867,9 @@ static void osdShowStats(void)
     flyMinutes %= 60;
     tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    displayWrite(osdDisplayPort, 2, top, "DISARM REASON    :");
+    displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
 }
 
 // called when motors armed
