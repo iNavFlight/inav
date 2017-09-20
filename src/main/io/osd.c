@@ -843,8 +843,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_AIR_SPEED] = OSD_POS(3, 5);
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
-    // FIXME: | VISIBLE_FLAG for testing. Will be probably
-    // removed before merging final version.
     osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
