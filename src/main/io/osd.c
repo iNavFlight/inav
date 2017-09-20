@@ -741,8 +741,8 @@ static bool osdDrawSingleElement(uint8_t item)
             const char *message = NULL;
             if (ARMING_FLAG(ARMED)) {
                 // TODO: Add some messages here
-            } else if (IS_RC_MODE_ACTIVE(BOXARM)) {
-                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+                // Check if we're unable to arm for some reason
                 if (OSD_ALTERNATING_TEXT(1000, 2) == 0) {
                     message = "UNABLE TO ARM";
                     TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
