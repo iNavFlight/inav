@@ -70,6 +70,7 @@
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
+#include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
 
@@ -83,6 +84,18 @@
 #define OSD_POS(x,y)  (x | (y << 5))
 #define OSD_X(x)      (x & 0x001F)
 #define OSD_Y(x)      ((x >> 5) & 0x001F)
+
+// Adjust OSD_MESSAGE's default position when
+// changing OSD_MESSAGE_LENGTH
+#define OSD_MESSAGE_LENGTH 28
+#define OSD_ALTERNATING_TEXT(ms, num_choices) ((millis() / ms) % num_choices)
+#define _CONST_STR_SIZE(s) ((sizeof(s)/sizeof(s[0]))-1) // -1 to avoid counting final '\0'
+// Wrap all string constants intenteded for display as messages with
+// this macro to ensure compile time length validation.
+#define OSD_MESSAGE_STR(x) ({ \
+    STATIC_ASSERT(_CONST_STR_SIZE(x) <= OSD_MESSAGE_LENGTH, message_string_ ## __COUNTER__ ## _too_long); \
+    x; \
+})
 
 // Things in both OSD and CMS
 
@@ -253,6 +266,89 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     char wholeUnshifted[32];
     tfp_sprintf(wholeUnshifted, "%d", val);
     tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
+}
+
+static const char * osdArmingDisabledReasonMessage(void)
+{
+    switch (isArmingDisabledReason()) {
+        case ARMING_DISABLED_FAILSAFE_SYSTEM:
+            return OSD_MESSAGE_STR("FAILSAFE SYSTEM IS ACTIVE");
+        case ARMING_DISABLED_NOT_LEVEL:
+            return OSD_MESSAGE_STR("AIRCRAFT IS NOT LEVEL");
+        case ARMING_DISABLED_SENSORS_CALIBRATING:
+            return OSD_MESSAGE_STR("SENSORS CALIBRATING");
+        case ARMING_DISABLED_SYSTEM_OVERLOADED:
+            return OSD_MESSAGE_STR("SYSTEM OVERLOADED");
+        case ARMING_DISABLED_NAVIGATION_UNSAFE:
+            return OSD_MESSAGE_STR("NAVIGATION IS UNSAFE");
+        case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
+            return OSD_MESSAGE_STR("COMPASS NOT CALIBRATED");
+        case ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED:
+            return OSD_MESSAGE_STR("ACCELEROMETER NOT CALIBRATED");
+        case ARMING_DISABLED_ARM_SWITCH:
+            return OSD_MESSAGE_STR("DISABLE ARM SWITCH FIRST");
+        case ARMING_DISABLED_HARDWARE_FAILURE:
+            {
+                if (!HW_SENSOR_IS_HEALTHY(getHwGyroStatus())) {
+                    return OSD_MESSAGE_STR("GYRO FAILURE");
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwAccelerometerStatus())) {
+                    return OSD_MESSAGE_STR("ACCELEROMETER FAILURE");
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwCompassStatus())) {
+                    return OSD_MESSAGE_STR("COMPASS FAILURE");
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwBarometerStatus())) {
+                    return OSD_MESSAGE_STR("BAROMETER FAILURE");
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwGPSStatus())) {
+                    return OSD_MESSAGE_STR("GPS FAILURE");
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwRangefinderStatus())) {
+                    return OSD_MESSAGE_STR("RANGE FINDER FAILURE");
+                }
+                if (!HW_SENSOR_IS_HEALTHY(getHwPitotmeterStatus())) {
+                    return OSD_MESSAGE_STR("PITOT METER FAILURE");
+                }
+            }
+            return OSD_MESSAGE_STR("HARDWARE FAILURE");
+        case ARMING_DISABLED_BOXFAILSAFE:
+            return OSD_MESSAGE_STR("FAILSAFE MODE ENABLED");
+        case ARMING_DISABLED_BOXKILLSWITCH:
+            return OSD_MESSAGE_STR("KILLSWITCH MODE ENABLED");
+        case ARMING_DISABLED_RC_LINK:
+            return OSD_MESSAGE_STR("NO RC LINK");
+        case ARMING_DISABLED_THROTTLE:
+            return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
+        case ARMING_DISABLED_CLI:
+            return OSD_MESSAGE_STR("CLI IS ACTIVE");
+            // Cases without message
+        case ARMING_DISABLED_CMS_MENU:
+            FALLTHROUGH;
+        case ARMING_DISABLED_OSD_MENU:
+            FALLTHROUGH;
+        case ARMING_DISABLED_ALL_FLAGS:
+            FALLTHROUGH;
+        case ARMED:
+            FALLTHROUGH;
+        case WAS_EVER_ARMED:
+            break;
+    }
+    return NULL;
+}
+
+static void osdFormatMessage(char *buff, size_t size, const char *message)
+{
+    memset(buff, SYM_BLANK, size);
+    if (message) {
+        int messageLength = strlen(message);
+        int rem = MAX(0, OSD_MESSAGE_LENGTH - (int)messageLength);
+        // Don't finish the string at the end of the message,
+        // write the rest of the blanks.
+        strncpy(buff + rem / 2, message, MIN(OSD_MESSAGE_LENGTH - rem / 2, messageLength));
+    }
+    // Ensure buff is zero terminated
+    buff[size - 1] = '\0';
 }
 
 static bool osdDrawSingleElement(uint8_t item)
@@ -640,6 +736,25 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_MESSAGES:
+        {
+            const char *message = NULL;
+            if (ARMING_FLAG(ARMED)) {
+                // TODO: Add some messages here
+            } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+                // Check if we're unable to arm for some reason
+                if (OSD_ALTERNATING_TEXT(1000, 2) == 0) {
+                    message = "UNABLE TO ARM";
+                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                } else {
+                    // Show the reason for not arming
+                    message = osdArmingDisabledReasonMessage();
+                }
+            }
+            osdFormatMessage(buff, sizeof(buff), message);
+            break;
+        }
+
     default:
         return false;
     }
@@ -726,6 +841,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_POWER] = OSD_POS(15, 1);
 
     osdConfig->item_pos[OSD_AIR_SPEED] = OSD_POS(3, 5);
+
+    // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
+    osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
     osdConfig->cap_alarm = 2200;

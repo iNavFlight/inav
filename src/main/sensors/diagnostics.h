@@ -12,6 +12,10 @@ typedef enum {
     HW_SENSOR_UNHEALTHY     = 3,    // Selected, detected but is reported as not healthy
 } hardwareSensorStatus_e;
 
+// Sensor is considered healthy if it's either
+// not configured or either configured and working.
+#define HW_SENSOR_IS_HEALTHY(status)    (status == HW_SENSOR_NONE || status == HW_SENSOR_OK)
+
 hardwareSensorStatus_e getHwGyroStatus(void);
 hardwareSensorStatus_e getHwAccelerometerStatus(void);
 hardwareSensorStatus_e getHwCompassStatus(void);
