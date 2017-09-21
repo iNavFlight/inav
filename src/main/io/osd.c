@@ -43,6 +43,7 @@
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
+#include "common/typeconversion.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -85,6 +86,13 @@
 #define OSD_POS(x,y)  (x | (y << 5))
 #define OSD_X(x)      (x & 0x001F)
 #define OSD_Y(x)      ((x >> 5) & 0x001F)
+
+#define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
+#define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
+#define CENTIMETERS_TO_METERS(cm)               (cm / 100)
+#define FEET_PER_MILE                           5280
+#define FEET_PER_KILOFEET                       1000 // Used for altitude
+#define METERS_PER_KILOMETER                    1000
 
 // Adjust OSD_MESSAGE's default position when
 // changing OSD_MESSAGE_LENGTH
@@ -132,6 +140,97 @@ static displayPort_t *osdDisplayPort;
 
 PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
 
+static int digitCount(int32_t value)
+{
+    int digits = 1;
+    while(1) {
+        value = value / 10;
+        if (value == 0) {
+            break;
+        }
+        digits++;
+    }
+    return digits;
+}
+
+/**
+ * Formats a number given in cents, to support non integer values
+ * without using floating point math. Value is always right aligned
+ * and spaces are inserted before the number to always yield a string
+ * of the same length. If the value doesn't fit into the provided length
+ * it will be divided by scale and true will be returned.
+ */
+ static bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
+ {
+    char *ptr = buff;
+    int decimals = maxDecimals;
+    bool negative = false;
+    bool scaled = false;
+
+    buff[length] = '\0';
+
+    if (centivalue < 0) {
+        negative = true;
+        centivalue = -centivalue;
+        length--;
+    }
+
+    int32_t integerPart = centivalue / 100;
+    // 3 decimal digits
+    int32_t millis = (centivalue % 100) * 10;
+
+    int digits = digitCount(integerPart);
+    int remaining = length - digits;
+
+    if (remaining < 0 && scale > 0) {
+        // Reduce by scale
+        scaled = true;
+        decimals = maxScaledDecimals;
+        integerPart = integerPart / scale;
+        // Multiply by 10 to get 3 decimal digits
+        millis = ((centivalue % (100 * scale)) * 10) / scale;
+        digits = digitCount(integerPart);
+        remaining = length - digits;
+    }
+
+    // 3 decimals at most
+    decimals = MIN(remaining, MIN(decimals, 3));
+    remaining -= decimals;
+
+    // Done counting. Time to write the characters.
+
+    // Write spaces at the start
+    while (remaining > 0) {
+        *ptr = SYM_BLANK;
+        ptr++;
+        remaining--;
+    }
+
+    // Write the minus sign if required
+    if (negative) {
+        *ptr = '-';
+        ptr++;
+    }
+    // Now write the digits.
+    ui2a(integerPart, 10, 0, ptr);
+    ptr += digits;
+    if (decimals > 0) {
+        *(ptr-1) += SYM_ZERO_DOT - '0';
+        int decimalDigits = digitCount(millis);
+        while (decimalDigits > decimals) {
+            decimalDigits--;
+            millis /= 10;
+        }
+        while (decimalDigits < decimals) {
+            decimalDigits++;
+            *ptr = '0';
+            ptr++;
+        }
+        ui2a(millis, 10, 0, ptr);
+    }
+    return scaled;
+}
+
 /**
  * Converts altitude/distance based on the current unit system (cm or 1/100th of ft).
  * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt)
@@ -151,36 +250,65 @@ static int32_t osdConvertDistanceToUnit(int32_t dist)
 }
 
 /**
- * Converts altitude/distance into a string based on the current unit system.
- * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt in centimeters)
+ * Converts distance into a string based on the current unit system
+ * prefixed by a a symbol to indicate the unit used.
+ * @param dist Distance in centimeters
  */
-static void osdFormatDistanceStr(char* buff, int32_t dist)
+static void osdFormatDistanceSymbol(char *buff, int32_t dist)
 {
-    int32_t dist_abs = abs(osdConvertDistanceToUnit(dist));
-
     switch (osdConfig()->units) {
     case OSD_UNIT_IMPERIAL:
-        if (dist < 0) {
-            tfp_sprintf(buff, "-%d%c ", dist_abs / 100, SYM_FT);
+        if (osdFormatCentiNumber(buff + 1, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_MILE, 0, 3, 3)) {
+            buff[0] = SYM_DIST_MI;
         } else {
-            tfp_sprintf(buff, "%d%c ", dist_abs / 100, SYM_FT);
+            buff[0] = SYM_DIST_FT;
         }
         break;
     case OSD_UNIT_UK:
         FALLTHROUGH;
     case OSD_UNIT_METRIC:
-        if (dist < 0) {
-            tfp_sprintf(buff, "-%d.%01d%c ", dist_abs / 100, (dist_abs % 100) / 10, SYM_M);
+        if (osdFormatCentiNumber(buff + 1, dist, METERS_PER_KILOMETER, 0, 3, 3)) {
+            buff[0] = SYM_DIST_KM;
         } else {
-            if (dist < 10000) { // less than 100m
-                tfp_sprintf(buff, "%d.%01d%c ", dist_abs / 100, (dist_abs % 100) / 10, SYM_M);
-            } else {
-                tfp_sprintf(buff, "%d%c ", dist_abs / 100, SYM_M);
-            }
+            buff[0] = SYM_DIST_M;
         }
         break;
     }
 }
+
+/**
+ * Converts distance into a string based on the current unit system.
+ * @param dist Distance in centimeters
+ */
+ static void osdFormatDistanceStr(char *buff, int32_t dist)
+ {
+     int32_t centifeet;
+     switch (osdConfig()->units) {
+     case OSD_UNIT_IMPERIAL:
+        centifeet = CENTIMETERS_TO_CENTIFEET(dist);
+        if (abs(dist) < FEET_PER_MILE * 100 / 2) {
+            // Show feet when dist < 0.5mi
+            tfp_sprintf("%d%c", buff, centifeet / 100, SYM_MI);
+        } else {
+            // Show miles when dist >= 0.5mi
+            tfp_sprintf("%d.%02d%c", buff, dist / (100*FEET_PER_MILE),
+            abs(dist) % (100 * FEET_PER_MILE), SYM_MI);
+        }
+        break;
+     case OSD_UNIT_UK:
+         FALLTHROUGH;
+     case OSD_UNIT_METRIC:
+        if (abs(dist) < METERS_PER_KILOMETER * 100) {
+            // Show meters when dist < 1km
+            tfp_sprintf("%d%c", buff, dist / 100, SYM_M);
+        } else {
+            // Show kilometers when dist >= 1km
+            tfp_sprintf("%d.%02d%c", buff, dist / (100*METERS_PER_KILOMETER),
+                abs(dist) % (100 * METERS_PER_KILOMETER), SYM_KM);
+         }
+         break;
+     }
+ }
 
 /**
  * Converts velocity based on the current unit system (kmh or mph).
@@ -215,6 +343,59 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
     case OSD_UNIT_METRIC:
         tfp_sprintf(buff, "%3d%c", osdConvertVelocityToUnit(vel), SYM_KMH);
         break;
+    }
+}
+
+/**
+* Converts altitude into a string based on the current unit system
+* prefixed by a a symbol to indicate the unit used.
+* @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt in centimeters)
+*/
+static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
+{
+    switch (osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            if (osdFormatCentiNumber(buff + 1, CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, 3)) {
+                // Scaled to kft
+                buff[0] = SYM_ALT_KFT;
+            } else {
+                // Formatted in feet
+                buff[0] = SYM_ALT_FT;
+            }
+            break;
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_METRIC:
+            // alt is alredy in cm
+            if (osdFormatCentiNumber(buff+1, alt, 1000, 0, 2, 3)) {
+                // Scaled to km
+                buff[0] = SYM_ALT_KM;
+            } else {
+                // Formatted in m
+                buff[0] = SYM_ALT_M;
+            }
+            break;
+    }
+}
+
+/**
+* Converts altitude into a string based on the current unit system.
+* @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt in centimeters)
+*/
+static void osdFormatAltitudeStr(char *buff, int32_t alt)
+{
+    int32_t value;
+    switch (osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            value = CENTIMETERS_TO_FEET(alt);
+            tfp_sprintf(buff, "%d%c", value, SYM_FT);
+            break;
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_METRIC:
+            value = CENTIMETERS_TO_METERS(alt);
+            tfp_sprintf(buff, "%d%c", value, SYM_M);
+            break;
     }
 }
 
@@ -526,8 +707,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_HOME_DIST:
-        buff[0] = SYM_HOME_DIST;
-        osdFormatDistanceStr(&buff[1], GPS_distanceToHome * 100);
+        osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);
         break;
 
     case OSD_HEADING:
@@ -556,8 +736,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #else
             alt = baro.alt;
 #endif
-            buff[0] = SYM_ALT;
-            osdFormatDistanceStr(&buff[1], alt);
+            osdFormatAltitudeSymbol(buff, alt);
             if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
@@ -1104,7 +1283,7 @@ static void osdShowStats(void)
     }
 
     displayWrite(osdDisplayPort, statNameX, top, "MAX ALTITUDE     :");
-    osdFormatDistanceStr(buff, stats.max_altitude);
+    osdFormatAltitudeStr(buff, stats.max_altitude);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
