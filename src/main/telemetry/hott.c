@@ -60,7 +60,6 @@
 #include "platform.h"
 
 
-
 #if defined(TELEMETRY) && defined(TELEMETRY_HOTT)
 
 #include "build/build_config.h"
@@ -69,23 +68,23 @@
 #include "common/axis.h"
 #include "common/time.h"
 
-#include "drivers/time.h"
 #include "drivers/serial.h"
+#include "drivers/time.h"
 
 #include "fc/runtime_config.h"
 
 #include "flight/pid.h"
 
-#include "io/serial.h"
 #include "io/gps.h"
+#include "io/serial.h"
 
 #include "navigation/navigation.h"
 
-#include "sensors/sensors.h"
 #include "sensors/battery.h"
+#include "sensors/sensors.h"
 
-#include "telemetry/telemetry.h"
 #include "telemetry/hott.h"
+#include "telemetry/telemetry.h"
 
 //#define HOTT_DEBUG
 
@@ -241,12 +240,11 @@ static inline void updateAlarmBatteryStatus(HOTT_EAM_MSG_t *hottEAMMessage)
 
     if (((millis() - lastHottAlarmSoundTime) >= (telemetryConfig()->hottAlarmSoundInterval * MILLISECONDS_IN_A_SECOND))){
         lastHottAlarmSoundTime = millis();
-        batteryState_e batteryState = getBatteryState();
+        const batteryState_e batteryState = getBatteryState();
         if (batteryState == BATTERY_WARNING  || batteryState == BATTERY_CRITICAL){
             hottEAMMessage->warning_beeps = 0x10;
             hottEAMMessage->alarm_invers1 = HOTT_EAM_ALARM1_FLAG_BATTERY_1;
-        }
-        else {
+        } else {
             hottEAMMessage->warning_beeps = HOTT_EAM_ALARM1_FLAG_NONE;
             hottEAMMessage->alarm_invers1 = HOTT_EAM_ALARM1_FLAG_NONE;
         }
@@ -350,18 +348,18 @@ static bool processBinaryModeRequest(uint8_t address)
 {
     switch (address) {
 #ifdef GPS
-        case 0x8A:
-            if (sensors(SENSOR_GPS)) {
-                hottPrepareGPSResponse(&hottGPSMessage);
-                hottQueueSendResponse((uint8_t *)&hottGPSMessage, sizeof(hottGPSMessage));
-                return true;
-            }
-            break;
-#endif
-        case 0x8E:
-            hottPrepareEAMResponse(&hottEAMMessage);
-            hottQueueSendResponse((uint8_t *)&hottEAMMessage, sizeof(hottEAMMessage));
+    case 0x8A:
+        if (sensors(SENSOR_GPS)) {
+            hottPrepareGPSResponse(&hottGPSMessage);
+            hottQueueSendResponse((uint8_t *)&hottGPSMessage, sizeof(hottGPSMessage));
             return true;
+        }
+        break;
+#endif
+    case 0x8E:
+        hottPrepareEAMResponse(&hottEAMMessage);
+        hottQueueSendResponse((uint8_t *)&hottEAMMessage, sizeof(hottEAMMessage));
+        return true;
     }
 
     return false;
@@ -387,8 +385,7 @@ static bool hottSendTelemetryDataByte(timeUs_t currentTimeUs)
         // Send CRC byte
         hottSerialWrite(hottTxMsgCrc);
         return true;
-    }
-    else {
+    } else {
         // Send data byte
         hottTxMsgCrc += *hottTxMsg;
         hottSerialWrite(*hottTxMsg);
@@ -400,16 +397,17 @@ static bool hottSendTelemetryDataByte(timeUs_t currentTimeUs)
 
 void checkHoTTTelemetryState(void)
 {
-    bool newTelemetryEnabledValue = telemetryDetermineEnabledState(hottPortSharing);
+    const bool newTelemetryEnabledValue = telemetryDetermineEnabledState(hottPortSharing);
 
     if (newTelemetryEnabledValue == hottTelemetryEnabled) {
         return;
     }
 
-    if (newTelemetryEnabledValue)
+    if (newTelemetryEnabledValue) {
         configureHoTTTelemetryPort();
-    else
+    } else {
         freeHoTTTelemetryPort();
+    }
 }
 
 void handleHoTTTelemetry(timeUs_t currentTimeUs)
@@ -417,84 +415,85 @@ void handleHoTTTelemetry(timeUs_t currentTimeUs)
     static uint8_t hottRequestBuffer[2];
     static int hottRequestBufferPtr = 0;
 
-    if (!hottTelemetryEnabled)
+    if (!hottTelemetryEnabled) {
         return;
+    }
 
     bool reprocessState;
     do {
         reprocessState = false;
 
         switch (hottState) {
-            case HOTT_WAITING_FOR_REQUEST:
-                if (serialRxBytesWaiting(hottPort)) {
-                    hottRequestBufferPtr = 0;
-                    hottSwitchState(HOTT_RECEIVING_REQUEST, currentTimeUs);
-                    reprocessState = true;
-                }
-                break;
+        case HOTT_WAITING_FOR_REQUEST:
+            if (serialRxBytesWaiting(hottPort)) {
+                hottRequestBufferPtr = 0;
+                hottSwitchState(HOTT_RECEIVING_REQUEST, currentTimeUs);
+                reprocessState = true;
+            }
+            break;
 
-            case HOTT_RECEIVING_REQUEST:
-                if ((currentTimeUs - hottStateChangeUs) >= HOTT_RX_SCHEDULE) {
-                    // Waiting for too long - resync
-                    flushHottRxBuffer();
-                    hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
+        case HOTT_RECEIVING_REQUEST:
+            if ((currentTimeUs - hottStateChangeUs) >= HOTT_RX_SCHEDULE) {
+                // Waiting for too long - resync
+                flushHottRxBuffer();
+                hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
+            }
+            else {
+                while (serialRxBytesWaiting(hottPort) && hottRequestBufferPtr < 2) {
+                    hottRequestBuffer[hottRequestBufferPtr++] = serialRead(hottPort);
                 }
-                else {
-                    while (serialRxBytesWaiting(hottPort) && hottRequestBufferPtr < 2) {
-                        hottRequestBuffer[hottRequestBufferPtr++] = serialRead(hottPort);
-                    }
 
-                    if (hottRequestBufferPtr >= 2) {
-                        if ((hottRequestBuffer[0] == 0) || (hottRequestBuffer[0] == HOTT_BINARY_MODE_REQUEST_ID)) {
-                            /*
-                             * FIXME the first byte of the HoTT request frame is ONLY either 0x80 (binary mode) or 0x7F (text mode).
-                             * The binary mode is read as 0x00 (error reading the upper bit) while the text mode is correctly decoded.
-                             * The (requestId == 0) test is a workaround for detecting the binary mode with no ambiguity as there is only
-                             * one other valid value (0x7F) for text mode.
-                             * The error reading for the upper bit should nevertheless be fixed
-                             */
-                            if (processBinaryModeRequest(hottRequestBuffer[1])) {
-                                hottSwitchState(HOTT_WAITING_FOR_TX_WINDOW, currentTimeUs);
-                            }
-                            else {
-                                hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
-                            }
-                        }
-                        else if (hottRequestBuffer[0] == HOTT_TEXT_MODE_REQUEST_ID) {
-                            // FIXME Text mode
-                            hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
+                if (hottRequestBufferPtr >= 2) {
+                    if ((hottRequestBuffer[0] == 0) || (hottRequestBuffer[0] == HOTT_BINARY_MODE_REQUEST_ID)) {
+                        /*
+                         * FIXME the first byte of the HoTT request frame is ONLY either 0x80 (binary mode) or 0x7F (text mode).
+                         * The binary mode is read as 0x00 (error reading the upper bit) while the text mode is correctly decoded.
+                         * The (requestId == 0) test is a workaround for detecting the binary mode with no ambiguity as there is only
+                         * one other valid value (0x7F) for text mode.
+                         * The error reading for the upper bit should nevertheless be fixed
+                         */
+                        if (processBinaryModeRequest(hottRequestBuffer[1])) {
+                            hottSwitchState(HOTT_WAITING_FOR_TX_WINDOW, currentTimeUs);
                         }
                         else {
-                            // Received garbage - resync
-                            flushHottRxBuffer();
                             hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
                         }
-
-                        reprocessState = true;
                     }
-                }
-                break;
+                    else if (hottRequestBuffer[0] == HOTT_TEXT_MODE_REQUEST_ID) {
+                        // FIXME Text mode
+                        hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
+                    }
+                    else {
+                        // Received garbage - resync
+                        flushHottRxBuffer();
+                        hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
+                    }
 
-            case HOTT_WAITING_FOR_TX_WINDOW:
-                if ((currentTimeUs - hottStateChangeUs) >= HOTT_TX_SCHEDULE) {
-                    hottTxMsgCrc = 0;
-                    hottSwitchState(HOTT_TRANSMITTING, currentTimeUs);
-                }
-                break;
-
-            case HOTT_TRANSMITTING:
-                if (hottSendTelemetryDataByte(currentTimeUs)) {
-                    hottSwitchState(HOTT_ENDING_TRANSMISSION, currentTimeUs);
-                }
-                break;
-
-            case HOTT_ENDING_TRANSMISSION:
-                if ((currentTimeUs - hottStateChangeUs) >= HOTT_TX_DELAY_US) {
-                    flushHottRxBuffer();
-                    hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
                     reprocessState = true;
                 }
-                break;
+            }
+            break;
+
+        case HOTT_WAITING_FOR_TX_WINDOW:
+            if ((currentTimeUs - hottStateChangeUs) >= HOTT_TX_SCHEDULE) {
+                hottTxMsgCrc = 0;
+                hottSwitchState(HOTT_TRANSMITTING, currentTimeUs);
+            }
+            break;
+
+        case HOTT_TRANSMITTING:
+            if (hottSendTelemetryDataByte(currentTimeUs)) {
+                hottSwitchState(HOTT_ENDING_TRANSMISSION, currentTimeUs);
+            }
+            break;
+
+        case HOTT_ENDING_TRANSMISSION:
+            if ((currentTimeUs - hottStateChangeUs) >= HOTT_TX_DELAY_US) {
+                flushHottRxBuffer();
+                hottSwitchState(HOTT_WAITING_FOR_REQUEST, currentTimeUs);
+                reprocessState = true;
+            }
+            break;
         };
     } while (reprocessState);
 }
