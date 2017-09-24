@@ -174,7 +174,7 @@ uint8_t rxSpiReadCommandMulti(uint8_t command, uint8_t commandData, uint8_t *ret
 }
 
 #ifdef RX_IRQ_PIN
-bool rxSpiCheckIrq()
+bool rxSpiCheckIrq(void)
 {
     return !IORead(rxIrqPin);
 }

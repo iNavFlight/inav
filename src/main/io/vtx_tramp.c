@@ -162,7 +162,7 @@ void trampSendRFPower(uint16_t level)
 }
 
 // return false if error
-bool trampCommitChanges()
+bool trampCommitChanges(void)
 {
     if(trampStatus != TRAMP_STATUS_ONLINE)
         return false;
@@ -238,7 +238,7 @@ typedef enum {
 static trampReceiveState_e trampReceiveState = S_WAIT_LEN;
 static int trampReceivePos = 0;
 
-static void trampResetReceiver()
+static void trampResetReceiver(void)
 {
     trampReceiveState = S_WAIT_LEN;
     trampReceivePos = 0;
@@ -559,7 +559,7 @@ static long trampCmsCommence(displayPort_t *pDisp, const void *self)
     return MENU_CHAIN_BACK;
 }
 
-static void trampCmsInitSettings()
+static void trampCmsInitSettings(void)
 {
     if(trampBand > 0) trampCmsBand = trampBand;
     if(trampChannel > 0) trampCmsChan = trampChannel;
@@ -577,7 +577,7 @@ static void trampCmsInitSettings()
     }
 }
 
-static long trampCmsOnEnter()
+static long trampCmsOnEnter(void)
 {
     trampCmsInitSettings();
     return 0;

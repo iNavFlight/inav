@@ -292,7 +292,7 @@ const mixer_t * findMixer(mixerMode_e mixerMode)
     return NULL;
 }
 
-uint8_t getMotorCount()
+uint8_t getMotorCount(void)
 {
     return motorCount;
 }
@@ -450,7 +450,7 @@ void stopMotors(void)
     delay(50); // give the timers and ESCs a chance to react.
 }
 
-void stopPwmAllMotors()
+void stopPwmAllMotors(void)
 {
     pwmShutdownPulsesForAllMotors(motorCount);
 }

@@ -167,7 +167,7 @@ bool failsafeMayRequireNavigationMode(void)
 }
 #endif
 
-failsafePhase_e failsafePhase()
+failsafePhase_e failsafePhase(void)
 {
     return failsafeState.phase;
 }
