@@ -201,7 +201,7 @@ static void cliPrint(const char *str)
     }
 }
 
-static void cliPrintLinefeed()
+static void cliPrintLinefeed(void)
 {
     cliPrint("\r\n");
 }

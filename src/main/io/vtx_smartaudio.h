@@ -1,7 +1,7 @@
 
 // For generic API use, but here for now
 
-bool vtxSmartAudioInit();
+bool vtxSmartAudioInit(void);
 
 #if 0
 #ifdef CMS

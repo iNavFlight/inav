@@ -2,7 +2,7 @@
 
 #if defined(VTX_TRAMP) && defined(VTX_CONTROL)
 
-bool vtxTrampInit();
+bool vtxTrampInit(void);
 
 #ifdef CMS
 #include "cms/cms.h"

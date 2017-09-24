@@ -385,7 +385,7 @@ static void processMspPacket(mspPacket_t* packet)
  *       - 2: MSP error
  *     - CRC (request type included)
  */
-bool smartPortSendMspReply()
+bool smartPortSendMspReply(void)
 {
     static uint8_t checksum = 0;
     static uint8_t seq = 0;

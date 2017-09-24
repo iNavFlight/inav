@@ -29,7 +29,7 @@ typedef enum disarmReason_e {
     DISARM_REASON_COUNT
 } disarmReason_t;
 
-void handleInflightCalibrationStickPosition();
+void handleInflightCalibrationStickPosition(void);
 
 void mwDisarm(disarmReason_t disarmReason);
 void mwArm(void);

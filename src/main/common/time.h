@@ -81,7 +81,7 @@ void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime);
 // be modifed and will become invalid after calling this function.
 bool dateTimeSplitFormatted(char *formatted, char **date, char **time);
 
-bool rtcHasTime();
+bool rtcHasTime(void);
 
 bool rtcGet(rtcTime_t *t);
 bool rtcSet(rtcTime_t *t);

@@ -464,7 +464,7 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
     return ret; // return the number of bytes written
 }
 
-uint32_t mspSerialTxBytesFree()
+uint32_t mspSerialTxBytesFree(void)
 {
     uint32_t ret = UINT32_MAX;
 

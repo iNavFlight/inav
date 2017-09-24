@@ -547,7 +547,7 @@ int16_t getHeadingHoldTarget() {
     return headingHoldTarget;
 }
 
-static uint8_t getHeadingHoldState()
+static uint8_t getHeadingHoldState(void)
 {
     // Don't apply heading hold if overall tilt is greater than maximum angle inclination
     if (calculateCosTiltAngle() < headingHoldCosZLimit) {
