@@ -450,7 +450,7 @@ groups:
         max: 10000
       - name: current_meter_offset
         field: currentMeterOffset
-        min: 0
+        min: -3300
         max: 3300
       - name: multiwii_current_meter_output
         field: multiwiiCurrentMeterOutput
