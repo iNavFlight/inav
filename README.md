@@ -29,6 +29,7 @@ Starting at 22-06-2016 INAV uses the same scaling for PIDs as Cleanflight/Betafl
 * Support for more than 8 RC channels - (e.g. 16 Channels via FrSky X4RSB SBus).
 * Support for N-Position switches via flexible channel ranges - not just 3 like baseflight or 3/6 in MultiWii
 * Lux's new PID (uses float values internally, resistant to looptime variation).
+
 * Simultaneous Bluetooth configuration and OSD.
 * Better PWM and PPM input and failsafe detection than baseflight.
 * Better FrSky Telemetry than baseflight.
@@ -78,6 +79,9 @@ https://github.com/iNavFlight/inav-configurator
 If you rather just want to use Cleanflight configurator you can download from here:
 https://chrome.google.com/webstore/detail/cleanflight-configurator/enacoimjcgeinfnnnpajinjgmkahmfgb
 
+## Telemetry screen for OpenTX
+
+Users of FrSky Taranis X9 and Q X7 can use INAV Lua Telemetry screen created by @teckel12 . Software and installation instruction are available here: [https://github.com/iNavFlight/LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry)
 
 ## Contributing
 
