@@ -162,9 +162,9 @@ typedef struct {
 
     // Extra state variables
     navPositionEstimatorSTATE_t state;
-} navigationPosEstimator_s;
+} navigationPosEstimator_t;
 
-static navigationPosEstimator_s posEstimator;
+static navigationPosEstimator_t posEstimator;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 1);
 
