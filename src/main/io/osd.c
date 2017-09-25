@@ -646,8 +646,12 @@ static bool osdDrawSingleElement(uint8_t item)
             pitchAngle = ((pitchAngle * 25) / AH_MAX_PITCH) - 41; // 41 = 4 * 9 + 5
 
             for (int x = -4; x <= 4; x++) {
-                // clear the y area before writing the new horizon character
-                for (int y = 0; y <= 8; y++) {
+                // clear the y area before writing the new horizon character.
+                // XXX: Take care to not clear the center in the last row,
+                // to allow positioning the home direction indicator in the unused
+                // area of the AHI (its default position).
+                int maxy = x != 0 ? 8 : 7;
+                for (int y = 0; y <= maxy; y++) {
                     displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + y, SYM_BLANK);
                 }
                 const int y = (-rollAngle * x) / 64 - pitchAngle;
