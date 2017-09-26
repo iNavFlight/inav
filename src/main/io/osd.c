@@ -423,6 +423,28 @@ static void osdFormatMessage(char *buff, size_t size, const char *message)
     buff[size - 1] = '\0';
 }
 
+/**
+ * Draws the battery symbol filled in accordingly to the
+ * battery voltage to buff[0].
+ **/
+static void osdFormatBatteryChargeSymbol(char *buff)
+{
+    uint8_t p = calculateBatteryPercentage();
+    p = (100 - p) / 16.6;
+    buff[0] = SYM_BATT_FULL + p;
+}
+
+/**
+ * Updates the text attributes for drawing a battery indicator sign,
+ * enabling blink when battery is below the voltage alarm.
+ **/
+static void osdUpdateBatteryTextAttributes(textAttributes_t *attr)
+{
+    if (vbat <= (batteryWarningVoltage - 1)) {
+        TEXT_ATTRIBUTES_ADD_BLINK(*attr);
+    }
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item])) {
@@ -447,16 +469,10 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAIN_BATT_VOLTAGE:
-        {
-            uint8_t p = calculateBatteryPercentage();
-            p = (100 - p) / 16.6;
-            buff[0] = SYM_BATT_FULL + p;
-            tfp_sprintf(buff + 1, "%d.%1dV ", vbat / 10, vbat % 10);
-            if (vbat <= (batteryWarningVoltage - 1)) {
-                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-            }
-            break;
-        }
+        osdFormatBatteryChargeSymbol(buff);
+        tfp_sprintf(buff + 1, "%d.%1dV ", vbat / 10, vbat % 10);
+        osdUpdateBatteryTextAttributes(&elemAttr);
+        break;
 
     case OSD_CURRENT_DRAW:
         buff[0] = SYM_AMP;
@@ -825,6 +841,16 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatMessage(buff, sizeof(buff), message);
             break;
         }
+    case OSD_MAIN_BATT_CELL_VOLTAGE:
+        {
+            // Use 2 decimals since dividing by the number of
+            // cells might yield more significant digits
+            uint16_t cellBattCentiVolts = vbat * 10 / batteryCellCount;
+            osdFormatBatteryChargeSymbol(buff);
+            tfp_sprintf(buff + 1, "%d.%02dV", cellBattCentiVolts / 100, cellBattCentiVolts % 100);
+            osdUpdateBatteryTextAttributes(&elemAttr);
+            break;
+        }
 
     default:
         return false;
@@ -856,10 +882,7 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
             elementIndex = OSD_VARIO;
         }
         if (elementIndex == OSD_GPS_HDOP) {
-            STATIC_ASSERT(OSD_GPS_HDOP + 1 == OSD_ITEM_COUNT, OSD_GPS_HDOP_not_last_item__update_next_line);
-            // XXX: This needs to be updated if a new OSD
-            // item is added after OSD_GPS_HDOP
-            elementIndex = OSD_ITEM_COUNT;
+            elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
     }
 
@@ -885,10 +908,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_RSSI_VALUE] = OSD_POS(23, 0) | VISIBLE_FLAG;
     //line 2
     osdConfig->item_pos[OSD_HOME_DIST] = OSD_POS(1, 1);
-    osdConfig->item_pos[OSD_HEADING] = OSD_POS(12, 1);
+    osdConfig->item_pos[OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[OSD_GPS_SPEED] = OSD_POS(23, 1);
 
     osdConfig->item_pos[OSD_THROTTLE_POS] = OSD_POS(1, 2) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_HEADING] = OSD_POS(12, 2);
     osdConfig->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;
 

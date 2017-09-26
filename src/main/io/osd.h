@@ -58,6 +58,7 @@ typedef enum {
     OSD_RTC_TIME,
     OSD_MESSAGES,
     OSD_GPS_HDOP,
+    OSD_MAIN_BATT_CELL_VOLTAGE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
