@@ -155,22 +155,22 @@
 // Unit Icon´s (Metric)
 #define SYM_MS          0x9F
 #define SYM_KMH         0xA1
-#define SYM_ALT_M       210
-#define SYM_ALT_KM      211
-#define SYM_DIST_M      214
-#define SYM_DIST_KM     215
-#define SYM_M           218
-#define SYM_KM          219
+#define SYM_ALT_M       177
+#define SYM_ALT_KM      178
+#define SYM_DIST_M      181
+#define SYM_DIST_KM     182
+#define SYM_M           185
+#define SYM_KM          187
 
 // Unit Icon´s (Imperial)
 #define SYM_FTS         0x99
 #define SYM_MPH         0xB0
-#define SYM_ALT_FT      212
-#define SYM_ALT_KFT     213
-#define SYM_DIST_FT     216
-#define SYM_DIST_MI     217
+#define SYM_ALT_FT      179
+#define SYM_ALT_KFT     180
+#define SYM_DIST_FT     183
+#define SYM_DIST_MI     184
 #define SYM_FT          0x0F
-#define SYM_MI          220
+#define SYM_MI          187
 
 // Voltage and amperage
 #define SYM_VOLT  0x06
@@ -216,7 +216,7 @@
 
 //Misc
 #define SYM_COLON 0x2D
-#define SYM_ZERO_DOT 200
+#define SYM_ZERO_DOT 192
 
 //sport
 #define SYM_MIN 0xB3
