@@ -543,7 +543,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             buff[0] = SYM_HDP_L;
             buff[1] = SYM_HDP_R;
-            tfp_sprintf(&buff[2], "%2d", gpsSol.hdop / 100);
+            tfp_sprintf(&buff[2], "%2d", gpsSol.hdop / HDOP_SCALE);
             break;
         }
 #endif // GPS
