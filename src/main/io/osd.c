@@ -641,6 +641,13 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             elemPosX = 14;
             elemPosY = 6 - 4; // Top center of the AH area
+            // Erase only the positions we drew over. Avoids
+            // thrashing the video driver buffer.
+            // writtenY[x] contains the Y position that was
+            // written to the OSD, counting from elemPosY.
+            // A negative value indicates that the whole
+            // column is blank.
+            static int8_t writtenY[AH_SYMBOL_COUNT];
 
             int rollAngle = constrain(attitude.values.roll, -AH_MAX_ROLL, AH_MAX_ROLL);
             int pitchAngle = constrain(attitude.values.pitch, -AH_MAX_PITCH, AH_MAX_PITCH);
@@ -653,13 +660,34 @@ static bool osdDrawSingleElement(uint8_t item)
             pitchAngle = ((pitchAngle * 25) / AH_MAX_PITCH) - 41; // 41 = 4 * 9 + 5
 
             for (int x = -4; x <= 4; x++) {
-                // clear the y area before writing the new horizon character
-                for (int y = 0; y <= 8; y++) {
-                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + y, SYM_BLANK);
-                }
+                // Don't clear the whole area to save some time. Instead, clear
+                // only the positions we previously wrote iff we're writing
+                // at a different Y coordinate. The video buffer will take care
+                // of ignoring the write if we're writing the same character
+                // at the same Y coordinate.
+                //
+                // Note that this implementation leaves an untouched character
+                // in the bottom center of the indicator, which allows positioning
+                // the home directorion indicator there.
                 const int y = (-rollAngle * x) / 64 - pitchAngle;
+                int wx = x + 4; // map the -4 to the 1st element in the writtenY array
+                int pwy = writtenY[wx]; // previously written Y at this X value
                 if (y >= 0 && y <= 80) {
-                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + (y / AH_SYMBOL_COUNT), (SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT)));
+                    int wy = (y / AH_SYMBOL_COUNT);
+                    if (pwy != -1 && pwy != wy) {
+                        // Erase previous character at pwy rows below elemPosY
+                        // iff we're writing at a different Y coordinate. Otherwise
+                        // we just overwrite the previous one.
+                        displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + pwy, SYM_BLANK);
+                    }
+                    uint8_t ch = SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT);
+                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + wy, ch);
+                    writtenY[wx] = wy;
+                } else {
+                    if (pwy != -1) {
+                        displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + pwy, SYM_BLANK);
+                        writtenY[wx] = -1;
+                    }
                 }
             }
 
