@@ -1417,6 +1417,9 @@ groups:
       - name: osd_gps_hdop_pos
         field: item_pos[OSD_GPS_HDOP]
         max: OSD_POS_MAX_CLI
+      - name: osd_main_cell_voltage_pos
+        field: item_pos[OSD_MAIN_BATT_CELL_VOLTAGE]
+        max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
