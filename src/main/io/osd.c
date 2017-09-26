@@ -523,6 +523,13 @@ static bool osdDrawSingleElement(uint8_t item)
             tfp_sprintf(&buff[1], "%3d%c", h , SYM_DEGREES);
             break;
         }
+    case OSD_GPS_HDOP:
+        {
+            buff[0] = SYM_HDP_L;
+            buff[1] = SYM_HDP_R;
+            tfp_sprintf(&buff[2], "%2d", gpsSol.hdop / 100);
+            break;
+        }
 #endif // GPS
 
     case OSD_ALTITUDE:
@@ -848,6 +855,12 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_LON) {
             elementIndex = OSD_VARIO;
         }
+        if (elementIndex == OSD_GPS_HDOP) {
+            STATIC_ASSERT(OSD_GPS_HDOP + 1 == OSD_ITEM_COUNT, OSD_GPS_HDOP_not_last_item__update_next_line);
+            // XXX: This needs to be updated if a new OSD
+            // item is added after OSD_GPS_HDOP
+            elementIndex = OSD_ITEM_COUNT;
+        }
     }
 
     if (elementIndex == OSD_ITEM_COUNT) {
@@ -894,6 +907,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_RTC_TIME] = OSD_POS(23, 12);
 
     osdConfig->item_pos[OSD_GPS_SATS] = OSD_POS(0, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[OSD_GPS_LAT] = OSD_POS(0, 12);
     osdConfig->item_pos[OSD_FLYMODE] = OSD_POS(12, 12) | VISIBLE_FLAG;
