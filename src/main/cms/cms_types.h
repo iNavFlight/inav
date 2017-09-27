@@ -22,6 +22,10 @@
 
 #pragma once
 
+#include <stdint.h>
+
+#include "fc/settings.h"
+
 //type of elements
 
 typedef enum
@@ -32,12 +36,14 @@ typedef enum
     OME_Submenu,
     OME_Funcall,
     OME_Bool,
+    OME_BoolFunc, // bool func(bool*):
     OME_INT8,
     OME_UINT8,
     OME_UINT16,
     OME_INT16,
     OME_String,
     OME_FLOAT, //only up to 255 value and cant be 2.55 or 25.5, just for PID's
+    OME_Setting,
     //wlasciwosci elementow
 #ifdef OSD
     OME_VISIBLE,
@@ -144,6 +150,14 @@ typedef struct
     uint8_t step;
     uint16_t multipler;
 } OSD_FLOAT_t;
+
+typedef struct OSD_SETTING_s {
+    const uint16_t val; // setting number, from the constants in settings_generated.h
+    const uint8_t step;
+} __attribute__((packed)) OSD_SETTING_t;
+
+#define OSD_SETTING_ENTRY_STEP(name, setting, step)    {name, OME_Setting, NULL, &(OSD_SETTING_t){ setting, step }, 0 }
+#define OSD_SETTING_ENTRY(name, setting)    OSD_SETTING_ENTRY_STEP(name, setting, 0)
 
 typedef struct
 {

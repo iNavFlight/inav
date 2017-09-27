@@ -42,6 +42,7 @@
 #include "cms/cms_types.h"
 
 #include "common/maths.h"
+#include "common/printf.h"
 #include "common/typeconversion.h"
 #include "common/utils.h"
 
@@ -57,6 +58,7 @@
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "flight/mixer.h"
 
@@ -386,6 +388,62 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
             cmsFormatFloat(*ptr->val * ptr->multipler, buff);
             cmsPadToSize(buff, 5);
             cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay) - 1, row, buff); // XXX One char left ???
+            CLR_PRINTVALUE(p);
+        }
+        break;
+
+    case OME_Setting:
+        if (IS_PRINTVALUE(p) && p->data) {
+            buff[0] = '\0';
+            OSD_SETTING_t *ptr = p->data;
+            const setting_t *var = &settingsTable[ptr->val];
+            int32_t value;
+            const void *valuePointer = setting_get_value_pointer(var);
+            switch (SETTING_TYPE(var)) {
+                case VAR_UINT8:
+                    value = *(uint8_t *)valuePointer;
+                    break;
+                case VAR_INT8:
+                    value = *(int8_t *)valuePointer;
+                    break;
+                case VAR_UINT16:
+                    value = *(uint16_t *)valuePointer;
+                    break;
+                case VAR_INT16:
+                    value = *(int16_t *)valuePointer;
+                    break;
+                case VAR_UINT32:
+                    value = *(uint32_t *)valuePointer;
+                    break;
+                case VAR_FLOAT:
+                    ftoa(*(float *)valuePointer, buff);
+                    break;
+            }
+            if (buff[0] == '\0') {
+                switch (SETTING_MODE(var)) {
+                    case MODE_DIRECT:
+                        if (SETTING_TYPE(var) == VAR_UINT32) {
+                            tfp_sprintf(buff, "%u", value);
+                        } else {
+                            tfp_sprintf(buff, "%d", value);
+                        }
+                        break;
+                    case MODE_LOOKUP:
+                        {
+                            const char *str = NULL;
+                            if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
+                                const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
+                                if (value < tableEntry->valueCount) {
+                                    str = tableEntry->values[value];
+                                }
+                            }
+                            strncpy(buff, str ? str : "INVALID", sizeof(buff) - 1);
+                        }
+                        break;
+                }
+            }
+            cmsPadToSize(buff, 8);
+            cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, buff);
             CLR_PRINTVALUE(p);
         }
         break;
@@ -877,6 +935,69 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             }
             break;
 
+        case OME_Setting:
+            if (p->data) {
+                OSD_SETTING_t *ptr = p->data;
+                const setting_t *var = &settingsTable[ptr->val];
+                setting_min_t min = setting_get_min(var);
+                setting_max_t max = setting_get_max(var);
+                float step = ptr->step ?: 1;
+                if (key != KEY_RIGHT) {
+                    step = -step;
+                }
+                const void *valuePointer = setting_get_value_pointer(var);
+                switch (SETTING_TYPE(var)) {
+                    case VAR_UINT8:
+                        {
+                            uint8_t val = *(uint8_t *)valuePointer;
+                            val = MIN(MAX(val + step, (uint8_t)min), (uint8_t)max);
+                            *(uint8_t *)valuePointer = val;
+                            break;
+                        }
+                    case VAR_INT8:
+                        {
+                            int8_t val = *(int8_t *)valuePointer;
+                            val = MIN(MAX(val + step, (int8_t)min), (int8_t)max);
+                            *(int8_t *)valuePointer = val;
+                            break;
+                        }
+                    case VAR_UINT16:
+                        {
+                            uint16_t val = *(uint16_t *)valuePointer;
+                            val = MIN(MAX(val + step, (uint16_t)min), (uint16_t)max);
+                            *(uint16_t *)valuePointer = val;
+                            break;
+                        }
+                    case VAR_INT16:
+                        {
+                            int16_t val = *(int16_t *)valuePointer;
+                            val = MIN(MAX(val + step, (int16_t)min), (int16_t)max);
+                            *(int16_t *)valuePointer = val;
+                            break;
+                        }
+                    case VAR_UINT32:
+                        {
+                            uint32_t val = *(uint32_t *)valuePointer;
+                            val = MIN(MAX(val + step, (uint32_t)min), (uint32_t)max);
+                            *(uint32_t *)valuePointer = val;
+                            break;
+                        }
+                    case VAR_FLOAT:
+                        {
+                            float val = *(float *)valuePointer;
+                            val = MIN(MAX(val + step, (float)min), (float)max);
+                            *(float *)valuePointer = val;
+                            break;
+                        }
+                        break;
+                }
+                SET_PRINTVALUE(p);
+                if (p->func) {
+                    p->func(pDisplay, p);
+                }
+            }
+            break;
+
         case OME_String:
             break;
 
@@ -909,7 +1030,8 @@ void cmsUpdate(uint32_t currentTimeUs)
     static int repeatCount = 1;
     static int repeatBase = 0;
 // e.g #define CMS_INJECTED_KEYS KEY_DOWN,KEY_RIGHT,KEY_DOWN,KEY_RIGHT,KEY_DOWN
-#define CMS_INJECTED_KEYS_INTERVAL 1000
+#define CMS_INJECTED_KEYS KEY_RIGHT,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_RIGHT
+#define CMS_INJECTED_KEYS_INTERVAL 800
 #if defined CMS_INJECTED_KEYS
     int cmsInjectedKeys[] = {KEY_NONE, CMS_INJECTED_KEYS};
     static timeMs_t lastInjectedKeyMs = 0;
