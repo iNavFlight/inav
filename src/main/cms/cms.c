@@ -306,6 +306,14 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
         }
         break;
 
+    case OME_BoolFunc:
+        if (IS_PRINTVALUE(p) && p->data) {
+            bool (*func)(bool *arg) = p->data;
+            cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, func(NULL) ? "YES" : "NO ");
+            CLR_PRINTVALUE(p);
+        }
+        break;
+
     case OME_TAB:
         if (IS_PRINTVALUE(p)) {
             OSD_TAB_t *ptr = p->data;
@@ -751,6 +759,15 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
                     *val = 1;
                 else
                     *val = 0;
+                SET_PRINTVALUE(p);
+            }
+            break;
+
+        case OME_BoolFunc:
+            if (p->data) {
+                bool (*func)(bool *arg) = p->data;
+                bool val = key == KEY_RIGHT;
+                func(&val);
                 SET_PRINTVALUE(p);
             }
             break;
