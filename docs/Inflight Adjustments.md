@@ -202,7 +202,7 @@ When the switch is high, rate profile 2 is selcted.
 
 ### Configurator examples
 
-The following 5 images show valid configurations.  In all cales the enture usable range for the Range Channel is used.
+The following 5 images show valid configurations.  In all cases the entire usable range for the Range Channel is used.
 
 ![Configurator example 1](Screenshots/adjustments-rate-profile-selection-via-3pos.png)
 
