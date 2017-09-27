@@ -43,6 +43,7 @@
 
 #include "common/maths.h"
 #include "common/typeconversion.h"
+#include "common/utils.h"
 
 #include "drivers/system.h"
 #include "drivers/time.h"
@@ -890,6 +891,13 @@ void cmsUpdate(uint32_t currentTimeUs)
     static int holdCount = 1;
     static int repeatCount = 1;
     static int repeatBase = 0;
+// e.g #define CMS_INJECTED_KEYS KEY_DOWN,KEY_RIGHT,KEY_DOWN,KEY_RIGHT,KEY_DOWN
+#define CMS_INJECTED_KEYS_INTERVAL 1000
+#if defined CMS_INJECTED_KEYS
+    int cmsInjectedKeys[] = {KEY_NONE, CMS_INJECTED_KEYS};
+    static timeMs_t lastInjectedKeyMs = 0;
+    static unsigned lastInjectedKeyIndex = 0;
+#endif
 
     static uint32_t lastCalledMs = 0;
     static uint32_t lastCmsHeartBeatMs = 0;
@@ -898,10 +906,15 @@ void cmsUpdate(uint32_t currentTimeUs)
 
     if (!cmsInMenu) {
         // Detect menu invocation
+#if defined(CMS_INJECTED_KEYS)
+        cmsMenuOpen();
+        rcDelayMs = 0;
+#else
         if (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
             cmsMenuOpen();
             rcDelayMs = BUTTON_PAUSE;    // Tends to overshoot if BUTTON_TIME
         }
+#endif
     } else {
         //
         // Scan 'key' first
@@ -929,6 +942,14 @@ void cmsUpdate(uint32_t currentTimeUs)
             key = KEY_ESC;
         }
 
+#if defined(CMS_INJECTED_KEYS)
+        if (lastInjectedKeyMs < currentTimeMs - CMS_INJECTED_KEYS_INTERVAL) {
+            if (lastInjectedKeyIndex < ARRAYLEN(cmsInjectedKeys)) {
+                key = cmsInjectedKeys[lastInjectedKeyIndex++];
+                lastInjectedKeyMs = currentTimeMs;
+            }
+        }
+#endif
         if (key == KEY_NONE) {
             // No 'key' pressed, reset repeat control
             holdCount = 1;
