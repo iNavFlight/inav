@@ -118,7 +118,7 @@ LTO_FLAGS             := $(OPTIMISE_DEFAULT)
 DEBUG_FLAGS            = -ggdb3 -DDEBUG
 else
 OPTIMISATION_BASE     := -flto -fuse-linker-plugin -ffast-math
-OPTIMISE_DEFAULT      := -O2
+OPTIMISE_DEFAULT      := -Os
 OPTIMISE_SPEED        := -Ofast
 OPTIMISE_SIZE         := -Os
 
