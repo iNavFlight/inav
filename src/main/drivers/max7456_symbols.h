@@ -178,20 +178,6 @@
 #define SYM_MAH   0x07
 #define SYM_WATT  0x57
 
-// Flying Mode
-#define SYM_ACRO      0xAE
-#define SYM_ACROGY    0x98
-#define SYM_ACRO1     0xAF
-#define SYM_STABLE    0xAC
-#define SYM_STABLE1   0xAD
-#define SYM_HORIZON   0xC4
-#define SYM_HORIZON1  0xC5
-#define SYM_PASS      0xAA
-#define SYM_PASS1     0xAB
-#define SYM_AIR       0xEA
-#define SYM_AIR1      0xEB
-#define SYM_PLUS      0x89
-
 // Note, these change with scrolling enabled (scrolling is TODO)
 //#define SYM_AH_DECORATION_LEFT 0x13
 //#define SYM_AH_DECORATION_RIGHT 0x13
