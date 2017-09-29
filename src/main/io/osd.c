@@ -341,7 +341,7 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
     case OSD_UNIT_UK:
         FALLTHROUGH;
     case OSD_UNIT_IMPERIAL:
-        tfp_sprintf(buff, "%2d%c", osdConvertVelocityToUnit(vel), SYM_MPH);
+        tfp_sprintf(buff, "%3d%c", osdConvertVelocityToUnit(vel), SYM_MPH);
         break;
     case OSD_UNIT_METRIC:
         tfp_sprintf(buff, "%3d%c", osdConvertVelocityToUnit(vel), SYM_KMH);
