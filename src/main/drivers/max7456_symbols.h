@@ -216,7 +216,8 @@
 
 //Misc
 #define SYM_COLON 0x2D
-#define SYM_ZERO_DOT 192
+#define SYM_ZERO_HALF_TRAILING_DOT 192
+#define SYM_ZERO_HALF_LEADING_DOT 208
 
 //sport
 #define SYM_MIN 0xB3

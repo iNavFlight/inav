@@ -163,6 +163,7 @@ static int digitCount(int32_t value)
  static bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
  {
     char *ptr = buff;
+    char *dec;
     int decimals = maxDecimals;
     bool negative = false;
     bool scaled = false;
@@ -215,7 +216,8 @@ static int digitCount(int32_t value)
     ui2a(integerPart, 10, 0, ptr);
     ptr += digits;
     if (decimals > 0) {
-        *(ptr-1) += SYM_ZERO_DOT - '0';
+        *(ptr-1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        dec = ptr;
         int decimalDigits = digitCount(millis);
         while (decimalDigits > decimals) {
             decimalDigits--;
@@ -226,6 +228,7 @@ static int digitCount(int32_t value)
             *ptr = '0';
             ptr++;
         }
+        *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
         ui2a(millis, 10, 0, ptr);
     }
     return scaled;
