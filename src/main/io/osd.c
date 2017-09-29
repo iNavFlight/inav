@@ -654,7 +654,9 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_VOLTAGE:
         osdFormatBatteryChargeSymbol(buff);
-        tfp_sprintf(buff + 1, "%d.%1dV ", vbat / 10, vbat % 10);
+        osdFormatCentiNumber(buff + 1, vbat * 10, 0, 2, 0, 3);
+        buff[4] = 'V';
+        buff[5] = '\0';
         osdUpdateBatteryTextAttributes(&elemAttr);
         break;
 
@@ -1058,7 +1060,9 @@ static bool osdDrawSingleElement(uint8_t item)
             // cells might yield more significant digits
             uint16_t cellBattCentiVolts = vbat * 10 / batteryCellCount;
             osdFormatBatteryChargeSymbol(buff);
-            tfp_sprintf(buff + 1, "%d.%02dV", cellBattCentiVolts / 100, cellBattCentiVolts % 100);
+            osdFormatCentiNumber(buff + 1, cellBattCentiVolts, 0, 1, 0, 3);
+            buff[4] = 'V';
+            buff[5] = '\0';
             osdUpdateBatteryTextAttributes(&elemAttr);
             break;
         }
