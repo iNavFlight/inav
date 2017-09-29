@@ -979,7 +979,21 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_VARIO_NUM:
         {
             int16_t value = getEstimatedActualVelocity(Z);
-            char sym = SYM_MS;
+            char sym;
+            switch (osdConfig()->units) {
+                case OSD_UNIT_IMPERIAL:
+                    // Convert to centifeet/s
+                    value = CENTIMETERS_TO_CENTIFEET(value);
+                    sym = SYM_FTS;
+                    break;
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    // Already in cm/s
+                    sym = SYM_MS;
+                    break;
+            }
+
             osdFormatCentiNumber(buff, value, 0, 1, 0, 3);
             buff[3] = sym;
             buff[4] = '\0';
