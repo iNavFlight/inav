@@ -729,13 +729,13 @@ static bool osdDrawSingleElement(uint8_t item)
                 int wx = x + 4; // map the -4 to the 1st element in the writtenY array
                 int pwy = writtenY[wx]; // previously written Y at this X value
                 int wy = (y / AH_SYMBOL_COUNT);
+                // Check if we're overlapping with the crosshairs. Saves a few
+                // trips to the video driver.
                 bool overlaps = (crosshairsVisible &&
                             crosshairsY == wy &&
                             x >= crosshairsX && x <= crosshairsXEnd);
 
                 if (y >= 0 && y <= 80 && !overlaps) {
-                    // Check if we're overlapping with the crosshairs. Saves a few
-                    // trips to the video driver.
                     if (pwy != -1 && pwy != wy) {
                         // Erase previous character at pwy rows below elemPosY
                         // iff we're writing at a different Y coordinate. Otherwise
