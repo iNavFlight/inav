@@ -452,8 +452,13 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
     if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
         ++(*y);
     }
+    int size = 3;
+    if (osdConfig()->crosshairs_style == OSD_CROSSHAIRS_STYLE_AIRCRAFT) {
+        (*x)--;
+        size = 5;
+    }
     if (length) {
-        *length = 3;
+        *length = size;
     }
 }
 
@@ -655,10 +660,22 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_CROSSHAIRS:
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
-        buff[0] = SYM_AH_CENTER_LINE;
-        buff[1] = SYM_AH_CENTER;
-        buff[2] = SYM_AH_CENTER_LINE_RIGHT;
-        buff[3] = 0;
+        switch (osdConfig()->crosshairs_style) {
+            case OSD_CROSSHAIRS_STYLE_DEFAULT:
+                buff[0] = SYM_AH_CENTER_LINE;
+                buff[1] = SYM_AH_CENTER;
+                buff[2] = SYM_AH_CENTER_LINE_RIGHT;
+                buff[3] = '\0';
+                break;
+            case OSD_CROSSHAIRS_STYLE_AIRCRAFT:
+                buff[0] = SYM_AH_CROSSHAIRS_AIRCRAFT0;
+                buff[1] = SYM_AH_CROSSHAIRS_AIRCRAFT1;
+                buff[2] = SYM_AH_CROSSHAIRS_AIRCRAFT2;
+                buff[3] = SYM_AH_CROSSHAIRS_AIRCRAFT3;
+                buff[4] = SYM_AH_CROSSHAIRS_AIRCRAFT4;
+                buff[5] = '\0';
+                break;
+        }
         break;
 
     case OSD_ARTIFICIAL_HORIZON:

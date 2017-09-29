@@ -68,6 +68,11 @@ typedef enum {
     OSD_UNIT_UK, // Show speed in mp/h, other values in metric
 } osd_unit_e;
 
+typedef enum {
+    OSD_CROSSHAIRS_STYLE_DEFAULT,
+    OSD_CROSSHAIRS_STYLE_AIRCRAFT,
+} osd_crosshairs_style_e;
+
 typedef struct osdConfig_s {
     uint16_t item_pos[OSD_ITEM_COUNT];
 
@@ -82,6 +87,7 @@ typedef struct osdConfig_s {
 
     // Preferences
     uint8_t ahi_reverse_roll;
+    osd_crosshairs_style_e crosshairs_style;
 
     osd_unit_e units;
 } osdConfig_t;
