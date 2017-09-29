@@ -445,6 +445,18 @@ static void osdUpdateBatteryTextAttributes(textAttributes_t *attr)
     }
 }
 
+static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
+{
+    *x = 14 - 1; // Offset for 1 char to the left
+    *y = 6;
+    if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
+        ++(*y);
+    }
+    if (length) {
+        *length = 3;
+    }
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item])) {
@@ -642,11 +654,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif // VTX
 
     case OSD_CROSSHAIRS:
-        elemPosX = 14 - 1; // Offset for 1 char to the left
-        elemPosY = 6;
-        if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
-            ++elemPosY;
-        }
+        osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
         buff[0] = SYM_AH_CENTER_LINE;
         buff[1] = SYM_AH_CENTER;
         buff[2] = SYM_AH_CENTER_LINE_RIGHT;
@@ -665,6 +673,9 @@ static bool osdDrawSingleElement(uint8_t item)
             // column is blank.
             static int8_t writtenY[AH_SYMBOL_COUNT];
 
+            bool crosshairsVisible;
+            int crosshairsX, crosshairsY, crosshairsXEnd;
+
             int rollAngle = constrain(attitude.values.roll, -AH_MAX_ROLL, AH_MAX_ROLL);
             int pitchAngle = constrain(attitude.values.pitch, -AH_MAX_PITCH, AH_MAX_PITCH);
 
@@ -674,6 +685,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
             // Convert pitchAngle to y compensation value
             pitchAngle = ((pitchAngle * 25) / AH_MAX_PITCH) - 41; // 41 = 4 * 9 + 5
+            crosshairsVisible = VISIBLE(osdConfig()->item_pos[OSD_CROSSHAIRS]);
+            if (crosshairsVisible) {
+                uint8_t cx, cy, cl;
+                osdCrosshairsBounds(&cx, &cy, &cl);
+                crosshairsX = cx - elemPosX;
+                crosshairsY = cy - elemPosY;
+                crosshairsXEnd = crosshairsX + cl;
+            }
 
             for (int x = -4; x <= 4; x++) {
                 // Don't clear the whole area to save some time. Instead, clear
@@ -688,8 +707,14 @@ static bool osdDrawSingleElement(uint8_t item)
                 const int y = (-rollAngle * x) / 64 - pitchAngle;
                 int wx = x + 4; // map the -4 to the 1st element in the writtenY array
                 int pwy = writtenY[wx]; // previously written Y at this X value
-                if (y >= 0 && y <= 80) {
-                    int wy = (y / AH_SYMBOL_COUNT);
+                int wy = (y / AH_SYMBOL_COUNT);
+                bool overlaps = (crosshairsVisible &&
+                            crosshairsY == wy &&
+                            x >= crosshairsX && x <= crosshairsXEnd);
+
+                if (y >= 0 && y <= 80 && !overlaps) {
+                    // Check if we're overlapping with the crosshairs. Saves a few
+                    // trips to the video driver.
                     if (pwy != -1 && pwy != wy) {
                         // Erase previous character at pwy rows below elemPosY
                         // iff we're writing at a different Y coordinate. Otherwise
