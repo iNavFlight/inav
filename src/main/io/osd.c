@@ -679,6 +679,10 @@ static bool osdDrawSingleElement(uint8_t item)
             int rollAngle = constrain(attitude.values.roll, -AH_MAX_ROLL, AH_MAX_ROLL);
             int pitchAngle = constrain(attitude.values.pitch, -AH_MAX_PITCH, AH_MAX_PITCH);
 
+            if (osdConfig()->ahi_reverse_roll) {
+                rollAngle = -rollAngle;
+            }
+
             if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
                 ++elemPosY;
             }
@@ -1006,6 +1010,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->alt_alarm = 100; // meters or feet depend on configuration
 
     osdConfig->video_system = 0;
+
+    osdConfig->ahi_reverse_roll = 0;
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)

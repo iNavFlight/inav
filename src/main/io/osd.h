@@ -80,6 +80,9 @@ typedef struct osdConfig_s {
     uint8_t video_system;
     uint8_t row_shiftdown;
 
+    // Preferences
+    uint8_t ahi_reverse_roll;
+
     osd_unit_e units;
 } osdConfig_t;
 

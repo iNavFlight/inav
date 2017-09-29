@@ -1301,6 +1301,10 @@ groups:
         min: 0
         max: 10000
 
+      - name: osd_artificial_horizon_reverse_roll
+        field: ahi_reverse_roll
+        type: bool
+
       - name: osd_main_voltage_pos
         field: item_pos[OSD_MAIN_BATT_VOLTAGE]
         min: 0
