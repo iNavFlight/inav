@@ -978,9 +978,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_VARIO_NUM:
         {
-            int16_t value = getEstimatedActualVelocity(Z) / 10; //limit precision to 10cm
-
-            tfp_sprintf(buff, "%c%d.%01d%c ", value < 0 ? '-' : ' ', abs(value / 10), abs((value % 10)), SYM_MS);
+            int16_t value = getEstimatedActualVelocity(Z);
+            char sym = SYM_MS;
+            osdFormatCentiNumber(buff, value, 0, 1, 0, 3);
+            buff[3] = sym;
+            buff[4] = '\0';
             break;
         }
 #endif
