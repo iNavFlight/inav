@@ -445,12 +445,27 @@ static uint16_t osdConvertRSSI(void)
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
+    const int coordinateMaxLength = 12; // 11 for the number + 1 for the symbol
+
     buff[0] = sym;
-    char wholeDegreeString[5];
-    tfp_sprintf(wholeDegreeString, "%d", val / GPS_DEGREES_DIVIDER);
-    char wholeUnshifted[32];
-    tfp_sprintf(wholeUnshifted, "%d", val);
-    tfp_sprintf(buff + 1, "%s.%s", wholeDegreeString, wholeUnshifted + strlen(wholeDegreeString));
+    int32_t integerPart = val / GPS_DEGREES_DIVIDER;
+    int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
+    // Latitude maximum integer width is 3 (-90) while
+    // longitude maximum integer width is 4 (-180). We always
+    // show 7 decimals, so we need to use 11 spaces because
+    // we're embedding the decimal separator between the
+    // two numbers.
+    int written = tfp_sprintf(buff + 1, "%d", integerPart);
+    tfp_sprintf(buff + 1 + written, "%07d", decimalPart);
+    // Embbed the decimal separator
+    buff[1+written-1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
+    buff[1+written] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    // Pad to 11 coordinateMaxLength
+    while(1 + 7 + written < coordinateMaxLength) {
+        buff[1 + 7 + written] = SYM_BLANK;
+        written++;
+    }
+    buff[coordinateMaxLength] = '\0';
 }
 
 // Used twice, make sure it's exactly the same string
