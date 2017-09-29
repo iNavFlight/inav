@@ -200,6 +200,9 @@
 // Menu cursor
 #define SYM_CURSOR SYM_AH_LEFT
 
+// Air speed
+#define SYM_AIR 151
+
 //Misc
 #define SYM_COLON 0x2D
 #define SYM_ZERO_HALF_TRAILING_DOT 192

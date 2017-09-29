@@ -1029,7 +1029,8 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AIR_SPEED:
         {
         #ifdef PITOT
-            osdFormatVelocityStr(buff, pitot.airSpeed);
+            buff[0] = SYM_AIR;
+            osdFormatVelocityStr(buff + 1, pitot.airSpeed);
         #else
             return false;
         #endif
