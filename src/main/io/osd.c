@@ -662,12 +662,12 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_CURRENT_DRAW:
         buff[0] = SYM_AMP;
-        tfp_sprintf(buff + 1, "%d.%02d ", abs(amperage) / 100, abs(amperage) % 100);
+        osdFormatCentiNumber(buff + 1, amperage, 0, 2, 0, 3);
         break;
 
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
-        tfp_sprintf(buff + 1, "%d", abs(mAhDrawn));
+        tfp_sprintf(buff + 1, "%-4d", abs(mAhDrawn));
         if (mAhDrawn >= osdConfig()->cap_alarm) {
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
@@ -990,7 +990,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_POWER:
         {
-            tfp_sprintf(buff, "%dW", amperage * vbat / 1000);
+            // TODO: SYM_WATTS?
+            tfp_sprintf(buff, "W%-3d", amperage * vbat / 1000);
             break;
         }
 
