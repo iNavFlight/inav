@@ -8,15 +8,15 @@
 
 #include "fc/settings_generated.c"
 
-void clivalue_get_name(const clivalue_t *val, char *buf)
+void setting_get_name(const setting_t *val, char *buf)
 {
 	uint8_t bpos = 0;
 	uint16_t n = 0;
-#ifndef CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING
+#ifndef SETTING_ENCODED_NAME_USES_BYTE_INDEXING
 	uint8_t shift = 0;
 #endif
-	for (uint8_t ii = 0; ii < CLIVALUE_ENCODED_NAME_MAX_BYTES; ii++) {
-#ifdef CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING
+	for (uint8_t ii = 0; ii < SETTING_ENCODED_NAME_MAX_BYTES; ii++) {
+#ifdef SETTING_ENCODED_NAME_USES_BYTE_INDEXING
 		n = val->encoded_name[ii];
 #else
 		// Decode a variable size uint
@@ -30,7 +30,7 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 		// Final byte
 		n |= b << shift;
 #endif
-		const char *word = cliValueWords[n];
+		const char *word = settingNamesWords[n];
 		if (!word) {
 			// No more words
 			break;
@@ -41,7 +41,7 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 		}
 		strcpy(&buf[bpos], word);
 		bpos += strlen(word);
-#ifndef CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING
+#ifndef SETTING_ENCODED_NAME_USES_BYTE_INDEXING
 		// Reset shift and n
 		shift = 0;
 		n = 0;
@@ -50,37 +50,37 @@ void clivalue_get_name(const clivalue_t *val, char *buf)
 	buf[bpos] = '\0';
 }
 
-bool clivalue_name_contains(const clivalue_t *val, char *buf, const char *cmdline)
+bool setting_name_contains(const setting_t *val, char *buf, const char *cmdline)
 {
-	clivalue_get_name(val, buf);
+	setting_get_name(val, buf);
 	return strstr(buf, cmdline) != NULL;
 }
 
-bool clivalue_name_exact_match(const clivalue_t *val, char *buf, const char *cmdline, uint8_t var_name_length)
+bool setting_name_exact_match(const setting_t *val, char *buf, const char *cmdline, uint8_t var_name_length)
 {
-	clivalue_get_name(val, buf);
+	setting_get_name(val, buf);
 	return sl_strncasecmp(cmdline, buf, strlen(buf)) == 0 && var_name_length == strlen(buf);
 }
 
-pgn_t clivalue_get_pgn(const clivalue_t *val)
+pgn_t setting_get_pgn(const setting_t *val)
 {
-	uint16_t pos = val - (const clivalue_t *)cliValueTable;
+	uint16_t pos = val - (const setting_t *)settingsTable;
 	uint16_t acc = 0;
-	for (uint8_t ii = 0; ii < CLIVALUE_PGN_COUNT; ii++) {
-		acc += cliValuePgnCounts[ii];
+	for (uint8_t ii = 0; ii < SETTINGS_PGN_COUNT; ii++) {
+		acc += settingsPgnCounts[ii];
 		if (acc > pos) {
-			return cliValuePgn[ii];
+			return settingsPgn[ii];
 		}
 	}
 	return -1;
 }
 
-clivalue_min_t clivalue_get_min(const clivalue_t *val)
+setting_min_t setting_get_min(const setting_t *val)
 {
-	return cliValueMinMaxTable[CLIVALUE_INDEXES_GET_MIN(val)];
+	return settingMinMaxTable[SETTING_INDEXES_GET_MIN(val)];
 }
 
-clivalue_max_t clivalue_get_max(const clivalue_t *val)
+setting_max_t setting_get_max(const setting_t *val)
 {
-	return cliValueMinMaxTable[CLIVALUE_INDEXES_GET_MAX(val)];
+	return settingMinMaxTable[SETTING_INDEXES_GET_MAX(val)];
 }

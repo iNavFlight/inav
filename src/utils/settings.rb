@@ -309,9 +309,9 @@ class Generator
 
         buf = StringIO.new
         buf << "#include \"fc/settings.h\"\n"
-        buf << "char (*dummy)[sizeof(clivalue_t)] = 1;\n"
+        buf << "char (*dummy)[sizeof(setting_t)] = 1;\n"
         stderr = compile_test_file(buf)
-        puts "sizeof(clivalue_t) = #{/char \(\*\)\[(\d+)\]/.match(stderr)[1]}"
+        puts "sizeof(setting_t) = #{/char \(\*\)\[(\d+)\]/.match(stderr)[1]}"
     end
 
     private
@@ -333,27 +333,27 @@ class Generator
         buf = StringIO.new
         write_file_header(buf)
         buf << "#pragma once\n"
-        # Write clivalue_t size constants
-        buf << "#define CLIVALUE_MAX_NAME_LENGTH #{@max_name_length+1}\n" # +1 for the terminating '\0'
-        buf << "#define CLIVALUE_ENCODED_NAME_MAX_BYTES #{@name_encoder.max_length}\n"
+        # Write setting_t size constants
+        buf << "#define SETTING_MAX_NAME_LENGTH #{@max_name_length+1}\n" # +1 for the terminating '\0'
+        buf << "#define SETTING_ENCODED_NAME_MAX_BYTES #{@name_encoder.max_length}\n"
         if @name_encoder.uses_byte_indexing
-            buf << "#define CLIVALUE_ENCODED_NAME_USES_BYTE_INDEXING\n"
+            buf << "#define SETTING_ENCODED_NAME_USES_BYTE_INDEXING\n"
         end
-        buf << "#define CLIVALUE_TABLE_COUNT #{@count}\n"
+        buf << "#define SETTINGS_TABLE_COUNT #{@count}\n"
         offset_type = "uint16_t"
         if can_use_byte_offsetof
             offset_type = "uint8_t"
         end
-        buf << "typedef #{offset_type} clivalue_offset_t;\n"
+        buf << "typedef #{offset_type} setting_offset_t;\n"
         pgn_count = 0
         foreach_enabled_group do |group|
             pgn_count += 1
         end
-        buf << "#define CLIVALUE_PGN_COUNT #{pgn_count}\n"
+        buf << "#define SETTINGS_PGN_COUNT #{pgn_count}\n"
         # Write type definitions and constants for min/max values
-        buf << "typedef #{@value_encoder.min_type} clivalue_min_t;\n"
-        buf << "typedef #{@value_encoder.max_type} clivalue_max_t;\n"
-        buf << "#define CLIVALUE_MIN_MAX_INDEX_BYTES #{@value_encoder.index_bytes*2}\n"
+        buf << "typedef #{@value_encoder.min_type} setting_min_t;\n"
+        buf << "typedef #{@value_encoder.max_type} setting_max_t;\n"
+        buf << "#define SETTING_MIN_MAX_INDEX_BYTES #{@value_encoder.index_bytes*2}\n"
         # Write lookup table constants
         table_names = ordered_table_names()
         buf << "enum {\n"
@@ -400,19 +400,19 @@ class Generator
             pgns << group["name"]
         end
 
-        buf << "const pgn_t cliValuePgn[] = {\n"
+        buf << "const pgn_t settingsPgn[] = {\n"
         pgns.each do |p|
             buf << "\t#{p},\n"
         end
         buf << "};\n"
-        buf << "const uint8_t cliValuePgnCounts[] = {\n"
+        buf << "const uint8_t settingsPgnCounts[] = {\n"
         pgn_steps.each do |s|
             buf << "\t#{s},\n"
         end
         buf << "};\n"
 
         # Write word list
-        buf << "static const char *cliValueWords[] = {\n"
+        buf << "static const char *settingNamesWords[] = {\n"
         buf << "\tNULL,\n"
         @name_encoder.words.each do |w|
             buf << "\t#{w.inspect},\n"
@@ -430,7 +430,7 @@ class Generator
             buf << "};\n"
         end
 
-        buf << "const lookupTableEntry_t cliLookupTables[] = {\n"
+        buf << "const lookupTableEntry_t settingLookupTables[] = {\n"
         table_names.each do |name|
             vn = table_variable_name(name)
             buf << "\t{ #{vn}, sizeof(#{vn}) / sizeof(char*) },\n"
@@ -438,7 +438,7 @@ class Generator
         buf << "};\n"
 
         # Write min/max values table
-        buf << "const uint32_t cliValueMinMaxTable[] = {\n"
+        buf << "const uint32_t settingMinMaxTable[] = {\n"
         @value_encoder.values.each do |v|
             buf <<  "\t#{v},\n"
         end
@@ -446,15 +446,15 @@ class Generator
 
         case @value_encoder.index_bytes
         when 1
-            buf << "typedef uint8_t clivalue_min_max_idx_t;\n"
-            buf << "#define CLIVALUE_INDEXES_GET_MIN(val) (val->config.minmax.indexes[0])\n"
-            buf << "#define CLIVALUE_INDEXES_GET_MAX(val) (val->config.minmax.indexes[1])\n"
+            buf << "typedef uint8_t setting_min_max_idx_t;\n"
+            buf << "#define SETTING_INDEXES_GET_MIN(val) (val->config.minmax.indexes[0])\n"
+            buf << "#define SETTING_INDEXES_GET_MAX(val) (val->config.minmax.indexes[1])\n"
         else
             raise "can't encode indexed values requiring #{@value_encoder.index_bytes} bytes"
         end
 
-        # Write clivalues
-        buf << "const clivalue_t cliValueTable[] = {\n"
+        # Write setting_t values
+        buf << "const setting_t settingsTable[] = {\n"
 
         last_group = nil
         foreach_enabled_member do |group, member|
