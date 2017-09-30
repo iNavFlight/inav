@@ -391,43 +391,28 @@ static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptr
     return result;
 }
 
-static uint16_t getValueOffset(const setting_t *value)
-{
-    switch (value->type & SETTING_SECTION_MASK) {
-    case MASTER_VALUE:
-        return value->offset;
-    case PROFILE_VALUE:
-        return value->offset + sizeof(pidProfile_t) * getConfigProfile();
-    case CONTROL_RATE_VALUE:
-        return value->offset + sizeof(controlRateConfig_t) * getConfigProfile();
-    }
-    return 0;
-}
-
-static void *getValuePointer(const setting_t *value)
-{
-    const pgRegistry_t* pg = pgFind(setting_get_pgn(value));
-    return pg->address + getValueOffset(value);
-}
-
 static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
 {
-    const pgRegistry_t* pg = pgFind(setting_get_pgn(value));
     char name[SETTING_MAX_NAME_LENGTH];
-
     const char *format = "set %s = ";
     const char *defaultFormat = "#set %s = ";
-    const int valueOffset = getValueOffset(value);
-    const bool equalsDefault = valuePtrEqualsDefault(value->type, pg->copy + valueOffset, pg->address + valueOffset);
+    // During a dump, the PGs have been backed up to their "copy"
+    // regions and the actual values have been reset to its
+    // defaults. This means that setting_get_value_pointer() will
+    // return the default value while setting_get_copy_value_pointer()
+    // will return the actual value.
+    const void *valuePointer = setting_get_copy_value_pointer(value);
+    const void *defaultValuePointer = setting_get_value_pointer(value);
+    const bool equalsDefault = valuePtrEqualsDefault(value->type, valuePointer, defaultValuePointer);
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
         setting_get_name(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
-            printValuePointer(value, (uint8_t*)pg->address + valueOffset, 0);
+            printValuePointer(value, defaultValuePointer, 0);
             cliPrintLinefeed();
         }
         cliPrintf(format, name);
-        printValuePointer(value, pg->copy + valueOffset, 0);
+        printValuePointer(value, valuePointer, 0);
         cliPrintLinefeed();
     }
 }
@@ -445,7 +430,7 @@ static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
 
 static void cliPrintVar(const setting_t *var, uint32_t full)
 {
-    const void *ptr = getValuePointer(var);
+    const void *ptr = setting_get_value_pointer(var);
 
     printValuePointer(var, ptr, full);
 }
@@ -478,7 +463,7 @@ typedef union {
 
 static void cliSetVar(const setting_t *var, const int_float_value_t value)
 {
-    void *ptr = getValuePointer(var);
+    void *ptr = setting_get_value_pointer(var);
 
     switch (SETTING_TYPE(var)) {
     case VAR_UINT8:

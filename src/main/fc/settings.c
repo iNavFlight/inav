@@ -75,6 +75,31 @@ pgn_t setting_get_pgn(const setting_t *val)
 	return -1;
 }
 
+static uint16_t getValueOffset(const setting_t *value)
+{
+    switch (SETTING_SECTION(value)) {
+    case MASTER_VALUE:
+        return value->offset;
+    case PROFILE_VALUE:
+        return value->offset + sizeof(pidProfile_t) * getConfigProfile();
+    case CONTROL_RATE_VALUE:
+        return value->offset + sizeof(controlRateConfig_t) * getConfigProfile();
+    }
+    return 0;
+}
+
+void *setting_get_value_pointer(const setting_t *val)
+{
+    const pgRegistry_t *pg = pgFind(setting_get_pgn(val));
+    return pg->address + getValueOffset(val);
+}
+
+const void * setting_get_copy_value_pointer(const setting_t *val)
+{
+    const pgRegistry_t *pg = pgFind(setting_get_pgn(val));
+    return pg->copy + getValueOffset(val);
+}
+
 setting_min_t setting_get_min(const setting_t *val)
 {
 	return settingMinMaxTable[SETTING_INDEXES_GET_MIN(val)];
