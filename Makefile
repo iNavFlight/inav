@@ -924,27 +924,28 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
-.PHONY: settings clean-settings
-UTILS_DIR			= $(ROOT)/src/utils
+.PHONY: .FORCE clean-settings
+UTILS_DIR		= $(ROOT)/src/utils
 SETTINGS_GENERATOR	= $(UTILS_DIR)/settings.rb
+BUILD_STAMP		= $(UTILS_DIR)/build_stamp.rb
+STAMP			= $(BIN_DIR)/build.stamp
 
 GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
 SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
-$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
+GENERATED_FILES		= $(GENERATED_SETTINGS)
+$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE) $(STAMP)
+
+$(STAMP): .FORCE
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(BUILD_STAMP) $(SETTINGS_FILE) $(STAMP)
 
 # Use a pattern rule, since they're different than normal rules.
 # See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
 %generated.h %generated.c:
 	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
-	$(V1) CFLAGS="$(CFLAGS)" ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
-settings: $(GENERATED_SETTINGS)
 clean-settings:
 	$(V1) $(RM) $(GENERATED_SETTINGS)
-
-# Files that depend on the generated settings
-$(OBJECT_DIR)/$(TARGET)/fc/cli.o: settings
-$(OBJECT_DIR)/$(TARGET)/fc/settings.o: settings
 
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
@@ -955,7 +956,7 @@ $(TARGET_HEX): $(TARGET_ELF)
 $(TARGET_BIN): $(TARGET_ELF)
 	$(V0) $(OBJCOPY) -O binary $< $@
 
-$(TARGET_ELF): clean-settings $(TARGET_OBJS)
+$(TARGET_ELF): $(TARGET_OBJS)
 	$(V1) echo Linking $(TARGET)
 	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
@@ -1069,7 +1070,10 @@ test:
 	$(V0) cd src/test && $(MAKE) test || true
 
 # rebuild everything when makefile changes
-$(TARGET_OBJS) : Makefile
+# Make the generated files and the build stamp order only prerequisites,
+# so they will be generated before TARGET_OBJS but regenerating them
+# won't cause all TARGET_OBJS to be rebuilt.
+$(TARGET_OBJS) : Makefile | $(GENERATED_FILES) $(STAMP)
 
 # include auto-generated dependencies
 -include $(TARGET_DEPS)
