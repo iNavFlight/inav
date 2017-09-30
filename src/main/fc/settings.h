@@ -61,7 +61,7 @@ typedef struct {
     const uint8_t encoded_name[SETTING_ENCODED_NAME_MAX_BYTES];
     const uint8_t type; // see settingFlag_e
     const settingConfig_t config;
-    const setting_offset_t offset; // TODO: make const?
+    const setting_offset_t offset;
 
 } __attribute__((packed)) setting_t;
 
