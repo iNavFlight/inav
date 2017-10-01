@@ -75,6 +75,8 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_fw_pitch_angle = 100,     // 10 deg dive (yes, positive means dive)
     .failsafe_fw_yaw_rate = -45,        // 45 deg/s left yaw (left is negative, 8s for full turn)
     .failsafe_stick_motion_threshold = 50,
+    .failsafe_min_distance = 0,            // No minimum distance for failsafe by default  
+    .failsafe_min_distance_procedure = 1   // default minimum distance failsafe procedure is 1: auto-landing, 1: drop, 2 : RTH
 );
 
 typedef enum {
@@ -382,7 +384,16 @@ void failsafeUpdateState(void)
                 if (receivingRxDataAndNotFailsafeMode) {
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                 } else {
-                    switch (failsafeConfig()->failsafe_procedure) {
+                    uint8_t failsafe_procedure_to_use = failsafeConfig()->failsafe_procedure;
+
+                    // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
+                    if ((failsafeConfig()->failsafe_min_distance > 0) && 
+                        (GPS_distanceToHome < failsafeConfig()->failsafe_min_distance)) {
+                        // Use the alternate, minimum distance failsafe procedure instead
+                        failsafe_procedure_to_use = failsafeConfig()->failsafe_min_distance_procedure;
+                    }
+
+                    switch (failsafe_procedure_to_use) {
                         case FAILSAFE_PROCEDURE_AUTO_LANDING:
                             // Stabilize, and set Throttle to specified level
                             failsafeActivate(FAILSAFE_LANDING);

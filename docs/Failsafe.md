@@ -68,6 +68,14 @@ The use-case is the Return To Home failsafe: when on the edge of radio coverage 
 
 Time throttle level must have been below 'min_throttle' to _only disarm_ instead of _full failsafe procedure_. Set to zero to disable.
 
+#### `failsafe_min_distance`
+
+If failsafe happens when craft is below this distance in meters from home, failsafe will not execure regular failsafe_procedure, but will execute procedure specified in failsafe_min_distance_procedure instead. 0 = Normal failsafe_procedure always taken.
+
+#### `failsafe_min_distance_procedure`
+
+What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance.
+
 #### `rx_min_usec`
 
 The lowest channel value considered valid.
