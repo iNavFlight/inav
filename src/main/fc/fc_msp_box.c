@@ -89,7 +89,7 @@ const box_t *findBoxByActiveBoxId(uint8_t activeBoxId)
     return NULL;
 }
 
-const box_t *findBoxByPermenantId(uint8_t permenantId)
+const box_t *findBoxByPermanentId(uint8_t permenantId)
 {
     for (uint8_t boxIndex = 0; boxIndex < sizeof(boxes) / sizeof(box_t); boxIndex++) {
         const box_t *candidate = &boxes[boxIndex];

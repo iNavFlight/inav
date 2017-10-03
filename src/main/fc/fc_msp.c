@@ -1210,7 +1210,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (i < MAX_MODE_ACTIVATION_CONDITION_COUNT) {
             modeActivationCondition_t *mac = modeActivationConditionsMutable(i);
             i = sbufReadU8(src);
-            const box_t *box = findBoxByPermenantId(i);
+            const box_t *box = findBoxByPermanentId(i);
             if (box) {
                 mac->modeId = box->boxId;
                 mac->auxChannelIndex = sbufReadU8(src);
