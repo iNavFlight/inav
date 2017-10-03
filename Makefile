@@ -568,6 +568,7 @@ COMMON_SRC = \
             drivers/io_pca9685.c \
             drivers/light_led.c \
             drivers/logging.c \
+            drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
