@@ -161,36 +161,28 @@
 // Unit Icon´s (Metric)
 #define SYM_MS          0x9F
 #define SYM_KMH         0xA1
-#define SYM_ALTM        0xA7
-#define SYM_DISTHOME_M  0xBB
-#define SYM_M           0x0C
+#define SYM_ALT_M       177
+#define SYM_ALT_KM      178
+#define SYM_DIST_M      181
+#define SYM_DIST_KM     182
+#define SYM_M           185
+#define SYM_KM          187
 
 // Unit Icon´s (Imperial)
 #define SYM_FTS         0x99
 #define SYM_MPH         0xB0
-#define SYM_ALTFT       0xA8
-#define SYM_DISTHOME_FT 0xB9
+#define SYM_ALT_FT      179
+#define SYM_ALT_KFT     180
+#define SYM_DIST_FT     183
+#define SYM_DIST_MI     184
 #define SYM_FT          0x0F
+#define SYM_MI          187
 
 // Voltage and amperage
 #define SYM_VOLT  0x06
 #define SYM_AMP   0x9A
 #define SYM_MAH   0x07
 #define SYM_WATT  0x57
-
-// Flying Mode
-#define SYM_ACRO      0xAE
-#define SYM_ACROGY    0x98
-#define SYM_ACRO1     0xAF
-#define SYM_STABLE    0xAC
-#define SYM_STABLE1   0xAD
-#define SYM_HORIZON   0xC4
-#define SYM_HORIZON1  0xC5
-#define SYM_PASS      0xAA
-#define SYM_PASS1     0xAB
-#define SYM_AIR       0xEA
-#define SYM_AIR1      0xEB
-#define SYM_PLUS      0x89
 
 // Note, these change with scrolling enabled (scrolling is TODO)
 //#define SYM_AH_DECORATION_LEFT 0x13
@@ -214,8 +206,13 @@
 // Menu cursor
 #define SYM_CURSOR SYM_AH_LEFT
 
+// Air speed
+#define SYM_AIR 151
+
 //Misc
 #define SYM_COLON 0x2D
+#define SYM_ZERO_HALF_TRAILING_DOT 192
+#define SYM_ZERO_HALF_LEADING_DOT 208
 
 //sport
 #define SYM_MIN 0xB3

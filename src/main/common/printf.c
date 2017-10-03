@@ -64,15 +64,27 @@ static int putchw(void *putp, putcf putf, int n, char z, char *bf)
 {
     int written = 0;
     char fc = z ? '0' : ' ';
+    char pr = 0;
+    if (n < 0) {
+        pr = 1;
+        n = -n;
+    }
     char ch;
     char *p = bf;
     while (*p++ && n > 0)
         n--;
-    while (n-- > 0) {
-        putf(putp, fc); written++;
+    if (pr == 0) {
+        while (n-- > 0) {
+            putf(putp, fc); written++;
+        }
     }
     while ((ch = *bf++)) {
         putf(putp, ch); written++;
+    }
+    if (pr == 1) {
+        while (n-- > 0) {
+            putf(putp, fc); written++;
+        }
     }
     return written;
 }
@@ -89,17 +101,25 @@ int tfp_format(void *putp, putcf putf, const char *fmt, va_list va)
             putf(putp, ch); written++;
         } else {
             char lz = 0;
+            char pr = 0; // padding at the right?
 #ifdef REQUIRE_PRINTF_LONG_SUPPORT
             char lng = 0;
 #endif
             int w = 0;
             ch = *(fmt++);
+            if (ch == '-') {
+                ch = *(fmt++);
+                pr = 1;
+            }
             if (ch == '0') {
                 ch = *(fmt++);
                 lz = 1;
             }
             if (ch >= '0' && ch <= '9') {
                 ch = a2i(ch, &fmt, 10, &w);
+                if (pr) {
+                    w = -w;
+                }
             }
 #ifdef REQUIRE_PRINTF_LONG_SUPPORT
             if (ch == 'l') {
