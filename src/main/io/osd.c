@@ -1349,13 +1349,7 @@ static void osdUpdateStats(void)
     if (stats.min_rssi > value)
         stats.min_rssi = value;
 
-#ifdef NAV
-    if (stats.max_altitude < getEstimatedActualPosition(Z))
-        stats.max_altitude = getEstimatedActualPosition(Z);
-#else
-    if (stats.max_altitude < baro.BaroAlt)
-        stats.max_altitude = baro.BaroAlt;
-#endif
+    stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
 static void osdShowStats(void)
