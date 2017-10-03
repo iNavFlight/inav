@@ -1281,6 +1281,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->video_system = 0;
 
     osdConfig->ahi_reverse_roll = 0;
+    osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
