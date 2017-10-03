@@ -66,6 +66,9 @@ tables:
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
+  - name: osd_crosshairs_style
+    values: ["DEFAULT", "AIRCRAFT"]
+    enum: osd_crosshairs_style_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1300,6 +1303,15 @@ groups:
         field: alt_alarm
         min: 0
         max: 10000
+
+      - name: osd_artificial_horizon_reverse_roll
+        field: ahi_reverse_roll
+        type: bool
+
+      - name: osd_crosshairs_style
+        field: crosshairs_style
+        table: osd_crosshairs_style
+        type: uint8_t
 
       - name: osd_main_voltage_pos
         field: item_pos[OSD_MAIN_BATT_VOLTAGE]
