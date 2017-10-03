@@ -680,6 +680,17 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr)
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
 }
 
+static inline int32_t osdGetAltitude(void)
+{
+#if defined(NAV)
+    return getEstimatedActualPosition(Z);
+#elif defined(BARO)
+    return baro.alt;
+#else
+    return 0;
+#endif
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item])) {
@@ -787,12 +798,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ALTITUDE:
         {
-            uint32_t alt;
-#ifdef NAV
-            alt = getEstimatedActualPosition(Z);
-#else
-            alt = baro.alt;
-#endif
+            int32_t alt = osdGetAltitude();
             osdFormatAltitudeSymbol(buff, alt);
             if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
