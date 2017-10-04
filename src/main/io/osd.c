@@ -1444,18 +1444,20 @@ static void osdRefresh(timeUs_t currentTimeUs)
     lastTimeUs = currentTimeUs;
 
     if (resumeRefreshAt) {
-        if (cmp32(currentTimeUs, resumeRefreshAt) < 0) {
-            // in timeout period, check sticks for activity to resume display.
-            if (checkStickPosition(THR_HI) || checkStickPosition(PIT_HI)) {
-                resumeRefreshAt = 0;
-            }
+        // If we already reached he time for the next refresh,
+        // or THR is high or PITCH is high, resume refreshing.
+        // Clear the screen first to erase other elements which
+        // might have been drawn while the OSD wasn't refreshing.
+        if (currentTimeUs > resumeRefreshAt ||
+            checkStickPosition(THR_HI) ||
+            checkStickPosition(PIT_HI)) {
 
-            displayHeartbeat(osdDisplayPort);
-            return;
-        } else {
             displayClearScreen(osdDisplayPort);
             resumeRefreshAt = 0;
+        } else {
+            displayHeartbeat(osdDisplayPort);
         }
+        return;
     }
 
     blinkState = (currentTimeUs / 200000) % 2;
