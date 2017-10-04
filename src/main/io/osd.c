@@ -1171,6 +1171,49 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_HEADING_GRAPH:
+        {
+            static const uint8_t graph[] = {
+                SYM_HEADING_LINE,
+                SYM_HEADING_E,
+                SYM_HEADING_LINE,
+                SYM_HEADING_DIVIDED_LINE,
+                SYM_HEADING_LINE,
+                SYM_HEADING_S,
+                SYM_HEADING_LINE,
+                SYM_HEADING_DIVIDED_LINE,
+                SYM_HEADING_LINE,
+                SYM_HEADING_W,
+                SYM_HEADING_LINE,
+                SYM_HEADING_DIVIDED_LINE,
+                SYM_HEADING_LINE,
+                SYM_HEADING_N,
+                SYM_HEADING_LINE,
+                SYM_HEADING_DIVIDED_LINE,
+                SYM_HEADING_LINE,
+                SYM_HEADING_E,
+                SYM_HEADING_LINE,
+                SYM_HEADING_DIVIDED_LINE,
+                SYM_HEADING_LINE,
+                SYM_HEADING_S,
+                SYM_HEADING_LINE,
+                SYM_HEADING_DIVIDED_LINE,
+                SYM_HEADING_LINE,
+                SYM_HEADING_W,
+                SYM_HEADING_LINE,
+            };
+            int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+            if (h >= 180) {
+                h -= 360;
+            }
+            int hh = h * 4;
+            hh = hh + 720 + 45;
+            hh = hh / 90;
+            memcpy_fn(buff, graph + hh + 1, 9);
+            buff[9] = '\0';
+            break;
+        }
+
     default:
         return false;
     }
@@ -1233,6 +1276,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_THROTTLE_POS] = OSD_POS(1, 2) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
     osdConfig->item_pos[OSD_HEADING] = OSD_POS(12, 2);
+    osdConfig->item_pos[OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdConfig->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;
 
