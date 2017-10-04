@@ -299,6 +299,9 @@ void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
 
+/* Getter functions which return data about the state of the navigation system */
+bool navigationIsControllingThrottle(void);
+
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
 
@@ -320,5 +323,6 @@ extern int16_t navAccNEU[3];
 #define navigationGetHeadingControlState() (0)
 #define navigationRequiresThrottleTiltCompensation() (0)
 #define getEstimatedActualVelocity(axis) (0)
+#define navigationIsControllingThrottle() (0)
 
 #endif

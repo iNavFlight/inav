@@ -200,6 +200,9 @@
 #define SYM_THR   0x04
 #define SYM_THR1  0x05
 
+#define SYM_AUTO_THR0   202
+#define SYM_AUTO_THR1   203
+
 // RSSI
 #define SYM_RSSI 0x01
 
