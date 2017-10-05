@@ -60,6 +60,7 @@ typedef enum {
     OSD_GPS_HDOP,
     OSD_MAIN_BATT_CELL_VOLTAGE,
     OSD_THROTTLE_POS_AUTO_THR,
+    OSD_HEADING_GRAPH,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
