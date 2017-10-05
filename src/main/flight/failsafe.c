@@ -70,13 +70,13 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_off_delay = 200,          // 20sec
     .failsafe_throttle = 1000,          // default throttle off.
     .failsafe_throttle_low_delay = 100, // default throttle low delay for "just disarm" on failsafe condition
-    .failsafe_procedure = 0,            // default full failsafe procedure is 0: auto-landing, 1: drop, 2 : RTH
+    .failsafe_procedure = FAILSAFE_PROCEDURE_AUTO_LANDING,            // default full failsafe procedure
     .failsafe_fw_roll_angle = -200,     // 20 deg left
     .failsafe_fw_pitch_angle = 100,     // 10 deg dive (yes, positive means dive)
     .failsafe_fw_yaw_rate = -45,        // 45 deg/s left yaw (left is negative, 8s for full turn)
     .failsafe_stick_motion_threshold = 50,
     .failsafe_min_distance = 0,            // No minimum distance for failsafe by default  
-    .failsafe_min_distance_procedure = 1   // default minimum distance failsafe procedure is 1: auto-landing, 1: drop, 2 : RTH
+    .failsafe_min_distance_procedure = FAILSAFE_PROCEDURE_DROP_IT   // default minimum distance failsafe procedure
 );
 
 typedef enum {
@@ -387,8 +387,10 @@ void failsafeUpdateState(void)
                     uint8_t failsafe_procedure_to_use = failsafeConfig()->failsafe_procedure;
 
                     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
+                    // GPS must also be working, and home position set
                     if ((failsafeConfig()->failsafe_min_distance > 0) && 
-                        (GPS_distanceToHome < failsafeConfig()->failsafe_min_distance)) {
+                        (GPS_distanceToHome < failsafeConfig()->failsafe_min_distance) &&
+                        navigationPositionEstimateIsHealthy()) {
                         // Use the alternate, minimum distance failsafe procedure instead
                         failsafe_procedure_to_use = failsafeConfig()->failsafe_min_distance_procedure;
                     }
