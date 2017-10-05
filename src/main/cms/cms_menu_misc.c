@@ -84,8 +84,10 @@ static OSD_Entry menuMiscEntries[]=
     { "-- MISC --", OME_Label, NULL, NULL, 0 },
 
     OSD_SETTING_ENTRY("MIN THR", SETTING_MIN_THROTTLE),
+#ifdef USE_ADC
     OSD_SETTING_ENTRY("VBAT SCALE", SETTING_VBAT_SCALE),
     OSD_SETTING_ENTRY("VBAT CLMAX", SETTING_VBAT_MAX_CELL_VOLTAGE),
+#endif
 
     { "RC PREV",    OME_Submenu, cmsMenuChange, &cmsx_menuRcPreview, 0},
 
