@@ -838,12 +838,20 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "!HF!";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p = "RTL ";
-            else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
-                p = " PH ";
-            else if (FLIGHT_MODE(NAV_WP_MODE))
-                p = " WP ";
-            else if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
+            else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+                if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+                    // 3D HOLD
+                    p = "HOLD";
+                } else {
+                    p = " PH ";
+                }
+            } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
+                // If navigationRequiresAngleMode() returns false when ALTHOLD is active,
+                // it means it can be combined with ANGLE, HORIZON, ACRO, etc...
+                // and its display is handled by OSD_MESSAGES rather than OSD_FLYMODE.
                 p = " AH ";
+            } else if (FLIGHT_MODE(NAV_WP_MODE))
+                p = " WP ";
             else if (FLIGHT_MODE(ANGLE_MODE))
                 p = "STAB";
             else if (FLIGHT_MODE(HORIZON_MODE))
@@ -1137,6 +1145,29 @@ static bool osdDrawSingleElement(uint8_t item)
                         // grab user attention.
                         message = failsafeInfoMessage;
                         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                } else {
+                    // armed and not in FAILSAFE. We might have up to 3
+                    // messages to show.
+                    const char *messages[3];
+                    unsigned messageCount = 0;
+                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
+                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                        // when it doesn't require ANGLE mode (required only in FW
+                        // right now). If if requires ANGLE, its display is handled
+                        // by OSD_FLYMODE.
+                        messages[messageCount++] = "(ALTITUDE HOLD)";
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+                        messages[messageCount++] = "(AUTOTRIM)";
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
+                        messages[messageCount++] = "(AUTOTUNE)";
+                    }
+                    // Pick one of the available messages. Each message lasts
+                    // a second.
+                    if (messageCount > 0) {
+                        message = messages[OSD_ALTERNATING_TEXT(1000, messageCount)];
                     }
                 }
             } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
