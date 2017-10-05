@@ -70,7 +70,7 @@ Time throttle level must have been below 'min_throttle' to _only disarm_ instead
 
 #### `failsafe_min_distance`
 
-If failsafe happens when craft is below this distance in meters from home, failsafe will not execure regular failsafe_procedure, but will execute procedure specified in failsafe_min_distance_procedure instead. 0 = Normal failsafe_procedure always taken.
+If failsafe happens when craft is closer than this distance in meters from home, failsafe will not execute regular failsafe_procedure, but will execute procedure specified in failsafe_min_distance_procedure instead. 0 = Normal failsafe_procedure always taken.
 
 #### `failsafe_min_distance_procedure`
 

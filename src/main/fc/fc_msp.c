@@ -704,10 +704,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, failsafeConfig()->failsafe_recovery_delay);
         sbufWriteU16(dst, failsafeConfig()->failsafe_fw_roll_angle);
         sbufWriteU16(dst, failsafeConfig()->failsafe_fw_pitch_angle);
-        sbufWriteU16(dst, failsafeConfig()->failsafe_fw_yaw_rate);   
+        sbufWriteU16(dst, failsafeConfig()->failsafe_fw_yaw_rate);
         sbufWriteU16(dst, failsafeConfig()->failsafe_stick_motion_threshold);
-        sbufWriteU16(dst, failsafeConfig()->failsafe_min_distance);  
-        sbufWriteU8(dst, failsafeConfig()->failsafe_min_distance_procedure);  
+        sbufWriteU16(dst, failsafeConfig()->failsafe_min_distance);
+        sbufWriteU8(dst, failsafeConfig()->failsafe_min_distance_procedure);
         break;
 
     case MSP_RSSI_CONFIG:
