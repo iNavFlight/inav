@@ -46,6 +46,8 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "navigation/navigation.h"
+
 #include "rx/rx.h"
 
 
@@ -564,7 +566,7 @@ void mixTable(void)
             if (feature(FEATURE_MOTOR_STOP) && ARMING_FLAG(ARMED)) {
                 bool failsafeMotorStop = failsafeRequiresMotorStop();
                 bool navMotorStop = !failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE);
-                bool userMotorStop = !failsafeIsActive() && (rcData[THROTTLE] < rxConfig()->mincheck);
+                bool userMotorStop = !navigationIsFlyingAutonomousMode() && !failsafeIsActive() && (rcData[THROTTLE] < rxConfig()->mincheck);
                 if (failsafeMotorStop || navMotorStop || userMotorStop) {
                     if (feature(FEATURE_3D)) {
                         motor[i] = rxConfig()->midrc;
