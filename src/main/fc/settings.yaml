@@ -69,6 +69,9 @@ tables:
   - name: osd_crosshairs_style
     values: ["DEFAULT", "AIRCRAFT"]
     enum: osd_crosshairs_style_e
+  - name: osd_sidebar_scroll
+    values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
+    enum: osd_sidebar_scroll_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1307,11 +1310,21 @@ groups:
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll
         type: bool
-
       - name: osd_crosshairs_style
         field: crosshairs_style
         table: osd_crosshairs_style
         type: uint8_t
+      - name: osd_left_sidebar_scroll
+        field: left_sidebar_scroll
+        table: osd_sidebar_scroll
+        type: uint8_t
+      - name: osd_right_sidebar_scroll
+        field: right_sidebar_scroll
+        table: osd_sidebar_scroll
+        type: uint8_t
+      - name: osd_sidebar_scroll_arrows
+        field: sidebar_scroll_arrows
+        type: bool
 
       - name: osd_main_voltage_pos
         field: item_pos[OSD_MAIN_BATT_VOLTAGE]

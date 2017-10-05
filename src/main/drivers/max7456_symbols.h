@@ -120,8 +120,8 @@
 #define SYM_AH_CENTER             0x7E
 #define SYM_AH_RIGHT              0x02
 #define SYM_AH_LEFT               0x03
-#define SYM_AH_DECORATION_UP      0xC9
-#define SYM_AH_DECORATION_DOWN    0xCF
+#define SYM_AH_DECORATION_UP      5
+#define SYM_AH_DECORATION_DOWN    36
 
 #define SYM_AH_CROSSHAIRS_AIRCRAFT0 218
 #define SYM_AH_CROSSHAIRS_AIRCRAFT1 219
@@ -187,7 +187,10 @@
 // Note, these change with scrolling enabled (scrolling is TODO)
 //#define SYM_AH_DECORATION_LEFT 0x13
 //#define SYM_AH_DECORATION_RIGHT 0x13
-#define SYM_AH_DECORATION 0x13
+#define SYM_AH_DECORATION_MIN   16
+#define SYM_AH_DECORATION       19
+#define SYM_AH_DECORATION_MAX   21
+#define SYM_AH_DECORATION_COUNT (SYM_AH_DECORATION_MAX - SYM_AH_DECORATION_MIN + 1)
 
 // Time
 #define SYM_ON_M  0x9B

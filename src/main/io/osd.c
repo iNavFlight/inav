@@ -123,6 +123,19 @@ typedef struct statistic_s {
 
 static statistic_t stats;
 
+typedef enum {
+    OSD_SIDEBAR_ARROW_NONE,
+    OSD_SIDEBAR_ARROW_UP,
+    OSD_SIDEBAR_ARROW_DOWN,
+} osd_sidebar_arrow_e;
+
+typedef struct osd_sidebar_s {
+    int32_t offset;
+    timeMs_t updated;
+    osd_sidebar_arrow_e arrow;
+    uint8_t idle;
+} osd_sidebar_t;
+
 uint32_t resumeRefreshAt = 0;
 #define REFRESH_1S    (1000*1000)
 
@@ -680,6 +693,81 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr)
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
 }
 
+static inline int32_t osdGetAltitude(void)
+{
+#if defined(NAV)
+    return getEstimatedActualPosition(Z);
+#elif defined(BARO)
+    return baro.alt;
+#else
+    return 0;
+#endif
+}
+
+static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *sidebar, timeMs_t currentTimeMs)
+{
+    // Scroll between SYM_AH_DECORATION_MIN and SYM_AH_DECORATION_MAX.
+    // Zero scrolling should draw SYM_AH_DECORATION.
+    uint8_t decoration = SYM_AH_DECORATION;
+    int offset;
+    int steps;
+    switch (scroll) {
+        case OSD_SIDEBAR_SCROLL_NONE:
+            sidebar->arrow = OSD_SIDEBAR_ARROW_NONE;
+            sidebar->offset = 0;
+            return decoration;
+        case OSD_SIDEBAR_SCROLL_ALTITUDE:
+            // Move 1 char for every 20cm
+            offset = osdGetAltitude();
+            steps = offset / 20;
+            break;
+        case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
+#if defined(GPS)
+            offset = gpsSol.groundSpeed;
+#else
+            offset = 0;
+#endif
+            // Move 1 char for every 20 cm/s
+            steps = offset / 20;
+            break;
+        case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
+#if defined(GPS)
+            offset = GPS_distanceToHome;
+#else
+            offset = 0;
+#endif
+            // Move 1 char for every 5m
+            steps = offset / 5;
+            break;
+    }
+    if (offset) {
+        decoration -= steps % SYM_AH_DECORATION_COUNT;
+        if (decoration > SYM_AH_DECORATION_MAX) {
+            decoration -= SYM_AH_DECORATION_COUNT;
+        } else if (decoration < SYM_AH_DECORATION_MIN) {
+            decoration += SYM_AH_DECORATION_COUNT;
+        }
+    }
+    if (currentTimeMs - sidebar->updated > 100) {
+        if (offset > sidebar->offset) {
+            sidebar->arrow = OSD_SIDEBAR_ARROW_UP;
+            sidebar->idle = 0;
+        } else if (offset < sidebar->offset) {
+            sidebar->arrow = OSD_SIDEBAR_ARROW_DOWN;
+            sidebar->idle = 0;
+        } else {
+            if (sidebar->idle > 3) {
+                sidebar->arrow = OSD_SIDEBAR_ARROW_NONE;
+            } else {
+                sidebar->idle++;
+            }
+        }
+        sidebar->offset = offset;
+        sidebar->updated = currentTimeMs;
+    }
+    return decoration;
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item])) {
@@ -787,12 +875,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ALTITUDE:
         {
-            uint32_t alt;
-#ifdef NAV
-            alt = getEstimatedActualPosition(Z);
-#else
-            alt = baro.alt;
-#endif
+            int32_t alt = osdGetAltitude();
             osdFormatAltitudeSymbol(buff, alt);
             if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -995,12 +1078,35 @@ static bool osdDrawSingleElement(uint8_t item)
                 ++elemPosY;
             }
 
-            // Draw AH sides
+            static osd_sidebar_t left;
+            static osd_sidebar_t right;
+
+            timeMs_t currentTimeMs = millis();
+            uint8_t leftDecoration = osdUpdateSidebar(osdConfig()->left_sidebar_scroll, &left, currentTimeMs);
+            uint8_t rightDecoration = osdUpdateSidebar(osdConfig()->right_sidebar_scroll, &right, currentTimeMs);
+
             const int8_t hudwidth = AH_SIDEBAR_WIDTH_POS;
             const int8_t hudheight = AH_SIDEBAR_HEIGHT_POS;
-            for (int  y = -hudheight; y <= hudheight; y++) {
-                displayWriteChar(osdDisplayPort, elemPosX - hudwidth, elemPosY + y, SYM_AH_DECORATION);
-                displayWriteChar(osdDisplayPort, elemPosX + hudwidth, elemPosY + y, SYM_AH_DECORATION);
+
+            // Arrows
+            if (osdConfig()->sidebar_scroll_arrows) {
+                displayWriteChar(osdDisplayPort, elemPosX - hudwidth, elemPosY - hudheight - 1,
+                    left.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DECORATION_UP : SYM_BLANK);
+
+                displayWriteChar(osdDisplayPort, elemPosX + hudwidth, elemPosY - hudheight - 1,
+                    right.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DECORATION_UP : SYM_BLANK);
+
+                displayWriteChar(osdDisplayPort, elemPosX - hudwidth, elemPosY + hudheight + 1,
+                    left.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DECORATION_DOWN : SYM_BLANK);
+
+                displayWriteChar(osdDisplayPort, elemPosX + hudwidth, elemPosY + hudheight + 1,
+                    right.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DECORATION_DOWN : SYM_BLANK);
+            }
+
+            // Draw AH sides
+            for (int y = -hudheight; y <= hudheight; y++) {
+                displayWriteChar(osdDisplayPort, elemPosX - hudwidth, elemPosY + y, leftDecoration);
+                displayWriteChar(osdDisplayPort, elemPosX + hudwidth, elemPosY + y, rightDecoration);
             }
 
             // AH level indicators
@@ -1306,6 +1412,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->video_system = 0;
 
     osdConfig->ahi_reverse_roll = 0;
+    osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
+    osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
+    osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
+    osdConfig->sidebar_scroll_arrows = 0;
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
@@ -1373,13 +1483,7 @@ static void osdUpdateStats(void)
     if (stats.min_rssi > value)
         stats.min_rssi = value;
 
-#ifdef NAV
-    if (stats.max_altitude < getEstimatedActualPosition(Z))
-        stats.max_altitude = getEstimatedActualPosition(Z);
-#else
-    if (stats.max_altitude < baro.BaroAlt)
-        stats.max_altitude = baro.BaroAlt;
-#endif
+    stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
 static void osdShowStats(void)
