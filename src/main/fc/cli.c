@@ -437,7 +437,7 @@ static void cliPrintVar(const setting_t *var, uint32_t full)
 
 static void cliPrintVarRange(const setting_t *var)
 {
-    switch (SETTING_TYPE(var)) {
+    switch (SETTING_MODE(var)) {
     case (MODE_DIRECT):
         cliPrintLinef("Allowed range: %d - %u", setting_get_min(var), setting_get_max(var));
         break;
