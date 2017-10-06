@@ -17,6 +17,9 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+
 // Represents the attributes for a given piece of text
 // either a single character or a string. For forward
 // compatibility, always use the TEXT_ATTRIBUTE...
