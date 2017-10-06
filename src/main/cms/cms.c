@@ -416,10 +416,21 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
                     value = *(uint32_t *)valuePointer;
                     break;
                 case VAR_FLOAT:
+                    // XXX: This bypasses the data types. However, we
+                    // don't have any VAR_FLOAT settings which require
+                    // a data type yet.
                     ftoa(*(float *)valuePointer, buff);
                     break;
             }
             if (buff[0] == '\0') {
+                const char *suffix = NULL;
+                switch (CMS_DATA_TYPE(p)) {
+                    case CMS_DATA_TYPE_ANGULAR_RATE:
+                        // Setting is in degrees/10 per second
+                        value *= 10;
+                        suffix = " DPS";
+                        break;
+                }
                 switch (SETTING_MODE(var)) {
                     case MODE_DIRECT:
                         if (SETTING_TYPE(var) == VAR_UINT32) {
@@ -440,6 +451,9 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
                             strncpy(buff, str ? str : "INVALID", sizeof(buff) - 1);
                         }
                         break;
+                }
+                if (suffix) {
+                    strcat(buff, suffix);
                 }
             }
             cmsPadToSize(buff, 8);

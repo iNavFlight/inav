@@ -69,10 +69,20 @@ typedef struct
 } OSD_Entry;
 
 // Bits in flags
-#define PRINT_VALUE    0x01  // Value has been changed, need to redraw
-#define PRINT_LABEL    0x02  // Text label should be printed
-#define DYNAMIC        0x04  // Value should be updated dynamically
-#define OPTSTRING      0x08  // (Temporary) Flag for OME_Submenu, indicating func should be called to get a string to display.
+#define PRINT_VALUE    (1 << 0)  // Value has been changed, need to redraw
+#define PRINT_LABEL    (1 << 1)  // Text label should be printed
+#define DYNAMIC        (1 << 2)  // Value should be updated dynamically
+#define OPTSTRING      (1 << 3)  // (Temporary) Flag for OME_Submenu, indicating func should be called to get a string to display.
+
+// Data type for OME_Setting. Uses upper 4 bits
+// of flags, leaving 16 data types.
+#define CMS_DATA_TYPE_OFFSET (4)
+typedef enum {
+    CMS_DATA_TYPE_ANGULAR_RATE = (1 << CMS_DATA_TYPE_OFFSET),
+} CMSDataType_e;
+
+// Use a function and data type to make sure switches are exhaustive
+inline CMSDataType_e CMS_DATA_TYPE(const OSD_Entry *entry) { return entry->flags & 0xF0; }
 
 #define IS_PRINTVALUE(p) ((p)->flags & PRINT_VALUE)
 #define SET_PRINTVALUE(p) { (p)->flags |= PRINT_VALUE; }
@@ -156,8 +166,10 @@ typedef struct OSD_SETTING_s {
     const uint8_t step;
 } __attribute__((packed)) OSD_SETTING_t;
 
-#define OSD_SETTING_ENTRY_STEP(name, setting, step)    {name, OME_Setting, NULL, &(OSD_SETTING_t){ setting, step }, 0 }
-#define OSD_SETTING_ENTRY(name, setting)    OSD_SETTING_ENTRY_STEP(name, setting, 0)
+#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, OME_Setting, NULL, &(OSD_SETTING_t){ setting, step }, type }
+#define OSD_SETTING_ENTRY_TYPE(name, setting, type)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, 0, type)
+#define OSD_SETTING_ENTRY_STEP(name, setting, step)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, 0)
+#define OSD_SETTING_ENTRY(name, setting)                        OSD_SETTING_ENTRY_STEP(name, setting, 0)
 
 typedef struct
 {
