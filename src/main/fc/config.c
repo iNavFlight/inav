@@ -226,7 +226,7 @@ void validateAndFixConfig(void)
 
 #ifdef DISABLE_RX_PWM_FEATURE
     if (rxConfig()->receiverType == RX_TYPE_PWM) {
-        rxConfigMutable()->receiverType == RX_TYPE_NONE;
+        rxConfigMutable()->receiverType = RX_TYPE_NONE;
     }
 #endif
 
@@ -258,7 +258,7 @@ void validateAndFixConfig(void)
 #ifdef USE_SOFTSPI
     if (featureConfigured(FEATURE_SOFTSPI)) {
         if (rxConfig()->receiverType == RX_TYPE_PWM || rxConfig()->receiverType == RX_TYPE_PPM) {
-            rxConfigMutable()->receiverType == RX_TYPE_NONE;
+            rxConfigMutable()->receiverType = RX_TYPE_NONE;
         }
 
         featureClear(FEATURE_SOFTSERIAL | FEATURE_VBAT);

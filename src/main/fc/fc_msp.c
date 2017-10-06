@@ -938,12 +938,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, rxConfig()->spektrum_sat_bind);
         sbufWriteU16(dst, rxConfig()->rx_min_usec);
         sbufWriteU16(dst, rxConfig()->rx_max_usec);
-        sbufWriteU8(dst, 0); // for compatibility with betaflight
-        sbufWriteU8(dst, 0); // for compatibility with betaflight
-        sbufWriteU16(dst, 0); // for compatibility with betaflight
+        sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolation)
+        sbufWriteU8(dst, 0); // for compatibility with betaflight (rcInterpolationInterval)
+        sbufWriteU16(dst, 0); // for compatibility with betaflight (airModeActivateThreshold)
         sbufWriteU8(dst, rxConfig()->rx_spi_protocol);
         sbufWriteU32(dst, rxConfig()->rx_spi_id);
         sbufWriteU8(dst, rxConfig()->rx_spi_rf_channel_count);
+        sbufWriteU8(dst, 0); // for compatibility with betaflight (fpvCamAngleDegrees)
         sbufWriteU8(dst, rxConfig()->receiverType);
         break;
 
@@ -1995,12 +1996,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU8Safe(&rxConfigMutable()->spektrum_sat_bind, src);
         sbufReadU16Safe(&rxConfigMutable()->rx_min_usec, src);
         sbufReadU16Safe(&rxConfigMutable()->rx_max_usec, src);
-        sbufReadU8Safe(NULL, src); // for compatibility with betaflight
-        sbufReadU8Safe(NULL, src); // for compatibility with betaflight
-        sbufReadU16Safe(NULL, src); // for compatibility with betaflight
+        sbufReadU8Safe(NULL, src); // for compatibility with betaflight (rcInterpolation)
+        sbufReadU8Safe(NULL, src); // for compatibility with betaflight (rcInterpolationInterval)
+        sbufReadU16Safe(NULL, src); // for compatibility with betaflight (airModeActivateThreshold)
         sbufReadU8Safe(&rxConfigMutable()->rx_spi_protocol, src);
         sbufReadU32Safe(&rxConfigMutable()->rx_spi_id, src);
         sbufReadU8Safe(&rxConfigMutable()->rx_spi_rf_channel_count, src);
+        sbufReadU8Safe(NULL, src); // for compatibility with betaflight (fpvCamAngleDegrees)
         sbufReadU8Safe(&rxConfigMutable()->receiverType, src);              // Won't be modified if buffer is not large enough
         break;
 
