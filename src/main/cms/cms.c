@@ -1044,7 +1044,6 @@ void cmsUpdate(uint32_t currentTimeUs)
     static int repeatCount = 1;
     static int repeatBase = 0;
 // e.g #define CMS_INJECTED_KEYS KEY_DOWN,KEY_RIGHT,KEY_DOWN,KEY_RIGHT,KEY_DOWN
-#define CMS_INJECTED_KEYS KEY_RIGHT,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_DOWN,KEY_RIGHT
 #define CMS_INJECTED_KEYS_INTERVAL 800
 #if defined CMS_INJECTED_KEYS
     int cmsInjectedKeys[] = {KEY_NONE, CMS_INJECTED_KEYS};
