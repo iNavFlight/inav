@@ -69,7 +69,13 @@ Matek Systems www.mateksys.com
 
 ## FAQ & Known Issues
 
-I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is probably only usable on quadcopters.
+I2C requires that the WS2812 led strip is moved to S5
+
+F405 OSD requires a diffent wiring for fixed wings:
+* S1: ESC
+* S2: Servo 3
+* S3: Servo 4
+
 
 Setup Guide Matek F405: http://f405.mateksys.com
 
