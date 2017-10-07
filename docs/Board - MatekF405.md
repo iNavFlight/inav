@@ -53,6 +53,25 @@ The F405-OSD does not expose I2C. For iNav there is a software I2C provision usi
 * SDA => RX3, SCL => TX3
 * Do not assign any serial function to USART3
 
+## PWM and Servos
+
+Due to the available hardware, please note:
+
+### Flying Wing
+
+* S1 : ESC
+* S2 : LEFT elevon
+* S3 : RIGHT elevon
+
+### Tricopter
+
+* S1 : Tail Servo
+* S2 : Motor 1
+* S3 : Motor 2
+* S4 : Motor 3
+
+I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is not usable on hexcopter and similar.
+
 ## USB
 
 This board uses STM32 VCP and does _not_ use a UART when USB is connected. STM32 VCP drivers might be required on some operating systems.
@@ -77,8 +96,6 @@ Matek Systems www.mateksys.com
 * Hardware: Matek Systems
 
 ## FAQ & Known Issues
-
-I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is probably only usable on quadcopters.
 
 Setup Guide Matek F405: http://f405.mateksys.com
 
