@@ -22,10 +22,12 @@
 
 #include "platform.h"
 
+#include "drivers/resource.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/bus_spi.h"
 
 typedef enum {
+    BUSTYPE_ANY  = 0,
     BUSTYPE_NONE = 0,
     BUSTYPE_I2C  = 1,
     BUSTYPE_SPI  = 2
@@ -51,10 +53,9 @@ typedef struct busDeviceDescriptor_s {
             I2CDevice   i2cBus;
             uint8_t     address;
         } i2c;
-    } dev;
+    } busdev;
 } busDeviceDescriptor_t;
 
-/*
 typedef struct busDevice_s {
     busType_e           busType;
     union {
@@ -67,16 +68,6 @@ typedef struct busDevice_s {
             uint8_t     address;
         } i2c;
     } busdev;
-} busDevice_t;
-*/
-
-typedef union busDevice_u {
-    struct deviceSpi_s {
-        IO_t csnPin;
-    } spi;
-    struct deviceI2C_s {
-        uint8_t address;
-    } i2c;
 } busDevice_t;
 
 #ifdef __APPLE__
@@ -94,7 +85,7 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
     const busDeviceDescriptor_t _name BUSDEV_REGISTER_ATTRIBUTES = {    \
         .busType = BUSTYPE_SPI,                                         \
         .devHwType = _devHw,                                            \
-        .dev.spi = {                                                    \
+        .busdev.spi = {                                                 \
             .spiBus = _spiBus,                                          \
             .csnPin = IO_TAG(_csnPin)                                   \
         }                                                               \
@@ -105,6 +96,9 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
 /* Pre-initialize all known device descriptors to make sure hardware state is consistent and known 
  * Initialize bus hardware */
 void busInit(void);
+
+/* Finds a device in registry. First matching device is returned. Also performs the low-level initialization of the hardware (CS line for SPI) */
+bool busDeviceInit(busDevice_t * dev, busType_e bus, devHardwareType_e hw, resourceOwner_e owner);
 
 bool busWriteBuf(const busDevice_t * busdev, uint8_t reg, uint8_t * data, uint8_t length);
 bool busWrite(const busDevice_t * busdev, uint8_t reg, uint8_t data);

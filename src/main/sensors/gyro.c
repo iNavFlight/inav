@@ -276,9 +276,9 @@ bool gyroInit(void)
 #ifdef USE_GYRO_MPU
 #ifdef USE_DUAL_GYRO
     // set cnsPin using GYRO_n_CS_PIN defined in target.h
-    gyroDev0.bus.spi.csnPin = gyroConfig()->gyro_to_use == 0 ? IOGetByTag(IO_TAG(GYRO_0_CS_PIN)) : IOGetByTag(IO_TAG(GYRO_1_CS_PIN));
+    gyroDev0.bus.busdev.spi.csnPin = gyroConfig()->gyro_to_use == 0 ? IOGetByTag(IO_TAG(GYRO_0_CS_PIN)) : IOGetByTag(IO_TAG(GYRO_1_CS_PIN));
 #else
-    gyroDev0.bus.spi.csnPin = IO_NONE; // set cnsPin to IO_NONE so mpuDetect will set it according to value defined in target.h
+    gyroDev0.bus.busdev.spi.csnPin = IO_NONE; // set cnsPin to IO_NONE so mpuDetect will set it according to value defined in target.h
 #endif // USE_DUAL_GYRO
     mpuDetect(&gyroDev0);
     mpuResetFn = gyroDev0.mpuConfiguration.resetFn;

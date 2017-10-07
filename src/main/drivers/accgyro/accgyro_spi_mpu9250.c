@@ -54,21 +54,21 @@ static bool mpuSpi9250InitDone = false;
 
 bool mpu9250SpiReadRegister(const busDevice_t *bus, uint8_t reg, uint8_t length, uint8_t *data)
 {
-    ENABLE_MPU9250(bus->spi.csnPin);
+    ENABLE_MPU9250(bus->busdev.spi.csnPin);
     spiTransferByte(MPU9250_SPI_INSTANCE, reg | 0x80); // read transaction
     spiTransfer(MPU9250_SPI_INSTANCE, data, NULL, length);
-    DISABLE_MPU9250(bus->spi.csnPin);
+    DISABLE_MPU9250(bus->busdev.spi.csnPin);
 
     return true;
 }
 
 bool mpu9250SpiSlowReadRegister(const busDevice_t *bus, uint8_t reg, uint8_t length, uint8_t *data)
 {
-    ENABLE_MPU9250(bus->spi.csnPin);
+    ENABLE_MPU9250(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
     spiTransferByte(MPU9250_SPI_INSTANCE, reg | 0x80); // read transaction
     spiTransfer(MPU9250_SPI_INSTANCE, data, NULL, length);
-    DISABLE_MPU9250(bus->spi.csnPin);
+    DISABLE_MPU9250(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
 
     return true;
@@ -76,11 +76,11 @@ bool mpu9250SpiSlowReadRegister(const busDevice_t *bus, uint8_t reg, uint8_t len
 
 bool mpu9250SpiWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
 {
-    ENABLE_MPU9250(bus->spi.csnPin);
+    ENABLE_MPU9250(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
     spiTransferByte(MPU9250_SPI_INSTANCE, reg);
     spiTransferByte(MPU9250_SPI_INSTANCE, data);
-    DISABLE_MPU9250(bus->spi.csnPin);
+    DISABLE_MPU9250(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
 
     return true;
@@ -158,8 +158,8 @@ static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
 bool mpu9250SpiDetect(const busDevice_t *bus)
 {
     /* not the best place for this - should really have an init method */
-    IOInit(bus->spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
-    IOConfigGPIO(bus->spi.csnPin, SPI_IO_CS_CFG);
+    IOInit(bus->busdev.spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
+    IOConfigGPIO(bus->busdev.spi.csnPin, SPI_IO_CS_CFG);
 
     spiSetSpeed(MPU9250_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON); //low speed
     mpu9250SpiWriteRegister(bus, MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);

@@ -44,11 +44,11 @@
 
 bool mpu6500SpiWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
 {
-    ENABLE_MPU6500(bus->spi.csnPin);
+    ENABLE_MPU6500(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
     spiTransferByte(MPU6500_SPI_INSTANCE, reg);
     spiTransferByte(MPU6500_SPI_INSTANCE, data);
-    DISABLE_MPU6500(bus->spi.csnPin);
+    DISABLE_MPU6500(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
 
     return true;
@@ -56,10 +56,10 @@ bool mpu6500SpiWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
 
 bool mpu6500SpiReadRegister(const busDevice_t *bus, uint8_t reg, uint8_t length, uint8_t *data)
 {
-    ENABLE_MPU6500(bus->spi.csnPin);
+    ENABLE_MPU6500(bus->busdev.spi.csnPin);
     spiTransferByte(MPU6500_SPI_INSTANCE, reg | 0x80); // read transaction
     spiTransfer(MPU6500_SPI_INSTANCE, data, NULL, length);
-    DISABLE_MPU6500(bus->spi.csnPin);
+    DISABLE_MPU6500(bus->busdev.spi.csnPin);
 
     return true;
 }
@@ -72,8 +72,8 @@ static void mpu6500SpiInit(const busDevice_t *bus)
         return;
     }
 
-    IOInit(bus->spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
-    IOConfigGPIO(bus->spi.csnPin, SPI_IO_CS_CFG);
+    IOInit(bus->busdev.spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
+    IOConfigGPIO(bus->busdev.spi.csnPin, SPI_IO_CS_CFG);
 
     spiSetSpeed(MPU6500_SPI_INSTANCE, SPI_CLOCK_FAST);
 
