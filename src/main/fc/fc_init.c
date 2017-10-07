@@ -43,8 +43,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/compass/compass.h"
-#include "drivers/bus_i2c.h"
-#include "drivers/bus_spi.h"
+#include "drivers/bus.h"
 #include "drivers/dma.h"
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
@@ -379,6 +378,8 @@ void init(void)
     initInverters();
 #endif
 
+    // Initialize buses
+    busInit();
 
 #ifdef USE_SPI
 #ifdef USE_SPI_DEVICE_1

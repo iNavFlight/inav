@@ -371,3 +371,8 @@ DMA_HandleTypeDef* spiSetDMATransmit(DMA_Stream_TypeDef *Stream, uint32_t Channe
 
     return &spiHardwareMap[device].hdma;
 }
+
+SPI_TypeDef * spiInstanceByDevice(SPIDevice device)
+{
+    return spiHardwareMap[device].dev;
+}

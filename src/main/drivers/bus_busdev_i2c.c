@@ -15,23 +15,29 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "drivers/resource.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
-const char * const ownerNames[OWNER_TOTAL_COUNT] = {
-    "FREE", "PWM", "PPM", "MOTOR", "SERVO", "SOFTSERIAL", "ADC", "SERIAL", "DEBUG", "TIMER",
-    "RANGEFINDER", "SYSTEM", "SPI", "I2C", "SDCARD", "FLASH", "USB", "BEEPER", "OSD",
-    "BARO", "MPU", "INVERTER", "LED STRIP", "LED", "RECEIVER", "TRANSMITTER",
-    "SOFTSPI", "NRF24", "VTX", "SPI_PREINIT"
-};
+#include <platform.h>
 
-const char * const resourceNames[RESOURCE_TOTAL_COUNT] = {
-    "", // NONE
-    "IN", "OUT", "IN / OUT",
-    "TIMER",
-    "UART TX", "UART RX", "UART TX/RX",
-    "EXTI",
-    "SCL", "SDA",
-    "SCK", "MOSI", "MISO", "CS",
-    "CH1", "CH2", "CH3", "CH4",
-    "CE"
-};
+#if defined(USE_I2C)
+
+#include "drivers/bus.h"
+#include "drivers/bus_i2c.h"
+
+bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data)
+{
+    return i2cWrite(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, data);
+}
+
+bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
+{
+    return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, length, data);
+}
+
+bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
+{
+    return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, 1, data);
+}
+#endif

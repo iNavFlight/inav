@@ -28,7 +28,7 @@
 #include "common/printf.h"
 #include "common/utils.h"
 
-#include "drivers/bus_spi.h"
+#include "drivers/bus.h"
 #include "drivers/light_led.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
@@ -207,6 +207,8 @@ static bool  max7456Lock        = false;
 static bool fontIsLoading       = false;
 static IO_t max7456CsPin        = IO_NONE;
 
+// Register bus device descriptor
+BUSDEV_REGISTER_SPI(max7456_busdev, DEVHW_MAX7456, 0, MAX7456_SPI_CS_PIN);
 
 static uint8_t max7456Send(uint8_t add, uint8_t data)
 {

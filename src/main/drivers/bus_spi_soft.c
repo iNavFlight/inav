@@ -85,4 +85,9 @@ uint8_t softSpiTransferByte(const softSPIDevice_t *dev, uint8_t byte)
     }
     return byte;
 }
+
+SPI_TypeDef * spiInstanceByDevice(SPIDevice device)
+{
+    return NULL;
+}
 #endif

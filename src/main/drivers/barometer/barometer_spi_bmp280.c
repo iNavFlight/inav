@@ -21,7 +21,7 @@
 #include <platform.h>
 
 #include "drivers/io.h"
-#include "drivers/bus_spi.h"
+#include "drivers/bus.h"
 
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp280.h"
@@ -34,6 +34,8 @@ extern int32_t bmp280_up;
 extern int32_t bmp280_ut;
 
 static IO_t bmp280CsPin = IO_NONE;
+
+BUSDEV_REGISTER_SPI(bmp280_busdev, DEVHW_BMP280, 0, BMP280_CS_PIN);
 
 bool bmp280WriteRegister(uint8_t reg, uint8_t data)
 {
