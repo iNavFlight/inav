@@ -621,6 +621,45 @@ static const char * osdFailsafeInfoMessage(void)
     return OSD_MESSAGE_STR(RC_RX_LINK_LOST_MSG);
 }
 
+static const char * navigationStateMessage(void)
+{
+    switch (NAV_Status.state) {
+        case MW_NAV_STATE_NONE:
+            break;
+        case MW_NAV_STATE_RTH_START:
+            return OSD_MESSAGE_STR("STARTING RTH");
+        case MW_NAV_STATE_RTH_ENROUTE:
+            // TODO: Break this up between climb and head home
+            return OSD_MESSAGE_STR("EN ROUTE TO HOME");
+        case MW_NAV_STATE_HOLD_INFINIT:
+            // Used by HOLD flight modes. No information to add.
+            break;
+        case MW_NAV_STATE_HOLD_TIMED:
+            // Not used anymore
+            break;
+        case MW_NAV_STATE_WP_ENROUTE:
+            // TODO: Show WP number
+            return OSD_MESSAGE_STR("EN ROUTE TO WAYPOINT");
+        case MW_NAV_STATE_PROCESS_NEXT:
+            return OSD_MESSAGE_STR("PREPARING FOR NEXT WAYPOINT");
+        case MW_NAV_STATE_DO_JUMP:
+            // Not used
+            break;
+        case MW_NAV_STATE_LAND_START:
+            return OSD_MESSAGE_STR("STARTING EMERGENCY LANDING");
+        case MW_NAV_STATE_LAND_IN_PROGRESS:
+            return OSD_MESSAGE_STR("LANDING");
+        case MW_NAV_STATE_LANDED:
+            return OSD_MESSAGE_STR("LANDED");
+        case MW_NAV_STATE_LAND_SETTLE:
+            return OSD_MESSAGE_STR("PREPARING TO LAND");
+        case MW_NAV_STATE_LAND_START_DESCENT:
+            // Not used
+            break;
+    }
+    return NULL;
+}
+
 static void osdFormatMessage(char *buff, size_t size, const char *message)
 {
     memset(buff, SYM_BLANK, size);
@@ -1232,43 +1271,58 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const char *message = NULL;
             if (ARMING_FLAG(ARMED)) {
+                // Aircraft is armed. We might have up to 3
+                // messages to show.
+                const char *messages[3];
+                unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
                     const char *failsafePhaseMessage = osdFailsafePhaseMessage();
                     const char *failsafeInfoMessage = osdFailsafeInfoMessage();
-                    if (failsafePhaseMessage && (!failsafeInfoMessage && OSD_ALTERNATING_TEXT(1000, 2) == 1)) {
-                        // We have failsafePhaseMessage and we're in the
-                        // phase message stage. Don't BLINK here since
+                    const char *navStateFSMessage = navigationStateMessage();
+                    if (failsafePhaseMessage) {
+                        messages[messageCount++] = failsafePhaseMessage;
+                    }
+                    if (failsafeInfoMessage) {
+                        messages[messageCount++] = failsafeInfoMessage;
+                    }
+                    if (navStateFSMessage) {
+                        messages[messageCount++] = navStateFSMessage;
+                    }
+                    if (messageCount > 0) {
+                        message = messages[OSD_ALTERNATING_TEXT(1000, messageCount)];
+                        if (message == failsafeInfoMessage) {
+                            // failsafeInfoMessage is not useful for recovering
+                            // a lost model, but might help avoiding a crash.
+                            // Blink to grab user attention.
+                            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                        }
+                        // We're shoing either failsafePhaseMessage or
+                        // navStateFSMessage. Don't BLINK here since
                         // having this text available might be crucial
                         // during a lost aircraft recovery and blinking
                         // will cause it to be missing from some frames.
-                        message = failsafePhaseMessage;
-                    } else if (failsafeInfoMessage) {
-                        // Either no failsafePhaseMessage or we're in
-                        // the info message stage. This message is
-                        // not useful for recovering a lost model, but
-                        // might help avoiding a crash. Blink to
-                        // grab user attention.
-                        message = failsafeInfoMessage;
-                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                     }
                 } else {
-                    // armed and not in FAILSAFE. We might have up to 3
-                    // messages to show.
-                    const char *messages[3];
-                    unsigned messageCount = 0;
-                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
-                        // when it doesn't require ANGLE mode (required only in FW
-                        // right now). If if requires ANGLE, its display is handled
-                        // by OSD_FLYMODE.
-                        messages[messageCount++] = "(ALTITUDE HOLD)";
-                    }
-                    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-                        messages[messageCount++] = "(AUTOTRIM)";
-                    }
-                    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                        messages[messageCount++] = "(AUTOTUNE)";
+                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE)) {
+                        const char *navStateMessage = navigationStateMessage();
+                        if (navStateMessage) {
+                            messages[messageCount++] = navStateMessage;
+                        }
+                    } else {
+                        if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
+                            // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                            // when it doesn't require ANGLE mode (required only in FW
+                            // right now). If if requires ANGLE, its display is handled
+                            // by OSD_FLYMODE.
+                            messages[messageCount++] = "(ALTITUDE HOLD)";
+                        }
+                        if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+                            messages[messageCount++] = "(AUTOTRIM)";
+                        }
+                        if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
+                            messages[messageCount++] = "(AUTOTUNE)";
+                        }
                     }
                     // Pick one of the available messages. Each message lasts
                     // a second.
