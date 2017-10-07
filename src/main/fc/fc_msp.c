@@ -2010,7 +2010,6 @@ static bool mspSettingCommand(sbuf_t *dst, sbuf_t *src)
             break;
         case VAR_UINT16:
             FALLTHROUGH;
-            break;
         case VAR_INT16:
             sbufWriteU16(dst, *((uint16_t*)ptr));
             break;
