@@ -70,7 +70,7 @@ Due to the available hardware, please note:
 * S3 : Motor 2
 * S4 : Motor 3
 
-I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is probably only usable on quadcopters.
+I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is not usable on hexcopter and similar.
 
 ## USB
 
