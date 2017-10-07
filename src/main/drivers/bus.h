@@ -93,6 +93,15 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
     /**/
 
 
+/* Internal abstraction function */
+bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
+bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
+bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
+
+bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
+bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
+bool spiBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
+
 /* Pre-initialize all known device descriptors to make sure hardware state is consistent and known 
  * Initialize bus hardware */
 void busInit(void);

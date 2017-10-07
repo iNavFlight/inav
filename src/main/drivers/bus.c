@@ -113,6 +113,7 @@ bool busWriteBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t l
             return i2cBusWriteBuffer(dev, reg, data);
     }
 }
+*/
 
 bool busWrite(const busDevice_t * dev, uint8_t reg, uint8_t data)
 {
@@ -124,6 +125,8 @@ bool busWrite(const busDevice_t * dev, uint8_t reg, uint8_t data)
         case BUSTYPE_I2C:
             return i2cBusWriteRegister(dev, reg, data);
     }
+
+    return false;
 }
 
 bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
@@ -136,17 +139,20 @@ bool busReadBuf(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t le
         case BUSTYPE_I2C:
             return i2cBusReadBuffer(dev, reg, data, length);
     }
+
+    return false;
 }
 
 bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 {
     switch (dev->busType) {
         case BUSTYPE_SPI:
-            return spiBusReadRegister(dev, reg | 0x80);
+            return spiBusReadRegister(dev, reg | 0x80, data);
         case BUSTYPE_I2C:
-            return i2cBusReadRegister(dev, reg);
+            return i2cBusReadRegister(dev, reg, data);
         case BUSTYPE_NONE:
             return false;
     }
+
+    return false;
 }
-*/

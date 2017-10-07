@@ -558,6 +558,8 @@ COMMON_SRC = \
             drivers/adc.c \
             drivers/buf_writer.c \
             drivers/bus.c \
+            drivers/bus_busdev_i2c.c \
+            drivers/bus_busdev_spi.c \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/bus_spi_soft.c \

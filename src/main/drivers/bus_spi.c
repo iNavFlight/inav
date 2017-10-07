@@ -368,4 +368,9 @@ void spiResetErrorCounter(SPI_TypeDef *instance)
         spiHardwareMap[device].errorCount = 0;
     }
 }
+
+SPI_TypeDef * spiInstanceByDevice(SPIDevice device)
+{
+    return spiHardwareMap[device].dev;
+}
 #endif // USE_SPI
