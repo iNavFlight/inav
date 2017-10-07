@@ -1947,7 +1947,7 @@ static void cliEleresBind(char *cmdline)
 {
     UNUSED(cmdline);
 
-    if (!feature(FEATURE_RX_SPI)) {
+    if (!(rxConfig()->receiverType == RX_TYPE_SPI && rxConfig()->rx_spi_protocol == RFM22_ELERES)) {
         cliPrintLine("Eleres not active. Please enable feature ELERES and restart IMU");
         return;
     }

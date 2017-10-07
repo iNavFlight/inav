@@ -156,7 +156,7 @@
 #define RANGEFINDER_HCSR04_ECHO_PIN          PB1 // RC_CH8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
 
 #define DEFAULT_FEATURES        FEATURE_BLACKBOX
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 
 #define SPEKTRUM_BIND
 // UART3,

@@ -18,6 +18,9 @@ tables:
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
     enum: pitotSensor_e
+  - name: receiver_type
+    values: ["NONE", "PWM", "PPM", "SERIAL", "MSP", "SPI"]
+    enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF"]
   - name: rx_spi_protocol
@@ -261,6 +264,9 @@ groups:
     type: rxConfig_t
     headers: ["rx/rx.h", "rx/spektrum.h"]
     members:
+      - name: receiver_type
+        field: receiverType
+        table: receiver_type
       - name: mid_rc
         field: midrc
         min: 1200
