@@ -70,6 +70,9 @@ extern const setting_t settingsTable[];
 void setting_get_name(const setting_t *val, char *buf);
 bool setting_name_contains(const setting_t *val, char *buf, const char *cmdline);
 bool setting_name_exact_match(const setting_t *val, char *buf, const char *cmdline, uint8_t var_name_length);
+// Returns a setting_t with the exact name (case sensitive), or
+// NULL if no setting with that name exists.
+const setting_t *setting_find(const char *name);
 pgn_t setting_get_pgn(const setting_t *val);
 // Returns a pointer to the actual value stored by
 // the setting_t. The returned value might be modified.

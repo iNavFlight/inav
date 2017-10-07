@@ -939,7 +939,7 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
-.PHONY: .FORCE clean-settings
+.PHONY: .FORCE settings clean-settings
 UTILS_DIR		= $(ROOT)/src/utils
 SETTINGS_GENERATOR	= $(UTILS_DIR)/settings.rb
 BUILD_STAMP		= $(UTILS_DIR)/build_stamp.rb
@@ -958,6 +958,9 @@ $(STAMP): .FORCE
 %generated.h %generated.c:
 	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
 	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+
+settings-json:
+	$(V0) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) --json settings.json
 
 clean-settings:
 	$(V1) $(RM) $(GENERATED_SETTINGS)

@@ -62,6 +62,19 @@ bool setting_name_exact_match(const setting_t *val, char *buf, const char *cmdli
 	return sl_strncasecmp(cmdline, buf, strlen(buf)) == 0 && var_name_length == strlen(buf);
 }
 
+const setting_t *setting_find(const char *name)
+{
+	char buf[SETTING_MAX_NAME_LENGTH];
+	for (int ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
+		const setting_t *setting = &settingsTable[ii];
+		setting_get_name(setting, buf);
+		if (strcmp(buf, name) == 0) {
+			return setting;
+		}
+	}
+	return NULL;
+}
+
 pgn_t setting_get_pgn(const setting_t *val)
 {
 	uint16_t pos = val - (const setting_t *)settingsTable;
