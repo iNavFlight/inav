@@ -68,7 +68,7 @@ void setupFixedWingAltitudeController(void)
     // TODO
 }
 
-void resetFixedWingAltitudeController()
+void resetFixedWingAltitudeController(void)
 {
     navPidReset(&posControl.pids.fw_alt);
     posControl.rcAdjustment[PITCH] = 0;

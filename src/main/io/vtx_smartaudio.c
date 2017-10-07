@@ -552,7 +552,7 @@ static uint8_t sa_qhead = 0;
 static uint8_t sa_qtail = 0;
 
 #ifdef DPRINTF_SMARTAUDIO
-static int saQueueLength()
+static int saQueueLength(void)
 {
     if (sa_qhead >= sa_qtail) {
         return sa_qhead - sa_qtail;
@@ -562,12 +562,12 @@ static int saQueueLength()
 }
 #endif
 
-static bool saQueueEmpty()
+static bool saQueueEmpty(void)
 {
     return sa_qhead == sa_qtail;
 }
 
-static bool saQueueFull()
+static bool saQueueFull(void)
 {
     return ((sa_qhead + 1) % SA_QSIZE) == sa_qtail;
 }
@@ -670,7 +670,7 @@ void saSetPowerByIndex(uint8_t index)
     saQueueCmd(buf, 6);
 }
 
-bool vtxSmartAudioInit()
+bool vtxSmartAudioInit(void)
 {
 #ifdef SMARTAUDIO_DPRINTF
     // Setup debugSerialPort

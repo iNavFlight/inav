@@ -67,7 +67,7 @@ DEFINE_DMA_IRQ_HANDLER(2, 5, DMA2_ST5_HANDLER)
 DEFINE_DMA_IRQ_HANDLER(2, 6, DMA2_ST6_HANDLER)
 DEFINE_DMA_IRQ_HANDLER(2, 7, DMA2_ST7_HANDLER)
 
-void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_t owner, uint8_t resourceIndex)
+void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_e owner, uint8_t resourceIndex)
 {
     RCC_AHB1PeriphClockCmd(dmaDescriptors[identifier].rcc, ENABLE);
     dmaDescriptors[identifier].owner = owner;

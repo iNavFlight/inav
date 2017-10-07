@@ -90,7 +90,7 @@ void setStripColors(const hsvColor_t *colors)
 
 void ws2811LedStripInit(void)
 {
-    memset(&ledStripDMABuffer, 0, WS2811_DMA_BUFFER_SIZE);
+    memset(&ledStripDMABuffer, 0, sizeof(ledStripDMABuffer));
     ws2811LedStripHardwareInit();
     ws2811UpdateStrip();
 }

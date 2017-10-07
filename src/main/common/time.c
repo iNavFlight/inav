@@ -204,7 +204,7 @@ bool dateTimeSplitFormatted(char *formatted, char **date, char **time)
     return false;
 }
 
-bool rtcHasTime()
+bool rtcHasTime(void)
 {
     return started != 0;
 }

@@ -77,7 +77,7 @@ static struct {
 #endif
 
 #ifndef UNIT_TEST
-void blackboxOpen()
+void blackboxOpen(void)
 {
     serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
     if (sharedBlackboxAndMspPort) {
@@ -328,7 +328,7 @@ static void blackboxLogFileCreated(afatfsFilePtr_t file)
     }
 }
 
-static void blackboxCreateLogFile()
+static void blackboxCreateLogFile(void)
 {
     uint32_t remainder = blackboxSDCard.largestLogFileNumber + 1;
 
@@ -359,7 +359,7 @@ static void blackboxCreateLogFile()
  *
  * Keep calling until the function returns true (open is complete).
  */
-static bool blackboxSDCardBeginLog()
+static bool blackboxSDCardBeginLog(void)
 {
     fatDirectoryEntry_t *directoryEntry;
 
@@ -504,7 +504,7 @@ bool isBlackboxDeviceFull(void)
  * Call once every loop iteration in order to maintain the global blackboxHeaderBudget with the number of bytes we can
  * transmit this iteration.
  */
-void blackboxReplenishHeaderBudget()
+void blackboxReplenishHeaderBudget(void)
 {
     int32_t freeSpace;
 

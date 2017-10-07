@@ -30,7 +30,7 @@ F405-AIO (only) exposes I2C pads for compass / baro etc.
 * Integrated Voltage Regulator: F405-AIO, otherwise FCHUB-6S option
 * Brushed Motor Mosfets: No
 * Buttons: BOOT button
-* 6 PWM / DShot outputs
+* 6 PWM / DSHOT capable outputs
 * WS2812 Led Strip : Yes
 * Beeper : Yes
 
@@ -38,11 +38,20 @@ F405-AIO (only) exposes I2C pads for compass / baro etc.
 * 32K Gyro ICM-20602
 * Support Gyro sample rate 32K & PID Loop 16K
 * Built in inverter for SBUS input (UART2-RX)
-* 6x DShot outputs without conflict
+* 6x DSHOT capable outputs without conflict (iNav does not implement DSHOT)
 * SD Card Slot
 * VCP, UART1, UART2, UART3, UART4 & UART5
 * w/ Anti-vibration Standoffs
-* I2C on F405-AIO
+* Dedicated hardware I2C on F405-AIO, soft-I2C via USART3 on F405-OSD
+
+### I2C
+
+The F405-AIO board exposes dedicated I2C pads.
+
+The F405-OSD does not expose I2C. For iNav there is a software I2C provision using the USART3 pads, as:
+
+* SDA => RX3, SCL => TX3
+* Do not assign any serial function to USART3
 
 ## USB
 

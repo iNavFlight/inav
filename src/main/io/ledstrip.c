@@ -451,7 +451,7 @@ static const struct {
     {0,             LED_MODE_ORIENTATION},
 };
 
-static void applyLedFixedLayers()
+static void applyLedFixedLayers(void)
 {
     for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];

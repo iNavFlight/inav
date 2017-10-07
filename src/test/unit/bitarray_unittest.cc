@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstring>
 
 extern "C" {
 #include "common/bitarray.h"
@@ -8,8 +9,8 @@ extern "C" {
 
 TEST(BitArrayTest, TestGetSet)
 {
-    uint32_t array[1] = {0};
-    void *p = array;
+    BITARRAY_DECLARE(p, 32);
+    memset(p, 0, sizeof(p));
 
     bitArraySet(p, 14);
     EXPECT_EQ(bitArrayGet(p, 14), true);
@@ -23,8 +24,8 @@ TEST(BitArrayTest, TestGetSet)
 
 TEST(BitArrayTest, TestClr)
 {
-    uint32_t array[1] = {0};
-    void *p = array;
+    BITARRAY_DECLARE(p, 32);
+    memset(p, 0, sizeof(p));
 
     bitArraySet(p, 31);
     EXPECT_EQ(bitArrayGet(p, 31), true);
@@ -36,31 +37,31 @@ TEST(BitArrayTest, TestClr)
 
 TEST(BitArrayTest, TestFind)
 {
-    uint32_t array[4] = {0, 0, 0, 0};
-    void *p = array;
+    BITARRAY_DECLARE(p, 32*4);
+    memset(p, 0, sizeof(p));
 
-    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(array)), -1);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(p)), -1);
 
     bitArraySet(p, 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(array)), 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 16, sizeof(array)), 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 17, sizeof(array)), 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 18, sizeof(array)), -1);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(p)), 17);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 16, sizeof(p)), 17);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 17, sizeof(p)), 17);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 18, sizeof(p)), -1);
 
     bitArraySet(p, 44);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(array)), 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 16, sizeof(array)), 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 17, sizeof(array)), 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 18, sizeof(array)), 44);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(p)), 17);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 16, sizeof(p)), 17);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 17, sizeof(p)), 17);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 18, sizeof(p)), 44);
 
     bitArrayClr(p, 17);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(array)), 44);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 16, sizeof(array)), 44);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 17, sizeof(array)), 44);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 18, sizeof(array)), 44);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 45, sizeof(array)), -1);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(p)), 44);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 16, sizeof(p)), 44);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 17, sizeof(p)), 44);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 18, sizeof(p)), 44);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 45, sizeof(p)), -1);
 
     bitArrayClr(p, 44);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(array)), -1);
-    EXPECT_EQ(bitArrayFindFirstSet(p, 64, sizeof(array)), -1);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 0, sizeof(p)), -1);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 64, sizeof(p)), -1);
 }

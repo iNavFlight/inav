@@ -64,7 +64,7 @@ DEFINE_DMA_IRQ_HANDLER(2, 5, DMA2_CH5_HANDLER)
 #endif
 
 
-void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_t owner, uint8_t resourceIndex)
+void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_e owner, uint8_t resourceIndex)
 {
     RCC_AHBPeriphClockCmd(dmaDescriptors[identifier].rcc, ENABLE);
     dmaDescriptors[identifier].owner = owner;

@@ -374,7 +374,9 @@ rx_spi_received_e eleresDataReceived(uint8_t *payload)
     {
         statusRegisters[0] = rfmSpiRead(0x03);
         statusRegisters[1] = rfmSpiRead(0x04);
-        return RX_SPI_RECEIVED_DATA;
+        //only if RC frame received
+        if (statusRegisters[0] & RF22B_RX_PACKET_RECEIVED_INTERRUPT)
+            return RX_SPI_RECEIVED_DATA;
     }
 
     eleresSetRcDataFromPayload(NULL,NULL);

@@ -97,8 +97,9 @@ static int screenSize(const displayPort_t *displayPort)
     return displayPort->rows * displayPort->cols;
 }
 
-static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string)
+static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
 {
+    UNUSED(attr);
 #define MSP_OSD_MAX_STRING_LENGTH 30 // FIXME move this
     uint8_t buf[MSP_OSD_MAX_STRING_LENGTH + 4];
 
@@ -116,13 +117,13 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     return output(displayPort, MSP_DISPLAYPORT, buf, len + 4);
 }
 
-static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint8_t c)
+static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint8_t c, textAttributes_t attr)
 {
     char buf[2];
 
     buf[0] = c;
     buf[1] = 0;
-    return writeString(displayPort, col, row, buf); //!!TODO - check if there is a direct MSP command to do this
+    return writeString(displayPort, col, row, buf, attr); //!!TODO - check if there is a direct MSP command to do this
 }
 
 static bool isTransferInProgress(const displayPort_t *displayPort)
