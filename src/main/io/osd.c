@@ -304,10 +304,10 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
         centifeet = CENTIMETERS_TO_CENTIFEET(dist);
         if (abs(dist) < FEET_PER_MILE * 100 / 2) {
             // Show feet when dist < 0.5mi
-            tfp_sprintf("%d%c", buff, centifeet / 100, SYM_MI);
+            tfp_sprintf(buff, "%d%c", centifeet / 100, SYM_FT);
         } else {
             // Show miles when dist >= 0.5mi
-            tfp_sprintf("%d.%02d%c", buff, dist / (100*FEET_PER_MILE),
+            tfp_sprintf(buff, "%d.%02d%c", dist / (100*FEET_PER_MILE),
             abs(dist) % (100 * FEET_PER_MILE), SYM_MI);
         }
         break;
@@ -316,10 +316,10 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
      case OSD_UNIT_METRIC:
         if (abs(dist) < METERS_PER_KILOMETER * 100) {
             // Show meters when dist < 1km
-            tfp_sprintf("%d%c", buff, dist / 100, SYM_M);
+            tfp_sprintf(buff, "%d%c", dist / 100, SYM_M);
         } else {
             // Show kilometers when dist >= 1km
-            tfp_sprintf("%d.%02d%c", buff, dist / (100*METERS_PER_KILOMETER),
+            tfp_sprintf(buff, "%d.%02d%c", dist / (100*METERS_PER_KILOMETER),
                 abs(dist) % (100 * METERS_PER_KILOMETER), SYM_KM);
          }
          break;
