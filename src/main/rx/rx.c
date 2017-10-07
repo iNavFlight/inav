@@ -65,7 +65,7 @@
 
 //#define DEBUG_RX_SIGNAL_LOSS
 
-const char rcChannelLetters[] = "AERT12345678abcdefgh";
+const char rcChannelLetters[] = "AERT5678abcdefghijkl";
 
 uint16_t rssi = 0;                  // range: [0;1023]
 
