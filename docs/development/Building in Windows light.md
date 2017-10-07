@@ -33,10 +33,10 @@ download https://www.dropbox.com/s/hhlr16h657y4l5u/devtools.zip?dl=0
 
 extract it into C:\ it creates devtools folder
 
-##Install arm toolchain
-download https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q2-update/+download/gcc-arm-none-eabi-4_9-2015q2-20150609-win32.zip
+##Install latest arm toolchain
+download https://gcc.gnu.org/mirrors.html
 
-extract it into C:\devtools\gcc-arm-none-eabi-4_9-2015q2-20150609-win32 (folder already there)
+extract it into C:\devtools\gcc-arm-none-eabi-... (folder already there)
 
 ##Install Ruby
 
