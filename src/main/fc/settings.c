@@ -102,10 +102,16 @@ const void * setting_get_copy_value_pointer(const setting_t *val)
 
 setting_min_t setting_get_min(const setting_t *val)
 {
+	if (SETTING_MODE(val) == MODE_LOOKUP) {
+		return 0;
+	}
 	return settingMinMaxTable[SETTING_INDEXES_GET_MIN(val)];
 }
 
 setting_max_t setting_get_max(const setting_t *val)
 {
+	if (SETTING_MODE(val) == MODE_LOOKUP) {
+		return settingLookupTables[val->config.lookup.tableIndex].valueCount - 1;
+	}
 	return settingMinMaxTable[SETTING_INDEXES_GET_MAX(val)];
 }

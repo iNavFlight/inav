@@ -367,6 +367,14 @@ class Generator
             buf << "extern const char * const #{table_variable_name(name)}[];\n"
         end
 
+        # Write #define'd constants for referencing each setting
+        ii = 0
+        foreach_enabled_member do |group, member|
+            name = member["name"]
+            buf << "#define SETTING_#{name.upcase} #{ii}\n"
+            ii += 1
+        end
+
         File.open(file, 'w') {|file| file.write(buf.string)}
     end
 
