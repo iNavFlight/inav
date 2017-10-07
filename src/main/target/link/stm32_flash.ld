@@ -90,6 +90,13 @@ SECTIONS
     KEEP (*(.pg_resetdata))
     PROVIDE_HIDDEN (__pg_resetdata_end = .);
   } >FLASH
+  .busdev_registry :
+  {
+    PROVIDE_HIDDEN (__busdev_registry_start = .);
+    KEEP (*(.busdev_registry))
+    KEEP (*(SORT(.busdev_registry.*)))
+    PROVIDE_HIDDEN (__busdev_registry_end = .);
+  } >FLASH
 
   /* used by the startup to initialize data */
   _sidata = .;

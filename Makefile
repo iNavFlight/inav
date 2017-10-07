@@ -557,6 +557,7 @@ COMMON_SRC = \
             config/parameter_group.c \
             drivers/adc.c \
             drivers/buf_writer.c \
+            drivers/bus.c \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/bus_spi_soft.c \
