@@ -105,11 +105,11 @@ static bool mpuSpi6000InitDone = false;
 
 bool mpu6000SpiWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
 {
-    ENABLE_MPU6000(bus->spi.csnPin);
+    ENABLE_MPU6000(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
     spiTransferByte(MPU6000_SPI_INSTANCE, reg);
     spiTransferByte(MPU6000_SPI_INSTANCE, data);
-    DISABLE_MPU6000(bus->spi.csnPin);
+    DISABLE_MPU6000(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
 
     return true;
@@ -117,10 +117,10 @@ bool mpu6000SpiWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
 
 bool mpu6000SpiReadRegister(const busDevice_t *bus, uint8_t reg, uint8_t length, uint8_t *data)
 {
-    ENABLE_MPU6000(bus->spi.csnPin);
+    ENABLE_MPU6000(bus->busdev.spi.csnPin);
     spiTransferByte(MPU6000_SPI_INSTANCE, reg | 0x80); // read transaction
     spiTransfer(MPU6000_SPI_INSTANCE, data, NULL, length);
-    DISABLE_MPU6000(bus->spi.csnPin);
+    DISABLE_MPU6000(bus->busdev.spi.csnPin);
 
     return true;
 }
@@ -131,13 +131,13 @@ void mpu6000SpiGyroInit(gyroDev_t *gyro)
 
     mpu6000AccAndGyroInit(gyro);
 
-    spiSetDivisor(MPU6000_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
+    spiSetSpeed(MPU6000_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
 
     // Accel and Gyro DLPF Setting
     mpu6000SpiWriteRegister(&gyro->bus, MPU6000_CONFIG, gyro->lpf);
     delayMicroseconds(1);
 
-    spiSetDivisor(MPU6000_SPI_INSTANCE, SPI_CLOCK_FAST);  // 18 MHz SPI clock
+    spiSetSpeed(MPU6000_SPI_INSTANCE, SPI_CLOCK_FAST);  // 18 MHz SPI clock
 
     mpuGyroRead(gyro);
 
@@ -156,10 +156,10 @@ bool mpu6000SpiDetect(const busDevice_t *bus)
     uint8_t in;
     uint8_t attemptsRemaining = 5;
 
-    IOInit(bus->spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
-    IOConfigGPIO(bus->spi.csnPin, SPI_IO_CS_CFG);
+    IOInit(bus->busdev.spi.csnPin, OWNER_MPU, RESOURCE_SPI_CS, 0);
+    IOConfigGPIO(bus->busdev.spi.csnPin, SPI_IO_CS_CFG);
 
-    spiSetDivisor(MPU6000_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
+    spiSetSpeed(MPU6000_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
 
     mpu6000SpiWriteRegister(bus, MPU_RA_PWR_MGMT_1, BIT_H_RESET);
 
@@ -205,7 +205,7 @@ static void mpu6000AccAndGyroInit(gyroDev_t *gyro)
         return;
     }
 
-    spiSetDivisor(MPU6000_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
+    spiSetSpeed(MPU6000_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
 
     // Device Reset
     mpu6000SpiWriteRegister(&gyro->bus, MPU_RA_PWR_MGMT_1, BIT_H_RESET);
@@ -246,7 +246,7 @@ static void mpu6000AccAndGyroInit(gyroDev_t *gyro)
     delayMicroseconds(15);
 #endif
 
-    spiSetDivisor(MPU6000_SPI_INSTANCE, SPI_CLOCK_FAST);
+    spiSetSpeed(MPU6000_SPI_INSTANCE, SPI_CLOCK_FAST);
     delayMicroseconds(1);
 
     mpuSpi6000InitDone = true;

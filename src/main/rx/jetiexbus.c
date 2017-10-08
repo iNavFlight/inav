@@ -275,7 +275,7 @@ void jetiExBusDecodeChannelFrame(uint8_t *exBusFrame)
 }
 
 
-void jetiExBusFrameReset()
+void jetiExBusFrameReset(void)
 {
     jetiExBusFramePosition = 0;
     jetiExBusFrameLength = EXBUS_MAX_CHANNEL_FRAME_SIZE;
@@ -370,7 +370,7 @@ static void jetiExBusDataReceive(uint16_t c)
 
 
 // Check if it is time to read a frame from the data...
-uint8_t jetiExBusFrameStatus()
+uint8_t jetiExBusFrameStatus(void)
 {
     if (jetiExBusFrameState != EXBUS_STATE_RECEIVED)
         return RX_FRAME_PENDING;

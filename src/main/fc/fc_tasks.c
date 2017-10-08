@@ -32,6 +32,7 @@
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -257,6 +258,19 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef VTX_CONTROL
+// Everything that listens to VTX devices
+void taskVtxControl(timeUs_t currentTimeUs)
+{
+    if (ARMING_FLAG(ARMED))
+        return;
+
+#ifdef VTX_COMMON
+    vtxCommonProcess(currentTimeUs);
+#endif
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -331,6 +345,11 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_CMS, true);
 #else
     setTaskEnabled(TASK_CMS, feature(FEATURE_OSD) || feature(FEATURE_DASHBOARD));
+#endif
+#endif
+#ifdef VTX_CONTROL
+#if defined(VTX_SMARTAUDIO) || defined(VTX_TRAMP)
+    setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
 }
@@ -512,7 +531,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .desiredPeriod = TASK_PERIOD_HZ(250),
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
@@ -532,6 +551,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = rcSplitProcess,
         .desiredPeriod = TASK_PERIOD_HZ(10),        // 10 Hz, 100ms
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef VTX_CONTROL
+    [TASK_VTXCTRL] = {
+        .taskName = "VTXCTRL",
+        .taskFunc = taskVtxControl,
+        .desiredPeriod = TASK_PERIOD_HZ(5),          // 5Hz @200msec
+        .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
 };

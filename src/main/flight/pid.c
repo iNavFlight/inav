@@ -87,24 +87,24 @@ typedef struct {
 } pidState_t;
 
 #ifdef USE_DTERM_NOTCH
-    static filterApplyFnPtr notchFilterApplyFn;
+STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
 #endif
 
 extern float dT;
 
-float headingHoldCosZLimit;
-int16_t headingHoldTarget;
-static pt1Filter_t headingHoldRateFilter;
+FASTRAM float headingHoldCosZLimit;
+FASTRAM int16_t headingHoldTarget;
+STATIC_FASTRAM pt1Filter_t headingHoldRateFilter;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
-static bool pidGainsUpdateRequired = false;
-int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
+STATIC_FASTRAM bool pidGainsUpdateRequired;
+FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 #ifdef BLACKBOX
 int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
 #endif
 
-static pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
+STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 3);
 
@@ -206,6 +206,8 @@ void pidInit(void)
     // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
     headingHoldCosZLimit = cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_ROLL])) *
                            cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_PITCH]));
+
+    pidGainsUpdateRequired = false;
 }
 
 #ifdef USE_DTERM_NOTCH
@@ -313,7 +315,7 @@ void schedulePidGainsUpdate(void)
 
 void updatePIDCoefficients(void)
 {
-    static uint16_t prevThrottle = 0;
+    STATIC_FASTRAM uint16_t prevThrottle = 0;
 
     // Check if throttle changed
     if (rcCommand[THROTTLE] != prevThrottle) {
@@ -545,7 +547,7 @@ int16_t getHeadingHoldTarget() {
     return headingHoldTarget;
 }
 
-static uint8_t getHeadingHoldState()
+static uint8_t getHeadingHoldState(void)
 {
     // Don't apply heading hold if overall tilt is greater than maximum angle inclination
     if (calculateCosTiltAngle() < headingHoldCosZLimit) {

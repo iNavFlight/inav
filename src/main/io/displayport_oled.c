@@ -57,17 +57,19 @@ static int oledScreenSize(const displayPort_t *displayPort)
     return displayPort->rows * displayPort->cols;
 }
 
-static int oledWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
+static int oledWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
 {
     UNUSED(displayPort);
+    UNUSED(attr);
     i2c_OLED_set_xy(x, y);
     i2c_OLED_send_string(s);
     return 0;
 }
 
-static int oledWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
+static int oledWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c,  textAttributes_t attr)
 {
     UNUSED(displayPort);
+    UNUSED(attr);
     i2c_OLED_set_xy(x, y);
     i2c_OLED_send_char(c);
     return 0;

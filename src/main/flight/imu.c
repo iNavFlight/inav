@@ -75,22 +75,22 @@
 #define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
 #define MAX_GPS_HEADING_ERROR_DEG   60      // Amount of error between GPS CoG and estimated Yaw at witch we stop trusting GPS and fallback to MAG
 
-t_fp_vector imuMeasuredAccelBF;
-t_fp_vector imuMeasuredRotationBF;
-static float smallAngleCosZ = 0;
+FASTRAM t_fp_vector imuMeasuredAccelBF;
+FASTRAM t_fp_vector imuMeasuredRotationBF;
+STATIC_FASTRAM float smallAngleCosZ;
 
-static bool isAccelUpdatedAtLeastOnce = false;
+STATIC_FASTRAM bool isAccelUpdatedAtLeastOnce;
 
-STATIC_UNIT_TESTED float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;    // quaternion of sensor frame relative to earth frame
-STATIC_UNIT_TESTED float rMat[3][3];
+STATIC_FASTRAM_UNIT_TESTED float q0, q1, q2, q3;    // quaternion of sensor frame relative to earth frame
+FASTRAM float rMat[3][3];
 
-attitudeEulerAngles_t attitude = { { 0, 0, 0 } };     // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
+FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
-static imuRuntimeConfig_t imuRuntimeConfig;
+STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 
-static const float gyroScale = (M_PIf / 180.0f);  // gyro output scaled to rad per second
+static const float gyroScale = (M_PIf / 180.0f);    // gyro output scaled to rad per second
 
-static bool gpsHeadingInitialized = false;
+STATIC_FASTRAM bool gpsHeadingInitialized;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
 
@@ -100,15 +100,14 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_mag = 10000,            // 1.00 * 10000
     .dcm_ki_mag = 0,                // 0.00 * 10000
     .small_angle = 25
-
 );
 
 #ifdef ASYNC_GYRO_PROCESSING
 /* Asynchronous update accumulators */
-static float imuAccumulatedRate[XYZ_AXIS_COUNT];
-static timeUs_t imuAccumulatedRateTimeUs;
-static float imuAccumulatedAcc[XYZ_AXIS_COUNT];
-static int   imuAccumulatedAccCount;
+STATIC_FASTRAM float imuAccumulatedRate[XYZ_AXIS_COUNT];
+STATIC_FASTRAM timeUs_t imuAccumulatedRateTimeUs;
+STATIC_FASTRAM float imuAccumulatedAcc[XYZ_AXIS_COUNT];
+STATIC_FASTRAM int   imuAccumulatedAccCount;
 #endif
 
 #ifdef ASYNC_GYRO_PROCESSING
@@ -167,6 +166,14 @@ void imuInit(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         imuMeasuredAccelBF.A[axis] = 0;
     }
+
+    // Explicitly initialize FASTRAM statics
+    isAccelUpdatedAtLeastOnce = false;
+    gpsHeadingInitialized = false;
+    q0 = 1.0f;
+    q1 = 0.0f;
+    q2 = 0.0f;
+    q3 = 0.0f;
 
     imuComputeRotationMatrix();
 }
@@ -284,8 +291,8 @@ static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
                                 bool useMag, float mx, float my, float mz,
                                 bool useCOG, float courseOverGround)
 {
-    static float integralAccX = 0.0f,  integralAccY = 0.0f, integralAccZ = 0.0f;    // integral error terms scaled by Ki
-    static float integralMagX = 0.0f,  integralMagY = 0.0f, integralMagZ = 0.0f;    // integral error terms scaled by Ki
+    STATIC_FASTRAM float integralAccX = 0.0f,  integralAccY = 0.0f, integralAccZ = 0.0f;    // integral error terms scaled by Ki
+    STATIC_FASTRAM float integralMagX = 0.0f,  integralMagY = 0.0f, integralMagZ = 0.0f;    // integral error terms scaled by Ki
     float ex, ey, ez;
 
     /* Calculate general spin rate (rad/s) */

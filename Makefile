@@ -548,6 +548,7 @@ COMMON_SRC = \
             common/maths.c \
             common/printf.c \
             common/streambuf.c \
+            common/time.c \
             common/typeconversion.c \
             common/string_light.c \
             config/config_eeprom.c \
@@ -556,6 +557,9 @@ COMMON_SRC = \
             config/parameter_group.c \
             drivers/adc.c \
             drivers/buf_writer.c \
+            drivers/bus.c \
+            drivers/bus_busdev_i2c.c \
+            drivers/bus_busdev_spi.c \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/bus_spi_soft.c \
@@ -567,6 +571,7 @@ COMMON_SRC = \
             drivers/io_pca9685.c \
             drivers/light_led.c \
             drivers/logging.c \
+            drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
@@ -590,6 +595,7 @@ COMMON_SRC = \
             fc/fc_tasks.c \
             fc/fc_hardfaults.c \
             fc/fc_msp.c \
+            fc/fc_msp_box.c \
             fc/rc_adjustments.c \
             fc/rc_controls.c \
             fc/rc_curves.c \
@@ -660,6 +666,7 @@ HIGHEND_SRC = \
             drivers/rangefinder_hcsr04_i2c.c \
             drivers/rangefinder_srf10.c \
             drivers/rangefinder_vl53l0x.c \
+            drivers/vtx_common.c \
             io/dashboard.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
@@ -688,7 +695,11 @@ HIGHEND_SRC = \
             telemetry/ltm.c \
             telemetry/mavlink.c \
             telemetry/smartport.c \
-            telemetry/telemetry.c
+            telemetry/telemetry.c \
+            io/vtx_string.c \
+            io/vtx_smartaudio.c \
+            io/vtx_tramp.c \
+            io/vtx_control.c
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 VCP_SRC = \
@@ -918,27 +929,28 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
-.PHONY: settings clean-settings
-UTILS_DIR			= $(ROOT)/src/utils
+.PHONY: .FORCE clean-settings
+UTILS_DIR		= $(ROOT)/src/utils
 SETTINGS_GENERATOR	= $(UTILS_DIR)/settings.rb
+BUILD_STAMP		= $(UTILS_DIR)/build_stamp.rb
+STAMP			= $(BIN_DIR)/build.stamp
 
 GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
 SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
-$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
+GENERATED_FILES		= $(GENERATED_SETTINGS)
+$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE) $(STAMP)
+
+$(STAMP): .FORCE
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(BUILD_STAMP) $(SETTINGS_FILE) $(STAMP)
 
 # Use a pattern rule, since they're different than normal rules.
 # See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
 %generated.h %generated.c:
 	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
-	$(V1) CFLAGS="$(CFLAGS)" ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
-settings: $(GENERATED_SETTINGS)
 clean-settings:
 	$(V1) $(RM) $(GENERATED_SETTINGS)
-
-# Files that depend on the generated settings
-$(OBJECT_DIR)/$(TARGET)/fc/cli.o: settings
-$(OBJECT_DIR)/$(TARGET)/fc/settings.o: settings
 
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
@@ -949,7 +961,7 @@ $(TARGET_HEX): $(TARGET_ELF)
 $(TARGET_BIN): $(TARGET_ELF)
 	$(V0) $(OBJCOPY) -O binary $< $@
 
-$(TARGET_ELF): clean-settings $(TARGET_OBJS)
+$(TARGET_ELF): $(TARGET_OBJS)
 	$(V1) echo Linking $(TARGET)
 	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
@@ -1063,7 +1075,10 @@ test:
 	$(V0) cd src/test && $(MAKE) test || true
 
 # rebuild everything when makefile changes
-$(TARGET_OBJS) : Makefile
+# Make the generated files and the build stamp order only prerequisites,
+# so they will be generated before TARGET_OBJS but regenerating them
+# won't cause all TARGET_OBJS to be rebuilt.
+$(TARGET_OBJS) : Makefile | $(GENERATED_FILES) $(STAMP)
 
 # include auto-generated dependencies
 -include $(TARGET_DEPS)

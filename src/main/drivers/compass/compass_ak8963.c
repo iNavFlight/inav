@@ -110,11 +110,11 @@ static queuedReadState_t queuedRead = { false, 0, 0};
  */
 static bool mpuSpiWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t data)
 {
-    ENABLE_SPI_MPU(bus->spi.csnPin);
+    ENABLE_SPI_MPU(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
     spiTransferByte(MPU_SPI_INSTANCE, reg);
     spiTransferByte(MPU_SPI_INSTANCE, data);
-    DISABLE_SPI_MPU(bus->spi.csnPin);
+    DISABLE_SPI_MPU(bus->busdev.spi.csnPin);
     delayMicroseconds(1);
 
     return true;
@@ -122,10 +122,10 @@ static bool mpuSpiWriteRegister(const busDevice_t *bus, uint8_t reg, uint8_t dat
 
 static bool mpuSpiReadRegister(const busDevice_t *bus, uint8_t reg, uint8_t length, uint8_t *data)
 {
-    ENABLE_SPI_MPU(bus->spi.csnPin);
+    ENABLE_SPI_MPU(bus->busdev.spi.csnPin);
     spiTransferByte(MPU_SPI_INSTANCE, reg | 0x80); // read transaction
     spiTransfer(MPU_SPI_INSTANCE, data, NULL, length);
-    DISABLE_SPI_MPU(bus->spi.csnPin);
+    DISABLE_SPI_MPU(bus->busdev.spi.csnPin);
 
     return true;
 }

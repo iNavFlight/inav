@@ -72,16 +72,50 @@
 #define SPI3_NSS_PIN NONE
 #endif
 
+#if defined(STM32F1) || defined(STM32F3)
+static const uint16_t spiDivisorMapFast[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
+    SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               562.5 KBits/s
+    SPI_BaudRatePrescaler_8,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               18.0 MBits/s
+    SPI_BaudRatePrescaler_4       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
+};
+static const uint16_t spiDivisorMapSlow[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      140.625 KBits/s
+    SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               562.5 KBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+    SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               18.0 MBits/s
+    SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
+};
+#elif defined(STM32F4)
+static const uint16_t spiDivisorMapFast[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      328.125 KBits/s
+    SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               656.25 KBits/s
+    SPI_BaudRatePrescaler_8,      // SPI_CLOCK_STANDARD           10.5 MBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               21.0 MBits/s
+    SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          42.0 MBits/s
+};
+static const uint16_t spiDivisorMapSlow[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      164.062 KBits/s
+    SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               656.25 KBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_STANDARD           10.5 MBits/s
+    SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               21.0 MBits/s
+    SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          21.0 MBits/s
+};
+#else
+#error "Invalid CPU"
+#endif
+
 static spiDevice_t spiHardwareMap[] = {
 #if defined(STM32F1)
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = 0, false },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = 0, false },
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = 0, false, .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = 0, false, .divisorMap = spiDivisorMapSlow },
 #else
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, false },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, false },
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, false, .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, false, .divisorMap = spiDivisorMapSlow },
 #endif
 #if defined(STM32F3) || defined(STM32F4)
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, false }
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, false, .divisorMap = spiDivisorMapSlow }
 #endif
 };
 
@@ -300,56 +334,19 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len
     return true;
 }
 
-void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
+void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed)
 {
 #define BR_CLEAR_MASK 0xFFC7
+    SPIDevice device = spiDeviceByInstance(instance);
+    if (device == SPIINVALID) {
+        return;
+    }
 
     SPI_Cmd(instance, DISABLE);
 
     uint16_t tempRegister = instance->CR1;
-
-    switch (divisor) {
-    case 2:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_2;
-        break;
-
-    case 4:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_4;
-        break;
-
-    case 8:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_8;
-        break;
-
-    case 16:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_16;
-        break;
-
-    case 32:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_32;
-        break;
-
-    case 64:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_64;
-        break;
-
-    case 128:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_128;
-        break;
-
-    case 256:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_256;
-        break;
-    }
-
+    tempRegister &= BR_CLEAR_MASK;
+    tempRegister |= spiHardwareMap[device].divisorMap[speed];
     instance->CR1 = tempRegister;
 
     SPI_Cmd(instance, ENABLE);
@@ -370,5 +367,10 @@ void spiResetErrorCounter(SPI_TypeDef *instance)
     if (device != SPIINVALID) {
         spiHardwareMap[device].errorCount = 0;
     }
+}
+
+SPI_TypeDef * spiInstanceByDevice(SPIDevice device)
+{
+    return spiHardwareMap[device].dev;
 }
 #endif // USE_SPI

@@ -232,7 +232,7 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
 
 #ifdef USE_GYRO_SPI_MPU6000
 #ifdef MPU6000_CS_PIN
-    gyro->bus.spi.csnPin = gyro->bus.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(MPU6000_CS_PIN)) : gyro->bus.spi.csnPin;
+    gyro->bus.busdev.spi.csnPin = gyro->bus.busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(MPU6000_CS_PIN)) : gyro->bus.busdev.spi.csnPin;
 #endif
     sensor = mpu6000SpiDetect(&gyro->bus);
     if (sensor != MPU_NONE) {
@@ -246,7 +246,7 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
 
 #ifdef USE_GYRO_SPI_MPU6500
 #ifdef MPU6500_CS_PIN
-    gyro->bus.spi.csnPin = gyro->bus.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(MPU6500_CS_PIN)) : gyro->bus.spi.csnPin;
+    gyro->bus.busdev.spi.csnPin = gyro->bus.busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(MPU6500_CS_PIN)) : gyro->bus.busdev.spi.csnPin;
 #endif
     sensor = mpu6500SpiDetect(&gyro->bus);
     // some targets using MPU_9250_SPI, ICM_20608_SPI or ICM_20602_SPI state sensor is MPU_65xx_SPI
@@ -261,7 +261,7 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
 
 #ifdef  USE_GYRO_SPI_MPU9250
 #ifdef MPU9250_CS_PIN
-    gyro->bus.spi.csnPin = gyro->bus.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(MPU9250_CS_PIN)) : gyro->bus.spi.csnPin;
+    gyro->bus.busdev.spi.csnPin = gyro->bus.busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(MPU9250_CS_PIN)) : gyro->bus.busdev.spi.csnPin;
 #endif
     sensor = mpu9250SpiDetect(&gyro->bus);
     if (sensor != MPU_NONE) {
@@ -276,7 +276,7 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
 
 #ifdef USE_GYRO_SPI_ICM20608
 #ifdef ICM20608_CS_PIN
-    gyro->bus.spi.csnPin = gyro->bus.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(ICM20608_CS_PIN)) : gyro->bus.spi.csnPin;
+    gyro->bus.busdev.spi.csnPin = gyro->bus.busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(ICM20608_CS_PIN)) : gyro->bus.busdev.spi.csnPin;
 #endif
     sensor = icm20608SpiDetect(&gyro->bus);
     if (sensor != MPU_NONE) {
@@ -290,7 +290,7 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
 
 #ifdef USE_GYRO_SPI_ICM20689
 #ifdef ICM20689_CS_PIN
-    gyro->bus.spi.csnPin = gyro->bus.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(ICM20689_CS_PIN)) : gyro->bus.spi.csnPin;
+    gyro->bus.busdev.spi.csnPin = gyro->bus.busdev.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(ICM20689_CS_PIN)) : gyro->bus.busdev.spi.csnPin;
 #endif
     sensor = icm20689SpiDetect(&gyro->bus);
     if (sensor != MPU_NONE) {

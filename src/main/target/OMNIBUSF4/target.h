@@ -21,11 +21,17 @@
 #define TARGET_BOARD_IDENTIFIER "OBSD"
 #elif defined(OMNIBUSF4V3)
 #define TARGET_BOARD_IDENTIFIER "OB43"
+#elif defined(DYSF4PRO)
+#define TARGET_BOARD_IDENTIFIER "DYS4"
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
 
+#if defined(DYSF4PRO)
+#define USBD_PRODUCT_STRING "DysF4Pro"
+#else
 #define USBD_PRODUCT_STRING     "Omnibus F4"
+#endif
 
 #define LED0                    PB5
 
@@ -54,6 +60,16 @@
 
 #define ACC
 #define USE_ACC_SPI_MPU6000
+
+// Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
+#if defined (OMNIBUSF4PRO)
+  #define USE_ACC_SPI_MPU6500
+  #define USE_GYRO_SPI_MPU6500
+  #define MPU6500_CS_PIN          MPU6000_CS_PIN
+  #define MPU6500_SPI_INSTANCE    MPU6000_SPI_INSTANCE
+  #define GYRO_MPU6500_ALIGN      GYRO_MPU6000_ALIGN
+  #define ACC_MPU6500_ALIGN       ACC_MPU6000_ALIGN
+#endif
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define GYRO_MPU6000_ALIGN      CW270_DEG
@@ -143,8 +159,8 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI3
 #define MAX7456_SPI_CS_PIN      PA15
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+// #define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
+// #define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
@@ -155,11 +171,6 @@
   #define SDCARD_DETECT_PIN               PB7
   #define SDCARD_SPI_INSTANCE             SPI2
   #define SDCARD_SPI_CS_PIN               SPI2_NSS_PIN
-
-  // SPI2 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-  #define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-  // Divide to under 25MHz for normal operation:
-  #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 4 // 21MHz
 
   #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
   #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
@@ -176,7 +187,13 @@
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
-#define ADC_CHANNEL_3_PIN               PA0
+
+#ifdef DYSF4PRO
+    #define ADC_CHANNEL_3_PIN               PC3
+#else
+    #define ADC_CHANNEL_3_PIN               PA0
+#endif
+
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
@@ -190,9 +207,9 @@
 #define WS2811_DMA_STREAM               DMA1_Stream4
 #define WS2811_DMA_CHANNEL              DMA_Channel_6
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 #define DISABLE_RX_PWM_FEATURE
-#define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT)
+#define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
 
 #define SPEKTRUM_BIND
 #define BIND_PIN                PB11 // USART3 RX
