@@ -1457,6 +1457,9 @@ groups:
       - name: osd_heading_graph_pos
         field: item_pos[OSD_HEADING_GRAPH]
         max: OSD_POS_MAX_CLI
+      - name: osd_efficiency_pos
+        field: item_pos[OSD_EFFICIENCY]
+        max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
