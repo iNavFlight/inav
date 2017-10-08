@@ -82,7 +82,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+//#define LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PB8 // TIM16_CH1
 #define WS2811_TIMER                    TIM16
@@ -114,14 +114,12 @@
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         (BIT(13)|BIT(14)|BIT(15))
-// #define TARGET_IO_PORTF        (BIT(0)|BIT(1))
-// !!TODO - check the following line is correct
-#define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(3)|BIT(4))
+#define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
 
-#define USABLE_TIMER_CHANNEL_COUNT 10
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(15) | TIM_N(17))
+#define USABLE_TIMER_CHANNEL_COUNT 7
+#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(17))
 
 // sn dec06.16 added MAX_PWM_OUTPUT_PORTS: number of available PWM outputs
 // porting inav to PIKO BLX by using betaflight target files from before inav changes to timer.h/timer_def.h
 // review of target.c shows definitions for PWB1-PWM9. PWM9 is for PPM input
-#define MAX_PWM_OUTPUT_PORTS    9
+#define MAX_PWM_OUTPUT_PORTS    6
