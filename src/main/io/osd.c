@@ -1476,6 +1476,10 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_HDOP) {
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
+        if (elementIndex == OSD_EFFICIENCY) {
+            STATIC_ASSERT(OSD_EFFICIENCY == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_not_last_element);
+            elementIndex = OSD_ITEM_COUNT;
+        }
     }
 
     if (elementIndex == OSD_ITEM_COUNT) {
