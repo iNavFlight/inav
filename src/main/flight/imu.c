@@ -86,7 +86,7 @@ STATIC_FASTRAM fpVector3_t vCorrectedMagNorth;             // Magnetic North vec
 
 FASTRAM fpQuaternion_t orientation;
 FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
-STATIC_FASTRAM_UNIT_TESTED float rMat[3][3];
+FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 
