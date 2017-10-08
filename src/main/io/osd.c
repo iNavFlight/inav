@@ -1671,14 +1671,12 @@ static void osdShowStats(void)
         strcat(buff, "\x07");
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-        if (STATE(GPS_FIX)) {
-            int32_t totalDistance = getTotalTravelDistance();
-            if (totalDistance > 0) {
-                displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
-                tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
-                    SYM_MAH_KM_0, SYM_MAH_KM_1);
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
-            }
+        int32_t totalDistance = getTotalTravelDistance();
+        if (totalDistance > 0) {
+            displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
+            tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
+                SYM_MAH_KM_0, SYM_MAH_KM_1);
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
     }
 
