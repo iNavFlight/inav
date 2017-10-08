@@ -1418,17 +1418,15 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t value = 0;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
-            if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                if (gpsSol.groundSpeed > 0) {
-                    // 1/0.0036f = 277.77 = ~278
+            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)amperage / gpsSol.groundSpeed) / 0.0036f,
-                         1, efficiencyTimeDelta * 1e-6f);
+                        1, efficiencyTimeDelta * 1e-6f);
+
+                    efficiencyUpdated = currentTimeUs;
                 } else {
                     value = eFilterState.state;
                 }
-                efficiencyUpdated = currentTimeUs;
-            } else {
-                value = eFilterState.state;
             }
             if (value > 0 && value <= MAX_EFFICIENCY_VALUE) {
                 tfp_sprintf(buff, "%3d", value);
