@@ -260,7 +260,7 @@ Re-apply any new defaults as desired.
 |  ledstrip_visual_beeper  | OFF |  |
 |  osd_video_system     | 0     |  |
 |  osd_row_shiftdown    | 0     |  |
-|  osd_units            | 0     |  |
+|  osd_units            | METRIC| IMPERIAL, METRIC, UK |
 |  osd_rssi_alarm       | 20    |  |
 |  osd_cap_alarm        | 2200  |  |
 |  osd_time_alarm       | 10    |  |
