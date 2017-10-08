@@ -892,7 +892,13 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_HOME_DIST:
-        osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);
+        {
+            osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);
+            uint16_t dist_alarm = osdConfig()->dist_alarm;
+            if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+        }
         break;
 
     case OSD_HEADING:
@@ -918,7 +924,9 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int32_t alt = osdGetAltitude();
             osdFormatAltitudeSymbol(buff, alt);
-            if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm) {
+            uint16_t neg_alt_alarm = osdConfig()->neg_alt_alarm;
+            if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm ||
+                (neg_alt_alarm > 0 && alt < 0 && -CENTIMETERS_TO_METERS(alt) > neg_alt_alarm)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
@@ -1520,6 +1528,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->cap_alarm = 2200;
     osdConfig->time_alarm = 10; // in minutes
     osdConfig->alt_alarm = 100; // meters or feet depend on configuration
+    osdConfig->dist_alarm = 1000; // meters - lets end this madness and convert in the UI
+    osdConfig->neg_alt_alarm = 5; // meters
 
     osdConfig->video_system = 0;
 

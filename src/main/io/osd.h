@@ -90,6 +90,8 @@ typedef struct osdConfig_s {
     uint16_t cap_alarm;
     uint16_t time_alarm;
     uint16_t alt_alarm;
+    uint16_t dist_alarm;
+    uint16_t neg_alt_alarm;
 
     uint8_t video_system;
     uint8_t row_shiftdown;
