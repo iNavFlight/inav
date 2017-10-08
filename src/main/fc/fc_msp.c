@@ -2106,6 +2106,9 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 if (!sbufReadDataSafe(src, &val, sizeof(float))) {
                     return false;
                 }
+                if (val < (float)min || val > (float)max) {
+                    return false;
+                }
                 *((float*)ptr) = val;
             }
             break;
