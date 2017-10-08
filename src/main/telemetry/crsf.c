@@ -168,12 +168,10 @@ void crsfFrameBatterySensor(sbuf_t *dst)
     crsfSerialize8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
     crsfSerialize16(dst, vbat); // vbat is in units of 0.1V
     crsfSerialize16(dst, amperage / 10);
-    const uint32_t batteryCapacity = batteryConfig()->batteryCapacity;
     const uint8_t batteryRemainingPercentage = calculateBatteryPercentage();
-    crsfSerialize8(dst, (batteryCapacity >> 16));
-    crsfSerialize8(dst, (batteryCapacity >> 8));
-    crsfSerialize8(dst, (uint8_t)batteryCapacity);
-
+    crsfSerialize8(dst, (mAhDrawn >> 16));
+    crsfSerialize8(dst, (mAhDrawn >> 8));
+    crsfSerialize8(dst, (uint8_t)mAhDrawn);
     crsfSerialize8(dst, batteryRemainingPercentage);
 }
 
