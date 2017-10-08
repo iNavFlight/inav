@@ -40,6 +40,7 @@
 #include "cms/cms_menu_osd.h"
 
 #include "common/axis.h"
+#include "common/filter.h"
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
@@ -1410,13 +1411,26 @@ static bool osdDrawSingleElement(uint8_t item)
             // amperage is in centi amps, speed is in cms/s. We want
             // mah/km. Values over 999 are considered useless and
             // displayed as "---""
-            const int32_t maxEfficiencyValue = 999;
-            int32_t value = maxEfficiencyValue + 1;
-            if (gpsSol.groundSpeed > 0) {
-                // 1/0.0036f = 277.77 = ~278
-                value = (278 * amperage) / gpsSol.groundSpeed;
+            static pt1Filter_t eFilterState;
+            static timeUs_t efficiencyUpdated = 0;
+#define MAX_EFFICIENCY_VALUE 999
+#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
+            int32_t value = 0;
+            timeUs_t currentTimeUs = micros();
+            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+            if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                if (gpsSol.groundSpeed > 0) {
+                    // 1/0.0036f = 277.77 = ~278
+                    value = pt1FilterApply4(&eFilterState, ((float)amperage / gpsSol.groundSpeed) / 0.0036f,
+                         1, efficiencyTimeDelta * 1e-6f);
+                } else {
+                    value = eFilterState.state;
+                }
+                efficiencyUpdated = currentTimeUs;
+            } else {
+                value = eFilterState.state;
             }
-            if (value <= maxEfficiencyValue) {
+            if (value > 0 && value <= MAX_EFFICIENCY_VALUE) {
                 tfp_sprintf(buff, "%3d", value);
             } else {
                 buff[0] = buff[1] = buff[2] = '-';
