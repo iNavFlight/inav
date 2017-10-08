@@ -1413,7 +1413,8 @@ static bool osdDrawSingleElement(uint8_t item)
             const int32_t maxEfficiencyValue = 999;
             int32_t value = maxEfficiencyValue + 1;
             if (gpsSol.groundSpeed > 0) {
-                value = (amperage / gpsSol.groundSpeed) / 0.0036f;
+                // 1/0.0036f = 277.77 = ~278
+                value = (278 * amperage) / gpsSol.groundSpeed;
             }
             if (value <= maxEfficiencyValue) {
                 tfp_sprintf(buff, "%3d", value);
