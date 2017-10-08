@@ -53,10 +53,12 @@
 #include "drivers/display.h"
 #include "drivers/max7456_symbols.h"
 #include "drivers/time.h"
+#include "drivers/vtx_common.h"
 
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
+#include "io/vtx_string.h"
 
 #include "fc/fc_core.h"
 #include "fc/config.h"
@@ -1001,11 +1003,24 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
     }
 
-#ifdef VTX
+#if defined(VTX) || defined(VTX_COMMON)
     case OSD_VTX_CHANNEL:
+#if defined(VTX)
+        // FIXME: This doesn't actually work. It's for boards with
+        // builtin VTX.
         tfp_sprintf(buff, "CH:%2d", current_vtx_channel % CHANNELS_PER_BAND + 1);
+#else
+        {
+            uint8_t band = 0;
+            uint8_t channel = 0;
+            vtxCommonGetBandAndChannel(&band, &channel);
+            debug[0] = band;
+            debug[1] = channel;
+            tfp_sprintf(buff, "CH:%c%s", vtx58BandLetter[band], vtx58ChannelNames[channel]);
+        }
+#endif
         break;
-#endif // VTX
+#endif // VTX || VTX_COMMON
 
     case OSD_CROSSHAIRS:
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
