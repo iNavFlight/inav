@@ -82,8 +82,9 @@ void hcsr04_extiHandler(extiCallbackRec_t* cb)
 }
 #endif
 
-void hcsr04_init(void)
+void hcsr04_init(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
 }
 
 #define HCSR04_MinimumFiringIntervalMs 60
@@ -108,8 +109,9 @@ void hcsr04_start_reading(void)
 #endif
 }
 
-void hcsr04_update(void)
+void hcsr04_update(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
     const timeMs_t timeNowMs = millis();
 
     // the firing interval of the trigger signal should be greater than 60ms
@@ -142,8 +144,9 @@ void hcsr04_update(void)
 /**
  * Get the distance that was measured by the last pulse, in centimeters.
  */
-int32_t hcsr04_get_distance(void)
+int32_t hcsr04_get_distance(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
     return lastCalculatedDistance;
 }
 

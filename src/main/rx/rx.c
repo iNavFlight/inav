@@ -61,6 +61,7 @@
 #include "rx/rx_spi.h"
 #include "rx/crsf.h"
 #include "rx/eleres.h"
+#include "rx/uib_rx.h"
 
 
 //#define DEBUG_RX_SIGNAL_LOSS
@@ -265,6 +266,12 @@ void rxInit(void)
 #ifdef USE_RX_MSP
         case RX_TYPE_MSP:
             rxMspInit(rxConfig(), &rxRuntimeConfig);
+            break;
+#endif
+
+#ifdef USE_RX_UIB
+        case RX_TYPE_UIB:
+            rxUIBInit(rxConfig(), &rxRuntimeConfig);
             break;
 #endif
 

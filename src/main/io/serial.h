@@ -43,7 +43,8 @@ typedef enum {
     FUNCTION_TELEMETRY_IBUS      = (1 << 9), // 512
     FUNCTION_RCSPLIT             = (1 << 10), // 1024
     FUNCTION_VTX_SMARTAUDIO      = (1 << 11), // 2048
-    FUNCTION_VTX_TRAMP           = (1 << 12)  // 4096
+    FUNCTION_VTX_TRAMP           = (1 << 12), // 4096
+    FUNCTION_UAV_INTERCONNECT    = (1 << 13), // 8192
 } serialPortFunction_e;
 
 typedef enum {

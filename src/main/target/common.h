@@ -53,6 +53,11 @@
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
 
+#if (FLASH_SIZE > 256)
+#define USE_UAV_INTERCONNECT
+#define USE_RX_UIB
+#endif
+
 #if (FLASH_SIZE > 128)
 #define FIXED_WING_LANDING
 #define AUTOTUNE_FIXED_WING
@@ -104,7 +109,7 @@
 #define VTX_SMARTAUDIO
 #define VTX_TRAMP
 
-#else
+#else // FLASH_SIZE < 128
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
 #define SKIP_CLI_COMMAND_HELP

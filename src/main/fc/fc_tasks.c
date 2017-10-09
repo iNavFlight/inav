@@ -79,6 +79,8 @@
 
 #include "config/feature.h"
 
+#include "uav_interconnect/uav_interconnect.h"
+
 /* VBAT monitoring interval (in microseconds) - 1s*/
 #define VBATINTERVAL (6 * 3500)
 /* IBat monitoring interval (in microseconds) - 6 default looptimes */
@@ -369,6 +371,9 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
+#ifdef USE_UAV_INTERCONNECT
+    setTaskEnabled(TASK_UAV_INTERCONNECT, uavInterconnectBusIsInitialized());
+#endif
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -567,6 +572,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "OPFLOW",
         .taskFunc = taskUpdateOpticalFlow,
         .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB sensor will work at lower rate w/o accumulation
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_UAV_INTERCONNECT
+    [TASK_UAV_INTERCONNECT] = {
+        .taskName = "UIB",
+        .taskFunc = uavInterconnectBusTask,
+        .desiredPeriod = 1000000 / 500,          // 500 Hz
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
