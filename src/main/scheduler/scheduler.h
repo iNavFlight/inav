@@ -101,6 +101,9 @@ typedef enum {
 #ifdef CMS
     TASK_CMS,
 #endif
+#ifdef USE_OPTICAL_FLOW
+    TASK_OPFLOW,
+#endif
 #ifdef USE_RCSPLIT
     TASK_RCSPLIT,
 #endif

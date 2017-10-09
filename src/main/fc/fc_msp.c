@@ -94,6 +94,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/opflow.h"
 
 #include "telemetry/telemetry.h"
 
@@ -341,7 +342,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, getHwGPSStatus());
         sbufWriteU8(dst, getHwRangefinderStatus());
         sbufWriteU8(dst, getHwPitotmeterStatus());
-        sbufWriteU8(dst, HW_SENSOR_NONE);                   // Optical flow
+        sbufWriteU8(dst, getHwOpticalFlowStatus());
         break;
 
     case MSP_ACTIVEBOXES:
@@ -952,7 +953,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
 #endif
-        sbufWriteU8(dst, 0);    // optical flow hardware
+#ifdef USE_OPTICAL_FLOW
+        sbufWriteU8(dst, opticalFlowConfig()->opflow_hardware);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
 #ifdef NAV
@@ -1483,7 +1488,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #else
         sbufReadU8(src);        // rangefinder hardware
 #endif
+#ifdef USE_OPTICAL_FLOW
+        opticalFlowConfigMutable()->opflow_hardware = sbufReadU8(src);
+#else
         sbufReadU8(src);        // optical flow hardware
+#endif
         break;
 
 #ifdef NAV

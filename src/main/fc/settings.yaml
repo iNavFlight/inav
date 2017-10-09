@@ -12,6 +12,9 @@ tables:
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "FAKE"]
     enum: magSensor_e
+  - name: opflow_hardware
+    values: ["NONE", "FAKE"]
+    enum: opticalFlowSensor_e
   - name: baro_hardware
     values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "FAKE"]
     enum: baroSensor_e
@@ -200,6 +203,17 @@ groups:
     members:
       - name: rangefinder_hardware
         table: rangefinder_hardware
+
+  - name: PG_OPFLOW_CONFIG
+    type: opticalFlowConfig_t
+    headers: ["sensors/opflow.h"]
+    condition: USE_OPTICAL_FLOW
+    members:
+      - name: opflow_hardware
+        table: opflow_hardware
+      - name: opflow_scale
+        min: 0
+        max: 10000
 
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t

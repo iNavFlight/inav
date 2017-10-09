@@ -45,6 +45,7 @@
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
 #include "sensors/rangefinder.h"
+#include "sensors/opflow.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -653,10 +654,12 @@ void taskGyro(timeUs_t currentTimeUs) {
     // getTaskDeltaTime() returns delta time frozen at the moment of entering the scheduler. currentTime is frozen at the very same point.
     // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
     const timeDelta_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
+    timeUs_t gyroUpdateUs;
 
     if (gyroConfig()->gyroSync) {
         while (true) {
-            if (gyroSyncCheckUpdate() || ((currentDeltaTime + cmpTimeUs(micros(), currentTimeUs)) >= (getGyroUpdateRate() + GYRO_WATCHDOG_DELAY))) {
+            gyroUpdateUs = micros();
+            if (gyroSyncCheckUpdate() || ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (getGyroUpdateRate() + GYRO_WATCHDOG_DELAY))) {
                 break;
             }
         }
@@ -667,7 +670,13 @@ void taskGyro(timeUs_t currentTimeUs) {
 
 #ifdef ASYNC_GYRO_PROCESSING
     /* Update IMU for better accuracy */
-    imuUpdateGyroscope((timeUs_t)currentDeltaTime + (micros() - currentTimeUs));
+    imuUpdateGyroscope((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
+#endif
+
+#ifdef USE_OPTICAL_FLOW
+    if (sensors(SENSOR_OPFLOW)) {
+        opflowGyroUpdateCallback((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
+    }
 #endif
 }
 

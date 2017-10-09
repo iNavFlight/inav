@@ -670,6 +670,7 @@ HIGHEND_SRC = \
             drivers/rangefinder_hcsr04.c \
             drivers/rangefinder_hcsr04_i2c.c \
             drivers/rangefinder_srf10.c \
+            drivers/opflow_fake.c \
             drivers/rangefinder_vl53l0x.c \
             drivers/vtx_common.c \
             io/dashboard.c \
@@ -692,10 +693,11 @@ HIGHEND_SRC = \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \
+            sensors/opflow.c \
             telemetry/crsf.c \
             telemetry/frsky.c \
             telemetry/hott.c \
-	    telemetry/ibus_shared.c \
+            telemetry/ibus_shared.c \
             telemetry/ibus.c \
             telemetry/ltm.c \
             telemetry/mavlink.c \
