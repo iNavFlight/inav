@@ -19,6 +19,7 @@
 
 #include <platform.h>
 
+#include "common/time.h"
 #include "common/utils.h"
 
 #ifdef AFATFS_DEBUG
@@ -2544,6 +2545,7 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
     afatfsCreateFile_t *opState = &file->operation.state.createFile;
     fatDirectoryEntry_t *entry;
     afatfsOperationStatus_e status;
+    dateTime_t now;
 
     doMore:
 
@@ -2605,8 +2607,12 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
                 entry->attrib = file->attrib;
                 entry->creationDate = AFATFS_DEFAULT_FILE_DATE;
                 entry->creationTime = AFATFS_DEFAULT_FILE_TIME;
-                entry->lastWriteDate = AFATFS_DEFAULT_FILE_DATE;
-                entry->lastWriteTime = AFATFS_DEFAULT_FILE_TIME;
+                if (rtcGetDateTime(&now)) {
+                    entry->creationDate = FAT_MAKE_DATE(now.year, now.month, now.day);
+                    entry->creationTime = FAT_MAKE_TIME(now.hours, now.minutes, now.seconds);
+                }
+                entry->lastWriteDate = entry->creationDate;
+                entry->lastWriteTime = entry->creationTime;
 
 #ifdef AFATFS_DEBUG_VERBOSE
                 fprintf(stderr, "Adding directory entry for %.*s to sector %u\n", FAT_FILENAME_LENGTH, opState->filename, file->directoryEntryPos.sectorNumberPhysical);
