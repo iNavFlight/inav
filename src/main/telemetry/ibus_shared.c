@@ -69,7 +69,7 @@ typedef struct IBUS_SENSOR {
 static IBUS_SENSOR SENSOR_ADDRESS_TYPE_LOOKUP[] = {
     {.type = IBUS_MEAS_TYPE_INTERNAL_VOLTAGE, .size = 2, .value = IBUS_MEAS_VALUE_NONE },             // Address 0, sensor 1, not usable since it is reserved for internal voltage
     {.type = IBUS_MEAS_TYPE_EXTERNAL_VOLTAGE, .size = 2, .value = IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE }, // Address 1 ,sensor 2, VBAT
-    {.type = IBUS_MEAS_TYPE_TEMPERATURE,      .size = 2, .value = IBUS_MEAS_VALUE_TEMPERATURE },      // Address 2, sensor 3, Baro/Gyro Temp	
+    {.type = IBUS_MEAS_TYPE_TEMPERATURE,      .size = 2, .value = IBUS_MEAS_VALUE_TEMPERATURE },      // Address 2, sensor 3, Baro/Gyro Temp
     {.type = IBUS_MEAS_TYPE_RPM,              .size = 2, .value = IBUS_MEAS_VALUE_STATUS },           // Address 3, sensor 4, Status AS RPM
     {.type = IBUS_MEAS_TYPE_RPM,              .size = 2, .value = IBUS_MEAS_VALUE_ACC_Z },            // Address 4, sensor 5, MAG_COURSE in deg AS RPM
     {.type = IBUS_MEAS_TYPE_EXTERNAL_VOLTAGE, .size = 2, .value = IBUS_MEAS_VALUE_CURRENT },          // Address 5, sensor 6, Current in A AS ExtV
@@ -200,8 +200,8 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
 #endif
         return sendIbusMeasurement2(address, status);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_HEADING) { //HOME_DIR 0-360deg
-#if defined(GPS)	      
-        if (sensors(SENSOR_GPS)) return sendIbusMeasurement2(address, (uint16_t) GPS_directionToHome); else //int16_t         
+#if defined(GPS)
+        if (sensors(SENSOR_GPS)) return sendIbusMeasurement2(address, (uint16_t) GPS_directionToHome); else //int16_t
 #endif
         return sendIbusMeasurement2(address, 0);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_DIST) { //HOME_DIST in m
