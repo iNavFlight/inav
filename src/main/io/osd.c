@@ -250,24 +250,6 @@ static int digitCount(int32_t value)
 }
 
 /**
- * Converts altitude/distance based on the current unit system (cm or 1/100th of ft).
- * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt)
- */
-static int32_t osdConvertDistanceToUnit(int32_t dist)
-{
-    switch (osdConfig()->units) {
-    case OSD_UNIT_IMPERIAL:
-        return (dist * 328) / 100; // Convert to feet / 100
-    case OSD_UNIT_UK:
-        FALLTHROUGH;
-    case OSD_UNIT_METRIC:
-        return dist;               // Already in meter / 100
-    }
-    // Unreachable
-    return -1;
-}
-
-/**
  * Converts distance into a string based on the current unit system
  * prefixed by a a symbol to indicate the unit used.
  * @param dist Distance in centimeters
@@ -924,9 +906,11 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int32_t alt = osdGetAltitude();
             osdFormatAltitudeSymbol(buff, alt);
+            uint16_t alt_alarm = osdConfig()->alt_alarm;
             uint16_t neg_alt_alarm = osdConfig()->neg_alt_alarm;
-            if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm ||
+            if ((alt_alarm > 0 && CENTIMETERS_TO_METERS(alt) > alt_alarm) ||
                 (neg_alt_alarm > 0 && alt < 0 && -CENTIMETERS_TO_METERS(alt) > neg_alt_alarm)) {
+
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
@@ -1527,7 +1511,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->rssi_alarm = 20;
     osdConfig->cap_alarm = 2200;
     osdConfig->time_alarm = 10; // in minutes
-    osdConfig->alt_alarm = 100; // meters or feet depend on configuration
+    osdConfig->alt_alarm = 100; // meters
     osdConfig->dist_alarm = 1000; // meters - lets end this madness and convert in the UI
     osdConfig->neg_alt_alarm = 5; // meters
 
