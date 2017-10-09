@@ -82,7 +82,6 @@ FEATURES        =
 ALT_TARGETS     = $(sort $(filter-out target, $(basename $(notdir $(wildcard $(ROOT)/src/main/target/*/*.mk)))))
 OPBL_TARGETS    = $(filter %_OPBL, $(ALT_TARGETS))
 
-#VALID_TARGETS  = $(F1_TARGETS) $(F3_TARGETS) $(F4_TARGETS)
 VALID_TARGETS   = $(dir $(wildcard $(ROOT)/src/main/target/*/target.mk))
 VALID_TARGETS  := $(subst /,, $(subst ./src/main/target/,, $(VALID_TARGETS)))
 VALID_TARGETS  := $(VALID_TARGETS) $(ALT_TARGETS)
@@ -138,6 +137,12 @@ else
 $(error FLASH_SIZE not configured for target $(TARGET))
 endif
 endif
+
+GROUP_1_TARGETS := AIRHEROF3 AIRHEROF3_QUAD COLIBRI_RACE LUX_RACE SPARKY REVO SPARKY2 COLIBRI FALCORE PIKOBLX
+GROUP_2_TARGETS := SPRACINGF3 SPRACINGF3EVO SPRACINGF3EVO_1SS SPRACINGF3MINI SPRACINGF3NEO SPRACINGF4EVO
+GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO OMNIBUSF4V3 SPARKY2 MATEKF405 OMNIBUSF7 DYSF4PRO MATEKF405OSD
+GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER PIXRACER_ICM20608
+GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS), $(VALID_TARGETS))
 
 # note that there is no hardfault debugging startup file assembly handler for other platforms
 ifeq ($(DEBUG_HARDFAULTS),F3)
@@ -987,6 +992,21 @@ $(OBJECT_DIR)/$(TARGET)/%.o: %.S
 ## all               : Build all valid targets
 all: $(VALID_TARGETS)
 
+## targets-group-1   : build some targets
+targets-group-1: $(GROUP_1_TARGETS)
+
+## targets-group-2   : build some targets
+targets-group-2: $(GROUP_2_TARGETS)
+
+## targets-group-3   : build some targets
+targets-group-3: $(GROUP_3_TARGETS)
+
+## targets-group-3   : build some targets
+targets-group-4: $(GROUP_4_TARGETS)
+
+## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
+targets-group-rest: $(GROUP_OTHER_TARGETS)
+
 $(VALID_TARGETS):
 	$(V0) echo "" && \
 	echo "Building $@" && \
@@ -1066,9 +1086,14 @@ help: Makefile
 
 ## targets           : print a list of all valid target platforms (for consumption by scripts)
 targets:
-	$(V0) @echo "Valid targets: $(VALID_TARGETS)"
-	$(V0) @echo "Target:        $(TARGET)"
-	$(V0) @echo "Base target:   $(BASE_TARGET)"
+	$(V0) @echo "Valid targets:      $(VALID_TARGETS)"
+	$(V0) @echo "Target:             $(TARGET)"
+	$(V0) @echo "Base target:        $(BASE_TARGET)"
+	$(V0) @echo "targets-group-1:    $(GROUP_1_TARGETS)"
+	$(V0) @echo "targets-group-2:    $(GROUP_2_TARGETS)"
+	$(V0) @echo "targets-group-3:    $(GROUP_3_TARGETS)"
+	$(V0) @echo "targets-group-4:    $(GROUP_4_TARGETS)"
+	$(V0) @echo "targets-group-rest: $(GROUP_OTHER_TARGETS)"
 
 ## test              : run the cleanflight test suite
 test:
