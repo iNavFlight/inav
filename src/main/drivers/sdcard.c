@@ -22,15 +22,18 @@
 
 #ifdef USE_SDCARD
 
-#include "nvic.h"
-#include "io.h"
+#include "common/utils.h"
+
+#include "drivers/nvic.h"
+#include "drivers/io.h"
 #include "dma.h"
 
-#include "bus_spi.h"
-#include "time.h"
+#include "drivers/bus_spi.h"
+#include "drivers/time.h"
 
 #include "sdcard.h"
 #include "sdcard_standard.h"
+#include "blackbox/blackbox.h"
 
 #include "build/debug.h"
 
@@ -54,8 +57,9 @@
  */
 #define SDCARD_NON_DMA_CHUNK_SIZE 256
 
-#define STATIC_ASSERT(condition, name ) \
-    typedef char assert_failed_ ## name [(condition) ? 1 : -1 ]
+#ifndef SDCARD_SPI_CLOCK
+#define SDCARD_SPI_CLOCK    SPI_CLOCK_STANDARD
+#endif
 
 typedef enum {
     // In these states we run at the initialization 400kHz clockspeed:
@@ -156,9 +160,9 @@ bool sdcard_isInserted(void)
 
     result = IORead(sdCardDetectPin) != 0;
 
-#ifdef SDCARD_DETECT_INVERTED
-    result = !result;
-#endif
+    if (blackboxConfig()->invertedCardDetection) {
+        result = !result;
+    }
 
 #endif
 
@@ -204,7 +208,7 @@ static void sdcard_reset(void)
     }
 
     if (sdcard.state >= SDCARD_STATE_READY) {
-        spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER);
+        spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
     }
 
     sdcard.failureCount++;
@@ -567,7 +571,7 @@ void sdcard_init(bool useDMA)
 #endif // SDCARD_SPI_CS_PIN
 
     // Max frequency is initially 400kHz
-    spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER);
+    spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
 
     // SDCard wants 1ms minimum delay after power is applied to it
     delay(1000);
@@ -606,7 +610,7 @@ static bool sdcard_setBlockLength(uint32_t blockLen)
 /*
  * Returns true if the card is ready to accept read/write commands.
  */
-static bool sdcard_isReady()
+static bool sdcard_isReady(void)
 {
     return sdcard.state == SDCARD_STATE_READY || sdcard.state == SDCARD_STATE_WRITING_MULTIPLE_BLOCKS;
 }
@@ -621,7 +625,7 @@ static bool sdcard_isReady()
  *                                    the SDCARD_READY state.
  *
  */
-static sdcardOperationStatus_e sdcard_endWriteBlocks()
+static sdcardOperationStatus_e sdcard_endWriteBlocks(void)
 {
     sdcard.multiWriteBlocksRemain = 0;
 
@@ -727,7 +731,7 @@ bool sdcard_poll(void)
                 }
 
                 // Now we're done with init and we can switch to the full speed clock (<25MHz)
-                spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER);
+                spiSetSpeed(SDCARD_SPI_INSTANCE, SDCARD_SPI_CLOCK);
 
                 sdcard.multiWriteBlocksRemain = 0;
 
@@ -893,6 +897,7 @@ bool sdcard_poll(void)
                         break; // Timeout not reached yet so keep waiting
                     }
                     // Timeout has expired, so fall through to convert to a fatal error
+                    FALLTHROUGH;
 
                 case SDCARD_RECEIVE_ERROR:
                     sdcard_deselect();

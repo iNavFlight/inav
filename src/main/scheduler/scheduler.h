@@ -77,8 +77,8 @@ typedef enum {
 #ifdef PITOT
     TASK_PITOT,
 #endif
-#ifdef SONAR
-    TASK_SONAR,
+#ifdef USE_RANGEFINDER
+    TASK_RANGEFINDER,
 #endif
 #ifdef USE_DASHBOARD
     TASK_DASHBOARD,
@@ -100,6 +100,12 @@ typedef enum {
 #endif
 #ifdef CMS
     TASK_CMS,
+#endif
+#ifdef USE_RCSPLIT
+    TASK_RCSPLIT,
+#endif
+#ifdef VTX_CONTROL
+    TASK_VTXCTRL,
 #endif
 
     /* Count of real tasks */
@@ -146,5 +152,9 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId);
 void schedulerInit(void);
 void scheduler(void);
 void taskSystem(timeUs_t currentTimeUs);
+
+#define TASK_PERIOD_HZ(hz) (1000000 / (hz))
+#define TASK_PERIOD_MS(ms) ((ms) * 1000)
+#define TASK_PERIOD_US(us) (us)
 
 #define isSystemOverloaded() (averageSystemLoadPercent >= 100)

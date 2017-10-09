@@ -54,6 +54,7 @@
 
 #define MAG
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 
 #ifdef QUANTON
 #define ACC_MPU6000_ALIGN       CW90_DEG
@@ -78,7 +79,7 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9
 
@@ -124,15 +125,16 @@
 #define I2C3_SCL                PA8
 #define I2C3_SDA                PC9
 
-#define SONAR
-#define SONAR_TRIGGER_PIN       PB8
-#define SONAR_ECHO_PIN          PB9
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04
+#define RANGEFINDER_HCSR04_TRIGGER_PIN       PB8
+#define RANGEFINDER_HCSR04_ECHO_PIN          PB9
 
 #define TARGET_CONFIG
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DEFAULT_FEATURES        FEATURE_BLACKBOX
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -146,3 +148,5 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 17
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(10) | TIM_N(11))
+
+#undef PITOT

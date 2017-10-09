@@ -17,8 +17,6 @@
 
 #pragma once
 
-extern int16_t telemTemperature1;
-
 typedef enum disarmReason_e {
     DISARM_NONE         = 0,
     DISARM_TIMEOUT      = 1,
@@ -27,10 +25,11 @@ typedef enum disarmReason_e {
     DISARM_SWITCH       = 4,
     DISARM_KILLSWITCH   = 5,
     DISARM_FAILSAFE     = 6,
-    DISARM_NAVIGATION   = 7
+    DISARM_NAVIGATION   = 7,
+    DISARM_REASON_COUNT
 } disarmReason_t;
 
-void handleInflightCalibrationStickPosition();
+void handleInflightCalibrationStickPosition(void);
 
 void mwDisarm(disarmReason_t disarmReason);
 void mwArm(void);

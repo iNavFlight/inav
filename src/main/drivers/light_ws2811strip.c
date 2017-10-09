@@ -37,6 +37,7 @@
 #include "common/color.h"
 #include "common/colorconversion.h"
 #include "dma.h"
+#include "drivers/io.h"
 #include "light_ws2811strip.h"
 
 #if defined(STM32F4) || defined(STM32F7)
@@ -45,6 +46,9 @@ uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 uint8_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
 #endif
 volatile uint8_t ws2811LedDataTransferInProgress = 0;
+
+uint16_t BIT_COMPARE_1 = 0;
+uint16_t BIT_COMPARE_0 = 0;
 
 static hsvColor_t ledColorBuffer[WS2811_LED_STRIP_LENGTH];
 
@@ -86,7 +90,7 @@ void setStripColors(const hsvColor_t *colors)
 
 void ws2811LedStripInit(void)
 {
-    memset(&ledStripDMABuffer, 0, WS2811_DMA_BUFFER_SIZE);
+    memset(&ledStripDMABuffer, 0, sizeof(ledStripDMABuffer));
     ws2811LedStripHardwareInit();
     ws2811UpdateStrip();
 }

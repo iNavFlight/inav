@@ -25,9 +25,9 @@
 #include "build/build_config.h"
 
 
-#include "io.h"
+#include "drivers/io.h"
 #include "io_impl.h"
-#include "bus_spi.h"
+#include "drivers/bus_spi.h"
 #include "bus_spi_soft.h"
 
 
@@ -70,7 +70,7 @@ void softSpiInit(const softSPIDevice_t *dev)
 
 uint8_t softSpiTransferByte(const softSPIDevice_t *dev, uint8_t byte)
 {
-    for(int ii = 0; ii < 8; ++ii) {
+    for (int ii = 0; ii < 8; ++ii) {
         if (byte & 0x80) {
             IOHi(IOGetByTag(dev->mosiTag));
         } else {
@@ -84,5 +84,10 @@ uint8_t softSpiTransferByte(const softSPIDevice_t *dev, uint8_t byte)
         IOLo(IOGetByTag(dev->sckTag));
     }
     return byte;
+}
+
+SPI_TypeDef * spiInstanceByDevice(SPIDevice device)
+{
+    return NULL;
 }
 #endif

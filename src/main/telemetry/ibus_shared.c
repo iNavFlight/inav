@@ -94,7 +94,7 @@ static uint8_t transmitIbusPacket(uint8_t ibusPacket[static IBUS_MIN_LEN], size_
     for (size_t i = 0; i < packetLength; i++) {
         serialWrite(ibusSerialPort, ibusPacket[i]);
     }
-	return packetLength;
+    return packetLength;
 }
 
 static uint8_t sendIbusCommand(ibusAddress_t address) {
@@ -140,8 +140,15 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
     }
 #endif
     if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_TEMPERATURE) { //BARO_TEMP\GYRO_TEMP
-        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((baro.baroTemperature + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t 
-        else return sendIbusMeasurement2(address, (uint16_t) (telemTemperature1 + IBUS_TEMPERATURE_OFFSET)); //int16_t
+        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((baro.baroTemperature + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t
+        else {
+          /*
+           * There is no temperature data
+           * assuming (baro.baroTemperature + 50) / 10
+           * 0 degrees (no sensor) equals 50 / 10 = 5
+           */
+          return sendIbusMeasurement2(address, (uint16_t) (5 + IBUS_TEMPERATURE_OFFSET)); //int16_t
+        }
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_RPM) {
         return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT
@@ -162,21 +169,21 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         return sendIbusMeasurement2(address, (uint16_t) (attitude.values.roll * 10)); //in ddeg -> cdeg, 1ddeg = 10cdeg
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_VSPEED) { //Speed cm/s
 #ifdef PITOT
-        if (sensors(SENSOR_PITOT)) return sendIbusMeasurement2(address, (uint16_t) (pitot.airSpeed)); //int32_t 
+        if (sensors(SENSOR_PITOT)) return sendIbusMeasurement2(address, (uint16_t) (pitot.airSpeed)); //int32_t
         else 
-#endif	    
-        return sendIbusMeasurement2(address, 0);	    
+#endif
+        return sendIbusMeasurement2(address, 0);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_ARMED) { //motorArmed
         if (ARMING_FLAG(ARMED)) return sendIbusMeasurement2(address, 0);
         else return sendIbusMeasurement2(address, 1);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_MODE) {
-	uint16_t flightMode = flightModeToIBusTelemetryMode2[getFlightModeForTelemetry()];
+        uint16_t flightMode = flightModeToIBusTelemetryMode2[getFlightModeForTelemetry()];
         return sendIbusMeasurement2(address, flightMode);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_PRES) { //PRESSURE in dPa -> 9876 is 987.6 hPa
         if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (int16_t) (baro.baroPressure / 10)); //int32_t 
         else return sendIbusMeasurement2(address, 0);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_ALT) { //BARO_ALT in cm => m
-        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) baro.BaroAlt); //int32_t 
+        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) baro.BaroAlt); //int32_t
         else return sendIbusMeasurement2(address, 0);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_ALT4) { //BARO_ALT //In cm => m
         if (sensors(SENSOR_BARO)) return sendIbusMeasurement4(address, (int32_t) baro.BaroAlt); //int32_t 
@@ -277,11 +284,11 @@ uint8_t respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]) {
             return dispatchMeasurementRequest(returnAddress);
         }
     }
-	return 0;
+    return 0;
 }
 
 void initSharedIbusTelemetry(serialPort_t *port) {
-	ibusSerialPort = port;
+    ibusSerialPort = port;
 }
 
 void changeTypeIbusTelemetry(uint8_t id, uint8_t type, uint8_t value) {

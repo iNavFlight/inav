@@ -103,7 +103,8 @@ typedef struct pidProfile_s {
 
     // Airplane-specific parameters
     uint16_t    fixedWingItermThrowLimit;
-    float       fixedWingReferenceAirspeed;                 // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
+    float       fixedWingReferenceAirspeed;     // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
+    float       fixedWingCoordinatedYawGain;    // This is the gain of the yaw rate required to keep the yaw rate consistent with the turn rate for a coordinated turn.
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
@@ -111,7 +112,7 @@ typedef struct pidAutotuneConfig_s {
     uint16_t    fw_undershoot_time;         // Time [ms] to detect sustained undershoot
     uint8_t     fw_max_rate_threshold;      // Threshold [%] of max rate to consider autotune detection
     uint8_t     fw_ff_to_p_gain;            // FF to P gain (strength relationship) [%]
-    uint16_t    fw_ff_to_i_time_constant;   // FF to I time (defines time for I to reach the same level of response as FF) [ms] 
+    uint16_t    fw_ff_to_i_time_constant;   // FF to I time (defines time for I to reach the same level of response as FF) [ms]
 } pidAutotuneConfig_t;
 
 PG_DECLARE_PROFILE(pidProfile_t, pidProfile);
@@ -150,7 +151,7 @@ enum {
 
 void updateHeadingHoldTarget(int16_t heading);
 void resetHeadingHoldTarget(int16_t heading);
-int16_t getHeadingHoldTarget();
+int16_t getHeadingHoldTarget(void);
 
 void autotuneUpdateState(void);
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput);

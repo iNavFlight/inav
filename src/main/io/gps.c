@@ -35,7 +35,7 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/compass.h"
+#include "drivers/compass/compass.h"
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
@@ -112,6 +112,21 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
 #endif
+
+    /* UBLOX7PLUS binary */
+#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+    { GPS_TYPE_SERIAL, MODE_RXTX, false,  NULL, &gpsHandleUBLOX },
+#else
+    { GPS_TYPE_NA, 0, false,  NULL, NULL },
+#endif
+
+    /* MTK GPS */
+#ifdef GPS_PROTO_MTK
+    { GPS_TYPE_SERIAL, MODE_RXTX, false, NULL, &gpsHandleMTK },
+#else
+    { GPS_TYPE_NA, 0, false,  NULL, NULL },
+#endif
+
 };
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 0);
@@ -129,6 +144,13 @@ void gpsSetState(gpsState_e state)
 {
     gpsState.state = state;
     gpsState.lastStateSwitchMs = millis();
+}
+
+static void gpsUpdateTime(void)
+{
+    if (!rtcHasTime() && gpsSol.flags.validTime) {
+        rtcSetDateTime(&gpsSol.time);
+    }
 }
 
 static void gpsHandleProtocol(void)
@@ -159,6 +181,9 @@ static void gpsHandleProtocol(void)
         sensorsSet(SENSOR_GPS);
         onNewGPSData();
 
+        // Update time
+        gpsUpdateTime();
+
         // Update timeout
         gpsState.lastLastMessageMs = gpsState.lastMessageMs;
         gpsState.lastMessageMs = millis();
@@ -179,6 +204,7 @@ static void gpsResetSolution(void)
     gpsSol.flags.validVelD = 0;
     gpsSol.flags.validMag = 0;
     gpsSol.flags.validEPE = 0;
+    gpsSol.flags.validTime = 0;
 }
 
 void gpsPreInit(void)
@@ -255,11 +281,19 @@ static void gpsFakeGPSUpdate(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
+        gpsSol.flags.validTime = 1;
         gpsSol.eph = 100;
         gpsSol.epv = 100;
+        gpsSol.time.year = 1983;
+        gpsSol.time.month = 1;
+        gpsSol.time.day = 1;
+        gpsSol.time.hours = 3;
+        gpsSol.time.minutes = 15;
+        gpsSol.time.seconds = 42;
 
         ENABLE_STATE(GPS_FIX);
         sensorsSet(SENSOR_GPS);
+        gpsUpdateTime();
         onNewGPSData();
 
         gpsState.lastLastMessageMs = gpsState.lastMessageMs;
@@ -415,14 +449,14 @@ void gpsEnablePassthrough(serialPort_t *gpsPassthroughPort)
     waitForSerialPortToFinishTransmitting(gpsState.gpsPort);
     waitForSerialPortToFinishTransmitting(gpsPassthroughPort);
 
-    if(!(gpsState.gpsPort->mode & MODE_TX))
+    if (!(gpsState.gpsPort->mode & MODE_TX))
     serialSetMode(gpsState.gpsPort, gpsState.gpsPort->mode | MODE_TX);
 
     LED0_OFF;
     LED1_OFF;
 
     char c;
-    while(1) {
+    while (1) {
         if (serialRxBytesWaiting(gpsState.gpsPort)) {
             LED0_ON;
             c = serialRead(gpsState.gpsPort);

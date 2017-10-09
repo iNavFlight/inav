@@ -3,13 +3,14 @@
 #include <string.h>
 
 #include "platform.h"
-#include "build/assert.h"
-
-#include "nvic.h"
-#include "io_impl.h"
-#include "exti.h"
 
 #ifdef USE_EXTI
+
+#include "build/assert.h"
+
+#include "drivers/exti.h"
+#include "drivers/io_impl.h"
+#include "drivers/nvic.h"
 
 typedef struct {
     extiCallbackRec_t* handler;
@@ -73,7 +74,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, ioConfig_t conf
     (void)config;
     int chIdx;
     chIdx = IO_GPIOPinIdx(io);
-    if(chIdx < 0)
+    if (chIdx < 0)
         return;
     extiChannelRec_t *rec = &extiChannelRecs[chIdx];
     int group = extiGroups[chIdx];
@@ -91,7 +92,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, ioConfig_t conf
 
     //EXTI_ClearITPendingBit(extiLine);
 
-    if(extiGroupPriority[group] > irqPriority) {
+    if (extiGroupPriority[group] > irqPriority) {
         extiGroupPriority[group] = irqPriority;
         HAL_NVIC_SetPriority(extiGroupIRQn[group], NVIC_PRIORITY_BASE(irqPriority), NVIC_PRIORITY_SUB(irqPriority));
         HAL_NVIC_EnableIRQ(extiGroupIRQn[group]);
@@ -103,7 +104,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_Typ
 {
     int chIdx;
     chIdx = IO_GPIOPinIdx(io);
-    if(chIdx < 0)
+    if (chIdx < 0)
         return;
 
     // we have only 16 extiChannelRecs
@@ -133,7 +134,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_Typ
     EXTIInit.EXTI_LineCmd = ENABLE;
     EXTI_Init(&EXTIInit);
 
-    if(extiGroupPriority[group] > irqPriority) {
+    if (extiGroupPriority[group] > irqPriority) {
         extiGroupPriority[group] = irqPriority;
 
         NVIC_InitTypeDef NVIC_InitStructure;
@@ -153,7 +154,7 @@ void EXTIRelease(IO_t io)
 
     int chIdx;
     chIdx = IO_GPIOPinIdx(io);
-    if(chIdx < 0)
+    if (chIdx < 0)
         return;
 
     // we have only 16 extiChannelRecs
@@ -167,18 +168,18 @@ void EXTIEnable(IO_t io, bool enable)
 {
 #if defined(STM32F1) || defined(STM32F4) || defined(STM32F7)
     uint32_t extiLine = IO_EXTI_Line(io);
-    if(!extiLine)
+    if (!extiLine)
         return;
-    if(enable)
+    if (enable)
         EXTI->IMR |= extiLine;
     else
         EXTI->IMR &= ~extiLine;
 #elif defined(STM32F303xC)
     int extiLine = IO_EXTI_Line(io);
-    if(extiLine < 0)
+    if (extiLine < 0)
         return;
     // assume extiLine < 32 (valid for all EXTI pins)
-    if(enable)
+    if (enable)
         EXTI->IMR |= 1 << extiLine;
     else
         EXTI->IMR &= ~(1 << extiLine);
@@ -191,7 +192,7 @@ void EXTI_IRQHandler(void)
 {
     uint32_t exti_active = EXTI->IMR & EXTI->PR;
 
-    while(exti_active) {
+    while (exti_active) {
         unsigned idx = 31 - __builtin_clz(exti_active);
         uint32_t mask = 1 << idx;
         extiChannelRecs[idx].handler->fn(extiChannelRecs[idx].handler);
@@ -222,4 +223,4 @@ _EXTI_IRQ_HANDLER(EXTI4_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI9_5_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI15_10_IRQHandler);
 
-#endif
+#endif // USE_EXTI

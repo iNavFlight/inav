@@ -17,24 +17,43 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
 #include "build/build_config.h"
 #include "build/debug.h"
 
-#include "time.h"
+#include "drivers/time.h"
 
-#include "adc.h"
-#include "adc_impl.h"
+#include "drivers/io.h"
+#include "drivers/adc.h"
+#include "drivers/adc_impl.h"
 
 #include "common/utils.h"
 
-//#define DEBUG_ADC_CHANNELS
+#ifndef ADC_INSTANCE
+#define ADC_INSTANCE                ADC1
+#endif
+
+#ifndef ADC_CHANNEL_1_INSTANCE
+#define ADC_CHANNEL_1_INSTANCE  ADC_INSTANCE
+#endif
+#ifndef ADC_CHANNEL_2_INSTANCE
+#define ADC_CHANNEL_2_INSTANCE  ADC_INSTANCE
+#endif
+#ifndef ADC_CHANNEL_3_INSTANCE
+#define ADC_CHANNEL_3_INSTANCE  ADC_INSTANCE
+#endif
+#ifndef ADC_CHANNEL_4_INSTANCE
+#define ADC_CHANNEL_4_INSTANCE  ADC_INSTANCE
+#endif
 
 #ifdef USE_ADC
-adc_config_t adcConfig[ADC_CHANNEL_COUNT];
-volatile uint16_t adcValues[ADC_CHANNEL_COUNT];
+
+static int adcFunctionMap[ADC_FUNCTION_COUNT];
+adc_config_t adcConfig[ADC_CHN_COUNT];  // index 0 is dummy for ADC_CHN_NONE
+volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT];
 
 uint8_t adcChannelByTag(ioTag_t ioTag)
 {
@@ -45,32 +64,119 @@ uint8_t adcChannelByTag(ioTag_t ioTag)
     return 0;
 }
 
-uint16_t adcGetChannel(uint8_t channel)
+int adcGetFunctionChannelAllocation(uint8_t function)
 {
-#ifdef DEBUG_ADC_CHANNELS
-    if (adcConfig[0].enabled) {
-        debug[0] = adcValues[adcConfig[0].dmaIndex];
+    return adcFunctionMap[function];
+}
+
+bool adcIsFunctionAssigned(uint8_t function)
+{
+    // Map function to ADC channel
+    return (adcFunctionMap[function] != ADC_CHN_NONE);
+}
+
+uint16_t adcGetChannel(uint8_t function)
+{
+    int channel = adcFunctionMap[function];
+    if (channel == ADC_CHN_NONE)
+        return 0;
+
+    if (adcConfig[channel].adcDevice != ADCINVALID && adcConfig[channel].enabled) {
+        return adcValues[adcConfig[channel].adcDevice][adcConfig[channel].dmaIndex];
+    } else {
+        return 0;
     }
-    if (adcConfig[1].enabled) {
-        debug[1] = adcValues[adcConfig[1].dmaIndex];
+}
+
+static bool isChannelInUse(int channel)
+{
+    for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
+        if (adcFunctionMap[i] == channel)
+            return true;
     }
-    if (adcConfig[2].enabled) {
-        debug[2] = adcValues[adcConfig[2].dmaIndex];
+
+    return false;
+}
+
+#if !defined(ADC_CHANNEL_1_PIN) || !defined(ADC_CHANNEL_2_PIN) || !defined(ADC_CHANNEL_3_PIN) || !defined(ADC_CHANNEL_4_PIN)
+static void disableChannelMapping(int channel)
+{
+    for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
+        if (adcFunctionMap[i] == channel) {
+            adcFunctionMap[i] = ADC_CHN_NONE;
+        }
     }
-    if (adcConfig[3].enabled) {
-        debug[3] = adcValues[adcConfig[3].dmaIndex];
-    }
-    if (adcConfig[4].enabled) {
-        debug[4] = adcValues[adcConfig[4].dmaIndex];
-    }
+}
 #endif
-    return adcValues[adcConfig[channel].dmaIndex];
+
+void adcInit(drv_adc_config_t *init)
+{
+    memset(&adcConfig, 0, sizeof(adcConfig));
+
+    // Remember ADC function to ADC channel mapping
+    for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
+        if (init->adcFunctionChannel[i] >= ADC_CHN_1 && init->adcFunctionChannel[i] <= ADC_CHN_MAX) {
+            adcFunctionMap[i] = init->adcFunctionChannel[i];
+        }
+        else {
+            adcFunctionMap[i] = ADC_CHN_NONE;
+        }
+    }
+
+#ifdef ADC_CHANNEL_1_PIN
+    if (isChannelInUse(ADC_CHN_1)) {
+        adcConfig[ADC_CHN_1].adcDevice = adcDeviceByInstance(ADC_CHANNEL_1_INSTANCE);
+        if (adcConfig[ADC_CHN_1].adcDevice != ADCINVALID) {
+            adcConfig[ADC_CHN_1].tag = IO_TAG(ADC_CHANNEL_1_PIN);
+        }
+    }
+#else
+    disableChannelMapping(ADC_CHN_1);
+#endif
+
+#ifdef ADC_CHANNEL_2_PIN
+    if (isChannelInUse(ADC_CHN_2)) {
+        adcConfig[ADC_CHN_2].adcDevice = adcDeviceByInstance(ADC_CHANNEL_2_INSTANCE);
+        if (adcConfig[ADC_CHN_2].adcDevice != ADCINVALID) {
+            adcConfig[ADC_CHN_2].tag = IO_TAG(ADC_CHANNEL_2_PIN);
+        }
+    }
+#else
+    disableChannelMapping(ADC_CHN_2);
+#endif
+
+#ifdef ADC_CHANNEL_3_PIN
+    if (isChannelInUse(ADC_CHN_3)) {
+        adcConfig[ADC_CHN_3].adcDevice = adcDeviceByInstance(ADC_CHANNEL_3_INSTANCE);
+        if (adcConfig[ADC_CHN_3].adcDevice != ADCINVALID) {
+            adcConfig[ADC_CHN_3].tag = IO_TAG(ADC_CHANNEL_3_PIN);
+        }
+    }
+#else
+    disableChannelMapping(ADC_CHN_3);
+#endif
+
+#ifdef ADC_CHANNEL_4_PIN
+    if (isChannelInUse(ADC_CHN_4)) {
+        adcConfig[ADC_CHN_4].adcDevice = adcDeviceByInstance(ADC_CHANNEL_4_INSTANCE);
+        if (adcConfig[ADC_CHN_4].adcDevice != ADCINVALID) {
+            adcConfig[ADC_CHN_4].tag = IO_TAG(ADC_CHANNEL_4_PIN);
+        }
+    }
+#else
+    disableChannelMapping(ADC_CHN_4);
+#endif
+
+
+    adcHardwareInit(init);
 }
 
 #else
+
 uint16_t adcGetChannel(uint8_t channel)
 {
     UNUSED(channel);
     return 0;
 }
+
 #endif

@@ -49,6 +49,7 @@
 
 #define MAG
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define MAG_I2C_INSTANCE        I2CDEV_1
 
@@ -61,8 +62,6 @@
 #define SDCARD_DETECT_PIN                   PC13
 #define SDCARD_SPI_INSTANCE                 SPI3
 #define SDCARD_SPI_CS_PIN                   PA15
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
 
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
@@ -76,17 +75,21 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI1
 #define MAX7456_SPI_CS_PIN      PC4
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
+#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
 
 #define OSD_CH_SWITCH           PC5
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
-#define VBAT_ADC_PIN            PC3
-#define CURRENT_METER_ADC_PIN   PC2
-#define RSSI_ADC_PIN            PC0
+#define ADC_CHANNEL_1_PIN               PC3
+#define ADC_CHANNEL_2_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PC0
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
+#define USB_IO
 #define USE_VCP
 
 #define USE_UART1
@@ -135,7 +138,7 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 #define RX_CHANNELS_TAER
 #define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD)
 

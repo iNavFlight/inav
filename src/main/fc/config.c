@@ -40,6 +40,8 @@
 #include "drivers/rx_spi.h"
 #include "drivers/pwm_output.h"
 #include "drivers/serial.h"
+#include "drivers/timer.h"
+#include "drivers/bus_i2c.h"
 
 #include "sensors/sensors.h"
 #include "sensors/gyro.h"
@@ -70,13 +72,11 @@
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "navigation/navigation.h"
 
-#ifndef DEFAULT_RX_FEATURE
-#define DEFAULT_RX_FEATURE FEATURE_RX_PARALLEL_PWM
-#endif
 #ifndef DEFAULT_FEATURES
 #define DEFAULT_FEATURES 0
 #endif
@@ -87,18 +87,32 @@
 #define BRUSHED_MOTORS_PWM_RATE 16000
 #define BRUSHLESS_MOTORS_PWM_RATE 400
 
+#if !defined(VBAT_ADC_CHANNEL)
+#define VBAT_ADC_CHANNEL ADC_CHN_NONE
+#endif
+#if !defined(RSSI_ADC_CHANNEL)
+#define RSSI_ADC_CHANNEL ADC_CHN_NONE
+#endif
+#if !defined(CURRENT_METER_ADC_CHANNEL)
+#define CURRENT_METER_ADC_CHANNEL ADC_CHN_NONE
+#endif
+#if !defined(AIRSPEED_ADC_CHANNEL)
+#define AIRSPEED_ADC_CHANNEL ADC_CHN_NONE
+#endif
+
 PG_REGISTER_WITH_RESET_TEMPLATE(featureConfig_t, featureConfig, PG_FEATURE_CONFIG, 0);
 
 PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
-    .enabledFeatures = DEFAULT_FEATURES | DEFAULT_RX_FEATURE
+    .enabledFeatures = DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 1);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .debug_mode = DEBUG_NONE,
-    .i2c_overclock = 0,
+    .i2c_speed = I2C_SPEED_400KHZ,
+    .cpuUnderclock = 0,
     .accTaskFrequency = ACC_TASK_FREQUENCY_DEFAULT,
     .attitudeTaskFrequency = ATTITUDE_TASK_FREQUENCY_DEFAULT,
     .asyncMode = ASYNC_MODE_NONE,
@@ -108,6 +122,17 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
 );
 
 PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+
+PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 0);
+
+PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
+    .adcFunctionChannel = {
+        [ADC_BATTERY]   = VBAT_ADC_CHANNEL,
+        [ADC_RSSI]      = RSSI_ADC_CHANNEL,
+        [ADC_CURRENT]   = CURRENT_METER_ADC_CHANNEL,
+        [ADC_AIRSPEED]  = AIRSPEED_ADC_CHANNEL,
+    }
+);
 
 #ifdef NAV
 void validateNavConfig(void)
@@ -189,37 +214,23 @@ void validateAndFixConfig(void)
         pidProfileMutable()->dterm_soft_notch_hz = 0;
     }
 #endif
-    // Disable unused features
-    featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_2);
 
-#ifdef DISABLE_RX_PWM_FEATURE
-    if (featureConfigured(FEATURE_RX_PARALLEL_PWM)) {
-        featureClear(FEATURE_RX_PARALLEL_PWM);
+#ifdef USE_ACC_NOTCH
+    if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
+        accelerometerConfigMutable()->acc_notch_hz = 0;
     }
 #endif
 
-    if (!(featureConfigured(FEATURE_RX_PARALLEL_PWM) || featureConfigured(FEATURE_RX_PPM) || featureConfigured(FEATURE_RX_SERIAL) || featureConfigured(FEATURE_RX_MSP) || featureConfigured(FEATURE_RX_SPI))) {
-        featureSet(DEFAULT_RX_FEATURE);
-    }
+    // Disable unused features
+    featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_2 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 );
 
-    if (featureConfigured(FEATURE_RX_PPM)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_MSP | FEATURE_RX_SPI);
+#ifdef DISABLE_RX_PWM_FEATURE
+    if (rxConfig()->receiverType == RX_TYPE_PWM) {
+        rxConfigMutable()->receiverType = RX_TYPE_NONE;
     }
+#endif
 
-    if (featureConfigured(FEATURE_RX_MSP)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM | FEATURE_RX_SPI);
-    }
-
-    if (featureConfigured(FEATURE_RX_SERIAL)) {
-        featureClear(FEATURE_RX_PARALLEL_PWM | FEATURE_RX_MSP | FEATURE_RX_PPM | FEATURE_RX_SPI);
-    }
-
-    if (featureConfigured(FEATURE_RX_SPI)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_PARALLEL_PWM | FEATURE_RX_PPM | FEATURE_RX_MSP);
-    }
-
-    if (featureConfigured(FEATURE_RX_PARALLEL_PWM)) {
-        featureClear(FEATURE_RX_SERIAL | FEATURE_RX_MSP | FEATURE_RX_PPM | FEATURE_RX_SPI);
+    if (rxConfig()->receiverType == RX_TYPE_PWM) {
 #if defined(STM32F10X)
         // rssi adc needs the same ports
         featureClear(FEATURE_RSSI_ADC);
@@ -231,8 +242,7 @@ void validateAndFixConfig(void)
         // There is a timer clash between PWM RX pins and motor output pins - this forces us to have same timer tick rate for these timers
         // which is only possible when using brushless motors w/o oneshot (timer tick rate is PWM_TIMER_MHZ)
         // On CC3D OneShot is incompatible with PWM RX
-        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
-        motorConfigMutable()->motorPwmRate = BRUSHLESS_MOTORS_PWM_RATE;
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD; // Motor PWM rate will be handled later
 #endif
 #endif
 
@@ -247,7 +257,11 @@ void validateAndFixConfig(void)
 
 #ifdef USE_SOFTSPI
     if (featureConfigured(FEATURE_SOFTSPI)) {
-        featureClear(FEATURE_RX_PPM | FEATURE_RX_PARALLEL_PWM | FEATURE_SOFTSERIAL | FEATURE_VBAT);
+        if (rxConfig()->receiverType == RX_TYPE_PWM || rxConfig()->receiverType == RX_TYPE_PPM) {
+            rxConfigMutable()->receiverType = RX_TYPE_NONE;
+        }
+
+        featureClear(FEATURE_SOFTSERIAL | FEATURE_VBAT);
 #if defined(STM32F10X)
         featureClear(FEATURE_LED_STRIP);
         // rssi adc needs the same ports
@@ -287,27 +301,38 @@ void validateAndFixConfig(void)
 #endif
 
 #if defined(LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
-    if (featureConfigured(FEATURE_SOFTSERIAL) && (
-            0
-#if defined(USE_SOFTSERIAL1) && defined(SOFTSERIAL_1_TIMER)
-            || (WS2811_TIMER == SOFTSERIAL_1_TIMER)
+    if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
+        const timerHardware_t *ledTimerHardware = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
+        if (ledTimerHardware != NULL) {
+            bool sameTimerUsed = false;
+
+#if defined(USE_SOFTSERIAL1)
+            const timerHardware_t *ss1TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_1_RX_PIN), TIM_USE_ANY);
+            if (ss1TimerHardware != NULL && ss1TimerHardware->tim == ledTimerHardware->tim) {
+                sameTimerUsed = true;
+            }
 #endif
-#ifdef USE_SOFTSERIAL2
-            || (WS2811_TIMER == SOFTSERIAL_2_TIMER)
+#if defined(USE_SOFTSERIAL2)
+            const timerHardware_t *ss2TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_2_RX_PIN), TIM_USE_ANY);
+            if (ss2TimerHardware != NULL && ss2TimerHardware->tim == ledTimerHardware->tim) {
+                sameTimerUsed = true;
+            }
 #endif
-    )) {
-        // led strip needs the same timer as softserial
-        featureClear(FEATURE_LED_STRIP);
+            if (sameTimerUsed) {
+                // led strip needs the same timer as softserial
+                featureClear(FEATURE_LED_STRIP);
+            }
+        }
     }
 #endif
 
-#if defined(NAZE) && defined(SONAR)
-    if (featureConfigured(FEATURE_RX_PARALLEL_PWM) && (rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && featureConfigured(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
+#if defined(NAZE) && defined(USE_RANGEFINDER_HCSR04)
+    if ((rxConfig()->receiverType == RX_TYPE_PWM) && (rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && featureConfigured(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
         featureClear(FEATURE_CURRENT_METER);
     }
 #endif
 
-#if defined(OLIMEXINO) && defined(SONAR)
+#if defined(OLIMEXINO) && defined(USE_RANGEFINDER_HCSR04)
     if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
         featureClear(FEATURE_CURRENT_METER);
     }
@@ -321,13 +346,13 @@ void validateAndFixConfig(void)
 
 #if defined(CC3D)
 #if defined(CC3D_PPM1)
-    #if defined(SONAR) && defined(USE_SOFTSERIAL1)
+    #if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1)
         if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
             rangefinderConfigMutable()->rangefinder_hardware = RANGEFINDER_NONE;
         }
     #endif
 #else
-    #if defined(SONAR) && defined(USE_SOFTSERIAL1) && defined(RSSI_ADC_GPIO)
+    #if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1) && defined(RSSI_ADC_GPIO)
         // shared pin
         if (((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) + featureConfigured(FEATURE_SOFTSERIAL) + featureConfigured(FEATURE_RSSI_ADC)) > 1) {
            rangefinderConfigMutable()->rangefinder_hardware = RANGEFINDER_NONE;
@@ -425,7 +450,7 @@ static void activateConfig(void)
     activateControlRateConfig();
 
     resetAdjustmentStates();
-    
+
     updateUsedModeActivationConditionFlags();
 
     failsafeReset();

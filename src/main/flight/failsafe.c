@@ -37,6 +37,7 @@
 #include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/controlrate_profile.h"
 
@@ -78,7 +79,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
 
 typedef enum {
     FAILSAFE_CHANNEL_HOLD,      // Hold last known good value
-    FAILFAFE_CHANNEL_NEUTRAL,   // RPY = zero, THR = zero
+    FAILSAFE_CHANNEL_NEUTRAL,   // RPY = zero, THR = zero
     FAILSAFE_CHANNEL_AUTO,      // Defined by failsafe configured values
 } failsafeChannelBehavior_e;
 
@@ -101,19 +102,19 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     [FAILSAFE_PROCEDURE_DROP_IT] = {
             .forceAngleMode = true,
             .channelBehavior = {
-                FAILFAFE_CHANNEL_NEUTRAL,       // ROLL
-                FAILFAFE_CHANNEL_NEUTRAL,       // PITCH
-                FAILFAFE_CHANNEL_NEUTRAL,       // YAW
-                FAILFAFE_CHANNEL_NEUTRAL        // THROTTLE
+                FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
+                FAILSAFE_CHANNEL_NEUTRAL,       // PITCH
+                FAILSAFE_CHANNEL_NEUTRAL,       // YAW
+                FAILSAFE_CHANNEL_NEUTRAL        // THROTTLE
             }
     },
 
     [FAILSAFE_PROCEDURE_RTH] = {
             .forceAngleMode = true,
             .channelBehavior = {
-                FAILFAFE_CHANNEL_NEUTRAL,       // ROLL
-                FAILFAFE_CHANNEL_NEUTRAL,       // PITCH
-                FAILFAFE_CHANNEL_NEUTRAL,       // YAW
+                FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
+                FAILSAFE_CHANNEL_NEUTRAL,       // PITCH
+                FAILSAFE_CHANNEL_NEUTRAL,       // YAW
                 FAILSAFE_CHANNEL_HOLD           // THROTTLE
             }
     },
@@ -155,8 +156,7 @@ void failsafeInit(void)
 {
     failsafeState.events = 0;
     failsafeState.monitoring = false;
-
-    return;
+    failsafeState.suspended = false;
 }
 
 #ifdef NAV
@@ -166,7 +166,7 @@ bool failsafeMayRequireNavigationMode(void)
 }
 #endif
 
-failsafePhase_e failsafePhase()
+failsafePhase_e failsafePhase(void)
 {
     return failsafeState.phase;
 }
@@ -252,7 +252,7 @@ void failsafeApplyControlInput(void)
                 rcCommand[idx] = failsafeState.lastGoodRcCommand[idx];
                 break;
 
-            case FAILFAFE_CHANNEL_NEUTRAL:
+            case FAILSAFE_CHANNEL_NEUTRAL:
                 switch (idx) {
                     case ROLL:
                     case PITCH:
@@ -278,13 +278,19 @@ bool failsafeIsReceivingRxData(void)
     return (failsafeState.rxLinkState == FAILSAFE_RXLINK_UP);
 }
 
-void failsafeOnRxSuspend(uint32_t usSuspendPeriod)
+void failsafeOnRxSuspend(void)
 {
-    failsafeState.validRxDataReceivedAt += (usSuspendPeriod / 1000);    // / 1000 to convert micros to millis
+    failsafeState.suspended = true;
+}
+
+bool failsafeIsSuspended(void)
+{
+    return failsafeState.suspended;
 }
 
 void failsafeOnRxResume(void)
 {
+    failsafeState.suspended = false;                                    // restart monitoring
     failsafeState.validRxDataReceivedAt = millis();                     // prevent RX link down trigger, restart rx link up
     failsafeState.rxLinkState = FAILSAFE_RXLINK_UP;                     // do so while rx link is up
 }
@@ -323,17 +329,17 @@ static bool failsafeCheckStickMotion(void)
 
 void failsafeUpdateState(void)
 {
-    if (!failsafeIsMonitoring()) {
+    if (!failsafeIsMonitoring() || failsafeIsSuspended()) {
         return;
     }
 
-    const bool receivingRxData = failsafeIsReceivingRxData();
+    const bool receivingRxDataAndNotFailsafeMode = failsafeIsReceivingRxData() && !IS_RC_MODE_ACTIVE(BOXFAILSAFE);
     const bool armed = ARMING_FLAG(ARMED);
     const bool sticksAreMoving = failsafeCheckStickMotion();
     beeperMode_e beeperMode = BEEPER_SILENCE;
 
     // Beep RX lost only if we are not seeing data and we have been armed earlier
-    if (!receivingRxData && ARMING_FLAG(WAS_EVER_ARMED)) {
+    if (!receivingRxDataAndNotFailsafeMode && ARMING_FLAG(WAS_EVER_ARMED)) {
         beeperMode = BEEPER_RX_LOST;
     }
 
@@ -349,7 +355,7 @@ void failsafeUpdateState(void)
                     if (THROTTLE_HIGH == calculateThrottleStatus()) {
                         failsafeState.throttleLowPeriod = millis() + failsafeConfig()->failsafe_throttle_low_delay * MILLIS_PER_TENTH_SECOND;
                     }
-                    if (!receivingRxData) {
+                    if (!receivingRxDataAndNotFailsafeMode) {
                         if ((failsafeConfig()->failsafe_throttle_low_delay && (millis() > failsafeState.throttleLowPeriod)) || STATE(NAV_MOTOR_STOP_OR_IDLE)) {
                             // JustDisarm: throttle was LOW for at least 'failsafe_throttle_low_delay' seconds or waiting for launch
                             // Don't disarm at all if `failsafe_throttle_low_delay` is set to zero
@@ -362,7 +368,7 @@ void failsafeUpdateState(void)
                     }
                 } else {
                     // When NOT armed, show rxLinkState of failsafe switch in GUI (failsafe mode)
-                    if (IS_RC_MODE_ACTIVE(BOXFAILSAFE) || !receivingRxData) {
+                    if (!receivingRxDataAndNotFailsafeMode) {
                         ENABLE_FLIGHT_MODE(FAILSAFE_MODE);
                     } else {
                         DISABLE_FLIGHT_MODE(FAILSAFE_MODE);
@@ -373,7 +379,7 @@ void failsafeUpdateState(void)
                 break;
 
             case FAILSAFE_RX_LOSS_DETECTED:
-                if (receivingRxData) {
+                if (receivingRxDataAndNotFailsafeMode) {
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                 } else {
                     switch (failsafeConfig()->failsafe_procedure) {
@@ -407,7 +413,7 @@ void failsafeUpdateState(void)
 
             /* A very simple do-nothing failsafe procedure. The only thing it will do is monitor the receiver state and switch out of FAILSAFE condition */
             case FAILSAFE_RX_LOSS_IDLE:
-                if (receivingRxData && sticksAreMoving) {
+                if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                     reprocessState = true;
                 }
@@ -415,7 +421,7 @@ void failsafeUpdateState(void)
 
 #if defined(NAV)
             case FAILSAFE_RETURN_TO_HOME:
-                if (receivingRxData && sticksAreMoving) {
+                if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
                     abortForcedRTH();
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                     reprocessState = true;
@@ -451,7 +457,7 @@ void failsafeUpdateState(void)
 #endif
 
             case FAILSAFE_LANDING:
-                if (receivingRxData && sticksAreMoving) {
+                if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                     reprocessState = true;
                 }
@@ -466,7 +472,7 @@ void failsafeUpdateState(void)
                 break;
 
             case FAILSAFE_LANDED:
-                ENABLE_ARMING_FLAG(PREVENT_ARMING); // To prevent accidently rearming by an intermittent rx link
+                ENABLE_ARMING_FLAG(ARMING_DISABLED_FAILSAFE_SYSTEM); // To prevent accidently rearming by an intermittent rx link
                 mwDisarm(DISARM_FAILSAFE);
                 failsafeState.receivingRxDataPeriod = millis() + failsafeState.receivingRxDataPeriodPreset; // set required period of valid rxData
                 failsafeState.phase = FAILSAFE_RX_LOSS_MONITORING;
@@ -476,11 +482,14 @@ void failsafeUpdateState(void)
 
             case FAILSAFE_RX_LOSS_MONITORING:
                 // Monitoring the rx link to allow rearming when it has become good for > `receivingRxDataPeriodPreset` time.
-                if (receivingRxData) {
+                if (receivingRxDataAndNotFailsafeMode) {
                     if (millis() > failsafeState.receivingRxDataPeriod) {
                         // rx link is good now, when arming via ARM switch, it must be OFF first
                         if (!(!isUsingSticksForArming() && IS_RC_MODE_ACTIVE(BOXARM))) {
-                            DISABLE_ARMING_FLAG(PREVENT_ARMING);
+                            // XXX: Requirements for removing the ARMING_DISABLED_FAILSAFE_SYSTEM flag
+                            // are tested by osd.c to show the user how to re-arm. If these
+                            // requirements change, update osdArmingDisabledReasonMessage().
+                            DISABLE_ARMING_FLAG(ARMING_DISABLED_FAILSAFE_SYSTEM);
                             failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                             reprocessState = true;
                         }

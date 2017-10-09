@@ -20,15 +20,15 @@
 
 #include "platform.h"
 
-#include "sensor.h"
-#include "accgyro.h"
-#include "gyro_sync.h"
+#include "drivers/sensor.h"
+#include "drivers/accgyro/accgyro.h"
+#include "drivers/gyro_sync.h"
 
 bool gyroSyncCheckIntStatus(gyroDev_t *gyro)
 {
-    if (!gyro->intStatus)
+    if (!gyro->intStatusFn)
         return false;
-    return gyro->intStatus(gyro);
+    return gyro->intStatusFn(gyro);
 }
 
 uint32_t gyroSetSampleRate(gyroDev_t *gyro, uint32_t looptime, uint8_t lpf, uint8_t gyroSync, uint8_t gyroSyncDenominator)

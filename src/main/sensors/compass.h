@@ -17,13 +17,15 @@
 
 #pragma once
 
+#include "common/axis.h"
 #include "common/time.h"
 
 #include "config/parameter_group.h"
 
-#include "drivers/compass.h"
+#include "drivers/compass/compass.h"
 
 #include "sensors/sensors.h"
+
 
 // Type of magnetometer used/detected
 typedef enum {
@@ -35,7 +37,8 @@ typedef enum {
     MAG_MAG3110 = 5,
     MAG_AK8963 = 6,
     MAG_IST8310 = 7,
-    MAG_FAKE = 8,
+    MAG_QMC5883 = 8,
+    MAG_FAKE = 9,
     MAG_MAX = MAG_FAKE
 } magSensor_e;
 

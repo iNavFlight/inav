@@ -49,20 +49,23 @@
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 
 #define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
+#define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
 
 #define BARO
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
-//#define PITOT
 //#define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
+//#define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
+
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_VL53L0X
+#define RANGEFINDER_VL53L0X_INSTANCE    I2C_DEVICE_EXT
 
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_INSTANCE     SPI3
@@ -70,6 +73,7 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
@@ -104,30 +108,28 @@
 #define I2C_DEVICE_EXT          (I2CDEV_2)
 
 #define USE_ADC
-#define CURRENT_METER_ADC_PIN   PC1
-#define VBAT_ADC_PIN            PC2
-#define RSSI_ADC_PIN            PA0
+#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_2_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PA0
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
+
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define LED_STRIP
 // LED Strip can run off Pin 5 (PA1) of the MOTOR outputs.
-#define WS2811_GPIO_AF                  GPIO_AF_TIM5
 #define WS2811_PIN                      PA1
-#define WS2811_TIMER                    TIM5
-#define WS2811_TIMER_CHANNEL            TIM_Channel_2
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream4
 #define WS2811_DMA_CHANNEL              DMA_Channel_6
-#define WS2811_DMA_IRQ                  DMA1_Stream4_IRQn
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF4
-#define WS2811_DMA_IT                   DMA_IT_TCIF4
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define MAG_GPS_ALIGN           CW180_DEG_FLIP
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX)
 
 #define SPEKTRUM_BIND

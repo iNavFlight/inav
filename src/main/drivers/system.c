@@ -20,15 +20,15 @@
 
 #include "platform.h"
 
-#include "gpio.h"
-#include "light_led.h"
+#include "drivers/gpio.h"
+#include "drivers/light_led.h"
 #include "sound_beeper.h"
-#include "nvic.h"
+#include "drivers/nvic.h"
 #include "build/atomic.h"
 #include "build/build_config.h"
 
-#include "system.h"
-#include "time.h"
+#include "drivers/system.h"
+#include "drivers/time.h"
 
 #ifndef EXTI_CALLBACK_HANDLER_COUNT
 #define EXTI_CALLBACK_HANDLER_COUNT 1
@@ -50,9 +50,9 @@ void registerExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn)
 }
 
 // cycles per microsecond
-STATIC_UNIT_TESTED timeUs_t usTicks = 0;
+STATIC_UNIT_TESTED  timeUs_t usTicks = 0;
 // current uptime for 1kHz systick timer. will rollover after 49 days. hopefully we won't care.
-STATIC_UNIT_TESTED volatile timeMs_t sysTickUptime = 0;
+STATIC_UNIT_TESTED  volatile timeMs_t sysTickUptime = 0;
 // cached value of RCC->CSR
 uint32_t cachedRccCsrValue;
 

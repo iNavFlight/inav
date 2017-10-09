@@ -24,7 +24,9 @@
 #define GPS_PROTO_UBLOX
 #define GPS_PROTO_I2C_NAV
 #define GPS_PROTO_NAZA
+#define GPS_PROTO_MTK
 #define USE_DASHBOARD
+#define NAV
 #define TELEMETRY
 #define TELEMETRY_FRSKY
 #define TELEMETRY_HOTT
@@ -51,10 +53,6 @@
 #define MAX_SIMULTANEOUS_ADJUSTMENT_COUNT 6
 
 #define TARGET_BOARD_IDENTIFIER "TEST"
-
-#define LED_STRIP_TIMER 1
-#define SOFTSERIAL_1_TIMER 2
-#define SOFTSERIAL_2_TIMER 3
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

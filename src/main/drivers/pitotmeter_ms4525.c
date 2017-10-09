@@ -20,9 +20,9 @@
 
 #include <platform.h>
 
-#include "bus_i2c.h"
+#include "drivers/bus_i2c.h"
 #include "pitotmeter.h"
-#include "time.h"
+#include "drivers/time.h"
 
 #include "common/utils.h"
 
@@ -67,7 +67,7 @@ static void ms4525_start(void)
 
 static void ms4525_read(void)
 {
-    if(i2cRead( PITOT_I2C_INSTANCE, MS4525_ADDR, 0xFF, 4, rxbuf )) {
+    if (i2cRead( PITOT_I2C_INSTANCE, MS4525_ADDR, 0xFF, 4, rxbuf )) {
         ms4525_up = (rxbuf[0] << 8) | (rxbuf[1] << 0);
         ms4525_ut = ((rxbuf[2] << 8) | (rxbuf[3] << 0))>>5;
     }

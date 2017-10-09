@@ -23,29 +23,31 @@
 #include "platform.h"
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/accgyro.h"
-#include "drivers/accgyro_adxl345.h"
-#include "drivers/accgyro_bma280.h"
-#include "drivers/accgyro_fake.h"
-#include "drivers/accgyro_l3g4200d.h"
-#include "drivers/accgyro_mma845x.h"
-#include "drivers/accgyro_mpu.h"
-#include "drivers/accgyro_mpu3050.h"
-#include "drivers/accgyro_mpu6050.h"
-#include "drivers/accgyro_mpu6500.h"
-#include "drivers/accgyro_l3gd20.h"
-#include "drivers/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro_spi_mpu6000.h"
-#include "drivers/accgyro_spi_mpu6500.h"
-#include "drivers/accgyro_spi_mpu9250.h"
+#include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_adxl345.h"
+#include "drivers/accgyro/accgyro_bma280.h"
+#include "drivers/accgyro/accgyro_fake.h"
+#include "drivers/accgyro/accgyro_l3g4200d.h"
+#include "drivers/accgyro/accgyro_mma845x.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_mpu3050.h"
+#include "drivers/accgyro/accgyro_mpu6050.h"
+#include "drivers/accgyro/accgyro_mpu6500.h"
+#include "drivers/accgyro/accgyro_l3gd20.h"
+#include "drivers/accgyro/accgyro_lsm303dlhc.h"
+#include "drivers/accgyro/accgyro_spi_mpu6000.h"
+#include "drivers/accgyro/accgyro_spi_mpu6500.h"
+#include "drivers/accgyro/accgyro_spi_mpu9250.h"
 #include "drivers/gyro_sync.h"
 #include "drivers/io.h"
 #include "drivers/logging.h"
@@ -62,16 +64,14 @@
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
-#include "build/debug.h"
-
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
 
-gyro_t gyro; // gyro sensor object
+FASTRAM gyro_t gyro; // gyro sensor object
 
-STATIC_UNIT_TESTED gyroDev_t gyroDev0;
-static int16_t gyroTemperature0;
+STATIC_UNIT_TESTED gyroDev_t gyroDev0;  // Not in FASTRAM since it may hold DMA buffers
+STATIC_FASTRAM int16_t gyroTemperature0;
 
 typedef struct gyroCalibration_s {
     int32_t g[XYZ_AXIS_COUNT];
@@ -79,19 +79,19 @@ typedef struct gyroCalibration_s {
     uint16_t calibratingG;
 } gyroCalibration_t;
 
-STATIC_UNIT_TESTED gyroCalibration_t gyroCalibration;
-static int32_t gyroADC[XYZ_AXIS_COUNT];
+STATIC_FASTRAM_UNIT_TESTED gyroCalibration_t gyroCalibration;
+STATIC_FASTRAM int32_t gyroADC[XYZ_AXIS_COUNT];
 
-static filterApplyFnPtr softLpfFilterApplyFn;
-static void *softLpfFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr softLpfFilterApplyFn;
+STATIC_FASTRAM void *softLpfFilter[XYZ_AXIS_COUNT];
 
 #ifdef USE_GYRO_NOTCH_1
-static filterApplyFnPtr notchFilter1ApplyFn;
-static void *notchFilter1[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr notchFilter1ApplyFn;
+STATIC_FASTRAM void *notchFilter1[XYZ_AXIS_COUNT];
 #endif
 #ifdef USE_GYRO_NOTCH_2
-static filterApplyFnPtr notchFilter2ApplyFn;
-static void *notchFilter2[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr notchFilter2ApplyFn;
+STATIC_FASTRAM void *notchFilter2[XYZ_AXIS_COUNT];
 #endif
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 1);
@@ -154,9 +154,9 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 {
     dev->gyroAlign = ALIGN_DEFAULT;
 
-    switch(gyroHardware) {
+    switch (gyroHardware) {
     case GYRO_AUTODETECT:
-        // fallthrough
+        FALLTHROUGH;
 
 #ifdef USE_GYRO_MPU6050
     case GYRO_MPU6050:
@@ -167,7 +167,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_L3G4200D
@@ -179,7 +179,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_MPU3050
@@ -191,7 +191,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_L3GD20
@@ -203,7 +203,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_SPI_MPU6000
@@ -215,7 +215,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #if defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500)
@@ -231,7 +231,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_GYRO_SPI_MPU9250
@@ -243,7 +243,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 #endif
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_FAKE_GYRO
@@ -252,7 +252,7 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
             gyroHardware = GYRO_FAKE;
             break;
         }
-        // fallthrough
+        FALLTHROUGH;
 #endif
 
     default:
@@ -276,9 +276,9 @@ bool gyroInit(void)
 #ifdef USE_GYRO_MPU
 #ifdef USE_DUAL_GYRO
     // set cnsPin using GYRO_n_CS_PIN defined in target.h
-    gyroDev0.bus.spi.csnPin = gyroConfig()->gyro_to_use == 0 ? IOGetByTag(IO_TAG(GYRO_0_CS_PIN)) : IOGetByTag(IO_TAG(GYRO_1_CS_PIN));
+    gyroDev0.bus.busdev.spi.csnPin = gyroConfig()->gyro_to_use == 0 ? IOGetByTag(IO_TAG(GYRO_0_CS_PIN)) : IOGetByTag(IO_TAG(GYRO_1_CS_PIN));
 #else
-    gyroDev0.bus.spi.csnPin = IO_NONE; // set cnsPin to IO_NONE so mpuDetect will set it according to value defined in target.h
+    gyroDev0.bus.busdev.spi.csnPin = IO_NONE; // set cnsPin to IO_NONE so mpuDetect will set it according to value defined in target.h
 #endif // USE_DUAL_GYRO
     mpuDetect(&gyroDev0);
     mpuResetFn = gyroDev0.mpuConfiguration.resetFn;
@@ -293,7 +293,7 @@ bool gyroInit(void)
     gyroDev0.lpf = gyroConfig()->gyro_lpf;
     gyro.targetLooptime = gyroSetSampleRate(&gyroDev0, gyroConfig()->looptime, gyroConfig()->gyro_lpf, gyroConfig()->gyroSync, gyroConfig()->gyroSyncDenominator);
     // driver initialisation
-    gyroDev0.init(&gyroDev0);
+    gyroDev0.initFn(&gyroDev0);
 
     if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
         gyroDev0.gyroAlign = gyroConfig()->gyro_align;
@@ -304,14 +304,14 @@ bool gyroInit(void)
 
 void gyroInitFilters(void)
 {
-    static biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
     softLpfFilterApplyFn = nullFilterApply;
 #ifdef USE_GYRO_NOTCH_1
-    static biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
     notchFilter1ApplyFn = nullFilterApply;
 #endif
 #ifdef USE_GYRO_NOTCH_2
-    static biquadFilter_t gyroFilterNotch_2[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t gyroFilterNotch_2[XYZ_AXIS_COUNT];
     notchFilter2ApplyFn = nullFilterApply;
 #endif
 
@@ -399,7 +399,6 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
 
     if (isOnFinalGyroCalibrationCycle(gyroCalibration)) {
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
-        beeper(BEEPER_GYRO_CALIBRATED);
     }
     gyroCalibration->calibratingG--;
 }
@@ -407,7 +406,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
 void gyroUpdate(void)
 {
     // range: +/- 8192; +/- 2000 deg/sec
-    if (gyroDev0.read(&gyroDev0)) {
+    if (gyroDev0.readFn(&gyroDev0)) {
         if (isCalibrationComplete(&gyroCalibration)) {
             // Copy gyro value into int32_t (to prevent overflow) and then apply calibration and alignment
             gyroADC[X] = (int32_t)gyroDev0.gyroADCRaw[X] - (int32_t)gyroDev0.gyroZero[X];
@@ -449,8 +448,8 @@ void gyroUpdate(void)
 
 void gyroReadTemperature(void)
 {
-    if (gyroDev0.temperature) {
-        gyroDev0.temperature(&gyroDev0, &gyroTemperature0);
+    if (gyroDev0.temperatureFn) {
+        gyroDev0.temperatureFn(&gyroDev0, &gyroTemperature0);
     }
 }
 

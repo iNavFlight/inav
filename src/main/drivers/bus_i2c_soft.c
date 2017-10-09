@@ -22,8 +22,9 @@
 
 #include "build/build_config.h"
 
-#include "bus_i2c.h"
-#include "io.h"
+#include "drivers/bus_i2c.h"
+#include "drivers/time.h"
+#include "drivers/io.h"
 
 // Software I2C driver, using same pins as hardware I2C, with hw i2c module disabled.
 // Can be configured for I2C2 pinout (SCL: PB10, SDA: PB11) or I2C1 pinout (SCL: PB6, SDA: PB7)
@@ -47,11 +48,34 @@ static volatile uint16_t i2cErrorCount = 0;
 #error "Must define the software i2c pins (SOFT_I2C_SCL and SOFT_I2C_SDA) in target.h"
 #endif
 
+static uint32_t delayTicks = 90;
+
+void i2cSetSpeed(uint8_t speed)
+{
+    switch (speed) {
+        case I2C_SPEED_100KHZ:
+            delayTicks = SystemCoreClock / 100000 / 2;
+            break;
+
+        case I2C_SPEED_200KHZ:
+            delayTicks = SystemCoreClock / 200000 / 2;
+            break;
+
+        case I2C_SPEED_400KHZ:
+            delayTicks = SystemCoreClock / 400000 / 2;
+            break;
+
+        case I2C_SPEED_800KHZ:
+            delayTicks = SystemCoreClock / 800000 / 2;
+            break;
+    }
+}
+
 static void I2C_delay(void)
 {
-    volatile int i = 7;
-    while (i) {
-        i--;
+    uint32_t now = ticks();
+    while ((ticks() - now) < delayTicks) {
+        ;
     }
 }
 
@@ -172,8 +196,8 @@ void i2cInit(I2CDevice device)
     scl = IOGetByTag(IO_TAG(SOFT_I2C_SCL));
     sda = IOGetByTag(IO_TAG(SOFT_I2C_SDA));
 
-    IOConfigGPIO(scl, IOCFG_OUT_OD);
-    IOConfigGPIO(sda, IOCFG_OUT_OD);
+    IOConfigGPIOAF(scl, IOCFG_OUT_OD, 0);
+    IOConfigGPIOAF(sda, IOCFG_OUT_OD, 0);
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t * data)

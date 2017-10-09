@@ -24,8 +24,8 @@
 #define LED0   PB7
 #define LED1   PB6
 
-//#define BEEPER   PB2
-//#define BEEPER_INVERTED
+#define BEEPER   PB4
+#define BEEPER_INVERTED
 
 #define MPU6000_CS_PIN        PA4
 #define MPU6000_SPI_INSTANCE  SPI1
@@ -45,6 +45,7 @@
 
 #define MAG
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 #define MAG_I2C_INSTANCE I2C_DEVICE_EXT
 #define MAG_HMC5883_ALIGN CW270_DEG_FLIP
 //#define MAG_HMC5883_ALIGN CW90_DEG
@@ -52,12 +53,18 @@
 #define BARO
 #define USE_BARO_MS5611
 
-#define PITOT
+#ifdef ANYFCF7_EXTERNAL_BARO
+    #define USE_BARO_BMP085
+    #define USE_BARO_BMP280
+    #define BARO_I2C_INSTANCE I2C_DEVICE_EXT
+#endif
+
 #define USE_PITOT_MS4525
 #define PITOT_I2C_INSTANCE I2C_DEVICE_EXT
 
 #define USABLE_TIMER_CHANNEL_COUNT 16
 
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN PA8
 
@@ -110,6 +117,10 @@
 #define SPI4_MOSI_PIN           PE14
 
 #define USE_SDCARD
+
+// This is needed for BangGood board that used wrong sdcard socket!!!
+#define SDCARD_DETECT_INVERTED
+
 #define SDCARD_DETECT_PIN                   PD3
 #define SDCARD_DETECT_EXTI_LINE             EXTI_Line3
 #define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource3
@@ -119,16 +130,13 @@
 #define SDCARD_SPI_INSTANCE                 SPI4
 #define SDCARD_SPI_CS_PIN                   SPI4_NSS_PIN
 
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 422kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 8 // 27MHz
-
 #define SDCARD_DMA_CHANNEL_TX               DMA2_Stream1
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA2
 #define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
 
 #define USE_I2C
+#define USE_I2C_DEVICE_4
 #define I2C_DEVICE (I2CDEV_4)
 #define I2C_DEVICE_EXT (I2CDEV_2)
 //#define USE_I2C_PULLUP
@@ -142,12 +150,14 @@
 #define NAV
 #define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
-#define GPS_PROTO_UBLOX_NEO7PLUS
 
 #define USE_ADC
-#define VBAT_ADC_PIN                PC0
-#define CURRENT_METER_ADC_PIN       PC1
-#define RSSI_ADC_PIN                PC2
+#define ADC_CHANNEL_1_PIN               PC0
+#define ADC_CHANNEL_2_PIN               PC1
+#define ADC_CHANNEL_3_PIN               PC2
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define LED_STRIP
 
@@ -166,7 +176,7 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX)
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

@@ -47,7 +47,7 @@ static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
 {
     UNUSED(ptr);
 
-    displayClear(pDisplay);
+    displayClearScreen(pDisplay);
     displayWrite(pDisplay, 5, 3, "ERASING FLASH...");
     displayResync(pDisplay); // Was max7456RefreshAll(); Why at this timing?
 
@@ -56,46 +56,32 @@ static long cmsx_EraseFlash(displayPort_t *pDisplay, const void *ptr)
         delay(100);
     }
 
-    displayClear(pDisplay);
+    displayClearScreen(pDisplay);
     displayResync(pDisplay); // Was max7456RefreshAll(); wedges during heavy SPI?
 
     return 0;
 }
 #endif // USE_FLASHFS
 
-static bool featureRead = false;
-static uint8_t cmsx_FeatureBlackbox;
-static uint8_t blackboxConfig_rate_denom;
-
-static long cmsx_menuBlackboxOnEnter(void)
+static bool cmsx_Blackbox_Enabled(bool *enabled)
 {
-    if (!featureRead) {
-        cmsx_FeatureBlackbox = feature(FEATURE_BLACKBOX) ? 1 : 0;
-        featureRead = true;
+    if (enabled) {
+        if (*enabled) {
+            featureSet(FEATURE_BLACKBOX);
+        } else {
+            featureClear(FEATURE_BLACKBOX);
+        }
     }
-    blackboxConfig_rate_denom = blackboxConfig()->rate_denom;
-    return 0;
-}
-
-static long cmsx_Blackbox_FeatureWriteback(void)
-{
-    if (cmsx_FeatureBlackbox)
-        featureSet(FEATURE_BLACKBOX);
-    else
-        featureClear(FEATURE_BLACKBOX);
-
-    blackboxConfigMutable()->rate_denom = blackboxConfig_rate_denom;
-    return 0;
+    return featureConfigured(FEATURE_BLACKBOX);
 }
 
 static OSD_Entry cmsx_menuBlackboxEntries[] =
 {
-    { "-- BLACKBOX --", OME_Label, NULL, NULL, 0},
-    { "ENABLED",     OME_Bool,    NULL,            &cmsx_FeatureBlackbox,                                      0 },
-    { "RATE DENOM",  OME_UINT8,   NULL,            &(OSD_UINT8_t){ &blackboxConfig_rate_denom,1,32,1 }, 0 },
-
+    { "-- BLACKBOX --", OME_Label,      NULL, NULL, 0},
+    { "ENABLED",        OME_BoolFunc,   NULL, cmsx_Blackbox_Enabled, 0 },
+    OSD_SETTING_ENTRY("RATE DENOM", SETTING_BLACKBOX_RATE_DENOM),
 #ifdef USE_FLASHFS
-    { "ERASE FLASH", OME_Funcall, cmsx_EraseFlash, NULL,                                                       0 },
+    { "ERASE FLASH",OME_Funcall, cmsx_EraseFlash, NULL, 0 },
 #endif // USE_FLASHFS
 
     { "BACK", OME_Back, NULL, NULL, 0 },
@@ -105,9 +91,9 @@ static OSD_Entry cmsx_menuBlackboxEntries[] =
 CMS_Menu cmsx_menuBlackbox = {
     .GUARD_text = "MENUBB",
     .GUARD_type = OME_MENU,
-    .onEnter = cmsx_menuBlackboxOnEnter,
+    .onEnter = NULL,
     .onExit = NULL,
-    .onGlobalExit = cmsx_Blackbox_FeatureWriteback,
+    .onGlobalExit = NULL,
     .entries = cmsx_menuBlackboxEntries
 };
 #endif

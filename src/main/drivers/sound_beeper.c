@@ -20,8 +20,11 @@
 
 #include "platform.h"
 
-#include "time.h"
-#include "io.h"
+#include "drivers/time.h"
+#include "drivers/io.h"
+#include "drivers/timer.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/pwm_output.h"
 
 #include "sound_beeper.h"
 
@@ -30,28 +33,33 @@
 
 static IO_t beeperIO = DEFIO_IO(NONE);
 static bool beeperInverted = false;
+static bool beeperState = false;
 
 #endif
 
 void systemBeep(bool onoff)
 {
-#ifndef BEEPER
+#if !defined(BEEPER)
     UNUSED(onoff);
+#elif defined(BEEPER_PWM)
+    pwmWriteBeeper(onoff);
+    beeperState = onoff;
 #else
     IOWrite(beeperIO, beeperInverted ? onoff : !onoff);
+    beeperState = onoff;
 #endif
 }
 
 void systemBeepToggle(void)
 {
-#ifdef BEEPER
-    IOToggle(beeperIO);
+#if defined(BEEPER)
+    systemBeep(!beeperState);
 #endif
 }
 
 void beeperInit(const beeperDevConfig_t *config)
 {
-#ifndef BEEPER
+#if !defined(BEEPER)
     UNUSED(config);
 #else
     beeperIO = IOGetByTag(config->ioTag);
@@ -59,8 +67,13 @@ void beeperInit(const beeperDevConfig_t *config)
 
     if (beeperIO) {
         IOInit(beeperIO, OWNER_BEEPER, RESOURCE_OUTPUT, 0);
+#if defined(BEEPER_PWM)
+        beeperPwmInit(config->ioTag, BEEPER_PWM_FREQUENCY);
+#else
         IOConfigGPIO(beeperIO, config->isOD ? IOCFG_OUT_OD : IOCFG_OUT_PP);
+#endif
     }
+
     systemBeep(false);
 #endif
 }

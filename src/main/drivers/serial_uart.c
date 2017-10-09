@@ -28,7 +28,7 @@
 #include "build/build_config.h"
 
 #include "common/utils.h"
-#include "gpio.h"
+#include "drivers/gpio.h"
 #include "inverter.h"
 
 #include "serial.h"
@@ -92,7 +92,7 @@ static void uartReconfigure(uartPort_t *uartPort)
 
     usartConfigurePinInversion(uartPort);
 
-    if(uartPort->port.options & SERIAL_BIDIR)
+    if (uartPort->port.options & SERIAL_BIDIR)
         USART_HalfDuplexCmd(uartPort->USARTx, ENABLE);
     else
         USART_HalfDuplexCmd(uartPort->USARTx, DISABLE);

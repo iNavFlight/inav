@@ -41,11 +41,24 @@
 #define DEFAULT_SERVO_MIDDLE 1500
 #define DEFAULT_SERVO_MAX 2000
 
+#define DELAY_50_HZ (1000000 / 50)
+#define DELAY_10_HZ (1000000 / 10)
+#define DELAY_5_HZ (1000000 / 5)
+
 typedef enum {
-    RX_FRAME_PENDING = 0,
-    RX_FRAME_COMPLETE = (1 << 0),
-    RX_FRAME_FAILSAFE = (1 << 1)
+    RX_FRAME_PENDING = 0,               // No new data available from receiver
+    RX_FRAME_COMPLETE = (1 << 0),       // There is new data available
+    RX_FRAME_FAILSAFE = (1 << 1)        // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
 } rxFrameState_e;
+
+typedef enum {
+    RX_TYPE_NONE        = 0,
+    RX_TYPE_PWM         = 1,
+    RX_TYPE_PPM         = 2,
+    RX_TYPE_SERIAL      = 3,
+    RX_TYPE_MSP         = 4,
+    RX_TYPE_SPI         = 5,
+} rxReceiverType_e;
 
 typedef enum {
     SERIALRX_SPEKTRUM1024 = 0,
@@ -58,7 +71,7 @@ typedef enum {
     SERIALRX_IBUS = 7,
     SERIALRX_JETIEXBUS = 8,
     SERIALRX_CRSF = 9
-} SerialRXType;
+} rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
 #define MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT  8
@@ -90,11 +103,12 @@ typedef struct rxChannelRangeConfig_s {
 PG_DECLARE_ARRAY(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeConfigs);
 
 typedef struct rxConfig_s {
+    uint8_t receiverType;                   // RC receiver type (rxReceiverType_e enum)
     uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
-    uint8_t serialrx_provider;              // type of UART-based receiver (0 = spek 10, 1 = spek 11, 2 = sbus). Must be enabled by FEATURE_RX_SERIAL first.
+    uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
     uint8_t sbus_inversion;                 // default sbus (Futaba, FrSKY) is inverted. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode on F4, ignored for F1 and F3.
-    uint8_t rx_spi_protocol;               // type of nrf24 protocol (0 = v202 250kbps). Must be enabled by FEATURE_RX_NRF24 first.
+    uint8_t rx_spi_protocol;                // type of SPI receiver protocol (rx_spi_protocol_e enum). Only used if receiverType is RX_TYPE_SPI
     uint32_t rx_spi_id;
     uint8_t rx_spi_rf_channel_count;
     uint8_t spektrum_sat_bind;              // number of bind pulses for Spektrum satellite receivers
@@ -120,7 +134,9 @@ typedef uint8_t (*rcFrameStatusFnPtr)(void);
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
-    uint16_t rxRefreshRate;
+    timeUs_t rxRefreshRate;
+    timeUs_t rxSignalTimeout;
+    bool requireFiltering;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
 } rxRuntimeConfig_t;

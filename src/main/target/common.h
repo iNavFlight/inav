@@ -31,7 +31,12 @@
 #define USE_SERIALRX_SBUS       // Very common protocol
 #define USE_SERIALRX_IBUS       // Cheap FlySky & Turnigy receivers
 
+#if defined(STM32F1) || defined(STM32F3)
+#define USE_UNDERCLOCK
+#endif
+
 #if (FLASH_SIZE > 64)
+#define USE_64BIT_TIME
 #define BLACKBOX
 #define GPS
 #define GPS_PROTO_UBLOX
@@ -49,14 +54,17 @@
 #endif
 
 #if (FLASH_SIZE > 128)
+#define FIXED_WING_LANDING
 #define AUTOTUNE_FIXED_WING
 #define ASYNC_GYRO_PROCESSING
 #define BOOTLOG
 #define BOOTLOG_DESCRIPTIONS
+#define STATS
 #define USE_64BIT_TIME
 #define USE_GYRO_NOTCH_1
 #define USE_GYRO_NOTCH_2
 #define USE_DTERM_NOTCH
+#define USE_ACC_NOTCH
 #define CMS
 #define USE_DASHBOARD
 #define USE_MSP_DISPLAYPORT
@@ -64,6 +72,8 @@
 #define GPS_PROTO_NMEA
 #define GPS_PROTO_I2C_NAV
 #define GPS_PROTO_NAZA
+#define GPS_PROTO_UBLOX_NEO7PLUS
+#define GPS_PROTO_MTK
 #define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_NON_VOLATILE_WAYPOINT_STORAGE
@@ -84,6 +94,16 @@
 #define PWM_DRIVER_PCA9685
 #define NAV_MAX_WAYPOINTS       60
 #define MAX_BOOTLOG_ENTRIES     64
+#define USE_RCSPLIT
+#define PITOT
+#define USE_PITOT_ADC
+
+//Enable VTX controll
+#define VTX_COMMON
+#define VTX_CONTROL
+#define VTX_SMARTAUDIO
+#define VTX_TRAMP
+
 #else
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS

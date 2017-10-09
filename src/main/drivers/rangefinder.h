@@ -19,10 +19,11 @@
 
 #include "common/time.h"
 
-#include "io.h"
+#include "drivers/io.h"
 
-#define RANGEFINDER_OUT_OF_RANGE (-1)
-#define RANGEFINDER_HARDWARE_FAILURE (-2)
+#define RANGEFINDER_OUT_OF_RANGE        (-1)
+#define RANGEFINDER_HARDWARE_FAILURE    (-2)
+#define RANGEFINDER_NO_NEW_DATA         (-3)
 
 struct rangefinderDev_s;
 

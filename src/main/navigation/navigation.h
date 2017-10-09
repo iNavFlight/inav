@@ -72,12 +72,12 @@ typedef struct positionEstimationConfig_s {
     uint8_t use_gps_velned;
     uint16_t gps_delay_ms;
 
-    uint16_t max_sonar_altitude;
+    uint16_t max_surface_altitude;
 
     float w_z_baro_p;   // Weight (cutoff frequency) for barometer altitude measurements
 
-    float w_z_sonar_p;  // Weight (cutoff frequency) for sonar altitude measurements
-    float w_z_sonar_v;  // Weight (cutoff frequency) for sonar velocity measurements
+    float w_z_surface_p;  // Weight (cutoff frequency) for surface altitude measurements
+    float w_z_surface_v;  // Weight (cutoff frequency) for surface velocity measurements
 
     float w_z_gps_p;    // GPS altitude data is very noisy and should be used only on airplanes
     float w_z_gps_v;    // Weight (cutoff frequency) for GPS climb rate measurements
@@ -142,7 +142,7 @@ typedef struct navConfig_s {
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
-
+        int8_t land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
@@ -152,6 +152,7 @@ typedef struct navConfig_s {
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
         uint16_t launch_timeout;             // Launch timeout to disable launch mode and swith to normal flight (ms)
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
+        uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
     } fw;
 } navConfig_t;
 
@@ -247,7 +248,7 @@ void navigationInit(void);
 
 /* Position estimator update functions */
 void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs);
-void updatePositionEstimator_SonarTopic(timeUs_t currentTimeUs);
+void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfaceAlt);
 
 /* Navigation system updates */
 void updateWaypointsAndNavigationMode(void);
@@ -255,11 +256,11 @@ void updatePositionEstimator(void);
 void applyWaypointNavigationAndAltitudeHold(void);
 
 /* Functions to signal navigation requirements to main loop */
-bool naivationRequiresAngleMode(void);
+bool navigationRequiresAngleMode(void);
 bool navigationRequiresThrottleTiltCompensation(void);
-bool naivationRequiresTurnAssistance(void);
-int8_t naivationGetHeadingControlState(void);
-bool naivationBlockArming(void);
+bool navigationRequiresTurnAssistance(void);
+int8_t navigationGetHeadingControlState(void);
+bool navigationBlockArming(void);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
 
@@ -298,6 +299,9 @@ void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
 
+/* Getter functions which return data about the state of the navigation system */
+bool navigationIsControllingThrottle(void);
+
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
 
@@ -308,22 +312,17 @@ extern int16_t navTargetPosition[3];
 extern int32_t navLatestActualPosition[3];
 extern int16_t navTargetSurface;
 extern int16_t navActualSurface;
-extern int16_t navDebug[4];
 extern uint16_t navFlags;
 extern uint16_t navEPH;
 extern uint16_t navEPV;
 extern int16_t navAccNEU[3];
-#if defined(BLACKBOX)
-#define NAV_BLACKBOX_DEBUG(x,y) navDebug[x] = constrain((y), -32678, 32767)
-#else
-#define NAV_BLACKBOX_DEBUG(x,y)
-#endif
 
 #else
 
-#define naivationRequiresAngleMode() (0)
-#define naivationGetHeadingControlState() (0)
+#define navigationRequiresAngleMode() (0)
+#define navigationGetHeadingControlState() (0)
 #define navigationRequiresThrottleTiltCompensation() (0)
 #define getEstimatedActualVelocity(axis) (0)
+#define navigationIsControllingThrottle() (0)
 
 #endif

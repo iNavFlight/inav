@@ -24,17 +24,19 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/compass.h"
-#include "drivers/compass_ak8963.h"
-#include "drivers/compass_ak8975.h"
-#include "drivers/compass_fake.h"
-#include "drivers/compass_hmc5883l.h"
-#include "drivers/compass_mag3110.h"
-#include "drivers/compass_ist8310.h"
+#include "drivers/compass/compass.h"
+#include "drivers/compass/compass_ak8963.h"
+#include "drivers/compass/compass_ak8975.h"
+#include "drivers/compass/compass_fake.h"
+#include "drivers/compass/compass_hmc5883l.h"
+#include "drivers/compass/compass_mag3110.h"
+#include "drivers/compass/compass_ist8310.h"
+#include "drivers/compass/compass_qmc5883l.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/logging.h"
@@ -44,6 +46,7 @@
 #include "fc/runtime_config.h"
 
 #include "io/gps.h"
+#include "io/beeper.h"
 
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
@@ -109,7 +112,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 
     dev->magAlign = ALIGN_DEFAULT;
 
-    switch(magHardwareToUse) {
+    switch (magHardwareToUse) {
     case MAG_AUTODETECT:
     case MAG_HMC5883:
 #ifdef USE_MAG_HMC5883
@@ -125,6 +128,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_AK8975:
 #ifdef USE_MAG_AK8975
@@ -140,6 +144,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_AK8963:
 #ifdef USE_MAG_AK8963
@@ -155,6 +160,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_GPS:
 #ifdef GPS
@@ -170,6 +176,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_MAG3110:
 #ifdef USE_MAG_MAG3110
@@ -185,6 +192,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_IST8310:
 #ifdef USE_MAG_IST8310
@@ -200,6 +208,23 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
+
+    case MAG_QMC5883:
+#ifdef USE_MAG_QMC5883
+        if (qmc5883Detect(dev)) {
+#ifdef MAG_QMC5883L_ALIGN
+            dev->magAlign = MAG_QMC5883L_ALIGN;
+#endif
+            magHardware = MAG_QMC5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
 
     case MAG_FAKE:
 #ifdef USE_FAKE_MAG
@@ -212,6 +237,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 
     case MAG_NONE:
         magHardware = MAG_NONE;
@@ -299,6 +325,8 @@ void compassUpdate(timeUs_t currentTimeUs)
             compassConfigMutable()->magZero.raw[axis] = 0;
             magPrev[axis] = 0;
         }
+
+        beeper(BEEPER_ACTION_SUCCESS);
 
         sensorCalibrationResetState(&calState);
         DISABLE_STATE(CALIBRATE_MAG);

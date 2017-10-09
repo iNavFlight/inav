@@ -28,40 +28,34 @@
 #include "build/build_config.h"
 
 #include "common/axis.h"
-#include "common/maths.h"
 #include "common/filter.h"
+#include "common/maths.h"
 
-#include "config/feature.h"
 #include "config/config_reset.h"
+#include "config/feature.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
 #include "drivers/pwm_output.h"
-#include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
-
-#include "io/gimbal.h"
-
-#include "navigation/navigation.h"
-
-#include "rx/rx.h"
-
-#include "sensors/sensors.h"
-#include "sensors/acceleration.h"
-#include "sensors/gyro.h"
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
-#include "flight/mixer.h"
-#include "flight/servos.h"
-#include "flight/failsafe.h"
-#include "flight/pid.h"
 #include "flight/imu.h"
+#include "flight/mixer.h"
+#include "flight/pid.h"
+#include "flight/servos.h"
 
+#include "io/gimbal.h"
 
-extern const mixer_t mixers[];
+#include "rx/rx.h"
+
+#include "sensors/gyro.h"
+
+extern const mixer_t * findMixer(mixerMode_e mixerMode);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 0);
 
@@ -80,7 +74,7 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams,
 void pgResetFn_servoParams(servoParam_t *instance)
 {
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        RESET_CONFIG(const servoParam_t, &instance[i],
+        RESET_CONFIG(servoParam_t, &instance[i],
             .min = DEFAULT_SERVO_MIN,
             .max = DEFAULT_SERVO_MAX,
             .middle = DEFAULT_SERVO_MIDDLE,
@@ -89,6 +83,9 @@ void pgResetFn_servoParams(servoParam_t *instance)
         );
     }
 }
+
+// no template required since default is zero
+PG_REGISTER(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 0);
 
 int16_t servo[MAX_SUPPORTED_SERVOS];
 
@@ -100,29 +97,32 @@ static uint8_t mixerUsesServos;
 static uint8_t minServoIndex;
 static uint8_t maxServoIndex;
 
-static biquadFilter_t servoFitlerState[MAX_SUPPORTED_SERVOS];
+static biquadFilter_t servoFilter[MAX_SUPPORTED_SERVOS];
 static bool servoFilterIsSet;
+
+static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
+static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
 
 #define COUNT_SERVO_RULES(rules) (sizeof(rules) / sizeof(servoMixer_t))
 // mixer rule format servo, input, rate, speed, min, max, box
 static const servoMixer_t servoMixerAirplane[] = {
-    { SERVO_FLAPPERON_1, INPUT_STABILIZED_ROLL,  100, 0, 0, 100 },
-    { SERVO_FLAPPERON_2, INPUT_STABILIZED_ROLL,  100, 0, 0, 100 },
-    { SERVO_FLAPPERON_1, INPUT_FEATURE_FLAPS,    100, 0, 0, 100 },
-    { SERVO_FLAPPERON_2, INPUT_FEATURE_FLAPS,   -100, 0, 0, 100 },
-    { SERVO_RUDDER,      INPUT_STABILIZED_YAW,   100, 0, 0, 100 },
-    { SERVO_ELEVATOR,    INPUT_STABILIZED_PITCH, 100, 0, 0, 100 },
+    { SERVO_FLAPPERON_1, INPUT_STABILIZED_ROLL,  100, 0 },
+    { SERVO_FLAPPERON_2, INPUT_STABILIZED_ROLL,  100, 0 },
+    { SERVO_FLAPPERON_1, INPUT_FEATURE_FLAPS,    100, 0 },
+    { SERVO_FLAPPERON_2, INPUT_FEATURE_FLAPS,   -100, 0 },
+    { SERVO_RUDDER,      INPUT_STABILIZED_YAW,   100, 0 },
+    { SERVO_ELEVATOR,    INPUT_STABILIZED_PITCH, 100, 0 },
 };
 
 static const servoMixer_t servoMixerFlyingWing[] = {
-    { SERVO_FLAPPERON_1, INPUT_STABILIZED_ROLL,  100, 0, 0, 100 },
-    { SERVO_FLAPPERON_1, INPUT_STABILIZED_PITCH, 100, 0, 0, 100 },
-    { SERVO_FLAPPERON_2, INPUT_STABILIZED_ROLL, -100, 0, 0, 100 },
-    { SERVO_FLAPPERON_2, INPUT_STABILIZED_PITCH, 100, 0, 0, 100 },
+    { SERVO_FLAPPERON_1, INPUT_STABILIZED_ROLL,  50, 0 },
+    { SERVO_FLAPPERON_1, INPUT_STABILIZED_PITCH, 50, 0 },
+    { SERVO_FLAPPERON_2, INPUT_STABILIZED_ROLL, -50, 0 },
+    { SERVO_FLAPPERON_2, INPUT_STABILIZED_PITCH, 50, 0 },
 };
 
 static const servoMixer_t servoMixerTri[] = {
-    { SERVO_RUDDER, INPUT_STABILIZED_YAW,   100, 0, 0, 100 },
+    { SERVO_RUDDER, INPUT_STABILIZED_YAW,   100, 0 },
 };
 
 // Custom mixer configuration
@@ -162,10 +162,8 @@ const mixerRules_t servoMixers[] = {
     { 0, SERVO_RUDDER, SERVO_RUDDER, NULL },                // MULTITYPE_CUSTOM_TRI
 };
 
-// no template required since default is zero
-PG_REGISTER(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 0);
-
-int16_t getFlaperonDirection(uint8_t servoPin) {
+int16_t getFlaperonDirection(uint8_t servoPin)
+{
     if (servoPin == SERVO_FLAPPERON_2) {
         return -1;
     } else {
@@ -196,15 +194,16 @@ int servoDirection(int servoIndex, int inputSource)
 void servosInit(void)
 {
     const mixerMode_e currentMixerMode = mixerConfig()->mixerMode;
+    const mixer_t * motorMixer = findMixer(currentMixerMode);
 
     minServoIndex = servoMixers[currentMixerMode].minServoIndex;
     maxServoIndex = servoMixers[currentMixerMode].maxServoIndex;
 
     // enable servos for mixes that require them. note, this shifts motor counts.
-    mixerUsesServos = mixers[currentMixerMode].useServo || feature(FEATURE_SERVO_TILT);
+    mixerUsesServos = motorMixer->useServos || feature(FEATURE_SERVO_TILT);
 
     // if we want camstab/trig, that also enables servos, even if mixer doesn't
-    servoOutputEnabled = mixerUsesServos || feature(FEATURE_CHANNEL_FORWARDING);
+    servoOutputEnabled = motorMixer->useServos || feature(FEATURE_SERVO_TILT) || feature(FEATURE_CHANNEL_FORWARDING);
 
     // give all servos a default command
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
@@ -240,6 +239,15 @@ void servosInit(void)
         }
 
     }
+
+    /*
+     * Compute scaling factor for upper and lower servo throw
+     */
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        servoMetadata[i].scaleMax = (servoParams(i)->max - servoParams(i)->middle) / 500.0f;
+        servoMetadata[i].scaleMin = (servoParams(i)->middle - servoParams(i)->min) / 500.0f;
+    }
+
 }
 void loadCustomServoMixer(void)
 {
@@ -286,9 +294,7 @@ STATIC_UNIT_TESTED void forwardAuxChannelsToServos(uint8_t firstServoIndex)
 {
     // start forwarding from this channel
     uint8_t channelOffset = AUX1;
-
-    int servoOffset;
-    for (servoOffset = 0; servoOffset < MAX_AUX_CHANNEL_COUNT && channelOffset < MAX_SUPPORTED_RC_CHANNEL_COUNT; servoOffset++) {
+    for (int servoOffset = 0; servoOffset < MAX_AUX_CHANNEL_COUNT && channelOffset < MAX_SUPPORTED_RC_CHANNEL_COUNT; servoOffset++) {
         pwmWriteServo(firstServoIndex + servoOffset, rcData[channelOffset++]);
     }
 }
@@ -299,14 +305,14 @@ static void filterServos(void)
         // Initialize servo lowpass filter (servos are calculated at looptime rate)
         if (!servoFilterIsSet) {
             for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-                biquadFilterInitLPF(&servoFitlerState[i], servoConfig()->servo_lowpass_freq, gyro.targetLooptime);
+                biquadFilterInitLPF(&servoFilter[i], servoConfig()->servo_lowpass_freq, gyro.targetLooptime);
             }
             servoFilterIsSet = true;
         }
 
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
             // Apply servo lowpass filter and do sanity cheching
-            servo[i] = (int16_t) biquadFilterApply(&servoFitlerState[i], (float)servo[i]);
+            servo[i] = (int16_t) biquadFilterApply(&servoFilter[i], (float)servo[i]);
         }
     }
 
@@ -355,10 +361,9 @@ void writeServos(void)
     }
 }
 
-void servoMixer(void)
+void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
-    static int16_t currentOutput[MAX_SERVO_RULES];
 
     if (FLIGHT_MODE(PASSTHRU_MODE)) {
         // Direct passthru from RX
@@ -407,26 +412,48 @@ void servoMixer(void)
     for (int i = 0; i < servoRuleCount; i++) {
         const uint8_t target = currentServoMixer[i].targetChannel;
         const uint8_t from = currentServoMixer[i].inputSource;
-        const uint16_t servo_width = servoParams(target)->max - servoParams(target)->min;
-        const int16_t min = currentServoMixer[i].min * servo_width / 100 - servo_width / 2;
-        const int16_t max = currentServoMixer[i].max * servo_width / 100 - servo_width / 2;
 
-        if (currentServoMixer[i].speed == 0) {
-            currentOutput[i] = input[from];
-        } else {
-            if (currentOutput[i] < input[from]) {
-                currentOutput[i] = constrain(currentOutput[i] + currentServoMixer[i].speed, currentOutput[i], input[from]);
-            } else if (currentOutput[i] > input[from]) {
-                currentOutput[i] = constrain(currentOutput[i] - currentServoMixer[i].speed, input[from], currentOutput[i]);
-            }
-        }
+        /*
+         * Apply mixer speed limit. 1 [one] speed unit is defined as 10us/s:
+         * 0 = no limiting
+         * 1 = 10us/s -> full servo sweep (from 1000 to 2000) is performed in 100s
+         * 10 = 100us/s -> full sweep (from 1000 to 2000)  is performed in 10s
+         * 100 = 1000us/s -> full sweep in 1s
+         */
+        int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i], input[from], currentServoMixer[i].speed * 10, dT);
 
-        servo[target] += servoDirection(target, from) * constrain(((int32_t)currentOutput[i] * currentServoMixer[i].rate) / 100, min, max);
+        servo[target] += servoDirection(target, from) * ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
     }
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+
+        /*
+         * Apply servo rate
+         */
         servo[i] = ((int32_t)servoParams(i)->rate * servo[i]) / 100L;
+
+        /*
+         * Perform acumulated servo output scaling to match servo min and max values
+         * Important: is servo rate is > 100%, total servo output might be bigger than
+         * min/max
+         */
+        if (servo[i] > 0) {
+            servo[i] = (int16_t) (servo[i] * servoMetadata[i].scaleMax);
+        } else {
+            servo[i] = (int16_t) (servo[i] * servoMetadata[i].scaleMin);
+        }
+
+        /*
+         * Add a servo midpoint to the calculation
+         */
         servo[i] += determineServoMiddleOrForwardFromChannel(i);
+
+        /*
+         * Constrain servo position to min/max to prevent servo damage
+         * If servo was saturated above min/max, that means that user most probably
+         * allowed the situation when smix weight sum for an output was above 100
+         */
+        servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
 }
 

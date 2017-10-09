@@ -41,6 +41,9 @@
 
 #define BIT(x) (1 << (x))
 
+#define STATIC_ASSERT(condition, name) \
+    typedef char assert_failed_ ## name [(condition) ? 1 : -1 ] __attribute__((unused))
+
 /*
 http://resnet.uoregon.edu/~gurney_j/jmpc/bitwise.html
 */
@@ -87,3 +90,11 @@ void * memcpy_fn ( void * destination, const void * source, size_t num ) asm("me
 
 
 #endif
+
+#if __GNUC__ > 6
+#define FALLTHROUGH __attribute__ ((fallthrough))
+#else
+#define FALLTHROUGH do {} while(0)
+#endif
+
+#define ALIGNED(x) __attribute__ ((aligned(x)))

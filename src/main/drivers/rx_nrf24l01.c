@@ -28,14 +28,14 @@
 
 #include "build/build_config.h"
 
-#include "time.h"
-#include "gpio.h"
-#include "io.h"
+#include "drivers/time.h"
+#include "drivers/gpio.h"
+#include "drivers/io.h"
 #include "io_impl.h"
 #include "rcc.h"
 #include "rx_spi.h"
 #include "rx_nrf24l01.h"
-#include "bus_spi.h"
+#include "drivers/bus_spi.h"
 
 #define NRF24_CE_HI()       {IOHi(IOGetByTag(IO_TAG(RX_CE_PIN)));}
 #define NRF24_CE_LO()       {IOLo(IOGetByTag(IO_TAG(RX_CE_PIN)));}
@@ -102,7 +102,7 @@ uint8_t NRF24L01_ReadPayload(uint8_t *data, uint8_t length)
 /*
  * Empty the transmit FIFO buffer.
  */
-void NRF24L01_FlushTx()
+void NRF24L01_FlushTx(void)
 {
     rxSpiWriteByte(FLUSH_TX);
 }
@@ -110,7 +110,7 @@ void NRF24L01_FlushTx()
 /*
  * Empty the receive FIFO buffer.
  */
-void NRF24L01_FlushRx()
+void NRF24L01_FlushRx(void)
 {
     rxSpiWriteByte(FLUSH_RX);
 }

@@ -53,12 +53,20 @@
 #define BARO
 #define USE_BARO_BMP280
 
+#define MAG
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
+#define USE_MAG_HMC5883
+#define MAG_HMC5883_ALIGN       CW90_DEG
+#define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
+
 #define OSD
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI3
 #define MAX7456_SPI_CS_PIN      SPI3_NSS_PIN
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
+#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
 
 //#define MAX7456_DMA_CHANNEL_TX              DMA1_Stream5
 //#define MAX7456_DMA_CHANNEL_RX              DMA1_Stream0
@@ -72,16 +80,12 @@
 #define SDCARD_SPI_INSTANCE     SPI2
 #define SDCARD_SPI_CS_PIN       SPI2_NSS_PIN
 
-// SPI2 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
-
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_ENABLED
 #define VBUS_SENSING_PIN        PC5
@@ -141,13 +145,12 @@
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
-//#define ADC1_DMA_STREAM         DMA2_Stream0
-
-#define VBAT_ADC_PIN            PC0
-
-#define CURRENT_METER_ADC_PIN   PC1
-
-#define RSSI_ADC_PIN            PC2
+#define ADC_CHANNEL_1_PIN               PC0
+#define ADC_CHANNEL_2_PIN               PC1
+#define ADC_CHANNEL_3_PIN               PC2
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define LED_STRIP
 #define WS2811_GPIO_AF                  GPIO_AF_TIM4
@@ -174,10 +177,12 @@
 //#define TRANSPONDER_DMA_IT                   DMA_IT_TCIF7
 
 #define DEFAULT_FEATURES        ( FEATURE_BLACKBOX | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_AIRMODE )
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DISABLE_RX_PWM_FEATURE
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
+
+#define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

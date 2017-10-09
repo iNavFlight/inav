@@ -48,17 +48,22 @@
 
 #define MAG
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
 #define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 //#define MAG_HMC5883_ALIGN       CW90_DEG
 
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_VL53L0X
+#define RANGEFINDER_VL53L0X_INSTANCE    I2C_DEVICE_EXT
+
 #define BARO
 #define USE_BARO_MS5611
 
-#define PITOT
 #define USE_PITOT_MS4525
 #define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
 
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
 
@@ -102,9 +107,12 @@
 #define MAG_GPS_ALIGN           CW180_DEG_FLIP
 
 #define USE_ADC
-#define VBAT_ADC_PIN            PC0
-#define CURRENT_METER_ADC_PIN   PC1
-#define RSSI_ADC_GPIO_PIN       PC2
+#define ADC_CHANNEL_1_PIN               PC0
+#define ADC_CHANNEL_2_PIN               PC1
+#define ADC_CHANNEL_3_PIN               PC2
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define LED_STRIP
 // LED Strip can run off Pin 6 (PA0) of the ESC outputs.
@@ -120,7 +128,7 @@
 
 #define SENSORS_SET             (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

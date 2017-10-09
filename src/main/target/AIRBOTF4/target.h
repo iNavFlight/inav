@@ -27,6 +27,10 @@
 
 #define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
 
+#define USE_I2C
+#define I2C_DEVICE              (I2CDEV_2)
+#define I2C_DEVICE_SHARES_UART3
+
 // MPU6000 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PC4
@@ -58,14 +62,15 @@
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
 
 #define BARO
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
-//#define PITOT
-//#define USE_PITOT_MS4525
+#define USE_PITOT_ADC
+#define USE_PITOT_MS4525
 #define PITOT_I2C_INSTANCE      I2C_DEVICE
 
 #define M25P16_CS_PIN           PB3
@@ -74,6 +79,7 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
+#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
@@ -92,8 +98,8 @@
 #define UART6_TX_PIN            PC6
 
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_TIMER_RX_HARDWARE 4 // CH5
-#define SOFTSERIAL_1_TIMER_TX_HARDWARE 5 // CH6
+#define SOFTSERIAL_1_RX_PIN     PC8
+#define SOFTSERIAL_1_TX_PIN     PC9
 
 #define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
 
@@ -107,14 +113,17 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-#define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
-#define I2C_DEVICE_SHARES_UART3
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_HCSR04_I2C_I2C_INSTANCE (I2C_DEVICE)
 
 #define USE_ADC
-#define CURRENT_METER_ADC_PIN   PC1
-#define VBAT_ADC_PIN            PC2
-#define RSSI_ADC_PIN            PA0
+#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_2_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PA0
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
@@ -122,20 +131,15 @@
 // LED Strip can run off Pin 5 (PA1) of the MOTOR outputs.
 #define WS2811_GPIO_AF                  GPIO_AF_TIM5
 #define WS2811_PIN                      PA1
-#define WS2811_TIMER                    TIM5
-#define WS2811_TIMER_CHANNEL            TIM_Channel_2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream4
 #define WS2811_DMA_CHANNEL              DMA_Channel_6
-#define WS2811_DMA_IRQ                  DMA1_Stream4_IRQn
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF4
-#define WS2811_DMA_IT                   DMA_IT_TCIF4
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define MAG_GPS_ALIGN           CW180_DEG_FLIP
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT)
 

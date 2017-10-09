@@ -96,7 +96,8 @@ const serialPortIdentifier_e serialPortIdentifiers[SERIAL_PORT_COUNT] = {
 
 static uint8_t serialPortCount;
 
-const uint32_t baudRates[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000, 460800, 921600}; // see baudRate_e
+const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000,
+        460800, 921600, 1000000, 1500000, 2000000, 2470000 }; // see baudRate_e
 
 #define BAUD_RATE_COUNT (sizeof(baudRates) / sizeof(baudRates[0]))
 
@@ -111,10 +112,24 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
         serialConfig->portConfigs[i].msp_baudrateIndex = BAUD_115200;
         serialConfig->portConfigs[i].gps_baudrateIndex = BAUD_38400;
         serialConfig->portConfigs[i].telemetry_baudrateIndex = BAUD_AUTO;
-        serialConfig->portConfigs[i].blackbox_baudrateIndex = BAUD_115200;
+        serialConfig->portConfigs[i].peripheral_baudrateIndex = BAUD_115200;
     }
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
+
+#ifdef SERIALRX_UART
+    serialPortConfig_t *serialRxUartConfig = serialFindPortConfiguration(SERIALRX_UART);
+    if (serialRxUartConfig) {
+        serialRxUartConfig->functionMask = FUNCTION_RX_SERIAL;
+    }
+#endif
+
+#ifdef GPS_UART
+    serialPortConfig_t *gpsUartConfig = serialFindPortConfiguration(GPS_UART);
+    if (gpsUartConfig) {
+        gpsUartConfig->functionMask = FUNCTION_GPS;
+    }
+#endif
 
 #ifdef USE_VCP
     if (serialConfig->portConfigs[0].identifier == SERIAL_PORT_USB_VCP) {
@@ -138,6 +153,16 @@ baudRate_e lookupBaudRateIndex(uint32_t baudRate)
         }
     }
     return BAUD_AUTO;
+}
+
+int findSerialPortIndexByIdentifier(serialPortIdentifier_e identifier)
+{
+    for (int index = 0; index < SERIAL_PORT_COUNT; index++) {
+        if (serialPortIdentifiers[index] == identifier) {
+            return index;
+        }
+    }
+    return -1;
 }
 
 serialPortUsage_t *findSerialPortUsageByIdentifier(serialPortIdentifier_e identifier)
@@ -318,7 +343,7 @@ serialPort_t *openSerialPort(
 
     serialPort_t *serialPort = NULL;
 
-    switch(identifier) {
+    switch (identifier) {
 #ifdef USE_VCP
         case SERIAL_PORT_USB_VCP:
             serialPort = usbVcpOpen();
@@ -525,7 +550,7 @@ void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer
     // Either port might be open in a mode other than MODE_RXTX. We rely on
     // serialRxBytesWaiting() to do the right thing for a TX only port. No
     // special handling is necessary OR performed.
-    while(1) {
+    while (1) {
         // TODO: maintain a timestamp of last data received. Use this to
         // implement a guard interval and check for `+++` as an escape sequence
         // to return to CLI command mode.

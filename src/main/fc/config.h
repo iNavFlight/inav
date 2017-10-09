@@ -21,7 +21,9 @@
 #include <stdbool.h>
 #include "common/time.h"
 #include "config/parameter_group.h"
-#include "drivers/pwm_rx.h"
+#include "drivers/adc.h"
+#include "drivers/rx_pwm.h"
+#include "fc/stats.h"
 
 #define MAX_PROFILE_COUNT 3
 #define ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS 1500
@@ -41,10 +43,10 @@ typedef enum {
 } asyncMode_e;
 
 typedef enum {
-    FEATURE_RX_PPM = 1 << 0,
+    FEATURE_UNUSED_5 = 1 << 0,          // RX_PPM
     FEATURE_VBAT = 1 << 1,
     FEATURE_UNUSED_1 = 1 << 2,          // Unused in INAV
-    FEATURE_RX_SERIAL = 1 << 3,
+    FEATURE_UNUSED_6 = 1 << 3,          // RX_SERIAL
     FEATURE_MOTOR_STOP = 1 << 4,
     FEATURE_SERVO_TILT = 1 << 5,
     FEATURE_SOFTSERIAL = 1 << 6,
@@ -54,8 +56,8 @@ typedef enum {
     FEATURE_TELEMETRY = 1 << 10,
     FEATURE_CURRENT_METER = 1 << 11,
     FEATURE_3D = 1 << 12,
-    FEATURE_RX_PARALLEL_PWM = 1 << 13,
-    FEATURE_RX_MSP = 1 << 14,
+    FEATURE_UNUSED_7 = 1 << 13,         // RX_PARALLEL_PWM
+    FEATURE_UNUSED_8 = 1 << 14,         // RX_MSP
     FEATURE_RSSI_ADC = 1 << 15,
     FEATURE_LED_STRIP = 1 << 16,
     FEATURE_DASHBOARD = 1 << 17,
@@ -66,7 +68,7 @@ typedef enum {
     FEATURE_AIRMODE = 1 << 22,
     FEATURE_SUPEREXPO_RATES = 1 << 23,
     FEATURE_VTX = 1 << 24,
-    FEATURE_RX_SPI = 1 << 25,
+    FEATURE_UNUSED_9 = 1 << 25,         // RX_SPI
     FEATURE_SOFTSPI = 1 << 26,
     FEATURE_PWM_SERVO_DRIVER = 1 << 27,
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,
@@ -79,7 +81,8 @@ typedef struct systemConfig_s {
     uint8_t current_profile_index;
     uint8_t asyncMode;
     uint8_t debug_mode;
-    uint8_t i2c_overclock;                  // Overclock i2c Bus for faster IMU readings
+    uint8_t i2c_speed;
+    uint8_t cpuUnderclock;
     uint8_t throttle_tilt_compensation_strength;      // the correction that will be applied at throttle_correction_angle.
     inputFilteringMode_e pwmRxInputFilteringMode;
     char name[MAX_NAME_LENGTH + 1];
@@ -93,6 +96,17 @@ typedef struct beeperConfig_s {
 } beeperConfig_t;
 
 PG_DECLARE(beeperConfig_t, beeperConfig);
+
+typedef struct adcChannelConfig_s {
+    uint8_t adcFunctionChannel[ADC_FUNCTION_COUNT];
+} adcChannelConfig_t;
+
+PG_DECLARE(adcChannelConfig_t, adcChannelConfig);
+
+
+#ifdef STATS
+PG_DECLARE(statsConfig_t, statsConfig);
+#endif
 
 void beeperOffSet(uint32_t mask);
 void beeperOffSetAll(uint8_t beeperCount);
@@ -108,7 +122,7 @@ void copyCurrentProfileToProfileSlot(uint8_t profileSlotIndex);
 void initEEPROM(void);
 void resetEEPROM(void);
 void readEEPROM(void);
-void writeEEPROM();
+void writeEEPROM(void);
 void ensureEEPROMContainsValidData(void);
 
 void saveConfigAndNotify(void);

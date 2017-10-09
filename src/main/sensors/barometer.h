@@ -19,7 +19,7 @@
 
 #include "config/parameter_group.h"
 
-#include "drivers/barometer.h"
+#include "drivers/barometer/barometer.h"
 
 typedef enum {
     BARO_NONE = 0,
@@ -44,6 +44,7 @@ typedef struct baro_s {
     int32_t BaroAlt;
     int32_t baroPressure;               // Use pressure for telemetry
     int32_t baroTemperature;            // Use temperature for telemetry
+    int32_t baroPressure;               // Use pressure for telemetry
 } baro_t;
 
 extern baro_t baro;
