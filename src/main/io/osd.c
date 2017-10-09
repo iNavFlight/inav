@@ -1510,10 +1510,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->rssi_alarm = 20;
     osdConfig->cap_alarm = 2200;
-    osdConfig->time_alarm = 10; // in minutes
-    osdConfig->alt_alarm = 100; // meters
-    osdConfig->dist_alarm = 1000; // meters - lets end this madness and convert in the UI
-    osdConfig->neg_alt_alarm = 5; // meters
+    osdConfig->time_alarm = 10;
+    osdConfig->alt_alarm = 100;
+    osdConfig->dist_alarm = 1000;
+    osdConfig->neg_alt_alarm = 5;
 
     osdConfig->video_system = 0;
 

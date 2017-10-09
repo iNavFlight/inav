@@ -86,12 +86,12 @@ typedef struct osdConfig_s {
     uint16_t item_pos[OSD_ITEM_COUNT];
 
     // Alarms
-    uint8_t rssi_alarm;
-    uint16_t cap_alarm;
-    uint16_t time_alarm;
-    uint16_t alt_alarm;
-    uint16_t dist_alarm;
-    uint16_t neg_alt_alarm;
+    uint8_t rssi_alarm; // rssi %
+    uint16_t cap_alarm; // used mah
+    uint16_t time_alarm; // fly minutes
+    uint16_t alt_alarm; // positive altitude in m
+    uint16_t dist_alarm; // home distance in m
+    uint16_t neg_alt_alarm; // abs(negative altitude) in m
 
     uint8_t video_system;
     uint8_t row_shiftdown;
