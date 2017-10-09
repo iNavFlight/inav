@@ -230,6 +230,7 @@ void validateAndFixConfig(void)
     }
 #endif
 
+
     if (rxConfig()->receiverType == RX_TYPE_PWM) {
 #if defined(STM32F10X)
         // rssi adc needs the same ports

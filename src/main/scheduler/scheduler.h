@@ -104,6 +104,9 @@ typedef enum {
 #ifdef USE_OPTICAL_FLOW
     TASK_OPFLOW,
 #endif
+#ifdef USE_UAV_INTERCONNECT
+    TASK_UAV_INTERCONNECT,
+#endif
 #ifdef USE_RCSPLIT
     TASK_RCSPLIT,
 #endif

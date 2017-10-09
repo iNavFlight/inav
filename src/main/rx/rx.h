@@ -58,6 +58,7 @@ typedef enum {
     RX_TYPE_SERIAL      = 3,
     RX_TYPE_MSP         = 4,
     RX_TYPE_SPI         = 5,
+    RX_TYPE_UIB         = 6
 } rxReceiverType_e;
 
 typedef enum {
