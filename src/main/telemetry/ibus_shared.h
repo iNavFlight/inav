@@ -123,11 +123,11 @@ typedef enum {
     IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE = 0x03, //2
     IBUS_MEAS_VALUE_CELL             = 0x04, //2
     IBUS_MEAS_VALUE_CURRENT          = 0x05, //2
-	IBUS_MEAS_VALUE_FUEL             = 0x06, //2
+    IBUS_MEAS_VALUE_FUEL             = 0x06, //2
     IBUS_MEAS_VALUE_RPM              = 0x07, //2
-	IBUS_MEAS_VALUE_HEADING          = 0x08, //2
+    IBUS_MEAS_VALUE_HEADING          = 0x08, //2
     IBUS_MEAS_VALUE_CLIMB            = 0x09, //2
-	IBUS_MEAS_VALUE_COG              = 0x0a, //2
+    IBUS_MEAS_VALUE_COG              = 0x0a, //2
     IBUS_MEAS_VALUE_GPS_STATUS       = 0x0b, //2
     IBUS_MEAS_VALUE_ACC_X            = 0x0c, //2
     IBUS_MEAS_VALUE_ACC_Y            = 0x0d, //2
@@ -146,7 +146,7 @@ typedef enum {
     IBUS_MEAS_VALUE_GPS_LON          = 0x81, //4
     IBUS_MEAS_VALUE_GALT4            = 0x82, //4
     IBUS_MEAS_VALUE_ALT4             = 0x83, //4
-    IBUS_MEAS_VALUE_GALT             = 0x84, //2	
+    IBUS_MEAS_VALUE_GALT             = 0x84, //2
     IBUS_MEAS_VALUE_ALT              = 0x85, //2
     IBUS_MEAS_VALUE_STATUS           = 0x87, //2
     IBUS_MEAS_VALUE_GPS_LAT1         = 0x88, //2
