@@ -44,6 +44,7 @@
 #include "drivers/serial.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -1085,6 +1086,35 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+#if defined(VTX_COMMON)
+    case MSP_VTX_CONFIG:
+        {
+            uint8_t deviceType = vtxCommonGetDeviceType();
+            if (deviceType != VTXDEV_UNKNOWN) {
+
+                uint8_t band=0, channel=0;
+                vtxCommonGetBandAndChannel(&band,&channel);
+                
+                uint8_t powerIdx=0; // debug
+                vtxCommonGetPowerIndex(&powerIdx);
+                
+                uint8_t pitmode=0;
+                vtxCommonGetPitMode(&pitmode);
+                
+                sbufWriteU8(dst, deviceType);
+                sbufWriteU8(dst, band);
+                sbufWriteU8(dst, channel);
+                sbufWriteU8(dst, powerIdx);
+                sbufWriteU8(dst, pitmode);
+                // future extensions here...
+            }
+            else {
+                sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX detected
+            }
+        }
+        break;
+#endif
+
     case MSP2_COMMON_TZ:
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
         break;
@@ -1659,6 +1689,38 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
         }
 #endif
+        break;
+#endif
+
+#if defined(VTX_COMMON)
+    case MSP_SET_VTX_CONFIG:
+        {
+            const uint16_t tmp = sbufReadU16(src);
+            const uint8_t band    = (tmp / 8) + 1;
+            const uint8_t channel = (tmp % 8) + 1;
+
+            if (vtxCommonGetDeviceType() != VTXDEV_UNKNOWN) {
+                uint8_t current_band=0, current_channel=0;
+                vtxCommonGetBandAndChannel(&current_band,&current_channel);
+                if ((current_band != band) || (current_channel != channel))
+                    vtxCommonSetBandAndChannel(band,channel);
+
+                if (sbufBytesRemaining(src) < 2)
+                    break;
+
+                uint8_t power = sbufReadU8(src);
+                uint8_t current_power = 0;
+                vtxCommonGetPowerIndex(&current_power);
+                if (current_power != power)
+                    vtxCommonSetPowerByIndex(power);
+
+                uint8_t pitmode = sbufReadU8(src);
+                uint8_t current_pitmode = 0;
+                vtxCommonGetPitMode(&current_pitmode);
+                if (current_pitmode != pitmode)
+                    vtxCommonSetPitMode(pitmode);
+            }
+        }
         break;
 #endif
 
