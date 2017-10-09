@@ -57,6 +57,7 @@ static const char *     eventDescription[BOOT_EVENT_CODE_COUNT] = {
     [BOOT_EVENT_TIMER_CH_MAPPED]            = "TIMER_CHANNEL_MAPPED",
     [BOOT_EVENT_PITOT_DETECTION]            = "PITOT_DETECTION",
     [BOOT_EVENT_HARDWARE_IO_CONFLICT]       = "HARDWARE_CONFLICT",
+    [BOOT_EVENT_OPFLOW_DETECTION]           = "OPFLOW_DETECTION",
 };
 
 const char * getBootlogEventDescription(bootLogEventCode_e eventCode)

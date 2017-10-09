@@ -94,6 +94,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
+#include "sensors/opflow.h"
 
 #include "telemetry/telemetry.h"
 
@@ -341,7 +342,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, getHwGPSStatus());
         sbufWriteU8(dst, getHwRangefinderStatus());
         sbufWriteU8(dst, getHwPitotmeterStatus());
-        sbufWriteU8(dst, HW_SENSOR_NONE);                   // Optical flow
+        sbufWriteU8(dst, getHwOpticalFlowStatus());
         break;
 
     case MSP_ACTIVEBOXES:
