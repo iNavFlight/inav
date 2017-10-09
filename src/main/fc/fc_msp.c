@@ -953,7 +953,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
 #endif
-        sbufWriteU8(dst, 0);    // optical flow hardware
+#ifdef USE_OPTICAL_FLOW
+        sbufWriteU8(dst, opticalFlowConfig()->opflow_hardware);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
 #ifdef NAV
@@ -1484,7 +1488,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #else
         sbufReadU8(src);        // rangefinder hardware
 #endif
+#ifdef USE_OPTICAL_FLOW
+        opticalFlowConfigMutable()->opflow_hardware = sbufReadU8(src);
+#else
         sbufReadU8(src);        // optical flow hardware
+#endif
         break;
 
 #ifdef NAV
