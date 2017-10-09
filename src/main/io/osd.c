@@ -830,7 +830,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
         tfp_sprintf(buff + 1, "%-4d", abs(mAhDrawn));
-        if (mAhDrawn >= osdConfig()->cap_alarm) {
+        if (osdConfig()->cap_alarm > 0 && mAhDrawn >= osdConfig()->cap_alarm) {
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
@@ -1509,7 +1509,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
-    osdConfig->cap_alarm = 2200;
+    osdConfig->cap_alarm = 0;
     osdConfig->time_alarm = 10;
     osdConfig->alt_alarm = 100;
     osdConfig->dist_alarm = 1000;
