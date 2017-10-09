@@ -92,6 +92,7 @@ typedef struct mixerConfig_s {
     uint8_t mixerMode;
     int8_t yaw_motor_direction;
     uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
+    uint8_t fw_roll2pitch_comp;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
