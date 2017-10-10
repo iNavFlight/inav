@@ -417,7 +417,7 @@ groups:
         max: 1000
       - name: failsafe_min_distance
         min: 0
-        max: 6000
+        max: 65000
       - name: failsafe_min_distance_procedure
         table: failsafe_procedure
 

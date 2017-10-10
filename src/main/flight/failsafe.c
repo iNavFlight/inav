@@ -391,7 +391,7 @@ void failsafeUpdateState(void)
                     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
                     // GPS must also be working, and home position set
                     if ((failsafeConfig()->failsafe_min_distance > 0) && 
-                        (GPS_distanceToHome < failsafeConfig()->failsafe_min_distance) &&
+                        ((GPS_distanceToHome * 100) < failsafeConfig()->failsafe_min_distance) &&
                         sensors(SENSOR_GPS) && STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
                         // Use the alternate, minimum distance failsafe procedure instead
                         failsafe_procedure_to_use = failsafeConfig()->failsafe_min_distance_procedure;
