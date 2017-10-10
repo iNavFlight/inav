@@ -38,6 +38,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/failsafe.h"
@@ -561,7 +562,7 @@ void mixTable(void)
             }
 
             // Motor stop handling
-            if (feature(FEATURE_MOTOR_STOP) && ARMING_FLAG(ARMED)) {
+            if ((feature(FEATURE_MOTOR_STOP) || IS_RC_MODE_ACTIVE(BOXMOTORSTOP)) && ARMING_FLAG(ARMED)) {
                 bool failsafeMotorStop = failsafeRequiresMotorStop();
                 bool navMotorStop = !failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE);
                 bool userMotorStop = !failsafeIsActive() && (rcData[THROTTLE] < rxConfig()->mincheck);

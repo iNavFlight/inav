@@ -70,6 +70,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXCAMERA1, "CAMERA CONTROL 1;", 39 },
     { BOXCAMERA2, "CAMERA CONTROL 2;", 40 },
     { BOXCAMERA3, "CAMERA CONTROL 3;", 41 },
+    { BOXMOTORSTOP, "MOTOR STOP;", 42 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -158,6 +159,10 @@ void initActiveBoxIds(void)
 
     if (!feature(FEATURE_AIRMODE)) {
         activeBoxIds[activeBoxIdCount++] = BOXAIRMODE;
+    }
+
+    if (!feature(FEATURE_MOTOR_STOP)) {
+        activeBoxIds[activeBoxIdCount++] = BOXMOTORSTOP;
     }
 
     activeBoxIds[activeBoxIdCount++] = BOXHEADINGHOLD;
@@ -265,6 +270,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)),         BOXNAVRTH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),          BOXNAVWP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),     BOXAIRMODE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMOTORSTOP)),   BOXMOTORSTOP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGCSNAV)),      BOXGCSNAV);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSURFACE)),     BOXSURFACE);
 #ifdef USE_FLM_FLAPERON

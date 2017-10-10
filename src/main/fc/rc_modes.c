@@ -19,8 +19,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "rc_modes.h"
-
 #include "common/bitarray.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -31,6 +29,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 
 #include "rx/rx.h"
 
@@ -41,7 +40,7 @@ static bool isUsingNAVModes = false;
 #endif
 
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
-STATIC_ASSERT(CHECKBOX_ITEM_COUNT <= 32, too_many_box_modes);
+STATIC_ASSERT(CHECKBOX_ITEM_COUNT <= 52, too_many_box_modes);   // Configurator/JS limitation
 
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
