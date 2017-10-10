@@ -302,6 +302,7 @@ rthState_e getStateOfForcedRTH(void);
 
 /* Getter functions which return data about the state of the navigation system */
 bool navigationIsControllingThrottle(void);
+bool navigationIsFlyingAutonomousMode(void);
 
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
