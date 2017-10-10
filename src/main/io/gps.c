@@ -320,12 +320,12 @@ void gpsFinalizeChangeBaud(void)
 
 uint16_t gpsConstrainEPE(uint32_t epe)
 {
-    return (epe > 99999) ? 9999 : epe; // max 99.99m error
+    return (epe > 9999) ? 9999 : epe; // max 99.99m error
 }
 
 uint16_t gpsConstrainHDOP(uint32_t hdop)
 {
-    return (hdop > 99999) ? 9999 : hdop; // max 99.99m error
+    return (hdop > 9999) ? 9999 : hdop; // max 99.99m error
 }
 
 void gpsThread(void)
