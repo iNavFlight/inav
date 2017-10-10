@@ -2605,11 +2605,12 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
 
                 memcpy(entry->filename, opState->filename, FAT_FILENAME_LENGTH);
                 entry->attrib = file->attrib;
-                entry->creationDate = AFATFS_DEFAULT_FILE_DATE;
-                entry->creationTime = AFATFS_DEFAULT_FILE_TIME;
                 if (rtcGetDateTime(&now)) {
                     entry->creationDate = FAT_MAKE_DATE(now.year, now.month, now.day);
                     entry->creationTime = FAT_MAKE_TIME(now.hours, now.minutes, now.seconds);
+                } else {
+                    entry->creationDate = AFATFS_DEFAULT_FILE_DATE;
+                    entry->creationTime = AFATFS_DEFAULT_FILE_TIME;
                 }
                 entry->lastWriteDate = entry->creationDate;
                 entry->lastWriteTime = entry->creationTime;
