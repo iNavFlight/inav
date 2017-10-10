@@ -767,7 +767,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         }
     }
     else {
-        // FIXME: throttle pitch comp for FW
+      if (FLIGHT_MODE(ANGLE_MODE)) {
+	const float angleTarget = pidRcCommandToAngle(rcCommand[PITCH], pidProfile()->max_angle_inclination[PITCH]);
+        rcCommand[THROTTLE] = constrain(rcCommand[THROTTLE] - DECIDEGREES_TO_DEGREES(angleTarget) * mixerConfig()->fw_pitch_to_throttle, motorConfig()->minthrottle, motorConfig()->maxthrottle);
+      }
     }
 
     // Update PID coefficients

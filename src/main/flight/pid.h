@@ -140,6 +140,7 @@ void schedulePidGainsUpdate(void);
 void updatePIDCoefficients(void);
 void pidController(void);
 
+float pidRcCommandToAngle(int16_t stick, int16_t maxInclination);
 float pidRateToRcCommand(float rateDPS, uint8_t rate);
 int16_t pidAngleToRcCommand(float angleDeciDegrees, int16_t maxInclination);
 

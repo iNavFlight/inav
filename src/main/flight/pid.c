@@ -235,7 +235,7 @@ void pidResetErrorAccumulators(void)
     }
 }
 
-static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
+float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
 {
     stick = constrain(stick, -500, 500);
     return scaleRangef((float) stick, -500.0f, 500.0f, (float) -maxInclination, (float) maxInclination);
