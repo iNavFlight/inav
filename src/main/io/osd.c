@@ -908,7 +908,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             buff[0] = SYM_HDP_L;
             buff[1] = SYM_HDP_R;
-            int32_t centiHDOP = gpsSol.hdop / (HDOP_SCALE * 100);
+            int32_t centiHDOP = 100 * gpsSol.hdop / HDOP_SCALE;
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, 2);
             break;
         }
