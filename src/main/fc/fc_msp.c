@@ -2001,28 +2001,8 @@ static bool mspSettingCommand(sbuf_t *dst, sbuf_t *src)
     }
 
     const void *ptr = setting_get_value_pointer(setting);
-
-    switch (SETTING_TYPE(setting)) {
-        case VAR_UINT8:
-            FALLTHROUGH;
-        case VAR_INT8:
-            sbufWriteU8(dst, *((uint8_t*)ptr));
-            break;
-        case VAR_UINT16:
-            FALLTHROUGH;
-        case VAR_INT16:
-            sbufWriteU16(dst, *((uint16_t*)ptr));
-            break;
-        case VAR_UINT32:
-            sbufWriteU32(dst, *((uint32_t*)ptr));
-            break;
-        case VAR_FLOAT:
-            {
-                float *val = (float *)ptr;
-                sbufWriteData(dst, val, sizeof(float));
-            }
-            break;
-    }
+    size_t size = setting_get_value_size(setting);
+    sbufWriteDataSafe(dst, ptr, size);
     return true;
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "config/parameter_group.h"
@@ -73,6 +74,8 @@ bool setting_name_exact_match(const setting_t *val, char *buf, const char *cmdli
 // Returns a setting_t with the exact name (case sensitive), or
 // NULL if no setting with that name exists.
 const setting_t *setting_find(const char *name);
+// Returns the size in bytes of the setting value.
+size_t setting_get_value_size(const setting_t *val);
 pgn_t setting_get_pgn(const setting_t *val);
 // Returns a pointer to the actual value stored by
 // the setting_t. The returned value might be modified.
