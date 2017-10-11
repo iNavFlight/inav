@@ -286,6 +286,12 @@ void annexCode(void)
         rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
         rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
 
+	// Apply FW roll2pitch compensation
+	if (STATE(FIXED_WING) && FLIGHT_MODE(ANGLE_MODE)) {
+	  rcCommand[PITCH] -= (uint16_t)abs(rcCommand[ROLL]) * mixerConfig()->fw_roll2pitch_comp / 100;
+	  if (rcCommand[PITCH] < -500) rcCommand[PITCH] = -500;
+	}
+
         //Compute THROTTLE command
         throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
         throttleValue = (uint32_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);       // [MINCHECK;2000] -> [0;1000]
