@@ -48,8 +48,8 @@ void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val)
 void sbufWriteU32BigEndian(sbuf_t *dst, uint32_t val)
 {
     sbufWriteU8(dst, val >> 24);
-    sbufWriteU8(dst, val >> 8);
     sbufWriteU8(dst, val >> 16);
+    sbufWriteU8(dst, val >> 8);
     sbufWriteU8(dst, val >> 0);
 }
 
