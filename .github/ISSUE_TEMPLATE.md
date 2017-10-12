@@ -20,5 +20,6 @@ _Is this a new feature request?_
 
 #### Blackbox logs/Config (.ZIP) where problem occurs
 _Go to CLI, execute `dump` command copy it's output to [PasteBin](https://pastebin.com) and provide a link to a paste here.
+
 _Upload a zipped blackbox log (if available)_
 
