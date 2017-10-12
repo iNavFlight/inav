@@ -666,6 +666,7 @@ HIGHEND_SRC = \
             cms/cms_menu_imu.c \
             cms/cms_menu_ledstrip.c \
             cms/cms_menu_misc.c \
+            cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
             common/colorconversion.c \
             common/gps_conversion.c \

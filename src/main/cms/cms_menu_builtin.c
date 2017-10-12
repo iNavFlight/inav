@@ -40,6 +40,7 @@
 
 #include "cms/cms_menu_imu.h"
 #include "cms/cms_menu_blackbox.h"
+#include "cms/cms_menu_navigation.h"
 #include "cms/cms_menu_vtx.h"
 #include "cms/cms_menu_osd.h"
 #include "cms/cms_menu_ledstrip.h"
@@ -94,6 +95,9 @@ static OSD_Entry menuFeaturesEntries[] =
 {
     {"--- FEATURES ---", OME_Label, NULL, NULL, 0},
     {"BLACKBOX", OME_Submenu, cmsMenuChange, &cmsx_menuBlackbox, 0},
+#if defined(NAV)
+    {"NAVIGATION", OME_Submenu, cmsMenuChange, &cmsx_menuNavigation, 0},
+#endif
 #if defined(VTX) || defined(USE_RTC6705)
     {"VTX", OME_Submenu, cmsMenuChange, &cmsx_menuVtx, 0},
 #endif // VTX || USE_RTC6705
