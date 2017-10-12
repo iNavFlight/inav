@@ -1,3 +1,7 @@
+### If your issue looks like a hardware fault or a configuration problem please don't raise an issue here.
+
+### Please consider using other user support options such as asking the manufacturer of the hardware you are using, [RCGroups](https://www.rcgroups.com/forums/showthread.php?t=2495732), [Slack](https://inavflight.signup.team) or other user support forums & groups (e.g. facebook).
+
 ### Board and Version
 _Board name goes here. If you have a link where you've purchased the board - please include it_
 _Version of INAV used goes here_
@@ -15,4 +19,6 @@ _If it's a custom-compiled firmware please mention this_
 _Is this a new feature request?_
 
 #### Blackbox logs/Config (.ZIP) where problem occurs
-_Upload a zipped copy of an output of CLI `dump` command and a blackbox log (if available)_
+_Go to CLI, execute `dump` command copy it's output to [PasteBin](https://pastebin.com) and provide a link to a paste here.
+_Upload a zipped blackbox log (if available)_
+
