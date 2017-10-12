@@ -66,7 +66,7 @@
 
 //#define DEBUG_RX_SIGNAL_LOSS
 
-const char rcChannelLetters[] = "AERT5678abcdefghijkl";
+const char rcChannelLetters[] = "AERT5678";
 
 uint16_t rssi = 0;                  // range: [0;1023]
 
@@ -88,7 +88,7 @@ uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 3);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -105,6 +105,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 2);
 #define RX_MIN_USEX 885
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
+    .rcmap = {0, 1, 2, 3, 4, 5, 6, 7},      // Default to AETR5678 map
     .halfDuplex = 0,
     .serialrx_provider = SERIALRX_PROVIDER,
     .rx_spi_protocol = RX_SPI_DEFAULT_PROTOCOL,
