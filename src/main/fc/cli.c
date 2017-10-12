@@ -1864,6 +1864,11 @@ static void printMap(uint8_t dumpMask, const rxConfig_t *rxConfig, const rxConfi
     char buf[16];
     char bufDefault[16];
     uint32_t i;
+
+    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+        buf[i] = bufDefault[i] = 0;
+    }
+
     for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
         buf[rxConfig->rcmap[i]] = rcChannelLetters[i];
         if (defaultRxConfig) {
