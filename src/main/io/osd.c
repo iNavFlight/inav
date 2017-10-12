@@ -40,6 +40,7 @@
 #include "cms/cms_menu_osd.h"
 
 #include "common/axis.h"
+#include "common/filter.h"
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
@@ -1420,6 +1421,39 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_EFFICIENCY:
+        {
+            // amperage is in centi amps, speed is in cms/s. We want
+            // mah/km. Values over 999 are considered useless and
+            // displayed as "---""
+            static pt1Filter_t eFilterState;
+            static timeUs_t efficiencyUpdated = 0;
+#define MAX_EFFICIENCY_VALUE 999
+#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
+            int32_t value = 0;
+            timeUs_t currentTimeUs = micros();
+            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                    value = pt1FilterApply4(&eFilterState, ((float)amperage / gpsSol.groundSpeed) / 0.0036f,
+                        1, efficiencyTimeDelta * 1e-6f);
+
+                    efficiencyUpdated = currentTimeUs;
+                } else {
+                    value = eFilterState.state;
+                }
+            }
+            if (value > 0 && value <= MAX_EFFICIENCY_VALUE) {
+                tfp_sprintf(buff, "%3d", value);
+            } else {
+                buff[0] = buff[1] = buff[2] = '-';
+            }
+            buff[3] = SYM_MAH_KM_0;
+            buff[4] = SYM_MAH_KM_1;
+            buff[5] = '\0';
+            break;
+        }
+
     default:
         return false;
     }
@@ -1440,7 +1474,10 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
-
+        if (elementIndex == OSD_EFFICIENCY) {
+            STATIC_ASSERT(OSD_EFFICIENCY == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_not_last_element);
+            elementIndex = OSD_ITEM_COUNT;
+        }
     }
     if (!feature(FEATURE_GPS)) {
         if (elementIndex == OSD_GPS_SPEED) {
@@ -1451,6 +1488,10 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         }
         if (elementIndex == OSD_GPS_HDOP) {
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
+        }
+        if (elementIndex == OSD_EFFICIENCY) {
+            STATIC_ASSERT(OSD_EFFICIENCY == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_not_last_element);
+            elementIndex = OSD_ITEM_COUNT;
         }
     }
 
@@ -1484,6 +1525,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdConfig->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_EFFICIENCY] = OSD_POS(1, 5);
 
     osdConfig->item_pos[OSD_VARIO] = OSD_POS(22,5);
     osdConfig->item_pos[OSD_VARIO_NUM] = OSD_POS(23,7);
@@ -1642,6 +1684,14 @@ static void osdShowStats(void)
         itoa(mAhDrawn, buff, 10);
         strcat(buff, "\x07");
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        int32_t totalDistance = getTotalTravelDistance();
+        if (totalDistance > 0) {
+            displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
+            tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
+                SYM_MAH_KM_0, SYM_MAH_KM_1);
+            displayWrite(osdDisplayPort, statValuesX, top++, buff);
+        }
     }
 
     displayWrite(osdDisplayPort, statNameX, top, "MAX ALTITUDE     :");

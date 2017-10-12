@@ -184,6 +184,10 @@
 #define SYM_MAH   0x07
 #define SYM_WATT  0x57
 
+// Efficiency
+#define SYM_MAH_KM_0    157
+#define SYM_MAH_KM_1    158
+
 // Note, these change with scrolling enabled (scrolling is TODO)
 //#define SYM_AH_DECORATION_LEFT 0x13
 //#define SYM_AH_DECORATION_RIGHT 0x13
