@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "common/string_light.h"
+#include "common/utils.h"
 
 #include "fc/settings_generated.h"
 #include "fc/settings.h"
@@ -60,6 +61,38 @@ bool setting_name_exact_match(const setting_t *val, char *buf, const char *cmdli
 {
 	setting_get_name(val, buf);
 	return sl_strncasecmp(cmdline, buf, strlen(buf)) == 0 && var_name_length == strlen(buf);
+}
+
+const setting_t *setting_find(const char *name)
+{
+	char buf[SETTING_MAX_NAME_LENGTH];
+	for (int ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
+		const setting_t *setting = &settingsTable[ii];
+		setting_get_name(setting, buf);
+		if (strcmp(buf, name) == 0) {
+			return setting;
+		}
+	}
+	return NULL;
+}
+
+size_t setting_get_value_size(const setting_t *val)
+{
+	switch (SETTING_TYPE(val)) {
+		case VAR_UINT8:
+			FALLTHROUGH;
+		case VAR_INT8:
+			return 1;
+		case VAR_UINT16:
+			FALLTHROUGH;
+		case VAR_INT16:
+			return 2;
+		case VAR_UINT32:
+			FALLTHROUGH;
+		case VAR_FLOAT:
+			return 4;
+	}
+	return 0; // Unreachable
 }
 
 pgn_t setting_get_pgn(const setting_t *val)

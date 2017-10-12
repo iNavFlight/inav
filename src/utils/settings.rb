@@ -25,6 +25,8 @@
 # along with this program. If not, see http://www.gnu.org/licenses/.
 
 require 'fileutils'
+require 'getoptlong'
+require 'json'
 require 'set'
 require 'stringio'
 require 'tmpdir'
@@ -281,16 +283,37 @@ class Generator
             end
         end
 
-        @data = YAML.load_file(@settings_file)
+        load_data
 
-        initialize_tables
-        check_conditions
         sanitize_fields
         initialize_name_encoder
         initialize_value_encoder
 
         write_header_file(header_file)
         write_impl_file(impl_file)
+    end
+
+    def write_json(jsonFile)
+        load_data
+        sanitize_fields(true)
+
+        settings = Hash.new
+
+        foreach_member do |group, member|
+            name = member["name"]
+            s = {
+                "type" => member["type"],
+            }
+            table = member["table"]
+            if table
+                s["table"] = @tables[table]
+            end
+            settings[name] = s
+        end
+
+        File.open(jsonFile, "w") do |f|
+            f.write(JSON.pretty_generate(settings))
+        end
     end
 
     def print_stats
@@ -315,6 +338,13 @@ class Generator
     end
 
     private
+
+    def load_data
+        @data = YAML.load_file(@settings_file)
+
+        initialize_tables
+        check_conditions
+    end
 
     def header_file
         File.join(@output_dir, "settings_generated.h")
@@ -651,11 +681,11 @@ class Generator
         end
     end
 
-    def sanitize_fields
+    def sanitize_fields(all=false)
         pending_types = Hash.new
         has_booleans = false
 
-        foreach_enabled_member do |group, member|
+        block  = Proc.new do |group, member|
             if !group["name"]
                 raise "Missing group name"
             end
@@ -681,6 +711,8 @@ class Generator
                 member["table"] = OFF_ON_TABLE["name"]
             end
         end
+
+        all ? foreach_member(&block) : foreach_enabled_member(&block)
 
         if has_booleans
             @tables[OFF_ON_TABLE["name"]] = OFF_ON_TABLE
@@ -836,7 +868,7 @@ class Generator
 end
 
 def usage
-    puts "Usage: ruby #{__FILE__} <source_dir> <settings_file>"
+    puts "Usage: ruby #{__FILE__} <source_dir> <settings_file> [--json <json_file>]"
 end
 
 if __FILE__ == $0
@@ -851,10 +883,30 @@ if __FILE__ == $0
     end
 
     gen = Generator.new(src_root, settings_file)
-    gen.write_files()
 
-    if verbose
-        gen.print_stats()
+    opts = GetoptLong.new(
+        [ "--help", "-h", GetoptLong::NO_ARGUMENT ],
+        [ "--json", "-j", GetoptLong::REQUIRED_ARGUMENT ],
+    )
+
+    jsonFile = nil
+
+    opts.each do |opt, arg|
+        case opt
+        when "--help"
+            usage()
+            exit(0)
+        when "--json"
+            jsonFile = arg
+        end
     end
 
+    if jsonFile
+        gen.write_json(jsonFile)
+    else
+        gen.write_files()
+        if verbose
+            gen.print_stats()
+        end
+    end
 end
