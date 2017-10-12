@@ -6,7 +6,7 @@
 _Board name goes here. If you have a link where you've purchased the board - please include it_
 _Version of INAV used goes here_
 
-_Use CLI command `version` and put it's output here_
+_Use CLI command `version` and put its output here_
 
 _If it's a custom-compiled firmware please mention this_
 
@@ -19,7 +19,7 @@ _If it's a custom-compiled firmware please mention this_
 _Is this a new feature request?_
 
 #### Blackbox logs/Config (.ZIP) where problem occurs
-_Go to CLI, execute `dump` command copy it's output to [PasteBin](https://pastebin.com) and provide a link to a paste here.
+_Go to CLI, execute `dump` command copy its output to [PasteBin](https://pastebin.com) and provide a link to a paste here.
 
 _Upload a zipped blackbox log (if available)_
 
