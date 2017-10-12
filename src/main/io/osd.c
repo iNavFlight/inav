@@ -251,24 +251,6 @@ static int digitCount(int32_t value)
 }
 
 /**
- * Converts altitude/distance based on the current unit system (cm or 1/100th of ft).
- * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt)
- */
-static int32_t osdConvertDistanceToUnit(int32_t dist)
-{
-    switch (osdConfig()->units) {
-    case OSD_UNIT_IMPERIAL:
-        return (dist * 328) / 100; // Convert to feet / 100
-    case OSD_UNIT_UK:
-        FALLTHROUGH;
-    case OSD_UNIT_METRIC:
-        return dist;               // Already in meter / 100
-    }
-    // Unreachable
-    return -1;
-}
-
-/**
  * Converts distance into a string based on the current unit system
  * prefixed by a a symbol to indicate the unit used.
  * @param dist Distance in centimeters
@@ -849,7 +831,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
         tfp_sprintf(buff + 1, "%-4d", abs(mAhDrawn));
-        if (mAhDrawn >= osdConfig()->cap_alarm) {
+        if (osdConfig()->cap_alarm > 0 && mAhDrawn >= osdConfig()->cap_alarm) {
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
@@ -893,7 +875,13 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_HOME_DIST:
-        osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);
+        {
+            osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);
+            uint16_t dist_alarm = osdConfig()->dist_alarm;
+            if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+        }
         break;
 
     case OSD_HEADING:
@@ -919,7 +907,11 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int32_t alt = osdGetAltitude();
             osdFormatAltitudeSymbol(buff, alt);
-            if ((osdConvertDistanceToUnit(alt) / 100) >= osdConfig()->alt_alarm) {
+            uint16_t alt_alarm = osdConfig()->alt_alarm;
+            uint16_t neg_alt_alarm = osdConfig()->neg_alt_alarm;
+            if ((alt_alarm > 0 && CENTIMETERS_TO_METERS(alt) > alt_alarm) ||
+                (neg_alt_alarm > 0 && alt < 0 && -CENTIMETERS_TO_METERS(alt) > neg_alt_alarm)) {
+
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
@@ -1559,9 +1551,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
-    osdConfig->cap_alarm = 2200;
-    osdConfig->time_alarm = 10; // in minutes
-    osdConfig->alt_alarm = 100; // meters or feet depend on configuration
+    osdConfig->cap_alarm = 0;
+    osdConfig->time_alarm = 10;
+    osdConfig->alt_alarm = 100;
+    osdConfig->dist_alarm = 1000;
+    osdConfig->neg_alt_alarm = 5;
 
     osdConfig->video_system = 0;
 
