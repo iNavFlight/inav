@@ -27,23 +27,24 @@ typedef enum {
     VAR_INT16 = (3 << SETTING_TYPE_OFFSET),
     VAR_UINT32 = (4 << SETTING_TYPE_OFFSET),
     VAR_FLOAT = (5 << SETTING_TYPE_OFFSET), // 0x05
+} setting_type_e;
 
+typedef enum {
     // value section, bits 4-5
     MASTER_VALUE = (0 << SETTING_SECTION_OFFSET),
     PROFILE_VALUE = (1 << SETTING_SECTION_OFFSET),
     CONTROL_RATE_VALUE = (2 << SETTING_SECTION_OFFSET), // 0x20
+} setting_section_e;
+
+typedef enum {
     // value mode, bits 6-7
     MODE_DIRECT = (0 << SETTING_MODE_OFFSET),
     MODE_LOOKUP = (1 << SETTING_MODE_OFFSET), // 0x40
-} settingFlag_e;
+} setting_mode_e;
 
 #define SETTING_TYPE_MASK (0x0F)
 #define SETTING_SECTION_MASK (0x30)
 #define SETTING_MODE_MASK (0xC0)
-
-#define SETTING_TYPE(s)       ((s)->type & SETTING_TYPE_MASK)
-#define SETTING_SECTION(s)    ((s)->type & SETTING_SECTION_MASK)
-#define SETTING_MODE(s)       ((s)->type & SETTING_MODE_MASK)
 
 typedef struct settingMinMaxConfig_s {
     const uint8_t indexes[SETTING_MIN_MAX_INDEX_BYTES];
@@ -67,6 +68,10 @@ typedef struct {
 } __attribute__((packed)) setting_t;
 
 extern const setting_t settingsTable[];
+
+static inline setting_type_e SETTING_TYPE(const setting_t *s) { return s->type &  SETTING_TYPE_MASK; }
+static inline setting_section_e SETTING_SECTION(const setting_t *s) { return s->type & SETTING_SECTION_MASK; }
+static inline setting_mode_e SETTING_MODE(const setting_t *s) { return s->type & SETTING_MODE_MASK; }
 
 void setting_get_name(const setting_t *val, char *buf);
 bool setting_name_contains(const setting_t *val, char *buf, const char *cmdline);
