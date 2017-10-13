@@ -105,7 +105,7 @@ Re-apply any new defaults as desired.
 |  min_check  | 1100 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  max_check  | 1900 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  rssi_channel  | 0 | RX channel containing the RSSI signal |
-|  rssi_scale  | 30 | When using ADC RSSI, the raw ADC value will be divided by rssi_scale in order to get the RSSI percentage. RSSI scale is therefore the ADC raw value for 100% RSSI. |
+|  rssi_scale  | 100 | By default RSSI expects to use full span of the input (0-3.3V for ADC, 1000-2000 for AUX channel). This scale (percentage) allows you to adjust the scaling to get 100% RSSI shown correctly |
 |  rssi_invert  | OFF |  |
 |  rc_smoothing  | ON | Interpolation of Rc data during looptimes when there are no new updates. This gives smoother RC input to PID controller and cleaner PIDsum |
 |  input_filtering_mode  | OFF | Filter out noise from OpenLRS Telemetry RX |
