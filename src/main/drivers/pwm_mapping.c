@@ -42,6 +42,8 @@ enum {
 
 static pwmIOConfiguration_t pwmIOConfiguration;
 
+static int32_t pwmServoMap = BIT(2) | BIT(3) | BIT(4); // OMNIBUS (F3) example. Output 1 to motor, outputs 2, 3, 4 to servo.
+
 pwmIOConfiguration_t *pwmGetOutputConfiguration(void)
 {
     return &pwmIOConfiguration;
@@ -195,6 +197,13 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 #ifdef USE_SERVOS
         else if (init->flyingPlatformType == PLATFORM_AIRPLANE || init->flyingPlatformType == PLATFORM_HELICOPTER) {
             // Fixed wing or HELI (one/two motors and a lot of servos
+            if (pwmServoMap != -1) { //  Protect with "timerHardwarePtr->usageFlags & (TIM_USE_FW_SERVO|TIM_USE_FW_MOTOR)"?
+                if (pwmServoMap & (1 << timerIndex)) {
+                    type = MAP_TO_SERVO_OUTPUT;
+                } else {
+                    type = MAP_TO_MOTOR_OUTPUT;
+                }
+            } else
             if (timerHardwarePtr->usageFlags & TIM_USE_FW_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
