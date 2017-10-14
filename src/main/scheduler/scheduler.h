@@ -107,8 +107,8 @@ typedef enum {
 #ifdef USE_UAV_INTERCONNECT
     TASK_UAV_INTERCONNECT,
 #endif
-#ifdef USE_RCSPLIT
-    TASK_RCSPLIT,
+#ifdef USE_RCDEVICE
+    TASK_RCDEVICE,
 #endif
 #ifdef VTX_CONTROL
     TASK_VTXCTRL,

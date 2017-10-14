@@ -227,7 +227,7 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXKILLSWITCH;
     activeBoxIds[activeBoxIdCount++] = BOXFAILSAFE;
 
-#ifdef USE_RCSPLIT
+#ifdef USE_RCDEVICE
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA1;
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA2;
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
