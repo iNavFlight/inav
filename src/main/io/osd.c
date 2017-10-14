@@ -287,13 +287,13 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
      switch (osdConfig()->units) {
      case OSD_UNIT_IMPERIAL:
         centifeet = CENTIMETERS_TO_CENTIFEET(dist);
-        if (abs(dist) < FEET_PER_MILE * 100 / 2) {
+        if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
             // Show feet when dist < 0.5mi
             tfp_sprintf(buff, "%d%c", centifeet / 100, SYM_FT);
         } else {
             // Show miles when dist >= 0.5mi
-            tfp_sprintf(buff, "%d.%02d%c", dist / (100*FEET_PER_MILE),
-            abs(dist) % (100 * FEET_PER_MILE), SYM_MI);
+            tfp_sprintf(buff, "%d.%02d%c", centifeet / (100*FEET_PER_MILE),
+            abs(centifeet) % (100 * FEET_PER_MILE), SYM_MI);
         }
         break;
      case OSD_UNIT_UK:
