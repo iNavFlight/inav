@@ -1007,8 +1007,6 @@ static bool osdDrawSingleElement(uint8_t item)
             uint8_t band = 0;
             uint8_t channel = 0;
             vtxCommonGetBandAndChannel(&band, &channel);
-            debug[0] = band;
-            debug[1] = channel;
             tfp_sprintf(buff, "CH:%c%s", vtx58BandLetter[band], vtx58ChannelNames[channel]);
         }
 #endif
