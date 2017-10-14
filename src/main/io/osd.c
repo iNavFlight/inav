@@ -234,18 +234,19 @@ static int digitCount(int32_t value)
     if (decimals > 0) {
         *(ptr-1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
         dec = ptr;
-        int decimalDigits = digitCount(millis);
-        while (decimalDigits > decimals) {
-            decimalDigits--;
+        int factor = 3; // we're getting the decimal part in millis first
+        while (decimals < factor) {
+            factor--;
             millis /= 10;
         }
+        int decimalDigits = digitCount(millis);
         while (decimalDigits < decimals) {
             decimalDigits++;
             *ptr = '0';
             ptr++;
         }
-        *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
         ui2a(millis, 10, 0, ptr);
+        *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
     }
     return scaled;
 }
