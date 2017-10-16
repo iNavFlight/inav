@@ -118,7 +118,7 @@ void targetConfiguration(void)
     navConfigMutable()->general.flags.disarm_on_landing = 1;
     navConfigMutable()->general.flags.use_thr_mid_for_althold = 1;
     navConfigMutable()->general.flags.extra_arming_safety = 1;
-    navConfigMutable()->general.flags.rth_allow_landing = 1;
+    navConfigMutable()->general.flags.rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS;
     
     navConfigMutable()->general.max_auto_speed = 500;
     navConfigMutable()->general.max_auto_climb_rate = 200;

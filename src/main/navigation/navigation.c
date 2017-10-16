@@ -81,7 +81,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_climb_ignore_emerg = 0,            // Ignore GPS loss on initial climb
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
-            .rth_allow_landing = 1,
+            .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
         },
 
         // General navigation parameters
@@ -993,7 +993,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
 
-        if (navConfig()->general.flags.rth_allow_landing) {
+        if (navigationRTHAllowsLanding()) {
             float descentVelLimited = 0;
 
             // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
@@ -2703,6 +2703,13 @@ bool navigationIsFlyingAutonomousMode(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
     return (stateFlags & (NAV_AUTO_RTH | NAV_AUTO_WP));
+}
+
+bool navigationRTHAllowsLanding(void)
+{
+    navRTHAllowLanding_e allow = navConfig()->general.flags.rth_allow_landing;
+    return allow == NAV_RTH_ALLOW_LANDING_ALWAYS ||
+        (allow == NAV_RTH_ALLOW_LANDING_FS_ONLY && FLIGHT_MODE(FAILSAFE_MODE));
 }
 
 #else // NAV

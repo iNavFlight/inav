@@ -78,6 +78,9 @@ tables:
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
+  - name: nav_rth_allow_landing
+    values: ["NEVER", "ALWAYS", "FS_ONLY"]
+    enum: navRTHAllowLanding_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1104,7 +1107,7 @@ groups:
         type: bool
       - name: nav_rth_allow_landing
         field: general.flags.rth_allow_landing
-        type: bool
+        table: nav_rth_allow_landing
       - name: nav_rth_alt_mode
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
