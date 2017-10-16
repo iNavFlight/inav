@@ -64,10 +64,10 @@ The following sensors are transmitted
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values.
 * **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
-  * **A** : 1 = placeholder so flight mode is always 5 digits long, 4 = failsafe mode
+  * **A** : 1 = placeholder so flight mode is always 5 digits long, 2 = home reset, 4 = failsafe mode
   * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
   * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
-  * **D** : 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode
+  * **D** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
   * **E** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
 * **Tmp2** : GPS lock status, accuracy, and number of satellites. Additive number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
   * **A** : 1 = GPS fix, 2 = GPS home fix (numbers are additive)

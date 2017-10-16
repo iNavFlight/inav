@@ -23,6 +23,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
@@ -685,7 +686,7 @@ void handleSmartPortTelemetry(void)
                         tmpi += 4000;
 
                     // ten thousands column
-                    if (true == false) // placeholder, would like to use this for home reset indicator
+                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
                         tmpi += 20000;
                     if (FLIGHT_MODE(FAILSAFE_MODE))
                         tmpi += 40000;
