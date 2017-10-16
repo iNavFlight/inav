@@ -366,7 +366,7 @@ static void sendVoltage(void)
      * The actual value sent for cell voltage has resolution of 0.002 volts
      * Since vbat has resolution of 0.1 volts it has to be multiplied by 50
      */
-    cellVoltage = ((uint32_t)vbat * 100 + batteryCellCount) / (batteryCellCount * 2);
+    cellVoltage = ((uint32_t)vbat * 100) / (batteryCellCount * 2);
 
     // Cell number is at bit 9-12
     payload = (currentCell << 4);
