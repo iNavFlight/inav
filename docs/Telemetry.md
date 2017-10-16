@@ -17,7 +17,7 @@ All telemetry systems use serial ports, configure serial ports to use the teleme
 
 ## SmartPort (S.Port) telemetry
 
-Smartport is a telemetry system used by newer FrSky transmitters and receivers such as the Taranis/XJR, QX7, X8R, X6R and X4R(SB).
+Smartport is a telemetry system used by newer FrSky transmitters such as the Taranis Q X7, X9D, X9D+, X9E or XJR paired with X-series receivers such as the X4R(SB), X8R, XSR, R-XSR, XSR-M or XSR-E. For older D-series receivers see FrSky telemetry below.
 
 More information about the implementation can be found here: https://github.com/frank26080115/cleanflight/wiki/Using-Smart-Port
 
@@ -81,7 +81,7 @@ The following sensors are transmitted
 
 ## FrSky telemetry
 
-FrSky telemetry is for older FrSky transmitters and receivers.  For newer Taranis/XJR, QX7, X8R, X6R and X4R(SB) see SmartPort (S.Port) telemetry above.
+FrSky telemetry is for older FrSky transmitters and D-series receivers.  For newer transmitters paired with X-series receivers see SmartPort (S.Port) telemetry above.
 
 FrSky telemetry is transmit only and just requires a single connection from the TX pin of a serial port to the RX pin on an FrSky telemetry receiver.
 
