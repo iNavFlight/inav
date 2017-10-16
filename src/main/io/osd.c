@@ -634,7 +634,7 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_LAND_START:
             return OSD_MESSAGE_STR("STARTING EMERGENCY LANDING");
         case MW_NAV_STATE_LAND_IN_PROGRESS:
-            if (!navConfig()->general.flags.rth_allow_landing) {
+            if (!navigationRTHAllowsLanding()) {
                 if (STATE(FIXED_WING)) {
                     return OSD_MESSAGE_STR("LOITERING AROUND HOME");
                 }
