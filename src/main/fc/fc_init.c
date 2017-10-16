@@ -101,7 +101,7 @@
 #include "io/ledstrip.h"
 #include "io/pwmdriver_i2c.h"
 #include "io/osd.h"
-#include "io/rcsplit.h"
+#include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/vtx_control.h"
@@ -674,15 +674,14 @@ void init(void)
     }
 #endif
 
+#ifdef USE_RCDEVICE
+    rcdeviceInit();
+#endif // USE_RCDEVICE
+
     // Latch active features AGAIN since some may be modified by init().
     latchActiveFeatures();
     motorControlEnable = true;
-
     fcTasksInit();
-
-#ifdef USE_RCSPLIT
-    rcSplitInit();
-#endif // USE_RCSPLIT
 
     addBootlogEvent2(BOOT_EVENT_SYSTEM_READY, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_READY;

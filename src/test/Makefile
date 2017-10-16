@@ -657,24 +657,35 @@ $(OBJECT_DIR)/sensor_gyro_unittest : \
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
-$(OBJECT_DIR)/io/rcsplit.o : \
-	$(USER_DIR)/io/rcsplit.c \
-	$(USER_DIR)/io/rcsplit.h
+$(OBJECT_DIR)/io/rcdevice.o : \
+	$(USER_DIR)/io/rcdevice.c \
+	$(USER_DIR)/io/rcdevice.h
 
 	@mkdir -p $(dir $@)
-	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rcsplit.c -o $@
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rcdevice.c -o $@
 
-$(OBJECT_DIR)/rcsplit_unittest.o : \
-	$(TEST_DIR)/rcsplit_unittest.cc \
+$(OBJECT_DIR)/io/rcdevice_cam.o : \
+	$(USER_DIR)/io/rcdevice.c \
+	$(USER_DIR)/io/rcdevice.h \
+	$(USER_DIR)/io/rcdevice_cam.c \
+	$(USER_DIR)/io/rcdevice_cam.h
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rcdevice_cam.c -o $@
+
+
+$(OBJECT_DIR)/rcdevice_unittest.o : \
+	$(TEST_DIR)/rcdevice_unittest.cc \
 	$(GTEST_HEADERS)
 
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/rcsplit_unittest.cc -o $@
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/rcdevice_unittest.cc -o $@
 
-$(OBJECT_DIR)/rcsplit_unittest : \
-	$(OBJECT_DIR)/rcsplit_unittest.o \
+$(OBJECT_DIR)/rcdevice_unittest : \
+	$(OBJECT_DIR)/rcdevice_unittest.o \
 	$(OBJECT_DIR)/common/bitarray.o \
-	$(OBJECT_DIR)/io/rcsplit.o \
+	$(OBJECT_DIR)/io/rcdevice.o \
+	$(OBJECT_DIR)/io/rcdevice_cam.o \
 	$(OBJECT_DIR)/fc/rc_modes.o \
 	$(OBJECT_DIR)/fc/rc_controls.o \
 	$(OBJECT_DIR)/rx/rx.o \

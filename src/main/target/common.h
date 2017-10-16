@@ -99,7 +99,7 @@
 #define PWM_DRIVER_PCA9685
 #define NAV_MAX_WAYPOINTS       60
 #define MAX_BOOTLOG_ENTRIES     64
-#define USE_RCSPLIT
+#define USE_RCDEVICE
 #define PITOT
 #define USE_PITOT_ADC
 
