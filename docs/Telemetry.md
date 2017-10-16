@@ -79,6 +79,10 @@ The following sensors are transmitted
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
 * **0420** : distance to GPS home fix, in meters
 
+### Compatible SmartPort/INAV telemetry flight status
+
+To quickly and easily monitor these SmartPort sensors and flight modes, install [iNav LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
+
 ## FrSky telemetry
 
 FrSky telemetry is for older FrSky transmitters and D-series receivers.  For newer transmitters paired with X-series receivers see SmartPort (S.Port) telemetry above.
