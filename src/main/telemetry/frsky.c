@@ -351,7 +351,6 @@ static void sendVario(void)
  */
 static void sendVoltage(void)
 {
-    static uint16_t currentCell = 0;
     uint32_t cellVoltage;
     uint16_t payload;
 
@@ -368,8 +367,8 @@ static void sendVoltage(void)
      */
     cellVoltage = ((uint32_t)vbat * 100) / (batteryCellCount * 2);
 
-    // Cell number is at bit 9-12
-    payload = (currentCell << 4);
+    // Cell number is at bit 9-12 (only uses vbat, so it can't send individual cell voltages, set cell number to 0)
+    payload = 0;
 
     // Lower voltage bits are at bit 0-8
     payload |= ((cellVoltage & 0x0ff) << 8);
@@ -379,9 +378,6 @@ static void sendVoltage(void)
 
     sendDataHead(ID_VOLT);
     serialize16(payload);
-
-    currentCell++;
-    currentCell %= batteryCellCount;
 }
 
 /*
