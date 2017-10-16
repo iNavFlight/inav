@@ -222,15 +222,7 @@ static void sendSatalliteSignalQualityAsTemperature2(void)
         satellite = constrain(gpsSol.hdop, 0, GPS_MAX_HDOP_VAL);
     }
     sendDataHead(ID_TEMPRATURE2);
-
-    if (telemetryConfig()->frsky_unit == FRSKY_UNIT_METRICS) {
-        serialize16(satellite);
-    } else {
-        float tmp = (satellite - 32) / 1.8f;
-        //Round the value
-        tmp += (tmp < 0) ? -0.5f : 0.5f;
-        serialize16(tmp);
-    }
+    serialize16(satellite);
 }
 
 static void sendSpeed(void)
