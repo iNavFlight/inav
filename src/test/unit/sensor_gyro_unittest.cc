@@ -72,7 +72,7 @@ TEST(SensorGyro, Read)
     gyroInit();
     EXPECT_EQ(GYRO_FAKE, detectedSensors[SENSOR_INDEX_GYRO]);
     fakeGyroSet(5, 6, 7);
-    const bool read = gyroDev0.read(&gyroDev0);
+    const bool read = gyroDev0.readFn(&gyroDev0);
     EXPECT_EQ(true, read);
     EXPECT_EQ(5, gyroDev0.gyroADCRaw[X]);
     EXPECT_EQ(6, gyroDev0.gyroADCRaw[Y]);
@@ -84,7 +84,7 @@ TEST(SensorGyro, Calibrate)
     gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
     gyroInit();
     fakeGyroSet(5, 6, 7);
-    const bool read = gyroDev0.read(&gyroDev0);
+    const bool read = gyroDev0.readFn(&gyroDev0);
     EXPECT_EQ(true, read);
     EXPECT_EQ(5, gyroDev0.gyroADCRaw[X]);
     EXPECT_EQ(6, gyroDev0.gyroADCRaw[Y]);
