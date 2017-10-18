@@ -1524,8 +1524,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_EFFICIENCY] = OSD_POS(1, 5);
 
-    osdConfig->item_pos[OSD_VARIO] = OSD_POS(22,5);
-    osdConfig->item_pos[OSD_VARIO_NUM] = OSD_POS(23,7);
+    // avoid OSD_VARIO under OSD_CROSSHAIRS
+    osdConfig->item_pos[OSD_VARIO] = OSD_POS(23, 5);
+    // OSD_VARIO_NUM at the right of OSD_VARIO
+    osdConfig->item_pos[OSD_VARIO_NUM] = OSD_POS(24, 7);
     osdConfig->item_pos[OSD_HOME_DIR] = OSD_POS(14, 11);
     osdConfig->item_pos[OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6) | VISIBLE_FLAG;
