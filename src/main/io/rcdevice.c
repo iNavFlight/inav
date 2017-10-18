@@ -197,10 +197,93 @@ static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_
     return false;
 }
 
+static uint8_t crc_high_first(uint8_t *ptr, uint8_t len)
+{
+    uint8_t i;
+    uint8_t crc=0x00;
+    while (len--) {
+        crc ^= *ptr++;
+        for (i=8; i>0; --i) {
+            if (crc & 0x80)
+                crc = (crc << 1) ^ 0x31;
+            else
+                crc = (crc << 1);
+        }
+    }
+    return (crc);
+}
+
+static void sendCtrlCommand(runcamDevice_t *device, rcsplit_ctrl_argument_e argument)
+{
+    if (!device->serialPort)
+        return ;
+
+    uint8_t uart_buffer[5] = {0};
+    uint8_t crc = 0;
+
+    uart_buffer[0] = RCSPLIT_PACKET_HEADER;
+    uart_buffer[1] = RCSPLIT_PACKET_CMD_CTRL;
+    uart_buffer[2] = argument;
+    uart_buffer[3] = RCSPLIT_PACKET_TAIL;
+    crc = crc_high_first(uart_buffer, 4);
+
+    // build up a full request [header]+[command]+[argument]+[crc]+[tail]
+    uart_buffer[3] = crc;
+    uart_buffer[4] = RCSPLIT_PACKET_TAIL;
+
+    // write to device
+    serialWriteBuf(device->serialPort, uart_buffer, 5);
+}
+
 // get the device info(firmware version, protocol version and features, see the
 // definition of runcamDeviceInfo_t to know more)
 static bool runcamDeviceGetDeviceInfo(runcamDevice_t *device, uint8_t *outputBuffer) 
 {
+    // Send "who are you" command to device to detect the device whether is running RCSplit FW1.0 or RCSplit FW1.1
+    uint32_t max_retries = 2;
+    while (max_retries--) {
+        runcamDeviceFlushRxBuffer(device);
+        sendCtrlCommand(device, RCSPLIT_CTRL_ARGU_WHO_ARE_YOU);
+
+        timeMs_t timeout = millis() + 500;
+        uint8_t response[5] = { 0 };
+        while (millis() < timeout) {
+            if (serialRxBytesWaiting(device->serialPort) >= 5) {
+                response[0] = serialRead(device->serialPort);
+                response[1] = serialRead(device->serialPort);
+                response[2] = serialRead(device->serialPort);
+                response[3] = serialRead(device->serialPort);
+                response[4] = serialRead(device->serialPort);
+                if (response[0] != RCSPLIT_PACKET_HEADER || response[1] != RCSPLIT_PACKET_CMD_CTRL || response[2] != RCSPLIT_CTRL_ARGU_WHO_ARE_YOU || response[4] != RCSPLIT_PACKET_TAIL) {
+                    break;
+                }
+
+                uint8_t crcFromPacket = response[3];
+                response[3] = response[4]; // move packet tail field to crc field, and calc crc with first 4 bytes
+                uint8_t crc = crc_high_first(response, 4);
+                if (crc != crcFromPacket) {
+                    break;
+                }
+
+                // generate response for RCSplit FW 1.0 and FW 1.1
+                outputBuffer[0] = RCDEVICE_PROTOCOL_HEADER;
+                // protocol version
+                outputBuffer[1] = RCDEVICE_PROTOCOL_RCSPLIT_VERSION;
+                // features
+                outputBuffer[2] = RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON | RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON | RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE;
+                outputBuffer[3] = 0;
+
+                crc = 0;
+                const uint8_t * const end = outputBuffer + 4;
+                for (const uint8_t *ptr = outputBuffer; ptr < end; ++ptr) {
+                    crc = crc8_dvb_s2(crc, *ptr);
+                }
+                outputBuffer[4] = crc;
+                return true;
+            }
+        }
+    }
+
     return runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, NULL, 0, outputBuffer, NULL); 
 }
 
@@ -248,7 +331,6 @@ bool runcamDeviceInit(runcamDevice_t *device)
                 uint8_t featureLowBits = respBuf[2];
                 uint8_t featureHighBits = respBuf[3];
                 device->info.features = (featureHighBits << 8) | featureLowBits;
-
                 return true;
             }
 
@@ -262,7 +344,14 @@ bool runcamDeviceInit(runcamDevice_t *device)
 
 bool runcamDeviceSimulateCameraButton(runcamDevice_t *device, uint8_t operation)
 {
-    runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_CAMERA_CONTROL, &operation, sizeof(operation));
+    if (device->info.protocolVersion == RCDEVICE_PROTOCOL_RCSPLIT_VERSION) {
+        sendCtrlCommand(device, operation + 1);
+    } else if (device->info.protocolVersion == RCDEVICE_PROTOCOL_VERSION_1_0) {
+        runcamDeviceSendPacket(device, RCDEVICE_PROTOCOL_COMMAND_CAMERA_CONTROL, &operation, sizeof(operation));
+    } else {
+        return false;
+    }
+
     return true;
 }
 
