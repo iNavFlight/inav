@@ -166,7 +166,7 @@
 #define SYM_DIST_M      181
 #define SYM_DIST_KM     182
 #define SYM_M           185
-#define SYM_KM          187
+#define SYM_KM          186
 
 // Unit Icon´s (Imperial)
 #define SYM_FTS         0x99
