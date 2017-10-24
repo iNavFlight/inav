@@ -25,6 +25,7 @@
 
 #include "common/maths.h"
 #include "common/time.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -84,6 +85,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
                 break;
             }
+            FALLTHROUGH;
 
         case PITOT_ADC:
 #if defined(USE_PITOT_ADC)
@@ -96,6 +98,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
                 break;
             }
+            FALLTHROUGH;
 
         case PITOT_VIRTUAL:
 #if defined(USE_PITOT_VIRTUAL)
@@ -110,6 +113,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
                 break;
             }
+            FALLTHROUGH;
 
         case PITOT_FAKE:
 #ifdef USE_PITOT_FAKE
@@ -122,6 +126,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
                 break;
             }
+            FALLTHROUGH;
 
         case PITOT_NONE:
             pitotHardware = PITOT_NONE;

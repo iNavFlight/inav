@@ -32,7 +32,7 @@ typedef struct dmaChannelDescriptor_s {
     IRQn_Type                   irqN;
     uint32_t                    rcc;
     uint32_t                    userParam;
-    resourceOwner_t             owner;
+    resourceOwner_e             owner;
     uint8_t                     resourceIndex;
 } dmaChannelDescriptor_t;
 
@@ -116,7 +116,7 @@ dmaHandlerIdentifier_e dmaFindHandlerIdentifier(DMA_Stream_TypeDef* stream);
 dmaHandlerIdentifier_e dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel);
 #endif
 
-void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_t owner, uint8_t resourceIndex);
+void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_e owner, uint8_t resourceIndex);
 void dmaEnableClock(dmaHandlerIdentifier_e identifier);
 void dmaSetHandler(dmaHandlerIdentifier_e identifier, dmaCallbackHandlerFuncPtr callback, uint32_t priority, uint32_t userParam);
 

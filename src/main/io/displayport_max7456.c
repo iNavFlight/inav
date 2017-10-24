@@ -32,18 +32,27 @@
 #include "drivers/vcd.h"
 
 #include "io/displayport_max7456.h"
-#include "io/osd.h"
 
 displayPort_t max7456DisplayPort;
 
+static uint8_t max7456Mode(textAttributes_t attr)
+{
+    uint8_t mode = 0;
+    if (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) {
+        mode |= MAX7456_MODE_BLINK;
+    }
+    if (TEXT_ATTRIBUTES_HAVE_INVERTED(attr)) {
+        mode |= MAX7456_MODE_INVERT;
+    }
+    if (TEXT_ATTRIBUTES_HAVE_SOLID_BG(attr)) {
+        mode |= MAX7456_MODE_SOLID_BG;
+    }
+    return mode;
+}
+
 static int grab(displayPort_t *displayPort)
 {
-    // FIXME this should probably not have a dependency on the OSD or OSD slave code
     UNUSED(displayPort);
-#ifdef OSD
-    osdResetAlarms();
-#endif
-
     return 0;
 }
 
@@ -74,18 +83,18 @@ static int screenSize(const displayPort_t *displayPort)
     return maxScreenSize;
 }
 
-static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
+static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
 {
     UNUSED(displayPort);
-    max7456Write(x, y, s);
+    max7456Write(x, y, s, max7456Mode(attr));
 
     return 0;
 }
 
-static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c)
+static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr)
 {
     UNUSED(displayPort);
-    max7456WriteChar(x, y, c);
+    max7456WriteChar(x, y, c, max7456Mode(attr));
 
     return 0;
 }

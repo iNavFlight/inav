@@ -32,6 +32,7 @@
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -54,7 +55,7 @@
 #include "io/osd.h"
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
-#include "io/rcsplit.h"
+#include "io/rcdevice_cam.h"
 
 #include "msp/msp_serial.h"
 
@@ -72,10 +73,13 @@
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
+#include "sensors/opflow.h"
 
 #include "telemetry/telemetry.h"
 
 #include "config/feature.h"
+
+#include "uav_interconnect/uav_interconnect.h"
 
 /* VBAT monitoring interval (in microseconds) - 1s*/
 #define VBATINTERVAL (6 * 3500)
@@ -194,6 +198,19 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef USE_OPTICAL_FLOW
+void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    if (!sensors(SENSOR_OPFLOW))
+        return;
+
+    opflowUpdate(currentTimeUs);
+    updatePositionEstimator_OpticalFlowTopic(currentTimeUs);
+}
+#endif
+
 #ifdef USE_DASHBOARD
 void taskDashboardUpdate(timeUs_t currentTimeUs)
 {
@@ -254,6 +271,19 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
     if (feature(FEATURE_OSD)) {
         osdUpdate(currentTimeUs);
     }
+}
+#endif
+
+#ifdef VTX_CONTROL
+// Everything that listens to VTX devices
+void taskVtxControl(timeUs_t currentTimeUs)
+{
+    if (ARMING_FLAG(ARMED))
+        return;
+
+#ifdef VTX_COMMON
+    vtxCommonProcess(currentTimeUs);
+#endif
 }
 #endif
 
@@ -332,6 +362,20 @@ void fcTasksInit(void)
 #else
     setTaskEnabled(TASK_CMS, feature(FEATURE_OSD) || feature(FEATURE_DASHBOARD));
 #endif
+#endif
+#ifdef USE_OPTICAL_FLOW
+    setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
+#endif
+#ifdef VTX_CONTROL
+#if defined(VTX_SMARTAUDIO) || defined(VTX_TRAMP)
+    setTaskEnabled(TASK_VTXCTRL, true);
+#endif
+#endif
+#ifdef USE_UAV_INTERCONNECT
+    setTaskEnabled(TASK_UAV_INTERCONNECT, uavInterconnectBusIsInitialized());
+#endif
+#ifdef USE_RCDEVICE
+    setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
 }
 
@@ -512,7 +556,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .desiredPeriod = TASK_PERIOD_HZ(250),
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
@@ -526,12 +570,39 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_RCSPLIT
-    [TASK_RCSPLIT] = {
-        .taskName = "RCSPLIT",
-        .taskFunc = rcSplitProcess,
+#ifdef USE_OPTICAL_FLOW
+    [TASK_OPFLOW] = {
+        .taskName = "OPFLOW",
+        .taskFunc = taskUpdateOpticalFlow,
+        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB sensor will work at lower rate w/o accumulation
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_UAV_INTERCONNECT
+    [TASK_UAV_INTERCONNECT] = {
+        .taskName = "UIB",
+        .taskFunc = uavInterconnectBusTask,
+        .desiredPeriod = 1000000 / 500,          // 500 Hz
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_RCDEVICE
+    [TASK_RCDEVICE] = {
+        .taskName = "RCDEVICE",
+        .taskFunc = rcdeviceUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(10),        // 10 Hz, 100ms
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef VTX_CONTROL
+    [TASK_VTXCTRL] = {
+        .taskName = "VTXCTRL",
+        .taskFunc = taskVtxControl,
+        .desiredPeriod = TASK_PERIOD_HZ(5),          // 5Hz @200msec
+        .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
 };

@@ -101,9 +101,19 @@ typedef enum {
 #ifdef CMS
     TASK_CMS,
 #endif
-#ifdef USE_RCSPLIT
-    TASK_RCSPLIT,
+#ifdef USE_OPTICAL_FLOW
+    TASK_OPFLOW,
 #endif
+#ifdef USE_UAV_INTERCONNECT
+    TASK_UAV_INTERCONNECT,
+#endif
+#ifdef USE_RCDEVICE
+    TASK_RCDEVICE,
+#endif
+#ifdef VTX_CONTROL
+    TASK_VTXCTRL,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 

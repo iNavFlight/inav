@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "drivers/io_types.h"
+#include "drivers/bus.h"
 
 typedef enum {
     ALIGN_DEFAULT = 0,                                      // driver-provided alignment
@@ -33,15 +34,6 @@ typedef enum {
     CW180_DEG_FLIP = 7,
     CW270_DEG_FLIP = 8
 } sensor_align_e;
-
-typedef union busDevice_u {
-    struct deviceSpi_s {
-        IO_t csnPin;
-    } spi;
-    struct deviceI2C_s {
-        uint8_t address;
-    } i2c;
-} busDevice_t;
 
 typedef bool (*sensorInitFuncPtr)(void);                    // sensor init prototype
 typedef bool (*sensorReadFuncPtr)(int16_t *data);           // sensor read and align prototype
@@ -58,3 +50,6 @@ typedef bool (*sensorGyroInterruptStatusFuncPtr)(struct gyroDev_s *gyro);
 struct magDev_s;
 typedef bool (*sensorMagInitFuncPtr)(struct magDev_s *mag);
 typedef bool (*sensorMagReadFuncPtr)(struct magDev_s *mag);
+struct opflowDev_s;
+typedef bool (*sensorOpflowInitFuncPtr)(struct opflowDev_s *mag);
+typedef bool (*sensorOpflowUpdateFuncPtr)(struct opflowDev_s *mag);

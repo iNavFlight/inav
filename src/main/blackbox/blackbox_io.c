@@ -30,6 +30,7 @@
 #include "common/encoding.h"
 #include "common/maths.h"
 #include "common/printf.h"
+#include "common/typeconversion.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -76,7 +77,7 @@ static struct {
 #endif
 
 #ifndef UNIT_TEST
-void blackboxOpen()
+void blackboxOpen(void)
 {
     serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
     if (sharedBlackboxAndMspPort) {
@@ -327,7 +328,7 @@ static void blackboxLogFileCreated(afatfsFilePtr_t file)
     }
 }
 
-static void blackboxCreateLogFile()
+static void blackboxCreateLogFile(void)
 {
     uint32_t remainder = blackboxSDCard.largestLogFileNumber + 1;
 
@@ -358,7 +359,7 @@ static void blackboxCreateLogFile()
  *
  * Keep calling until the function returns true (open is complete).
  */
-static bool blackboxSDCardBeginLog()
+static bool blackboxSDCardBeginLog(void)
 {
     fatDirectoryEntry_t *directoryEntry;
 
@@ -389,7 +390,7 @@ static bool blackboxSDCardBeginLog()
                     memcpy(logSequenceNumberString, directoryEntry->filename + 3, 5);
                     logSequenceNumberString[5] = '\0';
 
-                    blackboxSDCard.largestLogFileNumber = MAX((uint32_t) atoi(logSequenceNumberString), blackboxSDCard.largestLogFileNumber);
+                    blackboxSDCard.largestLogFileNumber = MAX((uint32_t) fastA2I(logSequenceNumberString), blackboxSDCard.largestLogFileNumber);
                 }
             } else {
                 // We're done checking all the files on the card, now we can create a new log file
@@ -503,7 +504,7 @@ bool isBlackboxDeviceFull(void)
  * Call once every loop iteration in order to maintain the global blackboxHeaderBudget with the number of bytes we can
  * transmit this iteration.
  */
-void blackboxReplenishHeaderBudget()
+void blackboxReplenishHeaderBudget(void)
 {
     int32_t freeSpace;
 

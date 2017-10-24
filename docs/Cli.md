@@ -105,7 +105,7 @@ Re-apply any new defaults as desired.
 |  min_check  | 1100 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  max_check  | 1900 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  rssi_channel  | 0 | RX channel containing the RSSI signal |
-|  rssi_scale  | 30 | When using ADC RSSI, the raw ADC value will be divided by rssi_scale in order to get the RSSI percentage. RSSI scale is therefore the ADC raw value for 100% RSSI. |
+|  rssi_scale  | 100 | By default RSSI expects to use full span of the input (0-3.3V for ADC, 1000-2000 for AUX channel). This scale (percentage) allows you to adjust the scaling to get 100% RSSI shown correctly |
 |  rssi_invert  | OFF |  |
 |  rc_smoothing  | ON | Interpolation of Rc data during looptimes when there are no new updates. This gives smoother RC input to PID controller and cleaner PIDsum |
 |  input_filtering_mode  | OFF | Filter out noise from OpenLRS Telemetry RX |
@@ -246,6 +246,8 @@ Re-apply any new defaults as desired.
 |  failsafe_fw_roll_angle  | -200 | Amount of banking when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = left roll |
 |  failsafe_fw_pitch_angle  | 100 | Amount of dive/climb when `SET-THR` failsafe is active on a fixed-wing machine. In 1/10 deg (deci-degrees). Negative values = climb |
 |  failsafe_fw_yaw_rate  | -45 | Requested yaw rate to execute when `SET-THR` failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn |
+|  failsafe_min_distance  | 0 | If failsafe happens when craft is closer than this distance in centimeters from home, failsafe will not execute regular failsafe_procedure, but will execute procedure specified in failsafe_min_distance_procedure instead. 0 = Normal failsafe_procedure always taken. |
+|  failsafe_min_distance_procedure  | SET-THR | What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance. See [Failsafe documentation](Failsafe.md#failsafe_throttle). |
 |  rx_min_usec  | 885 | Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 |  rx_max_usec  | 2115 | Defines the longest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value higher than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 |  rx_nosignal_throttle  | HOLD | Defines behavior of throttle channel after signal loss is detected and until `failsafe_procedure` kicks in. Possible values - `HOLD` and `DROP`. |
@@ -260,7 +262,7 @@ Re-apply any new defaults as desired.
 |  ledstrip_visual_beeper  | OFF |  |
 |  osd_video_system     | 0     |  |
 |  osd_row_shiftdown    | 0     |  |
-|  osd_units            | 0     |  |
+|  osd_units            | METRIC| IMPERIAL, METRIC, UK |
 |  osd_rssi_alarm       | 20    |  |
 |  osd_cap_alarm        | 2200  |  |
 |  osd_time_alarm       | 10    |  |

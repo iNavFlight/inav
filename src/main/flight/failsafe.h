@@ -40,8 +40,9 @@ typedef struct failsafeConfig_s {
     int16_t failsafe_fw_roll_angle;         // Settings to be applies during "LAND" procedure on a fixed-wing
     int16_t failsafe_fw_pitch_angle;
     int16_t failsafe_fw_yaw_rate;
-
     uint16_t failsafe_stick_motion_threshold;
+    uint16_t failsafe_min_distance;              // Minimum distance required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
+    uint8_t failsafe_min_distance_procedure;     // selected minimum distance failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
 } failsafeConfig_t;
 
 PG_DECLARE(failsafeConfig_t, failsafeConfig);
@@ -129,9 +130,10 @@ typedef enum {
 
 typedef struct failsafeState_s {
     int16_t events;
-    bool monitoring;
-    bool active;
-    bool controlling;
+    bool monitoring;                        // Flag that failsafe is monitoring RC link
+    bool suspended;                         // Failsafe is temporary suspended. This happens when we temporary suspend RX system due to EEPROM write/read
+    bool active;                            // Failsafe is active (on RC link loss)
+    bool controlling;                       // Failsafe is driving the sticks instead of pilot
     timeMs_t rxDataFailurePeriod;
     timeMs_t rxDataRecoveryPeriod;
     timeMs_t validRxDataReceivedAt;
@@ -151,11 +153,11 @@ void failsafeReset(void);
 void failsafeStartMonitoring(void);
 void failsafeUpdateState(void);
 
-failsafePhase_e failsafePhase();
+failsafePhase_e failsafePhase(void);
 bool failsafeIsMonitoring(void);
 bool failsafeIsActive(void);
 bool failsafeIsReceivingRxData(void);
-void failsafeOnRxSuspend(uint32_t suspendPeriod);
+void failsafeOnRxSuspend(void);
 void failsafeOnRxResume(void);
 bool failsafeMayRequireNavigationMode(void);
 void failsafeApplyControlInput(void);

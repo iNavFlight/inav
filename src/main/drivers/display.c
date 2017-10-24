@@ -52,6 +52,9 @@ void displayGrab(displayPort_t *instance)
 void displayRelease(displayPort_t *instance)
 {
     instance->vTable->release(instance);
+    // displayPort_t is changing owner. Clear it, since
+    // the new owner might expect a clear canvas.
+    instance->vTable->clearScreen(instance);
     --instance->grabCount;
 }
 
@@ -77,14 +80,28 @@ int displayWrite(displayPort_t *instance, uint8_t x, uint8_t y, const char *s)
 {
     instance->posX = x + strlen(s);
     instance->posY = y;
-    return instance->vTable->writeString(instance, x, y, s);
+    return instance->vTable->writeString(instance, x, y, s, TEXT_ATTRIBUTES_NONE);
+}
+
+int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
+{
+    instance->posX = x + strlen(s);
+    instance->posY = y;
+    return instance->vTable->writeString(instance, x, y, s, attr);
 }
 
 int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c)
 {
     instance->posX = x + 1;
     instance->posY = y;
-    return instance->vTable->writeChar(instance, x, y, c);
+    return instance->vTable->writeChar(instance, x, y, c, TEXT_ATTRIBUTES_NONE);
+}
+
+int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr)
+{
+    instance->posX = x + 1;
+    instance->posY = y;
+    return instance->vTable->writeChar(instance, x, y, c, attr);
 }
 
 bool displayIsTransferInProgress(const displayPort_t *instance)

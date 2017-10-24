@@ -62,11 +62,6 @@
 #define SDCARD_SPI_INSTANCE     SPI3
 #define SDCARD_SPI_CS_PIN       PC1
 
-// SPI3 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
-
 #define SDCARD_DMA_CHANNEL_TX               	DMA1_Stream7
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG 	DMA_FLAG_TCIF7
 #define SDCARD_DMA_CLK                      	RCC_AHB1Periph_DMA1
@@ -114,16 +109,27 @@
 
 #define SERIAL_PORT_COUNT       6
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
 
 // *************** I2C ****************************
 // SLC clash with WS2812 LED
-#define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C1_SCL                PB6
-#define I2C1_SDA                PB7
+#ifdef MATEKF405OSD
+    // OSD - no native I2C
+    #define USE_I2C
+    #define SOFT_I2C
+    #define I2C_DEVICE              (I2CINVALID)
+    #define SOFT_I2C_SCL            PC10
+    #define SOFT_I2C_SDA            PC11
+    #define I2C_DEVICE_SHARES_UART3
+#else
+    // AIO
+    #define USE_I2C
+    #define I2C_DEVICE              (I2CDEV_1)
+    #define I2C1_SCL                PB6
+    #define I2C1_SDA                PB7
+#endif
 
 
 #define BARO
