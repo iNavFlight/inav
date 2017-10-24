@@ -108,11 +108,20 @@
 #define SPI3_MISO_PIN          PC11
 #define SPI3_MOSI_PIN          PC12
 
+
 #define USE_ADC
+#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_2_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PA0
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
+
+/*#define USE_ADC
 #define CURRENT_METER_ADC_PIN   PC1
 #define VBAT_ADC_PIN            PC2
 #define RSSI_ADC_PIN            PA0
-
+*/
 #define USE_ESC_SENSOR
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define DEFAULT_FEATURES         (FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
