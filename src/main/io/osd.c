@@ -562,8 +562,7 @@ static const char * osdFailsafePhaseMessage(void)
 #ifdef NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
-            // Should we show RTH instead?
-            return OSD_MESSAGE_STR("(RTL)");
+            return OSD_MESSAGE_STR("(RTH)");
 #endif
         case FAILSAFE_LANDING:
             // This should be considered an emergengy landing
@@ -961,7 +960,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else if (FLIGHT_MODE(HEADFREE_MODE))
                 p = "!HF!";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
-                p = "RTL ";
+                p = "RTH ";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
                     // 3D HOLD
