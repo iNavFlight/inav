@@ -957,9 +957,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "PASS";
             else if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 p = "!FS!";
-            } else if (FLIGHT_MODE(HEADFREE_MODE))
-                p = "!HF!";
-            else if (FLIGHT_MODE(NAV_RTH_MODE))
+            } else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p = "RTH ";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
@@ -1283,9 +1281,9 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const char *message = NULL;
             if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 3
+                // Aircraft is armed. We might have up to 4
                 // messages to show.
-                const char *messages[3];
+                const char *messages[4];
                 unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
@@ -1334,6 +1332,9 @@ static bool osdDrawSingleElement(uint8_t item)
                         }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
                             messages[messageCount++] = "(AUTOTUNE)";
+                        }
+                        if (FLIGHT_MODE(HEADFREE_MODE)) {
+                            messages[messageCount++] = "(HEADFREE)";
                         }
                     }
                     // Pick one of the available messages. Each message lasts
