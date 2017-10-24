@@ -233,7 +233,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
     if (FLIGHT_MODE(FAILSAFE_MODE)) {
         flightMode = "!FS";
     } else if (FLIGHT_MODE(ANGLE_MODE)) {
-        flightMode = "STAB";
+        flightMode = "ANGL";
     } else if (FLIGHT_MODE(HORIZON_MODE)) {
         flightMode = "HOR";
     }
