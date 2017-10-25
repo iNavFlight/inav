@@ -17,6 +17,9 @@
 
 #pragma once
 
+#ifdef OMNIBUSF4PRO_LEDSTRIPM5
+#define OMNIBUSF4PRO
+#endif
 #ifdef OMNIBUSF4PRO
 #define TARGET_BOARD_IDENTIFIER "OBSD"
 #elif defined(OMNIBUSF4V3)
@@ -201,7 +204,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define LED_STRIP
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
 #   define WS2811_PIN                      PB6
 #   define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
 #   define WS2811_DMA_STREAM               DMA1_Stream0
