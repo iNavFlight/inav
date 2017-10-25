@@ -47,6 +47,9 @@
 #include "telemetry/smartport.h"
 
 
+#include "fc/rc_modes.h" 			// entry added do allow encoding additional adjustement/modifier  flight modes  
+
+
 enum
 {
     SPSTATE_UNINITIALIZED,
@@ -385,7 +388,7 @@ static void processMspPacket(mspPacket_t* packet)
  *       - 2: MSP error
  *     - CRC (request type included)
  */
-bool smartPortSendMspReply()
+bool smartPortSendMspReply(void)
 {
     static uint8_t checksum = 0;
     static uint8_t seq = 0;
@@ -651,49 +654,80 @@ void handleSmartPortTelemetry(void)
                 {
                     uint32_t tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
 
-                    // ones column
-                    if (!isArmingDisabled())
-                        tmpi += 1;
-                    else
-                        tmpi += 2;
+// ones column
+			// ARM states are either mutually exclusive or implied by an  other , 	room  to encode additional  mode states within the same ba
+                    	if (!isArmingDisabled())
+                    	tmpi = 1;    	// was tmpi += 1  
+                    	else		// meaning ready to ARM
+                        tmpi = 2;    	// was tmpi += 2 
 
-                    if (ARMING_FLAG(ARMED))
-                        tmpi += 4;
+                    	if (ARMING_FLAG(ARMED))
+                        tmpi = 3;      	// was  tmpi += 4
+					
+					
+					
 
-                    // tens column
-                    if (FLIGHT_MODE(ANGLE_MODE))
-                        tmpi += 10;
-                    if (FLIGHT_MODE(HORIZON_MODE))
-                        tmpi += 20;
-                    if (FLIGHT_MODE(PASSTHRU_MODE))
-                        tmpi += 40;
+// tens column
+			//   slot for mutually exclusive modes, allow to encode 10  modes within the available bandwidth
+			if (FLIGHT_MODE(ANGLE_MODE))
+                       	tmpi = 10;
+                    	if (FLIGHT_MODE(HORIZON_MODE))
+                        tmpi = 20;
+                    	if (FLIGHT_MODE(PASSTHRU_MODE))
+                        tmpi = 30;									  
+			if (FLIGHT_MODE(HEADING_MODE))  	// existing entry relocated here
+			tmpi = 40;
+			if (FLIGHT_MODE(NAV_LAUNCH_MODE))	// new entry post 1.7.3
+			tmpi = 50;
+			if (FLIGHT_MODE(NAV_RTH_MODE)) 		// existing entry relocated here
+			tmpi = 60;			   
+			if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) 	// existing entry relocated here
+			tmpi = 70;
+			if (FLIGHT_MODE(NAV_POSHOLD_MODE)) 	// existing entry relocated here
+			tmpi = 80;
+			if (FLIGHT_MODE(FAILSAFE_MODE)) 	// existing entry relocated here
+			tmpi = 90; 
 
-                    // hundreds column
-                    if (FLIGHT_MODE(HEADING_MODE))
-                        tmpi += 100;
-                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
-                        tmpi += 200;
-                    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
-                        tmpi += 400;
+// hundreds column        
+					
+			//  slot for further mutually exclusive modes  with room for much more
+			if (FLIGHT_MODE(NAV_WP_MODE))  		// existing entry relocated here
+			tmpi = 100;
+					                    
+			if (FLIGHT_MODE(HEADFREE_MODE))  	// existing entry relocated here           
+                        tmpi = 200;
+                  
+					
+// thousands column 
+			// slot for mutually exclusive temporary adjustments modes with room for more
+                    
+					
+			if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) 	//new entry added post 1.7.3	
+                        tmpi = 1000;
+				
+			if (FLIGHT_MODE(AUTO_TUNE)) 		//new entry added post 1.7.3
+			tmpi = 2000;
+					
+			if (IS_RC_MODE_ACTIVE(BOXHOMERESET))     //new entry added post 1.7.3
+			tmpi = 3000;
+						 
+						 
+// ten thousands column
+			// slot for modes with no preconditions 
+					
+			if (FLIGHT_MODE(TURN_ASSISTANT))     	//new entry added post 1.7.3
+			tmpi += 10000;			
+					
+			if (FLIGHT_MODE(FLAPERON))		// new entry added post 1.7.3
+			tmpi += 20000;			
+					
 
-                    // thousands column
-                    if (FLIGHT_MODE(NAV_RTH_MODE))
-                        tmpi += 1000;
-                    if (FLIGHT_MODE(NAV_WP_MODE))
-                        tmpi += 2000;
-                    if (FLIGHT_MODE(HEADFREE_MODE))
-                        tmpi += 4000;
-
-                    // ten thousands column
-                    if (true == false) // placeholder, would like to use this for home reset indicator
-                        tmpi += 20000;
-                    if (FLIGHT_MODE(FAILSAFE_MODE))
-                        tmpi += 40000;
-
+					
                     smartPortSendPackage(id, tmpi);
                     break;
                 }
-            case FSSP_DATAID_T2         :
+            
+			case FSSP_DATAID_T2         :
                 if (sensors(SENSOR_GPS)) {
 #ifdef GPS
                     uint32_t tmpi = 0;
@@ -706,11 +740,12 @@ void handleSmartPortTelemetry(void)
 
                     // thousands column (GPS fix status)
                     if (STATE(GPS_FIX))
-                        tmpi += 1000;
+                        tmpi = 2000;
                     if (STATE(GPS_FIX_HOME))
-                        tmpi += 2000;
-
+                        tmpi = 4000;
+					
                     smartPortSendPackage(id, tmpi);
+    
 #endif
                 } else if (feature(FEATURE_GPS))
                     smartPortSendPackage(id, 0);
