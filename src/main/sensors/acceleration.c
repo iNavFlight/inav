@@ -25,6 +25,7 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
+#include "common/utils.h"
 
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
@@ -64,15 +65,15 @@
 #endif
 
 
-acc_t acc;                       // acc access functions
+FASTRAM acc_t acc;                       // acc access functions
 
 static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 
-static biquadFilter_t accFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM biquadFilter_t accFilter[XYZ_AXIS_COUNT];
 
 #ifdef USE_ACC_NOTCH
-static filterApplyFnPtr accNotchFilterApplyFn;
-static void *accNotchFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
+STATIC_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 #endif
 
 PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 1);
@@ -111,7 +112,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 
     switch (accHardwareToUse) {
     case ACC_AUTODETECT:
-        ; // fallthrough
+        FALLTHROUGH;
 #ifdef USE_ACC_ADXL345
     case ACC_ADXL345: {
         drv_adxl345_config_t acc_params;
@@ -133,6 +134,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
             break;
         }
     }
+    FALLTHROUGH;
 #endif
 
 #ifdef USE_ACC_LSM303DLHC
@@ -148,6 +150,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_ACC_MPU6050
@@ -163,6 +166,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_ACC_MMA8452
@@ -183,6 +187,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_ACC_BMA280
@@ -198,6 +203,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_ACC_SPI_MPU6000
@@ -213,6 +219,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
 #if defined(USE_ACC_MPU6500) || defined(USE_ACC_SPI_MPU6500)
@@ -232,6 +239,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
 #if defined(USE_ACC_SPI_MPU9250)
@@ -247,6 +255,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
 #ifdef USE_FAKE_ACC
@@ -259,6 +268,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         if (accHardwareToUse != ACC_AUTODETECT) {
             break;
         }
+        FALLTHROUGH;
 #endif
 
     default:
@@ -496,11 +506,11 @@ void accInitFilters(void)
     if (acc.accTargetLooptime && accelerometerConfig()->acc_lpf_hz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             biquadFilterInitLPF(&accFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime);
-        }    
+        }
     }
 
 #ifdef USE_ACC_NOTCH
-    static biquadFilter_t accFilterNotch[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM biquadFilter_t accFilterNotch[XYZ_AXIS_COUNT];
     accNotchFilterApplyFn = nullFilterApply;
 
     if (acc.accTargetLooptime && accelerometerConfig()->acc_notch_hz) {

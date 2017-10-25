@@ -76,7 +76,7 @@
 #undef SERIAL_RX
 #undef BLACKBOX
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SPI
+#define DEFAULT_RX_TYPE         RX_TYPE_SPI
 
 // Since the CrazePony MINI PCB has holes for 4 motors in each corner we can save same flash space by disabling support for other mixers.
 #undef USE_SERVOS

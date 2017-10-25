@@ -108,7 +108,6 @@
 #define SPI3_MISO_PIN          PC11
 #define SPI3_MOSI_PIN          PC12
 
-
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2

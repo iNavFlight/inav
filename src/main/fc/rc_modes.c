@@ -66,7 +66,7 @@ bool isUsingNavigationModes(void)
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId)
 {
-    return bitArrayGet(&rcModeActivationMask, boxId);
+    return bitArrayGet(rcModeActivationMask.bits, boxId);
 }
 
 void rcModeUpdate(boxBitmask_t *newState)
@@ -124,13 +124,13 @@ void updateActivatedModes(void)
             if (modeActivationOperatorConfig()->modeActivationOperator == MODE_OPERATOR_AND) {
                 // AND the conditions
                 if (activeConditionCountPerMode[modeIndex] == specifiedConditionCountPerMode[modeIndex]) {
-                    bitArraySet(&newMask, modeIndex);
+                    bitArraySet(newMask.bits, modeIndex);
                 }
             }
             else {
                 // OR the conditions
                 if (activeConditionCountPerMode[modeIndex] > 0) {
-                    bitArraySet(&newMask, modeIndex);
+                    bitArraySet(newMask.bits, modeIndex);
                 }
             }
         }

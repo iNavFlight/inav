@@ -1,3 +1,19 @@
+/*
+ * This file is part of Cleanflight.
+ *
+ * Cleanflight is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Cleanflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #pragma once
 
@@ -33,8 +49,9 @@ typedef enum {
     OWNER_SOFTSPI,
     OWNER_RX_SPI,
     OWNER_VTX,
+    OWNER_SPI_PREINIT,
     OWNER_TOTAL_COUNT
-} resourceOwner_t;
+} resourceOwner_e;
 
 extern const char * const ownerNames[OWNER_TOTAL_COUNT];
 
@@ -51,6 +68,6 @@ typedef enum {
     RESOURCE_ADC_CH1, RESOURCE_ADC_CH2, RESOURCE_ADC_CH3, RESOURCE_ADC_CH4,
     RESOURCE_RX_CE,
     RESOURCE_TOTAL_COUNT
-} resourceType_t;
+} resourceType_e;
 
 extern const char * const resourceNames[RESOURCE_TOTAL_COUNT];

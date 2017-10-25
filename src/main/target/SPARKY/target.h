@@ -101,7 +101,7 @@
 // #define RANGEFINDER_HCSR04_TRIGGER_PIN       PA2   // PWM6 (PA2) - only 3.3v ( add a 1K Ohms resistor )
 // #define RANGEFINDER_HCSR04_ECHO_PIN          PB1   // PWM7 (PB1) - only 3.3v ( add a 1K Ohms resistor )
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    10

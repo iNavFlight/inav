@@ -801,8 +801,10 @@ bool getSpadInfo(uint8_t * count, bool * type_is_aperture)
     return true;
 }
 
-static void vl53l0x_Init(void)
+static void vl53l0x_Init(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
+
     uint8_t byte;
     isInitialized = false;
 
@@ -1017,8 +1019,10 @@ static void vl53l0x_Init(void)
     isInitialized = true;
 }
 
-void vl53l0x_Update(void)
+void vl53l0x_Update(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
+
     if (!isInitialized) {
         return;
     }
@@ -1126,8 +1130,10 @@ void vl53l0x_Update(void)
 #endif
 }
 
-int32_t vl53l0x_GetDistance(void)
+int32_t vl53l0x_GetDistance(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
+
     if (isResponding && isInitialized) {
         if (lastMeasurementIsNew) {
             lastMeasurementIsNew = false;

@@ -364,7 +364,7 @@ static int mspSerialEncode(mspPort_t *msp, mspPacket_t *packet, mspVersion_e msp
 
 static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspProcessCommandFnPtr mspProcessCommandFn)
 {
-    static uint8_t outBuf[MSP_PORT_OUTBUF_SIZE];
+    uint8_t outBuf[MSP_PORT_OUTBUF_SIZE];
 
     mspPacket_t reply = {
         .buf = { .ptr = outBuf, .end = ARRAYEND(outBuf), },
@@ -464,7 +464,7 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
     return ret; // return the number of bytes written
 }
 
-uint32_t mspSerialTxBytesFree()
+uint32_t mspSerialTxBytesFree(void)
 {
     uint32_t ret = UINT32_MAX;
 

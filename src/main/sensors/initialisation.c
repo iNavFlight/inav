@@ -36,10 +36,11 @@
 #include "sensors/gyro.h"
 #include "sensors/compass.h"
 #include "sensors/rangefinder.h"
+#include "sensors/opflow.h"
 #include "sensors/initialisation.h"
 
-uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE };
-uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE };
+uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
+uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
 
 
 bool sensorsAutodetect(void)
@@ -70,6 +71,10 @@ bool sensorsAutodetect(void)
     rangefinderInit();
 #endif
 
+#ifdef USE_OPTICAL_FLOW
+    opflowInit();
+#endif
+
     if (accelerometerConfig()->acc_hardware == ACC_AUTODETECT) {
         accelerometerConfigMutable()->acc_hardware = detectedSensors[SENSOR_INDEX_ACC];
         eepromUpdatePending = true;
@@ -82,10 +87,12 @@ bool sensorsAutodetect(void)
     }
 #endif
 
+#ifdef MAG
     if (compassConfig()->mag_hardware == MAG_AUTODETECT) {
         compassConfigMutable()->mag_hardware = detectedSensors[SENSOR_INDEX_MAG];
         eepromUpdatePending = true;
     }
+#endif
 
 #ifdef PITOT
     if (pitotmeterConfig()->pitot_hardware == PITOT_AUTODETECT) {

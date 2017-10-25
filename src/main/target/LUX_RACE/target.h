@@ -98,7 +98,7 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 #define DEFAULT_FEATURES        FEATURE_VBAT
 
 // Number of available PWM outputs

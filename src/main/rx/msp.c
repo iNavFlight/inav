@@ -68,6 +68,7 @@ void rxMspInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 
     rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_CHANNEL_COUNT;
     rxRuntimeConfig->rxRefreshRate = 20000;
+    rxRuntimeConfig->rxSignalTimeout = DELAY_5_HZ;
     rxRuntimeConfig->rcReadRawFn = rxMspReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = rxMspFrameStatus;
 }

@@ -47,7 +47,7 @@ void targetConfiguration(void)
     featureSet(FEATURE_LED_STRIP);
 
     serialConfigMutable()->portConfigs[0].functionMask = FUNCTION_MSP;
-    if (featureConfigured(FEATURE_RX_SERIAL)) {
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
         serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
     }
 }

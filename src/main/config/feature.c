@@ -24,7 +24,7 @@
 
 static uint32_t activeFeaturesLatch = 0;
 
-void latchActiveFeatures()
+void latchActiveFeatures(void)
 {
     activeFeaturesLatch = featureConfig()->enabledFeatures;
 }
@@ -49,7 +49,7 @@ void featureClear(uint32_t mask)
     featureConfigMutable()->enabledFeatures &= ~(mask);
 }
 
-void featureClearAll()
+void featureClearAll(void)
 {
     featureConfigMutable()->enabledFeatures = 0;
 }

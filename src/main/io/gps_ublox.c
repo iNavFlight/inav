@@ -61,6 +61,10 @@
 #define UBX_FIXMODE_3D_ONLY 2
 #define UBX_FIXMODE_AUTO    3
 
+#define UBX_VALID_GPS_DATE(valid) (valid & 1 << 0)
+#define UBX_VALID_GPS_TIME(valid) (valid & 1 << 1)
+#define UBX_VALID_GPS_DATE_TIME(valid) (UBX_VALID_GPS_DATE(valid) && UBX_VALID_GPS_TIME(valid))
+
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
 static const uint32_t ubloxScanMode1[] = {
     0x00000000, 0x00000851, 0x0004E004, 0x00020200, 0x00000180, 0x00000000,
@@ -193,6 +197,19 @@ typedef struct {
 } ubx_nav_svinfo;
 
 typedef struct {
+    uint32_t time;              // GPS msToW
+    uint32_t tAcc;
+    int32_t nano;
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t min;
+    uint8_t sec;
+    uint8_t valid;
+} ubx_nav_timeutc;
+
+typedef struct {
     uint32_t time; // GPS msToW
     uint16_t year;
     uint8_t month;
@@ -248,6 +265,7 @@ enum {
     MSG_SOL = 0x6,
     MSG_PVT = 0x7,
     MSG_VELNED = 0x12,
+    MSG_TIMEUTC = 0x21,
     MSG_SVINFO = 0x30,
     MSG_CFG_PRT = 0x00,
     MSG_CFG_RATE = 0x08,
@@ -317,6 +335,7 @@ static union {
     ubx_nav_pvt pvt;
     ubx_nav_svinfo svinfo;
     ubx_mon_ver ver;
+    ubx_nav_timeutc timeutc;
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
@@ -458,6 +477,21 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.flags.validVelD = 1;
         _new_speed = true;
         break;
+    case MSG_TIMEUTC:
+        if (UBX_VALID_GPS_DATE_TIME(_buffer.timeutc.valid)) {
+            gpsSol.time.year = _buffer.timeutc.year;
+            gpsSol.time.month = _buffer.timeutc.month;
+            gpsSol.time.day = _buffer.timeutc.day;
+            gpsSol.time.hours = _buffer.timeutc.hour;
+            gpsSol.time.minutes = _buffer.timeutc.min;
+            gpsSol.time.seconds = _buffer.timeutc.sec;
+            gpsSol.time.millis = _buffer.timeutc.nano / (1000*1000);
+
+            gpsSol.flags.validTime = 1;
+        } else {
+            gpsSol.flags.validTime = 0;
+        }
+        break;
 #ifdef GPS_PROTO_UBLOX_NEO7PLUS
     case MSG_PVT:
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
@@ -477,6 +511,21 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
+
+        if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
+            gpsSol.time.year = _buffer.pvt.year;
+            gpsSol.time.month = _buffer.pvt.month;
+            gpsSol.time.day = _buffer.pvt.day;
+            gpsSol.time.hours = _buffer.pvt.hour;
+            gpsSol.time.minutes = _buffer.pvt.min;
+            gpsSol.time.seconds = _buffer.pvt.sec;
+            gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
+
+            gpsSol.flags.validTime = 1;
+        } else {
+            gpsSol.flags.validTime = 0;
+        }
+
         _new_position = true;
         _new_speed = true;
         break;
@@ -634,6 +683,7 @@ static bool gpsConfigure(void)
             configureMSG(MSG_CLASS_UBX, MSG_SOL,    1);
             configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
             configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC,10);
 #ifdef GPS_PROTO_UBLOX_NEO7PLUS
             configureMSG(MSG_CLASS_UBX, MSG_PVT,    0);
         }
@@ -643,6 +693,7 @@ static bool gpsConfigure(void)
             configureMSG(MSG_CLASS_UBX, MSG_SOL,    0);
             configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
             configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC,0);
             configureMSG(MSG_CLASS_UBX, MSG_PVT,    1);
         }
 #endif

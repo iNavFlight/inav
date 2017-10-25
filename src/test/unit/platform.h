@@ -21,20 +21,25 @@
 #define U_ID_1 1
 #define U_ID_2 2
 
-typedef enum
-{
+typedef enum {
     Mode_TEST = 0x0,
     Mode_Out_PP = 0x10,
 } GPIO_Mode;
 
-typedef struct
-{
-    void* test;
+typedef struct {
+    void * test;
 } GPIO_TypeDef;
 
-typedef struct
-{
-    void* test;
+typedef struct {
+    void * test;
+} SPI_TypeDef;
+
+typedef struct {
+    void * test;
+} I2C_TypeDef;
+
+typedef struct {
+    void * test;
 } TIM_TypeDef;
 
 typedef enum {
