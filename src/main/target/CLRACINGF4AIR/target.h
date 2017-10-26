@@ -96,12 +96,6 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-/*#define USE_SPI_DEVICE_2
-#define SPI2_NSS_PIN            PB12
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
-*/
 #define USE_SPI_DEVICE_3
 #define SPI3_NSS_PIN            PA15
 #define SPI3_SCK_PIN            PC10
@@ -109,9 +103,12 @@
 #define SPI3_MOSI_PIN          PC12
 
 #define USE_ADC
-#define CURRENT_METER_ADC_PIN   PC1
-#define VBAT_ADC_PIN            PC2
-#define RSSI_ADC_PIN            PA0
+#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_2_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PA0
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define USE_ESC_SENSOR
 #define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
