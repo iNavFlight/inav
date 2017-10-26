@@ -2,8 +2,9 @@
 
 ![Omnibus F4](https://quadmeup.com/wp-content/uploads/2016/11/Omnibus-F4-Pinout-Top-Full-768x447.jpg)
 
-* For Omnibus F4 Pro (with BMP280 baro, current sensor and SD Card use Omnibus F4 Pro target)
-* For Omnibus F4 Pro Corner use Omnibus F4 Pro target
+* For Omnibus F4 Pro (with BMP280 baro, current sensor and SD Card) use **OMNIBUSF4PRO** target (LED strip on dedicated connection)
+* For Onnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target (LED strip on M5 pin)
+* For Omnibus F4 Pro Corner use **OMNIBUSF4PRO** target
 
 ## Features
 
@@ -55,6 +56,7 @@
 * PPM and UART1 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
 * Integrated current meter
 * Uses target **OMNIBUSF4PRO**
+* Omnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target (LED strip on M5 pin instead of incorrectly wired dedicated connection)
 
 ### Omnibus F4 Pro Corner
 
@@ -124,6 +126,7 @@ it can do without overeating (150mA on 4S gives 1.5W of waste heat!). OSD, LED S
 
 LED strip is enabled as indicated on flight controller silkscreen or schematics.
 For INAV versions before v1.8.0, LED strip was shared with Motor 5 pin (PA1).
+For Omnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target for LED strip on M5 pin as the dedicated LED strip connection on these devices is typically wired incorrectly.
 
 ## SoftwareSerial
 
