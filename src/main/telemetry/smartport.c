@@ -712,7 +712,7 @@ void handleSmartPortTelemetry(void)
                         tmpi += 1000;
                     if (STATE(GPS_FIX_HOME))
                         tmpi += 2000;
-                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
+                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
                         tmpi += 4000;
 
                     smartPortSendPackage(id, tmpi);
