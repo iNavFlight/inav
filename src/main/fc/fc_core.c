@@ -654,7 +654,7 @@ void taskGyro(timeUs_t currentTimeUs) {
     // getTaskDeltaTime() returns delta time frozen at the moment of entering the scheduler. currentTime is frozen at the very same point.
     // To make busy-waiting timeout work we need to account for time spent within busy-waiting loop
     const timeDelta_t currentDeltaTime = getTaskDeltaTime(TASK_SELF);
-    timeUs_t gyroUpdateUs;
+    timeUs_t gyroUpdateUs = currentTimeUs;
 
     if (gyroConfig()->gyroSync) {
         while (true) {
