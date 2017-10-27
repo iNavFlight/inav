@@ -648,9 +648,9 @@ void handleSmartPortTelemetry(void)
             case FSSP_DATAID_ACCZ       :
                 smartPortSendPackage(id, 100 * acc.accADC[Z] / acc.dev.acc_1G);
                 break;
-                case FSSP_DATAID_T1         :
+            case FSSP_DATAID_T1         :
                 {
-                    uint32_t tmpi = 0;
+                    uint32_t tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
 
                     // ones column
                     if (!isArmingDisabled())
@@ -686,9 +686,7 @@ void handleSmartPortTelemetry(void)
                         tmpi += 4000;
 
                     // ten thousands column
-                    if (FLIGHT_MODE(FLAPERON))
-                        tmpi += 10000;
-                    if (FLIGHT_MODE(AUTO_TUNE))
+                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
                         tmpi += 20000;
                     if (FLIGHT_MODE(FAILSAFE_MODE))
                         tmpi += 40000;
@@ -712,11 +710,8 @@ void handleSmartPortTelemetry(void)
                         tmpi += 1000;
                     if (STATE(GPS_FIX_HOME))
                         tmpi += 2000;
-                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
-                        tmpi += 4000;
 
                     smartPortSendPackage(id, tmpi);
-
 #endif
                 } else if (feature(FEATURE_GPS))
                     smartPortSendPackage(id, 0);
