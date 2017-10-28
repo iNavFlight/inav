@@ -15,23 +15,6 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "drivers/resource.h"
+#pragma once
 
-const char * const ownerNames[OWNER_TOTAL_COUNT] = {
-    "FREE", "PWM", "PPM", "MOTOR", "SERVO", "SOFTSERIAL", "ADC", "SERIAL", "DEBUG", "TIMER",
-    "RANGEFINDER", "SYSTEM", "SPI", "I2C", "SDCARD", "FLASH", "USB", "BEEPER", "OSD",
-    "BARO", "COMPASS", "MPU", "INVERTER", "LED STRIP", "LED", "RECEIVER", "TRANSMITTER",
-    "SOFTSPI", "NRF24", "VTX", "SPI_PREINIT"
-};
-
-const char * const resourceNames[RESOURCE_TOTAL_COUNT] = {
-    "", // NONE
-    "IN", "OUT", "IN / OUT",
-    "TIMER",
-    "UART TX", "UART RX", "UART TX/RX",
-    "EXTI",
-    "SCL", "SDA",
-    "SCK", "MOSI", "MISO", "CS",
-    "CH1", "CH2", "CH3", "CH4",
-    "CE"
-};
+bool ak8963SpiDetect(magDev_t *mag);

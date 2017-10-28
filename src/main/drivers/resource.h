@@ -40,6 +40,7 @@ typedef enum {
     OWNER_BEEPER,
     OWNER_OSD,
     OWNER_BARO,
+    OWNER_COMPASS,
     OWNER_MPU,
     OWNER_INVERTER,
     OWNER_LED_STRIP,

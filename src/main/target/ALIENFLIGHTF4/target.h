@@ -65,7 +65,7 @@
 
 #define USE_SDCARD
 
-//#define SDCARD_DETECT_INVERTED
+#define SDCARD_DETECT_INVERTED
 
 #define SDCARD_DETECT_PIN               PB11
 #define SDCARD_DETECT_EXTI_LINE         EXTI_Line10
