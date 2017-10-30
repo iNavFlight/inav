@@ -57,7 +57,9 @@ mpuResetFnPtr mpuResetFn;
 #define MPU_I2C_INSTANCE I2C_DEVICE
 #endif
 
+#ifndef MPU_ADDRESS
 #define MPU_ADDRESS             0x68
+#endif
 
 #define MPU_INQUIRY_MASK   0x7E
 
