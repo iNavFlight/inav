@@ -205,4 +205,4 @@ bool runcamDeviceSimulate5KeyOSDCableButtonRelease(runcamDevice_t *device);
 
 // Device Setting Access
 bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t *outSettingDetail);
-bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t *data, uint8_t dataLen, runcamDeviceWriteSettingResponse_t *response);
+bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, const void *data, uint8_t dataLen, runcamDeviceWriteSettingResponse_t *response);

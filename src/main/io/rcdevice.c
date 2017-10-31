@@ -558,7 +558,7 @@ bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, run
 }
 
 // write new value with to the setting
-bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, uint8_t *paramData, uint8_t paramDataLen, runcamDeviceWriteSettingResponse_t *response)
+bool runcamDeviceWriteSetting(runcamDevice_t *device, uint8_t settingID, const void *paramData, uint8_t paramDataLen, runcamDeviceWriteSettingResponse_t *response)
 {
     if (response == NULL || paramDataLen > (RCDEVICE_PROTOCOL_MAX_DATA_SIZE - 1)) {
         return false;
