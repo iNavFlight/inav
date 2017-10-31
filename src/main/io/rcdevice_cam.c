@@ -19,8 +19,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "build/debug.h"
+
 #include "cms/cms.h"
 
+#include "common/printf.h"
 #include "common/utils.h"
 
 #include "fc/rc_controls.h"
@@ -84,6 +87,48 @@ static bool rcdeviceIs5KeyEnabled(void)
     return false;
 }
 
+static void rcdeviceCameraUpdateTime(void)
+{
+    static bool hasSynchronizedTime = false;
+    // don't try more than 3 times to avoid overloading the CPU if
+    // the camera doesn't accept the command for some reason.
+    static int retries = 0;
+    runcamDeviceWriteSettingResponse_t updateSettingResponse;
+    // Format is yyyyMMddThhmmss.0 plus null terminator, hence 18
+    // characters. However, the camera expects each character in
+    // an uint16_t, that's why we use two buffers.
+    char buf[18];
+    uint16_t payload[18] = {0x31, 0x39, 0x37, 0x32, 0x30, 0x32, 0x31, 0x36, 0x54, 0x31, 0x39, 0x31, 0x35, 0x33, 0x32, 0x2E, 0x30, 0x00};
+    dateTime_t dt;
+
+    debug[0] = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS);
+
+    if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS) &&
+        !hasSynchronizedTime && retries < 1) {
+
+        if (rtcGetDateTime(&dt)) {
+            last_try = millis();
+            retries++;
+            tfp_sprintf(buf, "%04d%02d%02dT%02d%02d%02d.0",
+                dt.year, dt.month, dt.day,
+                dt.hours, dt.minutes, dt.seconds);
+
+            for (unsigned ii = 0; ii < sizeof(buf); ii++) {
+                payload[ii] = buf[ii];
+            }
+
+            bool ok = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_CAMERA_TIME,
+                                                payload, sizeof(payload), &updateSettingResponse);
+            debug[1] = ok ? 1 : 2;
+            debug[2] = updateSettingResponse.resultCode;
+            if (ok && updateSettingResponse.resultCode == 0) {
+                hasSynchronizedTime = true;
+                debug[3] = 42;
+            }
+        }
+    }
+}
+
 static void rcdeviceCameraControlProcess(void)
 {
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
@@ -124,6 +169,7 @@ static void rcdeviceCameraControlProcess(void)
             switchStates[switchIndex].isActivated = false;
         }
     }
+    rcdeviceCameraUpdateTime();
 }
 
 static bool rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e key)
