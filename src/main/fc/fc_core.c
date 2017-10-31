@@ -150,6 +150,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 
 static void updateArmingStatus(void)
 {
+
     if (ARMING_FLAG(ARMED)) {
         LED0_ON;
     } else {
@@ -179,7 +180,14 @@ static void updateArmingStatus(void)
         /* CHECK: Throttle */
         if (calculateThrottleStatus() != THROTTLE_LOW) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
-        } else {
+        }
+        else if (armingFlags & ARMING_DISABLED_THROTTLE ){ //Previous Throttle Not Low - kbi
+                DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+                if ( (armingFlags & ARMING_DISABLED_ALL_FLAGS)==ARMING_DISABLED_ARM_SWITCH && IS_RC_MODE_ACTIVE(BOXARM)  ){
+                    DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);  //Arm Now That Throttle is Fixed and No Other Flags Set
+                }
+         }
+        else{
             DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
         }
 
@@ -237,11 +245,25 @@ static void updateArmingStatus(void)
 
         /* CHECK: Arming switch */
         if (!isUsingSticksForArming()) {
-            // If arming is disabled and the ARM switch is on
-            if (isArmingDisabled() && !IS_RC_MODE_ACTIVE(BOXARM)) {     //kbi Issue #2120 3D Mode Arming Not Working
-                ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-            } else if (IS_RC_MODE_ACTIVE(BOXARM)) {                     //kbi Issue #2120 3D Mode Arming Not Working
+            static bool ArmSwitchToggle=false;
+            // If ARM switch is Off or Other Disarm Flags Set
+            if ( isArmingDisabled() || !IS_RC_MODE_ACTIVE(BOXARM) ) { //kbi
+              ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
+              if (!IS_RC_MODE_ACTIVE(BOXARM)){
+                  ArmSwitchToggle = true;
+              }
+              else if (ArmSwitchToggle && (armingFlags & ARMING_DISABLED_ALL_FLAGS) == ARMING_DISABLED_ARM_SWITCH ){
+                  DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
+                  ArmSwitchToggle=false;
+              }
+              else{
+                  ArmSwitchToggle=false;
+              }
+
+            }
+            else if (ArmSwitchToggle){
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
+                ArmSwitchToggle=false;
             }
         }
 
