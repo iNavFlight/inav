@@ -238,9 +238,9 @@ static void updateArmingStatus(void)
         /* CHECK: Arming switch */
         if (!isUsingSticksForArming()) {
             // If arming is disabled and the ARM switch is on
-            if (isArmingDisabled() && IS_RC_MODE_ACTIVE(BOXARM)) {
+            if (isArmingDisabled() && !IS_RC_MODE_ACTIVE(BOXARM)) {     //kbi Issue #2120 3D Mode Arming Not Working
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-            } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
+            } else if (IS_RC_MODE_ACTIVE(BOXARM)) {                     //kbi Issue #2120 3D Mode Arming Not Working
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
             }
         }
