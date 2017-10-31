@@ -40,14 +40,19 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
     for (int i = 0; i < MAX_CONTROL_RATE_PROFILE_COUNT; i++) {
         RESET_CONFIG(controlRateConfig_t, &instance[i],
             .rcExpo8 = 70,
+            .manual_rcExpo8 = 70,
             .thrMid8 = 50,
             .thrExpo8 = 0,
             .dynThrPID = 0,
             .rcYawExpo8 = 20,
+            .manual_rcYawExpo8 = 20,
             .tpa_breakpoint = 1500,
             .rates[FD_ROLL] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
             .rates[FD_PITCH] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
-            .rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT
+            .rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT,
+            .manual_rates[FD_ROLL] = 100,
+            .manual_rates[FD_PITCH] = 100,
+            .manual_rates[FD_YAW] = 100
         );
     }
 }

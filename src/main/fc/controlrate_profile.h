@@ -43,11 +43,14 @@ and so on.
 typedef struct controlRateConfig_s {
     uint16_t tpa_breakpoint;                // Breakpoint where TPA is activated
     uint8_t rcExpo8;
+    uint8_t manual_rcExpo8;
     uint8_t thrMid8;
     uint8_t thrExpo8;
     uint8_t rates[3];
+    uint8_t manual_rates[3];
     uint8_t dynThrPID;
     uint8_t rcYawExpo8;
+    uint8_t manual_rcYawExpo8;
 } controlRateConfig_t;
 
 PG_DECLARE_ARRAY(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);

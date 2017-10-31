@@ -282,9 +282,9 @@ void annexCode(void)
     }
     else {
         // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
+        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcExpo8 : currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcExpo8 : currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcYawExpo8 : currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
 
         //Compute THROTTLE command
         throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
@@ -555,12 +555,14 @@ void processRx(timeUs_t currentTimeUs)
         } else {
             DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
         }
+	IS_RC_MODE_ACTIVE(BOXMANUAL) ? ENABLE_FLIGHT_MODE(MANUAL_MODE) : DISABLE_FLIGHT_MODE(MANUAL_MODE);
     }
 
     /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
        This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
        Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
-    if (FLIGHT_MODE(PASSTHRU_MODE) || !ARMING_FLAG(ARMED)) {
+    /*if (FLIGHT_MODE(PASSTHRU_MODE) || !ARMING_FLAG(ARMED)) {*/
+    if (FLIGHT_MODE(MANUAL_MODE) || FLIGHT_MODE(PASSTHRU_MODE) || !ARMING_FLAG(ARMED)) {
         /* In PASSTHRU mode we reset integrators prevent I-term wind-up (PID output is not used in PASSTHRU) */
         pidResetErrorAccumulators();
     }

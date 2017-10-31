@@ -552,8 +552,16 @@ groups:
         field: rcExpo8
         min: 0
         max: 100
+      - name: rc_manual_expo
+        field: manual_rcExpo8
+        min: 0
+        max: 100
       - name: rc_yaw_expo
         field: rcYawExpo8
+        min: 0
+        max: 100
+      - name: rc_manual_yaw_expo
+        field: manual_rcYawExpo8
         min: 0
         max: 100
       - name: thr_mid
@@ -585,6 +593,18 @@ groups:
       - name: tpa_breakpoint
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
+      - name: manual_roll_rate
+        field: manual_rates[FD_ROLL]
+        min: 0
+        max: 100
+      - name: manual_pitch_rate
+        field: manual_rates[FD_PITCH]
+        min: 0
+        max: 100
+      - name: manual_yaw_rate
+        field: manual_rates[FD_YAW]
+        min: 0
+        max: 100
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t

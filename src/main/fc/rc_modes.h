@@ -56,6 +56,7 @@ typedef enum {
     BOXCAMERA1      = 29,
     BOXCAMERA2      = 30,
     BOXCAMERA3      = 31,
+    BOXMANUAL       = 32,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
