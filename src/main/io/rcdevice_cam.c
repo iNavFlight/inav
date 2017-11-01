@@ -19,8 +19,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "build/debug.h"
-
 #include "cms/cms.h"
 
 #include "common/printf.h"
@@ -99,13 +97,10 @@ static void rcdeviceCameraUpdateTime(void)
     char buf[18];
     dateTime_t dt;
 
-    debug[0] = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS);
-
     if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS) &&
-        !hasSynchronizedTime && retries < 1) {
+        !hasSynchronizedTime && retries < 3) {
 
         if (rtcGetDateTime(&dt)) {
-            timeMs_t last_try = millis();
             retries++;
             tfp_sprintf(buf, "%04d%02d%02dT%02d%02d%02d.0",
                 dt.year, dt.month, dt.day,
@@ -113,11 +108,8 @@ static void rcdeviceCameraUpdateTime(void)
 
             bool ok = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_CAMERA_TIME,
                 buf, sizeof(buf), &updateSettingResponse);
-            debug[1] = ok ? 1 : 2;
-            debug[2] = updateSettingResponse.resultCode;
             if (ok && updateSettingResponse.resultCode == 0) {
                 hasSynchronizedTime = true;
-                debug[3] = 42;
             }
         }
     }
