@@ -17,10 +17,13 @@
 
 #pragma once
 
-#if defined(NAV)
+#include "common/time.h"
 
-extern float estimatedWind[3];    // wind velocity vectors in cm / sec
+// wind velocity vectors in cm / sec relative to the earth frame
+float getEstimatedWindVelocity(int axis);
+// wind velocity in the XY plane relative to the aircraft as a
+// magnitude and an angle. Values are in cm/s and decidegrees. Returns
+// wheter the estimate is valid.
+bool getEstimatedWindVelocityBodyFrame(float *horizontalSpeed, float *horizontalAngle, float *verticalSpeed);
 
-void estimate_wind(void);
-
-#endif
+void updateWindEstimator(timeUs_t currentTimeUs);

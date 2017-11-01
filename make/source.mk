@@ -162,6 +162,7 @@ COMMON_SRC = \
             navigation/navigation_geo.c \
             navigation/navigation_multicopter.c \
             navigation/navigation_pos_estimator.c \
+            navigation/navigation_wind_estimator.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \
