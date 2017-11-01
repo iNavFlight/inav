@@ -95,10 +95,8 @@ static void rcdeviceCameraUpdateTime(void)
     static int retries = 0;
     runcamDeviceWriteSettingResponse_t updateSettingResponse;
     // Format is yyyyMMddThhmmss.0 plus null terminator, hence 18
-    // characters. However, the camera expects each character in
-    // an uint16_t, that's why we use two buffers.
+    // characters.
     char buf[18];
-    uint16_t payload[18] = {0x31, 0x39, 0x37, 0x32, 0x30, 0x32, 0x31, 0x36, 0x54, 0x31, 0x39, 0x31, 0x35, 0x33, 0x32, 0x2E, 0x30, 0x00};
     dateTime_t dt;
 
     debug[0] = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS);
@@ -107,18 +105,14 @@ static void rcdeviceCameraUpdateTime(void)
         !hasSynchronizedTime && retries < 1) {
 
         if (rtcGetDateTime(&dt)) {
-            last_try = millis();
+            timeMs_t last_try = millis();
             retries++;
             tfp_sprintf(buf, "%04d%02d%02dT%02d%02d%02d.0",
                 dt.year, dt.month, dt.day,
                 dt.hours, dt.minutes, dt.seconds);
 
-            for (unsigned ii = 0; ii < sizeof(buf); ii++) {
-                payload[ii] = buf[ii];
-            }
-
             bool ok = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_CAMERA_TIME,
-                                                payload, sizeof(payload), &updateSettingResponse);
+                buf, sizeof(buf), &updateSettingResponse);
             debug[1] = ok ? 1 : 2;
             debug[2] = updateSettingResponse.resultCode;
             if (ok && updateSettingResponse.resultCode == 0) {

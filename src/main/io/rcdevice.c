@@ -38,20 +38,29 @@ typedef enum {
     RCDP_SETTING_PARSE_WAITING_VALUE,
 } runcamDeviceSettingParseStep_e;
 
-// return 0xFF if expected resonse data length is variable
+typedef struct runcamDeviceExpectedResponseLength_s {
+    uint8_t command;
+    uint8_t reponseLength;
+} runcamDeviceExpectedResponseLength_t;
+
+static runcamDeviceExpectedResponseLength_t expectedResponsesLength[] = {
+    { RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL,        0xFF},
+    { RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO,            5},
+    { RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS,      2},
+    { RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE,    2},
+    { RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION,            3},
+    { RCDEVICE_PROTOCOL_COMMAND_WRITE_SETTING,              4},
+};
+
 static uint8_t runcamDeviceGetResponseLength(uint8_t command)
 {
-    switch (command) {
-        case RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO:
-            return 5;
-        case RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS:
-        case RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE:
-            return 2;
-        case RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION:
-            return 3;
-        default:
-            return 0;
+    for (unsigned int i = 0; i < ARRAYLEN(expectedResponsesLength); i++) {
+        if (expectedResponsesLength[i].command == command) {
+            return expectedResponsesLength[i].reponseLength;
+        }
     }
+
+    return 0;
 }
 
 // Parse the variable length response, e.g the response of settings data and the detail of setting
