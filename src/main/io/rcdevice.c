@@ -94,14 +94,14 @@ static uint8_t runcamDeviceIsResponseReceiveDone(uint8_t command, uint8_t *data,
 }
 
 // a common way to receive packet and verify it
-static uint8_t runcamDeviceReceivePacket(runcamDevice_t *device, uint8_t command, uint8_t *data)
+static uint8_t runcamDeviceReceivePacket(runcamDevice_t *device, uint8_t command, uint8_t *data, int timeoutms)
 {
     uint8_t dataPos = 0;
     uint8_t crc = 0;
     uint8_t responseDataLen = 0;
 
-    // wait 500ms for reply
-    timeMs_t timeout = millis() + 500;
+    // wait for reply until timeout(specialy by timeoutms)
+    timeMs_t timeout = millis() + timeoutms;
     bool isWaitingHeader = true;
     while (millis() < timeout) {
         if (serialRxBytesWaiting(device->serialPort) > 0) {
@@ -183,8 +183,18 @@ static void runcamDeviceSendPacket(runcamDevice_t *device, uint8_t command, uint
 // a common way to send a packet to device, and get response from the device.
 static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_t commandID, uint8_t *paramData, uint8_t paramDataLen, uint8_t *outputBuffer, uint8_t *outputBufferLen)
 {
-    uint32_t max_retries = 3;
-    
+    int max_retries = 1;
+    // here using 1000ms as timeout, because the response from 5 key simulation command need a long time about >= 600ms, 
+    // so set a max value to ensure we can receive the response
+    int timeoutMs = 1000; 
+
+    // only the command sending on initializing step need retry logic, 
+    // otherwise, the timeout of 1000 ms is enough for the response from device
+    if (commandID == RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO) {
+        max_retries = 3;
+        timeoutMs = 100; // we have test some device, 100ms as timeout, and retry times be 3, it's stable for most case
+    }
+
     while (max_retries--) {
         // flush rx buffer
         runcamDeviceFlushRxBuffer(device);
@@ -193,7 +203,7 @@ static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_
         runcamDeviceSendPacket(device, commandID, paramData, paramDataLen);
 
         // waiting response
-        uint8_t responseLength = runcamDeviceReceivePacket(device, commandID, outputBuffer);
+        uint8_t responseLength = runcamDeviceReceivePacket(device, commandID, outputBuffer, timeoutMs);
         if (responseLength) {
             if (outputBufferLen) {
                 *outputBufferLen = responseLength;
