@@ -125,6 +125,19 @@ static uint32_t txBytesFree(const displayPort_t *displayPort)
     return UINT32_MAX;
 }
 
+static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+
+    textAttributes_t attr = TEXT_ATTRIBUTES_NONE;
+    TEXT_ATTRIBUTES_ADD_INVERTED(attr);
+    TEXT_ATTRIBUTES_ADD_SOLID_BG(attr);
+    if (!displayConfig()->force_sw_blink) {
+        TEXT_ATTRIBUTES_ADD_BLINK(attr);
+    }
+    return attr;
+}
+
 static const displayPortVTable_t max7456VTable = {
     .grab = grab,
     .release = release,
@@ -137,6 +150,7 @@ static const displayPortVTable_t max7456VTable = {
     .heartbeat = heartbeat,
     .resync = resync,
     .txBytesFree = txBytesFree,
+    .supportedTextAttributes = supportedTextAttributes,
 };
 
 displayPort_t *max7456DisplayPortInit(const vcdProfile_t *vcdProfile)

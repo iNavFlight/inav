@@ -23,7 +23,19 @@
 
 #include "common/utils.h"
 
+#include "config/parameter_group_ids.h"
+
+#include "drivers/time.h"
+
 #include "display.h"
+
+#define SW_BLINK_CYCLE_MS 1000
+
+PG_REGISTER_WITH_RESET_TEMPLATE(displayConfig_t, displayConfig, PG_DISPLAY_CONFIG, 0);
+
+PG_RESET_TEMPLATE(displayConfig_t, displayConfig,
+    .force_sw_blink = false,
+);
 
 void displayClearScreen(displayPort_t *instance)
 {
@@ -85,6 +97,16 @@ int displayWrite(displayPort_t *instance, uint8_t x, uint8_t y, const char *s)
 
 int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
 {
+    if (attr & ~instance->supportedTextAttributes) {
+        // We can't overwrite s, so we write char by char
+        int ret;
+        for (unsigned ii = 0; ii < strlen(s); ii++) {
+            if ((ret = displayWriteCharWithAttr(instance, x + ii, y, s[ii], attr)) != 0) {
+                return ret;
+            }
+        }
+        return 0;
+    }
     instance->posX = x + strlen(s);
     instance->posY = y;
     return instance->vTable->writeString(instance, x, y, s, attr);
@@ -101,6 +123,14 @@ int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint
 {
     instance->posX = x + 1;
     instance->posY = y;
+    if (attr & ~instance->supportedTextAttributes) {
+        if (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) {
+            if ((millis() / SW_BLINK_CYCLE_MS) % 2) {
+                c = ' ';
+            }
+            TEXT_ATTRIBUTES_REMOVE_BLINK(attr);
+        }
+    }
     return instance->vTable->writeChar(instance, x, y, c, attr);
 }
 
@@ -131,5 +161,9 @@ void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
     instance->cleared = true;
     instance->grabCount = 0;
     instance->cursorRow = -1;
+    instance->supportedTextAttributes = TEXT_ATTRIBUTES_NONE;
+    if (vTable->supportedTextAttributes) {
+        instance->supportedTextAttributes = vTable->supportedTextAttributes(instance);
+    }
 }
 

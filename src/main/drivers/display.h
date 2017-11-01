@@ -20,6 +20,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "config/parameter_group.h"
+
+typedef struct displayConfig_s {
+    bool force_sw_blink; // Enable SW blinking. Used for chips which don't work correctly with HW blink.
+} displayConfig_t;
+
+PG_DECLARE(displayConfig_t, displayConfig);
+
 // Represents the attributes for a given piece of text
 // either a single character or a string. For forward
 // compatibility, always use the TEXT_ATTRIBUTE...
@@ -35,6 +43,10 @@ typedef uint8_t textAttributes_t;
 #define TEXT_ATTRIBUTES_ADD_BLINK(x)        (x |= _TEXT_ATTRIBUTES_BLINK_BIT)
 #define TEXT_ATTRIBUTES_ADD_INVERTED(x)     (x |= _TEXT_ATTRIBUTES_INVERTED_BIT)
 #define TEXT_ATTRIBUTES_ADD_SOLID_BG(x)     (x |= _TEXT_ATTRIBUTES_SOLID_BG_BIT)
+
+#define TEXT_ATTRIBUTES_REMOVE_BLINK(x)     (x &= ~_TEXT_ATTRIBUTES_BLINK_BIT)
+#define TEXT_ATTRIBUTES_REMOVE_INVERTED(x)  (x &= ~_TEXT_ATTRIBUTES_INVERTED_BIT)
+#define TEXT_ATTRIBUTES_REMOVE_SOLID_BG(x)  (x &= ~_TEXT_ATTRIBUTES_SOLID_BG_BIT)
 
 #define TEXT_ATTRIBUTES_HAVE_BLINK(x)       (x & _TEXT_ATTRIBUTES_BLINK_BIT)
 #define TEXT_ATTRIBUTES_HAVE_INVERTED(x)    (x & _TEXT_ATTRIBUTES_INVERTED_BIT)
@@ -53,6 +65,7 @@ typedef struct displayPort_s {
     bool cleared;
     int8_t cursorRow;
     int8_t grabCount;
+    textAttributes_t supportedTextAttributes;
 } displayPort_t;
 
 typedef struct displayPortVTable_s {
@@ -67,6 +80,7 @@ typedef struct displayPortVTable_s {
     int (*heartbeat)(displayPort_t *displayPort);
     void (*resync)(displayPort_t *displayPort);
     uint32_t (*txBytesFree)(const displayPort_t *displayPort);
+    textAttributes_t (*supportedTextAttributes)(const displayPort_t *displayPort);
 } displayPortVTable_t;
 
 typedef struct displayPortProfile_s {
