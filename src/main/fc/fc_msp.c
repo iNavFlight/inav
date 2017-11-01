@@ -355,6 +355,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+    case MSP2_INAV_STATUS:
     case MSP_STATUS_EX:
     case MSP_STATUS:
         {
@@ -371,9 +372,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteData(dst, &mspBoxModeFlags, 4);
             sbufWriteU8(dst, getConfigProfile());
 
-            if (cmdMSP == MSP_STATUS_EX) {
+            if (cmdMSP != MSP_STATUS) {
                 sbufWriteU16(dst, averageSystemLoadPercent);
-                sbufWriteU16(dst, armingFlags);
+                if (cmdMSP == MSP2_INAV_STATUS)
+                    sbufWriteU32(dst, armingFlags);
+                else
+                    sbufWriteU16(dst, armingFlags);
                 sbufWriteU8(dst, accGetCalibrationAxisFlags());
             }
         }
@@ -1099,13 +1103,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
                 uint8_t band=0, channel=0;
                 vtxCommonGetBandAndChannel(&band,&channel);
-                
+
                 uint8_t powerIdx=0; // debug
                 vtxCommonGetPowerIndex(&powerIdx);
-                
+
                 uint8_t pitmode=0;
                 vtxCommonGetPitMode(&pitmode);
-                
+
                 sbufWriteU8(dst, deviceType);
                 sbufWriteU8(dst, band);
                 sbufWriteU8(dst, channel);
