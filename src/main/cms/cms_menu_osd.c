@@ -29,41 +29,19 @@
 #include "cms/cms_types.h"
 #include "cms/cms_menu_osd.h"
 
+#include "fc/settings.h"
+
 #include "io/osd.h"
-
-
-static uint8_t osdConfig_rssi_alarm;
-static uint16_t osdConfig_cap_alarm;
-static uint16_t osdConfig_time_alarm;
-static uint16_t osdConfig_alt_alarm;
-
-static long cmsx_menuAlarmsOnEnter(void)
-{
-    osdConfig_rssi_alarm = osdConfig()->rssi_alarm;
-    osdConfig_cap_alarm = osdConfig()->cap_alarm;
-    osdConfig_time_alarm = osdConfig()->time_alarm;
-    osdConfig_alt_alarm = osdConfig()->alt_alarm;
-    return 0;
-}
-
-static long cmsx_menuAlarmsOnExit(const OSD_Entry *self)
-{
-    UNUSED(self);
-
-    osdConfigMutable()->rssi_alarm = osdConfig_rssi_alarm;
-    osdConfigMutable()->cap_alarm = osdConfig_cap_alarm;
-    osdConfigMutable()->time_alarm = osdConfig_time_alarm;
-    osdConfigMutable()->alt_alarm = osdConfig_alt_alarm;
-    return 0;
-}
 
 OSD_Entry cmsx_menuAlarmsEntries[] =
 {
     {"--- ALARMS ---", OME_Label, NULL, NULL, 0},
-    {"RSSI",     OME_UINT8,  NULL, &(OSD_UINT8_t){&osdConfig_rssi_alarm, 5, 90, 5}, 0},
-    {"MAIN BAT", OME_UINT16, NULL, &(OSD_UINT16_t){&osdConfig_cap_alarm, 50, 30000, 50}, 0},
-    {"FLY TIME", OME_UINT16, NULL, &(OSD_UINT16_t){&osdConfig_time_alarm, 1, 200, 1}, 0},
-    {"MAX ALT",  OME_UINT16, NULL, &(OSD_UINT16_t){&osdConfig_alt_alarm, 1, 200, 1}, 0},
+
+    OSD_SETTING_ENTRY_STEP("RSSI", SETTING_OSD_RSSI_ALARM, 5),
+    OSD_SETTING_ENTRY_STEP("MAIN BAT", SETTING_OSD_CAP_ALARM, 50),
+    OSD_SETTING_ENTRY("FLY TIME", SETTING_OSD_TIME_ALARM),
+    OSD_SETTING_ENTRY("MAX ALT", SETTING_OSD_ALT_ALARM),
+
     {"BACK", OME_Back, NULL, NULL, 0},
     {NULL, OME_END, NULL, NULL, 0}
 };
@@ -71,8 +49,8 @@ OSD_Entry cmsx_menuAlarmsEntries[] =
 CMS_Menu cmsx_menuAlarms = {
     .GUARD_text = "MENUALARMS",
     .GUARD_type = OME_MENU,
-    .onEnter = cmsx_menuAlarmsOnEnter,
-    .onExit = cmsx_menuAlarmsOnExit,
+    .onEnter = NULL,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = cmsx_menuAlarmsEntries,
 };

@@ -46,7 +46,6 @@ void targetConfiguration(void)
     mixerConfigMutable()->mixerMode = MIXER_QUADX;
     
     featureSet(FEATURE_VBAT);
-    featureSet(FEATURE_RX_SERIAL);
     featureSet(FEATURE_GPS);
     featureSet(FEATURE_TELEMETRY);
     featureSet(FEATURE_LED_STRIP);
@@ -77,9 +76,10 @@ void targetConfiguration(void)
     barometerConfigMutable()->baro_hardware = BARO_MS5607;
     barometerConfigMutable()->use_median_filtering = 1;
     
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_IBUS;
     rxConfigMutable()->mincheck = 1100;
     rxConfigMutable()->maxcheck = 1900;
-    rxConfigMutable()->serialrx_provider = SERIALRX_IBUS;
     
     blackboxConfigMutable()->rate_num = 1;
     blackboxConfigMutable()->rate_denom = 4;
@@ -118,7 +118,7 @@ void targetConfiguration(void)
     navConfigMutable()->general.flags.disarm_on_landing = 1;
     navConfigMutable()->general.flags.use_thr_mid_for_althold = 1;
     navConfigMutable()->general.flags.extra_arming_safety = 1;
-    navConfigMutable()->general.flags.rth_allow_landing = 1;
+    navConfigMutable()->general.flags.rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS;
     
     navConfigMutable()->general.max_auto_speed = 500;
     navConfigMutable()->general.max_auto_climb_rate = 200;

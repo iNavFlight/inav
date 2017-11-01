@@ -181,9 +181,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
             if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
                 rcDisarmTicks++;
                 if (rcDisarmTicks > 3) {    // Wait for at least 3 RX ticks (60ms @ 50Hz RX)
-                    if (disarm_kill_switch) {
-                        mwDisarm(DISARM_SWITCH);
-                    } else if (throttleStatus == THROTTLE_LOW) {
+                    if (disarm_kill_switch || (throttleStatus == THROTTLE_LOW)) {
                         mwDisarm(DISARM_SWITCH);
                     }
                 }

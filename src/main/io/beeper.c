@@ -129,6 +129,15 @@ static const uint8_t beep_launchModeBeep[] = {
 static const uint8_t beep_hardwareFailure[] = {
     10, 10, BEEPER_COMMAND_STOP
 };
+// Cam connection opened
+static const uint8_t beep_camOpenBeep[] = { 
+    5, 15, 10, 15, 20, BEEPER_COMMAND_STOP 
+}; 
+// Cam connection close 
+static const uint8_t beep_camCloseBeep[] = { 
+    10, 8, 5, BEEPER_COMMAND_STOP 
+};
+
 
 // array used for variable # of beeps (reporting GPS sat count, etc)
 static uint8_t beep_multiBeeps[MAX_MULTI_BEEPS + 2];
@@ -185,9 +194,11 @@ typedef struct beeperTableEntry_s {
     { BEEPER_ENTRY(BEEPER_SYSTEM_INIT,              17, NULL,                       "SYSTEM_INIT") },
     { BEEPER_ENTRY(BEEPER_USB,                      18, NULL,                       "ON_USB") },
     { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_ENABLED,      19, beep_launchModeBeep,        "LAUNCH_MODE") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      20, beep_camOpenBeep,           "CAM_CONNECTION_OPEN") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     21, beep_camCloseBeep,          "CAM_CONNECTION_CLOSED") },
 
-    { BEEPER_ENTRY(BEEPER_ALL,                      20, NULL,                       "ALL") },
-    { BEEPER_ENTRY(BEEPER_PREFERENCE,               21, NULL,                       "PREFERED") },
+    { BEEPER_ENTRY(BEEPER_ALL,                      22, NULL,                       "ALL") },
+    { BEEPER_ENTRY(BEEPER_PREFERENCE,               23, NULL,                       "PREFERED") },
 };
 
 static const beeperTableEntry_t *currentBeeperEntry = NULL;

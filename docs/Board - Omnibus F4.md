@@ -1,8 +1,10 @@
-# Board -  Omnibus F4
+# Board - Omnibus F4
 
 ![Omnibus F4](https://quadmeup.com/wp-content/uploads/2016/11/Omnibus-F4-Pinout-Top-Full-768x447.jpg)
 
-For Omnibus F4 Pro (v2 with BMP280 baro, current sensor and SD Card use Omnibus F4 Pro target)
+* For Omnibus F4 Pro (with BMP280 baro, current sensor and SD Card) use **OMNIBUSF4PRO** target (LED strip on dedicated connection)
+* For Onnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target (LED strip on M5 pin)
+* For Omnibus F4 Pro Corner use **OMNIBUSF4PRO** target
 
 ## Features
 
@@ -22,24 +24,15 @@ For Omnibus F4 Pro (v2 with BMP280 baro, current sensor and SD Card use Omnibus 
 
 ### Omnibus F4 v1
 
-* linear voltage stabilizer, tends to overheat
+* Linear voltage stabilizer, tends to overheat
 * SBUS inverter connected to UART1
 * PPM and UART1 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
 * 128mbit flash memory for Blackbox
 * Uses target **OMNIBUSF4**
 
-### Omnibus F4 v2 Pro
-
-* switching voltage regulator - solves problem of overheating BEC
-* SD Card slot instead of flash memory
-* SBUS inverter connected to UART1
-* PPM and UART1 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
-* Integrated current meter
-* Uses target **OMNIBUSF4PRO**
-
 ### Omnibus F4 v3
 
-* switching voltage regulator - solves problem of overheating BEC
+* Switching voltage regulator - solves problem of overheating BEC
 * SD Card slot instead of flash memory
 * SBUS inverter connected to UART6
 * PPM and UART6 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
@@ -47,11 +40,32 @@ For Omnibus F4 Pro (v2 with BMP280 baro, current sensor and SD Card use Omnibus 
 
 ### Omnibus F4 v4
 
-* switching voltage regulator - solves problem of overheating BEC
+* Switching voltage regulator - solves problem of overheating BEC
 * SD Card slot instead of flash memory
 * SBUS inverter connected to UART6
 * PPM and UART6 cannot be used together, there is no jumper to disconnect PPM input from UART6 RX
 * Uses target **OMNIBUSF4V3**
+
+### Omnibus F4 Pro
+
+* Sometimes called Omnibus F4 v2 Pro, but also exists v3, v4 & v5 versions with no functional differences
+* Switching voltage regulator - solves problem of overheating BEC
+* LC filter for camera and VTX
+* SD Card slot instead of flash memory
+* SBUS inverter connected to UART1
+* PPM and UART1 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
+* Integrated current meter
+* Uses target **OMNIBUSF4PRO**
+* Omnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target (LED strip on M5 pin instead of incorrectly wired dedicated connection)
+
+### Omnibus F4 Pro Corner
+
+* Switching voltage regulator - solves problem of overheating BEC
+* LC filter for camera and VTX
+* SD Card slot instead of flash memory
+* SBUS inverter connected to UART3
+* Integrated current meter
+* Uses target **OMNIBUSF4PRO**
 
 ## **NOT** supported
 
@@ -67,14 +81,14 @@ SerialRX and PPM receivers should be connected to dedicated _PPM SBUS_ connector
 
 ## Motors
 
-| Motor     | pin   |   Shared with |
-| ----      | ----  |   ----        |
-| 1         | PB0   |               |
-| 2         | PB1   |               |
-| 3         | PA3   |               |
-| 4         | PA2   |               |
-| 5         | PA1   | LED Strip     |
-| 6         | PA8   |               |
+| Motor     | pin   |
+| ----      | ----  |
+| 1         | PB0   |
+| 2         | PB1   |
+| 3         | PA3   |
+| 4         | PA2   |
+| 5         | PA1   |
+| 6         | PA8   |
 
 ## USB
 
@@ -110,11 +124,14 @@ it can do without overeating (150mA on 4S gives 1.5W of waste heat!). OSD, LED S
 
 ## LED Strip
 
-LED strip is enabled on Motor 5 pin (PA1)
+LED strip is enabled as indicated on flight controller silkscreen or schematics.
+For INAV versions before v1.8.0, LED strip was shared with Motor 5 pin (PA1).
+For Omnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_LEDSTRIPM5** target for LED strip on M5 pin as the dedicated LED strip connection on these devices is typically wired incorrectly.
 
 ## SoftwareSerial
 
-This board allows for single **SoftwareSerial** port on small soldering pads located on the bottom side of the board. 
+This board allows for single **SoftwareSerial** port on small soldering pads located on the bottom side of the board.
+Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount pads CH5/CH6.
 
 | Pad   | SoftwareSerial Role   |
 | ----  | ----                  |
@@ -132,4 +149,4 @@ SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
 
 * Telemetry has to be inverted with `set telemetry_inversion = ON`
 * Port should be configured for _57600bps_
-* Tested with FrSky X4R
+* Tested with FrSky X4R(SB), XSR, XSR-M, XSR-E

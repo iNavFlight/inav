@@ -41,25 +41,14 @@
 /*
   Flash M25p16 tolerates 20mhz, SPI_CLOCK_FAST should sit around 20 or less.
 */
+
 typedef enum {
-    SPI_CLOCK_INITIALIZATON = 256,
-#if defined(STM32F4)
-    SPI_CLOCK_SLOW          = 128, //00.65625 MHz
-    SPI_CLOCK_STANDARD      = 8,   //10.50000 MHz
-    SPI_CLOCK_FAST          = 4,   //21.00000 MHz
-    SPI_CLOCK_ULTRAFAST     = 2    //42.00000 MHz
-#elif defined(STM32F7)
-    SPI_CLOCK_SLOW          = 256, //00.42188 MHz
-    SPI_CLOCK_STANDARD      = 16,  //06.57500 MHz
-    SPI_CLOCK_FAST          = 4,   //27.00000 MHz
-    SPI_CLOCK_ULTRAFAST     = 2    //54.00000 MHz
-#else
-    SPI_CLOCK_SLOW          = 128, //00.56250 MHz
-    SPI_CLOCK_STANDARD      = 4,   //09.00000 MHz
-    SPI_CLOCK_FAST          = 2,   //18.00000 MHz
-    SPI_CLOCK_ULTRAFAST     = 2    //18.00000 MHz
-#endif
-} SPIClockDivider_e;
+    SPI_CLOCK_INITIALIZATON = 0,    // Lowest possible
+    SPI_CLOCK_SLOW          = 1,    // ~1 MHz    
+    SPI_CLOCK_STANDARD      = 2,    // ~10MHz
+    SPI_CLOCK_FAST          = 3,    // ~20MHz
+    SPI_CLOCK_ULTRAFAST     = 4     // Highest possible
+} SPIClockSpeed_e;
 
 typedef enum SPIDevice {
     SPIINVALID = -1,
@@ -94,10 +83,11 @@ typedef struct SPIDevice_s {
     DMA_HandleTypeDef hdma;
     uint8_t dmaIrqHandler;
 #endif
+    const uint16_t * divisorMap;
 } spiDevice_t;
 
 bool spiInit(SPIDevice device);
-void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor);
+void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed);
 uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t in);
 bool spiIsBusBusy(SPI_TypeDef *instance);
 
@@ -106,6 +96,7 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len
 uint16_t spiGetErrorCounter(SPI_TypeDef *instance);
 void spiResetErrorCounter(SPI_TypeDef *instance);
 SPIDevice spiDeviceByInstance(SPI_TypeDef *instance);
+SPI_TypeDef * spiInstanceByDevice(SPIDevice device);
 
 #if defined(USE_HAL_DRIVER)
 SPI_HandleTypeDef* spiHandleByInstance(SPI_TypeDef *instance);

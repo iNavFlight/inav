@@ -22,17 +22,59 @@
 
 #define BITARRAY_BIT_OP(array, bit, op) ((array)[(bit) / (sizeof((array)[0]) * 8)] op (1 << ((bit) % (sizeof((array)[0]) * 8))))
 
-bool bitArrayGet(const void *array, unsigned bit)
+bool bitArrayGet(const bitarrayElement_t *array, unsigned bit)
 {
     return BITARRAY_BIT_OP((uint32_t*)array, bit, &);
 }
 
-void bitArraySet(void *array, unsigned bit)
+void bitArraySet(bitarrayElement_t *array, unsigned bit)
 {
     BITARRAY_BIT_OP((uint32_t*)array, bit, |=);
 }
 
-void bitArrayClr(void *array, unsigned bit)
+void bitArrayClr(bitarrayElement_t *array, unsigned bit)
 {
     BITARRAY_BIT_OP((uint32_t*)array, bit, &=~);
+}
+
+__attribute__((always_inline)) static inline uint8_t __CTZ(uint32_t val)
+{
+    // __builtin_ctz is not defined for zero, since it's arch
+    // dependant. However, in ARM it gets translated to a
+    // rbit and then a clz, making it return 32 for zero on ARM.
+    // For other architectures, explicitely implement the same
+    // semantics.
+#ifdef __arm__
+    uint8_t zc;
+    __asm__ volatile ("rbit %1, %1\n\t"
+                      "clz %0, %1"
+                    : "=r" (zc)
+                    : "r" (val) );
+    return zc;
+#else
+    // __builtin_clz is not defined for zero, since it's arch
+    // dependant. Make it return 32 like ARM's CLZ.
+    return val ? __builtin_ctz(val) : 32;
+#endif
+}
+
+int bitArrayFindFirstSet(const bitarrayElement_t *array, unsigned start, size_t size)
+{
+    const uint32_t *ptr = (uint32_t*)array;
+    const uint32_t *end = ptr + (size / 4);
+    const uint32_t *p = ptr + start / (8 * 4);
+    int ret;
+    // First iteration might need to mask some bits
+    uint32_t mask = 0xFFFFFFFF << (start % (8 * 4));
+    if ((ret = __CTZ(*p & mask)) != 32) {
+        return ret;
+    }
+    p++;
+    while (p < end) {
+        if ((ret = __CTZ(*p)) != 32) {
+            return (((char *)p) - ((char *)ptr)) * 8 + ret;
+        }
+        p++;
+    }
+    return -1;
 }

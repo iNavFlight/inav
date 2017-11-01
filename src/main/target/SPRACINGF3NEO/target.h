@@ -135,11 +135,6 @@
 #define SDCARD_SPI_INSTANCE     SPI2
 #define SDCARD_SPI_CS_PIN       SPI2_NSS_PIN
 
-// SPI2 is on the APB1 bus whose clock runs at 36MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 128
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     2
-
 // Note, this is the same DMA channel as UART1_RX. Luckily we don't use DMA for USART Rx.
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC5
@@ -170,7 +165,7 @@
 
 #define OSD
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DEFAULT_FEATURES        (FEATURE_TRANSPONDER | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP)
 #define SERIALRX_UART           SERIAL_PORT_USART2
 #define GPS_UART                SERIAL_PORT_USART3

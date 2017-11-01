@@ -53,6 +53,11 @@
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
 
+#if (FLASH_SIZE > 256)
+#define USE_UAV_INTERCONNECT
+#define USE_RX_UIB
+#endif
+
 #if (FLASH_SIZE > 128)
 #define FIXED_WING_LANDING
 #define AUTOTUNE_FIXED_WING
@@ -94,10 +99,17 @@
 #define PWM_DRIVER_PCA9685
 #define NAV_MAX_WAYPOINTS       60
 #define MAX_BOOTLOG_ENTRIES     64
-#define USE_RCSPLIT
+#define USE_RCDEVICE
 #define PITOT
 #define USE_PITOT_ADC
-#else
+
+//Enable VTX controll
+#define VTX_COMMON
+#define VTX_CONTROL
+#define VTX_SMARTAUDIO
+#define VTX_TRAMP
+
+#else // FLASH_SIZE < 128
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
 #define SKIP_CLI_COMMAND_HELP

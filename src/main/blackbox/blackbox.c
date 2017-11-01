@@ -34,6 +34,7 @@
 #include "common/axis.h"
 #include "common/encoding.h"
 #include "common/maths.h"
+#include "common/time.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -192,6 +193,11 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"axisD",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_0)},
     {"axisD",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_1)},
     {"axisD",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_2)},
+    /* rcData are encoded together as a group: */
+    {"rcData",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
+    {"rcData",      1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
+    {"rcData",      2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
+    {"rcData",      3, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
     /* rcCommands are encoded together as a group in P-frames: */
     {"rcCommand",   0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
     {"rcCommand",   1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
@@ -332,6 +338,7 @@ typedef struct blackboxMainState_s {
     int32_t axisPID_D[XYZ_AXIS_COUNT];
     int32_t axisPID_Setpoint[XYZ_AXIS_COUNT];
 
+    int16_t rcData[4];
     int16_t rcCommand[4];
     int16_t gyroADC[XYZ_AXIS_COUNT];
     int16_t accADC[XYZ_AXIS_COUNT];
@@ -596,6 +603,9 @@ static void writeIntraframe(void)
         }
     }
 
+    // Write raw stick positions
+    blackboxWriteSigned16VBArray(blackboxCurrent->rcData, 4);
+
     // Write roll, pitch and yaw first:
     blackboxWriteSigned16VBArray(blackboxCurrent->rcCommand, 3);
 
@@ -770,6 +780,15 @@ static void writeInterframe(void)
      * RC tends to stay the same or fairly small for many frames at a time, so use an encoding that
      * can pack multiple values per byte:
      */
+
+    // rcData
+    for (int x = 0; x < 4; x++) {
+        deltas[x] = blackboxCurrent->rcData[x] - blackboxLast->rcData[x];
+    }
+
+    blackboxWriteTag8_4S16(deltas);
+
+    // rcCommand
     for (int x = 0; x < 4; x++) {
         deltas[x] = blackboxCurrent->rcCommand[x] - blackboxLast->rcCommand[x];
     }
@@ -1048,8 +1067,8 @@ void blackboxFinish(void)
     case BLACKBOX_STATE_RUNNING:
     case BLACKBOX_STATE_PAUSED:
         blackboxLogEvent(FLIGHT_LOG_EVENT_LOG_END, NULL);
+        FALLTHROUGH;
 
-        // Fall through
     default:
         blackboxSetState(BLACKBOX_STATE_SHUTTING_DOWN);
     }
@@ -1122,6 +1141,7 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 
     for (int i = 0; i < 4; i++) {
+        blackboxCurrent->rcData[i] = rcData[i];
         blackboxCurrent->rcCommand[i] = rcCommand[i];
     }
 
@@ -1294,6 +1314,17 @@ static bool sendFieldDefinition(char mainFrameChar, char deltaFrameChar, const v
     return xmitState.headerIndex < headerCount;
 }
 
+// Buf must be at least FORMATTED_DATE_TIME_BUFSIZE
+static char *blackboxGetStartDateTime(char *buf)
+{
+    dateTime_t dt;
+    // rtcGetDateTime will fill dt with 0000-01-01T00:00:00
+    // when time is not known.
+    rtcGetDateTime(&dt);
+    dateTimeFormatUTC(buf, &dt);
+    return buf;
+}
+
 #ifndef BLACKBOX_PRINT_HEADER_LINE
 #define BLACKBOX_PRINT_HEADER_LINE(name, format, ...) case __COUNTER__: \
                                                 blackboxPrintfHeaderLine(name, format, __VA_ARGS__); \
@@ -1314,11 +1345,13 @@ static bool blackboxWriteSysinfo(void)
         return false;
     }
 
+    char buf[FORMATTED_DATE_TIME_BUFSIZE];
+
     switch (xmitState.headerIndex) {
         BLACKBOX_PRINT_HEADER_LINE("Firmware type", "%s",                   "Cleanflight");
         BLACKBOX_PRINT_HEADER_LINE("Firmware revision", "INAV %s (%s) %s",  FC_VERSION_STRING, shortGitRevision, targetName);
         BLACKBOX_PRINT_HEADER_LINE("Firmware date", "%s %s",                buildDate, buildTime);
-        BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime());
+        BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime(buf));
         BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->name);
         BLACKBOX_PRINT_HEADER_LINE("P interval", "%d/%d",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
         BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     motorConfig()->minthrottle);
@@ -1406,7 +1439,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_rate", "%d",                  motorConfig()->motorPwmRate);
         BLACKBOX_PRINT_HEADER_LINE("debug_mode", "%d",                      systemConfig()->debug_mode);
         BLACKBOX_PRINT_HEADER_LINE("features", "%d",                        featureConfig()->enabledFeatures);
-
+#ifdef NAV_BLACKBOX
+        BLACKBOX_PRINT_HEADER_LINE("waypoints", "%d,%d",                    getWaypointCount(),isWaypointListValid());
+#endif
         default:
             return true;
     }
@@ -1703,22 +1738,6 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     if (isBlackboxDeviceFull()) {
         blackboxSetState(BLACKBOX_STATE_STOPPED);
     }
-}
-
-/*
- * Returns start time in ISO 8601 format, YYYY-MM-DDThh:mm:ss
- * Year value of "0000" indicates time not set
- */
-static char startDateTime[20] = "0000-01-01T00:00:00";
-const char *blackboxGetStartDateTime(void)
-{
-    return startDateTime;
-}
-
-void blackboxSetStartDateTime(const char *dateTime, timeMs_t timeNowMs)
-{
-    (void)dateTime;
-    (void)timeNowMs;
 }
 
 static bool canUseBlackboxWithCurrentConfiguration(void)

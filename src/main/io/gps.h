@@ -21,6 +21,8 @@
 
 #include "config/parameter_group.h"
 
+#include "common/time.h"
+
 #define GPS_DBHZ_MIN 0
 #define GPS_DBHZ_MAX 55
 
@@ -106,6 +108,8 @@ typedef struct gpsLocation_s {
     int32_t alt;    // Altitude in centimeters (meters * 100)
 } gpsLocation_t;
 
+#define HDOP_SCALE (100)
+
 typedef struct gpsSolutionData_s {
     struct {
         bool gpsHeartbeat;  // Toggle each update
@@ -113,6 +117,7 @@ typedef struct gpsSolutionData_s {
         bool validVelD;
         bool validMag;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
+        bool validTime;
     } flags;
 
     gpsFixType_e fixType;
@@ -128,7 +133,10 @@ typedef struct gpsSolutionData_s {
     uint16_t eph;   // horizontal accuracy (cm)
     uint16_t epv;   // vertical accuracy (cm)
 
-    uint16_t hdop;  // generic HDOP value (*100)
+    uint16_t hdop;  // generic HDOP value (*HDOP_SCALE)
+
+    dateTime_t time; // GPS time in UTC
+
 } gpsSolutionData_t;
 
 typedef struct {

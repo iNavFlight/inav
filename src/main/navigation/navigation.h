@@ -65,6 +65,12 @@ enum {
     NAV_RESET_ALTITUDE_ON_EACH_ARM,
 };
 
+typedef enum {
+    NAV_RTH_ALLOW_LANDING_NEVER = 0,
+    NAV_RTH_ALLOW_LANDING_ALWAYS = 1,
+    NAV_RTH_ALLOW_LANDING_FS_ONLY = 2, // Allow landing only if RTH was triggered by failsafe
+} navRTHAllowLanding_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type;
@@ -107,7 +113,7 @@ typedef struct navConfig_s {
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
             uint8_t rth_tail_first;             // Return to home tail first
             uint8_t disarm_on_landing;          //
-            uint8_t rth_allow_landing;          // Enable landing as last stage of RTH
+            uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
         } flags;
 
@@ -123,7 +129,7 @@ typedef struct navConfig_s {
         uint16_t land_slowdown_maxalt;          // Altitude to start lowering descent rate during RTH descend
         uint16_t emerg_descent_rate;            // emergency landing descent rate
         uint16_t rth_altitude;                  // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
-        uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTL in cm, otherwise it will just autoland
+        uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
     } general;
 
@@ -248,6 +254,7 @@ void navigationInit(void);
 
 /* Position estimator update functions */
 void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs);
+void updatePositionEstimator_OpticalFlowTopic(timeUs_t currentTimeUs);
 void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfaceAlt);
 
 /* Navigation system updates */
@@ -299,6 +306,14 @@ void activateForcedRTH(void);
 void abortForcedRTH(void);
 rthState_e getStateOfForcedRTH(void);
 
+/* Getter functions which return data about the state of the navigation system */
+bool navigationIsControllingThrottle(void);
+bool navigationIsFlyingAutonomousMode(void);
+/* Returns true iff navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
+ * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
+ */
+bool navigationRTHAllowsLanding(void);
+
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
 
@@ -320,5 +335,7 @@ extern int16_t navAccNEU[3];
 #define navigationGetHeadingControlState() (0)
 #define navigationRequiresThrottleTiltCompensation() (0)
 #define getEstimatedActualVelocity(axis) (0)
+#define navigationIsControllingThrottle() (0)
+#define navigationRTHAllowsLanding() (0)
 
 #endif

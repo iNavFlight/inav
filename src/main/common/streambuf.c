@@ -48,9 +48,15 @@ void sbufWriteU16BigEndian(sbuf_t *dst, uint16_t val)
 void sbufWriteU32BigEndian(sbuf_t *dst, uint32_t val)
 {
     sbufWriteU8(dst, val >> 24);
-    sbufWriteU8(dst, val >> 8);
     sbufWriteU8(dst, val >> 16);
+    sbufWriteU8(dst, val >> 8);
     sbufWriteU8(dst, val >> 0);
+}
+
+void sbufFill(sbuf_t *dst, uint8_t data, int len)
+{
+    memset(dst->ptr, data, len);
+    dst->ptr += len;
 }
 
 void sbufWriteData(sbuf_t *dst, const void *data, int len)
@@ -59,9 +65,25 @@ void sbufWriteData(sbuf_t *dst, const void *data, int len)
     dst->ptr += len;
 }
 
+bool sbufWriteDataSafe(sbuf_t *dst, const void *data, int len)
+{
+    // only write if data does not overflow buffer
+    if (sbufBytesRemaining(dst) >= len) {
+        memcpy(dst->ptr, data, len);
+        dst->ptr += len;
+        return true;
+    }
+    return false;
+}
+
 void sbufWriteString(sbuf_t *dst, const char *string)
 {
     sbufWriteData(dst, string, strlen(string));
+}
+
+void sbufWriteStringWithZeroTerminator(sbuf_t *dst, const char *string)
+{
+    sbufWriteData(dst, string, strlen(string) + 1);
 }
 
 uint8_t sbufReadU8(sbuf_t *src)
@@ -90,6 +112,66 @@ uint32_t sbufReadU32(sbuf_t *src)
 void sbufReadData(const sbuf_t *src, void *data, int len)
 {
     memcpy(data, src->ptr, len);
+}
+
+bool sbufReadU8Safe(uint8_t *dst, sbuf_t *src)
+{
+    if (sbufBytesRemaining(src)) {
+        const uint8_t value = sbufReadU8(src);
+        if (dst) {
+            *dst = value;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool sbufReadI8Safe(int8_t *dst, sbuf_t *src)
+{
+    return sbufReadU8Safe((uint8_t*)dst, src);
+}
+
+bool sbufReadU16Safe(uint16_t *dst, sbuf_t *src)
+{
+    if (sbufBytesRemaining(src) >= 2) { // check there are enough bytes left in the buffer to read a uint16_t
+        const uint16_t value = sbufReadU16(src);
+        if (dst) {
+            *dst = value;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool sbufReadI16Safe(int16_t *dst, sbuf_t *src)
+{
+    return sbufReadU16Safe((uint16_t*)dst, src);
+}
+
+bool sbufReadU32Safe(uint32_t *dst, sbuf_t *src)
+{
+    if (sbufBytesRemaining(src) >= 4) { // check there are enough bytes left in the buffer to read a uint32_t
+        const uint32_t value = sbufReadU32(src);
+        if (dst) {
+            *dst = value;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool sbufReadI32Safe(int32_t *dst, sbuf_t *src)
+{
+    return sbufReadU32Safe((uint32_t*)dst, src);
+}
+
+bool sbufReadDataSafe(const sbuf_t *src, void *data, int len)
+{
+    if (sbufBytesRemaining(src) >= len) {
+        sbufReadData(src, data, len);
+        return true;
+    }
+    return false;
 }
 
 // reader - return bytes remaining in buffer

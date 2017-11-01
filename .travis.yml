@@ -1,8 +1,11 @@
 env:
 # Specify the main Mafile supported goals.
   - GOAL=test
-  - GOAL=all
-#  - TARGET=CC3D
+  - GOAL=targets-group-1
+  - GOAL=targets-group-2
+  - GOAL=targets-group-3
+  - GOAL=targets-group-4
+  - GOAL=targets-group-rest
 
 # use new docker environment
 sudo: false

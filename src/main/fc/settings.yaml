@@ -7,17 +7,23 @@ tables:
     values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X"]
+    values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X", "UIB"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "FAKE"]
     enum: magSensor_e
+  - name: opflow_hardware
+    values: ["NONE", "FAKE"]
+    enum: opticalFlowSensor_e
   - name: baro_hardware
     values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE"]
     enum: pitotSensor_e
+  - name: receiver_type
+    values: ["NONE", "PWM", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
+    enum: rxReceiverType_e
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF"]
   - name: rx_spi_protocol
@@ -66,6 +72,15 @@ tables:
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
+  - name: osd_crosshairs_style
+    values: ["DEFAULT", "AIRCRAFT"]
+    enum: osd_crosshairs_style_e
+  - name: osd_sidebar_scroll
+    values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
+    enum: osd_sidebar_scroll_e
+  - name: nav_rth_allow_landing
+    values: ["NEVER", "ALWAYS", "FS_ONLY"]
+    enum: navRTHAllowLanding_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -192,6 +207,17 @@ groups:
       - name: rangefinder_hardware
         table: rangefinder_hardware
 
+  - name: PG_OPFLOW_CONFIG
+    type: opticalFlowConfig_t
+    headers: ["sensors/opflow.h"]
+    condition: USE_OPTICAL_FLOW
+    members:
+      - name: opflow_hardware
+        table: opflow_hardware
+      - name: opflow_scale
+        min: 0
+        max: 10000
+
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t
     headers: ["sensors/compass.h"]
@@ -255,6 +281,9 @@ groups:
     type: rxConfig_t
     headers: ["rx/rx.h", "rx/spektrum.h"]
     members:
+      - name: receiver_type
+        field: receiverType
+        table: receiver_type
       - name: mid_rc
         field: midrc
         min: 1200
@@ -389,6 +418,11 @@ groups:
       - name: failsafe_fw_yaw_rate
         min: -1000
         max: 1000
+      - name: failsafe_min_distance
+        min: 0
+        max: 65000
+      - name: failsafe_min_distance_procedure
+        table: failsafe_procedure
 
   - name: PG_BOARD_ALIGNMENT
     type: boardAlignment_t
@@ -450,7 +484,7 @@ groups:
         max: 10000
       - name: current_meter_offset
         field: currentMeterOffset
-        min: 0
+        min: -3300
         max: 3300
       - name: multiwii_current_meter_output
         field: multiwiiCurrentMeterOutput
@@ -1073,7 +1107,7 @@ groups:
         type: bool
       - name: nav_rth_allow_landing
         field: general.flags.rth_allow_landing
-        type: bool
+        table: nav_rth_allow_landing
       - name: nav_rth_alt_mode
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
@@ -1301,6 +1335,25 @@ groups:
         min: 0
         max: 10000
 
+      - name: osd_artificial_horizon_reverse_roll
+        field: ahi_reverse_roll
+        type: bool
+      - name: osd_crosshairs_style
+        field: crosshairs_style
+        table: osd_crosshairs_style
+        type: uint8_t
+      - name: osd_left_sidebar_scroll
+        field: left_sidebar_scroll
+        table: osd_sidebar_scroll
+        type: uint8_t
+      - name: osd_right_sidebar_scroll
+        field: right_sidebar_scroll
+        table: osd_sidebar_scroll
+        type: uint8_t
+      - name: osd_sidebar_scroll_arrows
+        field: sidebar_scroll_arrows
+        type: bool
+
       - name: osd_main_voltage_pos
         field: item_pos[OSD_MAIN_BATT_VOLTAGE]
         min: 0
@@ -1329,11 +1382,11 @@ groups:
         field: item_pos[OSD_VTX_CHANNEL]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_crosshairs
+      - name: osd_crosshairs_pos
         field: item_pos[OSD_CROSSHAIRS]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_artificial_horizon
+      - name: osd_artificial_horizon_pos
         field: item_pos[OSD_ARTIFICIAL_HORIZON]
         min: 0
         max: OSD_POS_MAX_CLI
@@ -1357,19 +1410,19 @@ groups:
         field: item_pos[OSD_GPS_SATS]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_gps_lon
+      - name: osd_gps_lon_pos
         field: item_pos[OSD_GPS_LON]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_gps_lat
+      - name: osd_gps_lat_pos
         field: item_pos[OSD_GPS_LAT]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_home_dir
+      - name: osd_home_dir_pos
         field: item_pos[OSD_HOME_DIR]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_home_dist
+      - name: osd_home_dist_pos
         field: item_pos[OSD_HOME_DIST]
         min: 0
         max: OSD_POS_MAX_CLI
@@ -1377,11 +1430,11 @@ groups:
         field: item_pos[OSD_ALTITUDE]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_vario
+      - name: osd_vario_pos
         field: item_pos[OSD_VARIO]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_vario_num
+      - name: osd_vario_num_pos
         field: item_pos[OSD_VARIO_NUM]
         min: 0
         max: OSD_POS_MAX_CLI
@@ -1401,9 +1454,33 @@ groups:
         field: item_pos[OSD_POWER]
         min: 0
         max: OSD_POS_MAX_CLI
-      - name: osd_air_speed
+      - name: osd_air_speed_pos
         field: item_pos[OSD_AIR_SPEED]
         min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_ontime_flytime_pos
+        field: item_pos[OSD_ONTIME_FLYTIME]
+        max: OSD_POS_MAX_CLI
+      - name: osd_rtc_time_pos
+        field: item_pos[OSD_RTC_TIME]
+        max: OSD_POS_MAX_CLI
+      - name: osd_messages_pos
+        field: item_pos[OSD_MESSAGES]
+        max: OSD_POS_MAX_CLI
+      - name: osd_gps_hdop_pos
+        field: item_pos[OSD_GPS_HDOP]
+        max: OSD_POS_MAX_CLI
+      - name: osd_main_cell_voltage_pos
+        field: item_pos[OSD_MAIN_BATT_CELL_VOLTAGE]
+        max: OSD_POS_MAX_CLI
+      - name: osd_throttle_auto_thr_pos
+        field: item_pos[OSD_THROTTLE_POS_AUTO_THR]
+        max: OSD_POS_MAX_CLI
+      - name: osd_heading_graph_pos
+        field: item_pos[OSD_HEADING_GRAPH]
+        max: OSD_POS_MAX_CLI
+      - name: osd_efficiency_pos
+        field: item_pos[OSD_EFFICIENCY]
         max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG
@@ -1462,3 +1539,11 @@ groups:
         max: INT32_MAX
       - name: stats_total_dist
         max: INT32_MAX
+
+  - name: PG_TIME_CONFIG
+    type: timeConfig_t
+    headers: ["common/time.h"]
+    members:
+      - name: tz_offset
+        min: -1440
+        max: 1440

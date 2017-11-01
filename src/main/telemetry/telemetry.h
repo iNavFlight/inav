@@ -25,6 +25,8 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "io/serial.h"
+
 
 typedef enum {
     FRSKY_FORMAT_DMS = 0,

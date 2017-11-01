@@ -79,35 +79,16 @@ CMS_Menu cmsx_menuRcPreview = {
     .entries = cmsx_menuRcEntries
 };
 
-static uint16_t motorConfig_minthrottle;
-static uint8_t batteryConfig_vbatscale;
-static uint8_t batteryConfig_vbatmaxcellvoltage;
-
-static long cmsx_menuMiscOnEnter(void)
-{
-    motorConfig_minthrottle = motorConfig()->minthrottle;
-    batteryConfig_vbatscale = batteryConfig()->vbatscale;
-    batteryConfig_vbatmaxcellvoltage = batteryConfig()->vbatmaxcellvoltage;
-    return 0;
-}
-
-static long cmsx_menuMiscOnExit(const OSD_Entry *self)
-{
-    UNUSED(self);
-
-    motorConfigMutable()->minthrottle = motorConfig_minthrottle;
-    batteryConfigMutable()->vbatscale = batteryConfig_vbatscale;
-    batteryConfigMutable()->vbatmaxcellvoltage = batteryConfig_vbatmaxcellvoltage;
-    return 0;
-}
-
 static OSD_Entry menuMiscEntries[]=
 {
     { "-- MISC --", OME_Label, NULL, NULL, 0 },
 
-    { "MIN THR",    OME_UINT16,  NULL,          &(OSD_UINT16_t){ &motorConfig_minthrottle,         1000, 2000, 1 }, 0 },
-    { "VBAT SCALE", OME_UINT8,   NULL,          &(OSD_UINT8_t) { &batteryConfig_vbatscale,             1, 250, 1 }, 0 },
-    { "VBAT CLMAX", OME_UINT8,   NULL,          &(OSD_UINT8_t) { &batteryConfig_vbatmaxcellvoltage,   10,  50, 1 }, 0 },
+    OSD_SETTING_ENTRY("MIN THR", SETTING_MIN_THROTTLE),
+#ifdef USE_ADC
+    OSD_SETTING_ENTRY("VBAT SCALE", SETTING_VBAT_SCALE),
+    OSD_SETTING_ENTRY("VBAT CLMAX", SETTING_VBAT_MAX_CELL_VOLTAGE),
+#endif
+
     { "RC PREV",    OME_Submenu, cmsMenuChange, &cmsx_menuRcPreview, 0},
 
     { "BACK", OME_Back, NULL, NULL, 0},
@@ -117,8 +98,8 @@ static OSD_Entry menuMiscEntries[]=
 CMS_Menu cmsx_menuMisc = {
     .GUARD_text = "XMISC",
     .GUARD_type = OME_MENU,
-    .onEnter = cmsx_menuMiscOnEnter,
-    .onExit = cmsx_menuMiscOnExit,
+    .onEnter = NULL,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = menuMiscEntries
 };

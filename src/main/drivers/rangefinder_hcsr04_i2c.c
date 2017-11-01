@@ -56,10 +56,14 @@ static uint8_t hcsr04i2cReadByte(uint8_t registry) {
     return buffer;
 }
 
-static void hcsr04i2cInit(void) {
+static void hcsr04i2cInit(rangefinderDev_t *dev)
+{
+    UNUSED(dev);
 }
 
-void hcsr04i2cUpdate(void) {
+void hcsr04i2cUpdate(rangefinderDev_t *dev)
+{
+    UNUSED(dev);
     uint8_t response[3];
 
     isHcsr04i2cResponding = i2cRead(I2C_DEVICE, HCSR04_I2C_Address, HCSR04_I2C_REGISTRY_STATUS, 3, response);
@@ -86,7 +90,9 @@ void hcsr04i2cUpdate(void) {
 /**
  * Get the distance that was measured by the last pulse, in centimeters.
  */
-int32_t hcsr04i2cGetDistance(void) {
+int32_t hcsr04i2cGetDistance(rangefinderDev_t *dev)
+{
+    UNUSED(dev);
     return hcsr04i2cMeasurementCm;
 }
 
