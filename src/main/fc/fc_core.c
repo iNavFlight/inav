@@ -179,8 +179,11 @@ static void updateArmingStatus(void)
         /* CHECK: Throttle */
         if (calculateThrottleStatus() != THROTTLE_LOW) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
-        } else {
+        } else if (armingFlags & ARMING_DISABLED_THROTTLE ){ //Previous Throttle Not LOW- kbi
             DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+            if ( (armingFlags & ARMING_DISABLED_ALL_FLAGS)==ARMING_DISABLED_ARM_SWITCH && IS_RC_MODE_ACTIVE(BOXARM)  ){
+                DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);  //Arm Now That Throttle is Fixed and No Other Flags Set
+            }
         }
 
         /* CHECK: Angle */
