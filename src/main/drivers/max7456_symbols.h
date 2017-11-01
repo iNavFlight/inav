@@ -223,6 +223,8 @@
 
 // Air speed
 #define SYM_AIR 151
+// TODO: Proper symbol
+#define SYM_WIND 'W'
 
 //Misc
 #define SYM_COLON 0x2D

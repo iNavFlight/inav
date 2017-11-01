@@ -1747,6 +1747,41 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+#if 0
+    case OSD_HORIZONTAL_WIND:
+        {
+            float horizontalWindSpeed;
+            float horizontalWindAngle;
+            getEstimatedWindVelocityBodyFrame(&horizontalWindSpeed, &horizontalWindAngle, NULL);
+            buff[0] = SYM_WIND;
+            int16_t h = RADIANS_TO_DEGREES(horizontalWindAngle);
+            if (h < 0) {
+                h += 360;
+            }
+            if (h >= 360) {
+                h -= 360;
+            }
+            h = h*2/45;
+            buff[1] = SYM_ARROW_UP + h;
+            osdFormatCentiNumber(buff + 2, horizontalWindSpeed * 0.036, 0, 2, 0, 3);
+            buff[5] = SYM_KMH;
+            buff[6] = '\0';
+            break;
+        }
+
+    case OSD_VERTICAL_WIND:
+        {
+            float verticalWindSpeed;
+            getEstimatedWindVelocityBodyFrame(NULL, NULL, &verticalWindSpeed);
+            buff[0] = SYM_WIND;
+            buff[1] = verticalWindSpeed > 0 ? SYM_AH_DECORATION_UP : verticalWindSpeed < 0 ? SYM_AH_DECORATION_DOWN : SYM_BLANK;
+            osdFormatCentiNumber(buff + 2, verticalWindSpeed * 0.036, 0, 2, 0, 3);
+            buff[5] = SYM_KMH;
+            buff[6] = '\0';
+            break;
+        }
+#endif
+
     default:
         return false;
     }
