@@ -82,7 +82,7 @@ STATIC_FASTRAM float smallAngleCosZ;
 STATIC_FASTRAM bool isAccelUpdatedAtLeastOnce;
 
 STATIC_FASTRAM_UNIT_TESTED float q0, q1, q2, q3;    // quaternion of sensor frame relative to earth frame
-STATIC_FASTRAM_UNIT_TESTED float rMat[3][3];
+FASTRAM float rMat[3][3];
 
 FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 
