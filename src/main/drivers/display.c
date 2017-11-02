@@ -29,7 +29,7 @@
 
 #include "display.h"
 
-#define SW_BLINK_CYCLE_MS 1000
+#define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
 
 PG_REGISTER_WITH_RESET_TEMPLATE(displayConfig_t, displayConfig, PG_DISPLAY_CONFIG, 0);
 
