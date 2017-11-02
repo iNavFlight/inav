@@ -353,6 +353,33 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
 }
 
 /**
+ * Converts wind speed into a string based on the current unit system, using
+ * always 3 digits and an additional character for the unit at the right. buff
+ * is null terminated.
+ * @param ws Raw wind speed in cm/s
+ */
+static void osdFormatWindSpeedStr(char *buff, int32_t ws)
+{
+    int32_t centivalue;
+    char suffix;
+    switch (osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_IMPERIAL:
+            centivalue = (ws * 224) / 100;
+            suffix = SYM_MPH;
+            break;
+        case OSD_UNIT_METRIC:
+            centivalue = (ws * 36) / 10;
+            suffix = SYM_KMH;
+            break;
+    }
+    osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
+    buff[3] = suffix;
+    buff[4] = '\0';
+}
+
+/**
 * Converts altitude into a string based on the current unit system
 * prefixed by a a symbol to indicate the unit used.
 * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt in centimeters)
@@ -1763,9 +1790,7 @@ static bool osdDrawSingleElement(uint8_t item)
             }
             h = h*2/90;
             buff[1] = SYM_DIRECTION + h;
-            osdFormatCentiNumber(buff + 2, horizontalWindSpeed * 0.036, 0, 2, 0, 3);
-            buff[5] = SYM_KMH;
-            buff[6] = '\0';
+            osdFormatWindSpeedStr(buff + 2, horizontalWindSpeed);
             break;
         }
 
@@ -1774,10 +1799,14 @@ static bool osdDrawSingleElement(uint8_t item)
             float verticalWindSpeed;
             getEstimatedWindVelocityBodyFrame(NULL, NULL, &verticalWindSpeed);
             buff[0] = SYM_WIND_VERTICAL;
-            buff[1] = verticalWindSpeed > 0 ? SYM_AH_DECORATION_UP : verticalWindSpeed < 0 ? SYM_AH_DECORATION_DOWN : SYM_BLANK;
-            osdFormatCentiNumber(buff + 2, verticalWindSpeed * 0.036, 0, 2, 0, 3);
-            buff[5] = SYM_KMH;
-            buff[6] = '\0';
+            buff[1] = SYM_BLANK;
+            if (verticalWindSpeed < 0) {
+                buff[1] = SYM_AH_DECORATION_DOWN;
+                verticalWindSpeed = -verticalWindSpeed;
+            } else if (verticalWindSpeed > 0) {
+                buff[1] = SYM_AH_DECORATION_UP;
+            }
+            osdFormatWindSpeedStr(buff + 2, verticalWindSpeed);
             break;
         }
 #endif
