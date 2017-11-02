@@ -85,7 +85,8 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
 
-    if (posControl.flags.estHeadingStatus < EST_TRUSTED ||
+    if (!STATE(FIXED_WING) ||
+        posControl.flags.estHeadingStatus < EST_TRUSTED ||
         posControl.flags.estPosStatue < EST_TRUSTED) {
         return;
     }
