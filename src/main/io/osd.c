@@ -1753,7 +1753,7 @@ static bool osdDrawSingleElement(uint8_t item)
             float horizontalWindSpeed;
             float horizontalWindAngle;
             getEstimatedWindVelocityBodyFrame(&horizontalWindSpeed, &horizontalWindAngle, NULL);
-            buff[0] = SYM_WIND;
+            buff[0] = SYM_WIND_HORIZONTAL;
             int16_t h = RADIANS_TO_DEGREES(horizontalWindAngle);
             if (h < 0) {
                 h += 360;
@@ -1761,8 +1761,8 @@ static bool osdDrawSingleElement(uint8_t item)
             if (h >= 360) {
                 h -= 360;
             }
-            h = h*2/45;
-            buff[1] = SYM_ARROW_UP + h;
+            h = h*2/90;
+            buff[1] = SYM_DIRECTION + h;
             osdFormatCentiNumber(buff + 2, horizontalWindSpeed * 0.036, 0, 2, 0, 3);
             buff[5] = SYM_KMH;
             buff[6] = '\0';
@@ -1773,7 +1773,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             float verticalWindSpeed;
             getEstimatedWindVelocityBodyFrame(NULL, NULL, &verticalWindSpeed);
-            buff[0] = SYM_WIND;
+            buff[0] = SYM_WIND_VERTICAL;
             buff[1] = verticalWindSpeed > 0 ? SYM_AH_DECORATION_UP : verticalWindSpeed < 0 ? SYM_AH_DECORATION_DOWN : SYM_BLANK;
             osdFormatCentiNumber(buff + 2, verticalWindSpeed * 0.036, 0, 2, 0, 3);
             buff[5] = SYM_KMH;
