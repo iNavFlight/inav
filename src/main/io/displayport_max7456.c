@@ -132,9 +132,7 @@ static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort
     textAttributes_t attr = TEXT_ATTRIBUTES_NONE;
     TEXT_ATTRIBUTES_ADD_INVERTED(attr);
     TEXT_ATTRIBUTES_ADD_SOLID_BG(attr);
-    if (!displayConfig()->force_sw_blink) {
-        TEXT_ATTRIBUTES_ADD_BLINK(attr);
-    }
+    TEXT_ATTRIBUTES_ADD_BLINK(attr);
     return attr;
 }
 

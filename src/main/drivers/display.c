@@ -165,5 +165,8 @@ void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
     if (vTable->supportedTextAttributes) {
         instance->supportedTextAttributes = vTable->supportedTextAttributes(instance);
     }
+    if (displayConfig()->force_sw_blink) {
+        TEXT_ATTRIBUTES_REMOVE_BLINK(instance->supportedTextAttributes);
+    }
 }
 
