@@ -87,7 +87,9 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     if (!STATE(FIXED_WING) ||
         posControl.flags.estHeadingStatus < EST_TRUSTED ||
-        posControl.flags.estPosStatue < EST_TRUSTED) {
+        posControl.flags.estPosStatue < EST_TRUSTED ||
+        !gpsSol.flags.validVelNE ||
+        !gpsSol.flags.validVelD) {
         return;
     }
 
