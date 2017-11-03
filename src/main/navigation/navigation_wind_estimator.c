@@ -162,7 +162,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         // TODO: Why this conditional?
         if (wind_length < _wind_length + 20) {
             // TODO: Better filtering
-            estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;;
+            estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
             estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
             estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
         }
