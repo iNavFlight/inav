@@ -45,6 +45,13 @@ static float estimatedWind[XYZ_AXIS_COUNT] = {0, 0, 0};    // wind velocity vect
 static float lastGroundVelocity[XYZ_AXIS_COUNT];
 static float lastFuselageDirection[XYZ_AXIS_COUNT];
 
+bool isEstimatedWindSpeedValid(void)
+{
+    // TODO: Add a timeout. Estimated wind should expire if
+    // if we can't update it for an extended time.
+    return hasValidWindEstimate;
+}
+
 float getEstimatedWindSpeed(int axis)
 {
     return estimatedWind[axis];

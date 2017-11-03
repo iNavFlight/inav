@@ -19,6 +19,7 @@
 
 #include "common/time.h"
 
+bool isEstimatedWindSpeedValid(void);
 // wind velocity vectors in cm / sec relative to the earth frame
 float getEstimatedWindSpeed(int axis);
 

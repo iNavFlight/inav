@@ -359,7 +359,7 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
  * is null terminated.
  * @param ws Raw wind speed in cm/s
  */
-static void osdFormatWindSpeedStr(char *buff, int32_t ws)
+static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 {
     int32_t centivalue;
     char suffix;
@@ -375,7 +375,11 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws)
             suffix = SYM_KMH;
             break;
     }
-    osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
+    if (isValid) {
+        osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
+    } else {
+        buff[0] = buff[1] = buff[2] = '-';
+    }
     buff[3] = suffix;
     buff[4] = '\0';
 }
@@ -1778,36 +1782,49 @@ static bool osdDrawSingleElement(uint8_t item)
 #if 0
     case OSD_WIND_SPEED_HORIZONTAL:
         {
-            float xWindSpeed = getEstimatedWindSpeed(X);
-            float yWindSpeed = getEstimatedWindSpeed(Y);
-            float horizontalWindSpeed = sqrtf(sq(xWindSpeed) + sq(yWindSpeed));
-            float horizontalWindAngle = atan2_approx(yWindSpeed, xWindSpeed);
-            int16_t h = RADIANS_TO_DEGREES(horizontalWindAngle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
-            if (h < 0) {
-                h += 360;
+            bool valid = isEstimatedWindSpeedValid();
+            float horizontalWindSpeed;
+            if (valid) {
+                float xWindSpeed = getEstimatedWindSpeed(X);
+                float yWindSpeed = getEstimatedWindSpeed(Y);
+                horizontalWindSpeed = sqrtf(sq(xWindSpeed) + sq(yWindSpeed));
+                float horizontalWindAngle = atan2_approx(yWindSpeed, xWindSpeed);
+                int16_t h = RADIANS_TO_DEGREES(horizontalWindAngle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+                if (h < 0) {
+                    h += 360;
+                }
+                if (h >= 360) {
+                    h -= 360;
+                }
+                h = h*2/90;
+                buff[1] = SYM_DIRECTION + h;
+            } else {
+                horizontalWindSpeed = 0;
+                buff[1] = SYM_BLANK;
             }
-            if (h >= 360) {
-                h -= 360;
-            }
-            h = h*2/90;
             buff[0] = SYM_WIND_HORIZONTAL;
-            buff[1] = SYM_DIRECTION + h;
-            osdFormatWindSpeedStr(buff + 2, horizontalWindSpeed);
+            osdFormatWindSpeedStr(buff + 2, horizontalWindSpeed, valid);
             break;
         }
 
     case OSD_WIND_SPEED_VERTICAL:
         {
-            float verticalWindSpeed = getEstimatedWindSpeed(Z);
             buff[0] = SYM_WIND_VERTICAL;
             buff[1] = SYM_BLANK;
-            if (verticalWindSpeed < 0) {
-                buff[1] = SYM_AH_DECORATION_DOWN;
-                verticalWindSpeed = -verticalWindSpeed;
-            } else if (verticalWindSpeed > 0) {
-                buff[1] = SYM_AH_DECORATION_UP;
+            bool valid = isEstimatedWindSpeedValid();
+            float verticalWindSpeed;
+            if (valid) {
+                verticalWindSpeed = getEstimatedWindSpeed(Z);
+                if (verticalWindSpeed < 0) {
+                    buff[1] = SYM_AH_DECORATION_DOWN;
+                    verticalWindSpeed = -verticalWindSpeed;
+                } else if (verticalWindSpeed > 0) {
+                    buff[1] = SYM_AH_DECORATION_UP;
+                }
+            } else {
+                verticalWindSpeed = 0;
             }
-            osdFormatWindSpeedStr(buff + 2, verticalWindSpeed);
+            osdFormatWindSpeedStr(buff + 2, verticalWindSpeed, valid);
             break;
         }
 #endif
