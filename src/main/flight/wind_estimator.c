@@ -17,7 +17,7 @@
 
 #include "platform.h"
 
-#if defined(USE_GPS) && defined(USE_WIND_ESTIMATOR)
+#if defined(USE_WIND_ESTIMATOR)
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>

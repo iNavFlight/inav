@@ -75,6 +75,7 @@ COMMON_SRC = \
             flight/pid.c \
             flight/pid_autotune.c \
             flight/servos.c \
+            flight/wind_estimator.c \
             io/beeper.c \
             io/lights.c \
             io/pwmdriver_i2c.c \
@@ -162,7 +163,6 @@ COMMON_SRC = \
             navigation/navigation_geo.c \
             navigation/navigation_multicopter.c \
             navigation/navigation_pos_estimator.c \
-            navigation/navigation_wind_estimator.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \

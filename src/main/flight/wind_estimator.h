@@ -17,6 +17,12 @@
 
 #pragma once
 
+#if defined(USE_WIND_ESTIMATOR)
+#if !defined(USE_GPS)
+#error Wind Estimator requires GPS support
+#endif
+#endif
+
 #include "common/time.h"
 
 bool isEstimatedWindSpeedValid(void);

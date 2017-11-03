@@ -154,7 +154,9 @@ struct magDev_s;
 bool gpsMagDetect(struct magDev_s *mag);
 void gpsPreInit(void);
 void gpsInit(void);
-void gpsThread(void);
+// Called periodically from GPS task. Returns true iff the GPS
+// information was updated.
+bool gpsUpdate(void);
 void updateGpsIndicator(timeUs_t currentTimeUs);
 bool isGPSHealthy(void);
 bool isGPSHeadingValid(void);

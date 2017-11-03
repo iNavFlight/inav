@@ -26,8 +26,6 @@
 
 #include "io/gps.h"
 
-#include "navigation/navigation_wind_estimator.h"
-
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
 extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
