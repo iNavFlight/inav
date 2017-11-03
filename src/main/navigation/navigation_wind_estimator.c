@@ -37,7 +37,6 @@
 #include "flight/imu.h"
 
 #include "io/gps.h"
-#include "io/gps_private.h"
 
 
 static bool hasValidWindEstimate = false;
