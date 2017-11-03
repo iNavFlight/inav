@@ -67,7 +67,7 @@ typedef struct displayPort_s {
     bool cleared;
     int8_t cursorRow;
     int8_t grabCount;
-    textAttributes_t supportedTextAttributes;
+    textAttributes_t cachedSupportedTextAttributes;
 } displayPort_t;
 
 typedef struct displayPortVTable_s {
