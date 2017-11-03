@@ -38,9 +38,10 @@
 
 #include "io/gps.h"
 
+// Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
-static float estimatedWind[XYZ_AXIS_COUNT] = {0, 0, 0};    // wind velocity vectors in cm / sec
+static float estimatedWind[XYZ_AXIS_COUNT] = {0, 0, 0};    // wind velocity vectors in cm / sec in earth frame
 static float lastGroundVelocity[XYZ_AXIS_COUNT];
 static float lastFuselageDirection[XYZ_AXIS_COUNT];
 
@@ -97,11 +98,13 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     float fuselageDirectionDiff[XYZ_AXIS_COUNT];
     float fuselageDirectionSum[XYZ_AXIS_COUNT];
 
+    // Get current 3D velocity from GPS in cm/s
+    // relative to earth frame
     groundVelocity[X] = gpsSol.velNED[X];
     groundVelocity[Y] = gpsSol.velNED[Y];
     groundVelocity[Z] = gpsSol.velNED[Z];
 
-    // TODO: Can get this from the nav system without exposing rMat?
+    // Fuselage direction in earth frame
     fuselageDirection[X] = rMat[0][0];
     fuselageDirection[Y] = rMat[1][0];
     fuselageDirection[Z] = rMat[2][0];
@@ -122,6 +125,10 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     fuselageDirectionDiff[Z] = fuselageDirection[Z] - lastFuselageDirection[Z];
 
     float diff_length = sqrtf(sq(fuselageDirectionDiff[X]) + sq(fuselageDirectionDiff[Y]) + sq(fuselageDirectionDiff[Z]));
+    // Very small changes in attitude will result in a denominator
+    // very close to zero which will introduce too much error in the
+    // estimation.
+    //
     // TODO: Is 0.2f an adequate threshold?
     if (diff_length > 0.2f) {
         // when turning, use the attitude response to estimate wind speed
