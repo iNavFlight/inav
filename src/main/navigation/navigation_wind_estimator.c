@@ -97,9 +97,9 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     float fuselageDirectionDiff[XYZ_AXIS_COUNT];
     float fuselageDirectionSum[XYZ_AXIS_COUNT];
 
-    groundVelocity[X] = gpsSol.velNED[X] / 100;
-    groundVelocity[Y] = gpsSol.velNED[Y] / 100;
-    groundVelocity[Z] = gpsSol.velNED[Z] / 100;
+    groundVelocity[X] = gpsSol.velNED[X];
+    groundVelocity[Y] = gpsSol.velNED[Y];
+    groundVelocity[Z] = gpsSol.velNED[Z];
 
     // TODO: Can get this from the nav system without exposing rMat?
     fuselageDirection[X] = rMat[0][0];
