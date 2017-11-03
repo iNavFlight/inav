@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -1777,11 +1778,11 @@ static bool osdDrawSingleElement(uint8_t item)
 #if 0
     case OSD_WIND_SPEED_HORIZONTAL:
         {
-            float horizontalWindSpeed;
-            float horizontalWindAngle;
-            getEstimatedWindVelocityBodyFrame(&horizontalWindSpeed, &horizontalWindAngle, NULL);
-            buff[0] = SYM_WIND_HORIZONTAL;
-            int16_t h = RADIANS_TO_DEGREES(horizontalWindAngle);
+            float xWindSpeed = getEstimatedWindSpeed(X);
+            float yWindSpeed = getEstimatedWindSpeed(Y);
+            float horizontalWindSpeed = sqrtf(sq(xWindSpeed) + sq(yWindSpeed));
+            float horizontalWindAngle = atan2_approx(yWindSpeed, xWindSpeed);
+            int16_t h = RADIANS_TO_DEGREES(horizontalWindAngle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
             if (h < 0) {
                 h += 360;
             }
@@ -1789,6 +1790,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 h -= 360;
             }
             h = h*2/90;
+            buff[0] = SYM_WIND_HORIZONTAL;
             buff[1] = SYM_DIRECTION + h;
             osdFormatWindSpeedStr(buff + 2, horizontalWindSpeed);
             break;
@@ -1796,8 +1798,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_WIND_SPEED_VERTICAL:
         {
-            float verticalWindSpeed;
-            getEstimatedWindVelocityBodyFrame(NULL, NULL, &verticalWindSpeed);
+            float verticalWindSpeed = getEstimatedWindSpeed(Z);
             buff[0] = SYM_WIND_VERTICAL;
             buff[1] = SYM_BLANK;
             if (verticalWindSpeed < 0) {
