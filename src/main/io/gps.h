@@ -157,5 +157,6 @@ void gpsInit(void);
 void gpsThread(void);
 void updateGpsIndicator(timeUs_t currentTimeUs);
 bool isGPSHealthy(void);
+bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);

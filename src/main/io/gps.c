@@ -546,4 +546,10 @@ bool isGPSHealthy(void)
 {
     return true;
 }
+
+bool isGPSHeadingValid(void)
+{
+    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+}
+
 #endif

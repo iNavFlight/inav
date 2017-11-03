@@ -463,7 +463,7 @@ static void imuCalculateEstimatedAttitude(float dT)
 
 #if defined(USE_GPS)
     if (STATE(FIXED_WING)) {
-        bool canUseCOG = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+        bool canUseCOG = isGPSHeadingValid();
 
         if (canUseCOG) {
             if (gpsHeadingInitialized) {
