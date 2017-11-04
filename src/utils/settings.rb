@@ -651,7 +651,7 @@ class Generator
             file = File.join(dir, "test.cpp")
             File.open(file, 'w') {|file| file.write(buf.string)}
             dputs "Compiling #{buf.string}"
-            stdout, stderr = @compiler.run(file, File.join(dir, "test"))
+            stdout, stderr = @compiler.run(file, File.join(dir, "test"), '-c', noerror: true)
             dputs "Output: #{stderr}"
             stderr
         end
