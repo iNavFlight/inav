@@ -21,7 +21,6 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
-#include "drivers/dma.h"
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM8, IO_TAG(PC8), TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_TIM8, TIM_USE_PPM },
@@ -33,6 +32,3 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM3, IO_TAG(PB1), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_TIM3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },
     { TIM8, IO_TAG(PC9), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_TIM8, TIM_USE_BEEPER },
 };
-
-//    { TIM3, IO_TAG(PB1), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_TIM3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO | TIM_USE_LED },
-//    { TIM12, IO_TAG(PB14), TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_TIM12, TIM_USE_BEEPER },

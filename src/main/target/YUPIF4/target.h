@@ -22,6 +22,7 @@
 
 #define LED0                    PB6
 #define LED1                    PB4
+#define LED2                    PB5
 
 #define BEEPER                  PC9
 #define BEEPER_PWM
@@ -131,13 +132,9 @@
 #define LED_STRIP
 #define WS2811_PIN                      PB0
 #define WS2811_TIMER			TIM3
-#define WS2811_TIMER_CHANNEL            TIM_Channel_3
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF2
-#define WS2811_DMA_IT                   DMA_IT_TCIF2
 #define WS2811_DMA_STREAM               DMA1_Stream2
-#define WS2811_DMA_CHANNEL              DMA_Channel_5
-#define WS2811_DMA_IRQ                  DMA1_Stream2_IRQn
+#define WS2811_DMA_CHANNEL              DMA_Channel_3
 
 // Features
 // #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
