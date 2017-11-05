@@ -137,10 +137,15 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;// equation 11
         wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;// equation 12
 
+        float prev_wind_length = sqrtf(sq(estimatedWind[X]) + sq(estimatedWind[Y]) + sq(estimatedWind[Z]));
+        float wind_length = sqrtf(sq(wind[X]) + sq(wind[Y]) + sq(wind[Z]));
+
         // TODO: Better filtering
-        estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
-        estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
-        estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
+        if (wind_length < prev_wind_length + 20) {
+            estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
+            estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
+            estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
+        }
 
         lastUpdateUs = currentTimeUs;
         hasValidWindEstimate = true;
