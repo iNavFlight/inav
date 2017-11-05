@@ -13,4 +13,4 @@ TARGET_SRC = \
             drivers/vtx_rtc6705.c \
             drivers/light_ws2811strip_stdperiph.c \
             drivers/light_ws2811strip.c \
-            io/osd.c \
+            io/osd.c 

@@ -27,16 +27,16 @@
 #define USBD_PRODUCT_STRING                 "SP Racing F4 NEO"
 
 #if (SPRACINGF4NEO_REV >= 3)
-    #define LED0_PIN                        PA0
-    #define LED1_PIN                        PB1
+    #define LED0                        PA0
+    #define LED1                        PB1
 #endif
 #if (SPRACINGF4NEO_REV == 2)
-    #define LED0_PIN                        PB9
-    #define LED1_PIN                        PB2
+    #define LED0                        PB9
+    #define LED1                        PB2
 #endif
 #if (SPRACINGF4NEO_REV == 1)
-    #define LED0_PIN                        PB9
-    #define LED1_PIN                        PB2
+    #define LED0                        PB9
+    #define LED1                        PB2
 #endif
 
 #define BEEPER                              PC15
@@ -135,6 +135,12 @@
 #define SPI3_MOSI_PIN                       PB5
 
 // Bus Switched Device, Device B.
+
+#define VTX_COMMON
+#define VTX_CONTROL
+
+#define USE_RTC6705
+
 #define VTX_RTC6705
 #define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
 
