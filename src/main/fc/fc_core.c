@@ -34,6 +34,7 @@
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
 #include "drivers/time.h"
+#include "drivers/watchdog.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -373,6 +374,11 @@ void tryArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
+        // Start the watchdog now. We don't start it until the aircraft is
+        // armed because once it's enabled we can't disable it and it interferes
+        // with the bootloader, requiring a full power cycle after entering the
+        // bootloader and flashing.
+        watchdogInit();
 
         lastDisarmReason = DISARM_NONE;
 

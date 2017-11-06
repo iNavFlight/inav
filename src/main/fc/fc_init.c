@@ -75,7 +75,6 @@
 #include "drivers/io_pca9685.h"
 #include "drivers/vtx_rtc6705.h"
 #include "drivers/vtx_common.h"
-#include "drivers/watchdog.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -692,6 +691,4 @@ void init(void)
 
     addBootlogEvent2(BOOT_EVENT_SYSTEM_READY, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_READY;
-
-    watchdogInit();
 }
