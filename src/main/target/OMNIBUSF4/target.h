@@ -26,12 +26,16 @@
 #define TARGET_BOARD_IDENTIFIER "OB43"
 #elif defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
+#elif defined(LUXF4OSD)
+#define TARGET_BOARD_IDENTIFIER "LUX4"
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
 
 #if defined(DYSF4PRO)
 #define USBD_PRODUCT_STRING "DysF4Pro"
+#elif defined(LUXF4OSD)
+#define USBD_PRODUCT_STRING "LuxF4osd"
 #else
 #define USBD_PRODUCT_STRING     "Omnibus F4"
 #endif
@@ -128,6 +132,12 @@
 
 #if defined(OMNIBUSF4V3)
 #define SERIAL_PORT_COUNT       4 //VCP, USART1, USART3, USART6
+#elif defined(LUXF4OSD)
+  #define USE_SOFTSERIAL1
+  #define SOFTSERIAL_1_RX_PIN     PA1
+  #define SOFTSERIAL_1_TX_PIN     PA8
+
+  #define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
 #else
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC8
@@ -179,6 +189,12 @@
   #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
   #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
   #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#elif defined(LUXF4OSD)
+  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+  #define M25P16_CS_PIN           PB12
+  #define M25P16_SPI_INSTANCE     SPI2
+  #define USE_FLASHFS
+  #define USE_FLASH_M25P16
 #else
   #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
   #define M25P16_CS_PIN           SPI3_NSS_PIN
