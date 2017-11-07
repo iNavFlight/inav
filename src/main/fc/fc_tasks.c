@@ -27,34 +27,41 @@
 #include "common/color.h"
 #include "common/utils.h"
 
-#include "drivers/accgyro.h"
-#include "drivers/compass.h"
+#include "drivers/accgyro/accgyro.h"
+#include "drivers/compass/compass.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
+#include "drivers/vtx_common.h"
 
+#include "fc/cli.h"
+#include "fc/config.h"
+#include "fc/fc_core.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
-#include "fc/mw.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
+#include "flight/imu.h"
+#include "flight/mixer.h"
 #include "flight/pid.h"
+
+#include "navigation/navigation.h"
 
 #include "io/beeper.h"
 #include "io/dashboard.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
-#include "io/motors.h"
-#include "io/servos.h"
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
-#include "io/serial_cli.h"
+#include "io/rcdevice_cam.h"
 
 #include "msp/msp_serial.h"
 
 #include "rx/rx.h"
+#include "rx/eleres.h"
+#include "rx/rx_spi.h"
 
 #include "scheduler/scheduler.h"
 
@@ -66,17 +73,13 @@
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
+#include "sensors/opflow.h"
 
 #include "telemetry/telemetry.h"
 
-#include "config/config.h"
 #include "config/feature.h"
-#include "config/config_profile.h"
-#include "config/config_master.h"
 
-#define TASK_PERIOD_HZ(hz) (1000000 / (hz))
-#define TASK_PERIOD_MS(ms) ((ms) * 1000)
-#define TASK_PERIOD_US(us) (us)
+#include "uav_interconnect/uav_interconnect.h"
 
 /* VBAT monitoring interval (in microseconds) - 1s*/
 #define VBATINTERVAL (6 * 3500)
@@ -96,30 +99,26 @@ void taskHandleSerial(timeUs_t currentTimeUs)
     mspSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
 }
 
-void taskUpdateBeeper(timeUs_t currentTimeUs)
-{
-    beeperUpdate(currentTimeUs);          //call periodic beeper handler
-}
-
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
+#ifdef USE_ADC
     static timeUs_t vbatLastServiced = 0;
-    static timeUs_t ibatLastServiced = 0;
-
     if (feature(FEATURE_VBAT)) {
         if (cmpTimeUs(currentTimeUs, vbatLastServiced) >= VBATINTERVAL) {
             timeUs_t vbatTimeDelta = currentTimeUs - vbatLastServiced;
             vbatLastServiced = currentTimeUs;
-            updateBattery(vbatTimeDelta);
+            batteryUpdate(vbatTimeDelta);
         }
     }
+#endif
 
+    static timeUs_t ibatLastServiced = 0;
     if (feature(FEATURE_CURRENT_METER)) {
         timeUs_t ibatTimeSinceLastServiced = cmpTimeUs(currentTimeUs, ibatLastServiced);
 
         if (ibatTimeSinceLastServiced >= IBATINTERVAL) {
             ibatLastServiced = currentTimeUs;
-            updateCurrentMeter(ibatTimeSinceLastServiced, &masterConfig.rxConfig, flight3DConfig()->deadband3d_throttle);
+            currentMeterUpdate(ibatTimeSinceLastServiced);
         }
     }
 }
@@ -144,7 +143,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
 void taskUpdateCompass(timeUs_t currentTimeUs)
 {
     if (sensors(SENSOR_MAG)) {
-        compassUpdate(currentTimeUs, &compassConfig()->magZero);
+        compassUpdate(currentTimeUs);
     }
 }
 #endif
@@ -161,7 +160,7 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
         }
     }
 
-    //updatePositionEstimator_BaroTopic(currentTimeUs);
+    updatePositionEstimator_BaroTopic(currentTimeUs);
 }
 #endif
 
@@ -176,16 +175,39 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef SONAR
-void taskUpdateSonar(timeUs_t currentTimeUs)
+#ifdef USE_RANGEFINDER
+void taskUpdateRangefinder(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    if (sensors(SENSOR_SONAR)) {
-        rangefinderUpdate();
+    if (!sensors(SENSOR_RANGEFINDER))
+        return;
+
+    // Update and adjust task to update at required rate
+    const uint32_t newDeadline = rangefinderUpdate();
+    if (newDeadline != 0) {
+        rescheduleTask(TASK_SELF, newDeadline);
     }
 
-    //updatePositionEstimator_SonarTopic(currentTimeUs);
+    /*
+     * Process raw rangefinder readout
+     */
+    if (rangefinderProcess(calculateCosTiltAngle())) {
+        updatePositionEstimator_SurfaceTopic(currentTimeUs, rangefinderGetLatestAltitude());
+    }
+}
+#endif
+
+#ifdef USE_OPTICAL_FLOW
+void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+    if (!sensors(SENSOR_OPFLOW))
+        return;
+
+    opflowUpdate(currentTimeUs);
+    updatePositionEstimator_OpticalFlowTopic(currentTimeUs);
 }
 #endif
 
@@ -204,7 +226,7 @@ void taskTelemetry(timeUs_t currentTimeUs)
     telemetryCheckState();
 
     if (!cliMode && feature(FEATURE_TELEMETRY)) {
-        telemetryProcess(currentTimeUs, &masterConfig.rxConfig, flight3DConfig()->deadband3d_throttle);
+        telemetryProcess(currentTimeUs);
     }
 }
 #endif
@@ -252,6 +274,19 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef VTX_CONTROL
+// Everything that listens to VTX devices
+void taskVtxControl(timeUs_t currentTimeUs)
+{
+    if (ARMING_FLAG(ARMED))
+        return;
+
+#ifdef VTX_COMMON
+    vtxCommonProcess(currentTimeUs);
+#endif
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -274,7 +309,7 @@ void fcTasksInit(void)
     }
 
 #else
-    rescheduleTask(TASK_GYROPID, gyro.targetLooptime);
+    rescheduleTask(TASK_GYROPID, getGyroUpdateRate());
     setTaskEnabled(TASK_GYROPID, true);
 #endif
 
@@ -300,8 +335,8 @@ void fcTasksInit(void)
 #ifdef PITOT
     setTaskEnabled(TASK_PITOT, sensors(SENSOR_PITOT));
 #endif
-#ifdef SONAR
-    setTaskEnabled(TASK_SONAR, sensors(SENSOR_SONAR));
+#ifdef USE_RANGEFINDER
+    setTaskEnabled(TASK_RANGEFINDER, sensors(SENSOR_RANGEFINDER));
 #endif
 #ifdef USE_DASHBOARD
     setTaskEnabled(TASK_DASHBOARD, feature(FEATURE_DASHBOARD));
@@ -327,6 +362,20 @@ void fcTasksInit(void)
 #else
     setTaskEnabled(TASK_CMS, feature(FEATURE_OSD) || feature(FEATURE_DASHBOARD));
 #endif
+#endif
+#ifdef USE_OPTICAL_FLOW
+    setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
+#endif
+#ifdef VTX_CONTROL
+#if defined(VTX_SMARTAUDIO) || defined(VTX_TRAMP)
+    setTaskEnabled(TASK_VTXCTRL, true);
+#endif
+#endif
+#ifdef USE_UAV_INTERCONNECT
+    setTaskEnabled(TASK_UAV_INTERCONNECT, uavInterconnectBusIsInitialized());
+#endif
+#ifdef USE_RCDEVICE
+    setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
 }
 
@@ -389,12 +438,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 
+#ifdef BEEPER
     [TASK_BEEPER] = {
         .taskName = "BEEPER",
-        .taskFunc = taskUpdateBeeper,
+        .taskFunc = beeperUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
+#endif
 
     [TASK_BATTERY] = {
         .taskName = "BATTERY",
@@ -447,11 +498,11 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef SONAR
-    [TASK_SONAR] = {
-        .taskName = "SONAR",
-        .taskFunc = taskUpdateSonar,
-        .desiredPeriod = TASK_PERIOD_MS(70),                 // every 70 ms, approximately 14 Hz
+#ifdef USE_RANGEFINDER
+    [TASK_RANGEFINDER] = {
+        .taskName = "RANGEFINDER",
+        .taskFunc = taskUpdateRangefinder,
+        .desiredPeriod = TASK_PERIOD_MS(70),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
@@ -469,7 +520,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_TELEMETRY] = {
         .taskName = "TELEMETRY",
         .taskFunc = taskTelemetry,
-        .desiredPeriod = TASK_PERIOD_HZ(250),         // 250 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(500),         // 500 Hz
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
@@ -505,7 +556,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,
-        .desiredPeriod = 1000000 / 60,          // 60 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(250),
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
@@ -514,8 +565,44 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_CMS] = {
         .taskName = "CMS",
         .taskFunc = cmsHandler,
-        .desiredPeriod = 1000000 / 60,          // 60 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(50),
         .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
+
+#ifdef USE_OPTICAL_FLOW
+    [TASK_OPFLOW] = {
+        .taskName = "OPFLOW",
+        .taskFunc = taskUpdateOpticalFlow,
+        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB sensor will work at lower rate w/o accumulation
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_UAV_INTERCONNECT
+    [TASK_UAV_INTERCONNECT] = {
+        .taskName = "UIB",
+        .taskFunc = uavInterconnectBusTask,
+        .desiredPeriod = 1000000 / 500,          // 500 Hz
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_RCDEVICE
+    [TASK_RCDEVICE] = {
+        .taskName = "RCDEVICE",
+        .taskFunc = rcdeviceUpdate,
+        .desiredPeriod = TASK_PERIOD_HZ(10),        // 10 Hz, 100ms
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef VTX_CONTROL
+    [TASK_VTXCTRL] = {
+        .taskName = "VTXCTRL",
+        .taskFunc = taskVtxControl,
+        .desiredPeriod = TASK_PERIOD_HZ(5),          // 5Hz @200msec
+        .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
 };

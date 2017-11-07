@@ -24,8 +24,8 @@
 #include "build/build_config.h"
 
 
-#include "system.h"
-#include "gpio.h"
+#include "drivers/time.h"
+#include "drivers/gpio.h"
 
 #include "sound_beeper.h"
 

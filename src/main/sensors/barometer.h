@@ -17,7 +17,9 @@
 
 #pragma once
 
-#include "drivers/barometer.h"
+#include "config/parameter_group.h"
+
+#include "drivers/barometer/barometer.h"
 
 typedef enum {
     BARO_NONE = 0,
@@ -25,7 +27,8 @@ typedef enum {
     BARO_BMP085 = 2,
     BARO_MS5611 = 3,
     BARO_BMP280 = 4,
-    BARO_FAKE = 5,
+    BARO_MS5607 = 5,
+    BARO_FAKE = 6,
     BARO_MAX = BARO_FAKE
 } baroSensor_e;
 
@@ -34,19 +37,21 @@ typedef struct barometerConfig_s {
     uint8_t use_median_filtering;       // Use 3-point median filtering
 } barometerConfig_t;
 
+PG_DECLARE(barometerConfig_t, barometerConfig);
+
 typedef struct baro_s {
     baroDev_t dev;
     int32_t BaroAlt;
     int32_t baroTemperature;            // Use temperature for telemetry
+    int32_t baroPressure;               // Use pressure for telemetry
 } baro_t;
 
 extern baro_t baro;
 
-bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse);
-void useBarometerConfig(barometerConfig_t *barometerConfigToUse);
-bool isBaroCalibrationComplete(void);
-void baroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+bool baroInit(void);
+bool baroIsCalibrationComplete(void);
+void baroStartCalibration(void);
 uint32_t baroUpdate(void);
-bool isBaroReady(void);
 int32_t baroCalculateAltitude(void);
-bool isBarometerHealthy(void);
+int32_t baroGetLatestAltitude(void);
+bool baroIsHealthy(void);

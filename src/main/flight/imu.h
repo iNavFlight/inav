@@ -17,15 +17,17 @@
 
 #pragma once
 
+#include "common/maths.h"
 #include "common/time.h"
+#include "config/parameter_group.h"
 
 #define GRAVITY_CMSS    980.665f
+#define GRAVITY_MSS     9.80665f
 
 extern int16_t throttleAngleCorrection;
 extern int16_t smallAngle;
 
-extern t_fp_vector imuAccelInBodyFrame;         // cm/s/s
-extern t_fp_vector imuMeasuredGravityBF;        // cm/s/s
+extern t_fp_vector imuMeasuredAccelBF;         // cm/s/s
 extern t_fp_vector imuMeasuredRotationBF;       // rad/s
 
 typedef union {
@@ -48,6 +50,8 @@ typedef struct imuConfig_s {
     uint8_t small_angle;
 } imuConfig_t;
 
+PG_DECLARE(imuConfig_t, imuConfig);
+
 typedef struct imuRuntimeConfig_s {
     float dcm_kp_acc;
     float dcm_ki_acc;
@@ -56,13 +60,11 @@ typedef struct imuRuntimeConfig_s {
     uint8_t small_angle;
 } imuRuntimeConfig_t;
 
-struct pidProfile_s;
-void imuConfigure(imuConfig_t *imuConfig, struct pidProfile_s *initialPidProfile);
+void imuConfigure(void);
 
 void imuUpdateAttitude(timeUs_t currentTimeUs);
 void imuUpdateAccelerometer(void);
-void imuUpdateGyroscope(uint32_t gyroUpdateDeltaUs);
-float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompensationStrength);
+void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
@@ -70,5 +72,4 @@ bool isImuHeadingValid(void);
 void imuTransformVectorBodyToEarth(t_fp_vector * v);
 void imuTransformVectorEarthToBody(t_fp_vector * v);
 
-int16_t imuCalculateHeading(t_fp_vector *vec);
 void imuInit(void);

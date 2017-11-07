@@ -29,21 +29,20 @@
 
 #include "build/debug.h"
 
-#include "common/maths.h"
 #include "common/axis.h"
+#include "common/gps_conversion.h"
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "drivers/serial.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 
-#include "io/serial.h"
+#include "fc/config.h"
+#include "fc/runtime_config.h"
+
 #include "io/gps.h"
 #include "io/gps_private.h"
-
-#include "flight/gps_conversion.h"
-
-#include "config/config.h"
-#include "fc/runtime_config.h"
+#include "io/serial.h"
 
 
 #define NAZA_MAX_PAYLOAD_SIZE   256
@@ -131,7 +130,7 @@ int32_t decodeLong(uint32_t idx, uint8_t mask)
 {
     union { uint32_t l; uint8_t b[4]; } val;
     val.l=idx;
-    for(int i = 0; i < 4; i++) val.b[i] ^= mask;
+    for (int i = 0; i < 4; i++) val.b[i] ^= mask;
     return val.l;
 }
 
@@ -139,7 +138,7 @@ int16_t decodeShort(uint16_t idx, uint8_t mask)
 {
     union { uint16_t s; uint8_t b[2]; } val;
     val.s=idx;
-    for(int i = 0; i < 2; i++) val.b[i] ^= mask;
+    for (int i = 0; i < 2; i++) val.b[i] ^= mask;
     return val.s;
 }
 
@@ -152,13 +151,13 @@ static bool NAZA_parse_gps(void)
     case ID_NAV:
         mask = _buffernaza.nav.mask;
 
-        //uint32_t time = decodeLong(_buffernaza.nav.time, mask);
-        //uint32_t second = time & 0b00111111; time >>= 6;
-        //uint32_t minute = time & 0b00111111; time >>= 6;
-        //uint32_t hour = time & 0b00001111; time >>= 4;
-        //uint32_t day = time & 0b00011111; time >>= 5;
-        //uint32_t month = time & 0b00001111; time >>= 4;
-        //uint32_t year = time & 0b01111111;
+        uint32_t time = decodeLong(_buffernaza.nav.time, mask);
+        gpsSol.time.seconds = time & 0b00111111; time >>= 6;
+        gpsSol.time.minutes = time & 0b00111111; time >>= 6;
+        gpsSol.time.hours = time & 0b00001111; time >>= 4;
+        gpsSol.time.day = gpsSol.time.hours > 7?(time & 0b00011111) + 1:(time & 0b00011111); time >>= 5;
+        gpsSol.time.month = time & 0b00001111; time >>= 4;
+        gpsSol.time.year = (time & 0b01111111) + 2000;
 
         gpsSol.llh.lon = decodeLong(_buffernaza.nav.longitude, mask);
         gpsSol.llh.lat = decodeLong(_buffernaza.nav.latitude, mask);
@@ -207,6 +206,7 @@ static bool NAZA_parse_gps(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
+        gpsSol.flags.validTime = 1;
 
         _new_position = true;
         _new_speed = true;
@@ -346,7 +346,7 @@ bool gpsHandleNAZA(void)
     bool hasNewData = gpsReceiveData();
 
     // Process state
-    switch(gpsState.state) {
+    switch (gpsState.state) {
     default:
         return false;
 

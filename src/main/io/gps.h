@@ -17,6 +17,12 @@
 
 #pragma once
 
+#include <stdbool.h>
+
+#include "config/parameter_group.h"
+
+#include "common/time.h"
+
 #define GPS_DBHZ_MIN 0
 #define GPS_DBHZ_MAX 55
 
@@ -30,6 +36,8 @@ typedef enum {
     GPS_UBLOX,
     GPS_I2CNAV,
     GPS_NAZA,
+    GPS_UBLOX7PLUS,
+    GPS_MTK,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
 
@@ -83,7 +91,10 @@ typedef struct gpsConfig_s {
     gpsAutoConfig_e autoConfig;
     gpsAutoBaud_e autoBaud;
     gpsDynModel_e dynModel;
+    uint8_t gpsMinSats;
 } gpsConfig_t;
+
+PG_DECLARE(gpsConfig_t, gpsConfig);
 
 typedef struct gpsCoordinateDDDMMmmmm_s {
     int16_t dddmm;
@@ -92,18 +103,21 @@ typedef struct gpsCoordinateDDDMMmmmm_s {
 
 /* LLH Location in NEU axis system */
 typedef struct gpsLocation_s {
-    int32_t lat;    // Lattitude * 1e+7
+    int32_t lat;    // Latitude * 1e+7
     int32_t lon;    // Longitude * 1e+7
     int32_t alt;    // Altitude in centimeters (meters * 100)
 } gpsLocation_t;
 
+#define HDOP_SCALE (100)
+
 typedef struct gpsSolutionData_s {
     struct {
-        unsigned gpsHeartbeat   : 1;     // Toggle each update
-        unsigned validVelNE     : 1;
-        unsigned validVelD      : 1;
-        unsigned validMag       : 1;
-        unsigned validEPE       : 1;    // EPH/EPV values are valid - actual accuracy
+        bool gpsHeartbeat;  // Toggle each update
+        bool validVelNE;
+        bool validVelD;
+        bool validMag;
+        bool validEPE;      // EPH/EPV values are valid - actual accuracy
+        bool validTime;
     } flags;
 
     gpsFixType_e fixType;
@@ -119,7 +133,10 @@ typedef struct gpsSolutionData_s {
     uint16_t eph;   // horizontal accuracy (cm)
     uint16_t epv;   // vertical accuracy (cm)
 
-    uint16_t hdop;  // generic HDOP value (*100)
+    uint16_t hdop;  // generic HDOP value (*HDOP_SCALE)
+
+    dateTime_t time; // GPS time in UTC
+
 } gpsSolutionData_t;
 
 typedef struct {
@@ -134,9 +151,10 @@ extern gpsStatistics_t   gpsStats;
 
 struct magDev_s;
 bool gpsMagDetect(struct magDev_s *mag);
-void gpsPreInit(gpsConfig_t *initialGpsConfig);
-struct serialConfig_s;
-void gpsInit(struct serialConfig_s *serialConfig, gpsConfig_t *initialGpsConfig);
+void gpsPreInit(void);
+void gpsInit(void);
 void gpsThread(void);
 void updateGpsIndicator(timeUs_t currentTimeUs);
 bool isGPSHealthy(void);
+struct serialPort_s;
+void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);

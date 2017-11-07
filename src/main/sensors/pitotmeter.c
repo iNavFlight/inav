@@ -24,13 +24,19 @@
 #include "build/debug.h"
 
 #include "common/maths.h"
+#include "common/time.h"
+#include "common/utils.h"
 
-#include "config/config.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/logging.h"
 #include "drivers/pitotmeter.h"
 #include "drivers/pitotmeter_ms4525.h"
+#include "drivers/pitotmeter_adc.h"
+#include "drivers/time.h"
 
+#include "fc/config.h"
 #include "fc/runtime_config.h"
 
 #include "sensors/pitotmeter.h"
@@ -40,13 +46,26 @@ pitot_t pitot;
 
 #ifdef PITOT
 
+static timeMs_t pitotCalibrationTimeout = 0;
+static bool pitotCalibrationFinished = false;
 static float pitotPressureZero = 0;
-static uint16_t calibratingP = 0;      // pitot calibration = get new zero pressure value
 static float pitotPressure = 0;
 static float pitotTemperature = 0;
-static float CalibratedAirspeed = 0;
+static float indicatedAirspeed = 0;
 
-pitotmeterConfig_t *pitotmeterConfig;
+PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 0);
+
+#ifdef PITOT
+#define PITOT_HARDWARE_DEFAULT    PITOT_AUTODETECT
+#else
+#define PITOT_HARDWARE_DEFAULT    PITOT_NONE
+#endif
+PG_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig,
+    .pitot_hardware = PITOT_HARDWARE_DEFAULT,
+    .use_median_filtering = 1,
+    .pitot_noise_lpf = 0.6f,
+    .pitot_scale = 1.00f
+);
 
 bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
 {
@@ -66,10 +85,39 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
                 break;
             }
+            FALLTHROUGH;
+
+        case PITOT_ADC:
+#if defined(USE_PITOT_ADC)
+            if (adcPitotDetect(dev)) {
+                pitotHardware = PITOT_ADC;
+                break;
+            }
+#endif
+            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+            if (pitotHardwareToUse != PITOT_AUTODETECT) {
+                break;
+            }
+            FALLTHROUGH;
+
+        case PITOT_VIRTUAL:
+#if defined(USE_PITOT_VIRTUAL)
+            /*
+            if (adcPitotDetect(&pitot)) {
+                pitotHardware = PITOT_ADC;
+                break;
+            }
+            */
+#endif
+            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+            if (pitotHardwareToUse != PITOT_AUTODETECT) {
+                break;
+            }
+            FALLTHROUGH;
 
         case PITOT_FAKE:
 #ifdef USE_PITOT_FAKE
-            if (fakePitotDetect(&pitot)) {
+            if (fakePitotDetect(dev)) {
                 pitotHardware = PITOT_FAKE;
                 break;
             }
@@ -78,6 +126,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
                 break;
             }
+            FALLTHROUGH;
 
         case PITOT_NONE:
             pitotHardware = PITOT_NONE;
@@ -96,28 +145,30 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
     return true;
 }
 
-void usePitotmeterConfig(pitotmeterConfig_t *pitotmeterConfigToUse)
+bool pitotInit(void)
 {
-    pitotmeterConfig = pitotmeterConfigToUse;
+    if (!pitotDetect(&pitot.dev, pitotmeterConfig()->pitot_hardware)) {
+        return false;
+    }
+    return true;
 }
 
-bool isPitotCalibrationComplete(void)
+bool pitotIsCalibrationComplete(void)
 {
-    return calibratingP == 0;
+    return pitotCalibrationFinished;
 }
 
-void pitotSetCalibrationCycles(uint16_t calibrationCyclesRequired)
+void pitotStartCalibration(void)
 {
-    calibratingP = calibrationCyclesRequired;
+    pitotCalibrationTimeout = millis();
+    pitotCalibrationFinished = false;
 }
-
-static bool pitotReady = false;
 
 #define PRESSURE_SAMPLES_MEDIAN 3
 
 static int32_t applyPitotmeterMedianFilter(int32_t newPressureReading)
 {
-    static int32_t barometerFilterSamples[PRESSURE_SAMPLES_MEDIAN];
+    static int32_t pitotFilterSamples[PRESSURE_SAMPLES_MEDIAN];
     static int currentFilterSampleIndex = 0;
     static bool medianFilterReady = false;
     int nextSampleIndex;
@@ -128,11 +179,11 @@ static int32_t applyPitotmeterMedianFilter(int32_t newPressureReading)
         medianFilterReady = true;
     }
 
-    barometerFilterSamples[currentFilterSampleIndex] = newPressureReading;
+    pitotFilterSamples[currentFilterSampleIndex] = newPressureReading;
     currentFilterSampleIndex = nextSampleIndex;
 
     if (medianFilterReady)
-        return quickMedianFilter3(barometerFilterSamples);
+        return quickMedianFilter3(pitotFilterSamples);
     else
         return newPressureReading;
 }
@@ -141,11 +192,6 @@ typedef enum {
     PITOTMETER_NEEDS_SAMPLES = 0,
     PITOTMETER_NEEDS_CALCULATION,
 } pitotmeterState_e;
-
-
-bool isPitotReady(void) {
-    return pitotReady;
-}
 
 uint32_t pitotUpdate(void)
 {
@@ -162,49 +208,62 @@ uint32_t pitotUpdate(void)
         case PITOTMETER_NEEDS_CALCULATION:
             pitot.dev.get();
             pitot.dev.calculate(&pitotPressure, &pitotTemperature);
-            if (pitotmeterConfig->use_median_filtering) {
+            DEBUG_SET(DEBUG_PITOT, 0, pitotPressure);
+            if (pitotmeterConfig()->use_median_filtering) {
                 pitotPressure = applyPitotmeterMedianFilter(pitotPressure);
             }
+            DEBUG_SET(DEBUG_PITOT, 1, pitotPressure);
             state = PITOTMETER_NEEDS_SAMPLES;
            return pitot.dev.delay;
         break;
     }
 }
 
-#define P0          101325.0f           // standard pressure
-#define CCEXPONENT  0.2857142857f       // exponent of compressibility correction 2/7
-#define CASFACTOR   760.8802669f        // sqrt(5) * speed of sound at standard
-#define TASFACTOR   0.05891022589f      // 1/sqrt(T0)
+#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
+#define AIR_GAS_CONST               287.1f      //  J / (kg * K)
+#define P0                          101325.0f   // standard pressure
 
 static void performPitotCalibrationCycle(void)
 {
-    pitotPressureZero -= pitotPressureZero / 8;
-    pitotPressureZero += pitotPressure / 8;
-    calibratingP--;
+    const float pitotPressureZeroError = pitotPressure - pitotPressureZero;
+    pitotPressureZero += pitotPressureZeroError * 0.15f;
+
+    if (ABS(pitotPressureZeroError) < (P0 * 0.00001f)) {    // 0.001% calibration error
+        if ((millis() - pitotCalibrationTimeout) > 250) {
+            pitotCalibrationFinished = true;
+        }
+    }
+    else {
+        pitotCalibrationTimeout = millis();
+    }
 }
 
 int32_t pitotCalculateAirSpeed(void)
 {
-    if (!isPitotCalibrationComplete()) {
+    if (pitotIsCalibrationComplete()) {
+        // https://en.wikipedia.org/wiki/Indicated_airspeed
+        // Indicated airspeed (IAS) is the airspeed read directly from the airspeed indicator on an aircraft, driven by the pitot-static system.
+        // The IAS is an important value for the pilot because it is the indicated speeds which are specified in the aircraft flight manual for
+        // such important performance values as the stall speed. A typical aircraft will always stall at the same indicated airspeed (for the current configuration)
+        // regardless of density, altitude or true airspeed.
+        //
+        // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
+        // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
+        const float indicatedAirspeed_tmp = pitotmeterConfig()->pitot_scale * sqrtf(2.0f * fabsf(pitotPressure - pitotPressureZero) / AIR_DENSITY_SEA_LEVEL_15C);
+        indicatedAirspeed += pitotmeterConfig()->pitot_noise_lpf * (indicatedAirspeed_tmp - indicatedAirspeed);
+
+        DEBUG_SET(DEBUG_PITOT, 2, indicatedAirspeed_tmp);
+        DEBUG_SET(DEBUG_PITOT, 3, indicatedAirspeed);
+
+        pitot.airSpeed = indicatedAirspeed * 100;
+    } else {
         performPitotCalibrationCycle();
         pitot.airSpeed = 0;
-    }
-    else {
-        float CalibratedAirspeed_tmp;
-        CalibratedAirspeed_tmp = pitotmeterConfig->pitot_scale * CASFACTOR * sqrtf(powf(fabsf(pitotPressure - pitotPressureZero) / P0 + 1.0f, CCEXPONENT) - 1.0f);
-        CalibratedAirspeed = CalibratedAirspeed * pitotmeterConfig->pitot_noise_lpf + CalibratedAirspeed_tmp * (1.0f - pitotmeterConfig->pitot_noise_lpf); // additional LPF to reduce baro noise
-        float TrueAirspeed = CalibratedAirspeed * TASFACTOR * sqrtf(pitotTemperature);
-
-        pitot.airSpeed = TrueAirspeed*100;
-        //debug[0] = (int16_t)(CalibratedAirspeed*100);
-        //debug[1] = (int16_t)(TrueAirspeed*100);
-        //debug[2] = (int16_t)((pitotTemperature-273.15f)*100);
-        //debug[3] = AirSpeed;
     }
     return pitot.airSpeed;
 }
 
-bool isPitotmeterHealthy(void)
+bool pitotIsHealthy(void)
 {
     return true;
 }

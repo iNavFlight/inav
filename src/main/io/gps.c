@@ -32,10 +32,14 @@
 #include "common/axis.h"
 #include "common/utils.h"
 
-#include "drivers/compass.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "drivers/compass/compass.h"
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
 #include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "sensors/sensors.h"
 #include "sensors/compass.h"
@@ -44,11 +48,11 @@
 #include "io/gps.h"
 #include "io/gps_private.h"
 
-#include "flight/navigation_rewrite.h"
+#include "navigation/navigation.h"
 
-#include "config/config.h"
 #include "config/feature.h"
 
+#include "fc/config.h"
 #include "fc/runtime_config.h"
 
 // GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 2000 ms)
@@ -108,12 +112,45 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
 #endif
+
+    /* UBLOX7PLUS binary */
+#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+    { GPS_TYPE_SERIAL, MODE_RXTX, false,  NULL, &gpsHandleUBLOX },
+#else
+    { GPS_TYPE_NA, 0, false,  NULL, NULL },
+#endif
+
+    /* MTK GPS */
+#ifdef GPS_PROTO_MTK
+    { GPS_TYPE_SERIAL, MODE_RXTX, false, NULL, &gpsHandleMTK },
+#else
+    { GPS_TYPE_NA, 0, false,  NULL, NULL },
+#endif
+
 };
+
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 0);
+
+PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
+    .provider = GPS_UBLOX,
+    .sbasMode = SBAS_NONE,
+    .autoConfig = GPS_AUTOCONFIG_ON,
+    .autoBaud = GPS_AUTOBAUD_ON,
+    .dynModel = GPS_DYNMODEL_AIR_1G,
+    .gpsMinSats = 6
+);
 
 void gpsSetState(gpsState_e state)
 {
     gpsState.state = state;
     gpsState.lastStateSwitchMs = millis();
+}
+
+static void gpsUpdateTime(void)
+{
+    if (!rtcHasTime() && gpsSol.flags.validTime) {
+        rtcSetDateTime(&gpsSol.time);
+    }
 }
 
 static void gpsHandleProtocol(void)
@@ -128,7 +165,7 @@ static void gpsHandleProtocol(void)
     // Received new update for solution data
     if (newDataReceived) {
         // Set GPS fix flag only if we have 3D fix
-        if (gpsSol.fixType == GPS_FIX_3D) {
+        if (gpsSol.fixType == GPS_FIX_3D && gpsSol.numSat >= gpsConfig()->gpsMinSats) {
             ENABLE_STATE(GPS_FIX);
         }
         else {
@@ -143,6 +180,9 @@ static void gpsHandleProtocol(void)
         // Update GPS coordinates etc
         sensorsSet(SENSOR_GPS);
         onNewGPSData();
+
+        // Update time
+        gpsUpdateTime();
 
         // Update timeout
         gpsState.lastLastMessageMs = gpsState.lastMessageMs;
@@ -164,18 +204,19 @@ static void gpsResetSolution(void)
     gpsSol.flags.validVelD = 0;
     gpsSol.flags.validMag = 0;
     gpsSol.flags.validEPE = 0;
+    gpsSol.flags.validTime = 0;
 }
 
-void gpsPreInit(gpsConfig_t *initialGpsConfig)
+void gpsPreInit(void)
 {
     // Make sure gpsProvider is known when gpsMagDetect is called
-    gpsState.gpsConfig = initialGpsConfig;
+    gpsState.gpsConfig = gpsConfig();
 }
 
-void gpsInit(serialConfig_t *initialSerialConfig, gpsConfig_t *initialGpsConfig)
+void gpsInit(void)
 {
-    gpsState.serialConfig = initialSerialConfig;
-    gpsState.gpsConfig = initialGpsConfig;
+    gpsState.serialConfig = serialConfig();
+    gpsState.gpsConfig = gpsConfig();
     gpsState.baudrateIndex = 0;
 
     gpsStats.errors = 0;
@@ -240,11 +281,19 @@ static void gpsFakeGPSUpdate(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
+        gpsSol.flags.validTime = 1;
         gpsSol.eph = 100;
         gpsSol.epv = 100;
+        gpsSol.time.year = 1983;
+        gpsSol.time.month = 1;
+        gpsSol.time.day = 1;
+        gpsSol.time.hours = 3;
+        gpsSol.time.minutes = 15;
+        gpsSol.time.seconds = 42;
 
         ENABLE_STATE(GPS_FIX);
         sensorsSet(SENSOR_GPS);
+        gpsUpdateTime();
         onNewGPSData();
 
         gpsState.lastLastMessageMs = gpsState.lastMessageMs;
@@ -271,12 +320,12 @@ void gpsFinalizeChangeBaud(void)
 
 uint16_t gpsConstrainEPE(uint32_t epe)
 {
-    return (epe > 99999) ? 9999 : epe; // max 99.99m error
+    return (epe > 9999) ? 9999 : epe; // max 99.99m error
 }
 
 uint16_t gpsConstrainHDOP(uint32_t hdop)
 {
-    return (hdop > 99999) ? 9999 : hdop; // max 99.99m error
+    return (hdop > 9999) ? 9999 : hdop; // max 99.99m error
 }
 
 void gpsThread(void)
@@ -400,14 +449,14 @@ void gpsEnablePassthrough(serialPort_t *gpsPassthroughPort)
     waitForSerialPortToFinishTransmitting(gpsState.gpsPort);
     waitForSerialPortToFinishTransmitting(gpsPassthroughPort);
 
-    if(!(gpsState.gpsPort->mode & MODE_TX))
+    if (!(gpsState.gpsPort->mode & MODE_TX))
     serialSetMode(gpsState.gpsPort, gpsState.gpsPort->mode | MODE_TX);
 
     LED0_OFF;
     LED1_OFF;
 
     char c;
-    while(1) {
+    while (1) {
         if (serialRxBytesWaiting(gpsState.gpsPort)) {
             LED0_ON;
             c = serialRead(gpsState.gpsPort);
@@ -433,16 +482,17 @@ void updateGpsIndicator(timeUs_t currentTimeUs)
 }
 
 /* Support for built-in magnetometer accessible via the native GPS protocol (i.e. NAZA) */
-bool gpsMagInit(void)
+bool gpsMagInit(magDev_t *magDev)
 {
+    UNUSED(magDev);
     return true;
 }
 
-bool gpsMagRead(int16_t *magData)
+bool gpsMagRead(magDev_t *magDev)
 {
-    magData[X] = gpsSol.magData[0];
-    magData[Y] = gpsSol.magData[1];
-    magData[Z] = gpsSol.magData[2];
+    magDev->magADCRaw[X] = gpsSol.magData[0];
+    magDev->magADCRaw[Y] = gpsSol.magData[1];
+    magDev->magADCRaw[Z] = gpsSol.magData[2];
     return gpsSol.flags.validMag;
 }
 

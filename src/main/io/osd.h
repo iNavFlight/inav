@@ -17,11 +17,13 @@
 
 #pragma once
 
+#include "common/time.h"
+#include "config/parameter_group.h"
+
 #define VISIBLE_FLAG  0x0800
-#define BLINK_FLAG    0x0400
 #define VISIBLE(x)    (x & VISIBLE_FLAG)
-#define BLINK(x)      ((x & BLINK_FLAG) && blinkState)
-#define BLINK_OFF(x)  (x & ~BLINK_FLAG)
+#define OSD_POS_MAX   0x3FF
+#define OSD_POS_MAX_CLI   (OSD_POS_MAX | VISIBLE_FLAG)
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -40,30 +42,74 @@ typedef enum {
     OSD_GPS_SPEED,
     OSD_GPS_SATS,
     OSD_ALTITUDE,
+    OSD_ROLL_PIDS,
+    OSD_PITCH_PIDS,
+    OSD_YAW_PIDS,
+    OSD_POWER,
+    OSD_GPS_LON,
+    OSD_GPS_LAT,
+    OSD_HOME_DIR,
+    OSD_HOME_DIST,
+    OSD_HEADING,
+    OSD_VARIO,
+    OSD_VARIO_NUM,
+    OSD_AIR_SPEED,
+    OSD_ONTIME_FLYTIME,
+    OSD_RTC_TIME,
+    OSD_MESSAGES,
+    OSD_GPS_HDOP,
+    OSD_MAIN_BATT_CELL_VOLTAGE,
+    OSD_THROTTLE_POS_AUTO_THR,
+    OSD_HEADING_GRAPH,
+    OSD_EFFICIENCY,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
 typedef enum {
     OSD_UNIT_IMPERIAL,
-    OSD_UNIT_METRIC
+    OSD_UNIT_METRIC,
+    OSD_UNIT_UK, // Show speed in mp/h, other values in metric
 } osd_unit_e;
 
-typedef struct osd_profile_s {
+typedef enum {
+    OSD_CROSSHAIRS_STYLE_DEFAULT,
+    OSD_CROSSHAIRS_STYLE_AIRCRAFT,
+} osd_crosshairs_style_e;
+
+typedef enum {
+    OSD_SIDEBAR_SCROLL_NONE,
+    OSD_SIDEBAR_SCROLL_ALTITUDE,
+    OSD_SIDEBAR_SCROLL_GROUND_SPEED,
+    OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
+} osd_sidebar_scroll_e;
+
+typedef struct osdConfig_s {
     uint16_t item_pos[OSD_ITEM_COUNT];
 
     // Alarms
-    uint8_t rssi_alarm;
-    uint16_t cap_alarm;
-    uint16_t time_alarm;
-    uint16_t alt_alarm;
+    uint8_t rssi_alarm; // rssi %
+    uint16_t cap_alarm; // used mah
+    uint16_t time_alarm; // fly minutes
+    uint16_t alt_alarm; // positive altitude in m
+    uint16_t dist_alarm; // home distance in m
+    uint16_t neg_alt_alarm; // abs(negative altitude) in m
 
     uint8_t video_system;
     uint8_t row_shiftdown;
 
-    osd_unit_e units;
-} osd_profile_t;
+    // Preferences
+    uint8_t ahi_reverse_roll;
+    osd_crosshairs_style_e crosshairs_style;
+    osd_sidebar_scroll_e left_sidebar_scroll;
+    osd_sidebar_scroll_e right_sidebar_scroll;
+    uint8_t sidebar_scroll_arrows;
 
-void osdInit(void);
-void osdResetConfig(osd_profile_t *osdProfile);
-void osdResetAlarms(void);
+    osd_unit_e units;
+} osdConfig_t;
+
+PG_DECLARE(osdConfig_t, osdConfig);
+
+struct displayPort_s;
+void osdInit(struct displayPort_s *osdDisplayPort);
 void osdUpdate(timeUs_t currentTimeUs);
+void osdStartFullRedraw(void);

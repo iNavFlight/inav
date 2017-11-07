@@ -105,6 +105,24 @@ $(OBJECT_DIR)/common/maths.o : \
 	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/maths.c -o $@
 
 
+$(OBJECT_DIR)/common/bitarray.o : \
+	$(USER_DIR)/common/bitarray.c \
+	$(USER_DIR)/common/bitarray.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/bitarray.c -o $@
+
+
+$(OBJECT_DIR)/common/string_light.o : \
+	$(USER_DIR)/common/string_light.c \
+	$(USER_DIR)/common/string_light.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/string_light.c -o $@
+
+
 $(OBJECT_DIR)/sensors/battery.o : $(USER_DIR)/sensors/battery.c $(USER_DIR)/sensors/battery.h $(GTEST_HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/sensors/battery.c -o $@
@@ -192,24 +210,24 @@ $(OBJECT_DIR)/maths_unittest : \
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
 
-$(OBJECT_DIR)/flight/gps_conversion.o : \
-	$(USER_DIR)/flight/gps_conversion.c \
-	$(USER_DIR)/flight/gps_conversion.h \
+$(OBJECT_DIR)/common/gps_conversion.o : \
+	$(USER_DIR)/common/gps_conversion.c \
+	$(USER_DIR)/common/gps_conversion.h \
 	$(GTEST_HEADERS)
 
 	@mkdir -p $(dir $@)
-	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/flight/gps_conversion.c -o $@
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/gps_conversion.c -o $@
 
 $(OBJECT_DIR)/gps_conversion_unittest.o : \
 	$(TEST_DIR)/gps_conversion_unittest.cc \
-	$(USER_DIR)/flight/gps_conversion.h \
+	$(USER_DIR)/common/gps_conversion.h \
 	$(GTEST_HEADERS)
 
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/gps_conversion_unittest.cc -o $@
 
 $(OBJECT_DIR)/gps_conversion_unittest : \
-	$(OBJECT_DIR)/flight/gps_conversion.o \
+	$(OBJECT_DIR)/common/gps_conversion.o \
 	$(OBJECT_DIR)/gps_conversion_unittest.o \
 	$(OBJECT_DIR)/gtest_main.a
 
@@ -236,24 +254,33 @@ $(OBJECT_DIR)/telemetry_hott_unittest.o : \
 $(OBJECT_DIR)/telemetry_hott_unittest : \
 	$(OBJECT_DIR)/telemetry/hott.o \
 	$(OBJECT_DIR)/telemetry_hott_unittest.o \
-	$(OBJECT_DIR)/flight/gps_conversion.o \
+	$(OBJECT_DIR)/common/gps_conversion.o \
+	$(OBJECT_DIR)/common/string_light.o \
 	$(OBJECT_DIR)/gtest_main.a
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
 
 
-$(OBJECT_DIR)/io/rc_controls.o : \
-	$(USER_DIR)/io/rc_controls.c \
-	$(USER_DIR)/io/rc_controls.h \
+$(OBJECT_DIR)/fc/rc_controls.o : \
+	$(USER_DIR)/fc/rc_controls.c \
+	$(USER_DIR)/fc/rc_controls.h \
 	$(GTEST_HEADERS)
 
 	@mkdir -p $(dir $@)
-	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rc_controls.c -o $@
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/fc/rc_controls.c -o $@
+
+$(OBJECT_DIR)/fc/rc_modes.o : \
+	$(USER_DIR)/fc/rc_modes.c \
+	$(USER_DIR)/fc/rc_modes.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/fc/rc_modes.c -o $@
 
 $(OBJECT_DIR)/rc_controls_unittest.o : \
 	$(TEST_DIR)/rc_controls_unittest.cc \
-	$(USER_DIR)/io/rc_controls.h \
+	$(USER_DIR)/fc/rc_controls.h \
 	$(GTEST_HEADERS)
 
 	@mkdir -p $(dir $@)
@@ -451,13 +478,13 @@ $(OBJECT_DIR)/rx_ranges_unittest : \
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
-$(OBJECT_DIR)/drivers/barometer_ms5611.o : \
-    $(USER_DIR)/drivers/barometer_ms5611.c \
-    $(USER_DIR)/drivers/barometer_ms5611.h \
+$(OBJECT_DIR)/drivers/barometer_ms56xx.o : \
+    $(USER_DIR)/drivers/barometer_ms56xx.c \
+    $(USER_DIR)/drivers/barometer_ms56xx.h \
     $(GTEST_HEADERS)
 
 	@mkdir -p $(dir $@)
-	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/drivers/barometer_ms5611.c -o $@
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/drivers/barometer_ms56xx.c -o $@
 
 $(OBJECT_DIR)/baro_ms5611_unittest.o : \
 	$(TEST_DIR)/baro_ms5611_unittest.cc \
@@ -520,12 +547,12 @@ $(OBJECT_DIR)/baro_bmp280_unittest : \
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
-$(OBJECT_DIR)/drivers/sonar_hcsr04.o : \
-        $(USER_DIR)/drivers/sonar_hcsr04.c \
-        $(USER_DIR)/drivers/sonar_hcsr04.h \
+$(OBJECT_DIR)/drivers/rangefinder_hcsr04.o : \
+        $(USER_DIR)/drivers/rangefinder_hcsr04.c \
+        $(USER_DIR)/drivers/rangefinder_hcsr04.h \
         $(GTEST_HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -DSONAR -c $(USER_DIR)/drivers/sonar_hcsr04.c -o $@
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -DSONAR -c $(USER_DIR)/drivers/rangefinder_hcsr04.c -o $@
 
 $(OBJECT_DIR)/sensors/sonar.o : \
 	$(USER_DIR)/sensors/sonar.c \
@@ -537,7 +564,7 @@ $(OBJECT_DIR)/sensors/sonar.o : \
 
 $(OBJECT_DIR)/sonar_unittest.o : \
 	$(TEST_DIR)/sonar_unittest.cc \
-	$(USER_DIR)/drivers/sonar_hcsr04.h \
+	$(USER_DIR)/drivers/rangefinder_hcsr04.h \
 	$(USER_DIR)/sensors/sonar.h \
 	$(GTEST_HEADERS)
 
@@ -546,7 +573,7 @@ $(OBJECT_DIR)/sonar_unittest.o : \
 
 $(OBJECT_DIR)/sonar_unittest : \
 	$(OBJECT_DIR)/common/maths.o \
-	$(OBJECT_DIR)/drivers/sonar_hcsr04.o \
+	$(OBJECT_DIR)/drivers/rangefinder_hcsr04.o \
 	$(OBJECT_DIR)/sensors/sonar.o \
 	$(OBJECT_DIR)/sonar_unittest.o \
 	$(OBJECT_DIR)/gtest_main.a
@@ -577,9 +604,139 @@ $(OBJECT_DIR)/alignsensor_unittest : \
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
+$(OBJECT_DIR)/build/debug.o : \
+	$(USER_DIR)/build/debug.c \
+	$(USER_DIR)/build/debug.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/build/debug.c -o $@
+
+$(OBJECT_DIR)/drivers/gyro_sync.o : \
+	$(USER_DIR)/drivers/gyro_sync.c \
+	$(USER_DIR)/drivers/gyro_sync.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/drivers/gyro_sync.c -o $@
+
+$(OBJECT_DIR)/drivers/accgyro/accgyro_fake.o : \
+	$(USER_DIR)/drivers/accgyro/accgyro_fake.c \
+	$(USER_DIR)/drivers/accgyro/accgyro_fake.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/drivers/accgyro/accgyro_fake.c -o $@
+
+$(OBJECT_DIR)/sensors/gyro.o : \
+	$(USER_DIR)/sensors/gyro.c \
+	$(USER_DIR)/sensors/gyro.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/sensors/gyro.c -o $@
+
+$(OBJECT_DIR)/sensor_gyro_unittest.o : \
+	$(TEST_DIR)/sensor_gyro_unittest.cc \
+	$(USER_DIR)/sensors/gyro.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/sensor_gyro_unittest.cc -o $@
+
+$(OBJECT_DIR)/sensor_gyro_unittest : \
+	$(OBJECT_DIR)/build/debug.o \
+	$(OBJECT_DIR)/common/maths.o \
+    $(OBJECT_DIR)/common/filter.o \
+	$(OBJECT_DIR)/drivers/gyro_sync.o \
+	$(OBJECT_DIR)/drivers/accgyro/accgyro_fake.o \
+	$(OBJECT_DIR)/sensors/gyro.o \
+	$(OBJECT_DIR)/sensors/boardalignment.o \
+	$(OBJECT_DIR)/sensor_gyro_unittest.o \
+	$(OBJECT_DIR)/gtest_main.a
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
+$(OBJECT_DIR)/io/rcdevice.o : \
+	$(USER_DIR)/io/rcdevice.c \
+	$(USER_DIR)/io/rcdevice.h
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rcdevice.c -o $@
+
+$(OBJECT_DIR)/io/rcdevice_cam.o : \
+	$(USER_DIR)/io/rcdevice.c \
+	$(USER_DIR)/io/rcdevice.h \
+	$(USER_DIR)/io/rcdevice_cam.c \
+	$(USER_DIR)/io/rcdevice_cam.h
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rcdevice_cam.c -o $@
+
+
+$(OBJECT_DIR)/rcdevice_unittest.o : \
+	$(TEST_DIR)/rcdevice_unittest.cc \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/rcdevice_unittest.cc -o $@
+
+$(OBJECT_DIR)/rcdevice_unittest : \
+	$(OBJECT_DIR)/rcdevice_unittest.o \
+	$(OBJECT_DIR)/common/bitarray.o \
+	$(OBJECT_DIR)/io/rcdevice.o \
+	$(OBJECT_DIR)/io/rcdevice_cam.o \
+	$(OBJECT_DIR)/fc/rc_modes.o \
+	$(OBJECT_DIR)/fc/rc_controls.o \
+	$(OBJECT_DIR)/rx/rx.o \
+	$(OBJECT_DIR)/common/maths.o \
+	$(OBJECT_DIR)/gtest_main.a 
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
+$(OBJECT_DIR)/drivers/system.o : \
+	$(USER_DIR)/drivers/system.c \
+	$(USER_DIR)/drivers/system.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/drivers/system.c -o $@
+
+$(OBJECT_DIR)/time_unittest.o : \
+	$(TEST_DIR)/time_unittest.cc \
+	$(USER_DIR)/drivers/system.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/time_unittest.cc -o $@
+
+$(OBJECT_DIR)/time_unittest : \
+	$(OBJECT_DIR)/drivers/system.o \
+	$(OBJECT_DIR)/time_unittest.o \
+	$(OBJECT_DIR)/gtest_main.a
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
+$(OBJECT_DIR)/bitarray_unittest.o : \
+	$(TEST_DIR)/bitarray_unittest.cc \
+	$(USER_DIR)/common/bitarray.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/bitarray_unittest.cc -o $@
+
+$(OBJECT_DIR)/bitarray_unittest : \
+	$(OBJECT_DIR)/common/bitarray.o \
+	$(OBJECT_DIR)/bitarray_unittest.o \
+	$(OBJECT_DIR)/gtest_main.a
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
+
 test: $(TESTS:%=test-%)
 
 test-%: $(OBJECT_DIR)/%
 	$<
 
 -include $(DEPS)
+

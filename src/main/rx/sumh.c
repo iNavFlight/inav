@@ -32,12 +32,14 @@
 #include "common/utils.h"
 
 #include "drivers/serial.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "io/serial.h"
 
 #include "rx/rx.h"
 #include "rx/sumh.h"
+
+#include "telemetry/telemetry.h"
 
 // driver for SUMH receiver using UART2
 
@@ -57,12 +59,13 @@ static serialPort_t *sumhPort;
 // Receive ISR callback
 static void sumhDataReceive(uint16_t c)
 {
-    uint32_t sumhTime;
-    static uint32_t sumhTimeLast, sumhTimeInterval;
+    timeUs_t sumhTime;
+    timeDelta_t sumhTimeInterval;
+    static timeUs_t sumhTimeLast;
     static uint8_t sumhFramePosition;
 
     sumhTime = micros();
-    sumhTimeInterval = sumhTime - sumhTimeLast;
+    sumhTimeInterval = cmpTimeUs(sumhTime, sumhTimeLast);
     sumhTimeLast = sumhTime;
     if (sumhTimeInterval > 5000) {
         sumhFramePosition = 0;
@@ -124,7 +127,19 @@ bool sumhInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
-    sumhPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, sumhDataReceive, SUMH_BAUDRATE, MODE_RX, SERIAL_NOT_INVERTED);
+#ifdef TELEMETRY
+    bool portShared = telemetryCheckRxPortShared(portConfig);
+#else
+    bool portShared = false;
+#endif
+
+    sumhPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, sumhDataReceive, SUMH_BAUDRATE, portShared ? MODE_RXTX : MODE_RX, SERIAL_NOT_INVERTED);
+
+#ifdef TELEMETRY
+    if (portShared) {
+        telemetrySharedPort = sumhPort;
+    }
+#endif
 
     return sumhPort != NULL;
 }

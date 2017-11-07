@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #ifndef sq
 #define sq(x) ((x)*(x))
 #endif
@@ -132,6 +134,7 @@ void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * s
 void sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
 void sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
 
+int gcd(int num, int denom);
 int32_t applyDeadband(int32_t value, int32_t deadband);
 
 int constrain(int amt, int low, int high);
@@ -144,7 +147,7 @@ float devStandardDeviation(stdev_t *dev);
 float degreesToRadians(int16_t degrees);
 
 int scaleRange(int x, int srcMin, int srcMax, int destMin, int destMax);
-int scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax);
+float scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax);
 
 void normalizeV(struct fp_vector *src, struct fp_vector *dest);
 
@@ -158,6 +161,9 @@ int32_t quickMedianFilter3(int32_t * v);
 int32_t quickMedianFilter5(int32_t * v);
 int32_t quickMedianFilter7(int32_t * v);
 int32_t quickMedianFilter9(int32_t * v);
+
+int16_t quickMedianFilter3_16(int16_t * v);
+int16_t quickMedianFilter5_16(int16_t * v);
 
 #if defined(FAST_MATH) || defined(VERY_FAST_MATH)
 float sin_approx(float x);
@@ -174,6 +180,5 @@ float acos_approx(float x);
 #endif
 
 void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);
-uint16_t crc16_ccitt(uint16_t crc, unsigned char a);
 
 float bellCurve(const float x, const float curveWidth);

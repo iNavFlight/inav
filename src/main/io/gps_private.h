@@ -34,8 +34,8 @@ typedef enum {
 } gpsState_e;
 
 typedef struct {
-    gpsConfig_t *   gpsConfig;
-    serialConfig_t * serialConfig;
+    const gpsConfig_t *   gpsConfig;
+    const serialConfig_t * serialConfig;
     serialPort_t *  gpsPort;                // Serial GPS only
 
     uint32_t        hwVersion;
@@ -62,6 +62,7 @@ extern uint16_t gpsConstrainEPE(uint32_t epe);
 extern uint16_t gpsConstrainHDOP(uint32_t hdop);
 
 extern bool gpsHandleNMEA(void);
+extern bool gpsHandleMTK(void);
 extern bool gpsHandleUBLOX(void);
 extern bool gpsHandleI2CNAV(void);
 extern bool gpsDetectI2CNAV(void);

@@ -17,24 +17,30 @@
 
 #pragma once
 
+#include "config/parameter_group.h"
+
 #include "drivers/pitotmeter.h"
 
 typedef enum {
     PITOT_NONE = 0,
     PITOT_AUTODETECT = 1,
     PITOT_MS4525 = 2,
-    PITOT_FAKE = 3,
+    PITOT_ADC = 3,
+    PITOT_VIRTUAL = 4,
+    PITOT_FAKE = 5,
 } pitotSensor_e;
 
 #define PITOT_MAX  PITOT_FAKE
 #define PITOT_SAMPLE_COUNT_MAX   48
 
 typedef struct pitotmeterConfig_s {
-    uint8_t use_median_filtering;           // Use 3-point median filtering
     uint8_t pitot_hardware;                 // Pitotmeter hardware to use
+    uint8_t use_median_filtering;           // Use 3-point median filtering
     float pitot_noise_lpf;                  // additional LPF to reduce pitot noise
     float pitot_scale;                      // scale value
 } pitotmeterConfig_t;
+
+PG_DECLARE(pitotmeterConfig_t, pitotmeterConfig);
 
 typedef struct pito_s {
     pitotDev_t dev;
@@ -43,11 +49,9 @@ typedef struct pito_s {
 
 extern pitot_t pitot;
 
-bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse);
-void usePitotmeterConfig(pitotmeterConfig_t *pitotmeterConfigToUse);
-bool isPitotCalibrationComplete(void);
-void pitotSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+bool pitotInit(void);
+bool pitotIsCalibrationComplete(void);
+void pitotStartCalibration(void);
 uint32_t pitotUpdate(void);
-bool isPitotReady(void);
 int32_t pitotCalculateAirSpeed(void);
-bool isPitotmeterHealthy(void);
+bool pitotIsHealthy(void);

@@ -29,8 +29,7 @@
 #define BEEPER                  PC15
 
 // *************** INVERTER *****************************
-#define INVERTER                PB2
-#define INVERTER_USART          USART2
+#define INVERTER_PIN_UART2     PB2
 
 // *************** SPI *****************************
 #define USE_SPI
@@ -62,6 +61,7 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_HMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_QMC5883
 #define MAG_IST8310_ALIGN CW270_DEG
 
 // *************** BARO *****************************
@@ -80,8 +80,8 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI2
 #define MAX7456_SPI_CS_PIN      SPI2_NSS_PIN
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
+#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
 
 // *************** TF Support *****************************
 #define USE_SPI_DEVICE_3
@@ -96,11 +96,6 @@
 #define SDCARD_SPI_INSTANCE                 SPI3
 #define SDCARD_SPI_CS_PIN                   PB6
 
-// SPI3 is on the APB1 bus whose clock runs at 84MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 328kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 21MHz
-
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
@@ -113,6 +108,7 @@
 #define USE_FLASH_M25P16
 
 // *************** UART *****************************
+#define USB_IO
 #define USE_VCP
 
 // provide for Telemetry module
@@ -152,16 +148,20 @@
 
 // *************** ADC *****************************
 #define USE_ADC
-#define VBAT_ADC_PIN            PC0
-#define CURRENT_METER_ADC_PIN   PC1
-#define RSSI_ADC_PIN               PC5
+#define ADC_CHANNEL_1_PIN               PC0
+#define ADC_CHANNEL_2_PIN               PC1
+#define ADC_CHANNEL_3_PIN               PC5
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
 #define VBAT_SCALE_DEFAULT         103
 
-// *************** SONAR *****************************
-// #define SONAR
-// #define SONAR_TRIGGER_PIN       PB10
-// #define SONAR_ECHO_PIN          PB11
-// #define USE_SONAR_SRF10
+// *************** RANGEFINDER *****************************
+// #define USE_RANGEFINDER
+// #define USE_RANGEFINDER_HCSR04
+// #define RANGEFINDER_HCSR04_TRIGGER_PIN       PB10
+// #define RANGEFINDER_HCSR04_ECHO_PIN          PB11
+// #define USE_RANGEFINDER_SRF10
 
 // *************** NAV *****************************
 #define NAV
@@ -173,10 +173,10 @@
 #define DISPLAY
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART3
-#define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_RX_SERIAL| FEATURE_RSSI_ADC | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY)
+#define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_RSSI_ADC | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY)
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

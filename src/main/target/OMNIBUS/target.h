@@ -21,8 +21,6 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
-#define LED0                    PB3
-
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
@@ -64,10 +62,12 @@
 #define USE_MAG_AK8975  // External
 #define USE_MAG_HMC5883 // External
 #define USE_MAG_MAG3110 // External
+#define USE_MAG_QMC5883 // External
 
-#define SONAR
-#define SONAR_ECHO_PIN          PB2  // Has 1K series resistor
-#define SONAR_TRIGGER_PIN       PB4  // FT
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04
+#define RANGEFINDER_HCSR04_ECHO_PIN          PB2  // Has 1K series resistor
+#define RANGEFINDER_HCSR04_TRIGGER_PIN       PB4  // FT
 
 #define USB_IO
 #define USB_CABLE_DETECTION
@@ -95,20 +95,7 @@
 // Turn internal pullups, they are weak, but better than nothing.
 #define USE_I2C_PULLUP
 
-// OSD disabled for now
-#if 0
-// OSD define info:
-//   feature name (includes source) -> MAX_OSD, used in target.mk
-// include the osd code
-#define OSD
-// include the max7456 driver
-#define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI1
-#define MAX7456_SPI_CS_PIN      PB1
-//#define MAX7456_DMA_CHANNEL_TX            DMA1_Channel3
-//#define MAX7456_DMA_CHANNEL_RX            DMA1_Channel2
-//#define MAX7456_DMA_IRQ_HANDLER_ID        DMA1_CH3_HANDLER
-#endif
+#define USE_PITOT_MS4525
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5
@@ -118,6 +105,10 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
+//#define USE_RX_SPI
+#define RX_SPI_INSTANCE SPI2
+#define RX_NSS_PIN PB3
+
 #define USE_SDCARD
 #define USE_SDCARD_SPI2
 
@@ -126,11 +117,6 @@
 #define SDCARD_DETECT_PIN                   PC14
 #define SDCARD_SPI_INSTANCE                 SPI2
 #define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
-
-// SPI2 is on the APB1 bus whose clock runs at 36MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 128
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     2
 
 // Note, this is the same DMA channel as UART1_RX. Luckily we don't use DMA for USART Rx.
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
@@ -143,54 +129,32 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI1
 #define MAX7456_SPI_CS_PIN      PB1
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
+#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
 //#define MAX7456_DMA_CHANNEL_TX            DMA1_Channel3
 //#define MAX7456_DMA_CHANNEL_RX            DMA1_Channel2
 //#define MAX7456_DMA_IRQ_HANDLER_ID        DMA1_CH3_HANDLER
 
 #define USE_ADC
-//#define BOARD_HAS_VOLTAGE_DIVIDER
-#define VBAT_ADC_PIN                PA0
-#define CURRENT_METER_ADC_PIN       PA1
 #define ADC_INSTANCE                ADC1
-
-// No RSSI support for OMNIBUS F3 (probably never)
-//#define RSSI_ADC_PIN                PB2
-//#define ADC_INSTANCE                ADC2
+//#define BOARD_HAS_VOLTAGE_DIVIDER
+#define ADC_CHANNEL_1_PIN           PA0
+#define ADC_CHANNEL_2_PIN           PA1
+#define ADC_CHANNEL_3_PIN           PB2
+#define ADC_CHANNEL_3_INSTANCE      ADC2
+#define VBAT_ADC_CHANNEL            ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
+#define RSSI_ADC_CHANNEL            ADC_CHN_3
 
 #define LED_STRIP
 #define WS2811_PIN                      PA8
-#define WS2811_TIMER                    TIM1
-#define WS2811_DMA_CHANNEL              DMA1_Channel2
-#define WS2811_IRQ                      DMA1_Channel2_IRQn
-#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC2
+#define WS2811_DMA_STREAM               DMA1_Channel2
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
-// No transponder support for iNav (for now?)
-#if 0
-#define TRANSPONDER
-#define TRANSPONDER_GPIO                     GPIOA
-#define TRANSPONDER_GPIO_AHB_PERIPHERAL      RCC_AHBPeriph_GPIOA
-#define TRANSPONDER_GPIO_AF                  GPIO_AF_6
-#define TRANSPONDER_PIN                      GPIO_Pin_8
-#define TRANSPONDER_PIN_SOURCE               GPIO_PinSource8
-
-#define TRANSPONDER_TIMER                    TIM1
-#define TRANSPONDER_TIMER_APB2_PERIPHERAL    RCC_APB2Periph_TIM1
-#define TRANSPONDER_DMA_CHANNEL              DMA1_Channel2
-#define TRANSPONDER_IRQ                      DMA1_Channel2_IRQn
-#define TRANSPONDER_DMA_TC_FLAG              DMA1_FLAG_TC2
-#define TRANSPONDER_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
-
-#define REDUCE_TRANSPONDER_CURRENT_DRAW_WHEN_USB_CABLE_PRESENT
-#endif
-
-// Not supported on INAV-1.2
 //#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_BLACKBOX)
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
+#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_BLACKBOX | FEATURE_OSD)
 
 #define BUTTONS
 #define BUTTON_A_PORT           GPIOB // Non-existent (PB1 used for RSSI/MAXCS)
@@ -215,6 +179,6 @@
 #define TARGET_IO_PORTC         (BIT(13)|BIT(14)|BIT(15))
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
 
-#define USABLE_TIMER_CHANNEL_COUNT  7
+#define USABLE_TIMER_CHANNEL_COUNT  8
 
 #define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(15))

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "common/time.h"
 
@@ -38,7 +39,7 @@ typedef enum FlightLogFieldCondition {
     FLIGHT_LOG_FIELD_CONDITION_PITOT,
     FLIGHT_LOG_FIELD_CONDITION_VBAT,
     FLIGHT_LOG_FIELD_CONDITION_AMPERAGE_ADC,
-    FLIGHT_LOG_FIELD_CONDITION_SONAR,
+    FLIGHT_LOG_FIELD_CONDITION_SURFACE,
     FLIGHT_LOG_FIELD_CONDITION_RSSI,
 
     FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0,
@@ -46,6 +47,8 @@ typedef enum FlightLogFieldCondition {
     FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_2,
 
     FLIGHT_LOG_FIELD_CONDITION_NOT_LOGGING_EVERY_FRAME,
+
+    FLIGHT_LOG_FIELD_CONDITION_DEBUG,
 
     FLIGHT_LOG_FIELD_CONDITION_NEVER,
 
@@ -108,12 +111,19 @@ typedef enum FlightLogEvent {
     FLIGHT_LOG_EVENT_SYNC_BEEP = 0,
     FLIGHT_LOG_EVENT_INFLIGHT_ADJUSTMENT = 13,
     FLIGHT_LOG_EVENT_LOGGING_RESUME = 14,
+    FLIGHT_LOG_EVENT_FLIGHTMODE = 30, // Add new event type for flight mode status.
+    FLIGHT_LOG_EVENT_IMU_FAILURE = 40,
     FLIGHT_LOG_EVENT_LOG_END = 255
 } FlightLogEvent;
 
 typedef struct flightLogEvent_syncBeep_s {
     uint32_t time;
 } flightLogEvent_syncBeep_t;
+
+typedef struct flightLogEvent_flightMode_s { // New Event Data type
+    uint32_t flags;
+    uint32_t lastFlags;
+} flightLogEvent_flightMode_t;
 
 typedef struct flightLogEvent_inflightAdjustment_s {
     uint8_t adjustmentFunction;
@@ -131,6 +141,7 @@ typedef struct flightLogEvent_loggingResume_s {
 
 typedef union flightLogEventData_u {
     flightLogEvent_syncBeep_t syncBeep;
+    flightLogEvent_flightMode_t flightMode; // New event data
     flightLogEvent_inflightAdjustment_t inflightAdjustment;
     flightLogEvent_loggingResume_t loggingResume;
 } flightLogEventData_t;

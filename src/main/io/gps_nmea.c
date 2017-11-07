@@ -23,26 +23,26 @@
 
 #include "platform.h"
 
-#if defined(GPS) && defined(GPS_PROTO_NMEA)
+#if defined(GPS)
+#if defined(GPS_PROTO_NMEA) || defined(GPS_PROTO_MTK)
 
 #include "build/build_config.h"
 #include "build/debug.h"
 
-#include "common/maths.h"
 #include "common/axis.h"
+#include "common/gps_conversion.h"
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "drivers/serial.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
+
+#include "fc/config.h"
+#include "fc/runtime_config.h"
 
 #include "io/serial.h"
 #include "io/gps.h"
 #include "io/gps_private.h"
-
-#include "flight/gps_conversion.h"
-
-#include "config/config.h"
-#include "fc/runtime_config.h"
 
 /* This is a light implementation of a GPS frame decoding
    This should work with most of modern GPS devices configured to output 5 frames.
@@ -93,6 +93,8 @@ typedef struct gpsDataNmea_s {
     uint16_t speed;
     uint16_t ground_course;
     uint16_t hdop;
+    uint32_t time;
+    uint32_t date;
 } gpsDataNmea_t;
 
 #define NMEA_BUFFER_SIZE        16
@@ -127,7 +129,7 @@ static bool gpsNewFrameNMEA(char c)
 
             switch (gps_frame) {
                 case FRAME_GGA:        //************* GPGGA FRAME parsing
-                    switch(param) {
+                    switch (param) {
             //          case 1:             // Time information
             //              break;
                         case 2:
@@ -163,12 +165,19 @@ static bool gpsNewFrameNMEA(char c)
                     }
                     break;
                 case FRAME_RMC:        //************* GPRMC FRAME parsing
-                    switch(param) {
+                                       // $GNRMC,130059.00,V,,,,,,,110917,,,N*62
+                    switch (param) {
+                        case 1:
+                            gps_Msg.time = grab_fields(string, 2);
+                            break;
                         case 7:
                             gps_Msg.speed = ((grab_fields(string, 1) * 5144L) / 1000L);    // speed in cm/s added by Mis
                             break;
                         case 8:
                             gps_Msg.ground_course = (grab_fields(string, 1));      // ground course deg * 10
+                            break;
+                        case 9:
+                            gps_Msg.date = grab_fields(string, 0);
                             break;
                     }
                     break;
@@ -215,6 +224,22 @@ static bool gpsNewFrameNMEA(char c)
                     case FRAME_RMC:
                         gpsSol.groundSpeed = gps_Msg.speed;
                         gpsSol.groundCourse = gps_Msg.ground_course;
+
+                        // This check will miss 00:00:00.00, but we shouldn't care - next report will be valid
+                        if (gps_Msg.date != 0 && gps_Msg.time != 0) {
+                            gpsSol.time.year = (gps_Msg.date % 100) + 2000;
+                            gpsSol.time.month = (gps_Msg.date / 100) % 100;
+                            gpsSol.time.day = (gps_Msg.date / 10000) % 100;
+                            gpsSol.time.hours = (gps_Msg.time / 1000000) % 100;
+                            gpsSol.time.minutes = (gps_Msg.time / 10000) % 100;
+                            gpsSol.time.seconds = (gps_Msg.time / 100) % 100;
+                            gpsSol.time.millis = (gps_Msg.time & 100) * 10;
+                            gpsSol.flags.validTime = 1;
+                        }
+                        else {
+                            gpsSol.flags.validTime = 0;
+                        }
+
                         break;
                     } // end switch
                 }
@@ -255,6 +280,51 @@ static bool gpsReceiveData(void)
     return hasNewData;
 }
 
+#ifdef GPS_PROTO_MTK
+
+static uint8_t *mtk_conf[] = {
+(uint8_t *)"$PMTK251,57600*2C\r\n", //change baudrate to 57600
+(uint8_t *)"$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n", //disable all messages except GGA and RMC
+(uint8_t *)"$PMTK220,200*2C\r\n", //5Hz update, should works for most modules
+(uint8_t *)"$PMTK220,100*2F\r\n" //try set 10Hz update if supported
+};
+
+// Send NMEA command like normal string
+static bool nmeaTransmitAutoConfigCommands(const uint8_t * cmd)
+{
+    while (serialTxBytesFree(gpsState.gpsPort) > 0) {
+        if (cmd[gpsState.autoConfigPosition] != 0) {
+            serialWrite(gpsState.gpsPort, cmd[gpsState.autoConfigPosition]);
+            gpsState.autoConfigPosition++;
+        }
+        else if (isSerialTransmitBufferEmpty(gpsState.gpsPort)) {
+            gpsState.autoConfigStep++;
+            gpsState.autoConfigPosition = 0;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    return false;
+}
+
+bool gpsConfigure(void)
+{
+
+    if (gpsState.autoConfigStep < sizeof(mtk_conf)/sizeof(mtk_conf[0])) {
+        nmeaTransmitAutoConfigCommands(mtk_conf[gpsState.autoConfigStep]);
+    }
+    else {
+        gpsSetState(GPS_RECEIVING_DATA);
+    }
+
+    return false;
+}
+
+#endif
+
 static bool gpsInitialize(void)
 {
     gpsSetState(GPS_CHANGE_BAUD);
@@ -263,7 +333,21 @@ static bool gpsInitialize(void)
 
 static bool gpsChangeBaud(void)
 {
-    gpsFinalizeChangeBaud();
+#ifdef GPS_PROTO_MTK
+    if ((gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) && (gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT)) {
+        // Do the switch only if TX buffer is empty - make sure all init string was sent at the same baud
+        if (isSerialTransmitBufferEmpty(gpsState.gpsPort)) {
+            // Cycle through all possible bauds and send init string
+            serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
+            gpsState.autoBaudrateIndex++;
+            gpsSetState(GPS_CHANGE_BAUD);   // switch to the same state to reset state transition time
+        }
+    } else
+#endif
+    {
+        gpsFinalizeChangeBaud();
+    }
+
     return false;
 }
 
@@ -273,7 +357,7 @@ bool gpsHandleNMEA(void)
     bool hasNewData = gpsReceiveData();
 
     // Process state
-    switch(gpsState.state) {
+    switch (gpsState.state) {
     default:
         return false;
 
@@ -295,4 +379,32 @@ bool gpsHandleNMEA(void)
     }
 }
 
+bool gpsHandleMTK(void)
+{
+    // Receive data
+    bool hasNewData = gpsReceiveData();
+
+    // Process state
+    switch(gpsState.state) {
+    default:
+        return false;
+
+    case GPS_INITIALIZING:
+        return gpsInitialize();
+
+    case GPS_CHANGE_BAUD:
+        return gpsChangeBaud();
+
+
+    case GPS_CHECK_VERSION:
+    case GPS_CONFIGURE:
+        gpsConfigure();
+        return false;
+
+    case GPS_RECEIVING_DATA:
+        return hasNewData;
+    }
+}
+
+#endif
 #endif

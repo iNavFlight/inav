@@ -55,6 +55,7 @@
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
 
 #define BARO
 #define USE_BARO_MS5611
@@ -98,11 +99,6 @@
 #define SDCARD_SPI_CS_GPIO                  SPI2_GPIO
 #define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
 
-// SPI2 is on the APB1 bus whose clock runs at 36MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 128
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     2
-
 // Note, this is the same DMA channel as UART1_RX. Luckily we don't use DMA for USART Rx.
 #define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC5
@@ -126,9 +122,8 @@
 #define UART3_TX_PIN            PB10 // PB10 (AF7)
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
-#define SOFTSERIAL_1_TIMER      TIM3
-#define SOFTSERIAL_1_TIMER_RX_HARDWARE 1
-#define SOFTSERIAL_1_TIMER_TX_HARDWARE 2
+#define SOFTSERIAL_1_RX_PIN     PB0
+#define SOFTSERIAL_1_TX_PIN     PB1
 
 #define USE_I2C
 #define I2C_DEVICE              (I2CDEV_1) // SDA (PB9/AF4), SCL (PB8/AF4)
@@ -139,25 +134,29 @@
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
 #define ADC_INSTANCE            ADC1
-#define VBAT_ADC_PIN            PA0
-#define RSSI_ADC_PIN            PA1
-#define CURRENT_METER_ADC_PIN   PA2
+#define ADC_CHANNEL_1_PIN               PA0
+#define ADC_CHANNEL_2_PIN               PA1
+#define ADC_CHANNEL_3_PIN               PA2
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define RSSI_ADC_CHANNEL                ADC_CHN_2
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_3
 
 #define LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL2
 #define WS2811_PIN                      PA8
 #define WS2811_TIMER                    TIM1
-#define WS2811_DMA_CHANNEL              DMA1_Channel2
+#define WS2811_DMA_STREAM               DMA1_Channel2
 #define WS2811_IRQ                      DMA1_Channel2_IRQn
 #define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC2
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
-#define SONAR
-#define SONAR_TRIGGER_PIN       PB0 // RC_CH7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
-#define SONAR_ECHO_PIN          PB1 // RC_CH8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04
+#define RANGEFINDER_HCSR04_TRIGGER_PIN       PB0 // RC_CH7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
+#define RANGEFINDER_HCSR04_ECHO_PIN          PB1 // RC_CH8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
 
 #define DEFAULT_FEATURES        FEATURE_BLACKBOX
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define DEFAULT_RX_TYPE         RX_TYPE_PPM
 
 #define SPEKTRUM_BIND
 // UART3,

@@ -26,11 +26,13 @@
 
 #include "drivers/rx_nrf24l01.h"
 
-#include "config/config.h"
 #include "config/feature.h"
+
+#include "fc/config.h"
 
 #include "rx/rx.h"
 #include "rx/rx_spi.h"
+#include "rx/eleres.h"
 #include "rx/nrf24_cx10.h"
 #include "rx/nrf24_syma.h"
 #include "rx/nrf24_v202.h"
@@ -103,6 +105,13 @@ STATIC_UNIT_TESTED bool rxSpiSetProtocol(rx_spi_protocol_e protocol)
         protocolInit = inavNrf24Init;
         protocolDataReceived = inavNrf24DataReceived;
         protocolSetRcDataFromPayload = inavNrf24SetRcDataFromPayload;
+        break;
+#endif
+#ifdef USE_RX_ELERES
+    case RFM22_ELERES:
+        protocolInit = eleresInit;
+        protocolDataReceived = eleresDataReceived;
+        protocolSetRcDataFromPayload = eleresSetRcDataFromPayload;
         break;
 #endif
     }

@@ -8,11 +8,12 @@ Import the project using the wizard **Existing Code as Makefile Project**
 Adjust your build option if necessary
 ![](https://camo.githubusercontent.com/64a1d32400d6be64dd4b5d237df1e7f1b817f61b/687474703a2f2f692e696d6775722e636f6d2f6641306d30784d2e706e67)
 
-Make sure you have a valid ARM toolchain in the path
+Make sure you have a valid ARM toolchain and Ruby in the path
 ![](http://i.imgur.com/dAbscJo.png)
 
 # Long version
 * First you need an ARM toolchain. Good choices are **GCC ARM Embedded** (https://launchpad.net/gcc-arm-embedded) or **Yagarto** (http://www.yagarto.de).
+* Install Ruby (see the document for your operating system).
 * Now download Eclipse and unpack it somewhere. At the time of writing Eclipse 4.2 was the latest stable version.
 * To work with ARM projects in Eclipse you need a few plugins:
 	+ **Eclipse C Development Tools** (CDT) (available via *Help > Install new Software*).
@@ -23,7 +24,7 @@ Make sure you have a valid ARM toolchain in the path
 * Create a new C project in Eclipse and choose ARM Cross Target Application and your ARM toolchain.
 * Import the Git project into the C project in Eclipse via *File > Import > General > File System*.
 * Activate Git via *Project > Team > Share Project*.
-* Switch to the master branch in Eclipse (*Project > Team > Switch To > master*).
+* Switch to the development branch in Eclipse (*Project > Team > Switch To > development*).
 * The next thing you need to do is adjust the project configuration. There is a Makefile included that works but you might want to use GNU ARM Eclipse's automatic Makefile generation. Open the Project configuration and go to *C/C++ Build > Settings*
 	* Under *Target Processor* choose "cortex-m3"
 	* Under *ARM Yagarto [Windows/Mac OS] Linker > General* (or whatever toolchain you chose)

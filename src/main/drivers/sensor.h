@@ -17,6 +17,12 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "drivers/io_types.h"
+#include "drivers/bus.h"
+
 typedef enum {
     ALIGN_DEFAULT = 0,                                      // driver-provided alignment
     CW0_DEG = 1,
@@ -38,5 +44,12 @@ typedef bool (*sensorAccReadFuncPtr)(struct accDev_s *acc);
 struct gyroDev_s;
 typedef void (*sensorGyroInitFuncPtr)(struct gyroDev_s *gyro);
 typedef bool (*sensorGyroReadFuncPtr)(struct gyroDev_s *gyro);
+typedef bool (*sensorGyroUpdateFuncPtr)(struct gyroDev_s *gyro);
 typedef bool (*sensorGyroReadDataFuncPtr)(struct gyroDev_s *gyro, int16_t *data);
 typedef bool (*sensorGyroInterruptStatusFuncPtr)(struct gyroDev_s *gyro);
+struct magDev_s;
+typedef bool (*sensorMagInitFuncPtr)(struct magDev_s *mag);
+typedef bool (*sensorMagReadFuncPtr)(struct magDev_s *mag);
+struct opflowDev_s;
+typedef bool (*sensorOpflowInitFuncPtr)(struct opflowDev_s *mag);
+typedef bool (*sensorOpflowUpdateFuncPtr)(struct opflowDev_s *mag);

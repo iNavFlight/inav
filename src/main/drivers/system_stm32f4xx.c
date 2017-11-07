@@ -21,12 +21,12 @@
 
 #include "platform.h"
 
-#include "accgyro_mpu.h"
-#include "exti.h"
-#include "nvic.h"
-#include "system.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/exti.h"
+#include "drivers/nvic.h"
+#include "drivers/system.h"
 
-#include "exti.h"
+#include "drivers/exti.h"
 
 
 #define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
@@ -34,8 +34,8 @@ void SetSysClock(void);
 
 void systemReset(void)
 {
-    if (mpuReset) {
-        mpuReset();
+    if (mpuResetFn) {
+        mpuResetFn();
     }
 
     __disable_irq();
@@ -44,8 +44,8 @@ void systemReset(void)
 
 void systemResetToBootloader(void)
 {
-    if (mpuReset) {
-        mpuReset();
+    if (mpuResetFn) {
+        mpuResetFn();
     }
 
     *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F4XX
@@ -163,8 +163,6 @@ bool isMPUSoftReset(void)
 
 void systemInit(void)
 {
-    checkForBootLoaderRequest();
-
     SetSysClock();
 
     // Configure NVIC preempt/priority groups
@@ -188,20 +186,4 @@ void systemInit(void)
     memset(extiHandlerConfigs, 0x00, sizeof(extiHandlerConfigs));
     // SysTick
     SysTick_Config(SystemCoreClock / 1000);
-}
-
-void(*bootJump)(void);
-void checkForBootLoaderRequest(void)
-{
-    if (*((uint32_t *)0x2001FFFC) == 0xDEADBEEF) {
-
-        *((uint32_t *)0x2001FFFC) = 0x0;
-
-        __enable_irq();
-        __set_MSP(0x20001000);
-
-        bootJump = (void(*)(void))(*((uint32_t *) 0x1fff0004));
-        bootJump();
-        while (1);
-    }
 }

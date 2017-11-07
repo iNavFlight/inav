@@ -24,7 +24,7 @@
 #include "common/utils.h"
 
 #include "drivers/sound_beeper.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
@@ -38,10 +38,11 @@
 #include "io/gps.h"
 #endif
 
+#include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
-#include "config/config.h"
 #include "config/feature.h"
 
 #include "io/beeper.h"
@@ -117,7 +118,7 @@ static const uint8_t beep_2longerBeeps[] = {
     20, 15, 35, 5, BEEPER_COMMAND_STOP
 };
 // 3 beeps
-static const uint8_t beep_gyroCalibrated[] = {
+static const uint8_t beep_runtimeCalibrationDone[] = {
     20, 10, 20, 10, 20, 10, BEEPER_COMMAND_STOP
 };
 // two short beeps and a pause (first pause, then short beep)
@@ -128,6 +129,15 @@ static const uint8_t beep_launchModeBeep[] = {
 static const uint8_t beep_hardwareFailure[] = {
     10, 10, BEEPER_COMMAND_STOP
 };
+// Cam connection opened
+static const uint8_t beep_camOpenBeep[] = { 
+    5, 15, 10, 15, 20, BEEPER_COMMAND_STOP 
+}; 
+// Cam connection close 
+static const uint8_t beep_camCloseBeep[] = { 
+    10, 8, 5, BEEPER_COMMAND_STOP 
+};
+
 
 // array used for variable # of beeps (reporting GPS sat count, etc)
 static uint8_t beep_multiBeeps[MAX_MULTI_BEEPS + 2];
@@ -164,29 +174,31 @@ typedef struct beeperTableEntry_s {
 #endif
 
 /*static*/ const beeperTableEntry_t beeperTable[] = {
-    { BEEPER_ENTRY(BEEPER_GYRO_CALIBRATED,       0, beep_gyroCalibrated,   "GYRO_CALIBRATED") },
-    { BEEPER_ENTRY(BEEPER_HARDWARE_FAILURE ,     1, beep_hardwareFailure,  "HW_FAILURE") },
-    { BEEPER_ENTRY(BEEPER_RX_LOST,               2, beep_txLostBeep,       "RX_LOST") },
-    { BEEPER_ENTRY(BEEPER_RX_LOST_LANDING,       3, beep_sos,              "RX_LOST_LANDING") },
-    { BEEPER_ENTRY(BEEPER_DISARMING,             4, beep_disarmBeep,       "DISARMING") },
-    { BEEPER_ENTRY(BEEPER_ARMING,                5, beep_armingBeep,       "ARMING")  },
-    { BEEPER_ENTRY(BEEPER_ARMING_GPS_FIX,        6, beep_armedGpsFix,      "ARMING_GPS_FIX") },
-    { BEEPER_ENTRY(BEEPER_BAT_CRIT_LOW,          7, beep_critBatteryBeep,  "BAT_CRIT_LOW") },
-    { BEEPER_ENTRY(BEEPER_BAT_LOW,               8, beep_lowBatteryBeep,   "BAT_LOW") },
-    { BEEPER_ENTRY(BEEPER_GPS_STATUS,            9, beep_multiBeeps,       "GPS_STATUS") },
-    { BEEPER_ENTRY(BEEPER_RX_SET,                10, beep_shortBeep,       "RX_SET") },
-    { BEEPER_ENTRY(BEEPER_ACC_CALIBRATION,       11, beep_2shortBeeps,     "ACC_CALIBRATION") },
-    { BEEPER_ENTRY(BEEPER_ACC_CALIBRATION_FAIL,  12, beep_2longerBeeps,    "ACC_CALIBRATION_FAIL") },
-    { BEEPER_ENTRY(BEEPER_READY_BEEP,            13, beep_readyBeep,       "READY_BEEP") },
-    { BEEPER_ENTRY(BEEPER_MULTI_BEEPS,           14, beep_multiBeeps,      "MULTI_BEEPS") }, // FIXME having this listed makes no sense since the beep array will not be initialised.
-    { BEEPER_ENTRY(BEEPER_DISARM_REPEAT,         15, beep_disarmRepeatBeep, "DISARM_REPEAT") },
-    { BEEPER_ENTRY(BEEPER_ARMED,                 16, beep_armedBeep,       "ARMED") },
-    { BEEPER_ENTRY(BEEPER_SYSTEM_INIT,           17, NULL,                 "SYSTEM_INIT") },
-    { BEEPER_ENTRY(BEEPER_USB,                   18, NULL,                 "ON_USB") },
-    { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_ENABLED,   19, beep_launchModeBeep,  "LAUNCH_MODE") },
+    { BEEPER_ENTRY(BEEPER_RUNTIME_CALIBRATION_DONE, 0, beep_runtimeCalibrationDone, "RUNTIME_CALIBRATION") },
+    { BEEPER_ENTRY(BEEPER_HARDWARE_FAILURE ,        1, beep_hardwareFailure,        "HW_FAILURE") },
+    { BEEPER_ENTRY(BEEPER_RX_LOST,                  2, beep_txLostBeep,             "RX_LOST") },
+    { BEEPER_ENTRY(BEEPER_RX_LOST_LANDING,          3, beep_sos,                    "RX_LOST_LANDING") },
+    { BEEPER_ENTRY(BEEPER_DISARMING,                4, beep_disarmBeep,             "DISARMING") },
+    { BEEPER_ENTRY(BEEPER_ARMING,                   5, beep_armingBeep,             "ARMING")  },
+    { BEEPER_ENTRY(BEEPER_ARMING_GPS_FIX,           6, beep_armedGpsFix,            "ARMING_GPS_FIX") },
+    { BEEPER_ENTRY(BEEPER_BAT_CRIT_LOW,             7, beep_critBatteryBeep,        "BAT_CRIT_LOW") },
+    { BEEPER_ENTRY(BEEPER_BAT_LOW,                  8, beep_lowBatteryBeep,         "BAT_LOW") },
+    { BEEPER_ENTRY(BEEPER_GPS_STATUS,               9, beep_multiBeeps,             "GPS_STATUS") },
+    { BEEPER_ENTRY(BEEPER_RX_SET,                   10, beep_shortBeep,             "RX_SET") },
+    { BEEPER_ENTRY(BEEPER_ACTION_SUCCESS,           11, beep_2shortBeeps,           "ACTION_SUCCESS") },
+    { BEEPER_ENTRY(BEEPER_ACTION_FAIL,              12, beep_2longerBeeps,          "ACTION_FAIL") },
+    { BEEPER_ENTRY(BEEPER_READY_BEEP,               13, beep_readyBeep,             "READY_BEEP") },
+    { BEEPER_ENTRY(BEEPER_MULTI_BEEPS,              14, beep_multiBeeps,            "MULTI_BEEPS") }, // FIXME having this listed makes no sense since the beep array will not be initialised.
+    { BEEPER_ENTRY(BEEPER_DISARM_REPEAT,            15, beep_disarmRepeatBeep,      "DISARM_REPEAT") },
+    { BEEPER_ENTRY(BEEPER_ARMED,                    16, beep_armedBeep,             "ARMED") },
+    { BEEPER_ENTRY(BEEPER_SYSTEM_INIT,              17, NULL,                       "SYSTEM_INIT") },
+    { BEEPER_ENTRY(BEEPER_USB,                      18, NULL,                       "ON_USB") },
+    { BEEPER_ENTRY(BEEPER_LAUNCH_MODE_ENABLED,      19, beep_launchModeBeep,        "LAUNCH_MODE") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_OPEN,      20, beep_camOpenBeep,           "CAM_CONNECTION_OPEN") },
+    { BEEPER_ENTRY(BEEPER_CAM_CONNECTION_CLOSE,     21, beep_camCloseBeep,          "CAM_CONNECTION_CLOSED") },
 
-    { BEEPER_ENTRY(BEEPER_ALL,                   20, NULL,                 "ALL") },
-    { BEEPER_ENTRY(BEEPER_PREFERENCE,            21, NULL,                 "PREFERED") },
+    { BEEPER_ENTRY(BEEPER_ALL,                      22, NULL,                       "ALL") },
+    { BEEPER_ENTRY(BEEPER_PREFERENCE,               23, NULL,                       "PREFERED") },
 };
 
 static const beeperTableEntry_t *currentBeeperEntry = NULL;
@@ -258,7 +270,7 @@ void beeperConfirmationBeeps(uint8_t beepCount)
 
     i = 0;
     cLimit = beepCount * 2;
-    if(cLimit > MAX_MULTI_BEEPS)
+    if (cLimit > MAX_MULTI_BEEPS)
         cLimit = MAX_MULTI_BEEPS;  //stay within array size
     do {
         beep_multiBeeps[i++] = BEEPER_CONFIRMATION_BEEP_DURATION;       // 20ms beep

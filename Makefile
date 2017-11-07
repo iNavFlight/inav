@@ -16,7 +16,7 @@
 #
 
 # The target to build, see VALID_TARGETS below
-TARGET    ?= NAZE
+TARGET    ?= SPRACINGF3
 
 # Compile-time options
 OPTIONS   ?=
@@ -82,7 +82,6 @@ FEATURES        =
 ALT_TARGETS     = $(sort $(filter-out target, $(basename $(notdir $(wildcard $(ROOT)/src/main/target/*/*.mk)))))
 OPBL_TARGETS    = $(filter %_OPBL, $(ALT_TARGETS))
 
-#VALID_TARGETS  = $(F1_TARGETS) $(F3_TARGETS) $(F4_TARGETS)
 VALID_TARGETS   = $(dir $(wildcard $(ROOT)/src/main/target/*/target.mk))
 VALID_TARGETS  := $(subst /,, $(subst ./src/main/target/,, $(VALID_TARGETS)))
 VALID_TARGETS  := $(VALID_TARGETS) $(ALT_TARGETS)
@@ -105,24 +104,28 @@ endif
 # silently ignore if the file is not present. Allows for target specific.
 -include $(ROOT)/src/main/target/$(BASE_TARGET)/target.mk
 
-F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS)
+F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS) $(F427_TARGETS)
+F7_TARGETS      = $(F7X2RE_TARGETS) $(F7X5XE_TARGETS) $(F7X5XG_TARGETS) $(F7X5XI_TARGETS) $(F7X6XG_TARGETS)
 
 ifeq ($(filter $(TARGET),$(VALID_TARGETS)),)
 $(error Target '$(TARGET)' is not valid, must be one of $(VALID_TARGETS). Have you prepared a valid target.mk?)
 endif
 
-ifeq ($(filter $(TARGET),$(F1_TARGETS) $(F3_TARGETS) $(F4_TARGETS)),)
-$(error Target '$(TARGET)' has not specified a valid STM group, must be one of F1, F3, F405, or F411. Have you prepared a valid target.mk?)
+ifeq ($(filter $(TARGET),$(F1_TARGETS) $(F3_TARGETS) $(F4_TARGETS) $(F7_TARGETS)),)
+$(error Target '$(TARGET)' has not specified a valid STM group, must be one of F1, F3, F405, F411, F427 or F7x. Have you prepared a valid target.mk?)
 endif
 
 128K_TARGETS  = $(F1_TARGETS)
 256K_TARGETS  = $(F3_TARGETS)
-512K_TARGETS  = $(F411_TARGETS)
-1024K_TARGETS = $(F405_TARGETS)
+512K_TARGETS  = $(F411_TARGETS) $(F7X2RE_TARGETS) $(F7X5XE_TARGETS)
+1024K_TARGETS = $(F405_TARGETS) $(F7X5XG_TARGETS) $(F7X6XG_TARGETS)
+2048K_TARGETS = $(F427_TARGETS) $(F7X5XI_TARGETS)
 
 # Configure default flash sizes for the targets (largest size specified gets hit first) if flash not specified already.
 ifeq ($(FLASH_SIZE),)
-ifeq ($(TARGET),$(filter $(TARGET),$(1024K_TARGETS)))
+ifeq ($(TARGET),$(filter $(TARGET),$(2048K_TARGETS)))
+FLASH_SIZE = 2048
+else ifeq ($(TARGET),$(filter $(TARGET),$(1024K_TARGETS)))
 FLASH_SIZE = 1024
 else ifeq ($(TARGET),$(filter $(TARGET),$(512K_TARGETS)))
 FLASH_SIZE = 512
@@ -135,12 +138,22 @@ $(error FLASH_SIZE not configured for target $(TARGET))
 endif
 endif
 
+GROUP_1_TARGETS := AIRHEROF3 AIRHEROF3_QUAD COLIBRI_RACE LUX_RACE SPARKY REVO SPARKY2 COLIBRI FALCORE PIKOBLX
+GROUP_2_TARGETS := SPRACINGF3 SPRACINGF3EVO SPRACINGF3EVO_1SS SPRACINGF3MINI SPRACINGF3NEO SPRACINGF4EVO
+GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO OMNIBUSF4V3 SPARKY2 MATEKF405 OMNIBUSF7 DYSF4PRO MATEKF405OSD
+GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER PIXRACER_ICM20608
+GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS), $(VALID_TARGETS))
+
 # note that there is no hardfault debugging startup file assembly handler for other platforms
 ifeq ($(DEBUG_HARDFAULTS),F3)
 CFLAGS               += -DDEBUG_HARDFAULTS
 STM32F30x_COMMON_SRC  = startup_stm32f3_debug_hardfault_handler.S
 else
 STM32F30x_COMMON_SRC  = startup_stm32f30x_md_gcc.S
+endif
+
+ifeq ($(DEBUG_HARDFAULTS),F7)
+CFLAGS               += -DDEBUG_HARDFAULTS
 endif
 
 REVISION = $(shell git log -1 --format="%h")
@@ -232,8 +245,11 @@ EXCLUDES        = stm32f4xx_crc.c \
                   stm32f4xx_cryp_tdes.c \
                   stm32f4xx_hash_sha1.c
 
-
 ifeq ($(TARGET),$(filter $(TARGET), $(F411_TARGETS)))
+EXCLUDES += stm32f4xx_fsmc.c
+endif
+
+ifeq ($(TARGET),$(filter $(TARGET), $(F427_TARGETS)))
 EXCLUDES += stm32f4xx_fsmc.c
 endif
 
@@ -291,6 +307,9 @@ LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f411.ld
 else ifeq ($(TARGET),$(filter $(TARGET),$(F405_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F40_41xxx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
+else ifeq ($(TARGET),$(filter $(TARGET),$(F427_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F427_437xx
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f427.ld
 else
 $(error Unknown MCU for F4 target)
 endif
@@ -298,6 +317,140 @@ DEVICE_FLAGS    += -DHSE_VALUE=$(HSE_VALUE)
 
 TARGET_FLAGS = -D$(TARGET)
 # End F4 targets
+#
+# Start F7 targets
+else ifeq ($(TARGET),$(filter $(TARGET), $(F7_TARGETS)))
+
+#STDPERIPH
+STDPERIPH_DIR   = $(ROOT)/lib/main/STM32F7xx_HAL_Driver
+STDPERIPH_SRC   = $(notdir $(wildcard $(STDPERIPH_DIR)/Src/*.c))
+EXCLUDES        = stm32f7xx_hal_can.c \
+                  stm32f7xx_hal_cec.c \
+                  stm32f7xx_hal_crc.c \
+                  stm32f7xx_hal_crc_ex.c \
+                  stm32f7xx_hal_cryp.c \
+                  stm32f7xx_hal_cryp_ex.c \
+                  stm32f7xx_hal_dac.c \
+                  stm32f7xx_hal_dac_ex.c \
+                  stm32f7xx_hal_dcmi.c \
+                  stm32f7xx_hal_dcmi_ex.c \
+                  stm32f7xx_hal_dfsdm.c \
+                  stm32f7xx_hal_dma2d.c \
+                  stm32f7xx_hal_dsi.c \
+                  stm32f7xx_hal_eth.c \
+                  stm32f7xx_hal_hash.c \
+                  stm32f7xx_hal_hash_ex.c \
+                  stm32f7xx_hal_hcd.c \
+                  stm32f7xx_hal_i2s.c \
+                  stm32f7xx_hal_irda.c \
+                  stm32f7xx_hal_iwdg.c \
+                  stm32f7xx_hal_jpeg.c \
+                  stm32f7xx_hal_lptim.c \
+                  stm32f7xx_hal_ltdc.c \
+                  stm32f7xx_hal_ltdc_ex.c \
+                  stm32f7xx_hal_mdios.c \
+                  stm32f7xx_hal_mmc.c \
+                  stm32f7xx_hal_msp_template.c \
+                  stm32f7xx_hal_nand.c \
+                  stm32f7xx_hal_nor.c \
+                  stm32f7xx_hal_qspi.c \
+                  stm32f7xx_hal_rng.c \
+                  stm32f7xx_hal_rtc.c \
+                  stm32f7xx_hal_rtc_ex.c \
+                  stm32f7xx_hal_sai.c \
+                  stm32f7xx_hal_sai_ex.c \
+                  stm32f7xx_hal_sd.c \
+                  stm32f7xx_hal_sdram.c \
+                  stm32f7xx_hal_smartcard.c \
+                  stm32f7xx_hal_smartcard_ex.c \
+                  stm32f7xx_hal_smbus.c \
+                  stm32f7xx_hal_spdifrx.c \
+                  stm32f7xx_hal_sram.c \
+                  stm32f7xx_hal_timebase_rtc_alarm_template.c \
+                  stm32f7xx_hal_timebase_rtc_wakeup_template.c \
+                  stm32f7xx_hal_timebase_tim_template.c \
+                  stm32f7xx_hal_wwdg.c \
+                  stm32f7xx_ll_adc.c \
+                  stm32f7xx_ll_crc.c \
+                  stm32f7xx_ll_dac.c \
+                  stm32f7xx_ll_dma.c \
+                  stm32f7xx_ll_dma2d.c \
+                  stm32f7xx_ll_exti.c \
+                  stm32f7xx_ll_fmc.c \
+                  stm32f7xx_ll_gpio.c \
+                  stm32f7xx_ll_i2c.c \
+                  stm32f7xx_ll_lptim.c \
+                  stm32f7xx_ll_pwr.c \
+                  stm32f7xx_ll_rcc.c \
+                  stm32f7xx_ll_rng.c \
+                  stm32f7xx_ll_rtc.c \
+                  stm32f7xx_ll_sdmmc.c \
+                  stm32f7xx_ll_spi.c \
+                  stm32f7xx_ll_tim.c \
+                  stm32f7xx_ll_usart.c \
+                  stm32f7xx_ll_utils.c
+
+STDPERIPH_SRC := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
+
+#USB
+USBCORE_DIR = $(ROOT)/lib/main/Middlewares/ST/STM32_USB_Device_Library/Core
+USBCORE_SRC = $(notdir $(wildcard $(USBCORE_DIR)/Src/*.c))
+EXCLUDES    = usbd_conf_template.c
+USBCORE_SRC := $(filter-out ${EXCLUDES}, $(USBCORE_SRC))
+
+USBCDC_DIR = $(ROOT)/lib/main/Middlewares/ST/STM32_USB_Device_Library/Class/CDC
+USBCDC_SRC = $(notdir $(wildcard $(USBCDC_DIR)/Src/*.c))
+EXCLUDES   = usbd_cdc_if_template.c
+USBCDC_SRC := $(filter-out ${EXCLUDES}, $(USBCDC_SRC))
+
+VPATH := $(VPATH):$(USBCDC_DIR)/Src:$(USBCORE_DIR)/Src
+
+DEVICE_STDPERIPH_SRC := $(STDPERIPH_SRC) \
+                        $(USBCORE_SRC) \
+                        $(USBCDC_SRC)
+
+#CMSIS
+VPATH           := $(VPATH):$(CMSIS_DIR)/CM7/Include:$(CMSIS_DIR)/CM7/Device/ST/STM32F7xx
+VPATH           := $(VPATH):$(STDPERIPH_DIR)/Src
+CMSIS_SRC       = $(notdir $(wildcard $(CMSIS_DIR)/CM7/Include/*.c \
+                  $(CMSIS_DIR)/CM7/Device/ST/STM32F7xx/*.c))
+INCLUDE_DIRS    := $(INCLUDE_DIRS) \
+                   $(STDPERIPH_DIR)/Inc \
+                   $(USBCORE_DIR)/Inc \
+                   $(USBCDC_DIR)/Inc \
+                   $(CMSIS_DIR)/CM7/Include \
+                   $(CMSIS_DIR)/CM7/Device/ST/STM32F7xx/Include \
+                   $(ROOT)/src/main/vcp_hal
+
+ifneq ($(filter SDCARD,$(FEATURES)),)
+INCLUDE_DIRS    := $(INCLUDE_DIRS) \
+                   $(FATFS_DIR)
+VPATH           := $(VPATH):$(FATFS_DIR)
+endif
+
+#Flags
+ARCH_FLAGS      = -mthumb -mcpu=cortex-m7 -mfloat-abi=hard -mfpu=fpv5-sp-d16 -fsingle-precision-constant -Wdouble-promotion
+
+ifeq ($(TARGET),$(filter $(TARGET),$(F7X5XG_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F745xx -DUSE_HAL_DRIVER -D__FPU_PRESENT
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f745.ld
+STARTUP_SRC     = startup_stm32f745xx.s
+else ifeq ($(TARGET),$(filter $(TARGET),$(F7X6XG_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F746xx -DUSE_HAL_DRIVER -D__FPU_PRESENT
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f746.ld
+STARTUP_SRC     = startup_stm32f746xx.s
+else ifeq ($(TARGET),$(filter $(TARGET),$(F7X2RE_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F722xx -DUSE_HAL_DRIVER -D__FPU_PRESENT
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f722.ld
+STARTUP_SRC     = startup_stm32f722xx.s
+else
+$(error Unknown MCU for F7 target)
+endif
+DEVICE_FLAGS    += -DHSE_VALUE=$(HSE_VALUE)
+
+TARGET_FLAGS = -D$(TARGET)
+
+# End F7 targets
 #
 # Start F1 targets
 else
@@ -387,27 +540,31 @@ INCLUDE_DIRS    := $(INCLUDE_DIRS) \
 VPATH           := $(VPATH):$(TARGET_DIR)
 
 COMMON_SRC = \
+            $(TARGET_DIR_SRC) \
+            main.c \
+            build/assert.c \
             build/build_config.c \
             build/debug.c \
             build/version.c \
-            build/assert.c \
-            $(TARGET_DIR_SRC) \
-            main.c \
-            fc/mw.c \
+            common/bitarray.c \
+            common/crc.c \
             common/encoding.c \
             common/filter.c \
             common/maths.c \
             common/printf.c \
-            common/typeconversion.c \
             common/streambuf.c \
-            config/config.c \
-            config/feature.c \
+            common/time.c \
+            common/typeconversion.c \
+            common/string_light.c \
             config/config_eeprom.c \
+            config/config_streamer.c \
+            config/feature.c \
             config/parameter_group.c \
-            fc/runtime_config.c \
-            drivers/logging.c \
             drivers/adc.c \
             drivers/buf_writer.c \
+            drivers/bus.c \
+            drivers/bus_busdev_i2c.c \
+            drivers/bus_busdev_spi.c \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/bus_spi_soft.c \
@@ -416,45 +573,62 @@ COMMON_SRC = \
             drivers/gps_i2cnav.c \
             drivers/gyro_sync.c \
             drivers/io.c \
+            drivers/io_pca9685.c \
             drivers/light_led.c \
+            drivers/logging.c \
+            drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
+            drivers/pitotmeter_adc.c \
+            drivers/pwm_esc_detect.c \
             drivers/pwm_mapping.c \
             drivers/pwm_output.c \
-            drivers/pwm_rx.c \
             drivers/rcc.c \
+            drivers/rx_pwm.c \
             drivers/serial.c \
             drivers/serial_uart.c \
             drivers/sound_beeper.c \
             drivers/stack_check.c \
             drivers/system.c \
             drivers/timer.c \
-            drivers/io_pca9685.c \
-            flight/failsafe.c \
-            flight/imu.c \
-            flight/hil.c \
-            flight/mixer.c \
-            flight/servos.c \
-            flight/pid.c \
-            io/beeper.c \
+            fc/cli.c \
+            fc/config.c \
+            fc/controlrate_profile.c \
+            fc/fc_core.c \
             fc/fc_init.c \
             fc/fc_tasks.c \
             fc/fc_hardfaults.c \
             fc/fc_msp.c \
+            fc/fc_msp_box.c \
+            fc/rc_adjustments.c \
             fc/rc_controls.c \
             fc/rc_curves.c \
+            fc/rc_modes.c \
+            fc/runtime_config.c \
+            fc/settings.c \
+            fc/stats.c \
+            flight/failsafe.c \
+            flight/hil.c \
+            flight/imu.c \
+            flight/mixer.c \
+            flight/pid.c \
+            flight/pid_autotune.c \
+            flight/servos.c \
+            io/beeper.c \
+            io/pwmdriver_i2c.c \
             io/serial.c \
             io/serial_4way.c \
             io/serial_4way_avrootloader.c \
             io/serial_4way_stk500v2.c \
-            io/serial_cli.c \
             io/statusindicator.c \
-            io/pwmdriver_i2c.c \
+            io/rcdevice.c \
+            io/rcdevice_cam.c \
             msp/msp_serial.c \
             rx/ibus.c \
             rx/jetiexbus.c \
             rx/msp.c \
+            rx/uib_rx.c \
             rx/nrf24_cx10.c \
             rx/nrf24_inav.c \
             rx/nrf24_h8_3d.c \
@@ -463,24 +637,29 @@ COMMON_SRC = \
             rx/pwm.c \
             rx/rx.c \
             rx/rx_spi.c \
+            rx/crsf.c \
             rx/sbus.c \
             rx/spektrum.c \
             rx/sumd.c \
             rx/sumh.c \
             rx/xbus.c \
+            rx/eleres.c \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
             sensors/boardalignment.c \
             sensors/compass.c \
+            sensors/diagnostics.c \
             sensors/gyro.c \
             sensors/initialisation.c \
-            sensors/diagnostics.c \
+            uav_interconnect/uav_interconnect_bus.c \
+            uav_interconnect/uav_interconnect_rangefinder.c \
             $(CMSIS_SRC) \
             $(DEVICE_STDPERIPH_SRC)
 
 HIGHEND_SRC = \
             blackbox/blackbox.c \
+            blackbox/blackbox_encoding.c \
             blackbox/blackbox_io.c \
             cms/cms.c \
             cms/cms_menu_blackbox.c \
@@ -488,18 +667,17 @@ HIGHEND_SRC = \
             cms/cms_menu_imu.c \
             cms/cms_menu_ledstrip.c \
             cms/cms_menu_misc.c \
+            cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
             common/colorconversion.c \
+            common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
-            drivers/sonar_hcsr04.c \
-            drivers/sonar_srf10.c \
-            flight/navigation_rewrite.c \
-            flight/navigation_rewrite_multicopter.c \
-            flight/navigation_rewrite_fixedwing.c \
-            flight/navigation_rewrite_fw_launch.c \
-            flight/navigation_rewrite_pos_estimator.c \
-            flight/navigation_rewrite_geo.c \
-            flight/gps_conversion.c \
+            drivers/rangefinder_hcsr04.c \
+            drivers/rangefinder_hcsr04_i2c.c \
+            drivers/rangefinder_srf10.c \
+            drivers/opflow_fake.c \
+            drivers/rangefinder_vl53l0x.c \
+            drivers/vtx_common.c \
             io/dashboard.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
@@ -511,16 +689,29 @@ HIGHEND_SRC = \
             io/gps_i2cnav.c \
             io/ledstrip.c \
             io/osd.c \
-            sensors/rangefinder.c \
+            navigation/navigation.c \
+            navigation/navigation_fixedwing.c \
+            navigation/navigation_fw_launch.c \
+            navigation/navigation_geo.c \
+            navigation/navigation_multicopter.c \
+            navigation/navigation_pos_estimator.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
-            telemetry/telemetry.c \
+            sensors/rangefinder.c \
+            sensors/opflow.c \
+            telemetry/crsf.c \
             telemetry/frsky.c \
             telemetry/hott.c \
-            telemetry/smartport.c \
-            telemetry/mavlink.c \
+            telemetry/ibus_shared.c \
+            telemetry/ibus.c \
             telemetry/ltm.c \
-            telemetry/ibus.c
+            telemetry/mavlink.c \
+            telemetry/smartport.c \
+            telemetry/telemetry.c \
+            io/vtx_string.c \
+            io/vtx_smartaudio.c \
+            io/vtx_tramp.c \
+            io/vtx_control.c
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 VCP_SRC = \
@@ -529,7 +720,15 @@ VCP_SRC = \
             vcpf4/usbd_desc.c \
             vcpf4/usbd_usr.c \
             vcpf4/usbd_cdc_vcp.c \
-            drivers/serial_usb_vcp.c
+            drivers/serial_usb_vcp.c \
+            drivers/usb_io.c
+else ifeq ($(TARGET),$(filter $(TARGET),$(F7_TARGETS)))
+VCP_SRC = \
+            vcp_hal/usbd_desc.c \
+            vcp_hal/usbd_conf.c \
+            vcp_hal/usbd_cdc_interface.c \
+            drivers/serial_usb_vcp.c \
+            drivers/usb_io.c
 else
 VCP_SRC = \
             vcp/hw_config.c \
@@ -562,7 +761,6 @@ STM32F30x_COMMON_SRC = \
             drivers/bus_i2c_stm32f30x.c \
             drivers/dma.c \
             drivers/gpio_stm32f30x.c \
-            drivers/light_ws2811strip_stm32f30x.c \
             drivers/serial_uart_stm32f30x.c \
             drivers/system_stm32f30x.c \
             drivers/timer_stm32f30x.c
@@ -570,7 +768,7 @@ STM32F30x_COMMON_SRC = \
 STM32F4xx_COMMON_SRC = \
             startup_stm32f40xx.s \
             target/system_stm32f4xx.c \
-            drivers/accgyro_mpu.c \
+            drivers/accgyro/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
             drivers/adc_stm32f4xx.c \
             drivers/bus_i2c_stm32f10x.c \
@@ -582,9 +780,31 @@ STM32F4xx_COMMON_SRC = \
             drivers/timer_stm32f4xx.c \
             drivers/dma_stm32f4xx.c
 
+STM32F7xx_COMMON_SRC = \
+            target/system_stm32f7xx.c \
+            drivers/accgyro/accgyro_mpu.c \
+            drivers/adc_stm32f7xx.c \
+            drivers/bus_i2c_hal.c \
+            drivers/dma_stm32f7xx.c \
+            drivers/gpio_stm32f7xx.c \
+            drivers/inverter.c \
+            drivers/bus_spi_hal.c \
+            drivers/timer_hal.c \
+            drivers/timer_stm32f7xx.c \
+            drivers/system_stm32f7xx.c \
+            drivers/serial_uart_stm32f7xx.c \
+            drivers/serial_uart_hal.c
+
+F7EXCLUDES = drivers/bus_spi.c \
+            drivers/bus_i2c.c \
+            drivers/timer.c \
+            drivers/serial_uart.c
+
 # check if target.mk supplied
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 TARGET_SRC := $(STM32F4xx_COMMON_SRC) $(TARGET_SRC)
+else ifeq ($(TARGET),$(filter $(TARGET),$(F7_TARGETS)))
+TARGET_SRC := $(STARTUP_SRC) $(STM32F7xx_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))
 TARGET_SRC := $(STM32F30x_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F1_TARGETS)))
@@ -597,13 +817,17 @@ TARGET_SRC += \
             io/flashfs.c
 endif
 
-ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS) $(F3_TARGETS)))
+ifeq ($(TARGET),$(filter $(TARGET),$(F7_TARGETS) $(F4_TARGETS) $(F3_TARGETS)))
 TARGET_SRC += $(HIGHEND_SRC)
 else ifneq ($(filter HIGHEND,$(FEATURES)),)
 TARGET_SRC += $(HIGHEND_SRC)
 endif
 
 TARGET_SRC += $(COMMON_SRC)
+#excludes
+ifeq ($(TARGET),$(filter $(TARGET),$(F7_TARGETS)))
+TARGET_SRC   := $(filter-out ${F7EXCLUDES}, $(TARGET_SRC))
+endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
 TARGET_SRC += \
@@ -626,9 +850,15 @@ VPATH        := $(VPATH):$(STDPERIPH_DIR)/src
 #
 
 # Tool names
-CC          = arm-none-eabi-gcc
+ifneq ($(TOOLCHAINPATH),)
+CROSS_CC    = $(TOOLCHAINPATH)/arm-none-eabi-gcc
+OBJCOPY     = $(TOOLCHAINPATH)/arm-none-eabi-objcopy
+SIZE        = $(TOOLCHAINPATH)/arm-none-eabi-size
+else
+CROSS_CC    = arm-none-eabi-gcc
 OBJCOPY     = arm-none-eabi-objcopy
 SIZE        = arm-none-eabi-size
+endif
 
 #
 # Tool options.
@@ -665,6 +895,7 @@ CFLAGS      += $(ARCH_FLAGS) \
 ASFLAGS     = $(ARCH_FLAGS) \
               -x assembler-with-cpp \
               $(addprefix -I,$(INCLUDE_DIRS)) \
+              -D$(TARGET) \
               -MMD -MP
 
 LDFLAGS     = -lm \
@@ -706,6 +937,36 @@ CLEAN_ARTIFACTS := $(TARGET_BIN)
 CLEAN_ARTIFACTS += $(TARGET_HEX)
 CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 
+# Make sure build date and revision is updated on every incremental build
+$(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
+
+# Settings generator
+.PHONY: .FORCE settings clean-settings
+UTILS_DIR		= $(ROOT)/src/utils
+SETTINGS_GENERATOR	= $(UTILS_DIR)/settings.rb
+BUILD_STAMP		= $(UTILS_DIR)/build_stamp.rb
+STAMP			= $(BIN_DIR)/build.stamp
+
+GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
+SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
+GENERATED_FILES		= $(GENERATED_SETTINGS)
+$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE) $(STAMP)
+
+$(STAMP): .FORCE
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(BUILD_STAMP) $(SETTINGS_FILE) $(STAMP)
+
+# Use a pattern rule, since they're different than normal rules.
+# See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
+%generated.h %generated.c:
+	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+
+settings-json:
+	$(V0) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) --json settings.json
+
+clean-settings:
+	$(V1) $(RM) $(GENERATED_SETTINGS)
+
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
 
@@ -715,36 +976,51 @@ $(TARGET_HEX): $(TARGET_ELF)
 $(TARGET_BIN): $(TARGET_ELF)
 	$(V0) $(OBJCOPY) -O binary $< $@
 
-$(TARGET_ELF):  $(TARGET_OBJS)
+$(TARGET_ELF): $(TARGET_OBJS)
 	$(V1) echo Linking $(TARGET)
-	$(V1) $(CC) -o $@ $^ $(LDFLAGS)
+	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
 
 # Compile
 $(OBJECT_DIR)/$(TARGET)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
-	$(V1) $(CC) -c -o $@ $(CFLAGS) $<
+	$(V1) $(CROSS_CC) -c -o $@ $(CFLAGS) $<
 
 # Assemble
 $(OBJECT_DIR)/$(TARGET)/%.o: %.s
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
-	$(V1) $(CC) -c -o $@ $(ASFLAGS) $<
+	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
 
 $(OBJECT_DIR)/$(TARGET)/%.o: %.S
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
-	$(V1) $(CC) -c -o $@ $(ASFLAGS) $<
+	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
 
 
 ## all               : Build all valid targets
 all: $(VALID_TARGETS)
 
+## targets-group-1   : build some targets
+targets-group-1: $(GROUP_1_TARGETS)
+
+## targets-group-2   : build some targets
+targets-group-2: $(GROUP_2_TARGETS)
+
+## targets-group-3   : build some targets
+targets-group-3: $(GROUP_3_TARGETS)
+
+## targets-group-3   : build some targets
+targets-group-4: $(GROUP_4_TARGETS)
+
+## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
+targets-group-rest: $(GROUP_OTHER_TARGETS)
+
 $(VALID_TARGETS):
 	$(V0) echo "" && \
 	echo "Building $@" && \
-	$(MAKE) -j TARGET=$@ && \
+	$(MAKE) -j 4 TARGET=$@ && \
 	echo "Building $@ succeeded."
 
 ## clean             : clean up all temporary / machine-generated files
@@ -752,6 +1028,7 @@ clean:
 	$(V0) echo "Cleaning $(TARGET)"
 	$(V0) rm -f $(CLEAN_ARTIFACTS)
 	$(V0) rm -rf $(OBJECT_DIR)/$(TARGET)
+	$(V0) rm -f $(GENERATED_SETTINGS)
 	$(V0) echo "Cleaning $(TARGET) succeeded."
 
 ## clean_test        : clean up all temporary / machine-generated files (tests)
@@ -760,11 +1037,11 @@ clean_test:
 
 ## clean_<TARGET>    : clean up one specific target
 $(CLEAN_TARGETS) :
-	$(V0) $(MAKE) -j TARGET=$(subst clean_,,$@) clean
+	$(V0) $(MAKE) -j 4 TARGET=$(subst clean_,,$@) clean
 
 ## <TARGET>_clean    : clean up one specific target (alias for above)
 $(TARGETS_CLEAN) :
-	$(V0) $(MAKE) -j TARGET=$(subst _clean,,$@) clean
+	$(V0) $(MAKE) -j 4 TARGET=$(subst _clean,,$@) clean
 
 ## clean_all         : clean all valid targets
 clean_all:$(CLEAN_TARGETS)
@@ -819,16 +1096,24 @@ help: Makefile
 
 ## targets           : print a list of all valid target platforms (for consumption by scripts)
 targets:
-	$(V0) @echo "Valid targets: $(VALID_TARGETS)"
-	$(V0) @echo "Target:        $(TARGET)"
-	$(V0) @echo "Base target:   $(BASE_TARGET)"
+	$(V0) @echo "Valid targets:      $(VALID_TARGETS)"
+	$(V0) @echo "Target:             $(TARGET)"
+	$(V0) @echo "Base target:        $(BASE_TARGET)"
+	$(V0) @echo "targets-group-1:    $(GROUP_1_TARGETS)"
+	$(V0) @echo "targets-group-2:    $(GROUP_2_TARGETS)"
+	$(V0) @echo "targets-group-3:    $(GROUP_3_TARGETS)"
+	$(V0) @echo "targets-group-4:    $(GROUP_4_TARGETS)"
+	$(V0) @echo "targets-group-rest: $(GROUP_OTHER_TARGETS)"
 
 ## test              : run the cleanflight test suite
 test:
 	$(V0) cd src/test && $(MAKE) test || true
 
 # rebuild everything when makefile changes
-$(TARGET_OBJS) : Makefile
+# Make the generated files and the build stamp order only prerequisites,
+# so they will be generated before TARGET_OBJS but regenerating them
+# won't cause all TARGET_OBJS to be rebuilt.
+$(TARGET_OBJS) : Makefile | $(GENERATED_FILES) $(STAMP)
 
 # include auto-generated dependencies
 -include $(TARGET_DEPS)

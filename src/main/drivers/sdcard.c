@@ -22,15 +22,18 @@
 
 #ifdef USE_SDCARD
 
-#include "nvic.h"
-#include "io.h"
+#include "common/utils.h"
+
+#include "drivers/nvic.h"
+#include "drivers/io.h"
 #include "dma.h"
 
-#include "bus_spi.h"
-#include "system.h"
+#include "drivers/bus_spi.h"
+#include "drivers/time.h"
 
 #include "sdcard.h"
 #include "sdcard_standard.h"
+#include "blackbox/blackbox.h"
 
 #include "build/debug.h"
 
@@ -54,8 +57,9 @@
  */
 #define SDCARD_NON_DMA_CHUNK_SIZE 256
 
-#define STATIC_ASSERT(condition, name ) \
-    typedef char assert_failed_ ## name [(condition) ? 1 : -1 ]
+#ifndef SDCARD_SPI_CLOCK
+#define SDCARD_SPI_CLOCK    SPI_CLOCK_STANDARD
+#endif
 
 typedef enum {
     // In these states we run at the initialization 400kHz clockspeed:
@@ -83,7 +87,7 @@ typedef struct sdcard_t {
         uint32_t callbackData;
 
 #ifdef SDCARD_PROFILING
-        uint32_t profileStartTime;
+        timeUs_t profileStartTime;
 #endif
     } pendingOperation;
 
@@ -111,6 +115,9 @@ static sdcard_t sdcard;
 
 #ifdef SDCARD_DMA_CHANNEL_TX
     static bool useDMAForTx;
+#if defined(USE_HAL_DRIVER)
+    DMA_HandleTypeDef *sdDMAHandle;
+#endif
 #else
     // DMA channel not available so we can hard-code this to allow the non-DMA paths to be stripped by optimization
     static const bool useDMAForTx = false;
@@ -153,9 +160,9 @@ bool sdcard_isInserted(void)
 
     result = IORead(sdCardDetectPin) != 0;
 
-#ifdef SDCARD_DETECT_INVERTED
-    result = !result;
-#endif
+    if (blackboxConfig()->invertedCardDetection) {
+        result = !result;
+    }
 
 #endif
 
@@ -201,7 +208,7 @@ static void sdcard_reset(void)
     }
 
     if (sdcard.state >= SDCARD_STATE_READY) {
-        spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER);
+        spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
     }
 
     sdcard.failureCount++;
@@ -416,6 +423,9 @@ static void sdcard_sendDataBlockBegin(uint8_t *buffer, bool multiBlockWrite)
 
     if (useDMAForTx) {
 #ifdef SDCARD_DMA_CHANNEL_TX
+#if defined(USE_HAL_DRIVER)
+        sdDMAHandle = spiSetDMATransmit(SDCARD_DMA_CHANNEL_TX, SDCARD_DMA_CHANNEL, SDCARD_SPI_INSTANCE, buffer, SDCARD_BLOCK_SIZE);
+#else
         // Queue the transmission of the sector payload
         DMA_InitTypeDef DMA_InitStructure;
 
@@ -446,6 +456,7 @@ static void sdcard_sendDataBlockBegin(uint8_t *buffer, bool multiBlockWrite)
         DMA_Cmd(SDCARD_DMA_CHANNEL_TX, ENABLE);
 
         SPI_I2S_DMACmd(SDCARD_SPI_INSTANCE, SPI_I2S_DMAReq_Tx, ENABLE);
+#endif
 #endif
     }
     else {
@@ -544,8 +555,10 @@ void sdcard_init(bool useDMA)
 {
 #ifdef SDCARD_DMA_CHANNEL_TX
     useDMAForTx = useDMA;
+#if !defined(USE_HAL_DRIVER)
     dmaEnableClock(dmaFindHandlerIdentifier(SDCARD_DMA_CHANNEL_TX));
     DMA_Cmd(SDCARD_DMA_CHANNEL_TX, DISABLE);
+#endif
 #else
     // DMA is not available
     (void) useDMA;
@@ -558,7 +571,7 @@ void sdcard_init(bool useDMA)
 #endif // SDCARD_SPI_CS_PIN
 
     // Max frequency is initially 400kHz
-    spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER);
+    spiSetSpeed(SDCARD_SPI_INSTANCE, SPI_CLOCK_INITIALIZATON);
 
     // SDCard wants 1ms minimum delay after power is applied to it
     delay(1000);
@@ -597,7 +610,7 @@ static bool sdcard_setBlockLength(uint32_t blockLen)
 /*
  * Returns true if the card is ready to accept read/write commands.
  */
-static bool sdcard_isReady()
+static bool sdcard_isReady(void)
 {
     return sdcard.state == SDCARD_STATE_READY || sdcard.state == SDCARD_STATE_WRITING_MULTIPLE_BLOCKS;
 }
@@ -612,7 +625,7 @@ static bool sdcard_isReady()
  *                                    the SDCARD_READY state.
  *
  */
-static sdcardOperationStatus_e sdcard_endWriteBlocks()
+static sdcardOperationStatus_e sdcard_endWriteBlocks(void)
 {
     sdcard.multiWriteBlocksRemain = 0;
 
@@ -718,7 +731,7 @@ bool sdcard_poll(void)
                 }
 
                 // Now we're done with init and we can switch to the full speed clock (<25MHz)
-                spiSetDivisor(SDCARD_SPI_INSTANCE, SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER);
+                spiSetSpeed(SDCARD_SPI_INSTANCE, SDCARD_SPI_CLOCK);
 
                 sdcard.multiWriteBlocksRemain = 0;
 
@@ -731,6 +744,28 @@ bool sdcard_poll(void)
             sendComplete = false;
 
 #ifdef SDCARD_DMA_CHANNEL_TX
+#if defined(USE_HAL_DRIVER)
+            //if (useDMAForTx && __HAL_DMA_GET_FLAG(sdDMAHandle, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG) == SET) {
+            //if (useDMAForTx && HAL_DMA_PollForTransfer(sdDMAHandle, HAL_DMA_FULL_TRANSFER, HAL_MAX_DELAY) == HAL_OK) {
+            if (useDMAForTx && (sdDMAHandle->State == HAL_DMA_STATE_READY)) {
+                //__HAL_DMA_CLEAR_FLAG(sdDMAHandle, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG);
+
+                //__HAL_DMA_DISABLE(sdDMAHandle);
+
+                // Drain anything left in the Rx FIFO (we didn't read it during the write)
+                while (__HAL_SPI_GET_FLAG(spiHandleByInstance(SDCARD_SPI_INSTANCE), SPI_FLAG_RXNE) == SET) {
+                    SDCARD_SPI_INSTANCE->DR;
+                }
+
+                // Wait for the final bit to be transmitted
+                while (spiIsBusBusy(SDCARD_SPI_INSTANCE)) {
+                }
+
+                HAL_SPI_DMAStop(spiHandleByInstance(SDCARD_SPI_INSTANCE));
+
+                sendComplete = true;
+            }
+#else
 #ifdef SDCARD_DMA_CHANNEL
             if (useDMAForTx && DMA_GetFlagStatus(SDCARD_DMA_CHANNEL_TX, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG) == SET) {
                 DMA_ClearFlag(SDCARD_DMA_CHANNEL_TX, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG);
@@ -754,6 +789,7 @@ bool sdcard_poll(void)
 
                 sendComplete = true;
             }
+#endif
 #endif
             if (!useDMAForTx) {
                 // Send another chunk
@@ -861,6 +897,7 @@ bool sdcard_poll(void)
                         break; // Timeout not reached yet so keep waiting
                     }
                     // Timeout has expired, so fall through to convert to a fatal error
+                    FALLTHROUGH;
 
                 case SDCARD_RECEIVE_ERROR:
                     sdcard_deselect();

@@ -17,25 +17,25 @@
 
 #pragma once
 
-#include "io_types.h"
+#include "drivers/io_types.h"
 
 #ifdef BEEPER
 #define BEEP_TOGGLE              systemBeepToggle()
 #define BEEP_OFF                 systemBeep(false)
 #define BEEP_ON                  systemBeep(true)
 #else
-#define BEEP_TOGGLE do {} while(0)
-#define BEEP_OFF    do {} while(0)
-#define BEEP_ON     do {} while(0)
+#define BEEP_TOGGLE do {} while (0)
+#define BEEP_OFF    do {} while (0)
+#define BEEP_ON     do {} while (0)
 #endif
 
-typedef struct beeperConfig_s {
+typedef struct beeperDevConfig_s {
     ioTag_t ioTag;
     unsigned isInverted : 1;
     unsigned isOD : 1;
-} beeperConfig_t;
+} beeperDevConfig_t;
 
 void systemBeep(bool on);
 void systemBeepToggle(void);
-void beeperInit(const beeperConfig_t *beeperConfig);
+void beeperInit(const beeperDevConfig_t *beeperConfig);
 

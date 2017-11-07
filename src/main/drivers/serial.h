@@ -31,7 +31,17 @@ typedef enum portOptions_t {
     SERIAL_PARITY_NO     = 0 << 2,
     SERIAL_PARITY_EVEN   = 1 << 2,
     SERIAL_UNIDIR        = 0 << 3,
-    SERIAL_BIDIR         = 1 << 3
+    SERIAL_BIDIR         = 1 << 3,
+
+    /*
+     * Note on SERIAL_BIDIR_PP
+     * With SERIAL_BIDIR_PP, the very first start bit of back-to-back bytes
+     * is lost and the first data byte will be lost by a framing error.
+     * To ensure the first start bit to be sent, prepend a zero byte (0x00)
+     * to actual data bytes.
+     */
+    SERIAL_BIDIR_OD      = 0 << 4,
+    SERIAL_BIDIR_PP      = 1 << 4
 } portOptions_t;
 
 typedef void (*serialReceiveCallbackPtr)(uint16_t data);   // used by serial drivers to return frames to app
@@ -62,7 +72,7 @@ struct serialPortVTable {
     void (*serialWrite)(serialPort_t *instance, uint8_t ch);
 
     uint32_t (*serialTotalRxWaiting)(const serialPort_t *instance);
-    uint8_t (*serialTotalTxFree)(const serialPort_t *instance);
+    uint32_t (*serialTotalTxFree)(const serialPort_t *instance);
 
     uint8_t (*serialRead)(serialPort_t *instance);
 
@@ -81,7 +91,7 @@ struct serialPortVTable {
 
 void serialWrite(serialPort_t *instance, uint8_t ch);
 uint32_t serialRxBytesWaiting(const serialPort_t *instance);
-uint8_t serialTxBytesFree(const serialPort_t *instance);
+uint32_t serialTxBytesFree(const serialPort_t *instance);
 void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count);
 uint8_t serialRead(serialPort_t *instance);
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate);

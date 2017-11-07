@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "config/parameter_group.h"
+
 #ifndef VBAT_SCALE_DEFAULT
 #define VBAT_SCALE_DEFAULT 110
 #endif
@@ -24,6 +26,10 @@
 #define VBAT_RESDIVMULTIPLIER_DEFAULT 1
 #define VBAT_SCALE_MIN 0
 #define VBAT_SCALE_MAX 255
+
+#ifndef CURRENT_METER_SCALE
+#define CURRENT_METER_SCALE 400 // for Allegro ACS758LCB-100U (40mV/A)
+#endif
 
 typedef enum {
     CURRENT_SENSOR_NONE = 0,
@@ -41,13 +47,15 @@ typedef struct batteryConfig_s {
     uint8_t vbatwarningcellvoltage;         // warning voltage per cell, this triggers battery warning alarm, in 0.1V units, default is 35 (3.5V)
 
     int16_t currentMeterScale;             // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
-    uint16_t currentMeterOffset;            // offset of the current sensor in millivolt steps
+    int16_t currentMeterOffset;            // offset of the current sensor in millivolt steps
     currentSensor_e  currentMeterType;      // type of current meter used, either ADC or virtual
 
     // FIXME this doesn't belong in here since it's a concern of MSP, not of the battery code.
     uint8_t multiwiiCurrentMeterOutput;     // if set to 1 output the amperage in milliamp steps instead of 0.01A steps via msp
     uint16_t batteryCapacity;               // mAh
 } batteryConfig_t;
+
+PG_DECLARE(batteryConfig_t, batteryConfig);
 
 typedef enum {
     BATTERY_OK = 0,
@@ -67,12 +75,10 @@ extern int32_t mAhDrawn;
 
 uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
-const  char * getBatteryStateString(void);
-void updateBattery(uint32_t vbatTimeDelta);
-void batteryInit(batteryConfig_t *initialBatteryConfig);
+void batteryUpdate(uint32_t vbatTimeDelta);
+void batteryInit(void);
 
-struct rxConfig_s;
-void updateCurrentMeter(int32_t lastUpdateAt, struct rxConfig_s *rxConfig, uint16_t deadband3d_throttle);
+void currentMeterUpdate(int32_t lastUpdateAt);
 int32_t currentMeterToCentiamps(uint16_t src);
 
 uint8_t calculateBatteryPercentage(void);

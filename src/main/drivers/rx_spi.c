@@ -28,14 +28,14 @@
 
 #include "build/build_config.h"
 
-#include "system.h"
-#include "gpio.h"
-#include "io.h"
+#include "drivers/time.h"
+#include "drivers/gpio.h"
+#include "drivers/io.h"
 #include "io_impl.h"
 #include "rcc.h"
 #include "rx_spi.h"
 
-#include "bus_spi.h"
+#include "drivers/bus_spi.h"
 #include "bus_spi_soft.h"
 
 #define DISABLE_RX()    {IOHi(IOGetByTag(IO_TAG(RX_NSS_PIN)));}
@@ -55,6 +55,10 @@ static const softSPIDevice_t softSPIDevice = {
 };
 static bool useSoftSPI = false;
 #endif // USE_RX_SOFTSPI
+
+#ifdef RX_IRQ_PIN
+static IO_t rxIrqPin = IO_NONE;
+#endif
 
 void rxSpiDeviceInit(rx_spi_type_e spiType)
 {
@@ -81,6 +85,12 @@ void rxSpiDeviceInit(rx_spi_type_e spiType)
     RCC_AHBPeriphClockCmd(RX_CE_GPIO_CLK_PERIPHERAL, ENABLE);
 #endif
 
+#ifdef RX_IRQ_PIN
+    rxIrqPin = IOGetByTag(IO_TAG(RX_IRQ_PIN));
+    IOInit(rxIrqPin, OWNER_RX, RESOURCE_NONE, 0);
+    IOConfigGPIO(rxIrqPin, IOCFG_IN_FLOATING);
+#endif
+
 #ifdef RX_CE_PIN
     // CE as OUTPUT
     IOInit(IOGetByTag(IO_TAG(RX_CE_PIN)), OWNER_RX_SPI, RESOURCE_RX_CE, rxSPIDevice + 1);
@@ -94,7 +104,7 @@ void rxSpiDeviceInit(rx_spi_type_e spiType)
     DISABLE_RX();
 
 #ifdef RX_SPI_INSTANCE
-    spiSetDivisor(RX_SPI_INSTANCE, SPI_CLOCK_STANDARD);
+    spiSetSpeed(RX_SPI_INSTANCE, SPI_CLOCK_STANDARD);
 #endif
     hardwareInitialised = true;
 }
@@ -162,5 +172,13 @@ uint8_t rxSpiReadCommandMulti(uint8_t command, uint8_t commandData, uint8_t *ret
     DISABLE_RX();
     return ret;
 }
+
+#ifdef RX_IRQ_PIN
+bool rxSpiCheckIrq(void)
+{
+    return !IORead(rxIrqPin);
+}
+#endif
+
 #endif
 

@@ -22,160 +22,174 @@
 
 #include <platform.h>
 
-#ifdef SONAR
-
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/time.h"
 
-#include "config/config.h"
 #include "config/feature.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/io.h"
 #include "drivers/logging.h"
-#include "drivers/sonar_hcsr04.h"
-#include "drivers/sonar_srf10.h"
+#include "drivers/time.h"
+#include "drivers/rangefinder_hcsr04.h"
+#include "drivers/rangefinder_srf10.h"
+#include "drivers/rangefinder_hcsr04_i2c.h"
+#include "drivers/rangefinder_vl53l0x.h"
 #include "drivers/rangefinder.h"
 
+#include "fc/config.h"
 #include "fc/runtime_config.h"
 
 #include "sensors/sensors.h"
 #include "sensors/rangefinder.h"
 #include "sensors/battery.h"
 
-// Sonar measurements are in cm, a value of RANGEFINDER_OUT_OF_RANGE indicates sonar is not in range.
-// Inclination is adjusted by imu
+#include "scheduler/scheduler.h"
 
-extern sonarHcsr04Hardware_t sonarHcsr04Hardware;
+#include "uav_interconnect/uav_interconnect.h"
 
-static int16_t rangefinderMaxRangeCm;
-static int16_t rangefinderMaxAltWithTiltCm;
-static int16_t rangefinderCfAltCm; // Complimentary Filter altitude
-STATIC_UNIT_TESTED int16_t rangefinderMaxTiltDeciDegrees;
-static rangefinderFunctionPointers_t rangefinderFunctionPointers;
-static float rangefinderMaxTiltCos;
+rangefinder_t rangefinder;
 
-static int32_t calculatedAltitude;
+#define RANGEFINDER_HARDWARE_TIMEOUT_MS         500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
+
+#define RANGEFINDER_DYNAMIC_THRESHOLD           600     //Used to determine max. usable rangefinder disatance
+#define RANGEFINDER_DYNAMIC_FACTOR              75    
+
+#ifdef USE_RANGEFINDER
+PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 0);
+
+PG_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig,
+    .rangefinder_hardware = RANGEFINDER_NONE,
+);
+
+const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
+{
+    static rangefinderHardwarePins_t rangefinderHardwarePins;
+
+#if defined(RANGEFINDER_HCSR04_PWM_TRIGGER_PIN)
+    // If we are using softserial, parallel PWM or ADC current sensor, then use motor pins for sonar, otherwise use RC pins
+    if (feature(FEATURE_SOFTSERIAL)
+            || (rxConfig()->receiverType == RX_TYPE_PWM)
+            || (feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC)) {
+        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN_PWM);
+        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN_PWM);
+    } else {
+        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
+        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
+    }
+#elif defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
+    rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
+    rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
+#else
+    // No Trig/Echo hardware rangefinder
+    rangefinderHardwarePins.triggerTag = IO_TAG(NONE);
+    rangefinderHardwarePins.echoTag = IO_TAG(NONE);
+#endif
+    return &rangefinderHardwarePins;
+}
 
 /*
  * Detect which rangefinder is present
  */
-rangefinderType_e rangefinderDetect(void)
+static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwareToUse)
 {
-    rangefinderType_e rangefinderType = RANGEFINDER_NONE;
-    if (feature(FEATURE_SONAR)) {
-        // the user has set the sonar feature, so assume they have an HC-SR04 plugged in,
-        // since there is no way to detect it
-        rangefinderType = RANGEFINDER_HCSR04;
-    }
-#ifdef USE_SONAR_SRF10
-    if (srf10_detect()) {
-        // if an SFR10 sonar rangefinder is detected then use it in preference to the assumed HC-SR04
-        rangefinderType = RANGEFINDER_SRF10;
-    }
+    rangefinderType_e rangefinderHardware = RANGEFINDER_NONE;
+    requestedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderHardwareToUse;
+
+    switch (rangefinderHardwareToUse) {
+        case RANGEFINDER_HCSR04:
+#ifdef USE_RANGEFINDER_HCSR04
+            {
+                const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
+                if (hcsr04Detect(dev, rangefinderHardwarePins)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
+                    rangefinderHardware = RANGEFINDER_HCSR04;
+                    rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_HCSR04_TASK_PERIOD_MS));
+                }
+            }
 #endif
+            break;
 
-    addBootlogEvent6(BOOT_EVENT_RANGEFINDER_DETECTION, BOOT_EVENT_FLAGS_NONE, rangefinderType, 0, 0, 0);
+        case RANGEFINDER_SRF10:
+#ifdef USE_RANGEFINDER_SRF10
+            if (srf10Detect(dev)) {
+                rangefinderHardware = RANGEFINDER_SRF10;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_SRF10_TASK_PERIOD_MS));
+            }
+#endif
+            break;
 
-    requestedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderType;   // FIXME: Make rangefinder type selectable from CLI
-    detectedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderType;
+            case RANGEFINDER_HCSR04I2C:
+#ifdef USE_RANGEFINDER_HCSR04_I2C
+            if (hcsr04i2c0Detect(dev)) {
+                rangefinderHardware = RANGEFINDER_HCSR04I2C;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_HCSR04_i2C_TASK_PERIOD_MS));
+            }
+#endif
+            break;
 
-    if (rangefinderType != RANGEFINDER_NONE) {
-        sensorsSet(SENSOR_SONAR);
+            case RANGEFINDER_VL53L0X:
+#if defined(USE_RANGEFINDER_VL53L0X)
+            if (vl53l0xDetect(dev)) {
+                rangefinderHardware = RANGEFINDER_VL53L0X;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VL53L0X_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+        case RANGEFINDER_UIB:
+#if defined(USE_RANGEFINDER_UIB)
+            if (uibRangefinderDetect(dev)) {
+                rangefinderHardware = RANGEFINDER_UIB;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_UIB_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+        case RANGEFINDER_NONE:
+            rangefinderHardware = RANGEFINDER_NONE;
+            break;
     }
 
-    return rangefinderType;
+    addBootlogEvent6(BOOT_EVENT_RANGEFINDER_DETECTION, BOOT_EVENT_FLAGS_NONE, rangefinderHardware, 0, 0, 0);
+
+    if (rangefinderHardware == RANGEFINDER_NONE) {
+        sensorsClear(SENSOR_RANGEFINDER);
+        return false;
+    }
+
+    detectedSensors[SENSOR_INDEX_RANGEFINDER] = rangefinderHardware;
+    sensorsSet(SENSOR_RANGEFINDER);
+    return true;
 }
 
-static const sonarHcsr04Hardware_t *sonarGetHardwareConfigurationForHCSR04(currentSensor_e currentSensor)
+void rangefinderResetDynamicThreshold(void)
 {
-#if defined(SONAR_PWM_TRIGGER_PIN)
-#endif
-#if !defined(UNIT_TEST)
-#endif
-#if defined(UNIT_TEST)
-   UNUSED(currentSensor);
-   return 0;
-#elif defined(SONAR_PWM_TRIGGER_PIN)
-    // If we are using softserial, parallel PWM or ADC current sensor, then use motor pins for sonar, otherwise use RC pins
-    if (feature(FEATURE_SOFTSERIAL)
-            || feature(FEATURE_RX_PARALLEL_PWM )
-            || (feature(FEATURE_CURRENT_METER) && currentSensor == CURRENT_SENSOR_ADC)) {
-        sonarHcsr04Hardware.triggerTag = IO_TAG(SONAR_TRIGGER_PIN_PWM);
-        sonarHcsr04Hardware.echoTag = IO_TAG(SONAR_ECHO_PIN_PWM);
-    } else {
-        sonarHcsr04Hardware.triggerTag = IO_TAG(SONAR_TRIGGER_PIN);
-        sonarHcsr04Hardware.echoTag = IO_TAG(SONAR_ECHO_PIN);
-    }
-#elif defined(SONAR_TRIGGER_PIN)
-    UNUSED(currentSensor);
-    sonarHcsr04Hardware.triggerTag = IO_TAG(SONAR_TRIGGER_PIN);
-    sonarHcsr04Hardware.echoTag = IO_TAG(SONAR_ECHO_PIN);
-#else
-#error Sonar not defined for target
-#endif
-    return &sonarHcsr04Hardware;
+    rangefinder.snrThresholdReached = false;
+    rangefinder.dynamicDistanceThreshold = 0;
 }
 
-STATIC_UNIT_TESTED void rangefinderSetFunctionPointers(rangefinderType_e rangefinderType)
+bool rangefinderInit(void)
 {
-
-    switch (rangefinderType) {
-    default:
-    case RANGEFINDER_NONE:
-        break;
-    case RANGEFINDER_HCSR04:
-        rangefinderFunctionPointers.init = hcsr04_init;
-        rangefinderFunctionPointers.update = hcsr04_start_reading;
-        rangefinderFunctionPointers.read = hcsr04_get_distance;
-        break;
-#ifdef USE_SONAR_SRF10
-    case RANGEFINDER_SRF10:
-        rangefinderFunctionPointers.init = srf10_init;
-        rangefinderFunctionPointers.update = srf10_start_reading;
-        rangefinderFunctionPointers.read = srf10_get_distance;
-        break;
-#endif
+    if (!rangefinderDetect(&rangefinder.dev, rangefinderConfig()->rangefinder_hardware)) {
+        return false;
     }
+
+    rangefinder.dev.init(&rangefinder.dev);
+    rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
+    rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
+    rangefinder.maxTiltCos = cos_approx(DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f));
+    rangefinder.lastValidResponseTimeMs = millis();
+    rangefinder.snr = 0;
+
+    rangefinderResetDynamicThreshold();
+
+    return true;
 }
-
-/*
- * Get the HCSR04 sonar hardware configuration.
- * NOTE: sonarInit() must be subsequently called before using any of the sonar functions.
- */
-const sonarHcsr04Hardware_t *sonarGetHardwareConfiguration(currentSensor_e currentSensor)
-{
-    // Return the configuration for the HC-SR04 hardware.
-    // Unfortunately the I2C bus is not initialised at this point
-    // so cannot detect if another sonar device is present
-    return sonarGetHardwareConfigurationForHCSR04(currentSensor);
-}
-
-void rangefinderInit(rangefinderType_e rangefinderType)
-{
-    calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
-
-    if (rangefinderType == RANGEFINDER_HCSR04) {
-        hcsr04_set_sonar_hardware();
-    }
-#ifndef UNIT_TEST
-    rangefinderSetFunctionPointers(rangefinderType);
-#endif
-
-    rangefinder_t rangefinder;
-    if (rangefinderType == RANGEFINDER_NONE) {
-        memset(&rangefinder, 0, sizeof(rangefinder));
-    } else {
-        rangefinderFunctionPointers.init(&rangefinder);
-    }
-    rangefinderMaxRangeCm = rangefinder.maxRangeCm;
-    rangefinderCfAltCm = rangefinderMaxRangeCm / 2;
-    rangefinderMaxTiltDeciDegrees =  rangefinder.detectionConeExtendedDeciDegrees / 2;
-    rangefinderMaxTiltCos = cos_approx(rangefinderMaxTiltDeciDegrees / 10.0f * RAD);
-    rangefinderMaxAltWithTiltCm = rangefinderMaxRangeCm * rangefinderMaxTiltCos;
-}
-
 
 static int32_t applyMedianFilter(int32_t newReading)
 {
@@ -195,57 +209,162 @@ static int32_t applyMedianFilter(int32_t newReading)
     return medianFilterReady ? quickMedianFilter5(filterSamples) : newReading;
 }
 
+static int16_t computePseudoSnr(int32_t newReading) {
+    #define SNR_SAMPLES 5
+    static int16_t snrSamples[SNR_SAMPLES];
+    static uint8_t snrSampleIndex = 0;
+    static int32_t previousReading = RANGEFINDER_OUT_OF_RANGE;
+    static bool snrReady = false;
+    int16_t pseudoSnr = 0;
+
+    snrSamples[snrSampleIndex] = constrain((int)(pow(newReading - previousReading, 2) / 10), 0, 6400);
+    ++snrSampleIndex;
+    if (snrSampleIndex == SNR_SAMPLES) {
+        snrSampleIndex = 0;
+        snrReady = true;
+    }
+
+    previousReading = newReading;
+
+    if (snrReady) {
+
+        for (uint8_t i = 0; i < SNR_SAMPLES; i++) {
+            pseudoSnr += snrSamples[i];
+        }
+
+        return constrain(pseudoSnr, 0, 32000);
+    } else {
+        return RANGEFINDER_OUT_OF_RANGE;
+    }
+}
+
 /*
  * This is called periodically by the scheduler
  */
-void rangefinderUpdate(void)
+timeDelta_t rangefinderUpdate(void)
 {
-    if (rangefinderFunctionPointers.update) {
-        rangefinderFunctionPointers.update();
+    if (rangefinder.dev.update) {
+        rangefinder.dev.update(&rangefinder.dev);
     }
+
+    return rangefinder.dev.delayMs * 1000;  // to microseconds
+}
+
+bool isSurfaceAltitudeValid() {
+
+    /*
+     * Preconditions: raw and calculated altidude > 0
+     * SNR lower than threshold
+     */ 
+    if (
+        rangefinder.calculatedAltitude > 0 &&
+        rangefinder.rawAltitude > 0 &&
+        rangefinder.snr < RANGEFINDER_DYNAMIC_THRESHOLD
+    ) {
+
+        /*
+         * When critical altitude was determined, distance reported by rangefinder
+         * has to be lower than it to assume healthy readout
+         */
+        if (rangefinder.snrThresholdReached) {
+            return (rangefinder.rawAltitude < rangefinder.dynamicDistanceThreshold);
+        } else {
+            return true;
+        }
+
+    } else {
+        return false;
+    }
+
 }
 
 /**
  * Get the last distance measured by the sonar in centimeters. When the ground is too far away, RANGEFINDER_OUT_OF_RANGE is returned.
  */
-int32_t rangefinderRead(void)
+bool rangefinderProcess(float cosTiltAngle)
 {
-    if (rangefinderFunctionPointers.read) {
-        const int32_t distance = rangefinderFunctionPointers.read();
-        return applyMedianFilter(distance);
-    }
-    return 0;
-}
+    if (rangefinder.dev.read) {
+        const int32_t distance = rangefinder.dev.read(&rangefinder.dev);
 
-/**
- * Apply tilt correction to the given raw sonar reading in order to compensate for the tilt of the craft when estimating
- * the altitude. Returns the computed altitude in centimeters.
- *
- * When the ground is too far away or the tilt is too large, RANGEFINDER_OUT_OF_RANGE is returned.
- */
-int32_t rangefinderCalculateAltitude(int32_t rangefinderDistance, float cosTiltAngle)
-{
-    // calculate sonar altitude only if the ground is in the sonar cone
-    if (cosTiltAngle < rangefinderMaxTiltCos || rangefinderDistance == RANGEFINDER_OUT_OF_RANGE) {
-        calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
+        // If driver reported no new measurement - don't do anything
+        if (distance == RANGEFINDER_NO_NEW_DATA) {
+            return false;
+        }
+
+        if (distance >= 0) {
+            rangefinder.lastValidResponseTimeMs = millis();
+            rangefinder.rawAltitude = applyMedianFilter(distance);
+        }
+        else if (distance == RANGEFINDER_OUT_OF_RANGE) {
+            rangefinder.lastValidResponseTimeMs = millis();
+            rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
+        }
+        else {
+            // Invalid response / hardware failure
+            rangefinder.rawAltitude = RANGEFINDER_HARDWARE_FAILURE;
+        }
+
+        rangefinder.snr = computePseudoSnr(distance);
+
+        if (rangefinder.snrThresholdReached == false && rangefinder.rawAltitude > 0) {
+
+            if (rangefinder.snr < RANGEFINDER_DYNAMIC_THRESHOLD && rangefinder.dynamicDistanceThreshold < rangefinder.rawAltitude) {
+                rangefinder.dynamicDistanceThreshold = rangefinder.rawAltitude * RANGEFINDER_DYNAMIC_FACTOR / 100;
+            }
+
+            if (rangefinder.snr >= RANGEFINDER_DYNAMIC_THRESHOLD) {
+                rangefinder.snrThresholdReached = true;
+            }
+
+        }
+
+        DEBUG_SET(DEBUG_RANGEFINDER, 3, rangefinder.snr);
+
+        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 0, rangefinder.rawAltitude);
+        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 1, rangefinder.snrThresholdReached);
+        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 2, rangefinder.dynamicDistanceThreshold);
+        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 3, isSurfaceAltitudeValid());
+
+    }
+    else {
+        // Bad configuration
+        rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
+    }
+
+    /**
+    * Apply tilt correction to the given raw sonar reading in order to compensate for the tilt of the craft when estimating
+    * the altitude. Returns the computed altitude in centimeters.
+    *
+    * When the ground is too far away or the tilt is too large, RANGEFINDER_OUT_OF_RANGE is returned.
+    */
+    if (cosTiltAngle < rangefinder.maxTiltCos || rangefinder.rawAltitude < 0) {
+        rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
     } else {
-        calculatedAltitude = rangefinderDistance * cosTiltAngle;
+        rangefinder.calculatedAltitude = rangefinder.rawAltitude * cosTiltAngle;
     }
-    return calculatedAltitude;
+
+    DEBUG_SET(DEBUG_RANGEFINDER, 1, rangefinder.rawAltitude);
+    DEBUG_SET(DEBUG_RANGEFINDER, 2, rangefinder.calculatedAltitude);
+
+    return true;
 }
 
 /**
- * Get the latest altitude that was computed by a call to rangefinderCalculateAltitude(), or RANGEFINDER_OUT_OF_RANGE if sonarCalculateAltitude
+ * Get the latest altitude that was computed, or RANGEFINDER_OUT_OF_RANGE if sonarCalculateAltitude
  * has never been called.
  */
 int32_t rangefinderGetLatestAltitude(void)
 {
-    return calculatedAltitude;
+    return rangefinder.calculatedAltitude;
 }
 
-bool isRangefinderHealthy(void)
+int32_t rangefinderGetLatestRawAltitude(void) {
+    return rangefinder.rawAltitude;
+}
+
+bool rangefinderIsHealthy(void)
 {
-    return true;
+    return (millis() - rangefinder.lastValidResponseTimeMs) < RANGEFINDER_HARDWARE_TIMEOUT_MS;
 }
 #endif
 

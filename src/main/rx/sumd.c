@@ -25,7 +25,7 @@
 
 #include "common/utils.h"
 
-#include "drivers/system.h"
+#include "drivers/time.h"
 #include "drivers/serial.h"
 #include "drivers/serial_uart.h"
 
@@ -33,6 +33,8 @@
 
 #include "rx/rx.h"
 #include "rx/sumd.h"
+
+#include "telemetry/telemetry.h"
 
 // driver for SUMD receiver using UART2
 
@@ -70,12 +72,12 @@ static uint8_t sumdChannelCount;
 // Receive ISR callback
 static void sumdDataReceive(uint16_t c)
 {
-    uint32_t sumdTime;
-    static uint32_t sumdTimeLast;
+    timeUs_t sumdTime;
+    static timeUs_t sumdTimeLast;
     static uint8_t sumdIndex;
 
     sumdTime = micros();
-    if ((sumdTime - sumdTimeLast) > 4000)
+    if (cmpTimeUs(sumdTime, sumdTimeLast) > 4000)
         sumdIndex = 0;
     sumdTimeLast = sumdTime;
 
@@ -171,7 +173,25 @@ bool sumdInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
-    serialPort_t *sumdPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, sumdDataReceive, SUMD_BAUDRATE, MODE_RX, SERIAL_NOT_INVERTED);
+#ifdef TELEMETRY
+    bool portShared = telemetryCheckRxPortShared(portConfig);
+#else
+    bool portShared = false;
+#endif
+
+    serialPort_t *sumdPort = openSerialPort(portConfig->identifier,
+        FUNCTION_RX_SERIAL,
+        sumdDataReceive,
+        SUMD_BAUDRATE,
+        portShared ? MODE_RXTX : MODE_RX,
+        SERIAL_NOT_INVERTED | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        );
+
+#ifdef TELEMETRY
+    if (portShared) {
+        telemetrySharedPort = sumdPort;
+    }
+#endif
 
     return sumdPort != NULL;
 }

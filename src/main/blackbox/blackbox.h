@@ -19,16 +19,21 @@
 
 #include "blackbox/blackbox_fielddefs.h"
 
+#include "config/parameter_group.h"
+
 typedef struct blackboxConfig_s {
     uint8_t rate_num;
     uint8_t rate_denom;
     uint8_t device;
+    uint8_t invertedCardDetection;
 } blackboxConfig_t;
+
+PG_DECLARE(blackboxConfig_t, blackboxConfig);
 
 void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data);
 
-void initBlackbox(void);
-void handleBlackbox(timeUs_t currentTimeUs);
-void startBlackbox(void);
-void finishBlackbox(void);
+void blackboxInit(void);
+void blackboxUpdate(timeUs_t currentTimeUs);
+void blackboxStart(void);
+void blackboxFinish(void);
 bool blackboxMayEditConfig(void);

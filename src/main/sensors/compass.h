@@ -17,11 +17,15 @@
 
 #pragma once
 
+#include "common/axis.h"
 #include "common/time.h"
 
-#include "drivers/compass.h"
+#include "config/parameter_group.h"
+
+#include "drivers/compass/compass.h"
 
 #include "sensors/sensors.h"
+
 
 // Type of magnetometer used/detected
 typedef enum {
@@ -33,7 +37,8 @@ typedef enum {
     MAG_MAG3110 = 5,
     MAG_AK8963 = 6,
     MAG_IST8310 = 7,
-    MAG_FAKE = 8,
+    MAG_QMC5883 = 8,
+    MAG_FAKE = 9,
     MAG_MAX = MAG_FAKE
 } magSensor_e;
 
@@ -51,11 +56,14 @@ typedef struct compassConfig_s {
     sensor_align_e mag_align;               // mag alignment
     uint8_t mag_hardware;                   // Which mag hardware to use on boards with more than one device
     flightDynamicsTrims_t magZero;
+    uint8_t __dummy_1;                      // Maximum rotation rate MAG_HOLD mode can feed to yaw rate PID controller
+    uint8_t magCalibrationTimeLimit;        // Time for compass calibration (seconds)
 } compassConfig_t;
 
+PG_DECLARE(compassConfig_t, compassConfig);
+
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse);
-bool compassInit(const compassConfig_t *compassConfig);
-union flightDynamicsTrims_u;
-void compassUpdate(timeUs_t currentTimeUs, union flightDynamicsTrims_u *magZero);
-bool isCompassReady(void);
-bool isCompassHealthy(void);
+bool compassInit(void);
+void compassUpdate(timeUs_t currentTimeUs);
+bool compassIsReady(void);
+bool compassIsHealthy(void);

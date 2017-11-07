@@ -18,29 +18,46 @@
 #pragma once
 
 #include <stdint.h>
+#include "config/parameter_group.h"
+#include "drivers/rangefinder.h"
 
 typedef enum {
-    RANGEFINDER_NONE    = 0,
-    RANGEFINDER_HCSR04  = 1,
-    RANGEFINDER_SRF10   = 2,
+    RANGEFINDER_NONE        = 0,
+    RANGEFINDER_HCSR04      = 1,
+    RANGEFINDER_SRF10       = 2,
+    RANGEFINDER_HCSR04I2C   = 3,
+    RANGEFINDER_VL53L0X     = 4,
+    RANGEFINDER_UIB         = 5,
 } rangefinderType_e;
 
-struct rangefinder_s;
-typedef void (*rangefinderInitFunctionPtr)(struct rangefinder_s *rangefinderRange);
-typedef void (*rangefinderUpdateFunctionPtr)(void);
-typedef int32_t (*rangefinderReadFunctionPtr)(void);
+typedef struct rangefinderConfig_s {
+    uint8_t rangefinder_hardware;
+} rangefinderConfig_t;
 
-typedef struct rangefinderFunctionPointers_s {
-    rangefinderInitFunctionPtr init;
-    rangefinderUpdateFunctionPtr update;
-    rangefinderReadFunctionPtr read;
-} rangefinderFunctionPointers_t;
+PG_DECLARE(rangefinderConfig_t, rangefinderConfig);
 
-rangefinderType_e rangefinderDetect(void);
-int32_t rangefinderCalculateAltitude(int32_t rangefinderDistance, float cosTiltAngle);
+typedef struct rangefinder_s {
+    rangefinderDev_t dev;
+    float maxTiltCos;
+    int32_t rawAltitude;
+    int32_t calculatedAltitude;
+    timeMs_t lastValidResponseTimeMs;
+    
+    bool snrThresholdReached;
+    int32_t dynamicDistanceThreshold;
+    int16_t snr;
+} rangefinder_t;
+
+extern rangefinder_t rangefinder;
+
+const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void);
+
+void rangefinderResetDynamicThreshold(void);
+bool rangefinderInit(void);
+
 int32_t rangefinderGetLatestAltitude(void);
-rangefinderType_e rangefinderDetect(void);
-void rangefinderInit(rangefinderType_e rangefinderType);
-void rangefinderUpdate(void);
-int32_t rangefinderRead(void);
-bool isRangefinderHealthy(void);
+int32_t rangefinderGetLatestRawAltitude(void);
+
+timeDelta_t rangefinderUpdate(void);
+bool rangefinderProcess(float cosTiltAngle);
+bool rangefinderIsHealthy(void);

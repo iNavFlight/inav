@@ -22,8 +22,8 @@
 
 #ifdef USB_IO
 
-#include "io.h"
-#include "system.h"
+#include "drivers/io.h"
+#include "drivers/time.h"
 #include "usb_io.h"
 #include "sdcard.h"
 

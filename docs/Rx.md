@@ -45,11 +45,23 @@ Lemon Rx DSMX Compatible PPM 8-Channel Receiver + Lemon DSMX Compatible Satellit
 http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 
+#### Spektrum pesudo RSSI
+
+As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:
+
+* Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
+* The CLI variable `rssi_channel` is set to channel 9:
+````
+set rssi_channel = 9
+````
+This pseudo-RSSI should work on all makes of Spektrum satellite RX; it is tested as working on Lemon RX satellites http://www.lemon-rx.com/index.php?route=product/product&path=72&product_id=109 and http://www.lemon-rx.com/index.php?route=product/product&path=72&product_id=135 (recommended).
+
 ### S.BUS
 
 16 channels via serial currently supported.  See below how to set up your transmitter.
 
 * You probably need an inverter between the receiver output and the flight controller. However, some flight controllers have this built in (the main port on CC3D, for example), and doesn't need one.
+* Some OpenLRS receivers produce a non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
 * Softserial ports cannot be used with SBUS because it runs at too high of a bitrate (1Mbps).  Refer to the chapter specific to your board to determine which port(s) may be used.
 * You will need to configure the channel mapping in the GUI (Receiver tab) or CLI (`map` command). Note that channels above 8 are mapped "straight", with no remapping.
 
@@ -87,7 +99,7 @@ These receivers are reported working:
 XG14 14ch DMSS System w/RG731BX XBus Receiver
 http://www.jramericas.com/233794/JRP00631/
 
-There exist a remote receiver made for small BNF-models like the Align T-Rex 150 helicopter. The code also supports using the Align DMSS RJ01 receiver directly with the cleanflight software.
+There exist a remote receiver made for small BNF-models like the Align T-Rex 150 helicopter. The code also supports using the Align DMSS RJ01 receiver directly with the INAV software.
 To use this receiver you must power it with 3V from the hardware, and then connect the serial line as other serial RX receivers.
 In order for this receiver to work, you need to specify the XBUS_MODE_B_RJ01 for serialrx_provider. Note that you need to set your radio mode for XBUS "MODE B" also for this receiver to work.
 Receiver name: Align DMSS RJ01 (HER15001)
@@ -114,12 +126,26 @@ SUMH is a legacy Graupner protocol.  Graupner have issued a firmware updates for
 
 10 channels via serial currently supported.
 
-IBUS is the FlySky digital serial protocol and is available with the FS-IA6B and
-FS-IA10 receivers. The Turnigy TGY-IA6B and TGY-IA10 are the same
-devices with a different label, therefore they also work.
+IBUS is the FlySky digital serial protocol and is available with the FS-IA6B, FS-X6B and FS-IA10 receivers. 
+The Turnigy TGY-IA6B and TGY-IA10 are the same devices with a different label, therefore they also work.
 
-If you are using a 6ch tx such as the FS-I6 or TGY-I6 then you must flash a 10ch
-firmware on the tx to make use of these extra channels.
+IBUS can provide up to 120Hz refresh rate, more than double compared to standard 50Hz of PPM.
+
+FlySky FS-I6X TX natively supports 10ch.
+
+If you are using a 6ch TX such as the FS-I6 or TGY-I6 then you must flash a 10ch
+firmware on the TX to make use of these extra channels.
+The flash is avaliable here: https://github.com/benb0jangles/FlySky-i6-Mod-
+```
+     _______
+    /       \                               /------------\
+    | STM32 |-->UART RX-->[115200 baud]---->| Flysky RX  |
+    |  uC   |-  UART TX--x[not connected]   | IBUS-Servo |
+    \_______/                               \------------/
+```
+After flash "10ch Timer Mod i6 Updater", it is passible to get RSSI signal on selected Aux channel from FS-i6 Err sensor.
+
+It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.
 
 ## MultiWii serial protocol (MSP)
 
@@ -224,6 +250,9 @@ For Serial RX enable `RX_SERIAL` and set the `serialrx_provider` CLI setting as 
 | SUMH               | 4     |
 | XBUS_MODE_B        | 5     |
 | XBUS_MODE_B_RJ01   | 6     |
+| SERIALRX_IBUS      | 7     |
+| SERIALRX_JETIEXBUS | 8     |
+| SERIALRX_CRSF      | 9     |
 
 ### PPM/PWM input filtering.
 

@@ -24,6 +24,10 @@
 
 #pragma once
 
+#include "config/parameter_group.h"
+#include "io/serial.h"
+
+
 typedef enum {
     FRSKY_FORMAT_DMS = 0,
     FRSKY_FORMAT_NMEA
@@ -34,31 +38,38 @@ typedef enum {
     FRSKY_UNIT_IMPERIALS
 } frskyUnit_e;
 
+typedef enum {
+    LTM_RATE_NORMAL,
+    LTM_RATE_MEDIUM,
+    LTM_RATE_SLOW
+} ltmUpdateRate_e;
+
 typedef struct telemetryConfig_s {
-    uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
-    uint8_t telemetry_inversion;            // also shared with smartport inversion
     float gpsNoFixLatitude;
     float gpsNoFixLongitude;
+    uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
+    uint8_t telemetry_inversion;            // also shared with smartport inversion
     frskyGpsCoordFormat_e frsky_coordinate_format;
     frskyUnit_e frsky_unit;
     uint8_t frsky_vfas_precision;
     uint8_t frsky_vfas_cell_voltage;
     uint8_t hottAlarmSoundInterval;
-#ifdef TELEMETRY_SMARTPORT
     uint8_t smartportUartUnidirectional;
-#endif
+    uint8_t smartportFuelPercent;
+    uint8_t ibusTelemetryType;
+    uint8_t ltmUpdateRate;
 } telemetryConfig_t;
+
+PG_DECLARE(telemetryConfig_t, telemetryConfig);
+
+#define TELEMETRY_SHAREABLE_PORT_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_IBUS)
+extern serialPort_t *telemetrySharedPort;
 
 void telemetryInit(void);
 bool telemetryCheckRxPortShared(const serialPortConfig_t *portConfig);
-extern serialPort_t *telemetrySharedPort;
 
 void telemetryCheckState(void);
-struct rxConfig_s;
-void telemetryProcess(timeUs_t currentTimeUs, struct rxConfig_s *rxConfig, uint16_t deadband3d_throttle);
+void telemetryProcess(timeUs_t currentTimeUs);
 
 bool telemetryDetermineEnabledState(portSharing_e portSharing);
 
-void telemetryUseConfig(telemetryConfig_t *telemetryConfig);
-
-#define TELEMETRY_SHAREABLE_PORT_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_LTM)

@@ -24,12 +24,14 @@
 #ifdef USE_SERIALRX_XBUS
 
 #include "drivers/serial.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "io/serial.h"
 
 #include "rx/rx.h"
 #include "rx/xbus.h"
+
+#include "telemetry/telemetry.h"
 
 //
 // Serial driver for JR's XBus (MODE B) receiver
@@ -208,12 +210,13 @@ static void xBusUnpackRJ01Frame(void)
 // Receive ISR callback
 static void xBusDataReceive(uint16_t c)
 {
-    uint32_t now;
-    static uint32_t xBusTimeLast, xBusTimeInterval;
+    timeUs_t now;
+    static timeUs_t xBusTimeLast;
+    timeDelta_t xBusTimeInterval;
 
     // Check if we shall reset frame position due to time
     now = micros();
-    xBusTimeInterval = now - xBusTimeLast;
+    xBusTimeInterval = cmpTimeUs(now, xBusTimeLast);
     xBusTimeLast = now;
     if (xBusTimeInterval > XBUS_MAX_FRAME_TIME) {
         xBusFramePosition = 0;
@@ -313,7 +316,25 @@ bool xBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
-    serialPort_t *xBusPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, xBusDataReceive, baudRate, MODE_RX, SERIAL_NOT_INVERTED);
+#ifdef TELEMETRY
+    bool portShared = telemetryCheckRxPortShared(portConfig);
+#else
+    bool portShared = false;
+#endif
+
+    serialPort_t *xBusPort = openSerialPort(portConfig->identifier,
+        FUNCTION_RX_SERIAL,
+        xBusDataReceive,
+        baudRate,
+        portShared ? MODE_RXTX : MODE_RX,
+        SERIAL_NOT_INVERTED | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        );
+
+#ifdef TELEMETRY
+    if (portShared) {
+        telemetrySharedPort = xBusPort;
+    }
+#endif
 
     return xBusPort != NULL;
 }

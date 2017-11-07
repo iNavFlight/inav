@@ -1,7 +1,7 @@
 # Board - Paris Air Hero 32 / Acro Naze 32 Mini
 
 This is the AIR3 PARIS Sirius AirHERO 32 F3 board from MultiWiiCopter
-Source: http://www.multiwiicopter.com/products/air-hero-32-f3-spi-flight-controller
+Source: http://www.multiwiicopter.com/products/inav-air3-fixed-wing
 
 ## Sensors
 
@@ -29,11 +29,11 @@ From right to left when looking at the socket from the edge of the board.
 | 1   | Ground         |                                  |
 | 2   | +5V            |                                  |
 | 3   | RX_PPM         | Enable `feature RX_PPM`          | 
-| 4   | unused         |                                  | 
+| 4   | AIRSPEED       | Airspeed sensor (3.3V max)       | 
 | 5   | USART2 TX      |                                  | 
 | 6   | USART2 RX      |                                  | 
-| 7   | LED_STRIP      | Enable `feature LED_STRIP`       |
-| 8   | unused         |                                  |
+| 7   | SS1 RX         | Enable `feature SOFT_SERIAL`     |
+| 8   | SS1 TX         |                                  |
 
 
 ## Serial Ports

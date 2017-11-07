@@ -19,33 +19,48 @@
 
 // FIXME some of these are flight modes, some of these are general status indicators
 typedef enum {
-    OK_TO_ARM                               = (1 << 0),
-    PREVENT_ARMING                          = (1 << 1),
-    ARMED                                   = (1 << 2),
-    WAS_EVER_ARMED                          = (1 << 3),
+    ARMED                                           = (1 << 2),
+    WAS_EVER_ARMED                                  = (1 << 3),
 
-    BLOCKED_UAV_NOT_LEVEL                   = (1 << 8),
-    BLOCKED_SENSORS_CALIBRATING             = (1 << 9),
-    BLOCKED_SYSTEM_OVERLOADED               = (1 << 10),
-    BLOCKED_NAVIGATION_SAFETY               = (1 << 11),
-    BLOCKED_COMPASS_NOT_CALIBRATED          = (1 << 12),
-    BLOCKED_ACCELEROMETER_NOT_CALIBRATED    = (1 << 13),
-    //                                      = (1 << 14),
-    BLOCKED_HARDWARE_FAILURE                = (1 << 15),
-    BLOCKED_ALL_FLAGS                       = (BLOCKED_UAV_NOT_LEVEL | BLOCKED_SENSORS_CALIBRATING | BLOCKED_SYSTEM_OVERLOADED | BLOCKED_NAVIGATION_SAFETY |
-                                               BLOCKED_COMPASS_NOT_CALIBRATED | BLOCKED_ACCELEROMETER_NOT_CALIBRATED | BLOCKED_HARDWARE_FAILURE)
+    ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
+
+    ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),
+    ARMING_DISABLED_SENSORS_CALIBRATING             = (1 << 9),
+    ARMING_DISABLED_SYSTEM_OVERLOADED               = (1 << 10),
+    ARMING_DISABLED_NAVIGATION_UNSAFE               = (1 << 11),
+    ARMING_DISABLED_COMPASS_NOT_CALIBRATED          = (1 << 12),
+    ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED    = (1 << 13),
+    ARMING_DISABLED_ARM_SWITCH                      = (1 << 14),
+    ARMING_DISABLED_HARDWARE_FAILURE                = (1 << 15),
+    ARMING_DISABLED_BOXFAILSAFE                     = (1 << 16),
+    ARMING_DISABLED_BOXKILLSWITCH                   = (1 << 17),
+    ARMING_DISABLED_RC_LINK                         = (1 << 18),
+    ARMING_DISABLED_THROTTLE                        = (1 << 19),
+    ARMING_DISABLED_CLI                             = (1 << 20),
+    ARMING_DISABLED_CMS_MENU                        = (1 << 21),
+    ARMING_DISABLED_OSD_MENU                        = (1 << 22),
+
+    ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING | ARMING_DISABLED_SYSTEM_OVERLOADED | 
+                                                       ARMING_DISABLED_NAVIGATION_UNSAFE | ARMING_DISABLED_COMPASS_NOT_CALIBRATED | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED | 
+                                                       ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_HARDWARE_FAILURE | ARMING_DISABLED_BOXFAILSAFE | ARMING_DISABLED_BOXKILLSWITCH |
+                                                       ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI | ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU)
 } armingFlag_e;
 
-extern uint16_t armingFlags;
+extern uint32_t armingFlags;
 
-#define DISABLE_ARMING_FLAG(mask) (armingFlags &= ~(mask))
-#define ENABLE_ARMING_FLAG(mask) (armingFlags |= (mask))
-#define ARMING_FLAG(mask) (armingFlags & (mask))
+#define isArmingDisabled()          (armingFlags & (ARMING_DISABLED_ALL_FLAGS))
+#define DISABLE_ARMING_FLAG(mask)   (armingFlags &= ~(mask))
+#define ENABLE_ARMING_FLAG(mask)    (armingFlags |= (mask))
+#define ARMING_FLAG(mask)           (armingFlags & (mask))
+
+// Returns the 1st flag from ARMING_DISABLED_ALL_FLAGS which is
+// preventing arming, or zero is arming is not disabled.
+armingFlag_e isArmingDisabledReason(void);
 
 typedef enum {
     ANGLE_MODE      = (1 << 0),
     HORIZON_MODE    = (1 << 1),
-    MAG_MODE        = (1 << 2),
+    HEADING_MODE    = (1 << 2),
     NAV_ALTHOLD_MODE= (1 << 3), // old BARO
     NAV_RTH_MODE    = (1 << 4), // old GPS_HOME
     NAV_POSHOLD_MODE= (1 << 5), // old GPS_HOLD
@@ -53,11 +68,13 @@ typedef enum {
     NAV_LAUNCH_MODE = (1 << 7),
     PASSTHRU_MODE   = (1 << 8),
     FAILSAFE_MODE   = (1 << 10),
-    UNUSED_MODE     = (1 << 11), // old G-Tune
+    AUTO_TUNE       = (1 << 11), // old G-Tune
     NAV_WP_MODE     = (1 << 12),
-    HEADING_LOCK    = (1 << 13),
+    UNUSED_MODE2    = (1 << 13),
     FLAPERON        = (1 << 14),
+#ifdef USE_FLM_TURN_ASSIST
     TURN_ASSISTANT  = (1 << 15),
+#endif
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
@@ -77,6 +94,8 @@ typedef enum {
     NAV_MOTOR_STOP_OR_IDLE  = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
     COMPASS_CALIBRATED      = (1 << 8),
     ACCELEROMETER_CALIBRATED= (1 << 9),
+    PWM_DRIVER_AVAILABLE    = (1 << 10),
+    HELICOPTER              = (1 << 11)
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))
@@ -85,6 +104,22 @@ typedef enum {
 
 extern uint32_t stateFlags;
 
+typedef enum {
+    FLM_MANUAL,
+    FLM_ACRO,
+    FLM_ANGLE,
+    FLM_HORIZON,
+    FLM_ALTITUDE_HOLD,
+    FLM_POSITION_HOLD,
+    FLM_RTH,
+    FLM_MISSION,
+    FLM_LAUNCH,
+    FLM_FAILSAFE,
+    FLM_COUNT
+} flightModeForTelemetry_e;
+
+flightModeForTelemetry_e getFlightModeForTelemetry(void);
+
 uint32_t enableFlightMode(flightModeFlags_e mask);
 uint32_t disableFlightMode(flightModeFlags_e mask);
 
@@ -92,5 +127,3 @@ bool sensors(uint32_t mask);
 void sensorsSet(uint32_t mask);
 void sensorsClear(uint32_t mask);
 uint32_t sensorsMask(void);
-
-void mwDisarm(void);

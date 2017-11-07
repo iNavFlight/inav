@@ -28,24 +28,37 @@
 
 #include "platform.h"
 
-#ifdef TELEMETRY
+#if defined(TELEMETRY) && defined(TELEMETRY_IBUS)
 
+#include "common/maths.h"
 #include "common/axis.h"
 
-#include "drivers/system.h"
 #include "drivers/serial.h"
+#include "drivers/time.h"
+
+#include "fc/fc_core.h"
+#include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
+#include "scheduler/scheduler.h"
 
 #include "io/serial.h"
-#include "fc/rc_controls.h"
 
-#include "sensors/sensors.h"
+#include "sensors/barometer.h"
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
+#include "sensors/sensors.h"
+#include "io/gps.h"
 
-#include "telemetry/telemetry.h"
+#include "flight/imu.h"
+#include "flight/failsafe.h"
+
+#include "navigation/navigation.h"
+
 #include "telemetry/ibus.h"
-
-#include "fc/mw.h"
+#include "telemetry/ibus_shared.h"
+#include "telemetry/telemetry.h"
+#include "fc/config.h"
+#include "config/feature.h"
 
 /*
  * iBus Telemetry is a half-duplex serial protocol. It shares 1 line for
@@ -153,119 +166,13 @@
  *
  */
 
-#define IBUS_UART_MODE     (MODE_RXTX)
-#define IBUS_BAUDRATE      (115200)
-#define IBUS_CYCLE_TIME_MS (8)
-
-#define IBUS_CHECKSUM_SIZE (2)
-
-#define IBUS_MIN_LEN       (2 + IBUS_CHECKSUM_SIZE)
-#define IBUS_MAX_TX_LEN    (6)
-#define IBUS_MAX_RX_LEN    (4)
-#define IBUS_RX_BUF_LEN    (IBUS_MAX_RX_LEN)
-
-#define IBUS_TEMPERATURE_OFFSET (0x0190)
-
-typedef uint8_t ibusAddress_t;
-
-typedef enum {
-    IBUS_COMMAND_DISCOVER_SENSOR      = 0x80,
-    IBUS_COMMAND_SENSOR_TYPE          = 0x90,
-    IBUS_COMMAND_MEASUREMENT          = 0xA0
-} ibusCommand_e;
-
-typedef enum {
-    IBUS_SENSOR_TYPE_INTERNAL_VOLTAGE = 0x00,
-    IBUS_SENSOR_TYPE_TEMPERATURE      = 0x01,
-    IBUS_SENSOR_TYPE_RPM              = 0x02,
-    IBUS_SENSOR_TYPE_EXTERNAL_VOLTAGE = 0x03
-} ibusSensorType_e;
-
-static const uint8_t SENSOR_ADDRESS_TYPE_LOOKUP[] = {
-    IBUS_SENSOR_TYPE_INTERNAL_VOLTAGE,  // Address 0, not usable since it is reserved for internal voltage
-    IBUS_SENSOR_TYPE_EXTERNAL_VOLTAGE,  // Address 1, VBAT
-    IBUS_SENSOR_TYPE_TEMPERATURE,       // Address 2, Gyro Temp
-    IBUS_SENSOR_TYPE_RPM                // Address 3, Throttle command
-};
-
 static serialPort_t *ibusSerialPort = NULL;
 static serialPortConfig_t *ibusSerialPortConfig;
-
-static telemetryConfig_t *telemetryConfig;
+static uint8_t outboundBytesToIgnoreOnRxCount = 0;
 static bool ibusTelemetryEnabled = false;
 static portSharing_e ibusPortSharing;
 
 static uint8_t ibusReceiveBuffer[IBUS_RX_BUF_LEN] = { 0x0 };
-
-static uint16_t calculateChecksum(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength) {
-    uint16_t checksum = 0xFFFF;
-    for (size_t i = 0; i < packetLength - IBUS_CHECKSUM_SIZE; i++) {
-        checksum -= ibusPacket[i];
-    }
-    return checksum;
-}
-
-static bool isChecksumOk(uint8_t ibusPacket[static IBUS_CHECKSUM_SIZE], size_t packetLength, uint16_t calcuatedChecksum) {
-    // Note that there's a byte order swap to little endian here
-    return (calcuatedChecksum >> 8) == ibusPacket[packetLength - 1]
-            && (calcuatedChecksum & 0xFF) == ibusPacket[packetLength - 2];
-}
-
-static void transmitIbusPacket(uint8_t ibusPacket[static IBUS_MIN_LEN], size_t packetLength) {
-    uint16_t checksum = calculateChecksum(ibusPacket, packetLength);
-    ibusPacket[packetLength - IBUS_CHECKSUM_SIZE] = (checksum & 0xFF);
-    ibusPacket[packetLength - IBUS_CHECKSUM_SIZE + 1] = (checksum >> 8);
-    for (size_t i = 0; i < packetLength; i++) {
-        serialWrite(ibusSerialPort, ibusPacket[i]);
-    }
-}
-
-static void sendIbusCommand(ibusAddress_t address) {
-    uint8_t sendBuffer[] = { 0x04, IBUS_COMMAND_DISCOVER_SENSOR | address, 0x00, 0x00 };
-    transmitIbusPacket(sendBuffer, sizeof sendBuffer);
-}
-
-static void sendIbusSensorType(ibusAddress_t address) {
-    uint8_t sendBuffer[] = { 0x06, IBUS_COMMAND_SENSOR_TYPE | address, SENSOR_ADDRESS_TYPE_LOOKUP[address], 0x02, 0x0, 0x0 };
-    transmitIbusPacket(sendBuffer, sizeof sendBuffer);
-}
-
-static void sendIbusMeasurement(ibusAddress_t address, uint16_t measurement) {
-    uint8_t sendBuffer[] = { 0x06, IBUS_COMMAND_MEASUREMENT | address, measurement & 0xFF, measurement >> 8, 0x0, 0x0 };
-    transmitIbusPacket(sendBuffer, sizeof sendBuffer);
-}
-
-static bool isCommand(ibusCommand_e expected, uint8_t ibusPacket[static IBUS_MIN_LEN]) {
-    return (ibusPacket[1] & 0xF0) == expected;
-}
-
-static ibusAddress_t getAddress(uint8_t ibusPacket[static IBUS_MIN_LEN]) {
-    return (ibusPacket[1] & 0x0F);
-}
-
-static void dispatchMeasurementRequest(ibusAddress_t address) {
-    if (1 == address) {
-        sendIbusMeasurement(address, vbat * 10);
-    } else if (2 == address) {
-        sendIbusMeasurement(address, (uint16_t) telemTemperature1 + IBUS_TEMPERATURE_OFFSET);
-    } else if (3 == address) {
-        sendIbusMeasurement(address, (uint16_t) rcCommand[THROTTLE]);
-    }
-}
-
-static void respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]) {
-    ibusAddress_t returnAddress = getAddress(ibusPacket);
-
-    if (returnAddress < sizeof SENSOR_ADDRESS_TYPE_LOOKUP) {
-        if (isCommand(IBUS_COMMAND_DISCOVER_SENSOR, ibusPacket)) {
-            sendIbusCommand(returnAddress);
-        } else if (isCommand(IBUS_COMMAND_SENSOR_TYPE, ibusPacket)) {
-            sendIbusSensorType(returnAddress);
-        } else if (isCommand(IBUS_COMMAND_MEASUREMENT, ibusPacket)) {
-            dispatchMeasurementRequest(returnAddress);
-        }
-    }
-}
 
 static void pushOntoTail(uint8_t buffer[IBUS_MIN_LEN], size_t bufferLength, uint8_t value) {
     for (size_t i = 0; i < bufferLength - 1; i++) {
@@ -274,58 +181,136 @@ static void pushOntoTail(uint8_t buffer[IBUS_MIN_LEN], size_t bufferLength, uint
     ibusReceiveBuffer[bufferLength - 1] = value;
 }
 
-void initIbusTelemetry(telemetryConfig_t *initialTelemetryConfig) {
-    telemetryConfig = initialTelemetryConfig;
+void initIbusTelemetry(void) {
     ibusSerialPortConfig = findSerialPortConfig(FUNCTION_TELEMETRY_IBUS);
+    uint8_t type = telemetryConfig()->ibusTelemetryType;
+    uint8_t speed = type & 0x80;
+    type = type & 0x7F;
+    if (type == 3) {
+        changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE_S85, IBUS_MEAS_VALUE_STATUS);
+        changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE_ACC_Z, IBUS_MEAS_VALUE_ACC_Z);
+        changeTypeIbusTelemetry(5, IBUS_MEAS_TYPE_CURRENT, IBUS_MEAS_VALUE_CURRENT);
+        changeTypeIbusTelemetry(6, IBUS_MEAS_TYPE_ALT, IBUS_MEAS_VALUE_ALT);
+        changeTypeIbusTelemetry(7, IBUS_MEAS_TYPE_HEADING, IBUS_MEAS_VALUE_HEADING);
+        changeTypeIbusTelemetry(8, IBUS_MEAS_TYPE_DIST, IBUS_MEAS_VALUE_DIST);
+        changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE_COG, IBUS_MEAS_VALUE_COG);
+        changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE_GPS_LON, IBUS_MEAS_VALUE_GPS_LON2);
+        changeTypeIbusTelemetry(12,IBUS_MEAS_TYPE_GPS_LAT, IBUS_MEAS_VALUE_GPS_LAT2);
+        changeTypeIbusTelemetry(13,IBUS_MEAS_TYPE_ACC_X, IBUS_MEAS_VALUE_GPS_LON1);
+        changeTypeIbusTelemetry(14,IBUS_MEAS_TYPE_ACC_Y, IBUS_MEAS_VALUE_GPS_LAT1);
+    }
+    if (type == 4) {
+        changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE_S85, IBUS_MEAS_VALUE_STATUS);
+#ifdef PITOT
+        if (sensors(SENSOR_PITOT)) changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE_VSPEED, IBUS_MEAS_VALUE_VSPEED);
+        else 
+#endif
+            changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE_PRES, IBUS_MEAS_VALUE_PRES);
+    }
+    if (type == 5) {
+        changeTypeIbusTelemetry(2, IBUS_MEAS_TYPE_ARMED, IBUS_MEAS_VALUE_ARMED);
+        changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE_MODE, IBUS_MEAS_VALUE_MODE);
+        changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE_CLIMB, IBUS_MEAS_VALUE_CLIMB);
+    }
+    if (type == 4 || type == 5) {
+        changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE_ACC_Z, IBUS_MEAS_VALUE_ACC_Z);
+        changeTypeIbusTelemetry(5, IBUS_MEAS_TYPE_CURRENT, IBUS_MEAS_VALUE_CURRENT);
+        changeTypeIbusTelemetry(6, IBUS_MEAS_TYPE_S8A, IBUS_MEAS_VALUE_ALT4);
+        changeTypeIbusTelemetry(7, IBUS_MEAS_TYPE_HEADING, IBUS_MEAS_VALUE_HEADING);
+        changeTypeIbusTelemetry(8, IBUS_MEAS_TYPE_DIST, IBUS_MEAS_VALUE_DIST);
+        changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE_COG, IBUS_MEAS_VALUE_COG);
+        changeTypeIbusTelemetry(12,IBUS_MEAS_TYPE_GPS_STATUS, IBUS_MEAS_VALUE_GPS_STATUS);
+        changeTypeIbusTelemetry(13,IBUS_MEAS_TYPE_S88, IBUS_MEAS_VALUE_GPS_LON);
+        changeTypeIbusTelemetry(14,IBUS_MEAS_TYPE_S89, IBUS_MEAS_VALUE_GPS_LAT);
+    }
+    if (type == 2 || type == 3 || type == 4 || type == 5) 
+        changeTypeIbusTelemetry(10, IBUS_MEAS_TYPE_GALT, IBUS_MEAS_VALUE_GALT);
+    if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5) 
+        changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE_SPE, IBUS_MEAS_VALUE_SPE);
+    if ((type == 3 || type == 4 || type == 5) && speed)
+        changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE_SPEED, IBUS_MEAS_VALUE_SPEED);
+    if (type == 6) {
+#ifdef PITOT
+        if (sensors(SENSOR_PITOT)) changeTypeIbusTelemetry(9,IBUS_MEAS_TYPE1_VERTICAL_SPEED, IBUS_MEAS_VALUE_VSPEED);
+        else 
+#endif
+            changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE1_PRES, IBUS_MEAS_VALUE_PRES);
+        changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE1_S85, IBUS_MEAS_VALUE_STATUS);
+    }
+    if (type == 7) {
+        changeTypeIbusTelemetry(2, IBUS_MEAS_TYPE1_GPS_STATUS, IBUS_MEAS_VALUE_GPS_STATUS);
+        changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE1_ARMED, IBUS_MEAS_VALUE_ARMED);
+        changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE1_FLIGHT_MODE, IBUS_MEAS_VALUE_MODE);
+    }
+    if (type == 6 || type == 7) {
+        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_VIRTUAL) 
+            changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_FUEL, IBUS_MEAS_VALUE_FUEL);
+        else changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_BAT_CURR, IBUS_MEAS_VALUE_CURRENT);
+        changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE1_CMP_HEAD, IBUS_MEAS_VALUE_HEADING);
+        changeTypeIbusTelemetry(6, IBUS_MEAS_TYPE1_CLIMB_RATE, IBUS_MEAS_VALUE_CLIMB);
+        changeTypeIbusTelemetry(5, IBUS_MEAS_TYPE1_COG, IBUS_MEAS_VALUE_COG);
+        changeTypeIbusTelemetry(7, IBUS_MEAS_TYPE1_YAW, IBUS_MEAS_VALUE_ACC_Z);
+        changeTypeIbusTelemetry(8, IBUS_MEAS_TYPE1_GPS_DIST, IBUS_MEAS_VALUE_DIST);
+        if (speed) changeTypeIbusTelemetry(10,IBUS_MEAS_TYPE1_GROUND_SPEED, IBUS_MEAS_VALUE_SPEED);
+        else changeTypeIbusTelemetry(10, IBUS_MEAS_TYPE1_SPE, IBUS_MEAS_VALUE_SPE);
+        changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE1_GPS_LAT, IBUS_MEAS_VALUE_GPS_LAT);
+        changeTypeIbusTelemetry(12,IBUS_MEAS_TYPE1_GPS_LON, IBUS_MEAS_VALUE_GPS_LON);
+        changeTypeIbusTelemetry(13,IBUS_MEAS_TYPE1_GPS_ALT, IBUS_MEAS_VALUE_GALT4);
+        changeTypeIbusTelemetry(14,IBUS_MEAS_TYPE1_ALT, IBUS_MEAS_VALUE_ALT4);
+    }
     ibusPortSharing = determinePortSharing(ibusSerialPortConfig, FUNCTION_TELEMETRY_IBUS);
+    ibusTelemetryEnabled = false;
 }
 
 void handleIbusTelemetry(void) {
     if (!ibusTelemetryEnabled) {
         return;
     }
-
     while (serialRxBytesWaiting(ibusSerialPort) > 0) {
         uint8_t c = serialRead(ibusSerialPort);
+        if (outboundBytesToIgnoreOnRxCount) {
+            outboundBytesToIgnoreOnRxCount--;
+            continue;
+        }
         pushOntoTail(ibusReceiveBuffer, IBUS_RX_BUF_LEN, c);
-        uint16_t expectedChecksum = calculateChecksum(ibusReceiveBuffer, IBUS_RX_BUF_LEN);
-
-        if (isChecksumOk(ibusReceiveBuffer, IBUS_RX_BUF_LEN, expectedChecksum)) {
-            respondToIbusRequest(ibusReceiveBuffer);
+        if (ibusIsChecksumOkIa6b(ibusReceiveBuffer, IBUS_RX_BUF_LEN)) {
+            outboundBytesToIgnoreOnRxCount += respondToIbusRequest(ibusReceiveBuffer);
         }
     }
 }
 
-void checkIbusTelemetryState(void) {
+bool checkIbusTelemetryState(void) {
     bool newTelemetryEnabledValue = telemetryDetermineEnabledState(ibusPortSharing);
 
     if (newTelemetryEnabledValue == ibusTelemetryEnabled) {
-        return;
+        return false;
     }
 
     if (newTelemetryEnabledValue) {
+        rescheduleTask(TASK_TELEMETRY, IBUS_TASK_PERIOD_US);
         configureIbusTelemetryPort();
     } else {
         freeIbusTelemetryPort();
     }
+
+    return true;
 }
 
 void configureIbusTelemetryPort(void) {
-    portOptions_t portOptions;
-
     if (!ibusSerialPortConfig) {
         return;
     }
-
-    portOptions = SERIAL_BIDIR;
-
-    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, IBUS_BAUDRATE, IBUS_UART_MODE, portOptions);
-
+    if (isSerialPortShared(ibusSerialPortConfig, FUNCTION_RX_SERIAL, FUNCTION_TELEMETRY_IBUS)) {
+        // serialRx will open port and handle telemetry
+        return;
+    }
+    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, IBUS_BAUDRATE, MODE_RXTX, SERIAL_BIDIR | SERIAL_NOT_INVERTED);
     if (!ibusSerialPort) {
         return;
     }
-
+    initSharedIbusTelemetry(ibusSerialPort);
     ibusTelemetryEnabled = true;
+    outboundBytesToIgnoreOnRxCount = 0;
 }
 
 void freeIbusTelemetryPort(void) {

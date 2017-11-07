@@ -20,34 +20,45 @@
 
 #include "platform.h"
 
-#ifdef OSD
+#ifdef USE_MAX7456
 
 #include "common/utils.h"
 
-#include "config/config_master.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/display.h"
 #include "drivers/max7456.h"
+#include "drivers/vcd.h"
 
-displayPort_t max7456DisplayPort; // Referenced from osd.c
+#include "io/displayport_max7456.h"
 
-extern uint16_t refreshTimeout;
+displayPort_t max7456DisplayPort;
+
+static uint8_t max7456Mode(textAttributes_t attr)
+{
+    uint8_t mode = 0;
+    if (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) {
+        mode |= MAX7456_MODE_BLINK;
+    }
+    if (TEXT_ATTRIBUTES_HAVE_INVERTED(attr)) {
+        mode |= MAX7456_MODE_INVERT;
+    }
+    if (TEXT_ATTRIBUTES_HAVE_SOLID_BG(attr)) {
+        mode |= MAX7456_MODE_SOLID_BG;
+    }
+    return mode;
+}
 
 static int grab(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    osdResetAlarms();
-    displayPort->isGrabbed = true;
-    refreshTimeout = 0;
-
     return 0;
 }
 
 static int release(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    displayPort->isGrabbed = false;
-
     return 0;
 }
 
@@ -55,16 +66,43 @@ static int clearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
     max7456ClearScreen();
+    return 0;
+}
+
+static int drawScreen(displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    max7456DrawScreenPartial();
 
     return 0;
 }
 
-static int write(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s)
+static int screenSize(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    max7456Write(x, y, s);
+    return maxScreenSize;
+}
+
+static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
+{
+    UNUSED(displayPort);
+    max7456Write(x, y, s, max7456Mode(attr));
 
     return 0;
+}
+
+static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr)
+{
+    UNUSED(displayPort);
+    max7456WriteChar(x, y, c, max7456Mode(attr));
+
+    return 0;
+}
+
+static bool isTransferInProgress(const displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+    return max7456DmaInProgress();
 }
 
 static void resync(displayPort_t *displayPort)
@@ -87,21 +125,25 @@ static uint32_t txBytesFree(const displayPort_t *displayPort)
     return UINT32_MAX;
 }
 
-static displayPortVTable_t max7456VTable = {
+static const displayPortVTable_t max7456VTable = {
     .grab = grab,
     .release = release,
-    .clear = clearScreen,
-    .write = write,
+    .clearScreen = clearScreen,
+    .drawScreen = drawScreen,
+    .screenSize = screenSize,
+    .writeString = writeString,
+    .writeChar = writeChar,
+    .isTransferInProgress = isTransferInProgress,
     .heartbeat = heartbeat,
     .resync = resync,
     .txBytesFree = txBytesFree,
 };
 
-displayPort_t *max7456DisplayPortInit(void)
+displayPort_t *max7456DisplayPortInit(const vcdProfile_t *vcdProfile)
 {
-    max7456DisplayPort.vTable = &max7456VTable;
-    max7456DisplayPort.isGrabbed = false;
+    displayInit(&max7456DisplayPort, &max7456VTable);
+    max7456Init(vcdProfile);
     resync(&max7456DisplayPort);
     return &max7456DisplayPort;
 }
-#endif // OSD
+#endif // USE_MAX7456

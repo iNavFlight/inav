@@ -21,9 +21,10 @@ typedef enum {
     PAGE_STATUS
 } pageId_e;
 
-struct rxConfig_s;
-void dashboardInit(const struct rxConfig_s *intialRxConfig);
+void dashboardInit(void);
 void dashboardUpdate(timeUs_t currentTimeUs);
 
 void dashboardSetPage(pageId_e newPageId);
-void dashboardSetNextPageChangeAt(uint32_t futureMicros);
+void dashboardSetNextPageChangeAt(timeUs_t futureMicros);
+
+void formatTrimDegrees ( char formattedTrim[7], int16_t trimValue );

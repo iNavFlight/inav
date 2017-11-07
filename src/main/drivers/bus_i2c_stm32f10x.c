@@ -23,14 +23,14 @@
 
 #include "build/atomic.h"
 
-#include "io.h"
-#include "system.h"
+#include "drivers/io.h"
+#include "drivers/time.h"
 
-#include "bus_i2c.h"
-#include "nvic.h"
+#include "drivers/bus_i2c.h"
+#include "drivers/nvic.h"
 #include "io_impl.h"
 #include "rcc.h"
-#include "light_led.h"
+#include "drivers/light_led.h"
 
 #ifndef SOFT_I2C
 
@@ -41,7 +41,7 @@ static void i2cUnstick(IO_t scl, IO_t sda);
 #ifdef STM32F4
 
 #if defined(USE_I2C_PULLUP)
-#define IOCFG_I2C IO_CONFIG(GPIO_Mode_AF, 0, GPIO_OType_OD, GPIO_PuPd_UP)
+#define IOCFG_I2C IO_CONFIG(GPIO_Mode_AF, GPIO_Speed_50MHz, GPIO_OType_OD, GPIO_PuPd_UP)
 #else
 #define IOCFG_I2C IOCFG_AF_OD
 #endif
@@ -133,10 +133,10 @@ typedef struct i2cBusState_s {
 static volatile uint16_t i2cErrorCount = 0;
 
 static i2cDevice_t i2cHardwareMap[] = {
-    { .dev = I2C1, .scl = IO_TAG(I2C1_SCL), .sda = IO_TAG(I2C1_SDA), .rcc = RCC_APB1(I2C1), .overClock = I2C1_OVERCLOCK },
-    { .dev = I2C2, .scl = IO_TAG(I2C2_SCL), .sda = IO_TAG(I2C2_SDA), .rcc = RCC_APB1(I2C2), .overClock = I2C2_OVERCLOCK },
+    { .dev = I2C1, .scl = IO_TAG(I2C1_SCL), .sda = IO_TAG(I2C1_SDA), .rcc = RCC_APB1(I2C1), .speed = I2C_SPEED_400KHZ },
+    { .dev = I2C2, .scl = IO_TAG(I2C2_SCL), .sda = IO_TAG(I2C2_SDA), .rcc = RCC_APB1(I2C2), .speed = I2C_SPEED_400KHZ },
 #ifdef STM32F4
-    { .dev = I2C3, .scl = IO_TAG(I2C3_SCL), .sda = IO_TAG(I2C3_SDA), .rcc = RCC_APB1(I2C3), .overClock = I2C2_OVERCLOCK }
+    { .dev = I2C3, .scl = IO_TAG(I2C3_SCL), .sda = IO_TAG(I2C3_SDA), .rcc = RCC_APB1(I2C3), .speed = I2C_SPEED_400KHZ }
 #endif
 };
 
@@ -165,7 +165,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
 
         case I2C_STATE_STOPPING:
             // Wait for stop bit to clear
-            // RM0090: When the STOP, START or PEC bit is set, the software must not perform any write access 
+            // RM0090: When the STOP, START or PEC bit is set, the software must not perform any write access
             // to I2C_CR1 before this bit is cleared by hardware. Otherwise there is a risk of setting a second STOP, START or PEC request.
             if ((I2Cx->CR1 & I2C_CR1_STOP) == 0) {
                 i2cBusState->state = I2C_STATE_STOPPED;
@@ -185,7 +185,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_GenerateSTART(I2Cx, ENABLE);
             i2cBusState->state = I2C_STATE_STARTING_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_STARTING_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT) != ERROR) {
@@ -205,7 +205,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_Send7bitAddress(I2Cx, i2cBusState->addr, I2C_Direction_Transmitter);
             i2cBusState->state = I2C_STATE_R_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_ADDR_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != ERROR) {
@@ -223,7 +223,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_SendData(I2Cx, i2cBusState->reg);
             i2cBusState->state = I2C_STATE_R_REGISTER_WAIT;
             i2cBusState->timeout = currentTicks;
-            /* Fallthrough */
+            FALLTHROUGH;
 
         case I2C_STATE_R_REGISTER_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED) != ERROR) {
@@ -248,7 +248,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_GenerateSTART(I2Cx, ENABLE);
             i2cBusState->state = I2C_STATE_R_RESTARTING_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_RESTARTING_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT) != ERROR) {
@@ -263,7 +263,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_Send7bitAddress(I2Cx, i2cBusState->addr, I2C_Direction_Receiver);
             i2cBusState->state = I2C_STATE_R_RESTART_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_RESTART_ADDR_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) != ERROR) {
@@ -384,7 +384,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_Send7bitAddress(I2Cx, i2cBusState->addr, I2C_Direction_Transmitter);
             i2cBusState->state = I2C_STATE_W_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_W_ADDR_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != ERROR) {
@@ -402,7 +402,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_SendData(I2Cx, i2cBusState->reg);
             i2cBusState->state = I2C_STATE_W_TRANSFER_WAIT;
             i2cBusState->timeout = currentTicks;
-            /* Fallthrough */
+            FALLTHROUGH;
 
         case I2C_STATE_W_TRANSFER_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED) != ERROR) {
@@ -427,6 +427,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             else {
                 I2C_GenerateSTOP(I2Cx, ENABLE);
                 i2cBusState->timeout = currentTicks;
+                i2cBusState->txnOk = true;
                 i2cBusState->state = I2C_STATE_STOPPING;
             }
             break;
@@ -440,10 +441,10 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
     }
 }
 
-void i2cSetOverclock(uint8_t overClock)
+void i2cSetSpeed(uint8_t speed)
 {
     for (unsigned int i = 0; i < sizeof(i2cHardwareMap) / sizeof(i2cHardwareMap[0]); i++) {
-        i2cHardwareMap[i].overClock = overClock;
+        i2cHardwareMap[i].speed = speed;
     }
 }
 
@@ -486,7 +487,25 @@ void i2cInit(I2CDevice device)
     i2cInit.I2C_OwnAddress1 = 0x00;
     i2cInit.I2C_Ack = I2C_Ack_Enable;
     i2cInit.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-    i2cInit.I2C_ClockSpeed = (i2c->overClock ? 800000 : 400000);
+
+    switch (i2c->speed) {
+        case I2C_SPEED_400KHZ:
+        default:
+            i2cInit.I2C_ClockSpeed = 400000;
+            break;
+
+        case I2C_SPEED_800KHZ:
+            i2cInit.I2C_ClockSpeed = 800000;
+            break;
+
+        case I2C_SPEED_100KHZ:
+            i2cInit.I2C_ClockSpeed = 100000;
+            break;
+
+        case I2C_SPEED_200KHZ:
+            i2cInit.I2C_ClockSpeed = 200000;
+            break;
+    }
 
     I2C_Init(i2c->dev, &i2cInit);
     I2C_StretchClockCmd(i2c->dev, ENABLE);
@@ -510,22 +529,18 @@ static void i2cWaitForCompletion(I2CDevice device)
     } while (busState[device].state != I2C_STATE_STOPPED);
 }
 
-bool i2cWrite(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t data)
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t * data)
 {
-    static uint8_t writeBuf[1];
-
     // Don't try to access the non-initialized device
     if (!busState[device].initialized)
         return false;
 
     // Set up write transaction
-    writeBuf[0] = data;
-
     busState[device].addr = addr << 1;
     busState[device].reg = reg;
     busState[device].rw = I2C_TXN_WRITE;
-    busState[device].len = 1;
-    busState[device].buf = writeBuf;
+    busState[device].len = len;
+    busState[device].buf = data;
     busState[device].txnOk = false;
     busState[device].state = I2C_STATE_STARTING;
 
@@ -533,6 +548,11 @@ bool i2cWrite(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t data)
     i2cWaitForCompletion(device);
 
     return busState[device].txnOk;
+}
+
+bool i2cWrite(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t data)
+{
+    return i2cWriteBuffer(device, addr, reg, 1, &data);
 }
 
 bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t* buf)

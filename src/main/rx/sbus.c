@@ -26,12 +26,14 @@
 #include "common/utils.h"
 
 #include "drivers/serial.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
 
 #include "io/serial.h"
 
 #include "rx/rx.h"
 #include "rx/sbus.h"
+
+#include "telemetry/telemetry.h"
 
 /*
  * Observations
@@ -65,7 +67,7 @@ static uint16_t sbusStateFlags = 0;
 #define SBUS_FRAME_BEGIN_BYTE 0x0F
 
 #define SBUS_BAUDRATE 100000
-#define SBUS_PORT_OPTIONS (SERIAL_STOPBITS_2 | SERIAL_PARITY_EVEN | SERIAL_INVERTED)
+#define SBUS_PORT_OPTIONS (SERIAL_STOPBITS_2 | SERIAL_PARITY_EVEN)
 
 #define SBUS_DIGITAL_CHANNEL_MIN 173
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
@@ -121,9 +123,9 @@ static void sbusDataReceive(uint16_t c)
 {
     static uint8_t sbusFramePosition = 0;
     static uint32_t sbusFrameStartAt = 0;
-    uint32_t now = micros();
+    timeUs_t now = micros();
 
-    int32_t sbusFrameTime = now - sbusFrameStartAt;
+    timeDelta_t sbusFrameTime = cmpTimeUs(now, sbusFrameStartAt);
 
     if (sbusFrameTime > (long)(SBUS_TIME_NEEDED_PER_FRAME + 500)) {
         sbusFramePosition = 0;
@@ -238,7 +240,25 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
-    serialPort_t *sBusPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, sbusDataReceive, SBUS_BAUDRATE, MODE_RX, SBUS_PORT_OPTIONS);
+#ifdef TELEMETRY
+    bool portShared = telemetryCheckRxPortShared(portConfig);
+#else
+    bool portShared = false;
+#endif
+
+    serialPort_t *sBusPort = openSerialPort(portConfig->identifier,
+        FUNCTION_RX_SERIAL,
+        sbusDataReceive,
+        SBUS_BAUDRATE,
+        portShared ? MODE_RXTX : MODE_RX,
+        SBUS_PORT_OPTIONS | (rxConfig->sbus_inversion ? SERIAL_INVERTED : 0) | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
+        );
+
+#ifdef TELEMETRY
+    if (portShared) {
+        telemetrySharedPort = sBusPort;
+    }
+#endif
 
     return sBusPort != NULL;
 }

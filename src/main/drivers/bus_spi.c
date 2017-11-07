@@ -20,11 +20,13 @@
 
 #include <platform.h>
 
-#include "bus_spi.h"
-#include "exti.h"
-#include "io.h"
-#include "io_impl.h"
-#include "rcc.h"
+#ifdef USE_SPI
+
+#include "drivers/bus_spi.h"
+#include "drivers/exti.h"
+#include "drivers/io.h"
+#include "drivers/io_impl.h"
+#include "drivers/rcc.h"
 
 /* for F30x processors */
 #if defined(STM32F303xC)
@@ -70,16 +72,50 @@
 #define SPI3_NSS_PIN NONE
 #endif
 
+#if defined(STM32F1) || defined(STM32F3)
+static const uint16_t spiDivisorMapFast[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
+    SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               562.5 KBits/s
+    SPI_BaudRatePrescaler_8,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               18.0 MBits/s
+    SPI_BaudRatePrescaler_4       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
+};
+static const uint16_t spiDivisorMapSlow[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      140.625 KBits/s
+    SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               562.5 KBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+    SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               18.0 MBits/s
+    SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
+};
+#elif defined(STM32F4)
+static const uint16_t spiDivisorMapFast[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      328.125 KBits/s
+    SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               656.25 KBits/s
+    SPI_BaudRatePrescaler_8,      // SPI_CLOCK_STANDARD           10.5 MBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               21.0 MBits/s
+    SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          42.0 MBits/s
+};
+static const uint16_t spiDivisorMapSlow[] = { 
+    SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      164.062 KBits/s
+    SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               656.25 KBits/s
+    SPI_BaudRatePrescaler_4,      // SPI_CLOCK_STANDARD           10.5 MBits/s
+    SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               21.0 MBits/s
+    SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          21.0 MBits/s
+};
+#else
+#error "Invalid CPU"
+#endif
+
 static spiDevice_t spiHardwareMap[] = {
 #if defined(STM32F1)
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = 0, false },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = 0, false },
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = 0, false, .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = 0, false, .divisorMap = spiDivisorMapSlow },
 #else
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, false },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, false },
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, false, .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, false, .divisorMap = spiDivisorMapSlow },
 #endif
 #if defined(STM32F3) || defined(STM32F4)
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, false }
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, false, .divisorMap = spiDivisorMapSlow }
 #endif
 };
 
@@ -99,18 +135,16 @@ SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
 
 void spiInitDevice(SPIDevice device)
 {
-    SPI_InitTypeDef spiInit;
-
     spiDevice_t *spi = &(spiHardwareMap[device]);
 
 #ifdef SDCARD_SPI_INSTANCE
     if (spi->dev == SDCARD_SPI_INSTANCE) {
-        spi->sdcard = true;
+        spi->leadingEdge = true;
     }
 #endif
 #ifdef RX_SPI_INSTANCE
     if (spi->dev == RX_SPI_INSTANCE) {
-        spi->nrf24l01 = true;
+        spi->leadingEdge = true;
     }
 #endif
 
@@ -123,12 +157,11 @@ void spiInitDevice(SPIDevice device)
     IOInit(IOGetByTag(spi->mosi), OWNER_SPI, RESOURCE_SPI_MOSI, device + 1);
 
 #if defined(STM32F3) || defined(STM32F4)
-    if (spi->sdcard || spi->nrf24l01) {
+    if (spi->leadingEdge) {
         IOConfigGPIOAF(IOGetByTag(spi->sck),  SPI_IO_AF_SCK_CFG, spi->af);
         IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG, spi->af);
         IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->af);
-    }
-    else {
+    } else {
         IOConfigGPIOAF(IOGetByTag(spi->sck),  SPI_IO_AF_CFG, spi->af);
         IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_CFG, spi->af);
         IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->af);
@@ -151,6 +184,7 @@ void spiInitDevice(SPIDevice device)
     // Init SPI hardware
     SPI_I2S_DeInit(spi->dev);
 
+    SPI_InitTypeDef spiInit;
     spiInit.SPI_Mode = SPI_Mode_Master;
     spiInit.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
     spiInit.SPI_DataSize = SPI_DataSize_8b;
@@ -159,7 +193,7 @@ void spiInitDevice(SPIDevice device)
     spiInit.SPI_CRCPolynomial = 7;
     spiInit.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
 
-    if (spi->sdcard || spi->nrf24l01) {
+    if (spi->leadingEdge) {
         spiInit.SPI_CPOL = SPI_CPOL_Low;
         spiInit.SPI_CPHA = SPI_CPHA_1Edge;
     } else {
@@ -183,8 +217,7 @@ void spiInitDevice(SPIDevice device)
 
 bool spiInit(SPIDevice device)
 {
-    switch (device)
-    {
+    switch (device) {
     case SPIINVALID:
         return false;
     case SPIDEV_1:
@@ -208,6 +241,13 @@ bool spiInit(SPIDevice device)
 #else
         break;
 #endif
+    case SPIDEV_4:
+#if defined(USE_SPI_DEVICE_4)
+        spiInitDevice(device);
+        return true;
+#else
+        break;
+#endif
     }
     return false;
 }
@@ -215,8 +255,9 @@ bool spiInit(SPIDevice device)
 uint32_t spiTimeoutUserCallback(SPI_TypeDef *instance)
 {
     SPIDevice device = spiDeviceByInstance(instance);
-    if (device == SPIINVALID)
+    if (device == SPIINVALID) {
         return -1;
+    }
     spiHardwareMap[device].errorCount++;
     return spiHardwareMap[device].errorCount;
 }
@@ -264,10 +305,9 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len
 {
     uint16_t spiTimeout = 1000;
 
-    uint8_t b;
     instance->DR;
     while (len--) {
-        b = in ? *(in++) : 0xFF;
+        uint8_t b = in ? *(in++) : 0xFF;
         while (SPI_I2S_GetFlagStatus(instance, SPI_I2S_FLAG_TXE) == RESET) {
             if ((spiTimeout--) == 0)
                 return spiTimeoutUserCallback(instance);
@@ -294,58 +334,19 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len
     return true;
 }
 
-void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
+void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed)
 {
 #define BR_CLEAR_MASK 0xFFC7
-
-    uint16_t tempRegister;
+    SPIDevice device = spiDeviceByInstance(instance);
+    if (device == SPIINVALID) {
+        return;
+    }
 
     SPI_Cmd(instance, DISABLE);
 
-    tempRegister = instance->CR1;
-
-    switch (divisor) {
-    case 2:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_2;
-        break;
-
-    case 4:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_4;
-        break;
-
-    case 8:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_8;
-        break;
-
-    case 16:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_16;
-        break;
-
-    case 32:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_32;
-        break;
-
-    case 64:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_64;
-        break;
-
-    case 128:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_128;
-        break;
-
-    case 256:
-        tempRegister &= BR_CLEAR_MASK;
-        tempRegister |= SPI_BaudRatePrescaler_256;
-        break;
-    }
-
+    uint16_t tempRegister = instance->CR1;
+    tempRegister &= BR_CLEAR_MASK;
+    tempRegister |= spiHardwareMap[device].divisorMap[speed];
     instance->CR1 = tempRegister;
 
     SPI_Cmd(instance, ENABLE);
@@ -354,14 +355,22 @@ void spiSetDivisor(SPI_TypeDef *instance, uint16_t divisor)
 uint16_t spiGetErrorCounter(SPI_TypeDef *instance)
 {
     SPIDevice device = spiDeviceByInstance(instance);
-    if (device == SPIINVALID)
+    if (device == SPIINVALID) {
         return 0;
+    }
     return spiHardwareMap[device].errorCount;
 }
 
 void spiResetErrorCounter(SPI_TypeDef *instance)
 {
     SPIDevice device = spiDeviceByInstance(instance);
-    if (device != SPIINVALID)
+    if (device != SPIINVALID) {
         spiHardwareMap[device].errorCount = 0;
+    }
 }
+
+SPI_TypeDef * spiInstanceByDevice(SPIDevice device)
+{
+    return spiHardwareMap[device].dev;
+}
+#endif // USE_SPI

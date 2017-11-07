@@ -23,17 +23,23 @@
 #include "build/build_config.h"
 
 #include "common/utils.h"
-#include "io.h"
+#include "drivers/io.h"
 
+#if defined(STM32F4)
 #include "usb_core.h"
-#ifdef STM32F4
 #include "usbd_cdc_vcp.h"
+#include "usb_io.h"
+#elif defined(STM32F7)
+#include "vcp_hal/usbd_cdc_interface.h"
+#include "usb_io.h"
+USBD_HandleTypeDef USBD_Device;
 #else
+#include "usb_core.h"
 #include "usb_init.h"
 #include "hw_config.h"
 #endif
 
-#include "system.h"
+#include "drivers/time.h"
 
 #include "serial.h"
 #include "serial_usb_vcp.h"
@@ -69,7 +75,7 @@ static uint32_t usbVcpAvailable(const serialPort_t *instance)
 {
     UNUSED(instance);
 
-    return receiveLength;
+    return CDC_Receive_BytesAvailable();
 }
 
 static uint8_t usbVcpRead(serialPort_t *instance)
@@ -94,9 +100,8 @@ static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
 
     uint32_t start = millis();
     const uint8_t *p = data;
-    uint32_t txed = 0;
     while (count > 0) {
-        txed = CDC_Send_DATA(p, count);
+        uint32_t txed = CDC_Send_DATA(p, count);
         count -= txed;
         p += txed;
 
@@ -121,9 +126,8 @@ static bool usbVcpFlush(vcpPort_t *port)
 
     uint32_t start = millis();
     uint8_t *p = port->txBuf;
-    uint32_t txed = 0;
     while (count > 0) {
-        txed = CDC_Send_DATA(p, count);
+        uint32_t txed = CDC_Send_DATA(p, count);
         count -= txed;
         p += txed;
 
@@ -150,10 +154,10 @@ static void usbVcpBeginWrite(serialPort_t *instance)
     port->buffering = true;
 }
 
-uint8_t usbTxBytesFree()
+static uint32_t usbTxBytesFree(const serialPort_t *instance)
 {
-    // Because we block upon transmit and don't buffer bytes, our "buffer" capacity is effectively unlimited.
-    return 255;
+    UNUSED(instance);
+    return CDC_Send_FreeBytes();
 }
 
 static void usbVcpEndWrite(serialPort_t *instance)
@@ -182,10 +186,28 @@ serialPort_t *usbVcpOpen(void)
 {
     vcpPort_t *s;
 
-#ifdef STM32F4
+#if defined(STM32F4)
+    usbGenerateDisconnectPulse();
+
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
     USBD_Init(&USB_OTG_dev, USB_OTG_FS_CORE_ID, &USR_desc, &USBD_CDC_cb, &USR_cb);
+#elif defined(STM32F7)
+    usbGenerateDisconnectPulse();
+
+    IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
+    IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
+    /* Init Device Library */
+    USBD_Init(&USBD_Device, &VCP_Desc, 0);
+
+    /* Add Supported Class */
+    USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS);
+
+    /* Add CDC Interface Class */
+    USBD_CDC_RegisterInterface(&USBD_Device, &USBD_CDC_fops);
+
+    /* Start Device Process */
+    USBD_Start(&USBD_Device);
 #else
     Set_System();
     Set_USBClock();

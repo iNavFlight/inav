@@ -2,7 +2,7 @@
 
 The Naze32 target supports all Naze hardware revisions.  Revision 4 and 5 are used and
 frequently flown by the primary maintainer.  Previous Naze hardware revisions may have issues,
-if found please report via the [github issue tracker](https://github.com/cleanflight/cleanflight/issues).
+if found please report via the [github issue tracker](https://github.com/iNavFlight/inav/issues).
 
 ## Serial Ports
 
@@ -30,8 +30,8 @@ The 10 pin RC I/O connector has the following pinouts when used in RX_PPM/RX_SER
 | 6   | 4          | USART2 RX                   |                                  |
 | 7   | 5          | LED_STRIP                   | Enable `feature LED_STRIP`       |
 | 8   | 6          | unused                      |                                  |
-| 9   | 7          | Sonar Trigger               |                                  |
-| 10  | 8          | Sonar Echo / CURRENT        | Enable `feature CURRENT_METER`  Connect to the output of a current sensor, 0v-3.3v input |
+| 9   | 7          | HC-SR04 Trigger               |                                  |
+| 10  | 8          | HC-SR04 Echo / CURRENT        | Enable `feature CURRENT_METER`  Connect to the output of a current sensor, 0v-3.3v input |
 
 When SOFTSERIAL is enabled, LED_STRIP and CURRENT_METER are unavailable, but two SoftSerial ports are made available to use instead.
 

@@ -51,19 +51,23 @@
 #define BARO
 #define USE_BARO_SPI_BMP280
 
+#define MAG
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
+#define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+
+#define USE_PITOT_MS4525
+#define USE_PITOT_ADC
+
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
 #define USE_SOFTSERIAL1
-#define USE_SOFTSERIAL2
-#define SERIAL_PORT_COUNT       5
+#define SERIAL_PORT_COUNT       4
 
-#define SOFTSERIAL_1_TIMER TIM3
-#define SOFTSERIAL_1_TIMER_RX_HARDWARE 4 // PWM 5
-#define SOFTSERIAL_1_TIMER_TX_HARDWARE 5 // PWM 6
-#define SOFTSERIAL_2_TIMER TIM3
-#define SOFTSERIAL_2_TIMER_RX_HARDWARE 6 // PWM 7
-#define SOFTSERIAL_2_TIMER_TX_HARDWARE 7 // PWM 8
+#define SOFTSERIAL_1_RX_PIN     PA6
+#define SOFTSERIAL_1_TX_PIN     PA7
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -75,19 +79,28 @@
 #define UART3_RX_PIN            PB11 // PB11 (AF7)
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
-#define USE_ADC
-#define ADC_INSTANCE            ADC2
-#define VBAT_ADC_PIN            PA4
 
+#define USE_ADC
+#define ADC_CHANNEL_1_PIN               PA4
+#define ADC_CHANNEL_1_INSTANCE          ADC2
+#define ADC_CHANNEL_2_PIN               PA1
+#define ADC_CHANNEL_2_INSTANCE          ADC1
+
+#define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define AIRSPEED_ADC_CHANNEL            ADC_CHN_2
+
+
+/*
 #define LED_STRIP
 #define WS2811_TIMER                    TIM3
 #define WS2811_PIN                      PA6
 #define WS2811_DMA_CHANNEL              DMA1_Channel6
 #define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
+*/
 
-#define DEFAULT_FEATURES        FEATURE_VBAT
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_FEATURES        FEATURE_VBAT | FEATURE_SOFTSERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
 #define RX_CHANNELS_TAER
@@ -106,11 +119,11 @@
 
     #define MAX_PWM_OUTPUT_PORTS        8
     #define TARGET_MOTOR_COUNT          4
-    #define USABLE_TIMER_CHANNEL_COUNT  12
+    #define USABLE_TIMER_CHANNEL_COUNT  10
 #else
     #define MAX_PWM_OUTPUT_PORTS        10
     #define TARGET_MOTOR_COUNT          6
-    #define USABLE_TIMER_CHANNEL_COUNT  14
+    #define USABLE_TIMER_CHANNEL_COUNT  12
 #endif
 
 #define SPEKTRUM_BIND

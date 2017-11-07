@@ -21,13 +21,27 @@
 #include "platform.h"
 
 #include "fc/runtime_config.h"
+
 #include "io/beeper.h"
 
-uint16_t armingFlags = 0;
+uint32_t armingFlags = 0;
 uint32_t stateFlags = 0;
 uint32_t flightModeFlags = 0;
 
 static uint32_t enabledSensors = 0;
+
+armingFlag_e isArmingDisabledReason(void)
+{
+    armingFlag_e flag;
+    armingFlag_e reasons = armingFlags & ARMING_DISABLED_ALL_FLAGS;
+    for (unsigned ii = 0; ii < sizeof(armingFlag_e) * 8; ii++) {
+        flag = 1u << ii;
+        if (flag & reasons) {
+            return flag;
+        }
+    }
+    return 0;
+}
 
 /**
  * Enables the given flight mode.  A beep is sounded if the flight mode
@@ -75,4 +89,36 @@ void sensorsClear(uint32_t mask)
 uint32_t sensorsMask(void)
 {
     return enabledSensors;
+}
+
+flightModeForTelemetry_e getFlightModeForTelemetry(void)
+{
+    if (FLIGHT_MODE(PASSTHRU_MODE))
+        return FLM_MANUAL;
+
+    if (FLIGHT_MODE(FAILSAFE_MODE))
+        return FLM_FAILSAFE;
+
+    if (FLIGHT_MODE(NAV_RTH_MODE))
+        return FLM_RTH;
+
+    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
+        return FLM_POSITION_HOLD;
+
+    if (FLIGHT_MODE(NAV_WP_MODE))
+        return FLM_MISSION;
+
+    if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
+        return FLM_ALTITUDE_HOLD;
+
+    if (FLIGHT_MODE(ANGLE_MODE))
+        return FLM_ANGLE;
+
+    if (FLIGHT_MODE(HORIZON_MODE))
+        return FLM_HORIZON;
+
+    if (FLIGHT_MODE(NAV_LAUNCH_MODE))
+        return FLM_LAUNCH;
+    
+    return FLM_ACRO;
 }

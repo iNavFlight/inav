@@ -18,7 +18,8 @@
 #pragma once
 
 #include "common/axis.h"
-#include "drivers/accgyro.h"
+#include "config/parameter_group.h"
+#include "drivers/accgyro/accgyro.h"
 #include "sensors/sensors.h"
 
 // Type of accelerometer used/detected
@@ -32,7 +33,8 @@ typedef enum {
     ACC_LSM303DLHC = 6,
     ACC_MPU6000 = 7,
     ACC_MPU6500 = 8,
-    ACC_FAKE = 9,
+    ACC_MPU9250 = 9,
+    ACC_FAKE = 10,
     ACC_MAX = ACC_FAKE
 } accelerationSensor_e;
 
@@ -47,15 +49,21 @@ extern acc_t acc;
 typedef struct accelerometerConfig_s {
     sensor_align_e acc_align;               // acc alignment
     uint8_t acc_hardware;                   // Which acc hardware to use on boards with more than one device
+    uint16_t acc_lpf_hz;                    // cutoff frequency for the low pass filter used on the acc z-axis for althold in Hz
     flightDynamicsTrims_t accZero;          // Accelerometer offset
     flightDynamicsTrims_t accGain;          // Accelerometer gain to read exactly 1G
+    uint8_t acc_notch_hz;                   // Accelerometer notch filter frequency
+    uint8_t acc_notch_cutoff;               // Accelerometer notch filter cutoff frequency
 } accelerometerConfig_t;
 
-bool accInit(const accelerometerConfig_t *accConfig, uint32_t accTargetLooptime);
-bool isAccelerationCalibrationComplete(void);
+PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
+
+bool accInit(uint32_t accTargetLooptime);
+bool accIsCalibrationComplete(void);
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired);
-void updateAccelerationReadings(void);
-union flightDynamicsTrims_u;
-void setAccelerationCalibrationValues(union flightDynamicsTrims_u * accZeroToUse, union flightDynamicsTrims_u * accGainToUse);
-void setAccelerationFilter(uint8_t initialAccLpfCutHz);
-bool isAccelerometerHealthy(void);
+void accUpdate(void);
+void accSetCalibrationValues(void);
+void accInitFilters(void);
+bool accIsHealthy(void);
+bool accGetCalibrationAxisStatus(int axis);
+uint8_t accGetCalibrationAxisFlags(void);

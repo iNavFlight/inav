@@ -116,6 +116,19 @@ LoopFillZerobss:
   cmp  r2, r3
   bcc  FillZerobss
 
+/* Zero fill FASTRAM */ 
+  ldr  r2, =__fastram_bss_start__
+  b  LoopFillZeroFASTRAM
+
+FillZeroFASTRAM:
+  movs  r3, #0
+  str  r3, [r2], #4
+   
+LoopFillZeroFASTRAM:
+  ldr  r3, = __fastram_bss_end__
+  cmp  r2, r3
+  bcc  FillZeroFASTRAM
+
 /* Mark the heap and stack */
     ldr	r2, =_heap_stack_begin
     b	LoopMarkHeapStack
@@ -135,8 +148,8 @@ LoopMarkHeapStack:
  orr     r1,r1,#(0xF << 20)
  str     r1,[r0]
 
-/* Call the clock system intitialization function.*/
-  bl  SystemInit  
+/* Call the clock system intitialization function.*/ 
+    bl  SystemInit  
 
 /* Call the application's entry point.*/
   bl  main
@@ -146,6 +159,19 @@ LoopForever:
   b LoopForever
 
 Reboot_Loader:                // mj666
+#ifdef PIXRACER
+  // RCC->APB2ENR |= RCC_APB2Periph_SYSCFG;
+  ldr     r0, =0x40023800
+  ldr     r1, [r0, #0x44]
+  orr     r1, r1, 0x00004000    // RCC_APB2Periph_SYSCFG
+  str     r1, [r0, #0x44]
+
+  // Remap system memory to 0x00000000
+  // SYSCFG->MEMRMP = SYSCFG_MemoryRemap_SystemFlash
+  ldr     r0, =0x40013800
+  ldr     r1, =0x00000001
+  str     r1, [r0]
+#endif
 
   // Reboot to ROM            // mj666
   ldr     r0, =0x1FFF0000     // mj666
