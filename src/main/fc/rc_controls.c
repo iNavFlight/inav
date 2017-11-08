@@ -93,12 +93,21 @@ bool areSticksInApModePosition(uint16_t ap_mode)
 throttleStatus_e calculateThrottleStatus(void)
 {
     const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;
-    if (feature(FEATURE_3D) && (rcData[THROTTLE] > (rxConfig()->midrc - deadband3d_throttle) && rcData[THROTTLE] < (rxConfig()->midrc + deadband3d_throttle)))
-        return THROTTLE_LOW;
-    else if (!feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->mincheck))
-        return THROTTLE_LOW;
+    if (feature(FEATURE_3D)) {
+        if (rcData[THROTTLE] > (rxConfig()->midrc - deadband3d_throttle) && rcData[THROTTLE] < (rxConfig()->midrc + deadband3d_throttle)) {
+            return THROTTLE_LOW;
+        }
+        else if (rcData[THROTTLE] < rxConfig()->mincheck) {
+            return THROTTLE_FULL_NEGATIVE;
+        }
+    }
+    else {
+        if (rcData[THROTTLE] < rxConfig()->mincheck) {
+            return THROTTLE_LOW;
+        }
+    }
 
-    return THROTTLE_HIGH;
+    return THROTTLE_NOTLOW;
 }
 
 rollPitchStatus_e calculateRollPitchCenterStatus(void)
