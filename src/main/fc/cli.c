@@ -791,6 +791,8 @@ static void cliSerial(char *cmdline)
 #ifdef USE_SERIAL_PASSTHROUGH
 static void cliSerialPassthrough(char *cmdline)
 {
+    char * saveptr;
+
     if (isEmpty(cmdline)) {
         cliShowParseError();
         return;
@@ -799,7 +801,7 @@ static void cliSerialPassthrough(char *cmdline)
     int id = -1;
     uint32_t baud = 0;
     unsigned mode = 0;
-    char* tok = strtok(cmdline, " ");
+    char* tok = strtok_r(cmdline, " ", &saveptr);
     int index = 0;
 
     while (tok != NULL) {
@@ -818,7 +820,7 @@ static void cliSerialPassthrough(char *cmdline)
                 break;
         }
         index++;
-        tok = strtok(NULL, " ");
+        tok = strtok_r(NULL, " ", &saveptr);
     }
 
     serialPort_t *passThroughPort;
@@ -1235,16 +1237,18 @@ static void printModeColor(uint8_t dumpMask, const ledStripConfig_t *ledStripCon
 
 static void cliModeColor(char *cmdline)
 {
+    char * saveptr;
+
     if (isEmpty(cmdline)) {
         printModeColor(DUMP_MASTER, ledStripConfig(), NULL);
     } else {
         enum {MODE = 0, FUNCTION, COLOR, ARGS_COUNT};
         int args[ARGS_COUNT];
         int argNo = 0;
-        const char* ptr = strtok(cmdline, " ");
+        const char* ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr && argNo < ARGS_COUNT) {
             args[argNo++] = fastA2I(ptr);
-            ptr = strtok(NULL, " ");
+            ptr = strtok_r(NULL, " ", &saveptr);
         }
 
         if (ptr != NULL || argNo != ARGS_COUNT) {
@@ -1428,6 +1432,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
 
 static void cliServoMix(char *cmdline)
 {
+    char * saveptr;
     int args[8], check = 0;
     uint8_t len = strlen(cmdline);
 
@@ -1476,10 +1481,10 @@ static void cliServoMix(char *cmdline)
             return;
         }
 
-        ptr = strtok(ptr, " ");
+        ptr = strtok_r(ptr, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT - 1) {
             args[check++] = fastA2I(ptr);
-            ptr = strtok(NULL, " ");
+            ptr = strtok_r(NULL, " ", &saveptr);
         }
 
         if (ptr == NULL || check != ARGS_COUNT - 1) {
@@ -1500,10 +1505,10 @@ static void cliServoMix(char *cmdline)
         cliServoMix("reverse");
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, ARGS_COUNT};
-        char *ptr = strtok(cmdline, " ");
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
-            ptr = strtok(NULL, " ");
+            ptr = strtok_r(NULL, " ", &saveptr);
         }
 
         if (ptr != NULL || check != ARGS_COUNT) {
