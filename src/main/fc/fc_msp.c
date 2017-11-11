@@ -355,7 +355,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-    case MSP2_INAV_STATUS:
     case MSP_STATUS_EX:
     case MSP_STATUS:
         {
@@ -372,14 +371,31 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteData(dst, &mspBoxModeFlags, 4);
             sbufWriteU8(dst, getConfigProfile());
 
-            if (cmdMSP != MSP_STATUS) {
+            if (cmdMSP == MSP_STATUS_EX) {
                 sbufWriteU16(dst, averageSystemLoadPercent);
-                if (cmdMSP == MSP2_INAV_STATUS)
-                    sbufWriteU32(dst, armingFlags);
-                else
-                    sbufWriteU16(dst, armingFlags);
+                sbufWriteU16(dst, armingFlags);
                 sbufWriteU8(dst, accGetCalibrationAxisFlags());
             }
+        }
+        break;
+
+        case MSP2_INAV_STATUS:
+        {
+            // Preserves full arming flags and box modes
+            boxBitmask_t mspBoxModeFlags;
+            packBoxModeFlags(&mspBoxModeFlags);
+
+            sbufWriteU16(dst, (uint16_t)cycleTime);
+#ifdef USE_I2C
+            sbufWriteU16(dst, i2cGetErrorCounter());
+#else
+            sbufWriteU16(dst, 0);
+#endif
+            sbufWriteU16(dst, packSensorStatus());
+            sbufWriteU16(dst, averageSystemLoadPercent);
+            sbufWriteU8(dst, getConfigProfile());
+            sbufWriteU32(dst, armingFlags);
+            sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
         }
         break;
 
