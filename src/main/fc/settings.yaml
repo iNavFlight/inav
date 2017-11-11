@@ -1547,3 +1547,11 @@ groups:
       - name: tz_offset
         min: -1440
         max: 1440
+
+  - name: PG_DISPLAY_CONFIG
+    type: displayConfig_t
+    headers: ["drivers/display.h"]
+    members:
+      - name: display_force_sw_blink
+        field: force_sw_blink
+        type: bool
