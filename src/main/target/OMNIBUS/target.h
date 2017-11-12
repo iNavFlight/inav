@@ -125,6 +125,11 @@
 // Performance logging for SD card operations:
 // #define AFATFS_USE_INTROSPECTIVE_LOGGING
 
+#undef VTX_COMMON
+#undef VTX_CONTROL
+#undef VTX_TRAMP
+#undef VTX_SMARTAUDIO
+
 #define OSD
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI1

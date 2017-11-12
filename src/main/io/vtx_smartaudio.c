@@ -25,19 +25,21 @@
 #include "platform.h"
 
 #if defined(VTX_SMARTAUDIO) && defined(VTX_CONTROL)
+
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "cms/cms.h"
 #include "cms/cms_types.h"
+#include "cms/cms_menu_vtx_smartaudio.h"
 
-#include "common/axis.h"
+#include "common/maths.h"
 #include "common/printf.h"
 #include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/system.h"
 #include "drivers/serial.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
@@ -45,40 +47,23 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
-#include "flight/pid.h"
-#include "config/config_master.h"
-
 #include "io/serial.h"
+#include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
+#include "io/vtx_settings_config.h"
 #include "io/vtx_string.h"
 
 //#define SMARTAUDIO_DPRINTF
 //#define SMARTAUDIO_DEBUG_MONITOR
 
 #ifdef SMARTAUDIO_DPRINTF
-
-#ifdef OMNIBUSF4
-#define DPRINTF_SERIAL_PORT SERIAL_PORT_USART3
-#else
-#define DPRINTF_SERIAL_PORT SERIAL_PORT_USART1
-#endif
-
 serialPort_t *debugSerialPort = NULL;
-#define dprintf(x) if (debugSerialPort) printf x
-#else
-#define dprintf(x)
-#endif
-
-#include "build/debug.h"
-
-#ifdef CMS
-static void saUpdateStatusString(void); // Forward
-#endif
+#endif // SMARTAUDIO_DPRINTF
 
 static serialPort_t *smartAudioSerialPort = NULL;
 
 #if defined(CMS) || defined(VTX_COMMON)
-static const char * const saPowerNames[] = {
+static const char * const saPowerNames[VTX_SMARTAUDIO_POWER_COUNT+1] = {
     "---", "25 ", "200", "500", "800",
 };
 #endif
@@ -87,9 +72,9 @@ static const char * const saPowerNames[] = {
 static const vtxVTable_t saVTable;    // Forward
 static vtxDevice_t vtxSmartAudio = {
     .vTable = &saVTable,
-    .capability.bandCount = 5,
-    .capability.channelCount = 8,
-    .capability.powerCount = 4,
+    .capability.bandCount = VTX_SMARTAUDIO_BAND_COUNT,
+    .capability.channelCount = VTX_SMARTAUDIO_CHANNEL_COUNT,
+    .capability.powerCount = VTX_SMARTAUDIO_POWER_COUNT,
     .bandNames = (char **)vtx58BandNames,
     .channelNames = (char **)vtx58ChannelNames,
     .powerNames = (char **)saPowerNames,
@@ -110,44 +95,21 @@ enum {
 // This is not a good design; can't distinguish command from response this way.
 #define SACMD(cmd) (((cmd) << 1) | 1)
 
-// opmode flags, GET side
-#define SA_MODE_GET_FREQ_BY_FREQ            1
-#define SA_MODE_GET_PITMODE                 2
-#define SA_MODE_GET_IN_RANGE_PITMODE        4
-#define SA_MODE_GET_OUT_RANGE_PITMODE       8
-#define SA_MODE_GET_UNLOCK                 16
-#define SA_MODE_GET_DEFERRED_FREQ          32
 
 #define SA_IS_PITMODE(n) ((n) & SA_MODE_GET_PITMODE)
 #define SA_IS_PIRMODE(n) (((n) & SA_MODE_GET_PITMODE) && ((n) & SA_MODE_GET_IN_RANGE_PITMODE))
 #define SA_IS_PORMODE(n) (((n) & SA_MODE_GET_PITMODE) && ((n) & SA_MODE_GET_OUT_RANGE_PITMODE))
 
-// opmode flags, SET side
-#define SA_MODE_SET_IN_RANGE_PITMODE        1 // Immediate
-#define SA_MODE_SET_OUT_RANGE_PITMODE        2 // Immediate
-#define SA_MODE_CLR_PITMODE                 4 // Immediate
-#define SA_MODE_SET_UNLOCK                  8
-#define SA_MODE_SET_LOCK                    0 // ~UNLOCK
-#define SA_MODE_SET_DEFERRED_FREQ          16
 
-// SetFrequency flags, for pit mode frequency manipulation
-#define SA_FREQ_GETPIT                      (1 << 14)
-#define SA_FREQ_SETPIT                      (1 << 15)
-#define SA_FREQ_MASK                        (~(SA_FREQ_GETPIT|SA_FREQ_SETPIT))
+// convert between 'saDevice.channel' and band/channel values
+#define SA_DEVICE_CHVAL_TO_BAND(val) ((val) / (uint8_t)8)
+#define SA_DEVICE_CHVAL_TO_CHANNEL(val) ((val) % (uint8_t)8)
+#define SA_BANDCHAN_TO_DEVICE_CHVAL(band, channel) ((band) * (uint8_t)8 + (channel))
+
 
 // Statistical counters, for user side trouble shooting.
 
-typedef struct smartAudioStat_s {
-    uint16_t pktsent;
-    uint16_t pktrcvd;
-    uint16_t badpre;
-    uint16_t badlen;
-    uint16_t crc;
-    uint16_t ooopresp;
-    uint16_t badcode;
-} smartAudioStat_t;
-
-static smartAudioStat_t saStat = {
+smartAudioStat_t saStat = {
     .pktsent = 0,
     .pktrcvd = 0,
     .badpre = 0,
@@ -157,13 +119,7 @@ static smartAudioStat_t saStat = {
     .badcode = 0,
 };
 
-typedef struct saPowerTable_s {
-    int rfpower;
-    int16_t valueV1;
-    int16_t valueV2;
-} saPowerTable_t;
-
-static saPowerTable_t saPowerTable[] = {
+saPowerTable_t saPowerTable[VTX_SMARTAUDIO_POWER_COUNT] = {
     {  25,   7,   0 },
     { 200,  16,   1 },
     { 500,  25,   2 },
@@ -172,16 +128,7 @@ static saPowerTable_t saPowerTable[] = {
 
 // Last received device ('hard') states
 
-typedef struct smartAudioDevice_s {
-    int8_t version;
-    int8_t channel;
-    int8_t power;
-    int8_t mode;
-    uint16_t freq;
-    uint16_t orfreq;
-} smartAudioDevice_t;
-
-static smartAudioDevice_t saDevice = {
+smartAudioDevice_t saDevice = {
     .version = 0,
     .channel = -1,
     .power = -1,
@@ -198,7 +145,7 @@ static smartAudioDevice_t saDevicePrev = {
 static uint8_t saLockMode = SA_MODE_SET_UNLOCK; // saCms variable?
 
 // XXX Should be configurable by user?
-static bool saDeferred = true; // saCms variable?
+bool saDeferred = true; // saCms variable?
 
 // Receive frame reassembly buffer
 #define SA_MAX_RCVLEN 11
@@ -232,9 +179,9 @@ static uint8_t CRC8(const uint8_t *data, const int8_t len)
 }
 
 
+#ifdef SMARTAUDIO_DPRINTF
 static void saPrintSettings(void)
 {
-#ifdef SMARTAUDIO_DPRINTF
     dprintf(("Current status: version: %d\r\n", saDevice.version));
     dprintf(("  mode(0x%x): fmode=%s", saDevice.mode,  (saDevice.mode & 1) ? "freq" : "chan"));
     dprintf((" pit=%s ", (saDevice.mode & 2) ? "on " : "off"));
@@ -247,18 +194,17 @@ static void saPrintSettings(void)
     dprintf(("power: %d ", saDevice.power));
     dprintf(("pitfreq: %d ", saDevice.orfreq));
     dprintf(("\r\n"));
-#endif
 }
+#endif
 
-static int saDacToPowerIndex(int dac)
+int saDacToPowerIndex(int dac)
 {
-    int idx;
-
-    for (idx = 3 ; idx >= 0 ; idx--) {
-        if (saPowerTable[idx].valueV1 <= dac)
-            return(idx);
+    for (int idx = 3 ; idx >= 0 ; idx--) {
+        if (saPowerTable[idx].valueV1 <= dac) {
+            return idx;
+        }
     }
-    return(0);
+    return 0;
 }
 
 //
@@ -275,9 +221,10 @@ static int sa_baudstep = 50;
 
 static void saAutobaud(void)
 {
-    if (saStat.pktsent < 10)
+    if (saStat.pktsent < 10) {
         // Not enough samples collected
         return;
+    }
 
 #if 0
     dprintf(("autobaud: %d rcvd %d/%d (%d)\r\n",
@@ -318,10 +265,6 @@ static uint8_t sa_outstanding = SA_CMD_NONE; // Outstanding command
 static uint8_t sa_osbuf[32]; // Outstanding comamnd frame for retransmission
 static int sa_oslen;         // And associate length
 
-#ifdef CMS
-void saCmsUpdate(void);
-#endif
-
 static void saProcessResponse(uint8_t *buf, int len)
 {
     uint8_t resp = buf[0];
@@ -335,11 +278,12 @@ static void saProcessResponse(uint8_t *buf, int len)
         dprintf(("processResponse: outstanding %d got %d\r\n", sa_outstanding, resp));
     }
 
-    switch(resp) {
+    switch (resp) {
     case SA_CMD_GET_SETTINGS_V2: // Version 2 Get Settings
     case SA_CMD_GET_SETTINGS:    // Version 1 Get Settings
-        if (len < 7)
+        if (len < 7) {
             break;
+        }
 
         saDevice.version = (buf[0] == SA_CMD_GET_SETTINGS) ? 1 : 2;
         saDevice.channel = buf[2];
@@ -362,10 +306,11 @@ static void saProcessResponse(uint8_t *buf, int len)
         break;
 
     case SA_CMD_SET_FREQ: // Set Frequency
-        if (len < 5)
+        if (len < 5) {
             break;
+        }
 
-        uint16_t freq = (buf[2] << 8)|buf[3];
+        const uint16_t freq = (buf[2] << 8)|buf[3];
 
         if (freq & SA_FREQ_GETPIT) {
             saDevice.orfreq = freq & SA_FREQ_MASK;
@@ -388,9 +333,14 @@ static void saProcessResponse(uint8_t *buf, int len)
         return;
     }
 
-    // Debug
-    if (memcmp(&saDevice, &saDevicePrev, sizeof(smartAudioDevice_t)))
+    if (memcmp(&saDevice, &saDevicePrev, sizeof(smartAudioDevice_t))) {
+#ifdef CMS    //if changes then trigger saCms update
+        saCmsResetOpmodel();
+#endif
+#ifdef SMARTAUDIO_DPRINTF    // Debug
         saPrintSettings();
+#endif
+    }
     saDevicePrev = saDevice;
 
 #ifdef VTX_COMMON
@@ -423,7 +373,7 @@ static void saReceiveFramer(uint8_t c)
     static int len;
     static int dlen;
 
-    switch(state) {
+    switch (state) {
     case S_WAITPRE1:
         if (c == 0xAA) {
             state = S_WAITPRE2;
@@ -488,12 +438,11 @@ static void saReceiveFramer(uint8_t c)
 
 static void saSendFrame(uint8_t *buf, int len)
 {
-    int i;
-
     serialWrite(smartAudioSerialPort, 0x00); // Generate 1st start bit
 
-    for (i = 0 ; i < len ; i++)
+    for (int i = 0 ; i < len ; i++) {
         serialWrite(smartAudioSerialPort, buf[i]);
+    }
 
     serialWrite(smartAudioSerialPort, 0x00); // XXX Probably don't need this
 
@@ -528,10 +477,9 @@ static void saResendCmd(void)
 
 static void saSendCmd(uint8_t *buf, int len)
 {
-    int i;
-
-    for (i = 0 ; i < len ; i++)
+    for (int i = 0 ; i < len ; i++) {
         sa_osbuf[i] = buf[i];
+    }
 
     sa_oslen = len;
     sa_outstanding = (buf[2] >> 1);
@@ -574,8 +522,9 @@ static bool saQueueFull(void)
 
 static void saQueueCmd(uint8_t *buf, int len)
 {
-    if (saQueueFull())
+    if (saQueueFull()) {
          return;
+    }
 
     sa_queue[sa_qhead].buf = buf;
     sa_queue[sa_qhead].len = len;
@@ -584,8 +533,9 @@ static void saQueueCmd(uint8_t *buf, int len)
 
 static void saSendQueue(void)
 {
-    if (saQueueEmpty())
+    if (saQueueEmpty()) {
          return;
+    }
 
     saSendCmd(sa_queue[sa_qtail].buf, sa_queue[sa_qtail].len);
     sa_qtail = (sa_qtail + 1) % SA_QSIZE;
@@ -600,7 +550,12 @@ static void saGetSettings(void)
     saQueueCmd(bufGetSettings, 5);
 }
 
-static void saSetFreq(uint16_t freq)
+static bool saValidateFreq(uint16_t freq)
+{
+    return (freq >= VTX_SMARTAUDIO_MIN_FREQUENCY_MHZ && freq <= VTX_SMARTAUDIO_MAX_FREQUENCY_MHZ);
+}
+
+static void saDoDevSetFreq(uint16_t freq)
 {
     static uint8_t buf[7] = { 0xAA, 0x55, SACMD(SA_CMD_SET_FREQ), 2 };
 
@@ -619,29 +574,62 @@ static void saSetFreq(uint16_t freq)
     saQueueCmd(buf, 7);
 }
 
-#if 0
-static void saSetPitFreq(uint16_t freq)
+static void saDevSetFreq(uint16_t freq)
 {
-    saSetFreq(freq | SA_FREQ_SETPIT);
+    // Need to work around apparent SmartAudio bug when going from 'channel'
+    // to 'user-freq' mode, where the set-freq command will fail if the freq
+    // value is unchanged from the previous 'user-freq' mode
+    if ((saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ) == 0 &&
+                                                    freq == saDevice.freq) {
+        saDoDevSetFreq(freq + 1);
+        saSendQueue();
+        saGetSettings();
+        saSendQueue();
+    }
+    saDoDevSetFreq(freq);          //enter desired frequency
 }
 
+void saSetFreq(uint16_t freq)
+{
+    saDevSetFreq(freq);
+    vtxSettingsSaveFrequency(freq);
+}
+
+void saSetPitFreq(uint16_t freq)
+{
+    saDoDevSetFreq(freq | SA_FREQ_SETPIT);
+}
+
+#if 0
 static void saGetPitFreq(void)
 {
-    saSetFreq(SA_FREQ_GETPIT);
+    saDoDevSetFreq(SA_FREQ_GETPIT);
 }
 #endif
 
-void saSetBandAndChannel(uint8_t band, uint8_t channel)
+static bool saValidateBandAndChannel(uint8_t band, uint8_t channel)
+{
+    return (band >= VTX_SMARTAUDIO_MIN_BAND && band <= VTX_SMARTAUDIO_MAX_BAND &&
+             channel >= VTX_SMARTAUDIO_MIN_CHANNEL && channel <= VTX_SMARTAUDIO_MAX_CHANNEL);
+}
+
+static void saDevSetBandAndChannel(uint8_t band, uint8_t channel)
 {
     static uint8_t buf[6] = { 0xAA, 0x55, SACMD(SA_CMD_SET_CHAN), 1 };
 
-    buf[4] = band * 8 + channel;
+    buf[4] = SA_BANDCHAN_TO_DEVICE_CHVAL(band, channel);
     buf[5] = CRC8(buf, 5);
 
     saQueueCmd(buf, 6);
 }
 
-static void saSetMode(int mode)
+void saSetBandAndChannel(uint8_t band, uint8_t channel)
+{
+    saDevSetBandAndChannel(band, channel);
+    vtxSettingsSaveBandAndChannel(band + 1, channel + 1);
+}
+
+void saSetMode(int mode)
 {
     static uint8_t buf[6] = { 0xAA, 0x55, SACMD(SA_CMD_SET_MODE), 1 };
 
@@ -651,7 +639,7 @@ static void saSetMode(int mode)
     saQueueCmd(buf, 6);
 }
 
-void saSetPowerByIndex(uint8_t index)
+static void saDevSetPowerByIndex(uint8_t index)
 {
     static uint8_t buf[6] = { 0xAA, 0x55, SACMD(SA_CMD_SET_POWER), 1 };
 
@@ -662,12 +650,50 @@ void saSetPowerByIndex(uint8_t index)
         return;
     }
 
-    if (index > 3)
+    if (index >= VTX_SMARTAUDIO_POWER_COUNT) {
         return;
+    }
 
     buf[4] = (saDevice.version == 1) ? saPowerTable[index].valueV1 : saPowerTable[index].valueV2;
     buf[5] = CRC8(buf, 5);
     saQueueCmd(buf, 6);
+}
+
+void saSetPowerByIndex(uint8_t index)
+{
+    saDevSetPowerByIndex(index);
+    vtxSettingsSavePowerByIndex(index + 1);
+}
+
+static bool saEnterInitBandChanAndPower(uint8_t band, uint8_t channel, uint8_t power)
+{
+    if (!saValidateBandAndChannel(band, channel)) {
+        return false;
+    }
+    saDevSetBandAndChannel(band - 1, channel - 1);
+
+    uint8_t pwrIdx = constrain(power - 1, 0, VTX_SMARTAUDIO_POWER_COUNT - 1);
+    saDevSetPowerByIndex(pwrIdx);
+
+    // update 'vtx_freq' via band/channel table and enter
+    //  power-index value (in case current value is out of range)
+    vtxSettingsSaveFreqAndPower(vtx58_Bandchan2Freq(band, channel), pwrIdx + 1);
+
+    return true;
+}
+
+static void saEnterInitFreqAndPower(uint16_t freq, uint8_t power)
+{
+    if (saValidateFreq(freq)) {
+        saSetMode(0);        //need to be in FREE mode to set freq
+        saDevSetFreq(freq);
+    }
+
+    uint8_t pwrIdx = constrain(power - 1, 0, VTX_SMARTAUDIO_POWER_COUNT - 1);
+    saDevSetPowerByIndex(pwrIdx);
+
+    // enter power-index value (in case current value is out of range)
+    vtxSettingsSavePowerByIndex(pwrIdx + 1);
 }
 
 bool vtxSmartAudioInit(void)
@@ -684,7 +710,14 @@ bool vtxSmartAudioInit(void)
 
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_SMARTAUDIO);
     if (portConfig) {
-        smartAudioSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_SMARTAUDIO, NULL, 4800, MODE_RXTX, SERIAL_BIDIR|SERIAL_BIDIR_PP);
+        portOptions_t portOptions = 0;
+#if defined(VTX_COMMON)
+        portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR | SERIAL_BIDIR_PP : SERIAL_UNIDIR);
+#else
+        portOptions = SERIAL_BIDIR;
+#endif
+
+        smartAudioSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_SMARTAUDIO, NULL, 4800, MODE_RXTX, portOptions);
     }
 
     if (!smartAudioSerialPort) {
@@ -698,10 +731,12 @@ bool vtxSmartAudioInit(void)
 
 void vtxSAProcess(uint32_t now)
 {
-    static bool initialSent = false;
+    static char initPhase = 0;
+    static bool initSettingsDoneFlag = false;
 
-    if (smartAudioSerialPort == NULL)
+    if (smartAudioSerialPort == NULL) {
         return;
+    }
 
     while (serialRxBytesWaiting(smartAudioSerialPort) > 0) {
         uint8_t c = serialRead(smartAudioSerialPort);
@@ -711,16 +746,23 @@ void vtxSAProcess(uint32_t now)
     // Re-evaluate baudrate after each frame reception
     saAutobaud();
 
-    if (!initialSent) {
+    switch (initPhase) {
+    case 0:
         saGetSettings();
-        saSetFreq(SA_FREQ_GETPIT);
         saSendQueue();
-        initialSent = true;
+        ++initPhase;
         return;
+
+    case 1:
+        // Don't send SA_FREQ_GETPIT to V1 device; it act as plain SA_CMD_SET_FREQ,
+        // and put the device into user frequency mode with uninitialized freq.
+        if (saDevice.version == 2)
+            saDoDevSetFreq(SA_FREQ_GETPIT);
+        ++initPhase;
+        break;
     }
 
-    if ((sa_outstanding != SA_CMD_NONE)
-            && (now - sa_lastTransmission > SMARTAUDIO_CMD_TIMEOUT)) {
+    if ((sa_outstanding != SA_CMD_NONE) && (now - sa_lastTransmission > SMARTAUDIO_CMD_TIMEOUT)) {
         // Last command timed out
         // dprintf(("process: resending 0x%x\r\n", sa_outstanding));
         // XXX Todo: Resend termination and possible offline transition
@@ -729,19 +771,39 @@ void vtxSAProcess(uint32_t now)
         // Command pending. Send it.
         // dprintf(("process: sending queue\r\n"));
         saSendQueue();
-    } else if (now - sa_lastTransmission >= 1000) {
+    } else if (saDevice.version != 0 && now - sa_lastTransmission >= 1000) {
         // Heart beat for autobauding
         //dprintf(("process: sending heartbeat\r\n"));
         saGetSettings();
         saSendQueue();
     }
 
+    // once device is ready enter vtx settings
+    if (!initSettingsDoneFlag) {
+        if (saDevice.version != 0) {
+            initSettingsDoneFlag = true;
+            // if vtx_band!=0 then enter 'vtx_band/chan' values (and power)
+            if (!saEnterInitBandChanAndPower(vtxSettingsConfig()->band,
+                           vtxSettingsConfig()->channel, vtxSettingsConfig()->power)) {
+                // if vtx_band==0 then enter 'vtx_freq' value (and power)
+                if (vtxSettingsConfig()->band == 0) {
+                    saEnterInitFreqAndPower(vtxSettingsConfig()->freq, vtxSettingsConfig()->power);
+                }
+            }
+        } else if (now - sa_lastTransmission >= 100) {
+            // device is not ready; repeat query
+            saGetSettings();
+            saSendQueue();
+        }
+    }
+
 #ifdef SMARTAUDIO_TEST_VTX_COMMON
     // Testing VTX_COMMON API
     {
         static uint32_t lastMonitorUs = 0;
-        if (cmp32(now, lastMonitorUs) < 5 * 1000 * 1000)
+        if (cmp32(now, lastMonitorUs) < 5 * 1000 * 1000) {
             return;
+        }
 
         static uint8_t monBand;
         static uint8_t monChan;
@@ -771,8 +833,9 @@ bool vtxSAIsReady(void)
 
 void vtxSASetBandAndChannel(uint8_t band, uint8_t channel)
 {
-    if (band && channel)
+    if (saValidateBandAndChannel(band, channel)) {
         saSetBandAndChannel(band - 1, channel - 1);
+    }
 }
 
 void vtxSASetPowerByIndex(uint8_t index)
@@ -787,8 +850,9 @@ void vtxSASetPowerByIndex(uint8_t index)
 
 void vtxSASetPitMode(uint8_t onoff)
 {
-    if (!(vtxSAIsReady() && (saDevice.version == 2)))
+    if (!(vtxSAIsReady() && (saDevice.version == 2))) {
         return;
+    }
 
     if (onoff) {
         // SmartAudio can not turn pit mode on by software.
@@ -797,31 +861,45 @@ void vtxSASetPitMode(uint8_t onoff)
 
     uint8_t newmode = SA_MODE_CLR_PITMODE;
 
-    if (saDevice.mode & SA_MODE_GET_IN_RANGE_PITMODE)
+    if (saDevice.mode & SA_MODE_GET_IN_RANGE_PITMODE) {
         newmode |= SA_MODE_SET_IN_RANGE_PITMODE;
+    }
 
-    if (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE)
+    if (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE) {
         newmode |= SA_MODE_SET_OUT_RANGE_PITMODE;
+    }
 
     saSetMode(newmode);
 
     return;
 }
 
+void vtxSASetFreq(uint16_t freq)
+{
+    if (saValidateFreq(freq)) {
+        saSetMode(0);        //need to be in FREE mode to set freq
+        saSetFreq(freq);
+    }
+}
+
 bool vtxSAGetBandAndChannel(uint8_t *pBand, uint8_t *pChannel)
 {
-    if (!vtxSAIsReady())
+    if (!vtxSAIsReady()) {
         return false;
+    }
 
-    *pBand = (saDevice.channel / 8) + 1;
-    *pChannel = (saDevice.channel % 8) + 1;
+    // if in user-freq mode then report band as zero
+    *pBand = (saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ) ? 0 :
+             (SA_DEVICE_CHVAL_TO_BAND(saDevice.channel) + 1);
+    *pChannel = SA_DEVICE_CHVAL_TO_CHANNEL(saDevice.channel) + 1;
     return true;
 }
 
 bool vtxSAGetPowerIndex(uint8_t *pIndex)
 {
-    if (!vtxSAIsReady())
+    if (!vtxSAIsReady()) {
         return false;
+    }
 
     *pIndex = ((saDevice.version == 1) ? saDacToPowerIndex(saDevice.power) : saDevice.power) + 1;
     return true;
@@ -829,10 +907,24 @@ bool vtxSAGetPowerIndex(uint8_t *pIndex)
 
 bool vtxSAGetPitMode(uint8_t *pOnOff)
 {
-    if (!(vtxSAIsReady() && (saDevice.version == 2)))
+    if (!(vtxSAIsReady() && (saDevice.version == 2))) {
         return false;
+    }
 
     *pOnOff = (saDevice.mode & SA_MODE_GET_PITMODE) ? 1 : 0;
+    return true;
+}
+
+bool vtxSAGetFreq(uint16_t *pFreq)
+{
+    if (!vtxSAIsReady()) {
+        return false;
+    }
+
+    // if not in user-freq mode then convert band/chan to frequency
+    *pFreq = (saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ) ? saDevice.freq :
+             vtx58_Bandchan2Freq(SA_DEVICE_CHVAL_TO_BAND(saDevice.channel) + 1,
+                                 SA_DEVICE_CHVAL_TO_CHANNEL(saDevice.channel) + 1);
     return true;
 }
 
@@ -843,593 +935,13 @@ static const vtxVTable_t saVTable = {
     .setBandAndChannel = vtxSASetBandAndChannel,
     .setPowerByIndex = vtxSASetPowerByIndex,
     .setPitMode = vtxSASetPitMode,
+    .setFrequency = vtxSASetFreq,
     .getBandAndChannel = vtxSAGetBandAndChannel,
     .getPowerIndex = vtxSAGetPowerIndex,
     .getPitMode = vtxSAGetPitMode,
+    .getFrequency = vtxSAGetFreq,
 };
 #endif // VTX_COMMON
 
-#ifdef CMS
-
-// Interface to CMS
-
-// Operational Model and RF modes (CMS)
-
-#define SACMS_OPMODEL_UNDEF        0 // Not known yet
-#define SACMS_OPMODEL_FREE         1 // Freestyle model: Power up transmitting
-#define SACMS_OPMODEL_RACE         2 // Race model: Power up in pit mode
-
-uint8_t  saCmsOpmodel = SACMS_OPMODEL_UNDEF;
-
-#define SACMS_TXMODE_NODEF         0
-#define SACMS_TXMODE_PIT_OUTRANGE  1
-#define SACMS_TXMODE_PIT_INRANGE   2
-#define SACMS_TXMODE_ACTIVE        3
-
-uint8_t  saCmsRFState;          // RF state; ACTIVE, PIR, POR XXX Not currently used
-
-uint8_t  saCmsBand = 0;
-uint8_t  saCmsChan = 0;
-uint8_t  saCmsPower = 0;
-
-// Frequency derived from channel table (used for reference in band/channel mode)
-uint16_t saCmsFreqRef = 0;
-
-uint16_t saCmsDeviceFreq = 0;
-
-uint8_t  saCmsDeviceStatus = 0;
-uint8_t  saCmsPower;
-uint8_t  saCmsPitFMode;         // In-Range or Out-Range
-uint8_t  saCmsFselMode;          // Channel(0) or User defined(1)
-
-uint16_t saCmsORFreq = 0;       // POR frequency
-uint16_t saCmsORFreqNew;        // POR frequency
-
-uint16_t saCmsUserFreq = 0;     // User defined frequency
-uint16_t saCmsUserFreqNew;      // User defined frequency
-
-void saCmsUpdate(void)
-{
-// XXX Take care of pit mode update somewhere???
-
-    if (saCmsOpmodel == SACMS_OPMODEL_UNDEF) {
-        // This is a first valid response to GET_SETTINGS.
-        saCmsOpmodel = (saDevice.mode & SA_MODE_GET_PITMODE) ? SACMS_OPMODEL_RACE : SACMS_OPMODEL_FREE;
-
-        saCmsFselMode = (saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ) ? 1 : 0;
-
-        saCmsBand = (saDevice.channel / 8) + 1;
-        saCmsChan = (saDevice.channel % 8) + 1;
-        saCmsFreqRef = vtx58frequencyTable[saDevice.channel / 8][saDevice.channel % 8];
-
-        saCmsDeviceFreq = vtx58frequencyTable[saDevice.channel / 8][saDevice.channel % 8];
-
-        if ((saDevice.mode & SA_MODE_GET_PITMODE) == 0) {
-            saCmsRFState = SACMS_TXMODE_ACTIVE;
-        } else if (saDevice.mode & SA_MODE_GET_IN_RANGE_PITMODE) {
-            saCmsRFState = SACMS_TXMODE_PIT_INRANGE;
-        } else {
-            saCmsRFState = SACMS_TXMODE_PIT_OUTRANGE;
-        }
-
-        if (saDevice.version == 2) {
-            saCmsPower = saDevice.power + 1; // XXX Take care V1
-        } else {
-            saCmsPower = saDacToPowerIndex(saDevice.power) + 1;
-        }
-    }
-
-    saUpdateStatusString();
-}
-
-char saCmsStatusString[31] = "- -- ---- ---";
-//                            m bc ffff ppp
-//                            0123456789012
-
-static long saCmsConfigOpmodelByGvar(displayPort_t *, const void *self);
-static long saCmsConfigPitFModeByGvar(displayPort_t *, const void *self);
-static long saCmsConfigBandByGvar(displayPort_t *, const void *self);
-static long saCmsConfigChanByGvar(displayPort_t *, const void *self);
-static long saCmsConfigPowerByGvar(displayPort_t *, const void *self);
-
-static void saUpdateStatusString(void)
-{
-    if (saDevice.version == 0)
-        return;
-
-// XXX These should be done somewhere else
-if (saCmsDeviceStatus == 0 && saDevice.version != 0)
-    saCmsDeviceStatus = saDevice.version;
-if (saCmsORFreq == 0 && saDevice.orfreq != 0)
-    saCmsORFreq = saDevice.orfreq;
-if (saCmsUserFreq == 0 && saDevice.freq != 0)
-    saCmsUserFreq = saDevice.freq;
-
-if (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE)
-    saCmsPitFMode = 1;
-else
-    saCmsPitFMode = 0;
-
-    saCmsStatusString[0] = "-FR"[saCmsOpmodel];
-
-    if (saCmsFselMode == 0) {
-        saCmsStatusString[2] = "ABEFR"[saDevice.channel / 8];
-        saCmsStatusString[3] = '1' + (saDevice.channel % 8);
-    } else {
-        saCmsStatusString[2] = 'U';
-        saCmsStatusString[3] = 'F';
-    }
-
-    if ((saDevice.mode & SA_MODE_GET_PITMODE)
-       && (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE))
-        tfp_sprintf(&saCmsStatusString[5], "%4d", saDevice.orfreq);
-    else if (saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ)
-        tfp_sprintf(&saCmsStatusString[5], "%4d", saDevice.freq);
-    else
-        tfp_sprintf(&saCmsStatusString[5], "%4d",
-            vtx58frequencyTable[saDevice.channel / 8][saDevice.channel % 8]);
-
-    saCmsStatusString[9] = ' ';
-
-    if (saDevice.mode & SA_MODE_GET_PITMODE) {
-        saCmsStatusString[10] = 'P';
-        if (saDevice.mode & SA_MODE_GET_IN_RANGE_PITMODE) {
-            saCmsStatusString[11] = 'I';
-        } else {
-            saCmsStatusString[11] = 'O';
-        }
-        saCmsStatusString[12] = 'R';
-        saCmsStatusString[13] = 0;
-    } else {
-        tfp_sprintf(&saCmsStatusString[10], "%3d", (saDevice.version == 2) ?  saPowerTable[saDevice.power].rfpower : saPowerTable[saDacToPowerIndex(saDevice.power)].rfpower);
-    }
-}
-
-static long saCmsConfigBandByGvar(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    if (saDevice.version == 0) {
-        // Bounce back; not online yet
-        saCmsBand = 0;
-        return 0;
-    }
-
-    if (saCmsBand == 0) {
-        // Bouce back, no going back to undef state
-        saCmsBand = 1;
-        return 0;
-    }
-
-    if ((saCmsOpmodel == SACMS_OPMODEL_FREE) && !saDeferred)
-        saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-
-    saCmsFreqRef = vtx58frequencyTable[saCmsBand - 1][saCmsChan - 1];
-
-    return 0;
-}
-
-static long saCmsConfigChanByGvar(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    if (saDevice.version == 0) {
-        // Bounce back; not online yet
-        saCmsChan = 0;
-        return 0;
-    }
-
-    if (saCmsChan == 0) {
-        // Bounce back; no going back to undef state
-        saCmsChan = 1;
-        return 0;
-    }
-
-    if ((saCmsOpmodel == SACMS_OPMODEL_FREE) && !saDeferred)
-        saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-
-    saCmsFreqRef = vtx58frequencyTable[saCmsBand - 1][saCmsChan - 1];
-
-    return 0;
-}
-
-static long saCmsConfigPowerByGvar(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    if (saDevice.version == 0) {
-        // Bounce back; not online yet
-        saCmsPower = 0;
-        return 0;
-    }
-
-    if (saCmsPower == 0) {
-        // Bouce back; no going back to undef state
-        saCmsPower = 1;
-        return 0;
-    }
-
-    if (saCmsOpmodel == SACMS_OPMODEL_FREE)
-        saSetPowerByIndex(saCmsPower - 1);
-
-    return 0;
-}
-
-static long saCmsConfigPitFModeByGvar(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    dprintf(("saCmsConfigPitFmodeByGbar: saCmsPitFMode %d\r\n", saCmsPitFMode));
-
-    if (saCmsPitFMode == 0) {
-        saSetMode(SA_MODE_SET_IN_RANGE_PITMODE);
-    } else {
-        saSetMode(SA_MODE_SET_OUT_RANGE_PITMODE);
-    }
-
-    return 0;
-}
-
-static long saCmsConfigFreqModeByGvar(displayPort_t *pDisp, const void *self); // Forward
-
-static long saCmsConfigOpmodelByGvar(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    uint8_t opmodel = saCmsOpmodel;
-
-    dprintf(("saCmsConfigOpmodelByGvar: opmodel %d\r\n", opmodel));
-
-    if (opmodel == SACMS_OPMODEL_FREE) {
-        // VTX should power up transmitting.
-        // Turn off In-Range and Out-Range bits
-        saSetMode(0);
-    } else if (opmodel == SACMS_OPMODEL_RACE) {
-        // VTX should power up in pit mode.
-        // Default PitFMode is in-range to prevent users without
-        // out-range receivers from getting blinded.
-        saCmsPitFMode = 0;
-        saCmsConfigPitFModeByGvar(pDisp, self);
-
-        // Direct frequency mode is not available in RACE opmodel
-        saCmsFselMode = 0;
-        saCmsConfigFreqModeByGvar(pDisp, self);
-    } else {
-        // Trying to go back to unknown state; bounce back
-        saCmsOpmodel = SACMS_OPMODEL_UNDEF + 1;
-    }
-
-    return 0;
-}
-
-static const char * const saCmsDeviceStatusNames[] = {
-    "OFFL",
-    "ONL V1",
-    "ONL V2",
-};
-
-static OSD_TAB_t saCmsEntOnline = { &saCmsDeviceStatus, 2, saCmsDeviceStatusNames };
-
-static OSD_Entry saCmsMenuStatsEntries[] = {
-    { "- SA STATS -", OME_Label, NULL, NULL, 0 },
-    { "STATUS",   OME_TAB,    NULL, &saCmsEntOnline,                              DYNAMIC },
-    { "BAUDRATE", OME_UINT16, NULL, &(OSD_UINT16_t){ &sa_smartbaud, 0, 0, 0 },    DYNAMIC },
-    { "SENT",     OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.pktsent, 0, 0, 0 },  DYNAMIC },
-    { "RCVD",     OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.pktrcvd, 0, 0, 0 },  DYNAMIC },
-    { "BADPRE",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.badpre, 0, 0, 0 },   DYNAMIC },
-    { "BADLEN",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.badlen, 0, 0, 0 },   DYNAMIC },
-    { "CRCERR",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.crc, 0, 0, 0 },      DYNAMIC },
-    { "OOOERR",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.ooopresp, 0, 0, 0 }, DYNAMIC },
-    { "BACK",     OME_Back,   NULL, NULL, 0 },
-    { NULL,       OME_END,    NULL, NULL, 0 }
-};
-
-static CMS_Menu saCmsMenuStats = {
-    .GUARD_text = "XSAST",
-    .GUARD_type = OME_MENU,
-    .onEnter = NULL,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = saCmsMenuStatsEntries
-};
-
-static OSD_TAB_t saCmsEntBand = { &saCmsBand, 5, vtx58BandNames };
-
-static OSD_TAB_t saCmsEntChan = { &saCmsChan, 8, vtx58ChannelNames };
-
-static const char * const saCmsPowerNames[] = {
-    "---",
-    "25 ",
-    "200",
-    "500",
-    "800",
-};
-
-static OSD_TAB_t saCmsEntPower = { &saCmsPower, 4, saCmsPowerNames};
-
-static OSD_UINT16_t saCmsEntFreqRef = { &saCmsFreqRef, 5600, 5900, 0 };
-
-static const char * const saCmsOpmodelNames[] = {
-    "----",
-    "FREE",
-    "RACE",
-};
-
-static const char * const saCmsFselModeNames[] = {
-    "CHAN",
-    "USER"
-};
-
-static const char * const saCmsPitFModeNames[] = {
-    "PIR",
-    "POR"
-};
-
-static OSD_TAB_t saCmsEntPitFMode = { &saCmsPitFMode, 1, saCmsPitFModeNames };
-
-static long sacms_SetupTopMenu(void); // Forward
-
-static long saCmsConfigFreqModeByGvar(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    if (saCmsFselMode == 0) {
-        // CHAN
-        saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-    } else {
-        // USER: User frequency mode is only available in FREE opmodel.
-        if (saCmsOpmodel == SACMS_OPMODEL_FREE) {
-            saSetFreq(saCmsUserFreq);
-        } else {
-            // Bounce back
-            saCmsFselMode = 0;
-        }
-    }
-
-    sacms_SetupTopMenu();
-
-    return 0;
-}
-
-static long saCmsCommence(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    if (saCmsOpmodel == SACMS_OPMODEL_RACE) {
-        // Race model
-        // Setup band, freq and power.
-
-        saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-
-        // If in pit mode, cancel it.
-
-        if (saCmsPitFMode == 0)
-            saSetMode(SA_MODE_CLR_PITMODE|SA_MODE_SET_IN_RANGE_PITMODE);
-        else
-            saSetMode(SA_MODE_CLR_PITMODE|SA_MODE_SET_OUT_RANGE_PITMODE);
-    } else {
-        // Freestyle model
-        // Setup band and freq / user freq
-        if (saCmsFselMode == 0)
-            saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-        else
-            saSetFreq(saCmsUserFreq);
-    }
-
-    saSetPowerByIndex(saCmsPower - 1);
-
-    return MENU_CHAIN_BACK;
-}
-
-static long saCmsSetPORFreqOnEnter(void)
-{
-    saCmsORFreqNew = saCmsORFreq;
-
-    return 0;
-}
-
-static long saCmsSetPORFreq(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    saSetFreq(saCmsORFreqNew|SA_FREQ_SETPIT);
-
-    return 0;
-}
-
-static char *saCmsORFreqGetString(void)
-{
-    static char pbuf[5];
-
-    tfp_sprintf(pbuf, "%4d", saCmsORFreq);
-
-    return pbuf;
-}
-
-static char *saCmsUserFreqGetString(void)
-{
-    static char pbuf[5];
-
-    tfp_sprintf(pbuf, "%4d", saCmsUserFreq);
-
-    return pbuf;
-}
-
-static long saCmsSetUserFreqOnEnter(void)
-{
-    saCmsUserFreqNew = saCmsUserFreq;
-
-    return 0;
-}
-
-static long saCmsConfigUserFreq(displayPort_t *pDisp, const void *self)
-{
-    UNUSED(pDisp);
-    UNUSED(self);
-
-    saCmsUserFreq = saCmsUserFreqNew;
-    //saSetFreq(saCmsUserFreq);
-
-    return MENU_CHAIN_BACK;
-}
-
-static OSD_Entry saCmsMenuPORFreqEntries[] = {
-    { "- POR FREQ -", OME_Label,   NULL,             NULL,                                                 0 },
-
-    { "CUR FREQ",     OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsORFreq, 5000, 5900, 0 },       DYNAMIC },
-    { "NEW FREQ",     OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 },    0 },
-    { "SET",          OME_Funcall, saCmsSetPORFreq,  NULL,                                                 0 },
-
-    { "BACK",         OME_Back,    NULL,             NULL,                                                 0 },
-    { NULL,           OME_END,     NULL,             NULL,                                                 0 }
-};
-
-static CMS_Menu saCmsMenuPORFreq =
-{
-    .GUARD_text = "XSAPOR",
-    .GUARD_type = OME_MENU,
-    .onEnter = saCmsSetPORFreqOnEnter,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = saCmsMenuPORFreqEntries,
-};
-
-static OSD_Entry saCmsMenuUserFreqEntries[] = {
-    { "- USER FREQ -", OME_Label,   NULL,             NULL,                                                0 },
-
-    { "CUR FREQ",      OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsUserFreq, 5000, 5900, 0 },    DYNAMIC },
-    { "NEW FREQ",      OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 }, 0 },
-    { "SET",           OME_Funcall, saCmsConfigUserFreq, NULL,                                                0 },
-
-    { "BACK",          OME_Back,    NULL,             NULL,                                                0 },
-    { NULL,            OME_END,     NULL,             NULL,                                                0 }
-};
-
-static CMS_Menu saCmsMenuUserFreq =
-{
-    .GUARD_text = "XSAUFQ",
-    .GUARD_type = OME_MENU,
-    .onEnter = saCmsSetUserFreqOnEnter,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = saCmsMenuUserFreqEntries,
-};
-
-static OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeNames };
-
-static OSD_Entry saCmsMenuConfigEntries[] = {
-    { "- SA CONFIG -", OME_Label, NULL, NULL, 0 },
-
-    { "OP MODEL",  OME_TAB,     saCmsConfigOpmodelByGvar,              &(OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
-    { "FSEL MODE", OME_TAB,     saCmsConfigFreqModeByGvar,             &saCmsEntFselMode,                                   DYNAMIC },
-    { "PIT FMODE", OME_TAB,     saCmsConfigPitFModeByGvar,             &saCmsEntPitFMode,                                   0 },
-    { "POR FREQ",  OME_Submenu, (CMSEntryFuncPtr)saCmsORFreqGetString, &saCmsMenuPORFreq,                                   OPTSTRING },
-    { "STATX",     OME_Submenu, cmsMenuChange,                         &saCmsMenuStats,                                     0 },
-
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
-};
-
-static CMS_Menu saCmsMenuConfig = {
-    .GUARD_text = "XSACFG",
-    .GUARD_type = OME_MENU,
-    .onEnter = NULL,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = saCmsMenuConfigEntries
-};
-
-static OSD_Entry saCmsMenuCommenceEntries[] = {
-    { "CONFIRM", OME_Label,   NULL,          NULL, 0 },
-
-    { "YES",     OME_Funcall, saCmsCommence, NULL, 0 },
-
-    { "BACK",    OME_Back, NULL, NULL, 0 },
-    { NULL,      OME_END, NULL, NULL, 0 }
-};
-
-static CMS_Menu saCmsMenuCommence = {
-    .GUARD_text = "XVTXCOM",
-    .GUARD_type = OME_MENU,
-    .onEnter = NULL,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = saCmsMenuCommenceEntries,
-};
-
-static OSD_Entry saCmsMenuFreqModeEntries[] = {
-    { "- SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
-
-    { "",       OME_Label,   NULL,                                     saCmsStatusString,  DYNAMIC },
-    { "FREQ",   OME_Submenu, (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
-    { "POWER",  OME_TAB,     saCmsConfigPowerByGvar,                   &saCmsEntPower,     0 },
-    { "SET",    OME_Submenu, cmsMenuChange,                            &saCmsMenuCommence, 0 },
-    { "CONFIG", OME_Submenu, cmsMenuChange,                            &saCmsMenuConfig,   0 },
-
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
-};
-
-static OSD_Entry saCmsMenuChanModeEntries[] =
-{
-    { "- SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
-
-    { "",       OME_Label,   NULL,                   saCmsStatusString,  DYNAMIC },
-    { "BAND",   OME_TAB,     saCmsConfigBandByGvar,  &saCmsEntBand,      0 },
-    { "CHAN",   OME_TAB,     saCmsConfigChanByGvar,  &saCmsEntChan,      0 },
-    { "(FREQ)", OME_UINT16,  NULL,                   &saCmsEntFreqRef,   DYNAMIC },
-    { "POWER",  OME_TAB,     saCmsConfigPowerByGvar, &saCmsEntPower,     0 },
-    { "SET",    OME_Submenu, cmsMenuChange,          &saCmsMenuCommence, 0 },
-    { "CONFIG", OME_Submenu, cmsMenuChange,          &saCmsMenuConfig,   0 },
-
-    { "BACK",   OME_Back, NULL, NULL, 0 },
-    { NULL,     OME_END, NULL, NULL, 0 }
-};
-
-static OSD_Entry saCmsMenuOfflineEntries[] =
-{
-    { "- VTX SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
-
-    { "",      OME_Label,   NULL,          saCmsStatusString, DYNAMIC },
-    { "STATX", OME_Submenu, cmsMenuChange, &saCmsMenuStats,   0 },
-
-    { "BACK",  OME_Back, NULL, NULL, 0 },
-    { NULL,    OME_END, NULL, NULL, 0 }
-};
-
-CMS_Menu cmsx_menuVtxSmartAudio; // Forward
-
-static long sacms_SetupTopMenu(void)
-{
-    if (saCmsDeviceStatus) {
-        if (saCmsFselMode == 0)
-            cmsx_menuVtxSmartAudio.entries = saCmsMenuChanModeEntries;
-        else
-            cmsx_menuVtxSmartAudio.entries = saCmsMenuFreqModeEntries;
-    } else {
-        cmsx_menuVtxSmartAudio.entries = saCmsMenuOfflineEntries;
-    }
-
-    return 0;
-}
-
-CMS_Menu cmsx_menuVtxSmartAudio = {
-    .GUARD_text = "XVTXSA",
-    .GUARD_type = OME_MENU,
-    .onEnter = sacms_SetupTopMenu,
-    .onExit = NULL,
-    .onGlobalExit = NULL,
-    .entries = saCmsMenuOfflineEntries,
-};
-
-#endif // CMS
 
 #endif // VTX_SMARTAUDIO

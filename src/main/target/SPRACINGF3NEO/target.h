@@ -79,6 +79,9 @@
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
 
+#define VTX_RTC6705
+#define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
+
 #define USE_I2C
 #define USE_I2C_DEVICE_1
 #define I2C_DEVICE              (I2CDEV_1)
