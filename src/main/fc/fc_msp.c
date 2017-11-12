@@ -379,6 +379,26 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+        case MSP2_INAV_STATUS:
+        {
+            // Preserves full arming flags and box modes
+            boxBitmask_t mspBoxModeFlags;
+            packBoxModeFlags(&mspBoxModeFlags);
+
+            sbufWriteU16(dst, (uint16_t)cycleTime);
+#ifdef USE_I2C
+            sbufWriteU16(dst, i2cGetErrorCounter());
+#else
+            sbufWriteU16(dst, 0);
+#endif
+            sbufWriteU16(dst, packSensorStatus());
+            sbufWriteU16(dst, averageSystemLoadPercent);
+            sbufWriteU8(dst, getConfigProfile());
+            sbufWriteU32(dst, armingFlags);
+            sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
+        }
+        break;
+
     case MSP_RAW_IMU:
         {
             // Hack scale due to choice of units for sensor data in multiwii
@@ -1099,13 +1119,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
                 uint8_t band=0, channel=0;
                 vtxCommonGetBandAndChannel(&band,&channel);
-                
+
                 uint8_t powerIdx=0; // debug
                 vtxCommonGetPowerIndex(&powerIdx);
-                
+
                 uint8_t pitmode=0;
                 vtxCommonGetPitMode(&pitmode);
-                
+
                 sbufWriteU8(dst, deviceType);
                 sbufWriteU8(dst, band);
                 sbufWriteU8(dst, channel);
