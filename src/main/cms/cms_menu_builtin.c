@@ -99,6 +99,9 @@ static OSD_Entry menuFeaturesEntries[] =
 #if defined(BLACKBOX)
     {"BLACKBOX", OME_Submenu, cmsMenuChange, &cmsx_menuBlackbox, 0},
 #endif
+#if defined(NAV)       
+    {"NAVIGATION", OME_Submenu, cmsMenuChange, &cmsx_menuNavigation, 0},       
+#endif     
 #if defined(VTX_CONTROL)
 #if defined(VTX_RTC6705)
     {"VTX", OME_Submenu, cmsMenuChange, &cmsx_menuVtxRTC6705, 0},
