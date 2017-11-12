@@ -135,12 +135,6 @@
 #define SPI3_MOSI_PIN                       PB5
 
 // Bus Switched Device, Device B.
-
-#define VTX_COMMON
-#define VTX_CONTROL
-
-#define USE_RTC6705
-
 #define VTX_RTC6705
 #define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
 

@@ -22,7 +22,7 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
-
+#include "drivers/bus_spi.h"
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] =
 {

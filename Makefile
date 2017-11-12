@@ -592,6 +592,7 @@ COMMON_SRC = \
             drivers/stack_check.c \
             drivers/system.c \
             drivers/timer.c \
+            drivers/vtx_common.c \
             fc/cli.c \
             fc/config.c \
             fc/controlrate_profile.c \
@@ -624,6 +625,7 @@ COMMON_SRC = \
             io/statusindicator.c \
             io/rcdevice.c \
             io/rcdevice_cam.c \
+            io/vtx_control.c \
             msp/msp_serial.c \
             rx/ibus.c \
             rx/jetiexbus.c \
