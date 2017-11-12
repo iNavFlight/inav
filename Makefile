@@ -669,6 +669,9 @@ HIGHEND_SRC = \
             cms/cms_menu_misc.c \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
+            cms/cms_menu_vtx_rtc6705.c \
+            cms/cms_menu_vtx_smartaudio.c \
+            cms/cms_menu_vtx_tramp.c \
             common/colorconversion.c \
             common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
@@ -709,6 +712,8 @@ HIGHEND_SRC = \
             telemetry/smartport.c \
             telemetry/telemetry.c \
             io/vtx_string.c \
+            io/vtx_settings_config.c \
+            io/vtx_rtc6705.c \
             io/vtx_smartaudio.c \
             io/vtx_tramp.c \
             io/vtx_control.c

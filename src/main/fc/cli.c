@@ -91,6 +91,8 @@ extern uint8_t __config_end;
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/serial.h"
+#include "io/vtx_control.h"
+#include "io/vtx_settings_config.h"
 
 #include "navigation/navigation.h"
 
@@ -2085,6 +2087,93 @@ static void cliMotor(char *cmdline)
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
 }
 
+#ifdef VTX_CONTROL
+static void printVtx(uint8_t dumpMask, const vtxConfig_t *vtxConfig, const vtxConfig_t *vtxConfigDefault)
+{
+    // print out vtx channel settings
+    const char *format = "vtx %u %u %u %u %u %u";
+    bool equalsDefault = false;
+    for (uint32_t i = 0; i < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT; i++) {
+        const vtxChannelActivationCondition_t *cac = &vtxConfig->vtxChannelActivationConditions[i];
+        if (vtxConfigDefault) {
+            const vtxChannelActivationCondition_t *cacDefault = &vtxConfigDefault->vtxChannelActivationConditions[i];
+            equalsDefault = cac->auxChannelIndex == cacDefault->auxChannelIndex
+                && cac->band == cacDefault->band
+                && cac->channel == cacDefault->channel
+                && cac->range.startStep == cacDefault->range.startStep
+                && cac->range.endStep == cacDefault->range.endStep;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                cacDefault->auxChannelIndex,
+                cacDefault->band,
+                cacDefault->channel,
+                MODE_STEP_TO_CHANNEL_VALUE(cacDefault->range.startStep),
+                MODE_STEP_TO_CHANNEL_VALUE(cacDefault->range.endStep)
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            cac->auxChannelIndex,
+            cac->band,
+            cac->channel,
+            MODE_STEP_TO_CHANNEL_VALUE(cac->range.startStep),
+            MODE_STEP_TO_CHANNEL_VALUE(cac->range.endStep)
+        );
+    }
+}
+
+static void cliVtx(char *cmdline)
+{
+    int i, val = 0;
+    const char *ptr;
+
+    if (isEmpty(cmdline)) {
+        printVtx(DUMP_MASTER, vtxConfig(), NULL);
+    } else {
+        ptr = cmdline;
+        i = atoi(ptr++);
+        if (i < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT) {
+            vtxChannelActivationCondition_t *cac = &vtxConfigMutable()->vtxChannelActivationConditions[i];
+            uint8_t validArgumentCount = 0;
+            ptr = nextArg(ptr);
+            if (ptr) {
+                val = atoi(ptr);
+                if (val >= 0 && val < MAX_AUX_CHANNEL_COUNT) {
+                    cac->auxChannelIndex = val;
+                    validArgumentCount++;
+                }
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                val = atoi(ptr);
+                // FIXME Use VTX API to get min/max
+                if (val >= VTX_SETTINGS_MIN_BAND && val <= VTX_SETTINGS_MAX_BAND) {
+                    cac->band = val;
+                    validArgumentCount++;
+                }
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                val = atoi(ptr);
+                // FIXME Use VTX API to get min/max
+                if (val >= VTX_SETTINGS_MIN_CHANNEL && val <= VTX_SETTINGS_MAX_CHANNEL) {
+                    cac->channel = val;
+                    validArgumentCount++;
+                }
+            }
+            ptr = processChannelRangeArgs(ptr, &cac->range, &validArgumentCount);
+
+            if (validArgumentCount != 5) {
+                memset(cac, 0, sizeof(vtxChannelActivationCondition_t));
+            }
+        } else {
+            cliShowArgumentRangeError("index", 0, MAX_CHANNEL_ACTIVATION_CONDITION_COUNT - 1);
+        }
+    }
+}
+
+#endif // VTX_CONTROL
+
 static void printName(uint8_t dumpMask, const systemConfig_t * sConfig)
 {
     bool equalsDefault = strlen(sConfig->name) == 0;
@@ -2618,6 +2707,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
+#ifdef VTX_CONTROL
+        cliPrintHashLine("vtx");
+        printVtx(dumpMask, &vtxConfig_Copy, vtxConfig());
+#endif
+
         cliPrintHashLine("master");
         dumpAllValues(MASTER_VALUE, dumpMask);
 
@@ -2771,6 +2865,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
+#ifdef VTX_CONTROL
+    CLI_COMMAND_DEF("vtx", "vtx channels on switch", NULL, cliVtx),
+#endif
 };
 
 static void cliHelp(char *cmdline)

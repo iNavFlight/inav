@@ -16,8 +16,12 @@
  */
 
 
-// Get target build configuration
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "platform.h"
+
+#if defined(VTX_CONTROL) && defined(VTX_COMMON)
 
 #include "common/maths.h"
 
@@ -25,9 +29,10 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/vtx_common.h"
+#include "drivers/buttons.h"
 #include "drivers/light_led.h"
-#include "drivers/system.h"
+#include "drivers/time.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -35,9 +40,6 @@
 #include "io/beeper.h"
 #include "io/osd.h"
 #include "io/vtx_control.h"
-
-
-#if defined(VTX_CONTROL) && defined(VTX_COMMON)
 
 PG_REGISTER(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 1);
 
@@ -151,5 +153,95 @@ void vtxCyclePower(const uint8_t powerStep)
     vtxCommonSetPowerByIndex(newPower);
 }
 
-#endif
+/**
+ * Allow VTX channel/band/rf power/on-off and save via a single button.
+ *
+ * The LED1 flashes a set number of times, followed by a short pause, one per second.  The amount of flashes decreases over time while
+ * the button is held to indicate the action that will be performed upon release.
+ * The actions are ordered by most-frequently used action.  i.e. you change channel more frequently than band.
+ *
+ * The vtx settings can be changed while the VTX is OFF.
+ * If the VTX is OFF when the settings are saved the VTX will be OFF on the next boot, likewise
+ * If the VTX is ON when the settings are saved the VTX will be ON on the next boot.
+ *
+ * Future: It would be nice to re-use the code in statusindicator.c and blink-codes but target a different LED instead of the simple timed
+ * behaviour of the LED1 here.
+ *
+ * Future: Blink out the state after changing it.
+ */
+void handleVTXControlButton(void)
+{
+#if defined(VTX_RTC6705) && defined(BUTTON_A_PIN)
+    bool buttonWasPressed = false;
+    timeUs_t start = micros();
+    uint32_t ledToggleAt = start;
+    bool ledEnabled = false;
+    uint8_t flashesDone = 0;
 
+    uint8_t actionCounter = 0;
+    bool buttonHeld;
+    while ((buttonHeld = buttonAPressed())) {
+        timeUs_t end = micros();
+
+        timeDelta_t diff = cmpTimeUs(end, start);
+        if (diff > 25000 && diff <= 1000000) {
+            actionCounter = 4;
+        } else if (diff > 1000000 && diff <= 3000000) {
+            actionCounter = 3;
+        } else if (diff > 3000000 && diff <= 5000000) {
+            actionCounter = 2;
+        } else if (diff > 5000000) {
+            actionCounter = 1;
+        }
+
+        if (actionCounter) {
+
+            diff = cmpTimeUs(ledToggleAt, end);
+
+            if (diff < 0) {
+                ledEnabled = !ledEnabled;
+
+                const uint16_t updateDuration = 60000;
+
+                ledToggleAt = end + updateDuration;
+
+                if (ledEnabled) {
+                    LED1_ON;
+                } else {
+                    LED1_OFF;
+                    flashesDone++;
+                }
+
+                if (flashesDone == actionCounter) {
+                    ledToggleAt += (1000000 - ((flashesDone * updateDuration) * 2));
+                    flashesDone = 0;
+                }
+            }
+            buttonWasPressed = true;
+        }
+    }
+
+    if (!buttonWasPressed) {
+        return;
+    }
+
+    LED1_OFF;
+
+    switch (actionCounter) {
+    case 4:
+        vtxCycleBandOrChannel(0, +1);
+        break;
+    case 3:
+        vtxCycleBandOrChannel(+1, 0);
+        break;
+    case 2:
+        vtxCyclePower(+1);
+        break;
+    case 1:
+        saveConfigAndNotify();
+        break;
+    }
+#endif
+}
+
+#endif

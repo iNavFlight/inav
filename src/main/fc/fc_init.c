@@ -54,6 +54,7 @@
 #include "drivers/io_pca9685.h"
 #include "drivers/light_led.h"
 #include "drivers/logging.h"
+#include "drivers/max7456.h"
 #include "drivers/nvic.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
@@ -104,6 +105,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
+#include "io/vtx_rtc6705.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
@@ -168,6 +170,18 @@ void flashLedsAndBeep(void)
     LED1_OFF;
 }
 
+#ifdef VTX_RTC6705
+bool canUpdateVTX(void)
+{
+#if defined(MAX7456_SPI_INSTANCE) && defined(RTC6705_SPI_INSTANCE) && defined(SPI_SHARED_MAX7456_AND_RTC6705)
+    if (feature(FEATURE_OSD)) {
+        return !max7456DmaInProgress();
+    }
+#endif
+    return true;
+}
+#endif
+
 void init(void)
 {
 #ifdef USE_HAL_DRIVER
@@ -187,6 +201,8 @@ void init(void)
 #ifdef USE_HARDWARE_REVISION_DETECTION
     detectHardwareRevision();
 #endif
+
+
 
 #ifdef BRUSHED_ESC_AUTODETECT
     detectBrushedESC();
@@ -405,6 +421,10 @@ void init(void)
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
     updateHardwareRevision();
+#endif
+
+#ifdef VTX_RTC6705
+    rtc6705IOInit();
 #endif
 
 #if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1)
@@ -652,6 +672,15 @@ void init(void)
 
 #ifdef VTX_TRAMP
     vtxTrampInit();
+#endif
+
+#ifdef VTX_RTC6705
+#ifdef VTX_RTC6705_OPTIONAL
+    if (!vtxCommonDeviceRegistered()) // external VTX takes precedence when configured.
+#endif
+    {
+        vtxRTC6705Init();
+    }
 #endif
 
 #endif // VTX_CONTROL

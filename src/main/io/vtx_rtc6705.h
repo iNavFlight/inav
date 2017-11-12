@@ -15,20 +15,31 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Touch up configuration
-
 #pragma once
 
-// Targets with built-in vtx do not need external vtx
-#if defined(VTX_RTC6705) && !defined(VTX_RTC6705_OPTIONAL)
-#undef VTX_SMARTAUDIO
-#undef VTX_TRAMP
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "platform.h"
+
+#define VTX_RTC6705_MIN_BAND 1
+#define VTX_RTC6705_MAX_BAND 5
+#define VTX_RTC6705_MIN_CHANNEL 1
+#define VTX_RTC6705_MAX_CHANNEL 8
+
+#define VTX_RTC6705_BAND_COUNT (VTX_RTC6705_MAX_BAND - VTX_RTC6705_MIN_BAND + 1)
+#define VTX_RTC6705_CHANNEL_COUNT (VTX_RTC6705_MAX_CHANNEL - VTX_RTC6705_MIN_CHANNEL + 1)
+
+#define VTX_RTC6705_POWER_COUNT 3
+#define VTX_RTC6705_DEFAULT_POWER 1
+
+#if defined(RTC6705_POWER_PIN)
+#define VTX_RTC6705_MIN_POWER 0
+#else
+#define VTX_RTC6705_MIN_POWER 1
 #endif
 
-/* If either VTX_CONTROL or VTX_COMMON is undefined then remove common code and device drivers */
-#if !defined(VTX_COMMON) || !defined(VTX_CONTROL)
-#undef VTX_COMMON
-#undef VTX_CONTROL
-#undef VTX_TRAMP
-#undef VTX_SMARTAUDIO
-#endif
+extern const char * const rtc6705PowerNames[VTX_RTC6705_POWER_COUNT];
+
+void vtxRTC6705Configure(void);
+bool vtxRTC6705Init(void);

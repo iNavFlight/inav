@@ -80,6 +80,9 @@
 //#define PG_DRIVER_PWM_RX_CONFIG 100
 //#define PG_DRIVER_FLASHCHIP_CONFIG 101
 
+// cleanflight v2 specific parameter group ids start at 256
+#define PG_VTX_SETTINGS_CONFIG 259
+
 // iNav specific parameter group ids start at 1000
 #define PG_INAV_START 1000
 #define PG_PITOTMETER_CONFIG 1000

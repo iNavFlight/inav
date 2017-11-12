@@ -15,6 +15,7 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 /* Created by jflyper */
 
 #include <stdbool.h>
@@ -42,7 +43,12 @@ void vtxCommonRegisterDevice(vtxDevice_t *pDevice)
     vtxDevice = pDevice;
 }
 
-void vtxCommonProcess(timeUs_t currentTimeUs)
+bool vtxCommonDeviceRegistered(void)
+{
+    return vtxDevice;
+}
+
+void vtxCommonProcess(uint32_t currentTimeUs)
 {
     if (!vtxDevice)
         return;
@@ -67,7 +73,7 @@ void vtxCommonSetBandAndChannel(uint8_t band, uint8_t channel)
 
     if ((band > vtxDevice->capability.bandCount) || (channel > vtxDevice->capability.channelCount))
         return;
-    
+
     if (vtxDevice->vTable->setBandAndChannel)
         vtxDevice->vTable->setBandAndChannel(band, channel);
 }
@@ -80,7 +86,7 @@ void vtxCommonSetPowerByIndex(uint8_t index)
 
     if (index > vtxDevice->capability.powerCount)
         return;
-    
+
     if (vtxDevice->vTable->setPowerByIndex)
         vtxDevice->vTable->setPowerByIndex(index);
 }
@@ -93,6 +99,16 @@ void vtxCommonSetPitMode(uint8_t onoff)
 
     if (vtxDevice->vTable->setPitMode)
         vtxDevice->vTable->setPitMode(onoff);
+}
+
+void vtxCommonSetFrequency(uint16_t freq)
+{
+    if (!vtxDevice) {
+        return;
+    }
+    if (vtxDevice->vTable->setFrequency) {
+        vtxDevice->vTable->setFrequency(freq);
+    }
 }
 
 bool vtxCommonGetBandAndChannel(uint8_t *pBand, uint8_t *pChannel)
@@ -126,6 +142,18 @@ bool vtxCommonGetPitMode(uint8_t *pOnOff)
         return vtxDevice->vTable->getPitMode(pOnOff);
     else
         return false;
+}
+
+bool vtxCommonGetFrequency(uint16_t *pFreq)
+{
+    if (!vtxDevice) {
+        return false;
+    }
+    if (vtxDevice->vTable->getFrequency) {
+        return vtxDevice->vTable->getFrequency(pFreq);
+    } else {
+        return false;
+    }
 }
 
 bool vtxCommonGetDeviceCapability(vtxDeviceCapability_t *pDeviceCapability)

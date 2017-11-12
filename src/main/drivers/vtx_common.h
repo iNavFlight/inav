@@ -15,9 +15,15 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "common/time.h"
+
 /* Created by jflyper */
 
-#include "common/time.h"
+#pragma once
+
+// check value for MSP_SET_VTX_CONFIG to determine if value is encoded
+// band/channel or frequency in MHz (3 bits for band and 3 bits for channel)
+#define VTXCOMMON_MSP_BANDCHAN_CHKVAL ((uint16_t)((7 << 3) + 7))
 
 typedef enum {
     VTXDEV_UNSUPPORTED = 0, // reserved for MSP
@@ -65,10 +71,12 @@ typedef struct vtxVTable_s {
     void (*setBandAndChannel)(uint8_t band, uint8_t channel);
     void (*setPowerByIndex)(uint8_t level);
     void (*setPitMode)(uint8_t onoff);
+    void (*setFrequency)(uint16_t freq);
 
     bool (*getBandAndChannel)(uint8_t *pBand, uint8_t *pChannel);
     bool (*getPowerIndex)(uint8_t *pIndex);
     bool (*getPitMode)(uint8_t *pOnOff);
+    bool (*getFrequency)(uint16_t *pFreq);
 } vtxVTable_t;
 
 // 3.1.0
@@ -78,14 +86,17 @@ typedef struct vtxVTable_s {
 
 void vtxCommonInit(void);
 void vtxCommonRegisterDevice(vtxDevice_t *pDevice);
+bool vtxCommonDeviceRegistered(void);
 
 // VTable functions
-void vtxCommonProcess(timeUs_t currentTimeUs);
+void vtxCommonProcess(uint32_t currentTimeUs);
 uint8_t vtxCommonGetDeviceType(void);
 void vtxCommonSetBandAndChannel(uint8_t band, uint8_t channel);
 void vtxCommonSetPowerByIndex(uint8_t level);
 void vtxCommonSetPitMode(uint8_t onoff);
+void vtxCommonSetFrequency(uint16_t freq);
 bool vtxCommonGetBandAndChannel(uint8_t *pBand, uint8_t *pChannel);
 bool vtxCommonGetPowerIndex(uint8_t *pIndex);
 bool vtxCommonGetPitMode(uint8_t *pOnOff);
+bool vtxCommonGetFrequency(uint16_t *pFreq);
 bool vtxCommonGetDeviceCapability(vtxDeviceCapability_t *pDeviceCapability);

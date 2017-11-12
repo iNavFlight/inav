@@ -46,10 +46,11 @@
 #include "cms/cms_menu_ledstrip.h"
 #include "cms/cms_menu_misc.h"
 
-// User supplied menus
+// VTX supplied menus
 
-#include "io/vtx_smartaudio_cms.h"
-#include "io/vtx_tramp.h"
+#include "cms/cms_menu_vtx_rtc6705.h"
+#include "cms/cms_menu_vtx_smartaudio.h"
+#include "cms/cms_menu_vtx_tramp.h"
 
 // Info
 
@@ -94,14 +95,14 @@ static CMS_Menu menuInfo = {
 static OSD_Entry menuFeaturesEntries[] =
 {
     {"--- FEATURES ---", OME_Label, NULL, NULL, 0},
+
+#if defined(BLACKBOX)
     {"BLACKBOX", OME_Submenu, cmsMenuChange, &cmsx_menuBlackbox, 0},
-#if defined(NAV)
-    {"NAVIGATION", OME_Submenu, cmsMenuChange, &cmsx_menuNavigation, 0},
 #endif
-#if defined(VTX) || defined(USE_RTC6705)
-    {"VTX", OME_Submenu, cmsMenuChange, &cmsx_menuVtx, 0},
-#endif // VTX || USE_RTC6705
 #if defined(VTX_CONTROL)
+#if defined(VTX_RTC6705)
+    {"VTX", OME_Submenu, cmsMenuChange, &cmsx_menuVtxRTC6705, 0},
+#endif // VTX_RTC6705
 #if defined(VTX_SMARTAUDIO)
     {"VTX SA", OME_Submenu, cmsMenuChange, &cmsx_menuVtxSmartAudio, 0},
 #endif

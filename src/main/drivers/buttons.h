@@ -15,20 +15,9 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Touch up configuration
-
 #pragma once
 
-// Targets with built-in vtx do not need external vtx
-#if defined(VTX_RTC6705) && !defined(VTX_RTC6705_OPTIONAL)
-#undef VTX_SMARTAUDIO
-#undef VTX_TRAMP
-#endif
+void buttonsInit(void);
 
-/* If either VTX_CONTROL or VTX_COMMON is undefined then remove common code and device drivers */
-#if !defined(VTX_COMMON) || !defined(VTX_CONTROL)
-#undef VTX_COMMON
-#undef VTX_CONTROL
-#undef VTX_TRAMP
-#undef VTX_SMARTAUDIO
-#endif
+bool buttonAPressed(void);
+bool buttonBPressed(void);
