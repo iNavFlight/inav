@@ -65,7 +65,6 @@ typedef enum {
 typedef struct navigationFlags_s {
     bool horizontalPositionDataNew;
     bool verticalPositionDataNew;
-    bool surfaceDistanceDataNew;
     bool headingDataNew;
 
     bool horizontalPositionDataConsumed;
@@ -328,8 +327,7 @@ float getActiveWaypointSpeed(void);
 
 void updateActualHeading(int32_t newHeading);
 void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, float newY, float newVelX, float newVelY);
-void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity);
-void updateActualAGLAndClimgRate(bool estimateValid, bool estimateReliable, float surfaceDistance, float surfaceVelocity);
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
 
 bool checkForPositionSensorTimeout(void);
 

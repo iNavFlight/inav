@@ -1000,13 +1000,11 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
 
         /* Publish altitude update and set altitude validity */
         if (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv) {
-            const bool aglReliable = (posEstimator.est.aglQual == SURFACE_QUAL_HIGH);
-            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.V.Z, posEstimator.est.vel.V.Z);
-            updateActualAGLAndClimgRate(true, aglReliable, posEstimator.est.aglAlt, posEstimator.est.aglVel);
+            navigationEstimateStatus_e aglStatus = (posEstimator.est.aglQual == SURFACE_QUAL_LOW) ? EST_USABLE : EST_TRUSTED;
+            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.V.Z, posEstimator.est.vel.V.Z, posEstimator.est.aglAlt, posEstimator.est.aglVel, aglStatus);
         }
         else {
-            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.V.Z, 0);
-            updateActualAGLAndClimgRate(false, false, posEstimator.est.aglAlt, 0);
+            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.V.Z, 0, posEstimator.est.aglAlt, 0, EST_NONE);
         }
 
 #if defined(NAV_BLACKBOX)

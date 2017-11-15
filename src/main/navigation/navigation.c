@@ -1473,48 +1473,35 @@ void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, f
 /*-----------------------------------------------------------
  * Processes an update to Z-position and velocity
  *-----------------------------------------------------------*/
-void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity)
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus)
 {
     posControl.actualState.pos.V.Z = newAltitude;
     posControl.actualState.vel.V.Z = newVelocity;
+    posControl.actualState.surface = surfaceDistance;
+    posControl.actualState.surfaceVel = surfaceVelocity;
 
     // Update altitude that would be used when executing RTH
     if (estimateValid) {
         updateDesiredRTHAltitude();
+
+        // If we acquired new surface reference - changing from NONE/USABLE -> TRUSTED
+        if ((surfaceStatus == EST_TRUSTED) && (posControl.flags.estSurfaceStatus != EST_TRUSTED)) {
+            // If we are in terrain-following modes - signal that we should update the surface tracking setpoint
+            //      NONE/USABLE means that we were flying blind, now we should lock to surface
+            //updateSurfaceTrackingSetpoint();
+        }
+
+        posControl.flags.estSurfaceStatus = surfaceStatus;  // Could be TRUSTED or USABLE
         posControl.flags.estAltStatus = EST_TRUSTED;
         posControl.flags.verticalPositionDataNew = 1;
         posControl.lastValidAltitudeTimeMs = millis();
     }
     else {
         posControl.flags.estAltStatus = EST_NONE;
+        posControl.flags.estSurfaceStatus = EST_NONE;
         posControl.flags.verticalPositionDataNew = 0;
     }
 
-#if defined(NAV_BLACKBOX)
-    navLatestActualPosition[Z] = constrain(newAltitude, -32678, 32767);
-    navActualVelocity[Z] = constrain(newVelocity, -32678, 32767);
-#endif
-}
-
-/*-----------------------------------------------------------
- * Processes an update to surface distance
- *-----------------------------------------------------------*/
-void updateActualAGLAndClimgRate(bool estimateValid, bool estimateReliable, float surfaceDistance, float surfaceVelocity)
-{
-    posControl.actualState.surface = surfaceDistance;
-    posControl.actualState.surfaceVel = surfaceVelocity;
-
-    // Update validity
-    if (estimateValid) {
-        posControl.flags.estSurfaceStatus = estimateReliable ? EST_TRUSTED : EST_USABLE;
-        posControl.flags.surfaceDistanceDataNew = 1;
-    }
-    else {
-        posControl.flags.estSurfaceStatus = EST_NONE;
-        posControl.flags.surfaceDistanceDataNew = 0;
-    }
-
-    // Update minimum surface distance (landing detection threshold)
     if (ARMING_FLAG(ARMED)) {
         if ((posControl.flags.estSurfaceStatus == EST_TRUSTED) && posControl.actualState.surface > 0) {
             if (posControl.actualState.surfaceMin > 0) {
@@ -1530,7 +1517,8 @@ void updateActualAGLAndClimgRate(bool estimateValid, bool estimateReliable, floa
     }
 
 #if defined(NAV_BLACKBOX)
-    navActualSurface = surfaceDistance;
+    navLatestActualPosition[Z] = constrain(newAltitude, -32678, 32767);
+    navActualVelocity[Z] = constrain(newVelocity, -32678, 32767);
 #endif
 }
 
@@ -2596,7 +2584,6 @@ void navigationInit(void)
 
     posControl.flags.horizontalPositionDataNew = 0;
     posControl.flags.verticalPositionDataNew = 0;
-    posControl.flags.surfaceDistanceDataNew = 0;
     posControl.flags.headingDataNew = 0;
 
     posControl.flags.estAltStatus = EST_NONE;
