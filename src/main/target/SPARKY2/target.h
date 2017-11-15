@@ -109,7 +109,7 @@
 
 #define USE_I2C
 #define I2C_DEVICE              (I2CDEV_1)
-//#define I2C_DEVICE_EXT          (I2CDEV_2)
+#define I2C_DEVICE_EXT          (I2CDEV_2)
 
 #define USE_ADC
 // PC2 shared with HC-SR04
@@ -124,7 +124,9 @@
 #define LED_STRIP
 #define LED_STRIP_TIMER         TIM5
 
-// #define USE_RANGEFINDER
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_VL53L0X
+#define RANGEFINDER_VL53L0X_INSTANCE    I2C_DEVICE_EXT
 // #define USE_RANGEFINDER_HCSR04
 // #define RANGEFINDER_HCSR04_TRIGGER_PIN       PC2
 // #define RANGEFINDER_HCSR04_ECHO_PIN          PC3

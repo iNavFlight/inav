@@ -966,7 +966,8 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         }
     }
     else {
-        posEstimator.est.aglVel = 0;
+        posEstimator.est.aglAlt = posEstimator.est.pos.V.Z - posEstimator.est.aglOffset;
+        posEstimator.est.aglVel = posEstimator.est.vel.V.Z;
         posEstimator.est.aglQual = SURFACE_QUAL_LOW;
     }
 #else
@@ -1007,6 +1008,13 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
             updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.V.Z, 0);
             updateActualAGLAndClimgRate(false, false, posEstimator.est.aglAlt, 0);
         }
+
+#if defined(NAV_BLACKBOX)
+        DEBUG_SET(DEBUG_AGL, 0, posEstimator.surface.reliability * 1000);
+        DEBUG_SET(DEBUG_AGL, 1, posEstimator.est.aglQual);
+        DEBUG_SET(DEBUG_AGL, 2, posEstimator.est.aglAlt);
+        DEBUG_SET(DEBUG_AGL, 3, posEstimator.est.aglVel);
+#endif
 
         /* Store history data */
         posEstimator.history.pos[posEstimator.history.index] = posEstimator.est.pos;
