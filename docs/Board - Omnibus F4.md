@@ -147,6 +147,8 @@ SmartPort telemetry is possible using SoftwareSerial. RX and TX lines have to be
 SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
 ```
 
+![Omnibus F4 Pro Soft Serial](assets/images/omnibusf4pro_ss.png)
+
 * Telemetry has to be inverted with `set telemetry_inversion = ON`
 * Port should be configured for _57600bps_
 * Tested with FrSky X4R(SB), XSR, XSR-M, XSR-E
