@@ -163,6 +163,10 @@ Following diagrams applies to _Pro_ version with integrated current meter and JS
 
 ![Omnibus F4 Pro Flying Wing Setup](assets/images/omnibusf4pro_flyingwing_setup.png)
 
+## RX setup
+
+![Omnibus F4 Pro RX Setup](assets/images/omnibusf4pro_rx.png)
+
 ## FPV setup
 
 ![Omnibus F4 Pro FPV Setup](assets/images/omnibusf4pro_fpv_setup.png)
