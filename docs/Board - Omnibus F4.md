@@ -150,3 +150,25 @@ SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
 * Telemetry has to be inverted with `set telemetry_inversion = ON`
 * Port should be configured for _57600bps_
 * Tested with FrSky X4R(SB), XSR, XSR-M, XSR-E
+
+# Wiring diagrams for Omnibus F4 Pro
+
+Following diagrams applies to _Pro_ version with integrated current meter and JST connectors only
+
+## Board layout
+
+![Omnibus F4 Pro Board Layout](assets/images/omnibusf4pro.png)
+
+## Flying wing motor and servos
+
+![Omnibus F4 Pro Flying Wing Setup](assets/images/omnibusf4pro_flyingwing_setup.png)
+
+## FPV setup
+
+![Omnibus F4 Pro FPV Setup](assets/images/omnibusf4pro_fpv_setup.png)
+
+## GPS setup
+
+![Omnibus F4 Pro GPS Setup](assets/images/omnibusf4pro_gps_setup.png)
+
+_Diagrams created by Albert Kravcov (skaman82)_
