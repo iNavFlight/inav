@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "config/parameter_group.h"
 #include "drivers/io_types.h"
 
 #if defined(USE_QUAD_MIXER_ONLY)
@@ -113,6 +114,12 @@ typedef struct pwmIOConfiguration_s {
     uint8_t ppmInputCount;
     pwmPortConfiguration_t ioConfigurations[USABLE_TIMER_CHANNEL_COUNT];
 } pwmIOConfiguration_t;
+
+typedef struct servoMapConfig_s {
+    int16_t servoBits; // Up to 15 timerHardware entries are supported
+} servoMapConfig_t;
+
+PG_DECLARE(servoMapConfig_t, servoMapConfig);
 
 // This indexes into the read-only hardware definition structure, timerHardware_t
 enum {

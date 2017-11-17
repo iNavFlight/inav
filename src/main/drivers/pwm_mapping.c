@@ -19,7 +19,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "build/debug.h"
+
 #include "platform.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
 
 #include "drivers/gpio.h"
 #include "drivers/io.h"
@@ -42,7 +46,11 @@ enum {
 
 static pwmIOConfiguration_t pwmIOConfiguration;
 
-static int32_t pwmServoMap = BIT(2) | BIT(3) | BIT(4); // OMNIBUS (F3) example. Output 1 to motor, outputs 2, 3, 4 to servo.
+PG_REGISTER_WITH_RESET_TEMPLATE(servoMapConfig_t, servoMapConfig, PG_SERVO_MAP_CONFIG, 0);
+
+PG_RESET_TEMPLATE(servoMapConfig_t, servoMapConfig,
+    .servoBits = -1,
+);
 
 pwmIOConfiguration_t *pwmGetOutputConfiguration(void)
 {
@@ -197,7 +205,9 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 #ifdef USE_SERVOS
         else if (init->flyingPlatformType == PLATFORM_AIRPLANE || init->flyingPlatformType == PLATFORM_HELICOPTER) {
             // Fixed wing or HELI (one/two motors and a lot of servos
-            if (pwmServoMap != -1) { //  Protect with "timerHardwarePtr->usageFlags & (TIM_USE_FW_SERVO|TIM_USE_FW_MOTOR)"?
+            int16_t pwmServoMap = servoMapConfig()->servoBits;
+            debug[0] = pwmServoMap;
+            if ((pwmServoMap != -1) && (timerHardwarePtr->usageFlags & (TIM_USE_FW_SERVO|TIM_USE_FW_MOTOR))) {
                 if (pwmServoMap & (1 << timerIndex)) {
                     type = MAP_TO_SERVO_OUTPUT;
                 } else {

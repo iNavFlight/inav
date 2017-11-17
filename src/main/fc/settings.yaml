@@ -509,6 +509,15 @@ groups:
       - name: tri_unarmed_servo
         type: bool
 
+  - name: PG_SERVO_MAP_CONFIG
+    type: servoMapConfig_t
+    headers: ["drivers/pwm_mapping.h"]
+    members:
+      - name: servo_map
+        field: servoBits
+        min: -1
+        max: INT16_MAX
+
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
     headers: ["fc/controlrate_profile.h"]
