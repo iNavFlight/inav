@@ -234,7 +234,7 @@ mmix 0 1.000 0.000 1.333 0.000
 mmix 1 1.000 -1.000 -0.667 0.000
 mmix 2 1.000 1.000 -0.667 0.000
 smix reset
-smix 0 5 2 100 0 0 100 0
+smix 0 5 2 100 0
 profile 0
 smix reverse 5 2 r
 profile 1
@@ -268,11 +268,11 @@ mmix 0 1.0 0.0 0.0 0.3   # Left Engine
 mmix 1 1.0 0.0 0.0 -0.3  # Right Engine
 
 smix reset
-# Rule	Servo	Source	Rate	Speed	Min	Max
-smix 0 3 0 100 0 0 100  # Roll / Aileron
-smix 1 4 0 100 0 0 100  # Roll / Aileron
-smix 2 5 2 100 0 0 100  # Yaw / Rudder
-smix 3 2 1 100 0 0 100  # Pitch / Elevator
+# Rule	Servo	Source	Rate	Speed
+smix 0 3 0 100 0  # Roll / Aileron
+smix 1 4 0 100 0  # Roll / Aileron
+smix 2 5 2 100 0  # Yaw / Rudder
+smix 3 2 1 100 0  # Pitch / Elevator
 
 ```
 ### Example 5: Custom Airplane with Flaps
@@ -291,20 +291,20 @@ Note: You can look at the Motors tab in [INAV Cofigurator] to see motor and serv
 | 8    | [EMPTY]          |
 
 ```
+mixer CUSTOMAIRPLANE
+
 # mmix
-mmix load customairplane
 mmix reset
 mmix 0  1.000  0.000  0.000  0.000 # Pin 1
 
 # smix
-smix load customairplane
 smix reset
-smix 0 2 1 100 0 0 100 # Pitch / Stab, Pin 3
-smix 1 2 5 100 0 0 100 # Pitch / RC, Pin 3
-smix 2 3 0 100 0 0 100 # Roll / Stab, Pin 4
-smix 3 3 4 100 0 0 100 # Roll / RC, Pin 4
-smix 4 4 9 100 0 0 100 # RC Aux 2 Flaps, Pin 5
-smix 5 5 2 100 0 0 100 # Yaw / Stab, Pin 6
+smix 0 2 1 100 0 # Pitch / Stab, Pin 3
+smix 1 2 5 100 0 # Pitch / RC, Pin 3
+smix 2 3 0 100 0 # Roll / Stab, Pin 4
+smix 3 3 4 100 0 # Roll / RC, Pin 4
+smix 4 4 14 100 0 # Flaps, Pin 5
+smix 5 5 2 100 0 # Yaw / Stab, Pin 6
 smix reverse 3 0 r # REVERSE Stab Roll
 smix reverse 3 4 r # REVERSE RC Roll
 save

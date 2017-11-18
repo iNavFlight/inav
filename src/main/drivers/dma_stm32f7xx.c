@@ -79,7 +79,7 @@ static void enableDmaClock(uint32_t rcc)
     } while (0);
 }
 
-void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_t owner, uint8_t resourceIndex)
+void dmaInit(dmaHandlerIdentifier_e identifier, resourceOwner_e owner, uint8_t resourceIndex)
 {
     enableDmaClock(dmaDescriptors[identifier].rcc);
     dmaDescriptors[identifier].owner = owner;

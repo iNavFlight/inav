@@ -222,15 +222,7 @@ static void sendSatalliteSignalQualityAsTemperature2(void)
         satellite = constrain(gpsSol.hdop, 0, GPS_MAX_HDOP_VAL);
     }
     sendDataHead(ID_TEMPRATURE2);
-
-    if (telemetryConfig()->frsky_unit == FRSKY_UNIT_METRICS) {
-        serialize16(satellite);
-    } else {
-        float tmp = (satellite - 32) / 1.8f;
-        //Round the value
-        tmp += (tmp < 0) ? -0.5f : 0.5f;
-        serialize16(tmp);
-    }
+    serialize16(satellite);
 }
 
 static void sendSpeed(void)
@@ -359,7 +351,6 @@ static void sendVario(void)
  */
 static void sendVoltage(void)
 {
-    static uint16_t currentCell = 0;
     uint32_t cellVoltage;
     uint16_t payload;
 
@@ -374,10 +365,10 @@ static void sendVoltage(void)
      * The actual value sent for cell voltage has resolution of 0.002 volts
      * Since vbat has resolution of 0.1 volts it has to be multiplied by 50
      */
-    cellVoltage = ((uint32_t)vbat * 100 + batteryCellCount) / (batteryCellCount * 2);
+    cellVoltage = ((uint32_t)vbat * 100) / (batteryCellCount * 2);
 
-    // Cell number is at bit 9-12
-    payload = (currentCell << 4);
+    // Cell number is at bit 9-12 (only uses vbat, so it can't send individual cell voltages, set cell number to 0)
+    payload = 0;
 
     // Lower voltage bits are at bit 0-8
     payload |= ((cellVoltage & 0x0ff) << 8);
@@ -387,9 +378,6 @@ static void sendVoltage(void)
 
     sendDataHead(ID_VOLT);
     serialize16(payload);
-
-    currentCell++;
-    currentCell %= batteryCellCount;
 }
 
 /*

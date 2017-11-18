@@ -23,6 +23,7 @@
 #include <platform.h>
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/maths.h"
 #include "common/utils.h"
@@ -50,7 +51,7 @@
 
 #include "scheduler/scheduler.h"
 
-#include "build/debug.h"
+#include "uav_interconnect/uav_interconnect.h"
 
 rangefinder_t rangefinder;
 
@@ -73,7 +74,7 @@ const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
 #if defined(RANGEFINDER_HCSR04_PWM_TRIGGER_PIN)
     // If we are using softserial, parallel PWM or ADC current sensor, then use motor pins for sonar, otherwise use RC pins
     if (feature(FEATURE_SOFTSERIAL)
-            || feature(FEATURE_RX_PARALLEL_PWM )
+            || (rxConfig()->receiverType == RX_TYPE_PWM)
             || (feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC)) {
         rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN_PWM);
         rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN_PWM);
@@ -84,6 +85,10 @@ const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
 #elif defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
     rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
     rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
+#else
+    // No Trig/Echo hardware rangefinder
+    rangefinderHardwarePins.triggerTag = IO_TAG(NONE);
+    rangefinderHardwarePins.echoTag = IO_TAG(NONE);
 #endif
     return &rangefinderHardwarePins;
 }
@@ -136,6 +141,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
+        case RANGEFINDER_UIB:
+#if defined(USE_RANGEFINDER_UIB)
+            if (uibRangefinderDetect(dev)) {
+                rangefinderHardware = RANGEFINDER_UIB;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_UIB_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
         case RANGEFINDER_NONE:
             rangefinderHardware = RANGEFINDER_NONE;
             break;
@@ -153,7 +167,8 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
     return true;
 }
 
-void rangefinderResetDynamicThreshold(void) {
+void rangefinderResetDynamicThreshold(void)
+{
     rangefinder.snrThresholdReached = false;
     rangefinder.dynamicDistanceThreshold = 0;
 }
@@ -164,7 +179,7 @@ bool rangefinderInit(void)
         return false;
     }
 
-    rangefinder.dev.init();
+    rangefinder.dev.init(&rangefinder.dev);
     rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
     rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
     rangefinder.maxTiltCos = cos_approx(DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f));
@@ -229,7 +244,7 @@ static int16_t computePseudoSnr(int32_t newReading) {
 timeDelta_t rangefinderUpdate(void)
 {
     if (rangefinder.dev.update) {
-        rangefinder.dev.update();
+        rangefinder.dev.update(&rangefinder.dev);
     }
 
     return rangefinder.dev.delayMs * 1000;  // to microseconds
@@ -269,9 +284,7 @@ bool isSurfaceAltitudeValid() {
 bool rangefinderProcess(float cosTiltAngle)
 {
     if (rangefinder.dev.read) {
-        const int32_t distance = rangefinder.dev.read();
-
-        DEBUG_SET(DEBUG_RANGEFINDER, 0, distance);
+        const int32_t distance = rangefinder.dev.read(&rangefinder.dev);
 
         // If driver reported no new measurement - don't do anything
         if (distance == RANGEFINDER_NO_NEW_DATA) {

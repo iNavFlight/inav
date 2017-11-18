@@ -82,7 +82,6 @@ FEATURES        =
 ALT_TARGETS     = $(sort $(filter-out target, $(basename $(notdir $(wildcard $(ROOT)/src/main/target/*/*.mk)))))
 OPBL_TARGETS    = $(filter %_OPBL, $(ALT_TARGETS))
 
-#VALID_TARGETS  = $(F1_TARGETS) $(F3_TARGETS) $(F4_TARGETS)
 VALID_TARGETS   = $(dir $(wildcard $(ROOT)/src/main/target/*/target.mk))
 VALID_TARGETS  := $(subst /,, $(subst ./src/main/target/,, $(VALID_TARGETS)))
 VALID_TARGETS  := $(VALID_TARGETS) $(ALT_TARGETS)
@@ -138,6 +137,12 @@ else
 $(error FLASH_SIZE not configured for target $(TARGET))
 endif
 endif
+
+GROUP_1_TARGETS := AIRHEROF3 AIRHEROF3_QUAD COLIBRI_RACE LUX_RACE SPARKY REVO SPARKY2 COLIBRI FALCORE PIKOBLX
+GROUP_2_TARGETS := SPRACINGF3 SPRACINGF3EVO SPRACINGF3EVO_1SS SPRACINGF3MINI SPRACINGF3NEO SPRACINGF4EVO
+GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO OMNIBUSF4V3 SPARKY2 MATEKF405 OMNIBUSF7 DYSF4PRO MATEKF405OSD
+GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER PIXRACER_ICM20608
+GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS), $(VALID_TARGETS))
 
 # note that there is no hardfault debugging startup file assembly handler for other platforms
 ifeq ($(DEBUG_HARDFAULTS),F3)
@@ -548,6 +553,7 @@ COMMON_SRC = \
             common/maths.c \
             common/printf.c \
             common/streambuf.c \
+            common/time.c \
             common/typeconversion.c \
             common/string_light.c \
             config/config_eeprom.c \
@@ -556,6 +562,9 @@ COMMON_SRC = \
             config/parameter_group.c \
             drivers/adc.c \
             drivers/buf_writer.c \
+            drivers/bus.c \
+            drivers/bus_busdev_i2c.c \
+            drivers/bus_busdev_spi.c \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/bus_spi_soft.c \
@@ -567,6 +576,7 @@ COMMON_SRC = \
             drivers/io_pca9685.c \
             drivers/light_led.c \
             drivers/logging.c \
+            drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
@@ -590,6 +600,7 @@ COMMON_SRC = \
             fc/fc_tasks.c \
             fc/fc_hardfaults.c \
             fc/fc_msp.c \
+            fc/fc_msp_box.c \
             fc/rc_adjustments.c \
             fc/rc_controls.c \
             fc/rc_curves.c \
@@ -611,11 +622,13 @@ COMMON_SRC = \
             io/serial_4way_avrootloader.c \
             io/serial_4way_stk500v2.c \
             io/statusindicator.c \
-            io/rcsplit.c \
+            io/rcdevice.c \
+            io/rcdevice_cam.c \
             msp/msp_serial.c \
             rx/ibus.c \
             rx/jetiexbus.c \
             rx/msp.c \
+            rx/uib_rx.c \
             rx/nrf24_cx10.c \
             rx/nrf24_inav.c \
             rx/nrf24_h8_3d.c \
@@ -639,6 +652,8 @@ COMMON_SRC = \
             sensors/diagnostics.c \
             sensors/gyro.c \
             sensors/initialisation.c \
+            uav_interconnect/uav_interconnect_bus.c \
+            uav_interconnect/uav_interconnect_rangefinder.c \
             $(CMSIS_SRC) \
             $(DEVICE_STDPERIPH_SRC)
 
@@ -652,6 +667,7 @@ HIGHEND_SRC = \
             cms/cms_menu_imu.c \
             cms/cms_menu_ledstrip.c \
             cms/cms_menu_misc.c \
+            cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
             common/colorconversion.c \
             common/gps_conversion.c \
@@ -659,7 +675,9 @@ HIGHEND_SRC = \
             drivers/rangefinder_hcsr04.c \
             drivers/rangefinder_hcsr04_i2c.c \
             drivers/rangefinder_srf10.c \
+            drivers/opflow_fake.c \
             drivers/rangefinder_vl53l0x.c \
+            drivers/vtx_common.c \
             io/dashboard.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
@@ -680,15 +698,20 @@ HIGHEND_SRC = \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \
+            sensors/opflow.c \
             telemetry/crsf.c \
             telemetry/frsky.c \
             telemetry/hott.c \
-	    telemetry/ibus_shared.c \
+            telemetry/ibus_shared.c \
             telemetry/ibus.c \
             telemetry/ltm.c \
             telemetry/mavlink.c \
             telemetry/smartport.c \
-            telemetry/telemetry.c
+            telemetry/telemetry.c \
+            io/vtx_string.c \
+            io/vtx_smartaudio.c \
+            io/vtx_tramp.c \
+            io/vtx_control.c
 
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
 VCP_SRC = \
@@ -918,27 +941,31 @@ CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 $(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
-.PHONY: settings clean-settings
-UTILS_DIR			= $(ROOT)/src/utils
+.PHONY: .FORCE settings clean-settings
+UTILS_DIR		= $(ROOT)/src/utils
 SETTINGS_GENERATOR	= $(UTILS_DIR)/settings.rb
+BUILD_STAMP		= $(UTILS_DIR)/build_stamp.rb
+STAMP			= $(BIN_DIR)/build.stamp
 
 GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
 SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
-$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE)
+GENERATED_FILES		= $(GENERATED_SETTINGS)
+$(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE) $(STAMP)
+
+$(STAMP): .FORCE
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(BUILD_STAMP) $(SETTINGS_FILE) $(STAMP)
 
 # Use a pattern rule, since they're different than normal rules.
 # See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
 %generated.h %generated.c:
 	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
-	$(V1) CFLAGS="$(CFLAGS)" ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
 
-settings: $(GENERATED_SETTINGS)
+settings-json:
+	$(V0) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) --json settings.json
+
 clean-settings:
 	$(V1) $(RM) $(GENERATED_SETTINGS)
-
-# Files that depend on the generated settings
-$(OBJECT_DIR)/$(TARGET)/fc/cli.o: settings
-$(OBJECT_DIR)/$(TARGET)/fc/settings.o: settings
 
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
@@ -949,7 +976,7 @@ $(TARGET_HEX): $(TARGET_ELF)
 $(TARGET_BIN): $(TARGET_ELF)
 	$(V0) $(OBJCOPY) -O binary $< $@
 
-$(TARGET_ELF): clean-settings $(TARGET_OBJS)
+$(TARGET_ELF): $(TARGET_OBJS)
 	$(V1) echo Linking $(TARGET)
 	$(V1) $(CROSS_CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 	$(V0) $(SIZE) $(TARGET_ELF)
@@ -974,6 +1001,21 @@ $(OBJECT_DIR)/$(TARGET)/%.o: %.S
 
 ## all               : Build all valid targets
 all: $(VALID_TARGETS)
+
+## targets-group-1   : build some targets
+targets-group-1: $(GROUP_1_TARGETS)
+
+## targets-group-2   : build some targets
+targets-group-2: $(GROUP_2_TARGETS)
+
+## targets-group-3   : build some targets
+targets-group-3: $(GROUP_3_TARGETS)
+
+## targets-group-3   : build some targets
+targets-group-4: $(GROUP_4_TARGETS)
+
+## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
+targets-group-rest: $(GROUP_OTHER_TARGETS)
 
 $(VALID_TARGETS):
 	$(V0) echo "" && \
@@ -1054,16 +1096,24 @@ help: Makefile
 
 ## targets           : print a list of all valid target platforms (for consumption by scripts)
 targets:
-	$(V0) @echo "Valid targets: $(VALID_TARGETS)"
-	$(V0) @echo "Target:        $(TARGET)"
-	$(V0) @echo "Base target:   $(BASE_TARGET)"
+	$(V0) @echo "Valid targets:      $(VALID_TARGETS)"
+	$(V0) @echo "Target:             $(TARGET)"
+	$(V0) @echo "Base target:        $(BASE_TARGET)"
+	$(V0) @echo "targets-group-1:    $(GROUP_1_TARGETS)"
+	$(V0) @echo "targets-group-2:    $(GROUP_2_TARGETS)"
+	$(V0) @echo "targets-group-3:    $(GROUP_3_TARGETS)"
+	$(V0) @echo "targets-group-4:    $(GROUP_4_TARGETS)"
+	$(V0) @echo "targets-group-rest: $(GROUP_OTHER_TARGETS)"
 
 ## test              : run the cleanflight test suite
 test:
 	$(V0) cd src/test && $(MAKE) test || true
 
 # rebuild everything when makefile changes
-$(TARGET_OBJS) : Makefile
+# Make the generated files and the build stamp order only prerequisites,
+# so they will be generated before TARGET_OBJS but regenerating them
+# won't cause all TARGET_OBJS to be rebuilt.
+$(TARGET_OBJS) : Makefile | $(GENERATED_FILES) $(STAMP)
 
 # include auto-generated dependencies
 -include $(TARGET_DEPS)

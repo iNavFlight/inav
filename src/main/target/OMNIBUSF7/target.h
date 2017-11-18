@@ -15,9 +15,13 @@
 
 #pragma once
 
+#ifdef OMNIBUSF7V2
+#define TARGET_BOARD_IDENTIFIER "OB72"
+#define USBD_PRODUCT_STRING "OmnibusF7V2"
+#else
 #define TARGET_BOARD_IDENTIFIER "OBF7"
-
 #define USBD_PRODUCT_STRING "OmnibusF7"
+#endif
 
 #define LED0   PE0
 
@@ -26,53 +30,48 @@
 
 #define ACC
 #define GYRO
+#define USE_DUAL_GYRO
 
 // ICM-20608-G
-// #define USE_ACC_MPU6500
-// #define USE_ACC_SPI_MPU6500
-// #define USE_GYRO_MPU6500
-// #define USE_GYRO_SPI_MPU6500
-//#define ACC_MPU6500_ALIGN       CW0_DEG
-//#define GYRO_MPU6500_ALIGN      CW0_DEG
-// #define MPU6500_CS_PIN          SPI1_NSS_PIN
-// #define MPU6500_SPI_INSTANCE    SPI1
-//#define MPU_INT_EXTI            PE8
+#define USE_ACC_MPU6500
+#define USE_ACC_SPI_MPU6500
+#define USE_GYRO_MPU6500
+#define USE_GYRO_SPI_MPU6500
 
 // MPU6000
-// #define USE_ACC_MPU6000
-// #define USE_ACC_SPI_MPU6000
-// #define USE_GYRO_MPU6000
-// #define USE_GYRO_SPI_MPU6000
-// #define ACC_MPU6000_ALIGN       CW0_DEG
-// #define GYRO_MPU6000_ALIGN      CW0_DEG
-// #define MPU6000_CS_PIN          SPI3_NSS_PIN
-// #define MPU6000_SPI_INSTANCE    SPI3
-// #define MPU_INT_EXTI            PD0
+#define USE_ACC_MPU6000
+#define USE_ACC_SPI_MPU6000
+#define USE_GYRO_MPU6000
+#define USE_GYRO_SPI_MPU6000
 
-// #define USE_DUAL_GYRO
-// #define GYRO_0_CS_PIN           MPU6000_CS_PIN
-// #define GYRO_1_CS_PIN           MPU6500_CS_PIN
-
-// TODO: dual gyro support
-//#define USE_MPU_DATA_READY_SIGNAL
-//#define USE_EXTI
+#ifdef OMNIBUSF7V2
+#   define MPU6000_CS_PIN          SPI1_NSS_PIN
+#   define MPU6000_SPI_INSTANCE    SPI1
+#   define MPU6500_CS_PIN          SPI3_NSS_PIN
+#   define MPU6500_SPI_INSTANCE    SPI3
+#   define GYRO_1_CS_PIN           MPU6500_CS_PIN
+#   define GYRO_0_CS_PIN           MPU6000_CS_PIN
+#   define GYRO_1_INT_EXTI         PD0
+#   define GYRO_0_INT_EXTI         PE8
+#   define GYRO_MPU6500_ALIGN      CW90_DEG
+#   define ACC_MPU6500_ALIGN       CW90_DEG
+#else
+#   define MPU6000_CS_PIN          SPI3_NSS_PIN
+#   define MPU6000_SPI_INSTANCE    SPI3
+#   define MPU6500_CS_PIN          SPI1_NSS_PIN
+#   define MPU6500_SPI_INSTANCE    SPI1
+#   define GYRO_0_CS_PIN           MPU6000_CS_PIN
+#   define GYRO_1_CS_PIN           MPU6500_CS_PIN
+#   define GYRO_0_INT_EXTI         PD0
+#   define GYRO_1_INT_EXTI         PE8
+#   define GYRO_MPU6000_ALIGN      CW0_DEG
+#   define ACC_MPU6000_ALIGN       CW0_DEG
+#endif
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PD0
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
-#define MPU6000_CS_PIN          PA15
-#define MPU6000_SPI_INSTANCE    SPI3
-
-#define ACC
-#define USE_ACC_SPI_MPU6000
-
-#define GYRO_MPU6000_ALIGN      CW0_DEG
-#define ACC_MPU6000_ALIGN       CW0_DEG
-
-#define USABLE_TIMER_CHANNEL_COUNT 16
+#define USABLE_TIMER_CHANNEL_COUNT 5
 
 #define USB_IO
 #define USE_VCP
@@ -96,7 +95,18 @@
 #define UART6_RX_PIN PC7
 #define UART6_TX_PIN PC6
 
+#ifdef OMNIBUSF7V2
+#define USE_UART7
+#define UART7_RX_PIN            PE7
+#define UART7_TX_PIN            NONE
+#endif
+
+#ifdef OMNIBUSF7V2
+#define SERIAL_PORT_COUNT 6 //VCP, USART1, USART2, USART3, USART6, USART7
+// #define SERIAL_PORT_COUNT 5 //VCP, USART1, USART2, USART3, USART6
+#else
 #define SERIAL_PORT_COUNT 5 //VCP, USART1, USART2, USART3, USART6
+#endif
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -129,8 +139,8 @@
 #define USE_MAX7456
 #define MAX7456_SPI_INSTANCE    SPI2
 #define MAX7456_SPI_CS_PIN      SPI2_NSS_PIN
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
+#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
 
 #define USE_SDCARD
 #define SDCARD_DETECT_INVERTED
@@ -142,10 +152,6 @@
 
 #define SDCARD_SPI_INSTANCE                 SPI4
 #define SDCARD_SPI_CS_PIN                   SPI4_NSS_PIN
-
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 422kHz
-// Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER 8 // 27MHz
 
 #define SDCARD_DMA_CHANNEL_TX               DMA2_Stream1
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
@@ -197,7 +203,7 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define DEFAULT_FEATURES        (FEATURE_OSD)
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
 

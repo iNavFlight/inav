@@ -23,6 +23,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
@@ -385,7 +386,7 @@ static void processMspPacket(mspPacket_t* packet)
  *       - 2: MSP error
  *     - CRC (request type included)
  */
-bool smartPortSendMspReply()
+bool smartPortSendMspReply(void)
 {
     static uint8_t checksum = 0;
     static uint8_t seq = 0;
@@ -649,7 +650,7 @@ void handleSmartPortTelemetry(void)
                 break;
             case FSSP_DATAID_T1         :
                 {
-                    uint32_t tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
+                    uint32_t tmpi = 0;
 
                     // ones column
                     if (!isArmingDisabled())
@@ -685,7 +686,9 @@ void handleSmartPortTelemetry(void)
                         tmpi += 4000;
 
                     // ten thousands column
-                    if (true == false) // placeholder, would like to use this for home reset indicator
+                    if (FLIGHT_MODE(FLAPERON))
+                        tmpi += 10000;
+                    if (FLIGHT_MODE(AUTO_TUNE))
                         tmpi += 20000;
                     if (FLIGHT_MODE(FAILSAFE_MODE))
                         tmpi += 40000;
@@ -709,6 +712,8 @@ void handleSmartPortTelemetry(void)
                         tmpi += 1000;
                     if (STATE(GPS_FIX_HOME))
                         tmpi += 2000;
+                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
+                        tmpi += 4000;
 
                     smartPortSendPackage(id, tmpi);
 #endif

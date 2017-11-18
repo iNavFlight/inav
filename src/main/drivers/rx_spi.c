@@ -104,7 +104,7 @@ void rxSpiDeviceInit(rx_spi_type_e spiType)
     DISABLE_RX();
 
 #ifdef RX_SPI_INSTANCE
-    spiSetDivisor(RX_SPI_INSTANCE, SPI_CLOCK_STANDARD);
+    spiSetSpeed(RX_SPI_INSTANCE, SPI_CLOCK_STANDARD);
 #endif
     hardwareInitialised = true;
 }
@@ -174,7 +174,7 @@ uint8_t rxSpiReadCommandMulti(uint8_t command, uint8_t commandData, uint8_t *ret
 }
 
 #ifdef RX_IRQ_PIN
-bool rxSpiCheckIrq()
+bool rxSpiCheckIrq(void)
 {
     return !IORead(rxIrqPin);
 }

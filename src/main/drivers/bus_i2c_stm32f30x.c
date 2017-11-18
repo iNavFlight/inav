@@ -19,6 +19,7 @@
 #include <stdint.h>
 
 #include <platform.h>
+#include "common/utils.h"
 
 #include "drivers/time.h"
 #include "drivers/io.h"
@@ -146,7 +147,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
         case I2C_STATE_STARTING:
             i2cBusState->timeout = currentTicks;
             i2cBusState->state = I2C_STATE_STARTING_WAIT;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_STARTING_WAIT:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_BUSY) == RESET) {
@@ -167,7 +168,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_TransferHandling(I2Cx, i2cBusState->addr, 1, I2C_SoftEnd_Mode, I2C_Generate_Start_Write);
             i2cBusState->state = I2C_STATE_R_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_ADDR_WAIT:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_TXIS) != RESET) {
@@ -185,7 +186,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_SendData(I2Cx, i2cBusState->reg);
             i2cBusState->state = I2C_STATE_R_REGISTER_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_REGISTER_WAIT:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_TC) != RESET) {
@@ -209,7 +210,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_TransferHandling(I2Cx, i2cBusState->addr, i2cBusState->len, I2C_AutoEnd_Mode, I2C_Generate_Start_Read);
             i2cBusState->state = I2C_STATE_R_TRANSFER;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_R_TRANSFER:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_RXNE) != RESET) {
@@ -234,7 +235,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_TransferHandling(I2Cx, i2cBusState->addr, 1, I2C_Reload_Mode, I2C_Generate_Start_Write);
             i2cBusState->state = I2C_STATE_W_ADDR_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_W_ADDR_WAIT:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_TXIS) != RESET) {
@@ -252,7 +253,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_SendData(I2Cx, i2cBusState->reg);
             i2cBusState->state = I2C_STATE_W_REGISTER_WAIT;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_W_REGISTER_WAIT:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_TCR) != RESET) {
@@ -276,7 +277,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
             I2C_TransferHandling(I2Cx, i2cBusState->addr, i2cBusState->len, I2C_AutoEnd_Mode, I2C_No_StartStop);
             i2cBusState->state = I2C_STATE_W_TRANSFER;
             i2cBusState->timeout = currentTicks;
-            // Fallthrough
+            FALLTHROUGH;
 
         case I2C_STATE_W_TRANSFER:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_TXIS) != RESET) {

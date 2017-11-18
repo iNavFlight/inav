@@ -38,7 +38,6 @@
 
 #include "drivers/vtx_rtc6705.h"
 
-
 #define RTC6705_SET_HEAD 0x3210 //fosc=8mhz r=400
 #define RTC6705_SET_A1 0x8F3031 //5865
 #define RTC6705_SET_A2 0x8EB1B1 //5845
@@ -204,7 +203,7 @@ void rtc6705SetBandAndChannel(uint8_t band, uint8_t channel)
     band = constrain(band, 0, RTC6705_BAND_COUNT - 1);
     channel = constrain(channel, 0, RTC6705_CHANNEL_COUNT - 1);
 
-    spiSetDivisor(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
+    spiSetSpeed(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
 
     rtc6705Transfer(RTC6705_SET_HEAD);
     rtc6705Transfer(channelArray[band][channel]);
@@ -227,7 +226,7 @@ void rtc6705SetFreq(uint16_t frequency)
     val_hex |= (val_a << 5);
     val_hex |= (val_n << 12);
 
-    spiSetDivisor(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
+    spiSetSpeed(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
 
     rtc6705Transfer(RTC6705_SET_HEAD);
     delayMicroseconds(10);
@@ -238,7 +237,7 @@ void rtc6705SetRFPower(uint8_t rf_power)
 {
     rf_power = constrain(rf_power, 0, RTC6705_RF_POWER_COUNT - 1);
 
-    spiSetDivisor(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
+    spiSetSpeed(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
 
     uint32_t val_hex = RTC6705_RW_CONTROL_BIT; // write
     val_hex |= RTC6705_ADDRESS; // address

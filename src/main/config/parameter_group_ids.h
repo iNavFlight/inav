@@ -72,7 +72,7 @@
 //#define PG_DEBUG_CONFIG 51
 #define PG_SERVO_CONFIG 52
 //#define PG_IBUS_TELEMETRY_CONFIG 53
-//#define PG_VTX_CONFIG 54
+#define PG_VTX_CONFIG 54
 #define PG_ELERES_CONFIG 55
 #define PG_SERVO_MAP_CONFIG 56
 #define PG_CF_END 57
@@ -94,7 +94,10 @@
 #define PG_PID_AUTOTUNE_CONFIG 1008
 #define PG_STATS_CONFIG 1009
 #define PG_ADC_CHANNEL_CONFIG 1010
-#define PG_INAV_END 1010
+#define PG_TIME_CONFIG 1011
+#define PG_OPFLOW_CONFIG 1012
+#define PG_DISPLAY_CONFIG 1013
+#define PG_INAV_END 1013
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047

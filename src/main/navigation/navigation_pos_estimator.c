@@ -53,6 +53,7 @@
 #include "sensors/compass.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
+#include "sensors/opflow.h"
 #include "sensors/sensors.h"
 
 
@@ -115,6 +116,14 @@ typedef struct {
 
 typedef struct {
     timeUs_t    lastUpdateTime; // Last update time (us)
+    bool        isValid;
+    float       quality;
+    float       flowRate[2];
+    float       bodyRate[2];
+} navPositionEstimatorFLOW_t;
+
+typedef struct {
+    timeUs_t    lastUpdateTime; // Last update time (us)
     // 3D position, velocity and confidence
     t_fp_vector pos;
     t_fp_vector vel;
@@ -150,6 +159,7 @@ typedef struct {
     navPositionEstimatorBARO_t  baro;
     navPositionEstimatorSURFACE_t surface;
     navPositionEstimatorPITOT_t pitot;
+    navPositionEstimatorFLOW_t  flow;
 
     // IMU data
     navPosisitonEstimatorIMU_t  imu;
@@ -162,9 +172,9 @@ typedef struct {
 
     // Extra state variables
     navPositionEstimatorSTATE_t state;
-} navigationPosEstimator_s;
+} navigationPosEstimator_t;
 
-static navigationPosEstimator_s posEstimator;
+static navigationPosEstimator_t posEstimator;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 1);
 
@@ -480,6 +490,22 @@ void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfa
         posEstimator.surface.alt = newSurfaceAlt;
         posEstimator.surface.lastUpdateTime = currentTimeUs;
     }
+}
+#endif
+
+#ifdef USE_OPTICAL_FLOW
+/**
+ * Read optical flow topic
+ *  Function is called by OPFLOW task as soon as new update is available
+ */
+void updatePositionEstimator_OpticalFlowTopic(timeUs_t currentTimeUs)
+{
+    posEstimator.flow.lastUpdateTime = currentTimeUs;
+    posEstimator.flow.isValid = opflow.isHwHealty && (opflow.flowQuality == OPFLOW_QUALITY_VALID);
+    posEstimator.flow.flowRate[X] = opflow.flowRate[X];
+    posEstimator.flow.flowRate[Y] = opflow.flowRate[Y];
+    posEstimator.flow.bodyRate[X] = opflow.bodyRate[X];
+    posEstimator.flow.bodyRate[Y] = opflow.bodyRate[Y];
 }
 #endif
 

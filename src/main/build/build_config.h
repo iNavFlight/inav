@@ -39,3 +39,10 @@
 #define REQUIRE_PRINTF_LONG_SUPPORT
 #endif
 
+#ifdef __APPLE__
+#define FASTRAM                     __attribute__ ((section("__DATA,__.fastram_bss"), aligned(4)))
+#else
+#define FASTRAM                     __attribute__ ((section(".fastram_bss"), aligned(4)))
+#endif
+#define STATIC_FASTRAM              static FASTRAM
+#define STATIC_FASTRAM_UNIT_TESTED  STATIC_UNIT_TESTED FASTRAM

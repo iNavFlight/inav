@@ -81,7 +81,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_climb_ignore_emerg = 0,            // Ignore GPS loss on initial climb
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
-            .rth_allow_landing = 1,
+            .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
         },
 
         // General navigation parameters
@@ -861,8 +861,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if (posControl.flags.hasValidPositionSensor || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
         const float rthAltitudeMargin = STATE(FIXED_WING) ?
-                            MIN(100.0f, 0.10f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z)) :  // Airplane: 10% of target altitude but no less than 1m
-                            MIN( 50.0f, 0.05f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z));   // Copters:   5% of target altitude but no less than 50cm
+                            MAX(100.0f, 0.10f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z)) :  // Airplane: 10% of target altitude but no less than 1m
+                            MAX( 50.0f, 0.05f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z));   // Copters:   5% of target altitude but no less than 50cm
 
         if (((posControl.actualState.pos.V.Z - posControl.homeWaypointAbove.pos.V.Z) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
@@ -993,7 +993,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
 
-        if (navConfig()->general.flags.rth_allow_landing) {
+        if (navigationRTHAllowsLanding()) {
             float descentVelLimited = 0;
 
             // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
@@ -2691,6 +2691,25 @@ rthState_e getStateOfForcedRTH(void)
     else {
         return RTH_IDLE;
     }
+}
+
+bool navigationIsControllingThrottle(void)
+{
+    navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND)) || (STATE(FIXED_WING) && (stateFlags & (NAV_CTL_POS)));
+}
+
+bool navigationIsFlyingAutonomousMode(void)
+{
+    navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+    return (stateFlags & (NAV_AUTO_RTH | NAV_AUTO_WP));
+}
+
+bool navigationRTHAllowsLanding(void)
+{
+    navRTHAllowLanding_e allow = navConfig()->general.flags.rth_allow_landing;
+    return allow == NAV_RTH_ALLOW_LANDING_ALWAYS ||
+        (allow == NAV_RTH_ALLOW_LANDING_FS_ONLY && FLIGHT_MODE(FAILSAFE_MODE));
 }
 
 #else // NAV

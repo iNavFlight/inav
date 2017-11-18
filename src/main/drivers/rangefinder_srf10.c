@@ -117,8 +117,9 @@ static uint8_t i2c_srf10_read_byte(uint8_t i2cRegister)
     return byte;
 }
 
-static void srf10_init(void)
+static void srf10_init(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
     i2c_srf10_send_byte(SRF10_WRITE_MaxGainRegister, SRF10_COMMAND_SetGain_Max);
     i2c_srf10_send_byte(SRF10_WRITE_RangeRegister, SRF10_RangeValue6m);
     // initiate first ranging command
@@ -130,8 +131,9 @@ static void srf10_init(void)
  * Start a range reading
  * Called periodically by the scheduler
  */
-static void srf10_start_reading(void)
+static void srf10_start_reading(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
     // check if there is a measurement outstanding, 0xFF is returned if no measurement
     const uint8_t revision = i2c_srf10_read_byte(SRF10_READ_SoftwareRevision);
     if (revision != 0xFF) {
@@ -155,8 +157,9 @@ static void srf10_start_reading(void)
 /**
  * Get the distance that was measured by the last pulse, in centimeters.
  */
-static int32_t srf10_get_distance(void)
+static int32_t srf10_get_distance(rangefinderDev_t *dev)
 {
+    UNUSED(dev);
     if (isSensorResponding) {
         return srf10measurementCm;
     }

@@ -38,14 +38,14 @@ Continue with the Installation and accept all autodetected dependencies.
 
 ----------
 
-versions do matter, 4.8-2014-q2 is known to work well. Download this version from https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q2-update - preferrebly as a ZIP-File.
+use the latest version available. Download this version from https://gcc.gnu.org/mirrors.html - preferably as a ZIP-File.
 
 
-Extract the contents of this archive to any folder of your choice, for instance ```C:\dev\gcc-arm-none-eabi-4_8-2014q2```.
+Extract the contents of this archive to any folder of your choice, for instance ```C:\dev\gcc-arm-none-eabi-*version number*```.
 
 ![GNU ARM Toolchain Setup](assets/008.toolchain.png)
 
-add the "bin" subdirectory to the PATH Windows environment variable: ```%PATH%;C:\dev\gcc-arm-none-eabi-4_8-2014q2\bin```
+add the "bin" subdirectory to the PATH Windows environment variable: ```%PATH%;C:\dev\gcc-arm-none-eabi-*version number*\bin```
 
 ![GNU ARM Toolchain Setup](assets/009.toolchain_path.png)
 

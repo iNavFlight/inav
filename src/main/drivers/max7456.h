@@ -34,6 +34,10 @@
 
 enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 
+#define MAX7456_MODE_INVERT   (1 << 3)
+#define MAX7456_MODE_BLINK    (1 << 4)
+#define MAX7456_MODE_SOLID_BG (1 << 5)
+
 extern uint16_t maxScreenSize;
 
 struct vcdProfile_s;
@@ -41,8 +45,8 @@ void    max7456Init(const struct vcdProfile_s *vcdProfile);
 void    max7456DrawScreenPartial(void);
 void    max7456WriteNvm(uint8_t char_address, const uint8_t *font_data);
 uint8_t max7456GetRowsCount(void);
-void    max7456Write(uint8_t x, uint8_t y, const char *buff);
-void    max7456WriteChar(uint8_t x, uint8_t y, uint8_t c);
+void    max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);
+void    max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode);
 void    max7456ClearScreen(void);
 void    max7456RefreshAll(void);
 uint8_t* max7456GetScreenBuffer(void);

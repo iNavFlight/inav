@@ -53,6 +53,10 @@ extern uint32_t armingFlags;
 #define ENABLE_ARMING_FLAG(mask)    (armingFlags |= (mask))
 #define ARMING_FLAG(mask)           (armingFlags & (mask))
 
+// Returns the 1st flag from ARMING_DISABLED_ALL_FLAGS which is
+// preventing arming, or zero is arming is not disabled.
+armingFlag_e isArmingDisabledReason(void);
+
 typedef enum {
     ANGLE_MODE      = (1 << 0),
     HORIZON_MODE    = (1 << 1),

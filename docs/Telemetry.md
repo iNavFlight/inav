@@ -17,7 +17,7 @@ All telemetry systems use serial ports, configure serial ports to use the teleme
 
 ## SmartPort (S.Port) telemetry
 
-Smartport is a telemetry system used by newer FrSky transmitters and receivers such as the Taranis/XJR, QX7, X8R, X6R and X4R(SB).
+Smartport is a telemetry system used by newer FrSky transmitters such as the Taranis Q X7, X9D, X9D+, X9E or XJR paired with X-series receivers such as the X4R(SB), X8R, XSR, R-XSR, XSR-M or XSR-E. For older D-series receivers see FrSky telemetry below.
 
 More information about the implementation can be found here: https://github.com/frank26080115/cleanflight/wiki/Using-Smart-Port
 
@@ -64,13 +64,13 @@ The following sensors are transmitted
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values.
 * **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
-  * **A** : 1 = placeholder so flight mode is always 5 digits long, 4 = failsafe mode
+  * **A** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
   * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
   * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
-  * **D** : 1 = angle mode, 2 = horizon mode, 4 = auto tune mode, 4 = passthru mode
+  * **D** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
   * **E** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
-* **Tmp2** : GPS lock status, accuracy, and number of satellites. Additive number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
-  * **A** : 1 = GPS fix, 2 = GPS home fix (numbers are additive)
+* **Tmp2** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
+  * **A** : 1 = GPS fix, 2 = GPS home fix, 4 = home reset (numbers are additive)
   * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
   * **C** : number of satellites locked (digit C & D are the number of locked satellites)
   * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
@@ -79,9 +79,13 @@ The following sensors are transmitted
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
 * **0420** : distance to GPS home fix, in meters
 
+### Compatible SmartPort/INAV telemetry flight status
+
+To quickly and easily monitor these SmartPort sensors and flight modes, install [iNav LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
+
 ## FrSky telemetry
 
-FrSky telemetry is for older FrSky transmitters and receivers.  For newer Taranis/XJR, QX7, X8R, X6R and X4R(SB) see SmartPort (S.Port) telemetry above.
+FrSky telemetry is for older FrSky transmitters and D-series receivers.  For newer transmitters paired with X-series receivers see SmartPort (S.Port) telemetry above.
 
 FrSky telemetry is transmit only and just requires a single connection from the TX pin of a serial port to the RX pin on an FrSky telemetry receiver.
 
@@ -285,11 +289,46 @@ Example: 12803 is 12 satelites, Fix3D, FixHome, 0-9m HDOP, Angle Mode
 
 ibus_telemetry_type
 
-0.Standard sensor type are used (Temp,Rpm,ExtV). Each transmitter should support this. (FS-i6, FS-i6S)
+0.Standard sensor type are used (Temp,Rpm,ExtV). Each transmitter should support this. (FS-i6, FS-i6S).
 
-1.This same as 0, but GPS ground speed (sensor 16) is of type Speed in km/h. (FS-i6 10ch_MOD_i6_Programmer_V1_5.exe from https://github.com/benb0jangles/FlySky-i6-Mod-)
+1.This same as 0, but GPS ground speed (sensor 16) is of type Speed in km/h. (FS-i6 10ch_MOD_i6_Programmer_V1_5.exe from https://github.com/benb0jangles/FlySky-i6-Mod-).
 
-2.This same as 1, but GPS altitude (sensor 11) is of type ALT in m. (FS-i6 10ch_Timer_MOD_i6_Programmer_V1_4.exe from https://github.com/benb0jangles/FlySky-i6-Mod-)
+2.This same as 1, but GPS altitude (sensor 11) is of type ALT in m. (FS-i6 10ch_Timer_MOD_i6_Programmer_V1_4.exe from https://github.com/benb0jangles/FlySky-i6-Mod-).
+
+3.This same as 2, but each sensor have its own sensor id. (FS-i6 10ch_Mavlink_MOD_i6_Programmer_V1_.exe from https://github.com/benb0jangles/FlySky-i6-Mod-):
+sensor 4 is of type S85,
+sensor 5 is of type ACC_Z,
+sensor 6 is of type CURRENT,
+sensor 7 is of type ALT,
+sensor 8 is of type HEADING,
+sensor 9 is of type DIST,
+sensor 10 is of type COG,
+sensor 10 is of type GALT,
+sensor 12 is of type GPS_LON,
+sensor 13 is of type GPS_LAT,
+sensor 14 is of type ACC_X,
+sensor 15 is of type ACC_Y, 
+sensor 16 is of type SPEED.
+
+4.This same as 3, but support 4 byte sensors. (fix_updater_03_16_21_33_1 from https://github.com/qba667/FlySkyI6/tree/master/release):
+sensor 7 is 4byte ALT, 12 is PRESURE or PITOT_SPEED if avaliable, 13 is GPS_STATUS, 14 is 4byte GPS_LON, 15 is 4byte GPS_LAT.
+This required a receiver with new firmware that support SNR, RSSI and long frames (For FS-IA6B since August 2016 or need upgrade to wersion 1.6 https://github.com/povlhp/FlySkyRxFirmware).
+
+5.This same as 4, but sensor 3 is ARMED, 4 is MODE, 12 is CLIMB.
+
+6.For hali9_updater_04_21_23_13.bin from https://www.rcgroups.com/forums/showthread.php?2486545-FlySky-FS-i6-8-channels-firmware-patch%21/page118 or https://github.com/benb0jangles/FlySky-i6-Mod-/tree/master/10ch%20qba667_hali9%20Updater sensor 4 is of type CURRENT, sensor 5 is of type HEADING, sensor 6 is of type COG, sensor 7 is of type CLIMB, sensor 8 is of type YAW, sensor 9 is of type DIST, sensor 10 is of type PRESURE or PITOT_SPEED if avaliable, sensor 11 is of type SPEED, sensor 12 is of type GPS_LAT, sensor 13 is of type GPS_LON, sensor 14 is of type GALT, sensor 15 is of type ALT, sensor 16 is of type S85.
+
+7.This same as 6, but sensor 3 is GPS_STATUS, 10 is ARMED, 16 is MODE.
+
+131.This same as 3, but sensor 16 (type SPEED) is in m/s.
+
+132.This same as 4, but sensor 16 (type SPEED) is in m/s.
+
+133.This same as 5, but sensor 16 (type SPEED) is in m/s.
+
+134.This same as 6, but sensor 11 (type SPEED) is in m/s.
+
+135.This same as 7, but sensor 11 (type SPEED) is in m/s.
 
 ### RX hardware
 
@@ -304,7 +343,7 @@ Note that the FlySky/Turnigy FS-iA4B 4-Channel Receiver (http://www.flysky-cn.co
 
 Case:
 
-A. For use only IBUS RX connect directly Flysky IBUS-SERVO to FC-UART-TX.
+A. For use only IBUS RX connect directly Flysky IBUS-SERVO to FC-UART-RX.
 In configurator set RX on selected port, set receiver mode to RX_SERIAL and Receiver provider to IBUS.
 
 B. For use only IBUS telemetry connect directly Flysky IBUS-SENS to FC-UART-TX.

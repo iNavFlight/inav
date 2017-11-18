@@ -228,6 +228,8 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
                 break;
             }
             // follow though for combined ADJUSTMENT_PITCH_ROLL_RATE
+            FALLTHROUGH;
+
         case ADJUSTMENT_ROLL_RATE:
             newValue = constrain((int)controlRateConfig->rates[FD_ROLL] + delta, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
             controlRateConfig->rates[FD_ROLL] = newValue;
@@ -250,6 +252,8 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
                 break;
             }
             // follow though for combined ADJUSTMENT_PITCH_ROLL_P
+            FALLTHROUGH;
+
         case ADJUSTMENT_ROLL_P:
             newValue = constrain((int)pidBank()->pid[PID_ROLL].P + delta, 0, 200); // FIXME magic numbers repeated in serial_cli.c
             pidBankMutable()->pid[PID_ROLL].P = newValue;
@@ -266,6 +270,8 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
                 break;
             }
             // follow though for combined ADJUSTMENT_PITCH_ROLL_I
+            FALLTHROUGH;
+
         case ADJUSTMENT_ROLL_I:
             newValue = constrain((int)pidBank()->pid[PID_ROLL].I + delta, 0, 200); // FIXME magic numbers repeated in serial_cli.c
             pidBankMutable()->pid[PID_ROLL].I = newValue;
@@ -282,6 +288,8 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
                 break;
             }
             // follow though for combined ADJUSTMENT_PITCH_ROLL_D
+            FALLTHROUGH;
+
         case ADJUSTMENT_ROLL_D:
             newValue = constrain((int)pidBank()->pid[PID_ROLL].D + delta, 0, 200); // FIXME magic numbers repeated in serial_cli.c
             pidBankMutable()->pid[PID_ROLL].D = newValue;
