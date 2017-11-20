@@ -61,7 +61,7 @@ typedef long (*CMSEntryFuncPtr)(displayPort_t *displayPort, const void *ptr);
 
 typedef struct
 {
-    const char *text;
+    const char * const text;
     const OSD_MenuElement type;
     const CMSEntryFuncPtr func;
     void *data;
@@ -110,10 +110,11 @@ typedef long (*CMSMenuOnExitPtr)(const OSD_Entry *self);
 
 typedef struct
 {
+#ifdef CMS_MENU_DEBUG
     // These two are debug aids for menu content creators.
     const char *GUARD_text;
     const OSD_MenuElement GUARD_type;
-
+#endif
     const CMSMenuFuncPtr onEnter;
     const CMSMenuOnExitPtr onExit;
     const CMSMenuFuncPtr onGlobalExit;
