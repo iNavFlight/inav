@@ -54,6 +54,15 @@
 #include "sensors/boardalignment.h"
 
 
+// Multirotors:
+#define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
+#define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
+#define MR_RTH_CLIMB_MARGIN_PERCENT 15   // on high RTH altitudes use even bigger margin - percent of the altitude set
+// Planes:
+#define FW_RTH_CLIMB_OVERSHOOT_CM   100
+#define FW_RTH_CLIMB_MARGIN_MIN_CM  100
+#define FW_RTH_CLIMB_MARGIN_PERCENT 15
+
 /*-----------------------------------------------------------
  * Compatibility for home position
  *-----------------------------------------------------------*/
@@ -851,8 +860,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatue >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
         const float rthAltitudeMargin = STATE(FIXED_WING) ?
-                            MAX(100.0f, 0.10f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z)) :  // Airplane: 10% of target altitude but no less than 1m
-                            MAX( 50.0f, 0.05f * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z));   // Copters:   5% of target altitude but no less than 50cm
+                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z)) :  // Airplane
+                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.V.Z - posControl.homePosition.pos.V.Z));   // Copters
 
         if (((posControl.actualState.pos.V.Z - posControl.homeWaypointAbove.pos.V.Z) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
@@ -872,14 +881,22 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
             // Climb to safe altitude and turn to correct direction
             if (STATE(FIXED_WING)) {
-                setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z);
+                t_fp_vector pos = posControl.homeWaypointAbove.pos;
+                pos.V.Z += FW_RTH_CLIMB_OVERSHOOT_CM;
+
+                setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z);
             }
             else {
+                // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
+                // it in a reasonable time. Immediately after we finish this phase - target the original altitude.
+                t_fp_vector pos = posControl.homeWaypointAbove.pos;
+                pos.V.Z += MR_RTH_CLIMB_OVERSHOOT_CM;
+
                 if (navConfig()->general.flags.rth_tail_first) {
-                    setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
+                    setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
                 }
                 else {
-                    setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
+                    setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
                 }
             }
 
