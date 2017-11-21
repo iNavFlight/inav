@@ -1140,6 +1140,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
+    case MSP_NAME:
+        {
+            const char *name = systemConfig()->name;
+            while (*name) {
+                sbufWriteU8(dst, *name++);
+            }
+        }
+        break;
+
     case MSP2_COMMON_TZ:
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
         break;
@@ -1984,6 +1993,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             uint16_t millis = sbufReadU16(src);
             rtcTime_t t = rtcTimeMake(secs, millis);
             rtcSet(&t);
+        }
+        break;
+
+    case MSP_SET_NAME:
+        {
+            char *name = systemConfigMutable()->name;
+            int len = MIN(MAX_NAME_LENGTH, (int)dataSize);
+            sbufReadData(src, name, len);
+            memset(&name[len], '\0', (MAX_NAME_LENGTH + 1) - len);
         }
         break;
 
