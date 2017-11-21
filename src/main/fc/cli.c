@@ -2424,6 +2424,18 @@ static void cliStatus(char *cmdline)
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
     cliPrintLinef(", cycle time: %d, PID rate: %d, RX rate: %d, System rate: %d",  (uint16_t)cycleTime, pidRate, rxRate, systemRate);
+#if !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("Arming disabled flags:");
+    uint32_t flags = armingFlags & ARMING_DISABLED_ALL_FLAGS;
+    while (flags) {
+        int bitpos = ffs(flags) - 1;
+        flags &= ~(1 << bitpos);
+	if (bitpos > 6) cliPrintf(" %s", armingDisableFlagNames[bitpos - 7]);
+    }
+    cliPrintLinefeed();
+#else
+    cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
+#endif
 }
 
 #ifndef SKIP_TASK_STATISTICS
