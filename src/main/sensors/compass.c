@@ -131,7 +131,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         FALLTHROUGH;
 
     case MAG_AK8975:
-#ifdef USE_MAG_AK8975
+#if defined(USE_MAG_AK8975) || defined(USE_MAG_SPI_AK8975)
         if (ak8975Detect(dev)) {
 #ifdef MAG_AK8975_ALIGN
             dev->magAlign = MAG_AK8975_ALIGN;
