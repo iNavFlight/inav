@@ -47,8 +47,10 @@ OSD_Entry cmsx_menuAlarmsEntries[] =
 };
 
 CMS_Menu cmsx_menuAlarms = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUALARMS",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -108,8 +110,10 @@ OSD_Entry menuOsdActiveElemsEntries[] =
 };
 
 CMS_Menu menuOsdActiveElems = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUOSDACT",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = menuOsdActiveElemsOnEnter,
     .onExit = menuOsdActiveElemsOnExit,
     .onGlobalExit = NULL,
@@ -125,8 +129,10 @@ OSD_Entry cmsx_menuOsdLayoutEntries[] =
 };
 
 CMS_Menu cmsx_menuOsdLayout = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENULAYOUT",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

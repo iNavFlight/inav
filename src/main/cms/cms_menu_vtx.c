@@ -132,8 +132,10 @@ static OSD_Entry cmsx_menuVtxEntries[] =
 };
 
 CMS_Menu cmsx_menuVtx = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUVTX",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_Vtx_onEnter,
     .onExit= cmsx_Vtx_onExit,
     .onGlobalExit = cmsx_Vtx_FeatureWriteback,
