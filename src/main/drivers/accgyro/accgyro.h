@@ -43,34 +43,35 @@ typedef enum {
 } gyroRateKHz_e;
 
 typedef struct gyroDev_s {
+    busDevice_t * busDev;
     sensorGyroInitFuncPtr initFn;                       // initialize function
     sensorGyroReadFuncPtr readFn;                       // read 3 axis data function
     sensorGyroReadDataFuncPtr temperatureFn;            // read temperature if available
     sensorGyroInterruptStatusFuncPtr intStatusFn;
     sensorGyroUpdateFuncPtr updateFn;
     extiCallbackRec_t exti;
-    busDevice_t bus;
     float scale;                                        // scalefactor
     int16_t gyroADCRaw[XYZ_AXIS_COUNT];
     int16_t gyroZero[XYZ_AXIS_COUNT];
     uint8_t lpf;
+    uint8_t imuSensorToUse;
     gyroRateKHz_e gyroRateKHz;
     uint8_t mpuDividerDrops;
     volatile bool dataReady;
     sensor_align_e gyroAlign;
-    mpuDetectionResult_t mpuDetectionResult;
-    const extiConfig_t *mpuIntExtiConfig;
-    mpuConfiguration_t mpuConfiguration;
+
+    // Device-specific configuration (set up by driver)
+    union {
+        mpuConfiguration_t mpu;
+    } devConfig;
 } gyroDev_t;
 
 typedef struct accDev_s {
+    busDevice_t * busDev;
     sensorAccInitFuncPtr initFn;                        // initialize function
     sensorAccReadFuncPtr readFn;                        // read 3 axis data function
-    busDevice_t bus;
     uint16_t acc_1G;
     int16_t ADCRaw[XYZ_AXIS_COUNT];
-    char revisionCode;                                  // a revision code for the sensor, if known
+    uint8_t imuSensorToUse;
     sensor_align_e accAlign;
-    mpuDetectionResult_t mpuDetectionResult;
-    mpuConfiguration_t mpuConfiguration;
 } accDev_t;

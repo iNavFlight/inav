@@ -50,6 +50,7 @@ typedef enum {
     OWNER_RX_SPI,
     OWNER_VTX,
     OWNER_SPI_PREINIT,
+    OWNER_COMPASS,
     OWNER_TOTAL_COUNT
 } resourceOwner_e;
 

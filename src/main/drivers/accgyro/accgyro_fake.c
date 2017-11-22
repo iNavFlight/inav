@@ -104,7 +104,6 @@ bool fakeAccDetect(accDev_t *acc)
 {
     acc->initFn = fakeAccInit;
     acc->readFn = fakeAccRead;
-    acc->revisionCode = 0;
     return true;
 }
 #endif // USE_FAKE_ACC

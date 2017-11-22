@@ -67,6 +67,7 @@
 
 // Registers
 
+#define LSM303DLHC_STATUS_REG_A              0x27  /* Status register acceleration */
 #define CTRL_REG1_A 0x20
 #define CTRL_REG4_A 0x23
 #define CTRL_REG5_A 0x24
@@ -103,30 +104,15 @@
 
 #define CONTINUOUS_CONVERSION 0x00
 
-uint8_t accelCalibrating = false;
-
-float accelOneG = 9.8065;
-
-int32_t accelSum100Hz[3] = { 0, 0, 0 };
-
-int32_t accelSum500Hz[3] = { 0, 0, 0 };
-
-int32_t accelSummedSamples100Hz[3];
-
-int32_t accelSummedSamples500Hz[3];
-
 void lsm303dlhcAccInit(accDev_t *acc)
 {
-    i2cWrite(MPU_I2C_INSTANCE, LSM303DLHC_ACCEL_ADDRESS, CTRL_REG5_A, BOOT);
-
+    busWrite(acc->busDev, CTRL_REG5_A, BOOT);
     delay(100);
 
-    i2cWrite(MPU_I2C_INSTANCE, LSM303DLHC_ACCEL_ADDRESS, CTRL_REG1_A, ODR_1344_HZ | AXES_ENABLE);
-
+    busWrite(acc->busDev, CTRL_REG1_A, ODR_1344_HZ | AXES_ENABLE);
     delay(10);
 
-    i2cWrite(MPU_I2C_INSTANCE, LSM303DLHC_ACCEL_ADDRESS, CTRL_REG4_A, FULLSCALE_4G);
-
+    busWrite(acc->busDev, CTRL_REG4_A, FULLSCALE_4G);
     delay(100);
 
     acc->acc_1G = 512 * 8;
@@ -137,7 +123,7 @@ static bool lsm303dlhcAccRead(accDev_t *acc)
 {
     uint8_t buf[6];
 
-    bool ack = i2cRead(MPU_I2C_INSTANCE, LSM303DLHC_ACCEL_ADDRESS, AUTO_INCREMENT_ENABLE | OUT_X_L_A, 6, buf);
+    bool ack = busReadBuf(acc->busDev, AUTO_INCREMENT_ENABLE | OUT_X_L_A, buf, 6);
 
     if (!ack) {
         return false;
@@ -148,26 +134,36 @@ static bool lsm303dlhcAccRead(accDev_t *acc)
     acc->ADCRaw[Y] = (int16_t)((buf[3] << 8) | buf[2]) / 2;
     acc->ADCRaw[Z] = (int16_t)((buf[5] << 8) | buf[4]) / 2;
 
-#if 0
-    debug[0] = (int16_t)((buf[1] << 8) | buf[0]);
-    debug[1] = (int16_t)((buf[3] << 8) | buf[2]);
-    debug[2] = (int16_t)((buf[5] << 8) | buf[4]);
-#endif
+    return true;
+}
+
+static bool deviceDetect(busDevice_t * busDev)
+{
+    bool ack = false;
+    uint8_t status = 0;
+
+    ack = busRead(busDev, LSM303DLHC_STATUS_REG_A, &status);
+    if (!ack)
+        return false;
 
     return true;
 }
 
 bool lsm303dlhcAccDetect(accDev_t *acc)
 {
-    bool ack;
-    uint8_t status;
-
-    ack = i2cRead(MPU_I2C_INSTANCE, LSM303DLHC_ACCEL_ADDRESS, LSM303DLHC_STATUS_REG_A, 1, &status);
-    if (!ack)
+    acc->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_LSM303DLHC, acc->imuSensorToUse, OWNER_MPU);
+    if (acc->busDev == NULL) {
         return false;
+    }
+
+    if (!deviceDetect(acc->busDev)) {
+        busDeviceDeInit(acc->busDev);
+        return false;
+    }
 
     acc->initFn = lsm303dlhcAccInit;
     acc->readFn = lsm303dlhcAccRead;
     return true;
 }
+
 #endif

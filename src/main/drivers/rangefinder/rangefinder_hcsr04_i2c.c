@@ -27,14 +27,10 @@
 #include "drivers/time.h"
 #include "drivers/bus_i2c.h"
 
-#include "drivers/rangefinder.h"
-#include "drivers/rangefinder_hcsr04_i2c.h"
+#include "drivers/rangefinder/rangefinder.h"
+#include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
 
 #include "build/debug.h"
-
-#ifndef RANGEFINDER_HCSR04_I2C_I2C_INSTANCE
-#define RANGEFINDER_HCSR04_I2C_I2C_INSTANCE I2C_DEVICE
-#endif
 
 #define HCSR04_I2C_MAX_RANGE_CM 400
 #define HCSR04_I2C_DETECTION_CONE_DECIDEGREES 300
@@ -49,23 +45,16 @@
 volatile int32_t hcsr04i2cMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
 static bool isHcsr04i2cResponding = false;
 
-static uint8_t hcsr04i2cReadByte(uint8_t registry) {
-    uint8_t buffer;
-
-    isHcsr04i2cResponding = i2cRead(I2C_DEVICE, HCSR04_I2C_Address, registry, 1, &buffer);
-    return buffer;
+static void hcsr04i2cInit(rangefinderDev_t *rangefinder)
+{
+    UNUSED(rangefinder);
 }
 
-static void hcsr04i2cInit(rangefinderDev_t *dev)
+void hcsr04i2cUpdate(rangefinderDev_t *rangefinder)
 {
-    UNUSED(dev);
-}
-
-void hcsr04i2cUpdate(rangefinderDev_t *dev)
-{
-    UNUSED(dev);
     uint8_t response[3];
 
+    isHcsr04i2cResponding = busReadBuf(rangefinder->busDev, HCSR04_I2C_REGISTRY_STATUS, response, 3);
     isHcsr04i2cResponding = i2cRead(I2C_DEVICE, HCSR04_I2C_Address, HCSR04_I2C_REGISTRY_STATUS, 3, response);
     
     if (!isHcsr04i2cResponding) {
@@ -90,29 +79,48 @@ void hcsr04i2cUpdate(rangefinderDev_t *dev)
 /**
  * Get the distance that was measured by the last pulse, in centimeters.
  */
-int32_t hcsr04i2cGetDistance(rangefinderDev_t *dev)
+int32_t hcsr04i2cGetDistance(rangefinderDev_t *rangefinder)
 {
-    UNUSED(dev);
+    UNUSED(rangefinder);
     return hcsr04i2cMeasurementCm;
 }
 
-bool hcsr04i2c0Detect(rangefinderDev_t *dev)
+static bool deviceDetect(busDevice_t * busDev)
 {
-    hcsr04i2cReadByte(HCSR04_I2C_REGISTRY_STATUS);
+    for (int retry = 0; retry < 5; retry++) {
+        uint8_t inquiryResult;
+        delay(150);
 
-    if (isHcsr04i2cResponding) {
-        dev->delayMs = RANGEFINDER_HCSR04_i2C_TASK_PERIOD_MS;
-        dev->maxRangeCm = HCSR04_I2C_MAX_RANGE_CM;
-        dev->detectionConeDeciDegrees = HCSR04_I2C_DETECTION_CONE_DECIDEGREES;
-        dev->detectionConeExtendedDeciDegrees = HCSR04_I2C_DETECTION_CONE_EXTENDED_DECIDEGREES;
+        bool ack = busRead(busDev, HCSR04_I2C_REGISTRY_STATUS, &inquiryResult);
+        if (ack) {
+            return true;
+        }
+    };
 
-        dev->init = &hcsr04i2cInit;
-        dev->update = &hcsr04i2cUpdate;
-        dev->read = &hcsr04i2cGetDistance;
+    return false;
+}
 
-        return true;
-    } else {
+bool hcsr04i2c0Detect(rangefinderDev_t *rangefinder)
+{
+    rangefinder->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_HCSR04_I2C, 0, OWNER_RANGEFINDER);
+    if (rangefinder->busDev == NULL) {
         return false;
     }
+    
+    if (!deviceDetect(rangefinder->busDev)) {
+        busDeviceDeInit(rangefinder->busDev);
+        return false;
+    }
+
+    rangefinder->delayMs = RANGEFINDER_HCSR04_i2C_TASK_PERIOD_MS;
+    rangefinder->maxRangeCm = HCSR04_I2C_MAX_RANGE_CM;
+    rangefinder->detectionConeDeciDegrees = HCSR04_I2C_DETECTION_CONE_DECIDEGREES;
+    rangefinder->detectionConeExtendedDeciDegrees = HCSR04_I2C_DETECTION_CONE_EXTENDED_DECIDEGREES;
+
+    rangefinder->init = &hcsr04i2cInit;
+    rangefinder->update = &hcsr04i2cUpdate;
+    rangefinder->read = &hcsr04i2cGetDistance;
+
+    return true;
 }
 #endif

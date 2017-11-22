@@ -34,22 +34,13 @@ void SetSysClock(void);
 
 void systemReset(void)
 {
-    if (mpuResetFn) {
-        mpuResetFn();
-    }
-
     __disable_irq();
     NVIC_SystemReset();
 }
 
 void systemResetToBootloader(void)
 {
-    if (mpuResetFn) {
-        mpuResetFn();
-    }
-
     *((uint32_t *)0x2001FFFC) = 0xDEADBEEF; // 128KB SRAM STM32F4XX
-
     __disable_irq();
     NVIC_SystemReset();
 }

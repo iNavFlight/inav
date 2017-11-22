@@ -2341,9 +2341,6 @@ static void cliStatus(char *cmdline)
             const int sensorHardwareIndex = detectedSensors[i];
             const char *sensorHardware = sensorHardwareNames[i][sensorHardwareIndex];
             cliPrintf(", %s=%s", sensorTypeNames[i], sensorHardware);
-            if (mask == SENSOR_ACC && acc.dev.revisionCode) {
-                cliPrintf(".%c", acc.dev.revisionCode);
-            }
         }
     }
     cliPrintLinefeed();

@@ -33,46 +33,46 @@
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
-#include "drivers/accgyro/accgyro_mpu6500.h"
+#include "drivers/accgyro/accgyro_mpu9250.h"
 
-#if defined(USE_GYRO_MPU6500) || defined(USE_ACC_MPU6500)
+#if defined(USE_GYRO_MPU9250) || defined(USE_ACC_MPU9250)
 
-#define MPU6500_BIT_RESET                   (0x80)
-#define MPU6500_BIT_INT_ANYRD_2CLEAR        (1 << 4)
-#define MPU6500_BIT_BYPASS_EN               (1 << 0)
-#define MPU6500_BIT_I2C_IF_DIS              (1 << 4)
-#define MPU6500_BIT_RAW_RDY_EN              (0x01)
+#define MPU9250_BIT_RESET                   (0x80)
+#define MPU9250_BIT_INT_ANYRD_2CLEAR        (1 << 4)
+#define MPU9250_BIT_BYPASS_EN               (1 << 0)
+#define MPU9250_BIT_I2C_IF_DIS              (1 << 4)
+#define MPU9250_BIT_RAW_RDY_EN              (0x01)
 
-static void mpu6500AccInit(accDev_t *acc)
+static void mpu9250AccInit(accDev_t *acc)
 {
     acc->acc_1G = 512 * 8;
 }
 
-bool mpu6500AccDetect(accDev_t *acc)
+bool mpu9250AccDetect(accDev_t *acc)
 {
-    acc->busDev = busDeviceOpen(BUSTYPE_ANY, DEVHW_MPU6500, acc->imuSensorToUse);
+    acc->busDev = busDeviceOpen(BUSTYPE_ANY, DEVHW_MPU9250, acc->imuSensorToUse);
     if (acc->busDev == NULL) {
         return false;
     }
 
-    if (busDeviceReadScratchpad(acc->busDev) != 0xFFFF6500) {
+    if (busDeviceReadScratchpad(acc->busDev) != 0xFFFF9250) {
         return false;
     }
 
-    acc->initFn = mpu6500AccInit;
+    acc->initFn = mpu9250AccInit;
     acc->readFn = mpuAccRead;
 
     return true;
 }
 
-static void mpu6500AccAndGyroInit(gyroDev_t *gyro)
+static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * dev = gyro->busDev;
     mpuIntExtiInit(gyro);
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
-    busWrite(dev, MPU_RA_PWR_MGMT_1, MPU6500_BIT_RESET);
+    busWrite(dev, MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);
     delay(100);
 
     busWrite(dev, MPU_RA_SIGNAL_PATH_RESET, 0x07);      // BIT_GYRO | BIT_ACC | BIT_TEMP
@@ -110,25 +110,22 @@ static void mpu6500AccAndGyroInit(gyroDev_t *gyro)
     busSetSpeed(dev, BUS_SPEED_FAST);
 }
 
-static bool mpu6500DeviceDetect(busDevice_t * dev)
+static bool mpu9250DeviceDetect(busDevice_t * dev)
 {
     uint8_t tmp;
     uint8_t attemptsRemaining = 5;
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
-    busWrite(dev, MPU_RA_PWR_MGMT_1, MPU6500_BIT_RESET);
-    
+    busWrite(dev, MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);
+
     do {
         delay(150);
 
         busRead(dev, MPU_RA_WHO_AM_I, &tmp);
 
         switch (tmp) {
-            case MPU6500_WHO_AM_I_CONST:
-            case ICM20608G_WHO_AM_I_CONST:
-            case ICM20602_WHO_AM_I_CONST:
-            case ICM20689_WHO_AM_I_CONST:
+            case MPU9250_WHO_AM_I_CONST:
                 // Compatible chip detected
                 return true;
 
@@ -145,22 +142,22 @@ static bool mpu6500DeviceDetect(busDevice_t * dev)
     return false;
 }
 
-bool mpu6500GyroDetect(gyroDev_t *gyro)
+bool mpu9250GyroDetect(gyroDev_t *gyro)
 {
-    gyro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MPU6500, gyro->imuSensorToUse, OWNER_MPU);
+    gyro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MPU9250, gyro->imuSensorToUse, OWNER_MPU);
     if (gyro->busDev == NULL) {
         return false;
     }
 
-    if (!mpu6500DeviceDetect(gyro->busDev)) {
+    if (!mpu9250DeviceDetect(gyro->busDev)) {
         busDeviceDeInit(gyro->busDev);
         return false;
     }
 
-    busDeviceWriteScratchpad(gyro->busDev, 0xFFFF6500);    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+    busDeviceWriteScratchpad(gyro->busDev, 0xFFFF9250);    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
 
     gyro->devConfig.mpu.gyroReadXRegister = MPU_RA_GYRO_XOUT_H;
-    gyro->initFn = mpu6500AccAndGyroInit;
+    gyro->initFn = mpu9250AccAndGyroInit;
     gyro->readFn = mpuGyroRead;
     gyro->intStatusFn = mpuCheckDataReady;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor

@@ -18,8 +18,8 @@
 #pragma once
 
 #include "common/time.h"
-
 #include "drivers/io.h"
+#include "drivers/bus.h"
 
 #define RANGEFINDER_OUT_OF_RANGE        (-1)
 #define RANGEFINDER_HARDWARE_FAILURE    (-2)
@@ -39,6 +39,8 @@ typedef void (*rangefinderOpStartFuncPtr)(struct rangefinderDev_s * dev);
 typedef int32_t (*rangefinderOpReadFuncPtr)(struct rangefinderDev_s * dev);
 
 typedef struct rangefinderDev_s {
+    busDevice_t * busDev;           // Device on a bus (if applicable)
+
     timeMs_t delayMs;
     int16_t maxRangeCm;
 

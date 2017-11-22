@@ -38,24 +38,25 @@
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
 
 #define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 
 #define MAG
-#define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
-#define USE_MAG_HMC5883
-#define MAG_HMC5883_ALIGN       CW90_DEG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_HMC5883
+#define MAG_HMC5883_ALIGN       CW90_DEG
 
 #define BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
@@ -67,9 +68,9 @@
 // #define USE_OPFLOW_FAKE
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
 #define USE_RANGEFINDER_UIB
-#define RANGEFINDER_VL53L0X_INSTANCE    I2C_DEVICE_EXT
+#define USE_RANGEFINDER_VL53L0X
+#define VL53L0X_I2C_BUS         BUS_I2C2
 
 
 #define M25P16_CS_PIN           PB3
