@@ -141,7 +141,7 @@ endif
 GROUP_1_TARGETS := AIRHEROF3 AIRHEROF3_QUAD COLIBRI_RACE LUX_RACE SPARKY REVO SPARKY2 COLIBRI FALCORE PIKOBLX
 GROUP_2_TARGETS := SPRACINGF3 SPRACINGF3EVO SPRACINGF3EVO_1SS SPRACINGF3MINI SPRACINGF3NEO SPRACINGF4EVO
 GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO OMNIBUSF4V3 SPARKY2 MATEKF405 OMNIBUSF7 DYSF4PRO MATEKF405OSD
-GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER PIXRACER_ICM20608
+GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER
 GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS), $(VALID_TARGETS))
 
 # note that there is no hardfault debugging startup file assembly handler for other platforms
@@ -542,6 +542,7 @@ VPATH           := $(VPATH):$(TARGET_DIR)
 COMMON_SRC = \
             $(TARGET_DIR_SRC) \
             main.c \
+            target/common_hardware.c \
             build/assert.c \
             build/build_config.c \
             build/debug.c \
@@ -672,11 +673,11 @@ HIGHEND_SRC = \
             common/colorconversion.c \
             common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
-            drivers/rangefinder_hcsr04.c \
-            drivers/rangefinder_hcsr04_i2c.c \
-            drivers/rangefinder_srf10.c \
+            drivers/rangefinder/rangefinder_hcsr04.c \
+            drivers/rangefinder/rangefinder_hcsr04_i2c.c \
+            drivers/rangefinder/rangefinder_srf10.c \
+            drivers/rangefinder/rangefinder_vl53l0x.c \
             drivers/opflow_fake.c \
-            drivers/rangefinder_vl53l0x.c \
             drivers/vtx_common.c \
             io/dashboard.c \
             io/displayport_max7456.c \

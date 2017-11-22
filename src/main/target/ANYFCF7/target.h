@@ -28,35 +28,37 @@
 #define BEEPER_INVERTED
 
 #define MPU6000_CS_PIN        PA4
-#define MPU6000_SPI_INSTANCE  SPI1
+#define MPU6000_SPI_BUS       BUS_SPI1
 
 #define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN CW270_DEG
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN CW270_DEG
 
 // MPU6000 interrupts
 #define USE_MPU_DATA_READY_SIGNAL
-#define MPU_INT_EXTI PC4
+#define MPU_INT_EXTI            PC4
 #define USE_EXTI
 
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
-#define MAG_I2C_INSTANCE I2C_DEVICE_EXT
-#define MAG_HMC5883_ALIGN CW270_DEG_FLIP
-//#define MAG_HMC5883_ALIGN CW90_DEG
+#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
 #define BARO
-#define USE_BARO_MS5611
 
 #ifdef ANYFCF7_EXTERNAL_BARO
+    #define BARO_I2C_BUS        BUS_I2C2
+    #define USE_BARO_MS5611
     #define USE_BARO_BMP085
     #define USE_BARO_BMP280
-    #define BARO_I2C_INSTANCE I2C_DEVICE_EXT
+#else
+    #define BARO_I2C_BUS        BUS_I2C4
+    #define USE_BARO_MS5611
 #endif
 
 #define USE_PITOT_MS4525
@@ -124,10 +126,8 @@
 
 #define OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI3
-#define MAX7456_SPI_CS_PIN      SPI3_NSS_PIN
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          SPI3_NSS_PIN
 
 #define USE_SDCARD
 

@@ -25,7 +25,7 @@
 #define BEEPER_INVERTED
 
 #define USE_EXTI
-#define MPU_INT_EXTI PC13
+#define MPU_INT_EXTI            PC13
 #define EXTI_CALLBACK_HANDLER_COUNT 2 // MPU data ready and MAG data ready
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
@@ -38,13 +38,16 @@
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW270_DEG
 
+#define MPU6050_I2C_BUS         BUS_I2C1
+
 #define BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 
 #define MAG
-#define USE_MAG_AK8975
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_MAG3110
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883

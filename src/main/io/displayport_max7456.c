@@ -102,7 +102,7 @@ static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c
 static bool isTransferInProgress(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return max7456DmaInProgress();
+    return false;
 }
 
 static void resync(displayPort_t *displayPort)

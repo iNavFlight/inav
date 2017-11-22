@@ -28,8 +28,8 @@
 #include "drivers/time.h"
 #include "drivers/bus_i2c.h"
 
-#include "drivers/rangefinder.h"
-#include "drivers/rangefinder_srf10.h"
+#include "drivers/rangefinder/rangefinder.h"
+#include "drivers/rangefinder/rangefinder_srf10.h"
 
 #ifndef SRF10_I2C_INSTANCE
 #define SRF10_I2C_INSTANCE I2CDEV_1
@@ -93,37 +93,14 @@ static int16_t minimumFiringIntervalMs;
 static uint32_t timeOfLastMeasurementMs;
 static bool isSensorResponding = true;
 
-#ifdef UNIT_TEST
-bool i2cWrite(uint8_t addr_, uint8_t reg, uint8_t data) {UNUSED(addr_); UNUSED(reg); UNUSED(data); return false;}
-bool i2cRead(uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf) {UNUSED(addr_); UNUSED(reg);UNUSED(len); UNUSED(buf); return false;}
-#endif
-
-static bool i2c_srf10_send_command(uint8_t command)
+static void srf10_init(rangefinderDev_t * rangefinder)
 {
-    isSensorResponding = i2cWrite(SRF10_I2C_INSTANCE, SRF10_AddressI2C, SRF10_WRITE_CommandRegister, command);
-    return isSensorResponding;
-}
+    busWrite(rangefinder->busDev, SRF10_WRITE_MaxGainRegister, SRF10_COMMAND_SetGain_Max);
+    busWrite(rangefinder->busDev, SRF10_WRITE_RangeRegister, SRF10_RangeValue6m);
 
-static bool i2c_srf10_send_byte(uint8_t i2cRegister, uint8_t val)
-{
-    isSensorResponding = i2cWrite(SRF10_I2C_INSTANCE, SRF10_AddressI2C, i2cRegister, val);
-    return isSensorResponding;
-}
-
-static uint8_t i2c_srf10_read_byte(uint8_t i2cRegister)
-{
-    uint8_t byte;
-    isSensorResponding = i2cRead(SRF10_I2C_INSTANCE, SRF10_AddressI2C, i2cRegister, 1, &byte);
-    return byte;
-}
-
-static void srf10_init(rangefinderDev_t *dev)
-{
-    UNUSED(dev);
-    i2c_srf10_send_byte(SRF10_WRITE_MaxGainRegister, SRF10_COMMAND_SetGain_Max);
-    i2c_srf10_send_byte(SRF10_WRITE_RangeRegister, SRF10_RangeValue6m);
     // initiate first ranging command
-    i2c_srf10_send_command(SRF10_COMMAND_InitiateRangingCm);
+    busWrite(rangefinder->busDev, SRF10_WRITE_CommandRegister, SRF10_COMMAND_InitiateRangingCm);
+
     timeOfLastMeasurementMs = millis();
 }
 
@@ -131,26 +108,33 @@ static void srf10_init(rangefinderDev_t *dev)
  * Start a range reading
  * Called periodically by the scheduler
  */
-static void srf10_start_reading(rangefinderDev_t *dev)
+static void srf10_start_reading(rangefinderDev_t * rangefinder)
 {
-    UNUSED(dev);
+    uint8_t revision;
+
     // check if there is a measurement outstanding, 0xFF is returned if no measurement
-    const uint8_t revision = i2c_srf10_read_byte(SRF10_READ_SoftwareRevision);
-    if (revision != 0xFF) {
+    isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_SoftwareRevision, &revision);
+
+    if (isSensorResponding && revision != 0xFF) {
         // there is a measurement
-        const uint8_t lowByte = i2c_srf10_read_byte(SRF10_READ_RangeLowByte);
-        const uint8_t highByte = i2c_srf10_read_byte(SRF10_READ_RangeHighByte);
+        uint8_t lowByte, highByte;
+
+        isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_RangeLowByte, &lowByte);
+        isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_RangeHighByte, &highByte);
+        
         srf10measurementCm =  highByte << 8 | lowByte;
+
         if (srf10measurementCm > SRF10_MAX_RANGE_CM) {
             srf10measurementCm = RANGEFINDER_OUT_OF_RANGE;
         }
     }
+
     const timeMs_t timeNowMs = millis();
     if (timeNowMs > timeOfLastMeasurementMs + minimumFiringIntervalMs) {
         // measurement repeat interval should be greater than minimumFiringIntervalMs
         // to avoid interference between connective measurements.
         timeOfLastMeasurementMs = timeNowMs;
-        i2c_srf10_send_command(SRF10_COMMAND_InitiateRangingCm);
+        busWrite(rangefinder->busDev, SRF10_WRITE_CommandRegister, SRF10_COMMAND_InitiateRangingCm);
     }
 }
 
@@ -168,23 +152,44 @@ static int32_t srf10_get_distance(rangefinderDev_t *dev)
     }
 }
 
-bool srf10Detect(rangefinderDev_t *dev)
+static bool deviceDetect(busDevice_t * busDev)
 {
-    const uint8_t value = i2c_srf10_read_byte(SRF10_READ_Unused);
-    if (value == SRF10_READ_Unused_ReturnValue) {
-        dev->delayMs = SRF10_MinimumFiringIntervalFor600cmRangeMs + 10; // set up the SRF10 hardware for a range of 6m + margin of 10ms
-        dev->maxRangeCm = SRF10_MAX_RANGE_CM;
-        dev->detectionConeDeciDegrees = SRF10_DETECTION_CONE_DECIDEGREES;
-        dev->detectionConeExtendedDeciDegrees = SRF10_DETECTION_CONE_EXTENDED_DECIDEGREES;
+    for (int retry = 0; retry < 5; retry++) {
+        uint8_t inquiryResult;
 
-        dev->init = &srf10_init;
-        dev->update = &srf10_start_reading;
-        dev->read = &srf10_get_distance;
+        delay(150);
 
-        return true;
-    }
-    else {
+        bool ack = busRead(busDev, SRF10_READ_Unused, &inquiryResult);
+        if (ack && inquiryResult == SRF10_READ_Unused_ReturnValue) {
+            return true;
+        }
+    };
+
+    return false;
+}
+
+
+bool srf10Detect(rangefinderDev_t * rangefinder)
+{
+    rangefinder->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_SRF10, 0, OWNER_RANGEFINDER);
+    if (rangefinder->busDev == NULL) {
         return false;
     }
+    
+    if (!deviceDetect(rangefinder->busDev)) {
+        busDeviceDeInit(rangefinder->busDev);
+        return false;
+    }
+
+    rangefinder->delayMs = SRF10_MinimumFiringIntervalFor600cmRangeMs + 10; // set up the SRF10 hardware for a range of 6m + margin of 10ms
+    rangefinder->maxRangeCm = SRF10_MAX_RANGE_CM;
+    rangefinder->detectionConeDeciDegrees = SRF10_DETECTION_CONE_DECIDEGREES;
+    rangefinder->detectionConeExtendedDeciDegrees = SRF10_DETECTION_CONE_EXTENDED_DECIDEGREES;
+
+    rangefinder->init = &srf10_init;
+    rangefinder->update = &srf10_start_reading;
+    rangefinder->read = &srf10_get_distance;
+
+    return true;
 }
 #endif

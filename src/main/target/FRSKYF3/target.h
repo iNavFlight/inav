@@ -25,30 +25,20 @@
 #define BEEPER_INVERTED
 
 #define USE_EXTI
-#define MPU_INT_EXTI PC13
+#define MPU_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 1 // MPU_INT, SDCardDetect
 #define MPU_ADDRESS             0x69
 
-#ifdef MYMPU6000
-#define MPU6000_SPI_INSTANCE    SPI2
-#define MPU6000_CS_PIN          PB12
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
-#define GYRO_MPU6000_ALIGN      CW270_DEG
-
 #define ACC
-#define USE_ACC_SPI_MPU6000
-#define ACC_MPU6000_ALIGN       CW270_DEG
-#else
-#define GYRO
+
+#define MPU6050_I2C_BUS         BUS_I2C1
+
 #define USE_GYRO_MPU6050
 #define GYRO_MPU6050_ALIGN      CW270_DEG
 
-#define ACC
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW270_DEG
-#endif
 
 #define USE_VCP
 #define USE_UART1
@@ -78,10 +68,8 @@
 
 // include the max7456 driver
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI2
-#define MAX7456_SPI_CS_PIN      PB4
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          PB4
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2

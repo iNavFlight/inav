@@ -33,33 +33,31 @@
 #define SPI1_MOSI_PIN           PA7
 
 #define USE_EXTI
-#define EXTI_CALLBACK_HANDLER_COUNT 3 // MPU data ready (mag disabled)
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 2 // MPU_INT, SDCardDetect
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
-#define MPU6000_SPI_INSTANCE    SPI1
+#define USE_GYRO_MPU6000
+#define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA4
-#define MPU_INT_EXTI PC13
+#define MPU_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
 #define GYRO_MPU6000_ALIGN      CW90_DEG
 
 #define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW90_DEG
 
 #define BARO
 #define USE_BARO_BMP280
-#define USE_BARO_SPI_BMP280
-#define BMP280_SPI_INSTANCE     SPI1
+#define BMP280_SPI_BUS          BUS_SPI1
 #define BMP280_CS_PIN           PA13
+
+#define BARO_I2C_BUS             BUS_I2C1
 #define USE_BARO_BMP085 // External
 #define USE_BARO_BMP180 // External
 #define USE_BARO_MS5611 // External
 
 #define MAG
-#define USE_MAG_AK8963  // External
-#define USE_MAG_AK8975  // External
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883 // External
 #define USE_MAG_MAG3110 // External
 #define USE_MAG_QMC5883 // External
@@ -127,13 +125,8 @@
 
 #define OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI1
-#define MAX7456_SPI_CS_PIN      PB1
-#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
-//#define MAX7456_DMA_CHANNEL_TX            DMA1_Channel3
-//#define MAX7456_DMA_CHANNEL_RX            DMA1_Channel2
-//#define MAX7456_DMA_IRQ_HANDLER_ID        DMA1_CH3_HANDLER
+#define MAX7456_SPI_BUS             BUS_SPI1
+#define MAX7456_CS_PIN              PB1
 
 #define USE_ADC
 #define ADC_INSTANCE                ADC1

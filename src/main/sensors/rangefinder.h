@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 #include "config/parameter_group.h"
-#include "drivers/rangefinder.h"
+#include "drivers/rangefinder/rangefinder.h"
 
 typedef enum {
     RANGEFINDER_NONE        = 0,

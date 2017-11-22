@@ -16,26 +16,30 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 
 #include <platform.h>
 
-#include "drivers/bus_i2c.h"
-
+#include "drivers/system.h"
+#include "drivers/bus.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_bma280.h"
 
+#ifdef USE_ACC_BMA280
+
 // BMA280, default I2C address mode 0x18
-#define BMA280_ADDRESS     0x18
-#define BMA280_ACC_X_LSB   0x02
-#define BMA280_PMU_BW      0x10
-#define BMA280_PMU_RANGE   0x0F
+#define BMA280_WHOAMI       0x00
+#define BMA280_ADDRESS      0x18
+#define BMA280_ACC_X_LSB    0x02
+#define BMA280_PMU_BW       0x10
+#define BMA280_PMU_RANGE    0x0F
 
 static void bma280Init(accDev_t *acc)
 {
-    i2cWrite(MPU_I2C_INSTANCE, BMA280_ADDRESS, BMA280_PMU_RANGE, 0x08); // +-8g range
-    i2cWrite(MPU_I2C_INSTANCE, BMA280_ADDRESS, BMA280_PMU_BW, 0x0E); // 500Hz BW
+    busWrite(acc->busDev, BMA280_PMU_RANGE, 0x08); // +-8g range
+    busWrite(acc->busDev, BMA280_PMU_BW, 0x0E); // 500Hz BW
 
     acc->acc_1G = 512 * 8;
 }
@@ -44,7 +48,7 @@ static bool bma280Read(accDev_t *acc)
 {
     uint8_t buf[6];
 
-    if (!i2cRead(MPU_I2C_INSTANCE, BMA280_ADDRESS, BMA280_ACC_X_LSB, 6, buf)) {
+    if (!busReadBuf(acc->busDev, BMA280_ACC_X_LSB, buf, 6)) {
         return false;
     }
 
@@ -56,16 +60,33 @@ static bool bma280Read(accDev_t *acc)
     return true;
 }
 
-bool bma280Detect(accDev_t *acc)
+static bool deviceDetect(busDevice_t * dev)
 {
     bool ack = false;
     uint8_t sig = 0;
 
-    ack = i2cRead(MPU_I2C_INSTANCE, BMA280_ADDRESS, 0x00, 1, &sig);
+    ack = busRead(dev, BMA280_WHOAMI, &sig);
     if (!ack || sig != 0xFB)
         return false;
+
+    return true;
+}
+
+bool bma280Detect(accDev_t *acc)
+{
+    acc->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_BMA280, acc->imuSensorToUse, OWNER_MPU);
+    if (acc->busDev == NULL) {
+        return false;
+    }
+
+    if (!deviceDetect(acc->busDev)) {
+        busDeviceDeInit(acc->busDev);
+        return false;
+    }
 
     acc->initFn = bma280Init;
     acc->readFn = bma280Read;
     return true;
 }
+
+#endif
