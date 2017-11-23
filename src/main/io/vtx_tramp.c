@@ -591,8 +591,10 @@ static OSD_Entry trampCmsMenuCommenceEntries[] = {
 };
 
 static CMS_Menu trampCmsMenuCommence = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XVTXTRC",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -617,8 +619,10 @@ static OSD_Entry trampMenuEntries[] =
 };
 
 CMS_Menu cmsx_menuVtxTramp = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XVTXTR",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = trampCmsOnEnter,
     .onExit = NULL,
     .onGlobalExit = NULL,

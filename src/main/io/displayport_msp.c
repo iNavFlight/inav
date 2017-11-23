@@ -155,7 +155,8 @@ static const displayPortVTable_t mspDisplayPortVTable = {
     .isTransferInProgress = isTransferInProgress,
     .heartbeat = heartbeat,
     .resync = resync,
-    .txBytesFree = txBytesFree
+    .txBytesFree = txBytesFree,
+    .supportedTextAttributes = NULL,
 };
 
 displayPort_t *displayPortMspInit(void)

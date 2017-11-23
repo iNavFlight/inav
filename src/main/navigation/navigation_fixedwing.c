@@ -151,7 +151,7 @@ void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
         return;
     }
 
-    if (posControl.flags.hasValidAltitudeSensor) {
+    if ((posControl.flags.estAltStatus >= EST_USABLE)) {
         if (posControl.flags.verticalPositionDataNew) {
             const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
             previousTimePositionUpdate = currentTimeUs;
@@ -330,7 +330,7 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
     }
 
     // Apply controller only if position source is valid. In absence of valid pos sensor (GPS loss), we'd stick in forced ANGLE mode
-    if (posControl.flags.hasValidPositionSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE)) {
         // If we have new position - update velocity and acceleration controllers
         if (posControl.flags.horizontalPositionDataNew) {
             const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
@@ -378,7 +378,7 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
     }
 
     // Apply controller only if position source is valid
-    if (posControl.flags.hasValidPositionSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE)) {
         // If we have new position - update velocity and acceleration controllers
         if (posControl.flags.horizontalPositionDataNew) {
             const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
@@ -473,7 +473,8 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
      * TODO refactor conditions in this metod if logic is proven to be correct
      */
     if (navStateFlags & NAV_CTL_LAND) {
-        if (posControl.flags.hasValidAltitudeSensor && posControl.actualState.pos.V.Z < navConfig()->general.land_slowdown_minalt) {
+        if ( ((posControl.flags.estAltStatus >= EST_USABLE) && (posControl.actualState.pos.V.Z <= navConfig()->general.land_slowdown_minalt)) ||
+             ((posControl.flags.estSurfaceStatus == EST_TRUSTED) && (posControl.actualState.surface <= navConfig()->general.land_slowdown_minalt)) ) {
             /*
              * Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
              */
@@ -481,7 +482,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
             /*
-             * Stabilize ROLL axis on 0 degress banking regardless of loiter radius and position
+             * Stabilize ROLL axis on 0 degrees banking regardless of loiter radius and position
              */
             rcCommand[ROLL] = 0;
 

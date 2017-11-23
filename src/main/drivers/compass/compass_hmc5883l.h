@@ -18,9 +18,6 @@
 #pragma once
 
 #include "drivers/io_types.h"
+#include "drivers/compass/compass.h"
 
-typedef struct hmc5883Config_s {
-    ioTag_t intTag;
-} hmc5883Config_t;
-
-bool hmc5883lDetect(magDev_t* mag, const hmc5883Config_t *hmc5883ConfigToUse);
+bool hmc5883lDetect(magDev_t * mag);

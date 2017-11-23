@@ -27,7 +27,6 @@
 #define USE_EXTI
 #define MPU_INT_EXTI            PA3
 #define USE_MPU_DATA_READY_SIGNAL
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -38,7 +37,7 @@
 #define I2C_DEVICE_SHARES_UART3
 
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #define M25P16_CS_PIN           PB12
 #define M25P16_SPI_INSTANCE     SPI2
@@ -47,25 +46,24 @@
 #define USE_FLASH_M25P16
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN CW270_DEG
 
 #define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN CW270_DEG
 
 // External I2C BARO
 #define BARO
-//#define USE_BARO_MS5611
-#define USE_BARO_BMP085
+#define BARO_I2C_BUS            BUS_I2C2
+#define USE_BARO_MS5611
 #define USE_BARO_BMP280
 
 // External I2C MAG
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
-//#define USE_MAG_AK8975
-//#define USE_MAG_MAG3110
 
 #define USB_IO
 #define USE_VCP

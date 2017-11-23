@@ -39,13 +39,13 @@
 #define INVERTER_PIN_UART2      PB2 // PB2 used as inverter select GPIO
 
 #define MPU6000_CS_PIN          PC4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC_MPU6000
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_MPU6000
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -53,6 +53,7 @@
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C3
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 
@@ -66,11 +67,8 @@
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #endif
 
-#define MAG_INT_EXTI            PC1
-#define USE_MAG_DATA_READY_SIGNAL
-#define ENSURE_MAG_DATA_READY_IS_HIGH
-
 #define BARO
+#define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_MS5611
 
 #define M25P16_CS_PIN           PB12
@@ -126,9 +124,16 @@
 #define I2C3_SDA                PC9
 
 #define USE_RANGEFINDER
+
 #define USE_RANGEFINDER_HCSR04
-#define RANGEFINDER_HCSR04_TRIGGER_PIN       PB8
-#define RANGEFINDER_HCSR04_ECHO_PIN          PB9
+#define RANGEFINDER_HCSR04_TRIGGER_PIN      PB8
+#define RANGEFINDER_HCSR04_ECHO_PIN         PB9
+
+#define USE_RANGEFINDER_SRF10
+#define SRF10_I2C_BUS                       BUS_I2C3
+
+#define USE_RANGEFINDER_VL53L0X
+#define VL53L0X_I2C_BUS                     BUS_I2C3
 
 #define TARGET_CONFIG
 

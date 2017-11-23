@@ -36,18 +36,18 @@
 #define SPI1_MOSI_PIN   	    PA7
 
 #define MPU6500_CS_PIN          PC2
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC3
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 
 #define ACC
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW180_DEG
 
 // *************** SD Card **************************
@@ -75,8 +75,8 @@
 
 #define OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI2
-#define MAX7456_SPI_CS_PIN      PB10
+#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          PB10
 // *************** UART *****************************
 #define USB_IO
 #define USE_VCP
@@ -119,29 +119,29 @@
     // OSD - no native I2C
     #define USE_I2C
     #define SOFT_I2C
-    #define I2C_DEVICE              (I2CINVALID)
+    #define DEFAULT_I2C_BUS         BUS_I2C_EMULATED
     #define SOFT_I2C_SCL            PC10
     #define SOFT_I2C_SDA            PC11
     #define I2C_DEVICE_SHARES_UART3
 #else
     // AIO
     #define USE_I2C
-    #define I2C_DEVICE              (I2CDEV_1)
+    #define DEFAULT_I2C_BUS         BUS_I2C1
     #define I2C1_SCL                PB6
     #define I2C1_SDA                PB7
 #endif
 
 
 #define BARO
+#define BARO_I2C_BUS DEFAULT_I2C_BUS
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 
 #define MAG
+#define MAG_I2C_BUS DEFAULT_I2C_BUS
 #define USE_MAG_MAG3110 // External
 #define USE_MAG_HMC5883 // External
-#define USE_MAG_AK8963  // External
-#define USE_MAG_AK8975  // External
 #define USE_MAG_QMC5883 // External
 
 // *************** ADC *****************************

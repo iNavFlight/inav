@@ -10,7 +10,7 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X", "UIB"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "FAKE"]
@@ -66,7 +66,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -1547,3 +1547,11 @@ groups:
       - name: tz_offset
         min: -1440
         max: 1440
+
+  - name: PG_DISPLAY_CONFIG
+    type: displayConfig_t
+    headers: ["drivers/display.h"]
+    members:
+      - name: display_force_sw_blink
+        field: force_sw_blink
+        type: bool

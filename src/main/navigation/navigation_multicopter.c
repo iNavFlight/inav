@@ -422,7 +422,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 
     // Apply controller only if position source is valid. In absence of valid pos sensor (GPS loss), we'd stick in forced ANGLE mode
     // and pilots input would be passed thru to PID controller
-    if (posControl.flags.hasValidPositionSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE)) {
         // If we have new position - update velocity and acceleration controllers
         if (posControl.flags.horizontalPositionDataNew) {
             const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
@@ -509,7 +509,7 @@ bool isMulticopterLandingDetected(void)
     }
 
     // If we have surface sensor (for example sonar) - use it to detect touchdown
-    if (posControl.flags.hasValidSurfaceSensor && posControl.actualState.surfaceMin >= 0) {
+    if ((posControl.flags.estSurfaceStatus == EST_TRUSTED) && (posControl.actualState.surfaceMin >= 0)) {
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
         // TODO: Out of range sonar may give reading that looks like we landed, find a way to check if sonar is healthy.
         // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
@@ -540,9 +540,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[PITCH] = 0;
     rcCommand[YAW] = 0;
 
-    if (posControl.flags.hasValidAltitudeSensor) {
-        /* We have an altitude reference, apply AH-based landing controller */
-
+    if ((posControl.flags.estAltStatus >= EST_USABLE)) {
         // If last position update was too long in the past - ignore it (likely restarting altitude controller)
         if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
             previousTimeUpdate = currentTimeUs;

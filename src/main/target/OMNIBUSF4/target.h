@@ -17,6 +17,9 @@
 
 #pragma once
 
+#ifdef OMNIBUSF4PRO_LEDSTRIPM5
+#define OMNIBUSF4PRO
+#endif
 #ifdef OMNIBUSF4PRO
 #define TARGET_BOARD_IDENTIFIER "OBSD"
 #elif defined(OMNIBUSF4V3)
@@ -54,56 +57,63 @@
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
-
 #define ACC
-#define USE_ACC_SPI_MPU6000
 
-// Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
-#if defined (OMNIBUSF4PRO)
-  #define USE_ACC_SPI_MPU6500
-  #define USE_GYRO_SPI_MPU6500
-  #define MPU6500_CS_PIN          MPU6000_CS_PIN
-  #define MPU6500_SPI_INSTANCE    MPU6000_SPI_INSTANCE
-  #define GYRO_MPU6500_ALIGN      GYRO_MPU6000_ALIGN
-  #define ACC_MPU6500_ALIGN       ACC_MPU6000_ALIGN
-#endif
+#define MPU6000_CS_PIN          PA4
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+  #define USE_GYRO_MPU6000
   #define GYRO_MPU6000_ALIGN      CW270_DEG
+
+  #define USE_ACC_MPU6000
   #define ACC_MPU6000_ALIGN       CW270_DEG
 #else
+  #define USE_GYRO_MPU6000
   #define GYRO_MPU6000_ALIGN      CW180_DEG
+
+  #define USE_ACC_MPU6000
   #define ACC_MPU6000_ALIGN       CW180_DEG
 #endif
 
+// Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
+#if defined (OMNIBUSF4PRO)
+  #define MPU6500_CS_PIN          MPU6000_CS_PIN
+  #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
+
+  #define USE_GYRO_MPU6500
+  #define GYRO_MPU6500_ALIGN      GYRO_MPU6000_ALIGN
+
+  #define USE_ACC_MPU6500
+  #define ACC_MPU6500_ALIGN       ACC_MPU6000_ALIGN
+#endif
+
 #define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 
 #define BARO
-#define USE_BARO_BMP085
-#define USE_BARO_BMP280
-#define USE_BARO_MS5611
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define USE_BARO_SPI_BMP280
-  #define BMP280_SPI_INSTANCE     SPI3
-  #define BMP280_CS_PIN           PB3 // v1
+  #define USE_BARO_BMP280
+  #define BMP280_SPI_BUS        BUS_SPI3
+  #define BMP280_CS_PIN         PB3 // v1
+#else
+  #define BARO_I2C_BUS          BUS_I2C2
+  #define USE_BARO_BMP085
+  #define USE_BARO_BMP280
+  #define USE_BARO_MS5611
 #endif
 
 #define USE_PITOT_MS4525
 #define PITOT_I2C_INSTANCE      I2C_DEVICE
 
 #define USE_RANGEFINDER
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 #define USE_RANGEFINDER_HCSR04_I2C
-#define RANGEFINDER_HCSR04_I2C_I2C_INSTANCE (I2C_DEVICE)
 
 #define USB_IO
 #define USE_VCP
@@ -157,10 +167,8 @@
 
 #define OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI3
-#define MAX7456_SPI_CS_PIN      PA15
-// #define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-// #define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          PA15
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
@@ -201,7 +209,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define LED_STRIP
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
 #   define WS2811_PIN                      PB6
 #   define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
 #   define WS2811_DMA_STREAM               DMA1_Stream0

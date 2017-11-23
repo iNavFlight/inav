@@ -17,10 +17,14 @@
 
 #pragma once
 
-typedef void (*baroOpFuncPtr)(void);                       // baro start operation
-typedef void (*baroCalculateFuncPtr)(int32_t *pressure, int32_t *temperature); // baro calculation (filled params are pressure and temperature)
+#include "drivers/bus.h"
+
+struct baroDev_s;
+typedef bool (*baroOpFuncPtr)(struct baroDev_s * baro);
+typedef bool (*baroCalculateFuncPtr)(struct baroDev_s * baro, int32_t *pressure, int32_t *temperature);
 
 typedef struct baroDev_s {
+    busDevice_t * busDev;
     uint16_t ut_delay;
     uint16_t up_delay;
     baroOpFuncPtr start_ut;
@@ -29,7 +33,3 @@ typedef struct baroDev_s {
     baroOpFuncPtr get_up;
     baroCalculateFuncPtr calculate;
 } baroDev_t;
-
-#ifndef BARO_I2C_INSTANCE
-#define BARO_I2C_INSTANCE I2C_DEVICE
-#endif

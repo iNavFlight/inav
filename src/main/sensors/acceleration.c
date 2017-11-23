@@ -32,6 +32,12 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_mpu6000.h"
+#include "drivers/accgyro/accgyro_mpu6050.h"
+#include "drivers/accgyro/accgyro_mpu6500.h"
+#include "drivers/accgyro/accgyro_mpu9250.h"
+
 #include "drivers/accgyro/accgyro_adxl345.h"
 #include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_fake.h"
@@ -39,13 +45,7 @@
 #include "drivers/accgyro/accgyro_l3gd20.h"
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu3050.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
-#include "drivers/accgyro/accgyro_mpu6500.h"
-#include "drivers/accgyro/accgyro_spi_mpu6000.h"
-#include "drivers/accgyro/accgyro_spi_mpu6500.h"
-#include "drivers/accgyro/accgyro_spi_mpu9250.h"
 #include "drivers/logging.h"
 #include "drivers/sensor.h"
 
@@ -115,14 +115,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #ifdef USE_ACC_ADXL345
     case ACC_ADXL345: {
-        drv_adxl345_config_t acc_params;
-        acc_params.useFifo = false;
-        acc_params.dataRate = 800; // unused currently
-#ifdef NAZE
-        if (hardwareRevision < NAZE32_REV5 && adxl345Detect(dev, &acc_params)) {
-#else
-        if (adxl345Detect(dev, &acc_params)) {
-#endif
+        if (adxl345Detect(dev)) {
 #ifdef ACC_ADXL345_ALIGN
             dev->accAlign = ACC_ADXL345_ALIGN;
 #endif
@@ -206,9 +199,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_SPI_MPU6000
+#ifdef USE_ACC_MPU6000
     case ACC_MPU6000:
-        if (mpu6000SpiAccDetect(dev)) {
+        if (mpu6000AccDetect(dev)) {
 #ifdef ACC_MPU6000_ALIGN
             dev->accAlign = ACC_MPU6000_ALIGN;
 #endif
@@ -222,13 +215,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACC_MPU6500) || defined(USE_ACC_SPI_MPU6500)
+#if defined(USE_ACC_MPU6500)
     case ACC_MPU6500:
-#ifdef USE_ACC_SPI_MPU6500
-        if (mpu6500AccDetect(dev) || mpu6500SpiAccDetect(dev)) {
-#else
         if (mpu6500AccDetect(dev)) {
-#endif
 #ifdef ACC_MPU6500_ALIGN
             dev->accAlign = ACC_MPU6500_ALIGN;
 #endif
@@ -242,9 +231,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACC_SPI_MPU9250)
+#if defined(USE_ACC_MPU9250)
     case ACC_MPU9250:
-        if (mpu9250SpiAccDetect(dev)) {
+        if (mpu9250AccDetect(dev)) {
 #ifdef ACC_MPU9250_ALIGN
             dev->accAlign = ACC_MPU9250_ALIGN;
 #endif
@@ -291,17 +280,23 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 bool accInit(uint32_t targetLooptime)
 {
     memset(&acc, 0, sizeof(acc));
-    // copy over the common gyro mpu settings
-    acc.dev.bus = *gyroSensorBus();
-    acc.dev.mpuConfiguration = *gyroMpuConfiguration();
-    acc.dev.mpuDetectionResult = *gyroMpuDetectionResult();
+
+    // Set inertial sensor tag (for dual-gyro selection)
+#ifdef USE_DUAL_GYRO
+    acc.dev.imuSensorToUse = gyroConfig()->gyro_to_use;     // Use the same selection from gyroConfig()
+#else
+    acc.dev.imuSensorToUse = 0;
+#endif
+
     if (!accDetect(&acc.dev, accelerometerConfig()->acc_hardware)) {
         return false;
     }
+
     acc.dev.acc_1G = 256; // set default
     acc.dev.initFn(&acc.dev);
     acc.accTargetLooptime = targetLooptime;
     accInitFilters();
+
     if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
         acc.dev.accAlign = accelerometerConfig()->acc_align;
     }

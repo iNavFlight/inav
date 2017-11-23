@@ -120,7 +120,7 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
            (dateTime->millis <= 999);
 }
 
-static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, uint16_t minutes)
+static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, int16_t minutes)
 {
     rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
     rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + minutes * 60, rtcTimeGetMillis(&initialTime));
