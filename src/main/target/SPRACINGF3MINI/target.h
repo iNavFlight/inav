@@ -30,32 +30,34 @@
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC13
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 2 // MPU_INT, SDCardDetect
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define USE_MAG_DATA_READY_SIGNAL
-#define ENSURE_MAG_DATA_READY_IS_HIGH
-
 #define GYRO
-//#define USE_FAKE_GYRO
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
+#define USE_GYRO_MPU9250
+#define GYRO_MPU9250_ALIGN      CW180_DEG
 
 #define ACC
-//#define USE_FAKE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW180_DEG
+#define USE_ACC_MPU9250
+#define ACC_MPU9250_ALIGN       CW180_DEG
+
+#define MPU6500_I2C_BUS         BUS_I2C1
+#define MPU9250_I2C_BUS         BUS_I2C1
 
 #define BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 
 #define MAG
-#define USE_MPU9250_MAG // Enables bypass configuration
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_AK8963
 #define USE_MAG_HMC5883 // External
 #define USE_MAG_QMC5883 // External
-#define MAG_AK8963_ALIGN        CW270_DEG_FLIP
+#define MAG_AK8963_ALIGN       CW270_DEG_FLIP
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04

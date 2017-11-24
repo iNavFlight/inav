@@ -46,27 +46,30 @@
 #include "cms/cms_menu_ledstrip.h"
 #include "cms/cms_menu_misc.h"
 
-// User supplied menus
+// VTX supplied menus
 
-#include "io/vtx_smartaudio_cms.h"
-#include "io/vtx_tramp.h"
+#include "cms/cms_menu_vtx_smartaudio.h"
+#include "cms/cms_menu_vtx_tramp.h"
+
 
 // Info
 
-static char infoGitRev[GIT_SHORT_REVISION_LENGTH];
+static char infoGitRev[GIT_SHORT_REVISION_LENGTH + 1];
 static char infoTargetName[] = __TARGET__;
 
 #include "msp/msp_protocol.h" // XXX for FC identification... not available elsewhere
 
 static long cmsx_InfoInit(void)
 {
-    for (int i = 0 ; i < GIT_SHORT_REVISION_LENGTH ; i++) {
+    int i;
+    for ( i = 0 ; i < GIT_SHORT_REVISION_LENGTH ; i++) {
         if (shortGitRevision[i] >= 'a' && shortGitRevision[i] <= 'f')
             infoGitRev[i] = shortGitRevision[i] - 'a' + 'A';
         else
             infoGitRev[i] = shortGitRevision[i];
     }
 
+    infoGitRev[i] = 0x0; // Terminate string
     return 0;
 }
 
@@ -81,8 +84,10 @@ static OSD_Entry menuInfoEntries[] = {
 };
 
 static CMS_Menu menuInfo = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUINFO",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_InfoInit,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -117,8 +122,10 @@ static OSD_Entry menuFeaturesEntries[] =
 };
 
 static CMS_Menu menuFeatures = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUFEATURES",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -149,8 +156,10 @@ static OSD_Entry menuMainEntries[] =
 };
 
 CMS_Menu menuMain = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUMAIN",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

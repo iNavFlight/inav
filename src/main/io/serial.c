@@ -117,6 +117,15 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
 
+#ifdef USE_VCP
+    if (serialConfig->portConfigs[0].identifier == SERIAL_PORT_USB_VCP) {
+        serialPortConfig_t * uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
+        if (uart1Config) {
+            uart1Config->functionMask = FUNCTION_MSP;
+        }
+    }
+#endif
+
 #ifdef SERIALRX_UART
     serialPortConfig_t *serialRxUartConfig = serialFindPortConfiguration(SERIALRX_UART);
     if (serialRxUartConfig) {
@@ -128,15 +137,6 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
     serialPortConfig_t *gpsUartConfig = serialFindPortConfiguration(GPS_UART);
     if (gpsUartConfig) {
         gpsUartConfig->functionMask = FUNCTION_GPS;
-    }
-#endif
-
-#ifdef USE_VCP
-    if (serialConfig->portConfigs[0].identifier == SERIAL_PORT_USB_VCP) {
-        serialPortConfig_t * uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
-        if (uart1Config) {
-            uart1Config->functionMask = FUNCTION_MSP;
-        }
     }
 #endif
 
@@ -391,14 +391,12 @@ serialPort_t *openSerialPort(
 #endif
 #ifdef USE_SOFTSERIAL1
         case SERIAL_PORT_SOFTSERIAL1:
-            serialPort = openSoftSerial(SOFTSERIAL1, rxCallback, baudRate, options);
-            serialSetMode(serialPort, mode);
+            serialPort = openSoftSerial(SOFTSERIAL1, rxCallback, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_SOFTSERIAL2
         case SERIAL_PORT_SOFTSERIAL2:
-            serialPort = openSoftSerial(SOFTSERIAL2, rxCallback, baudRate, options);
-            serialSetMode(serialPort, mode);
+            serialPort = openSoftSerial(SOFTSERIAL2, rxCallback, baudRate, mode, options);
             break;
 #endif
         default:

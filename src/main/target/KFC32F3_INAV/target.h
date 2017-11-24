@@ -31,22 +31,22 @@
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PC5
-#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU INT
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define MPU6000_CS_PIN          PB5
-#define MPU6000_SPI_INSTANCE    SPI2
+#define MPU6000_SPI_BUS         BUS_SPI2
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN CW90_DEG
 
 #define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN CW90_DEG
 
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 
@@ -67,16 +67,13 @@
 
 #define BARO
 #define USE_BARO_MS5611
-#define USE_BARO_SPI_MS5611
-#define MS56XX_SPI_INSTANCE   SPI2
-#define MS56XX_CS_PIN         PB2
+#define MS5611_SPI_BUS          BUS_SPI2
+#define MS5611_CS_PIN           PB2
 
 #define OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI2
-#define MAX7456_SPI_CS_PIN      PA7
-#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
+#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          PA7
 
 //#define RFM_SPI             SPI2
 //#define RFM_SPI_CS_PIN      PC15

@@ -31,12 +31,12 @@
 #include "drivers/io.h"
 #include "drivers/gpio.h"
 #include "drivers/nvic.h"
-#include "rcc.h"
+#include "drivers/rcc.h"
 
 #include "drivers/logging.h"
 
-#include "drivers/rangefinder.h"
-#include "drivers/rangefinder_hcsr04.h"
+#include "drivers/rangefinder/rangefinder.h"
+#include "drivers/rangefinder/rangefinder_hcsr04.h"
 
 #define HCSR04_MAX_RANGE_CM 400 // 4m, from HC-SR04 spec sheet
 #define HCSR04_DETECTION_CONE_DECIDEGREES 300 // recommended cone angle30 degrees, from HC-SR04 spec sheet

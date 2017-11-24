@@ -37,6 +37,7 @@
 #include "drivers/compass/compass_mag3110.h"
 #include "drivers/compass/compass_ist8310.h"
 #include "drivers/compass/compass_qmc5883l.h"
+#include "drivers/compass/compass_mpu9250.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/logging.h"
@@ -83,40 +84,13 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     magSensor_e magHardware = MAG_NONE;
     requestedSensors[SENSOR_INDEX_MAG] = magHardwareToUse;
 
-#ifdef USE_MAG_HMC5883
-    const hmc5883Config_t *hmc5883Config = 0;
-
-#ifdef NAZE // TODO remove this target specific define
-    static const hmc5883Config_t nazeHmc5883Config_v1_v4 = {
-            .intTag = IO_TAG(PB12) /* perhaps disabled? */
-    };
-    static const hmc5883Config_t nazeHmc5883Config_v5 = {
-            .intTag = IO_TAG(MAG_INT_EXTI)
-    };
-    if (hardwareRevision < NAZE32_REV5) {
-        hmc5883Config = &nazeHmc5883Config_v1_v4;
-    } else {
-        hmc5883Config = &nazeHmc5883Config_v5;
-    }
-#endif
-
-#ifdef MAG_INT_EXTI
-    static const hmc5883Config_t extiHmc5883Config = {
-        .intTag = IO_TAG(MAG_INT_EXTI)
-    };
-
-    hmc5883Config = &extiHmc5883Config;
-#endif
-
-#endif
-
     dev->magAlign = ALIGN_DEFAULT;
 
     switch (magHardwareToUse) {
     case MAG_AUTODETECT:
     case MAG_HMC5883:
 #ifdef USE_MAG_HMC5883
-        if (hmc5883lDetect(dev, hmc5883Config)) {
+        if (hmc5883lDetect(dev)) {
 #ifdef MAG_HMC5883_ALIGN
             dev->magAlign = MAG_HMC5883_ALIGN;
 #endif
@@ -226,6 +200,22 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
         FALLTHROUGH;
 
+    case MAG_MPU9250:
+#ifdef USE_MAG_MPU9250
+        if (mpu9250CompassDetect(dev)) {
+#ifdef MAG_MPU9250_ALIGN
+            dev->magAlign = MAG_MPU9250_ALIGN;
+#endif
+            magHardware = MAG_MPU9250;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case MAG_FAKE:
 #ifdef USE_FAKE_MAG
         if (fakeMagDetect(dev)) {
@@ -258,8 +248,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 
 bool compassInit(void)
 {
-    // copy over SPI bus settings for AK8963 compass
-    mag.dev.bus = *gyroSensorBus();
     if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
         return false;
     }

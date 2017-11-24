@@ -32,7 +32,7 @@
 #define INVERTER_PIN_UART6      PB12
 
 #define MPU6000_CS_PIN          PB2
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -40,22 +40,22 @@
 #define MPU_INT_EXTI            PA4
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
 
 #define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
 
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
-#define MAG_I2C_INSTANCE        I2CDEV_1
 
 #define BARO
+#define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_MS5611
-#define BARO_I2C_INSTANCE       I2CDEV_3
 
 #define USE_SDCARD
 #define SDCARD_DETECT_INVERTED
@@ -72,11 +72,10 @@
 #ifdef USE_MSP_DISPLAYPORT
 #undef USE_MSP_DISPLAYPORT
 #endif
+
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI1
-#define MAX7456_SPI_CS_PIN      PC4
-#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
+#define MAX7456_SPI_BUS         BUS_SPI1
+#define MAX7456_CS_PIN          PC4
 
 #define OSD_CH_SWITCH           PC5
 

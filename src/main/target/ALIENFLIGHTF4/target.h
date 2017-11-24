@@ -41,26 +41,35 @@
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
+
+#define MPU9250_CS_PIN          SPI1_NSS_PIN
+#define MPU9250_SPI_BUS         BUS_SPI1
 
 #define ACC
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
+#define USE_ACC_MPU9250
+#define ACC_MPU9250_ALIGN       CW270_DEG
 
 #define GYRO
-#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW270_DEG
+#define USE_GYRO_MPU9250
+#define GYRO_MPU9250_ALIGN      CW270_DEG
 
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
-#define USE_MAG_AK8963
+#define USE_MAG_MPU9250
 #define USE_MAG_QMC5883
 
 #define MAG_HMC5883_ALIGN       CW180_DEG
 #define MAG_AK8963_ALIGN        CW270_DEG
 
 #define BARO
-#define USE_BARO_MS56XX
+#define BARO_I2C_BUS             BUS_I2C1
+#define USE_BARO_MS5611
 #define USE_BARO_BMP280
 
 #define USE_SDCARD

@@ -109,10 +109,6 @@
     x; \
 })
 
-// Things in both OSD and CMS
-
-bool blinkState = true;
-
 static timeUs_t flyTime = 0;
 
 typedef struct statistic_s {
@@ -1787,8 +1783,6 @@ static void osdRefresh(timeUs_t currentTimeUs)
         }
         return;
     }
-
-    blinkState = (currentTimeUs / 200000) % 2;
 
 #ifdef CMS
     if (!displayIsGrabbed(osdDisplayPort)) {

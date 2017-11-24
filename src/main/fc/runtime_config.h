@@ -50,6 +50,8 @@ typedef enum {
 
 extern uint32_t armingFlags;
 
+extern const char *armingDisableFlagNames[];
+
 #define isArmingDisabled()          (armingFlags & (ARMING_DISABLED_ALL_FLAGS))
 #define DISABLE_ARMING_FLAG(mask)   (armingFlags &= ~(mask))
 #define ENABLE_ARMING_FLAG(mask)    (armingFlags |= (mask))

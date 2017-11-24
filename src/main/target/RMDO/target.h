@@ -27,22 +27,23 @@
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
-//#define USE_MAG_DATA_READY_SIGNAL
-//#define ENSURE_MAG_DATA_READY_IS_HIGH
 
 #define GYRO
-#define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN      CW270_DEG
-
 #define ACC
+
+#define USE_GYRO_MPU6050
 #define USE_ACC_MPU6050
+#define MPU6050_I2C_BUS         BUS_I2C1
+
+#define GYRO_MPU6050_ALIGN      CW270_DEG
 #define ACC_MPU6050_ALIGN       CW270_DEG
 
 #define BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 
 #define MAG
-#define USE_MAG_AK8963
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_MAG3110

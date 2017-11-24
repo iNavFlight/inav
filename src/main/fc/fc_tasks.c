@@ -324,7 +324,7 @@ void fcTasksInit(void)
 #endif
 #ifdef MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
-#if defined(MPU6500_SPI_INSTANCE) && defined(USE_MAG_AK8963)
+#if defined(USE_MAG_MPU9250)
     // fixme temporary solution for AK6983 via slave I2C on MPU9250
     rescheduleTask(TASK_COMPASS, TASK_PERIOD_HZ(40));
 #endif

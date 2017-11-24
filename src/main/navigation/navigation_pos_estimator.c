@@ -109,9 +109,16 @@ typedef struct {
     float       airspeed;            // airspeed (cm/s)
 } navPositionEstimatorPITOT_t;
 
+typedef enum {
+    SURFACE_QUAL_LOW,   // Surface sensor signal lost long ago - most likely surface distance is incorrect
+    SURFACE_QUAL_MID,   // Surface sensor is not available but we can somewhat trust the estimate
+    SURFACE_QUAL_HIGH   // All good
+} navAGLEstimateQuality_e;
+
 typedef struct {
     timeUs_t    lastUpdateTime; // Last update time (us)
     float       alt;            // Raw altitude measurement (cm)
+    float       reliability;
 } navPositionEstimatorSURFACE_t;
 
 typedef struct {
@@ -124,15 +131,18 @@ typedef struct {
 
 typedef struct {
     timeUs_t    lastUpdateTime; // Last update time (us)
+
     // 3D position, velocity and confidence
     t_fp_vector pos;
     t_fp_vector vel;
     float       eph;
     float       epv;
-    // Surface offset
-    float       surface;
-    float       surfaceVel;
-    bool        surfaceValid;
+
+    // AGL
+    navAGLEstimateQuality_e aglQual;
+    float                   aglOffset;  // Offset between surface and pos.Z
+    float                   aglAlt;
+    float                   aglVel;
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
@@ -484,11 +494,39 @@ static void updatePitotTopic(timeUs_t currentTimeUs)
  * Read surface and update alt/vel topic
  *  Function is called from TASK_RANGEFINDER at arbitrary rate - as soon as new measurements are available
  */
+#define RANGEFINDER_RELIABILITY_RC_CONSTANT     (0.47802f)
+#define RANGEFINDER_RELIABILITY_LIGHT_THRESHOLD (0.15f)
+#define RANGEFINDER_RELIABILITY_LOW_THRESHOLD   (0.33f)
+#define RANGEFINDER_RELIABILITY_HIGH_THRESHOLD  (0.75f)
+
 void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfaceAlt)
 {
-    if (newSurfaceAlt > 0 && newSurfaceAlt <= positionEstimationConfig()->max_surface_altitude) {
-        posEstimator.surface.alt = newSurfaceAlt;
-        posEstimator.surface.lastUpdateTime = currentTimeUs;
+    const float dt = US2S(currentTimeUs - posEstimator.surface.lastUpdateTime);
+    float newReliabilityMeasurement = 0;
+
+    posEstimator.surface.lastUpdateTime = currentTimeUs;
+
+    if (newSurfaceAlt >= 0) {
+        if (newSurfaceAlt <= positionEstimationConfig()->max_surface_altitude) {
+            newReliabilityMeasurement = 1.0f;
+            posEstimator.surface.alt = newSurfaceAlt;
+        }
+        else {
+            newReliabilityMeasurement = 0.0f;
+        }
+    }
+    else {
+        // Negative values - out of range or failed hardware
+        newReliabilityMeasurement = 0.0f;
+    }
+
+    /* Reliability is a measure of confidence of rangefinder measurement. It's increased with each valid sample and decreased with each invalid sample */
+    if (dt > 0.5f) {
+        posEstimator.surface.reliability = 0.0f;
+    }
+    else {
+        const float relAlpha = dt / (dt + RANGEFINDER_RELIABILITY_RC_CONSTANT);
+        posEstimator.surface.reliability = posEstimator.surface.reliability * (1.0f - relAlpha) + newReliabilityMeasurement * relAlpha;
     }
 }
 #endif
@@ -831,32 +869,112 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         }
     }
 
-    /* Surface offset */
-#ifdef USE_RANGEFINDER
-    posEstimator.est.surface = posEstimator.est.surface + posEstimator.est.surfaceVel * dt;
-
-    if (isSurfaceValid) {
-        const float surfaceResidual = posEstimator.surface.alt - posEstimator.est.surface;
-        const float bellCurveScaler = scaleRangef(bellCurve(surfaceResidual, 50.0f), 0.0f, 1.0f, 0.1f, 1.0f);
-
-        posEstimator.est.surface += surfaceResidual * positionEstimationConfig()->w_z_surface_p * bellCurveScaler * dt;
-        posEstimator.est.surfaceVel += surfaceResidual * positionEstimationConfig()->w_z_surface_v * sq(bellCurveScaler) * dt;
-        posEstimator.est.surfaceValid = true;
-    }
-    else {
-        posEstimator.est.surfaceVel = 0; // Zero out velocity to prevent estimate to drift away
-        posEstimator.est.surfaceValid = false;
-    }
-
-#else
-    posEstimator.est.surface = -1;
-    posEstimator.est.surfaceVel = 0;
-    posEstimator.est.surfaceValid = false;
-#endif
-
     /* Update uncertainty */
     posEstimator.est.eph = newEPH;
     posEstimator.est.epv = newEPV;
+
+#ifdef USE_RANGEFINDER
+    /* Surface offset */
+    if (isSurfaceValid) {   // If surface topic is updated in timely manner - do something smart
+        navAGLEstimateQuality_e newAglQuality = posEstimator.est.aglQual;
+        bool resetSurfaceEstimate = false;
+        switch (posEstimator.est.aglQual) {
+            case SURFACE_QUAL_LOW:
+                if (posEstimator.surface.reliability >= RANGEFINDER_RELIABILITY_HIGH_THRESHOLD) {
+                    newAglQuality = SURFACE_QUAL_HIGH;
+                    resetSurfaceEstimate = true;
+                }
+                else if (posEstimator.surface.reliability >= RANGEFINDER_RELIABILITY_LOW_THRESHOLD) {
+                    newAglQuality = SURFACE_QUAL_LOW;
+                }
+                else {
+                    newAglQuality = SURFACE_QUAL_LOW;
+                }
+                break;
+
+            case SURFACE_QUAL_MID:
+                if (posEstimator.surface.reliability >= RANGEFINDER_RELIABILITY_HIGH_THRESHOLD) {
+                    newAglQuality = SURFACE_QUAL_HIGH;
+                }
+                else if (posEstimator.surface.reliability >= RANGEFINDER_RELIABILITY_LOW_THRESHOLD) {
+                    newAglQuality = SURFACE_QUAL_MID;
+                }
+                else {
+                    newAglQuality = SURFACE_QUAL_LOW;
+                }
+                break;
+
+            case SURFACE_QUAL_HIGH:
+                if (posEstimator.surface.reliability >= RANGEFINDER_RELIABILITY_HIGH_THRESHOLD) {
+                    newAglQuality = SURFACE_QUAL_HIGH;
+                }
+                else if (posEstimator.surface.reliability >= RANGEFINDER_RELIABILITY_LOW_THRESHOLD) {
+                    newAglQuality = SURFACE_QUAL_MID;
+                }
+                else {
+                    newAglQuality = SURFACE_QUAL_LOW;
+                }
+                break;
+        }
+
+        posEstimator.est.aglQual = newAglQuality;
+
+        if (resetSurfaceEstimate) {
+            posEstimator.est.aglAlt = posEstimator.surface.alt;
+            if (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv) {
+                posEstimator.est.aglVel = posEstimator.est.vel.V.Z;
+                posEstimator.est.aglOffset = posEstimator.est.pos.V.Z - posEstimator.surface.alt;
+            }
+            else {
+                posEstimator.est.aglVel = 0;
+                posEstimator.est.aglOffset = 0;
+            }
+        }
+
+        // Update estimate
+        posEstimator.est.aglAlt = posEstimator.est.aglAlt + posEstimator.est.aglVel * dt + posEstimator.imu.accelNEU.V.Z * dt * dt * 0.5f;
+        posEstimator.est.aglVel = posEstimator.est.aglVel + posEstimator.imu.accelNEU.V.Z * dt;
+
+        // Apply correction
+        if (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) {
+            // Correct estimate from rangefinder
+            const float surfaceResidual = posEstimator.surface.alt - posEstimator.est.aglAlt;
+            const float bellCurveScaler = scaleRangef(bellCurve(surfaceResidual, 50.0f), 0.0f, 1.0f, 0.1f, 1.0f);
+
+            posEstimator.est.aglAlt += surfaceResidual * positionEstimationConfig()->w_z_surface_p * bellCurveScaler * posEstimator.surface.reliability * dt;
+            posEstimator.est.aglVel += surfaceResidual * positionEstimationConfig()->w_z_surface_v * sq(bellCurveScaler) * sq(posEstimator.surface.reliability) * dt;
+
+            // Update estimate offset
+            if ((posEstimator.est.aglQual == SURFACE_QUAL_HIGH) && (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv)) {
+                posEstimator.est.aglOffset = posEstimator.est.pos.V.Z - posEstimator.surface.alt;
+            }
+        }
+        else if (posEstimator.est.aglQual == SURFACE_QUAL_MID) {
+            // Correct estimate from altitude fused from rangefinder and global altitude
+            const float estAltResidual = (posEstimator.est.pos.V.Z - posEstimator.est.aglOffset) - posEstimator.est.aglAlt;
+            const float surfaceResidual = posEstimator.surface.alt - posEstimator.est.aglAlt;
+            const float surfaceWeightScaler = scaleRangef(bellCurve(surfaceResidual, 50.0f), 0.0f, 1.0f, 0.1f, 1.0f) * posEstimator.surface.reliability;
+            const float mixedResidual = surfaceResidual * surfaceWeightScaler + estAltResidual * (1.0f - surfaceWeightScaler);
+            
+            posEstimator.est.aglAlt += mixedResidual * positionEstimationConfig()->w_z_surface_p * dt;
+            posEstimator.est.aglVel += mixedResidual * positionEstimationConfig()->w_z_surface_v * dt;
+        }
+        else {  // SURFACE_QUAL_LOW
+            // In this case rangefinder can't be trusted - simply use global altitude
+            posEstimator.est.aglAlt = posEstimator.est.pos.V.Z - posEstimator.est.aglOffset;
+            posEstimator.est.aglVel = posEstimator.est.vel.V.Z;
+        }
+    }
+    else {
+        posEstimator.est.aglAlt = posEstimator.est.pos.V.Z - posEstimator.est.aglOffset;
+        posEstimator.est.aglVel = posEstimator.est.vel.V.Z;
+        posEstimator.est.aglQual = SURFACE_QUAL_LOW;
+    }
+#else
+    posEstimator.est.aglAlt = posEstimator.est.pos.V.Z;
+    posEstimator.est.aglVel = posEstimator.est.vel.V.Z;
+    posEstimator.est.aglQual = SURFACE_QUAL_LOW;
+#endif
 }
 
 /**
@@ -882,14 +1000,19 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
 
         /* Publish altitude update and set altitude validity */
         if (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv) {
-            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.V.Z, posEstimator.est.vel.V.Z);
+            navigationEstimateStatus_e aglStatus = (posEstimator.est.aglQual == SURFACE_QUAL_LOW) ? EST_USABLE : EST_TRUSTED;
+            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.V.Z, posEstimator.est.vel.V.Z, posEstimator.est.aglAlt, posEstimator.est.aglVel, aglStatus);
         }
         else {
-            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.V.Z, 0);
+            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.V.Z, 0, posEstimator.est.aglAlt, 0, EST_NONE);
         }
 
-        /* Publish surface distance */
-        updateActualSurfaceDistance(posEstimator.est.surfaceValid, posEstimator.est.surface, posEstimator.est.surfaceVel);
+#if defined(NAV_BLACKBOX)
+        DEBUG_SET(DEBUG_AGL, 0, posEstimator.surface.reliability * 1000);
+        DEBUG_SET(DEBUG_AGL, 1, posEstimator.est.aglQual);
+        DEBUG_SET(DEBUG_AGL, 2, posEstimator.est.aglAlt);
+        DEBUG_SET(DEBUG_AGL, 3, posEstimator.est.aglVel);
+#endif
 
         /* Store history data */
         posEstimator.history.pos[posEstimator.history.index] = posEstimator.est.pos;
@@ -928,8 +1051,8 @@ void initializePositionEstimator(void)
     posEstimator.baro.lastUpdateTime = 0;
     posEstimator.surface.lastUpdateTime = 0;
 
-    posEstimator.est.surface = 0;
-    posEstimator.est.surfaceVel = 0;
+    posEstimator.est.aglAlt = 0;
+    posEstimator.est.aglVel = 0;
 
     posEstimator.history.index = 0;
 

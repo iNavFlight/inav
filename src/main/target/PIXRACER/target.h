@@ -22,7 +22,12 @@
 
 #define USBD_PRODUCT_STRING     "PixRacer"
 
-#define USE_HARDWARE_PREBOOT_SETUP      // PixRacer target requires some hardware to be set up before booting and detecting sensors
+// Use target-specific hardware descriptors (don't use common_hardware.h)
+#define USE_TARGET_HARDWARE_DESCRIPTORS
+
+// PixRacer target requires some hardware to be set up before booting and detecting sensors
+#define USE_HARDWARE_PREBOOT_SETUP
+
 #define USE_EXTI
 
 #define LED0                    PB11    //red
@@ -35,38 +40,40 @@
 #define INVERTER_PIN_UART       PC13
 
 #define USE_GYRO_MPU6500
-#define USE_GYRO_SPI_MPU6500
-
 #define USE_ACC_MPU6500
-#define USE_ACC_SPI_MPU6500
+#define USE_GYRO_MPU9250
+#define USE_ACC_MPU9250
 
 #define GYRO_MPU6500_ALIGN      CW180_DEG_FLIP
 #define ACC_MPU6500_ALIGN       CW180_DEG_FLIP
+#define GYRO_MPU9250_ALIGN      CW180_DEG_FLIP
+#define ACC_MPU9250_ALIGN       CW180_DEG_FLIP
 
 #define USE_DUAL_GYRO
+
+// ICM20608
 #define ICM20608_CS_PIN         PC15
-#define ICM20608_SPI_INSTANCE   SPI1
-#define GYRO_0_CS_PIN           ICM20608_CS_PIN
-#define GYRO_0_INT_EXTI         PC14
+#define ICM20608_EXTI_PIN       PC14
+#define ICM20608_SPI_BUS        BUS_SPI1
+
 // MPU9250 gyro/acc/mag
-#define USE_MAG_AK8963
-#define MPU6500_CS_PIN          PC2
-#define GYRO_1_CS_PIN           MPU6500_CS_PIN
-#define MPU6500_SPI_INSTANCE    SPI1
-#define GYRO_1_INT_EXTI         PD15
+#define MPU9250_CS_PIN          PC2
+#define MPU9250_EXTI_PIN        PD15
+#define MPU9250_SPI_BUS         BUS_SPI1
 
 #define ACC
 #define GYRO
 
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C1
+#define USE_MAG_MPU9250
 #define USE_MAG_QMC5883
 #define USE_MAG_HMC5883
 
 #define BARO
 #define USE_BARO_MS5611
-#define USE_BARO_SPI_MS5611
-#define MS56XX_CS_PIN               PD7
-#define MS56XX_SPI_INSTANCE         SPI2
+#define MS5611_CS_PIN           PD7
+#define MS5611_SPI_BUS          BUS_SPI2
 
 /*
 #define USE_SDCARD
