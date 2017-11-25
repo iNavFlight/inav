@@ -10,7 +10,7 @@ If the failsafe happens while the flight controller is disarmed, it only prevent
 
 * __DROP:__ Just kill the motors and disarm (crash the craft).
 * __SET-THR:__ Enable auto-level mode (for multirotor) or enter preconfigured roll/pitch/yaw spiral down (for airplanes) and set the throttle to a predefined value (`failsafe_throttle`) for a predefined time (`failsafe_off_delay`). This is meant to get the craft to a safe-ish landing (or more realistically, a controlled crash), it doesn't require any extra sensor other than gyros and accelerometers.
-* __RTH:__ (Return To Home) One of the key features of inav, it automatically navigates the craft back to the home position and (optionally) lands it. Similarly to all other automated navigation methods, it requires GPS for any type of craft, plus compass and barometer for multicopters.
+* __RTH:__ (Return To Home) One of the key features of inav, it automatically navigates the craft back to the home position (?) and (optionally) lands it. Similarly to all other automated navigation methods, it requires GPS for any type of craft, plus compass and barometer for multicopters.
 * __NONE:__ Do nothing. This is meant to let the craft perform a fully automated flight (eg. waypoint flight) outside of radio range. Highly unsafe when used with manual flight.
 
 Note that:
