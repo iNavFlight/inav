@@ -187,6 +187,15 @@ static void updateArmingStatus(void)
             }
         }
 
+	/* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
+	if (IS_RC_MODE_ACTIVE(BOXNAVLAUNCH)) {
+	  if ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband)) {
+	    ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+	  } else {
+	    DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+	  }
+	}
+
         /* CHECK: Angle */
         if (!STATE(SMALL_ANGLE)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NOT_LEVEL);
