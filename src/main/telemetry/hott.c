@@ -253,7 +253,7 @@ static inline void updateAlarmBatteryStatus(HOTT_EAM_MSG_t *hottEAMMessage)
 
 static inline void hottEAMUpdateBattery(HOTT_EAM_MSG_t *hottEAMMessage)
 {
-    uint8_t vbat_dcv = vbat / 10; // vbat resolution is 10mV convert to 100mv (deciVolt)
+    uint8_t vbat_dcv = getBatteryVoltage() / 10; // vbat resolution is 10mV convert to 100mv (deciVolt)
     hottEAMMessage->main_voltage_L = vbat_dcv & 0xFF;
     hottEAMMessage->main_voltage_H = vbat_dcv >> 8;
     hottEAMMessage->batt1_voltage_L = vbat_dcv & 0xFF;
@@ -264,14 +264,14 @@ static inline void hottEAMUpdateBattery(HOTT_EAM_MSG_t *hottEAMMessage)
 
 static inline void hottEAMUpdateCurrentMeter(HOTT_EAM_MSG_t *hottEAMMessage)
 {
-    const int32_t amp = amperage / 10;
+    const int32_t amp = getAmperage() / 10;
     hottEAMMessage->current_L = amp & 0xFF;
     hottEAMMessage->current_H = amp >> 8;
 }
 
 static inline void hottEAMUpdateBatteryDrawnCapacity(HOTT_EAM_MSG_t *hottEAMMessage)
 {
-    const int32_t mAh = mAhDrawn / 10;
+    const int32_t mAh = getMAhDrawn() / 10;
     hottEAMMessage->batt_cap_L = mAh & 0xFF;
     hottEAMMessage->batt_cap_H = mAh >> 8;
 }

@@ -2330,7 +2330,7 @@ static void cliStatus(char *cmdline)
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
-    cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", vbat / 100, vbat % 100, batteryCellCount, getBatteryStateString());
+    cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
 #if (FLASH_SIZE > 64)
