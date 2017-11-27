@@ -52,6 +52,10 @@ extern "C" {
 
 
     PG_REGISTER(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
+
+    uint16_t testBatteryVoltage = 0;
+    int32_t testAmperage = 0;
+    int32_t testMAhDrawn = 0;
 }
 
 #include "unittest_macros.h"
@@ -256,6 +260,18 @@ float getEstimatedActualPosition(int) {
 
 float getEstimatedActualVelocity(int) {
     return 0.0f;
+}
+
+uint16_t getBatteryVoltage(void) {
+    return testBatteryVoltage;
+}
+
+int32_t getAmperage(void) {
+    return testAmperage;
+}
+
+int32_t getMAhDrawn(void) {
+    return testMAhDrawn;
 }
 
 }

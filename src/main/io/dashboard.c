@@ -357,7 +357,7 @@ static void showStatusPage(void)
 
     if (feature(FEATURE_VBAT)) {
         i2c_OLED_set_line(rowIndex++);
-        tfp_sprintf(lineBuffer, "V: %d.%1d ", vbat / 10, vbat % 10);
+        tfp_sprintf(lineBuffer, "V: %d.%1d ", getBatteryVoltage() / 10, getBatteryVoltage() % 10);
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
@@ -367,7 +367,7 @@ static void showStatusPage(void)
 
     if (feature(FEATURE_CURRENT_METER)) {
         i2c_OLED_set_line(rowIndex++);
-        tfp_sprintf(lineBuffer, "mAh: %d", mAhDrawn);
+        tfp_sprintf(lineBuffer, "mAh: %d", getMAhDrawn());
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
