@@ -418,7 +418,7 @@ static void sendFuelLevel(void)
     sendDataHead(ID_FUEL_LEVEL);
 
     if (batteryConfig()->batteryCapacity > 0) {
-        serialize16((uint16_t)calculateBatteryCapacityRemainingPercentage());
+        serialize16((uint16_t)calculateBatteryPercentageRemaining());
     } else {
         serialize16((uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF));
     }

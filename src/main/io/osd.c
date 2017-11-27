@@ -669,7 +669,7 @@ static void osdFormatMessage(char *buff, size_t size, const char *message)
  **/
 static void osdFormatBatteryChargeSymbol(char *buff)
 {
-    uint8_t p = calculateBatteryPercentage();
+    uint8_t p = calculateBatteryPercentageRemaining();
     p = (100 - p) / 16.6;
     buff[0] = SYM_BATT_FULL + p;
 }

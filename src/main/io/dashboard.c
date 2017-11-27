@@ -361,7 +361,7 @@ static void showStatusPage(void)
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
-        uint8_t batteryPercentage = calculateBatteryPercentage();
+        uint8_t batteryPercentage = calculateBatteryPercentageRemaining();
         drawHorizonalPercentageBar(10, batteryPercentage);
     }
 
@@ -370,9 +370,6 @@ static void showStatusPage(void)
         tfp_sprintf(lineBuffer, "mAh: %d", getMAhDrawn());
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
-
-        uint8_t capacityPercentage = calculateBatteryCapacityRemainingPercentage();
-        drawHorizonalPercentageBar(10, capacityPercentage);
     }
 
 #ifdef GPS

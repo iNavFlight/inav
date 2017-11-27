@@ -182,7 +182,7 @@ uint8_t calculateBatteryPercentageRemaining(void)
     if (batteryCellCount > 0) {
         uint16_t batteryCapacity = batteryConfig()->batteryCapacity;
 
-        if (batteryCapacity > 0) {
+        if (feature(FEATURE_CURRENT_METER) && batteryCapacity > 0) {
             batteryPercentage = constrain(((float)batteryCapacity - mAhDrawn) * 100 / batteryCapacity, 0, 100);
         } else {
             batteryPercentage = constrain((((uint32_t)vbat - (batteryConfig()->vbatmincellvoltage * batteryCellCount)) * 100) / ((batteryConfig()->vbatmaxcellvoltage - batteryConfig()->vbatmincellvoltage) * batteryCellCount), 0, 100);
@@ -272,16 +272,4 @@ void currentMeterUpdate(int32_t lastUpdateAt)
 
     mAhdrawnRaw += (amperage * lastUpdateAt) / 1000;
     mAhDrawn = mAhdrawnRaw / (3600 * 100);
-}
-
-uint8_t calculateBatteryPercentage(void)
-{
-    return constrain((((uint32_t)vbat - (batteryConfig()->vbatmincellvoltage * batteryCellCount)) * 100) / ((batteryConfig()->vbatmaxcellvoltage - batteryConfig()->vbatmincellvoltage) * batteryCellCount), 0, 100);
-}
-
-uint8_t calculateBatteryCapacityRemainingPercentage(void)
-{
-    uint16_t batteryCapacity = batteryConfig()->batteryCapacity;
-
-    return constrain((batteryCapacity - constrain(mAhDrawn, 0, 0xFFFF)) * 100.0f / batteryCapacity , 0, 100);
 }

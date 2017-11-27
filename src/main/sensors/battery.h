@@ -85,6 +85,3 @@ int32_t getMAhDrawn(void);
 
 void currentMeterUpdate(int32_t lastUpdateAt);
 int32_t currentMeterToCentiamps(uint16_t src);
-
-uint8_t calculateBatteryPercentage(void);
-uint8_t calculateBatteryCapacityRemainingPercentage(void);

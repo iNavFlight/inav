@@ -483,7 +483,7 @@ static void applyLedFixedLayers(void)
 
             case LED_FUNCTION_BATTERY:
                 color = HSV(RED);
-                hOffset += scaleRange(calculateBatteryCapacityRemainingPercentage(), 0, 100, -30, 120);
+                hOffset += scaleRange(calculateBatteryPercentageRemaining(), 0, 100, -30, 120);
                 break;
 
             case LED_FUNCTION_RSSI:
