@@ -206,7 +206,6 @@ bool mpu6050GyroDetect(gyroDev_t *gyro)
 
     busDeviceWriteScratchpad(gyro->busDev, res == MPU6050_FULL_RESOLUTION ? 0xFFFF6050 : 0x00006050);
 
-    gyro->devConfig.mpu.gyroReadXRegister = MPU_RA_GYRO_XOUT_H;
     gyro->initFn = mpu6050AccAndGyroInit;
     gyro->readFn = mpuGyroRead;
     gyro->intStatusFn = mpuCheckDataReady;
