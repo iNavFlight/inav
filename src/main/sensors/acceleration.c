@@ -454,6 +454,37 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
     accADC[Z] = (accADC[Z] - accZero->raw[Z]) * accGain->raw[Z] / 4096;
 }
 
+#ifdef ASYNC_GYRO_PROCESSING
+STATIC_FASTRAM float accumulatedMeasurements[XYZ_AXIS_COUNT];
+STATIC_FASTRAM int   accumulatedMeasurementCount;
+
+void accUpdateAccumulatedMeasurements(void)
+{
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        accumulatedMeasurements[axis] += acc.accADCf[axis];
+    }
+    accumulatedMeasurementCount++;
+}
+#endif
+
+/*
+ * Calculate measured acceleration in body frame in g
+ */
+void accGetMeasuredAcceleration(t_fp_vector *measuredAcc)
+{
+#ifdef ASYNC_GYRO_PROCESSING
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        measuredAcc->A[axis] = accumulatedMeasurements[axis] * GRAVITY_CMSS / accumulatedMeasurementCount;
+        accumulatedMeasurements[axis] = 0;
+    }
+    accumulatedMeasurementCount = 0;;
+#else
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        measuredAcc->A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
+    }
+#endif
+}
+
 void accUpdate(void)
 {
     if (!acc.dev.readFn(&acc.dev)) {

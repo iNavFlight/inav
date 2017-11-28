@@ -103,8 +103,6 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
 /* Asynchronous update accumulators */
 STATIC_FASTRAM float imuAccumulatedRate[XYZ_AXIS_COUNT];
 STATIC_FASTRAM timeUs_t imuAccumulatedRateTimeUs;
-STATIC_FASTRAM float imuAccumulatedAcc[XYZ_AXIS_COUNT];
-STATIC_FASTRAM int   imuAccumulatedAccCount;
 #endif
 
 #ifdef ASYNC_GYRO_PROCESSING
@@ -550,25 +548,6 @@ static void imuUpdateMeasuredRotationRate(void)
 #endif
 }
 
-/* Calculate measured acceleration in body frame cm/s/s */
-static void imuUpdateMeasuredAcceleration(void)
-{
-    int axis;
-
-#ifdef ASYNC_GYRO_PROCESSING
-    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = imuAccumulatedAcc[axis] * GRAVITY_CMSS / imuAccumulatedAccCount;
-        imuAccumulatedAcc[axis] = 0;
-    }
-    imuAccumulatedAccCount = 0;;
-#else
-    /* Convert acceleration to cm/s/s */
-    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
-    }
-#endif
-}
-
 #ifdef HIL
 void imuHILUpdate(void)
 {
@@ -602,10 +581,7 @@ void imuUpdateAccelerometer(void)
 #endif
 
 #ifdef ASYNC_GYRO_PROCESSING
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuAccumulatedAcc[axis] += acc.accADCf[axis];
-    }
-    imuAccumulatedAccCount++;
+    accUpdateAccumulatedMeasurements();
 #endif
 }
 
@@ -620,7 +596,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
 #ifdef HIL
         if (!hilActive) {
             imuUpdateMeasuredRotationRate();    // Calculate gyro rate in body frame in rad/s
-            imuUpdateMeasuredAcceleration();  // Calculate accel in body frame in cm/s/s
+            accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
             imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
         }
         else {
@@ -629,7 +605,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         }
 #else
             imuUpdateMeasuredRotationRate();    // Calculate gyro rate in body frame in rad/s
-            imuUpdateMeasuredAcceleration();  // Calculate accel in body frame in cm/s/s
+            accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
             imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
 #endif
     } else {
