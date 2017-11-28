@@ -111,6 +111,17 @@
     BUSDEV_REGISTER_I2C(busdev_qmc5883,     DEVHW_QMC5883,      QMC5883_I2C_BUS,    0x0D,               NONE,           DEVFLAGS_NONE);
 #endif
 
+#if defined(USE_MAG_AK8963)
+    #if defined(AK8963_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_ak8963,      DEVHW_AK8963,       AK8963_SPI_BUS,     AK8963_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #elif defined(AK8963_I2C_BUS) || defined(MAG_I2C_BUS)
+    #if !defined(AK8963_I2C_BUS)
+        #define AK8963_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_ak8963,      DEVHW_AK8963,       AK8963_I2C_BUS,     0x0C,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_MAG_MAG3110)
     #if !defined(MAG3110_I2C_BUS)
         #define MAG3110_I2C_BUS MAG_I2C_BUS

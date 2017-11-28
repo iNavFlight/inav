@@ -57,12 +57,16 @@
 
 #define MAG
 #define MAG_I2C_BUS             BUS_I2C1
+#define USE_MAG_AK8963
 #define USE_MAG_MPU9250
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 
-#define MAG_HMC5883_ALIGN       CW180_DEG
-#define MAG_MPU9250_ALIGN       CW270_DEG
+#define MAG_AK9863_ALIGN        CW0_DEG_FLIP
+#define MAG_MPU9250_ALIGN       CW0_DEG_FLIP
+
+#define AK8963_CS_PIN           PC15
+#define AK8963_SPI_BUS          BUS_SPI3
 
 #define BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -77,7 +81,7 @@
 
 #define USE_SDCARD
 
-//#define SDCARD_DETECT_INVERTED
+#define SDCARD_DETECT_INVERTED
 
 #define SDCARD_DETECT_PIN               PB11
 #define SDCARD_DETECT_EXTI_LINE         EXTI_Line10

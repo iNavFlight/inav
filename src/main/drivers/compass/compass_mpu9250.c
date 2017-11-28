@@ -70,8 +70,7 @@
 #define STATUS1_DATA_READY              0x01
 #define STATUS1_DATA_OVERRUN            0x02
 
-#define STATUS2_DATA_ERROR              0x02
-#define STATUS2_MAG_SENSOR_OVERFLOW     0x03
+#define STATUS2_MAG_SENSOR_OVERFLOW     0x02
 
 #define CNTL_MODE_POWER_DOWN            0x00
 #define CNTL_MODE_ONCE                  0x01
@@ -79,6 +78,8 @@
 #define CNTL_MODE_CONT2                 0x06
 #define CNTL_MODE_SELF_TEST             0x08
 #define CNTL_MODE_FUSE_ROM              0x0F
+#define CNTL_BIT_14_BIT                 0x00
+#define CNTL_BIT_16_BIT                 0x10
 
 #define DETECTION_MAX_RETRY_COUNT   5
 
@@ -95,7 +96,7 @@ typedef struct {
     timeUs_t                    readStartedAt; // time read was queued in micros.
 } mpu9250CompassReadContext_s;
 
-static float magGain[3] = { 1.0f, 1.0f, 1.0f };
+static int16_t magGain[3];
 static mpu9250CompassReadContext_s  ctx;
 static bool lastReadResult = false;
 static int16_t cachedMagData[3];
@@ -184,9 +185,9 @@ static bool mpu9250CompassInit(magDev_t * mag)
     mpu9250SlaveI2CRead(mag, AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_ASAX, calibration, sizeof(calibration)); // Read the x-, y-, and z-axis calibration values
     delay(10);
 
-    magGain[X] = (((((float)(int8_t)calibration[X] - 128) / 256) + 1) * 30);
-    magGain[Y] = (((((float)(int8_t)calibration[Y] - 128) / 256) + 1) * 30);
-    magGain[Z] = (((((float)(int8_t)calibration[Z] - 128) / 256) + 1) * 30);
+    magGain[X] = calibration[X] + 128;
+    magGain[Y] = calibration[Y] + 128;
+    magGain[Z] = calibration[Z] + 128;
 
     mpu9250SlaveI2CWrite(mag, AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_CNTL, CNTL_MODE_POWER_DOWN); // power down after reading.
     delay(10);
@@ -196,10 +197,15 @@ static bool mpu9250CompassInit(magDev_t * mag)
     mpu9250SlaveI2CRead(mag, AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_STATUS2, &status, 1);
 
     // Trigger first measurement
-    mpu9250SlaveI2CWrite(mag, AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_CNTL, CNTL_MODE_CONT1);
+    mpu9250SlaveI2CWrite(mag, AK8963_MAG_I2C_ADDRESS, AK8963_MAG_REG_CNTL, CNTL_BIT_16_BIT | CNTL_MODE_CONT1);
 
     busSetSpeed(mag->busDev, BUS_SPEED_FAST);
     return true;
+}
+
+static int16_t parseMag(uint8_t *raw, int16_t gain) {
+  int ret = (int16_t)(raw[1] << 8 | raw[0]) * gain / 256;
+  return constrain(ret, INT16_MIN, INT16_MAX);
 }
 
 static bool mpu9250CompassRead(magDev_t * mag)
@@ -257,16 +263,16 @@ static bool mpu9250CompassRead(magDev_t * mag)
     } while(reprocess);
 
     uint8_t status2 = buf[6];
-    if (!ack || (status2 & STATUS2_DATA_ERROR) || (status2 & STATUS2_MAG_SENSOR_OVERFLOW)) {
+    if (!ack || (status2 & STATUS2_MAG_SENSOR_OVERFLOW)) {
         ctx.state = CHECK_STATUS;
         debug[1]++;
         lastReadResult = false;
         return lastReadResult;
     }
 
-    mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]) * magGain[X];
-    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]) * magGain[Y];
-    mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]) * magGain[Z];
+    mag->magADCRaw[X] = -parseMag(buf + 0, magGain[X]);
+    mag->magADCRaw[Y] = -parseMag(buf + 2, magGain[Y]);
+    mag->magADCRaw[Z] = -parseMag(buf + 4, magGain[Z]);
 
     memcpy(cachedMagData, &mag->magADCRaw, sizeof(cachedMagData));
     ctx.state = CHECK_STATUS;
