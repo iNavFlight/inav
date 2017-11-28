@@ -51,9 +51,9 @@
 #define MPU_INQUIRY_MASK            0x7E
 
 typedef enum {
-    MPU6050_NONE,
-    MPU6050_HALF_RESOLUTION,
-    MPU6050_FULL_RESOLUTION
+    MPU6050_NONE                = 0,
+    MPU6050_HALF_RESOLUTION     = 1,
+    MPU6050_FULL_RESOLUTION     = 2
 } mpuDetectionResult_e;
 
 static bool mpu6050InitDone = false;
@@ -133,7 +133,7 @@ bool mpu6050AccDetect(accDev_t *acc)
     return false;
 }
 
-static bool mpu6050DeviceDetect(busDevice_t * dev)
+static mpuDetectionResult_e mpu6050DeviceDetect(busDevice_t * dev)
 {
     uint8_t in;
     uint8_t readBuffer[6];
@@ -152,7 +152,7 @@ static bool mpu6050DeviceDetect(busDevice_t * dev)
             break;
         }
         if (!attemptsRemaining) {
-            return false;
+            return MPU6050_NONE;
         }
     } while (attemptsRemaining--);
 
