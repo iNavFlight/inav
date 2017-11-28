@@ -678,12 +678,7 @@ void taskGyro(timeUs_t currentTimeUs) {
     }
 
     /* Update actual hardware readings */
-    gyroUpdate();
-
-#ifdef ASYNC_GYRO_PROCESSING
-    /* Update IMU for better accuracy */
-    imuUpdateGyroscope((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
-#endif
+    gyroUpdate(currentDeltaTime + (timeDelta_t)(gyroUpdateUs - currentTimeUs));
 
 #ifdef USE_OPTICAL_FLOW
     if (sensors(SENSOR_OPFLOW)) {
