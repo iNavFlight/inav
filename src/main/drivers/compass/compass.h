@@ -24,9 +24,6 @@ typedef struct magDev_s {
     sensorMagInitFuncPtr init;  // initialize function
     sensorMagReadFuncPtr read;  // read 3 axis data function
     sensor_align_e magAlign;
+    uint8_t magSensorToUse;
     int16_t magADCRaw[XYZ_AXIS_COUNT];
 } magDev_t;
-
-#ifndef MAG_I2C_INSTANCE
-#define MAG_I2C_INSTANCE I2C_DEVICE
-#endif

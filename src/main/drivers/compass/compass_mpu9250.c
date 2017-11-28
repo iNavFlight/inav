@@ -278,7 +278,8 @@ static bool mpu9250CompassRead(magDev_t * mag)
 bool mpu9250CompassDetect(magDev_t * mag)
 {
     // Compass on MPU9250 is only supported if MPU9250 is connected to SPI bus
-    mag->busDev = busDeviceOpen(BUSTYPE_SPI, DEVHW_MPU9250, 0);
+    // FIXME: We need to use gyro_to_use here, not mag_to_use
+    mag->busDev = busDeviceOpen(BUSTYPE_SPI, DEVHW_MPU9250, mag->magSensorToUse);
     if (mag->busDev == NULL) {
         return false;
     }

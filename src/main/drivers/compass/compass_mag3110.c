@@ -122,7 +122,7 @@ static bool deviceDetect(magDev_t * mag)
 
 bool mag3110detect(magDev_t * mag)
 {
-    mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MAG3110, 0, OWNER_COMPASS);
+    mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MAG3110, mag->magSensorToUse, OWNER_COMPASS);
     if (mag->busDev == NULL) {
         return false;
     }
