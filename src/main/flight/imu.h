@@ -22,9 +22,6 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
-#define GRAVITY_CMSS    980.665f
-#define GRAVITY_MSS     9.80665f
-
 extern t_fp_vector imuMeasuredAccelBF;         // cm/s/s
 extern t_fp_vector imuMeasuredRotationBF;       // rad/s
 
