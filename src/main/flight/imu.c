@@ -21,11 +21,10 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "build/build_config.h"
-
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
+
 #include "build/build_config.h"
 
 #include "common/axis.h"
@@ -88,8 +87,6 @@ FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclinatio
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 
-static const float gyroScale = (M_PIf / 180.0f);    // gyro output scaled to rad per second
-
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
@@ -116,7 +113,7 @@ void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs)
     const float gyroUpdateDelta = gyroUpdateDeltaUs * 1e-6f;
 
     for (int axis = 0; axis < 3; axis++) {
-        imuAccumulatedRate[axis] += gyro.gyroADCf[axis] * gyroScale * gyroUpdateDelta;
+        imuAccumulatedRate[axis] += gyro.gyroADCf[axis] * gyroUpdateDelta;
     }
 
     imuAccumulatedRateTimeUs += gyroUpdateDeltaUs;
@@ -543,12 +540,12 @@ static void imuUpdateMeasuredRotationRate(void)
     imuAccumulatedRateTimeUs = 0;
 
     for (axis = 0; axis < 3; axis++) {
-        imuMeasuredRotationBF.A[axis] = imuAccumulatedRate[axis] / imuAccumulatedRateTime;
+        imuMeasuredRotationBF.A[axis] = DEGREES_TO_RADIANS(imuAccumulatedRate[axis] / imuAccumulatedRateTime);
         imuAccumulatedRate[axis] = 0.0f;
     }
 #else
     for (axis = 0; axis < 3; axis++) {
-        imuMeasuredRotationBF.A[axis] = gyro.gyroADCf[axis] * gyroScale;
+        imuMeasuredRotationBF.A[axis] = DEGREES_TO_RADIANS(gyro.gyroADCf[axis]);
     }
 #endif
 }
@@ -560,7 +557,7 @@ static void imuUpdateMeasuredAcceleration(void)
 
 #ifdef ASYNC_GYRO_PROCESSING
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = imuAccumulatedAcc[axis] / imuAccumulatedAccCount;
+        imuMeasuredAccelBF.A[axis] = imuAccumulatedAcc[axis] * GRAVITY_CMSS / imuAccumulatedAccCount;
         imuAccumulatedAcc[axis] = 0;
     }
     imuAccumulatedAccCount = 0;;
@@ -606,7 +603,7 @@ void imuUpdateAccelerometer(void)
 
 #ifdef ASYNC_GYRO_PROCESSING
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuAccumulatedAcc[axis] += acc.accADCf[axis] * GRAVITY_CMSS;
+        imuAccumulatedAcc[axis] += acc.accADCf[axis];
     }
     imuAccumulatedAccCount++;
 #endif
