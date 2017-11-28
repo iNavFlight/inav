@@ -210,7 +210,6 @@ bool mpu6000GyroDetect(gyroDev_t *gyro)
 
     busDeviceWriteScratchpad(gyro->busDev, 0xFFFF6000);    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
 
-    gyro->devConfig.mpu.gyroReadXRegister = MPU_RA_GYRO_XOUT_H;
     gyro->initFn = mpu6000AccAndGyroInit;
     gyro->readFn = mpuGyroRead;
     gyro->intStatusFn = mpuCheckDataReady;

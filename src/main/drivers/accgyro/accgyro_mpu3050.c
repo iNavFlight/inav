@@ -92,6 +92,22 @@ static bool mpu3050ReadTemperature(gyroDev_t *gyro, int16_t *tempData)
 }
 */
 
+static bool mpu3050GyroRead(gyroDev_t *gyro)
+{
+    uint8_t data[6];
+
+    const bool ack = busReadBuf(gyro->busDev, MPU3050_GYRO_OUT, data, 6);
+    if (!ack) {
+        return false;
+    }
+
+    gyro->gyroADCRaw[X] = (int16_t)((data[0] << 8) | data[1]);
+    gyro->gyroADCRaw[Y] = (int16_t)((data[2] << 8) | data[3]);
+    gyro->gyroADCRaw[Z] = (int16_t)((data[4] << 8) | data[5]);
+
+    return true;
+}
+
 static bool deviceDetect(busDevice_t * busDev)
 {
     busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
@@ -123,9 +139,8 @@ bool mpu3050Detect(gyroDev_t *gyro)
         return false;
     }
 
-    gyro->devConfig.mpu.gyroReadXRegister = MPU3050_GYRO_OUT;
     gyro->initFn = mpu3050Init;
-    gyro->readFn = mpuGyroRead;
+    gyro->readFn = mpu3050GyroRead;
     gyro->intStatusFn = mpuCheckDataReady;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
 

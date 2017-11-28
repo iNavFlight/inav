@@ -91,7 +91,7 @@ bool mpuGyroRead(gyroDev_t *gyro)
 {
     uint8_t data[6];
 
-    const bool ack = busReadBuf(gyro->busDev, gyro->devConfig.mpu.gyroReadXRegister, data, 6);
+    const bool ack = busReadBuf(gyro->busDev, MPU_RA_GYRO_XOUT_H, data, 6);
     if (!ack) {
         return false;
     }
