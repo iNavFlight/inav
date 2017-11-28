@@ -455,15 +455,14 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 
 static bool imuCanUseAccelerometerForCorrection(void)
 {
-    int32_t axis;
-    int32_t accMagnitudeSq = 0;
+    float accMagnitudeSq = 0;
 
-    for (axis = 0; axis < 3; axis++) {
-        accMagnitudeSq += (int32_t)acc.accADC[axis] * acc.accADC[axis];
+    for (int axis = 0; axis < 3; axis++) {
+        accMagnitudeSq += acc.accADCf[axis] * acc.accADCf[axis];
     }
 
     // Magnitude^2 in percent of G^2
-    const int nearness = ABS(100 - (accMagnitudeSq * 100 / ((int32_t)acc.dev.acc_1G * acc.dev.acc_1G)));
+    const float nearness = ABS(100 - (accMagnitudeSq * 100));
 
     return (nearness > MAX_ACC_SQ_NEARNESS) ? false : true;
 }
@@ -568,7 +567,7 @@ static void imuUpdateMeasuredAcceleration(void)
 #else
     /* Convert acceleration to cm/s/s */
     for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = acc.accADC[axis] * (GRAVITY_CMSS / acc.dev.acc_1G);
+        imuMeasuredAccelBF.A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
     }
 #endif
 }
@@ -585,9 +584,9 @@ void imuHILUpdate(void)
     imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
 
     /* Fake accADC readings */
-    accADC[X] = hilToFC.bodyAccel[X] * (acc.acc_1G / GRAVITY_CMSS);
-    accADC[Y] = hilToFC.bodyAccel[Y] * (acc.acc_1G / GRAVITY_CMSS);
-    accADC[Z] = hilToFC.bodyAccel[Z] * (acc.acc_1G / GRAVITY_CMSS);
+    accADCf[X] = hilToFC.bodyAccel[X] / GRAVITY_CMSS;
+    accADCf[Y] = hilToFC.bodyAccel[Y] / GRAVITY_CMSS;
+    accADCf[Z] = hilToFC.bodyAccel[Z] / GRAVITY_CMSS;
 }
 #endif
 
@@ -607,7 +606,7 @@ void imuUpdateAccelerometer(void)
 
 #ifdef ASYNC_GYRO_PROCESSING
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuAccumulatedAcc[axis] += acc.accADC[axis] * (GRAVITY_CMSS / acc.dev.acc_1G);
+        imuAccumulatedAcc[axis] += acc.accADCf[axis] * GRAVITY_CMSS;
     }
     imuAccumulatedAccCount++;
 #endif
@@ -637,9 +636,9 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
             imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
 #endif
     } else {
-        acc.accADC[X] = 0;
-        acc.accADC[Y] = 0;
-        acc.accADC[Z] = 0;
+        acc.accADCf[X] = 0.0f;
+        acc.accADCf[Y] = 0.0f;
+        acc.accADCf[Z] = 0.0f;
     }
 }
 

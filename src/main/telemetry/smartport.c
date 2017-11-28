@@ -640,13 +640,13 @@ void handleSmartPortTelemetry(void)
                 smartPortSendPackage(id, attitude.values.yaw * 10); // given in 10*deg, requested in 10000 = 100 deg
                 break;
             case FSSP_DATAID_ACCX       :
-                smartPortSendPackage(id, 100 * acc.accADC[X] / acc.dev.acc_1G);
+                smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
                 break;
             case FSSP_DATAID_ACCY       :
-                smartPortSendPackage(id, 100 * acc.accADC[Y] / acc.dev.acc_1G);
+                smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
                 break;
             case FSSP_DATAID_ACCZ       :
-                smartPortSendPackage(id, 100 * acc.accADC[Z] / acc.dev.acc_1G);
+                smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
                 break;
             case FSSP_DATAID_T1         :
                 {

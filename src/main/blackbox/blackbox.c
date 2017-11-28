@@ -1134,7 +1134,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->axisPID_I[i] = axisPID_I[i];
         blackboxCurrent->axisPID_D[i] = axisPID_D[i];
         blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
-        blackboxCurrent->accADC[i] = acc.accADC[i];
+        blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
 #ifdef MAG
         blackboxCurrent->magADC[i] = mag.magADC[i];
 #endif
