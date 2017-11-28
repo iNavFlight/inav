@@ -158,7 +158,7 @@ static void sendAccel(void)
 
     for (i = 0; i < 3; i++) {
         sendDataHead(ID_ACC_X + i);
-        serialize16(acc.accADC[i] * 1000 / acc.dev.acc_1G);
+        serialize16(lrintf(acc.accADCf[i] * 1000));
     }
 }
 

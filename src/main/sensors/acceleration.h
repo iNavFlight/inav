@@ -41,7 +41,7 @@ typedef enum {
 typedef struct acc_s {
     accDev_t dev;
     uint32_t accTargetLooptime;
-    int32_t accADC[XYZ_AXIS_COUNT];
+    float accADCf[XYZ_AXIS_COUNT]; // acceleration in g
 } acc_t;
 
 extern acc_t acc;

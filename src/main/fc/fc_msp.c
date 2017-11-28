@@ -404,7 +404,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             // Hack scale due to choice of units for sensor data in multiwii
             const uint8_t scale = (acc.dev.acc_1G > 1024) ? 8 : 1;
             for (int i = 0; i < 3; i++) {
-                sbufWriteU16(dst, acc.accADC[i] / scale);
+                sbufWriteU16(dst, acc.accADCf[i] * acc.dev.acc_1G / scale);
             }
             for (int i = 0; i < 3; i++) {
                 sbufWriteU16(dst, gyroRateDps(i));
