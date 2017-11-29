@@ -539,10 +539,6 @@ void imuUpdateAccelerometer(void)
         isAccelUpdatedAtLeastOnce = true;
     }
 #endif
-
-#ifdef ASYNC_GYRO_PROCESSING
-    accUpdateAccumulatedMeasurements();
-#endif
 }
 
 void imuUpdateAttitude(timeUs_t currentTimeUs)
