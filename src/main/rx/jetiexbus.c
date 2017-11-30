@@ -294,8 +294,10 @@ void jetiExBusFrameReset(void)
 */
 
 // Receive ISR callback
-static void jetiExBusDataReceive(uint16_t c)
+static void jetiExBusDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     timeUs_t now;
     static timeUs_t jetiExBusTimeLast = 0;
     static timeDelta_t jetiExBusTimeInterval;
@@ -600,6 +602,7 @@ bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfi
     jetiExBusPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         jetiExBusDataReceive,
+        NULL,
         JETIEXBUS_BAUDRATE,
         MODE_RXTX,
         JETIEXBUS_OPTIONS | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)

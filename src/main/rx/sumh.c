@@ -57,8 +57,10 @@ static serialPort_t *sumhPort;
 
 
 // Receive ISR callback
-static void sumhDataReceive(uint16_t c)
+static void sumhDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     timeUs_t sumhTime;
     timeDelta_t sumhTimeInterval;
     static timeUs_t sumhTimeLast;
@@ -133,7 +135,7 @@ bool sumhInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     bool portShared = false;
 #endif
 
-    sumhPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, sumhDataReceive, SUMH_BAUDRATE, portShared ? MODE_RXTX : MODE_RX, SERIAL_NOT_INVERTED);
+    sumhPort = openSerialPort(portConfig->identifier, FUNCTION_RX_SERIAL, sumhDataReceive, NULL, SUMH_BAUDRATE, portShared ? MODE_RXTX : MODE_RX, SERIAL_NOT_INVERTED);
 
 #ifdef TELEMETRY
     if (portShared) {

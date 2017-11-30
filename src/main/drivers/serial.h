@@ -44,7 +44,7 @@ typedef enum portOptions_t {
     SERIAL_BIDIR_PP      = 1 << 4
 } portOptions_t;
 
-typedef void (*serialReceiveCallbackPtr)(uint16_t data);   // used by serial drivers to return frames to app
+typedef void (*serialReceiveCallbackPtr)(uint16_t data, void *rxCallbackData);   // used by serial drivers to return frames to app
 
 typedef struct serialPort_s {
 
@@ -66,6 +66,7 @@ typedef struct serialPort_s {
     uint32_t txBufferTail;
 
     serialReceiveCallbackPtr rxCallback;
+    void *rxCallbackData;
 } serialPort_t;
 
 struct serialPortVTable {
