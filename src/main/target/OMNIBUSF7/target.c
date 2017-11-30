@@ -31,6 +31,7 @@ BUSDEV_REGISTER_I2C(    busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS,    
 BUSDEV_REGISTER_I2C(    busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,        0x0D,               NONE,                       DEVFLAGS_NONE);
 BUSDEV_REGISTER_I2C(    busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,        0x0E,               NONE,                       DEVFLAGS_NONE);
 
+BUSDEV_REGISTER_SPI(    busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,                       DEVFLAGS_USE_RAW_REGISTERS);
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
