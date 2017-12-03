@@ -2695,7 +2695,7 @@ bool navigationRTHAllowsLanding(void)
 
 #else // NAV
 
-#ifdef GPS
+#ifdef USE_GPS
 /* Fallback if navigation is not compiled in - handle GPS home coordinates */
 static float GPS_scaleLonDown;
 static float GPS_totalTravelDistance = 0;

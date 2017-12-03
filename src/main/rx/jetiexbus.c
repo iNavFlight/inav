@@ -56,7 +56,7 @@
 #include "rx/rx.h"
 #include "rx/jetiexbus.h"
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
 #include "sensors/barometer.h"
@@ -114,7 +114,7 @@ enum exBusHeader_e {
     EXBUS_HEADER_DATA
 };
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 
 #define EXTEL_DATA_MSG      (0x40)
 #define EXTEL_UNMASK_TYPE   (0x3F)
@@ -208,7 +208,7 @@ static uint8_t jetiExBusRequestFrame[EXBUS_MAX_REQUEST_FRAME_SIZE];
 
 static uint16_t jetiExBusChannelData[JETIEXBUS_CHANNEL_COUNT];
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 
 static uint8_t jetiExBusTelemetryFrame[40];
 static uint8_t jetiExBusTransceiveState = EXBUS_TRANS_RX;
@@ -235,7 +235,7 @@ uint16_t calcCRC16(uint8_t *pt, uint8_t msgLen)
     return(crc16_data);
 }
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 
 
 // Jeti Ex Telemetry CRC calculations for a frame
@@ -397,7 +397,7 @@ static uint16_t jetiExBusReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uin
 }
 
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 /*
   -----------------------------------------------
    Jeti Ex Bus Telemetry

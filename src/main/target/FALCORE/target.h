@@ -37,19 +37,19 @@
 #define MPU_INT_EXTI            PB0
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN CW0_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN CW0_DEG
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5607
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_MAG3110
@@ -109,7 +109,7 @@
 #define VBAT_ADC_CHANNEL         ADC_CHN_1
 #define RSSI_ADC_CHANNEL         ADC_CHN_2
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL2
 #define WS2811_PIN                      PA8
 #define WS2811_DMA_STREAM               DMA1_Channel2
@@ -123,7 +123,7 @@
 #define M25P16_SPI_INSTANCE     SPI2
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PIN                PA3
 

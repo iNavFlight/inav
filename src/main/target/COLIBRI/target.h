@@ -41,10 +41,10 @@
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 
 // MPU6000 interrupts
@@ -52,7 +52,7 @@
 #define MPU_INT_EXTI            PC0
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C3
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
@@ -67,7 +67,7 @@
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #endif
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_MS5611
 
@@ -154,4 +154,4 @@
 #define USABLE_TIMER_CHANNEL_COUNT 17
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(10) | TIM_N(11))
 
-#undef PITOT
+#undef USE_PITOT

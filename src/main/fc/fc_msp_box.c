@@ -170,7 +170,7 @@ void initActiveBoxIds(void)
     if (feature(FEATURE_SERVO_TILT))
         activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
-#ifdef GPS
+#ifdef USE_GPS
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING) && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
@@ -205,7 +205,7 @@ void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXBEEPERON;
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     if (feature(FEATURE_LED_STRIP)) {
         activeBoxIds[activeBoxIdCount++] = BOXLEDLOW;
     }
@@ -213,12 +213,12 @@ void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXOSD;
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY) && telemetryConfig()->telemetry_switch)
         activeBoxIds[activeBoxIdCount++] = BOXTELEMETRY;
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     if (feature(FEATURE_BLACKBOX)){
         activeBoxIds[activeBoxIdCount++] = BOXBLACKBOX;
     }

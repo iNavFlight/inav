@@ -33,11 +33,11 @@
 #define MPU_INT_EXTI            PA15
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW180_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
@@ -65,9 +65,9 @@
 
 #define SENSORS_SET             (SENSOR_ACC)
 
-#define TELEMETRY
-#define BLACKBOX
-#define SERIAL_RX
+#define USE_TELEMETRY
+#define USE_BLACKBOX
+#define USE_SERIAL_RX
 #define USE_SERVOS
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
@@ -80,7 +80,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-//#define LED_STRIP
+//#define USE_LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PB8 // TIM16_CH1
 #define WS2811_TIMER                    TIM16
@@ -102,7 +102,7 @@
 #define TRANSPONDER_DMA_TC_FLAG              DMA1_FLAG_TC2
 #define TRANSPONDER_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART3, PB11
 #define BIND_PIN                PB11
 

@@ -301,7 +301,7 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#if defined(LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
+#if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
         const timerHardware_t *ledTimerHardware = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
         if (ledTimerHardware != NULL) {
@@ -422,7 +422,7 @@ void createDefaultConfig(void)
     parseRcChannels("AETR1234");
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
 #ifdef ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
     featureSet(FEATURE_BLACKBOX);
 #endif
@@ -441,7 +441,7 @@ void resetConfigs(void)
     createDefaultConfig();
 
     setConfigProfile(getConfigProfile());
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     reevaluateLedConfig();
 #endif
 }

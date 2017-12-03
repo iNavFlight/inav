@@ -36,7 +36,7 @@ hardwareSensorStatus_e getHwGyroStatus(void)
 
 hardwareSensorStatus_e getHwAccelerometerStatus(void)
 {
-#if defined(ACC)
+#if defined(USE_ACC)
     if (detectedSensors[SENSOR_INDEX_ACC] != ACC_NONE) {
         if (accIsHealthy()) {
             return HW_SENSOR_OK;
@@ -62,7 +62,7 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
 
 hardwareSensorStatus_e getHwCompassStatus(void)
 {
-#if defined(MAG)
+#if defined(USE_MAG)
     if (detectedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
         if (compassIsHealthy()) {
             return HW_SENSOR_OK;
@@ -88,7 +88,7 @@ hardwareSensorStatus_e getHwCompassStatus(void)
 
 hardwareSensorStatus_e getHwBarometerStatus(void)
 {
-#if defined(BARO)
+#if defined(USE_BARO)
     if (detectedSensors[SENSOR_INDEX_BARO] != BARO_NONE) {
         if (baroIsHealthy()) {
             return HW_SENSOR_OK;
@@ -140,7 +140,7 @@ hardwareSensorStatus_e getHwRangefinderStatus(void)
 
 hardwareSensorStatus_e getHwPitotmeterStatus(void)
 {
-#if defined(PITOT)
+#if defined(USE_PITOT)
     if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE) {
         if (pitotIsHealthy()) {
             return HW_SENSOR_OK;
@@ -166,7 +166,7 @@ hardwareSensorStatus_e getHwPitotmeterStatus(void)
 
 hardwareSensorStatus_e getHwGPSStatus(void)
 {
-#if defined(GPS)
+#if defined(USE_GPS)
     if (sensors(SENSOR_GPS)) {
         if (isGPSHealthy()) {
             return HW_SENSOR_OK;

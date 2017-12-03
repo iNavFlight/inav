@@ -33,7 +33,7 @@
 #include "platform.h"
 
 
-#if defined(TELEMETRY_LTM)
+#if defined(USE_TELEMETRY_LTM)
 
 #include "build/build_config.h"
 
@@ -109,7 +109,7 @@ static void ltm_finalise(sbuf_t *dst)
     serialWriteBuf(ltmPort, sbufPtr(dst), sbufBytesRemaining(dst));
 }
 
-#if defined(GPS)
+#if defined(USE_GPS)
 /*
  * GPS G-frame 5Hhz at > 2400 baud
  * LAT LON SPD ALT SAT/FIX
@@ -188,7 +188,7 @@ void ltm_sframe(sbuf_t *dst)
     sbufWriteU16(dst, vbat * 100);    //vbat converted to mv
     sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF));    // current mAh (65535 mAh max)
     sbufWriteU8(dst, (uint8_t)((rssi * 254) / 1023));        // scaled RSSI (uchar)
-#if defined(PITOT)
+#if defined(USE_PITOT)
     sbufWriteU8(dst, sensors(SENSOR_PITOT) ? pitot.airSpeed / 100.0f : 0);  // in m/s
 #else
     sbufWriteU8(dst, 0);
@@ -208,7 +208,7 @@ void ltm_aframe(sbuf_t *dst)
     sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 }
 
-#if defined(GPS)
+#if defined(USE_GPS)
 /*
  * OSD additional data frame, 1 Hz rate
  *  This frame will be ignored by Ghettostation, but processed by GhettOSD if it is used as standalone onboard OSD
@@ -235,7 +235,7 @@ void ltm_xframe(sbuf_t *dst)
         (isHardwareHealthy() ? 0 : 1) << 0;     // bit 0 - hardware failure indication (1 - something is wrong with the hardware sensors)
 
     sbufWriteU8(dst, 'X');
-#if defined(GPS)
+#if defined(USE_GPS)
     sbufWriteU16(dst, gpsSol.hdop);
 #else
     sbufWriteU16(dst, 9999);
@@ -337,7 +337,7 @@ static void process_ltm(void)
         ltm_finalise(dst);
     }
 
-#if defined(GPS)
+#if defined(USE_GPS)
     if (current_schedule & LTM_BIT_GFRAME) {
         ltm_initialise_packet(dst);
         ltm_gframe(dst);
@@ -465,7 +465,7 @@ int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType)
     case LTM_SFRAME:
         ltm_sframe(sbuf);
         break;
-#if defined(GPS)
+#if defined(USE_GPS)
     case LTM_GFRAME:
         ltm_gframe(sbuf);
         break;

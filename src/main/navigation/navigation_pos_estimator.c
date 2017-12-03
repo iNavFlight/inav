@@ -265,7 +265,7 @@ static bool shouldResetReferenceAltitude(void)
     return false;
 }
 
-#if defined(GPS)
+#if defined(USE_GPS)
 /* Why is this here: Because GPS will be sending at quiet a nailed rate (if not overloaded by junk tasks at the brink of its specs)
  * but we might read out with timejitter because Irq might be off by a few us so we do a +-10% margin around the time between GPS
  * datasets representing the most common Hz-rates today. You might want to extend the list or find a smarter way.
@@ -441,7 +441,7 @@ void onNewGPSData(void)
 }
 #endif
 
-#if defined(BARO)
+#if defined(USE_BARO)
 /**
  * Read BARO and update alt/vel topic
  *  Function is called from TASK_BARO
@@ -468,7 +468,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
 }
 #endif
 
-#if defined(PITOT)
+#if defined(USE_PITOT)
 /**
  * Read Pitot and update airspeed topic
  *  Function is called at main loop rate, updates happen at reduced rate
@@ -783,7 +783,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     if (useGpsZPos || isBaroValid) {
         float gpsWeightScaler = 1.0f;
 
-#if defined(BARO)
+#if defined(USE_BARO)
         if (isBaroValid) {
             /* Apply only baro correction, no sonar */
             inavFilterCorrectPos(Z, dt, baroResidual, positionEstimationConfig()->w_z_baro_p);
@@ -1084,7 +1084,7 @@ void updatePositionEstimator(void)
     const timeUs_t currentTimeUs = micros();
 
     /* Periodic sensor updates */
-#if defined(PITOT)
+#if defined(USE_PITOT)
     updatePitotTopic(currentTimeUs);
 #endif
 

@@ -35,11 +35,11 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU9250
 #define GYRO_MPU9250_ALIGN      CW270_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU9250
 #define ACC_MPU9250_ALIGN       CW270_DEG
 
@@ -47,7 +47,7 @@
 #define MPU9250_CS_PIN          PC4
 #define MPU_INT_EXTI            PC5
 
-#define MAG
+#define USE_MAG
 #define USE_MAG_MPU9250
 #define MAG_MPU9250_ALIGN       CW270_DEG
 
@@ -56,7 +56,7 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
@@ -118,7 +118,7 @@
 #define CURRENT_METER_ADC_PIN   PC2
 #define VBAT_ADC_PIN            PC1
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define LED_STRIP_TIMER         TIM5
 
 #define USE_RANGEFINDER

@@ -38,7 +38,7 @@
 #define MPU9250_CS_PIN          PA4
 #define MPU9250_SPI_BUS         BUS_SPI1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW180_DEG  // changedkb 270
 #define USE_GYRO_MPU6500
@@ -46,7 +46,7 @@
 #define USE_GYRO_MPU9250
 #define GYRO_MPU9250_ALIGN      CW90_DEG  // changedkb 270
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG  // changedkb 270
 #define USE_ACC_MPU6500
@@ -54,14 +54,14 @@
 #define USE_ACC_MPU9250
 #define ACC_MPU9250_ALIGN       CW90_DEG  // changedkb 270
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_MPU9250
 #define USE_MAG_HMC5883
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C1
 #define USE_BARO_MS5611
 #define USE_BARO_BMP280
@@ -146,7 +146,7 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL2
 #define WS2811_PIN                      PA8
 #define WS2811_TIMER                    TIM1
@@ -163,7 +163,7 @@
 #define DEFAULT_FEATURES        FEATURE_BLACKBOX
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // UART3,
 #define BIND_PIN                PB11
 

@@ -30,7 +30,7 @@
 
 #include "platform.h"
 
-#ifdef OSD
+#ifdef USE_OSD
 
 #include "build/debug.h"
 #include "build/version.h"
@@ -725,7 +725,7 @@ static inline int32_t osdGetAltitude(void)
 {
 #if defined(NAV)
     return getEstimatedActualPosition(Z);
-#elif defined(BARO)
+#elif defined(USE_BARO)
     return baro.alt;
 #else
     return 0;
@@ -750,7 +750,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
             steps = offset / 20;
             break;
         case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
-#if defined(GPS)
+#if defined(USE_GPS)
             offset = gpsSol.groundSpeed;
 #else
             offset = 0;
@@ -759,7 +759,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
             steps = offset / 20;
             break;
         case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
-#if defined(GPS)
+#if defined(USE_GPS)
             offset = GPS_distanceToHome;
 #else
             offset = 0;
@@ -840,7 +840,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
-#ifdef GPS
+#ifdef USE_GPS
     case OSD_GPS_SATS:
         buff[0] = SYM_SAT_L;
         buff[1] = SYM_SAT_R;
@@ -1163,7 +1163,7 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-#if defined(BARO) || defined(GPS)
+#if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
         {
             int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 arrow
@@ -1254,7 +1254,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_AIR_SPEED:
         {
-        #ifdef PITOT
+        #ifdef USE_PITOT
             buff[0] = SYM_AIR;
             osdFormatVelocityStr(buff + 1, pitot.airSpeed);
         #else
@@ -1582,7 +1582,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     osdDisplayPort = osdDisplayPortToUse;
 
-#ifdef CMS
+#ifdef USE_CMS
     cmsDisplayPortRegister(osdDisplayPort);
 #endif
 
@@ -1593,7 +1593,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
     displayWrite(osdDisplayPort, 5, 6, string_buffer);
-#ifdef CMS
+#ifdef USE_CMS
     displayWrite(osdDisplayPort, 7, 7,  CMS_STARTUP_HELP_TEXT1);
     displayWrite(osdDisplayPort, 11, 8, CMS_STARTUP_HELP_TEXT2);
     displayWrite(osdDisplayPort, 11, 9, CMS_STARTUP_HELP_TEXT3);
@@ -1784,7 +1784,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         return;
     }
 
-#ifdef CMS
+#ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
         if (fullRedraw) {
             displayClearScreen(osdDisplayPort);
@@ -1828,7 +1828,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         displayDrawScreen(osdDisplayPort);
     }
 
-#ifdef CMS
+#ifdef USE_CMS
     // do not allow ARM if we are in menu
     if (displayIsGrabbed(osdDisplayPort)) {
         ENABLE_ARMING_FLAG(ARMING_DISABLED_OSD_MENU);

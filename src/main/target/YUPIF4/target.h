@@ -51,11 +51,11 @@
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW90_DEG
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW90_DEG
 
@@ -66,18 +66,18 @@
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
 // OSD
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA14
@@ -128,7 +128,7 @@
 #define RSSI_ADC_CHANNEL        ADC_CHN_2
 
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB1
 #define WS2811_TIMER			TIM8
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER

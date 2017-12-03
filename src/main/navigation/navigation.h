@@ -32,7 +32,7 @@ extern int16_t              GPS_directionToHome;       // direction to home poin
 void onNewGPSData(void);
 
 #if defined(NAV)
-#if defined(BLACKBOX)
+#if defined(USE_BLACKBOX)
 #define NAV_BLACKBOX
 #endif
 

@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#if defined(CMS) && defined(VTX_TRAMP)
+#if defined(USE_CMS) && defined(VTX_TRAMP)
 
 #include "common/printf.h"
 #include "common/utils.h"

@@ -39,21 +39,21 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define MPU_INT_EXTI            PA4
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_MS5611
 
@@ -68,7 +68,7 @@
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 
-#define OSD
+#define USE_OSD
 #ifdef USE_MSP_DISPLAYPORT
 #undef USE_MSP_DISPLAYPORT
 #endif
@@ -141,7 +141,7 @@
 #define RX_CHANNELS_TAER
 #define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD)
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_GPIO_AF                  GPIO_AF_TIM3
 #define WS2811_PIN                      PC6
 #define WS2811_TIMER                    TIM3

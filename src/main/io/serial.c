@@ -52,7 +52,7 @@
 
 #include "msp/msp_serial.h"
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 #include "telemetry/telemetry.h"
 #endif
 
@@ -286,7 +286,7 @@ bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 
             if ((portConfig->functionMask & FUNCTION_MSP) && (portConfig->functionMask & ALL_FUNCTIONS_SHARABLE_WITH_MSP)) {
                 // MSP & telemetry
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
             } else if (telemetryCheckRxPortShared(portConfig)) {
                 // serial RX & telemetry
 #endif
@@ -521,7 +521,7 @@ void serialEvaluateNonMspData(serialPort_t *serialPort, uint8_t receivedChar)
     }
 }
 
-#if defined(GPS) || defined(USE_SERIAL_PASSTHROUGH)
+#if defined(USE_GPS) || defined(USE_SERIAL_PASSTHROUGH)
 // Default data consumer for serialPassThrough.
 static void nopConsumer(uint8_t data)
 {

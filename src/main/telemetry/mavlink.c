@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#if defined(TELEMETRY) && defined(TELEMETRY_MAVLINK)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -277,7 +277,7 @@ void mavlinkSendRCChannelsAndRSSI(void)
     mavlinkSendMessage();
 }
 
-#if defined(GPS)
+#if defined(USE_GPS)
 void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
@@ -384,14 +384,14 @@ void mavlinkSendHUDAndHeartbeat(void)
     float mavAirSpeed = 0;
     float mavClimbRate = 0;
 
-#if defined(GPS)
+#if defined(USE_GPS)
     // use ground speed if source available
     if (sensors(SENSOR_GPS)) {
         mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
     }
 #endif
 
-#if defined(PITOT)
+#if defined(USE_PITOT)
     if (sensors(SENSOR_PITOT)) {
         mavAirSpeed = pitot.airSpeed / 100.0f;
     }
@@ -401,7 +401,7 @@ void mavlinkSendHUDAndHeartbeat(void)
 #if defined(NAV)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
-#elif defined(GPS)
+#elif defined(USE_GPS)
     if (sensors(SENSOR_GPS)) {
         // No surface or baro, just display altitude above MLS
         mavAltitude = gpsSol.llh.alt;
@@ -524,7 +524,7 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
         mavlinkSendRCChannelsAndRSSI();
     }
 
-#ifdef GPS
+#ifdef USE_GPS
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_POSITION)) {
         mavlinkSendPosition(currentTimeUs);
     }

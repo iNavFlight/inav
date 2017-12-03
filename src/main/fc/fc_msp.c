@@ -470,7 +470,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, 0);
         sbufWriteU16(dst, 0);
 #endif
-#if defined(BARO)
+#if defined(USE_BARO)
         sbufWriteU32(dst, baroGetLatestAltitude());
 #else
         sbufWriteU32(dst, 0);
@@ -577,7 +577,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         sbufWriteU16(dst, failsafeConfig()->failsafe_throttle);
 
-#ifdef GPS
+#ifdef USE_GPS
         sbufWriteU8(dst, gpsConfig()->provider); // gps_type
         sbufWriteU8(dst, 0); // TODO gps_baudrate (an index, cleanflight uses a uint32_t
         sbufWriteU8(dst, gpsConfig()->sbasMode); // gps_ubx_sbas
@@ -605,7 +605,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#ifdef GPS
+#ifdef USE_GPS
     case MSP_RAW_GPS:
         sbufWriteU8(dst, gpsSol.fixType);
         sbufWriteU8(dst, gpsSol.numSat);
@@ -769,7 +769,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     case MSP_LED_COLORS:
         for (int i = 0; i < LED_CONFIGURABLE_COLOR_COUNT; i++) {
             const hsvColor_t *color = &ledStripConfig()->colors[i];
@@ -808,7 +808,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BLACKBOX_CONFIG:
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         sbufWriteU8(dst, 1); //Blackbox supported
         sbufWriteU8(dst, blackboxConfig()->device);
         sbufWriteU8(dst, blackboxConfig()->rate_num);
@@ -826,7 +826,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_OSD_CONFIG:
-#ifdef OSD
+#ifdef USE_OSD
         sbufWriteU8(dst, 1); // OSD supported
         // send video system (AUTO/PAL/NTSC)
 #ifdef USE_MAX7456
@@ -959,17 +959,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_SENSOR_CONFIG:
         sbufWriteU8(dst, accelerometerConfig()->acc_hardware);
-#ifdef BARO
+#ifdef USE_BARO
         sbufWriteU8(dst, barometerConfig()->baro_hardware);
 #else
         sbufWriteU8(dst, 0);
 #endif
-#ifdef MAG
+#ifdef USE_MAG
         sbufWriteU8(dst, compassConfig()->mag_hardware);
 #else
         sbufWriteU8(dst, 0);
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
         sbufWriteU8(dst, pitotmeterConfig()->pitot_hardware);
 #else
         sbufWriteU8(dst, 0);
@@ -1026,7 +1026,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
     case MSP_CALIBRATION_DATA:
-    #ifdef ACC
+    #ifdef USE_ACC
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[X]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Y]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Z]);
@@ -1042,7 +1042,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0);
     #endif
 
-    #ifdef MAG
+    #ifdef USE_MAG
         sbufWriteU16(dst, compassConfig()->magZero.raw[X]);
         sbufWriteU16(dst, compassConfig()->magZero.raw[Y]);
         sbufWriteU16(dst, compassConfig()->magZero.raw[Z]);
@@ -1357,7 +1357,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         failsafeConfigMutable()->failsafe_throttle = sbufReadU16(src);
 
-#ifdef GPS
+#ifdef USE_GPS
         gpsConfigMutable()->provider = sbufReadU8(src); // gps_type
         sbufReadU8(src); // gps_baudrate
         gpsConfigMutable()->sbasMode = sbufReadU8(src); // gps_ubx_sbas
@@ -1370,7 +1370,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         rxConfigMutable()->rssi_channel = sbufReadU8(src);
         sbufReadU8(src);
 
-#ifdef MAG
+#ifdef USE_MAG
         compassConfigMutable()->mag_declination = sbufReadU16(src) * 10;
 #else
         sbufReadU16(src);
@@ -1449,7 +1449,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_SENSOR_ALIGNMENT:
         gyroConfigMutable()->gyro_align = sbufReadU8(src);
         accelerometerConfigMutable()->acc_align = sbufReadU8(src);
-#ifdef MAG
+#ifdef USE_MAG
         compassConfigMutable()->mag_align = sbufReadU8(src);
 #else
         sbufReadU8(src);
@@ -1532,17 +1532,17 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_SENSOR_CONFIG:
         accelerometerConfigMutable()->acc_hardware = sbufReadU8(src);
-#ifdef BARO
+#ifdef USE_BARO
         barometerConfigMutable()->baro_hardware = sbufReadU8(src);
 #else
         sbufReadU8(src);
 #endif
-#ifdef MAG
+#ifdef USE_MAG
         compassConfigMutable()->mag_hardware = sbufReadU8(src);
 #else
         sbufReadU8(src);
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
         pitotmeterConfigMutable()->pitot_hardware = sbufReadU8(src);
 #else
         sbufReadU8(src);
@@ -1600,7 +1600,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 
     case MSP_SET_CALIBRATION_DATA:
-    #ifdef ACC
+    #ifdef USE_ACC
         accelerometerConfigMutable()->accZero.raw[X] = sbufReadU16(src);
         accelerometerConfigMutable()->accZero.raw[Y] = sbufReadU16(src);
         accelerometerConfigMutable()->accZero.raw[Z] = sbufReadU16(src);
@@ -1616,7 +1616,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU16(src);
     #endif
 
-    #ifdef MAG
+    #ifdef USE_MAG
         compassConfigMutable()->magZero.raw[X] = sbufReadU16(src);
         compassConfigMutable()->magZero.raw[Y] = sbufReadU16(src);
         compassConfigMutable()->magZero.raw[Z] = sbufReadU16(src);
@@ -1664,7 +1664,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         readEEPROM();
         break;
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     case MSP_SET_BLACKBOX_CONFIG:
         // Don't allow config to be updated while Blackbox is logging
         if (blackboxMayEditConfig()) {
@@ -1675,7 +1675,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
-#ifdef OSD
+#ifdef USE_OSD
     case MSP_SET_OSD_CONFIG:
         {
             const uint8_t addr = sbufReadU8(src);
@@ -1767,7 +1767,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
-#ifdef GPS
+#ifdef USE_GPS
     case MSP_SET_RAW_GPS:
         if (sbufReadU8(src)) {
             ENABLE_STATE(GPS_FIX);
@@ -1934,7 +1934,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     case MSP_SET_LED_COLORS:
         for (int i = 0; i < LED_CONFIGURABLE_COLOR_COUNT; i++) {
             hsvColor_t *color = &ledStripConfigMutable()->colors[i];

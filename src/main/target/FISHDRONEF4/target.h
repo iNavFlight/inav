@@ -41,13 +41,13 @@
 #define MPU9250_CS_PIN          PA4
 #define MPU9250_SPI_BUS         BUS_SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 #define USE_ACC_MPU9250
 #define GYRO_MPU9250_ALIGN      CW180_DEG
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
 #define ACC_MPU6500_ALIGN       CW180_DEG
 #define USE_GYRO_MPU9250
@@ -60,7 +60,7 @@
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 // *************** Compass *****************************
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_MPU9250
 #define USE_MAG_MAG3110
@@ -70,7 +70,7 @@
 #define MAG_IST8310_ALIGN CW270_DEG
 
 // *************** BARO *****************************
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
@@ -81,7 +81,7 @@
 #define SPI2_MISO_PIN   PC2
 #define SPI2_MOSI_PIN   PC3
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
@@ -132,7 +132,7 @@
 #define SERIAL_PORT_COUNT       4 // VCP, USART1, USART2, USART5
 
 // *************** WS2811 *****************************
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB1
 #define WS2811_TIMER                    TIM3
 #define WS2811_TIMER_CHANNEL            TIM_Channel_4

@@ -161,7 +161,7 @@ static bool isPulseValid(uint16_t pulseDuration)
             pulseDuration <= rxConfig()->rx_max_usec;
 }
 
-#ifdef SERIAL_RX
+#ifdef USE_SERIAL_RX
 bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     bool enabled = false;
@@ -254,7 +254,7 @@ void rxInit(void)
             break;
 #endif
 
-#ifdef SERIAL_RX
+#ifdef USE_SERIAL_RX
         case RX_TYPE_SERIAL:
             if (!serialRxInit(rxConfig(), &rxRuntimeConfig)) {
                 rxConfigMutable()->receiverType = RX_TYPE_NONE;

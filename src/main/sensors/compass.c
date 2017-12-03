@@ -62,7 +62,7 @@ mag_t mag;                   // mag access functions
 
 PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 2);
 
-#ifdef MAG
+#ifdef USE_MAG
 #define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
 #else
 #define MAG_HARDWARE_DEFAULT    MAG_NONE
@@ -75,7 +75,7 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .magCalibrationTimeLimit = 30
 );
 
-#ifdef MAG
+#ifdef USE_MAG
 
 static uint8_t magInit = 0;
 static uint8_t magUpdatedAtLeastOnce = 0;
@@ -138,7 +138,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         FALLTHROUGH;
 
     case MAG_GPS:
-#ifdef GPS
+#ifdef USE_GPS
         if (gpsMagDetect(dev)) {
 #ifdef MAG_GPS_ALIGN
             dev->magAlign = MAG_GPS_ALIGN;

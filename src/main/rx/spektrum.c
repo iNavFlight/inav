@@ -36,7 +36,7 @@
 
 #include "io/serial.h"
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 #include "telemetry/telemetry.h"
 #endif
 
@@ -74,7 +74,7 @@ static volatile uint8_t spekFrame[SPEK_FRAME_SIZE];
 static rxRuntimeConfig_t *rxRuntimeConfigPtr;
 static serialPort_t *serialPort;
 
-#ifdef SPEKTRUM_BIND
+#ifdef USE_SPEKTRUM_BIND
 static IO_t BindPin = DEFIO_IO(NONE);
 #endif
 #ifdef HARDWARE_BIND_PLUG
@@ -172,7 +172,7 @@ static uint16_t spektrumReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint
     return data;
 }
 
-#ifdef SPEKTRUM_BIND
+#ifdef USE_SPEKTRUM_BIND
 
 bool spekShouldBind(uint8_t spektrum_sat_bind)
 {
@@ -280,7 +280,7 @@ bool spektrumInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         return false;
     }
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     bool portShared = telemetryCheckRxPortShared(portConfig);
 #else
     bool portShared = false;
@@ -295,7 +295,7 @@ bool spektrumInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         SERIAL_NOT_INVERTED | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
         );
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (portShared) {
         telemetrySharedPort = serialPort;
     }

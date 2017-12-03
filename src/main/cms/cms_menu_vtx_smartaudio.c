@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#if defined(CMS) && defined(VTX_SMARTAUDIO)
+#if defined(USE_CMS) && defined(VTX_SMARTAUDIO)
 
 #include "common/printf.h"
 #include "common/utils.h"

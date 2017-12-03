@@ -30,11 +30,11 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN CW270_DEG
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN CW270_DEG
 
@@ -43,13 +43,13 @@
 #define MPU_INT_EXTI PC4
 #define USE_EXTI
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
 
@@ -114,7 +114,7 @@
 #define USE_FLASH_M25P16
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          SPI3_NSS_PIN

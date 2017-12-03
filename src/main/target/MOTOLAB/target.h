@@ -30,11 +30,11 @@
 #define MPU_INT_EXTI            PA15
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6050
 #define GYRO_MPU6050_ALIGN      CW180_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW180_DEG
 
@@ -47,10 +47,10 @@
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
 
-//#define BARO
+//#define USE_BARO
 //#define USE_BARO_MS5611
 
-//#define MAG
+//#define USE_MAG
 //#define USE_MAG_HMC5883
 
 #define USB_IO
@@ -94,7 +94,7 @@
 #define VBAT_ADC_CHANNEL        ADC_CHN_1
 #define RSSI_ADC_CHANNEL        ADC_CHN_2
 
-#define LED_STRIP
+#define USE_LED_STRIP
 
 #define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PB8 // TIM16_CH1
@@ -105,17 +105,17 @@
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
 
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART2, PB4
 #define BIND_PIN                PB4
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-//#undef GPS
-#undef GPS_PROTO_NMEA
-//#undef GPS_PROTO_UBLOX
-#undef GPS_PROTO_I2C_NAV
-#undef GPS_PROTO_NAZA
+//#undef USE_GPS
+#undef USE_GPS_PROTO_NMEA
+//#undef USE_GPS_PROTO_UBLOX
+#undef USE_GPS_PROTO_I2C_NAV
+#undef USE_GPS_PROTO_NAZA
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    8

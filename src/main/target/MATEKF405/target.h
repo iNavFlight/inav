@@ -42,11 +42,11 @@
 #define MPU_INT_EXTI            PC3
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW180_DEG
 
@@ -73,7 +73,7 @@
 #define SPI2_MISO_PIN   	    PB14
 #define SPI2_MOSI_PIN   	    PB15
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB10
@@ -132,13 +132,13 @@
 #endif
 
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS DEFAULT_I2C_BUS
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS DEFAULT_I2C_BUS
 #define USE_MAG_MAG3110 // External
 #define USE_MAG_HMC5883 // External
@@ -157,13 +157,13 @@
 
 #define DEFAULT_FEATURES        (FEATURE_OSD )
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PA15 // S5 pad for iNav
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST5_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream5
 #define WS2811_DMA_CHANNEL              DMA_Channel_3   // ???
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA1 // USART4 RX
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

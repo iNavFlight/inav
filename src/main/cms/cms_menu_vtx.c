@@ -29,7 +29,7 @@
 
 #include "config/feature.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #if defined(VTX) || defined(USE_RTC6705)
 

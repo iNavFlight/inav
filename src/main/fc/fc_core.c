@@ -110,13 +110,13 @@ static disarmReason_t lastDisarmReason = DISARM_NONE;
 
 bool isCalibrating(void)
 {
-#ifdef BARO
+#ifdef USE_BARO
     if (sensors(SENSOR_BARO) && !baroIsCalibrationComplete()) {
         return true;
     }
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     if (sensors(SENSOR_PITOT) && !pitotIsCalibrationComplete()) {
         return true;
     }
@@ -222,7 +222,7 @@ static void updateArmingStatus(void)
         }
 #endif
 
-#if defined(MAG)
+#if defined(USE_MAG)
         /* CHECK: */
         if (sensors(SENSOR_MAG) && !STATE(COMPASS_CALIBRATED)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_COMPASS_NOT_CALIBRATED);
@@ -325,7 +325,7 @@ void mwDisarm(disarmReason_t disarmReason)
         lastDisarmReason = disarmReason;
         DISABLE_ARMING_FLAG(ARMED);
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         if (feature(FEATURE_BLACKBOX)) {
             blackboxFinish();
         }
@@ -367,7 +367,7 @@ void mwArm(void)
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         if (feature(FEATURE_BLACKBOX)) {
             serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
             if (sharedBlackboxAndMspPort) {
@@ -544,7 +544,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-#if defined(MAG)
+#if defined(USE_MAG)
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
         if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
             if (!FLIGHT_MODE(HEADFREE_MODE)) {
@@ -607,7 +607,7 @@ void processRx(timeUs_t currentTimeUs)
     autotuneUpdateState();
 #endif
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         if ((!telemetryConfig()->telemetry_switch && ARMING_FLAG(ARMED)) ||
                 (telemetryConfig()->telemetry_switch && IS_RC_MODE_ACTIVE(BOXTELEMETRY))) {
@@ -817,7 +817,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     afatfs_poll();
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
         blackboxUpdate(micros());
     }
