@@ -37,12 +37,16 @@ void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 }
 
 
-bool spiBusTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length)
+bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc, int count)
 {
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
 
     IOLo(dev->busdev.spi.csnPin);
-    spiTransfer(instance, rxBuf, txBuf, length);
+
+    for (int n = 0; n < count; n++) {
+        spiTransfer(instance, dsc[n].rxBuf, dsc[n].txBuf, dsc[n].length);
+    }
+
     IOHi(dev->busdev.spi.csnPin);
 
     return true;
