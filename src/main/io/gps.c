@@ -251,7 +251,7 @@ void gpsInit(void)
             portMode_t mode = gpsProviders[gpsState.gpsConfig->provider].portMode;
 
             // no callback - buffer will be consumed in gpsThread()
-            gpsState.gpsPort = openSerialPort(gpsPortConfig->identifier, FUNCTION_GPS, NULL, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]], mode, SERIAL_NOT_INVERTED);
+            gpsState.gpsPort = openSerialPort(gpsPortConfig->identifier, FUNCTION_GPS, NULL, NULL, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]], mode, SERIAL_NOT_INVERTED);
 
             if (!gpsState.gpsPort) {
                 featureClear(FEATURE_GPS);

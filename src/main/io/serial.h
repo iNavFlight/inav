@@ -146,6 +146,7 @@ serialPort_t *openSerialPort(
     serialPortIdentifier_e identifier,
     serialPortFunction_e function,
     serialReceiveCallbackPtr callback,
+    void *rxCallbackData,
     uint32_t baudrate,
     portMode_t mode,
     portOptions_t options

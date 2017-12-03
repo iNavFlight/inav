@@ -83,8 +83,10 @@ static IO_t BindPlug = DEFIO_IO(NONE);
 
 
 // Receive ISR callback
-static void spektrumDataReceive(uint16_t c)
+static void spektrumDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     timeUs_t spekTime;
     timeDelta_t spekTimeInterval;
     static timeUs_t spekTimeLast = 0;
@@ -287,6 +289,7 @@ bool spektrumInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     serialPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         spektrumDataReceive,
+        NULL,
         SPEKTRUM_BAUDRATE,
         portShared ? MODE_RXTX : MODE_RX,
         SERIAL_NOT_INVERTED | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
