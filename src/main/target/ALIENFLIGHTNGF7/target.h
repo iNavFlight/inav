@@ -62,8 +62,8 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 
-#define MAG_AK9863_ALIGN        CW0_DEG_FLIP
-#define MAG_MPU9250_ALIGN       CW0_DEG_FLIP
+#define MAG_AK9863_ALIGN        CW180_DEG_FLIP
+#define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
 
 #define AK8963_CS_PIN           PC15
 #define AK8963_SPI_BUS          BUS_SPI3

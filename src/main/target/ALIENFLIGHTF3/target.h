@@ -69,7 +69,7 @@
 #define MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_MPU9250
-#define MAG_MPU9250_ALIGN       CW0_DEG_FLIP
+#define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 

@@ -65,7 +65,7 @@
 #define STATUS1_DATA_READY              0x01
 #define STATUS1_DATA_OVERRUN            0x02
 
-#define STATUS2_MAG_SENSOR_OVERFLOW     0x02
+#define STATUS2_MAG_SENSOR_OVERFLOW     0x08
 
 #define CNTL_MODE_POWER_DOWN            0x00
 #define CNTL_MODE_ONCE                  0x01

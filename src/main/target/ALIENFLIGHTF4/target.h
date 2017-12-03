@@ -64,7 +64,7 @@
 #define USE_MAG_MPU9250
 #define USE_MAG_QMC5883
 
-#define MAG_MPU9250_ALIGN       CW0_DEG_FLIP
+#define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
 
 #define BARO
 #define BARO_I2C_BUS             BUS_I2C1
