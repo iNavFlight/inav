@@ -51,7 +51,7 @@ typedef struct {
 typedef enum {
     /* Actual tasks */
     TASK_SYSTEM = 0,
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     TASK_PID,
     TASK_GYRO,
     TASK_ACC,

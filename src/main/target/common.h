@@ -40,7 +40,7 @@
 #define USE_BLACKBOX
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
-#define NAV
+#define USE_NAV
 #define USE_FLM_TURN_ASSIST     // This is mandatory for fixed-wing navigation
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
@@ -59,12 +59,12 @@
 #endif
 
 #if (FLASH_SIZE > 128)
-#define FIXED_WING_LANDING
+#define NAV_FIXED_WING_LANDING
 #define AUTOTUNE_FIXED_WING
-#define ASYNC_GYRO_PROCESSING
-#define BOOTLOG
+#define USE_ASYNC_GYRO_PROCESSING
+#define USE_BOOTLOG
 #define BOOTLOG_DESCRIPTIONS
-#define STATS
+#define USE_STATS
 #define USE_64BIT_TIME
 #define USE_GYRO_NOTCH_1
 #define USE_GYRO_NOTCH_2

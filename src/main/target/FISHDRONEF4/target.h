@@ -167,7 +167,7 @@
 // #define USE_RANGEFINDER_SRF10
 
 // *************** NAV *****************************
-#define NAV
+#define USE_NAV
 #define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_MAX_WAYPOINTS       60

@@ -168,7 +168,7 @@ void failsafeInit(void)
     failsafeState.suspended = false;
 }
 
-#ifdef NAV
+#ifdef USE_NAV
 bool failsafeBypassNavigation(void)
 {
     return failsafeState.active && failsafeState.controlling && failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
@@ -419,7 +419,7 @@ void failsafeUpdateState(void)
                             failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_3_SECONDS; // require 3 seconds of valid rxData
                             break;
 
-#if defined(NAV)
+#if defined(USE_NAV)
                         case FAILSAFE_PROCEDURE_RTH:
                             // Proceed to handling & monitoring RTH navigation
                             failsafeActivate(FAILSAFE_RETURN_TO_HOME);
@@ -444,7 +444,7 @@ void failsafeUpdateState(void)
                 }
                 break;
 
-#if defined(NAV)
+#if defined(USE_NAV)
             case FAILSAFE_RETURN_TO_HOME:
                 if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
                     abortForcedRTH();

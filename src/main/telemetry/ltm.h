@@ -28,7 +28,7 @@ typedef enum {
     LTM_OFRAME, // Origin Frame
     LTM_XFRAME, // Extended information data frame
 #endif
-#if defined(NAV)
+#if defined(USE_NAV)
     LTM_NFRAME, // Navigation Frame (inav extension)
 #endif
     LTM_FRAME_COUNT

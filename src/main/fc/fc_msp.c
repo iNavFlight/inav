@@ -463,7 +463,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ALTITUDE:
-#if defined(NAV)
+#if defined(USE_NAV)
         sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
         sbufWriteU16(dst, lrintf(getEstimatedActualVelocity(Z)));
 #else
@@ -622,7 +622,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, GPS_directionToHome);
         sbufWriteU8(dst, gpsSol.flags.gpsHeartbeat ? 1 : 0);
         break;
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_NAV_STATUS:
         sbufWriteU8(dst, NAV_Status.mode);
         sbufWriteU8(dst, NAV_Status.state);
@@ -937,7 +937,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_INAV_PID:
-    #ifdef ASYNC_GYRO_PROCESSING
+    #ifdef USE_ASYNC_GYRO_PROCESSING
         sbufWriteU8(dst, systemConfig()->asyncMode);
         sbufWriteU16(dst, systemConfig()->accTaskFrequency);
         sbufWriteU16(dst, systemConfig()->attitudeTaskFrequency);
@@ -986,7 +986,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_NAV_POSHOLD:
         sbufWriteU8(dst, navConfig()->general.flags.user_control_mode);
         sbufWriteU16(dst, navConfig()->general.max_auto_speed);
@@ -1054,7 +1054,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_POSITION_ESTIMATION_CONFIG:
-    #ifdef NAV
+    #ifdef USE_NAV
 
         sbufWriteU16(dst, positionEstimationConfig()->w_z_baro_p * 100); //     inav_w_z_baro_p float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_p * 100);  // 2   inav_w_z_gps_p  float as value * 100
@@ -1084,7 +1084,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_WP_GETINFO:
-#ifdef NAV
+#ifdef USE_NAV
         sbufWriteU8(dst, 0);                        // Reserved for waypoint capabilities
         sbufWriteU8(dst, NAV_MAX_WAYPOINTS);        // Maximum number of waypoints supported
         sbufWriteU8(dst, isWaypointListValid());    // Is current mission valid
@@ -1159,7 +1159,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     return true;
 }
 
-#ifdef NAV
+#ifdef USE_NAV
 static void mspFcWaypointOutCommand(sbuf_t *dst, sbuf_t *src)
 {
     const uint8_t msp_wp_no = sbufReadU8(src);    // get the wp number
@@ -1271,7 +1271,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             pidBankMutable()->pid[i].D = sbufReadU8(src);
         }
         schedulePidGainsUpdate();
-#if defined(NAV)
+#if defined(USE_NAV)
         navigationUsePIDs();
 #endif
         break;
@@ -1510,7 +1510,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_INAV_PID:
-        #ifdef ASYNC_GYRO_PROCESSING
+        #ifdef USE_ASYNC_GYRO_PROCESSING
             systemConfigMutable()->asyncMode = sbufReadU8(src);
             systemConfigMutable()->accTaskFrequency = sbufReadU16(src);
             systemConfigMutable()->attitudeTaskFrequency = sbufReadU16(src);
@@ -1559,7 +1559,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
         break;
 
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_SET_NAV_POSHOLD:
         navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
         navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
@@ -1628,7 +1628,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_POSITION_ESTIMATION_CONFIG:
-    #ifdef NAV
+    #ifdef USE_NAV
         positionEstimationConfigMutable()->w_z_baro_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
         positionEstimationConfigMutable()->w_z_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
         positionEstimationConfigMutable()->w_z_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
@@ -1792,7 +1792,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         onNewGPSData();
         break;
 #endif
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_SET_WP:
         {
             const uint8_t msp_wp_no = sbufReadU8(src);     // get the waypoint number
@@ -2158,7 +2158,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         mspFc4waySerialCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
 #endif
-#ifdef NAV
+#ifdef USE_NAV
     } else if (cmdMSP == MSP_WP) {
         mspFcWaypointOutCommand(dst, src);
         ret = MSP_RESULT_ACK;

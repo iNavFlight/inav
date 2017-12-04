@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(NAV)
+#if defined(USE_NAV)
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -428,7 +428,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         pitchCorrection += posControl.rcAdjustment[PITCH];
         throttleCorrection += DECIDEGREES_TO_DEGREES(pitchCorrection) * navConfig()->fw.pitch_to_throttle;
 
-#ifdef FIXED_WING_LANDING
+#ifdef NAV_FIXED_WING_LANDING
         if (navStateFlags & NAV_CTL_LAND) {
             /*
              * During LAND we do not allow to raise THROTTLE when nose is up
@@ -438,7 +438,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         } else {
 #endif
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-#ifdef FIXED_WING_LANDING
+#ifdef NAV_FIXED_WING_LANDING
         }
 #endif
     }
@@ -467,7 +467,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[THROTTLE] = constrain(correctedThrottleValue, motorConfig()->minthrottle, motorConfig()->maxthrottle);
     }
 
-#ifdef FIXED_WING_LANDING
+#ifdef NAV_FIXED_WING_LANDING
     /*
      * Then altitude is below landing slowdown min. altitude, enable final approach procedure
      * TODO refactor conditions in this metod if logic is proven to be correct

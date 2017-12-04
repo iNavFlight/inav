@@ -847,98 +847,98 @@ groups:
 
       - name: nav_mc_pos_z_p
         field: bank_mc.pid[PID_POS_Z].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_z_i
         field: bank_mc.pid[PID_POS_Z].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_z_d
         field: bank_mc.pid[PID_POS_Z].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_z_p
         field: bank_mc.pid[PID_VEL_Z].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_z_i
         field: bank_mc.pid[PID_VEL_Z].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_z_d
         field: bank_mc.pid[PID_VEL_Z].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_xy_p
         field: bank_mc.pid[PID_POS_XY].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_xy_i
         field: bank_mc.pid[PID_POS_XY].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_xy_d
         field: bank_mc.pid[PID_POS_XY].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_p
         field: bank_mc.pid[PID_VEL_XY].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_i
         field: bank_mc.pid[PID_VEL_XY].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_d
         field: bank_mc.pid[PID_VEL_XY].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_i
         field: bank_fw.pid[PID_POS_Z].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_d
         field: bank_fw.pid[PID_POS_Z].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_p
         field: bank_fw.pid[PID_POS_XY].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_i
         field: bank_fw.pid[PID_POS_XY].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_d
         field: bank_fw.pid[PID_POS_XY].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: NAV
+    condition: USE_NAV
     members:
       - name: fw_autotune_overshoot_time
         field: fw_overshoot_time
@@ -963,7 +963,7 @@ groups:
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t
-    condition: NAV
+    condition: USE_NAV
     members:
       - name: inav_auto_mag_decl
         field: automatic_mag_declination
@@ -1039,7 +1039,7 @@ groups:
   - name: PG_NAV_CONFIG
     type: navConfig_t
     headers: ["navigation/navigation.h"]
-    condition: NAV
+    condition: USE_NAV
     members:
       - name: nav_disarm_on_landing
         field: general.flags.disarm_on_landing
@@ -1170,7 +1170,7 @@ groups:
 
       - name: nav_fw_land_dive_angle
         field: fw.land_dive_angle
-        condition: FIXED_WING_LANDING
+        condition: NAV_FIXED_WING_LANDING
         min: -20
         max: 20
 
@@ -1502,17 +1502,17 @@ groups:
         table: debug_modes
       - name: acc_task_frequency
         field: accTaskFrequency
-        condition: ASYNC_GYRO_PROCESSING
+        condition: USE_ASYNC_GYRO_PROCESSING
         min: ACC_TASK_FREQUENCY_MIN
         max: ACC_TASK_FREQUENCY_MAX
       - name: attitude_task_frequency
         field: attitudeTaskFrequency
-        condition: ASYNC_GYRO_PROCESSING
+        condition: USE_ASYNC_GYRO_PROCESSING
         min: ATTITUDE_TASK_FREQUENCY_MIN
         max: ATTITUDE_TASK_FREQUENCY_MAX
       - name: async_mode
         field: asyncMode
-        condition: ASYNC_GYRO_PROCESSING
+        condition: USE_ASYNC_GYRO_PROCESSING
         table: async_mode
       - name: throttle_tilt_comp_str
         field: throttle_tilt_compensation_strength
@@ -1534,7 +1534,7 @@ groups:
   - name: PG_STATS_CONFIG
     type: statsConfig_t
     headers: ["fc/stats.h"]
-    condition: STATS
+    condition: USE_STATS
     members:
       - name: stats
         field: stats_enabled

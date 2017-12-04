@@ -554,7 +554,7 @@ static uint8_t getHeadingHoldState(void)
         return HEADING_HOLD_DISABLED;
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     int navHeadingState = navigationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
     if (navHeadingState != NAV_HEADING_CONTROL_NONE) {

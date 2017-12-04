@@ -100,7 +100,7 @@ static OSD_Entry menuFeaturesEntries[] =
 {
     {"--- FEATURES ---", OME_Label, NULL, NULL, 0},
     {"BLACKBOX", OME_Submenu, cmsMenuChange, &cmsx_menuBlackbox, 0},
-#if defined(NAV)
+#if defined(USE_NAV)
     {"NAVIGATION", OME_Submenu, cmsMenuChange, &cmsx_menuNavigation, 0},
 #endif
 #if defined(VTX) || defined(USE_RTC6705)

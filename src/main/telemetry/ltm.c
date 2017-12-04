@@ -132,7 +132,7 @@ void ltm_gframe(sbuf_t *dst)
         ltm_gs = gpsSol.groundSpeed / 100;
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     ltm_alt = getEstimatedActualPosition(Z); // cm
 #else
     ltm_alt = sensors(SENSOR_GPS) ? gpsSol.llh.alt : 0; // cm
@@ -247,7 +247,7 @@ void ltm_xframe(sbuf_t *dst)
     ltm_x_counter++; // overflow is OK
 }
 
-#if defined(NAV)
+#if defined(USE_NAV)
 /** OSD additional data frame, ~4 Hz rate, navigation system status
  */
 void ltm_nframe(sbuf_t *dst)
@@ -363,7 +363,7 @@ static void process_ltm(void)
         ltm_finalise(dst);
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     if (current_schedule & LTM_BIT_NFRAME) {
         ltm_initialise_packet(dst);
         ltm_nframe(dst);
@@ -476,7 +476,7 @@ int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType)
     case LTM_XFRAME:
         ltm_xframe(sbuf);
         break;
-#if defined(NAV)
+#if defined(USE_NAV)
     case LTM_NFRAME:
         ltm_nframe(sbuf);
         break;

@@ -251,7 +251,7 @@ void taskSyncPwmDriver(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
 void taskAttitude(timeUs_t currentTimeUs)
 {
     imuUpdateAttitude(currentTimeUs);
@@ -291,7 +291,7 @@ void fcTasksInit(void)
 {
     schedulerInit();
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     rescheduleTask(TASK_PID, getPidUpdateRate());
     setTaskEnabled(TASK_PID, true);
 
@@ -387,7 +387,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 
-    #ifdef ASYNC_GYRO_PROCESSING
+    #ifdef USE_ASYNC_GYRO_PROCESSING
         [TASK_PID] = {
             .taskName = "PID",
             .taskFunc = taskMainPidLoop,

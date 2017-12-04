@@ -327,7 +327,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         // alt Altitude in 1E3 meters (millimeters) above MSL
         gpsSol.llh.alt * 10,
         // relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
-#if defined(NAV)
+#if defined(USE_NAV)
         getEstimatedActualPosition(Z) * 10,
 #else
         gpsSol.llh.alt * 10,
@@ -398,7 +398,7 @@ void mavlinkSendHUDAndHeartbeat(void)
 #endif
 
     // select best source for altitude
-#if defined(NAV)
+#if defined(USE_NAV)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
 #elif defined(USE_GPS)

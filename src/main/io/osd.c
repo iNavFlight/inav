@@ -557,7 +557,7 @@ static const char * osdFailsafePhaseMessage(void)
 {
     // See failsafe.h for each phase explanation
     switch (failsafePhase()) {
-#ifdef NAV
+#ifdef USE_NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
             return OSD_MESSAGE_STR("(RTH)");
@@ -723,7 +723,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr)
 
 static inline int32_t osdGetAltitude(void)
 {
-#if defined(NAV)
+#if defined(USE_NAV)
     return getEstimatedActualPosition(Z);
 #elif defined(USE_BARO)
     return baro.alt;

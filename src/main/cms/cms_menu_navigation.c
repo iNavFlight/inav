@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#if defined(NAV)
+#if defined(USE_NAV)
 
 #include <stdlib.h>
 #include <string.h>

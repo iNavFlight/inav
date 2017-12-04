@@ -264,7 +264,7 @@ static void updateFailsafeStatus(void)
         case FAILSAFE_RX_LOSS_IDLE:
             failsafeIndicator = 'I';
             break;
-#if defined(NAV)
+#if defined(USE_NAV)
         case FAILSAFE_RETURN_TO_HOME:
             failsafeIndicator = 'H';
             break;

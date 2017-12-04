@@ -135,7 +135,7 @@ static uint32_t bufferIndex = 0;
 static void cliAssert(char *cmdline);
 #endif
 
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
 static void cliBootlog(char *cmdline);
 #endif
 
@@ -562,7 +562,7 @@ static void cliAssert(char *cmdline)
 }
 #endif
 
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
 static void cliBootlog(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2412,7 +2412,7 @@ static void cliStatus(char *cmdline)
 #endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
 #else
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_GYROPID);
@@ -2702,7 +2702,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
     CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),
 #endif
 #ifdef USE_LED_STRIP

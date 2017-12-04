@@ -571,7 +571,7 @@ void init(void)
 #endif
 
 
-#ifdef NAV
+#ifdef USE_NAV
     navigationInit();
 #endif
 

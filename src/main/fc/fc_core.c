@@ -122,7 +122,7 @@ bool isCalibrating(void)
     }
 #endif
 
-#ifdef NAV
+#ifdef USE_NAV
     if (!navIsCalibrationComplete()) {
         return true;
     }
@@ -212,7 +212,7 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
         
-#if defined(NAV)
+#if defined(USE_NAV)
         /* CHECK: Navigation safety */
         if (navigationBlockArming()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
@@ -379,7 +379,7 @@ void mwArm(void)
         disarmAt = millis() + armingConfig()->auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
         //beep to indicate arming
-#ifdef NAV
+#ifdef USE_NAV
         if (navigationPositionEstimateIsHealthy())
             beeper(BEEPER_ARMING_GPS_FIX);
         else
@@ -702,7 +702,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     if (getAsyncMode() == ASYNC_MODE_NONE) {
         taskGyro(currentTimeUs);
     }
@@ -725,7 +725,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         filterRc(isRXDataNew);
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     if (isRXDataNew) {
         updateWaypointsAndNavigationMode();
     }
@@ -733,7 +733,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     isRXDataNew = false;
 
-#if defined(NAV)
+#if defined(USE_NAV)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
 #endif
