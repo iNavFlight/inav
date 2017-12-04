@@ -98,9 +98,9 @@
 #define USE_SPI_DEVICE_1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_2)
-#define I2C_DEVICE_EXT_SHARES_UART3
+#define USE_I2C_DEVICE_1
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 //#define USE_I2C_PULLUP
 
 //#define HIL

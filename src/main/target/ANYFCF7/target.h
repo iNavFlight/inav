@@ -150,8 +150,7 @@
 
 #define USE_I2C
 #define USE_I2C_DEVICE_4
-#define I2C_DEVICE (I2CDEV_4)
-#define I2C_DEVICE_EXT (I2CDEV_2)
+#define USE_I2C_DEVICE_2
 //#define USE_I2C_PULLUP
 
 //#define HIL

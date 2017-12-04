@@ -63,7 +63,7 @@
 #define SERIAL_PORT_COUNT 3
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 
 #define USE_ADC
 #define ADC_INSTANCE            ADC1

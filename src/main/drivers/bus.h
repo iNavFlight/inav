@@ -104,6 +104,9 @@ typedef enum {
     DEVHW_SRF10,
     DEVHW_HCSR04_I2C,   // DIY-style adapter
     DEVHW_VL53L0X,
+
+    /* Other hardware */
+    DEVHW_PCA9685,      // PWM output device
 } devHardwareType_e;
 
 typedef enum {

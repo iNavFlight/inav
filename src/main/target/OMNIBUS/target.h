@@ -88,9 +88,7 @@
 
 // Enable I2C instead of PWM7&8 for iNav
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_1) // PB6/SCL(PWM8), PB7/SDA(PWM7)
-// Because the I2C is shared with PWM7&8, there are no on-board ext. pullups.
-// Turn internal pullups, they are weak, but better than nothing.
+#define USE_I2C_DEVICE_1 // PB6/SCL(PWM8), PB7/SDA(PWM7)
 #define USE_I2C_PULLUP
 
 #define USE_PITOT_MS4525

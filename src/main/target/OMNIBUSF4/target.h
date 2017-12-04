@@ -48,8 +48,8 @@
 #endif
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
-#define I2C_DEVICE_SHARES_UART3
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 
 // MPU6000 interrupts
 #define USE_EXTI

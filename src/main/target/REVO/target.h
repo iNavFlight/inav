@@ -110,8 +110,8 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_2)
+#define USE_I2C_DEVICE_1
+#define USE_I2C_DEVICE_2
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1

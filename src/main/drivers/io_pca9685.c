@@ -1,13 +1,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <platform.h>
+#include "platform.h"
 
-#include "drivers/gpio.h"
-#include "drivers/time.h"
-#include "drivers/bus_i2c.h"
+#include "build/build_config.h"
 
+#include "common/time.h"
 #include "common/maths.h"
+
+#include "drivers/io.h"
+#include "drivers/time.h"
+#include "drivers/bus.h"
+#include "drivers/bus_i2c.h"
 
 #define PCA9685_ADDR 0x40
 #define PCA9685_MODE1 0x00
@@ -22,20 +26,21 @@
 #define PCA9685_SERVO_COUNT 16
 #define PCA9685_SYNC_THRESHOLD 5
 
-uint16_t currentOutputState[PCA9685_SERVO_COUNT] = {0};
-uint16_t temporaryOutputState[PCA9685_SERVO_COUNT] = {0};
+static busDevice_t * busDev;
+static uint16_t currentOutputState[PCA9685_SERVO_COUNT] = {0};
+static uint16_t temporaryOutputState[PCA9685_SERVO_COUNT] = {0};
 
 void pca9685setPWMOn(uint8_t servoIndex, uint16_t on) {
     if (servoIndex < PCA9685_SERVO_COUNT) {
-        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_ON_L + (servoIndex * 4), on);
-        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_ON_H + (servoIndex * 4), on>>8);
+        busWrite(busDev, LED0_ON_L + (servoIndex * 4), on);
+        busWrite(busDev, LED0_ON_H + (servoIndex * 4), on>>8);
     }
 }
 
 void pca9685setPWMOff(uint8_t servoIndex, uint16_t off) {
     if (servoIndex < PCA9685_SERVO_COUNT) {
-        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_OFF_L + (servoIndex * 4), off);
-        i2cWrite(I2C_DEVICE, PCA9685_ADDR, LED0_OFF_H + (servoIndex * 4), off>>8);
+        busWrite(busDev, LED0_OFF_L + (servoIndex * 4), off);
+        busWrite(busDev, LED0_OFF_H + (servoIndex * 4), off>>8);
     }
 }
 
@@ -87,40 +92,53 @@ void pca9685setPWMFreq(uint16_t freq) {
   prescaleval /= freq;
   prescaleval -= 1;
 
-  i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 16);
+  busWrite(busDev, PCA9685_MODE1, 16);
   delay(1);
-  i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_PRESCALE, (uint8_t) prescaleval);
+  busWrite(busDev, PCA9685_PRESCALE, (uint8_t) prescaleval);
   delay(1);
-  i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 128);
+  busWrite(busDev, PCA9685_MODE1, 128);
 }
 
-bool pca9685Initialize(void) {
+static bool deviceDetect(busDevice_t * busDev)
+{
+    for (int retry = 0; retry < 5; retry++) {
+        uint8_t sig;
 
-    bool ack = false;
-    uint8_t sig;
+        delay(150);
 
-    ack = i2cRead(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 1, &sig);
-
-    if (!ack) {
-        return false;
-    } else {
-        /*
-        Reset device
-        */
-        i2cWrite(I2C_DEVICE, PCA9685_ADDR, PCA9685_MODE1, 0x0);
-
-        /*
-        Set refresh rate
-        */
-        pca9685setPWMFreq(PCA9685_SERVO_FREQUENCY);
-
-        delay(1);
-
-        for (uint8_t i = 0; i < PCA9685_SERVO_COUNT; i++) {
-            pca9685setPWMOn(i, 0);
-            pca9685setPWMOff(i, 1500);
+        bool ack = busRead(busDev, PCA9685_MODE1, &sig);
+        if (ack) {
+            return true;
         }
+    };
 
-        return true;
+    return false;
+}
+
+bool pca9685Initialize(void)
+{
+    busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_PCA9685, 0, 0);
+    if (busDev == NULL) {
+        return false;
     }
+
+    if (!deviceDetect(busDev)) {
+        busDeviceDeInit(busDev);
+        return false;
+    }
+
+    /* Reset device */
+    busWrite(busDev, PCA9685_MODE1, 0x00);
+
+    /* Set refresh rate */
+    pca9685setPWMFreq(PCA9685_SERVO_FREQUENCY);
+
+    delay(1);
+
+    for (uint8_t i = 0; i < PCA9685_SERVO_COUNT; i++) {
+        pca9685setPWMOn(i, 0);
+        pca9685setPWMOff(i, 1500);
+    }
+
+    return true;
 }

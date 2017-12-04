@@ -422,23 +422,41 @@ void init(void)
 #endif
 
 #ifdef USE_I2C
-#if defined(I2C_DEVICE)
-    #if defined(I2C_DEVICE_SHARES_UART3)
+#ifdef USE_I2C_DEVICE_1
+    #ifdef I2C_DEVICE_1_SHARES_UART3
         if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
-            i2cInit(I2C_DEVICE);
+            i2cInit(I2CDEV_1);
         }
     #else
-        i2cInit(I2C_DEVICE);
+            i2cInit(I2CDEV_1);
     #endif
 #endif
 
-#if defined(I2C_DEVICE_EXT)
-    #if defined(I2C_DEVICE_EXT_SHARES_UART3)
+#ifdef USE_I2C_DEVICE_2
+    #ifdef I2C_DEVICE_2_SHARES_UART3
         if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
-            i2cInit(I2C_DEVICE_EXT);
+            i2cInit(I2CDEV_2);
         }
     #else
-        i2cInit(I2C_DEVICE_EXT);
+            i2cInit(I2CDEV_2);
+    #endif
+#endif
+
+#ifdef USE_I2C_DEVICE_3
+    i2cInit(I2CDEV_3);
+#endif
+
+#ifdef USE_I2C_DEVICE_4
+    i2cInit(I2CDEV_4);
+#endif
+
+#ifdef USE_I2C_DEVICE_EMULATED
+    #ifdef I2C_DEVICE_EMULATED_SHARES_UART3
+        if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
+            i2cInit(I2CDEV_EMULATED);
+        }
+    #else
+            i2cInit(I2CDEV_EMULATED);
     #endif
 #endif
 #endif
