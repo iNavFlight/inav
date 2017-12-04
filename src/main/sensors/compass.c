@@ -60,7 +60,7 @@
 
 mag_t mag;                   // mag access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 2);
 
 #ifdef MAG
 #define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
@@ -71,6 +71,7 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .mag_align = ALIGN_DEFAULT,
     .mag_hardware = MAG_HARDWARE_DEFAULT,
     .mag_declination = 0,
+    .mag_to_use = 0,
     .magCalibrationTimeLimit = 30
 );
 
@@ -248,6 +249,12 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 
 bool compassInit(void)
 {
+#ifdef USE_DUAL_MAG
+    mag.dev.magSensorToUse = compassConfig()->mag_to_use;
+#else
+    mag.dev.magSensorToUse = 0;
+#endif
+
     if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
         return false;
     }

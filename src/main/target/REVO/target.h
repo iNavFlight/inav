@@ -24,6 +24,9 @@
 #define USBD_SERIALNUMBER_STRING "0x8020000"
 #endif
 
+// Use target-specific hardware descriptors (don't use common_hardware.h)
+#define USE_TARGET_HARDWARE_DESCRIPTORS
+
 #define LED0                    PB5
 #define LED1                    PB4
 
@@ -34,7 +37,7 @@
 
 // MPU6000 interrupts
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define MPU6000_EXTI_PIN        PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define MPU6000_CS_PIN          PA4
@@ -49,7 +52,9 @@
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 
 #define MAG
-#define MAG_I2C_BUS             BUS_I2C2
+#define USE_DUAL_MAG
+#define MAG_I2C_BUS_EXT         BUS_I2C2
+#define MAG_I2C_BUS_INT         BUS_I2C1
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 #define USE_MAG_HMC5883
@@ -57,8 +62,6 @@
 
 #define BARO
 #define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_BMP085
-#define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
 //#define USE_PITOT_MS4525

@@ -260,7 +260,7 @@ static bool deviceDetect(magDev_t * mag)
 
 bool hmc5883lDetect(magDev_t * mag)
 {
-    mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_HMC5883, 0, OWNER_COMPASS);
+    mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_HMC5883, mag->magSensorToUse, OWNER_COMPASS);
     if (mag->busDev == NULL) {
         return false;
     }

@@ -248,6 +248,10 @@ groups:
         field: magCalibrationTimeLimit
         min: 30
         max: 120
+      - name: mag_to_use
+        condition: USE_DUAL_MAG
+        min: 0
+        max: 1
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t

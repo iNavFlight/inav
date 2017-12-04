@@ -145,7 +145,7 @@ static bool deviceDetect(magDev_t * mag)
 
 bool ak8975Detect(magDev_t * mag)
 {
-    mag->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_AK8975, 0, OWNER_COMPASS);
+    mag->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_AK8975, mag->magSensorToUse, OWNER_COMPASS);
     if (mag->busDev == NULL) {
         return false;
     }
