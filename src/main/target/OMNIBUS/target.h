@@ -92,6 +92,7 @@
 #define USE_I2C_PULLUP
 
 #define USE_PITOT_MS4525
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5
