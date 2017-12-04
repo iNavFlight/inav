@@ -357,7 +357,40 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
     gyroCalibration->calibratingG--;
 }
 
-void gyroUpdate(void)
+#ifdef ASYNC_GYRO_PROCESSING
+STATIC_FASTRAM float accumulatedRates[XYZ_AXIS_COUNT];
+STATIC_FASTRAM timeUs_t accumulatedRateTimeUs;
+
+static void gyroUpdateAccumulatedRates(timeDelta_t gyroUpdateDeltaUs)
+{
+    accumulatedRateTimeUs += gyroUpdateDeltaUs;
+    const float gyroUpdateDelta = gyroUpdateDeltaUs * 1e-6f;
+    for (int axis = 0; axis < 3; axis++) {
+        accumulatedRates[axis] += gyro.gyroADCf[axis] * gyroUpdateDelta;
+    }
+}
+#endif
+
+/*
+ * Calculate rotation rate in rad/s in body frame
+ */
+void gyroGetMeasuredRotationRate(t_fp_vector *measuredRotationRate)
+{
+#ifdef ASYNC_GYRO_PROCESSING
+    const float accumulatedRateTime = accumulatedRateTimeUs * 1e-6;
+    accumulatedRateTimeUs = 0;
+    for (int axis = 0; axis < 3; axis++) {
+        measuredRotationRate->A[axis] = DEGREES_TO_RADIANS(accumulatedRates[axis] / accumulatedRateTime);
+        accumulatedRates[axis] = 0.0f;
+    }
+#else
+    for (int axis = 0; axis < 3; axis++) {
+        measuredRotationRate->A[axis] = DEGREES_TO_RADIANS(gyro.gyroADCf[axis]);
+    }
+#endif
+}
+
+void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 {
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev0.readFn(&gyroDev0)) {
@@ -398,6 +431,11 @@ void gyroUpdate(void)
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
     }
+
+#ifdef ASYNC_GYRO_PROCESSING
+    // Accumulate gyro readings for better IMU accuracy
+    gyroUpdateAccumulatedRates(gyroUpdateDeltaUs);
+#endif
 }
 
 void gyroReadTemperature(void)

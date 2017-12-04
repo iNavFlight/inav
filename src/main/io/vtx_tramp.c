@@ -517,7 +517,7 @@ bool vtxTrampInit(void)
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_TRAMP);
 
     if (portConfig) {
-        trampSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_TRAMP, NULL, 9600, MODE_RXTX, TRAMP_SERIAL_OPTIONS);
+        trampSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_TRAMP, NULL, NULL, 9600, MODE_RXTX, TRAMP_SERIAL_OPTIONS);
     }
 
     if (!trampSerialPort) {

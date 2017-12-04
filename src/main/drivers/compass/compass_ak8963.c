@@ -65,8 +65,7 @@
 #define STATUS1_DATA_READY              0x01
 #define STATUS1_DATA_OVERRUN            0x02
 
-#define STATUS2_DATA_ERROR              0x02
-#define STATUS2_MAG_SENSOR_OVERFLOW     0x03
+#define STATUS2_MAG_SENSOR_OVERFLOW     0x08
 
 #define CNTL_MODE_POWER_DOWN            0x00
 #define CNTL_MODE_ONCE                  0x01
@@ -74,8 +73,10 @@
 #define CNTL_MODE_CONT2                 0x06
 #define CNTL_MODE_SELF_TEST             0x08
 #define CNTL_MODE_FUSE_ROM              0x0F
+#define CNTL_BIT_14_BIT                 0x00
+#define CNTL_BIT_16_BIT                 0x10
 
-static float magGain[3] = { 1.0f, 1.0f, 1.0f };
+static int16_t magGain[3];
 
 static bool ak8963Init(magDev_t * mag)
 {
@@ -93,9 +94,9 @@ static bool ak8963Init(magDev_t * mag)
     ack = busReadBuf(mag->busDev, AK8963_MAG_REG_ASAX, calibration, sizeof(calibration)); // Read the x-, y-, and z-axis calibration values
     delay(10);
 
-    magGain[X] = (((((float)(int8_t)calibration[X] - 128) / 256) + 1) * 30);
-    magGain[Y] = (((((float)(int8_t)calibration[Y] - 128) / 256) + 1) * 30);
-    magGain[Z] = (((((float)(int8_t)calibration[Z] - 128) / 256) + 1) * 30);
+    magGain[X] = calibration[X] + 128;
+    magGain[Y] = calibration[Y] + 128;
+    magGain[Z] = calibration[Z] + 128;
 
     ack = busWrite(mag->busDev, AK8963_MAG_REG_CNTL, CNTL_MODE_POWER_DOWN); // power down after reading.
     delay(10);
@@ -104,15 +105,19 @@ static bool ak8963Init(magDev_t * mag)
     ack = busRead(mag->busDev, AK8963_MAG_REG_STATUS1, &status);
     ack = busRead(mag->busDev, AK8963_MAG_REG_STATUS2, &status);
 
-    ack = busWrite(mag->busDev, AK8963_MAG_REG_CNTL, CNTL_MODE_ONCE);
+    ack = busWrite(mag->busDev, AK8963_MAG_REG_CNTL, CNTL_BIT_16_BIT | CNTL_MODE_ONCE);
 
     return true;
+}
+
+static int16_t parseMag(uint8_t *raw, int16_t gain) {
+  int ret = (int16_t)(raw[1] << 8 | raw[0]) * gain / 256;
+  return constrain(ret, INT16_MIN, INT16_MAX);
 }
 
 static bool ak8963Read(magDev_t * mag)
 {
     bool ack = false;
-    bool readResult = false;
     uint8_t buf[7];
 
     ack = busRead(mag->busDev, AK8963_MAG_REG_STATUS1, &buf[0]);
@@ -123,17 +128,21 @@ static bool ak8963Read(magDev_t * mag)
 
     ack = busReadBuf(mag->busDev, AK8963_MAG_REG_HXL, &buf[0], 7);
 
-    if (!ack || (buf[6] & STATUS2_DATA_ERROR) || (buf[6] & STATUS2_MAG_SENSOR_OVERFLOW)) {
+    if (!ack) {
         return false;
     }
 
-    mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]) * magGain[X];
-    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]) * magGain[Y];
-    mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]) * magGain[Z];
+    ack = busWrite(mag->busDev, AK8963_MAG_REG_CNTL, CNTL_BIT_16_BIT | CNTL_MODE_ONCE);
 
-    ack = busWrite(mag->busDev, AK8963_MAG_REG_CNTL, CNTL_MODE_ONCE);
+    if (buf[6] & STATUS2_MAG_SENSOR_OVERFLOW) {
+        return false;
+    }
 
-    return readResult;
+    mag->magADCRaw[X] = -parseMag(buf + 0, magGain[X]);
+    mag->magADCRaw[Y] = -parseMag(buf + 2, magGain[Y]);
+    mag->magADCRaw[Z] = -parseMag(buf + 4, magGain[Z]);
+
+    return true;
 }
 
 #define DETECTION_MAX_RETRY_COUNT   5

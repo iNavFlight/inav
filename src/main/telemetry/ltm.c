@@ -425,7 +425,7 @@ void configureLtmTelemetryPort(void)
     if (baudRateIndex == BAUD_1200)
          ltm_schedule = ltm_slow_schedule;
 
-    ltmPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_LTM, NULL, baudRates[baudRateIndex], TELEMETRY_LTM_INITIAL_PORT_MODE, SERIAL_NOT_INVERTED);
+    ltmPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_LTM, NULL, NULL, baudRates[baudRateIndex], TELEMETRY_LTM_INITIAL_PORT_MODE, SERIAL_NOT_INVERTED);
     if (!ltmPort)
         return;
     ltm_x_counter = 0;

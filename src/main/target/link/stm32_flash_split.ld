@@ -57,6 +57,14 @@ SECTIONS
       __exidx_end = .;
     } >FLASH
 
+  .busdev_registry :
+  {
+    PROVIDE_HIDDEN (__busdev_registry_start = .);
+    KEEP (*(.busdev_registry))
+    KEEP (*(SORT(.busdev_registry.*)))
+    PROVIDE_HIDDEN (__busdev_registry_end = .);
+  } >FLASH
+
   .preinit_array     :
   {
     PROVIDE_HIDDEN (__preinit_array_start = .);
@@ -90,13 +98,6 @@ SECTIONS
     KEEP (*(.pg_resetdata))
     PROVIDE_HIDDEN (__pg_resetdata_end = .);
   } >FLASH1
-  .busdev_registry :
-  {
-    PROVIDE_HIDDEN (__busdev_registry_start = .);
-    KEEP (*(.busdev_registry))
-    KEEP (*(SORT(.busdev_registry.*)))
-    PROVIDE_HIDDEN (__busdev_registry_end = .);
-  } >FLASH
 
   /* used by the startup to initialize data */
   _sidata = .;
@@ -111,7 +112,7 @@ SECTIONS
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
-  } >RAM AT> FLASH
+  } >RAM AT> FLASH1
 
   /* Uninitialized data section */
   . = ALIGN(4);

@@ -2326,6 +2326,11 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
     //We can switch modes only when ARMED
     if (ARMING_FLAG(ARMED)) {
+        // Ask failsafe system if we can use navigation system
+        if (failsafeBypassNavigation()) {
+            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+        }
+
         // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
         bool canActivateAltHold = canActivateAltHoldMode();
         bool canActivatePosHold = canActivatePosHoldMode();

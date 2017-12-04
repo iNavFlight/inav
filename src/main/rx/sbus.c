@@ -119,8 +119,10 @@ typedef union {
 static sbusFrame_t sbusFrame;
 
 // Receive ISR callback
-static void sbusDataReceive(uint16_t c)
+static void sbusDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     static uint8_t sbusFramePosition = 0;
     static uint32_t sbusFrameStartAt = 0;
     timeUs_t now = micros();
@@ -249,6 +251,7 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     serialPort_t *sBusPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         sbusDataReceive,
+        NULL,
         SBUS_BAUDRATE,
         portShared ? MODE_RXTX : MODE_RX,
         SBUS_PORT_OPTIONS | (rxConfig->sbus_inversion ? SERIAL_INVERTED : 0) | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)

@@ -241,7 +241,7 @@ static bool hmc5883lInit(magDev_t * mag)
     return bret;
 }
 
-#define DETECTION_MAX_RETRY_COUNT   5
+#define DETECTION_MAX_RETRY_COUNT   200
 static bool deviceDetect(magDev_t * mag)
 {
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {

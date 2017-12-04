@@ -235,7 +235,7 @@ static void resetBuffers(softSerial_t *softSerial)
     softSerial->port.txBufferHead = 0;
 }
 
-serialPort_t *openSoftSerial(softSerialPortIndex_e portIndex, serialReceiveCallbackPtr rxCallback, uint32_t baud, portMode_t mode, portOptions_t options)
+serialPort_t *openSoftSerial(softSerialPortIndex_e portIndex, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baud, portMode_t mode, portOptions_t options)
 {
     softSerial_t *softSerial = &(softSerialPorts[portIndex]);
     ioTag_t tagRx;
@@ -310,6 +310,7 @@ serialPort_t *openSoftSerial(softSerialPortIndex_e portIndex, serialReceiveCallb
     softSerial->port.mode = mode;
     softSerial->port.options = options;
     softSerial->port.rxCallback = rxCallback;
+    softSerial->port.rxCallbackData = rxCallbackData;
 
     resetBuffers(softSerial);
 
@@ -458,7 +459,7 @@ void extractAndStoreRxByte(softSerial_t *softSerial)
     uint8_t rxByte = (softSerial->internalRxBuffer >> 1) & 0xFF;
 
     if (softSerial->port.rxCallback) {
-        softSerial->port.rxCallback(rxByte);
+        softSerial->port.rxCallback(rxByte, softSerial->port.rxCallbackData);
     } else {
         softSerial->port.rxBuffer[softSerial->port.rxBufferHead] = rxByte;
         softSerial->port.rxBufferHead = (softSerial->port.rxBufferHead + 1) % softSerial->port.rxBufferSize;

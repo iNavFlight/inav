@@ -164,6 +164,7 @@ void failsafeApplyControlInput(void);
 bool failsafeRequiresAngleMode(void);
 bool failsafeRequiresMotorStop(void);
 bool failsafeShouldApplyControlInput(void);
+bool failsafeBypassNavigation(void);
 void failsafeUpdateRcCommandValues(void);
 
 void failsafeOnValidDataReceived(void);

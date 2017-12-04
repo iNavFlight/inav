@@ -170,7 +170,7 @@ static bool i2cHandleHardwareFailure(I2CDevice device)
     return false;
 }
 
-bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, uint8_t *data)
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data)
 {
     if (device == I2CINVALID)
         return false;

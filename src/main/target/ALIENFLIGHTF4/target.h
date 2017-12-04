@@ -64,8 +64,7 @@
 #define USE_MAG_MPU9250
 #define USE_MAG_QMC5883
 
-#define MAG_HMC5883_ALIGN       CW180_DEG
-#define MAG_AK8963_ALIGN        CW270_DEG
+#define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
 
 #define BARO
 #define BARO_I2C_BUS             BUS_I2C1
@@ -74,7 +73,7 @@
 
 #define USE_SDCARD
 
-//#define SDCARD_DETECT_INVERTED
+#define SDCARD_DETECT_INVERTED
 
 #define SDCARD_DETECT_PIN               PB11
 #define SDCARD_DETECT_EXTI_LINE         EXTI_Line10

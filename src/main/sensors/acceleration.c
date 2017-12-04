@@ -458,7 +458,7 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
 STATIC_FASTRAM float accumulatedMeasurements[XYZ_AXIS_COUNT];
 STATIC_FASTRAM int   accumulatedMeasurementCount;
 
-void accUpdateAccumulatedMeasurements(void)
+static void accUpdateAccumulatedMeasurements(void)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accumulatedMeasurements[axis] += acc.accADCf[axis];
@@ -473,11 +473,18 @@ void accUpdateAccumulatedMeasurements(void)
 void accGetMeasuredAcceleration(t_fp_vector *measuredAcc)
 {
 #ifdef ASYNC_GYRO_PROCESSING
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        measuredAcc->A[axis] = accumulatedMeasurements[axis] * GRAVITY_CMSS / accumulatedMeasurementCount;
-        accumulatedMeasurements[axis] = 0;
+    if (accumulatedMeasurementCount) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            measuredAcc->A[axis] = accumulatedMeasurements[axis] * GRAVITY_CMSS / accumulatedMeasurementCount;
+            accumulatedMeasurements[axis] = 0;
+        }
+        accumulatedMeasurementCount = 0;
     }
-    accumulatedMeasurementCount = 0;;
+    else {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            measuredAcc->A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
+        }
+    }
 #else
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         measuredAcc->A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
@@ -494,14 +501,17 @@ void accUpdate(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accADC[axis] = acc.dev.ADCRaw[axis];
     }
+
     if (!accIsCalibrationComplete()) {
         performAcclerationCalibration();
         return;
     }
+
     applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
     alignSensors(accADC, acc.dev.accAlign);
+
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        acc.accADCf[axis] = accADC[axis] / acc.dev.acc_1G;
+        acc.accADCf[axis] = (float)accADC[axis] / acc.dev.acc_1G;
     }
 
     if (accelerometerConfig()->acc_lpf_hz) {
@@ -516,6 +526,10 @@ void accUpdate(void)
             acc.accADCf[axis] = accNotchFilterApplyFn(accNotchFilter[axis], acc.accADCf[axis]);
         }
     }
+#endif
+
+#ifdef ASYNC_GYRO_PROCESSING
+    accUpdateAccumulatedMeasurements();
 #endif
 }
 
