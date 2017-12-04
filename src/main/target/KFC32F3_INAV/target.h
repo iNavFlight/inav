@@ -110,7 +110,7 @@
 #define I2C1_SDA                PA14
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE      I2C_DEVICE
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC

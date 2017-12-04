@@ -86,8 +86,8 @@ static bool qmc5883Init(magDev_t * mag)
     bool ack = true;
 
     ack = ack && busWrite(mag->busDev, 0x0B, 0x01);
-    // ack = ack && i2cWrite(MAG_I2C_INSTANCE, QMC5883L_MAG_I2C_ADDRESS, 0x20, 0x40);
-    // ack = ack && i2cWrite(MAG_I2C_INSTANCE, QMC5883L_MAG_I2C_ADDRESS, 0x21, 0x01);
+    // ack = ack && i2cWrite(busWrite(mag->busDev, 0x20, 0x40);
+    // ack = ack && i2cWrite(busWrite(mag->busDev, 0x21, 0x01);
     ack = ack && busWrite(mag->busDev, QMC5883L_REG_CONF1, QMC5883L_MODE_CONTINUOUS | QMC5883L_ODR_200HZ | QMC5883L_OSR_512 | QMC5883L_RNG_8G);
 
     return ack;

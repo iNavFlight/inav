@@ -26,7 +26,3 @@ typedef struct magDev_s {
     sensor_align_e magAlign;
     int16_t magADCRaw[XYZ_AXIS_COUNT];
 } magDev_t;
-
-#ifndef MAG_I2C_INSTANCE
-#define MAG_I2C_INSTANCE I2C_DEVICE
-#endif

@@ -92,7 +92,7 @@
 #define USE_MAG_QMC5883
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE I2C_DEVICE
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_VCP
 #define USE_UART1

@@ -51,7 +51,6 @@
 #define BARO
 #define USE_BARO_BMP280
 
-#define USE_PITOT_MS4525
 #define USE_PITOT_ADC
 
 #define USE_UART1

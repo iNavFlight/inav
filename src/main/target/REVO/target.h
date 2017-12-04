@@ -62,7 +62,7 @@
 #define USE_BARO_MS5611
 
 //#define USE_PITOT_MS4525
-//#define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
+//#define PITOT_I2C_BUS           BUS_I2C2
 
 // #define USE_OPTICAL_FLOW
 // #define USE_OPFLOW_FAKE

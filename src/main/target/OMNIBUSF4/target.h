@@ -109,7 +109,7 @@
 #endif
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE      I2C_DEVICE
+#define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2

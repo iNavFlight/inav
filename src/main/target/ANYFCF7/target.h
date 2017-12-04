@@ -62,7 +62,7 @@
 #endif
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE I2C_DEVICE_EXT
+#define PITOT_I2C_BUS           BUS_I2C2
 
 #define USABLE_TIMER_CHANNEL_COUNT 16
 
