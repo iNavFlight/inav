@@ -79,7 +79,6 @@
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
-#define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -111,25 +110,20 @@
 #define I2C_DEVICE_2_SHARES_UART3
 
 #define USE_ADC
-// PC2 shared with HC-SR04
 #define ADC_CHANNEL_1_PIN               PC2
 #define ADC_CHANNEL_2_PIN               PC1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
-#define CURRENT_METER_ADC_PIN   PC2
-#define VBAT_ADC_PIN            PC1
-
-#define USE_LED_STRIP
-#define LED_STRIP_TIMER         TIM5
+#define LED_STRIP
+#define LED_STRIP_TIMER                 TIM5
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS                         BUS_I2C2
-// #define USE_RANGEFINDER_HCSR04
-// #define RANGEFINDER_HCSR04_TRIGGER_PIN       PC2
-// #define RANGEFINDER_HCSR04_ECHO_PIN          PC3
-// #define USE_RANGEFINDER_SRF10
+#define VL53L0X_I2C_BUS                 BUS_I2C2
+
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_CXOF
 
 #define DEFAULT_FEATURES        FEATURE_BLACKBOX
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL

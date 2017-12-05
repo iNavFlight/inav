@@ -485,6 +485,22 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
+    case MSP2_INAV_OPTICAL_FLOW:
+#ifdef USE_OPTICAL_FLOW
+        sbufWriteU8(dst, opflow.rawQuality);
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[X]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[Y]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[X]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[Y]));
+#else
+        sbufWriteU8(dst, opflow.rawQuality);
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[X]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[Y]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[X]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[Y]));
+#endif
+        break;
+
     case MSP_ANALOG:
         sbufWriteU8(dst, (uint8_t)constrain(vbat, 0, 255));
         sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF)); // milliamp hours drawn from battery

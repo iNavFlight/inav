@@ -54,5 +54,6 @@ typedef enum {
     DEBUG_RANGEFINDER_QUALITY,
     DEBUG_PITOT,
     DEBUG_AGL,
+    DEBUG_FLOW_RAW,
     DEBUG_COUNT
 } debugType_e;
