@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 
 #include "drivers/io.h"
 #include "drivers/nvic.h"

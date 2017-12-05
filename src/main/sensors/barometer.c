@@ -53,7 +53,7 @@ baro_t baro;                        // barometer access functions
 
 PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
 
-#ifdef BARO
+#ifdef USE_BARO
 #define BARO_HARDWARE_DEFAULT    BARO_AUTODETECT
 #else
 #define BARO_HARDWARE_DEFAULT    BARO_NONE
@@ -63,7 +63,7 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .use_median_filtering = 1
 );
 
-#ifdef BARO
+#ifdef USE_BARO
 
 static timeMs_t baroCalibrationTimeout = 0;
 static bool baroCalibrationFinished = false;

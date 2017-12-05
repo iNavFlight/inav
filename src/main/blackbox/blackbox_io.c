@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
 
 #include "blackbox.h"
 #include "blackbox_io.h"

@@ -23,8 +23,8 @@
 
 #include "platform.h"
 
-#if defined(GPS)
-#if defined(GPS_PROTO_NMEA) || defined(GPS_PROTO_MTK)
+#if defined(USE_GPS)
+#if defined(USE_GPS_PROTO_NMEA) || defined(USE_GPS_PROTO_MTK)
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -280,7 +280,7 @@ static bool gpsReceiveData(void)
     return hasNewData;
 }
 
-#ifdef GPS_PROTO_MTK
+#ifdef USE_GPS_PROTO_MTK
 
 static uint8_t *mtk_conf[] = {
 (uint8_t *)"$PMTK251,57600*2C\r\n", //change baudrate to 57600
@@ -333,7 +333,7 @@ static bool gpsInitialize(void)
 
 static bool gpsChangeBaud(void)
 {
-#ifdef GPS_PROTO_MTK
+#ifdef USE_GPS_PROTO_MTK
     if ((gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) && (gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT)) {
         // Do the switch only if TX buffer is empty - make sure all init string was sent at the same baud
         if (isSerialTransmitBufferEmpty(gpsState.gpsPort)) {

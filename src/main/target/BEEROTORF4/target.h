@@ -36,26 +36,26 @@
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW270_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          SPI3_NSS_PIN
@@ -140,7 +140,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_GPIO_AF                  GPIO_AF_TIM4
 #define WS2811_PIN                      PB8
 #define WS2811_TIMER                    TIM4

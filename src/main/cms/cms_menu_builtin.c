@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "build/version.h"
 
@@ -100,7 +100,7 @@ static OSD_Entry menuFeaturesEntries[] =
 {
     {"--- FEATURES ---", OME_Label, NULL, NULL, 0},
     {"BLACKBOX", OME_Submenu, cmsMenuChange, &cmsx_menuBlackbox, 0},
-#if defined(NAV)
+#if defined(USE_NAV)
     {"NAVIGATION", OME_Submenu, cmsMenuChange, &cmsx_menuNavigation, 0},
 #endif
 #if defined(VTX) || defined(USE_RTC6705)
@@ -114,7 +114,7 @@ static OSD_Entry menuFeaturesEntries[] =
     {"VTX TR", OME_Submenu, cmsMenuChange, &cmsx_menuVtxTramp, 0},
 #endif
 #endif // VTX_CONTROL
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     {"LED STRIP", OME_Submenu, cmsMenuChange, &cmsx_menuLedstrip, 0},
 #endif // LED_STRIP
     {"BACK", OME_Back, NULL, NULL, 0},
@@ -140,7 +140,7 @@ static OSD_Entry menuMainEntries[] =
 
     {"PID TUNING",  OME_Submenu,  cmsMenuChange, &cmsx_menuImu, 0},
     {"FEATURES",    OME_Submenu,  cmsMenuChange, &menuFeatures, 0},
-#ifdef OSD
+#ifdef USE_OSD
     {"SCR LAYOUT",  OME_Submenu,  cmsMenuChange, &cmsx_menuOsdLayout, 0},
     {"ALARMS",      OME_Submenu,  cmsMenuChange, &cmsx_menuAlarms, 0},
 #endif

@@ -226,7 +226,7 @@ void init(void)
 
     addBootlogEvent2(BOOT_EVENT_SYSTEM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
 
-#ifdef SPEKTRUM_BIND
+#ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
         switch (rxConfig()->serialrx_provider) {
             case SERIALRX_SPEKTRUM1024:
@@ -460,7 +460,7 @@ void init(void)
         adc_params.adcFunctionChannel[ADC_CURRENT] =  adcChannelConfig()->adcFunctionChannel[ADC_CURRENT];
     }
 
-#if defined(PITOT) && defined(USE_PITOT_ADC)
+#if defined(USE_PITOT) && defined(USE_PITOT_ADC)
     if (pitotmeterConfig()->pitot_hardware == PITOT_ADC || pitotmeterConfig()->pitot_hardware == PITOT_AUTODETECT) {
         adc_params.adcFunctionChannel[ADC_AIRSPEED] = adcChannelConfig()->adcFunctionChannel[ADC_AIRSPEED];
     }
@@ -470,7 +470,7 @@ void init(void)
 #endif
 
     /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
-#if defined(GPS) || defined(MAG)
+#if defined(USE_GPS) || defined(USE_MAG)
     if (!isMPUSoftReset()) {
         addBootlogEvent2(BOOT_EVENT_EXTRA_BOOT_DELAY, BOOT_EVENT_FLAGS_NONE);
 
@@ -490,7 +490,7 @@ void init(void)
 
     initBoardAlignment();
 
-#ifdef CMS
+#ifdef USE_CMS
     cmsInit();
 #endif
 
@@ -500,7 +500,7 @@ void init(void)
     }
 #endif
 
-#ifdef GPS
+#ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         gpsPreInit();
     }
@@ -533,11 +533,11 @@ void init(void)
 
     rxInit();
 
-#if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)))
+#if (defined(USE_OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)))
     displayPort_t *osdDisplayPort = NULL;
 #endif
 
-#ifdef OSD
+#ifdef USE_OSD
     if (feature(FEATURE_OSD)) {
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD then use it
@@ -552,7 +552,7 @@ void init(void)
     }
 #endif
 
-#if defined(USE_MSP_DISPLAYPORT) && defined(CMS)
+#if defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)
     // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
     if (!osdDisplayPort) {
         cmsDisplayPortRegister(displayPortMspInit());
@@ -563,7 +563,7 @@ void init(void)
     uavInterconnectBusInit();
 #endif
 
-#ifdef GPS
+#ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         gpsInit();
         addBootlogEvent2(BOOT_EVENT_GPS_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
@@ -571,11 +571,11 @@ void init(void)
 #endif
 
 
-#ifdef NAV
+#ifdef USE_NAV
     navigationInit();
 #endif
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     ledStripInit();
 
     if (feature(FEATURE_LED_STRIP)) {
@@ -584,7 +584,7 @@ void init(void)
     }
 #endif
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         telemetryInit();
         addBootlogEvent2(BOOT_EVENT_TELEMETRY_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
@@ -610,7 +610,7 @@ void init(void)
 
 #ifdef SDCARD_DMA_CHANNEL_TX
 
-#if defined(LED_STRIP) && defined(WS2811_DMA_CHANNEL)
+#if defined(USE_LED_STRIP) && defined(WS2811_DMA_CHANNEL)
     // Ensure the SPI Tx DMA doesn't overlap with the led strip
 #if defined(STM32F4) || defined(STM32F7)
     sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_STREAM;
@@ -628,16 +628,16 @@ void init(void)
     afatfs_init();
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     blackboxInit();
 #endif
 
     gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
-#ifdef BARO
+#ifdef USE_BARO
     baroStartCalibration();
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     pitotStartCalibration();
 #endif
 

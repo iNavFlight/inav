@@ -23,12 +23,12 @@ typedef enum {
     LTM_FRAME_START = 0,
     LTM_AFRAME = LTM_FRAME_START, // Attitude Frame
     LTM_SFRAME, // Status Frame
-#if defined(GPS)
+#if defined(USE_GPS)
     LTM_GFRAME, // GPS Frame
     LTM_OFRAME, // Origin Frame
     LTM_XFRAME, // Extended information data frame
 #endif
-#if defined(NAV)
+#if defined(USE_NAV)
     LTM_NFRAME, // Navigation Frame (inav extension)
 #endif
     LTM_FRAME_COUNT

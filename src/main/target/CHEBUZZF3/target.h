@@ -29,7 +29,7 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_L3GD20
 #define USE_GYRO_MPU6050
 
@@ -41,16 +41,16 @@
 #define GYRO_L3GD20_ALIGN CW270_DEG
 #define GYRO_MPU6050_ALIGN CW0_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 #define USE_ACC_LSM303DLHC
 #define ACC_MPU6050_ALIGN       CW0_DEG
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_AK8975
 #define USE_MAG_QMC5883

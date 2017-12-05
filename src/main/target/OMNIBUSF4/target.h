@@ -56,8 +56,8 @@
 #define MPU_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
-#define ACC
+#define USE_GYRO
+#define USE_ACC
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
@@ -88,14 +88,14 @@
   #define ACC_MPU6500_ALIGN       ACC_MPU6000_ALIGN
 #endif
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 
-#define BARO
+#define USE_BARO
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define USE_BARO_BMP280
@@ -165,7 +165,7 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
@@ -208,7 +208,7 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
 #   define WS2811_PIN                      PB6
 #   define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
@@ -225,7 +225,7 @@
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11 // USART3 RX
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

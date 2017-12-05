@@ -39,7 +39,7 @@
 
 #define TRAMP_SERIAL_OPTIONS (SERIAL_BIDIR)
 
-#if defined(CMS) || defined(VTX_COMMON)
+#if defined(USE_CMS) || defined(VTX_COMMON)
 const uint16_t trampPowerTable[] = {
     25, 100, 200, 400, 600
 };
@@ -421,7 +421,7 @@ void vtxTrampProcess(uint32_t currentTimeUs)
     debug[3] = 0;
 #endif
 
-#ifdef CMS
+#ifdef USE_CMS
     trampCmsUpdateStatusString();
 #endif
 }

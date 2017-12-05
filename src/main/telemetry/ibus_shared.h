@@ -28,7 +28,7 @@
 #define IBUS_MAX_RX_LEN    (4)
 #define IBUS_RX_BUF_LEN    (IBUS_MAX_RX_LEN)
 
-#if defined(TELEMETRY) && defined(TELEMETRY_IBUS)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_IBUS)
 
 typedef enum {
     IBUS_MEAS_TYPE_INTERNAL_VOLTAGE = 0x00, //0 Internal Voltage
@@ -160,7 +160,7 @@ uint8_t respondToIbusRequest(uint8_t ibusPacket[static IBUS_RX_BUF_LEN]);
 void initSharedIbusTelemetry(serialPort_t *port);
 void changeTypeIbusTelemetry(uint8_t id, uint8_t type, uint8_t value);
 
-#endif //defined(TELEMETRY) && defined(TELEMETRY_IBUS)
+#endif //defined(USE_TELEMETRY) && defined(USE_TELEMETRY_IBUS)
 
 bool ibusIsChecksumOkIa6b(const uint8_t *ibusPacket, const uint8_t length);
 uint16_t ibusCalculateChecksum(const uint8_t *ibusPacket, size_t packetLength);

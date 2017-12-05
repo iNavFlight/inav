@@ -43,15 +43,15 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 
-#define MAG
+#define USE_MAG
 #define USE_DUAL_MAG
 #define MAG_I2C_BUS_EXT         BUS_I2C2
 #define MAG_I2C_BUS_INT         BUS_I2C1
@@ -60,7 +60,7 @@
 #define USE_MAG_HMC5883
 #define MAG_HMC5883_ALIGN       CW90_DEG
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
@@ -127,7 +127,7 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 5 (PA1) of the MOTOR outputs.
 #define WS2811_PIN                      PA1
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
@@ -141,7 +141,7 @@
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX)
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11 //UART3_RX_PIN
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

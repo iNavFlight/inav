@@ -25,7 +25,7 @@
 #include "build/build_config.h"
 
 
-#if defined(GPS) && defined(GPS_PROTO_NAZA)
+#if defined(USE_GPS) && defined(USE_GPS_PROTO_NAZA)
 
 #include "build/debug.h"
 

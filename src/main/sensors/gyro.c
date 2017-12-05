@@ -357,7 +357,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
     gyroCalibration->calibratingG--;
 }
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
 STATIC_FASTRAM float accumulatedRates[XYZ_AXIS_COUNT];
 STATIC_FASTRAM timeUs_t accumulatedRateTimeUs;
 
@@ -376,7 +376,7 @@ static void gyroUpdateAccumulatedRates(timeDelta_t gyroUpdateDeltaUs)
  */
 void gyroGetMeasuredRotationRate(t_fp_vector *measuredRotationRate)
 {
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     const float accumulatedRateTime = accumulatedRateTimeUs * 1e-6;
     accumulatedRateTimeUs = 0;
     for (int axis = 0; axis < 3; axis++) {
@@ -432,7 +432,7 @@ void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
         gyro.gyroADCf[axis] = gyroADCf;
     }
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     // Accumulate gyro readings for better IMU accuracy
     gyroUpdateAccumulatedRates(gyroUpdateDeltaUs);
 #endif

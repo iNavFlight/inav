@@ -31,22 +31,22 @@
 #define USE_MPU_DATA_READY_SIGNAL
 
 // MPU 9150 INT connected to PA15, pulled up to VCC by 10K Resistor, contains MPU6050 and AK8975 in single component.
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6050
 #define GYRO_MPU6050_ALIGN      CW270_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW270_DEG
 
 #define MPU6050_I2C_BUS         BUS_I2C2
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
 #define USE_BARO_BMP280
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
@@ -87,7 +87,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 
 // LED strip configuration using PWM motor output pin 5.
-#define LED_STRIP
+#define USE_LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PA6 // TIM16_CH1
 #define WS2811_DMA_STREAM               DMA1_Channel3
@@ -95,7 +95,7 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PIN                PA3
 

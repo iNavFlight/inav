@@ -31,22 +31,22 @@
 #define LED1                    PA1 // D3, PA1/USART2_RTS/ADC1/TIM2_CH3 - "LED2" on silkscreen, Yellow
 #endif
 
-#define GYRO
+#define USE_GYRO
 #define USE_FAKE_GYRO
 #define USE_GYRO_MPU6050
 
-#define ACC
+#define USE_ACC
 #define USE_FAKE_ACC
 #define USE_ACC_MPU6050
 
 #define MPU6050_I2C_BUS     BUS_I2C2
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS        BUS_I2C2
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS         BUS_I2C2
 #define USE_MAG_HMC5883
 

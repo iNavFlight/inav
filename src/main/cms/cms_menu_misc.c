@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "common/utils.h"
 

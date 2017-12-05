@@ -36,7 +36,7 @@
 #define MPU_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 #define MPU6000_CS_PIN          PA4
@@ -47,14 +47,14 @@
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
 
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_HMC5883
@@ -62,7 +62,7 @@
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C2
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
@@ -126,7 +126,7 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 5 (PA1) of the MOTOR outputs.
 #define WS2811_GPIO_AF                  GPIO_AF_TIM5
 #define WS2811_PIN                      PA1
@@ -142,7 +142,7 @@
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT)
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11 // USART3 RX
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

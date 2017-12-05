@@ -135,7 +135,7 @@ static uint32_t bufferIndex = 0;
 static void cliAssert(char *cmdline);
 #endif
 
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
 static void cliBootlog(char *cmdline);
 #endif
 
@@ -181,16 +181,16 @@ static const char * const hardwareSensorStatusNames[] = {
 static const char * const *sensorHardwareNames[] = {
         gyroNames,
         table_acc_hardware,
-#ifdef BARO
+#ifdef USE_BARO
         table_baro_hardware,
 #endif
-#ifdef MAG
+#ifdef USE_MAG
         table_mag_hardware,
 #endif
 #ifdef USE_RANGEFINDER
         table_rangefinder_hardware,
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
         table_pitot_hardware,
 #endif
 #ifdef USE_OPTICAL_FLOW
@@ -562,7 +562,7 @@ static void cliAssert(char *cmdline)
 }
 #endif
 
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
 static void cliBootlog(char *cmdline)
 {
     UNUSED(cmdline);
@@ -1131,7 +1131,7 @@ static void cliRxRange(char *cmdline)
     }
 }
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledConfig_t *defaultLedConfigs)
 {
     const char *format = "led %u %s";
@@ -1995,7 +1995,7 @@ static void cliExit(char *cmdline)
     cliWriter = NULL;
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void cliGpsPassthrough(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2412,7 +2412,7 @@ static void cliStatus(char *cmdline)
 #endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
 #else
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_GYROPID);
@@ -2607,7 +2607,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("serial");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
         cliPrintHashLine("led");
         printLed(dumpMask, ledStripConfig_Copy.ledConfigs, ledStripConfig()->ledConfigs);
 
@@ -2702,10 +2702,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
     CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),
 #endif
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("color", "configure colors", NULL, cliColor),
     CLI_COMMAND_DEF("mode_color", "configure mode and special colors", NULL, cliModeColor),
 #endif
@@ -2731,11 +2731,11 @@ const clicmd_t cmdTable[] = {
 #endif
 #endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
-#ifdef GPS
+#ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
 #endif
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),

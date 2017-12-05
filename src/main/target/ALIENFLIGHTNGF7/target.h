@@ -43,19 +43,19 @@
 #define MPU9250_CS_PIN          SPI1_NSS_PIN
 #define MPU9250_SPI_BUS         BUS_SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
 #define USE_ACC_MPU9250
 #define ACC_MPU9250_ALIGN       CW270_DEG
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW270_DEG
 #define USE_GYRO_MPU9250
 #define GYRO_MPU9250_ALIGN      CW270_DEG
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_AK8963
 #define USE_MAG_MPU9250
@@ -68,7 +68,7 @@
 #define AK8963_CS_PIN           PC15
 #define AK8963_SPI_BUS          BUS_SPI3
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 #define USE_BARO_BMP280
@@ -170,7 +170,7 @@
 //#define BOARD_HAS_CURRENT_SENSOR
 
 // LED strip configuration using RC1 pin.
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 41 (PA8) of the ESC outputs.
 #define WS2811_PIN                      PA8
 #define WS2811_TIMER                    TIM1
@@ -181,7 +181,7 @@
 #define WS2811_TIMER_CHANNEL            TIM_CHANNEL_1
 #define WS2811_TIMER_GPIO_AF            GPIO_AF1_TIM1
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PIN                UART2_RX_PIN
 

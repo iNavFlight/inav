@@ -49,7 +49,7 @@
 #define MPU9250_CS_PIN          SPI1_NSS_PIN
 #define MPU9250_SPI_BUS         BUS_SPI1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 #define USE_GYRO_MPU6500
@@ -57,7 +57,7 @@
 #define USE_GYRO_MPU9250
 #define GYRO_MPU9250_ALIGN      CW270_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
 #define USE_ACC_MPU6500
@@ -65,11 +65,11 @@
 #define USE_ACC_MPU9250
 #define ACC_MPU9250_ALIGN       CW270_DEG
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS            BUS_I2C2
 #define USE_MAG_MAG9250
 #define USE_MAG_HMC5883
@@ -108,7 +108,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PA6 // TIM16_CH1
 #define WS2811_DMA_STREAM               DMA1_Channel3
 #define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC3

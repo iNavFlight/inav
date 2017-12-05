@@ -44,7 +44,7 @@
 
 pitot_t pitot;
 
-#ifdef PITOT
+#ifdef USE_PITOT
 
 static timeMs_t pitotCalibrationTimeout = 0;
 static bool pitotCalibrationFinished = false;
@@ -55,7 +55,7 @@ static float indicatedAirspeed = 0;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 0);
 
-#ifdef PITOT
+#ifdef USE_PITOT
 #define PITOT_HARDWARE_DEFAULT    PITOT_AUTODETECT
 #else
 #define PITOT_HARDWARE_DEFAULT    PITOT_NONE

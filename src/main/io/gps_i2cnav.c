@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(GPS) && defined(GPS_PROTO_I2C_NAV)
+#if defined(USE_GPS) && defined(USE_GPS_PROTO_I2C_NAV)
 
 #include "build/build_config.h"
 #include "build/debug.h"

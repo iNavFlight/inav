@@ -39,7 +39,7 @@
 //#define DEBUG_MPU_DATA_READY_INTERRUPT
 
 // Using MPU6050 for the moment.
-#define GYRO
+#define USE_GYRO
 
 #define USE_GYRO_MPU6050
 #define MPU6050_I2C_BUS         BUS_I2C2
@@ -53,7 +53,7 @@
 #define MPU9250_CS_PIN          PA15
 #define MPU9250_SPI_BUS         BUS_SPI3
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW270_DEG
 #define USE_ACC_MPU6500
@@ -62,11 +62,11 @@
 #define ACC_MPU9250_ALIGN       CW270_DEG
 
 // No baro support.
-//#define BARO
+//#define USE_BARO
 //#define USE_BARO_MS5611
 
 // option to use MPU9150 or MPU9250 integrated AK89xx Mag
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_MPU9250
 #define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
@@ -111,7 +111,7 @@
 #define VBAT_ADC_CHANNEL        ADC_CHN_1
 #define VBAT_SCALE_DEFAULT      20
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PIN                PA3
 

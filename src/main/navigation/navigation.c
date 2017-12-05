@@ -70,7 +70,7 @@ gpsLocation_t GPS_home;
 uint16_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
-#if defined(NAV)
+#if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
@@ -2695,7 +2695,7 @@ bool navigationRTHAllowsLanding(void)
 
 #else // NAV
 
-#ifdef GPS
+#ifdef USE_GPS
 /* Fallback if navigation is not compiled in - handle GPS home coordinates */
 static float GPS_scaleLonDown;
 static float GPS_totalTravelDistance = 0;

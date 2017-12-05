@@ -31,8 +31,8 @@
 #define BEEPER   PD15
 #define BEEPER_INVERTED
 
-#define ACC
-#define GYRO
+#define USE_ACC
+#define USE_GYRO
 #define USE_DUAL_GYRO
 
 // ICM-20608-G
@@ -141,7 +141,7 @@
 #define SPI4_MOSI_PIN           PE6
 
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
@@ -166,12 +166,12 @@
 #define I2C_DEVICE              (I2CDEV_2)
 #define I2C_DEVICE_SHARES_UART3
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_BMP280
 #define BMP280_SPI_BUS          BUS_SPI1
 #define BMP280_CS_PIN           PA1
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
@@ -188,7 +188,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-// #define LED_STRIP
+// #define USE_LED_STRIP
 
 //Following configuration needs to be reviewed, when LED is enabled, VCP stops to work
 //Until someone with deeper knowledge od DMA fixes it, LED are disabled in target

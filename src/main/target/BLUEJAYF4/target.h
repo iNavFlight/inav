@@ -44,21 +44,21 @@
 #define MPU6500_CS_PIN          PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW0_DEG
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW0_DEG
 
-#define MAG
+#define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_MAG3110
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 
-#define BARO
+#define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
@@ -137,7 +137,7 @@
 #define ADC_CHANNEL_1_PIN               PC3
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
 
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 6 (PB1) of the ESC outputs.
 #define WS2811_PIN                      PB1
 #define WS2811_TIMER                    TIM3
@@ -157,7 +157,7 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11
 
 // Number of available PWM outputs

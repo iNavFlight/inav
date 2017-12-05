@@ -184,7 +184,7 @@ static float invSqrt(float x)
     return 1.0f / sqrtf(x);
 }
 
-#if defined(GPS) || defined(HIL)
+#if defined(USE_GPS) || defined(HIL)
 STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t initialPitch, int16_t initialYaw)
 {
     if (initialRoll > 1800) initialRoll -= 3600;
@@ -253,7 +253,7 @@ static void imuCheckAndResetOrientationQuaternion(const float ax, const float ay
     if (isNan || isZero || isInf) {
         imuResetOrientationQuaternion(ax, ay, az);
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         if (feature(FEATURE_BLACKBOX)) {
             blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, NULL);
         }
@@ -444,7 +444,7 @@ static bool imuCanUseAccelerometerForCorrection(void)
 
 static void imuCalculateEstimatedAttitude(float dT)
 {
-#if defined(MAG)
+#if defined(USE_MAG)
     const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();
 #else
     const bool canUseMAG = false;
@@ -456,7 +456,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useMag = false;
     bool useCOG = false;
 
-#if defined(GPS)
+#if defined(USE_GPS)
     if (STATE(FIXED_WING)) {
         bool canUseCOG = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
 

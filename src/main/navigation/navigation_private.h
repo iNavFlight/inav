@@ -19,7 +19,7 @@
 
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
 
-#if defined(NAV)
+#if defined(USE_NAV)
 
 #include "common/filter.h"
 #include "fc/runtime_config.h"
