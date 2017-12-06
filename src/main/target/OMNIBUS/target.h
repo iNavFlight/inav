@@ -66,6 +66,8 @@
 #define USE_RANGEFINDER_HCSR04
 #define RANGEFINDER_HCSR04_ECHO_PIN          PB2  // Has 1K series resistor
 #define RANGEFINDER_HCSR04_TRIGGER_PIN       PB4  // FT
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS                  BUS_I2C1
 
 #define USB_IO
 #define USB_CABLE_DETECTION

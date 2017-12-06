@@ -148,6 +148,10 @@
 #define USE_MAG_HMC5883 // External
 #define USE_MAG_QMC5883 // External
 
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
+
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
