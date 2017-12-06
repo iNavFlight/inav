@@ -152,7 +152,7 @@
 
 #define USE_I2C
 #define USE_I2C_PULLUP
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 

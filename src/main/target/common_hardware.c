@@ -161,6 +161,14 @@
     BUSDEV_REGISTER_I2C(busdev_vl53l0x,     DEVHW_VL53L0X,      VL53L0X_I2C_BUS,    0x29,               NONE,           DEVFLAGS_NONE);
 #endif
 
+#if defined(USE_PITOT_MS4525)
+    #if !defined(MS4525_I2C_BUS)
+        #define MS4525_I2C_BUS PITOT_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,    0x28,               NONE,           DEVFLAGS_NONE);
+#endif
+
+
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
 
 

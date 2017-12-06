@@ -31,10 +31,6 @@
 #include "drivers/rangefinder/rangefinder.h"
 #include "drivers/rangefinder/rangefinder_srf10.h"
 
-#ifndef SRF10_I2C_INSTANCE
-#define SRF10_I2C_INSTANCE I2CDEV_1
-#endif
-
 // Technical specification is at: http://robot-electronics.co.uk/htm/srf10tech.htm
 #define SRF10_MAX_RANGE_CM 600 // 6m, from SFR10 spec sheet
 // see http://www.robot-electronics.co.uk/htm/sonar_faq.htm for cone angles

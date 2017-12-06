@@ -45,7 +45,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1

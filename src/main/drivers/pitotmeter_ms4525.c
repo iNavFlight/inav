@@ -28,60 +28,28 @@
 
 // MS4525, Standard address 0x28
 #define MS4525_ADDR                 0x28
-//#define MS4525_ADDR                 0x36
-//#define MS4525_ADDR                 0x46
-
-static void ms4525_start(void);
-static void ms4525_read(void);
-static void ms4525_calculate(float *pressure, float *temperature);
 
 static uint16_t ms4525_ut;  // static result of temperature measurement
 static uint16_t ms4525_up;  // static result of pressure measurement
 static uint8_t rxbuf[4];
 
-bool ms4525Detect(pitotDev_t *pitot)
+static void ms4525_start(pitotDev_t * pitot)
 {
-    bool ack = false;
-
-    // Read twice to fix:
-    // Sending a start-stop condition without any transitions on the SCL line (no clock pulses in between) creates a
-    // communication error for the next communication, even if the next start condition is correct and the clock pulse is applied.
-    // An additional start condition must be sent, which results in restoration of proper communication.
-    ack = i2cRead( PITOT_I2C_INSTANCE, MS4525_ADDR, 0xFF, 4, rxbuf );
-    ack = i2cRead( PITOT_I2C_INSTANCE, MS4525_ADDR, 0xFF, 4, rxbuf );
-    if (!ack)
-        return false;
-
-    pitot->delay = 10000;
-    pitot->start = ms4525_start;
-    pitot->get = ms4525_read;
-    pitot->calculate = ms4525_calculate;
-    ms4525_read();
-    return true;
+    busReadBuf( pitot->busDev, 0xFF, rxbuf, 4 );
 }
 
-static void ms4525_start(void)
+static void ms4525_read(pitotDev_t * pitot)
 {
-    i2cRead( PITOT_I2C_INSTANCE, MS4525_ADDR, 0xFF, 4, rxbuf );
-}
-
-static void ms4525_read(void)
-{
-    if (i2cRead( PITOT_I2C_INSTANCE, MS4525_ADDR, 0xFF, 4, rxbuf )) {
+    if (busReadBuf( pitot->busDev, 0xFF, rxbuf, 4 )) {
         ms4525_up = (rxbuf[0] << 8) | (rxbuf[1] << 0);
         ms4525_ut = ((rxbuf[2] << 8) | (rxbuf[3] << 0))>>5;
     }
 }
 
-
-void voltage_correction(float *pressure, float *temperature)
+static void ms4525_calculate(pitotDev_t * pitot, float *pressure, float *temperature)
 {
-    UNUSED(pressure);
-    UNUSED(temperature);
-}
+    UNUSED(pitot);
 
-static void ms4525_calculate(float *pressure, float *temperature)
-{
     uint8_t status = (ms4525_up & 0xC000) >> 14;
     switch (status) {
         case 0:
@@ -108,3 +76,29 @@ static void ms4525_calculate(float *pressure, float *temperature)
         *temperature = T; // K
 }
 
+bool ms4525Detect(pitotDev_t * pitot)
+{
+    pitot->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_MS4525, 0, OWNER_AIRSPEED);
+    if (pitot->busDev == NULL) {
+        return false;
+    }
+
+    bool ack = false;
+
+    // Read twice to fix:
+    // Sending a start-stop condition without any transitions on the SCL line (no clock pulses in between) creates a
+    // communication error for the next communication, even if the next start condition is correct and the clock pulse is applied.
+    // An additional start condition must be sent, which results in restoration of proper communication.
+    ack = busReadBuf( pitot->busDev, 0xFF, rxbuf, 4 );
+    ack = busReadBuf( pitot->busDev, 0xFF, rxbuf, 4 );
+    if (!ack) {
+        return false;
+    }
+
+    pitot->delay = 10000;
+    pitot->start = ms4525_start;
+    pitot->get = ms4525_read;
+    pitot->calculate = ms4525_calculate;
+    ms4525_read(pitot);
+    return true;
+}

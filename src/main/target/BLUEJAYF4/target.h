@@ -64,8 +64,6 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
-#define MS5611_I2C_INSTANCE     I2CDEV_1
-
 #define USE_SDCARD
 
 #define SDCARD_DETECT_INVERTED
@@ -130,7 +128,7 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 #define USE_I2C_PULLUP
 
 #define USE_ADC

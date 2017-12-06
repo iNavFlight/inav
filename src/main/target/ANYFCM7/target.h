@@ -54,7 +54,7 @@
 #define USE_BARO_MS5611
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE I2C_DEVICE
+#define PITOT_I2C_BUS           BUS_I2C2
 
 #define USABLE_TIMER_CHANNEL_COUNT 16
 
@@ -121,7 +121,6 @@
 
 #define USE_I2C
 #define USE_I2C_DEVICE_2
-#define I2C_DEVICE              (I2CDEV_2)
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC0

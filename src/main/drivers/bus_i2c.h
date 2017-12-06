@@ -27,10 +27,6 @@
 #include "drivers/io_types.h"
 #include "drivers/rcc_types.h"
 
-#ifndef I2C_DEVICE
-#define I2C_DEVICE I2CINVALID
-#endif
-
 typedef enum {  // Weird mapping to keep config compatible with previos version
     I2C_SPEED_100KHZ    = 2,
     I2C_SPEED_200KHZ    = 3,
@@ -40,6 +36,7 @@ typedef enum {  // Weird mapping to keep config compatible with previos version
 
 typedef enum I2CDevice {
     I2CINVALID = -1,
+    I2CDEV_EMULATED = -1,   // Hack until we have proper I2C abstraction
     I2CDEV_1   = 0,
     I2CDEV_2,
     I2CDEV_3,

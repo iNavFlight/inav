@@ -200,14 +200,14 @@ uint32_t pitotUpdate(void)
     switch (state) {
         default:
         case PITOTMETER_NEEDS_SAMPLES:
-            pitot.dev.start();
+            pitot.dev.start(&pitot.dev);
             state = PITOTMETER_NEEDS_CALCULATION;
             return pitot.dev.delay;
         break;
 
         case PITOTMETER_NEEDS_CALCULATION:
-            pitot.dev.get();
-            pitot.dev.calculate(&pitotPressure, &pitotTemperature);
+            pitot.dev.get(&pitot.dev);
+            pitot.dev.calculate(&pitot.dev, &pitotPressure, &pitotTemperature);
             DEBUG_SET(DEBUG_PITOT, 0, pitotPressure);
             if (pitotmeterConfig()->use_median_filtering) {
                 pitotPressure = applyPitotmeterMedianFilter(pitotPressure);

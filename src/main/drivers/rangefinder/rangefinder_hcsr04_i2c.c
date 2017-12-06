@@ -55,7 +55,6 @@ void hcsr04i2cUpdate(rangefinderDev_t *rangefinder)
     uint8_t response[3];
 
     isHcsr04i2cResponding = busReadBuf(rangefinder->busDev, HCSR04_I2C_REGISTRY_STATUS, response, 3);
-    isHcsr04i2cResponding = i2cRead(I2C_DEVICE, HCSR04_I2C_Address, HCSR04_I2C_REGISTRY_STATUS, 3, response);
     
     if (!isHcsr04i2cResponding) {
         hcsr04i2cMeasurementCm = RANGEFINDER_HARDWARE_FAILURE;

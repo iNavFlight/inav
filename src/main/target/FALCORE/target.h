@@ -54,7 +54,6 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
-#define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
 
 #define USB_IO
 
@@ -91,12 +90,12 @@
 #define SPI2_MOSI_PIN           PB15
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_2)
 
+#define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
+#define USE_I2C_DEVICE_2
 #define I2C2_SCL                PA9
 #define I2C2_SDA                PA10
 

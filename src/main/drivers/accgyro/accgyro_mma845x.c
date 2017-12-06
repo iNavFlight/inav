@@ -28,10 +28,6 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
 
-#ifndef MMA8452_I2C_INSTANCE
-#define MMA8452_I2C_INSTANCE I2CDEV_1
-#endif
-
 // MMA8452QT, Standard address 0x1C
 // ACC_INT2 routed to PA5
 

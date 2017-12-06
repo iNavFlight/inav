@@ -91,8 +91,7 @@
 
 #define USE_I2C
 #define USE_I2C_PULLUP
-#define I2C_DEVICE (I2CDEV_2) // SDA (PA10/AF4), SCL (PA9/AF4)
-
+#define USE_I2C_DEVICE_2        // SDA (PA10/AF4), SCL (PA9/AF4)
 #define I2C2_SCL                PA9
 #define I2C2_SDA                PA10
 

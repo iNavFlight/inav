@@ -62,7 +62,7 @@
 #define USE_BARO_MS5611
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
+#define PITOT_I2C_BUS           BUS_I2C2
 
 #define USB_IO
 #define USE_VCP
@@ -98,9 +98,9 @@
 #define USE_SPI_DEVICE_1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_2)
-#define I2C_DEVICE_EXT_SHARES_UART3
+#define USE_I2C_DEVICE_1
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 //#define USE_I2C_PULLUP
 
 //#define HIL

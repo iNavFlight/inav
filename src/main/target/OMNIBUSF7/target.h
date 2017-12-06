@@ -163,8 +163,8 @@
 #define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
-#define I2C_DEVICE_SHARES_UART3
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 
 #define USE_BARO
 #define USE_BARO_BMP280

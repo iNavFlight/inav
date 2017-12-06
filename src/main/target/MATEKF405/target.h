@@ -118,17 +118,21 @@
 #ifdef MATEKF405OSD
     // OSD - no native I2C
     #define USE_I2C
+    #define USE_I2C_DEVICE_EMULATED
+    #define I2C_DEVICE_EMULATED_SHARES_UART3
     #define SOFT_I2C
-    #define DEFAULT_I2C_BUS         BUS_I2C_EMULATED
     #define SOFT_I2C_SCL            PC10
     #define SOFT_I2C_SDA            PC11
-    #define I2C_DEVICE_SHARES_UART3
+
+    #define DEFAULT_I2C_BUS         BUS_I2C_EMULATED
 #else
     // AIO
     #define USE_I2C
-    #define DEFAULT_I2C_BUS         BUS_I2C1
+    #define USE_I2C_DEVICE_1
     #define I2C1_SCL                PB6
     #define I2C1_SDA                PB7
+
+    #define DEFAULT_I2C_BUS         BUS_I2C1
 #endif
 
 

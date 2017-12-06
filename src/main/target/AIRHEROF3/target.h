@@ -51,7 +51,6 @@
 #define USE_BARO
 #define USE_BARO_BMP280
 
-#define USE_PITOT_MS4525
 #define USE_PITOT_ADC
 
 #define USE_UART1
@@ -101,7 +100,7 @@
 
 #ifdef AIRHEROF3_QUAD
     #define USE_I2C
-    #define I2C_DEVICE  (I2CDEV_1) // SDA (PB9/AF4), SCL (PB8/AF4)
+    #define USE_I2C_DEVICE_1    // SDA (PB9/AF4), SCL (PB8/AF4)
 
     #define I2C1_SCL    PB8
     #define I2C1_SDA    PB9
