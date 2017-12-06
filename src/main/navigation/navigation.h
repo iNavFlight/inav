@@ -76,7 +76,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type;
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
-    uint16_t gps_delay_ms;
 
     uint16_t max_surface_altitude;
 

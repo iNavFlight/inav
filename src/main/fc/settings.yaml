@@ -206,6 +206,9 @@ groups:
     members:
       - name: rangefinder_hardware
         table: rangefinder_hardware
+      - name: rangefinder_median_filter
+        field: use_median_filtering
+        type: bool
 
   - name: PG_OPFLOW_CONFIG
     type: opticalFlowConfig_t
@@ -260,7 +263,7 @@ groups:
     members:
       - name: baro_hardware
         table: baro_hardware
-      - name: baro_use_median_filter
+      - name: baro_median_filter
         field: use_median_filtering
         type: bool
 
@@ -976,10 +979,6 @@ groups:
       - name: inav_use_gps_velned
         field: use_gps_velned
         type: bool
-      - name: inav_gps_delay
-        field: gps_delay_ms
-        min: 0
-        max: 500
       - name: inav_reset_altitude
         field: reset_altitude_type
         table: reset_altitude

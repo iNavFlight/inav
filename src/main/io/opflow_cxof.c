@@ -48,13 +48,13 @@ static uint8_t  buffer[10];
 static int      bufferPtr;
 
 typedef struct __attribute__((packed)) {
-    uint8_t     header;
-    uint8_t     res0;
+    uint8_t     header;     // 0xFE
+    uint8_t     res0;       // Seems to be 0x04 all the time
     int16_t     motionX;
     int16_t     motionY;
-    int8_t      motionT;
-    uint8_t     squal;
-    uint8_t     footer;
+    int8_t      motionT;    // ???
+    uint8_t     squal;      // Not sure about this
+    uint8_t     footer;     // 0xAA
 } cxofPacket_t;
 
 static bool cxofOpflowDetect(void)

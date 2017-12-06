@@ -175,6 +175,7 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
+
     if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;

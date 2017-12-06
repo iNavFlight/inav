@@ -201,8 +201,6 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 #ifdef USE_OPTICAL_FLOW
 void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
     if (!sensors(SENSOR_OPFLOW))
         return;
 
