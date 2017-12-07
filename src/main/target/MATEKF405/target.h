@@ -38,6 +38,9 @@
 #define MPU6500_CS_PIN          PC2
 #define MPU6500_SPI_BUS         BUS_SPI1
 
+#define MPU6000_CS_PIN          PC2
+#define MPU6000_SPI_BUS         BUS_SPI1
+
 #define USE_EXTI
 #define MPU_INT_EXTI            PC3
 #define USE_MPU_DATA_READY_SIGNAL
@@ -46,9 +49,15 @@
 #define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 
+#define USE_GYRO_MPU6000
+#define GYRO_MPU6000_ALIGN      CW270_DEG
+
 #define USE_ACC
 #define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW180_DEG
+
+#define USE_ACC_MPU6000
+#define ACC_MPU6000_ALIGN       CW270_DEG
 
 // *************** SD Card **************************
 #define USE_SDCARD
@@ -77,6 +86,7 @@
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB10
+
 // *************** UART *****************************
 #define USB_IO
 #define USE_VCP
@@ -104,8 +114,8 @@
 #define UART5_TX_PIN            PC12
 
 //#define USE_SOFTSERIAL1
-//#define SOFTSERIAL1_RX_PIN      PA15 // S5
-//#define SOFTSERIAL1_TX_PIN      PA8  // S6
+//#define SOFTSERIAL_1_RX_PIN      PA1  //RX4
+//#define SOFTSERIAL_1_TX_PIN      PA0  //TX4
 
 #define SERIAL_PORT_COUNT       6
 
@@ -121,12 +131,12 @@
     #define USE_I2C_DEVICE_EMULATED
     #define I2C_DEVICE_EMULATED_SHARES_UART3
     #define SOFT_I2C
-    #define SOFT_I2C_SCL            PC10
-    #define SOFT_I2C_SDA            PC11
+    #define SOFT_I2C_SCL            PC10 //TX3 pad
+    #define SOFT_I2C_SDA            PC11 //RX3 pad
 
     #define DEFAULT_I2C_BUS         BUS_I2C_EMULATED
 #else
-    // AIO
+    // AIO / CTR / STD
     #define USE_I2C
     #define USE_I2C_DEVICE_1
     #define I2C1_SCL                PB6
@@ -137,16 +147,21 @@
 
 
 #define USE_BARO
-#define BARO_I2C_BUS DEFAULT_I2C_BUS
+#define BARO_I2C_BUS                DEFAULT_I2C_BUS
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 
 #define USE_MAG
-#define MAG_I2C_BUS DEFAULT_I2C_BUS
+#define MAG_I2C_BUS                 DEFAULT_I2C_BUS
 #define USE_MAG_MAG3110 // External
 #define USE_MAG_HMC5883 // External
+#define USE_MAG_AK8963  // External
+#define USE_MAG_AK8975  // External
 #define USE_MAG_QMC5883 // External
+
+#define USE_PITOT_MS4525
+#define PITOT_I2C_BUS               DEFAULT_I2C_BUS
 
 // *************** ADC *****************************
 #define USE_ADC
@@ -159,16 +174,17 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
-#define DEFAULT_FEATURES        (FEATURE_OSD )
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY )
+#define CURRENT_METER_SCALE   179
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA15 // S5 pad for iNav
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST5_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream5
-#define WS2811_DMA_CHANNEL              DMA_Channel_3   // ???
+#define WS2811_DMA_CHANNEL              DMA_Channel_3 
 
 #define USE_SPEKTRUM_BIND
-#define BIND_PIN                PA1 // USART4 RX
+#define BIND_PIN                PA3 //  RX2
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -177,6 +193,6 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USABLE_TIMER_CHANNEL_COUNT 7
+#define USABLE_TIMER_CHANNEL_COUNT 9
 #define MAX_PWM_OUTPUT_PORTS       6
-#define USED_TIMERS             (TIM_N(1)|TIM_N(2)|TIM_N(3)|TIM_N(4)|TIM_N(5)|TIM_N(8))
+#define USED_TIMERS             (TIM_N(1)|TIM_N(2)|TIM_N(3)|TIM_N(4)|TIM_N(5)|TIM_N(8)|TIM_N(9))
