@@ -35,17 +35,6 @@ static void handleUsartTxDma(uartPort_t *s);
 #define UART_RX_BUFFER_SIZE UART1_RX_BUFFER_SIZE
 #define UART_TX_BUFFER_SIZE UART1_TX_BUFFER_SIZE
 
-typedef enum UARTDevice {
-    UARTDEV_1 = 0,
-    UARTDEV_2 = 1,
-    UARTDEV_3 = 2,
-    UARTDEV_4 = 3,
-    UARTDEV_5 = 4,
-    UARTDEV_6 = 5,
-    UARTDEV_7 = 6,
-    UARTDEV_8 = 7
-} UARTDevice;
-
 typedef struct uartDevice_s {
     USART_TypeDef* dev;
     uartPort_t port;
@@ -396,7 +385,7 @@ void dmaIRQHandler(dmaChannelDescriptor_t* descriptor)
     HAL_DMA_IRQHandler(&s->txDMAHandle);
 }
 
-uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, portOptions_t options)
+uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s;
 
