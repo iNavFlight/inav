@@ -70,6 +70,7 @@
 #define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
+#define VBUS_SENSING_ENABLED
 
 
 #define USE_UART1
@@ -93,7 +94,7 @@
 //#define USE_SOFTSERIAL1
 //#define USE_SOFTSERIAL2
 
-#define SERIAL_PORT_COUNT       7 //VCP, USART1, USART2, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
+#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART2, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
 
 //#define USE_ESCSERIAL // XXX
 //#define ESCSERIAL_TIMER_TX_PIN  PB8 // (Hardware=0, PPM)
@@ -101,6 +102,10 @@
 #define USE_SPI
 
 #define USE_SPI_DEVICE_1
+#define SPI1_NSS_PIN            NONE
+#define SPI1_SCK_PIN            PA5
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
 
 #define USE_SPI_DEVICE_2
 #define SPI2_NSS_PIN            PB12
