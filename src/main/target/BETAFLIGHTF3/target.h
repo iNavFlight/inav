@@ -31,11 +31,11 @@
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS    BUS_SPI1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW180_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
@@ -90,13 +90,10 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define OSD
-// include the max7456 driver
+#define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS    BUS_SPI1
 #define MAX7456_CS_PIN      PA1
-//#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2) // XXX
-//#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST) // XXX
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI2
@@ -114,18 +111,13 @@
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
-#define ADC_INSTANCE            ADC2
-// XXX XXX XXX
-#define ADC_CHANNEL_1_PIN	PA4
-#define ADC_CHANNEL_2_PIN	PA5
-#define ADC_CHANNEL_3_PIN	PB2
+#define ADC_INSTANCE                ADC2
+#define ADC_CHANNEL_1_PIN	        PA4
+#define ADC_CHANNEL_2_PIN	        PA5
+#define ADC_CHANNEL_3_PIN	        PB2
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
-//#define VBAT_ADC_PIN            PA4
-//#define CURRENT_METER_ADC_PIN   PA5
-//#define RSSI_ADC_PIN            PB2
-// XXX XXX XXX
 
 //#define LED_STRIP
 
