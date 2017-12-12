@@ -1,4 +1,4 @@
-# FuriousFPV WingF4
+# FuriousFPV F35 Lightning
 
 will be available at: http://furiousfpv.com
 
