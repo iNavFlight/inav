@@ -42,11 +42,13 @@ bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * d
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
 
     IOLo(dev->busdev.spi.csnPin);
+    __NOP();
 
     for (int n = 0; n < count; n++) {
         spiTransfer(instance, dsc[n].rxBuf, dsc[n].txBuf, dsc[n].length);
     }
 
+    __NOP();
     IOHi(dev->busdev.spi.csnPin);
 
     return true;

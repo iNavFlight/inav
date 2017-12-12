@@ -24,7 +24,7 @@
 
 #include "flash_m25p16.h"
 #include "drivers/io.h"
-#include "drivers/bus_spi.h"
+#include "drivers/bus.h"
 #include "drivers/time.h"
 
 #define M25P16_INSTRUCTION_RDID             0x9F
@@ -56,9 +56,6 @@
 #define JEDEC_ID_SPANSION_S25FL116     0x014015
 #define JEDEC_ID_EON_W25Q64            0x1C3017
 
-#define DISABLE_M25P16       IOHi(m25p16CsPin)
-#define ENABLE_M25P16        IOLo(m25p16CsPin)
-
 // The timeout we expect between being able to issue page program instructions
 #define DEFAULT_TIMEOUT_MILLIS       6
 
@@ -68,7 +65,7 @@
 
 static flashGeometry_t geometry = {.pageSize = M25P16_PAGESIZE};
 
-static IO_t m25p16CsPin = IO_NONE;
+static busDevice_t * busDev = NULL;
 static bool isLargeFlash = false;
 
 /*
@@ -83,11 +80,7 @@ static bool couldBeBusy = false;
  */
 static void m25p16_performOneByteCommand(uint8_t command)
 {
-    ENABLE_M25P16;
-
-    spiTransferByte(M25P16_SPI_INSTANCE, command);
-
-    DISABLE_M25P16;
+    busTransfer(busDev, NULL, &command, 1);
 }
 
 /**
@@ -107,11 +100,7 @@ static uint8_t m25p16_readStatus(void)
     uint8_t command[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
     uint8_t in[2];
 
-    ENABLE_M25P16;
-
-    spiTransfer(M25P16_SPI_INSTANCE, in, command, sizeof(command));
-
-    DISABLE_M25P16;
+    busTransfer(busDev, in, command, sizeof(command));
 
     return in[1];
 }
@@ -154,12 +143,7 @@ static bool m25p16_readIdentification(void)
      */
     in[1] = 0;
 
-    ENABLE_M25P16;
-
-    spiTransfer(M25P16_SPI_INSTANCE, in, out, sizeof(out));
-
-    // Clearing the CS bit terminates the command early so we don't have to read the chip UID:
-    DISABLE_M25P16;
+    busTransfer(busDev, in, out, sizeof(out));
 
     // Manufacturer, memory type, and capacity
     chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
@@ -227,35 +211,19 @@ static bool m25p16_readIdentification(void)
  * Attempts to detect a connected m25p16. If found, true is returned and device capacity can be fetched with
  * m25p16_getGeometry().
  */
-bool m25p16_init(ioTag_t csTag)
+bool m25p16_init(void)
 {
-    /*
-        if we have already detected a flash device we can simply exit
-
-        TODO: change the init param in favour of flash CFG when ParamGroups work is done
-        then cs pin can be specified in hardware_revision.c or config.c (dependent on revision).
-    */
-    if (geometry.sectors) {
+    if (busDev) {
         return true;
     }
 
-    if (csTag) {
-        m25p16CsPin = IOGetByTag(csTag);
-    } else {
-#ifdef M25P16_CS_PIN
-        m25p16CsPin = IOGetByTag(IO_TAG(M25P16_CS_PIN));
-#else
+    busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_M25P16, 0, OWNER_FLASH);
+    if (busDev == NULL) {
         return false;
-#endif
     }
-    IOInit(m25p16CsPin, OWNER_FLASH, RESOURCE_SPI_CS, 0);
-    IOConfigGPIO(m25p16CsPin, SPI_IO_CS_CFG);
-
-    DISABLE_M25P16;
 
 #ifndef M25P16_SPI_SHARED
-    //Maximum speed for standard READ command is 20mHz, other commands tolerate 25mHz
-    spiSetSpeed(M25P16_SPI_INSTANCE, SPI_CLOCK_FAST);
+    busSetSpeed(busDev, BUS_SPEED_FAST);
 #endif
 
     return m25p16_readIdentification();
@@ -285,11 +253,7 @@ void m25p16_eraseSector(uint32_t address)
 
     m25p16_writeEnable();
 
-    ENABLE_M25P16;
-
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, out, isLargeFlash ? 5 : 4);
-
-    DISABLE_M25P16;
+    busTransfer(busDev, NULL, out, isLargeFlash ? 5 : 4);
 }
 
 void m25p16_eraseCompletely(void)
@@ -320,19 +284,18 @@ uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 {
     uint8_t command[5] = { M25P16_INSTRUCTION_PAGE_PROGRAM };
 
+    busTransferDescriptor_t txn[2] = {
+        { NULL, command, isLargeFlash ? 5 : 4 },
+        { NULL, data, length }
+    };
+
     m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
     m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS);
 
     m25p16_writeEnable();
 
-    ENABLE_M25P16;
-
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, isLargeFlash ? 5 : 4);
-
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, data, length);
-
-    DISABLE_M25P16;
+    busTransferMultiple(busDev, txn, 2);
 
     return address + length;
 }
@@ -349,18 +312,18 @@ int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 {
     uint8_t command[5] = { M25P16_INSTRUCTION_READ_BYTES };
 
+    busTransferDescriptor_t txn[2] = {
+        { NULL, command, isLargeFlash ? 5 : 4 },
+        { buffer, NULL, length }
+    };
+
     m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
     if (!m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS)) {
         return 0;
     }
 
-    ENABLE_M25P16;
-
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, isLargeFlash ? 5 : 4);
-    spiTransfer(M25P16_SPI_INSTANCE, buffer, NULL, length);
-
-    DISABLE_M25P16;
+    busTransferMultiple(busDev, txn, 2);
 
     return length;
 }

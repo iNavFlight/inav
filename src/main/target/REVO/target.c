@@ -34,6 +34,8 @@ BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS_EXT,
 BUSDEV_REGISTER_I2C_TAG(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS_EXT,    0x0D,               NONE,                   1,  DEVFLAGS_NONE);
 BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS_EXT,    0x0E,               NONE,                   1,  DEVFLAGS_NONE);
 
+BUSDEV_REGISTER_SPI    (busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,                       DEVFLAGS_NONE);
+
 /* TIMERS */
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR }, // S1_OUT

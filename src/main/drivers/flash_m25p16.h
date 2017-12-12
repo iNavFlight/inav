@@ -23,7 +23,7 @@
 
 #define M25P16_PAGESIZE 256
 
-bool m25p16_init(ioTag_t csTag);
+bool m25p16_init(void);
 
 void m25p16_eraseSector(uint32_t address);
 void m25p16_eraseCompletely(void);
