@@ -28,11 +28,7 @@ bool m25p16_init(ioTag_t csTag);
 void m25p16_eraseSector(uint32_t address);
 void m25p16_eraseCompletely(void);
 
-void m25p16_pageProgram(uint32_t address, const uint8_t *data, int length);
-
-void m25p16_pageProgramBegin(uint32_t address);
-void m25p16_pageProgramContinue(const uint8_t *data, int length);
-void m25p16_pageProgramFinish(void);
+uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length);
 
 int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length);
 

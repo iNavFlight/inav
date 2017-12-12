@@ -40,14 +40,19 @@
 #define M25P16_STATUS_FLAG_WRITE_IN_PROGRESS 0x01
 #define M25P16_STATUS_FLAG_WRITE_ENABLED     0x02
 
+#define W25Q256_INSTRUCTION_ENTER_4BYTE_ADDRESS_MODE 0xB7
+
 // Format is manufacturer, memory type, then capacity
-#define JEDEC_ID_MICRON_M25P16         0x202015
-#define JEDEC_ID_MICRON_N25Q064        0x20BA17
-#define JEDEC_ID_WINBOND_W25Q64        0xEF4017
 #define JEDEC_ID_MACRONIX_MX25L3206E   0xC22016
 #define JEDEC_ID_MACRONIX_MX25L6406E   0xC22017
+#define JEDEC_ID_MACRONIX_MX25L25635E  0xC22019
+#define JEDEC_ID_MICRON_M25P16         0x202015
+#define JEDEC_ID_MICRON_N25Q064        0x20BA17
 #define JEDEC_ID_MICRON_N25Q128        0x20ba18
+#define JEDEC_ID_WINBOND_W25Q16        0xEF4015
+#define JEDEC_ID_WINBOND_W25Q64        0xEF4017
 #define JEDEC_ID_WINBOND_W25Q128       0xEF4018
+#define JEDEC_ID_WINBOND_W25Q256       0xEF4019
 #define JEDEC_ID_SPANSION_S25FL116     0x014015
 #define JEDEC_ID_EON_W25Q64            0x1C3017
 
@@ -64,6 +69,7 @@
 static flashGeometry_t geometry = {.pageSize = M25P16_PAGESIZE};
 
 static IO_t m25p16CsPin = IO_NONE;
+static bool isLargeFlash = false;
 
 /*
  * Whether we've performed an action that could have made the device busy for writes.
@@ -165,23 +171,33 @@ static bool m25p16_readIdentification(void)
         case JEDEC_ID_SPANSION_S25FL116:
             geometry.sectors = 32;
             geometry.pagesPerSector = 256;
-        break;
+            break;
+
         case JEDEC_ID_MACRONIX_MX25L3206E:
             geometry.sectors = 64;
             geometry.pagesPerSector = 256;
-        break;
+            break;
+
         case JEDEC_ID_MICRON_N25Q064:
         case JEDEC_ID_WINBOND_W25Q64:
         case JEDEC_ID_MACRONIX_MX25L6406E:
         case JEDEC_ID_EON_W25Q64:
             geometry.sectors = 128;
             geometry.pagesPerSector = 256;
-        break;
+            break;
+
         case JEDEC_ID_MICRON_N25Q128:
         case JEDEC_ID_WINBOND_W25Q128:
             geometry.sectors = 256;
             geometry.pagesPerSector = 256;
-        break;
+            break;
+
+        case JEDEC_ID_WINBOND_W25Q256:
+        case JEDEC_ID_MACRONIX_MX25L25635E:
+            geometry.sectors = 512;
+            geometry.pagesPerSector = 256;
+            break;
+
         default:
             // Unsupported chip or not an SPI NOR flash
             geometry.sectors = 0;
@@ -194,6 +210,11 @@ static bool m25p16_readIdentification(void)
 
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
+
+    if (geometry.totalSize > 16 * 1024 * 1024) {
+        isLargeFlash = true;
+        m25p16_performOneByteCommand(W25Q256_INSTRUCTION_ENTER_4BYTE_ADDRESS_MODE);
+    }
 
     couldBeBusy = true; // Just for luck we'll assume the chip could be busy even though it isn't specced to be
 
@@ -240,12 +261,25 @@ bool m25p16_init(ioTag_t csTag)
     return m25p16_readIdentification();
 }
 
+void m25p16_setCommandAddress(uint8_t *buf, uint32_t address, bool useLongAddress)
+{
+    if (useLongAddress) {
+        *buf++ = (address >> 24) & 0xff;
+    }
+
+    *buf++ = (address >> 16) & 0xff;
+    *buf++ = (address >> 8) & 0xff;
+    *buf = address & 0xff;
+}
+
 /**
  * Erase a sector full of bytes to all 1's at the given byte offset in the flash chip.
  */
 void m25p16_eraseSector(uint32_t address)
 {
-    uint8_t out[] = { M25P16_INSTRUCTION_SECTOR_ERASE, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
+    uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
+
+    m25p16_setCommandAddress(&out[1], address, isLargeFlash);
 
     m25p16_waitForReady(SECTOR_ERASE_TIMEOUT_MILLIS);
 
@@ -253,7 +287,7 @@ void m25p16_eraseSector(uint32_t address)
 
     ENABLE_M25P16;
 
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, out, sizeof(out));
+    spiTransfer(M25P16_SPI_INSTANCE, NULL, out, isLargeFlash ? 5 : 4);
 
     DISABLE_M25P16;
 }
@@ -265,29 +299,6 @@ void m25p16_eraseCompletely(void)
     m25p16_writeEnable();
 
     m25p16_performOneByteCommand(M25P16_INSTRUCTION_BULK_ERASE);
-}
-
-void m25p16_pageProgramBegin(uint32_t address)
-{
-    uint8_t command[] = { M25P16_INSTRUCTION_PAGE_PROGRAM, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
-
-    m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS);
-
-    m25p16_writeEnable();
-
-    ENABLE_M25P16;
-
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, sizeof(command));
-}
-
-void m25p16_pageProgramContinue(const uint8_t *data, int length)
-{
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, data, length);
-}
-
-void m25p16_pageProgramFinish(void)
-{
-    DISABLE_M25P16;
 }
 
 /**
@@ -305,13 +316,25 @@ void m25p16_pageProgramFinish(void)
  * If you want to write multiple buffers (whose sum of sizes is still not more than the page size) then you can
  * break this operation up into one beginProgram call, one or more continueProgram calls, and one finishProgram call.
  */
-void m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
+uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 {
-    m25p16_pageProgramBegin(address);
+    uint8_t command[5] = { M25P16_INSTRUCTION_PAGE_PROGRAM };
 
-    m25p16_pageProgramContinue(data, length);
+    m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
-    m25p16_pageProgramFinish();
+    m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS);
+
+    m25p16_writeEnable();
+
+    ENABLE_M25P16;
+
+    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, isLargeFlash ? 5 : 4);
+
+    spiTransfer(M25P16_SPI_INSTANCE, NULL, data, length);
+
+    DISABLE_M25P16;
+
+    return address + length;
 }
 
 /**
@@ -324,7 +347,9 @@ void m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
  */
 int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 {
-    uint8_t command[] = { M25P16_INSTRUCTION_READ_BYTES, (address >> 16) & 0xFF, (address >> 8) & 0xFF, address & 0xFF};
+    uint8_t command[5] = { M25P16_INSTRUCTION_READ_BYTES };
+
+    m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
     if (!m25p16_waitForReady(DEFAULT_TIMEOUT_MILLIS)) {
         return 0;
@@ -332,7 +357,7 @@ int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 
     ENABLE_M25P16;
 
-    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, sizeof(command));
+    spiTransfer(M25P16_SPI_INSTANCE, NULL, command, isLargeFlash ? 5 : 4);
     spiTransfer(M25P16_SPI_INSTANCE, buffer, NULL, length);
 
     DISABLE_M25P16;
