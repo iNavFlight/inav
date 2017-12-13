@@ -100,7 +100,7 @@ typedef struct {
 } ubx_rate;
 
 typedef union {
-    uint8_t bytes[48];
+    uint8_t bytes[60]; // sizeof Galileo config
     ubx_sbas sbas;
     ubx_msg msg;
     ubx_rate rate;
