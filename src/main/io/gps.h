@@ -83,6 +83,11 @@ typedef enum {
     GPS_FIX_3D
 } gpsFixType_e;
 
+typedef enum {
+    GPS_UBLOX_GALILEO_OFF = 0,
+    GPS_UBLOX_GALILEO_ON
+} gpsUbloxUseGalileo_e;
+
 #define GPS_BAUDRATE_MAX GPS_BAUDRATE_9600
 
 typedef struct gpsConfig_s {
@@ -91,6 +96,7 @@ typedef struct gpsConfig_s {
     gpsAutoConfig_e autoConfig;
     gpsAutoBaud_e autoBaud;
     gpsDynModel_e dynModel;
+    gpsUbloxUseGalileo_e ubloxUseGalileo;
     uint8_t gpsMinSats;
 } gpsConfig_t;
 

@@ -49,6 +49,9 @@ tables:
   - name: gps_dyn_model
     values: ["PEDESTRIAN", "AIR_1G", "AIR_4G"]
     enum: gpsDynModel_e
+  - name: ublox_use_galileo
+    values: ["OFF", "ON"]
+    enum: gpsUbloxUseGalileo_e
   - name: reset_altitude
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
   - name: nav_user_control_mode
@@ -153,7 +156,7 @@ groups:
         field: adcFunctionChannel[ADC_AIRSPEED]
         min: ADC_CHN_NONE
         max: ADC_CHN_MAX
-        
+
   - name: PG_ACCELEROMETER_CONFIG
     type: accelerometerConfig_t
     headers: ["sensors/acceleration.h"]
@@ -342,7 +345,7 @@ groups:
         field: halfDuplex
         condition: STM32F4
         type: bool
-        
+
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
     headers: ["blackbox/blackbox.h"]
@@ -650,6 +653,9 @@ groups:
         type: bool
       - name: gps_auto_baud
         field: autoBaud
+        type: bool
+      - name: ublox_use_galileo
+        field: ubloxUseGalileo
         type: bool
       - name: gps_min_sats
         field: gpsMinSats

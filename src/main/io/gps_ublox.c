@@ -271,7 +271,8 @@ enum {
     MSG_CFG_RATE = 0x08,
     MSG_CFG_SET_RATE = 0x01,
     MSG_CFG_NAV_SETTINGS = 0x24,
-    MSG_CFG_SBAS = 0x16
+    MSG_CFG_SBAS = 0x16,
+    MSG_CFG_GNSS = 0x3e
 } ubx_protocol_bytes;
 
 enum {
@@ -385,6 +386,31 @@ static const uint8_t default_payload[] = {
     0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x00, 0x3C, 0x00, 0x00, 0x00,           // capturing the data from the U-Center binary console.
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
+// Note the organisation of the bytes reflects the structure of the payload
+// 4 bytes then 8*number of elements (7)
+static const uint8_t galileo_payload[] =  {
+    0x00, 0x00, 0x20, 0x07,
+    0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01,
+    0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01,
+    0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01,
+    0x03, 0x08, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01,
+    0x04, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01,
+    0x05, 0x00, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01,
+    0x06, 0x08, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x01
+};
+
+static void configureGalileo(void)
+{
+    send_buffer.message.header.msg_class = CLASS_CFG;
+    send_buffer.message.header.msg_id = MSG_CFG_GNSS;
+    send_buffer.message.header.length = sizeof(galileo_payload);
+    memcpy(send_buffer.message.payload.bytes, galileo_payload, sizeof(galileo_payload));
+    sendConfigMessageUBLOX();
+}
+#endif
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
 {
@@ -716,6 +742,16 @@ static bool gpsConfigure(void)
 
     case 5: // SBAS
         configureSBAS();
+        gpsState.autoConfigStep++;
+        break;
+
+    case 6: // Galileo
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
+        if (gpsState.gpsConfig->provider == GPS_UBLOX7PLUS &&
+            gpsState.gpsConfig->ubloxUseGalileo == GPS_UBLOX_GALILEO_ON) {
+            configureGalileo();
+        }
+#endif
         gpsState.autoConfigStep++;
         break;
 
