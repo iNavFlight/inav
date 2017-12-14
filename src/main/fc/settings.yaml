@@ -49,7 +49,7 @@ tables:
   - name: gps_dyn_model
     values: ["PEDESTRIAN", "AIR_1G", "AIR_4G"]
     enum: gpsDynModel_e
-  - name: ublox_use_galileo
+  - name: gps_ublox_use_galileo
     values: ["OFF", "ON"]
     enum: gpsUbloxUseGalileo_e
   - name: reset_altitude
@@ -654,7 +654,7 @@ groups:
       - name: gps_auto_baud
         field: autoBaud
         type: bool
-      - name: ublox_use_galileo
+      - name: gps_ublox_use_galileo
         field: ubloxUseGalileo
         type: bool
       - name: gps_min_sats

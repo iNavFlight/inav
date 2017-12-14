@@ -308,6 +308,9 @@ static bool _new_position;
 // do we have new speed information?
 static bool _new_speed;
 
+// Need this to determine if Galileo capable only
+static bool capGalileo;
+
 // Example packet sizes from UBlox u-center from a Glonass capable GPS receiver.
 //15:17:55  R -> UBX NAV-STATUS,  Size  24,  'Navigation Status'
 //15:17:55  R -> UBX NAV-POSLLH,  Size  36,  'Geodetic Position'
@@ -387,8 +390,6 @@ static const uint8_t default_payload[] = {
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
 // Note the organisation of the bytes reflects the structure of the payload
 // 4 bytes then 8*number of elements (7)
 static const uint8_t galileo_payload[] =  {
@@ -410,7 +411,6 @@ static void configureGalileo(void)
     memcpy(send_buffer.message.payload.bytes, galileo_payload, sizeof(galileo_payload));
     sendConfigMessageUBLOX();
 }
-#endif
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
 {
@@ -558,7 +558,10 @@ static bool gpsParceFrameUBLOX(void)
     case MSG_VER:
         if (_class == CLASS_MON) {
             //uint32_t swver = _buffer.ver.swVersion;
+            // EXT CORE 3.01 (107900)
+            // 01234567890123456789012
             gpsState.hwVersion = fastA2I(_buffer.ver.hwVersion);
+            capGalileo = ((gpsState.hwVersion >= 80000) && (_buffer.ver.swVersion[9] > '2')); // M8N and SW major 3 or later
         }
         break;
 #endif
@@ -746,12 +749,9 @@ static bool gpsConfigure(void)
         break;
 
     case 6: // Galileo
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
-        if (gpsState.gpsConfig->provider == GPS_UBLOX7PLUS &&
-            gpsState.gpsConfig->ubloxUseGalileo == GPS_UBLOX_GALILEO_ON) {
+        if (capGalileo) {
             configureGalileo();
         }
-#endif
         gpsState.autoConfigStep++;
         break;
 
