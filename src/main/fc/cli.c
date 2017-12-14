@@ -1759,7 +1759,7 @@ static void cliFeature(char *cmdline)
             if (sl_strncasecmp(cmdline, featureNames[i], len) == 0) {
 
                 mask = 1 << i;
-#ifndef GPS
+#ifndef USE_GPS
                 if (mask & FEATURE_GPS) {
                     cliPrintLine("unavailable");
                     break;
