@@ -119,13 +119,11 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-/* XXX
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                NONE // PB10, UART3_TX
 #define I2C2_SDA                NONE // PB11, UART3_RX
 #define I2C_DEVICE              (I2CDEV_2)
-*/
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN		PC1
