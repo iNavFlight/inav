@@ -49,9 +49,6 @@ tables:
   - name: gps_dyn_model
     values: ["PEDESTRIAN", "AIR_1G", "AIR_4G"]
     enum: gpsDynModel_e
-  - name: gps_ublox_use_galileo
-    values: ["OFF", "ON"]
-    enum: gpsUbloxUseGalileo_e
   - name: reset_altitude
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
   - name: nav_user_control_mode
