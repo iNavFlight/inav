@@ -211,13 +211,13 @@ static bool m25p16_readIdentification(void)
  * Attempts to detect a connected m25p16. If found, true is returned and device capacity can be fetched with
  * m25p16_getGeometry().
  */
-bool m25p16_init(void)
+bool m25p16_init(int flashNumToUse)
 {
     if (busDev) {
         return true;
     }
 
-    busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_M25P16, 0, OWNER_FLASH);
+    busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_M25P16, flashNumToUse, OWNER_FLASH);
     if (busDev == NULL) {
         return false;
     }
