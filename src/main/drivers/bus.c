@@ -218,6 +218,7 @@ bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf
         return spiBusTransferMultiple(dev, &dsc, 1);
     }
 #else
+    UNUSED(dev);
     UNUSED(rxBuf);
     UNUSED(txBuf);
     UNUSED(length);
@@ -234,9 +235,9 @@ bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc,
         return spiBusTransferMultiple(dev, dsc, count);
     }
 #else
-    UNUSED(rxBuf);
-    UNUSED(txBuf);
-    UNUSED(length);
+    UNUSED(dev);
+    UNUSED(dsc);
+    UNUSED(count);
 #endif
 
     return false;
