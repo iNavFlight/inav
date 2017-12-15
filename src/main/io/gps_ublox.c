@@ -749,7 +749,7 @@ static bool gpsConfigure(void)
         break;
 
     case 6: // Galileo
-        if (capGalileo) {
+        if ((gpsState.gpsConfig->ubloxUseGalileo == GPS_UBLOX_GALILEO_ON) && capGalileo) {
             configureGalileo();
         }
         gpsState.autoConfigStep++;
