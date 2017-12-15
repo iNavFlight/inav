@@ -121,9 +121,31 @@
 
 #define USE_I2C
 #define USE_I2C_DEVICE_2
-#define I2C2_SCL                NONE // PB10, UART3_TX
-#define I2C2_SDA                NONE // PB11, UART3_RX
-#define I2C_DEVICE              (I2CDEV_2)
+#define I2C2_SCL                PB10 // PB10, UART3_TX
+#define I2C2_SDA                PB11 // PB11, UART3_RX
+//#define I2C_DEVICE              (I2CDEV_2)
+
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
+//#define MAG_HMC5883_ALIGN       CW90_DEG
+#define USE_MAG_HMC5883
+#define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+
+#define USE_BARO
+#define BARO_I2C_BUS             BUS_I2C2
+#define USE_BARO_BMP085
+#define USE_BARO_BMP280
+#define USE_BARO_MS5611
+
+#define USE_PITOT_ADC
+#define USE_PITOT_MS4525
+#define PITOT_I2C_BUS           BUS_I2C2
+
+#define USE_RANGEFINDER
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
+#define USE_RANGEFINDER_HCSR04_I2C
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN		PC1
