@@ -106,7 +106,7 @@
 
 // *************** Flash *****************************
 #define M25P16_CS_PIN           PA15
-#define M25P16_SPI_INSTANCE     SPI3
+#define M25P16_SPI_BUS          BUS_SPI3
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
