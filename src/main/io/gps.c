@@ -137,7 +137,8 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .autoConfig = GPS_AUTOCONFIG_ON,
     .autoBaud = GPS_AUTOBAUD_ON,
     .dynModel = GPS_DYNMODEL_AIR_1G,
-    .gpsMinSats = 6
+    .gpsMinSats = 6,
+    .ubloxUseGalileo = false
 );
 
 void gpsSetState(gpsState_e state)
