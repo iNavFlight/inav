@@ -117,8 +117,6 @@
 #define HMC_POS_BIAS 1
 #define HMC_NEG_BIAS 2
 
-static float magGain[3] = { 1.0f, 1.0f, 1.0f };
-
 static bool hmc5883lRead(magDev_t * mag)
 {
     uint8_t buf[6];
@@ -138,11 +136,9 @@ static bool hmc5883lRead(magDev_t * mag)
         return false;
     }
 
-    // During calibration, magGain is 1.0, so the read returns normal non-calibrated values.
-    // After calibration is done, magGain is set to calculated gain values.
-    mag->magADCRaw[X] = (int16_t)(buf[0] << 8 | buf[1]) * magGain[X];
-    mag->magADCRaw[Z] = (int16_t)(buf[2] << 8 | buf[3]) * magGain[Z];
-    mag->magADCRaw[Y] = (int16_t)(buf[4] << 8 | buf[5]) * magGain[Y];
+    magDev->magADCRaw[X] = (int16_t)(buf[0] << 8 | buf[1]);
+    magDev->magADCRaw[Z] = (int16_t)(buf[2] << 8 | buf[3]);
+    magDev->magADCRaw[Y] = (int16_t)(buf[4] << 8 | buf[5]);
 
     return true;
 }
@@ -150,95 +146,16 @@ static bool hmc5883lRead(magDev_t * mag)
 #define INITIALISATION_MAX_READ_FAILURES 5
 static bool hmc5883lInit(magDev_t * mag)
 {
-    int32_t xyz_total[3] = { 0, 0, 0 }; // 32 bit totals so they won't overflow.
-    bool bret = true;           // Error indicator
-
-    delay(50);
-    busWrite(mag->busDev, HMC58X3_R_CONFA, 0x18 + HMC_POS_BIAS);   // Reg A DOR = 0x18 + MS1, MS0 set to pos bias
-    // Note that the  very first measurement after a gain change maintains the same gain as the previous setting.
-    // The new gain setting is effective from the second measurement and on.
-    busWrite(mag->busDev, HMC58X3_R_CONFB, 0x80); // Set the Gain to 4Ga (7:5->100)
-    delay(100);
-    hmc5883lRead(mag);
-
-    int validSamples1 = 0;
-    int failedSamples1 = 0;
-    int saturatedSamples1 = 0;
-    while (validSamples1 < 10 && failedSamples1 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
-        busWrite(mag->busDev, HMC58X3_R_MODE, 1);
-        delay(70);
-        if (hmc5883lRead(mag)) { // Get the raw values in case the scales have already been changed.
-            // Detect saturation.
-            if (-4096 >= MIN(mag->magADCRaw[X], MIN(mag->magADCRaw[Y], mag->magADCRaw[Z]))) {
-                ++saturatedSamples1;
-                ++failedSamples1;
-            } else {
-                ++validSamples1;
-                // Since the measurements are noisy, they should be averaged rather than taking the max.
-                xyz_total[X] += mag->magADCRaw[X];
-                xyz_total[Y] += mag->magADCRaw[Y];
-                xyz_total[Z] += mag->magADCRaw[Z];
-
-            }
-        } else {
-            ++failedSamples1;
-        }
-        LED1_TOGGLE;
-    }
-
-    // Apply the negative bias. (Same gain)
-    busWrite(mag->busDev, HMC58X3_R_CONFA, 0x18 + HMC_NEG_BIAS);   // Reg A DOR = 0x18 + MS1, MS0 set to negative bias.
-    int validSamples2 = 0;
-    int failedSamples2 = 0;
-    int saturatedSamples2 = 0;
-    while (validSamples2 < 10 && failedSamples2 < INITIALISATION_MAX_READ_FAILURES) { // Collect 10 samples
-        busWrite(mag->busDev, HMC58X3_R_MODE, 1);
-        delay(70);
-        if (hmc5883lRead(mag)) { // Get the raw values in case the scales have already been changed.
-            // Detect saturation.
-            if (-4096 >= MIN(mag->magADCRaw[X], MIN(mag->magADCRaw[Y], mag->magADCRaw[Z]))) {
-                ++saturatedSamples2;
-                ++failedSamples2;
-            } else {
-                ++validSamples2;
-                // Since the measurements are noisy, they should be averaged.
-                xyz_total[X] -= mag->magADCRaw[X];
-                xyz_total[Y] -= mag->magADCRaw[Y];
-                xyz_total[Z] -= mag->magADCRaw[Z];
-            }
-        } else {
-            ++failedSamples2;
-        }
-        LED1_TOGGLE;
-    }
-
-    if (failedSamples1 >= INITIALISATION_MAX_READ_FAILURES || failedSamples2 >= INITIALISATION_MAX_READ_FAILURES) {
-        addBootlogEvent4(BOOT_EVENT_HMC5883L_READ_OK_COUNT, BOOT_EVENT_FLAGS_NONE, validSamples1, validSamples2);
-        addBootlogEvent4(BOOT_EVENT_HMC5883L_READ_FAILED, BOOT_EVENT_FLAGS_WARNING, failedSamples1, failedSamples2);
-        bret = false;
-    }
-    if (saturatedSamples1 > 0 || saturatedSamples2 > 0) {
-        addBootlogEvent4(BOOT_EVENT_HMC5883L_SATURATION, BOOT_EVENT_FLAGS_WARNING, saturatedSamples1, saturatedSamples2);
-    }
-
-    if (bret) {
-        magGain[X] = fabsf(440.0f * HMC58X3_X_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[X]);
-        magGain[Y] = fabsf(440.0f * HMC58X3_Y_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[Y]);
-        magGain[Z] = fabsf(440.0f * HMC58X3_Z_SELF_TEST_GAUSS * 2.0f * 10.0f / xyz_total[Z]);
-    } else {
-        // Something went wrong so get a best guess
-        magGain[X] = 1.0f;
-        magGain[Y] = 1.0f;
-        magGain[Z] = 1.0f;
-    }
-
-    // leave test mode
     busWrite(mag->busDev, HMC58X3_R_CONFA, 0x78);   // Configuration Register A  -- 0 11 100 00  num samples: 8 ; output rate: 75Hz ; normal measurement mode
+    delay(5);
+
     busWrite(mag->busDev, HMC58X3_R_CONFB, 0x20);   // Configuration Register B  -- 001 00000    configuration gain 1.3Ga
+    delay(5);
+
     busWrite(mag->busDev, HMC58X3_R_MODE, 0x00);    // Mode register             -- 000000 00    continuous Conversion Mode
     delay(100);
 
-    return bret;
+    return true;
 }
 
 #define DETECTION_MAX_RETRY_COUNT   200
