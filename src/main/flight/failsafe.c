@@ -366,7 +366,7 @@ void failsafeUpdateState(void)
             case FAILSAFE_IDLE:
                 if (armed) {
                     // Track throttle command below minimum time
-                    if (THROTTLE_HIGH == calculateThrottleStatus()) {
+                    if ((THROTTLE_HIGH == calculateThrottleStatus()) || (!STATE(FIXED_WING) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD))) {
                         failsafeState.throttleLowPeriod = millis() + failsafeConfig()->failsafe_throttle_low_delay * MILLIS_PER_TENTH_SECOND;
                     }
                     if (!receivingRxDataAndNotFailsafeMode) {
