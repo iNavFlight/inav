@@ -304,12 +304,15 @@ ARCH_FLAGS      = -mthumb -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu
 ifeq ($(TARGET),$(filter $(TARGET),$(F411_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F411xE
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f411.ld
+STARTUP_SRC     = startup_stm32f411xe.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F405_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F40_41xxx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
+STARTUP_SRC     = startup_stm32f40xx.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F427_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F427_437xx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f427.ld
+STARTUP_SRC     = startup_stm32f427xx.s
 else
 $(error Unknown MCU for F4 target)
 endif
@@ -769,7 +772,6 @@ STM32F30x_COMMON_SRC = \
             drivers/timer_stm32f30x.c
 
 STM32F4xx_COMMON_SRC = \
-            startup_stm32f40xx.s \
             target/system_stm32f4xx.c \
             drivers/accgyro/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
@@ -805,7 +807,7 @@ F7EXCLUDES = drivers/bus_spi.c \
 
 # check if target.mk supplied
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
-TARGET_SRC := $(STM32F4xx_COMMON_SRC) $(TARGET_SRC)
+TARGET_SRC := $(STARTUP_SRC) $(STM32F4xx_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F7_TARGETS)))
 TARGET_SRC := $(STARTUP_SRC) $(STM32F7xx_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))

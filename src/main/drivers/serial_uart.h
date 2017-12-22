@@ -40,6 +40,17 @@
 #define UART8_RX_BUFFER_SIZE    256
 #define UART8_TX_BUFFER_SIZE    256
 
+typedef enum {
+    UARTDEV_1 = 0,
+    UARTDEV_2 = 1,
+    UARTDEV_3 = 2,
+    UARTDEV_4 = 3,
+    UARTDEV_5 = 4,
+    UARTDEV_6 = 5,
+    UARTDEV_7 = 6,
+    UARTDEV_8 = 7
+} UARTDevice_e;
+
 typedef struct {
     serialPort_t port;
 

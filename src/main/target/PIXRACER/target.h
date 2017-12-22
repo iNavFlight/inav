@@ -99,37 +99,35 @@
 #define VBUS_SENSING_PIN PA9
 #define VBUS_SENSING_ENABLED
 
-#define USE_UART1
+#define USE_UART1                       // ESP8266
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
 
-#define USE_UART2
+#define USE_UART2                       // TELEM1
 #define UART2_RX_PIN            PD6
 #define UART2_TX_PIN            PD5
 
-#define USE_UART3
+#define USE_UART3                       // TELEM2
 #define UART3_RX_PIN            PD9
 #define UART3_TX_PIN            PD8
 
-#define USE_UART4
+#define USE_UART4                       // GPS
 #define UART4_RX_PIN            PA1
 #define UART4_TX_PIN            PA0
 
-#define USE_UART6
-#define UART6_RX_PIN            PC7     // RX is used only (SerialRX)
+#define USE_UART6                       // SerialRX (RX line is used only)
+#define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-/*
-#define USE_UART7
+#define USE_UART7                       // DEBUG connector
 #define UART7_RX_PIN            PE7
 #define UART7_TX_PIN            PE8
 
-#define USE_UART8
+#define USE_UART8                       // FRS
 #define UART8_RX_PIN            PE0
 #define UART8_TX_PIN            PE1
-*/
 
-#define SERIAL_PORT_COUNT       6 //VCP, UART1, UART2, UART3, UART4
+#define SERIAL_PORT_COUNT       8
 
 #define USE_SPI
 

@@ -201,10 +201,9 @@ bool mpu6000GyroDetect(gyroDev_t *gyro)
     if (gyro->busDev == NULL) {
         return false;
     }
-    
+
     if (!mpu6000DeviceDetect(gyro->busDev)) {
         busDeviceDeInit(gyro->busDev);
-        while(1);
         return false;
     }
 

@@ -130,6 +130,14 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
     } else if (USARTx == USART6) {
         s = serialUART6(baudRate, mode, options);
 #endif
+#ifdef USE_UART7
+    } else if (USARTx == UART7) {
+        s = serialUART7(baudRate, mode, options);
+#endif
+#ifdef USE_UART8
+    } else if (USARTx == UART8) {
+        s = serialUART8(baudRate, mode, options);
+#endif
 
     } else {
         return (serialPort_t *)s;
