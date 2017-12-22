@@ -493,11 +493,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[X]));
         sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[Y]));
 #else
-        sbufWriteU8(dst, opflow.rawQuality);
-        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[X]));
-        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[Y]));
-        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[X]));
-        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[Y]));
+        sbufWriteU8(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
 #endif
         break;
 
