@@ -160,6 +160,10 @@
 #define USE_MAG_AK8975  // External
 #define USE_MAG_QMC5883 // External
 
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
+
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
 
