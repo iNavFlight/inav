@@ -136,10 +136,6 @@
     BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
 #endif
 
-#if defined(USE_MAX7456)
-    BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS);
-#endif
-
 #if defined(USE_RANGEFINDER_SRF10)
     #if !defined(SRF10_I2C_BUS)
         #define SRF10_I2C_BUS RANGEFINDER_I2C_BUS
@@ -165,9 +161,16 @@
     #if !defined(MS4525_I2C_BUS)
         #define MS4525_I2C_BUS PITOT_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,    0x28,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_NONE);
 #endif
 
+#if defined(USE_MAX7456)
+    BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS);
+#endif
+
+#if defined(USE_FLASH_M25P16)
+    BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE);
+#endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
 

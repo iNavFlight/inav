@@ -86,7 +86,7 @@
 
 #define M25P16_CS_GPIO          GPIOB
 #define M25P16_CS_PIN           PB12
-#define M25P16_SPI_INSTANCE     SPI2
+#define M25P16_SPI_BUS          BUS_SPI2
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC

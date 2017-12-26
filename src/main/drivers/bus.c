@@ -206,25 +206,41 @@ void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value)
 
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length)
 {
+#ifdef USE_SPI
+    // busTransfer function is only supported on SPI bus
+    if (dev->busType == BUSTYPE_SPI) {
+        busTransferDescriptor_t dsc = {
+            .rxBuf = rxBuf,
+            .txBuf = txBuf,
+            .length = length
+        };
+
+        return spiBusTransferMultiple(dev, &dsc, 1);
+    }
+#else
+    UNUSED(dev);
     UNUSED(rxBuf);
     UNUSED(txBuf);
     UNUSED(length);
-
-    switch (dev->busType) {
-        case BUSTYPE_SPI:
-#ifdef USE_SPI
-            return spiBusTransfer(dev, rxBuf, txBuf, length);
-#else
-            return false;
 #endif
 
-        case BUSTYPE_I2C:
-            // Raw transfer operation is not supported on I2C
-            return false;
+    return false;
+}
 
-        default:
-            return false;
+bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc, int count)
+{
+#ifdef USE_SPI
+    // busTransfer function is only supported on SPI bus
+    if (dev->busType == BUSTYPE_SPI) {
+        return spiBusTransferMultiple(dev, dsc, count);
     }
+#else
+    UNUSED(dev);
+    UNUSED(dsc);
+    UNUSED(count);
+#endif
+
+    return false;
 }
 
 bool busWriteBuf(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length)

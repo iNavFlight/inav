@@ -108,6 +108,7 @@ typedef enum {
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
     DEVHW_PCA9685,      // PWM output device
+    DEVHW_M25P16,       // SPI NOR flash
 } devHardwareType_e;
 
 typedef enum {
@@ -220,6 +221,13 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
     BUSDEV_REGISTER_I2C_F(_name, _devHw, _i2cBus, _devAddr, _irqPin, _tag, _flags)
 
 
+// busTransfer and busTransferMultiple are supported only on full-duplex SPI bus
+typedef struct busTransferDescriptor_s {
+    uint8_t *       rxBuf;
+    const uint8_t * txBuf;
+    uint32_t        length;
+} busTransferDescriptor_t;
+
 /* Internal abstraction function */
 bool i2cBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
@@ -228,7 +236,7 @@ bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
 
 
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed);
-bool spiBusTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
+bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc, int count);
 bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
@@ -248,8 +256,10 @@ void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value);
 
 void busSetSpeed(const busDevice_t * dev, busSpeed_e speed);
 
-bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
 bool busWriteBuf(const busDevice_t * busdev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool busReadBuf(const busDevice_t * busdev, uint8_t reg, uint8_t * data, uint8_t length);
 bool busRead(const busDevice_t * busdev, uint8_t reg, uint8_t * data);
 bool busWrite(const busDevice_t * busdev, uint8_t reg, uint8_t data);
+
+bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
+bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * buffers, int count);

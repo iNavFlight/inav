@@ -23,8 +23,8 @@
 
 #include "build/build_config.h"
 
+#include "drivers/bus.h"
 #include "drivers/time.h"
-#include "drivers/bus_spi.h"
 #include "drivers/io.h"
 #include "drivers/flash_m25p16.h"
 #include "hardware_revision.h"
@@ -83,16 +83,17 @@ void detectHardwareRevision(void)
     IOLo(uart1invert);
 }
 
+/* BJF4_REV1 has different connection of memory chip */
+BUSDEV_REGISTER_SPI_TAG(m25p16_bjf3_rev1, DEVHW_M25P16, M25P16_SPI_BUS, PB3, NONE, 1, DEVFLAGS_NONE);
+
 void updateHardwareRevision(void)
 {
     if (hardwareRevision != BJF4_REV2) {
         return;
     }
 
-    /*
-        if flash exists on PB3 then Rev1
-    */
-    if (m25p16_init(IO_TAG(PB3))) {
+    /* if flash exists on PB3 (busDevice m25p16_bjf3_rev1) then Rev1 */
+    if (m25p16_init(1)) {
         hardwareRevision = BJF4_REV1;
     } else {
         IOInit(IOGetByTag(IO_TAG(PB3)), OWNER_FREE, RESOURCE_NONE, 0);
