@@ -94,8 +94,8 @@
 
 // Assigned to shared output I2C2
 #define USE_UART3
-#define UART3_RX_PIN PB10
-#define UART3_TX_PIN PB11
+#define UART3_RX_PIN PB11
+#define UART3_TX_PIN PB10
 
 #define USE_UART6
 #define UART6_RX_PIN PC7
