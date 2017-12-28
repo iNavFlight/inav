@@ -126,7 +126,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .D = 10,   // posResponseExpo * 100
                 },
                 [PID_VEL_XY] = {
-                    .P = 180,  // NAV_VEL_XY_P * 100
+                    .P = 40,   // NAV_VEL_XY_P * 20
                     .I = 15,   // NAV_VEL_XY_I * 100
                     .D = 100,  // NAV_VEL_XY_D * 100
                 },

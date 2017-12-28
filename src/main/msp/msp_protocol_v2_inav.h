@@ -19,3 +19,4 @@
 // See https://github.com/iNavFlight/inav/wiki/MSP-V2#msp-v2-message-catalogue
 
 #define MSP2_INAV_STATUS            0x2000
+#define MSP2_INAV_OPTICAL_FLOW      0x2001

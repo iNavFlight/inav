@@ -171,6 +171,7 @@ static void setupAltitudeController(void);
 void resetNavigation(void);
 void resetGCSFlags(void);
 
+static bool posEstimationHasGlobalReference(void);
 static void calcualteAndSetActiveWaypoint(const navWaypoint_t * waypoint);
 static void calcualteAndSetActiveWaypointToLocalPosition(const t_fp_vector * pos);
 void calculateInitialHoldPosition(t_fp_vector * pos);
@@ -790,8 +791,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 {
     navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
-    if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || !STATE(GPS_FIX_HOME)) {
+    if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || !STATE(GPS_FIX_HOME) || !posEstimationHasGlobalReference()) {
         // Heading sensor, altitude sensor and HOME fix are mandatory for RTH. If not satisfied - switch to emergency landing
+        // If we are in dead-reckoning mode - also fail, since coordinates may be unreliable
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
@@ -1477,8 +1479,6 @@ void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, f
         posControl.flags.horizontalPositionDataNew = 0;
     }
 
-    posControl.flags.estHeadingStatus = isImuHeadingValid() ? EST_TRUSTED : EST_NONE;
-
 #if defined(NAV_BLACKBOX)
     navLatestActualPosition[X] = newX;
     navLatestActualPosition[Y] = newY;
@@ -1534,18 +1534,19 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
     }
 
 #if defined(NAV_BLACKBOX)
-    navLatestActualPosition[Z] = constrain(newAltitude, -32678, 32767);
-    navActualVelocity[Z] = constrain(newVelocity, -32678, 32767);
+    navLatestActualPosition[Z] = constrain(posControl.actualState.pos.V.Z, -32678, 32767);
+    navActualVelocity[Z] = constrain(posControl.actualState.vel.V.Z, -32678, 32767);
 #endif
 }
 
 /*-----------------------------------------------------------
  * Processes an update to estimated heading
  *-----------------------------------------------------------*/
-void updateActualHeading(int32_t newHeading)
+void updateActualHeading(bool headingValid, int32_t newHeading)
 {
     /* Update heading */
     posControl.actualState.yaw = newHeading;
+    posControl.flags.estHeadingStatus = headingValid ? EST_TRUSTED : EST_NONE;
 
     /* Precompute sin/cos of yaw angle */
     posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(newHeading));
@@ -2319,6 +2320,11 @@ static bool canActivatePosHoldMode(void)
     return (posControl.flags.estPosStatue >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE);
 }
 
+static bool posEstimationHasGlobalReference(void)
+{
+    return true;    // For now assume that we always have global coordinates available
+}
+
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 {
     static bool canActivateWaypoint = false;
@@ -2370,7 +2376,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
-            if ((FLIGHT_MODE(NAV_WP_MODE)) || (canActivateWaypoint && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME) && ARMING_FLAG(ARMED) && posControl.waypointListValid && (posControl.waypointCount > 0)))
+            if ((FLIGHT_MODE(NAV_WP_MODE)) || (posEstimationHasGlobalReference() && canActivateWaypoint && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME) && ARMING_FLAG(ARMED) && posControl.waypointListValid && (posControl.waypointCount > 0)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
         }
         else {
@@ -2571,7 +2577,7 @@ void navigationUsePIDs(void)
     for (int axis = 0; axis < 2; axis++) {
         navPInit(&posControl.pids.pos[axis], (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f);
 
-        navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 100.0f,
+        navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f);
     }

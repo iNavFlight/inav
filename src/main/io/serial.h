@@ -45,6 +45,7 @@ typedef enum {
     FUNCTION_VTX_SMARTAUDIO      = (1 << 11), // 2048
     FUNCTION_VTX_TRAMP           = (1 << 12), // 4096
     FUNCTION_UAV_INTERCONNECT    = (1 << 13), // 8192
+    FUNCTION_OPTICAL_FLOW        = (1 << 14), // 16384
 } serialPortFunction_e;
 
 typedef enum {
