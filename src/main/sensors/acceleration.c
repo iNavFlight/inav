@@ -349,7 +349,7 @@ uint8_t accGetCalibrationAxisFlags(void)
 {
     uint8_t flags = 0;
     for (int i = 0; i < 6; i++) {
-        if (accGetCalibrationAxisStatus(0)) {
+        if (accGetCalibrationAxisStatus(i)) {
             flags |= (1 << i);
         }
     }
