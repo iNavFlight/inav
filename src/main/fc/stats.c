@@ -1,7 +1,7 @@
 
 #include "platform.h"
 
-#ifdef STATS
+#ifdef USE_STATS
 
 #include "fc/stats.h"
 

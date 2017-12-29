@@ -25,7 +25,7 @@
 
 #include "drivers/logging.h"
 
-#ifdef BOOTLOG
+#ifdef USE_BOOTLOG
 
 #include "drivers/time.h"
 

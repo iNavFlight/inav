@@ -24,7 +24,7 @@
 
 #include "build/version.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "common/axis.h"
 #include "io/gimbal.h"
@@ -42,7 +42,7 @@
 #include "cms/cms_types.h"
 #include "cms/cms_menu_ledstrip.h"
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 
 static bool cmsx_FeatureLedStrip_Enabled(bool *enabled)
 {
@@ -66,8 +66,10 @@ static OSD_Entry cmsx_menuLedstripEntries[] =
 };
 
 CMS_Menu cmsx_menuLedstrip = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENULED",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

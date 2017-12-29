@@ -17,7 +17,7 @@
 
 #pragma once
 
-#ifdef GPS
+#ifdef USE_GPS
 
 #include "io/serial.h"
 

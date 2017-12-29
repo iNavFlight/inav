@@ -100,7 +100,7 @@ STATIC_FASTRAM pt1Filter_t headingHoldRateFilter;
 STATIC_FASTRAM bool pidGainsUpdateRequired;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
 int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
 #endif
 
@@ -126,7 +126,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .D = 10,   // posResponseExpo * 100
                 },
                 [PID_VEL_XY] = {
-                    .P = 180,  // NAV_VEL_XY_P * 100
+                    .P = 40,   // NAV_VEL_XY_P * 20
                     .I = 15,   // NAV_VEL_XY_I * 100
                     .D = 100,  // NAV_VEL_XY_D * 100
                 },
@@ -458,7 +458,7 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
 
     axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf, -pidProfile()->pidSumLimit, +pidProfile()->pidSumLimit);
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newFFTerm;
@@ -524,7 +524,7 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
 
     axisPID[axis] = newOutputLimited;
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
@@ -554,7 +554,7 @@ static uint8_t getHeadingHoldState(void)
         return HEADING_HOLD_DISABLED;
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     int navHeadingState = navigationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
     if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
@@ -652,7 +652,7 @@ static void pidTurnAssistant(pidState_t *pidState)
             // If we solve for yaw rate we get:
             //      yaw_rate = tan(roll_angle) * Gravity / forward_vel
 
-#if defined(PITOT)
+#if defined(USE_PITOT)
             float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) ?
                     pitot.airSpeed :
                     pidProfile()->fixedWingReferenceAirspeed;

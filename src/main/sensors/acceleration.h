@@ -18,9 +18,13 @@
 #pragma once
 
 #include "common/axis.h"
+#include "common/maths.h"
 #include "config/parameter_group.h"
 #include "drivers/accgyro/accgyro.h"
 #include "sensors/sensors.h"
+
+#define GRAVITY_CMSS    980.665f
+#define GRAVITY_MSS     9.80665f
 
 // Type of accelerometer used/detected
 typedef enum {
@@ -41,7 +45,7 @@ typedef enum {
 typedef struct acc_s {
     accDev_t dev;
     uint32_t accTargetLooptime;
-    int32_t accADC[XYZ_AXIS_COUNT];
+    float accADCf[XYZ_AXIS_COUNT]; // acceleration in g
 } acc_t;
 
 extern acc_t acc;
@@ -61,6 +65,7 @@ PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
 bool accInit(uint32_t accTargetLooptime);
 bool accIsCalibrationComplete(void);
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+void accGetMeasuredAcceleration(t_fp_vector *measuredAcc);
 void accUpdate(void);
 void accSetCalibrationValues(void);
 void accInitFilters(void);

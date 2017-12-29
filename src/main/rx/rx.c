@@ -161,7 +161,7 @@ static bool isPulseValid(uint16_t pulseDuration)
             pulseDuration <= rxConfig()->rx_max_usec;
 }
 
-#ifdef SERIAL_RX
+#ifdef USE_SERIAL_RX
 bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     bool enabled = false;
@@ -254,7 +254,7 @@ void rxInit(void)
             break;
 #endif
 
-#ifdef SERIAL_RX
+#ifdef USE_SERIAL_RX
         case RX_TYPE_SERIAL:
             if (!serialRxInit(rxConfig(), &rxRuntimeConfig)) {
                 rxConfigMutable()->receiverType = RX_TYPE_NONE;
@@ -436,14 +436,15 @@ void parseRcChannels(const char *input)
 }
 
 #ifdef USE_RX_ELERES
-void updateRSSIeleres(uint32_t currentTime)
+static bool updateRSSIeleres(uint32_t currentTime)
 {
     UNUSED(currentTime);
     rssi = eleresRssi();
+    return true;
 }
 #endif // USE_RX_ELERES
 
-static void updateRSSIPWM(void)
+static bool updateRSSIPWM(void)
 {
     int16_t pwmRssi = 0;
     // Read value of AUX channel as rssi
@@ -451,56 +452,67 @@ static void updateRSSIPWM(void)
 
     // Range of rawPwmRssi is [1000;2000]. rssi should be in [0;1023];
     rssi = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * 1023.0f);
+
+    return true;
 }
 
 #define RSSI_ADC_SAMPLE_COUNT 16
 
-static void updateRSSIADC(timeUs_t currentTimeUs)
+static bool updateRSSIADC(timeUs_t currentTimeUs)
 {
 #ifndef USE_ADC
     UNUSED(currentTimeUs);
+    return false;
 #else
     static uint16_t adcRssiSamples[RSSI_ADC_SAMPLE_COUNT];
     static uint16_t adcRssiSampleIndex = 0;
     static timeUs_t rssiUpdateAtUs = 0;
 
     if ((int32_t)(currentTimeUs - rssiUpdateAtUs) < 0) {
-        return;
+        return false;
     }
     rssiUpdateAtUs = currentTimeUs + DELAY_50_HZ;
 
     adcRssiSampleIndex = (adcRssiSampleIndex + 1) % RSSI_ADC_SAMPLE_COUNT;
     adcRssiSamples[adcRssiSampleIndex] = adcGetChannel(ADC_RSSI);
 
-    int16_t adcRssiMean = 0;
+    uint32_t adcRssiMean = 0;
     for (int sampleIndex = 0; sampleIndex < RSSI_ADC_SAMPLE_COUNT; sampleIndex++) {
         adcRssiMean += adcRssiSamples[sampleIndex];
     }
 
     rssi = (adcRssiMean / RSSI_ADC_SAMPLE_COUNT) / 4;    // Reduce to [0;1023]
+    return true;
 #endif
 }
 
 void updateRSSI(timeUs_t currentTimeUs)
 {
+    bool rssiUpdated = false;
+
     // Read RSSI
     if (rxConfig()->rssi_channel > 0) {
-        updateRSSIPWM();
+        rssiUpdated = updateRSSIPWM();
     } else if (feature(FEATURE_RSSI_ADC)) {
-        updateRSSIADC(currentTimeUs);
+        rssiUpdated = updateRSSIADC(currentTimeUs);
 #ifdef USE_RX_ELERES
     } else if (rxConfig()->receiverType == RX_TYPE_SPI && rxConfig()->rx_spi_protocol == RFM22_ELERES) {
-        updateRSSIeleres(currentTimeUs);
+        rssiUpdated = updateRSSIeleres(currentTimeUs);
 #endif
     }
 
-    // Apply RSSI inversion
-    if (rxConfig()->rssiInvert) {
-        rssi = 1023 - rssi;
-    }
+    if (rssiUpdated) {
+        // Apply RSSI inversion
+        if (rxConfig()->rssiInvert) {
+            rssi = 1023 - rssi;
+        }
 
-    // Apply scaling
-    rssi = constrain((uint32_t)rssi * rxConfig()->rssi_scale / 100, 0, 1023);
+        // Apply scaling
+        debug[0] = rssi;
+        debug[1] = rxConfig()->rssi_scale;
+        rssi = constrain((uint32_t)rssi * rxConfig()->rssi_scale / 100, 0, 1023);
+        debug[2] = rssi;
+    }
 }
 
 uint16_t rxGetRefreshRate(void)

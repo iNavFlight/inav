@@ -17,9 +17,4 @@
 
 #pragma once
 
-typedef struct drv_adxl345_config_s {
-    bool useFifo;
-    uint16_t dataRate;
-} drv_adxl345_config_t;
-
-bool adxl345Detect(accDev_t *acc, drv_adxl345_config_t *init);
+bool adxl345Detect(accDev_t *acc);

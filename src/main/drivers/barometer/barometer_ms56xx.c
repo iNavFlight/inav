@@ -23,15 +23,16 @@
 #include "build/build_config.h"
 #include "common/utils.h"
 
+#include "drivers/io.h"
+#include "drivers/bus.h"
+#include "drivers/time.h"
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_ms56xx.h"
-#include "drivers/barometer/barometer_spi_ms56xx.h"
 
-#include "drivers/time.h"
-#include "drivers/bus_i2c.h"
+#if defined(USE_BARO_MS5607) || defined(USE_BARO_MS5611)
 
 // MS56xx, Standard address 0x77
-#define MS56XX_ADDR                 0x77
+#define MS56XX_ADDR             0x77
 
 #define CMD_RESET               0x1E // ADC reset command
 #define CMD_ADC_READ            0x00 // ADC read command
@@ -46,33 +47,10 @@
 #define CMD_PROM_RD             0xA0 // Prom read command
 #define PROM_NB                 8
 
-#if defined(USE_BARO_MS5607) || defined(USE_BARO_MS5611)
-
 STATIC_UNIT_TESTED uint32_t ms56xx_ut;  // static result of temperature measurement
 STATIC_UNIT_TESTED uint32_t ms56xx_up;  // static result of pressure measurement
 STATIC_UNIT_TESTED uint16_t ms56xx_c[PROM_NB];  // on-chip ROM
 static uint8_t ms56xx_osr = CMD_ADC_4096;
-
-static void ms56xx_reset(void)
-{
-#if defined(USE_BARO_SPI_MS5611) || defined(USE_BARO_SPI_MS5607)
-    ms56xxSpiWriteCommand(CMD_RESET, 1);
-#else
-    i2cWrite(BARO_I2C_INSTANCE, MS56XX_ADDR, CMD_RESET, 1);
-#endif
-    delayMicroseconds(2800);
-}
-
-static uint16_t ms56xx_prom(int8_t coef_num)
-{
-    uint8_t rxbuf[2] = { 0, 0 };
-#if defined(USE_BARO_SPI_MS5611) || defined(USE_BARO_SPI_MS5607)
-    ms56xxSpiReadCommand(CMD_PROM_RD + coef_num * 2, 2, rxbuf); // send PROM READ command
-#else
-    i2cRead(BARO_I2C_INSTANCE, MS56XX_ADDR, CMD_PROM_RD + coef_num * 2, 2, rxbuf); // send PROM READ command
-#endif
-    return rxbuf[0] << 8 | rxbuf[1];
-}
 
 STATIC_UNIT_TESTED int8_t ms56xx_crc(uint16_t *prom)
 {
@@ -104,48 +82,39 @@ STATIC_UNIT_TESTED int8_t ms56xx_crc(uint16_t *prom)
     return -1;
 }
 
-static uint32_t ms56xx_read_adc(void)
+static uint32_t ms56xx_read_adc(baroDev_t *baro)
 {
     uint8_t rxbuf[3];
-#if defined(USE_BARO_SPI_MS5611) || defined(USE_BARO_SPI_MS5607)
-    ms56xxSpiReadCommand(CMD_ADC_READ, 3, rxbuf); // read ADC
-#else
-    i2cRead(BARO_I2C_INSTANCE, MS56XX_ADDR, CMD_ADC_READ, 3, rxbuf); // read ADC
-#endif
+    busReadBuf(baro->busDev, CMD_ADC_READ, rxbuf, 3);
     return (rxbuf[0] << 16) | (rxbuf[1] << 8) | rxbuf[2];
 }
 
-static void ms56xx_start_ut(void)
+static bool ms56xx_start_ut(baroDev_t *baro)
 {
-#if defined(USE_BARO_SPI_MS5611) || defined(USE_BARO_SPI_MS5607)
-    ms56xxSpiWriteCommand(CMD_ADC_CONV + CMD_ADC_D2 + ms56xx_osr, 1); // D2 (temperature) conversion start!
-#else
-    i2cWrite(BARO_I2C_INSTANCE, MS56XX_ADDR, CMD_ADC_CONV + CMD_ADC_D2 + ms56xx_osr, 1); // D2 (temperature) conversion start!
-#endif
+    return busWrite(baro->busDev, CMD_ADC_CONV + CMD_ADC_D2 + ms56xx_osr, 1);
 }
 
-static void ms56xx_get_ut(void)
+static bool ms56xx_get_ut(baroDev_t *baro)
 {
-    ms56xx_ut = ms56xx_read_adc();
+    ms56xx_ut = ms56xx_read_adc(baro);
+    return true;
 }
 
-static void ms56xx_start_up(void)
+static bool ms56xx_start_up(baroDev_t *baro)
 {
-#if defined(USE_BARO_SPI_MS5611) || defined(USE_BARO_SPI_MS5607)
-    ms56xxSpiWriteCommand(CMD_ADC_CONV + CMD_ADC_D1 + ms56xx_osr, 1); // D1 (pressure) conversion start!
-#else
-    i2cWrite(BARO_I2C_INSTANCE, MS56XX_ADDR, CMD_ADC_CONV + CMD_ADC_D1 + ms56xx_osr, 1); // D1 (pressure) conversion start!
-#endif
+    return busWrite(baro->busDev, CMD_ADC_CONV + CMD_ADC_D1 + ms56xx_osr, 1);
 }
 
-static void ms56xx_get_up(void)
+static bool ms56xx_get_up(baroDev_t *baro)
 {
-    ms56xx_up = ms56xx_read_adc();
+    ms56xx_up = ms56xx_read_adc(baro);
+    return true;
 }
 
 #ifdef USE_BARO_MS5611
-STATIC_UNIT_TESTED void ms5611_calculate(int32_t *pressure, int32_t *temperature)
+STATIC_UNIT_TESTED bool ms5611_calculate(baroDev_t *baro, int32_t *pressure, int32_t *temperature)
 {
+    UNUSED(baro);
     uint32_t press;
     int64_t temp;
     int64_t delt;
@@ -173,12 +142,15 @@ STATIC_UNIT_TESTED void ms5611_calculate(int32_t *pressure, int32_t *temperature
         *pressure = press;
     if (temperature)
         *temperature = temp;
+
+    return true;
 }
 #endif
 
 #ifdef USE_BARO_MS5607
-STATIC_UNIT_TESTED void ms5607_calculate(int32_t *pressure, int32_t *temperature)
+STATIC_UNIT_TESTED bool ms5607_calculate(baroDev_t *baro, int32_t *pressure, int32_t *temperature)
 {
+    UNUSED(baro);
     uint32_t press;
     int64_t temp;
     int64_t delt;
@@ -206,62 +178,103 @@ STATIC_UNIT_TESTED void ms5607_calculate(int32_t *pressure, int32_t *temperature
         *pressure = press;
     if (temperature)
         *temperature = temp;
+
+    return true;
 }
 #endif
 
 #define DETECTION_MAX_RETRY_COUNT   5
-bool ms56xxDetect(baroDev_t *baro, baroSensor_e baroType)
+static bool deviceDetect(busDevice_t * dev)
 {
-    UNUSED(baroType);
-
-    delay(10); // No idea how long the chip takes to power-up, but let's make it 10ms
-    for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
-        uint8_t sig;
-        int i;
-#if defined(USE_BARO_SPI_MS5611) || defined(USE_BARO_SPI_MS5607)
-        ms56xxSpiInit();
-        ms56xxSpiReadCommand(CMD_PROM_RD, 1, &sig);
-        if (sig != 0xFF) {
-#else
-        bool ack = i2cRead(BARO_I2C_INSTANCE, MS56XX_ADDR, CMD_PROM_RD, 1, &sig);
-        if (ack) {
-#endif
-
-            ms56xx_reset();
-            // read all coefficients
-            for (i = 0; i < PROM_NB; i++)
-                ms56xx_c[i] = ms56xx_prom(i);
-            // check crc, bail out if wrong - we are probably talking to BMP085 w/o XCLR line!
-            if (ms56xx_crc(ms56xx_c) != 0)
-                return false;
-
-            // TODO prom + CRC
-            baro->ut_delay = 10000;
-            baro->up_delay = 10000;
-            baro->start_ut = ms56xx_start_ut;
-            baro->get_ut = ms56xx_get_ut;
-            baro->start_up = ms56xx_start_up;
-            baro->get_up = ms56xx_get_up;
-
-#if defined(USE_BARO_MS5607) && defined(USE_BARO_MS5611)
-            if (baroType == BARO_MS5607) {
-                baro->calculate = ms5607_calculate;
-            } else { // default to MS5611
-                baro->calculate = ms5611_calculate;
-            }
-#elif defined(USE_BARO_MS5607)
-            baro->calculate = ms5607_calculate;
-#else
-            baro->calculate = ms5611_calculate;
-#endif
-
-            return true;
-        }
+    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
+        uint8_t sig = 0;
 
         delay(10);
-    }
+
+        bool ack = busRead(dev, CMD_PROM_RD, &sig);
+        if (ack && sig != 0xFF) {
+            return true;
+        }
+    };
 
     return false;
 }
+
+static bool deviceInit(baroDev_t *baro)
+{
+    busSetSpeed(baro->busDev, BUS_SPEED_STANDARD);
+
+    busWrite(baro->busDev, CMD_RESET, 1);
+    delay(5);
+
+    // read all coefficients
+    for (int i = 0; i < PROM_NB; i++) {
+        uint8_t rxbuf[2] = { 0, 0 };
+        busReadBuf(baro->busDev, CMD_PROM_RD + i * 2, rxbuf, 2);
+        ms56xx_c[i] = (rxbuf[0] << 8 | rxbuf[1]);
+    }
+
+    // check crc, bail out if wrong - we are probably talking to BMP085 w/o XCLR line!
+    if (ms56xx_crc(ms56xx_c) != 0) {
+        return false;
+    }
+
+    baro->ut_delay = 10000;
+    baro->up_delay = 10000;
+    baro->start_ut = ms56xx_start_ut;
+    baro->get_ut = ms56xx_get_ut;
+    baro->start_up = ms56xx_start_up;
+    baro->get_up = ms56xx_get_up;
+
+    return true;
+}
+
+#ifdef USE_BARO_MS5607
+bool ms5607Detect(baroDev_t *baro)
+{
+    baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MS5607, 0, OWNER_BARO);
+    if (baro->busDev == NULL) {
+        return false;
+    }
+
+    if (!deviceDetect(baro->busDev)) {
+        busDeviceDeInit(baro->busDev);
+        return false;
+    }
+
+    if (!deviceInit(baro)) {
+        busDeviceDeInit(baro->busDev);
+        return false;
+    }
+
+    baro->calculate = ms5607_calculate;
+
+    return true;
+}
+#endif
+
+#ifdef USE_BARO_MS5611
+bool ms5611Detect(baroDev_t *baro)
+{
+    baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MS5611, 0, OWNER_BARO);
+    if (baro->busDev == NULL) {
+        return false;
+    }
+
+    if (!deviceDetect(baro->busDev)) {
+        busDeviceDeInit(baro->busDev);
+        return false;
+    }
+
+    if (!deviceInit(baro)) {
+        busDeviceDeInit(baro->busDev);
+        return false;
+    }
+
+    baro->calculate = ms5611_calculate;
+
+    return true;
+}
+#endif
 
 #endif

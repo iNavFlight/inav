@@ -20,7 +20,10 @@
 #include <stddef.h>
 
 #include "cms/cms.h"
+
+#include "common/printf.h"
 #include "common/utils.h"
+
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 
@@ -82,6 +85,36 @@ static bool rcdeviceIs5KeyEnabled(void)
     return false;
 }
 
+static void rcdeviceCameraUpdateTime(void)
+{
+    static bool hasSynchronizedTime = false;
+    // don't try more than 3 times to avoid overloading the CPU if
+    // the camera doesn't accept the command for some reason.
+    static int retries = 0;
+    runcamDeviceWriteSettingResponse_t updateSettingResponse;
+    // Format is yyyyMMddThhmmss.0 plus null terminator, hence 18
+    // characters.
+    char buf[18];
+    dateTime_t dt;
+
+    if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS) &&
+        !hasSynchronizedTime && retries < 3) {
+
+        if (rtcGetDateTime(&dt)) {
+            retries++;
+            tfp_sprintf(buf, "%04d%02d%02dT%02d%02d%02d.0",
+                dt.year, dt.month, dt.day,
+                dt.hours, dt.minutes, dt.seconds);
+
+            bool ok = runcamDeviceWriteSetting(camDevice, RCDEVICE_PROTOCOL_SETTINGID_CAMERA_TIME,
+                buf, sizeof(buf), &updateSettingResponse);
+            if (ok && updateSettingResponse.resultCode == 0) {
+                hasSynchronizedTime = true;
+            }
+        }
+    }
+}
+
 static void rcdeviceCameraControlProcess(void)
 {
     for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
@@ -122,6 +155,7 @@ static void rcdeviceCameraControlProcess(void)
             switchStates[switchIndex].isActivated = false;
         }
     }
+    rcdeviceCameraUpdateTime();
 }
 
 static bool rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e key)
@@ -191,7 +225,7 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-#ifdef CMS
+#ifdef USE_CMS
     if (cmsInMenu) {
         return;
     }

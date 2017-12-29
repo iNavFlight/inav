@@ -70,7 +70,7 @@ typedef enum {
      * failsafe_procedure = NONE.
      */
     FAILSAFE_RX_LOSS_IDLE,
-#if defined(NAV)
+#if defined(USE_NAV)
     /* Failsafe is executing RTH. This phase is the first one
      * enabled when failsafe_procedure = RTH if an RTH is
      * deemed possible (RTH might not be activated if e.g.
@@ -164,6 +164,7 @@ void failsafeApplyControlInput(void);
 bool failsafeRequiresAngleMode(void);
 bool failsafeRequiresMotorStop(void);
 bool failsafeShouldApplyControlInput(void);
+bool failsafeBypassNavigation(void);
 void failsafeUpdateRcCommandValues(void);
 
 void failsafeOnValidDataReceived(void);

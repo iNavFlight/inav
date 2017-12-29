@@ -21,6 +21,7 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
+#include "drivers/bus.h"
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)

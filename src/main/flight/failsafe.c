@@ -88,12 +88,14 @@ typedef enum {
 } failsafeChannelBehavior_e;
 
 typedef struct {
+    bool                        bypassNavigation;
     bool                        forceAngleMode;
     failsafeChannelBehavior_e   channelBehavior[4];
 } failsafeProcedureLogic_t;
 
 static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     [FAILSAFE_PROCEDURE_AUTO_LANDING] = {
+            .bypassNavigation = true,
             .forceAngleMode = true,
             .channelBehavior = {
                 FAILSAFE_CHANNEL_AUTO,          // ROLL
@@ -104,6 +106,7 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     },
 
     [FAILSAFE_PROCEDURE_DROP_IT] = {
+            .bypassNavigation = true,
             .forceAngleMode = true,
             .channelBehavior = {
                 FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
@@ -114,6 +117,7 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     },
 
     [FAILSAFE_PROCEDURE_RTH] = {
+            .bypassNavigation = false,
             .forceAngleMode = true,
             .channelBehavior = {
                 FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
@@ -124,6 +128,7 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
     },
 
     [FAILSAFE_PROCEDURE_NONE] = {
+            .bypassNavigation = false,
             .forceAngleMode = false,
             .channelBehavior = {
                 FAILSAFE_CHANNEL_HOLD,          // ROLL
@@ -163,7 +168,12 @@ void failsafeInit(void)
     failsafeState.suspended = false;
 }
 
-#ifdef NAV
+#ifdef USE_NAV
+bool failsafeBypassNavigation(void)
+{
+    return failsafeState.active && failsafeState.controlling && failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
+}
+
 bool failsafeMayRequireNavigationMode(void)
 {
     return failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_RTH;
@@ -409,7 +419,7 @@ void failsafeUpdateState(void)
                             failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_3_SECONDS; // require 3 seconds of valid rxData
                             break;
 
-#if defined(NAV)
+#if defined(USE_NAV)
                         case FAILSAFE_PROCEDURE_RTH:
                             // Proceed to handling & monitoring RTH navigation
                             failsafeActivate(FAILSAFE_RETURN_TO_HOME);
@@ -434,7 +444,7 @@ void failsafeUpdateState(void)
                 }
                 break;
 
-#if defined(NAV)
+#if defined(USE_NAV)
             case FAILSAFE_RETURN_TO_HOME:
                 if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
                     abortForcedRTH();

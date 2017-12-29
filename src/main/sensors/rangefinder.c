@@ -36,11 +36,11 @@
 #include "drivers/io.h"
 #include "drivers/logging.h"
 #include "drivers/time.h"
-#include "drivers/rangefinder_hcsr04.h"
-#include "drivers/rangefinder_srf10.h"
-#include "drivers/rangefinder_hcsr04_i2c.h"
-#include "drivers/rangefinder_vl53l0x.h"
-#include "drivers/rangefinder.h"
+#include "drivers/rangefinder/rangefinder.h"
+#include "drivers/rangefinder/rangefinder_hcsr04.h"
+#include "drivers/rangefinder/rangefinder_srf10.h"
+#include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
+#include "drivers/rangefinder/rangefinder_vl53l0x.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -61,10 +61,11 @@ rangefinder_t rangefinder;
 #define RANGEFINDER_DYNAMIC_FACTOR              75    
 
 #ifdef USE_RANGEFINDER
-PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig,
     .rangefinder_hardware = RANGEFINDER_NONE,
+    .use_median_filtering = 0,
 );
 
 const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
@@ -293,7 +294,11 @@ bool rangefinderProcess(float cosTiltAngle)
 
         if (distance >= 0) {
             rangefinder.lastValidResponseTimeMs = millis();
-            rangefinder.rawAltitude = applyMedianFilter(distance);
+            rangefinder.rawAltitude = distance;
+
+            if (rangefinderConfig()->use_median_filtering) {
+                rangefinder.rawAltitude = applyMedianFilter(rangefinder.rawAltitude);
+            }
         }
         else if (distance == RANGEFINDER_OUT_OF_RANGE) {
             rangefinder.lastValidResponseTimeMs = millis();

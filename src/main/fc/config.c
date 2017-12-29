@@ -134,7 +134,7 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
-#ifdef NAV
+#ifdef USE_NAV
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
@@ -153,7 +153,7 @@ void validateNavConfig(void)
 
 uint32_t getPidUpdateRate(void)
 {
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     if (systemConfig()->asyncMode == ASYNC_MODE_NONE) {
         return getGyroUpdateRate();
     } else {
@@ -170,7 +170,7 @@ timeDelta_t getGyroUpdateRate(void)
 }
 uint16_t getAccUpdateRate(void)
 {
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     // ACC will be updated at its own rate
     if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
         return 1000000 / systemConfig()->accTaskFrequency;
@@ -183,7 +183,7 @@ uint16_t getAccUpdateRate(void)
 #endif
 }
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
 uint16_t getAttitudeUpdateRate(void) {
     if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
         return 1000000 / systemConfig()->attitudeTaskFrequency;
@@ -275,7 +275,7 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     /*
      * When async processing mode is enabled, gyroSync has to be forced to "ON"
      */
@@ -301,7 +301,7 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#if defined(LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
+#if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
         const timerHardware_t *ledTimerHardware = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
         if (ledTimerHardware != NULL) {
@@ -377,7 +377,7 @@ void validateAndFixConfig(void)
         mixerConfigMutable()->mixerMode = DEFAULT_MIXER;
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     // Ensure sane values of navConfig settings
     validateNavConfig();
 #endif
@@ -422,7 +422,7 @@ void createDefaultConfig(void)
     parseRcChannels("AETR1234");
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
 #ifdef ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
     featureSet(FEATURE_BLACKBOX);
 #endif
@@ -441,7 +441,7 @@ void resetConfigs(void)
     createDefaultConfig();
 
     setConfigProfile(getConfigProfile());
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     reevaluateLedConfig();
 #endif
 }
@@ -463,7 +463,7 @@ static void activateConfig(void)
 
     pidInit();
 
-#ifdef NAV
+#ifdef USE_NAV
     navigationUsePIDs();
 #endif
 }

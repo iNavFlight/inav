@@ -110,19 +110,19 @@ static disarmReason_t lastDisarmReason = DISARM_NONE;
 
 bool isCalibrating(void)
 {
-#ifdef BARO
+#ifdef USE_BARO
     if (sensors(SENSOR_BARO) && !baroIsCalibrationComplete()) {
         return true;
     }
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     if (sensors(SENSOR_PITOT) && !pitotIsCalibrationComplete()) {
         return true;
     }
 #endif
 
-#ifdef NAV
+#ifdef USE_NAV
     if (!navIsCalibrationComplete()) {
         return true;
     }
@@ -187,6 +187,15 @@ static void updateArmingStatus(void)
             }
         }
 
+	/* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
+	if (IS_RC_MODE_ACTIVE(BOXNAVLAUNCH)) {
+	  if ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband)) {
+	    ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+	  } else {
+	    DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+	  }
+	}
+
         /* CHECK: Angle */
         if (!STATE(SMALL_ANGLE)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NOT_LEVEL);
@@ -203,7 +212,7 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
         
-#if defined(NAV)
+#if defined(USE_NAV)
         /* CHECK: Navigation safety */
         if (navigationBlockArming()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
@@ -213,7 +222,7 @@ static void updateArmingStatus(void)
         }
 #endif
 
-#if defined(MAG)
+#if defined(USE_MAG)
         /* CHECK: */
         if (sensors(SENSOR_MAG) && !STATE(COMPASS_CALIBRATED)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_COMPASS_NOT_CALIBRATED);
@@ -316,7 +325,7 @@ void mwDisarm(disarmReason_t disarmReason)
         lastDisarmReason = disarmReason;
         DISABLE_ARMING_FLAG(ARMED);
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         if (feature(FEATURE_BLACKBOX)) {
             blackboxFinish();
         }
@@ -358,7 +367,7 @@ void mwArm(void)
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         if (feature(FEATURE_BLACKBOX)) {
             serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
             if (sharedBlackboxAndMspPort) {
@@ -370,7 +379,7 @@ void mwArm(void)
         disarmAt = millis() + armingConfig()->auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
         //beep to indicate arming
-#ifdef NAV
+#ifdef USE_NAV
         if (navigationPositionEstimateIsHealthy())
             beeper(BEEPER_ARMING_GPS_FIX);
         else
@@ -535,7 +544,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-#if defined(MAG)
+#if defined(USE_MAG)
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
         if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
             if (!FLIGHT_MODE(HEADFREE_MODE)) {
@@ -598,7 +607,7 @@ void processRx(timeUs_t currentTimeUs)
     autotuneUpdateState();
 #endif
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         if ((!telemetryConfig()->telemetry_switch && ARMING_FLAG(ARMED)) ||
                 (telemetryConfig()->telemetry_switch && IS_RC_MODE_ACTIVE(BOXTELEMETRY))) {
@@ -669,12 +678,7 @@ void taskGyro(timeUs_t currentTimeUs) {
     }
 
     /* Update actual hardware readings */
-    gyroUpdate();
-
-#ifdef ASYNC_GYRO_PROCESSING
-    /* Update IMU for better accuracy */
-    imuUpdateGyroscope((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
-#endif
+    gyroUpdate(currentDeltaTime + (timeDelta_t)(gyroUpdateUs - currentTimeUs));
 
 #ifdef USE_OPTICAL_FLOW
     if (sensors(SENSOR_OPFLOW)) {
@@ -698,7 +702,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     if (getAsyncMode() == ASYNC_MODE_NONE) {
         taskGyro(currentTimeUs);
     }
@@ -721,7 +725,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         filterRc(isRXDataNew);
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     if (isRXDataNew) {
         updateWaypointsAndNavigationMode();
     }
@@ -729,7 +733,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     isRXDataNew = false;
 
-#if defined(NAV)
+#if defined(USE_NAV)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
 #endif
@@ -813,7 +817,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     afatfs_poll();
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
         blackboxUpdate(micros());
     }

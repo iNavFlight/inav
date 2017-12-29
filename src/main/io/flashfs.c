@@ -181,6 +181,7 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
     while (bytesTotalRemaining > 0) {
         uint32_t bytesTotalThisIteration;
         uint32_t bytesRemainThisIteration;
+        uint32_t currentFlashAddress = tailAddress;
 
         /*
          * Each page needs to be saved in a separate program operation, so
@@ -200,15 +201,13 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
             break;
         }
 
-        m25p16_pageProgramBegin(tailAddress);
-
         bytesRemainThisIteration = bytesTotalThisIteration;
 
         for (i = 0; i < bufferCount; i++) {
             if (bufferSizes[i] > 0) {
                 // Is buffer larger than our write limit? Write our limit out of it
                 if (bufferSizes[i] >= bytesRemainThisIteration) {
-                    m25p16_pageProgramContinue(buffers[i], bytesRemainThisIteration);
+                    currentFlashAddress = m25p16_pageProgram(currentFlashAddress, buffers[i], bytesRemainThisIteration);
 
                     buffers[i] += bytesRemainThisIteration;
                     bufferSizes[i] -= bytesRemainThisIteration;
@@ -217,7 +216,7 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
                     break;
                 } else {
                     // We'll still have more to write after finishing this buffer off
-                    m25p16_pageProgramContinue(buffers[i], bufferSizes[i]);
+                    currentFlashAddress = m25p16_pageProgram(currentFlashAddress, buffers[i], bufferSizes[i]);
 
                     bytesRemainThisIteration -= bufferSizes[i];
 
@@ -226,8 +225,6 @@ static uint32_t flashfsWriteBuffers(uint8_t const **buffers, uint32_t *bufferSiz
                 }
             }
         }
-
-        m25p16_pageProgramFinish();
 
         bytesTotalRemaining -= bytesTotalThisIteration;
 

@@ -31,8 +31,8 @@ extern int16_t              GPS_directionToHome;       // direction to home poin
 /* Navigation system updates */
 void onNewGPSData(void);
 
-#if defined(NAV)
-#if defined(BLACKBOX)
+#if defined(USE_NAV)
+#if defined(USE_BLACKBOX)
 #define NAV_BLACKBOX
 #endif
 
@@ -76,7 +76,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type;
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
-    uint16_t gps_delay_ms;
 
     uint16_t max_surface_altitude;
 

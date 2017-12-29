@@ -1,18 +1,18 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
+ * INAV is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
+ * INAV is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -35,14 +35,27 @@
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 
-void mpu6500AccInit(accDev_t *acc)
+#if defined(USE_GYRO_MPU6500) || defined(USE_ACC_MPU6500)
+
+#define MPU6500_BIT_RESET                   (0x80)
+#define MPU6500_BIT_INT_ANYRD_2CLEAR        (1 << 4)
+#define MPU6500_BIT_BYPASS_EN               (1 << 0)
+#define MPU6500_BIT_I2C_IF_DIS              (1 << 4)
+#define MPU6500_BIT_RAW_RDY_EN              (0x01)
+
+static void mpu6500AccInit(accDev_t *acc)
 {
     acc->acc_1G = 512 * 8;
 }
 
 bool mpu6500AccDetect(accDev_t *acc)
 {
-    if (acc->mpuDetectionResult.sensor != MPU_65xx_I2C) {
+    acc->busDev = busDeviceOpen(BUSTYPE_ANY, DEVHW_MPU6500, acc->imuSensorToUse);
+    if (acc->busDev == NULL) {
+        return false;
+    }
+
+    if (busDeviceReadScratchpad(acc->busDev) != 0xFFFF6500) {
         return false;
     }
 
@@ -52,67 +65,106 @@ bool mpu6500AccDetect(accDev_t *acc)
     return true;
 }
 
-void mpu6500GyroInit(gyroDev_t *gyro)
+static void mpu6500AccAndGyroInit(gyroDev_t *gyro)
 {
-    mpuGyroInit(gyro);
+    busDevice_t * dev = gyro->busDev;
+    mpuIntExtiInit(gyro);
 
-#ifdef NAZE
-    // FIXME target specific code in driver code.
+    busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
-    gpio_config_t gpio;
-    // MPU_INT output on rev5 hardware (PC13). rev4 was on PB13, conflicts with SPI devices
-    if (hse_value == 12000000) {
-        gpio.pin = Pin_13;
-        gpio.speed = Speed_2MHz;
-        gpio.mode = Mode_IN_FLOATING;
-        gpioInit(GPIOC, &gpio);
-    }
-#endif
+    busWrite(dev, MPU_RA_PWR_MGMT_1, MPU6500_BIT_RESET);
+    delay(100);
 
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_PWR_MGMT_1, MPU6500_BIT_RESET);
+    busWrite(dev, MPU_RA_SIGNAL_PATH_RESET, 0x07);      // BIT_GYRO | BIT_ACC | BIT_TEMP
     delay(100);
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_SIGNAL_PATH_RESET, 0x07);
+
+    busWrite(dev, MPU_RA_PWR_MGMT_1, 0);
     delay(100);
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_PWR_MGMT_1, 0);
-    delay(100);
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_PWR_MGMT_1, INV_CLK_PLL);
+
+    busWrite(dev, MPU_RA_PWR_MGMT_1, INV_CLK_PLL);
     delay(15);
+
     const uint8_t raGyroConfigData = gyro->gyroRateKHz > GYRO_RATE_8_kHz ? (INV_FSR_2000DPS << 3 | FCB_3600_32) : (INV_FSR_2000DPS << 3 | FCB_DISABLED);
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_GYRO_CONFIG, raGyroConfigData);
+
+    busWrite(dev, MPU_RA_GYRO_CONFIG, raGyroConfigData);
     delay(15);
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_ACCEL_CONFIG, INV_FSR_8G << 3);
+
+    busWrite(dev, MPU_RA_ACCEL_CONFIG, INV_FSR_8G << 3);
     delay(15);
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_CONFIG, gyro->lpf);
+
+    busWrite(dev, MPU_RA_CONFIG, gyro->lpf);
     delay(15);
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_SMPLRT_DIV, gyroMPU6xxxGetDividerDrops(gyro)); // Get Divider
+
+    busWrite(dev, MPU_RA_SMPLRT_DIV, gyroMPU6xxxGetDividerDrops(gyro)); // Get Divider
     delay(100);
 
     // Data ready interrupt configuration
-#ifdef USE_MPU9250_MAG
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_INT_PIN_CFG, 0 << 7 | 0 << 6 | 0 << 5 | 1 << 4 | 0 << 3 | 0 << 2 | 1 << 1 | 0 << 0);  // INT_ANYRD_2CLEAR, BYPASS_EN
-#else
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_INT_PIN_CFG, 0 << 7 | 0 << 6 | 0 << 5 | 1 << 4 | 0 << 3 | 0 << 2 | 0 << 1 | 0 << 0);  // INT_ANYRD_2CLEAR, BYPASS_EN
-#endif
+    busWrite(dev, MPU_RA_INT_PIN_CFG, 0 << 7 | 0 << 6 | 0 << 5 | 1 << 4 | 0 << 3 | 0 << 2 | 1 << 1 | 0 << 0);  // INT_ANYRD_2CLEAR, BYPASS_EN
     delay(15);
 
 #ifdef USE_MPU_DATA_READY_SIGNAL
-    gyro->mpuConfiguration.writeFn(&gyro->bus, MPU_RA_INT_ENABLE, 0x01); // RAW_RDY_EN interrupt enable
-#endif
+    busWrite(dev, MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
     delay(15);
+#endif
+
+    busSetSpeed(dev, BUS_SPEED_FAST);
+}
+
+static bool mpu6500DeviceDetect(busDevice_t * dev)
+{
+    uint8_t tmp;
+    uint8_t attemptsRemaining = 5;
+
+    busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
+
+    busWrite(dev, MPU_RA_PWR_MGMT_1, MPU6500_BIT_RESET);
+    
+    do {
+        delay(150);
+
+        busRead(dev, MPU_RA_WHO_AM_I, &tmp);
+
+        switch (tmp) {
+            case MPU6500_WHO_AM_I_CONST:
+            case ICM20608G_WHO_AM_I_CONST:
+            case ICM20602_WHO_AM_I_CONST:
+            case ICM20689_WHO_AM_I_CONST:
+                // Compatible chip detected
+                return true;
+
+            default:
+                // Retry detection
+                break;
+        }
+
+        if (!attemptsRemaining) {
+            return false;
+        }
+    } while (attemptsRemaining--);
+
+    return false;
 }
 
 bool mpu6500GyroDetect(gyroDev_t *gyro)
 {
-    if (gyro->mpuDetectionResult.sensor != MPU_65xx_I2C) {
+    gyro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MPU6500, gyro->imuSensorToUse, OWNER_MPU);
+    if (gyro->busDev == NULL) {
         return false;
     }
 
-    gyro->initFn = mpu6500GyroInit;
+    if (!mpu6500DeviceDetect(gyro->busDev)) {
+        busDeviceDeInit(gyro->busDev);
+        return false;
+    }
+
+    busDeviceWriteScratchpad(gyro->busDev, 0xFFFF6500);    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+
+    gyro->initFn = mpu6500AccAndGyroInit;
     gyro->readFn = mpuGyroRead;
     gyro->intStatusFn = mpuCheckDataReady;
-
-    // 16.4 dps/lsb scalefactor
-    gyro->scale = 1.0f / 16.4f;
+    gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
 
     return true;
 }
+
+#endif

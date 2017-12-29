@@ -24,7 +24,7 @@
 
 #include "common/string_light.h"
 
-#ifdef GPS
+#ifdef USE_GPS
 
 
 #define DIGIT_TO_VAL(_x)    (_x - '0')

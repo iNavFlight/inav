@@ -33,27 +33,28 @@
 
 // MPU6000 interrupts
 #define USE_MPU_DATA_READY_SIGNAL
-#define EXTI_CALLBACK_HANDLER_COUNT 2 // MPU data ready (mag disabled)
 #define MPU_INT_EXTI            PB0
 #define USE_EXTI
 
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW90_DEG
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW90_DEG
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define MAG_HMC5883_ALIGN       CW90_DEG
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
 
 
@@ -119,7 +120,7 @@
 
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
+#define USE_I2C_DEVICE_2
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
 

@@ -30,6 +30,14 @@ uint32_t flightModeFlags = 0;
 
 static uint32_t enabledSensors = 0;
 
+#if !defined(CLI_MINIMAL_VERBOSITY)
+const char *armingDisableFlagNames[]= {
+    "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
+    "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
+    "THR", "CLI", "CMS", "OSD", "ROLL/PITCH"
+};
+#endif
+
 armingFlag_e isArmingDisabledReason(void)
 {
     armingFlag_e flag;

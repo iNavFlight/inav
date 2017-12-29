@@ -33,13 +33,19 @@
 #include "drivers/nvic.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
-#include "drivers/bus_i2c.h"
+#include "drivers/bus.h"
 #include "drivers/light_led.h"
 
 #include "drivers/sensor.h"
 #include "drivers/compass/compass.h"
 
 #include "drivers/compass/compass_ist8310.h"
+
+#define IST8310_ADDRESS 0x0C
+
+// Hardware descriptor
+#if defined(MAG_I2C_BUS)
+#endif
 
 /* ist8310 Slave Address Select : default address 0x0C
  *        CAD1  |  CAD0   |  Address
@@ -79,7 +85,6 @@
  *      This bit will be set to zero after POR routine
  */
 
-#define IST8310_ADDRESS 0x0C
 #define IST8310_REG_DATA 0x03
 #define IST8310_REG_WHOAMI 0x00
 
@@ -104,55 +109,73 @@
 #define IST8310_CNTRL2_DRPOL 0x04
 #define IST8310_CNTRL2_DRENA 0x08
 
-static bool ist8310Init(magDev_t *magDev)
+static bool ist8310Init(magDev_t * mag)
 {
-    UNUSED(magDev);
-
-    i2cWrite(MAG_I2C_INSTANCE, IST8310_ADDRESS, IST8310_REG_CNTRL1, IST8310_ODR_50_HZ);
+    busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_50_HZ);
     delay(5);
-    i2cWrite(MAG_I2C_INSTANCE, IST8310_ADDRESS, IST8310_REG_AVERAGE, IST8310_AVG_16);
+
+    busWrite(mag->busDev, IST8310_REG_AVERAGE, IST8310_AVG_16);
     delay(5);
 
     return true;
 }
 
-static bool ist8310Read(magDev_t *magDev)
+static bool ist8310Read(magDev_t * mag)
 {
     uint8_t buf[6];
     uint8_t LSB2FSV = 3; // 3mG - 14 bit
 
     // set magData to zero for case of failed read
-    magDev->magADCRaw[X] = 0;
-    magDev->magADCRaw[Y] = 0;
-    magDev->magADCRaw[Z] = 0;
+    mag->magADCRaw[X] = 0;
+    mag->magADCRaw[Y] = 0;
+    mag->magADCRaw[Z] = 0;
 
-    bool ack = i2cRead(MAG_I2C_INSTANCE, IST8310_ADDRESS, IST8310_REG_DATA, 6, buf);
+    bool ack = busReadBuf(mag->busDev, IST8310_REG_DATA, buf, 6);
     if (!ack) {
         return false;
     }
 
     // need to modify when confirming the pcb direction
-    magDev->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
-    magDev->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
-    magDev->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;
+    mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
+    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
+    mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;
 
     return true;
 }
 
 #define DETECTION_MAX_RETRY_COUNT   5
-bool ist8310Detect(magDev_t *magDev)
+static bool deviceDetect(magDev_t * mag)
 {
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
+        delay(10);
+
         uint8_t sig = 0;
-        bool ack = i2cRead(MAG_I2C_INSTANCE, IST8310_ADDRESS, IST8310_REG_WHOAMI, 1, &sig);
+        bool ack = busRead(mag->busDev, IST8310_REG_WHOAMI, &sig);
+
         if (ack && sig == IST8310_CHIP_ID) {
-            magDev->init = ist8310Init;
-            magDev->read = ist8310Read;
             return true;
         }
     }
 
     return false;
+}
+
+bool ist8310Detect(magDev_t * mag)
+{
+    mag->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_IST8310, mag->magSensorToUse, OWNER_COMPASS);
+    if (mag->busDev == NULL) {
+        return false;
+    }
+
+    if (!deviceDetect(mag)) {
+        busDeviceDeInit(mag->busDev);
+        return false;
+    }
+
+    mag->init = ist8310Init;
+    mag->read = ist8310Read;
+
+    return true;
 }
 
 #endif

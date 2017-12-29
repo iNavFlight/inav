@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
 
 #include "blackbox.h"
 #include "blackbox_encoding.h"
@@ -208,15 +208,15 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"vbatLatest",    -1, UNSIGNED, .Ipredict = PREDICT(VBATREF),  .Iencode = ENCODING(NEG_14BIT),   .Ppredict = PREDICT(PREVIOUS),  .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_VBAT},
     {"amperageLatest",-1, UNSIGNED, .Ipredict = PREDICT(0),        .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),  .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_AMPERAGE_ADC},
 
-#ifdef MAG
+#ifdef USE_MAG
     {"magADC",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_MAG},
     {"magADC",      1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_MAG},
     {"magADC",      2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_MAG},
 #endif
-#ifdef BARO
+#ifdef USE_BARO
     {"BaroAlt",    -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_BARO},
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
     {"AirSpeed",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_PITOT},
 #endif
 #ifdef USE_RANGEFINDER
@@ -277,7 +277,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
 #endif
 };
 
-#ifdef GPS
+#ifdef USE_GPS
 // GPS position/vel frame
 static const blackboxConditionalFieldDefinition_t blackboxGpsGFields[] = {
     {"time",              -1, UNSIGNED, PREDICT(LAST_MAIN_FRAME_TIME), ENCODING(UNSIGNED_VB), CONDITION(NOT_LOGGING_EVERY_FRAME)},
@@ -350,13 +350,13 @@ typedef struct blackboxMainState_s {
     uint16_t vbatLatest;
     uint16_t amperageLatest;
 
-#ifdef BARO
+#ifdef USE_BARO
     int32_t BaroAlt;
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
     int32_t airSpeed;
 #endif
-#ifdef MAG
+#ifdef USE_MAG
     int16_t magADC[XYZ_AXIS_COUNT];
 #endif
 #ifdef USE_RANGEFINDER
@@ -484,21 +484,21 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return pidBank()->pid[condition - FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0].D != 0;
 
     case FLIGHT_LOG_FIELD_CONDITION_MAG:
-#ifdef MAG
+#ifdef USE_MAG
         return sensors(SENSOR_MAG);
 #else
         return false;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_BARO:
-#ifdef BARO
+#ifdef USE_BARO
         return sensors(SENSOR_BARO);
 #else
         return false;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_PITOT:
-#ifdef PITOT
+#ifdef USE_PITOT
         return sensors(SENSOR_PITOT);
 #else
         return false;
@@ -630,19 +630,19 @@ static void writeIntraframe(void)
         blackboxWriteUnsignedVB(blackboxCurrent->amperageLatest);
     }
 
-#ifdef MAG
+#ifdef USE_MAG
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MAG)) {
         blackboxWriteSigned16VBArray(blackboxCurrent->magADC, XYZ_AXIS_COUNT);
     }
 #endif
 
-#ifdef BARO
+#ifdef USE_BARO
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_BARO)) {
         blackboxWriteSignedVB(blackboxCurrent->BaroAlt);
     }
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_PITOT)) {
         blackboxWriteSignedVB(blackboxCurrent->airSpeed);
     }
@@ -806,7 +806,7 @@ static void writeInterframe(void)
         deltas[optionalFieldCount++] = (int32_t) blackboxCurrent->amperageLatest - blackboxLast->amperageLatest;
     }
 
-#ifdef MAG
+#ifdef USE_MAG
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MAG)) {
         for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
             deltas[optionalFieldCount++] = blackboxCurrent->magADC[x] - blackboxLast->magADC[x];
@@ -814,13 +814,13 @@ static void writeInterframe(void)
     }
 #endif
 
-#ifdef BARO
+#ifdef USE_BARO
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_BARO)) {
         deltas[optionalFieldCount++] = blackboxCurrent->BaroAlt - blackboxLast->BaroAlt;
     }
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_PITOT)) {
         deltas[optionalFieldCount++] = blackboxCurrent->airSpeed - blackboxLast->airSpeed;
     }
@@ -1074,7 +1074,7 @@ void blackboxFinish(void)
     }
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void writeGPSHomeFrame(void)
 {
     blackboxWrite('H');
@@ -1134,8 +1134,8 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->axisPID_I[i] = axisPID_I[i];
         blackboxCurrent->axisPID_D[i] = axisPID_D[i];
         blackboxCurrent->gyroADC[i] = lrintf(gyro.gyroADCf[i]);
-        blackboxCurrent->accADC[i] = acc.accADC[i];
-#ifdef MAG
+        blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
+#ifdef USE_MAG
         blackboxCurrent->magADC[i] = mag.magADC[i];
 #endif
     }
@@ -1161,11 +1161,11 @@ static void loadMainState(timeUs_t currentTimeUs)
     blackboxCurrent->vbatLatest = vbatLatestADC;
     blackboxCurrent->amperageLatest = amperageLatestADC;
 
-#ifdef BARO
+#ifdef USE_BARO
     blackboxCurrent->BaroAlt = baro.BaroAlt;
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     blackboxCurrent->airSpeed = pitot.airSpeed;
 #endif
 
@@ -1578,7 +1578,7 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
             loadMainState(currentTimeUs);
             writeInterframe();
         }
-#ifdef GPS
+#ifdef USE_GPS
         if (feature(FEATURE_GPS)) {
             /*
              * If the GPS home point has been updated, or every 128 intraframes (~10 seconds), write the
@@ -1645,7 +1645,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
         //On entry of this state, xmitState.headerIndex is 0 and xmitState.u.fieldIndex is -1
         if (!sendFieldDefinition('I', 'P', blackboxMainFields, blackboxMainFields + 1, ARRAYLEN(blackboxMainFields),
                 &blackboxMainFields[0].condition, &blackboxMainFields[1].condition)) {
-#ifdef GPS
+#ifdef USE_GPS
             if (feature(FEATURE_GPS)) {
                 blackboxSetState(BLACKBOX_STATE_SEND_GPS_H_HEADER);
             } else
@@ -1653,7 +1653,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
                 blackboxSetState(BLACKBOX_STATE_SEND_SLOW_HEADER);
         }
         break;
-#ifdef GPS
+#ifdef USE_GPS
     case BLACKBOX_STATE_SEND_GPS_H_HEADER:
         //On entry of this state, xmitState.headerIndex is 0 and xmitState.u.fieldIndex is -1
         if (!sendFieldDefinition('H', 0, blackboxGpsHFields, blackboxGpsHFields + 1, ARRAYLEN(blackboxGpsHFields),

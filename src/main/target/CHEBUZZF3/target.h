@@ -29,26 +29,29 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_L3GD20
 #define USE_GYRO_MPU6050
 
-#define L3GD20_SPI                      SPI1
-#define L3GD20_CS_GPIO_CLK_PERIPHERAL   RCC_AHBPeriph_GPIOE
+#define MPU6050_I2C_BUS                 BUS_I2C1
+#define LSM303DLHC_I2C_BUS              BUS_I2C1
+#define L3GD20_SPI_BUS                  BUS_SPI1
 #define L3GD20_CS_PIN                   PE3
 
 #define GYRO_L3GD20_ALIGN CW270_DEG
 #define GYRO_MPU6050_ALIGN CW0_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 #define USE_ACC_LSM303DLHC
 #define ACC_MPU6050_ALIGN       CW0_DEG
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_AK8975
 #define USE_MAG_QMC5883
 #define MAG_AK8975_ALIGN        CW90_DEG_FLIP
@@ -60,7 +63,7 @@
 #define SERIAL_PORT_COUNT 3
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 
 #define USE_ADC
 #define ADC_INSTANCE            ADC1

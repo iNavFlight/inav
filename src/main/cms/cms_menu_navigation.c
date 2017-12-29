@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#if defined(NAV)
+#if defined(USE_NAV)
 
 #include <stdlib.h>
 #include <string.h>
@@ -54,8 +54,10 @@ static OSD_Entry cmsx_menuNavSettingsEntries[] =
  };
 
 static CMS_Menu cmsx_menuNavSettings = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVSETTINGS",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -81,8 +83,10 @@ static CMS_Menu cmsx_menuNavSettings = {
  };
 
 static CMS_Menu cmsx_menuRTH = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVRTH",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -105,8 +109,10 @@ static OSD_Entry cmsx_menuFixedWingEntries[] =
 };
 
 static CMS_Menu cmsx_menuFixedWing = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVFW",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -124,8 +130,10 @@ static OSD_Entry cmsx_menuNavigationEntries[] =
 };
 
 CMS_Menu cmsx_menuNavigation = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAV",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
