@@ -359,6 +359,9 @@ uint8_t accGetCalibrationAxisFlags(void)
 
 int getPrimaryAxisIndex(int32_t sample[3])
 {
+    // Apply sensor & board alignment (for axis detection only)
+    alignSensors(sample, acc.dev.accAlign);
+
     // Tolerate up to atan(1 / 1.5) = 33 deg tilt (in worst case 66 deg separation between points)
     if ((ABS(sample[Z]) / 1.5f) > ABS(sample[X]) && (ABS(sample[Z]) / 1.5f) > ABS(sample[Y])) {
         //Z-axis
@@ -366,11 +369,11 @@ int getPrimaryAxisIndex(int32_t sample[3])
     }
     else if ((ABS(sample[X]) / 1.5f) > ABS(sample[Y]) && (ABS(sample[X]) / 1.5f) > ABS(sample[Z])) {
         //X-axis
-        return (sample[X] > 0) ? 2 : 3;
+        return (sample[X] > 0) ? 3 : 5;
     }
     else if ((ABS(sample[Y]) / 1.5f) > ABS(sample[X]) && (ABS(sample[Y]) / 1.5f) > ABS(sample[Z])) {
         //Y-axis
-        return (sample[Y] > 0) ? 4 : 5;
+        return (sample[Y] > 0) ? 2 : 4;
     }
     else
         return -1;
