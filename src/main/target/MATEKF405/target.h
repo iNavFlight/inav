@@ -76,6 +76,12 @@
 #define SDCARD_DMA_CLK                      	RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  	DMA_Channel_0
 
+// *************** M25P256 flash ********************
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define M25P16_SPI_BUS          BUS_SPI3
+#define M25P16_CS_PIN           PC0
+
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
