@@ -22,7 +22,7 @@
 
 //#define USE_ESC_SENSOR
 
-#define LED0_PIN                PB5
+#define LED0                    PB5
 
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
@@ -62,7 +62,7 @@
 //#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST) // XXX
 
 #define M25P16_CS_PIN           PA15
-#define M25P16_SPI_INSTANCE     SPI3
+#define M25P16_SPI_BUS          BUS_SPI3
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -148,17 +148,20 @@
 #define USE_RANGEFINDER_HCSR04_I2C
 
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN		PC1
-#define ADC_CHANNEL_2_PIN		PC2
+#define ADC_CHANNEL_1_PIN		    PC1
+#define ADC_CHANNEL_2_PIN		    PC2
 #define CURRENT_METER_ADC_CHANNEL	ADC_CHN_1
-#define VBAT_ADC_CHANNEL		ADC_CHN_2
+#define VBAT_ADC_CHANNEL		    ADC_CHN_2
 
-//#define LED_STRIP
+#define USE_LED_STRIP
+#define WS2811_PIN                      PB6
+#define WS2811_DMA_STREAM               DMA1_Stream0
+#define WS2811_DMA_CHANNEL              DMA_Channel_2
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
 
-//#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL // XXX
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_UART           SERIAL_PORT_USART6
-//#define SBUS_TELEMETRY_UART     SERIAL_PORT_USART2 // XXX
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define DEFAULT_FEATURES        ( FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_OSD )
@@ -175,7 +178,7 @@
 #define TARGET_IO_PORTD BIT(2)
 
 #define MAX_PWM_OUTPUT_PORTS 4
-#define USABLE_TIMER_CHANNEL_COUNT 5
+#define USABLE_TIMER_CHANNEL_COUNT 6
 
 //#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(9) | TIM_N(10) )
-#define USED_TIMERS             ( TIM_N(3) | TIM_N(8) | TIM_N(4) )
+#define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(8) | TIM_N(4) )
