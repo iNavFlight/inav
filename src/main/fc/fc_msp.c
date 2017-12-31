@@ -1043,6 +1043,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_CALIBRATION_DATA:
     #ifdef USE_ACC
+        sbufWriteU8(dst, accGetCalibrationAxisFlags());
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[X]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Y]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Z]);
@@ -1050,6 +1051,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Y]);
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Z]);
     #else
+        sbufWriteU8(dst, 0);
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
