@@ -399,7 +399,8 @@ void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
             gyroADC[X] = (int32_t)gyroDev0.gyroADCRaw[X] - (int32_t)gyroDev0.gyroZero[X];
             gyroADC[Y] = (int32_t)gyroDev0.gyroADCRaw[Y] - (int32_t)gyroDev0.gyroZero[Y];
             gyroADC[Z] = (int32_t)gyroDev0.gyroADCRaw[Z] - (int32_t)gyroDev0.gyroZero[Z];
-            alignSensors(gyroADC, gyroDev0.gyroAlign);
+            applySensorAlignment(gyroADC, gyroDev0.gyroAlign);
+            applyBoardAlignment(gyroADC);
         } else {
             performGyroCalibration(&gyroDev0, &gyroCalibration, gyroConfig()->gyroMovementCalibrationThreshold);
             // Reset gyro values to zero to prevent other code from using uncalibrated data
