@@ -70,7 +70,7 @@ static void adxl345Init(accDev_t *acc)
 
 static bool adxl345Read(accDev_t *acc)
 {
-    uint8_t buf[8];
+    uint8_t buf[6];
 
     if (!busReadBuf(acc->busDev, ADXL345_DATA_OUT, buf, 6)) {
         return false;
