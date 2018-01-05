@@ -48,9 +48,9 @@
 #define MAG_MPU9250_ALIGN       CW90_DEG_FLIP
 
 #define USE_BARO
-#define USE_BARO_MS5611
-#define MS5611_CS_PIN           PC5
-#define MS5611_SPI_BUS          BUS_SPI3
+#define USE_BARO_BMP280
+#define BMP280_CS_PIN           PC5
+#define BMP280_SPI_BUS          BUS_SPI3
 
 #define USE_OSD
 #define USE_MAX7456
@@ -109,16 +109,21 @@
 #define SPI3_MOSI_PIN           PB5
 
 #define USE_I2C
-#define USE_I2C_DEVICE_2
-#define I2C2_SCL                PB10
-#define I2C2_SDA                PB11
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB7
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN               PC2
-#define ADC_CHANNEL_2_PIN               PC1
-#define VBAT_ADC_CHANNEL                ADC_CHN_2
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define ADC_CHANNEL_1_PIN               PC3
+#define ADC_CHANNEL_2_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PC1
+#define AIRSPEED_ADC_CHANNEL            ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+#define VBAT_ADC_CHANNEL                ADC_CHN_3
+
+#define USE_PITOT_MS4525
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD )
 
