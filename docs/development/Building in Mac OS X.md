@@ -3,7 +3,7 @@
 Building in Mac OS X can be accomplished in just a few steps:
 
 * Install general development tools (clang, make, git)
-* Install ARM GCC 4.9 series compiler
+* Install ARM GCC 7.2 series compiler or higher
 * Checkout INAV sourcecode through git
 * Build the code
 
@@ -35,20 +35,19 @@ installation, open up XCode and enter its preferences menu. Go to the "downloads
 
 [from the App Store]: https://itunes.apple.com/us/app/xcode/id497799835
 
-## Install ARM GCC 4.9 series compiler
+## Install ARM GCC 7.2 series or higher compiler
 
-INAV is built using the 4.9 series GCC compiler provided by the [GNU Tools for ARM Embedded Processors project][].
+INAV is built using series 7.2 or above GCC compiler provided by the [GNU Tools for ARM Embedded Processors project][].
 
-Hit the "all downloads" link on the right side of the GNU Tools for ARM page to view [the older releases][]. Grab the
-Mac installation tarball for the latest version in the 4.9 series (e.g. 4.9-2015q2). Move it somewhere useful
+Grab the Mac installation tarball for the latest version in the 7.2 series or above (e.g. gcc-arm-none-eabi-7-2017-q4-major-mac.tar.bz2). Move it somewhere useful
 such as a `~/development` folder (in your home directory) and double click it to unpack it. You should end up with a
-folder called `~/development/gcc-arm-none-eabi-4_9-2015q2/`.
+folder with a name similar to `~/development/gcc-arm-none-eabi-7-2017-q4-major/`.
 
 Now you just need to add the `bin/` directory from inside the GCC directory to your system's path. Run `nano ~/.profile`. Add a
 new line at the end of the file which adds the path for the `bin/` folder to your path, like so:
 
 ```
-export PATH=$PATH:~/development/gcc-arm-none-eabi-4_9-2015q2/bin
+export PATH=$PATH:~/development/gcc-arm-none-eabi-7-2017-q4-major/bin
 ```
 
 Press CTRL+X to exit nano, and answer "y" when prompted to save your changes.
@@ -59,19 +58,18 @@ Now *close this terminal window* and open a new one. Try running:
 arm-none-eabi-gcc --version
 ```
 
-You should get output similar to:
+You should get output similar to (in this example compiler series 7.2.1 is used):
 
 ```
-arm-none-eabi-gcc.exe (GNU Tools for ARM Embedded Processors) 4.9.3 20150529 (release) [ARM/embedded-4_9-branch revision 224288]
-Copyright (C) 2014 Free Software Foundation, Inc.
+arm-none-eabi-gcc (GNU Tools for Arm Embedded Processors 7-2017-q4-major) 7.2.1 20170904 (release) [ARM/embedded-7-branch revision 255204]
+Copyright (C) 2017 Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 ```
 
 If `arm-none-eabi-gcc` couldn't be found, go back and check that you entered the correct path in your `~/.profile` file.
 
-[GNU Tools for ARM Embedded Processors project]: https://launchpad.net/gcc-arm-embedded
-[the older releases]: https://launchpad.net/gcc-arm-embedded/+download
+[GNU Tools for ARM Embedded Processors project]: https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads
 
 ## Ruby
 
@@ -92,8 +90,8 @@ This will download the entire INAV repository for you into a new folder called "
 
 ## Build the code
 
-Enter the inav directory and run `make TARGET=NAZE` to build firmware for the Naze32. When the build completes,
-the .hex firmware should be available as `obj/inav_NAZE.hex` for you to flash using the INAV
+Enter the inav directory and run `make TARGET=SPRACINGF3` to build firmware for the SPRacing F3. When the build completes,
+the .hex firmware should be available as `obj/inav_x.x.x_SPRACINGF3.hex` for you to flash using the INAV
 Configurator.
 
 ## Updating to the latest source
