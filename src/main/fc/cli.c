@@ -2903,7 +2903,7 @@ void cliEnter(serialPort_t *serialPort)
     cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer), (bufWrite_t)serialWriteBufShim, serialPort);
 
 #ifndef CLI_MINIMAL_VERBOSITY
-    cliPrintLine("\r\nEntering CLI Mode, type 'exit' to return, 'save' for saving changes or 'help'  - Greetings from Yuxin Pan");
+    cliPrintLine("\r\nEntering CLI Mode, type 'exit' to return, or 'help'");
 #else
     cliPrintLine("\r\nCLI");
 #endif
