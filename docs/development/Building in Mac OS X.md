@@ -3,7 +3,7 @@
 Building in Mac OS X can be accomplished in just a few steps:
 
 * Install general development tools (clang, make, git)
-* Install ARM GCC 6.1 series compiler or higher
+* Install ARM GCC 7.2 series compiler or higher
 * Checkout INAV sourcecode through git
 * Build the code
 
@@ -35,19 +35,19 @@ installation, open up XCode and enter its preferences menu. Go to the "downloads
 
 [from the App Store]: https://itunes.apple.com/us/app/xcode/id497799835
 
-## Install ARM GCC 6.1 series or higher compiler
+## Install ARM GCC 7.2 series or higher compiler
 
-INAV is built using series 6.1 or above GCC compiler provided by the [GNU Tools for ARM Embedded Processors project][].
+INAV is built using series 7.2 or above GCC compiler provided by the [GNU Tools for ARM Embedded Processors project][].
 
-Grab the Mac installation tarball for the latest version in the 6.1 series or above (e.g. gcc-arm-none-eabi-6-2017-q1-update-mac.tar.bz2). Move it somewhere useful
+Grab the Mac installation tarball for the latest version in the 7.2 series or above (e.g. gcc-arm-none-eabi-7-2017-q4-major-mac.tar.bz2). Move it somewhere useful
 such as a `~/development` folder (in your home directory) and double click it to unpack it. You should end up with a
-folder with a name similar to `~/development/gcc-arm-none-eabi-6-2017-q1-update/`.
+folder with a name similar to `~/development/gcc-arm-none-eabi-7-2017-q4-major/`.
 
 Now you just need to add the `bin/` directory from inside the GCC directory to your system's path. Run `nano ~/.profile`. Add a
 new line at the end of the file which adds the path for the `bin/` folder to your path, like so:
 
 ```
-export PATH=$PATH:~/development/gcc-arm-none-eabi-6-2017-q1-update/bin
+export PATH=$PATH:~/development/gcc-arm-none-eabi-7-2017-q4-major/bin
 ```
 
 Press CTRL+X to exit nano, and answer "y" when prompted to save your changes.
