@@ -50,4 +50,3 @@ void    max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode);
 void    max7456ClearScreen(void);
 void    max7456RefreshAll(void);
 uint8_t* max7456GetScreenBuffer(void);
-bool    max7456DmaInProgress(void);

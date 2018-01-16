@@ -55,8 +55,8 @@ I2C is available on J22 PWM7 and PWM8
 
 |signal | Location   | Alt. Location |
 |-------|------------|---------------|
-|SCL    | J22 (PWM7) | J3 (SCL)      |
-|SDA    | J22 (PWM8) | J3 (SDA)      |
+|SCL    | J22 (PWM8) | J3 (SCL)      |
+|SDA    | J22 (PWM7) | J3 (SDA)      |
 
 ### RANGEFINDER
 

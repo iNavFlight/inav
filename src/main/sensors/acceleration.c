@@ -32,6 +32,12 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_mpu6000.h"
+#include "drivers/accgyro/accgyro_mpu6050.h"
+#include "drivers/accgyro/accgyro_mpu6500.h"
+#include "drivers/accgyro/accgyro_mpu9250.h"
+
 #include "drivers/accgyro/accgyro_adxl345.h"
 #include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_fake.h"
@@ -39,13 +45,7 @@
 #include "drivers/accgyro/accgyro_l3gd20.h"
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu3050.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
-#include "drivers/accgyro/accgyro_mpu6500.h"
-#include "drivers/accgyro/accgyro_spi_mpu6000.h"
-#include "drivers/accgyro/accgyro_spi_mpu6500.h"
-#include "drivers/accgyro/accgyro_spi_mpu9250.h"
 #include "drivers/logging.h"
 #include "drivers/sensor.h"
 
@@ -68,6 +68,8 @@
 FASTRAM acc_t acc;                       // acc access functions
 
 static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
+
+STATIC_FASTRAM int32_t accADC[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM biquadFilter_t accFilter[XYZ_AXIS_COUNT];
 
@@ -115,14 +117,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #ifdef USE_ACC_ADXL345
     case ACC_ADXL345: {
-        drv_adxl345_config_t acc_params;
-        acc_params.useFifo = false;
-        acc_params.dataRate = 800; // unused currently
-#ifdef NAZE
-        if (hardwareRevision < NAZE32_REV5 && adxl345Detect(dev, &acc_params)) {
-#else
-        if (adxl345Detect(dev, &acc_params)) {
-#endif
+        if (adxl345Detect(dev)) {
 #ifdef ACC_ADXL345_ALIGN
             dev->accAlign = ACC_ADXL345_ALIGN;
 #endif
@@ -206,9 +201,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_SPI_MPU6000
+#ifdef USE_ACC_MPU6000
     case ACC_MPU6000:
-        if (mpu6000SpiAccDetect(dev)) {
+        if (mpu6000AccDetect(dev)) {
 #ifdef ACC_MPU6000_ALIGN
             dev->accAlign = ACC_MPU6000_ALIGN;
 #endif
@@ -222,13 +217,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACC_MPU6500) || defined(USE_ACC_SPI_MPU6500)
+#if defined(USE_ACC_MPU6500)
     case ACC_MPU6500:
-#ifdef USE_ACC_SPI_MPU6500
-        if (mpu6500AccDetect(dev) || mpu6500SpiAccDetect(dev)) {
-#else
         if (mpu6500AccDetect(dev)) {
-#endif
 #ifdef ACC_MPU6500_ALIGN
             dev->accAlign = ACC_MPU6500_ALIGN;
 #endif
@@ -242,9 +233,9 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
-#if defined(USE_ACC_SPI_MPU9250)
+#if defined(USE_ACC_MPU9250)
     case ACC_MPU9250:
-        if (mpu9250SpiAccDetect(dev)) {
+        if (mpu9250AccDetect(dev)) {
 #ifdef ACC_MPU9250_ALIGN
             dev->accAlign = ACC_MPU9250_ALIGN;
 #endif
@@ -291,17 +282,23 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 bool accInit(uint32_t targetLooptime)
 {
     memset(&acc, 0, sizeof(acc));
-    // copy over the common gyro mpu settings
-    acc.dev.bus = *gyroSensorBus();
-    acc.dev.mpuConfiguration = *gyroMpuConfiguration();
-    acc.dev.mpuDetectionResult = *gyroMpuDetectionResult();
+
+    // Set inertial sensor tag (for dual-gyro selection)
+#ifdef USE_DUAL_GYRO
+    acc.dev.imuSensorToUse = gyroConfig()->gyro_to_use;     // Use the same selection from gyroConfig()
+#else
+    acc.dev.imuSensorToUse = 0;
+#endif
+
     if (!accDetect(&acc.dev, accelerometerConfig()->acc_hardware)) {
         return false;
     }
+
     acc.dev.acc_1G = 256; // set default
     acc.dev.initFn(&acc.dev);
     acc.accTargetLooptime = targetLooptime;
     accInitFilters();
+
     if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
         acc.dev.accAlign = accelerometerConfig()->acc_align;
     }
@@ -352,7 +349,7 @@ uint8_t accGetCalibrationAxisFlags(void)
 {
     uint8_t flags = 0;
     for (int i = 0; i < 6; i++) {
-        if (accGetCalibrationAxisStatus(0)) {
+        if (accGetCalibrationAxisStatus(i)) {
             flags |= (1 << i);
         }
     }
@@ -362,6 +359,9 @@ uint8_t accGetCalibrationAxisFlags(void)
 
 int getPrimaryAxisIndex(int32_t sample[3])
 {
+    // Apply sensor alignment (for axis detection only)
+    applySensorAlignment(sample, acc.dev.accAlign);
+
     // Tolerate up to atan(1 / 1.5) = 33 deg tilt (in worst case 66 deg separation between points)
     if ((ABS(sample[Z]) / 1.5f) > ABS(sample[X]) && (ABS(sample[Z]) / 1.5f) > ABS(sample[Y])) {
         //Z-axis
@@ -369,11 +369,11 @@ int getPrimaryAxisIndex(int32_t sample[3])
     }
     else if ((ABS(sample[X]) / 1.5f) > ABS(sample[Y]) && (ABS(sample[X]) / 1.5f) > ABS(sample[Z])) {
         //X-axis
-        return (sample[X] > 0) ? 2 : 3;
+        return (sample[X] > 0) ? 3 : 5;
     }
     else if ((ABS(sample[Y]) / 1.5f) > ABS(sample[X]) && (ABS(sample[Y]) / 1.5f) > ABS(sample[Z])) {
         //Y-axis
-        return (sample[Y] > 0) ? 4 : 5;
+        return (sample[Y] > 0) ? 2 : 4;
     }
     else
         return -1;
@@ -381,7 +381,7 @@ int getPrimaryAxisIndex(int32_t sample[3])
 
 static void performAcclerationCalibration(void)
 {
-    int axisIndex = getPrimaryAxisIndex(acc.accADC);
+    int axisIndex = getPrimaryAxisIndex(accADC);
 
     // Check if sample is usable
     if (axisIndex < 0) {
@@ -403,10 +403,10 @@ static void performAcclerationCalibration(void)
     }
 
     if (!calibratedAxis[axisIndex]) {
-        sensorCalibrationPushSampleForOffsetCalculation(&calState, acc.accADC);
-        accSamples[axisIndex][X] += acc.accADC[X];
-        accSamples[axisIndex][Y] += acc.accADC[Y];
-        accSamples[axisIndex][Z] += acc.accADC[Z];
+        sensorCalibrationPushSampleForOffsetCalculation(&calState, accADC);
+        accSamples[axisIndex][X] += accADC[X];
+        accSamples[axisIndex][Y] += accADC[Y];
+        accSamples[axisIndex][Z] += accADC[Z];
 
         if (isOnFinalAccelerationCalibrationCycle()) {
             calibratedAxis[axisIndex] = true;
@@ -452,9 +452,47 @@ static void performAcclerationCalibration(void)
 
 static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const flightDynamicsTrims_t * accGain)
 {
-    acc.accADC[X] = (acc.accADC[X] - accZero->raw[X]) * accGain->raw[X] / 4096;
-    acc.accADC[Y] = (acc.accADC[Y] - accZero->raw[Y]) * accGain->raw[Y] / 4096;
-    acc.accADC[Z] = (acc.accADC[Z] - accZero->raw[Z]) * accGain->raw[Z] / 4096;
+    accADC[X] = (accADC[X] - accZero->raw[X]) * accGain->raw[X] / 4096;
+    accADC[Y] = (accADC[Y] - accZero->raw[Y]) * accGain->raw[Y] / 4096;
+    accADC[Z] = (accADC[Z] - accZero->raw[Z]) * accGain->raw[Z] / 4096;
+}
+
+#ifdef USE_ASYNC_GYRO_PROCESSING
+STATIC_FASTRAM float accumulatedMeasurements[XYZ_AXIS_COUNT];
+STATIC_FASTRAM int   accumulatedMeasurementCount;
+
+static void accUpdateAccumulatedMeasurements(void)
+{
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        accumulatedMeasurements[axis] += acc.accADCf[axis];
+    }
+    accumulatedMeasurementCount++;
+}
+#endif
+
+/*
+ * Calculate measured acceleration in body frame in g
+ */
+void accGetMeasuredAcceleration(t_fp_vector *measuredAcc)
+{
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    if (accumulatedMeasurementCount) {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            measuredAcc->A[axis] = accumulatedMeasurements[axis] * GRAVITY_CMSS / accumulatedMeasurementCount;
+            accumulatedMeasurements[axis] = 0;
+        }
+        accumulatedMeasurementCount = 0;
+    }
+    else {
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            measuredAcc->A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
+        }
+    }
+#else
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        measuredAcc->A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
+    }
+#endif
 }
 
 void accUpdate(void)
@@ -464,30 +502,39 @@ void accUpdate(void)
     }
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        acc.accADC[axis] = acc.dev.ADCRaw[axis];
+        accADC[axis] = acc.dev.ADCRaw[axis];
+    }
+
+    if (!accIsCalibrationComplete()) {
+        performAcclerationCalibration();
+        return;
+    }
+
+    applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
+    applySensorAlignment(accADC, acc.dev.accAlign);
+    applyBoardAlignment(accADC);
+
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        acc.accADCf[axis] = (float)accADC[axis] / acc.dev.acc_1G;
     }
 
     if (accelerometerConfig()->acc_lpf_hz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            acc.accADC[axis] = lrintf(biquadFilterApply(&accFilter[axis], (float)acc.accADC[axis]));
+            acc.accADCf[axis] = biquadFilterApply(&accFilter[axis], acc.accADCf[axis]);
         }
     }
 
 #ifdef USE_ACC_NOTCH
     if (accelerometerConfig()->acc_notch_hz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            acc.accADC[axis] = lrintf(accNotchFilterApplyFn(accNotchFilter[axis], (float)acc.accADC[axis]));
+            acc.accADCf[axis] = accNotchFilterApplyFn(accNotchFilter[axis], acc.accADCf[axis]);
         }
     }
 #endif
 
-    if (!accIsCalibrationComplete()) {
-        performAcclerationCalibration();
-    }
-
-    applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
-
-    alignSensors(acc.accADC, acc.dev.accAlign);
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    accUpdateAccumulatedMeasurements();
+#endif
 }
 
 void accSetCalibrationValues(void)

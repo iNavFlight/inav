@@ -72,12 +72,16 @@ void TIM_SelectOCxM_NoDisable(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t 
 
 uint8_t timerClockDivisor(TIM_TypeDef *tim)
 {
-#if defined (STM32F40_41xxx)
-    if (tim == TIM8) return 1;
-#endif
-    if (tim == TIM1 || tim == TIM9 || tim == TIM10 || tim == TIM11) {
+#if defined (STM32F411xE)
+    UNUSED(tim);
+    return 1;
+#elif defined (STM32F40_41xxx) || defined (STM32F427_437xx)
+    if (tim == TIM1 || tim == TIM8 || tim == TIM9 || tim == TIM10 || tim == TIM11) {
         return 1;
     } else {
         return 2;
     }
+#else
+    #error "No timer clock defined correctly for the MCU"
+#endif
 }

@@ -9,7 +9,7 @@
 
 #include "platform.h"
 
-#if defined(TELEMETRY) && defined(TELEMETRY_SMARTPORT)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SMARTPORT)
 
 #include "common/axis.h"
 #include "common/color.h"
@@ -316,7 +316,7 @@ void configureSmartPortTelemetryPort(void)
     if (telemetryConfig()->telemetry_inversion)
         portOptions |= SERIAL_INVERTED;
 
-    smartPortSerialPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_SMARTPORT, NULL, SMARTPORT_BAUD, SMARTPORT_UART_MODE, portOptions);
+    smartPortSerialPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_SMARTPORT, NULL, NULL, SMARTPORT_BAUD, SMARTPORT_UART_MODE, portOptions);
 
     if (!smartPortSerialPort)
         return;
@@ -573,7 +573,7 @@ void handleSmartPortTelemetry(void)
         uint16_t id = smartPortDataIdTable[smartPortIdCnt];
 
         switch (id) {
-#ifdef GPS
+#ifdef USE_GPS
             case FSSP_DATAID_SPEED      :
                 //convert to knots: 1cm/s = 0.0194384449 knots
                 //Speed should be sent in knots/1000 (GPS speed is in cm/s)
@@ -610,7 +610,7 @@ void handleSmartPortTelemetry(void)
                 break;
             //case FSSP_DATAID_ADC1       :
             //case FSSP_DATAID_ADC2       :
-#ifdef GPS
+#ifdef USE_GPS
             case FSSP_DATAID_LATLONG    :
                 if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
                     uint32_t tmpui = 0;
@@ -640,17 +640,17 @@ void handleSmartPortTelemetry(void)
                 smartPortSendPackage(id, attitude.values.yaw * 10); // given in 10*deg, requested in 10000 = 100 deg
                 break;
             case FSSP_DATAID_ACCX       :
-                smartPortSendPackage(id, 100 * acc.accADC[X] / acc.dev.acc_1G);
+                smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
                 break;
             case FSSP_DATAID_ACCY       :
-                smartPortSendPackage(id, 100 * acc.accADC[Y] / acc.dev.acc_1G);
+                smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
                 break;
             case FSSP_DATAID_ACCZ       :
-                smartPortSendPackage(id, 100 * acc.accADC[Z] / acc.dev.acc_1G);
+                smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
                 break;
             case FSSP_DATAID_T1         :
                 {
-                    uint32_t tmpi = 10000; // start off with at least one digit so the most significant 0 won't be cut off
+                    uint32_t tmpi = 0;
 
                     // ones column
                     if (!isArmingDisabled())
@@ -686,7 +686,9 @@ void handleSmartPortTelemetry(void)
                         tmpi += 4000;
 
                     // ten thousands column
-                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
+                    if (FLIGHT_MODE(FLAPERON))
+                        tmpi += 10000;
+                    if (FLIGHT_MODE(AUTO_TUNE))
                         tmpi += 20000;
                     if (FLIGHT_MODE(FAILSAFE_MODE))
                         tmpi += 40000;
@@ -696,7 +698,7 @@ void handleSmartPortTelemetry(void)
                 }
             case FSSP_DATAID_T2         :
                 if (sensors(SENSOR_GPS)) {
-#ifdef GPS
+#ifdef USE_GPS
                     uint32_t tmpi = 0;
 
                     // ones and tens columns (# of satellites 0 - 99)
@@ -710,13 +712,15 @@ void handleSmartPortTelemetry(void)
                         tmpi += 1000;
                     if (STATE(GPS_FIX_HOME))
                         tmpi += 2000;
+                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
+                        tmpi += 4000;
 
                     smartPortSendPackage(id, tmpi);
 #endif
                 } else if (feature(FEATURE_GPS))
                     smartPortSendPackage(id, 0);
                 break;
-#ifdef GPS
+#ifdef USE_GPS
             case FSSP_DATAID_HOME_DIST  :
                 if (sensors(SENSOR_GPS) && STATE(GPS_FIX))
                     smartPortSendPackage(id, GPS_distanceToHome);
@@ -726,7 +730,7 @@ void handleSmartPortTelemetry(void)
                     smartPortSendPackage(id, gpsSol.llh.alt); // cm
                 break;
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
             case FSSP_DATAID_ASPD    :
                 if (sensors(SENSOR_PITOT))
                     smartPortSendPackage(id, pitot.airSpeed * 0.194384449f); // cm/s to knots*10

@@ -95,7 +95,8 @@
 #define PG_ADC_CHANNEL_CONFIG 1010
 #define PG_TIME_CONFIG 1011
 #define PG_OPFLOW_CONFIG 1012
-#define PG_INAV_END 1012
+#define PG_DISPLAY_CONFIG 1013
+#define PG_INAV_END 1013
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047

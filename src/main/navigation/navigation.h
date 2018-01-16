@@ -31,8 +31,8 @@ extern int16_t              GPS_directionToHome;       // direction to home poin
 /* Navigation system updates */
 void onNewGPSData(void);
 
-#if defined(NAV)
-#if defined(BLACKBOX)
+#if defined(USE_NAV)
+#if defined(USE_BLACKBOX)
 #define NAV_BLACKBOX
 #endif
 
@@ -76,7 +76,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type;
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
-    uint16_t gps_delay_ms;
 
     uint16_t max_surface_altitude;
 
@@ -129,7 +128,7 @@ typedef struct navConfig_s {
         uint16_t land_slowdown_maxalt;          // Altitude to start lowering descent rate during RTH descend
         uint16_t emerg_descent_rate;            // emergency landing descent rate
         uint16_t rth_altitude;                  // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
-        uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTL in cm, otherwise it will just autoland
+        uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
     } general;
 

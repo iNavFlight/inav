@@ -47,7 +47,7 @@
 #define MPU6500_CS_PIN          PORT103R_SPI_CS_PIN
 #define MPU6500_SPI_INSTANCE    PORT103R_SPI_INSTANCE
 
-#define GYRO
+#define USE_GYRO
 #define USE_FAKE_GYRO
 //#define USE_GYRO_L3G4200D
 //#define USE_GYRO_L3GD20
@@ -56,7 +56,7 @@
 #define USE_GYRO_SPI_MPU6000
 #define USE_GYRO_SPI_MPU6500
 
-#define ACC
+#define USE_ACC
 #define USE_FAKE_ACC
 //#define USE_ACC_ADXL345
 //#define USE_ACC_BMA280
@@ -65,12 +65,12 @@
 #define USE_ACC_SPI_MPU6000
 #define USE_ACC_SPI_MPU6500
 
-//#define BARO
+//#define USE_BARO
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 
-#define MAG
+#define USE_MAG
 #define USE_MAG_HMC5883
 #define USE_MAG_AK8975
 
@@ -97,7 +97,7 @@
 #define SOFTSERIAL_2_TX_PIN     PB1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
+#define USE_I2C_DEVICE_2
 
 // #define SOFT_I2C // enable to test software i2c
 // #define SOFT_I2C_PB1011 // If SOFT_I2C is enabled above, need to define pinout as well (I2C1 = PB67, I2C2 = PB1011)

@@ -69,8 +69,12 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     initBoardAlignment();
 }
 
-static void alignBoard(int32_t *vec)
+void applyBoardAlignment(int32_t *vec)
 {
+    if (standardBoardAlignment) {
+        return;
+    }
+
     int32_t x = vec[X];
     int32_t y = vec[Y];
     int32_t z = vec[Z];
@@ -80,7 +84,7 @@ static void alignBoard(int32_t *vec)
     vec[Z] = lrintf(boardRotation[0][Z] * x + boardRotation[1][Z] * y + boardRotation[2][Z] * z);
 }
 
-void alignSensors(int32_t *dest, uint8_t rotation)
+void applySensorAlignment(int32_t *dest, uint8_t rotation)
 {
     const int32_t x = dest[X];
     const int32_t y = dest[Y];
@@ -129,7 +133,4 @@ void alignSensors(int32_t *dest, uint8_t rotation)
         dest[Z] = -z;
         break;
     }
-
-    if (!standardBoardAlignment)
-        alignBoard(dest);
 }

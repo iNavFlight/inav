@@ -24,7 +24,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "common/utils.h"
 
@@ -150,8 +150,10 @@ static OSD_Entry cmsx_menuPidEntries[] =
 };
 
 static CMS_Menu cmsx_menuPid = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XPID",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_PidOnEnter,
     .onExit = cmsx_PidWriteback,
     .onGlobalExit = NULL,
@@ -200,8 +202,10 @@ static OSD_Entry cmsx_menuPidAltMagEntries[] = {
 };
 
 static CMS_Menu cmsx_menuPidAltMag = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XALTMAG",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_menuPidAltMag_onEnter,
     .onExit = cmsx_menuPidAltMag_onExit,
     .onGlobalExit = NULL,
@@ -245,8 +249,10 @@ static OSD_Entry cmsx_menuPidGpsnavEntries[] = {
 };
 
 static CMS_Menu cmsx_menuPidGpsnav = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XGPSNAV",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_menuPidGpsnav_onEnter,
     .onExit = cmsx_menuPidGpsnav_onExit,
     .onGlobalExit = NULL,
@@ -283,8 +289,10 @@ static OSD_Entry cmsx_menuRateProfileEntries[] =
 };
 
 static CMS_Menu cmsx_menuRateProfile = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENURATE",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -340,8 +348,10 @@ static OSD_Entry cmsx_menuProfileOtherEntries[] = {
 };
 
 static CMS_Menu cmsx_menuProfileOther = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XPROFOTHER",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_profileOtherOnEnter,
     .onExit = cmsx_profileOtherOnExit,
     .onGlobalExit = NULL,
@@ -366,8 +376,10 @@ static OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 };
 
 static CMS_Menu cmsx_menuFilterPerProfile = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XFLTPP",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -387,8 +399,10 @@ static OSD_Entry cmsx_menuGyroEntries[] =
 };
 
 static CMS_Menu cmsx_menuGyro = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XGYROGLB",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -424,8 +438,10 @@ static OSD_Entry cmsx_menuImuEntries[] =
 };
 
 CMS_Menu cmsx_menuImu = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XIMU",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_menuImu_onEnter,
     .onExit = cmsx_menuImu_onExit,
     .onGlobalExit = NULL,

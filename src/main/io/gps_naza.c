@@ -25,7 +25,7 @@
 #include "build/build_config.h"
 
 
-#if defined(GPS) && defined(GPS_PROTO_NAZA)
+#if defined(USE_GPS) && defined(USE_GPS_PROTO_NAZA)
 
 #include "build/debug.h"
 
@@ -151,13 +151,13 @@ static bool NAZA_parse_gps(void)
     case ID_NAV:
         mask = _buffernaza.nav.mask;
 
-        //uint32_t time = decodeLong(_buffernaza.nav.time, mask);
-        //uint32_t second = time & 0b00111111; time >>= 6;
-        //uint32_t minute = time & 0b00111111; time >>= 6;
-        //uint32_t hour = time & 0b00001111; time >>= 4;
-        //uint32_t day = time & 0b00011111; time >>= 5;
-        //uint32_t month = time & 0b00001111; time >>= 4;
-        //uint32_t year = time & 0b01111111;
+        uint32_t time = decodeLong(_buffernaza.nav.time, mask);
+        gpsSol.time.seconds = time & 0b00111111; time >>= 6;
+        gpsSol.time.minutes = time & 0b00111111; time >>= 6;
+        gpsSol.time.hours = time & 0b00001111; time >>= 4;
+        gpsSol.time.day = gpsSol.time.hours > 7?(time & 0b00011111) + 1:(time & 0b00011111); time >>= 5;
+        gpsSol.time.month = time & 0b00001111; time >>= 4;
+        gpsSol.time.year = (time & 0b01111111) + 2000;
 
         gpsSol.llh.lon = decodeLong(_buffernaza.nav.longitude, mask);
         gpsSol.llh.lat = decodeLong(_buffernaza.nav.latitude, mask);
@@ -206,6 +206,7 @@ static bool NAZA_parse_gps(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
+        gpsSol.flags.validTime = 1;
 
         _new_position = true;
         _new_speed = true;

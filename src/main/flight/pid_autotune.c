@@ -145,7 +145,7 @@ void autotuneUpdateState(void)
 
 static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, int32_t newValue)
 {
-#ifndef BLACKBOX
+#ifndef USE_BLACKBOX
     UNUSED(adjustmentFunction);
     UNUSED(newValue);
 #else

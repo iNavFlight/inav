@@ -26,7 +26,7 @@
 #include "build/build_config.h"
 
 
-#if defined(GPS) && defined(GPS_PROTO_UBLOX)
+#if defined(USE_GPS) && defined(USE_GPS_PROTO_UBLOX)
 
 #include "build/debug.h"
 
@@ -47,7 +47,7 @@
 #include "io/gps.h"
 #include "io/gps_private.h"
 
-//#define GPS_PROTO_UBLOX_NEO7PLUS
+//#define USE_GPS_PROTO_UBLOX_NEO7PLUS
 #define GPS_VERSION_DETECTION_TIMEOUT_MS    300
 #define MAX_UBLOX_PAYLOAD_SIZE              256
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
@@ -369,7 +369,7 @@ static void sendConfigMessageUBLOX(void)
     //check ack/nack here
 }
 
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
 static void pollVersion(void)
 {
     send_buffer.message.header.msg_class = CLASS_MON;
@@ -492,7 +492,7 @@ static bool gpsParceFrameUBLOX(void)
             gpsSol.flags.validTime = 0;
         }
         break;
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
     case MSG_PVT:
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
         gpsSol.fixType = next_fix_type;
@@ -675,7 +675,7 @@ static bool gpsConfigure(void)
         break;
 
     case 3: // Enable UBX messages
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
         if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
 #endif
             configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
@@ -684,7 +684,7 @@ static bool gpsConfigure(void)
             configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
             configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
             configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC,10);
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
             configureMSG(MSG_CLASS_UBX, MSG_PVT,    0);
         }
         else if (gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) {
@@ -701,11 +701,11 @@ static bool gpsConfigure(void)
         break;
 
     case 4: // Configure RATE
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
         if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
 #endif
             configureRATE(200); // 5Hz
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
         }
         else if (gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) {
             configureRATE(100); // 10Hz
@@ -730,7 +730,7 @@ static bool gpsConfigure(void)
 
 static bool gpsCheckVersion(void)
 {
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
     if (gpsState.autoConfigStep == 0) {
         pollVersion();
         gpsState.autoConfigStep++;

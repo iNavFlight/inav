@@ -42,7 +42,7 @@
 #include "config/parameter_group_ids.h"
 
 #ifdef USE_RANGEFINDER_UIB
-#include "drivers/rangefinder.h"
+#include "drivers/rangefinder/rangefinder.h"
 #include "uav_interconnect/uav_interconnect.h"
 
 #define UIB_DEVICE_ADDRESS                      UIB_DEVICE_ID_RANGEFINDER

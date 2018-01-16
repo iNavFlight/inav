@@ -39,14 +39,18 @@ typedef enum {
     ARMING_DISABLED_CLI                             = (1 << 20),
     ARMING_DISABLED_CMS_MENU                        = (1 << 21),
     ARMING_DISABLED_OSD_MENU                        = (1 << 22),
+    ARMING_DISABLED_ROLLPITCH_NOT_CENTERED	    = (1 << 23),
 
     ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING | ARMING_DISABLED_SYSTEM_OVERLOADED | 
                                                        ARMING_DISABLED_NAVIGATION_UNSAFE | ARMING_DISABLED_COMPASS_NOT_CALIBRATED | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED | 
                                                        ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_HARDWARE_FAILURE | ARMING_DISABLED_BOXFAILSAFE | ARMING_DISABLED_BOXKILLSWITCH |
-                                                       ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI | ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU)
+                                                       ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI | ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU |
+						       ARMING_DISABLED_ROLLPITCH_NOT_CENTERED)
 } armingFlag_e;
 
 extern uint32_t armingFlags;
+
+extern const char *armingDisableFlagNames[];
 
 #define isArmingDisabled()          (armingFlags & (ARMING_DISABLED_ALL_FLAGS))
 #define DISABLE_ARMING_FLAG(mask)   (armingFlags &= ~(mask))

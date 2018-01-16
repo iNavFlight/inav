@@ -55,13 +55,7 @@ A low-pass filter can be enabled for the servos.  It may be useful for avoiding 
 
 Currently it can only be configured via the CLI:
 
-1. Use `set servo_lowpass_freq = nnn` to select the cutoff frequency.  Valid values range from 10 to 400.  This is a fraction of the loop frequency in 1/1000ths. For example, `40` means `0.040`.
-2. Use `set servo_lowpass_enable = 1` to enable filtering.
-
-The cutoff frequency can be determined by the following formula:
-`Frequency = 1000 * servo_lowpass_freq / looptime`
-
-For example, if `servo_lowpass_freq` is set to 40, and looptime is set to the default of 3500 us, the cutoff frequency will be 11.43 Hz.
+Use `set servo_lpf_hz=20` to enable filtering. This will set servo low pass filter to 20Hz.
 
 ### Tuning
 
@@ -101,8 +95,8 @@ Note: the `mmix` command may show a motor mix that is not active, custom motor m
 
 Custom servo mixing rules can be applied to each servo.  Rules are applied in the CLI using `smix`. Rules link flight controller stabilization and receiver signals to physical pwm output pins on the FC board. Currently, pin id's 0 and 1 can only be used for motor outputs. Other pins may or may not work depending on the board you are using.
 
-The mmix statement has the following syntax: `smix n SERVO_ID SIGNAL_SOURCE RATE SPEED`
-For example, `smix 0 2 0 100 0` will assign Stabilised Roll to the third pwm pin on the FC board.
+The smix statement has the following syntax: `smix n SERVO_ID SIGNAL_SOURCE RATE SPEED` 
+For example, `smix 0 2 0 100 0` will create rule number 0 assigning Stabilised Roll to the third pwm pin on the FC board will full rate and no speed limit.
 
 | id | Flight Controller Output signal sources |
 |----|-----------------|

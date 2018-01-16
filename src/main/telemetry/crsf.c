@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(TELEMETRY) && defined(TELEMETRY_CRSF)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_CRSF)
 
 #include "build/build_config.h"
 #include "build/version.h"
@@ -233,7 +233,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
     if (FLIGHT_MODE(FAILSAFE_MODE)) {
         flightMode = "!FS";
     } else if (FLIGHT_MODE(ANGLE_MODE)) {
-        flightMode = "STAB";
+        flightMode = "ANGL";
     } else if (FLIGHT_MODE(HORIZON_MODE)) {
         flightMode = "HOR";
     }
@@ -274,7 +274,7 @@ static void processCrsf(void)
         crsfFrameFlightMode(dst);
         crsfFinalize(dst);
     }
-#ifdef GPS
+#ifdef USE_GPS
     if (currentSchedule & BV(CRSF_FRAME_GPS)) {
         crsfInitializeFrame(dst);
         crsfFrameGps(dst);
@@ -344,7 +344,7 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
     case CRSF_FRAME_FLIGHT_MODE:
         crsfFrameFlightMode(sbuf);
         break;
-#if defined(GPS)
+#if defined(USE_GPS)
     case CRSF_FRAME_GPS:
         crsfFrameGps(sbuf);
         break;

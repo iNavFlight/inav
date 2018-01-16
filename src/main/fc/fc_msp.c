@@ -379,12 +379,32 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+        case MSP2_INAV_STATUS:
+        {
+            // Preserves full arming flags and box modes
+            boxBitmask_t mspBoxModeFlags;
+            packBoxModeFlags(&mspBoxModeFlags);
+
+            sbufWriteU16(dst, (uint16_t)cycleTime);
+#ifdef USE_I2C
+            sbufWriteU16(dst, i2cGetErrorCounter());
+#else
+            sbufWriteU16(dst, 0);
+#endif
+            sbufWriteU16(dst, packSensorStatus());
+            sbufWriteU16(dst, averageSystemLoadPercent);
+            sbufWriteU8(dst, getConfigProfile());
+            sbufWriteU32(dst, armingFlags);
+            sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
+        }
+        break;
+
     case MSP_RAW_IMU:
         {
             // Hack scale due to choice of units for sensor data in multiwii
             const uint8_t scale = (acc.dev.acc_1G > 1024) ? 8 : 1;
             for (int i = 0; i < 3; i++) {
-                sbufWriteU16(dst, acc.accADC[i] / scale);
+                sbufWriteU16(dst, (int16_t)lrintf(acc.accADCf[i] * acc.dev.acc_1G / scale));
             }
             for (int i = 0; i < 3; i++) {
                 sbufWriteU16(dst, gyroRateDps(i));
@@ -443,14 +463,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ALTITUDE:
-#if defined(NAV)
+#if defined(USE_NAV)
         sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
         sbufWriteU16(dst, lrintf(getEstimatedActualVelocity(Z)));
 #else
         sbufWriteU32(dst, 0);
         sbufWriteU16(dst, 0);
 #endif
-#if defined(BARO)
+#if defined(USE_BARO)
         sbufWriteU32(dst, baroGetLatestAltitude());
 #else
         sbufWriteU32(dst, 0);
@@ -462,6 +482,22 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, rangefinderGetLatestAltitude());
 #else
         sbufWriteU32(dst, 0);
+#endif
+        break;
+
+    case MSP2_INAV_OPTICAL_FLOW:
+#ifdef USE_OPTICAL_FLOW
+        sbufWriteU8(dst, opflow.rawQuality);
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[X]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[Y]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[X]));
+        sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.bodyRate[Y]));
+#else
+        sbufWriteU8(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
 #endif
         break;
 
@@ -557,7 +593,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         sbufWriteU16(dst, failsafeConfig()->failsafe_throttle);
 
-#ifdef GPS
+#ifdef USE_GPS
         sbufWriteU8(dst, gpsConfig()->provider); // gps_type
         sbufWriteU8(dst, 0); // TODO gps_baudrate (an index, cleanflight uses a uint32_t
         sbufWriteU8(dst, gpsConfig()->sbasMode); // gps_ubx_sbas
@@ -585,7 +621,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#ifdef GPS
+#ifdef USE_GPS
     case MSP_RAW_GPS:
         sbufWriteU8(dst, gpsSol.fixType);
         sbufWriteU8(dst, gpsSol.numSat);
@@ -602,7 +638,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, GPS_directionToHome);
         sbufWriteU8(dst, gpsSol.flags.gpsHeartbeat ? 1 : 0);
         break;
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_NAV_STATUS:
         sbufWriteU8(dst, NAV_Status.mode);
         sbufWriteU8(dst, NAV_Status.state);
@@ -749,7 +785,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     case MSP_LED_COLORS:
         for (int i = 0; i < LED_CONFIGURABLE_COLOR_COUNT; i++) {
             const hsvColor_t *color = &ledStripConfig()->colors[i];
@@ -788,7 +824,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BLACKBOX_CONFIG:
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         sbufWriteU8(dst, 1); //Blackbox supported
         sbufWriteU8(dst, blackboxConfig()->device);
         sbufWriteU8(dst, blackboxConfig()->rate_num);
@@ -806,7 +842,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_OSD_CONFIG:
-#ifdef OSD
+#ifdef USE_OSD
         sbufWriteU8(dst, 1); // OSD supported
         // send video system (AUTO/PAL/NTSC)
 #ifdef USE_MAX7456
@@ -917,7 +953,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_INAV_PID:
-    #ifdef ASYNC_GYRO_PROCESSING
+    #ifdef USE_ASYNC_GYRO_PROCESSING
         sbufWriteU8(dst, systemConfig()->asyncMode);
         sbufWriteU16(dst, systemConfig()->accTaskFrequency);
         sbufWriteU16(dst, systemConfig()->attitudeTaskFrequency);
@@ -939,17 +975,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_SENSOR_CONFIG:
         sbufWriteU8(dst, accelerometerConfig()->acc_hardware);
-#ifdef BARO
+#ifdef USE_BARO
         sbufWriteU8(dst, barometerConfig()->baro_hardware);
 #else
         sbufWriteU8(dst, 0);
 #endif
-#ifdef MAG
+#ifdef USE_MAG
         sbufWriteU8(dst, compassConfig()->mag_hardware);
 #else
         sbufWriteU8(dst, 0);
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
         sbufWriteU8(dst, pitotmeterConfig()->pitot_hardware);
 #else
         sbufWriteU8(dst, 0);
@@ -966,7 +1002,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_NAV_POSHOLD:
         sbufWriteU8(dst, navConfig()->general.flags.user_control_mode);
         sbufWriteU16(dst, navConfig()->general.max_auto_speed);
@@ -1006,7 +1042,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
     case MSP_CALIBRATION_DATA:
-    #ifdef ACC
+    #ifdef USE_ACC
+        sbufWriteU8(dst, accGetCalibrationAxisFlags());
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[X]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Y]);
         sbufWriteU16(dst, accelerometerConfig()->accZero.raw[Z]);
@@ -1014,6 +1051,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Y]);
         sbufWriteU16(dst, accelerometerConfig()->accGain.raw[Z]);
     #else
+        sbufWriteU8(dst, 0);
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
@@ -1022,7 +1060,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0);
     #endif
 
-    #ifdef MAG
+    #ifdef USE_MAG
         sbufWriteU16(dst, compassConfig()->magZero.raw[X]);
         sbufWriteU16(dst, compassConfig()->magZero.raw[Y]);
         sbufWriteU16(dst, compassConfig()->magZero.raw[Z]);
@@ -1034,7 +1072,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_POSITION_ESTIMATION_CONFIG:
-    #ifdef NAV
+    #ifdef USE_NAV
 
         sbufWriteU16(dst, positionEstimationConfig()->w_z_baro_p * 100); //     inav_w_z_baro_p float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_p * 100);  // 2   inav_w_z_gps_p  float as value * 100
@@ -1064,7 +1102,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_WP_GETINFO:
-#ifdef NAV
+#ifdef USE_NAV
         sbufWriteU8(dst, 0);                        // Reserved for waypoint capabilities
         sbufWriteU8(dst, NAV_MAX_WAYPOINTS);        // Maximum number of waypoints supported
         sbufWriteU8(dst, isWaypointListValid());    // Is current mission valid
@@ -1099,13 +1137,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
                 uint8_t band=0, channel=0;
                 vtxCommonGetBandAndChannel(&band,&channel);
-                
+
                 uint8_t powerIdx=0; // debug
                 vtxCommonGetPowerIndex(&powerIdx);
-                
+
                 uint8_t pitmode=0;
                 vtxCommonGetPitMode(&pitmode);
-                
+
                 sbufWriteU8(dst, deviceType);
                 sbufWriteU8(dst, band);
                 sbufWriteU8(dst, channel);
@@ -1120,6 +1158,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
+    case MSP_NAME:
+        {
+            const char *name = systemConfig()->name;
+            while (*name) {
+                sbufWriteU8(dst, *name++);
+            }
+        }
+        break;
+
     case MSP2_COMMON_TZ:
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
         break;
@@ -1130,7 +1177,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     return true;
 }
 
-#ifdef NAV
+#ifdef USE_NAV
 static void mspFcWaypointOutCommand(sbuf_t *dst, sbuf_t *src)
 {
     const uint8_t msp_wp_no = sbufReadU8(src);    // get the wp number
@@ -1242,7 +1289,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             pidBankMutable()->pid[i].D = sbufReadU8(src);
         }
         schedulePidGainsUpdate();
-#if defined(NAV)
+#if defined(USE_NAV)
         navigationUsePIDs();
 #endif
         break;
@@ -1328,7 +1375,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         failsafeConfigMutable()->failsafe_throttle = sbufReadU16(src);
 
-#ifdef GPS
+#ifdef USE_GPS
         gpsConfigMutable()->provider = sbufReadU8(src); // gps_type
         sbufReadU8(src); // gps_baudrate
         gpsConfigMutable()->sbasMode = sbufReadU8(src); // gps_ubx_sbas
@@ -1341,7 +1388,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         rxConfigMutable()->rssi_channel = sbufReadU8(src);
         sbufReadU8(src);
 
-#ifdef MAG
+#ifdef USE_MAG
         compassConfigMutable()->mag_declination = sbufReadU16(src) * 10;
 #else
         sbufReadU16(src);
@@ -1420,7 +1467,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_SENSOR_ALIGNMENT:
         gyroConfigMutable()->gyro_align = sbufReadU8(src);
         accelerometerConfigMutable()->acc_align = sbufReadU8(src);
-#ifdef MAG
+#ifdef USE_MAG
         compassConfigMutable()->mag_align = sbufReadU8(src);
 #else
         sbufReadU8(src);
@@ -1481,7 +1528,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_INAV_PID:
-        #ifdef ASYNC_GYRO_PROCESSING
+        #ifdef USE_ASYNC_GYRO_PROCESSING
             systemConfigMutable()->asyncMode = sbufReadU8(src);
             systemConfigMutable()->accTaskFrequency = sbufReadU16(src);
             systemConfigMutable()->attitudeTaskFrequency = sbufReadU16(src);
@@ -1503,17 +1550,17 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_SENSOR_CONFIG:
         accelerometerConfigMutable()->acc_hardware = sbufReadU8(src);
-#ifdef BARO
+#ifdef USE_BARO
         barometerConfigMutable()->baro_hardware = sbufReadU8(src);
 #else
         sbufReadU8(src);
 #endif
-#ifdef MAG
+#ifdef USE_MAG
         compassConfigMutable()->mag_hardware = sbufReadU8(src);
 #else
         sbufReadU8(src);
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
         pitotmeterConfigMutable()->pitot_hardware = sbufReadU8(src);
 #else
         sbufReadU8(src);
@@ -1530,7 +1577,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
         break;
 
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_SET_NAV_POSHOLD:
         navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
         navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
@@ -1571,7 +1618,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 
     case MSP_SET_CALIBRATION_DATA:
-    #ifdef ACC
+    #ifdef USE_ACC
         accelerometerConfigMutable()->accZero.raw[X] = sbufReadU16(src);
         accelerometerConfigMutable()->accZero.raw[Y] = sbufReadU16(src);
         accelerometerConfigMutable()->accZero.raw[Z] = sbufReadU16(src);
@@ -1587,7 +1634,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU16(src);
     #endif
 
-    #ifdef MAG
+    #ifdef USE_MAG
         compassConfigMutable()->magZero.raw[X] = sbufReadU16(src);
         compassConfigMutable()->magZero.raw[Y] = sbufReadU16(src);
         compassConfigMutable()->magZero.raw[Z] = sbufReadU16(src);
@@ -1599,7 +1646,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_POSITION_ESTIMATION_CONFIG:
-    #ifdef NAV
+    #ifdef USE_NAV
         positionEstimationConfigMutable()->w_z_baro_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
         positionEstimationConfigMutable()->w_z_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
         positionEstimationConfigMutable()->w_z_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
@@ -1635,7 +1682,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         readEEPROM();
         break;
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     case MSP_SET_BLACKBOX_CONFIG:
         // Don't allow config to be updated while Blackbox is logging
         if (blackboxMayEditConfig()) {
@@ -1646,7 +1693,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
-#ifdef OSD
+#ifdef USE_OSD
     case MSP_SET_OSD_CONFIG:
         {
             const uint8_t addr = sbufReadU8(src);
@@ -1738,7 +1785,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
-#ifdef GPS
+#ifdef USE_GPS
     case MSP_SET_RAW_GPS:
         if (sbufReadU8(src)) {
             ENABLE_STATE(GPS_FIX);
@@ -1763,7 +1810,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         onNewGPSData();
         break;
 #endif
-#ifdef NAV
+#ifdef USE_NAV
     case MSP_SET_WP:
         {
             const uint8_t msp_wp_no = sbufReadU8(src);     // get the waypoint number
@@ -1905,7 +1952,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     case MSP_SET_LED_COLORS:
         for (int i = 0; i < LED_CONFIGURABLE_COLOR_COUNT; i++) {
             hsvColor_t *color = &ledStripConfigMutable()->colors[i];
@@ -1964,6 +2011,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             uint16_t millis = sbufReadU16(src);
             rtcTime_t t = rtcTimeMake(secs, millis);
             rtcSet(&t);
+        }
+        break;
+
+    case MSP_SET_NAME:
+        {
+            char *name = systemConfigMutable()->name;
+            int len = MIN(MAX_NAME_LENGTH, (int)dataSize);
+            sbufReadData(src, name, len);
+            memset(&name[len], '\0', (MAX_NAME_LENGTH + 1) - len);
         }
         break;
 
@@ -2120,7 +2176,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         mspFc4waySerialCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
 #endif
-#ifdef NAV
+#ifdef USE_NAV
     } else if (cmdMSP == MSP_WP) {
         mspFcWaypointOutCommand(dst, src);
         ret = MSP_RESULT_ACK;

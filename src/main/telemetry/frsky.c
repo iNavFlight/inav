@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#if defined(TELEMETRY) && defined(TELEMETRY_FRSKY)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_FRSKY)
 
 #include "common/maths.h"
 #include "common/axis.h"
@@ -158,7 +158,7 @@ static void sendAccel(void)
 
     for (i = 0; i < 3; i++) {
         sendDataHead(ID_ACC_X + i);
-        serialize16(acc.accADC[i] * 1000 / acc.dev.acc_1G);
+        serialize16(lrintf(acc.accADCf[i] * 1000));
     }
 }
 
@@ -171,7 +171,7 @@ static void sendBaro(void)
     serialize16(ABS(alt % 100));
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendGpsAltitude(void)
 {
     uint16_t altitude = gpsSol.llh.alt / 100; // meters
@@ -204,7 +204,7 @@ static void sendThrottleOrBatterySizeAsRpm(void)
 static void sendTemperature1(void)
 {
     sendDataHead(ID_TEMPRATURE1);
-#ifdef BARO
+#ifdef USE_BARO
     serialize16((baro.baroTemperature + 50)/ 100); //Airmamaf
 #else
     /*
@@ -214,7 +214,7 @@ static void sendTemperature1(void)
 #endif
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendSatalliteSignalQualityAsTemperature2(void)
 {
     uint16_t satellite = gpsSol.numSat;
@@ -290,7 +290,7 @@ static void sendLatLong(int32_t coord[2])
     serialize16(coord[LON] < 0 ? 'W' : 'E');
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendFakeLatLong(void)
 {
     // Heading is only displayed on OpenTX if non-zero lat/long is also sent
@@ -314,7 +314,7 @@ static void sendFakeLatLongThatAllowsHeadingDisplay(void)
     sendLatLong(coord);
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendGPSLatLong(void)
 {
     static uint8_t gpsFixOccured = 0;
@@ -450,7 +450,7 @@ void configureFrSkyTelemetryPort(void)
         return;
     }
 
-    frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inversion ? SERIAL_INVERTED : SERIAL_NOT_INVERTED);
+    frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inversion ? SERIAL_INVERTED : SERIAL_NOT_INVERTED);
     if (!frskyPort) {
         return;
     }
@@ -524,7 +524,7 @@ void handleFrSkyTelemetry(void)
             sendFuelLevel();
         }
 
-#ifdef GPS
+#ifdef USE_GPS
         if (sensors(SENSOR_GPS)) {
             sendSpeed();
             sendGpsAltitude();

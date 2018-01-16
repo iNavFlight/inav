@@ -26,6 +26,11 @@
 #include "drivers/bus.h"
 #include "drivers/bus_i2c.h"
 
+bool i2cBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length)
+{
+    return i2cWriteBuffer(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, length, data);
+}
+
 bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data)
 {
     return i2cWrite(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, data);

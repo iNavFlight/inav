@@ -60,7 +60,7 @@
 #include "platform.h"
 
 
-#if defined(TELEMETRY) && defined(TELEMETRY_HOTT)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_HOTT)
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -138,7 +138,7 @@ static void initialiseEAMMessage(HOTT_EAM_MSG_t *msg, size_t size)
     msg->stop_byte = 0x7D;
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 typedef enum {
     GPS_FIX_CHAR_NONE = '-',
     GPS_FIX_CHAR_2D = '2',
@@ -159,12 +159,12 @@ static void initialiseGPSMessage(HOTT_GPS_MSG_t *msg, size_t size)
 static void initialiseMessages(void)
 {
     initialiseEAMMessage(&hottEAMMessage, sizeof(hottEAMMessage));
-#ifdef GPS
+#ifdef USE_GPS
     initialiseGPSMessage(&hottGPSMessage, sizeof(hottGPSMessage));
 #endif
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 void addGPSCoordinates(HOTT_GPS_MSG_t *hottGPSMessage, int32_t latitude, int32_t longitude)
 {
     int16_t deg = latitude / GPS_DEGREES_DIVIDER;
@@ -329,7 +329,7 @@ void configureHoTTTelemetryPort(void)
         return;
     }
 
-    hottPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_HOTT, NULL, HOTT_BAUDRATE, HOTT_INITIAL_PORT_MODE, SERIAL_NOT_INVERTED);
+    hottPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_HOTT, NULL, NULL, HOTT_BAUDRATE, HOTT_INITIAL_PORT_MODE, SERIAL_NOT_INVERTED);
 
     if (!hottPort) {
         return;
@@ -347,7 +347,7 @@ static void hottQueueSendResponse(uint8_t *buffer, int length)
 static bool processBinaryModeRequest(uint8_t address)
 {
     switch (address) {
-#ifdef GPS
+#ifdef USE_GPS
     case 0x8A:
         if (sensors(SENSOR_GPS)) {
             hottPrepareGPSResponse(&hottGPSMessage);

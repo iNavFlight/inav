@@ -30,7 +30,7 @@
 
 #include "platform.h"
 
-#ifdef OSD
+#ifdef USE_OSD
 
 #include "build/debug.h"
 #include "build/version.h"
@@ -108,10 +108,6 @@
     STATIC_ASSERT(_CONST_STR_SIZE(x) <= OSD_MESSAGE_LENGTH, message_string_ ## __COUNTER__ ## _too_long); \
     x; \
 })
-
-// Things in both OSD and CMS
-
-bool blinkState = true;
 
 static timeUs_t flyTime = 0;
 
@@ -538,6 +534,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
             return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
+	case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
+            return OSD_MESSAGE_STR("ROLLPITCH NOT CENTERED");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
@@ -559,11 +557,10 @@ static const char * osdFailsafePhaseMessage(void)
 {
     // See failsafe.h for each phase explanation
     switch (failsafePhase()) {
-#ifdef NAV
+#ifdef USE_NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
-            // Should we show RTH instead?
-            return OSD_MESSAGE_STR("(RTL)");
+            return OSD_MESSAGE_STR("(RTH)");
 #endif
         case FAILSAFE_LANDING:
             // This should be considered an emergengy landing
@@ -726,9 +723,9 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr)
 
 static inline int32_t osdGetAltitude(void)
 {
-#if defined(NAV)
+#if defined(USE_NAV)
     return getEstimatedActualPosition(Z);
-#elif defined(BARO)
+#elif defined(USE_BARO)
     return baro.alt;
 #else
     return 0;
@@ -753,7 +750,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
             steps = offset / 20;
             break;
         case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
-#if defined(GPS)
+#if defined(USE_GPS)
             offset = gpsSol.groundSpeed;
 #else
             offset = 0;
@@ -762,7 +759,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
             steps = offset / 20;
             break;
         case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
-#if defined(GPS)
+#if defined(USE_GPS)
             offset = GPS_distanceToHome;
 #else
             offset = 0;
@@ -843,7 +840,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
-#ifdef GPS
+#ifdef USE_GPS
     case OSD_GPS_SATS:
         buff[0] = SYM_SAT_L;
         buff[1] = SYM_SAT_R;
@@ -958,10 +955,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "PASS";
             else if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 p = "!FS!";
-            } else if (FLIGHT_MODE(HEADFREE_MODE))
-                p = "!HF!";
-            else if (FLIGHT_MODE(NAV_RTH_MODE))
-                p = "RTL ";
+            } else if (FLIGHT_MODE(NAV_RTH_MODE))
+                p = "RTH ";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
                     // 3D HOLD
@@ -977,7 +972,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else if (FLIGHT_MODE(NAV_WP_MODE))
                 p = " WP ";
             else if (FLIGHT_MODE(ANGLE_MODE))
-                p = "STAB";
+                p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
 
@@ -1168,7 +1163,7 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-#if defined(BARO) || defined(GPS)
+#if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
         {
             int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 arrow
@@ -1259,7 +1254,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_AIR_SPEED:
         {
-        #ifdef PITOT
+        #ifdef USE_PITOT
             buff[0] = SYM_AIR;
             osdFormatVelocityStr(buff + 1, pitot.airSpeed);
         #else
@@ -1284,9 +1279,9 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const char *message = NULL;
             if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 3
+                // Aircraft is armed. We might have up to 4
                 // messages to show.
-                const char *messages[3];
+                const char *messages[4];
                 unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
@@ -1335,6 +1330,9 @@ static bool osdDrawSingleElement(uint8_t item)
                         }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
                             messages[messageCount++] = "(AUTOTUNE)";
+                        }
+                        if (FLIGHT_MODE(HEADFREE_MODE)) {
+                            messages[messageCount++] = "(HEADFREE)";
                         }
                     }
                     // Pick one of the available messages. Each message lasts
@@ -1584,7 +1582,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     osdDisplayPort = osdDisplayPortToUse;
 
-#ifdef CMS
+#ifdef USE_CMS
     cmsDisplayPortRegister(osdDisplayPort);
 #endif
 
@@ -1595,7 +1593,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
     displayWrite(osdDisplayPort, 5, 6, string_buffer);
-#ifdef CMS
+#ifdef USE_CMS
     displayWrite(osdDisplayPort, 7, 7,  CMS_STARTUP_HELP_TEXT1);
     displayWrite(osdDisplayPort, 11, 8, CMS_STARTUP_HELP_TEXT2);
     displayWrite(osdDisplayPort, 11, 9, CMS_STARTUP_HELP_TEXT3);
@@ -1786,9 +1784,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         return;
     }
 
-    blinkState = (currentTimeUs / 200000) % 2;
-
-#ifdef CMS
+#ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
         if (fullRedraw) {
             displayClearScreen(osdDisplayPort);
@@ -1832,7 +1828,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         displayDrawScreen(osdDisplayPort);
     }
 
-#ifdef CMS
+#ifdef USE_CMS
     // do not allow ARM if we are in menu
     if (displayIsGrabbed(osdDisplayPort)) {
         ENABLE_ARMING_FLAG(ARMING_DISABLED_OSD_MENU);

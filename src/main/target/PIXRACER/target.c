@@ -21,6 +21,19 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
+#include "drivers/bus.h"
+
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     MPU9250_EXTI_PIN,       0,  DEVFLAGS_NONE);
+BUSDEV_REGISTER_SPI_TAG(busdev_icm20608,    DEVHW_MPU6500,      ICM20608_SPI_BUS,   ICM20608_CS_PIN,    ICM20608_EXTI_PIN,      1,  DEVFLAGS_NONE);
+
+BUSDEV_REGISTER_SPI_TAG(busdev_ms5611,      DEVHW_MS5611,       MS5611_SPI_BUS,     MS5611_CS_PIN,      NONE,                   0,   DEVFLAGS_USE_RAW_REGISTERS);
+
+BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS,        0x1E,               NONE,                   0,  DEVFLAGS_NONE);
+BUSDEV_REGISTER_I2C_TAG(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,        0x0D,               NONE,                   0,  DEVFLAGS_NONE);
+BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,        0x0E,               NONE,                   0,  DEVFLAGS_NONE);
+
+// PixRacer has built-in HMC5983 compass on the same SPI bus as MPU9250
+BUSDEV_REGISTER_SPI_TAG(busdev_hmc5983_spi, DEVHW_HMC5883,      MPU9250_SPI_BUS,    PE15,               NONE,                   1,  DEVFLAGS_NONE);
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM3, IO_TAG(PB0),  TIM_Channel_3, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_PPM },  // PPM shared uart6 pc7

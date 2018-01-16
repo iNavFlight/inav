@@ -200,7 +200,7 @@ void i2cInit(I2CDevice device)
     IOConfigGPIOAF(sda, IOCFG_OUT_OD, 0);
 }
 
-bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t * data)
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data)
 {
     UNUSED(device);
 

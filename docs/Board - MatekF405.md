@@ -14,6 +14,16 @@ F405+ICM20602, w/ Betaflight OSD & SD Card Slot
 
 F405-AIO (only) exposes I2C pads for compass / baro etc.
 
+## Firmware
+
+Due to differences on the board (I2C --- see below), there are two
+firmware variants:
+
+| Board  | Firmware |
+| ------ | -------- |
+| Matek F405-AIO | inav_x.y.z_MATEKF405.hex |
+| Matek F405-OSD | inav_x.y.z_MATEKF405OSD.hex |
+
 ## MCU, Sensors and Features
 
 ### Hardware

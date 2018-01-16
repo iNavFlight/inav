@@ -31,31 +31,23 @@
 #define LED1                    PA1 // D3, PA1/USART2_RTS/ADC1/TIM2_CH3 - "LED2" on silkscreen, Yellow
 #endif
 
-#define GYRO
+#define USE_GYRO
 #define USE_FAKE_GYRO
-//#define USE_GYRO_L3G4200D
-//#define USE_GYRO_L3GD20
-//#define USE_GYRO_MPU3050
 #define USE_GYRO_MPU6050
-//#define USE_GYRO_SPI_MPU6000
-//#define USE_GYRO_SPI_MPU6500
 
-#define ACC
+#define USE_ACC
 #define USE_FAKE_ACC
-//#define USE_ACC_ADXL345
-//#define USE_ACC_BMA280
-//#define USE_ACC_MMA8452
-//#define USE_ACC_LSM303DLHC
 #define USE_ACC_MPU6050
-//#define USE_ACC_SPI_MPU6000
-//#define USE_ACC_SPI_MPU6500
 
-#define BARO
-//#define USE_BARO_MS5611
+#define MPU6050_I2C_BUS     BUS_I2C2
+
+#define USE_BARO
+#define BARO_I2C_BUS        BUS_I2C2
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS         BUS_I2C2
 #define USE_MAG_HMC5883
 
 // #define USE_RANGEFINDER
@@ -75,11 +67,7 @@
 #define SOFTSERIAL_2_TX_PIN     PB1
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_2)
-
-// #define SOFT_I2C // enable to test software i2c
-// #define SOFT_I2C_PB1011 // If SOFT_I2C is enabled above, need to define pinout as well (I2C1 = PB67, I2C2 = PB1011)
-// #define SOFT_I2C_PB67
+#define USE_I2C_DEVICE_2
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PB1

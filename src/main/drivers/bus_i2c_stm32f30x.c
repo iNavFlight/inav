@@ -19,6 +19,7 @@
 #include <stdint.h>
 
 #include <platform.h>
+
 #include "common/utils.h"
 
 #include "drivers/time.h"
@@ -388,7 +389,7 @@ static void i2cWaitForCompletion(I2CDevice device)
     } while (busState[device].state != I2C_STATE_STOPPED);
 }
 
-bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t * data)
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data)
 {
     // Don't try to access the non-initialized device
     if (!busState[device].initialized)
@@ -399,7 +400,7 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, ui
     busState[device].reg = reg;
     busState[device].rw = I2C_TXN_WRITE;
     busState[device].len = len;
-    busState[device].buf = data;
+    busState[device].buf = CONST_CAST(uint8_t *, data);
     busState[device].txnOk = false;
     busState[device].state = I2C_STATE_STARTING;
 
