@@ -366,12 +366,7 @@ void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
-    if (FLIGHT_MODE(PASSTHRU_MODE)) {
-        // Direct passthru from RX
-        input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
-        input[INPUT_STABILIZED_PITCH] = rcCommand[PITCH];
-        input[INPUT_STABILIZED_YAW] = rcCommand[YAW];
-    } else if (FLIGHT_MODE(MANUAL_MODE)) {
+    if (FLIGHT_MODE(MANUAL_MODE)) {
         input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual_rates[FD_ROLL] / 100L;
         input[INPUT_STABILIZED_PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual_rates[FD_PITCH] / 100L;
 	input[INPUT_STABILIZED_YAW] = rcCommand[YAW] * currentControlRateProfile->manual_rates[FD_YAW] / 100L;

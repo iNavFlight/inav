@@ -47,7 +47,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXCAMSTAB, "CAMSTAB;", 8 },
     { BOXNAVRTH, "NAV RTH;", 10 },         // old GPS HOME
     { BOXNAVPOSHOLD, "NAV POSHOLD;", 11 },     // old GPS HOLD
-    { BOXPASSTHRU, "PASSTHRU;", 12 },
+    { BOXMANUAL, "MANUAL;", 12 },
     { BOXBEEPERON, "BEEPER;", 13 },
     { BOXLEDLOW, "LEDLOW;", 15 },
     { BOXLLIGHTS, "LLIGHTS;", 16 },
@@ -70,7 +70,6 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXCAMERA1, "CAMERA CONTROL 1;", 39 },
     { BOXCAMERA2, "CAMERA CONTROL 2;", 40 },
     { BOXCAMERA3, "CAMERA CONTROL 3;", 41 },
-    { BOXMANUAL, "MANUAL;", 42 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -187,7 +186,6 @@ void initActiveBoxIds(void)
 #endif
 
     if (STATE(FIXED_WING)) {
-        activeBoxIds[activeBoxIdCount++] = BOXPASSTHRU;
         activeBoxIds[activeBoxIdCount++] = BOXMANUAL;
         activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
@@ -254,7 +252,6 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)),        BOXHEADFREE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)),     BOXHEADADJ);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)),     BOXCAMSTAB);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(PASSTHRU_MODE)),        BOXPASSTHRU);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(MANUAL_MODE)),        BOXMANUAL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)),    BOXBEEPERON);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)),      BOXLEDLOW);
