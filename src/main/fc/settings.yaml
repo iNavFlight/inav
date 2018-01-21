@@ -911,6 +911,11 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_mc_heading_p
+        field: bank_mc.pid[PID_HEADING].P
+        condition: USE_NAV
+        min: 0
+        max: 255
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
         condition: USE_NAV
@@ -938,6 +943,11 @@ groups:
         max: 255
       - name: nav_fw_pos_xy_d
         field: bank_fw.pid[PID_POS_XY].D
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_heading_p
+        field: bank_fw.pid[PID_HEADING].P
         condition: USE_NAV
         min: 0
         max: 255
