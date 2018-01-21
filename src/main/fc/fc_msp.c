@@ -502,13 +502,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ANALOG:
-        sbufWriteU8(dst, (uint8_t)constrain(vbat, 0, 255));
-        sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF)); // milliamp hours drawn from battery
+        sbufWriteU8(dst, (uint8_t)constrain(getBatteryVoltage(), 0, 255));
+        sbufWriteU16(dst, (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF)); // milliamp hours drawn from battery
         sbufWriteU16(dst, rssi);
         if (batteryConfig()->multiwiiCurrentMeterOutput) {
-            sbufWriteU16(dst, (uint16_t)constrain(amperage * 10, 0, 0xFFFF)); // send amperage in 0.001 A steps. Negative range is truncated to zero
+            sbufWriteU16(dst, (uint16_t)constrain(getAmperage() * 10, 0, 0xFFFF)); // send amperage in 0.001 A steps. Negative range is truncated to zero
         } else
-            sbufWriteU16(dst, (int16_t)constrain(amperage, -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
+            sbufWriteU16(dst, (int16_t)constrain(getAmperage(), -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
         break;
 
     case MSP_ARMING_CONFIG:

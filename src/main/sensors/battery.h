@@ -64,22 +64,24 @@ typedef enum {
     BATTERY_NOT_PRESENT
 } batteryState_e;
 
-extern uint16_t vbat;
-extern uint16_t vbatRaw;
 extern uint16_t vbatLatestADC;
-extern uint8_t batteryCellCount;
-extern uint16_t batteryWarningVoltage;
 extern uint16_t amperageLatestADC;
-extern int32_t amperage;
-extern int32_t mAhDrawn;
 
 uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
 void batteryUpdate(uint32_t vbatTimeDelta);
 void batteryInit(void);
 
+uint8_t calculateBatteryPercentageRemaining(void);
+uint16_t getBatteryVoltage(void);
+uint16_t getBatteryVoltageLatest(void);
+uint16_t getBatteryWarningVoltage(void);
+uint8_t getBatteryCellCount(void);
+uint16_t getBatteryAverageCellVoltage(void);
+
+int32_t getAmperage(void);
+int32_t getAmperageLatest(void);
+int32_t getMAhDrawn(void);
+
 void currentMeterUpdate(int32_t lastUpdateAt);
 int32_t currentMeterToCentiamps(uint16_t src);
-
-uint8_t calculateBatteryPercentage(void);
-uint8_t calculateBatteryCapacityRemainingPercentage(void);

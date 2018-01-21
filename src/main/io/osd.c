@@ -669,7 +669,7 @@ static void osdFormatMessage(char *buff, size_t size, const char *message)
  **/
 static void osdFormatBatteryChargeSymbol(char *buff)
 {
-    uint8_t p = calculateBatteryPercentage();
+    uint8_t p = calculateBatteryPercentageRemaining();
     p = (100 - p) / 16.6;
     buff[0] = SYM_BATT_FULL + p;
 }
@@ -680,7 +680,7 @@ static void osdFormatBatteryChargeSymbol(char *buff)
  **/
 static void osdUpdateBatteryTextAttributes(textAttributes_t *attr)
 {
-    if (vbat <= (batteryWarningVoltage - 1)) {
+    if (getBatteryVoltage() <= (getBatteryWarningVoltage() - 1)) {
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
     }
 }
@@ -821,7 +821,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_VOLTAGE:
         osdFormatBatteryChargeSymbol(buff);
-        osdFormatCentiNumber(buff + 1, vbat * 10, 0, 1, 0, 3);
+        osdFormatCentiNumber(buff + 1, getBatteryVoltage() * 10, 0, 1, 0, 3);
         buff[4] = 'V';
         buff[5] = '\0';
         osdUpdateBatteryTextAttributes(&elemAttr);
@@ -829,13 +829,13 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_CURRENT_DRAW:
         buff[0] = SYM_AMP;
-        osdFormatCentiNumber(buff + 1, amperage, 0, 2, 0, 3);
+        osdFormatCentiNumber(buff + 1, getAmperage(), 0, 2, 0, 3);
         break;
 
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
-        tfp_sprintf(buff + 1, "%-4d", abs(mAhDrawn));
-        if (osdConfig()->cap_alarm > 0 && mAhDrawn >= osdConfig()->cap_alarm) {
+        tfp_sprintf(buff + 1, "%-4d", abs(getMAhDrawn()));
+        if (osdConfig()->cap_alarm > 0 && getMAhDrawn() >= osdConfig()->cap_alarm) {
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
@@ -1248,7 +1248,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_POWER:
         {
             // TODO: SYM_WATTS?
-            tfp_sprintf(buff, "W%-3d", amperage * vbat / 1000);
+            tfp_sprintf(buff, "W%-3d", getAmperage() * getBatteryVoltage() / 1000);
             break;
         }
 
@@ -1358,7 +1358,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             // Use 2 decimals since dividing by the number of
             // cells might yield more significant digits
-            uint16_t cellBattCentiVolts = vbat * 10 / batteryCellCount;
+            uint16_t cellBattCentiVolts = getBatteryVoltage() * 10 / getBatteryCellCount();
             osdFormatBatteryChargeSymbol(buff);
             osdFormatCentiNumber(buff + 1, cellBattCentiVolts, 0, 2, 0, 3);
             buff[4] = 'V';
@@ -1430,7 +1430,7 @@ static bool osdDrawSingleElement(uint8_t item)
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                    value = pt1FilterApply4(&eFilterState, ((float)amperage / gpsSol.groundSpeed) / 0.0036f,
+                    value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                         1, efficiencyTimeDelta * 1e-6f);
 
                     efficiencyUpdated = currentTimeUs;
@@ -1627,10 +1627,11 @@ static void osdUpdateStats(void)
             stats.max_distance = GPS_distanceToHome;
     }
 
-    if (stats.min_voltage > vbat)
-        stats.min_voltage = vbat;
+    value = getBatteryVoltage();
+    if (stats.min_voltage > value)
+        stats.min_voltage = value;
 
-    value = abs(amperage / 100);
+    value = abs(getAmperage() / 100);
     if (stats.max_current < value)
         stats.max_current = value;
 
@@ -1682,14 +1683,14 @@ static void osdShowStats(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
-        itoa(mAhDrawn, buff, 10);
+        itoa(getMAhDrawn(), buff, 10);
         strcat(buff, "\x07");
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         int32_t totalDistance = getTotalTravelDistance();
         if (totalDistance > 0) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
-            tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
+            tfp_sprintf(buff, "%d%c%c", getMAhDrawn() * 100000 / totalDistance,
                 SYM_MAH_KM_0, SYM_MAH_KM_1);
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }

@@ -365,7 +365,7 @@ static void sendVoltage(void)
      * The actual value sent for cell voltage has resolution of 0.002 volts
      * Since vbat has resolution of 0.1 volts it has to be multiplied by 50
      */
-    cellVoltage = ((uint32_t)vbat * 100) / (batteryCellCount * 2);
+    cellVoltage = ((uint32_t)getBatteryVoltage() * 100) / (getBatteryCellCount() * 2);
 
     // Cell number is at bit 9-12 (only uses vbat, so it can't send individual cell voltages, set cell number to 0)
     payload = 0;
@@ -385,6 +385,7 @@ static void sendVoltage(void)
  */
 static void sendVoltageAmp(void)
 {
+    uint16_t vbat = getBatteryVoltage();
     if (telemetryConfig()->frsky_vfas_precision == FRSKY_VFAS_PRECISION_HIGH) {
         /*
          * Use new ID 0x39 to send voltage directly in 0.1 volts resolution
@@ -395,7 +396,7 @@ static void sendVoltageAmp(void)
         uint16_t voltage = (vbat * 110) / 21;
         uint16_t vfasVoltage;
         if (telemetryConfig()->frsky_vfas_cell_voltage) {
-            vfasVoltage = voltage / batteryCellCount;
+            vfasVoltage = voltage / getBatteryCellCount();
         } else {
             vfasVoltage = voltage;
         }
@@ -409,7 +410,7 @@ static void sendVoltageAmp(void)
 static void sendAmperage(void)
 {
     sendDataHead(ID_CURRENT);
-    serialize16((uint16_t)(amperage / 10));
+    serialize16((uint16_t)(getAmperage() / 10));
 }
 
 static void sendFuelLevel(void)
@@ -417,9 +418,9 @@ static void sendFuelLevel(void)
     sendDataHead(ID_FUEL_LEVEL);
 
     if (batteryConfig()->batteryCapacity > 0) {
-        serialize16((uint16_t)calculateBatteryCapacityRemainingPercentage());
+        serialize16((uint16_t)calculateBatteryPercentageRemaining());
     } else {
-        serialize16((uint16_t)constrain(mAhDrawn, 0, 0xFFFF));
+        serialize16((uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF));
     }
 }
 

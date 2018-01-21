@@ -46,16 +46,18 @@
 #define VBATT_LPF_FREQ  1
 
 // Battery monitoring stuff
-uint8_t batteryCellCount = 3;       // cell count
-uint16_t batteryWarningVoltage;
-uint16_t batteryCriticalVoltage;
+static uint8_t batteryCellCount = 3;       // cell count
+static uint16_t batteryWarningVoltage;
+static uint16_t batteryCriticalVoltage;
 
-uint16_t vbat = 0;                   // battery voltage in 0.1V steps (filtered)
-uint16_t vbatLatestADC = 0;         // most recent unsmoothed raw reading from vbat ADC
-uint16_t amperageLatestADC = 0;     // most recent raw reading from current ADC
+static uint16_t vbatRaw = 0;                // battery voltage in 0.1V steps (raw)
+static uint16_t vbat = 0;                   // battery voltage in 0.1V steps (filtered)
+uint16_t vbatLatestADC = 0;                 // most recent unsmoothed raw reading from vbat ADC
 
-int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
-int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
+static int32_t amperageRaw = 0;            // amperage read by current sensor in centiampere (1/100th A) (raw)
+static int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A) (filtered)
+uint16_t amperageLatestADC = 0;            // most recent raw reading from current ADC
+static int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
 
 static batteryState_e batteryState;
 
@@ -174,6 +176,62 @@ void batteryInit(void)
     batteryCriticalVoltage = 0;
 }
 
+uint8_t calculateBatteryPercentageRemaining(void)
+{
+    uint8_t batteryPercentage = 0;
+    if (batteryCellCount > 0) {
+        uint16_t batteryCapacity = batteryConfig()->batteryCapacity;
+
+        if (feature(FEATURE_CURRENT_METER) && batteryCapacity > 0) {
+            batteryPercentage = constrain(((float)batteryCapacity - mAhDrawn) * 100 / batteryCapacity, 0, 100);
+        } else {
+            batteryPercentage = constrain((((uint32_t)vbat - (batteryConfig()->vbatmincellvoltage * batteryCellCount)) * 100) / ((batteryConfig()->vbatmaxcellvoltage - batteryConfig()->vbatmincellvoltage) * batteryCellCount), 0, 100);
+        }
+    }
+
+    return batteryPercentage;
+}
+
+uint16_t getBatteryVoltage(void)
+{
+    return vbat;
+}
+
+uint16_t getBatteryVoltageLatest(void)
+{
+    return vbatRaw;
+}
+
+uint16_t getBatteryWarningVoltage(void)
+{
+    return batteryWarningVoltage;
+}
+
+uint8_t getBatteryCellCount(void)
+{
+    return batteryCellCount;
+}
+
+uint16_t getBatteryAverageCellVoltage(void)
+{
+    return batteryCellCount > 0 ? vbat / batteryCellCount : 0;
+}
+
+int32_t getAmperage(void)
+{
+    return amperage;
+}
+
+int32_t getAmperageLatest(void)
+{
+    return amperageRaw;
+}
+
+int32_t getMAhDrawn(void)
+{
+    return mAhDrawn;
+}
+
 #define ADCVREF 3300   // in mV
 int32_t currentSensorToCentiamps(uint16_t src)
 {
@@ -187,7 +245,6 @@ int32_t currentSensorToCentiamps(uint16_t src)
 
 void currentMeterUpdate(int32_t lastUpdateAt)
 {
-    static int32_t amperageRaw = 0;
     static int64_t mAhdrawnRaw = 0;
     int32_t throttleFactor = 0;
     int32_t throttleOffset = (int32_t)rcCommand[THROTTLE] - 1000;
@@ -215,16 +272,4 @@ void currentMeterUpdate(int32_t lastUpdateAt)
 
     mAhdrawnRaw += (amperage * lastUpdateAt) / 1000;
     mAhDrawn = mAhdrawnRaw / (3600 * 100);
-}
-
-uint8_t calculateBatteryPercentage(void)
-{
-    return constrain((((uint32_t)vbat - (batteryConfig()->vbatmincellvoltage * batteryCellCount)) * 100) / ((batteryConfig()->vbatmaxcellvoltage - batteryConfig()->vbatmincellvoltage) * batteryCellCount), 0, 100);
-}
-
-uint8_t calculateBatteryCapacityRemainingPercentage(void)
-{
-    uint16_t batteryCapacity = batteryConfig()->batteryCapacity;
-
-    return constrain((batteryCapacity - constrain(mAhDrawn, 0, 0xFFFF)) * 100.0f / batteryCapacity , 0, 100);
 }
