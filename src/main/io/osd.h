@@ -98,6 +98,7 @@ typedef struct osdConfig_s {
     uint8_t row_shiftdown;
 
     // Preferences
+    uint8_t main_voltage_decimals;
     uint8_t ahi_reverse_roll;
     osd_crosshairs_style_e crosshairs_style;
     osd_sidebar_scroll_e left_sidebar_scroll;

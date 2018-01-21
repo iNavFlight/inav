@@ -820,11 +820,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAIN_BATT_VOLTAGE:
-        osdFormatBatteryChargeSymbol(buff);
-        osdFormatCentiNumber(buff + 1, vbat * 10, 0, 1, 0, 3);
-        buff[4] = 'V';
-        buff[5] = '\0';
-        osdUpdateBatteryTextAttributes(&elemAttr);
+	osdFormatBatteryChargeSymbol(buff);
+	osdFormatCentiNumber(buff + 1, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+	buff[osdConfig()->main_voltage_decimals + 3] = 'V';
+	buff[osdConfig()->main_voltage_decimals + 4] = '\0';
+	osdUpdateBatteryTextAttributes(&elemAttr);
         break;
 
     case OSD_CURRENT_DRAW:
@@ -1360,9 +1360,9 @@ static bool osdDrawSingleElement(uint8_t item)
             // cells might yield more significant digits
             uint16_t cellBattCentiVolts = vbat * 10 / batteryCellCount;
             osdFormatBatteryChargeSymbol(buff);
-            osdFormatCentiNumber(buff + 1, cellBattCentiVolts, 0, 2, 0, 3);
-            buff[4] = 'V';
-            buff[5] = '\0';
+            osdFormatCentiNumber(buff + 1, cellBattCentiVolts, 0, osdConfig()->main_voltage_decimals, 0, 3);
+            buff[osdConfig()->main_voltage_decimals + 2] = 'V';
+            buff[osdConfig()->main_voltage_decimals + 3] = '\0';
             osdUpdateBatteryTextAttributes(&elemAttr);
             break;
         }
@@ -1571,6 +1571,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->sidebar_scroll_arrows = 0;
 
     osdConfig->units = OSD_UNIT_METRIC;
+    osdConfig->main_voltage_decimals = 1;
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
