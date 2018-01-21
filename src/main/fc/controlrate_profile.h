@@ -43,8 +43,7 @@ and so on.
 typedef struct controlRateConfig_s {
     uint16_t tpa_breakpoint;                // Breakpoint where TPA is activated
     uint8_t rcExpo8;
-    uint8_t manual_pitch_rcExpo8;
-    uint8_t manual_roll_rcExpo8;
+    uint8_t manual_rcExpo8;
     uint8_t thrMid8;
     uint8_t thrExpo8;
     uint8_t rates[3];

@@ -559,12 +559,8 @@ groups:
         field: rcExpo8
         min: 0
         max: 100
-      - name: rc_manual_roll_expo
-        field: manual_roll_rcExpo8
-        min: 0
-        max: 100
-      - name: rc_manual_pitch_expo
-        field: manual_pitch_rcExpo8
+      - name: rc_manual_expo
+        field: manual_rcExpo8
         min: 0
         max: 100
       - name: rc_yaw_expo

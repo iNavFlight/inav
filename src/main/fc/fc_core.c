@@ -294,8 +294,8 @@ void annexCode(void)
     }
     else {
         // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_roll_rcExpo8 : currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_pitch_rcExpo8 : currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcExpo8 : currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcExpo8 : currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
         rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcYawExpo8 : currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
 
         //Compute THROTTLE command

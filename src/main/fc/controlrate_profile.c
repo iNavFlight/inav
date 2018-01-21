@@ -40,8 +40,7 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
     for (int i = 0; i < MAX_CONTROL_RATE_PROFILE_COUNT; i++) {
         RESET_CONFIG(controlRateConfig_t, &instance[i],
             .rcExpo8 = 70,
-            .manual_pitch_rcExpo8 = 70,
-            .manual_roll_rcExpo8 = 70,
+            .manual_rcExpo8 = 70,
             .thrMid8 = 50,
             .thrExpo8 = 0,
             .dynThrPID = 0,
