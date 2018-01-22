@@ -70,6 +70,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXCAMERA1, "CAMERA CONTROL 1;", 39 },
     { BOXCAMERA2, "CAMERA CONTROL 2;", 40 },
     { BOXCAMERA3, "CAMERA CONTROL 3;", 41 },
+    { BOXLIGHTS, "LIGHTS;", 42 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -233,6 +234,9 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA2;
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
 #endif
+#ifdef LIGHTS
+    activeBoxIds[activeBoxIdCount++] = BOXLIGHTS;
+#endif
 }
 
 #define IS_ENABLED(mask) (mask == 0 ? 0 : 1)
@@ -279,6 +283,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTRIM)),    BOXAUTOTRIM);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKILLSWITCH)),  BOXKILLSWITCH);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHOMERESET)),   BOXHOMERESET);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLIGHTS)),      BOXLIGHTS);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

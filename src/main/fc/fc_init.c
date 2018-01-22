@@ -92,6 +92,7 @@
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
+#include "io/lights.h"
 #include "io/dashboard.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
@@ -373,6 +374,9 @@ void init(void)
 #endif
 
     beeperInit(&beeperDevConfig);
+#endif
+#ifdef LIGHTS
+    lightsInit();
 #endif
 
 #ifdef USE_INVERTER

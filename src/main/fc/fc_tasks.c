@@ -49,6 +49,7 @@
 #include "navigation/navigation.h"
 
 #include "io/beeper.h"
+#include "io/lights.h"
 #include "io/dashboard.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
@@ -315,6 +316,9 @@ void fcTasksInit(void)
 #ifdef BEEPER
     setTaskEnabled(TASK_BEEPER, true);
 #endif
+#ifdef LIGHTS
+    setTaskEnabled(TASK_LIGHTS, true);
+#endif
     setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || feature(FEATURE_CURRENT_METER));
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS
@@ -440,6 +444,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_BEEPER] = {
         .taskName = "BEEPER",
         .taskFunc = beeperUpdate,
+        .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef LIGHTS
+    [TASK_LIGHTS] = {
+        .taskName = "LIGHTS",
+        .taskFunc = lightsUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
