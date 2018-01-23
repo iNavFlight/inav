@@ -363,9 +363,9 @@ static void sendVoltage(void)
      *  c: Cell number (starting at 0)
      *
      * The actual value sent for cell voltage has resolution of 0.002 volts
-     * Since vbat has resolution of 0.1 volts it has to be multiplied by 50
+     * Since vbat has resolution of 0.01 volts it has to be multiplied by 5
      */
-    cellVoltage = ((uint32_t)vbat * 100) / (batteryCellCount * 2);
+    cellVoltage = ((uint32_t)vbat * 10) / (batteryCellCount * 2);
 
     // Cell number is at bit 9-12 (only uses vbat, so it can't send individual cell voltages, set cell number to 0)
     payload = 0;
@@ -390,9 +390,9 @@ static void sendVoltageAmp(void)
          * Use new ID 0x39 to send voltage directly in 0.1 volts resolution
          */
         sendDataHead(ID_VOLTAGE_AMP);
-        serialize16(vbat);
+        serialize16(vbat / 10);
     } else {
-        uint16_t voltage = (vbat * 110) / 21;
+        uint16_t voltage = (vbat * 11) / 21;
         uint16_t vfasVoltage;
         if (telemetryConfig()->frsky_vfas_cell_voltage) {
             vfasVoltage = voltage / batteryCellCount;

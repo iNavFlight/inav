@@ -113,7 +113,7 @@ static timeUs_t flyTime = 0;
 
 typedef struct statistic_s {
     uint16_t max_speed;
-    int16_t min_voltage; // /10
+    uint16_t min_voltage; // /100
     int16_t max_current; // /10
     int16_t min_rssi;
     int32_t max_altitude;
@@ -1248,7 +1248,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_POWER:
         {
             // TODO: SYM_WATTS?
-            tfp_sprintf(buff, "W%-3d", amperage * vbat / 1000);
+            tfp_sprintf(buff, "W%-3d", amperage * vbat / 10000);
             break;
         }
 
@@ -1609,7 +1609,7 @@ static void osdResetStats(void)
 {
     stats.max_current = 0;
     stats.max_speed = 0;
-    stats.min_voltage = 500;
+    stats.min_voltage = 5000;
     stats.max_current = 0;
     stats.min_rssi = 99;
     stats.max_altitude = 0;
@@ -1668,7 +1668,7 @@ static void osdShowStats(void)
     }
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY      :");
-    tfp_sprintf(buff, "%d.%1dV", stats.min_voltage / 10, stats.min_voltage % 10);
+    tfp_sprintf(buff, "%d.%1dV", stats.min_voltage / 100, stats.min_voltage % 100);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");

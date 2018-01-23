@@ -588,7 +588,7 @@ void handleSmartPortTelemetry(void)
                         vfasVoltage = vbat / batteryCellCount;
                     else
                         vfasVoltage = vbat;
-                    smartPortSendPackage(id, vfasVoltage * 10); // given in 0.1V, convert to volts
+                    smartPortSendPackage(id, vfasVoltage); // given in 0.1V, convert to volts
                 }
                 break;
             case FSSP_DATAID_CURRENT    :
@@ -739,7 +739,7 @@ void handleSmartPortTelemetry(void)
             //case FSSP_DATAID_A3         :
             case FSSP_DATAID_A4         :
                 if (feature(FEATURE_VBAT))
-                    smartPortSendPackage(id, vbat * 10 / batteryCellCount ); // given in 0.1V, convert to volts
+                    smartPortSendPackage(id, vbat / batteryCellCount ); // given in 0.1V, convert to volts
                 break;
             default:
                 break;
