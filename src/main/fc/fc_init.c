@@ -375,7 +375,7 @@ void init(void)
 
     beeperInit(&beeperDevConfig);
 #endif
-#ifdef LIGHTS
+#ifdef USE_LIGHTS
     lightsInit();
 #endif
 

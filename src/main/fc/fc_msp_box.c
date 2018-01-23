@@ -206,7 +206,7 @@ void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXBEEPERON;
 
-#ifdef LIGHTS
+#ifdef USE_LIGHTS
     activeBoxIds[activeBoxIdCount++] = BOXLIGHTS;
 #endif
 

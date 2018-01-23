@@ -19,23 +19,25 @@
 
 #include "common/time.h"
 
-#ifdef LIGHTS
+#ifdef USE_LIGHTS
 
-//#define FAILSAFE_LIGHTS
+//#define USE_FAILSAFE_LIGHTS
 
 #ifndef LIGHTS_OUTPUT_MODE
     #define LIGHTS_OUTPUT_MODE IOCFG_OUT_PP
 #endif
 
-#ifndef FAILSAFE_LIGHTS_ON_TIME
-    #define FAILSAFE_LIGHTS_ON_TIME 100 // ms
-#endif
-#ifndef FAILSAFE_LIGHTS_OFF_TIME
-    #define FAILSAFE_LIGHTS_OFF_TIME 900 // ms
-#endif
+#ifdef USE_FAILSAFE_LIGHTS
+    #ifndef FAILSAFE_LIGHTS_ON_TIME
+        #define FAILSAFE_LIGHTS_ON_TIME 100 // ms
+    #endif
+    #ifndef FAILSAFE_LIGHTS_OFF_TIME
+        #define FAILSAFE_LIGHTS_OFF_TIME 900 // ms
+    #endif
+#endif /* USE_FAILSAFE_LIGHTS */
 
 
 void lightsUpdate(timeUs_t currentTimeUs);
 void lightsInit();
 
-#endif /* LIGHTS */
+#endif /* USE_LIGHTS */

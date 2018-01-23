@@ -316,7 +316,7 @@ void fcTasksInit(void)
 #ifdef BEEPER
     setTaskEnabled(TASK_BEEPER, true);
 #endif
-#ifdef LIGHTS
+#ifdef USE_LIGHTS
     setTaskEnabled(TASK_LIGHTS, true);
 #endif
     setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || feature(FEATURE_CURRENT_METER));
@@ -449,7 +449,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef LIGHTS
+#ifdef USE_LIGHTS
     [TASK_LIGHTS] = {
         .taskName = "LIGHTS",
         .taskFunc = lightsUpdate,

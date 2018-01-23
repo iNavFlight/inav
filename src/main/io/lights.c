@@ -20,12 +20,12 @@
 
 #include "io/lights.h"
 
-#ifdef LIGHTS
+#ifdef USE_LIGHTS
 
 static IO_t lightsIO = DEFIO_IO(NONE);
 static bool lights_on = false;
 
-#ifdef FAILSAFE_LIGHTS
+#ifdef USE_FAILSAFE_LIGHTS
   static timeUs_t last_status_change = 0;
 #endif
 
@@ -47,7 +47,7 @@ void lightsUpdate(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
     if (lightsIO) {
-#ifdef FAILSAFE_LIGHTS
+#ifdef USE_FAILSAFE_LIGHTS
         if (FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(WAS_EVER_ARMED)) {
             bool new_lights_status = lights_on;
             if (lights_on) {
@@ -67,13 +67,13 @@ void lightsUpdate(timeUs_t currentTimeUs)
         }
 #else
         lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS));
-#endif /* FAILSAFE_LIGHTS */
+#endif /* USE_FAILSAFE_LIGHTS */
     }
 }
 
 void lightsInit()
 {
-    lightsIO = IOGetByTag(IO_TAG(LIGHTS));
+    lightsIO = IOGetByTag(IO_TAG(LIGHTS_PIN));
 
     if (lightsIO) {
         IOInit(lightsIO, OWNER_LED, RESOURCE_OUTPUT, 0);
@@ -81,4 +81,4 @@ void lightsInit()
     }
 }
 
-#endif /* LIGHTS */
+#endif /* USE_LIGHTS */
