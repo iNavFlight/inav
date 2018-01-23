@@ -820,11 +820,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAIN_BATT_VOLTAGE:
-	osdFormatBatteryChargeSymbol(buff);
-	osdFormatCentiNumber(buff + 1, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-	buff[osdConfig()->main_voltage_decimals + 3] = 'V';
-	buff[osdConfig()->main_voltage_decimals + 4] = '\0';
-	osdUpdateBatteryTextAttributes(&elemAttr);
+        osdFormatBatteryChargeSymbol(buff);
+        osdFormatCentiNumber(buff + 1, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+        buff[osdConfig()->main_voltage_decimals + 3] = 'V';
+        buff[osdConfig()->main_voltage_decimals + 4] = '\0';
+        osdUpdateBatteryTextAttributes(&elemAttr);
         break;
 
     case OSD_CURRENT_DRAW:
