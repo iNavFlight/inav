@@ -46,8 +46,8 @@ typedef struct batteryConfig_s {
     uint8_t vbatmincellvoltage;             // minimum voltage per cell, this triggers battery critical alarm, in 0.1V units, default is 33 (3.3V)
     uint8_t vbatwarningcellvoltage;         // warning voltage per cell, this triggers battery warning alarm, in 0.1V units, default is 35 (3.5V)
 
-    int16_t currentMeterScale;             // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
-    int16_t currentMeterOffset;            // offset of the current sensor in millivolt steps
+    int16_t currentMeterScale;              // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
+    int16_t currentMeterOffset;             // offset of the current sensor in millivolt steps
     currentSensor_e  currentMeterType;      // type of current meter used, either ADC or virtual
 
     // FIXME this doesn't belong in here since it's a concern of MSP, not of the battery code.
@@ -79,7 +79,6 @@ void batteryUpdate(uint32_t vbatTimeDelta);
 void batteryInit(void);
 
 void currentMeterUpdate(int32_t lastUpdateAt);
-int32_t currentMeterToCentiamps(uint16_t src);
 
 uint8_t calculateBatteryPercentage(void);
 uint8_t calculateBatteryCapacityRemainingPercentage(void);
