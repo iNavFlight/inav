@@ -23,10 +23,6 @@
 
 //#define USE_FAILSAFE_LIGHTS
 
-#ifndef LIGHTS_OUTPUT_MODE
-    #define LIGHTS_OUTPUT_MODE IOCFG_OUT_PP
-#endif
-
 #ifdef USE_FAILSAFE_LIGHTS
     #ifndef FAILSAFE_LIGHTS_ON_TIME
         #define FAILSAFE_LIGHTS_ON_TIME 100 // ms
