@@ -31,12 +31,12 @@ static bool lights_on = false;
 
 bool lightsSetStatus(bool status)
 {
-  if (status != lights_on) {
-    lights_on = status;
-    IOWrite(lightsIO, lights_on);
-    return(true);
-  } else
-    return(false);
+    if (status != lights_on) {
+        lights_on = status;
+        IOWrite(lightsIO, lights_on);
+        return(true);
+    } else
+        return(false);
 }
 
 /*
@@ -45,40 +45,40 @@ bool lightsSetStatus(bool status)
  */
 void lightsUpdate(timeUs_t currentTimeUs)
 {
-  UNUSED(currentTimeUs);
-  if (lightsIO) {
+    UNUSED(currentTimeUs);
+    if (lightsIO) {
 #ifdef FAILSAFE_LIGHTS
-    if (FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(WAS_EVER_ARMED)) {
-      bool new_lights_status = lights_on;
-      if (lights_on) {
-	if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_ON_TIME * 1000)
-	  new_lights_status = false;
-      } else {
-	if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_OFF_TIME * 1000)
-	  new_lights_status = true;
-      }
-      if (new_lights_status != lights_on) {
-	lightsSetStatus(new_lights_status);
-	last_status_change = currentTimeUs;
-      }
-    } else {
-      if (lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS)))
-	last_status_change = currentTimeUs;
-    }
+        if (FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(WAS_EVER_ARMED)) {
+            bool new_lights_status = lights_on;
+            if (lights_on) {
+                if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_ON_TIME * 1000)
+                    new_lights_status = false;
+            } else {
+                if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_OFF_TIME * 1000)
+                    new_lights_status = true;
+            }
+            if (new_lights_status != lights_on) {
+                lightsSetStatus(new_lights_status);
+                last_status_change = currentTimeUs;
+            }
+        } else {
+            if (lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS)))
+                last_status_change = currentTimeUs;
+        }
 #else
-    lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS));
+        lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS));
 #endif /* FAILSAFE_LIGHTS */
-  }
+    }
 }
 
 void lightsInit()
 {
-  lightsIO = IOGetByTag(IO_TAG(LIGHTS));
+    lightsIO = IOGetByTag(IO_TAG(LIGHTS));
 
-  if (lightsIO) {
-    IOInit(lightsIO, OWNER_LED, RESOURCE_OUTPUT, 0);
-    IOConfigGPIO(lightsIO, LIGHTS_OUTPUT_MODE);
-  }
+    if (lightsIO) {
+        IOInit(lightsIO, OWNER_LED, RESOURCE_OUTPUT, 0);
+        IOConfigGPIO(lightsIO, LIGHTS_OUTPUT_MODE);
+    }
 }
 
 #endif /* LIGHTS */
