@@ -454,7 +454,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "LIGHTS",
         .taskFunc = lightsUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
-        .staticPriority = TASK_PRIORITY_MEDIUM,
+        .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
 
