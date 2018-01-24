@@ -34,7 +34,7 @@ typedef enum {
     BOXCAMSTAB      = 7,
     BOXNAVRTH       = 8,    // old GPSHOME
     BOXNAVPOSHOLD   = 9,    // old GPSHOLD
-    BOXMANUAL     = 10,
+    BOXMANUAL       = 10,
     BOXBEEPERON     = 11,
     BOXLEDLOW       = 12,
     BOXLLIGHTS      = 13,
