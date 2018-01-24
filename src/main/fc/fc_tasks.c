@@ -49,6 +49,7 @@
 #include "navigation/navigation.h"
 
 #include "io/beeper.h"
+#include "io/lights.h"
 #include "io/dashboard.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
@@ -442,6 +443,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = beeperUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_LIGHTS
+    [TASK_LIGHTS] = {
+        .taskName = "LIGHTS",
+        .taskFunc = lightsUpdate,
+        .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
+        .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
 

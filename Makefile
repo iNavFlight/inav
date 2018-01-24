@@ -596,6 +596,7 @@ COMMON_SRC = \
             drivers/stack_check.c \
             drivers/system.c \
             drivers/timer.c \
+            drivers/lights_hal.c \
             fc/cli.c \
             fc/config.c \
             fc/controlrate_profile.c \
@@ -620,6 +621,7 @@ COMMON_SRC = \
             flight/pid_autotune.c \
             flight/servos.c \
             io/beeper.c \
+            io/lights.c \
             io/pwmdriver_i2c.c \
             io/serial.c \
             io/serial_4way.c \
