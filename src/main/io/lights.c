@@ -7,7 +7,8 @@
 #include "common/utils.h"
 
 #include "drivers/time.h"
-#include "drivers/io.h"
+/*#include "drivers/io.h"*/
+#include "drivers/lights_hal.h"
 
 #include "rx/rx.h"
 
@@ -16,13 +17,14 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
+#include "scheduler/scheduler.h"
+
 #include "config/feature.h"
 
 #include "io/lights.h"
 
 #ifdef USE_LIGHTS
 
-static IO_t lightsIO = DEFIO_IO(NONE);
 static bool lights_on = false;
 
 #ifdef USE_FAILSAFE_LIGHTS
@@ -33,7 +35,7 @@ bool lightsSetStatus(bool status)
 {
     if (status != lights_on) {
         lights_on = status;
-        IOWrite(lightsIO, lights_on);
+        lightsHardwareSetStatus(status);
         return(true);
     } else
         return(false);
@@ -46,39 +48,32 @@ bool lightsSetStatus(bool status)
 void lightsUpdate(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-    if (lightsIO) {
 #ifdef USE_FAILSAFE_LIGHTS
-        if (FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(WAS_EVER_ARMED)) {
-            bool new_lights_status = lights_on;
-            if (lights_on) {
-                if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_ON_TIME * 1000)
-                    new_lights_status = false;
-            } else {
-                if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_OFF_TIME * 1000)
-                    new_lights_status = true;
-            }
-            if (new_lights_status != lights_on) {
-                lightsSetStatus(new_lights_status);
-                last_status_change = currentTimeUs;
-            }
+    if (FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(WAS_EVER_ARMED)) {
+        bool new_lights_status = lights_on;
+        if (lights_on) {
+            if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_ON_TIME * 1000)
+                new_lights_status = false;
         } else {
-            if (lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS)))
-                last_status_change = currentTimeUs;
+            if (currentTimeUs - last_status_change > FAILSAFE_LIGHTS_OFF_TIME * 1000)
+                new_lights_status = true;
         }
-#else
-        lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS));
-#endif /* USE_FAILSAFE_LIGHTS */
+        if (new_lights_status != lights_on) {
+            lightsSetStatus(new_lights_status);
+            last_status_change = currentTimeUs;
+        }
+    } else {
+        if (lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS)))
+            last_status_change = currentTimeUs;
     }
+#else
+    lightsSetStatus(IS_RC_MODE_ACTIVE(BOXLIGHTS));
+#endif /* USE_FAILSAFE_LIGHTS */
 }
 
 void lightsInit()
 {
-    lightsIO = IOGetByTag(IO_TAG(LIGHTS_PIN));
-
-    if (lightsIO) {
-        IOInit(lightsIO, OWNER_LED, RESOURCE_OUTPUT, 0);
-        IOConfigGPIO(lightsIO, LIGHTS_OUTPUT_MODE);
-    }
+    setTaskEnabled(TASK_LIGHTS, lightsHardwareInit());
 }
 
 #endif /* USE_LIGHTS */
