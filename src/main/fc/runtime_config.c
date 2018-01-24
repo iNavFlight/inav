@@ -101,7 +101,7 @@ uint32_t sensorsMask(void)
 
 flightModeForTelemetry_e getFlightModeForTelemetry(void)
 {
-    if (FLIGHT_MODE(PASSTHRU_MODE))
+    if (FLIGHT_MODE(MANUAL_MODE))
         return FLM_MANUAL;
 
     if (FLIGHT_MODE(FAILSAFE_MODE))

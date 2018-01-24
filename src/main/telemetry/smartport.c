@@ -666,7 +666,7 @@ void handleSmartPortTelemetry(void)
                         tmpi += 10;
                     if (FLIGHT_MODE(HORIZON_MODE))
                         tmpi += 20;
-                    if (FLIGHT_MODE(PASSTHRU_MODE))
+                    if (FLIGHT_MODE(MANUAL_MODE))
                         tmpi += 40;
 
                     // hundreds column

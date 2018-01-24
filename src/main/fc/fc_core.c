@@ -294,9 +294,16 @@ void annexCode(void)
     }
     else {
         // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
+        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcYawExpo8 : currentControlRateProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
+
+        // Apply manual control rates
+        if (FLIGHT_MODE(MANUAL_MODE)) {
+            rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
+            rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
+            rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
+        }
 
         //Compute THROTTLE command
         throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
@@ -561,19 +568,20 @@ void processRx(timeUs_t currentTimeUs)
 
     // Handle passthrough mode
     if (STATE(FIXED_WING)) {
-        if ((IS_RC_MODE_ACTIVE(BOXPASSTHRU) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
+        if ((IS_RC_MODE_ACTIVE(BOXMANUAL) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
             (!ARMING_FLAG(ARMED) && isCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
-            ENABLE_FLIGHT_MODE(PASSTHRU_MODE);
+            ENABLE_FLIGHT_MODE(MANUAL_MODE);
         } else {
-            DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
+            DISABLE_FLIGHT_MODE(MANUAL_MODE);
         }
+	IS_RC_MODE_ACTIVE(BOXMANUAL) ? ENABLE_FLIGHT_MODE(MANUAL_MODE) : DISABLE_FLIGHT_MODE(MANUAL_MODE);
     }
 
     /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
        This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
        Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
-    if (FLIGHT_MODE(PASSTHRU_MODE) || !ARMING_FLAG(ARMED)) {
-        /* In PASSTHRU mode we reset integrators prevent I-term wind-up (PID output is not used in PASSTHRU) */
+    if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
+        /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
         pidResetErrorAccumulators();
     }
     else {

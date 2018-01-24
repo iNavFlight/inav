@@ -260,6 +260,35 @@ static CMS_Menu cmsx_menuPidGpsnav = {
 };
 
 //
+// MANUAL Rate & Expo
+//
+static OSD_Entry cmsx_menuManualRateProfileEntries[] =
+{
+    { "-- MANUAL RATE --", OME_Label, NULL, profileIndexString, 0 },
+
+    OSD_SETTING_ENTRY("MANU ROLL RATE", SETTING_MANUAL_ROLL_RATE),
+    OSD_SETTING_ENTRY("MANU PITCH RATE", SETTING_MANUAL_PITCH_RATE),
+    OSD_SETTING_ENTRY("MANU YAW RATE", SETTING_MANUAL_YAW_RATE),
+
+    OSD_SETTING_ENTRY("MANU RC EXPO", SETTING_MANUAL_RC_EXPO),
+    OSD_SETTING_ENTRY("MANU RC YAW EXP", SETTING_MANUAL_RC_YAW_EXPO),
+
+    { "BACK", OME_Back, NULL, NULL, 0 },
+    { NULL, OME_END, NULL, NULL, 0 }
+};
+
+static CMS_Menu cmsx_menuManualRateProfile = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUMANURATE",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuManualRateProfileEntries
+};
+
+//
 // Rate & Expo
 //
 static OSD_Entry cmsx_menuRateProfileEntries[] =
@@ -423,6 +452,7 @@ static OSD_Entry cmsx_menuImuEntries[] =
     // Rate profile dependent
     {"RATE PROF", OME_UINT8,   cmsx_profileIndexOnChange, &(OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1}, 0},
     {"RATE",      OME_Submenu, cmsMenuChange,                 &cmsx_menuRateProfile,                                       0},
+    {"MANU RATE", OME_Submenu, cmsMenuChange,                 &cmsx_menuManualRateProfile,                                 0},
 
     // Global
     {"GYRO GLB",  OME_Submenu, cmsMenuChange,                 &cmsx_menuGyro,                                              0},
