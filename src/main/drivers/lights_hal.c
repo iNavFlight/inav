@@ -12,8 +12,6 @@ static IO_t lightsIO = DEFIO_IO(NONE);
 
 bool lightsHardwareInit()
 {
-#ifdef LIGHTS_USE_PCA9685_OUTPUT
-#else
     lightsIO = IOGetByTag(IO_TAG(LIGHTS_PIN));
 
     if (lightsIO) {
@@ -22,7 +20,6 @@ bool lightsHardwareInit()
         return(true);
     } else
         return(false);
-#endif
 }
 
 void lightsHardwareSetStatus(bool status)
