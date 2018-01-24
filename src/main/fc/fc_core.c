@@ -298,6 +298,13 @@ void annexCode(void)
         rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcExpo8 : currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
         rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual_rcYawExpo8 : currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
 
+        // Apply manual control rates
+        if (FLIGHT_MODE(MANUAL_MODE)) {
+            rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual_rates[FD_ROLL] / 100L;
+            rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual_rates[FD_PITCH] / 100L;
+            rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual_rates[FD_YAW] / 100L;
+        }
+
         //Compute THROTTLE command
         throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
         throttleValue = (uint32_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);       // [MINCHECK;2000] -> [0;1000]
