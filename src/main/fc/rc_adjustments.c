@@ -270,13 +270,11 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             newValue = constrain((int)controlRateConfig->manual.rates[FD_ROLL] + delta, 0, 100);
             controlRateConfig->manual.rates[FD_ROLL] = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_ROLL_RATE, newValue);
-            /*schedulePidGainsUpdate();*/
             break;
         case ADJUSTMENT_MANUAL_PITCH_RATE:
             newValue = constrain((int)controlRateConfig->manual.rates[FD_PITCH] + delta, 0, 100);
             controlRateConfig->manual.rates[FD_PITCH] = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_PITCH_RATE, newValue);
-            /*schedulePidGainsUpdate();*/
             break;
         case ADJUSTMENT_YAW_RATE:
             newValue = constrain((int)controlRateConfig->stabilized.rates[FD_YAW] + delta, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
@@ -288,7 +286,6 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             newValue = constrain((int)controlRateConfig->manual.rates[FD_YAW] + delta, 0, 100);
             controlRateConfig->manual.rates[FD_YAW] = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_YAW_RATE, newValue);
-            /*schedulePidGainsUpdate();*/
             break;
         case ADJUSTMENT_PITCH_ROLL_P:
         case ADJUSTMENT_PITCH_P:
