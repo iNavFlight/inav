@@ -555,61 +555,62 @@ groups:
     headers: ["fc/controlrate_profile.h"]
     value_type: CONTROL_RATE_VALUE
     members:
-      - name: rc_expo
-        field: rcExpo8
-        min: 0
-        max: 100
-      - name: rc_manual_expo
-        field: manual_rcExpo8
-        min: 0
-        max: 100
-      - name: rc_yaw_expo
-        field: rcYawExpo8
-        min: 0
-        max: 100
-      - name: rc_manual_yaw_expo
-        field: manual_rcYawExpo8
-        min: 0
-        max: 100
       - name: thr_mid
-        field: thrMid8
+        field: throttle.rcMid8
         min: 0
         max: 100
       - name: thr_expo
-        field: thrExpo8
+        field: throttle.rcExpo8
+        min: 0
+        max: 100
+      - name: tpa_rate
+        field: throttle.dynPID
+        min: 0
+        max: CONTROL_RATE_CONFIG_TPA_MAX
+      - name: tpa_breakpoint
+        field: throttle.pa_breakpoint
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
+      - name: rc_expo
+        field: stabilized.rcExpo8
+        min: 0
+        max: 100
+      - name: rc_yaw_expo
+        field: stabilized.rcYawExpo8
         min: 0
         max: 100
       # New rates are in dps/10. That means, Rate of 20 means 200dps of rotation speed on given axis.
       # Rate 180 (1800dps) is max. value gyro can measure reliably
       - name: roll_rate
-        field: rates[FD_ROLL]
+        field: stabilized.rates[FD_ROLL]
         min: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN
         max: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX
       - name: pitch_rate
-        field: rates[FD_PITCH]
+        field: stabilized.rates[FD_PITCH]
         min: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN
         max: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX
       - name: yaw_rate
-        field: rates[FD_YAW]
+        field: stabilized.rates[FD_YAW]
         min: CONTROL_RATE_CONFIG_YAW_RATE_MIN
         max: CONTROL_RATE_CONFIG_YAW_RATE_MAX
-      - name: tpa_rate
-        field: dynThrPID
+      - name: manual_rc_expo
+        field: manual.rcExpo8
         min: 0
-        max: CONTROL_RATE_CONFIG_TPA_MAX
-      - name: tpa_breakpoint
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
+        max: 100
+      - name: manual_rc_yaw_expo
+        field: manual.rcYawExpo8
+        min: 0
+        max: 100
       - name: manual_roll_rate
-        field: manual_rates[FD_ROLL]
+        field: manual.rates[FD_ROLL]
         min: 0
         max: 100
       - name: manual_pitch_rate
-        field: manual_rates[FD_PITCH]
+        field: manual.rates[FD_PITCH]
         min: 0
         max: 100
       - name: manual_yaw_rate
-        field: manual_rates[FD_YAW]
+        field: manual.rates[FD_YAW]
         min: 0
         max: 100
 
