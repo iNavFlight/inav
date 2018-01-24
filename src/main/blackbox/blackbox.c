@@ -1362,14 +1362,14 @@ static bool blackboxWriteSysinfo(void)
 
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
             if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_VBAT)) {
-                blackboxPrintfHeaderLine("vbat_scale", "%lu", batteryConfig()->vbatscale);
+                blackboxPrintfHeaderLine("vbat_scale", "%u", batteryConfig()->vbatscale / 10);
             } else {
                 xmitState.headerIndex += 2; // Skip the next two vbat fields too
             }
             );
-        BLACKBOX_PRINT_HEADER_LINE("vbatcellvoltage", "%lu,%lu,%lu",        batteryConfig()->vbatmincellvoltage,
-                                                                            batteryConfig()->vbatwarningcellvoltage,
-                                                                            batteryConfig()->vbatmaxcellvoltage);
+        BLACKBOX_PRINT_HEADER_LINE("vbatcellvoltage", "%u,%u,%u",           batteryConfig()->vbatmincellvoltage / 10,
+                                                                            batteryConfig()->vbatwarningcellvoltage / 10,
+                                                                            batteryConfig()->vbatmaxcellvoltage / 10);
         BLACKBOX_PRINT_HEADER_LINE("vbatref", "%u",                         vbatReference);
 
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
