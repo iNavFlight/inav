@@ -441,11 +441,11 @@ groups:
         type: bool
       - name: failsafe_lights_flash_period
         field: failsafe.flash_period
-        min: 10
+        min: 40
         max: 65535
       - name: failsafe_lights_flash_on_time
         field: failsafe.flash_on_time
-        min: 1
+        min: 20
         max: 65535
 
   - name: PG_BOARD_ALIGNMENT
