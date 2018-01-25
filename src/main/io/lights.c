@@ -73,7 +73,7 @@ void lightsUpdate(timeUs_t currentTimeUs)
 
 void lightsInit()
 {
-    setTaskEnabled(TASK_LIGHTS, lightsHardwareInit());
+    lightsHardwareInit();
 }
 
 #endif /* USE_LIGHTS */

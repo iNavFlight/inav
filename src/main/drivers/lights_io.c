@@ -24,7 +24,8 @@ bool lightsHardwareInit()
 
 void lightsHardwareSetStatus(bool status)
 {
-    IOWrite(lightsIO, status);
+    if (lightsIO)
+        IOWrite(lightsIO, status);
 }
 
 #endif /* USE_LIGHTS */
