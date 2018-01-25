@@ -498,29 +498,6 @@ void waitForSerialPortToFinishTransmitting(serialPort_t *serialPort)
     };
 }
 
-void serialEvaluateNonMspData(serialPort_t *serialPort, uint8_t receivedChar)
-{
-#ifndef USE_CLI
-    UNUSED(serialPort);
-#else
-    if (receivedChar == '#') {
-        cliEnter(serialPort);
-    }
-#endif
-    if (receivedChar == serialConfig()->reboot_character) {
-        // A 100ms guard delay to make sure reboot_character is followed by silence
-        // If anything is received during the guard period - reboot_character is ignored
-        for (int i = 0; i < 10; i++) {
-            delay(10);
-            if (serialRxBytesWaiting(serialPort)) {
-                return;
-            }
-        }
-
-        systemResetToBootloader();
-    }
-}
-
 #if defined(USE_GPS) || defined(USE_SERIAL_PASSTHROUGH)
 // Default data consumer for serialPassThrough.
 static void nopConsumer(uint8_t data)
