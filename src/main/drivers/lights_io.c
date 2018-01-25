@@ -1,4 +1,4 @@
-#include "drivers/lights_hal.h"
+#include "drivers/lights_io.h"
 #include "drivers/io.h"
 
 #ifdef USE_LIGHTS

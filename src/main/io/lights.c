@@ -8,7 +8,7 @@
 
 #include "drivers/time.h"
 /*#include "drivers/io.h"*/
-#include "drivers/lights_hal.h"
+#include "drivers/lights_io.h"
 
 #include "rx/rx.h"
 
