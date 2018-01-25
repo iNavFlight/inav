@@ -28,9 +28,11 @@
 #include "common/maths.h"
 #include "common/crc.h"
 
+#include "drivers/system.h"
 #include "drivers/serial.h"
 
 #include "io/serial.h"
+#include "fc/cli.h"
 
 #include "msp/msp.h"
 #include "msp/msp_serial.h"
@@ -393,6 +395,42 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
     return mspPostProcessFn;
 }
 
+static void mspEvaluateNonMspData(mspPort_t * mspPort, uint8_t receivedChar)
+{
+#ifdef USE_CLI
+    if (receivedChar == '#') {
+        mspPort->pendingRequest = MSP_PENDING_CLI;
+        return;
+    }
+#endif
+
+    if (receivedChar == serialConfig()->reboot_character) {
+        mspPort->pendingRequest = MSP_PENDING_BOOTLOADER;
+        return;
+    }
+}
+
+static void mspProcessPendingRequest(mspPort_t * mspPort)
+{
+    // If no request is pending or 100ms guard time has not elapsed - do nothing
+    if ((mspPort->pendingRequest == MSP_PENDING_NONE) || (millis() - mspPort->lastActivityMs < 100)) {
+        return;
+    }
+
+    switch(mspPort->pendingRequest) {
+        case MSP_PENDING_BOOTLOADER:
+            systemResetToBootloader();
+            break;
+
+        case MSP_PENDING_CLI:
+            cliEnter(mspPort->port);
+            break;
+
+        default:
+            break;
+    }
+}
+
 /*
  * Process MSP commands from serial ports configured as MSP ports.
  *
@@ -405,24 +443,36 @@ void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessComm
         if (!mspPort->port) {
             continue;
         }
+
         mspPostProcessFnPtr mspPostProcessFn = NULL;
-        while (serialRxBytesWaiting(mspPort->port)) {
 
-            const uint8_t c = serialRead(mspPort->port);
-            const bool consumed = mspSerialProcessReceivedData(mspPort, c);
+        if (serialRxBytesWaiting(mspPort->port)) {
+            // There are bytes incoming - abort pending request
+            mspPort->lastActivityMs = millis();
+            mspPort->pendingRequest = MSP_PENDING_NONE;
 
-            if (!consumed && evaluateNonMspData == MSP_EVALUATE_NON_MSP_DATA) {
-                serialEvaluateNonMspData(mspPort->port, c);
+            // Process incoming bytes
+            while (serialRxBytesWaiting(mspPort->port)) {
+                const uint8_t c = serialRead(mspPort->port);
+                const bool consumed = mspSerialProcessReceivedData(mspPort, c);
+
+                if (!consumed && evaluateNonMspData == MSP_EVALUATE_NON_MSP_DATA) {
+                    mspEvaluateNonMspData(mspPort, c);
+                }
+
+                if (mspPort->c_state == MSP_COMMAND_RECEIVED) {
+                    mspPostProcessFn = mspSerialProcessReceivedCommand(mspPort, mspProcessCommandFn);
+                    break; // process one command at a time so as not to block.
+                }
             }
 
-            if (mspPort->c_state == MSP_COMMAND_RECEIVED) {
-                mspPostProcessFn = mspSerialProcessReceivedCommand(mspPort, mspProcessCommandFn);
-                break; // process one command at a time so as not to block.
+            if (mspPostProcessFn) {
+                waitForSerialPortToFinishTransmitting(mspPort->port);
+                mspPostProcessFn(mspPort->port);
             }
         }
-        if (mspPostProcessFn) {
-            waitForSerialPortToFinishTransmitting(mspPort->port);
-            mspPostProcessFn(mspPort->port);
+        else {
+            mspProcessPendingRequest(mspPort);
         }
     }
 }
