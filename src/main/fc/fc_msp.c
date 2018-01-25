@@ -399,7 +399,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-    case MSP2_ANALOG:
+    case MSP2_INAV_ANALOG:
         sbufWriteU16(dst, vbat);
         sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF)); // milliamp hours drawn from battery
         sbufWriteU16(dst, rssi);
@@ -409,7 +409,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, (int16_t)constrain(amperage, -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
         break;
 
-    case MSP2_MISC:
+    case MSP2_INAV_MISC:
         sbufWriteU16(dst, rxConfig()->midrc);
 
         sbufWriteU16(dst, motorConfig()->minthrottle);
@@ -439,7 +439,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, batteryConfig()->vbatwarningcellvoltage);
         break;
 
-    case MSP2_VOLTAGE_METER_CONFIG:
+    case MSP2_INAV_VOLTAGE_METER_CONFIG:
         sbufWriteU16(dst, batteryConfig()->vbatscale);
         sbufWriteU16(dst, batteryConfig()->vbatmincellvoltage);
         sbufWriteU16(dst, batteryConfig()->vbatmaxcellvoltage);
@@ -1447,7 +1447,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU8(src) * 10;  // vbatlevel when buzzer starts to alert
         break;
 
-    case MSP2_SET_MISC:
+    case MSP2_INAV_SET_MISC:
         tmp = sbufReadU16(src);
         if (tmp < 1600 && tmp > 1400)
             rxConfigMutable()->midrc = tmp;
@@ -1928,7 +1928,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU8(src) * 10;  // vbatlevel when buzzer starts to alert
         break;
 
-    case MSP2_SET_VOLTAGE_METER_CONFIG:
+    case MSP2_INAV_SET_VOLTAGE_METER_CONFIG:
         batteryConfigMutable()->vbatscale = sbufReadU16(src);           // actual vbatscale as intended
         batteryConfigMutable()->vbatmincellvoltage = sbufReadU16(src);  // vbatlevel_warn1 in MWC2.3 GUI
         batteryConfigMutable()->vbatmaxcellvoltage = sbufReadU16(src);  // vbatlevel_warn2 in MWC2.3 GUI
