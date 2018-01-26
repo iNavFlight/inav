@@ -447,9 +447,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             sbufWriteU16(dst, customMotorMixer(i)->throttle * 1000);
-            sbufWriteU16(dst, customMotorMixer(i)->roll * 1000);
-            sbufWriteU16(dst, customMotorMixer(i)->pitch * 1000);
-            sbufWriteU16(dst, customMotorMixer(i)->yaw * 1000);
+            sbufWriteU16(dst, constrainf(customMotorMixer(i)->roll + 1.0f, 0.0f, 2.0f) * 1000);
+            sbufWriteU16(dst, constrainf(customMotorMixer(i)->pitch + 1.0f, 0.0f, 2.0f) * 1000);
+            sbufWriteU16(dst, constrainf(customMotorMixer(i)->yaw + 1.0f, 0.0f, 2.0f) * 1000);
         }
         break;
 
@@ -1461,10 +1461,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (i >= MAX_SUPPORTED_MOTORS) {
             return MSP_RESULT_ERROR;
         } else {
-            customMotorMixerMutable(i)->throttle = constrainf(sbufReadU16(src) / 1000.0f, 0, 1);
-            customMotorMixerMutable(i)->roll = constrainf(sbufReadU16(src) / 1000.0f, 0, 1);
-            customMotorMixerMutable(i)->pitch = constrainf(sbufReadU16(src) / 1000.0f, 0, 1);
-            customMotorMixerMutable(i)->yaw = constrainf(sbufReadU16(src) / 1000.0f, 0, 1);
+            customMotorMixerMutable(i)->throttle = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 1.0f);
+            customMotorMixerMutable(i)->roll = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 2.0f) - 1.0f;
+            customMotorMixerMutable(i)->pitch = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 2.0f) - 1.0f;
+            customMotorMixerMutable(i)->yaw = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 2.0f) - 1.0f;
         }
         break;
 
