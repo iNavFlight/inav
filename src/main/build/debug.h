@@ -57,3 +57,13 @@ typedef enum {
     DEBUG_FLOW_RAW,
     DEBUG_COUNT
 } debugType_e;
+
+#if defined(USE_DEBUG_TRACE)
+void debugTraceInit(void);
+void debugTracePrintf(bool synchronous, const char *format, ...);
+#define DEBUG_TRACE(fmt, ...)       debugTracePrintf(false, fmt, ##__VA_ARGS__)
+#define DEBUG_TRACE_SYNC(fmt, ...)  debugTracePrintf(true, fmt, ##__VA_ARGS__)
+#else
+#define DEBUG_TRACE(fmt, ...)
+#define DEBUG_TRACE_SYNC(fmt, ...)
+#endif

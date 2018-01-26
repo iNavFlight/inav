@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 #include "platform.h"
-
+#include "build/debug.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
 
