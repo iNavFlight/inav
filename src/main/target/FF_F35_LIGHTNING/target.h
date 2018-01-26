@@ -81,7 +81,7 @@
 
 #define USE_UART5
 #define UART5_RX_PIN            PD2
-#define UART5_TX_PIN            PC11
+#define UART5_TX_PIN            PC12
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
