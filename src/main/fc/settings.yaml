@@ -431,6 +431,23 @@ groups:
       - name: failsafe_min_distance_procedure
         table: failsafe_procedure
 
+  - name: PG_LIGHTS_CONFIG
+    type: lightsConfig_t
+    headers: ["io/lights.h"]
+    condition: USE_LIGHTS
+    members:
+      - name: failsafe_lights
+        field: failsafe.enabled
+        type: bool
+      - name: failsafe_lights_flash_period
+        field: failsafe.flash_period
+        min: 40
+        max: 65535
+      - name: failsafe_lights_flash_on_time
+        field: failsafe.flash_on_time
+        min: 20
+        max: 65535
+
   - name: PG_BOARD_ALIGNMENT
     type: boardAlignment_t
     headers: ["sensors/boardalignment.h"]
