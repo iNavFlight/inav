@@ -8,6 +8,7 @@ TARGET_SRC = \
             drivers/compass/compass_hmc5883l.c \
             drivers/compass/compass_mag3110.c \
             drivers/compass/compass_qmc5883l.c \
+            drivers/compass/compass_ist8310.c \
             drivers/rangefinder/rangefinder_hcsr04.c \
             drivers/light_ws2811strip.c \
             drivers/light_ws2811strip_stdperiph.c \
