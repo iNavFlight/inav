@@ -19,3 +19,6 @@
 #define MSP2_COMMON_SET_TZ          0x1002  //in message    Sets the TZ offset for the local time (args: minutes(i16))
 #define MSP2_COMMON_SETTING         0x1003  //in/out message   Returns the value for a setting
 #define MSP2_COMMON_SET_SETTING     0x1004  //in message    Sets the value for a setting
+
+#define MSP2_COMMON_MOTOR_MIXER     0x1005
+#define MSP2_COMMON_SET_MOTOR_MIXER 0x1006
