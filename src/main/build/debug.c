@@ -21,10 +21,17 @@
 #include <ctype.h>
 
 #include "build/debug.h"
-#include "common/printf.h"
+
 #include "drivers/serial.h"
 #include "drivers/time.h"
+
+#include "common/printf.h"
+
+#include "config/feature.h"
+
 #include "io/serial.h"
+
+#include "fc/config.h"
 
 #ifdef DEBUG_SECTION_TIMES
 timeUs_t sectionTimes[2][4];
@@ -38,45 +45,57 @@ static serialPort_t * tracePort = NULL;
 
 void debugTraceInit(void)
 {
+    if (!feature(FEATURE_DEBUG_TRACE)) {
+        return;
+    }
+
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_DEBUG_TRACE);
     if (!portConfig) {
-        return false;
+        return;
     }
 
     tracePort = openSerialPort(portConfig->identifier, FUNCTION_DEBUG_TRACE, NULL, NULL, baudRates[BAUD_921600], MODE_TX, SERIAL_NOT_INVERTED);
-    if (!tracePort)
-        return;
 
     DEBUG_TRACE_SYNC("Debug trace facilities initialized");
 }
 
-static void debugTracePutp(void *p, char ch)
+static void debugTracePutcp(void *p, char ch)
 {
-    (void)p;
-    serialWrite(tracePort, ch);
+    *(*((char **) p))++ = ch;
 }
 
 void debugTracePrintf(bool synchronous, const char *format, ...)
 {
-    char timestamp[16];
+    char buf[128];
+    char *bufPtr;
+    int charCount;
 
-    if (!tracePort)
+    if (!feature(FEATURE_DEBUG_TRACE))
         return;
 
     // Write timestamp
-    tfp_sprintf(timestamp, "[%10d] ", micros());
-    serialPrint(tracePort, timestamp);
+    charCount = tfp_sprintf(buf, "[%10d] ", micros());
+    bufPtr = &buf[charCount];
 
     // Write message
     va_list va;
     va_start(va, format);
-    tfp_format(NULL, debugTracePutp, format, va);
-    if (synchronous) {
-        waitForSerialPortToFinishTransmitting(tracePort);
-    }
+    charCount += tfp_format(&bufPtr, debugTracePutcp, format, va);
+    debugTracePutcp(&bufPtr, '\n');
+    debugTracePutcp(&bufPtr, 0);
+    charCount += 2;
     va_end(va);
 
-    // Write newline
-    serialPrint(tracePort, "\r\n");
+    if (tracePort) {
+        // Send data via trace UART (if configured)
+        serialPrint(tracePort, buf);
+        if (synchronous) {
+            waitForSerialPortToFinishTransmitting(tracePort);
+        }
+    }
+    else {
+        // Send data via MSPV2_TRACE message
+        // TODO
+    }
 }
 #endif
