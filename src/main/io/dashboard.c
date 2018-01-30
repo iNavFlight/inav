@@ -371,7 +371,7 @@ static void showStatusPage(void)
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
-        uint8_t capacityPercentage = calculateBatteryCapacityRemainingPercentage();
+        uint8_t capacityPercentage = calculateBatteryPercentage();
         drawHorizonalPercentageBar(10, capacityPercentage);
     }
 

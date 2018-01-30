@@ -25,3 +25,5 @@
 #define MSP2_INAV_SET_MISC                      0x2004
 #define MSP2_INAV_VOLTAGE_METER_CONFIG          0x2005
 #define MSP2_INAV_SET_VOLTAGE_METER_CONFIG      0x2006
+#define MSP2_INAV_BATTERY_CONFIG                0x2009
+#define MSP2_INAV_SET_BATTERY_CONFIG            0x200A

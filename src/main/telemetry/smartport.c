@@ -601,12 +601,10 @@ void handleSmartPortTelemetry(void)
                     smartPortSendPackage(id, getEstimatedActualPosition(Z)); // unknown given unit, requested 100 = 1 meter
                 break;
             case FSSP_DATAID_FUEL       :
-                if (feature(FEATURE_CURRENT_METER)) {
-                    if (telemetryConfig()->smartportFuelPercent && batteryConfig()->batteryCapacity > 0)
-                        smartPortSendPackage(id, calculateBatteryCapacityRemainingPercentage()); // Show remaining battery % if smartport_fuel_percent=ON and battery_capacity set
-                    else
-                        smartPortSendPackage(id, mAhDrawn); // given in mAh, unknown requested unit
-                }
+                if (telemetryConfig()->smartportFuelPercent)
+                    smartPortSendPackage(id, calculateBatteryPercentage()); // Show remaining battery % if smartport_fuel_percent=ON and battery_capacity set
+                else
+                    smartPortSendPackage(id, mAhDrawn); // given in mAh, unknown requested unit
                 break;
             //case FSSP_DATAID_ADC1       :
             //case FSSP_DATAID_ADC2       :

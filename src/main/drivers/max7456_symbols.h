@@ -182,11 +182,14 @@
 #define SYM_VOLT  0x06
 #define SYM_AMP   0x9A
 #define SYM_MAH   0x07
+#define SYM_WH    0xAB
 #define SYM_WATT  0x57
 
 // Efficiency
 #define SYM_MAH_KM_0    157
 #define SYM_MAH_KM_1    158
+#define SYM_WH_KM_0     172
+#define SYM_WH_KM_1     173
 
 // Note, these change with scrolling enabled (scrolling is TODO)
 //#define SYM_AH_DECORATION_LEFT 0x13

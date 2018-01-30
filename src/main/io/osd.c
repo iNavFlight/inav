@@ -97,6 +97,8 @@
 #define FEET_PER_KILOFEET                       1000 // Used for altitude
 #define METERS_PER_KILOMETER                    1000
 
+#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
+
 // Adjust OSD_MESSAGE's default position when
 // changing OSD_MESSAGE_LENGTH
 #define OSD_MESSAGE_LENGTH 28
@@ -114,7 +116,8 @@ static timeUs_t flyTime = 0;
 typedef struct statistic_s {
     uint16_t max_speed;
     uint16_t min_voltage; // /100
-    int16_t max_current; // /10
+    int16_t max_current; // /100
+    int16_t max_power; // /100
     int16_t min_rssi;
     int32_t max_altitude;
     uint16_t max_distance;
@@ -674,15 +677,10 @@ static void osdFormatBatteryChargeSymbol(char *buff)
     buff[0] = SYM_BATT_FULL + p;
 }
 
-/**
- * Updates the text attributes for drawing a battery indicator sign,
- * enabling blink when battery is below the voltage alarm.
- **/
-static void osdUpdateBatteryTextAttributes(textAttributes_t *attr)
+static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *attr)
 {
-    if (vbat <= (batteryWarningVoltage - 1)) {
+    if ((batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->batteryWarningCapacity - batteryConfig()->batteryCriticalCapacity)) || ((!batteryUseCapacityThresholds) && (vbat <= batteryWarningVoltage)))
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
-    }
 }
 
 static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
@@ -821,11 +819,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_VOLTAGE:
         osdFormatBatteryChargeSymbol(buff);
-        osdFormatCentiNumber(buff + 1, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-        buff[osdConfig()->main_voltage_decimals + 3] = 'V';
-        buff[osdConfig()->main_voltage_decimals + 4] = '\0';
-        osdUpdateBatteryTextAttributes(&elemAttr);
-        break;
+        buff[1] = '\0';
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        elemAttr = TEXT_ATTRIBUTES_NONE;
+        osdFormatCentiNumber(buff, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+        strcat(buff, "V");
+        if (vbat <= batteryWarningVoltage)
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+        return true;
 
     case OSD_CURRENT_DRAW:
         buff[0] = SYM_AMP;
@@ -834,10 +837,43 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
-        tfp_sprintf(buff + 1, "%-4d", abs(mAhDrawn));
-        if (osdConfig()->cap_alarm > 0 && mAhDrawn >= osdConfig()->cap_alarm) {
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        tfp_sprintf(buff + 1, "%-4d", mAhDrawn);
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        break;
+
+    case OSD_WH_DRAWN:
+        buff[0] = SYM_WH;
+        osdFormatCentiNumber(buff + 1, mWhDrawn / 10, 0, 2, 0, 3);
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        break;
+
+    case OSD_BATTERY_REMAINING_CAPACITY:
+        if (batteryConfig()->batteryCapacityUnit == BAT_CAPACITY_UNIT_MAH) {
+            buff[0] = SYM_MAH;
+            if (batteryFullWhenPluggedIn && (batteryConfig()->batteryCapacity > 0)) {
+                tfp_sprintf(buff + 1, "%-4d", batteryRemainingCapacity);
+            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->batteryCapacity > 0))
+                tfp_sprintf(buff + 1, "NF");
+            else
+                tfp_sprintf(buff + 1, "NA");
+        } else {
+            buff[0] = SYM_WH;
+            if (batteryFullWhenPluggedIn && (batteryConfig()->batteryCapacity > 0)) {
+                osdFormatCentiNumber(buff + 1, batteryRemainingCapacity / 10, 0, 2, 0, 3);
+            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->batteryCapacity > 0))
+                tfp_sprintf(buff + 1, "NF");
+            else
+                tfp_sprintf(buff + 1, "NA");
         }
+        if (batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->batteryWarningCapacity - batteryConfig()->batteryCriticalCapacity))
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        break;
+
+    case OSD_BATTERY_REMAINING_PERCENT:
+        tfp_sprintf(buff, "%3d", calculateBatteryPercentage());
+        buff[3] = '%';
+        buff[4] = '\0';
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
 #ifdef USE_GPS
@@ -1248,7 +1284,8 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_POWER:
         {
             // TODO: SYM_WATTS?
-            tfp_sprintf(buff, "W%-3d", amperage * vbat / 10000);
+            buff[0] = 'W';
+            osdFormatCentiNumber(buff + 1, power, 0, 2, 0, 3);
             break;
         }
 
@@ -1354,17 +1391,21 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatMessage(buff, sizeof(buff), message);
             break;
         }
+
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
-            // Use 2 decimals since dividing by the number of
-            // cells might yield more significant digits
-            uint16_t cellBattCentiVolts = vbat * 10 / batteryCellCount;
+            uint16_t cellBattCentiVolts = vbat / batteryCellCount;
             osdFormatBatteryChargeSymbol(buff);
-            osdFormatCentiNumber(buff + 1, cellBattCentiVolts, 0, osdConfig()->main_voltage_decimals, 0, 3);
-            buff[osdConfig()->main_voltage_decimals + 2] = 'V';
-            buff[osdConfig()->main_voltage_decimals + 3] = '\0';
-            osdUpdateBatteryTextAttributes(&elemAttr);
-            break;
+            buff[1] = '\0';
+            osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+            elemAttr = TEXT_ATTRIBUTES_NONE;
+            osdFormatCentiNumber(buff, cellBattCentiVolts, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 1);
+            strcat(buff, "V");
+            if (vbat <= batteryWarningVoltage)
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+            return true;
         }
 
     case OSD_THROTTLE_POS_AUTO_THR:
@@ -1416,15 +1457,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_EFFICIENCY:
+    case OSD_EFFICIENCY_MAH_PER_KM:
         {
             // amperage is in centi amps, speed is in cms/s. We want
             // mah/km. Values over 999 are considered useless and
             // displayed as "---""
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
-#define MAX_EFFICIENCY_VALUE 999
-#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
             int32_t value = 0;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
@@ -1438,13 +1477,44 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = eFilterState.state;
                 }
             }
-            if (value > 0 && value <= MAX_EFFICIENCY_VALUE) {
+            if (value > 0 && value <= 999) {
                 tfp_sprintf(buff, "%3d", value);
             } else {
                 buff[0] = buff[1] = buff[2] = '-';
             }
             buff[3] = SYM_MAH_KM_0;
             buff[4] = SYM_MAH_KM_1;
+            buff[5] = '\0';
+            break;
+        }
+
+    case OSD_EFFICIENCY_WH_PER_KM:
+        {
+            // amperage is in centi amps, speed is in cms/s. We want
+            // mah/km. Values over 999 are considered useless and
+            // displayed as "---""
+            static pt1Filter_t eFilterState;
+            static timeUs_t efficiencyUpdated = 0;
+            int32_t value = 0;
+            timeUs_t currentTimeUs = micros();
+            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                    value = pt1FilterApply4(&eFilterState, ((float)power / gpsSol.groundSpeed) / 0.0036f,
+                        1, efficiencyTimeDelta * 1e-6f);
+
+                    efficiencyUpdated = currentTimeUs;
+                } else {
+                    value = eFilterState.state;
+                }
+            }
+            if (value > 0 && value <= 999) {
+                osdFormatCentiNumber(buff, value / 10, 0, 2, 0, 3);
+            } else {
+                buff[0] = buff[1] = buff[2] = '-';
+            }
+            buff[3] = SYM_WH_KM_0;
+            buff[4] = SYM_WH_KM_1;
             buff[5] = '\0';
             break;
         }
@@ -1469,8 +1539,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
-        if (elementIndex == OSD_EFFICIENCY) {
-            STATIC_ASSERT(OSD_EFFICIENCY == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_not_last_element);
+        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
+            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1484,8 +1554,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_HDOP) {
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
-        if (elementIndex == OSD_EFFICIENCY) {
-            STATIC_ASSERT(OSD_EFFICIENCY == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_not_last_element);
+        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
+            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1520,7 +1590,12 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdConfig->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_EFFICIENCY] = OSD_POS(1, 5);
+    osdConfig->item_pos[OSD_WH_DRAWN] = OSD_POS(1, 5);
+    osdConfig->item_pos[OSD_BATTERY_REMAINING_CAPACITY] = OSD_POS(1, 6);
+    osdConfig->item_pos[OSD_BATTERY_REMAINING_PERCENT] = OSD_POS(1, 7);
+
+    osdConfig->item_pos[OSD_EFFICIENCY_MAH_PER_KM] = OSD_POS(1, 5);
+    osdConfig->item_pos[OSD_EFFICIENCY_WH_PER_KM] = OSD_POS(1, 5);
 
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdConfig->item_pos[OSD_VARIO] = OSD_POS(23, 5);
@@ -1556,7 +1631,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
-    osdConfig->cap_alarm = 0;
     osdConfig->time_alarm = 10;
     osdConfig->alt_alarm = 100;
     osdConfig->dist_alarm = 1000;
@@ -1608,9 +1682,9 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 static void osdResetStats(void)
 {
     stats.max_current = 0;
+    stats.max_power = 0;
     stats.max_speed = 0;
     stats.min_voltage = 5000;
-    stats.max_current = 0;
     stats.min_rssi = 99;
     stats.max_altitude = 0;
 }
@@ -1634,6 +1708,10 @@ static void osdUpdateStats(void)
     value = abs(amperage / 100);
     if (stats.max_current < value)
         stats.max_current = value;
+
+    value = abs(power / 100);
+    if (stats.max_power < value)
+        stats.max_power = value;
 
     value = osdConvertRSSI();
     if (stats.min_rssi > value)
@@ -1667,8 +1745,9 @@ static void osdShowStats(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
     }
 
-    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY      :");
-    tfp_sprintf(buff, "%d.%1dV", stats.min_voltage / 100, stats.min_voltage % 100);
+    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
+    osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+    strcat(buff, "V");
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
@@ -1682,16 +1761,33 @@ static void osdShowStats(void)
         strcat(buff, "A");
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-        displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
-        itoa(mAhDrawn, buff, 10);
-        strcat(buff, "\x07");
+        displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
+        itoa(stats.max_power, buff, 10);
+        strcat(buff, "W");
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+            displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
+            tfp_sprintf(buff, "%d%c", mAhDrawn, SYM_MAH);
+        } else {
+            displayWrite(osdDisplayPort, statNameX, top, "USED WH          :");
+            osdFormatCentiNumber(buff, mWhDrawn / 10, 0, 2, 0, 3);
+            strcat(buff, "\xAB"); // SYM_WH
+        }
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         int32_t totalDistance = getTotalTravelDistance();
         if (totalDistance > 0) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
-            tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
-                SYM_MAH_KM_0, SYM_MAH_KM_1);
+            if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH)
+                tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
+                    SYM_MAH_KM_0, SYM_MAH_KM_1);
+            else {
+                osdFormatCentiNumber(buff, mWhDrawn * 10000 / totalDistance, 0, 2, 0, 3);
+                buff[3] = SYM_WH_KM_0;
+                buff[4] = SYM_WH_KM_1;
+                buff[5] = '\0';
+            }
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
     }

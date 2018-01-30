@@ -42,20 +42,27 @@
 
 #include "io/beeper.h"
 
+#define BATTERY_FULL_CELL_MAX_DIFF 7        // Max difference with cell max voltage for the battery to be considered full (10mV steps)
 #define VBATT_PRESENT_THRESHOLD_MV    10
 #define VBATT_LPF_FREQ  1
 
 // Battery monitoring stuff
 uint8_t batteryCellCount = 3;       // cell count
+uint16_t batteryFullVoltage;
 uint16_t batteryWarningVoltage;
 uint16_t batteryCriticalVoltage;
+uint16_t batteryRemainingCapacity = 0;
+bool batteryUseCapacityThresholds = false;
+bool batteryFullWhenPluggedIn = false;
 
 uint16_t vbat = 0;                   // battery voltage in 0.1V steps (filtered)
 uint16_t vbatLatestADC = 0;         // most recent unsmoothed raw reading from vbat ADC
 uint16_t amperageLatestADC = 0;     // most recent raw reading from current ADC
 
 int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
+int32_t power = 0;                  // power draw in cW (0.01W resolution)
 int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
+int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn from the battery since start
 
 static batteryState_e batteryState;
 
@@ -65,12 +72,15 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
         .vbatscale = VBAT_SCALE_DEFAULT,
         .vbatresdivval = VBAT_RESDIVVAL_DEFAULT,
         .vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT,
-        .vbatmaxcellvoltage = 430,
+        .vbatmaxcellvoltage = 421,
         .vbatmincellvoltage = 330,
         .vbatwarningcellvoltage = 350,
         .currentMeterOffset = 0,
         .currentMeterScale = CURRENT_METER_SCALE,
         .batteryCapacity = 0,
+        .batteryWarningCapacity = 0,
+        .batteryCriticalCapacity = 0,
+        .batteryCapacityUnit = BAT_CAPACITY_UNIT_MAH,
         .currentMeterType = CURRENT_SENSOR_ADC
 );
 
@@ -118,8 +128,13 @@ void batteryUpdate(uint32_t vbatTimeDelta)
             cells = 8;
         }
         batteryCellCount = cells;
+        batteryFullVoltage = batteryCellCount * batteryConfig()->vbatmaxcellvoltage;
         batteryWarningVoltage = batteryCellCount * batteryConfig()->vbatwarningcellvoltage;
         batteryCriticalVoltage = batteryCellCount * batteryConfig()->vbatmincellvoltage;
+
+        batteryFullWhenPluggedIn = vbat >= (batteryFullVoltage - cells * BATTERY_FULL_CELL_MAX_DIFF);
+        batteryUseCapacityThresholds = batteryFullWhenPluggedIn && (batteryConfig()->batteryCapacity > 0) && (batteryConfig()->batteryWarningCapacity > 0) && (batteryConfig()->batteryCriticalCapacity > 0);
+
     }
     /* battery has been disconnected - can take a while for filter cap to disharge so we use a threshold of VBATT_PRESENT_THRESHOLD_MV */
     else if (batteryState != BATTERY_NOT_PRESENT && vbat <= VBATT_PRESENT_THRESHOLD_MV)
@@ -130,34 +145,51 @@ void batteryUpdate(uint32_t vbatTimeDelta)
         batteryCriticalVoltage = 0;
     }
 
-    switch (batteryState)
-    {
-        case BATTERY_OK:
-            if (vbat <= (batteryWarningVoltage - VBATT_HYSTERESIS)) {
-                batteryState = BATTERY_WARNING;
-                beeper(BEEPER_BAT_LOW);
-            }
-            break;
-        case BATTERY_WARNING:
-            if (vbat <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
+    if (batteryState != BATTERY_NOT_PRESENT) {
+
+        if (batteryConfig()->batteryCapacity > 0)
+            if (batteryFullWhenPluggedIn)
+                batteryRemainingCapacity = constrain(batteryConfig()->batteryCapacity - batteryConfig()->batteryCriticalCapacity - (batteryConfig()->batteryCapacityUnit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn), 0, 0xFFFF);
+
+        if (batteryUseCapacityThresholds) {
+            if (batteryRemainingCapacity == 0)
                 batteryState = BATTERY_CRITICAL;
-                beeper(BEEPER_BAT_CRIT_LOW);
-            } else if (vbat > (batteryWarningVoltage + VBATT_HYSTERESIS)){
-                batteryState = BATTERY_OK;
-            } else {
-                beeper(BEEPER_BAT_LOW);
-            }
-            break;
-        case BATTERY_CRITICAL:
-            if (vbat > (batteryCriticalVoltage + VBATT_HYSTERESIS)){
+            else if (batteryRemainingCapacity <= batteryConfig()->batteryWarningCapacity - batteryConfig()->batteryCriticalCapacity)
                 batteryState = BATTERY_WARNING;
-                beeper(BEEPER_BAT_LOW);
-            } else {
-                beeper(BEEPER_BAT_CRIT_LOW);
+        } else {
+            switch (batteryState)
+            {
+                case BATTERY_OK:
+                    if (vbat <= (batteryWarningVoltage - VBATT_HYSTERESIS))
+                        batteryState = BATTERY_WARNING;
+                    break;
+                case BATTERY_WARNING:
+                    if (vbat <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
+                        batteryState = BATTERY_CRITICAL;
+                    } else if (vbat > (batteryWarningVoltage + VBATT_HYSTERESIS)){
+                        batteryState = BATTERY_OK;
+                    }
+                    break;
+                case BATTERY_CRITICAL:
+                    if (vbat > (batteryCriticalVoltage + VBATT_HYSTERESIS))
+                        batteryState = BATTERY_WARNING;
+                    break;
+                default:
+                    break;
             }
-            break;
-        case BATTERY_NOT_PRESENT:
-            break;
+        }
+
+        // handle beeper
+        switch (batteryState) {
+            case BATTERY_WARNING:
+                beeper(BEEPER_BAT_LOW);
+                break;
+            case BATTERY_CRITICAL:
+                beeper(BEEPER_BAT_CRIT_LOW);
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -170,6 +202,7 @@ void batteryInit(void)
 {
     batteryState = BATTERY_NOT_PRESENT;
     batteryCellCount = 1;
+    batteryFullVoltage = 0;
     batteryWarningVoltage = 0;
     batteryCriticalVoltage = 0;
 }
@@ -217,14 +250,23 @@ void currentMeterUpdate(int32_t lastUpdateAt)
     mAhDrawn = mAhdrawnRaw / (3600 * 100);
 }
 
-uint8_t calculateBatteryPercentage(void)
+void powerMeterUpdate(int32_t lastUpdateAt)
 {
-    return constrain((((uint32_t)vbat - (batteryConfig()->vbatmincellvoltage * batteryCellCount)) * 100) / ((batteryConfig()->vbatmaxcellvoltage - batteryConfig()->vbatmincellvoltage) * batteryCellCount), 0, 100);
+    static int64_t mWhDrawnRaw = 0;
+    uint32_t power_mW = amperage * vbat / 10;
+    power = amperage * vbat / 100; // power unit is cW (0.01W resolution)
+    mWhDrawnRaw += (power_mW * lastUpdateAt) / 10000;
+    mWhDrawn = mWhDrawnRaw / (3600 * 100);
 }
 
-uint8_t calculateBatteryCapacityRemainingPercentage(void)
+uint8_t calculateBatteryPercentage(void)
 {
-    uint16_t batteryCapacity = batteryConfig()->batteryCapacity;
+    if (batteryState == BATTERY_NOT_PRESENT)
+        return 0;
 
-    return constrain((batteryCapacity - constrain(mAhDrawn, 0, 0xFFFF)) * 100.0f / batteryCapacity , 0, 100);
+    if (batteryFullWhenPluggedIn && (batteryConfig()->batteryCapacity > 0) && (batteryConfig()->batteryCriticalCapacity > 0)) {
+        uint16_t capacityDiffBetweenFullAndEmpty = batteryConfig()->batteryCapacity - batteryConfig()->batteryCriticalCapacity;
+        return constrain((capacityDiffBetweenFullAndEmpty - constrain((batteryConfig()->batteryCapacityUnit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn), 0, 0xFFFF)) * 100L / capacityDiffBetweenFullAndEmpty, 0, 100);
+    } else
+        return constrain((vbat - batteryCriticalVoltage) * 100L / (batteryFullVoltage - batteryCriticalVoltage), 0, 100);
 }

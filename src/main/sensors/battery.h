@@ -38,6 +38,11 @@ typedef enum {
     CURRENT_SENSOR_MAX = CURRENT_SENSOR_VIRTUAL
 } currentSensor_e;
 
+typedef enum {
+    BAT_CAPACITY_UNIT_MAH,
+    BAT_CAPACITY_UNIT_MWH,
+} batCapacityUnit_e;
+
 typedef struct batteryConfig_s {
     uint16_t vbatscale;                      // adjust this to match battery voltage to reported value
     uint8_t vbatresdivval;                  // resistor divider R2 (default NAZE 10(K))
@@ -52,7 +57,10 @@ typedef struct batteryConfig_s {
 
     // FIXME this doesn't belong in here since it's a concern of MSP, not of the battery code.
     uint8_t multiwiiCurrentMeterOutput;     // if set to 1 output the amperage in milliamp steps instead of 0.01A steps via msp
-    uint16_t batteryCapacity;               // mAh
+    uint16_t batteryCapacity;               // mAh or mWh (see batteryCapacityUnit)
+    uint16_t batteryWarningCapacity;        // mAh or mWh (see batteryCapacityUnit)
+    uint16_t batteryCriticalCapacity;       // mAh or mWh (see batteryCapacityUnit)
+    batCapacityUnit_e batteryCapacityUnit;            // Describes unit of batteryCapacity, batteryWarningCapacity and batteryCriticalCapacity
 } batteryConfig_t;
 
 PG_DECLARE(batteryConfig_t, batteryConfig);
@@ -68,10 +76,16 @@ extern uint16_t vbat;
 extern uint16_t vbatRaw;
 extern uint16_t vbatLatestADC;
 extern uint8_t batteryCellCount;
+extern uint16_t batteryCriticalVoltage;
 extern uint16_t batteryWarningVoltage;
 extern uint16_t amperageLatestADC;
 extern int32_t amperage;
+extern int32_t power;
 extern int32_t mAhDrawn;
+extern int32_t mWhDrawn;
+uint16_t batteryRemainingCapacity;
+extern bool batteryUseCapacityThresholds;
+extern bool batteryFullWhenPluggedIn;
 
 uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
@@ -80,5 +94,6 @@ void batteryInit(void);
 
 void currentMeterUpdate(int32_t lastUpdateAt);
 
+void powerMeterUpdate(int32_t lastUpdateAt);
+
 uint8_t calculateBatteryPercentage(void);
-uint8_t calculateBatteryCapacityRemainingPercentage(void);

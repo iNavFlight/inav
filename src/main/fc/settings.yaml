@@ -58,6 +58,9 @@ tables:
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "UK"]
     enum: osd_unit_e
+  - name: osd_stats_energy_unit
+    values: ["MAH", "WH"]
+    enum: osd_stats_energy_unit_e
   - name: frsky_unit
     values: ["METRIC", "IMPERIAL"]
     enum: frskyUnit_e
@@ -81,6 +84,9 @@ tables:
   - name: nav_rth_allow_landing
     values: ["NEVER", "ALWAYS", "FS_ONLY"]
     enum: navRTHAllowLanding_e
+  - name: bat_capacity_unit
+    values: ["MAH", "MWH"]
+    enum: batCapacityUnit_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -481,7 +487,7 @@ groups:
       - name: battery_capacity
         field: batteryCapacity
         min: 0
-        max: 20000
+        max: 65535
       - name: vbat_scale
         field: vbatscale
         condition: USE_ADC
@@ -502,6 +508,18 @@ groups:
         condition: USE_ADC
         min: 100
         max: 500
+      - name: battery_warning_capacity
+        field: batteryWarningCapacity
+        min: 0
+        max: 65535
+      - name: battery_critical_capacity
+        field: batteryCriticalCapacity
+        min: 0
+        max: 65535
+      - name: battery_capacity_unit
+        field: batteryCapacityUnit
+        table: bat_capacity_unit
+        type: uint8_t
       - name: current_meter_scale
         field: currentMeterScale
         min: -10000
@@ -1350,15 +1368,15 @@ groups:
         field: units
         table: osd_unit
         type: uint8_t
+      - name: osd_stats_energy_unit
+        field: stats_energy_unit
+        table: osd_stats_energy_unit
+        type: uint8_t
 
       - name: osd_rssi_alarm
         field: rssi_alarm
         min: 0
         max: 100
-      - name: osd_cap_alarm
-        field: cap_alarm
-        min: 0
-        max: 20000
       - name: osd_time_alarm
         field: time_alarm
         min: 0
@@ -1433,6 +1451,18 @@ groups:
         max: OSD_POS_MAX_CLI
       - name: osd_mah_drawn_pos
         field: item_pos[OSD_MAH_DRAWN]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_wh_drawn_pos
+        field: item_pos[OSD_WH_DRAWN]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_bat_remaining_capacity_pos
+        field: item_pos[OSD_BATTERY_REMAINING_CAPACITY]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_bat_remaining_percent_pos
+        field: item_pos[OSD_BATTERY_REMAINING_PERCENT]
         min: 0
         max: OSD_POS_MAX_CLI
       - name: osd_craft_name_pos
@@ -1516,8 +1546,11 @@ groups:
       - name: osd_heading_graph_pos
         field: item_pos[OSD_HEADING_GRAPH]
         max: OSD_POS_MAX_CLI
-      - name: osd_efficiency_pos
-        field: item_pos[OSD_EFFICIENCY]
+      - name: osd_efficiency_mah_pos
+        field: item_pos[OSD_EFFICIENCY_MAH_PER_KM]
+        max: OSD_POS_MAX_CLI
+      - name: osd_efficiency_wh_pos
+        field: item_pos[OSD_EFFICIENCY_WH_PER_KM]
         max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG
