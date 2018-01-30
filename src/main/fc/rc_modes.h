@@ -37,7 +37,7 @@ typedef enum {
     BOXPASSTHRU     = 10,
     BOXBEEPERON     = 11,
     BOXLEDLOW       = 12,
-    BOXLLIGHTS      = 13,
+    BOXLIGHTS       = 13,
     BOXNAVLAUNCH    = 14,
     BOXOSD          = 15,
     BOXTELEMETRY    = 16,

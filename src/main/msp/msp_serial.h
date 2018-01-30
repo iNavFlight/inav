@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "drivers/time.h"
 #include "msp/msp.h"
 
 // Each MSP port requires state and a receive buffer, revisit this default if someone needs more than 3 MSP ports.
@@ -47,6 +48,12 @@ typedef enum {
     MSP_EVALUATE_NON_MSP_DATA,
     MSP_SKIP_NON_MSP_DATA
 } mspEvaluateNonMspData_e;
+
+typedef enum {
+    MSP_PENDING_NONE,
+    MSP_PENDING_BOOTLOADER,
+    MSP_PENDING_CLI
+} mspPendingSystemRequest_e;
 
 #define MSP_PORT_INBUF_SIZE 192
 #ifdef USE_FLASHFS
@@ -81,6 +88,8 @@ typedef struct __attribute__((packed)) {
 struct serialPort_s;
 typedef struct mspPort_s {
     struct serialPort_s *port; // null when port unused.
+    timeMs_t lastActivityMs;
+    mspPendingSystemRequest_e pendingRequest;
     mspState_e c_state;
     uint8_t inBuf[MSP_PORT_INBUF_SIZE];
     uint_fast16_t offset;

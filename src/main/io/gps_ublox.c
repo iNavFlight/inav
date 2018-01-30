@@ -100,7 +100,7 @@ typedef struct {
 } ubx_rate;
 
 typedef union {
-    uint8_t bytes[48];
+    uint8_t bytes[60]; // sizeof Galileo config
     ubx_sbas sbas;
     ubx_msg msg;
     ubx_rate rate;
@@ -271,7 +271,8 @@ enum {
     MSG_CFG_RATE = 0x08,
     MSG_CFG_SET_RATE = 0x01,
     MSG_CFG_NAV_SETTINGS = 0x24,
-    MSG_CFG_SBAS = 0x16
+    MSG_CFG_SBAS = 0x16,
+    MSG_CFG_GNSS = 0x3e
 } ubx_protocol_bytes;
 
 enum {
@@ -306,6 +307,9 @@ static bool _new_position;
 
 // do we have new speed information?
 static bool _new_speed;
+
+// Need this to determine if Galileo capable only
+static bool capGalileo;
 
 // Example packet sizes from UBlox u-center from a Glonass capable GPS receiver.
 //15:17:55  R -> UBX NAV-STATUS,  Size  24,  'Navigation Status'
@@ -385,6 +389,28 @@ static const uint8_t default_payload[] = {
     0xFA, 0x00, 0x64, 0x00, 0x2C, 0x01, 0x00, 0x3C, 0x00, 0x00, 0x00,           // capturing the data from the U-Center binary console.
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+// Note the organisation of the bytes reflects the structure of the payload
+// 4 bytes then 8*number of elements (7)
+static const uint8_t galileo_payload[] =  {
+    0x00, 0x00, 0x20, 0x07,			    // GNSS    / min / max / enable
+    0x00, 0x08, 0x10, 0x00, 0x01, 0x00, 0x01, 0x01, // GPS     / 8 / 16 / Y
+    0x01, 0x01, 0x03, 0x00, 0x01, 0x00, 0x01, 0x01, // SBAS    / 1 /  3 / Y
+    0x02, 0x04, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, // Galileo / 4 /  8 / Y
+    0x03, 0x08, 0x10, 0x00, 0x00, 0x00, 0x01, 0x01, // BeiDou  / 8 / 16 / N
+    0x04, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x01, // IMES    / 0 /  8 / N
+    0x05, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x01, // QZSS    / 0 /  3 / N
+    0x06, 0x08, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x01  // GLONASS / 8 / 14 / Y
+};
+
+static void configureGalileo(void)
+{
+    send_buffer.message.header.msg_class = CLASS_CFG;
+    send_buffer.message.header.msg_id = MSG_CFG_GNSS;
+    send_buffer.message.header.length = sizeof(galileo_payload);
+    memcpy(send_buffer.message.payload.bytes, galileo_payload, sizeof(galileo_payload));
+    sendConfigMessageUBLOX();
+}
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
 {
@@ -532,7 +558,10 @@ static bool gpsParceFrameUBLOX(void)
     case MSG_VER:
         if (_class == CLASS_MON) {
             //uint32_t swver = _buffer.ver.swVersion;
+            // EXT CORE 3.01 (107900)
+            // 01234567890123456789012
             gpsState.hwVersion = fastA2I(_buffer.ver.hwVersion);
+            capGalileo = ((gpsState.hwVersion >= 80000) && (_buffer.ver.swVersion[9] > '2')); // M8N and SW major 3 or later
         }
         break;
 #endif
@@ -716,6 +745,13 @@ static bool gpsConfigure(void)
 
     case 5: // SBAS
         configureSBAS();
+        gpsState.autoConfigStep++;
+        break;
+
+    case 6: // Galileo
+        if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
+            configureGalileo();
+        }
         gpsState.autoConfigStep++;
         break;
 

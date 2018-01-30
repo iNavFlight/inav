@@ -129,6 +129,7 @@ Re-apply any new defaults as desired.
 |  gps_auto_config  | ON | Enable automatic configuration of UBlox GPS receivers. |
 |  gps_auto_baud  | ON | Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS. When used with NAZA/DJI it will automatic detect GPS baudrate and change to it, ignoring the selected baudrate set in ports |
 |  gps_min_sats  | 6 | Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS position valid. Some GPS receivers appeared to be very inaccurate with low satellite count. |
+|  gps_ublox_use_galileo | OFF | Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]. 
 |  inav_auto_mag_decl  | ON | Automatic setting of magnetic declination based on GPS position. When used manual magnetic declination is ignored. |
 |  inav_gravity_cal_tolerance  | 5 | Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value. |
 |  inav_use_gps_velned  | ON | Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance. |
@@ -313,6 +314,8 @@ Re-apply any new defaults as desired.
 |  nav_fw_pos_xy_p  | 10 | P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH |
 |  nav_fw_pos_xy_i  | 5 | I gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
 |  nav_fw_pos_xy_d  | 8 | D gain of 2D trajectory PID controller. Too high and there will be overshoot in trajectory. Better start tuning with zero |
+|  nav_mc_heading_p  | 60 | P gain of Heading Hold controller (Multirotor) |
+|  nav_fw_heading_p  | 60 | P gain of Heading Hold controller (Fixedwing) |
 |  deadband  | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 |  yaw_deadband  | 5 | These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle. |
 |  throttle_tilt_comp_str  | 0 | Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled. |

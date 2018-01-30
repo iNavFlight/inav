@@ -153,7 +153,7 @@ groups:
         field: adcFunctionChannel[ADC_AIRSPEED]
         min: ADC_CHN_NONE
         max: ADC_CHN_MAX
-        
+
   - name: PG_ACCELEROMETER_CONFIG
     type: accelerometerConfig_t
     headers: ["sensors/acceleration.h"]
@@ -345,7 +345,7 @@ groups:
         field: halfDuplex
         condition: STM32F4
         type: bool
-        
+
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
     headers: ["blackbox/blackbox.h"]
@@ -430,6 +430,23 @@ groups:
         max: 65000
       - name: failsafe_min_distance_procedure
         table: failsafe_procedure
+
+  - name: PG_LIGHTS_CONFIG
+    type: lightsConfig_t
+    headers: ["io/lights.h"]
+    condition: USE_LIGHTS
+    members:
+      - name: failsafe_lights
+        field: failsafe.enabled
+        type: bool
+      - name: failsafe_lights_flash_period
+        field: failsafe.flash_period
+        min: 40
+        max: 65535
+      - name: failsafe_lights_flash_on_time
+        field: failsafe.flash_on_time
+        min: 20
+        max: 65535
 
   - name: PG_BOARD_ALIGNMENT
     type: boardAlignment_t
@@ -653,6 +670,9 @@ groups:
         type: bool
       - name: gps_auto_baud
         field: autoBaud
+        type: bool
+      - name: gps_ublox_use_galileo
+        field: ubloxUseGalileo
         type: bool
       - name: gps_min_sats
         field: gpsMinSats
@@ -908,6 +928,11 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_mc_heading_p
+        field: bank_mc.pid[PID_HEADING].P
+        condition: USE_NAV
+        min: 0
+        max: 255
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
         condition: USE_NAV
@@ -935,6 +960,11 @@ groups:
         max: 255
       - name: nav_fw_pos_xy_d
         field: bank_fw.pid[PID_POS_XY].D
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_heading_p
+        field: bank_fw.pid[PID_HEADING].P
         condition: USE_NAV
         min: 0
         max: 255
