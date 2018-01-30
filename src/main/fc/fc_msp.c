@@ -399,6 +399,53 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+    case MSP2_INAV_ANALOG:
+        sbufWriteU16(dst, vbat);
+        sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF)); // milliamp hours drawn from battery
+        sbufWriteU16(dst, rssi);
+        if (batteryConfig()->multiwiiCurrentMeterOutput) {
+            sbufWriteU16(dst, (uint16_t)constrain(amperage * 10, 0, 0xFFFF)); // send amperage in 0.001 A steps. Negative range is truncated to zero
+        } else
+            sbufWriteU16(dst, (int16_t)constrain(amperage, -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
+        break;
+
+    case MSP2_INAV_MISC:
+        sbufWriteU16(dst, rxConfig()->midrc);
+
+        sbufWriteU16(dst, motorConfig()->minthrottle);
+        sbufWriteU16(dst, motorConfig()->maxthrottle);
+        sbufWriteU16(dst, motorConfig()->mincommand);
+
+        sbufWriteU16(dst, failsafeConfig()->failsafe_throttle);
+
+#ifdef USE_GPS
+        sbufWriteU8(dst, gpsConfig()->provider); // gps_type
+        sbufWriteU8(dst, 0); // TODO gps_baudrate (an index, cleanflight uses a uint32_t
+        sbufWriteU8(dst, gpsConfig()->sbasMode); // gps_ubx_sbas
+#else
+        sbufWriteU8(dst, 0); // gps_type
+        sbufWriteU8(dst, 0); // TODO gps_baudrate (an index, cleanflight uses a uint32_t
+        sbufWriteU8(dst, 0); // gps_ubx_sbas
+#endif
+        sbufWriteU8(dst, batteryConfig()->multiwiiCurrentMeterOutput);
+        sbufWriteU8(dst, rxConfig()->rssi_channel);
+        sbufWriteU8(dst, 0);
+
+        sbufWriteU16(dst, compassConfig()->mag_declination / 10);
+
+        sbufWriteU16(dst, batteryConfig()->vbatscale);
+        sbufWriteU16(dst, batteryConfig()->vbatmincellvoltage);
+        sbufWriteU16(dst, batteryConfig()->vbatmaxcellvoltage);
+        sbufWriteU16(dst, batteryConfig()->vbatwarningcellvoltage);
+        break;
+
+    case MSP2_INAV_VOLTAGE_METER_CONFIG:
+        sbufWriteU16(dst, batteryConfig()->vbatscale);
+        sbufWriteU16(dst, batteryConfig()->vbatmincellvoltage);
+        sbufWriteU16(dst, batteryConfig()->vbatmaxcellvoltage);
+        sbufWriteU16(dst, batteryConfig()->vbatwarningcellvoltage);
+        break;
+
     case MSP_RAW_IMU:
         {
             // Hack scale due to choice of units for sensor data in multiwii
@@ -511,7 +558,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ANALOG:
-        sbufWriteU8(dst, (uint8_t)constrain(vbat, 0, 255));
+        sbufWriteU8(dst, (uint8_t)constrain(vbat / 10, 0, 255));
         sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF)); // milliamp hours drawn from battery
         sbufWriteU16(dst, rssi);
         if (batteryConfig()->multiwiiCurrentMeterOutput) {
@@ -617,10 +664,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         sbufWriteU16(dst, compassConfig()->mag_declination / 10);
 
-        sbufWriteU8(dst, batteryConfig()->vbatscale);
-        sbufWriteU8(dst, batteryConfig()->vbatmincellvoltage);
-        sbufWriteU8(dst, batteryConfig()->vbatmaxcellvoltage);
-        sbufWriteU8(dst, batteryConfig()->vbatwarningcellvoltage);
+        sbufWriteU8(dst, batteryConfig()->vbatscale / 10);
+        sbufWriteU8(dst, batteryConfig()->vbatmincellvoltage / 10);
+        sbufWriteU8(dst, batteryConfig()->vbatmaxcellvoltage / 10);
+        sbufWriteU8(dst, batteryConfig()->vbatwarningcellvoltage / 10);
         break;
 
     case MSP_MOTOR_PINS:
@@ -706,10 +753,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_VOLTAGE_METER_CONFIG:
-        sbufWriteU8(dst, batteryConfig()->vbatscale);
-        sbufWriteU8(dst, batteryConfig()->vbatmincellvoltage);
-        sbufWriteU8(dst, batteryConfig()->vbatmaxcellvoltage);
-        sbufWriteU8(dst, batteryConfig()->vbatwarningcellvoltage);
+        sbufWriteU8(dst, batteryConfig()->vbatscale / 10);
+        sbufWriteU8(dst, batteryConfig()->vbatmincellvoltage / 10);
+        sbufWriteU8(dst, batteryConfig()->vbatmaxcellvoltage / 10);
+        sbufWriteU8(dst, batteryConfig()->vbatwarningcellvoltage / 10);
         break;
 
     case MSP_CURRENT_METER_CONFIG:
@@ -1403,10 +1450,46 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU16(src);
 #endif
 
-        batteryConfigMutable()->vbatscale = sbufReadU8(src);           // actual vbatscale as intended
-        batteryConfigMutable()->vbatmincellvoltage = sbufReadU8(src);  // vbatlevel_warn1 in MWC2.3 GUI
-        batteryConfigMutable()->vbatmaxcellvoltage = sbufReadU8(src);  // vbatlevel_warn2 in MWC2.3 GUI
-        batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU8(src);  // vbatlevel when buzzer starts to alert
+        batteryConfigMutable()->vbatscale = sbufReadU8(src) * 10;           // actual vbatscale as intended
+        batteryConfigMutable()->vbatmincellvoltage = sbufReadU8(src) * 10;  // vbatlevel_warn1 in MWC2.3 GUI
+        batteryConfigMutable()->vbatmaxcellvoltage = sbufReadU8(src) * 10;  // vbatlevel_warn2 in MWC2.3 GUI
+        batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU8(src) * 10;  // vbatlevel when buzzer starts to alert
+        break;
+
+    case MSP2_INAV_SET_MISC:
+        tmp = sbufReadU16(src);
+        if (tmp < 1600 && tmp > 1400)
+            rxConfigMutable()->midrc = tmp;
+
+        motorConfigMutable()->minthrottle = sbufReadU16(src);
+        motorConfigMutable()->maxthrottle = sbufReadU16(src);
+        motorConfigMutable()->mincommand = sbufReadU16(src);
+
+        failsafeConfigMutable()->failsafe_throttle = sbufReadU16(src);
+
+#ifdef USE_GPS
+        gpsConfigMutable()->provider = sbufReadU8(src); // gps_type
+        sbufReadU8(src); // gps_baudrate
+        gpsConfigMutable()->sbasMode = sbufReadU8(src); // gps_ubx_sbas
+#else
+        sbufReadU8(src); // gps_type
+        sbufReadU8(src); // gps_baudrate
+        sbufReadU8(src); // gps_ubx_sbas
+#endif
+        batteryConfigMutable()->multiwiiCurrentMeterOutput = sbufReadU8(src);
+        rxConfigMutable()->rssi_channel = sbufReadU8(src);
+        sbufReadU8(src);
+
+#ifdef USE_MAG
+        compassConfigMutable()->mag_declination = sbufReadU16(src) * 10;
+#else
+        sbufReadU16(src);
+#endif
+
+        batteryConfigMutable()->vbatscale = sbufReadU16(src);           // actual vbatscale as intended
+        batteryConfigMutable()->vbatmincellvoltage = sbufReadU16(src);  // vbatlevel_warn1 in MWC2.3 GUI
+        batteryConfigMutable()->vbatmaxcellvoltage = sbufReadU16(src);  // vbatlevel_warn2 in MWC2.3 GUI
+        batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU16(src);  // vbatlevel when buzzer starts to alert
         break;
 
     case MSP_SET_MOTOR:
@@ -1860,10 +1943,17 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_VOLTAGE_METER_CONFIG:
-        batteryConfigMutable()->vbatscale = sbufReadU8(src);           // actual vbatscale as intended
-        batteryConfigMutable()->vbatmincellvoltage = sbufReadU8(src);  // vbatlevel_warn1 in MWC2.3 GUI
-        batteryConfigMutable()->vbatmaxcellvoltage = sbufReadU8(src);  // vbatlevel_warn2 in MWC2.3 GUI
-        batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU8(src);  // vbatlevel when buzzer starts to alert
+        batteryConfigMutable()->vbatscale = sbufReadU8(src) * 10;           // actual vbatscale as intended
+        batteryConfigMutable()->vbatmincellvoltage = sbufReadU8(src) * 10;  // vbatlevel_warn1 in MWC2.3 GUI
+        batteryConfigMutable()->vbatmaxcellvoltage = sbufReadU8(src) * 10;  // vbatlevel_warn2 in MWC2.3 GUI
+        batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU8(src) * 10;  // vbatlevel when buzzer starts to alert
+        break;
+
+    case MSP2_INAV_SET_VOLTAGE_METER_CONFIG:
+        batteryConfigMutable()->vbatscale = sbufReadU16(src);           // actual vbatscale as intended
+        batteryConfigMutable()->vbatmincellvoltage = sbufReadU16(src);  // vbatlevel_warn1 in MWC2.3 GUI
+        batteryConfigMutable()->vbatmaxcellvoltage = sbufReadU16(src);  // vbatlevel_warn2 in MWC2.3 GUI
+        batteryConfigMutable()->vbatwarningcellvoltage = sbufReadU16(src);  // vbatlevel when buzzer starts to alert
         break;
 
     case MSP_SET_CURRENT_METER_CONFIG:

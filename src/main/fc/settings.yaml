@@ -490,18 +490,18 @@ groups:
       - name: vbat_max_cell_voltage
         field: vbatmaxcellvoltage
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
       - name: vbat_min_cell_voltage
         field: vbatmincellvoltage
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
       - name: vbat_warning_cell_voltage
         field: vbatwarningcellvoltage
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
       - name: current_meter_scale
         field: currentMeterScale
         min: -10000
@@ -1391,6 +1391,10 @@ groups:
         field: item_pos[OSD_MAIN_BATT_VOLTAGE]
         min: 0
         max: OSD_POS_MAX_CLI
+      - name: osd_main_voltage_decimals
+        field: main_voltage_decimals
+        min: 1
+        max: 2
       - name: osd_rssi_pos
         field: item_pos[OSD_RSSI_VALUE]
         min: 0

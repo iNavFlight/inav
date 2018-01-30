@@ -65,9 +65,9 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
         .vbatscale = VBAT_SCALE_DEFAULT,
         .vbatresdivval = VBAT_RESDIVVAL_DEFAULT,
         .vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT,
-        .vbatmaxcellvoltage = 43,
-        .vbatmincellvoltage = 33,
-        .vbatwarningcellvoltage = 35,
+        .vbatmaxcellvoltage = 430,
+        .vbatmincellvoltage = 330,
+        .vbatwarningcellvoltage = 350,
         .currentMeterOffset = 0,
         .currentMeterScale = CURRENT_METER_SCALE,
         .batteryCapacity = 0,
@@ -94,7 +94,7 @@ static void updateBatteryVoltage(uint32_t vbatTimeDelta)
 
 #define VBATTERY_STABLE_DELAY 40
 /* Batt Hysteresis of +/-100mV */
-#define VBATT_HYSTERESIS 1
+#define VBATT_HYSTERESIS 10
 
 void batteryUpdate(uint32_t vbatTimeDelta)
 {
