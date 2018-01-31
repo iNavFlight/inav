@@ -57,7 +57,7 @@ void hilUpdateControlState(void)
 {
     // FIXME: There must be a cleaner way to to this
     // If HIL active, store PID outout into hilState and disable motor control
-    if (FLIGHT_MODE(PASSTHRU_MODE) || !STATE(FIXED_WING)) {
+    if (FLIGHT_MODE(MANUAL_MODE) || !STATE(FIXED_WING)) {
         hilToSIM.pidCommand[ROLL] = rcCommand[ROLL];
         hilToSIM.pidCommand[PITCH] = rcCommand[PITCH];
         hilToSIM.pidCommand[YAW] = rcCommand[YAW];

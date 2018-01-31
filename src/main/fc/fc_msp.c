@@ -531,15 +531,37 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC_TUNING:
         sbufWriteU8(dst, 100); //rcRate8 kept for compatibity reasons, this setting is no longer used
-        sbufWriteU8(dst, currentControlRateProfile->rcExpo8);
+        sbufWriteU8(dst, currentControlRateProfile->stabilized.rcExpo8);
         for (int i = 0 ; i < 3; i++) {
-            sbufWriteU8(dst, currentControlRateProfile->rates[i]); // R,P,Y see flight_dynamics_index_t
+            sbufWriteU8(dst, currentControlRateProfile->stabilized.rates[i]); // R,P,Y see flight_dynamics_index_t
         }
-        sbufWriteU8(dst, currentControlRateProfile->dynThrPID);
-        sbufWriteU8(dst, currentControlRateProfile->thrMid8);
-        sbufWriteU8(dst, currentControlRateProfile->thrExpo8);
-        sbufWriteU16(dst, currentControlRateProfile->tpa_breakpoint);
-        sbufWriteU8(dst, currentControlRateProfile->rcYawExpo8);
+        sbufWriteU8(dst, currentControlRateProfile->throttle.dynPID);
+        sbufWriteU8(dst, currentControlRateProfile->throttle.rcMid8);
+        sbufWriteU8(dst, currentControlRateProfile->throttle.rcExpo8);
+        sbufWriteU16(dst, currentControlRateProfile->throttle.pa_breakpoint);
+        sbufWriteU8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
+        break;
+
+    case MSP2_INAV_RATE_PROFILE:
+        // throttle
+        sbufWriteU8(dst, currentControlRateProfile->throttle.rcMid8);
+        sbufWriteU8(dst, currentControlRateProfile->throttle.rcExpo8);
+        sbufWriteU8(dst, currentControlRateProfile->throttle.dynPID);
+        sbufWriteU16(dst, currentControlRateProfile->throttle.pa_breakpoint);
+
+        // stabilized
+        sbufWriteU8(dst, currentControlRateProfile->stabilized.rcExpo8);
+        sbufWriteU8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
+        for (uint8_t i = 0 ; i < 3; ++i) {
+            sbufWriteU8(dst, currentControlRateProfile->stabilized.rates[i]); // R,P,Y see flight_dynamics_index_t
+        }
+
+        // manual
+        sbufWriteU8(dst, currentControlRateProfile->manual.rcExpo8);
+        sbufWriteU8(dst, currentControlRateProfile->manual.rcYawExpo8);
+        for (uint8_t i = 0 ; i < 3; ++i) {
+            sbufWriteU8(dst, currentControlRateProfile->manual.rates[i]); // R,P,Y see flight_dynamics_index_t
+        }
         break;
 
     case MSP_PID:
@@ -1348,26 +1370,65 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 10) {
             sbufReadU8(src); //Read rcRate8, kept for protocol compatibility reasons
             // need to cast away const to set controlRateProfile
-            ((controlRateConfig_t*)currentControlRateProfile)->rcExpo8 = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcExpo8 = sbufReadU8(src);
             for (int i = 0; i < 3; i++) {
                 rate = sbufReadU8(src);
                 if (i == FD_YAW) {
-                    ((controlRateConfig_t*)currentControlRateProfile)->rates[i] = constrain(rate, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
+                    ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[i] = constrain(rate, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
                 }
                 else {
-                    ((controlRateConfig_t*)currentControlRateProfile)->rates[i] = constrain(rate, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
+                    ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[i] = constrain(rate, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
                 }
             }
             rate = sbufReadU8(src);
-            ((controlRateConfig_t*)currentControlRateProfile)->dynThrPID = MIN(rate, CONTROL_RATE_CONFIG_TPA_MAX);
-            ((controlRateConfig_t*)currentControlRateProfile)->thrMid8 = sbufReadU8(src);
-            ((controlRateConfig_t*)currentControlRateProfile)->thrExpo8 = sbufReadU8(src);
-            ((controlRateConfig_t*)currentControlRateProfile)->tpa_breakpoint = sbufReadU16(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->throttle.dynPID = MIN(rate, CONTROL_RATE_CONFIG_TPA_MAX);
+            ((controlRateConfig_t*)currentControlRateProfile)->throttle.rcMid8 = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->throttle.rcExpo8 = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->throttle.pa_breakpoint = sbufReadU16(src);
             if (dataSize >= 11) {
-                ((controlRateConfig_t*)currentControlRateProfile)->rcYawExpo8 = sbufReadU8(src);
+                ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcYawExpo8 = sbufReadU8(src);
             }
 
             schedulePidGainsUpdate();
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_INAV_SET_RATE_PROFILE:
+        if (dataSize == 15) {
+            controlRateConfig_t *currentControlRateProfile_p = (controlRateConfig_t*)currentControlRateProfile; // need to cast away const to set controlRateProfile
+
+            // throttle
+            currentControlRateProfile_p->throttle.rcMid8 = sbufReadU8(src);
+            currentControlRateProfile_p->throttle.rcExpo8 = sbufReadU8(src);
+            currentControlRateProfile_p->throttle.dynPID = sbufReadU8(src);
+            currentControlRateProfile_p->throttle.pa_breakpoint = sbufReadU16(src);
+
+            // stabilized
+            currentControlRateProfile_p->stabilized.rcExpo8 = sbufReadU8(src);
+            currentControlRateProfile_p->stabilized.rcYawExpo8 = sbufReadU8(src);
+            for (uint8_t i = 0; i < 3; ++i) {
+                rate = sbufReadU8(src);
+                if (i == FD_YAW) {
+                    currentControlRateProfile_p->stabilized.rates[i] = constrain(rate, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
+                } else {
+                    currentControlRateProfile_p->stabilized.rates[i] = constrain(rate, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
+                }
+            }
+
+            // manual
+            currentControlRateProfile_p->manual.rcExpo8 = sbufReadU8(src);
+            currentControlRateProfile_p->manual.rcYawExpo8 = sbufReadU8(src);
+            for (uint8_t i = 0; i < 3; ++i) {
+                rate = sbufReadU8(src);
+                if (i == FD_YAW) {
+                    currentControlRateProfile_p->manual.rates[i] = constrain(rate, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
+                } else {
+                    currentControlRateProfile_p->manual.rates[i] = constrain(rate, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
+                }
+            }
+
         } else {
             return MSP_RESULT_ERROR;
         }
