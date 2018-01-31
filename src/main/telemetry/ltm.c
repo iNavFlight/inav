@@ -162,7 +162,7 @@ void ltm_sframe(sbuf_t *dst)
 {
     uint8_t lt_flightmode;
 
-    if (FLIGHT_MODE(PASSTHRU_MODE))
+    if (FLIGHT_MODE(MANUAL_MODE))
         lt_flightmode = 0;
     else if (FLIGHT_MODE(NAV_WP_MODE))
         lt_flightmode = 10;

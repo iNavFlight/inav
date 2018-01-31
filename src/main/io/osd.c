@@ -987,8 +987,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "AIR ";
             }
 
-            if (FLIGHT_MODE(PASSTHRU_MODE))
-                p = "PASS";
+            if (FLIGHT_MODE(MANUAL_MODE))
+                p = "MANU";
             else if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 p = "!FS!";
             } else if (FLIGHT_MODE(NAV_RTH_MODE))

@@ -2361,7 +2361,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             }
         }
 
-        // RTH/Failsafe_RTH can override PASSTHRU
+        // RTH/Failsafe_RTH can override MANUAL
         if (posControl.flags.forcedRTHActivated || (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME))) {
             // If we request forced RTH - attempt to activate it no matter what
             // This might switch to emergency landing controller if GPS is unavailable
@@ -2369,8 +2369,8 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
 
-        // PASSTHRU mode has priority over WP/PH/AH
-        if (IS_RC_MODE_ACTIVE(BOXPASSTHRU)) {
+        // MANUAL mode has priority over WP/PH/AH
+        if (IS_RC_MODE_ACTIVE(BOXMANUAL)) {
             canActivateWaypoint = false;    // Block WP mode if we are in PASSTHROUGH mode
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }

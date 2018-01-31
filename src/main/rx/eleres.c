@@ -283,7 +283,7 @@ static void telemetryRX(void)
         themp = (uint8_t)(thempfil/80 + 86);
 
         if (FLIGHT_MODE(FAILSAFE_MODE))    wii_flymode = 7;
-        else if (FLIGHT_MODE(PASSTHRU_MODE))  wii_flymode = 8;
+        else if (FLIGHT_MODE(MANUAL_MODE))  wii_flymode = 8;
         else if (FLIGHT_MODE(NAV_RTH_MODE))  wii_flymode = 6;
         else if (FLIGHT_MODE(NAV_POSHOLD_MODE))  wii_flymode = 5;
         else if (FLIGHT_MODE(HEADFREE_MODE))  wii_flymode = 4;

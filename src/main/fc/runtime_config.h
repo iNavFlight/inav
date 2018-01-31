@@ -70,14 +70,14 @@ typedef enum {
     NAV_POSHOLD_MODE= (1 << 5), // old GPS_HOLD
     HEADFREE_MODE   = (1 << 6),
     NAV_LAUNCH_MODE = (1 << 7),
-    PASSTHRU_MODE   = (1 << 8),
-    FAILSAFE_MODE   = (1 << 10),
-    AUTO_TUNE       = (1 << 11), // old G-Tune
-    NAV_WP_MODE     = (1 << 12),
-    UNUSED_MODE2    = (1 << 13),
-    FLAPERON        = (1 << 14),
+    MANUAL_MODE     = (1 << 8),
+    FAILSAFE_MODE   = (1 << 9),
+    AUTO_TUNE       = (1 << 10), // old G-Tune
+    NAV_WP_MODE     = (1 << 11),
+    UNUSED_MODE2    = (1 << 12),
+    FLAPERON        = (1 << 13),
 #ifdef USE_FLM_TURN_ASSIST
-    TURN_ASSISTANT  = (1 << 15),
+    TURN_ASSISTANT  = (1 << 14),
 #endif
 } flightModeFlags_e;
 
