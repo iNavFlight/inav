@@ -87,6 +87,9 @@ tables:
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
     enum: batCapacityUnit_e
+  - name: smartport_fuel_unit
+    values: ["PERCENT", "MAH", "MWH"]
+    enum: smartportFuelUnit_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1320,10 +1323,11 @@ groups:
         field: smartportUartUnidirectional
         condition: USE_TELEMETRY_SMARTPORT
         type: bool
-      - name: smartport_fuel_percent
-        field: smartportFuelPercent
+      - name: smartport_fuel_unit
+        field: smartportFuelUnit
         condition: USE_TELEMETRY_SMARTPORT
-        type: bool
+        type: uint8_t
+        table: smartport_fuel_unit
       - name: ibus_telemetry_type
         field: ibusTelemetryType
         min: 0
