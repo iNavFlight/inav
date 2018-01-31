@@ -68,6 +68,8 @@
 #   define USE_MAG_HMC5883
 #   define MAG_HMC5883_ALIGN       CW180_DEG
 #   define USE_MAG_QMC5883
+#   define USE_MAG_MAG3110
+#   define USE_MAG_IST8310
 
 #   define USE_BARO
 #   define BARO_I2C_BUS            BUS_I2C1
@@ -103,21 +105,21 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-#ifdef KAKUTEF4V2                // Uart4 and Uart5 are fanned out on v2
-#   define USE_UART4                // Uart4 can be used for GPS or  RunCam Split
+#ifdef KAKUTEF4V2
+#   define USE_UART4
 #   define UART4_RX_PIN            PA1
 #   define UART4_TX_PIN            PA0
 
-#   define USE_UART5               //Uart5 can be used for ESC sensor
+#   define USE_UART5
 #   define UART5_RX_PIN            PD2
 #   define UART5_TX_PIN            NONE
 
-// #   define USE_SOFTSERIAL1         //M1~M4 and LedTrip can be redefined as Softserial
-#   define SERIAL_PORT_COUNT 7     //vcp, uart1, uart3, uart4, uart5, uart6, softSerial1
+// #   define USE_SOFTSERIAL1
+#   define SERIAL_PORT_COUNT 6
 #else
 // #   define USE_SOFTSERIAL1
 // #   define USE_SOFTSERIAL2
-#   define SERIAL_PORT_COUNT 6   //vcp, uart1, uart3,, uart6, softSerial1, softSerial2
+#   define SERIAL_PORT_COUNT 4
 #endif
 
 #define USE_SPI
