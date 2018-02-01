@@ -42,21 +42,27 @@ typedef enum {
 } batCapacityUnit_e;
 
 typedef struct batteryConfig_s {
-    uint16_t vbatscale;                      // adjust this to match battery voltage to reported value
-    uint16_t vbatmaxcellvoltage;             // maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, default is 430 (4.3V)
-    uint16_t vbatmincellvoltage;             // minimum voltage per cell, this triggers battery critical alarm, in 0.01V units, default is 330 (3.3V)
-    uint16_t vbatwarningcellvoltage;         // warning voltage per cell, this triggers battery warning alarm, in 0.01V units, default is 350 (3.5V)
 
-    int16_t currentMeterScale;              // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
-    int16_t currentMeterOffset;             // offset of the current sensor in millivolt steps
-    currentSensor_e  currentMeterType;      // type of current meter used, either ADC or virtual
+    struct {
+        uint16_t scale;         // adjust this to match battery voltage to reported value
+        uint16_t cellMax;       // maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, default is 421 (4.21V)
+        uint16_t cellMin;       // minimum voltage per cell, this triggers battery critical alarm, in 0.01V units, default is 330 (3.3V)
+        uint16_t cellWarning;   // warning voltage per cell, this triggers battery warning alarm, in 0.01V units, default is 350 (3.5V)
+    } voltage;
 
-    // FIXME this doesn't belong in here since it's a concern of MSP, not of the battery code.
-    uint8_t multiwiiCurrentMeterOutput;     // if set to 1 output the amperage in milliamp steps instead of 0.01A steps via msp
-    uint16_t batteryCapacity;               // mAh or mWh (see batteryCapacityUnit)
-    uint16_t batteryWarningCapacity;        // mAh or mWh (see batteryCapacityUnit)
-    uint16_t batteryCriticalCapacity;       // mAh or mWh (see batteryCapacityUnit)
-    batCapacityUnit_e batteryCapacityUnit;            // Describes unit of batteryCapacity, batteryWarningCapacity and batteryCriticalCapacity
+    struct {
+        int16_t scale;          // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
+        int16_t offset;         // offset of the current sensor in millivolt steps
+        currentSensor_e type;   // type of current meter used, either ADC or virtual
+    } current;
+
+    struct {
+        uint16_t value;         // mAh or mWh (see capacity.unit)
+        uint16_t warning;       // mAh or mWh (see capacity.unit)
+        uint16_t critical;      // mAh or mWh (see capacity.unit)
+        batCapacityUnit_e unit; // Describes unit of capacity.value, capacity.warning and capacity.critical
+    } capacity;
+
 } batteryConfig_t;
 
 PG_DECLARE(batteryConfig_t, batteryConfig);

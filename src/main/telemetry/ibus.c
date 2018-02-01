@@ -243,7 +243,7 @@ void initIbusTelemetry(void) {
         changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE1_FLIGHT_MODE, IBUS_MEAS_VALUE_MODE);
     }
     if (type == 6 || type == 7) {
-        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_VIRTUAL) 
+        if (batteryConfig()->current.type == CURRENT_SENSOR_VIRTUAL)
             changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_FUEL, IBUS_MEAS_VALUE_FUEL);
         else changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_BAT_CURR, IBUS_MEAS_VALUE_CURRENT);
         changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE1_CMP_HEAD, IBUS_MEAS_VALUE_HEADING);

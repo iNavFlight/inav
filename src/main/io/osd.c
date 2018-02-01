@@ -679,7 +679,7 @@ static void osdFormatBatteryChargeSymbol(char *buff)
 
 static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *attr)
 {
-    if ((batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->batteryWarningCapacity - batteryConfig()->batteryCriticalCapacity)) || ((!batteryUseCapacityThresholds) && (vbat <= batteryWarningVoltage)))
+    if ((batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical)) || ((!batteryUseCapacityThresholds) && (vbat <= batteryWarningVoltage)))
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
 }
 
@@ -848,24 +848,24 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_BATTERY_REMAINING_CAPACITY:
-        if (batteryConfig()->batteryCapacityUnit == BAT_CAPACITY_UNIT_MAH) {
+        if (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MAH) {
             buff[0] = SYM_MAH;
-            if (batteryFullWhenPluggedIn && (batteryConfig()->batteryCapacity > 0)) {
+            if (batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0)) {
                 tfp_sprintf(buff + 1, "%-4d", batteryRemainingCapacity);
-            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->batteryCapacity > 0))
+            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->capacity.value > 0))
                 tfp_sprintf(buff + 1, "NF");
             else
                 tfp_sprintf(buff + 1, "NA");
         } else {
             buff[0] = SYM_WH;
-            if (batteryFullWhenPluggedIn && (batteryConfig()->batteryCapacity > 0)) {
+            if (batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0)) {
                 osdFormatCentiNumber(buff + 1, batteryRemainingCapacity / 10, 0, 2, 0, 3);
-            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->batteryCapacity > 0))
+            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->capacity.value > 0))
                 tfp_sprintf(buff + 1, "NF");
             else
                 tfp_sprintf(buff + 1, "NA");
         }
-        if (batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->batteryWarningCapacity - batteryConfig()->batteryCriticalCapacity))
+        if (batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         break;
 

@@ -487,55 +487,52 @@ groups:
     type: batteryConfig_t
     headers: ["sensors/battery.h"]
     members:
-      - name: battery_capacity
-        field: batteryCapacity
-        min: 0
-        max: 65535
       - name: vbat_scale
-        field: vbatscale
+        field: voltage.scale
         condition: USE_ADC
         min: VBAT_SCALE_MIN
         max: VBAT_SCALE_MAX
       - name: vbat_max_cell_voltage
-        field: vbatmaxcellvoltage
+        field: voltage.cellMax
         condition: USE_ADC
         min: 100
         max: 500
       - name: vbat_min_cell_voltage
-        field: vbatmincellvoltage
+        field: voltage.cellMin
         condition: USE_ADC
         min: 100
         max: 500
       - name: vbat_warning_cell_voltage
-        field: vbatwarningcellvoltage
+        field: voltage.cellWarning
         condition: USE_ADC
         min: 100
         max: 500
+      - name: battery_capacity
+        field: capacity.value
+        min: 0
+        max: 65535
       - name: battery_warning_capacity
-        field: batteryWarningCapacity
+        field: capacity.warning
         min: 0
         max: 65535
       - name: battery_critical_capacity
-        field: batteryCriticalCapacity
+        field: capacity.critical
         min: 0
         max: 65535
       - name: battery_capacity_unit
-        field: batteryCapacityUnit
+        field: capacity.unit
         table: bat_capacity_unit
         type: uint8_t
       - name: current_meter_scale
-        field: currentMeterScale
+        field: current.scale
         min: -10000
         max: 10000
       - name: current_meter_offset
-        field: currentMeterOffset
+        field: current.offset
         min: -3300
         max: 3300
-      - name: multiwii_current_meter_output
-        field: multiwiiCurrentMeterOutput
-        type: bool
       - name: current_meter_type
-        field: currentMeterType
+        field: current.type
         table: current_sensor
         type: uint8_t
 
