@@ -1256,6 +1256,10 @@ groups:
         field: fw.launch_motor_spinup_time
         min: 0
         max: 1000
+      - name: nav_fw_launch_min_time
+        field: fw.launch_min_time
+        min: 0
+        max: 60000
       - name: nav_fw_launch_timeout
         field: fw.launch_timeout
         max: 60000

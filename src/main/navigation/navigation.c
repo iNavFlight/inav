@@ -139,6 +139,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_idle_throttle = 1000,          // Motor idle or MOTOR_STOP
         .launch_motor_timer = 500,             // ms
         .launch_motor_spinup_time = 100,       // ms, time to gredually increase throttle from idle to launch
+        .launch_min_time = 0,                  // ms, min time in launch mode
         .launch_timeout = 5000,                // ms, timeout for launch procedure
         .launch_climb_angle = 18,              // 18 degrees
         .launch_max_angle = 45                 // 45 deg

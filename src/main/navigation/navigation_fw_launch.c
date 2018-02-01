@@ -149,7 +149,7 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
             const float timeElapsedSinceLaunchMs = US2MS(currentTimeUs - launchState.launchStartedTime);
 
             // If user moves the stick - finish the launch
-            if ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband)) {
+            if ((timeElapsedSinceLaunchMs > navConfig()->fw.launch_min_time) && ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband))) {
                 launchState.launchFinished = true;
             }
 
