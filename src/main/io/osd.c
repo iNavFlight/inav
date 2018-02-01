@@ -1746,6 +1746,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
 
+    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+      displayClearScreen(osdDisplayPort);
+      return;
+    }
+
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
         if (ARMING_FLAG(ARMED)) {
