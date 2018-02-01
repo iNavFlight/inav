@@ -679,7 +679,7 @@ static void osdFormatBatteryChargeSymbol(char *buff)
 
 static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *attr)
 {
-    if ((batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical)) || ((!batteryUseCapacityThresholds) && (vbat <= batteryWarningVoltage)))
+    if ((batteryState != BATTERY_NOT_PRESENT) && ((batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical)) || ((!batteryUseCapacityThresholds) && (vbat <= batteryWarningVoltage))))
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
 }
 
@@ -825,7 +825,7 @@ static bool osdDrawSingleElement(uint8_t item)
         elemAttr = TEXT_ATTRIBUTES_NONE;
         osdFormatCentiNumber(buff, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
         strcat(buff, "V");
-        if (vbat <= batteryWarningVoltage)
+        if ((batteryState != BATTERY_NOT_PRESENT) && (vbat <= batteryWarningVoltage))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
         return true;
@@ -848,31 +848,24 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_BATTERY_REMAINING_CAPACITY:
-        if (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MAH) {
-            buff[0] = SYM_MAH;
-            if (batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0)) {
-                tfp_sprintf(buff + 1, "%-4d", batteryRemainingCapacity);
-            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->capacity.value > 0))
-                tfp_sprintf(buff + 1, "NF");
-            else
-                tfp_sprintf(buff + 1, "NA");
-        } else {
-            buff[0] = SYM_WH;
-            if (batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0)) {
-                osdFormatCentiNumber(buff + 1, batteryRemainingCapacity / 10, 0, 2, 0, 3);
-            } else if ((!batteryFullWhenPluggedIn) && (batteryConfig()->capacity.value > 0))
-                tfp_sprintf(buff + 1, "NF");
-            else
-                tfp_sprintf(buff + 1, "NA");
-        }
-        if (batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical))
+        buff[0] = (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH);
+
+        if (batteryConfig()->capacity.value == 0)
+            tfp_sprintf(buff + 1, "NA");
+        else if (!batteryFullWhenPluggedIn)
+            tfp_sprintf(buff + 1, "NF");
+        else if (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MAH)
+            tfp_sprintf(buff + 1, "%-4lu", batteryRemainingCapacity);
+        else // batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH
+            osdFormatCentiNumber(buff + 1, batteryRemainingCapacity / 10, 0, 2, 0, 3);
+
+        if ((batteryState != BATTERY_NOT_PRESENT) && batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+
         break;
 
     case OSD_BATTERY_REMAINING_PERCENT:
-        tfp_sprintf(buff, "%3d", calculateBatteryPercentage());
-        buff[3] = '%';
-        buff[4] = '\0';
+        tfp_sprintf(buff, "%3d%%", calculateBatteryPercentage());
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
@@ -1402,7 +1395,7 @@ static bool osdDrawSingleElement(uint8_t item)
             elemAttr = TEXT_ATTRIBUTES_NONE;
             osdFormatCentiNumber(buff, cellBattCentiVolts, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 1);
             strcat(buff, "V");
-            if (vbat <= batteryWarningVoltage)
+            if ((batteryState != BATTERY_NOT_PRESENT) && (vbat <= batteryWarningVoltage))
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
             return true;

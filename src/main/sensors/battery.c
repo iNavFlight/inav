@@ -64,7 +64,7 @@ int32_t power = 0;                  // power draw in cW (0.01W resolution)
 int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
 int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn from the battery since start
 
-static batteryState_e batteryState;
+batteryState_e batteryState;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 1);
 

@@ -88,6 +88,7 @@ extern int32_t mWhDrawn;
 extern uint32_t batteryRemainingCapacity;
 extern bool batteryUseCapacityThresholds;
 extern bool batteryFullWhenPluggedIn;
+extern batteryState_e batteryState;
 
 uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
