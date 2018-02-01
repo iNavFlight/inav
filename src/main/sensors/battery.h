@@ -57,9 +57,9 @@ typedef struct batteryConfig_s {
     } current;
 
     struct {
-        uint16_t value;         // mAh or mWh (see capacity.unit)
-        uint16_t warning;       // mAh or mWh (see capacity.unit)
-        uint16_t critical;      // mAh or mWh (see capacity.unit)
+        uint32_t value;         // mAh or mWh (see capacity.unit)
+        uint32_t warning;       // mAh or mWh (see capacity.unit)
+        uint32_t critical;      // mAh or mWh (see capacity.unit)
         batCapacityUnit_e unit; // Describes unit of capacity.value, capacity.warning and capacity.critical
     } capacity;
 
