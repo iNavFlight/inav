@@ -51,7 +51,7 @@ uint8_t batteryCellCount = 3;       // cell count
 uint16_t batteryFullVoltage;
 uint16_t batteryWarningVoltage;
 uint16_t batteryCriticalVoltage;
-uint16_t batteryRemainingCapacity = 0;
+uint32_t batteryRemainingCapacity = 0;
 bool batteryUseCapacityThresholds = false;
 bool batteryFullWhenPluggedIn = false;
 
@@ -157,7 +157,7 @@ void batteryUpdate(uint32_t vbatTimeDelta)
 
         if (batteryConfig()->capacity.value > 0)
             if (batteryFullWhenPluggedIn)
-                batteryRemainingCapacity = constrain(batteryConfig()->capacity.value - batteryConfig()->capacity.critical - (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn), 0, 0xFFFF);
+                batteryRemainingCapacity = constrain(batteryConfig()->capacity.value - batteryConfig()->capacity.critical - (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn), 0, 0xFFFFFFFF);
 
         if (batteryUseCapacityThresholds) {
             if (batteryRemainingCapacity == 0)
