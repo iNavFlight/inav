@@ -66,7 +66,7 @@ int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn from the b
 
 static batteryState_e batteryState;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 1);
 
 PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
 
