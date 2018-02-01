@@ -62,6 +62,8 @@
 #define USE_MAG_MPU9250
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #define USB_IO
 #define USE_VCP

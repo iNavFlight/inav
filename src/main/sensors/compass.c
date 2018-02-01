@@ -89,6 +89,24 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 
     switch (magHardwareToUse) {
     case MAG_AUTODETECT:
+        FALLTHROUGH;
+
+    case MAG_QMC5883:
+#ifdef USE_MAG_QMC5883
+        if (qmc5883Detect(dev)) {
+#ifdef MAG_QMC5883L_ALIGN
+            dev->magAlign = MAG_QMC5883L_ALIGN;
+#endif
+            magHardware = MAG_QMC5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case MAG_HMC5883:
 #ifdef USE_MAG_HMC5883
         if (hmc5883lDetect(dev)) {
@@ -176,22 +194,6 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
             dev->magAlign = MAG_IST8310_ALIGN;
 #endif
             magHardware = MAG_IST8310;
-            break;
-        }
-#endif
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (magHardwareToUse != MAG_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-
-    case MAG_QMC5883:
-#ifdef USE_MAG_QMC5883
-        if (qmc5883Detect(dev)) {
-#ifdef MAG_QMC5883L_ALIGN
-            dev->magAlign = MAG_QMC5883L_ALIGN;
-#endif
-            magHardware = MAG_QMC5883;
             break;
         }
 #endif

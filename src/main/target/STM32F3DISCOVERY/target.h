@@ -88,8 +88,9 @@
 #define USE_MAG_AK8975
 #define USE_MAG_MPU9250
 #define USE_MAG_HMC5883
-#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
