@@ -42,9 +42,16 @@
 
 #include "io/beeper.h"
 
-#define BATTERY_FULL_CELL_MAX_DIFF 7        // Max difference with cell max voltage for the battery to be considered full (10mV steps)
-#define VBATT_PRESENT_THRESHOLD_MV    10
-#define VBATT_LPF_FREQ  1
+
+#define ADCVREF 3300                 // in mV (3300 = 3.3V)
+
+#define VBATT_CELL_FULL_MAX_DIFF 7   // Max difference with cell max voltage for the battery to be considered full (10mV steps)
+#define VBATT_PRESENT_THRESHOLD 100  // Minimum voltage to consider battery present
+#define VBATT_STABLE_DELAY 40        // Delay after connecting battery to begin monitoring
+#define VBATT_HYSTERESIS 10          // Batt Hysteresis of +/-100mV for changing battery state
+#define VBATT_LPF_FREQ  1            // Battery voltage filtering cutoff
+#define AMPERAGE_LPF_FREQ  1         // Battery current filtering cutoff
+
 
 // Battery monitoring stuff
 uint8_t batteryCellCount = 3;       // cell count
@@ -96,7 +103,22 @@ uint16_t batteryAdcToVoltage(uint16_t src)
 {
     // calculate battery voltage based on ADC reading
     // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
-    return((uint32_t)src * 33 * batteryConfig()->voltage.scale / (0xFFF * 10));
+    return((uint64_t)src * batteryConfig()->voltage.scale * ADCVREF / (0xFFF * 1000));
+}
+
+int32_t currentSensorToCentiamps(uint16_t src)
+{
+    int32_t millivolts = ((uint32_t)src * ADCVREF) / 4096 - batteryConfig()->current.offset;
+    return millivolts * 1000 / batteryConfig()->current.scale; // current in 0.01A steps
+}
+
+void batteryInit(void)
+{
+    batteryState = BATTERY_NOT_PRESENT;
+    batteryCellCount = 1;
+    batteryFullVoltage = 0;
+    batteryWarningVoltage = 0;
+    batteryCriticalVoltage = 0;
 }
 
 static void updateBatteryVoltage(uint32_t vbatTimeDelta)
@@ -110,16 +132,12 @@ static void updateBatteryVoltage(uint32_t vbatTimeDelta)
     vbat = batteryAdcToVoltage(vbatSample);
 }
 
-#define VBATTERY_STABLE_DELAY 40
-/* Batt Hysteresis of +/-100mV */
-#define VBATT_HYSTERESIS 10
-
 void batteryUpdate(uint32_t vbatTimeDelta)
 {
     updateBatteryVoltage(vbatTimeDelta);
 
     /* battery has just been connected*/
-    if (batteryState == BATTERY_NOT_PRESENT && vbat > VBATT_PRESENT_THRESHOLD_MV)
+    if (batteryState == BATTERY_NOT_PRESENT && vbat > VBATT_PRESENT_THRESHOLD)
     {
         /* Actual battery state is calculated below, this is really BATTERY_PRESENT */
         batteryState = BATTERY_OK;
@@ -127,26 +145,24 @@ void batteryUpdate(uint32_t vbatTimeDelta)
         (using the filtered value takes a long time to ramp up)
         We only do this on the ground so don't care if we do block, not
         worse than original code anyway*/
-        delay(VBATTERY_STABLE_DELAY);
+        delay(VBATT_STABLE_DELAY);
         updateBatteryVoltage(vbatTimeDelta);
 
         unsigned cells = (batteryAdcToVoltage(vbatLatestADC) / batteryConfig()->voltage.cellMax) + 1;
-        if (cells > 8) {
-            // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
-            cells = 8;
-        }
+        if (cells > 8) cells = 8; // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
+
         batteryCellCount = cells;
         batteryFullVoltage = batteryCellCount * batteryConfig()->voltage.cellMax;
         batteryWarningVoltage = batteryCellCount * batteryConfig()->voltage.cellWarning;
         batteryCriticalVoltage = batteryCellCount * batteryConfig()->voltage.cellMin;
 
-        batteryFullWhenPluggedIn = vbat >= (batteryFullVoltage - cells * BATTERY_FULL_CELL_MAX_DIFF);
-        batteryUseCapacityThresholds = batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0) && (batteryConfig()->capacity.warning > 0) && (batteryConfig()->capacity.critical > 0);
+        batteryFullWhenPluggedIn = vbat >= (batteryFullVoltage - cells * VBATT_CELL_FULL_MAX_DIFF);
+        batteryUseCapacityThresholds = feature(FEATURE_CURRENT_METER) && batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0) &&
+                                           (batteryConfig()->capacity.warning > 0) && (batteryConfig()->capacity.critical > 0);
 
     }
-    /* battery has been disconnected - can take a while for filter cap to disharge so we use a threshold of VBATT_PRESENT_THRESHOLD_MV */
-    else if (batteryState != BATTERY_NOT_PRESENT && vbat <= VBATT_PRESENT_THRESHOLD_MV)
-    {
+    /* battery has been disconnected - can take a while for filter cap to disharge so we use a threshold of VBATT_PRESENT_THRESHOLD */
+    else if (batteryState != BATTERY_NOT_PRESENT && vbat <= VBATT_PRESENT_THRESHOLD) {
         batteryState = BATTERY_NOT_PRESENT;
         batteryCellCount = 0;
         batteryWarningVoltage = 0;
@@ -155,9 +171,11 @@ void batteryUpdate(uint32_t vbatTimeDelta)
 
     if (batteryState != BATTERY_NOT_PRESENT) {
 
-        if (batteryConfig()->capacity.value > 0)
-            if (batteryFullWhenPluggedIn)
-                batteryRemainingCapacity = constrain(batteryConfig()->capacity.value - batteryConfig()->capacity.critical - (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn), 0, 0xFFFFFFFF);
+        if ((batteryConfig()->capacity.value > 0) && batteryFullWhenPluggedIn) {
+            uint32_t capacityDiffBetweenFullAndEmpty = batteryConfig()->capacity.value - batteryConfig()->capacity.critical;
+            int32_t drawn = (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn);
+            batteryRemainingCapacity = (drawn > (int32_t)capacityDiffBetweenFullAndEmpty ? 0 : capacityDiffBetweenFullAndEmpty - drawn);
+        }
 
         if (batteryUseCapacityThresholds) {
             if (batteryRemainingCapacity == 0)
@@ -206,47 +224,25 @@ batteryState_e getBatteryState(void)
     return batteryState;
 }
 
-void batteryInit(void)
+void currentMeterUpdate(int32_t timeDelta)
 {
-    batteryState = BATTERY_NOT_PRESENT;
-    batteryCellCount = 1;
-    batteryFullVoltage = 0;
-    batteryWarningVoltage = 0;
-    batteryCriticalVoltage = 0;
-}
-
-#define ADCVREF 3300   // in mV
-int32_t currentSensorToCentiamps(uint16_t src)
-{
-    int32_t millivolts;
-
-    millivolts = ((uint32_t)src * ADCVREF) / 4096;
-    millivolts -= batteryConfig()->current.offset;
-
-    return (millivolts * 1000) / (int32_t)batteryConfig()->current.scale; // current in 0.01A steps
-}
-
-void currentMeterUpdate(int32_t lastUpdateAt)
-{
-    static int32_t amperageRaw = 0;
+    static pt1Filter_t amperageFilterState;
     static int64_t mAhdrawnRaw = 0;
-    int32_t throttleFactor = 0;
-    int32_t throttleOffset = (int32_t)rcCommand[THROTTLE] - 1000;
+    uint16_t amperageSample;
 
     switch (batteryConfig()->current.type) {
         case CURRENT_SENSOR_ADC:
-            amperageRaw -= amperageRaw / 8;
-            amperageRaw += (amperageLatestADC = adcGetChannel(ADC_CURRENT));
-            amperage = currentSensorToCentiamps(amperageRaw / 8);
+            amperageSample = adcGetChannel(ADC_CURRENT);
+            amperageSample = pt1FilterApply4(&amperageFilterState, amperageSample, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+            amperage = currentSensorToCentiamps(amperageSample);
             break;
         case CURRENT_SENSOR_VIRTUAL:
-            amperage = (int32_t)batteryConfig()->current.offset;
+            amperage = batteryConfig()->current.offset;
             if (ARMING_FLAG(ARMED)) {
                 throttleStatus_e throttleStatus = calculateThrottleStatus();
-                if (throttleStatus == THROTTLE_LOW && feature(FEATURE_MOTOR_STOP))
-                    throttleOffset = 0;
-                throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
-                amperage += throttleFactor * (int32_t)batteryConfig()->current.scale  / 1000;
+                int32_t throttleOffset = ((throttleStatus == THROTTLE_LOW) && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
+                amperage += throttleFactor * batteryConfig()->current.scale / 1000;
             }
             break;
         case CURRENT_SENSOR_NONE:
@@ -254,16 +250,16 @@ void currentMeterUpdate(int32_t lastUpdateAt)
             break;
     }
 
-    mAhdrawnRaw += (amperage * lastUpdateAt) / 1000;
+    mAhdrawnRaw += (amperage * timeDelta) / 1000;
     mAhDrawn = mAhdrawnRaw / (3600 * 100);
 }
 
-void powerMeterUpdate(int32_t lastUpdateAt)
+void powerMeterUpdate(int32_t timeDelta)
 {
     static int64_t mWhDrawnRaw = 0;
     uint32_t power_mW = amperage * vbat / 10;
     power = amperage * vbat / 100; // power unit is cW (0.01W resolution)
-    mWhDrawnRaw += (power_mW * lastUpdateAt) / 10000;
+    mWhDrawnRaw += (power_mW * timeDelta) / 10000;
     mWhDrawn = mWhDrawnRaw / (3600 * 100);
 }
 
@@ -273,8 +269,8 @@ uint8_t calculateBatteryPercentage(void)
         return 0;
 
     if (batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0) && (batteryConfig()->capacity.critical > 0)) {
-        uint16_t capacityDiffBetweenFullAndEmpty = batteryConfig()->capacity.value - batteryConfig()->capacity.critical;
-        return constrain((capacityDiffBetweenFullAndEmpty - constrain((batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn), 0, 0xFFFF)) * 100L / capacityDiffBetweenFullAndEmpty, 0, 100);
+        uint32_t capacityDiffBetweenFullAndEmpty = batteryConfig()->capacity.value - batteryConfig()->capacity.critical;
+        return constrain(batteryRemainingCapacity * 100 / capacityDiffBetweenFullAndEmpty, 0, 100);
     } else
         return constrain((vbat - batteryCriticalVoltage) * 100L / (batteryFullVoltage - batteryCriticalVoltage), 0, 100);
 }
