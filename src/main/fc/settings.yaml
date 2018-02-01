@@ -511,11 +511,11 @@ groups:
         field: capacity.value
         min: 0
         max: 4294967295
-      - name: battery_warning_capacity
+      - name: battery_capacity_warning
         field: capacity.warning
         min: 0
         max: 4294967295
-      - name: battery_critical_capacity
+      - name: battery_capacity_critical
         field: capacity.critical
         min: 0
         max: 4294967295
