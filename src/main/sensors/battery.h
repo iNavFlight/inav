@@ -22,8 +22,6 @@
 #ifndef VBAT_SCALE_DEFAULT
 #define VBAT_SCALE_DEFAULT 1100
 #endif
-#define VBAT_RESDIVVAL_DEFAULT 10
-#define VBAT_RESDIVMULTIPLIER_DEFAULT 1
 #define VBAT_SCALE_MIN 0
 #define VBAT_SCALE_MAX 65535
 
@@ -45,8 +43,6 @@ typedef enum {
 
 typedef struct batteryConfig_s {
     uint16_t vbatscale;                      // adjust this to match battery voltage to reported value
-    uint8_t vbatresdivval;                  // resistor divider R2 (default NAZE 10(K))
-    uint8_t vbatresdivmultiplier;           // multiplier for scale (e.g. 2.5:1 ratio with multiplier of 4 can use '100' instead of '25' in ratio) to get better precision
     uint16_t vbatmaxcellvoltage;             // maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, default is 430 (4.3V)
     uint16_t vbatmincellvoltage;             // minimum voltage per cell, this triggers battery critical alarm, in 0.01V units, default is 330 (3.3V)
     uint16_t vbatwarningcellvoltage;         // warning voltage per cell, this triggers battery warning alarm, in 0.01V units, default is 350 (3.5V)

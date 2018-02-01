@@ -70,8 +70,6 @@ PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFI
 
 PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
         .vbatscale = VBAT_SCALE_DEFAULT,
-        .vbatresdivval = VBAT_RESDIVVAL_DEFAULT,
-        .vbatresdivmultiplier = VBAT_RESDIVMULTIPLIER_DEFAULT,
         .vbatmaxcellvoltage = 421,
         .vbatmincellvoltage = 330,
         .vbatwarningcellvoltage = 350,
@@ -87,8 +85,8 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
 uint16_t batteryAdcToVoltage(uint16_t src)
 {
     // calculate battery voltage based on ADC reading
-    // result is Vbatt in 0.1V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 110 = 11:1 voltage divider (10k:1k) * 10 for 0.1V
-    return ((((uint32_t)src * batteryConfig()->vbatscale * 33 + (0xFFF * 5)) / (0xFFF * batteryConfig()->vbatresdivval))/batteryConfig()->vbatresdivmultiplier);
+    // result is Vbatt in 0.01V steps. 3.3V = ADC Vref, 0xFFF = 12bit adc, 1100 = 11:1 voltage divider (10k:1k)
+    return((uint32_t)src * 33 * batteryConfig()->vbatscale / (0xFFF * 10));
 }
 
 static void updateBatteryVoltage(uint32_t vbatTimeDelta)
