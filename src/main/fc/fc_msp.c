@@ -399,13 +399,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-    case MSP2_INAV_VOLTAGE_METER_CONFIG:
-        sbufWriteU16(dst, batteryConfig()->voltage.scale);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellMin);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellMax);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellWarning);
-        break;
-
     case MSP_RAW_IMU:
         {
             // Hack scale due to choice of units for sensor data in multiwii
@@ -2053,13 +2046,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         batteryConfigMutable()->voltage.cellMin = sbufReadU8(src) * 10;
         batteryConfigMutable()->voltage.cellMax = sbufReadU8(src) * 10;
         batteryConfigMutable()->voltage.cellWarning = sbufReadU8(src) * 10;
-        break;
-
-    case MSP2_INAV_SET_VOLTAGE_METER_CONFIG:
-        batteryConfigMutable()->voltage.scale = sbufReadU16(src);
-        batteryConfigMutable()->voltage.cellMin = sbufReadU16(src);
-        batteryConfigMutable()->voltage.cellMax = sbufReadU16(src);
-        batteryConfigMutable()->voltage.cellWarning = sbufReadU16(src);
         break;
 
     case MSP_SET_CURRENT_METER_CONFIG:
