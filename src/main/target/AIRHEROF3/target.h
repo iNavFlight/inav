@@ -109,8 +109,9 @@
     #define USE_MAG
     #define MAG_I2C_BUS                 BUS_I2C1
     #define USE_MAG_HMC5883
-    #define USE_MAG_QMC5883
     #define USE_MAG_MAG3110
+    #define USE_MAG_QMC5883
+    #define USE_MAG_IST8310
 
     #define MAX_PWM_OUTPUT_PORTS        8
     #define TARGET_MOTOR_COUNT          4

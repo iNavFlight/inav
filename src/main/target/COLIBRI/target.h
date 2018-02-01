@@ -56,6 +56,8 @@
 #define MAG_I2C_BUS             BUS_I2C3
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #ifdef QUANTON
 #define ACC_MPU6000_ALIGN       CW90_DEG

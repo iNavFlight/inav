@@ -53,8 +53,9 @@
 
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
-#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

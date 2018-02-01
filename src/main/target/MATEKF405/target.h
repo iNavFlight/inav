@@ -160,11 +160,10 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS                 DEFAULT_I2C_BUS
-#define USE_MAG_MAG3110 // External
-#define USE_MAG_HMC5883 // External
-#define USE_MAG_AK8963  // External
-#define USE_MAG_AK8975  // External
-#define USE_MAG_QMC5883 // External
+#define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C

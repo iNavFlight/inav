@@ -71,7 +71,9 @@
 #define USE_MAG_MPU9250
 #define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
 #define USE_MAG_HMC5883
+#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
 
 #define USE_VCP
 #define USE_UART1 // Not connected - TX (PB6) RX PB7 (AF7)
