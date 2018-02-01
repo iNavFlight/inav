@@ -85,7 +85,7 @@ extern int32_t amperage;
 extern int32_t power;
 extern int32_t mAhDrawn;
 extern int32_t mWhDrawn;
-uint16_t batteryRemainingCapacity;
+extern uint32_t batteryRemainingCapacity;
 extern bool batteryUseCapacityThresholds;
 extern bool batteryFullWhenPluggedIn;
 
