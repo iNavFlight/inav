@@ -156,7 +156,7 @@ void batteryUpdate(uint32_t vbatTimeDelta)
         batteryWarningVoltage = batteryCellCount * batteryConfig()->voltage.cellWarning;
         batteryCriticalVoltage = batteryCellCount * batteryConfig()->voltage.cellMin;
 
-        batteryFullWhenPluggedIn = vbat >= (batteryFullVoltage - cells * VBATT_CELL_FULL_MAX_DIFF);
+        batteryFullWhenPluggedIn = batteryAdcToVoltage(vbatLatestADC) >= (batteryFullVoltage - cells * VBATT_CELL_FULL_MAX_DIFF);
         batteryUseCapacityThresholds = feature(FEATURE_CURRENT_METER) && batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0) &&
                                            (batteryConfig()->capacity.warning > 0) && (batteryConfig()->capacity.critical > 0);
 
