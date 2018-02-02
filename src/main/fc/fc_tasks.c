@@ -82,9 +82,6 @@
 
 #include "uav_interconnect/uav_interconnect.h"
 
-/* Battery monitoring interval: VBAT, IBAT (in microseconds) */
-#define BATMONINTERVAL (6 * 3500)
-
 void taskHandleSerial(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -100,20 +97,18 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
-    static timeUs_t BatMonitoringLastServiced = 0;
-    timeUs_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, BatMonitoringLastServiced);
+    static timeUs_t batMonitoringLastServiced = 0;
+    timeUs_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
 
-    if (BatMonitoringTimeSinceLastServiced >= BATMONINTERVAL) {
-        if (feature(FEATURE_CURRENT_METER))
-            currentMeterUpdate(BatMonitoringTimeSinceLastServiced);
+    if (feature(FEATURE_CURRENT_METER))
+        currentMeterUpdate(BatMonitoringTimeSinceLastServiced);
 #ifdef USE_ADC
-        if (feature(FEATURE_VBAT))
-            batteryUpdate(BatMonitoringTimeSinceLastServiced);
-        if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))
-            powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
+    if (feature(FEATURE_VBAT))
+        batteryUpdate(BatMonitoringTimeSinceLastServiced);
+    if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))
+        powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
 #endif
-        BatMonitoringLastServiced = currentTimeUs;
-    }
+    batMonitoringLastServiced = currentTimeUs;
 }
 
 #ifdef USE_GPS
