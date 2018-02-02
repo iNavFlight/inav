@@ -56,8 +56,8 @@
 void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    batteryConfigMutable()->currentMeterOffset = CURRENTOFFSET;
-    batteryConfigMutable()->currentMeterScale = CURRENTSCALE;
+    batteryConfigMutable()->current.offset = CURRENTOFFSET;
+    batteryConfigMutable()->current.scale = CURRENTSCALE;
 
     if (hardwareMotorType == MOTOR_BRUSHED) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_BRUSHED;

@@ -58,6 +58,9 @@ tables:
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "UK"]
     enum: osd_unit_e
+  - name: osd_stats_energy_unit
+    values: ["MAH", "WH"]
+    enum: osd_stats_energy_unit_e
   - name: frsky_unit
     values: ["METRIC", "IMPERIAL"]
     enum: frskyUnit_e
@@ -81,6 +84,12 @@ tables:
   - name: nav_rth_allow_landing
     values: ["NEVER", "ALWAYS", "FS_ONLY"]
     enum: navRTHAllowLanding_e
+  - name: bat_capacity_unit
+    values: ["MAH", "MWH"]
+    enum: batCapacityUnit_e
+  - name: smartport_fuel_unit
+    values: ["PERCENT", "MAH", "MWH"]
+    enum: smartportFuelUnit_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -478,43 +487,52 @@ groups:
     type: batteryConfig_t
     headers: ["sensors/battery.h"]
     members:
-      - name: battery_capacity
-        field: batteryCapacity
-        min: 0
-        max: 20000
       - name: vbat_scale
-        field: vbatscale
+        field: voltage.scale
         condition: USE_ADC
         min: VBAT_SCALE_MIN
         max: VBAT_SCALE_MAX
       - name: vbat_max_cell_voltage
-        field: vbatmaxcellvoltage
+        field: voltage.cellMax
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
       - name: vbat_min_cell_voltage
-        field: vbatmincellvoltage
+        field: voltage.cellMin
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
       - name: vbat_warning_cell_voltage
-        field: vbatwarningcellvoltage
+        field: voltage.cellWarning
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
+      - name: battery_capacity
+        field: capacity.value
+        min: 0
+        max: 4294967295
+      - name: battery_capacity_warning
+        field: capacity.warning
+        min: 0
+        max: 4294967295
+      - name: battery_capacity_critical
+        field: capacity.critical
+        min: 0
+        max: 4294967295
+      - name: battery_capacity_unit
+        field: capacity.unit
+        table: bat_capacity_unit
+        type: uint8_t
       - name: current_meter_scale
-        field: currentMeterScale
+        field: current.scale
         min: -10000
         max: 10000
       - name: current_meter_offset
-        field: currentMeterOffset
+        field: current.offset
         min: -3300
         max: 3300
-      - name: multiwii_current_meter_output
-        field: multiwiiCurrentMeterOutput
-        type: bool
       - name: current_meter_type
-        field: currentMeterType
+        field: current.type
         table: current_sensor
         type: uint8_t
 
@@ -1306,10 +1324,11 @@ groups:
         field: smartportUartUnidirectional
         condition: USE_TELEMETRY_SMARTPORT
         type: bool
-      - name: smartport_fuel_percent
-        field: smartportFuelPercent
+      - name: smartport_fuel_unit
+        field: smartportFuelUnit
         condition: USE_TELEMETRY_SMARTPORT
-        type: bool
+        type: uint8_t
+        table: smartport_fuel_unit
       - name: ibus_telemetry_type
         field: ibusTelemetryType
         min: 0
@@ -1375,15 +1394,15 @@ groups:
         field: units
         table: osd_unit
         type: uint8_t
+      - name: osd_stats_energy_unit
+        field: stats_energy_unit
+        table: osd_stats_energy_unit
+        type: uint8_t
 
       - name: osd_rssi_alarm
         field: rssi_alarm
         min: 0
         max: 100
-      - name: osd_cap_alarm
-        field: cap_alarm
-        min: 0
-        max: 20000
       - name: osd_time_alarm
         field: time_alarm
         min: 0
@@ -1416,6 +1435,10 @@ groups:
         field: item_pos[OSD_MAIN_BATT_VOLTAGE]
         min: 0
         max: OSD_POS_MAX_CLI
+      - name: osd_main_voltage_decimals
+        field: main_voltage_decimals
+        min: 1
+        max: 2
       - name: osd_rssi_pos
         field: item_pos[OSD_RSSI_VALUE]
         min: 0
@@ -1454,6 +1477,18 @@ groups:
         max: OSD_POS_MAX_CLI
       - name: osd_mah_drawn_pos
         field: item_pos[OSD_MAH_DRAWN]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_wh_drawn_pos
+        field: item_pos[OSD_WH_DRAWN]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_bat_remaining_capacity_pos
+        field: item_pos[OSD_BATTERY_REMAINING_CAPACITY]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_bat_remaining_percent_pos
+        field: item_pos[OSD_BATTERY_REMAINING_PERCENT]
         min: 0
         max: OSD_POS_MAX_CLI
       - name: osd_craft_name_pos
@@ -1537,8 +1572,11 @@ groups:
       - name: osd_heading_graph_pos
         field: item_pos[OSD_HEADING_GRAPH]
         max: OSD_POS_MAX_CLI
-      - name: osd_efficiency_pos
-        field: item_pos[OSD_EFFICIENCY]
+      - name: osd_efficiency_mah_pos
+        field: item_pos[OSD_EFFICIENCY_MAH_PER_KM]
+        max: OSD_POS_MAX_CLI
+      - name: osd_efficiency_wh_pos
+        field: item_pos[OSD_EFFICIENCY_WH_PER_KM]
         max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG

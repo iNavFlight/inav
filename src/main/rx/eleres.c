@@ -294,7 +294,7 @@ static void telemetryRX(void)
         rfTxBuffer[0] = 0x54;
         rfTxBuffer[1] = localRssi;
         rfTxBuffer[2] = quality;
-        rfTxBuffer[3] = vbat;
+        rfTxBuffer[3] = vbat / 10;
         rfTxBuffer[4] = themp;
         rfTxBuffer[5] = curr & 0xff;
         rfTxBuffer[6] = pres>>8;

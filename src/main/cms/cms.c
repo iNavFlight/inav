@@ -1149,10 +1149,18 @@ void cmsUpdate(uint32_t currentTimeUs)
                     if (repeatBase == 0)
                         repeatBase = holdCount;
 
-                    repeatCount = repeatCount + (holdCount - repeatBase) / 5;
+                    if (holdCount < 100) {
+                        repeatCount = repeatCount + (holdCount - repeatBase) / 5;
 
-                    if (repeatCount > 5) {
-                        repeatCount= 5;
+                        if (repeatCount > 5) {
+                            repeatCount= 5;
+                        }
+                    } else {
+                        repeatCount = repeatCount + holdCount - repeatBase;
+
+                        if (repeatCount > 50) {
+                            repeatCount= 50;
+                        }
                     }
                 }
             }
