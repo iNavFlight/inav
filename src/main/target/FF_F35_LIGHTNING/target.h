@@ -17,6 +17,7 @@
 
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "FF35"
+#define TARGET_CONFIG
 
 #define USBD_PRODUCT_STRING     "FURIOUS F35-LIGHTNING"
 
@@ -24,7 +25,7 @@
 // #define LED1                    PC10 // Red LED
 // #define LED2                    PC10 // Green LED
 
-#define BEEPER                  PC3
+#define BEEPER                  PA1
 #define BEEPER_INVERTED
 
 // MPU interrupt
@@ -76,7 +77,7 @@
 #define UART3_TX_PIN            PB10
 
 #define USE_UART4
-#define UART4_RX_PIN            PA1
+#define UART4_RX_PIN            PC11
 #define UART4_TX_PIN            PA0
 
 #define USE_UART5
@@ -110,7 +111,7 @@
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1
-#define I2C1_SCL                PB8
+#define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
