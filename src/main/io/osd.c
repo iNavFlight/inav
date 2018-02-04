@@ -1670,6 +1670,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT3);
 #endif
 
+#ifdef USE_STATS
     displayWrite(osdDisplayPort, 3, ++y, "ODOMETER:");
     if (osdConfig()->units == OSD_UNIT_IMPERIAL)
         tfp_sprintf(string_buffer, "%dMI", statsConfig()->stats_total_dist / METERS_PER_MILE);
@@ -1678,6 +1679,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     displayWrite(osdDisplayPort, 13, y++,  string_buffer);
     tfp_sprintf(string_buffer, "%dH", statsConfig()->stats_total_time / 3600);
     displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+#endif
 
     displayResync(osdDisplayPort);
 
