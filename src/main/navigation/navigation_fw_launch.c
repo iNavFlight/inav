@@ -137,6 +137,30 @@ static void applyFixedWingLaunchIdleLogic(void)
     }
 }
 
+static inline bool isFixedWingLaunchMaxAltitudeReached(void)
+{
+    return (navConfig()->fw.launch_max_altitude > 0) && (getEstimatedActualPosition(Z) >= navConfig()->fw.launch_max_altitude);
+}
+static inline bool isLaunchModeMinTimeElapsed(float timeSinceLaunchMs)
+{
+    return timeSinceLaunchMs > navConfig()->fw.launch_min_time;
+}
+
+static inline bool isLaunchModeMaxTimeElapsed(float timeSinceLaunchMs)
+{
+    return timeSinceLaunchMs >= navConfig()->fw.launch_timeout;
+}
+
+static inline bool isLaunchModeFinishedByPilot()
+{
+    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
+}
+
+static inline bool isFixedWingLaunchCompleted(float timeSinceLaunchMs)
+{
+    return (isLaunchModeMaxTimeElapsed(timeSinceLaunchMs)) || ((isLaunchModeMinTimeElapsed(timeSinceLaunchMs)) && (isLaunchModeFinishedByPilot())) || isFixedWingLaunchMaxAltitudeReached();
+}
+
 void applyFixedWingLaunchController(timeUs_t currentTimeUs)
 {
     // Called at PID rate
@@ -148,15 +172,7 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
             // If launch detected we are in launch procedure - control airplane
             const float timeElapsedSinceLaunchMs = US2MS(currentTimeUs - launchState.launchStartedTime);
 
-            // If user moves the stick - finish the launch
-            if ((timeElapsedSinceLaunchMs > navConfig()->fw.launch_min_time) && ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband))) {
-                launchState.launchFinished = true;
-            }
-
-            // Abort launch after a pre-set time
-            if (timeElapsedSinceLaunchMs >= navConfig()->fw.launch_timeout) {
-                launchState.launchFinished = true;
-            }
+            launchState.launchFinished = isFixedWingLaunchCompleted(timeElapsedSinceLaunchMs);
 
             // Motor control enabled
             if (timeElapsedSinceLaunchMs >= navConfig()->fw.launch_motor_timer) {
