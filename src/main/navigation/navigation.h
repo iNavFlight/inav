@@ -23,6 +23,8 @@
 
 #include "io/gps.h"
 
+#include "config/feature.h"
+
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
 extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
@@ -314,6 +316,8 @@ bool navigationIsFlyingAutonomousMode(void);
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */
 bool navigationRTHAllowsLanding(void);
+
+bool isNavLaunchEnabled(void);
 
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
