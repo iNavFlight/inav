@@ -64,7 +64,6 @@
 #define RANGEFINDER_HCSR04_ECHO_PIN          PB1
 #define RANGEFINDER_HCSR04_TRIGGER_PIN       PB0
 
-#define USB_IO
 #define USB_CABLE_DETECTION
 
 #define USB_DETECT_PIN          PB5

@@ -59,8 +59,6 @@
 #define USE_MAG_MPU9250
 #define MAG_MPU9250_ALIGN        CW270_DEG_FLIP
 
-#define USB_IO
-
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2

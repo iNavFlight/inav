@@ -27,6 +27,7 @@ typedef struct {
     bool buffering;
 } vcpPort_t;
 
+void usbVcpInitHardware(void);
 serialPort_t *usbVcpOpen(void);
 struct serialPort_s;
 uint32_t usbVcpGetBaudRate(struct serialPort_s *instance);

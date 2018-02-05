@@ -75,8 +75,6 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 
-#define USB_IO
-
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2

@@ -79,7 +79,6 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 5
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN PC4
 

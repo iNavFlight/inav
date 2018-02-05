@@ -72,7 +72,6 @@
 #define USE_FLASH_M25P16
 #define USE_FLASH_TOOLS
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
 

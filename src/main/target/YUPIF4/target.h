@@ -83,7 +83,6 @@
 #define MAX7456_CS_PIN          PA14
 
 // Serial Ports
-#define USB_IO
 #define USE_VCP
 
 #define USE_UART1
