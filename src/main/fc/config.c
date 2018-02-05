@@ -256,25 +256,6 @@ void validateAndFixConfig(void)
         featureClear(FEATURE_SOFTSERIAL);
     }
 
-#ifdef USE_SOFTSPI
-    if (featureConfigured(FEATURE_SOFTSPI)) {
-        if (rxConfig()->receiverType == RX_TYPE_PWM || rxConfig()->receiverType == RX_TYPE_PPM) {
-            rxConfigMutable()->receiverType = RX_TYPE_NONE;
-        }
-
-        featureClear(FEATURE_SOFTSERIAL | FEATURE_VBAT);
-#if defined(STM32F10X)
-        featureClear(FEATURE_LED_STRIP);
-        // rssi adc needs the same ports
-        featureClear(FEATURE_RSSI_ADC);
-        // current meter needs the same ports
-        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
-            featureClear(FEATURE_CURRENT_METER);
-        }
-#endif
-    }
-#endif
-
 #ifdef USE_ASYNC_GYRO_PROCESSING
     /*
      * When async processing mode is enabled, gyroSync has to be forced to "ON"
