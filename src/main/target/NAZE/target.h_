@@ -140,8 +140,8 @@
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_CX10A
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_V202_1M
 
-#define USE_SOFTSPI
-#define USE_RX_SOFTSPI
+//#define USE_SOFTSPI
+//#define USE_RX_SOFTSPI
 
 // RC pinouts
 // RC1              GND

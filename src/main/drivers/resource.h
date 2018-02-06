@@ -46,7 +46,6 @@ typedef enum {
     OWNER_LED,
     OWNER_RX,
     OWNER_TX,
-    OWNER_SOFTSPI,
     OWNER_RX_SPI,
     OWNER_VTX,
     OWNER_SPI_PREINIT,

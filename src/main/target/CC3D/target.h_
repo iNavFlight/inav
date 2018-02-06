@@ -81,7 +81,7 @@
 #ifdef USE_RX_NRF24
 #define USE_RX_SPI
 #define DEFAULT_RX_TYPE         RX_TYPE_SPI
-#define DEFAULT_FEATURES        FEATURE_SOFTSPI
+//#define DEFAULT_FEATURES        FEATURE_SOFTSPI
 #define USE_RX_SYMA
 //#define USE_RX_V202
 #define USE_RX_CX10
@@ -91,8 +91,8 @@
 //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_V202_1M
 //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_H8_3D
 
-#define USE_SOFTSPI
-#define USE_RX_SOFTSPI
+//#define USE_SOFTSPI
+//#define USE_RX_SOFTSPI
 
 // RC pinouts
 // RC1              GND
