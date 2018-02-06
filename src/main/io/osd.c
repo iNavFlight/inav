@@ -84,6 +84,7 @@
 #endif
 
 #define VIDEO_BUFFER_CHARS_PAL    480
+#define IS_DISPLAY_PAL (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL)
 
 // Character coordinate and attributes
 #define OSD_POS(x,y)  (x | (y << 5))
@@ -96,6 +97,7 @@
 #define FEET_PER_MILE                           5280
 #define FEET_PER_KILOFEET                       1000 // Used for altitude
 #define METERS_PER_KILOMETER                    1000
+#define METERS_PER_MILE                         1609
 
 #define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
 
@@ -687,7 +689,7 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
 {
     *x = 14 - 1; // Offset for 1 char to the left
     *y = 6;
-    if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
+    if (IS_DISPLAY_PAL) {
         ++(*y);
     }
     int size = 3;
@@ -1086,7 +1088,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 rollAngle = -rollAngle;
             }
 
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
+            if (IS_DISPLAY_PAL) {
                 ++elemPosY;
             }
 
@@ -1150,7 +1152,7 @@ static bool osdDrawSingleElement(uint8_t item)
             elemPosX = 14;
             elemPosY = 6;
 
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
+            if (IS_DISPLAY_PAL) {
                 ++elemPosY;
             }
 
@@ -1658,13 +1660,25 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     displayClearScreen(osdDisplayPort);
 
+    uint8_t y = 4;
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
-    displayWrite(osdDisplayPort, 5, 6, string_buffer);
+    displayWrite(osdDisplayPort, 5, y++, string_buffer);
 #ifdef USE_CMS
-    displayWrite(osdDisplayPort, 7, 7,  CMS_STARTUP_HELP_TEXT1);
-    displayWrite(osdDisplayPort, 11, 8, CMS_STARTUP_HELP_TEXT2);
-    displayWrite(osdDisplayPort, 11, 9, CMS_STARTUP_HELP_TEXT3);
+    displayWrite(osdDisplayPort, 7, y++,  CMS_STARTUP_HELP_TEXT1);
+    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT2);
+    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT3);
+#endif
+
+#ifdef USE_STATS
+    displayWrite(osdDisplayPort, 3, ++y, "ODOMETER:");
+    if (osdConfig()->units == OSD_UNIT_IMPERIAL)
+        tfp_sprintf(string_buffer, "%dMI", statsConfig()->stats_total_dist / METERS_PER_MILE);
+    else
+        tfp_sprintf(string_buffer, "%dKM", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+    displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+    tfp_sprintf(string_buffer, "%dH", statsConfig()->stats_total_time / 3600);
+    displayWrite(osdDisplayPort, 13, y++,  string_buffer);
 #endif
 
     displayResync(osdDisplayPort);
@@ -1713,16 +1727,18 @@ static void osdUpdateStats(void)
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
+/* Attention: NTSC screen only has 12 fully visible lines - it is FULL now! */
 static void osdShowStats(void)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
-    uint8_t top = 2;
+    uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
     const uint8_t statValuesX = 20;
     char buff[10];
 
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
+    if (IS_DISPLAY_PAL)
+        displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
 
     if (STATE(GPS_FIX)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
@@ -1737,6 +1753,10 @@ static void osdShowStats(void)
         osdFormatDistanceStr(buff, getTotalTravelDistance());
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
     }
+
+    displayWrite(osdDisplayPort, statNameX, top, "MAX ALTITUDE     :");
+    osdFormatAltitudeStr(buff, stats.max_altitude);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
     osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
@@ -1784,10 +1804,6 @@ static void osdShowStats(void)
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
     }
-
-    displayWrite(osdDisplayPort, statNameX, top, "MAX ALTITUDE     :");
-    osdFormatAltitudeStr(buff, stats.max_altitude);
-    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
     uint32_t flySeconds = flyTime / 1000000;
