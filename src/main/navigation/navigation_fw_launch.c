@@ -60,7 +60,7 @@
 
 typedef struct FixedWingLaunchState_s {
     /* Launch detection */
-    timeUs_t launchDetectorPreviosUpdate;
+    timeUs_t launchDetectorPreviousUpdate;
     timeUs_t launchDetectionTimeAccum;
     bool launchDetected;
 
@@ -84,21 +84,21 @@ static void updateFixedWingLaunchDetector(timeUs_t currentTimeUs)
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.A[X] > 0);
 
     if (isBungeeLaunched || isSwingLaunched) {
-        launchState.launchDetectionTimeAccum += (currentTimeUs - launchState.launchDetectorPreviosUpdate);
-        launchState.launchDetectorPreviosUpdate = currentTimeUs;
+        launchState.launchDetectionTimeAccum += (currentTimeUs - launchState.launchDetectorPreviousUpdate);
+        launchState.launchDetectorPreviousUpdate = currentTimeUs;
         if (launchState.launchDetectionTimeAccum >= MS2US((uint32_t)navConfig()->fw.launch_time_thresh)) {
             launchState.launchDetected = true;
         }
     }
     else {
-        launchState.launchDetectorPreviosUpdate = currentTimeUs;
+        launchState.launchDetectorPreviousUpdate = currentTimeUs;
         launchState.launchDetectionTimeAccum = 0;
     }
 }
 
 void resetFixedWingLaunchController(timeUs_t currentTimeUs)
 {
-    launchState.launchDetectorPreviosUpdate = currentTimeUs;
+    launchState.launchDetectorPreviousUpdate = currentTimeUs;
     launchState.launchDetectionTimeAccum = 0;
     launchState.launchStartedTime = 0;
     launchState.launchDetected = false;
