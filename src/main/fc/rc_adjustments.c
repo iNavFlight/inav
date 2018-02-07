@@ -161,7 +161,7 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
     }, {
         .adjustmentFunction = ADJUSTMENT_NAV_FW_CRUISE_THR,
         .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 1 }}
+        .data = { .stepConfig = { .step = 10 }}
     }, {
         .adjustmentFunction = ADJUSTMENT_NAV_FW_PITCH2THR,
         .mode = ADJUSTMENT_MODE_STEP,
