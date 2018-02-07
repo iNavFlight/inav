@@ -39,6 +39,8 @@
 #include "fc/rc_adjustments.h"
 #include "fc/rc_curves.h"
 
+#include "navigation/navigation.h"
+
 #include "flight/pid.h"
 
 #include "io/beeper.h"
@@ -154,6 +156,14 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .data = { .stepConfig = { .step = 1 }}
     }, {
         .adjustmentFunction = ADJUSTMENT_MANUAL_YAW_RATE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_FW_CRUISE_THR,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_FW_PITCH2THR,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
@@ -358,6 +368,16 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             pidBankMutable()->pid[PID_YAW].D = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_YAW_D, newValue);
             schedulePidGainsUpdate();
+            break;
+        case ADJUSTMENT_NAV_FW_CRUISE_THR:
+            newValue = constrain((int16_t)navConfig()->fw.cruise_throttle + delta, 1000, 2000);
+            navConfigMutable()->fw.cruise_throttle = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_NAV_FW_CRUISE_THR, newValue);
+            break;
+        case ADJUSTMENT_NAV_FW_PITCH2THR:
+            newValue = constrain((int8_t)navConfig()->fw.pitch_to_throttle + delta, 0, 100);
+            navConfigMutable()->fw.pitch_to_throttle = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_NAV_FW_PITCH2THR, newValue);
             break;
         default:
             break;
