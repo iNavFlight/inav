@@ -1232,6 +1232,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
         return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_LAUNCH_MOTOR_DELAY
     }
 
+    //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle. 
+    if(feature(FEATURE_FW_LAUNCH)){
+        throttleStatus_e throttleStatus = calculateThrottleStatus();
+        if ((throttleStatus == THROTTLE_LOW) && ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband))){ 
+            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+        }
+    }
+
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -2345,7 +2353,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         // LAUNCH mode has priority over any other NAV mode
         if (STATE(FIXED_WING)) {
-            if (IS_RC_MODE_ACTIVE(BOXNAVLAUNCH)) {     // FIXME: Only available for fixed wing aircrafts now
+            if (isNavLaunchEnabled()) {     // FIXME: Only available for fixed wing aircrafts now
                 if (canActivateLaunchMode) {
                     canActivateLaunchMode = false;
                     return NAV_FSM_EVENT_SWITCH_TO_LAUNCH;
@@ -2404,8 +2412,8 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
     else {
         canActivateWaypoint = false;
 
-        // Launch mode can only be activated if BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
-        canActivateLaunchMode = IS_RC_MODE_ACTIVE(BOXNAVLAUNCH);
+        // Launch mode can be activated if feature FW_LAUNCH is enabled or BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
+        canActivateLaunchMode = isNavLaunchEnabled();
     }
 
     return NAV_FSM_EVENT_SWITCH_TO_IDLE;
@@ -2470,7 +2478,7 @@ int8_t navigationGetHeadingControlState(void)
 bool navigationBlockArming(void)
 {
     const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD);
-    const bool navLaunchComboModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP));
+    const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP));
     bool shouldBlockArming = false;
 
     if (!navConfig()->general.flags.extra_arming_safety)
@@ -2701,6 +2709,10 @@ bool navigationRTHAllowsLanding(void)
         (allow == NAV_RTH_ALLOW_LANDING_FS_ONLY && FLIGHT_MODE(FAILSAFE_MODE));
 }
 
+bool isNavLaunchEnabled(void)
+{
+    return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
+}
 #else // NAV
 
 #ifdef USE_GPS
