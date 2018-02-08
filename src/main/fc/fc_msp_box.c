@@ -187,7 +187,9 @@ void initActiveBoxIds(void)
 
     if (STATE(FIXED_WING)) {
         activeBoxIds[activeBoxIdCount++] = BOXMANUAL;
-        activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
+        if (!feature(FEATURE_FW_LAUNCH)) {
+           activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
+        }
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
 #if defined(AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;

@@ -160,7 +160,8 @@ static const char * const featureNames[] = {
     "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "CHANNEL_FORWARDING", "TRANSPONDER", "AIRMODE",
-    "SUPEREXPO", "VTX", "RX_SPI", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE", "OSD", NULL
+    "SUPEREXPO", "VTX", "RX_SPI", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE", "OSD", "FW_LAUNCH", NULL
+
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
