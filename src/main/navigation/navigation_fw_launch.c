@@ -151,14 +151,9 @@ static inline bool isLaunchModeMaxTimeElapsed(float timeSinceLaunchMs)
     return timeSinceLaunchMs >= navConfig()->fw.launch_timeout;
 }
 
-static inline bool isLaunchModeFinishedByPilot()
-{
-    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
-}
-
 static inline bool isFixedWingLaunchCompleted(float timeSinceLaunchMs)
 {
-    return (isLaunchModeMaxTimeElapsed(timeSinceLaunchMs)) || ((isLaunchModeMinTimeElapsed(timeSinceLaunchMs)) && (isLaunchModeFinishedByPilot())) || isFixedWingLaunchMaxAltitudeReached();
+    return (isLaunchModeMaxTimeElapsed(timeSinceLaunchMs)) || ((isLaunchModeMinTimeElapsed(timeSinceLaunchMs)) && (areSticksDeflectedMoreThanPosHoldDeadband())) || isFixedWingLaunchMaxAltitudeReached();
 }
 
 void applyFixedWingLaunchController(timeUs_t currentTimeUs)
