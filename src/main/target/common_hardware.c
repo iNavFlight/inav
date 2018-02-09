@@ -172,6 +172,13 @@
     BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE);
 #endif
 
+#if defined(USE_OLED_UG2864)
+    #if !defined(UG2864_I2C_BUS)
+        #define UG2864_I2C_BUS BUS_I2C1
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE);
+#endif
+
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
 
 

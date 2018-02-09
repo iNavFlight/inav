@@ -51,6 +51,7 @@ typedef enum {
     OWNER_SPI_PREINIT,
     OWNER_COMPASS,
     OWNER_AIRSPEED,
+    OWNER_OLED_DISPLAY,
     OWNER_TOTAL_COUNT
 } resourceOwner_e;
 
