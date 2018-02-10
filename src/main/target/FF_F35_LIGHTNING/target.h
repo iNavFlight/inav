@@ -131,7 +131,7 @@
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS       6
-#define USABLE_TIMER_CHANNEL_COUNT 6
+#define USABLE_TIMER_CHANNEL_COUNT 7
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -140,5 +140,5 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USED_TIMERS             ( TIM_N(3) | TIM_N(4) | TIM_N(8))
+#define USED_TIMERS             ( TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) )
 
