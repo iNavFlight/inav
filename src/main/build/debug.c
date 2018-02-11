@@ -21,6 +21,7 @@
 #include <ctype.h>
 
 #include "build/debug.h"
+#include "build/version.h"
 
 #include "drivers/serial.h"
 #include "drivers/time.h"
@@ -56,7 +57,14 @@ void debugTraceInit(void)
 
     tracePort = openSerialPort(portConfig->identifier, FUNCTION_DEBUG_TRACE, NULL, NULL, baudRates[BAUD_921600], MODE_TX, SERIAL_NOT_INVERTED);
 
-    DEBUG_TRACE_SYNC("Debug trace facilities initialized");
+    DEBUG_TRACE_SYNC("%s/%s %s %s / %s (%s)",
+        FC_FIRMWARE_NAME,
+        targetName,
+        FC_VERSION_STRING,
+        buildDate,
+        buildTime,
+        shortGitRevision
+    );
 }
 
 static void debugTracePutcp(void *p, char ch)

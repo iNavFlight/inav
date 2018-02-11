@@ -270,6 +270,7 @@ static void performBaroCalibrationCycle(void)
         if ((millis() - baroCalibrationTimeout) > 250) {
             baroGroundAltitude = pressureToAltitude(baroGroundPressure);
             baroCalibrationFinished = true;
+            DEBUG_TRACE_SYNC("Barometer calibration complete (%d)", lrintf(baroGroundAltitude));
         }
     }
     else {
