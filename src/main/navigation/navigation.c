@@ -1235,7 +1235,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle. 
     if(feature(FEATURE_FW_LAUNCH)){
         throttleStatus_e throttleStatus = calculateThrottleStatus();
-        if ((throttleStatus == THROTTLE_LOW) && ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband))){ 
+        if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())){ 
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
     }
