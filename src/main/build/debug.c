@@ -82,7 +82,8 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
         return;
 
     // Write timestamp
-    charCount = tfp_sprintf(buf, "[%10d] ", micros());
+    const timeMs_t timeMs = millis();
+    charCount = tfp_sprintf(buf, "[%6d.%03d] ", timeMs / 1000, timeMs % 1000);
     bufPtr = &buf[charCount];
 
     // Write message
