@@ -96,10 +96,12 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
     va_end(va);
 
     if (tracePort) {
-        // Send data via trace UART (if configured)
-        serialPrint(tracePort, buf);
-        if (synchronous) {
-            waitForSerialPortToFinishTransmitting(tracePort);
+        // Send data via trace UART (if configured & connected - a safeguard against zombie VCP)
+        if (serialIsConnected(tracePort)) {
+            serialPrint(tracePort, buf);
+            if (synchronous) {
+                waitForSerialPortToFinishTransmitting(tracePort);
+            }
         }
     }
     else {

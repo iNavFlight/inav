@@ -90,11 +90,17 @@ static uint8_t usbVcpRead(serialPort_t *instance)
     }
 }
 
+static bool usbVcpIsConnected(serialPort_t *instance)
+{
+    (void)instance;
+    return usbIsConnected() && usbIsConfigured();
+}
+
 static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
 {
     UNUSED(instance);
 
-    if (!(usbIsConnected() && usbIsConfigured())) {
+    if (!usbVcpIsConnected(instance)) {
         return;
     }
 
@@ -176,6 +182,7 @@ static const struct serialPortVTable usbVTable[] = {
         .serialSetBaudRate = usbVcpSetBaudRate,
         .isSerialTransmitBufferEmpty = isUsbVcpTransmitBufferEmpty,
         .setMode = usbVcpSetMode,
+        .isConnected = usbVcpIsConnected,
         .writeBuf = usbVcpWriteBuf,
         .beginWrite = usbVcpBeginWrite,
         .endWrite = usbVcpEndWrite
