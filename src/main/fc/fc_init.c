@@ -255,6 +255,12 @@ void init(void)
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
 
+#if defined(USE_DEBUG_TRACE)
+    // Debug trace uses serial output, so we only can init it after serial port is ready
+    // From this point on we can use DEBUG_TRACE() to produce real-time debugging information
+    debugTraceInit();
+#endif
+
 #ifdef USE_SERVOS
     servosInit();
     mixerUpdateStateFlags();    // This needs to be called early to allow pwm mapper to use information about FIXED_WING state
