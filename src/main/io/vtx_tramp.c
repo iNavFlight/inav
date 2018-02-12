@@ -53,9 +53,11 @@ const char * const trampPowerNames[] = {
 static const vtxVTable_t trampVTable; // forward
 static vtxDevice_t vtxTramp = {
     .vTable = &trampVTable,
-    .capability.bandCount = 5,
-    .capability.channelCount = 8,
-    .capability.powerCount = sizeof(trampPowerTable),
+    .capability = {
+        .bandCount = 5,
+        .channelCount = 8,
+        .powerCount = sizeof(trampPowerTable),
+    },
     .bandNames = (char **)vtx58BandNames,
     .channelNames = (char **)vtx58ChannelNames,
     .powerNames = (char **)trampPowerNames,
