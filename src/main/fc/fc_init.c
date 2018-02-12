@@ -180,6 +180,7 @@ void init(void)
 
     printfSupportInit();
 
+    // Initialize system and CPU clocks to their initial values
     systemInit();
 
     // initialize IO (needed for all IO operations)
@@ -197,9 +198,8 @@ void init(void)
     ensureEEPROMContainsValidData();
     readEEPROM();
 
-#ifdef USE_UNDERCLOCK
+    // Re-initialize system clock to their final values (if necessary)
     systemClockSetup(systemConfig()->cpuUnderclock);
-#endif
     
     i2cSetSpeed(systemConfig()->i2c_speed);
 

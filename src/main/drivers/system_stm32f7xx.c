@@ -146,10 +146,17 @@ bool isMPUSoftReset(void)
         return false;
 }
 
+void systemClockSetup(uint8_t cpuUnderclock)
+{
+    (void)cpuUnderclock;
+    // This is a stub
+}
+
 void systemInit(void)
 {
     checkForBootLoaderRequest();
 
+    //Called by SystemInit from startup_stm32f7xx.s
     //SystemClock_Config();
 
     // Configure NVIC preempt/priority groups
