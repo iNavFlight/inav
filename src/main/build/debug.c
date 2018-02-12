@@ -27,12 +27,17 @@
 #include "drivers/time.h"
 
 #include "common/printf.h"
+#include "common/utils.h"
 
 #include "config/feature.h"
 
 #include "io/serial.h"
 
 #include "fc/config.h"
+
+#include "msp/msp.h"
+#include "msp/msp_serial.h"
+#include "msp/msp_protocol.h"
 
 #ifdef DEBUG_SECTION_TIMES
 timeUs_t sectionTimes[2][4];
@@ -43,6 +48,7 @@ uint8_t debugMode;
 
 #if defined(USE_DEBUG_TRACE)
 static serialPort_t * tracePort = NULL;
+static mspPort_t * mspTracePort = NULL;
 
 void debugTraceInit(void)
 {
@@ -55,8 +61,35 @@ void debugTraceInit(void)
         return;
     }
 
-    tracePort = openSerialPort(portConfig->identifier, FUNCTION_DEBUG_TRACE, NULL, NULL, baudRates[BAUD_921600], MODE_TX, SERIAL_NOT_INVERTED);
+    bool tracePortIsSharedWithMSP = false;
 
+    if (determinePortSharing(portConfig, FUNCTION_DEBUG_TRACE) == PORTSHARING_SHARED) {
+        // We support sharing a DEBUG_TRACE port only with MSP
+        if (portConfig->functionMask != (FUNCTION_DEBUG_TRACE | FUNCTION_MSP)) {
+            return;
+        }
+        tracePortIsSharedWithMSP = true;
+    }
+
+    // If the port is shared with MSP, reuse the port
+    if (tracePortIsSharedWithMSP) {
+        const serialPort_t *traceAndMspPort = findSharedSerialPort(FUNCTION_DEBUG_TRACE, FUNCTION_MSP);
+        if (!traceAndMspPort) {
+            return;
+        }
+
+        mspTracePort = mspSerialPortFind(traceAndMspPort);
+        if (!mspTracePort) {
+            return;
+        }
+
+    } else {
+        tracePort = openSerialPort(portConfig->identifier, FUNCTION_DEBUG_TRACE, NULL, NULL, baudRates[BAUD_921600], MODE_TX, SERIAL_NOT_INVERTED);
+        if (!tracePort) {
+            return;
+        }
+    }
+    // Initialization done
     DEBUG_TRACE_SYNC("%s/%s %s %s / %s (%s)",
         FC_FIRMWARE_NAME,
         targetName,
@@ -77,6 +110,8 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
     char buf[128];
     char *bufPtr;
     int charCount;
+
+    STATIC_ASSERT(MSP_PORT_OUTBUF_SIZE >= sizeof(buf), MSP_PORT_OUTBUF_SIZE_not_big_enough_for_debug_trace);
 
     if (!feature(FEATURE_DEBUG_TRACE))
         return;
@@ -103,10 +138,8 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
                 waitForSerialPortToFinishTransmitting(tracePort);
             }
         }
-    }
-    else {
-        // Send data via MSPV2_TRACE message
-        // TODO
+    } else if (mspTracePort) {
+        mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, charCount, mspTracePort, MSP_V2_NATIVE);
     }
 }
 #endif

@@ -261,6 +261,10 @@ void init(void)
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
 
+    // Initialize MSP here so the DEBUG_TRACE can share a port with MSP
+    mspFcInit();
+    mspSerialInit();
+
 #if defined(USE_DEBUG_TRACE)
     // Debug trace uses serial output, so we only can init it after serial port is ready
     // From this point on we can use DEBUG_TRACE() to produce real-time debugging information
@@ -555,9 +559,6 @@ void init(void)
 #endif
 
     imuInit();
-
-    mspFcInit();
-    mspSerialInit();
 
 #ifdef USE_CLI
     cliInit(serialConfig());

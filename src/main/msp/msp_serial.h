@@ -106,5 +106,7 @@ void mspSerialInit(void);
 void mspSerialProcess(mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn);
 void mspSerialAllocatePorts(void);
 void mspSerialReleasePortIfAllocated(struct serialPort_s *serialPort);
+int mspSerialPushPort(uint16_t cmd, const uint8_t *data, int datalen, mspPort_t *mspPort, mspVersion_e version);
 int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen);
 uint32_t mspSerialTxBytesFree(void);
+mspPort_t * mspSerialPortFind(const struct serialPort_s *serialPort);
