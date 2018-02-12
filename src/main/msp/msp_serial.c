@@ -499,7 +499,7 @@ void mspSerialInit(void)
 
 int mspSerialPushPort(uint16_t cmd, const uint8_t *data, int datalen, mspPort_t *mspPort, mspVersion_e version)
 {
-    static uint8_t pushBuf[MSP_PORT_PUSH_BUFFER_SIZE];
+    static uint8_t pushBuf[MSP_PORT_OUTBUF_SIZE];
 
     mspPacket_t push = {
         .buf = { .ptr = pushBuf, .end = ARRAYEND(pushBuf), },

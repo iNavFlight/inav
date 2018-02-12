@@ -27,7 +27,7 @@
 #include "drivers/time.h"
 
 #include "common/printf.h"
-#include "common/maths.h"
+#include "common/utils.h"
 
 #include "config/feature.h"
 
@@ -37,7 +37,7 @@
 
 #include "msp/msp.h"
 #include "msp/msp_serial.h"
-#include "msp/msp_protocol_v2_common.h"
+#include "msp/msp_protocol.h"
 
 #ifdef DEBUG_SECTION_TIMES
 timeUs_t sectionTimes[2][4];
@@ -111,6 +111,8 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
     char *bufPtr;
     int charCount;
 
+    STATIC_ASSERT(MSP_PORT_OUTBUF_SIZE >= sizeof(buf), MSP_PORT_OUTBUF_SIZE_not_big_enough_for_debug_trace);
+
     if (!feature(FEATURE_DEBUG_TRACE))
         return;
 
@@ -137,19 +139,7 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
             }
         }
     } else if (mspTracePort) {
-        // We might need to split the message into several chunks if it's
-        // longer than MSP_PORT_PUSH_BUFFER_SIZE
-        int sent = 0;
-        while (sent < charCount) {
-            int count = MIN(charCount - sent, MSP_PORT_PUSH_BUFFER_SIZE);
-            mspSerialPushPort(MSP2_COMMON_DEBUG_OUTPUT, (uint8_t*)(buf + sent), count, mspTracePort, MSP_V2_NATIVE);
-            sent += count;
-        }
-        // Finally, send a '\0' to indicate the message is complete. This should
-        // be easy to detect in JS and it allows C clients to reuse the buffer since
-        // it's now zero terminated.
-        char end = '\0';
-        mspSerialPushPort(MSP2_COMMON_DEBUG_OUTPUT, (uint8_t*)&end, sizeof(end), mspTracePort, MSP_V2_NATIVE);
+        mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, charCount, mspTracePort, MSP_V2_NATIVE);
     }
 }
 #endif

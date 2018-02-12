@@ -22,5 +22,3 @@
 
 #define MSP2_COMMON_MOTOR_MIXER     0x1005
 #define MSP2_COMMON_SET_MOTOR_MIXER 0x1006
-
-#define MSP2_COMMON_DEBUG_OUTPUT    0x1007 //out message    Prints debug data. Receiver must be ready to accept responses without requests

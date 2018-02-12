@@ -67,7 +67,6 @@ typedef enum {
 #else
 #define MSP_PORT_OUTBUF_SIZE 512
 #endif
-#define MSP_PORT_PUSH_BUFFER_SIZE 30 // Used by mspSerialPush* functions
 
 typedef struct __attribute__((packed)) {
     uint8_t size;
