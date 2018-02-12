@@ -261,8 +261,9 @@ void init(void)
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
 
-    // Initialize MSP here so the DEBUG_TRACE can share a port with MSP
-    mspFcInit();
+    // Initialize MSP serial ports here so DEBUG_TRACE can share a port with MSP.
+    // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
+    // to run after the sensors have been detected.
     mspSerialInit();
 
 #if defined(USE_DEBUG_TRACE)
@@ -559,6 +560,10 @@ void init(void)
 #endif
 
     imuInit();
+
+    // Sensors have now been detected, mspFcInit() can now be called
+    // to set the boxes up
+     mspFcInit();
 
 #ifdef USE_CLI
     cliInit(serialConfig());
