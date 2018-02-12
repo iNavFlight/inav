@@ -388,6 +388,7 @@ const struct serialPortVTable uartVTable[] = {
         .serialSetBaudRate = uartSetBaudRate,
         .isSerialTransmitBufferEmpty = isUartTransmitBufferEmpty,
         .setMode = uartSetMode,
+        .isConnected = NULL,
         .writeBuf = NULL,
         .beginWrite = NULL,
         .endWrite = NULL,

@@ -514,8 +514,8 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
             continue;
         }
 
-        // XXX Kludge!!! Avoid zombie VCP port (avoid VCP entirely for now)
-        if (mspPort->port->identifier == SERIAL_PORT_USB_VCP) {
+        // Avoid unconnected ports (only VCP for now)
+        if (!serialIsConnected(mspPort->port)) {
             continue;
         }
 
