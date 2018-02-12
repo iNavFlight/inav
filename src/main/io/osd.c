@@ -541,6 +541,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
 	case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
             return OSD_MESSAGE_STR("ROLLPITCH NOT CENTERED");
+        case ARMING_DISABLED_SERVO_AUTOTRIM:
+            return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
