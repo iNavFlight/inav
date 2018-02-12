@@ -256,7 +256,7 @@ serialPort_t *findNextSharedSerialPort(uint16_t functionMask, serialPortFunction
 }
 
 #define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
-#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK)
+#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_DEBUG_TRACE)
 
 bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 {
@@ -264,7 +264,7 @@ bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
     /*
      * rules:
      * - 1 MSP port minimum, max MSP ports is defined and must be adhered to.
-     * - MSP is allowed to be shared with EITHER any telemetry OR blackbox.
+     * - MSP is allowed to be shared with EITHER any telemetry OR blackbox OR debug trace.
      * - serial RX and FrSky / LTM telemetry can be shared
      * - No other sharing combinations are valid.
      */
