@@ -60,8 +60,6 @@
 #define USE_ACC_MPU9250
 #define ACC_MPU9250_ALIGN       CW270_DEG
 
-#define USB_IO
-
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2

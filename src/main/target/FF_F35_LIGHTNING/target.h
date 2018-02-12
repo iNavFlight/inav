@@ -58,7 +58,6 @@
 #define MAX7456_CS_PIN          PA4
 #define MAX7456_SPI_BUS         BUS_SPI1
 
-#define USB_IO
 #define USE_VCP
 // #define VBUS_SENSING_PIN        PA9
 

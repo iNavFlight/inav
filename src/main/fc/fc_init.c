@@ -65,6 +65,7 @@
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
 #include "drivers/serial_uart.h"
+#include "drivers/serial_usb_vcp.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
@@ -239,6 +240,11 @@ void init(void)
                 break;
         }
     }
+#endif
+
+#ifdef USE_VCP
+    // Early initialize USB hardware
+    usbVcpInitHardware();
 #endif
 
     delay(500);

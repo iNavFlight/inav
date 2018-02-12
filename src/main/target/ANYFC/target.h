@@ -65,7 +65,6 @@
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
 

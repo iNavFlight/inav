@@ -64,8 +64,6 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#define USB_IO
-
 #define USE_VCP
 
 #define USE_UART1

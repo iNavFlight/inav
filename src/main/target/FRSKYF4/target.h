@@ -58,7 +58,6 @@
 #define SDCARD_SPI_INSTANCE             SPI2
 #define SDCARD_SPI_CS_PIN               SPI2_NSS_PIN
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN PC5
 

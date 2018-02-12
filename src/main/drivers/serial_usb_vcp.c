@@ -20,6 +20,8 @@
 
 #include "platform.h"
 
+#ifdef USE_VCP
+
 #include "build/build_config.h"
 
 #include "common/utils.h"
@@ -189,10 +191,8 @@ static const struct serialPortVTable usbVTable[] = {
     }
 };
 
-serialPort_t *usbVcpOpen(void)
+void usbVcpInitHardware(void)
 {
-    vcpPort_t *s;
-
 #if defined(STM32F4)
     usbGenerateDisconnectPulse();
 
@@ -221,6 +221,11 @@ serialPort_t *usbVcpOpen(void)
     USB_Interrupts_Config();
     USB_Init();
 #endif
+}
+
+serialPort_t *usbVcpOpen(void)
+{
+    vcpPort_t *s;
 
     s = &vcpPort;
     s->port.vTable = usbVTable;
@@ -234,3 +239,5 @@ uint32_t usbVcpGetBaudRate(serialPort_t *instance)
 
     return CDC_BaudRate();
 }
+
+#endif

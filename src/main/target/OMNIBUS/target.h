@@ -70,7 +70,6 @@
 #define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS                  BUS_I2C1
 
-#define USB_IO
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5
 

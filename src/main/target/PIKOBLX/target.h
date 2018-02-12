@@ -44,7 +44,6 @@
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
 
-#define USB_IO
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2

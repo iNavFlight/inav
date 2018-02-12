@@ -49,7 +49,6 @@
 //#define REMAP_TIM16_DMA // XXX
 //#define REMAP_TIM17_DMA // XXX
 
-#define USB_IO
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2

@@ -92,7 +92,6 @@
 #define RX_MISO_PIN                 PB14
 #define RX_SPI_INSTANCE             SPI2
 #define RX_IRQ_PIN                  PB3
-#define USB_IO
 
 #define USE_VCP
 #define USE_UART1
