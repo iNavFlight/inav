@@ -2580,13 +2580,14 @@ static void printConfig(const char *cmdline, bool doDiff)
         printMotorMix(dumpMask, customMotorMixer_CopyArray, customMotorMixer(0));
 
 #ifdef USE_SERVOS
-        cliPrintHashLine("servo");
-        printServo(dumpMask, servoParams_CopyArray, servoParams(0));
-
-        cliPrintHashLine("servo mix");
         // print custom servo mixer if exists
+        cliPrintHashLine("servo mix");
         cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
+
+        // print servo parameters
+        cliPrintHashLine("servo");
+        printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 #endif
 #endif
 
