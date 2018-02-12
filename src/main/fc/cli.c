@@ -229,11 +229,12 @@ static void cliPutp(void *p, char ch)
 typedef enum {
     DUMP_MASTER = (1 << 0),
     DUMP_PROFILE = (1 << 1),
-    DUMP_RATES = (1 << 2),
-    DUMP_ALL = (1 << 3),
-    DO_DIFF = (1 << 4),
-    SHOW_DEFAULTS = (1 << 5),
-    HIDE_UNUSED = (1 << 6)
+    DUMP_BATTERY_PROFILE = (1 << 2),
+    DUMP_RATES = (1 << 3),
+    DUMP_ALL = (1 << 4),
+    DO_DIFF = (1 << 5),
+    SHOW_DEFAULTS = (1 << 6),
+    HIDE_UNUSED = (1 << 7)
 } dumpFlags_e;
 
 static void cliPrintfva(const char *format, va_list va)
@@ -2203,6 +2204,33 @@ static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
     dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
 }
 
+static void cliBatteryProfile(char *cmdline)
+{
+    // CLI profile index is 1-based
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("battery_profile %d", getConfigBatteryProfile() + 1);
+        return;
+    } else {
+        const int i = fastA2I(cmdline) - 1;
+        if (i >= 0 && i < MAX_PROFILE_COUNT) {
+            setConfigBatteryProfileAndWriteEEPROM(i);
+            cliBatteryProfile("");
+        }
+    }
+}
+
+static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
+{
+    if (profileIndex >= MAX_BATTERY_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    setConfigBatteryProfile(profileIndex);
+    cliPrintHashLine("battery_profile");
+    cliPrintLinef("battery_profile %d\r\n", getConfigBatteryProfile() + 1);
+    dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
+}
+
 static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2583,6 +2611,8 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = DUMP_MASTER; // only
     } else if ((options = checkCommand(cmdline, "profile"))) {
         dumpMask = DUMP_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "battery_profile"))) {
+        dumpMask = DUMP_BATTERY_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -2594,11 +2624,13 @@ static void printConfig(const char *cmdline, bool doDiff)
     }
 
     const int currentProfileIndexSave = getConfigProfile();
+    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
     setConfigProfile(currentProfileIndexSave);
+    setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -2681,22 +2713,34 @@ static void printConfig(const char *cmdline, bool doDiff)
         if (dumpMask & DUMP_ALL) {
             // dump all profiles
             const int currentProfileIndexSave = getConfigProfile();
+            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
                 cliDumpProfile(ii, dumpMask);
             }
+            for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
+                cliDumpBatteryProfile(ii, dumpMask);
+            }
             setConfigProfile(currentProfileIndexSave);
+            setConfigBatteryProfile(currentBatteryProfileIndexSave);
+
             cliPrintHashLine("restore original profile selection");
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
+            cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
             cliPrintHashLine("save configuration\r\nsave");
         } else {
-            // dump just the current profile
+            // dump just the current profiles
             cliDumpProfile(getConfigProfile(), dumpMask);
+            cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
         }
     }
 
     if (dumpMask & DUMP_PROFILE) {
         cliDumpProfile(getConfigProfile(), dumpMask);
+    }
+
+    if (dumpMask & DUMP_BATTERY_PROFILE) {
+        cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
     }
     // restore configs from copies
     restoreConfigs();
@@ -2760,9 +2804,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("defaults", "reset to defaults and reboot", NULL, cliDefaults),
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
-        "[master|profile|rates|all] {showdefaults}", cliDiff),
+        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDiff),
     CLI_COMMAND_DEF("dump", "dump configuration",
-        "[master|profile|rates|all] {showdefaults}", cliDump),
+        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
@@ -2796,6 +2840,8 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("profile", "change profile",
         "[<index>]", cliProfile),
+    CLI_COMMAND_DEF("battery_profile", "change battery profile",
+        "[<index>]", cliBatteryProfile),
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
 #endif

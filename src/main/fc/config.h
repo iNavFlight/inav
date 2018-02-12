@@ -81,6 +81,7 @@ typedef struct systemConfig_s {
     uint16_t accTaskFrequency;
     uint16_t attitudeTaskFrequency;
     uint8_t current_profile_index;
+    uint8_t current_battery_profile_index;
     uint8_t asyncMode;
     uint8_t debug_mode;
     uint8_t i2c_speed;
@@ -133,6 +134,10 @@ void validateAndFixConfig(void);
 uint8_t getConfigProfile(void);
 bool setConfigProfile(uint8_t profileIndex);
 void setConfigProfileAndWriteEEPROM(uint8_t profileIndex);
+
+uint8_t getConfigBatteryProfile(void);
+bool setConfigBatteryProfile(uint8_t profileIndex);
+void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

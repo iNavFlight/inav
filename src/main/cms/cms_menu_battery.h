@@ -15,16 +15,6 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
+#pragma once
 
-#include <platform.h>
-
-#ifdef TARGET_CONFIG
-#include "sensors/battery.h"
-
-void targetConfiguration(void)
-{
-    batteryMetersConfigMutable()->current.scale = 20;
-}
-#endif
+extern CMS_Menu cmsx_menuBattery;
