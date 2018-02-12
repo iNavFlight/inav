@@ -79,7 +79,7 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
 
     .voltage = {
         .scale = VBAT_SCALE_DEFAULT,
-        .cellMax = 421,
+        .cellMax = 430,
         .cellMin = 330,
         .cellWarning = 350
     },
