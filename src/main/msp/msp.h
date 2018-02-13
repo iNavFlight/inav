@@ -44,6 +44,10 @@ typedef struct mspPacket_s {
     int16_t result;
 } mspPacket_t;
 
+typedef enum {
+    MSP_FLAG_DONT_REPLY           = (1 << 0),
+} mspFlags_e;
+
 struct serialPort_s;
 typedef void (*mspPostProcessFnPtr)(struct serialPort_s *port); // msp post process function, used for gracefully handling reboots, etc.
 typedef mspResult_e (*mspProcessCommandFnPtr)(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn);
