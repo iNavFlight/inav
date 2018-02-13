@@ -153,7 +153,7 @@ The general method is:
 
 Given (a) the reported mAh draw and the (b) mAh charging data, calculate a new `current_meter_scale` value as follows:
 ```
-current_meter_scale = (charging_data_mAh / reported_draw_mAh) * old_current_meter_scale
+current_meter_scale = (reported_draw_mAh / charging_data_mAh) * old_current_meter_scale
 ```
 For example, assuming:
 + A INAV reported current draw of 1260 mAh
@@ -162,7 +162,7 @@ For example, assuming:
 
 Then the updated `current_meter_scale` is:
 ```
-current_meter_scale = (charging_data_mAh / reported_draw_mAh) * old_current_meter_scale
-                    = (1158 / 1260) * 400
-                    = 368
+current_meter_scale = (reported_draw_mAh / charging_data_mAh) * old_current_meter_scale
+                    = (1260 / 1158) * 400
+                    = 435
 ```
