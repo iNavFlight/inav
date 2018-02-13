@@ -41,13 +41,17 @@
  * FrSky X8R
  * time between frames: 6ms.
  * time to send frame: 3ms.
-*
+ *
  * Futaba R6208SB/R6303SB
  * time between frames: 11ms.
  * time to send frame: 3ms.
+ *
+ * eLeReS
+ * frame starts every: 14ms
+ * time to send frame: 3-6ms (sent with soft-serial, possible gaps between bytes)
  */
 
-#define SBUS_TIME_NEEDED_PER_FRAME 3000
+#define SBUS_TIME_NEEDED_PER_FRAME 6000
 
 #ifndef CJMCU
 //#define DEBUG_SBUS_PACKETS
@@ -119,8 +123,10 @@ typedef union {
 static sbusFrame_t sbusFrame;
 
 // Receive ISR callback
-static void sbusDataReceive(uint16_t c)
+static void sbusDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     static uint8_t sbusFramePosition = 0;
     static uint32_t sbusFrameStartAt = 0;
     timeUs_t now = micros();
@@ -240,7 +246,7 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     bool portShared = telemetryCheckRxPortShared(portConfig);
 #else
     bool portShared = false;
@@ -249,12 +255,13 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     serialPort_t *sBusPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         sbusDataReceive,
+        NULL,
         SBUS_BAUDRATE,
         portShared ? MODE_RXTX : MODE_RX,
         SBUS_PORT_OPTIONS | (rxConfig->sbus_inversion ? SERIAL_INVERTED : 0) | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
         );
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (portShared) {
         telemetrySharedPort = sBusPort;
     }

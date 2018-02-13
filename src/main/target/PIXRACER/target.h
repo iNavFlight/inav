@@ -22,7 +22,12 @@
 
 #define USBD_PRODUCT_STRING     "PixRacer"
 
-#define USE_HARDWARE_PREBOOT_SETUP      // PixRacer target requires some hardware to be set up before booting and detecting sensors
+// Use target-specific hardware descriptors (don't use common_hardware.h)
+#define USE_TARGET_HARDWARE_DESCRIPTORS
+
+// PixRacer target requires some hardware to be set up before booting and detecting sensors
+#define USE_HARDWARE_PREBOOT_SETUP
+
 #define USE_EXTI
 
 #define LED0                    PB11    //red
@@ -35,38 +40,42 @@
 #define INVERTER_PIN_UART       PC13
 
 #define USE_GYRO_MPU6500
-#define USE_GYRO_SPI_MPU6500
-
 #define USE_ACC_MPU6500
-#define USE_ACC_SPI_MPU6500
+#define USE_GYRO_MPU9250
+#define USE_ACC_MPU9250
 
 #define GYRO_MPU6500_ALIGN      CW180_DEG_FLIP
 #define ACC_MPU6500_ALIGN       CW180_DEG_FLIP
+#define GYRO_MPU9250_ALIGN      CW180_DEG_FLIP
+#define ACC_MPU9250_ALIGN       CW180_DEG_FLIP
 
 #define USE_DUAL_GYRO
+
+// ICM20608
 #define ICM20608_CS_PIN         PC15
-#define ICM20608_SPI_INSTANCE   SPI1
-#define GYRO_0_CS_PIN           ICM20608_CS_PIN
-#define GYRO_0_INT_EXTI         PC14
+#define ICM20608_EXTI_PIN       PC14
+#define ICM20608_SPI_BUS        BUS_SPI1
+
 // MPU9250 gyro/acc/mag
-#define USE_MAG_AK8963
-#define MPU6500_CS_PIN          PC2
-#define GYRO_1_CS_PIN           MPU6500_CS_PIN
-#define MPU6500_SPI_INSTANCE    SPI1
-#define GYRO_1_INT_EXTI         PD15
+#define MPU9250_CS_PIN          PC2
+#define MPU9250_EXTI_PIN        PD15
+#define MPU9250_SPI_BUS         BUS_SPI1
 
-#define ACC
-#define GYRO
+#define USE_ACC
+#define USE_GYRO
 
-#define MAG
-#define USE_MAG_QMC5883
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
+#define USE_MAG_MPU9250
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_MS5611
-#define USE_BARO_SPI_MS5611
-#define MS56XX_CS_PIN               PD7
-#define MS56XX_SPI_INSTANCE         SPI2
+#define MS5611_CS_PIN           PD7
+#define MS5611_SPI_BUS          BUS_SPI2
 
 /*
 #define USE_SDCARD
@@ -87,42 +96,39 @@
 #define ENSURE_MPU_DATA_READY_IS_LOW
 #define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN PA9
 #define VBUS_SENSING_ENABLED
 
-#define USE_UART1
+#define USE_UART1                       // ESP8266
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
 
-#define USE_UART2
+#define USE_UART2                       // TELEM1
 #define UART2_RX_PIN            PD6
 #define UART2_TX_PIN            PD5
 
-#define USE_UART3
+#define USE_UART3                       // TELEM2
 #define UART3_RX_PIN            PD9
 #define UART3_TX_PIN            PD8
 
-#define USE_UART4
+#define USE_UART4                       // GPS
 #define UART4_RX_PIN            PA1
 #define UART4_TX_PIN            PA0
 
-#define USE_UART6
-#define UART6_RX_PIN            PC7     // RX is used only (SerialRX)
+#define USE_UART6                       // SerialRX (RX line is used only)
+#define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-/*
-#define USE_UART7
+#define USE_UART7                       // DEBUG connector
 #define UART7_RX_PIN            PE7
 #define UART7_TX_PIN            PE8
 
-#define USE_UART8
+#define USE_UART8                       // FRS
 #define UART8_RX_PIN            PE0
 #define UART8_TX_PIN            PE1
-*/
 
-#define SERIAL_PORT_COUNT       6 //VCP, UART1, UART2, UART3, UART4
+#define SERIAL_PORT_COUNT       8
 
 #define USE_SPI
 
@@ -138,7 +144,7 @@
 #define SPI2_MOSI_PIN           PB15
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 #define USE_I2C_PULLUP
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9

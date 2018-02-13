@@ -22,6 +22,8 @@
 
 #include "build/build_config.h"
 
+#include "common/utils.h"
+
 #include "pitotmeter.h"
 #include "pitotmeter_fake.h"
 
@@ -29,16 +31,19 @@
 static int32_t fakePressure;
 static int32_t fakeTemperature;
 
-static void fakePitotStart(void)
+static void fakePitotStart(pitotDev_t *pitot)
 {
+    UNUSED(pitot);
 }
 
-static void fakePitotRead(void)
+static void fakePitotRead(pitotDev_t *pitot)
 {
+    UNUSED(pitot);
 }
 
-static void fakePitotCalculate(float *pressure, float *temperature)
+static void fakePitotCalculate(pitotDev_t *pitot, float *pressure, float *temperature)
 {
+    UNUSED(pitot);
     if (pressure)
         *pressure = fakePressure;    // Pa
     if (temperature)

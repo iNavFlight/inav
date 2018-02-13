@@ -1,6 +1,6 @@
 
 #pragma once
-#ifdef STATS
+#ifdef USE_STATS
 
 typedef struct statsConfig_s {
     uint32_t stats_total_time; // [s]

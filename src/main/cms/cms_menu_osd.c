@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(OSD) && defined(CMS)
+#if defined(USE_OSD) && defined(USE_CMS)
 
 #include "common/utils.h"
 
@@ -38,7 +38,6 @@ OSD_Entry cmsx_menuAlarmsEntries[] =
     {"--- ALARMS ---", OME_Label, NULL, NULL, 0},
 
     OSD_SETTING_ENTRY_STEP("RSSI", SETTING_OSD_RSSI_ALARM, 5),
-    OSD_SETTING_ENTRY_STEP("MAIN BAT", SETTING_OSD_CAP_ALARM, 50),
     OSD_SETTING_ENTRY("FLY TIME", SETTING_OSD_TIME_ALARM),
     OSD_SETTING_ENTRY("MAX ALT", SETTING_OSD_ALT_ALARM),
 
@@ -47,8 +46,10 @@ OSD_Entry cmsx_menuAlarmsEntries[] =
 };
 
 CMS_Menu cmsx_menuAlarms = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUALARMS",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -88,7 +89,7 @@ OSD_Entry menuOsdActiveElemsEntries[] =
 #endif // VTX
     {"CURRENT (A)", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_CURRENT_DRAW], 0},
     {"USED MAH", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_MAH_DRAWN], 0},
-#ifdef GPS
+#ifdef USE_GPS
     {"HOME DIR.", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_HOME_DIR], 0},
     {"HOME DIST.", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_HOME_DIST], 0},
     {"GPS SPEED", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_GPS_SPEED], 0},
@@ -97,7 +98,7 @@ OSD_Entry menuOsdActiveElemsEntries[] =
     {"GPS LON.", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_GPS_LON], 0},
     {"HEADING", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_HEADING], 0},
 #endif // GPS
-#if defined(BARO) || defined(GPS)
+#if defined(USE_BARO) || defined(USE_GPS)
     {"VARIO", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_VARIO], 0},
     {"VARIO NUM", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_VARIO_NUM], 0},
 #endif // defined
@@ -108,8 +109,10 @@ OSD_Entry menuOsdActiveElemsEntries[] =
 };
 
 CMS_Menu menuOsdActiveElems = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUOSDACT",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = menuOsdActiveElemsOnEnter,
     .onExit = menuOsdActiveElemsOnExit,
     .onGlobalExit = NULL,
@@ -125,8 +128,10 @@ OSD_Entry cmsx_menuOsdLayoutEntries[] =
 };
 
 CMS_Menu cmsx_menuOsdLayout = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENULAYOUT",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

@@ -145,7 +145,7 @@ void autotuneUpdateState(void)
 
 static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, int32_t newValue)
 {
-#ifndef BLACKBOX
+#ifndef USE_BLACKBOX
     UNUSED(adjustmentFunction);
     UNUSED(newValue);
 #else
@@ -165,7 +165,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 {
     const timeMs_t currentTimeMs = millis();
     const float absDesiredRateDps = fabsf(desiredRateDps);
-    float maxDesiredRate = currentControlRateProfile->rates[axis] * 10.0f;
+    float maxDesiredRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     pidAutotuneState_e newState;
 
     // Use different max desired rate in ANGLE for pitch and roll

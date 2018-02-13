@@ -31,32 +31,30 @@
 #define BEEPER_PWM_FREQUENCY    2700
 
 #define MPU6500_CS_PIN          PC0
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
 
 #define USE_EXTI
 #define MPU_INT_EXTI            PB0
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6500
-#define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN CW0_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6500
-#define USE_ACC_SPI_MPU6500
 #define ACC_MPU6500_ALIGN CW0_DEG
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5607
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
-#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
-#define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
-
-#define USB_IO
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #define USE_VCP
 #define USE_UART1
@@ -91,12 +89,12 @@
 #define SPI2_MOSI_PIN           PB15
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_2)
 
+#define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
+#define USE_I2C_DEVICE_2
 #define I2C2_SCL                PA9
 #define I2C2_SDA                PA10
 
@@ -109,7 +107,7 @@
 #define VBAT_ADC_CHANNEL         ADC_CHN_1
 #define RSSI_ADC_CHANNEL         ADC_CHN_2
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL2
 #define WS2811_PIN                      PA8
 #define WS2811_DMA_STREAM               DMA1_Channel2
@@ -120,10 +118,10 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_CS_PIN           PC1
-#define M25P16_SPI_INSTANCE     SPI2
+#define M25P16_SPI_BUS          BUS_SPI2
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PIN                PA3
 

@@ -37,27 +37,32 @@
 // *************** ICM20608 *****************************
 #define USE_SPI_DEVICE_1
 #define MPU6500_CS_PIN          PA4
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
+#define MPU9250_CS_PIN          PA4
+#define MPU9250_SPI_BUS         BUS_SPI1
 
-#define ACC
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC
+#define USE_ACC_MPU6500
 #define GYRO_MPU6500_ALIGN      CW180_DEG
+#define USE_ACC_MPU9250
+#define GYRO_MPU9250_ALIGN      CW180_DEG
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO
+#define USE_GYRO_MPU6500
 #define ACC_MPU6500_ALIGN       CW180_DEG
+#define USE_GYRO_MPU9250
+#define ACC_MPU9250_ALIGN       CW180_DEG
 
 // MPU6500 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PC4
-#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 // *************** Compass *****************************
-#define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
+#define USE_MAG_MPU9250
 #define USE_MAG_MAG3110
 #define USE_MAG_HMC5883
 #define USE_MAG_IST8310
@@ -65,9 +70,9 @@
 #define MAG_IST8310_ALIGN CW270_DEG
 
 // *************** BARO *****************************
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
-#define MS5611_I2C_INSTANCE     I2CDEV_1
 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
@@ -76,12 +81,10 @@
 #define SPI2_MISO_PIN   PC2
 #define SPI2_MOSI_PIN   PC3
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI2
-#define MAX7456_SPI_CS_PIN      SPI2_NSS_PIN
-#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
+#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          SPI2_NSS_PIN
 
 // *************** TF Support *****************************
 #define USE_SPI_DEVICE_3
@@ -103,12 +106,11 @@
 
 // *************** Flash *****************************
 #define M25P16_CS_PIN           PA15
-#define M25P16_SPI_INSTANCE     SPI3
+#define M25P16_SPI_BUS          BUS_SPI3
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
 // *************** UART *****************************
-#define USB_IO
 #define USE_VCP
 
 // provide for Telemetry module
@@ -129,7 +131,7 @@
 #define SERIAL_PORT_COUNT       4 // VCP, USART1, USART2, USART5
 
 // *************** WS2811 *****************************
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB1
 #define WS2811_TIMER                    TIM3
 #define WS2811_TIMER_CHANNEL            TIM_Channel_4
@@ -142,9 +144,9 @@
 
 // *************** IIC *****************************
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_1)
-#define I2C1_SCL PB8
-#define I2C1_SDA PB9
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                        PB8
+#define I2C1_SDA                        PB9
 
 // *************** ADC *****************************
 #define USE_ADC
@@ -164,7 +166,7 @@
 // #define USE_RANGEFINDER_SRF10
 
 // *************** NAV *****************************
-#define NAV
+#define USE_NAV
 #define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_MAX_WAYPOINTS       60

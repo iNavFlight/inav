@@ -52,7 +52,7 @@
 
 #include "msp/msp_serial.h"
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 #include "telemetry/telemetry.h"
 #endif
 
@@ -117,6 +117,15 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 
     serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
 
+#ifdef USE_VCP
+    if (serialConfig->portConfigs[0].identifier == SERIAL_PORT_USB_VCP) {
+        serialPortConfig_t * uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
+        if (uart1Config) {
+            uart1Config->functionMask = FUNCTION_MSP;
+        }
+    }
+#endif
+
 #ifdef SERIALRX_UART
     serialPortConfig_t *serialRxUartConfig = serialFindPortConfiguration(SERIALRX_UART);
     if (serialRxUartConfig) {
@@ -128,15 +137,6 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
     serialPortConfig_t *gpsUartConfig = serialFindPortConfiguration(GPS_UART);
     if (gpsUartConfig) {
         gpsUartConfig->functionMask = FUNCTION_GPS;
-    }
-#endif
-
-#ifdef USE_VCP
-    if (serialConfig->portConfigs[0].identifier == SERIAL_PORT_USB_VCP) {
-        serialPortConfig_t * uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
-        if (uart1Config) {
-            uart1Config->functionMask = FUNCTION_MSP;
-        }
     }
 #endif
 
@@ -256,7 +256,7 @@ serialPort_t *findNextSharedSerialPort(uint16_t functionMask, serialPortFunction
 }
 
 #define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
-#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK)
+#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_DEBUG_TRACE)
 
 bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 {
@@ -264,7 +264,7 @@ bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
     /*
      * rules:
      * - 1 MSP port minimum, max MSP ports is defined and must be adhered to.
-     * - MSP is allowed to be shared with EITHER any telemetry OR blackbox.
+     * - MSP is allowed to be shared with EITHER any telemetry OR blackbox OR debug trace.
      * - serial RX and FrSky / LTM telemetry can be shared
      * - No other sharing combinations are valid.
      */
@@ -286,7 +286,7 @@ bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 
             if ((portConfig->functionMask & FUNCTION_MSP) && (portConfig->functionMask & ALL_FUNCTIONS_SHARABLE_WITH_MSP)) {
                 // MSP & telemetry
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
             } else if (telemetryCheckRxPortShared(portConfig)) {
                 // serial RX & telemetry
 #endif
@@ -324,12 +324,14 @@ serialPort_t *openSerialPort(
     serialPortIdentifier_e identifier,
     serialPortFunction_e function,
     serialReceiveCallbackPtr rxCallback,
+    void *rxCallbackData,
     uint32_t baudRate,
     portMode_t mode,
     portOptions_t options)
 {
 #if (!defined(USE_VCP) && !defined(USE_UART1) && !defined(USE_UART2) && !defined(USE_UART3) && !defined(USE_SOFTSERIAL1) && !defined(USE_SOFTSERIAL2))
-    UNUSED(callback);
+    UNUSED(rxCallback);
+    UNUSED(rxCallbackData);
     UNUSED(baudRate);
     UNUSED(mode);
     UNUSED(options);
@@ -351,54 +353,52 @@ serialPort_t *openSerialPort(
 #endif
 #ifdef USE_UART1
         case SERIAL_PORT_USART1:
-            serialPort = uartOpen(USART1, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(USART1, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_UART2
         case SERIAL_PORT_USART2:
-            serialPort = uartOpen(USART2, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(USART2, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_UART3
         case SERIAL_PORT_USART3:
-            serialPort = uartOpen(USART3, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(USART3, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_UART4
         case SERIAL_PORT_USART4:
-            serialPort = uartOpen(UART4, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(UART4, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_UART5
         case SERIAL_PORT_USART5:
-            serialPort = uartOpen(UART5, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(UART5, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_UART6
         case SERIAL_PORT_USART6:
-            serialPort = uartOpen(USART6, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(USART6, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_UART7
         case SERIAL_PORT_USART7:
-            serialPort = uartOpen(UART7, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(UART7, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_UART8
         case SERIAL_PORT_USART8:
-            serialPort = uartOpen(UART8, rxCallback, baudRate, mode, options);
+            serialPort = uartOpen(UART8, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_SOFTSERIAL1
         case SERIAL_PORT_SOFTSERIAL1:
-            serialPort = openSoftSerial(SOFTSERIAL1, rxCallback, baudRate, options);
-            serialSetMode(serialPort, mode);
+            serialPort = openSoftSerial(SOFTSERIAL1, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
 #ifdef USE_SOFTSERIAL2
         case SERIAL_PORT_SOFTSERIAL2:
-            serialPort = openSoftSerial(SOFTSERIAL2, rxCallback, baudRate, options);
-            serialSetMode(serialPort, mode);
+            serialPort = openSoftSerial(SOFTSERIAL2, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
         default:
@@ -498,30 +498,7 @@ void waitForSerialPortToFinishTransmitting(serialPort_t *serialPort)
     };
 }
 
-void serialEvaluateNonMspData(serialPort_t *serialPort, uint8_t receivedChar)
-{
-#ifndef USE_CLI
-    UNUSED(serialPort);
-#else
-    if (receivedChar == '#') {
-        cliEnter(serialPort);
-    }
-#endif
-    if (receivedChar == serialConfig()->reboot_character) {
-        // A 100ms guard delay to make sure reboot_character is followed by silence
-        // If anything is received during the guard period - reboot_character is ignored
-        for (int i = 0; i < 10; i++) {
-            delay(10);
-            if (serialRxBytesWaiting(serialPort)) {
-                return;
-            }
-        }
-
-        systemResetToBootloader();
-    }
-}
-
-#if defined(GPS) || defined(USE_SERIAL_PASSTHROUGH)
+#if defined(USE_GPS) || defined(USE_SERIAL_PASSTHROUGH)
 // Default data consumer for serialPassThrough.
 static void nopConsumer(uint8_t data)
 {

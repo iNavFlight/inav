@@ -33,21 +33,34 @@
 const controlRateConfig_t *currentControlRateProfile;
 
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 1);
 
 void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
 {
     for (int i = 0; i < MAX_CONTROL_RATE_PROFILE_COUNT; i++) {
         RESET_CONFIG(controlRateConfig_t, &instance[i],
-            .rcExpo8 = 70,
-            .thrMid8 = 50,
-            .thrExpo8 = 0,
-            .dynThrPID = 0,
-            .rcYawExpo8 = 20,
-            .tpa_breakpoint = 1500,
-            .rates[FD_ROLL] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
-            .rates[FD_PITCH] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
-            .rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT
+            .throttle = {
+                .rcMid8 = 50,
+                .rcExpo8 = 0,
+                .dynPID = 0,
+                .pa_breakpoint = 1500
+            },
+
+            .stabilized = {
+                .rcExpo8 = 70,
+                .rcYawExpo8 = 20,
+                .rates[FD_ROLL] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
+                .rates[FD_PITCH] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT,
+                .rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT,
+            },
+
+            .manual = {
+                .rcExpo8 = 70,
+                .rcYawExpo8 = 20,
+                .rates[FD_ROLL] = 100,
+                .rates[FD_PITCH] = 100,
+                .rates[FD_YAW] = 100
+            }
         );
     }
 }

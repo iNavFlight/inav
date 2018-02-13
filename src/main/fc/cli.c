@@ -135,7 +135,7 @@ static uint32_t bufferIndex = 0;
 static void cliAssert(char *cmdline);
 #endif
 
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
 static void cliBootlog(char *cmdline);
 #endif
 
@@ -160,7 +160,7 @@ static const char * const featureNames[] = {
     "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "CHANNEL_FORWARDING", "TRANSPONDER", "AIRMODE",
-    "SUPEREXPO", "VTX", "RX_SPI", "SOFTSPI", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE", "OSD", NULL
+    "SUPEREXPO", "VTX", "RX_SPI", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE", "OSD", "FW_LAUNCH", "TRACE", NULL
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
@@ -181,16 +181,16 @@ static const char * const hardwareSensorStatusNames[] = {
 static const char * const *sensorHardwareNames[] = {
         gyroNames,
         table_acc_hardware,
-#ifdef BARO
+#ifdef USE_BARO
         table_baro_hardware,
 #endif
-#ifdef MAG
+#ifdef USE_MAG
         table_mag_hardware,
 #endif
 #ifdef USE_RANGEFINDER
         table_rangefinder_hardware,
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
         table_pitot_hardware,
 #endif
 #ifdef USE_OPTICAL_FLOW
@@ -562,7 +562,7 @@ static void cliAssert(char *cmdline)
 }
 #endif
 
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
 static void cliBootlog(char *cmdline)
 {
     UNUSED(cmdline);
@@ -791,6 +791,8 @@ static void cliSerial(char *cmdline)
 #ifdef USE_SERIAL_PASSTHROUGH
 static void cliSerialPassthrough(char *cmdline)
 {
+    char * saveptr;
+
     if (isEmpty(cmdline)) {
         cliShowParseError();
         return;
@@ -799,7 +801,7 @@ static void cliSerialPassthrough(char *cmdline)
     int id = -1;
     uint32_t baud = 0;
     unsigned mode = 0;
-    char* tok = strtok(cmdline, " ");
+    char* tok = strtok_r(cmdline, " ", &saveptr);
     int index = 0;
 
     while (tok != NULL) {
@@ -818,7 +820,7 @@ static void cliSerialPassthrough(char *cmdline)
                 break;
         }
         index++;
-        tok = strtok(NULL, " ");
+        tok = strtok_r(NULL, " ", &saveptr);
     }
 
     serialPort_t *passThroughPort;
@@ -831,7 +833,7 @@ static void cliSerialPassthrough(char *cmdline)
         if (!mode)
             mode = MODE_RXTX;
 
-        passThroughPort = openSerialPort(id, FUNCTION_NONE, NULL,
+        passThroughPort = openSerialPort(id, FUNCTION_NONE, NULL, NULL,
                                          baud, mode,
                                          SERIAL_NOT_INVERTED);
         if (!passThroughPort) {
@@ -1129,7 +1131,7 @@ static void cliRxRange(char *cmdline)
     }
 }
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledConfig_t *defaultLedConfigs)
 {
     const char *format = "led %u %s";
@@ -1235,16 +1237,18 @@ static void printModeColor(uint8_t dumpMask, const ledStripConfig_t *ledStripCon
 
 static void cliModeColor(char *cmdline)
 {
+    char * saveptr;
+
     if (isEmpty(cmdline)) {
         printModeColor(DUMP_MASTER, ledStripConfig(), NULL);
     } else {
         enum {MODE = 0, FUNCTION, COLOR, ARGS_COUNT};
         int args[ARGS_COUNT];
         int argNo = 0;
-        const char* ptr = strtok(cmdline, " ");
+        const char* ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr && argNo < ARGS_COUNT) {
             args[argNo++] = fastA2I(ptr);
-            ptr = strtok(NULL, " ");
+            ptr = strtok_r(NULL, " ", &saveptr);
         }
 
         if (ptr != NULL || argNo != ARGS_COUNT) {
@@ -1376,7 +1380,7 @@ static void cliServo(char *cmdline)
             arguments[MAX] < PWM_PULSE_MIN || arguments[MAX] > PWM_PULSE_MAX ||
             arguments[MIDDLE] < arguments[MIN] || arguments[MIDDLE] > arguments[MAX] ||
             arguments[MIN] > arguments[MAX] || arguments[MAX] < arguments[MIN] ||
-            arguments[RATE] < -100 || arguments[RATE] > 100 ||
+            arguments[RATE] < -125 || arguments[RATE] > 125 ||
             arguments[FORWARD] >= MAX_SUPPORTED_RC_CHANNEL_COUNT
         ) {
             cliShowParseError();
@@ -1428,6 +1432,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
 
 static void cliServoMix(char *cmdline)
 {
+    char * saveptr;
     int args[8], check = 0;
     uint8_t len = strlen(cmdline);
 
@@ -1476,10 +1481,10 @@ static void cliServoMix(char *cmdline)
             return;
         }
 
-        ptr = strtok(ptr, " ");
+        ptr = strtok_r(ptr, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT - 1) {
             args[check++] = fastA2I(ptr);
-            ptr = strtok(NULL, " ");
+            ptr = strtok_r(NULL, " ", &saveptr);
         }
 
         if (ptr == NULL || check != ARGS_COUNT - 1) {
@@ -1500,10 +1505,10 @@ static void cliServoMix(char *cmdline)
         cliServoMix("reverse");
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, ARGS_COUNT};
-        char *ptr = strtok(cmdline, " ");
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
-            ptr = strtok(NULL, " ");
+            ptr = strtok_r(NULL, " ", &saveptr);
         }
 
         if (ptr != NULL || check != ARGS_COUNT) {
@@ -1754,7 +1759,7 @@ static void cliFeature(char *cmdline)
             if (sl_strncasecmp(cmdline, featureNames[i], len) == 0) {
 
                 mask = 1 << i;
-#ifndef GPS
+#ifndef USE_GPS
                 if (mask & FEATURE_GPS) {
                     cliPrintLine("unavailable");
                     break;
@@ -1990,7 +1995,7 @@ static void cliExit(char *cmdline)
     cliWriter = NULL;
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void cliGpsPassthrough(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2323,7 +2328,7 @@ static void cliStatus(char *cmdline)
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
-    cliPrintLinef("Voltage: %d * 0.1V (%dS battery - %s)", vbat, batteryCellCount, getBatteryStateString());
+    cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", vbat / 100, vbat % 100, batteryCellCount, getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
 #if (FLASH_SIZE > 64)
@@ -2336,9 +2341,6 @@ static void cliStatus(char *cmdline)
             const int sensorHardwareIndex = detectedSensors[i];
             const char *sensorHardware = sensorHardwareNames[i][sensorHardwareIndex];
             cliPrintf(", %s=%s", sensorTypeNames[i], sensorHardware);
-            if (mask == SENSOR_ACC && acc.dev.revisionCode) {
-                cliPrintf(".%c", acc.dev.revisionCode);
-            }
         }
     }
     cliPrintLinefeed();
@@ -2410,7 +2412,7 @@ static void cliStatus(char *cmdline)
 #endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
 #else
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_GYROPID);
@@ -2419,6 +2421,18 @@ static void cliStatus(char *cmdline)
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
     cliPrintLinef(", cycle time: %d, PID rate: %d, RX rate: %d, System rate: %d",  (uint16_t)cycleTime, pidRate, rxRate, systemRate);
+#if !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("Arming disabled flags:");
+    uint32_t flags = armingFlags & ARMING_DISABLED_ALL_FLAGS;
+    while (flags) {
+        int bitpos = ffs(flags) - 1;
+        flags &= ~(1 << bitpos);
+	if (bitpos > 6) cliPrintf(" %s", armingDisableFlagNames[bitpos - 7]);
+    }
+    cliPrintLinefeed();
+#else
+    cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
+#endif
 }
 
 #ifndef SKIP_TASK_STATISTICS
@@ -2566,13 +2580,14 @@ static void printConfig(const char *cmdline, bool doDiff)
         printMotorMix(dumpMask, customMotorMixer_CopyArray, customMotorMixer(0));
 
 #ifdef USE_SERVOS
-        cliPrintHashLine("servo");
-        printServo(dumpMask, servoParams_CopyArray, servoParams(0));
-
-        cliPrintHashLine("servo mix");
         // print custom servo mixer if exists
+        cliPrintHashLine("servo mix");
         cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
+
+        // print servo parameters
+        cliPrintHashLine("servo");
+        printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 #endif
 #endif
 
@@ -2593,7 +2608,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("serial");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
         cliPrintHashLine("led");
         printLed(dumpMask, ledStripConfig_Copy.ledConfigs, ledStripConfig()->ledConfigs);
 
@@ -2688,10 +2703,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
-#if defined(BOOTLOG)
+#if defined(USE_BOOTLOG)
     CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),
 #endif
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("color", "configure colors", NULL, cliColor),
     CLI_COMMAND_DEF("mode_color", "configure mode and special colors", NULL, cliModeColor),
 #endif
@@ -2717,11 +2732,11 @@ const clicmd_t cmdTable[] = {
 #endif
 #endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
-#ifdef GPS
+#ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
 #endif
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),

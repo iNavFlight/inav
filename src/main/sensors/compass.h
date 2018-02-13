@@ -38,7 +38,8 @@ typedef enum {
     MAG_AK8963 = 6,
     MAG_IST8310 = 7,
     MAG_QMC5883 = 8,
-    MAG_FAKE = 9,
+    MAG_MPU9250 = 9,
+    MAG_FAKE = 10,
     MAG_MAX = MAG_FAKE
 } magSensor_e;
 
@@ -56,7 +57,7 @@ typedef struct compassConfig_s {
     sensor_align_e mag_align;               // mag alignment
     uint8_t mag_hardware;                   // Which mag hardware to use on boards with more than one device
     flightDynamicsTrims_t magZero;
-    uint8_t __dummy_1;                      // Maximum rotation rate MAG_HOLD mode can feed to yaw rate PID controller
+    uint8_t mag_to_use;
     uint8_t magCalibrationTimeLimit;        // Time for compass calibration (seconds)
 } compassConfig_t;
 

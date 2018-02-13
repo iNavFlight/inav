@@ -24,6 +24,9 @@
 #define USBD_SERIALNUMBER_STRING "0x8020000"
 #endif
 
+// Use target-specific hardware descriptors (don't use common_hardware.h)
+#define USE_TARGET_HARDWARE_DESCRIPTORS
+
 #define LED0                    PB5
 #define LED1                    PB4
 
@@ -34,51 +37,52 @@
 
 // MPU6000 interrupts
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define MPU6000_EXTI_PIN        PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 
-#define MAG
-#define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
-#define USE_MAG_HMC5883
+#define USE_MAG
+#define USE_DUAL_MAG
+#define MAG_I2C_BUS_EXT         BUS_I2C2
+#define MAG_I2C_BUS_INT         BUS_I2C1
 #define MAG_HMC5883_ALIGN       CW90_DEG
-#define USE_MAG_MAG3110
+#define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
-#define BARO
-#define USE_BARO_BMP085
-#define USE_BARO_BMP280
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
 //#define USE_PITOT_MS4525
-//#define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
+//#define PITOT_I2C_BUS           BUS_I2C2
 
-// #define USE_OPTICAL_FLOW
-// #define USE_OPFLOW_FAKE
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_CXOF
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
 #define USE_RANGEFINDER_UIB
-#define RANGEFINDER_VL53L0X_INSTANCE    I2C_DEVICE_EXT
+#define USE_RANGEFINDER_VL53L0X
+#define VL53L0X_I2C_BUS         BUS_I2C2
 
 
 #define M25P16_CS_PIN           PB3
-#define M25P16_SPI_INSTANCE     SPI3
+#define M25P16_SPI_BUS          BUS_SPI3
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
@@ -109,8 +113,8 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_2)
+#define USE_I2C_DEVICE_1
+#define USE_I2C_DEVICE_2
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
@@ -123,7 +127,7 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 5 (PA1) of the MOTOR outputs.
 #define WS2811_PIN                      PA1
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
@@ -137,7 +141,7 @@
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX)
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11 //UART3_RX_PIN
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#if defined(TELEMETRY) && defined(TELEMETRY_FRSKY)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_FRSKY)
 
 #include "common/maths.h"
 #include "common/axis.h"
@@ -158,7 +158,7 @@ static void sendAccel(void)
 
     for (i = 0; i < 3; i++) {
         sendDataHead(ID_ACC_X + i);
-        serialize16(acc.accADC[i] * 1000 / acc.dev.acc_1G);
+        serialize16(lrintf(acc.accADCf[i] * 1000));
     }
 }
 
@@ -171,7 +171,7 @@ static void sendBaro(void)
     serialize16(ABS(alt % 100));
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendGpsAltitude(void)
 {
     uint16_t altitude = gpsSol.llh.alt / 100; // meters
@@ -196,7 +196,7 @@ static void sendThrottleOrBatterySizeAsRpm(void)
                     throttleForRPM = 0;
         serialize16(throttleForRPM);
     } else {
-        serialize16((batteryConfig()->batteryCapacity / BLADE_NUMBER_DIVIDER));
+        serialize16((batteryConfig()->capacity.value / BLADE_NUMBER_DIVIDER));
     }
 
 }
@@ -204,7 +204,7 @@ static void sendThrottleOrBatterySizeAsRpm(void)
 static void sendTemperature1(void)
 {
     sendDataHead(ID_TEMPRATURE1);
-#ifdef BARO
+#ifdef USE_BARO
     serialize16((baro.baroTemperature + 50)/ 100); //Airmamaf
 #else
     /*
@@ -214,7 +214,7 @@ static void sendTemperature1(void)
 #endif
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendSatalliteSignalQualityAsTemperature2(void)
 {
     uint16_t satellite = gpsSol.numSat;
@@ -290,7 +290,7 @@ static void sendLatLong(int32_t coord[2])
     serialize16(coord[LON] < 0 ? 'W' : 'E');
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendFakeLatLong(void)
 {
     // Heading is only displayed on OpenTX if non-zero lat/long is also sent
@@ -314,7 +314,7 @@ static void sendFakeLatLongThatAllowsHeadingDisplay(void)
     sendLatLong(coord);
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void sendGPSLatLong(void)
 {
     static uint8_t gpsFixOccured = 0;
@@ -363,9 +363,9 @@ static void sendVoltage(void)
      *  c: Cell number (starting at 0)
      *
      * The actual value sent for cell voltage has resolution of 0.002 volts
-     * Since vbat has resolution of 0.1 volts it has to be multiplied by 50
+     * Since vbat has resolution of 0.01 volts it has to be multiplied by 5
      */
-    cellVoltage = ((uint32_t)vbat * 100) / (batteryCellCount * 2);
+    cellVoltage = ((uint32_t)vbat * 10) / (batteryCellCount * 2);
 
     // Cell number is at bit 9-12 (only uses vbat, so it can't send individual cell voltages, set cell number to 0)
     payload = 0;
@@ -390,9 +390,9 @@ static void sendVoltageAmp(void)
          * Use new ID 0x39 to send voltage directly in 0.1 volts resolution
          */
         sendDataHead(ID_VOLTAGE_AMP);
-        serialize16(vbat);
+        serialize16(vbat / 10);
     } else {
-        uint16_t voltage = (vbat * 110) / 21;
+        uint16_t voltage = (vbat * 11) / 21;
         uint16_t vfasVoltage;
         if (telemetryConfig()->frsky_vfas_cell_voltage) {
             vfasVoltage = voltage / batteryCellCount;
@@ -416,11 +416,7 @@ static void sendFuelLevel(void)
 {
     sendDataHead(ID_FUEL_LEVEL);
 
-    if (batteryConfig()->batteryCapacity > 0) {
-        serialize16((uint16_t)calculateBatteryCapacityRemainingPercentage());
-    } else {
-        serialize16((uint16_t)constrain(mAhDrawn, 0, 0xFFFF));
-    }
+    serialize16((uint16_t)calculateBatteryPercentage());
 }
 
 static void sendHeading(void)
@@ -450,7 +446,7 @@ void configureFrSkyTelemetryPort(void)
         return;
     }
 
-    frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inversion ? SERIAL_INVERTED : SERIAL_NOT_INVERTED);
+    frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inversion ? SERIAL_INVERTED : SERIAL_NOT_INVERTED);
     if (!frskyPort) {
         return;
     }
@@ -524,7 +520,7 @@ void handleFrSkyTelemetry(void)
             sendFuelLevel();
         }
 
-#ifdef GPS
+#ifdef USE_GPS
         if (sensors(SENSOR_GPS)) {
             sendSpeed();
             sendGpsAltitude();

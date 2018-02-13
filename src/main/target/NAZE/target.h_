@@ -41,7 +41,7 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 
-#define NAZE_SPI_INSTANCE       SPI2
+#define NAZE_SPI_BUS            BUS_SPI2
 #define NAZE_SPI_CS_GPIO        GPIOB
 #define NAZE_SPI_CS_PIN         PB12
 #define NAZE_CS_GPIO_CLK_PERIPHERAL RCC_APB2Periph_GPIOB
@@ -66,7 +66,7 @@
     #define MPU6500_CS_GPIO_CLK_PERIPHERAL  NAZE_CS_GPIO_CLK_PERIPHERAL
     #define MPU6500_CS_GPIO                 NAZE_SPI_CS_GPIO
     #define MPU6500_CS_PIN                  NAZE_SPI_CS_PIN
-    #define MPU6500_SPI_INSTANCE            NAZE_SPI_INSTANCE
+    #define MPU6500_SPI_BUS                 NAZE_SPI_BUS
 #else
     // Afroflight NAZE
     #define USE_HARDWARE_REVISION_DETECTION
@@ -74,7 +74,7 @@
 
     #define M25P16_CS_GPIO          NAZE_SPI_CS_GPIO
     #define M25P16_CS_PIN           NAZE_SPI_CS_PIN
-    #define M25P16_SPI_INSTANCE     NAZE_SPI_INSTANCE
+    #define M25P16_SPI_BUS          NAZE_SPI_BUS
 
     #define SERIAL_PORT_COUNT       4       // UART1, UART2, SS1, SS2
 
@@ -82,25 +82,25 @@
     #define USE_FLASH_M25P16
 #endif
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6050
 #define USE_GYRO_MPU6500
 
 #define GYRO_MPU6050_ALIGN      CW0_DEG
 #define GYRO_MPU6500_ALIGN      CW0_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 #define USE_ACC_MPU6500
 
 #define ACC_MPU6050_ALIGN       CW0_DEG
 #define ACC_MPU6500_ALIGN       CW0_DEG
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_MS5611 // needed for Flip32 board
 #define USE_BARO_BMP280
 
-#define MAG
+#define USE_MAG
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define MAG_HMC5883_ALIGN       CW180_DEG
@@ -140,8 +140,8 @@
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_CX10A
 //#define NRF24_DEFAULT_PROTOCOL  NRF24RX_V202_1M
 
-#define USE_SOFTSPI
-#define USE_RX_SOFTSPI
+//#define USE_SOFTSPI
+//#define USE_RX_SOFTSPI
 
 // RC pinouts
 // RC1              GND
@@ -176,14 +176,14 @@
 //#define NAV_AUTO_MAG_DECLINATION
 //#define NAV_GPS_GLITCH_DETECTION
 
-// #define LED_STRIP
+// #define USE_LED_STRIP
 // #define WS2811_PIN                      PA6
 // #define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
 // #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
 #undef USE_SERIALRX_SPEKTRUM
 #undef USE_SERIALRX_IBUS
-//#define SPEKTRUM_BIND
+//#define USE_SPEKTRUM_BIND
 //#define BIND_PIN                PA3
 
 //#define USE_SERIAL_4WAY_BLHELI_INTERFACE

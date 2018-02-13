@@ -36,53 +36,64 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define GYRO
+#define USE_GYRO
 #define USE_FAKE_GYRO
 #define USE_GYRO_L3GD20
-#define L3GD20_SPI              SPI1
+#define L3GD20_SPI_BUS          BUS_SPI1
 #define L3GD20_CS_PIN           PE3
 #define GYRO_L3GD20_ALIGN       CW270_DEG
 #define USE_GYRO_L3G4200D
 #define USE_GYRO_MPU3050
 #define USE_GYRO_MPU6050
-#define USE_GYRO_SPI_MPU6000
+#define MPU6050_I2C_BUS         BUS_I2C1
+
+#define USE_GYRO_MPU6000
 #define MPU6000_CS_PIN          SPI2_NSS_PIN
-#define MPU6000_SPI_INSTANCE    SPI2
+#define MPU6000_SPI_BUS         BUS_SPI2
+
 #define USE_GYRO_MPU6500
-#define USE_GYRO_SPI_MPU6500
 #define MPU6500_CS_PIN          SPI2_NSS_PIN
-#define MPU6500_SPI_INSTANCE    SPI2
+#define MPU6500_SPI_BUS         BUS_SPI2
 #define GYRO_MPU6500_ALIGN      CW270_DEG_FLIP
 
-#define ACC
+#define USE_GYRO_MPU9250
+#define MPU9250_CS_PIN          SPI2_NSS_PIN
+#define MPU9250_SPI_BUS         BUS_SPI2
+#define GYRO_MPU9250_ALIGN      CW270_DEG_FLIP
+
+#define USE_ACC
 #define USE_FAKE_ACC
 #define USE_ACC_ADXL345
 #define USE_ACC_BMA280
 #define USE_ACC_MMA8452
 #define USE_ACC_MPU6050
 #define USE_ACC_LSM303DLHC
+#define LSM303DLHC_I2C_BUS      BUS_I2C1
 #define USE_ACC_MPU6000
-#define USE_ACC_SPI_MPU6000
 #define USE_ACC_MPU6500
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC_MPU9250
 #define ACC_MPU6500_ALIGN       CW270_DEG_FLIP
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS             BUS_I2C1
 #define USE_FAKE_BARO
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_FAKE_MAG
 #define USE_MAG_AK8963
 #define USE_MAG_AK8975
+#define USE_MAG_MPU9250
 #define USE_MAG_HMC5883
-#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE I2C_DEVICE
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_VCP
 #define USE_UART1
@@ -109,7 +120,7 @@
 #define RX_CE_PIN                   PA1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 
 #define USE_ADC
 #define ADC_INSTANCE            ADC1
@@ -121,16 +132,17 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB8 // TIM16_CH1
 #define WS2811_TIMER                    TIM16
 #define WS2811_DMA_STREAM               DMA1_Channel3
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 // USART2, PA3
 
 #define USE_RANGEFINDER
+#define RANGEFINDER_I2C_BUS                 BUS_I2C1
 #define USE_RANGEFINDER_HCSR04
 #define RANGEFINDER_HCSR04_TRIGGER_PIN       PB0
 #define RANGEFINDER_HCSR04_ECHO_PIN          PB1

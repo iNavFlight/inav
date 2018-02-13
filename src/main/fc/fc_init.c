@@ -65,6 +65,7 @@
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
 #include "drivers/serial_uart.h"
+#include "drivers/serial_usb_vcp.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
@@ -92,6 +93,7 @@
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
+#include "io/lights.h"
 #include "io/dashboard.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
@@ -179,6 +181,7 @@ void init(void)
 
     printfSupportInit();
 
+    // Initialize system and CPU clocks to their initial values
     systemInit();
 
     // initialize IO (needed for all IO operations)
@@ -196,9 +199,8 @@ void init(void)
     ensureEEPROMContainsValidData();
     readEEPROM();
 
-#ifdef USE_UNDERCLOCK
+    // Re-initialize system clock to their final values (if necessary)
     systemClockSetup(systemConfig()->cpuUnderclock);
-#endif
     
     i2cSetSpeed(systemConfig()->i2c_speed);
 
@@ -226,7 +228,7 @@ void init(void)
 
     addBootlogEvent2(BOOT_EVENT_SYSTEM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
 
-#ifdef SPEKTRUM_BIND
+#ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
         switch (rxConfig()->serialrx_provider) {
             case SERIALRX_SPEKTRUM1024:
@@ -238,6 +240,11 @@ void init(void)
                 break;
         }
     }
+#endif
+
+#ifdef USE_VCP
+    // Early initialize USB hardware
+    usbVcpInitHardware();
 #endif
 
     delay(500);
@@ -252,6 +259,17 @@ void init(void)
             (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
 #else
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
+#endif
+
+    // Initialize MSP serial ports here so DEBUG_TRACE can share a port with MSP.
+    // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
+    // to run after the sensors have been detected.
+    mspSerialInit();
+
+#if defined(USE_DEBUG_TRACE)
+    // Debug trace uses serial output, so we only can init it after serial port is ready
+    // From this point on we can use DEBUG_TRACE() to produce real-time debugging information
+    debugTraceInit();
 #endif
 
 #ifdef USE_SERVOS
@@ -294,7 +312,7 @@ void init(void)
     pwm_params.useParallelPWM = (rxConfig()->receiverType == RX_TYPE_PWM);
     pwm_params.useRSSIADC = feature(FEATURE_RSSI_ADC);
     pwm_params.useCurrentMeterADC = feature(FEATURE_CURRENT_METER)
-        && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC;
+        && batteryConfig()->current.type == CURRENT_SENSOR_ADC;
     pwm_params.useLEDStrip = feature(FEATURE_LED_STRIP);
     pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
@@ -374,6 +392,9 @@ void init(void)
 
     beeperInit(&beeperDevConfig);
 #endif
+#ifdef USE_LIGHTS
+    lightsInit();
+#endif
 
 #ifdef USE_INVERTER
     initInverters();
@@ -422,23 +443,41 @@ void init(void)
 #endif
 
 #ifdef USE_I2C
-#if defined(I2C_DEVICE)
-    #if defined(I2C_DEVICE_SHARES_UART3)
+#ifdef USE_I2C_DEVICE_1
+    #ifdef I2C_DEVICE_1_SHARES_UART3
         if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
-            i2cInit(I2C_DEVICE);
+            i2cInit(I2CDEV_1);
         }
     #else
-        i2cInit(I2C_DEVICE);
+            i2cInit(I2CDEV_1);
     #endif
 #endif
 
-#if defined(I2C_DEVICE_EXT)
-    #if defined(I2C_DEVICE_EXT_SHARES_UART3)
+#ifdef USE_I2C_DEVICE_2
+    #ifdef I2C_DEVICE_2_SHARES_UART3
         if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
-            i2cInit(I2C_DEVICE_EXT);
+            i2cInit(I2CDEV_2);
         }
     #else
-        i2cInit(I2C_DEVICE_EXT);
+            i2cInit(I2CDEV_2);
+    #endif
+#endif
+
+#ifdef USE_I2C_DEVICE_3
+    i2cInit(I2CDEV_3);
+#endif
+
+#ifdef USE_I2C_DEVICE_4
+    i2cInit(I2CDEV_4);
+#endif
+
+#ifdef USE_I2C_DEVICE_EMULATED
+    #ifdef I2C_DEVICE_EMULATED_SHARES_UART3
+        if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
+            i2cInit(I2CDEV_EMULATED);
+        }
+    #else
+            i2cInit(I2CDEV_EMULATED);
     #endif
 #endif
 #endif
@@ -456,11 +495,11 @@ void init(void)
         adc_params.adcFunctionChannel[ADC_RSSI] = adcChannelConfig()->adcFunctionChannel[ADC_RSSI];
     }
 
-    if (feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
+    if (feature(FEATURE_CURRENT_METER) && batteryConfig()->current.type == CURRENT_SENSOR_ADC) {
         adc_params.adcFunctionChannel[ADC_CURRENT] =  adcChannelConfig()->adcFunctionChannel[ADC_CURRENT];
     }
 
-#if defined(PITOT) && defined(USE_PITOT_ADC)
+#if defined(USE_PITOT) && defined(USE_PITOT_ADC)
     if (pitotmeterConfig()->pitot_hardware == PITOT_ADC || pitotmeterConfig()->pitot_hardware == PITOT_AUTODETECT) {
         adc_params.adcFunctionChannel[ADC_AIRSPEED] = adcChannelConfig()->adcFunctionChannel[ADC_AIRSPEED];
     }
@@ -470,7 +509,7 @@ void init(void)
 #endif
 
     /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
-#if defined(GPS) || defined(MAG)
+#if defined(USE_GPS) || defined(USE_MAG)
     if (!isMPUSoftReset()) {
         addBootlogEvent2(BOOT_EVENT_EXTRA_BOOT_DELAY, BOOT_EVENT_FLAGS_NONE);
 
@@ -490,7 +529,7 @@ void init(void)
 
     initBoardAlignment();
 
-#ifdef CMS
+#ifdef USE_CMS
     cmsInit();
 #endif
 
@@ -500,7 +539,7 @@ void init(void)
     }
 #endif
 
-#ifdef GPS
+#ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         gpsPreInit();
     }
@@ -522,8 +561,9 @@ void init(void)
 
     imuInit();
 
-    mspFcInit();
-    mspSerialInit();
+    // Sensors have now been detected, mspFcInit() can now be called
+    // to set the boxes up
+     mspFcInit();
 
 #ifdef USE_CLI
     cliInit(serialConfig());
@@ -533,11 +573,11 @@ void init(void)
 
     rxInit();
 
-#if (defined(OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(CMS)))
+#if (defined(USE_OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)))
     displayPort_t *osdDisplayPort = NULL;
 #endif
 
-#ifdef OSD
+#ifdef USE_OSD
     if (feature(FEATURE_OSD)) {
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD then use it
@@ -552,7 +592,7 @@ void init(void)
     }
 #endif
 
-#if defined(USE_MSP_DISPLAYPORT) && defined(CMS)
+#if defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)
     // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
     if (!osdDisplayPort) {
         cmsDisplayPortRegister(displayPortMspInit());
@@ -563,7 +603,7 @@ void init(void)
     uavInterconnectBusInit();
 #endif
 
-#ifdef GPS
+#ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         gpsInit();
         addBootlogEvent2(BOOT_EVENT_GPS_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
@@ -571,11 +611,11 @@ void init(void)
 #endif
 
 
-#ifdef NAV
+#ifdef USE_NAV
     navigationInit();
 #endif
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     ledStripInit();
 
     if (feature(FEATURE_LED_STRIP)) {
@@ -584,7 +624,7 @@ void init(void)
     }
 #endif
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         telemetryInit();
         addBootlogEvent2(BOOT_EVENT_TELEMETRY_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
@@ -594,10 +634,10 @@ void init(void)
 #ifdef USE_FLASHFS
 #ifdef NAZE
     if (hardwareRevision == NAZE32_REV5) {
-        m25p16_init(IOTAG_NONE);
+        m25p16_init(0);
     }
 #elif defined(USE_FLASH_M25P16)
-    m25p16_init(IOTAG_NONE);
+    m25p16_init(0);
 #endif
 
     flashfsInit();
@@ -610,7 +650,7 @@ void init(void)
 
 #ifdef SDCARD_DMA_CHANNEL_TX
 
-#if defined(LED_STRIP) && defined(WS2811_DMA_CHANNEL)
+#if defined(USE_LED_STRIP) && defined(WS2811_DMA_CHANNEL)
     // Ensure the SPI Tx DMA doesn't overlap with the led strip
 #if defined(STM32F4) || defined(STM32F7)
     sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_STREAM;
@@ -628,16 +668,16 @@ void init(void)
     afatfs_init();
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     blackboxInit();
 #endif
 
     gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
-#ifdef BARO
+#ifdef USE_BARO
     baroStartCalibration();
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     pitotStartCalibration();
 #endif
 

@@ -33,44 +33,33 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-//#define ICM20689_CS_PIN          SPI1_NSS_PIN
-//#define ICM20689_SPI_INSTANCE    SPI1
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
 
-#define GYRO
-//#define USE_GYRO_SPI_ICM20689
-//#define GYRO_ICM20689_ALIGN      CW270_DEG
-#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO
+#define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW270_DEG
 
-#define ACC
-//#define USE_ACC_SPI_ICM20689
-//#define ACC_ICM20689_ALIGN       CW270_DEG
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC
+#define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 
-#define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define MAG_HMC5883_ALIGN       CW90_DEG
-#define USE_MAG_MAG3110
+#define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI3
-#define MAX7456_SPI_CS_PIN      SPI3_NSS_PIN
-#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
-
-//#define MAX7456_DMA_CHANNEL_TX              DMA1_Stream5
-//#define MAX7456_DMA_CHANNEL_RX              DMA1_Stream0
-//#define MAX7456_DMA_IRQ_HANDLER_ID          DMA1_ST0_HANDLER
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          SPI3_NSS_PIN
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI2
@@ -85,7 +74,6 @@
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_ENABLED
 #define VBUS_SENSING_PIN        PC5
@@ -139,7 +127,7 @@
 //#define SPI_RX_CS_PIN           PD2
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
@@ -152,7 +140,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_GPIO_AF                  GPIO_AF_TIM4
 #define WS2811_PIN                      PB8
 #define WS2811_TIMER                    TIM4

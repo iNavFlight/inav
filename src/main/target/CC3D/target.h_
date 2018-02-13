@@ -27,47 +27,44 @@
 #define USE_EXTI
 #define MPU_INT_EXTI            PA3
 #define USE_MPU_DATA_READY_SIGNAL
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 #define USE_SPI_DEVICE_2
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_2) // Flex port - SCL/PB10, SDA/PB11
-#define I2C_DEVICE_SHARES_UART3
+#define USE_I2C_DEVICE_2        // Flex port - SCL/PB10, SDA/PB11
+#define I2C_DEVICE_2_SHARES_UART3
 
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #define M25P16_CS_PIN           PB12
-#define M25P16_SPI_INSTANCE     SPI2
+#define M25P16_SPI_BUS          BUS_SPI2
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN CW270_DEG
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN CW270_DEG
 
 // External I2C BARO
-#define BARO
-//#define USE_BARO_MS5611
-#define USE_BARO_BMP085
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C2
+#define USE_BARO_MS5611
 #define USE_BARO_BMP280
 
 // External I2C MAG
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
-//#define USE_MAG_AK8975
-//#define USE_MAG_MAG3110
 
-#define USB_IO
 #define USE_VCP
 #define USE_UART1
 #define USE_UART3
@@ -83,7 +80,7 @@
 #ifdef USE_RX_NRF24
 #define USE_RX_SPI
 #define DEFAULT_RX_TYPE         RX_TYPE_SPI
-#define DEFAULT_FEATURES        FEATURE_SOFTSPI
+//#define DEFAULT_FEATURES        FEATURE_SOFTSPI
 #define USE_RX_SYMA
 //#define USE_RX_V202
 #define USE_RX_CX10
@@ -93,8 +90,8 @@
 //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_V202_1M
 //#define RX_SPI_DEFAULT_PROTOCOL NRF24RX_H8_3D
 
-#define USE_SOFTSPI
-#define USE_RX_SOFTSPI
+//#define USE_SOFTSPI
+//#define USE_RX_SOFTSPI
 
 // RC pinouts
 // RC1              GND
@@ -150,13 +147,13 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 // LED strip is on PWM5 output pin
-//#define LED_STRIP
+//#define USE_LED_STRIP
 #define WS2811_PIN                      PB4
 #define WS2811_TIMER                    TIM3
 #define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC6
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH6_HANDLER
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART3, PB11 (Flexport)
 #define BIND_PIN                PB11
 
@@ -170,7 +167,7 @@
 
 //#define NAV_AUTO_MAG_DECLINATION
 //#define NAV_GPS_GLITCH_DETECTION
-#undef BLACKBOX
+#undef USE_BLACKBOX
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define DISABLE_UNCOMMON_MIXERS
@@ -178,8 +175,8 @@
 #ifdef USE_RX_NRF24
 #undef USE_RX_PWM
 #undef USE_RX_PPM
-#undef SERIAL_RX
-#undef SPEKTRUM_BIND
+#undef USE_SERIAL_RX
+#undef USE_SPEKTRUM_BIND
 #endif
 
 #define TARGET_MOTOR_COUNT 4
@@ -198,10 +195,10 @@
 //#define USE_FAKE_BARO
 //#define USE_FAKE_GPS
 
-//#undef TELEMETRY_FRSKY
-//#define TELEMETRY_MAVLINK
+//#undef USE_TELEMETRY_FRSKY
+//#define USE_TELEMETRY_MAVLINK
 //#define USE_SERIALRX_SUMD
-//#define TELEMETRY_HOTT
+//#define USE_TELEMETRY_HOTT
 
 // CC3D is widely used for airplanes - enable fw_autotune
 #define AUTOTUNE_FIXED_WING

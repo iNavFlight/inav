@@ -53,7 +53,7 @@ baro_t baro;                        // barometer access functions
 
 PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
 
-#ifdef BARO
+#ifdef USE_BARO
 #define BARO_HARDWARE_DEFAULT    BARO_AUTODETECT
 #else
 #define BARO_HARDWARE_DEFAULT    BARO_NONE
@@ -63,7 +63,7 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .use_median_filtering = 1
 );
 
-#ifdef BARO
+#ifdef USE_BARO
 
 static timeMs_t baroCalibrationTimeout = 0;
 static bool baroCalibrationFinished = false;
@@ -77,30 +77,11 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
     baroSensor_e baroHardware = BARO_NONE;
     requestedSensors[SENSOR_INDEX_BARO] = baroHardwareToUse;
 
-#ifdef USE_BARO_BMP085
-    const bmp085Config_t *bmp085Config = NULL;
-
-#if defined(BARO_XCLR_GPIO) && defined(BARO_EOC_GPIO)
-    static const bmp085Config_t defaultBMP085Config = {
-        .xclrIO = IO_TAG(BARO_XCLR_PIN),
-        .eocIO = IO_TAG(BARO_EOC_PIN),
-    };
-    bmp085Config = &defaultBMP085Config;
-#endif
-
-#ifdef NAZE
-    if (hardwareRevision == NAZE32) {
-        bmp085Disable(bmp085Config);
-    }
-#endif
-
-#endif
-
     switch (baroHardwareToUse) {
     case BARO_AUTODETECT:
     case BARO_BMP085:
 #ifdef USE_BARO_BMP085
-        if (bmp085Detect(bmp085Config, dev)) {
+        if (bmp085Detect(dev)) {
             baroHardware = BARO_BMP085;
             break;
         }
@@ -113,7 +94,7 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 
     case BARO_MS5607:
 #ifdef USE_BARO_MS5607
-        if (ms56xxDetect(dev, BARO_MS5607)) {
+        if (ms5607Detect(dev)) {
             baroHardware = BARO_MS5607;
             break;
         }
@@ -126,7 +107,7 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 
     case BARO_MS5611:
 #ifdef USE_BARO_MS5611
-        if (ms56xxDetect(dev, BARO_MS5611)) {
+        if (ms5611Detect(dev)) {
             baroHardware = BARO_MS5611;
             break;
         }
@@ -256,16 +237,16 @@ uint32_t baroUpdate(void)
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
-            baro.dev.get_ut();
-            baro.dev.start_up();
+            baro.dev.get_ut(&baro.dev);
+            baro.dev.start_up(&baro.dev);
             state = BAROMETER_NEEDS_CALCULATION;
             return baro.dev.up_delay;
         break;
 
         case BAROMETER_NEEDS_CALCULATION:
-            baro.dev.get_up();
-            baro.dev.start_ut();
-            baro.dev.calculate(&baro.baroPressure, &baro.baroTemperature);
+            baro.dev.get_up(&baro.dev);
+            baro.dev.start_ut(&baro.dev);
+            baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             if (barometerConfig()->use_median_filtering) {
                 baro.baroPressure = applyBarometerMedianFilter(baro.baroPressure);
             }
@@ -289,6 +270,7 @@ static void performBaroCalibrationCycle(void)
         if ((millis() - baroCalibrationTimeout) > 250) {
             baroGroundAltitude = pressureToAltitude(baroGroundPressure);
             baroCalibrationFinished = true;
+            DEBUG_TRACE_SYNC("Barometer calibration complete (%d)", lrintf(baroGroundAltitude));
         }
     }
     else {

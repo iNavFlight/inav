@@ -28,58 +28,56 @@
 #define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
-#define I2C_DEVICE_SHARES_UART3
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 
 // MPU6000 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_GYRO_MPU6500
-#define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW270_DEG
 #define MPU6500_CS_PIN          PA4
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
 
 #define USE_ACC_MPU6500
-#define USE_ACC_SPI_MPU6500
 #define ACC_MPU6500_ALIGN       CW270_DEG
 
-#define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define MAG_HMC5883_ALIGN       CW90_DEG
+#define USE_MAG_HMC5883
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS             BUS_I2C2
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 
 #define USE_PITOT_ADC
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE      I2C_DEVICE
+#define PITOT_I2C_BUS           BUS_I2C2
 
 #define M25P16_CS_PIN           PB3
-#define M25P16_SPI_INSTANCE     SPI3
+#define M25P16_SPI_BUS          BUS_SPI3
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
@@ -114,8 +112,8 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_RANGEFINDER
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 #define USE_RANGEFINDER_HCSR04_I2C
-#define RANGEFINDER_HCSR04_I2C_I2C_INSTANCE (I2C_DEVICE)
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
@@ -127,7 +125,7 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 5 (PA1) of the MOTOR outputs.
 #define WS2811_GPIO_AF                  GPIO_AF_TIM5
 #define WS2811_PIN                      PA1
@@ -143,7 +141,7 @@
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT)
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11 // USART3 RX
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

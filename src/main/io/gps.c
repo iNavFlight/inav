@@ -24,7 +24,7 @@
 #include "build/build_config.h"
 
 
-#ifdef GPS
+#ifdef USE_GPS
 
 #include "build/debug.h"
 
@@ -86,42 +86,42 @@ baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, 
 
 static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
     /* NMEA GPS */
-#ifdef GPS_PROTO_NMEA
+#ifdef USE_GPS_PROTO_NMEA
     { GPS_TYPE_SERIAL, MODE_RX, false, NULL, &gpsHandleNMEA },
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
 #endif
 
     /* UBLOX binary */
-#ifdef GPS_PROTO_UBLOX
+#ifdef USE_GPS_PROTO_UBLOX
     { GPS_TYPE_SERIAL, MODE_RXTX, false,  NULL, &gpsHandleUBLOX },
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
 #endif
 
     /* MultiWii I2C-NAV module */
-#ifdef GPS_PROTO_I2C_NAV
+#ifdef USE_GPS_PROTO_I2C_NAV
     { GPS_TYPE_BUS, 0, false, &gpsDetectI2CNAV, &gpsHandleI2CNAV },
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
 #endif
 
     /* NAZA GPS module */
-#ifdef GPS_PROTO_NAZA
+#ifdef USE_GPS_PROTO_NAZA
     { GPS_TYPE_SERIAL, MODE_RX, true,  NULL, &gpsHandleNAZA },
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
 #endif
 
     /* UBLOX7PLUS binary */
-#ifdef GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
     { GPS_TYPE_SERIAL, MODE_RXTX, false,  NULL, &gpsHandleUBLOX },
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
 #endif
 
     /* MTK GPS */
-#ifdef GPS_PROTO_MTK
+#ifdef USE_GPS_PROTO_MTK
     { GPS_TYPE_SERIAL, MODE_RXTX, false, NULL, &gpsHandleMTK },
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
@@ -137,7 +137,8 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .autoConfig = GPS_AUTOCONFIG_ON,
     .autoBaud = GPS_AUTOBAUD_ON,
     .dynModel = GPS_DYNMODEL_AIR_1G,
-    .gpsMinSats = 6
+    .gpsMinSats = 6,
+    .ubloxUseGalileo = false
 );
 
 void gpsSetState(gpsState_e state)
@@ -251,7 +252,7 @@ void gpsInit(void)
             portMode_t mode = gpsProviders[gpsState.gpsConfig->provider].portMode;
 
             // no callback - buffer will be consumed in gpsThread()
-            gpsState.gpsPort = openSerialPort(gpsPortConfig->identifier, FUNCTION_GPS, NULL, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]], mode, SERIAL_NOT_INVERTED);
+            gpsState.gpsPort = openSerialPort(gpsPortConfig->identifier, FUNCTION_GPS, NULL, NULL, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]], mode, SERIAL_NOT_INVERTED);
 
             if (!gpsState.gpsPort) {
                 featureClear(FEATURE_GPS);

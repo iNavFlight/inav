@@ -39,34 +39,31 @@
 //#define INVERTER_PIN_UART1     PC9
 
 // MPU6500 interrupt
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
 #define USE_MPU_DATA_READY_SIGNAL
-//#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define MPU_INT_EXTI            PC5
 #define MPU6500_CS_PIN          PC4
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
 
-#define ACC
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC
+#define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW0_DEG
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO
+#define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW0_DEG
 
-#define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_MAG3110
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP085
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
-
-#define MS5611_I2C_INSTANCE     I2CDEV_1
 
 #define USE_SDCARD
 
@@ -85,12 +82,11 @@
 // #define AFATFS_USE_INTROSPECTIVE_LOGGING
 
 #define M25P16_CS_PIN           PB7
-#define M25P16_SPI_INSTANCE     SPI3
+#define M25P16_SPI_BUS          BUS_SPI3
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define USB_IO
 #define USE_VCP
 //#define VBUS_SENSING_PIN PA8
 //#define VBUS_SENSING_ENABLED
@@ -132,14 +128,14 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 #define USE_I2C_PULLUP
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC3
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
 
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 6 (PB1) of the ESC outputs.
 #define WS2811_PIN                      PB1
 #define WS2811_TIMER                    TIM3
@@ -159,7 +155,7 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 #define BIND_PIN                PB11
 
 // Number of available PWM outputs

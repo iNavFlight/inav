@@ -86,6 +86,7 @@ stickPositions_e getRcStickPositions(void);
 bool checkStickPosition(stickPositions_e stickPos);
 
 bool areSticksInApModePosition(uint16_t ap_mode);
+bool areSticksDeflectedMoreThanPosHoldDeadband(void);
 throttleStatus_e calculateThrottleStatus(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_switch, bool fixed_wing_auto_arm);

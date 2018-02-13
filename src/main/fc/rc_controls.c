@@ -90,6 +90,11 @@ bool areSticksInApModePosition(uint16_t ap_mode)
     return ABS(rcCommand[ROLL]) < ap_mode && ABS(rcCommand[PITCH]) < ap_mode;
 }
 
+bool areSticksDeflectedMoreThanPosHoldDeadband(void)
+{
+    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
+}
+
 throttleStatus_e calculateThrottleStatus(void)
 {
     const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;

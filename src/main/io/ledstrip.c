@@ -23,7 +23,7 @@
 
 #include <platform.h>
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 
 #include "build/build_config.h"
 
@@ -443,7 +443,7 @@ static const struct {
 } flightModeToLed[] = {
     {HEADFREE_MODE, LED_MODE_HEADFREE},
     {HEADING_MODE,  LED_MODE_MAG},
-#ifdef BARO
+#ifdef USE_BARO
     {NAV_ALTHOLD_MODE, LED_MODE_BARO},
 #endif
     {HORIZON_MODE,  LED_MODE_HORIZON},
@@ -483,7 +483,7 @@ static void applyLedFixedLayers(void)
 
             case LED_FUNCTION_BATTERY:
                 color = HSV(RED);
-                hOffset += scaleRange(calculateBatteryCapacityRemainingPercentage(), 0, 100, -30, 120);
+                hOffset += scaleRange(calculateBatteryPercentage(), 0, 100, -30, 120);
                 break;
 
             case LED_FUNCTION_RSSI:
@@ -636,7 +636,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     }
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void applyLedGpsLayer(bool updateNow, timeUs_t *timer)
 {
     static uint8_t gpsFlashCounter = 0;
@@ -898,7 +898,7 @@ typedef enum {
     timLarson,
     timBattery,
     timRssi,
-#ifdef GPS
+#ifdef USE_GPS
     timGps,
 #endif
     timWarning,
@@ -924,7 +924,7 @@ static applyLayerFn_timed* layerTable[] = {
     [timLarson] = &applyLarsonScannerLayer,
     [timBattery] = &applyLedBatteryLayer,
     [timRssi] = &applyLedRssiLayer,
-#ifdef GPS
+#ifdef USE_GPS
     [timGps] = &applyLedGpsLayer,
 #endif
     [timWarning] = &applyLedWarningLayer,

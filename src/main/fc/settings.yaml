@@ -10,10 +10,10 @@ tables:
     values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X", "UIB"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
-    values: ["NONE", "FAKE"]
+    values: ["NONE", "FAKE", "CXOF", "PMW3901"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
     values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "FAKE"]
@@ -58,6 +58,9 @@ tables:
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "UK"]
     enum: osd_unit_e
+  - name: osd_stats_energy_unit
+    values: ["MAH", "WH"]
+    enum: osd_stats_energy_unit_e
   - name: frsky_unit
     values: ["METRIC", "IMPERIAL"]
     enum: frskyUnit_e
@@ -66,7 +69,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL", "FLOW_RAW"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -81,6 +84,12 @@ tables:
   - name: nav_rth_allow_landing
     values: ["NEVER", "ALWAYS", "FS_ONLY"]
     enum: navRTHAllowLanding_e
+  - name: bat_capacity_unit
+    values: ["MAH", "MWH"]
+    enum: batCapacityUnit_e
+  - name: smartport_fuel_unit
+    values: ["PERCENT", "MAH", "MWH"]
+    enum: smartportFuelUnit_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -153,7 +162,7 @@ groups:
         field: adcFunctionChannel[ADC_AIRSPEED]
         min: ADC_CHN_NONE
         max: ADC_CHN_MAX
-        
+
   - name: PG_ACCELEROMETER_CONFIG
     type: accelerometerConfig_t
     headers: ["sensors/acceleration.h"]
@@ -206,6 +215,9 @@ groups:
     members:
       - name: rangefinder_hardware
         table: rangefinder_hardware
+      - name: rangefinder_median_filter
+        field: use_median_filtering
+        type: bool
 
   - name: PG_OPFLOW_CONFIG
     type: opticalFlowConfig_t
@@ -221,7 +233,7 @@ groups:
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t
     headers: ["sensors/compass.h"]
-    condition: MAG
+    condition: USE_MAG
     members:
       - name: align_mag
         field: mag_align
@@ -248,22 +260,26 @@ groups:
         field: magCalibrationTimeLimit
         min: 30
         max: 120
+      - name: mag_to_use
+        condition: USE_DUAL_MAG
+        min: 0
+        max: 1
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t
     headers: ["sensors/barometer.h"]
-    condition: BARO
+    condition: USE_BARO
     members:
       - name: baro_hardware
         table: baro_hardware
-      - name: baro_use_median_filter
+      - name: baro_median_filter
         field: use_median_filtering
         type: bool
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
     headers: ["sensors/pitotmeter.h"]
-    condition: PITOT
+    condition: USE_PITOT
     members:
       - name: pitot_hardware
         table: pitot_hardware
@@ -309,10 +325,10 @@ groups:
         field: rcSmoothing
         type: bool
       - name: serialrx_provider
-        condition: SERIAL_RX
+        condition: USE_SERIAL_RX
         table: serial_rx
       - name: sbus_inversion
-        condition: SERIAL_RX
+        condition: USE_SERIAL_RX
         type: bool
       - name: rx_spi_protocol
         condition: USE_RX_SPI
@@ -325,7 +341,7 @@ groups:
         min: 0
         max: 8
       - name: spektrum_sat_bind
-        condition: SPEKTRUM_BIND
+        condition: USE_SPEKTRUM_BIND
         min: SPEKTRUM_SAT_BIND_DISABLED
         max: SPEKTRUM_SAT_BIND_MAX
       - name: rx_min_usec
@@ -338,11 +354,11 @@ groups:
         field: halfDuplex
         condition: STM32F4
         type: bool
-        
+
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
     headers: ["blackbox/blackbox.h"]
-    condition: BLACKBOX
+    condition: USE_BLACKBOX
     members:
       - name: blackbox_rate_num
         field: rate_num
@@ -424,6 +440,23 @@ groups:
       - name: failsafe_min_distance_procedure
         table: failsafe_procedure
 
+  - name: PG_LIGHTS_CONFIG
+    type: lightsConfig_t
+    headers: ["io/lights.h"]
+    condition: USE_LIGHTS
+    members:
+      - name: failsafe_lights
+        field: failsafe.enabled
+        type: bool
+      - name: failsafe_lights_flash_period
+        field: failsafe.flash_period
+        min: 40
+        max: 65535
+      - name: failsafe_lights_flash_on_time
+        field: failsafe.flash_on_time
+        min: 20
+        max: 65535
+
   - name: PG_BOARD_ALIGNMENT
     type: boardAlignment_t
     headers: ["sensors/boardalignment.h"]
@@ -454,43 +487,52 @@ groups:
     type: batteryConfig_t
     headers: ["sensors/battery.h"]
     members:
-      - name: battery_capacity
-        field: batteryCapacity
-        min: 0
-        max: 20000
       - name: vbat_scale
-        field: vbatscale
+        field: voltage.scale
         condition: USE_ADC
         min: VBAT_SCALE_MIN
         max: VBAT_SCALE_MAX
       - name: vbat_max_cell_voltage
-        field: vbatmaxcellvoltage
+        field: voltage.cellMax
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
       - name: vbat_min_cell_voltage
-        field: vbatmincellvoltage
+        field: voltage.cellMin
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
       - name: vbat_warning_cell_voltage
-        field: vbatwarningcellvoltage
+        field: voltage.cellWarning
         condition: USE_ADC
-        min: 10
-        max: 50
+        min: 100
+        max: 500
+      - name: battery_capacity
+        field: capacity.value
+        min: 0
+        max: 4294967295
+      - name: battery_capacity_warning
+        field: capacity.warning
+        min: 0
+        max: 4294967295
+      - name: battery_capacity_critical
+        field: capacity.critical
+        min: 0
+        max: 4294967295
+      - name: battery_capacity_unit
+        field: capacity.unit
+        table: bat_capacity_unit
+        type: uint8_t
       - name: current_meter_scale
-        field: currentMeterScale
+        field: current.scale
         min: -10000
         max: 10000
       - name: current_meter_offset
-        field: currentMeterOffset
+        field: current.offset
         min: -3300
         max: 3300
-      - name: multiwii_current_meter_output
-        field: multiwiiCurrentMeterOutput
-        type: bool
       - name: current_meter_type
-        field: currentMeterType
+        field: current.type
         table: current_sensor
         type: uint8_t
 
@@ -548,43 +590,64 @@ groups:
     headers: ["fc/controlrate_profile.h"]
     value_type: CONTROL_RATE_VALUE
     members:
-      - name: rc_expo
-        field: rcExpo8
-        min: 0
-        max: 100
-      - name: rc_yaw_expo
-        field: rcYawExpo8
-        min: 0
-        max: 100
       - name: thr_mid
-        field: thrMid8
+        field: throttle.rcMid8
         min: 0
         max: 100
       - name: thr_expo
-        field: thrExpo8
+        field: throttle.rcExpo8
+        min: 0
+        max: 100
+      - name: tpa_rate
+        field: throttle.dynPID
+        min: 0
+        max: CONTROL_RATE_CONFIG_TPA_MAX
+      - name: tpa_breakpoint
+        field: throttle.pa_breakpoint
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
+      - name: rc_expo
+        field: stabilized.rcExpo8
+        min: 0
+        max: 100
+      - name: rc_yaw_expo
+        field: stabilized.rcYawExpo8
         min: 0
         max: 100
       # New rates are in dps/10. That means, Rate of 20 means 200dps of rotation speed on given axis.
       # Rate 180 (1800dps) is max. value gyro can measure reliably
       - name: roll_rate
-        field: rates[FD_ROLL]
+        field: stabilized.rates[FD_ROLL]
         min: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN
         max: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX
       - name: pitch_rate
-        field: rates[FD_PITCH]
+        field: stabilized.rates[FD_PITCH]
         min: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN
         max: CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX
       - name: yaw_rate
-        field: rates[FD_YAW]
+        field: stabilized.rates[FD_YAW]
         min: CONTROL_RATE_CONFIG_YAW_RATE_MIN
         max: CONTROL_RATE_CONFIG_YAW_RATE_MAX
-      - name: tpa_rate
-        field: dynThrPID
+      - name: manual_rc_expo
+        field: manual.rcExpo8
         min: 0
-        max: CONTROL_RATE_CONFIG_TPA_MAX
-      - name: tpa_breakpoint
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
+        max: 100
+      - name: manual_rc_yaw_expo
+        field: manual.rcYawExpo8
+        min: 0
+        max: 100
+      - name: manual_roll_rate
+        field: manual.rates[FD_ROLL]
+        min: 0
+        max: 100
+      - name: manual_pitch_rate
+        field: manual.rates[FD_PITCH]
+        min: 0
+        max: 100
+      - name: manual_yaw_rate
+        field: manual.rates[FD_YAW]
+        min: 0
+        max: 100
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t
@@ -627,7 +690,7 @@ groups:
 
   - name: PG_GPS_CONFIG
     type: gpsConfig_t
-    condition: GPS
+    condition: USE_GPS
     members:
       - name: gps_provider
         field: provider
@@ -646,6 +709,9 @@ groups:
         type: bool
       - name: gps_auto_baud
         field: autoBaud
+        type: bool
+      - name: gps_ublox_use_galileo
+        field: ubloxUseGalileo
         type: bool
       - name: gps_min_sats
         field: gpsMinSats
@@ -843,98 +909,108 @@ groups:
 
       - name: nav_mc_pos_z_p
         field: bank_mc.pid[PID_POS_Z].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_z_i
         field: bank_mc.pid[PID_POS_Z].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_z_d
         field: bank_mc.pid[PID_POS_Z].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_z_p
         field: bank_mc.pid[PID_VEL_Z].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_z_i
         field: bank_mc.pid[PID_VEL_Z].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_z_d
         field: bank_mc.pid[PID_VEL_Z].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_xy_p
         field: bank_mc.pid[PID_POS_XY].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_xy_i
         field: bank_mc.pid[PID_POS_XY].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_pos_xy_d
         field: bank_mc.pid[PID_POS_XY].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_p
         field: bank_mc.pid[PID_VEL_XY].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_i
         field: bank_mc.pid[PID_VEL_XY].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_mc_vel_xy_d
         field: bank_mc.pid[PID_VEL_XY].D
-        condition: NAV
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_mc_heading_p
+        field: bank_mc.pid[PID_HEADING].P
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_i
         field: bank_fw.pid[PID_POS_Z].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_z_d
         field: bank_fw.pid[PID_POS_Z].D
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_p
         field: bank_fw.pid[PID_POS_XY].P
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_i
         field: bank_fw.pid[PID_POS_XY].I
-        condition: NAV
+        condition: USE_NAV
         min: 0
         max: 255
       - name: nav_fw_pos_xy_d
         field: bank_fw.pid[PID_POS_XY].D
-        condition: NAV
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_fw_heading_p
+        field: bank_fw.pid[PID_HEADING].P
+        condition: USE_NAV
         min: 0
         max: 255
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: NAV
+    condition: USE_NAV
     members:
       - name: fw_autotune_overshoot_time
         field: fw_overshoot_time
@@ -959,7 +1035,7 @@ groups:
 
   - name: PG_POSITION_ESTIMATION_CONFIG
     type: positionEstimationConfig_t
-    condition: NAV
+    condition: USE_NAV
     members:
       - name: inav_auto_mag_decl
         field: automatic_mag_declination
@@ -972,10 +1048,6 @@ groups:
       - name: inav_use_gps_velned
         field: use_gps_velned
         type: bool
-      - name: inav_gps_delay
-        field: gps_delay_ms
-        min: 0
-        max: 500
       - name: inav_reset_altitude
         field: reset_altitude_type
         table: reset_altitude
@@ -1035,7 +1107,7 @@ groups:
   - name: PG_NAV_CONFIG
     type: navConfig_t
     headers: ["navigation/navigation.h"]
-    condition: NAV
+    condition: USE_NAV
     members:
       - name: nav_disarm_on_landing
         field: general.flags.disarm_on_landing
@@ -1166,7 +1238,7 @@ groups:
 
       - name: nav_fw_land_dive_angle
         field: fw.land_dive_angle
-        condition: FIXED_WING_LANDING
+        condition: NAV_FIXED_WING_LANDING
         min: -20
         max: 20
 
@@ -1202,8 +1274,16 @@ groups:
         field: fw.launch_motor_spinup_time
         min: 0
         max: 1000
+      - name: nav_fw_launch_min_time
+        field: fw.launch_min_time
+        min: 0
+        max: 60000
       - name: nav_fw_launch_timeout
         field: fw.launch_timeout
+        max: 60000
+      - name: nav_fw_launch_max_altitude
+        field: fw.launch_max_altitude
+        min: 0
         max: 60000
       - name: nav_fw_launch_climb_angle
         field: fw.launch_climb_angle
@@ -1213,7 +1293,7 @@ groups:
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
     headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky.h"]
-    condition: TELEMETRY
+    condition: USE_TELEMETRY
     members:
       - name: telemetry_switch
         type: bool
@@ -1246,19 +1326,20 @@ groups:
         max: 120
       - name: smartport_uart_unidir
         field: smartportUartUnidirectional
-        condition: TELEMETRY_SMARTPORT
+        condition: USE_TELEMETRY_SMARTPORT
         type: bool
-      - name: smartport_fuel_percent
-        field: smartportFuelPercent
-        condition: TELEMETRY_SMARTPORT
-        type: bool
+      - name: smartport_fuel_unit
+        field: smartportFuelUnit
+        condition: USE_TELEMETRY_SMARTPORT
+        type: uint8_t
+        table: smartport_fuel_unit
       - name: ibus_telemetry_type
         field: ibusTelemetryType
         min: 0
         max: 255
       - name: ltm_update_rate
         field: ltmUpdateRate
-        condition: TELEMETRY_LTM
+        condition: USE_TELEMETRY_LTM
         table: ltm_rates
 
   - name: PG_ELERES_CONFIG
@@ -1295,7 +1376,7 @@ groups:
   - name: PG_LED_STRIP_CONFIG
     type: ledStripConfig_t
     headers: ["common/color.h", "io/ledstrip.h"]
-    condition: LED_STRIP
+    condition: USE_LED_STRIP
     members:
       - name: ledstrip_visual_beeper
         type: bool
@@ -1303,7 +1384,7 @@ groups:
   - name: PG_OSD_CONFIG
     type: osdConfig_t
     headers: ["io/osd.h"]
-    condition: OSD
+    condition: USE_OSD
     members:
       - name: osd_video_system
         field: video_system
@@ -1317,15 +1398,15 @@ groups:
         field: units
         table: osd_unit
         type: uint8_t
+      - name: osd_stats_energy_unit
+        field: stats_energy_unit
+        table: osd_stats_energy_unit
+        type: uint8_t
 
       - name: osd_rssi_alarm
         field: rssi_alarm
         min: 0
         max: 100
-      - name: osd_cap_alarm
-        field: cap_alarm
-        min: 0
-        max: 20000
       - name: osd_time_alarm
         field: time_alarm
         min: 0
@@ -1358,6 +1439,10 @@ groups:
         field: item_pos[OSD_MAIN_BATT_VOLTAGE]
         min: 0
         max: OSD_POS_MAX_CLI
+      - name: osd_main_voltage_decimals
+        field: main_voltage_decimals
+        min: 1
+        max: 2
       - name: osd_rssi_pos
         field: item_pos[OSD_RSSI_VALUE]
         min: 0
@@ -1396,6 +1481,18 @@ groups:
         max: OSD_POS_MAX_CLI
       - name: osd_mah_drawn_pos
         field: item_pos[OSD_MAH_DRAWN]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_wh_drawn_pos
+        field: item_pos[OSD_WH_DRAWN]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_bat_remaining_capacity_pos
+        field: item_pos[OSD_BATTERY_REMAINING_CAPACITY]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_bat_remaining_percent_pos
+        field: item_pos[OSD_BATTERY_REMAINING_PERCENT]
         min: 0
         max: OSD_POS_MAX_CLI
       - name: osd_craft_name_pos
@@ -1479,8 +1576,11 @@ groups:
       - name: osd_heading_graph_pos
         field: item_pos[OSD_HEADING_GRAPH]
         max: OSD_POS_MAX_CLI
-      - name: osd_efficiency_pos
-        field: item_pos[OSD_EFFICIENCY]
+      - name: osd_efficiency_mah_pos
+        field: item_pos[OSD_EFFICIENCY_MAH_PER_KM]
+        max: OSD_POS_MAX_CLI
+      - name: osd_efficiency_wh_pos
+        field: item_pos[OSD_EFFICIENCY_WH_PER_KM]
         max: OSD_POS_MAX_CLI
 
   - name: PG_SYSTEM_CONFIG
@@ -1498,17 +1598,17 @@ groups:
         table: debug_modes
       - name: acc_task_frequency
         field: accTaskFrequency
-        condition: ASYNC_GYRO_PROCESSING
+        condition: USE_ASYNC_GYRO_PROCESSING
         min: ACC_TASK_FREQUENCY_MIN
         max: ACC_TASK_FREQUENCY_MAX
       - name: attitude_task_frequency
         field: attitudeTaskFrequency
-        condition: ASYNC_GYRO_PROCESSING
+        condition: USE_ASYNC_GYRO_PROCESSING
         min: ATTITUDE_TASK_FREQUENCY_MIN
         max: ATTITUDE_TASK_FREQUENCY_MAX
       - name: async_mode
         field: asyncMode
-        condition: ASYNC_GYRO_PROCESSING
+        condition: USE_ASYNC_GYRO_PROCESSING
         table: async_mode
       - name: throttle_tilt_comp_str
         field: throttle_tilt_compensation_strength
@@ -1530,7 +1630,7 @@ groups:
   - name: PG_STATS_CONFIG
     type: statsConfig_t
     headers: ["fc/stats.h"]
-    condition: STATS
+    condition: USE_STATS
     members:
       - name: stats
         field: stats_enabled
@@ -1547,3 +1647,11 @@ groups:
       - name: tz_offset
         min: -1440
         max: 1440
+
+  - name: PG_DISPLAY_CONFIG
+    type: displayConfig_t
+    headers: ["drivers/display.h"]
+    members:
+      - name: display_force_sw_blink
+        field: force_sw_blink
+        type: bool

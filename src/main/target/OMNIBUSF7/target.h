@@ -23,47 +23,53 @@
 #define USBD_PRODUCT_STRING "OmnibusF7"
 #endif
 
+// Use target-specific hardware descriptors (don't use common_hardware.h)
+#define USE_TARGET_HARDWARE_DESCRIPTORS
+
 #define LED0   PE0
 
 #define BEEPER   PD15
 #define BEEPER_INVERTED
 
-#define ACC
-#define GYRO
+#define USE_ACC
+#define USE_GYRO
 #define USE_DUAL_GYRO
 
 // ICM-20608-G
 #define USE_ACC_MPU6500
-#define USE_ACC_SPI_MPU6500
 #define USE_GYRO_MPU6500
-#define USE_GYRO_SPI_MPU6500
 
 // MPU6000
 #define USE_ACC_MPU6000
-#define USE_ACC_SPI_MPU6000
 #define USE_GYRO_MPU6000
-#define USE_GYRO_SPI_MPU6000
 
 #ifdef OMNIBUSF7V2
-#   define MPU6000_CS_PIN          SPI1_NSS_PIN
-#   define MPU6000_SPI_INSTANCE    SPI1
-#   define MPU6500_CS_PIN          SPI3_NSS_PIN
-#   define MPU6500_SPI_INSTANCE    SPI3
-#   define GYRO_1_CS_PIN           MPU6500_CS_PIN
-#   define GYRO_0_CS_PIN           MPU6000_CS_PIN
-#   define GYRO_1_INT_EXTI         PD0
-#   define GYRO_0_INT_EXTI         PE8
-#   define GYRO_MPU6500_ALIGN      CW90_DEG
-#   define ACC_MPU6500_ALIGN       CW90_DEG
+#   define MPU6000_CS_PIN           SPI1_NSS_PIN
+#   define MPU6000_SPI_BUS          BUS_SPI1
+#   define MPU6000_EXTI_PIN         PE8
+
+#   define MPU6500_CS_PIN           SPI3_NSS_PIN
+#   define MPU6500_SPI_BUS          BUS_SPI3
+#   define MPU6500_EXTI_PIN         PD0
+// #   define GYRO_1_CS_PIN           MPU6500_CS_PIN
+// #   define GYRO_0_CS_PIN           MPU6000_CS_PIN
+// #   define GYRO_1_INT_EXTI         PD0
+// #   define GYRO_0_INT_EXTI         PE8
+#   define GYRO_MPU6500_ALIGN       CW90_DEG
+#   define ACC_MPU6500_ALIGN        CW90_DEG
 #else
-#   define MPU6000_CS_PIN          SPI3_NSS_PIN
-#   define MPU6000_SPI_INSTANCE    SPI3
-#   define MPU6500_CS_PIN          SPI1_NSS_PIN
-#   define MPU6500_SPI_INSTANCE    SPI1
-#   define GYRO_0_CS_PIN           MPU6000_CS_PIN
-#   define GYRO_1_CS_PIN           MPU6500_CS_PIN
-#   define GYRO_0_INT_EXTI         PD0
-#   define GYRO_1_INT_EXTI         PE8
+#   define MPU6000_CS_PIN           SPI3_NSS_PIN
+#   define MPU6000_SPI_BUS          BUS_SPI3
+#   define MPU6000_EXTI_PIN         PD0
+
+#   define MPU6500_CS_PIN           SPI1_NSS_PIN
+#   define MPU6500_SPI_BUS          BUS_SPI1
+#   define MPU6500_EXTI_PIN         PE8
+
+// #   define GYRO_0_CS_PIN           MPU6000_CS_PIN
+// #   define GYRO_1_CS_PIN           MPU6500_CS_PIN
+// #   define GYRO_0_INT_EXTI         PD0
+// #   define GYRO_1_INT_EXTI         PE8
 #   define GYRO_MPU6000_ALIGN      CW0_DEG
 #   define ACC_MPU6000_ALIGN       CW0_DEG
 #endif
@@ -73,7 +79,6 @@
 
 #define USABLE_TIMER_CHANNEL_COUNT 5
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN PC4
 
@@ -88,8 +93,8 @@
 
 // Assigned to shared output I2C2
 #define USE_UART3
-#define UART3_RX_PIN PB10
-#define UART3_TX_PIN PB11
+#define UART3_RX_PIN PB11
+#define UART3_TX_PIN PB10
 
 #define USE_UART6
 #define UART6_RX_PIN PC7
@@ -135,12 +140,10 @@
 #define SPI4_MOSI_PIN           PE6
 
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI2
-#define MAX7456_SPI_CS_PIN      SPI2_NSS_PIN
-#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
+#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          SPI2_NSS_PIN
 
 #define USE_SDCARD
 #define SDCARD_DETECT_INVERTED
@@ -159,23 +162,25 @@
 #define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
-#define I2C_DEVICE_SHARES_UART3
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 
-#define BARO
-#define USE_BARO_BMP085
-#define USE_BARO_MS5611
+#define USE_BARO
 #define USE_BARO_BMP280
-#define USE_BARO_SPI_BMP280
-#define BMP280_SPI_INSTANCE     SPI1
+#define BMP280_SPI_BUS          BUS_SPI1
 #define BMP280_CS_PIN           PA1
 
-#define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
+#define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
 #define USE_MAG_MAG3110
+
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
 
@@ -187,7 +192,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-// #define LED_STRIP
+// #define USE_LED_STRIP
 
 //Following configuration needs to be reviewed, when LED is enabled, VCP stops to work
 //Until someone with deeper knowledge od DMA fixes it, LED are disabled in target

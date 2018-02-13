@@ -28,43 +28,50 @@
 #define BEEPER_INVERTED
 
 #define MPU6000_CS_PIN        PA4
-#define MPU6000_SPI_INSTANCE  SPI1
+#define MPU6000_SPI_BUS       BUS_SPI1
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN CW270_DEG
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN CW270_DEG
 
 // MPU6000 interrupts
 #define USE_MPU_DATA_READY_SIGNAL
-#define MPU_INT_EXTI PC4
+#define MPU_INT_EXTI            PC4
 #define USE_EXTI
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
-#define MAG_I2C_INSTANCE I2C_DEVICE_EXT
-#define MAG_HMC5883_ALIGN CW270_DEG_FLIP
-//#define MAG_HMC5883_ALIGN CW90_DEG
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
-#define BARO
-#define USE_BARO_MS5611
+#define USE_BARO
 
 #ifdef ANYFCF7_EXTERNAL_BARO
+    #define BARO_I2C_BUS        BUS_I2C2
+    #define USE_BARO_MS5611
     #define USE_BARO_BMP085
     #define USE_BARO_BMP280
-    #define BARO_I2C_INSTANCE I2C_DEVICE_EXT
+#else
+    #define BARO_I2C_BUS        BUS_I2C4
+    #define USE_BARO_MS5611
 #endif
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE I2C_DEVICE_EXT
+#define PITOT_I2C_BUS           BUS_I2C2
+
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define USABLE_TIMER_CHANNEL_COUNT 16
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN PA8
 
@@ -104,6 +111,7 @@
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
+#define USE_SPI_DEVICE_3
 #define USE_SPI_DEVICE_4
 
 #define SPI1_NSS_PIN            PA4
@@ -111,10 +119,20 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
+#define SPI3_NSS_PIN            PD2
+#define SPI3_SCK_PIN            PC10
+#define SPI3_MISO_PIN           PC11
+#define SPI3_MOSI_PIN           PC12
+
 #define SPI4_NSS_PIN            PE11
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
+
+#define USE_OSD
+#define USE_MAX7456
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          SPI3_NSS_PIN
 
 #define USE_SDCARD
 
@@ -137,8 +155,7 @@
 
 #define USE_I2C
 #define USE_I2C_DEVICE_4
-#define I2C_DEVICE (I2CDEV_4)
-#define I2C_DEVICE_EXT (I2CDEV_2)
+#define USE_I2C_DEVICE_2
 //#define USE_I2C_PULLUP
 
 //#define HIL
@@ -147,7 +164,7 @@
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
-#define NAV
+#define USE_NAV
 #define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 
@@ -159,7 +176,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 
 // LED Strip can run off Pin 6 (PA0) of the ESC outputs.
 #define WS2811_PIN                      PA1

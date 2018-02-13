@@ -47,10 +47,10 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXCAMSTAB, "CAMSTAB;", 8 },
     { BOXNAVRTH, "NAV RTH;", 10 },         // old GPS HOME
     { BOXNAVPOSHOLD, "NAV POSHOLD;", 11 },     // old GPS HOLD
-    { BOXPASSTHRU, "PASSTHRU;", 12 },
+    { BOXMANUAL, "MANUAL;", 12 },
     { BOXBEEPERON, "BEEPER;", 13 },
     { BOXLEDLOW, "LEDLOW;", 15 },
-    { BOXLLIGHTS, "LLIGHTS;", 16 },
+    { BOXLIGHTS, "LIGHTS;", 16 },
     { BOXOSD, "OSD SW;", 19 },
     { BOXTELEMETRY, "TELEMETRY;", 20 },
     { BOXAUTOTUNE, "AUTO TUNE;", 21 },
@@ -170,11 +170,12 @@ void initActiveBoxIds(void)
     if (feature(FEATURE_SERVO_TILT))
         activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
-#ifdef GPS
+#ifdef USE_GPS
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING) && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
+
     if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
@@ -185,8 +186,10 @@ void initActiveBoxIds(void)
 #endif
 
     if (STATE(FIXED_WING)) {
-        activeBoxIds[activeBoxIdCount++] = BOXPASSTHRU;
-        activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
+        activeBoxIds[activeBoxIdCount++] = BOXMANUAL;
+        if (!feature(FEATURE_FW_LAUNCH)) {
+           activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
+        }
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
 #if defined(AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
@@ -205,7 +208,11 @@ void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXBEEPERON;
 
-#ifdef LED_STRIP
+#ifdef USE_LIGHTS
+    activeBoxIds[activeBoxIdCount++] = BOXLIGHTS;
+#endif
+
+#ifdef USE_LED_STRIP
     if (feature(FEATURE_LED_STRIP)) {
         activeBoxIds[activeBoxIdCount++] = BOXLEDLOW;
     }
@@ -213,12 +220,12 @@ void initActiveBoxIds(void)
 
     activeBoxIds[activeBoxIdCount++] = BOXOSD;
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY) && telemetryConfig()->telemetry_switch)
         activeBoxIds[activeBoxIdCount++] = BOXTELEMETRY;
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     if (feature(FEATURE_BLACKBOX)){
         activeBoxIds[activeBoxIdCount++] = BOXBLACKBOX;
     }
@@ -251,10 +258,10 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)),        BOXHEADFREE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)),     BOXHEADADJ);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)),     BOXCAMSTAB);
-    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(PASSTHRU_MODE)),        BOXPASSTHRU);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(MANUAL_MODE)),          BOXMANUAL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)),    BOXBEEPERON);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)),      BOXLEDLOW);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLLIGHTS)),     BOXLLIGHTS);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLIGHTS)),      BOXLIGHTS);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSD)),         BOXOSD);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTELEMETRY)),   BOXTELEMETRY);
     CHECK_ACTIVE_BOX(IS_ENABLED(ARMING_FLAG(ARMED)),                BOXARM);

@@ -100,7 +100,7 @@ static void uartReconfigure(uartPort_t *uartPort)
     USART_Cmd(uartPort->USARTx, ENABLE);
 }
 
-serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback, uint32_t baudRate, portMode_t mode, portOptions_t options)
+serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s = NULL;
 
@@ -130,6 +130,14 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
     } else if (USARTx == USART6) {
         s = serialUART6(baudRate, mode, options);
 #endif
+#ifdef USE_UART7
+    } else if (USARTx == UART7) {
+        s = serialUART7(baudRate, mode, options);
+#endif
+#ifdef USE_UART8
+    } else if (USARTx == UART8) {
+        s = serialUART8(baudRate, mode, options);
+#endif
 
     } else {
         return (serialPort_t *)s;
@@ -141,6 +149,7 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
     s->port.txBufferHead = s->port.txBufferTail = 0;
     // callback works for IRQ-based RX ONLY
     s->port.rxCallback = rxCallback;
+    s->port.rxCallbackData = rxCallbackData;
     s->port.mode = mode;
     s->port.baudRate = baudRate;
     s->port.options = options;
@@ -439,6 +448,7 @@ const struct serialPortVTable uartVTable[] = {
         .serialSetBaudRate = uartSetBaudRate,
         .isSerialTransmitBufferEmpty = isUartTransmitBufferEmpty,
         .setMode = uartSetMode,
+        .isConnected = NULL,
         .writeBuf = NULL,
         .beginWrite = NULL,
         .endWrite = NULL,

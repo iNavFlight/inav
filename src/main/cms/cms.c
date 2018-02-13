@@ -31,7 +31,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -328,7 +328,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, OSD_Entry *p, uint8_t row)
         }
         break;
 
-#ifdef OSD
+#ifdef USE_OSD
     case OME_VISIBLE:
         if (IS_PRINTVALUE(p) && p->data) {
             uint16_t *val = (uint16_t *)p->data;
@@ -845,7 +845,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             }
             break;
 
-#ifdef OSD
+#ifdef USE_OSD
         case OME_VISIBLE:
             if (p->data) {
                 uint16_t *val = (uint16_t *)p->data;
@@ -1149,10 +1149,18 @@ void cmsUpdate(uint32_t currentTimeUs)
                     if (repeatBase == 0)
                         repeatBase = holdCount;
 
-                    repeatCount = repeatCount + (holdCount - repeatBase) / 5;
+                    if (holdCount < 100) {
+                        repeatCount = repeatCount + (holdCount - repeatBase) / 5;
 
-                    if (repeatCount > 5) {
-                        repeatCount= 5;
+                        if (repeatCount > 5) {
+                            repeatCount= 5;
+                        }
+                    } else {
+                        repeatCount = repeatCount + holdCount - repeatBase;
+
+                        if (repeatCount > 50) {
+                            repeatCount= 50;
+                        }
                     }
                 }
             }

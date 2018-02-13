@@ -17,15 +17,10 @@
 
 #pragma once
 
+#include "common/axis.h"
 #include "common/maths.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
-
-#define GRAVITY_CMSS    980.665f
-#define GRAVITY_MSS     9.80665f
-
-extern int16_t throttleAngleCorrection;
-extern int16_t smallAngle;
 
 extern t_fp_vector imuMeasuredAccelBF;         // cm/s/s
 extern t_fp_vector imuMeasuredRotationBF;       // rad/s
@@ -64,7 +59,6 @@ void imuConfigure(void);
 
 void imuUpdateAttitude(timeUs_t currentTimeUs);
 void imuUpdateAccelerometer(void);
-void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);

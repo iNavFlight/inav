@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(NAV)
+#if defined(USE_NAV)
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -151,7 +151,7 @@ void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
         return;
     }
 
-    if (posControl.flags.hasValidAltitudeSensor) {
+    if ((posControl.flags.estAltStatus >= EST_USABLE)) {
         if (posControl.flags.verticalPositionDataNew) {
             const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
             previousTimePositionUpdate = currentTimeUs;
@@ -330,7 +330,7 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
     }
 
     // Apply controller only if position source is valid. In absence of valid pos sensor (GPS loss), we'd stick in forced ANGLE mode
-    if (posControl.flags.hasValidPositionSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE)) {
         // If we have new position - update velocity and acceleration controllers
         if (posControl.flags.horizontalPositionDataNew) {
             const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
@@ -378,7 +378,7 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
     }
 
     // Apply controller only if position source is valid
-    if (posControl.flags.hasValidPositionSensor) {
+    if ((posControl.flags.estPosStatue >= EST_USABLE)) {
         // If we have new position - update velocity and acceleration controllers
         if (posControl.flags.horizontalPositionDataNew) {
             const timeDelta_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
@@ -428,7 +428,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         pitchCorrection += posControl.rcAdjustment[PITCH];
         throttleCorrection += DECIDEGREES_TO_DEGREES(pitchCorrection) * navConfig()->fw.pitch_to_throttle;
 
-#ifdef FIXED_WING_LANDING
+#ifdef NAV_FIXED_WING_LANDING
         if (navStateFlags & NAV_CTL_LAND) {
             /*
              * During LAND we do not allow to raise THROTTLE when nose is up
@@ -438,7 +438,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         } else {
 #endif
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-#ifdef FIXED_WING_LANDING
+#ifdef NAV_FIXED_WING_LANDING
         }
 #endif
     }
@@ -467,13 +467,14 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[THROTTLE] = constrain(correctedThrottleValue, motorConfig()->minthrottle, motorConfig()->maxthrottle);
     }
 
-#ifdef FIXED_WING_LANDING
+#ifdef NAV_FIXED_WING_LANDING
     /*
      * Then altitude is below landing slowdown min. altitude, enable final approach procedure
      * TODO refactor conditions in this metod if logic is proven to be correct
      */
     if (navStateFlags & NAV_CTL_LAND) {
-        if (posControl.flags.hasValidAltitudeSensor && posControl.actualState.pos.V.Z < navConfig()->general.land_slowdown_minalt) {
+        if ( ((posControl.flags.estAltStatus >= EST_USABLE) && (posControl.actualState.pos.V.Z <= navConfig()->general.land_slowdown_minalt)) ||
+             ((posControl.flags.estSurfaceStatus == EST_TRUSTED) && (posControl.actualState.surface <= navConfig()->general.land_slowdown_minalt)) ) {
             /*
              * Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
              */
@@ -481,7 +482,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
             /*
-             * Stabilize ROLL axis on 0 degress banking regardless of loiter radius and position
+             * Stabilize ROLL axis on 0 degrees banking regardless of loiter radius and position
              */
             rcCommand[ROLL] = 0;
 
@@ -523,7 +524,7 @@ void applyFixedWingEmergencyLandingController(void)
     // FIXME: Use altitude controller if available (similar to MC code)
     rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
     rcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
-    rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->rates[FD_YAW]);
+    rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
     rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
 }
 

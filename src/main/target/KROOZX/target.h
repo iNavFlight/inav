@@ -32,30 +32,32 @@
 #define INVERTER_PIN_UART6      PB12
 
 #define MPU6000_CS_PIN          PB2
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 // MPU6000 interrupts
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 #define MPU_INT_EXTI            PA4
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW90_DEG_FLIP
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW90_DEG_FLIP
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
-#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
-#define MAG_I2C_INSTANCE        I2CDEV_1
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_MS5611
-#define BARO_I2C_INSTANCE       I2CDEV_3
 
 #define USE_SDCARD
 #define SDCARD_DETECT_INVERTED
@@ -68,15 +70,14 @@
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 
-#define OSD
+#define USE_OSD
 #ifdef USE_MSP_DISPLAYPORT
 #undef USE_MSP_DISPLAYPORT
 #endif
+
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI1
-#define MAX7456_SPI_CS_PIN      PC4
-#define MAX7456_SPI_CLK         SPI_CLOCK_STANDARD
-#define MAX7456_RESTORE_CLK     SPI_CLOCK_FAST
+#define MAX7456_SPI_BUS         BUS_SPI1
+#define MAX7456_CS_PIN          PC4
 
 #define OSD_CH_SWITCH           PC5
 
@@ -89,7 +90,6 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define USB_IO
 #define USE_VCP
 
 #define USE_UART1
@@ -115,10 +115,12 @@
 #define SERIAL_PORT_COUNT       6
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_3)
+
+#define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
+
+#define USE_I2C_DEVICE_3
 #define I2C3_SCL                PA8
 #define I2C3_SDA                PC9
 
@@ -142,7 +144,7 @@
 #define RX_CHANNELS_TAER
 #define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD)
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_GPIO_AF                  GPIO_AF_TIM3
 #define WS2811_PIN                      PC6
 #define WS2811_TIMER                    TIM3

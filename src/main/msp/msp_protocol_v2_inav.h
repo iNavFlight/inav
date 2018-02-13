@@ -15,4 +15,15 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//#define MSP2_INAV_STATUS            0x1000
+// iNav specific IDs start from 0x2000
+// See https://github.com/iNavFlight/inav/wiki/MSP-V2#msp-v2-message-catalogue
+
+#define MSP2_INAV_STATUS                        0x2000
+#define MSP2_INAV_OPTICAL_FLOW                  0x2001
+#define MSP2_INAV_ANALOG                        0x2002
+#define MSP2_INAV_MISC                          0x2003
+#define MSP2_INAV_SET_MISC                      0x2004
+#define MSP2_INAV_BATTERY_CONFIG                0x2005
+#define MSP2_INAV_SET_BATTERY_CONFIG            0x2006
+#define MSP2_INAV_RATE_PROFILE                  0x2007
+#define MSP2_INAV_SET_RATE_PROFILE              0x2008

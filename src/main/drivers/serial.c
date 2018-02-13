@@ -102,3 +102,12 @@ void serialEndWrite(serialPort_t *instance)
     if (instance->vTable->endWrite)
         instance->vTable->endWrite(instance);
 }
+
+bool serialIsConnected(const serialPort_t *instance)
+{
+    if (instance->vTable->isConnected)
+        instance->vTable->isConnected(instance);
+
+    // If API is not defined - assume connected
+    return true;
+}

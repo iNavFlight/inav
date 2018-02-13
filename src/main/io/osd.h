@@ -61,7 +61,11 @@ typedef enum {
     OSD_MAIN_BATT_CELL_VOLTAGE,
     OSD_THROTTLE_POS_AUTO_THR,
     OSD_HEADING_GRAPH,
-    OSD_EFFICIENCY,
+    OSD_EFFICIENCY_MAH_PER_KM,
+    OSD_WH_DRAWN,
+    OSD_BATTERY_REMAINING_CAPACITY,
+    OSD_BATTERY_REMAINING_PERCENT,
+    OSD_EFFICIENCY_WH_PER_KM,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -70,6 +74,11 @@ typedef enum {
     OSD_UNIT_METRIC,
     OSD_UNIT_UK, // Show speed in mp/h, other values in metric
 } osd_unit_e;
+
+typedef enum {
+    OSD_STATS_ENERGY_UNIT_MAH,
+    OSD_STATS_ENERGY_UNIT_WH,
+} osd_stats_energy_unit_e;
 
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
@@ -88,7 +97,6 @@ typedef struct osdConfig_s {
 
     // Alarms
     uint8_t rssi_alarm; // rssi %
-    uint16_t cap_alarm; // used mah
     uint16_t time_alarm; // fly minutes
     uint16_t alt_alarm; // positive altitude in m
     uint16_t dist_alarm; // home distance in m
@@ -98,6 +106,7 @@ typedef struct osdConfig_s {
     uint8_t row_shiftdown;
 
     // Preferences
+    uint8_t main_voltage_decimals;
     uint8_t ahi_reverse_roll;
     osd_crosshairs_style_e crosshairs_style;
     osd_sidebar_scroll_e left_sidebar_scroll;
@@ -105,6 +114,7 @@ typedef struct osdConfig_s {
     uint8_t sidebar_scroll_arrows;
 
     osd_unit_e units;
+    osd_stats_energy_unit_e stats_energy_unit;
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

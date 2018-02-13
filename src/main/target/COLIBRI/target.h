@@ -39,22 +39,25 @@
 #define INVERTER_PIN_UART2      PB2 // PB2 used as inverter select GPIO
 
 #define MPU6000_CS_PIN          PC4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 
 // MPU6000 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PC0
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C3
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #ifdef QUANTON
 #define ACC_MPU6000_ALIGN       CW90_DEG
@@ -66,20 +69,16 @@
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #endif
 
-#define MAG_INT_EXTI            PC1
-#define USE_MAG_DATA_READY_SIGNAL
-#define ENSURE_MAG_DATA_READY_IS_HIGH
-
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_MS5611
 
 #define M25P16_CS_PIN           PB12
-#define M25P16_SPI_INSTANCE     SPI2
+#define M25P16_SPI_BUS          BUS_SPI2
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9
 
@@ -121,14 +120,21 @@
 #define SPI2_MOSI_PIN           PC3
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_3)
+#define USE_I2C_DEVICE_3
 #define I2C3_SCL                PA8
 #define I2C3_SDA                PC9
 
 #define USE_RANGEFINDER
+
 #define USE_RANGEFINDER_HCSR04
-#define RANGEFINDER_HCSR04_TRIGGER_PIN       PB8
-#define RANGEFINDER_HCSR04_ECHO_PIN          PB9
+#define RANGEFINDER_HCSR04_TRIGGER_PIN      PB8
+#define RANGEFINDER_HCSR04_ECHO_PIN         PB9
+
+#define USE_RANGEFINDER_SRF10
+#define SRF10_I2C_BUS                       BUS_I2C3
+
+#define USE_RANGEFINDER_VL53L0X
+#define VL53L0X_I2C_BUS                     BUS_I2C3
 
 #define TARGET_CONFIG
 
@@ -149,4 +155,4 @@
 #define USABLE_TIMER_CHANNEL_COUNT 17
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(10) | TIM_N(11))
 
-#undef PITOT
+#undef USE_PITOT

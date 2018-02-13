@@ -34,30 +34,23 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 
+#define MPU6500_SPI_BUS         BUS_SPI2
 #define MPU6500_CS_PIN          PB12
-#define MPU6500_SPI_INSTANCE    SPI2
 
-#define BMP280_SPI_INSTANCE     SPI2
+#define BMP280_SPI_BUS          BUS_SPI2
 #define BMP280_CS_PIN           PB5
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO
+#define USE_GYRO_MPU6500
 #define GYRO_MPU6500_ALIGN      CW0_DEG
 
-#define ACC
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC
+#define USE_ACC_MPU6500
 #define ACC_MPU6500_ALIGN       CW0_DEG
 
-#define BARO
-#define USE_BARO_SPI_BMP280
+#define USE_BARO
+#define USE_BARO_BMP280
 
-#define MAG
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-
-#define USE_PITOT_MS4525
 #define USE_PITOT_ADC
 
 #define USE_UART1
@@ -91,7 +84,7 @@
 
 
 /*
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_TIMER                    TIM3
 #define WS2811_PIN                      PA6
 #define WS2811_DMA_CHANNEL              DMA1_Channel6
@@ -107,15 +100,18 @@
 
 #ifdef AIRHEROF3_QUAD
     #define USE_I2C
-    #define I2C_DEVICE  (I2CDEV_1) // SDA (PB9/AF4), SCL (PB8/AF4)
+    #define USE_I2C_DEVICE_1    // SDA (PB9/AF4), SCL (PB8/AF4)
 
     #define I2C1_SCL    PB8
     #define I2C1_SDA    PB9
 
     // MAG is I2C, so it is only useful when I2C is available
-    #define MAG
+    #define USE_MAG
+    #define MAG_I2C_BUS                 BUS_I2C1
     #define USE_MAG_HMC5883
     #define USE_MAG_MAG3110
+    #define USE_MAG_QMC5883
+    #define USE_MAG_IST8310
 
     #define MAX_PWM_OUTPUT_PORTS        8
     #define TARGET_MOTOR_COUNT          4
@@ -126,7 +122,7 @@
     #define USABLE_TIMER_CHANNEL_COUNT  12
 #endif
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART3,
 #define BIND_PIN                PB11
 
