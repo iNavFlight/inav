@@ -2396,6 +2396,12 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     } else {
         ret = mspFcProcessInCommand(cmdMSP, src);
     }
+
+    // Process DONT_REPLY flag
+    if (cmd->flags & MSP_FLAG_DONT_REPLY) {
+        ret = MSP_RESULT_NO_REPLY;
+    }
+
     reply->result = ret;
     return ret;
 }
