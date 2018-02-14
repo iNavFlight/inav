@@ -128,7 +128,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         memcpy(lastFuselageDirection, fuselageDirection, sizeof(lastFuselageDirection));
         memcpy(lastGroundVelocity, groundVelocity, sizeof(lastGroundVelocity));
 
-        float theta = atan2f(groundVelocityDiff[1], groundVelocityDiff[0]) - atan2f(groundVelocityDiff[1], groundVelocityDiff[0]);// equation 9
+        float theta = atan2f(groundVelocityDiff[1], groundVelocityDiff[0]) - atan2f(fuselageDirectionDiff[1], fuselageDirectionDiff[0]);// equation 9
         float sintheta = sinf(theta);
         float costheta = cosf(theta);
 
