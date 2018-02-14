@@ -45,6 +45,8 @@
 
 #include "io/beeper.h"
 
+#include "sensors/boardalignment.h"
+
 #include "rx/rx.h"
 
 PG_REGISTER_ARRAY(adjustmentRange_t, MAX_ADJUSTMENT_RANGE_COUNT, adjustmentRanges, PG_ADJUSTMENT_RANGE_CONFIG, 0);
@@ -174,6 +176,14 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_NAV_FW_PITCH2THR,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_ROLL_BOARD_ALIGNMENT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_PITCH_BOARD_ALIGNMENT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
     }, {
         .adjustmentFunction = ADJUSTMENT_PROFILE,
@@ -395,6 +405,14 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             newValue = constrain((int8_t)navConfig()->fw.pitch_to_throttle + delta, 0, 100);
             navConfigMutable()->fw.pitch_to_throttle = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_NAV_FW_PITCH2THR, newValue);
+            break;
+        case ADJUSTMENT_ROLL_BOARD_ALIGNMENT:
+            updateBoardAlignment(delta, 0);
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_ROLL_BOARD_ALIGNMENT, boardAlignment()->rollDeciDegrees);
+            break;
+        case ADJUSTMENT_PITCH_BOARD_ALIGNMENT:
+            updateBoardAlignment(0, delta);
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_PITCH_BOARD_ALIGNMENT, boardAlignment()->pitchDeciDegrees);
             break;
         default:
             break;
