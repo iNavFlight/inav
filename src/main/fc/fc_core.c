@@ -273,6 +273,13 @@ static void updateArmingStatus(void)
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
         }
+        /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
+        if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+	    ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+	    } 
+        else {
+	    DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+	    }
 
         if (isArmingDisabled()) {
             warningLedFlash();

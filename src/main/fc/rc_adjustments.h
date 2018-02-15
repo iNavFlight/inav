@@ -55,8 +55,10 @@ typedef enum {
     ADJUSTMENT_MANUAL_YAW_RATE          = 27,
     ADJUSTMENT_NAV_FW_CRUISE_THR        = 28,
     ADJUSTMENT_NAV_FW_PITCH2THR         = 29,
+    ADJUSTMENT_ROLL_BOARD_ALIGNMENT     = 30,
+    ADJUSTMENT_PITCH_BOARD_ALIGNMENT    = 31,
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
-    ADJUSTMENT_PROFILE                  = 30,
+    ADJUSTMENT_PROFILE                  = 32,
 #endif
     ADJUSTMENT_FUNCTION_COUNT // must be last
 } adjustmentFunction_e;

@@ -47,6 +47,10 @@ int16_t debug[DEBUG16_VALUE_COUNT];
 uint8_t debugMode;
 
 #if defined(USE_DEBUG_TRACE)
+
+#define DEBUG_TRACE_PREFIX                  "[%6d.%03d] "
+#define DEBUG_TRACE_PREFIX_FORMATTED_SIZE   13
+
 static serialPort_t * tracePort = NULL;
 static mspPort_t * mspTracePort = NULL;
 
@@ -105,6 +109,27 @@ static void debugTracePutcp(void *p, char ch)
     *(*((char **) p))++ = ch;
 }
 
+static void debugTracePrint(bool synchronous, const char *buf, size_t size)
+{
+    if (tracePort) {
+        // Send data via trace UART (if configured & connected - a safeguard against zombie VCP)
+        if (serialIsConnected(tracePort)) {
+            serialPrint(tracePort, buf);
+            if (synchronous) {
+                waitForSerialPortToFinishTransmitting(tracePort);
+            }
+        }
+    } else if (mspTracePort) {
+        mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, size, mspTracePort, MSP_V2_NATIVE);
+    }
+}
+
+static size_t debugTraceFormatPrefix(char *buf, const timeMs_t timeMs)
+{
+    // Write timestamp
+    return tfp_sprintf(buf, DEBUG_TRACE_PREFIX, timeMs / 1000, timeMs % 1000);
+}
+
 void debugTracePrintf(bool synchronous, const char *format, ...)
 {
     char buf[128];
@@ -116,9 +141,7 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
     if (!feature(FEATURE_DEBUG_TRACE))
         return;
 
-    // Write timestamp
-    const timeMs_t timeMs = millis();
-    charCount = tfp_sprintf(buf, "[%6d.%03d] ", timeMs / 1000, timeMs % 1000);
+    charCount = debugTraceFormatPrefix(buf, millis());
     bufPtr = &buf[charCount];
 
     // Write message
@@ -130,16 +153,38 @@ void debugTracePrintf(bool synchronous, const char *format, ...)
     charCount += 2;
     va_end(va);
 
-    if (tracePort) {
-        // Send data via trace UART (if configured & connected - a safeguard against zombie VCP)
-        if (serialIsConnected(tracePort)) {
-            serialPrint(tracePort, buf);
-            if (synchronous) {
-                waitForSerialPortToFinishTransmitting(tracePort);
-            }
+    debugTracePrint(synchronous, buf, charCount);
+}
+
+void debugTracePrintBufferHex(bool synchronous, const void *buffer, size_t size)
+{
+    // Print lines of up to maxBytes bytes. We need 5 characters per byte
+    // 0xAB[space|\n]
+    const size_t charsPerByte = 5;
+    const size_t maxBytes = 8;
+    char buf[DEBUG_TRACE_PREFIX_FORMATTED_SIZE + charsPerByte * maxBytes + 1]; // +1 for the null terminator
+    size_t bufPos = DEBUG_TRACE_PREFIX_FORMATTED_SIZE;
+    const uint8_t *inputPtr = buffer;
+
+    debugTraceFormatPrefix(buf, millis());
+
+    for (size_t ii = 0; ii < size; ii++) {
+        tfp_sprintf(buf + bufPos, "0x%02x ", inputPtr[ii]);
+        bufPos += charsPerByte;
+        if (bufPos == sizeof(buf)-1) {
+            buf[bufPos-1] = '\n';
+            buf[bufPos] = '\0';
+            debugTracePrint(synchronous, buf, bufPos + 1);
+            bufPos = DEBUG_TRACE_PREFIX_FORMATTED_SIZE;
         }
-    } else if (mspTracePort) {
-        mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, charCount, mspTracePort, MSP_V2_NATIVE);
+    }
+
+    if (bufPos > DEBUG_TRACE_PREFIX_FORMATTED_SIZE) {
+        buf[bufPos-1] = '\n';
+        buf[bufPos] = '\0';
+        debugTracePrint(synchronous, buf, bufPos + 1);
     }
 }
+
+
 #endif
