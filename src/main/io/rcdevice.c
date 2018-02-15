@@ -192,7 +192,7 @@ static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_
     // otherwise, the timeout of 1000 ms is enough for the response from device
     if (commandID == RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO) {
         max_retries = 3;
-        timeoutMs = 100; // we have test some device, 100ms as timeout, and retry times be 3, it's stable for most case
+        timeoutMs = 300; // we have test some device, 100ms as timeout, and retry times be 3, it's stable for most case
     }
 
     while (max_retries--) {
@@ -259,12 +259,12 @@ static void sendCtrlCommand(runcamDevice_t *device, rcsplit_ctrl_argument_e argu
 static bool runcamDeviceGetDeviceInfo(runcamDevice_t *device, uint8_t *outputBuffer) 
 {
     // Send "who are you" command to device to detect the device whether is running RCSplit FW1.0 or RCSplit FW1.1
-    uint32_t max_retries = 2;
+    uint32_t max_retries = 3;
     while (max_retries--) {
         runcamDeviceFlushRxBuffer(device);
         sendCtrlCommand(device, RCSPLIT_CTRL_ARGU_WHO_ARE_YOU);
 
-        timeMs_t timeout = millis() + 500;
+        timeMs_t timeout = millis() + 300;
         uint8_t response[5] = { 0 };
         while (millis() < timeout) {
             if (serialRxBytesWaiting(device->serialPort) >= 5) {
