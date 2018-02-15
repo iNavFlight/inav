@@ -474,7 +474,7 @@ void processServoTilt(void)
     }
 }
 
-#define SERVO_AUTOTRIM_TIMER_MS     1000
+#define SERVO_AUTOTRIM_TIMER_MS     2000
 
 typedef enum {
     AUTOTRIM_IDLE,
