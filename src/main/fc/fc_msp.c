@@ -310,6 +310,25 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU16(dst, 0); // No other build targets currently have hardware revision detection.
 #endif
+        // OSD support (for BF compatibility):
+        // 0 = no OSD
+        // 1 = OSD slave (not supported in INAV)
+        // 2 = OSD chip on board
+#if defined(USE_OSD) && defined(USE_MAX7456)
+        sbufWriteU8(dst, 2);
+#else
+        sbufWriteU8(dst, 0);
+#endif
+        // 1 = USE_VCP, 0 = no VCP
+        // This way the configurator can find wether a board
+        // uses VCP without relying on a board list.
+#ifdef USE_VCP
+        sbufWriteU8(dst, 1);
+#else
+        sbufWriteU8(dst, 0);
+#endif
+        sbufWriteU8(dst, strlen(targetName));
+        sbufWriteData(dst, targetName, strlen(targetName));
         break;
 
     case MSP_BUILD_INFO:
