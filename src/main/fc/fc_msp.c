@@ -526,6 +526,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, (uint16_t)constrain(mWhDrawn, 0, 0xFFFF)); // milliWatt hours drawn from battery
         sbufWriteU16(dst, rssi);
         sbufWriteU16(dst, (int16_t)constrain(amperage, -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
+        sbufWriteU8(dst, batteryFullWhenPluggedIn | (batteryUseCapacityThresholds << 1) | (batteryState << 2));
+        sbufWriteU32(dst, batteryRemainingCapacity);
         break;
 
     case MSP_ARMING_CONFIG:
@@ -672,7 +674,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0); // gps_ubx_sbas
 #endif
         sbufWriteU8(dst, rxConfig()->rssi_channel);
-        sbufWriteU8(dst, 0);
 
         sbufWriteU16(dst, compassConfig()->mag_declination / 10);
 
@@ -1547,9 +1548,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU8(src); // gps_baudrate
         sbufReadU8(src); // gps_ubx_sbas
 #endif
-        sbufReadU8(src); // multiwiiCurrentMeterOutput
         rxConfigMutable()->rssi_channel = sbufReadU8(src);
-        sbufReadU8(src);
 
 #ifdef USE_MAG
         compassConfigMutable()->mag_declination = sbufReadU16(src) * 10;
