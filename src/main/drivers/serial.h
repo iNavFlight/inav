@@ -86,7 +86,7 @@ struct serialPortVTable {
 
     void (*writeBuf)(serialPort_t *instance, const void *data, int count);
 
-    bool (*isConnected)(serialPort_t *instance);
+    bool (*isConnected)(const serialPort_t *instance);
 
     // Optional functions used to buffer large writes.
     void (*beginWrite)(serialPort_t *instance);
