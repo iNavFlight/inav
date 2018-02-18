@@ -424,7 +424,7 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
 {
     uint32_t seconds = flyTime / 1000000;
     osdFormatTime(buff, seconds, SYM_FLY_M, SYM_FLY_H);
-    if (attr) {
+    if (attr && osdConfig()->time_alarm > 0) {
        if (seconds / 60 >= osdConfig()->time_alarm && ARMING_FLAG(ARMED)) {
             TEXT_ATTRIBUTES_ADD_BLINK(*attr);
         }
