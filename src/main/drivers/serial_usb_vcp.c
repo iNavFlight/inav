@@ -92,7 +92,7 @@ static uint8_t usbVcpRead(serialPort_t *instance)
     }
 }
 
-static bool usbVcpIsConnected(serialPort_t *instance)
+static bool usbVcpIsConnected(const serialPort_t *instance)
 {
     (void)instance;
     return usbIsConnected() && usbIsConfigured();
