@@ -596,9 +596,10 @@ static void applyLedBatteryLayer(bool updateNow, timeUs_t *timer)
                break;
        }
        flash = !flash;
+
+        *timer += LED_STRIP_HZ(timeOffset);
     }
 
-    *timer += LED_STRIP_HZ(timeOffset);
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
@@ -611,7 +612,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     static bool flash = false;
 
     int state;
-    int timeOffset = 0;
+    int timeOffset = 1;
 
     if (updateNow) {
        state = (rssi * 100) / 1023;
@@ -625,10 +626,10 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
            timeOffset = 8;
        }
        flash = !flash;
+
+       *timer += LED_STRIP_HZ(timeOffset);
     }
 
-
-    *timer += LED_STRIP_HZ(timeOffset);
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
@@ -894,7 +895,7 @@ static void applyLedAnimationLayer(bool updateNow, timeUs_t *timer)
 #endif
 
 typedef enum {
-    timBlink,
+    timBlink = 0,
     timLarson,
     timBattery,
     timRssi,
@@ -919,7 +920,7 @@ static timeUs_t timerVal[timTimerCount];
 //  may modify LED state.
 typedef void applyLayerFn_timed(bool updateNow, timeUs_t *timer);
 
-static applyLayerFn_timed* layerTable[] = {
+static applyLayerFn_timed* layerTable[timTimerCount] = {
     [timBlink] = &applyLedBlinkLayer,
     [timLarson] = &applyLarsonScannerLayer,
     [timBattery] = &applyLedBatteryLayer,
