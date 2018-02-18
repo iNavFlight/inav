@@ -191,6 +191,8 @@ Re-apply any new defaults as desired.
 |  nav_fw_launch_timeout  | 5000 | Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms) |
 |  nav_fw_launch_max_altitude  | 0 | Altitude at which LAUNCH mode will be turned off and regular flight mode will take over. [cm] |
 |  nav_fw_launch_climb_angle  | 18 | Climb angle for launch sequence (degrees), is also restrained by global max_angle_inclination_pit |
+|  nav_fw_launch_min_time | 0 | Allow launch mode to execute at least this time (ms) and ignore stick movements [0-60000]. |
+|  nav_fw_launch_max_altitude | 0 | Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000]. |
 |  nav_fw_land_dive_angle  | 2 | Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees |
 |  serialrx_provider  | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 |  serialrx_halfduplex  | OFF | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
@@ -206,16 +208,20 @@ Re-apply any new defaults as desired.
 |  frsky_vfas_cell_voltage  | OFF |  |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
 |  smartport_uart_unidir  | OFF | Turn UART into UNIDIR for smartport telemetry for usage on F1 and F4 target. See Telemetry.md for details |
-|  smartport_fuel_percent  | OFF | Set to ON for `Fuel` telemetry to return remaining battery percentage (calculated using `battery_capacity` variable), mAh drawn otherwise. |
+|  smartport_fuel_unit  | PERCENT | Unit of the value sent with the `FUEL` ID through the S.Port telemetry. Replaces the `smartport_fuel_percent` setting in versions < 1.9 [PERCENT/MAH/MWH] |
 |  ibus_telemetry_type  | 0 | Type compatibility ibus telemetry for transmitters. See Telemetry.md label IBUS for details. |
 |  ltm_update_rate  | NORMAL | Defines the LTM update rate (use of bandwidth [NORMAL/MEDIUM/SLOW]). See Telemetry.md, LTM section for details. |
 |  battery_capacity  | 0 | Battery capacity in mAH. This value is used in conjunction with the current meter to determine remaining battery capacity. |
-|  vbat_scale  | 110 | Result is VBat in 0.1V steps. 3.3V = ADC Vref, 4095 = 12bit adc, 110 = 11:1 voltage divider (10k:1k) x 10 for 0.1V. Adjust this slightly if reported pack voltage is different from multimeter reading. You can get current voltage by typing "status" in cli. |
-|  vbat_max_cell_voltage  | 43 | Maximum voltage per cell, used for auto-detecting battery voltage in 0.1V units, default is 43 (4.3V) |
-|  vbat_min_cell_voltage  | 33 | Minimum voltage per cell, this triggers battery out alarms, in 0.1V units, default is 33 (3.3V) |
-|  vbat_warning_cell_voltage  | 35 | Warning voltage per cell, this triggers battery-warning alarms, in 0.1V units, default is 35 (3.5V) |
+|  vbat_scale  | 1100 | Battery voltage calibration value. 1100 = 11:1 voltage divider (10k:1k) x 100. Adjust this slightly if reported pack voltage is different from multimeter reading. You can get current voltage by typing "status" in cli. |
+|  vbat_max_cell_voltage  | 430 | Maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, default is 430 (4.3V) |
+|  vbat_min_cell_voltage  | 330 | Minimum voltage per cell, this triggers battery out alarms, in 0.01V units, default is 330 (3.3V) |
+|  vbat_warning_cell_voltage  | 350 | Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, default is 350 (3.5V) |
 |  current_meter_scale  | 400 | This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt. |
 |  current_meter_offset  | 0 | This sets the output offset voltage of the current sensor in millivolts. |
+|  battery_capacity | 0 | Set the battery capacity in mAh or mWh (see `battery_capacity_unit`). Used to calculate the remaining battery capacity. |
+|  battery_capacity_warning | 0 | If the remaining battery capacity goes below this threshold the beeper will emit short beeps and the relevant OSD items will blink. |
+|  battery_capacity_critical | 0 | If the remaining battery capacity goes below this threshold the battery is considered empty and the beeper will emit long beeps. |
+|  battery_capacity_unit | MAH | Unit used for `battery_capacity`, `battery_capacity_warning` and `battery_capacity_critical` [MAH/MWH] (milliAmpere hour / milliWatt hour). |
 |  multiwii_current_meter_output  | OFF | Default current output via MSP is in 0.01A steps. Setting this to 1 causes output in default multiwii scaling (1mA steps) |
 |  current_meter_type  | ADC | ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position. |
 |  align_gyro  | DEFAULT | When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP. |
@@ -250,13 +256,18 @@ Re-apply any new defaults as desired.
 |  failsafe_fw_yaw_rate  | -45 | Requested yaw rate to execute when `SET-THR` failsafe is active on a fixed-wing machine. In deg/s. Negative values = left turn |
 |  failsafe_min_distance  | 0 | If failsafe happens when craft is closer than this distance in centimeters from home, failsafe will not execute regular failsafe_procedure, but will execute procedure specified in failsafe_min_distance_procedure instead. 0 = Normal failsafe_procedure always taken. |
 |  failsafe_min_distance_procedure  | SET-THR | What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance. See [Failsafe documentation](Failsafe.md#failsafe_throttle). |
+|  failsafe_lights | ON | Enable or disable the lights when the `FAILSAFE` flight mode is enabled. The target needs to be compiled with `USE_LIGHTS` [ON/OFF]. |
+|  failsafe_lights_flash_period | 1000 | Time in milliseconds between two flashes when `failsafe_lights` is ON and `FAILSAFE` flight mode is enabled [40-65535]. |
+|  failsafe_lights_flash_on_time | 100 | Flash lights ON time in milliseconds when `failsafe_lights` is ON and `FAILSAFE` flight mode is enabled. [20-65535]. |
 |  rx_min_usec  | 885 | Defines the shortest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value lower than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 |  rx_max_usec  | 2115 | Defines the longest pulse width value used when ensuring the channel value is valid. If the receiver gives a pulse value higher than this value then the channel will be marked as bad and will default to the value of mid_rc. |
 |  rx_nosignal_throttle  | HOLD | Defines behavior of throttle channel after signal loss is detected and until `failsafe_procedure` kicks in. Possible values - `HOLD` and `DROP`. |
 |  acc_hardware  | AUTO | Selection of acc hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
-|  baro_use_median_filter  | ON | 3-point median filtering for barometer readouts. No reason to change this setting |
+|  baro_median_filter  | ON | 3-point median filtering for barometer readouts. No reason to change this setting |
 |  baro_hardware  | AUTO | Selection of baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
 |  mag_hardware  | AUTO | Selection of mag hardware. See Wiki Sensor auto detect and hardware failure detection for more info |
+|  mag_to_use | | Allow to chose between built-in and external compass sensor if they are connected to separate buses. Currently only for REVO target |
+|  rangefinder_median_filter | OFF | 3-point median filtering for rangefinder readouts |
 |  blackbox_rate_num  | 1 | Blackbox logging rate numerator. Use num/denom settings to decide if a frame should be logged, allowing control of the portion of logged loop iterations |
 |  blackbox_rate_denom  | 1 | Blackbox logging rate denominator. See blackbox_rate_num. |
 |  blackbox_device  | SPIFLASH | Selection of where to write blackbox data |
@@ -265,8 +276,14 @@ Re-apply any new defaults as desired.
 |  osd_video_system     | 0     |  |
 |  osd_row_shiftdown    | 0     |  |
 |  osd_units            | METRIC| IMPERIAL, METRIC, UK |
+|  osd_stats_energy_unit | MAH | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
+|  osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
+|  osd_wh_drawn_pos | |  |
+|  osd_bat_remaining_capacity_pos | |  |
+|  osd_bat_remaining_percent_pos | |  |
+|  osd_efficiency_mah_pos | |  |
+|  osd_efficiency_wh_pos | |  |
 |  osd_rssi_alarm       | 20    |  |
-|  osd_cap_alarm        | 2200  |  |
 |  osd_time_alarm       | 10    |  |
 |  osd_alt_alarm        | 100   |  |
 |  osd_main_voltage_pos | 0     |  |
@@ -329,31 +346,31 @@ Re-apply any new defaults as desired.
 |  default_rate_profile  | 0 | Default = profile number |
 |  mag_declination  | 0 | Current location magnetic declination in format. For example, -6deg 37min = -637 for Japan. Leading zero in ddd not required. Get your local magnetic declination here: http://magnetic-declination.com/ . Not in use if inav_auto_mag_decl  is turned on and you acquire valid GPS fix. |
 |  heading_hold_rate_limit  | 90 | This setting limits yaw rotation rate that HEADING_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when HEADING_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
-| `mag_calibration_time` | 30 | Adjust how long time the Calibration of mag will last. |
-| `mc_p_pitch` | 40 | Multicopter rate stabilisation P-gain for PITCH               |
-| `mc_i_pitch` | 30 | Multicopter rate stabilisation I-gain for PITCH               |
-| `mc_d_pitch` | 23 | Multicopter rate stabilisation D-gain for PITCH               |
-| `mc_p_roll`  | 40 | Multicopter rate stabilisation P-gain for ROLL                |
-| `mc_i_roll`  | 30 | Multicopter rate stabilisation I-gain for ROLL                |
-| `mc_d_roll`  | 23 | Multicopter rate stabilisation D-gain for ROLL                |
-| `mc_p_yaw`   | 85 | Multicopter rate stabilisation P-gain for YAW                 |
-| `mc_i_yaw`   | 45 | Multicopter rate stabilisation I-gain for YAW                 |
-| `mc_d_yaw`   | 0  | Multicopter rate stabilisation D-gain for YAW                 |
-| `mc_p_level` | 20 | Multicopter attitude stabilisation P-gain                     |
-| `mc_i_level` | 15 | Multicopter attitude stabilisation low-pass filter cutoff     |
-| `mc_d_level` | 75 | Multicopter attitude stabilisation HORIZON transition point   |
-| `fw_p_pitch` | 20 | Fixed-wing rate stabilisation P-gain for PITCH                |
-| `fw_i_pitch` | 30 | Fixed-wing rate stabilisation I-gain for PITCH                |
-| `fw_ff_pitch`| 10 | Fixed-wing rate stabilisation FF-gain for PITCH               |
-| `fw_p_roll`  | 25 | Fixed-wing rate stabilisation P-gain for ROLL                 |
-| `fw_i_roll`  | 30 | Fixed-wing rate stabilisation I-gain for ROLL                 |
-| `fw_ff_roll` | 10 | Fixed-wing rate stabilisation FF-gain for ROLL                |
-| `fw_p_yaw`   | 50 | Fixed-wing rate stabilisation P-gain for YAW                  |
-| `fw_i_yaw`   | 45 | Fixed-wing rate stabilisation I-gain for YAW                  |
-| `fw_ff_yaw`  | 0  | Fixed-wing rate stabilisation FF-gain for YAW                 |
-| `fw_p_level` | 20 | Fixed-wing attitude stabilisation P-gain                      |
-| `fw_i_level` | 15 | Fixed-wing attitude stabilisation low-pass filter cutoff      |
-| `fw_d_level` | 75 | Fixed-wing attitude stabilisation HORIZON transition point    |
+| mag_calibration_time | 30 | Adjust how long time the Calibration of mag will last. |
+| mc_p_pitch | 40 | Multicopter rate stabilisation P-gain for PITCH               |
+| mc_i_pitch | 30 | Multicopter rate stabilisation I-gain for PITCH               |
+| mc_d_pitch | 23 | Multicopter rate stabilisation D-gain for PITCH               |
+| mc_p_roll  | 40 | Multicopter rate stabilisation P-gain for ROLL                |
+| mc_i_roll  | 30 | Multicopter rate stabilisation I-gain for ROLL                |
+| mc_d_roll  | 23 | Multicopter rate stabilisation D-gain for ROLL                |
+| mc_p_yaw   | 85 | Multicopter rate stabilisation P-gain for YAW                 |
+| mc_i_yaw   | 45 | Multicopter rate stabilisation I-gain for YAW                 |
+| mc_d_yaw   | 0  | Multicopter rate stabilisation D-gain for YAW                 |
+| mc_p_level | 20 | Multicopter attitude stabilisation P-gain                     |
+| mc_i_level | 15 | Multicopter attitude stabilisation low-pass filter cutoff     |
+| mc_d_level | 75 | Multicopter attitude stabilisation HORIZON transition point   |
+| fw_p_pitch | 20 | Fixed-wing rate stabilisation P-gain for PITCH                |
+| fw_i_pitch | 30 | Fixed-wing rate stabilisation I-gain for PITCH                |
+| fw_ff_pitch| 10 | Fixed-wing rate stabilisation FF-gain for PITCH               |
+| fw_p_roll  | 25 | Fixed-wing rate stabilisation P-gain for ROLL                 |
+| fw_i_roll  | 30 | Fixed-wing rate stabilisation I-gain for ROLL                 |
+| fw_ff_roll | 10 | Fixed-wing rate stabilisation FF-gain for ROLL                |
+| fw_p_yaw   | 50 | Fixed-wing rate stabilisation P-gain for YAW                  |
+| fw_i_yaw   | 45 | Fixed-wing rate stabilisation I-gain for YAW                  |
+| fw_ff_yaw  | 0  | Fixed-wing rate stabilisation FF-gain for YAW                 |
+| fw_p_level | 20 | Fixed-wing attitude stabilisation P-gain                      |
+| fw_i_level | 15 | Fixed-wing attitude stabilisation low-pass filter cutoff      |
+| fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point    |
 |  max_angle_inclination_rll  | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 |  max_angle_inclination_pit  | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
 |  gyro_lpf_hz  | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
@@ -366,13 +383,18 @@ Re-apply any new defaults as desired.
 |  yaw_iterm_ignore_threshold  | 50 | Used to prevent Iterm accumulation on YAW axis during stick movements. Iterm is allowed to change fully when sticks are centered. Iterm will not change when requested rotation speed is above yaw_iterm_ignore_threshold. Iterm acumulation is scaled linearly between 0 and yaw_iterm_ignore_threshold |
 |  rate_accel_limit_roll_pitch  | 0 | Limits acceleration of ROLL/PITCH rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 5000 dps^2 and even > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 360 dps^2). When set correctly, it greatly improves stopping performance. Value of 0 disables limiting.  |
 |  rate_accel_limit_yaw  | 10000 | Limits acceleration of YAW rotation speed that can be requested by stick input. In degrees-per-second-squared. Small and powerful UAV flies great with high acceleration limit ( > 10000 dps^2). Big and heavy multirotors will benefit from low acceleration limit (~ 180 dps^2). When set correctly, it greatly improves stopping performance and general stability during yaw turns. Value of 0 disables limiting. |
-|  rc_expo  | 70 | Exposition value for all RC directions |
-|  rc_yaw_expo  | 20 | Yaw exposition value |
+|  rc_expo  | 70 | Exposition value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`) |
+|  rc_yaw_expo  | 20 | Exposition value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)  |
+|  manual_rc_expo  | 70 | Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100] |
+|  manual rc_yaw_expo  | 20 | Exposition value used for the YAW axis by the `MANUAL` flight mode [0-100] |
 |  thr_mid  | 50 | Throttle value when the stick is set to mid-position. Used in the throttle curve calculation. |
 |  thr_expo  | 0 | Throttle exposition value |
 |  roll_rate  | 20 | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tenths of degrees per second [dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 |  pitch_rate  | 20 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tenths of degrees per second [dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 |  yaw_rate  | 20 | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tenths of degrees per second [dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+|  manual_pitch_rate  | 100 | Servo travel multiplier for the PITCH axis in `MANUAL` flight mode [0-100]% |
+|  manual_roll_rate  | 100 | Servo travel multiplier for the ROLL axis in `MANUAL` flight mode [0-100]% |
+|  manual_yaw_rate  | 100 | Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]% |
 |  tpa_rate  | 0 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 |  tpa_breakpoint  | 1500 | See tpa_rate. |
 |  fw_autotune_overshoot_time  | 100 | Time [ms] to detect sustained overshoot |
