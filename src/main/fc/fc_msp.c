@@ -304,13 +304,38 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BOARD_INFO:
+    {
         sbufWriteData(dst, boardIdentifier, BOARD_IDENTIFIER_LENGTH);
 #ifdef USE_HARDWARE_REVISION_DETECTION
         sbufWriteU16(dst, hardwareRevision);
 #else
         sbufWriteU16(dst, 0); // No other build targets currently have hardware revision detection.
 #endif
+        // OSD support (for BF compatibility):
+        // 0 = no OSD
+        // 1 = OSD slave (not supported in INAV)
+        // 2 = OSD chip on board
+#if defined(USE_OSD) && defined(USE_MAX7456)
+        sbufWriteU8(dst, 2);
+#else
+        sbufWriteU8(dst, 0);
+#endif
+        // Board communication capabilities (uint8)
+        // Bit 0: 1 iff the board has VCP
+        // Bit 1: 1 iff the board supports software serial
+        uint8_t commCapabilities = 0;
+#ifdef USE_VCP
+        commCapabilities |= 1 << 0;
+#endif
+#if defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2)
+        commCapabilities |= 1 << 1;
+#endif
+        sbufWriteU8(dst, commCapabilities);
+
+        sbufWriteU8(dst, strlen(targetName));
+        sbufWriteData(dst, targetName, strlen(targetName));
         break;
+    }
 
     case MSP_BUILD_INFO:
         sbufWriteData(dst, buildDate, BUILD_DATE_LENGTH);
