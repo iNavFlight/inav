@@ -56,11 +56,9 @@
 
 #define USE_GYRO
 #define USE_GYRO_MPU6500
-// #define USE_GYRO_MPU9250
 
 #define USE_ACC
 #define USE_ACC_MPU6500
-// #define USE_ACC_MPU9250
 
 #define ACC_MPU6500_ALIGN                   CW0_DEG
 #define GYRO_MPU6500_ALIGN                  CW0_DEG
