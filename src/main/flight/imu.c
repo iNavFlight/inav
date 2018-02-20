@@ -483,8 +483,8 @@ static void imuCalculateEstimatedAttitude(float dT)
             } else {
                 // MR might fly on any direction, but it tends to fly in the direction the
                 // head it's tilted to. To compensate for this, we rotate gpsSol.groundCourse
-                // by the tilt direction. Pitch and roll angles must fall in the [10, 90) so
-                // the data doesn't get polluted during flips or rolls.
+                // by the tilt direction. Pitch and roll angles must fall in the [10, 90) interval
+                // so the data doesn't get polluted during flips or rolls.
                 // For now, we also require a harcoded speed of 3m/s, but we
                 // should adjust this depending on the maximum speed in modes which do limit
                 // it (e.g. RTH).
