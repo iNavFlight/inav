@@ -457,41 +457,78 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useCOG = false;
 
 #if defined(USE_GPS)
-    if (STATE(FIXED_WING)) {
-        bool canUseCOG = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+    bool canUseCOG = false;
+    uint16_t groundCourse;
+    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6) {
+        // TODO: Use GPS heading if the real compass fails during a flight
+        switch (imuConfig()->use_gps_heading) {
+            case GPS_HEADING_AUTO:
+                canUseCOG = STATE(FIXED_WING);
+                break;
+            case GPS_HEADING_ENABLED:
+                canUseCOG = true;
+                break;
+            case GPS_HEADING_DISABLED:
+                // Already false
+                break;
+        }
 
+        // If COG is now enabled, do platform dependant sanity checks and calculate it
         if (canUseCOG) {
-            if (gpsHeadingInitialized) {
-                // Use GPS heading if error is acceptable or if it's the only source of heading
-                if (ABS(gpsSol.groundCourse - attitude.values.yaw) < DEGREES_TO_DECIDEGREES(MAX_GPS_HEADING_ERROR_DEG) || !canUseMAG) {
-                    courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-                    useCOG = true;
+            if (STATE(FIXED_WING)) {
+                // Fixed wing always flies forward, so we require a 3m/s speed and use
+                // the GPS groundCourse without any rotations
+                canUseCOG = gpsSol.groundSpeed >= 300;
+                groundCourse = gpsSol.groundCourse;
+            } else {
+                // MR might fly on any direction, but it tends to fly in the direction the
+                // head it's tilted to. To compensate for this, we rotate gpsSol.groundCourse
+                // by the tilt direction. Pitch and roll angles must fall in the [10, 90) so
+                // the data doesn't get polluted during flips or rolls.
+                // For now, we also require a harcoded speed of 3m/s, but we
+                // should adjust this depending on the maximum speed in modes which do limit
+                // it (e.g. RTH).
+                const uint16_t minAttitudeAngle = DECIDEGREES_TO_DEGREES(10);
+                const uint16_t maxAttitudeAngle = DECIDEGREES_TO_DEGREES(90);
+                if (gpsSol.groundSpeed >= 300 &&
+                    ABS(attitude.values.pitch) >= minAttitudeAngle &&
+                    ABS(attitude.values.pitch) < maxAttitudeAngle &&
+                    ABS(attitude.values.roll) >= minAttitudeAngle &&
+                    ABS(attitude.values.roll) < maxAttitudeAngle) {
+
+                    canUseCOG = true;
+                    uint16_t COGRotation = RADIANS_TO_CENTIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
+                    groundCourse = (gpsSol.groundCourse + COGRotation) % DEGREES_TO_CENTIDEGREES(360);
                 }
             }
-            else {
-                // Re-initialize quaternion from known Roll, Pitch and GPS heading
-                imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
-                gpsHeadingInitialized = true;
-
-                // Force reset of heading hold target
-                resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-            }
-
-            // If we can't use COG and there's MAG available - fallback
-            if (!useCOG && canUseMAG) {
-                useMag = true;
-            }
-        }
-        else if (canUseMAG) {
-            useMag = true;
-            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if possible
         }
     }
-    else {
-        // Multicopters don't use GPS heading
-        if (canUseMAG) {
+
+    if (canUseCOG) {
+        if (gpsHeadingInitialized) {
+            // Use GPS heading if error is acceptable or if it's the only source of heading
+            if (ABS(groundCourse - attitude.values.yaw) < DEGREES_TO_DECIDEGREES(MAX_GPS_HEADING_ERROR_DEG) || !canUseMAG) {
+                courseOverGround = DECIDEGREES_TO_RADIANS(groundCourse);
+                useCOG = true;
+            }
+        }
+        else {
+            // Re-initialize quaternion from known Roll, Pitch and GPS heading
+            imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, groundCourse);
+            gpsHeadingInitialized = true;
+
+            // Force reset of heading hold target
+            resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+        }
+
+        // If we can't use COG and there's MAG available - fallback
+        if (!useCOG && canUseMAG) {
             useMag = true;
         }
+
+    } else if (canUseMAG) {
+        useMag = true;
+        gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if possible
     }
 #else
     // In absence of GPS MAG is the only option
