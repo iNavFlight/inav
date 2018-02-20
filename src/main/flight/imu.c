@@ -488,13 +488,15 @@ static void imuCalculateEstimatedAttitude(float dT)
                 // For now, we also require a harcoded speed of 3m/s, but we
                 // should adjust this depending on the maximum speed in modes which do limit
                 // it (e.g. RTH).
-                const uint16_t minAttitudeAngle = DECIDEGREES_TO_DEGREES(10);
-                const uint16_t maxAttitudeAngle = DECIDEGREES_TO_DEGREES(90);
+
+                // Check tilt via calculateCosTiltAngle(). Note that cos() is decreasing in
+                // the (10, 90] interval, so the cos for the minimum tilt is the maximum
+                // value for calculateCosTiltAngle() - same thing applies to maxTiltCos.
+                const float minTiltCos = 0.984807753012208f; // cos(10)
+                const float maxTiltCos = 0; // cos(90)
                 if (gpsSol.groundSpeed >= 300 &&
-                    ABS(attitude.values.pitch) >= minAttitudeAngle &&
-                    ABS(attitude.values.pitch) < maxAttitudeAngle &&
-                    ABS(attitude.values.roll) >= minAttitudeAngle &&
-                    ABS(attitude.values.roll) < maxAttitudeAngle) {
+                    calculateCosTiltAngle() <= minTiltCos &&
+                    calculateCosTiltAngle() > maxTiltCos) {
 
                     canUseCOG = true;
                     uint16_t COGRotation = RADIANS_TO_CENTIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
