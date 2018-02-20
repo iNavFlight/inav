@@ -615,7 +615,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING) && gpsHeadingInitialized);
+    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (imuHasGPSHeadingEnabled() && gpsHeadingInitialized);
 }
 
 bool imuHasHeadingEnabled(void)
