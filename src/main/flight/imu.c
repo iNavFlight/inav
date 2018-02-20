@@ -442,6 +442,20 @@ static bool imuCanUseAccelerometerForCorrection(void)
     return (nearness > MAX_ACC_SQ_NEARNESS) ? false : true;
 }
 
+static bool imuHasGPSHeadingEnabled(void)
+{
+    // TODO: Use GPS heading if the real compass fails during a flight
+    switch (imuConfig()->use_gps_heading) {
+        case GPS_HEADING_AUTO:
+            return STATE(FIXED_WING);
+        case GPS_HEADING_ENABLED:
+            return true;
+        case GPS_HEADING_DISABLED:
+            break;
+    }
+    return false;
+}
+
 static void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
@@ -459,49 +473,33 @@ static void imuCalculateEstimatedAttitude(float dT)
 #if defined(USE_GPS)
     bool canUseCOG = false;
     uint16_t groundCourse;
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6) {
-        // TODO: Use GPS heading if the real compass fails during a flight
-        switch (imuConfig()->use_gps_heading) {
-            case GPS_HEADING_AUTO:
-                canUseCOG = STATE(FIXED_WING);
-                break;
-            case GPS_HEADING_ENABLED:
+    if (imuHasGPSHeadingEnabled() && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6) {
+        if (STATE(FIXED_WING)) {
+            // Fixed wing always flies forward, so we require a 3m/s speed and use
+            // the GPS groundCourse without any rotations
+            canUseCOG = gpsSol.groundSpeed >= 300;
+            groundCourse = gpsSol.groundCourse;
+        } else {
+            // MR might fly on any direction, but it tends to fly in the direction the
+            // head it's tilted to. To compensate for this, we rotate gpsSol.groundCourse
+            // by the tilt direction. Pitch and roll angles must fall in the [10, 90) interval
+            // so the data doesn't get polluted during flips or rolls.
+            // For now, we also require a harcoded speed of 3m/s, but we
+            // should adjust this depending on the maximum speed in modes which do limit
+            // it (e.g. RTH).
+
+            // Check tilt via calculateCosTiltAngle(). Note that cos() is decreasing in
+            // the (10, 90] interval, so the cos for the minimum tilt is the maximum
+            // value for calculateCosTiltAngle() - same thing applies to maxTiltCos.
+            const float minTiltCos = 0.984807753012208f; // cos(10)
+            const float maxTiltCos = 0; // cos(90)
+            if (gpsSol.groundSpeed >= 300 &&
+                calculateCosTiltAngle() <= minTiltCos &&
+                calculateCosTiltAngle() > maxTiltCos) {
+
                 canUseCOG = true;
-                break;
-            case GPS_HEADING_DISABLED:
-                // Already false
-                break;
-        }
-
-        // If COG is now enabled, do platform dependant sanity checks and calculate it
-        if (canUseCOG) {
-            if (STATE(FIXED_WING)) {
-                // Fixed wing always flies forward, so we require a 3m/s speed and use
-                // the GPS groundCourse without any rotations
-                canUseCOG = gpsSol.groundSpeed >= 300;
-                groundCourse = gpsSol.groundCourse;
-            } else {
-                // MR might fly on any direction, but it tends to fly in the direction the
-                // head it's tilted to. To compensate for this, we rotate gpsSol.groundCourse
-                // by the tilt direction. Pitch and roll angles must fall in the [10, 90) interval
-                // so the data doesn't get polluted during flips or rolls.
-                // For now, we also require a harcoded speed of 3m/s, but we
-                // should adjust this depending on the maximum speed in modes which do limit
-                // it (e.g. RTH).
-
-                // Check tilt via calculateCosTiltAngle(). Note that cos() is decreasing in
-                // the (10, 90] interval, so the cos for the minimum tilt is the maximum
-                // value for calculateCosTiltAngle() - same thing applies to maxTiltCos.
-                const float minTiltCos = 0.984807753012208f; // cos(10)
-                const float maxTiltCos = 0; // cos(90)
-                if (gpsSol.groundSpeed >= 300 &&
-                    calculateCosTiltAngle() <= minTiltCos &&
-                    calculateCosTiltAngle() > maxTiltCos) {
-
-                    canUseCOG = true;
-                    uint16_t COGRotation = RADIANS_TO_CENTIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
-                    groundCourse = (gpsSol.groundCourse + COGRotation) % DEGREES_TO_CENTIDEGREES(360);
-                }
+                uint16_t COGRotation = RADIANS_TO_CENTIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
+                groundCourse = (gpsSol.groundCourse + COGRotation) % DEGREES_TO_CENTIDEGREES(360);
             }
         }
     }
@@ -618,6 +616,11 @@ bool isImuReady(void)
 bool isImuHeadingValid(void)
 {
     return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING) && gpsHeadingInitialized);
+}
+
+bool imuHasHeadingEnabled(void)
+{
+    return sensors(SENSOR_MAG) || imuHasGPSHeadingEnabled();
 }
 
 float calculateCosTiltAngle(void)
