@@ -472,7 +472,7 @@ static void imuCalculateEstimatedAttitude(float dT)
 
 #if defined(USE_GPS)
     bool canUseCOG = false;
-    uint16_t groundCourse;
+    int16_t groundCourse;
     if (imuHasGPSHeadingEnabled() && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6) {
         if (STATE(FIXED_WING)) {
             // Fixed wing always flies forward, so we require a 3m/s speed and use
@@ -498,7 +498,7 @@ static void imuCalculateEstimatedAttitude(float dT)
                 calculateCosTiltAngle() > maxTiltCos) {
 
                 canUseCOG = true;
-                uint16_t COGRotation = RADIANS_TO_CENTIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
+                int16_t COGRotation = RADIANS_TO_DECIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
                 groundCourse = (gpsSol.groundCourse + COGRotation) % DEGREES_TO_CENTIDEGREES(360);
             }
         }
