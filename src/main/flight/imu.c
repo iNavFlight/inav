@@ -485,7 +485,7 @@ static void imuCalculateEstimatedAttitude(float dT)
             // head it's tilted to. To compensate for this, we rotate gpsSol.groundCourse
             // by the tilt direction. Pitch and roll angles must fall in the [20, 90) interval
             // so the data doesn't get polluted during flips or rolls.
-            // For now, we also require a harcoded speed of 3m/s, but we
+            // For now, we also require a harcoded speed of 6m/s, but we
             // should adjust this depending on the maximum speed in modes which do limit
             // it (e.g. RTH).
 
@@ -494,7 +494,7 @@ static void imuCalculateEstimatedAttitude(float dT)
             // value for calculateCosTiltAngle() - same thing applies to maxTiltCos.
             const float minTiltCos = 0.9396926207859084f; // cos(20)
             const float maxTiltCos = 0; // cos(90)
-            if (gpsSol.groundSpeed >= 300 &&
+            if (gpsSol.groundSpeed >= 600 &&
                 calculateCosTiltAngle() <= minTiltCos &&
                 calculateCosTiltAngle() > maxTiltCos) {
 
