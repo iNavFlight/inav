@@ -136,9 +136,9 @@ static bool hmc5883lRead(magDev_t * mag)
         return false;
     }
 
-    magDev->magADCRaw[X] = (int16_t)(buf[0] << 8 | buf[1]);
-    magDev->magADCRaw[Z] = (int16_t)(buf[2] << 8 | buf[3]);
-    magDev->magADCRaw[Y] = (int16_t)(buf[4] << 8 | buf[5]);
+    mag->magADCRaw[X] = (int16_t)(buf[0] << 8 | buf[1]);
+    mag->magADCRaw[Z] = (int16_t)(buf[2] << 8 | buf[3]);
+    mag->magADCRaw[Y] = (int16_t)(buf[4] << 8 | buf[5]);
 
     return true;
 }
