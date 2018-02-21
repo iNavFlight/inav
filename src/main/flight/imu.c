@@ -498,9 +498,18 @@ static void imuCalculateEstimatedAttitude(float dT)
                 calculateCosTiltAngle() <= minTiltCos &&
                 calculateCosTiltAngle() > maxTiltCos) {
 
-                canUseCOG = true;
-                int16_t COGRotation = RADIANS_TO_DECIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
-                groundCourse = (gpsSol.groundCourse + COGRotation);
+                float tiltDirection = atan2_approx(attitude.values.roll, attitude.values.pitch);
+                float accXYMagnitudeSq = sq(imuMeasuredAccelBF.V.Y) + sq(imuMeasuredAccelBF.V.X);
+                float accDirection = atan2_approx(imuMeasuredAccelBF.V.Y, imuMeasuredAccelBF.V.X);
+                // Check that the either the acceleration in the XY plane is small ( < 150cm/s^2) or
+                // its direction doesn't differ from the tilt directions by more than PI/4.
+                // This lets us reject measurements where e.g. the MR is braking and it's tilted
+                // back while moving forward
+                if (accXYMagnitudeSq < sq(150) || ABS(tiltDirection - accDirection) < M_PIf / 4) {
+                    int16_t COGRotation = RADIANS_TO_DECIDEGREES(tiltDirection);
+                    groundCourse = (gpsSol.groundCourse + COGRotation);
+                    canUseCOG = true;
+                }
             }
         }
         // Only use each COG reading once, to avoid reusing the same GPS
