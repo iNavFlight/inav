@@ -88,6 +88,7 @@ FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclinatio
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
+STATIC_FASTRAM bool gpsHasCOG;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
 
@@ -473,7 +474,7 @@ static void imuCalculateEstimatedAttitude(float dT)
 #if defined(USE_GPS)
     bool canUseCOG = false;
     int16_t groundCourse;
-    if (imuHasGPSHeadingEnabled() && sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6) {
+    if (imuHasGPSHeadingEnabled() && gpsHasCOG) {
         if (STATE(FIXED_WING)) {
             // Fixed wing always flies forward, so we require a 3m/s speed and use
             // the GPS groundCourse without any rotations
@@ -502,6 +503,9 @@ static void imuCalculateEstimatedAttitude(float dT)
                 groundCourse = (gpsSol.groundCourse + COGRotation) % DEGREES_TO_CENTIDEGREES(360);
             }
         }
+        // Only use each COG reading once, to avoid reusing the same GPS
+        // GPS data more than once introducing unnnecessary error.
+        gpsHasCOG = false;
     }
 
     if (canUseCOG) {
@@ -621,6 +625,15 @@ bool isImuHeadingValid(void)
 bool imuHasHeadingEnabled(void)
 {
     return sensors(SENSOR_MAG) || imuHasGPSHeadingEnabled();
+}
+
+void imuUpdateGPSCOG(void)
+{
+    // Don't check for numSat. gps.c already checks for
+    // gpsConfig()->gpsMinSats before enabling GPS_FIX
+    if (STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.groundSpeed >= 300) {
+        gpsHasCOG = true;
+    }
 }
 
 float calculateCosTiltAngle(void)
