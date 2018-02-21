@@ -640,7 +640,7 @@ void imuUpdateGPSCOG(void)
 {
     // Don't check for numSat. gps.c already checks for
     // gpsConfig()->gpsMinSats before enabling GPS_FIX
-    if (STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.groundSpeed >= 300) {
+    if (STATE(GPS_FIX) && gpsSol.flags.validVelNE) {
         gpsHasCOG = true;
     }
 }
