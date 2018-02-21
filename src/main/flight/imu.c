@@ -500,7 +500,7 @@ static void imuCalculateEstimatedAttitude(float dT)
 
                 canUseCOG = true;
                 int16_t COGRotation = RADIANS_TO_DECIDEGREES(atan2_approx(attitude.values.roll, attitude.values.pitch));
-                groundCourse = (gpsSol.groundCourse + COGRotation) % DEGREES_TO_CENTIDEGREES(360);
+                groundCourse = (gpsSol.groundCourse + COGRotation);
             }
         }
         // Only use each COG reading once, to avoid reusing the same GPS
