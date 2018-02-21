@@ -482,16 +482,16 @@ static void imuCalculateEstimatedAttitude(float dT)
         } else {
             // MR might fly on any direction, but it tends to fly in the direction the
             // head it's tilted to. To compensate for this, we rotate gpsSol.groundCourse
-            // by the tilt direction. Pitch and roll angles must fall in the [10, 90) interval
+            // by the tilt direction. Pitch and roll angles must fall in the [20, 90) interval
             // so the data doesn't get polluted during flips or rolls.
             // For now, we also require a harcoded speed of 3m/s, but we
             // should adjust this depending on the maximum speed in modes which do limit
             // it (e.g. RTH).
 
             // Check tilt via calculateCosTiltAngle(). Note that cos() is decreasing in
-            // the (10, 90] interval, so the cos for the minimum tilt is the maximum
+            // the (20, 90] interval, so the cos for the minimum tilt is the maximum
             // value for calculateCosTiltAngle() - same thing applies to maxTiltCos.
-            const float minTiltCos = 0.984807753012208f; // cos(10)
+            const float minTiltCos = 0.9396926207859084f; // cos(20)
             const float maxTiltCos = 0; // cos(90)
             if (gpsSol.groundSpeed >= 300 &&
                 calculateCosTiltAngle() <= minTiltCos &&
