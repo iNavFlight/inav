@@ -746,7 +746,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
             /* Apply GPS correction to altitude */
             if (useGpsZPos) {
                 const float gpsResidualZ = posEstimator.gps.pos.V.Z - posEstimator.est.pos.V.Z;
-                inavFilterCorrectPos(Z, dt, gpsResidualZ, positionEstimationConfig()->w_xy_gps_p * gpsWeightScaler);
+                inavFilterCorrectPos(Z, dt, gpsResidualZ, positionEstimationConfig()->w_z_gps_p * gpsWeightScaler);
                 newEPV = updateEPE(posEstimator.est.epv, dt, MAX(posEstimator.gps.epv, gpsResidualZ), positionEstimationConfig()->w_z_gps_p);
 
                 if (updateAccBias) {
