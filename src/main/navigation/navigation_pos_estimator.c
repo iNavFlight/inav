@@ -660,7 +660,9 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
                             (posEstimator.gps.eph < positionEstimationConfig()->max_eph_epv);
     const bool isGPSZValid = isGPSValid && (posEstimator.gps.epv < positionEstimationConfig()->max_eph_epv);
     const bool isBaroValid = sensors(SENSOR_BARO) && ((currentTimeUs - posEstimator.baro.lastUpdateTime) <= MS2US(INAV_BARO_TIMEOUT_MS));
+#if defined(USE_BARO) || defined(USE_RANGEFINDER)
     const bool isSurfaceValid = sensors(SENSOR_RANGEFINDER) && ((currentTimeUs - posEstimator.surface.lastUpdateTime) <= MS2US(INAV_SURFACE_TIMEOUT_MS));
+#endif
 
     /* Do some preparations to data */
     if (isBaroValid) {
@@ -684,10 +686,12 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         posEstimator.state.isBaroGroundValid = false;
     }
 
+#if defined(USE_BARO)
     /* We might be experiencing air cushion effect - use sonar or baro groung altitude to detect it */
     bool isAirCushionEffectDetected = ARMING_FLAG(ARMED) &&
                                         ((isSurfaceValid && posEstimator.surface.alt < 20.0f && posEstimator.state.isBaroGroundValid) ||
                                          (isBaroValid && posEstimator.state.isBaroGroundValid && posEstimator.baro.alt < posEstimator.state.baroGroundAlt));
+#endif
 
     /* Validate EPV for GPS and calculate altitude/climb rate correction flags */
     const bool useGpsZPos = STATE(FIXED_WING) && !sensors(SENSOR_BARO) && isGPSValid && isGPSZValid;
