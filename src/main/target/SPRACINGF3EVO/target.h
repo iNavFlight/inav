@@ -19,6 +19,10 @@
 
 #define TARGET_BOARD_IDENTIFIER "SPEV"
 
+#ifdef SPRACINGF3EVO_1SS_1M
+#define SPRACINGF3EVO_1SS
+#endif
+
 #define LED0                    PB8
 
 #define BEEPER                  PC15
