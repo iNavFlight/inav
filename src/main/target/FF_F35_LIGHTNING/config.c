@@ -20,7 +20,6 @@
 #include <platform.h>
 
 #include "config/config_master.h"
-#include "config/feature.h"
 
 #include "flight/mixer.h"
 
@@ -33,9 +32,6 @@
 // alternative defaults settings for FF_F35_LIGHTNING targets
 void targetConfiguration(void)
 {
-    featureSet(FEATURE_GPS);
-    featureSet(FEATURE_TELEMETRY);
-
     motorConfigMutable()->maxthrottle = 2000;
 
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
