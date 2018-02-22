@@ -368,7 +368,7 @@ void compassUpdate(timeUs_t currentTimeUs)
         }
     }
 
-    applySensorAlignment(mag.magADC, mag.dev.magAlign);
+    applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign);
     applyBoardAlignment(mag.magADC);
 
     magUpdatedAtLeastOnce = 1;
