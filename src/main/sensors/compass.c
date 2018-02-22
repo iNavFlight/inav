@@ -60,7 +60,7 @@
 
 mag_t mag;                   // mag access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 3);
 
 #ifdef USE_MAG
 #define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
