@@ -84,11 +84,12 @@ void applyBoardAlignment(int32_t *vec)
     vec[Z] = lrintf(boardRotation[0][Z] * x + boardRotation[1][Z] * y + boardRotation[2][Z] * z);
 }
 
-void applySensorAlignment(int32_t *dest, uint8_t rotation)
+void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation)
 {
-    const int32_t x = dest[X];
-    const int32_t y = dest[Y];
-    const int32_t z = dest[Z];
+    // Create a copy so we could use the same buffer for src & dest
+    const int32_t x = src[X];
+    const int32_t y = src[Y];
+    const int32_t z = src[Z];
 
     switch (rotation) {
     default:

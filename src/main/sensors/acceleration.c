@@ -21,6 +21,7 @@
 #include <math.h>
 
 #include "platform.h"
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
@@ -325,42 +326,33 @@ static bool isOnFirstAccelerationCalibrationCycle(void)
     return calibratingA == CALIBRATING_ACC_CYCLES;
 }
 
-static sensorCalibrationState_t calState;
-static bool calibratedAxis[6];
+static bool calibratedPosition[6];
 static int32_t accSamples[6][3];
 static int  calibratedAxisCount = 0;
 
-bool accGetCalibrationAxisStatus(int axis)
-{
-    if (accIsCalibrationComplete()) {
-        if (STATE(ACCELEROMETER_CALIBRATED)) {
-            return true;    // if calibration is valid - all axis are calibrated
-        }
-        else {
-            return calibratedAxis[axis];
-        }
-    }
-    else {
-        return calibratedAxis[axis];
-    }
-}
-
 uint8_t accGetCalibrationAxisFlags(void)
 {
+    if (accIsCalibrationComplete() && STATE(ACCELEROMETER_CALIBRATED)) {
+        return 0x3F;    // All 6 bits are set
+    }
+
+    static const uint8_t bitMap[6] = { 0, 1, 3, 5, 2, 4 };      // A mapping of bits to match position indexes in Configurator
     uint8_t flags = 0;
     for (int i = 0; i < 6; i++) {
-        if (accGetCalibrationAxisStatus(i)) {
-            flags |= (1 << i);
+        if (calibratedPosition[i]) {
+            flags |= (1 << bitMap[i]);
         }
     }
 
     return flags;
 }
 
-int getPrimaryAxisIndex(int32_t sample[3])
+static int getPrimaryAxisIndex(int32_t accADCData[3])
 {
-    // Apply sensor alignment (for axis detection only)
-    applySensorAlignment(sample, acc.dev.accAlign);
+    // Work on a copy so we don't mess with accADC data
+    int32_t sample[3];
+
+    applySensorAlignment(sample, accADCData, acc.dev.accAlign);
 
     // Tolerate up to atan(1 / 1.5) = 33 deg tilt (in worst case 66 deg separation between points)
     if ((ABS(sample[Z]) / 1.5f) > ABS(sample[X]) && (ABS(sample[Z]) / 1.5f) > ABS(sample[Y])) {
@@ -369,11 +361,11 @@ int getPrimaryAxisIndex(int32_t sample[3])
     }
     else if ((ABS(sample[X]) / 1.5f) > ABS(sample[Y]) && (ABS(sample[X]) / 1.5f) > ABS(sample[Z])) {
         //X-axis
-        return (sample[X] > 0) ? 3 : 5;
+        return (sample[X] > 0) ? 2 : 3;
     }
     else if ((ABS(sample[Y]) / 1.5f) > ABS(sample[X]) && (ABS(sample[Y]) / 1.5f) > ABS(sample[Z])) {
         //Y-axis
-        return (sample[Y] > 0) ? 2 : 4;
+        return (sample[Y] > 0) ? 4 : 5;
     }
     else
         return -1;
@@ -381,35 +373,38 @@ int getPrimaryAxisIndex(int32_t sample[3])
 
 static void performAcclerationCalibration(void)
 {
-    int axisIndex = getPrimaryAxisIndex(accADC);
+    int positionIndex = getPrimaryAxisIndex(accADC);
 
     // Check if sample is usable
-    if (axisIndex < 0) {
+    if (positionIndex < 0) {
         return;
     }
 
     // Top-up and first calibration cycle, reset everything
-    if (axisIndex == 0 && isOnFirstAccelerationCalibrationCycle()) {
+    if (positionIndex == 0 && isOnFirstAccelerationCalibrationCycle()) {
         for (int axis = 0; axis < 6; axis++) {
-            calibratedAxis[axis] = false;
+            calibratedPosition[axis] = false;
             accSamples[axis][X] = 0;
             accSamples[axis][Y] = 0;
             accSamples[axis][Z] = 0;
         }
 
         calibratedAxisCount = 0;
-        sensorCalibrationResetState(&calState);
         DISABLE_STATE(ACCELEROMETER_CALIBRATED);
     }
 
-    if (!calibratedAxis[axisIndex]) {
-        sensorCalibrationPushSampleForOffsetCalculation(&calState, accADC);
-        accSamples[axisIndex][X] += accADC[X];
-        accSamples[axisIndex][Y] += accADC[Y];
-        accSamples[axisIndex][Z] += accADC[Z];
+    if (!calibratedPosition[positionIndex]) {
+        accSamples[positionIndex][X] += accADC[X];
+        accSamples[positionIndex][Y] += accADC[Y];
+        accSamples[positionIndex][Z] += accADC[Z];
 
         if (isOnFinalAccelerationCalibrationCycle()) {
-            calibratedAxis[axisIndex] = true;
+            calibratedPosition[positionIndex] = true;
+
+            accSamples[positionIndex][X] = accSamples[positionIndex][X] / CALIBRATING_ACC_CYCLES;
+            accSamples[positionIndex][Y] = accSamples[positionIndex][Y] / CALIBRATING_ACC_CYCLES;
+            accSamples[positionIndex][Z] = accSamples[positionIndex][Z] / CALIBRATING_ACC_CYCLES;
+
             calibratedAxisCount++;
 
             beeperConfirmationBeeps(2);
@@ -417,10 +412,16 @@ static void performAcclerationCalibration(void)
     }
 
     if (calibratedAxisCount == 6) {
+        sensorCalibrationState_t calState;
         float accTmp[3];
-        int32_t accSample[3];
 
         /* Calculate offset */
+        sensorCalibrationResetState(&calState);
+
+        for (int axis = 0; axis < 6; axis++) {
+            sensorCalibrationPushSampleForOffsetCalculation(&calState, accSamples[axis]);
+        }
+
         sensorCalibrationSolveForOffset(&calState, accTmp);
 
         for (int axis = 0; axis < 3; axis++) {
@@ -431,9 +432,11 @@ static void performAcclerationCalibration(void)
         sensorCalibrationResetState(&calState);
 
         for (int axis = 0; axis < 6; axis++) {
-            accSample[X] = accSamples[axis][X] / CALIBRATING_ACC_CYCLES - accelerometerConfig()->accZero.raw[X];
-            accSample[Y] = accSamples[axis][Y] / CALIBRATING_ACC_CYCLES - accelerometerConfig()->accZero.raw[Y];
-            accSample[Z] = accSamples[axis][Z] / CALIBRATING_ACC_CYCLES - accelerometerConfig()->accZero.raw[Z];
+            int32_t accSample[3];
+
+            accSample[X] = accSamples[axis][X] - accelerometerConfig()->accZero.raw[X];
+            accSample[Y] = accSamples[axis][Y] - accelerometerConfig()->accZero.raw[Y];
+            accSample[Z] = accSamples[axis][Z] - accelerometerConfig()->accZero.raw[Z];
 
             sensorCalibrationPushSampleForScaleCalculation(&calState, axis / 2, accSample, acc.dev.acc_1G);
         }
@@ -511,7 +514,8 @@ void accUpdate(void)
     }
 
     applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
-    applySensorAlignment(accADC, acc.dev.accAlign);
+
+    applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
