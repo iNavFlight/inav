@@ -628,12 +628,17 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (imuHasGPSHeadingEnabled() && gpsHeadingInitialized);
+    return imuHasPreciseHeading() || (imuHasGPSHeadingEnabled() && gpsHeadingInitialized);
 }
 
 bool imuHasHeadingEnabled(void)
 {
     return sensors(SENSOR_MAG) || imuHasGPSHeadingEnabled();
+}
+
+bool imuHasPreciseHeading(void)
+{
+    return sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED);
 }
 
 void imuUpdateGPSCOG(void)

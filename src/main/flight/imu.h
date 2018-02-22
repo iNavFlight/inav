@@ -70,6 +70,7 @@ float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
 bool imuHasHeadingEnabled(void);
+bool imuHasPreciseHeading(void);
 void imuUpdateGPSCOG(void);
 
 void imuTransformVectorBodyToEarth(t_fp_vector * v);
