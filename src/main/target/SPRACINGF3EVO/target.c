@@ -22,12 +22,20 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
+#ifdef SPRACINGF3EVO_1SS_1M
+#define SPRACINGF3EVO_1SS
+#endif
+
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     // PPM / UART2 RX
     { TIM8,  IO_TAG(PA15), TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_PPM },  // PPM
 
     { TIM2,  IO_TAG(PA0),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // PWM1
+#ifdef SPRACINGF3EVO_1SS_1M
+    { TIM2,  IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // PWM2
+#else
     { TIM2,  IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // PWM2
+#endif
     { TIM15, IO_TAG(PA2),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // PWM3
     { TIM15, IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // PWM4
 #ifdef SPRACINGF3EVO_1SS
