@@ -47,6 +47,8 @@
 
 #include "io/gps.h"
 
+#include "navigation/navigation.h"
+
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
@@ -482,10 +484,11 @@ static void imuCalculateEstimatedAttitude(float dT)
             canUseCOG = gpsSol.groundSpeed >= 300;
             groundCourse = gpsSol.groundCourse;
         } else {
+#if defined(USE_NAV)
             // MR might fly on any direction, but it tends to fly in the direction the
             // head it's tilted to. To compensate for this, we rotate gpsSol.groundCourse
-            // by the tilt direction. Pitch and roll angles must fall in the [20, 90) interval
-            // so the data doesn't get polluted during flips or rolls.
+            // by the estimated speed direction. Pitch and roll angles must fall in the [20, 90)
+            // interval so the data doesn't get polluted during flips or rolls.
             // For now, we also require a harcoded speed of 6m/s, but we
             // should adjust this depending on the maximum speed in modes which do limit
             // it (e.g. RTH).
@@ -500,18 +503,26 @@ static void imuCalculateEstimatedAttitude(float dT)
                 calculateCosTiltAngle() > maxTiltCos) {
 
                 float tiltDirection = atan2_approx(attitude.values.roll, attitude.values.pitch);
-                float accXYMagnitudeSq = sq(imuMeasuredAccelBF.V.Y) + sq(imuMeasuredAccelBF.V.X);
-                float accDirection = atan2_approx(imuMeasuredAccelBF.V.Y, imuMeasuredAccelBF.V.X);
-                // Check that the either the acceleration in the XY plane is small ( < 150cm/s^2) or
-                // its direction doesn't differ from the tilt directions by more than PI/4.
-                // This lets us reject measurements where e.g. the MR is braking and it's tilted
-                // back while moving forward
-                if (accXYMagnitudeSq < sq(150) || ABS(tiltDirection - accDirection) < M_PIf / 4) {
-                    int16_t COGRotation = RADIANS_TO_DECIDEGREES(tiltDirection);
+
+                t_fp_vector v = {
+                    .V.X = getEstimatedActualVelocity(X),
+                    .V.Y = getEstimatedActualVelocity(Y),
+                    .V.Z = getEstimatedActualVelocity(Z),
+                };
+                imuTransformVectorEarthToBody(&v);
+
+                float bodySpeedDirectionXY = atan2_approx(v.V.Y, v.V.X);
+
+                // Check that the estimated speed direction is close to the tilt direction
+                // in the XY plane.
+                if (ABS(tiltDirection - bodySpeedDirectionXY) < M_PIf / 8) {
+                    // Rotate by speed direction in XY
+                    int16_t COGRotation = RADIANS_TO_DECIDEGREES(bodySpeedDirectionXY);
                     groundCourse = (gpsSol.groundCourse + COGRotation);
                     canUseCOG = true;
                 }
             }
+#endif
         }
         // Only use each COG reading once, to avoid reusing the same GPS
         // GPS data more than once introducing unnnecessary error.
