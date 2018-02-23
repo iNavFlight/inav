@@ -45,7 +45,7 @@
 
 #define ADCVREF 3300                 // in mV (3300 = 3.3V)
 
-#define VBATT_CELL_FULL_MAX_DIFF 7   // Max difference with cell max voltage for the battery to be considered full (10mV steps)
+#define VBATT_CELL_FULL_MAX_DIFF 14  // Max difference with cell max voltage for the battery to be considered full (10mV steps)
 #define VBATT_PRESENT_THRESHOLD 100  // Minimum voltage to consider battery present
 #define VBATT_STABLE_DELAY 40        // Delay after connecting battery to begin monitoring
 #define VBATT_HYSTERESIS 10          // Batt Hysteresis of +/-100mV for changing battery state
@@ -79,7 +79,7 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
 
     .voltage = {
         .scale = VBAT_SCALE_DEFAULT,
-        .cellMax = 430,
+        .cellMax = 424,
         .cellMin = 330,
         .cellWarning = 350
     },
