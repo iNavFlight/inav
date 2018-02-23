@@ -125,13 +125,13 @@
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD )
+#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD | FEATURE_GPS | FEATURE_TELEMETRY)
 
 #define CURRENT_METER_SCALE     250
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS       6
-#define USABLE_TIMER_CHANNEL_COUNT 6
+#define USABLE_TIMER_CHANNEL_COUNT 7
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -140,5 +140,5 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USED_TIMERS             ( TIM_N(3) | TIM_N(4) | TIM_N(8))
+#define USED_TIMERS             ( TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) )
 
