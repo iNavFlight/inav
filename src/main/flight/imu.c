@@ -146,6 +146,7 @@ void imuInit(void)
     // Explicitly initialize FASTRAM statics
     isAccelUpdatedAtLeastOnce = false;
     gpsHeadingInitialized = false;
+    gpsHasCOG = false;
     q0 = 1.0f;
     q1 = 0.0f;
     q2 = 0.0f;
