@@ -218,7 +218,8 @@ static int16_t computePseudoSnr(int32_t newReading) {
     static bool snrReady = false;
     int16_t pseudoSnr = 0;
 
-    snrSamples[snrSampleIndex] = constrain((int)(pow(newReading - previousReading, 2) / 10), 0, 6400);
+    const float diffReading = newReading - previousReading;
+    snrSamples[snrSampleIndex] = constrain((int)(sq(diffReading) / 10), 0, 6400);
     ++snrSampleIndex;
     if (snrSampleIndex == SNR_SAMPLES) {
         snrSampleIndex = 0;

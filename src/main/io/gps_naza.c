@@ -191,14 +191,14 @@ static bool NAZA_parse_gps(void)
         //uint16_t vdop = decodeShort(_buffernaza.nav.vdop, mask); // vdop
         //uint16_t ndop = decodeShort(_buffernaza.nav.ndop, mask);
         //uint16_t edop = decodeShort(_buffernaza.nav.edop, mask);
-        //gpsSol.hdop = sqrtf(powf(ndop,2)+powf(edop,2));
+        //gpsSol.hdop = sqrtf(sq(ndop)+sq(edop));
         //gpsSol.vdop = decodeShort(_buffernaza.nav.vdop, mask); // vdop
 
         gpsSol.hdop = gpsConstrainEPE(pdop);        // PDOP
         gpsSol.eph = gpsConstrainEPE(h_acc / 10);   // hAcc in cm
         gpsSol.epv = gpsConstrainEPE(v_acc / 10);   // vAcc in cm
         gpsSol.numSat = _buffernaza.nav.satellites;
-        gpsSol.groundSpeed = sqrtf(powf(gpsSol.velNED[0], 2)+powf(gpsSol.velNED[1], 2)); //cm/s
+        gpsSol.groundSpeed = sqrtf(sq(gpsSol.velNED[0]) + sq(gpsSol.velNED[1])); //cm/s
 
         // calculate gps heading from VELNE
         gpsSol.groundCourse = (uint16_t) (fmodf(RADIANS_TO_DECIDEGREES(atan2_approx(gpsSol.velNED[1], gpsSol.velNED[0]))+3600.0f,3600.0f));
