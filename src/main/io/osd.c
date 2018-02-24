@@ -798,6 +798,16 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
     return decoration;
 }
 
+static bool osdIsHeadingValid(void)
+{
+    return isImuHeadingValid();
+}
+
+static int16_t osdGetHeading(void)
+{
+    return attitude.values.yaw;
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item])) {
@@ -897,14 +907,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            int16_t h = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+            int16_t h = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
 
-            if (h < 0)
+            if (h < 0) {
                 h += 360;
-            if (h >= 360)
+            }
+            if (h >= 360) {
                 h -= 360;
+            }
 
-            h = h*2/45;
+            h = h * 2 / 45;
 
             buff[0] = SYM_ARROW_UP + h;
             buff[1] = 0;
@@ -923,11 +935,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HEADING:
         {
-            int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
-            if (h < 0) h+=360;
-
             buff[0] = SYM_HEADING;
-            tfp_sprintf(&buff[1], "%3d%c", h , SYM_DEGREES);
+            if (osdIsHeadingValid()) {
+                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+                if (h < 0) {
+                    h += 360;
+                }
+                tfp_sprintf(&buff[1], "%3d", h);
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = SYM_DEGREES;
+            buff[5] = '\0';
             break;
         }
     case OSD_GPS_HDOP:
@@ -1442,14 +1461,19 @@ static bool osdDrawSingleElement(uint8_t item)
                 SYM_HEADING_W,
                 SYM_HEADING_LINE,
             };
-            int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
-            if (h >= 180) {
-                h -= 360;
+            if (osdIsHeadingValid()) {
+                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+                if (h >= 180) {
+                    h -= 360;
+                }
+                int hh = h * 4;
+                hh = hh + 720 + 45;
+                hh = hh / 90;
+                memcpy_fn(buff, graph + hh + 1, 9);
+            } else {
+                buff[0] = buff[2] = buff[4] = buff[6] = buff[8] = SYM_HEADING_LINE;
+                buff[1] = buff[3] = buff[5] = buff[7] = SYM_HEADING_DIVIDED_LINE;
             }
-            int hh = h * 4;
-            hh = hh + 720 + 45;
-            hh = hh / 90;
-            memcpy_fn(buff, graph + hh + 1, 9);
             buff[9] = '\0';
             break;
         }
