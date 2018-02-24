@@ -158,7 +158,7 @@
 #define RANGEFINDER_HCSR04_TRIGGER_PIN       PB0 // RC_CH7 (PB0) - only 3.3v ( add a 1K Ohms resistor )
 #define RANGEFINDER_HCSR04_ECHO_PIN          PB1 // RC_CH8 (PB1) - only 3.3v ( add a 1K Ohms resistor )
 
-#define DEFAULT_FEATURES        FEATURE_BLACKBOX
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
 
 #define USE_SPEKTRUM_BIND

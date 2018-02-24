@@ -155,12 +155,13 @@ static const char * const mixerNames[] = {
 
 // sync this with features_e
 static const char * const featureNames[] = {
-    "RX_PPM", "VBAT", "RX_UIB", "RX_SERIAL", "MOTOR_STOP",
+    "RX_PPM", "VBAT", "TX_PROF_SEL", "", "MOTOR_STOP",
     "SERVO_TILT", "SOFTSERIAL", "GPS", "",
     "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "CHANNEL_FORWARDING", "TRANSPONDER", "AIRMODE",
-    "SUPEREXPO", "VTX", "RX_SPI", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE", "OSD", "FW_LAUNCH", "TRACE", NULL
+    "SUPEREXPO", "VTX", "RX_SPI", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
+    "OSD", "FW_LAUNCH", "TRACE" , NULL
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
