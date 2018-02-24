@@ -95,6 +95,7 @@ static bool l3gd20GyroRead(gyroDev_t *gyro)
 
 static bool deviceDetect(busDevice_t * dev)
 {
+    UNUSED(dev);
     return true;  // blindly assume it's present, for now.
 }
 
