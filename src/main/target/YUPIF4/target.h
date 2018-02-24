@@ -23,39 +23,25 @@
 #define LED0                    PB6
 #define LED1                    PB4
 
-#define BEEPER                  PC9
+#define BEEPER                  PB14
 #define BEEPER_PWM
 #define BEEPER_INVERTED
 #define BEEPER_PWM_FREQUENCY    3150
 
-
 #define INVERTER_PIN_UART6      PB15
 
-#define USE_SPI
-#define USE_SPI_DEVICE_1 // Gyro
-#define SPI1_NSS_PIN            PA4
-#define SPI1_SCK_PIN            PA5
-#define SPI1_MISO_PIN           PA6
-#define SPI1_MOSI_PIN           PA7
-
-#define USE_SPI
-#define USE_SPI_DEVICE_3 // SD Card
-#define SPI3_NSS_PIN            PA15
-#define SPI3_SCK_PIN            PC10
-#define SPI3_MISO_PIN           PC11
-#define SPI3_MOSI_PIN           PC12
-
-
-/////// ICM20689 ////////
 #define USE_EXTI
 #define MPU_INT_EXTI            PC4
-#define EXTI_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
-// ICM20689
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
-#define MPU6500_SPI_INSTANCE    SPI1
+#define MPU6500_SPI_BUS         BUS_SPI1
+
+#define USE_GYRO_MPU6500
+#define USE_ACC_MPU6500
+#define ICM20689_CS_PIN         SPI1_NSS_PIN
+#define ICM20689_EXTI_PIN       PC4
 
 #define ACC
 #define USE_ACC_SPI_MPU6500
@@ -65,31 +51,39 @@
 #define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW90_DEG
 
-////////////////////////
-/*
+
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_2)
-#define I2C2_SCL                PB10
-#define I2C2_SDA                PB11
+#define USE_I2C_DEVICE_2
+#define I2C1_SCL                PB10
+#define I2C1_SDA                PB11
 
 #define MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
+#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_QMC5883
 
-#define BARO
-#define USE_BARO_BMP280
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
-*/
+#define USE_BARO_BMP280
 
-// OSD
 #define OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA14
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
 
-// Serial Ports
+#define USE_SDCARD
+#define USE_SDCARD_SPI3
+#define SDCARD_DETECT_INVERTED
+#define SDCARD_DETECT_PIN                   PD2
+#define SDCARD_SPI_INSTANCE                 SPI3
+#define SDCARD_SPI_CS_PIN                   SPI3_NSS_PIN
+#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
+#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
+#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
+#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+
 #define USB_IO
 #define USE_VCP
 
@@ -109,25 +103,23 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-#define SERIAL_PORT_COUNT       5 // VCP, UART1, UART3, UART4, UART6
+#define SERIAL_PORT_COUNT       5
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0
 
+#define USE_SPI
+#define USE_SPI_DEVICE_1 	// Gyro
+#define SPI1_NSS_PIN            PA4
+#define SPI1_SCK_PIN            PA5
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
 
-// SD Card
-#define USE_SDCARD
-#define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PD2
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   PA15
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
-
+#define USE_SPI_DEVICE_3 	// SD Card
+#define SPI3_NSS_PIN            PA15
+#define SPI3_SCK_PIN            PC10
+#define SPI3_MISO_PIN           PC11
+#define SPI3_MOSI_PIN           PC12
 
 // ADC inputs
 #define BOARD_HAS_VOLTAGE_DIVIDER
@@ -151,7 +143,7 @@
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
-#define DEFAULT_FEATURES        (FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
+#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_OSD)
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
