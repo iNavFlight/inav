@@ -78,7 +78,7 @@
 #include "navigation/navigation.h"
 
 #ifndef DEFAULT_FEATURES
-#define DEFAULT_FEATURES 0
+#define DEFAULT_FEATURES FEATURE_TX_PROF_SEL
 #endif
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0

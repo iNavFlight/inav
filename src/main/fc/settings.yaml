@@ -69,7 +69,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL", "FLOW_RAW"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL", "FLOW_RAW","ALWAYS"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator

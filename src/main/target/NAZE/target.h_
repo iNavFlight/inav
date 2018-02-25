@@ -190,7 +190,7 @@
 
 #define TARGET_MOTOR_COUNT      6
 
-#define DEFAULT_FEATURES        FEATURE_VBAT
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_VBAT)
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
 
 // Number of available PWM outputs
