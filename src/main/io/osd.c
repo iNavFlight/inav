@@ -295,7 +295,7 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
         } else {
             // Show miles when dist >= 0.5mi
             tfp_sprintf(buff, "%d.%02d%c", centifeet / (100*FEET_PER_MILE),
-            abs(centifeet) % (100 * FEET_PER_MILE) / 10, SYM_MI);
+            (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
         }
         break;
      case OSD_UNIT_UK:
