@@ -65,8 +65,13 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#define USE_VCP
+#define USE_LED_STRIP
+#define WS2811_PIN                      PB8
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST7_HANDLER
+#define WS2811_DMA_STREAM               DMA1_Stream7
+#define WS2811_DMA_CHANNEL              DMA_Channel_2
 
+#define USE_VCP
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -149,5 +154,5 @@
 #define USED_TIMERS  ( TIM_N(1) | TIM_N(3) | TIM_N(4) | TIM_N(8)| TIM_N(11) | TIM_N(12)  )
 #else
 #define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(9) | TIM_N(11) )
+#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(9) | TIM_N(11) | TIM_N(12) )
 #endif
