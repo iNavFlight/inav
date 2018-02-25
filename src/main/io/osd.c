@@ -307,7 +307,7 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
         } else {
             // Show kilometers when dist >= 1km
             tfp_sprintf(buff, "%d.%02d%c", dist / (100*METERS_PER_KILOMETER),
-                abs(dist) % (100 * METERS_PER_KILOMETER) / 100, SYM_KM);
+                (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
          }
          break;
      }
