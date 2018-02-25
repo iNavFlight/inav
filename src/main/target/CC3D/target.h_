@@ -80,7 +80,7 @@
 #ifdef USE_RX_NRF24
 #define USE_RX_SPI
 #define DEFAULT_RX_TYPE         RX_TYPE_SPI
-//#define DEFAULT_FEATURES        FEATURE_SOFTSPI
+//#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_SOFTSPI)
 #define USE_RX_SYMA
 //#define USE_RX_V202
 #define USE_RX_CX10

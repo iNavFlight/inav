@@ -43,10 +43,10 @@ typedef enum {
 } asyncMode_e;
 
 typedef enum {
-    FEATURE_UNUSED_5 = 1 << 0,          // RX_PPM
+    FEATURE_UNUSED_1 = 1 << 0,          // RX_PPM
     FEATURE_VBAT = 1 << 1,
-    FEATURE_UNUSED_1 = 1 << 2,          // Unused in INAV
-    FEATURE_UNUSED_6 = 1 << 3,          // RX_SERIAL
+    FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
+    FEATURE_UNUSED_2 = 1 << 3,          // RX_SERIAL
     FEATURE_MOTOR_STOP = 1 << 4,
     FEATURE_SERVO_TILT = 1 << 5,
     FEATURE_SOFTSERIAL = 1 << 6,
@@ -56,20 +56,20 @@ typedef enum {
     FEATURE_TELEMETRY = 1 << 10,
     FEATURE_CURRENT_METER = 1 << 11,
     FEATURE_3D = 1 << 12,
-    FEATURE_UNUSED_7 = 1 << 13,         // RX_PARALLEL_PWM
-    FEATURE_UNUSED_8 = 1 << 14,         // RX_MSP
+    FEATURE_UNUSED_5 = 1 << 13,         // RX_PARALLEL_PWM
+    FEATURE_UNUSED_6 = 1 << 14,         // RX_MSP
     FEATURE_RSSI_ADC = 1 << 15,
     FEATURE_LED_STRIP = 1 << 16,
     FEATURE_DASHBOARD = 1 << 17,
-    FEATURE_UNUSED_2 = 1 << 18,         // Unused in INAV
+    FEATURE_UNUSED_7 = 1 << 18,         // Unused in INAV
     FEATURE_BLACKBOX = 1 << 19,
     FEATURE_CHANNEL_FORWARDING = 1 << 20,
     FEATURE_TRANSPONDER = 1 << 21,
     FEATURE_AIRMODE = 1 << 22,
     FEATURE_SUPEREXPO_RATES = 1 << 23,
     FEATURE_VTX = 1 << 24,
-    FEATURE_UNUSED_9 = 1 << 25,         // RX_SPI
-    FEATURE_UNUSED_10 = 1 << 26,        //SOFTSPI
+    FEATURE_UNUSED_8 = 1 << 25,         // RX_SPI
+    FEATURE_UNUSED_9 = 1 << 26,        //SOFTSPI
     FEATURE_PWM_SERVO_DRIVER = 1 << 27,
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,
     FEATURE_OSD = 1 << 29,

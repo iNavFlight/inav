@@ -253,15 +253,17 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
 #endif
 
     // Multiple configuration profiles
-    if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
-        i = 1;
-    else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
-        i = 2;
-    else if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
-        i = 3;
-    if (i) {
-        setConfigProfileAndWriteEEPROM(i - 1);
-        return;
+    if (feature(FEATURE_TX_PROF_SEL)) {
+        if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
+            i = 1;
+        else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
+            i = 2;
+        else if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
+            i = 3;
+        if (i) {
+            setConfigProfileAndWriteEEPROM(i - 1);
+            return;
+        }
     }
 
     // Save config
