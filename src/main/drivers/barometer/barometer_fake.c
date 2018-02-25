@@ -39,6 +39,7 @@ static bool fakeBaroStartGet(baroDev_t * baro)
 
 static bool fakeBaroCalculate(baroDev_t * baro, int32_t *pressure, int32_t *temperature)
 {
+    UNUSED(baro);
     if (pressure)
         *pressure = fakePressure;
     if (temperature)
