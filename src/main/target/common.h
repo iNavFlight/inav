@@ -31,6 +31,8 @@
 #define USE_SERIALRX_SBUS       // Very common protocol
 #define USE_SERIALRX_IBUS       // Cheap FlySky & Turnigy receivers
 
+#define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
+
 #if defined(STM32F1) || defined(STM32F3)
 #define USE_UNDERCLOCK
 #endif

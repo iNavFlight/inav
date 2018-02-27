@@ -78,7 +78,7 @@
 #include "navigation/navigation.h"
 
 #ifndef DEFAULT_FEATURES
-#define DEFAULT_FEATURES FEATURE_TX_PROF_SEL
+#define DEFAULT_FEATURES 0
 #endif
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -103,7 +103,7 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(featureConfig_t, featureConfig, PG_FEATURE_CONFIG, 0);
 
 PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
-    .enabledFeatures = DEFAULT_FEATURES
+    .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 1);
