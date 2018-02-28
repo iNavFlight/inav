@@ -55,12 +55,13 @@ bool mpu6500AccDetect(accDev_t *acc)
         return false;
     }
 
-    if (busDeviceReadScratchpad(acc->busDev) != 0xFFFF6500) {
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
+    if (ctx->chipMagicNumber != 0x6860) {
         return false;
     }
 
     acc->initFn = mpu6500AccInit;
-    acc->readFn = mpuAccRead;
+    acc->readFn = mpuAccReadScratchpad;
 
     return true;
 }
@@ -157,11 +158,14 @@ bool mpu6500GyroDetect(gyroDev_t *gyro)
         return false;
     }
 
-    busDeviceWriteScratchpad(gyro->busDev, 0xFFFF6500);    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
+    ctx->chipMagicNumber = 0x6500;
 
     gyro->initFn = mpu6500AccAndGyroInit;
-    gyro->readFn = mpuGyroRead;
+    gyro->readFn = mpuGyroReadScratchpad;
     gyro->intStatusFn = mpuCheckDataReady;
+    gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
 
     return true;

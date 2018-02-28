@@ -134,6 +134,15 @@ typedef struct mpuConfiguration_s {
     uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
 } mpuConfiguration_t;
 
+typedef struct __attribute__ ((__packed__)) mpuContextData_s {
+    uint16_t    chipMagicNumber;
+    uint8_t     lastReadStatus;
+    uint8_t     __padding;
+    uint8_t     accRaw[6];  // MPU_RA_ACCEL_XOUT_H
+    uint8_t     tempRaw[2]; // MPU_RA_TEMP_OUT_H
+    uint8_t     gyroRaw[6]; // MPU_RA_GYRO_XOUT_H
+} mpuContextData_t;
+
 enum gyro_fsr_e {
     INV_FSR_250DPS = 0,
     INV_FSR_500DPS,
@@ -163,11 +172,12 @@ enum accel_fsr_e {
 };
 
 struct gyroDev_s;
+struct accDev_s;
 void mpuIntExtiInit(struct gyroDev_s *gyro);
 
-struct accDev_s;
-bool mpuAccRead(struct accDev_s *acc);
 bool mpuGyroRead(struct gyroDev_s *gyro);
-void mpuDetect(struct gyroDev_s *gyro);
+bool mpuGyroReadScratchpad(struct gyroDev_s *gyro);
+bool mpuAccReadScratchpad(struct accDev_s *acc);
+bool mpuTemperatureReadScratchpad(struct gyroDev_s *gyro, int16_t * data);
+
 bool mpuCheckDataReady(struct gyroDev_s *gyro);
-void mpuGyroSetIsrUpdate(struct gyroDev_s *gyro, sensorGyroUpdateFuncPtr updateFn);
