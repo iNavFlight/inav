@@ -206,7 +206,7 @@ void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value)
 
 void * busDeviceGetScratchpadMemory(const busDevice_t * dev)
 {
-    return dev->scratchpad;
+    return (void *)dev->scratchpad;
 }
 
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length)

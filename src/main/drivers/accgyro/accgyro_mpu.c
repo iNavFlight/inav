@@ -144,8 +144,8 @@ bool mpuAccReadScratchpad(accDev_t *acc)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[2] << 8) | ctx->accRaw[3]);
         acc->ADCRaw[X] = (int16_t)((ctx->accRaw[0] << 8) | ctx->accRaw[1]);
+        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[2] << 8) | ctx->accRaw[3]);
         acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[4] << 8) | ctx->accRaw[5]);
         return true;
     }
@@ -158,7 +158,8 @@ bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
 
     if (ctx->lastReadStatus) {
-        *data = (int16_t)((ctx->tempRaw[2] << 8) | ctx->tempRaw[3]);
+        // Convert to degC*10: degC = raw / 340 + 36.53
+        *data = (int16_t)((ctx->tempRaw[0] << 8) | ctx->tempRaw[1]) / 34 + 365;
         return true;
     }
 

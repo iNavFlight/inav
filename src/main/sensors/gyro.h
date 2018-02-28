@@ -66,7 +66,7 @@ void gyroGetMeasuredRotationRate(t_fp_vector *imuMeasuredRotationBF);
 void gyroUpdate(timeDelta_t gyroUpdateDeltaUs);
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 bool gyroIsCalibrationComplete(void);
-void gyroReadTemperature(void);
+bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 bool gyroSyncCheckUpdate(void);
