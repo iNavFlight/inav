@@ -1673,15 +1673,18 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 #endif
 
 #ifdef USE_STATS
-    displayWrite(osdDisplayPort, 3, ++y, "ODOMETER:");
-    if (osdConfig()->units == OSD_UNIT_IMPERIAL)
-        tfp_sprintf(string_buffer, "%d MI", statsConfig()->stats_total_dist / METERS_PER_MILE);
-    else
-        tfp_sprintf(string_buffer, "%d KM", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
-    displayWrite(osdDisplayPort, 13, y++,  string_buffer);
-    uint32_t tot_mins = statsConfig()->stats_total_time / 60;
-    tfp_sprintf(string_buffer, "%d:%02d H", tot_mins / 60, tot_mins % 60);
-    displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+    if (statsConfig()->stats_enabled) {
+        displayWrite(osdDisplayPort, 3, ++y, "ODOMETER:");
+        if (osdConfig()->units == OSD_UNIT_IMPERIAL) {
+            tfp_sprintf(string_buffer, "%d MI", statsConfig()->stats_total_dist / METERS_PER_MILE);
+        } else {
+            tfp_sprintf(string_buffer, "%d KM", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+        }
+        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+        uint32_t tot_mins = statsConfig()->stats_total_time / 60;
+        tfp_sprintf(string_buffer, "%d:%02d H", tot_mins / 60, tot_mins % 60);
+        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+    }
 #endif
 
     displayResync(osdDisplayPort);
