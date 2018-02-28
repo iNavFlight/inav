@@ -291,7 +291,7 @@ bool mpu9250CompassDetect(magDev_t * mag)
     }
 
     // Check if Gyro driver initialized the chip
-    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(mag->busDev);
     if (ctx->chipMagicNumber != 0x9250) {
         return false;
     }
