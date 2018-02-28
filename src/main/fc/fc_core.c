@@ -595,8 +595,8 @@ void processRx(timeUs_t currentTimeUs)
             if (isAirmodeActive() && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
-                // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING))) {
+                // ANTI_WINDUP at centered stick with MOTOR_STOP is needed on MRs and not needed on FWs
+                if ((!STATE(FIXED_WING)) && (rollPitchStatus == CENTERED) && (feature(FEATURE_MOTOR_STOP))) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
                 else {
