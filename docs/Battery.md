@@ -173,8 +173,17 @@ For the capacity monitoring to work you need a current sensor (`CURRENT_METER` f
 
 It is possible to display the remaining battery capacity in the OSD and also use the battery capacity thresholds (`battery_capacity_warning` and `battery_capacity_critical`) for battery alarms.
 
-For the remaining battery capacity to be displayed users need to set the `battery_capacity` setting (>0) and the battery to be full when plugged in. If the `battery_capacity` setting is set to 0 the remaining battery capacity item in the OSD will display `NA` and the battery gauge will use an estimation based on the battery voltage otherwise it will display the remaining battery capacity down to the `battery_capacity_critical` setting (battery considered empty) and the battery gauge will be based on the remaining capacity. For the capacity thresholds to be used for alarms the `battery_capacity_warning` and `battery_capacity_critical` settings also needs to be set (>0) and the plugged in battery to be full when plugged in. The battery capacity settings unit can be set using the `battery_capacity_unit`. MilliAmpere hour and milliWatt hour units are supported.
+For the remaining battery capacity to be displayed users need to set the `battery_capacity` setting (>0) and the battery to be full when plugged in. If the `battery_capacity` setting is set to 0 the remaining battery capacity item in the OSD will display `NA` and the battery gauge will use an estimation based on the battery voltage otherwise it will display the remaining battery capacity down to the `battery_capacity_critical` setting (battery considered empty) and the battery gauge will be based on the remaining capacity. For the capacity thresholds to be used for alarms the `battery_capacity_warning` and `battery_capacity_critical` settings also needs to be set (>0) and the plugged in battery to be full when plugged in. The battery capacity settings unit can be set using the `battery_capacity_unit`. MilliAmpere hour and milliWatt hour units are supported. The value are absolute meaning that `battery_capacity_warning` is the battery capacity left when the battery is entering the `warning` state and `battery_capacity_critical` is the battery capacity left when the battery is considered empty and entering the `critical` state.
 
 For the battery to be considered full the mean cell voltage of the battery needs to be above `vbat_max_cell_voltage - 140mV` (by default 4.1V). So a 3S battery will be considered full above 12.3V and a 4S battery above 16.24V. If the battery plugged in is not considered full the remaining battery capacity OSD item will show `NF` (Not Full).
 
 For the remaining battery capacity and battery gauge to be the most precise (linear relative to throttle from full to empty) when using battery capacity monitoring users should use the milliWatt hour unit for the battery capacity settings.
+
+### Example configuration
+
+```
+set battery_capacity_unit = MAH         // battery capacity values are specified in milliAmpere hour
+set battery_capacity = 2200             // battery capacity is 2200mAh
+set battery_capacity_warning = 660      // the battery warning alarm will sound and the capacity related OSD items will blink when left capacity is less than 660 mAh (30% of battery capacity)
+set battery_capacity_critical = 440     // the battery critical alarm will sound and the OSD battery gauge and remaining capacity item will be empty when left capacity is less than 440 mAh (20% of battery capacity)
+```
