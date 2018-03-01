@@ -1657,6 +1657,9 @@ groups:
         max: INT32_MAX
       - name: stats_total_dist
         max: INT32_MAX
+      - name: stats_total_energy
+        max: INT32_MAX
+        condition: USE_ADC
 
   - name: PG_TIME_CONFIG
     type: timeConfig_t
