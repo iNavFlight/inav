@@ -317,11 +317,11 @@ groups:
         max: MIDRC_MAX
       - name: min_check
         field: mincheck
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: max_check
         field: maxcheck
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: rssi_channel
         min: 0
@@ -400,7 +400,7 @@ groups:
         max: PWM_RANGE_MAX
       - name: min_command
         field: mincommand
-        min: PWM_RANGE_ZERO
+        min: 0
         max: PWM_RANGE_MAX
       - name: motor_pwm_rate
         field: motorPwmRate
@@ -424,8 +424,8 @@ groups:
         min: 0
         max: 200
       - name: failsafe_throttle
-        min: 1000
-        max: 2000
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
       - name: failsafe_throttle_low_delay
         min: 0
         max: 300
@@ -571,15 +571,15 @@ groups:
     members:
       - name: 3d_deadband_low
         field: deadband3d_low
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_deadband_high
         field: deadband3d_high
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: 3d_neutral
         field: neutral3d
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
 
   - name: PG_SERVO_CONFIG
@@ -588,7 +588,7 @@ groups:
     members:
       - name: servo_center_pulse
         field: servoCenterPulse
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: servo_pwm_rate
         field: servoPwmRate
@@ -759,7 +759,7 @@ groups:
         max: 250
       - name: 3d_deadband_throttle
         field: deadband3d_throttle
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
 
   - name: PG_PID_PROFILE
