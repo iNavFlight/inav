@@ -1747,8 +1747,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 #endif
 
     displayResync(osdDisplayPort);
-
-    resumeRefreshAt = micros() + (4 * REFRESH_1S);
+    resumeRefreshAt = micros() + ((statsConfig()->stats_enabled ? 10 : 4) + 2) * REFRESH_1S; // considering it takes about 2 seconds for the initialization screen to be displayed
 }
 
 static void osdResetStats(void)
