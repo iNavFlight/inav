@@ -302,8 +302,8 @@ groups:
         table: receiver_type
       - name: mid_rc
         field: midrc
-        min: 1200
-        max: 1700
+        min: MIDRC_MIN
+        max: MIDRC_MAX
       - name: min_check
         field: mincheck
         min: PWM_RANGE_ZERO
