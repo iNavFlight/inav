@@ -1348,7 +1348,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU32Safe(&hilToFC.baroAlt, src);
         sbufReadU16Safe(&hilToFC.bodyAccel[0], src);
         sbufReadU16Safe(&hilToFC.bodyAccel[1], src);
-        if (sbufReadU16Safe(&hilToFC.bodyAccel[2], src) {
+        if (sbufReadU16Safe(&hilToFC.bodyAccel[2], src)) {
             hilActive = true;
         }
         break;
