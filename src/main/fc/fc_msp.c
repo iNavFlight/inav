@@ -1334,7 +1334,6 @@ static void mspFcDataFlashReadCommand(sbuf_t *dst, sbuf_t *src)
 static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     uint32_t i;
-    uint16_t tmp;
     uint8_t rate;
 
     const unsigned int dataSize = sbufBytesRemaining(src);
@@ -1518,9 +1517,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_MISC:
-        tmp = sbufReadU16(src);
-        if (tmp < 1600 && tmp > 1400)
-            rxConfigMutable()->midrc = tmp;
+        rxConfigMutable()->midrc = constrain(sbufReadU16(src), MIDRC_MIN, MIDRC_MAX);
 
         motorConfigMutable()->minthrottle = sbufReadU16(src);
         motorConfigMutable()->maxthrottle = sbufReadU16(src);
@@ -1554,9 +1551,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_MISC:
-        tmp = sbufReadU16(src);
-        if (tmp < 1600 && tmp > 1400)
-            rxConfigMutable()->midrc = tmp;
+        rxConfigMutable()->midrc = constrain(sbufReadU16(src), MIDRC_MIN, MIDRC_MAX);
 
         motorConfigMutable()->minthrottle = sbufReadU16(src);
         motorConfigMutable()->maxthrottle = sbufReadU16(src);
