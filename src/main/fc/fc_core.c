@@ -803,7 +803,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 #endif
 
-    mixTable();
+    mixTable(dT);
 
 #ifdef USE_SERVOS
     if (isMixerUsingServos()) {

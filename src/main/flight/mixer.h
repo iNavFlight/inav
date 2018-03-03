@@ -111,6 +111,8 @@ typedef struct motorConfig_s {
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
     uint8_t  motorPwmProtocol;
+    uint16_t motorAccelTimeMs;              // Time limit for motor to accelerate from 0 to 100% throttle [ms]
+    uint16_t motorDecelTimeMs;              // Time limit for motor to decelerate from 0 to 100% throttle [ms]
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
@@ -128,7 +130,7 @@ void mixerLoadMix(int index, motorMixer_t *customMixers);
 void mixerUsePWMIOConfiguration(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
-void mixTable(void);
+void mixTable(const float dT);
 void writeMotors(void);
 void processServoTilt(void);
 void processServoAutotrim(void);
