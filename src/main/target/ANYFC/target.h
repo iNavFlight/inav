@@ -30,14 +30,14 @@
 #define INVERTER_PIN_UART1      PC3
 
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
+#define MPU6000_SPI_BUS         BUS_SPI1
 
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW270_DEG
 
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW270_DEG
 
 // MPU6000 interrupts
@@ -46,24 +46,25 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define EXTI_CALLBACK_HANDLER_COUNT 2 // MPU data ready (mag disabled)
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
+#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
-#define MAG_I2C_INSTANCE        I2C_DEVICE_EXT
+#define USE_MAG_IST8310
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
-//#define MAG_HMC5883_ALIGN       CW90_DEG
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_VL53L0X
-#define RANGEFINDER_VL53L0X_INSTANCE    I2C_DEVICE_EXT
+#define VL53L0X_I2C_BUS         BUS_I2C2
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_INSTANCE      I2C_DEVICE_EXT
+#define PITOT_I2C_BUS           BUS_I2C2
 
-#define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
 
@@ -97,9 +98,9 @@
 #define USE_SPI_DEVICE_1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C_DEVICE_EXT          (I2CDEV_2)
-#define I2C_DEVICE_EXT_SHARES_UART3
+#define USE_I2C_DEVICE_1
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
 //#define USE_I2C_PULLUP
 
 //#define HIL
@@ -114,7 +115,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 // LED Strip can run off Pin 6 (PA0) of the ESC outputs.
 #define WS2811_PIN                      PA0
 #define WS2811_TIMER                    TIM5

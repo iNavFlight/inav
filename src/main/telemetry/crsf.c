@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(TELEMETRY) && defined(TELEMETRY_CRSF)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_CRSF)
 
 #include "build/build_config.h"
 #include "build/version.h"
@@ -166,7 +166,7 @@ void crsfFrameBatterySensor(sbuf_t *dst)
     // use sbufWrite since CRC does not include frame length
     sbufWriteU8(dst, CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_BATTERY_SENSOR);
-    crsfSerialize16(dst, vbat); // vbat is in units of 0.1V
+    crsfSerialize16(dst, vbat / 10); // vbat is in units of 0.01V
     crsfSerialize16(dst, amperage / 10);
     const uint8_t batteryRemainingPercentage = calculateBatteryPercentage();
     crsfSerialize8(dst, (mAhDrawn >> 16));
@@ -274,7 +274,7 @@ static void processCrsf(void)
         crsfFrameFlightMode(dst);
         crsfFinalize(dst);
     }
-#ifdef GPS
+#ifdef USE_GPS
     if (currentSchedule & BV(CRSF_FRAME_GPS)) {
         crsfInitializeFrame(dst);
         crsfFrameGps(dst);
@@ -344,7 +344,7 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
     case CRSF_FRAME_FLIGHT_MODE:
         crsfFrameFlightMode(sbuf);
         break;
-#if defined(GPS)
+#if defined(USE_GPS)
     case CRSF_FRAME_GPS:
         crsfFrameGps(sbuf);
         break;

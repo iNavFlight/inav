@@ -49,6 +49,7 @@
 #include "navigation/navigation.h"
 
 #include "io/beeper.h"
+#include "io/lights.h"
 #include "io/dashboard.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
@@ -81,11 +82,6 @@
 
 #include "uav_interconnect/uav_interconnect.h"
 
-/* VBAT monitoring interval (in microseconds) - 1s*/
-#define VBATINTERVAL (6 * 3500)
-/* IBat monitoring interval (in microseconds) - 6 default looptimes */
-#define IBATINTERVAL (6 * 3500)
-
 void taskHandleSerial(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -101,29 +97,21 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
+    static timeUs_t batMonitoringLastServiced = 0;
+    timeUs_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
+
+    if (feature(FEATURE_CURRENT_METER))
+        currentMeterUpdate(BatMonitoringTimeSinceLastServiced);
 #ifdef USE_ADC
-    static timeUs_t vbatLastServiced = 0;
-    if (feature(FEATURE_VBAT)) {
-        if (cmpTimeUs(currentTimeUs, vbatLastServiced) >= VBATINTERVAL) {
-            timeUs_t vbatTimeDelta = currentTimeUs - vbatLastServiced;
-            vbatLastServiced = currentTimeUs;
-            batteryUpdate(vbatTimeDelta);
-        }
-    }
+    if (feature(FEATURE_VBAT))
+        batteryUpdate(BatMonitoringTimeSinceLastServiced);
+    if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))
+        powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
 #endif
-
-    static timeUs_t ibatLastServiced = 0;
-    if (feature(FEATURE_CURRENT_METER)) {
-        timeUs_t ibatTimeSinceLastServiced = cmpTimeUs(currentTimeUs, ibatLastServiced);
-
-        if (ibatTimeSinceLastServiced >= IBATINTERVAL) {
-            ibatLastServiced = currentTimeUs;
-            currentMeterUpdate(ibatTimeSinceLastServiced);
-        }
-    }
+    batMonitoringLastServiced = currentTimeUs;
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 void taskProcessGPS(timeUs_t currentTimeUs)
 {
     // if GPS feature is enabled, gpsThread() will be called at some intervals to check for stuck
@@ -139,7 +127,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef MAG
+#ifdef USE_MAG
 void taskUpdateCompass(timeUs_t currentTimeUs)
 {
     if (sensors(SENSOR_MAG)) {
@@ -148,7 +136,7 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef BARO
+#ifdef USE_BARO
 void taskUpdateBaro(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -164,7 +152,7 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
 void taskUpdatePitot(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -201,8 +189,6 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 #ifdef USE_OPTICAL_FLOW
 void taskUpdateOpticalFlow(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
     if (!sensors(SENSOR_OPFLOW))
         return;
 
@@ -220,7 +206,7 @@ void taskDashboardUpdate(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 void taskTelemetry(timeUs_t currentTimeUs)
 {
     telemetryCheckState();
@@ -231,7 +217,7 @@ void taskTelemetry(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 void taskLedStrip(timeUs_t currentTimeUs)
 {
     if (feature(FEATURE_LED_STRIP)) {
@@ -251,7 +237,7 @@ void taskSyncPwmDriver(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
 void taskAttitude(timeUs_t currentTimeUs)
 {
     imuUpdateAttitude(currentTimeUs);
@@ -265,7 +251,7 @@ void taskAcc(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef OSD
+#ifdef USE_OSD
 void taskUpdateOsd(timeUs_t currentTimeUs)
 {
     if (feature(FEATURE_OSD)) {
@@ -291,7 +277,7 @@ void fcTasksInit(void)
 {
     schedulerInit();
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     rescheduleTask(TASK_PID, getPidUpdateRate());
     setTaskEnabled(TASK_PID, true);
 
@@ -317,22 +303,25 @@ void fcTasksInit(void)
 #ifdef BEEPER
     setTaskEnabled(TASK_BEEPER, true);
 #endif
+#ifdef USE_LIGHTS
+    setTaskEnabled(TASK_LIGHTS, true);
+#endif
     setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || feature(FEATURE_CURRENT_METER));
     setTaskEnabled(TASK_RX, true);
-#ifdef GPS
+#ifdef USE_GPS
     setTaskEnabled(TASK_GPS, feature(FEATURE_GPS));
 #endif
-#ifdef MAG
+#ifdef USE_MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
-#if defined(MPU6500_SPI_INSTANCE) && defined(USE_MAG_AK8963)
+#if defined(USE_MAG_MPU9250)
     // fixme temporary solution for AK6983 via slave I2C on MPU9250
     rescheduleTask(TASK_COMPASS, TASK_PERIOD_HZ(40));
 #endif
 #endif
-#ifdef BARO
+#ifdef USE_BARO
     setTaskEnabled(TASK_BARO, sensors(SENSOR_BARO));
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
     setTaskEnabled(TASK_PITOT, sensors(SENSOR_PITOT));
 #endif
 #ifdef USE_RANGEFINDER
@@ -341,10 +330,10 @@ void fcTasksInit(void)
 #ifdef USE_DASHBOARD
     setTaskEnabled(TASK_DASHBOARD, feature(FEATURE_DASHBOARD));
 #endif
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     setTaskEnabled(TASK_TELEMETRY, feature(FEATURE_TELEMETRY));
 #endif
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     setTaskEnabled(TASK_LEDSTRIP, feature(FEATURE_LED_STRIP));
 #endif
 #ifdef STACK_CHECK
@@ -353,10 +342,10 @@ void fcTasksInit(void)
 #ifdef USE_PMW_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
-#ifdef OSD
+#ifdef USE_OSD
     setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
 #endif
-#ifdef CMS
+#ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
 #else
@@ -387,7 +376,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 
-    #ifdef ASYNC_GYRO_PROCESSING
+    #ifdef USE_ASYNC_GYRO_PROCESSING
         [TASK_PID] = {
             .taskName = "PID",
             .taskFunc = taskMainPidLoop,
@@ -447,6 +436,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
+#ifdef USE_LIGHTS
+    [TASK_LIGHTS] = {
+        .taskName = "LIGHTS",
+        .taskFunc = lightsUpdate,
+        .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
+
     [TASK_BATTERY] = {
         .taskName = "BATTERY",
         .taskFunc = taskUpdateBattery,
@@ -462,7 +460,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 
-#ifdef GPS
+#ifdef USE_GPS
     [TASK_GPS] = {
         .taskName = "GPS",
         .taskFunc = taskProcessGPS,
@@ -471,7 +469,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef MAG
+#ifdef USE_MAG
     [TASK_COMPASS] = {
         .taskName = "COMPASS",
         .taskFunc = taskUpdateCompass,
@@ -480,7 +478,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef BARO
+#ifdef USE_BARO
     [TASK_BARO] = {
         .taskName = "BARO",
         .taskFunc = taskUpdateBaro,
@@ -489,7 +487,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     [TASK_PITOT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
@@ -516,7 +514,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     [TASK_TELEMETRY] = {
         .taskName = "TELEMETRY",
         .taskFunc = taskTelemetry,
@@ -525,7 +523,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     [TASK_LEDSTRIP] = {
         .taskName = "LEDSTRIP",
         .taskFunc = taskLedStrip,
@@ -552,7 +550,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef OSD
+#ifdef USE_OSD
     [TASK_OSD] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,
@@ -561,7 +559,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef CMS
+#ifdef USE_CMS
     [TASK_CMS] = {
         .taskName = "CMS",
         .taskFunc = cmsHandler,
@@ -574,7 +572,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_OPFLOW] = {
         .taskName = "OPFLOW",
         .taskFunc = taskUpdateOpticalFlow,
-        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB sensor will work at lower rate w/o accumulation
+        .desiredPeriod = TASK_PERIOD_HZ(100),   // I2C/SPI sensor will work at higher rate and accumulate, UIB/UART sensor will work at lower rate w/o accumulation
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

@@ -41,13 +41,26 @@ and so on.
 #define CONTROL_RATE_CONFIG_TPA_MAX              100
 
 typedef struct controlRateConfig_s {
-    uint16_t tpa_breakpoint;                // Breakpoint where TPA is activated
-    uint8_t rcExpo8;
-    uint8_t thrMid8;
-    uint8_t thrExpo8;
-    uint8_t rates[3];
-    uint8_t dynThrPID;
-    uint8_t rcYawExpo8;
+
+    struct {
+        uint8_t rcMid8;
+        uint8_t rcExpo8;
+        uint8_t dynPID;
+        uint16_t pa_breakpoint;                // Breakpoint where TPA is activated
+    } throttle;
+
+    struct {
+        uint8_t rcExpo8;
+        uint8_t rcYawExpo8;
+        uint8_t rates[3];
+    } stabilized;
+
+    struct {
+        uint8_t rcExpo8;
+        uint8_t rcYawExpo8;
+        uint8_t rates[3];
+    } manual;
+
 } controlRateConfig_t;
 
 PG_DECLARE_ARRAY(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);

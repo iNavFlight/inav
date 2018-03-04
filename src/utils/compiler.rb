@@ -75,13 +75,14 @@ class Compiler
         return args
     end
 
-    def run(input, output, args = nil)
+    def run(input, output, args = nil, options = { noerror: false })
         all_args = default_args
         if args
             all_args.push(*args)
         end
         all_args << "-o" << output << input
-        stdout, stderr = Open3.capture3(join_args(all_args))
+        stdout, stderr, compile_status = Open3.capture3(join_args(all_args))
+	raise "Compiler error:\n#{all_args.join(' ')}\n#{stderr}" if not options[:noerror] and not compile_status.success?
         return stdout, stderr
     end
 

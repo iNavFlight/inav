@@ -23,6 +23,8 @@
 
 #ifdef USE_SERIALRX_XBUS
 
+#include "common/utils.h"
+
 #include "drivers/serial.h"
 #include "drivers/time.h"
 
@@ -208,8 +210,10 @@ static void xBusUnpackRJ01Frame(void)
 }
 
 // Receive ISR callback
-static void xBusDataReceive(uint16_t c)
+static void xBusDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     timeUs_t now;
     static timeUs_t xBusTimeLast;
     timeDelta_t xBusTimeInterval;
@@ -316,7 +320,7 @@ bool xBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     bool portShared = telemetryCheckRxPortShared(portConfig);
 #else
     bool portShared = false;
@@ -325,12 +329,13 @@ bool xBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     serialPort_t *xBusPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         xBusDataReceive,
+        NULL,
         baudRate,
         portShared ? MODE_RXTX : MODE_RX,
         SERIAL_NOT_INVERTED | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
         );
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (portShared) {
         telemetrySharedPort = xBusPort;
     }

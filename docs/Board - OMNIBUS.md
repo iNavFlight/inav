@@ -55,8 +55,8 @@ I2C is available on J22 PWM7 and PWM8
 
 |signal | Location   | Alt. Location |
 |-------|------------|---------------|
-|SCL    | J22 (PWM7) | J3 (SCL)      |
-|SDA    | J22 (PWM8) | J3 (SDA)      |
+|SCL    | J22 (PWM8) | J3 (SCL)      |
+|SDA    | J22 (PWM7) | J3 (SDA)      |
 
 ### RANGEFINDER
 
@@ -82,6 +82,4 @@ Due to the way INAV handles PWM outputs the first 2 PWM outputs are reserved for
 
 You can free PWM outputs 5 and 6 by simply connecting SBUS up to UART1. For FrSky there is no hardware inverter needed as the F3 chip UARTs can handle this without additional hardware. Just make sure that `sbus_inversion = ON` is set. However, you will not be able to use UART3, e.G. for telemetry.
 
-This allows to control a standard airplane with rudder, ailerons and elevator. If you use flaps or a servo gimbal, you can bypass the FC by connecting it up to the receiver directly. 
-
-The popular x4rsb for example outputs channels 1,2,3 as PWM in addition to SBUS. Since they are shared with the channels on SBUS you need to change the channel mapping to `123AETR4`and ignore the first 3 AUX channels within Cleanflight.
+This allows to control a standard airplane with rudder, ailerons and elevator. If you use flaps or a servo gimbal, you can bypass the FC by connecting it up to the receiver directly.

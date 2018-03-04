@@ -24,7 +24,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "blackbox/blackbox.h"
 
@@ -89,8 +89,10 @@ static OSD_Entry cmsx_menuBlackboxEntries[] =
 };
 
 CMS_Menu cmsx_menuBlackbox = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUBB",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

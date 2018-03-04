@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#if defined(NAV)
+#if defined(USE_NAV)
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -60,7 +60,7 @@
 
 typedef struct FixedWingLaunchState_s {
     /* Launch detection */
-    timeUs_t launchDetectorPreviosUpdate;
+    timeUs_t launchDetectorPreviousUpdate;
     timeUs_t launchDetectionTimeAccum;
     bool launchDetected;
 
@@ -84,21 +84,21 @@ static void updateFixedWingLaunchDetector(timeUs_t currentTimeUs)
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.A[X] > 0);
 
     if (isBungeeLaunched || isSwingLaunched) {
-        launchState.launchDetectionTimeAccum += (currentTimeUs - launchState.launchDetectorPreviosUpdate);
-        launchState.launchDetectorPreviosUpdate = currentTimeUs;
+        launchState.launchDetectionTimeAccum += (currentTimeUs - launchState.launchDetectorPreviousUpdate);
+        launchState.launchDetectorPreviousUpdate = currentTimeUs;
         if (launchState.launchDetectionTimeAccum >= MS2US((uint32_t)navConfig()->fw.launch_time_thresh)) {
             launchState.launchDetected = true;
         }
     }
     else {
-        launchState.launchDetectorPreviosUpdate = currentTimeUs;
+        launchState.launchDetectorPreviousUpdate = currentTimeUs;
         launchState.launchDetectionTimeAccum = 0;
     }
 }
 
 void resetFixedWingLaunchController(timeUs_t currentTimeUs)
 {
-    launchState.launchDetectorPreviosUpdate = currentTimeUs;
+    launchState.launchDetectorPreviousUpdate = currentTimeUs;
     launchState.launchDetectionTimeAccum = 0;
     launchState.launchStartedTime = 0;
     launchState.launchDetected = false;
@@ -137,6 +137,25 @@ static void applyFixedWingLaunchIdleLogic(void)
     }
 }
 
+static inline bool isFixedWingLaunchMaxAltitudeReached(void)
+{
+    return (navConfig()->fw.launch_max_altitude > 0) && (getEstimatedActualPosition(Z) >= navConfig()->fw.launch_max_altitude);
+}
+static inline bool isLaunchModeMinTimeElapsed(float timeSinceLaunchMs)
+{
+    return timeSinceLaunchMs > navConfig()->fw.launch_min_time;
+}
+
+static inline bool isLaunchModeMaxTimeElapsed(float timeSinceLaunchMs)
+{
+    return timeSinceLaunchMs >= navConfig()->fw.launch_timeout;
+}
+
+static inline bool isFixedWingLaunchCompleted(float timeSinceLaunchMs)
+{
+    return (isLaunchModeMaxTimeElapsed(timeSinceLaunchMs)) || ((isLaunchModeMinTimeElapsed(timeSinceLaunchMs)) && (areSticksDeflectedMoreThanPosHoldDeadband())) || isFixedWingLaunchMaxAltitudeReached();
+}
+
 void applyFixedWingLaunchController(timeUs_t currentTimeUs)
 {
     // Called at PID rate
@@ -148,15 +167,7 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
             // If launch detected we are in launch procedure - control airplane
             const float timeElapsedSinceLaunchMs = US2MS(currentTimeUs - launchState.launchStartedTime);
 
-            // If user moves the stick - finish the launch
-            if ((ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband)) {
-                launchState.launchFinished = true;
-            }
-
-            // Abort launch after a pre-set time
-            if (timeElapsedSinceLaunchMs >= navConfig()->fw.launch_timeout) {
-                launchState.launchFinished = true;
-            }
+            launchState.launchFinished = isFixedWingLaunchCompleted(timeElapsedSinceLaunchMs);
 
             // Motor control enabled
             if (timeElapsedSinceLaunchMs >= navConfig()->fw.launch_motor_timer) {

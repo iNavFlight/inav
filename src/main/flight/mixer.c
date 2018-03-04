@@ -461,7 +461,7 @@ void mixTable(void)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
-    if (STATE(FIXED_WING) && FLIGHT_MODE(PASSTHRU_MODE)) {
+    if (STATE(FIXED_WING) && FLIGHT_MODE(MANUAL_MODE)) {
         // Direct passthru from RX
         input[ROLL] = rcCommand[ROLL];
         input[PITCH] = rcCommand[PITCH];

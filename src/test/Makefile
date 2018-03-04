@@ -657,12 +657,19 @@ $(OBJECT_DIR)/sensor_gyro_unittest : \
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
+$(OBJECT_DIR)/common/crc.o : \
+	$(USER_DIR)/common/crc.c \
+	$(USER_DIR)/common/crc.h
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/crc.c -o $@
+
 $(OBJECT_DIR)/io/rcdevice.o : \
 	$(USER_DIR)/io/rcdevice.c \
 	$(USER_DIR)/io/rcdevice.h
 
 	@mkdir -p $(dir $@)
-	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rcdevice.c -o $@
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -DUSE_RCDEVICE -c $(USER_DIR)/io/rcdevice.c -o $@
 
 $(OBJECT_DIR)/io/rcdevice_cam.o : \
 	$(USER_DIR)/io/rcdevice.c \
@@ -671,7 +678,7 @@ $(OBJECT_DIR)/io/rcdevice_cam.o : \
 	$(USER_DIR)/io/rcdevice_cam.h
 
 	@mkdir -p $(dir $@)
-	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/io/rcdevice_cam.c -o $@
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -DUSE_RCDEVICE -c $(USER_DIR)/io/rcdevice_cam.c -o $@
 
 
 $(OBJECT_DIR)/rcdevice_unittest.o : \
@@ -679,15 +686,15 @@ $(OBJECT_DIR)/rcdevice_unittest.o : \
 	$(GTEST_HEADERS)
 
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/rcdevice_unittest.cc -o $@
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -DUSE_RCDEVICE -c $(TEST_DIR)/rcdevice_unittest.cc -o $@
 
 $(OBJECT_DIR)/rcdevice_unittest : \
 	$(OBJECT_DIR)/rcdevice_unittest.o \
 	$(OBJECT_DIR)/common/bitarray.o \
+	$(OBJECT_DIR)/common/crc.o \
 	$(OBJECT_DIR)/io/rcdevice.o \
 	$(OBJECT_DIR)/io/rcdevice_cam.o \
 	$(OBJECT_DIR)/fc/rc_modes.o \
-	$(OBJECT_DIR)/fc/rc_controls.o \
 	$(OBJECT_DIR)/rx/rx.o \
 	$(OBJECT_DIR)/common/maths.o \
 	$(OBJECT_DIR)/gtest_main.a 

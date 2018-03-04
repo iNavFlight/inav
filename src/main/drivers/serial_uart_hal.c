@@ -170,13 +170,14 @@ static void uartReconfigure(uartPort_t *uartPort)
 
             __HAL_DMA_SET_COUNTER(&uartPort->txDMAHandle, 0);
         } else {
-            __HAL_UART_ENABLE_IT(&uartPort->Handle, UART_IT_TXE);
+            /* Enable the UART Transmit Data Register Empty Interrupt */
+            SET_BIT(uartPort->USARTx->CR1, USART_CR1_TXEIE);
         }
     }
     return;
 }
 
-serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, uint32_t baudRate, portMode_t mode, portOptions_t options)
+serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s = NULL;
 
@@ -225,6 +226,7 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
     s->port.txBufferHead = s->port.txBufferTail = 0;
     // callback works for IRQ-based RX ONLY
     s->port.rxCallback = callback;
+    s->port.rxCallbackData = rxCallbackData;
     s->port.mode = mode;
     s->port.baudRate = baudRate;
     s->port.options = options;
@@ -386,6 +388,7 @@ const struct serialPortVTable uartVTable[] = {
         .serialSetBaudRate = uartSetBaudRate,
         .isSerialTransmitBufferEmpty = isUartTransmitBufferEmpty,
         .setMode = uartSetMode,
+        .isConnected = NULL,
         .writeBuf = NULL,
         .beginWrite = NULL,
         .endWrite = NULL,

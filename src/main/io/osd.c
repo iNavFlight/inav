@@ -30,7 +30,7 @@
 
 #include "platform.h"
 
-#ifdef OSD
+#ifdef USE_OSD
 
 #include "build/debug.h"
 #include "build/version.h"
@@ -84,6 +84,7 @@
 #endif
 
 #define VIDEO_BUFFER_CHARS_PAL    480
+#define IS_DISPLAY_PAL (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL)
 
 // Character coordinate and attributes
 #define OSD_POS(x,y)  (x | (y << 5))
@@ -96,6 +97,9 @@
 #define FEET_PER_MILE                           5280
 #define FEET_PER_KILOFEET                       1000 // Used for altitude
 #define METERS_PER_KILOMETER                    1000
+#define METERS_PER_MILE                         1609
+
+#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
 
 // Adjust OSD_MESSAGE's default position when
 // changing OSD_MESSAGE_LENGTH
@@ -109,16 +113,13 @@
     x; \
 })
 
-// Things in both OSD and CMS
-
-bool blinkState = true;
-
 static timeUs_t flyTime = 0;
 
 typedef struct statistic_s {
     uint16_t max_speed;
-    int16_t min_voltage; // /10
-    int16_t max_current; // /10
+    uint16_t min_voltage; // /100
+    int16_t max_current; // /100
+    int16_t max_power; // /100
     int16_t min_rssi;
     int32_t max_altitude;
     uint16_t max_distance;
@@ -294,7 +295,7 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
         } else {
             // Show miles when dist >= 0.5mi
             tfp_sprintf(buff, "%d.%02d%c", centifeet / (100*FEET_PER_MILE),
-            abs(centifeet) % (100 * FEET_PER_MILE) / 10, SYM_MI);
+            (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
         }
         break;
      case OSD_UNIT_UK:
@@ -306,7 +307,7 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
         } else {
             // Show kilometers when dist >= 1km
             tfp_sprintf(buff, "%d.%02d%c", dist / (100*METERS_PER_KILOMETER),
-                abs(dist) % (100 * METERS_PER_KILOMETER) / 100, SYM_KM);
+                (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
          }
          break;
      }
@@ -423,7 +424,7 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
 {
     uint32_t seconds = flyTime / 1000000;
     osdFormatTime(buff, seconds, SYM_FLY_M, SYM_FLY_H);
-    if (attr) {
+    if (attr && osdConfig()->time_alarm > 0) {
        if (seconds / 60 >= osdConfig()->time_alarm && ARMING_FLAG(ARMED)) {
             TEXT_ATTRIBUTES_ADD_BLINK(*attr);
         }
@@ -538,6 +539,10 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
             return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
+	case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
+            return OSD_MESSAGE_STR("ROLLPITCH NOT CENTERED");
+        case ARMING_DISABLED_SERVO_AUTOTRIM:
+            return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
@@ -559,7 +564,7 @@ static const char * osdFailsafePhaseMessage(void)
 {
     // See failsafe.h for each phase explanation
     switch (failsafePhase()) {
-#ifdef NAV
+#ifdef USE_NAV
         case FAILSAFE_RETURN_TO_HOME:
             // XXX: Keep this in sync with OSD_FLYMODE.
             return OSD_MESSAGE_STR("(RTH)");
@@ -676,22 +681,17 @@ static void osdFormatBatteryChargeSymbol(char *buff)
     buff[0] = SYM_BATT_FULL + p;
 }
 
-/**
- * Updates the text attributes for drawing a battery indicator sign,
- * enabling blink when battery is below the voltage alarm.
- **/
-static void osdUpdateBatteryTextAttributes(textAttributes_t *attr)
+static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *attr)
 {
-    if (vbat <= (batteryWarningVoltage - 1)) {
+    if ((batteryState != BATTERY_NOT_PRESENT) && ((batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical)) || ((!batteryUseCapacityThresholds) && (vbat <= batteryWarningVoltage))))
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
-    }
 }
 
 static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
 {
     *x = 14 - 1; // Offset for 1 char to the left
     *y = 6;
-    if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
+    if (IS_DISPLAY_PAL) {
         ++(*y);
     }
     int size = 3;
@@ -725,9 +725,9 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr)
 
 static inline int32_t osdGetAltitude(void)
 {
-#if defined(NAV)
+#if defined(USE_NAV)
     return getEstimatedActualPosition(Z);
-#elif defined(BARO)
+#elif defined(USE_BARO)
     return baro.alt;
 #else
     return 0;
@@ -752,7 +752,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
             steps = offset / 20;
             break;
         case OSD_SIDEBAR_SCROLL_GROUND_SPEED:
-#if defined(GPS)
+#if defined(USE_GPS)
             offset = gpsSol.groundSpeed;
 #else
             offset = 0;
@@ -761,7 +761,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
             steps = offset / 20;
             break;
         case OSD_SIDEBAR_SCROLL_HOME_DISTANCE:
-#if defined(GPS)
+#if defined(USE_GPS)
             offset = GPS_distanceToHome;
 #else
             offset = 0;
@@ -823,11 +823,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_VOLTAGE:
         osdFormatBatteryChargeSymbol(buff);
-        osdFormatCentiNumber(buff + 1, vbat * 10, 0, 1, 0, 3);
-        buff[4] = 'V';
-        buff[5] = '\0';
-        osdUpdateBatteryTextAttributes(&elemAttr);
-        break;
+        buff[1] = '\0';
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        elemAttr = TEXT_ATTRIBUTES_NONE;
+        osdFormatCentiNumber(buff, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+        strcat(buff, "V");
+        if ((batteryState != BATTERY_NOT_PRESENT) && (vbat <= batteryWarningVoltage))
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+        return true;
 
     case OSD_CURRENT_DRAW:
         buff[0] = SYM_AMP;
@@ -836,13 +841,39 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
-        tfp_sprintf(buff + 1, "%-4d", abs(mAhDrawn));
-        if (osdConfig()->cap_alarm > 0 && mAhDrawn >= osdConfig()->cap_alarm) {
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        }
+        tfp_sprintf(buff + 1, "%-4d", mAhDrawn);
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
-#ifdef GPS
+    case OSD_WH_DRAWN:
+        buff[0] = SYM_WH;
+        osdFormatCentiNumber(buff + 1, mWhDrawn / 10, 0, 2, 0, 3);
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        break;
+
+    case OSD_BATTERY_REMAINING_CAPACITY:
+        buff[0] = (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH);
+
+        if (batteryConfig()->capacity.value == 0)
+            tfp_sprintf(buff + 1, "NA");
+        else if (!batteryFullWhenPluggedIn)
+            tfp_sprintf(buff + 1, "NF");
+        else if (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MAH)
+            tfp_sprintf(buff + 1, "%-4lu", batteryRemainingCapacity);
+        else // batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH
+            osdFormatCentiNumber(buff + 1, batteryRemainingCapacity / 10, 0, 2, 0, 3);
+
+        if ((batteryState != BATTERY_NOT_PRESENT) && batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical))
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+
+        break;
+
+    case OSD_BATTERY_REMAINING_PERCENT:
+        tfp_sprintf(buff, "%3d%%", calculateBatteryPercentage());
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        break;
+
+#ifdef USE_GPS
     case OSD_GPS_SATS:
         buff[0] = SYM_SAT_L;
         buff[1] = SYM_SAT_R;
@@ -953,8 +984,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "AIR ";
             }
 
-            if (FLIGHT_MODE(PASSTHRU_MODE))
-                p = "PASS";
+            if (FLIGHT_MODE(MANUAL_MODE))
+                p = "MANU";
             else if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 p = "!FS!";
             } else if (FLIGHT_MODE(NAV_RTH_MODE))
@@ -1059,7 +1090,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 rollAngle = -rollAngle;
             }
 
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
+            if (IS_DISPLAY_PAL) {
                 ++elemPosY;
             }
 
@@ -1123,7 +1154,7 @@ static bool osdDrawSingleElement(uint8_t item)
             elemPosX = 14;
             elemPosY = 6;
 
-            if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL) {
+            if (IS_DISPLAY_PAL) {
                 ++elemPosY;
             }
 
@@ -1165,7 +1196,7 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-#if defined(BARO) || defined(GPS)
+#if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
         {
             int16_t v = getEstimatedActualVelocity(Z) / 50; //50cm = 1 arrow
@@ -1250,13 +1281,14 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_POWER:
         {
             // TODO: SYM_WATTS?
-            tfp_sprintf(buff, "W%-3d", amperage * vbat / 1000);
+            buff[0] = 'W';
+            osdFormatCentiNumber(buff + 1, power, 0, 2, 0, 3);
             break;
         }
 
     case OSD_AIR_SPEED:
         {
-        #ifdef PITOT
+        #ifdef USE_PITOT
             buff[0] = SYM_AIR;
             osdFormatVelocityStr(buff + 1, pitot.airSpeed);
         #else
@@ -1356,17 +1388,21 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatMessage(buff, sizeof(buff), message);
             break;
         }
+
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
-            // Use 2 decimals since dividing by the number of
-            // cells might yield more significant digits
-            uint16_t cellBattCentiVolts = vbat * 10 / batteryCellCount;
+            uint16_t cellBattCentiVolts = vbat / batteryCellCount;
             osdFormatBatteryChargeSymbol(buff);
-            osdFormatCentiNumber(buff + 1, cellBattCentiVolts, 0, 2, 0, 3);
-            buff[4] = 'V';
-            buff[5] = '\0';
-            osdUpdateBatteryTextAttributes(&elemAttr);
-            break;
+            buff[1] = '\0';
+            osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+            elemAttr = TEXT_ATTRIBUTES_NONE;
+            osdFormatCentiNumber(buff, cellBattCentiVolts, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 1);
+            strcat(buff, "V");
+            if ((batteryState != BATTERY_NOT_PRESENT) && (vbat <= batteryWarningVoltage))
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+            return true;
         }
 
     case OSD_THROTTLE_POS_AUTO_THR:
@@ -1418,15 +1454,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_EFFICIENCY:
+    case OSD_EFFICIENCY_MAH_PER_KM:
         {
             // amperage is in centi amps, speed is in cms/s. We want
             // mah/km. Values over 999 are considered useless and
             // displayed as "---""
             static pt1Filter_t eFilterState;
             static timeUs_t efficiencyUpdated = 0;
-#define MAX_EFFICIENCY_VALUE 999
-#define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
             int32_t value = 0;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
@@ -1440,13 +1474,44 @@ static bool osdDrawSingleElement(uint8_t item)
                     value = eFilterState.state;
                 }
             }
-            if (value > 0 && value <= MAX_EFFICIENCY_VALUE) {
+            if (value > 0 && value <= 999) {
                 tfp_sprintf(buff, "%3d", value);
             } else {
                 buff[0] = buff[1] = buff[2] = '-';
             }
             buff[3] = SYM_MAH_KM_0;
             buff[4] = SYM_MAH_KM_1;
+            buff[5] = '\0';
+            break;
+        }
+
+    case OSD_EFFICIENCY_WH_PER_KM:
+        {
+            // amperage is in centi amps, speed is in cms/s. We want
+            // mah/km. Values over 999 are considered useless and
+            // displayed as "---""
+            static pt1Filter_t eFilterState;
+            static timeUs_t efficiencyUpdated = 0;
+            int32_t value = 0;
+            timeUs_t currentTimeUs = micros();
+            timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
+            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                    value = pt1FilterApply4(&eFilterState, ((float)power / gpsSol.groundSpeed) / 0.0036f,
+                        1, efficiencyTimeDelta * 1e-6f);
+
+                    efficiencyUpdated = currentTimeUs;
+                } else {
+                    value = eFilterState.state;
+                }
+            }
+            if (value > 0 && value <= 999) {
+                osdFormatCentiNumber(buff, value / 10, 0, 2, 0, 3);
+            } else {
+                buff[0] = buff[1] = buff[2] = '-';
+            }
+            buff[3] = SYM_WH_KM_0;
+            buff[4] = SYM_WH_KM_1;
             buff[5] = '\0';
             break;
         }
@@ -1471,8 +1536,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
-        if (elementIndex == OSD_EFFICIENCY) {
-            STATIC_ASSERT(OSD_EFFICIENCY == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_not_last_element);
+        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
+            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1486,8 +1551,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_HDOP) {
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
-        if (elementIndex == OSD_EFFICIENCY) {
-            STATIC_ASSERT(OSD_EFFICIENCY == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_not_last_element);
+        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
+            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1522,7 +1587,12 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdConfig->item_pos[OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;
-    osdConfig->item_pos[OSD_EFFICIENCY] = OSD_POS(1, 5);
+    osdConfig->item_pos[OSD_WH_DRAWN] = OSD_POS(1, 5);
+    osdConfig->item_pos[OSD_BATTERY_REMAINING_CAPACITY] = OSD_POS(1, 6);
+    osdConfig->item_pos[OSD_BATTERY_REMAINING_PERCENT] = OSD_POS(1, 7);
+
+    osdConfig->item_pos[OSD_EFFICIENCY_MAH_PER_KM] = OSD_POS(1, 5);
+    osdConfig->item_pos[OSD_EFFICIENCY_WH_PER_KM] = OSD_POS(1, 5);
 
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdConfig->item_pos[OSD_VARIO] = OSD_POS(23, 5);
@@ -1558,7 +1628,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
-    osdConfig->cap_alarm = 0;
     osdConfig->time_alarm = 10;
     osdConfig->alt_alarm = 100;
     osdConfig->dist_alarm = 1000;
@@ -1573,6 +1642,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->sidebar_scroll_arrows = 0;
 
     osdConfig->units = OSD_UNIT_METRIC;
+    osdConfig->main_voltage_decimals = 1;
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
@@ -1584,7 +1654,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     osdDisplayPort = osdDisplayPortToUse;
 
-#ifdef CMS
+#ifdef USE_CMS
     cmsDisplayPortRegister(osdDisplayPort);
 #endif
 
@@ -1592,13 +1662,29 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     displayClearScreen(osdDisplayPort);
 
+    uint8_t y = 4;
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
-    displayWrite(osdDisplayPort, 5, 6, string_buffer);
-#ifdef CMS
-    displayWrite(osdDisplayPort, 7, 7,  CMS_STARTUP_HELP_TEXT1);
-    displayWrite(osdDisplayPort, 11, 8, CMS_STARTUP_HELP_TEXT2);
-    displayWrite(osdDisplayPort, 11, 9, CMS_STARTUP_HELP_TEXT3);
+    displayWrite(osdDisplayPort, 5, y++, string_buffer);
+#ifdef USE_CMS
+    displayWrite(osdDisplayPort, 7, y++,  CMS_STARTUP_HELP_TEXT1);
+    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT2);
+    displayWrite(osdDisplayPort, 11, y++, CMS_STARTUP_HELP_TEXT3);
+#endif
+
+#ifdef USE_STATS
+    if (statsConfig()->stats_enabled) {
+        displayWrite(osdDisplayPort, 3, ++y, "ODOMETER:");
+        if (osdConfig()->units == OSD_UNIT_IMPERIAL) {
+            tfp_sprintf(string_buffer, "%d MI", statsConfig()->stats_total_dist / METERS_PER_MILE);
+        } else {
+            tfp_sprintf(string_buffer, "%d KM", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+        }
+        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+        uint32_t tot_mins = statsConfig()->stats_total_time / 60;
+        tfp_sprintf(string_buffer, "%d:%02d H", tot_mins / 60, tot_mins % 60);
+        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+    }
 #endif
 
     displayResync(osdDisplayPort);
@@ -1609,9 +1695,9 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 static void osdResetStats(void)
 {
     stats.max_current = 0;
+    stats.max_power = 0;
     stats.max_speed = 0;
-    stats.min_voltage = 500;
-    stats.max_current = 0;
+    stats.min_voltage = 5000;
     stats.min_rssi = 99;
     stats.max_altitude = 0;
 }
@@ -1636,6 +1722,10 @@ static void osdUpdateStats(void)
     if (stats.max_current < value)
         stats.max_current = value;
 
+    value = abs(power / 100);
+    if (stats.max_power < value)
+        stats.max_power = value;
+
     value = osdConvertRSSI();
     if (stats.min_rssi > value)
         stats.min_rssi = value;
@@ -1643,16 +1733,18 @@ static void osdUpdateStats(void)
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
+/* Attention: NTSC screen only has 12 fully visible lines - it is FULL now! */
 static void osdShowStats(void)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS" };
-    uint8_t top = 2;
+    uint8_t top = 1;    /* first fully visible line */
     const uint8_t statNameX = 1;
     const uint8_t statValuesX = 20;
     char buff[10];
 
     displayClearScreen(osdDisplayPort);
-    displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
+    if (IS_DISPLAY_PAL)
+        displayWrite(osdDisplayPort, statNameX, top++, "  --- STATS ---");
 
     if (STATE(GPS_FIX)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
@@ -1668,8 +1760,13 @@ static void osdShowStats(void)
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
     }
 
-    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY      :");
-    tfp_sprintf(buff, "%d.%1dV", stats.min_voltage / 10, stats.min_voltage % 10);
+    displayWrite(osdDisplayPort, statNameX, top, "MAX ALTITUDE     :");
+    osdFormatAltitudeStr(buff, stats.max_altitude);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
+    osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+    strcat(buff, "V");
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
@@ -1683,23 +1780,36 @@ static void osdShowStats(void)
         strcat(buff, "A");
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-        displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
-        itoa(mAhDrawn, buff, 10);
-        strcat(buff, "\x07");
+        displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
+        itoa(stats.max_power, buff, 10);
+        strcat(buff, "W");
+        displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+            displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
+            tfp_sprintf(buff, "%d%c", mAhDrawn, SYM_MAH);
+        } else {
+            displayWrite(osdDisplayPort, statNameX, top, "USED WH          :");
+            osdFormatCentiNumber(buff, mWhDrawn / 10, 0, 2, 0, 3);
+            strcat(buff, "\xAB"); // SYM_WH
+        }
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         int32_t totalDistance = getTotalTravelDistance();
         if (totalDistance > 0) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
-            tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
-                SYM_MAH_KM_0, SYM_MAH_KM_1);
+            if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH)
+                tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
+                    SYM_MAH_KM_0, SYM_MAH_KM_1);
+            else {
+                osdFormatCentiNumber(buff, mWhDrawn * 10000 / totalDistance, 0, 2, 0, 3);
+                buff[3] = SYM_WH_KM_0;
+                buff[4] = SYM_WH_KM_1;
+                buff[5] = '\0';
+            }
             displayWrite(osdDisplayPort, statValuesX, top++, buff);
         }
     }
-
-    displayWrite(osdDisplayPort, statNameX, top, "MAX ALTITUDE     :");
-    osdFormatAltitudeStr(buff, stats.max_altitude);
-    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
     uint32_t flySeconds = flyTime / 1000000;
@@ -1748,6 +1858,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
 
+    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+      displayClearScreen(osdDisplayPort);
+      return;
+    }
+
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
         if (ARMING_FLAG(ARMED)) {
@@ -1786,9 +1901,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         return;
     }
 
-    blinkState = (currentTimeUs / 200000) % 2;
-
-#ifdef CMS
+#ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
         if (fullRedraw) {
             displayClearScreen(osdDisplayPort);
@@ -1832,7 +1945,7 @@ void osdUpdate(timeUs_t currentTimeUs)
         displayDrawScreen(osdDisplayPort);
     }
 
-#ifdef CMS
+#ifdef USE_CMS
     // do not allow ARM if we are in menu
     if (displayIsGrabbed(osdDisplayPort)) {
         ENABLE_ARMING_FLAG(ARMING_DISABLED_OSD_MENU);

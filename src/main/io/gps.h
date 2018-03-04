@@ -91,6 +91,7 @@ typedef struct gpsConfig_s {
     gpsAutoConfig_e autoConfig;
     gpsAutoBaud_e autoBaud;
     gpsDynModel_e dynModel;
+    bool ubloxUseGalileo;
     uint8_t gpsMinSats;
 } gpsConfig_t;
 

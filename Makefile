@@ -141,7 +141,7 @@ endif
 GROUP_1_TARGETS := AIRHEROF3 AIRHEROF3_QUAD COLIBRI_RACE LUX_RACE SPARKY REVO SPARKY2 COLIBRI FALCORE PIKOBLX
 GROUP_2_TARGETS := SPRACINGF3 SPRACINGF3EVO SPRACINGF3EVO_1SS SPRACINGF3MINI SPRACINGF3NEO SPRACINGF4EVO
 GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO OMNIBUSF4V3 SPARKY2 MATEKF405 OMNIBUSF7 DYSF4PRO MATEKF405OSD
-GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER PIXRACER_ICM20608
+GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER
 GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS), $(VALID_TARGETS))
 
 # note that there is no hardfault debugging startup file assembly handler for other platforms
@@ -304,12 +304,15 @@ ARCH_FLAGS      = -mthumb -mcpu=cortex-m4 -march=armv7e-m -mfloat-abi=hard -mfpu
 ifeq ($(TARGET),$(filter $(TARGET),$(F411_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F411xE
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f411.ld
+STARTUP_SRC     = startup_stm32f411xe.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F405_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F40_41xxx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
+STARTUP_SRC     = startup_stm32f40xx.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F427_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F427_437xx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f427.ld
+STARTUP_SRC     = startup_stm32f427xx.s
 else
 $(error Unknown MCU for F4 target)
 endif
@@ -542,6 +545,7 @@ VPATH           := $(VPATH):$(TARGET_DIR)
 COMMON_SRC = \
             $(TARGET_DIR_SRC) \
             main.c \
+            target/common_hardware.c \
             build/assert.c \
             build/build_config.c \
             build/debug.c \
@@ -567,7 +571,6 @@ COMMON_SRC = \
             drivers/bus_busdev_spi.c \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
-            drivers/bus_spi_soft.c \
             drivers/display.c \
             drivers/exti.c \
             drivers/gps_i2cnav.c \
@@ -592,6 +595,7 @@ COMMON_SRC = \
             drivers/stack_check.c \
             drivers/system.c \
             drivers/timer.c \
+            drivers/lights_io.c \
             fc/cli.c \
             fc/config.c \
             fc/controlrate_profile.c \
@@ -616,6 +620,7 @@ COMMON_SRC = \
             flight/pid_autotune.c \
             flight/servos.c \
             io/beeper.c \
+            io/lights.c \
             io/pwmdriver_i2c.c \
             io/serial.c \
             io/serial_4way.c \
@@ -669,15 +674,19 @@ HIGHEND_SRC = \
             cms/cms_menu_misc.c \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
+            cms/cms_menu_vtx_smartaudio.c \
+            cms/cms_menu_vtx_tramp.c \
             common/colorconversion.c \
             common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
-            drivers/rangefinder_hcsr04.c \
-            drivers/rangefinder_hcsr04_i2c.c \
-            drivers/rangefinder_srf10.c \
-            drivers/opflow_fake.c \
-            drivers/rangefinder_vl53l0x.c \
+            drivers/rangefinder/rangefinder_hcsr04.c \
+            drivers/rangefinder/rangefinder_hcsr04_i2c.c \
+            drivers/rangefinder/rangefinder_srf10.c \
+            drivers/rangefinder/rangefinder_vl53l0x.c \
+            drivers/opflow/opflow_fake.c \
+            drivers/opflow/opflow_virtual.c \
             drivers/vtx_common.c \
+            io/opflow_cxof.c \
             io/dashboard.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
@@ -766,7 +775,6 @@ STM32F30x_COMMON_SRC = \
             drivers/timer_stm32f30x.c
 
 STM32F4xx_COMMON_SRC = \
-            startup_stm32f40xx.s \
             target/system_stm32f4xx.c \
             drivers/accgyro/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
@@ -802,7 +810,7 @@ F7EXCLUDES = drivers/bus_spi.c \
 
 # check if target.mk supplied
 ifeq ($(TARGET),$(filter $(TARGET),$(F4_TARGETS)))
-TARGET_SRC := $(STM32F4xx_COMMON_SRC) $(TARGET_SRC)
+TARGET_SRC := $(STARTUP_SRC) $(STM32F4xx_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F7_TARGETS)))
 TARGET_SRC := $(STARTUP_SRC) $(STM32F7xx_COMMON_SRC) $(TARGET_SRC)
 else ifeq ($(TARGET),$(filter $(TARGET),$(F3_TARGETS)))

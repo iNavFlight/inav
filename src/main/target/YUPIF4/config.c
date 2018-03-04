@@ -35,11 +35,11 @@ void targetConfiguration(void)
 {
     /* Changes depending on versions */
     if (hardwareRevision == YUPIF4_RACE3) {
-            beeperDevConfigMutable()->ioTag = IO_TAG(BEEPER_OPT);
+            beeperDevConfigMutable()->ioTag = IO_TAG(PB14);
             telemetryConfigMutable()->halfDuplex = false;
 
     } else if (hardwareRevision == YUPIF4_RACE2) {
-        beeperDevConfigMutable()->ioTag = IO_TAG(BEEPER_OPT);
+        beeperDevConfigMutable()->ioTag = IO_TAG(PB14);
 
     } else if (hardwareRevision == YUPIF4_MINI) {
         beeperDevConfigMutable()->frequency = 0;
@@ -47,7 +47,7 @@ void targetConfiguration(void)
         adcConfigMutable()->current.enabled = 0;
 
     } else if (hardwareRevision == YUPIF4_NAV) {
-        beeperDevConfigMutable()->ioTag = IO_TAG(BEEPER_OPT);
+        beeperDevConfigMutable()->ioTag = IO_TAG(PB14);
 
     } else {
         adcConfigMutable()->current.enabled = 0;

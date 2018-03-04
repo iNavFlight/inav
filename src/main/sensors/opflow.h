@@ -26,11 +26,13 @@
 
 #include <stdint.h>
 #include "config/parameter_group.h"
-#include "drivers/opflow.h"
+#include "drivers/opflow/opflow.h"
 
 typedef enum {
     OPFLOW_NONE         = 0,
     OPFLOW_FAKE         = 1,
+    OPFLOW_CXOF         = 2,
+    OPFLOW_PMW3901      = 3
 } opticalFlowSensor_e;
 
 typedef enum {
@@ -56,6 +58,8 @@ typedef struct opflow_s {
 
     float           gyroBodyRateAcc[2];
     timeUs_t        gyroBodyRateTimeUs;    
+
+    uint8_t         rawQuality;
 } opflow_t;
 
 extern opflow_t opflow;

@@ -29,46 +29,41 @@
 #define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
 // MPU-6000 GRYO
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define MPU6000_SPI_BUS         BUS_SPI1
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW0_DEG
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW0_DEG
 
 //MPU-9250
-#define MPU6500_CS_PIN          PA4
-#define MPU6500_SPI_INSTANCE    SPI1
-#define GYRO
-#define USE_GYRO_SPI_MPU6500
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC
-#define USE_ACC_SPI_MPU6500
-#define ACC_MPU6500_ALIGN       CW0_DEG
-#define MAG
-#define USE_MPU9250_MAG // Enables bypass configuration
-#define USE_MAG_AK8963
+#define MPU9250_CS_PIN          PA4
+#define MPU9250_SPI_BUS         BUS_SPI1
+#define USE_GYRO
+#define USE_GYRO_MPU9250
+#define GYRO_MPU9250_ALIGN      CW0_DEG
+#define USE_ACC
+#define USE_ACC_MPU9250
+#define ACC_MPU9250_ALIGN       CW0_DEG
+#define USE_MAG
+#define USE_MAG_MPU9250
 
 // MPU6 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_BMP280
 #define USE_BARO_SPI_BMP280
-#define BMP280_SPI_INSTANCE     SPI3
-#define BMP280_CS_PIN                 PB3 // v1
+#define BMP280_SPI_BUS          BUS_SPI3
+#define BMP280_CS_PIN           PB3
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI3
-#define MAX7456_SPI_CS_PIN      PA15
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
-
-#define USB_IO
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          PA15
 
 #define USE_VCP
 
@@ -135,7 +130,7 @@
 #define RSSI_ADC_CHANNEL                 ADC_CHN_3
 #define USE_ESC_SENSOR
 #define DEFAULT_RX_FEATURE       FEATURE_RX_SERIAL
-#define DEFAULT_FEATURES         (FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
+#define DEFAULT_FEATURES         (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
 #define SPEKTRUM_BIND_PIN       UART1_RX_PIN
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE

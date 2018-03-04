@@ -27,14 +27,14 @@
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM9,  IO_TAG(PA3), TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_TIM9,  TIM_USE_PPM }, // PPM IN
 
-    { TIM3,  IO_TAG(PB0), TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // M1
-    { TIM3,  IO_TAG(PB1), TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // M2
-    { TIM2,  IO_TAG(PA1), TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_TIM2,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M3
-    { TIM5,  IO_TAG(PA0), TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_TIM5,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M4
-    { TIM3,  IO_TAG(PC6), TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M5
-    { TIM3,  IO_TAG(PC7), TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M6
-    { TIM3,  IO_TAG(PB5), TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M7
-    { TIM11, IO_TAG(PB9), TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_TIM11, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M8
+    { TIM1,  IO_TAG(PB0), TIM_Channel_2, 1 | TIMER_OUTPUT_N_CHANNEL, IOCFG_AF_PP, GPIO_AF_TIM1,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // M1
+    { TIM1,  IO_TAG(PB1), TIM_Channel_3, 1 | TIMER_OUTPUT_N_CHANNEL, IOCFG_AF_PP, GPIO_AF_TIM1,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // M2
+    { TIM2,  IO_TAG(PA1), TIM_Channel_2, 1                         , IOCFG_AF_PP, GPIO_AF_TIM2,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M3
+    { TIM5,  IO_TAG(PA0), TIM_Channel_1, 1                         , IOCFG_AF_PP, GPIO_AF_TIM5,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // M4
+    { TIM3,  IO_TAG(PC6), TIM_Channel_1, 1                         , IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, // M5
+    { TIM3,  IO_TAG(PC7), TIM_Channel_2, 1                         , IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, // M6
+    { TIM3,  IO_TAG(PB5), TIM_Channel_2, 1                         , IOCFG_AF_PP, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, // M7
+    { TIM11, IO_TAG(PB9), TIM_Channel_1, 1                         , IOCFG_AF_PP, GPIO_AF_TIM11, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, // M8
 
-    { TIM4,  IO_TAG(PB8), TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_TIM4,  TIM_USE_LED }, // LED_STRIP / TRANSPONDER
+    { TIM4,  IO_TAG(PB8), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_TIM4,  TIM_USE_LED }, // LED_STRIP / TRANSPONDER
 };

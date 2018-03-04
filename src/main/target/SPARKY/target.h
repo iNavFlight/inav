@@ -28,30 +28,33 @@
 // MPU6050 interrupts
 #define USE_EXTI
 #define MPU_INT_EXTI            PA15
-#define EXTI15_10_CALLBACK_HANDLER_COUNT 1 // MPU data ready
 #define USE_MPU_DATA_READY_SIGNAL
 
 // MPU 9150 INT connected to PA15, pulled up to VCC by 10K Resistor, contains MPU6050 and AK8975 in single component.
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6050
 #define GYRO_MPU6050_ALIGN      CW270_DEG
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 #define ACC_MPU6050_ALIGN       CW270_DEG
 
-#define BARO
+#define MPU6050_I2C_BUS         BUS_I2C2
+
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
 #define USE_BARO_BMP280
 
-#define MAG
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_AK8975_ALIGN        CW180_DEG_FLIP
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
-#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
-#define MAG_AK8975_ALIGN        CW180_DEG_FLIP
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
-#define USB_IO
 #define USE_VCP
 #define USE_UART1 // Conn 1 - TX (PB6) RX PB7 (AF7)
 #define USE_UART2 // Input - RX (PA3)
@@ -71,8 +74,7 @@
 // Note: PA5 and PA0 are N/C on the sparky - potentially use for ADC or LED STRIP?
 
 #define USE_I2C
-#define I2C_DEVICE (I2CDEV_2) // SDA (PA10/AF4), SCL (PA9/AF4)
-
+#define USE_I2C_DEVICE_2
 #define I2C2_SCL                PA9
 #define I2C2_SDA                PA10
 
@@ -84,7 +86,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 
 // LED strip configuration using PWM motor output pin 5.
-#define LED_STRIP
+#define USE_LED_STRIP
 #define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PA6 // TIM16_CH1
 #define WS2811_DMA_STREAM               DMA1_Channel3
@@ -92,7 +94,7 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART2, PA3
 #define BIND_PIN                PA3
 

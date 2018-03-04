@@ -39,9 +39,13 @@
 #include "fc/rc_adjustments.h"
 #include "fc/rc_curves.h"
 
+#include "navigation/navigation.h"
+
 #include "flight/pid.h"
 
 #include "io/beeper.h"
+
+#include "sensors/boardalignment.h"
 
 #include "rx/rx.h"
 
@@ -136,6 +140,50 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_ROLL_D,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_RC_YAW_EXPO,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_MANUAL_RC_EXPO,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_MANUAL_RC_YAW_EXPO,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_MANUAL_PITCH_ROLL_RATE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_MANUAL_ROLL_RATE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_MANUAL_PITCH_RATE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_MANUAL_YAW_RATE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_FW_CRUISE_THR,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 10 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_FW_PITCH2THR,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_ROLL_BOARD_ALIGNMENT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_PITCH_BOARD_ALIGNMENT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
     }, {
         .adjustmentFunction = ADJUSTMENT_PROFILE,
@@ -166,7 +214,7 @@ static void configureAdjustment(uint8_t index, uint8_t auxSwitchChannelIndex, co
 
 static void blackboxLogInflightAdjustmentEvent(adjustmentFunction_e adjustmentFunction, int32_t newValue)
 {
-#ifndef BLACKBOX
+#ifndef USE_BLACKBOX
     UNUSED(adjustmentFunction);
     UNUSED(newValue);
 #else
@@ -183,7 +231,7 @@ static void blackboxLogInflightAdjustmentEvent(adjustmentFunction_e adjustmentFu
 #if 0
 static void blackboxLogInflightAdjustmentEventFloat(adjustmentFunction_e adjustmentFunction, float newFloatValue)
 {
-#ifndef BLACKBOX
+#ifndef USE_BLACKBOX
     UNUSED(adjustmentFunction);
     UNUSED(newFloatValue);
 #else
@@ -208,20 +256,35 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
     int newValue;
     switch (adjustmentFunction) {
         case ADJUSTMENT_RC_EXPO:
-            newValue = constrain((int)controlRateConfig->rcExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
-            controlRateConfig->rcExpo8 = newValue;
+            newValue = constrain((int)controlRateConfig->stabilized.rcExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
+            controlRateConfig->stabilized.rcExpo8 = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_RC_EXPO, newValue);
             break;
+        case ADJUSTMENT_RC_YAW_EXPO:
+            newValue = constrain((int)controlRateConfig->stabilized.rcYawExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
+            controlRateConfig->stabilized.rcYawExpo8 = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_RC_YAW_EXPO, newValue);
+            break;
+        case ADJUSTMENT_MANUAL_RC_EXPO:
+            newValue = constrain((int)controlRateConfig->manual.rcExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
+            controlRateConfig->manual.rcExpo8 = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_RC_EXPO, newValue);
+            break;
+        case ADJUSTMENT_MANUAL_RC_YAW_EXPO:
+            newValue = constrain((int)controlRateConfig->manual.rcYawExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
+            controlRateConfig->manual.rcYawExpo8 = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_RC_YAW_EXPO, newValue);
+            break;
         case ADJUSTMENT_THROTTLE_EXPO:
-            newValue = constrain((int)controlRateConfig->thrExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
-            controlRateConfig->thrExpo8 = newValue;
+            newValue = constrain((int)controlRateConfig->throttle.rcExpo8 + delta, 0, 100); // FIXME magic numbers repeated in serial_cli.c
+            controlRateConfig->throttle.rcExpo8 = newValue;
             generateThrottleCurve(controlRateConfig);
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_THROTTLE_EXPO, newValue);
             break;
         case ADJUSTMENT_PITCH_ROLL_RATE:
         case ADJUSTMENT_PITCH_RATE:
-            newValue = constrain((int)controlRateConfig->rates[FD_PITCH] + delta, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
-            controlRateConfig->rates[FD_PITCH] = newValue;
+            newValue = constrain((int)controlRateConfig->stabilized.rates[FD_PITCH] + delta, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
+            controlRateConfig->stabilized.rates[FD_PITCH] = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_PITCH_RATE, newValue);
             if (adjustmentFunction == ADJUSTMENT_PITCH_RATE) {
                 schedulePidGainsUpdate();
@@ -231,16 +294,35 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             FALLTHROUGH;
 
         case ADJUSTMENT_ROLL_RATE:
-            newValue = constrain((int)controlRateConfig->rates[FD_ROLL] + delta, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
-            controlRateConfig->rates[FD_ROLL] = newValue;
+            newValue = constrain((int)controlRateConfig->stabilized.rates[FD_ROLL] + delta, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MIN, CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_MAX);
+            controlRateConfig->stabilized.rates[FD_ROLL] = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_ROLL_RATE, newValue);
             schedulePidGainsUpdate();
             break;
+        case ADJUSTMENT_MANUAL_PITCH_ROLL_RATE:
+        case ADJUSTMENT_MANUAL_ROLL_RATE:
+            newValue = constrain((int)controlRateConfig->manual.rates[FD_ROLL] + delta, 0, 100);
+            controlRateConfig->manual.rates[FD_ROLL] = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_ROLL_RATE, newValue);
+            if (adjustmentFunction == ADJUSTMENT_MANUAL_ROLL_RATE)
+                break;
+            // follow though for combined ADJUSTMENT_MANUAL_PITCH_ROLL_RATE
+            FALLTHROUGH;
+        case ADJUSTMENT_MANUAL_PITCH_RATE:
+            newValue = constrain((int)controlRateConfig->manual.rates[FD_PITCH] + delta, 0, 100);
+            controlRateConfig->manual.rates[FD_PITCH] = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_PITCH_RATE, newValue);
+            break;
         case ADJUSTMENT_YAW_RATE:
-            newValue = constrain((int)controlRateConfig->rates[FD_YAW] + delta, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
-            controlRateConfig->rates[FD_YAW] = newValue;
+            newValue = constrain((int)controlRateConfig->stabilized.rates[FD_YAW] + delta, CONTROL_RATE_CONFIG_YAW_RATE_MIN, CONTROL_RATE_CONFIG_YAW_RATE_MAX);
+            controlRateConfig->stabilized.rates[FD_YAW] = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_YAW_RATE, newValue);
             schedulePidGainsUpdate();
+            break;
+        case ADJUSTMENT_MANUAL_YAW_RATE:
+            newValue = constrain((int)controlRateConfig->manual.rates[FD_YAW] + delta, 0, 100);
+            controlRateConfig->manual.rates[FD_YAW] = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_MANUAL_YAW_RATE, newValue);
             break;
         case ADJUSTMENT_PITCH_ROLL_P:
         case ADJUSTMENT_PITCH_P:
@@ -313,6 +395,24 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             pidBankMutable()->pid[PID_YAW].D = newValue;
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_YAW_D, newValue);
             schedulePidGainsUpdate();
+            break;
+        case ADJUSTMENT_NAV_FW_CRUISE_THR:
+            newValue = constrain((int16_t)navConfig()->fw.cruise_throttle + delta, 1000, 2000);
+            navConfigMutable()->fw.cruise_throttle = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_NAV_FW_CRUISE_THR, newValue);
+            break;
+        case ADJUSTMENT_NAV_FW_PITCH2THR:
+            newValue = constrain((int8_t)navConfig()->fw.pitch_to_throttle + delta, 0, 100);
+            navConfigMutable()->fw.pitch_to_throttle = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_NAV_FW_PITCH2THR, newValue);
+            break;
+        case ADJUSTMENT_ROLL_BOARD_ALIGNMENT:
+            updateBoardAlignment(delta, 0);
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_ROLL_BOARD_ALIGNMENT, boardAlignment()->rollDeciDegrees);
+            break;
+        case ADJUSTMENT_PITCH_BOARD_ALIGNMENT:
+            updateBoardAlignment(0, delta);
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_PITCH_BOARD_ALIGNMENT, boardAlignment()->pitchDeciDegrees);
             break;
         default:
             break;

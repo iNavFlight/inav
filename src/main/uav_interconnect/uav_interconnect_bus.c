@@ -498,7 +498,7 @@ void uavInterconnectBusInit(void)
         return;
 
     baudRate_e baudRateIndex = portConfig->peripheral_baudrateIndex;
-    busPort = openSerialPort(portConfig->identifier, FUNCTION_UAV_INTERCONNECT, NULL, baudRates[baudRateIndex], MODE_RXTX, UIB_PORT_OPTIONS);
+    busPort = openSerialPort(portConfig->identifier, FUNCTION_UAV_INTERCONNECT, NULL, NULL, baudRates[baudRateIndex], MODE_RXTX, UIB_PORT_OPTIONS);
     if (!busPort)
         return;
 

@@ -49,7 +49,7 @@
 #include "io/dashboard.h"
 #include "io/displayport_oled.h"
 
-#ifdef GPS
+#ifdef USE_GPS
 #include "io/gps.h"
 #endif
 
@@ -198,7 +198,7 @@ static void padLineBufferToChar(uint8_t toChar)
     lineBuffer[length] = 0;
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void padLineBuffer(void)
 {
     padLineBufferToChar(sizeof(lineBuffer));
@@ -264,7 +264,7 @@ static void updateFailsafeStatus(void)
         case FAILSAFE_RX_LOSS_IDLE:
             failsafeIndicator = 'I';
             break;
-#if defined(NAV)
+#if defined(USE_NAV)
         case FAILSAFE_RETURN_TO_HOME:
             failsafeIndicator = 'H';
             break;
@@ -357,7 +357,7 @@ static void showStatusPage(void)
 
     if (feature(FEATURE_VBAT)) {
         i2c_OLED_set_line(rowIndex++);
-        tfp_sprintf(lineBuffer, "V: %d.%1d ", vbat / 10, vbat % 10);
+        tfp_sprintf(lineBuffer, "V: %d.%1d ", vbat / 100, vbat % 100);
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
@@ -371,11 +371,11 @@ static void showStatusPage(void)
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
-        uint8_t capacityPercentage = calculateBatteryCapacityRemainingPercentage();
+        uint8_t capacityPercentage = calculateBatteryPercentage();
         drawHorizonalPercentageBar(10, capacityPercentage);
     }
 
-#ifdef GPS
+#ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         tfp_sprintf(lineBuffer, "Sats: %d", gpsSol.numSat);
         padHalfLineBuffer();
@@ -400,7 +400,7 @@ static void showStatusPage(void)
     }
 #endif
 
-#ifdef MAG
+#ifdef USE_MAG
     if (sensors(SENSOR_MAG)) {
         tfp_sprintf(lineBuffer, "HDG: %d", DECIDEGREES_TO_DEGREES(attitude.values.yaw));
         padHalfLineBuffer();
@@ -409,7 +409,7 @@ static void showStatusPage(void)
     }
 #endif
 
-#ifdef BARO
+#ifdef USE_BARO
     if (sensors(SENSOR_BARO)) {
         int32_t alt = baroCalculateAltitude();
         tfp_sprintf(lineBuffer, "Alt: %d", alt / 100);
@@ -433,7 +433,7 @@ void dashboardUpdate(timeUs_t currentTimeUs)
     static uint8_t previousArmedState = 0;
     bool pageChanging;
 
-#ifdef CMS
+#ifdef USE_CMS
     static bool wasGrabbed = false;
     if (displayIsGrabbed(displayPort)) {
         wasGrabbed = true;
@@ -535,7 +535,7 @@ void dashboardInit(void)
     delay(200);
 
     displayPort = displayPortOledInit();
-#if defined(CMS)
+#if defined(USE_CMS)
     cmsDisplayPortRegister(displayPort);
 #endif
 

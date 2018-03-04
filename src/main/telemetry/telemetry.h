@@ -44,6 +44,12 @@ typedef enum {
     LTM_RATE_SLOW
 } ltmUpdateRate_e;
 
+typedef enum {
+    SMARTPORT_FUEL_UNIT_PERCENT,
+    SMARTPORT_FUEL_UNIT_MAH,
+    SMARTPORT_FUEL_UNIT_MWH
+} smartportFuelUnit_e;
+
 typedef struct telemetryConfig_s {
     float gpsNoFixLatitude;
     float gpsNoFixLongitude;
@@ -55,7 +61,7 @@ typedef struct telemetryConfig_s {
     uint8_t frsky_vfas_cell_voltage;
     uint8_t hottAlarmSoundInterval;
     uint8_t smartportUartUnidirectional;
-    uint8_t smartportFuelPercent;
+    smartportFuelUnit_e smartportFuelUnit;
     uint8_t ibusTelemetryType;
     uint8_t ltmUpdateRate;
 } telemetryConfig_t;

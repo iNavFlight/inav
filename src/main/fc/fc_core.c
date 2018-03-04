@@ -110,19 +110,19 @@ static disarmReason_t lastDisarmReason = DISARM_NONE;
 
 bool isCalibrating(void)
 {
-#ifdef BARO
+#ifdef USE_BARO
     if (sensors(SENSOR_BARO) && !baroIsCalibrationComplete()) {
         return true;
     }
 #endif
 
-#ifdef PITOT
+#ifdef USE_PITOT
     if (sensors(SENSOR_PITOT) && !pitotIsCalibrationComplete()) {
         return true;
     }
 #endif
 
-#ifdef NAV
+#ifdef USE_NAV
     if (!navIsCalibrationComplete()) {
         return true;
     }
@@ -187,6 +187,15 @@ static void updateArmingStatus(void)
             }
         }
 
+	/* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
+	if (isNavLaunchEnabled()) {
+	  if (areSticksDeflectedMoreThanPosHoldDeadband()) {
+	    ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+	  } else {
+	    DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+	  }
+	}
+
         /* CHECK: Angle */
         if (!STATE(SMALL_ANGLE)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NOT_LEVEL);
@@ -203,7 +212,7 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
         
-#if defined(NAV)
+#if defined(USE_NAV)
         /* CHECK: Navigation safety */
         if (navigationBlockArming()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
@@ -213,7 +222,7 @@ static void updateArmingStatus(void)
         }
 #endif
 
-#if defined(MAG)
+#if defined(USE_MAG)
         /* CHECK: */
         if (sensors(SENSOR_MAG) && !STATE(COMPASS_CALIBRATED)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_COMPASS_NOT_CALIBRATED);
@@ -264,6 +273,13 @@ static void updateArmingStatus(void)
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
         }
+        /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
+        if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+	    ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+	    } 
+        else {
+	    DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+	    }
 
         if (isArmingDisabled()) {
             warningLedFlash();
@@ -285,9 +301,16 @@ void annexCode(void)
     }
     else {
         // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], currentControlRateProfile->rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], currentControlRateProfile->rcYawExpo8, rcControlsConfig()->yaw_deadband);
+        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcYawExpo8 : currentControlRateProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
+
+        // Apply manual control rates
+        if (FLIGHT_MODE(MANUAL_MODE)) {
+            rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
+            rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
+            rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
+        }
 
         //Compute THROTTLE command
         throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
@@ -316,7 +339,7 @@ void mwDisarm(disarmReason_t disarmReason)
         lastDisarmReason = disarmReason;
         DISABLE_ARMING_FLAG(ARMED);
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         if (feature(FEATURE_BLACKBOX)) {
             blackboxFinish();
         }
@@ -358,7 +381,7 @@ void mwArm(void)
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
         if (feature(FEATURE_BLACKBOX)) {
             serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
             if (sharedBlackboxAndMspPort) {
@@ -370,7 +393,7 @@ void mwArm(void)
         disarmAt = millis() + armingConfig()->auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
         //beep to indicate arming
-#ifdef NAV
+#ifdef USE_NAV
         if (navigationPositionEstimateIsHealthy())
             beeper(BEEPER_ARMING_GPS_FIX);
         else
@@ -535,7 +558,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-#if defined(MAG)
+#if defined(USE_MAG)
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
         if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
             if (!FLIGHT_MODE(HEADFREE_MODE)) {
@@ -552,19 +575,19 @@ void processRx(timeUs_t currentTimeUs)
 
     // Handle passthrough mode
     if (STATE(FIXED_WING)) {
-        if ((IS_RC_MODE_ACTIVE(BOXPASSTHRU) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
+        if ((IS_RC_MODE_ACTIVE(BOXMANUAL) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
             (!ARMING_FLAG(ARMED) && isCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
-            ENABLE_FLIGHT_MODE(PASSTHRU_MODE);
+            ENABLE_FLIGHT_MODE(MANUAL_MODE);
         } else {
-            DISABLE_FLIGHT_MODE(PASSTHRU_MODE);
+            DISABLE_FLIGHT_MODE(MANUAL_MODE);
         }
     }
 
     /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
        This is needed to prevent Iterm winding on the ground, but keep full stabilisation on 0 throttle while in air
        Low Throttle + roll and Pitch centered is assuming the copter is on the ground. Done to prevent complex air/ground detections */
-    if (FLIGHT_MODE(PASSTHRU_MODE) || !ARMING_FLAG(ARMED)) {
-        /* In PASSTHRU mode we reset integrators prevent I-term wind-up (PID output is not used in PASSTHRU) */
+    if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
+        /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
         pidResetErrorAccumulators();
     }
     else {
@@ -598,7 +621,7 @@ void processRx(timeUs_t currentTimeUs)
     autotuneUpdateState();
 #endif
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (feature(FEATURE_TELEMETRY)) {
         if ((!telemetryConfig()->telemetry_switch && ARMING_FLAG(ARMED)) ||
                 (telemetryConfig()->telemetry_switch && IS_RC_MODE_ACTIVE(BOXTELEMETRY))) {
@@ -669,12 +692,7 @@ void taskGyro(timeUs_t currentTimeUs) {
     }
 
     /* Update actual hardware readings */
-    gyroUpdate();
-
-#ifdef ASYNC_GYRO_PROCESSING
-    /* Update IMU for better accuracy */
-    imuUpdateGyroscope((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
-#endif
+    gyroUpdate(currentDeltaTime + (timeDelta_t)(gyroUpdateUs - currentTimeUs));
 
 #ifdef USE_OPTICAL_FLOW
     if (sensors(SENSOR_OPFLOW)) {
@@ -698,7 +716,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     if (getAsyncMode() == ASYNC_MODE_NONE) {
         taskGyro(currentTimeUs);
     }
@@ -721,7 +739,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         filterRc(isRXDataNew);
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     if (isRXDataNew) {
         updateWaypointsAndNavigationMode();
     }
@@ -729,7 +747,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     isRXDataNew = false;
 
-#if defined(NAV)
+#if defined(USE_NAV)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
 #endif
@@ -813,7 +831,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     afatfs_poll();
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
         blackboxUpdate(micros());
     }

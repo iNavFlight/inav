@@ -20,6 +20,8 @@
 
 #include "platform.h"
 
+#ifdef USE_VCP
+
 #include "build/build_config.h"
 
 #include "common/utils.h"
@@ -90,11 +92,17 @@ static uint8_t usbVcpRead(serialPort_t *instance)
     }
 }
 
+static bool usbVcpIsConnected(const serialPort_t *instance)
+{
+    (void)instance;
+    return usbIsConnected() && usbIsConfigured();
+}
+
 static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
 {
     UNUSED(instance);
 
-    if (!(usbIsConnected() && usbIsConfigured())) {
+    if (!usbVcpIsConnected(instance)) {
         return;
     }
 
@@ -176,16 +184,15 @@ static const struct serialPortVTable usbVTable[] = {
         .serialSetBaudRate = usbVcpSetBaudRate,
         .isSerialTransmitBufferEmpty = isUsbVcpTransmitBufferEmpty,
         .setMode = usbVcpSetMode,
+        .isConnected = usbVcpIsConnected,
         .writeBuf = usbVcpWriteBuf,
         .beginWrite = usbVcpBeginWrite,
         .endWrite = usbVcpEndWrite
     }
 };
 
-serialPort_t *usbVcpOpen(void)
+void usbVcpInitHardware(void)
 {
-    vcpPort_t *s;
-
 #if defined(STM32F4)
     usbGenerateDisconnectPulse();
 
@@ -214,6 +221,11 @@ serialPort_t *usbVcpOpen(void)
     USB_Interrupts_Config();
     USB_Init();
 #endif
+}
+
+serialPort_t *usbVcpOpen(void)
+{
+    vcpPort_t *s;
 
     s = &vcpPort;
     s->port.vTable = usbVTable;
@@ -227,3 +239,5 @@ uint32_t usbVcpGetBaudRate(serialPort_t *instance)
 
     return CDC_BaudRate();
 }
+
+#endif

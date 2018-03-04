@@ -20,16 +20,10 @@
 #include "drivers/exti.h"
 #include "drivers/sensor.h"
 
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
-
-#if defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU6000) ||  defined(USE_GYRO_SPI_MPU9250) || defined(USE_GYRO_SPI_ICM20689)
-#define GYRO_USES_SPI
-#endif
+#define MPU_I2C_ADDRESS                 0x68
 
 // MPU6050
-#define MPU_RA_WHO_AM_I         0x75
-#define MPU_RA_WHO_AM_I_LEGACY  0x00
-
+#define MPU_RA_WHO_AM_I_LEGACY          0x00
 
 #define MPUx0x0_WHO_AM_I_CONST              (0x68) // MPU3050, 6000 and 6050
 #define MPU6000_WHO_AM_I_CONST              (0x68)
@@ -136,16 +130,7 @@
 // RF = Register Flag
 #define MPU_RF_DATA_RDY_EN (1 << 0)
 
-typedef bool (*mpuReadRegisterFnPtr)(const busDevice_t *bus, uint8_t reg, uint8_t length, uint8_t* data);
-typedef bool (*mpuWriteRegisterFnPtr)(const busDevice_t *bus, uint8_t reg, uint8_t data);
-typedef void (*mpuResetFnPtr)(void);
-
-extern mpuResetFnPtr mpuResetFn;
-
-typedef struct mpuConfiguration_s {
-    mpuReadRegisterFnPtr readFn;
-    mpuWriteRegisterFnPtr writeFn;
-    mpuResetFnPtr resetFn;
+typedef struct mpuConfiguration_s {    
     uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
 } mpuConfiguration_t;
 
@@ -177,37 +162,9 @@ enum accel_fsr_e {
     NUM_ACCEL_FSR
 };
 
-typedef enum {
-    MPU_NONE,
-    MPU_3050,
-    MPU_60x0,
-    MPU_60x0_SPI,
-    MPU_65xx_I2C,
-    MPU_65xx_SPI,
-    MPU_9250_SPI,
-    ICM_20601_SPI,
-    ICM_20602_SPI,
-    ICM_20608_SPI,
-    ICM_20649_SPI,
-    ICM_20679_SPI,
-    ICM_20689_SPI
-} mpuSensor_e;
-
-typedef enum {
-    MPU_HALF_RESOLUTION,
-    MPU_FULL_RESOLUTION
-} mpu6050Resolution_e;
-
-typedef struct mpuDetectionResult_s {
-    mpuSensor_e sensor;
-    mpu6050Resolution_e resolution;
-} mpuDetectionResult_t;
-
-bool mpuReadRegisterI2C(const busDevice_t *bus, uint8_t reg, uint8_t length, uint8_t* data);
-bool mpuWriteRegisterI2C(const busDevice_t *bus, uint8_t reg, uint8_t data);
-
 struct gyroDev_s;
-void mpuGyroInit(struct gyroDev_s *gyro);
+void mpuIntExtiInit(struct gyroDev_s *gyro);
+
 struct accDev_s;
 bool mpuAccRead(struct accDev_s *acc);
 bool mpuGyroRead(struct gyroDev_s *gyro);

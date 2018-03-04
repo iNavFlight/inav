@@ -49,7 +49,7 @@ void targetConfiguration(void)
 {
     // alternative defaults settings for ALIENFLIGHTF1 and ALIENFLIGHTF3 targets
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    batteryConfigMutable()->vbatscale = 20;
+    batteryConfigMutable()->voltage.scale = 200;
     rxConfigMutable()->spektrum_sat_bind = 5;
     rxConfigMutable()->spektrum_sat_bind_autoreset = 1;
 
@@ -63,9 +63,9 @@ void targetConfiguration(void)
     pidProfileMutable()->bank_mc.pid[PITCH].P = 36;
     failsafeConfigMutable()->failsafe_delay = 2;
     failsafeConfigMutable()->failsafe_off_delay = 0;
-    controlRateProfilesMutable(0)->rates[FD_PITCH] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT;
-    controlRateProfilesMutable(0)->rates[FD_ROLL] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT;
-    controlRateProfilesMutable(0)->rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT;
+    controlRateProfilesMutable(0)->stabilized.rates[FD_PITCH] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT;
+    controlRateProfilesMutable(0)->stabilized.rates[FD_ROLL] = CONTROL_RATE_CONFIG_ROLL_PITCH_RATE_DEFAULT;
+    controlRateProfilesMutable(0)->stabilized.rates[FD_YAW] = CONTROL_RATE_CONFIG_YAW_RATE_DEFAULT;
     parseRcChannels("TAER1234");
 
     *customMotorMixerMutable(0) = (motorMixer_t){ 1.0f, -0.414178f,  1.0f, -1.0f };    // REAR_R
