@@ -139,10 +139,10 @@ typedef struct {
     timeUs_t lastExecutedAt;        // last time of invocation
     timeUs_t lastSignaledAt;        // time of invocation event for event-driven tasks
     timeDelta_t taskLatestDeltaTime;
-
+    
+#ifndef SKIP_TASK_STATISTICS
     /* Statistics */
     timeUs_t movingSumExecutionTime;  // moving sum over 32 samples
-#ifndef SKIP_TASK_STATISTICS
     timeUs_t maxExecutionTime;
     timeUs_t totalExecutionTime;    // total time consumed by task since boot
 #endif
