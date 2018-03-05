@@ -79,8 +79,8 @@ static OSD_Entry menuInfoEntries[] = {
     { "FWVER", OME_String, NULL, FC_VERSION_STRING, 0 },
     { "GITREV", OME_String, NULL, infoGitRev, 0 },
     { "TARGET", OME_String, NULL, infoTargetName, 0 },
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu menuInfo = {
@@ -117,8 +117,8 @@ static OSD_Entry menuFeaturesEntries[] =
 #ifdef USE_LED_STRIP
     {"LED STRIP", OME_Submenu, cmsMenuChange, &cmsx_menuLedstrip, 0},
 #endif // LED_STRIP
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu menuFeatures = {

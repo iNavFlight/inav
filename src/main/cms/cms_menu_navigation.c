@@ -49,8 +49,9 @@ static OSD_Entry cmsx_menuNavSettingsEntries[] =
     OSD_SETTING_ENTRY("MC MAX BANK ANGLE", SETTING_NAV_MC_BANK_ANGLE),
     OSD_SETTING_ENTRY("MID THR FOR AH", SETTING_NAV_USE_MIDTHR_FOR_ALTHOLD),
     OSD_SETTING_ENTRY("MC HOVER THR", SETTING_NAV_MC_HOVER_THR),
-    { "BACK",                          OME_Back, NULL, NULL, 0 },
-    { NULL,                            OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
  };
 
 static CMS_Menu cmsx_menuNavSettings = {
@@ -78,8 +79,9 @@ static CMS_Menu cmsx_menuNavSettings = {
     OSD_SETTING_ENTRY("MIN RTH DISTANCE", SETTING_NAV_MIN_RTH_DISTANCE),
     OSD_SETTING_ENTRY("RTH ABORT THRES", SETTING_NAV_RTH_ABORT_THRESHOLD),
     OSD_SETTING_ENTRY("EMERG LANDING SPEED", SETTING_NAV_EMERG_LANDING_SPEED),
-    { "BACK",                          OME_Back, NULL, NULL, 0 },
-    { NULL,                            OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
  };
 
 static CMS_Menu cmsx_menuRTH = {
@@ -104,8 +106,9 @@ static OSD_Entry cmsx_menuFixedWingEntries[] =
     OSD_SETTING_ENTRY("MAX DIVE ANGLE", SETTING_NAV_FW_DIVE_ANGLE),
     OSD_SETTING_ENTRY("PITCH TO THR RATIO", SETTING_NAV_FW_PITCH2THR),
     OSD_SETTING_ENTRY("LOITER RADIUS", SETTING_NAV_FW_LOITER_RADIUS),
-    { "BACK",                          OME_Back, NULL, NULL, 0 },
-    { NULL,                            OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuFixedWing = {
@@ -125,8 +128,9 @@ static OSD_Entry cmsx_menuNavigationEntries[] =
     { "BASIC SETTINGS",     OME_Submenu, cmsMenuChange, &cmsx_menuNavSettings, 0},
     { "RTH",                OME_Submenu, cmsMenuChange, &cmsx_menuRTH, 0},
     { "FIXED WING",         OME_Submenu, cmsMenuChange, &cmsx_menuFixedWing, 0},
-    { "BACK",               OME_Back, NULL, NULL, 0 },
-    { NULL,                 OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuNavigation = {

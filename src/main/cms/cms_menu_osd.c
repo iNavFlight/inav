@@ -41,8 +41,8 @@ OSD_Entry cmsx_menuAlarmsEntries[] =
     OSD_SETTING_ENTRY("FLY TIME", SETTING_OSD_TIME_ALARM),
     OSD_SETTING_ENTRY("MAX ALT", SETTING_OSD_ALT_ALARM),
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuAlarms = {
@@ -104,8 +104,9 @@ OSD_Entry menuOsdActiveElemsEntries[] =
 #endif // defined
     {"ALTITUDE", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_ALTITUDE], 0},
     {"AIR SPEED", OME_VISIBLE, NULL, &osdConfig_item_pos[OSD_AIR_SPEED], 0},
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu menuOsdActiveElems = {
@@ -123,8 +124,9 @@ OSD_Entry cmsx_menuOsdLayoutEntries[] =
 {
     {"---SCREEN LAYOUT---", OME_Label, NULL, NULL, 0},
     {"ACTIVE ELEM", OME_Submenu, cmsMenuChange, &menuOsdActiveElems, 0},
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuOsdLayout = {

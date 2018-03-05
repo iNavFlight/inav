@@ -66,8 +66,8 @@ static OSD_Entry cmsx_menuRcEntries[] =
     { "AUX3",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX3],     1, 2500, 0 }, DYNAMIC },
     { "AUX4",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX4],     1, 2500, 0 }, DYNAMIC },
 
-    { "BACK",  OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuRcPreview = {
@@ -102,8 +102,8 @@ static OSD_Entry menuMiscEntries[]=
 
     { "RC PREV",    OME_Submenu, cmsMenuChange, &cmsx_menuRcPreview, 0},
 
-    { "BACK", OME_Back, NULL, NULL, 0},
-    { NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuMisc = {

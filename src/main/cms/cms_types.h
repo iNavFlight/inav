@@ -75,6 +75,9 @@ typedef struct
 #define DYNAMIC        (1 << 2)  // Value should be updated dynamically
 #define OPTSTRING      (1 << 3)  // (Temporary) Flag for OME_Submenu, indicating func should be called to get a string to display.
 
+#define OSD_BACK_ENTRY  ((OSD_Entry){ "BACK", OME_Back, NULL, NULL, 0 })
+#define OSD_END_ENTRY   ((OSD_Entry){ NULL, OME_END, NULL, NULL, 0 })
+
 // Data type for OME_Setting. Uses upper 4 bits
 // of flags, leaving 16 data types.
 #define CMS_DATA_TYPE_OFFSET (4)

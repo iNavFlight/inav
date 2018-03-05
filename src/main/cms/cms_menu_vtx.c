@@ -127,8 +127,9 @@ static OSD_Entry cmsx_menuVtxEntries[] =
 #ifdef USE_RTC6705
     {"LOW POWER", OME_Bool, NULL, &masterConfig.vtx_power, 0},
 #endif // USE_RTC6705
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuVtx = {

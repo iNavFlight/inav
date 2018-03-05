@@ -61,8 +61,8 @@ static OSD_Entry cmsx_menuLedstripEntries[] =
     { "-- LED STRIP --", OME_Label, NULL, NULL, 0 },
     { "ENABLED",         OME_BoolFunc,  NULL, cmsx_FeatureLedStrip_Enabled, 0 },
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuLedstrip = {

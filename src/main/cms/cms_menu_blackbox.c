@@ -84,8 +84,8 @@ static OSD_Entry cmsx_menuBlackboxEntries[] =
     { "ERASE FLASH",OME_Funcall, cmsx_EraseFlash, NULL, 0 },
 #endif // USE_FLASHFS
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuBlackbox = {

@@ -199,8 +199,9 @@ static long trampCmsOnEnter(void)
 static OSD_Entry trampCmsMenuCommenceEntries[] = {
     { "CONFIRM", OME_Label,   NULL,          NULL, 0 },
     { "YES",     OME_Funcall, trampCmsCommence, NULL, 0 },
-    { "BACK",    OME_Back, NULL, NULL, 0 },
-    { NULL,      OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu trampCmsMenuCommence = {
@@ -227,8 +228,8 @@ static OSD_Entry trampMenuEntries[] =
     { "T(C)",   OME_INT16,      NULL,                   &trampCmsEntTemp,      DYNAMIC },
     { "SET",    OME_Submenu,    cmsMenuChange,          &trampCmsMenuCommence, 0 },
 
-    { "BACK",   OME_Back, NULL, NULL, 0 },
-    { NULL,     OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuVtxTramp = {

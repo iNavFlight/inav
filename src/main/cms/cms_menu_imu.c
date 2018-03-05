@@ -145,8 +145,8 @@ static OSD_Entry cmsx_menuPidEntries[] =
     { "YAW   I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 }, 0 },
     { "YAW   D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 }, 0 },
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuPid = {
@@ -197,8 +197,8 @@ static OSD_Entry cmsx_menuPidAltMagEntries[] = {
     { "VEL D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelZ[2], 0, 255, 1 }, 0 },
     { "MAG P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidHead[0], 0, 255, 1 }, 0 },
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuPidAltMag = {
@@ -244,8 +244,8 @@ static OSD_Entry cmsx_menuPidGpsnavEntries[] = {
     { "POSR I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelXY[1], 0, 255, 1 }, 0 },
     { "POSR D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelXY[2], 0, 255, 1 }, 0 },
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuPidGpsnav = {
@@ -273,8 +273,8 @@ static OSD_Entry cmsx_menuManualRateProfileEntries[] =
     OSD_SETTING_ENTRY("MANU RC EXPO", SETTING_MANUAL_RC_EXPO),
     OSD_SETTING_ENTRY("MANU RC YAW EXP", SETTING_MANUAL_RC_YAW_EXPO),
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuManualRateProfile = {
@@ -313,8 +313,8 @@ static OSD_Entry cmsx_menuRateProfileEntries[] =
     OSD_SETTING_ENTRY("THRPID ATT", SETTING_TPA_RATE),
     OSD_SETTING_ENTRY_STEP("TPA BRKPT", SETTING_TPA_BREAKPOINT, 10),
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuRateProfile = {
@@ -372,8 +372,8 @@ static OSD_Entry cmsx_menuProfileOtherEntries[] = {
     { "HORZN STR",   OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_horizonStrength,     0, 200, 1 }    , 0 },
     { "HORZN TRS",   OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_horizonTransition,   0, 200, 1 }    , 0 },
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuProfileOther = {
@@ -400,8 +400,8 @@ static OSD_Entry cmsx_menuFilterPerProfileEntries[] =
     OSD_SETTING_ENTRY("YAW P LIM", SETTING_YAW_P_LIMIT),
     OSD_SETTING_ENTRY("YAW LPF", SETTING_YAW_LPF_HZ),
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuFilterPerProfile = {
@@ -423,8 +423,8 @@ static OSD_Entry cmsx_menuGyroEntries[] =
     OSD_SETTING_ENTRY("GYRO DENOM", SETTING_GYRO_SYNC_DENOM),
     OSD_SETTING_ENTRY("GYRO LPF", SETTING_GYRO_HARDWARE_LPF),
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuGyro = {
@@ -463,8 +463,8 @@ static OSD_Entry cmsx_menuImuEntries[] =
     {"FILT GLB",  OME_Submenu, cmsMenuChange,                 &cmsx_menuFilterGlobal,                                      0},
 #endif
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuImu = {

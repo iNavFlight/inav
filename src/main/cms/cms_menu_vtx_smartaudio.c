@@ -316,8 +316,9 @@ static OSD_Entry saCmsMenuStatsEntries[] = {
     { "BADLEN",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.badlen, 0, 0, 0 },   DYNAMIC },
     { "CRCERR",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.crc, 0, 0, 0 },      DYNAMIC },
     { "OOOERR",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.ooopresp, 0, 0, 0 }, DYNAMIC },
-    { "BACK",     OME_Back,   NULL, NULL, 0 },
-    { NULL,       OME_END,    NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu saCmsMenuStats = {
@@ -481,8 +482,8 @@ static OSD_Entry saCmsMenuPORFreqEntries[] = {
     { "NEW FREQ",     OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 },    0 },
     { "SET",          OME_Funcall, saCmsSetPORFreq,  NULL,                                                 0 },
 
-    { "BACK",         OME_Back,    NULL,             NULL,                                                 0 },
-    { NULL,           OME_END,     NULL,             NULL,                                                 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu saCmsMenuPORFreq =
@@ -504,8 +505,8 @@ static OSD_Entry saCmsMenuUserFreqEntries[] = {
     { "NEW FREQ",      OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 }, 0 },
     { "SET",           OME_Funcall, saCmsConfigUserFreq, NULL,                                                0 },
 
-    { "BACK",          OME_Back,    NULL,             NULL,                                                0 },
-    { NULL,            OME_END,     NULL,             NULL,                                                0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu saCmsMenuUserFreq =
@@ -531,8 +532,8 @@ static OSD_Entry saCmsMenuConfigEntries[] = {
     { "POR FREQ",  OME_Submenu, (CMSEntryFuncPtr)saCmsORFreqGetString, &saCmsMenuPORFreq,                                   OPTSTRING },
     { "STATX",     OME_Submenu, cmsMenuChange,                         &saCmsMenuStats,                                     0 },
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu saCmsMenuConfig = {
@@ -551,8 +552,8 @@ static OSD_Entry saCmsMenuCommenceEntries[] = {
 
     { "YES",     OME_Funcall, saCmsCommence, NULL, 0 },
 
-    { "BACK",    OME_Back, NULL, NULL, 0 },
-    { NULL,      OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu saCmsMenuCommence = {
@@ -575,8 +576,8 @@ static OSD_Entry saCmsMenuFreqModeEntries[] = {
     { "SET",    OME_Submenu,    cmsMenuChange,                            &saCmsMenuCommence, 0 },
     { "CONFIG", OME_Submenu,    cmsMenuChange,                            &saCmsMenuConfig,   0 },
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static OSD_Entry saCmsMenuChanModeEntries[] =
@@ -591,8 +592,8 @@ static OSD_Entry saCmsMenuChanModeEntries[] =
     { "SET",    OME_Submenu,    cmsMenuChange,          &saCmsMenuCommence, 0 },
     { "CONFIG", OME_Submenu,    cmsMenuChange,          &saCmsMenuConfig,   0 },
 
-    { "BACK",   OME_Back, NULL, NULL, 0 },
-    { NULL,     OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static OSD_Entry saCmsMenuOfflineEntries[] =
@@ -602,8 +603,8 @@ static OSD_Entry saCmsMenuOfflineEntries[] =
     { "",      OME_LabelFunc,   NULL,          saCmsDrawStatusString, DYNAMIC },
     { "STATX", OME_Submenu,     cmsMenuChange, &saCmsMenuStats,   0 },
 
-    { "BACK",  OME_Back, NULL, NULL, 0 },
-    { NULL,    OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuVtxSmartAudio; // Forward

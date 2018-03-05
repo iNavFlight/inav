@@ -158,8 +158,9 @@ static char menuErrLabel[21 + 1] = "RANDOM DATA";
 static OSD_Entry menuErrEntries[] = {
     { "BROKEN MENU", OME_Label, NULL, NULL, 0 },
     { menuErrLabel, OME_Label, NULL, NULL, 0 },
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 static CMS_Menu menuErr = {
