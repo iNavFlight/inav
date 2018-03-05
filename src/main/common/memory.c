@@ -43,7 +43,7 @@ void * memAllocate(size_t wantedSize)
     void * retPointer = NULL;
     const size_t wantedWords = (wantedSize + sizeof(uint32_t) - 1) / sizeof(uint32_t);
 
-    if ((dynHeapFreeWord + wantedWords) < DYNAMIC_HEAP_SIZE / sizeof(uint32_t)) {
+    if ((dynHeapFreeWord + wantedWords) <= DYNAMIC_HEAP_SIZE / sizeof(uint32_t)) {
         // Success
         retPointer = &dynHeap[dynHeapFreeWord];
         dynHeapFreeWord += wantedWords;
