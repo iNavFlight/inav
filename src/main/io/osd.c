@@ -921,6 +921,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
+    case OSD_TRIP_DIST:
+        buff[0] = SYM_TRIP_DIST;
+        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance());
+        break;
+
     case OSD_HEADING:
         {
             int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
@@ -1536,8 +1541,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
-        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
-            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
+        if (elementIndex == OSD_TRIP_DIST) {
+            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1551,8 +1556,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_HDOP) {
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
-        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
-            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
+        if (elementIndex == OSD_TRIP_DIST) {
+            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1578,6 +1583,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_RSSI_VALUE] = OSD_POS(23, 0) | VISIBLE_FLAG;
     //line 2
     osdConfig->item_pos[OSD_HOME_DIST] = OSD_POS(1, 1);
+    osdConfig->item_pos[OSD_TRIP_DIST] = OSD_POS(1, 2);
     osdConfig->item_pos[OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[OSD_GPS_SPEED] = OSD_POS(23, 1);
 
