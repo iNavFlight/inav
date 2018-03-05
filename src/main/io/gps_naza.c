@@ -32,6 +32,7 @@
 #include "common/axis.h"
 #include "common/gps_conversion.h"
 #include "common/maths.h"
+#include "common/memory.h"
 #include "common/utils.h"
 
 #include "drivers/serial.h"
@@ -43,9 +44,6 @@
 #include "io/gps.h"
 #include "io/gps_private.h"
 #include "io/serial.h"
-
-
-#define NAZA_MAX_PAYLOAD_SIZE   256
 
 typedef struct {
     uint8_t res[4]; // 0
@@ -102,12 +100,14 @@ typedef enum {
 } fixType_t;
 
 // Receive buffer
-static union {
+typedef union {
     naza_mag mag;
     naza_nav nav;
     naza_ver ver;
-    uint8_t bytes[NAZA_MAX_PAYLOAD_SIZE];
-} _buffernaza;
+} nazaReceiveBuffer_t;
+
+#define NAZA_MAX_PAYLOAD_SIZE   sizeof(nazaReceiveBuffer_t)
+static nazaReceiveBuffer_t * _buffer = NULL;
 
 // Packet checksum accumulators
 static uint8_t _ck_a;
@@ -149,9 +149,9 @@ static bool NAZA_parse_gps(void)
 
     switch (_msg_id) {
     case ID_NAV:
-        mask = _buffernaza.nav.mask;
+        mask = _buffer->nav.mask;
 
-        uint32_t time = decodeLong(_buffernaza.nav.time, mask);
+        uint32_t time = decodeLong(_buffer->nav.time, mask);
         gpsSol.time.seconds = time & 0b00111111; time >>= 6;
         gpsSol.time.minutes = time & 0b00111111; time >>= 6;
         gpsSol.time.hours = time & 0b00001111; time >>= 4;
@@ -159,17 +159,17 @@ static bool NAZA_parse_gps(void)
         gpsSol.time.month = time & 0b00001111; time >>= 4;
         gpsSol.time.year = (time & 0b01111111) + 2000;
 
-        gpsSol.llh.lon = decodeLong(_buffernaza.nav.longitude, mask);
-        gpsSol.llh.lat = decodeLong(_buffernaza.nav.latitude, mask);
-        gpsSol.llh.alt = decodeLong(_buffernaza.nav.altitude_msl, mask) / 10.0f;  //alt in cm
+        gpsSol.llh.lon = decodeLong(_buffer->nav.longitude, mask);
+        gpsSol.llh.lat = decodeLong(_buffer->nav.latitude, mask);
+        gpsSol.llh.alt = decodeLong(_buffer->nav.altitude_msl, mask) / 10.0f;  //alt in cm
 
-        uint8_t fixType = _buffernaza.nav.fix_type ^ mask;
-        //uint8_t fixFlags = _buffernaza.nav.fix_status ^ mask;
+        uint8_t fixType = _buffer->nav.fix_type ^ mask;
+        //uint8_t fixFlags = _buffer->nav.fix_status ^ mask;
 
-        //uint8_t r3 = _buffernaza.nav.reserved3 ^ mask;
-        //uint8_t r4 = _buffernaza.nav.reserved4 ^ mask;
-        //uint8_t r5 = _buffernaza.nav.reserved5 ^ mask;
-        //uint8_t r6 = _buffernaza.nav.reserved6 ^ mask;
+        //uint8_t r3 = _buffer->nav.reserved3 ^ mask;
+        //uint8_t r4 = _buffer->nav.reserved4 ^ mask;
+        //uint8_t r5 = _buffer->nav.reserved5 ^ mask;
+        //uint8_t r6 = _buffer->nav.reserved6 ^ mask;
 
         if (fixType == FIX_2D)
             gpsSol.fixType = GPS_FIX_2D;
@@ -178,26 +178,26 @@ static bool NAZA_parse_gps(void)
         else
             gpsSol.fixType = GPS_NO_FIX;
 
-        uint32_t h_acc = decodeLong(_buffernaza.nav.h_acc, mask); // mm
-        uint32_t v_acc = decodeLong(_buffernaza.nav.v_acc, mask); // mm
-        //uint32_t test = decodeLong(_buffernaza.nav.reserved, mask);
+        uint32_t h_acc = decodeLong(_buffer->nav.h_acc, mask); // mm
+        uint32_t v_acc = decodeLong(_buffer->nav.v_acc, mask); // mm
+        //uint32_t test = decodeLong(_buffer->nav.reserved, mask);
 
-        gpsSol.velNED[0] = decodeLong(_buffernaza.nav.ned_north, mask);  // cm/s
-        gpsSol.velNED[1] = decodeLong(_buffernaza.nav.ned_east, mask);   // cm/s
-        gpsSol.velNED[2] = decodeLong(_buffernaza.nav.ned_down, mask);   // cm/s
+        gpsSol.velNED[0] = decodeLong(_buffer->nav.ned_north, mask);  // cm/s
+        gpsSol.velNED[1] = decodeLong(_buffer->nav.ned_east, mask);   // cm/s
+        gpsSol.velNED[2] = decodeLong(_buffer->nav.ned_down, mask);   // cm/s
 
 
-        uint16_t pdop = decodeShort(_buffernaza.nav.pdop, mask); // pdop
-        //uint16_t vdop = decodeShort(_buffernaza.nav.vdop, mask); // vdop
-        //uint16_t ndop = decodeShort(_buffernaza.nav.ndop, mask);
-        //uint16_t edop = decodeShort(_buffernaza.nav.edop, mask);
+        uint16_t pdop = decodeShort(_buffer->nav.pdop, mask); // pdop
+        //uint16_t vdop = decodeShort(_buffer->nav.vdop, mask); // vdop
+        //uint16_t ndop = decodeShort(_buffer->nav.ndop, mask);
+        //uint16_t edop = decodeShort(_buffer->nav.edop, mask);
         //gpsSol.hdop = sqrtf(powf(ndop,2)+powf(edop,2));
-        //gpsSol.vdop = decodeShort(_buffernaza.nav.vdop, mask); // vdop
+        //gpsSol.vdop = decodeShort(_buffer->nav.vdop, mask); // vdop
 
         gpsSol.hdop = gpsConstrainEPE(pdop);        // PDOP
         gpsSol.eph = gpsConstrainEPE(h_acc / 10);   // hAcc in cm
         gpsSol.epv = gpsConstrainEPE(v_acc / 10);   // vAcc in cm
-        gpsSol.numSat = _buffernaza.nav.satellites;
+        gpsSol.numSat = _buffer->nav.satellites;
         gpsSol.groundSpeed = sqrtf(powf(gpsSol.velNED[0], 2)+powf(gpsSol.velNED[1], 2)); //cm/s
 
         // calculate gps heading from VELNE
@@ -212,12 +212,12 @@ static bool NAZA_parse_gps(void)
         _new_speed = true;
         break;
     case ID_MAG:
-        mask_mag = (_buffernaza.mag.z)&0xFF;
+        mask_mag = (_buffer->mag.z)&0xFF;
         mask_mag = (((mask_mag ^ (mask_mag >> 4)) & 0x0F) | ((mask_mag << 3) & 0xF0)) ^ (((mask_mag & 0x01) << 3) | ((mask_mag & 0x01) << 7));
 
-        gpsSol.magData[0] = decodeShort(_buffernaza.mag.x, mask_mag);
-        gpsSol.magData[1] = decodeShort(_buffernaza.mag.y, mask_mag);
-        gpsSol.magData[2] = (_buffernaza.mag.z ^ (mask_mag<<8));
+        gpsSol.magData[0] = decodeShort(_buffer->mag.x, mask_mag);
+        gpsSol.magData[1] = decodeShort(_buffer->mag.y, mask_mag);
+        gpsSol.magData[2] = (_buffer->mag.z ^ (mask_mag<<8));
 
         gpsSol.flags.validMag = 1;
         break;
@@ -278,7 +278,7 @@ static bool gpsNewFrameNAZA(uint8_t data)
         case 4:
             _ck_b += (_ck_a += data);       // checksum byte
             if (_payload_counter < NAZA_MAX_PAYLOAD_SIZE) {
-                _buffernaza.bytes[_payload_counter] = data;
+                ((uint8_t *)_buffer)[_payload_counter] = data;
             }
             if (++_payload_counter >= _payload_length) {
                 _step++;
@@ -315,7 +315,7 @@ static bool gpsReceiveData(void)
 {
     bool hasNewData = false;
 
-    if (gpsState.gpsPort) {
+    if (gpsState.gpsPort && _buffer) {
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameNAZA(newChar)) {
@@ -330,6 +330,10 @@ static bool gpsReceiveData(void)
 
 static bool gpsInitialize(void)
 {
+    if (_buffer == NULL) {
+        _buffer = memAllocate(NAZA_MAX_PAYLOAD_SIZE);
+    }
+
     gpsSetState(GPS_CHANGE_BAUD);
     return false;
 }

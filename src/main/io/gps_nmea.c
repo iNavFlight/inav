@@ -31,6 +31,7 @@
 
 #include "common/axis.h"
 #include "common/gps_conversion.h"
+#include "common/memory.h"
 #include "common/maths.h"
 #include "common/utils.h"
 
@@ -97,7 +98,8 @@ typedef struct gpsDataNmea_s {
     uint32_t date;
 } gpsDataNmea_t;
 
-#define NMEA_BUFFER_SIZE        16
+#define NMEA_BUFFER_SIZE        64
+static char * _buffer;
 
 static bool gpsNewFrameNMEA(char c)
 {
@@ -105,7 +107,6 @@ static bool gpsNewFrameNMEA(char c)
 
     uint8_t frameOK = 0;
     static uint8_t param = 0, offset = 0, parity = 0;
-    static char string[NMEA_BUFFER_SIZE];
     static uint8_t checksum_param, gps_frame = NO_FRAME;
 
     switch (c) {
@@ -116,13 +117,13 @@ static bool gpsNewFrameNMEA(char c)
             break;
         case ',':
         case '*':
-            string[offset] = 0;
+            _buffer[offset] = 0;
             if (param == 0) {       //frame identification
                 gps_frame = NO_FRAME;
-                if (strcmp(string, "GPGGA") == 0 || strcmp(string, "GNGGA") == 0) {
+                if (strcmp(_buffer, "GPGGA") == 0 || strcmp(_buffer, "GNGGA") == 0) {
                     gps_frame = FRAME_GGA;
                 }
-                else if (strcmp(string, "GPRMC") == 0 || strcmp(string, "GNRMC") == 0) {
+                else if (strcmp(_buffer, "GPRMC") == 0 || strcmp(_buffer, "GNRMC") == 0) {
                     gps_frame = FRAME_RMC;
                 }
             }
@@ -133,34 +134,34 @@ static bool gpsNewFrameNMEA(char c)
             //          case 1:             // Time information
             //              break;
                         case 2:
-                            gps_Msg.latitude = GPS_coord_to_degrees(string);
+                            gps_Msg.latitude = GPS_coord_to_degrees(_buffer);
                             break;
                         case 3:
-                            if (string[0] == 'S')
+                            if (_buffer[0] == 'S')
                                 gps_Msg.latitude *= -1;
                             break;
                         case 4:
-                            gps_Msg.longitude = GPS_coord_to_degrees(string);
+                            gps_Msg.longitude = GPS_coord_to_degrees(_buffer);
                             break;
                         case 5:
-                            if (string[0] == 'W')
+                            if (_buffer[0] == 'W')
                                 gps_Msg.longitude *= -1;
                             break;
                         case 6:
-                            if (string[0] > '0') {
+                            if (_buffer[0] > '0') {
                                 gps_Msg.fix = true;
                             } else {
                                 gps_Msg.fix = false;
                             }
                             break;
                         case 7:
-                            gps_Msg.numSat = grab_fields(string, 0);
+                            gps_Msg.numSat = grab_fields(_buffer, 0);
                             break;
                         case 8:
-                            gps_Msg.hdop = grab_fields(string, 1) * 10;          // hdop
+                            gps_Msg.hdop = grab_fields(_buffer, 1) * 10;          // hdop
                             break;
                         case 9:
-                            gps_Msg.altitude = grab_fields(string, 1) * 10;     // altitude in cm
+                            gps_Msg.altitude = grab_fields(_buffer, 1) * 10;     // altitude in cm
                             break;
                     }
                     break;
@@ -168,16 +169,16 @@ static bool gpsNewFrameNMEA(char c)
                                        // $GNRMC,130059.00,V,,,,,,,110917,,,N*62
                     switch (param) {
                         case 1:
-                            gps_Msg.time = grab_fields(string, 2);
+                            gps_Msg.time = grab_fields(_buffer, 2);
                             break;
                         case 7:
-                            gps_Msg.speed = ((grab_fields(string, 1) * 5144L) / 1000L);    // speed in cm/s added by Mis
+                            gps_Msg.speed = ((grab_fields(_buffer, 1) * 5144L) / 1000L);    // speed in cm/s added by Mis
                             break;
                         case 8:
-                            gps_Msg.ground_course = (grab_fields(string, 1));      // ground course deg * 10
+                            gps_Msg.ground_course = (grab_fields(_buffer, 1));      // ground course deg * 10
                             break;
                         case 9:
-                            gps_Msg.date = grab_fields(string, 0);
+                            gps_Msg.date = grab_fields(_buffer, 0);
                             break;
                     }
                     break;
@@ -193,7 +194,7 @@ static bool gpsNewFrameNMEA(char c)
         case '\r':
         case '\n':
             if (checksum_param) {   //parity checksum
-                uint8_t checksum = 16 * ((string[0] >= 'A') ? string[0] - 'A' + 10 : string[0] - '0') + ((string[1] >= 'A') ? string[1] - 'A' + 10 : string[1] - '0');
+                uint8_t checksum = 16 * ((_buffer[0] >= 'A') ? _buffer[0] - 'A' + 10 : _buffer[0] - '0') + ((_buffer[1] >= 'A') ? _buffer[1] - 'A' + 10 : _buffer[1] - '0');
                 if (checksum == parity) {
                     gpsStats.packetCount++;
                     switch (gps_frame) {
@@ -251,7 +252,7 @@ static bool gpsNewFrameNMEA(char c)
             break;
         default:
             if (offset < (NMEA_BUFFER_SIZE-1)) {    // leave 1 byte to trailing zero
-                string[offset++] = c;
+                _buffer[offset++] = c;
 
                 // only checksum if character is recorded and used (will cause checksum failure on dropped characters)
                 if (!checksum_param)
@@ -265,7 +266,7 @@ static bool gpsReceiveData(void)
 {
     bool hasNewData = false;
 
-    if (gpsState.gpsPort) {
+    if (gpsState.gpsPort && _buffer) {
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameNMEA(newChar)) {
@@ -327,6 +328,10 @@ bool gpsConfigure(void)
 
 static bool gpsInitialize(void)
 {
+    if (_buffer == NULL) {
+        _buffer = memAllocate(NMEA_BUFFER_SIZE);
+    }
+
     gpsSetState(GPS_CHANGE_BAUD);
     return false;
 }

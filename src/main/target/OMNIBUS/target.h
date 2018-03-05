@@ -21,6 +21,8 @@
 
 #define CONFIG_FASTLOOP_PREFERRED_ACC ACC_NONE
 
+#define DYNAMIC_HEAP_SIZE       512
+
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
