@@ -66,7 +66,6 @@ static vtxDevice_t vtxTramp = {
 
 static serialPort_t *trampSerialPort = NULL;
 
-static uint8_t trampReqBuffer[16];
 static uint8_t trampRespBuffer[16];
 
 typedef enum {
@@ -100,11 +99,6 @@ uint8_t  trampFreqRetries = 0;
 uint16_t trampConfPower = 0;
 uint8_t  trampPowerRetries = 0;
 
-static void trampWriteBuf(uint8_t *buf)
-{
-    serialWriteBuf(trampSerialPort, buf, 16);
-}
-
 static uint8_t trampChecksum(uint8_t *trampBuf)
 {
     uint8_t cksum = 0;
@@ -120,13 +114,14 @@ void trampCmdU16(uint8_t cmd, uint16_t param)
     if (!trampSerialPort)
         return;
 
+    uint8_t trampReqBuffer[16];
     memset(trampReqBuffer, 0, ARRAYLEN(trampReqBuffer));
     trampReqBuffer[0] = 15;
     trampReqBuffer[1] = cmd;
     trampReqBuffer[2] = param & 0xff;
     trampReqBuffer[3] = (param >> 8) & 0xff;
     trampReqBuffer[14] = trampChecksum(trampReqBuffer);
-    trampWriteBuf(trampReqBuffer);
+    serialWriteBuf(trampSerialPort, trampReqBuffer, sizeof(trampReqBuffer));
 }
 
 void trampSetFreq(uint16_t freq)
