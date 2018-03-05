@@ -32,6 +32,7 @@
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/printf.h"
+#include "common/memory.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
