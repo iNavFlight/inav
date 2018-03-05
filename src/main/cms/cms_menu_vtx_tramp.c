@@ -43,17 +43,17 @@ void trampCmsUpdateStatusString(void)
 {
     trampCmsStatusString[0] = '*';
     trampCmsStatusString[1] = ' ';
-    trampCmsStatusString[2] = vtx58BandLetter[trampBand];
-    trampCmsStatusString[3] = vtx58ChannelNames[trampChannel][0];
+    trampCmsStatusString[2] = vtx58BandLetter[trampData.band];
+    trampCmsStatusString[3] = vtx58ChannelNames[trampData.channel][0];
     trampCmsStatusString[4] = ' ';
 
-    if (trampCurFreq)
-        tfp_sprintf(&trampCmsStatusString[5], "%4d", trampCurFreq);
+    if (trampData.curFreq)
+        tfp_sprintf(&trampCmsStatusString[5], "%4d", trampData.curFreq);
     else
         tfp_sprintf(&trampCmsStatusString[5], "----");
 
-    if (trampPower) {
-        tfp_sprintf(&trampCmsStatusString[9], " %c%3d", (trampPower == trampConfiguredPower) ? ' ' : '*', trampPower);
+    if (trampData.power) {
+        tfp_sprintf(&trampCmsStatusString[9], " %c%3d", (trampData.power == trampData.configuredPower) ? ' ' : '*', trampData.power);
     }
     else
         tfp_sprintf(&trampCmsStatusString[9], " ----");
@@ -120,7 +120,7 @@ static long trampCmsConfigPower(displayPort_t *pDisp, const void *self)
     return 0;
 }
 
-static OSD_INT16_t trampCmsEntTemp = { &trampTemperature, -100, 300, 0 };
+static OSD_INT16_t trampCmsEntTemp = { &trampData.temperature, -100, 300, 0 };
 
 static const char * const trampCmsPitModeNames[] = {
     "---", "OFF", "ON "
@@ -160,15 +160,15 @@ static long trampCmsCommence(displayPort_t *pDisp, const void *self)
 
 static void trampCmsInitSettings(void)
 {
-    if(trampBand > 0) trampCmsBand = trampBand;
-    if(trampChannel > 0) trampCmsChan = trampChannel;
+    if(trampData.band > 0) trampCmsBand = trampData.band;
+    if(trampData.channel > 0) trampCmsChan = trampData.channel;
 
     trampCmsUpdateFreqRef();
-    trampCmsPitMode = trampPitMode + 1;
+    trampCmsPitMode = trampData.pitMode + 1;
 
-    if (trampConfiguredPower > 0) {
+    if (trampData.configuredPower > 0) {
         for (uint8_t i = 0; i < sizeof(trampPowerTable); i++) {
-            if (trampConfiguredPower <= trampPowerTable[i]) {
+            if (trampData.configuredPower <= trampPowerTable[i]) {
                 trampCmsPower = i + 1;
                 break;
             }
