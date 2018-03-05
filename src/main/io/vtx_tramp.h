@@ -40,15 +40,16 @@ typedef struct trampData_s {
     uint8_t band;
     uint8_t channel;
     uint16_t power;       // Actual transmitting power
-    uint8_t pitMode;
     uint16_t curFreq;
     uint16_t configuredPower; // Configured transmitting power
     int16_t temperature;
-} __attribute__((__packed__)) trampData_t;
+    uint8_t pitMode;
+} trampData_t;
 
 extern trampData_t trampData;
 
 bool vtxTrampInit(void);
+bool trampIsAvailable(void);
 bool trampCommitChanges(void);
 void trampSetPitMode(uint8_t onoff);
 void trampSetBandAndChannel(uint8_t band, uint8_t channel);

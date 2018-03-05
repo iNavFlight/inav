@@ -333,7 +333,6 @@ static void saProcessResponse(uint8_t *buf, int len)
 #ifdef USE_CMS
     // Export current device status for CMS
     saCmsUpdate();
-    saUpdateStatusString();
 #endif
 }
 

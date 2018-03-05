@@ -27,8 +27,6 @@
 
 #include "build/debug.h"
 
-#include "cms/cms_menu_vtx_tramp.h"
-
 #include "common/utils.h"
 
 #include "drivers/vtx_common.h"
@@ -148,6 +146,11 @@ void trampSetRFPower(uint16_t level)
 void trampSendRFPower(uint16_t level)
 {
     trampCmdU16('P', level);
+}
+
+bool trampIsAvailable(void)
+{
+    return trampStatus != TRAMP_STATUS_BAD_DEVICE && trampStatus != TRAMP_STATUS_OFFLINE;
 }
 
 // return false if error
@@ -413,10 +416,6 @@ void vtxTrampProcess(uint32_t currentTimeUs)
     debug[1] = debugFreqReqCounter;
     debug[2] = debugPowReqCounter;
     debug[3] = 0;
-#endif
-
-#ifdef USE_CMS
-    trampCmsUpdateStatusString();
 #endif
 }
 

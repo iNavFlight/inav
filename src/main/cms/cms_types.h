@@ -31,6 +31,7 @@
 typedef enum
 {
     OME_Label,
+    OME_LabelFunc, // bool func(char *buf, unsigned bufsize) - returns wether buf should be printed
     OME_Back,
     OME_OSD_Exit,
     OME_Submenu,

@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -35,28 +36,41 @@
 #include "io/vtx_string.h"
 #include "io/vtx_tramp.h"
 
-char trampCmsStatusString[31] = "- -- ---- ----";
+static bool trampCmsDrawStatusString(char *buf, unsigned bufsize)
+{
+    const char *defaultString = "- -- ---- ----";
 //                               m bc ffff tppp
 //                               01234567890123
 
-void trampCmsUpdateStatusString(void)
-{
-    trampCmsStatusString[0] = '*';
-    trampCmsStatusString[1] = ' ';
-    trampCmsStatusString[2] = vtx58BandLetter[trampData.band];
-    trampCmsStatusString[3] = vtx58ChannelNames[trampData.channel][0];
-    trampCmsStatusString[4] = ' ';
+    if (bufsize < strlen(defaultString) + 1) {
+        return false;
+    }
+
+    strcpy(buf, defaultString);
+
+    if (!trampIsAvailable()) {
+        return true;
+    }
+
+    buf[0] = '*';
+    buf[1] = ' ';
+    buf[2] = vtx58BandLetter[trampData.band];
+    buf[3] = vtx58ChannelNames[trampData.channel][0];
+    buf[4] = ' ';
 
     if (trampData.curFreq)
-        tfp_sprintf(&trampCmsStatusString[5], "%4d", trampData.curFreq);
+        tfp_sprintf(&buf[5], "%4d", trampData.curFreq);
     else
-        tfp_sprintf(&trampCmsStatusString[5], "----");
+        tfp_sprintf(&buf[5], "----");
 
     if (trampData.power) {
-        tfp_sprintf(&trampCmsStatusString[9], " %c%3d", (trampData.power == trampData.configuredPower) ? ' ' : '*', trampData.power);
+        tfp_sprintf(&buf[9], " %c%3d", (trampData.power == trampData.configuredPower) ? ' ' : '*', trampData.power);
     }
-    else
-        tfp_sprintf(&trampCmsStatusString[9], " ----");
+    else {
+        tfp_sprintf(&buf[9], " ----");
+    }
+
+    return true;
 }
 
 uint8_t trampCmsPitMode = 0;
@@ -204,14 +218,14 @@ static OSD_Entry trampMenuEntries[] =
 {
     { "- TRAMP -", OME_Label, NULL, NULL, 0 },
 
-    { "",       OME_Label,   NULL,                   trampCmsStatusString,  DYNAMIC },
-    { "PIT",    OME_TAB,     trampCmsSetPitMode,     &trampCmsEntPitMode,   0 },
-    { "BAND",   OME_TAB,     trampCmsConfigBand,     &trampCmsEntBand,      0 },
-    { "CHAN",   OME_TAB,     trampCmsConfigChan,     &trampCmsEntChan,      0 },
-    { "(FREQ)", OME_UINT16,  NULL,                   &trampCmsEntFreqRef,   DYNAMIC },
-    { "POWER",  OME_TAB,     trampCmsConfigPower,    &trampCmsEntPower,     0 },
-    { "T(C)",   OME_INT16,   NULL,                   &trampCmsEntTemp,      DYNAMIC },
-    { "SET",    OME_Submenu, cmsMenuChange,          &trampCmsMenuCommence, 0 },
+    { "",       OME_LabelFunc,  NULL,                   trampCmsDrawStatusString,  DYNAMIC },
+    { "PIT",    OME_TAB,        trampCmsSetPitMode,     &trampCmsEntPitMode,   0 },
+    { "BAND",   OME_TAB,        trampCmsConfigBand,     &trampCmsEntBand,      0 },
+    { "CHAN",   OME_TAB,        trampCmsConfigChan,     &trampCmsEntChan,      0 },
+    { "(FREQ)", OME_UINT16,     NULL,                   &trampCmsEntFreqRef,   DYNAMIC },
+    { "POWER",  OME_TAB,        trampCmsConfigPower,    &trampCmsEntPower,     0 },
+    { "T(C)",   OME_INT16,      NULL,                   &trampCmsEntTemp,      DYNAMIC },
+    { "SET",    OME_Submenu,    cmsMenuChange,          &trampCmsMenuCommence, 0 },
 
     { "BACK",   OME_Back, NULL, NULL, 0 },
     { NULL,     OME_END, NULL, NULL, 0 }
