@@ -185,7 +185,7 @@ void initIbusTelemetry(void) {
     ibusSerialPortConfig = findSerialPortConfig(FUNCTION_TELEMETRY_IBUS);
     uint8_t type = telemetryConfig()->ibusTelemetryType;
     uint8_t speed = type & 0x80;
-    type = type & 0x7F;
+    type = type & 0x3F;
     if (type == 3) {
         changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE_S85, IBUS_MEAS_VALUE_STATUS);
         changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE_ACC_Z, IBUS_MEAS_VALUE_ACC_Z);

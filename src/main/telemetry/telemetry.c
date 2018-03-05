@@ -70,8 +70,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .smartportUartUnidirectional = 0,
     .smartportFuelUnit = SMARTPORT_FUEL_UNIT_MAH,
     .ibusTelemetryType = 0,
-    .ltmUpdateRate = LTM_RATE_NORMAL,
-    .ibus_report_cell_voltage = 0
+    .ltmUpdateRate = LTM_RATE_NORMAL
 );
 
 void telemetryInit(void)

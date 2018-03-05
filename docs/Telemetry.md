@@ -320,6 +320,8 @@ This required a receiver with new firmware that support SNR, RSSI and long frame
 
 7.This same as 6, but sensor 3 is GPS_STATUS, 10 is ARMED, 16 is MODE.
 
+64.Same as 0, but battery voltage reported as average cell voltage (Vbat / number of cells). Intended for unmodified i6 transmitter.
+
 131.This same as 3, but sensor 16 (type SPEED) is in m/s.
 
 132.This same as 4, but sensor 16 (type SPEED) is in m/s.
