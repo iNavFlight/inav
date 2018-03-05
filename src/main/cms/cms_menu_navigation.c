@@ -40,7 +40,8 @@
 
 static OSD_Entry cmsx_menuNavSettingsEntries[] =
 {
-    { "-- BASIC SETTINGS --",                     OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- BASIC SETTINGS --"),
+
     OSD_SETTING_ENTRY("CONTROL MODE", SETTING_NAV_USER_CONTROL_MODE),
     OSD_SETTING_ENTRY("MAX NAV SPEED", SETTING_NAV_AUTO_SPEED),
     OSD_SETTING_ENTRY("MAX CRUISE SPEED", SETTING_NAV_MANUAL_SPEED),
@@ -67,7 +68,8 @@ static CMS_Menu cmsx_menuNavSettings = {
 
  static OSD_Entry cmsx_menuRTHEntries[] =
  {
-    { "-- RTH --",                     OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- RTH --"),
+
     OSD_SETTING_ENTRY("RTH ALT MODE", SETTING_NAV_RTH_ALT_MODE),
     OSD_SETTING_ENTRY("RTH ALT", SETTING_NAV_RTH_ALTITUDE),
     OSD_SETTING_ENTRY("CLIMB BEFORE RTH", SETTING_NAV_RTH_CLIMB_FIRST),
@@ -97,7 +99,8 @@ static CMS_Menu cmsx_menuRTH = {
 
 static OSD_Entry cmsx_menuFixedWingEntries[] =
 {
-    { "-- FIXED WING --",                     OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- FIXED WING --"),
+
     OSD_SETTING_ENTRY("CRUISE THROTTLE", SETTING_NAV_FW_CRUISE_THR),
     OSD_SETTING_ENTRY("MIN THROTTLE", SETTING_NAV_FW_MIN_THR),
     OSD_SETTING_ENTRY("MAX THROTTLE", SETTING_NAV_FW_MAX_THR),
@@ -124,10 +127,11 @@ static CMS_Menu cmsx_menuFixedWing = {
 
 static OSD_Entry cmsx_menuNavigationEntries[] =
 {
-    { "-- NAVIGATION --",   OME_Label, NULL, NULL, 0},
-    { "BASIC SETTINGS",     OME_Submenu, cmsMenuChange, &cmsx_menuNavSettings, 0},
-    { "RTH",                OME_Submenu, cmsMenuChange, &cmsx_menuRTH, 0},
-    { "FIXED WING",         OME_Submenu, cmsMenuChange, &cmsx_menuFixedWing, 0},
+    OSD_LABEL_ENTRY("-- NAVIGATION --"),
+
+    OSD_SUBMENU_ENTRY("BASIC SETTINGS", &cmsx_menuNavSettings),
+    OSD_SUBMENU_ENTRY("RTH", &cmsx_menuRTH),
+    OSD_SUBMENU_ENTRY("FIXED WING", &cmsx_menuFixedWing),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,

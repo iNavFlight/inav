@@ -74,11 +74,12 @@ static long cmsx_InfoInit(void)
 }
 
 static OSD_Entry menuInfoEntries[] = {
-    { "--- INFO ---", OME_Label, NULL, NULL, 0 },
-    { "FWID", OME_String, NULL, INAV_IDENTIFIER, 0 },
-    { "FWVER", OME_String, NULL, FC_VERSION_STRING, 0 },
-    { "GITREV", OME_String, NULL, infoGitRev, 0 },
-    { "TARGET", OME_String, NULL, infoTargetName, 0 },
+    OSD_LABEL_ENTRY("--- INFO ---"),
+    OSD_STRING_ENTRY("FWID", INAV_IDENTIFIER),
+    OSD_STRING_ENTRY("FWVER", FC_VERSION_STRING),
+    OSD_STRING_ENTRY("GITREV", infoGitRev),
+    OSD_STRING_ENTRY("TARGET", infoTargetName),
+
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
@@ -98,25 +99,26 @@ static CMS_Menu menuInfo = {
 
 static OSD_Entry menuFeaturesEntries[] =
 {
-    {"--- FEATURES ---", OME_Label, NULL, NULL, 0},
-    {"BLACKBOX", OME_Submenu, cmsMenuChange, &cmsx_menuBlackbox, 0},
+    OSD_LABEL_ENTRY("--- FEATURES ---"),
+    OSD_SUBMENU_ENTRY("BLACKBOX", &cmsx_menuBlackbox),
 #if defined(USE_NAV)
-    {"NAVIGATION", OME_Submenu, cmsMenuChange, &cmsx_menuNavigation, 0},
+    OSD_SUBMENU_ENTRY("NAVIGATION", &cmsx_menuNavigation),
 #endif
 #if defined(VTX) || defined(USE_RTC6705)
-    {"VTX", OME_Submenu, cmsMenuChange, &cmsx_menuVtx, 0},
+    OSD_SUBMENU_ENTRY("VTX", &cmsx_menuVtx),
 #endif // VTX || USE_RTC6705
 #if defined(VTX_CONTROL)
 #if defined(VTX_SMARTAUDIO)
-    {"VTX SA", OME_Submenu, cmsMenuChange, &cmsx_menuVtxSmartAudio, 0},
+    OSD_SUBMENU_ENTRY("VTX SA", &cmsx_menuVtxSmartAudio),
 #endif
 #if defined(VTX_TRAMP)
-    {"VTX TR", OME_Submenu, cmsMenuChange, &cmsx_menuVtxTramp, 0},
+    OSD_SUBMENU_ENTRY("VTX TR", &cmsx_menuVtxTramp),
 #endif
 #endif // VTX_CONTROL
 #ifdef USE_LED_STRIP
-    {"LED STRIP", OME_Submenu, cmsMenuChange, &cmsx_menuLedstrip, 0},
+    OSD_SUBMENU_ENTRY("LED STRIP", &cmsx_menuLedstrip),
 #endif // LED_STRIP
+
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
@@ -136,23 +138,24 @@ static CMS_Menu menuFeatures = {
 
 static OSD_Entry menuMainEntries[] =
 {
-    {"-- MAIN --",  OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- MAIN --"),
 
-    {"PID TUNING",  OME_Submenu,  cmsMenuChange, &cmsx_menuImu, 0},
-    {"FEATURES",    OME_Submenu,  cmsMenuChange, &menuFeatures, 0},
+    OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
+    OSD_SUBMENU_ENTRY("FEATURES", &menuFeatures),
 #ifdef USE_OSD
-    {"SCR LAYOUT",  OME_Submenu,  cmsMenuChange, &cmsx_menuOsdLayout, 0},
-    {"ALARMS",      OME_Submenu,  cmsMenuChange, &cmsx_menuAlarms, 0},
+    OSD_SUBMENU_ENTRY("SCR LAYOUT", &cmsx_menuOsdLayout),
+    OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 #endif
-    {"FC&FW INFO",  OME_Submenu,  cmsMenuChange, &menuInfo, 0},
-    {"MISC",        OME_Submenu,  cmsMenuChange, &cmsx_menuMisc, 0},
+    OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
+    OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
+
     {"SAVE&REBOOT", OME_OSD_Exit, cmsMenuExit,   (void*)CMS_EXIT_SAVEREBOOT, 0},
     {"EXIT",        OME_OSD_Exit, cmsMenuExit,   (void*)CMS_EXIT, 0},
 #ifdef CMS_MENU_DEBUG
-    {"ERR SAMPLE",  OME_Submenu,  cmsMenuChange, &menuInfoEntries[0], 0},
+    OSD_SUBMENU_ENTRY("ERR SAMPLE", &menuInfoEntries[0]),
 #endif
 
-    {NULL,OME_END, NULL, NULL, 0}
+    OSD_END_ENTRY,
 };
 
 CMS_Menu menuMain = {

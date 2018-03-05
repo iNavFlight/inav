@@ -58,8 +58,8 @@ static bool cmsx_FeatureLedStrip_Enabled(bool *enabled)
 
 static OSD_Entry cmsx_menuLedstripEntries[] =
 {
-    { "-- LED STRIP --", OME_Label, NULL, NULL, 0 },
-    { "ENABLED",         OME_BoolFunc,  NULL, cmsx_FeatureLedStrip_Enabled, 0 },
+    OSD_LABEL_ENTRY("-- LED STRIP --"),
+    OSD_BOOL_FUNC_ENTRY("ENABLED", cmsx_FeatureLedStrip_Enabled),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,

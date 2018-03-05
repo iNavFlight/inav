@@ -307,15 +307,16 @@ static const char * const saCmsDeviceStatusNames[] = {
 static OSD_TAB_t saCmsEntOnline = { &saCmsDeviceStatus, 2, saCmsDeviceStatusNames };
 
 static OSD_Entry saCmsMenuStatsEntries[] = {
-    { "- SA STATS -", OME_Label, NULL, NULL, 0 },
-    { "STATUS",   OME_TAB,    NULL, &saCmsEntOnline,                              DYNAMIC },
-    { "BAUDRATE", OME_UINT16, NULL, &(OSD_UINT16_t){ &sa_smartbaud, 0, 0, 0 },    DYNAMIC },
-    { "SENT",     OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.pktsent, 0, 0, 0 },  DYNAMIC },
-    { "RCVD",     OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.pktrcvd, 0, 0, 0 },  DYNAMIC },
-    { "BADPRE",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.badpre, 0, 0, 0 },   DYNAMIC },
-    { "BADLEN",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.badlen, 0, 0, 0 },   DYNAMIC },
-    { "CRCERR",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.crc, 0, 0, 0 },      DYNAMIC },
-    { "OOOERR",   OME_UINT16, NULL, &(OSD_UINT16_t){ &saStat.ooopresp, 0, 0, 0 }, DYNAMIC },
+    OSD_LABEL_ENTRY("- SA STATS -"),
+
+    OSD_TAB_DYN_ENTRY("STATUS", &saCmsEntOnline),
+    OSD_UINT16_DYN_ENTRY("BAUDRATE", (&(OSD_UINT16_t){ &sa_smartbaud, 0, 0, 0 })),
+    OSD_UINT16_DYN_ENTRY("SENT", (&(OSD_UINT16_t){ &saStat.pktsent, 0, 0, 0 })),
+    OSD_UINT16_DYN_ENTRY("RCVD", (&(OSD_UINT16_t){ &saStat.pktrcvd, 0, 0, 0 })),
+    OSD_UINT16_DYN_ENTRY("BADPRE", (&(OSD_UINT16_t){ &saStat.badpre, 0, 0, 0 })),
+    OSD_UINT16_DYN_ENTRY("BADLEN", (&(OSD_UINT16_t){ &saStat.badlen, 0, 0, 0 })),
+    OSD_UINT16_DYN_ENTRY("CRCERR", (&(OSD_UINT16_t){ &saStat.crc, 0, 0, 0 })),
+    OSD_UINT16_DYN_ENTRY("OOOERR", (&(OSD_UINT16_t){ &saStat.ooopresp, 0, 0, 0 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -475,12 +476,13 @@ static long saCmsConfigUserFreq(displayPort_t *pDisp, const void *self)
     return MENU_CHAIN_BACK;
 }
 
-static OSD_Entry saCmsMenuPORFreqEntries[] = {
-    { "- POR FREQ -", OME_Label,   NULL,             NULL,                                                 0 },
+static OSD_Entry saCmsMenuPORFreqEntries[] =
+{
+    OSD_LABEL_ENTRY("- POR FREQ -"),
 
-    { "CUR FREQ",     OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsORFreq, 5000, 5900, 0 },       DYNAMIC },
-    { "NEW FREQ",     OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 },    0 },
-    { "SET",          OME_Funcall, saCmsSetPORFreq,  NULL,                                                 0 },
+    OSD_UINT16_DYN_ENTRY("CUR FREQ", (&(OSD_UINT16_t){ &saCmsORFreq, 5000, 5900, 0 })),
+    OSD_UINT16_ENTRY("NEW FREQ", (&(OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 })),
+    OSD_FUNC_CALL_ENTRY("SET", saCmsSetPORFreq),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -498,12 +500,13 @@ static CMS_Menu saCmsMenuPORFreq =
     .entries = saCmsMenuPORFreqEntries,
 };
 
-static OSD_Entry saCmsMenuUserFreqEntries[] = {
-    { "- USER FREQ -", OME_Label,   NULL,             NULL,                                                0 },
+static OSD_Entry saCmsMenuUserFreqEntries[] =
+{
+    OSD_LABEL_ENTRY("- USER FREQ -"),
 
-    { "CUR FREQ",      OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsUserFreq, 5000, 5900, 0 },    DYNAMIC },
-    { "NEW FREQ",      OME_UINT16,  NULL,             &(OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 }, 0 },
-    { "SET",           OME_Funcall, saCmsConfigUserFreq, NULL,                                                0 },
+    OSD_UINT16_DYN_ENTRY("CUR FREQ", (&(OSD_UINT16_t){ &saCmsUserFreq, 5000, 5900, 0 })),
+    OSD_UINT16_ENTRY("NEW FREQ", (&(OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 })),
+    OSD_FUNC_CALL_ENTRY("SET", saCmsConfigUserFreq),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -523,14 +526,15 @@ static CMS_Menu saCmsMenuUserFreq =
 
 static OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeNames };
 
-static OSD_Entry saCmsMenuConfigEntries[] = {
-    { "- SA CONFIG -", OME_Label, NULL, NULL, 0 },
+static OSD_Entry saCmsMenuConfigEntries[] =
+{
+    OSD_LABEL_ENTRY("- SA CONFIG -"),
 
     { "OP MODEL",  OME_TAB,     saCmsConfigOpmodelByGvar,              &(OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
     { "FSEL MODE", OME_TAB,     saCmsConfigFreqModeByGvar,             &saCmsEntFselMode,                                   DYNAMIC },
-    { "PIT FMODE", OME_TAB,     saCmsConfigPitFModeByGvar,             &saCmsEntPitFMode,                                   0 },
+    OSD_TAB_CALLBACK_ENTRY("PIT FMODE", saCmsConfigPitFModeByGvar, &saCmsEntPitFMode),
     { "POR FREQ",  OME_Submenu, (CMSEntryFuncPtr)saCmsORFreqGetString, &saCmsMenuPORFreq,                                   OPTSTRING },
-    { "STATX",     OME_Submenu, cmsMenuChange,                         &saCmsMenuStats,                                     0 },
+    OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -547,10 +551,10 @@ static CMS_Menu saCmsMenuConfig = {
     .entries = saCmsMenuConfigEntries
 };
 
-static OSD_Entry saCmsMenuCommenceEntries[] = {
-    { "CONFIRM", OME_Label,   NULL,          NULL, 0 },
-
-    { "YES",     OME_Funcall, saCmsCommence, NULL, 0 },
+static OSD_Entry saCmsMenuCommenceEntries[] =
+{
+    OSD_LABEL_ENTRY("CONFIRM"),
+    OSD_FUNC_CALL_ENTRY("YES", saCmsCommence),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -567,14 +571,15 @@ static CMS_Menu saCmsMenuCommence = {
     .entries = saCmsMenuCommenceEntries,
 };
 
-static OSD_Entry saCmsMenuFreqModeEntries[] = {
-    { "- SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
+static OSD_Entry saCmsMenuFreqModeEntries[] =
+{
+    OSD_LABEL_ENTRY("- SMARTAUDIO -"),
 
-    { "",       OME_LabelFunc,  NULL,                                     saCmsDrawStatusString,  DYNAMIC },
-    { "FREQ",   OME_Submenu,    (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
-    { "POWER",  OME_TAB,        saCmsConfigPowerByGvar,                   &saCmsEntPower,     0 },
-    { "SET",    OME_Submenu,    cmsMenuChange,                            &saCmsMenuCommence, 0 },
-    { "CONFIG", OME_Submenu,    cmsMenuChange,                            &saCmsMenuConfig,   0 },
+    OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
+    { "FREQ",   OME_Submenu, (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
+    OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
+    OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
+    OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -582,15 +587,15 @@ static OSD_Entry saCmsMenuFreqModeEntries[] = {
 
 static OSD_Entry saCmsMenuChanModeEntries[] =
 {
-    { "- SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
+    OSD_LABEL_ENTRY("- SMARTAUDIO -"),
 
-    { "",       OME_LabelFunc,   NULL,                  saCmsDrawStatusString,  DYNAMIC },
-    { "BAND",   OME_TAB,        saCmsConfigBandByGvar,  &saCmsEntBand,      0 },
-    { "CHAN",   OME_TAB,        saCmsConfigChanByGvar,  &saCmsEntChan,      0 },
-    { "(FREQ)", OME_UINT16,     NULL,                   &saCmsEntFreqRef,   DYNAMIC },
-    { "POWER",  OME_TAB,        saCmsConfigPowerByGvar, &saCmsEntPower,     0 },
-    { "SET",    OME_Submenu,    cmsMenuChange,          &saCmsMenuCommence, 0 },
-    { "CONFIG", OME_Submenu,    cmsMenuChange,          &saCmsMenuConfig,   0 },
+    OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
+    OSD_TAB_CALLBACK_ENTRY("BAND", saCmsConfigBandByGvar, &saCmsEntBand),
+    OSD_TAB_CALLBACK_ENTRY("CHAN", saCmsConfigChanByGvar, &saCmsEntChan),
+    OSD_UINT16_DYN_ENTRY("(FREQ)", &saCmsEntFreqRef),
+    OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
+    OSD_SUBMENU_ENTRY("SET",  &saCmsMenuCommence),
+    OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -598,10 +603,10 @@ static OSD_Entry saCmsMenuChanModeEntries[] =
 
 static OSD_Entry saCmsMenuOfflineEntries[] =
 {
-    { "- VTX SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
+    OSD_LABEL_ENTRY("- VTX SMARTAUDIO -"),
 
-    { "",      OME_LabelFunc,   NULL,          saCmsDrawStatusString, DYNAMIC },
-    { "STATX", OME_Submenu,     cmsMenuChange, &saCmsMenuStats,   0 },
+    OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
+    OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,

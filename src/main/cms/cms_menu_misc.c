@@ -54,17 +54,17 @@ static long cmsx_menuRcConfirmBack(const OSD_Entry *self)
 //
 static OSD_Entry cmsx_menuRcEntries[] =
 {
-    { "-- RC PREV --", OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- RC PREV --"),
 
-    { "ROLL",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[ROLL],     1, 2500, 0 }, DYNAMIC },
-    { "PITCH", OME_INT16, NULL, &(OSD_INT16_t){ &rcData[PITCH],    1, 2500, 0 }, DYNAMIC },
-    { "THR",   OME_INT16, NULL, &(OSD_INT16_t){ &rcData[THROTTLE], 1, 2500, 0 }, DYNAMIC },
-    { "YAW",   OME_INT16, NULL, &(OSD_INT16_t){ &rcData[YAW],      1, 2500, 0 }, DYNAMIC },
+    OSD_INT16_DYN_ENTRY("ROLL", (&(OSD_INT16_t){ &rcData[ROLL],     1, 2500, 0 })),
+    OSD_INT16_DYN_ENTRY("PITCH", (&(OSD_INT16_t){ &rcData[PITCH],    1, 2500, 0 })),
+    OSD_INT16_DYN_ENTRY("THR", (&(OSD_INT16_t){ &rcData[THROTTLE], 1, 2500, 0 })),
+    OSD_INT16_DYN_ENTRY("YAW", (&(OSD_INT16_t){ &rcData[YAW],      1, 2500, 0 })),
 
-    { "AUX1",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX1],     1, 2500, 0 }, DYNAMIC },
-    { "AUX2",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX2],     1, 2500, 0 }, DYNAMIC },
-    { "AUX3",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX3],     1, 2500, 0 }, DYNAMIC },
-    { "AUX4",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX4],     1, 2500, 0 }, DYNAMIC },
+    OSD_INT16_DYN_ENTRY("AUX1", (&(OSD_INT16_t){ &rcData[AUX1],     1, 2500, 0 })),
+    OSD_INT16_DYN_ENTRY("AUX2", (&(OSD_INT16_t){ &rcData[AUX2],     1, 2500, 0 })),
+    OSD_INT16_DYN_ENTRY("AUX3", (&(OSD_INT16_t){ &rcData[AUX3],     1, 2500, 0 })),
+    OSD_INT16_DYN_ENTRY("AUX4", (&(OSD_INT16_t){ &rcData[AUX4],     1, 2500, 0 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -83,7 +83,7 @@ CMS_Menu cmsx_menuRcPreview = {
 
 static OSD_Entry menuMiscEntries[]=
 {
-    { "-- MISC --", OME_Label, NULL, NULL, 0 },
+    OSD_LABEL_ENTRY("-- MISC --"),
 
     OSD_SETTING_ENTRY("MIN THR", SETTING_MIN_THROTTLE),
 #ifdef USE_ADC
@@ -100,7 +100,7 @@ static OSD_Entry menuMiscEntries[]=
 #endif /* USE_OSD */
 #endif /* USE_ADC */
 
-    { "RC PREV",    OME_Submenu, cmsMenuChange, &cmsx_menuRcPreview, 0},
+    OSD_SUBMENU_ENTRY("RC PREV", &cmsx_menuRcPreview),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,

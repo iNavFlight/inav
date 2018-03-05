@@ -77,11 +77,12 @@ static bool cmsx_Blackbox_Enabled(bool *enabled)
 
 static OSD_Entry cmsx_menuBlackboxEntries[] =
 {
-    { "-- BLACKBOX --", OME_Label,      NULL, NULL, 0},
-    { "ENABLED",        OME_BoolFunc,   NULL, cmsx_Blackbox_Enabled, 0 },
+    OSD_LABEL_ENTRY("-- BLACKBOX --"),
+    OSD_BOOL_FUNC_ENTRY("ENABLED", cmsx_Blackbox_Enabled),
     OSD_SETTING_ENTRY("RATE DENOM", SETTING_BLACKBOX_RATE_DENOM),
+
 #ifdef USE_FLASHFS
-    { "ERASE FLASH",OME_Funcall, cmsx_EraseFlash, NULL, 0 },
+    OSD_FUNC_CALL_ENTRY("ERASE FLASH", cmsx_EraseFlash),
 #endif // USE_FLASHFS
 
     OSD_BACK_ENTRY,

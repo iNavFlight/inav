@@ -116,16 +116,16 @@ static OSD_UINT16_t entryVtxMhz =  {&masterConfig.vtx_mhz, 5600, 5950, 1};
 
 static OSD_Entry cmsx_menuVtxEntries[] =
 {
-    {"--- VTX ---", OME_Label, NULL, NULL, 0},
-    {"ENABLED", OME_Bool, NULL, &cmsx_featureVtx, 0},
+    OSD_LABEL_ENTRY("--- VTX ---"),
+    OSD_BOOL_ENTRY("ENABLED", &cmsx_featureVtx),
 #ifdef VTX
-    {"VTX MODE", OME_UINT8, NULL, &entryVtxMode, 0},
-    {"VTX MHZ", OME_UINT16, NULL, &entryVtxMhz, 0},
+    OSD_UINT8_ENTRY("VTX MODE", &entryVtxMode),
+    OSD_UINT16_ENTRY("VTX MHZ", &entryVtxMhz),
 #endif // VTX
-    {"BAND", OME_TAB, NULL, &entryVtxBand, 0},
-    {"CHANNEL", OME_UINT8, NULL, &entryVtxChannel, 0},
+    OSD_TAB_ENTRY("BAND", &entryVtxBand),
+    OSD_UINT8_ENTRY("CHANNEL", &entryVtxChannel),
 #ifdef USE_RTC6705
-    {"LOW POWER", OME_Bool, NULL, &masterConfig.vtx_power, 0},
+    OSD_BOOL_ENTRY("LOW POWER", &masterConfig.vtx_power),
 #endif // USE_RTC6705
 
     OSD_BACK_ENTRY,

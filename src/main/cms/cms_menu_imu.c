@@ -131,19 +131,19 @@ static long cmsx_PidWriteback(const OSD_Entry *self)
 
 static OSD_Entry cmsx_menuPidEntries[] =
 {
-    { "-- PID --", OME_Label, NULL, profileIndexString, 0},
+    OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
 
-    { "ROLL  P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidRoll[0],  0, 200, 1 }, 0 },
-    { "ROLL  I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidRoll[1],  0, 200, 1 }, 0 },
-    { "ROLL  D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidRoll[2],  0, 200, 1 }, 0 },
+    OSD_UINT8_ENTRY("ROLL  P", (&(OSD_UINT8_t){ &cmsx_pidRoll[0],  0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL I", (&(OSD_UINT8_t){ &cmsx_pidRoll[1],  0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL D", (&(OSD_UINT8_t){ &cmsx_pidRoll[2],  0, 200, 1 })),
 
-    { "PITCH P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPitch[0], 0, 200, 1 }, 0 },
-    { "PITCH I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPitch[1], 0, 200, 1 }, 0 },
-    { "PITCH D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPitch[2], 0, 200, 1 }, 0 },
+    OSD_UINT8_ENTRY("PITCH P", (&(OSD_UINT8_t){ &cmsx_pidPitch[0], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("PITCH I", (&(OSD_UINT8_t){ &cmsx_pidPitch[1], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("PITCH D", (&(OSD_UINT8_t){ &cmsx_pidPitch[2], 0, 200, 1 })),
 
-    { "YAW   P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidYaw[0],   0, 200, 1 }, 0 },
-    { "YAW   I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 }, 0 },
-    { "YAW   D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 }, 0 },
+    OSD_UINT8_ENTRY("YAW   P", (&(OSD_UINT8_t){ &cmsx_pidYaw[0],   0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   I", (&(OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   D", (&(OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -186,16 +186,18 @@ static long cmsx_menuPidAltMag_onExit(const OSD_Entry *self)
     return 0;
 }
 
-static OSD_Entry cmsx_menuPidAltMagEntries[] = {
-    { "-- ALT&MAG --", OME_Label, NULL, profileIndexString, 0},
+static OSD_Entry cmsx_menuPidAltMagEntries[] =
+{
+    OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
 
-    { "ALT P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPosZ[0], 0, 255, 1 }, 0 },
-    { "ALT I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPosZ[1], 0, 255, 1 }, 0 },
-    { "ALT D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPosZ[2], 0, 255, 1 }, 0 },
-    { "VEL P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelZ[0], 0, 255, 1 }, 0 },
-    { "VEL I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelZ[1], 0, 255, 1 }, 0 },
-    { "VEL D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelZ[2], 0, 255, 1 }, 0 },
-    { "MAG P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidHead[0], 0, 255, 1 }, 0 },
+    OSD_UINT8_ENTRY("ALT P", (&(OSD_UINT8_t){ &cmsx_pidPosZ[0], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("ALT I", (&(OSD_UINT8_t){ &cmsx_pidPosZ[1], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("ALT D", (&(OSD_UINT8_t){ &cmsx_pidPosZ[2], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("VEL P", (&(OSD_UINT8_t){ &cmsx_pidVelZ[0], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("VEL I", (&(OSD_UINT8_t){ &cmsx_pidVelZ[1], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("VEL D", (&(OSD_UINT8_t){ &cmsx_pidVelZ[2], 0, 255, 1 })),
+
+    OSD_UINT8_ENTRY("MAG P", (&(OSD_UINT8_t){ &cmsx_pidHead[0], 0, 255, 1 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -235,14 +237,15 @@ static long cmsx_menuPidGpsnav_onExit(const OSD_Entry *self)
     return 0;
 }
 
-static OSD_Entry cmsx_menuPidGpsnavEntries[] = {
-    { "-- GPSNAV --", OME_Label, NULL, profileIndexString, 0},
+static OSD_Entry cmsx_menuPidGpsnavEntries[] =
+{
+    OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
 
-    { "POS  P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPosXY[0],  0, 255, 1 }, 0 },
-    { "POS  I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidPosXY[1],  0, 255, 1 }, 0 },
-    { "POSR P", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelXY[0], 0, 255, 1 }, 0 },
-    { "POSR I", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelXY[1], 0, 255, 1 }, 0 },
-    { "POSR D", OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_pidVelXY[2], 0, 255, 1 }, 0 },
+    OSD_UINT8_ENTRY("POS  P", (&(OSD_UINT8_t){ &cmsx_pidPosXY[0],  0, 255, 1 })),
+    OSD_UINT8_ENTRY("POS  I", (&(OSD_UINT8_t){ &cmsx_pidPosXY[1],  0, 255, 1 })),
+    OSD_UINT8_ENTRY("POSR P", (&(OSD_UINT8_t){ &cmsx_pidVelXY[0], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("POSR I", (&(OSD_UINT8_t){ &cmsx_pidVelXY[1], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("POSR D", (&(OSD_UINT8_t){ &cmsx_pidVelXY[2], 0, 255, 1 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -264,7 +267,7 @@ static CMS_Menu cmsx_menuPidGpsnav = {
 //
 static OSD_Entry cmsx_menuManualRateProfileEntries[] =
 {
-    { "-- MANUAL RATE --", OME_Label, NULL, profileIndexString, 0 },
+    OSD_LABEL_DATA_ENTRY("-- MANUAL RATE --", profileIndexString),
 
     OSD_SETTING_ENTRY("MANU ROLL RATE", SETTING_MANUAL_ROLL_RATE),
     OSD_SETTING_ENTRY("MANU PITCH RATE", SETTING_MANUAL_PITCH_RATE),
@@ -293,7 +296,7 @@ static CMS_Menu cmsx_menuManualRateProfile = {
 //
 static OSD_Entry cmsx_menuRateProfileEntries[] =
 {
-    { "-- RATE --", OME_Label, NULL, profileIndexString, 0 },
+    OSD_LABEL_DATA_ENTRY("-- RATE --", profileIndexString),
 
 #if 0
     { "RC RATE",     OME_FLOAT,  NULL, &(OSD_FLOAT_t){ &rateProfile.rcRate8,    0, 255, 1, 10 }, 0 },
@@ -393,7 +396,7 @@ static CMS_Menu cmsx_menuProfileOther = {
 //
 static OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
-    { "-- FILTER PP  --", OME_Label, NULL, profileIndexString, 0 },
+    OSD_LABEL_DATA_ENTRY("-- FILTER PP  --", profileIndexString),
 
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
     OSD_SETTING_ENTRY("GYRO SLPF", SETTING_GYRO_LPF_HZ),
@@ -417,7 +420,7 @@ static CMS_Menu cmsx_menuFilterPerProfile = {
 
 static OSD_Entry cmsx_menuGyroEntries[] =
 {
-    { "-- GYRO GLB --", OME_Label, NULL, profileIndexString, 0},
+    OSD_LABEL_DATA_ENTRY("-- GYRO GLB --", profileIndexString),
 
     OSD_SETTING_ENTRY("GYRO SYNC", SETTING_GYRO_SYNC),
     OSD_SETTING_ENTRY("GYRO DENOM", SETTING_GYRO_SYNC_DENOM),
@@ -440,22 +443,22 @@ static CMS_Menu cmsx_menuGyro = {
 
 static OSD_Entry cmsx_menuImuEntries[] =
 {
-    { "-- PID TUNING --", OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- PID TUNING --"),
 
     // Profile dependent
-    {"PID PROF",   OME_UINT8,   cmsx_profileIndexOnChange,     &(OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1}, 0},
-    {"PID",        OME_Submenu, cmsMenuChange,                 &cmsx_menuPid,                                              0},
-    {"PID ALTMAG", OME_Submenu, cmsMenuChange,                 &cmsx_menuPidAltMag,                                        0},
-    {"PID GPSNAV", OME_Submenu, cmsMenuChange,                 &cmsx_menuPidGpsnav,                                        0},
-    {"FILT PP",   OME_Submenu, cmsMenuChange,                 &cmsx_menuFilterPerProfile,                                  0},
+    OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChange, (&(OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
+    OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
+    OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),
+    OSD_SUBMENU_ENTRY("FILT PP", &cmsx_menuFilterPerProfile),
 
     // Rate profile dependent
-    {"RATE PROF", OME_UINT8,   cmsx_profileIndexOnChange, &(OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1}, 0},
-    {"RATE",      OME_Submenu, cmsMenuChange,                 &cmsx_menuRateProfile,                                       0},
-    {"MANU RATE", OME_Submenu, cmsMenuChange,                 &cmsx_menuManualRateProfile,                                 0},
+    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("RATE", &cmsx_menuRateProfile),
+    OSD_SUBMENU_ENTRY("MANU RATE", &cmsx_menuManualRateProfile),
 
     // Global
-    {"GYRO GLB",  OME_Submenu, cmsMenuChange,                 &cmsx_menuGyro,                                              0},
+    OSD_SUBMENU_ENTRY("GYRO GLB",  &cmsx_menuGyro),
 
 #ifdef NOT_YET
     {"OTHER PP",  OME_Submenu, cmsMenuChange,                 &cmsx_menuProfileOther,                                      0},

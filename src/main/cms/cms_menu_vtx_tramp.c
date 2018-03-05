@@ -197,8 +197,8 @@ static long trampCmsOnEnter(void)
 }
 
 static OSD_Entry trampCmsMenuCommenceEntries[] = {
-    { "CONFIRM", OME_Label,   NULL,          NULL, 0 },
-    { "YES",     OME_Funcall, trampCmsCommence, NULL, 0 },
+    OSD_LABEL_ENTRY("CONFIRM"),
+    OSD_FUNC_CALL_ENTRY("YES", trampCmsCommence),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -217,16 +217,16 @@ static CMS_Menu trampCmsMenuCommence = {
 
 static OSD_Entry trampMenuEntries[] =
 {
-    { "- TRAMP -", OME_Label, NULL, NULL, 0 },
+    OSD_LABEL_ENTRY("- TRAMP -"),
 
-    { "",       OME_LabelFunc,  NULL,                   trampCmsDrawStatusString,  DYNAMIC },
-    { "PIT",    OME_TAB,        trampCmsSetPitMode,     &trampCmsEntPitMode,   0 },
-    { "BAND",   OME_TAB,        trampCmsConfigBand,     &trampCmsEntBand,      0 },
-    { "CHAN",   OME_TAB,        trampCmsConfigChan,     &trampCmsEntChan,      0 },
-    { "(FREQ)", OME_UINT16,     NULL,                   &trampCmsEntFreqRef,   DYNAMIC },
-    { "POWER",  OME_TAB,        trampCmsConfigPower,    &trampCmsEntPower,     0 },
-    { "T(C)",   OME_INT16,      NULL,                   &trampCmsEntTemp,      DYNAMIC },
-    { "SET",    OME_Submenu,    cmsMenuChange,          &trampCmsMenuCommence, 0 },
+    OSD_LABEL_FUNC_DYN_ENTRY("", trampCmsDrawStatusString),
+    OSD_TAB_CALLBACK_ENTRY("PIT", trampCmsSetPitMode, &trampCmsEntPitMode),
+    OSD_TAB_CALLBACK_ENTRY("BAND", trampCmsConfigBand, &trampCmsEntBand),
+    OSD_TAB_CALLBACK_ENTRY("CHAN", trampCmsConfigChan, &trampCmsEntChan),
+    OSD_UINT16_DYN_ENTRY("(FREQ)", &trampCmsEntFreqRef),
+    OSD_TAB_CALLBACK_ENTRY("POWER", trampCmsConfigPower, &trampCmsEntPower),
+    OSD_INT16_DYN_ENTRY("T(C)", &trampCmsEntTemp),
+    OSD_SUBMENU_ENTRY("SET", &trampCmsMenuCommence),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
