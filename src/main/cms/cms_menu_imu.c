@@ -133,17 +133,17 @@ static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
 
-    OSD_UINT8_ENTRY("ROLL  P", (&(OSD_UINT8_t){ &cmsx_pidRoll[0],  0, 200, 1 })),
-    OSD_UINT8_ENTRY("ROLL I", (&(OSD_UINT8_t){ &cmsx_pidRoll[1],  0, 200, 1 })),
-    OSD_UINT8_ENTRY("ROLL D", (&(OSD_UINT8_t){ &cmsx_pidRoll[2],  0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL P", (&(const OSD_UINT8_t){ &cmsx_pidRoll[0],  0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL I", (&(const OSD_UINT8_t){ &cmsx_pidRoll[1],  0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL D", (&(const OSD_UINT8_t){ &cmsx_pidRoll[2],  0, 200, 1 })),
 
-    OSD_UINT8_ENTRY("PITCH P", (&(OSD_UINT8_t){ &cmsx_pidPitch[0], 0, 200, 1 })),
-    OSD_UINT8_ENTRY("PITCH I", (&(OSD_UINT8_t){ &cmsx_pidPitch[1], 0, 200, 1 })),
-    OSD_UINT8_ENTRY("PITCH D", (&(OSD_UINT8_t){ &cmsx_pidPitch[2], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("PITCH P", (&(const OSD_UINT8_t){ &cmsx_pidPitch[0], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("PITCH I", (&(const OSD_UINT8_t){ &cmsx_pidPitch[1], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("PITCH D", (&(const OSD_UINT8_t){ &cmsx_pidPitch[2], 0, 200, 1 })),
 
-    OSD_UINT8_ENTRY("YAW   P", (&(OSD_UINT8_t){ &cmsx_pidYaw[0],   0, 200, 1 })),
-    OSD_UINT8_ENTRY("YAW   I", (&(OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 })),
-    OSD_UINT8_ENTRY("YAW   D", (&(OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   P", (&(const OSD_UINT8_t){ &cmsx_pidYaw[0],   0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   I", (&(const OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   D", (&(const OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -190,14 +190,14 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
 
-    OSD_UINT8_ENTRY("ALT P", (&(OSD_UINT8_t){ &cmsx_pidPosZ[0], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("ALT I", (&(OSD_UINT8_t){ &cmsx_pidPosZ[1], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("ALT D", (&(OSD_UINT8_t){ &cmsx_pidPosZ[2], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("VEL P", (&(OSD_UINT8_t){ &cmsx_pidVelZ[0], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("VEL I", (&(OSD_UINT8_t){ &cmsx_pidVelZ[1], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("VEL D", (&(OSD_UINT8_t){ &cmsx_pidVelZ[2], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("ALT P", (&(const OSD_UINT8_t){ &cmsx_pidPosZ[0], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("ALT I", (&(const OSD_UINT8_t){ &cmsx_pidPosZ[1], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("ALT D", (&(const OSD_UINT8_t){ &cmsx_pidPosZ[2], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("VEL P", (&(const OSD_UINT8_t){ &cmsx_pidVelZ[0], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("VEL I", (&(const OSD_UINT8_t){ &cmsx_pidVelZ[1], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("VEL D", (&(const OSD_UINT8_t){ &cmsx_pidVelZ[2], 0, 255, 1 })),
 
-    OSD_UINT8_ENTRY("MAG P", (&(OSD_UINT8_t){ &cmsx_pidHead[0], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("MAG P", (&(const OSD_UINT8_t){ &cmsx_pidHead[0], 0, 255, 1 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -241,11 +241,11 @@ static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
 
-    OSD_UINT8_ENTRY("POS  P", (&(OSD_UINT8_t){ &cmsx_pidPosXY[0],  0, 255, 1 })),
-    OSD_UINT8_ENTRY("POS  I", (&(OSD_UINT8_t){ &cmsx_pidPosXY[1],  0, 255, 1 })),
-    OSD_UINT8_ENTRY("POSR P", (&(OSD_UINT8_t){ &cmsx_pidVelXY[0], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("POSR I", (&(OSD_UINT8_t){ &cmsx_pidVelXY[1], 0, 255, 1 })),
-    OSD_UINT8_ENTRY("POSR D", (&(OSD_UINT8_t){ &cmsx_pidVelXY[2], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("POS  P", (&(const OSD_UINT8_t){ &cmsx_pidPosXY[0],  0, 255, 1 })),
+    OSD_UINT8_ENTRY("POS  I", (&(const OSD_UINT8_t){ &cmsx_pidPosXY[1],  0, 255, 1 })),
+    OSD_UINT8_ENTRY("POSR P", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[0], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("POSR I", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[1], 0, 255, 1 })),
+    OSD_UINT8_ENTRY("POSR D", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[2], 0, 255, 1 })),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -446,14 +446,14 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     OSD_LABEL_ENTRY("-- PID TUNING --"),
 
     // Profile dependent
-    OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChange, (&(OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
+    OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
     OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
     OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
     OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),
     OSD_SUBMENU_ENTRY("FILT PP", &cmsx_menuFilterPerProfile),
 
     // Rate profile dependent
-    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1})),
+    OSD_UINT8_CALLBACK_ENTRY("RATE PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_CONTROL_RATE_PROFILE_COUNT, 1})),
     OSD_SUBMENU_ENTRY("RATE", &cmsx_menuRateProfile),
     OSD_SUBMENU_ENTRY("MANU RATE", &cmsx_menuManualRateProfile),
 

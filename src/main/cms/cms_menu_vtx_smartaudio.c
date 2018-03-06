@@ -479,7 +479,7 @@ static const OSD_Entry saCmsMenuPORFreqEntries[] =
     OSD_LABEL_ENTRY("- POR FREQ -"),
 
     OSD_UINT16_RO_ENTRY("CUR FREQ", &saCmsORFreq),
-    OSD_UINT16_ENTRY("NEW FREQ", (&(OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 })),
+    OSD_UINT16_ENTRY("NEW FREQ", (&(const OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsSetPORFreq),
 
     OSD_BACK_ENTRY,
@@ -503,7 +503,7 @@ static const OSD_Entry saCmsMenuUserFreqEntries[] =
     OSD_LABEL_ENTRY("- USER FREQ -"),
 
     OSD_UINT16_RO_ENTRY("CUR FREQ", &saCmsUserFreq),
-    OSD_UINT16_ENTRY("NEW FREQ", (&(OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 })),
+    OSD_UINT16_ENTRY("NEW FREQ", (&(const OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsConfigUserFreq),
 
     OSD_BACK_ENTRY,
@@ -528,7 +528,7 @@ static const OSD_Entry saCmsMenuConfigEntries[] =
 {
     OSD_LABEL_ENTRY("- SA CONFIG -"),
 
-    { "OP MODEL",  OME_TAB,     saCmsConfigOpmodelByGvar,              &(OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
+    { "OP MODEL",  OME_TAB,     saCmsConfigOpmodelByGvar,              &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
     { "FSEL MODE", OME_TAB,     saCmsConfigFreqModeByGvar,             &saCmsEntFselMode,                                   DYNAMIC },
     OSD_TAB_CALLBACK_ENTRY("PIT FMODE", saCmsConfigPitFModeByGvar, &saCmsEntPitFMode),
     { "POR FREQ",  OME_Submenu, (CMSEntryFuncPtr)saCmsORFreqGetString, (void *)&saCmsMenuPORFreq,                                   OPTSTRING },

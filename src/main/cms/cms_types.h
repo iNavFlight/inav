@@ -182,7 +182,7 @@ typedef struct OSD_SETTING_s {
     const uint8_t step;
 } __attribute__((packed)) OSD_SETTING_t;
 
-#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, OME_Setting, NULL, &(OSD_SETTING_t){ setting, step }, type }
+#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, OME_Setting, NULL, &(const OSD_SETTING_t){ setting, step }, type }
 #define OSD_SETTING_ENTRY_TYPE(name, setting, type)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, 0, type)
 #define OSD_SETTING_ENTRY_STEP(name, setting, step)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, 0)
 #define OSD_SETTING_ENTRY(name, setting)                        OSD_SETTING_ENTRY_STEP(name, setting, 0)
