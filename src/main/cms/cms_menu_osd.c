@@ -56,23 +56,8 @@ const CMS_Menu cmsx_menuAlarms = {
     .entries = cmsx_menuAlarmsEntries,
 };
 
-static uint16_t osdConfig_item_pos[OSD_ITEM_COUNT];
 
-static long menuOsdActiveElemsOnEnter(void)
-{
-    memcpy(&osdConfig_item_pos[0], &osdConfig()->item_pos[0], sizeof(uint16_t) * OSD_ITEM_COUNT);
-    return 0;
-}
-
-static long menuOsdActiveElemsOnExit(const OSD_Entry *self)
-{
-    UNUSED(self);
-
-    memcpy(&osdConfigMutable()->item_pos[0], &osdConfig_item_pos[0], sizeof(uint16_t) * OSD_ITEM_COUNT);
-    return 0;
-}
-
-#define OSD_OSD_ELEMENT_ENTRY(name, osd_id) {name, OME_VISIBLE, NULL, &osdConfig_item_pos[osd_id], 0}
+#define OSD_OSD_ELEMENT_ENTRY(name, osd_item_id) {name, OME_VISIBLE, NULL, (void *)osd_item_id, 0}
 
 static const OSD_Entry menuOsdActiveElemsEntries[] =
 {
@@ -117,8 +102,8 @@ const CMS_Menu menuOsdActiveElems = {
     .GUARD_text = "MENUOSDACT",
     .GUARD_type = OME_MENU,
 #endif
-    .onEnter = menuOsdActiveElemsOnEnter,
-    .onExit = menuOsdActiveElemsOnExit,
+    .onEnter = NULL,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = menuOsdActiveElemsEntries
 };
