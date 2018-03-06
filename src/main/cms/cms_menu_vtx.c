@@ -64,8 +64,8 @@ static const char * const vtxBandNames[] = {
     "RACEBAND",
 };
 
-static OSD_TAB_t entryVtxBand = {&cmsx_vtxBand,4,&vtxBandNames[0]};
-static OSD_UINT8_t entryVtxChannel =  {&cmsx_vtxChannel, 1, 8, 1};
+static const OSD_TAB_t entryVtxBand = {&cmsx_vtxBand,4,&vtxBandNames[0]};
+static const OSD_UINT8_t entryVtxChannel =  {&cmsx_vtxChannel, 1, 8, 1};
 
 static void cmsx_Vtx_ConfigRead(void)
 {
@@ -110,8 +110,8 @@ static long cmsx_Vtx_onExit(const OSD_Entry *self)
 }
 
 #ifdef VTX
-static OSD_UINT8_t entryVtxMode =  {&masterConfig.vtx_mode, 0, 2, 1};
-static OSD_UINT16_t entryVtxMhz =  {&masterConfig.vtx_mhz, 5600, 5950, 1};
+static const OSD_UINT8_t entryVtxMode =  {&masterConfig.vtx_mode, 0, 2, 1};
+static const OSD_UINT16_t entryVtxMhz =  {&masterConfig.vtx_mhz, 5600, 5950, 1};
 #endif // VTX
 
 static const OSD_Entry cmsx_menuVtxEntries[] =

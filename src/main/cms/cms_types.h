@@ -65,7 +65,7 @@ typedef struct
     const char * const text;
     const OSD_MenuElement type;
     const CMSEntryFuncPtr func;
-    void *data;
+    const void * const data;
     uint8_t flags;
 } OSD_Entry;
 
@@ -74,17 +74,14 @@ typedef struct
 #define PRINT_LABEL    (1 << 1)  // Text label should be printed
 #define DYNAMIC        (1 << 2)  // Value should be updated dynamically
 #define OPTSTRING      (1 << 3)  // (Temporary) Flag for OME_Submenu, indicating func should be called to get a string to display.
+#define READONLY       (1 << 4)  // Indicates that the value is read-only and p->data points directly to it - applies to [U]INT(8|16)
 
 #define OSD_LABEL_ENTRY(label)                  ((OSD_Entry){ label, OME_Label, NULL, NULL, 0 })
 #define OSD_LABEL_DATA_ENTRY(label, data)       ((OSD_Entry){ label, OME_Label, NULL, data, 0 })
 #define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, OME_Label, NULL, data, DYNAMIC })
 #define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, OME_LabelFunc, NULL, fn, DYNAMIC })
 #define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", OME_Back, NULL, NULL, 0 })
-// Cast menus to (void *), since they should be declared as const to
-// be able to save them in FLASH. Of course, this means that changing
-// a entry->data pointer for a menu declared as const will result in
-// UB.
-#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, cmsMenuChange, (void *)menu, 0 })
+#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, cmsMenuChange, menu, 0 })
 #define OSD_FUNC_CALL_ENTRY(label, fn)          ((OSD_Entry){ label, OME_Funcall, fn, NULL, 0 })
 #define OSD_BOOL_ENTRY(label, val)              ((OSD_Entry){ label, OME_Bool, NULL, val, 0 })
 #define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, OME_BoolFunc, NULL, fn, 0 })
@@ -92,7 +89,9 @@ typedef struct
 #define OSD_UINT8_CALLBACK_ENTRY(label, cb, val)((OSD_Entry){ label, OME_UINT8, cb, val, 0 })
 #define OSD_UINT16_ENTRY(label, val)            ((OSD_Entry){ label, OME_UINT16, NULL, val, 0 })
 #define OSD_UINT16_DYN_ENTRY(label, val)        ((OSD_Entry){ label, OME_UINT16, NULL, val, DYNAMIC })
+#define OSD_UINT16_RO_ENTRY(label, val)         ((OSD_Entry){ label, OME_UINT16, NULL, val, DYNAMIC | READONLY })
 #define OSD_INT16_DYN_ENTRY(label, val)         ((OSD_Entry){ label, OME_INT16, NULL, val, DYNAMIC })
+#define OSD_INT16_RO_ENTRY(label, val)          ((OSD_Entry){ label, OME_INT16, NULL, val, DYNAMIC | READONLY })
 #define OSD_STRING_ENTRY(label, str)            ((OSD_Entry){ label, OME_String, NULL, str, 0 })
 #define OSD_TAB_ENTRY(label, val)               ((OSD_Entry){ label, OME_TAB, NULL, val, 0 })
 #define OSD_TAB_DYN_ENTRY(label, val)           ((OSD_Entry){ label, OME_TAB, NULL, val, DYNAMIC })

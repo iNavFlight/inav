@@ -86,7 +86,8 @@ static uint8_t entry_flags[32];
 #define SET_PRINTLABEL(p, row) { entry_flags[row] |= PRINT_LABEL; }
 #define CLR_PRINTLABEL(p, row) { entry_flags[row] &= ~PRINT_LABEL; }
 
-#define IS_DYNAMIC(p) ((p)->flags & DYNAMIC)
+#define IS_DYNAMIC(p)   ((p)->flags & DYNAMIC)
+#define IS_READONLY(p)  ((p)->flags & READONLY)
 
 static displayPort_t *pCurrentDisplay;
 
@@ -339,7 +340,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
 
     case OME_TAB:
         if (IS_PRINTVALUE(p, screenRow)) {
-            OSD_TAB_t *ptr = p->data;
+            const OSD_TAB_t *ptr = p->data;
             char * str = (char *)ptr->names[*ptr->val];
             memcpy(buff, str, MAX(CMS_DRAW_BUFFER_LEN, strlen(str)));
             cmsPadToSize(buff, CMS_DRAW_BUFFER_LEN);
@@ -365,8 +366,14 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
 
     case OME_UINT8:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
-            OSD_UINT8_t *ptr = p->data;
-            itoa(*ptr->val, buff, 10);
+            const uint8_t *val;
+            if (IS_READONLY(p)) {
+                val = p->data;
+            } else {
+                const OSD_UINT8_t *ptr = p->data;
+                val = ptr->val;
+            }
+            itoa(*val, buff, 10);
             cmsPadToSize(buff, 5);
             cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, buff);
             CLR_PRINTVALUE(p, screenRow);
@@ -375,8 +382,14 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
 
     case OME_INT8:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
-            OSD_INT8_t *ptr = p->data;
-            itoa(*ptr->val, buff, 10);
+            const int8_t *val;
+            if (IS_READONLY(p)) {
+                val = p->data;
+            } else {
+                const OSD_INT8_t *ptr = p->data;
+                val = ptr->val;
+            }
+            itoa(*val, buff, 10);
             cmsPadToSize(buff, 5);
             cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, buff);
             CLR_PRINTVALUE(p, screenRow);
@@ -385,8 +398,14 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
 
     case OME_UINT16:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
-            OSD_UINT16_t *ptr = p->data;
-            itoa(*ptr->val, buff, 10);
+            const uint16_t *val;
+            if (IS_READONLY(p)) {
+                val = p->data;
+            } else {
+                const OSD_UINT16_t *ptr = p->data;
+                val = ptr->val;
+            }
+            itoa(*val, buff, 10);
             cmsPadToSize(buff, 5);
             cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, buff);
             CLR_PRINTVALUE(p, screenRow);
@@ -395,8 +414,14 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
 
     case OME_INT16:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
-            OSD_UINT16_t *ptr = p->data;
-            itoa(*ptr->val, buff, 10);
+            const int16_t *val;
+            if (IS_READONLY(p)) {
+                val = p->data;
+            } else {
+                const OSD_INT16_t *ptr = p->data;
+                val = ptr->val;
+            }
+            itoa(*val, buff, 10);
             cmsPadToSize(buff, 5);
             cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, buff);
             CLR_PRINTVALUE(p, screenRow);
@@ -405,7 +430,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
 
     case OME_FLOAT:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
-            OSD_FLOAT_t *ptr = p->data;
+            const OSD_FLOAT_t *ptr = p->data;
             cmsFormatFloat(*ptr->val * ptr->multipler, buff);
             cmsPadToSize(buff, 5);
             cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay) - 1, row, buff); // XXX One char left ???
@@ -416,7 +441,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
     case OME_Setting:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
             buff[0] = '\0';
-            OSD_SETTING_t *ptr = p->data;
+            const OSD_SETTING_t *ptr = p->data;
             const setting_t *var = &settingsTable[ptr->val];
             int32_t value;
             const void *valuePointer = setting_get_value_pointer(var);
@@ -858,7 +883,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
 
         case OME_Bool:
             if (p->data) {
-                uint8_t *val = p->data;
+                uint8_t *val = (uint8_t *)p->data;
                 if (key == KEY_RIGHT)
                     *val = 1;
                 else
@@ -892,8 +917,11 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
 
         case OME_UINT8:
         case OME_FLOAT:
+            if (IS_READONLY(p)) {
+                break;
+            }
             if (p->data) {
-                OSD_UINT8_t *ptr = p->data;
+                const OSD_UINT8_t *ptr = p->data;
                 if (key == KEY_RIGHT) {
                     if (*ptr->val < ptr->max)
                         *ptr->val += ptr->step;
@@ -911,7 +939,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
 
         case OME_TAB:
             if (p->type == OME_TAB) {
-                OSD_TAB_t *ptr = p->data;
+                const OSD_TAB_t *ptr = p->data;
 
                 if (key == KEY_RIGHT) {
                     if (*ptr->val < ptr->max)
@@ -928,8 +956,11 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             break;
 
         case OME_INT8:
+            if (IS_READONLY(p)) {
+                break;
+            }
             if (p->data) {
-                OSD_INT8_t *ptr = p->data;
+                const OSD_INT8_t *ptr = p->data;
                 if (key == KEY_RIGHT) {
                     if (*ptr->val < ptr->max)
                         *ptr->val += ptr->step;
@@ -946,8 +977,11 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             break;
 
         case OME_UINT16:
+            if (IS_READONLY(p)) {
+                break;
+            }
             if (p->data) {
-                OSD_UINT16_t *ptr = p->data;
+                const OSD_UINT16_t *ptr = p->data;
                 if (key == KEY_RIGHT) {
                     if (*ptr->val < ptr->max)
                         *ptr->val += ptr->step;
@@ -964,8 +998,11 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             break;
 
         case OME_INT16:
+            if (IS_READONLY(p)) {
+                break;
+            }
             if (p->data) {
-                OSD_INT16_t *ptr = p->data;
+                const OSD_INT16_t *ptr = p->data;
                 if (key == KEY_RIGHT) {
                     if (*ptr->val < ptr->max)
                         *ptr->val += ptr->step;
@@ -983,7 +1020,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
 
         case OME_Setting:
             if (p->data) {
-                OSD_SETTING_t *ptr = p->data;
+                const OSD_SETTING_t *ptr = p->data;
                 const setting_t *var = &settingsTable[ptr->val];
                 setting_min_t min = setting_get_min(var);
                 setting_max_t max = setting_get_max(var);

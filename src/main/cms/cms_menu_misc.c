@@ -56,15 +56,15 @@ static const OSD_Entry cmsx_menuRcEntries[] =
 {
     OSD_LABEL_ENTRY("-- RC PREV --"),
 
-    OSD_INT16_DYN_ENTRY("ROLL", (&(OSD_INT16_t){ &rcData[ROLL],     1, 2500, 0 })),
-    OSD_INT16_DYN_ENTRY("PITCH", (&(OSD_INT16_t){ &rcData[PITCH],    1, 2500, 0 })),
-    OSD_INT16_DYN_ENTRY("THR", (&(OSD_INT16_t){ &rcData[THROTTLE], 1, 2500, 0 })),
-    OSD_INT16_DYN_ENTRY("YAW", (&(OSD_INT16_t){ &rcData[YAW],      1, 2500, 0 })),
+    OSD_INT16_RO_ENTRY("ROLL", &rcData[ROLL]),
+    OSD_INT16_RO_ENTRY("PITCH", &rcData[PITCH]),
+    OSD_INT16_RO_ENTRY("THR", &rcData[THROTTLE]),
+    OSD_INT16_RO_ENTRY("YAW", &rcData[YAW]),
 
-    OSD_INT16_DYN_ENTRY("AUX1", (&(OSD_INT16_t){ &rcData[AUX1],     1, 2500, 0 })),
-    OSD_INT16_DYN_ENTRY("AUX2", (&(OSD_INT16_t){ &rcData[AUX2],     1, 2500, 0 })),
-    OSD_INT16_DYN_ENTRY("AUX3", (&(OSD_INT16_t){ &rcData[AUX3],     1, 2500, 0 })),
-    OSD_INT16_DYN_ENTRY("AUX4", (&(OSD_INT16_t){ &rcData[AUX4],     1, 2500, 0 })),
+    OSD_INT16_RO_ENTRY("AUX1", &rcData[AUX1]),
+    OSD_INT16_RO_ENTRY("AUX2", &rcData[AUX2]),
+    OSD_INT16_RO_ENTRY("AUX3", &rcData[AUX3]),
+    OSD_INT16_RO_ENTRY("AUX4", &rcData[AUX4]),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,

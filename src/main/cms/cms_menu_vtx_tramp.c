@@ -78,15 +78,13 @@ uint8_t trampCmsBand = 1;
 uint8_t trampCmsChan = 1;
 uint16_t trampCmsFreqRef;
 
-OSD_TAB_t trampCmsEntBand = { &trampCmsBand, 5, vtx58BandNames };
+static const OSD_TAB_t trampCmsEntBand = { &trampCmsBand, 5, vtx58BandNames };
 
-OSD_TAB_t trampCmsEntChan = { &trampCmsChan, 8, vtx58ChannelNames };
-
-static OSD_UINT16_t trampCmsEntFreqRef = { &trampCmsFreqRef, 5600, 5900, 0 };
+static const OSD_TAB_t trampCmsEntChan = { &trampCmsChan, 8, vtx58ChannelNames };
 
 static uint8_t trampCmsPower = 1;
 
-OSD_TAB_t trampCmsEntPower = { &trampCmsPower, 5, trampPowerNames };
+static const OSD_TAB_t trampCmsEntPower = { &trampCmsPower, 5, trampPowerNames };
 
 static void trampCmsUpdateFreqRef(void)
 {
@@ -134,13 +132,11 @@ static long trampCmsConfigPower(displayPort_t *pDisp, const void *self)
     return 0;
 }
 
-static OSD_INT16_t trampCmsEntTemp = { &trampData.temperature, -100, 300, 0 };
-
 static const char * const trampCmsPitModeNames[] = {
     "---", "OFF", "ON "
 };
 
-static OSD_TAB_t trampCmsEntPitMode = { &trampCmsPitMode, 2, trampCmsPitModeNames };
+static const OSD_TAB_t trampCmsEntPitMode = { &trampCmsPitMode, 2, trampCmsPitModeNames };
 
 static long trampCmsSetPitMode(displayPort_t *pDisp, const void *self)
 {
@@ -223,9 +219,9 @@ static const OSD_Entry trampMenuEntries[] =
     OSD_TAB_CALLBACK_ENTRY("PIT", trampCmsSetPitMode, &trampCmsEntPitMode),
     OSD_TAB_CALLBACK_ENTRY("BAND", trampCmsConfigBand, &trampCmsEntBand),
     OSD_TAB_CALLBACK_ENTRY("CHAN", trampCmsConfigChan, &trampCmsEntChan),
-    OSD_UINT16_DYN_ENTRY("(FREQ)", &trampCmsEntFreqRef),
+    OSD_UINT16_RO_ENTRY("(FREQ)", &trampCmsFreqRef),
     OSD_TAB_CALLBACK_ENTRY("POWER", trampCmsConfigPower, &trampCmsEntPower),
-    OSD_INT16_DYN_ENTRY("T(C)", &trampCmsEntTemp),
+    OSD_INT16_RO_ENTRY("T(C)", &trampData.temperature),
     OSD_SUBMENU_ENTRY("SET", &trampCmsMenuCommence),
 
     OSD_BACK_ENTRY,

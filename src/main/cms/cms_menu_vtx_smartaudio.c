@@ -304,19 +304,19 @@ static const char * const saCmsDeviceStatusNames[] = {
     "ONL V2",
 };
 
-static OSD_TAB_t saCmsEntOnline = { &saCmsDeviceStatus, 2, saCmsDeviceStatusNames };
+static const OSD_TAB_t saCmsEntOnline = { &saCmsDeviceStatus, 2, saCmsDeviceStatusNames };
 
 static const OSD_Entry saCmsMenuStatsEntries[] = {
     OSD_LABEL_ENTRY("- SA STATS -"),
 
     OSD_TAB_DYN_ENTRY("STATUS", &saCmsEntOnline),
-    OSD_UINT16_DYN_ENTRY("BAUDRATE", (&(OSD_UINT16_t){ &sa_smartbaud, 0, 0, 0 })),
-    OSD_UINT16_DYN_ENTRY("SENT", (&(OSD_UINT16_t){ &saStat.pktsent, 0, 0, 0 })),
-    OSD_UINT16_DYN_ENTRY("RCVD", (&(OSD_UINT16_t){ &saStat.pktrcvd, 0, 0, 0 })),
-    OSD_UINT16_DYN_ENTRY("BADPRE", (&(OSD_UINT16_t){ &saStat.badpre, 0, 0, 0 })),
-    OSD_UINT16_DYN_ENTRY("BADLEN", (&(OSD_UINT16_t){ &saStat.badlen, 0, 0, 0 })),
-    OSD_UINT16_DYN_ENTRY("CRCERR", (&(OSD_UINT16_t){ &saStat.crc, 0, 0, 0 })),
-    OSD_UINT16_DYN_ENTRY("OOOERR", (&(OSD_UINT16_t){ &saStat.ooopresp, 0, 0, 0 })),
+    OSD_UINT16_RO_ENTRY("BAUDRATE", &sa_smartbaud),
+    OSD_UINT16_RO_ENTRY("SENT", &saStat.pktsent),
+    OSD_UINT16_RO_ENTRY("RCVD", &saStat.pktrcvd),
+    OSD_UINT16_RO_ENTRY("BADPRE", &saStat.badpre),
+    OSD_UINT16_RO_ENTRY("BADLEN", &saStat.badlen),
+    OSD_UINT16_RO_ENTRY("CRCERR", &saStat.crc),
+    OSD_UINT16_RO_ENTRY("OOOERR", &saStat.ooopresp),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -333,9 +333,9 @@ static const CMS_Menu saCmsMenuStats = {
     .entries = saCmsMenuStatsEntries
 };
 
-static OSD_TAB_t saCmsEntBand = { &saCmsBand, 5, vtx58BandNames };
+static const OSD_TAB_t saCmsEntBand = { &saCmsBand, 5, vtx58BandNames };
 
-static OSD_TAB_t saCmsEntChan = { &saCmsChan, 8, vtx58ChannelNames };
+static const OSD_TAB_t saCmsEntChan = { &saCmsChan, 8, vtx58ChannelNames };
 
 static const char * const saCmsPowerNames[] = {
     "---",
@@ -345,9 +345,7 @@ static const char * const saCmsPowerNames[] = {
     "800",
 };
 
-static OSD_TAB_t saCmsEntPower = { &saCmsPower, 4, saCmsPowerNames};
-
-static OSD_UINT16_t saCmsEntFreqRef = { &saCmsFreqRef, 5600, 5900, 0 };
+static const OSD_TAB_t saCmsEntPower = { &saCmsPower, 4, saCmsPowerNames};
 
 static const char * const saCmsOpmodelNames[] = {
     "----",
@@ -365,7 +363,7 @@ static const char * const saCmsPitFModeNames[] = {
     "POR"
 };
 
-static OSD_TAB_t saCmsEntPitFMode = { &saCmsPitFMode, 1, saCmsPitFModeNames };
+static const OSD_TAB_t saCmsEntPitFMode = { &saCmsPitFMode, 1, saCmsPitFModeNames };
 
 static long sacms_SetupTopMenu(void); // Forward
 
@@ -480,7 +478,7 @@ static const OSD_Entry saCmsMenuPORFreqEntries[] =
 {
     OSD_LABEL_ENTRY("- POR FREQ -"),
 
-    OSD_UINT16_DYN_ENTRY("CUR FREQ", (&(OSD_UINT16_t){ &saCmsORFreq, 5000, 5900, 0 })),
+    OSD_UINT16_RO_ENTRY("CUR FREQ", &saCmsORFreq),
     OSD_UINT16_ENTRY("NEW FREQ", (&(OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsSetPORFreq),
 
@@ -504,7 +502,7 @@ static const OSD_Entry saCmsMenuUserFreqEntries[] =
 {
     OSD_LABEL_ENTRY("- USER FREQ -"),
 
-    OSD_UINT16_DYN_ENTRY("CUR FREQ", (&(OSD_UINT16_t){ &saCmsUserFreq, 5000, 5900, 0 })),
+    OSD_UINT16_RO_ENTRY("CUR FREQ", &saCmsUserFreq),
     OSD_UINT16_ENTRY("NEW FREQ", (&(OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsConfigUserFreq),
 
@@ -524,7 +522,7 @@ static const CMS_Menu saCmsMenuUserFreq =
     .entries = saCmsMenuUserFreqEntries,
 };
 
-static OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeNames };
+static const OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeNames };
 
 static const OSD_Entry saCmsMenuConfigEntries[] =
 {
@@ -592,7 +590,7 @@ static const OSD_Entry saCmsMenuChanModeEntries[] =
     OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
     OSD_TAB_CALLBACK_ENTRY("BAND", saCmsConfigBandByGvar, &saCmsEntBand),
     OSD_TAB_CALLBACK_ENTRY("CHAN", saCmsConfigChanByGvar, &saCmsEntChan),
-    OSD_UINT16_DYN_ENTRY("(FREQ)", &saCmsEntFreqRef),
+    OSD_UINT16_RO_ENTRY("(FREQ)", &saCmsFreqRef),
     OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
     OSD_SUBMENU_ENTRY("SET",  &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
