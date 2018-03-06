@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -103,13 +104,7 @@ void saCmsUpdate(void)
             saCmsPower = saDacToPowerIndex(saDevice.power) + 1;
         }
     }
-
-    saUpdateStatusString();
 }
-
-char saCmsStatusString[31] = "- -- ---- ---";
-//                            m bc ffff ppp
-//                            0123456789012
 
 static long saCmsConfigOpmodelByGvar(displayPort_t *, const void *self);
 static long saCmsConfigPitFModeByGvar(displayPort_t *, const void *self);
@@ -117,57 +112,68 @@ static long saCmsConfigBandByGvar(displayPort_t *, const void *self);
 static long saCmsConfigChanByGvar(displayPort_t *, const void *self);
 static long saCmsConfigPowerByGvar(displayPort_t *, const void *self);
 
-void saUpdateStatusString(void)
+static bool saCmsDrawStatusString(char *buf, unsigned bufsize)
 {
+    const char *defaultString = "- -- ---- ---";
+//                               m bc ffff ppp
+//                               0123456789012
+
+    if (bufsize < strlen(defaultString) + 1) {
+        return false;
+    }
+
+    strcpy(buf, defaultString);
+
     if (saDevice.version == 0)
-        return;
+        return true;
 
-// XXX These should be done somewhere else
-if (saCmsDeviceStatus == 0 && saDevice.version != 0)
-    saCmsDeviceStatus = saDevice.version;
-if (saCmsORFreq == 0 && saDevice.orfreq != 0)
-    saCmsORFreq = saDevice.orfreq;
-if (saCmsUserFreq == 0 && saDevice.freq != 0)
-    saCmsUserFreq = saDevice.freq;
+    // XXX These should be done somewhere else
+    if (saCmsDeviceStatus == 0 && saDevice.version != 0)
+        saCmsDeviceStatus = saDevice.version;
+    if (saCmsORFreq == 0 && saDevice.orfreq != 0)
+        saCmsORFreq = saDevice.orfreq;
+    if (saCmsUserFreq == 0 && saDevice.freq != 0)
+        saCmsUserFreq = saDevice.freq;
 
-if (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE)
-    saCmsPitFMode = 1;
-else
-    saCmsPitFMode = 0;
+    if (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE)
+        saCmsPitFMode = 1;
+    else
+        saCmsPitFMode = 0;
 
-    saCmsStatusString[0] = "-FR"[saCmsOpmodel];
+    buf[0] = "-FR"[saCmsOpmodel];
 
     if (saCmsFselMode == 0) {
-        saCmsStatusString[2] = "ABEFR"[saDevice.channel / 8];
-        saCmsStatusString[3] = '1' + (saDevice.channel % 8);
+        buf[2] = "ABEFR"[saDevice.channel / 8];
+        buf[3] = '1' + (saDevice.channel % 8);
     } else {
-        saCmsStatusString[2] = 'U';
-        saCmsStatusString[3] = 'F';
+        buf[2] = 'U';
+        buf[3] = 'F';
     }
 
     if ((saDevice.mode & SA_MODE_GET_PITMODE)
        && (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE))
-        tfp_sprintf(&saCmsStatusString[5], "%4d", saDevice.orfreq);
+        tfp_sprintf(&buf[5], "%4d", saDevice.orfreq);
     else if (saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ)
-        tfp_sprintf(&saCmsStatusString[5], "%4d", saDevice.freq);
+        tfp_sprintf(&buf[5], "%4d", saDevice.freq);
     else
-        tfp_sprintf(&saCmsStatusString[5], "%4d",
+        tfp_sprintf(&buf[5], "%4d",
             vtx58frequencyTable[saDevice.channel / 8][saDevice.channel % 8]);
 
-    saCmsStatusString[9] = ' ';
+    buf[9] = ' ';
 
     if (saDevice.mode & SA_MODE_GET_PITMODE) {
-        saCmsStatusString[10] = 'P';
+        buf[10] = 'P';
         if (saDevice.mode & SA_MODE_GET_IN_RANGE_PITMODE) {
-            saCmsStatusString[11] = 'I';
+            buf[11] = 'I';
         } else {
-            saCmsStatusString[11] = 'O';
+            buf[11] = 'O';
         }
-        saCmsStatusString[12] = 'R';
-        saCmsStatusString[13] = 0;
+        buf[12] = 'R';
+        buf[13] = 0;
     } else {
-        tfp_sprintf(&saCmsStatusString[10], "%3d", (saDevice.version == 2) ?  saPowerTable[saDevice.power].rfpower : saPowerTable[saDacToPowerIndex(saDevice.power)].rfpower);
+        tfp_sprintf(&buf[10], "%3d", (saDevice.version == 2) ?  saPowerTable[saDevice.power].rfpower : saPowerTable[saDacToPowerIndex(saDevice.power)].rfpower);
     }
+    return true;
 }
 
 static long saCmsConfigBandByGvar(displayPort_t *pDisp, const void *self)
@@ -563,11 +569,11 @@ static CMS_Menu saCmsMenuCommence = {
 static OSD_Entry saCmsMenuFreqModeEntries[] = {
     { "- SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
 
-    { "",       OME_Label,   NULL,                                     saCmsStatusString,  DYNAMIC },
-    { "FREQ",   OME_Submenu, (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
-    { "POWER",  OME_TAB,     saCmsConfigPowerByGvar,                   &saCmsEntPower,     0 },
-    { "SET",    OME_Submenu, cmsMenuChange,                            &saCmsMenuCommence, 0 },
-    { "CONFIG", OME_Submenu, cmsMenuChange,                            &saCmsMenuConfig,   0 },
+    { "",       OME_LabelFunc,  NULL,                                     saCmsDrawStatusString,  DYNAMIC },
+    { "FREQ",   OME_Submenu,    (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
+    { "POWER",  OME_TAB,        saCmsConfigPowerByGvar,                   &saCmsEntPower,     0 },
+    { "SET",    OME_Submenu,    cmsMenuChange,                            &saCmsMenuCommence, 0 },
+    { "CONFIG", OME_Submenu,    cmsMenuChange,                            &saCmsMenuConfig,   0 },
 
     { "BACK", OME_Back, NULL, NULL, 0 },
     { NULL, OME_END, NULL, NULL, 0 }
@@ -577,13 +583,13 @@ static OSD_Entry saCmsMenuChanModeEntries[] =
 {
     { "- SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
 
-    { "",       OME_Label,   NULL,                   saCmsStatusString,  DYNAMIC },
-    { "BAND",   OME_TAB,     saCmsConfigBandByGvar,  &saCmsEntBand,      0 },
-    { "CHAN",   OME_TAB,     saCmsConfigChanByGvar,  &saCmsEntChan,      0 },
-    { "(FREQ)", OME_UINT16,  NULL,                   &saCmsEntFreqRef,   DYNAMIC },
-    { "POWER",  OME_TAB,     saCmsConfigPowerByGvar, &saCmsEntPower,     0 },
-    { "SET",    OME_Submenu, cmsMenuChange,          &saCmsMenuCommence, 0 },
-    { "CONFIG", OME_Submenu, cmsMenuChange,          &saCmsMenuConfig,   0 },
+    { "",       OME_LabelFunc,   NULL,                  saCmsDrawStatusString,  DYNAMIC },
+    { "BAND",   OME_TAB,        saCmsConfigBandByGvar,  &saCmsEntBand,      0 },
+    { "CHAN",   OME_TAB,        saCmsConfigChanByGvar,  &saCmsEntChan,      0 },
+    { "(FREQ)", OME_UINT16,     NULL,                   &saCmsEntFreqRef,   DYNAMIC },
+    { "POWER",  OME_TAB,        saCmsConfigPowerByGvar, &saCmsEntPower,     0 },
+    { "SET",    OME_Submenu,    cmsMenuChange,          &saCmsMenuCommence, 0 },
+    { "CONFIG", OME_Submenu,    cmsMenuChange,          &saCmsMenuConfig,   0 },
 
     { "BACK",   OME_Back, NULL, NULL, 0 },
     { NULL,     OME_END, NULL, NULL, 0 }
@@ -593,8 +599,8 @@ static OSD_Entry saCmsMenuOfflineEntries[] =
 {
     { "- VTX SMARTAUDIO -", OME_Label, NULL, NULL, 0 },
 
-    { "",      OME_Label,   NULL,          saCmsStatusString, DYNAMIC },
-    { "STATX", OME_Submenu, cmsMenuChange, &saCmsMenuStats,   0 },
+    { "",      OME_LabelFunc,   NULL,          saCmsDrawStatusString, DYNAMIC },
+    { "STATX", OME_Submenu,     cmsMenuChange, &saCmsMenuStats,   0 },
 
     { "BACK",  OME_Back, NULL, NULL, 0 },
     { NULL,    OME_END, NULL, NULL, 0 }
