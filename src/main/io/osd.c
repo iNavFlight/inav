@@ -1868,7 +1868,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
             osdShowArmed(); // reset statistic etc
-            resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
+            resumeRefreshAt = currentTimeUs + (3 * REFRESH_1S / 2);
         } else {
             osdShowStats(); // show statistic
             resumeRefreshAt = currentTimeUs + (60 * REFRESH_1S);
