@@ -33,7 +33,7 @@
 
 #include "io/osd.h"
 
-OSD_Entry cmsx_menuAlarmsEntries[] =
+static const OSD_Entry cmsx_menuAlarmsEntries[] =
 {
     OSD_LABEL_ENTRY("--- ALARMS ---"),
 
@@ -45,7 +45,7 @@ OSD_Entry cmsx_menuAlarmsEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuAlarms = {
+const CMS_Menu cmsx_menuAlarms = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUALARMS",
     .GUARD_type = OME_MENU,
@@ -74,7 +74,7 @@ static long menuOsdActiveElemsOnExit(const OSD_Entry *self)
 
 #define OSD_OSD_ELEMENT_ENTRY(name, osd_id) {name, OME_VISIBLE, NULL, &osdConfig_item_pos[osd_id], 0}
 
-OSD_Entry menuOsdActiveElemsEntries[] =
+static const OSD_Entry menuOsdActiveElemsEntries[] =
 {
     OSD_LABEL_ENTRY("--- ACTIV ELEM ---"),
 
@@ -112,7 +112,7 @@ OSD_Entry menuOsdActiveElemsEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu menuOsdActiveElems = {
+const CMS_Menu menuOsdActiveElems = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUOSDACT",
     .GUARD_type = OME_MENU,
@@ -123,7 +123,7 @@ CMS_Menu menuOsdActiveElems = {
     .entries = menuOsdActiveElemsEntries
 };
 
-OSD_Entry cmsx_menuOsdLayoutEntries[] =
+static const OSD_Entry cmsx_menuOsdLayoutEntries[] =
 {
     OSD_LABEL_ENTRY("---SCREEN LAYOUT---"),
     OSD_SUBMENU_ENTRY("ACTIVE ELEM", &menuOsdActiveElems),
@@ -132,7 +132,7 @@ OSD_Entry cmsx_menuOsdLayoutEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuOsdLayout = {
+const CMS_Menu cmsx_menuOsdLayout = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENULAYOUT",
     .GUARD_type = OME_MENU,

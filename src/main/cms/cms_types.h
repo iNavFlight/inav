@@ -80,7 +80,11 @@ typedef struct
 #define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, OME_Label, NULL, data, DYNAMIC })
 #define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, OME_LabelFunc, NULL, fn, DYNAMIC })
 #define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", OME_Back, NULL, NULL, 0 })
-#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, cmsMenuChange, menu, 0 })
+// Cast menus to (void *), since they should be declared as const to
+// be able to save them in FLASH. Of course, this means that changing
+// a entry->data pointer for a menu declared as const will result in
+// UB.
+#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, cmsMenuChange, (void *)menu, 0 })
 #define OSD_FUNC_CALL_ENTRY(label, fn)          ((OSD_Entry){ label, OME_Funcall, fn, NULL, 0 })
 #define OSD_BOOL_ENTRY(label, val)              ((OSD_Entry){ label, OME_Bool, NULL, val, 0 })
 #define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, OME_BoolFunc, NULL, fn, 0 })
@@ -106,16 +110,6 @@ typedef enum {
 // Use a function and data type to make sure switches are exhaustive
 static inline CMSDataType_e CMS_DATA_TYPE(const OSD_Entry *entry) { return entry->flags & 0xF0; }
 
-#define IS_PRINTVALUE(p) ((p)->flags & PRINT_VALUE)
-#define SET_PRINTVALUE(p) { (p)->flags |= PRINT_VALUE; }
-#define CLR_PRINTVALUE(p) { (p)->flags &= ~PRINT_VALUE; }
-
-#define IS_PRINTLABEL(p) ((p)->flags & PRINT_LABEL)
-#define SET_PRINTLABEL(p) { (p)->flags |= PRINT_LABEL; }
-#define CLR_PRINTLABEL(p) { (p)->flags &= ~PRINT_LABEL; }
-
-#define IS_DYNAMIC(p) ((p)->flags & DYNAMIC)
-
 typedef long (*CMSMenuFuncPtr)(void);
 
 // Special return value(s) for function chaining by CMSMenuFuncPtr
@@ -140,7 +134,7 @@ typedef struct
     const CMSMenuFuncPtr onEnter;
     const CMSMenuOnExitPtr onExit;
     const CMSMenuFuncPtr onGlobalExit;
-    OSD_Entry *entries;
+    const OSD_Entry *entries;
 } CMS_Menu;
 
 typedef struct

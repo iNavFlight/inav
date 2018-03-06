@@ -129,7 +129,7 @@ static long cmsx_PidWriteback(const OSD_Entry *self)
     return 0;
 }
 
-static OSD_Entry cmsx_menuPidEntries[] =
+static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
 
@@ -149,7 +149,7 @@ static OSD_Entry cmsx_menuPidEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuPid = {
+static const CMS_Menu cmsx_menuPid = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XPID",
     .GUARD_type = OME_MENU,
@@ -186,7 +186,7 @@ static long cmsx_menuPidAltMag_onExit(const OSD_Entry *self)
     return 0;
 }
 
-static OSD_Entry cmsx_menuPidAltMagEntries[] =
+static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
 
@@ -203,7 +203,7 @@ static OSD_Entry cmsx_menuPidAltMagEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuPidAltMag = {
+static const CMS_Menu cmsx_menuPidAltMag = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XALTMAG",
     .GUARD_type = OME_MENU,
@@ -237,7 +237,7 @@ static long cmsx_menuPidGpsnav_onExit(const OSD_Entry *self)
     return 0;
 }
 
-static OSD_Entry cmsx_menuPidGpsnavEntries[] =
+static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
 
@@ -251,7 +251,7 @@ static OSD_Entry cmsx_menuPidGpsnavEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuPidGpsnav = {
+static const CMS_Menu cmsx_menuPidGpsnav = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XGPSNAV",
     .GUARD_type = OME_MENU,
@@ -265,7 +265,7 @@ static CMS_Menu cmsx_menuPidGpsnav = {
 //
 // MANUAL Rate & Expo
 //
-static OSD_Entry cmsx_menuManualRateProfileEntries[] =
+static const OSD_Entry cmsx_menuManualRateProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- MANUAL RATE --", profileIndexString),
 
@@ -280,7 +280,7 @@ static OSD_Entry cmsx_menuManualRateProfileEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuManualRateProfile = {
+static const CMS_Menu cmsx_menuManualRateProfile = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUMANURATE",
     .GUARD_type = OME_MENU,
@@ -294,7 +294,7 @@ static CMS_Menu cmsx_menuManualRateProfile = {
 //
 // Rate & Expo
 //
-static OSD_Entry cmsx_menuRateProfileEntries[] =
+static const OSD_Entry cmsx_menuRateProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- RATE --", profileIndexString),
 
@@ -320,7 +320,7 @@ static OSD_Entry cmsx_menuRateProfileEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuRateProfile = {
+static const CMS_Menu cmsx_menuRateProfile = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENURATE",
     .GUARD_type = OME_MENU,
@@ -366,7 +366,7 @@ static long cmsx_profileOtherOnExit(const OSD_Entry *self)
     return 0;
 }
 
-static OSD_Entry cmsx_menuProfileOtherEntries[] = {
+static const OSD_Entry cmsx_menuProfileOtherEntries[] = {
     { "-- OTHER PP --", OME_Label, NULL, profileIndexString, 0 },
 
     { "D SETPT WT",  OME_FLOAT, NULL, &(OSD_FLOAT_t){ &cmsx_dtermSetpointWeight, 0, 255, 1, 10 }, 0 },
@@ -379,7 +379,7 @@ static OSD_Entry cmsx_menuProfileOtherEntries[] = {
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuProfileOther = {
+static const CMS_Menu cmsx_menuProfileOther = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XPROFOTHER",
     .GUARD_type = OME_MENU,
@@ -394,7 +394,7 @@ static CMS_Menu cmsx_menuProfileOther = {
 //
 // Per profile filters
 //
-static OSD_Entry cmsx_menuFilterPerProfileEntries[] =
+static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- FILTER PP  --", profileIndexString),
 
@@ -407,7 +407,7 @@ static OSD_Entry cmsx_menuFilterPerProfileEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuFilterPerProfile = {
+static const CMS_Menu cmsx_menuFilterPerProfile = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XFLTPP",
     .GUARD_type = OME_MENU,
@@ -418,7 +418,7 @@ static CMS_Menu cmsx_menuFilterPerProfile = {
     .entries = cmsx_menuFilterPerProfileEntries,
 };
 
-static OSD_Entry cmsx_menuGyroEntries[] =
+static const OSD_Entry cmsx_menuGyroEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GYRO GLB --", profileIndexString),
 
@@ -430,7 +430,7 @@ static OSD_Entry cmsx_menuGyroEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuGyro = {
+static const CMS_Menu cmsx_menuGyro = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XGYROGLB",
     .GUARD_type = OME_MENU,
@@ -441,7 +441,7 @@ static CMS_Menu cmsx_menuGyro = {
     .entries = cmsx_menuGyroEntries,
 };
 
-static OSD_Entry cmsx_menuImuEntries[] =
+static const OSD_Entry cmsx_menuImuEntries[] =
 {
     OSD_LABEL_ENTRY("-- PID TUNING --"),
 
@@ -470,7 +470,7 @@ static OSD_Entry cmsx_menuImuEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuImu = {
+const CMS_Menu cmsx_menuImu = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XIMU",
     .GUARD_type = OME_MENU,

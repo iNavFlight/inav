@@ -114,7 +114,7 @@ static OSD_UINT8_t entryVtxMode =  {&masterConfig.vtx_mode, 0, 2, 1};
 static OSD_UINT16_t entryVtxMhz =  {&masterConfig.vtx_mhz, 5600, 5950, 1};
 #endif // VTX
 
-static OSD_Entry cmsx_menuVtxEntries[] =
+static const OSD_Entry cmsx_menuVtxEntries[] =
 {
     OSD_LABEL_ENTRY("--- VTX ---"),
     OSD_BOOL_ENTRY("ENABLED", &cmsx_featureVtx),
@@ -132,7 +132,7 @@ static OSD_Entry cmsx_menuVtxEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuVtx = {
+const CMS_Menu cmsx_menuVtx = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUVTX",
     .GUARD_type = OME_MENU,

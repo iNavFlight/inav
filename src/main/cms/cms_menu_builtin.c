@@ -73,7 +73,7 @@ static long cmsx_InfoInit(void)
     return 0;
 }
 
-static OSD_Entry menuInfoEntries[] = {
+static const OSD_Entry menuInfoEntries[] = {
     OSD_LABEL_ENTRY("--- INFO ---"),
     OSD_STRING_ENTRY("FWID", INAV_IDENTIFIER),
     OSD_STRING_ENTRY("FWVER", FC_VERSION_STRING),
@@ -84,7 +84,7 @@ static OSD_Entry menuInfoEntries[] = {
     OSD_END_ENTRY,
 };
 
-static CMS_Menu menuInfo = {
+static const CMS_Menu menuInfo = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUINFO",
     .GUARD_type = OME_MENU,
@@ -97,7 +97,7 @@ static CMS_Menu menuInfo = {
 
 // Features
 
-static OSD_Entry menuFeaturesEntries[] =
+static const OSD_Entry menuFeaturesEntries[] =
 {
     OSD_LABEL_ENTRY("--- FEATURES ---"),
     OSD_SUBMENU_ENTRY("BLACKBOX", &cmsx_menuBlackbox),
@@ -123,7 +123,7 @@ static OSD_Entry menuFeaturesEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu menuFeatures = {
+static const CMS_Menu menuFeatures = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUFEATURES",
     .GUARD_type = OME_MENU,
@@ -136,7 +136,7 @@ static CMS_Menu menuFeatures = {
 
 // Main
 
-static OSD_Entry menuMainEntries[] =
+static const OSD_Entry menuMainEntries[] =
 {
     OSD_LABEL_ENTRY("-- MAIN --"),
 
@@ -158,7 +158,7 @@ static OSD_Entry menuMainEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu menuMain = {
+const CMS_Menu menuMain = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUMAIN",
     .GUARD_type = OME_MENU,

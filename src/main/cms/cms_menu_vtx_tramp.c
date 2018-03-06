@@ -196,7 +196,7 @@ static long trampCmsOnEnter(void)
     return 0;
 }
 
-static OSD_Entry trampCmsMenuCommenceEntries[] = {
+static const OSD_Entry trampCmsMenuCommenceEntries[] = {
     OSD_LABEL_ENTRY("CONFIRM"),
     OSD_FUNC_CALL_ENTRY("YES", trampCmsCommence),
 
@@ -204,7 +204,7 @@ static OSD_Entry trampCmsMenuCommenceEntries[] = {
     OSD_END_ENTRY,
 };
 
-static CMS_Menu trampCmsMenuCommence = {
+static const CMS_Menu trampCmsMenuCommence = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XVTXTRC",
     .GUARD_type = OME_MENU,
@@ -215,7 +215,7 @@ static CMS_Menu trampCmsMenuCommence = {
     .entries = trampCmsMenuCommenceEntries,
 };
 
-static OSD_Entry trampMenuEntries[] =
+static const OSD_Entry trampMenuEntries[] =
 {
     OSD_LABEL_ENTRY("- TRAMP -"),
 
@@ -232,7 +232,7 @@ static OSD_Entry trampMenuEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuVtxTramp = {
+const CMS_Menu cmsx_menuVtxTramp = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XVTXTR",
     .GUARD_type = OME_MENU,

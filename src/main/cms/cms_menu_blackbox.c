@@ -75,7 +75,7 @@ static bool cmsx_Blackbox_Enabled(bool *enabled)
     return featureConfigured(FEATURE_BLACKBOX);
 }
 
-static OSD_Entry cmsx_menuBlackboxEntries[] =
+static const OSD_Entry cmsx_menuBlackboxEntries[] =
 {
     OSD_LABEL_ENTRY("-- BLACKBOX --"),
     OSD_BOOL_FUNC_ENTRY("ENABLED", cmsx_Blackbox_Enabled),
@@ -89,7 +89,7 @@ static OSD_Entry cmsx_menuBlackboxEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuBlackbox = {
+const CMS_Menu cmsx_menuBlackbox = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUBB",
     .GUARD_type = OME_MENU,

@@ -52,7 +52,7 @@ static long cmsx_menuRcConfirmBack(const OSD_Entry *self)
 //
 // RC preview
 //
-static OSD_Entry cmsx_menuRcEntries[] =
+static const OSD_Entry cmsx_menuRcEntries[] =
 {
     OSD_LABEL_ENTRY("-- RC PREV --"),
 
@@ -70,7 +70,7 @@ static OSD_Entry cmsx_menuRcEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuRcPreview = {
+static const CMS_Menu cmsx_menuRcPreview = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XRCPREV",
     .GUARD_type = OME_MENU,
@@ -81,7 +81,7 @@ CMS_Menu cmsx_menuRcPreview = {
     .entries = cmsx_menuRcEntries
 };
 
-static OSD_Entry menuMiscEntries[]=
+static const OSD_Entry menuMiscEntries[]=
 {
     OSD_LABEL_ENTRY("-- MISC --"),
 
@@ -106,7 +106,7 @@ static OSD_Entry menuMiscEntries[]=
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuMisc = {
+const CMS_Menu cmsx_menuMisc = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XMISC",
     .GUARD_type = OME_MENU,

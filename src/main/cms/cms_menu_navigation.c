@@ -38,7 +38,7 @@
 
 #include "navigation/navigation.h"
 
-static OSD_Entry cmsx_menuNavSettingsEntries[] =
+static const OSD_Entry cmsx_menuNavSettingsEntries[] =
 {
     OSD_LABEL_ENTRY("-- BASIC SETTINGS --"),
 
@@ -55,7 +55,7 @@ static OSD_Entry cmsx_menuNavSettingsEntries[] =
     OSD_END_ENTRY,
  };
 
-static CMS_Menu cmsx_menuNavSettings = {
+static const CMS_Menu cmsx_menuNavSettings = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVSETTINGS",
     .GUARD_type = OME_MENU,
@@ -66,7 +66,7 @@ static CMS_Menu cmsx_menuNavSettings = {
     .entries = cmsx_menuNavSettingsEntries
 };
 
- static OSD_Entry cmsx_menuRTHEntries[] =
+ static const OSD_Entry cmsx_menuRTHEntries[] =
  {
     OSD_LABEL_ENTRY("-- RTH --"),
 
@@ -86,7 +86,7 @@ static CMS_Menu cmsx_menuNavSettings = {
     OSD_END_ENTRY,
  };
 
-static CMS_Menu cmsx_menuRTH = {
+static const CMS_Menu cmsx_menuRTH = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVRTH",
     .GUARD_type = OME_MENU,
@@ -97,7 +97,7 @@ static CMS_Menu cmsx_menuRTH = {
     .entries = cmsx_menuRTHEntries
 };
 
-static OSD_Entry cmsx_menuFixedWingEntries[] =
+static const OSD_Entry cmsx_menuFixedWingEntries[] =
 {
     OSD_LABEL_ENTRY("-- FIXED WING --"),
 
@@ -114,7 +114,7 @@ static OSD_Entry cmsx_menuFixedWingEntries[] =
     OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuFixedWing = {
+static const CMS_Menu cmsx_menuFixedWing = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVFW",
     .GUARD_type = OME_MENU,
@@ -125,7 +125,7 @@ static CMS_Menu cmsx_menuFixedWing = {
     .entries = cmsx_menuFixedWingEntries
 };
 
-static OSD_Entry cmsx_menuNavigationEntries[] =
+static const OSD_Entry cmsx_menuNavigationEntries[] =
 {
     OSD_LABEL_ENTRY("-- NAVIGATION --"),
 
@@ -137,7 +137,7 @@ static OSD_Entry cmsx_menuNavigationEntries[] =
     OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuNavigation = {
+const CMS_Menu cmsx_menuNavigation = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAV",
     .GUARD_type = OME_MENU,
