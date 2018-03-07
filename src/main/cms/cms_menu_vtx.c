@@ -64,8 +64,8 @@ static const char * const vtxBandNames[] = {
     "RACEBAND",
 };
 
-static OSD_TAB_t entryVtxBand = {&cmsx_vtxBand,4,&vtxBandNames[0]};
-static OSD_UINT8_t entryVtxChannel =  {&cmsx_vtxChannel, 1, 8, 1};
+static const OSD_TAB_t entryVtxBand = {&cmsx_vtxBand,4,&vtxBandNames[0]};
+static const OSD_UINT8_t entryVtxChannel =  {&cmsx_vtxChannel, 1, 8, 1};
 
 static void cmsx_Vtx_ConfigRead(void)
 {
@@ -110,28 +110,29 @@ static long cmsx_Vtx_onExit(const OSD_Entry *self)
 }
 
 #ifdef VTX
-static OSD_UINT8_t entryVtxMode =  {&masterConfig.vtx_mode, 0, 2, 1};
-static OSD_UINT16_t entryVtxMhz =  {&masterConfig.vtx_mhz, 5600, 5950, 1};
+static const OSD_UINT8_t entryVtxMode =  {&masterConfig.vtx_mode, 0, 2, 1};
+static const OSD_UINT16_t entryVtxMhz =  {&masterConfig.vtx_mhz, 5600, 5950, 1};
 #endif // VTX
 
-static OSD_Entry cmsx_menuVtxEntries[] =
+static const OSD_Entry cmsx_menuVtxEntries[] =
 {
-    {"--- VTX ---", OME_Label, NULL, NULL, 0},
-    {"ENABLED", OME_Bool, NULL, &cmsx_featureVtx, 0},
+    OSD_LABEL_ENTRY("--- VTX ---"),
+    OSD_BOOL_ENTRY("ENABLED", &cmsx_featureVtx),
 #ifdef VTX
-    {"VTX MODE", OME_UINT8, NULL, &entryVtxMode, 0},
-    {"VTX MHZ", OME_UINT16, NULL, &entryVtxMhz, 0},
+    OSD_UINT8_ENTRY("VTX MODE", &entryVtxMode),
+    OSD_UINT16_ENTRY("VTX MHZ", &entryVtxMhz),
 #endif // VTX
-    {"BAND", OME_TAB, NULL, &entryVtxBand, 0},
-    {"CHANNEL", OME_UINT8, NULL, &entryVtxChannel, 0},
+    OSD_TAB_ENTRY("BAND", &entryVtxBand),
+    OSD_UINT8_ENTRY("CHANNEL", &entryVtxChannel),
 #ifdef USE_RTC6705
-    {"LOW POWER", OME_Bool, NULL, &masterConfig.vtx_power, 0},
+    OSD_BOOL_ENTRY("LOW POWER", &masterConfig.vtx_power),
 #endif // USE_RTC6705
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuVtx = {
+const CMS_Menu cmsx_menuVtx = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUVTX",
     .GUARD_type = OME_MENU,

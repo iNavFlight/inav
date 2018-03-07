@@ -78,15 +78,13 @@ uint8_t trampCmsBand = 1;
 uint8_t trampCmsChan = 1;
 uint16_t trampCmsFreqRef;
 
-OSD_TAB_t trampCmsEntBand = { &trampCmsBand, 5, vtx58BandNames };
+static const OSD_TAB_t trampCmsEntBand = { &trampCmsBand, 5, vtx58BandNames };
 
-OSD_TAB_t trampCmsEntChan = { &trampCmsChan, 8, vtx58ChannelNames };
-
-static OSD_UINT16_t trampCmsEntFreqRef = { &trampCmsFreqRef, 5600, 5900, 0 };
+static const OSD_TAB_t trampCmsEntChan = { &trampCmsChan, 8, vtx58ChannelNames };
 
 static uint8_t trampCmsPower = 1;
 
-OSD_TAB_t trampCmsEntPower = { &trampCmsPower, 5, trampPowerNames };
+static const OSD_TAB_t trampCmsEntPower = { &trampCmsPower, 5, trampPowerNames };
 
 static void trampCmsUpdateFreqRef(void)
 {
@@ -134,13 +132,11 @@ static long trampCmsConfigPower(displayPort_t *pDisp, const void *self)
     return 0;
 }
 
-static OSD_INT16_t trampCmsEntTemp = { &trampData.temperature, -100, 300, 0 };
-
 static const char * const trampCmsPitModeNames[] = {
     "---", "OFF", "ON "
 };
 
-static OSD_TAB_t trampCmsEntPitMode = { &trampCmsPitMode, 2, trampCmsPitModeNames };
+static const OSD_TAB_t trampCmsEntPitMode = { &trampCmsPitMode, 2, trampCmsPitModeNames };
 
 static long trampCmsSetPitMode(displayPort_t *pDisp, const void *self)
 {
@@ -196,14 +192,15 @@ static long trampCmsOnEnter(void)
     return 0;
 }
 
-static OSD_Entry trampCmsMenuCommenceEntries[] = {
-    { "CONFIRM", OME_Label,   NULL,          NULL, 0 },
-    { "YES",     OME_Funcall, trampCmsCommence, NULL, 0 },
-    { "BACK",    OME_Back, NULL, NULL, 0 },
-    { NULL,      OME_END, NULL, NULL, 0 }
+static const OSD_Entry trampCmsMenuCommenceEntries[] = {
+    OSD_LABEL_ENTRY("CONFIRM"),
+    OSD_FUNC_CALL_ENTRY("YES", trampCmsCommence),
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-static CMS_Menu trampCmsMenuCommence = {
+static const CMS_Menu trampCmsMenuCommence = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XVTXTRC",
     .GUARD_type = OME_MENU,
@@ -214,24 +211,24 @@ static CMS_Menu trampCmsMenuCommence = {
     .entries = trampCmsMenuCommenceEntries,
 };
 
-static OSD_Entry trampMenuEntries[] =
+static const OSD_Entry trampMenuEntries[] =
 {
-    { "- TRAMP -", OME_Label, NULL, NULL, 0 },
+    OSD_LABEL_ENTRY("- TRAMP -"),
 
-    { "",       OME_LabelFunc,  NULL,                   trampCmsDrawStatusString,  DYNAMIC },
-    { "PIT",    OME_TAB,        trampCmsSetPitMode,     &trampCmsEntPitMode,   0 },
-    { "BAND",   OME_TAB,        trampCmsConfigBand,     &trampCmsEntBand,      0 },
-    { "CHAN",   OME_TAB,        trampCmsConfigChan,     &trampCmsEntChan,      0 },
-    { "(FREQ)", OME_UINT16,     NULL,                   &trampCmsEntFreqRef,   DYNAMIC },
-    { "POWER",  OME_TAB,        trampCmsConfigPower,    &trampCmsEntPower,     0 },
-    { "T(C)",   OME_INT16,      NULL,                   &trampCmsEntTemp,      DYNAMIC },
-    { "SET",    OME_Submenu,    cmsMenuChange,          &trampCmsMenuCommence, 0 },
+    OSD_LABEL_FUNC_DYN_ENTRY("", trampCmsDrawStatusString),
+    OSD_TAB_CALLBACK_ENTRY("PIT", trampCmsSetPitMode, &trampCmsEntPitMode),
+    OSD_TAB_CALLBACK_ENTRY("BAND", trampCmsConfigBand, &trampCmsEntBand),
+    OSD_TAB_CALLBACK_ENTRY("CHAN", trampCmsConfigChan, &trampCmsEntChan),
+    OSD_UINT16_RO_ENTRY("(FREQ)", &trampCmsFreqRef),
+    OSD_TAB_CALLBACK_ENTRY("POWER", trampCmsConfigPower, &trampCmsEntPower),
+    OSD_INT16_RO_ENTRY("T(C)", &trampData.temperature),
+    OSD_SUBMENU_ENTRY("SET", &trampCmsMenuCommence),
 
-    { "BACK",   OME_Back, NULL, NULL, 0 },
-    { NULL,     OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuVtxTramp = {
+const CMS_Menu cmsx_menuVtxTramp = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "XVTXTR",
     .GUARD_type = OME_MENU,
