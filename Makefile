@@ -890,6 +890,7 @@ CFLAGS      += $(ARCH_FLAGS) \
               $(DEBUG_FLAGS) \
               -std=gnu99 \
               -Wall -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion \
+              -Werror=switch \
               -ffunction-sections \
               -fdata-sections \
               $(DEVICE_FLAGS) \
