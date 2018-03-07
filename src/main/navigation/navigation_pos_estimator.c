@@ -463,19 +463,10 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
  * Read Pitot and update airspeed topic
  *  Function is called at main loop rate, updates happen at reduced rate
  */
-static void updatePitotTopic(timeUs_t currentTimeUs)
+void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
 {
-    static navigationTimer_t pitotUpdateTimer;
-
-    if (updateTimer(&pitotUpdateTimer, HZ2US(INAV_PITOT_UPDATE_RATE), currentTimeUs)) {
-        float newTAS = pitotCalculateAirSpeed();
-        if (sensors(SENSOR_PITOT) && pitotIsCalibrationComplete()) {
-            posEstimator.pitot.airspeed = newTAS;
-        }
-        else {
-            posEstimator.pitot.airspeed = 0;
-        }
-    }
+    posEstimator.pitot.airspeed = pitot.airSpeed;
+    posEstimator.pitot.lastUpdateTime = currentTimeUs;
 }
 #endif
 
@@ -1023,11 +1014,6 @@ void updatePositionEstimator(void)
     }
 
     const timeUs_t currentTimeUs = micros();
-
-    /* Periodic sensor updates */
-#if defined(USE_PITOT)
-    updatePitotTopic(currentTimeUs);
-#endif
 
     /* Read updates from IMU, preprocess */
     updateIMUTopic();

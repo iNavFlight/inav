@@ -188,6 +188,50 @@ static int32_t applyPitotmeterMedianFilter(int32_t newPressureReading)
         return newPressureReading;
 }
 
+#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
+#define AIR_GAS_CONST               287.1f      //  J / (kg * K)
+#define P0                          101325.0f   // standard pressure
+
+static void performPitotCalibrationCycle(void)
+{
+    const float pitotPressureZeroError = pitotPressure - pitotPressureZero;
+    pitotPressureZero += pitotPressureZeroError * 0.15f;
+
+    if (ABS(pitotPressureZeroError) < (P0 * 0.000005f)) {    // 0.0005% calibration error
+        if ((millis() - pitotCalibrationTimeout) > 250) {
+            pitotCalibrationFinished = true;
+        }
+    }
+    else {
+        pitotCalibrationTimeout = millis();
+    }
+}
+
+static void pitotCalculateAirSpeed(void)
+{
+    if (pitotIsCalibrationComplete()) {
+        // https://en.wikipedia.org/wiki/Indicated_airspeed
+        // Indicated airspeed (IAS) is the airspeed read directly from the airspeed indicator on an aircraft, driven by the pitot-static system.
+        // The IAS is an important value for the pilot because it is the indicated speeds which are specified in the aircraft flight manual for
+        // such important performance values as the stall speed. A typical aircraft will always stall at the same indicated airspeed (for the current configuration)
+        // regardless of density, altitude or true airspeed.
+        //
+        // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
+        // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
+        const float indicatedAirspeed_tmp = pitotmeterConfig()->pitot_scale * sqrtf(2.0f * fabsf(pitotPressure - pitotPressureZero) / AIR_DENSITY_SEA_LEVEL_15C);
+        indicatedAirspeed += pitotmeterConfig()->pitot_noise_lpf * (indicatedAirspeed_tmp - indicatedAirspeed);
+
+        DEBUG_SET(DEBUG_PITOT, 1, pitotPressure);
+        DEBUG_SET(DEBUG_PITOT, 2, indicatedAirspeed_tmp);
+        DEBUG_SET(DEBUG_PITOT, 3, indicatedAirspeed);
+
+        pitot.airSpeed = indicatedAirspeed * 100;
+    } else {
+        performPitotCalibrationCycle();
+        pitot.airSpeed = 0;
+    }
+}
+
 typedef enum {
     PITOTMETER_NEEDS_SAMPLES = 0,
     PITOTMETER_NEEDS_CALCULATION,
@@ -212,55 +256,11 @@ uint32_t pitotUpdate(void)
             if (pitotmeterConfig()->use_median_filtering) {
                 pitotPressure = applyPitotmeterMedianFilter(pitotPressure);
             }
-            DEBUG_SET(DEBUG_PITOT, 1, pitotPressure);
+            pitotCalculateAirSpeed();
             state = PITOTMETER_NEEDS_SAMPLES;
-           return pitot.dev.delay;
+            return pitot.dev.delay;
         break;
     }
-}
-
-#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
-#define AIR_GAS_CONST               287.1f      //  J / (kg * K)
-#define P0                          101325.0f   // standard pressure
-
-static void performPitotCalibrationCycle(void)
-{
-    const float pitotPressureZeroError = pitotPressure - pitotPressureZero;
-    pitotPressureZero += pitotPressureZeroError * 0.15f;
-
-    if (ABS(pitotPressureZeroError) < (P0 * 0.00001f)) {    // 0.001% calibration error
-        if ((millis() - pitotCalibrationTimeout) > 250) {
-            pitotCalibrationFinished = true;
-        }
-    }
-    else {
-        pitotCalibrationTimeout = millis();
-    }
-}
-
-int32_t pitotCalculateAirSpeed(void)
-{
-    if (pitotIsCalibrationComplete()) {
-        // https://en.wikipedia.org/wiki/Indicated_airspeed
-        // Indicated airspeed (IAS) is the airspeed read directly from the airspeed indicator on an aircraft, driven by the pitot-static system.
-        // The IAS is an important value for the pilot because it is the indicated speeds which are specified in the aircraft flight manual for
-        // such important performance values as the stall speed. A typical aircraft will always stall at the same indicated airspeed (for the current configuration)
-        // regardless of density, altitude or true airspeed.
-        //
-        // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
-        // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
-        const float indicatedAirspeed_tmp = pitotmeterConfig()->pitot_scale * sqrtf(2.0f * fabsf(pitotPressure - pitotPressureZero) / AIR_DENSITY_SEA_LEVEL_15C);
-        indicatedAirspeed += pitotmeterConfig()->pitot_noise_lpf * (indicatedAirspeed_tmp - indicatedAirspeed);
-
-        DEBUG_SET(DEBUG_PITOT, 2, indicatedAirspeed_tmp);
-        DEBUG_SET(DEBUG_PITOT, 3, indicatedAirspeed);
-
-        pitot.airSpeed = indicatedAirspeed * 100;
-    } else {
-        performPitotCalibrationCycle();
-        pitot.airSpeed = 0;
-    }
-    return pitot.airSpeed;
 }
 
 bool pitotIsHealthy(void)
