@@ -248,8 +248,6 @@ void init(void)
     usbVcpInitHardware();
 #endif
 
-    delay(500);
-
     timerInit();  // timer must be initialized before any channel is allocated
 
 #if defined(AVOID_UART2_FOR_PWM_PPM)
@@ -509,8 +507,10 @@ void init(void)
     adcInit(&adc_params);
 #endif
 
-    /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
 #if defined(USE_GPS) || defined(USE_MAG)
+    delay(500);
+
+    /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
     if (!isMPUSoftReset()) {
         addBootlogEvent2(BOOT_EVENT_EXTRA_BOOT_DELAY, BOOT_EVENT_FLAGS_NONE);
 
