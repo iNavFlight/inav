@@ -19,6 +19,8 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/vector.h"
+#include "common/quaternion.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
 
@@ -35,6 +37,7 @@ typedef union {
     } values;
 } attitudeEulerAngles_t;
 
+extern fpQuaternion_t orientation;
 extern attitudeEulerAngles_t attitude;
 
 typedef struct imuConfig_s {

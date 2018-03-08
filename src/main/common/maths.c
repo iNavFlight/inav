@@ -203,19 +203,6 @@ float scaleRangef(float x, float srcMin, float srcMax, float destMin, float dest
     return ((a / b) + destMin);
 }
 
-// Normalize a vector
-void normalizeV(struct fp_vector *src, struct fp_vector *dest)
-{
-    float length;
-
-    length = sqrtf(src->X * src->X + src->Y * src->Y + src->Z * src->Z);
-    if (length != 0) {
-        dest->X = src->X / length;
-        dest->Y = src->Y / length;
-        dest->Z = src->Z / length;
-    }
-}
-
 void buildRotationMatrix(fp_angles_t *delta, float matrix[3][3])
 {
     float cosx, sinx, cosy, siny, cosz, sinz;
@@ -242,20 +229,6 @@ void buildRotationMatrix(fp_angles_t *delta, float matrix[3][3])
     matrix[2][X] = (sinzsinx) - (coszcosx * siny);
     matrix[2][Y] = (coszsinx) + (sinzcosx * siny);
     matrix[2][Z] = cosy * cosx;
-}
-
-// Rotate a vector *v by the euler angles defined by the 3-vector *delta.
-void rotateV(struct fp_vector *v, fp_angles_t *delta)
-{
-    struct fp_vector v_tmp = *v;
-
-    float matrix[3][3];
-
-    buildRotationMatrix(delta, matrix);
-
-    v->X = v_tmp.X * matrix[0][X] + v_tmp.Y * matrix[1][X] + v_tmp.Z * matrix[2][X];
-    v->Y = v_tmp.X * matrix[0][Y] + v_tmp.Y * matrix[1][Y] + v_tmp.Z * matrix[2][Y];
-    v->Z = v_tmp.X * matrix[0][Z] + v_tmp.Y * matrix[1][Z] + v_tmp.Z * matrix[2][Z];
 }
 
 // Quick median filter implementation

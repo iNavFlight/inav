@@ -18,6 +18,7 @@
 #pragma once
 
 #include "common/maths.h"
+#include "common/vector.h"
 
 #include "flight/failsafe.h"
 

@@ -19,6 +19,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/vector.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/sensor.h"
