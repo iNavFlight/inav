@@ -155,7 +155,7 @@ void imuInit(void)
 void imuTransformVectorBodyToEarth(t_fp_vector * v)
 {
     // From body frame to earth frame
-    rotateVectorByQuaternionInv(v, v, &orientation);
+    quaternionRotateVectorInv(v, v, &orientation);
 
     // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
     v->V.Y = -v->V.Y;
@@ -167,7 +167,7 @@ void imuTransformVectorEarthToBody(t_fp_vector * v)
     v->V.Y = -v->V.Y;
 
     // From earth frame to body frame
-    rotateVectorByQuaternion(v, v, &orientation);
+    quaternionRotateVector(v, v, &orientation);
 }
 
 #if defined(USE_GPS) || defined(HIL)
@@ -226,30 +226,30 @@ static void imuCheckAndResetOrientationQuaternion(const t_fp_vector * accBF)
 {
     // Check if some calculation in IMU update yield NAN or zero quaternion
     // Reset quaternion from accelerometer - this might be incorrect, but it's better than no attitude at all
+    const float check = fabs(orientation.q0) + fabs(orientation.q1) + fabs(orientation.q2) + fabs(orientation.q3);
 
-    const bool isNan = (isnan(orientation.q0) || isnan(orientation.q1) || isnan(orientation.q2) || isnan(orientation.q3));
-    const bool isInf = (isinf(orientation.q0) || isinf(orientation.q1) || isinf(orientation.q2) || isinf(orientation.q3));
-    const bool isZero = (ABS(orientation.q0) < 1e-3f && ABS(orientation.q1) < 1e-3f && ABS(orientation.q2) < 1e-3f && ABS(orientation.q3) < 1e-3f);
+    if (!isnan(check) && !isinf(check)) {
+        return;
+    }
 
-    if (isNan || isZero || isInf) {
-        imuResetOrientationQuaternion(accBF);
-        DEBUG_TRACE("AHRS orientation quaternion error");
+    const float normSq = quaternionNormSqared(&orientation);
+    if (normSq > (1.0f - 1e-6f) && normSq < (1.0f + 1e-6f)) {
+        return;
+    }
+
+    imuResetOrientationQuaternion(accBF);
+    DEBUG_TRACE("AHRS orientation quaternion error");
 
 #ifdef USE_BLACKBOX
-        if (feature(FEATURE_BLACKBOX)) {
-            blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, NULL);
-        }
-#endif
+    if (feature(FEATURE_BLACKBOX)) {
+        blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, NULL);
     }
+#endif
 }
 
-static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
-                                bool useAcc, const t_fp_vector * accBF,
-                                bool useMag, const t_fp_vector * magBF,
-                                bool useCOG, float courseOverGround)
+static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp_vector * accBF, const t_fp_vector * magBF, bool useCOG, float courseOverGround)
 {
-    STATIC_FASTRAM t_fp_vector vIntegralAcc = { 0 };
-    STATIC_FASTRAM t_fp_vector vIntegralMag = { 0 };
+    STATIC_FASTRAM t_fp_vector vGyroDriftEstimate = { 0 };
 
     t_fp_vector vRotation = *gyroBF;
 
@@ -258,11 +258,13 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
 
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
-    if (useMag || useCOG) {
+    if (magBF || useCOG) {
         static const t_fp_vector vNorth = { .V = { 1.0f, 0.0f, 0.0f } };
+        static const t_fp_vector vForward = { .V = { 1.0f, 0.0f, 0.0f } };
+
         t_fp_vector vErr = { .V = { 0.0f, 0.0f, 0.0f } };
 
-        if (useMag && vectorNormSquared(magBF) > 0.01f) {
+        if (magBF && vectorNormSquared(magBF) > 0.01f) {
             t_fp_vector vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
@@ -270,7 +272,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
 
             // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
             // This should yield direction to magnetic North (1; 0; 0)
-            rotateVectorByQuaternionInv(&vMag, magBF, &orientation);    // BF -> EF
+            quaternionRotateVectorInv(&vMag, magBF, &orientation);    // BF -> EF
 
             // Ignore magnetic inclination
             vMag.V.Z = 0.0f;
@@ -283,7 +285,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
             vectorCrossProduct(&vErr, &vMag, &vNorth);
 
             // Rotate error back into body frame
-            rotateVectorByQuaternion(&vErr, &vErr, &orientation);
+            quaternionRotateVector(&vErr, &vErr, &orientation);
         }
         else if (useCOG) {
             t_fp_vector vHeadingEF;
@@ -300,7 +302,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
             t_fp_vector vCoG = { .V = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
 
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
-            rotateVectorByQuaternionInv(&vHeadingEF, &vNorth, &orientation);
+            quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
             vHeadingEF.V.Z = 0.0f;
 
             // Normalize to unit vector
@@ -310,7 +312,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
             vectorCrossProduct(&vErr, &vCoG, &vHeadingEF);
 
             // Rotate error back into body frame
-            rotateVectorByQuaternion(&vErr, &vErr, &orientation);
+            quaternionRotateVector(&vErr, &vErr, &orientation);
         }
 
         // Compute and apply integral feedback if enabled
@@ -321,10 +323,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
 
                 // integral error scaled by Ki
                 vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_mag * dt);
-                vectorAdd(&vIntegralMag, &vIntegralMag, &vTmp);
-
-                // apply integral feedback
-                vectorAdd(&vRotation, &vRotation, &vIntegralMag);
+                vectorAdd(&vGyroDriftEstimate, &vGyroDriftEstimate, &vTmp);
             }
         }
 
@@ -335,12 +334,12 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
 
 
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
-    if (useAcc) {
+    if (accBF) {
         static const t_fp_vector vGravity = { .V = { 0.0f, 0.0f, 1.0f } };
         t_fp_vector vEstGravity, vAcc, vErr;
 
         // Calculate estimated gravity vector in body frame
-        rotateVectorByQuaternion(&vEstGravity, &vGravity, &orientation);    // EF -> BF
+        quaternionRotateVector(&vEstGravity, &vGravity, &orientation);    // EF -> BF
 
         // Error is sum of cross product between estimated direction and measured direction of gravity
         vectorNormalize(&vAcc, accBF);
@@ -354,10 +353,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
 
                 // integral error scaled by Ki
                 vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_acc * dt);
-                vectorAdd(&vIntegralAcc, &vIntegralAcc, &vTmp);
-
-                // apply integral feedback
-                vectorAdd(&vRotation, &vRotation, &vIntegralAcc);
+                vectorAdd(&vGyroDriftEstimate, &vGyroDriftEstimate, &vTmp);
             }
         }
 
@@ -365,6 +361,9 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
         vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_acc * imuGetPGainScaleFactor());
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
+
+    // Apply gyro drift correction
+    vectorAdd(&vRotation, &vRotation, &vGyroDriftEstimate);
 
     // Integrate rate of change of quaternion
     t_fp_vector vTheta;
@@ -390,7 +389,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF,
     }
 
     // Calculate final orientation and renormalize
-    quaternionCrossProduct(&orientation, &orientation, &deltaQ);
+    quaternionMultiply(&orientation, &orientation, &deltaQ);
     quaternionNormalize(&orientation, &orientation);
 
     // Check for invalid quaternion
@@ -492,10 +491,10 @@ static void imuCalculateEstimatedAttitude(float dT)
 
     t_fp_vector measuredMagBF = { .V = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
-    imuMahonyAHRSupdate(dT,     &imuMeasuredRotationBF,
-                        useAcc, &imuMeasuredAccelBF,
-                        useMag, &measuredMagBF,
-                        useCOG, courseOverGround);
+    imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF, 
+                            useAcc ? &imuMeasuredAccelBF : NULL, 
+                            useMag ? &measuredMagBF : NULL, 
+                            useCOG, courseOverGround);
 
     imuUpdateEulerAngles();
 }

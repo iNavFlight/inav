@@ -96,7 +96,7 @@ static inline float quaternionNormSqared(const fpQuaternion_t * q)
     return sq(q->q0) + sq(q->q1) + sq(q->q2) + sq(q->q3);
 }
 
-static inline fpQuaternion_t * quaternionCrossProduct(fpQuaternion_t * result, const fpQuaternion_t * a, const fpQuaternion_t * b)
+static inline fpQuaternion_t * quaternionMultiply(fpQuaternion_t * result, const fpQuaternion_t * a, const fpQuaternion_t * b)
 {
   fpQuaternion_t p;
 
@@ -165,7 +165,7 @@ static inline fpQuaternion_t * quaternionNormalize(fpQuaternion_t * result, cons
     return result;
 }
 
-static inline t_fp_vector * rotateVectorByQuaternion(t_fp_vector * result, const t_fp_vector * vect, const fpQuaternion_t * ref)
+static inline t_fp_vector * quaternionRotateVector(t_fp_vector * result, const t_fp_vector * vect, const fpQuaternion_t * ref)
 {
     fpQuaternion_t vectQuat, refConj;
 
@@ -175,8 +175,8 @@ static inline t_fp_vector * rotateVectorByQuaternion(t_fp_vector * result, const
     vectQuat.q3 = vect->V.Z;
 
     quaternionConjugate(&refConj, ref);
-    quaternionCrossProduct(&vectQuat, &refConj, &vectQuat);
-    quaternionCrossProduct(&vectQuat, &vectQuat, ref);
+    quaternionMultiply(&vectQuat, &refConj, &vectQuat);
+    quaternionMultiply(&vectQuat, &vectQuat, ref);
 
     result->V.X = vectQuat.q1;
     result->V.Y = vectQuat.q2;
@@ -184,7 +184,7 @@ static inline t_fp_vector * rotateVectorByQuaternion(t_fp_vector * result, const
     return result;
 }
 
-static inline t_fp_vector * rotateVectorByQuaternionInv(t_fp_vector * result, const t_fp_vector * vect, const fpQuaternion_t * ref)
+static inline t_fp_vector * quaternionRotateVectorInv(t_fp_vector * result, const t_fp_vector * vect, const fpQuaternion_t * ref)
 {
     fpQuaternion_t vectQuat, refConj;
 
@@ -194,8 +194,8 @@ static inline t_fp_vector * rotateVectorByQuaternionInv(t_fp_vector * result, co
     vectQuat.q3 = vect->V.Z;
 
     quaternionConjugate(&refConj, ref);
-    quaternionCrossProduct(&vectQuat, ref, &vectQuat);
-    quaternionCrossProduct(&vectQuat, &vectQuat, &refConj);
+    quaternionMultiply(&vectQuat, ref, &vectQuat);
+    quaternionMultiply(&vectQuat, &vectQuat, &refConj);
 
     result->V.X = vectQuat.q1;
     result->V.Y = vectQuat.q2;
