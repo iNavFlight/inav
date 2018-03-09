@@ -378,7 +378,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
     // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
     // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
     // then we can safely use the "low angle" approximated version without loss of accuracy.
-    if (thetaMagnitudeSq * thetaMagnitudeSq / 24.0f < 1e-6f) {
+    if (thetaMagnitudeSq < sqrtf(24.0f * 1e-6f)) {
         quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
         deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
     }
