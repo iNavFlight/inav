@@ -31,12 +31,12 @@
 static bool     tempSensorValid[TEMP_COUNT];
 static int16_t  tempSensorValue[TEMP_COUNT];
 
-bool isTemperatureSensorValid(tempSensor_t sensor)
+bool isTemperatureSensorValid(tempSensor_e sensor)
 {
     return tempSensorValid[sensor];
 }
 
-int16_t getTemperature(tempSensor_t sensor)
+int16_t getTemperature(tempSensor_e sensor)
 {
     return tempSensorValue[sensor];
 }

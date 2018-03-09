@@ -19,13 +19,13 @@
 
 #include "config/parameter_group.h"
 
-typedef enum tempSensor_e {
+typedef enum {
     TEMP_GYRO = 0,
     TEMP_COUNT
-} tempSensor_t;
+} tempSensor_e;
 
 // Temperature is returned in degC*10
 
-bool isTemperatureSensorValid(tempSensor_t sensor);
-int16_t getTemperature(tempSensor_t sensor);
+bool isTemperatureSensorValid(tempSensor_e sensor);
+int16_t getTemperature(tempSensor_e sensor);
 void temperatureUpdate(void);
