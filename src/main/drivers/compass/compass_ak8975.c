@@ -32,7 +32,7 @@
 
 #include "drivers/time.h"
 #include "drivers/gpio.h"
-#include "drivers/bus_i2c.h"
+#include "drivers/bus.h"
 
 #include "drivers/sensor.h"
 #include "drivers/compass/compass.h"
@@ -43,7 +43,6 @@
 
 // AK8975, mag sensor address
 #define AK8975_MAG_I2C_ADDRESS      0x0C
-
 
 // Registers
 #define AK8975_MAG_REG_WHO_AM_I     0x00
@@ -63,33 +62,32 @@
 #define AK8975A_ASAY 0x11 // Fuse ROM y-axis sensitivity adjustment value
 #define AK8975A_ASAZ 0x12 // Fuse ROM z-axis sensitivity adjustment value
 
-static bool ak8975Init(magDev_t *magDev)
+static bool ak8975Init(magDev_t * mag)
 {
     bool ack;
     uint8_t buffer[3];
     uint8_t status;
 
     UNUSED(ack);
-    UNUSED(magDev);
 
-    ack = i2cWrite(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_CNTL, 0x00); // power down before entering fuse mode
+    ack = busWrite(mag->busDev, AK8975_MAG_REG_CNTL, 0x00); // power down before entering fuse mode
     delay(20);
 
-    ack = i2cWrite(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_CNTL, 0x0F); // Enter Fuse ROM access mode
+    ack = busWrite(mag->busDev, AK8975_MAG_REG_CNTL, 0x0F); // Enter Fuse ROM access mode
     delay(10);
 
-    ack = i2cRead(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975A_ASAX, 3, &buffer[0]); // Read the x-, y-, and z-axis calibration values
+    ack = busReadBuf(mag->busDev, AK8975A_ASAX, &buffer[0], 3); // Read the x-, y-, and z-axis calibration values
     delay(10);
 
-    ack = i2cWrite(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_CNTL, 0x00); // power down after reading.
+    ack = busWrite(mag->busDev, AK8975_MAG_REG_CNTL, 0x00); // power down after reading.
     delay(10);
 
     // Clear status registers
-    ack = i2cRead(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_STATUS1, 1, &status);
-    ack = i2cRead(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_STATUS2, 1, &status);
+    ack = busRead(mag->busDev, AK8975_MAG_REG_STATUS1, &status);
+    ack = busRead(mag->busDev, AK8975_MAG_REG_STATUS2, &status);
 
     // Trigger first measurement
-    ack = i2cWrite(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_CNTL, 0x01);
+    ack = busWrite(mag->busDev, AK8975_MAG_REG_CNTL, 0x01);
     return true;
 }
 
@@ -98,59 +96,69 @@ static bool ak8975Init(magDev_t *magDev)
 #define BIT_STATUS2_REG_DATA_ERROR              (1 << 2)
 #define BIT_STATUS2_REG_MAG_SENSOR_OVERFLOW     (1 << 3)
 
-static bool ak8975Read(magDev_t *magDev)
+static bool ak8975Read(magDev_t * mag)
 {
     uint8_t status;
     uint8_t buf[6];
 
     // set magData to zero for case of failed read
-    magDev->magADCRaw[X] = 0;
-    magDev->magADCRaw[Y] = 0;
-    magDev->magADCRaw[Z] = 0;
+    mag->magADCRaw[X] = 0;
+    mag->magADCRaw[Y] = 0;
+    mag->magADCRaw[Z] = 0;
 
-    bool ack = i2cRead(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_STATUS1, 1, &status);
+    bool ack = busRead(mag->busDev, AK8975_MAG_REG_STATUS1, &status);
     if (!ack || (status & BIT_STATUS1_REG_DATA_READY) == 0) {
         return false;
     }
 
-#if 1 // USE_I2C_SINGLE_BYTE_READS
-    ack = i2cRead(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_HXL, 6, buf); // read from AK8975_MAG_REG_HXL to AK8975_MAG_REG_HZH
-#else
-    for (uint8_t i = 0; i < 6; i++) {
-        ack = i2cRead(AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_HXL + i, 1, &buf[i]); // read from AK8975_MAG_REG_HXL to AK8975_MAG_REG_HZH
-        if (!ack) {
-            return false
-        }
-    }
-#endif
+    ack = busReadBuf(mag->busDev, AK8975_MAG_REG_HXL, buf, 6); // read from AK8975_MAG_REG_HXL to AK8975_MAG_REG_HZH
+    ack = busRead(mag->busDev, AK8975_MAG_REG_STATUS2, &status);
 
-    ack = i2cRead(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_STATUS2, 1, &status);
     if (!ack || (status & BIT_STATUS2_REG_DATA_ERROR) || (status & BIT_STATUS2_REG_MAG_SENSOR_OVERFLOW)) {
         return false;
     }
 
-    magDev->magADCRaw[X] = -(int16_t)(buf[1] << 8 | buf[0]) * 4;
-    magDev->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * 4;
-    magDev->magADCRaw[Z] = -(int16_t)(buf[5] << 8 | buf[4]) * 4;
+    mag->magADCRaw[X] = -(int16_t)(buf[1] << 8 | buf[0]) * 4;
+    mag->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * 4;
+    mag->magADCRaw[Z] = -(int16_t)(buf[5] << 8 | buf[4]) * 4;
 
-
-    ack = i2cWrite(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_CNTL, 0x01); // start reading again
+    ack = busWrite(mag->busDev, AK8975_MAG_REG_CNTL, 0x01); // start reading again
     return true;
 }
 
 #define DETECTION_MAX_RETRY_COUNT   5
-bool ak8975Detect(magDev_t *magDev)
+static bool deviceDetect(magDev_t * mag)
 {
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
+        delay(10);
+
         uint8_t sig = 0;
-        bool ack = i2cRead(MAG_I2C_INSTANCE, AK8975_MAG_I2C_ADDRESS, AK8975_MAG_REG_WHO_AM_I, 1, &sig);
-        if (ack && sig == 'H') { // 0x48 / 01001000 / 'H'
-            magDev->init = ak8975Init;
-            magDev->read = ak8975Read;
+        bool ack = busRead(mag->busDev, AK8975_MAG_REG_WHO_AM_I, &sig);
+
+        if (ack && sig == 0x48) {
             return true;
         }
     }
 
     return false;
 }
+
+bool ak8975Detect(magDev_t * mag)
+{
+    mag->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_AK8975, mag->magSensorToUse, OWNER_COMPASS);
+    if (mag->busDev == NULL) {
+        return false;
+    }
+
+    if (!deviceDetect(mag)) {
+        busDeviceDeInit(mag->busDev);
+        return false;
+    }
+
+    mag->init = ak8975Init;
+    mag->read = ak8975Read;
+
+    return true;
+}
+
 #endif

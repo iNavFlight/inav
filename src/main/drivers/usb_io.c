@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef USB_IO
+#ifdef USE_VCP
 
 #include "drivers/io.h"
 #include "drivers/time.h"

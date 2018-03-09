@@ -172,6 +172,10 @@ int tfp_format(void *putp, putcf putf, const char *fmt, va_list va)
             case 'n':
                 *va_arg(va, int*) = written;
                 break;
+            case 'f':
+                ftoa(va_arg(va, double), bf);
+                written += putchw(putp, putf, w, lz, bf);
+                break;
             default:
                 break;
             }

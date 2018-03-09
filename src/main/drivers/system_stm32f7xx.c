@@ -33,22 +33,13 @@ void SystemClock_Config(void);
 
 void systemReset(void)
 {
-    if (mpuResetFn) {
-        mpuResetFn();
-    }
-
     __disable_irq();
     NVIC_SystemReset();
 }
 
 void systemResetToBootloader(void)
 {
-    if (mpuResetFn) {
-        mpuResetFn();
-    }
-
     (*(__IO uint32_t *) (BKPSRAM_BASE + 4)) = 0xDEADBEEF;   // flag that will be readable after reboot
-
     __disable_irq();
     NVIC_SystemReset();
 }
@@ -155,10 +146,17 @@ bool isMPUSoftReset(void)
         return false;
 }
 
+void systemClockSetup(uint8_t cpuUnderclock)
+{
+    (void)cpuUnderclock;
+    // This is a stub
+}
+
 void systemInit(void)
 {
     checkForBootLoaderRequest();
 
+    //Called by SystemInit from startup_stm32f7xx.s
     //SystemClock_Config();
 
     // Configure NVIC preempt/priority groups

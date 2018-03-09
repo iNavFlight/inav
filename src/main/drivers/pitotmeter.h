@@ -16,17 +16,17 @@
  */
 
 #pragma once
+#include "drivers/bus.h"
 
-typedef void (*pitotOpFuncPtr)(void);                       // pitot start operation
-typedef void (*pitotCalculateFuncPtr)(float *pressure, float *temperature); // airspeed calculation (filled params are pressure and temperature)
+struct pitotDev_s;
 
-typedef struct pitotDev_t {
+typedef void (*pitotOpFuncPtr)(struct pitotDev_s * pitot);                       // pitot start operation
+typedef void (*pitotCalculateFuncPtr)(struct pitotDev_s * pitot, float *pressure, float *temperature); // airspeed calculation (filled params are pressure and temperature)
+
+typedef struct pitotDev_s {
+    busDevice_t * busDev;
     uint16_t delay;
     pitotOpFuncPtr start;
     pitotOpFuncPtr get;
     pitotCalculateFuncPtr calculate;
 } pitotDev_t;
-
-#ifndef PITOT_I2C_INSTANCE
-#define PITOT_I2C_INSTANCE I2C_DEVICE
-#endif

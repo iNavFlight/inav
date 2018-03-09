@@ -23,3 +23,9 @@
 #if defined(VTX) || defined(USE_RTC6705)
 # undef VTX_CONTROL
 #endif
+
+// Backward compatibility for I2C OLED display
+#if !defined(USE_I2C)
+# undef USE_DASHBOARD
+# undef USE_OLED_UG2864
+#endif

@@ -34,20 +34,20 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_mpu6000.h"
+#include "drivers/accgyro/accgyro_mpu6050.h"
+#include "drivers/accgyro/accgyro_mpu6500.h"
+#include "drivers/accgyro/accgyro_mpu9250.h"
+
 #include "drivers/accgyro/accgyro_adxl345.h"
 #include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/accgyro/accgyro_l3g4200d.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_mpu.h"
-#include "drivers/accgyro/accgyro_mpu3050.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
-#include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_l3gd20.h"
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_spi_mpu6000.h"
-#include "drivers/accgyro/accgyro_spi_mpu6500.h"
-#include "drivers/accgyro/accgyro_spi_mpu9250.h"
+#include "drivers/accgyro/accgyro_mpu3050.h"
 #include "drivers/gyro_sync.h"
 #include "drivers/io.h"
 #include "drivers/logging.h"
@@ -94,7 +94,7 @@ STATIC_FASTRAM filterApplyFnPtr notchFilter2ApplyFn;
 STATIC_FASTRAM void *notchFilter2[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 2);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ, // INV_FILTER_42HZ, In case of ST gyro, will default to 32Hz instead
@@ -110,45 +110,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_soft_notch_hz_2 = 0,
     .gyro_soft_notch_cutoff_2 = 1
 );
-
-#if defined(USE_GYRO_MPU3050) || defined(USE_GYRO_SPI_MPU6000) || defined(USE_ACC_MPU6050) || defined(USE_GYRO_MPU6050) || defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500) || defined(USE_GYRO_SPI_MPU9250)
-#define USE_GYRO_MPU
-#endif
-
-static const extiConfig_t *selectMPUIntExtiConfig(void)
-{
-#ifdef USE_GYRO_MPU
-#if defined(MPU_INT_EXTI)
-    static const extiConfig_t mpuIntExtiConfig = { .tag = IO_TAG(MPU_INT_EXTI) };
-    return &mpuIntExtiConfig;
-#elif defined(USE_DUAL_GYRO)
-    static extiConfig_t mpuIntExtiConfig;
-    mpuIntExtiConfig.tag = gyroConfig()->gyro_to_use == 0  ? IO_TAG(GYRO_0_INT_EXTI) : IO_TAG(GYRO_1_INT_EXTI);
-    return &mpuIntExtiConfig;
-#elif defined(USE_HARDWARE_REVISION_DETECTION)
-    return selectMPUIntExtiConfigByHardwareRevision();
-#else
-    return NULL;
-#endif // MPU_INT_EXTI
-    return NULL;
-#else
-    return NULL;
-#endif
-}
-
-const busDevice_t *gyroSensorBus(void)
-{
-    return &gyroDev0.bus;
-}
-
-const mpuConfiguration_t *gyroMpuConfiguration(void)
-{
-    return &gyroDev0.mpuConfiguration;
-}
-const mpuDetectionResult_t *gyroMpuDetectionResult(void)
-{
-    return &gyroDev0.mpuDetectionResult;
-}
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
 {
@@ -206,9 +167,9 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_SPI_MPU6000
+#ifdef USE_GYRO_MPU6000
     case GYRO_MPU6000:
-        if (mpu6000SpiGyroDetect(dev)) {
+        if (mpu6000GyroDetect(dev)) {
             gyroHardware = GYRO_MPU6000;
 #ifdef GYRO_MPU6000_ALIGN
             dev->gyroAlign = GYRO_MPU6000_ALIGN;
@@ -218,13 +179,9 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#if defined(USE_GYRO_MPU6500) || defined(USE_GYRO_SPI_MPU6500)
+#if defined(USE_GYRO_MPU6500)
     case GYRO_MPU6500:
-#ifdef USE_GYRO_SPI_MPU6500
-        if (mpu6500GyroDetect(dev) || mpu6500SpiGyroDetect(dev)) {
-#else
         if (mpu6500GyroDetect(dev)) {
-#endif
             gyroHardware = GYRO_MPU6500;
 #ifdef GYRO_MPU6500_ALIGN
             dev->gyroAlign = GYRO_MPU6500_ALIGN;
@@ -234,9 +191,9 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         FALLTHROUGH;
 #endif
 
-#ifdef USE_GYRO_SPI_MPU9250
+#ifdef USE_GYRO_MPU9250
     case GYRO_MPU9250:
-        if (mpu9250SpiGyroDetect(dev)) {
+        if (mpu9250GyroDetect(dev)) {
             gyroHardware = GYRO_MPU9250;
 #ifdef GYRO_MPU9250_ALIGN
             dev->gyroAlign = GYRO_MPU9250_ALIGN;
@@ -272,21 +229,18 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
-    const extiConfig_t *extiConfig = selectMPUIntExtiConfig();
-#ifdef USE_GYRO_MPU
+
+    // Set inertial sensor tag (for dual-gyro selection)
 #ifdef USE_DUAL_GYRO
-    // set cnsPin using GYRO_n_CS_PIN defined in target.h
-    gyroDev0.bus.busdev.spi.csnPin = gyroConfig()->gyro_to_use == 0 ? IOGetByTag(IO_TAG(GYRO_0_CS_PIN)) : IOGetByTag(IO_TAG(GYRO_1_CS_PIN));
+    gyroDev0.imuSensorToUse = gyroConfig()->gyro_to_use;
 #else
-    gyroDev0.bus.busdev.spi.csnPin = IO_NONE; // set cnsPin to IO_NONE so mpuDetect will set it according to value defined in target.h
-#endif // USE_DUAL_GYRO
-    mpuDetect(&gyroDev0);
-    mpuResetFn = gyroDev0.mpuConfiguration.resetFn;
+    gyroDev0.imuSensorToUse = 0;
 #endif
-    gyroDev0.mpuIntExtiConfig =  extiConfig;
+
     if (gyroDetect(&gyroDev0, GYRO_AUTODETECT) == GYRO_NONE) {
         return false;
     }
+
     // After refactoring this function is always called after gyro sampling rate is known, so
     // no additional condition is required
     // Set gyro sample rate before driver initialisation
@@ -398,12 +352,46 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
     }
 
     if (isOnFinalGyroCalibrationCycle(gyroCalibration)) {
+        DEBUG_TRACE_SYNC("Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     }
     gyroCalibration->calibratingG--;
 }
 
-void gyroUpdate(void)
+#ifdef USE_ASYNC_GYRO_PROCESSING
+STATIC_FASTRAM float accumulatedRates[XYZ_AXIS_COUNT];
+STATIC_FASTRAM timeUs_t accumulatedRateTimeUs;
+
+static void gyroUpdateAccumulatedRates(timeDelta_t gyroUpdateDeltaUs)
+{
+    accumulatedRateTimeUs += gyroUpdateDeltaUs;
+    const float gyroUpdateDelta = gyroUpdateDeltaUs * 1e-6f;
+    for (int axis = 0; axis < 3; axis++) {
+        accumulatedRates[axis] += gyro.gyroADCf[axis] * gyroUpdateDelta;
+    }
+}
+#endif
+
+/*
+ * Calculate rotation rate in rad/s in body frame
+ */
+void gyroGetMeasuredRotationRate(t_fp_vector *measuredRotationRate)
+{
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    const float accumulatedRateTime = accumulatedRateTimeUs * 1e-6;
+    accumulatedRateTimeUs = 0;
+    for (int axis = 0; axis < 3; axis++) {
+        measuredRotationRate->A[axis] = DEGREES_TO_RADIANS(accumulatedRates[axis] / accumulatedRateTime);
+        accumulatedRates[axis] = 0.0f;
+    }
+#else
+    for (int axis = 0; axis < 3; axis++) {
+        measuredRotationRate->A[axis] = DEGREES_TO_RADIANS(gyro.gyroADCf[axis]);
+    }
+#endif
+}
+
+void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 {
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev0.readFn(&gyroDev0)) {
@@ -412,7 +400,8 @@ void gyroUpdate(void)
             gyroADC[X] = (int32_t)gyroDev0.gyroADCRaw[X] - (int32_t)gyroDev0.gyroZero[X];
             gyroADC[Y] = (int32_t)gyroDev0.gyroADCRaw[Y] - (int32_t)gyroDev0.gyroZero[Y];
             gyroADC[Z] = (int32_t)gyroDev0.gyroADCRaw[Z] - (int32_t)gyroDev0.gyroZero[Z];
-            alignSensors(gyroADC, gyroDev0.gyroAlign);
+            applySensorAlignment(gyroADC, gyroADC, gyroDev0.gyroAlign);
+            applyBoardAlignment(gyroADC);
         } else {
             performGyroCalibration(&gyroDev0, &gyroCalibration, gyroConfig()->gyroMovementCalibrationThreshold);
             // Reset gyro values to zero to prevent other code from using uncalibrated data
@@ -444,6 +433,11 @@ void gyroUpdate(void)
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
     }
+
+#ifdef USE_ASYNC_GYRO_PROCESSING
+    // Accumulate gyro readings for better IMU accuracy
+    gyroUpdateAccumulatedRates(gyroUpdateDeltaUs);
+#endif
 }
 
 void gyroReadTemperature(void)

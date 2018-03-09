@@ -283,7 +283,7 @@ static void telemetryRX(void)
         themp = (uint8_t)(thempfil/80 + 86);
 
         if (FLIGHT_MODE(FAILSAFE_MODE))    wii_flymode = 7;
-        else if (FLIGHT_MODE(PASSTHRU_MODE))  wii_flymode = 8;
+        else if (FLIGHT_MODE(MANUAL_MODE))  wii_flymode = 8;
         else if (FLIGHT_MODE(NAV_RTH_MODE))  wii_flymode = 6;
         else if (FLIGHT_MODE(NAV_POSHOLD_MODE))  wii_flymode = 5;
         else if (FLIGHT_MODE(HEADFREE_MODE))  wii_flymode = 4;
@@ -294,7 +294,7 @@ static void telemetryRX(void)
         rfTxBuffer[0] = 0x54;
         rfTxBuffer[1] = localRssi;
         rfTxBuffer[2] = quality;
-        rfTxBuffer[3] = vbat;
+        rfTxBuffer[3] = vbat / 10;
         rfTxBuffer[4] = themp;
         rfTxBuffer[5] = curr & 0xff;
         rfTxBuffer[6] = pres>>8;
@@ -326,7 +326,7 @@ static void telemetryRX(void)
         if (sensors(SENSOR_GPS)) {
             uint16_t gpsspeed =  (gpsSol.groundSpeed*9L)/250L;
             int16_t course = (gpsSol.groundCourse+360)%360;
-#ifdef NAV
+#ifdef USE_NAV
             int32_t alt = getEstimatedActualPosition(Z);
 #else
             int32_t alt = baro.BaroAlt;

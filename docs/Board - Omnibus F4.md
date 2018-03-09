@@ -94,7 +94,10 @@ SerialRX and PPM receivers should be connected to dedicated _PPM SBUS_ connector
 
 This board uses STM32 VCP and _not_ utilizes UART when USB is connected. STM32 VCP drivers might be required!
 
-Flashing requires DFU mode and STM32 DFU drivers. Use [Zadig](http://zadig.akeo.ie) tool to install WinUSB driver on Windows.
+Flashing requires DFU mode and STM32 DFU drivers. Two options for installing the proper driver:
+
+* [Zadig](http://zadig.akeo.ie) tool to install WinUSB driver on Windows.
+* [ImpulseRC Driver Fixer](https://impulserc.com/pages/downloads) installs the STM32 DFU driver with a single click.
 
 ## Buzzer / Beeper
 
@@ -133,6 +136,9 @@ For Omnibus F4 Pro clones (Banggood, AliExpress, eBay, etc.) use **OMNIBUSF4PRO_
 This board allows for single **SoftwareSerial** port on small soldering pads located on the bottom side of the board.
 Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount pads CH5/CH6.
 
+### Omnibus F4 Pro SoftwareSerial Connections
+![Omnibus F4 Pro SoftwareSerial Connections](assets/images/omnibusf4pro_ss.jpg)
+
 | Pad   | SoftwareSerial Role   |
 | ----  | ----                  |
 | CH5   | RX                    |
@@ -140,13 +146,37 @@ Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount
 
 ## FrSky SmartPort using SoftwareSerial
 
-SmartPort telemetry is possible using SoftwareSerial. RX and TX lines have to be bridged using
-1kOhm resistor (confirmed working with 100Ohm, 1kOhm and 10kOhm)
+SmartPort telemetry is possible using SoftwareSerial
 
-```
-SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
-```
+### Omnibus F4 Pro SmartPort using SoftwareSerial
+![Omnibus F4 Pro SmartPort using SoftwareSerial](assets/images/omnibusf4pro_ss.png)
 
 * Telemetry has to be inverted with `set telemetry_inversion = ON`
 * Port should be configured for _57600bps_
 * Tested with FrSky X4R(SB), XSR, XSR-M, XSR-E
+
+# Wiring diagrams for Omnibus F4 Pro
+
+Following diagrams applies to _Pro_ version with integrated current meter and JST connectors only
+
+## Board layout
+
+![Omnibus F4 Pro Board Layout](assets/images/omnibusf4pro.png)
+
+## Flying wing motor and servos
+
+![Omnibus F4 Pro Flying Wing Setup](assets/images/omnibusf4pro_flyingwing_setup.png)
+
+## RX setup
+
+![Omnibus F4 Pro RX Setup](assets/images/omnibusf4pro_rx.png)
+
+## FPV setup
+
+![Omnibus F4 Pro FPV Setup](assets/images/omnibusf4pro_fpv_setup.png)
+
+## GPS setup
+
+![Omnibus F4 Pro GPS Setup](assets/images/omnibusf4pro_gps_setup.png)
+
+_Diagrams created by Albert Kravcov (skaman82)_

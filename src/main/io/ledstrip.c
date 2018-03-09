@@ -23,7 +23,7 @@
 
 #include <platform.h>
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 
 #include "build/build_config.h"
 
@@ -443,7 +443,7 @@ static const struct {
 } flightModeToLed[] = {
     {HEADFREE_MODE, LED_MODE_HEADFREE},
     {HEADING_MODE,  LED_MODE_MAG},
-#ifdef BARO
+#ifdef USE_BARO
     {NAV_ALTHOLD_MODE, LED_MODE_BARO},
 #endif
     {HORIZON_MODE,  LED_MODE_HORIZON},
@@ -483,7 +483,7 @@ static void applyLedFixedLayers(void)
 
             case LED_FUNCTION_BATTERY:
                 color = HSV(RED);
-                hOffset += scaleRange(calculateBatteryCapacityRemainingPercentage(), 0, 100, -30, 120);
+                hOffset += scaleRange(calculateBatteryPercentage(), 0, 100, -30, 120);
                 break;
 
             case LED_FUNCTION_RSSI:
@@ -596,9 +596,10 @@ static void applyLedBatteryLayer(bool updateNow, timeUs_t *timer)
                break;
        }
        flash = !flash;
+
+        *timer += LED_STRIP_HZ(timeOffset);
     }
 
-    *timer += LED_STRIP_HZ(timeOffset);
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
@@ -611,7 +612,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     static bool flash = false;
 
     int state;
-    int timeOffset = 0;
+    int timeOffset = 1;
 
     if (updateNow) {
        state = (rssi * 100) / 1023;
@@ -625,10 +626,10 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
            timeOffset = 8;
        }
        flash = !flash;
+
+       *timer += LED_STRIP_HZ(timeOffset);
     }
 
-
-    *timer += LED_STRIP_HZ(timeOffset);
 
     if (!flash) {
        const hsvColor_t *bgc = getSC(LED_SCOLOR_BACKGROUND);
@@ -636,7 +637,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     }
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 static void applyLedGpsLayer(bool updateNow, timeUs_t *timer)
 {
     static uint8_t gpsFlashCounter = 0;
@@ -894,11 +895,11 @@ static void applyLedAnimationLayer(bool updateNow, timeUs_t *timer)
 #endif
 
 typedef enum {
-    timBlink,
+    timBlink = 0,
     timLarson,
     timBattery,
     timRssi,
-#ifdef GPS
+#ifdef USE_GPS
     timGps,
 #endif
     timWarning,
@@ -919,12 +920,12 @@ static timeUs_t timerVal[timTimerCount];
 //  may modify LED state.
 typedef void applyLayerFn_timed(bool updateNow, timeUs_t *timer);
 
-static applyLayerFn_timed* layerTable[] = {
+static applyLayerFn_timed* layerTable[timTimerCount] = {
     [timBlink] = &applyLedBlinkLayer,
     [timLarson] = &applyLarsonScannerLayer,
     [timBattery] = &applyLedBatteryLayer,
     [timRssi] = &applyLedRssiLayer,
-#ifdef GPS
+#ifdef USE_GPS
     [timGps] = &applyLedGpsLayer,
 #endif
     [timWarning] = &applyLedWarningLayer,

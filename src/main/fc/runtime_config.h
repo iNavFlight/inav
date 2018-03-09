@@ -39,14 +39,19 @@ typedef enum {
     ARMING_DISABLED_CLI                             = (1 << 20),
     ARMING_DISABLED_CMS_MENU                        = (1 << 21),
     ARMING_DISABLED_OSD_MENU                        = (1 << 22),
+    ARMING_DISABLED_ROLLPITCH_NOT_CENTERED	        = (1 << 23),
+    ARMING_DISABLED_SERVO_AUTOTRIM                  = (1 << 24),
 
     ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING | ARMING_DISABLED_SYSTEM_OVERLOADED | 
                                                        ARMING_DISABLED_NAVIGATION_UNSAFE | ARMING_DISABLED_COMPASS_NOT_CALIBRATED | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED | 
                                                        ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_HARDWARE_FAILURE | ARMING_DISABLED_BOXFAILSAFE | ARMING_DISABLED_BOXKILLSWITCH |
-                                                       ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI | ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU)
+                                                       ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI | ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU |
+						       ARMING_DISABLED_ROLLPITCH_NOT_CENTERED | ARMING_DISABLED_SERVO_AUTOTRIM)
 } armingFlag_e;
 
 extern uint32_t armingFlags;
+
+extern const char *armingDisableFlagNames[];
 
 #define isArmingDisabled()          (armingFlags & (ARMING_DISABLED_ALL_FLAGS))
 #define DISABLE_ARMING_FLAG(mask)   (armingFlags &= ~(mask))
@@ -66,14 +71,14 @@ typedef enum {
     NAV_POSHOLD_MODE= (1 << 5), // old GPS_HOLD
     HEADFREE_MODE   = (1 << 6),
     NAV_LAUNCH_MODE = (1 << 7),
-    PASSTHRU_MODE   = (1 << 8),
-    FAILSAFE_MODE   = (1 << 10),
-    AUTO_TUNE       = (1 << 11), // old G-Tune
-    NAV_WP_MODE     = (1 << 12),
-    UNUSED_MODE2    = (1 << 13),
-    FLAPERON        = (1 << 14),
+    MANUAL_MODE     = (1 << 8),
+    FAILSAFE_MODE   = (1 << 9),
+    AUTO_TUNE       = (1 << 10), // old G-Tune
+    NAV_WP_MODE     = (1 << 11),
+    UNUSED_MODE2    = (1 << 12),
+    FLAPERON        = (1 << 13),
 #ifdef USE_FLM_TURN_ASSIST
-    TURN_ASSISTANT  = (1 << 15),
+    TURN_ASSISTANT  = (1 << 14),
 #endif
 } flightModeFlags_e;
 

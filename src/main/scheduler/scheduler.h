@@ -51,7 +51,7 @@ typedef struct {
 typedef enum {
     /* Actual tasks */
     TASK_SYSTEM = 0,
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     TASK_PID,
     TASK_GYRO,
     TASK_ACC,
@@ -65,16 +65,19 @@ typedef enum {
 #ifdef BEEPER
     TASK_BEEPER,
 #endif
-#ifdef GPS
+#ifdef USE_LIGHTS
+    TASK_LIGHTS,
+#endif
+#ifdef USE_GPS
     TASK_GPS,
 #endif
-#ifdef MAG
+#ifdef USE_MAG
     TASK_COMPASS,
 #endif
-#ifdef BARO
+#ifdef USE_BARO
     TASK_BARO,
 #endif
-#ifdef PITOT
+#ifdef USE_PITOT
     TASK_PITOT,
 #endif
 #ifdef USE_RANGEFINDER
@@ -83,10 +86,10 @@ typedef enum {
 #ifdef USE_DASHBOARD
     TASK_DASHBOARD,
 #endif
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     TASK_TELEMETRY,
 #endif
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     TASK_LEDSTRIP,
 #endif
 #ifdef USE_PMW_SERVO_DRIVER
@@ -95,10 +98,10 @@ typedef enum {
 #ifdef STACK_CHECK
     TASK_STACK_CHECK,
 #endif
-#ifdef OSD
+#ifdef USE_OSD
     TASK_OSD,
 #endif
-#ifdef CMS
+#ifdef USE_CMS
     TASK_CMS,
 #endif
 #ifdef USE_OPTICAL_FLOW

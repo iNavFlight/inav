@@ -45,7 +45,7 @@ You can also use the Command Line Interface (CLI) to set the mixer type:
 ## Servo configuration
 
 The cli `servo` command defines the settings for the servo outputs.
-The cli mixer `smix` command controllers how the mixer maps internal FC data (RC input, PID stabilisation output, channel forwarding, etc) to servo outputs.
+The cli mixer `smix` command controllers how the mixer maps internal FC data (RC input, PID stabilization output, channel forwarding, etc) to servo outputs.
 
 ## Servo filtering
 
@@ -53,15 +53,9 @@ A low-pass filter can be enabled for the servos.  It may be useful for avoiding 
 
 ### Configuration
 
-Currently it can only be configured via the CLI:
+Currently, it can only be configured via the CLI:
 
-1. Use `set servo_lowpass_freq = nnn` to select the cutoff frequency.  Valid values range from 10 to 400.  This is a fraction of the loop frequency in 1/1000ths. For example, `40` means `0.040`.
-2. Use `set servo_lowpass_enable = 1` to enable filtering.
-
-The cutoff frequency can be determined by the following formula:
-`Frequency = 1000 * servo_lowpass_freq / looptime`
-
-For example, if `servo_lowpass_freq` is set to 40, and looptime is set to the default of 3500 us, the cutoff frequency will be 11.43 Hz.
+Use `set servo_lpf_hz=20` to enable filtering. This will set servo low pass filter to 20Hz.
 
 ### Tuning
 
@@ -82,27 +76,27 @@ Custom motor mixing allows for completely customized motor configurations. Each 
 Steps to configure custom mixer in the CLI:
 
 1. Use `mixer custom` to enable the custom mixing.
-2. Use `mmix reset` to erase the any existing custom mixing.
+2. Use `mmix reset` to erase any existing custom mixing.
 3. Issue a `mmix` statement for each motor.
 
 The mmix statement has the following syntax: `mmix n THROTTLE ROLL PITCH YAW`
 
 | Mixing table parameter | Definition |
 | ---------------------- | ---------- |
-| n	| Motor ordering number |
-| THROTTLE	| All motors that are used in this configuration are set to 1.0. Unused set to 0.0. |
-| ROLL	| Indicates how much roll authority this motor imparts to the roll of the flight controller. Accepts values nominally from 1.0 to -1.0. |
-| PITCH	| Indicates the pitch authority this motor has over the flight controller. Also accepts values nominally from 1.0 to -1.0. |
-| YAW	| Indicates the direction of the motor rotation in relationship with the flight controller. 1.0 = CCW -1.0 = CW. |
+| n    | Motor ordering number |
+| THROTTLE    | All motors that are used in this configuration are set to 1.0. Unused set to 0.0. |
+| ROLL    | Indicates how much roll authority this motor imparts to the roll of the flight controller. Accepts values nominally from 1.0 to -1.0. |
+| PITCH    | Indicates the pitch authority this motor has over the flight controller. Also accepts values nominally from 1.0 to -1.0. |
+| YAW    | Indicates the direction of the motor rotation in a relationship with the flight controller. 1.0 = CCW -1.0 = CW. |
 
 Note: the `mmix` command may show a motor mix that is not active, custom motor mixes are only active for models that use custom mixers.
 
 ## Custom Servo Mixing
 
-Custom servo mixing rules can be applied to each servo.  Rules are applied in the CLI using `smix`. Rules link flight controller stabilization and receiver signals to physical pwm output pins on the FC board. Currently, pin id's 0 and 1 can only be used for motor outputs. Other pins may or may not work depending on the board you are using.
+Custom servo mixing rules can be applied to each servo.  Rules are applied in the CLI using `smix`. Rules link flight controller stabilization and receiver signals to physical PWM output pins on the FC board. Currently, pin id's 0 and 1 can only be used for motor outputs. Other pins may or may not work depending on the board you are using.
 
-The mmix statement has the following syntax: `smix n SERVO_ID SIGNAL_SOURCE RATE SPEED`
-For example, `smix 0 2 0 100 0` will assign Stabilised Roll to the third pwm pin on the FC board.
+The smix statement has the following syntax: `smix n SERVO_ID SIGNAL_SOURCE RATE SPEED` 
+For example, `smix 0 2 0 100 0` will create rule number 0 assigning Stabilised Roll to the third PWM pin on the FC board will full rate and no speed limit.
 
 | id | Flight Controller Output signal sources |
 |----|-----------------|
@@ -135,29 +129,29 @@ For example, `smix 0 2 0 100 0` will assign Stabilised Roll to the third pwm pin
 
 ### Servo rule rate
 
-Servo rule rate should be understood as a weight of a rule. To obtain full servo throw without clipping sum of all `smix` rates for a servo should equals `100`. For example, is servo #2 should be driven by sources 0 and 1 (Stablilized Roll and Stablized Pitch) with equal strength, correct rules would be:
+Servo rule rate should be understood as a weight of a rule. To obtain full servo throw without clipping sum of all `smix` rates for a servo should equal `100`. For example, is servo #2 should be driven by sources 0 and 1 (Stabilized Roll and Stabilized Pitch) with equal strength, correct rules would be:
 
 ```
 smix 0 2 0 50 0
 smix 1 2 1 50 0
 ```  
 
-To obtain stronger input of one source, increase rate of this source while decreasing the others. For example, to drive servo #2 in 75% from source 0 and in 25% from source 1, correct rules would be:
+To obtain the stronger input of one source, increase the rate of this source while decreasing the others. For example, to drive servo #2 in 75% from source 0 and in 25% from source 1, correct rules would be:
 
 ```
 smix 0 2 0 75 0
 smix 1 2 1 25 0
 ```  
 
-If sum of weights would be bigger than `100`, clipping to servo min and max values might appear.
+If a sum of weights would be bigger than `100`, clipping to servo min and max values might appear.
 
 > Note: the `smix` command may show a servo mix that is not active, custom servo mixes are only active for models that use custom mixers.
 
 ### Servo speed
 
-Custom servo mixer allows to define the speed of change for given servo rule. By default, all speeds are set to `0`, that means limiting is _NOT_ applied and rules source is directly written to servo. That mean, if, for example, source (AUX) changes from 1000 to 2000 in one cycle, servo output will also change from 1000 to 2000 in one cycle. In this case, speed is limited only by the servo itself.
+Custom servo mixer allows defining the speed of change for given servo rule. By default, all speeds are set to `0`, that means limiting is _NOT_ applied and rules source is directly written to a servo. That mean, if, for example, source (AUX) changes from 1000 to 2000 in one cycle, servo output will also change from 1000 to 2000 in one cycle. In this case, speed is limited only by the servo itself.
 
-If value different than `0` is set as rule speed, speed of change will be lowered accordingly. 
+If value different than `0` is set as rule speed, the speed of change will be lowered accordingly. 
 
 `1 speed = 10 us/s`
 
@@ -183,7 +177,7 @@ i.e. when mixing rudder servo slot (`5`) using Stabilised YAW input source (`2`)
 `smix reverse` is a per-profile setting.  So ensure you configure it for your profiles as required.
 
 ### Example 1: A KK2.0 wired motor setup
-Here's an example of a X configuration quad, but the motors are still wired using the KK board motor numbering scheme.
+Here's an example of an X configuration quad, but the motors are still wired using the KK board motor numbering scheme.
 
 ```
 KK2.0 Motor Layout
@@ -199,12 +193,12 @@ KK2.0 Motor Layout
 2. Use `mmix reset`
 3. Use `mmix 0 1.0,  1.0, -1.0, -1.0` for the Front Left motor. It tells the flight controller the #1 motor is used, provides positive roll, provides negative pitch and is turning CW.  
 4. Use `mmix 1 1.0, -1.0, -1.0,  1.0` for the Front Right motor. It still provides a negative pitch authority, but unlike the front left, it provides negative roll authority and turns CCW.
-5. Use `mmix 2 1.0, -1.0,  1.0, -1.0` for the Rear Right motor. It has negative roll, provides positive pitch when the speed is increased and turns CW.
+5. Use `mmix 2 1.0, -1.0,  1.0, -1.0` for the Rear Right motor. It has a negative roll, provides positive pitch when the speed is increased and turns CW.
 6. Use `mmix 3 1.0,  1.0,  1.0,  1.0` for the Rear Left motor. Increasing motor speed imparts positive roll, positive pitch and turns CCW.
 
 ### Example 2: A HEX-U Copter
 
-Here is an example of a U-shaped hex; probably good for herding giraffes in the Sahara. Because the 1 and 6 motors are closer to the roll axis, they impart much less force than the motors mounted twice as far from the FC CG. The effect they have on pitch is the same as the forward motors because they are the same distance from the FC CG. The 2 and 5 motors do not contribute anything to pitch because speeding them up and slowing them down has no effect on the forward/back pitch of the FC.
+Here is an example of a U-shaped hex; probably good for herding giraffes in the Sahara. Because the 1 and 6 motors are closer to the roll axis, they impart much less force than the motors mounted twice as far from the FC CG. The effect they have on the pitch is the same as the forward motors because they are the same distance from the FC CG. The 2 and 5 motors do not contribute anything to pitch because speeding them up and slowing them down has no effect on the forward/back pitch of the FC.
 
 ```
 HEX6-U
@@ -245,7 +239,7 @@ smix reverse 5 2 r
 ```
 
 ### Example 4: Custom Airplane with Differential Thrust
-Here is an example of a custom twin engine plane with [Differential Thrust](http://rcvehicles.about.com/od/rcairplanes/ss/RCAirplaneBasic.htm#step8)
+Here is an example of a custom twin-engine plane with [Differential Thrust](http://rcvehicles.about.com/od/rcairplanes/ss/RCAirplaneBasic.htm#step8)
 Motors take the first 2 pins, the servos take pins as indicated in the [Servo slot] chart above.
 Settings bellow have motor yaw influence at "0.3", you can change this number to have more or less differential thrust over the two motors.
 Note: You can look at the Motors tab in [INAV Cofigurator](https://chrome.google.com/webstore/detail/inav-configurator/fmaidjmgkdkpafmbnmigkpdnpdhopgel) to see motor and servo outputs.
@@ -268,7 +262,7 @@ mmix 0 1.0 0.0 0.0 0.3   # Left Engine
 mmix 1 1.0 0.0 0.0 -0.3  # Right Engine
 
 smix reset
-# Rule	Servo	Source	Rate	Speed
+# Rule    Servo    Source    Rate    Speed
 smix 0 3 0 100 0  # Roll / Aileron
 smix 1 4 0 100 0  # Roll / Aileron
 smix 2 5 2 100 0  # Yaw / Rudder
@@ -276,7 +270,7 @@ smix 3 2 1 100 0  # Pitch / Elevator
 
 ```
 ### Example 5: Custom Airplane with Flaps
-Here is an example of a custom single engine plane with flaps: (https://hobbyking.com/en_us/orange-grey-tundra-color.html) and is an easy model to setup using the settings below. This custom mix assumes left and right ailerons are wired together to use the same output but actuate in reverse. Doing so allows you to conserve output pins so that boards like the Omnibus or SP Racing F3 EVO can include flaps output using only 6 pins total. (Currently, motors always take the first 2 pins even if you use smix to set pin #2.)
+Here is an example of a custom single-engine plane with flaps: (https://hobbyking.com/en_us/orange-grey-tundra-color.html) and is an easy model to setup using the settings below. This custom mix assumes left and right ailerons are wired together to use the same output but actuate in reverse. Doing so allows you to conserve output pins so that boards like the Omnibus or SP Racing F3 EVO can include flaps output using only 6 pins total. (Currently, motors always take the first 2 pins even if you use smix to set pin #2.)
 Note: You can look at the Motors tab in [INAV Cofigurator] to see motor and servo outputs.
 
 | Pins | Outputs          |

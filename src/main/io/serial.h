@@ -45,6 +45,8 @@ typedef enum {
     FUNCTION_VTX_SMARTAUDIO      = (1 << 11), // 2048
     FUNCTION_VTX_TRAMP           = (1 << 12), // 4096
     FUNCTION_UAV_INTERCONNECT    = (1 << 13), // 8192
+    FUNCTION_OPTICAL_FLOW        = (1 << 14), // 16384
+    FUNCTION_DEBUG_TRACE         = (1 << 15), // 32768
 } serialPortFunction_e;
 
 typedef enum {
@@ -146,6 +148,7 @@ serialPort_t *openSerialPort(
     serialPortIdentifier_e identifier,
     serialPortFunction_e function,
     serialReceiveCallbackPtr callback,
+    void *rxCallbackData,
     uint32_t baudrate,
     portMode_t mode,
     portOptions_t options
@@ -160,5 +163,4 @@ baudRate_e lookupBaudRateIndex(uint32_t baudRate);
 //
 // msp/cli/bootloader
 //
-void serialEvaluateNonMspData(serialPort_t *serialPort, uint8_t receivedChar);
 void serialPassthrough(serialPort_t *left, serialPort_t *right, serialConsumer *leftC, serialConsumer *rightC);

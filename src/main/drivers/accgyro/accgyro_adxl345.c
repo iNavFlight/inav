@@ -16,16 +16,19 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 
 #include <platform.h>
 
 #include "drivers/system.h"
-#include "drivers/bus_i2c.h"
+#include "drivers/bus.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_adxl345.h"
+
+#ifdef USE_ACC_ADXL345
 
 // ADXL345, Alternative address mode 0x53
 #define ADXL345_ADDRESS     0x53
@@ -56,80 +59,58 @@
 #define ADXL345_RANGE_16G   0x03
 #define ADXL345_FIFO_STREAM 0x80
 
-static bool useFifo = false;
-
 static void adxl345Init(accDev_t *acc)
 {
-    if (useFifo) {
-        uint8_t fifoDepth = 16;
-        i2cWrite(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_POWER_CTL, ADXL345_POWER_MEAS);
-        i2cWrite(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_DATA_FORMAT, ADXL345_FULL_RANGE | ADXL345_RANGE_8G);
-        i2cWrite(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_BW_RATE, ADXL345_RATE_400);
-        i2cWrite(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_FIFO_CTL, (fifoDepth & 0x1F) | ADXL345_FIFO_STREAM);
-    } else {
-        i2cWrite(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_POWER_CTL, ADXL345_POWER_MEAS);
-        i2cWrite(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_DATA_FORMAT, ADXL345_FULL_RANGE | ADXL345_RANGE_8G);
-        i2cWrite(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_BW_RATE, ADXL345_RATE_100);
-    }
+    busWrite(acc->busDev, ADXL345_POWER_CTL, ADXL345_POWER_MEAS);
+    busWrite(acc->busDev, ADXL345_DATA_FORMAT, ADXL345_FULL_RANGE | ADXL345_RANGE_8G);
+    busWrite(acc->busDev, ADXL345_BW_RATE, ADXL345_RATE_100);
+
     acc->acc_1G = 256; // 3.3V operation
 }
 
-uint8_t acc_samples = 0;
-
 static bool adxl345Read(accDev_t *acc)
 {
-    uint8_t buf[8];
+    uint8_t buf[6];
 
-    if (useFifo) {
-        int32_t x = 0;
-        int32_t y = 0;
-        int32_t z = 0;
-        uint8_t i = 0;
-        uint8_t samples_remaining;
-
-        do {
-            i++;
-
-            if (!i2cRead(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_DATA_OUT, 8, buf)) {
-                return false;
-            }
-
-            x += (int16_t)(buf[0] + (buf[1] << 8));
-            y += (int16_t)(buf[2] + (buf[3] << 8));
-            z += (int16_t)(buf[4] + (buf[5] << 8));
-            samples_remaining = buf[7] & 0x7F;
-        } while ((i < 32) && (samples_remaining > 0));
-        acc->ADCRaw[0] = x / i;
-        acc->ADCRaw[1] = y / i;
-        acc->ADCRaw[2] = z / i;
-        acc_samples = i;
-    } else {
-
-        if (!i2cRead(MPU_I2C_INSTANCE, ADXL345_ADDRESS, ADXL345_DATA_OUT, 6, buf)) {
-            return false;
-        }
-
-        acc->ADCRaw[0] = buf[0] + (buf[1] << 8);
-        acc->ADCRaw[1] = buf[2] + (buf[3] << 8);
-        acc->ADCRaw[2] = buf[4] + (buf[5] << 8);
+    if (!busReadBuf(acc->busDev, ADXL345_DATA_OUT, buf, 6)) {
+        return false;
     }
+
+    acc->ADCRaw[0] = buf[0] + (buf[1] << 8);
+    acc->ADCRaw[1] = buf[2] + (buf[3] << 8);
+    acc->ADCRaw[2] = buf[4] + (buf[5] << 8);
 
     return true;
 }
 
-bool adxl345Detect(accDev_t *acc, drv_adxl345_config_t *init)
+static bool deviceDetect(busDevice_t * dev)
 {
     bool ack = false;
     uint8_t sig = 0;
 
-    ack = i2cRead(MPU_I2C_INSTANCE, ADXL345_ADDRESS, 0x00, 1, &sig);
+    ack = busRead(dev, 0x00, &sig);
     if (!ack || sig != 0xE5)
         return false;
 
-    // use ADXL345's fifo to filter data or not
-    useFifo = init->useFifo;
+    return true;
+}
+
+
+bool adxl345Detect(accDev_t *acc)
+{
+    acc->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_ADXL345, acc->imuSensorToUse, OWNER_MPU);
+    if (acc->busDev == NULL) {
+        return false;
+    }
+
+    if (!deviceDetect(acc->busDev)) {
+        busDeviceDeInit(acc->busDev);
+        return false;
+    }
 
     acc->initFn = adxl345Init;
     acc->readFn = adxl345Read;
     return true;
 }
+
+#endif

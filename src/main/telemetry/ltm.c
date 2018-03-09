@@ -33,7 +33,7 @@
 #include "platform.h"
 
 
-#if defined(TELEMETRY_LTM)
+#if defined(USE_TELEMETRY_LTM)
 
 #include "build/build_config.h"
 
@@ -109,7 +109,7 @@ static void ltm_finalise(sbuf_t *dst)
     serialWriteBuf(ltmPort, sbufPtr(dst), sbufBytesRemaining(dst));
 }
 
-#if defined(GPS)
+#if defined(USE_GPS)
 /*
  * GPS G-frame 5Hhz at > 2400 baud
  * LAT LON SPD ALT SAT/FIX
@@ -132,7 +132,7 @@ void ltm_gframe(sbuf_t *dst)
         ltm_gs = gpsSol.groundSpeed / 100;
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     ltm_alt = getEstimatedActualPosition(Z); // cm
 #else
     ltm_alt = sensors(SENSOR_GPS) ? gpsSol.llh.alt : 0; // cm
@@ -162,7 +162,7 @@ void ltm_sframe(sbuf_t *dst)
 {
     uint8_t lt_flightmode;
 
-    if (FLIGHT_MODE(PASSTHRU_MODE))
+    if (FLIGHT_MODE(MANUAL_MODE))
         lt_flightmode = 0;
     else if (FLIGHT_MODE(NAV_WP_MODE))
         lt_flightmode = 10;
@@ -185,10 +185,10 @@ void ltm_sframe(sbuf_t *dst)
     if (failsafeIsActive())
         lt_statemode |= 2;
     sbufWriteU8(dst, 'S');
-    sbufWriteU16(dst, vbat * 100);    //vbat converted to mv
+    sbufWriteU16(dst, vbat * 10);    //vbat converted to mv
     sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF));    // current mAh (65535 mAh max)
     sbufWriteU8(dst, (uint8_t)((rssi * 254) / 1023));        // scaled RSSI (uchar)
-#if defined(PITOT)
+#if defined(USE_PITOT)
     sbufWriteU8(dst, sensors(SENSOR_PITOT) ? pitot.airSpeed / 100.0f : 0);  // in m/s
 #else
     sbufWriteU8(dst, 0);
@@ -208,7 +208,7 @@ void ltm_aframe(sbuf_t *dst)
     sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 }
 
-#if defined(GPS)
+#if defined(USE_GPS)
 /*
  * OSD additional data frame, 1 Hz rate
  *  This frame will be ignored by Ghettostation, but processed by GhettOSD if it is used as standalone onboard OSD
@@ -235,7 +235,7 @@ void ltm_xframe(sbuf_t *dst)
         (isHardwareHealthy() ? 0 : 1) << 0;     // bit 0 - hardware failure indication (1 - something is wrong with the hardware sensors)
 
     sbufWriteU8(dst, 'X');
-#if defined(GPS)
+#if defined(USE_GPS)
     sbufWriteU16(dst, gpsSol.hdop);
 #else
     sbufWriteU16(dst, 9999);
@@ -247,7 +247,7 @@ void ltm_xframe(sbuf_t *dst)
     ltm_x_counter++; // overflow is OK
 }
 
-#if defined(NAV)
+#if defined(USE_NAV)
 /** OSD additional data frame, ~4 Hz rate, navigation system status
  */
 void ltm_nframe(sbuf_t *dst)
@@ -337,7 +337,7 @@ static void process_ltm(void)
         ltm_finalise(dst);
     }
 
-#if defined(GPS)
+#if defined(USE_GPS)
     if (current_schedule & LTM_BIT_GFRAME) {
         ltm_initialise_packet(dst);
         ltm_gframe(dst);
@@ -363,7 +363,7 @@ static void process_ltm(void)
         ltm_finalise(dst);
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     if (current_schedule & LTM_BIT_NFRAME) {
         ltm_initialise_packet(dst);
         ltm_nframe(dst);
@@ -425,7 +425,7 @@ void configureLtmTelemetryPort(void)
     if (baudRateIndex == BAUD_1200)
          ltm_schedule = ltm_slow_schedule;
 
-    ltmPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_LTM, NULL, baudRates[baudRateIndex], TELEMETRY_LTM_INITIAL_PORT_MODE, SERIAL_NOT_INVERTED);
+    ltmPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_LTM, NULL, NULL, baudRates[baudRateIndex], TELEMETRY_LTM_INITIAL_PORT_MODE, SERIAL_NOT_INVERTED);
     if (!ltmPort)
         return;
     ltm_x_counter = 0;
@@ -465,7 +465,7 @@ int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType)
     case LTM_SFRAME:
         ltm_sframe(sbuf);
         break;
-#if defined(GPS)
+#if defined(USE_GPS)
     case LTM_GFRAME:
         ltm_gframe(sbuf);
         break;
@@ -476,7 +476,7 @@ int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType)
     case LTM_XFRAME:
         ltm_xframe(sbuf);
         break;
-#if defined(NAV)
+#if defined(USE_NAV)
     case LTM_NFRAME:
         ltm_nframe(sbuf);
         break;

@@ -56,7 +56,7 @@
 #include "rx/rx.h"
 #include "rx/jetiexbus.h"
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 #include "sensors/sensors.h"
 #include "sensors/battery.h"
 #include "sensors/barometer.h"
@@ -114,7 +114,7 @@ enum exBusHeader_e {
     EXBUS_HEADER_DATA
 };
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 
 #define EXTEL_DATA_MSG      (0x40)
 #define EXTEL_UNMASK_TYPE   (0x3F)
@@ -208,7 +208,7 @@ static uint8_t jetiExBusRequestFrame[EXBUS_MAX_REQUEST_FRAME_SIZE];
 
 static uint16_t jetiExBusChannelData[JETIEXBUS_CHANNEL_COUNT];
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 
 static uint8_t jetiExBusTelemetryFrame[40];
 static uint8_t jetiExBusTransceiveState = EXBUS_TRANS_RX;
@@ -235,7 +235,7 @@ uint16_t calcCRC16(uint8_t *pt, uint8_t msgLen)
     return(crc16_data);
 }
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 
 
 // Jeti Ex Telemetry CRC calculations for a frame
@@ -294,8 +294,10 @@ void jetiExBusFrameReset(void)
 */
 
 // Receive ISR callback
-static void jetiExBusDataReceive(uint16_t c)
+static void jetiExBusDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     timeUs_t now;
     static timeUs_t jetiExBusTimeLast = 0;
     static timeDelta_t jetiExBusTimeInterval;
@@ -395,7 +397,7 @@ static uint16_t jetiExBusReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uin
 }
 
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 /*
   -----------------------------------------------
    Jeti Ex Bus Telemetry
@@ -519,7 +521,7 @@ void handleJetiExBusTelemetry(void)
         }
 
         if ((jetiExBusRequestFrame[EXBUS_HEADER_DATA_ID] == EXBUS_EX_REQUEST) && (calcCRC16(jetiExBusRequestFrame, jetiExBusRequestFrame[EXBUS_HEADER_MSG_LEN]) == 0)) {
-            jetiExSensors[EX_VOLTAGE].value = vbat;
+            jetiExSensors[EX_VOLTAGE].value = vbat / 10;
             jetiExSensors[EX_CURRENT].value = amperage;
             jetiExSensors[EX_ALTITUDE].value = baro.BaroAlt;
             jetiExSensors[EX_CAPACITY].value = mAhDrawn;
@@ -600,6 +602,7 @@ bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfi
     jetiExBusPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         jetiExBusDataReceive,
+        NULL,
         JETIEXBUS_BAUDRATE,
         MODE_RXTX,
         JETIEXBUS_OPTIONS | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)

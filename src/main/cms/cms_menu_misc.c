@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "common/utils.h"
 
@@ -71,8 +71,10 @@ static OSD_Entry cmsx_menuRcEntries[] =
 };
 
 CMS_Menu cmsx_menuRcPreview = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XRCPREV",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = cmsx_menuRcConfirmBack,
     .onGlobalExit = NULL,
@@ -85,9 +87,18 @@ static OSD_Entry menuMiscEntries[]=
 
     OSD_SETTING_ENTRY("MIN THR", SETTING_MIN_THROTTLE),
 #ifdef USE_ADC
-    OSD_SETTING_ENTRY("VBAT SCALE", SETTING_VBAT_SCALE),
-    OSD_SETTING_ENTRY("VBAT CLMAX", SETTING_VBAT_MAX_CELL_VOLTAGE),
-#endif
+    OSD_SETTING_ENTRY("VBATCELL MAX", SETTING_VBAT_MAX_CELL_VOLTAGE),
+    OSD_SETTING_ENTRY("VBATCELL WARN", SETTING_VBAT_WARNING_CELL_VOLTAGE),
+    OSD_SETTING_ENTRY("VBATCELL MIN", SETTING_VBAT_MIN_CELL_VOLTAGE),
+    OSD_SETTING_ENTRY("BAT CAP UNIT", SETTING_BATTERY_CAPACITY_UNIT),
+    OSD_SETTING_ENTRY("BAT CAPACITY", SETTING_BATTERY_CAPACITY),
+    OSD_SETTING_ENTRY("BAT CAP WARN", SETTING_BATTERY_CAPACITY_WARNING),
+    OSD_SETTING_ENTRY("BAT CAP CRIT", SETTING_BATTERY_CAPACITY_CRITICAL),
+#ifdef USE_OSD
+    OSD_SETTING_ENTRY("OSD VOLT DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),
+    OSD_SETTING_ENTRY("STATS ENERGY UNIT", SETTING_OSD_STATS_ENERGY_UNIT),
+#endif /* USE_OSD */
+#endif /* USE_ADC */
 
     { "RC PREV",    OME_Submenu, cmsMenuChange, &cmsx_menuRcPreview, 0},
 
@@ -96,8 +107,10 @@ static OSD_Entry menuMiscEntries[]=
 };
 
 CMS_Menu cmsx_menuMisc = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XMISC",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

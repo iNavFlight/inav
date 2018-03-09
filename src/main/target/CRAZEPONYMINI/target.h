@@ -25,16 +25,16 @@
 #define LED1                    PA8
 #define LED2                    PB1
 
-#define ACC
+#define USE_ACC
 #define USE_ACC_MPU6050
 
-#define GYRO
+#define USE_GYRO
 #define USE_GYRO_MPU6050
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_MS5611
 
-//#define MAG
+//#define USE_MAG
 //#define USE_MAG_HMC5883
 
 #define USE_UART1
@@ -45,7 +45,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1)
+#define USE_I2C_DEVICE_1
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -73,8 +73,8 @@
 #undef USE_SERIAL_PASSTHROUGH
 #undef USE_RX_PWM
 #undef USE_RX_PPM
-#undef SERIAL_RX
-#undef BLACKBOX
+#undef USE_SERIAL_RX
+#undef USE_BLACKBOX
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SPI
 

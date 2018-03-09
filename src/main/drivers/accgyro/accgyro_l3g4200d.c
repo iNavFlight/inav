@@ -16,6 +16,7 @@
  */
 
 #include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 
 #include <platform.h>
@@ -78,13 +79,14 @@ static void l3g4200dInit(gyroDev_t *gyro)
     }
 
     delay(100);
-
-    ack = i2cWrite(MPU_I2C_INSTANCE, L3G4200D_ADDRESS, L3G4200D_CTRL_REG4, L3G4200D_FS_SEL_2000DPS);
-    if (!ack)
+    ack = busWrite(gyro->busDev, L3G4200D_CTRL_REG4, L3G4200D_FS_SEL_2000DPS);
+    if (!ack) {
         failureMode(FAILURE_ACC_INIT);
+    }
 
     delay(5);
-    i2cWrite(MPU_I2C_INSTANCE, L3G4200D_ADDRESS, L3G4200D_CTRL_REG1, L3G4200D_POWER_ON | mpuLowPassFilter);
+
+    busWrite(gyro->busDev, L3G4200D_CTRL_REG1, L3G4200D_POWER_ON | mpuLowPassFilter);
 }
 
 // Read 3 gyro values into user-provided buffer. No overrun checking is done.
@@ -92,7 +94,7 @@ static bool l3g4200dRead(gyroDev_t *gyro)
 {
     uint8_t buf[6];
 
-    if (!i2cRead(MPU_I2C_INSTANCE, L3G4200D_ADDRESS, L3G4200D_AUTOINCR | L3G4200D_GYRO_OUT, 6, buf)) {
+    if (!busReadBuf(gyro->busDev, L3G4200D_AUTOINCR | L3G4200D_GYRO_OUT, buf, 6)) {
         return false;
     }
 
@@ -103,21 +105,40 @@ static bool l3g4200dRead(gyroDev_t *gyro)
     return true;
 }
 
+
+static bool deviceDetect(busDevice_t * busDev)
+{
+    busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
+
+    for (int retry = 0; retry < 5; retry++) {
+        uint8_t deviceid;
+
+        delay(150);
+
+        bool ack = busRead(busDev, L3G4200D_WHO_AM_I, &deviceid);
+        if (ack && deviceid == L3G4200D_ID) {
+            return true;
+        }
+    };
+
+    return false;
+}
+
 bool l3g4200dDetect(gyroDev_t *gyro)
 {
-    uint8_t deviceid;
-
-    delay(25);
-
-    i2cRead(MPU_I2C_INSTANCE, L3G4200D_ADDRESS, L3G4200D_WHO_AM_I, 1, &deviceid);
-    if (deviceid != L3G4200D_ID)
+    gyro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_L3G4200, gyro->imuSensorToUse, OWNER_MPU);
+    if (gyro->busDev == NULL) {
         return false;
+    }
+    
+    if (!deviceDetect(gyro->busDev)) {
+        busDeviceDeInit(gyro->busDev);
+        return false;
+    }
 
     gyro->initFn = l3g4200dInit;
     gyro->readFn = l3g4200dRead;
-
-    // 14.2857dps/lsb scalefactor
-    gyro->scale = 1.0f / 14.2857f;
+    gyro->scale = 1.0f / 14.2857f;      // 14.2857dps/lsb scalefactor
 
     return true;
 }

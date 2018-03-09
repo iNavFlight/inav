@@ -37,6 +37,7 @@
 #include "drivers/compass/compass_mag3110.h"
 #include "drivers/compass/compass_ist8310.h"
 #include "drivers/compass/compass_qmc5883l.h"
+#include "drivers/compass/compass_mpu9250.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/logging.h"
@@ -59,9 +60,9 @@
 
 mag_t mag;                   // mag access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 3);
 
-#ifdef MAG
+#ifdef USE_MAG
 #define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
 #else
 #define MAG_HARDWARE_DEFAULT    MAG_NONE
@@ -70,10 +71,11 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .mag_align = ALIGN_DEFAULT,
     .mag_hardware = MAG_HARDWARE_DEFAULT,
     .mag_declination = 0,
+    .mag_to_use = 0,
     .magCalibrationTimeLimit = 30
 );
 
-#ifdef MAG
+#ifdef USE_MAG
 
 static uint8_t magInit = 0;
 static uint8_t magUpdatedAtLeastOnce = 0;
@@ -83,40 +85,31 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     magSensor_e magHardware = MAG_NONE;
     requestedSensors[SENSOR_INDEX_MAG] = magHardwareToUse;
 
-#ifdef USE_MAG_HMC5883
-    const hmc5883Config_t *hmc5883Config = 0;
-
-#ifdef NAZE // TODO remove this target specific define
-    static const hmc5883Config_t nazeHmc5883Config_v1_v4 = {
-            .intTag = IO_TAG(PB12) /* perhaps disabled? */
-    };
-    static const hmc5883Config_t nazeHmc5883Config_v5 = {
-            .intTag = IO_TAG(MAG_INT_EXTI)
-    };
-    if (hardwareRevision < NAZE32_REV5) {
-        hmc5883Config = &nazeHmc5883Config_v1_v4;
-    } else {
-        hmc5883Config = &nazeHmc5883Config_v5;
-    }
-#endif
-
-#ifdef MAG_INT_EXTI
-    static const hmc5883Config_t extiHmc5883Config = {
-        .intTag = IO_TAG(MAG_INT_EXTI)
-    };
-
-    hmc5883Config = &extiHmc5883Config;
-#endif
-
-#endif
-
     dev->magAlign = ALIGN_DEFAULT;
 
     switch (magHardwareToUse) {
     case MAG_AUTODETECT:
+        FALLTHROUGH;
+
+    case MAG_QMC5883:
+#ifdef USE_MAG_QMC5883
+        if (qmc5883Detect(dev)) {
+#ifdef MAG_QMC5883L_ALIGN
+            dev->magAlign = MAG_QMC5883L_ALIGN;
+#endif
+            magHardware = MAG_QMC5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case MAG_HMC5883:
 #ifdef USE_MAG_HMC5883
-        if (hmc5883lDetect(dev, hmc5883Config)) {
+        if (hmc5883lDetect(dev)) {
 #ifdef MAG_HMC5883_ALIGN
             dev->magAlign = MAG_HMC5883_ALIGN;
 #endif
@@ -163,7 +156,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         FALLTHROUGH;
 
     case MAG_GPS:
-#ifdef GPS
+#ifdef USE_GPS
         if (gpsMagDetect(dev)) {
 #ifdef MAG_GPS_ALIGN
             dev->magAlign = MAG_GPS_ALIGN;
@@ -210,13 +203,13 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
         FALLTHROUGH;
 
-    case MAG_QMC5883:
-#ifdef USE_MAG_QMC5883
-        if (qmc5883Detect(dev)) {
-#ifdef MAG_QMC5883L_ALIGN
-            dev->magAlign = MAG_QMC5883L_ALIGN;
+    case MAG_MPU9250:
+#ifdef USE_MAG_MPU9250
+        if (mpu9250CompassDetect(dev)) {
+#ifdef MAG_MPU9250_ALIGN
+            dev->magAlign = MAG_MPU9250_ALIGN;
 #endif
-            magHardware = MAG_QMC5883;
+            magHardware = MAG_MPU9250;
             break;
         }
 #endif
@@ -258,8 +251,12 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 
 bool compassInit(void)
 {
-    // copy over SPI bus settings for AK8963 compass
-    mag.dev.bus = *gyroSensorBus();
+#ifdef USE_DUAL_MAG
+    mag.dev.magSensorToUse = compassConfig()->mag_to_use;
+#else
+    mag.dev.magSensorToUse = 0;
+#endif
+
     if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
         return false;
     }
@@ -371,7 +368,8 @@ void compassUpdate(timeUs_t currentTimeUs)
         }
     }
 
-    alignSensors(mag.magADC, mag.dev.magAlign);
+    applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign);
+    applyBoardAlignment(mag.magADC);
 
     magUpdatedAtLeastOnce = 1;
 }

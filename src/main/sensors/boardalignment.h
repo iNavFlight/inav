@@ -27,6 +27,7 @@ typedef struct boardAlignment_s {
 
 PG_DECLARE(boardAlignment_t, boardAlignment);
 
-void alignSensors(int32_t *dest, uint8_t rotation);
 void initBoardAlignment(void);
 void updateBoardAlignment(int16_t roll, int16_t pitch);
+void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation);
+void applyBoardAlignment(int32_t *vec);
