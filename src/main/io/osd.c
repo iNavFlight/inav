@@ -539,10 +539,12 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
             return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
-	case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
+        case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
             return OSD_MESSAGE_STR("ROLLPITCH NOT CENTERED");
         case ARMING_DISABLED_SERVO_AUTOTRIM:
             return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
+        case ARMING_DISABLED_OOM:
+            return OSD_MESSAGE_STR("NOT ENOUGH MEMORY");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
@@ -919,6 +921,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
         }
+        break;
+
+    case OSD_TRIP_DIST:
+        buff[0] = SYM_TRIP_DIST;
+        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance());
         break;
 
     case OSD_HEADING:
@@ -1536,8 +1543,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
-        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
-            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
+        if (elementIndex == OSD_TRIP_DIST) {
+            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1551,8 +1558,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_HDOP) {
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
-        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
-            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
+        if (elementIndex == OSD_TRIP_DIST) {
+            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1578,6 +1585,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_RSSI_VALUE] = OSD_POS(23, 0) | VISIBLE_FLAG;
     //line 2
     osdConfig->item_pos[OSD_HOME_DIST] = OSD_POS(1, 1);
+    osdConfig->item_pos[OSD_TRIP_DIST] = OSD_POS(1, 2);
     osdConfig->item_pos[OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[OSD_GPS_SPEED] = OSD_POS(23, 1);
 
@@ -1868,7 +1876,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
             osdShowArmed(); // reset statistic etc
-            resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
+            resumeRefreshAt = currentTimeUs + (3 * REFRESH_1S / 2);
         } else {
             osdShowStats(); // show statistic
             resumeRefreshAt = currentTimeUs + (60 * REFRESH_1S);

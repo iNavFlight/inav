@@ -143,6 +143,12 @@
 #define ADC_CHANNEL_2_PIN           PC2
 #define ADC_CHANNEL_3_PIN           PC1
 
+#define USE_LED_STRIP
+#define WS2811_PIN                      PC8
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA2_ST4_HANDLER
+#define WS2811_DMA_STREAM               DMA2_Stream4
+#define WS2811_DMA_CHANNEL              DMA_Channel_7
+
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3

@@ -1285,6 +1285,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
         break;
 
+    case MSP2_INAV_AIR_SPEED:
+#ifdef USE_PITOT
+        sbufWriteU32(dst, pitot.airSpeed);
+#else
+        sbufWriteU32(dst, 0);
+#endif
+        break;
+
     default:
         return false;
     }

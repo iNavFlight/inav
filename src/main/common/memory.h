@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV.
+ * This file is part of INAV Project.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -20,10 +20,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
- *
- * @author Alberto Garcia Hierro <alberto@garciahierro.com>
  */
 
- #pragma once
+#pragma once
 
-extern const CMS_Menu cmsx_menuNavigation;
+#include <stdlib.h>
+
+size_t memGetAvailableBytes(void);
+void * memAllocate(size_t wantedSize);

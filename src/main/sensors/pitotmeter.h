@@ -47,6 +47,8 @@ typedef struct pito_s {
     int32_t airSpeed;
 } pitot_t;
 
+#ifdef USE_PITOT
+
 extern pitot_t pitot;
 
 bool pitotInit(void);
@@ -55,3 +57,5 @@ void pitotStartCalibration(void);
 uint32_t pitotUpdate(void);
 int32_t pitotCalculateAirSpeed(void);
 bool pitotIsHealthy(void);
+
+#endif

@@ -17,5 +17,5 @@
 
 #pragma once
 
-extern CMS_Menu cmsx_menuAlarms;
-extern CMS_Menu cmsx_menuOsdLayout;
+extern const CMS_Menu cmsx_menuAlarms;
+extern const CMS_Menu cmsx_menuOsdLayout;
