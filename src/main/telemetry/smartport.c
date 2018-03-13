@@ -584,8 +584,9 @@ void handleSmartPortTelemetry(void)
             case FSSP_DATAID_VFAS       :
                 if (feature(FEATURE_VBAT)) {
                     uint16_t vfasVoltage;
+                    uint16_t vbat = getBatteryVoltage();
                     if (telemetryConfig()->frsky_vfas_cell_voltage)
-                        vfasVoltage = vbat / batteryCellCount;
+                        vfasVoltage = vbat / getBatteryCellCount();
                     else
                         vfasVoltage = vbat;
                     smartPortSendPackage(id, vfasVoltage);
@@ -593,7 +594,7 @@ void handleSmartPortTelemetry(void)
                 break;
             case FSSP_DATAID_CURRENT    :
                 if (feature(FEATURE_CURRENT_METER))
-                    smartPortSendPackage(id, amperage / 10); // given in 10mA steps, unknown requested unit
+                    smartPortSendPackage(id, getAmperage() / 10); // given in 10mA steps, unknown requested unit
                 break;
             //case FSSP_DATAID_RPM        :
             case FSSP_DATAID_ALTITUDE   :
@@ -604,7 +605,7 @@ void handleSmartPortTelemetry(void)
                 if (telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_PERCENT)
                     smartPortSendPackage(id, calculateBatteryPercentage()); // Show remaining battery % if smartport_fuel_percent=ON
                 else if (feature(FEATURE_CURRENT_METER))
-                    smartPortSendPackage(id, (telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_MAH ? mAhDrawn : mWhDrawn));
+                    smartPortSendPackage(id, (telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_MAH ? getMAhDrawn() : getMWhDrawn()));
                 break;
             //case FSSP_DATAID_ADC1       :
             //case FSSP_DATAID_ADC2       :
@@ -737,7 +738,7 @@ void handleSmartPortTelemetry(void)
             //case FSSP_DATAID_A3         :
             case FSSP_DATAID_A4         :
                 if (feature(FEATURE_VBAT))
-                    smartPortSendPackage(id, vbat / batteryCellCount );
+                    smartPortSendPackage(id, getBatteryAverageCellVoltage());
                 break;
             default:
                 break;
