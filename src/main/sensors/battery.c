@@ -234,6 +234,11 @@ bool batteryUsesCapacityThresholds(void)
     return batteryUseCapacityThresholds;
 }
 
+bool isBatteryVoltageConfigured(void)
+{
+    return feature(FEATURE_VBAT);
+}
+
 uint16_t getBatteryVoltage(void)
 {
     return vbat;
@@ -265,6 +270,11 @@ uint16_t getBatteryAverageCellVoltage(void)
 uint32_t getBatteryRemainingCapacity(void)
 {
     return batteryRemainingCapacity;
+}
+
+bool isAmperageConfigured(void)
+{
+    return batteryConfig()->current.type != CURRENT_SENSOR_NONE;
 }
 
 int32_t getAmperage(void)

@@ -81,6 +81,7 @@ bool batteryUsesCapacityThresholds(void);
 void batteryUpdate(uint32_t vbatTimeDelta);
 void batteryInit(void);
 
+bool isBatteryVoltageConfigured(void);
 uint16_t getBatteryVoltage(void);
 uint16_t getBatteryVoltageLatestADC(void);
 uint16_t getBatteryWarningVoltage(void);
@@ -88,6 +89,7 @@ uint8_t getBatteryCellCount(void);
 uint16_t getBatteryAverageCellVoltage(void);
 uint32_t getBatteryRemainingCapacity(void);
 
+bool isAmperageConfigured(void);
 int32_t getAmperage(void);
 int32_t getAmperageLatestADC(void);
 int32_t getPower(void);

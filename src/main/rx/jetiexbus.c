@@ -372,8 +372,10 @@ static void jetiExBusDataReceive(uint16_t c, void *rxCallbackData)
 
 
 // Check if it is time to read a frame from the data...
-uint8_t jetiExBusFrameStatus(void)
+static uint8_t jetiExBusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     if (jetiExBusFrameState != EXBUS_STATE_RECEIVED)
         return RX_FRAME_PENDING;
 

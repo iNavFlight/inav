@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PWM", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -69,7 +69,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL", "FLOW_RAW","ALWAYS"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL", "FLOW_RAW", "SBUS", "FPORT", "ALWAYS"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -327,7 +327,7 @@ groups:
       - name: serialrx_provider
         condition: USE_SERIAL_RX
         table: serial_rx
-      - name: sbus_inversion
+      - name: serialrx_inverted
         condition: USE_SERIAL_RX
         type: bool
       - name: rx_spi_protocol
@@ -1318,7 +1318,7 @@ groups:
       - name: frsky_vfas_precision
         min: FRSKY_VFAS_PRECISION_LOW
         max: FRSKY_VFAS_PRECISION_HIGH
-      - name: frsky_vfas_cell_voltage
+      - name: report_cell_voltage
         type: bool
       - name: hott_alarm_sound_interval
         field: hottAlarmSoundInterval
@@ -1341,6 +1341,9 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
+      - name: telemetry_halfduplex
+        field: halfDuplex
+        type: bool
 
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t

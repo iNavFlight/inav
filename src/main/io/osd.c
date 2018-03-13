@@ -436,7 +436,7 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
  */
 static uint16_t osdConvertRSSI(void)
 {
-    uint16_t osdRssi = rssi * 100 / 1024; // change range
+    uint16_t osdRssi = getRSSI() * 100 / 1024; // change range
     if (osdRssi >= 100) {
         osdRssi = 99;
     }

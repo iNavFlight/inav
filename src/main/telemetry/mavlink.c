@@ -83,8 +83,6 @@
 #define TELEMETRY_MAVLINK_MAXRATE       50
 #define TELEMETRY_MAVLINK_DELAY         ((1000 * 1000) / TELEMETRY_MAVLINK_MAXRATE)
 
-extern uint16_t rssi; // FIXME dependency on mw.c
-
 static serialPort_t *mavlinkPort = NULL;
 static serialPortConfig_t *portConfig;
 
@@ -272,7 +270,7 @@ void mavlinkSendRCChannelsAndRSSI(void)
         // chan8_raw RC channel 8 value, in microseconds
         (rxRuntimeConfig.channelCount >= 8) ? rcData[7] : 0,
         // rssi Receive signal strength indicator, 0: 0%, 255: 100%
-        scaleRange(rssi, 0, 1023, 0, 255));
+        scaleRange(getRSSI(), 0, 1023, 0, 255));
 
     mavlinkSendMessage();
 }

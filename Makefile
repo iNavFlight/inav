@@ -631,6 +631,7 @@ COMMON_SRC = \
             io/rcdevice.c \
             io/rcdevice_cam.c \
             msp/msp_serial.c \
+            rx/fport.c \
             rx/ibus.c \
             rx/jetiexbus.c \
             rx/msp.c \
@@ -645,6 +646,7 @@ COMMON_SRC = \
             rx/rx_spi.c \
             rx/crsf.c \
             rx/sbus.c \
+            rx/sbus_channels.c \
             rx/spektrum.c \
             rx/sumd.c \
             rx/sumh.c \
@@ -717,6 +719,7 @@ HIGHEND_SRC = \
             telemetry/ibus.c \
             telemetry/ltm.c \
             telemetry/mavlink.c \
+            telemetry/msp_shared.c \
             telemetry/smartport.c \
             telemetry/telemetry.c \
             io/vtx_string.c \

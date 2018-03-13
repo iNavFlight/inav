@@ -51,7 +51,8 @@
 typedef enum {
     RX_FRAME_PENDING = 0,               // No new data available from receiver
     RX_FRAME_COMPLETE = (1 << 0),       // There is new data available
-    RX_FRAME_FAILSAFE = (1 << 1)        // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
+    RX_FRAME_FAILSAFE = (1 << 1),       // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
+    RX_FRAME_PROCESSING_REQUIRED = (1 << 2),
 } rxFrameState_e;
 
 typedef enum {
@@ -74,7 +75,8 @@ typedef enum {
     SERIALRX_XBUS_MODE_B_RJ01 = 6,
     SERIALRX_IBUS = 7,
     SERIALRX_JETIEXBUS = 8,
-    SERIALRX_CRSF = 9
+    SERIALRX_CRSF = 9,
+    SERIALRX_FPORT = 10,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
@@ -110,7 +112,7 @@ typedef struct rxConfig_s {
     uint8_t receiverType;                   // RC receiver type (rxReceiverType_e enum)
     uint8_t rcmap[MAX_MAPPABLE_RX_INPUTS];  // mapping of radio channels to internal RPYTA+ order
     uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
-    uint8_t sbus_inversion;                 // default sbus (Futaba, FrSKY) is inverted. Support for uninverted OpenLRS (and modified FrSKY) receivers.
+    uint8_t serialrx_inverted;              // Flip the default inversion of the protocol - e.g. sbus (Futaba, FrSKY) is inverted if this is false, uninverted if it's true. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode on F4, ignored for F1 and F3.
     uint8_t rx_spi_protocol;                // type of SPI receiver protocol (rx_spi_protocol_e enum). Only used if receiverType is RX_TYPE_SPI
     uint32_t rx_spi_id;
@@ -132,9 +134,10 @@ PG_DECLARE(rxConfig_t, rxConfig);
 
 #define REMAPPABLE_CHANNEL_COUNT (sizeof(((rxConfig_t *)0)->rcmap) / sizeof(((rxConfig_t *)0)->rcmap[0]))
 
-struct rxRuntimeConfig_s;
-typedef uint16_t (*rcReadRawDataFnPtr)(const struct rxRuntimeConfig_s *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
-typedef uint8_t (*rcFrameStatusFnPtr)(void);
+typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
+typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
+typedef uint8_t (*rcFrameStatusFnPtr)(rxRuntimeConfig_t *rxRuntimeConfig);
+typedef bool (*rcProcessFrameFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
@@ -143,10 +146,22 @@ typedef struct rxRuntimeConfig_s {
     bool requireFiltering;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
+    rcProcessFrameFnPtr rcProcessFrameFn;
+    uint16_t *channelData;
+    void *frameData;
 } rxRuntimeConfig_t;
 
+typedef enum {
+    RSSI_SOURCE_NONE = 0,
+    RSSI_SOURCE_ADC,
+    RSSI_SOURCE_RX_CHANNEL,
+    RSSI_SOURCE_RX_PROTOCOL,
+    RSSI_SOURCE_MSP,
+} rssiSource_e;
+
+extern rssiSource_e rssiSource;
+
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
-extern uint16_t rssi;
 
 void rxInit(void);
 bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime);
@@ -156,7 +171,12 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
 
 void parseRcChannels(const char *input);
 
+void setRssiFiltered(uint16_t newRssi, rssiSource_e source);
+void setRssiUnfiltered(uint16_t rssiValue, rssiSource_e source);
+void setRssiMsp(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
+uint16_t getRSSI(void);
+
 void resetAllRxChannelRangeConfigurations(void);
 
 void suspendRxSignal(void);
