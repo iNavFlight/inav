@@ -127,8 +127,6 @@ int32_t applyDeadband(int32_t value, int32_t deadband);
 int constrain(int amt, int low, int high);
 float constrainf(float amt, float low, float high);
 
-void buildRotationMatrix(fp_angles_t *delta, float matrix[3][3]);
-
 void devClear(stdev_t *dev);
 void devPush(stdev_t *dev, float x);
 float devVariance(stdev_t *dev);

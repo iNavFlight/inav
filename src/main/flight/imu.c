@@ -83,6 +83,8 @@ STATIC_FASTRAM float smallAngleCosZ;
 
 STATIC_FASTRAM bool isAccelUpdatedAtLeastOnce;
 
+FASTRAM fpMat3_t magDeclinationRMat;                // Rotation matrix for magnetic declination correction (Earth frame)
+
 FASTRAM fpQuaternion_t orientation;
 FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 STATIC_FASTRAM_UNIT_TESTED float rMat[3][3];
@@ -148,8 +150,19 @@ void imuInit(void)
     isAccelUpdatedAtLeastOnce = false;
     gpsHeadingInitialized = false;
 
+    // Create magnetic declination matrix
+    const int deg = compassConfig()->mag_declination / 100;
+    const int min = compassConfig()->mag_declination   % 100;
+    imuSetMagneticDeclination(deg + min / 60.0f);
+
     quaternionInitUnit(&orientation);
     imuComputeRotationMatrix();
+}
+
+void imuSetMagneticDeclination(float declinationDeg)
+{
+    fpAxisAngle_t axisAngle = { .axis = { .v = { 0.0f, 0.0f, 1.0f } }, .angle = DEGREES_TO_RADIANS(declinationDeg) };
+    rotationMatrixFromAxisAngle(&magDeclinationRMat, &axisAngle);
 }
 
 void imuTransformVectorBodyToEarth(fpVector3_t * v)
@@ -276,6 +289,9 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
             // Ignore magnetic inclination
             vMag.z = 0.0f;
+
+            // Apply magnetic declination correction
+            rotationMatrixRotateVector(&vMag, &vMag, &magDeclinationRMat);
 
             // Normalize to unit vector
             vectorNormalize(&vMag, &vMag);
@@ -404,7 +420,7 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     /* Compute pitch/roll angles */
     attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
     attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
-    attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0])) + mag.magneticDeclination;
+    attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
 
     if (attitude.values.yaw < 0)
         attitude.values.yaw += 3600;

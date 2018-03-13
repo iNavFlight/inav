@@ -60,6 +60,7 @@ typedef struct imuRuntimeConfig_s {
 
 void imuConfigure(void);
 
+void imuSetMagneticDeclination(float declinationDeg);
 void imuUpdateAttitude(timeUs_t currentTimeUs);
 void imuUpdateAccelerometer(void);
 float calculateCosTiltAngle(void);

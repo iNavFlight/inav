@@ -348,7 +348,7 @@ void onNewGPSData(void)
         /* Automatic magnetic declination calculation - do this once */
         static bool magDeclinationSet = false;
         if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
-            mag.magneticDeclination = geoCalculateMagDeclination(&newLLH) * 10.0f; // heading is in 0.1deg units
+            imuSetMagneticDeclination(geoCalculateMagDeclination(&newLLH));
             magDeclinationSet = true;
         }
 #endif

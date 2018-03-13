@@ -45,7 +45,6 @@ typedef enum {
 
 typedef struct mag_s {
     magDev_t dev;
-    float magneticDeclination;
     int32_t magADC[XYZ_AXIS_COUNT];
 } mag_t;
 

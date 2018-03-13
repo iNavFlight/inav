@@ -30,11 +30,6 @@ typedef struct {
     float q0, q1, q2, q3;
 } fpQuaternion_t;
 
-typedef struct {
-    fpVector3_t axis;
-    float angle;
-} fpAxisAngle_t;
-
 static inline fpQuaternion_t * quaternionInitUnit(fpQuaternion_t * result)
 { 
     result->q0 = 1.0f;
