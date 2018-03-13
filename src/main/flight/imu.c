@@ -82,8 +82,7 @@ FASTRAM fpVector3_t imuMeasuredRotationBF;
 STATIC_FASTRAM float smallAngleCosZ;
 
 STATIC_FASTRAM bool isAccelUpdatedAtLeastOnce;
-
-FASTRAM fpMat3_t magDeclinationRMat;                // Rotation matrix for magnetic declination correction (Earth frame)
+STATIC_FASTRAM fpVector3_t vCorrectedMagNorth;             // Magnetic North vector in EF (true North rotated by declination)
 
 FASTRAM fpQuaternion_t orientation;
 FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
@@ -161,8 +160,10 @@ void imuInit(void)
 
 void imuSetMagneticDeclination(float declinationDeg)
 {
-    fpAxisAngle_t axisAngle = { .axis = { .v = { 0.0f, 0.0f, 1.0f } }, .angle = -DEGREES_TO_RADIANS(declinationDeg) };
-    rotationMatrixFromAxisAngle(&magDeclinationRMat, &axisAngle);
+    const float declinationRad = -DEGREES_TO_RADIANS(declinationDeg);
+    vCorrectedMagNorth.x = cos_approx(declinationRad);
+    vCorrectedMagNorth.y = sin_approx(declinationRad);
+    vCorrectedMagNorth.z = 0;
 }
 
 void imuTransformVectorBodyToEarth(fpVector3_t * v)
@@ -272,7 +273,6 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
     if (magBF || useCOG) {
-        static const fpVector3_t vNorth = { .v = { 1.0f, 0.0f, 0.0f } };
         static const fpVector3_t vForward = { .v = { 1.0f, 0.0f, 0.0f } };
 
         fpVector3_t vErr = { .v = { 0.0f, 0.0f, 0.0f } };
@@ -290,15 +290,12 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // Ignore magnetic inclination
             vMag.z = 0.0f;
 
-            // Apply magnetic declination correction
-            rotationMatrixRotateVector(&vMag, &vMag, &magDeclinationRMat);
-
             // Normalize to unit vector
             vectorNormalize(&vMag, &vMag);
 
-            // Reference mag field vector heading due North in EF (assuming Z-component is zero)
+            // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
             // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-            vectorCrossProduct(&vErr, &vMag, &vNorth);
+            vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);
 
             // Rotate error back into body frame
             quaternionRotateVector(&vErr, &vErr, &orientation);
