@@ -63,7 +63,7 @@ PG_DECLARE(gyroConfig_t, gyroConfig);
 
 bool gyroInit(void);
 void gyroInitFilters(void);
-void gyroGetMeasuredRotationRate(t_fp_vector *imuMeasuredRotationBF);
+void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate(timeDelta_t gyroUpdateDeltaUs);
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 bool gyroIsCalibrationComplete(void);

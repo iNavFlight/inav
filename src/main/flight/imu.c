@@ -77,8 +77,8 @@
 #define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
 #define MAX_GPS_HEADING_ERROR_DEG   60      // Amount of error between GPS CoG and estimated Yaw at witch we stop trusting GPS and fallback to MAG
 
-FASTRAM t_fp_vector imuMeasuredAccelBF;
-FASTRAM t_fp_vector imuMeasuredRotationBF;
+FASTRAM fpVector3_t imuMeasuredAccelBF;
+FASTRAM fpVector3_t imuMeasuredRotationBF;
 STATIC_FASTRAM float smallAngleCosZ;
 
 STATIC_FASTRAM bool isAccelUpdatedAtLeastOnce;
@@ -141,7 +141,7 @@ void imuInit(void)
     smallAngleCosZ = cos_approx(degreesToRadians(imuRuntimeConfig.small_angle));
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = 0;
+        imuMeasuredAccelBF.v[axis] = 0;
     }
 
     // Explicitly initialize FASTRAM statics
@@ -152,19 +152,19 @@ void imuInit(void)
     imuComputeRotationMatrix();
 }
 
-void imuTransformVectorBodyToEarth(t_fp_vector * v)
+void imuTransformVectorBodyToEarth(fpVector3_t * v)
 {
     // From body frame to earth frame
     quaternionRotateVectorInv(v, v, &orientation);
 
     // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
-    v->V.Y = -v->V.Y;
+    v->y = -v->y;
 }
 
-void imuTransformVectorEarthToBody(t_fp_vector * v)
+void imuTransformVectorEarthToBody(fpVector3_t * v)
 {
     // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
-    v->V.Y = -v->V.Y;
+    v->y = -v->y;
 
     // From earth frame to body frame
     quaternionRotateVector(v, v, &orientation);
@@ -210,19 +210,19 @@ static float imuGetPGainScaleFactor(void)
     }
 }
 
-static void imuResetOrientationQuaternion(const t_fp_vector * accBF)
+static void imuResetOrientationQuaternion(const fpVector3_t * accBF)
 {
     const float accNorm = sqrtf(vectorNormSquared(accBF));
 
-    orientation.q0 = accBF->V.Z + accNorm;
-    orientation.q1 = accBF->V.Y;
-    orientation.q2 = -accBF->V.X;
+    orientation.q0 = accBF->z + accNorm;
+    orientation.q1 = accBF->y;
+    orientation.q2 = -accBF->x;
     orientation.q3 = 0.0f;
 
     quaternionNormalize(&orientation, &orientation);
 }
 
-static void imuCheckAndResetOrientationQuaternion(const t_fp_vector * accBF)
+static void imuCheckAndResetOrientationQuaternion(const fpVector3_t * accBF)
 {
     // Check if some calculation in IMU update yield NAN or zero quaternion
     // Reset quaternion from accelerometer - this might be incorrect, but it's better than no attitude at all
@@ -247,11 +247,11 @@ static void imuCheckAndResetOrientationQuaternion(const t_fp_vector * accBF)
 #endif
 }
 
-static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp_vector * accBF, const t_fp_vector * magBF, bool useCOG, float courseOverGround)
+static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround)
 {
-    STATIC_FASTRAM t_fp_vector vGyroDriftEstimate = { 0 };
+    STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
-    t_fp_vector vRotation = *gyroBF;
+    fpVector3_t vRotation = *gyroBF;
 
     /* Calculate general spin rate (rad/s) */
     const float spin_rate_sq = vectorNormSquared(&vRotation);
@@ -259,13 +259,13 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
     if (magBF || useCOG) {
-        static const t_fp_vector vNorth = { .V = { 1.0f, 0.0f, 0.0f } };
-        static const t_fp_vector vForward = { .V = { 1.0f, 0.0f, 0.0f } };
+        static const fpVector3_t vNorth = { .v = { 1.0f, 0.0f, 0.0f } };
+        static const fpVector3_t vForward = { .v = { 1.0f, 0.0f, 0.0f } };
 
-        t_fp_vector vErr = { .V = { 0.0f, 0.0f, 0.0f } };
+        fpVector3_t vErr = { .v = { 0.0f, 0.0f, 0.0f } };
 
         if (magBF && vectorNormSquared(magBF) > 0.01f) {
-            t_fp_vector vMag;
+            fpVector3_t vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
             // This way magnetic field will only affect heading and wont mess roll/pitch angles
@@ -275,7 +275,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
             quaternionRotateVectorInv(&vMag, magBF, &orientation);    // BF -> EF
 
             // Ignore magnetic inclination
-            vMag.V.Z = 0.0f;
+            vMag.z = 0.0f;
 
             // Normalize to unit vector
             vectorNormalize(&vMag, &vMag);
@@ -288,7 +288,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
             quaternionRotateVector(&vErr, &vErr, &orientation);
         }
         else if (useCOG) {
-            t_fp_vector vHeadingEF;
+            fpVector3_t vHeadingEF;
 
             // Use raw heading error (from GPS or whatever else)
             while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
@@ -299,11 +299,11 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
             // (-cos(COG), sin(COG)) - reference heading vector (EF)
 
             // Compute heading vector in EF from scalar CoG
-            t_fp_vector vCoG = { .V = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
+            fpVector3_t vCoG = { .v = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
 
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
-            vHeadingEF.V.Z = 0.0f;
+            vHeadingEF.z = 0.0f;
 
             // Normalize to unit vector
             vectorNormalize(&vHeadingEF, &vHeadingEF);
@@ -319,7 +319,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
         if (imuRuntimeConfig.dcm_ki_mag > 0.0f) {
             // Stop integrating if spinning beyond the certain limit
             if (spin_rate_sq < sq(DEGREES_TO_RADIANS(SPIN_RATE_LIMIT))) {
-                t_fp_vector vTmp;
+                fpVector3_t vTmp;
 
                 // integral error scaled by Ki
                 vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_mag * dt);
@@ -335,8 +335,8 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
 
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
     if (accBF) {
-        static const t_fp_vector vGravity = { .V = { 0.0f, 0.0f, 1.0f } };
-        t_fp_vector vEstGravity, vAcc, vErr;
+        static const fpVector3_t vGravity = { .v = { 0.0f, 0.0f, 1.0f } };
+        fpVector3_t vEstGravity, vAcc, vErr;
 
         // Calculate estimated gravity vector in body frame
         quaternionRotateVector(&vEstGravity, &vGravity, &orientation);    // EF -> BF
@@ -349,7 +349,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
         if (imuRuntimeConfig.dcm_ki_acc > 0.0f) {
             // Stop integrating if spinning beyond the certain limit
             if (spin_rate_sq < sq(DEGREES_TO_RADIANS(SPIN_RATE_LIMIT))) {
-                t_fp_vector vTmp;
+                fpVector3_t vTmp;
 
                 // integral error scaled by Ki
                 vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_acc * dt);
@@ -366,7 +366,7 @@ static void imuMahonyAHRSupdate(float dt, const t_fp_vector * gyroBF, const t_fp
     vectorAdd(&vRotation, &vRotation, &vGyroDriftEstimate);
 
     // Integrate rate of change of quaternion
-    t_fp_vector vTheta;
+    fpVector3_t vTheta;
     fpQuaternion_t deltaQ;
 
     vectorScale(&vTheta, &vRotation, 0.5f * dt);
@@ -489,7 +489,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     }
 #endif
 
-    t_fp_vector measuredMagBF = { .V = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
+    fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF, 
                             useAcc ? &imuMeasuredAccelBF : NULL, 

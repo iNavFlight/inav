@@ -31,7 +31,7 @@ typedef struct {
 } fpQuaternion_t;
 
 typedef struct {
-    t_fp_vector axis;
+    fpVector3_t axis;
     float angle;
 } fpAxisAngle_t;
 
@@ -44,12 +44,12 @@ static inline fpQuaternion_t * quaternionInitUnit(fpQuaternion_t * result)
     return result; 
 }
 
-static inline fpQuaternion_t * quaternionInitFromVector(fpQuaternion_t * result, const t_fp_vector * v)
+static inline fpQuaternion_t * quaternionInitFromVector(fpQuaternion_t * result, const fpVector3_t * v)
 {
     result->q0 = 0.0f;
-    result->q1 = v->V.X;
-    result->q2 = v->V.Y;
-    result->q3 = v->V.Z;
+    result->q1 = v->x;
+    result->q2 = v->y;
+    result->q3 = v->z;
     return result;
 }
 
@@ -67,9 +67,9 @@ static inline void quaternionToAxisAngle(fpAxisAngle_t * result, const fpQuatern
 
     // Axis is only valid when rotation is large enough sin(0.0057 deg) = 0.0001
     if (sinVal > 1e-4f) {
-        a.axis.V.X = q->q1 / sinVal;
-        a.axis.V.Y = q->q2 / sinVal;
-        a.axis.V.Z = q->q3 / sinVal;
+        a.axis.x = q->q1 / sinVal;
+        a.axis.y = q->q2 / sinVal;
+        a.axis.z = q->q3 / sinVal;
     } else {
         a.angle = 0;
     }
@@ -83,9 +83,9 @@ static inline fpQuaternion_t * axisAngleToQuaternion(fpQuaternion_t * result, co
   const float s = sin_approx(a->angle / 2.0f);
 
   q.q0 = cos_approx(a->angle / 2.0f);
-  q.q1 = -a->axis.V.X * s;
-  q.q2 = -a->axis.V.Y * s;
-  q.q3 = -a->axis.V.Z * s;
+  q.q1 = -a->axis.x * s;
+  q.q2 = -a->axis.y * s;
+  q.q3 = -a->axis.z * s;
 
   *result = q;
   return result;
@@ -165,40 +165,40 @@ static inline fpQuaternion_t * quaternionNormalize(fpQuaternion_t * result, cons
     return result;
 }
 
-static inline t_fp_vector * quaternionRotateVector(t_fp_vector * result, const t_fp_vector * vect, const fpQuaternion_t * ref)
+static inline fpVector3_t * quaternionRotateVector(fpVector3_t * result, const fpVector3_t * vect, const fpQuaternion_t * ref)
 {
     fpQuaternion_t vectQuat, refConj;
 
     vectQuat.q0 = 0;
-    vectQuat.q1 = vect->V.X;
-    vectQuat.q2 = vect->V.Y;
-    vectQuat.q3 = vect->V.Z;
+    vectQuat.q1 = vect->x;
+    vectQuat.q2 = vect->y;
+    vectQuat.q3 = vect->z;
 
     quaternionConjugate(&refConj, ref);
     quaternionMultiply(&vectQuat, &refConj, &vectQuat);
     quaternionMultiply(&vectQuat, &vectQuat, ref);
 
-    result->V.X = vectQuat.q1;
-    result->V.Y = vectQuat.q2;
-    result->V.Z = vectQuat.q3;
+    result->x = vectQuat.q1;
+    result->y = vectQuat.q2;
+    result->z = vectQuat.q3;
     return result;
 }
 
-static inline t_fp_vector * quaternionRotateVectorInv(t_fp_vector * result, const t_fp_vector * vect, const fpQuaternion_t * ref)
+static inline fpVector3_t * quaternionRotateVectorInv(fpVector3_t * result, const fpVector3_t * vect, const fpQuaternion_t * ref)
 {
     fpQuaternion_t vectQuat, refConj;
 
     vectQuat.q0 = 0;
-    vectQuat.q1 = vect->V.X;
-    vectQuat.q2 = vect->V.Y;
-    vectQuat.q3 = vect->V.Z;
+    vectQuat.q1 = vect->x;
+    vectQuat.q2 = vect->y;
+    vectQuat.q3 = vect->z;
 
     quaternionConjugate(&refConj, ref);
     quaternionMultiply(&vectQuat, ref, &vectQuat);
     quaternionMultiply(&vectQuat, &vectQuat, &refConj);
 
-    result->V.X = vectQuat.q1;
-    result->V.Y = vectQuat.q2;
-    result->V.Z = vectQuat.q3;
+    result->x = vectQuat.q1;
+    result->y = vectQuat.q2;
+    result->z = vectQuat.q3;
     return result;
 }

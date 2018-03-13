@@ -66,7 +66,7 @@ PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
 bool accInit(uint32_t accTargetLooptime);
 bool accIsCalibrationComplete(void);
 void accSetCalibrationCycles(uint16_t calibrationCyclesRequired);
-void accGetMeasuredAcceleration(t_fp_vector *measuredAcc);
+void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
 void accUpdate(void);
 void accSetCalibrationValues(void);
 void accInitFilters(void);

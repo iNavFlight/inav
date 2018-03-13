@@ -638,9 +638,9 @@ float pidHeadingHold(void)
  */
 static void pidTurnAssistant(pidState_t *pidState)
 {
-    t_fp_vector targetRates;
-    targetRates.V.X = 0.0f;
-    targetRates.V.Y = 0.0f;
+    fpVector3_t targetRates;
+    targetRates.x = 0.0f;
+    targetRates.y = 0.0f;
 
     if (STATE(FIXED_WING)) {
         if (calculateCosTiltAngle() >= 0.173648f) {
@@ -667,7 +667,7 @@ static void pidTurnAssistant(pidState_t *pidState)
             float bankAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
             float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngle) / airspeedForCoordinatedTurn;
 
-            targetRates.V.Z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
+            targetRates.z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
         }
         else {
             // Don't allow coordinated turn calculation if airplane is in hard bank or steep climb/dive
@@ -675,22 +675,22 @@ static void pidTurnAssistant(pidState_t *pidState)
         }
     }
     else {
-        targetRates.V.Z = pidState[YAW].rateTarget;
+        targetRates.z = pidState[YAW].rateTarget;
     }
 
     // Transform calculated rate offsets into body frame and apply
     imuTransformVectorEarthToBody(&targetRates);
 
     // Add in roll and pitch
-    pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.V.X, -currentControlRateProfile->stabilized.rates[ROLL] * 10.0f, currentControlRateProfile->stabilized.rates[ROLL] * 10.0f);
-    pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.V.Y, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
+    pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.x, -currentControlRateProfile->stabilized.rates[ROLL] * 10.0f, currentControlRateProfile->stabilized.rates[ROLL] * 10.0f);
+    pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
 
     // Replace YAW on quads - add it in on airplanes
     if (STATE(FIXED_WING)) {
-        pidState[YAW].rateTarget = constrainf(pidState[YAW].rateTarget + targetRates.V.Z * pidProfile()->fixedWingCoordinatedYawGain, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
+        pidState[YAW].rateTarget = constrainf(pidState[YAW].rateTarget + targetRates.z * pidProfile()->fixedWingCoordinatedYawGain, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
     }
     else {
-        pidState[YAW].rateTarget = constrainf(targetRates.V.Z, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
+        pidState[YAW].rateTarget = constrainf(targetRates.z, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
     }
 }
 #endif

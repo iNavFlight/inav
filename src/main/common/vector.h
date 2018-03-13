@@ -22,70 +22,81 @@
 
 #include "common/maths.h"
 
-// Floating point 3 vector.
-typedef struct fp_vector {
-    float X;
-    float Y;
-    float Z;
-} t_fp_vector_def;
-
 typedef union {
-    float A[3];
-    t_fp_vector_def V;
-} t_fp_vector;
+    float v[3];
+    struct {
+       float x,y,z;
+    };
+} fpVector3_t;
 
-static inline float vectorNormSquared(const t_fp_vector * v)
-{ 
-    return sq(v->V.X) + sq(v->V.Y) + sq(v->V.Z);
+typedef struct {
+    float m[3][3];
+} fpMat3_t;
+
+static inline fpVector3_t * vectorRotate(fpVector3_t * result, const fpVector3_t * a, const fpMat3_t * rmat)
+{
+    fpVector3_t r;
+
+    r.x = rmat->m[0][0] * a->x + rmat->m[1][0] * a->y + rmat->m[2][0] * a->z;
+    r.y = rmat->m[0][1] * a->x + rmat->m[1][1] * a->y + rmat->m[2][1] * a->z;
+    r.z = rmat->m[0][2] * a->x + rmat->m[1][2] * a->y + rmat->m[2][2] * a->z;
+
+    *result = r;
+    return result;
 }
 
-static inline t_fp_vector * vectorNormalize(t_fp_vector * result, const t_fp_vector * v)
+static inline float vectorNormSquared(const fpVector3_t * v)
+{ 
+    return sq(v->x) + sq(v->y) + sq(v->z);
+}
+
+static inline fpVector3_t * vectorNormalize(fpVector3_t * result, const fpVector3_t * v)
 {
     float length = sqrtf(vectorNormSquared(v));
     if (length != 0) {
-        result->V.X = v->V.X / length;
-        result->V.Y = v->V.Y / length;
-        result->V.Z = v->V.Z / length;
+        result->x = v->x / length;
+        result->y = v->y / length;
+        result->z = v->z / length;
     }
     else {
-        result->V.X = 0;
-        result->V.Y = 0;
-        result->V.Z = 0;
+        result->x = 0;
+        result->y = 0;
+        result->z = 0;
     }
     return result;
 }
 
-static inline t_fp_vector * vectorCrossProduct(t_fp_vector * result, const t_fp_vector * a, const t_fp_vector * b)
+static inline fpVector3_t * vectorCrossProduct(fpVector3_t * result, const fpVector3_t * a, const fpVector3_t * b)
 {
-    t_fp_vector ab;
+    fpVector3_t ab;
 
-    ab.V.X = a->V.Y * b->V.Z - a->V.Z * b->V.Y;
-    ab.V.Y = a->V.Z * b->V.X - a->V.X * b->V.Z;
-    ab.V.Z = a->V.X * b->V.Y - a->V.Y * b->V.X;
+    ab.x = a->y * b->z - a->z * b->y;
+    ab.y = a->z * b->x - a->x * b->z;
+    ab.z = a->x * b->y - a->y * b->x;
 
     *result = ab;
     return result;
 }
 
-static inline t_fp_vector * vectorAdd(t_fp_vector * result, const t_fp_vector * a, const t_fp_vector * b)
+static inline fpVector3_t * vectorAdd(fpVector3_t * result, const fpVector3_t * a, const fpVector3_t * b)
 {
-    t_fp_vector ab;
+    fpVector3_t ab;
 
-    ab.V.X = a->V.X + b->V.X;
-    ab.V.Y = a->V.Y + b->V.Y;
-    ab.V.Z = a->V.Z + b->V.Z;
+    ab.x = a->x + b->x;
+    ab.y = a->y + b->y;
+    ab.z = a->z + b->z;
 
     *result = ab;
     return result;
 }
 
-static inline t_fp_vector * vectorScale(t_fp_vector * result, const t_fp_vector * a, const float b)
+static inline fpVector3_t * vectorScale(fpVector3_t * result, const fpVector3_t * a, const float b)
 {
-    t_fp_vector ab;
+    fpVector3_t ab;
 
-    ab.V.X = a->V.X * b;
-    ab.V.Y = a->V.Y * b;
-    ab.V.Z = a->V.Z * b;
+    ab.x = a->x * b;
+    ab.y = a->y * b;
+    ab.z = a->z * b;
 
     *result = ab;
     return result;

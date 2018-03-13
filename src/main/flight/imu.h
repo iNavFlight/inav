@@ -24,8 +24,8 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
-extern t_fp_vector imuMeasuredAccelBF;         // cm/s/s
-extern t_fp_vector imuMeasuredRotationBF;       // rad/s
+extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
+extern fpVector3_t imuMeasuredRotationBF;       // rad/s
 
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
@@ -66,7 +66,7 @@ float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
 
-void imuTransformVectorBodyToEarth(t_fp_vector * v);
-void imuTransformVectorEarthToBody(t_fp_vector * v);
+void imuTransformVectorBodyToEarth(fpVector3_t * v);
+void imuTransformVectorEarthToBody(fpVector3_t * v);
 
 void imuInit(void);
