@@ -440,11 +440,14 @@ void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 #endif
 }
 
-void gyroReadTemperature(void)
+bool gyroReadTemperature(void)
 {
+    // Read gyro sensor temperature. temperatureFn returns temperature in [degC * 10]
     if (gyroDev0.temperatureFn) {
-        gyroDev0.temperatureFn(&gyroDev0, &gyroTemperature0);
+        return gyroDev0.temperatureFn(&gyroDev0, &gyroTemperature0);
     }
+
+    return false;
 }
 
 int16_t gyroGetTemperature(void)

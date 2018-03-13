@@ -653,6 +653,7 @@ COMMON_SRC = \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
+            sensors/temperature.c \
             sensors/boardalignment.c \
             sensors/compass.c \
             sensors/diagnostics.c \
