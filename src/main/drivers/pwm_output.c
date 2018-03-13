@@ -154,6 +154,11 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, const timerHardware_t *timerH
 
 static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value, bool enableOutput)
 {
+    if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
+        DEBUG_TRACE("Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
+        return NULL;
+    }
+
     pwmOutputPort_t *p = &pwmOutputPorts[allocatedOutputPortCount++];
 
     const IO_t io = IOGetByTag(timerHardware->tag);
@@ -234,7 +239,7 @@ bool isMotorBrushed(uint16_t motorPwmRate)
     return (motorPwmRate > 500);
 }
 
-void pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, uint16_t idlePulse, motorPwmProtocolTypes_e proto, bool enableOutput)
+bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, uint16_t idlePulse, motorPwmProtocolTypes_e proto, bool enableOutput)
 {
     uint32_t timerMhzCounter;
     pwmWriteFuncPtr pwmWritePtr;
@@ -273,14 +278,29 @@ void pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
     }
 
     const uint32_t hz = timerMhzCounter * 1000000;
-    motors[motorIndex] = pwmOutConfigMotor(timerHardware, timerMhzCounter, hz / motorPwmRate, idlePulse, enableOutput);
-    motors[motorIndex]->pwmWritePtr = pwmWritePtr;
+
+    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, timerMhzCounter, hz / motorPwmRate, idlePulse, enableOutput);
+
+    if (port) {
+        motors[motorIndex] = port;
+        motors[motorIndex]->pwmWritePtr = pwmWritePtr;
+        return true;
+    }
+
+    return false;
 }
 
 #ifdef USE_SERVOS
-void pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)
+bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)
 {
-    servos[servoIndex] = pwmOutConfigMotor(timerHardware, PWM_TIMER_MHZ, 1000000 / servoPwmRate, servoCenterPulse, enableOutput);
+    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, PWM_TIMER_MHZ, 1000000 / servoPwmRate, servoCenterPulse, enableOutput);
+
+    if (port) {
+        servos[servoIndex] = port;
+        return true;
+    }
+
+    return false;
 }
 
 void pwmWriteServo(uint8_t index, uint16_t value)
