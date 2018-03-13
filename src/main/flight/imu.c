@@ -161,7 +161,7 @@ void imuInit(void)
 
 void imuSetMagneticDeclination(float declinationDeg)
 {
-    fpAxisAngle_t axisAngle = { .axis = { .v = { 0.0f, 0.0f, 1.0f } }, .angle = DEGREES_TO_RADIANS(declinationDeg) };
+    fpAxisAngle_t axisAngle = { .axis = { .v = { 0.0f, 0.0f, 1.0f } }, .angle = -DEGREES_TO_RADIANS(declinationDeg) };
     rotationMatrixFromAxisAngle(&magDeclinationRMat, &axisAngle);
 }
 
