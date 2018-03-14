@@ -77,7 +77,6 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
 
 #ifdef USE_MAG
 
-static uint8_t magInit = 0;
 static uint8_t magUpdatedAtLeastOnce = 0;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
@@ -264,15 +263,12 @@ bool compassInit(void)
     LED1_ON;
     const bool ret = mag.dev.init(&mag.dev);
     LED1_OFF;
-    if (ret) {
-        const int deg = compassConfig()->mag_declination / 100;
-        const int min = compassConfig()->mag_declination   % 100;
-        mag.magneticDeclination = (deg + ((float)min * (1.0f / 60.0f))) * 10; // heading is in 0.1deg units
-        magInit = 1;
-    } else {
+
+    if (!ret) {
         addBootlogEvent2(BOOT_EVENT_MAG_INIT_FAILED, BOOT_EVENT_FLAGS_ERROR);
         sensorsClear(SENSOR_MAG);
     }
+
     if (compassConfig()->mag_align != ALIGN_DEFAULT) {
         mag.dev.magAlign = compassConfig()->mag_align;
     }
@@ -329,12 +325,6 @@ void compassUpdate(timeUs_t currentTimeUs)
         DISABLE_STATE(CALIBRATE_MAG);
     }
 
-    if (magInit) {              // we apply offset only once mag calibration is done
-        mag.magADC[X] -= compassConfig()->magZero.raw[X];
-        mag.magADC[Y] -= compassConfig()->magZero.raw[Y];
-        mag.magADC[Z] -= compassConfig()->magZero.raw[Z];
-    }
-
     if (calStartedAt != 0) {
         if ((currentTimeUs - calStartedAt) < (compassConfig()->magCalibrationTimeLimit * 1000000)) {
             LED0_TOGGLE;
@@ -366,6 +356,11 @@ void compassUpdate(timeUs_t currentTimeUs)
             calStartedAt = 0;
             saveConfigAndNotify();
         }
+    }
+    else {
+        mag.magADC[X] -= compassConfig()->magZero.raw[X];
+        mag.magADC[Y] -= compassConfig()->magZero.raw[Y];
+        mag.magADC[Z] -= compassConfig()->magZero.raw[Z];
     }
 
     applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign);

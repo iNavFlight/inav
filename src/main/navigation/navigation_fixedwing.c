@@ -104,10 +104,10 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     // velocity error. We use PID controller on altitude error and calculate desired pitch angle
 
     // Update energies
-    const float demSPE = (posControl.desiredState.pos.V.Z / 100.0f) * GRAVITY_MSS;
+    const float demSPE = (posControl.desiredState.pos.z / 100.0f) * GRAVITY_MSS;
     const float demSKE = 0.0f;
 
-    const float estSPE = (posControl.actualState.pos.V.Z / 100.0f) * GRAVITY_MSS;
+    const float estSPE = (posControl.actualState.pos.z / 100.0f) * GRAVITY_MSS;
     const float estSKE = 0.0f;
 
     // speedWeight controls balance between potential and kinetic energy used for pitch controller
@@ -188,14 +188,14 @@ bool adjustFixedWingHeadingFromRCInput(void)
 /*-----------------------------------------------------------
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
-static t_fp_vector virtualDesiredPosition;
+static fpVector3_t virtualDesiredPosition;
 static pt1Filter_t fwPosControllerCorrectionFilterState;
 
 void resetFixedWingPositionController(void)
 {
-    virtualDesiredPosition.V.X = 0;
-    virtualDesiredPosition.V.Y = 0;
-    virtualDesiredPosition.V.Z = 0;
+    virtualDesiredPosition.x = 0;
+    virtualDesiredPosition.y = 0;
+    virtualDesiredPosition.z = 0;
 
     navPidReset(&posControl.pids.fw_nav);
     posControl.rcAdjustment[ROLL] = 0;
@@ -206,8 +206,8 @@ void resetFixedWingPositionController(void)
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
-    float posErrorX = posControl.desiredState.pos.V.X - posControl.actualState.pos.V.X;
-    float posErrorY = posControl.desiredState.pos.V.Y - posControl.actualState.pos.V.Y;
+    float posErrorX = posControl.desiredState.pos.x - posControl.actualState.pos.x;
+    float posErrorY = posControl.desiredState.pos.y - posControl.actualState.pos.y;
 
     float distanceToActualTarget = sqrtf(sq(posErrorX) + sq(posErrorY));
 
@@ -225,18 +225,18 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         // We are closing in on a waypoint, calculate circular loiter
         float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(45.0f);
 
-        float loiterTargetX = posControl.desiredState.pos.V.X + navConfig()->fw.loiter_radius * cos_approx(loiterAngle);
-        float loiterTargetY = posControl.desiredState.pos.V.Y + navConfig()->fw.loiter_radius * sin_approx(loiterAngle);
+        float loiterTargetX = posControl.desiredState.pos.x + navConfig()->fw.loiter_radius * cos_approx(loiterAngle);
+        float loiterTargetY = posControl.desiredState.pos.y + navConfig()->fw.loiter_radius * sin_approx(loiterAngle);
 
         // We have temporary loiter target. Recalculate distance and position error
-        posErrorX = loiterTargetX - posControl.actualState.pos.V.X;
-        posErrorY = loiterTargetY - posControl.actualState.pos.V.Y;
+        posErrorX = loiterTargetX - posControl.actualState.pos.x;
+        posErrorY = loiterTargetY - posControl.actualState.pos.y;
         distanceToActualTarget = sqrtf(sq(posErrorX) + sq(posErrorY));
     }
 
     // Calculate virtual waypoint
-    virtualDesiredPosition.V.X = posControl.actualState.pos.V.X + posErrorX * (trackingDistance / distanceToActualTarget);
-    virtualDesiredPosition.V.Y = posControl.actualState.pos.V.Y + posErrorY * (trackingDistance / distanceToActualTarget);
+    virtualDesiredPosition.x = posControl.actualState.pos.x + posErrorX * (trackingDistance / distanceToActualTarget);
+    virtualDesiredPosition.y = posControl.actualState.pos.y + posErrorY * (trackingDistance / distanceToActualTarget);
 
     // Shift position according to pilot's ROLL input (up to max_manual_speed velocity)
     if (posControl.flags.isAdjustingPosition) {
@@ -246,8 +246,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             float rcShiftY = rcRollAdjustment * navConfig()->general.max_manual_speed / 500.0f * trackingPeriod;
 
             // Rotate this target shift from body frame to to earth frame and apply to position target
-            virtualDesiredPosition.V.X += -rcShiftY * posControl.actualState.sinYaw;
-            virtualDesiredPosition.V.Y +=  rcShiftY * posControl.actualState.cosYaw;
+            virtualDesiredPosition.x += -rcShiftY * posControl.actualState.sinYaw;
+            virtualDesiredPosition.y +=  rcShiftY * posControl.actualState.cosYaw;
 
             posControl.flags.isAdjustingPosition = true;
         }
@@ -473,7 +473,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
      * TODO refactor conditions in this metod if logic is proven to be correct
      */
     if (navStateFlags & NAV_CTL_LAND) {
-        if ( ((posControl.flags.estAltStatus >= EST_USABLE) && (posControl.actualState.pos.V.Z <= navConfig()->general.land_slowdown_minalt)) ||
+        if ( ((posControl.flags.estAltStatus >= EST_USABLE) && (posControl.actualState.pos.z <= navConfig()->general.land_slowdown_minalt)) ||
              ((posControl.flags.estSurfaceStatus == EST_TRUSTED) && (posControl.actualState.surface <= navConfig()->general.land_slowdown_minalt)) ) {
             /*
              * Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
@@ -531,7 +531,7 @@ void applyFixedWingEmergencyLandingController(void)
 /*-----------------------------------------------------------
  * Calculate loiter target based on current position and velocity
  *-----------------------------------------------------------*/
-void calculateFixedWingInitialHoldPosition(t_fp_vector * pos)
+void calculateFixedWingInitialHoldPosition(fpVector3_t * pos)
 {
     // TODO: stub, this should account for velocity and target loiter radius
     *pos = posControl.actualState.pos;
