@@ -351,9 +351,9 @@ uint32_t hse_value = HSE_VALUE;
      through STLINK MCO pin of STM32F103 microcontroller. The frequency cannot be changed
      and is fixed at 8 MHz.
      Hardware configuration needed for Nucleo Board:
-     – SB54, SB55 OFF
-     – R35 removed
-     – SB16, SB50 ON */
+     ï¿½ SB54, SB55 OFF
+     ï¿½ R35 removed
+     ï¿½ SB16, SB50 ON */
 /* #define USE_HSE_BYPASS */
 
 #if defined(USE_HSE_BYPASS)
@@ -369,17 +369,14 @@ uint32_t hse_value = HSE_VALUE;
 /******************************************************************************/
 
 /************************* PLL Parameters *************************************/
-#if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx)
+#if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx) || defined (STM32F446xx)
  /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
 #if defined(COLIBRI) || defined(KROOZX)
  #define PLL_M      16
 #elif defined(PIXRACER)
  #define PLL_M      24
-#else
- #define PLL_M      8
-#endif
 #elif defined (STM32F446xx)
- #define PLL_M      8
+ #define PLL_M      16
 #elif defined (STM32F410xx) || defined (STM32F411xE)
  #if defined(USE_HSE_BYPASS)
   #define PLL_M      8
@@ -387,6 +384,8 @@ uint32_t hse_value = HSE_VALUE;
   #define PLL_M      8
  #endif /* USE_HSE_BYPASS */
 #else
+ #define PLL_M      8
+#endif
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F401xx || STM32F469_479xx */
 
 /* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
@@ -397,11 +396,21 @@ uint32_t hse_value = HSE_VALUE;
 #define PLL_R      7
 #endif /* STM32F446xx */
 
-#if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx)
+#if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F469_479xx)
 #define PLL_N      336
 /* SYSCLK = PLL_VCO / PLL_P */
 #define PLL_P      2
+/* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
+#define PLL_Q      7
 #endif /* STM32F427_437x || STM32F429_439xx || STM32F446xx || STM32F469_479xx */
+
+#if defined(STM32F446xx)
+#define PLL_N      360
+/* SYSCLK = PLL_VCO / PLL_P */
+#define PLL_P      2
+/* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */
+#define PLL_Q      7
+#endif
 
 #if defined (STM32F40_41xxx)
 #define PLL_N      336
@@ -875,6 +884,37 @@ void SetSysClock(void)
 #endif /* USE_HSE_BYPASS */
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F401xx || STM32F469_479xx */
 
+#if defined(STM32F446xx)
+// Always use PLLSAI to derive USB 48MHz clock.
+// - Only handles HSE case.
+#define PLLSAI_M      16
+#define PLLSAI_N      192
+#define PLLSAI_P      4
+#define PLLSAI_Q      2
+
+#define RCC_PLLSAI_IS_READY() ((RCC->CR & (RCC_CR_PLLSAIRDY)) == (RCC_CR_PLLSAIRDY))
+
+    /* Configure 48MHz clock for USB */
+    // Set 48MHz clock source
+    RCC_48MHzClockSourceConfig(RCC_48MHZCLKSource_PLLSAI);
+
+    // Enable PLLSAI
+    RCC_PLLSAICmd(DISABLE);
+
+    // wait for PLLSAI to be disabled
+    while (RCC_PLLSAI_IS_READY()) {}
+
+    RCC_PLLSAIConfig(PLLSAI_M, PLLSAI_N, PLLSAI_P, PLLSAI_Q);
+
+    RCC_PLLSAICmd(ENABLE);
+
+    // wait for PLLSAI to be enabled
+    while (!RCC_PLLSAI_IS_READY()) {}
+
+    RCC->DCKCFGR2 |= RCC_DCKCFGR2_CK48MSEL;
+
+#undef  RCC_PLLSAI_GET_FLAG
+#endif /* STM32F446xx */
   SystemCoreClockUpdate();
 }
 
