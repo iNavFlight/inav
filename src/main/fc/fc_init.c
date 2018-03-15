@@ -132,6 +132,10 @@
 
 #include "uav_interconnect/uav_interconnect.h"
 
+#ifdef USE_BRAINFPV_FPGA
+#include "fpga_drv.h"
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -422,6 +426,10 @@ void init(void)
 #ifdef USE_SPI_DEVICE_4
     spiInit(SPIDEV_4);
 #endif
+#endif
+
+#ifdef USE_BRAINFPV_FPGA
+    BRAINFPVFPGA_Init(true);
 #endif
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
