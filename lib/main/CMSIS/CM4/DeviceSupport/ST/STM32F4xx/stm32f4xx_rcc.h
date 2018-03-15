@@ -939,6 +939,8 @@ void        RCC_SDIOClockSourceConfig(uint8_t RCC_ClockSource);
 void        RCC_AHB1ClockGatingCmd(uint32_t RCC_AHB1ClockGating, FunctionalState NewState);
 void        RCC_SPDIFRXClockSourceConfig(uint8_t RCC_ClockSource);
 void        RCC_CECClockSourceConfig(uint8_t RCC_ClockSource);
+void        RCC_MCO1Cmd(FunctionalState NewState);
+void        RCC_MCO2Cmd(FunctionalState NewState);
 #endif /* STM32F446xx */
 
 /* Features available only for STM32F410xx/STM32F412xG/STM32F446xx devices */
