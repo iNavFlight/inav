@@ -74,7 +74,7 @@ static timeUs_t lastMspRssiUpdateUs = 0;
 
 #define MSP_RSSI_TIMEOUT_US 1500000   // 1.5 sec
 
-rssiSource_e rssiSource;
+static rssiSource_e rssiSource;
 
 static bool rxDataProcessingRequired = false;
 static bool auxiliaryProcessingRequired = false;
@@ -312,9 +312,46 @@ void rxInit(void)
             break;
     }
 
+    rxUpdateRSSISource();
+}
+
+void rxUpdateRSSISource(void)
+{
+    rssiSource = RSSI_SOURCE_NONE;
+
+#if defined(USE_ADC)
+    if (feature(FEATURE_RSSI_ADC)) {
+        rssiSource = RSSI_SOURCE_ADC;
+        return;
+    }
+#endif
+
     if (rxConfig()->rssi_channel > 0) {
         rssiSource = RSSI_SOURCE_RX_CHANNEL;
+        return;
     }
+
+    if (rxConfig()->rssi_channel > 0) {
+        rssiSource = RSSI_SOURCE_RX_CHANNEL;
+        return;
+    }
+
+#ifdef USE_SERIAL_RX
+    bool serialProtocolSupportsRSSI = false;
+    if (rxConfig()->receiverType) {
+        switch (rxConfig()->serialrx_provider) {
+#ifdef USE_SERIALRX_FPORT
+        case SERIALRX_FPORT:
+            serialProtocolSupportsRSSI = true;
+            break;
+#endif
+        }
+    }
+    if (serialProtocolSupportsRSSI) {
+        rssiSource = RSSI_SOURCE_RX_PROTOCOL;
+        return;
+    }
+#endif
 }
 
 static uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap)
@@ -512,7 +549,7 @@ void parseRcChannels(const char *input)
     }
 }
 
-void setRssiFiltered(uint16_t newRssi, rssiSource_e source)
+void setRSSIFiltered(uint16_t newRssi, rssiSource_e source)
 {
     if (source != rssiSource) {
         return;
@@ -524,7 +561,7 @@ void setRssiFiltered(uint16_t newRssi, rssiSource_e source)
 #define RSSI_SAMPLE_COUNT 16
 #define RSSI_MAX_VALUE 1023
 
-void setRssiUnfiltered(uint16_t rssiValue, rssiSource_e source)
+void setRSSIUnfiltered(uint16_t rssiValue, rssiSource_e source)
 {
     if (source != rssiSource) {
         return;
@@ -544,7 +581,7 @@ void setRssiUnfiltered(uint16_t rssiValue, rssiSource_e source)
     rssi = rssiMean;
 }
 
-void setRssiMsp(uint8_t newMspRssi)
+void setRSSIMsp(uint8_t newMspRssi)
 {
     if (rssiSource == RSSI_SOURCE_NONE) {
         rssiSource = RSSI_SOURCE_MSP;
@@ -569,41 +606,26 @@ static bool updateRSSIPWM(void)
 {
     int16_t pwmRssi = 0;
     // Read value of AUX channel as rssi
-    pwmRssi = rcData[rxConfig()->rssi_channel - 1];
+    if (rxConfig()->rssi_channel > 0) {
+        pwmRssi = rcData[rxConfig()->rssi_channel - 1];
 
-    // Range of rawPwmRssi is [1000;2000]. rssi should be in [0;1023];
-    rssi = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * 1023.0f);
+        // Range of rawPwmRssi is [1000;2000]. rssi should be in [0;1023];
+        uint16_t rawRSSI = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * (RSSI_MAX_VALUE * 1.0f));
+        setRSSIUnfiltered(rawRSSI, RSSI_SOURCE_RX_CHANNEL);
 
-    return true;
+        return true;
+    }
+    return false;
 }
 
-#define RSSI_ADC_SAMPLE_COUNT 16
-
-static bool updateRSSIADC(timeUs_t currentTimeUs)
+static bool updateRSSIADC(void)
 {
-#ifndef USE_ADC
-    UNUSED(currentTimeUs);
-    return false;
-#else
-    static uint16_t adcRssiSamples[RSSI_ADC_SAMPLE_COUNT];
-    static uint16_t adcRssiSampleIndex = 0;
-    static timeUs_t rssiUpdateAtUs = 0;
-
-    if ((int32_t)(currentTimeUs - rssiUpdateAtUs) < 0) {
-        return false;
-    }
-    rssiUpdateAtUs = currentTimeUs + DELAY_50_HZ;
-
-    adcRssiSampleIndex = (adcRssiSampleIndex + 1) % RSSI_ADC_SAMPLE_COUNT;
-    adcRssiSamples[adcRssiSampleIndex] = adcGetChannel(ADC_RSSI);
-
-    uint32_t adcRssiMean = 0;
-    for (int sampleIndex = 0; sampleIndex < RSSI_ADC_SAMPLE_COUNT; sampleIndex++) {
-        adcRssiMean += adcRssiSamples[sampleIndex];
-    }
-
-    rssi = (adcRssiMean / RSSI_ADC_SAMPLE_COUNT) / 4;    // Reduce to [0;1023]
+#ifdef USE_ADC
+    uint16_t rawRSSI = adcGetChannel(ADC_RSSI) / 4;    // Reduce to [0;1023]
+    setRSSIUnfiltered(rawRSSI, RSSI_SOURCE_ADC);
     return true;
+#else
+    return false;
 #endif
 }
 
@@ -614,13 +636,13 @@ void updateRSSI(timeUs_t currentTimeUs)
     // Read RSSI
     switch (rssiSource) {
     case RSSI_SOURCE_RX_CHANNEL:
-        updateRSSIPWM();
+        rssiUpdated = updateRSSIPWM();
         break;
     case RSSI_SOURCE_ADC:
-        updateRSSIADC(currentTimeUs);
+        rssiUpdated = updateRSSIADC();
         break;
     case RSSI_SOURCE_MSP:
-        if (cmpTimeUs(micros(), lastMspRssiUpdateUs) > MSP_RSSI_TIMEOUT_US) {
+        if (cmpTimeUs(currentTimeUs, lastMspRssiUpdateUs) > MSP_RSSI_TIMEOUT_US) {
             rssi = 0;
         }
         break;
@@ -636,17 +658,22 @@ void updateRSSI(timeUs_t currentTimeUs)
     if (rssiUpdated) {
         // Apply RSSI inversion
         if (rxConfig()->rssiInvert) {
-            rssi = 1023 - rssi;
+            rssi = RSSI_MAX_VALUE - rssi;
         }
 
         // Apply scaling
-        rssi = constrain((uint32_t)rssi * rxConfig()->rssi_scale / 100, 0, 1023);
+        rssi = constrain((uint32_t)rssi * rxConfig()->rssi_scale / 100, 0, RSSI_MAX_VALUE);
     }
 }
 
 uint16_t getRSSI(void)
 {
     return rssi;
+}
+
+rssiSource_e getRSSISource(void)
+{
+    return rssiSource;
 }
 
 uint16_t rxGetRefreshRate(void)

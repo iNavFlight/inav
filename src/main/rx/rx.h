@@ -159,11 +159,10 @@ typedef enum {
     RSSI_SOURCE_MSP,
 } rssiSource_e;
 
-extern rssiSource_e rssiSource;
-
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
 
 void rxInit(void);
+void rxUpdateRSSISource(void);
 bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime);
 bool rxIsReceivingSignal(void);
 bool rxAreFlightChannelsValid(void);
@@ -171,11 +170,12 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
 
 void parseRcChannels(const char *input);
 
-void setRssiFiltered(uint16_t newRssi, rssiSource_e source);
-void setRssiUnfiltered(uint16_t rssiValue, rssiSource_e source);
-void setRssiMsp(uint8_t newMspRssi);
+void setRSSIFiltered(uint16_t newRssi, rssiSource_e source);
+void setRSSIUnfiltered(uint16_t rssiValue, rssiSource_e source);
+void setRSSIMsp(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
 uint16_t getRSSI(void);
+rssiSource_e getRSSISource(void);
 
 void resetAllRxChannelRangeConfigurations(void);
 

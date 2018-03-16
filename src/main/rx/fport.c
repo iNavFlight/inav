@@ -266,7 +266,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                     } else {
                         result |= sbusChannelsDecode(rxRuntimeConfig, &frame->data.controlData.channels);
 
-                        setRssiUnfiltered(scaleRange(constrain(frame->data.controlData.rssi, 0, 100), 0, 100, 0, 1024), RSSI_SOURCE_RX_PROTOCOL);
+                        setRSSIUnfiltered(scaleRange(constrain(frame->data.controlData.rssi, 0, 100), 0, 100, 0, 1024), RSSI_SOURCE_RX_PROTOCOL);
 
                         lastRcFrameReceivedMs = millis();
                     }
@@ -320,7 +320,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     }
 
     if (lastRcFrameReceivedMs && ((millis() - lastRcFrameReceivedMs) > FPORT_MAX_TELEMETRY_AGE_MS)) {
-        setRssiFiltered(0, RSSI_SOURCE_RX_PROTOCOL);
+        setRSSIFiltered(0, RSSI_SOURCE_RX_PROTOCOL);
         lastRcFrameReceivedMs = 0;
     }
 
@@ -385,10 +385,6 @@ bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 #if defined(USE_TELEMETRY_SMARTPORT)
         telemetryEnabled = initSmartPortTelemetryExternal(smartPortWriteFrameFport);
 #endif
-
-        if (rssiSource == RSSI_SOURCE_NONE) {
-            rssiSource = RSSI_SOURCE_RX_PROTOCOL;
-        }
     }
 
     return fportPort != NULL;

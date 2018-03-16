@@ -1229,7 +1229,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_TX_INFO:
-        sbufWriteU8(dst, rssiSource);
+        sbufWriteU8(dst, getRSSISource());
         uint8_t rtcDateTimeIsSet = 0;
         dateTime_t dt;
         if (rtcGetDateTime(&dt)) {
@@ -1553,6 +1553,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
         sbufReadU8(src); // multiwiiCurrentMeterOutput
         rxConfigMutable()->rssi_channel = sbufReadU8(src);
+        rxUpdateRSSISource(); // Changing rssi_channel might change the RSSI source
         sbufReadU8(src);
 
 #ifdef USE_MAG
@@ -2069,6 +2070,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_FEATURE:
         featureClearAll();
         featureSet(sbufReadU32(src)); // features bitmap
+        rxUpdateRSSISource(); // For FEATURE_RSSI_ADC
         break;
 
     case MSP_SET_BOARD_ALIGNMENT:
@@ -2255,7 +2257,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_TX_INFO:
         {
-            setRssiMsp(sbufReadU8(src));
+            setRSSIMsp(sbufReadU8(src));
         }
         break;
 
