@@ -1,0 +1,32 @@
+
+*** ChibiOS/NIL Test Suite
+***
+*** Compiled:     Jul  9 2015 - 10:52:02
+*** Platform:     STM32F303xC Analog & DSP
+*** Test Board:   STMicroelectronics STM32F3-Discovery
+
+----------------------------------------------------------------------------
+--- Test Case 1.1 (System Tick Counter functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 1.2 (Thread Sleep functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.1 (semaphore primitives, no state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.2 (semaphore primitives, with state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.3 (semaphores timeout)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.4 (suspend and resume functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.5 (events functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+
+Final result: SUCCESS
+

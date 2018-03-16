@@ -1,0 +1,32 @@
+
+*** ChibiOS/NIL Test Suite
+***
+*** Compiled:     Jul  9 2015 - 10:31:29
+*** Platform:     SPC560Dxx Car Body and Convenience
+*** Test Board:   EVB with SPC560Dxx Mini Module
+
+----------------------------------------------------------------------------
+--- Test Case 1.1 (System Tick Counter functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 1.2 (Thread Sleep functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.1 (semaphore primitives, no state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.2 (semaphore primitives, with state change)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.3 (semaphores timeout)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.4 (suspend and resume functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+--- Test Case 2.5 (events functionality)
+--- Result: SUCCESS
+----------------------------------------------------------------------------
+
+Final result: SUCCESS
+

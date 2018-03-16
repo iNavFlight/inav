@@ -1,0 +1,90 @@
+******************************************************************************
+*** ChibiOS 16.1.0 Release Notes.                                          ***
+******************************************************************************
+
+ChibiOS 16.1.0 is composed of several independent but inter-operable
+sub-projects: RT, NIL, HAL.
+
+*** ChibiOS 16.1.0 highlighs ****
+
+This release has been developed with focus mainly on the HAL subsystem and
+general STM32 support. RT and NIL received minor bug fixes that have also
+been back-ported to previous stable branches.
+
+*** ChibiOS 16.1.0 general improvements ***
+
+- ChibiOS release version number redefined as <year>.<month>.<patch> in order
+  to not confuse release version numbers with products version numbers.
+- Improved ARMCMx GCC rules.ld supporting multiple RAM regions. It is now
+  possible to assign stacks, data, bss, etc ot any of the defined RAM regions.
+  - Added capability to allocate initialized, zeroed and not initialized data
+    to any of the defined RAM regions.
+
+*** What's new in RT 3.1.0 ***
+
+- Support for Cortex-M7.
+- Added new function chVTGetTimersStateI() returning the state of the
+  timers list. This is useful to assess if it is convenient to transition
+  to lower power modes.
+- Added CodeWarrior compiler support to the e200 port.
+- Minor bugs fixed.
+
+*** What's new in HAL 4.0.0 ***
+
+- New watchdog (WDG) driver.
+- Added support for STM32L0xx, STM32L4xx, STM32F7xx, STM32F446, STM32F030xC,
+  STM32F070x6, STM32F070xB, STM32F091xC, STM32F098xx devices.
+- Improved USB driver.
+  - Modified the driver to have a separate USB_SUSPENDED state, this
+    allows the application to detect if the USB is communicating or if
+    it is disconnected or powered down.
+  - Added synchronous API.
+  - Removed queued API.
+  - Improved USB support for STM32 USBv1, OTGv1.
+  - Isochronous support for STM32 USBv1, OTGv1.
+  - STM32 USBv1/OTGv1 buffers and queues do not more require to be aligned in
+    position and size.
+- Improved Serial-USB driver.
+  - New buffers queue object.
+  - Modified the driver to reject write/read attempts if the
+    underlying USB is not in active state. In case of disconnection the
+    SDU driver broadcasts a CHN_DISCONNECTED event.
+- Improved CAN driver.
+  - Better errors reporting for STM32 CANv1.
+- Improved UART driver.
+  - Added synchronous API.
+- Improved PAL driver.
+  - Added "lines" handling to PAL driver, lines are identifiers of both
+    ports and pins encoded in a single value. Added a set of macros
+    operating on lines.
+  - Added GPIOv3 driver for STM32L4xx.
+- I2S support added for STM32 SPIv2 peripheral.
+- Board files an demos for STM32 Nucleo32 boards.
+- Added latest CMSIS headers for all STM32 families.
+- STM32 DMA drivers have been unified and consolidated in DMAv1 and DMAv2.
+  - DMA channels selection now supported on all devices with the new mux
+    mechanism.
+- Added serial driver support for USART 3..6 on STM32F030xC devices.
+- Added support for differential mode to the STM32F3xx ADC driver.
+- STM32 GPT, ICU and PWM driver enhancements. Now it is possible to
+  suppress default ISRs by defining STM32_TIMx_SUPPRESS_ISR.
+  The application is now able to define custom handlers if required
+  or simply save space if the driver callbacks are not used.
+  Now the functions xxx_lld_serve_interrupts() have global scope, this
+  way custom ISRs can call them from outside the driver module.
+- Added TIM units use cross-check in STM32 GPT, ICU, PWM and ST drivers,
+  now use collisions are explicitly reported.
+- Added support for I2C3 and I2C4 to the STM32 I2Cv2 I2C driver.
+- Added support for SPI4...SPI6 to the STM32 SPIv2 SPI driver.
+- Added support for UART4...UART8 to the STM32 UARTv2 UART driver.
+- Added support for UART7 and UART8,LPUART1 to the STM32 UARTv2 serial
+  driver.
+- New STM32 ADCv3 driver supporting middle STM32 devices (F3, L4).
+- New STM32 ADCv2 driver supporting large STM32 devices (F2, F4, F7).
+- New STM32 ADCv1 driver supporting small STM32 devices (F0, L0).
+- Introduced support for TIM21 and TIM22 in STM32 ST driver.
+
+*** What's new in NIL 1.1.0 ***
+
+- Support for Cortex-M7.
+- Minor bugs fixed.

@@ -1,0 +1,84 @@
+
+--- Module:   ..\..\..\os\hal\src\hal.c (C)
+
+--- Module:   ..\..\..\os\hal\src\hal_buffers.c (C)
+
+--- Module:   ..\..\..\os\hal\src\hal_queues.c (C)
+
+--- Module:   ..\..\..\os\hal\src\hal_mmcsd.c (C)
+
+--- Module:   ..\..\..\os\hal\src\adc.c (C)
+
+--- Module:   ..\..\..\os\hal\src\can.c (C)
+
+--- Module:   ..\..\..\os\hal\src\dac.c (C)
+
+--- Module:   ..\..\..\os\hal\src\ext.c (C)
+
+--- Module:   ..\..\..\os\hal\src\gpt.c (C)
+
+--- Module:   ..\..\..\os\hal\src\i2c.c (C)
+
+--- Module:   ..\..\..\os\hal\src\i2s.c (C)
+
+--- Module:   ..\..\..\os\hal\src\icu.c (C)
+
+--- Module:   ..\..\..\os\hal\src\mac.c (C)
+
+--- Module:   ..\..\..\os\hal\src\mmc_spi.c (C)
+
+--- Module:   ..\..\..\os\hal\src\pal.c (C)
+
+--- Module:   ..\..\..\os\hal\src\pwm.c (C)
+
+--- Module:   ..\..\..\os\hal\src\rtc.c (C)
+
+--- Module:   ..\..\..\os\hal\src\sdc.c (C)
+
+--- Module:   ..\..\..\os\hal\src\serial.c (C)
+
+--- Module:   ..\..\..\os\hal\src\serial_usb.c (C)
+
+--- Module:   ..\..\..\os\hal\src\spi.c (C)
+
+--- Module:   ..\..\..\os\hal\src\st.c (C)
+
+--- Module:   ..\..\..\os\hal\src\uart.c (C)
+
+--- Module:   ..\..\..\os\hal\src\usb.c (C)
+
+--- Module:   ..\..\..\os\hal\src\wdg.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\osal\osal.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\hal_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\adc_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\can_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\dac_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\ext_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\gpt_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\i2c_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\icu_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\mac_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\pal_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\pwm_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\sdc_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\serial_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\spi_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\uart_lld.c (C)
+
+--- Module:   ..\..\..\os\hal\templates\usb_lld.c (C)

@@ -1,0 +1,21 @@
+Joel Bodenmann aka Tectu
+https://github.com/Tectu
+Git repository maintainer
+
+Uladzimir Pylinsky aka barthess 
+https://github.com/barthess
+Git repository maintainer
+
+Marco Veeneman aka Marco 
+https://github.com/marcoveeneman
+Maintainer of the ChibiOS port for the Texas Instruments 
+Tiva C Series Microcontrollers
+
+Fabien Poussin aka fpoussin 
+https://github.com/fpoussin
+
+Matthias Blaicher aka mabl 
+https://github.com/mabl
+
+Andrea Zoppi aka TexZK
+https://github.com/TexZK

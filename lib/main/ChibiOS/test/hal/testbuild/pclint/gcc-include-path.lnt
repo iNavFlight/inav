@@ -1,0 +1,6 @@
+--i"C:/ChibiStudio/tools/GNU Tools ARM Embedded/4.9 2015q1/arm-none-eabi/include"
+--i"C:/ChibiStudio/tools/GNU Tools ARM Embedded/4.9 2015q1/arm-none-eabi/include/c++/4.9.3"
+--i"C:/ChibiStudio/tools/GNU Tools ARM Embedded/4.9 2015q1/arm-none-eabi/include/c++/4.9.3/arm-none-eabi"
+--i"C:/ChibiStudio/tools/GNU Tools ARM Embedded/4.9 2015q1/arm-none-eabi/include/c++/4.9.3/backward"
+--i"C:/ChibiStudio/tools/GNU Tools ARM Embedded/4.9 2015q1/lib/gcc/arm-none-eabi/4.9.3/include"
+--i"C:/ChibiStudio/tools/GNU Tools ARM Embedded/4.9 2015q1/lib/gcc/arm-none-eabi/4.9.3/include-fixed"

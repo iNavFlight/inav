@@ -45,9 +45,11 @@ void DebugMon_Handler(void)
   * @param  None
   * @retval None
   */
+#ifndef USE_CHIBIOS
 void PendSV_Handler(void)
 {
 }
+#endif /* USE_CHIBIOS */
 
 /******************************************************************************/
 /*                 STM32F4xx Peripherals Interrupt Handlers                   */
