@@ -79,6 +79,7 @@ typedef enum {
     DEVHW_MPU6000,
     DEVHW_MPU6050,
     DEVHW_MPU6500,
+    DEVHW_BMI160,
 
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,

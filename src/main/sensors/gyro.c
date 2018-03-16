@@ -48,6 +48,7 @@
 #include "drivers/accgyro/accgyro_l3gd20.h"
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
 #include "drivers/accgyro/accgyro_mpu3050.h"
+#include "drivers/accgyro/accgyro_spi_bmi160.h"
 #include "drivers/gyro_sync.h"
 #include "drivers/io.h"
 #include "drivers/logging.h"
@@ -197,6 +198,18 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
             gyroHardware = GYRO_MPU9250;
 #ifdef GYRO_MPU9250_ALIGN
             dev->gyroAlign = GYRO_MPU9250_ALIGN;
+#endif
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_GYRO_BMI160
+    case GYRO_BMI160:
+        if (bmi160SpiGyroDetect(dev)) {
+            gyroHardware = GYRO_BMI160;
+#ifdef GYRO_BMI160_ALIGN
+            dev->gyroAlign = GYRO_BMI160_ALIGN;
 #endif
             break;
         }

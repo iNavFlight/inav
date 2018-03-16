@@ -47,6 +47,7 @@
 #include "drivers/accgyro/accgyro_lsm303dlhc.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
 #include "drivers/accgyro/accgyro_mpu3050.h"
+#include "drivers/accgyro/accgyro_spi_bmi160.h"
 #include "drivers/logging.h"
 #include "drivers/sensor.h"
 
@@ -241,6 +242,22 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
             dev->accAlign = ACC_MPU9250_ALIGN;
 #endif
             accHardware = ACC_MPU9250;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#if defined(USE_ACC_BMI160)
+    case ACC_BMI160:
+        if (bmi160SpiAccDetect(dev)) {
+#ifdef ACC_BMI160_ALIGN
+            dev->accAlign = ACC_BMI160_ALIGN;
+#endif
+            accHardware = ACC_BMI160;
             break;
         }
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
