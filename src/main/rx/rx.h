@@ -172,7 +172,7 @@ void parseRcChannels(const char *input);
 
 void setRSSIFiltered(uint16_t newRssi, rssiSource_e source);
 void setRSSIUnfiltered(uint16_t rssiValue, rssiSource_e source);
-void setRSSIMsp(uint8_t newMspRssi);
+void setRSSIFromMSP(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
 uint16_t getRSSI(void);
 rssiSource_e getRSSISource(void);

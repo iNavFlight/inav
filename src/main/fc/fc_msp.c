@@ -2257,7 +2257,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_TX_INFO:
         {
-            setRSSIMsp(sbufReadU8(src));
+            // This message will be sent while the aircraft is
+            // armed. Better to guard ourselves against potentially
+            // malformed requests.
+            uint8_t rssi;
+            if (sbufReadU8Safe(&rssi, src)) {
+                setRSSIFromMSP(rssi);
+            }
         }
         break;
 

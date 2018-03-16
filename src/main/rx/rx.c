@@ -581,7 +581,7 @@ void setRSSIUnfiltered(uint16_t rssiValue, rssiSource_e source)
     rssi = rssiMean;
 }
 
-void setRSSIMsp(uint8_t newMspRssi)
+void setRSSIFromMSP(uint8_t newMspRssi)
 {
     if (rssiSource == RSSI_SOURCE_NONE) {
         rssiSource = RSSI_SOURCE_MSP;
