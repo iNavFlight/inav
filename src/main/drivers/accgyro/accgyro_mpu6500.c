@@ -56,7 +56,7 @@ bool mpu6500AccDetect(accDev_t *acc)
     }
 
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
-    if (ctx->chipMagicNumber != 0x6860) {
+    if (ctx->chipMagicNumber != 0x6500) {
         return false;
     }
 
@@ -158,7 +158,7 @@ bool mpu6500GyroDetect(gyroDev_t *gyro)
         return false;
     }
 
-    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+    // Magic number for ACC detection to indicate that we have detected MPU6500 gyro
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
     ctx->chipMagicNumber = 0x6500;
 
