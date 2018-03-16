@@ -174,7 +174,7 @@ static int32_t BMI160_Config(const busDevice_t *busDev)
     delay(1);
 
     // Set gyr_bwp = 0b010 so only the first filter stage is used
-    busWrite(busDev, BMI160_REG_GYR_CONF, 0x20 | BMI160_ODR_3200_Hz);
+    busWrite(busDev, BMI160_REG_GYR_CONF, 0x20 | BMI160_ODR_1600_Hz);
     delay(1);
 
     busWrite(busDev, BMI160_REG_ACC_RANGE, BMI160_RANGE_8G);
