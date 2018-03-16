@@ -29,8 +29,7 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
-#include "drivers/bus_i2c.h"
-#include "drivers/bus_spi.h"
+#include "drivers/bus.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
@@ -42,6 +41,9 @@
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
+
+// Check busDevice scratchpad memory size
+STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
 /*
  * Gyro interrupt service routine
@@ -103,39 +105,63 @@ bool mpuGyroRead(gyroDev_t *gyro)
     return true;
 }
 
-bool mpuAccRead(accDev_t *acc)
-{
-    uint8_t data[6];
-
-    const bool ack = busReadBuf(acc->busDev, MPU_RA_ACCEL_XOUT_H, data, 6);
-    if (!ack) {
-        return false;
-    }
-
-    acc->ADCRaw[X] = (int16_t)((data[0] << 8) | data[1]);
-    acc->ADCRaw[Y] = (int16_t)((data[2] << 8) | data[3]);
-    acc->ADCRaw[Z] = (int16_t)((data[4] << 8) | data[5]);
-
-    return true;
-}
-
 bool mpuCheckDataReady(gyroDev_t* gyro)
 {
     bool ret;
     if (gyro->dataReady) {
         ret = true;
-        gyro->dataReady= false;
+        gyro->dataReady = false;
     } else {
         ret = false;
     }
     return ret;
 }
 
-/*
-void mpuGyroSetIsrUpdate(gyroDev_t *gyro, sensorGyroUpdateFuncPtr updateFn)
+static bool mpuUpdateSensorContext(busDevice_t * busDev, mpuContextData_t * ctx)
 {
-    ATOMIC_BLOCK(NVIC_PRIO_MPU_INT_EXTI) {
-        gyro->updateFn = updateFn;
-    }
+    ctx->lastReadStatus = busReadBuf(busDev, MPU_RA_ACCEL_XOUT_H, ctx->accRaw, 6 + 2 + 6);
+    return ctx->lastReadStatus;
 }
-*/
+
+bool mpuGyroReadScratchpad(gyroDev_t *gyro)
+{
+    busDevice_t * busDev = gyro->busDev;
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(busDev);
+
+    if (mpuUpdateSensorContext(busDev, ctx)) {
+        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[0] << 8) | ctx->gyroRaw[1]);
+        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[2] << 8) | ctx->gyroRaw[3]);
+        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[4] << 8) | ctx->gyroRaw[5]);
+
+        return true;
+    }
+
+    return false;
+}
+
+bool mpuAccReadScratchpad(accDev_t *acc)
+{
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
+
+    if (ctx->lastReadStatus) {
+        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[0] << 8) | ctx->accRaw[1]);
+        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[2] << 8) | ctx->accRaw[3]);
+        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[4] << 8) | ctx->accRaw[5]);
+        return true;
+    }
+
+    return false;
+}
+
+bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
+{
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
+
+    if (ctx->lastReadStatus) {
+        // Convert to degC*10: degC = raw / 340 + 36.53
+        *data = (int16_t)((ctx->tempRaw[0] << 8) | ctx->tempRaw[1]) / 34 + 365;
+        return true;
+    }
+
+    return false;
+}

@@ -42,9 +42,9 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 
-pitot_t pitot;
-
 #ifdef USE_PITOT
+
+pitot_t pitot;
 
 static timeMs_t pitotCalibrationTimeout = 0;
 static bool pitotCalibrationFinished = false;

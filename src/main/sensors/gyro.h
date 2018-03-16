@@ -19,6 +19,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/vector.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/sensor.h"
@@ -62,11 +63,11 @@ PG_DECLARE(gyroConfig_t, gyroConfig);
 
 bool gyroInit(void);
 void gyroInitFilters(void);
-void gyroGetMeasuredRotationRate(t_fp_vector *imuMeasuredRotationBF);
+void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate(timeDelta_t gyroUpdateDeltaUs);
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 bool gyroIsCalibrationComplete(void);
-void gyroReadTemperature(void);
+bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 bool gyroSyncCheckUpdate(void);

@@ -17,4 +17,4 @@
 
 #pragma once
 
-extern CMS_Menu cmsx_menuLedstrip;
+extern const CMS_Menu cmsx_menuLedstrip;

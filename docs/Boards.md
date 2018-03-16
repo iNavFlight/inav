@@ -39,6 +39,7 @@ These boards work with INAV but might be not well tested or of random quality.
 | BlueJay F4                | F4         | BLUEJAYF4                 | All  | All     | All            | All       | All                            | SERIAL, SPIFLASH     |
 | F4BY                      | F4         | F4BY                      | All  | All     | All            | All       | All                            | SERIAL, SD           |
 | OpenPilot REVO            | F4         | REVO, REVO_OPBL           | All  | All     | All            | All       | All                            | SERIAL, SPIFLASH     |
+| YuPiF4 by RcNet           | F4         | YUPIF4                    | All  | All     | All            | All       | All                            | SERIAL, SD           |
 
 ### Not recommended for new setups
 
@@ -51,4 +52,3 @@ These boards will work with INAV but are either end-of-life, limited on features
 | AfroFlight NAZE32         | F1         | NAZE                      | NMEA | HMC5883 | MS5611, BMP280 | LTM       | PWM, PPM, SBUS, IBUS, SPEKTRUM | SERIAL, SPIFLASH     |
 | RMRC Seriously DODO       | F3         | RMDO                      | All  | All     | All            | All       | All                            | SERIAL               |
 | ANYFC                     | F4         | ANYFC                     | All  | All     | All            | All       | All                            | SERIAL               |
-| YuPiF4 by RcNet           | F4         | YUPIF4                    | All  | All     | All            | All       | All                            | SERIAL, SD           |

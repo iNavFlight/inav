@@ -106,9 +106,8 @@ static void mpu6050AccAndGyroInit(gyroDev_t *gyro)
 
 static void mpu6050AccInit(accDev_t *acc)
 {
-    uint32_t magic = busDeviceReadScratchpad(acc->busDev);
-
-    if (magic == 0xFFFF6050) {
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
+    if (ctx->chipMagicNumber == 0x6850) {
         acc->acc_1G = 512 * 8;
     }
     else {
@@ -123,10 +122,10 @@ bool mpu6050AccDetect(accDev_t *acc)
         return false;
     }
 
-    uint32_t magic = busDeviceReadScratchpad(acc->busDev);
-    if (magic == 0x00006050 || magic == 0xFFFF6050) {
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
+    if (ctx->chipMagicNumber == 0x6850 || ctx->chipMagicNumber == 0x6050) {
         acc->initFn = mpu6050AccInit;
-        acc->readFn = mpuAccRead;
+        acc->readFn = mpuAccReadScratchpad;
         return true;
     }
 
@@ -204,11 +203,14 @@ bool mpu6050GyroDetect(gyroDev_t *gyro)
         return false;
     }
 
-    busDeviceWriteScratchpad(gyro->busDev, res == MPU6050_FULL_RESOLUTION ? 0xFFFF6050 : 0x00006050);
+    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
+    ctx->chipMagicNumber = res == MPU6050_FULL_RESOLUTION ? 0x6850 : 0x6050;
 
     gyro->initFn = mpu6050AccAndGyroInit;
-    gyro->readFn = mpuGyroRead;
+    gyro->readFn = mpuGyroReadScratchpad;
     gyro->intStatusFn = mpuCheckDataReady;
+    gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
 
     return true;

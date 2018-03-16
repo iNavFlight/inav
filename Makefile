@@ -555,6 +555,7 @@ COMMON_SRC = \
             common/encoding.c \
             common/filter.c \
             common/maths.c \
+            common/memory.c \
             common/printf.c \
             common/streambuf.c \
             common/time.c \
@@ -652,6 +653,7 @@ COMMON_SRC = \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
+            sensors/temperature.c \
             sensors/boardalignment.c \
             sensors/compass.c \
             sensors/diagnostics.c \
@@ -889,6 +891,7 @@ CFLAGS      += $(ARCH_FLAGS) \
               $(DEBUG_FLAGS) \
               -std=gnu99 \
               -Wall -Wextra -Wunsafe-loop-optimizations -Wdouble-promotion \
+              -Werror=switch \
               -ffunction-sections \
               -fdata-sections \
               $(DEVICE_FLAGS) \

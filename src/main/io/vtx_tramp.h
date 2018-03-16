@@ -36,15 +36,20 @@
 extern const uint16_t trampPowerTable[VTX_TRAMP_POWER_COUNT];
 extern const char * const trampPowerNames[VTX_TRAMP_POWER_COUNT+1];
 
-extern uint8_t trampBand;
-extern uint8_t trampChannel;
-extern uint16_t trampPower;       // Actual transmitting power
-extern uint8_t trampPitMode;
-extern uint32_t trampCurFreq;
-extern uint16_t trampConfiguredPower; // Configured transmitting power
-extern int16_t trampTemperature;
+typedef struct trampData_s {
+    uint8_t band;
+    uint8_t channel;
+    uint16_t power;       // Actual transmitting power
+    uint16_t curFreq;
+    uint16_t configuredPower; // Configured transmitting power
+    int16_t temperature;
+    uint8_t pitMode;
+} trampData_t;
+
+extern trampData_t trampData;
 
 bool vtxTrampInit(void);
+bool trampIsAvailable(void);
 bool trampCommitChanges(void);
 void trampSetPitMode(uint8_t onoff);
 void trampSetBandAndChannel(uint8_t band, uint8_t channel);

@@ -18,6 +18,7 @@
 #pragma once
 
 #include "common/maths.h"
+#include "common/vector.h"
 
 #include "flight/failsafe.h"
 
@@ -194,7 +195,7 @@ typedef struct {
 } navWaypoint_t;
 
 typedef struct {
-    t_fp_vector pos;
+    fpVector3_t pos;
     int32_t     yaw;             // deg * 100
 } navWaypointPosition_t;
 
@@ -300,8 +301,8 @@ typedef enum {
 } geoOriginResetMode_e;
 
 void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginResetMode_e resetMode);
-void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, t_fp_vector * pos, geoAltitudeConversionMode_e altConv);
-void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const t_fp_vector * pos, gpsLocation_t * llh);
+void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, fpVector3_t * pos, geoAltitudeConversionMode_e altConv);
+void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * pos, gpsLocation_t * llh);
 float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
 
 /* Failsafe-forced RTH mode */

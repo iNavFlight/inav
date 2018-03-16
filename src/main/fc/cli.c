@@ -44,6 +44,7 @@ extern uint8_t __config_end;
 #include "common/maths.h"
 #include "common/printf.h"
 #include "common/string_light.h"
+#include "common/memory.h"
 #include "common/time.h"
 #include "common/typeconversion.h"
 
@@ -2329,7 +2330,7 @@ static void cliStatus(char *cmdline)
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
-    cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", vbat / 100, vbat % 100, batteryCellCount, getBatteryStateString());
+    cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
 #if (FLASH_SIZE > 64)
@@ -2384,7 +2385,7 @@ static void cliStatus(char *cmdline)
 #ifdef STACK_CHECK
     cliPrintf("Stack used: %d, ", stackUsedSize());
 #endif
-    cliPrintLinef("Stack size: %d, Stack address: 0x%x", stackTotalSize(), stackHighMem());
+    cliPrintLinef("Stack size: %d, Stack address: 0x%x, Heap available: %d", stackTotalSize(), stackHighMem(), memGetAvailableBytes());
 
     cliPrintLinef("I2C Errors: %d, config size: %d, max available config: %d", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
 

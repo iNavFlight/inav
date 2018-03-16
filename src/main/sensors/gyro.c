@@ -375,18 +375,18 @@ static void gyroUpdateAccumulatedRates(timeDelta_t gyroUpdateDeltaUs)
 /*
  * Calculate rotation rate in rad/s in body frame
  */
-void gyroGetMeasuredRotationRate(t_fp_vector *measuredRotationRate)
+void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
 {
 #ifdef USE_ASYNC_GYRO_PROCESSING
     const float accumulatedRateTime = accumulatedRateTimeUs * 1e-6;
     accumulatedRateTimeUs = 0;
     for (int axis = 0; axis < 3; axis++) {
-        measuredRotationRate->A[axis] = DEGREES_TO_RADIANS(accumulatedRates[axis] / accumulatedRateTime);
+        measuredRotationRate->v[axis] = DEGREES_TO_RADIANS(accumulatedRates[axis] / accumulatedRateTime);
         accumulatedRates[axis] = 0.0f;
     }
 #else
     for (int axis = 0; axis < 3; axis++) {
-        measuredRotationRate->A[axis] = DEGREES_TO_RADIANS(gyro.gyroADCf[axis]);
+        measuredRotationRate->v[axis] = DEGREES_TO_RADIANS(gyro.gyroADCf[axis]);
     }
 #endif
 }
@@ -440,11 +440,14 @@ void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 #endif
 }
 
-void gyroReadTemperature(void)
+bool gyroReadTemperature(void)
 {
+    // Read gyro sensor temperature. temperatureFn returns temperature in [degC * 10]
     if (gyroDev0.temperatureFn) {
-        gyroDev0.temperatureFn(&gyroDev0, &gyroTemperature0);
+        return gyroDev0.temperatureFn(&gyroDev0, &gyroTemperature0);
     }
+
+    return false;
 }
 
 int16_t gyroGetTemperature(void)

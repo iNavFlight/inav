@@ -147,27 +147,27 @@ void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginRese
     }
 }
 
-void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, t_fp_vector * pos, geoAltitudeConversionMode_e altConv)
+void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, fpVector3_t * pos, geoAltitudeConversionMode_e altConv)
 {
     if (origin->valid) {
-        pos->V.X = (llh->lat - origin->lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-        pos->V.Y = (llh->lon - origin->lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * origin->scale);
+        pos->x = (llh->lat - origin->lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
+        pos->y = (llh->lon - origin->lon) * (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * origin->scale);
 
         // If flag GEO_ALT_RELATIVE, than llh altitude is already relative to origin
         if (altConv == GEO_ALT_RELATIVE) {
-            pos->V.Z = llh->alt;
+            pos->z = llh->alt;
         } else {
-            pos->V.Z = llh->alt - origin->alt;
+            pos->z = llh->alt - origin->alt;
         }
     }
     else {
-        pos->V.X = 0.0f;
-        pos->V.Y = 0.0f;
-        pos->V.Z = 0.0f;
+        pos->x = 0.0f;
+        pos->y = 0.0f;
+        pos->z = 0.0f;
     }
 }
 
-void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const t_fp_vector * pos, gpsLocation_t * llh)
+void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * pos, gpsLocation_t * llh)
 {
     float scaleLonDown;
 
@@ -184,9 +184,9 @@ void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const t_fp_vector * p
         scaleLonDown = 1.0f;
     }
 
-    llh->lat += lrintf(pos->V.X / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
-    llh->lon += lrintf(pos->V.Y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * scaleLonDown));
-    llh->alt += lrintf(pos->V.Z);
+    llh->lat += lrintf(pos->x / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
+    llh->lon += lrintf(pos->y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * scaleLonDown));
+    llh->alt += lrintf(pos->z);
 }
 
 
