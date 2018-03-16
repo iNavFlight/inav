@@ -21,6 +21,7 @@
 
 #define TARGET_BOARD_IDENTIFIER "RADIX"
 
+#define FLASH_PAGE_SIZE            (0x4000)     // 16kB for settings
 #define CONFIG_START_FLASH_ADDRESS (0x08004000) // 2nd 16kB sector
 
 #define USBD_PRODUCT_STRING     "BrainFPV RADIX"
