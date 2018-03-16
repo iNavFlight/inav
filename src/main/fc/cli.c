@@ -2437,6 +2437,29 @@ static void cliStatus(char *cmdline)
 }
 
 #ifndef SKIP_TASK_STATISTICS
+
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+
+uint32_t ChibiGetTaskStackUsage(thread_t *threadp)
+{
+#if CH_DBG_FILL_THREADS
+    uint32_t *stack = (uint32_t*)((size_t)threadp + sizeof(*threadp));
+    uint32_t *stklimit = stack;
+    while (*stack ==
+            ((CH_DBG_STACK_FILL_VALUE << 24) |
+            (CH_DBG_STACK_FILL_VALUE << 16) |
+            (CH_DBG_STACK_FILL_VALUE << 8) |
+            (CH_DBG_STACK_FILL_VALUE << 0)))
+        ++stack;
+    return (stack - stklimit) * 4;
+#else
+    return 0;
+#endif /* CH_DBG_FILL_THREADS */
+}
+#endif /* defined(USE_CHIBIOS) */
+
+
 static void cliTasks(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2464,6 +2487,16 @@ static void cliTasks(char *cmdline)
     getCheckFuncInfo(&checkFuncInfo);
     cliPrintLinef("Task check function %13d %7d %25d", (uint32_t)checkFuncInfo.maxExecutionTime, (uint32_t)checkFuncInfo.averageExecutionTime, (uint32_t)checkFuncInfo.totalExecutionTime / 1000);
     cliPrintLinef("Total (excluding SERIAL) %21d.%1d%% %4d.%1d%%", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
+
+#if defined(USE_CHIBIOS)
+    cliPrintf("\r\nChibiOS tasks remaining stacks:\r\n");
+    thread_t *threadp = chRegFirstThread();
+    while (threadp != NULL) {
+        uint32_t rem = ChibiGetTaskStackUsage(threadp);
+        cliPrintf("%s: %d Bytes free\r\n", chRegGetThreadNameX(threadp), rem);
+        threadp = chRegNextThread(threadp);
+    }
+#endif /* defined(USE_CHIBIOS) */
 }
 #endif
 
