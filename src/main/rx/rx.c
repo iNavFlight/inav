@@ -549,19 +549,10 @@ void parseRcChannels(const char *input)
     }
 }
 
-void setRSSIFiltered(uint16_t newRssi, rssiSource_e source)
-{
-    if (source != rssiSource) {
-        return;
-    }
-
-    rssi = newRssi;
-}
-
 #define RSSI_SAMPLE_COUNT 16
 #define RSSI_MAX_VALUE 1023
 
-void setRSSIUnfiltered(uint16_t rssiValue, rssiSource_e source)
+void setRSSI(uint16_t rssiValue, rssiSource_e source, bool filtered)
 {
     if (source != rssiSource) {
         return;
@@ -571,14 +562,20 @@ void setRSSIUnfiltered(uint16_t rssiValue, rssiSource_e source)
     static uint8_t rssiSampleIndex = 0;
     static unsigned sum = 0;
 
-    sum = sum + rssiValue;
-    sum = sum - rssiSamples[rssiSampleIndex];
-    rssiSamples[rssiSampleIndex] = rssiValue;
-    rssiSampleIndex = (rssiSampleIndex + 1) % RSSI_SAMPLE_COUNT;
+    if (filtered) {
+        // Value is already filtered
+        rssi = rssiValue;
 
-    int16_t rssiMean = sum / RSSI_SAMPLE_COUNT;
+    } else {
+        sum = sum + rssiValue;
+        sum = sum - rssiSamples[rssiSampleIndex];
+        rssiSamples[rssiSampleIndex] = rssiValue;
+        rssiSampleIndex = (rssiSampleIndex + 1) % RSSI_SAMPLE_COUNT;
 
-    rssi = rssiMean;
+        int16_t rssiMean = sum / RSSI_SAMPLE_COUNT;
+
+        rssi = rssiMean;
+    }
 }
 
 void setRSSIFromMSP(uint8_t newMspRssi)
@@ -611,7 +608,7 @@ static bool updateRSSIPWM(void)
 
         // Range of rawPwmRssi is [1000;2000]. rssi should be in [0;1023];
         uint16_t rawRSSI = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * (RSSI_MAX_VALUE * 1.0f));
-        setRSSIUnfiltered(rawRSSI, RSSI_SOURCE_RX_CHANNEL);
+        setRSSI(rawRSSI, RSSI_SOURCE_RX_CHANNEL, false);
 
         return true;
     }
@@ -622,7 +619,7 @@ static bool updateRSSIADC(void)
 {
 #ifdef USE_ADC
     uint16_t rawRSSI = adcGetChannel(ADC_RSSI) / 4;    // Reduce to [0;1023]
-    setRSSIUnfiltered(rawRSSI, RSSI_SOURCE_ADC);
+    setRSSI(rawRSSI, RSSI_SOURCE_ADC, false);
     return true;
 #else
     return false;
