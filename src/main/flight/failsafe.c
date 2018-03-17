@@ -49,6 +49,7 @@
 
 #include "rx/rx.h"
 
+#include "sensors/barometer.h"
 #include "sensors/sensors.h"
 
 /*
@@ -398,6 +399,15 @@ void failsafeUpdateState(void)
                 } else {
                     uint8_t failsafe_procedure_to_use = failsafeConfig()->failsafe_procedure;
 
+                    int32_t estimatedAltitude;
+                    #if defined(USE_NAV)
+                        estimatedAltitude = getEstimatedActualPosition(Z);
+                    #elif defined(USE_BARO)
+                        estimatedAltitude = baro.alt;
+                    #else
+                        estimatedAltitude = NULL;
+                    #endif
+
                     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
                     // GPS must also be working, and home position set
                     if ((failsafeConfig()->failsafe_min_distance > 0) && 
@@ -405,6 +415,12 @@ void failsafeUpdateState(void)
                         sensors(SENSOR_GPS) && STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
                         // Use the alternate, minimum distance failsafe procedure instead
                         failsafe_procedure_to_use = failsafeConfig()->failsafe_min_distance_procedure;
+                    }
+                    // Craft is lower than minimum failsafe procedure altitude (if set to non-zero)
+                    else if ((failsafeConfig()->failsafe_min_altitude > 0) &&
+                    (estimatedAltitude != NULL) && ((estimatedAltitude < failsafeConfig()->failsafe_min_altitude)) {
+                        // Use the alternate, minimum altitude failsafe procedure instead
+                        failsafe_procedure_to_use = failsafeConfig()->failsafe_min_altitude_procedure;
                     }
 
                     switch (failsafe_procedure_to_use) {

@@ -76,6 +76,14 @@ If failsafe happens when craft is closer than this distance in centimeters from 
 
 What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance.
 
+#### `failsafe_min_altitude`
+
+If failsafe happens when craft has lower altitude than this distance in centimeters, failsafe will not execute regular failsafe_procedure, but will execute procedure specified in failsafe_min_altitude_procedure instead. **Note:** failsafe_min_distance has precedence. 0 = Normal failsafe_procedure always taken.
+
+#### `failsafe_min_altitude_procedure`
+
+What failsafe procedure to initiate in Stage 2 when craft has lower altitude than failsafe_min_altitude.
+
 #### `rx_min_usec`
 
 The lowest channel value considered valid.
