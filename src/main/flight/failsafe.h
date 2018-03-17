@@ -43,6 +43,8 @@ typedef struct failsafeConfig_s {
     uint16_t failsafe_stick_motion_threshold;
     uint16_t failsafe_min_distance;              // Minimum distance required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
     uint8_t failsafe_min_distance_procedure;     // selected minimum distance failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
+    int16_t failsafe_min_altitude;               // Minimum altitude required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
+    uint8_t failsafe_min_altitude_procedure;     // selected minimum altitude failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
 } failsafeConfig_t;
 
 PG_DECLARE(failsafeConfig_t, failsafeConfig);
