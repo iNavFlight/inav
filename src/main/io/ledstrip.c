@@ -75,8 +75,6 @@
 #include "telemetry/telemetry.h"
 
 
-extern uint16_t rssi; // FIXME dependency on mw.c
-
 PG_REGISTER_WITH_RESET_FN(ledStripConfig_t, ledStripConfig, PG_LED_STRIP_CONFIG, 0);
 
 static bool ledStripInitialised = false;
@@ -488,7 +486,7 @@ static void applyLedFixedLayers(void)
 
             case LED_FUNCTION_RSSI:
                 color = HSV(RED);
-                hOffset += scaleRange(rssi * 100, 0, 1023, -30, 120);
+                hOffset += scaleRange(getRSSI() * 100, 0, 1023, -30, 120);
                 break;
 
             default:
@@ -615,7 +613,7 @@ static void applyLedRssiLayer(bool updateNow, timeUs_t *timer)
     int timeOffset = 1;
 
     if (updateNow) {
-       state = (rssi * 100) / 1023;
+       state = (getRSSI() * 100) / 1023;
 
        if (state > 50) {
            flash = false;

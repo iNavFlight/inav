@@ -57,6 +57,8 @@ typedef enum {
     DEBUG_PITOT,
     DEBUG_AGL,
     DEBUG_FLOW_RAW,
+    DEBUG_SBUS,
+    DEBUG_FPORT,
     DEBUG_ALWAYS,
     DEBUG_COUNT
 } debugType_e;
