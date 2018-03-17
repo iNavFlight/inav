@@ -76,6 +76,7 @@
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+
 //V2 add another uart 2
 #if defined( CLRACINGF4AIRV2 )
 #define USE_UART2
