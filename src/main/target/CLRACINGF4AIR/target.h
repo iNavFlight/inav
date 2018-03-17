@@ -122,7 +122,7 @@
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
-#define ADC_CHANNEL_3_PIN               PA0
+#define ADC_CHANNEL_3_PIN               PC3
 
 // V2 has airspeed input
 #if defined( CLRACINGF4AIRV2 )
