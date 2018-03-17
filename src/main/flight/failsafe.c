@@ -405,7 +405,7 @@ void failsafeUpdateState(void)
                     #elif defined(USE_BARO)
                         estimatedAltitude = baro.alt;
                     #else
-                        estimatedAltitude = NULL;
+                        estimatedAltitude = NAN;
                     #endif
 
                     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
@@ -418,7 +418,7 @@ void failsafeUpdateState(void)
                     }
                     // Craft is lower than minimum failsafe procedure altitude (if set to non-zero)
                     else if ((failsafeConfig()->failsafe_min_altitude > 0) &&
-                    (estimatedAltitude != NULL) && ((estimatedAltitude < failsafeConfig()->failsafe_min_altitude)) {
+                    (estimatedAltitude != NAN) && (estimatedAltitude < failsafeConfig()->failsafe_min_altitude)) {
                         // Use the alternate, minimum altitude failsafe procedure instead
                         failsafe_procedure_to_use = failsafeConfig()->failsafe_min_altitude_procedure;
                     }

@@ -440,8 +440,8 @@ groups:
       - name: failsafe_min_distance_procedure
         table: failsafe_procedure
       - name: failsafe_min_altitude
-        min: 0
-        max: 65000
+        min: -32000
+        max: 32000
       - name: failsafe_min_altitude_procedure
         table: failsafe_procedure
 
