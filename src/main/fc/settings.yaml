@@ -352,7 +352,6 @@ groups:
         max: PWM_PULSE_MAX
       - name: serialrx_halfduplex
         field: halfDuplex
-        condition: STM32F4
         type: bool
 
   - name: PG_BLACKBOX_CONFIG
