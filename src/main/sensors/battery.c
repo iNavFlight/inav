@@ -307,13 +307,12 @@ void currentMeterUpdate(int32_t timeDelta)
 {
     static pt1Filter_t amperageFilterState;
     static int64_t mAhdrawnRaw = 0;
-    uint16_t amperageSample;
 
     switch (batteryConfig()->current.type) {
         case CURRENT_SENSOR_ADC:
-            amperageSample = adcGetChannel(ADC_CURRENT);
-            amperageSample = pt1FilterApply4(&amperageFilterState, amperageSample, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
-            amperage = currentSensorToCentiamps(amperageSample);
+            amperageLatestADC = adcGetChannel(ADC_CURRENT);
+            amperageLatestADC = pt1FilterApply4(&amperageFilterState, amperageLatestADC, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+            amperage = currentSensorToCentiamps(amperageLatestADC);
             break;
         case CURRENT_SENSOR_VIRTUAL:
             amperage = batteryConfig()->current.offset;
