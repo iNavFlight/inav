@@ -133,7 +133,7 @@ bool isServoOutputEnabled(void);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void servoMixerLoadMix(int index);
-void loadCustomServoMixer(void);
+bool loadCustomServoMixer(void);
 int servoDirection(int servoIndex, int fromChannel);
 void servoMixer(float dT);
 void servosInit(void);

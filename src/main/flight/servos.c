@@ -227,18 +227,12 @@ void servosInit(void)
      * When we are dealing with CUSTOM mixers, load mixes defined with
      * smix and update internal variables
      */
-    if (currentMixerMode == MIXER_CUSTOM_AIRPLANE ||
-        currentMixerMode == MIXER_CUSTOM_TRI ||
-        currentMixerMode == MIXER_CUSTOM)
-    {
-        loadCustomServoMixer();
-
+    if (loadCustomServoMixer()) {
         // If there are servo rules after all, update variables
         if (servoRuleCount > 0) {
             servoOutputEnabled = 1;
             mixerUsesServos = 1;
         }
-
     }
 
     /*
@@ -250,8 +244,14 @@ void servosInit(void)
     }
 
 }
-void loadCustomServoMixer(void)
+
+bool loadCustomServoMixer(void)
 {
+    const mixerMode_e currentMixerMode = mixerConfig()->mixerMode;
+    if (!(currentMixerMode == MIXER_CUSTOM_AIRPLANE || currentMixerMode == MIXER_CUSTOM_TRI || currentMixerMode == MIXER_CUSTOM)) {
+        return false;
+    }
+
     // reset settings
     servoRuleCount = 0;
     minServoIndex = 255;
@@ -275,6 +275,8 @@ void loadCustomServoMixer(void)
         memcpy(&currentServoMixer[i], customServoMixers(i), sizeof(servoMixer_t));
         servoRuleCount++;
     }
+
+    return true;
 }
 
 void servoMixerLoadMix(int index)
