@@ -192,6 +192,14 @@ int servoDirection(int servoIndex, int inputSource)
         return 1;
 }
 
+/*
+ * Compute scaling factor for upper and lower servo throw
+ */
+void servoComputeScalingFactors(uint8_t servoIndex) {
+    servoMetadata[servoIndex].scaleMax = (servoParams(servoIndex)->max - servoParams(servoIndex)->middle) / 500.0f;
+    servoMetadata[servoIndex].scaleMin = (servoParams(servoIndex)->middle - servoParams(servoIndex)->min) / 500.0f;
+}
+
 void servosInit(void)
 {
     const mixerMode_e currentMixerMode = mixerConfig()->mixerMode;
@@ -235,13 +243,8 @@ void servosInit(void)
         }
     }
 
-    /*
-     * Compute scaling factor for upper and lower servo throw
-     */
-    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servoMetadata[i].scaleMax = (servoParams(i)->max - servoParams(i)->middle) / 500.0f;
-        servoMetadata[i].scaleMin = (servoParams(i)->middle - servoParams(i)->min) / 500.0f;
-    }
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++)
+        servoComputeScalingFactors(i);
 
 }
 
