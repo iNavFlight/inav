@@ -337,4 +337,10 @@ void scheduler(void)
         DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs);
 #endif
     }
+#if defined(USE_CHIBIOS)
+    else {
+        // wait for gyro if no tasks are ready
+        chBSemWaitTimeout(&gyroSem, MS2ST(2));
+    }
+#endif
 }
