@@ -51,7 +51,7 @@
 
 // MPU6 interrupts
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_BARO

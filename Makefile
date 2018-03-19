@@ -104,7 +104,7 @@ endif
 # silently ignore if the file is not present. Allows for target specific.
 -include $(ROOT)/src/main/target/$(BASE_TARGET)/target.mk
 
-F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS) $(F427_TARGETS)
+F4_TARGETS      = $(F405_TARGETS) $(F411_TARGETS) $(F427_TARGETS) $(F446_TARGETS)
 F7_TARGETS      = $(F7X2RE_TARGETS) $(F7X5XE_TARGETS) $(F7X5XG_TARGETS) $(F7X5XI_TARGETS) $(F7X6XG_TARGETS)
 
 ifeq ($(filter $(TARGET),$(VALID_TARGETS)),)
@@ -117,7 +117,7 @@ endif
 
 128K_TARGETS  = $(F1_TARGETS)
 256K_TARGETS  = $(F3_TARGETS)
-512K_TARGETS  = $(F411_TARGETS) $(F7X2RE_TARGETS) $(F7X5XE_TARGETS)
+512K_TARGETS  = $(F411_TARGETS) $(F446_TARGETS) $(F7X2RE_TARGETS) $(F7X5XE_TARGETS)
 1024K_TARGETS = $(F405_TARGETS) $(F7X5XG_TARGETS) $(F7X6XG_TARGETS)
 2048K_TARGETS = $(F427_TARGETS) $(F7X5XI_TARGETS)
 
@@ -253,6 +253,10 @@ ifeq ($(TARGET),$(filter $(TARGET), $(F427_TARGETS)))
 EXCLUDES += stm32f4xx_fsmc.c
 endif
 
+ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
+EXCLUDES += stm32f4xx_fsmc.c
+endif
+
 STDPERIPH_SRC := $(filter-out ${EXCLUDES}, $(STDPERIPH_SRC))
 
 #USB
@@ -309,6 +313,10 @@ else ifeq ($(TARGET),$(filter $(TARGET),$(F405_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F40_41xxx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f405.ld
 STARTUP_SRC     = startup_stm32f40xx.s
+else ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F446xx
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446.ld
+STARTUP_SRC     = startup_stm32f446xx.s
 else ifeq ($(TARGET),$(filter $(TARGET),$(F427_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F427_437xx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f427.ld
@@ -316,6 +324,7 @@ STARTUP_SRC     = startup_stm32f427xx.s
 else
 $(error Unknown MCU for F4 target)
 endif
+
 DEVICE_FLAGS    += -DHSE_VALUE=$(HSE_VALUE)
 
 TARGET_FLAGS = -D$(TARGET)
@@ -575,7 +584,6 @@ COMMON_SRC = \
             drivers/display.c \
             drivers/exti.c \
             drivers/gps_i2cnav.c \
-            drivers/gyro_sync.c \
             drivers/io.c \
             drivers/io_pca9685.c \
             drivers/light_led.c \
@@ -758,6 +766,7 @@ endif
 
 STM32F10x_COMMON_SRC = \
             startup_stm32f10x_md_gcc.S \
+            drivers/accgyro/accgyro.c \
             drivers/adc_stm32f10x.c \
             drivers/bus_i2c_stm32f10x.c \
             drivers/dma.c \
@@ -771,6 +780,7 @@ STM32F10x_COMMON_SRC = \
 STM32F30x_COMMON_SRC = \
             startup_stm32f30x_md_gcc.S \
             target/system_stm32f30x.c \
+            drivers/accgyro/accgyro.c \
             drivers/adc_stm32f30x.c \
             drivers/bus_i2c_stm32f30x.c \
             drivers/dma.c \
@@ -781,6 +791,7 @@ STM32F30x_COMMON_SRC = \
 
 STM32F4xx_COMMON_SRC = \
             target/system_stm32f4xx.c \
+            drivers/accgyro/accgyro.c \
             drivers/accgyro/accgyro_mpu.c \
             drivers/adc_stm32f4xx.c \
             drivers/adc_stm32f4xx.c \
@@ -795,6 +806,7 @@ STM32F4xx_COMMON_SRC = \
 
 STM32F7xx_COMMON_SRC = \
             target/system_stm32f7xx.c \
+            drivers/accgyro/accgyro.c \
             drivers/accgyro/accgyro_mpu.c \
             drivers/adc_stm32f7xx.c \
             drivers/bus_i2c_hal.c \
@@ -1034,7 +1046,7 @@ targets-group-rest: $(GROUP_OTHER_TARGETS)
 $(VALID_TARGETS):
 	$(V0) echo "" && \
 	echo "Building $@" && \
-	$(MAKE) -j 4 TARGET=$@ && \
+	$(MAKE) -j 8 TARGET=$@ && \
 	echo "Building $@ succeeded."
 
 ## clean             : clean up all temporary / machine-generated files
@@ -1051,11 +1063,11 @@ clean_test:
 
 ## clean_<TARGET>    : clean up one specific target
 $(CLEAN_TARGETS) :
-	$(V0) $(MAKE) -j 4 TARGET=$(subst clean_,,$@) clean
+	$(V0) $(MAKE) -j 8 TARGET=$(subst clean_,,$@) clean
 
 ## <TARGET>_clean    : clean up one specific target (alias for above)
 $(TARGETS_CLEAN) :
-	$(V0) $(MAKE) -j 4 TARGET=$(subst _clean,,$@) clean
+	$(V0) $(MAKE) -j 8 TARGET=$(subst _clean,,$@) clean
 
 ## clean_all         : clean all valid targets
 clean_all:$(CLEAN_TARGETS)

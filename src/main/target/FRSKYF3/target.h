@@ -25,7 +25,7 @@
 #define BEEPER_INVERTED
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PC13
+#define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
 #define MPU_ADDRESS             0x69
 

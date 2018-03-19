@@ -1381,7 +1381,6 @@ static bool blackboxWriteSysinfo(void)
             );
 
         BLACKBOX_PRINT_HEADER_LINE("looptime", "%d",                        getPidUpdateRate());
-        BLACKBOX_PRINT_HEADER_LINE("gyro_sync_denom", "%d",                 gyroConfig()->gyroSyncDenominator);
         BLACKBOX_PRINT_HEADER_LINE("rc_rate", "%d",                         100); //For compatibility reasons write rc_rate 100
         BLACKBOX_PRINT_HEADER_LINE("rc_expo", "%d",                         currentControlRateProfile->stabilized.rcExpo8);
         BLACKBOX_PRINT_HEADER_LINE("rc_yaw_expo", "%d",                     currentControlRateProfile->stabilized.rcYawExpo8);
