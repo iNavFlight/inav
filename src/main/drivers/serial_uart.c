@@ -35,8 +35,13 @@
 #include "serial_uart.h"
 #include "serial_uart_impl.h"
 
+#ifdef USE_BRAINFPV_FPGA
+#include "fpga_drv.h"
+#endif
+
+
 static void usartConfigurePinInversion(uartPort_t *uartPort) {
-#if !defined(USE_INVERTER) && !defined(STM32F303xC)
+#if !defined(USE_INVERTER) && !defined(STM32F303xC) && !defined(USE_BRAINFPV_FPGA)
     UNUSED(uartPort);
 #else
     bool inverted = uartPort->port.options & SERIAL_INVERTED;
@@ -60,6 +65,32 @@ static void usartConfigurePinInversion(uartPort_t *uartPort) {
 
     USART_InvPinCmd(uartPort->USARTx, inversionPins, inverted ? ENABLE : DISABLE);
 #endif
+
+#ifdef USE_BRAINFPV_FPGA
+    if (inverted) {
+        if (uartPort->USARTx == USART3) {
+            BRAINFPVFPGA_SerialRxInvert(true);
+        }
+        if (uartPort->USARTx == USART6) {
+            if (uartPort->port.options & SERIAL_BIDIR) {
+                // inverted bi-directional mode with pull-down
+                BRAINFPVFPGA_MPTxPinMode(true, true);
+                BRAINFPVFPGA_MPTxPinPullUpDown(true, false);
+            }
+            else {
+                BRAINFPVFPGA_MPTxPinMode(false, true);
+            }
+        }
+    }
+    else {
+        if ((uartPort->USARTx == USART6) && (uartPort->port.options & SERIAL_BIDIR)) {
+            // non-inverted bi-directional mode with pullup
+            BRAINFPVFPGA_MPTxPinMode(true, false);
+            BRAINFPVFPGA_MPTxPinPullUpDown(true, true);
+        }
+    }
+#endif /* USE_BRAINFPV_FPGA */
+
 #endif
 }
 

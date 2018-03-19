@@ -392,11 +392,24 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
         RCC_AHB1PeriphClockCmd(uart->rcc_ahb1, ENABLE);
 
     if (options & SERIAL_BIDIR) {
+#ifdef USE_BRAINFPV_FPGA
+        IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TXRX, RESOURCE_INDEX(device));
+        if ((uart->port.USARTx == USART6)) {
+            IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
+        }
+        else {
+            if (options & SERIAL_BIDIR_PP)
+                IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
+            else
+                IOConfigGPIOAF(tx, IOCFG_AF_OD, uart->af);
+        }
+#else
         IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TXRX, RESOURCE_INDEX(device));
         if (options & SERIAL_BIDIR_PP)
             IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
         else
             IOConfigGPIOAF(tx, IOCFG_AF_OD, uart->af);
+#endif /* USE_BRAINFPV_FPGA */
     }
     else {
         if (mode & MODE_TX) {
