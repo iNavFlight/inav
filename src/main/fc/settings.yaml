@@ -526,8 +526,8 @@ groups:
         max: 10000
       - name: current_meter_offset
         field: current.offset
-        min: -3300
-        max: 3300
+        min: -32768
+        max: 32767
       - name: current_meter_type
         field: current.type
         table: current_sensor

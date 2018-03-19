@@ -144,7 +144,7 @@ uint16_t batteryAdcToVoltage(uint16_t src)
 
 int32_t currentSensorToCentiamps(uint16_t src)
 {
-    int32_t microvolts = ((uint32_t)src * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 1000;
+    int32_t microvolts = ((uint32_t)src * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
     return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
 }
 
