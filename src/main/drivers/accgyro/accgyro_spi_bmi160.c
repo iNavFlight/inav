@@ -61,6 +61,12 @@
 
 #ifdef USE_ACCGYRO_BMI160
 
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+binary_semaphore_t gyroSem;
+#endif
+
+
 /* BMI160 Registers */
 #define BMI160_REG_CHIPID 0x00
 #define BMI160_REG_PMU_STAT 0x03
@@ -140,6 +146,10 @@ static void BMI160_Init(const busDevice_t *busDev)
         return;
     }
 
+#if defined(USE_CHIBIOS)
+    chBSemObjectInit(&gyroSem, FALSE);
+#endif
+
     /* Configure the BMI160 Sensor */
     if (BMI160_Config(busDev) != 0) {
         return;
@@ -204,11 +214,26 @@ static int32_t BMI160_Config(const busDevice_t *busDev)
 
 #if defined(USE_EXTI) && defined(BMI160_INT_EXTI)
 
+#if defined(USE_CHIBIOS)
+void bmi160ExtiHandler(extiCallbackRec_t *cb)
+{
+    CH_IRQ_PROLOGUE();
+
+    gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
+    gyro->dataReady = true;
+
+    chSysLockFromISR();
+    chBSemSignalI(&gyroSem);
+    chSysUnlockFromISR();
+    CH_IRQ_EPILOGUE();
+}
+#else
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
 {
     gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
     gyro->dataReady = true;
 }
+#endif /* defined(USE_CHIBIOS) */
 
 static void bmi160IntExtiInit(gyroDev_t *gyro)
 {
