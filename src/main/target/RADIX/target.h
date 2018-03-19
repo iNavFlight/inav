@@ -26,7 +26,7 @@
 
 #define USBD_PRODUCT_STRING     "BrainFPV RADIX"
 
-#define USE_TARGET_CONFIG
+#define TARGET_CONFIG
 
 #define LED0_PIN                PA4
 #define LED1_PIN                NONE
@@ -76,17 +76,13 @@
 #define USE_GYRO
 #define USE_ACC
 
-// XXX remove
-#define USE_FAKE_GYRO
-#define USE_FAKE_ACC
-
 #define USE_ACCGYRO_BMI160
-#define USE_GYRO_SPI_BMI160
-#define USE_ACC_SPI_BMI160
+#define USE_GYRO_BMI160
+#define USE_ACC_BMI160
 #define GYRO_BMI160_ALIGN    CW0_DEG
 #define ACC_BMI160_ALIGN     CW0_DEG
-#define BMI160_SPI_INSTANCE  SPI3
-#define BMI160_SPI_DIVISOR   16
+#define BMI160_SPI_BUS       BUS_SPI3
+#define BUS_SPEED_BMI160     BUS_SPEED_STANDARD
 #define BMI160_CS_PIN        PB4
 #define BMI160_INT_EXTI      PC13
 
