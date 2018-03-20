@@ -116,11 +116,9 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .ir_trackmate_id = 0,
   .ir_ilap_id = 0,
   .ahi_steps = 2,
-  .bmi160foc = 0,
-  .bmi160foc_ret = 0,
   .altitude_scale = 1,
+  .speed_scale = 1,
   .sticks_display = 0,
-  .spec_enabled = 0,
   .show_logo_on_arm = 1,
   .show_pilot_logo = 1,
   .invert = 0
@@ -263,11 +261,30 @@ static int32_t getAltitude(void)
     }
 }
 
+static float getVelocity(void)
+{
+    float vel = gpsSol.groundSpeed;
+
+    switch (osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            return (vel * 224.0f) / 10000.0f; // Convert to mph
+        default:
+            return (vel * 36.0f) / 1000.0f;   // Convert to kmh
+        }
+    // Unreachable
+    return -1.0f;
+}
+
 void osdUpdateLocal()
 {
     if (bfOsdConfig()->altitude_scale) {
         float altitude = getAltitude() / 100.f;
-        osd_draw_vertical_scale(altitude, 100, 1, GRAPHICS_RIGHT - 20, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
+        osd_draw_vertical_scale(altitude, 100, 1, GRAPHICS_RIGHT - 10, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
+    }
+
+    if (bfOsdConfig()->speed_scale && sensors(SENSOR_GPS)) {
+        float speed = getVelocity();
+        osd_draw_vertical_scale(speed, 100, -1, GRAPHICS_LEFT + 5, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
     }
 
     if (bfOsdConfig()->sticks_display == 1) {

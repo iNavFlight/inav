@@ -693,6 +693,7 @@ static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *at
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
 }
 
+#if !defined(USE_BRAINFPV_OSD)
 static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
 {
     *x = 14 - 1; // Offset for 1 char to the left
@@ -709,6 +710,7 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
         *length = size;
     }
 }
+#endif
 
 /**
  * Formats throttle position prefixed by its symbol. If autoThr
@@ -740,6 +742,7 @@ static inline int32_t osdGetAltitude(void)
 #endif
 }
 
+#if !defined(USE_BRAINFPV_OSD)
 static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *sidebar, timeMs_t currentTimeMs)
 {
     // Scroll between SYM_AH_DECORATION_MIN and SYM_AH_DECORATION_MAX.
@@ -803,6 +806,7 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
     }
     return decoration;
 }
+#endif
 
 static bool osdDrawSingleElement(uint8_t item)
 {
@@ -1594,7 +1598,7 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 #if defined(USE_BRAINFPV_OSD)
 void osdDrawNextElement(void)
 {
-   uint8_t elementIndex;
+   uint8_t elementIndex = 0;
 
    elementIndex = osdIncElementIndex(elementIndex);
 
