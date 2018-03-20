@@ -86,13 +86,12 @@
 #define BMI160_CS_PIN        PB4
 #define BMI160_INT_EXTI      PC13
 
-#define USE_BARO_XXX
+#define USE_BARO
+#define USE_BARO_BMP280
 #define USE_BARO_SPI_BMP280
-#define DEFAULT_BARO_SPI_BMP280
-#define BARO_ZERO_ON_ARM
-#define BMP280_SPI_DIVISOR   16
-#define BMP280_SPI_INSTANCE     SPI3
-#define BMP280_CS_PIN           PB8
+//#define BMP280_SPI_DIVISOR   16
+#define BMP280_SPI_BUS       BUS_SPI3
+#define BMP280_CS_PIN        PB8
 
 #define USABLE_TIMER_CHANNEL_COUNT 8
 
