@@ -188,9 +188,9 @@ void EXTIEnable(IO_t io, bool enable)
 #endif
 }
 
-void EXTI_IRQHandler(void)
+void EXTI_IRQHandler(uint32_t line_mask)
 {
-    uint32_t exti_active = EXTI->IMR & EXTI->PR;
+    uint32_t exti_active = (EXTI->IMR & EXTI->PR) & line_mask;
 
     while (exti_active) {
         unsigned idx = 31 - __builtin_clz(exti_active);
@@ -201,26 +201,26 @@ void EXTI_IRQHandler(void)
     }
 }
 
-#define _EXTI_IRQ_HANDLER(name)                 \
+#define _EXTI_IRQ_HANDLER(name, mask)                 \
     void name(void) {                           \
-        EXTI_IRQHandler();                      \
+        EXTI_IRQHandler(mask);                      \
     }                                           \
     struct dummy                                \
     /**/
 
 
-_EXTI_IRQ_HANDLER(EXTI0_IRQHandler);
-_EXTI_IRQ_HANDLER(EXTI1_IRQHandler);
-#if defined(STM32F1) || defined(STM32F7)
-_EXTI_IRQ_HANDLER(EXTI2_IRQHandler);
-#elif defined(STM32F3) || defined(STM32F4)
-_EXTI_IRQ_HANDLER(EXTI2_TS_IRQHandler);
+_EXTI_IRQ_HANDLER(EXTI0_IRQHandler, 0x0001);
+_EXTI_IRQ_HANDLER(EXTI1_IRQHandler, 0x0002);
+#if defined(STM32F1) || defined(STM32F4) || defined(STM32F7)
+_EXTI_IRQ_HANDLER(EXTI2_IRQHandler, 0x0004);
+#elif defined(STM32F3)
+_EXTI_IRQ_HANDLER(EXTI2_TS_IRQHandler, 0x0004);
 #else
 # warning "Unknown CPU"
 #endif
-_EXTI_IRQ_HANDLER(EXTI3_IRQHandler);
-_EXTI_IRQ_HANDLER(EXTI4_IRQHandler);
-_EXTI_IRQ_HANDLER(EXTI9_5_IRQHandler);
-_EXTI_IRQ_HANDLER(EXTI15_10_IRQHandler);
+_EXTI_IRQ_HANDLER(EXTI3_IRQHandler,     0x0008);
+_EXTI_IRQ_HANDLER(EXTI4_IRQHandler,     0x0010);
+_EXTI_IRQ_HANDLER(EXTI9_5_IRQHandler,   0x03E0);
+_EXTI_IRQ_HANDLER(EXTI15_10_IRQHandler, 0xFC00);
 
 #endif // USE_EXTI
