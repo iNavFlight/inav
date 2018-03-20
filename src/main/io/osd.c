@@ -1563,6 +1563,19 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
     return elementIndex;
 }
 
+#if defined(USE_BRAINFPV_OSD)
+void osdDrawNextElement(void)
+{
+   uint8_t elementIndex;
+
+   elementIndex = osdIncElementIndex(elementIndex);
+
+   while(elementIndex != 0) {
+        osdDrawSingleElement(elementIndex);
+        elementIndex = osdIncElementIndex(elementIndex);
+   }
+}
+#else
 void osdDrawNextElement(void)
 {
     static uint8_t elementIndex = 0;
@@ -1570,6 +1583,9 @@ void osdDrawNextElement(void)
         elementIndex = osdIncElementIndex(elementIndex);
     } while(!osdDrawSingleElement(elementIndex));
 }
+#endif
+
+
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
@@ -1854,9 +1870,11 @@ static void osdShowArmed(void)
     }
 }
 
-static void osdRefresh(timeUs_t currentTimeUs)
+void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
+    static uint32_t armTime = 0;
+    static uint32_t disarmTime = 0;
 
     if (IS_RC_MODE_ACTIVE(BOXOSD)) {
       displayClearScreen(osdDisplayPort);
@@ -1869,9 +1887,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
             osdResetStats();
             osdShowArmed(); // reset statistic etc
             resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
+            armTime = millis();
         } else {
             osdShowStats(); // show statistic
             resumeRefreshAt = currentTimeUs + (60 * REFRESH_1S);
+            disarmTime = millis();
         }
 
         armState = ARMING_FLAG(ARMED);
@@ -1884,6 +1904,25 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
     lastTimeUs = currentTimeUs;
 
+#if defined(USE_BRAINFPV_OSD)
+#define IS_HI(X)  (rcData[X] > 1750)
+#define IS_LO(X)  (rcData[X] < 1250)
+#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+    uint32_t now = millis();
+    if (ARMING_FLAG(ARMED)) {
+        if (now - armTime < 500) {
+            osdShowArmed();
+            return;
+        }
+    }
+    else {
+        bool enter_menu = (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH));
+        if ((disarmTime > 0) && (now - disarmTime < 10000) && !enter_menu && !cmsInMenu) {
+            osdShowStats();
+            return;
+        }
+    }
+#else
     if (resumeRefreshAt) {
         // If we already reached he time for the next refresh,
         // or THR is high or PITCH is high, resume refreshing.
@@ -1900,6 +1939,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         }
         return;
     }
+#endif
 
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {

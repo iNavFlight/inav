@@ -164,7 +164,7 @@
     BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_NONE);
 #endif
 
-#if defined(USE_MAX7456)
+#if defined(USE_MAX7456) && !defined(USE_BRAINFPV_OSD)
     BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS);
 #endif
 

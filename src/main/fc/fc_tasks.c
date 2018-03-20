@@ -342,7 +342,7 @@ void fcTasksInit(void)
 #ifdef USE_PMW_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
-#ifdef USE_OSD
+#if defined(USE_OSD) && !defined(USE_BRAINFPV_OSD)
     setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
 #endif
 #ifdef USE_CMS

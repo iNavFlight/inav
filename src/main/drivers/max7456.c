@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#ifdef USE_MAX7456
+#if defined(USE_MAX7456) && !defined(USE_BRAINFPV_OSD)
 
 #include "common/bitarray.h"
 #include "common/printf.h"

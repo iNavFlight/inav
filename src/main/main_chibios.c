@@ -86,6 +86,19 @@ static THD_FUNCTION(InavThread, arg)
     }
 }
 
+#if defined(USE_BRAINFPV_OSD)
+#include "brainfpv/brainfpv_osd.h"
+
+static THD_WORKING_AREA(waOSDThread, 4 * 1024);
+static THD_FUNCTION(OSDThread, arg)
+{
+    (void)arg;
+    chRegSetThreadName("OSD");
+    brainFpvOsdInit();
+    brainFpvOsdMain();
+}
+#endif
+
 int main(void)
 {
     halInit();
@@ -94,6 +107,10 @@ int main(void)
     st_lld_init();
 
     chThdCreateStatic(waInavThread, sizeof(waInavThread), HIGHPRIO, InavThread, NULL);
+
+#if defined(USE_BRAINFPV_OSD)
+    chThdCreateStatic(waOSDThread, sizeof(waOSDThread), NORMALPRIO, OSDThread, NULL);
+#endif /* USE_BRAINFPV_OSD */
 
     // sleep forever
     chThdSleep(TIME_INFINITE);

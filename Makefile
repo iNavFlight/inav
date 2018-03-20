@@ -858,6 +858,24 @@ INCLUDE_DIRS += $(PORTINC)
 INCLUDE_DIRS += $(OSALINC)
 INCLUDE_DIRS += $(HALINC)
 INCLUDE_DIRS += $(PLATFORMINC)
+
+
+ifneq ($(filter BRAINFPV_OSD,$(FEATURES)),)
+TARGET_SRC += brainfpv/brainfpv_osd.c \
+              brainfpv/video_quadspi.c \
+              brainfpv/osd_utils.c \
+              brainfpv/fonts.c \
+              brainfpv/images.c \
+              brainfpv/video_quadspi.c \
+              brainfpv/ir_transponder.c \
+              io/displayport_max7456.c \
+
+TARGET_SRC += $(STDPERIPH_DIR)/src/stm32f4xx_qspi.c
+
+DEVICE_FLAGS += -DUSE_BRAINFPV_OSD
+endif
+
+
 endif
 # End ChibiOS
 
