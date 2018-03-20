@@ -96,7 +96,7 @@ extern const char rcChannelLetters[];
 
 extern int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // interval [1000;2000]
 
-#define MAX_MAPPABLE_RX_INPUTS 8
+#define MAX_MAPPABLE_RX_INPUTS 4
 
 #define RSSI_SCALE_MIN 1
 #define RSSI_SCALE_MAX 255
