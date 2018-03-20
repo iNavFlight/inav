@@ -69,6 +69,8 @@
 #include "sensors/gyro.h"
 #include "sensors/battery.h"
 
+#include "navigation/navigation.h"
+
 #include "io/flashfs.h"
 #include "io/gimbal.h"
 #include "io/gps.h"
@@ -245,18 +247,25 @@ void brainFpvOsdWelcome(void)
 
 static int32_t getAltitude(void)
 {
-    int32_t alt = baro.BaroAlt;
+    int32_t alt;
+#if defined(USE_NAV)
+    alt = getEstimatedActualPosition(Z);
+#elif defined(USE_BARO)
+    alt = baro.alt;
+#else
+    alt = 0;
+#endif
     switch (osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
             return (alt * 328) / 100; // Convert to feet / 100
         default:
-            return alt;               // Already in metre / 100
+            return alt;               // Already in meters / 100
     }
 }
 
 void osdUpdateLocal()
 {
-    if (bfOsdConfig()->altitude_scale && sensors(SENSOR_BARO)) {
+    if (bfOsdConfig()->altitude_scale) {
         float altitude = getAltitude() / 100.f;
         osd_draw_vertical_scale(altitude, 100, 1, GRAPHICS_RIGHT - 20, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
     }
@@ -303,6 +312,9 @@ void brainFpvOsdMain(void) {
            // draw normal OSD
             uint32_t currentTimeUs = micros();
             osdRefresh(currentTimeUs);
+            if (!cmsInMenu){
+                osdUpdateLocal();
+            }
         }
     }
 }
@@ -311,7 +323,7 @@ void brainFpvOsdArtificialHorizon(void)
 {
     simple_artificial_horizon(attitude.values.roll, -1 * attitude.values.pitch,
                               GRAPHICS_X_MIDDLE, GRAPHICS_Y_MIDDLE,
-                              GRAPHICS_BOTTOM * 0.8f, GRAPHICS_RIGHT * 0.8f, 30,
+                              GRAPHICS_RIGHT * 0.8f, GRAPHICS_BOTTOM, 30,
                               bfOsdConfig()->ahi_steps);
 }
 

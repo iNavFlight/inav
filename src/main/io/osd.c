@@ -83,6 +83,12 @@
 #include "hardware_revision.h"
 #endif
 
+#if defined(USE_BRAINFPV_OSD)
+#include "brainfpv/brainfpv_osd.h"
+extern bool brainfpv_user_avatar_set;
+extern bool cmsInMenu;
+#endif
+
 #define VIDEO_BUFFER_CHARS_PAL    480
 #define IS_DISPLAY_PAL (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL)
 
@@ -804,6 +810,8 @@ static bool osdDrawSingleElement(uint8_t item)
         return false;
     }
 
+    bool brainfpv_item = false;
+
     uint8_t elemPosX = OSD_X(osdConfig()->item_pos[item]);
     uint8_t elemPosY = OSD_Y(osdConfig()->item_pos[item]);
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
@@ -1014,13 +1022,19 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_CRAFT_NAME:
-        if (strlen(systemConfig()->name) == 0)
-            strcpy(buff, "CRAFT_NAME");
+        if (brainfpv_user_avatar_set && bfOsdConfig()->show_pilot_logo) {
+            brainFpvOsdUserLogo(elemPosX + 4, elemPosY);
+            brainfpv_item = true;
+        }
         else {
-            for (int i = 0; i < MAX_NAME_LENGTH; i++) {
-                buff[i] = sl_toupper((unsigned char)systemConfig()->name[i]);
-                if (systemConfig()->name[i] == 0)
-                    break;
+            if (strlen(systemConfig()->name) == 0)
+                strcpy(buff, "CRAFT_NAME");
+            else {
+                for (int i = 0; i < MAX_NAME_LENGTH; i++) {
+                    buff[i] = sl_toupper((unsigned char)systemConfig()->name[i]);
+                    if (systemConfig()->name[i] == 0)
+                        break;
+                }
             }
         }
         break;
@@ -1049,6 +1063,10 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif // VTX || VTX_COMMON
 
     case OSD_CROSSHAIRS:
+#if defined(USE_BRAINFPV_OSD)
+        brainFpvOsdCenterMark();
+        brainfpv_item = true;
+#else
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
         switch (osdConfig()->crosshairs_style) {
             case OSD_CROSSHAIRS_STYLE_DEFAULT:
@@ -1066,9 +1084,15 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[5] = '\0';
                 break;
         }
+#endif /* USE_BRAINFPV_OSD */
         break;
 
     case OSD_ARTIFICIAL_HORIZON:
+#if defined(USE_BRAINFPV_OSD)
+        brainFpvOsdArtificialHorizon();
+        brainfpv_item = true;
+        break;
+#else
         {
             elemPosX = 14;
             elemPosY = 6 - 4; // Top center of the AH area
@@ -1195,6 +1219,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             return true;
         }
+#endif /* USE_BRAINFPV_OSD */
 
 #if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
@@ -1520,7 +1545,10 @@ static bool osdDrawSingleElement(uint8_t item)
         return false;
     }
 
-    displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+    if (!brainfpv_item) {
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+    }
+
     return true;
 }
 
@@ -1612,6 +1640,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdConfig->item_pos[OSD_VARIO] = OSD_POS(23, 5);
+    osdConfig->item_pos[OSD_CROSSHAIRS] = OSD_POS(0, 0) | VISIBLE_FLAG;
+
     // OSD_VARIO_NUM at the right of OSD_VARIO
     osdConfig->item_pos[OSD_VARIO_NUM] = OSD_POS(24, 7);
     osdConfig->item_pos[OSD_HOME_DIR] = OSD_POS(14, 11);
@@ -1630,7 +1660,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[OSD_GPS_LAT] = OSD_POS(0, 12);
-    osdConfig->item_pos[OSD_FLYMODE] = OSD_POS(12, 12) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_FLYMODE] = OSD_POS(12, 11) | VISIBLE_FLAG;
     osdConfig->item_pos[OSD_GPS_LON] = OSD_POS(18, 12);
 
     osdConfig->item_pos[OSD_ROLL_PIDS] = OSD_POS(2, 10);
@@ -1641,7 +1671,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_AIR_SPEED] = OSD_POS(3, 5);
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
-    osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
+    osdConfig->item_pos[OSD_MESSAGES] = OSD_POS(1, 12) | VISIBLE_FLAG;
 
     osdConfig->rssi_alarm = 20;
     osdConfig->time_alarm = 10;
