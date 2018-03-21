@@ -1605,9 +1605,11 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 void osdDrawNextElement(void)
 {
     static uint8_t elementIndex = 0;
+    // Prevent infinite loop when no elements are enabled
+    uint8_t index = elementIndex;
     do {
         elementIndex = osdIncElementIndex(elementIndex);
-    } while(!osdDrawSingleElement(elementIndex));
+    } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
 }
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
