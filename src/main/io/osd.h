@@ -20,6 +20,11 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
+#ifndef OSD_ALTERNATE_LAYOUT_COUNT
+#define OSD_ALTERNATE_LAYOUT_COUNT 1
+#endif
+#define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
+
 #define VISIBLE_FLAG  0x0800
 #define VISIBLE(x)    (x & VISIBLE_FLAG)
 #define OSD_POS_MAX   0x3FF
@@ -94,7 +99,8 @@ typedef enum {
 } osd_sidebar_scroll_e;
 
 typedef struct osdConfig_s {
-    uint16_t item_pos[OSD_ITEM_COUNT];
+    // Layouts
+    uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
 
     // Alarms
     uint8_t rssi_alarm; // rssi %
@@ -109,13 +115,13 @@ typedef struct osdConfig_s {
     // Preferences
     uint8_t main_voltage_decimals;
     uint8_t ahi_reverse_roll;
-    osd_crosshairs_style_e crosshairs_style;
-    osd_sidebar_scroll_e left_sidebar_scroll;
-    osd_sidebar_scroll_e right_sidebar_scroll;
+    uint8_t crosshairs_style; // from osd_crosshairs_style_e
+    uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
+    uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;
 
-    osd_unit_e units;
-    osd_stats_energy_unit_e stats_energy_unit;
+    uint8_t units; // from osd_unit_e
+    uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

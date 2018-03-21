@@ -143,7 +143,7 @@ static const OSD_Entry menuMainEntries[] =
     OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
     OSD_SUBMENU_ENTRY("FEATURES", &menuFeatures),
 #ifdef USE_OSD
-    OSD_SUBMENU_ENTRY("SCR LAYOUT", &cmsx_menuOsdLayout),
+    OSD_SUBMENU_ENTRY("OSD LAYOUT", &cmsx_menuOsdLayout),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 #endif
     OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
