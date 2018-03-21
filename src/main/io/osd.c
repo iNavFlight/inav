@@ -86,11 +86,6 @@
 #define VIDEO_BUFFER_CHARS_PAL    480
 #define IS_DISPLAY_PAL (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL)
 
-// Character coordinate and attributes
-#define OSD_POS(x,y)  (x | (y << 5))
-#define OSD_X(x)      (x & 0x001F)
-#define OSD_Y(x)      ((x >> 5) & 0x001F)
-
 #define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
 #define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
 #define CENTIMETERS_TO_METERS(cm)               (cm / 100)
@@ -120,7 +115,8 @@
 })
 
 static timeUs_t flyTime = 0;
-static unsigned layout = 0;
+static unsigned currentLayout = 0;
+static int layoutOverride = -1;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -819,8 +815,8 @@ static int16_t osdGetHeading(void)
 
 static bool osdDrawSingleElement(uint8_t item)
 {
-    uint16_t pos = osdConfig()->item_pos[layout][item];
-    if (!VISIBLE(pos)) {
+    uint16_t pos = osdConfig()->item_pos[currentLayout][item];
+    if (!OSD_VISIBLE(pos)) {
         return false;
     }
 
@@ -1130,7 +1126,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             // Convert pitchAngle to y compensation value
             pitchAngle = ((pitchAngle * 25) / AH_MAX_PITCH) - 41; // 41 = 4 * 9 + 5
-            crosshairsVisible = VISIBLE(osdConfig()->item_pos[layout][OSD_CROSSHAIRS]);
+            crosshairsVisible = OSD_VISIBLE(osdConfig()->item_pos[currentLayout][OSD_CROSSHAIRS]);
             if (crosshairsVisible) {
                 uint8_t cx, cy, cl;
                 osdCrosshairsBounds(&cx, &cy, &cl);
@@ -1614,21 +1610,21 @@ void osdDrawNextElement(void)
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
-    osdConfig->item_pos[0][OSD_ALTITUDE] = OSD_POS(1, 0) | VISIBLE_FLAG;
-    osdConfig->item_pos[0][OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 0) | VISIBLE_FLAG;
-    osdConfig->item_pos[0][OSD_RSSI_VALUE] = OSD_POS(23, 0) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_ALTITUDE] = OSD_POS(1, 0) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 0) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_RSSI_VALUE] = OSD_POS(23, 0) | OSD_VISIBLE_FLAG;
     //line 2
     osdConfig->item_pos[0][OSD_HOME_DIST] = OSD_POS(1, 1);
     osdConfig->item_pos[0][OSD_TRIP_DIST] = OSD_POS(1, 2);
     osdConfig->item_pos[0][OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
 
-    osdConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
     osdConfig->item_pos[0][OSD_HEADING] = OSD_POS(12, 2);
     osdConfig->item_pos[0][OSD_HEADING_GRAPH] = OSD_POS(18, 2);
-    osdConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(1, 3) | VISIBLE_FLAG;
-    osdConfig->item_pos[0][OSD_MAH_DRAWN] = OSD_POS(1, 4) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(1, 3) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_MAH_DRAWN] = OSD_POS(1, 4) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_WH_DRAWN] = OSD_POS(1, 5);
     osdConfig->item_pos[0][OSD_BATTERY_REMAINING_CAPACITY] = OSD_POS(1, 6);
     osdConfig->item_pos[0][OSD_BATTERY_REMAINING_PERCENT] = OSD_POS(1, 7);
@@ -1641,22 +1637,22 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     // OSD_VARIO_NUM at the right of OSD_VARIO
     osdConfig->item_pos[0][OSD_VARIO_NUM] = OSD_POS(24, 7);
     osdConfig->item_pos[0][OSD_HOME_DIR] = OSD_POS(14, 11);
-    osdConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | VISIBLE_FLAG;
-    osdConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6) | OSD_VISIBLE_FLAG;
 
     osdConfig->item_pos[0][OSD_CRAFT_NAME] = OSD_POS(20, 2);
     osdConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
     osdConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);
     osdConfig->item_pos[0][OSD_FLYTIME] = OSD_POS(23, 9);
-    osdConfig->item_pos[0][OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_RTC_TIME] = OSD_POS(23, 12);
 
-    osdConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
-    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(12, 12) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(12, 12) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_LON] = OSD_POS(18, 12);
 
     osdConfig->item_pos[0][OSD_ROLL_PIDS] = OSD_POS(2, 10);
@@ -1667,11 +1663,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_AIR_SPEED] = OSD_POS(3, 5);
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
-    osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
 
     for (unsigned ii = 1; ii < OSD_LAYOUT_COUNT; ii++) {
         for (unsigned jj = 0; jj < ARRAYLEN(osdConfig->item_pos[0]); jj++) {
-             osdConfig->item_pos[ii][jj] = osdConfig->item_pos[0][jj] & ~VISIBLE_FLAG;
+             osdConfig->item_pos[ii][jj] = osdConfig->item_pos[0][jj] & ~OSD_VISIBLE_FLAG;
         }
     }
 
@@ -2015,23 +2011,26 @@ void osdUpdate(timeUs_t currentTimeUs)
     // Check if the layout has changed. Higher numbered
     // boxes take priority.
     unsigned activeLayout;
+    if (layoutOverride >= 0) {
+        activeLayout = layoutOverride;
+    } else {
 #if OSD_ALTERNATE_LAYOUT_COUNT > 2
-    if (IS_RC_MODE_ACTIVE(BOXOSDALT3))
-        activeLayout = 3;
-    else
+        if (IS_RC_MODE_ACTIVE(BOXOSDALT3))
+            activeLayout = 3;
+        else
 #endif
 #if OSD_ALTERNATE_LAYOUT_COUNT > 1
-    if (IS_RC_MODE_ACTIVE(BOXOSDALT2))
-        activeLayout = 2;
-else
-    #endif
-    if (IS_RC_MODE_ACTIVE(BOXOSDALT1))
-        activeLayout = 1;
-    else
-        activeLayout = 0;
-
-    if (layout != activeLayout) {
-        layout = activeLayout;
+        if (IS_RC_MODE_ACTIVE(BOXOSDALT2))
+            activeLayout = 2;
+        else
+#endif
+        if (IS_RC_MODE_ACTIVE(BOXOSDALT1))
+            activeLayout = 1;
+        else
+            activeLayout = 0;
+    }
+    if (currentLayout != activeLayout) {
+        currentLayout = activeLayout;
         osdStartFullRedraw();
     }
 #endif
@@ -2065,6 +2064,18 @@ else
 void osdStartFullRedraw(void)
 {
     fullRedraw = true;
+}
+
+void osdOverrideLayout(int layout)
+{
+    layoutOverride = constrain(layout, -1, ARRAYLEN(osdConfig()->item_pos) - 1);
+}
+
+bool osdItemIsFixed(osd_items_e item)
+{
+    return item == OSD_CROSSHAIRS ||
+        item == OSD_ARTIFICIAL_HORIZON ||
+        item == OSD_HORIZON_SIDEBARS;
 }
 
 #endif // OSD

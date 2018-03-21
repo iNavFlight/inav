@@ -21,14 +21,17 @@
 #include "config/parameter_group.h"
 
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
-#define OSD_ALTERNATE_LAYOUT_COUNT 1
+#define OSD_ALTERNATE_LAYOUT_COUNT 3
 #endif
 #define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
 
-#define VISIBLE_FLAG  0x0800
-#define VISIBLE(x)    (x & VISIBLE_FLAG)
-#define OSD_POS_MAX   0x3FF
-#define OSD_POS_MAX_CLI   (OSD_POS_MAX | VISIBLE_FLAG)
+#define OSD_VISIBLE_FLAG    0x0800
+#define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
+#define OSD_POS(x,y)        ((x) | ((y) << 5))
+#define OSD_X(x)            ((x) & 0x001F)
+#define OSD_Y(x)            (((x) >> 5) & 0x001F)
+#define OSD_POS_MAX         0x3FF
+#define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
 
 typedef enum {
     OSD_RSSI_VALUE,
@@ -130,3 +133,7 @@ struct displayPort_s;
 void osdInit(struct displayPort_s *osdDisplayPort);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
+// Sets a fixed OSD layout ignoring the RC input. Set it
+// to -1 to disable the override.
+void osdOverrideLayout(int layout);
+bool osdItemIsFixed(osd_items_e item);

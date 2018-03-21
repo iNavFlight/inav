@@ -30,6 +30,8 @@
 
 #include "build/version.h"
 
+#include "common/utils.h"
+
 #include "drivers/time.h"
 
 #include "cms/cms.h"
@@ -59,8 +61,10 @@ static char infoTargetName[] = __TARGET__;
 
 #include "msp/msp_protocol.h" // XXX for FC identification... not available elsewhere
 
-static long cmsx_InfoInit(void)
+static long cmsx_InfoInit(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     int i;
     for ( i = 0 ; i < GIT_SHORT_REVISION_LENGTH ; i++) {
         if (shortGitRevision[i] >= 'a' && shortGitRevision[i] <= 'f')
@@ -143,7 +147,7 @@ static const OSD_Entry menuMainEntries[] =
     OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
     OSD_SUBMENU_ENTRY("FEATURES", &menuFeatures),
 #ifdef USE_OSD
-    OSD_SUBMENU_ENTRY("OSD LAYOUT", &cmsx_menuOsdLayout),
+    OSD_SUBMENU_ENTRY("OSD LAYOUTS", &cmsx_menuOsdLayout),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 #endif
     OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
