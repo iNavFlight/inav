@@ -345,7 +345,7 @@ void fcTasksInit(void)
 #if defined(USE_OSD) && !defined(USE_BRAINFPV_OSD)
     setTaskEnabled(TASK_OSD, feature(FEATURE_OSD));
 #endif
-#ifdef USE_CMS
+#if defined(USE_CMS) && !defined(USE_BRAINFPV_OSD)
 #ifdef USE_MSP_DISPLAYPORT
     setTaskEnabled(TASK_CMS, true);
 #else

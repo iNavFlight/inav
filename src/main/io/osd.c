@@ -1956,6 +1956,14 @@ void osdRefresh(timeUs_t currentTimeUs)
             return;
         }
     }
+
+    osdDisplayPort->cleared = true;
+    cmsUpdate(currentTimeUs);
+
+    if (!cmsInMenu) {
+        osdDrawNextElement();
+        displayHeartbeat(osdDisplayPort);
+    }
 #else
     if (resumeRefreshAt) {
         // If we already reached he time for the next refresh,
@@ -1973,7 +1981,6 @@ void osdRefresh(timeUs_t currentTimeUs)
         }
         return;
     }
-#endif
 
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
@@ -1989,6 +1996,8 @@ void osdRefresh(timeUs_t currentTimeUs)
 #endif
     }
 #endif
+#endif
+
 }
 
 /*

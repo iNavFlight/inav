@@ -600,7 +600,7 @@ void init(void)
     }
 #endif
 
-#if defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)
+#if defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS) && !defined(USE_BRAINFPV_OSD)
     // If OSD is not active, then register MSP_DISPLAYPORT as a CMS device.
     if (!osdDisplayPort) {
         cmsDisplayPortRegister(displayPortMspInit());

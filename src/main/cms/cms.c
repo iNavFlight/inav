@@ -537,10 +537,10 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
     if (room < 30)
         return;
 
-    if (pDisplay->cursorRow != currentCtx.cursorRow) {
+//    if (pDisplay->cursorRow != currentCtx.cursorRow) {
         room -= displayWrite(pDisplay, LEFT_MENU_COLUMN, currentCtx.cursorRow + top, " >");
         pDisplay->cursorRow = currentCtx.cursorRow;
-    }
+//    }
 
     if (room < 30)
         return;
@@ -1040,7 +1040,7 @@ uint16_t cmsHandleKeyWithRepeat(displayPort_t *pDisplay, uint8_t key, int repeat
 
 void cmsUpdate(uint32_t currentTimeUs)
 {
-#ifdef USE_RCDEVICE
+#ifdef USE_RCDEVICE_XXX
     if(rcdeviceInMenu) {
         return ;
     }

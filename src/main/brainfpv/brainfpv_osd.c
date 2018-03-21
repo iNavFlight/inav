@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .sync_threshold = BRAINFPV_OSD_SYNC_TH_DEFAULT,
   .white_level    = 110,
   .black_level    = 20,
-  .x_offset       = 0,
+  .x_offset       = -3,
   .x_scale        = 8,
   .sbs_3d_enabled = 0,
   .sbs_3d_right_eye_offset = 30,
@@ -147,9 +147,11 @@ void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
+const vcdProfile_t * p_vcd_profile;
+
 void max7456Init(const vcdProfile_t *pVcdProfile)
 {
-    (void)pVcdProfile;
+    p_vcd_profile = pVcdProfile;
 }
 
 void max7456Invert(bool invert)
@@ -178,10 +180,18 @@ void  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 
 uint8_t max7456GetRowsCount(void)
 {
-    if (Video_GetType() == VIDEO_TYPE_NTSC)
-        return VIDEO_LINES_NTSC;
-    else
-        return VIDEO_LINES_PAL;
+    switch (p_vcd_profile->video_system) {
+        case VIDEO_SYSTEM_AUTO:
+            if (Video_GetType() == VIDEO_TYPE_NTSC)
+                return VIDEO_LINES_NTSC;
+            else
+                return VIDEO_LINES_PAL;
+        case VIDEO_SYSTEM_PAL:
+            return VIDEO_LINES_PAL;
+        case VIDEO_SYSTEM_NTSC:
+            return VIDEO_LINES_NTSC;
+    }
+    return VIDEO_LINES_PAL;
 }
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
@@ -228,6 +238,15 @@ void brainFpvOsdInit(void)
             brainfpv_user_avatar_set = true;
             break;
         }
+    }
+
+    // update number of rows
+    chThdSleep(MS2ST(200));
+    if (Video_GetType() == VIDEO_TYPE_NTSC) {
+        osdDisplayPort->rows = VIDEO_LINES_NTSC;
+    }
+    else {
+        osdDisplayPort->rows = VIDEO_LINES_PAL;
     }
 }
 
