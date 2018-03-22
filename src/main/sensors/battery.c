@@ -148,7 +148,8 @@ void batteryUpdate(uint32_t vbatTimeDelta)
         delay(VBATT_STABLE_DELAY);
         updateBatteryVoltage(vbatTimeDelta);
 
-        unsigned cells = (batteryAdcToVoltage(vbatLatestADC) / batteryConfig()->voltage.cellMax) + 1;
+        unsigned cells = batteryAdcToVoltage(vbatLatestADC) / batteryConfig()->voltage.cellMax;
+	if (vbatLatestADC - batteryConfig()->voltage.cellMax * cells > 0) cells++;
         if (cells > 8) cells = 8; // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
 
         batteryCellCount = cells;
