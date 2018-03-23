@@ -72,7 +72,10 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .mag_hardware = MAG_HARDWARE_DEFAULT,
     .mag_declination = 0,
     .mag_to_use = 0,
-    .magCalibrationTimeLimit = 30
+    .magCalibrationTimeLimit = 30,
+    .rollDeciDegrees = 0,
+    .pitchDeciDegrees = 0,
+    .yawDeciDegrees = 0,
 );
 
 #ifdef USE_MAG
@@ -84,7 +87,8 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     magSensor_e magHardware = MAG_NONE;
     requestedSensors[SENSOR_INDEX_MAG] = magHardwareToUse;
 
-    dev->magAlign = ALIGN_DEFAULT;
+    dev->magAlign.useExternal = false;
+    dev->magAlign.onBoard = ALIGN_DEFAULT;
 
     switch (magHardwareToUse) {
     case MAG_AUTODETECT:
@@ -94,7 +98,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_QMC5883
         if (qmc5883Detect(dev)) {
 #ifdef MAG_QMC5883L_ALIGN
-            dev->magAlign = MAG_QMC5883L_ALIGN;
+            dev->magAlign.onBoard = MAG_QMC5883L_ALIGN;
 #endif
             magHardware = MAG_QMC5883;
             break;
@@ -110,7 +114,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_HMC5883
         if (hmc5883lDetect(dev)) {
 #ifdef MAG_HMC5883_ALIGN
-            dev->magAlign = MAG_HMC5883_ALIGN;
+            dev->magAlign.onBoard = MAG_HMC5883_ALIGN;
 #endif
             magHardware = MAG_HMC5883;
             break;
@@ -126,7 +130,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_AK8975
         if (ak8975Detect(dev)) {
 #ifdef MAG_AK8975_ALIGN
-            dev->magAlign = MAG_AK8975_ALIGN;
+            dev->magAlign.onBoard = MAG_AK8975_ALIGN;
 #endif
             magHardware = MAG_AK8975;
             break;
@@ -142,7 +146,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_AK8963
         if (ak8963Detect(dev)) {
 #ifdef MAG_AK8963_ALIGN
-            dev->magAlign = MAG_AK8963_ALIGN;
+            dev->magAlign.onBoard = MAG_AK8963_ALIGN;
 #endif
             magHardware = MAG_AK8963;
             break;
@@ -158,7 +162,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_GPS
         if (gpsMagDetect(dev)) {
 #ifdef MAG_GPS_ALIGN
-            dev->magAlign = MAG_GPS_ALIGN;
+            dev->magAlign.onBoard = MAG_GPS_ALIGN;
 #endif
             magHardware = MAG_GPS;
             break;
@@ -174,7 +178,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_MAG3110
         if (mag3110detect(dev)) {
 #ifdef MAG_MAG3110_ALIGN
-            dev->magAlign = MAG_MAG3110_ALIGN;
+            dev->magAlign.onBoard = MAG_MAG3110_ALIGN;
 #endif
             magHardware = MAG_MAG3110;
             break;
@@ -190,7 +194,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_IST8310
         if (ist8310Detect(dev)) {
 #ifdef MAG_IST8310_ALIGN
-            dev->magAlign = MAG_IST8310_ALIGN;
+            dev->magAlign.onBoard = MAG_IST8310_ALIGN;
 #endif
             magHardware = MAG_IST8310;
             break;
@@ -206,7 +210,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_MPU9250
         if (mpu9250CompassDetect(dev)) {
 #ifdef MAG_MPU9250_ALIGN
-            dev->magAlign = MAG_MPU9250_ALIGN;
+            dev->magAlign.onBoard = MAG_MPU9250_ALIGN;
 #endif
             magHardware = MAG_MPU9250;
             break;
@@ -269,8 +273,24 @@ bool compassInit(void)
         sensorsClear(SENSOR_MAG);
     }
 
-    if (compassConfig()->mag_align != ALIGN_DEFAULT) {
-        mag.dev.magAlign = compassConfig()->mag_align;
+    if (compassConfig()->rollDeciDegrees != 0 ||
+        compassConfig()->pitchDeciDegrees != 0 ||
+        compassConfig()->yawDeciDegrees != 0) {
+
+        // Externally aligned compass
+        mag.dev.magAlign.useExternal = true;
+
+        fp_angles_t compassAngles = {
+             .angles.roll = DECIDEGREES_TO_RADIANS(compassConfig()->rollDeciDegrees),
+             .angles.pitch = DECIDEGREES_TO_RADIANS(compassConfig()->pitchDeciDegrees),
+             .angles.yaw = DECIDEGREES_TO_RADIANS(compassConfig()->yawDeciDegrees),
+        };
+        rotationMatrixFromAngles(&mag.dev.magAlign.externalRotation, &compassAngles);
+    } else {
+        mag.dev.magAlign.useExternal = false;
+        if (compassConfig()->mag_align != ALIGN_DEFAULT) {
+            mag.dev.magAlign.onBoard = compassConfig()->mag_align;
+        }
     }
 
     return ret;
@@ -363,8 +383,26 @@ void compassUpdate(timeUs_t currentTimeUs)
         mag.magADC[Z] -= compassConfig()->magZero.raw[Z];
     }
 
-    applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign);
-    applyBoardAlignment(mag.magADC);
+    if (mag.dev.magAlign.useExternal) {
+        const fpVector3_t v = {
+            .x = mag.magADC[X],
+            .y = mag.magADC[Y],
+            .z = mag.magADC[Z],
+         };
+
+        fpVector3_t rotated;
+
+        rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
+
+         mag.magADC[X] = rotated.x;
+         mag.magADC[Y] = rotated.y;
+         mag.magADC[Z] = rotated.z;
+
+    } else {
+        // On-board compass
+        applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign.onBoard);
+        applyBoardAlignment(mag.magADC);
+    }
 
     magUpdatedAtLeastOnce = 1;
 }

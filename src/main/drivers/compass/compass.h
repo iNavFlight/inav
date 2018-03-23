@@ -17,13 +17,21 @@
 
 #pragma once
 
+#include "common/vector.h"
+
 #include "drivers/sensor.h"
 
 typedef struct magDev_s {
     busDevice_t * busDev;
     sensorMagInitFuncPtr init;  // initialize function
     sensorMagReadFuncPtr read;  // read 3 axis data function
-    sensor_align_e magAlign;
+    struct {
+        bool useExternal;
+        union {
+            fpMat3_t externalRotation;
+            sensor_align_e onBoard;
+        };
+    } magAlign;
     uint8_t magSensorToUse;
     int16_t magADCRaw[XYZ_AXIS_COUNT];
 } magDev_t;
