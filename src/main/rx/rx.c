@@ -85,7 +85,6 @@ static bool rxIsInFailsafeMode = true;
 
 static timeUs_t rxNextUpdateAtUs = 0;
 static uint32_t needRxSignalBefore = 0;
-static uint32_t needRxSignalMaxDelayUs;
 static uint32_t suspendRxSignalUntil = 0;
 static uint8_t skipRxSamples = 0;
 
@@ -402,7 +401,7 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
             rxDataProcessingRequired = true;
             rxSignalReceived = true;
             rxIsInFailsafeMode = false;
-            needRxSignalBefore = currentTimeUs + needRxSignalMaxDelayUs;
+            needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
             resetPPMDataReceivedState();
         }
     } else if (feature(FEATURE_RX_PARALLEL_PWM)) {
@@ -410,7 +409,7 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
             rxDataProcessingRequired = true;
             rxSignalReceived = true;
             rxIsInFailsafeMode = false;
-            needRxSignalBefore = currentTimeUs + needRxSignalMaxDelayUs;
+            needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
         }
     } else
 #endif
@@ -420,7 +419,7 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
             rxDataProcessingRequired = true;
             rxIsInFailsafeMode = (frameStatus & RX_FRAME_FAILSAFE) != 0;
             rxSignalReceived = !rxIsInFailsafeMode;
-            needRxSignalBefore = currentTimeUs + needRxSignalMaxDelayUs;
+            needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
         }
 
         if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
