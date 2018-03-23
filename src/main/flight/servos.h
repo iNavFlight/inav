@@ -136,4 +136,5 @@ void servoMixerLoadMix(int index);
 bool loadCustomServoMixer(void);
 int servoDirection(int servoIndex, int fromChannel);
 void servoMixer(float dT);
+void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);

@@ -1668,6 +1668,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
             servoParamsMutable(tmp_u8)->forwardFromChannel = sbufReadU8(src);
             servoParamsMutable(tmp_u8)->reversedSources = sbufReadU32(src);
+            servoComputeScalingFactors(tmp_u8);
         }
         break;
 #endif
