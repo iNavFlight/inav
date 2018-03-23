@@ -1010,13 +1010,13 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "AIR ";
             }
 
-            if (FLIGHT_MODE(MANUAL_MODE))
-                p = "MANU";
-            else if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 p = "!FS!";
-            } else if (FLIGHT_MODE(NAV_RTH_MODE))
+            } else if (FLIGHT_MODE(MANUAL_MODE)) {
+                p = "MANU";
+            } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
                 p = "RTH ";
-            else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+            } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
                     // 3D HOLD
                     p = "HOLD";
