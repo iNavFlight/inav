@@ -232,4 +232,11 @@
 #define SYM_MIN 0xB3
 #define SYM_AVG 0xB4
 
+// Attitude angles
+#define SYM_ROLL_LEFT 0xCC
+#define SYM_ROLL_LEVEL 0xCD
+#define SYM_ROLL_RIGHT 0xCE
+#define SYM_PITCH_UP 0xCF
+#define SYM_PITCH_DOWN 0xDF
+
 #endif // USE_MAX7456

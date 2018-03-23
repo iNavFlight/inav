@@ -158,7 +158,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 1);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 2);
 
 static int digitCount(int32_t value)
 {
@@ -1099,6 +1099,23 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
+    case OSD_ATTITUDE_ROLL:
+        buff[0] = SYM_ROLL_LEVEL;
+        if (attitude.values.roll)
+            buff[0] += (attitude.values.roll < 0 ? -1 : 1);
+        osdFormatCentiNumber(buff + 1, ABS(attitude.values.roll) * 10, 0, osdConfig()->attitude_angle_decimals, 0, 2 + osdConfig()->attitude_angle_decimals);
+        break;
+
+    case OSD_ATTITUDE_PITCH:
+        if (attitude.values.pitch == 0)
+            buff[0] = 'P';
+        else if (attitude.values.pitch > 0)
+            buff[0] = SYM_PITCH_DOWN;
+        else if (attitude.values.pitch < 0)
+            buff[0] = SYM_PITCH_UP;
+        osdFormatCentiNumber(buff + 1, ABS(attitude.values.pitch) * 10, 0, osdConfig()->attitude_angle_decimals, 0, 2 + osdConfig()->attitude_angle_decimals);
+        break;
+
     case OSD_ARTIFICIAL_HORIZON:
         {
             elemPosX = 14;
@@ -1586,8 +1603,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
         if (elementIndex == OSD_TRIP_DIST) {
-            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
-            elementIndex = OSD_ITEM_COUNT;
+            STATIC_ASSERT(OSD_ATTITUDE_ROLL == OSD_ITEM_COUNT - 1, OSD_ATTITUDE_ROLL_not_last_element);
+            elementIndex = OSD_ATTITUDE_PITCH;
         }
     }
 
@@ -1630,6 +1647,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->item_pos[0][OSD_EFFICIENCY_MAH_PER_KM] = OSD_POS(1, 5);
     osdConfig->item_pos[0][OSD_EFFICIENCY_WH_PER_KM] = OSD_POS(1, 5);
+
+    osdConfig->item_pos[0][OSD_ATTITUDE_ROLL] = OSD_POS(1, 7);
+    osdConfig->item_pos[0][OSD_ATTITUDE_PITCH] = OSD_POS(1, 8);
 
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdConfig->item_pos[0][OSD_VARIO] = OSD_POS(23, 5);
@@ -1686,6 +1706,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->units = OSD_UNIT_METRIC;
     osdConfig->main_voltage_decimals = 1;
+    osdConfig->attitude_angle_decimals = 0;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
