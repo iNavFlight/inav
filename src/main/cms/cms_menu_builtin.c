@@ -46,6 +46,10 @@
 #include "cms/cms_menu_ledstrip.h"
 #include "cms/cms_menu_misc.h"
 
+#ifdef BRAINFPV
+#include "cms/cms_menu_brainfpv.h"
+#endif
+
 // VTX supplied menus
 
 #include "cms/cms_menu_vtx_smartaudio.h"
@@ -137,7 +141,9 @@ static CMS_Menu menuFeatures = {
 static OSD_Entry menuMainEntries[] =
 {
     {"-- MAIN --",  OME_Label, NULL, NULL, 0},
-
+#ifdef BRAINFPV
+    {"BRAINFPV",    OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPV, 0},
+#endif
     {"PID TUNING",  OME_Submenu,  cmsMenuChange, &cmsx_menuImu, 0},
     {"FEATURES",    OME_Submenu,  cmsMenuChange, &menuFeatures, 0},
 #ifdef USE_OSD

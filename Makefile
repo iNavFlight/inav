@@ -869,6 +869,7 @@ TARGET_SRC += brainfpv/brainfpv_osd.c \
               brainfpv/video_quadspi.c \
               brainfpv/ir_transponder.c \
               io/displayport_max7456.c \
+              cms/cms_menu_brainfpv.c \
 
 TARGET_SRC += $(STDPERIPH_DIR)/src/stm32f4xx_qspi.c
 

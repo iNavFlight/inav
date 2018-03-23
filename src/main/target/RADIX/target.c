@@ -49,16 +49,15 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 bool brainfpv_settings_updated = true;
 bool brainfpv_settings_updated_from_cms = false;
 
-//extern bfOsdConfig_t bfOsdConfigCms;
+extern bfOsdConfig_t bfOsdConfigCms;
 
 void brainFPVUpdateSettings(void) {
     const bfOsdConfig_t * bfOsdConfigUse;
 
-//    if (brainfpv_settings_updated_from_cms)
-//        bfOsdConfigUse = &bfOsdConfigCms;
-//    else
-//        bfOsdConfigUse = bfOsdConfig();
-    bfOsdConfigUse = bfOsdConfig();
+    if (brainfpv_settings_updated_from_cms)
+        bfOsdConfigUse = &bfOsdConfigCms;
+    else
+        bfOsdConfigUse = bfOsdConfig();
 
     if (!bfOsdConfigUse->invert){
         BRAINFPVFPGA_SetBwLevels(bfOsdConfigUse->black_level, bfOsdConfigUse->white_level);

@@ -41,6 +41,14 @@
 #include "cms/cms_menu_builtin.h"
 #include "cms/cms_types.h"
 
+
+#ifdef BRAINFPV
+#include "brainfpv/video.h"
+#include "brainfpv/osd_utils.h"
+#include "brainfpv/ir_transponder.h"
+#include "cms/cms_menu_brainfpv.h"
+#endif
+
 #include "common/maths.h"
 #include "common/printf.h"
 #include "common/typeconversion.h"
@@ -1024,6 +1032,14 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             // Shouldn't happen
             break;
     }
+#ifdef BRAINFPV
+    if (currentCtx.menu == &cmsx_menuBrainFPVOsd) {
+        if ((key == KEY_RIGHT) || (key == KEY_LEFT)) {
+            brainfpv_settings_updated = true;
+            brainfpv_settings_updated_from_cms = true;
+        }
+    }
+#endif
     return res;
 }
 
