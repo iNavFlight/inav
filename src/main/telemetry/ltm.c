@@ -81,7 +81,6 @@
 #define LTM_CYCLETIME   100
 #define LTM_SCHEDULE_SIZE (1000/LTM_CYCLETIME)
 
-extern uint16_t rssi;           // FIXME dependency on mw.c
 static serialPort_t *ltmPort;
 static serialPortConfig_t *portConfig;
 static bool ltmEnabled;
@@ -185,9 +184,9 @@ void ltm_sframe(sbuf_t *dst)
     if (failsafeIsActive())
         lt_statemode |= 2;
     sbufWriteU8(dst, 'S');
-    sbufWriteU16(dst, vbat * 10);    //vbat converted to mv
-    sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF));    // current mAh (65535 mAh max)
-    sbufWriteU8(dst, (uint8_t)((rssi * 254) / 1023));        // scaled RSSI (uchar)
+    sbufWriteU16(dst, getBatteryVoltage() * 10);    //vbat converted to mv
+    sbufWriteU16(dst, (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF));    // current mAh (65535 mAh max)
+    sbufWriteU8(dst, (uint8_t)((getRSSI() * 254) / 1023));        // scaled RSSI (uchar)
 #if defined(USE_PITOT)
     sbufWriteU8(dst, sensors(SENSOR_PITOT) ? pitot.airSpeed / 100.0f : 0);  // in m/s
 #else

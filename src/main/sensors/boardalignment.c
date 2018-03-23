@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "common/maths.h"
+#include "common/vector.h"
 #include "common/axis.h"
 
 #include "config/parameter_group.h"
@@ -31,7 +32,7 @@
 #include "boardalignment.h"
 
 static bool standardBoardAlignment = true;     // board orientation correction
-static float boardRotation[3][3];              // matrix
+static fpMat3_t boardRotMatrix;
 
 // no template required since defaults are zero
 PG_REGISTER(boardAlignment_t, boardAlignment, PG_BOARD_ALIGNMENT, 0);
@@ -54,7 +55,7 @@ void initBoardAlignment(void)
         rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
         rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
 
-        buildRotationMatrix(&rotationAngles, boardRotation);
+        rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
     }
 }
 
@@ -75,13 +76,12 @@ void applyBoardAlignment(int32_t *vec)
         return;
     }
 
-    int32_t x = vec[X];
-    int32_t y = vec[Y];
-    int32_t z = vec[Z];
+    fpVector3_t fpVec = { .v = { vec[X], vec[Y], vec[Z] } };
+    rotationMatrixRotateVector(&fpVec, &fpVec, &boardRotMatrix);
 
-    vec[X] = lrintf(boardRotation[0][X] * x + boardRotation[1][X] * y + boardRotation[2][X] * z);
-    vec[Y] = lrintf(boardRotation[0][Y] * x + boardRotation[1][Y] * y + boardRotation[2][Y] * z);
-    vec[Z] = lrintf(boardRotation[0][Z] * x + boardRotation[1][Z] * y + boardRotation[2][Z] * z);
+    vec[X] = lrintf(fpVec.x);
+    vec[Y] = lrintf(fpVec.y);
+    vec[Z] = lrintf(fpVec.z);
 }
 
 void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation)

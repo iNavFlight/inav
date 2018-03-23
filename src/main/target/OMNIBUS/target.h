@@ -38,7 +38,7 @@
 #define USE_GYRO_MPU6000
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA4
-#define MPU_INT_EXTI            PC13
+#define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
 #define GYRO_MPU6000_ALIGN      CW90_DEG
 

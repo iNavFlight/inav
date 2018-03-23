@@ -25,7 +25,7 @@
 #define BEEPER_OPT              PB2
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PA3
+#define GYRO_INT_EXTI            PA3
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_SPI

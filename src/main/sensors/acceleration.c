@@ -34,19 +34,19 @@
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_mpu3050.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
 #include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
-#include "drivers/accgyro/accgyro_adxl345.h"
-#include "drivers/accgyro/accgyro_bma280.h"
-#include "drivers/accgyro/accgyro_fake.h"
+#include "drivers/accgyro/accgyro_lsm303dlhc.h"
 #include "drivers/accgyro/accgyro_l3g4200d.h"
 #include "drivers/accgyro/accgyro_l3gd20.h"
-#include "drivers/accgyro/accgyro_lsm303dlhc.h"
+#include "drivers/accgyro/accgyro_adxl345.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
-#include "drivers/accgyro/accgyro_mpu3050.h"
+#include "drivers/accgyro/accgyro_bma280.h"
+#include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/logging.h"
 #include "drivers/sensor.h"
 
@@ -476,24 +476,24 @@ static void accUpdateAccumulatedMeasurements(void)
 /*
  * Calculate measured acceleration in body frame in g
  */
-void accGetMeasuredAcceleration(t_fp_vector *measuredAcc)
+void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {
 #ifdef USE_ASYNC_GYRO_PROCESSING
     if (accumulatedMeasurementCount) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            measuredAcc->A[axis] = accumulatedMeasurements[axis] * GRAVITY_CMSS / accumulatedMeasurementCount;
+            measuredAcc->v[axis] = accumulatedMeasurements[axis] * GRAVITY_CMSS / accumulatedMeasurementCount;
             accumulatedMeasurements[axis] = 0;
         }
         accumulatedMeasurementCount = 0;
     }
     else {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            measuredAcc->A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
+            measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
         }
     }
 #else
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        measuredAcc->A[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
+        measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
     }
 #endif
 }

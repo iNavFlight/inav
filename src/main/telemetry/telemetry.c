@@ -65,12 +65,13 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .frsky_coordinate_format = FRSKY_FORMAT_DMS,
     .frsky_unit = FRSKY_UNIT_METRICS,
     .frsky_vfas_precision = 0,
-    .frsky_vfas_cell_voltage = 0,
+    .report_cell_voltage = 0,
     .hottAlarmSoundInterval = 5,
     .smartportUartUnidirectional = 0,
     .smartportFuelUnit = SMARTPORT_FUEL_UNIT_MAH,
     .ibusTelemetryType = 0,
-    .ltmUpdateRate = LTM_RATE_NORMAL
+    .ltmUpdateRate = LTM_RATE_NORMAL,
+    .halfDuplex = 1,
 );
 
 void telemetryInit(void)

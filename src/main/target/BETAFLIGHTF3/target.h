@@ -42,7 +42,7 @@
 // MPU6000 interrupts
 #define USE_MPU_DATA_READY_SIGNAL
 #define EXTI_CALLBACK_HANDLER_COUNT 1
-#define MPU_INT_EXTI                PC13
+#define GYRO_INT_EXTI                PC13
 #define USE_EXTI
 
 //#define USE_ESC_SENSOR // XXX

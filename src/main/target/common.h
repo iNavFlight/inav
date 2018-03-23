@@ -30,6 +30,7 @@
 #define USE_SERIALRX_SPEKTRUM   // Cheap and fairly common protocol
 #define USE_SERIALRX_SBUS       // Very common protocol
 #define USE_SERIALRX_IBUS       // Cheap FlySky & Turnigy receivers
+#define USE_SERIALRX_FPORT
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
@@ -91,6 +92,7 @@
 #define USE_TELEMETRY_MAVLINK
 #define USE_TELEMETRY_SMARTPORT
 #define USE_TELEMETRY_CRSF
+#define USE_MSP_OVER_TELEMETRY
 // These are rather exotic serial protocols
 #define USE_RX_MSP
 #define USE_SERIALRX_SUMD

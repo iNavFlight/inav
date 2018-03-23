@@ -26,4 +26,4 @@
 
  #pragma once
 
-extern CMS_Menu cmsx_menuNavigation;
+extern const CMS_Menu cmsx_menuNavigation;

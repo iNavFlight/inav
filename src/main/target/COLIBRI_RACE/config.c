@@ -38,10 +38,6 @@ void targetConfiguration(void)
     rxConfigMutable()->rcmap[1] = 2;
     rxConfigMutable()->rcmap[2] = 3;
     rxConfigMutable()->rcmap[3] = 0;
-    rxConfigMutable()->rcmap[4] = 4;
-    rxConfigMutable()->rcmap[5] = 5;
-    rxConfigMutable()->rcmap[6] = 6;
-    rxConfigMutable()->rcmap[7] = 7;
 
     featureSet(FEATURE_VBAT);
     featureSet(FEATURE_LED_STRIP);

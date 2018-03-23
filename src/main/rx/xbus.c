@@ -255,8 +255,10 @@ static void xBusDataReceive(uint16_t c, void *rxCallbackData)
 }
 
 // Indicate time to read a frame from the data...
-uint8_t xBusFrameStatus(void)
+static uint8_t xBusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     if (!xBusFrameReceived) {
         return RX_FRAME_PENDING;
     }

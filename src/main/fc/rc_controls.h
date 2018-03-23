@@ -19,6 +19,9 @@
 
 #include "config/parameter_group.h"
 
+#define AUTO_DISARM_DELAY_MIN 0
+#define AUTO_DISARM_DELAY_MAX 60
+
 typedef enum rc_alias {
     ROLL = 0,
     PITCH,
