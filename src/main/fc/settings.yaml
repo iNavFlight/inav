@@ -1655,3 +1655,74 @@ groups:
       - name: display_force_sw_blink
         field: force_sw_blink
         type: bool
+
+  - name: PG_BRAINFPV_CONFIG
+    type: bfOsdConfig_t
+    headers: ["brainfpv/brainfpv_osd.h"]
+    members:
+      - name: brainfpv_osd_sync_thresh
+        field: sync_threshold
+        min: 5
+        max: 60
+      - name: brainfpv_osd_white_level
+        field: white_level
+        min: 100
+        max: 255
+      - name: brainfpv_osd_black_level
+        field: black_level
+        min: 15
+        max: 40
+      - name: brainfpv_osd_x_offset
+        field: x_offset
+        min: -8
+        max: 7
+      - name: brainfpv_osd_x_scale
+        field: x_scale
+        min: 0
+        max: 15
+      - name: brainfpv_osd_sbs3d
+        field: sbs_3d_enabled
+        type: bool
+      - name: brainfpv_osd_sbs3d_roff
+        field: sbs_3d_right_eye_offset
+        min: 10
+        max: 40
+      - name: brainfpv_osd_font
+        field: font
+        min: 0
+        max: 2
+      - name: brainfpv_ir_sys
+        field: ir_system
+        min: 0
+        max: 2
+      - name: brainfpv_ir_trackmateid
+        field: ir_trackmate_id
+        min: 0
+        max: 4095
+      - name: brainfpv_ir_ilapid
+        field: ir_ilap_id
+        min: 0
+        max: 32767
+      - name: brainfpv_osd_ahi_steps
+        field: ahi_steps
+        min: 0
+        max: 4
+      - name: brainfpv_altitude_scale
+        field: altitude_scale
+        type: bool
+      - name: brainfpv_speed_scale
+        field: speed_scale
+        type: bool
+      - name: brainfpv_sticks_display
+        field: sticks_display
+        type: bool
+      - name: brainfpv_show_logo_on_arm
+        field: show_logo_on_arm
+        type: bool
+      - name: brainfpv_show_pilot_logo
+        field: show_pilot_logo
+        type: bool
+      - name: brainfpv_osd_invert
+        field: invert
+        type: bool
+
