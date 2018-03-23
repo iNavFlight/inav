@@ -369,24 +369,18 @@ uint32_t hse_value = HSE_VALUE;
 /******************************************************************************/
 
 /************************* PLL Parameters *************************************/
-#if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx)
- /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N */
-#if defined(COLIBRI) || defined(KROOZX)
- #define PLL_M      16
-#elif defined(PIXRACER)
- #define PLL_M      24
+#if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx) || defined (STM32F446xx) || defined (STM32F410xx) || defined (STM32F411xE)
+    #if HSE_VALUE == 24000000
+        #define PLL_M   24
+    #elif HSE_VALUE == 16000000
+        #define PLL_M   16
+    #elif HSE_VALUE == 8000000
+        #define PLL_M   8
+    #else
+        #error Invalid HSE_VALUE
+    #endif
 #else
- #define PLL_M      8
-#endif
-#elif defined (STM32F446xx)
- #define PLL_M      8
-#elif defined (STM32F410xx) || defined (STM32F411xE)
- #if defined(USE_HSE_BYPASS)
-  #define PLL_M      8
- #else /* !USE_HSE_BYPASS */
-  #define PLL_M      8
- #endif /* USE_HSE_BYPASS */
-#else
+    #error Undefined CPU
 #endif /* STM32F40_41xxx || STM32F427_437xx || STM32F429_439xx || STM32F401xx || STM32F469_479xx */
 
 /* USB OTG FS, SDIO and RNG Clock =  PLL_VCO / PLLQ */

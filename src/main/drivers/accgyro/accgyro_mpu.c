@@ -45,48 +45,33 @@
 // Check busDevice scratchpad memory size
 STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
-/*
- * Gyro interrupt service routine
- */
-#if defined(USE_MPU_DATA_READY_SIGNAL) && defined(USE_EXTI)
-static void mpuIntExtiHandler(extiCallbackRec_t *cb)
+static const gyroFilterAndRateConfig_t mpuGyroConfigs[] = {
+    { GYRO_LPF_256HZ,   8000,   { MPU_DLPF_256HZ,   0  } },
+    { GYRO_LPF_256HZ,   4000,   { MPU_DLPF_256HZ,   1  } },
+    { GYRO_LPF_256HZ,   2000,   { MPU_DLPF_256HZ,   3  } },
+    { GYRO_LPF_256HZ,   1000,   { MPU_DLPF_256HZ,   7  } },
+    { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11  } },
+    { GYRO_LPF_256HZ,    500,   { MPU_DLPF_256HZ,   15 } },
+
+    { GYRO_LPF_188HZ,   1000,   { MPU_DLPF_188HZ,   0  } },
+    { GYRO_LPF_188HZ,    500,   { MPU_DLPF_188HZ,   1  } },
+
+    { GYRO_LPF_98HZ,    1000,   { MPU_DLPF_98HZ,    0  } },
+    { GYRO_LPF_98HZ,     500,   { MPU_DLPF_98HZ,    1  } },
+
+    { GYRO_LPF_42HZ,    1000,   { MPU_DLPF_42HZ,    0  } },
+    { GYRO_LPF_42HZ,     500,   { MPU_DLPF_42HZ,    1  } },
+
+    { GYRO_LPF_20HZ,    1000,   { MPU_DLPF_20HZ,    0  } },
+    { GYRO_LPF_20HZ,     500,   { MPU_DLPF_20HZ,    1  } },
+
+    { GYRO_LPF_10HZ,    1000,   { MPU_DLPF_10HZ,    0  } },
+    { GYRO_LPF_10HZ,     500,   { MPU_DLPF_10HZ,    1  } }
+};
+
+const gyroFilterAndRateConfig_t * mpuChooseGyroConfig(uint8_t desiredLpf, uint16_t desiredRateHz)
 {
-    gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
-    gyro->dataReady = true;
-    if (gyro->updateFn) {
-        gyro->updateFn(gyro);
-    }
-}
-#endif
-
-void mpuIntExtiInit(gyroDev_t *gyro)
-{
-    if (!gyro->busDev->irqPin) {
-        return;
-    }
-
-#if defined(USE_MPU_DATA_READY_SIGNAL) && defined(USE_EXTI)
-#ifdef ENSURE_MPU_DATA_READY_IS_LOW
-    uint8_t status = IORead(gyro->busDev->irqPin);
-    if (status) {
-        return;
-    }
-#endif
-
-#if defined (STM32F7)
-    IOInit(gyro->busDev->irqPin, OWNER_MPU, RESOURCE_EXTI, 0);
-
-    EXTIHandlerInit(&gyro->exti, mpuIntExtiHandler);
-    EXTIConfig(gyro->busDev->irqPin, &gyro->exti, NVIC_PRIO_MPU_INT_EXTI, IO_CONFIG(GPIO_MODE_INPUT,0,GPIO_NOPULL));   // TODO - maybe pullup / pulldown ?
-#else
-    IOInit(gyro->busDev->irqPin, OWNER_MPU, RESOURCE_EXTI, 0);
-    IOConfigGPIO(gyro->busDev->irqPin, IOCFG_IN_FLOATING);
-
-    EXTIHandlerInit(&gyro->exti, mpuIntExtiHandler);
-    EXTIConfig(gyro->busDev->irqPin, &gyro->exti, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Rising);
-    EXTIEnable(gyro->busDev->irqPin, true);
-#endif
-#endif
+    return chooseGyroConfig(desiredLpf, desiredRateHz, &mpuGyroConfigs[0], ARRAYLEN(mpuGyroConfigs));
 }
 
 bool mpuGyroRead(gyroDev_t *gyro)
@@ -103,18 +88,6 @@ bool mpuGyroRead(gyroDev_t *gyro)
     gyro->gyroADCRaw[Z] = (int16_t)((data[4] << 8) | data[5]);
 
     return true;
-}
-
-bool mpuCheckDataReady(gyroDev_t* gyro)
-{
-    bool ret;
-    if (gyro->dataReady) {
-        ret = true;
-        gyro->dataReady = false;
-    } else {
-        ret = false;
-    }
-    return ret;
 }
 
 static bool mpuUpdateSensorContext(busDevice_t * busDev, mpuContextData_t * ctx)

@@ -27,7 +27,7 @@
 
 // MPU6050 interrupts
 #define USE_EXTI
-#define MPU_INT_EXTI            PA15
+#define GYRO_INT_EXTI            PA15
 #define USE_MPU_DATA_READY_SIGNAL
 
 // MPU 9150 INT connected to PA15, pulled up to VCC by 10K Resistor, contains MPU6050 and AK8975 in single component.

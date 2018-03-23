@@ -19,6 +19,7 @@
 
 #include "drivers/exti.h"
 #include "drivers/sensor.h"
+#include "drivers/accgyro/accgyro.h"
 
 #define MPU_I2C_ADDRESS                 0x68
 
@@ -130,6 +131,13 @@
 // RF = Register Flag
 #define MPU_RF_DATA_RDY_EN (1 << 0)
 
+#define MPU_DLPF_10HZ           0x05
+#define MPU_DLPF_20HZ           0x04
+#define MPU_DLPF_42HZ           0x03
+#define MPU_DLPF_98HZ           0x02
+#define MPU_DLPF_188HZ          0x01
+#define MPU_DLPF_256HZ          0x00
+
 typedef struct mpuConfiguration_s {    
     uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
 } mpuConfiguration_t;
@@ -173,11 +181,9 @@ enum accel_fsr_e {
 
 struct gyroDev_s;
 struct accDev_s;
-void mpuIntExtiInit(struct gyroDev_s *gyro);
 
+const gyroFilterAndRateConfig_t * mpuChooseGyroConfig(uint8_t desiredLpf, uint16_t desiredRateHz);
 bool mpuGyroRead(struct gyroDev_s *gyro);
 bool mpuGyroReadScratchpad(struct gyroDev_s *gyro);
 bool mpuAccReadScratchpad(struct accDev_s *acc);
 bool mpuTemperatureReadScratchpad(struct gyroDev_s *gyro, int16_t * data);
-
-bool mpuCheckDataReady(struct gyroDev_s *gyro);

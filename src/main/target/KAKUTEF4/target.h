@@ -43,7 +43,7 @@
 #define INVERTER_PIN_UART3      PB15
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PC5
+#define GYRO_INT_EXTI            PC5
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define MPU6500_CS_PIN          PC4

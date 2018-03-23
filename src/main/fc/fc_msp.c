@@ -1004,7 +1004,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ADVANCED_CONFIG:
-        sbufWriteU8(dst, gyroConfig()->gyroSyncDenominator);
+        sbufWriteU8(dst, 1);    // gyroConfig()->gyroSyncDenominator
         sbufWriteU8(dst, 1);    // BF: masterConfig.pid_process_denom
         sbufWriteU8(dst, 1);    // BF: motorConfig()->useUnsyncedPwm
         sbufWriteU8(dst, motorConfig()->motorPwmProtocol);
@@ -1738,7 +1738,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_ADVANCED_CONFIG:
         if (dataSize >= 9) {
-            gyroConfigMutable()->gyroSyncDenominator = sbufReadU8(src);
+            sbufReadU8(src);    // gyroConfig()->gyroSyncDenominator
             sbufReadU8(src);    // BF: masterConfig.pid_process_denom
             sbufReadU8(src);    // BF: motorConfig()->useUnsyncedPwm
             motorConfigMutable()->motorPwmProtocol = sbufReadU8(src);

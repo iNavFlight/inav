@@ -168,6 +168,7 @@ timeDelta_t getGyroUpdateRate(void)
 {
     return gyro.targetLooptime;
 }
+
 uint16_t getAccUpdateRate(void)
 {
 #ifdef USE_ASYNC_GYRO_PROCESSING
