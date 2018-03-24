@@ -43,6 +43,7 @@
 #include "io/gps.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_fw_launch.h"
 
 #include "rx/rx.h"
 
@@ -271,7 +272,12 @@ static float calculateFixedWingTPAFactor(void)
     // tpa_rate is amount of curve TPA applied to PIDs
     // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
     if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > motorConfig()->minthrottle) {
-        if (rcCommand[THROTTLE] > motorConfig()->minthrottle) {
+#ifdef USE_NAV
+        if (((!isNavLaunchEnabled()) || isFixedWingLaunchFinishedOrAborted()) && (rcCommand[THROTTLE] > motorConfig()->minthrottle))
+#else
+        if (rcCommand[THROTTLE] > motorConfig()->minthrottle)
+#endif
+        {
             // Calculate TPA according to throttle
             tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - motorConfig()->minthrottle) / (rcCommand[THROTTLE] - motorConfig()->minthrottle) / 2.0f);
 
