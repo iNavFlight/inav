@@ -28,17 +28,24 @@
 
 #include "sound_beeper.h"
 
+#ifdef USE_BRAINFPV_FPGA
+#include "fpga_drv.h"
+#endif
 
 #ifdef BEEPER
 
+#ifndef USE_BRAINFPV_FPGA
 static IO_t beeperIO = DEFIO_IO(NONE);
 static bool beeperInverted = false;
+#endif
+
 static bool beeperState = false;
 
 #endif
 
 void systemBeep(bool onoff)
 {
+#ifndef USE_BRAINFPV_FPGA
 #if !defined(BEEPER)
     UNUSED(onoff);
 #elif defined(BEEPER_PWM)
@@ -46,6 +53,10 @@ void systemBeep(bool onoff)
     beeperState = onoff;
 #else
     IOWrite(beeperIO, beeperInverted ? onoff : !onoff);
+    beeperState = onoff;
+#endif
+#else
+    BRAINFPVFPGA_Buzzer(onoff);
     beeperState = onoff;
 #endif
 }
@@ -59,7 +70,7 @@ void systemBeepToggle(void)
 
 void beeperInit(const beeperDevConfig_t *config)
 {
-#if !defined(BEEPER)
+#if !defined(BEEPER) || defined(USE_BRAINFPV_FPGA)
     UNUSED(config);
 #else
     beeperIO = IOGetByTag(config->ioTag);
