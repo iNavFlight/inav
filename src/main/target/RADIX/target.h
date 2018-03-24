@@ -33,7 +33,7 @@
 #define LED0_INVERTED
 
 #define BEEPER                  NONE
-#define USE_LED_STRIP_XXX
+#define USE_LED_STRIP
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
