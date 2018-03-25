@@ -613,6 +613,10 @@ groups:
         field: throttle.pa_breakpoint
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
+      - name: fw_tpa_time_constant
+        field: throttle.fixedWingTauMs
+        min: 0
+        max: 5000
       - name: rc_expo
         field: stabilized.rcExpo8
         min: 0
