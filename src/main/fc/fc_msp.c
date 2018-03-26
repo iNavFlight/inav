@@ -1390,7 +1390,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_ARMING_CONFIG:
         if (dataSize >= 2) {
             armingConfigMutable()->auto_disarm_delay = constrain(sbufReadU8(src), AUTO_DISARM_DELAY_MIN, AUTO_DISARM_DELAY_MAX);
-            armingConfigMutable()->disarm_kill_switch = ~~sbufReadU8(src);
+            armingConfigMutable()->disarm_kill_switch = !!sbufReadU8(src);
         } else
             return MSP_RESULT_ERROR;
         break;
