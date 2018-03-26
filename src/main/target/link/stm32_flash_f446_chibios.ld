@@ -12,6 +12,10 @@
 /* Entry Point */
 ENTRY(ResetHandler)
 
+/* Stack & Heap sizes */
+_Min_Heap_Size = 0;
+_Min_Stack_Size = 0x1800;
+
 __main_stack_size__     = 0x0F00;
 __process_stack_size__  = 0x0400;
 
@@ -50,5 +54,6 @@ REGION_ALIAS("BSS_RAM", RAM);
 REGION_ALIAS("HEAP_RAM", RAM);
 
 REGION_ALIAS("STACKRAM", RAM)
+REGION_ALIAS("FASTRAM", RAM)
 
 INCLUDE "stm32F446xx_chibios_sections.ld"

@@ -209,6 +209,15 @@ SECTIONS
         _bss_end = .;
         PROVIDE(end = .);
     } > BSS_RAM
+    
+    .fastram_bss (NOLOAD) :
+  	{
+    	__fastram_bss_start__ = .;
+    	*(.fastram_bss)
+    	*(SORT_BY_ALIGNMENT(.fastram_bss*))
+    	. = ALIGN(4);
+    	__fastram_bss_end__ = .;
+ 	} > FASTRAM
 
     .ram0_init : ALIGN(4)
     {
