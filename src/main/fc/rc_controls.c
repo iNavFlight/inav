@@ -122,7 +122,7 @@ stickPositions_e getRcStickPositions(void)
 
 bool checkStickPosition(stickPositions_e stickPos)
 {
-    const uint8_t mask[4] = { 0x03, 0x0C, 0x30, 0xC0 };
+    const uint8_t mask[4] = { ROL_LO | ROL_HI, PIT_LO | PIT_HI, YAW_LO | YAW_HI, THR_LO | THR_HI };
     for (int i = 0; i < 4; i++) {
         if (((stickPos & mask[i]) != 0) && ((stickPos & mask[i]) != (rcStickPositions & mask[i]))) {
             return false;
