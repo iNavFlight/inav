@@ -140,7 +140,7 @@ typedef struct osd_sidebar_s {
     uint8_t idle;
 } osd_sidebar_t;
 
-uint32_t resumeRefreshAt = 0;
+timeUs_t resumeRefreshAt = 0;
 #define REFRESH_1S    (1000*1000)
 
 static bool fullRedraw = false;
