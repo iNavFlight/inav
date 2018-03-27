@@ -19,13 +19,7 @@
 
 #include "drivers/io_types.h"
 
-#if defined(USE_QUAD_MIXER_ONLY)
-#define MAX_PWM_MOTORS  4
-#define MAX_PWM_SERVOS  1
-#define MAX_MOTORS  4
-#define MAX_SERVOS  1
-
-#elif defined(TARGET_MOTOR_COUNT)
+#if defined(TARGET_MOTOR_COUNT)
 #define MAX_PWM_MOTORS TARGET_MOTOR_COUNT
 #define MAX_PWM_SERVOS 8
 #define MAX_MOTORS  TARGET_MOTOR_COUNT

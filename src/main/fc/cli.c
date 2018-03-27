@@ -142,7 +142,6 @@ static void cliBootlog(char *cmdline);
 
 static const char* const emptyName = "-";
 
-#ifndef USE_QUAD_MIXER_ONLY
 // sync this with mixerMode_e
 static const char * const mixerNames[] = {
     "TRI", "QUADP", "QUADX", "BI",
@@ -152,7 +151,6 @@ static const char * const mixerNames[] = {
     "HEX6H", "PPM_TO_SERVO", "DUALCOPTER", "SINGLECOPTER",
     "ATAIL4", "CUSTOM", "CUSTOMAIRPLANE", "CUSTOMTRI", NULL
 };
-#endif
 
 // sync this with features_e
 static const char * const featureNames[] = {
@@ -964,7 +962,6 @@ static void cliAdjustmentRange(char *cmdline)
     }
 }
 
-#ifndef USE_QUAD_MIXER_ONLY
 static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer, const motorMixer_t *defaultCustomMotorMixer)
 {
     const char *format = "mmix %d %s %s %s %s";
@@ -1067,7 +1064,6 @@ static void cliMotorMix(char *cmdline)
         }
     }
 }
-#endif // USE_QUAD_MIXER_ONLY
 
 static void printRxRange(uint8_t dumpMask, const rxChannelRangeConfig_t *channelRangeConfigs, const rxChannelRangeConfig_t *defaultChannelRangeConfigs)
 {
@@ -2007,7 +2003,6 @@ static void cliGpsPassthrough(char *cmdline)
 }
 #endif
 
-#ifndef USE_QUAD_MIXER_ONLY
 static void cliMixer(char *cmdline)
 {
     int len;
@@ -2041,7 +2036,6 @@ static void cliMixer(char *cmdline)
 
     cliMixer("");
 }
-#endif
 
 static void cliMotor(char *cmdline)
 {
@@ -2571,7 +2565,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
-#ifndef USE_QUAD_MIXER_ONLY
         cliPrintHashLine("mixer");
         const bool equalsDefault = mixerConfig_Copy.mixerMode == mixerConfig()->mixerMode;
         const char *formatMixer = "mixer %s";
@@ -2591,7 +2584,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         // print servo parameters
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
-#endif
 #endif
 
         cliPrintHashLine("feature");
@@ -2743,12 +2735,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
-#ifndef USE_QUAD_MIXER_ONLY
     CLI_COMMAND_DEF("mixer", "configure mixer",
         "list\r\n"
         "\t<name>", cliMixer),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
-#endif
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
     CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),
 #ifdef PLAY_SOUND

@@ -112,7 +112,6 @@ static const motorMixer_t mixerQuadX[] = {
 #define DEF_MIXER(_mixerMode, _motorCount, _useServos, _motorMap) \
     { .mixerMode=_mixerMode, .motorCount=_motorCount, .useServos=_useServos, .motor=_motorMap }
 
-#ifndef USE_QUAD_MIXER_ONLY
 static const motorMixer_t mixerTricopter[] = {
     { 1.0f,  0.0f,  1.333333f,  0.0f },     // REAR
     { 1.0f, -1.0f, -0.666667f,  0.0f },     // RIGHT
@@ -276,21 +275,13 @@ static const mixer_t mixerTable[] = {
 #endif
 #endif
 };
-#else
-static const mixer_t quadMixerDescriptor = DEF_MIXER( MIXER_QUADX, 4, false, mixerQuadX);
-#endif // USE_QUAD_MIXER_ONLY
 
 const mixer_t * findMixer(mixerMode_e mixerMode)
 {
-#ifndef USE_QUAD_MIXER_ONLY
     for (unsigned ii = 0; ii < sizeof(mixerTable)/sizeof(mixerTable[0]); ii++) {
         if (mixerTable[ii].mixerMode == mixerMode)
             return &mixerTable[ii];
     }
-#else
-    if (mixerMode == MIXER_QUADX)
-        return &quadMixerDescriptor;
-#endif
 
     return NULL;
 }
@@ -307,13 +298,8 @@ bool mixerIsOutputSaturated(void)
 
 bool isMixerEnabled(mixerMode_e mixerMode)
 {
-#ifdef USE_QUAD_MIXER_ONLY
-    UNUSED(mixerMode);
-    return true;
-#else
     const mixer_t * mixer = findMixer(mixerMode);
     return (mixer != NULL) ? true : false;
-#endif
 }
 
 #ifdef USE_SERVOS
@@ -388,8 +374,6 @@ void mixerUsePWMIOConfiguration(void)
 }
 #endif
 
-
-#ifndef USE_QUAD_MIXER_ONLY
 void mixerLoadMix(int index, motorMixer_t *customMixers)
 {
     // we're 1-based
@@ -407,8 +391,6 @@ void mixerLoadMix(int index, motorMixer_t *customMixers)
         }
     }
 }
-
-#endif
 
 void mixerResetDisarmedMotors(void)
 {

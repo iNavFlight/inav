@@ -2175,7 +2175,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
-#ifndef USE_QUAD_MIXER_ONLY
     case MSP_SET_MIXER:
         if (dataSize >= 1) {
             mixerConfigMutable()->mixerMode = sbufReadU8(src);
@@ -2183,7 +2182,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-#endif
 
     case MSP_SET_RX_CONFIG:
         if (dataSize >= 24) {
@@ -2244,12 +2242,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_BF_CONFIG:
         if (dataSize >= 16) {
-#ifdef USE_QUAD_MIXER_ONLY
-            sbufReadU8(src); // mixerMode ignored
-#else
             mixerConfigMutable()->mixerMode = sbufReadU8(src); // mixerMode
             mixerUpdateStateFlags();    // Required for correct preset functionality
-#endif
 
             featureClearAll();
             featureSet(sbufReadU32(src)); // features bitmap

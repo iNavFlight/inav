@@ -19,9 +19,7 @@
 
 #include "config/parameter_group.h"
 
-#if defined(USE_QUAD_MIXER_ONLY)
-#define MAX_SUPPORTED_MOTORS 4
-#elif defined(TARGET_MOTOR_COUNT)
+#if defined(TARGET_MOTOR_COUNT)
 #define MAX_SUPPORTED_MOTORS TARGET_MOTOR_COUNT
 #else
 #define MAX_SUPPORTED_MOTORS 12
