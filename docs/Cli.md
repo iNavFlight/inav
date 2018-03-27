@@ -397,6 +397,7 @@ Re-apply any new defaults as desired.
 |  manual_yaw_rate  | 100 | Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]% |
 |  tpa_rate  | 0 | Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. |
 |  tpa_breakpoint  | 1500 | See tpa_rate. |
+|  fw_tpa_time_constant  | 0 | TPA smoothing and delay time constant to reflect non-instant speed/throttle response of the plane. Planes with low thrust/weight ratio generally need higher time constant. Default is zero for compatibility with old setups |
 |  fw_autotune_overshoot_time  | 100 | Time [ms] to detect sustained overshoot |
 |  fw_autotune_undershoot_time | 200 | Time [ms] to detect sustained undershoot |
 |  fw_autotune_threshold       | 50  | Threshold [%] of max rate to consider overshoot/undershoot detection |
