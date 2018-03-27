@@ -296,12 +296,6 @@ bool mixerIsOutputSaturated(void)
     return motorLimitReached;
 }
 
-bool isMixerEnabled(mixerMode_e mixerMode)
-{
-    const mixer_t * mixer = findMixer(mixerMode);
-    return (mixer != NULL) ? true : false;
-}
-
 void mixerUpdateStateFlags(void)
 {
     // set flag that we're on something with wings
@@ -328,27 +322,16 @@ void mixerUsePWMIOConfiguration(void)
     motorCount = 0;
 
     const mixerMode_e currentMixerMode = mixerConfig()->mixerMode;
-    const mixer_t * mixer = findMixer(mixerConfig()->mixerMode);
 
-    if (currentMixerMode == MIXER_CUSTOM || currentMixerMode == MIXER_CUSTOM_TRI || currentMixerMode == MIXER_CUSTOM_AIRPLANE) {
-        // load custom mixer into currentMixer
-        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            // check if done
-            if (customMotorMixer(i)->throttle == 0.0f)
-                break;
-            currentMixer[i] = *customMotorMixer(i);
-            motorCount++;
-        }
-    } else {
-        motorCount = MIN(mixer->motorCount, pwmGetOutputConfiguration()->motorCount);
-        // copy motor-based mixer
-        if (mixer->motor) {
-            for (int i = 0; i < motorCount; i++) {
-                currentMixer[i] = mixer->motor[i];
-            }
-        }
+    // load custom mixer into currentMixer
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        // check if done
+        if (customMotorMixer(i)->throttle == 0.0f)
+            break;
+        currentMixer[i] = *customMotorMixer(i);
+        motorCount++;
     }
-
+    
     // in 3D mode, mixer gain has to be halved
     if (feature(FEATURE_3D)) {
         if (motorCount > 1) {

@@ -354,11 +354,6 @@ void validateAndFixConfig(void)
         pgResetCopy(serialConfigMutable(), PG_SERIAL_CONFIG);
     }
 
-    // If provided predefined mixer setup is disabled, fallback to default one
-    if (!isMixerEnabled(mixerConfig()->mixerMode)) {
-        mixerConfigMutable()->mixerMode = DEFAULT_MIXER;
-    }
-
 #if defined(USE_NAV)
     // Ensure sane values of navConfig settings
     validateNavConfig();

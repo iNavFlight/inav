@@ -132,5 +132,3 @@ void processServoTilt(void);
 void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
-
-bool isMixerEnabled(mixerMode_e mixerMode);
