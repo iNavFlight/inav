@@ -290,7 +290,7 @@ void init(void)
 #endif
 
     // when using airplane/wing mixer, servo/motor outputs are remapped
-    pwm_params.flyingPlatformType = getFlyingPlatformType();
+    pwm_params.flyingPlatformType = mixerConfig()->platformType;
 
 #if defined(USE_UART2) && defined(STM32F10X)
     pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);

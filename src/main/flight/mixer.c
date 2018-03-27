@@ -68,13 +68,14 @@ PG_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig,
     .neutral3d = 1460
 );
 
-
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .mixerMode = MIXER_QUADX,
     .yaw_motor_direction = 1,
-    .yaw_jump_prevention_limit = 200
+    .yaw_jump_prevention_limit = 200,
+    .platformType = PLATFORM_MULTIROTOR,
+    .hasFlaps = false
 );
 
 #ifdef BRUSHED_MOTORS
@@ -108,8 +109,8 @@ static const motorMixer_t mixerQuadX[] = {
     { 1.0f,  1.0f, -1.0f, -1.0f },          // FRONT_L
 };
 
-#define DEF_MIXER(_mixerMode, _flyingPlatformType, _motorCount, _useServos, _hasFlaps, _motorMap) \
-    { .mixerMode=_mixerMode, .flyingPlatformType=_flyingPlatformType, .motorCount=_motorCount, .useServos=_useServos, .hasFlaps=_hasFlaps, .motor=_motorMap }
+#define DEF_MIXER(_mixerMode, _motorCount, _useServos, _motorMap) \
+    { .mixerMode=_mixerMode, .motorCount=_motorCount, .useServos=_useServos, .motor=_motorMap }
 
 #ifndef USE_QUAD_MIXER_ONLY
 static const motorMixer_t mixerTricopter[] = {
@@ -230,53 +231,53 @@ static const motorMixer_t mixerDualProp[] = {
 
 static const mixer_t mixerTable[] = {
     // motors, use servo, motor mixer
-    //         mixerMode                flyingPlatformType   motorCount  useServos   hasFlaps    motorMap
-    DEF_MIXER( MIXER_TRI,               PLATFORM_MULTIROTOR, 3,          true,       false,      mixerTricopter ),
-    DEF_MIXER( MIXER_CUSTOM_TRI,        PLATFORM_MULTIROTOR, 3,          false,      false,      NULL ),
+    //         mixerMode                motorCount  useServos   motorMap
+    DEF_MIXER( MIXER_TRI,               3,          true,       mixerTricopter ),
+    DEF_MIXER( MIXER_CUSTOM_TRI,        3,          false,      NULL ),
 
-    DEF_MIXER( MIXER_QUADP,             PLATFORM_MULTIROTOR, 4,          false,      false,      mixerQuadP ),
-    DEF_MIXER( MIXER_QUADX,             PLATFORM_MULTIROTOR, 4,          false,      false,      mixerQuadX ),
+    DEF_MIXER( MIXER_QUADP,             4,          false,      mixerQuadP ),
+    DEF_MIXER( MIXER_QUADX,             4,          false,      mixerQuadX ),
 
 #if (MAX_SUPPORTED_MOTORS >= 6)
-    DEF_MIXER( MIXER_HEX6X,             PLATFORM_MULTIROTOR, 6,          false,      false,      mixerHex6X ),
+    DEF_MIXER( MIXER_HEX6X,             6,          false,      mixerHex6X ),
 #endif
 
-    DEF_MIXER( MIXER_CUSTOM,            PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
+    DEF_MIXER( MIXER_CUSTOM,            0,          false,      NULL ),
 
-    //DEF_MIXER( MIXER_BICOPTER,          PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
-    //DEF_MIXER( MIXER_GIMBAL,            PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
+    //DEF_MIXER( MIXER_BICOPTER,          0,          false,      NULL ),
+    //DEF_MIXER( MIXER_GIMBAL,            0,          false,      NULL ),
 
-    DEF_MIXER( MIXER_FLYING_WING,       PLATFORM_AIRPLANE,   2,          true,       false,      mixerDualProp ),
-    DEF_MIXER( MIXER_AIRPLANE,          PLATFORM_AIRPLANE,   2,          true,       true,       mixerDualProp ),
-    DEF_MIXER( MIXER_CUSTOM_AIRPLANE,   PLATFORM_AIRPLANE,   2,          true,       true,       NULL ),
+    DEF_MIXER( MIXER_FLYING_WING,       2,          true,       mixerDualProp ),
+    DEF_MIXER( MIXER_AIRPLANE,          2,          true,       mixerDualProp ),
+    DEF_MIXER( MIXER_CUSTOM_AIRPLANE,   2,          true,       NULL ),
 
-    //DEF_MIXER( MIXER_HELI_120_CCPM,     PLATFORM_HELICOPTER, 1,          true,       false,      NULL ),
-    //DEF_MIXER( MIXER_HELI_90_DEG,       PLATFORM_HELICOPTER, 1,          true,       false,      NULL ),
+    //DEF_MIXER( MIXER_HELI_120_CCPM,     1,          true,       NULL ),
+    //DEF_MIXER( MIXER_HELI_90_DEG,       1,          true,       NULL ),
 
-    //DEF_MIXER( MIXER_PPM_TO_SERVO,      PLATFORM_MULTIROTOR, 0,          true,       false,      NULL ),
-    //DEF_MIXER( MIXER_DUALCOPTER,        PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
-    //DEF_MIXER( MIXER_SINGLECOPTER,      PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
+    //DEF_MIXER( MIXER_PPM_TO_SERVO,      0,          true,       NULL ),
+    //DEF_MIXER( MIXER_DUALCOPTER,        0,          false,      NULL ),
+    //DEF_MIXER( MIXER_SINGLECOPTER,      0,          false,      NULL ),
 
 #if !defined(DISABLE_UNCOMMON_MIXERS)
-    DEF_MIXER( MIXER_Y4,                PLATFORM_MULTIROTOR, 4,          false,      false,      mixerY4 ),
-    DEF_MIXER( MIXER_ATAIL4,            PLATFORM_MULTIROTOR, 4,          false,      false,      mixerAtail4 ),
-    DEF_MIXER( MIXER_VTAIL4,            PLATFORM_MULTIROTOR, 4,          false,      false,      mixerVtail4 ),
+    DEF_MIXER( MIXER_Y4,                4,          false,      mixerY4 ),
+    DEF_MIXER( MIXER_ATAIL4,            4,          false,      mixerAtail4 ),
+    DEF_MIXER( MIXER_VTAIL4,            4,          false,      mixerVtail4 ),
 
 #if (MAX_SUPPORTED_MOTORS >= 6)
-    DEF_MIXER( MIXER_Y6,                PLATFORM_MULTIROTOR, 6,          false,      false,      mixerY6 ),
-    DEF_MIXER( MIXER_HEX6,              PLATFORM_MULTIROTOR, 6,          false,      false,      mixerHex6P ),
-    DEF_MIXER( MIXER_HEX6H,             PLATFORM_MULTIROTOR, 6,          false,      false,      mixerHex6H ),
+    DEF_MIXER( MIXER_Y6,                6,          false,      mixerY6 ),
+    DEF_MIXER( MIXER_HEX6,              6,          false,      mixerHex6P ),
+    DEF_MIXER( MIXER_HEX6H,             6,          false,      mixerHex6H ),
 #endif
 
 #if (MAX_SUPPORTED_MOTORS >= 8)
-    DEF_MIXER( MIXER_OCTOX8,            PLATFORM_MULTIROTOR, 8,          false,      false,      mixerOctoX8 ),
-    DEF_MIXER( MIXER_OCTOFLATP,         PLATFORM_MULTIROTOR, 8,          false,      false,      mixerOctoFlatP ),
-    DEF_MIXER( MIXER_OCTOFLATX,         PLATFORM_MULTIROTOR, 8,          false,      false,      mixerOctoFlatX ),
+    DEF_MIXER( MIXER_OCTOX8,            8,          false,      mixerOctoX8 ),
+    DEF_MIXER( MIXER_OCTOFLATP,         8,          false,      mixerOctoFlatP ),
+    DEF_MIXER( MIXER_OCTOFLATX,         8,          false,      mixerOctoFlatX ),
 #endif
 #endif
 };
 #else
-static const mixer_t quadMixerDescriptor = DEF_MIXER( MIXER_QUADX,             PLATFORM_MULTIROTOR, 4,          false,      false,      mixerQuadX );
+static const mixer_t quadMixerDescriptor = DEF_MIXER( MIXER_QUADX, 4, false, mixerQuadX);
 #endif // USE_QUAD_MIXER_ONLY
 
 const mixer_t * findMixer(mixerMode_e mixerMode)
@@ -315,26 +316,14 @@ bool isMixerEnabled(mixerMode_e mixerMode)
 #endif
 }
 
-int getFlyingPlatformType(void)
-{
-    const mixer_t * mixer = findMixer(mixerConfig()->mixerMode);
-
-    if (mixer)
-        return mixer->flyingPlatformType;
-    else
-        return PLATFORM_MULTIROTOR; // safe default
-}
-
 #ifdef USE_SERVOS
 void mixerUpdateStateFlags(void)
 {
-    const mixer_t * mixer = findMixer(mixerConfig()->mixerMode);
-
     // set flag that we're on something with wings
-    if (mixer->flyingPlatformType == PLATFORM_AIRPLANE) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         ENABLE_STATE(FIXED_WING);
         DISABLE_STATE(HELICOPTER);
-    } else if (mixer->flyingPlatformType == PLATFORM_HELICOPTER) {
+    } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         DISABLE_STATE(FIXED_WING);
         ENABLE_STATE(HELICOPTER);
     } else {
@@ -342,7 +331,7 @@ void mixerUpdateStateFlags(void)
         DISABLE_STATE(HELICOPTER);
     }
 
-    if (mixer->hasFlaps) {
+    if (mixerConfig()->hasFlaps) {
         ENABLE_STATE(FLAPERON_AVAILABLE);
     } else {
         DISABLE_STATE(FLAPERON_AVAILABLE);

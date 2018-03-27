@@ -82,16 +82,16 @@ PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
 typedef struct mixer_s {
     mixerMode_e mixerMode;
     const motorMixer_t *motor;
-    uint8_t flyingPlatformType;     // MC, FW or HELI
     uint8_t motorCount;
     bool useServos;
-    bool hasFlaps;
 } mixer_t;
 
 typedef struct mixerConfig_s {
     uint8_t mixerMode;
     int8_t yaw_motor_direction;
     uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
+    uint8_t platformType;
+    bool hasFlaps;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
@@ -134,7 +134,5 @@ void processServoTilt(void);
 void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
-
-int getFlyingPlatformType(void);
 
 bool isMixerEnabled(mixerMode_e mixerMode);

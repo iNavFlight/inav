@@ -90,6 +90,9 @@ tables:
   - name: smartport_fuel_unit
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
+  - name: platform_type
+    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER"]
+    enum: flyingPlatformType_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -552,6 +555,13 @@ groups:
       - name: yaw_jump_prevention_limit
         min: YAW_JUMP_PREVENTION_LIMIT_LOW
         max: YAW_JUMP_PREVENTION_LIMIT_HIGH
+      - name: platform_type
+        field: platformType
+        type: uint8_t
+        table: platform_type
+      - name: has_flaps
+        field: hasFlaps
+        type: bool
 
   - name: PG_MOTOR_3D_CONFIG
     type: flight3DConfig_t
