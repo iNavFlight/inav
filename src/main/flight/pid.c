@@ -231,7 +231,7 @@ bool pidInitFilters(void)
 
 void pidResetTPAFilter(void)
 {
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING) && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
         pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getPidUpdateRate() * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, motorConfig()->minthrottle);
     }
@@ -329,7 +329,7 @@ void updatePIDCoefficients(void)
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
     // Check if throttle changed. Different logic for fixed wing vs multirotor
-    if (STATE(FIXED_WING)) {
+    if (STATE(FIXED_WING) && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
         uint16_t filteredThrottle = pt1FilterApply3(&fixedWingTpaFilter, rcCommand[THROTTLE], dT);
         if (filteredThrottle != prevThrottle) {
             prevThrottle = filteredThrottle;
