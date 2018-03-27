@@ -44,7 +44,7 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
                 .rcExpo8 = 0,
                 .dynPID = 0,
                 .pa_breakpoint = 1500,
-                .fixedWingTauMs = 1000
+                .fixedWingTauMs = 0
             },
 
             .stabilized = {
