@@ -76,14 +76,6 @@ typedef struct motorMixer_s {
 
 PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
 
-// Custom mixer configuration
-typedef struct mixer_s {
-    mixerMode_e mixerMode;
-    const motorMixer_t *motor;
-    uint8_t motorCount;
-    bool useServos;
-} mixer_t;
-
 typedef struct mixerConfig_s {
     uint8_t mixerMode;
     int8_t yaw_motor_direction;
@@ -122,7 +114,6 @@ uint8_t getMotorCount(void);
 bool mixerIsOutputSaturated(void);
 
 void writeAllMotors(int16_t mc);
-void mixerLoadMix(int index, motorMixer_t *customMixers);
 void mixerUsePWMIOConfiguration(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);

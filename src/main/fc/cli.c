@@ -1003,7 +1003,6 @@ static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer
 static void cliMotorMix(char *cmdline)
 {
     int check = 0;
-    uint8_t len;
     const char *ptr;
 
     if (isEmpty(cmdline)) {
@@ -1012,23 +1011,6 @@ static void cliMotorMix(char *cmdline)
         // erase custom mixer
         for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             customMotorMixerMutable(i)->throttle = 0.0f;
-        }
-    } else if (sl_strncasecmp(cmdline, "load", 4) == 0) {
-        ptr = nextArg(cmdline);
-        if (ptr) {
-            len = strlen(ptr);
-            for (uint32_t i = 0; ; i++) {
-                if (mixerNames[i] == NULL) {
-                    cliPrintLine("Invalid name");
-                    break;
-                }
-                if (sl_strncasecmp(ptr, mixerNames[i], len) == 0) {
-                    mixerLoadMix(i, customMotorMixerMutable(0));
-                    cliPrintLinef("Loaded %s", mixerNames[i]);
-                    cliMotorMix("");
-                    break;
-                }
-            }
         }
     } else {
         ptr = cmdline;
@@ -1440,23 +1422,6 @@ static void cliServoMix(char *cmdline)
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
         for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
             servoParamsMutable(i)->reversedSources = 0;
-        }
-    } else if (sl_strncasecmp(cmdline, "load", 4) == 0) {
-        const char *ptr = nextArg(cmdline);
-        if (ptr) {
-            len = strlen(ptr);
-            for (uint32_t i = 0; ; i++) {
-                if (mixerNames[i] == NULL) {
-                    cliPrintLine("Invalid name");
-                    break;
-                }
-                if (sl_strncasecmp(ptr, mixerNames[i], len) == 0) {
-                    servoMixerLoadMix(i);
-                    cliPrintLinef("Loaded %s", mixerNames[i]);
-                    cliServoMix("");
-                    break;
-                }
-            }
         }
     } else if (sl_strncasecmp(cmdline, "reverse", 7) == 0) {
         enum {SERVO = 0, INPUT, REVERSE, ARGS_COUNT};
