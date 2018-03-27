@@ -99,6 +99,12 @@
 #define METERS_PER_KILOMETER                    1000
 #define METERS_PER_MILE                         1609
 
+#define DELAYED_REFRESH_RESUME_COMMAND (checkStickPosition(THR_HI) || checkStickPosition(PIT_HI))
+
+#define SPLASH_SCREEN_DISPLAY_TIME 4000 // ms
+#define ARMED_SCREEN_DISPLAY_TIME 1500 // ms
+#define STATS_SCREEN_DISPLAY_TIME 60000 // ms
+
 #define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
 
 // Adjust OSD_MESSAGE's default position when
@@ -140,8 +146,8 @@ typedef struct osd_sidebar_s {
     uint8_t idle;
 } osd_sidebar_t;
 
-timeUs_t resumeRefreshAt = 0;
-#define REFRESH_1S    (1000*1000)
+static timeUs_t resumeRefreshAt = 0;
+static bool refreshWaitForResumeCmdRelease;
 
 static bool fullRedraw = false;
 
@@ -1677,6 +1683,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->main_voltage_decimals = 1;
 }
 
+static void osdSetNextRefreshIn(uint32_t timeMs) {
+    resumeRefreshAt = micros() + timeMs * 1000;
+    refreshWaitForResumeCmdRelease = true;
+}
+
 void osdInit(displayPort_t *osdDisplayPortToUse)
 {
     if (!osdDisplayPortToUse)
@@ -1720,8 +1731,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 #endif
 
     displayResync(osdDisplayPort);
-
-    resumeRefreshAt = micros() + (4 * REFRESH_1S);
+    osdSetNextRefreshIn(SPLASH_SCREEN_DISPLAY_TIME);
 }
 
 static void osdResetStats(void)
@@ -1901,10 +1911,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
             osdShowArmed(); // reset statistic etc
-            resumeRefreshAt = currentTimeUs + (3 * REFRESH_1S / 2);
+            osdSetNextRefreshIn(ARMED_SCREEN_DISPLAY_TIME);
         } else {
             osdShowStats(); // show statistic
-            resumeRefreshAt = currentTimeUs + (60 * REFRESH_1S);
+            osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
         }
 
         armState = ARMING_FLAG(ARMED);
@@ -1922,10 +1932,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
         // or THR is high or PITCH is high, resume refreshing.
         // Clear the screen first to erase other elements which
         // might have been drawn while the OSD wasn't refreshing.
-        if (currentTimeUs > resumeRefreshAt ||
-            checkStickPosition(THR_HI) ||
-            checkStickPosition(PIT_HI)) {
 
+        if (!DELAYED_REFRESH_RESUME_COMMAND)
+            refreshWaitForResumeCmdRelease = false;
+
+        if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && DELAYED_REFRESH_RESUME_COMMAND)) {
             displayClearScreen(osdDisplayPort);
             resumeRefreshAt = 0;
         } else {
