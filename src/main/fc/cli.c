@@ -1267,7 +1267,6 @@ static void cliModeColor(char *cmdline)
 }
 #endif
 
-#ifdef USE_SERVOS
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
 {
     // print out servo settings
@@ -1530,7 +1529,6 @@ static void cliServoMix(char *cmdline)
         }
     }
 }
-#endif // USE_SERVOS
 
 #ifdef USE_SDCARD
 
@@ -2575,7 +2573,6 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         printMotorMix(dumpMask, customMotorMixer_CopyArray, customMotorMixer(0));
 
-#ifdef USE_SERVOS
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
         cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
@@ -2584,7 +2581,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         // print servo parameters
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
-#endif
 
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
@@ -2755,17 +2751,13 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_SERIAL_PASSTHROUGH
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] : passthrough to serial", cliSerialPassthrough),
 #endif
-#ifdef USE_SERVOS
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
-#endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
-#ifdef USE_SERVOS
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed>\r\n"
         "\treset\r\n"
         "\tload <mixer>\r\n"
         "\treverse <servo> <source> r|n", cliServoMix),
-#endif
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif

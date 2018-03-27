@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-#ifdef USE_SERVOS
-
 #include "build/debug.h"
 #include "build/build_config.h"
 
@@ -569,4 +567,3 @@ bool isMixerUsingServos(void)
 {
     return mixerUsesServos;
 }
-#endif

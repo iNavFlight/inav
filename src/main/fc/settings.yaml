@@ -487,7 +487,6 @@ groups:
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
     headers: ["io/gimbal.h"]
-    condition: USE_SERVOS
     members:
       - name: gimbal_mode
         field: mode
@@ -582,7 +581,6 @@ groups:
   - name: PG_SERVO_CONFIG
     type: servoConfig_t
     headers: ["flight/servos.h"]
-    condition: USE_SERVOS
     members:
       - name: servo_center_pulse
         field: servoCenterPulse
@@ -880,17 +878,14 @@ groups:
         max: 2
       - name: fw_iterm_throw_limit
         field: fixedWingItermThrowLimit
-        condition: USE_SERVOS
         min: FW_ITERM_THROW_LIMIT_MIN
         max: FW_ITERM_THROW_LIMIT_MAX
       - name: fw_reference_airspeed
         field: fixedWingReferenceAirspeed
-        condition: USE_SERVOS
         min: 1
         max: 5000
       - name: fw_turn_assist_yaw_gain
         field: fixedWingCoordinatedYawGain
-        condition: USE_SERVOS
         min: 0
         max: 2
       - name: dterm_notch_hz

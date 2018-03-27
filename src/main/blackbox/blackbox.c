@@ -1176,10 +1176,8 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->rssi = getRSSI();
 
-#ifdef USE_SERVOS
     //Tail servo for tricopters
     blackboxCurrent->servo[5] = servo[5];
-#endif
 
 #ifdef NAV_BLACKBOX
     blackboxCurrent->navState = navCurrentState;

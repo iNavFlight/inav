@@ -21,7 +21,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_SERVOS
 #define USE_CLI
 
 #define USE_RX_PWM

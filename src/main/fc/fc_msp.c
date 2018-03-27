@@ -439,7 +439,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#ifdef USE_SERVOS
     case MSP_SERVO:
         sbufWriteData(dst, &servo, MAX_SUPPORTED_SERVOS * 2);
         break;
@@ -466,8 +465,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
         }
         break;
-#endif
-
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             sbufWriteU16(dst, customMotorMixer(i)->throttle * 1000);
@@ -1009,11 +1006,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 1);    // BF: motorConfig()->useUnsyncedPwm
         sbufWriteU8(dst, motorConfig()->motorPwmProtocol);
         sbufWriteU16(dst, motorConfig()->motorPwmRate);
-#ifdef USE_SERVOS
         sbufWriteU16(dst, servoConfig()->servoPwmRate);
-#else
-        sbufWriteU16(dst, 0);
-#endif
         sbufWriteU8(dst, gyroConfig()->gyroSync);
         break;
 
@@ -1651,7 +1644,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
-#ifdef USE_SERVOS
     case MSP_SET_SERVO_CONFIGURATION:
         if (dataSize != (1 + 14)) {
             return MSP_RESULT_ERROR;
@@ -1671,9 +1663,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             servoComputeScalingFactors(tmp_u8);
         }
         break;
-#endif
 
-#ifdef USE_SERVOS
     case MSP_SET_SERVO_MIX_RULE:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize >= 8) && (tmp_u8 < MAX_SERVO_RULES)) {
@@ -1687,7 +1677,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-#endif
 
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
@@ -1743,11 +1732,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);    // BF: motorConfig()->useUnsyncedPwm
             motorConfigMutable()->motorPwmProtocol = sbufReadU8(src);
             motorConfigMutable()->motorPwmRate = sbufReadU16(src);
-#ifdef USE_SERVOS
             servoConfigMutable()->servoPwmRate = sbufReadU16(src);
-#else
-            sbufReadU16(src);
-#endif
             gyroConfigMutable()->gyroSync = sbufReadU8(src);
         } else
             return MSP_RESULT_ERROR;

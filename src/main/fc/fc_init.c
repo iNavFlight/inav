@@ -269,10 +269,8 @@ void init(void)
     debugTraceInit();
 #endif
 
-#ifdef USE_SERVOS
     servosInit();
     mixerUpdateStateFlags();    // This needs to be called early to allow pwm mapper to use information about FIXED_WING state
-#endif
 
     drv_pwm_config_t pwm_params;
     memset(&pwm_params, 0, sizeof(pwm_params));
@@ -314,12 +312,10 @@ void init(void)
     pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
 
-#ifdef USE_SERVOS
     pwm_params.useServoOutputs = isMixerUsingServos();
     pwm_params.useChannelForwarding = feature(FEATURE_CHANNEL_FORWARDING);
     pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
-#endif
 
     pwm_params.pwmProtocolType = motorConfig()->motorPwmProtocol;
 #ifndef BRUSHED_MOTORS

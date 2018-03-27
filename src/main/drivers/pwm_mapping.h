@@ -68,12 +68,10 @@ typedef struct drv_pwm_config_s {
 #ifdef USE_RANGEFINDER
     bool useTriggerRangefinder;
 #endif
-#ifdef USE_SERVOS
     bool useServoOutputs;
     bool useChannelForwarding;      // configure additional channels as servos
     uint16_t servoPwmRate;
     uint16_t servoCenterPulse;
-#endif
     uint8_t pwmProtocolType;
     uint16_t motorPwmRate;
     uint16_t idlePulse;  // PWM value to use when initializing the driver. set this to either PULSE_1MS (regular pwm),

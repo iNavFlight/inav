@@ -302,7 +302,6 @@ bool isMixerEnabled(mixerMode_e mixerMode)
     return (mixer != NULL) ? true : false;
 }
 
-#ifdef USE_SERVOS
 void mixerUpdateStateFlags(void)
 {
     // set flag that we're on something with wings
@@ -363,16 +362,6 @@ void mixerUsePWMIOConfiguration(void)
 
     mixerResetDisarmedMotors();
 }
-#else
-void mixerUsePWMIOConfiguration(void)
-{
-    motorCount = 4;
-    for (int i = 0; i < motorCount; i++) {
-        currentMixer[i] = mixerQuadX[i];
-    }
-    mixerResetDisarmedMotors();
-}
-#endif
 
 void mixerLoadMix(int index, motorMixer_t *customMixers)
 {
