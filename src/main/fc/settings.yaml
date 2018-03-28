@@ -91,7 +91,7 @@ tables:
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
   - name: platform_type
-    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER"]
+    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
     enum: flyingPlatformType_e
 
 groups:

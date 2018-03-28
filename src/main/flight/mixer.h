@@ -28,36 +28,14 @@
 #define YAW_JUMP_PREVENTION_LIMIT_LOW 80
 #define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
 
-
-// Note: this is called MultiType/MULTITYPE_* in baseflight.
-typedef enum mixerMode
-{
-    MIXER_TRI = 1,
-    MIXER_QUADP = 2,
-    MIXER_QUADX = 3,
-    MIXER_BICOPTER = 4,
-    MIXER_GIMBAL = 5,
-    MIXER_Y6 = 6,
-    MIXER_HEX6 = 7,
-    MIXER_FLYING_WING = 8,
-    MIXER_Y4 = 9,
-    MIXER_HEX6X = 10,
-    MIXER_OCTOX8 = 11,
-    MIXER_OCTOFLATP = 12,
-    MIXER_OCTOFLATX = 13,
-    MIXER_AIRPLANE = 14,        // airplane / singlecopter / dualcopter (not yet properly supported)
-    MIXER_HELI_120_CCPM = 15,
-    MIXER_HELI_90_DEG = 16,
-    MIXER_VTAIL4 = 17,
-    MIXER_HEX6H = 18,
-    MIXER_PPM_TO_SERVO = 19,    // PPM -> servo relay
-    MIXER_DUALCOPTER = 20,
-    MIXER_SINGLECOPTER = 21,
-    MIXER_ATAIL4 = 22,
-    MIXER_CUSTOM = 23,
-    MIXER_CUSTOM_AIRPLANE = 24,
-    MIXER_CUSTOM_TRI = 25
-} mixerMode_e;
+typedef enum {
+    PLATFORM_MULTIROTOR     = 0,
+    PLATFORM_AIRPLANE       = 1,
+    PLATFORM_HELICOPTER     = 2,
+    PLATFORM_TRICOPTER      = 3,
+    PLATFORM_ROVER          = 4,
+    PLATFORM_BOAT           = 5
+} flyingPlatformType_e;
 
 #define DEFAULT_MIXER MIXER_QUADX
 
@@ -77,7 +55,6 @@ typedef struct motorMixer_s {
 PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
 
 typedef struct mixerConfig_s {
-    uint8_t mixerMode;
     int8_t yaw_motor_direction;
     uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
     uint8_t platformType;

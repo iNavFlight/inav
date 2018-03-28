@@ -1966,40 +1966,6 @@ static void cliGpsPassthrough(char *cmdline)
 }
 #endif
 
-static void cliMixer(char *cmdline)
-{
-    int len;
-
-    len = strlen(cmdline);
-
-    if (len == 0) {
-        cliPrintLinef("Mixer: %s", mixerNames[mixerConfigMutable()->mixerMode - 1]);
-        return;
-    } else if (sl_strncasecmp(cmdline, "list", len) == 0) {
-        cliPrint("Available mixers: ");
-        for (uint32_t i = 0; ; i++) {
-            if (mixerNames[i] == NULL)
-                break;
-            cliPrintf("%s ", mixerNames[i]);
-        }
-        cliPrintLinefeed();
-        return;
-    }
-
-    for (uint32_t i = 0; ; i++) {
-        if (mixerNames[i] == NULL) {
-            cliPrintLine("Invalid name");
-            return;
-        }
-        if (sl_strncasecmp(cmdline, mixerNames[i], len) == 0) {
-            mixerConfigMutable()->mixerMode = i + 1;
-            break;
-        }
-    }
-
-    cliMixer("");
-}
-
 static void cliMotor(char *cmdline)
 {
     int motor_index = 0;
@@ -2529,11 +2495,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("mixer");
-        const bool equalsDefault = mixerConfig_Copy.mixerMode == mixerConfig()->mixerMode;
-        const char *formatMixer = "mixer %s";
-        cliDefaultPrintLinef(dumpMask, equalsDefault, formatMixer, mixerNames[mixerConfig()->mixerMode - 1]);
-        cliDumpPrintLinef(dumpMask, equalsDefault, formatMixer, mixerNames[mixerConfig_Copy.mixerMode - 1]);
-
         cliDumpPrintLinef(dumpMask, customMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
 
         printMotorMix(dumpMask, customMotorMixer_CopyArray, customMotorMixer(0));
@@ -2696,9 +2657,6 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
-    CLI_COMMAND_DEF("mixer", "configure mixer",
-        "list\r\n"
-        "\t<name>", cliMixer),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
     CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),

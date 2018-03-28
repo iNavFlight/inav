@@ -18,6 +18,7 @@
 #pragma once
 
 #include "drivers/io_types.h"
+#include "flight/mixer.h"
 
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_PWM_MOTORS TARGET_MOTOR_COUNT
@@ -42,12 +43,6 @@ typedef struct rangefinderIOConfig_s {
     ioTag_t triggerTag;
     ioTag_t echoTag;
 } rangefinderIOConfig_t;
-
-typedef enum {
-    PLATFORM_MULTIROTOR     = 0,
-    PLATFORM_AIRPLANE       = 1,
-    PLATFORM_HELICOPTER     = 2
-} flyingPlatformType_e;
 
 typedef struct drv_pwm_config_s {
     int flyingPlatformType;

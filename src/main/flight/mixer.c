@@ -71,7 +71,6 @@ PG_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig,
 PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
-    .mixerMode = MIXER_QUADX,
     .yaw_motor_direction = 1,
     .yaw_jump_prevention_limit = 200,
     .platformType = PLATFORM_MULTIROTOR,

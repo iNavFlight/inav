@@ -610,7 +610,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-    if (mixerConfig()->mixerMode == MIXER_FLYING_WING || mixerConfig()->mixerMode == MIXER_AIRPLANE || mixerConfig()->mixerMode == MIXER_CUSTOM_AIRPLANE) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 
@@ -754,10 +754,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     // motors do not spin up while we are trying to arm or disarm.
     // Allow yaw control for tricopters if the user wants the servo to move even when unarmed.
     if (isUsingSticksForArming() && rcData[THROTTLE] <= rxConfig()->mincheck
-            && !((mixerConfig()->mixerMode == MIXER_TRI || mixerConfig()->mixerMode == MIXER_CUSTOM_TRI) && servoConfig()->tri_unarmed_servo)
-            && mixerConfig()->mixerMode != MIXER_AIRPLANE
-            && mixerConfig()->mixerMode != MIXER_FLYING_WING
-            && mixerConfig()->mixerMode != MIXER_CUSTOM_AIRPLANE
+            && !((mixerConfig()->platformType == PLATFORM_TRICOPTER) && servoConfig()->tri_unarmed_servo)
+            && mixerConfig()->platformType != PLATFORM_AIRPLANE
     ) {
         rcCommand[YAW] = 0;
     }

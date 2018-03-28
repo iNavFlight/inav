@@ -345,7 +345,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     // DEPRECATED - Use MSP_API_VERSION
     case MSP_IDENT:
         sbufWriteU8(dst, MW_VERSION);
-        sbufWriteU8(dst, mixerConfig()->mixerMode);
+        sbufWriteU8(dst, 3); //We no longer have mixerMode, just sent 3 (QuadX) as fallback
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
         sbufWriteU32(dst, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | CAP_FLAPS | CAP_NAVCAP | CAP_EXTAUX); // "capability"
         break;
@@ -821,7 +821,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_MIXER:
-        sbufWriteU8(dst, mixerConfig()->mixerMode);
+        sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
         break;
 
     case MSP_RX_CONFIG:
@@ -867,7 +867,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BF_CONFIG:
-        sbufWriteU8(dst, mixerConfig()->mixerMode);
+        sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
 
         sbufWriteU32(dst, featureMask());
 
@@ -2162,7 +2162,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_MIXER:
         if (dataSize >= 1) {
-            mixerConfigMutable()->mixerMode = sbufReadU8(src);
+            sbufReadU8(src); //This is ignored, no longer supporting mixerMode
             mixerUpdateStateFlags();    // Required for correct preset functionality
         } else
             return MSP_RESULT_ERROR;
@@ -2227,7 +2227,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_BF_CONFIG:
         if (dataSize >= 16) {
-            mixerConfigMutable()->mixerMode = sbufReadU8(src); // mixerMode
+            sbufReadU8(src); // mixerMode no longer supported, just swallow
             mixerUpdateStateFlags();    // Required for correct preset functionality
 
             featureClearAll();

@@ -428,34 +428,24 @@ void mavlinkSendHUDAndHeartbeat(void)
         mavModes |= MAV_MODE_FLAG_SAFETY_ARMED;
 
     uint8_t mavSystemType;
-    switch (mixerConfig()->mixerMode)
+    switch (mixerConfig()->platformType)
     {
-        case MIXER_TRI:
-            mavSystemType = MAV_TYPE_TRICOPTER;
-            break;
-        case MIXER_QUADP:
-        case MIXER_QUADX:
-        case MIXER_Y4:
-        case MIXER_VTAIL4:
+        case PLATFORM_MULTIROTOR:
             mavSystemType = MAV_TYPE_QUADROTOR;
             break;
-        case MIXER_Y6:
-        case MIXER_HEX6:
-        case MIXER_HEX6X:
-            mavSystemType = MAV_TYPE_HEXAROTOR;
+        case PLATFORM_TRICOPTER:
+            mavSystemType = MAV_TYPE_TRICOPTER;
             break;
-        case MIXER_OCTOX8:
-        case MIXER_OCTOFLATP:
-        case MIXER_OCTOFLATX:
-            mavSystemType = MAV_TYPE_OCTOROTOR;
-            break;
-        case MIXER_FLYING_WING:
-        case MIXER_AIRPLANE:
-        case MIXER_CUSTOM_AIRPLANE:
+        case PLATFORM_AIRPLANE:
             mavSystemType = MAV_TYPE_FIXED_WING;
             break;
-        case MIXER_HELI_120_CCPM:
-        case MIXER_HELI_90_DEG:
+        case PLATFORM_ROVER:
+            mavSystemType = MAV_TYPE_GROUND_ROVER;
+            break;
+        case PLATFORM_BOAT:
+            mavSystemType = MAV_TYPE_SURFACE_BOAT;
+            break;
+        case PLATFORM_HELICOPTER:
             mavSystemType = MAV_TYPE_HELICOPTER;
             break;
         default:
