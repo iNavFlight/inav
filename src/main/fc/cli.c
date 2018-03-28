@@ -142,16 +142,6 @@ static void cliBootlog(char *cmdline);
 
 static const char* const emptyName = "-";
 
-// sync this with mixerMode_e
-static const char * const mixerNames[] = {
-    "TRI", "QUADP", "QUADX", "BI",
-    "GIMBAL", "Y6", "HEX6",
-    "FLYING_WING", "Y4", "HEX6X", "OCTOX8", "OCTOFLATP", "OCTOFLATX",
-    "AIRPLANE", "HELI_120_CCPM", "HELI_90_DEG", "VTAIL4",
-    "HEX6H", "PPM_TO_SERVO", "DUALCOPTER", "SINGLECOPTER",
-    "ATAIL4", "CUSTOM", "CUSTOMAIRPLANE", "CUSTOMTRI", NULL
-};
-
 // sync this with features_e
 static const char * const featureNames[] = {
     "RX_PPM", "VBAT", "TX_PROF_SEL", "", "MOTOR_STOP",
