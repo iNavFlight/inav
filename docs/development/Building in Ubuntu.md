@@ -54,7 +54,7 @@ sudo apt install gcc-arm-none-eabi
 
 # Using the PPA compiler
 
-For releases prior to 17.04, the PPA compiler is used. This can be used on releases post 17.04 if you really wish to have a newer compiler than the distro default.
+For releases prior to (and perhaps including) 17.04, the PPA compiler is used. This can be used on releases post 17.04 if you really wish to have a newer compiler than the distro default.
 
 ```
 sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
