@@ -7,7 +7,7 @@ As of March 2018, the recommendation for Ubuntu releases is:
 | Release | Compiler Source |
 | ------- | --------------- |
 | 16.04 or earlier | Use the 'official' PPA |
-| 17.04 | Use the 'official' PPA as the distro compiler (5.4) *may* be too old |
+| 17.10 | Use the 'official' PPA as the distro compiler (5.4) *may* be too old |
 | 18.04 | Use the distro compiler (6.3+) |
 
 For Ubuntu derivatives (ElementaryOS, Mint etc.), please check the distro provided version, and if it's lower than 6, use the PPA.
@@ -47,14 +47,14 @@ sudo apt-get install ruby2.4 ruby2.4-dev
 
 # Using the Distro compiler
 
-For Releases after 17.04 is is recommended to use the distro provided compiler, at least until it proves to be too old.
+For Releases after 17.10 is is recommended to use the distro provided compiler, at least until it proves to be too old.
 ```
 sudo apt install gcc-arm-none-eabi
 ```
 
 # Using the PPA compiler
 
-For releases prior to (and perhaps including) 17.04, the PPA compiler is used. This can be used on releases post 17.04 if you really wish to have a newer compiler than the distro default.
+For releases prior to (and perhaps including) 17.10, the PPA compiler is used. This can be used on releases post 17.10 if you really wish to have a newer compiler than the distro default.
 
 ```
 sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
