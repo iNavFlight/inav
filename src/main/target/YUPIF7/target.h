@@ -20,7 +20,7 @@
 
 #define USBD_PRODUCT_STRING     "YUPIF7"
 
-#define LED0_PIN                PB4
+#define LED0                    PB4
 
 //define camera control
 #define CAMERA_CONTROL_PIN      PB7
@@ -32,7 +32,7 @@
 
 // Gyro interrupt
 #define USE_EXTI
-#define GYRO_INT_EXTI            PC4
+#define GYRO_INT_EXTI		PC4
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
@@ -53,6 +53,17 @@
 #define USE_GYRO_SPI_MPU6500
 #define GYRO_MPU6500_ALIGN      CW90_DEG
 
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
+#define USE_MAG_HMC5883
+#define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
+#define USE_MAG_QMC5883
+
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
+#define USE_BARO_MS5611
+#define USE_BARO_BMP280
+
 // Serial ports
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
@@ -72,12 +83,12 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
-/*
+
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN      PB0 // PWM5
-#define SOFTSERIAL_1_TX_PIN      PB1 // PWM7
-*/
-#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART5, USART6
+#define SOFTSERIAL_1_RX_PIN     PB0
+#define SOFTSERIAL_1_TX_PIN     PB1
+
+#define SERIAL_PORT_COUNT       6 //VCP, USART1, USART3, USART5, USART6
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0
@@ -100,10 +111,9 @@
 
 // I2C Port
 #define USE_I2C
-#define USE_I2C_PULLUP
 #define USE_I2C_DEVICE_1
-#define I2C2_SCL                PB8
-#define I2C2_SDA                PB9
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB9
 #define I2C_DEVICE              (I2CDEV_1)
 
 // OSD
@@ -113,11 +123,11 @@
 #define MAX7456_CS_PIN		PA14
 
 // Dataflash
+#define M25P16_CS_PIN           SPI3_NSS_PIN
+#define M25P16_SPI_BUS		BUS_SPI3
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-#define M25P16_SPI_BUS		BUS_SPI3
-#define M25P16_CS_PIN           SPI3_NSS_PIN
-#define M25P16_SPI_INSTANCE     SPI3
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // ADC inputs
 #define USE_ADC
@@ -129,6 +139,16 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_3
 #define CURRENT_METER_SCALE 		235
 
+// LED Strip can run off Pin 5 (PB1) of the motor outputs
+#define USE_LED_STRIP
+#define WS2811_PIN                      PB1
+#define WS2811_TIMER                    TIM8
+#define WS2811_TIMER_CHANNEL            TIM_CHANNEL_3
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
+#define WS2811_DMA_STREAM               DMA1_Stream2
+#define WS2811_DMA_CHANNEL              DMA_CHANNEL_5
+#define WS2811_TIMER_GPIO_AF            GPIO_AF3_TIM8
+
 // #################################################
 
 // Default configuration
@@ -137,12 +157,12 @@
 #define SERIALRX_UART           SERIAL_PORT_USART6
 #define TELEMETRY_UART          SERIAL_PORT_USART1
 #define DEFAULT_FEATURES        (FEATURE_TELEMETRY | FEATURE_OSD)
-#define USE_GYRO_FAST_KALMAN
 
 // Target IO and timers
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define MAX_PWM_OUTPUT_PORTS	9
+#define TARGET_MOTOR_COUNT	6
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
