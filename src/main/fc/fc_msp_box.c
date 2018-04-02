@@ -183,7 +183,7 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
 
-    const bool navReadyQuads = !STATE(FIXED_WING) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    const bool navReadyQuads = !STATE(FIXED_WING) && (getHwCompassStatus() != HW_SENSOR_NONE) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
     const bool navReadyPlanes = STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     if (navFlowDeadReckoning || navReadyQuads || navReadyPlanes) {
