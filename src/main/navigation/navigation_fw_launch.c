@@ -127,6 +127,9 @@ static void applyFixedWingLaunchIdleLogic(void)
     // Until motors are started don't use PID I-term
     pidResetErrorAccumulators();
 
+    // We're not flying yet, reset TPA filter
+    pidResetTPAFilter();
+
     // Throttle control logic
     if (navConfig()->fw.launch_idle_throttle <= motorConfig()->minthrottle) {
         ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                       // If MOTOR_STOP is enabled mixer will keep motor stopped
