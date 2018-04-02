@@ -144,7 +144,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_max_altitude = 0,               // cm, altitude where to consider launch ended
         .launch_climb_angle = 18,               // 18 degrees
         .launch_max_angle = 45,                 // 45 deg
-        .launch_climb_angle_awaits_motor = true,
+        .launch_climb_angle_awaits_motor = false,
     }
 );
 
