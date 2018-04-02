@@ -131,6 +131,7 @@ bool pidInitFilters(void);
 #endif
 
 void pidResetErrorAccumulators(void);
+void pidResetTPAFilter(void);
 
 struct controlRateConfig_s;
 struct motorConfig_s;
