@@ -77,6 +77,15 @@ If you need servo connected to S6 pin while keeping motors on S1..S4 pins (e.g. 
 
 I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is not usable on hexcopter and similar.
 
+### Soft Serial
+
+Soft serial is available as an alternative to a hardware UART on RX4/TX4. By default this is NOT inverted. In order to use this feature:
+
+* Enable soft serial
+* Do not assign any function to hardware UART 4
+* Assign the desired function to the soft-serial port
+* Enable inversion if required `set telemetry_inversion = ON` (e.g. for Frsky telemetry)
+
 ### USB
 
 This board uses STM32 VCP and does _not_ use a UART when USB is connected. STM32 VCP drivers might be required on some operating systems.
