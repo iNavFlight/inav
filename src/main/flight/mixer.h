@@ -38,8 +38,6 @@ typedef enum {
     PLATFORM_OTHER          = 6
 } flyingPlatformType_e;
 
-#define DEFAULT_MIXER MIXER_QUADX
-
 typedef struct motorAxisCorrectionLimits_s {
     int16_t min;
     int16_t max;
