@@ -178,7 +178,6 @@
 /*---------------------------------*/
 
 /*--------DEFAULT VALUES-----------*/
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #if defined(FF_PIKOF4OSD)
 #define DEFAULT_FEATURES        ( FEATURE_TELEMETRY | FEATURE_OSD )
 #endif
