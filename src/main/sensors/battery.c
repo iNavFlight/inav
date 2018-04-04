@@ -303,16 +303,17 @@ void batteryUpdate(timeUs_t timeDelta)
         }
 
         // handle beeper
-        switch (batteryState) {
-            case BATTERY_WARNING:
-                beeper(BEEPER_BAT_LOW);
-                break;
-            case BATTERY_CRITICAL:
-                beeper(BEEPER_BAT_CRIT_LOW);
-                break;
-            default:
-                break;
-        }
+        if (ARMING_FLAG(ARMED) || !ARMING_FLAG(WAS_EVER_ARMED) || failsafeIsActive())
+            switch (batteryState) {
+                case BATTERY_WARNING:
+                    beeper(BEEPER_BAT_LOW);
+                    break;
+                case BATTERY_CRITICAL:
+                    beeper(BEEPER_BAT_CRIT_LOW);
+                    break;
+                default:
+                    break;
+            }
     }
 }
 
