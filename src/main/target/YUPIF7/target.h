@@ -132,7 +132,6 @@
 // #################################################
 
 // Default configuration
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
 #define TELEMETRY_UART          SERIAL_PORT_USART1
