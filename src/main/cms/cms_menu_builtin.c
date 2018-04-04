@@ -146,7 +146,7 @@ static const OSD_Entry menuMainEntries[] =
 
     OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
     OSD_SUBMENU_ENTRY("FEATURES", &menuFeatures),
-#ifdef USE_OSD
+#if defined(USE_OSD) && defined(CMS_MENU_OSD)
     OSD_SUBMENU_ENTRY("OSD LAYOUTS", &cmsx_menuOsdLayout),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 #endif

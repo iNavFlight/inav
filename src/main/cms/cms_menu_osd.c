@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(USE_OSD) && defined(USE_CMS)
+#if defined(USE_OSD) && defined(USE_CMS) && defined(CMS_MENU_OSD)
 
 #include "build/debug.h"
 
