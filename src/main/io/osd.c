@@ -1375,6 +1375,9 @@ static bool osdDrawSingleElement(uint8_t item)
                             messages[messageCount++] = navStateMessage;
                         }
                     } else {
+                        if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !FLIGHT_MODE(ANGLE_MODE)) {
+                          messages[messageCount++] = "NOT ANGLE MODE!";
+                        }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
                             messages[messageCount++] = "(AUTOTRIM)";
                         }
