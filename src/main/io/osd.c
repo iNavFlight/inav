@@ -1023,10 +1023,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 } else {
                     p = " PH ";
                 }
-            } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
-                // If navigationRequiresAngleMode() returns false when ALTHOLD is active,
-                // it means it can be combined with ANGLE, HORIZON, ACRO, etc...
-                // and its display is handled by OSD_MESSAGES rather than OSD_FLYMODE.
+            } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
                 p = " AH ";
             } else if (FLIGHT_MODE(NAV_WP_MODE))
                 p = " WP ";
@@ -1378,13 +1375,6 @@ static bool osdDrawSingleElement(uint8_t item)
                             messages[messageCount++] = navStateMessage;
                         }
                     } else {
-                        if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                            // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
-                            // when it doesn't require ANGLE mode (required only in FW
-                            // right now). If if requires ANGLE, its display is handled
-                            // by OSD_FLYMODE.
-                            messages[messageCount++] = "(ALTITUDE HOLD)";
-                        }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
                             messages[messageCount++] = "(AUTOTRIM)";
                         }
