@@ -253,6 +253,22 @@ static int digitCount(int32_t value)
 }
 
 /**
+ * Aligns text to the left side. Adds spaces at the end to keep string length unchainged.
+ */
+static void osdLeftAlignString(char *buff)
+{
+  int sp = 0;
+  int ch = 0;
+  int len = strlen(buff);
+  while (buff[sp] == ' ')
+    sp++;
+  for (ch = 0; ch < (len - sp); ch++)
+    buff[ch] = buff[ch + sp];
+  for (sp = ch; sp < len; sp++)
+    buff[sp] = ' ';
+}
+
+/**
  * Converts distance into a string based on the current unit system
  * prefixed by a a symbol to indicate the unit used.
  * @param dist Distance in centimeters
@@ -277,6 +293,7 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
         }
         break;
     }
+    osdLeftAlignString(buff + 1);
 }
 
 /**
@@ -379,6 +396,7 @@ static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
             }
             break;
     }
+    osdLeftAlignString(buff+1);
 }
 
 /**
@@ -722,7 +740,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr)
         buff[1] = SYM_AUTO_THR1;
         thr = rcCommand[THROTTLE];
     }
-    tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
+    tfp_sprintf(buff + 2, "%-3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
 }
 
 static inline int32_t osdGetAltitude(void)
@@ -847,7 +865,7 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_CURRENT_DRAW:
-        buff[0] = SYM_AMP;
+        buff[0] = 'A';
         osdFormatCentiNumber(buff + 1, getAmperage(), 0, 2, 0, 3);
         break;
 
@@ -889,7 +907,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GPS_SATS:
         buff[0] = SYM_SAT_L;
         buff[1] = SYM_SAT_R;
-        tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
+        tfp_sprintf(buff + 2, "%-2d", gpsSol.numSat);
         if (!STATE(GPS_FIX)) {
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
@@ -1782,6 +1800,7 @@ static void osdShowStats(void)
     if (STATE(GPS_FIX)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_speed);
+        osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, statNameX, top, "MAX DISTANCE     :");
@@ -1800,6 +1819,7 @@ static void osdShowStats(void)
     displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
     osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
     strcat(buff, "V");
+    osdLeftAlignString(buff);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
