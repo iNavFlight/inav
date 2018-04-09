@@ -90,8 +90,6 @@ Re-apply any new defaults as desired.
 | `status`         | show system status                             |
 | `version`        |                                                |
 
- 
-
 ## CLI Variable Reference
 
 |  Variable Name | Default Value | Description |
