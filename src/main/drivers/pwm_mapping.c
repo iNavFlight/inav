@@ -177,7 +177,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         }
 
         // Handle outputs - may override the PWM/PPM inputs
-        if (init->flyingPlatformType == PLATFORM_MULTIROTOR) {
+        if (init->flyingPlatformType == PLATFORM_MULTIROTOR || init->flyingPlatformType == PLATFORM_TRICOPTER) {
             // Multicopter
             if (init->useServoOutputs && (timerHardwarePtr->usageFlags & TIM_USE_MC_SERVO)) {
                 type = MAP_TO_SERVO_OUTPUT;
@@ -189,7 +189,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
             if (timerHardwarePtr->usageFlags & TIM_USE_MC_MOTOR) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
-        } else if (init->flyingPlatformType == PLATFORM_AIRPLANE || init->flyingPlatformType == PLATFORM_HELICOPTER) {
+        } else {
             // Fixed wing or HELI (one/two motors and a lot of servos
             if (timerHardwarePtr->usageFlags & TIM_USE_FW_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
