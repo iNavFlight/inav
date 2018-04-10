@@ -1,11 +1,11 @@
-#Board - PixRacer
+# Board - PixRacer
 
 PinOut diagrams are only for reference. See Ports and interfaces for true locations and mappings.
 
-##Top View PinOut
+## Top View PinOut
 ![PixRacer](https://pixhawk.org/_media/modules/pixracer_r09_top_pinouts.png?cache=)
 
-##Bottom View PinOut
+## Bottom View PinOut
 ![PixRacer](https://pixhawk.org/_media/modules/pixracer_r09_bot_pinouts.png?cache=&w=900&h=660&tok=a821d6)
 
 Schematic : https://pixhawk.org/_media/modules/pixracer-r14.pdf
@@ -81,7 +81,7 @@ Total UARTS Recognized by iNav -> 8
 * Use : Native FrSky port
 * Recommendation : Use for native FrSky telemetry
 
-##Buzzer
+## Buzzer
 You can connect the buzzer provide from factory to the default buzzer port
 
 
