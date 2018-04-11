@@ -320,6 +320,8 @@ This required a receiver with new firmware that support SNR, RSSI and long frame
 
 7.This same as 6, but sensor 3 is GPS_STATUS, 10 is ARMED, 16 is MODE.
 
+8.This same as 7, but sensor 10 (ARMED) is reversed.
+
 131.This same as 3, but sensor 16 (type SPEED) is in m/s.
 
 132.This same as 4, but sensor 16 (type SPEED) is in m/s.
@@ -329,6 +331,8 @@ This required a receiver with new firmware that support SNR, RSSI and long frame
 134.This same as 6, but sensor 11 (type SPEED) is in m/s.
 
 135.This same as 7, but sensor 11 (type SPEED) is in m/s.
+
+136.This same as 8, but sensor 11 (type SPEED) is in m/s.
 
 ### RX hardware
 
