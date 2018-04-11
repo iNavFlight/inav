@@ -15,14 +15,13 @@
 #define MIN_FLIGHT_TIME_TO_RECORD_STATS_S 10    //prevent recording stats for that short "flights" [s]
 
 
-PG_REGISTER_WITH_RESET_FN(statsConfig_t, statsConfig, PG_STATS_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(statsConfig_t, statsConfig, PG_STATS_CONFIG, 0);
 
-void pgResetFn_statsConfig(statsConfig_t *instance)
-{
-    instance->stats_enabled = 0;
-    instance->stats_total_time = 0;
-    instance->stats_total_dist = 0;
-}
+PG_RESET_TEMPLATE(statsConfig_t, statsConfig,
+    .stats_enabled = 0,
+    .stats_total_time = 0,
+    .stats_total_dist = 0,
+);
 
 static uint32_t arm_millis;
 static uint32_t arm_distance_cm;
