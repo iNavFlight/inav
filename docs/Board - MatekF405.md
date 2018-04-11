@@ -79,10 +79,10 @@ I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is not usable
 
 ### Soft Serial
 
-Soft serial is available as an alternative to a hardware UART on RX4/TX4. By default this is NOT inverted. In order to use this feature:
+Soft serial is available as an alternative to a hardware UART on RX4/TX4 and TX2. By default this is NOT inverted. In order to use this feature:
 
 * Enable soft serial
-* Do not assign any function to hardware UART 4
+* Do not assign any function to hardware UART4 or UART2-TX
 * Assign the desired function to the soft-serial port
 * Enable inversion if required `set telemetry_inversion = ON` (e.g. for Frsky telemetry)
 
