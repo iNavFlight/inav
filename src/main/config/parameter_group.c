@@ -85,7 +85,7 @@ bool pgResetCopy(void *copy, pgn_t pgn)
 
 void pgLoad(const pgRegistry_t* reg, int profileIndex, const void *from, int size, int version)
 {
-    pgResetInstance(reg, pgOffset(reg, profileIndex));
+    pgReset(reg, profileIndex);
     // restore only matching version, keep defaults otherwise
     if (version == pgVersion(reg)) {
         const int take = MIN(size, pgSize(reg));
