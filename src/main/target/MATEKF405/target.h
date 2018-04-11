@@ -122,7 +122,11 @@
 #define SOFTSERIAL_1_RX_PIN      PA1  //RX4
 #define SOFTSERIAL_1_TX_PIN      PA0  //TX4
 
-#define SERIAL_PORT_COUNT       7
+#define USE_SOFTSERIAL2
+#define SOFTSERIAL_2_RX_PIN      PA2  //TX2
+#define SOFTSERIAL_2_TX_PIN      PA2  //TX2
+
+#define SERIAL_PORT_COUNT       8
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
