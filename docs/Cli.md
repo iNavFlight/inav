@@ -205,7 +205,7 @@ Re-apply any new defaults as desired.
 |  frsky_coordinates_format  | 0 | FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
 |  frsky_unit  | METRIC | METRIC , IMPERIAL |
 |  frsky_vfas_precision  | 0 | Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
-|  frsky_vfas_cell_voltage  | OFF |  |
+|  report_cell_voltage  | OFF |  |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
 |  smartport_uart_unidir  | OFF | Turn UART into UNIDIR for smartport telemetry for usage on F1 and F4 target. See Telemetry.md for details |
 |  smartport_fuel_unit  | PERCENT | Unit of the value sent with the `FUEL` ID through the S.Port telemetry. Replaces the `smartport_fuel_percent` setting in versions < 1.9 [PERCENT/MAH/MWH] |
