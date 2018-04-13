@@ -1047,8 +1047,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_PID_ADVANCED:
-        sbufWriteU16(dst, pidProfile()->rollPitchItermIgnoreRate);
-        sbufWriteU16(dst, pidProfile()->yawItermIgnoreRate);
+        sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
+        sbufWriteU16(dst, 0); // pidProfile()->yawItermIgnoreRate
         sbufWriteU16(dst, pidProfile()->yaw_p_limit);
         sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
         sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
@@ -1786,8 +1786,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_PID_ADVANCED:
         if (dataSize >= 17) {
-            pidProfileMutable()->rollPitchItermIgnoreRate = sbufReadU16(src);
-            pidProfileMutable()->yawItermIgnoreRate = sbufReadU16(src);
+            sbufReadU16(src);   // pidProfileMutable()->rollPitchItermIgnoreRate
+            sbufReadU16(src);   // pidProfileMutable()->yawItermIgnoreRate
             pidProfileMutable()->yaw_p_limit = sbufReadU16(src);
 
             sbufReadU8(src); //BF: pidProfileMutable()->deltaMethod

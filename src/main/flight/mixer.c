@@ -57,8 +57,7 @@ static uint8_t motorCount;
 
 int16_t motor[MAX_SUPPORTED_MOTORS];
 int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
-
-static bool motorLimitReached = false;
+static float motorMixRange;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -299,9 +298,14 @@ uint8_t getMotorCount(void)
     return motorCount;
 }
 
+float getMotorMixRange(void)
+{
+    return motorMixRange;
+}
+
 bool mixerIsOutputSaturated(void)
 {
-    return motorLimitReached;
+    return motorMixRange >= 1.0f;
 }
 
 bool isMixerEnabled(mixerMode_e mixerMode)
@@ -527,19 +531,16 @@ void mixTable(void)
     throttleRange = throttleMax - throttleMin;
 
     #define THROTTLE_CLIPPING_FACTOR    0.33f
-    if (rpyMixRange > throttleRange) {
-        motorLimitReached = true;
-        float mixReduction = (float)throttleRange / rpyMixRange;
-
+    motorMixRange = (float)rpyMixRange / (float)throttleRange;
+    if (motorMixRange > 1.0f) {
         for (int i = 0; i < motorCount; i++) {
-            rpyMix[i] =  mixReduction  * rpyMix[i];
+            rpyMix[i] /= motorMixRange;
         }
 
         // Allow some clipping on edges to soften correction response
         throttleMin = throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
         throttleMax = throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
     } else {
-        motorLimitReached = false;
         throttleMin = MIN(throttleMin + (rpyMixRange / 2), throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
         throttleMax = MAX(throttleMax - (rpyMixRange / 2), throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
     }

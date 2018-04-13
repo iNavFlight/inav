@@ -900,14 +900,10 @@ groups:
       - name: yaw_p_limit
         min: YAW_P_LIMIT_MIN
         max: YAW_P_LIMIT_MAX
-      - name: iterm_ignore_threshold
-        field: rollPitchItermIgnoreRate
-        min: 15
-        max: 1000
-      - name: yaw_iterm_ignore_threshold
-        field: yawItermIgnoreRate
-        min: 15
-        max: 10000
+      - name: iterm_windup
+        field: itermWindupPointPercent
+        min: 0
+        max: 90
       - name: rate_accel_limit_roll_pitch
         field: axisAccelerationLimitRollPitch
         max: 500000
