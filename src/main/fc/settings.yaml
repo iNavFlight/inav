@@ -389,11 +389,11 @@ groups:
     members:
       - name: min_throttle
         field: minthrottle
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: max_throttle
         field: maxthrottle
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: min_command
         field: mincommand
