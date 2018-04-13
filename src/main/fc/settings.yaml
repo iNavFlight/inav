@@ -561,6 +561,10 @@ groups:
       - name: has_flaps
         field: hasFlaps
         type: bool
+      - name: mixer_preset
+        field: appliedMixerPreset
+        min: -1
+        max: INT16_MAX
 
   - name: PG_MOTOR_3D_CONFIG
     type: flight3DConfig_t
