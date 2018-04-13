@@ -561,7 +561,7 @@ groups:
       - name: has_flaps
         field: hasFlaps
         type: bool
-      - name: mixer_preset
+      - name: model_preview_type
         field: appliedMixerPreset
         min: -1
         max: INT16_MAX
