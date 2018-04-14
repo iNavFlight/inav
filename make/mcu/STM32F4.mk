@@ -135,6 +135,10 @@ else ifeq ($(TARGET),$(filter $(TARGET),$(F446_TARGETS)))
 DEVICE_FLAGS    = -DSTM32F446xx
 LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f446.ld
 STARTUP_SRC     = startup_stm32f446xx.s
+else ifeq ($(TARGET),$(filter $(TARGET),$(F427_TARGETS)))
+DEVICE_FLAGS    = -DSTM32F427_437xx
+LD_SCRIPT       = $(LINKER_DIR)/stm32_flash_f427.ld
+STARTUP_SRC     = startup_stm32f427xx.s
 else
 $(error Unknown MCU for F4 target)
 endif
