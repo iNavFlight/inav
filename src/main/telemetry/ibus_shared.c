@@ -152,7 +152,7 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_RPM) {
         return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT
-        if (telemetryConfig()->report_cell_voltage == 1) {
+        if (telemetryConfig()->report_cell_voltage) {
             return sendIbusMeasurement2(address, getBatteryAverageCellVoltage());
         } else {
             return sendIbusMeasurement2(address, getBatteryVoltage());
