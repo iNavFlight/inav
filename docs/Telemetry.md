@@ -30,7 +30,7 @@ Smartport devices are using _inverted_ serial protocol and as such can not be di
 | STM32F4     | not possible (*)    | possible                    | possible        | possible                      |
 | STM32F7     | possible            | not required                | possible        | not required                  |
 
-> * - possible if flight controller has dedicated, additional, hardware inverter
+> * possible if flight controller has dedicated, additional, hardware inverter
 
 Smartport uses _57600bps_ serial speed.
 
