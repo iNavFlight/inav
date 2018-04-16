@@ -173,7 +173,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dterm_soft_notch_cutoff = 1,
         .dterm_lpf_hz = 40,
         .yaw_lpf_hz = 30,
-        .dterm_setpoint_weight = 0.0f,
+        .dterm_setpoint_weight = 1.0f,
 
         .itermWindupPointPercent = 50,       // Percent
 
