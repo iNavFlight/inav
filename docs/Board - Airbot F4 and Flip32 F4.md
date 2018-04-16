@@ -84,16 +84,3 @@ This board allows for single **SoftwareSerial** port on small soldering pads loc
 | ----  | ----                  |
 | CH5   | RX                    |
 | CH6   | TX                    |
-
-## FrSky SmartPort using SoftwareSerial
-
-SmartPort telemetry is possible using SoftwareSerial. RX and TX lines have to be bridged using
-1kOhm resistor (confirmed working with 100Ohm, 1kOhm and 10kOhm)
-
-```
-SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
-```
-
-* Telemetry has to be inverted with `set telemetry_inversion = ON`
-* Port should be configured for _57600bps_
-* Tested with FrSky X4R
