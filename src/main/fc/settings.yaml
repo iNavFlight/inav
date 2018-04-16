@@ -1489,6 +1489,10 @@ groups:
         field: item_pos[OSD_ARTIFICIAL_HORIZON]
         min: 0
         max: OSD_POS_MAX_CLI
+      - name: osd_horizon_sidebars_pos
+        field: item_pos[OSD_HORIZON_SIDEBARS]
+        min: 0
+        max: OSD_POS_MAX_CLI
       - name: osd_current_draw_pos
         field: item_pos[OSD_CURRENT_DRAW]
         min: 0
