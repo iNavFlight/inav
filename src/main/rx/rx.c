@@ -524,9 +524,9 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 
         // Update rcData channel value
         if (rxRuntimeConfig.requireFiltering) {
-            rcData[channel] = sample;
-        } else {
             rcData[channel] = applyChannelFiltering(channel, sample);
+        } else {
+            rcData[channel] = sample;
         }
     }
 
