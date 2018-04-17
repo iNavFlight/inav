@@ -83,3 +83,5 @@ Due to the way INAV handles PWM outputs the first 2 PWM outputs are reserved for
 You can free PWM outputs 5 and 6 by simply connecting SBUS up to UART1. For FrSky there is no hardware inverter needed as the F3 chip UARTs can handle this without additional hardware. Just make sure that `sbus_inversion = ON` is set. However, you will not be able to use UART3, e.G. for telemetry.
 
 This allows to control a standard airplane with rudder, ailerons and elevator. If you use flaps or a servo gimbal, you can bypass the FC by connecting it up to the receiver directly.
+
+It is possible to use SBUS on UART 3 whilst still having access to 6 pwm channels, this can be done by following the method outlined [here](https://github.com/iNavFlight/inav/issues/3023), however, this removes I2C support on PWM channels 7/8, and shifts PWM 5/6 to there.
