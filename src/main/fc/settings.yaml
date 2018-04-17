@@ -131,7 +131,7 @@ groups:
         field: gyro_soft_notch_cutoff_2
         condition: USE_GYRO_NOTCH_2
         min: 1
-        max: 500
+        max: 500 
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0

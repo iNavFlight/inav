@@ -28,7 +28,6 @@
 #include "build/build_config.h"
 
 #include "common/axis.h"
-#include "common/color.h"
 #include "common/maths.h"
 #include "common/printf.h"
 #include "common/typeconversion.h"
@@ -90,23 +89,6 @@ static void ledStripDisable(void);
 #if LED_MAX_STRIP_LENGTH > WS2811_LED_STRIP_LENGTH
 # error "Led strip length must match driver"
 #endif
-
-typedef enum {
-    COLOR_BLACK = 0,
-    COLOR_WHITE,
-    COLOR_RED,
-    COLOR_ORANGE,
-    COLOR_YELLOW,
-    COLOR_LIME_GREEN,
-    COLOR_GREEN,
-    COLOR_MINT_GREEN,
-    COLOR_CYAN,
-    COLOR_LIGHT_BLUE,
-    COLOR_BLUE,
-    COLOR_DARK_VIOLET,
-    COLOR_MAGENTA,
-    COLOR_DEEP_PINK,
-} colorId_e;
 
 const hsvColor_t hsv[] = {
     //                        H    S    V

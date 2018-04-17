@@ -185,18 +185,28 @@ static const char * const *sensorHardwareNames[] = {
         table_acc_hardware,
 #ifdef USE_BARO
         table_baro_hardware,
+#else
+        NULL,
 #endif
 #ifdef USE_MAG
         table_mag_hardware,
+#else
+        NULL,
 #endif
 #ifdef USE_RANGEFINDER
         table_rangefinder_hardware,
+#else
+        NULL,
 #endif
 #ifdef USE_PITOT
         table_pitot_hardware,
+#else
+        NULL,
 #endif
 #ifdef USE_OPTICAL_FLOW
         table_opflow_hardware,
+#else
+        NULL,
 #endif
 };
 
@@ -2342,8 +2352,10 @@ static void cliStatus(char *cmdline)
         const uint32_t mask = (1 << i);
         if ((detectedSensorsMask & mask) && (mask & SENSOR_NAMES_MASK)) {
             const int sensorHardwareIndex = detectedSensors[i];
-            const char *sensorHardware = sensorHardwareNames[i][sensorHardwareIndex];
-            cliPrintf(", %s=%s", sensorTypeNames[i], sensorHardware);
+            if (sensorHardwareNames[i]) {
+                const char *sensorHardware = sensorHardwareNames[i][sensorHardwareIndex];
+                cliPrintf(", %s=%s", sensorTypeNames[i], sensorHardware);
+            }
         }
     }
     cliPrintLinefeed();
