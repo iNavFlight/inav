@@ -113,7 +113,7 @@ const uint16_t frSkyDataIdTable[] = {
     FSSP_DATAID_HOME_DIST ,
     FSSP_DATAID_GPS_ALT   ,
     FSSP_DATAID_ASPD      ,
-    FSSP_DATAID_A3        ,
+    // FSSP_DATAID_A3        ,
     FSSP_DATAID_A4        ,
     0
 };

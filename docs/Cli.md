@@ -84,6 +84,7 @@ Re-apply any new defaults as desired.
 | `profile`        | index (0 to 2)                                 |
 | `rxrange`        | configure rx channel ranges (end-points) |
 | `save`           | save and reboot                                |
+| `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
 | `version`        |                                                |
@@ -349,7 +350,7 @@ Re-apply any new defaults as desired.
 |  mag_declination  | 0 | Current location magnetic declination in format. For example, -6deg 37min = -637 for Japan. Leading zero in ddd not required. Get your local magnetic declination here: http://magnetic-declination.com/ . Not in use if inav_auto_mag_decl  is turned on and you acquire valid GPS fix. |
 |  heading_hold_rate_limit  | 90 | This setting limits yaw rotation rate that HEADING_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when HEADING_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes. |
 | mag_calibration_time | 30 | Adjust how long time the Calibration of mag will last. |
-| mc_p_pitch | 40 | Multicopter rate stabilisation P-gain for PITCH               |
+| mc_p_pitch | 40 | Multicopter rate stabilisation P-gain for PITCH               |
 | mc_i_pitch | 30 | Multicopter rate stabilisation I-gain for PITCH               |
 | mc_d_pitch | 23 | Multicopter rate stabilisation D-gain for PITCH               |
 | mc_p_roll  | 40 | Multicopter rate stabilisation P-gain for ROLL                |

@@ -21,9 +21,51 @@ Smartport is a telemetry system used by newer FrSky transmitters such as the Tar
 
 More information about the implementation can be found here: https://github.com/frank26080115/cleanflight/wiki/Using-Smart-Port
 
-Smartport devices can be connected directly to STM32F3 boards such as the SPRacingF3 and Sparky, with a single straight through cable without the need for any hardware modifications on the FC or the receiver.
+Smartport devices are using _inverted_ serial protocol and as such can not be directly connected to all flight controllers. Depending on flight controller CPU family:
 
-For Smartport on F3 based boards, enable the telemetry inversion setting.
+| CPU family  | Direct connection   | Receiver _uninverted_ hack  | SoftwareSerial  | Additional hardware inverter  |
+| -----       | -----               | -----                       | -----           | -----                         |
+| STM32F1     | no possible (*)     | possible                    | possible        | possible                      |
+| STM32F3     | possible            | not required                | possible        | not required                  |
+| STM32F4     | not possible (*)    | possible                    | possible        | possible                      |
+| STM32F7     | possible            | not required                | possible        | not required                  |
+
+> * possible if flight controller has dedicated, additional, hardware inverter
+
+Smartport uses _57600bps_ serial speed.
+
+### Direct connection for F3/F7
+
+Only TX serial pin has to be connected to Smartport receiver. Enable the telemetry inversion setting.
+
+```
+set telemetry_inversion = ON
+set smartport_uart_unidir = OFF
+```
+
+### Receiver univerted hack
+
+Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport signal. In this case connect uninverted signal to TX pad of chosen serial port
+
+```
+set telemetry_inversion = OFF
+set smartport_uart_unidir = OFF
+```
+
+### Software Serial
+
+Software emulated serial port allows to connect to Smartport receivers without any hacks. Only `TX` has to be connected to the receiver.
+
+```
+set telemetry_inversion = ON
+```
+
+If solution above is not working, there is an alternative RX and TX lines have to be bridged using
+1kOhm resistor (confirmed working with 100Ohm, 1kOhm and 10kOhm)
+
+```
+SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
+```
 
 ```
 set telemetry_inversion = ON
@@ -47,8 +89,6 @@ When external inverter is used, following configuration has to be applied:
 set smartport_uart_unidir = ON
 set telemetry_inversion = OFF
 ```
-
-This has been tested with Flip32 F4 / Airbot F4 and FrSky X4R-SB receiver.
 
 ### Available SmartPort (S.Port) sensors
 

@@ -100,6 +100,7 @@ uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
+// TODO: If you increase the version number, remove _padding_0 from rxConfig_t and this line.
 PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 3);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
@@ -523,9 +524,9 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 
         // Update rcData channel value
         if (rxRuntimeConfig.requireFiltering) {
-            rcData[channel] = sample;
-        } else {
             rcData[channel] = applyChannelFiltering(channel, sample);
+        } else {
+            rcData[channel] = sample;
         }
     }
 

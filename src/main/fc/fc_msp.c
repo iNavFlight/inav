@@ -1539,7 +1539,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
         motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
-        motorConfigMutable()->mincommand = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        motorConfigMutable()->mincommand = constrain(sbufReadU16(src), PWM_RANGE_ZERO, PWM_RANGE_MAX);
 
         failsafeConfigMutable()->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
 
