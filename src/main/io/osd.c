@@ -1705,23 +1705,49 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 #endif
 
 #ifdef USE_STATS
+#define STATS_LABEL_X_POS 4
+#define STATS_VALUE_X_POS 24
     if (statsConfig()->stats_enabled) {
-        displayWrite(osdDisplayPort, 3, ++y, "ODOMETER:");
+        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "ODOMETER:");
         if (osdConfig()->units == OSD_UNIT_IMPERIAL) {
-            tfp_sprintf(string_buffer, "%d MI", statsConfig()->stats_total_dist / METERS_PER_MILE);
+            tfp_sprintf(string_buffer, "%5d", statsConfig()->stats_total_dist / METERS_PER_MILE);
+            string_buffer[5] = SYM_MI;
         } else {
-            tfp_sprintf(string_buffer, "%d KM", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+            tfp_sprintf(string_buffer, "%5d", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+            string_buffer[5] = SYM_KM;
         }
-        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+        string_buffer[6] = '\0';
+        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+
+        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL TIME:");
         uint32_t tot_mins = statsConfig()->stats_total_time / 60;
-        tfp_sprintf(string_buffer, "%d:%02d H", tot_mins / 60, tot_mins % 60);
-        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+        tfp_sprintf(string_buffer, "%2d:%02dHM", tot_mins / 60, tot_mins % 60);
+        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+
+#ifdef USE_ADC
+        if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
+            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL ENERGY:");
+            osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4);
+            strcat(string_buffer, "\xAB"); // SYM_WH
+            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-4, y,  string_buffer);
+
+            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "AVG EFFICIENCY:");
+            if (statsConfig()->stats_total_dist) {
+                uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
+                osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
+            } else
+                strcpy(string_buffer, "---");
+            string_buffer[3] = SYM_WH_KM_0;
+            string_buffer[4] = SYM_WH_KM_1;
+            string_buffer[5] = '\0';
+            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-3, y,  string_buffer);
+        }
+#endif // USE_ADC
     }
 #endif
 
     displayResync(osdDisplayPort);
-
-    resumeRefreshAt = micros() + (4 * REFRESH_1S);
+    resumeRefreshAt = micros() + ((statsConfig()->stats_enabled ? 10 : 4) + 2) * REFRESH_1S; // considering it takes about 2 seconds for the initialization screen to be displayed
 }
 
 static void osdResetStats(void)
