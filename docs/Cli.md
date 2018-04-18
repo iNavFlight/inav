@@ -200,7 +200,7 @@ Re-apply any new defaults as desired.
 |  serialrx_inverted     | OFF | Reverse the serial inversion of the  serial RX protocol. When this value is OFF, each protocol will use its default signal (e.g. SBUS will use an inverted signal). Some OpenLRS receivers produce a non-inverted SBUS signal. This setting supports this type of receivers (including modified FrSKY). |
 |  spektrum_sat_bind  | 0 | 0 = disabled. Used to bind the spektrum satellite to RX |
 |  telemetry_switch  | OFF | Which aux channel to use to change serial output & baud rate (MSP / Telemetry). It disables automatic switching to Telemetry when armed. |
-|  telemetry_inversion  | ON | Determines if the telemetry signal is inverted (Futaba, FrSKY). Only suitable on F3 uarts and Softserial on all targets |
+|  telemetry_inverted  | OFF | Determines if the telemetry protocol default signal inversion is reversed. This should be OFF in most cases unless a custom or hacked RX is used. |
 |  frsky_default_latitude  | 0.000 | OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
 |  frsky_default_longitude  | 0.000 | OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
 |  frsky_coordinates_format  | 0 | FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
