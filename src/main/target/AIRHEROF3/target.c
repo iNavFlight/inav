@@ -37,11 +37,11 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
     { TIM1,  IO_TAG(PA8),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR },  // PWM9 - OUT1
     { TIM1,  IO_TAG(PA11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_11,   TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // PWM10 - OUT2
-    { TIM8,  IO_TAG(PB6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  // PWM11 - OUT3
+    { TIM8,  IO_TAG(PB6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_5,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  // PWM11 - OUT3
     { TIM4,  IO_TAG(PB7),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM12 - OUT4
 
 #if !defined(AIRHEROF3_QUAD)
-    { TIM8,  IO_TAG(PB8),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  // PWM13 - OUT5
-    { TIM8,  IO_TAG(PB9),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }   // PWM14 - OUT6
+    { TIM8,  IO_TAG(PB8),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_10,   TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  // PWM13 - OUT5
+    { TIM8,  IO_TAG(PB9),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_10,   TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }   // PWM14 - OUT6
 #endif
 };
