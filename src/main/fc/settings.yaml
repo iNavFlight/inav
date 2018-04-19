@@ -1647,6 +1647,8 @@ groups:
       - name: tz_offset
         min: -1440
         max: 1440
+      - name: tz_automatic_dst
+        type: bool
 
   - name: PG_DISPLAY_CONFIG
     type: displayConfig_t

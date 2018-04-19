@@ -33,6 +33,7 @@
 #include "drivers/time.h"
 
 #define UNIX_REFERENCE_YEAR 1970
+#define UNIX_REFERENCE_DOW 3
 #define MILLIS_PER_SECOND 1000
 
 // rtcTime_t when the system was started.
@@ -51,6 +52,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(timeConfig_t, timeConfig, PG_TIME_CONFIG, 0);
 
 PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
     .tz_offset = 0,
+    .tz_automatic_dst = false,
 );
 
 static rtcTime_t dateTimeToRtcTime(dateTime_t *dt)
@@ -120,14 +122,26 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
            (dateTime->millis <= 999);
 }
 
-static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, int16_t minutes)
+static bool isDST(rtcTime_t t) {
+    dateTime_t dateTime;
+    rtcTimeToDateTime(&dateTime, t);
+    if (dateTime.month < 3 || dateTime.month > 11) { return false; }
+    if (dateTime.month > 3 && dateTime.month < 11) { return true; }
+    uint8_t dow = (uint8_t) (((t / MILLIS_PER_SECOND) / 86400) + UNIX_REFERENCE_DOW) % 7;
+    int previousSunday = dateTime.day - dow;
+    if (dateTime.month == 3) { return previousSunday >= 8; }
+    return previousSunday <= 0;
+}
+
+static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, int16_t minutes, bool automatic_dst)
 {
     rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
     rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + minutes * 60, rtcTimeGetMillis(&initialTime));
+    if (automatic_dst && isDST(offsetTime)) { offsetTime += 3600; }
     rtcTimeToDateTime(dateTimeOffset, offsetTime);
 }
 
-static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
+static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset, bool automatic_dst)
 {
     dateTime_t local;
 
@@ -139,7 +153,7 @@ static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset)
     if (offset != 0) {
         tz_hours = offset / 60;
         tz_minutes = ABS(offset % 60);
-        dateTimeWithOffset(&local, dateTime, offset);
+        dateTimeWithOffset(&local, dateTime, offset, automatic_dst);
         dateTime = &local;
     }
 
@@ -176,17 +190,17 @@ uint16_t rtcTimeGetMillis(rtcTime_t *t)
 
 bool dateTimeFormatUTC(char *buf, dateTime_t *dt)
 {
-    return dateTimeFormat(buf, dt, 0);
+    return dateTimeFormat(buf, dt, 0, false);
 }
 
 bool dateTimeFormatLocal(char *buf, dateTime_t *dt)
 {
-    return dateTimeFormat(buf, dt, timeConfig()->tz_offset);
+    return dateTimeFormat(buf, dt, timeConfig()->tz_offset, timeConfig()->tz_automatic_dst);
 }
 
 void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime)
 {
-    dateTimeWithOffset(localDateTime, utcDateTime, timeConfig()->tz_offset);
+    dateTimeWithOffset(localDateTime, utcDateTime, timeConfig()->tz_offset, timeConfig()->tz_automatic_dst);
 }
 
 bool dateTimeSplitFormatted(char *formatted, char **date, char **time)
