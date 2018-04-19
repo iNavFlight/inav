@@ -253,19 +253,22 @@ static int digitCount(int32_t value)
 }
 
 /**
- * Aligns text to the left side. Adds spaces at the end to keep string length unchainged.
+ * Aligns text to the left side. Adds spaces at the end to keep string length unchanged.
  */
 static void osdLeftAlignString(char *buff)
 {
-  int sp = 0;
-  int ch = 0;
-  int len = strlen(buff);
-  while (buff[sp] == ' ')
-    sp++;
-  for (ch = 0; ch < (len - sp); ch++)
-    buff[ch] = buff[ch + sp];
-  for (sp = ch; sp < len; sp++)
-    buff[sp] = ' ';
+    int sp = 0;
+    int ch = 0;
+    int len = strlen(buff);
+    while (buff[sp] == ' ') {
+        sp++;
+    }
+    for (ch = 0; ch < (len - sp); ch++) {
+        buff[ch] = buff[ch + sp];
+    }
+    for (sp = ch; sp < len; sp++) {
+        buff[sp] = ' ';
+    }
 }
 
 /**
