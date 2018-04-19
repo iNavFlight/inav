@@ -33,7 +33,6 @@
 #include "drivers/time.h"
 
 #define UNIX_REFERENCE_YEAR 1970
-#define UNIX_REFERENCE_DOW 3
 #define MILLIS_PER_SECOND 1000
 
 // rtcTime_t when the system was started.
@@ -53,6 +52,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(timeConfig_t, timeConfig, PG_TIME_CONFIG, 1);
 PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
     .tz_offset = 0,
     .tz_automatic_dst = false,
+    .tz_dst_country = DST_EU,
 );
 
 static rtcTime_t dateTimeToRtcTime(dateTime_t *dt)
@@ -122,15 +122,69 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
            (dateTime->millis <= 999);
 }
 
+static int lastSundayOfMonth(int currentYear, int wantedMonth) {
+    int days[] = {31,29,31,30,31,30,31,31,30,31,30,31};
+	int m, y = currentYear, w;
+    days[1] -= (y % 4) || (!(y % 100) && (y % 400));
+    w = y * 365 + (y - 1) / 4 - (y - 1) / 100 + (y - 1) / 400 + 6;
+
+	for(m = 0; m < 12; m++) {
+		w = (w + days[m]) % 7;
+        if (m == wantedMonth - 1) {
+            return days[m] + (w < 5 ? -2 : 5) - w;
+        }
+	}
+    return 0;
+}
+
+static int nthSundayOfMonth(int lastSunday, int nth) {
+    while (lastSunday > 7 * nth) {
+        lastSunday -= 7;
+    }
+    return lastSunday;
+}
+
 static bool isDST(rtcTime_t t) {
     dateTime_t dateTime;
     rtcTimeToDateTime(&dateTime, t);
-    if (dateTime.month < 3 || dateTime.month > 11) { return false; }
-    if (dateTime.month > 3 && dateTime.month < 11) { return true; }
-    uint8_t dow = (uint8_t) (((t / MILLIS_PER_SECOND) / 86400) + UNIX_REFERENCE_DOW) % 7;
-    int previousSunday = dateTime.day - dow;
-    if (dateTime.month == 3) { return previousSunday >= 8; }
-    return previousSunday <= 0;
+    int lastSunday;
+    switch (timeConfig()->tz_dst_country) {
+        case DST_USA: // begins at 2:00 a.m. on the second Sunday of March and ends at 2:00 a.m. on the first Sunday of November
+            if (dateTime.month < 3 || dateTime.month > 11) { return false; }
+            if (dateTime.month > 3 && dateTime.month < 11) { return true; }
+            lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
+            if (dateTime.month == 3) {
+                int secondSunday = nthSundayOfMonth(lastSunday, 2);
+                if (dateTime.day == secondSunday) {
+                    return dateTime.hours >= 2;
+                }
+                return dateTime.day > secondSunday;
+            }
+            if (dateTime.month == 11) {
+                int firstSunday = nthSundayOfMonth(lastSunday, 1);
+                if (dateTime.day == firstSunday) {
+                    return dateTime.hours < 2;
+                }
+                return dateTime.day < firstSunday;
+            }
+            break;
+        case DST_EU: // begins at 1:00 a.m. on the last Sunday of March and ends at 1:00 a.m. on the last Sunday of October
+            if (dateTime.month < 3 || dateTime.month > 10) { return false; }
+            if (dateTime.month > 3 && dateTime.month < 10) { return true; }
+            lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
+            if (dateTime.day < lastSunday) { return !(dateTime.month == 3); }
+            if (dateTime.day > lastSunday) { return !(dateTime.month == 3); }
+            if (dateTime.day == lastSunday) {
+                if (dateTime.month == 3) {
+                    return dateTime.hours >= 1;
+                }
+                if (dateTime.month == 10) {
+                    return dateTime.hours < 1;
+                }
+            }
+            break;
+    }
+    return false;
 }
 
 static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, int16_t minutes, bool automatic_dst)

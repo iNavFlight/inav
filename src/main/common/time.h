@@ -39,9 +39,15 @@ typedef uint32_t timeUs_t;
 
 static inline timeDelta_t cmpTimeUs(timeUs_t a, timeUs_t b) { return (timeDelta_t)(a - b); }
 
+typedef enum {
+    DST_EU,
+    DST_USA,
+} tz_dst_country_e;
+
 typedef struct timeConfig_s {
     int16_t tz_offset; // Offset from UTC in minutes, might be positive or negative
     bool tz_automatic_dst; // Automatically handle DST or ignore it
+    tz_dst_country_e tz_dst_country;
 } timeConfig_t;
 
 PG_DECLARE(timeConfig_t, timeConfig);

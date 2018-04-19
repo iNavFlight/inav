@@ -411,6 +411,7 @@ Re-apply any new defaults as desired.
 |  airspeed_adc_channel        |  -  | ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't have a dedicated connector for analog airspeed sensor will default to 0 |
 |  tz_offset  | 0 | Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs |
 |  tz_automatic_dst  | OFF | Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it |
+|  tz_dst_country  | EU | Country to use for DST calculations, presets are given for either EU or USA. If you live outside this areas it is suggested to disable automatic handling of DST (`tz_automatic_dst` = OFF) and manage `tz_offset` by yourself |
 
 This Markdown table is made by MarkdwonTableMaker addon for google spreadsheet.
 Original Spreadsheet used to make this table can be found here https://docs.google.com/spreadsheets/d/1ubjYdMGmZ2aAMUNYkdfe3hhIF7wRfIjcuPOi_ysmp00/edit?usp=sharing
