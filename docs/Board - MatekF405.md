@@ -84,7 +84,6 @@ Soft serial is available as an alternative to a hardware UART on RX4/TX4. By def
 * Enable soft serial
 * Do not assign any function to hardware UART 4
 * Assign the desired function to the soft-serial port
-* Enable inversion if required `set telemetry_inversion = ON` (e.g. for Frsky telemetry)
 
 ### USB
 

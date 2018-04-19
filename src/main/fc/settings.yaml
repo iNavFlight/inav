@@ -1308,7 +1308,7 @@ groups:
     members:
       - name: telemetry_switch
         type: bool
-      - name: telemetry_inversion
+      - name: telemetry_inverted
         type: bool
       - name: frsky_default_latitude
         field: gpsNoFixLatitude
@@ -1352,9 +1352,6 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
-      - name: telemetry_halfduplex
-        field: halfDuplex
-        type: bool
 
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t

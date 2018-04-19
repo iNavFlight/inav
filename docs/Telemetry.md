@@ -36,19 +36,19 @@ Smartport uses _57600bps_ serial speed.
 
 ### Direct connection for F3/F7
 
-Only TX serial pin has to be connected to Smartport receiver. Enable the telemetry inversion setting.
+Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry_inverted`.
 
 ```
-set telemetry_inversion = ON
+set telemetry_inverted = OFF
 set smartport_uart_unidir = OFF
 ```
 
 ### Receiver univerted hack
 
-Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport signal. In this case connect uninverted signal to TX pad of chosen serial port
+Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport signal. In this case connect uninverted signal to TX pad of chosen serial port and enable `telemetry_inverted`.
 
 ```
-set telemetry_inversion = OFF
+set telemetry_inverted = ON
 set smartport_uart_unidir = OFF
 ```
 
@@ -57,7 +57,7 @@ set smartport_uart_unidir = OFF
 Software emulated serial port allows to connect to Smartport receivers without any hacks. Only `TX` has to be connected to the receiver.
 
 ```
-set telemetry_inversion = ON
+set telemetry_inverted = OFF
 ```
 
 If solution above is not working, there is an alternative RX and TX lines have to be bridged using
@@ -68,7 +68,7 @@ SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
 ```
 
 ```
-set telemetry_inversion = ON
+set telemetry_inverted = OFF
 ```
 
 ### SmartPort (S.Port) with external hardware inverter
@@ -87,7 +87,7 @@ When external inverter is used, following configuration has to be applied:
 
 ```
 set smartport_uart_unidir = ON
-set telemetry_inversion = OFF
+set telemetry_inverted = ON
 ```
 
 ### Available SmartPort (S.Port) sensors
@@ -132,15 +132,15 @@ FrSky telemetry is transmit only and just requires a single connection from the 
 FrSky telemetry signals are inverted.  To connect a INAV capable board to an FrSKy receiver you have some options.
 
 1. A hardware inverter - Built in to some flight controllers.
-2. Use software serial and enable frsky_inversion.
-3. Use a flight controller that has software configurable hardware inversion (e.g. STM32F30x).
+2. Use software serial.
+3. Use a flight controller that has software configurable hardware inversion (e.g. F3 or F7).
 
 For 1, just connect your inverter to a usart or software serial port.
 
 For 2 and 3 use the CLI command as follows:
 
 ```
-set telemetry_inversion = ON
+set telemetry_inverted = OFF
 ```
 
 ### Precision setting for VFAS

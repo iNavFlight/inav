@@ -37,5 +37,4 @@ void targetConfiguration(void)
     mixerConfigMutable()->mixerMode = MIXER_AIRPLANE;   // default mixer to Airplane
 
     serialConfigMutable()->portConfigs[7].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    telemetryConfigMutable()->telemetry_inversion = 1;
 }
