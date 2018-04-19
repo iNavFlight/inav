@@ -105,7 +105,6 @@ bool mpuGyroReadScratchpad(gyroDev_t *gyro)
         gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[0] << 8) | ctx->gyroRaw[1]);
         gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[2] << 8) | ctx->gyroRaw[3]);
         gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[4] << 8) | ctx->gyroRaw[5]);
-
         return true;
     }
 

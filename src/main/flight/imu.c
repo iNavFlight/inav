@@ -386,24 +386,27 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     quaternionInitFromVector(&deltaQ, &vTheta);
     const float thetaMagnitudeSq = vectorNormSquared(&vTheta);
 
-    // Calculate quaternion delta:
-    // Theta is a axis/angle rotation. Direction of a vector is axis, magnitude is angle/2.
-    // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
-    // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
-    // then we can safely use the "low angle" approximated version without loss of accuracy.
-    if (thetaMagnitudeSq < sqrtf(24.0f * 1e-6f)) {
-        quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
-        deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
-    }
-    else {
-        const float thetaMagnitude = sqrtf(thetaMagnitudeSq);
-        quaternionScale(&deltaQ, &deltaQ, sin_approx(thetaMagnitude) / thetaMagnitude);
-        deltaQ.q0 = cos_approx(thetaMagnitude);
-    }
+    // If calculated rotation is zero - don't update quaternion
+    if (thetaMagnitudeSq >= 1e-20) {
+        // Calculate quaternion delta:
+        // Theta is a axis/angle rotation. Direction of a vector is axis, magnitude is angle/2.
+        // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
+        // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
+        // then we can safely use the "low angle" approximated version without loss of accuracy.
+        if (thetaMagnitudeSq < sqrtf(24.0f * 1e-6f)) {
+            quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
+            deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
+        }
+        else {
+            const float thetaMagnitude = sqrtf(thetaMagnitudeSq);
+            quaternionScale(&deltaQ, &deltaQ, sin_approx(thetaMagnitude) / thetaMagnitude);
+            deltaQ.q0 = cos_approx(thetaMagnitude);
+        }
 
-    // Calculate final orientation and renormalize
-    quaternionMultiply(&orientation, &orientation, &deltaQ);
-    quaternionNormalize(&orientation, &orientation);
+        // Calculate final orientation and renormalize
+        quaternionMultiply(&orientation, &orientation, &deltaQ);
+        quaternionNormalize(&orientation, &orientation);
+    }
 
     // Check for invalid quaternion
     imuCheckAndResetOrientationQuaternion(accBF);
