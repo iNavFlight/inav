@@ -51,8 +51,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(timeConfig_t, timeConfig, PG_TIME_CONFIG, 1);
 
 PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
     .tz_offset = 0,
-    .tz_automatic_dst = false,
-    .tz_dst_country = DST_EU,
+    .tz_automatic_dst = TZ_AUTO_DST_OFF,
 );
 
 static rtcTime_t dateTimeToRtcTime(dateTime_t *dt)
@@ -122,6 +121,7 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
            (dateTime->millis <= 999);
 }
 
+#if defined(RTC_AUTOMATIC_DST)
 static int lastSundayOfMonth(int currentYear, int wantedMonth) {
     int days[] = {31,29,31,30,31,30,31,31,30,31,30,31};
 	int m, y = currentYear, w;
@@ -148,8 +148,8 @@ static bool isDST(rtcTime_t t) {
     dateTime_t dateTime;
     rtcTimeToDateTime(&dateTime, t);
     int lastSunday;
-    switch (timeConfig()->tz_dst_country) {
-        case DST_USA: // begins at 2:00 a.m. on the second Sunday of March and ends at 2:00 a.m. on the first Sunday of November
+    switch ((tz_automatic_dst_e) timeConfig()->tz_automatic_dst) {
+        case TZ_AUTO_DST_USA: // begins at 2:00 a.m. on the second Sunday of March and ends at 2:00 a.m. on the first Sunday of November
             if (dateTime.month < 3 || dateTime.month > 11) { return false; }
             if (dateTime.month > 3 && dateTime.month < 11) { return true; }
             lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
@@ -168,7 +168,7 @@ static bool isDST(rtcTime_t t) {
                 return dateTime.day < firstSunday;
             }
             break;
-        case DST_EU: // begins at 1:00 a.m. on the last Sunday of March and ends at 1:00 a.m. on the last Sunday of October
+        case TZ_AUTO_DST_EU: // begins at 1:00 a.m. on the last Sunday of March and ends at 1:00 a.m. on the last Sunday of October
             if (dateTime.month < 3 || dateTime.month > 10) { return false; }
             if (dateTime.month > 3 && dateTime.month < 10) { return true; }
             lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
@@ -186,12 +186,15 @@ static bool isDST(rtcTime_t t) {
     }
     return false;
 }
+#endif
 
 static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, int16_t minutes, bool automatic_dst)
 {
     rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
     rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + minutes * 60, rtcTimeGetMillis(&initialTime));
+    #if defined(RTC_AUTOMATIC_DST)
     if (automatic_dst && isDST(offsetTime)) { offsetTime += 3600; }
+    #endif
     rtcTimeToDateTime(dateTimeOffset, offsetTime);
 }
 

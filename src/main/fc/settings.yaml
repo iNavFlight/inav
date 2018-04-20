@@ -90,9 +90,9 @@ tables:
   - name: smartport_fuel_unit
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
-  - name: tz_dst_country
-    values: ["EU", "USA"]
-    enum: tz_dst_country_e
+  - name: tz_automatic_dst
+    values: ["OFF", "EU", "USA"]
+    enum: tz_automatic_dst_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1651,9 +1651,6 @@ groups:
         min: -1440
         max: 1440
       - name: tz_automatic_dst
-        type: bool
-      - name: tz_dst_country
-        table: tz_dst_country
         type: uint8_t
 
   - name: PG_DISPLAY_CONFIG
