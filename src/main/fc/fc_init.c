@@ -550,9 +550,7 @@ void init(void)
 
     flashLedsAndBeep();
 
-#ifdef USE_DTERM_NOTCH
     pidInitFilters();
-#endif
 
     imuInit();
 
