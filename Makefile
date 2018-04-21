@@ -24,6 +24,9 @@ OPTIONS   ?=
 # Debugger optons, must be empty or GDB
 DEBUG     ?=
 
+# Build suffix
+BUILD_SUFFIX ?=
+
 # Serial port/Device for flashing
 SERIAL_DEVICE   ?= $(firstword $(wildcard /dev/ttyUSB*) no-port-found)
 
@@ -130,6 +133,8 @@ FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk 
 FC_VER_PATCH := $(shell grep " FC_VERSION_PATCH" src/main/build/version.h | awk '{print $$3}' )
 
 FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
+
+BUILD_DATE = $(shell date +%Y%m%d)
 
 # Search path for sources
 VPATH           := $(SRC_DIR):$(SRC_DIR)/startup
@@ -258,8 +263,14 @@ CPPCHECK        = cppcheck $(CSOURCES) --enable=all --platform=unix64 \
 #
 # Things we will build
 #
+ifeq ($(BUILD_SUFFIX),)
 TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).bin
 TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).hex
+else
+TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(BUILD_SUFFIX).bin
+TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(BUILD_SUFFIX).hex
+endif
+
 TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf
 TARGET_OBJS     = $(addsuffix .o,$(addprefix $(OBJECT_DIR)/$(TARGET)/,$(basename $(TARGET_SRC))))
 TARGET_DEPS     = $(addsuffix .d,$(addprefix $(OBJECT_DIR)/$(TARGET)/,$(basename $(TARGET_SRC))))
@@ -350,7 +361,7 @@ targets-group-4: $(GROUP_4_TARGETS)
 ## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
 targets-group-rest: $(GROUP_OTHER_TARGETS)
 
-## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
+## targets-group-rest: build targets specified in release-targets list
 release: $(RELEASE_TARGETS)
 
 $(VALID_TARGETS):
