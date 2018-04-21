@@ -175,6 +175,7 @@ VPATH           := $(VPATH):$(TARGET_DIR)
 .DEFAULT_GOAL   := hex
 
 include $(ROOT)/make/source.mk
+include $(ROOT)/make/release.mk
 
 ###############################################################################
 # Things that might need changing to use different tools
@@ -349,6 +350,9 @@ targets-group-4: $(GROUP_4_TARGETS)
 ## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
 targets-group-rest: $(GROUP_OTHER_TARGETS)
 
+## targets-group-rest: build the rest of the targets (not listed in group 1, 2 or 3)
+release: $(RELEASE_TARGETS)
+
 $(VALID_TARGETS):
 	$(V0) echo "" && \
 	echo "Building $@" && \
@@ -436,6 +440,7 @@ targets:
 	$(V0) @echo "targets-group-3:    $(GROUP_3_TARGETS)"
 	$(V0) @echo "targets-group-4:    $(GROUP_4_TARGETS)"
 	$(V0) @echo "targets-group-rest: $(GROUP_OTHER_TARGETS)"
+	$(V0) @echo "Release targets:    $(RELEASE_TARGETS)"
 
 ## test              : run the cleanflight test suite
 test:
