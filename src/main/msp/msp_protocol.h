@@ -242,6 +242,9 @@
 
 #define MSP_DISPLAYPORT                 182
 
+#define MSP_SET_TX_INFO                 186 // in message           Used to send runtime information from TX lua scripts to the firmware
+#define MSP_TX_INFO                     187 // out message          Used by TX lua scripts to read information from the firmware
+
 //
 // Multwii original MSP commands
 //

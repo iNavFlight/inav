@@ -61,7 +61,6 @@ void targetConfiguration(void)
     
     gyroConfigMutable()->looptime = 1000;
     gyroConfigMutable()->gyroSync = 1;
-    gyroConfigMutable()->gyroSyncDenominator = 8;
     gyroConfigMutable()->gyro_lpf = 0;              // 256 Hz
     gyroConfigMutable()->gyro_soft_lpf_hz = 90;
     gyroConfigMutable()->gyro_soft_notch_hz_1 = 150;

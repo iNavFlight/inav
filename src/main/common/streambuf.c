@@ -20,6 +20,13 @@
 
 #include "streambuf.h"
 
+sbuf_t *sbufInit(sbuf_t *sbuf, uint8_t *ptr, uint8_t *end)
+{
+    sbuf->ptr = ptr;
+    sbuf->end = end;
+    return sbuf;
+}
+
 void sbufWriteU8(sbuf_t *dst, uint8_t val)
 {
     *dst->ptr++ = val;

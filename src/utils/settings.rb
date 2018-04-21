@@ -633,7 +633,7 @@ class Generator
     def compile_test_file(prog)
         buf = StringIO.new
         # cstddef for offsetof()
-        headers = ["target.h", "platform.h", "cstddef"]
+        headers = ["platform.h", "target.h", "cstddef"]
         @data["groups"].each do |group|
             gh = group["headers"]
             if gh

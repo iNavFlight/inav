@@ -4,7 +4,7 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "FAKE"]
+    values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
     values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X", "UIB"]
@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "PWM", "PPM", "SERIAL", "MSP", "SPI", "UIB"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "SUMH", "XB-B", "XB-B-RJ01", "IBUS", "JETIEXBUS", "CRSF", "FPORT"]
   - name: rx_spi_protocol
     values: ["V202_250K", "V202_1M", "SYMA_X", "SYMA_X5C", "CX10", "CX10A", "H8_3D", "INAV", "ELERES"]
     enum: rx_spi_protocol_e
@@ -69,7 +69,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL", "FLOW_RAW","ALWAYS"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "RFIND", "RFIND_Q", "PITOT", "AGL", "FLOW_RAW", "SBUS", "FPORT", "ALWAYS"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -101,10 +101,6 @@ groups:
       - name: gyro_sync
         field: gyroSync
         type: bool
-      - name: gyro_sync_denom
-        field: gyroSyncDenominator
-        min: 1
-        max: 32
       - name: align_gyro
         field: gyro_align
         type: uint8_t
@@ -135,7 +131,7 @@ groups:
         field: gyro_soft_notch_cutoff_2
         condition: USE_GYRO_NOTCH_2
         min: 1
-        max: 500
+        max: 500 
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -264,6 +260,18 @@ groups:
         condition: USE_DUAL_MAG
         min: 0
         max: 1
+      - name: align_mag_roll
+        field: rollDeciDegrees
+        min: -1800
+        max: 3600
+      - name: align_mag_pitch
+        field: pitchDeciDegrees
+        min: -1800
+        max: 3600
+      - name: align_mag_yaw
+        field: yawDeciDegrees
+        min: -1800
+        max: 3600
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t
@@ -327,7 +335,7 @@ groups:
       - name: serialrx_provider
         condition: USE_SERIAL_RX
         table: serial_rx
-      - name: sbus_inversion
+      - name: serialrx_inverted
         condition: USE_SERIAL_RX
         type: bool
       - name: rx_spi_protocol
@@ -352,7 +360,6 @@ groups:
         max: PWM_PULSE_MAX
       - name: serialrx_halfduplex
         field: halfDuplex
-        condition: STM32F4
         type: bool
 
   - name: PG_BLACKBOX_CONFIG
@@ -382,11 +389,11 @@ groups:
     members:
       - name: min_throttle
         field: minthrottle
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: max_throttle
         field: maxthrottle
-        min: PWM_RANGE_ZERO
+        min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: min_command
         field: mincommand
@@ -606,6 +613,10 @@ groups:
         field: throttle.pa_breakpoint
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
+      - name: fw_tpa_time_constant
+        field: throttle.fixedWingTauMs
+        min: 0
+        max: 5000
       - name: rc_expo
         field: stabilized.rcExpo8
         min: 0
@@ -1297,7 +1308,7 @@ groups:
     members:
       - name: telemetry_switch
         type: bool
-      - name: telemetry_inversion
+      - name: telemetry_inverted
         type: bool
       - name: frsky_default_latitude
         field: gpsNoFixLatitude
@@ -1318,7 +1329,7 @@ groups:
       - name: frsky_vfas_precision
         min: FRSKY_VFAS_PRECISION_LOW
         max: FRSKY_VFAS_PRECISION_HIGH
-      - name: frsky_vfas_cell_voltage
+      - name: report_cell_voltage
         type: bool
       - name: hott_alarm_sound_interval
         field: hottAlarmSoundInterval
@@ -1473,6 +1484,10 @@ groups:
         max: OSD_POS_MAX_CLI
       - name: osd_artificial_horizon_pos
         field: item_pos[OSD_ARTIFICIAL_HORIZON]
+        min: 0
+        max: OSD_POS_MAX_CLI
+      - name: osd_horizon_sidebars_pos
+        field: item_pos[OSD_HORIZON_SIDEBARS]
         min: 0
         max: OSD_POS_MAX_CLI
       - name: osd_current_draw_pos
@@ -1639,6 +1654,9 @@ groups:
         max: INT32_MAX
       - name: stats_total_dist
         max: INT32_MAX
+      - name: stats_total_energy
+        max: INT32_MAX
+        condition: USE_ADC
 
   - name: PG_TIME_CONFIG
     type: timeConfig_t

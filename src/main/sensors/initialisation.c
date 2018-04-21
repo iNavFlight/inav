@@ -61,8 +61,6 @@ bool sensorsAutodetect(void)
     pitotInit();
 #endif
 
-    // FIXME extract to a method to reduce dependencies, maybe move to sensors_compass.c
-    mag.magneticDeclination = 0.0f; // TODO investigate if this is actually needed if there is no mag sensor or if the value stored in the config should be used.
 #ifdef USE_MAG
     compassInit();
 #endif

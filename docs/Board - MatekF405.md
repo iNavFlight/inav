@@ -1,88 +1,91 @@
 
 # Board - MATEKSYS F405 family
 
-## Matek F405-OSD
-
-![Matek F405-OSD](http://www.mateksys.com/downloads/FC/MATEKF405-OSD.JPG)
-
-## Matek F405-AIO
-
 ![Matek F405-AIO](http://www.mateksys.com/wp-content/uploads/2017/06/F405-AIO_2.jpg)
 
-## Description
-F405+ICM20602, w/ Betaflight OSD & SD Card Slot
+### Matek F405-CTR
+http://www.mateksys.com/?portfolio=f405-ctr
 
-F405-AIO (only) exposes I2C pads for compass / baro etc.
+### Matek F405-STD
+http://www.mateksys.com/?portfolio=f405-std
+
+### Matek F405-AIO (end-of-life)
+http://www.mateksys.com/?portfolio=f405-aio
+
+### Matek F405-OSD (end-of-life)
+http://www.mateksys.com/?portfolio=f405-osd
 
 ## Firmware
 
-Due to differences on the board (I2C --- see below), there are two
-firmware variants:
+Due to differences on the board (I2C - see below), there are two firmware variants:
 
 | Board  | Firmware |
 | ------ | -------- |
-| Matek F405-AIO | inav_x.y.z_MATEKF405.hex |
+| Matek F405-AIO, STD, CTR | inav_x.y.z_MATEKF405.hex<br/>inav_x.y.z_MATEKF405_SERVOS6.hex |
 | Matek F405-OSD | inav_x.y.z_MATEKF405OSD.hex |
 
-## MCU, Sensors and Features
+## Hardware features
 
-### Hardware
-* MCU: STM32F405RGT6
-* IMU: ICM-20602(SPI)
+* MCU: STM32F405RGT6, 168MHz
+* IMU: ICM-20602 (OSD, AIO, STD), MPU6000 (CTR)
 * OSD: BetaFlight OSD w/ AT7456E chip
-* Compass & Baro: no
-* VCP: Yes
-* Hardware UARTS: 1, 2, 3, 4, 5
-* Blackbox: Micro SD Card
-* PPM/UART Shared:  UART2-RX
-* Battery Voltage Sensor: Yes
-* Current Sensor: F405-AIO, otherwise FCHUB-6S option
-* Integrated Voltage Regulator: F405-AIO, otherwise FCHUB-6S option
-* Brushed Motor Mosfets: No
-* Buttons: BOOT button
-* 6 PWM / DSHOT capable outputs
-* WS2812 Led Strip : Yes
-* Beeper : Yes
-
-### Features
-* 32K Gyro ICM-20602
-* Support Gyro sample rate 32K & PID Loop 16K
+* Baro: BMP280 (STD, CTR)
+* Compass: No
+* Blackbox: MicroSD card slot
+* VCP, UART1, UART2, UART3, UART4, UART5
 * Built in inverter for SBUS input (UART2-RX)
-* 6x DSHOT capable outputs without conflict (iNav does not implement DSHOT)
-* SD Card Slot
-* VCP, UART1, UART2, UART3, UART4 & UART5
-* w/ Anti-vibration Standoffs
-* Dedicated hardware I2C on F405-AIO, soft-I2C via USART3 on F405-OSD
+* PPM/UART Shared: UART2-RX
+* Battery Voltage Sensor
+* I2C SDA & SCL: Yes
+* LDO: 3.3V Max. 300mA
+* Current Sensor: Yes (AIO, CTR), otherwise FCHUB-6S option
+* Integrated Power Distribution Board: Yes (AIO, CTR), otherwise FCHUB-6S option
+* Integrated Voltage Regulator: 5V 2A & 9V 2A (AIO), 5V 2A (CTR), otherwise FCHUB-6S option
+* 6 PWM / DSHOT capable outputs (iNav does not implement DSHOT)
+* WS2812 Led Strip : Yes
+* Beeper: Yes
+* RSSI: Yes
+* Side-press button for BOOT(DFU) mode
+* Anti-vibration Standoffs
 
 ### I2C
 
-The F405-AIO board exposes dedicated I2C pads.
-
+The F405-AIO, STD, CTR boards expose dedicated I2C pads.
 The F405-OSD does not expose I2C. For iNav there is a software I2C provision using the USART3 pads, as:
 
 * SDA => RX3, SCL => TX3
 * Do not assign any serial function to USART3
 
-## PWM and Servos
+### PWM and Servos
 
 Due to the available hardware, please note:
 
-### Flying Wing
+#### Flying Wing
 
 * S1 : ESC
 * S2 : LEFT elevon
 * S3 : RIGHT elevon
 
-### Tricopter
+#### Tricopter
 
 * S1 : Tail Servo
 * S2 : Motor 1
 * S3 : Motor 2
 * S4 : Motor 3
 
+If you need servo connected to S6 pin while keeping motors on S1..S4 pins (e.g. camera tilt on quadcopter), please flash MATEKF405_SERVOS6 firmware.
+
 I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is not usable on hexcopter and similar.
 
-## USB
+### Soft Serial
+
+Soft serial is available as an alternative to a hardware UART on RX4/TX4. By default this is NOT inverted. In order to use this feature:
+
+* Enable soft serial
+* Do not assign any function to hardware UART 4
+* Assign the desired function to the soft-serial port
+
+### USB
 
 This board uses STM32 VCP and does _not_ use a UART when USB is connected. STM32 VCP drivers might be required on some operating systems.
 
@@ -96,21 +99,18 @@ ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ENV{ID_MM_DEVICE_IGNORE}="1"
 
 On Windows, it may be necessary to use the [Zadig](http://zadig.akeo.ie) tool to install the WinUSB driver.
 
-## Manufacturers and Distributors
-Matek Systems http://www.mateksys.com/?portfolio=f405-osd and http://www.mateksys.com/?portfolio=f405-aio
+## Manufacturer
 
-## Designers
-Matek Systems www.mateksys.com
+Matek Systems: http://www.mateksys.com/
 
-## Maintainers
-* Hardware: Matek Systems
+## Distributors
+
+http://www.mateksys.com/?page_id=1212
 
 ## FAQ & Known Issues
-
-Setup Guide Matek F405: http://f405.mateksys.com
-
-Setup Guide Matek F405-AIO: http://www.mateksys.com/?portfolio=f405-aio
 
 Rcgroups Thread Matek F405: https://www.rcgroups.com/forums/showthread.php?2889298-MATEKSYS-Flight-Controller-F405-OSD-32K-Gyro-5xUARTs-SD-Slot
 
 Rcgroups Thread Matek F405-AIO: https://www.rcgroups.com/forums/showthread.php?2912273-Matek-Flight-Controller-F405-AIO
+
+

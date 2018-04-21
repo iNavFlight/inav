@@ -76,12 +76,12 @@ static FixedWingLaunchState_t   launchState;
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 static void updateFixedWingLaunchDetector(timeUs_t currentTimeUs)
 {
-    const float swingVelocity = (ABS(imuMeasuredRotationBF.A[Z]) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.A[Y] / imuMeasuredRotationBF.A[Z]) : 0;
-    const bool isForwardAccelerationHigh = (imuMeasuredAccelBF.A[X] > navConfig()->fw.launch_accel_thresh);
+    const float swingVelocity = (ABS(imuMeasuredRotationBF.z) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
+    const bool isForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
     const bool isAircraftAlmostLevel = (calculateCosTiltAngle() >= cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
 
     const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
-    const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.A[X] > 0);
+    const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
 
     if (isBungeeLaunched || isSwingLaunched) {
         launchState.launchDetectionTimeAccum += (currentTimeUs - launchState.launchDetectorPreviousUpdate);
@@ -126,6 +126,9 @@ static void applyFixedWingLaunchIdleLogic(void)
 {
     // Until motors are started don't use PID I-term
     pidResetErrorAccumulators();
+
+    // We're not flying yet, reset TPA filter
+    pidResetTPAFilter();
 
     // Throttle control logic
     if (navConfig()->fw.launch_idle_throttle <= motorConfig()->minthrottle) {

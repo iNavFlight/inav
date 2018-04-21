@@ -45,6 +45,8 @@
 #define BUS_I2C4            I2CDEV_4
 #define BUS_I2C_EMULATED    I2CINVALID
 
+#define BUS_SCRATCHPAD_MEMORY_SIZE      (20)
+
 typedef enum {
     BUS_SPEED_INITIALIZATION = 0,
     BUS_SPEED_SLOW           = 1,
@@ -76,9 +78,11 @@ typedef enum {
     DEVHW_L3G4200,
 
     /* Combined ACC/GYRO chips */
+    DEVHW_MPU3050,
     DEVHW_MPU6000,
     DEVHW_MPU6050,
     DEVHW_MPU6500,
+    DEVHW_BMI160,
 
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
@@ -159,8 +163,9 @@ typedef struct busDevice_s {
 #endif
     } busdev;
     IO_t irqPin;                    // Device IRQ pin. Bus system will only assign IO_t object to this var. Initialization is up to device driver
-    uint32_t scratchpad;            // Memory where device driver can store persistent data. Zeroed out when initializing the device for the first time
-                                    // Useful when once device is shared between several sensors (like MPU/ICM acc-gyro sensors)
+    uint32_t scratchpad[BUS_SCRATCHPAD_MEMORY_SIZE / sizeof(uint32_t)];     // Memory where device driver can store persistent data. Zeroed out when initializing the device 
+                                                                            // for the first time. Useful when once device is shared between several sensors 
+                                                                            // (like MPU/ICM acc-gyro sensors)
 } busDevice_t;
 
 #ifdef __APPLE__
@@ -254,6 +259,7 @@ void busDeviceDeInit(busDevice_t * dev);
 
 uint32_t busDeviceReadScratchpad(const busDevice_t * dev);
 void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value);
+void * busDeviceGetScratchpadMemory(const busDevice_t * dev);
 
 void busSetSpeed(const busDevice_t * dev, busSpeed_e speed);
 

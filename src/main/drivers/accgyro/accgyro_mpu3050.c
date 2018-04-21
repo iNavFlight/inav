@@ -64,33 +64,21 @@ static void mpu3050Init(gyroDev_t *gyro)
 {
     bool ack;
     busDevice_t * busDev = gyro->busDev;
+    const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
+    gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
 
     delay(25); // datasheet page 13 says 20ms. other stuff could have been running meanwhile. but we'll be safe
 
-    ack = busWrite(busDev, MPU3050_SMPLRT_DIV, 0);
+    ack = busWrite(busDev, MPU3050_SMPLRT_DIV, config->gyroConfigValues[1]);
     if (!ack) {
         failureMode(FAILURE_ACC_INIT);
     }
 
-    busWrite(busDev, MPU3050_DLPF_FS_SYNC, MPU3050_FS_SEL_2000DPS | gyro->lpf);
+    busWrite(busDev, MPU3050_DLPF_FS_SYNC, MPU3050_FS_SEL_2000DPS | config->gyroConfigValues[0]);
     busWrite(busDev, MPU3050_INT_CFG, 0);
     busWrite(busDev, MPU3050_USER_CTRL, MPU3050_USER_RESET);
     busWrite(busDev, MPU3050_PWR_MGM, MPU3050_CLK_SEL_PLL_GX);
 }
-
-/*
-static bool mpu3050ReadTemperature(gyroDev_t *gyro, int16_t *tempData)
-{
-    uint8_t buf[2];
-    if (!gyro->mpuConfiguration.readFn(&gyro->bus, MPU3050_TEMP_OUT, 2, buf)) {
-        return false;
-    }
-
-    *tempData = 35 + ((int32_t)(buf[0] << 8 | buf[1]) + 13200) / 280;
-
-    return true;
-}
-*/
 
 static bool mpu3050GyroRead(gyroDev_t *gyro)
 {
@@ -129,7 +117,7 @@ static bool deviceDetect(busDevice_t * busDev)
 
 bool mpu3050Detect(gyroDev_t *gyro)
 {
-    gyro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MPU6000, gyro->imuSensorToUse, OWNER_MPU);
+    gyro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_MPU3050, gyro->imuSensorToUse, OWNER_MPU);
     if (gyro->busDev == NULL) {
         return false;
     }
@@ -141,7 +129,7 @@ bool mpu3050Detect(gyroDev_t *gyro)
 
     gyro->initFn = mpu3050Init;
     gyro->readFn = mpu3050GyroRead;
-    gyro->intStatusFn = mpuCheckDataReady;
+    gyro->intStatusFn = gyroCheckDataReady;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
 
     return true;

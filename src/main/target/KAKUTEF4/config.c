@@ -36,6 +36,5 @@
 void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    telemetryConfigMutable()->telemetry_inversion = true;
 }
 #endif

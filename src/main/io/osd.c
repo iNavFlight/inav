@@ -99,6 +99,12 @@
 #define METERS_PER_KILOMETER                    1000
 #define METERS_PER_MILE                         1609
 
+#define DELAYED_REFRESH_RESUME_COMMAND (checkStickPosition(THR_HI) || checkStickPosition(PIT_HI))
+
+#define SPLASH_SCREEN_DISPLAY_TIME 4000 // ms
+#define ARMED_SCREEN_DISPLAY_TIME 1500 // ms
+#define STATS_SCREEN_DISPLAY_TIME 60000 // ms
+
 #define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
 
 // Adjust OSD_MESSAGE's default position when
@@ -140,8 +146,8 @@ typedef struct osd_sidebar_s {
     uint8_t idle;
 } osd_sidebar_t;
 
-uint32_t resumeRefreshAt = 0;
-#define REFRESH_1S    (1000*1000)
+static timeUs_t resumeRefreshAt = 0;
+static bool refreshWaitForResumeCmdRelease;
 
 static bool fullRedraw = false;
 
@@ -436,7 +442,7 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
  */
 static uint16_t osdConvertRSSI(void)
 {
-    uint16_t osdRssi = rssi * 100 / 1024; // change range
+    uint16_t osdRssi = getRSSI() * 100 / 1024; // change range
     if (osdRssi >= 100) {
         osdRssi = 99;
     }
@@ -539,10 +545,12 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
             return OSD_MESSAGE_STR("THROTTLE IS NOT LOW");
-	case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
+        case ARMING_DISABLED_ROLLPITCH_NOT_CENTERED:
             return OSD_MESSAGE_STR("ROLLPITCH NOT CENTERED");
         case ARMING_DISABLED_SERVO_AUTOTRIM:
             return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
+        case ARMING_DISABLED_OOM:
+            return OSD_MESSAGE_STR("NOT ENOUGH MEMORY");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
@@ -683,7 +691,7 @@ static void osdFormatBatteryChargeSymbol(char *buff)
 
 static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *attr)
 {
-    if ((batteryState != BATTERY_NOT_PRESENT) && ((batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical)) || ((!batteryUseCapacityThresholds) && (vbat <= batteryWarningVoltage))))
+    if ((getBatteryState() != BATTERY_NOT_PRESENT) && ((batteryUsesCapacityThresholds() && (getBatteryRemainingCapacity() <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical)) || ((!batteryUsesCapacityThresholds()) && (getBatteryVoltage() <= getBatteryWarningVoltage()))))
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
 }
 
@@ -798,6 +806,16 @@ static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *side
     return decoration;
 }
 
+static bool osdIsHeadingValid(void)
+{
+    return isImuHeadingValid();
+}
+
+static int16_t osdGetHeading(void)
+{
+    return attitude.values.yaw;
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     if (!VISIBLE(osdConfig()->item_pos[item])) {
@@ -827,27 +845,27 @@ static bool osdDrawSingleElement(uint8_t item)
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
         elemAttr = TEXT_ATTRIBUTES_NONE;
-        osdFormatCentiNumber(buff, vbat, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+        osdFormatCentiNumber(buff, getBatteryVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
         strcat(buff, "V");
-        if ((batteryState != BATTERY_NOT_PRESENT) && (vbat <= batteryWarningVoltage))
+        if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
         return true;
 
     case OSD_CURRENT_DRAW:
         buff[0] = SYM_AMP;
-        osdFormatCentiNumber(buff + 1, amperage, 0, 2, 0, 3);
+        osdFormatCentiNumber(buff + 1, getAmperage(), 0, 2, 0, 3);
         break;
 
     case OSD_MAH_DRAWN:
         buff[0] = SYM_MAH;
-        tfp_sprintf(buff + 1, "%-4d", mAhDrawn);
+        tfp_sprintf(buff + 1, "%-4d", getMAhDrawn());
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
     case OSD_WH_DRAWN:
         buff[0] = SYM_WH;
-        osdFormatCentiNumber(buff + 1, mWhDrawn / 10, 0, 2, 0, 3);
+        osdFormatCentiNumber(buff + 1, getMWhDrawn() / 10, 0, 2, 0, 3);
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
@@ -856,14 +874,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
         if (batteryConfig()->capacity.value == 0)
             tfp_sprintf(buff + 1, "NA");
-        else if (!batteryFullWhenPluggedIn)
+        else if (!batteryWasFullWhenPluggedIn())
             tfp_sprintf(buff + 1, "NF");
         else if (batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MAH)
-            tfp_sprintf(buff + 1, "%-4lu", batteryRemainingCapacity);
+            tfp_sprintf(buff + 1, "%-4lu", getBatteryRemainingCapacity());
         else // batteryConfig()->capacity.unit == BAT_CAPACITY_UNIT_MWH
-            osdFormatCentiNumber(buff + 1, batteryRemainingCapacity / 10, 0, 2, 0, 3);
+            osdFormatCentiNumber(buff + 1, getBatteryRemainingCapacity() / 10, 0, 2, 0, 3);
 
-        if ((batteryState != BATTERY_NOT_PRESENT) && batteryUseCapacityThresholds && (batteryRemainingCapacity <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical))
+        if ((getBatteryState() != BATTERY_NOT_PRESENT) && batteryUsesCapacityThresholds() && (getBatteryRemainingCapacity() <= batteryConfig()->capacity.warning - batteryConfig()->capacity.critical))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
 
         break;
@@ -897,14 +915,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            int16_t h = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+            int16_t h = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
 
-            if (h < 0)
+            if (h < 0) {
                 h += 360;
-            if (h >= 360)
+            }
+            if (h >= 360) {
                 h -= 360;
+            }
 
-            h = h*2/45;
+            h = h * 2 / 45;
 
             buff[0] = SYM_ARROW_UP + h;
             buff[1] = 0;
@@ -921,13 +941,25 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         break;
 
+    case OSD_TRIP_DIST:
+        buff[0] = SYM_TRIP_DIST;
+        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance());
+        break;
+
     case OSD_HEADING:
         {
-            int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
-            if (h < 0) h+=360;
-
             buff[0] = SYM_HEADING;
-            tfp_sprintf(&buff[1], "%3d%c", h , SYM_DEGREES);
+            if (osdIsHeadingValid()) {
+                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+                if (h < 0) {
+                    h += 360;
+                }
+                tfp_sprintf(&buff[1], "%3d", h);
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = SYM_DEGREES;
+            buff[5] = '\0';
             break;
         }
     case OSD_GPS_HDOP:
@@ -984,13 +1016,13 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "AIR ";
             }
 
-            if (FLIGHT_MODE(MANUAL_MODE))
-                p = "MANU";
-            else if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            if (FLIGHT_MODE(FAILSAFE_MODE)) {
                 p = "!FS!";
-            } else if (FLIGHT_MODE(NAV_RTH_MODE))
+            } else if (FLIGHT_MODE(MANUAL_MODE)) {
+                p = "MANU";
+            } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
                 p = "RTH ";
-            else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+            } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
                     // 3D HOLD
                     p = "HOLD";
@@ -1282,7 +1314,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             // TODO: SYM_WATTS?
             buff[0] = 'W';
-            osdFormatCentiNumber(buff + 1, power, 0, 2, 0, 3);
+            osdFormatCentiNumber(buff + 1, getPower(), 0, 2, 0, 3);
             break;
         }
 
@@ -1391,7 +1423,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
-            uint16_t cellBattCentiVolts = vbat / batteryCellCount;
+            uint16_t cellBattCentiVolts = getBatteryAverageCellVoltage();
             osdFormatBatteryChargeSymbol(buff);
             buff[1] = '\0';
             osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
@@ -1399,7 +1431,7 @@ static bool osdDrawSingleElement(uint8_t item)
             elemAttr = TEXT_ATTRIBUTES_NONE;
             osdFormatCentiNumber(buff, cellBattCentiVolts, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 1);
             strcat(buff, "V");
-            if ((batteryState != BATTERY_NOT_PRESENT) && (vbat <= batteryWarningVoltage))
+            if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
             return true;
@@ -1442,14 +1474,19 @@ static bool osdDrawSingleElement(uint8_t item)
                 SYM_HEADING_W,
                 SYM_HEADING_LINE,
             };
-            int16_t h = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
-            if (h >= 180) {
-                h -= 360;
+            if (osdIsHeadingValid()) {
+                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+                if (h >= 180) {
+                    h -= 360;
+                }
+                int hh = h * 4;
+                hh = hh + 720 + 45;
+                hh = hh / 90;
+                memcpy_fn(buff, graph + hh + 1, 9);
+            } else {
+                buff[0] = buff[2] = buff[4] = buff[6] = buff[8] = SYM_HEADING_LINE;
+                buff[1] = buff[3] = buff[5] = buff[7] = SYM_HEADING_DIVIDED_LINE;
             }
-            int hh = h * 4;
-            hh = hh + 720 + 45;
-            hh = hh / 90;
-            memcpy_fn(buff, graph + hh + 1, 9);
             buff[9] = '\0';
             break;
         }
@@ -1466,7 +1503,7 @@ static bool osdDrawSingleElement(uint8_t item)
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                    value = pt1FilterApply4(&eFilterState, ((float)amperage / gpsSol.groundSpeed) / 0.0036f,
+                    value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                         1, efficiencyTimeDelta * 1e-6f);
 
                     efficiencyUpdated = currentTimeUs;
@@ -1497,7 +1534,7 @@ static bool osdDrawSingleElement(uint8_t item)
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                    value = pt1FilterApply4(&eFilterState, ((float)power / gpsSol.groundSpeed) / 0.0036f,
+                    value = pt1FilterApply4(&eFilterState, ((float)getPower() / gpsSol.groundSpeed) / 0.0036f,
                         1, efficiencyTimeDelta * 1e-6f);
 
                     efficiencyUpdated = currentTimeUs;
@@ -1536,8 +1573,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
-        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
-            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
+        if (elementIndex == OSD_TRIP_DIST) {
+            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1551,8 +1588,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_HDOP) {
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
-        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
-            STATIC_ASSERT(OSD_EFFICIENCY_WH_PER_KM == OSD_ITEM_COUNT - 1, OSD_EFFICIENCY_MWH_PER_KM_not_last_element);
+        if (elementIndex == OSD_TRIP_DIST) {
+            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
             elementIndex = OSD_ITEM_COUNT;
         }
     }
@@ -1578,6 +1615,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[OSD_RSSI_VALUE] = OSD_POS(23, 0) | VISIBLE_FLAG;
     //line 2
     osdConfig->item_pos[OSD_HOME_DIST] = OSD_POS(1, 1);
+    osdConfig->item_pos[OSD_TRIP_DIST] = OSD_POS(1, 2);
     osdConfig->item_pos[OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[OSD_GPS_SPEED] = OSD_POS(23, 1);
 
@@ -1645,6 +1683,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->main_voltage_decimals = 1;
 }
 
+static void osdSetNextRefreshIn(uint32_t timeMs) {
+    resumeRefreshAt = micros() + timeMs * 1000;
+    refreshWaitForResumeCmdRelease = true;
+}
+
 void osdInit(displayPort_t *osdDisplayPortToUse)
 {
     if (!osdDisplayPortToUse)
@@ -1673,23 +1716,49 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 #endif
 
 #ifdef USE_STATS
+#define STATS_LABEL_X_POS 4
+#define STATS_VALUE_X_POS 24
     if (statsConfig()->stats_enabled) {
-        displayWrite(osdDisplayPort, 3, ++y, "ODOMETER:");
+        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "ODOMETER:");
         if (osdConfig()->units == OSD_UNIT_IMPERIAL) {
-            tfp_sprintf(string_buffer, "%d MI", statsConfig()->stats_total_dist / METERS_PER_MILE);
+            tfp_sprintf(string_buffer, "%5d", statsConfig()->stats_total_dist / METERS_PER_MILE);
+            string_buffer[5] = SYM_MI;
         } else {
-            tfp_sprintf(string_buffer, "%d KM", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+            tfp_sprintf(string_buffer, "%5d", statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+            string_buffer[5] = SYM_KM;
         }
-        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+        string_buffer[6] = '\0';
+        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+
+        displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL TIME:");
         uint32_t tot_mins = statsConfig()->stats_total_time / 60;
-        tfp_sprintf(string_buffer, "%d:%02d H", tot_mins / 60, tot_mins % 60);
-        displayWrite(osdDisplayPort, 13, y++,  string_buffer);
+        tfp_sprintf(string_buffer, "%2d:%02dHM", tot_mins / 60, tot_mins % 60);
+        displayWrite(osdDisplayPort, STATS_VALUE_X_POS-5, y,  string_buffer);
+
+#ifdef USE_ADC
+        if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
+            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "TOTAL ENERGY:");
+            osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4);
+            strcat(string_buffer, "\xAB"); // SYM_WH
+            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-4, y,  string_buffer);
+
+            displayWrite(osdDisplayPort, STATS_LABEL_X_POS, ++y, "AVG EFFICIENCY:");
+            if (statsConfig()->stats_total_dist) {
+                uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
+                osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
+            } else
+                strcpy(string_buffer, "---");
+            string_buffer[3] = SYM_WH_KM_0;
+            string_buffer[4] = SYM_WH_KM_1;
+            string_buffer[5] = '\0';
+            displayWrite(osdDisplayPort, STATS_VALUE_X_POS-3, y,  string_buffer);
+        }
+#endif // USE_ADC
     }
 #endif
 
     displayResync(osdDisplayPort);
-
-    resumeRefreshAt = micros() + (4 * REFRESH_1S);
+    osdSetNextRefreshIn(SPLASH_SCREEN_DISPLAY_TIME);
 }
 
 static void osdResetStats(void)
@@ -1715,14 +1784,15 @@ static void osdUpdateStats(void)
             stats.max_distance = GPS_distanceToHome;
     }
 
-    if (stats.min_voltage > vbat)
-        stats.min_voltage = vbat;
+    value = getBatteryVoltage();
+    if (stats.min_voltage > value)
+        stats.min_voltage = value;
 
-    value = abs(amperage / 100);
+    value = abs(getAmperage() / 100);
     if (stats.max_current < value)
         stats.max_current = value;
 
-    value = abs(power / 100);
+    value = abs(getPower() / 100);
     if (stats.max_power < value)
         stats.max_power = value;
 
@@ -1787,10 +1857,10 @@ static void osdShowStats(void)
 
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
             displayWrite(osdDisplayPort, statNameX, top, "USED MAH         :");
-            tfp_sprintf(buff, "%d%c", mAhDrawn, SYM_MAH);
+            tfp_sprintf(buff, "%d%c", getMAhDrawn(), SYM_MAH);
         } else {
             displayWrite(osdDisplayPort, statNameX, top, "USED WH          :");
-            osdFormatCentiNumber(buff, mWhDrawn / 10, 0, 2, 0, 3);
+            osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
             strcat(buff, "\xAB"); // SYM_WH
         }
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
@@ -1799,10 +1869,10 @@ static void osdShowStats(void)
         if (totalDistance > 0) {
             displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
             if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH)
-                tfp_sprintf(buff, "%d%c%c", mAhDrawn * 100000 / totalDistance,
+                tfp_sprintf(buff, "%d%c%c", getMAhDrawn() * 100000 / totalDistance,
                     SYM_MAH_KM_0, SYM_MAH_KM_1);
             else {
-                osdFormatCentiNumber(buff, mWhDrawn * 10000 / totalDistance, 0, 2, 0, 3);
+                osdFormatCentiNumber(buff, getMWhDrawn() * 10000 / totalDistance, 0, 2, 0, 3);
                 buff[3] = SYM_WH_KM_0;
                 buff[4] = SYM_WH_KM_1;
                 buff[5] = '\0';
@@ -1868,10 +1938,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
         if (ARMING_FLAG(ARMED)) {
             osdResetStats();
             osdShowArmed(); // reset statistic etc
-            resumeRefreshAt = currentTimeUs + (REFRESH_1S / 2);
+            osdSetNextRefreshIn(ARMED_SCREEN_DISPLAY_TIME);
         } else {
             osdShowStats(); // show statistic
-            resumeRefreshAt = currentTimeUs + (60 * REFRESH_1S);
+            osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
         }
 
         armState = ARMING_FLAG(ARMED);
@@ -1889,10 +1959,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
         // or THR is high or PITCH is high, resume refreshing.
         // Clear the screen first to erase other elements which
         // might have been drawn while the OSD wasn't refreshing.
-        if (currentTimeUs > resumeRefreshAt ||
-            checkStickPosition(THR_HI) ||
-            checkStickPosition(PIT_HI)) {
 
+        if (!DELAYED_REFRESH_RESUME_COMMAND)
+            refreshWaitForResumeCmdRelease = false;
+
+        if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && DELAYED_REFRESH_RESUME_COMMAND)) {
             displayClearScreen(osdDisplayPort);
             resumeRefreshAt = 0;
         } else {

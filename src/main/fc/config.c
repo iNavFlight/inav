@@ -168,6 +168,7 @@ timeDelta_t getGyroUpdateRate(void)
 {
     return gyro.targetLooptime;
 }
+
 uint16_t getAccUpdateRate(void)
 {
 #ifdef USE_ASYNC_GYRO_PROCESSING
@@ -224,8 +225,14 @@ void validateAndFixConfig(void)
     // Disable unused features
     featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_2 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 );
 
-#ifdef DISABLE_RX_PWM_FEATURE
+#if defined(DISABLE_RX_PWM_FEATURE) || !defined(USE_RX_PWM)
     if (rxConfig()->receiverType == RX_TYPE_PWM) {
+        rxConfigMutable()->receiverType = RX_TYPE_NONE;
+    }
+#endif
+
+#if !defined(USE_RX_PPM)
+    if (rxConfig()->receiverType == RX_TYPE_PPM) {
         rxConfigMutable()->receiverType = RX_TYPE_NONE;
     }
 #endif
@@ -384,6 +391,11 @@ void validateAndFixConfig(void)
         motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
         break;
     }
+#endif
+
+#if !defined(USE_MPU_DATA_READY_SIGNAL)
+    gyroConfigMutable()->gyroSync = false;
+    systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
 #endif
 }
 

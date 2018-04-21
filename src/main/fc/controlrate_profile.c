@@ -33,7 +33,7 @@
 const controlRateConfig_t *currentControlRateProfile;
 
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 2);
 
 void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
 {
@@ -43,7 +43,8 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
                 .rcMid8 = 50,
                 .rcExpo8 = 0,
                 .dynPID = 0,
-                .pa_breakpoint = 1500
+                .pa_breakpoint = 1500,
+                .fixedWingTauMs = 0
             },
 
             .stabilized = {

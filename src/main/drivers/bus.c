@@ -196,12 +196,17 @@ void busSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 
 uint32_t busDeviceReadScratchpad(const busDevice_t * dev)
 {
-    return dev->scratchpad;
+    return dev->scratchpad[0];
 }
 
 void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value)
 {
-    dev->scratchpad = value;
+    dev->scratchpad[0] = value;
+}
+
+void * busDeviceGetScratchpadMemory(const busDevice_t * dev)
+{
+    return (void *)dev->scratchpad;
 }
 
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length)

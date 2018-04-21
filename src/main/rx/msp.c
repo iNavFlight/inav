@@ -52,8 +52,10 @@ void rxMspFrameReceive(uint16_t *frame, int channelCount)
     rxMspFrameDone = true;
 }
 
-uint8_t rxMspFrameStatus(void)
+static uint8_t rxMspFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     if (!rxMspFrameDone) {
         return RX_FRAME_PENDING;
     }
