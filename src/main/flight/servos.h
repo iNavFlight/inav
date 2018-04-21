@@ -19,11 +19,7 @@
 
 #include "config/parameter_group.h"
 
-#if defined(USE_QUAD_MIXER_ONLY)
-#define MAX_SUPPORTED_SERVOS 1
-#else
 #define MAX_SUPPORTED_SERVOS 8
-#endif
 
 // These must be consecutive, see 'reversedSources'
 enum {
@@ -132,8 +128,7 @@ extern int16_t servo[MAX_SUPPORTED_SERVOS];
 bool isServoOutputEnabled(void);
 bool isMixerUsingServos(void);
 void writeServos(void);
-void servoMixerLoadMix(int index);
-bool loadCustomServoMixer(void);
+void loadCustomServoMixer(void);
 int servoDirection(int servoIndex, int fromChannel);
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);

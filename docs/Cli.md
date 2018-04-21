@@ -79,7 +79,6 @@ Re-apply any new defaults as desired.
 | `help`           |                                                |
 | `led`            | configure leds                                 |
 | `map`            | mapping of rc channel order                    |
-| `mixer`          | mixer name or list                             |
 | `motor`          | get/set motor output value                     |
 | `play_sound`     | index, or none for next                        |
 | `profile`        | index (0 to 2)                                 |
@@ -414,6 +413,9 @@ Re-apply any new defaults as desired.
 |  rssi_adc_channel            |  -  | ADC channel to use for analog RSSI input. Defaults to board RSSI input (if available). 0 = disabled |
 |  current_adc_channel         |  -  | ADC channel to use for analog current sensor input. Defaults to board CURRENT sensor input (if available). 0 = disabled |
 |  airspeed_adc_channel        |  0  | ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't have a dedicated connector for analog airspeed sensor will default to 0 |
+|  platform_type        |  "MULTIROTOR"  | Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented |
+|  has_flaps        |  OFF  | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot  |
+|  mixer_preset        |  -1  | ID of mixer preset applied in a Configurator. **Do not modify manually**. Used only for backup/restore reasons.  |
 
 This Markdown table is made by MarkdwonTableMaker addon for google spreadsheet.
 Original Spreadsheet used to make this table can be found here https://docs.google.com/spreadsheets/d/1ubjYdMGmZ2aAMUNYkdfe3hhIF7wRfIjcuPOi_ysmp00/edit?usp=sharing

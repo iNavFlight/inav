@@ -90,6 +90,9 @@ tables:
   - name: smartport_fuel_unit
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
+  - name: platform_type
+    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
+    enum: flyingPlatformType_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -484,7 +487,6 @@ groups:
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
     headers: ["io/gimbal.h"]
-    condition: USE_SERVOS
     members:
       - name: gimbal_mode
         field: mode
@@ -552,6 +554,17 @@ groups:
       - name: yaw_jump_prevention_limit
         min: YAW_JUMP_PREVENTION_LIMIT_LOW
         max: YAW_JUMP_PREVENTION_LIMIT_HIGH
+      - name: platform_type
+        field: platformType
+        type: uint8_t
+        table: platform_type
+      - name: has_flaps
+        field: hasFlaps
+        type: bool
+      - name: model_preview_type
+        field: appliedMixerPreset
+        min: -1
+        max: INT16_MAX
 
   - name: PG_MOTOR_3D_CONFIG
     type: flight3DConfig_t
@@ -572,7 +585,6 @@ groups:
   - name: PG_SERVO_CONFIG
     type: servoConfig_t
     headers: ["flight/servos.h"]
-    condition: USE_SERVOS
     members:
       - name: servo_center_pulse
         field: servoCenterPulse
@@ -870,17 +882,14 @@ groups:
         max: 2
       - name: fw_iterm_throw_limit
         field: fixedWingItermThrowLimit
-        condition: USE_SERVOS
         min: FW_ITERM_THROW_LIMIT_MIN
         max: FW_ITERM_THROW_LIMIT_MAX
       - name: fw_reference_airspeed
         field: fixedWingReferenceAirspeed
-        condition: USE_SERVOS
         min: 1
         max: 5000
       - name: fw_turn_assist_yaw_gain
         field: fixedWingCoordinatedYawGain
-        condition: USE_SERVOS
         min: 0
         max: 2
       - name: dterm_notch_hz

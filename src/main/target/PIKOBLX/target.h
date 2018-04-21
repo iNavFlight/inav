@@ -67,7 +67,6 @@
 #define USE_TELEMETRY
 #define USE_BLACKBOX
 #define USE_SERIAL_RX
-#define USE_SERVOS
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC

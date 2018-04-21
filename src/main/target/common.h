@@ -21,7 +21,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_SERVOS
 #define USE_CLI
 
 #define USE_RX_PWM
@@ -120,7 +119,6 @@
 #define SKIP_TASK_STATISTICS
 #define SKIP_CLI_COMMAND_HELP
 #define SKIP_CLI_RESOURCES
-#define DISABLE_UNCOMMON_MIXERS
 #define NAV_MAX_WAYPOINTS       30
 #define MAX_BOOTLOG_ENTRIES     32
 #endif

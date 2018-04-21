@@ -345,7 +345,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     // DEPRECATED - Use MSP_API_VERSION
     case MSP_IDENT:
         sbufWriteU8(dst, MW_VERSION);
-        sbufWriteU8(dst, mixerConfig()->mixerMode);
+        sbufWriteU8(dst, 3); //We no longer have mixerMode, just sent 3 (QuadX) as fallback
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
         sbufWriteU32(dst, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | CAP_FLAPS | CAP_NAVCAP | CAP_EXTAUX); // "capability"
         break;
@@ -439,7 +439,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#ifdef USE_SERVOS
     case MSP_SERVO:
         sbufWriteData(dst, &servo, MAX_SUPPORTED_SERVOS * 2);
         break;
@@ -466,14 +465,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
         }
         break;
-#endif
-
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             sbufWriteU16(dst, customMotorMixer(i)->throttle * 1000);
-            sbufWriteU16(dst, constrainf(customMotorMixer(i)->roll + 1.0f, 0.0f, 2.0f) * 1000);
-            sbufWriteU16(dst, constrainf(customMotorMixer(i)->pitch + 1.0f, 0.0f, 2.0f) * 1000);
-            sbufWriteU16(dst, constrainf(customMotorMixer(i)->yaw + 1.0f, 0.0f, 2.0f) * 1000);
+            sbufWriteU16(dst, constrainf(customMotorMixer(i)->roll + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, constrainf(customMotorMixer(i)->pitch + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, constrainf(customMotorMixer(i)->yaw + 2.0f, 0.0f, 4.0f) * 1000);
         }
         break;
 
@@ -824,7 +821,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_MIXER:
-        sbufWriteU8(dst, mixerConfig()->mixerMode);
+        sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
         break;
 
     case MSP_RX_CONFIG:
@@ -870,7 +867,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BF_CONFIG:
-        sbufWriteU8(dst, mixerConfig()->mixerMode);
+        sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
 
         sbufWriteU32(dst, featureMask());
 
@@ -1009,11 +1006,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 1);    // BF: motorConfig()->useUnsyncedPwm
         sbufWriteU8(dst, motorConfig()->motorPwmProtocol);
         sbufWriteU16(dst, motorConfig()->motorPwmRate);
-#ifdef USE_SERVOS
         sbufWriteU16(dst, servoConfig()->servoPwmRate);
-#else
-        sbufWriteU16(dst, 0);
-#endif
         sbufWriteU8(dst, gyroConfig()->gyroSync);
         break;
 
@@ -1300,6 +1293,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU32(dst, 0);
 #endif
+        break;
+
+    case MSP2_INAV_MIXER:
+        sbufWriteU8(dst, mixerConfig()->yaw_motor_direction);
+        sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
+        sbufWriteU8(dst, mixerConfig()->platformType);
+        sbufWriteU8(dst, mixerConfig()->hasFlaps);
+        sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
+        sbufWriteU8(dst, MAX_SUPPORTED_MOTORS);
+        sbufWriteU8(dst, MAX_SUPPORTED_SERVOS);
         break;
 
     default:
@@ -1651,7 +1654,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
-#ifdef USE_SERVOS
     case MSP_SET_SERVO_CONFIGURATION:
         if (dataSize != (1 + 14)) {
             return MSP_RESULT_ERROR;
@@ -1671,9 +1673,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             servoComputeScalingFactors(tmp_u8);
         }
         break;
-#endif
 
-#ifdef USE_SERVOS
     case MSP_SET_SERVO_MIX_RULE:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize >= 8) && (tmp_u8 < MAX_SERVO_RULES)) {
@@ -1687,15 +1687,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-#endif
 
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_SUPPORTED_MOTORS)) {
             customMotorMixerMutable(tmp_u8)->throttle = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 1.0f);
-            customMotorMixerMutable(tmp_u8)->roll = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 2.0f) - 1.0f;
-            customMotorMixerMutable(tmp_u8)->pitch = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 2.0f) - 1.0f;
-            customMotorMixerMutable(tmp_u8)->yaw = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 2.0f) - 1.0f;
+            customMotorMixerMutable(tmp_u8)->roll = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
+            customMotorMixerMutable(tmp_u8)->pitch = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
+            customMotorMixerMutable(tmp_u8)->yaw = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -1743,11 +1742,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);    // BF: motorConfig()->useUnsyncedPwm
             motorConfigMutable()->motorPwmProtocol = sbufReadU8(src);
             motorConfigMutable()->motorPwmRate = sbufReadU16(src);
-#ifdef USE_SERVOS
             servoConfigMutable()->servoPwmRate = sbufReadU16(src);
-#else
-            sbufReadU16(src);
-#endif
             gyroConfigMutable()->gyroSync = sbufReadU8(src);
         } else
             return MSP_RESULT_ERROR;
@@ -2175,15 +2170,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
-#ifndef USE_QUAD_MIXER_ONLY
     case MSP_SET_MIXER:
         if (dataSize >= 1) {
-            mixerConfigMutable()->mixerMode = sbufReadU8(src);
+            sbufReadU8(src); //This is ignored, no longer supporting mixerMode
             mixerUpdateStateFlags();    // Required for correct preset functionality
         } else
             return MSP_RESULT_ERROR;
         break;
-#endif
 
     case MSP_SET_RX_CONFIG:
         if (dataSize >= 24) {
@@ -2244,12 +2237,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_BF_CONFIG:
         if (dataSize >= 16) {
-#ifdef USE_QUAD_MIXER_ONLY
-            sbufReadU8(src); // mixerMode ignored
-#else
-            mixerConfigMutable()->mixerMode = sbufReadU8(src); // mixerMode
+            sbufReadU8(src); // mixerMode no longer supported, just swallow
             mixerUpdateStateFlags();    // Required for correct preset functionality
-#endif
 
             featureClearAll();
             featureSet(sbufReadU32(src)); // features bitmap
@@ -2387,6 +2376,17 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             timeConfigMutable()->tz_offset = (int16_t)sbufReadU16(src);
         else
             return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_INAV_SET_MIXER:
+        mixerConfigMutable()->yaw_motor_direction = sbufReadU8(src);
+        mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
+        mixerConfigMutable()->platformType = sbufReadU8(src);
+        mixerConfigMutable()->hasFlaps = sbufReadU8(src);
+        mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
+        sbufReadU8(src); //Read and ignore MAX_SUPPORTED_MOTORS
+        sbufReadU8(src); //Read and ignore MAX_SUPPORTED_SERVOS
+        mixerUpdateStateFlags();
         break;
 
     default:

@@ -199,7 +199,6 @@ void initActiveBoxIds(void)
 #endif
     }
 
-#ifdef USE_SERVOS
     /*
      * FLAPERON mode active only in case of airplane and custom airplane. Activating on
      * flying wing can cause bad thing
@@ -207,7 +206,6 @@ void initActiveBoxIds(void)
     if (STATE(FLAPERON_AVAILABLE)) {
         activeBoxIds[activeBoxIdCount++] = BOXFLAPERON;
     }
-#endif
 
     activeBoxIds[activeBoxIdCount++] = BOXBEEPERON;
 

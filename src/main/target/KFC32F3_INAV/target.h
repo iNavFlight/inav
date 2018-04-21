@@ -136,7 +136,6 @@
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    10
 #define TARGET_MOTOR_COUNT      10
-#define USE_SERVOS
 
 // IO - stm32f303cc in 48pin package
 #define TARGET_IO_PORTA         0xffff
