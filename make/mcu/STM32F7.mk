@@ -153,6 +153,7 @@ MCU_COMMON_SRC = \
             drivers/timer_stm32f7xx.c \
             drivers/system_stm32f7xx.c \
             drivers/serial_uart_stm32f7xx.c \
+            drivers/serial_softserial.c \
             drivers/serial_uart_hal.c
 
 MCU_EXCLUDES = \

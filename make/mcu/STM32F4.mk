@@ -40,6 +40,9 @@ TARGET_FLASH    := 512
 else ifeq ($(TARGET),$(filter $(TARGET), $(F446_TARGETS)))
 EXCLUDES        += stm32f4xx_fsmc.c
 TARGET_FLASH    := 512
+else ifeq ($(TARGET),$(filter $(TARGET), $(F427_TARGETS)))
+EXCLUDES        += stm32f4xx_fsmc.c
+TARGET_FLASH    := 1024
 else
 TARGET_FLASH    := 1024
 endif
