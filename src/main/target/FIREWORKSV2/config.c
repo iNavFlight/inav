@@ -22,16 +22,13 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
-
 #include <platform.h>
 
-#ifdef USE_TARGET_CONFIG
-
-#include "io/serial.h"
+#ifdef TARGET_CONFIG
+#include "drivers/io.h"
 #include "rx/rx.h"
-#include "telemetry/telemetry.h"
+#include "io/serial.h"
 
 void targetConfiguration(void)
 {

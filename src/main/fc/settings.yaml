@@ -134,7 +134,7 @@ groups:
         field: gyro_soft_notch_cutoff_2
         condition: USE_GYRO_NOTCH_2
         min: 1
-        max: 500
+        max: 500 
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0
@@ -1317,7 +1317,7 @@ groups:
     members:
       - name: telemetry_switch
         type: bool
-      - name: telemetry_inversion
+      - name: telemetry_inverted
         type: bool
       - name: frsky_default_latitude
         field: gpsNoFixLatitude
@@ -1361,9 +1361,6 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
-      - name: telemetry_halfduplex
-        field: halfDuplex
-        type: bool
 
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
@@ -1666,6 +1663,9 @@ groups:
         max: INT32_MAX
       - name: stats_total_dist
         max: INT32_MAX
+      - name: stats_total_energy
+        max: INT32_MAX
+        condition: USE_ADC
 
   - name: PG_TIME_CONFIG
     type: timeConfig_t

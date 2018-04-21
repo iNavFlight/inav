@@ -492,7 +492,7 @@ void init(void)
         adc_params.adcFunctionChannel[ADC_CURRENT] =  adcChannelConfig()->adcFunctionChannel[ADC_CURRENT];
     }
 
-#if defined(USE_PITOT) && defined(USE_PITOT_ADC)
+#if defined(USE_PITOT) && defined(USE_ADC) && defined(USE_PITOT_ADC)
     if (pitotmeterConfig()->pitot_hardware == PITOT_ADC || pitotmeterConfig()->pitot_hardware == PITOT_AUTODETECT) {
         adc_params.adcFunctionChannel[ADC_AIRSPEED] = adcChannelConfig()->adcFunctionChannel[ADC_AIRSPEED];
     }

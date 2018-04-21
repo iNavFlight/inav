@@ -22,19 +22,22 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
-
 #include <platform.h>
 
-#ifdef USE_TARGET_CONFIG
-
-#include "io/serial.h"
+#ifdef TARGET_CONFIG
+#include "drivers/io.h"
+#include "drivers/pwm_output.h"
+#include "flight/mixer.h"
 #include "rx/rx.h"
-#include "telemetry/telemetry.h"
+#include "io/serial.h"
 
 void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
+    motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
+    motorConfigMutable()->motorPwmRate = 4000;
+    motorConfigMutable()->minthrottle = 1075;
+    motorConfigMutable()->maxthrottle = 1950;
 }
 #endif

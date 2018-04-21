@@ -152,7 +152,11 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_RPM) {
         return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT
-        return sendIbusMeasurement2(address, getBatteryVoltage());
+        if (telemetryConfig()->report_cell_voltage) {
+            return sendIbusMeasurement2(address, getBatteryAverageCellVoltage());
+        } else {
+            return sendIbusMeasurement2(address, getBatteryVoltage());
+        }
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_CURRENT) { //CURR in 10*mA, 1 = 10 mA
         if (feature(FEATURE_CURRENT_METER)) return sendIbusMeasurement2(address, (uint16_t) getAmperage()); //int32_t
         else return sendIbusMeasurement2(address, 0);
@@ -174,8 +178,11 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
 #endif
         return sendIbusMeasurement2(address, 0);
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_ARMED) { //motorArmed
-        if (ARMING_FLAG(ARMED)) return sendIbusMeasurement2(address, 0);
-        else return sendIbusMeasurement2(address, 1);
+        if ((telemetryConfig()->ibusTelemetryType & 0x7F) < 8) {
+            return sendIbusMeasurement2(address, ARMING_FLAG(ARMED) ? 0 : 1);
+        } else { 
+            return sendIbusMeasurement2(address, ARMING_FLAG(ARMED) ? 1 : 0);
+        }
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_MODE) {
         uint16_t flightMode = flightModeToIBusTelemetryMode2[getFlightModeForTelemetry()];
         return sendIbusMeasurement2(address, flightMode);

@@ -22,19 +22,18 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
-
 #include <platform.h>
 
-#ifdef USE_TARGET_CONFIG
-
-#include "io/serial.h"
+#ifdef TARGET_CONFIG
+#include "drivers/io.h"
 #include "rx/rx.h"
-#include "telemetry/telemetry.h"
+#include "io/serial.h"
+#include "io/ledstrip.h"
 
 void targetConfiguration(void)
 {
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
+    ledStripConfigMutable()->ledConfigs[0] = DEFINE_LED(0, 0, COLOR_GREEN, 0, LED_FUNCTION_ARM_STATE, LED_FLAG_OVERLAY(LED_OVERLAY_WARNING), 0);
+    // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
 }
 #endif

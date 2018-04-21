@@ -85,7 +85,7 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
     },
 
     .current = {
-        .offset = 0,
+        .offset = CURRENT_METER_OFFSET,
         .scale = CURRENT_METER_SCALE,
         .type = CURRENT_SENSOR_ADC
     },

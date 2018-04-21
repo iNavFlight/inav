@@ -22,19 +22,32 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <platform.h>
+#include "drivers/io.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/timer.h"
+#include "drivers/bus.h"
 
-#ifdef USE_TARGET_CONFIG
+#define DEF_TIM_CHNL_CH1    TIM_Channel_1
+#define DEF_TIM_CHNL_CH2    TIM_Channel_2
+#define DEF_TIM_CHNL_CH3    TIM_Channel_3
+#define DEF_TIM_CHNL_CH4    TIM_Channel_4
 
-#include "io/serial.h"
-#include "rx/rx.h"
-#include "telemetry/telemetry.h"
+#define DEF_TIM(_tim, _ch, _pin, _usage, _flags) \
+    { _tim, IO_TAG(_pin), DEF_TIM_CHNL_##_ch, _flags, IOCFG_AF_PP, GPIO_AF_##_tim, _usage }
 
-void targetConfiguration(void)
-{
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-}
-#endif
+
+const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+    DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM,       0), // PPM
+
+    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,   1), // S1_OUT
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,   1), // S2_OUT
+    DEF_TIM(TIM9, CH2, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,   1), // S3_OUT
+    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,   1), // S4_OUT
+
+    DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED,        0), // LED strip
+
+    DEF_TIM(TIM1, CH2, PA9, TIM_USE_ANY,        0), // SS1
+};

@@ -29,6 +29,10 @@
 #define CURRENT_METER_SCALE 400 // for Allegro ACS758LCB-100U (40mV/A)
 #endif
 
+#ifndef CURRENT_METER_OFFSET
+#define CURRENT_METER_OFFSET 0
+#endif
+
 typedef enum {
     CURRENT_SENSOR_NONE = 0,
     CURRENT_SENSOR_ADC,
