@@ -87,8 +87,7 @@ VPATH       := $(VPATH):$(USBOTG_DIR)/src:$(USBCORE_DIR)/src:$(USBCDC_DIR)/src
 DEVICE_STDPERIPH_SRC := $(STDPERIPH_SRC) \
                         $(USBOTG_SRC) \
                         $(USBCORE_SRC) \
-                        $(USBCDC_SRC) \
-                        $(USBMSC_SRC)
+                        $(USBCDC_SRC)
 endif
 
 #CMSIS
