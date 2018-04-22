@@ -31,6 +31,7 @@
 typedef enum
 {
     OME_Label,
+    OME_LabelFunc, // bool func(char *buf, unsigned bufsize) - returns wether buf should be printed
     OME_Back,
     OME_OSD_Exit,
     OME_Submenu,
@@ -64,7 +65,7 @@ typedef struct
     const char * const text;
     const OSD_MenuElement type;
     const CMSEntryFuncPtr func;
-    void *data;
+    const void * const data;
     uint8_t flags;
 } OSD_Entry;
 
@@ -73,6 +74,30 @@ typedef struct
 #define PRINT_LABEL    (1 << 1)  // Text label should be printed
 #define DYNAMIC        (1 << 2)  // Value should be updated dynamically
 #define OPTSTRING      (1 << 3)  // (Temporary) Flag for OME_Submenu, indicating func should be called to get a string to display.
+#define READONLY       (1 << 4)  // Indicates that the value is read-only and p->data points directly to it - applies to [U]INT(8|16)
+
+#define OSD_LABEL_ENTRY(label)                  ((OSD_Entry){ label, OME_Label, NULL, NULL, 0 })
+#define OSD_LABEL_DATA_ENTRY(label, data)       ((OSD_Entry){ label, OME_Label, NULL, data, 0 })
+#define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, OME_Label, NULL, data, DYNAMIC })
+#define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, OME_LabelFunc, NULL, fn, DYNAMIC })
+#define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", OME_Back, NULL, NULL, 0 })
+#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, cmsMenuChange, menu, 0 })
+#define OSD_FUNC_CALL_ENTRY(label, fn)          ((OSD_Entry){ label, OME_Funcall, fn, NULL, 0 })
+#define OSD_BOOL_ENTRY(label, val)              ((OSD_Entry){ label, OME_Bool, NULL, val, 0 })
+#define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, OME_BoolFunc, NULL, fn, 0 })
+#define OSD_UINT8_ENTRY(label, val)             ((OSD_Entry){ label, OME_UINT8, NULL, val, 0 })
+#define OSD_UINT8_CALLBACK_ENTRY(label, cb, val)((OSD_Entry){ label, OME_UINT8, cb, val, 0 })
+#define OSD_UINT16_ENTRY(label, val)            ((OSD_Entry){ label, OME_UINT16, NULL, val, 0 })
+#define OSD_UINT16_DYN_ENTRY(label, val)        ((OSD_Entry){ label, OME_UINT16, NULL, val, DYNAMIC })
+#define OSD_UINT16_RO_ENTRY(label, val)         ((OSD_Entry){ label, OME_UINT16, NULL, val, DYNAMIC | READONLY })
+#define OSD_INT16_DYN_ENTRY(label, val)         ((OSD_Entry){ label, OME_INT16, NULL, val, DYNAMIC })
+#define OSD_INT16_RO_ENTRY(label, val)          ((OSD_Entry){ label, OME_INT16, NULL, val, DYNAMIC | READONLY })
+#define OSD_STRING_ENTRY(label, str)            ((OSD_Entry){ label, OME_String, NULL, str, 0 })
+#define OSD_TAB_ENTRY(label, val)               ((OSD_Entry){ label, OME_TAB, NULL, val, 0 })
+#define OSD_TAB_DYN_ENTRY(label, val)           ((OSD_Entry){ label, OME_TAB, NULL, val, DYNAMIC })
+#define OSD_TAB_CALLBACK_ENTRY(label, cb, val)  ((OSD_Entry){ label, OME_TAB, cb, val, 0 })
+
+#define OSD_END_ENTRY                           ((OSD_Entry){ NULL, OME_END, NULL, NULL, 0 })
 
 // Data type for OME_Setting. Uses upper 4 bits
 // of flags, leaving 16 data types.
@@ -83,16 +108,6 @@ typedef enum {
 
 // Use a function and data type to make sure switches are exhaustive
 static inline CMSDataType_e CMS_DATA_TYPE(const OSD_Entry *entry) { return entry->flags & 0xF0; }
-
-#define IS_PRINTVALUE(p) ((p)->flags & PRINT_VALUE)
-#define SET_PRINTVALUE(p) { (p)->flags |= PRINT_VALUE; }
-#define CLR_PRINTVALUE(p) { (p)->flags &= ~PRINT_VALUE; }
-
-#define IS_PRINTLABEL(p) ((p)->flags & PRINT_LABEL)
-#define SET_PRINTLABEL(p) { (p)->flags |= PRINT_LABEL; }
-#define CLR_PRINTLABEL(p) { (p)->flags &= ~PRINT_LABEL; }
-
-#define IS_DYNAMIC(p) ((p)->flags & DYNAMIC)
 
 typedef long (*CMSMenuFuncPtr)(void);
 
@@ -118,7 +133,7 @@ typedef struct
     const CMSMenuFuncPtr onEnter;
     const CMSMenuOnExitPtr onExit;
     const CMSMenuFuncPtr onGlobalExit;
-    OSD_Entry *entries;
+    const OSD_Entry *entries;
 } CMS_Menu;
 
 typedef struct
@@ -167,7 +182,7 @@ typedef struct OSD_SETTING_s {
     const uint8_t step;
 } __attribute__((packed)) OSD_SETTING_t;
 
-#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, OME_Setting, NULL, &(OSD_SETTING_t){ setting, step }, type }
+#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, OME_Setting, NULL, &(const OSD_SETTING_t){ setting, step }, type }
 #define OSD_SETTING_ENTRY_TYPE(name, setting, type)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, 0, type)
 #define OSD_SETTING_ENTRY_STEP(name, setting, step)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, 0)
 #define OSD_SETTING_ENTRY(name, setting)                        OSD_SETTING_ENTRY_STEP(name, setting, 0)

@@ -81,8 +81,10 @@ static uint16_t rxUIBReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfigPtr, uint
     }
 }
 
-static uint8_t rxUIBFrameStatus(void)
+static uint8_t rxUIBFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     if (!uavInterconnectBusIsInitialized()) {
         return RX_FRAME_FAILSAFE;
     }

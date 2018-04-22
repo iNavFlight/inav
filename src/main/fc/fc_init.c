@@ -32,6 +32,7 @@
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/printf.h"
+#include "common/memory.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -48,7 +49,6 @@
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
 #include "drivers/gpio.h"
-#include "drivers/gyro_sync.h"
 #include "drivers/inverter.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
@@ -71,7 +71,6 @@
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/vcd.h"
-#include "drivers/gyro_sync.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/io_pca9685.h"
@@ -246,8 +245,6 @@ void init(void)
     // Early initialize USB hardware
     usbVcpInitHardware();
 #endif
-
-    delay(500);
 
     timerInit();  // timer must be initialized before any channel is allocated
 
@@ -499,7 +496,7 @@ void init(void)
         adc_params.adcFunctionChannel[ADC_CURRENT] =  adcChannelConfig()->adcFunctionChannel[ADC_CURRENT];
     }
 
-#if defined(USE_PITOT) && defined(USE_PITOT_ADC)
+#if defined(USE_PITOT) && defined(USE_ADC) && defined(USE_PITOT_ADC)
     if (pitotmeterConfig()->pitot_hardware == PITOT_ADC || pitotmeterConfig()->pitot_hardware == PITOT_AUTODETECT) {
         adc_params.adcFunctionChannel[ADC_AIRSPEED] = adcChannelConfig()->adcFunctionChannel[ADC_AIRSPEED];
     }
@@ -508,8 +505,10 @@ void init(void)
     adcInit(&adc_params);
 #endif
 
-    /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
 #if defined(USE_GPS) || defined(USE_MAG)
+    delay(500);
+
+    /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
     if (!isMPUSoftReset()) {
         addBootlogEvent2(BOOT_EVENT_EXTRA_BOOT_DELAY, BOOT_EVENT_FLAGS_NONE);
 

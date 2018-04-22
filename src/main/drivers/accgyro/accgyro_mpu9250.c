@@ -28,7 +28,6 @@
 #include "drivers/time.h"
 #include "drivers/exti.h"
 #include "drivers/gpio.h"
-#include "drivers/gyro_sync.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
@@ -55,12 +54,13 @@ bool mpu9250AccDetect(accDev_t *acc)
         return false;
     }
 
-    if (busDeviceReadScratchpad(acc->busDev) != 0xFFFF9250) {
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
+    if (ctx->chipMagicNumber != 0x9250) {
         return false;
     }
 
     acc->initFn = mpu9250AccInit;
-    acc->readFn = mpuAccRead;
+    acc->readFn = mpuAccReadScratchpad;
 
     return true;
 }
@@ -68,7 +68,10 @@ bool mpu9250AccDetect(accDev_t *acc)
 static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * dev = gyro->busDev;
-    mpuIntExtiInit(gyro);
+    const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
+    gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
+
+    gyroIntExtiInit(gyro);
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
@@ -84,18 +87,16 @@ static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, MPU_RA_PWR_MGMT_1, INV_CLK_PLL);
     delay(15);
 
-    const uint8_t raGyroConfigData = gyro->gyroRateKHz > GYRO_RATE_8_kHz ? (INV_FSR_2000DPS << 3 | FCB_3600_32) : (INV_FSR_2000DPS << 3 | FCB_DISABLED);
-
-    busWrite(dev, MPU_RA_GYRO_CONFIG, raGyroConfigData);
+    busWrite(dev, MPU_RA_GYRO_CONFIG, INV_FSR_2000DPS << 3 | FCB_DISABLED);
     delay(15);
 
     busWrite(dev, MPU_RA_ACCEL_CONFIG, INV_FSR_8G << 3);
     delay(15);
 
-    busWrite(dev, MPU_RA_CONFIG, gyro->lpf);
+    busWrite(dev, MPU_RA_CONFIG, config->gyroConfigValues[0]);
     delay(15);
 
-    busWrite(dev, MPU_RA_SMPLRT_DIV, gyroMPU6xxxGetDividerDrops(gyro)); // Get Divider
+    busWrite(dev, MPU_RA_SMPLRT_DIV, config->gyroConfigValues[1]);
     delay(100);
 
     // Data ready interrupt configuration
@@ -154,11 +155,14 @@ bool mpu9250GyroDetect(gyroDev_t *gyro)
         return false;
     }
 
-    busDeviceWriteScratchpad(gyro->busDev, 0xFFFF9250);    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+    // Magic number for ACC detection to indicate that we have detected MPU6000 gyro
+    mpuContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
+    ctx->chipMagicNumber = 0x9250;
 
     gyro->initFn = mpu9250AccAndGyroInit;
-    gyro->readFn = mpuGyroRead;
-    gyro->intStatusFn = mpuCheckDataReady;
+    gyro->readFn = mpuGyroReadScratchpad;
+    gyro->intStatusFn = gyroCheckDataReady;
+    gyro->temperatureFn = mpuTemperatureReadScratchpad;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
 
     return true;

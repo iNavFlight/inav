@@ -372,8 +372,10 @@ static void jetiExBusDataReceive(uint16_t c, void *rxCallbackData)
 
 
 // Check if it is time to read a frame from the data...
-uint8_t jetiExBusFrameStatus(void)
+static uint8_t jetiExBusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     if (jetiExBusFrameState != EXBUS_STATE_RECEIVED)
         return RX_FRAME_PENDING;
 
@@ -521,10 +523,10 @@ void handleJetiExBusTelemetry(void)
         }
 
         if ((jetiExBusRequestFrame[EXBUS_HEADER_DATA_ID] == EXBUS_EX_REQUEST) && (calcCRC16(jetiExBusRequestFrame, jetiExBusRequestFrame[EXBUS_HEADER_MSG_LEN]) == 0)) {
-            jetiExSensors[EX_VOLTAGE].value = vbat / 10;
-            jetiExSensors[EX_CURRENT].value = amperage;
+            jetiExSensors[EX_VOLTAGE].value = getBatteryVoltage() / 10;
+            jetiExSensors[EX_CURRENT].value = getAmperage();
             jetiExSensors[EX_ALTITUDE].value = baro.BaroAlt;
-            jetiExSensors[EX_CAPACITY].value = mAhDrawn;
+            jetiExSensors[EX_CAPACITY].value = getMAhDrawn();
             jetiExSensors[EX_FRAMES_LOST].value = framesLost;
             jetiExSensors[EX_TIME_DIFF].value = timeDiff;
 

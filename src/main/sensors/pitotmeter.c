@@ -42,9 +42,9 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 
-pitot_t pitot;
-
 #ifdef USE_PITOT
+
+pitot_t pitot;
 
 static timeMs_t pitotCalibrationTimeout = 0;
 static bool pitotCalibrationFinished = false;
@@ -88,7 +88,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             FALLTHROUGH;
 
         case PITOT_ADC:
-#if defined(USE_PITOT_ADC)
+#if defined(USE_ADC) && defined(USE_PITOT_ADC)
             if (adcPitotDetect(dev)) {
                 pitotHardware = PITOT_ADC;
                 break;

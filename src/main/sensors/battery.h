@@ -29,6 +29,10 @@
 #define CURRENT_METER_SCALE 400 // for Allegro ACS758LCB-100U (40mV/A)
 #endif
 
+#ifndef CURRENT_METER_OFFSET
+#define CURRENT_METER_OFFSET 0
+#endif
+
 typedef enum {
     CURRENT_SENSOR_NONE = 0,
     CURRENT_SENSOR_ADC,
@@ -74,26 +78,27 @@ typedef enum {
     BATTERY_NOT_PRESENT
 } batteryState_e;
 
-extern uint16_t vbat;
-extern uint16_t vbatRaw;
-extern uint16_t vbatLatestADC;
-extern uint8_t batteryCellCount;
-extern uint16_t batteryCriticalVoltage;
-extern uint16_t batteryWarningVoltage;
-extern uint16_t amperageLatestADC;
-extern int32_t amperage;
-extern int32_t power;
-extern int32_t mAhDrawn;
-extern int32_t mWhDrawn;
-extern uint32_t batteryRemainingCapacity;
-extern bool batteryUseCapacityThresholds;
-extern bool batteryFullWhenPluggedIn;
-extern batteryState_e batteryState;
-
 uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
+bool batteryWasFullWhenPluggedIn(void);
+bool batteryUsesCapacityThresholds(void);
 void batteryUpdate(uint32_t vbatTimeDelta);
 void batteryInit(void);
+
+bool isBatteryVoltageConfigured(void);
+uint16_t getBatteryVoltage(void);
+uint16_t getBatteryVoltageLatestADC(void);
+uint16_t getBatteryWarningVoltage(void);
+uint8_t getBatteryCellCount(void);
+uint16_t getBatteryAverageCellVoltage(void);
+uint32_t getBatteryRemainingCapacity(void);
+
+bool isAmperageConfigured(void);
+int32_t getAmperage(void);
+int32_t getAmperageLatestADC(void);
+int32_t getPower(void);
+int32_t getMAhDrawn(void);
+int32_t getMWhDrawn(void);
 
 void currentMeterUpdate(int32_t lastUpdateAt);
 

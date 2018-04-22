@@ -54,22 +54,22 @@
 
 
 // Battery monitoring stuff
-uint8_t batteryCellCount = 3;       // cell count
-uint16_t batteryFullVoltage;
-uint16_t batteryWarningVoltage;
-uint16_t batteryCriticalVoltage;
-uint32_t batteryRemainingCapacity = 0;
-bool batteryUseCapacityThresholds = false;
-bool batteryFullWhenPluggedIn = false;
+static uint8_t batteryCellCount = 3;       // cell count
+static uint16_t batteryFullVoltage;
+static uint16_t batteryWarningVoltage;
+static uint16_t batteryCriticalVoltage;
+static uint32_t batteryRemainingCapacity = 0;
+static bool batteryUseCapacityThresholds = false;
+static bool batteryFullWhenPluggedIn = false;
 
-uint16_t vbat = 0;                   // battery voltage in 0.1V steps (filtered)
-uint16_t vbatLatestADC = 0;         // most recent unsmoothed raw reading from vbat ADC
-uint16_t amperageLatestADC = 0;     // most recent raw reading from current ADC
+static uint16_t vbat = 0;                   // battery voltage in 0.1V steps (filtered)
+static uint16_t vbatLatestADC = 0;          // most recent unsmoothed raw reading from vbat ADC
+static uint16_t amperageLatestADC = 0;      // most recent raw reading from current ADC
 
-int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
-int32_t power = 0;                  // power draw in cW (0.01W resolution)
-int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
-int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn from the battery since start
+static int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
+static int32_t power = 0;                  // power draw in cW (0.01W resolution)
+static int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
+static int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn from the battery since start
 
 batteryState_e batteryState;
 
@@ -85,7 +85,7 @@ PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
     },
 
     .current = {
-        .offset = 0,
+        .offset = CURRENT_METER_OFFSET,
         .scale = CURRENT_METER_SCALE,
         .type = CURRENT_SENSOR_ADC
     },
@@ -108,8 +108,8 @@ uint16_t batteryAdcToVoltage(uint16_t src)
 
 int32_t currentSensorToCentiamps(uint16_t src)
 {
-    int32_t millivolts = ((uint32_t)src * ADCVREF) / 0xFFF - batteryConfig()->current.offset;
-    return millivolts * 1000 / batteryConfig()->current.scale; // current in 0.01A steps
+    int32_t microvolts = ((uint32_t)src * ADCVREF * 1000) / 0xFFF - (int32_t)batteryConfig()->current.offset * 1000;
+    return microvolts / batteryConfig()->current.scale; // current in 0.01A steps
 }
 
 void batteryInit(void)
@@ -224,17 +224,95 @@ batteryState_e getBatteryState(void)
     return batteryState;
 }
 
+bool batteryWasFullWhenPluggedIn(void)
+{
+    return batteryFullWhenPluggedIn;
+}
+
+bool batteryUsesCapacityThresholds(void)
+{
+    return batteryUseCapacityThresholds;
+}
+
+bool isBatteryVoltageConfigured(void)
+{
+    return feature(FEATURE_VBAT);
+}
+
+uint16_t getBatteryVoltage(void)
+{
+    return vbat;
+}
+
+uint16_t getBatteryVoltageLatestADC(void)
+{
+    return vbatLatestADC;
+}
+
+uint16_t getBatteryWarningVoltage(void)
+{
+    return batteryWarningVoltage;
+}
+
+uint8_t getBatteryCellCount(void)
+{
+    return batteryCellCount;
+}
+
+uint16_t getBatteryAverageCellVoltage(void)
+{
+    if (batteryCellCount > 0) {
+        return vbat / batteryCellCount;
+    }
+    return 0;
+}
+
+uint32_t getBatteryRemainingCapacity(void)
+{
+    return batteryRemainingCapacity;
+}
+
+bool isAmperageConfigured(void)
+{
+    return batteryConfig()->current.type != CURRENT_SENSOR_NONE;
+}
+
+int32_t getAmperage(void)
+{
+    return amperage;
+}
+
+int32_t getAmperageLatestADC(void)
+{
+    return amperageLatestADC;
+}
+
+int32_t getPower(void)
+{
+    return power;
+}
+
+int32_t getMAhDrawn(void)
+{
+    return mAhDrawn;
+}
+
+int32_t getMWhDrawn(void)
+{
+    return mWhDrawn;
+}
+
+
 void currentMeterUpdate(int32_t timeDelta)
 {
     static pt1Filter_t amperageFilterState;
     static int64_t mAhdrawnRaw = 0;
-    uint16_t amperageSample;
 
     switch (batteryConfig()->current.type) {
         case CURRENT_SENSOR_ADC:
-            amperageSample = adcGetChannel(ADC_CURRENT);
-            amperageSample = pt1FilterApply4(&amperageFilterState, amperageSample, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
-            amperage = currentSensorToCentiamps(amperageSample);
+            amperageLatestADC = adcGetChannel(ADC_CURRENT);
+            amperageLatestADC = pt1FilterApply4(&amperageFilterState, amperageLatestADC, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+            amperage = currentSensorToCentiamps(amperageLatestADC);
             break;
         case CURRENT_SENSOR_VIRTUAL:
             amperage = batteryConfig()->current.offset;
@@ -268,7 +346,7 @@ uint8_t calculateBatteryPercentage(void)
     if (batteryState == BATTERY_NOT_PRESENT)
         return 0;
 
-    if (batteryFullWhenPluggedIn && (batteryConfig()->capacity.value > 0) && (batteryConfig()->capacity.critical > 0)) {
+    if (batteryFullWhenPluggedIn && feature(FEATURE_CURRENT_METER) && (batteryConfig()->capacity.value > 0) && (batteryConfig()->capacity.critical > 0)) {
         uint32_t capacityDiffBetweenFullAndEmpty = batteryConfig()->capacity.value - batteryConfig()->capacity.critical;
         return constrain(batteryRemainingCapacity * 100 / capacityDiffBetweenFullAndEmpty, 0, 100);
     } else

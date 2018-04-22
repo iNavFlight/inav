@@ -81,7 +81,6 @@
 #define LTM_CYCLETIME   100
 #define LTM_SCHEDULE_SIZE (1000/LTM_CYCLETIME)
 
-extern uint16_t rssi;           // FIXME dependency on mw.c
 static serialPort_t *ltmPort;
 static serialPortConfig_t *portConfig;
 static bool ltmEnabled;
@@ -185,9 +184,9 @@ void ltm_sframe(sbuf_t *dst)
     if (failsafeIsActive())
         lt_statemode |= 2;
     sbufWriteU8(dst, 'S');
-    sbufWriteU16(dst, vbat * 10);    //vbat converted to mv
-    sbufWriteU16(dst, (uint16_t)constrain(mAhDrawn, 0, 0xFFFF));    // current mAh (65535 mAh max)
-    sbufWriteU8(dst, (uint8_t)((rssi * 254) / 1023));        // scaled RSSI (uchar)
+    sbufWriteU16(dst, getBatteryVoltage() * 10);    //vbat converted to mv
+    sbufWriteU16(dst, (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF));    // current mAh (65535 mAh max)
+    sbufWriteU8(dst, (uint8_t)((getRSSI() * 254) / 1023));        // scaled RSSI (uchar)
 #if defined(USE_PITOT)
     sbufWriteU8(dst, sensors(SENSOR_PITOT) ? pitot.airSpeed / 100.0f : 0);  // in m/s
 #else
@@ -401,6 +400,21 @@ void initLtmTelemetry(void)
     ltmPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_LTM);
 }
 
+
+
+static void configureLtmScheduler(void)
+{
+
+    /* setup scheduler, default to 'normal' */
+    if (telemetryConfig()->ltmUpdateRate == LTM_RATE_MEDIUM)
+        ltm_schedule = ltm_medium_schedule;
+    else if (telemetryConfig()->ltmUpdateRate == LTM_RATE_SLOW)
+        ltm_schedule = ltm_slow_schedule;
+    else
+        ltm_schedule = ltm_normal_schedule;
+
+}
+
 void configureLtmTelemetryPort(void)
 {
     if (!portConfig) {
@@ -410,14 +424,6 @@ void configureLtmTelemetryPort(void)
     if (baudRateIndex == BAUD_AUTO) {
         baudRateIndex = BAUD_19200;
     }
-
-    /* setup scheduler, default to 'normal' */
-    if (telemetryConfig()->ltmUpdateRate == LTM_RATE_MEDIUM)
-        ltm_schedule = ltm_medium_schedule;
-    else if (telemetryConfig()->ltmUpdateRate == LTM_RATE_SLOW)
-        ltm_schedule = ltm_slow_schedule;
-    else
-        ltm_schedule = ltm_normal_schedule;
 
     /* Sanity check that we can support the scheduler */
     if (baudRateIndex == BAUD_2400 && telemetryConfig()->ltmUpdateRate == LTM_RATE_NORMAL)
@@ -437,14 +443,18 @@ void checkLtmTelemetryState(void)
     if (portConfig && telemetryCheckRxPortShared(portConfig)) {
         if (!ltmEnabled && telemetrySharedPort != NULL) {
             ltmPort = telemetrySharedPort;
+            configureLtmScheduler();
             ltmEnabled = true;
         }
     } else {
         bool newTelemetryEnabledValue = telemetryDetermineEnabledState(ltmPortSharing);
         if (newTelemetryEnabledValue == ltmEnabled)
             return;
-        if (newTelemetryEnabledValue)
+        if (newTelemetryEnabledValue){
+            configureLtmScheduler();
             configureLtmTelemetryPort();
+            
+    }
         else
             freeLtmTelemetryPort();
     }

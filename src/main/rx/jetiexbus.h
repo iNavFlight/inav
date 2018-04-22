@@ -18,5 +18,3 @@
 #pragma once
 
 bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
-uint8_t jetiExBusFrameStatus(void);
-

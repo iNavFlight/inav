@@ -83,8 +83,6 @@
 #define TELEMETRY_MAVLINK_MAXRATE       50
 #define TELEMETRY_MAVLINK_DELAY         ((1000 * 1000) / TELEMETRY_MAVLINK_MAXRATE)
 
-extern uint16_t rssi; // FIXME dependency on mw.c
-
 static serialPort_t *mavlinkPort = NULL;
 static serialPortConfig_t *portConfig;
 
@@ -227,9 +225,9 @@ void mavlinkSendSystemStatus(void)
         // load Maximum usage in percent of the mainloop time, (0%: 0, 100%: 1000) should be always below 1000
         0,
         // voltage_battery Battery voltage, in millivolts (1 = 1 millivolt)
-        feature(FEATURE_VBAT) ? vbat * 10 : 0,
+        feature(FEATURE_VBAT) ? getBatteryVoltage() * 10 : 0,
         // current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
-        feature(FEATURE_CURRENT_METER) ? amperage : -1,
+        feature(FEATURE_CURRENT_METER) ? getAmperage() : -1,
         // battery_remaining Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot estimate the remaining battery
         feature(FEATURE_VBAT) ? calculateBatteryPercentage() : 100,
         // drop_rate_comm Communication drops in percent, (0%: 0, 100%: 10'000), (UART, I2C, SPI, CAN), dropped packets on all links (packets that were corrupted on reception on the MAV)
@@ -272,7 +270,7 @@ void mavlinkSendRCChannelsAndRSSI(void)
         // chan8_raw RC channel 8 value, in microseconds
         (rxRuntimeConfig.channelCount >= 8) ? rcData[7] : 0,
         // rssi Receive signal strength indicator, 0: 0%, 255: 100%
-        scaleRange(rssi, 0, 1023, 0, 255));
+        scaleRange(getRSSI(), 0, 1023, 0, 255));
 
     mavlinkSendMessage();
 }

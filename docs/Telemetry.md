@@ -21,12 +21,54 @@ Smartport is a telemetry system used by newer FrSky transmitters such as the Tar
 
 More information about the implementation can be found here: https://github.com/frank26080115/cleanflight/wiki/Using-Smart-Port
 
-Smartport devices can be connected directly to STM32F3 boards such as the SPRacingF3 and Sparky, with a single straight through cable without the need for any hardware modifications on the FC or the receiver.
+Smartport devices are using _inverted_ serial protocol and as such can not be directly connected to all flight controllers. Depending on flight controller CPU family:
 
-For Smartport on F3 based boards, enable the telemetry inversion setting.
+| CPU family  | Direct connection   | Receiver _uninverted_ hack  | SoftwareSerial  | Additional hardware inverter  |
+| -----       | -----               | -----                       | -----           | -----                         |
+| STM32F1     | no possible (*)     | possible                    | possible        | possible                      |
+| STM32F3     | possible            | not required                | possible        | not required                  |
+| STM32F4     | not possible (*)    | possible                    | possible        | possible                      |
+| STM32F7     | possible            | not required                | possible        | not required                  |
+
+> * possible if flight controller has dedicated, additional, hardware inverter
+
+Smartport uses _57600bps_ serial speed.
+
+### Direct connection for F3/F7
+
+Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry_inverted`.
 
 ```
-set telemetry_inversion = ON
+set telemetry_inverted = OFF
+set smartport_uart_unidir = OFF
+```
+
+### Receiver univerted hack
+
+Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport signal. In this case connect uninverted signal to TX pad of chosen serial port and enable `telemetry_inverted`.
+
+```
+set telemetry_inverted = ON
+set smartport_uart_unidir = OFF
+```
+
+### Software Serial
+
+Software emulated serial port allows to connect to Smartport receivers without any hacks. Only `TX` has to be connected to the receiver.
+
+```
+set telemetry_inverted = OFF
+```
+
+If solution above is not working, there is an alternative RX and TX lines have to be bridged using
+1kOhm resistor (confirmed working with 100Ohm, 1kOhm and 10kOhm)
+
+```
+SmartPort ---> RX (CH5 pad) ---> 1kOhm resistor ---> TX (CH6 pad)
+```
+
+```
+set telemetry_inverted = OFF
 ```
 
 ### SmartPort (S.Port) with external hardware inverter
@@ -45,10 +87,8 @@ When external inverter is used, following configuration has to be applied:
 
 ```
 set smartport_uart_unidir = ON
-set telemetry_inversion = OFF
+set telemetry_inverted = ON
 ```
-
-This has been tested with Flip32 F4 / Airbot F4 and FrSky X4R-SB receiver.
 
 ### Available SmartPort (S.Port) sensors
 
@@ -92,15 +132,15 @@ FrSky telemetry is transmit only and just requires a single connection from the 
 FrSky telemetry signals are inverted.  To connect a INAV capable board to an FrSKy receiver you have some options.
 
 1. A hardware inverter - Built in to some flight controllers.
-2. Use software serial and enable frsky_inversion.
-3. Use a flight controller that has software configurable hardware inversion (e.g. STM32F30x).
+2. Use software serial.
+3. Use a flight controller that has software configurable hardware inversion (e.g. F3 or F7).
 
 For 1, just connect your inverter to a usart or software serial port.
 
 For 2 and 3 use the CLI command as follows:
 
 ```
-set telemetry_inversion = ON
+set telemetry_inverted = OFF
 ```
 
 ### Precision setting for VFAS
@@ -320,6 +360,8 @@ This required a receiver with new firmware that support SNR, RSSI and long frame
 
 7.This same as 6, but sensor 3 is GPS_STATUS, 10 is ARMED, 16 is MODE.
 
+8.This same as 7, but sensor 10 (ARMED) is reversed.
+
 131.This same as 3, but sensor 16 (type SPEED) is in m/s.
 
 132.This same as 4, but sensor 16 (type SPEED) is in m/s.
@@ -329,6 +371,8 @@ This required a receiver with new firmware that support SNR, RSSI and long frame
 134.This same as 6, but sensor 11 (type SPEED) is in m/s.
 
 135.This same as 7, but sensor 11 (type SPEED) is in m/s.
+
+136.This same as 8, but sensor 11 (type SPEED) is in m/s.
 
 ### RX hardware
 

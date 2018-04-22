@@ -38,9 +38,10 @@
 
 #include "navigation/navigation.h"
 
-static OSD_Entry cmsx_menuNavSettingsEntries[] =
+static const OSD_Entry cmsx_menuNavSettingsEntries[] =
 {
-    { "-- BASIC SETTINGS --",                     OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- BASIC SETTINGS --"),
+
     OSD_SETTING_ENTRY("CONTROL MODE", SETTING_NAV_USER_CONTROL_MODE),
     OSD_SETTING_ENTRY("MAX NAV SPEED", SETTING_NAV_AUTO_SPEED),
     OSD_SETTING_ENTRY("MAX CRUISE SPEED", SETTING_NAV_MANUAL_SPEED),
@@ -49,11 +50,12 @@ static OSD_Entry cmsx_menuNavSettingsEntries[] =
     OSD_SETTING_ENTRY("MC MAX BANK ANGLE", SETTING_NAV_MC_BANK_ANGLE),
     OSD_SETTING_ENTRY("MID THR FOR AH", SETTING_NAV_USE_MIDTHR_FOR_ALTHOLD),
     OSD_SETTING_ENTRY("MC HOVER THR", SETTING_NAV_MC_HOVER_THR),
-    { "BACK",                          OME_Back, NULL, NULL, 0 },
-    { NULL,                            OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
  };
 
-static CMS_Menu cmsx_menuNavSettings = {
+static const CMS_Menu cmsx_menuNavSettings = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVSETTINGS",
     .GUARD_type = OME_MENU,
@@ -64,9 +66,10 @@ static CMS_Menu cmsx_menuNavSettings = {
     .entries = cmsx_menuNavSettingsEntries
 };
 
- static OSD_Entry cmsx_menuRTHEntries[] =
+ static const OSD_Entry cmsx_menuRTHEntries[] =
  {
-    { "-- RTH --",                     OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- RTH --"),
+
     OSD_SETTING_ENTRY("RTH ALT MODE", SETTING_NAV_RTH_ALT_MODE),
     OSD_SETTING_ENTRY("RTH ALT", SETTING_NAV_RTH_ALTITUDE),
     OSD_SETTING_ENTRY("CLIMB BEFORE RTH", SETTING_NAV_RTH_CLIMB_FIRST),
@@ -78,11 +81,12 @@ static CMS_Menu cmsx_menuNavSettings = {
     OSD_SETTING_ENTRY("MIN RTH DISTANCE", SETTING_NAV_MIN_RTH_DISTANCE),
     OSD_SETTING_ENTRY("RTH ABORT THRES", SETTING_NAV_RTH_ABORT_THRESHOLD),
     OSD_SETTING_ENTRY("EMERG LANDING SPEED", SETTING_NAV_EMERG_LANDING_SPEED),
-    { "BACK",                          OME_Back, NULL, NULL, 0 },
-    { NULL,                            OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
  };
 
-static CMS_Menu cmsx_menuRTH = {
+static const CMS_Menu cmsx_menuRTH = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVRTH",
     .GUARD_type = OME_MENU,
@@ -93,9 +97,10 @@ static CMS_Menu cmsx_menuRTH = {
     .entries = cmsx_menuRTHEntries
 };
 
-static OSD_Entry cmsx_menuFixedWingEntries[] =
+static const OSD_Entry cmsx_menuFixedWingEntries[] =
 {
-    { "-- FIXED WING --",                     OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- FIXED WING --"),
+
     OSD_SETTING_ENTRY("CRUISE THROTTLE", SETTING_NAV_FW_CRUISE_THR),
     OSD_SETTING_ENTRY("MIN THROTTLE", SETTING_NAV_FW_MIN_THR),
     OSD_SETTING_ENTRY("MAX THROTTLE", SETTING_NAV_FW_MAX_THR),
@@ -104,11 +109,12 @@ static OSD_Entry cmsx_menuFixedWingEntries[] =
     OSD_SETTING_ENTRY("MAX DIVE ANGLE", SETTING_NAV_FW_DIVE_ANGLE),
     OSD_SETTING_ENTRY("PITCH TO THR RATIO", SETTING_NAV_FW_PITCH2THR),
     OSD_SETTING_ENTRY("LOITER RADIUS", SETTING_NAV_FW_LOITER_RADIUS),
-    { "BACK",                          OME_Back, NULL, NULL, 0 },
-    { NULL,                            OME_END, NULL, NULL, 0 }
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-static CMS_Menu cmsx_menuFixedWing = {
+static const CMS_Menu cmsx_menuFixedWing = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAVFW",
     .GUARD_type = OME_MENU,
@@ -119,17 +125,19 @@ static CMS_Menu cmsx_menuFixedWing = {
     .entries = cmsx_menuFixedWingEntries
 };
 
-static OSD_Entry cmsx_menuNavigationEntries[] =
+static const OSD_Entry cmsx_menuNavigationEntries[] =
 {
-    { "-- NAVIGATION --",   OME_Label, NULL, NULL, 0},
-    { "BASIC SETTINGS",     OME_Submenu, cmsMenuChange, &cmsx_menuNavSettings, 0},
-    { "RTH",                OME_Submenu, cmsMenuChange, &cmsx_menuRTH, 0},
-    { "FIXED WING",         OME_Submenu, cmsMenuChange, &cmsx_menuFixedWing, 0},
-    { "BACK",               OME_Back, NULL, NULL, 0 },
-    { NULL,                 OME_END, NULL, NULL, 0 }
+    OSD_LABEL_ENTRY("-- NAVIGATION --"),
+
+    OSD_SUBMENU_ENTRY("BASIC SETTINGS", &cmsx_menuNavSettings),
+    OSD_SUBMENU_ENTRY("RTH", &cmsx_menuRTH),
+    OSD_SUBMENU_ENTRY("FIXED WING", &cmsx_menuFixedWing),
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuNavigation = {
+const CMS_Menu cmsx_menuNavigation = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUNAV",
     .GUARD_type = OME_MENU,

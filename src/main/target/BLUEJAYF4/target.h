@@ -40,7 +40,7 @@
 
 // MPU6500 interrupt
 #define USE_MPU_DATA_READY_SIGNAL
-#define MPU_INT_EXTI            PC5
+#define GYRO_INT_EXTI            PC5
 #define MPU6500_CS_PIN          PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 

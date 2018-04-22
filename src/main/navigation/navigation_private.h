@@ -127,8 +127,8 @@ typedef struct navigationPIDControllers_s {
 } navigationPIDControllers_t;
 
 typedef struct {
-    t_fp_vector pos;
-    t_fp_vector vel;
+    fpVector3_t pos;
+    fpVector3_t vel;
     int32_t     yaw;
     float       sinYaw;
     float       cosYaw;
@@ -139,8 +139,8 @@ typedef struct {
 } navigationEstimatedState_t;
 
 typedef struct {
-    t_fp_vector pos;
-    t_fp_vector vel;
+    fpVector3_t pos;
+    fpVector3_t vel;
     int32_t     yaw;
     float       surface;
 } navigationDesiredState_t;
@@ -251,7 +251,7 @@ typedef struct {
 
 typedef struct {
     timeMs_t        lastCheckTime;
-    t_fp_vector     initialPosition;
+    fpVector3_t     initialPosition;
     float           minimalDistanceToHome;
 } rthSanityChecker_t;
 
@@ -307,15 +307,15 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD);
 void navPInit(pController_t *p, float _kP);
 
 bool isThrustFacingDownwards(void);
-uint32_t calculateDistanceToDestination(const t_fp_vector * destinationPos);
-int32_t calculateBearingToDestination(const t_fp_vector * destinationPos);
+uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
+int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
 void resetLandingDetector(void);
 bool isLandingDetected(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
-void setHomePosition(const t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask);
-void setDesiredPosition(const t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask);
+void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
+void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
@@ -352,7 +352,7 @@ void resetMulticopterLandingDetector(void);
 bool isMulticopterLandingDetected(void);
 bool isFixedWingLandingDetected(void);
 
-void calculateMulticopterInitialHoldPosition(t_fp_vector * pos);
+void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
@@ -367,7 +367,7 @@ bool adjustFixedWingPositionFromRCInput(void);
 
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
-void calculateFixedWingInitialHoldPosition(t_fp_vector * pos);
+void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing launch controller */
 void resetFixedWingLaunchController(timeUs_t currentTimeUs);

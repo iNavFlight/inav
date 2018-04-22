@@ -1027,7 +1027,7 @@ void blackboxStart(void)
     blackboxHistory[1] = &blackboxHistoryRing[1];
     blackboxHistory[2] = &blackboxHistoryRing[2];
 
-    vbatReference = vbatLatestADC;
+    vbatReference = getBatteryVoltageLatestADC();
 
     //No need to clear the content of blackboxHistoryRing since our first frame will be an intra which overwrites it
 
@@ -1158,8 +1158,8 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->motor[i] = motor[i];
     }
 
-    blackboxCurrent->vbatLatest = vbatLatestADC;
-    blackboxCurrent->amperageLatest = amperageLatestADC;
+    blackboxCurrent->vbatLatest = getBatteryVoltageLatestADC();
+    blackboxCurrent->amperageLatest = getAmperageLatestADC();
 
 #ifdef USE_BARO
     blackboxCurrent->BaroAlt = baro.BaroAlt;
@@ -1174,7 +1174,7 @@ static void loadMainState(timeUs_t currentTimeUs)
     blackboxCurrent->surfaceRaw = rangefinderGetLatestRawAltitude();
 #endif
 
-    blackboxCurrent->rssi = rssi;
+    blackboxCurrent->rssi = getRSSI();
 
 #ifdef USE_SERVOS
     //Tail servo for tricopters
@@ -1381,7 +1381,6 @@ static bool blackboxWriteSysinfo(void)
             );
 
         BLACKBOX_PRINT_HEADER_LINE("looptime", "%d",                        getPidUpdateRate());
-        BLACKBOX_PRINT_HEADER_LINE("gyro_sync_denom", "%d",                 gyroConfig()->gyroSyncDenominator);
         BLACKBOX_PRINT_HEADER_LINE("rc_rate", "%d",                         100); //For compatibility reasons write rc_rate 100
         BLACKBOX_PRINT_HEADER_LINE("rc_expo", "%d",                         currentControlRateProfile->stabilized.rcExpo8);
         BLACKBOX_PRINT_HEADER_LINE("rc_yaw_expo", "%d",                     currentControlRateProfile->stabilized.rcYawExpo8);

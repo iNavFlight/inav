@@ -81,26 +81,7 @@
 #define _ABS_I(x, var) _ABS_II(x, var)
 #define ABS(x) _ABS_I(x, _CHOOSE_VAR(_abs, __COUNTER__))
 
-typedef struct stdev_s
-{
-    float m_oldM, m_newM, m_oldS, m_newS;
-    int m_n;
-} stdev_t;
-
-// Floating point 3 vector.
-typedef struct fp_vector {
-    float X;
-    float Y;
-    float Z;
-} t_fp_vector_def;
-
-typedef union {
-    float A[3];
-    t_fp_vector_def V;
-} t_fp_vector;
-
 // Floating point Euler angles.
-// Be carefull, could be either of degrees or radians.
 typedef struct fp_angles {
     float roll;
     float pitch;
@@ -111,6 +92,12 @@ typedef union {
     float raw[3];
     fp_angles_def angles;
 } fp_angles_t;
+
+typedef struct stdev_s
+{
+    float m_oldM, m_newM, m_oldS, m_newS;
+    int m_n;
+} stdev_t;
 
 typedef struct filterWithBufferSample_s {
     float value;
@@ -148,11 +135,6 @@ float degreesToRadians(int16_t degrees);
 
 int scaleRange(int x, int srcMin, int srcMax, int destMin, int destMax);
 float scaleRangef(float x, float srcMin, float srcMax, float destMin, float destMax);
-
-void normalizeV(struct fp_vector *src, struct fp_vector *dest);
-
-void rotateV(struct fp_vector *v, fp_angles_t *delta);
-void buildRotationMatrix(fp_angles_t *delta, float matrix[3][3]);
 
 int32_t wrap_18000(int32_t angle);
 int32_t wrap_36000(int32_t angle);
