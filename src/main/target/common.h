@@ -21,8 +21,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_CLI
-
 #define USE_RX_PWM
 #define USE_RX_PPM
 #define USE_SERIAL_RX
@@ -37,7 +35,6 @@
 #define USE_UNDERCLOCK
 #endif
 
-#if (FLASH_SIZE > 64)
 #define USE_64BIT_TIME
 #define USE_BLACKBOX
 #define USE_GPS
@@ -47,7 +44,6 @@
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
-#endif
 
 #if defined(STM_FAST_TARGET)
 #define SCHEDULER_DELAY_LIMIT           10
@@ -68,7 +64,6 @@
 #define USE_BOOTLOG
 #define BOOTLOG_DESCRIPTIONS
 #define USE_STATS
-#define USE_64BIT_TIME
 #define USE_GYRO_NOTCH_1
 #define USE_GYRO_NOTCH_2
 #define USE_DTERM_NOTCH

@@ -556,11 +556,9 @@ void init(void)
 
     // Sensors have now been detected, mspFcInit() can now be called
     // to set the boxes up
-     mspFcInit();
+    mspFcInit();
 
-#ifdef USE_CLI
     cliInit(serialConfig());
-#endif
 
     failsafeInit();
 
