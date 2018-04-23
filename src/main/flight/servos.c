@@ -425,6 +425,7 @@ void processServoAutotrim(void)
                             servoParamsMutable(servoIndex)->middle = servoMiddleAccum[servoIndex] / servoMiddleAccumCount;
                         }
                         trimState = AUTOTRIM_SAVE_PENDING;
+                        pidResetErrorAccumulators(); //Reset Iterm since new midpoints override previously acumulated errors
                     }
                 }
                 else {
