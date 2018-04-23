@@ -25,13 +25,9 @@
 
 #include "platform.h"
 
-// FIXME remove this for targets that don't need a CLI.  Perhaps use a no-op macro when USE_CLI is not enabled
-// signal that we're in cli mode
 uint8_t cliMode = 0;
 extern uint8_t __config_start;   // configured via linker script when building binaries.
 extern uint8_t __config_end;
-
-#ifdef USE_CLI
 
 #include "blackbox/blackbox.h"
 
@@ -2257,7 +2253,6 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
-#if (FLASH_SIZE > 64)
     const uint32_t detectedSensorsMask = sensorsMask();
 
     for (int i = 0; i < SENSOR_INDEX_COUNT; i++) {
@@ -2297,7 +2292,6 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
-#endif
 
 #ifdef USE_SDCARD
     cliSdInfo(NULL);
@@ -2840,4 +2834,3 @@ void cliInit(const serialConfig_t *serialConfig)
 {
     UNUSED(serialConfig);
 }
-#endif // USE_CLI

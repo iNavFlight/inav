@@ -411,12 +411,10 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
 
 static void mspEvaluateNonMspData(mspPort_t * mspPort, uint8_t receivedChar)
 {
-#ifdef USE_CLI
     if (receivedChar == '#') {
         mspPort->pendingRequest = MSP_PENDING_CLI;
         return;
     }
-#endif
 
     if (receivedChar == serialConfig()->reboot_character) {
         mspPort->pendingRequest = MSP_PENDING_BOOTLOADER;
