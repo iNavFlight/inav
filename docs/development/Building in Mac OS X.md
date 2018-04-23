@@ -104,6 +104,6 @@ changes from the repository, then rebuild the firmware:
 git reset --hard
 git pull
 
-make clean TARGET=NAZE
-make TARGET=NAZE
+make clean TARGET=SPRACINGF3
+make TARGET=SPRACINGF3
 ```

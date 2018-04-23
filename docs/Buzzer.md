@@ -61,11 +61,6 @@ Examples of a known-working buzzers.
 
 ## Connections
 
-### Naze32
-
-Connect a supported buzzer directly to the BUZZ pins. Observe polarity. Also if you are working with flight controller outside of a craft, on a bench for example, you need to supply 5 volts and ground to one of the ESC connections or the buzzer will not function.
-
-
 ### CC3D
 
 Buzzer support on the CC3D requires that a buzzer circuit be created to which the input is PA15.

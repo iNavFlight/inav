@@ -54,10 +54,6 @@
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
-#ifdef NAZE
-#include "hardware_revision.h"
-#endif
-
 mag_t mag;                   // mag access functions
 
 PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 3);

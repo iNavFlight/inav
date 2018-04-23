@@ -59,7 +59,7 @@ For more detail of the different bind modes please refer the CleanFlight Spektru
 
 Deltang receivers in serial mode will work like any other Spektrum satellite compatible receiver (10bit, 22ms) only the bind process will be different. 
 
-The pin layout for the AlienFlight F1 is very similar to NAZE32 or the related clones (MW32, Flip32, etc.). The pin layout for the AlienFlight F3 is similar to Sparky. The new AlienFlightF3 V2 design have the sensor connected via SPI and some slightly different pin layout. All AlienFlight F3 flight controllers running the same firmware which takes care on the differences with a hardware detection. The AlienFlight F4 and F7 have their individual pin layouts and are independent designs.
+The pin layout for the AlienFlight F3 is similar to Sparky. The new AlienFlightF3 V2 design have the sensor connected via SPI and some slightly different pin layout. All AlienFlight F3 flight controllers running the same firmware which takes care on the differences with a hardware detection. The AlienFlight F4 and F7 have their individual pin layouts and are independent designs.
 
 (**) OpenSky receiver with telemetry is enabled by default if present on the board.
 

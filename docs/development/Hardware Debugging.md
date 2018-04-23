@@ -12,7 +12,7 @@ https://www.youtube.com/watch?v=kjvqySyNw20
 
 ## Hardware
 
-Various debugging hardware solutions exist, the Segger J-Link clones are cheap and are known to work on Windows with both the Naze and Olimexino platforms.
+Various debugging hardware solutions exist, the Segger J-Link clones are cheap and are known to work on Windows.
 
 ### J-Link devices
 

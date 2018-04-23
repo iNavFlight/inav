@@ -15,8 +15,6 @@ BLHeli rev13.0 also supports Oneshot125 and will be automatically selected by th
 
 ## Supported Boards
 
-The Naze boards are supported, and have been flight tested in a number of configurations.
-
 CC3D boards have been tested with a PPM receiver, however parallel PWM receivers might not work properly with this board.
 
 ## Enabling Oneshot

@@ -34,7 +34,6 @@ doc_files=(
 	'Board - CJMCU.md'
     'Board - ColibriRace.md'
 	'Board - Motolab.md'
-	'Board - Naze32.md'
     'Board - Olimexino.md'
     'Board - Paris Air Hero 32.md'
 	'Board - Sparky.md'
