@@ -375,14 +375,6 @@ void init(void)
 #endif
     };
 
-#if defined(NAZE) && defined(USE_HARDWARE_REVISION_DETECTION)
-    if (hardwareRevision >= NAZE32_REV5) {
-        // naze rev4 and below used opendrain to PNP for buzzer. Rev5 and above use PP to NPN.
-        beeperDevConfig.isOD = false;
-        beeperDevConfig.isInverted = true;
-    }
-#endif
-
     beeperInit(&beeperDevConfig);
 #endif
 #ifdef USE_LIGHTS
@@ -625,11 +617,7 @@ void init(void)
 #endif
 
 #ifdef USE_FLASHFS
-#ifdef NAZE
-    if (hardwareRevision == NAZE32_REV5) {
-        m25p16_init(0);
-    }
-#elif defined(USE_FLASH_M25P16)
+#ifdef USE_FLASH_M25P16
     m25p16_init(0);
 #endif
 

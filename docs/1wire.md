@@ -8,11 +8,9 @@ This is the option you need to select for the bootloader:
 
 ![Flashing BlHeli Bootloader](assets/images/blheli-bootloader.png)
 
-Currently supported on the SPRACINGF3, STM32F3DISCOVERY, NAZE32 (including clones such as the FLIP32) and CC3D.
+Currently supported on the SPRACINGF3, STM32F3DISCOVERY and CC3D.
 
 ## Wiring
-
-  - For the NAZE, no external wiring is necessary. Simply plug in the board via USB cable.
 
   - For the CC3D, connect [a USB to UART adapter](http://bit.ly/cf-cp2102) to the flex port.
 

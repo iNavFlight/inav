@@ -7,8 +7,7 @@ and 6 ports labeled as motor/servo outputs (3 pins each).
 
 If issues are found with this board please report via the [github issue tracker](https://github.com/iNavFlight/inav/issues).
 
-The board has a USB port directly connected to the processor.  Other boards like the Naze and Flip32
-have an on-board USB to uart adapter which connect to the processor's serial port instead.
+The board has a USB port directly connected to the processor.
 
 The board cannot currently be used for hexacopters/octocopters.
 

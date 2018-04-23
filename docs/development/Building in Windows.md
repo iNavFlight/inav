@@ -69,11 +69,11 @@ git clone https://github.com/iNavFlight/inav.git
 
 ![GIT Checkout](assets/012.git_checkout.png)
 
-To compile your INAV binaries, enter the inav directory and build the project using the make command. You can append TARGET=[HARDWARE] if you want to build anything other than the default NAZE target:
+To compile your INAV binaries, enter the inav directory and build the project using the make command. You can append TARGET=[HARDWARE] if you want to build anything other than the default SPRACINGF3 target:
 
 ```bash
 cd inav
-make TARGET=NAZE
+make TARGET=SPRACINGF3
 ```
 
 ![GIT Checkout](assets/013.compile.png)
@@ -82,13 +82,13 @@ within few moments you should have your binary ready:
 
 ```bash
 (...)
-arm-none-eabi-size ./obj/main/inav_NAZE.elf
+arm-none-eabi-size ./obj/main/inav_SPRACINGF3.elf
    text    data     bss     dec     hex filename
-  95388     308   10980  106676   1a0b4 ./obj/main/inav_NAZE.elf
-arm-none-eabi-objcopy -O ihex --set-start 0x8000000 obj/main/inav_NAZE.elf obj/inav_NAZE.hex
+  95388     308   10980  106676   1a0b4 ./obj/main/inav_SPRACINGF3.elf
+arm-none-eabi-objcopy -O ihex --set-start 0x8000000 obj/main/inav_SPRACINGF3.elf obj/inav_SPRACINGF3.hex
 ```
 
-You can use the INAV-Configurator to flash the ```obj/inav_NAZE.hex``` file.
+You can use the INAV-Configurator to flash the ```obj/inav_SPRACINGF3.hex``` file.
 
 ## Updating and rebuilding
 
@@ -99,5 +99,5 @@ cd /cygdrive/c/dev/inav
 git reset --hard
 git pull
 make clean
-make TARGET=NAZE
+make TARGET=SPRACINGF3
 ```
