@@ -1930,6 +1930,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
     if (IS_RC_MODE_ACTIVE(BOXOSD)) {
       displayClearScreen(osdDisplayPort);
+      armState = ARMING_FLAG(ARMED);
       return;
     }
 
