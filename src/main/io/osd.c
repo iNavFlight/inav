@@ -1928,7 +1928,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
 
-    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
       displayClearScreen(osdDisplayPort);
       return;
     }
