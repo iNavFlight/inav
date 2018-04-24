@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -53,9 +54,6 @@
 
 #define SBUS_TIME_NEEDED_PER_FRAME 3000
 
-#define SBUS_STATE_FAILSAFE (1 << 0)
-#define SBUS_STATE_SIGNALLOSS (1 << 1)
-
 #define SBUS_FRAME_SIZE (SBUS_CHANNEL_DATA_LENGTH + 2)
 
 #define SBUS_FRAME_BEGIN_BYTE 0x0F
@@ -76,7 +74,7 @@ enum {
 };
 
 
-struct sbusFrame_s {
+typedef struct sbusFrame_s {
     uint8_t syncByte;
     sbusChannels_t channels;
     /**
@@ -87,49 +85,54 @@ struct sbusFrame_s {
      * https://github.com/cleanflight/cleanflight/issues/590#issuecomment-101706023
      */
     uint8_t endByte;
-} __attribute__ ((__packed__));
-
-typedef union sbusFrame_u {
-    uint8_t bytes[SBUS_FRAME_SIZE];
-    struct sbusFrame_s frame;
-} sbusFrame_t;
+} __attribute__ ((__packed__)) sbusFrame_t;
 
 typedef struct sbusFrameData_s {
-    sbusFrame_t frame;
-    uint32_t startAtUs;
-    uint16_t stateFlags;
+    volatile sbusFrame_t frame;
+    volatile bool frameDone;
+    uint8_t buffer[SBUS_FRAME_SIZE];
     uint8_t position;
-    bool done;
+    timeUs_t startAtUs;
 } sbusFrameData_t;
 
+STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_match_sbusFrame_t);
 
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
 {
     sbusFrameData_t *sbusFrameData = data;
 
-    const uint32_t nowUs = micros();
+    const timeUs_t currentTimeUs = micros();
+    const timeDelta_t sbusFrameTime = cmpTimeUs(currentTimeUs, sbusFrameData->startAtUs);
 
-    const int32_t sbusFrameTime = nowUs - sbusFrameData->startAtUs;
-
-    if (sbusFrameTime > (long)(SBUS_TIME_NEEDED_PER_FRAME + 500)) {
+    // Reset buffer pointer if we've waited too long
+    if (sbusFrameData->position != 0 && (sbusFrameTime > (long)(SBUS_TIME_NEEDED_PER_FRAME + 500))) {
         sbusFrameData->position = 0;
     }
 
+    // Wait for start byte
     if (sbusFrameData->position == 0) {
         if (c != SBUS_FRAME_BEGIN_BYTE) {
             return;
         }
-        sbusFrameData->startAtUs = nowUs;
+        sbusFrameData->startAtUs = currentTimeUs;
     }
 
     if (sbusFrameData->position < SBUS_FRAME_SIZE) {
-        sbusFrameData->frame.bytes[sbusFrameData->position++] = (uint8_t)c;
-        if (sbusFrameData->position < SBUS_FRAME_SIZE) {
-            sbusFrameData->done = false;
-        } else {
-            sbusFrameData->done = true;
-            DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_TIME, sbusFrameTime);
+        sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
+
+        // Complete frame received and frameDone flag is not set (meaning we've already consumed the data)
+        if (sbusFrameData->position == SBUS_FRAME_SIZE) {
+            if (!sbusFrameData->frameDone) {
+                DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_TIME, sbusFrameTime);
+
+                // Copy frame data and set "done" flag
+                memcpy((void *)&sbusFrameData->frame, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
+                sbusFrameData->frameDone = true;
+            }
+
+            // Reset buffer pointer
+            sbusFrameData->position = 0;
         }
     }
 }
@@ -137,25 +140,17 @@ static void sbusDataReceive(uint16_t c, void *data)
 static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     sbusFrameData_t *sbusFrameData = rxRuntimeConfig->frameData;
-    if (!sbusFrameData->done) {
+    if (!sbusFrameData->frameDone) {
         return RX_FRAME_PENDING;
     }
-    sbusFrameData->done = false;
 
-    DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_FLAGS, sbusFrameData->frame.frame.channels.flags);
+    // Decode channel data and store return value
+    const uint8_t retValue = sbusChannelsDecode(rxRuntimeConfig, (void *)&sbusFrameData->frame.channels);
 
-    if (sbusFrameData->frame.frame.channels.flags & SBUS_FLAG_SIGNAL_LOSS) {
-        sbusFrameData->stateFlags |= SBUS_STATE_SIGNALLOSS;
-        DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_STATE_FLAGS, sbusFrameData->stateFlags);
-    }
-    if (sbusFrameData->frame.frame.channels.flags & SBUS_FLAG_FAILSAFE_ACTIVE) {
-        sbusFrameData->stateFlags |= SBUS_STATE_FAILSAFE;
-        DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_STATE_FLAGS, sbusFrameData->stateFlags);
-    }
+    // Reset the frameDone flag - tell ISR that we're ready to receive next frame
+    sbusFrameData->frameDone = false;
 
-    DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_STATE_FLAGS, sbusFrameData->stateFlags);
-
-    return sbusChannelsDecode(rxRuntimeConfig, &sbusFrameData->frame.frame.channels);
+    return retValue;
 }
 
 bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
