@@ -13,10 +13,6 @@ It does this in two ways:
 FlyDuino KISS ESCs are able to use the Oneshot125 protocol out of the box. There is only one soldering needed.
 BLHeli rev13.0 also supports Oneshot125 and will be automatically selected by the ESC without additional work.
 
-## Supported Boards
-
-CC3D boards have been tested with a PPM receiver, however parallel PWM receivers might not work properly with this board.
-
 ## Enabling Oneshot
 
 To configure Oneshot, you must turn off any power to your ESCs.  

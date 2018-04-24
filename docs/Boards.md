@@ -48,6 +48,5 @@ These boards will work with INAV but are either end-of-life, limited on features
 | Board name                | CPU Family | Target name(s)            | GPS  | Compass | Barometer      | Telemetry | RX                             | Blackbox             |
 |---------------------------|:----------:|:-------------------------:|:----:|:-------:|:--------------:|:---------:|:------------------------------:|:--------------------:|
 | PARIS Sirius™ AIR HERO    | F1         | AIRHERO3                  | NMEA | HMC5883 | MS5611, BMP280 | LTM       | PWM, PPM, SBUS, IBUS, SPEKTRUM | SERIAL               |
-| OpenPilot CC3D            | F1         | CC3D, CC3D_PPM1           | NMEA | HMC5883 | BMP085, BMP280 | LTM       | PWM, PPM, SBUS, IBUS, SPEKTRUM | no                   |
 | RMRC Seriously DODO       | F3         | RMDO                      | All  | All     | All            | All       | All                            | SERIAL               |
 | ANYFC                     | F4         | ANYFC                     | All  | All     | All            | All       | All                            | SERIAL               |

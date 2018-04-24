@@ -683,10 +683,6 @@ void init(void)
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
         batteryInit();
 
-#ifdef CJMCU
-    LED2_ON;
-#endif
-
 #ifdef USE_PMW_SERVO_DRIVER
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pwmDriverInitialize();

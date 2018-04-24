@@ -50,7 +50,6 @@ from another BEC.  Just ensure that the GROUND is the same for all BEC outputs a
 
 | Target                | Pin  | LED Strip | Signal |
 | --------------------- | ---- | --------- | -------|
-| CC3D                  | RCO5 | Data In   | PB4    |
 | ChebuzzF3/F3Discovery | PB8  | Data In   | PB8    |
 | Sparky                | PWM5 | Data In   | PA6    |
 

@@ -8,7 +8,7 @@ The sonar sensor is only used when the aircraft inclination angle (attitude) is 
 
 ## Hardware
 
-Currently the only supported sensor is the HCSR04 sensor.
+Currently the only supported sensors is the HCSR04 sensor.
 
 ## Connections
 
@@ -16,24 +16,4 @@ Target dependent
 
 #### Constraints
 
-Current meter cannot be used in conjunction with Parallel PWM and Sonar.
-
-### Olimexino
-
-| Trigger       | Echo          | Inline 1k resistors |
-| ------------- | ------------- | ------------------- |
-| PB0 / RC7     | PB1 / RC8     | YES (3.3v input)    |
-
-#### Constraints
-
-Current meter cannot be used in conjunction with Sonar.
-
-### CC3D
-
-| Trigger       | Echo          | Inline 1k resistors |
-| ------------- | ------------- | ------------------- |
-| PB5           | PB0           | YES (3.3v input)    |
-
-#### Constraints
-
-Sonar cannot be used in conjuction with SoftSerial or Parallel PWM.
+Target dependent
