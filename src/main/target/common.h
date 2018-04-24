@@ -31,7 +31,7 @@
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
-#if defined(STM32F1) || defined(STM32F3)
+#if defined(STM32F3)
 #define USE_UNDERCLOCK
 #endif
 

@@ -239,16 +239,7 @@ void validateAndFixConfig(void)
 
 
     if (rxConfig()->receiverType == RX_TYPE_PWM) {
-#if defined(STM32F10X)
-        // rssi adc needs the same ports
-        featureClear(FEATURE_RSSI_ADC);
-        // current meter needs the same ports
-        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
-            featureClear(FEATURE_CURRENT_METER);
-        }
-#endif
-
-#if defined(STM32F10X) || defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
+#if defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
         // led strip needs the same ports
         featureClear(FEATURE_LED_STRIP);
 #endif
@@ -263,23 +254,6 @@ void validateAndFixConfig(void)
      */
     if (getAsyncMode() != ASYNC_MODE_NONE) {
         gyroConfigMutable()->gyroSync = 1;
-    }
-#endif
-
-#ifdef STM32F10X
-    // avoid overloading the CPU on F1 targets when using gyro sync and GPS.
-    if (featureConfigured(FEATURE_GPS)) {
-        // avoid overloading the CPU when looptime < 2000 and GPS
-        uint8_t denominatorLimit = 2;
-        if (gyroConfig()->gyro_lpf == 0) {
-            denominatorLimit = 16;
-        }
-        if (gyroConfig()->gyroSyncDenominator < denominatorLimit) {
-            gyroConfigMutable()->gyroSyncDenominator = denominatorLimit;
-        }
-        if (gyroConfig()->looptime < 2000) {
-            gyroConfigMutable()->looptime = 2000;
-        }
     }
 #endif
 

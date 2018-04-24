@@ -21,7 +21,6 @@ https://micro-motor-warehouse.com
 
 Here are the general hardware specifications for this boards:
 
-- STM32F103CBT6 MCU (ALIENFLIGHTF1)
 - STM32F303CCT6 MCU (ALIENFLIGHTF3)
 - STM32F405RGT6 MCU (ALIENFLIGHTF4)
 - STM32F711RET6 MCU (ALIENFLIGHTNGF7)

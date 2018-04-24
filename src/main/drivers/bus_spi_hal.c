@@ -170,16 +170,7 @@ void spiInitDevice(SPIDevice device)
         IOConfigGPIO(IOGetByTag(spi->nss), SPI_IO_CS_CFG);
     }
 #endif
-#if defined(STM32F10X)
-    IOConfigGPIO(IOGetByTag(spi->sck), SPI_IO_AF_SCK_CFG);
-    IOConfigGPIO(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG);
-    IOConfigGPIO(IOGetByTag(spi->mosi), SPI_IO_AF_MOSI_CFG);
 
-    if (spi->nss) {
-        IOInit(IOGetByTag(spi->nss), OWNER_SPI_CS, RESOURCE_INDEX(device));
-        IOConfigGPIO(IOGetByTag(spi->nss), SPI_IO_CS_CFG);
-    }
-#endif
     spiHardwareMap[device].hspi.Instance = spi->dev;
     // Init SPI hardware
     HAL_SPI_DeInit(&spiHardwareMap[device].hspi);
