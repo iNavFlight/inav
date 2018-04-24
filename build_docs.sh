@@ -30,7 +30,6 @@ doc_files=(
 	'Boards.md'
 	'Board - AlienFlight.md'
     'Board - ChebuzzF3.md'
-	'Board - CJMCU.md'
     'Board - ColibriRace.md'
 	'Board - Motolab.md'
     'Board - Paris Air Hero 32.md'
