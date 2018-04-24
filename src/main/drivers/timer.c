@@ -693,10 +693,6 @@ void timerInit(void)
 {
     memset(timerConfig, 0, sizeof (timerConfig));
 
-#ifdef CC3D
-    GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
-#endif
-
     /* enable the timer peripherals */
     for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {
         RCC_ClockCmd(timerRCC(timerHardware[i].tim), ENABLE);

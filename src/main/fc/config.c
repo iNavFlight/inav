@@ -246,12 +246,6 @@ void validateAndFixConfig(void)
         if (batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
             featureClear(FEATURE_CURRENT_METER);
         }
-#if defined(CC3D)
-        // There is a timer clash between PWM RX pins and motor output pins - this forces us to have same timer tick rate for these timers
-        // which is only possible when using brushless motors w/o oneshot (timer tick rate is PWM_TIMER_MHZ)
-        // On CC3D OneShot is incompatible with PWM RX
-        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD; // Motor PWM rate will be handled later
-#endif
 #endif
 
 #if defined(STM32F10X) || defined(CHEBUZZ) || defined(STM32F3DISCOVERY)
@@ -320,31 +314,6 @@ void validateAndFixConfig(void)
         featureClear(FEATURE_CURRENT_METER);
     }
 #endif
-
-#if defined(CC3D) && defined(USE_DASHBOARD) && defined(USE_UART3)
-    if (doesConfigurationUsePort(SERIAL_PORT_USART3) && feature(FEATURE_DASHBOARD)) {
-        featureClear(FEATURE_DASHBOARD);
-    }
-#endif
-
-#if defined(CC3D)
-#if defined(CC3D_PPM1)
-    #if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1)
-        if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_SOFTSERIAL)) {
-            rangefinderConfigMutable()->rangefinder_hardware = RANGEFINDER_NONE;
-        }
-    #endif
-#else
-    #if defined(USE_RANGEFINDER_HCSR04) && defined(USE_SOFTSERIAL1) && defined(RSSI_ADC_GPIO)
-        // shared pin
-        if (((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) + featureConfigured(FEATURE_SOFTSERIAL) + featureConfigured(FEATURE_RSSI_ADC)) > 1) {
-           rangefinderConfigMutable()->rangefinder_hardware = RANGEFINDER_NONE;
-           featureClear(FEATURE_SOFTSERIAL);
-           featureClear(FEATURE_RSSI_ADC);
-        }
-    #endif
-#endif // CC3D_PPM1
-#endif // CC3D
 
 #ifndef USE_PMW_SERVO_DRIVER
     featureClear(FEATURE_PWM_SERVO_DRIVER);

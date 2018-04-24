@@ -27,13 +27,3 @@ Current meter cannot be used in conjunction with Parallel PWM and Sonar.
 #### Constraints
 
 Current meter cannot be used in conjunction with Sonar.
-
-### CC3D
-
-| Trigger       | Echo          | Inline 1k resistors |
-| ------------- | ------------- | ------------------- |
-| PB5           | PB0           | YES (3.3v input)    |
-
-#### Constraints
-
-Sonar cannot be used in conjuction with SoftSerial or Parallel PWM.

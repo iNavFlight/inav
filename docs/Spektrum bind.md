@@ -2,7 +2,7 @@
 
 Spektrum bind with hardware bind plug support.
  
-The Spektrum bind code is actually enabled for the CJMCU, EUSTM32F103RC, SPARKY, CC3D, ALIENWIIF1, ALIENWIIF3 targets.
+The Spektrum bind code is actually enabled for the CJMCU, EUSTM32F103RC, SPARKY, ALIENWIIF1, ALIENWIIF3 targets.
 
 ## Configure the bind code
 
@@ -24,7 +24,7 @@ The hardware bind plug will be enabled via defining HARDWARE_BIND_PLUG during bu
 
 ## Function
 
-The bind code will actually work for CJMCU, EUSTM32F103RC, SPARKY targets (USART2) and CC3D target (USART3, flex port). The spektrum_sat_bind CLI parameter is defining the number of bind impulses (1-10) send to the satellite receiver. Setting spektrum_sat_bind to zero will disable the bind mode in any case. The bind mode will only be activated after an power on or hard reset. Please refer to the table below for the different possible values.
+The bind code will actually work for CJMCU, EUSTM32F103RC, SPARKY targets (USART2). The spektrum_sat_bind CLI parameter is defining the number of bind impulses (1-10) send to the satellite receiver. Setting spektrum_sat_bind to zero will disable the bind mode in any case. The bind mode will only be activated after an power on or hard reset. Please refer to the table below for the different possible values.
 
 If the hardware bind plug is configured the bind mode will only be activated if the plug is set during the firmware start-up. The value of the spektrum_sat_bind parameter will be permanently preserved. The bind plug should be always removed for normal flying.
 
@@ -46,7 +46,7 @@ http://wiki.openpilot.org/display/Doc/Spektrum+Satellite
 
 ### Supported Hardware
 
-CJMCU, SPARKY, EUSTM32F103RC, CC3D targets and ALIENWIIF1, ALIENWIIF3 targets with hardware bind plug
+CJMCU, SPARKY, EUSTM32F103RC and ALIENWIIF1, ALIENWIIF3 targets with hardware bind plug
 
 ### Connecting a Spektrum-compatible satellite to a Flip32+ flight controller
 

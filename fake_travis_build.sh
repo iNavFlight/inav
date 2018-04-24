@@ -2,7 +2,6 @@
 
 targets=("PUBLISHMETA=True" \
     "RUNTESTS=True" \
-    "TARGET=CC3D" \
     "TARGET=CHEBUZZF3" \
     "TARGET=CJMCU" \
     "TARGET=COLIBRI_RACE" \
