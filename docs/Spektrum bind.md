@@ -48,12 +48,6 @@ http://wiki.openpilot.org/display/Doc/Spektrum+Satellite
 
 SPARKY and ALIENWIIF3 targets with hardware bind plug
 
-### Connecting a Spektrum-compatible satellite to a Flip32+ flight controller
-
-The Flip32/Flip32+ is wired in a rather strange way, i.e. the dedicated connector for the satellite module uses the same UART pins as the USB adapter. This means that you can't use that connector as it maps to UART1 which you really shouldn't assign to SERIAL_RX as that will break USB functionality. (Looks this problem is fixed in later versions of the Flip32/Flip32+)
-
-In order to connect the satellite to a Flip32+, you have to wire the serial data pin to RC_CH4. This is the fourth pin from the top in the left column of the 3x6 header on the right side of the board. GND and +3.3V may either be obtained from the dedicated SAT connector or from any ground pin and pin 1 of the BOOT connector which also provides 3.3V.
-
 #### Tested satellite transmitter combinations
 
 | Satellite            | Remote         | Remark                                                   |
