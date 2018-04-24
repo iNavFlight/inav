@@ -68,11 +68,17 @@
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
 
 enum {
-    DEBUG_SBUS_FRAME_FLAGS = 0,
-    DEBUG_SBUS_STATE_FLAGS,
-    DEBUG_SBUS_FRAME_TIME,
+    DEBUG_SBUS_FRAME_TIME = 0,
+    DEBUG_SBUS_FRAME_FLAGS = 1,
+    DEBUG_SBUS_SBUS2_COUNTER = 2,
+    DEBUG_SBUS_DESYNC_COUNTER = 3
 };
 
+typedef enum {
+    STATE_SBUS1_SYNC = 0,
+    STATE_SBUS1_PAYLOAD,
+    STATE_SBUS2_PAYLOAD
+} sbusDecoderState_e;
 
 typedef struct sbusFrame_s {
     uint8_t syncByte;
@@ -88,10 +94,12 @@ typedef struct sbusFrame_s {
 } __attribute__ ((__packed__)) sbusFrame_t;
 
 typedef struct sbusFrameData_s {
+    sbusDecoderState_e state;
     volatile sbusFrame_t frame;
     volatile bool frameDone;
     uint8_t buffer[SBUS_FRAME_SIZE];
     uint8_t position;
+    uint8_t sbus2PayloadSize;
     timeUs_t startAtUs;
 } sbusFrameData_t;
 
@@ -100,40 +108,105 @@ STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_mat
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
 {
-    sbusFrameData_t *sbusFrameData = data;
+    static uint16_t sbus2Counter = 0;
+    static uint16_t sbusDesyncCounter = 0;
 
+    sbusFrameData_t *sbusFrameData = data;
     const timeUs_t currentTimeUs = micros();
     const timeDelta_t sbusFrameTime = cmpTimeUs(currentTimeUs, sbusFrameData->startAtUs);
 
     // Reset buffer pointer if we've waited too long
-    if (sbusFrameData->position != 0 && (sbusFrameTime > (long)(SBUS_TIME_NEEDED_PER_FRAME + 500))) {
-        sbusFrameData->position = 0;
+    if (sbusFrameData->state != STATE_SBUS1_SYNC && (sbusFrameTime > (long)(SBUS_TIME_NEEDED_PER_FRAME + 500))) {
+        sbusFrameData->state = STATE_SBUS1_SYNC;
     }
 
-    // Wait for start byte
-    if (sbusFrameData->position == 0) {
-        if (c != SBUS_FRAME_BEGIN_BYTE) {
-            return;
-        }
-        sbusFrameData->startAtUs = currentTimeUs;
-    }
-
-    if (sbusFrameData->position < SBUS_FRAME_SIZE) {
-        sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
-
-        // Complete frame received and frameDone flag is not set (meaning we've already consumed the data)
-        if (sbusFrameData->position == SBUS_FRAME_SIZE) {
-            if (!sbusFrameData->frameDone) {
-                DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_TIME, sbusFrameTime);
-
-                // Copy frame data and set "done" flag
-                memcpy((void *)&sbusFrameData->frame, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
-                sbusFrameData->frameDone = true;
+    switch (sbusFrameData->state) {
+        case STATE_SBUS1_SYNC:
+            if (c == SBUS_FRAME_BEGIN_BYTE) {
+                sbusFrameData->position = 0;
+                sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
+                sbusFrameData->startAtUs = currentTimeUs;
+                sbusFrameData->state = STATE_SBUS1_PAYLOAD;
             }
+            break;
 
-            // Reset buffer pointer
-            sbusFrameData->position = 0;
-        }
+        case STATE_SBUS1_PAYLOAD:
+            sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
+
+            if (sbusFrameData->position == SBUS_FRAME_SIZE) {
+                const sbusFrame_t * frame = (sbusFrame_t *)&sbusFrameData->buffer[0];
+                bool frameValid = false;
+
+                // Do some sanity check
+                switch (frame->endByte) {
+                    case 0x00:  // This is S.BUS 1
+                        frameValid = true;
+                        sbusFrameData->state = STATE_SBUS1_SYNC;
+                        break;
+
+                    case 0x04:  // S.BUS 2 receiver voltage
+                        frameValid = true;
+                        sbusFrameData->position = 0;
+                        sbusFrameData->sbus2PayloadSize = 3;
+                        sbusFrameData->startAtUs = currentTimeUs;       // Restart the timeout
+                        sbusFrameData->state = STATE_SBUS2_PAYLOAD;
+                        sbus2Counter++;
+                        break;
+
+                    case 0x14:  // S.BUS 2 GPS/baro
+                        frameValid = true;
+                        sbusFrameData->position = 0;
+                        sbusFrameData->sbus2PayloadSize = 24;
+                        sbusFrameData->startAtUs = currentTimeUs;       // Restart the timeout
+                        sbusFrameData->state = STATE_SBUS2_PAYLOAD;
+                        sbus2Counter++;
+                        break;
+
+                    case 0x24:  // Unknown SBUS2 data
+                    case 0x34:  // Unknown SBUS2 data
+                        frameValid = true;
+                        sbusFrameData->position = 0;
+                        sbusFrameData->sbus2PayloadSize = 0;
+                        sbusFrameData->startAtUs = currentTimeUs;       // Restart the timeout
+                        sbusFrameData->state = STATE_SBUS1_SYNC;
+                        sbus2Counter++;
+                        break;
+
+                    default:    // Failed end marker
+                        sbusFrameData->state = STATE_SBUS1_SYNC;
+                        sbusDesyncCounter++;
+                        break;
+                }
+
+                DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_SBUS2_COUNTER, sbus2Counter);
+                DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_DESYNC_COUNTER, sbusDesyncCounter);
+
+                // Frame seems sane, pass data to decoder
+                if (!sbusFrameData->frameDone && frameValid) {
+                    DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_TIME, sbusFrameTime);
+                    DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_FLAGS, frame->channels.flags);
+
+                    memcpy((void *)&sbusFrameData->frame, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
+                    sbusFrameData->frameDone = true;
+                }
+            }
+            break;
+
+        case STATE_SBUS2_PAYLOAD:
+            if (sbusFrameData->position == 0 && c == SBUS_FRAME_BEGIN_BYTE) {
+                // Special case, no payload - we're looking at a new S.BUS 1 frame
+                sbusFrameData->position = 0;
+                sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
+                sbusFrameData->startAtUs = currentTimeUs;
+                sbusFrameData->state = STATE_SBUS1_PAYLOAD;
+            }
+            else {
+                sbusFrameData->position++;
+                if (sbusFrameData->position >= sbusFrameData->sbus2PayloadSize) {
+                    sbusFrameData->state = STATE_SBUS1_SYNC;
+                }
+            }
+            break;
     }
 }
 
