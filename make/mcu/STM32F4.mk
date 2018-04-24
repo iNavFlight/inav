@@ -154,7 +154,6 @@ MCU_COMMON_SRC = \
             drivers/adc_stm32f4xx.c \
             drivers/adc_stm32f4xx.c \
             drivers/bus_i2c_stm32f40x.c \
-            drivers/gpio_stm32f4xx.c \
             drivers/inverter.c \
             drivers/serial_softserial.c \
             drivers/serial_uart_stm32f4xx.c \

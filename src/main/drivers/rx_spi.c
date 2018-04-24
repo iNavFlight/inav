@@ -29,7 +29,6 @@
 #include "build/build_config.h"
 
 #include "drivers/time.h"
-#include "drivers/gpio.h"
 #include "drivers/io.h"
 #include "io_impl.h"
 #include "rcc.h"

@@ -25,7 +25,6 @@
 
 #include "gps_i2cnav.h"
 
-#include "drivers/gpio.h"
 #include "drivers/time.h"
 #include "drivers/bus_i2c.h"
 

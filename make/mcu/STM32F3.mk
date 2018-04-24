@@ -68,7 +68,6 @@ MCU_COMMON_SRC = \
             drivers/adc_stm32f30x.c \
             drivers/bus_i2c_stm32f30x.c \
             drivers/dma.c \
-            drivers/gpio_stm32f30x.c \
             drivers/serial_uart_stm32f30x.c \
             drivers/system_stm32f30x.c \
             drivers/timer_stm32f30x.c

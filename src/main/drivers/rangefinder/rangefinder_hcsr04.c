@@ -29,7 +29,6 @@
 #include "drivers/time.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
-#include "drivers/gpio.h"
 #include "drivers/nvic.h"
 #include "drivers/rcc.h"
 

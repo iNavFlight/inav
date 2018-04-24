@@ -146,7 +146,6 @@ MCU_COMMON_SRC = \
             drivers/adc_stm32f7xx.c \
             drivers/bus_i2c_hal.c \
             drivers/dma_stm32f7xx.c \
-            drivers/gpio_stm32f7xx.c \
             drivers/inverter.c \
             drivers/bus_spi_hal.c \
             drivers/timer_hal.c \

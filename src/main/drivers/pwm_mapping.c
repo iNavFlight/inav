@@ -21,7 +21,6 @@
 
 #include "platform.h"
 
-#include "drivers/gpio.h"
 #include "drivers/io.h"
 #include "io_impl.h"
 #include "timer.h"

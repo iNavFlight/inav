@@ -48,7 +48,6 @@
 #include "drivers/dma.h"
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
-#include "drivers/gpio.h"
 #include "drivers/inverter.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
