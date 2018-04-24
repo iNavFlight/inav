@@ -69,14 +69,6 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         const timerHardware_t *timerHardwarePtr = &timerHardware[timerIndex];
         int type = MAP_TO_NONE;
 
-#ifdef STM32F10X
-        // skip UART2 ports
-        if (init->useUART2 && (timerHardwarePtr->tag == IO_TAG(PA2) || timerHardwarePtr->tag == IO_TAG(PA3))) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
-#endif
-
 #if defined(STM32F303xC) && defined(USE_UART3)
         // skip UART3 ports (PB10/PB11)
         if (init->useUART3 && (timerHardwarePtr->tag == IO_TAG(UART3_TX_PIN) || timerHardwarePtr->tag == IO_TAG(UART3_RX_PIN))) {

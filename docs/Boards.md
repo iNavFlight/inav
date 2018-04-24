@@ -1,6 +1,6 @@
 # Flight controller hardware
 
-The current focus is geared towards flight controller hardware that use the STM32F3, STM32F4, STM32F7 and legacy STM32F1 series processors. The core logic is separated from the hardware drivers, porting to other processors is possible.
+The current focus is geared towards flight controller hardware that use the STM32F3, STM32F4, STM32F7 series processors. The core logic is separated from the hardware drivers, porting to other processors is possible.
 
 ### Boards based on F1 CPUs
 

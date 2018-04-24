@@ -154,11 +154,6 @@ bool hcsr04Detect(rangefinderDev_t *dev, const rangefinderHardwarePins_t * range
 {
     bool detected = false;
 
-#ifdef STM32F10X
-    // enable AFIO for EXTI support
-    RCC_ClockCmd(RCC_APB2(AFIO), ENABLE);
-#endif
-
 #if defined(STM32F3) || defined(STM32F4)
     RCC_ClockCmd(RCC_APB2(SYSCFG), ENABLE);
 #endif
