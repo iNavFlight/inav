@@ -40,6 +40,7 @@
 #include "fc/runtime_config.h"
 
 #include "fc/config.h"
+#include "fc/rc_modes.h"
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -109,6 +110,7 @@ static portSharing_e frskyPortSharing;
 #define ID_GYRO_X             0x40
 #define ID_GYRO_Y             0x41
 #define ID_GYRO_Z             0x42
+#define ID_HOME_DIST          0x07
 
 #define ID_VERT_SPEED         0x30 //opentx vario
 
@@ -201,28 +203,76 @@ static void sendThrottleOrBatterySizeAsRpm(void)
 
 }
 
-static void sendTemperature1(void)
+static void sendFlightModeAsTemperature1(void)
 {
+    uint16_t tmpi = 0;
+    
+    // ones column
+    if (!isArmingDisabled())
+        tmpi += 1;
+    else
+        tmpi += 2;
+    if (ARMING_FLAG(ARMED))
+        tmpi += 4;
+    
+    // tens column
+    if (FLIGHT_MODE(ANGLE_MODE))
+        tmpi += 10;
+    if (FLIGHT_MODE(HORIZON_MODE))
+        tmpi += 20;
+    if (FLIGHT_MODE(MANUAL_MODE))
+        tmpi += 40;
+    
+    // hundreds column
+    if (FLIGHT_MODE(HEADING_MODE))
+        tmpi += 100;
+    if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
+        tmpi += 200;
+    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
+        tmpi += 400;
+    
+    // thousands column
+    if (FLIGHT_MODE(NAV_RTH_MODE))
+        tmpi += 1000;
+    if (FLIGHT_MODE(NAV_WP_MODE))
+        tmpi += 2000;
+    if (FLIGHT_MODE(HEADFREE_MODE))
+        tmpi += 4000;
+    
+    // ten thousands column
+    if (FLIGHT_MODE(FLAPERON))
+        tmpi += 10000;
+    if (FLIGHT_MODE(AUTO_TUNE))
+        tmpi += 20000;
+    if (FLIGHT_MODE(FAILSAFE_MODE))
+        tmpi += 40000;
+    // todo: prevent 16-bit variable from overflow
+    
     sendDataHead(ID_TEMPRATURE1);
-#ifdef USE_BARO
-    serialize16((baro.baroTemperature + 50)/ 100); //Airmamaf
-#else
-    /*
-     * There is no temperature information, so send 0
-     */
-    serialize16(0);
-#endif
+    serialize16(tmpi);
 }
 
 #ifdef USE_GPS
 static void sendSatalliteSignalQualityAsTemperature2(void)
 {
-    uint16_t satellite = gpsSol.numSat;
-    if (gpsSol.hdop > GPS_BAD_QUALITY && ( (cycleNum % 16 ) < 8)) {//Every 1s
-        satellite = constrain(gpsSol.hdop, 0, GPS_MAX_HDOP_VAL);
-    }
+    uint32_t tmpi = 0;
+    
+    // ones and tens columns (# of satellites 0 - 99)
+    tmpi += constrain(14/*gpsSol.numSat*/, 0, 99);
+    
+    // hundreds column (satellite accuracy HDOP: 0 = worst, 9 = best)
+    tmpi += (9 - constrain(/*gpsSol.hdop*/ 6000 / 1000, 0, 9)) * 100;
+    
+    // thousands column (GPS fix status)
+    if (STATE(GPS_FIX))
+        tmpi += 1000;
+    if (STATE(GPS_FIX_HOME))
+        tmpi += 2000;
+    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
+        tmpi += 4000;
+    
     sendDataHead(ID_TEMPRATURE2);
-    serialize16(satellite);
+    serialize16(tmpi);
 }
 
 static void sendSpeed(void)
@@ -237,6 +287,16 @@ static void sendSpeed(void)
     sendDataHead(ID_GPS_SPEED_AP);
     serialize16((gpsSol.groundSpeed * 1944 / 100) % 100);
 }
+
+static void sendHomeDistance(void)
+{
+    if (!STATE(GPS_FIX)) {
+        return;
+    }
+    sendDataHead(ID_HOME_DIST);
+    serialize16(GPS_distanceToHome);
+}
+
 #endif
 
 static void sendTime(void)
@@ -511,7 +571,7 @@ void handleFrSkyTelemetry(void)
     }
 
     if ((cycleNum % 8) == 0) {      // Sent every 1s
-        sendTemperature1();
+        sendFlightModeAsTemperature1();
         sendThrottleOrBatterySizeAsRpm();
 
         if (feature(FEATURE_VBAT)) {
@@ -524,6 +584,7 @@ void handleFrSkyTelemetry(void)
 #ifdef USE_GPS
         if (sensors(SENSOR_GPS)) {
             sendSpeed();
+            sendHomeDistance();
             sendGpsAltitude();
             sendSatalliteSignalQualityAsTemperature2();
             sendGPSLatLong();
