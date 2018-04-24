@@ -309,12 +309,6 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#if defined(OLIMEXINO) && defined(USE_RANGEFINDER_HCSR04)
-    if ((rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) && feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
-        featureClear(FEATURE_CURRENT_METER);
-    }
-#endif
-
 #ifndef USE_PMW_SERVO_DRIVER
     featureClear(FEATURE_PWM_SERVO_DRIVER);
 #endif
