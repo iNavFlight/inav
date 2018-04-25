@@ -279,10 +279,18 @@ void servoMixer(float dT)
     input[INPUT_RC_PITCH]    = rcData[PITCH]    - rxConfig()->midrc;
     input[INPUT_RC_YAW]      = rcData[YAW]      - rxConfig()->midrc;
     input[INPUT_RC_THROTTLE] = rcData[THROTTLE] - rxConfig()->midrc;
-    input[INPUT_RC_AUX1]     = rcData[AUX1]     - rxConfig()->midrc;
-    input[INPUT_RC_AUX2]     = rcData[AUX2]     - rxConfig()->midrc;
-    input[INPUT_RC_AUX3]     = rcData[AUX3]     - rxConfig()->midrc;
-    input[INPUT_RC_AUX4]     = rcData[AUX4]     - rxConfig()->midrc;
+    input[INPUT_RC_CH5]      = rcData[AUX1]     - rxConfig()->midrc;
+    input[INPUT_RC_CH6]      = rcData[AUX2]     - rxConfig()->midrc;
+    input[INPUT_RC_CH7]      = rcData[AUX3]     - rxConfig()->midrc;
+    input[INPUT_RC_CH8]      = rcData[AUX4]     - rxConfig()->midrc;
+    input[INPUT_RC_CH9]      = rcData[AUX5]     - rxConfig()->midrc;
+    input[INPUT_RC_CH10]     = rcData[AUX6]     - rxConfig()->midrc;
+    input[INPUT_RC_CH11]     = rcData[AUX7]     - rxConfig()->midrc;
+    input[INPUT_RC_CH12]     = rcData[AUX8]     - rxConfig()->midrc;
+    input[INPUT_RC_CH13]     = rcData[AUX9]     - rxConfig()->midrc;
+    input[INPUT_RC_CH14]     = rcData[AUX10]    - rxConfig()->midrc;
+    input[INPUT_RC_CH15]     = rcData[AUX11]    - rxConfig()->midrc;
+    input[INPUT_RC_CH16]     = rcData[AUX12]    - rxConfig()->midrc;
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = 0;

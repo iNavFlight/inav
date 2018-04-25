@@ -34,7 +34,11 @@ typedef enum rc_alias {
     AUX5,
     AUX6,
     AUX7,
-    AUX8
+    AUX8,
+    AUX9,
+    AUX10,
+    AUX11,
+    AUX12
 } rc_alias_e;
 
 typedef enum {
