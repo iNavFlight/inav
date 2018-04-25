@@ -391,9 +391,9 @@ Re-apply any new defaults as desired.
 |  manual rc_yaw_expo  | 20 | Exposition value used for the YAW axis by the `MANUAL` flight mode [0-100] |
 |  thr_mid  | 50 | Throttle value when the stick is set to mid-position. Used in the throttle curve calculation. |
 |  thr_expo  | 0 | Throttle exposition value |
-|  roll_rate  | 20 | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tenths of degrees per second [dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
-|  pitch_rate  | 20 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tenths of degrees per second [dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
-|  yaw_rate  | 20 | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tenths of degrees per second [dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+|  roll_rate  | 20 | Defines rotation rate on ROLL axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees  (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+|  pitch_rate  | 20 | Defines rotation rate on PITCH axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
+|  yaw_rate  | 20 | Defines rotation rate on YAW axis that UAV will try to archive on max. stick deflection. Rates are defined in tens of degrees  (deca-degrees) per second [rate = dps/10]. That means, rate 20 represents 200dps rotation speed. Default 20 (200dps) is more less equivalent of old Cleanflight/Baseflight rate 0. Max. 180 (1800dps) is what gyro can measure. |
 |  manual_pitch_rate  | 100 | Servo travel multiplier for the PITCH axis in `MANUAL` flight mode [0-100]% |
 |  manual_roll_rate  | 100 | Servo travel multiplier for the ROLL axis in `MANUAL` flight mode [0-100]% |
 |  manual_yaw_rate  | 100 | Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]% |
@@ -414,7 +414,7 @@ Re-apply any new defaults as desired.
 |  airspeed_adc_channel        |  0  | ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't have a dedicated connector for analog airspeed sensor will default to 0 |
 |  platform_type        |  "MULTIROTOR"  | Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented |
 |  has_flaps        |  OFF  | Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot  |
-|  mixer_preset        |  -1  | ID of mixer preset applied in a Configurator. **Do not modify manually**. Used only for backup/restore reasons.  |
+|  model_preview_type        |  -1  | ID of mixer preset applied in a Configurator. **Do not modify manually**. Used only for backup/restore reasons.  |
 
 This Markdown table is made by MarkdwonTableMaker addon for google spreadsheet.
 Original Spreadsheet used to make this table can be found here https://docs.google.com/spreadsheets/d/1ubjYdMGmZ2aAMUNYkdfe3hhIF7wRfIjcuPOi_ysmp00/edit?usp=sharing
