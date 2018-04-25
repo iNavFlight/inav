@@ -52,7 +52,7 @@
  * time to send frame: 3ms.
  */
 
-#define SBUS_TIME_NEEDED_PER_FRAME 3000
+#define SBUS_MIN_INTERFRAME_DELAY_US    5000                // According to FrSky interframe is 6.67ms, we go smaller just in case
 
 #define SBUS_FRAME_SIZE (SBUS_CHANNEL_DATA_LENGTH + 2)
 
@@ -68,16 +68,15 @@
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
 
 enum {
-    DEBUG_SBUS_FRAME_TIME = 0,
+    DEBUG_SBUS_INTERFRAME_TIME = 0,
     DEBUG_SBUS_FRAME_FLAGS = 1,
-    DEBUG_SBUS_SBUS2_COUNTER = 2,
-    DEBUG_SBUS_DESYNC_COUNTER = 3
+    DEBUG_SBUS_DESYNC_COUNTER = 2
 };
 
 typedef enum {
-    STATE_SBUS1_SYNC = 0,
-    STATE_SBUS1_PAYLOAD,
-    STATE_SBUS2_PAYLOAD
+    STATE_SBUS_SYNC = 0,
+    STATE_SBUS_PAYLOAD,
+    STATE_SBUS_WAIT_SYNC
 } sbusDecoderState_e;
 
 typedef struct sbusFrame_s {
@@ -99,8 +98,7 @@ typedef struct sbusFrameData_s {
     volatile bool frameDone;
     uint8_t buffer[SBUS_FRAME_SIZE];
     uint8_t position;
-    uint8_t sbus2PayloadSize;
-    timeUs_t startAtUs;
+    timeUs_t lastActivityTimeUs;
 } sbusFrameData_t;
 
 STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_match_sbusFrame_t);
@@ -108,29 +106,29 @@ STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_mat
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
 {
-    static uint16_t sbus2Counter = 0;
     static uint16_t sbusDesyncCounter = 0;
 
     sbusFrameData_t *sbusFrameData = data;
     const timeUs_t currentTimeUs = micros();
-    const timeDelta_t sbusFrameTime = cmpTimeUs(currentTimeUs, sbusFrameData->startAtUs);
+    const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
+    sbusFrameData->lastActivityTimeUs = currentTimeUs;
 
-    // Reset buffer pointer if we've waited too long
-    if (sbusFrameData->state != STATE_SBUS1_SYNC && (sbusFrameTime > (long)(SBUS_TIME_NEEDED_PER_FRAME + 500))) {
-        sbusFrameData->state = STATE_SBUS1_SYNC;
+    // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
+    if (sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= SBUS_MIN_INTERFRAME_DELAY_US) {
+        DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_INTERFRAME_TIME, timeSinceLastByteUs);
+        sbusFrameData->state = STATE_SBUS_SYNC;
     }
 
     switch (sbusFrameData->state) {
-        case STATE_SBUS1_SYNC:
+        case STATE_SBUS_SYNC:
             if (c == SBUS_FRAME_BEGIN_BYTE) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
-                sbusFrameData->startAtUs = currentTimeUs;
-                sbusFrameData->state = STATE_SBUS1_PAYLOAD;
+                sbusFrameData->state = STATE_SBUS_PAYLOAD;
             }
             break;
 
-        case STATE_SBUS1_PAYLOAD:
+        case STATE_SBUS_PAYLOAD:
             sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
 
             if (sbusFrameData->position == SBUS_FRAME_SIZE) {
@@ -140,50 +138,23 @@ static void sbusDataReceive(uint16_t c, void *data)
                 // Do some sanity check
                 switch (frame->endByte) {
                     case 0x00:  // This is S.BUS 1
-                        frameValid = true;
-                        sbusFrameData->state = STATE_SBUS1_SYNC;
-                        break;
-
                     case 0x04:  // S.BUS 2 receiver voltage
-                        frameValid = true;
-                        sbusFrameData->position = 0;
-                        sbusFrameData->sbus2PayloadSize = 3;
-                        sbusFrameData->startAtUs = currentTimeUs;       // Restart the timeout
-                        sbusFrameData->state = STATE_SBUS2_PAYLOAD;
-                        sbus2Counter++;
-                        break;
-
                     case 0x14:  // S.BUS 2 GPS/baro
-                        frameValid = true;
-                        sbusFrameData->position = 0;
-                        sbusFrameData->sbus2PayloadSize = 24;
-                        sbusFrameData->startAtUs = currentTimeUs;       // Restart the timeout
-                        sbusFrameData->state = STATE_SBUS2_PAYLOAD;
-                        sbus2Counter++;
-                        break;
-
                     case 0x24:  // Unknown SBUS2 data
                     case 0x34:  // Unknown SBUS2 data
                         frameValid = true;
-                        sbusFrameData->position = 0;
-                        sbusFrameData->sbus2PayloadSize = 0;
-                        sbusFrameData->startAtUs = currentTimeUs;       // Restart the timeout
-                        sbusFrameData->state = STATE_SBUS1_SYNC;
-                        sbus2Counter++;
+                        sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
                         break;
 
                     default:    // Failed end marker
-                        sbusFrameData->state = STATE_SBUS1_SYNC;
+                        sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
                         sbusDesyncCounter++;
+                        DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_DESYNC_COUNTER, sbusDesyncCounter);
                         break;
                 }
 
-                DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_SBUS2_COUNTER, sbus2Counter);
-                DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_DESYNC_COUNTER, sbusDesyncCounter);
-
                 // Frame seems sane, pass data to decoder
                 if (!sbusFrameData->frameDone && frameValid) {
-                    DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_TIME, sbusFrameTime);
                     DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_FLAGS, frame->channels.flags);
 
                     memcpy((void *)&sbusFrameData->frame, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
@@ -192,20 +163,9 @@ static void sbusDataReceive(uint16_t c, void *data)
             }
             break;
 
-        case STATE_SBUS2_PAYLOAD:
-            if (sbusFrameData->position == 0 && c == SBUS_FRAME_BEGIN_BYTE) {
-                // Special case, no payload - we're looking at a new S.BUS 1 frame
-                sbusFrameData->position = 0;
-                sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
-                sbusFrameData->startAtUs = currentTimeUs;
-                sbusFrameData->state = STATE_SBUS1_PAYLOAD;
-            }
-            else {
-                sbusFrameData->position++;
-                if (sbusFrameData->position >= sbusFrameData->sbus2PayloadSize) {
-                    sbusFrameData->state = STATE_SBUS1_SYNC;
-                }
-            }
+        case STATE_SBUS_WAIT_SYNC:
+            // Stay at this state and do nothing. Exit will be handled before byte is processed if the
+            // inter-frame gap is long enough
             break;
     }
 }
