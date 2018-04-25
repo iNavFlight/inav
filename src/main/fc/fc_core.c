@@ -332,7 +332,7 @@ void annexCode(void)
     updateArmingStatus();
 }
 
-void mwDisarm(disarmReason_t disarmReason)
+void disarm(disarmReason_t disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
@@ -365,7 +365,7 @@ void releaseSharedTelemetryPorts(void) {
     }
 }
 
-void mwArm(void)
+void tryArm(void)
 {
     updateArmingStatus();
 
@@ -427,7 +427,7 @@ void processRx(timeUs_t currentTimeUs)
     // in 3D mode, we need to be able to disarm by switch at any time
     if (feature(FEATURE_3D)) {
         if (!IS_RC_MODE_ACTIVE(BOXARM))
-            mwDisarm(DISARM_SWITCH_3D);
+            disarm(DISARM_SWITCH_3D);
     }
 
     updateRSSI(currentTimeUs);
@@ -454,7 +454,7 @@ void processRx(timeUs_t currentTimeUs)
                     && (int32_t)(disarmAt - millis()) < 0
                 ) {
                     // auto-disarm configured and delay is over
-                    mwDisarm(DISARM_TIMEOUT);
+                    disarm(DISARM_TIMEOUT);
                     armedBeeperOn = false;
                 } else {
                     // still armed; do warning beeps while armed
@@ -485,7 +485,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-    processRcStickPositions(throttleStatus, armingConfig()->disarm_kill_switch, armingConfig()->fixed_wing_auto_arm);
+    processRcStickPositions(throttleStatus);
 
     updateActivatedModes();
 
