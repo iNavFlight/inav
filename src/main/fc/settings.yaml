@@ -710,6 +710,10 @@ groups:
       - name: auto_disarm_delay
         min: 0
         max: 60
+      - name: switch_disarm_delay
+        field: switchDisarmDelayMs
+        min: 0
+        max: 1000
 
   - name: PG_GPS_CONFIG
     type: gpsConfig_t
