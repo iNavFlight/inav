@@ -66,7 +66,7 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
 
 PG_REGISTER_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 0);
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 1);
 
 void pgResetFn_servoParams(servoParam_t *instance)
 {
@@ -75,8 +75,7 @@ void pgResetFn_servoParams(servoParam_t *instance)
             .min = DEFAULT_SERVO_MIN,
             .max = DEFAULT_SERVO_MAX,
             .middle = DEFAULT_SERVO_MIDDLE,
-            .rate = 100,
-            .forwardFromChannel = CHANNEL_FORWARDING_DISABLED
+            .rate = 100
         );
     }
 }
@@ -107,17 +106,6 @@ int16_t getFlaperonDirection(uint8_t servoPin)
     } else {
         return 1;
     }
-}
-
-int16_t determineServoMiddleOrForwardFromChannel(servoIndex_e servoIndex)
-{
-    const uint8_t channelToForwardFrom = servoParams(servoIndex)->forwardFromChannel;
-
-    if (channelToForwardFrom != CHANNEL_FORWARDING_DISABLED && channelToForwardFrom < rxRuntimeConfig.channelCount) {
-        return rcData[channelToForwardFrom];
-    }
-
-    return servoParams(servoIndex)->middle;
 }
 
 int servoDirection(int servoIndex, int inputSource)
@@ -156,10 +144,7 @@ void servosInit(void)
     }
 
     // enable servos for mixes that require them. note, this shifts motor counts.
-    mixerUsesServos = mixerUsesServos || feature(FEATURE_SERVO_TILT);
-
-    // if we want camstab/trig, that also enables servos, even if mixer doesn't
-    servoOutputEnabled = mixerUsesServos || feature(FEATURE_CHANNEL_FORWARDING);
+    servoOutputEnabled = mixerUsesServos || feature(FEATURE_SERVO_TILT);
 
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++)
         servoComputeScalingFactors(i);
@@ -255,12 +240,6 @@ void writeServos(void)
         pwmWriteServo(servoIndex++, servo[SERVO_GIMBAL_PITCH]);
         pwmWriteServo(servoIndex++, servo[SERVO_GIMBAL_ROLL]);
     }
-
-    // forward AUX to remaining servo outputs (not constrained)
-    if (feature(FEATURE_CHANNEL_FORWARDING)) {
-        forwardAuxChannelsToServos(servoIndex);
-        servoIndex += MAX_AUX_CHANNEL_COUNT;
-    }
 }
 
 void servoMixer(float dT)
@@ -347,7 +326,7 @@ void servoMixer(float dT)
         /*
          * Add a servo midpoint to the calculation
          */
-        servo[i] += determineServoMiddleOrForwardFromChannel(i);
+        servo[i] += servoParams(i)->middle;
 
         /*
          * Constrain servo position to min/max to prevent servo damage
@@ -361,8 +340,8 @@ void servoMixer(float dT)
 void processServoTilt(void)
 {
     // center at fixed position, or vary either pitch or roll by RC channel
-    servo[SERVO_GIMBAL_PITCH] = determineServoMiddleOrForwardFromChannel(SERVO_GIMBAL_PITCH);
-    servo[SERVO_GIMBAL_ROLL] = determineServoMiddleOrForwardFromChannel(SERVO_GIMBAL_ROLL);
+    servo[SERVO_GIMBAL_PITCH] = servoParams(SERVO_GIMBAL_PITCH)->middle;
+    servo[SERVO_GIMBAL_ROLL] = servoParams(SERVO_GIMBAL_PITCH)->middle;
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
         if (gimbalConfig()->mode == GIMBAL_MODE_MIXTILT) {

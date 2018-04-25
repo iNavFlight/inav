@@ -210,7 +210,6 @@ TEST_F(BasicMixerIntegrationTest, TestTricopterServo)
     servoConf[5].max = DEFAULT_SERVO_MAX;
     servoConf[5].middle = DEFAULT_SERVO_MIDDLE;
     servoConf[5].rate = 100;
-    servoConf[5].forwardFromChannel = CHANNEL_FORWARDING_DISABLED;
 
     configureMixer();
 
@@ -288,7 +287,6 @@ protected:
             servoConf[i].max = DEFAULT_SERVO_MAX;
             servoConf[i].middle = DEFAULT_SERVO_MIDDLE;
             servoConf[i].rate = 100;
-            servoConf[i].forwardFromChannel = CHANNEL_FORWARDING_DISABLED;
         }
 
         withDefaultEscAndServoConfiguration();
