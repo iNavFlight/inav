@@ -27,7 +27,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/exti.h"
-#include "drivers/gpio.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"

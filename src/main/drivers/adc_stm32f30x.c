@@ -21,7 +21,6 @@
 
 #include "platform.h"
 #include "drivers/time.h"
-#include "drivers/gpio.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
