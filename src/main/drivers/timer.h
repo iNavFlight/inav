@@ -168,7 +168,9 @@ void timerConfigBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz);  // TODO -
 
 uint16_t timerGetPeriod(const timerHardware_t *timHw);
 
+#if defined(USE_HAL_DRIVER)
 TIM_HandleTypeDef * timerFindTimerHandle(TIM_TypeDef *tim);
+#endif
 
 void timerEnable(TIM_TypeDef * tim);
 void timerPWMConfigChannel(TIM_TypeDef * tim, uint8_t channel, bool isNChannel, bool inverted, uint16_t value);

@@ -49,8 +49,9 @@ void impl_enableTimer(TIM_TypeDef * tim)
     TIM_Cmd(tim, ENABLE);
 }
 
-void impl_timerPWMStart(TIM_TypeDef * tim, bool isNChannel)
+void impl_timerPWMStart(TIM_TypeDef * tim, unsigned channel, bool isNChannel)
 {
+    UNUSED(channel);
     UNUSED(isNChannel);
     TIM_CtrlPWMOutputs(tim, ENABLE);
 }
