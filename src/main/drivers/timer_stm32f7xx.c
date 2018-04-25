@@ -12,59 +12,31 @@
 
 #include "common/utils.h"
 
-#include "stm32f7xx.h"
-#include "timer.h"
-#include "rcc.h"
+#include "drivers/io.h"
+#include "drivers/rcc.h"
+#include "drivers/time.h"
+#include "drivers/nvic.h"
+#include "drivers/timer.h"
+#include "drivers/timer_impl.h"
 
-#define CCMR_Offset                 ((uint16_t)0x0018)
+#include "stm32f7xx.h"
 
 const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
-    { .TIMx = TIM1,  .rcc = RCC_APB2(TIM1),  .irq = TIM1_CC_IRQn},
-    { .TIMx = TIM2,  .rcc = RCC_APB1(TIM2),  .irq = TIM2_IRQn},
-    { .TIMx = TIM3,  .rcc = RCC_APB1(TIM3),  .irq = TIM3_IRQn},
-    { .TIMx = TIM4,  .rcc = RCC_APB1(TIM4),  .irq = TIM4_IRQn},
-    { .TIMx = TIM5,  .rcc = RCC_APB1(TIM5),  .irq = TIM5_IRQn},
-    { .TIMx = TIM6,  .rcc = RCC_APB1(TIM6),  .irq = 0},
-    { .TIMx = TIM7,  .rcc = RCC_APB1(TIM7),  .irq = 0},
-    { .TIMx = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = TIM8_CC_IRQn},
-    { .TIMx = TIM9,  .rcc = RCC_APB2(TIM9),  .irq = TIM1_BRK_TIM9_IRQn},
-    { .TIMx = TIM10, .rcc = RCC_APB2(TIM10), .irq = TIM1_UP_TIM10_IRQn},
-    { .TIMx = TIM11, .rcc = RCC_APB2(TIM11), .irq = TIM1_TRG_COM_TIM11_IRQn},
-    { .TIMx = TIM12, .rcc = RCC_APB1(TIM12), .irq = TIM8_BRK_TIM12_IRQn},
-    { .TIMx = TIM13, .rcc = RCC_APB1(TIM13), .irq = TIM8_UP_TIM13_IRQn},
-    { .TIMx = TIM14, .rcc = RCC_APB1(TIM14), .irq = TIM8_TRG_COM_TIM14_IRQn},
+    [0] = { .tim = TIM1,  .rcc = RCC_APB2(TIM1),  .irq = TIM1_CC_IRQn, .secondIrq = TIM1_UP_TIM10_IRQn },
+    [1] = { .tim = TIM2,  .rcc = RCC_APB1(TIM2),  .irq = TIM2_IRQn},
+    [2] = { .tim = TIM3,  .rcc = RCC_APB1(TIM3),  .irq = TIM3_IRQn},
+    [3] = { .tim = TIM4,  .rcc = RCC_APB1(TIM4),  .irq = TIM4_IRQn},
+    [4] = { .tim = TIM5,  .rcc = RCC_APB1(TIM5),  .irq = TIM5_IRQn},
+    [5] = { .tim = TIM6,  .rcc = RCC_APB1(TIM6),  .irq = 0},
+    [6] = { .tim = TIM7,  .rcc = RCC_APB1(TIM7),  .irq = 0},
+    [7] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = TIM8_CC_IRQn, .secondIrq = TIM8_UP_TIM13_IRQn},
+    [8] = { .tim = TIM9,  .rcc = RCC_APB2(TIM9),  .irq = TIM1_BRK_TIM9_IRQn},
+    [9] = { .tim = TIM10, .rcc = RCC_APB2(TIM10), .irq = TIM1_UP_TIM10_IRQn},
+    [10] = { .tim = TIM11, .rcc = RCC_APB2(TIM11), .irq = TIM1_TRG_COM_TIM11_IRQn},
+    [11] = { .tim = TIM12, .rcc = RCC_APB1(TIM12), .irq = TIM8_BRK_TIM12_IRQn},
+    [12] = { .tim = TIM13, .rcc = RCC_APB1(TIM13), .irq = TIM8_UP_TIM13_IRQn},
+    [13] = { .tim = TIM14, .rcc = RCC_APB1(TIM14), .irq = TIM8_TRG_COM_TIM14_IRQn},
 };
-
-void TIM_SelectOCxM_NoDisable(TIM_TypeDef* TIMx, uint16_t TIM_Channel, uint16_t TIM_OCMode)
-{
-    uint32_t tmp = 0;
-
-    /* Check the parameters */
-    assert_param(IS_TIM_LIST8_PERIPH(TIMx));
-    assert_param(IS_TIM_CHANNEL(TIM_Channel));
-    assert_param(IS_TIM_OCM(TIM_OCMode));
-
-    tmp = (uint32_t) TIMx;
-    tmp += CCMR_Offset;
-
-    if ((TIM_Channel == TIM_CHANNEL_1) ||(TIM_Channel == TIM_CHANNEL_3)) {
-        tmp += (TIM_Channel>>1);
-
-        /* Reset the OCxM bits in the CCMRx register */
-        *(__IO uint32_t *) tmp &= (uint32_t)~((uint32_t)TIM_CCMR1_OC1M);
-
-        /* Configure the OCxM bits in the CCMRx register */
-        *(__IO uint32_t *) tmp |= TIM_OCMode;
-    } else {
-        tmp += (uint16_t)(TIM_Channel - (uint16_t)4)>> (uint16_t)1;
-
-        /* Reset the OCxM bits in the CCMRx register */
-        *(__IO uint32_t *) tmp &= (uint32_t)~((uint32_t)TIM_CCMR1_OC2M);
-
-        /* Configure the OCxM bits in the CCMRx register */
-        *(__IO uint32_t *) tmp |= (uint16_t)(TIM_OCMode << 8);
-    }
-}
 
 uint8_t timerClockDivisor(TIM_TypeDef *tim)
 {
@@ -77,3 +49,19 @@ uint32_t timerClock(TIM_TypeDef *tim)
     UNUSED(tim);
     return SystemCoreClock;
 }
+
+_TIM_IRQ_HANDLER(TIM1_CC_IRQHandler, 1);
+_TIM_IRQ_HANDLER2(TIM1_UP_TIM10_IRQHandler, 1, 10);
+
+_TIM_IRQ_HANDLER(TIM2_IRQHandler, 2);
+_TIM_IRQ_HANDLER(TIM3_IRQHandler, 3);
+_TIM_IRQ_HANDLER(TIM4_IRQHandler, 4);
+_TIM_IRQ_HANDLER(TIM5_IRQHandler, 5);
+
+_TIM_IRQ_HANDLER(TIM8_CC_IRQHandler, 8);
+_TIM_IRQ_HANDLER2(TIM8_UP_TIM13_IRQHandler, 8, 13);
+_TIM_IRQ_HANDLER2(TIM8_TRG_COM_TIM14_IRQHandler, 8, 14);
+
+_TIM_IRQ_HANDLER(TIM1_BRK_TIM9_IRQHandler, 9);
+_TIM_IRQ_HANDLER(TIM1_TRG_COM_TIM11_IRQHandler, 11);
+_TIM_IRQ_HANDLER(TIM8_BRK_TIM12_IRQHandler, 12);

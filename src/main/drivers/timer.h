@@ -66,9 +66,10 @@ typedef struct timerOvrHandlerRec_s {
 } timerOvrHandlerRec_t;
 
 typedef struct timerDef_s {
-    TIM_TypeDef *TIMx;
-    rccPeriphTag_t rcc;
-    uint8_t irq;
+    TIM_TypeDef   * tim;
+    rccPeriphTag_t  rcc;
+    uint8_t         irq;
+    uint8_t         secondIrq;
 } timerDef_t;
 
 typedef enum {
@@ -103,13 +104,14 @@ enum {
 };
 
 #if defined(STM32F3)
-#define HARDWARE_TIMER_DEFINITION_COUNT 10
+#define HARDWARE_TIMER_DEFINITION_COUNT 17
 #elif defined(STM32F4)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
 #elif defined(STM32F7)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#else
+#error "Unknown CPU defined"
 #endif
-
 
 extern const timerHardware_t timerHardware[];
 extern const timerDef_t timerDefinitions[];
@@ -162,21 +164,17 @@ void timerForceOverflow(TIM_TypeDef *tim);
 uint8_t timerClockDivisor(TIM_TypeDef *tim);
 uint32_t timerClock(TIM_TypeDef *tim);
 
-void configTimeBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz);  // TODO - just for migration
+void timerConfigBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz);  // TODO - just for migration
 
 uint16_t timerGetPeriod(const timerHardware_t *timHw);
 
-rccPeriphTag_t timerRCC(TIM_TypeDef *tim);
+TIM_HandleTypeDef * timerFindTimerHandle(TIM_TypeDef *tim);
 
-#if defined(USE_HAL_DRIVER)
-TIM_HandleTypeDef* timerFindTimerHandle(TIM_TypeDef *tim);
-#else
-void timerOCInit(TIM_TypeDef *tim, uint8_t channel, TIM_OCInitTypeDef *init);
-void timerOCPreloadConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t preload);
-#endif
+void timerEnable(TIM_TypeDef * tim);
+void timerPWMConfigChannel(TIM_TypeDef * tim, uint8_t channel, bool isNChannel, bool inverted, uint16_t value);
+void timerPWMStart(TIM_TypeDef * tim, uint8_t channel, bool isNChannel);
 
 volatile timCCR_t *timerCCR(TIM_TypeDef *tim, uint8_t channel);
 uint16_t timerDmaSource(uint8_t channel);
 
 uint16_t timerGetPrescalerByDesiredMhz(TIM_TypeDef *tim, uint16_t mhz);
-uint16_t timerGetPeriodByPrescaler(TIM_TypeDef *tim, uint16_t prescaler, uint32_t hertz);

@@ -148,7 +148,8 @@ MCU_COMMON_SRC = \
             drivers/dma_stm32f7xx.c \
             drivers/inverter.c \
             drivers/bus_spi_hal.c \
-            drivers/timer_hal.c \
+            drivers/timer.c \
+            drivers/timer_impl_hal.c \
             drivers/timer_stm32f7xx.c \
             drivers/system_stm32f7xx.c \
             drivers/serial_uart_stm32f7xx.c \
@@ -158,7 +159,6 @@ MCU_COMMON_SRC = \
 MCU_EXCLUDES = \
             drivers/bus_spi.c \
             drivers/bus_i2c.c \
-            drivers/timer.c \
             drivers/serial_uart.c
 
 DSP_LIB := $(ROOT)/lib/main/CMSIS/DSP
