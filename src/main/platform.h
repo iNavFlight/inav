@@ -17,7 +17,7 @@
 
 #pragma once
 
-#if defined(STM32F745xx) || defined(STM32F746xx) || defined(STM32F722xx)
+#if defined(STM32F7)
 #include "stm32f7xx.h"
 #include "stm32f7xx_hal.h"
 
@@ -32,9 +32,7 @@
 #define U_ID_2 (*(uint32_t*)0x1ff0f428)
 #endif
 
-#define STM32F7
-
-#elif defined(STM32F40_41xxx) || defined (STM32F411xE) || defined (STM32F427_437xx) || defined (STM32F446xx)
+#elif defined(STM32F4)
 #include "stm32f4xx.h"
 
 // Chip Unique ID on F405
@@ -42,9 +40,7 @@
 #define U_ID_1 (*(uint32_t*)0x1fff7a14)
 #define U_ID_2 (*(uint32_t*)0x1fff7a18)
 
-#define STM32F4
-
-#elif defined(STM32F303xC)
+#elif defined(STM32F3)
 #include "stm32f30x_conf.h"
 #include "stm32f30x_rcc.h"
 #include "stm32f30x_gpio.h"
@@ -55,7 +51,6 @@
 #define U_ID_1 (*(uint32_t*)0x1FFFF7B0)
 #define U_ID_2 (*(uint32_t*)0x1FFFF7B4)
 
-#define STM32F3
 #endif
 
 #include "target/common.h"

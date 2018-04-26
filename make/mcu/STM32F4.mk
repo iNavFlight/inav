@@ -9,6 +9,8 @@ STDPERIPH_DIR   = $(ROOT)/lib/main/STM32F4/Drivers/STM32F4xx_HAL_Driver
 STDPERIPH_SRC   = $(notdir $(wildcard $(STDPERIPH_DIR)/Src/*.c))
 EXCLUDES        =
 else
+USBFS_DIR       = $(ROOT)/lib/main/STM32_USB-FS-Device_Driver
+USBPERIPH_SRC   = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 CMSIS_DIR      := $(ROOT)/lib/main/CMSIS
 STDPERIPH_DIR   = $(ROOT)/lib/main/STM32F4/Drivers/STM32F4xx_StdPeriph_Driver
 STDPERIPH_SRC   = $(notdir $(wildcard $(STDPERIPH_DIR)/src/*.c))

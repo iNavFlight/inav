@@ -124,8 +124,6 @@ GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO OMNIBUSF4V3
 GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER
 GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS), $(VALID_TARGETS))
 
-STM32F30x_COMMON_SRC  = startup_stm32f30x_md_gcc.S
-
 REVISION = $(shell git log -1 --format="%h")
 
 FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk '{print $$3}' )
@@ -137,16 +135,14 @@ FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
 BUILD_DATE = $(shell date +%Y%m%d)
 
 # Search path for sources
-VPATH           := $(SRC_DIR):$(SRC_DIR)/startup
-USBFS_DIR       = $(ROOT)/lib/main/STM32_USB-FS-Device_Driver
-USBPERIPH_SRC   = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 FATFS_DIR       = $(ROOT)/lib/main/FatFS
 FATFS_SRC       = $(notdir $(wildcard $(FATFS_DIR)/*.c))
 
-CSOURCES        := $(shell find $(SRC_DIR) -name '*.c')
-
+VPATH           := $(SRC_DIR):$(SRC_DIR)/startup
 VPATH 			:= $(VPATH):$(ROOT)/make/mcu
 VPATH 			:= $(VPATH):$(ROOT)/make
+
+CSOURCES        := $(shell find $(SRC_DIR) -name '*.c')
 
 # start specific includes
 include $(ROOT)/make/mcu/$(TARGET_MCU).mk
@@ -160,10 +156,16 @@ $(error FLASH_SIZE not configured for target $(TARGET))
 endif
 endif
 
-DEVICE_FLAGS  := $(DEVICE_FLAGS) -DFLASH_SIZE=$(FLASH_SIZE)
+# Configure devide and target-specific defines and compiler flags
+DEVICE_FLAGS    := $(DEVICE_FLAGS) -DFLASH_SIZE=$(FLASH_SIZE)
+TARGET_FLAGS    := $(TARGET_FLAGS) -D$(TARGET_MCU) -D$(TARGET)
 
 ifneq ($(HSE_VALUE),)
-DEVICE_FLAGS  := $(DEVICE_FLAGS) -DHSE_VALUE=$(HSE_VALUE)
+DEVICE_FLAGS    := $(DEVICE_FLAGS) -DHSE_VALUE=$(HSE_VALUE)
+endif
+
+ifneq ($(BASE_TARGET), $(TARGET))
+TARGET_FLAGS    := $(TARGET_FLAGS) -D$(BASE_TARGET)
 endif
 
 TARGET_DIR     = $(ROOT)/src/main/target/$(BASE_TARGET)
