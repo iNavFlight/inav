@@ -381,8 +381,9 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_PITCH] = axisPID[PITCH];
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
-        // Reverse yaw servo when inverted in 3D mode except in ROVER mode
-        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->midrc) && mixerConfig()->platformType != PLATFORM_ROVER) {
+        // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
+        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->midrc) && 
+        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }
