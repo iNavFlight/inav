@@ -73,9 +73,8 @@ uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannel
         // RX *should* still be sending valid channel data, so use it.
         return RX_FRAME_COMPLETE | RX_FRAME_FAILSAFE;
     }
-    else {
-        return RX_FRAME_COMPLETE;
-    }
+
+    return RX_FRAME_COMPLETE;
 }
 
 static uint16_t sbusChannelsReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan)
