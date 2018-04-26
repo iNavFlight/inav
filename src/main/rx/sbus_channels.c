@@ -68,8 +68,6 @@ uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannel
         sbusChannelData[17] = SBUS_DIGITAL_CHANNEL_MIN;
     }
 
-    if (channels->flags & SBUS_FLAG_SIGNAL_LOSS) {
-    }
     if (channels->flags & SBUS_FLAG_FAILSAFE_ACTIVE) {
         // internal failsafe enabled and rx failsafe flag set
         // RX *should* still be sending valid channel data, so use it.
