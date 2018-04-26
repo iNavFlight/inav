@@ -135,6 +135,9 @@ FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
 BUILD_DATE = $(shell date +%Y%m%d)
 
 # Search path for sources
+FATFS_DIR       = $(ROOT)/lib/main/FatFS
+FATFS_SRC       = $(notdir $(wildcard $(FATFS_DIR)/*.c))
+
 VPATH           := $(SRC_DIR):$(SRC_DIR)/startup
 VPATH 			:= $(VPATH):$(ROOT)/make/mcu
 VPATH 			:= $(VPATH):$(ROOT)/make

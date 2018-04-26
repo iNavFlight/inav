@@ -27,6 +27,9 @@ INCLUDE_DIRS    := $(INCLUDE_DIRS) \
                    $(ROOT)/lib/main/STM32F3/Drivers/CMSIS/Device/ST/STM32F30x
 
 ifneq ($(filter VCP, $(FEATURES)),)
+USBFS_DIR       = $(ROOT)/lib/main/STM32_USB-FS-Device_Driver
+USBPERIPH_SRC   = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
+
 INCLUDE_DIRS    := $(INCLUDE_DIRS) \
                    $(USBFS_DIR)/inc \
                    $(ROOT)/src/main/vcp
