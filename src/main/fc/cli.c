@@ -1643,6 +1643,127 @@ static void cliFlashRead(char *cmdline)
 #endif
 #endif
 
+#ifdef USE_OSD
+static void printOsdLayout(uint8_t dumpMask, const osdConfig_t *osdConfig, const osdConfig_t *osdConfigDefault, int layout, int item)
+{
+    // "<layout> <item> <col> <row> <visible>"
+    const char *format = "osd_layout %d %d %d %d %c";
+    for (int ii = 0; ii < OSD_LAYOUT_COUNT; ii++) {
+        if (layout >= 0 && layout != ii) {
+            continue;
+        }
+        const uint16_t *layoutItems = osdConfig->item_pos[ii];
+        const uint16_t *defaultLayoutItems = osdConfigDefault->item_pos[ii];
+        for (int jj = 0; jj < OSD_ITEM_COUNT; jj++) {
+            if (item >= 0 && item != jj) {
+                continue;
+            }
+            bool equalsDefault = layoutItems[jj] == defaultLayoutItems[jj];
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                ii, jj,
+                OSD_X(defaultLayoutItems[jj]),
+                OSD_Y(defaultLayoutItems[jj]),
+                OSD_VISIBLE(defaultLayoutItems[jj]) ? 'V' : 'H');
+
+            cliDumpPrintLinef(dumpMask, equalsDefault, format,
+                ii, jj,
+                OSD_X(layoutItems[jj]),
+                OSD_Y(layoutItems[jj]),
+                OSD_VISIBLE(layoutItems[jj]) ? 'V' : 'H');
+        }
+    }
+}
+
+static void cliOsdLayout(char *cmdline)
+{
+    char * saveptr;
+
+    int layout = -1;
+    int item = -1;
+    int col = 0;
+    int row = 0;
+    bool visible = false;
+    char *tok = strtok_r(cmdline, " ", &saveptr);
+
+    int ii;
+
+    for (ii = 0; tok != NULL; ii++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (ii) {
+            case 0:
+                layout = fastA2I(tok);
+                if (layout < 0 || layout >= OSD_LAYOUT_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 1:
+                item = fastA2I(tok);
+                if (item < 0 || item >= OSD_ITEM_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 2:
+                col = fastA2I(tok);
+                if (col < 0 || col > OSD_X(OSD_POS_MAX)) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 3:
+                row = fastA2I(tok);
+                if (row < 0 || row > OSD_Y(OSD_POS_MAX)) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 4:
+                switch (*tok) {
+                    case 'H':
+                        visible = false;
+                        break;
+                    case 'V':
+                        visible = true;
+                        break;
+                    default:
+                        cliShowParseError();
+                        return;
+                }
+                break;
+            default:
+                cliShowParseError();
+                return;
+        }
+    }
+
+    switch (ii) {
+        case 0:
+            FALLTHROUGH;
+        case 1:
+            FALLTHROUGH;
+        case 2:
+            // No args, or just layout or layout and item. If any of them not provided,
+            // it will be the -1 that we used during initialization, so printOsdLayout()
+            // won't use them for filtering.
+            printOsdLayout(DUMP_MASTER, osdConfig(), osdConfig(), layout, item);
+            break;
+        case 4:
+            // No visibility provided. Keep the previous one.
+            visible = OSD_VISIBLE(osdConfig()->item_pos[layout][item]);
+            FALLTHROUGH;
+        case 5:
+            // Layout, item, pos and visibility. Set the item.
+            osdConfigMutable()->item_pos[layout][item] = OSD_POS(col, row) | (visible ? OSD_VISIBLE_FLAG : 0);
+            break;
+        default:
+            // Unhandled
+            cliShowParseError();
+            return;
+    }
+}
+
+#endif
+
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
 {
     uint32_t mask = featureConfig->enabledFeatures;
@@ -2541,6 +2662,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
+#ifdef USE_OSD
+        cliPrintHashLine("osd_layout");
+        printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
+#endif
+
         cliPrintHashLine("master");
         dumpAllValues(MASTER_VALUE, dumpMask);
 
@@ -2685,6 +2811,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
+#ifdef USE_OSD
+    CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
+#endif
 };
 
 static void cliHelp(char *cmdline)

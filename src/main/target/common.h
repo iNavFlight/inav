@@ -69,6 +69,7 @@
 #define USE_DTERM_NOTCH
 #define USE_ACC_NOTCH
 #define USE_CMS
+#define CMS_MENU_OSD
 #define USE_DASHBOARD
 #define USE_OLED_UG2864
 #define USE_MSP_DISPLAYPORT

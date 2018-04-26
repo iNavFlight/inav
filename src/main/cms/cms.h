@@ -4,6 +4,8 @@
 
 #include "common/time.h"
 
+#include "cms/cms_types.h"
+
 extern bool cmsInMenu;
 
 // Device management
@@ -13,8 +15,9 @@ bool cmsDisplayPortRegister(displayPort_t *pDisplay);
 void cmsInit(void);
 void cmsHandler(timeUs_t currentTimeUs);
 
-long cmsMenuChange(displayPort_t *pPort, const void *ptr);
+long cmsMenuChange(displayPort_t *pPort, const CMS_Menu *menu, const OSD_Entry *from);
 long cmsMenuExit(displayPort_t *pPort, const void *ptr);
+void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration);
 void cmsUpdate(uint32_t currentTimeUs);
 
 #define CMS_STARTUP_HELP_TEXT1 "MENU: THR MID"

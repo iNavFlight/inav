@@ -30,6 +30,8 @@
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
 
+#include "io/osd.h"
+
 #include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 
@@ -72,6 +74,9 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXCAMERA1, "CAMERA CONTROL 1", 39 },
     { BOXCAMERA2, "CAMERA CONTROL 2", 40 },
     { BOXCAMERA3, "CAMERA CONTROL 3", 41 },
+    { BOXOSDALT1, "OSD ALT 1", 42 },
+    { BOXOSDALT2, "OSD ALT 2", 43 },
+    { BOXOSDALT3, "OSD ALT 3", 43 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -240,6 +245,18 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA2;
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
 #endif
+
+#if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
+#if OSD_LAYOUT_COUNT > 0
+    activeBoxIds[activeBoxIdCount++] = BOXOSDALT1;
+#if OSD_LAYOUT_COUNT > 1
+    activeBoxIds[activeBoxIdCount++] = BOXOSDALT2;
+#if OSD_LAYOUT_COUNT > 2
+    activeBoxIds[activeBoxIdCount++] = BOXOSDALT3;
+#endif
+#endif
+#endif
+#endif
 }
 
 #define IS_ENABLED(mask) (mask == 0 ? 0 : 1)
@@ -289,6 +306,9 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA1)),     BOXCAMERA1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA2)),     BOXCAMERA2);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA3)),     BOXCAMERA3);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT1)),     BOXOSDALT1);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT2)),     BOXOSDALT2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT3)),     BOXOSDALT3);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

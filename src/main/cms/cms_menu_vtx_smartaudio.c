@@ -365,7 +365,7 @@ static const char * const saCmsPitFModeNames[] = {
 
 static const OSD_TAB_t saCmsEntPitFMode = { &saCmsPitFMode, 1, saCmsPitFModeNames };
 
-static long sacms_SetupTopMenu(void); // Forward
+static long sacms_SetupTopMenu(const OSD_Entry *from); // Forward
 
 static long saCmsConfigFreqModeByGvar(displayPort_t *pDisp, const void *self)
 {
@@ -385,7 +385,7 @@ static long saCmsConfigFreqModeByGvar(displayPort_t *pDisp, const void *self)
         }
     }
 
-    sacms_SetupTopMenu();
+    sacms_SetupTopMenu(NULL);
 
     return 0;
 }
@@ -421,8 +421,10 @@ static long saCmsCommence(displayPort_t *pDisp, const void *self)
     return MENU_CHAIN_BACK;
 }
 
-static long saCmsSetPORFreqOnEnter(void)
+static long saCmsSetPORFreqOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     saCmsORFreqNew = saCmsORFreq;
 
     return 0;
@@ -456,8 +458,10 @@ static char *saCmsUserFreqGetString(void)
     return pbuf;
 }
 
-static long saCmsSetUserFreqOnEnter(void)
+static long saCmsSetUserFreqOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     saCmsUserFreqNew = saCmsUserFreq;
 
     return 0;
@@ -612,8 +616,10 @@ static const OSD_Entry saCmsMenuOfflineEntries[] =
 
 CMS_Menu cmsx_menuVtxSmartAudio; // Forward
 
-static long sacms_SetupTopMenu(void)
+static long sacms_SetupTopMenu(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     if (saCmsDeviceStatus) {
         if (saCmsFselMode == 0)
             cmsx_menuVtxSmartAudio.entries = saCmsMenuChanModeEntries;

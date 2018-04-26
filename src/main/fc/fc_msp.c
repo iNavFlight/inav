@@ -968,7 +968,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdConfig()->item_pos[i]);
+            sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
         }
 #else
         sbufWriteU8(dst, 0); // OSD not supported
@@ -1305,6 +1305,38 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, MAX_SUPPORTED_SERVOS);
         break;
 
+#if defined(USE_OSD)
+    case MSP2_INAV_OSD_LAYOUTS:
+        sbufWriteU8(dst, OSD_LAYOUT_COUNT);
+        sbufWriteU8(dst, OSD_ITEM_COUNT);
+        for (unsigned ii = 0; ii < OSD_LAYOUT_COUNT; ii++) {
+            for (unsigned jj = 0; jj < OSD_ITEM_COUNT; jj++) {
+                sbufWriteU16(dst, osdConfig()->item_pos[ii][jj]);
+            }
+        }
+        break;
+
+    case MSP2_INAV_OSD_ALARMS:
+        sbufWriteU8(dst, osdConfig()->rssi_alarm);
+        sbufWriteU16(dst, osdConfig()->time_alarm);
+        sbufWriteU16(dst, osdConfig()->alt_alarm);
+        sbufWriteU16(dst, osdConfig()->dist_alarm);
+        sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+        break;
+
+    case MSP2_INAV_OSD_PREFERENCES:
+        sbufWriteU8(dst, osdConfig()->video_system);
+        sbufWriteU8(dst, osdConfig()->main_voltage_decimals);
+        sbufWriteU8(dst, osdConfig()->ahi_reverse_roll);
+        sbufWriteU8(dst, osdConfig()->crosshairs_style);
+        sbufWriteU8(dst, osdConfig()->left_sidebar_scroll);
+        sbufWriteU8(dst, osdConfig()->right_sidebar_scroll);
+        sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
+        sbufWriteU8(dst, osdConfig()->units);
+        sbufWriteU8(dst, osdConfig()->stats_energy_unit);
+        break;
+
+#endif
     default:
         return false;
     }
@@ -2018,7 +2050,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else {
             // set a position setting
             if ((dataSize >= 3) && (tmp_u8 < OSD_ITEM_COUNT)) // tmp_u8 == addr
-                osdConfigMutable()->item_pos[tmp_u8] = sbufReadU16(src);
+                osdConfigMutable()->item_pos[0][tmp_u8] = sbufReadU16(src);
             else
                 return MSP_RESULT_ERROR;
         }
@@ -2388,6 +2420,52 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU8(src); //Read and ignore MAX_SUPPORTED_SERVOS
         mixerUpdateStateFlags();
         break;
+
+#if defined(USE_OSD)
+    case MSP2_INAV_OSD_SET_LAYOUT_ITEM:
+        {
+            uint8_t layout;
+            if (!sbufReadU8Safe(&layout, src)) {
+                return MSP_RESULT_ERROR;
+            }
+            uint8_t item;
+            if (!sbufReadU8Safe(&item, src)) {
+                return MSP_RESULT_ERROR;
+            }
+            if (!sbufReadU16Safe(&osdConfigMutable()->item_pos[layout][item], src)) {
+                return MSP_RESULT_ERROR;
+            }
+            osdStartFullRedraw();
+        }
+
+        break;
+    case MSP2_INAV_OSD_SET_ALARMS:
+        {
+            sbufReadU8Safe(&osdConfigMutable()->rssi_alarm, src);
+            sbufReadU16Safe(&osdConfigMutable()->time_alarm, src);
+            sbufReadU16Safe(&osdConfigMutable()->alt_alarm, src);
+            sbufReadU16Safe(&osdConfigMutable()->dist_alarm, src);
+            sbufReadU16Safe(&osdConfigMutable()->neg_alt_alarm, src);
+            osdStartFullRedraw();
+        }
+
+        break;
+    case MSP2_INAV_OSD_SET_PREFERENCES:
+        {
+            sbufReadU8Safe(&osdConfigMutable()->video_system, src);
+            sbufReadU8Safe(&osdConfigMutable()->main_voltage_decimals, src);
+            sbufReadU8Safe(&osdConfigMutable()->ahi_reverse_roll, src);
+            sbufReadU8Safe(&osdConfigMutable()->crosshairs_style, src);
+            sbufReadU8Safe(&osdConfigMutable()->left_sidebar_scroll, src);
+            sbufReadU8Safe(&osdConfigMutable()->right_sidebar_scroll, src);
+            sbufReadU8Safe(&osdConfigMutable()->sidebar_scroll_arrows, src);
+            sbufReadU8Safe(&osdConfigMutable()->units, src);
+            sbufReadU8Safe(&osdConfigMutable()->stats_energy_unit, src);
+            osdStartFullRedraw();
+        }
+
+        break;
+#endif
 
     default:
         return MSP_RESULT_ERROR;
