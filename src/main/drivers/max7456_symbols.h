@@ -184,7 +184,7 @@
 #define SYM_AMP   0x9A
 #define SYM_MAH   0x07
 #define SYM_WH    0xAB
-#define SYM_WATT  0x57
+#define SYM_WATT  0xAE
 
 // Efficiency
 #define SYM_MAH_KM_0    157
