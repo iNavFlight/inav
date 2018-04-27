@@ -1310,8 +1310,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_POWER:
         {
-            // TODO: SYM_WATTS?
-            buff[0] = 'W';
+            buff[0] = SYM_WATT;
             osdFormatCentiNumber(buff + 1, getPower(), 0, 2, 0, 3);
             break;
         }
