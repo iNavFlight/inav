@@ -39,7 +39,7 @@ typedef enum {
     BOXLEDLOW       = 12,
     BOXLIGHTS       = 13,
     BOXNAVLAUNCH    = 14,
-    BOXOSD          = 15,
+    // BOXOSD          = 15,
     BOXTELEMETRY    = 16,
     BOXBLACKBOX     = 17,
     BOXFAILSAFE     = 18,
@@ -56,6 +56,9 @@ typedef enum {
     BOXCAMERA1      = 29,
     BOXCAMERA2      = 30,
     BOXCAMERA3      = 31,
+    BOXOSDALT1      = 32,
+    BOXOSDALT2      = 33,
+    BOXOSDALT3      = 34,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

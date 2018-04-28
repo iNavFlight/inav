@@ -1,4 +1,4 @@
-# Board - Paris Air Hero 32 / Acro Naze 32 Mini
+# Board - Paris Air Hero 32
 
 This is the AIR3 PARIS Sirius AirHERO 32 F3 board from MultiWiiCopter
 Source: http://www.multiwiicopter.com/products/inav-air3-fixed-wing

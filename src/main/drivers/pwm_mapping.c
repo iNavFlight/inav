@@ -21,7 +21,6 @@
 
 #include "platform.h"
 
-#include "drivers/gpio.h"
 #include "drivers/io.h"
 #include "io_impl.h"
 #include "timer.h"
@@ -68,22 +67,6 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
     for (int timerIndex = 0; timerIndex < USABLE_TIMER_CHANNEL_COUNT; timerIndex++) {
         const timerHardware_t *timerHardwarePtr = &timerHardware[timerIndex];
         int type = MAP_TO_NONE;
-
-#ifdef OLIMEXINO_UNCUT_LED2_E_JUMPER
-        // PWM2 is connected to LED2 on the board and cannot be connected unless you cut LED2_E
-        if (timerIndex == PWM2) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
-#endif
-
-#ifdef STM32F10X
-        // skip UART2 ports
-        if (init->useUART2 && (timerHardwarePtr->tag == IO_TAG(PA2) || timerHardwarePtr->tag == IO_TAG(PA3))) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
-#endif
 
 #if defined(STM32F303xC) && defined(USE_UART3)
         // skip UART3 ports (PB10/PB11)

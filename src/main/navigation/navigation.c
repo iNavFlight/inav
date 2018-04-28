@@ -1036,7 +1036,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHING(navigatio
     UNUSED(previousState);
 
     if (navConfig()->general.flags.disarm_on_landing) {
-        mwDisarm(DISARM_NAVIGATION);
+        disarm(DISARM_NAVIGATION);
     }
 
     return NAV_FSM_EVENT_SUCCESS;

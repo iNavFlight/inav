@@ -167,12 +167,8 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
 
 #ifdef USE_ACC_MMA8452
     case ACC_MMA8452: // MMA8452
-#ifdef NAZE
-        // Not supported with this frequency
-        if (hardwareRevision < NAZE32_REV5 && mma8452Detect(dev)) {
-#else
+
         if (mma8452Detect(dev)) {
-#endif
 #ifdef ACC_MMA8452_ALIGN
             dev->accAlign = ACC_MMA8452_ALIGN;
 #endif

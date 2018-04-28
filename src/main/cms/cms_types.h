@@ -46,9 +46,6 @@ typedef enum
     OME_FLOAT, //only up to 255 value and cant be 2.55 or 25.5, just for PID's
     OME_Setting,
     //wlasciwosci elementow
-#ifdef USE_OSD
-    OME_VISIBLE,
-#endif
     OME_TAB,
     OME_END,
 
@@ -81,9 +78,10 @@ typedef struct
 #define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, OME_Label, NULL, data, DYNAMIC })
 #define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, OME_LabelFunc, NULL, fn, DYNAMIC })
 #define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", OME_Back, NULL, NULL, 0 })
-#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, cmsMenuChange, menu, 0 })
+#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, NULL, menu, 0 })
 #define OSD_FUNC_CALL_ENTRY(label, fn)          ((OSD_Entry){ label, OME_Funcall, fn, NULL, 0 })
 #define OSD_BOOL_ENTRY(label, val)              ((OSD_Entry){ label, OME_Bool, NULL, val, 0 })
+#define OSD_BOOL_CALLBACK_ENTRY(label, cb, val) ((OSD_Entry){ label, OME_Bool, cb, val, 0 })
 #define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, OME_BoolFunc, NULL, fn, 0 })
 #define OSD_UINT8_ENTRY(label, val)             ((OSD_Entry){ label, OME_UINT8, NULL, val, 0 })
 #define OSD_UINT8_CALLBACK_ENTRY(label, cb, val)((OSD_Entry){ label, OME_UINT8, cb, val, 0 })
@@ -109,7 +107,7 @@ typedef enum {
 // Use a function and data type to make sure switches are exhaustive
 static inline CMSDataType_e CMS_DATA_TYPE(const OSD_Entry *entry) { return entry->flags & 0xF0; }
 
-typedef long (*CMSMenuFuncPtr)(void);
+typedef long (*CMSMenuFuncPtr)(const OSD_Entry *from);
 
 // Special return value(s) for function chaining by CMSMenuFuncPtr
 #define MENU_CHAIN_BACK  (-1) // Causes automatic cmsMenuBack

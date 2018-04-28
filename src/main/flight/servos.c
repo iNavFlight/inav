@@ -277,8 +277,9 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_PITCH] = axisPID[PITCH];
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
-        // Reverse yaw servo when inverted in 3D mode
-        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->midrc)) {
+        // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
+        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->midrc) && 
+        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }
@@ -425,6 +426,7 @@ void processServoAutotrim(void)
                             servoParamsMutable(servoIndex)->middle = servoMiddleAccum[servoIndex] / servoMiddleAccumCount;
                         }
                         trimState = AUTOTRIM_SAVE_PENDING;
+                        pidResetErrorAccumulators(); //Reset Iterm since new midpoints override previously acumulated errors
                     }
                 }
                 else {

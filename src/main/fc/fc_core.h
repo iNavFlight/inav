@@ -31,8 +31,8 @@ typedef enum disarmReason_e {
 
 void handleInflightCalibrationStickPosition(void);
 
-void mwDisarm(disarmReason_t disarmReason);
-void mwArm(void);
+void disarm(disarmReason_t disarmReason);
+void tryArm(void);
 disarmReason_t getDisarmReason(void);
 
 bool isCalibrating(void);

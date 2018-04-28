@@ -72,18 +72,7 @@ const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
 {
     static rangefinderHardwarePins_t rangefinderHardwarePins;
 
-#if defined(RANGEFINDER_HCSR04_PWM_TRIGGER_PIN)
-    // If we are using softserial, parallel PWM or ADC current sensor, then use motor pins for sonar, otherwise use RC pins
-    if (feature(FEATURE_SOFTSERIAL)
-            || (rxConfig()->receiverType == RX_TYPE_PWM)
-            || (feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC)) {
-        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN_PWM);
-        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN_PWM);
-    } else {
-        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
-        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
-    }
-#elif defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
+#if defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
     rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
     rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
 #else
