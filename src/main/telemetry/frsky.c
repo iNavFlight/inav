@@ -258,10 +258,10 @@ static void sendSatalliteSignalQualityAsTemperature2(void)
     uint32_t tmpi = 0;
     
     // ones and tens columns (# of satellites 0 - 99)
-    tmpi += constrain(14/*gpsSol.numSat*/, 0, 99);
+    tmpi += constrain(gpsSol.numSat, 0, 99);
     
     // hundreds column (satellite accuracy HDOP: 0 = worst, 9 = best)
-    tmpi += (9 - constrain(/*gpsSol.hdop*/ 6000 / 1000, 0, 9)) * 100;
+    tmpi += (9 - constrain(gpsSol.hdop / 1000, 0, 9)) * 100;
     
     // thousands column (GPS fix status)
     if (STATE(GPS_FIX))
