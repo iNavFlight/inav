@@ -212,7 +212,7 @@ static int32_t BMI160_Config(const busDevice_t *busDev)
     return 0;
 }
 
-#if defined(USE_EXTI) && defined(BMI160_INT_EXTI)
+#if defined(USE_EXTI) && defined(GYRO_INT_EXTI)
 
 #if defined(USE_CHIBIOS)
 void bmi160ExtiHandler(extiCallbackRec_t *cb)
@@ -243,13 +243,13 @@ static void bmi160IntExtiInit(gyroDev_t *gyro)
         return;
     }
 
-    IO_t mpuIntIO = IOGetByTag(IO_TAG(BMI160_INT_EXTI));
+    IO_t mpuIntIO = IOGetByTag(IO_TAG(GYRO_INT_EXTI));
 
     IOInit(mpuIntIO, OWNER_MPU, RESOURCE_EXTI, 0);
     IOConfigGPIO(mpuIntIO, IOCFG_IN_FLOATING);
 
     EXTIHandlerInit(&gyro->exti, bmi160ExtiHandler);
-    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Rising);
+    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Rising);
     EXTIEnable(mpuIntIO, true);
 
     bmi160ExtiInitDone = true;
@@ -327,7 +327,7 @@ void bmi160SpiGyroInit(gyroDev_t *gyro)
 {
     BMI160_Init(gyro->busDev);
 
-#if defined(USE_EXTI) && defined(BMI160_INT_EXTI)
+#if defined(USE_EXTI) && defined(GYRO_INT_EXTI)
     bmi160IntExtiInit(gyro);
 #endif /* defined(USE_EXTI) && defined(BMI160_INT_EXTI) */
 }

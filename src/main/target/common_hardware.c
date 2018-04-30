@@ -204,8 +204,5 @@
     BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE);
 #endif
 
-#if defined(USE_GYRO_BMI160)
-    BUSDEV_REGISTER_SPI(busdev_bmi160,     DEVHW_BMI160,      BMI160_SPI_BUS,    BMI160_CS_PIN,     BMI160_INT_EXTI,   DEVFLAGS_NONE);
-#endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

@@ -347,14 +347,14 @@ void Video_Init()
     IOInit(vsync_io, OWNER_OSD, RESOURCE_EXTI, 0);
     IOConfigGPIO(vsync_io, IOCFG_IN_FLOATING);
     EXTIHandlerInit(&vsyncIntCallbackRec, Vsync_ISR);
-    EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Falling);
+    EXTIConfig(vsync_io, &vsyncIntCallbackRec, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Falling);
 
     // HSYNC interrupt
     hsync_io = IOGetByTag(IO_TAG(VIDEO_HSYNC));
     IOInit(hsync_io, OWNER_OSD, RESOURCE_EXTI, 0);
     IOConfigGPIO(hsync_io, IOCFG_IN_FLOATING);
     EXTIHandlerInit(&hsyncIntCallbackRec, Hsync_ISR);
-    EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_PRIO_MPU_INT_EXTI, EXTI_Trigger_Falling);
+    EXTIConfig(hsync_io, &hsyncIntCallbackRec, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Falling);
 
     // Enable interrupts
     EXTIEnable(vsync_io, true);
