@@ -18,6 +18,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/color.h"
 
 #define LED_MAX_STRIP_LENGTH           32
 #define LED_CONFIGURABLE_COLOR_COUNT   16
@@ -67,6 +68,23 @@
 #define LED_Y_BIT_OFFSET 0
 #define LED_XY_MASK      0x0F
 #define CALCULATE_LED_XY(x, y) ((((x) & LED_XY_MASK) << LED_X_BIT_OFFSET) | (((y) & LED_XY_MASK) << LED_Y_BIT_OFFSET))
+
+typedef enum {
+    COLOR_BLACK = 0,
+    COLOR_WHITE,
+    COLOR_RED,
+    COLOR_ORANGE,
+    COLOR_YELLOW,
+    COLOR_LIME_GREEN,
+    COLOR_GREEN,
+    COLOR_MINT_GREEN,
+    COLOR_CYAN,
+    COLOR_LIGHT_BLUE,
+    COLOR_BLUE,
+    COLOR_DARK_VIOLET,
+    COLOR_MAGENTA,
+    COLOR_DEEP_PINK,
+} colorId_e;
 
 typedef enum {
     LED_MODE_ORIENTATION = 0,

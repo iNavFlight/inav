@@ -27,3 +27,4 @@
 #define MSP2_INAV_SET_BATTERY_CONFIG            0x2006
 #define MSP2_INAV_RATE_PROFILE                  0x2007
 #define MSP2_INAV_SET_RATE_PROFILE              0x2008
+#define MSP2_INAV_AIR_SPEED                     0x2009

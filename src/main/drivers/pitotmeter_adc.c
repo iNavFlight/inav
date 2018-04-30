@@ -28,7 +28,7 @@
 #include "pitotmeter_adc.h"
 #include "adc.h"
 
-#if defined(USE_PITOT_ADC)
+#if defined(USE_ADC) && defined(USE_PITOT_ADC)
 
 /*
  * NXP MPXV7002DP differential pressure sensor

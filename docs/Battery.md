@@ -22,6 +22,7 @@ When dealing with batteries **ALWAYS CHECK POLARITY!**
 Measure expected voltages **first** and then connect to the flight controller.  Powering the flight controller with
 incorrect voltage or reversed polarity will likely fry your flight controller. Ensure your flight controller
 has a voltage divider capable of measuring your particular battery voltage.
+On the first battery connection is always advisable to use a current limiter device to limit damages if something is wrong in the setup.
 
 ### Naze32
 
@@ -53,19 +54,19 @@ Configure min/max cell voltages using the following CLI setting:
 
 `vbat_scale` - Adjust this to match actual measured battery voltage to reported value.
 
-`vbat_max_cell_voltage` - Maximum voltage per cell, used for auto-detecting battery voltage in 0.1V units, i.e. 43 = 4.3V
+`vbat_max_cell_voltage` - Maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, i.e. 430 = 4.30V
 
-`set vbat_warning_cell_voltage` - Warning voltage per cell; this triggers battery-out alarms, in 0.1V units, i.e. 34 = 3.4V
+`set vbat_warning_cell_voltage` - Warning voltage per cell; this triggers battery-out alarms, in 0.01V units, i.e. 340 = 3.40V
 
-`vbat_min_cell_voltage` - Minimum voltage per cell; this triggers battery-out alarms, in 0.1V units, i.e. 33 = 3.3V
+`vbat_min_cell_voltage` - Minimum voltage per cell; this triggers battery-out alarms, in 0.01V units, i.e. 330 = 3.30V
 
 e.g.
 
 ```
-set vbat_scale = 110
-set vbat_max_cell_voltage = 43
-set vbat_warning_cell_voltage = 34
-set vbat_min_cell_voltage = 33
+set vbat_scale = 1100
+set vbat_max_cell_voltage = 430
+set vbat_warning_cell_voltage = 340
+set vbat_min_cell_voltage = 330
 ```
 
 # Current Monitoring
@@ -187,3 +188,5 @@ set battery_capacity = 2200             // battery capacity is 2200mAh
 set battery_capacity_warning = 660      // the battery warning alarm will sound and the capacity related OSD items will blink when left capacity is less than 660 mAh (30% of battery capacity)
 set battery_capacity_critical = 440     // the battery critical alarm will sound and the OSD battery gauge and remaining capacity item will be empty when left capacity is less than 440 mAh (20% of battery capacity)
 ```
+
+Note that in this example even though your warning capacity (`battery_capacity_warning`) is set to 30% (660mAh), since 440mAh (`battery_capacity_critical`) is considered empty (0% left), the OSD capacity related items will only start to blink when the remaining battery percentage shown on the OSD is below 12%: (`battery_capacity_warning`-`battery_capacity_critical`)*100/(`battery_capacity`-`battery_capacity_critical`)=(660-440)*100/(2200-440)=12.5

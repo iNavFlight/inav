@@ -70,7 +70,11 @@ defined in linker script */
   .section  .text.Reset_Handler
   .weak  Reset_Handler
   .type  Reset_Handler, %function
+
+
 Reset_Handler: 
+  ldr   sp, =_estack      /* set stack pointer */
+
   // Check for bootloader reboot
   ldr r0, =0x2001FFFC         // mj666
   ldr r1, =0xDEADBEEF         // mj666
@@ -79,7 +83,7 @@ Reset_Handler:
   cmp r2, r1                  // mj666
   beq Reboot_Loader           // mj666
 
-/* Copy the data segment initializers from flash to SRAM */  
+/* Copy the data segment initializers from flash to SRAM */ 
   movs  r1, #0
   b  LoopCopyDataInit
 
@@ -88,7 +92,7 @@ CopyDataInit:
   ldr  r3, [r3, r1]
   str  r3, [r0, r1]
   adds  r1, r1, #4
-    
+
 LoopCopyDataInit:
   ldr  r0, =_sdata
   ldr  r3, =_edata
@@ -97,11 +101,12 @@ LoopCopyDataInit:
   bcc  CopyDataInit
   ldr  r2, =_sbss
   b  LoopFillZerobss
-/* Zero fill the bss segment. */  
+
+/* Zero fill the bss segment. */ 
 FillZerobss:
   movs  r3, #0
   str  r3, [r2], #4
-    
+   
 LoopFillZerobss:
   ldr  r3, = _ebss
   cmp  r2, r3
@@ -121,15 +126,16 @@ LoopMarkHeapStack:
 	bcc	MarkHeapStack
 
 /*FPU settings*/
- ldr     r0, =0xE000ED88           /* Enable CP10,CP11 */
- ldr     r1,[r0]
- orr     r1,r1,#(0xF << 20)
- str     r1,[r0]
+    ldr     r0, =0xE000ED88           /* Enable CP10,CP11 */
+    ldr     r1,[r0]
+    orr     r1,r1,#(0xF << 20)
+    str     r1,[r0]
 
 /* Call the clock system intitialization function.*/
   bl  SystemInit   
 
-/* Call the application's entry point.*/
+
+/* Call the application entry point.*/
   bl  main
   bx  lr    
 

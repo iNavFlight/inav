@@ -34,7 +34,7 @@
 #define INVERTER_PIN_UART2      PB2
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PC13
+#define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_MAG_DATA_READY_SIGNAL

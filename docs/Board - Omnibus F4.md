@@ -144,16 +144,9 @@ Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount
 | CH5   | RX                    |
 | CH6   | TX                    |
 
-## FrSky SmartPort using SoftwareSerial
+## SoftwareSerial
 
-SmartPort telemetry is possible using SoftwareSerial
-
-### Omnibus F4 Pro SmartPort using SoftwareSerial
 ![Omnibus F4 Pro SmartPort using SoftwareSerial](assets/images/omnibusf4pro_ss.png)
-
-* Telemetry has to be inverted with `set telemetry_inversion = ON`
-* Port should be configured for _57600bps_
-* Tested with FrSky X4R(SB), XSR, XSR-M, XSR-E
 
 # Wiring diagrams for Omnibus F4 Pro
 

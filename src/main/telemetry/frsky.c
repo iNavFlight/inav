@@ -365,7 +365,7 @@ static void sendVoltage(void)
      * The actual value sent for cell voltage has resolution of 0.002 volts
      * Since vbat has resolution of 0.01 volts it has to be multiplied by 5
      */
-    cellVoltage = ((uint32_t)vbat * 10) / (batteryCellCount * 2);
+    cellVoltage = ((uint32_t)getBatteryVoltage() * 10) / (getBatteryCellCount() * 2);
 
     // Cell number is at bit 9-12 (only uses vbat, so it can't send individual cell voltages, set cell number to 0)
     payload = 0;
@@ -385,6 +385,7 @@ static void sendVoltage(void)
  */
 static void sendVoltageAmp(void)
 {
+    uint16_t vbat = getBatteryVoltage();
     if (telemetryConfig()->frsky_vfas_precision == FRSKY_VFAS_PRECISION_HIGH) {
         /*
          * Use new ID 0x39 to send voltage directly in 0.1 volts resolution
@@ -394,8 +395,8 @@ static void sendVoltageAmp(void)
     } else {
         uint16_t voltage = (vbat * 11) / 21;
         uint16_t vfasVoltage;
-        if (telemetryConfig()->frsky_vfas_cell_voltage) {
-            vfasVoltage = voltage / batteryCellCount;
+        if (telemetryConfig()->report_cell_voltage) {
+            vfasVoltage = voltage / getBatteryCellCount();
         } else {
             vfasVoltage = voltage;
         }
@@ -409,7 +410,7 @@ static void sendVoltageAmp(void)
 static void sendAmperage(void)
 {
     sendDataHead(ID_CURRENT);
-    serialize16((uint16_t)(amperage / 10));
+    serialize16((uint16_t)(getAmperage() / 10));
 }
 
 static void sendFuelLevel(void)
@@ -446,7 +447,7 @@ void configureFrSkyTelemetryPort(void)
         return;
     }
 
-    frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inversion ? SERIAL_INVERTED : SERIAL_NOT_INVERTED);
+    frskyPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_FRSKY, NULL, NULL, FRSKY_BAUDRATE, FRSKY_INITIAL_PORT_MODE, telemetryConfig()->telemetry_inverted ? SERIAL_NOT_INVERTED : SERIAL_INVERTED);
     if (!frskyPort) {
         return;
     }

@@ -114,8 +114,10 @@ static void sumdDataReceive(uint16_t c, void *rxCallbackData)
 #define SUMD_FRAME_STATE_OK 0x01
 #define SUMD_FRAME_STATE_FAILSAFE 0x81
 
-uint8_t sumdFrameStatus(void)
+static uint8_t sumdFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     uint8_t channelIndex;
 
     uint8_t frameStatus = RX_FRAME_PENDING;

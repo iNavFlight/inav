@@ -45,7 +45,7 @@
 
 #define MPU9250_SPI_BUS         BUS_SPI1
 #define MPU9250_CS_PIN          PC4
-#define MPU_INT_EXTI            PC5
+#define GYRO_INT_EXTI            PC5
 
 #define USE_MAG
 #define USE_MAG_MPU9250

@@ -32,7 +32,6 @@
 #include "common/filter.h"
 
 #include "drivers/light_led.h"
-#include "drivers/gyro_sync.h"
 #include "drivers/serial.h"
 #include "drivers/time.h"
 

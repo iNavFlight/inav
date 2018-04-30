@@ -1,123 +1,110 @@
 # Building in Ubuntu
 
-Building for Ubuntu platform is remarkably easy. The only trick to understand is that the Ubuntu toolchain,
-which they are downstreaming from Debian, is not compatible with INAV. We suggest that you take an
-alternative PPA from Terry Guo, found here:
-https://launchpad.net/~terry.guo/+archive/ubuntu/gcc-arm-embedded
+iNav requires a reasonably modern `gcc-arm-none-eabi` compiler. As a consequence of the long term support options in Ubuntu, it is possible that the distribution compiler will be too old to build iNav firmware. For example, Ubuntu 16.04 LTS ships with version 4.9.3 which cannot compile contemporary iNav.
 
-This PPA has several compiler versions and platforms available. For many hardware platforms (notably Naze)
-the 4.9.3 compiler will work fine. For some, older compiler 4.8 (notably Sparky) is more appropriate. We
-suggest you build with 4.9.3 first, and try to see if you can connect to the CLI or run the Configurator.
-If you cannot, please see the section below for further hints on what you might do.
+As of March 2018, the recommendation for Ubuntu releases is:
 
-## Setup GNU ARM Toolchain
+| Release | Compiler Source |
+| ------- | --------------- |
+| 16.04 or earlier | Use the 'official' PPA |
+| 17.10 | Use the 'official' PPA as the distro compiler (5.4) *may* be too old |
+| 18.04 | Use the distro compiler (6.3+) |
 
-Note specifically the last paragraph of Terry's PPA documentation -- Ubuntu carries its own package for
-`gcc-arm-none-eabi`, so you'll have to remove it, and then pin the one from the PPA.
-For your release, you should first remove any older pacakges (from Debian or Ubuntu directly), introduce
-Terry's PPA, and update:
+For Ubuntu derivatives (ElementaryOS, Mint etc.), please check the distro provided version, and if it's lower than 6, use the PPA.
+
+e.g. ElementaryOS
+
 ```
-sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
-sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded
-sudo apt-get update
+$ apt show gcc-arm-none-eabi
+...
+Version: 15:4.9.3+svn231177-1
 ```
 
-For Linux Mint 18 (Ubuntu 16, 2016-09-11)
+This 4.9.3 and will not build iNav, so we need the PPA.
+
+## Installer commands
+
+Older versions of Debian / Ubuntu and derivatives use the `apt-get` command; newer versions use `apt`. Use the appropriate command for your release.
+
+# Prerequisites
+
+Regardless of the cross-compiler version, it is necessary to install some other tools:
+
 ```
 sudo apt install git
 sudo apt install gcc
-sudo apt install gcc-arm-none-eabi
-
-
-sudo apt-get install libnewlib-arm-none-eabi
-
-cd src
-git clone https://github.com/iNavFlight/inav.git
-cd inav
-make TARGET=NAZE
+sudo apt install ruby
 ```
 
-For Ubuntu 14.10 (current release, called Utopic Unicorn), you should pin:
-```
-sudo apt-get install gcc-arm-none-eabi=4.9.3.2014q4-0utopic12
-```
-
-For Ubuntu 14.04 (an LTS as of Q1'2015, called Trusty Tahr), you should pin:
-```
-sudo apt-get install gcc-arm-none-eabi=4.9.3.2014q4-0trusty12
-```
-
-For Ubuntu 12.04 (previous LTS, called Precise Penguin), you should pin:
-```
-sudo apt-get install gcc-arm-none-eabi=4.9.3.2014q4-0precise12
-```
-
-## Install Ruby
-
-Install the Ruby package for your distribution. On Debian based distributions, you should
-install the ruby package
-```
-sudo apt-get install ruby
-```
-
-## Installing Ruby 2.4
-
-Since in some cases apt-get will install ruby 1.9 which does not work, you can force ruby 2.4 by
+A ruby release of at least 2 or later is recommended, if your release only provides 1.9, it is necessary to install a later version:
 
 ```
 sudo apt-get remove ruby
 sudo apt-add-repository ppa:brightbox/ruby-ng
 sudo apt-get update
-apt-get install ruby2.4 ruby2.4-dev
+sudo apt-get install ruby2.4 ruby2.4-dev
 ```
 
-## Building on Ubuntu
+# Using the Distro compiler
 
-After the ARM toolchain from Terry is installed, you should be able to build from source.
+For Releases after 17.10 is is recommended to use the distro provided compiler, at least until it proves to be too old.
 ```
+sudo apt install gcc-arm-none-eabi
+```
+
+# Using the PPA compiler
+
+For releases prior to (and perhaps including) 17.10, the PPA compiler is used. This can be used on releases post 17.10 if you really wish to have a newer compiler than the distro default.
+
+```
+sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
+sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+sudo apt-get update
+sudo apt-get install gcc-arm-embedded
+```
+
+After these steps, on Ubuntu 16.04, (at least of March 2018) you should now have:
+
+```
+$ arm-none-eabi-gcc -dumpversion
+7.2.1
+```
+
+Which is more than adequate for our purposes.
+
+# Building from the Github repository
+
+After the ARM cross-compiler toolchain from is installed, you should be able to build from source.
+
+```
+mkdir src
 cd src
-git clone git@github.com:iNavFlight/inav.git
+git clone https://github.com/iNavFlight/inav.git
 cd inav
-make TARGET=NAZE
-```
-
-You'll see a set of files being compiled, and finally linked, yielding both an ELF and then a HEX:
-```
-...
-arm-none-eabi-size ./obj/main/inav_NAZE.elf
-   text    data     bss     dec     hex filename
-  97164     320   11080  108564   1a814 ./obj/main/inav_NAZE.elf
-arm-none-eabi-objcopy -O ihex --set-start 0x8000000 obj/main/inav_NAZE.elf obj/inav_NAZE.hex
-$ ls -la obj/inav_NAZE.hex                                                                                                                                                 
--rw-rw-r-- 1 pim pim 274258 Jan 12 21:45 obj/inav_NAZE.hex
-```
-
-You can use the INAV-Configurator to flash the ```obj/inav_NAZE.hex``` file.
-
-## Bricked/Bad build?
-
-Users have reported that the 4.9.3 compiler for ARM produces bad builds, for example on the Sparky hardware platform.
-It is very likely that using an older compiler would be fine -- Terry happens to have also a 4.8 2014q2 build in his
-PPA - to install this, you can fetch the `.deb` directly:
-http://ppa.launchpad.net/terry.guo/gcc-arm-embedded/ubuntu/pool/main/g/gcc-arm-none-eabi/
-
-and use `dpkg` to install:
-```
-sudo dpkg -i gcc-arm-none-eabi_4-8-2014q2-0saucy9_amd64.deb
-```
-
-Make sure to remove `obj/` and `make clean`, before building again.
-
-## Updating and rebuilding
-
-Navigate to the local INAV repository and use the following steps to pull the latest changes and rebuild your version of INAV:
-
-```
-cd src/inav
-git reset --hard
-git pull
-make clean TARGET=NAZE
 make
 ```
 
-Credit goes to K.C. Budd, AKfreak for testing, and pulsar for doing the long legwork that yielded this very short document.
+If you have a github account with registered ssh key you can replace the `git clone` command with  `git clone https://github.com/iNavFlight/inav.git` instead of the https link.
+
+By default, this builds the SPRACINGF3 target, to build another target, specify the target name to the make command, for example:
+```
+make TARGET=MATEKF405
+```
+The resultant hex file are in the `obj/` directory.
+
+You can use the INAV Configurator to flash the local ```obj/inav_TARGET.hex``` file, or use `stm32flash` or `dfu-util` directly from the command line.
+
+https://github.com/fiam/msp-tool and https://github.com/stronnag/mwptools/blob/master/docs/MiscTools.asciidoc#flashsh provide / describe helper tools for command line flashing.
+
+# Updating and rebuilding
+
+In order to update your local firmware build:
+
+* Navigate to the local iNav repository
+* Use the following steps to pull the latest changes and rebuild your local version of iNav:
+
+```
+cd src/inav
+git pull
+make TARGET=<TARGET>
+```

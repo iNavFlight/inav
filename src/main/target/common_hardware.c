@@ -21,45 +21,59 @@
 
 #if !defined(USE_TARGET_HARDWARE_DESCRIPTORS)
 
-#if !defined(MPU_INT_EXTI)
-#define MPU_INT_EXTI NONE
-#endif
+/** IMU **/
+#if !defined(USE_TARGET_IMU_HARDWARE_DESCRIPTORS)
+    #if !defined(GYRO_INT_EXTI)
+    #define GYRO_INT_EXTI NONE
+    #endif
 
-#if !defined(MPU_ADDRESS)
-#define MPU_ADDRESS 0x68
-#endif
+    #if !defined(MPU_ADDRESS)
+    #define MPU_ADDRESS 0x68
+    #endif
 
-#if defined(USE_GYRO_L3GD20)
-    BUSDEV_REGISTER_SPI(busdev_l3gd20,      DEVHW_L3GD20,       L3GD20_SPI_BUS,     L3GD20_CS_PIN,      NONE,           DEVFLAGS_NONE);
-#endif
+    #if defined(USE_GYRO_L3GD20)
+        BUSDEV_REGISTER_SPI(busdev_l3gd20,      DEVHW_L3GD20,       L3GD20_SPI_BUS,     L3GD20_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #endif
 
-#if defined(USE_ACC_LSM303DLHC)
-    BUSDEV_REGISTER_I2C(busdev_lsm303,      DEVHW_LSM303DLHC,   LSM303DLHC_I2C_BUS, 0x19,               NONE,           DEVFLAGS_NONE);
-#endif
+    #if defined(USE_ACC_LSM303DLHC)
+        BUSDEV_REGISTER_I2C(busdev_lsm303,      DEVHW_LSM303DLHC,   LSM303DLHC_I2C_BUS, 0x19,               NONE,           DEVFLAGS_NONE);
+    #endif
 
-#if defined(USE_GYRO_MPU6000)
-    BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     MPU_INT_EXTI,   DEVFLAGS_NONE);
-#endif
+    #if defined(USE_GYRO_MPU6000)
+        BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE);
+    #endif
 
-#if defined(USE_GYRO_MPU6050)
-    BUSDEV_REGISTER_I2C(busdev_mpu6050,     DEVHW_MPU6050,      MPU6050_I2C_BUS,    MPU_ADDRESS,        MPU_INT_EXTI,   DEVFLAGS_NONE);
-#endif
+    #if defined(USE_GYRO_MPU6050)
+        BUSDEV_REGISTER_I2C(busdev_mpu6050,     DEVHW_MPU6050,      MPU6050_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE);
+    #endif
 
-#if defined(USE_GYRO_MPU6500)
-    #if defined(MPU6500_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     MPU_INT_EXTI,   DEVFLAGS_NONE);
-    #elif defined(MPU6500_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_I2C_BUS,    MPU_ADDRESS,        MPU_INT_EXTI,   DEVFLAGS_NONE);
+    #if defined(USE_GYRO_MPU6500)
+        #if defined(MPU6500_SPI_BUS)
+        BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE);
+        #elif defined(MPU6500_I2C_BUS)
+        BUSDEV_REGISTER_I2C(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE);
+        #endif
+    #endif
+
+    #if defined(USE_GYRO_MPU9250)
+        #if defined(MPU9250_SPI_BUS)
+        BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE);
+        #elif defined(MPU9250_I2C_BUS)
+        BUSDEV_REGISTER_I2C(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE);
+        #endif
+    #endif
+
+    #if defined(USE_GYRO_BMI160)
+        #if defined(BMI160_SPI_BUS)
+        BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE);
+        #elif defined(BMI160_I2C_BUS)
+        BUSDEV_REGISTER_I2C(busdev_bmi160,      DEVHW_BMI160,       BMI160_I2C_BUS,     0x68,               GYRO_INT_EXTI,  DEVFLAGS_NONE);
+        #endif
     #endif
 #endif
 
-#if defined(USE_GYRO_MPU9250)
-    #if defined(MPU9250_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     MPU_INT_EXTI,   DEVFLAGS_NONE);
-    #elif defined(MPU9250_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_I2C_BUS,    MPU_ADDRESS,        MPU_INT_EXTI,   DEVFLAGS_NONE);
-    #endif
-#endif
+
+/** BAROMETERS **/
 
 #if defined(USE_BARO_BMP085)
     #if !defined(BMP085_I2C_BUS)
@@ -96,6 +110,8 @@
     BUSDEV_REGISTER_I2C(busdev_ms5611,      DEVHW_MS5611,       MS5611_I2C_BUS,     0x77,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);
     #endif
 #endif
+
+/** COMPASS SENSORS **/
 
 #if defined(USE_MAG_HMC5883)
     #if !defined(HMC5883_I2C_BUS)
@@ -136,6 +152,9 @@
     BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
 #endif
 
+
+/** RANGEFINDER SENSORS **/
+
 #if defined(USE_RANGEFINDER_SRF10)
     #if !defined(SRF10_I2C_BUS)
         #define SRF10_I2C_BUS RANGEFINDER_I2C_BUS
@@ -157,12 +176,18 @@
     BUSDEV_REGISTER_I2C(busdev_vl53l0x,     DEVHW_VL53L0X,      VL53L0X_I2C_BUS,    0x29,               NONE,           DEVFLAGS_NONE);
 #endif
 
+
+/** AIRSPEED SENSORS **/
+
 #if defined(USE_PITOT_MS4525)
     #if !defined(MS4525_I2C_BUS)
         #define MS4525_I2C_BUS PITOT_I2C_BUS
     #endif
     BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_NONE);
 #endif
+
+
+/** OTHER HARDWARE **/
 
 #if defined(USE_MAX7456) && !defined(USE_BRAINFPV_OSD)
     BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS);
@@ -184,14 +209,3 @@
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
-
-
-
-
-/* This file is not compiled in and only holds example HW descriptors for supported hardware  */
-#if 0
-// MS5607 / MS5611
-BUSDEV_REGISTER_I2C(busdev_ak8963,      DEVHW_AK8963,       MAG_I2C_BUS,        0x0C,               NONE,           DEVFLAGS_NONE);
-BUSDEV_REGISTER_I2C(busdev_ak8975,      DEVHW_AK8975,       MAG_I2C_BUS,        0x0C,               NONE,           DEVFLAGS_NONE);
-BUSDEV_REGISTER_SPI(busdev_hmc5883,     DEVHW_HMC5883,      MAG_SPI_BUS,        HMC5883_CS_PIN,     NONE,           DEVFLAGS_NONE);
-#endif
