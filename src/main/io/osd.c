@@ -1636,13 +1636,10 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 void osdDrawNextElement(void)
 {
    uint8_t elementIndex = 0;
-
-   elementIndex = osdIncElementIndex(elementIndex);
-
-   while(elementIndex != 0) {
-        osdDrawSingleElement(elementIndex);
-        elementIndex = osdIncElementIndex(elementIndex);
-   }
+   do {
+       osdDrawSingleElement(elementIndex);
+       elementIndex = osdIncElementIndex(elementIndex);
+   } while (elementIndex != 0);
 }
 #else
 void osdDrawNextElement(void)
