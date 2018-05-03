@@ -524,7 +524,7 @@ void processRx(timeUs_t currentTimeUs)
     }
 
     /* Flaperon mode */
-    if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && STATE(FLAPERON_AVAILABLE)) {
+    if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && mixerConfig()->hasFlaps) {
         if (!FLIGHT_MODE(FLAPERON)) {
             ENABLE_FLIGHT_MODE(FLAPERON);
         }

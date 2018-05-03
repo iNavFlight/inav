@@ -124,12 +124,6 @@ void mixerUpdateStateFlags(void)
     } else {
         DISABLE_STATE(FIXED_WING);
     }
-
-    if (mixerConfig()->hasFlaps) {
-        ENABLE_STATE(FLAPERON_AVAILABLE);
-    } else {
-        DISABLE_STATE(FLAPERON_AVAILABLE);
-    }
 }
 
 void mixerUsePWMIOConfiguration(void)

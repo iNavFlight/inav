@@ -206,7 +206,7 @@ void initActiveBoxIds(void)
      * FLAPERON mode active only in case of airplane and custom airplane. Activating on
      * flying wing can cause bad thing
      */
-    if (STATE(FLAPERON_AVAILABLE)) {
+    if (mixerConfig()->hasFlaps) {
         activeBoxIds[activeBoxIdCount++] = BOXFLAPERON;
     }
 
