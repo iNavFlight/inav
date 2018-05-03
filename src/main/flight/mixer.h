@@ -91,7 +91,6 @@ bool mixerIsOutputSaturated(void);
 
 void writeAllMotors(int16_t mc);
 void mixerUsePWMIOConfiguration(void);
-void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
 void mixTable(void);
 void writeMotors(void);

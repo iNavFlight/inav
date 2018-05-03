@@ -30,6 +30,8 @@
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
 
+#include "flight/mixer.h"
+
 #include "io/osd.h"
 
 #include "sensors/diagnostics.h"
@@ -177,12 +179,12 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
 #ifdef USE_GPS
-    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING) && feature(FEATURE_GPS))) {
+    if (sensors(SENSOR_BARO) || (mixerConfig()->platformType == PLATFORM_AIRPLANE && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
 
-    if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
+    if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (mixerConfig()->platformType == PLATFORM_AIRPLANE && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
@@ -191,7 +193,7 @@ void initActiveBoxIds(void)
     }
 #endif
 
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         activeBoxIds[activeBoxIdCount++] = BOXMANUAL;
         if (!feature(FEATURE_FW_LAUNCH)) {
            activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;

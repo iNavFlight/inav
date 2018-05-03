@@ -43,10 +43,10 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
 #include "fc/rc_modes.h"
-#include "fc/runtime_config.h"
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
+#include "flight/mixer.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -213,7 +213,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         // Disarm on throttle down + yaw
         if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_CE) {
             // Dont disarm if fixedwing and motorstop
-            if (STATE(FIXED_WING) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+            if (mixerConfig()->platformType == PLATFORM_AIRPLANE && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
                 return;
             }
             else if (ARMING_FLAG(ARMED)) {
@@ -277,7 +277,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Arming by sticks
     if (isUsingSticksForArming()) {
-        if (STATE(FIXED_WING) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+        if (mixerConfig()->platformType == PLATFORM_AIRPLANE && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
             // Auto arm on throttle when using fixedwing and motorstop
             if (throttleStatus != THROTTLE_LOW) {
                 tryArm();

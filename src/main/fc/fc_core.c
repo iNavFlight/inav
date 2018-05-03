@@ -445,7 +445,7 @@ void processRx(timeUs_t currentTimeUs)
     // mixTable constrains motor commands, so checking  throttleStatus is enough
     if (ARMING_FLAG(ARMED)
         && feature(FEATURE_MOTOR_STOP)
-        && !STATE(FIXED_WING)
+        && mixerConfig()->platformType != PLATFORM_AIRPLANE
     ) {
         if (isUsingSticksForArming()) {
             if (throttleStatus == THROTTLE_LOW) {
@@ -570,7 +570,7 @@ void processRx(timeUs_t currentTimeUs)
 #endif
 
     // Handle passthrough mode
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         if ((IS_RC_MODE_ACTIVE(BOXMANUAL) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
             (!ARMING_FLAG(ARMED) && isCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
             ENABLE_FLIGHT_MODE(MANUAL_MODE);
@@ -592,7 +592,7 @@ void processRx(timeUs_t currentTimeUs)
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING))) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && mixerConfig()->platformType != PLATFORM_AIRPLANE)) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
                 else {
@@ -760,7 +760,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
     // Apply throttle tilt compensation
-    if (!STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType != PLATFORM_AIRPLANE) {
         int16_t thrTiltCompStrength = 0;
 
         if (navigationRequiresThrottleTiltCompensation()) {

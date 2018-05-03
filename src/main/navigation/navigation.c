@@ -799,7 +799,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
-    if (STATE(FIXED_WING) && (posControl.homeDistance < navConfig()->general.min_rth_distance) && !posControl.flags.forcedRTHActivated) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE && (posControl.homeDistance < navConfig()->general.min_rth_distance) && !posControl.flags.forcedRTHActivated) {
         // Prevent RTH from activating on airplanes if too close to home unless it's a failsafe RTH
         return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
@@ -826,7 +826,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
         else {
             fpVector3_t targetHoldPos;
 
-            if (STATE(FIXED_WING)) {
+            if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
                 // Airplane - climbout before turning around
                 calculateFarAwayTarget(&targetHoldPos, posControl.actualState.yaw, 100000.0f);  // 1km away
             } else {
@@ -863,13 +863,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatue >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
-        const float rthAltitudeMargin = STATE(FIXED_WING) ?
+        const float rthAltitudeMargin = mixerConfig()->platformType == PLATFORM_AIRPLANE ?
                 MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z)) :  // Airplane
                 MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z));   // Copters
 
         if (((posControl.actualState.pos.z - posControl.homeWaypointAbove.pos.z) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
-            if (STATE(FIXED_WING)) {
+            if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
                 initializeRTHSanityChecker(&posControl.actualState.pos);
             }
 
@@ -877,14 +877,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         }
         else {
             /* For multi-rotors execute sanity check during initial ascent as well */
-            if (!STATE(FIXED_WING)) {
+            if (mixerConfig()->platformType != PLATFORM_AIRPLANE) {
                 if (!validateRTHSanityChecker()) {
                     return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
                 }
             }
 
             // Climb to safe altitude and turn to correct direction
-            if (STATE(FIXED_WING)) {
+            if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
                 fpVector3_t pos = posControl.homeWaypointAbove.pos;
                 pos.z += FW_RTH_CLIMB_OVERSHOOT_CM;
 
@@ -934,7 +934,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         }
         else {
             // Update XYZ-position target
-            if (navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING)) {
+            if (navConfig()->general.flags.rth_tail_first && mixerConfig()->platformType != PLATFORM_AIRPLANE) {
                 setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
             }
             else {
@@ -964,7 +964,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     // If position ok OR within valid timeout - continue
     if ((posControl.flags.estPosStatue >= EST_USABLE) || !checkForPositionSensorTimeout()) {
         // Wait until target heading is reached (with 15 deg margin for error)
-        if (STATE(FIXED_WING)) {
+        if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
             resetLandingDetector();
             return NAV_FSM_EVENT_SUCCESS;
         }
@@ -1600,7 +1600,7 @@ bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWayp
     // We consider waypoint reached if within specified radius
     const uint32_t wpDistance = calculateDistanceToDestination(&waypoint->pos);
 
-    if (STATE(FIXED_WING) && isWaypointHome) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE && isWaypointHome) {
         // Airplane will do a circular loiter over home and might never approach it closer than waypoint_radius - need extra check
         return (wpDistance <= navConfig()->general.waypoint_radius)
                 || (wpDistance <= (navConfig()->fw.loiter_radius * 1.10f));  // 10% margin of desired circular loiter radius
@@ -1797,7 +1797,7 @@ int32_t getTotalTravelDistance(void)
  *-----------------------------------------------------------*/
 void calculateInitialHoldPosition(fpVector3_t * pos)
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) { // FIXED_WING
         calculateFixedWingInitialHoldPosition(pos);
     }
     else {
@@ -1848,7 +1848,7 @@ void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t dista
  *-----------------------------------------------------------*/
 void resetLandingDetector(void)
 {
-    if (STATE(FIXED_WING)) { // FIXED_WING
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) { // FIXED_WING
         resetFixedWingLandingDetector();
     }
     else {
@@ -1860,7 +1860,7 @@ bool isLandingDetected(void)
 {
     bool landingDetected;
 
-    if (STATE(FIXED_WING)) { // FIXED_WING
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) { // FIXED_WING
         landingDetected = isFixedWingLandingDetected();
     }
     else {
@@ -1883,7 +1883,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
         posControl.desiredState.pos.z = posControl.actualState.pos.z;
     }
     else {
-        if (STATE(FIXED_WING)) {
+        if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
 
@@ -1908,7 +1908,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
 
 static void resetAltitudeController(void)
 {
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         resetFixedWingAltitudeController();
     }
     else {
@@ -1918,7 +1918,7 @@ static void resetAltitudeController(void)
 
 static void setupAltitudeController(void)
 {
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         setupFixedWingAltitudeController();
     }
     else {
@@ -1928,7 +1928,7 @@ static void setupAltitudeController(void)
 
 static bool adjustAltitudeFromRCInput(void)
 {
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         return adjustFixedWingAltitudeFromRCInput();
     }
     else {
@@ -1941,7 +1941,7 @@ static bool adjustAltitudeFromRCInput(void)
  *-----------------------------------------------------------*/
 static void resetHeadingController(void)
 {
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         resetFixedWingHeadingController();
     }
     else {
@@ -1951,7 +1951,7 @@ static void resetHeadingController(void)
 
 static bool adjustHeadingFromRCInput(void)
 {
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         return adjustFixedWingHeadingFromRCInput();
     }
     else {
@@ -1964,7 +1964,7 @@ static bool adjustHeadingFromRCInput(void)
  *-----------------------------------------------------------*/
 static void resetPositionController(void)
 {
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         resetFixedWingPositionController();
     }
     else {
@@ -1976,7 +1976,7 @@ static bool adjustPositionFromRCInput(void)
 {
     bool retValue;
 
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         retValue = adjustFixedWingPositionFromRCInput();
     }
     else {
@@ -2294,7 +2294,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
     else {
@@ -2367,7 +2367,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         bool canActivatePosHold = canActivatePosHoldMode();
 
         // LAUNCH mode has priority over any other NAV mode
-        if (STATE(FIXED_WING)) {
+        if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
             if (isNavLaunchEnabled()) {     // FIXME: Only available for fixed wing aircrafts now
                 if (canActivateLaunchMode) {
                     canActivateLaunchMode = false;
@@ -2439,7 +2439,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
  *-----------------------------------------------------------*/
 bool navigationRequiresThrottleTiltCompensation(void)
 {
-    return !STATE(FIXED_WING) && (navGetStateFlags(posControl.navState) & NAV_REQUIRE_THRTILT);
+    return mixerConfig()->platformType != PLATFORM_AIRPLANE && (navGetStateFlags(posControl.navState) & NAV_REQUIRE_THRTILT);
 }
 
 /*-----------------------------------------------------------
@@ -2448,7 +2448,7 @@ bool navigationRequiresThrottleTiltCompensation(void)
 bool navigationRequiresAngleMode(void)
 {
     const navigationFSMStateFlags_t currentState = navGetStateFlags(posControl.navState);
-    return (currentState & NAV_REQUIRE_ANGLE) || ((currentState & NAV_REQUIRE_ANGLE_FW) && STATE(FIXED_WING));
+    return (currentState & NAV_REQUIRE_ANGLE) || ((currentState & NAV_REQUIRE_ANGLE_FW) && mixerConfig()->platformType == PLATFORM_AIRPLANE);
 }
 
 /*-----------------------------------------------------------
@@ -2457,7 +2457,7 @@ bool navigationRequiresAngleMode(void)
 bool navigationRequiresTurnAssistance(void)
 {
     const navigationFSMStateFlags_t currentState = navGetStateFlags(posControl.navState);
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         // For airplanes turn assistant is always required when controlling position
         return (currentState & NAV_CTL_POS);
     }
@@ -2472,7 +2472,7 @@ bool navigationRequiresTurnAssistance(void)
 int8_t navigationGetHeadingControlState(void)
 {
     // For airplanes report as manual heading control
-    if (STATE(FIXED_WING)) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         return NAV_HEADING_CONTROL_MANUAL;
     }
 
@@ -2708,7 +2708,7 @@ rthState_e getStateOfForcedRTH(void)
 bool navigationIsControllingThrottle(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND)) || (STATE(FIXED_WING) && (stateFlags & (NAV_CTL_POS)));
+    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND)) || (mixerConfig()->platformType == PLATFORM_AIRPLANE && (stateFlags & (NAV_CTL_POS)));
 }
 
 bool navigationIsFlyingAutonomousMode(void)

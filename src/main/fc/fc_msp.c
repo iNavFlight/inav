@@ -2255,7 +2255,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_MIXER:
         if (dataSize >= 1) {
             sbufReadU8(src); //This is ignored, no longer supporting mixerMode
-            mixerUpdateStateFlags();    // Required for correct preset functionality
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2320,7 +2319,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SET_BF_CONFIG:
         if (dataSize >= 16) {
             sbufReadU8(src); // mixerMode no longer supported, just swallow
-            mixerUpdateStateFlags();    // Required for correct preset functionality
 
             featureClearAll();
             featureSet(sbufReadU32(src)); // features bitmap
@@ -2468,7 +2466,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
         sbufReadU8(src); //Read and ignore MAX_SUPPORTED_MOTORS
         sbufReadU8(src); //Read and ignore MAX_SUPPORTED_SERVOS
-        mixerUpdateStateFlags();
         break;
 
 #if defined(USE_OSD)

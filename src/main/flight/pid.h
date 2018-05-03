@@ -19,6 +19,7 @@
 
 #include "config/parameter_group.h"
 #include "fc/runtime_config.h"
+#include "flight/mixer.h"
 
 #define GYRO_SATURATION_LIMIT   1800        // 1800dps
 #define PID_SUM_LIMIT_MIN       100
@@ -117,8 +118,8 @@ typedef struct pidAutotuneConfig_s {
 PG_DECLARE_PROFILE(pidProfile_t, pidProfile);
 PG_DECLARE(pidAutotuneConfig_t, pidAutotuneConfig);
 
-static inline const pidBank_t * pidBank() { return STATE(FIXED_WING) ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; }
-static inline pidBank_t * pidBankMutable() { return STATE(FIXED_WING) ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc; }
+static inline const pidBank_t * pidBank() { return mixerConfig()->platformType == PLATFORM_AIRPLANE ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; }
+static inline pidBank_t * pidBankMutable() { return mixerConfig()->platformType == PLATFORM_AIRPLANE ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc; }
 
 extern int16_t axisPID[];
 extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
