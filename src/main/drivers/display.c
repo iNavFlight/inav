@@ -83,6 +83,10 @@ void displayClearScreen(displayPort_t *instance)
 
 void displayDrawScreen(displayPort_t *instance)
 {
+    if (instance->rows == 0 || instance->cols == 0) {
+        // Display not fully initialized yet
+        displayResync(instance);
+    }
     instance->vTable->drawScreen(instance);
 }
 
