@@ -1962,6 +1962,39 @@ static bool adjustPositionFromRCInput(void)
         retValue = adjustFixedWingPositionFromRCInput();
     }
     else {
+
+        /*
+         * Process states
+         */
+        if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
+            const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
+            const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
+
+            /*
+             * Case one, when we order to brake (sticks to the center) and we are moving above threshold
+             * Speed is above 1m/s and sticks are centered
+             */
+            if (!STATE(NAV_CRUISE_BRAKING) && 
+                posControl.actualState.velXY > 100.0f && 
+                !rcPitchAdjustment && 
+                !rcRollAdjustment
+            ) {
+                ENABLE_STATE(NAV_CRUISE_BRAKING);
+            }
+
+            /*
+             * Case when we were braking but copter finally stopped or we started to move the sticks
+             */
+            if (STATE(NAV_CRUISE_BRAKING) && (
+                posControl.actualState.velXY <= 100.0f ||
+                rcPitchAdjustment ||
+                rcRollAdjustment
+            )) {
+                DISABLE_STATE(NAV_CRUISE_BRAKING);
+            }
+
+        }
+
         retValue = adjustMulticopterPositionFromRCInput();
     }
 
