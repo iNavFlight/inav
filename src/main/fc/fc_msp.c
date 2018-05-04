@@ -44,6 +44,7 @@
 #include "drivers/serial.h"
 #include "drivers/system.h"
 #include "drivers/time.h"
+#include "drivers/timer.h"
 #include "drivers/vtx_common.h"
 
 #include "fc/config.h"
@@ -1337,6 +1338,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
 #endif
+
+    case MSP2_INAV_OUTPUT_MAPPING:
+        for (uint8_t i = 0; i < USABLE_TIMER_CHANNEL_COUNT; ++i)
+            sbufWriteU8(dst, timerHardware[i].usageFlags);
+        break;
+
     default:
         return false;
     }
