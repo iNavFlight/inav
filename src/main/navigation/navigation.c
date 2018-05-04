@@ -1991,6 +1991,12 @@ static bool adjustPositionFromRCInput(void)
                 rcRollAdjustment
             )) {
                 DISABLE_STATE(NAV_CRUISE_BRAKING);
+
+                /*
+                 * When braking is done, store current position as desired one
+                 * We do not want to go back to the place where braking has started
+                 */
+                setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_XY);
             }
 
         }
