@@ -385,7 +385,15 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
-    const float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+
+    float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+    //When braking, raise jerk limit
+    if (STATE(NAV_CRUISE_BRAKING)) {    
+        maxAccelChange = maxAccelChange * 2;
+    }
+
+    DEBUG_SET(DEBUG_BRAKING, 1, maxAccelChange);
+
     const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
@@ -396,8 +404,21 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
     // Thus we don't need to do anything else with calculated acceleration
-    const float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
-    const float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
+    float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
+    float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
+
+    //Boost required accelerations
+    if (STATE(NAV_CRUISE_BRAKING) && navConfig()->mc.braking_boost_factor > 0) {
+
+        const float boostFactor = (100 + navConfig()->mc.braking_boost_factor) / 100.0f;
+
+        //Boost required acceleration for harder braking
+        newAccelX = newAccelX * boostFactor;
+        newAccelY = newAccelY * boostFactor;
+    }
+
+    DEBUG_SET(DEBUG_BRAKING, 2, newAccelX);
+    DEBUG_SET(DEBUG_BRAKING, 3, newAccelY);
 
     // Save last acceleration target
     lastAccelTargetX = newAccelX;
