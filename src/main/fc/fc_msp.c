@@ -70,6 +70,7 @@
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/opflow.h"
+#include "io/rangefinder.h"
 #include "io/gimbal.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"

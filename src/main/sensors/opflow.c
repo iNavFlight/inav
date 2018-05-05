@@ -63,7 +63,7 @@
 
 opflow_t opflow;
 
-#define OPFLOW_SQUAL_THRESHOLD_HIGH     50      // TBD
+#define OPFLOW_SQUAL_THRESHOLD_HIGH     35      // TBD
 #define OPFLOW_SQUAL_THRESHOLD_LOW      10      // TBD
 #define OPFLOW_UPDATE_TIMEOUT_US        200000  // At least 5Hz updates required
 
