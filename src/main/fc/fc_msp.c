@@ -69,6 +69,7 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/opflow.h"
 #include "io/gimbal.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -2597,6 +2598,28 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
 
     return true;
 }
+
+static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
+{
+    UNUSED(src);
+
+    switch (cmdMSP) {
+#if defined(USE_RANGEFINDER_MSP)
+        case MSP2_SENSOR_RANGEFINDER:
+            mspRangefinderReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_OPFLOW_MSP)
+        case MSP2_SENSOR_OPTIC_FLOW:
+            mspOpflowReceiveNewData(sbufPtr(src));
+            break;
+#endif
+    }
+
+    return MSP_RESULT_NO_REPLY;
+}
+
 /*
  * Returns MSP_RESULT_ACK, MSP_RESULT_ERROR or MSP_RESULT_NO_REPLY
  */
@@ -2609,7 +2632,9 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
-    if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
+    if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
+        ret = mspProcessSensorCommand(cmdMSP, src);
+    } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
     } else if (cmdMSP == MSP_SET_4WAY_IF) {

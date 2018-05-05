@@ -26,10 +26,9 @@
 
 #include <stdbool.h>
 
-#include "sensors/opflow.h"
-#include "drivers/opflow/opflow_virtual.h"
+#include "sensors/rangefinder.h"
+#include "drivers/rangefinder/rangefinder_virtual.h"
 
-extern virtualOpflowVTable_t opflowCxofVtable;
-extern virtualOpflowVTable_t opflowMSPVtable;
+extern virtualRangefinderVTable_t rangefinderMSPVtable;
 
-void mspOpflowReceiveNewData(uint8_t * bufferPtr);
+void mspRangefinderReceiveNewData(uint8_t * bufferPtr);

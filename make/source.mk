@@ -138,10 +138,13 @@ COMMON_SRC = \
             drivers/rangefinder/rangefinder_hcsr04_i2c.c \
             drivers/rangefinder/rangefinder_srf10.c \
             drivers/rangefinder/rangefinder_vl53l0x.c \
+            drivers/rangefinder/rangefinder_virtual.c \
             drivers/opflow/opflow_fake.c \
             drivers/opflow/opflow_virtual.c \
             drivers/vtx_common.c \
+            io/rangefinder_msp.c \
             io/opflow_cxof.c \
+            io/opflow_msp.c \
             io/dashboard.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \

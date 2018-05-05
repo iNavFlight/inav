@@ -435,7 +435,11 @@ static void mspProcessPendingRequest(mspPort_t * mspPort)
             break;
 
         case MSP_PENDING_CLI:
-            cliEnter(mspPort->port);
+            if (!cliMode) {
+                // When we enter CLI mode - disable this MSP port. Don't care about preserving the port since CLI can only be exited via reboot
+                cliEnter(mspPort->port);
+                mspPort->port = NULL;
+            }
             break;
 
         default:

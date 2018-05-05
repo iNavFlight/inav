@@ -24,12 +24,15 @@
 
 #pragma once
 
-#include <stdbool.h>
+#include "drivers/rangefinder/rangefinder.h"
 
-#include "sensors/opflow.h"
-#include "drivers/opflow/opflow_virtual.h"
+#define RANGEFINDER_VIRTUAL_TASK_PERIOD_MS  30
 
-extern virtualOpflowVTable_t opflowCxofVtable;
-extern virtualOpflowVTable_t opflowMSPVtable;
+typedef struct virtualRangefinderVTable_s {
+    bool (*detect)(void);
+    void (*init)(void);
+    void (*update)(void);
+    int32_t (*read)(void);
+} virtualRangefinderVTable_t;
 
-void mspOpflowReceiveNewData(uint8_t * bufferPtr);
+bool virtualRangefinderDetect(rangefinderDev_t * dev, const virtualRangefinderVTable_t * vtable);

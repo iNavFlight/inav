@@ -64,8 +64,8 @@
 opflow_t opflow;
 
 #define OPFLOW_SQUAL_THRESHOLD_HIGH     50      // TBD
-#define OPFLOW_SQUAL_THRESHOLD_LOW      15      // TBD
-#define OPFLOW_UPDATE_TIMEOUT_US        100000  // At least 10Hz updates required
+#define OPFLOW_SQUAL_THRESHOLD_LOW      10      // TBD
+#define OPFLOW_UPDATE_TIMEOUT_US        200000  // At least 5Hz updates required
 
 #ifdef USE_OPTICAL_FLOW
 PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 0);
@@ -93,6 +93,14 @@ static bool opflowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse)
 #if defined(USE_OPFLOW_CXOF)
             if (virtualOpflowDetect(dev, &opflowCxofVtable)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
                 opflowHardware = OPFLOW_CXOF;
+            }
+#endif
+            break;
+
+        case OPFLOW_MSP:
+#if defined(USE_OPFLOW_MSP)
+            if (virtualOpflowDetect(dev, &opflowMSPVtable)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
+                opflowHardware = OPFLOW_MSP;
             }
 #endif
             break;

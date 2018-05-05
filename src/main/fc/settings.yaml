@@ -7,13 +7,13 @@ tables:
     values: ["NONE", "AUTO", "ADXL345", "MPU6050", "MMA845x", "BMA280", "LSM303DLHC", "MPU6000", "MPU6500", "MPU9250", "BMI160", "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X", "UIB"]
+    values: ["NONE", "HCSR04", "SRF10", "HCSR04I2C", "VL53L0X", "MSP", "UIB"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "GPSMAG", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
-    values: ["NONE", "FAKE", "CXOF", "PMW3901"]
+    values: ["NONE", "FAKE", "CXOF", "MSP", "PMW3901"]
     enum: opticalFlowSensor_e
   - name: baro_hardware
     values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "FAKE"]
