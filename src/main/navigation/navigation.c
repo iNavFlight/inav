@@ -117,6 +117,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .hover_throttle = 1500,
         .auto_disarm_delay = 2000,
         .braking_speed_threshold = 100,
+        .braking_boost_factor = 0,
     },
 
     // Fixed wing
