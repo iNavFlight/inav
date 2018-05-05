@@ -1243,6 +1243,10 @@ groups:
         field: mc.auto_disarm_delay
         min: 100
         max: 10000
+      - name: nav_mc_braking_speed_threshold
+        field: mc.braking_speed_threshold
+        min: 0
+        max: 1000
 
       - name: nav_fw_cruise_thr
         field: fw.cruise_throttle

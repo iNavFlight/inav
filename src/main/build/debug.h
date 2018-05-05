@@ -59,6 +59,7 @@ typedef enum {
     DEBUG_ALWAYS,
     DEBUG_STAGE2,
     DEBUG_WIND_ESTIMATOR,
+    DEBUG_BRAKING,
     DEBUG_COUNT
 } debugType_e;
 

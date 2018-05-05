@@ -116,6 +116,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_bank_angle = 30,      // 30 deg
         .hover_throttle = 1500,
         .auto_disarm_delay = 2000,
+        .braking_speed_threshold = 100,
     },
 
     // Fixed wing
@@ -1964,9 +1965,16 @@ static bool adjustPositionFromRCInput(void)
     else {
 
         /*
-         * Process states
+         * Process states only for POSHOLD. In any other case we go back to old routines
          */
-        if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
+        if (
+            navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
+            navConfig()->mc.braking_speed_threshold > 0 &&
+            (
+                NAV_Status.state == MW_NAV_STATE_NONE ||
+                NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT
+            )
+        ) {
             const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
             const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
 
@@ -1975,22 +1983,24 @@ static bool adjustPositionFromRCInput(void)
              * Speed is above 1m/s and sticks are centered
              */
             if (!STATE(NAV_CRUISE_BRAKING) && 
-                posControl.actualState.velXY > 100.0f && 
+                posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold && 
                 !rcPitchAdjustment && 
                 !rcRollAdjustment
             ) {
                 ENABLE_STATE(NAV_CRUISE_BRAKING);
+                DEBUG_SET(DEBUG_BRAKING, 0, 1);
             }
 
             /*
              * Case when we were braking but copter finally stopped or we started to move the sticks
              */
             if (STATE(NAV_CRUISE_BRAKING) && (
-                posControl.actualState.velXY <= 100.0f ||
+                posControl.actualState.velXY <= navConfig()->mc.braking_speed_threshold ||
                 rcPitchAdjustment ||
                 rcRollAdjustment
             )) {
                 DISABLE_STATE(NAV_CRUISE_BRAKING);
+                DEBUG_SET(DEBUG_BRAKING, 0, 0);
 
                 /*
                  * When braking is done, store current position as desired one
