@@ -501,6 +501,11 @@ groups:
         condition: USE_ADC
         min: VBAT_SCALE_MIN
         max: VBAT_SCALE_MAX
+      - name: vbat_cell_detect_voltage
+        field: voltage.cellDetect
+        condition: USE_ADC
+        min: 100
+        max: 500
       - name: vbat_max_cell_voltage
         field: voltage.cellMax
         condition: USE_ADC

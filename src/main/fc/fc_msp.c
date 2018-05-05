@@ -700,6 +700,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, compassConfig()->mag_declination / 10);
 
         sbufWriteU16(dst, batteryConfig()->voltage.scale);
+        sbufWriteU16(dst, batteryConfig()->voltage.cellDetect);
         sbufWriteU16(dst, batteryConfig()->voltage.cellMin);
         sbufWriteU16(dst, batteryConfig()->voltage.cellMax);
         sbufWriteU16(dst, batteryConfig()->voltage.cellWarning);
@@ -712,6 +713,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_BATTERY_CONFIG:
         sbufWriteU16(dst, batteryConfig()->voltage.scale);
+        sbufWriteU16(dst, batteryConfig()->voltage.cellDetect);
         sbufWriteU16(dst, batteryConfig()->voltage.cellMin);
         sbufWriteU16(dst, batteryConfig()->voltage.cellMax);
         sbufWriteU16(dst, batteryConfig()->voltage.cellWarning);
@@ -1613,7 +1615,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_MISC:
-        if (dataSize == 37) {
+        if (dataSize == 39) {
             rxConfigMutable()->midrc = constrain(sbufReadU16(src), MIDRC_MIN, MIDRC_MAX);
 
             motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -1643,6 +1645,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 
             batteryConfigMutable()->voltage.scale = sbufReadU16(src);
+            batteryConfigMutable()->voltage.cellDetect = sbufReadU16(src);
             batteryConfigMutable()->voltage.cellMin = sbufReadU16(src);
             batteryConfigMutable()->voltage.cellMax = sbufReadU16(src);
             batteryConfigMutable()->voltage.cellWarning = sbufReadU16(src);
@@ -1660,8 +1663,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_BATTERY_CONFIG:
-        if (dataSize == 25) {
+        if (dataSize == 27) {
             batteryConfigMutable()->voltage.scale = sbufReadU16(src);
+            batteryConfigMutable()->voltage.cellDetect = sbufReadU16(src);
             batteryConfigMutable()->voltage.cellMin = sbufReadU16(src);
             batteryConfigMutable()->voltage.cellMax = sbufReadU16(src);
             batteryConfigMutable()->voltage.cellWarning = sbufReadU16(src);
