@@ -530,7 +530,7 @@ static const OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeName
 
 #pragma GCC diagnostic push
 #if (__GNUC__ > 7)
-    // This is safe on 32bit platforms, suppress warning for saCmsUserFreqGetString
+    // This is safe on 32bit platforms, suppress warning for saCmsORFreqGetString
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
 static const OSD_Entry saCmsMenuConfigEntries[] =
