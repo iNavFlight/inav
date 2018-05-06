@@ -931,7 +931,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIST:
         {
-            osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);
+            buff[0] = SYM_HOME;
+            osdFormatDistanceSymbol(&buff[1], GPS_distanceToHome * 100);
             uint16_t dist_alarm = osdConfig()->dist_alarm;
             if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
