@@ -1000,7 +1000,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_align);
         sbufWriteU8(dst, accelerometerConfig()->acc_align);
         sbufWriteU8(dst, compassConfig()->mag_align);
+#ifdef USE_OPTICAL_FLOW
         sbufWriteU8(dst, opticalFlowConfig()->opflow_align);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
     case MSP_ADVANCED_CONFIG:
