@@ -722,6 +722,7 @@ HIGHEND_SRC = \
             sensors/opflow.c \
             telemetry/crsf.c \
             telemetry/frsky_d.c \
+            telemetry/frsky.c \
             telemetry/hott.c \
             telemetry/ibus_shared.c \
             telemetry/ibus.c \

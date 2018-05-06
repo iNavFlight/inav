@@ -56,6 +56,7 @@
 
 #include "telemetry/telemetry.h"
 #include "telemetry/smartport.h"
+#include "telemetry/frsky.h"
 #include "telemetry/msp_shared.h"
 
 #define SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US 500
@@ -427,73 +428,14 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 break;
             case FSSP_DATAID_T1         :
                 {
-                    uint32_t tmpi = 0;
-
-                    // ones column
-                    if (!isArmingDisabled())
-                        tmpi += 1;
-                    else
-                        tmpi += 2;
-
-                    if (ARMING_FLAG(ARMED))
-                        tmpi += 4;
-
-                    // tens column
-                    if (FLIGHT_MODE(ANGLE_MODE))
-                        tmpi += 10;
-                    if (FLIGHT_MODE(HORIZON_MODE))
-                        tmpi += 20;
-                    if (FLIGHT_MODE(MANUAL_MODE))
-                        tmpi += 40;
-
-                    // hundreds column
-                    if (FLIGHT_MODE(HEADING_MODE))
-                        tmpi += 100;
-                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
-                        tmpi += 200;
-                    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
-                        tmpi += 400;
-
-                    // thousands column
-                    if (FLIGHT_MODE(NAV_RTH_MODE))
-                        tmpi += 1000;
-                    if (FLIGHT_MODE(NAV_WP_MODE))
-                        tmpi += 2000;
-                    if (FLIGHT_MODE(HEADFREE_MODE))
-                        tmpi += 4000;
-
-                    // ten thousands column
-                    if (FLIGHT_MODE(FLAPERON))
-                        tmpi += 10000;
-                    if (FLIGHT_MODE(AUTO_TUNE))
-                        tmpi += 20000;
-                    if (FLIGHT_MODE(FAILSAFE_MODE))
-                        tmpi += 40000;
-
-                    smartPortSendPackage(id, (uint32_t)tmpi);
+                    smartPortSendPackage(id, frskyGetFlightMode());
                     *clearToSend = false;
                     break;
                 }
             case FSSP_DATAID_T2         :
                 if (sensors(SENSOR_GPS)) {
 #ifdef USE_GPS
-                    uint32_t tmpi = 0;
-
-                    // ones and tens columns (# of satellites 0 - 99)
-                    tmpi += constrain(gpsSol.numSat, 0, 99);
-
-                    // hundreds column (satellite accuracy HDOP: 0 = worst, 9 = best)
-                    tmpi += (9 - constrain(gpsSol.hdop / 1000, 0, 9)) * 100;
-
-                    // thousands column (GPS fix status)
-                    if (STATE(GPS_FIX))
-                        tmpi += 1000;
-                    if (STATE(GPS_FIX_HOME))
-                        tmpi += 2000;
-                    if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
-                        tmpi += 4000;
-
-                    smartPortSendPackage(id, tmpi);
+                    smartPortSendPackage(id, frskyGetGPSState());
                     *clearToSend = false;
 #endif
                 } else if (feature(FEATURE_GPS)) {
