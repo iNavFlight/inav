@@ -58,7 +58,7 @@
 #include "sensors/sensors.h"
 
 #include "telemetry/telemetry.h"
-#include "telemetry/frsky.h"
+#include "telemetry/frsky_d.h"
 
 static serialPort_t *frskyPort = NULL;
 static serialPortConfig_t *portConfig;

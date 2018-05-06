@@ -40,7 +40,7 @@
 #include "rx/rx.h"
 
 #include "telemetry/telemetry.h"
-#include "telemetry/frsky.h"
+#include "telemetry/frsky_d.h"
 #include "telemetry/hott.h"
 #include "telemetry/smartport.h"
 #include "telemetry/ltm.h"
