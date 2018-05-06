@@ -528,6 +528,11 @@ static const CMS_Menu saCmsMenuUserFreq =
 
 static const OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeNames };
 
+#pragma GCC diagnostic push
+#if (__GNUC__ > 7)
+    // This is safe on 32bit platforms, suppress warning for saCmsUserFreqGetString
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 static const OSD_Entry saCmsMenuConfigEntries[] =
 {
     OSD_LABEL_ENTRY("- SA CONFIG -"),
@@ -541,6 +546,7 @@ static const OSD_Entry saCmsMenuConfigEntries[] =
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
+#pragma GCC diagnostic pop
 
 static const CMS_Menu saCmsMenuConfig = {
 #ifdef CMS_MENU_DEBUG
@@ -573,6 +579,11 @@ static const CMS_Menu saCmsMenuCommence = {
     .entries = saCmsMenuCommenceEntries,
 };
 
+#pragma GCC diagnostic push
+#if (__GNUC__ > 7)
+    // This is safe on 32bit platforms, suppress warning for saCmsUserFreqGetString
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 static const OSD_Entry saCmsMenuFreqModeEntries[] =
 {
     OSD_LABEL_ENTRY("- SMARTAUDIO -"),
@@ -586,6 +597,7 @@ static const OSD_Entry saCmsMenuFreqModeEntries[] =
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
+#pragma GCC diagnostic pop
 
 static const OSD_Entry saCmsMenuChanModeEntries[] =
 {
