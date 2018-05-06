@@ -51,6 +51,7 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
+#include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 #include "sensors/opflow.h"
@@ -68,11 +69,12 @@ opflow_t opflow;
 #define OPFLOW_UPDATE_TIMEOUT_US        200000  // At least 5Hz updates required
 
 #ifdef USE_OPTICAL_FLOW
-PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 1);
 
 PG_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig,
     .opflow_hardware = OPFLOW_NONE,
     .opflow_scale = 1.0f,
+    .opflow_align = CW0_DEG_FLIP,
 );
 
 static bool opflowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse)
@@ -176,8 +178,13 @@ void opflowUpdate(timeUs_t currentTimeUs)
 
         if ((opflow.flowQuality == OPFLOW_QUALITY_VALID) && (opflow.gyroBodyRateTimeUs > 0)) {
             const float integralToRateScaler = (1.0e6 / opflow.dev.rawData.deltaTime) / (float)opticalFlowConfig()->opflow_scale;
-            opflow.flowRate[X] = DEGREES_TO_RADIANS(opflow.dev.rawData.flowRateRaw[X] * integralToRateScaler);
-            opflow.flowRate[Y] = DEGREES_TO_RADIANS(opflow.dev.rawData.flowRateRaw[Y] * integralToRateScaler);
+            int32_t flowRateRaw[3] = { opflow.dev.rawData.flowRateRaw[X], opflow.dev.rawData.flowRateRaw[Y], 0 };
+
+            applySensorAlignment(flowRateRaw, flowRateRaw, opticalFlowConfig()->opflow_align);
+            //applyBoardAlignment(flowRateRaw);
+
+            opflow.flowRate[X] = DEGREES_TO_RADIANS(flowRateRaw[X] * integralToRateScaler);
+            opflow.flowRate[Y] = DEGREES_TO_RADIANS(flowRateRaw[Y] * integralToRateScaler);
 
             opflow.bodyRate[X] = DEGREES_TO_RADIANS(opflow.gyroBodyRateAcc[X] / opflow.gyroBodyRateTimeUs);
             opflow.bodyRate[Y] = DEGREES_TO_RADIANS(opflow.gyroBodyRateAcc[Y] / opflow.gyroBodyRateTimeUs);

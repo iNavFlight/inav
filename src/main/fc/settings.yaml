@@ -228,6 +228,10 @@ groups:
       - name: opflow_scale
         min: 0
         max: 10000
+      - name: align_opflow
+        field: opflow_align
+        type: uint8_t
+        table: alignment
 
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t

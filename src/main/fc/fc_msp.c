@@ -1000,6 +1000,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_align);
         sbufWriteU8(dst, accelerometerConfig()->acc_align);
         sbufWriteU8(dst, compassConfig()->mag_align);
+        sbufWriteU8(dst, opticalFlowConfig()->opflow_align);
         break;
 
     case MSP_ADVANCED_CONFIG:
@@ -1757,11 +1758,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_SENSOR_ALIGNMENT:
-        if (dataSize >= 3) {
+        if (dataSize >= 4) {
             gyroConfigMutable()->gyro_align = sbufReadU8(src);
             accelerometerConfigMutable()->acc_align = sbufReadU8(src);
 #ifdef USE_MAG
             compassConfigMutable()->mag_align = sbufReadU8(src);
+#else
+            sbufReadU8(src);
+#endif
+#ifdef USE_OPTICAL_FLOW
+            opticalFlowConfigMutable()->opflow_align = sbufReadU8(src);
 #else
             sbufReadU8(src);
 #endif
