@@ -30,10 +30,10 @@
 
 typedef enum {
     OPFLOW_NONE         = 0,
-    OPFLOW_FAKE         = 1,
+    OPFLOW_PMW3901      = 1,
     OPFLOW_CXOF         = 2,
     OPFLOW_MSP          = 3,
-    OPFLOW_PMW3901      = 4
+    OPFLOW_FAKE         = 4,
 } opticalFlowSensor_e;
 
 typedef enum {

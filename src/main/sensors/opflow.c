@@ -83,7 +83,7 @@ static bool opflowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse)
     switch (opflowHardwareToUse) {
         case OPFLOW_FAKE:
 #if defined(USE_OPFLOW_FAKE)
-            if (fakeOpflowDetect(dev)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
+            if (fakeOpflowDetect(dev)) {
                 opflowHardware = OPFLOW_FAKE;
             }
 #endif
@@ -91,7 +91,7 @@ static bool opflowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse)
 
         case OPFLOW_CXOF:
 #if defined(USE_OPFLOW_CXOF)
-            if (virtualOpflowDetect(dev, &opflowCxofVtable)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
+            if (virtualOpflowDetect(dev, &opflowCxofVtable)) {
                 opflowHardware = OPFLOW_CXOF;
             }
 #endif
@@ -99,7 +99,7 @@ static bool opflowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse)
 
         case OPFLOW_MSP:
 #if defined(USE_OPFLOW_MSP)
-            if (virtualOpflowDetect(dev, &opflowMSPVtable)) {   // FIXME: Do actual detection if HC-SR04 is plugged in
+            if (virtualOpflowDetect(dev, &opflowMSPVtable)) {
                 opflowHardware = OPFLOW_MSP;
             }
 #endif
