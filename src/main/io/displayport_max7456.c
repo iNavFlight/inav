@@ -99,6 +99,12 @@ static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c
     return 0;
 }
 
+static bool readChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t *c, textAttributes_t *attr)
+{
+    UNUSED(displayPort);
+    return max7456ReadChar(x, y, c, attr);
+}
+
 static bool isTransferInProgress(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
@@ -144,6 +150,7 @@ static const displayPortVTable_t max7456VTable = {
     .screenSize = screenSize,
     .writeString = writeString,
     .writeChar = writeChar,
+    .readChar = readChar,
     .isTransferInProgress = isTransferInProgress,
     .heartbeat = heartbeat,
     .resync = resync,

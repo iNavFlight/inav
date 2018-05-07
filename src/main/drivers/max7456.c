@@ -305,6 +305,18 @@ void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode)
     }
 }
 
+bool max7456ReadChar(uint8_t x, uint8_t y, uint8_t *c, uint8_t *mode)
+{
+    unsigned pos = y * CHARS_PER_LINE + x;
+    if (pos < ARRAYLEN(screenBuffer)) {
+        uint16_t val = screenBuffer[pos];
+        *c = val >> 8;
+        *mode = val & 0xFF;
+        return true;
+    }
+    return false;
+}
+
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
 {
     uint8_t i = 0;
