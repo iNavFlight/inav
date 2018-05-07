@@ -1435,9 +1435,17 @@ groups:
       - name: osd_time_alarm
         field: time_alarm
         min: 0
-        max: 60
+        max: 600
       - name: osd_alt_alarm
         field: alt_alarm
+        min: 0
+        max: 10000
+      - name: osd_dist_alarm
+        field: dist_alarm
+        min: 0
+        max: 50000
+      - name: osd_neg_alt_alarm
+        field: neg_alt_alarm
         min: 0
         max: 10000
 
