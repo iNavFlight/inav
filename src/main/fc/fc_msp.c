@@ -70,6 +70,8 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/opflow.h"
+#include "io/rangefinder.h"
 #include "io/gimbal.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -1001,6 +1003,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_align);
         sbufWriteU8(dst, accelerometerConfig()->acc_align);
         sbufWriteU8(dst, compassConfig()->mag_align);
+#ifdef USE_OPTICAL_FLOW
+        sbufWriteU8(dst, opticalFlowConfig()->opflow_align);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
     case MSP_ADVANCED_CONFIG:
@@ -1766,11 +1773,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_SENSOR_ALIGNMENT:
-        if (dataSize >= 3) {
+        if (dataSize >= 4) {
             gyroConfigMutable()->gyro_align = sbufReadU8(src);
             accelerometerConfigMutable()->acc_align = sbufReadU8(src);
 #ifdef USE_MAG
             compassConfigMutable()->mag_align = sbufReadU8(src);
+#else
+            sbufReadU8(src);
+#endif
+#ifdef USE_OPTICAL_FLOW
+            opticalFlowConfigMutable()->opflow_align = sbufReadU8(src);
 #else
             sbufReadU8(src);
 #endif
@@ -2608,6 +2620,28 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
 
     return true;
 }
+
+static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
+{
+    UNUSED(src);
+
+    switch (cmdMSP) {
+#if defined(USE_RANGEFINDER_MSP)
+        case MSP2_SENSOR_RANGEFINDER:
+            mspRangefinderReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if defined(USE_OPFLOW_MSP)
+        case MSP2_SENSOR_OPTIC_FLOW:
+            mspOpflowReceiveNewData(sbufPtr(src));
+            break;
+#endif
+    }
+
+    return MSP_RESULT_NO_REPLY;
+}
+
 /*
  * Returns MSP_RESULT_ACK, MSP_RESULT_ERROR or MSP_RESULT_NO_REPLY
  */
@@ -2620,7 +2654,9 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
-    if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
+    if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
+        ret = mspProcessSensorCommand(cmdMSP, src);
+    } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
     } else if (cmdMSP == MSP_SET_4WAY_IF) {

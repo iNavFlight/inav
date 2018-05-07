@@ -2945,6 +2945,10 @@ void cliProcess(void)
 
 void cliEnter(serialPort_t *serialPort)
 {
+    if (cliMode) {
+        return;
+    }
+
     cliMode = 1;
     cliPort = serialPort;
     setPrintfSerialPort(cliPort);
