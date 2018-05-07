@@ -309,14 +309,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             if ((p->type == OME_Submenu) && p->func && (p->flags & OPTSTRING)) {
 
                 // Special case of sub menu entry with optional value display.
-#pragma GCC diagnostic push
-#if (__GNUC__ > 7)
-                    // This is safe on 32bit platforms, suppress warning.
-#pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif
-                char *str = ((CMSMenuOptFuncPtr)p->func)();
-#pragma GCC diagnostic pop
-
+                char *str = ((CMSMenuOptFuncPtr)p->menufunc)();
                 cnt = displayWrite(pDisplay, colPos, row, str);
                 colPos += strlen(str);
             }
