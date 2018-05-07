@@ -207,7 +207,7 @@ static void sendThrottleOrBatterySizeAsRpm(void)
 static void sendFlightModeAsTemperature1(void)
 {
     sendDataHead(ID_TEMPRATURE1);
-    serialize16((uint16_t)frskyGetFlightMode());
+    serialize16(frskyGetFlightMode());
 }
 
 #ifdef USE_GPS

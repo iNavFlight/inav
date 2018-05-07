@@ -16,9 +16,9 @@
 #include "io/gps.h"
 #include "telemetry/frsky.h"
 
-uint32_t frskyGetFlightMode(void) 
+uint16_t frskyGetFlightMode(void) 
 {
-    uint32_t tmpi = 0;
+    uint16_t tmpi = 0;
 
     // ones column
     if (!isArmingDisabled())
@@ -55,12 +55,11 @@ uint32_t frskyGetFlightMode(void)
     // ten thousands column
     if (FLIGHT_MODE(FLAPERON))
         tmpi += 10000;
-    if (FLIGHT_MODE(AUTO_TUNE))
-        tmpi += 20000;
     if (FLIGHT_MODE(FAILSAFE_MODE))
         tmpi += 40000;
-    // todo: prevent 16-bit variable from overflow, 
-    // D-series receivers transmit only 16-bit values
+    else
+        if (FLIGHT_MODE(AUTO_TUNE))
+            tmpi += 20000;
 
     return tmpi;
 }

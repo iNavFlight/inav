@@ -5,5 +5,5 @@
 
 #pragma once
 
-uint32_t frskyGetFlightMode(void);
+uint16_t frskyGetFlightMode(void);
 uint16_t frskyGetGPSState(void);
