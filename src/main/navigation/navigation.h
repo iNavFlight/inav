@@ -320,6 +320,12 @@ bool navigationRTHAllowsLanding(void);
 
 bool isNavLaunchEnabled(void);
 
+/* Returns the heading recorded when home position was acquired.
+ * Note that the navigation system uses deg*100 as unit and angles
+ * are in the [0, 360 * 100) interval.
+ */
+int32_t navigationGetHomeHeading(void);
+
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
 
@@ -343,5 +349,6 @@ extern int16_t navAccNEU[3];
 #define getEstimatedActualVelocity(axis) (0)
 #define navigationIsControllingThrottle() (0)
 #define navigationRTHAllowsLanding() (0)
+#define navigationGetHomeHeading(0)
 
 #endif
