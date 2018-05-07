@@ -35,8 +35,8 @@
 
 #include "io/osd.h"
 
-#define OSD_ITEM_ENTRY(label, item_id)      ((OSD_Entry){ label, OME_Submenu, (void *)item_id, &cmsx_menuOsdElementActions, 0 })
-#define OSD_ITEM_GET_ID(entry)              ((int)entry->func)
+#define OSD_ITEM_ENTRY(label, item_id)      ((OSD_Entry){ label, OME_Submenu, {.itemId  = item_id}, &cmsx_menuOsdElementActions, 0 })
+#define OSD_ITEM_GET_ID(entry)              (entry->itemId)
 
 static int osdCurrentLayout = -1;
 static int osdCurrentItem = -1;

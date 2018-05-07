@@ -528,25 +528,19 @@ static const CMS_Menu saCmsMenuUserFreq =
 
 static const OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeNames };
 
-#pragma GCC diagnostic push
-#if (__GNUC__ > 7)
-    // This is safe on 32bit platforms, suppress warning for saCmsORFreqGetString
-#pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif
 static const OSD_Entry saCmsMenuConfigEntries[] =
 {
     OSD_LABEL_ENTRY("- SA CONFIG -"),
 
-    { "OP MODEL",  OME_TAB,     saCmsConfigOpmodelByGvar,              &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
-    { "FSEL MODE", OME_TAB,     saCmsConfigFreqModeByGvar,             &saCmsEntFselMode,                                   DYNAMIC },
+    { "OP MODEL",  OME_TAB,  {.func = saCmsConfigOpmodelByGvar}, &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
+    { "FSEL MODE", OME_TAB,  {.func = saCmsConfigFreqModeByGvar}, &saCmsEntFselMode, DYNAMIC },
     OSD_TAB_CALLBACK_ENTRY("PIT FMODE", saCmsConfigPitFModeByGvar, &saCmsEntPitFMode),
-    { "POR FREQ",  OME_Submenu, (CMSEntryFuncPtr)saCmsORFreqGetString, (void *)&saCmsMenuPORFreq,                                   OPTSTRING },
+    { "POR FREQ",  OME_Submenu, {.menufunc = saCmsORFreqGetString}, (void *)&saCmsMenuPORFreq, OPTSTRING },
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
-#pragma GCC diagnostic pop
 
 static const CMS_Menu saCmsMenuConfig = {
 #ifdef CMS_MENU_DEBUG
@@ -589,7 +583,7 @@ static const OSD_Entry saCmsMenuFreqModeEntries[] =
     OSD_LABEL_ENTRY("- SMARTAUDIO -"),
 
     OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
-    { "FREQ",   OME_Submenu, (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
+    { "FREQ",   OME_Submenu, {.menufunc = saCmsUserFreqGetString},  &saCmsMenuUserFreq, OPTSTRING },
     OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
