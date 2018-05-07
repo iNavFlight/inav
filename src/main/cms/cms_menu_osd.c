@@ -36,7 +36,6 @@
 #include "io/osd.h"
 
 #define OSD_ITEM_ENTRY(label, item_id)      ((OSD_Entry){ label, OME_Submenu, {.itemId  = item_id}, &cmsx_menuOsdElementActions, 0 })
-#define OSD_ITEM_GET_ID(entry)              (entry->itemId)
 
 static int osdCurrentLayout = -1;
 static int osdCurrentItem = -1;
@@ -126,7 +125,7 @@ static CMS_Menu cmsx_menuOsdElementActions = {
 
 static long osdElemActionsOnEnter(const OSD_Entry *from)
 {
-    osdCurrentItem = OSD_ITEM_GET_ID(from);
+    osdCurrentItem = from->itemId;
     uint16_t pos = osdConfig()->item_pos[osdCurrentLayout][osdCurrentItem];
     osdCurrentElementColumn = OSD_X(pos);
     osdCurrentElementRow = OSD_Y(pos);

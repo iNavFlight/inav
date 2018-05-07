@@ -309,7 +309,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             if ((p->type == OME_Submenu) && p->func && (p->flags & OPTSTRING)) {
 
                 // Special case of sub menu entry with optional value display.
-                char *str = ((CMSMenuOptFuncPtr)p->menufunc)();
+                char *str = p->menufunc();
                 cnt = displayWrite(pDisplay, colPos, row, str);
                 colPos += strlen(str);
             }
