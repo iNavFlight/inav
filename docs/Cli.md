@@ -227,9 +227,9 @@ Re-apply any new defaults as desired.
 |  align_gyro  | DEFAULT | When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP. |
 |  align_acc  | DEFAULT | When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP. |
 |  align_mag  | DEFAULT | When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP. |
-|  align_board_roll  | 0 | Arbitrary board rotation in degrees, to allow mounting it sideways / upside down / rotated etc |
-|  align_board_pitch  | 0 | Arbitrary board rotation in degrees, to allow mounting it sideways / upside down / rotated etc |
-|  align_board_yaw  | 0 | Arbitrary board rotation in degrees, to allow mounting it sideways / upside down / rotated etc |
+|  align_board_roll  | 0 | Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc |
+|  align_board_pitch  | 0 | Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc |
+|  align_board_yaw  | 0 | Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc |
 |  align_mag_roll  | 0 | Set the external mag alignment on the roll axis (in 0.1 degree steps). If this value is non-zero, the compass is assumed to be externally mounted and both the board and on-board compass alignent (align_mag) are ignored. See also align_mag_pitch and align_mag_yaw. |
 |  align_mag_pitch  | 0 | Same as align_mag_roll, but for the pitch axis. |
 |  align_mag_yaw  | 0 | Same as align_mag_roll, but for the yaw axis. |
