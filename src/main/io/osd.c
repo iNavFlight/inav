@@ -931,7 +931,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIST:
         {
-            osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);
+            buff[0] = SYM_HOME;
+            osdFormatDistanceSymbol(&buff[1], GPS_distanceToHome * 100);
             uint16_t dist_alarm = osdConfig()->dist_alarm;
             if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1570,9 +1571,8 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
-        if (elementIndex == OSD_TRIP_DIST) {
-            STATIC_ASSERT(OSD_TRIP_DIST == OSD_ITEM_COUNT - 1, OSD_TRIP_DIST_not_last_element);
-            elementIndex = OSD_ITEM_COUNT;
+        if (elementIndex == OSD_EFFICIENCY_MAH_PER_KM) {
+            elementIndex = OSD_TRIP_DIST;
         }
     }
     if (!feature(FEATURE_GPS)) {
