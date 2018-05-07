@@ -83,7 +83,7 @@
 #define SYM_CELLF      0xC3
 
 // Map mode
-#define SYM_HOME       0x04
+#define SYM_HOME       191
 #define SYM_AIRCRAFT   0x05
 #define SYM_RANGE_100  0x21
 #define SYM_RANGE_500  0x22
