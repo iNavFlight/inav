@@ -77,6 +77,8 @@ typedef enum {
     OSD_TRIP_DIST,
     OSD_ATTITUDE_PITCH,
     OSD_ATTITUDE_ROLL,
+    OSD_MAP_NORTH,
+    OSD_MAP_TAKEOFF,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

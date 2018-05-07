@@ -813,6 +813,135 @@ static int16_t osdGetHeading(void)
     return attitude.values.yaw;
 }
 
+// Returns a heading angle in degrees normalized to [0, 360).
+static int osdGetHeadingAngle(int angle)
+{
+    while (angle < 0) {
+        angle += 360;
+    }
+    while (angle >= 360) {
+        angle -= 360;
+    }
+    return angle;
+}
+
+#if defined(USE_GPS)
+/* Draws a map with the home in the center and the craft moving around.
+ * referenceHeading indicates the up direction in the map, in degrees, while
+ * referenceSym is draw at the upper right corner below a small arrow to indicate
+ * the map reference to the user. The drawn argument is an in-out used to store the
+ * last position where the craft was drawn to avoid erasing all screen on each
+ * redraw.
+ */
+static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn)
+{
+    // TODO: These need to be tested with several setups. We might
+    // need to make them configurable.
+    const int hMargin = 1;
+    const int vMargin = 1;
+
+    // TODO: Get this from the display driver?
+    const int charWidth = 12;
+    const int charHeight = 18;
+
+    char buf[16];
+
+    uint8_t minX = hMargin;
+    uint8_t maxX = osdDisplayPort->cols - 1 - hMargin;
+    uint8_t minY = vMargin;
+    uint8_t maxY = osdDisplayPort->rows - 1 - vMargin;
+    uint8_t midX = osdDisplayPort->cols / 2;
+    uint8_t midY = osdDisplayPort->rows / 2;
+
+    // Fixed marks
+    displayWriteChar(osdDisplayPort, maxX, minY, SYM_DIRECTION);
+    displayWriteChar(osdDisplayPort, maxX, minY + 1, referenceSym);
+    displayWriteChar(osdDisplayPort, minX, maxY, SYM_SCALE);
+    displayWriteChar(osdDisplayPort, midX, midY, SYM_HOME);
+
+    // First, erase the previous drawing.
+    if (OSD_VISIBLE(*drawn)) {
+        displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
+        *drawn = 0;
+    }
+
+    int scale;
+    float scaleToUnit;
+    int scaleUnitDivisor;
+    char symUnscaled;
+    char symScaled;
+    int maxDecimals;
+
+    switch (osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            scale = 161; // 161m ~= 0.1miles
+            scaleToUnit = 100 / 1609.3440f; // scale to 0.01mi for osdFormatCentiNumber()
+            scaleUnitDivisor = 0;
+            symUnscaled = SYM_MI;
+            symScaled = SYM_MI;
+            maxDecimals = 2;
+            break;
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_METRIC:
+            scale = 100; // 100m as initial scale
+            scaleToUnit = 100; // scale to cm for osdFormatCentiNumber()
+            scaleUnitDivisor = 1000; // Convert to km when scale gets bigger than 999m
+            symUnscaled = SYM_M;
+            symScaled = SYM_KM;
+            maxDecimals = 0;
+            break;
+    }
+
+    if (STATE(GPS_FIX) && GPS_distanceToHome > scale) {
+
+        int directionToHome = osdGetHeadingAngle(GPS_directionToHome + referenceHeading);
+        float homeAngle = DEGREES_TO_RADIANS(directionToHome);
+        float homeSin = sin_approx(homeAngle);
+        float homeCos = cos_approx(homeAngle);
+
+        // Now start looking for a valid scale that lets us draw everything
+        for (int ii = 0; ii < 50; ii++, scale *= 2) {
+            // Calculate location of the aircraft in map
+            int points = GPS_distanceToHome / (float)(scale / charHeight);
+
+            float pointsX = points * homeSin;
+            int craftX = midX + roundf(pointsX / charWidth);
+            if (craftX < minX || craftX > maxX) {
+                continue;
+            }
+
+            float pointsY = points * homeCos;
+            int craftY = midY + roundf(pointsY / charHeight);
+            if (craftY < minY || craftY > maxY) {
+                continue;
+            }
+
+            uint8_t c;
+            if (displayReadCharWithAttr(osdDisplayPort, craftX, craftY, &c, NULL) && c != SYM_BLANK) {
+                // Something else written here, increase scale. If the display doesn't support reading
+                // back characters, we assume there's nothing.
+                continue;
+            }
+
+            // Draw the craft on the map
+            int mapHeading = osdGetHeadingAngle(DECIDEGREES_TO_DEGREES(osdGetHeading()) - referenceHeading);
+            displayWriteChar(osdDisplayPort, craftX, craftY, SYM_ARROW_UP + mapHeading * 2 / 45);
+
+            // Update saved location
+            *drawn = OSD_POS(craftX, craftY) | OSD_VISIBLE_FLAG;
+            break;
+        }
+    }
+
+    // Draw the used scale
+    bool scaled = osdFormatCentiNumber(buf, scale * scaleToUnit, scaleUnitDivisor, maxDecimals, 2, 3);
+    buf[3] = scaled ? symScaled : symUnscaled;
+    buf[4] = '\0';
+    displayWrite(osdDisplayPort, minX + 1, maxY, buf);
+}
+#endif
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdConfig()->item_pos[currentLayout][item];
@@ -913,15 +1042,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            int16_t h = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
-
-            if (h < 0) {
-                h += 360;
-            }
-            if (h >= 360) {
-                h -= 360;
-            }
-
+            int16_t h = osdGetHeadingAngle(GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()));
             h = h * 2 / 45;
 
             buff[0] = SYM_ARROW_UP + h;
@@ -968,6 +1089,19 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t centiHDOP = 100 * gpsSol.hdop / HDOP_SCALE;
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, 2);
             break;
+        }
+
+    case OSD_MAP_NORTH:
+        {
+            static uint16_t drawn = 0;
+            osdDrawMap(0, 'N', &drawn);
+            return true;
+        }
+    case OSD_MAP_TAKEOFF:
+        {
+            static uint16_t drawn = 0;
+            osdDrawMap(CENTIDEGREES_TO_DEGREES(navigationGetHomeHeading()), 'T', &drawn);
+            return true;
         }
 #endif // GPS
 
@@ -1603,7 +1737,6 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
             elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
         }
         if (elementIndex == OSD_TRIP_DIST) {
-            STATIC_ASSERT(OSD_ATTITUDE_ROLL == OSD_ITEM_COUNT - 1, OSD_ATTITUDE_ROLL_not_last_element);
             elementIndex = OSD_ATTITUDE_PITCH;
         }
     }
