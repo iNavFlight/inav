@@ -138,11 +138,16 @@ typedef struct navConfig_s {
     } general;
 
     struct {
-        uint8_t  max_bank_angle;             // multicopter max banking angle (deg)
-        uint16_t hover_throttle;             // multicopter hover throttle
-        uint16_t auto_disarm_delay;          // multicopter safety delay for landing detector
-        uint16_t braking_speed_threshold;    // above this speed braking routine might kick in
-        uint8_t  braking_boost_factor;
+        uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
+        uint16_t hover_throttle;                // multicopter hover throttle
+        uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
+        uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
+        uint16_t braking_disengage_speed;       // below this speed braking will be disengaged
+        uint16_t braking_timeout;               // Timeout for braking mode
+        uint8_t  braking_boost_factor;          // Acceleration boost multiplier at max speed
+        uint16_t braking_boost_timeout;         // Timeout for boost mode
+        uint16_t braking_boost_speed_threshold; // Above this speed braking boost mode can engage
+        uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
     } mc;
 
     struct {

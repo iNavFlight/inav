@@ -100,11 +100,8 @@ typedef enum {
     ACCELEROMETER_CALIBRATED= (1 << 9),
     PWM_DRIVER_AVAILABLE    = (1 << 10),
     HELICOPTER              = (1 << 11),
-    NAV_CRUISE_ACCELERATING = (1 << 12),
-    NAV_CRUISE_BRAKING      = (1 << 13),
-    NAV_HIGHSPEED_CRUISE    = (1 << 14),
-    NAV_CRUISE_STOPPED      = (1 << 15),
-    NAV_CRUISE_STORE_POSITION = (1 << 16)
+    NAV_CRUISE_BRAKING      = (1 << 12),
+    NAV_CRUISE_BRAKING_BOOST = (1 << 13),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

@@ -76,7 +76,7 @@ PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 2);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -116,8 +116,13 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_bank_angle = 30,      // 30 deg
         .hover_throttle = 1500,
         .auto_disarm_delay = 2000,
-        .braking_speed_threshold = 100,
-        .braking_boost_factor = 0,
+        .braking_speed_threshold = 100, // Braking can become active above 1m/s
+        .braking_disengage_speed = 75,  // Stop when speed goes below 0.75m/s
+        .braking_timeout = 2000,        // Timeout barking after 2s
+        .braking_boost_factor = 0,      // By default do not use boost factor
+        .braking_boost_timeout = 750,    // Timout boost after 750ms
+        .braking_boost_speed_threshold = 200, //Boost can happen only above 2m/s
+        .braking_boost_disengage_speed = 100, //Disable boost at 1m/s
     },
 
     // Fixed wing
@@ -1960,6 +1965,7 @@ static bool adjustPositionFromRCInput(void)
 {
     bool retValue;
     static uint32_t brakingModeDisengageAt = 0;
+    static uint32_t brakingBoostModeDisengageAt = 0;
 
     if (STATE(FIXED_WING)) {
         retValue = adjustFixedWingPositionFromRCInput();
@@ -1993,7 +1999,7 @@ static bool adjustPositionFromRCInput(void)
                 DEBUG_SET(DEBUG_BRAKING, 0, 1);
 
                 //Set forced BRAKING disengage moment
-                brakingModeDisengageAt = millis() + 500;
+                brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
             }
 
             //Forced BRAKING disengage routine
@@ -2009,7 +2015,7 @@ static bool adjustPositionFromRCInput(void)
              * Case when we were braking but copter finally stopped or we started to move the sticks
              */
             if (STATE(NAV_CRUISE_BRAKING) && (
-                posControl.actualState.velXY <= navConfig()->mc.braking_speed_threshold ||
+                posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||
                 rcPitchAdjustment ||
                 rcRollAdjustment
             )) {

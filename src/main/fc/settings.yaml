@@ -1246,12 +1246,31 @@ groups:
       - name: nav_mc_braking_speed_threshold
         field: mc.braking_speed_threshold
         min: 0
-        max: 1000      
+        max: 1000   
+      - name: nav_mc_braking_disengage_speed
+        field: mc.braking_disengage_speed
+        min: 0
+        max: 1000  
+      - name: nav_mc_braking_timeout
+        field: mc.braking_timeout
+        min: 100
+        max: 5000 
       - name: nav_mc_braking_boost_factor
         field: mc.braking_boost_factor
         min: 0
-        max: 200
-
+        max: 200  
+      - name: nav_mc_braking_boost_timeout
+        field: mc.braking_boost_timeout
+        min: 0
+        max: 5000  
+      - name: nav_mc_braking_boost_speed_threshold
+        field: mc.braking_boost_speed_threshold
+        min: 100
+        max: 1000  
+      - name: nav_mc_braking_boost_disengage_speed
+        field: mc.braking_boost_disengage_speed
+        min: 0
+        max: 1000  
       - name: nav_fw_cruise_thr
         field: fw.cruise_throttle
         min: 1000
