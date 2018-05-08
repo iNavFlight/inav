@@ -242,18 +242,6 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-#define USABLE_TIMER_CHANNEL_COUNT 13
-#else
-#define USABLE_TIMER_CHANNEL_COUNT 12
-#endif
-
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(4) | TIM_N(8) | TIM_N(9) | TIM_N(10) )
-#else
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9) )
-#endif
-
 #ifdef OMNIBUSF4PRO
 #define CURRENT_METER_SCALE   265
 #endif

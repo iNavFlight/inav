@@ -33,7 +33,7 @@ BUSDEV_REGISTER_I2C(    busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,    
 
 BUSDEV_REGISTER_SPI(    busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,                       DEVFLAGS_USE_RAW_REGISTERS);
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
 
     { TIM2,  IO_TAG(PA3),  TIM_CHANNEL_4, 0, IOCFG_AF_PP_PD, GPIO_AF1_TIM2, TIM_USE_PPM         | TIM_USE_PWM       }, //PPM Input on UART2 RX
     { TIM3,  IO_TAG(PB0),  TIM_CHANNEL_3, 1, IOCFG_AF_PP_PD, GPIO_AF2_TIM3, TIM_USE_MC_MOTOR    | TIM_USE_FW_MOTOR  }, //Motor 1
@@ -43,3 +43,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
     // DEF_TIM(TIM4,  CH1, PD12,  TIM_USE_LED, 1,  0 ), // LED
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

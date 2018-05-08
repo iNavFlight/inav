@@ -368,7 +368,7 @@ void pwmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t channel)
 
 void ppmAvoidPWMTimerClash(const timerHardware_t *timerHardwarePtr, uint8_t motorPwmProtocol)
 {
-    for (int timerIndex = 0; timerIndex < USABLE_TIMER_CHANNEL_COUNT; timerIndex++) {
+    for (int timerIndex = 0; timerIndex < timerHardwareCount; timerIndex++) {
         // If PPM input timer is also mapped to motor - set PPM divisor accordingly
         if (((timerHardware[timerIndex].usageFlags & (TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR)) == 0) || timerHardware[timerIndex].tim != timerHardwarePtr->tim)
             continue;

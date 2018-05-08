@@ -47,12 +47,6 @@
 
 timerConfig_t * timerConfig[HARDWARE_TIMER_DEFINITION_COUNT];
 
-typedef struct {
-    channelType_t type;
-} timerChannelInfo_t;
-
-timerChannelInfo_t timerChannelInfo[USABLE_TIMER_CHANNEL_COUNT];
-
 // return index of timer in timer table. Lowest timer has index 0
 uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
 {
@@ -136,6 +130,7 @@ static void timerChConfig_UpdateOverflow(timerConfig_t *cfg, TIM_TypeDef *tim) {
 
 timerConfig_t * timerGetConfigContext(int timerIndex)
 {
+    // If timer context does not exist - allocate memory
     if (timerConfig[timerIndex] == NULL) {
         timerConfig[timerIndex] = memAllocate(sizeof(timerConfig_t));
     }
@@ -191,15 +186,10 @@ void timerInit(void)
     memset(timerConfig, 0, sizeof (timerConfig));
 
     /* enable the timer peripherals */
-    for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {
+    for (int i = 0; i < timerHardwareCount; i++) {
         unsigned timer = lookupTimerIndex(timerHardware[i].tim);
         
         RCC_ClockCmd(timerDefinitions[timer].rcc, ENABLE);
-    }
-
-    // initialize timer channel structures
-    for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {
-        timerChannelInfo[i].type = TYPE_FREE;
     }
 }
 
@@ -209,7 +199,7 @@ const timerHardware_t *timerGetByTag(ioTag_t tag, timerUsageFlag_e flag)
         return NULL;
     }
 
-    for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {
+    for (int i = 0; i < timerHardwareCount; i++) {
         if (timerHardware[i].tag == tag) {
             if (timerHardware[i].usageFlags & flag || flag == 0) {
                 return &timerHardware[i];

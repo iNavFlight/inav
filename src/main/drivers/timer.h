@@ -114,6 +114,7 @@ enum {
 #endif
 
 extern const timerHardware_t timerHardware[];
+extern const int timerHardwareCount;
 extern const timerDef_t timerDefinitions[];
 
 typedef enum {
