@@ -750,15 +750,15 @@ class Generator
         stderr.scan(/var_(\d+).*?', which is of non-class type '(.*)'/).each do |m|
             member = members[m[0].to_i]
             case m[1]
-            when "int8_t {aka signed char}"
+            when /^int8_t/ # {aka signed char}"
                 typ = "int8_t"
-            when "uint8_t {aka unsigned char}"
+            when /^uint8_t/ # {aka unsigned char}"
                 typ = "uint8_t"
-            when "int16_t {aka short int}"
+            when /^int16_t/ # {aka short int}"
                 typ = "int16_t"
-            when "uint16_t {aka short unsigned int}"
+            when /^uint16_t/ # {aka short unsigned int}"
                 typ = "uint16_t"
-            when "uint32_t {aka long unsigned int}"
+            when /^uint32_t/ # {aka long unsigned int}"
                 typ = "uint32_t"
             when "float"
                 typ = "float"
