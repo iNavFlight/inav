@@ -178,15 +178,6 @@ void loadCustomServoMixer(void)
     }
 }
 
-STATIC_UNIT_TESTED void forwardAuxChannelsToServos(uint8_t firstServoIndex)
-{
-    // start forwarding from this channel
-    uint8_t channelOffset = AUX1;
-    for (int servoOffset = 0; servoOffset < MAX_AUX_CHANNEL_COUNT && channelOffset < MAX_SUPPORTED_RC_CHANNEL_COUNT; servoOffset++) {
-        pwmWriteServo(firstServoIndex + servoOffset, rcData[channelOffset++]);
-    }
-}
-
 static void filterServos(void)
 {
     if (servoConfig()->servo_lowpass_freq) {
