@@ -48,6 +48,6 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 //    DEF_TIM(TIM2, CH3, PA2, TIM_USE_MOTOR, 0, 0 ), // S3_OUT - DMA1_ST1
 //    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MOTOR, 0, 0 ), // S4_OUT - DMA1_ST2
 #endif
-        { TIM4, IO_TAG(PB7), TIM_Channel_2, 0,      IOCFG_AF_PP, GPIO_AF_TIM4, TIM_USE_LED | TIM_USE_MC_CHNFW      }, // LED
+        { TIM4, IO_TAG(PB7), TIM_Channel_2, 0,      IOCFG_AF_PP, GPIO_AF_TIM4, TIM_USE_LED | TIM_USE_MC_SERVO      }, // LED
 //    DEF_TIM(TIM4, CH2, PB7, TIM_USE_LED,   0, 0 ), // LED    - DMA1_ST3
 };

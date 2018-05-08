@@ -19,7 +19,6 @@
 * HC-SR04 Rangefinder
 * SoftwareSerial
 * ServoTilt
-* Channel Forwarding
 
 ## USB
 

@@ -453,7 +453,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, servoParams(i)->rate);
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 0);
-            sbufWriteU8(dst, servoParams(i)->forwardFromChannel);
+            sbufWriteU8(dst, 255); // used to be forwardFromChannel, not used anymore, send 0xff for compatibility reasons
             sbufWriteU32(dst, servoParams(i)->reversedSources);
         }
         break;
@@ -1719,7 +1719,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             servoParamsMutable(tmp_u8)->rate = sbufReadU8(src);
             sbufReadU8(src);
             sbufReadU8(src);
-            servoParamsMutable(tmp_u8)->forwardFromChannel = sbufReadU8(src);
+            sbufReadU8(src); // used to be forwardFromChannel, ignored
             servoParamsMutable(tmp_u8)->reversedSources = sbufReadU32(src);
             servoComputeScalingFactors(tmp_u8);
         }

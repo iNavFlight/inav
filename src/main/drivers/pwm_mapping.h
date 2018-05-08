@@ -64,7 +64,6 @@ typedef struct drv_pwm_config_s {
     bool useTriggerRangefinder;
 #endif
     bool useServoOutputs;
-    bool useChannelForwarding;      // configure additional channels as servos
     uint16_t servoPwmRate;
     uint16_t servoCenterPulse;
     uint8_t pwmProtocolType;

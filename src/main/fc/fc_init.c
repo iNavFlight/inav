@@ -309,7 +309,6 @@ void init(void)
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
 
     pwm_params.useServoOutputs = isMixerUsingServos();
-    pwm_params.useChannelForwarding = feature(FEATURE_CHANNEL_FORWARDING);
     pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
 
@@ -344,7 +343,6 @@ void init(void)
     */
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pwm_params.useServoOutputs = false;
-        pwm_params.useChannelForwarding = false;
     }
 #endif
 

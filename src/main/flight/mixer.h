@@ -82,8 +82,6 @@ typedef struct motorConfig_s {
 
 PG_DECLARE(motorConfig_t, motorConfig);
 
-#define CHANNEL_FORWARDING_DISABLED (uint8_t)0xFF
-
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 
