@@ -31,8 +31,6 @@ typedef struct timerConfig_s {
     timerCCHandlerRec_t *edgeCallback[CC_CHANNELS_PER_TIMER];
     timerOvrHandlerRec_t *overflowCallback[CC_CHANNELS_PER_TIMER];
     timerOvrHandlerRec_t *overflowCallbackActive; // null-terminated linkded list of active overflow callbacks
-    uint32_t forcedOverflowTimerValue;
-    uint8_t irqPriority;
 } timerConfig_t;
 
 extern timerConfig_t * timerConfig[HARDWARE_TIMER_DEFINITION_COUNT];

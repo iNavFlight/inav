@@ -171,9 +171,7 @@ void impl_timerChConfigIC(const timerHardware_t *timHw, bool polarityRising, uns
 
 void impl_timerCaptureCompareHandler(TIM_TypeDef *tim, timerConfig_t * timerConfig)
 {
-    uint16_t capture;
-    unsigned tim_status;
-    tim_status = tim->SR & tim->DIER;
+    unsigned tim_status = tim->SR & tim->DIER;
 
     while (tim_status) {
         // flags will be cleared by reading CCR in dual capture, make sure we call handler correctly
@@ -186,14 +184,7 @@ void impl_timerCaptureCompareHandler(TIM_TypeDef *tim, timerConfig_t * timerConf
         if (timerConfig) {
             switch (bit) {
                 case __builtin_clz(TIM_IT_UPDATE): {
-
-                    if (timerConfig->forcedOverflowTimerValue != 0){
-                        capture = timerConfig->forcedOverflowTimerValue - 1;
-                        timerConfig->forcedOverflowTimerValue = 0;
-                    } else {
-                        capture = tim->ARR;
-                    }
-
+                    const uint16_t capture = tim->ARR;
                     timerOvrHandlerRec_t *cb = timerConfig->overflowCallbackActive;
                     while (cb) {
                         cb->fn(cb, capture);
