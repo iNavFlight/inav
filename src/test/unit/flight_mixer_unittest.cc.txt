@@ -45,8 +45,6 @@ extern "C" {
     #include "io/gimbal.h"
     #include "io/rc_controls.h"
 
-    void forwardAuxChannelsToServos(uint8_t firstServoIndex);
-
     void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMixers, servoMixer_t *initialCustomServoMixers);
     void mixerUsePWMOutputConfiguration(pwmOutputConfiguration_t *pwmOutputConfiguration);
 }
@@ -96,7 +94,6 @@ TEST_F(ChannelForwardingTest, TestForwardAuxChannelsToServosWithNoServos)
     rcData[AUX4] = TEST_RC_MID;
 
     // when
-    forwardAuxChannelsToServos(MAX_SUPPORTED_SERVOS);
 
     // then
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
