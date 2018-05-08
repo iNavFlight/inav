@@ -387,7 +387,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
 
     float maxAccelChange = US2S(deltaMicros) * 1700.0f;
-    //When braking, raise jerk limit
+    //When braking, raise jerk limit even if we are not boosting acceleration
     if (STATE(NAV_CRUISE_BRAKING)) {    
         maxAccelChange = maxAccelChange * 2;
     }
@@ -405,14 +405,20 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
     float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
 
+    int16_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
+
     //Boost required accelerations
-    if (STATE(NAV_CRUISE_BRAKING) && navConfig()->mc.braking_boost_factor > 0) {
+    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
 
         const float boostFactor = (100 + navConfig()->mc.braking_boost_factor) / 100.0f;
 
         //Boost required acceleration for harder braking
         newAccelX = newAccelX * boostFactor;
         newAccelY = newAccelY * boostFactor;
+
+        //do a small, static, boost to max banking angle.
+        //This routine is very short, MR should be able to keep altitude
+        maxBankAngle = maxBankAngle * 120 / 100;
     }
 
     // Save last acceleration target
@@ -431,7 +437,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);
     const float desiredRoll = atan2_approx(accelRight * cos_approx(desiredPitch), GRAVITY_CMSS);
 
-    const int16_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
     posControl.rcAdjustment[ROLL] = constrain(RADIANS_TO_DECIDEGREES(desiredRoll), -maxBankAngle, maxBankAngle);
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
 }
