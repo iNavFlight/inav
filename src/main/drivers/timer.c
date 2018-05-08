@@ -100,28 +100,6 @@ void timerConfigure(const timerHardware_t *timerHardwarePtr, uint16_t period, ui
     }
 }
 
-// allocate and configure timer channel. Timer priority is set to highest priority of its channels
-void timerChInit(const timerHardware_t *timHw, channelType_t type, int irqPriority, uint8_t irq)
-{
-    unsigned channel = timHw - timerHardware;
-    if (channel >= USABLE_TIMER_CHANNEL_COUNT)
-        return;
-
-    timerChannelInfo[channel].type = type;
-    unsigned timer = lookupTimerIndex(timHw->tim);
-
-    if (timer >= HARDWARE_TIMER_DEFINITION_COUNT)
-        return;
-
-    if (irqPriority < timerConfig[timer].irqPriority) {
-        // it would be better to set priority in the end, but current startup sequence is not ready
-        impl_timerConfigBase(timerDefinitions[timer].tim, 0, 1);
-        impl_enableTimer(timerDefinitions[timer].tim);
-        impl_timerNVICConfigure(irq, irqPriority);
-        timerConfig[timer].irqPriority = irqPriority;
-    }
-}
-
 void timerChCCHandlerInit(timerCCHandlerRec_t *self, timerCCHandlerCallback *fn)
 {
     self->fn = fn;
@@ -176,31 +154,6 @@ void timerChConfigCallbacks(const timerHardware_t *timHw, timerCCHandlerRec_t *e
         impl_timerEnableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
 
     timerChConfig_UpdateOverflow(&timerConfig[timerIndex], timHw->tim);
-}
-
-// enable or disable IRQ
-void timerChITConfig(const timerHardware_t *timHw, FunctionalState newState)
-{
-    uint8_t timerIndex = lookupTimerIndex(timHw->tim);
-    if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
-        return;
-    }
-
-    if (newState)
-        impl_timerEnableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
-    else
-        impl_timerDisableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
-}
-
-// clear Compare/Capture flag for channel
-void timerChClearCCFlag(const timerHardware_t *timHw)
-{
-    uint8_t timerIndex = lookupTimerIndex(timHw->tim);
-    if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
-        return;
-    }
-
-    impl_timerClearFlag(timHw->tim, TIM_IT_CCx(timHw->channel));
 }
 
 // Configure input captupre
