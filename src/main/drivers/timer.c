@@ -25,6 +25,7 @@
 #include "build/atomic.h"
 
 #include "common/utils.h"
+#include "common/memory.h"
 
 #include "drivers/io.h"
 #include "drivers/rcc.h"
@@ -44,7 +45,7 @@
     TIM4 4 channels
 */
 
-timerConfig_t timerConfig[HARDWARE_TIMER_DEFINITION_COUNT];
+timerConfig_t * timerConfig[HARDWARE_TIMER_DEFINITION_COUNT];
 
 typedef struct {
     channelType_t type;
@@ -133,6 +134,15 @@ static void timerChConfig_UpdateOverflow(timerConfig_t *cfg, TIM_TypeDef *tim) {
     }
 }
 
+timerConfig_t * timerGetConfigContext(int timerIndex)
+{
+    if (timerConfig[timerIndex] == NULL) {
+        timerConfig[timerIndex] = memAllocate(sizeof(timerConfig_t));
+    }
+
+    return timerConfig[timerIndex];
+}
+
 // config edge and overflow callback for channel. Try to avoid overflowCallback, it is a bit expensive
 void timerChConfigCallbacks(const timerHardware_t *timHw, timerCCHandlerRec_t *edgeCallback, timerOvrHandlerRec_t *overflowCallback)
 {
@@ -146,14 +156,23 @@ void timerChConfigCallbacks(const timerHardware_t *timHw, timerCCHandlerRec_t *e
     if (edgeCallback == NULL)   // disable irq before changing callback to NULL
         impl_timerDisableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
 
-    // setup callback info
-    timerConfig[timerIndex].edgeCallback[channelIndex] = edgeCallback;
-    timerConfig[timerIndex].overflowCallback[channelIndex] = overflowCallback;
-    // enable channel IRQ
-    if (edgeCallback)
-        impl_timerEnableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
+    timerConfig_t * cfg = timerGetConfigContext(timerIndex);
 
-    timerChConfig_UpdateOverflow(&timerConfig[timerIndex], timHw->tim);
+    if (cfg) {
+        // setup callback info
+        cfg->edgeCallback[channelIndex] = edgeCallback;
+        cfg->overflowCallback[channelIndex] = overflowCallback;
+
+        // enable channel IRQ
+        if (edgeCallback)
+            impl_timerEnableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
+
+        timerChConfig_UpdateOverflow(cfg, timHw->tim);
+    }
+    else {
+        // OOM error, disable IRQs for this timer
+        impl_timerDisableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
+    }
 }
 
 // Configure input captupre
@@ -181,10 +200,6 @@ void timerInit(void)
     // initialize timer channel structures
     for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {
         timerChannelInfo[i].type = TYPE_FREE;
-    }
-
-    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
-        timerConfig[i].irqPriority = ~0;
     }
 }
 

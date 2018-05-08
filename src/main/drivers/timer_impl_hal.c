@@ -169,7 +169,7 @@ void impl_timerChConfigIC(const timerHardware_t *timHw, bool polarityRising, uns
     HAL_TIM_IC_ConfigChannel(Handle,&TIM_ICInitStructure, timHw->channel);
 }
 
-void impl_timerCaptureCompareHandler(TIM_TypeDef *tim, timerConfig_t *timerConfig)
+void impl_timerCaptureCompareHandler(TIM_TypeDef *tim, timerConfig_t * timerConfig)
 {
     uint16_t capture;
     unsigned tim_status;
@@ -182,35 +182,62 @@ void impl_timerCaptureCompareHandler(TIM_TypeDef *tim, timerConfig_t *timerConfi
         unsigned mask = ~(0x80000000 >> bit);
         tim->SR = mask;
         tim_status &= mask;
-        switch (bit) {
-            case __builtin_clz(TIM_IT_UPDATE): {
 
-                if (timerConfig->forcedOverflowTimerValue != 0){
-                    capture = timerConfig->forcedOverflowTimerValue - 1;
-                    timerConfig->forcedOverflowTimerValue = 0;
-                } else {
-                    capture = tim->ARR;
-                }
+        if (timerConfig) {
+            switch (bit) {
+                case __builtin_clz(TIM_IT_UPDATE): {
 
-                timerOvrHandlerRec_t *cb = timerConfig->overflowCallbackActive;
-                while (cb) {
-                    cb->fn(cb, capture);
-                    cb = cb->next;
+                    if (timerConfig->forcedOverflowTimerValue != 0){
+                        capture = timerConfig->forcedOverflowTimerValue - 1;
+                        timerConfig->forcedOverflowTimerValue = 0;
+                    } else {
+                        capture = tim->ARR;
+                    }
+
+                    timerOvrHandlerRec_t *cb = timerConfig->overflowCallbackActive;
+                    while (cb) {
+                        cb->fn(cb, capture);
+                        cb = cb->next;
+                    }
+                    break;
                 }
-                break;
+                case __builtin_clz(TIM_IT_CC1):
+                    timerConfig->edgeCallback[0]->fn(timerConfig->edgeCallback[0], tim->CCR1);
+                    break;
+                case __builtin_clz(TIM_IT_CC2):
+                    timerConfig->edgeCallback[1]->fn(timerConfig->edgeCallback[1], tim->CCR2);
+                    break;
+                case __builtin_clz(TIM_IT_CC3):
+                    timerConfig->edgeCallback[2]->fn(timerConfig->edgeCallback[2], tim->CCR3);
+                    break;
+                case __builtin_clz(TIM_IT_CC4):
+                    timerConfig->edgeCallback[3]->fn(timerConfig->edgeCallback[3], tim->CCR4);
+                    break;
             }
-            case __builtin_clz(TIM_IT_CC1):
-                timerConfig->edgeCallback[0]->fn(timerConfig->edgeCallback[0], tim->CCR1);
-                break;
-            case __builtin_clz(TIM_IT_CC2):
-                timerConfig->edgeCallback[1]->fn(timerConfig->edgeCallback[1], tim->CCR2);
-                break;
-            case __builtin_clz(TIM_IT_CC3):
-                timerConfig->edgeCallback[2]->fn(timerConfig->edgeCallback[2], tim->CCR3);
-                break;
-            case __builtin_clz(TIM_IT_CC4):
-                timerConfig->edgeCallback[3]->fn(timerConfig->edgeCallback[3], tim->CCR4);
-                break;
+        }
+        else {
+            // timerConfig == NULL
+            volatile uint32_t tmp;
+
+            switch (bit) {
+                case __builtin_clz(TIM_IT_UPDATE):
+                    tmp = tim->ARR;
+                    break;
+                case __builtin_clz(TIM_IT_CC1):
+                    tmp = tim->CCR1;
+                    break;
+                case __builtin_clz(TIM_IT_CC2):
+                    tmp = tim->CCR2;
+                    break;
+                case __builtin_clz(TIM_IT_CC3):
+                    tmp = tim->CCR3;
+                    break;
+                case __builtin_clz(TIM_IT_CC4):
+                    tmp = tim->CCR4;
+                    break;
+            }
+
+            (void)tmp;
         }
     }
 }

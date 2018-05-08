@@ -35,19 +35,19 @@ typedef struct timerConfig_s {
     uint8_t irqPriority;
 } timerConfig_t;
 
-extern timerConfig_t timerConfig[HARDWARE_TIMER_DEFINITION_COUNT];
+extern timerConfig_t * timerConfig[HARDWARE_TIMER_DEFINITION_COUNT];
 
 #define _TIM_IRQ_HANDLER2(name, i, j)                                   \
     void name(void)                                                     \
     {                                                                   \
-        impl_timerCaptureCompareHandler(TIM ## i, &timerConfig[i - 1]); \
-        impl_timerCaptureCompareHandler(TIM ## j, &timerConfig[j - 1]); \
+        impl_timerCaptureCompareHandler(TIM ## i, timerConfig[i - 1]); \
+        impl_timerCaptureCompareHandler(TIM ## j, timerConfig[j - 1]); \
     } struct dummy
 
 #define _TIM_IRQ_HANDLER(name, i)                                       \
     void name(void)                                                     \
     {                                                                   \
-        impl_timerCaptureCompareHandler(TIM ## i, &timerConfig[i - 1]); \
+        impl_timerCaptureCompareHandler(TIM ## i, timerConfig[i - 1]); \
     } struct dummy
 
 uint8_t lookupTimerIndex(const TIM_TypeDef *tim);
