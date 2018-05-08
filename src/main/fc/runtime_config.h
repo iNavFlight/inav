@@ -102,6 +102,7 @@ typedef enum {
     HELICOPTER              = (1 << 11),
     NAV_CRUISE_BRAKING      = (1 << 12),
     NAV_CRUISE_BRAKING_BOOST = (1 << 13),
+    NAV_CRUISE_BRAKING_LOCKED = (1 << 14),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

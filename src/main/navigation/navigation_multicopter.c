@@ -392,8 +392,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         maxAccelChange = maxAccelChange * 2;
     }
 
-    DEBUG_SET(DEBUG_BRAKING, 1, maxAccelChange);
-
     const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
@@ -416,9 +414,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         newAccelX = newAccelX * boostFactor;
         newAccelY = newAccelY * boostFactor;
     }
-
-    DEBUG_SET(DEBUG_BRAKING, 2, newAccelX);
-    DEBUG_SET(DEBUG_BRAKING, 3, newAccelY);
 
     // Save last acceleration target
     lastAccelTargetX = newAccelX;
