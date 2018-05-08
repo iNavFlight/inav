@@ -59,7 +59,7 @@ bool CheckGPIOPinSource(ioTag_t tag, GPIO_TypeDef *gpio, uint16_t pin)
 pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 {
     memset(&pwmIOConfiguration, 0, sizeof(pwmIOConfiguration));
-    pwmIOConfiguration.ioConfigurations = memAllocate(sizeof(pwmPortConfiguration_t) * timerHardwareCount);
+    pwmIOConfiguration.ioConfigurations = memAllocate(sizeof(pwmPortConfiguration_t) * timerHardwareCount, OWNER_PWMIO);
 
 #if defined(USE_RX_PWM) || defined(USE_RX_PPM)
     int channelIndex = 0;

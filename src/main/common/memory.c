@@ -28,6 +28,7 @@
 #include "platform.h"
 
 #include "build/debug.h"
+#include "drivers/resource.h"
 #include "common/memory.h"
 #include "fc/runtime_config.h"
 
@@ -37,8 +38,9 @@
 
 static uint32_t dynHeap[DYNAMIC_HEAP_SIZE / sizeof(uint32_t)];
 static uint32_t dynHeapFreeWord = 0;
+static size_t dynHeapUsage[OWNER_TOTAL_COUNT];
 
-void * memAllocate(size_t wantedSize)
+void * memAllocate(size_t wantedSize, resourceOwner_e owner)
 {
     void * retPointer = NULL;
     const size_t wantedWords = (wantedSize + sizeof(uint32_t) - 1) / sizeof(uint32_t);
@@ -47,6 +49,7 @@ void * memAllocate(size_t wantedSize)
         // Success
         retPointer = &dynHeap[dynHeapFreeWord];
         dynHeapFreeWord += wantedWords;
+        dynHeapUsage[owner] += wantedWords * sizeof(uint32_t);
         DEBUG_TRACE("Memory allocated. Free memory = %d", memGetAvailableBytes());
     }
     else {
@@ -56,6 +59,11 @@ void * memAllocate(size_t wantedSize)
     }
 
     return retPointer;
+}
+
+size_t memGetUsedBytesByOwner(resourceOwner_e owner)
+{
+    return (owner == OWNER_FREE) ? memGetAvailableBytes() : dynHeapUsage[owner];
 }
 
 size_t memGetAvailableBytes(void)

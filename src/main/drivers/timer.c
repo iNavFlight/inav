@@ -132,7 +132,7 @@ timerConfig_t * timerGetConfigContext(int timerIndex)
 {
     // If timer context does not exist - allocate memory
     if (timerConfig[timerIndex] == NULL) {
-        timerConfig[timerIndex] = memAllocate(sizeof(timerConfig_t));
+        timerConfig[timerIndex] = memAllocate(sizeof(timerConfig_t), OWNER_TIMER);
     }
 
     return timerConfig[timerIndex];

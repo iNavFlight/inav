@@ -25,6 +25,8 @@
 #pragma once
 
 #include <stdlib.h>
+#include "drivers/resource.h"
 
 size_t memGetAvailableBytes(void);
-void * memAllocate(size_t wantedSize);
+size_t memGetUsedBytesByOwner(resourceOwner_e owner);
+void * memAllocate(size_t wantedSize, resourceOwner_e owner);
