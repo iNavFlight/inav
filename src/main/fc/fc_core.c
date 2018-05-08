@@ -802,11 +802,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         processServoAutotrim();
     }
 
-    // Servo tilt is not part of servo mixer, but uses servos
-    if (feature(FEATURE_SERVO_TILT)) {
-        processServoTilt();
-    }
-
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
     if (isServoOutputEnabled()) {
         writeServos();

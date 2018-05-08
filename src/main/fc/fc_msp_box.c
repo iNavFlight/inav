@@ -173,8 +173,8 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
     }
 
-    if (feature(FEATURE_SERVO_TILT))
-        activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
+    //Camstab mode is enabled always
+    activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
 #ifdef USE_GPS
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING) && feature(FEATURE_GPS))) {
