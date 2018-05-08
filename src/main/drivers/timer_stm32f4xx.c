@@ -52,7 +52,7 @@ const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
     [6] = { .tim = TIM7,  .rcc = RCC_APB1(TIM7),  .irq = 0},
 #endif
 
-#if defined(TIM8) && defined(TIM8_CC_IRQn) && defined(TIM8_UP_TIM13_IRQn)
+#if defined(TIM8) && !defined(STM32F411xE)
     [7] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = TIM8_CC_IRQn, .secondIrq = TIM8_UP_TIM13_IRQn },
 #endif
 
@@ -68,15 +68,15 @@ const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
     [10] = { .tim = TIM11, .rcc = RCC_APB2(TIM11), .irq = TIM1_TRG_COM_TIM11_IRQn},
 #endif
 
-#if defined(TIM12) && defined(TIM8_BRK_TIM12_IRQn)
+#if defined(TIM12) && !defined(STM32F411xE)
     [11] = { .tim = TIM12, .rcc = RCC_APB1(TIM12), .irq = TIM8_BRK_TIM12_IRQn},
 #endif
 
-#if defined(TIM13) && defined(TIM8_UP_TIM13_IRQn)
+#if defined(TIM13) && !defined(STM32F411xE)
     [12] = { .tim = TIM13, .rcc = RCC_APB1(TIM13), .irq = TIM8_UP_TIM13_IRQn},
 #endif
 
-#if defined(TIM14) && defined(TIM8_TRG_COM_TIM14_IRQn)
+#if defined(TIM14) && !defined(STM32F411xE)
     [13] = { .tim = TIM14, .rcc = RCC_APB1(TIM14), .irq = TIM8_TRG_COM_TIM14_IRQn},
 #endif
 };
@@ -107,19 +107,19 @@ _TIM_IRQ_HANDLER(TIM3_IRQHandler, 3);
 _TIM_IRQ_HANDLER(TIM4_IRQHandler, 4);
 _TIM_IRQ_HANDLER(TIM5_IRQHandler, 5);
 
-#if defined(TIM8)
+#if defined(TIM8) && !defined(STM32F411xE)
 _TIM_IRQ_HANDLER(TIM8_CC_IRQHandler, 8);
 _TIM_IRQ_HANDLER(TIM8_UP_IRQHandler, 8);
 #endif
 
-#if defined(TIM12)
+#if defined(TIM12) && !defined(STM32F411xE)
 _TIM_IRQ_HANDLER2(TIM8_BRK_TIM12_IRQHandler, 8, 12);
 #endif
 
-#if defined(TIM13)
+#if defined(TIM13) && !defined(STM32F411xE)
 _TIM_IRQ_HANDLER2(TIM8_UP_TIM13_IRQHandler, 8, 13);
 #endif
 
-#if defined(TIM14)
+#if defined(TIM14) && !defined(STM32F411xE)
 _TIM_IRQ_HANDLER2(TIM8_TRG_COM_TIM14_IRQHandler, 8, 14);
 #endif
