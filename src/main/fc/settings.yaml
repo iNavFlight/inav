@@ -135,6 +135,11 @@ groups:
         condition: USE_GYRO_NOTCH_2
         min: 1
         max: 500 
+      - name: gyro_stage2_lowpass_hz
+        field: gyro_stage2_lowpass_hz
+        condition: USE_GYRO_BIQUAD_RC_FIR2
+        min: 0
+        max: 500
       - name: gyro_to_use
         condition: USE_DUAL_GYRO
         min: 0

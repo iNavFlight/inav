@@ -45,6 +45,8 @@
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
 
+#define USE_GYRO_BIQUAD_RC_FIR2
+
 #if defined(STM_FAST_TARGET)
 #define SCHEDULER_DELAY_LIMIT           10
 #else

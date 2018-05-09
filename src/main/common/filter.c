@@ -116,6 +116,30 @@ void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t s
     biquadFilterInit(filter, filterFreq, samplingIntervalUs, BIQUAD_Q, FILTER_LPF);
 }
 
+// ledvinap's proposed RC+FIR2 Biquad-- 1st order IIR, RC filter k
+void biquadRCFIR2FilterInit(biquadFilter_t *filter, uint16_t f_cut, uint32_t samplingIntervalUs)
+{
+    if (f_cut < (1000000 / samplingIntervalUs / 2)) {
+        const float dT = (float) samplingIntervalUs * 0.000001f;
+        const float RC = 1.0f / ( 2.0f * M_PIf * f_cut );
+        const float k = dT / (RC + dT);
+        filter->b0 = k / 2;
+        filter->b1 = k / 2;
+        filter->b2 = 0;
+        filter->a1 = -(1 - k);
+        filter->a2 = 0;
+    } else {
+        filter->b0 = 1.0f;
+        filter->b1 = 0.0f;
+        filter->b2 = 0.0f;
+        filter->a1 = 0.0f;
+        filter->a2 = 0.0f;
+    }
+
+    // zero initial samples
+    filter->d1 = filter->d2 = 0;
+}
+
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType)
 {
     // Check for Nyquist frequency and if it's not possible to initialize filter as requested - set to no filtering at all
