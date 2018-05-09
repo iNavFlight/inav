@@ -48,8 +48,6 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
-#include "io/gimbal.h"
-
 #include "rx/rx.h"
 
 #include "sensors/gyro.h"
@@ -79,9 +77,6 @@ void pgResetFn_servoParams(servoParam_t *instance)
         );
     }
 }
-
-// no template required since default is zero
-PG_REGISTER(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 0);
 
 int16_t servo[MAX_SUPPORTED_SERVOS];
 
@@ -253,16 +248,8 @@ void servoMixer(float dT)
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
-        const int gimbalPitch = scaleRange(attitude.values.pitch, -1800, 1800, -360, +360);
-        const int gimbalRoll = scaleRange(attitude.values.roll, -1800, 1800, -360, +360);
-
-        if (gimbalConfig()->mode == GIMBAL_MODE_MIXTILT) {
-            input[INPUT_GIMBAL_PITCH] = gimbalPitch - gimbalRoll;
-            input[INPUT_GIMBAL_ROLL] = gimbalPitch + gimbalRoll;
-        } else {
-            input[INPUT_GIMBAL_PITCH] = gimbalPitch;
-            input[INPUT_GIMBAL_ROLL] = gimbalRoll;
-        }
+        input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -1800, 1800, -360, +360);
+        input[INPUT_GIMBAL_ROLL] = scaleRange(attitude.values.roll, -1800, 1800, -360, +360);
     } else {
         input[INPUT_GIMBAL_PITCH] = 0;
         input[INPUT_GIMBAL_ROLL] = 0;

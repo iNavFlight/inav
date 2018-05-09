@@ -42,7 +42,6 @@ extern "C" {
 
     #include "io/rc_controls.h"
     #include "io/gps.h"
-    #include "io/gimbal.h"
     #include "io/ledstrip.h"
     #include "io/serial_msp.h"
     #include "io/escservo.h"

@@ -52,7 +52,6 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"

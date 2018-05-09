@@ -58,7 +58,6 @@
 
 #include "io/beeper.h"
 #include "io/dashboard.h"
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/serial.h"
 #include "io/statusindicator.h"
