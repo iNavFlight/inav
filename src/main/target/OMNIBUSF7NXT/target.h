@@ -66,9 +66,9 @@
 
 #define USE_BARO
 
-#define USE_BARO_BMP280
-#define BMP280_SPI_BUS        BUS_SPI2
-#define BMP280_CS_PIN         PA10
+#define USE_BARO_LPS25H
+#define LPS25H_SPI_BUS        BUS_SPI2
+#define LPS25H_CS_PIN         PA10
 
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
