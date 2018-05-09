@@ -106,6 +106,7 @@ static const displayPortVTable_t oledVTable = {
     .screenSize = oledScreenSize,
     .writeString = oledWriteString,
     .writeChar = oledWriteChar,
+    .readChar = NULL,
     .isTransferInProgress = oledIsTransferInProgress,
     .heartbeat = oledHeartbeat,
     .resync = oledResync,

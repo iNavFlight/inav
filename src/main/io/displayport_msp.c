@@ -148,6 +148,7 @@ static const displayPortVTable_t mspDisplayPortVTable = {
     .screenSize = screenSize,
     .writeString = writeString,
     .writeChar = writeChar,
+    .readChar = NULL,
     .isTransferInProgress = isTransferInProgress,
     .heartbeat = heartbeat,
     .resync = resync,

@@ -2713,6 +2713,12 @@ bool isNavLaunchEnabled(void)
 {
     return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
 }
+
+int32_t navigationGetHomeHeading(void)
+{
+    return posControl.homePosition.yaw;
+}
+
 #else // NAV
 
 #ifdef USE_GPS
