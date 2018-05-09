@@ -48,8 +48,6 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
-#include "io/gimbal.h"
-
 #include "rx/rx.h"
 
 #include "sensors/gyro.h"
@@ -79,9 +77,6 @@ void pgResetFn_servoParams(servoParam_t *instance)
         );
     }
 }
-
-// no template required since default is zero
-PG_REGISTER(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 0);
 
 int16_t servo[MAX_SUPPORTED_SERVOS];
 
@@ -143,9 +138,6 @@ void servosInit(void)
         mixerUsesServos = 1;
     }
 
-    // enable servos for mixes that require them. note, this shifts motor counts.
-    servoOutputEnabled = mixerUsesServos || feature(FEATURE_SERVO_TILT);
-
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++)
         servoComputeScalingFactors(i);
 
@@ -205,7 +197,6 @@ void writeServos(void)
     filterServos();
 
     int servoIndex = 0;
-
     bool zeroServoValue = false;
 
     /*
@@ -215,21 +206,12 @@ void writeServos(void)
         zeroServoValue = true;
     }
 
-    // Write mixer servo outputs
-    //      mixerUsesServos might indicate SERVO_TILT, servoRuleCount indicate if mixer alone uses servos
-    if (mixerUsesServos && servoRuleCount) {
-        for (int i = minServoIndex; i <= maxServoIndex; i++) {
-            if (zeroServoValue) {
-                pwmWriteServo(servoIndex++, 0);
-            } else {
-                pwmWriteServo(servoIndex++, servo[i]);
-            }
+    for (int i = minServoIndex; i <= maxServoIndex; i++) {
+        if (zeroServoValue) {
+            pwmWriteServo(servoIndex++, 0);
+        } else {
+            pwmWriteServo(servoIndex++, servo[i]);
         }
-    }
-
-    if (feature(FEATURE_SERVO_TILT)) {
-        pwmWriteServo(servoIndex++, servo[SERVO_GIMBAL_PITCH]);
-        pwmWriteServo(servoIndex++, servo[SERVO_GIMBAL_ROLL]);
     }
 }
 
@@ -256,8 +238,13 @@ void servoMixer(float dT)
 
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
-    input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -1800, 1800, -500, +500);
-    input[INPUT_GIMBAL_ROLL] = scaleRange(attitude.values.roll, -1800, 1800, -500, +500);
+    if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
+        input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -1800, 1800, -360, +360);
+        input[INPUT_GIMBAL_ROLL] = scaleRange(attitude.values.roll, -1800, 1800, -360, +360);
+    } else {
+        input[INPUT_GIMBAL_PITCH] = 0;
+        input[INPUT_GIMBAL_ROLL] = 0;
+    }
 
     input[INPUT_STABILIZED_THROTTLE] = motor[0] - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
 
@@ -334,23 +321,6 @@ void servoMixer(float dT)
          * allowed the situation when smix weight sum for an output was above 100
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
-    }
-}
-
-void processServoTilt(void)
-{
-    // center at fixed position, or vary either pitch or roll by RC channel
-    servo[SERVO_GIMBAL_PITCH] = servoParams(SERVO_GIMBAL_PITCH)->middle;
-    servo[SERVO_GIMBAL_ROLL] = servoParams(SERVO_GIMBAL_PITCH)->middle;
-
-    if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
-        if (gimbalConfig()->mode == GIMBAL_MODE_MIXTILT) {
-            servo[SERVO_GIMBAL_PITCH] -= (-(int32_t)servoParams(SERVO_GIMBAL_PITCH)->rate) * attitude.values.pitch / 50 - (int32_t)servoParams(SERVO_GIMBAL_ROLL)->rate * attitude.values.roll / 50;
-            servo[SERVO_GIMBAL_ROLL] += (-(int32_t)servoParams(SERVO_GIMBAL_PITCH)->rate) * attitude.values.pitch / 50 + (int32_t)servoParams(SERVO_GIMBAL_ROLL)->rate * attitude.values.roll / 50;
-        } else {
-            servo[SERVO_GIMBAL_PITCH] += (int32_t)servoParams(SERVO_GIMBAL_PITCH)->rate * attitude.values.pitch / 50;
-            servo[SERVO_GIMBAL_ROLL] += (int32_t)servoParams(SERVO_GIMBAL_ROLL)->rate * attitude.values.roll  / 50;
-        }
     }
 }
 

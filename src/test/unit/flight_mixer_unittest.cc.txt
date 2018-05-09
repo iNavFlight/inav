@@ -42,7 +42,6 @@ extern "C" {
     #include "flight/lowpass.h"
 
     #include "io/escservo.h"
-    #include "io/gimbal.h"
     #include "io/rc_controls.h"
 
     void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMixers, servoMixer_t *initialCustomServoMixers);

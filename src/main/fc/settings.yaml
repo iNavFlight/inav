@@ -35,8 +35,6 @@ tables:
     values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
-  - name: gimbal_mode
-    values: ["NORMAL", "MIXTILT"]
   - name: current_sensor
     values: ["NONE", "ADC", "VIRTUAL"]
     enum: currentSensor_e
@@ -487,15 +485,7 @@ groups:
         field: yawDeciDegrees
         min: -1800
         max: 3600
-
-  - name: PG_GIMBAL_CONFIG
-    type: gimbalConfig_t
-    headers: ["io/gimbal.h"]
-    members:
-      - name: gimbal_mode
-        field: mode
-        table: gimbal_mode
-
+        
   - name: PG_BATTERY_CONFIG
     type: batteryConfig_t
     headers: ["sensors/battery.h"]

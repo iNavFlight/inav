@@ -83,7 +83,6 @@ extern uint8_t __config_end;
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
 #include "io/flashfs.h"
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -141,7 +140,7 @@ static const char* const emptyName = "-";
 // sync this with features_e
 static const char * const featureNames[] = {
     "RX_PPM", "VBAT", "TX_PROF_SEL", "", "MOTOR_STOP",
-    "SERVO_TILT", "SOFTSERIAL", "GPS", "",
+    "", "SOFTSERIAL", "GPS", "",
     "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",

@@ -95,7 +95,6 @@ void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
 void mixTable(void);
 void writeMotors(void);
-void processServoTilt(void);
 void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);

@@ -55,7 +55,6 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"

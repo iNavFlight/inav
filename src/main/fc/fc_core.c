@@ -58,7 +58,6 @@
 
 #include "io/beeper.h"
 #include "io/dashboard.h"
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/serial.h"
 #include "io/statusindicator.h"
@@ -800,11 +799,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (isMixerUsingServos()) {
         servoMixer(dT);
         processServoAutotrim();
-    }
-
-    // Servo tilt is not part of servo mixer, but uses servos
-    if (feature(FEATURE_SERVO_TILT)) {
-        processServoTilt();
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
