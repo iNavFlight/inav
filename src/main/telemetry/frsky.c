@@ -57,9 +57,8 @@ uint16_t frskyGetFlightMode(void)
         tmpi += 10000;
     if (FLIGHT_MODE(FAILSAFE_MODE))
         tmpi += 40000;
-    else
-        if (FLIGHT_MODE(AUTO_TUNE))
-            tmpi += 20000;
+    else if (FLIGHT_MODE(AUTO_TUNE)) // intentionally reverse order and 'else-if' to prevent 16-bit overflow
+        tmpi += 20000;
 
     return tmpi;
 }
