@@ -1714,6 +1714,8 @@ void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t
     posControl.homeDistance = 0;
     posControl.homeDirection = 0;
 
+    posControl.flags.isHomeValid = true;
+
     // Update target RTH altitude as a waypoint above home
     posControl.homeWaypointAbove = posControl.homePosition;
     updateDesiredRTHAltitude();
@@ -1729,8 +1731,21 @@ void updateHomePosition(void)
 {
     // Disarmed and have a valid position, constantly update home
     if (!ARMING_FLAG(ARMED)) {
-        if ((posControl.flags.estPosStatue >= EST_USABLE)) {
-            setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING );
+        if (posControl.flags.estPosStatue >= EST_USABLE) {
+            bool setHome = !posControl.flags.isHomeValid;
+            switch ((nav_reset_type_e)positionEstimationConfig()->reset_home_type) {
+                case NAV_RESET_NEVER:
+                    break;
+                case NAV_RESET_ON_FIRST_ARM:
+                    setHome |= !ARMING_FLAG(WAS_EVER_ARMED);
+                    break;
+                case NAV_RESET_ON_EACH_ARM:
+                    setHome = true;
+                    break;
+            }
+            if (setHome) {
+                setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            }
         }
     }
     else {

@@ -177,12 +177,13 @@ typedef struct {
 
 static navigationPosEstimator_t posEstimator;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 3);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
         .automatic_mag_declination = 1,
-        .reset_altitude_type = NAV_RESET_ALTITUDE_ON_FIRST_ARM,
+        .reset_altitude_type = NAV_RESET_ON_FIRST_ARM,
+        .reset_home_type = NAV_RESET_ON_EACH_ARM,
         .gravity_calibration_tolerance = 5,     // 5 cm/s/s calibration error accepted (0.5% of gravity)
         .use_gps_velned = 1,         // "Disabled" is mandatory with gps_dyn_model = Pedestrian
 
@@ -243,12 +244,12 @@ static bool updateTimer(navigationTimer_t * tim, timeUs_t interval, timeUs_t cur
 
 static bool shouldResetReferenceAltitude(void)
 {
-    switch (positionEstimationConfig()->reset_altitude_type) {
-        case NAV_RESET_ALTITUDE_NEVER:
+    switch ((nav_reset_type_e)positionEstimationConfig()->reset_altitude_type) {
+        case NAV_RESET_NEVER:
             return false;
-        case NAV_RESET_ALTITUDE_ON_FIRST_ARM:
+        case NAV_RESET_ON_FIRST_ARM:
             return !ARMING_FLAG(ARMED) && !ARMING_FLAG(WAS_EVER_ARMED);
-        case NAV_RESET_ALTITUDE_ON_EACH_ARM:
+        case NAV_RESET_ON_EACH_ARM:
             return !ARMING_FLAG(ARMED);
     }
 

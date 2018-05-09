@@ -85,6 +85,8 @@ typedef struct navigationFlags_s {
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     bool forcedRTHActivated;
+
+    bool isHomeValid;
 } navigationFlags_t;
 
 typedef struct {

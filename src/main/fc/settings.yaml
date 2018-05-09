@@ -47,7 +47,7 @@ tables:
   - name: gps_dyn_model
     values: ["PEDESTRIAN", "AIR_1G", "AIR_4G"]
     enum: gpsDynModel_e
-  - name: reset_altitude
+  - name: reset_type
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
@@ -1069,7 +1069,10 @@ groups:
         type: bool
       - name: inav_reset_altitude
         field: reset_altitude_type
-        table: reset_altitude
+        table: reset_type
+      - name: inav_reset_home
+        field: reset_home_type
+        table: reset_type
       - name: inav_max_surface_altitude
         field: max_surface_altitude
         min: 0

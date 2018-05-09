@@ -62,11 +62,11 @@ enum {
     NAV_HEADING_CONTROL_MANUAL
 };
 
-enum {
-    NAV_RESET_ALTITUDE_NEVER = 0,
-    NAV_RESET_ALTITUDE_ON_FIRST_ARM,
-    NAV_RESET_ALTITUDE_ON_EACH_ARM,
-};
+typedef enum {
+    NAV_RESET_NEVER = 0,
+    NAV_RESET_ON_FIRST_ARM,
+    NAV_RESET_ON_EACH_ARM,
+} nav_reset_type_e;
 
 typedef enum {
     NAV_RTH_ALLOW_LANDING_NEVER = 0,
@@ -76,7 +76,8 @@ typedef enum {
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
-    uint8_t reset_altitude_type;
+    uint8_t reset_altitude_type; // from nav_reset_type_e
+    uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
 
