@@ -284,7 +284,7 @@ void gyroInitFilters(void)
         gyroFilterStage2ApplyFn = (filterApplyFnPtr)biquadFilterApply;
         for (int axis = 0; axis < 3; axis++) {
             stage2Filter[axis] = &gyroFilterStage2[axis];
-            biquadFilterInitLPF(stage2Filter[axis], gyroConfig()->gyro_stage2_lowpass_hz, getGyroUpdateRate());
+            biquadRCFIR2FilterInit(stage2Filter[axis], gyroConfig()->gyro_stage2_lowpass_hz, getGyroUpdateRate());
         }
     }
 #endif
