@@ -1004,7 +1004,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
 
-        if (navigationRTHAllowsLanding()) {
+        if (navigationRTHAllowsLanding() || FLIGHT_MODE(NAV_LAND_MODE) ) {
             float descentVelLimited = 0;
 
             // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
@@ -2379,6 +2379,11 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
 
+        if ((IS_RC_MODE_ACTIVE(BOXNAVLAND) && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME))) {
+            canActivateWaypoint = false;    // Block WP mode if we switched to LAND for whatever reason
+            return NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
+        }
+
         // MANUAL mode has priority over WP/PH/AH
         if (IS_RC_MODE_ACTIVE(BOXMANUAL)) {
             canActivateWaypoint = false;    // Block WP mode if we are in PASSTHROUGH mode
@@ -2477,7 +2482,7 @@ int8_t navigationGetHeadingControlState(void)
 
 bool navigationBlockArming(void)
 {
-    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD);
+    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || IS_RC_MODE_ACTIVE(BOXNAVLAND) ;
     const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP));
     bool shouldBlockArming = false;
 

@@ -75,6 +75,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT1, "OSD ALT 1", 42 },
     { BOXOSDALT2, "OSD ALT 2", 43 },
     { BOXOSDALT3, "OSD ALT 3", 43 },
+    { BOXNAVLAND, "NAV LAND", 44 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -188,6 +189,7 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
         activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+        activeBoxIds[activeBoxIdCount++] = BOXNAVLAND;
     }
 #endif
 
@@ -287,6 +289,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),     BOXAIRMODE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGCSNAV)),      BOXGCSNAV);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSURFACE)),     BOXSURFACE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_LAND_MODE)),        BOXNAVLAND);
 #ifdef USE_FLM_FLAPERON
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FLAPERON)),             BOXFLAPERON);
 #endif
