@@ -405,12 +405,12 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
     float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
 
-    int16_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
+    int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 
     //Boost required accelerations
     if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
 
-        const float boostFactor = (100 + navConfig()->mc.braking_boost_factor) / 100.0f;
+        const float boostFactor = (100.0f + (float) navConfig()->mc.braking_boost_factor) / 100.0f;
 
         //Boost required acceleration for harder braking
         newAccelX = newAccelX * boostFactor;
