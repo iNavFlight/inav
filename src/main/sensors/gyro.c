@@ -441,9 +441,17 @@ void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 
         DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
+        if (axis < 2) {
+            DEBUG_SET(DEBUG_STAGE2, axis, lrintf(gyroADCf));
+        }
+
 #ifdef USE_GYRO_BIQUAD_RC_FIR2
         gyroADCf = gyroFilterStage2ApplyFn(stage2Filter[axis], gyroADCf);
 #endif
+
+        if (axis < 2) {
+            DEBUG_SET(DEBUG_STAGE2, axis + 2, lrintf(gyroADCf));
+        }
 
         gyroADCf = softLpfFilterApplyFn(softLpfFilter[axis], gyroADCf);
 

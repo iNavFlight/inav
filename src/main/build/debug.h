@@ -57,6 +57,7 @@ typedef enum {
     DEBUG_SBUS,
     DEBUG_FPORT,
     DEBUG_ALWAYS,
+    DEBUG_STAGE2,
     DEBUG_COUNT
 } debugType_e;
 
