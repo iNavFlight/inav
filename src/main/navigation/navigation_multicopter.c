@@ -406,6 +406,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
+    uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
 
     //Boost required accelerations
     if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
@@ -419,6 +420,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         //do a small, static, boost to max banking angle.
         //This routine is very short, MR should be able to keep altitude
         maxBankAngle = maxBankAngle * 120 / 100;
+
+        accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
     }
 
     // Save last acceleration target
@@ -426,8 +429,12 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     lastAccelTargetY = newAccelY;
 
     // Apply LPF to jerk limited acceleration target
-    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
-    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
+    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, accCutoffFrequency, US2S(deltaMicros));
+    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, accCutoffFrequency, US2S(deltaMicros));
+
+    DEBUG_SET(DEBUG_BRAKING_ACC, 0, STATE(NAV_CRUISE_BRAKING_BOOST));
+    DEBUG_SET(DEBUG_BRAKING_ACC, 1, accelN);
+    DEBUG_SET(DEBUG_BRAKING_ACC, 2, accelN);
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
