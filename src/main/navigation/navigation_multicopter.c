@@ -377,8 +377,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     if (velErrorMagnitude > 0.1f) {
         accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
         accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
-    }
-    else {
+    } else {
         accelLimitX = maxAccelLimit / 1.414213f;
         accelLimitY = accelLimitX;
     }
@@ -388,7 +387,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     float maxAccelChange = US2S(deltaMicros) * 1700.0f;
     //When braking, raise jerk limit even if we are not boosting acceleration
-    if (STATE(NAV_CRUISE_BRAKING)) {    
+    if (STATE(NAV_CRUISE_BRAKING)) {
         maxAccelChange = maxAccelChange * 2;
     }
 
@@ -409,9 +408,24 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
 
     //Boost required accelerations
-    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
+    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0)
+    {
+        const float rawBoostFactor = (100.0f + (float)navConfig()->mc.braking_boost_factor) / 100.0f;
+        
+        //Scale boost factor according to speed
+        const float boostFactor = constrainf(
+            scaleRangef(
+                posControl.actualState.velXY, 
+                navConfig()->mc.braking_boost_speed_threshold, 
+                navConfig()->general.max_manual_speed, 
+                0, 
+                rawBoostFactor
+            ),
+            0, 
+            rawBoostFactor
+        );
 
-        const float boostFactor = (100.0f + (float) navConfig()->mc.braking_boost_factor) / 100.0f;
+        DEBUG_SET(DEBUG_BRAKING_ACC, 3, boostFactor);
 
         //Boost required acceleration for harder braking
         newAccelX = newAccelX * boostFactor;
@@ -422,6 +436,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         maxBankAngle = maxBankAngle * 120 / 100;
 
         accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
+    } else {
+        DEBUG_SET(DEBUG_BRAKING_ACC, 3, 0);
     }
 
     // Save last acceleration target
@@ -434,7 +450,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     DEBUG_SET(DEBUG_BRAKING_ACC, 0, STATE(NAV_CRUISE_BRAKING_BOOST));
     DEBUG_SET(DEBUG_BRAKING_ACC, 1, accelN);
-    DEBUG_SET(DEBUG_BRAKING_ACC, 2, accelN);
+    DEBUG_SET(DEBUG_BRAKING_ACC, 2, accelE);
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
