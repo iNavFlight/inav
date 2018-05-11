@@ -18,12 +18,14 @@
 #include "platform.h"
 
 #if defined(USE_WIND_ESTIMATOR)
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
@@ -145,6 +147,10 @@ void updateWindEstimator(timeUs_t currentTimeUs)
             estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
             estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
             estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
+
+            DEBUG_SET(DEBUG_WIND_ESTIMATOR, 0, estimatedWind[X] * 100);
+            DEBUG_SET(DEBUG_WIND_ESTIMATOR, 1, estimatedWind[Y] * 100);
+            DEBUG_SET(DEBUG_WIND_ESTIMATOR, 2, estimatedWind[Z] * 100);
         }
 
         lastUpdateUs = currentTimeUs;
