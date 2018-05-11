@@ -1737,6 +1737,16 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_DEBUG:
+        {
+            // Longest representable string is -32768, hence 6 characters
+            tfp_sprintf(buff, "[0]=%6d [1]=%6d", debug[0], debug[1]);
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+            elemPosY++;
+            tfp_sprintf(buff, "[2]=%6d [3]=%6d", debug[2], debug[3]);
+            break;
+        }
+
     default:
         return false;
     }
