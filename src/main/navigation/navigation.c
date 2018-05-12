@@ -1976,6 +1976,7 @@ static bool adjustPositionFromRCInput(void)
          * Process states only for POSHOLD. In any other case we go back to old routines
          */
         if (
+            IS_RC_MODE_ACTIVE(BOXBRAKING) &&
             navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
             navConfig()->mc.braking_speed_threshold > 0 &&
             (

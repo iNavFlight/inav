@@ -29,6 +29,7 @@
 #include "fc/config.h"
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
+#include "flight/mixer.h"
 
 #include "io/osd.h"
 
@@ -77,6 +78,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT1, "OSD ALT 1", 42 },
     { BOXOSDALT2, "OSD ALT 2", 43 },
     { BOXOSDALT3, "OSD ALT 3", 44 },
+    { BOXBRAKING, "MC BRAKING", 45 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -188,6 +190,11 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
         activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
     }
+
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+        activeBoxIds[activeBoxIdCount++] = BOXBRAKING;
+    }
+
 #endif
 
     if (STATE(FIXED_WING)) {
@@ -301,6 +308,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT2)),     BOXOSDALT2);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT3)),     BOXOSDALT3);
     CHECK_ACTIVE_BOX(IS_ENABLED(navigationTerrainFollowingEnabled()),   BOXSURFACE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),     BOXBRAKING);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
