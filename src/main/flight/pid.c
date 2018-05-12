@@ -571,7 +571,7 @@ static uint8_t getHeadingHoldState(void)
 {
     // Don't apply heading hold if overall tilt is greater than maximum angle inclination
     if (calculateCosTiltAngle() < headingHoldCosZLimit) {
-        if (ABS(rcCommand[YAW]) != 0 && FLIGHT_MODE(HEADING_MODE)) { ////Issue #3177 Heading Hold Yaw Without RC Input
+        if (ABS(rcCommand[YAW]) != 0 && FLIGHT_MODE(HEADING_MODE)) { //Issue #3177 Heading Hold Yaw Without RC Input
             return HEADING_HOLD_UPDATE_HEADING;
         }
         else {
