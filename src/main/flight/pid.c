@@ -719,7 +719,8 @@ void pidController(void)
 {
     uint8_t headingHoldState = getHeadingHoldState();
 
-    if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
+   //if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
+    if (headingHoldState == HEADING_HOLD_UPDATE_HEADING || headingHoldState == HEADING_HOLD_DISABLED) { //Issue #3177 Heading Hold Yaw Without RC Input
         updateHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
     }
 
