@@ -828,8 +828,8 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     posEstimator.est.epv = newEPV;
 
     /* AGL estimation */
-#ifdef USE_RANGEFINDER
-    if (isSurfaceValid) {   // If surface topic is updated in timely manner - do something smart
+#if defined(USE_RANGEFINDER) && defined(USE_BARO)
+    if (isSurfaceValid && isBaroValid) {
         navAGLEstimateQuality_e newAglQuality = posEstimator.est.aglQual;
         bool resetSurfaceEstimate = false;
         switch (posEstimator.est.aglQual) {
@@ -893,7 +893,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         if (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) {
             // Correct estimate from rangefinder
             const float surfaceResidual = posEstimator.surface.alt - posEstimator.est.aglAlt;
-            const float bellCurveScaler = scaleRangef(bellCurve(surfaceResidual, 50.0f), 0.0f, 1.0f, 0.1f, 1.0f);
+            const float bellCurveScaler = scaleRangef(bellCurve(surfaceResidual, 75.0f), 0.0f, 1.0f, 0.1f, 1.0f);
 
             posEstimator.est.aglAlt += surfaceResidual * positionEstimationConfig()->w_z_surface_p * bellCurveScaler * posEstimator.surface.reliability * dt;
             posEstimator.est.aglVel += surfaceResidual * positionEstimationConfig()->w_z_surface_v * sq(bellCurveScaler) * sq(posEstimator.surface.reliability) * dt;
@@ -909,7 +909,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
             const float surfaceResidual = posEstimator.surface.alt - posEstimator.est.aglAlt;
             const float surfaceWeightScaler = scaleRangef(bellCurve(surfaceResidual, 50.0f), 0.0f, 1.0f, 0.1f, 1.0f) * posEstimator.surface.reliability;
             const float mixedResidual = surfaceResidual * surfaceWeightScaler + estAltResidual * (1.0f - surfaceWeightScaler);
-            
+
             posEstimator.est.aglAlt += mixedResidual * positionEstimationConfig()->w_z_surface_p * dt;
             posEstimator.est.aglVel += mixedResidual * positionEstimationConfig()->w_z_surface_v * dt;
         }

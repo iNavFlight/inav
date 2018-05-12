@@ -52,7 +52,7 @@
  * time to send frame: 3ms.
  */
 
-#define SBUS_MIN_INTERFRAME_DELAY_US    5000                // According to FrSky interframe is 6.67ms, we go smaller just in case
+#define SBUS_MIN_INTERFRAME_DELAY_US    3000                // According to FrSky interframe is 6.67ms, we go smaller just in case
 
 #define SBUS_FRAME_SIZE (SBUS_CHANNEL_DATA_LENGTH + 2)
 

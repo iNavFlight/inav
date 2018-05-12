@@ -273,7 +273,6 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"navTgtPos",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navTgtPos",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navSurf",    0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    {"navTgtSurf", 0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 };
 
@@ -376,7 +375,6 @@ typedef struct blackboxMainState_s {
     int16_t navHeading;
     int16_t navTargetHeading;
     int16_t navSurface;
-    int16_t navTargetSurface;
 #endif
 } blackboxMainState_t;
 
@@ -708,7 +706,6 @@ static void writeIntraframe(void)
     }
 
     blackboxWriteSignedVB(blackboxCurrent->navSurface);
-    blackboxWriteSignedVB(blackboxCurrent->navTargetSurface);
 #endif
 
     //Rotate our history buffers:
@@ -879,7 +876,6 @@ static void writeInterframe(void)
     }
 
     blackboxWriteSignedVB(blackboxCurrent->navSurface - blackboxLast->navSurface);
-    blackboxWriteSignedVB(blackboxCurrent->navTargetSurface - blackboxLast->navTargetSurface);
 #endif
 
     //Rotate our history buffers
@@ -1192,7 +1188,6 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->navTargetPos[i] = navTargetPosition[i];
     }
     blackboxCurrent->navSurface = navActualSurface;
-    blackboxCurrent->navTargetSurface = navTargetSurface;
 #endif
 }
 
