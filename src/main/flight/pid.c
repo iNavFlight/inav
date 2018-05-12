@@ -571,9 +571,14 @@ static uint8_t getHeadingHoldState(void)
 {
     // Don't apply heading hold if overall tilt is greater than maximum angle inclination
     if (calculateCosTiltAngle() < headingHoldCosZLimit) {
-        return HEADING_HOLD_DISABLED;
+        if (ABS(rcCommand[YAW]) != 0 && FLIGHT_MODE(HEADING_MODE)) { ////Issue #3177 Heading Hold Yaw Without RC Input
+            return HEADING_HOLD_UPDATE_HEADING;
+        }
+        else {
+            return HEADING_HOLD_DISABLED;
+        }
     }
-
+    
 #if defined(USE_NAV)
     int navHeadingState = navigationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
@@ -719,8 +724,7 @@ void pidController(void)
 {
     uint8_t headingHoldState = getHeadingHoldState();
 
-   //if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
-    if (headingHoldState == HEADING_HOLD_UPDATE_HEADING || headingHoldState == HEADING_HOLD_DISABLED) { //Issue #3177 Heading Hold Yaw Without RC Input
+    if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
         updateHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
     }
 
