@@ -59,6 +59,7 @@
 #include "telemetry/msp_shared.h"
 
 #define SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US 500
+#define SMARTPORT_REST_PERIOD 3 // Needed to avoid lost sensors on FPort, see #3198
 
 // these data identifiers are obtained from https://github.com/opentx/opentx/blob/master/radio/src/telemetry/frsky_hub.h
 enum
@@ -137,6 +138,7 @@ enum
 
 static uint8_t telemetryState = TELEMETRY_STATE_UNINITIALIZED;
 static uint8_t smartPortIdCnt = 0;
+static bool smartPortHasRested = false;
 
 typedef struct smartPortFrame_s {
     uint8_t  sensorId;
@@ -369,6 +371,14 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
             id = frSkyDataIdTable[smartPortIdCnt];
         }
         smartPortIdCnt++;
+        if (smartPortIdCnt % SMARTPORT_REST_PERIOD == 0) {
+            if (!smartPortHasRested) {
+                smartPortIdCnt--;
+                smartPortHasRested = true;
+                return;
+            }
+            smartPortHasRested = false;
+        }
 
         switch (id) {
             case FSSP_DATAID_VFAS       :
