@@ -268,12 +268,9 @@ static uint8_t mspSerialChecksumBuf(uint8_t checksum, const uint8_t *data, int l
 #define JUMBO_FRAME_SIZE_LIMIT 255
 static int mspSerialSendFrame(mspPort_t *msp, const uint8_t * hdr, int hdrLen, const uint8_t * data, int dataLen, const uint8_t * crc, int crcLen)
 {
-    // We are allowed to send out the response if
-    //  a) TX buffer is completely empty (we are talking to well-behaving party that follows request-response scheduling;
-    //     this allows us to transmit jumbo frames bigger than TX buffer (serialWriteBuf will block, but for jumbo frames we don't care)
-    //  b) Response fits into TX buffer
+    // We are allowed to send out the response if response fits into TX buffer
     const int totalFrameLength = hdrLen + dataLen + crcLen;
-    if (!isSerialTransmitBufferEmpty(msp->port) && ((int)serialTxBytesFree(msp->port) < totalFrameLength))
+    if ((int)serialTxBytesFree(msp->port) < totalFrameLength)
         return 0;
 
     // Transmit frame
