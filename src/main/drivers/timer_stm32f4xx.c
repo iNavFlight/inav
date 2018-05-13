@@ -53,7 +53,11 @@ const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
 #endif
 
 #if defined(TIM8) && !defined(STM32F411xE)
+#if defined(STM32F446xx)
+    [7] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = 0 },
+#else
     [7] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = TIM8_CC_IRQn, .secondIrq = TIM8_UP_TIM13_IRQn },
+#endif
 #endif
 
 #if defined(TIM9)
