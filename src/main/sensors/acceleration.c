@@ -75,6 +75,9 @@ STATIC_FASTRAM int32_t accADC[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM biquadFilter_t accFilter[XYZ_AXIS_COUNT];
 
+STATIC_FASTRAM pt1Filter_t accVibeFloorFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
+
 #ifdef USE_ACC_NOTCH
 STATIC_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 STATIC_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
@@ -531,10 +534,29 @@ void accUpdate(void)
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
 
+    // Calculate acceleration readings in G's
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.accADCf[axis] = (float)accADC[axis] / acc.dev.acc_1G;
     }
 
+    // Before filtering check for clipping and vibration levels
+    if (ABS(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
+        debug[3]++;
+    }
+
+    // Calculate vibration levels
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        // filter accel at 5hz
+        const float accFloorFilt = pt1FilterApply(&accVibeFloorFilter[axis], acc.accADCf[axis]);
+
+        // calc difference from this sample and 5hz filtered value, square and filter at 2hz
+        const float accDiff = acc.accADCf[axis] - accFloorFilt;
+        acc.accVibeSq[axis] = pt1FilterApply(&accVibeFilter[axis], accDiff * accDiff);
+
+        debug[axis] = acc.accVibeSq[axis] * 100;
+    }
+
+    // Filter acceleration
     if (accelerometerConfig()->acc_lpf_hz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             acc.accADCf[axis] = biquadFilterApply(&accFilter[axis], acc.accADCf[axis]);
@@ -554,6 +576,18 @@ void accUpdate(void)
 #endif
 }
 
+void accGetVibrationLevels(fpVector3_t *accVibeLevels)
+{
+    accVibeLevels->x = sqrtf(acc.accVibeSq[X]);
+    accVibeLevels->y = sqrtf(acc.accVibeSq[Y]);
+    accVibeLevels->z = sqrtf(acc.accVibeSq[Z]);
+}
+
+float accGetVibrationLevel(void)
+{
+    return sqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
+}
+
 void accSetCalibrationValues(void)
 {
     if ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
@@ -571,6 +605,12 @@ void accInitFilters(void)
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             biquadFilterInitLPF(&accFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime);
         }
+    }
+
+    const float accDt = acc.accTargetLooptime * 1e-6f;
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        pt1FilterInit(&accVibeFloorFilter[axis], ACC_VIBE_FLOOR_FILT_HZ, accDt);
+        pt1FilterInit(&accVibeFilter[axis], ACC_VIBE_FILT_HZ, accDt);
     }
 
 #ifdef USE_ACC_NOTCH
