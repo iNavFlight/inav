@@ -79,7 +79,7 @@ STATIC_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 STATIC_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 2);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {

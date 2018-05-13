@@ -43,7 +43,7 @@
 
 static void mpu6500AccInit(accDev_t *acc)
 {
-    acc->acc_1G = 512 * 8;
+    acc->acc_1G = 512 * 4;
 }
 
 bool mpu6500AccDetect(accDev_t *acc)
@@ -89,7 +89,7 @@ static void mpu6500AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, MPU_RA_GYRO_CONFIG, INV_FSR_2000DPS << 3 | FCB_DISABLED);
     delay(15);
 
-    busWrite(dev, MPU_RA_ACCEL_CONFIG, INV_FSR_8G << 3);
+    busWrite(dev, MPU_RA_ACCEL_CONFIG, INV_FSR_16G << 3);
     delay(15);
 
     busWrite(dev, MPU_RA_CONFIG, config->gyroConfigValues[0]);
