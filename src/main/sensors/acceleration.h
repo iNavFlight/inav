@@ -53,6 +53,7 @@ typedef struct acc_s {
     uint32_t accTargetLooptime;
     float accADCf[XYZ_AXIS_COUNT]; // acceleration in g
     float accVibeSq[XYZ_AXIS_COUNT];
+    uint32_t accClipCount;
 } acc_t;
 
 extern acc_t acc;
@@ -75,6 +76,7 @@ void accSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
 void accGetVibrationLevels(fpVector3_t *accVibeLevels);
 float accGetVibrationLevel(void);
+uint32_t accGetClipCount(void);
 void accUpdate(void);
 void accSetCalibrationValues(void);
 void accInitFilters(void);

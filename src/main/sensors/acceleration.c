@@ -314,6 +314,7 @@ bool accInit(uint32_t targetLooptime)
     acc.dev.acc_1G = 256; // set default
     acc.dev.initFn(&acc.dev);
     acc.accTargetLooptime = targetLooptime;
+    acc.accClipCount = 0;
     accInitFilters();
 
     if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
@@ -541,7 +542,7 @@ void accUpdate(void)
 
     // Before filtering check for clipping and vibration levels
     if (ABS(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
-        debug[3]++;
+        acc.accClipCount++;
     }
 
     // Calculate vibration levels
@@ -552,8 +553,6 @@ void accUpdate(void)
         // calc difference from this sample and 5hz filtered value, square and filter at 2hz
         const float accDiff = acc.accADCf[axis] - accFloorFilt;
         acc.accVibeSq[axis] = pt1FilterApply(&accVibeFilter[axis], accDiff * accDiff);
-
-        debug[axis] = acc.accVibeSq[axis] * 100;
     }
 
     // Filter acceleration
@@ -586,6 +585,11 @@ void accGetVibrationLevels(fpVector3_t *accVibeLevels)
 float accGetVibrationLevel(void)
 {
     return sqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
+}
+
+uint32_t accGetClipCount(void)
+{
+    return acc.accClipCount;
 }
 
 void accSetCalibrationValues(void)
