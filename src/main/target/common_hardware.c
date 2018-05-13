@@ -93,6 +93,12 @@
     #endif
 #endif
 
+#if defined(USE_BARO_LPS25H)
+    #if defined(LPS25H_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_lps25h,      DEVHW_LPS25H,       LPS25H_SPI_BUS,     LPS25H_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_BARO_MS5607)
     #if !defined(MS5607_I2C_BUS)
         #define MS5607_I2C_BUS BARO_I2C_BUS
