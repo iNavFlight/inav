@@ -87,9 +87,9 @@ bool vtxSmartAudioInit(void);
 
 #ifdef SMARTAUDIO_DPRINTF
 #ifdef OMNIBUSF4
-#define DPRINTF_SERIAL_PORT SERIAL_PORT_USART3
+#define DPRINTF_SERIAL_PORT SERIAL_PORT_UART3
 #else
-#define DPRINTF_SERIAL_PORT SERIAL_PORT_USART1
+#define DPRINTF_SERIAL_PORT SERIAL_PORT_UART1
 #endif
 extern serialPort_t *debugSerialPort;
 #define dprintf(x) if (debugSerialPort) printf x

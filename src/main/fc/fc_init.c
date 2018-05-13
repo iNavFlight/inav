@@ -246,10 +246,10 @@ void init(void)
 
 #if defined(AVOID_UART2_FOR_PWM_PPM)
     serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART2 : SERIAL_PORT_NONE);
+            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_UART2 : SERIAL_PORT_NONE);
 #elif defined(AVOID_UART3_FOR_PWM_PPM)
     serialInit(feature(FEATURE_SOFTSERIAL),
-            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_USART3 : SERIAL_PORT_NONE);
+            (rxConfig()->receiverType == RX_TYPE_PWM) || (rxConfig()->receiverType == RX_TYPE_PPM) ? SERIAL_PORT_UART3 : SERIAL_PORT_NONE);
 #else
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
@@ -278,16 +278,16 @@ void init(void)
     pwm_params.flyingPlatformType = getFlyingPlatformType();
 
 #if defined(USE_UART2) && defined(STM32F10X)
-    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);
+    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_UART2);
 #endif
 #ifdef STM32F303xC
-    pwm_params.useUART3 = doesConfigurationUsePort(SERIAL_PORT_USART3);
+    pwm_params.useUART3 = doesConfigurationUsePort(SERIAL_PORT_UART3);
 #endif
 #if defined(USE_UART2) && defined(STM32F40_41xxx)
-    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);
+    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_UART2);
 #endif
 #if defined(USE_UART6) && defined(STM32F40_41xxx)
-    pwm_params.useUART6 = doesConfigurationUsePort(SERIAL_PORT_USART6);
+    pwm_params.useUART6 = doesConfigurationUsePort(SERIAL_PORT_UART6);
 #endif
     pwm_params.useVbat = feature(FEATURE_VBAT);
     pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
@@ -424,7 +424,7 @@ void init(void)
 #ifdef USE_I2C
 #ifdef USE_I2C_DEVICE_1
     #ifdef I2C_DEVICE_1_SHARES_UART3
-        if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
+        if (!doesConfigurationUsePort(SERIAL_PORT_UART3)) {
             i2cInit(I2CDEV_1);
         }
     #else
@@ -434,7 +434,7 @@ void init(void)
 
 #ifdef USE_I2C_DEVICE_2
     #ifdef I2C_DEVICE_2_SHARES_UART3
-        if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
+        if (!doesConfigurationUsePort(SERIAL_PORT_UART3)) {
             i2cInit(I2CDEV_2);
         }
     #else
@@ -452,7 +452,7 @@ void init(void)
 
 #ifdef USE_I2C_DEVICE_EMULATED
     #ifdef I2C_DEVICE_EMULATED_SHARES_UART3
-        if (!doesConfigurationUsePort(SERIAL_PORT_USART3)) {
+        if (!doesConfigurationUsePort(SERIAL_PORT_UART3)) {
             i2cInit(I2CDEV_EMULATED);
         }
     #else

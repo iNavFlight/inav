@@ -1401,7 +1401,7 @@ extern "C" {
         if (testData.isRunCamSplitPortConfigurated) {
             static serialPortConfig_t portConfig;
 
-            portConfig.identifier = SERIAL_PORT_USART3;
+            portConfig.identifier = SERIAL_PORT_UART3;
             portConfig.msp_baudrateIndex = BAUD_115200;
             portConfig.gps_baudrateIndex = BAUD_57600;
             portConfig.telemetry_baudrateIndex = BAUD_AUTO;
