@@ -47,6 +47,7 @@
 #include "drivers/accgyro/accgyro_adxl345.h"
 #include "drivers/accgyro/accgyro_mma845x.h"
 #include "drivers/accgyro/accgyro_bma280.h"
+#include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
 #include "drivers/logging.h"
@@ -202,6 +203,18 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
             gyroHardware = GYRO_MPU9250;
 #ifdef GYRO_MPU9250_ALIGN
             dev->gyroAlign = GYRO_MPU9250_ALIGN;
+#endif
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_GYRO_BMI160
+    case GYRO_BMI160:
+        if (bmi160GyroDetect(dev)) {
+            gyroHardware = GYRO_BMI160;
+#ifdef GYRO_BMI160_ALIGN
+            dev->gyroAlign = GYRO_BMI160_ALIGN;
 #endif
             break;
         }
