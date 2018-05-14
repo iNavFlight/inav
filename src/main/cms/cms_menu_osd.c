@@ -193,6 +193,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
 #if defined(USE_GPS)
     OSD_ELEMENT_ENTRY("MAP NORTH", OSD_MAP_NORTH),
     OSD_ELEMENT_ENTRY("MAP TAKE OFF", OSD_MAP_TAKEOFF),
+    OSD_ELEMENT_ENTRY("RADAR", OSD_RADAR),
 #endif
     OSD_ELEMENT_ENTRY("ROLL PIDS", OSD_ROLL_PIDS),
     OSD_ELEMENT_ENTRY("PITCH PIDS", OSD_PITCH_PIDS),
@@ -206,8 +207,10 @@ static const OSD_Entry menuOsdElemsEntries[] =
 };
 
 #if defined(VTX_COMMON) && defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT)
-// All CMS OSD elements should be enabled in this case
-_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 3 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
+// All CMS OSD elements should be enabled in this case. The menu has 3 extra
+// elements (label, back and end), but there's an OSD element that we intentionally
+// don't show here (OSD_DEBUG).
+_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 3 + 1 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
 #endif
 
 const CMS_Menu menuOsdElements = {

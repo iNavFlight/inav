@@ -826,14 +826,18 @@ static int osdGetHeadingAngle(int angle)
 }
 
 #if defined(USE_GPS)
-/* Draws a map with the home in the center and the craft moving around.
+
+/* Draws a map with the given symbol in the center and given point of interest
+ * defined by its distance in meters and direction in degrees.
  * referenceHeading indicates the up direction in the map, in degrees, while
- * referenceSym is draw at the upper right corner below a small arrow to indicate
- * the map reference to the user. The drawn argument is an in-out used to store the
- * last position where the craft was drawn to avoid erasing all screen on each
- * redraw.
+ * referenceSym (if non-zero) is drawn at the upper right corner below a small
+ * arrow to indicate the map reference to the user. The drawn argument is an
+ * in-out used to store the last position where the craft was drawn to avoid
+ * erasing all screen on each redraw.
  */
-static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn)
+static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym,
+                       uint32_t poiDistance, int16_t poiDirection, uint8_t poiSymbol,
+                       uint16_t *drawn)
 {
     // TODO: These need to be tested with several setups. We might
     // need to make them configurable.
@@ -854,10 +858,12 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint16_t *dra
     uint8_t midY = osdDisplayPort->rows / 2;
 
     // Fixed marks
-    displayWriteChar(osdDisplayPort, maxX, minY, SYM_DIRECTION);
-    displayWriteChar(osdDisplayPort, maxX, minY + 1, referenceSym);
+    if (referenceSym) {
+        displayWriteChar(osdDisplayPort, maxX, minY, SYM_DIRECTION);
+        displayWriteChar(osdDisplayPort, maxX, minY + 1, referenceSym);
+    }
     displayWriteChar(osdDisplayPort, minX, maxY, SYM_SCALE);
-    displayWriteChar(osdDisplayPort, midX, midY, SYM_HOME);
+    displayWriteChar(osdDisplayPort, midX, midY, centerSym);
 
     // First, erase the previous drawing.
     if (OSD_VISIBLE(*drawn)) {
@@ -865,7 +871,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint16_t *dra
         *drawn = 0;
     }
 
-    int scale;
+    uint32_t scale;
     float scaleToUnit;
     int scaleUnitDivisor;
     char symUnscaled;
@@ -893,43 +899,47 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint16_t *dra
             break;
     }
 
-    if (STATE(GPS_FIX) && GPS_distanceToHome > scale) {
+    if (STATE(GPS_FIX) && poiDistance > scale) {
 
-        int directionToHome = osdGetHeadingAngle(GPS_directionToHome + referenceHeading);
-        float homeAngle = DEGREES_TO_RADIANS(directionToHome);
-        float homeSin = sin_approx(homeAngle);
-        float homeCos = cos_approx(homeAngle);
+        int directionToPoi = osdGetHeadingAngle(poiDirection + referenceHeading);
+        float poiAngle = DEGREES_TO_RADIANS(directionToPoi);
+        float poiSin = sin_approx(poiAngle);
+        float poiCos = cos_approx(poiAngle);
 
         // Now start looking for a valid scale that lets us draw everything
         for (int ii = 0; ii < 50; ii++, scale *= 2) {
             // Calculate location of the aircraft in map
-            int points = GPS_distanceToHome / (float)(scale / charHeight);
+            int points = poiDistance / (float)(scale / charHeight);
 
-            float pointsX = points * homeSin;
-            int craftX = midX + roundf(pointsX / charWidth);
-            if (craftX < minX || craftX > maxX) {
+            float pointsX = points * poiSin;
+            int poiX = midX + roundf(pointsX / charWidth);
+            if (poiX < minX || poiX > maxX) {
                 continue;
             }
 
-            float pointsY = points * homeCos;
-            int craftY = midY + roundf(pointsY / charHeight);
-            if (craftY < minY || craftY > maxY) {
+            float pointsY = points * poiCos;
+            int poiY = midY + roundf(pointsY / charHeight);
+            if (poiY < minY || poiY > maxY) {
                 continue;
             }
 
             uint8_t c;
-            if (displayReadCharWithAttr(osdDisplayPort, craftX, craftY, &c, NULL) && c != SYM_BLANK) {
+            if (displayReadCharWithAttr(osdDisplayPort, poiY, poiY, &c, NULL) && c != SYM_BLANK) {
                 // Something else written here, increase scale. If the display doesn't support reading
                 // back characters, we assume there's nothing.
                 continue;
             }
 
-            // Draw the craft on the map
-            int mapHeading = osdGetHeadingAngle(DECIDEGREES_TO_DEGREES(osdGetHeading()) - referenceHeading);
-            displayWriteChar(osdDisplayPort, craftX, craftY, SYM_ARROW_UP + mapHeading * 2 / 45);
+            // Draw the point on the map
+            if (poiSymbol == SYM_ARROW_UP) {
+                // Drawing aircraft, rotate
+                int mapHeading = osdGetHeadingAngle(DECIDEGREES_TO_DEGREES(osdGetHeading()) - referenceHeading);
+                poiSymbol += mapHeading * 2 / 45;
+            }
+            displayWriteChar(osdDisplayPort, poiX, poiY, poiSymbol);
 
             // Update saved location
-            *drawn = OSD_POS(craftX, craftY) | OSD_VISIBLE_FLAG;
+            *drawn = OSD_POS(poiX, poiY) | OSD_VISIBLE_FLAG;
             break;
         }
     }
@@ -940,6 +950,25 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint16_t *dra
     buf[4] = '\0';
     displayWrite(osdDisplayPort, minX + 1, maxY, buf);
 }
+
+/* Draws a map with the home in the center and the craft moving around.
+ * See osdDrawMap() for reference.
+ */
+static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn)
+{
+    osdDrawMap(referenceHeading, referenceSym, SYM_HOME, GPS_distanceToHome, GPS_directionToHome, SYM_ARROW_UP, drawn);
+}
+
+/* Draws a map with the aircraft in the center and the home moving around.
+ * See osdDrawMap() for reference.
+ */
+static void osdDrawRadar(uint16_t *drawn)
+{
+    int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
+    int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);
+    osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn);
+}
+
 #endif
 
 static bool osdDrawSingleElement(uint8_t item)
@@ -1094,13 +1123,19 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAP_NORTH:
         {
             static uint16_t drawn = 0;
-            osdDrawMap(0, 'N', &drawn);
+            osdDrawHomeMap(0, 'N', &drawn);
             return true;
         }
     case OSD_MAP_TAKEOFF:
         {
             static uint16_t drawn = 0;
-            osdDrawMap(CENTIDEGREES_TO_DEGREES(navigationGetHomeHeading()), 'T', &drawn);
+            osdDrawHomeMap(CENTIDEGREES_TO_DEGREES(navigationGetHomeHeading()), 'T', &drawn);
+            return true;
+        }
+    case OSD_RADAR:
+        {
+            static uint16_t drawn = 0;
+            osdDrawRadar(&drawn);
             return true;
         }
 #endif // GPS
@@ -1699,6 +1734,16 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[3] = SYM_WH_KM_0;
             buff[4] = SYM_WH_KM_1;
             buff[5] = '\0';
+            break;
+        }
+
+    case OSD_DEBUG:
+        {
+            // Longest representable string is -32768, hence 6 characters
+            tfp_sprintf(buff, "[0]=%6d [1]=%6d", debug[0], debug[1]);
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+            elemPosY++;
+            tfp_sprintf(buff, "[2]=%6d [3]=%6d", debug[2], debug[3]);
             break;
         }
 
