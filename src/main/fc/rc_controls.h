@@ -42,8 +42,9 @@ typedef enum rc_alias {
 } rc_alias_e;
 
 typedef enum {
-    THROTTLE_LOW = 0,
-    THROTTLE_HIGH
+    THROTTLE_LOW = 0,           // Zero throttle
+    THROTTLE_NOTLOW,           // Throttle above zero (or below zero in 3D mode)
+    THROTTLE_FULL_NEGATIVE,     // Throttle at full negative (only in 3D mode)
 } throttleStatus_e;
 
 typedef enum {

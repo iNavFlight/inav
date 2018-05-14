@@ -176,12 +176,18 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: Throttle */
-        if (!armingConfig()->fixed_wing_auto_arm) {
+        if (STATE(FIXED_WING) && armingConfig()->fixed_wing_auto_arm) {
             // Don't want this check if fixed_wing_auto_arm is in use - machine arms on throttle > LOW
-            if (calculateThrottleStatus() != THROTTLE_LOW) {
-                ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
-            } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+        }
+        else {
+            const throttleStatus_e throttleStatus = calculateThrottleStatus();
+
+            // Allow arming when throttle is low (neutral in 3D mode) or if at full negative thrust in 3D mode
+            if ((throttleStatus == THROTTLE_LOW) || (feature(FEATURE_3D) && throttleStatus == THROTTLE_FULL_NEGATIVE)) {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+            } else {
+                ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
             }
         }
 
