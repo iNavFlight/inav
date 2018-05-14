@@ -160,7 +160,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         }
 
         // Handle outputs - may override the PWM/PPM inputs
-        if (init->flyingPlatformType == PLATFORM_MULTIROTOR || init->flyingPlatformType == PLATFORM_TRICOPTER) {
+        if (platformIsMultirotor()) {
             // Multicopter
             if (init->useServoOutputs && (timerHardwarePtr->usageFlags & TIM_USE_MC_SERVO)) {
                 type = MAP_TO_SERVO_OUTPUT;

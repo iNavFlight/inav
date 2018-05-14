@@ -179,12 +179,12 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
 #ifdef USE_GPS
-    if (sensors(SENSOR_BARO) || (mixerConfig()->platformType == PLATFORM_AIRPLANE && feature(FEATURE_GPS))) {
+    if (sensors(SENSOR_BARO) || (platformIsFixedWing() && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVALTHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
 
-    if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (mixerConfig()->platformType == PLATFORM_AIRPLANE && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
+    if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (platformIsFixedWing() && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
@@ -193,7 +193,7 @@ void initActiveBoxIds(void)
     }
 #endif
 
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (platformIsFixedWing()) {
         activeBoxIds[activeBoxIdCount++] = BOXMANUAL;
         if (!feature(FEATURE_FW_LAUNCH)) {
            activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;

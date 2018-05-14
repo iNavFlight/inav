@@ -462,7 +462,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useCOG = false;
 
 #if defined(USE_GPS)
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (platformIsFixedWing()) {
         bool canUseCOG = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
 
         if (canUseCOG) {
@@ -585,7 +585,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (mixerConfig()->platformType == PLATFORM_AIRPLANE && gpsHeadingInitialized);
+    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (platformIsFixedWing() && gpsHeadingInitialized);
 }
 
 float calculateCosTiltAngle(void)

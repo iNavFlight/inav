@@ -445,7 +445,7 @@ void processRx(timeUs_t currentTimeUs)
     // mixTable constrains motor commands, so checking  throttleStatus is enough
     if (ARMING_FLAG(ARMED)
         && feature(FEATURE_MOTOR_STOP)
-        && mixerConfig()->platformType != PLATFORM_AIRPLANE
+        && !platformIsFixedWing()
     ) {
         if (isUsingSticksForArming()) {
             if (throttleStatus == THROTTLE_LOW) {
@@ -570,7 +570,7 @@ void processRx(timeUs_t currentTimeUs)
 #endif
 
     // Handle passthrough mode
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (platformIsFixedWing()) {
         if ((IS_RC_MODE_ACTIVE(BOXMANUAL) && !navigationRequiresAngleMode() && !failsafeRequiresAngleMode()) ||    // Normal activation of passthrough
             (!ARMING_FLAG(ARMED) && isCalibrating())){                                                              // Backup - if we are not armed - enforce passthrough while calibrating
             ENABLE_FLIGHT_MODE(MANUAL_MODE);
@@ -592,7 +592,7 @@ void processRx(timeUs_t currentTimeUs)
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && mixerConfig()->platformType != PLATFORM_AIRPLANE)) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !platformIsFixedWing())) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
                 else {
@@ -609,7 +609,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (!platformIsMultirotor()) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 
@@ -753,14 +753,14 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     // motors do not spin up while we are trying to arm or disarm.
     // Allow yaw control for tricopters if the user wants the servo to move even when unarmed.
     if (isUsingSticksForArming() && rcData[THROTTLE] <= rxConfig()->mincheck
-            && !((mixerConfig()->platformType == PLATFORM_TRICOPTER) && servoConfig()->tri_unarmed_servo)
-            && mixerConfig()->platformType != PLATFORM_AIRPLANE
+            && !(platformIsTricopter() && servoConfig()->tri_unarmed_servo)
+            && !platformIsFixedWing()
     ) {
         rcCommand[YAW] = 0;
     }
 
     // Apply throttle tilt compensation
-    if (mixerConfig()->platformType != PLATFORM_AIRPLANE) {
+    if (!platformIsFixedWing()) {
         int16_t thrTiltCompStrength = 0;
 
         if (navigationRequiresThrottleTiltCompensation()) {

@@ -246,7 +246,7 @@ void failsafeApplyControlInput(void)
 {
     // Prepare FAILSAFE_CHANNEL_AUTO values for rcCommand
     int16_t autoRcCommand[4];
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (platformIsFixedWing()) {
         autoRcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
         autoRcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
         autoRcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);

@@ -202,7 +202,7 @@ void writeServos(void)
     /*
      * in case of tricopters, there might me a need to zero servo output when unarmed
      */
-    if (mixerConfig()->platformType == PLATFORM_TRICOPTER && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
+    if (platformIsTricopter() && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
         zeroServoValue = true;
     }
 
@@ -230,8 +230,7 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
         // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
-        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->midrc) && 
-        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)) {
+        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->midrc) && platformIsMultirotor()) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }

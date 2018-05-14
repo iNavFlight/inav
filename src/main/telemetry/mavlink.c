@@ -455,7 +455,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     flightModeForTelemetry_e flm = getFlightModeForTelemetry();
     uint8_t mavCustomMode;
 
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (platformIsFixedWing()) {
         mavCustomMode = inavToArduPlaneMap[flm];
     }
     else {

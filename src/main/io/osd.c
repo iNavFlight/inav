@@ -644,7 +644,7 @@ static const char * navigationStateMessage(void)
             return OSD_MESSAGE_STR("STARTING EMERGENCY LANDING");
         case MW_NAV_STATE_LAND_IN_PROGRESS:
             if (!navigationRTHAllowsLanding()) {
-                if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+                if (platformIsFixedWing()) {
                     return OSD_MESSAGE_STR("LOITERING AROUND HOME");
                 }
                 return OSD_MESSAGE_STR("HOVERING");

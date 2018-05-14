@@ -695,7 +695,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
 #endif
 
     /* Validate EPV for GPS and calculate altitude/climb rate correction flags */
-    const bool useGpsZPos = mixerConfig()->platformType == PLATFORM_AIRPLANE && !sensors(SENSOR_BARO) && isGPSValid && isGPSZValid;
+    const bool useGpsZPos = platformIsFixedWing() && !sensors(SENSOR_BARO) && isGPSValid && isGPSZValid;
     const bool useGpsZVel = isGPSValid && isGPSZValid;
 
     /* Estimate validity */

@@ -183,7 +183,7 @@ void mixTable(void)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE && FLIGHT_MODE(MANUAL_MODE)) {
+    if (platformIsFixedWing() && FLIGHT_MODE(MANUAL_MODE)) {
         // Direct passthru from RX
         input[ROLL] = rcCommand[ROLL];
         input[PITCH] = rcCommand[PITCH];
@@ -301,4 +301,28 @@ void mixTable(void)
             motor[i] = motor_disarmed[i];
         }
     }
+}
+
+bool platformUseFwPidController(void) {
+    return platformIsFixedWing();
+}
+
+bool platformIsFixedWing(void) {
+    return mixerConfig()->platformType == PLATFORM_AIRPLANE;
+}
+
+bool platformIsMultirotor(void) {
+    return mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER;
+}
+
+bool platformIsGroundOrWater(void) {
+    return mixerConfig()->platformType == PLATFORM_ROVER || mixerConfig()->platformType == PLATFORM_BOAT;
+}
+
+bool platformIsHelicopter(void) {
+    return mixerConfig()->platformType == PLATFORM_HELICOPTER;
+}
+
+bool platformIsTricopter(void) {
+    return mixerConfig()->platformType == PLATFORM_TRICOPTER;
 }

@@ -213,7 +213,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         // Disarm on throttle down + yaw
         if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_CE) {
             // Dont disarm if fixedwing and motorstop
-            if (mixerConfig()->platformType == PLATFORM_AIRPLANE && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+            if (platformIsFixedWing() && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
                 return;
             }
             else if (ARMING_FLAG(ARMED)) {
@@ -277,7 +277,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Arming by sticks
     if (isUsingSticksForArming()) {
-        if (mixerConfig()->platformType == PLATFORM_AIRPLANE && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+        if (platformIsFixedWing() && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
             // Auto arm on throttle when using fixedwing and motorstop
             if (throttleStatus != THROTTLE_LOW) {
                 tryArm();
