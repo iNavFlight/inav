@@ -23,6 +23,7 @@
 #include "platform.h"
 
 #include "build/atomic.h"
+#include "build/debug.h"
 
 #include "common/utils.h"
 
@@ -257,11 +258,7 @@ void configTimeBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz)
     timeHandle[timerIndex].Handle.Instance = tim;
 
     timeHandle[timerIndex].Handle.Init.Period = (period - 1) & 0xffff; // AKA TIMx_ARR
-    if (tim == TIM1 || tim == TIM8 || tim == TIM9 || tim == TIM10 || tim == TIM11)
-        timeHandle[timerIndex].Handle.Init.Prescaler = (HAL_RCC_GetPCLK2Freq() * 2 / ((uint32_t)mhz * 1000000)) - 1;
-    else
-        timeHandle[timerIndex].Handle.Init.Prescaler = (HAL_RCC_GetPCLK1Freq() * 2 * 2  / ((uint32_t)mhz * 1000000)) - 1;
-
+    timeHandle[timerIndex].Handle.Init.Prescaler = (timerClock(tim) / ((uint32_t)mhz * 1000000)) - 1;
     timeHandle[timerIndex].Handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     timeHandle[timerIndex].Handle.Init.CounterMode = TIM_COUNTERMODE_UP;
     timeHandle[timerIndex].Handle.Init.RepetitionCounter = 0x0000;
@@ -270,23 +267,18 @@ void configTimeBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz)
     if (tim == TIM1 || tim == TIM2 || tim == TIM3 || tim == TIM4 || tim == TIM5 || tim == TIM8 || tim == TIM9)
     {
         TIM_ClockConfigTypeDef sClockSourceConfig;
-        sClockSourceConfig.ClockFilter = 0;
-        sClockSourceConfig.ClockPolarity = TIM_CLOCKPOLARITY_NONINVERTED;
-        sClockSourceConfig.ClockPrescaler = TIM_CLOCKPRESCALER_DIV1;
+        memset(&sClockSourceConfig, 0, sizeof(sClockSourceConfig));
         sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-        if (HAL_TIM_ConfigClockSource(&timeHandle[timerIndex].Handle, &sClockSourceConfig) != HAL_OK)
-        {
+        if (HAL_TIM_ConfigClockSource(&timeHandle[timerIndex].Handle, &sClockSourceConfig) != HAL_OK) {
             return;
         }
     }
     if (tim == TIM1 || tim == TIM2 || tim == TIM3 || tim == TIM4 || tim == TIM5 || tim == TIM8 )
     {
         TIM_MasterConfigTypeDef sMasterConfig;
-        sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-        sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+        memset(&sMasterConfig, 0, sizeof(sMasterConfig));
         sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-        if (HAL_TIMEx_MasterConfigSynchronization(&timeHandle[timerIndex].Handle, &sMasterConfig) != HAL_OK)
-        {
+        if (HAL_TIMEx_MasterConfigSynchronization(&timeHandle[timerIndex].Handle, &sMasterConfig) != HAL_OK) {
             return;
         }
     }

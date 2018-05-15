@@ -36,7 +36,7 @@
 
 static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
 static bool isUsingSticksToArm = true;
-#ifdef NAV
+#ifdef USE_NAV
 static bool isUsingNAVModes = false;
 #endif
 
@@ -56,7 +56,7 @@ bool isAirmodeActive(void)
     return feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
 }
 
-#if defined(NAV)
+#if defined(USE_NAV)
 bool isUsingNavigationModes(void)
 {
     return isUsingNAVModes;
@@ -150,7 +150,7 @@ void updateUsedModeActivationConditionFlags(void)
 
     isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM);
 
-#ifdef NAV
+#ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
                         isModeActivationConditionPresent(BOXNAVWP);

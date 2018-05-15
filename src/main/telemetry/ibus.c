@@ -28,7 +28,7 @@
 
 #include "platform.h"
 
-#if defined(TELEMETRY) && defined(TELEMETRY_IBUS)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_IBUS)
 
 #include "common/maths.h"
 #include "common/axis.h"
@@ -201,7 +201,7 @@ void initIbusTelemetry(void) {
     }
     if (type == 4) {
         changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE_S85, IBUS_MEAS_VALUE_STATUS);
-#ifdef PITOT
+#ifdef USE_PITOT
         if (sensors(SENSOR_PITOT)) changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE_VSPEED, IBUS_MEAS_VALUE_VSPEED);
         else 
 #endif
@@ -230,20 +230,20 @@ void initIbusTelemetry(void) {
     if ((type == 3 || type == 4 || type == 5) && speed)
         changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE_SPEED, IBUS_MEAS_VALUE_SPEED);
     if (type == 6) {
-#ifdef PITOT
+#ifdef USE_PITOT
         if (sensors(SENSOR_PITOT)) changeTypeIbusTelemetry(9,IBUS_MEAS_TYPE1_VERTICAL_SPEED, IBUS_MEAS_VALUE_VSPEED);
         else 
 #endif
             changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE1_PRES, IBUS_MEAS_VALUE_PRES);
         changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE1_S85, IBUS_MEAS_VALUE_STATUS);
     }
-    if (type == 7) {
+    if (type == 7 || type == 8) {
         changeTypeIbusTelemetry(2, IBUS_MEAS_TYPE1_GPS_STATUS, IBUS_MEAS_VALUE_GPS_STATUS);
         changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE1_ARMED, IBUS_MEAS_VALUE_ARMED);
         changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE1_FLIGHT_MODE, IBUS_MEAS_VALUE_MODE);
     }
-    if (type == 6 || type == 7) {
-        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_VIRTUAL) 
+    if (type == 6 || type == 7 || type == 8) {
+        if (batteryConfig()->current.type == CURRENT_SENSOR_VIRTUAL)
             changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_FUEL, IBUS_MEAS_VALUE_FUEL);
         else changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_BAT_CURR, IBUS_MEAS_VALUE_CURRENT);
         changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE1_CMP_HEAD, IBUS_MEAS_VALUE_HEADING);
@@ -304,7 +304,7 @@ void configureIbusTelemetryPort(void) {
         // serialRx will open port and handle telemetry
         return;
     }
-    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, IBUS_BAUDRATE, MODE_RXTX, SERIAL_BIDIR | SERIAL_NOT_INVERTED);
+    ibusSerialPort = openSerialPort(ibusSerialPortConfig->identifier, FUNCTION_TELEMETRY_IBUS, NULL, NULL, IBUS_BAUDRATE, MODE_RXTX, SERIAL_BIDIR | SERIAL_NOT_INVERTED);
     if (!ibusSerialPort) {
         return;
     }

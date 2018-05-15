@@ -28,6 +28,8 @@ typedef struct sbuf_s {
     uint8_t *end;
 } sbuf_t;
 
+sbuf_t *sbufInit(sbuf_t *sbuf, uint8_t *ptr, uint8_t *end);
+
 void sbufWriteU8(sbuf_t *dst, uint8_t val);
 void sbufWriteU16(sbuf_t *dst, uint16_t val);
 void sbufWriteU32(sbuf_t *dst, uint32_t val);

@@ -90,6 +90,11 @@ bool areSticksInApModePosition(uint16_t ap_mode)
     return ABS(rcCommand[ROLL]) < ap_mode && ABS(rcCommand[PITCH]) < ap_mode;
 }
 
+bool areSticksDeflectedMoreThanPosHoldDeadband(void)
+{
+    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->pos_hold_deadband);
+}
+
 throttleStatus_e calculateThrottleStatus(void)
 {
     const uint16_t deadband3d_throttle = rcControlsConfig()->deadband3d_throttle;
@@ -117,7 +122,7 @@ stickPositions_e getRcStickPositions(void)
 
 bool checkStickPosition(stickPositions_e stickPos)
 {
-    const uint8_t mask[4] = { 0x03, 0x0C, 0x30, 0xC0 };
+    const uint8_t mask[4] = { ROL_LO | ROL_HI, PIT_LO | PIT_HI, YAW_LO | YAW_HI, THR_LO | THR_HI };
     for (int i = 0; i < 4; i++) {
         if (((stickPos & mask[i]) != 0) && ((stickPos & mask[i]) != (rcStickPositions & mask[i]))) {
             return false;
@@ -248,15 +253,17 @@ void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_s
 #endif
 
     // Multiple configuration profiles
-    if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
-        i = 1;
-    else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
-        i = 2;
-    else if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
-        i = 3;
-    if (i) {
-        setConfigProfileAndWriteEEPROM(i - 1);
-        return;
+    if (feature(FEATURE_TX_PROF_SEL)) {
+        if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
+            i = 1;
+        else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
+            i = 2;
+        else if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
+            i = 3;
+        if (i) {
+            setConfigProfileAndWriteEEPROM(i - 1);
+            return;
+        }
     }
 
     // Save config

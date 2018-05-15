@@ -61,7 +61,6 @@ void targetConfiguration(void)
     
     gyroConfigMutable()->looptime = 1000;
     gyroConfigMutable()->gyroSync = 1;
-    gyroConfigMutable()->gyroSyncDenominator = 8;
     gyroConfigMutable()->gyro_lpf = 0;              // 256 Hz
     gyroConfigMutable()->gyro_soft_lpf_hz = 90;
     gyroConfigMutable()->gyro_soft_notch_hz_1 = 150;
@@ -196,13 +195,13 @@ void targetConfiguration(void)
     pidProfileMutable()->bank_mc.pid[PID_VEL_XY].I = 20;
     pidProfileMutable()->bank_mc.pid[PID_VEL_XY].D = 70;
 
-    ((controlRateConfig_t*)currentControlRateProfile)->rcExpo8 = 60;
-    ((controlRateConfig_t*)currentControlRateProfile)->rcYawExpo8 = 35;
-    ((controlRateConfig_t*)currentControlRateProfile)->rates[FD_ROLL] = 54;
-    ((controlRateConfig_t*)currentControlRateProfile)->rates[FD_PITCH] = 54;
-    ((controlRateConfig_t*)currentControlRateProfile)->rates[FD_YAW] = 36;
-    ((controlRateConfig_t*)currentControlRateProfile)->thrMid8 = 50;
-    ((controlRateConfig_t*)currentControlRateProfile)->thrExpo8 = 0;
-    ((controlRateConfig_t*)currentControlRateProfile)->dynThrPID = 10;
-    ((controlRateConfig_t*)currentControlRateProfile)->tpa_breakpoint = 1600;
+    ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcExpo8 = 60;
+    ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcYawExpo8 = 35;
+    ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_ROLL] = 54;
+    ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_PITCH] = 54;
+    ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_YAW] = 36;
+    ((controlRateConfig_t*)currentControlRateProfile)->throttle.rcMid8 = 50;
+    ((controlRateConfig_t*)currentControlRateProfile)->throttle.rcExpo8 = 0;
+    ((controlRateConfig_t*)currentControlRateProfile)->throttle.dynPID = 10;
+    ((controlRateConfig_t*)currentControlRateProfile)->throttle.pa_breakpoint = 1600;
 }

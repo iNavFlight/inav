@@ -103,7 +103,7 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(featureConfig_t, featureConfig, PG_FEATURE_CONFIG, 0);
 
 PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
-    .enabledFeatures = DEFAULT_FEATURES
+    .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 1);
@@ -134,7 +134,7 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
-#ifdef NAV
+#ifdef USE_NAV
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
@@ -153,7 +153,7 @@ void validateNavConfig(void)
 
 uint32_t getPidUpdateRate(void)
 {
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     if (systemConfig()->asyncMode == ASYNC_MODE_NONE) {
         return getGyroUpdateRate();
     } else {
@@ -168,9 +168,10 @@ timeDelta_t getGyroUpdateRate(void)
 {
     return gyro.targetLooptime;
 }
+
 uint16_t getAccUpdateRate(void)
 {
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     // ACC will be updated at its own rate
     if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
         return 1000000 / systemConfig()->accTaskFrequency;
@@ -183,7 +184,7 @@ uint16_t getAccUpdateRate(void)
 #endif
 }
 
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
 uint16_t getAttitudeUpdateRate(void) {
     if (systemConfig()->asyncMode == ASYNC_MODE_ALL) {
         return 1000000 / systemConfig()->attitudeTaskFrequency;
@@ -224,8 +225,14 @@ void validateAndFixConfig(void)
     // Disable unused features
     featureClear(FEATURE_UNUSED_1 | FEATURE_UNUSED_2 | FEATURE_UNUSED_3 | FEATURE_UNUSED_4 | FEATURE_UNUSED_5 | FEATURE_UNUSED_6 | FEATURE_UNUSED_7 | FEATURE_UNUSED_8 | FEATURE_UNUSED_9 );
 
-#ifdef DISABLE_RX_PWM_FEATURE
+#if defined(DISABLE_RX_PWM_FEATURE) || !defined(USE_RX_PWM)
     if (rxConfig()->receiverType == RX_TYPE_PWM) {
+        rxConfigMutable()->receiverType = RX_TYPE_NONE;
+    }
+#endif
+
+#if !defined(USE_RX_PPM)
+    if (rxConfig()->receiverType == RX_TYPE_PPM) {
         rxConfigMutable()->receiverType = RX_TYPE_NONE;
     }
 #endif
@@ -256,26 +263,7 @@ void validateAndFixConfig(void)
         featureClear(FEATURE_SOFTSERIAL);
     }
 
-#ifdef USE_SOFTSPI
-    if (featureConfigured(FEATURE_SOFTSPI)) {
-        if (rxConfig()->receiverType == RX_TYPE_PWM || rxConfig()->receiverType == RX_TYPE_PPM) {
-            rxConfigMutable()->receiverType = RX_TYPE_NONE;
-        }
-
-        featureClear(FEATURE_SOFTSERIAL | FEATURE_VBAT);
-#if defined(STM32F10X)
-        featureClear(FEATURE_LED_STRIP);
-        // rssi adc needs the same ports
-        featureClear(FEATURE_RSSI_ADC);
-        // current meter needs the same ports
-        if (batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC) {
-            featureClear(FEATURE_CURRENT_METER);
-        }
-#endif
-    }
-#endif
-
-#ifdef ASYNC_GYRO_PROCESSING
+#ifdef USE_ASYNC_GYRO_PROCESSING
     /*
      * When async processing mode is enabled, gyroSync has to be forced to "ON"
      */
@@ -301,7 +289,7 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#if defined(LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
+#if defined(USE_LED_STRIP) && (defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2))
     if (featureConfigured(FEATURE_SOFTSERIAL) && featureConfigured(FEATURE_LED_STRIP)) {
         const timerHardware_t *ledTimerHardware = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
         if (ledTimerHardware != NULL) {
@@ -377,7 +365,7 @@ void validateAndFixConfig(void)
         mixerConfigMutable()->mixerMode = DEFAULT_MIXER;
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     // Ensure sane values of navConfig settings
     validateNavConfig();
 #endif
@@ -404,6 +392,11 @@ void validateAndFixConfig(void)
         break;
     }
 #endif
+
+#if !defined(USE_MPU_DATA_READY_SIGNAL)
+    gyroConfigMutable()->gyroSync = false;
+    systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
+#endif
 }
 
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch)
@@ -422,7 +415,7 @@ void createDefaultConfig(void)
     parseRcChannels("AETR1234");
 #endif
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
 #ifdef ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
     featureSet(FEATURE_BLACKBOX);
 #endif
@@ -441,7 +434,7 @@ void resetConfigs(void)
     createDefaultConfig();
 
     setConfigProfile(getConfigProfile());
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
     reevaluateLedConfig();
 #endif
 }
@@ -463,7 +456,7 @@ static void activateConfig(void)
 
     pidInit();
 
-#ifdef NAV
+#ifdef USE_NAV
     navigationUsePIDs();
 #endif
 }

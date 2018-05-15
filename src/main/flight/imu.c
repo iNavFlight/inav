@@ -21,16 +21,18 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "build/build_config.h"
-
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
+
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
+#include "common/vector.h"
+#include "common/quaternion.h"
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -75,20 +77,18 @@
 #define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
 #define MAX_GPS_HEADING_ERROR_DEG   60      // Amount of error between GPS CoG and estimated Yaw at witch we stop trusting GPS and fallback to MAG
 
-FASTRAM t_fp_vector imuMeasuredAccelBF;
-FASTRAM t_fp_vector imuMeasuredRotationBF;
+FASTRAM fpVector3_t imuMeasuredAccelBF;
+FASTRAM fpVector3_t imuMeasuredRotationBF;
 STATIC_FASTRAM float smallAngleCosZ;
 
 STATIC_FASTRAM bool isAccelUpdatedAtLeastOnce;
+STATIC_FASTRAM fpVector3_t vCorrectedMagNorth;             // Magnetic North vector in EF (true North rotated by declination)
 
-STATIC_FASTRAM_UNIT_TESTED float q0, q1, q2, q3;    // quaternion of sensor frame relative to earth frame
+FASTRAM fpQuaternion_t orientation;
+FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
 STATIC_FASTRAM_UNIT_TESTED float rMat[3][3];
 
-FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
-
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
-
-static const float gyroScale = (M_PIf / 180.0f);    // gyro output scaled to rad per second
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
@@ -102,40 +102,18 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .small_angle = 25
 );
 
-#ifdef ASYNC_GYRO_PROCESSING
-/* Asynchronous update accumulators */
-STATIC_FASTRAM float imuAccumulatedRate[XYZ_AXIS_COUNT];
-STATIC_FASTRAM timeUs_t imuAccumulatedRateTimeUs;
-STATIC_FASTRAM float imuAccumulatedAcc[XYZ_AXIS_COUNT];
-STATIC_FASTRAM int   imuAccumulatedAccCount;
-#endif
-
-#ifdef ASYNC_GYRO_PROCESSING
-void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs)
-{
-    const float gyroUpdateDelta = gyroUpdateDeltaUs * 1e-6f;
-
-    for (int axis = 0; axis < 3; axis++) {
-        imuAccumulatedRate[axis] += gyro.gyroADCf[axis] * gyroScale * gyroUpdateDelta;
-    }
-
-    imuAccumulatedRateTimeUs += gyroUpdateDeltaUs;
-}
-#endif
-
-
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
 {
-    float q1q1 = q1 * q1;
-    float q2q2 = q2 * q2;
-    float q3q3 = q3 * q3;
+    float q1q1 = orientation.q1 * orientation.q1;
+    float q2q2 = orientation.q2 * orientation.q2;
+    float q3q3 = orientation.q3 * orientation.q3;
 
-    float q0q1 = q0 * q1;
-    float q0q2 = q0 * q2;
-    float q0q3 = q0 * q3;
-    float q1q2 = q1 * q2;
-    float q1q3 = q1 * q3;
-    float q2q3 = q2 * q3;
+    float q0q1 = orientation.q0 * orientation.q1;
+    float q0q2 = orientation.q0 * orientation.q2;
+    float q0q3 = orientation.q0 * orientation.q3;
+    float q1q2 = orientation.q1 * orientation.q2;
+    float q1q3 = orientation.q1 * orientation.q3;
+    float q2q3 = orientation.q2 * orientation.q3;
 
     rMat[0][0] = 1.0f - 2.0f * q2q2 - 2.0f * q3q3;
     rMat[0][1] = 2.0f * (q1q2 + -q0q3);
@@ -164,52 +142,49 @@ void imuInit(void)
     smallAngleCosZ = cos_approx(degreesToRadians(imuRuntimeConfig.small_angle));
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = 0;
+        imuMeasuredAccelBF.v[axis] = 0;
     }
 
     // Explicitly initialize FASTRAM statics
     isAccelUpdatedAtLeastOnce = false;
     gpsHeadingInitialized = false;
-    q0 = 1.0f;
-    q1 = 0.0f;
-    q2 = 0.0f;
-    q3 = 0.0f;
 
+    // Create magnetic declination matrix
+    const int deg = compassConfig()->mag_declination / 100;
+    const int min = compassConfig()->mag_declination   % 100;
+    imuSetMagneticDeclination(deg + min / 60.0f);
+
+    quaternionInitUnit(&orientation);
     imuComputeRotationMatrix();
 }
 
-void imuTransformVectorBodyToEarth(t_fp_vector * v)
+void imuSetMagneticDeclination(float declinationDeg)
 {
-    /* From body frame to earth frame */
-    const float x = rMat[0][0] * v->V.X + rMat[0][1] * v->V.Y + rMat[0][2] * v->V.Z;
-    const float y = rMat[1][0] * v->V.X + rMat[1][1] * v->V.Y + rMat[1][2] * v->V.Z;
-    const float z = rMat[2][0] * v->V.X + rMat[2][1] * v->V.Y + rMat[2][2] * v->V.Z;
-
-    v->V.X = x;
-    v->V.Y = -y;
-    v->V.Z = z;
+    const float declinationRad = -DEGREES_TO_RADIANS(declinationDeg);
+    vCorrectedMagNorth.x = cos_approx(declinationRad);
+    vCorrectedMagNorth.y = sin_approx(declinationRad);
+    vCorrectedMagNorth.z = 0;
 }
 
-void imuTransformVectorEarthToBody(t_fp_vector * v)
+void imuTransformVectorBodyToEarth(fpVector3_t * v)
 {
-    v->V.Y = -v->V.Y;
+    // From body frame to earth frame
+    quaternionRotateVectorInv(v, v, &orientation);
 
-    /* From earth frame to body frame */
-    const float x = rMat[0][0] * v->V.X + rMat[1][0] * v->V.Y + rMat[2][0] * v->V.Z;
-    const float y = rMat[0][1] * v->V.X + rMat[1][1] * v->V.Y + rMat[2][1] * v->V.Z;
-    const float z = rMat[0][2] * v->V.X + rMat[1][2] * v->V.Y + rMat[2][2] * v->V.Z;
-
-    v->V.X = x;
-    v->V.Y = y;
-    v->V.Z = z;
+    // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
+    v->y = -v->y;
 }
 
-static float invSqrt(float x)
+void imuTransformVectorEarthToBody(fpVector3_t * v)
 {
-    return 1.0f / sqrtf(x);
+    // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
+    v->y = -v->y;
+
+    // From earth frame to body frame
+    quaternionRotateVector(v, v, &orientation);
 }
 
-#if defined(GPS) || defined(HIL)
+#if defined(USE_GPS) || defined(HIL)
 STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t initialPitch, int16_t initialYaw)
 {
     if (initialRoll > 1800) initialRoll -= 3600;
@@ -225,10 +200,10 @@ STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t
     const float cosYaw = cos_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
     const float sinYaw = sin_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
 
-    q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
-    q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
-    q2 = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
-    q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
+    orientation.q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
+    orientation.q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
+    orientation.q2 = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
+    orientation.q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
 
     imuComputeRotationMatrix();
 }
@@ -249,187 +224,192 @@ static float imuGetPGainScaleFactor(void)
     }
 }
 
-static void imuResetOrientationQuaternion(const float ax, const float ay, const float az)
+static void imuResetOrientationQuaternion(const fpVector3_t * accBF)
 {
-    const float accNorm = sqrtf(ax * ax + ay * ay + az * az);
+    const float accNorm = sqrtf(vectorNormSquared(accBF));
 
-    q0 = az + accNorm;
-    q1 = ay;
-    q2 = -ax;
-    q3 = 0.0f;
+    orientation.q0 = accBF->z + accNorm;
+    orientation.q1 = accBF->y;
+    orientation.q2 = -accBF->x;
+    orientation.q3 = 0.0f;
 
-    const float recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-
-    q0 *= recipNorm;
-    q1 *= recipNorm;
-    q2 *= recipNorm;
-    q3 *= recipNorm;
+    quaternionNormalize(&orientation, &orientation);
 }
 
-static void imuCheckAndResetOrientationQuaternion(const float ax, const float ay, const float az)
+static void imuCheckAndResetOrientationQuaternion(const fpVector3_t * accBF)
 {
     // Check if some calculation in IMU update yield NAN or zero quaternion
     // Reset quaternion from accelerometer - this might be incorrect, but it's better than no attitude at all
+    const float check = fabs(orientation.q0) + fabs(orientation.q1) + fabs(orientation.q2) + fabs(orientation.q3);
 
-    const bool isNan = (isnan(q0) || isnan(q1) || isnan(q2) || isnan(q3));
-    const bool isInf = (isinf(q0) || isinf(q1) || isinf(q2) || isinf(q3));
-    const bool isZero = (ABS(q0) < 1e-3f && ABS(q1) < 1e-3f && ABS(q2) < 1e-3f && ABS(q3) < 1e-3f);
-
-    if (isNan || isZero || isInf) {
-        imuResetOrientationQuaternion(ax, ay, az);
-
-#ifdef BLACKBOX
-        if (feature(FEATURE_BLACKBOX)) {
-            blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, NULL);
-        }
-#endif
+    if (!isnan(check) && !isinf(check)) {
+        return;
     }
+
+    const float normSq = quaternionNormSqared(&orientation);
+    if (normSq > (1.0f - 1e-6f) && normSq < (1.0f + 1e-6f)) {
+        return;
+    }
+
+    imuResetOrientationQuaternion(accBF);
+    DEBUG_TRACE("AHRS orientation quaternion error");
+
+#ifdef USE_BLACKBOX
+    if (feature(FEATURE_BLACKBOX)) {
+        blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, NULL);
+    }
+#endif
 }
 
-static void imuMahonyAHRSupdate(float dt, float gx, float gy, float gz,
-                                bool useAcc, float ax, float ay, float az,
-                                bool useMag, float mx, float my, float mz,
-                                bool useCOG, float courseOverGround)
+static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround)
 {
-    STATIC_FASTRAM float integralAccX = 0.0f,  integralAccY = 0.0f, integralAccZ = 0.0f;    // integral error terms scaled by Ki
-    STATIC_FASTRAM float integralMagX = 0.0f,  integralMagY = 0.0f, integralMagZ = 0.0f;    // integral error terms scaled by Ki
-    float ex, ey, ez;
+    STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
+
+    fpVector3_t vRotation = *gyroBF;
 
     /* Calculate general spin rate (rad/s) */
-    const float spin_rate_sq = sq(gx) + sq(gy) + sq(gz);
+    const float spin_rate_sq = vectorNormSquared(&vRotation);
 
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
-    if (useMag || useCOG) {
-        float kpMag = imuRuntimeConfig.dcm_kp_mag * imuGetPGainScaleFactor();
-        const float magMagnitudeSq = mx * mx + my * my + mz * mz;
+    if (magBF || useCOG) {
+        static const fpVector3_t vForward = { .v = { 1.0f, 0.0f, 0.0f } };
 
-        if (useMag && magMagnitudeSq > 0.01f) {
-            // Normalise magnetometer measurement
-            const float magRecipNorm = invSqrt(magMagnitudeSq);
-            mx *= magRecipNorm;
-            my *= magRecipNorm;
-            mz *= magRecipNorm;
+        fpVector3_t vErr = { .v = { 0.0f, 0.0f, 0.0f } };
+
+        if (magBF && vectorNormSquared(magBF) > 0.01f) {
+            fpVector3_t vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
             // This way magnetic field will only affect heading and wont mess roll/pitch angles
 
             // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
-            // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
-            const float hx = rMat[0][0] * mx + rMat[0][1] * my + rMat[0][2] * mz;
-            const float hy = rMat[1][0] * mx + rMat[1][1] * my + rMat[1][2] * mz;
-            const float bx = sqrtf(hx * hx + hy * hy);
+            // This should yield direction to magnetic North (1; 0; 0)
+            quaternionRotateVectorInv(&vMag, magBF, &orientation);    // BF -> EF
 
+            // Ignore magnetic inclination
+            vMag.z = 0.0f;
+
+            // Normalize to unit vector
+            vectorNormalize(&vMag, &vMag);
+
+            // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
             // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-            const float ez_ef = -(hy * bx);
+            vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);
 
-            // Rotate mag error vector back to BF and accumulate
-            ex = rMat[2][0] * ez_ef;
-            ey = rMat[2][1] * ez_ef;
-            ez = rMat[2][2] * ez_ef;
+            // Rotate error back into body frame
+            quaternionRotateVector(&vErr, &vErr, &orientation);
         }
         else if (useCOG) {
+            fpVector3_t vHeadingEF;
+
             // Use raw heading error (from GPS or whatever else)
             while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
             while (courseOverGround < -M_PIf) courseOverGround += (2.0f * M_PIf);
 
             // William Premerlani and Paul Bizard, Direction Cosine Matrix IMU - Eqn. 22-23
             // (Rxx; Ryx) - measured (estimated) heading vector (EF)
-            // (cos(COG), sin(COG)) - reference heading vector (EF)
-            // error is cross product between reference heading and estimated heading (calculated in EF)
-            const float ez_ef = - sin_approx(courseOverGround) * rMat[0][0] - cos_approx(courseOverGround) * rMat[1][0];
+            // (-cos(COG), sin(COG)) - reference heading vector (EF)
 
-            ex = rMat[2][0] * ez_ef;
-            ey = rMat[2][1] * ez_ef;
-            ez = rMat[2][2] * ez_ef;
-        }
-        else {
-            ex = 0;
-            ey = 0;
-            ez = 0;
+            // Compute heading vector in EF from scalar CoG
+            fpVector3_t vCoG = { .v = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
+
+            // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
+            quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
+            vHeadingEF.z = 0.0f;
+
+            // Normalize to unit vector
+            vectorNormalize(&vHeadingEF, &vHeadingEF);
+
+            // error is cross product between reference heading and estimated heading (calculated in EF)
+            vectorCrossProduct(&vErr, &vCoG, &vHeadingEF);
+
+            // Rotate error back into body frame
+            quaternionRotateVector(&vErr, &vErr, &orientation);
         }
 
         // Compute and apply integral feedback if enabled
         if (imuRuntimeConfig.dcm_ki_mag > 0.0f) {
             // Stop integrating if spinning beyond the certain limit
             if (spin_rate_sq < sq(DEGREES_TO_RADIANS(SPIN_RATE_LIMIT))) {
-                integralMagX += imuRuntimeConfig.dcm_ki_mag * ex * dt;    // integral error scaled by Ki
-                integralMagY += imuRuntimeConfig.dcm_ki_mag * ey * dt;
-                integralMagZ += imuRuntimeConfig.dcm_ki_mag * ez * dt;
+                fpVector3_t vTmp;
 
-                gx += integralMagX;
-                gy += integralMagY;
-                gz += integralMagZ;
+                // integral error scaled by Ki
+                vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_mag * dt);
+                vectorAdd(&vGyroDriftEstimate, &vGyroDriftEstimate, &vTmp);
             }
         }
 
         // Calculate kP gain and apply proportional feedback
-        gx += kpMag * ex;
-        gy += kpMag * ey;
-        gz += kpMag * ez;
+        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_mag * imuGetPGainScaleFactor());
+        vectorAdd(&vRotation, &vRotation, &vErr);
     }
 
 
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
-    if (useAcc) {
-        float kpAcc = imuRuntimeConfig.dcm_kp_acc * imuGetPGainScaleFactor();
-        const float accRecipNorm = invSqrt(ax * ax + ay * ay + az * az);
+    if (accBF) {
+        static const fpVector3_t vGravity = { .v = { 0.0f, 0.0f, 1.0f } };
+        fpVector3_t vEstGravity, vAcc, vErr;
 
-        // Just scale by 1G length - That's our vector adjustment. Rather than
-        // using one-over-exact length (which needs a costly square root), we already
-        // know the vector is enough "roughly unit length" and since it is only weighted
-        // in by a certain amount anyway later, having that exact is meaningless. (c) MasterZap
-        ax *= accRecipNorm;
-        ay *= accRecipNorm;
-        az *= accRecipNorm;
+        // Calculate estimated gravity vector in body frame
+        quaternionRotateVector(&vEstGravity, &vGravity, &orientation);    // EF -> BF
 
         // Error is sum of cross product between estimated direction and measured direction of gravity
-        ex = (ay * rMat[2][2] - az * rMat[2][1]);
-        ey = (az * rMat[2][0] - ax * rMat[2][2]);
-        ez = (ax * rMat[2][1] - ay * rMat[2][0]);
+        vectorNormalize(&vAcc, accBF);
+        vectorCrossProduct(&vErr, &vAcc, &vEstGravity);
 
         // Compute and apply integral feedback if enabled
         if (imuRuntimeConfig.dcm_ki_acc > 0.0f) {
             // Stop integrating if spinning beyond the certain limit
             if (spin_rate_sq < sq(DEGREES_TO_RADIANS(SPIN_RATE_LIMIT))) {
-                integralAccX += imuRuntimeConfig.dcm_ki_acc * ex * dt;    // integral error scaled by Ki
-                integralAccY += imuRuntimeConfig.dcm_ki_acc * ey * dt;
-                integralAccZ += imuRuntimeConfig.dcm_ki_acc * ez * dt;
+                fpVector3_t vTmp;
 
-                gx += integralAccX;
-                gy += integralAccY;
-                gz += integralAccZ;
+                // integral error scaled by Ki
+                vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_acc * dt);
+                vectorAdd(&vGyroDriftEstimate, &vGyroDriftEstimate, &vTmp);
             }
         }
 
         // Calculate kP gain and apply proportional feedback
-        gx += kpAcc * ex;
-        gy += kpAcc * ey;
-        gz += kpAcc * ez;
+        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_acc * imuGetPGainScaleFactor());
+        vectorAdd(&vRotation, &vRotation, &vErr);
     }
 
+    // Apply gyro drift correction
+    vectorAdd(&vRotation, &vRotation, &vGyroDriftEstimate);
+
     // Integrate rate of change of quaternion
-    gx *= (0.5f * dt);
-    gy *= (0.5f * dt);
-    gz *= (0.5f * dt);
+    fpVector3_t vTheta;
+    fpQuaternion_t deltaQ;
 
-    const float qa = q0;
-    const float qb = q1;
-    const float qc = q2;
-    q0 += (-qb * gx - qc * gy - q3 * gz);
-    q1 += (qa * gx + qc * gz - q3 * gy);
-    q2 += (qa * gy - qb * gz + q3 * gx);
-    q3 += (qa * gz + qb * gy - qc * gx);
+    vectorScale(&vTheta, &vRotation, 0.5f * dt);
+    quaternionInitFromVector(&deltaQ, &vTheta);
+    const float thetaMagnitudeSq = vectorNormSquared(&vTheta);
 
-    // Normalise quaternion
-    const float quatRecipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-    q0 *= quatRecipNorm;
-    q1 *= quatRecipNorm;
-    q2 *= quatRecipNorm;
-    q3 *= quatRecipNorm;
+    // If calculated rotation is zero - don't update quaternion
+    if (thetaMagnitudeSq >= 1e-20) {
+        // Calculate quaternion delta:
+        // Theta is a axis/angle rotation. Direction of a vector is axis, magnitude is angle/2.
+        // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
+        // For near-zero cases we use the first 3 terms of the Taylor series expansion for sin/cos. We check if fourth term is less than machine precision -
+        // then we can safely use the "low angle" approximated version without loss of accuracy.
+        if (thetaMagnitudeSq < sqrtf(24.0f * 1e-6f)) {
+            quaternionScale(&deltaQ, &deltaQ, 1.0f - thetaMagnitudeSq / 6.0f);
+            deltaQ.q0 = 1.0f - thetaMagnitudeSq / 2.0f;
+        }
+        else {
+            const float thetaMagnitude = sqrtf(thetaMagnitudeSq);
+            quaternionScale(&deltaQ, &deltaQ, sin_approx(thetaMagnitude) / thetaMagnitude);
+            deltaQ.q0 = cos_approx(thetaMagnitude);
+        }
+
+        // Calculate final orientation and renormalize
+        quaternionMultiply(&orientation, &orientation, &deltaQ);
+        quaternionNormalize(&orientation, &orientation);
+    }
 
     // Check for invalid quaternion
-    imuCheckAndResetOrientationQuaternion(ax, ay, az);
+    imuCheckAndResetOrientationQuaternion(accBF);
 
     // Pre-compute rotation matrix from quaternion
     imuComputeRotationMatrix();
@@ -440,13 +420,13 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     /* Compute pitch/roll angles */
     attitude.values.roll = RADIANS_TO_DECIDEGREES(atan2_approx(rMat[2][1], rMat[2][2]));
     attitude.values.pitch = RADIANS_TO_DECIDEGREES((0.5f * M_PIf) - acos_approx(-rMat[2][0]));
-    attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0])) + mag.magneticDeclination;
+    attitude.values.yaw = RADIANS_TO_DECIDEGREES(-atan2_approx(rMat[1][0], rMat[0][0]));
 
     if (attitude.values.yaw < 0)
         attitude.values.yaw += 3600;
 
     /* Update small angle state */
-    if (rMat[2][2] > smallAngleCosZ) {
+    if (calculateCosTiltAngle() > smallAngleCosZ) {
         ENABLE_STATE(SMALL_ANGLE);
     } else {
         DISABLE_STATE(SMALL_ANGLE);
@@ -455,22 +435,21 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 
 static bool imuCanUseAccelerometerForCorrection(void)
 {
-    int32_t axis;
-    int32_t accMagnitudeSq = 0;
+    float accMagnitudeSq = 0;
 
-    for (axis = 0; axis < 3; axis++) {
-        accMagnitudeSq += (int32_t)acc.accADC[axis] * acc.accADC[axis];
+    for (int axis = 0; axis < 3; axis++) {
+        accMagnitudeSq += acc.accADCf[axis] * acc.accADCf[axis];
     }
 
     // Magnitude^2 in percent of G^2
-    const int nearness = ABS(100 - (accMagnitudeSq * 100 / ((int32_t)acc.dev.acc_1G * acc.dev.acc_1G)));
+    const float nearness = ABS(100 - (accMagnitudeSq * 100));
 
     return (nearness > MAX_ACC_SQ_NEARNESS) ? false : true;
 }
 
 static void imuCalculateEstimatedAttitude(float dT)
 {
-#if defined(MAG)
+#if defined(USE_MAG)
     const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();
 #else
     const bool canUseMAG = false;
@@ -482,7 +461,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useMag = false;
     bool useCOG = false;
 
-#if defined(GPS)
+#if defined(USE_GPS)
     if (STATE(FIXED_WING)) {
         bool canUseCOG = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
 
@@ -526,51 +505,14 @@ static void imuCalculateEstimatedAttitude(float dT)
     }
 #endif
 
-    imuMahonyAHRSupdate(dT,     imuMeasuredRotationBF.A[X], imuMeasuredRotationBF.A[Y], imuMeasuredRotationBF.A[Z],
-                        useAcc, imuMeasuredAccelBF.A[X], imuMeasuredAccelBF.A[Y], imuMeasuredAccelBF.A[Z],
-                        useMag, mag.magADC[X], mag.magADC[Y], mag.magADC[Z],
-                        useCOG, courseOverGround);
+    fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
+
+    imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF, 
+                            useAcc ? &imuMeasuredAccelBF : NULL, 
+                            useMag ? &measuredMagBF : NULL, 
+                            useCOG, courseOverGround);
 
     imuUpdateEulerAngles();
-}
-
-/* Calculate rotation rate in rad/s in body frame */
-static void imuUpdateMeasuredRotationRate(void)
-{
-    int axis;
-
-#ifdef ASYNC_GYRO_PROCESSING
-    const float imuAccumulatedRateTime = imuAccumulatedRateTimeUs * 1e-6;
-    imuAccumulatedRateTimeUs = 0;
-
-    for (axis = 0; axis < 3; axis++) {
-        imuMeasuredRotationBF.A[axis] = imuAccumulatedRate[axis] / imuAccumulatedRateTime;
-        imuAccumulatedRate[axis] = 0.0f;
-    }
-#else
-    for (axis = 0; axis < 3; axis++) {
-        imuMeasuredRotationBF.A[axis] = gyro.gyroADCf[axis] * gyroScale;
-    }
-#endif
-}
-
-/* Calculate measured acceleration in body frame cm/s/s */
-static void imuUpdateMeasuredAcceleration(void)
-{
-    int axis;
-
-#ifdef ASYNC_GYRO_PROCESSING
-    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = imuAccumulatedAcc[axis] / imuAccumulatedAccCount;
-        imuAccumulatedAcc[axis] = 0;
-    }
-    imuAccumulatedAccCount = 0;;
-#else
-    /* Convert acceleration to cm/s/s */
-    for (axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuMeasuredAccelBF.A[axis] = acc.accADC[axis] * (GRAVITY_CMSS / acc.dev.acc_1G);
-    }
-#endif
 }
 
 #ifdef HIL
@@ -585,9 +527,9 @@ void imuHILUpdate(void)
     imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
 
     /* Fake accADC readings */
-    accADC[X] = hilToFC.bodyAccel[X] * (acc.acc_1G / GRAVITY_CMSS);
-    accADC[Y] = hilToFC.bodyAccel[Y] * (acc.acc_1G / GRAVITY_CMSS);
-    accADC[Z] = hilToFC.bodyAccel[Z] * (acc.acc_1G / GRAVITY_CMSS);
+    accADCf[X] = hilToFC.bodyAccel[X] / GRAVITY_CMSS;
+    accADCf[Y] = hilToFC.bodyAccel[Y] / GRAVITY_CMSS;
+    accADCf[Z] = hilToFC.bodyAccel[Z] / GRAVITY_CMSS;
 }
 #endif
 
@@ -604,13 +546,6 @@ void imuUpdateAccelerometer(void)
         isAccelUpdatedAtLeastOnce = true;
     }
 #endif
-
-#ifdef ASYNC_GYRO_PROCESSING
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        imuAccumulatedAcc[axis] += acc.accADC[axis] * (GRAVITY_CMSS / acc.dev.acc_1G);
-    }
-    imuAccumulatedAccCount++;
-#endif
 }
 
 void imuUpdateAttitude(timeUs_t currentTimeUs)
@@ -623,8 +558,8 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
     if (sensors(SENSOR_ACC) && isAccelUpdatedAtLeastOnce) {
 #ifdef HIL
         if (!hilActive) {
-            imuUpdateMeasuredRotationRate();    // Calculate gyro rate in body frame in rad/s
-            imuUpdateMeasuredAcceleration();  // Calculate accel in body frame in cm/s/s
+            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
+            accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
             imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
         }
         else {
@@ -632,14 +567,14 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
             imuUpdateMeasuredAcceleration();
         }
 #else
-            imuUpdateMeasuredRotationRate();    // Calculate gyro rate in body frame in rad/s
-            imuUpdateMeasuredAcceleration();  // Calculate accel in body frame in cm/s/s
-            imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
+        gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
+        accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
+        imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
 #endif
     } else {
-        acc.accADC[X] = 0;
-        acc.accADC[Y] = 0;
-        acc.accADC[Z] = 0;
+        acc.accADCf[X] = 0.0f;
+        acc.accADCf[Y] = 0.0f;
+        acc.accADCf[Z] = 0.0f;
     }
 }
 
@@ -655,5 +590,5 @@ bool isImuHeadingValid(void)
 
 float calculateCosTiltAngle(void)
 {
-    return rMat[2][2];
+    return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
 }

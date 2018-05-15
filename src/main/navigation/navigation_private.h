@@ -19,7 +19,7 @@
 
 #define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
 
-#if defined(NAV)
+#if defined(USE_NAV)
 
 #include "common/filter.h"
 #include "fc/runtime_config.h"
@@ -56,19 +56,24 @@ typedef enum {
     ROC_TO_ALT_NORMAL
 } climbRateToAltitudeControllerMode_e;
 
+typedef enum {
+    EST_NONE = 0,       // No valid sensor present
+    EST_USABLE = 1,     // Estimate is usable but may be inaccurate
+    EST_TRUSTED = 2     // Estimate is usable and based on actual sensor data
+} navigationEstimateStatus_e;
+
 typedef struct navigationFlags_s {
     bool horizontalPositionDataNew;
     bool verticalPositionDataNew;
-    bool surfaceDistanceDataNew;
     bool headingDataNew;
 
     bool horizontalPositionDataConsumed;
     bool verticalPositionDataConsumed;
 
-    bool hasValidAltitudeSensor;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
-    bool hasValidPositionSensor;        // Indicates that GPS is working (or not)
-    bool hasValidSurfaceSensor;
-    bool hasValidHeadingSensor;         // Indicate valid heading - wither mag or GPS at certain speed on airplane
+    navigationEstimateStatus_e estAltStatus;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
+    navigationEstimateStatus_e estPosStatue;        // Indicates that GPS is working (or not)
+    navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
+    navigationEstimateStatus_e estSurfaceStatus;
 
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
@@ -122,8 +127,8 @@ typedef struct navigationPIDControllers_s {
 } navigationPIDControllers_t;
 
 typedef struct {
-    t_fp_vector pos;
-    t_fp_vector vel;
+    fpVector3_t pos;
+    fpVector3_t vel;
     int32_t     yaw;
     float       sinYaw;
     float       cosYaw;
@@ -134,8 +139,8 @@ typedef struct {
 } navigationEstimatedState_t;
 
 typedef struct {
-    t_fp_vector pos;
-    t_fp_vector vel;
+    fpVector3_t pos;
+    fpVector3_t vel;
     int32_t     yaw;
     float       surface;
 } navigationDesiredState_t;
@@ -246,7 +251,7 @@ typedef struct {
 
 typedef struct {
     timeMs_t        lastCheckTime;
-    t_fp_vector     initialPosition;
+    fpVector3_t     initialPosition;
     float           minimalDistanceToHome;
 } rthSanityChecker_t;
 
@@ -302,15 +307,15 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD);
 void navPInit(pController_t *p, float _kP);
 
 bool isThrustFacingDownwards(void);
-uint32_t calculateDistanceToDestination(const t_fp_vector * destinationPos);
-int32_t calculateBearingToDestination(const t_fp_vector * destinationPos);
+uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
+int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
 void resetLandingDetector(void);
 bool isLandingDetected(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
-void setHomePosition(const t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask);
-void setDesiredPosition(const t_fp_vector * pos, int32_t yaw, navSetWaypointFlags_t useMask);
+void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
+void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
@@ -320,10 +325,9 @@ bool isWaypointMissed(const navWaypointPosition_t * waypoint);
 bool isApproachingLastWaypoint(void);
 float getActiveWaypointSpeed(void);
 
-void updateActualHeading(int32_t newHeading);
-void updateActualHorizontalPositionAndVelocity(bool hasValidSensor, float newX, float newY, float newVelX, float newVelY);
-void updateActualAltitudeAndClimbRate(bool hasValidSensor, float newAltitude, float newVelocity);
-void updateActualSurfaceDistance(bool hasValidSensor, float surfaceDistance, float surfaceVelocity);
+void updateActualHeading(bool headingValid, int32_t newHeading);
+void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, float newY, float newVelX, float newVelY);
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
 
 bool checkForPositionSensorTimeout(void);
 
@@ -348,7 +352,7 @@ void resetMulticopterLandingDetector(void);
 bool isMulticopterLandingDetected(void);
 bool isFixedWingLandingDetected(void);
 
-void calculateMulticopterInitialHoldPosition(t_fp_vector * pos);
+void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
@@ -363,7 +367,7 @@ bool adjustFixedWingPositionFromRCInput(void);
 
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
-void calculateFixedWingInitialHoldPosition(t_fp_vector * pos);
+void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing launch controller */
 void resetFixedWingLaunchController(timeUs_t currentTimeUs);

@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "common/maths.h"
+#include "common/vector.h"
 #include "common/axis.h"
 
 #include "config/parameter_group.h"
@@ -31,7 +32,7 @@
 #include "boardalignment.h"
 
 static bool standardBoardAlignment = true;     // board orientation correction
-static float boardRotation[3][3];              // matrix
+static fpMat3_t boardRotMatrix;
 
 // no template required since defaults are zero
 PG_REGISTER(boardAlignment_t, boardAlignment, PG_BOARD_ALIGNMENT, 0);
@@ -54,7 +55,7 @@ void initBoardAlignment(void)
         rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
         rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
 
-        buildRotationMatrix(&rotationAngles, boardRotation);
+        rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
     }
 }
 
@@ -69,22 +70,26 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     initBoardAlignment();
 }
 
-static void alignBoard(int32_t *vec)
+void applyBoardAlignment(int32_t *vec)
 {
-    int32_t x = vec[X];
-    int32_t y = vec[Y];
-    int32_t z = vec[Z];
+    if (standardBoardAlignment) {
+        return;
+    }
 
-    vec[X] = lrintf(boardRotation[0][X] * x + boardRotation[1][X] * y + boardRotation[2][X] * z);
-    vec[Y] = lrintf(boardRotation[0][Y] * x + boardRotation[1][Y] * y + boardRotation[2][Y] * z);
-    vec[Z] = lrintf(boardRotation[0][Z] * x + boardRotation[1][Z] * y + boardRotation[2][Z] * z);
+    fpVector3_t fpVec = { .v = { vec[X], vec[Y], vec[Z] } };
+    rotationMatrixRotateVector(&fpVec, &fpVec, &boardRotMatrix);
+
+    vec[X] = lrintf(fpVec.x);
+    vec[Y] = lrintf(fpVec.y);
+    vec[Z] = lrintf(fpVec.z);
 }
 
-void alignSensors(int32_t *dest, uint8_t rotation)
+void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation)
 {
-    const int32_t x = dest[X];
-    const int32_t y = dest[Y];
-    const int32_t z = dest[Z];
+    // Create a copy so we could use the same buffer for src & dest
+    const int32_t x = src[X];
+    const int32_t y = src[Y];
+    const int32_t z = src[Z];
 
     switch (rotation) {
     default:
@@ -129,7 +134,4 @@ void alignSensors(int32_t *dest, uint8_t rotation)
         dest[Z] = -z;
         break;
     }
-
-    if (!standardBoardAlignment)
-        alignBoard(dest);
 }

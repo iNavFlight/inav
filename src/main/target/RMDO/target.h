@@ -27,26 +27,28 @@
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
-//#define USE_MAG_DATA_READY_SIGNAL
-//#define ENSURE_MAG_DATA_READY_IS_HIGH
 
-#define GYRO
+#define USE_GYRO
+#define USE_ACC
+
 #define USE_GYRO_MPU6050
-#define GYRO_MPU6050_ALIGN      CW270_DEG
-
-#define ACC
 #define USE_ACC_MPU6050
+#define MPU6050_I2C_BUS         BUS_I2C1
+
+#define GYRO_MPU6050_ALIGN      CW270_DEG
 #define ACC_MPU6050_ALIGN       CW270_DEG
 
-#define BARO
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 
-#define MAG
-#define USE_MAG_AK8963
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
-#define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_MAG3110
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -78,14 +80,14 @@
 #define SOFTSERIAL_2_TX_PIN     PB1
 
 #define USE_I2C
-#define I2C_DEVICE              (I2CDEV_1) // PB6/SCL, PB7/SDA
+#define USE_I2C_DEVICE_1
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5
 
 #define M25P16_CS_GPIO          GPIOB
 #define M25P16_CS_PIN           PB12
-#define M25P16_SPI_INSTANCE     SPI2
+#define M25P16_SPI_BUS          BUS_SPI2
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
@@ -97,7 +99,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define LED_STRIP
+#define USE_LED_STRIP
 
 #define USE_LED_STRIP_ON_DMA1_CHANNEL2
 #define WS2811_PIN                      PA8
@@ -107,16 +109,16 @@
 #undef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS       30
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // USART3,
 #define BIND_PIN                PB11
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#undef GPS_PROTO_NAZA
-#undef TELEMETRY_HOTT
-#undef TELEMETRY_SMARTPORT
-#undef TELEMETRY_IBUS
+#undef USE_GPS_PROTO_NAZA
+#undef USE_TELEMETRY_HOTT
+#undef USE_TELEMETRY_SMARTPORT
+#undef USE_TELEMETRY_IBUS
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    12

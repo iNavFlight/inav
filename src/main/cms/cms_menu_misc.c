@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "common/utils.h"
 
@@ -52,52 +52,65 @@ static long cmsx_menuRcConfirmBack(const OSD_Entry *self)
 //
 // RC preview
 //
-static OSD_Entry cmsx_menuRcEntries[] =
+static const OSD_Entry cmsx_menuRcEntries[] =
 {
-    { "-- RC PREV --", OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- RC PREV --"),
 
-    { "ROLL",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[ROLL],     1, 2500, 0 }, DYNAMIC },
-    { "PITCH", OME_INT16, NULL, &(OSD_INT16_t){ &rcData[PITCH],    1, 2500, 0 }, DYNAMIC },
-    { "THR",   OME_INT16, NULL, &(OSD_INT16_t){ &rcData[THROTTLE], 1, 2500, 0 }, DYNAMIC },
-    { "YAW",   OME_INT16, NULL, &(OSD_INT16_t){ &rcData[YAW],      1, 2500, 0 }, DYNAMIC },
+    OSD_INT16_RO_ENTRY("ROLL", &rcData[ROLL]),
+    OSD_INT16_RO_ENTRY("PITCH", &rcData[PITCH]),
+    OSD_INT16_RO_ENTRY("THR", &rcData[THROTTLE]),
+    OSD_INT16_RO_ENTRY("YAW", &rcData[YAW]),
 
-    { "AUX1",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX1],     1, 2500, 0 }, DYNAMIC },
-    { "AUX2",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX2],     1, 2500, 0 }, DYNAMIC },
-    { "AUX3",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX3],     1, 2500, 0 }, DYNAMIC },
-    { "AUX4",  OME_INT16, NULL, &(OSD_INT16_t){ &rcData[AUX4],     1, 2500, 0 }, DYNAMIC },
+    OSD_INT16_RO_ENTRY("AUX1", &rcData[AUX1]),
+    OSD_INT16_RO_ENTRY("AUX2", &rcData[AUX2]),
+    OSD_INT16_RO_ENTRY("AUX3", &rcData[AUX3]),
+    OSD_INT16_RO_ENTRY("AUX4", &rcData[AUX4]),
 
-    { "BACK",  OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuRcPreview = {
+static const CMS_Menu cmsx_menuRcPreview = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XRCPREV",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = cmsx_menuRcConfirmBack,
     .onGlobalExit = NULL,
     .entries = cmsx_menuRcEntries
 };
 
-static OSD_Entry menuMiscEntries[]=
+static const OSD_Entry menuMiscEntries[]=
 {
-    { "-- MISC --", OME_Label, NULL, NULL, 0 },
+    OSD_LABEL_ENTRY("-- MISC --"),
 
     OSD_SETTING_ENTRY("MIN THR", SETTING_MIN_THROTTLE),
 #ifdef USE_ADC
-    OSD_SETTING_ENTRY("VBAT SCALE", SETTING_VBAT_SCALE),
-    OSD_SETTING_ENTRY("VBAT CLMAX", SETTING_VBAT_MAX_CELL_VOLTAGE),
-#endif
+    OSD_SETTING_ENTRY("VBATCELL MAX", SETTING_VBAT_MAX_CELL_VOLTAGE),
+    OSD_SETTING_ENTRY("VBATCELL WARN", SETTING_VBAT_WARNING_CELL_VOLTAGE),
+    OSD_SETTING_ENTRY("VBATCELL MIN", SETTING_VBAT_MIN_CELL_VOLTAGE),
+    OSD_SETTING_ENTRY("BAT CAP UNIT", SETTING_BATTERY_CAPACITY_UNIT),
+    OSD_SETTING_ENTRY("BAT CAPACITY", SETTING_BATTERY_CAPACITY),
+    OSD_SETTING_ENTRY("BAT CAP WARN", SETTING_BATTERY_CAPACITY_WARNING),
+    OSD_SETTING_ENTRY("BAT CAP CRIT", SETTING_BATTERY_CAPACITY_CRITICAL),
+#ifdef USE_OSD
+    OSD_SETTING_ENTRY("OSD VOLT DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),
+    OSD_SETTING_ENTRY("STATS ENERGY UNIT", SETTING_OSD_STATS_ENERGY_UNIT),
+#endif /* USE_OSD */
+#endif /* USE_ADC */
 
-    { "RC PREV",    OME_Submenu, cmsMenuChange, &cmsx_menuRcPreview, 0},
+    OSD_SUBMENU_ENTRY("RC PREV", &cmsx_menuRcPreview),
 
-    { "BACK", OME_Back, NULL, NULL, 0},
-    { NULL, OME_END, NULL, NULL, 0}
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuMisc = {
+const CMS_Menu cmsx_menuMisc = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "XMISC",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

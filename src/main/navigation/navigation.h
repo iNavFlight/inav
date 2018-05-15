@@ -18,10 +18,13 @@
 #pragma once
 
 #include "common/maths.h"
+#include "common/vector.h"
 
 #include "flight/failsafe.h"
 
 #include "io/gps.h"
+
+#include "config/feature.h"
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
@@ -31,8 +34,8 @@ extern int16_t              GPS_directionToHome;       // direction to home poin
 /* Navigation system updates */
 void onNewGPSData(void);
 
-#if defined(NAV)
-#if defined(BLACKBOX)
+#if defined(USE_NAV)
+#if defined(USE_BLACKBOX)
 #define NAV_BLACKBOX
 #endif
 
@@ -76,7 +79,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type;
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
-    uint16_t gps_delay_ms;
 
     uint16_t max_surface_altitude;
 
@@ -156,7 +158,9 @@ typedef struct navConfig_s {
         uint16_t launch_throttle;            // Launch throttle
         uint16_t launch_motor_timer;         // Time to wait before setting launch_throttle (ms)
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
+        uint16_t launch_min_time;	     // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
         uint16_t launch_timeout;             // Launch timeout to disable launch mode and swith to normal flight (ms)
+        uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
     } fw;
@@ -191,7 +195,7 @@ typedef struct {
 } navWaypoint_t;
 
 typedef struct {
-    t_fp_vector pos;
+    fpVector3_t pos;
     int32_t     yaw;             // deg * 100
 } navWaypointPosition_t;
 
@@ -297,8 +301,8 @@ typedef enum {
 } geoOriginResetMode_e;
 
 void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginResetMode_e resetMode);
-void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, t_fp_vector * pos, geoAltitudeConversionMode_e altConv);
-void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const t_fp_vector * pos, gpsLocation_t * llh);
+void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, fpVector3_t * pos, geoAltitudeConversionMode_e altConv);
+void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * pos, gpsLocation_t * llh);
 float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
 
 /* Failsafe-forced RTH mode */
@@ -313,6 +317,8 @@ bool navigationIsFlyingAutonomousMode(void);
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */
 bool navigationRTHAllowsLanding(void);
+
+bool isNavLaunchEnabled(void);
 
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;

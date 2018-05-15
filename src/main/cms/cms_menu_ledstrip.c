@@ -24,7 +24,7 @@
 
 #include "build/version.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "common/axis.h"
 #include "io/gimbal.h"
@@ -42,7 +42,7 @@
 #include "cms/cms_types.h"
 #include "cms/cms_menu_ledstrip.h"
 
-#ifdef LED_STRIP
+#ifdef USE_LED_STRIP
 
 static bool cmsx_FeatureLedStrip_Enabled(bool *enabled)
 {
@@ -56,18 +56,20 @@ static bool cmsx_FeatureLedStrip_Enabled(bool *enabled)
     return featureConfigured(FEATURE_LED_STRIP);
 }
 
-static OSD_Entry cmsx_menuLedstripEntries[] =
+static const OSD_Entry cmsx_menuLedstripEntries[] =
 {
-    { "-- LED STRIP --", OME_Label, NULL, NULL, 0 },
-    { "ENABLED",         OME_BoolFunc,  NULL, cmsx_FeatureLedStrip_Enabled, 0 },
+    OSD_LABEL_ENTRY("-- LED STRIP --"),
+    OSD_BOOL_FUNC_ENTRY("ENABLED", cmsx_FeatureLedStrip_Enabled),
 
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-CMS_Menu cmsx_menuLedstrip = {
+const CMS_Menu cmsx_menuLedstrip = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENULED",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

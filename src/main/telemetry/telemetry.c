@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
 
 #include "common/utils.h"
 
@@ -49,49 +49,43 @@
 #include "telemetry/ibus.h"
 #include "telemetry/crsf.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
-
-#if defined(STM32F303xC)
-#define TELEMETRY_DEFAULT_INVERSION 1
-#else
-#define TELEMETRY_DEFAULT_INVERSION 0
-#endif
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 1);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
-    .telemetry_inversion = TELEMETRY_DEFAULT_INVERSION,
-    .telemetry_switch = 0,
     .gpsNoFixLatitude = 0,
     .gpsNoFixLongitude = 0,
+    .telemetry_switch = 0,
+    .telemetry_inverted = 0,
     .frsky_coordinate_format = FRSKY_FORMAT_DMS,
     .frsky_unit = FRSKY_UNIT_METRICS,
     .frsky_vfas_precision = 0,
-    .frsky_vfas_cell_voltage = 0,
+    .report_cell_voltage = 0,
     .hottAlarmSoundInterval = 5,
     .smartportUartUnidirectional = 0,
-    .smartportFuelPercent = 0,
+    .smartportFuelUnit = SMARTPORT_FUEL_UNIT_MAH,
     .ibusTelemetryType = 0,
-    .ltmUpdateRate = LTM_RATE_NORMAL
+    .ltmUpdateRate = LTM_RATE_NORMAL,
 );
 
 void telemetryInit(void)
 {
-#if defined(TELEMETRY_FRSKY)
+#if defined(USE_TELEMETRY_FRSKY)
     initFrSkyTelemetry();
 #endif
 
-#if defined(TELEMETRY_HOTT)
+#if defined(USE_TELEMETRY_HOTT)
     initHoTTTelemetry();
 #endif
 
-#if defined(TELEMETRY_SMARTPORT)
+#if defined(USE_TELEMETRY_SMARTPORT)
     initSmartPortTelemetry();
 #endif
 
-#if defined(TELEMETRY_LTM)
+#if defined(USE_TELEMETRY_LTM)
     initLtmTelemetry();
 #endif
 
-#if defined(TELEMETRY_MAVLINK)
+#if defined(USE_TELEMETRY_MAVLINK)
     initMAVLinkTelemetry();
 #endif
 
@@ -99,11 +93,11 @@ void telemetryInit(void)
     initJetiExBusTelemetry();
 #endif
 
-#if defined(TELEMETRY_IBUS)
+#if defined(USE_TELEMETRY_IBUS)
     initIbusTelemetry();
 #endif
 
-#if defined(TELEMETRY_CRSF)
+#if defined(USE_TELEMETRY_CRSF)
     initCrsfTelemetry();
 #endif
 
@@ -133,23 +127,23 @@ serialPort_t *telemetrySharedPort = NULL;
 
 void telemetryCheckState(void)
 {
-#if defined(TELEMETRY_FRSKY)
+#if defined(USE_TELEMETRY_FRSKY)
     checkFrSkyTelemetryState();
 #endif
 
-#if defined(TELEMETRY_HOTT)
+#if defined(USE_TELEMETRY_HOTT)
     checkHoTTTelemetryState();
 #endif
 
-#if defined(TELEMETRY_SMARTPORT)
+#if defined(USE_TELEMETRY_SMARTPORT)
     checkSmartPortTelemetryState();
 #endif
 
-#if defined(TELEMETRY_LTM)
+#if defined(USE_TELEMETRY_LTM)
     checkLtmTelemetryState();
 #endif
 
-#if defined(TELEMETRY_MAVLINK)
+#if defined(USE_TELEMETRY_MAVLINK)
     checkMAVLinkTelemetryState();
 #endif
 
@@ -157,11 +151,11 @@ void telemetryCheckState(void)
     checkJetiExBusTelemetryState();
 #endif
 
-#if defined(TELEMETRY_IBUS)
+#if defined(USE_TELEMETRY_IBUS)
     checkIbusTelemetryState();
 #endif
 
-#if defined(TELEMETRY_CRSF)
+#if defined(USE_TELEMETRY_CRSF)
     checkCrsfTelemetryState();
 #endif
 }
@@ -170,23 +164,23 @@ void telemetryProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs); // since not used by all the telemetry protocols
 
-    #if defined(TELEMETRY_FRSKY)
+    #if defined(USE_TELEMETRY_FRSKY)
     handleFrSkyTelemetry();
 #endif
 
-#if defined(TELEMETRY_HOTT)
+#if defined(USE_TELEMETRY_HOTT)
     handleHoTTTelemetry(currentTimeUs);
 #endif
 
-#if defined(TELEMETRY_SMARTPORT)
+#if defined(USE_TELEMETRY_SMARTPORT)
     handleSmartPortTelemetry();
 #endif
 
-#if defined(TELEMETRY_LTM)
+#if defined(USE_TELEMETRY_LTM)
     handleLtmTelemetry();
 #endif
 
-#if defined(TELEMETRY_MAVLINK)
+#if defined(USE_TELEMETRY_MAVLINK)
     handleMAVLinkTelemetry(currentTimeUs);
 #endif
 
@@ -194,11 +188,11 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleJetiExBusTelemetry();
 #endif
 
-#if defined(TELEMETRY_IBUS)
+#if defined(USE_TELEMETRY_IBUS)
     handleIbusTelemetry();
 #endif
 
-#if defined(TELEMETRY_CRSF)
+#if defined(USE_TELEMETRY_CRSF)
     handleCrsfTelemetry(currentTimeUs);
 #endif
 }

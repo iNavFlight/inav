@@ -17,18 +17,15 @@
 
 #pragma once
 
+#include "common/axis.h"
 #include "common/maths.h"
+#include "common/vector.h"
+#include "common/quaternion.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
 
-#define GRAVITY_CMSS    980.665f
-#define GRAVITY_MSS     9.80665f
-
-extern int16_t throttleAngleCorrection;
-extern int16_t smallAngle;
-
-extern t_fp_vector imuMeasuredAccelBF;         // cm/s/s
-extern t_fp_vector imuMeasuredRotationBF;       // rad/s
+extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
+extern fpVector3_t imuMeasuredRotationBF;       // rad/s
 
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
@@ -40,6 +37,7 @@ typedef union {
     } values;
 } attitudeEulerAngles_t;
 
+extern fpQuaternion_t orientation;
 extern attitudeEulerAngles_t attitude;
 
 typedef struct imuConfig_s {
@@ -62,14 +60,14 @@ typedef struct imuRuntimeConfig_s {
 
 void imuConfigure(void);
 
+void imuSetMagneticDeclination(float declinationDeg);
 void imuUpdateAttitude(timeUs_t currentTimeUs);
 void imuUpdateAccelerometer(void);
-void imuUpdateGyroscope(timeUs_t gyroUpdateDeltaUs);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
 
-void imuTransformVectorBodyToEarth(t_fp_vector * v);
-void imuTransformVectorEarthToBody(t_fp_vector * v);
+void imuTransformVectorBodyToEarth(fpVector3_t * v);
+void imuTransformVectorEarthToBody(fpVector3_t * v);
 
 void imuInit(void);

@@ -29,53 +29,54 @@
 #define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
 // MPU-6000 GRYO
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_INSTANCE    SPI1
-#define GYRO
-#define USE_GYRO_SPI_MPU6000
+#define MPU6000_SPI_BUS         BUS_SPI1
+#define USE_GYRO
+#define USE_GYRO_MPU6000
 #define GYRO_MPU6000_ALIGN      CW0_DEG
-#define ACC
-#define USE_ACC_SPI_MPU6000
+#define USE_ACC
+#define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW0_DEG
 
 //MPU-9250
-#define MPU6500_CS_PIN          PA4
-#define MPU6500_SPI_INSTANCE    SPI1
-#define GYRO
-#define USE_GYRO_SPI_MPU6500
-#define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC
-#define USE_ACC_SPI_MPU6500
-#define ACC_MPU6500_ALIGN       CW0_DEG
-#define MAG
-#define USE_MPU9250_MAG // Enables bypass configuration
-#define USE_MAG_AK8963
+#define MPU9250_CS_PIN          PA4
+#define MPU9250_SPI_BUS         BUS_SPI1
+#define USE_GYRO
+#define USE_GYRO_MPU9250
+#define GYRO_MPU9250_ALIGN      CW0_DEG
+#define USE_ACC
+#define USE_ACC_MPU9250
+#define ACC_MPU9250_ALIGN       CW0_DEG
+#define USE_MAG
+#define USE_MAG_MPU9250
 
 // MPU6 interrupts
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
-#define BARO
+#define USE_BARO
 #define USE_BARO_BMP280
 #define USE_BARO_SPI_BMP280
-#define BMP280_SPI_INSTANCE     SPI3
-#define BMP280_CS_PIN                 PB3 // v1
+#define BMP280_SPI_BUS          BUS_SPI3
+#define BMP280_CS_PIN           PB3
 
-#define OSD
+#define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI3
-#define MAX7456_SPI_CS_PIN      PA15
-#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD*2)
-#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST)
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          PA15
 
-#define USB_IO
+#define USE_LED_STRIP
+#define WS2811_PIN                      PB8
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST7_HANDLER
+#define WS2811_DMA_STREAM               DMA1_Stream7
+#define WS2811_DMA_CHANNEL              DMA_Channel_2
 
 #define USE_VCP
-
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+
 //V2 add another uart 2
 #if defined( CLRACINGF4AIRV2 )
 #define USE_UART2
@@ -121,7 +122,7 @@
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
-#define ADC_CHANNEL_3_PIN               PA0
+#define ADC_CHANNEL_3_PIN               PC3
 
 // V2 has airspeed input
 #if defined( CLRACINGF4AIRV2 )
@@ -134,8 +135,7 @@
 #define VBAT_ADC_CHANNEL                 ADC_CHN_2
 #define RSSI_ADC_CHANNEL                 ADC_CHN_3
 #define USE_ESC_SENSOR
-#define DEFAULT_RX_FEATURE       FEATURE_RX_SERIAL
-#define DEFAULT_FEATURES         (FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
+#define DEFAULT_FEATURES         (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
 #define SPEKTRUM_BIND_PIN       UART1_RX_PIN
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -154,5 +154,5 @@
 #define USED_TIMERS  ( TIM_N(1) | TIM_N(3) | TIM_N(4) | TIM_N(8)| TIM_N(11) | TIM_N(12)  )
 #else
 #define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(9) | TIM_N(11) )
+#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(9) | TIM_N(11) | TIM_N(12) )
 #endif

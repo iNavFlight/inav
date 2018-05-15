@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 #include "config/parameter_group.h"
-#include "drivers/rangefinder.h"
+#include "drivers/rangefinder/rangefinder.h"
 
 typedef enum {
     RANGEFINDER_NONE        = 0,
@@ -32,6 +32,7 @@ typedef enum {
 
 typedef struct rangefinderConfig_s {
     uint8_t rangefinder_hardware;
+    uint8_t use_median_filtering;
 } rangefinderConfig_t;
 
 PG_DECLARE(rangefinderConfig_t, rangefinderConfig);

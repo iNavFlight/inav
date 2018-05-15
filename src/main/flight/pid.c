@@ -95,12 +95,13 @@ extern float dT;
 FASTRAM float headingHoldCosZLimit;
 FASTRAM int16_t headingHoldTarget;
 STATIC_FASTRAM pt1Filter_t headingHoldRateFilter;
+STATIC_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 STATIC_FASTRAM bool pidGainsUpdateRequired;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
 int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_D[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_Setpoint[FLIGHT_DYNAMICS_INDEX_COUNT];
 #endif
 
@@ -126,7 +127,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .D = 10,   // posResponseExpo * 100
                 },
                 [PID_VEL_XY] = {
-                    .P = 180,  // NAV_VEL_XY_P * 100
+                    .P = 40,   // NAV_VEL_XY_P * 20
                     .I = 15,   // NAV_VEL_XY_I * 100
                     .D = 100,  // NAV_VEL_XY_D * 100
                 },
@@ -203,6 +204,8 @@ void pidInit(void)
         firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
     }
 
+    pidResetTPAFilter();
+
     // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
     headingHoldCosZLimit = cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_ROLL])) *
                            cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_PITCH]));
@@ -225,6 +228,14 @@ bool pidInitFilters(void)
     return false;
 }
 #endif
+
+void pidResetTPAFilter(void)
+{
+    if (STATE(FIXED_WING) && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
+        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getPidUpdateRate() * 1e-6f);
+        pt1FilterReset(&fixedWingTpaFilter, motorConfig()->minthrottle);
+    }
+}
 
 void pidResetErrorAccumulators(void)
 {
@@ -264,16 +275,16 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
     return scaleRangef((float) stick, -500.0f, 500.0f, -maxRateDPS, maxRateDPS);
 }
 
-static float calculateFixedWingTPAFactor(void)
+static float calculateFixedWingTPAFactor(uint16_t throttle)
 {
     float tpaFactor;
 
     // tpa_rate is amount of curve TPA applied to PIDs
     // tpa_breakpoint for fixed wing is cruise throttle value (value at which PIDs were tuned)
-    if (currentControlRateProfile->dynThrPID != 0 && currentControlRateProfile->tpa_breakpoint > motorConfig()->minthrottle) {
-        if (rcCommand[THROTTLE] > motorConfig()->minthrottle) {
+    if (currentControlRateProfile->throttle.dynPID != 0 && currentControlRateProfile->throttle.pa_breakpoint > motorConfig()->minthrottle) {
+        if (throttle > motorConfig()->minthrottle) {
             // Calculate TPA according to throttle
-            tpaFactor = 0.5f + ((float)(currentControlRateProfile->tpa_breakpoint - motorConfig()->minthrottle) / (rcCommand[THROTTLE] - motorConfig()->minthrottle) / 2.0f);
+            tpaFactor = 0.5f + ((float)(currentControlRateProfile->throttle.pa_breakpoint - motorConfig()->minthrottle) / (throttle - motorConfig()->minthrottle) / 2.0f);
 
             // Limit to [0.5; 2] range
             tpaFactor = constrainf(tpaFactor, 0.5f, 2.0f);
@@ -283,7 +294,7 @@ static float calculateFixedWingTPAFactor(void)
         }
 
         // Attenuate TPA curve according to configured amount
-        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (currentControlRateProfile->dynThrPID / 100.0f);
+        tpaFactor = 1.0f + (tpaFactor - 1.0f) * (currentControlRateProfile->throttle.dynPID / 100.0f);
     }
     else {
         tpaFactor = 1.0f;
@@ -297,12 +308,12 @@ static float calculateMultirotorTPAFactor(void)
     float tpaFactor;
 
     // TPA should be updated only when TPA is actually set
-    if (currentControlRateProfile->dynThrPID == 0 || rcCommand[THROTTLE] < currentControlRateProfile->tpa_breakpoint) {
+    if (currentControlRateProfile->throttle.dynPID == 0 || rcCommand[THROTTLE] < currentControlRateProfile->throttle.pa_breakpoint) {
         tpaFactor = 1.0f;
     } else if (rcCommand[THROTTLE] < motorConfig()->maxthrottle) {
-        tpaFactor = (100 - (uint16_t)currentControlRateProfile->dynThrPID * (rcCommand[THROTTLE] - currentControlRateProfile->tpa_breakpoint) / (motorConfig()->maxthrottle - currentControlRateProfile->tpa_breakpoint)) / 100.0f;
+        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (motorConfig()->maxthrottle - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
     } else {
-        tpaFactor = (100 - currentControlRateProfile->dynThrPID) / 100.0f;
+        tpaFactor = (100 - currentControlRateProfile->throttle.dynPID) / 100.0f;
     }
 
     return tpaFactor;
@@ -317,10 +328,19 @@ void updatePIDCoefficients(void)
 {
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
-    // Check if throttle changed
-    if (rcCommand[THROTTLE] != prevThrottle) {
-        prevThrottle = rcCommand[THROTTLE];
-        pidGainsUpdateRequired = true;
+    // Check if throttle changed. Different logic for fixed wing vs multirotor
+    if (STATE(FIXED_WING) && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
+        uint16_t filteredThrottle = pt1FilterApply3(&fixedWingTpaFilter, rcCommand[THROTTLE], dT);
+        if (filteredThrottle != prevThrottle) {
+            prevThrottle = filteredThrottle;
+            pidGainsUpdateRequired = true;
+        }
+    }
+    else {
+        if (rcCommand[THROTTLE] != prevThrottle) {
+            prevThrottle = rcCommand[THROTTLE];
+            pidGainsUpdateRequired = true;
+        }
     }
 
     // If nothing changed - don't waste time recalculating coefficients
@@ -328,7 +348,7 @@ void updatePIDCoefficients(void)
         return;
     }
 
-    const float tpaFactor = STATE(FIXED_WING) ? calculateFixedWingTPAFactor() : calculateMultirotorTPAFactor();
+    const float tpaFactor = STATE(FIXED_WING) ? calculateFixedWingTPAFactor(prevThrottle) : calculateMultirotorTPAFactor();
 
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
@@ -387,7 +407,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     const float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
 
-    float angleRateTarget = constrainf(angleErrorDeg * (pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER), -currentControlRateProfile->rates[axis] * 10.0f, currentControlRateProfile->rates[axis] * 10.0f);
+    float angleRateTarget = constrainf(angleErrorDeg * (pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER), -currentControlRateProfile->stabilized.rates[axis] * 10.0f, currentControlRateProfile->stabilized.rates[axis] * 10.0f);
 
     // Apply simple LPF to angleRateTarget to make response less jerky
     // Ideas behind this:
@@ -451,14 +471,14 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
     }
 
 #ifdef AUTOTUNE_FIXED_WING
-    if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(PASSTHRU_MODE)) {
+    if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
         autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, newPTerm + newFFTerm);
     }
 #endif
 
     axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf, -pidProfile()->pidSumLimit, +pidProfile()->pidSumLimit);
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newFFTerm;
@@ -524,7 +544,7 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
 
     axisPID[axis] = newOutputLimited;
 
-#ifdef BLACKBOX
+#ifdef USE_BLACKBOX
     axisPID_P[axis] = newPTerm;
     axisPID_I[axis] = pidState->errorGyroIf;
     axisPID_D[axis] = newDTerm;
@@ -554,7 +574,7 @@ static uint8_t getHeadingHoldState(void)
         return HEADING_HOLD_DISABLED;
     }
 
-#if defined(NAV)
+#if defined(USE_NAV)
     int navHeadingState = navigationGetHeadingControlState();
     // NAV will prevent MAG_MODE from activating, but require heading control
     if (navHeadingState != NAV_HEADING_CONTROL_NONE) {
@@ -638,9 +658,9 @@ float pidHeadingHold(void)
  */
 static void pidTurnAssistant(pidState_t *pidState)
 {
-    t_fp_vector targetRates;
-    targetRates.V.X = 0.0f;
-    targetRates.V.Y = 0.0f;
+    fpVector3_t targetRates;
+    targetRates.x = 0.0f;
+    targetRates.y = 0.0f;
 
     if (STATE(FIXED_WING)) {
         if (calculateCosTiltAngle() >= 0.173648f) {
@@ -652,7 +672,7 @@ static void pidTurnAssistant(pidState_t *pidState)
             // If we solve for yaw rate we get:
             //      yaw_rate = tan(roll_angle) * Gravity / forward_vel
 
-#if defined(PITOT)
+#if defined(USE_PITOT)
             float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) ?
                     pitot.airSpeed :
                     pidProfile()->fixedWingReferenceAirspeed;
@@ -667,7 +687,7 @@ static void pidTurnAssistant(pidState_t *pidState)
             float bankAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
             float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngle) / airspeedForCoordinatedTurn;
 
-            targetRates.V.Z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
+            targetRates.z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
         }
         else {
             // Don't allow coordinated turn calculation if airplane is in hard bank or steep climb/dive
@@ -675,22 +695,22 @@ static void pidTurnAssistant(pidState_t *pidState)
         }
     }
     else {
-        targetRates.V.Z = pidState[YAW].rateTarget;
+        targetRates.z = pidState[YAW].rateTarget;
     }
 
     // Transform calculated rate offsets into body frame and apply
     imuTransformVectorEarthToBody(&targetRates);
 
     // Add in roll and pitch
-    pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.V.X, -currentControlRateProfile->rates[ROLL] * 10.0f, currentControlRateProfile->rates[ROLL] * 10.0f);
-    pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.V.Y, -currentControlRateProfile->rates[PITCH] * 10.0f, currentControlRateProfile->rates[PITCH] * 10.0f);
+    pidState[ROLL].rateTarget = constrainf(pidState[ROLL].rateTarget + targetRates.x, -currentControlRateProfile->stabilized.rates[ROLL] * 10.0f, currentControlRateProfile->stabilized.rates[ROLL] * 10.0f);
+    pidState[PITCH].rateTarget = constrainf(pidState[PITCH].rateTarget + targetRates.y, -currentControlRateProfile->stabilized.rates[PITCH] * 10.0f, currentControlRateProfile->stabilized.rates[PITCH] * 10.0f);
 
     // Replace YAW on quads - add it in on airplanes
     if (STATE(FIXED_WING)) {
-        pidState[YAW].rateTarget = constrainf(pidState[YAW].rateTarget + targetRates.V.Z * pidProfile()->fixedWingCoordinatedYawGain, -currentControlRateProfile->rates[YAW] * 10.0f, currentControlRateProfile->rates[YAW] * 10.0f);
+        pidState[YAW].rateTarget = constrainf(pidState[YAW].rateTarget + targetRates.z * pidProfile()->fixedWingCoordinatedYawGain, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
     }
     else {
-        pidState[YAW].rateTarget = constrainf(targetRates.V.Z, -currentControlRateProfile->rates[YAW] * 10.0f, currentControlRateProfile->rates[YAW] * 10.0f);
+        pidState[YAW].rateTarget = constrainf(targetRates.z, -currentControlRateProfile->stabilized.rates[YAW] * 10.0f, currentControlRateProfile->stabilized.rates[YAW] * 10.0f);
     }
 }
 #endif
@@ -713,7 +733,7 @@ void pidController(void)
         if (axis == FD_YAW && headingHoldState == HEADING_HOLD_ENABLED) {
             rateTarget = pidHeadingHold();
         } else {
-            rateTarget = pidRcCommandToRate(rcCommand[axis], currentControlRateProfile->rates[axis]);
+            rateTarget = pidRcCommandToRate(rcCommand[axis], currentControlRateProfile->stabilized.rates[axis]);
         }
 
         // Limit desired rate to something gyro can measure reliably

@@ -34,7 +34,7 @@
 
 #include "io/statusindicator.h"
 
-#ifdef GPS
+#ifdef USE_GPS
 #include "io/gps.h"
 #endif
 
@@ -211,7 +211,7 @@ static const beeperTableEntry_t *currentBeeperEntry = NULL;
  */
 void beeper(beeperMode_e mode)
 {
-    if (mode == BEEPER_SILENCE || ((getBeeperOffMask() & (1 << (BEEPER_USB-1))) && (feature(FEATURE_VBAT) && (batteryCellCount < 2)))) {
+    if (mode == BEEPER_SILENCE || ((getBeeperOffMask() & (1 << (BEEPER_USB-1))) && (feature(FEATURE_VBAT) && (getBatteryCellCount() < 2)))) {
         beeperSilence();
         return;
     }
@@ -280,7 +280,7 @@ void beeperConfirmationBeeps(uint8_t beepCount)
     beeper(BEEPER_MULTI_BEEPS);    //initiate sequence
 }
 
-#ifdef GPS
+#ifdef USE_GPS
 void beeperGpsStatus(void)
 {
     // if GPS fix then beep out number of satellites
@@ -309,7 +309,7 @@ void beeperUpdate(timeUs_t currentTimeUs)
 {
     // If beeper option from AUX switch has been selected
     if (IS_RC_MODE_ACTIVE(BOXBEEPERON)) {
-#ifdef GPS
+#ifdef USE_GPS
         if (feature(FEATURE_GPS)) {
             beeperGpsStatus();
         } else {

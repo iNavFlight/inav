@@ -38,26 +38,29 @@ typedef enum {
     MAG_AK8963 = 6,
     MAG_IST8310 = 7,
     MAG_QMC5883 = 8,
-    MAG_FAKE = 9,
+    MAG_MPU9250 = 9,
+    MAG_FAKE = 10,
     MAG_MAX = MAG_FAKE
 } magSensor_e;
 
 typedef struct mag_s {
     magDev_t dev;
-    float magneticDeclination;
     int32_t magADC[XYZ_AXIS_COUNT];
 } mag_t;
 
 extern mag_t mag;
 
 typedef struct compassConfig_s {
-    int16_t mag_declination;                // Get your magnetic decliniation from here : http://magnetic-declination.com/
+    int16_t mag_declination;                // Get your magnetic declination from here : http://magnetic-declination.com/
                                             // For example, -6deg 37min, = -637 Japan, format is [sign]dddmm (degreesminutes) default is zero.
-    sensor_align_e mag_align;               // mag alignment
+    sensor_align_e mag_align;               // on-board mag alignment. Ignored if externally aligned via *DeciDegrees.
     uint8_t mag_hardware;                   // Which mag hardware to use on boards with more than one device
     flightDynamicsTrims_t magZero;
-    uint8_t __dummy_1;                      // Maximum rotation rate MAG_HOLD mode can feed to yaw rate PID controller
+    uint8_t mag_to_use;
     uint8_t magCalibrationTimeLimit;        // Time for compass calibration (seconds)
+    int16_t rollDeciDegrees;                // Alignment for external mag on the roll (X) axis (0.1deg)
+    int16_t pitchDeciDegrees;               // Alignment for external mag on the pitch (Y) axis (0.1deg)
+    int16_t yawDeciDegrees;                 // Alignment for external mag on the yaw (Z) axis (0.1deg)
 } compassConfig_t;
 
 PG_DECLARE(compassConfig_t, compassConfig);

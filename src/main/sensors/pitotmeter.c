@@ -42,9 +42,9 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 
-pitot_t pitot;
+#ifdef USE_PITOT
 
-#ifdef PITOT
+pitot_t pitot;
 
 static timeMs_t pitotCalibrationTimeout = 0;
 static bool pitotCalibrationFinished = false;
@@ -55,7 +55,7 @@ static float indicatedAirspeed = 0;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 0);
 
-#ifdef PITOT
+#ifdef USE_PITOT
 #define PITOT_HARDWARE_DEFAULT    PITOT_AUTODETECT
 #else
 #define PITOT_HARDWARE_DEFAULT    PITOT_NONE
@@ -88,7 +88,7 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             FALLTHROUGH;
 
         case PITOT_ADC:
-#if defined(USE_PITOT_ADC)
+#if defined(USE_ADC) && defined(USE_PITOT_ADC)
             if (adcPitotDetect(dev)) {
                 pitotHardware = PITOT_ADC;
                 break;
@@ -200,14 +200,14 @@ uint32_t pitotUpdate(void)
     switch (state) {
         default:
         case PITOTMETER_NEEDS_SAMPLES:
-            pitot.dev.start();
+            pitot.dev.start(&pitot.dev);
             state = PITOTMETER_NEEDS_CALCULATION;
             return pitot.dev.delay;
         break;
 
         case PITOTMETER_NEEDS_CALCULATION:
-            pitot.dev.get();
-            pitot.dev.calculate(&pitotPressure, &pitotTemperature);
+            pitot.dev.get(&pitot.dev);
+            pitot.dev.calculate(&pitot.dev, &pitotPressure, &pitotTemperature);
             DEBUG_SET(DEBUG_PITOT, 0, pitotPressure);
             if (pitotmeterConfig()->use_median_filtering) {
                 pitotPressure = applyPitotmeterMedianFilter(pitotPressure);

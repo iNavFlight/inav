@@ -43,6 +43,7 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/controlrate_profile.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -104,12 +105,12 @@ static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
 static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
 
 #define COUNT_SERVO_RULES(rules) (sizeof(rules) / sizeof(servoMixer_t))
-// mixer rule format servo, input, rate, speed, min, max, box
+// mixer rule format servo, input, rate, speed
 static const servoMixer_t servoMixerAirplane[] = {
     { SERVO_FLAPPERON_1, INPUT_STABILIZED_ROLL,  100, 0 },
     { SERVO_FLAPPERON_2, INPUT_STABILIZED_ROLL,  100, 0 },
-    { SERVO_FLAPPERON_1, INPUT_FEATURE_FLAPS,    100, 0 },
-    { SERVO_FLAPPERON_2, INPUT_FEATURE_FLAPS,   -100, 0 },
+    { SERVO_FLAPPERON_1, INPUT_FEATURE_FLAPS,   -100, 0 },
+    { SERVO_FLAPPERON_2, INPUT_FEATURE_FLAPS,    100, 0 },
     { SERVO_RUDDER,      INPUT_STABILIZED_YAW,   100, 0 },
     { SERVO_ELEVATOR,    INPUT_STABILIZED_PITCH, 100, 0 },
 };
@@ -191,6 +192,14 @@ int servoDirection(int servoIndex, int inputSource)
         return 1;
 }
 
+/*
+ * Compute scaling factor for upper and lower servo throw
+ */
+void servoComputeScalingFactors(uint8_t servoIndex) {
+    servoMetadata[servoIndex].scaleMax = (servoParams(servoIndex)->max - servoParams(servoIndex)->middle) / 500.0f;
+    servoMetadata[servoIndex].scaleMin = (servoParams(servoIndex)->middle - servoParams(servoIndex)->min) / 500.0f;
+}
+
 void servosInit(void)
 {
     const mixerMode_e currentMixerMode = mixerConfig()->mixerMode;
@@ -226,31 +235,26 @@ void servosInit(void)
      * When we are dealing with CUSTOM mixers, load mixes defined with
      * smix and update internal variables
      */
-    if (currentMixerMode == MIXER_CUSTOM_AIRPLANE ||
-        currentMixerMode == MIXER_CUSTOM_TRI ||
-        currentMixerMode == MIXER_CUSTOM)
-    {
-        loadCustomServoMixer();
-
+    if (loadCustomServoMixer()) {
         // If there are servo rules after all, update variables
         if (servoRuleCount > 0) {
             servoOutputEnabled = 1;
             mixerUsesServos = 1;
         }
-
     }
 
-    /*
-     * Compute scaling factor for upper and lower servo throw
-     */
-    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servoMetadata[i].scaleMax = (servoParams(i)->max - servoParams(i)->middle) / 500.0f;
-        servoMetadata[i].scaleMin = (servoParams(i)->middle - servoParams(i)->min) / 500.0f;
-    }
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++)
+        servoComputeScalingFactors(i);
 
 }
-void loadCustomServoMixer(void)
+
+bool loadCustomServoMixer(void)
 {
+    const mixerMode_e currentMixerMode = mixerConfig()->mixerMode;
+    if (!(currentMixerMode == MIXER_CUSTOM_AIRPLANE || currentMixerMode == MIXER_CUSTOM_TRI || currentMixerMode == MIXER_CUSTOM)) {
+        return false;
+    }
+
     // reset settings
     servoRuleCount = 0;
     minServoIndex = 255;
@@ -274,6 +278,8 @@ void loadCustomServoMixer(void)
         memcpy(&currentServoMixer[i], customServoMixers(i), sizeof(servoMixer_t));
         servoRuleCount++;
     }
+
+    return true;
 }
 
 void servoMixerLoadMix(int index)
@@ -365,8 +371,7 @@ void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
-    if (FLIGHT_MODE(PASSTHRU_MODE)) {
-        // Direct passthru from RX
+    if (FLIGHT_MODE(MANUAL_MODE)) {
         input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
         input[INPUT_STABILIZED_PITCH] = rcCommand[PITCH];
         input[INPUT_STABILIZED_YAW] = rcCommand[YAW];
@@ -474,7 +479,7 @@ void processServoTilt(void)
     }
 }
 
-#define SERVO_AUTOTRIM_TIMER_MS     1000
+#define SERVO_AUTOTRIM_TIMER_MS     2000
 
 typedef enum {
     AUTOTRIM_IDLE,

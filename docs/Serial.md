@@ -40,7 +40,7 @@ Configure serial ports first, then enable/disable features that use the ports.  
 If the configuration is invalid the serial port configuration will reset to its defaults and features may be disabled.
 
 * There must always be a port available to use for MSP/CLI.
-* There is a maximum of 2 MSP ports.
+* There is a maximum of 3 MSP ports.
 * To use a port for a function, the function's corresponding feature must be also be enabled.
 e.g. after configuring a port for GPS enable the GPS feature.
 * If SoftSerial is used, then all SoftSerial ports must use the same baudrate.
@@ -72,11 +72,21 @@ The allowable baud rates are as follows:
 
 | Identifier | Baud rate |
 | ---------- | --------- |
-| 0          | Auto      |
-| 1          | 9600      |
-| 2          | 19200     |
-| 3          | 38400     |
-| 4          | 57600     |
-| 5          | 115200    |
-| 6          | 230400    |
-| 7          | 250000    |
+|  0         |    Auto   |
+|  1         |    1200   |
+|  2         |    2400   |
+|  3         |    4800   |
+|  4         |    9600   |
+|  5         |   19200   |
+|  6         |   38400   |
+|  7         |   57600   |
+|  8         |  115200   |
+|  9         |  230400   |
+| 10         |  250000   |
+| 11         |  460800   |
+| 12         |  921600   |
+| 13         | 1000000   |
+| 14         | 1500000   |
+| 15         | 2000000   |
+| 16         | 2470000   |
+

@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#ifdef CMS
+#ifdef USE_CMS
 
 #include "build/version.h"
 
@@ -46,43 +46,49 @@
 #include "cms/cms_menu_ledstrip.h"
 #include "cms/cms_menu_misc.h"
 
-// User supplied menus
+// VTX supplied menus
 
-#include "io/vtx_smartaudio_cms.h"
-#include "io/vtx_tramp.h"
+#include "cms/cms_menu_vtx_smartaudio.h"
+#include "cms/cms_menu_vtx_tramp.h"
+
 
 // Info
 
-static char infoGitRev[GIT_SHORT_REVISION_LENGTH];
+static char infoGitRev[GIT_SHORT_REVISION_LENGTH + 1];
 static char infoTargetName[] = __TARGET__;
 
 #include "msp/msp_protocol.h" // XXX for FC identification... not available elsewhere
 
 static long cmsx_InfoInit(void)
 {
-    for (int i = 0 ; i < GIT_SHORT_REVISION_LENGTH ; i++) {
+    int i;
+    for ( i = 0 ; i < GIT_SHORT_REVISION_LENGTH ; i++) {
         if (shortGitRevision[i] >= 'a' && shortGitRevision[i] <= 'f')
             infoGitRev[i] = shortGitRevision[i] - 'a' + 'A';
         else
             infoGitRev[i] = shortGitRevision[i];
     }
 
+    infoGitRev[i] = 0x0; // Terminate string
     return 0;
 }
 
-static OSD_Entry menuInfoEntries[] = {
-    { "--- INFO ---", OME_Label, NULL, NULL, 0 },
-    { "FWID", OME_String, NULL, INAV_IDENTIFIER, 0 },
-    { "FWVER", OME_String, NULL, FC_VERSION_STRING, 0 },
-    { "GITREV", OME_String, NULL, infoGitRev, 0 },
-    { "TARGET", OME_String, NULL, infoTargetName, 0 },
-    { "BACK", OME_Back, NULL, NULL, 0 },
-    { NULL, OME_END, NULL, NULL, 0 }
+static const OSD_Entry menuInfoEntries[] = {
+    OSD_LABEL_ENTRY("--- INFO ---"),
+    OSD_STRING_ENTRY("FWID", INAV_IDENTIFIER),
+    OSD_STRING_ENTRY("FWVER", FC_VERSION_STRING),
+    OSD_STRING_ENTRY("GITREV", infoGitRev),
+    OSD_STRING_ENTRY("TARGET", infoTargetName),
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-static CMS_Menu menuInfo = {
+static const CMS_Menu menuInfo = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUINFO",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = cmsx_InfoInit,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -91,34 +97,37 @@ static CMS_Menu menuInfo = {
 
 // Features
 
-static OSD_Entry menuFeaturesEntries[] =
+static const OSD_Entry menuFeaturesEntries[] =
 {
-    {"--- FEATURES ---", OME_Label, NULL, NULL, 0},
-    {"BLACKBOX", OME_Submenu, cmsMenuChange, &cmsx_menuBlackbox, 0},
-#if defined(NAV)
-    {"NAVIGATION", OME_Submenu, cmsMenuChange, &cmsx_menuNavigation, 0},
+    OSD_LABEL_ENTRY("--- FEATURES ---"),
+    OSD_SUBMENU_ENTRY("BLACKBOX", &cmsx_menuBlackbox),
+#if defined(USE_NAV)
+    OSD_SUBMENU_ENTRY("NAVIGATION", &cmsx_menuNavigation),
 #endif
 #if defined(VTX) || defined(USE_RTC6705)
-    {"VTX", OME_Submenu, cmsMenuChange, &cmsx_menuVtx, 0},
+    OSD_SUBMENU_ENTRY("VTX", &cmsx_menuVtx),
 #endif // VTX || USE_RTC6705
 #if defined(VTX_CONTROL)
 #if defined(VTX_SMARTAUDIO)
-    {"VTX SA", OME_Submenu, cmsMenuChange, &cmsx_menuVtxSmartAudio, 0},
+    OSD_SUBMENU_ENTRY("VTX SA", &cmsx_menuVtxSmartAudio),
 #endif
 #if defined(VTX_TRAMP)
-    {"VTX TR", OME_Submenu, cmsMenuChange, &cmsx_menuVtxTramp, 0},
+    OSD_SUBMENU_ENTRY("VTX TR", &cmsx_menuVtxTramp),
 #endif
 #endif // VTX_CONTROL
-#ifdef LED_STRIP
-    {"LED STRIP", OME_Submenu, cmsMenuChange, &cmsx_menuLedstrip, 0},
+#ifdef USE_LED_STRIP
+    OSD_SUBMENU_ENTRY("LED STRIP", &cmsx_menuLedstrip),
 #endif // LED_STRIP
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
-static CMS_Menu menuFeatures = {
+static const CMS_Menu menuFeatures = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUFEATURES",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,
@@ -127,30 +136,33 @@ static CMS_Menu menuFeatures = {
 
 // Main
 
-static OSD_Entry menuMainEntries[] =
+static const OSD_Entry menuMainEntries[] =
 {
-    {"-- MAIN --",  OME_Label, NULL, NULL, 0},
+    OSD_LABEL_ENTRY("-- MAIN --"),
 
-    {"PID TUNING",  OME_Submenu,  cmsMenuChange, &cmsx_menuImu, 0},
-    {"FEATURES",    OME_Submenu,  cmsMenuChange, &menuFeatures, 0},
-#ifdef OSD
-    {"SCR LAYOUT",  OME_Submenu,  cmsMenuChange, &cmsx_menuOsdLayout, 0},
-    {"ALARMS",      OME_Submenu,  cmsMenuChange, &cmsx_menuAlarms, 0},
+    OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
+    OSD_SUBMENU_ENTRY("FEATURES", &menuFeatures),
+#ifdef USE_OSD
+    OSD_SUBMENU_ENTRY("SCR LAYOUT", &cmsx_menuOsdLayout),
+    OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 #endif
-    {"FC&FW INFO",  OME_Submenu,  cmsMenuChange, &menuInfo, 0},
-    {"MISC",        OME_Submenu,  cmsMenuChange, &cmsx_menuMisc, 0},
-    {"SAVE&REBOOT", OME_OSD_Exit, cmsMenuExit,   (void*)1, 0},
-    {"EXIT",        OME_OSD_Exit, cmsMenuExit,   (void*)0, 0},
+    OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
+    OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
+
+    {"SAVE&REBOOT", OME_OSD_Exit, cmsMenuExit,   (void*)CMS_EXIT_SAVEREBOOT, 0},
+    {"EXIT",        OME_OSD_Exit, cmsMenuExit,   (void*)CMS_EXIT, 0},
 #ifdef CMS_MENU_DEBUG
-    {"ERR SAMPLE",  OME_Submenu,  cmsMenuChange, &menuInfoEntries[0], 0},
+    OSD_SUBMENU_ENTRY("ERR SAMPLE", &menuInfoEntries[0]),
 #endif
 
-    {NULL,OME_END, NULL, NULL, 0}
+    OSD_END_ENTRY,
 };
 
-CMS_Menu menuMain = {
+const CMS_Menu menuMain = {
+#ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUMAIN",
     .GUARD_type = OME_MENU,
+#endif
     .onEnter = NULL,
     .onExit = NULL,
     .onGlobalExit = NULL,

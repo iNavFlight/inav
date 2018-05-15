@@ -31,7 +31,7 @@
 
 #include "platform.h"
 #include "build/build_config.h"
-#include "drivers/rangefinder.h"
+#include "drivers/rangefinder/rangefinder.h"
 
 #ifdef USE_UAV_INTERCONNECT
 

@@ -33,15 +33,6 @@
 #define UART_RX_BUFFER_SIZE UART1_RX_BUFFER_SIZE
 #define UART_TX_BUFFER_SIZE UART1_RX_BUFFER_SIZE
 
-typedef enum UARTDevice {
-    UARTDEV_1 = 0,
-    UARTDEV_2 = 1,
-    UARTDEV_3 = 2,
-    UARTDEV_4 = 3,
-    UARTDEV_5 = 4,
-    UARTDEV_6 = 5
-} UARTDevice;
-
 typedef struct uartDevice_s {
     USART_TypeDef* dev;
     uartPort_t port;
@@ -213,6 +204,48 @@ static uartDevice_t uart6 =
 };
 #endif
 
+#ifdef USE_UART7
+static uartDevice_t uart7 =
+{
+    .DMAChannel = DMA_Channel_5,
+#ifdef USE_UART7_RX_DMA
+    .rxDMAStream = DMA1_Stream3,
+#endif
+#ifdef USE_UART7_TX_DMA
+    .txDMAStream = DMA1_Stream1,
+#endif
+    .dev = UART7,
+    .rx = IO_TAG(UART7_RX_PIN),
+    .tx = IO_TAG(UART7_TX_PIN),
+    .af = GPIO_AF_UART7,
+    .rcc_apb1 = RCC_APB1(UART7),
+    .rxIrq = UART7_IRQn,
+    .txPriority = NVIC_PRIO_SERIALUART7_TXDMA,
+    .rxPriority = NVIC_PRIO_SERIALUART7
+};
+#endif
+
+#ifdef USE_UART8
+static uartDevice_t uart8 =
+{
+    .DMAChannel = DMA_Channel_5,
+#ifdef USE_UART8_RX_DMA
+    .rxDMAStream = DMA1_Stream6,
+#endif
+#ifdef USE_UART8_TX_DMA
+    .txDMAStream = DMA1_Stream0,
+#endif
+    .dev = UART8,
+    .rx = IO_TAG(UART8_RX_PIN),
+    .tx = IO_TAG(UART8_TX_PIN),
+    .af = GPIO_AF_UART8,
+    .rcc_apb1 = RCC_APB1(UART8),
+    .rxIrq = UART8_IRQn,
+    .txPriority = NVIC_PRIO_SERIALUART8_TXDMA,
+    .rxPriority = NVIC_PRIO_SERIALUART8
+};
+#endif
+
 static uartDevice_t* uartHardwareMap[] = {
 #ifdef USE_UART1
     &uart1,
@@ -244,13 +277,23 @@ static uartDevice_t* uartHardwareMap[] = {
 #else
     NULL,
 #endif
+#ifdef USE_UART7
+    &uart7,
+#else
+    NULL,
+#endif
+#ifdef USE_UART8
+    &uart8,
+#else
+    NULL,
+#endif
     };
 
 void uartIrqHandler(uartPort_t *s)
 {
     if (!s->rxDMAStream && (USART_GetITStatus(s->USARTx, USART_IT_RXNE) == SET)) {
         if (s->port.rxCallback) {
-            s->port.rxCallback(s->USARTx->DR);
+            s->port.rxCallback(s->USARTx->DR, s->port.rxCallbackData);
         } else {
             s->port.rxBuffer[s->port.rxBufferHead] = s->USARTx->DR;
             s->port.rxBufferHead = (s->port.rxBufferHead + 1) % s->port.rxBufferSize;
@@ -307,7 +350,7 @@ void dmaIRQHandler(dmaChannelDescriptor_t* descriptor)
 }
 #endif
 
-uartPort_t *serialUART(UARTDevice device, uint32_t baudRate, portMode_t mode, portOptions_t options)
+uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s;
     NVIC_InitTypeDef NVIC_InitStructure;
@@ -464,6 +507,34 @@ uartPort_t *serialUART6(uint32_t baudRate, portMode_t mode, portOptions_t option
 void USART6_IRQHandler(void)
 {
     uartPort_t *s = &(uartHardwareMap[UARTDEV_6]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART7
+uartPort_t *serialUART7(uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
+    return serialUART(UARTDEV_7, baudRate, mode, options);
+}
+
+// UART7 Rx/Tx IRQ Handler
+void UART7_IRQHandler(void)
+{
+    uartPort_t *s = &(uartHardwareMap[UARTDEV_7]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART8
+uartPort_t *serialUART8(uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
+    return serialUART(UARTDEV_8, baudRate, mode, options);
+}
+
+// UART8 Rx/Tx IRQ Handler
+void UART8_IRQHandler(void)
+{
+    uartPort_t *s = &(uartHardwareMap[UARTDEV_8]->port);
     uartIrqHandler(s);
 }
 #endif

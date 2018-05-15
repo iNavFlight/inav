@@ -13,14 +13,15 @@ Vagrant.configure(2) do |config|
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "ubuntu/trusty64"
+  config.vm.synced_folder ".", "/home/vagrant/inav"
 
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
-    apt-get remove -y binutils-arm-none-eabi gcc-arm-none-eabi
-    add-apt-repository ppa:terry.guo/gcc-arm-embedded
-    apt-get update
-    apt-get install -y git gcc-arm-none-eabi=4.9.3.2015q3-1trusty1 ruby
+	sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded
+	sudo apt-add-repository ppa:brightbox/ruby-ng
+	sudo apt-get update
+	sudo apt-get install -y --force-yes git gcc-arm-none-eabi=4.9.3.2015q3-1trusty1 libnewlib-arm-none-eabi ruby2.4 ruby2.4-dev
   SHELL
 end

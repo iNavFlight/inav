@@ -633,7 +633,7 @@ class Generator
     def compile_test_file(prog)
         buf = StringIO.new
         # cstddef for offsetof()
-        headers = ["target.h", "platform.h", "cstddef"]
+        headers = ["platform.h", "target.h", "cstddef"]
         @data["groups"].each do |group|
             gh = group["headers"]
             if gh
@@ -651,7 +651,7 @@ class Generator
             file = File.join(dir, "test.cpp")
             File.open(file, 'w') {|file| file.write(buf.string)}
             dputs "Compiling #{buf.string}"
-            stdout, stderr = @compiler.run(file, File.join(dir, "test"))
+            stdout, stderr = @compiler.run(file, File.join(dir, "test"), '-c', noerror: true)
             dputs "Output: #{stderr}"
             stderr
         end

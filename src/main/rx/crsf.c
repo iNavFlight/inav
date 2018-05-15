@@ -122,8 +122,10 @@ struct crsfPayloadLinkStatistics_s {
 typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
 
 // Receive ISR callback, called back from serial port
-STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c)
+STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     static uint8_t crsfFramePosition = 0;
     const timeUs_t now = micros();
 
@@ -160,8 +162,10 @@ STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
     return crc;
 }
 
-STATIC_UNIT_TESTED uint8_t crsfFrameStatus(void)
+STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     if (crsfFrameDone) {
         crsfFrameDone = false;
         if (crsfFrame.frame.type == CRSF_FRAMETYPE_RC_CHANNELS_PACKED) {
@@ -270,6 +274,7 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     serialPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         crsfDataReceive,
+        NULL,
         CRSF_BAUDRATE,
         CRSF_PORT_MODE,
         CRSF_PORT_OPTIONS | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)

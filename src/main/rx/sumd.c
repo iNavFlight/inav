@@ -70,8 +70,10 @@ static uint8_t sumd[SUMD_BUFFSIZE] = { 0, };
 static uint8_t sumdChannelCount;
 
 // Receive ISR callback
-static void sumdDataReceive(uint16_t c)
+static void sumdDataReceive(uint16_t c, void *rxCallbackData)
 {
+    UNUSED(rxCallbackData);
+
     timeUs_t sumdTime;
     static timeUs_t sumdTimeLast;
     static uint8_t sumdIndex;
@@ -112,8 +114,10 @@ static void sumdDataReceive(uint16_t c)
 #define SUMD_FRAME_STATE_OK 0x01
 #define SUMD_FRAME_STATE_FAILSAFE 0x81
 
-uint8_t sumdFrameStatus(void)
+static uint8_t sumdFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    UNUSED(rxRuntimeConfig);
+
     uint8_t channelIndex;
 
     uint8_t frameStatus = RX_FRAME_PENDING;
@@ -173,7 +177,7 @@ bool sumdInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         return false;
     }
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     bool portShared = telemetryCheckRxPortShared(portConfig);
 #else
     bool portShared = false;
@@ -182,12 +186,13 @@ bool sumdInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     serialPort_t *sumdPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         sumdDataReceive,
+        NULL,
         SUMD_BAUDRATE,
         portShared ? MODE_RXTX : MODE_RX,
         SERIAL_NOT_INVERTED | (rxConfig->halfDuplex ? SERIAL_BIDIR : 0)
         );
 
-#ifdef TELEMETRY
+#ifdef USE_TELEMETRY
     if (portShared) {
         telemetrySharedPort = sumdPort;
     }

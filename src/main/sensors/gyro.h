@@ -18,6 +18,9 @@
 #pragma once
 
 #include "common/axis.h"
+#include "common/maths.h"
+#include "common/vector.h"
+#include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/sensor.h"
 
@@ -44,7 +47,7 @@ extern gyro_t gyro;
 typedef struct gyroConfig_s {
     sensor_align_e gyro_align;              // gyro alignment
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
-    uint8_t  gyroSyncDenominator;           // Gyro sync Denominator
+    uint8_t  __deprecated_0;                // Was: gyro sync denominator
     uint8_t  gyroSync;                      // Enable interrupt based loop
     uint16_t looptime;                      // imu loop time in us
     uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
@@ -60,15 +63,11 @@ PG_DECLARE(gyroConfig_t, gyroConfig);
 
 bool gyroInit(void);
 void gyroInitFilters(void);
-void gyroUpdate(void);
-const busDevice_t *gyroSensorBus(void);
-struct mpuConfiguration_s;
-const struct mpuConfiguration_s *gyroMpuConfiguration(void);
-struct mpuDetectionResult_s;
-const struct mpuDetectionResult_s *gyroMpuDetectionResult(void);
+void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
+void gyroUpdate(timeDelta_t gyroUpdateDeltaUs);
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
 bool gyroIsCalibrationComplete(void);
-void gyroReadTemperature(void);
+bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 bool gyroSyncCheckUpdate(void);

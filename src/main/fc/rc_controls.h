@@ -19,6 +19,9 @@
 
 #include "config/parameter_group.h"
 
+#define AUTO_DISARM_DELAY_MIN 0
+#define AUTO_DISARM_DELAY_MAX 60
+
 typedef enum rc_alias {
     ROLL = 0,
     PITCH,
@@ -86,6 +89,7 @@ stickPositions_e getRcStickPositions(void);
 bool checkStickPosition(stickPositions_e stickPos);
 
 bool areSticksInApModePosition(uint16_t ap_mode);
+bool areSticksDeflectedMoreThanPosHoldDeadband(void);
 throttleStatus_e calculateThrottleStatus(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_switch, bool fixed_wing_auto_arm);

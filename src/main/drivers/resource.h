@@ -46,10 +46,12 @@ typedef enum {
     OWNER_LED,
     OWNER_RX,
     OWNER_TX,
-    OWNER_SOFTSPI,
     OWNER_RX_SPI,
     OWNER_VTX,
     OWNER_SPI_PREINIT,
+    OWNER_COMPASS,
+    OWNER_AIRSPEED,
+    OWNER_OLED_DISPLAY,
     OWNER_TOTAL_COUNT
 } resourceOwner_e;
 
