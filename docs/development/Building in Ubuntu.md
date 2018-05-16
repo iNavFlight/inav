@@ -8,7 +8,7 @@ As of March 2018, the recommendation for Ubuntu releases is:
 | ------- | --------------- |
 | 16.04 or earlier | Use the 'official' PPA |
 | 17.10 | Use the 'official' PPA as the distro compiler (5.4) *may* be too old |
-| 18.04 | Use the distro compiler (6.3+) |
+| 18.04 | ~~Use the distro compiler (6.3+)~~ Use 'a PPA' (see below) |
 
 For Ubuntu derivatives (ElementaryOS, Mint etc.), please check the distro provided version, and if it's lower than 6, use the PPA.
 
@@ -21,6 +21,20 @@ Version: 15:4.9.3+svn231177-1
 ```
 
 This 4.9.3 and will not build iNav, so we need the PPA.
+
+### Ubuntu 18.04
+
+As of 2018-08-16, Ubuntu 18.04 displays an impressive degree of brokenness. 
+
+* The distro compiler fails to link hard float binaries correctly; and
+* The PPA cannot be installed using `add-apt-repository` as there is no signed 18.04 release, instead it is necessary to retain or side-load an older version.
+
+If you have a working PPA compiler installed (e.g. from 16.04) **don't do anything else, just use that **, otherwise, remove any or all of PPA and distro compilers, then:
+
+```
+wget https://launchpad.net/~team-gcc-arm-embedded/+archive/ubuntu/ppa/+build/13860542/+files/gcc-arm-embedded_7-2017q4-1~xenial2_amd64.deb
+sudo dpkg -i gcc-arm-embedded_7-2017q4-1~xenial2_amd64.deb
+```
 
 ## Installer commands
 
