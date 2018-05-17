@@ -156,10 +156,7 @@ void initActiveBoxIds(void)
     if (sensors(SENSOR_ACC)) {
         activeBoxIds[activeBoxIdCount++] = BOXANGLE;
         activeBoxIds[activeBoxIdCount++] = BOXHORIZON;
-
-#ifdef USE_FLM_TURN_ASSIST
         activeBoxIds[activeBoxIdCount++] = BOXTURNASSIST;
-#endif
     }
 
     if (!feature(FEATURE_AIRMODE)) {
@@ -290,9 +287,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #ifdef USE_FLM_FLAPERON
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FLAPERON)),             BOXFLAPERON);
 #endif
-#ifdef USE_FLM_TURN_ASSIST
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(TURN_ASSISTANT)),       BOXTURNASSIST);
-#endif
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_LAUNCH_MODE)),      BOXNAVLAUNCH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(AUTO_TUNE)),            BOXAUTOTUNE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTRIM)),    BOXAUTOTRIM);
