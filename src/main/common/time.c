@@ -122,36 +122,42 @@ static bool rtcIsDateTimeValid(dateTime_t *dateTime)
 }
 
 #if defined(RTC_AUTOMATIC_DST)
-static int lastSundayOfMonth(int currentYear, int wantedMonth) {
-    int days[] = {31,29,31,30,31,30,31,31,30,31,30,31};
-	int m, y = currentYear, w;
-    days[1] -= (y % 4) || (!(y % 100) && (y % 400));
-    w = y * 365 + (y - 1) / 4 - (y - 1) / 100 + (y - 1) / 400 + 6;
+static int lastSundayOfMonth(int currentYear, int wantedMonth)
+{
+    int days[] = { 31 , 29 , 31 , 30 , 31 , 30 , 31 , 31 , 30 , 31 , 30 , 31 };
+    days[1] -= (currentYear % 4) || (!(currentYear % 100) && (currentYear % 400));
+    int w = currentYear * 365 + (currentYear - 1) / 4 - (currentYear - 1) / 100 + (currentYear - 1) / 400 + 6;
 
-	for(m = 0; m < 12; m++) {
+	for (int m = 0; m < 12; m++) {
 		w = (w + days[m]) % 7;
         if (m == wantedMonth - 1) {
-            return days[m] + (w < 5 ? -2 : 5) - w;
+            return days[m] - w;
         }
 	}
     return 0;
 }
 
-static int nthSundayOfMonth(int lastSunday, int nth) {
+static int nthSundayOfMonth(int lastSunday, int nth)
+{
     while (lastSunday > 7 * nth) {
         lastSunday -= 7;
     }
     return lastSunday;
 }
 
-static bool isDST(rtcTime_t t) {
+static bool isDST(rtcTime_t t)
+{
     dateTime_t dateTime;
     rtcTimeToDateTime(&dateTime, t);
     int lastSunday;
     switch ((tz_automatic_dst_e) timeConfig()->tz_automatic_dst) {
         case TZ_AUTO_DST_USA: // begins at 2:00 a.m. on the second Sunday of March and ends at 2:00 a.m. on the first Sunday of November
-            if (dateTime.month < 3 || dateTime.month > 11) { return false; }
-            if (dateTime.month > 3 && dateTime.month < 11) { return true; }
+            if (dateTime.month < 3 || dateTime.month > 11) {
+                return false;
+            }
+            if (dateTime.month > 3 && dateTime.month < 11) {
+                return true;
+            }
             lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
             if (dateTime.month == 3) {
                 int secondSunday = nthSundayOfMonth(lastSunday, 2);
@@ -169,11 +175,16 @@ static bool isDST(rtcTime_t t) {
             }
             break;
         case TZ_AUTO_DST_EU: // begins at 1:00 a.m. on the last Sunday of March and ends at 1:00 a.m. on the last Sunday of October
-            if (dateTime.month < 3 || dateTime.month > 10) { return false; }
-            if (dateTime.month > 3 && dateTime.month < 10) { return true; }
+            if (dateTime.month < 3 || dateTime.month > 10) {
+                return false;
+            }
+            if (dateTime.month > 3 && dateTime.month < 10) {
+                return true;
+            }
             lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
-            if (dateTime.day < lastSunday) { return !(dateTime.month == 3); }
-            if (dateTime.day > lastSunday) { return !(dateTime.month == 3); }
+            if ((dateTime.day < lastSunday) || (dateTime.day > lastSunday)) {
+                return !(dateTime.month == 3);
+            }
             if (dateTime.day == lastSunday) {
                 if (dateTime.month == 3) {
                     return dateTime.hours >= 1;
@@ -192,9 +203,11 @@ static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeI
 {
     rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
     rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + minutes * 60, rtcTimeGetMillis(&initialTime));
-    #if defined(RTC_AUTOMATIC_DST)
-    if (automatic_dst && isDST(offsetTime)) { offsetTime += 3600; }
-    #endif
+#if defined(RTC_AUTOMATIC_DST)
+    if (automatic_dst && isDST(offsetTime)) {
+        offsetTime += 3600;
+    }
+#endif
     rtcTimeToDateTime(dateTimeOffset, offsetTime);
 }
 
