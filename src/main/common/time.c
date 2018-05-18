@@ -151,6 +151,8 @@ static bool isDST(rtcTime_t t)
     rtcTimeToDateTime(&dateTime, t);
     int lastSunday;
     switch ((tz_automatic_dst_e) timeConfig()->tz_automatic_dst) {
+        case TZ_AUTO_DST_OFF:
+            break;
         case TZ_AUTO_DST_USA: // begins at 2:00 a.m. on the second Sunday of March and ends at 2:00 a.m. on the first Sunday of November
             if (dateTime.month < 3 || dateTime.month > 11) {
                 return false;
