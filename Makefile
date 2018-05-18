@@ -124,7 +124,7 @@ GROUP_3_TARGETS := OMNIBUS AIRBOTF4 BLUEJAYF4 OMNIBUSF4 OMNIBUSF4PRO OMNIBUSF4V3
 GROUP_4_TARGETS := ANYFC ANYFCF7 ANYFCF7_EXTERNAL_BARO ANYFCM7 ALIENFLIGHTNGF7 PIXRACER
 GROUP_OTHER_TARGETS := $(filter-out $(GROUP_1_TARGETS) $(GROUP_2_TARGETS) $(GROUP_3_TARGETS) $(GROUP_4_TARGETS), $(VALID_TARGETS))
 
-REVISION = $(shell git log -1 --format="%h")
+REVISION = $(shell git rev-parse --short HEAD)
 
 FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk '{print $$3}' )
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk '{print $$3}' )
