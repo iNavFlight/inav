@@ -40,7 +40,6 @@
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
 #define USE_NAV
-#define USE_FLM_TURN_ASSIST     // This is mandatory for fixed-wing navigation
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
