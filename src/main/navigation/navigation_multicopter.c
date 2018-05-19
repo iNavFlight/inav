@@ -299,9 +299,16 @@ bool adjustMulticopterPositionFromRCInput(void)
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingPosition) {
-            fpVector3_t stopPosition;
-            calculateMulticopterInitialHoldPosition(&stopPosition);
-            setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
+
+            if (STATE(NAV_CRUISE_BRAKING)) {
+                //Use current position when we are braking 
+                setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_XY);
+            } else {
+                //If not braking, use displacement based on speed
+                fpVector3_t stopPosition;
+                calculateMulticopterInitialHoldPosition(&stopPosition);
+                setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
+            }
         }
 
         return false;
