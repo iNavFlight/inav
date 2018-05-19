@@ -240,7 +240,6 @@ static bool mpu9250CompassRead(magDev_t * mag)
                     // too early. queue the status read again
                     ctx.state = CHECK_STATUS;
                     reprocess = true;
-                    debug[0]++;
                     return lastReadResult;
                 }
 
