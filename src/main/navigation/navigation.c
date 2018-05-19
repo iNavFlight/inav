@@ -2324,7 +2324,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
 /*-----------------------------------------------------------
  * Set CF's FLIGHT_MODE from current NAV_MODE
  *-----------------------------------------------------------*/
-void swithNavigationFlightModes(void)
+void switchNavigationFlightModes(void)
 {
     const flightModeFlags_e enabledNavFlightModes = navGetMappedFlightModes(posControl.navState);
     const flightModeFlags_e disabledFlightModes = (NAV_ALTHOLD_MODE | NAV_RTH_MODE | NAV_POSHOLD_MODE | NAV_WP_MODE | NAV_LAUNCH_MODE) & (~enabledNavFlightModes);
@@ -2579,7 +2579,7 @@ void updateWaypointsAndNavigationMode(void)
     processNavigationRCAdjustments();
 
     // Map navMode back to enabled flight modes
-    swithNavigationFlightModes();
+    switchNavigationFlightModes();
 
 #if defined(NAV_BLACKBOX)
     navCurrentState = (int16_t)posControl.navState;
