@@ -1972,6 +1972,9 @@ static bool adjustPositionFromRCInput(void)
     }
     else {
 
+        const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
+        const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
+
         /*
          * Process states only for POSHOLD. In any other case we go back to old routines
          */
@@ -1984,9 +1987,6 @@ static bool adjustPositionFromRCInput(void)
                 NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT
             )
         ) {
-            const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
-            const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
-
             /*
              * Case one, when we order to brake (sticks to the center) and we are moving above threshold
              * Speed is above 1m/s and sticks are centered
@@ -2077,7 +2077,7 @@ static bool adjustPositionFromRCInput(void)
 
         }
 
-        retValue = adjustMulticopterPositionFromRCInput();
+        retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }
 
     return retValue;

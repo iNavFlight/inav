@@ -390,7 +390,7 @@ void resetMulticopterHeadingController(void);
 
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);
-bool adjustMulticopterPositionFromRCInput(void);
+bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment);
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
