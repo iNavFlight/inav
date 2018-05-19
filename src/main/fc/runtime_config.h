@@ -81,6 +81,7 @@ typedef enum {
 #ifdef USE_FLM_TURN_ASSIST
     TURN_ASSISTANT  = (1 << 14),
 #endif
+     NAV_LAND_MODE  = (1 << 15),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
