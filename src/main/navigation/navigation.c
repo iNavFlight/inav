@@ -1796,8 +1796,8 @@ void calculateInitialHoldPosition(fpVector3_t * pos)
  *-----------------------------------------------------------*/
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask)
 {
-    // XY-position
-    if ((useMask & NAV_POS_UPDATE_XY) != 0) {
+    // XY-position update is allowed only when not braking in NAV_CRUISE_BRAKING
+    if ((useMask & NAV_POS_UPDATE_XY) != 0 && !STATE(NAV_CRUISE_BRAKING)) {
         posControl.desiredState.pos.x = pos->x;
         posControl.desiredState.pos.y = pos->y;
     }
@@ -1975,106 +1975,109 @@ static bool adjustPositionFromRCInput(void)
         const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
         const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
 
-        /*
-         * Process states only for POSHOLD. In any other case we go back to old routines
-         */
-        if (
+        const bool brakingEntryAllowed = 
             IS_RC_MODE_ACTIVE(BOXBRAKING) &&
+            !STATE(NAV_CRUISE_BRAKING_LOCKED) && 
+            posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold && 
+            !rcPitchAdjustment && 
+            !rcRollAdjustment &&
             navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
             navConfig()->mc.braking_speed_threshold > 0 &&
             (
                 NAV_Status.state == MW_NAV_STATE_NONE ||
                 NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT
-            )
+            );
+
+
+        /*
+         * Case one, when we order to brake (sticks to the center) and we are moving above threshold
+         * Speed is above 1m/s and sticks are centered
+         * Extra condition: BRAKING flight mode has to be enabled
+         */
+        if (brakingEntryAllowed) {
+            /*
+             * Set currnt position and target position
+             * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
+             */
+            setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_XY);
+
+            ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+            DEBUG_SET(DEBUG_BRAKING, 2, 1);
+
+            ENABLE_STATE(NAV_CRUISE_BRAKING);
+            DEBUG_SET(DEBUG_BRAKING, 0, 1);
+
+            //Set forced BRAKING disengage moment
+            brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
+
+            //If speed above threshold, start boost mode as well
+            if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
+                ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+                DEBUG_SET(DEBUG_BRAKING, 1, 1);
+
+                brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
+            }
+
+        }
+
+        // We can enter braking only after user started to move the sticks
+        if (STATE(NAV_CRUISE_BRAKING_LOCKED) &&
+            (rcPitchAdjustment || rcRollAdjustment)
         ) {
-            /*
-             * Case one, when we order to brake (sticks to the center) and we are moving above threshold
-             * Speed is above 1m/s and sticks are centered
-             */
-            if (!STATE(NAV_CRUISE_BRAKING_LOCKED) && 
-                posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold && 
-                !rcPitchAdjustment && 
-                !rcRollAdjustment
-            ) {
-                ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-                DEBUG_SET(DEBUG_BRAKING, 2, 1);
+            DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+            DEBUG_SET(DEBUG_BRAKING, 2, 0); 
+        }
 
-                ENABLE_STATE(NAV_CRUISE_BRAKING);
-                DEBUG_SET(DEBUG_BRAKING, 0, 1);
+        //Forced BRAKING disengage routine
+        if (
+            STATE(NAV_CRUISE_BRAKING) &&
+            brakingModeDisengageAt < millis()
+        ) {
+            DISABLE_STATE(NAV_CRUISE_BRAKING);
+            DEBUG_SET(DEBUG_BRAKING, 0, 0);
 
-                //Set forced BRAKING disengage moment
-                brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
+            DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+            DEBUG_SET(DEBUG_BRAKING, 1, 0);
+        }
 
-                //If speed above threshold, start boost mode as well
-                if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
-                    ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-                    DEBUG_SET(DEBUG_BRAKING, 1, 1);
+        //Forced BRAKING_BOOST disengage routine
+        if (
+            STATE(NAV_CRUISE_BRAKING_BOOST) &&
+            brakingBoostModeDisengageAt < millis()
+        ) {
+            DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+            DEBUG_SET(DEBUG_BRAKING, 1, 0);
+        }
 
-                    brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
-                }
+        /*
+         * Case when speed dropped, disengage BREAKING_BOOST
+         */
+        if (
+            STATE(NAV_CRUISE_BRAKING_BOOST) && 
+            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed
+        ) {
+            DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+            DEBUG_SET(DEBUG_BRAKING, 1, 0);
+        }
 
-            }
-
-            // We can enter braking only after user started to move the sticks
-            if (STATE(NAV_CRUISE_BRAKING_LOCKED) &&
-                (rcPitchAdjustment || rcRollAdjustment)
-            ) {
-                DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-                DEBUG_SET(DEBUG_BRAKING, 2, 0); 
-            }
-
-            //Forced BRAKING disengage routine
-            if (
-                STATE(NAV_CRUISE_BRAKING) &&
-                brakingModeDisengageAt < millis()
-            ) {
-                DISABLE_STATE(NAV_CRUISE_BRAKING);
-                DEBUG_SET(DEBUG_BRAKING, 0, 0);
-
-                DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-                DEBUG_SET(DEBUG_BRAKING, 1, 0);
-            }
-
-            //Forced BRAKING_BOOST disengage routine
-            if (
-                STATE(NAV_CRUISE_BRAKING_BOOST) &&
-                brakingBoostModeDisengageAt < millis()
-            ) {
-                DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-                DEBUG_SET(DEBUG_BRAKING, 1, 0);
-            }
+        /*
+         * Case when we were braking but copter finally stopped or we started to move the sticks
+         */
+        if (STATE(NAV_CRUISE_BRAKING) && (
+            posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||
+            rcPitchAdjustment ||
+            rcRollAdjustment
+        )) {
+            DISABLE_STATE(NAV_CRUISE_BRAKING);
+            DEBUG_SET(DEBUG_BRAKING, 0, 0);
+            DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+            DEBUG_SET(DEBUG_BRAKING, 1, 0);
 
             /*
-             * Case when speed dropped, disengage BREAKING_BOOST
+             * When braking is done, store current position as desired one
+             * We do not want to go back to the place where braking has started
              */
-            if (
-                STATE(NAV_CRUISE_BRAKING_BOOST) && 
-                posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed
-            ) {
-                DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-                DEBUG_SET(DEBUG_BRAKING, 1, 0);
-            }
-
-            /*
-             * Case when we were braking but copter finally stopped or we started to move the sticks
-             */
-            if (STATE(NAV_CRUISE_BRAKING) && (
-                posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||
-                rcPitchAdjustment ||
-                rcRollAdjustment
-            )) {
-                DISABLE_STATE(NAV_CRUISE_BRAKING);
-                DEBUG_SET(DEBUG_BRAKING, 0, 0);
-                DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-                DEBUG_SET(DEBUG_BRAKING, 1, 0);
-
-                /*
-                 * When braking is done, store current position as desired one
-                 * We do not want to go back to the place where braking has started
-                 */
-                setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_XY);
-            }
-
+            setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_XY);
         }
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
