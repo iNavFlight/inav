@@ -30,3 +30,6 @@
 #include "drivers/opflow/opflow_virtual.h"
 
 extern virtualOpflowVTable_t opflowCxofVtable;
+extern virtualOpflowVTable_t opflowMSPVtable;
+
+void mspOpflowReceiveNewData(uint8_t * bufferPtr);

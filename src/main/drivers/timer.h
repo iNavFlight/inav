@@ -40,11 +40,6 @@ typedef uint32_t timCCR_t;
 typedef uint32_t timCCER_t;
 typedef uint32_t timSR_t;
 typedef uint32_t timCNT_t;
-#elif defined(STM32F1)
-typedef uint16_t timCCR_t;
-typedef uint16_t timCCER_t;
-typedef uint16_t timSR_t;
-typedef uint16_t timCNT_t;
 #elif defined(UNIT_TEST)
 typedef uint32_t timCCR_t;
 typedef uint32_t timCCER_t;
@@ -82,7 +77,7 @@ typedef enum {
     TIM_USE_PWM             = (1 << 1),
     TIM_USE_MC_MOTOR        = (1 << 2),     // Multicopter motor output
     TIM_USE_MC_SERVO        = (1 << 3),     // Multicopter servo output (i.e. TRI)
-    TIM_USE_MC_CHNFW        = (1 << 4),     // Multicopter servo output if channel forwarding is used
+    TIM_USE_MC_CHNFW        = (1 << 4),     // Deprecated and not used after removal of CHANNEL_FORWARDING feature
     TIM_USE_FW_MOTOR        = (1 << 5),
     TIM_USE_FW_SERVO        = (1 << 6),
     TIM_USE_LED             = (1 << 24),
@@ -107,15 +102,7 @@ enum {
     TIMER_OUTPUT_N_CHANNEL= 0x04
 };
 
-#ifdef STM32F1
-#if defined(STM32F10X_XL) || defined(STM32F10X_HD_VL)
-#define HARDWARE_TIMER_DEFINITION_COUNT 14
-#elif defined(STM32F10X_HD) || defined(STM32F10X_CL)
-#define HARDWARE_TIMER_DEFINITION_COUNT 7
-#else
-#define HARDWARE_TIMER_DEFINITION_COUNT 4
-#endif
-#elif defined(STM32F3)
+#if defined(STM32F3)
 #define HARDWARE_TIMER_DEFINITION_COUNT 10
 #elif defined(STM32F4)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14

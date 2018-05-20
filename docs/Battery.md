@@ -24,24 +24,6 @@ incorrect voltage or reversed polarity will likely fry your flight controller. E
 has a voltage divider capable of measuring your particular battery voltage.
 On the first battery connection is always advisable to use a current limiter device to limit damages if something is wrong in the setup.
 
-### Naze32
-
-The Naze32 has an on-board battery divider circuit; just connect your main battery to the VBAT connector.
-
-**CAUTION:**  When installing the connection from main battery to the VBAT connector, be sure to first disconnect the main battery from the frame/power distribution board.  Check the wiring very carefully before connecting battery again.  Incorrect connections can immediately and completely destroy the flight controller and connected peripherals (ESC, GPS, Receiver etc.).
-
-### CC3D
-
-The CC3D has no battery divider.  To use voltage monitoring, you must create a divider that gives a 3.3v
-MAXIMUM output when the main battery is fully charged.  Connect the divider output to S5_IN/PA0/RC5.
-
-Notes:
-
-* S5_IN/PA0/RC5 is Pin 7 on the 8 pin connector, second to last pin, on the opposite end from the
-  GND/+5/PPM signal input.
-
-* When battery monitoring is enabled on the CC3D, RC5 can no-longer be used for PWM input.
-
 ### Sparky
 
 See the [Sparky board chapter](Board - Sparky.md).

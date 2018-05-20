@@ -1,83 +1,31 @@
-# Mixer
+# Mixer and platform type
 
 INAV supports a number of mixing configurations as well as custom mixing.  Mixer configurations determine how the servos and motors work together to control the aircraft.
 
 ## Configuration
 
-To use a built-in mixing configuration, you can use the Chrome configuration GUI.  It includes images of the various mixer types to assist in making the proper connections.  See the Configuration section of the documentation for more information on the GUI.
+INAV Configurator provides graphical user interface for mixer configuration. All supported vehicle types are configurable with _mixer presets_ using Configurator. `mmix` and `smix` manual configuration in CLI should be used only for backup/restore purposes. 
 
-You can also use the Command Line Interface (CLI) to set the mixer type:
+User interface is described in [this video](https://www.youtube.com/watch?v=0cLFu-5syi0)
 
-1. Use `mixer list` to see a list of supported mixes
-2. Select a mixer.  For example, to select TRI, use `mixer TRI`
-3. You must use `save` to preserve your changes
+## Platform type
 
-## Supported Mixer Types
+INAV can be used on a variety of vehicle types configured via Configurator or `platform_type` CLI property. Certain settings applies only when specific platform type is selected. For example, _flaps_ can be configured only if **AIRPLANE** platform type is used. The same goes for flight modes, output mappings, stabilization algorithms, etc. 
 
-| Name             | Description               | Motors         | Servos           |
-| ---------------- | ------------------------- | -------------- | ---------------- |
-| TRI              | Tricopter                 | M1-M3          | S1               |
-| QUADP            | Quadcopter-Plus           | M1-M4          | None             |
-| QUADX            | Quadcopter-X              | M1-M4          | None             |
-| BI               | Bicopter (left/right)     | M1-M2          | S1, S2           |
-| GIMBAL           | Gimbal control            | N/A            | S1, S2           |
-| Y6               | Y6-copter                 | M1-M6          | None             |
-| HEX6             | Hexacopter-Plus           | M1-M6          | None             |
-| FLYING_WING      | Fixed wing; elevons       | M1             | S1, S2           |
-| Y4               | Y4-copter                 | M1-M4          | None             |
-| HEX6X            | Hexacopter-X              | M1-M6          | None             |
-| OCTOX8           | Octocopter-X (over/under) | M1-M8          | None             |
-| OCTOFLATP        | Octocopter-FlatPlus       | M1-M8          | None             |
-| OCTOFLATX        | Octocopter-FlatX          | M1-M8          | None             |
-| AIRPLANE         | Fixed wing; Ax2, R, E     | M1             | S1, S2, S3, S4   |
-| HELI_120_CCPM    |                           |                |                  |
-| HELI_90_DEG      |                           |                |                  |
-| VTAIL4           | Quadcopter with V-Tail    | M1-M4          | N/A              |
-| HEX6H            | Hexacopter-H              | M1-M6          | None             |
-| PPM_TO_SERVO     |                           |                |                  |
-| DUALCOPTER       | Dualcopter                | M1-M2          | S1, S2           |
-| SINGLECOPTER     | Conventional helicopter   | M1             | S1               |
-| ATAIL4           | Quadcopter with A-Tail    | M1-M4          | N/A              |
-| CUSTOM           | User-defined              |                |                  |
-| CUSTOM AIRPLANE  | User-defined airplane     |                |                  |
-| CUSTOM TRICOPTER | User-defined tricopter    |                |                  |
+Currently, following platform types are supported:
 
-## Servo configuration
+* MULTIROTOR
+* AIRPLANE
+* TRICOPTER
 
-The cli `servo` command defines the settings for the servo outputs.
-The cli mixer `smix` command controllers how the mixer maps internal FC data (RC input, PID stabilization output, channel forwarding, etc) to servo outputs.
-
-## Servo filtering
-
-A low-pass filter can be enabled for the servos.  It may be useful for avoiding structural modes in the airframe, for example.  
-
-### Configuration
-
-Currently, it can only be configured via the CLI:
-
-Use `set servo_lpf_hz=20` to enable filtering. This will set servo low pass filter to 20Hz.
-
-### Tuning
-
-One method for tuning the filter cutoff is as follows:
-
-1. Ensure your vehicle can move at least somewhat freely in the troublesome axis.  For example, if you are having yaw oscillations on a tricopter, ensure that the copter is supported in a way that allows it to rotate left and right to at least some degree.  Suspension near the CG is ideal.  Alternatively, you can just fly the vehicle and trigger the problematic condition you are trying to eliminate, although tuning will be more tedious.
-
-2. Tap the vehicle at its end in the axis under evaluation.  Directly commanding the servo in question to move may also be used.  In the tricopter example, tap the end of the tail boom from the side, or command a yaw using your transmitter.
-
-3. If your vehicle oscillates for several seconds or even continues oscillating indefinitely, then the filter cutoff frequency should be reduced. Reduce the value of `servo_lowpass_freq` by half its current value and repeat the previous step.
-
-4. If the oscillations are dampened within roughly a second or are no longer present, then you are done.  Be sure to run `save`.
-
-## Custom Motor Mixing
+## Motor Mixing
 
 Custom motor mixing allows for completely customized motor configurations. Each motor must be defined with a custom mixing table for that motor. The mix must reflect how close each motor is with reference to the CG (Center of Gravity) of the flight controller. A motor closer to the CG of the flight controller will need to travel less distance than a motor further away.  
 
 Steps to configure custom mixer in the CLI:
 
-1. Use `mixer custom` to enable the custom mixing.
-2. Use `mmix reset` to erase any existing custom mixing.
-3. Issue a `mmix` statement for each motor.
+1. Use `mmix reset` to erase any existing custom mixing.
+1. Issue a `mmix` statement for each motor.
 
 The mmix statement has the following syntax: `mmix n THROTTLE ROLL PITCH YAW`
 
@@ -91,7 +39,7 @@ The mmix statement has the following syntax: `mmix n THROTTLE ROLL PITCH YAW`
 
 Note: the `mmix` command may show a motor mix that is not active, custom motor mixes are only active for models that use custom mixers.
 
-## Custom Servo Mixing
+## Servo Mixing
 
 Custom servo mixing rules can be applied to each servo.  Rules are applied in the CLI using `smix`. Rules link flight controller stabilization and receiver signals to physical PWM output pins on the FC board. Currently, pin id's 0 and 1 can only be used for motor outputs. Other pins may or may not work depending on the board you are using.
 
@@ -175,6 +123,34 @@ e.g. when using the TRI mixer to reverse the tail servo on a tricopter use this:
 i.e. when mixing rudder servo slot (`5`) using Stabilised YAW input source (`2`) reverse the direction (`r`)
 
 `smix reverse` is a per-profile setting.  So ensure you configure it for your profiles as required.
+
+## Servo configuration
+
+The cli `servo` command defines the settings for the servo outputs.
+The cli mixer `smix` command controllers how the mixer maps internal FC data (RC input, PID stabilization output, channel forwarding, etc) to servo outputs.
+
+## Servo filtering
+
+A low-pass filter can be enabled for the servos.  It may be useful for avoiding structural modes in the airframe, for example.  
+
+### Configuration
+
+Currently, it can only be configured via the CLI:
+
+Use `set servo_lpf_hz=20` to enable filtering. This will set servo low pass filter to 20Hz.
+
+### Tuning
+
+One method for tuning the filter cutoff is as follows:
+
+1. Ensure your vehicle can move at least somewhat freely in the troublesome axis.  For example, if you are having yaw oscillations on a tricopter, ensure that the copter is supported in a way that allows it to rotate left and right to at least some degree.  Suspension near the CG is ideal.  Alternatively, you can just fly the vehicle and trigger the problematic condition you are trying to eliminate, although tuning will be more tedious.
+
+2. Tap the vehicle at its end in the axis under evaluation.  Directly commanding the servo in question to move may also be used.  In the tricopter example, tap the end of the tail boom from the side, or command a yaw using your transmitter.
+
+3. If your vehicle oscillates for several seconds or even continues oscillating indefinitely, then the filter cutoff frequency should be reduced. Reduce the value of `servo_lowpass_freq` by half its current value and repeat the previous step.
+
+4. If the oscillations are dampened within roughly a second or are no longer present, then you are done.  Be sure to run `save`.
+
 
 ### Example 1: A KK2.0 wired motor setup
 Here's an example of an X configuration quad, but the motors are still wired using the KK board motor numbering scheme.

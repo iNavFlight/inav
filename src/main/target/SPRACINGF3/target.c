@@ -39,9 +39,9 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM2,  IO_TAG(PA1),  TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PWM},                       // RC_CH2
     { TIM2,  IO_TAG(PB11), TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PWM },                      // RC_CH3
     { TIM2,  IO_TAG(PB10), TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PWM },                      // RC_CH4
-    { TIM3,  IO_TAG(PB4),  TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_CHNFW },   // RC_CH5
-    { TIM3,  IO_TAG(PB5),  TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_CHNFW },   // RC_CH6
-    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_CHNFW },   // RC_CH7
-    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_CHNFW },   // RC_CH8
+    { TIM3,  IO_TAG(PB4),  TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_SERVO },   // RC_CH5
+    { TIM3,  IO_TAG(PB5),  TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_SERVO },   // RC_CH6
+    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_SERVO },   // RC_CH7
+    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_SERVO },   // RC_CH8
 };
 

@@ -204,7 +204,7 @@ static void ppmEdgeCallback(timerCCHandlerRec_t* cbRec, captureCompare_t capture
         }
     }
 
-    // Divide by 8 if Oneshot125 is active and this is a CC3D board
+    // Divide to match output protocol
     currentTime = currentTime / ppmCountDivisor;
 
     /* Capture computation */

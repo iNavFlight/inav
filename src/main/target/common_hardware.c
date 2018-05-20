@@ -93,6 +93,12 @@
     #endif
 #endif
 
+#if defined(USE_BARO_LPS25H)
+    #if defined(LPS25H_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_lps25h,      DEVHW_LPS25H,       LPS25H_SPI_BUS,     LPS25H_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_BARO_MS5607)
     #if !defined(MS5607_I2C_BUS)
         #define MS5607_I2C_BUS BARO_I2C_BUS
@@ -150,6 +156,13 @@
         #define IST8310_I2C_BUS MAG_I2C_BUS
     #endif
     BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
+#endif
+
+#if defined(USE_MAG_IST8308)
+    #if !defined(IST8308_I2C_BUS)
+        #define IST8308_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      IST8308_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
 #endif
 
 

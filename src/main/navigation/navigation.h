@@ -62,11 +62,11 @@ enum {
     NAV_HEADING_CONTROL_MANUAL
 };
 
-enum {
-    NAV_RESET_ALTITUDE_NEVER = 0,
-    NAV_RESET_ALTITUDE_ON_FIRST_ARM,
-    NAV_RESET_ALTITUDE_ON_EACH_ARM,
-};
+typedef enum {
+    NAV_RESET_NEVER = 0,
+    NAV_RESET_ON_FIRST_ARM,
+    NAV_RESET_ON_EACH_ARM,
+} nav_reset_type_e;
 
 typedef enum {
     NAV_RTH_ALLOW_LANDING_NEVER = 0,
@@ -76,7 +76,8 @@ typedef enum {
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
-    uint8_t reset_altitude_type;
+    uint8_t reset_altitude_type; // from nav_reset_type_e
+    uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
 
@@ -320,6 +321,12 @@ bool navigationRTHAllowsLanding(void);
 
 bool isNavLaunchEnabled(void);
 
+/* Returns the heading recorded when home position was acquired.
+ * Note that the navigation system uses deg*100 as unit and angles
+ * are in the [0, 360 * 100) interval.
+ */
+int32_t navigationGetHomeHeading(void);
+
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
 
@@ -343,5 +350,6 @@ extern int16_t navAccNEU[3];
 #define getEstimatedActualVelocity(axis) (0)
 #define navigationIsControllingThrottle() (0)
 #define navigationRTHAllowsLanding() (0)
+#define navigationGetHomeHeading(0)
 
 #endif

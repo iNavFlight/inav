@@ -1,6 +1,6 @@
 # Flight controller hardware
 
-The current focus is geared towards flight controller hardware that use the STM32F3, STM32F4, STM32F7 and legacy STM32F1 series processors. The core logic is separated from the hardware drivers, porting to other processors is possible.
+The current focus is geared towards flight controller hardware that use the STM32F3, STM32F4, STM32F7 series processors. The core logic is separated from the hardware drivers, porting to other processors is possible.
 
 ### Boards based on F1 CPUs
 
@@ -48,7 +48,5 @@ These boards will work with INAV but are either end-of-life, limited on features
 | Board name                | CPU Family | Target name(s)            | GPS  | Compass | Barometer      | Telemetry | RX                             | Blackbox             |
 |---------------------------|:----------:|:-------------------------:|:----:|:-------:|:--------------:|:---------:|:------------------------------:|:--------------------:|
 | PARIS Sirius™ AIR HERO    | F1         | AIRHERO3                  | NMEA | HMC5883 | MS5611, BMP280 | LTM       | PWM, PPM, SBUS, IBUS, SPEKTRUM | SERIAL               |
-| OpenPilot CC3D            | F1         | CC3D, CC3D_PPM1           | NMEA | HMC5883 | BMP085, BMP280 | LTM       | PWM, PPM, SBUS, IBUS, SPEKTRUM | no                   |
-| AfroFlight NAZE32         | F1         | NAZE                      | NMEA | HMC5883 | MS5611, BMP280 | LTM       | PWM, PPM, SBUS, IBUS, SPEKTRUM | SERIAL, SPIFLASH     |
 | RMRC Seriously DODO       | F3         | RMDO                      | All  | All     | All            | All       | All                            | SERIAL               |
 | ANYFC                     | F4         | ANYFC                     | All  | All     | All            | All       | All                            | SERIAL               |

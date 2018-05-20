@@ -186,8 +186,10 @@ static void trampCmsInitSettings(void)
     }
 }
 
-static long trampCmsOnEnter(void)
+static long trampCmsOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     trampCmsInitSettings();
     return 0;
 }

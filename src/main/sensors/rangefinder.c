@@ -41,6 +41,7 @@
 #include "drivers/rangefinder/rangefinder_srf10.h"
 #include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
 #include "drivers/rangefinder/rangefinder_vl53l0x.h"
+#include "drivers/rangefinder/rangefinder_virtual.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -48,6 +49,8 @@
 #include "sensors/sensors.h"
 #include "sensors/rangefinder.h"
 #include "sensors/battery.h"
+
+#include "io/rangefinder.h"
 
 #include "scheduler/scheduler.h"
 
@@ -72,18 +75,7 @@ const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
 {
     static rangefinderHardwarePins_t rangefinderHardwarePins;
 
-#if defined(RANGEFINDER_HCSR04_PWM_TRIGGER_PIN)
-    // If we are using softserial, parallel PWM or ADC current sensor, then use motor pins for sonar, otherwise use RC pins
-    if (feature(FEATURE_SOFTSERIAL)
-            || (rxConfig()->receiverType == RX_TYPE_PWM)
-            || (feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC)) {
-        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN_PWM);
-        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN_PWM);
-    } else {
-        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
-        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
-    }
-#elif defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
+#if defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
     rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
     rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
 #else
@@ -138,6 +130,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             if (vl53l0xDetect(dev)) {
                 rangefinderHardware = RANGEFINDER_VL53L0X;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VL53L0X_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+        case RANGEFINDER_MSP:
+#if defined(USE_RANGEFINDER_MSP)
+            if (virtualRangefinderDetect(dev, &rangefinderMSPVtable)) {
+                rangefinderHardware = RANGEFINDER_MSP;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
             }
 #endif
             break;
@@ -322,14 +323,6 @@ bool rangefinderProcess(float cosTiltAngle)
             }
 
         }
-
-        DEBUG_SET(DEBUG_RANGEFINDER, 3, rangefinder.snr);
-
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 0, rangefinder.rawAltitude);
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 1, rangefinder.snrThresholdReached);
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 2, rangefinder.dynamicDistanceThreshold);
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 3, isSurfaceAltitudeValid());
-
     }
     else {
         // Bad configuration
@@ -347,9 +340,6 @@ bool rangefinderProcess(float cosTiltAngle)
     } else {
         rangefinder.calculatedAltitude = rangefinder.rawAltitude * cosTiltAngle;
     }
-
-    DEBUG_SET(DEBUG_RANGEFINDER, 1, rangefinder.rawAltitude);
-    DEBUG_SET(DEBUG_RANGEFINDER, 2, rangefinder.calculatedAltitude);
 
     return true;
 }

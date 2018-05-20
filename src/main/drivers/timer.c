@@ -255,11 +255,6 @@ void timerConfigure(const timerHardware_t *timerHardwarePtr, uint16_t period, ui
 
     // HACK - enable second IRQ on timers that need it
     switch (irq) {
-#if defined(STM32F10X)
-    case TIM1_CC_IRQn:
-        timerNVICConfigure(TIM1_UP_IRQn, NVIC_PRIO_TIMER);
-        break;
-#endif
 #if defined (STM32F40_41xxx) || defined(STM32F411xE) || defined (STM32F427_437xx)
     case TIM1_CC_IRQn:
         timerNVICConfigure(TIM1_UP_TIM10_IRQn, NVIC_PRIO_TIMER);
@@ -273,11 +268,6 @@ void timerConfigure(const timerHardware_t *timerHardwarePtr, uint16_t period, ui
 #ifdef STM32F303xC
     case TIM1_CC_IRQn:
         timerNVICConfigure(TIM1_UP_TIM16_IRQn, NVIC_PRIO_TIMER);
-        break;
-#endif
-#if defined(STM32F10X_XL)
-    case TIM8_CC_IRQn:
-        timerNVICConfigure(TIM8_UP_IRQn, NVIC_PRIO_TIMER);
         break;
 #endif
     }
@@ -623,9 +613,6 @@ static void timCCxHandler(TIM_TypeDef *tim, timerConfig_t *timerConfig)
 
 #if USED_TIMERS & TIM_N(1)
 _TIM_IRQ_HANDLER(TIM1_CC_IRQHandler, 1);
-# if defined(STM32F10X)
-_TIM_IRQ_HANDLER(TIM1_UP_IRQHandler, 1);       // timer can't be shared
-# endif
 # if defined(STM32F40_41xxx) || defined (STM32F411xE)
 #  if USED_TIMERS & TIM_N(10)
 _TIM_IRQ_HANDLER2(TIM1_UP_TIM10_IRQHandler, 1, 10);  // both timers are in use
@@ -655,11 +642,7 @@ _TIM_IRQ_HANDLER(TIM5_IRQHandler, 5);
 #endif
 #if USED_TIMERS & TIM_N(8)
 _TIM_IRQ_HANDLER(TIM8_CC_IRQHandler, 8);
-# if defined(STM32F10X_XL)
-_TIM_IRQ_HANDLER(TIM8_UP_TIM13_IRQHandler, 8);
-# else  // f10x_hd, f30x
 _TIM_IRQ_HANDLER(TIM8_UP_IRQHandler, 8);
-# endif
 # if defined(STM32F40_41xxx)
 #  if USED_TIMERS & TIM_N(13)
 _TIM_IRQ_HANDLER2(TIM8_UP_TIM13_IRQHandler, 8, 13);  // both timers are in use
@@ -692,10 +675,6 @@ _TIM_IRQ_HANDLER(TIM1_TRG_COM_TIM17_IRQHandler, 17);
 void timerInit(void)
 {
     memset(timerConfig, 0, sizeof (timerConfig));
-
-#ifdef CC3D
-    GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
-#endif
 
     /* enable the timer peripherals */
     for (int i = 0; i < USABLE_TIMER_CHANNEL_COUNT; i++) {

@@ -59,6 +59,7 @@
 #include "telemetry/msp_shared.h"
 
 #define SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US 500
+#define SMARTPORT_REST_PERIOD 3 // Needed to avoid lost sensors on FPort, see #3198
 
 // these data identifiers are obtained from https://github.com/opentx/opentx/blob/master/radio/src/telemetry/frsky_hub.h
 enum
@@ -137,6 +138,7 @@ enum
 
 static uint8_t telemetryState = TELEMETRY_STATE_UNINITIALIZED;
 static uint8_t smartPortIdCnt = 0;
+static bool smartPortHasRested = false;
 
 typedef struct smartPortFrame_s {
     uint8_t  sensorId;
@@ -325,6 +327,15 @@ static void smartPortSendMspResponse(uint8_t *data) {
 }
 #endif
 
+static bool smartPortShouldSendGPSData(void)
+{
+    // We send GPS data if the GPS is configured and we have a fix
+    // or the craft has never been armed yet. This way if GPS stops working
+    // while in flight, the user will easily notice because the sensor will stop
+    // updating.
+    return feature(FEATURE_GPS) && (STATE(GPS_FIX) || !ARMING_FLAG(WAS_EVER_ARMED));
+}
+
 void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clearToSend, const uint32_t *requestTimeout)
 {
     if (payload) {
@@ -369,6 +380,14 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
             id = frSkyDataIdTable[smartPortIdCnt];
         }
         smartPortIdCnt++;
+        if (smartPortIdCnt % SMARTPORT_REST_PERIOD == 0) {
+            if (!smartPortHasRested) {
+                smartPortIdCnt--;
+                smartPortHasRested = true;
+                return;
+            }
+            smartPortHasRested = false;
+        }
 
         switch (id) {
             case FSSP_DATAID_VFAS       :
@@ -475,10 +494,9 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                     break;
                 }
             case FSSP_DATAID_T2         :
-                if (sensors(SENSOR_GPS)) {
-#ifdef USE_GPS
+                if (smartPortShouldSendGPSData()) {
                     uint32_t tmpi = 0;
-
+#ifdef USE_GPS
                     // ones and tens columns (# of satellites 0 - 99)
                     tmpi += constrain(gpsSol.numSat, 0, 99);
 
@@ -496,14 +514,11 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                     smartPortSendPackage(id, tmpi);
                     *clearToSend = false;
 #endif
-                } else if (feature(FEATURE_GPS)) {
-                    smartPortSendPackage(id, 0);
-                    *clearToSend = false;
                 }
                 break;
 #ifdef USE_GPS
             case FSSP_DATAID_SPEED      :
-                if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
+                if (smartPortShouldSendGPSData()) {
                     //convert to knots: 1cm/s = 0.0194384449 knots
                     //Speed should be sent in knots/1000 (GPS speed is in cm/s)
                     uint32_t tmpui = gpsSol.groundSpeed * 1944 / 100;
@@ -512,7 +527,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 }
                 break;
             case FSSP_DATAID_LATLONG    :
-                if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
+                if (smartPortShouldSendGPSData()) {
                     uint32_t tmpui = 0;
                     // the same ID is sent twice, one for longitude, one for latitude
                     // the MSB of the sent uint32_t helps FrSky keep track
@@ -532,13 +547,13 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 }
                 break;
             case FSSP_DATAID_HOME_DIST  :
-                if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
+                if (smartPortShouldSendGPSData()) {
                     smartPortSendPackage(id, GPS_distanceToHome);
                      *clearToSend = false;
                 }
                 break;
             case FSSP_DATAID_GPS_ALT    :
-                if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
+                if (smartPortShouldSendGPSData()) {
                     smartPortSendPackage(id, gpsSol.llh.alt); // cm
                     *clearToSend = false;
                 }

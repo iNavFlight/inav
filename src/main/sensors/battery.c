@@ -45,7 +45,7 @@
 
 #define ADCVREF 3300                 // in mV (3300 = 3.3V)
 
-#define VBATT_CELL_FULL_MAX_DIFF 14  // Max difference with cell max voltage for the battery to be considered full (10mV steps)
+#define VBATT_CELL_FULL_MAX_DIFF 10  // Max difference with cell max voltage for the battery to be considered full (10mV steps)
 #define VBATT_PRESENT_THRESHOLD 100  // Minimum voltage to consider battery present
 #define VBATT_STABLE_DELAY 40        // Delay after connecting battery to begin monitoring
 #define VBATT_HYSTERESIS 10          // Batt Hysteresis of +/-100mV for changing battery state
@@ -73,13 +73,14 @@ static int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn fro
 
 batteryState_e batteryState;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryConfig_t, batteryConfig, PG_BATTERY_CONFIG, 2);
 
 PG_RESET_TEMPLATE(batteryConfig_t, batteryConfig,
 
     .voltage = {
         .scale = VBAT_SCALE_DEFAULT,
-        .cellMax = 424,
+        .cellDetect = 430,
+        .cellMax = 420,
         .cellMin = 330,
         .cellWarning = 350
     },
@@ -108,7 +109,7 @@ uint16_t batteryAdcToVoltage(uint16_t src)
 
 int32_t currentSensorToCentiamps(uint16_t src)
 {
-    int32_t microvolts = ((uint32_t)src * ADCVREF * 1000) / 0xFFF - (int32_t)batteryConfig()->current.offset * 1000;
+    int32_t microvolts = ((uint32_t)src * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryConfig()->current.offset * 1000;
     return microvolts / batteryConfig()->current.scale; // current in 0.01A steps
 }
 
@@ -148,7 +149,7 @@ void batteryUpdate(uint32_t vbatTimeDelta)
         delay(VBATT_STABLE_DELAY);
         updateBatteryVoltage(vbatTimeDelta);
 
-        unsigned cells = (batteryAdcToVoltage(vbatLatestADC) / batteryConfig()->voltage.cellMax) + 1;
+        unsigned cells = (batteryAdcToVoltage(vbatLatestADC) / batteryConfig()->voltage.cellDetect) + 1;
         if (cells > 8) cells = 8; // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
 
         batteryCellCount = cells;

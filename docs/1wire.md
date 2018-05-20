@@ -8,29 +8,11 @@ This is the option you need to select for the bootloader:
 
 ![Flashing BlHeli Bootloader](assets/images/blheli-bootloader.png)
 
-Currently supported on the SPRACINGF3, STM32F3DISCOVERY, NAZE32 (including clones such as the FLIP32) and CC3D.
-
-## Wiring
-
-  - For the NAZE, no external wiring is necessary. Simply plug in the board via USB cable.
-
-  - For the CC3D, connect [a USB to UART adapter](http://bit.ly/cf-cp2102) to the flex port.
-
-    - Ensure MSP is enabled on the flex port. Unfortunatly the main port cannot be used in the current configuration due to the inverter on this port.
-
-    - You'll only need this connection to the CC3D, do not plug in the normal USB connection.
-
-    - If you need one, I prefer the [CP2102](http://bit.ly/cf-cp2102) as it is cheap and [the driver](https://www.silabs.com/products/mcu/Pages/USBtoUARTBridgeVCPDrivers.aspx) is readily available.
-
-  - In the case that your board does not power on fully without a battery attached, it is OK to attach the battery before following the steps below. However, it may not be necessary in all cases.
+Currently supported on all boards with at least 128kB of flash memory (all F3, F4 and F7).
 
 ## Usage
 
   - Plug in the USB cable and connect to your board with the INAV configurator.
-
-    - For boards without a built in USB/UART adapter, you'll need to plug an external one in. Here is how you wire up the CC3D. Plug your USB/UART adapter into the Flexi port:
-
-      ![Flashing BlHeli Bootloader](assets/images/serial1wire-cc3d-wiring.jpg)
 
   - Open the BlHeli Suite.
 

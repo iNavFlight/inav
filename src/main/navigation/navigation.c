@@ -1036,7 +1036,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHING(navigatio
     UNUSED(previousState);
 
     if (navConfig()->general.flags.disarm_on_landing) {
-        mwDisarm(DISARM_NAVIGATION);
+        disarm(DISARM_NAVIGATION);
     }
 
     return NAV_FSM_EVENT_SUCCESS;
@@ -1714,6 +1714,8 @@ void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t
     posControl.homeDistance = 0;
     posControl.homeDirection = 0;
 
+    posControl.flags.isHomeValid = true;
+
     // Update target RTH altitude as a waypoint above home
     posControl.homeWaypointAbove = posControl.homePosition;
     updateDesiredRTHAltitude();
@@ -1729,8 +1731,21 @@ void updateHomePosition(void)
 {
     // Disarmed and have a valid position, constantly update home
     if (!ARMING_FLAG(ARMED)) {
-        if ((posControl.flags.estPosStatue >= EST_USABLE)) {
-            setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING );
+        if (posControl.flags.estPosStatue >= EST_USABLE) {
+            bool setHome = !posControl.flags.isHomeValid;
+            switch ((nav_reset_type_e)positionEstimationConfig()->reset_home_type) {
+                case NAV_RESET_NEVER:
+                    break;
+                case NAV_RESET_ON_FIRST_ARM:
+                    setHome |= !ARMING_FLAG(WAS_EVER_ARMED);
+                    break;
+                case NAV_RESET_ON_EACH_ARM:
+                    setHome = true;
+                    break;
+            }
+            if (setHome) {
+                setHomePosition(&posControl.actualState.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            }
         }
     }
     else {
@@ -2309,7 +2324,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
 /*-----------------------------------------------------------
  * Set CF's FLIGHT_MODE from current NAV_MODE
  *-----------------------------------------------------------*/
-void swithNavigationFlightModes(void)
+void switchNavigationFlightModes(void)
 {
     const flightModeFlags_e enabledNavFlightModes = navGetMappedFlightModes(posControl.navState);
     const flightModeFlags_e disabledFlightModes = (NAV_ALTHOLD_MODE | NAV_RTH_MODE | NAV_POSHOLD_MODE | NAV_WP_MODE | NAV_LAUNCH_MODE) & (~enabledNavFlightModes);
@@ -2564,7 +2579,7 @@ void updateWaypointsAndNavigationMode(void)
     processNavigationRCAdjustments();
 
     // Map navMode back to enabled flight modes
-    swithNavigationFlightModes();
+    switchNavigationFlightModes();
 
 #if defined(NAV_BLACKBOX)
     navCurrentState = (int16_t)posControl.navState;
@@ -2713,6 +2728,12 @@ bool isNavLaunchEnabled(void)
 {
     return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
 }
+
+int32_t navigationGetHomeHeading(void)
+{
+    return posControl.homePosition.yaw;
+}
+
 #else // NAV
 
 #ifdef USE_GPS

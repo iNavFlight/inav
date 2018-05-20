@@ -83,7 +83,8 @@
 #define SYM_CELLF      0xC3
 
 // Map mode
-#define SYM_HOME       0x04
+#define SYM_SCALE      175
+#define SYM_HOME       191
 #define SYM_AIRCRAFT   0x05
 #define SYM_RANGE_100  0x21
 #define SYM_RANGE_500  0x22
@@ -184,7 +185,7 @@
 #define SYM_AMP   0x9A
 #define SYM_MAH   0x07
 #define SYM_WH    0xAB
-#define SYM_WATT  0x57
+#define SYM_WATT  0xAE
 
 // Efficiency
 #define SYM_MAH_KM_0    157
@@ -231,5 +232,12 @@
 //sport
 #define SYM_MIN 0xB3
 #define SYM_AVG 0xB4
+
+// Attitude angles
+#define SYM_ROLL_LEFT 0xCC
+#define SYM_ROLL_LEVEL 0xCD
+#define SYM_ROLL_RIGHT 0xCE
+#define SYM_PITCH_UP 0xCF
+#define SYM_PITCH_DOWN 0xDF
 
 #endif // USE_MAX7456

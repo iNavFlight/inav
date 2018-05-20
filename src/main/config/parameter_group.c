@@ -55,7 +55,7 @@ static void pgResetInstance(const pgRegistry_t *reg, uint8_t *base)
         memcpy(base, reg->reset.ptr, regSize);
     } else if (reg->reset.fn) {
         // reset function, call it
-        reg->reset.fn(base, regSize);
+        reg->reset.fn(base);
     }
 }
 

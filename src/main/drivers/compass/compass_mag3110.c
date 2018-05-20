@@ -31,7 +31,6 @@
 #include "common/utils.h"
 
 #include "drivers/time.h"
-#include "drivers/gpio.h"
 #include "drivers/bus.h"
 
 #include "sensors/boardalignment.h"
