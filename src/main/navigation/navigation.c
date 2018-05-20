@@ -1497,9 +1497,26 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
  *-----------------------------------------------------------*/
 void updateActualHeading(bool headingValid, int32_t newHeading)
 {
-    /* Update heading */
+    /* Update heading. Check if we're acquiring a valid heading for the
+     * first time and update home heading accordingly.
+     */
+    navigationEstimateStatus_e newEstHeading = headingValid ? EST_TRUSTED : EST_NONE;
+    if (newEstHeading >= EST_USABLE && posControl.flags.estHeadingStatus < EST_USABLE &&
+        (posControl.homeFlags & (NAV_HOME_VALID_XY | NAV_HOME_VALID_Z)) &&
+        (posControl.homeFlags & NAV_HOME_VALID_HEADING) == 0) {
+
+        int32_t yawRotation = newHeading - posControl.actualState.yaw;
+        posControl.homePosition.yaw += yawRotation;
+        if (posControl.homePosition.yaw < 0) {
+            posControl.homePosition.yaw += DEGREES_TO_CENTIDEGREES(360);
+        }
+        if (posControl.homePosition.yaw >= DEGREES_TO_CENTIDEGREES(360)) {
+            posControl.homePosition.yaw -= DEGREES_TO_CENTIDEGREES(360);
+        }
+        posControl.homeFlags |= NAV_HOME_VALID_HEADING;
+    }
     posControl.actualState.yaw = newHeading;
-    posControl.flags.estHeadingStatus = headingValid ? EST_TRUSTED : EST_NONE;
+    posControl.flags.estHeadingStatus = newEstHeading;
 
     /* Precompute sin/cos of yaw angle */
     posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(newHeading));
@@ -1649,23 +1666,28 @@ void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t
     if ((useMask & NAV_POS_UPDATE_XY) != 0) {
         posControl.homePosition.pos.x = pos->x;
         posControl.homePosition.pos.y = pos->y;
+        posControl.homeFlags |= NAV_HOME_VALID_XY;
     }
 
     // Z-position
     if ((useMask & NAV_POS_UPDATE_Z) != 0) {
         posControl.homePosition.pos.z = pos->z;
+        posControl.homeFlags |= NAV_HOME_VALID_Z;
     }
 
     // Heading
     if ((useMask & NAV_POS_UPDATE_HEADING) != 0) {
         // Heading
         posControl.homePosition.yaw = yaw;
+        if (posControl.flags.estHeadingStatus >= EST_USABLE) {
+            posControl.homeFlags |= NAV_HOME_VALID_HEADING;
+        } else {
+            posControl.homeFlags &= ~NAV_HOME_VALID_HEADING;
+        }
     }
 
     posControl.homeDistance = 0;
     posControl.homeDirection = 0;
-
-    posControl.flags.isHomeValid = true;
 
     // Update target RTH altitude as a waypoint above home
     posControl.homeWaypointAbove = posControl.homePosition;
@@ -1683,7 +1705,8 @@ void updateHomePosition(void)
     // Disarmed and have a valid position, constantly update home
     if (!ARMING_FLAG(ARMED)) {
         if (posControl.flags.estPosStatus >= EST_USABLE) {
-            bool setHome = !posControl.flags.isHomeValid;
+            const navigationHomeFlags_t validHomeFlags = NAV_HOME_VALID_XY | NAV_HOME_VALID_Z;
+            bool setHome = (posControl.homeFlags & validHomeFlags) != validHomeFlags;
             switch ((nav_reset_type_e)positionEstimationConfig()->reset_home_type) {
                 case NAV_RESET_NEVER:
                     break;
