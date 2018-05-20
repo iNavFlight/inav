@@ -91,6 +91,9 @@ tables:
   - name: platform_type
     values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
     enum: flyingPlatformType_e
+  - name: tz_automatic_dst
+    values: ["OFF", "EU", "USA"]
+    enum: tz_automatic_dst_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1545,6 +1548,8 @@ groups:
       - name: tz_offset
         min: -1440
         max: 1440
+      - name: tz_automatic_dst
+        type: uint8_t
 
   - name: PG_DISPLAY_CONFIG
     type: displayConfig_t

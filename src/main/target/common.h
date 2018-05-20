@@ -111,6 +111,9 @@
 #define VTX_SMARTAUDIO
 #define VTX_TRAMP
 
+//Enable DST calculations
+#define RTC_AUTOMATIC_DST
+
 #else // FLASH_SIZE < 128
 #define CLI_MINIMAL_VERBOSITY
 #define SKIP_TASK_STATISTICS
