@@ -121,3 +121,4 @@ void resetAdjustmentStates(void);
 void updateAdjustmentStates(void);
 struct controlRateConfig_s;
 void processRcAdjustments(struct controlRateConfig_s *controlRateConfig);
+bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction);
