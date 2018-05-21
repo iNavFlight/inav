@@ -73,6 +73,7 @@
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
