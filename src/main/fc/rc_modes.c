@@ -161,7 +161,7 @@ void updateUsedModeActivationConditionFlags(void)
 #ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
-                        isModeActivationConditionPresent(BOXNAVWP);
+                        isModeActivationConditionPresent(BOXNAVCRUISE) ||  isModeActivationConditionPresent(BOXNAVWP) ;
 #endif
 }
 

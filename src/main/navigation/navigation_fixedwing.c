@@ -181,7 +181,11 @@ void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
  * Adjusts desired heading from pilot's input
  *-----------------------------------------------------------*/
 bool adjustFixedWingHeadingFromRCInput(void)
-{
+{   
+    if (ABS(rcCommand[YAW]) > rcControlsConfig()->pos_hold_deadband) {
+        return true;
+    }
+    
     return false;
 }
 
@@ -218,7 +222,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     #define TAN_15DEG    0.26795f
     bool needToCalculateCircularLoiter = isApproachingLastWaypoint()
                                             && (distanceToActualTarget <= (navConfig()->fw.loiter_radius / TAN_15DEG))
-                                            && (distanceToActualTarget > 50.0f);
+                                            && (distanceToActualTarget > 50.0f) && !FLIGHT_MODE(NAV_CRUISE_MODE);
 
     // Calculate virtual position for straight movement
     if (needToCalculateCircularLoiter) {
@@ -340,7 +344,7 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
                 // Calculate virtual position target at a distance of forwardVelocity * HZ2S(POSITION_TARGET_UPDATE_RATE_HZ)
                 // Account for pilot's roll input (move position target left/right at max of max_manual_speed)
                 // POSITION_TARGET_UPDATE_RATE_HZ should be chosen keeping in mind that position target shouldn't be reached until next pos update occurs
-                // FIXME: verify the above
+                // FIXME: verify the above-
                 calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2);
 
                 updatePositionHeadingController_FW(currentTimeUs, deltaMicrosPositionUpdate);

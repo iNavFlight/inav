@@ -243,6 +243,7 @@ typedef enum {
     MW_NAV_ERROR_WAIT_FOR_RTH_ALT,    //Waiting to reach RTH Altitude
     MW_NAV_ERROR_GPS_FIX_LOST,        //Gps fix lost, aborting mission
     MW_NAV_ERROR_DISARMED,            //NAV engine disabled due disarm
+    
     MW_NAV_ERROR_LANDING              //Landing
 } navSystemStatus_Error_e;
 
