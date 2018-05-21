@@ -91,7 +91,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     timeDelta_t timeDelta = cmpTimeUs(currentTimeUs, lastUpdateUs);
     // scrap our data and start over if we're taking too long to get a direction change
-    if (lastUpdateUs == 0 || timeDelta > 2 * USECS_PER_SEC) {
+    if (lastUpdateUs == 0 || timeDelta > 10 * USECS_PER_SEC) {
 
         lastUpdateUs = currentTimeUs;
 
