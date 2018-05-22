@@ -1216,6 +1216,9 @@ groups:
       - name: nav_rth_abort_threshold
         field: general.rth_abort_threshold
         max: 65000
+      - name: nav_max_terrain_follow_alt
+        field: general.max_terrain_follow_altitude
+        max: 1000
       - name: nav_rth_altitude
         field: general.rth_altitude
         max: 65000

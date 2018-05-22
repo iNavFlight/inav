@@ -71,9 +71,9 @@ typedef struct navigationFlags_s {
     bool verticalPositionDataConsumed;
 
     navigationEstimateStatus_e estAltStatus;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
-    navigationEstimateStatus_e estPosStatue;        // Indicates that GPS is working (or not)
+    navigationEstimateStatus_e estPosStatus;        // Indicates that GPS is working (or not)
+    navigationEstimateStatus_e estAglStatus;
     navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
-    navigationEstimateStatus_e estSurfaceStatus;
 
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
@@ -131,20 +131,25 @@ typedef struct navigationPIDControllers_s {
 typedef struct {
     fpVector3_t pos;
     fpVector3_t vel;
-    int32_t     yaw;
-    float       sinYaw;
-    float       cosYaw;
-    float       surface;
-    float       surfaceVel;
-    float       surfaceMin;
-    float       velXY;
+} navEstimatedPosVel_t;
+
+typedef struct {
+    // Local estimated states
+    navEstimatedPosVel_t    abs;
+    navEstimatedPosVel_t    agl;
+    int32_t                 yaw;
+
+    // Service values
+    float                   sinYaw;
+    float                   cosYaw;
+    float                   surfaceMin;
+    float                   velXY;
 } navigationEstimatedState_t;
 
 typedef struct {
     fpVector3_t pos;
     fpVector3_t vel;
     int32_t     yaw;
-    float       surface;
 } navigationDesiredState_t;
 
 typedef enum {
@@ -156,7 +161,6 @@ typedef enum {
 
     NAV_FSM_EVENT_SWITCH_TO_IDLE,
     NAV_FSM_EVENT_SWITCH_TO_ALTHOLD,
-    NAV_FSM_EVENT_SWITCH_TO_POSHOLD_2D,
     NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D,
     NAV_FSM_EVENT_SWITCH_TO_RTH,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT,
@@ -179,9 +183,6 @@ typedef enum {
 
     NAV_STATE_ALTHOLD_INITIALIZE,               // 2
     NAV_STATE_ALTHOLD_IN_PROGRESS,              // 3
-
-    NAV_STATE_POSHOLD_2D_INITIALIZE,            // 4
-    NAV_STATE_POSHOLD_2D_IN_PROGRESS,           // 5
 
     NAV_STATE_POSHOLD_3D_INITIALIZE,            // 6
     NAV_STATE_POSHOLD_3D_IN_PROGRESS,           // 7
@@ -302,6 +303,8 @@ typedef struct {
 extern navigationPosControl_t posControl;
 
 /* Internally used functions */
+const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
+
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
 float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler);
 void navPidReset(pidController_t *pid);
