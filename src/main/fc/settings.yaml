@@ -1553,6 +1553,7 @@ groups:
         max: 1440
       - name: tz_automatic_dst
         type: uint8_t
+        table: tz_automatic_dst
 
   - name: PG_DISPLAY_CONFIG
     type: displayConfig_t
