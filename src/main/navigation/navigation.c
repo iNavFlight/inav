@@ -173,7 +173,6 @@ static void setupAltitudeController(void);
 static void resetHeadingController(void);
 void resetGCSFlags(void);
 
-static bool posEstimationHasGlobalReference(void);
 static void calcualteAndSetActiveWaypoint(const navWaypoint_t * waypoint);
 static void calcualteAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos);
 void calculateInitialHoldPosition(fpVector3_t * pos);
@@ -725,7 +724,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 {
     navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
-    if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || !STATE(GPS_FIX_HOME) || !posEstimationHasGlobalReference()) {
+    if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || (posControl.flags.estPosStatus != EST_TRUSTED) || !STATE(GPS_FIX_HOME)) {
         // Heading sensor, altitude sensor and HOME fix are mandatory for RTH. If not satisfied - switch to emergency landing
         // If we are in dead-reckoning mode - also fail, since coordinates may be unreliable
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
@@ -1407,7 +1406,7 @@ bool checkForPositionSensorTimeout(void)
 /*-----------------------------------------------------------
  * Processes an update to XY-position and velocity
  *-----------------------------------------------------------*/
-void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, float newY, float newVelX, float newVelY)
+void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY)
 {
     posControl.actualState.abs.pos.x = newX;
     posControl.actualState.abs.pos.y = newY;
@@ -1421,13 +1420,24 @@ void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, f
 
     posControl.actualState.velXY = sqrtf(sq(newVelX) + sq(newVelY));
 
-    if (estimateValid) {
+    // CASE 1: POS & VEL valid
+    if (estPosValid && estVelValid) {
         posControl.flags.estPosStatus = EST_TRUSTED;
+        posControl.flags.estVelStatus = EST_TRUSTED;
         posControl.flags.horizontalPositionDataNew = 1;
         posControl.lastValidPositionTimeMs = millis();
     }
+    // CASE 1: POS invalid, VEL valid
+    else if (!estPosValid && estVelValid) {
+        posControl.flags.estPosStatus = EST_USABLE;     // Pos usable, but not trusted
+        posControl.flags.estVelStatus = EST_TRUSTED;
+        posControl.flags.horizontalPositionDataNew = 1;
+        posControl.lastValidPositionTimeMs = millis();
+    }
+    // CASE 3: can't use pos/vel data
     else {
         posControl.flags.estPosStatus = EST_NONE;
+        posControl.flags.estVelStatus = EST_NONE;
         posControl.flags.horizontalPositionDataNew = 0;
     }
 
@@ -2006,7 +2016,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     // WP #255 - special waypoint - directly set desiredPosition
     // Only valid when armed and in poshold mode
     else if ((wpNumber == 255) && (wpData->action == NAV_WP_ACTION_WAYPOINT) &&
-             ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus >= EST_USABLE) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
+             ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus == EST_TRUSTED) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
              (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
         // Convert to local coordinates
         geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos, GEO_ALT_RELATIVE);
@@ -2214,7 +2224,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
 #if defined(NAV_BLACKBOX)
     navFlags = 0;
     if (posControl.flags.estAltStatus == EST_TRUSTED)       navFlags |= (1 << 0);
-    if (posControl.flags.estAglStatus == EST_TRUSTED)   navFlags |= (1 << 1);
+    if (posControl.flags.estAglStatus == EST_TRUSTED)       navFlags |= (1 << 1);
     if (posControl.flags.estPosStatus == EST_TRUSTED)       navFlags |= (1 << 2);
 #if defined(NAV_GPS_GLITCH_DETECTION)
     if (isGPSGlitchDetected())                              navFlags |= (1 << 4);
@@ -2285,12 +2295,12 @@ static bool canActivateAltHoldMode(void)
 
 static bool canActivatePosHoldMode(void)
 {
-    return (posControl.flags.estPosStatus >= EST_USABLE) && (posControl.flags.estHeadingStatus >= EST_USABLE);
+    return (posControl.flags.estPosStatus >= EST_USABLE) && (posControl.flags.estVelStatus == EST_TRUSTED) && (posControl.flags.estHeadingStatus >= EST_USABLE);
 }
 
-static bool posEstimationHasGlobalReference(void)
+static bool canActivateNavigationModes(void)
 {
-    return true;    // For now assume that we always have global coordinates available
+    return (posControl.flags.estPosStatus == EST_TRUSTED) && (posControl.flags.estVelStatus == EST_TRUSTED) && (posControl.flags.estHeadingStatus >= EST_USABLE);
 }
 
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
@@ -2306,8 +2316,9 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // Flags if we can activate certain nav modes (check if we have required sensors and they provide valid data)
-        bool canActivateAltHold = canActivateAltHoldMode();
-        bool canActivatePosHold = canActivatePosHoldMode();
+        bool canActivateAltHold    = canActivateAltHoldMode();
+        bool canActivatePosHold    = canActivatePosHoldMode();
+        bool canActivateNavigation = canActivateNavigationModes();
 
         // LAUNCH mode has priority over any other NAV mode
         if (STATE(FIXED_WING)) {
@@ -2330,7 +2341,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // RTH/Failsafe_RTH can override MANUAL
-        if (posControl.flags.forcedRTHActivated || (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME))) {
+        if (posControl.flags.forcedRTHActivated || (IS_RC_MODE_ACTIVE(BOXNAVRTH) && canActivatePosHold && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME))) {
             // If we request forced RTH - attempt to activate it no matter what
             // This might switch to emergency landing controller if GPS is unavailable
             canActivateWaypoint = false;    // Block WP mode if we switched to RTH for whatever reason
@@ -2344,7 +2355,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         if (IS_RC_MODE_ACTIVE(BOXNAVWP)) {
-            if ((FLIGHT_MODE(NAV_WP_MODE)) || (posEstimationHasGlobalReference() && canActivateWaypoint && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME) && ARMING_FLAG(ARMED) && posControl.waypointListValid && (posControl.waypointCount > 0)))
+            if ((FLIGHT_MODE(NAV_WP_MODE)) || (canActivateNavigation && canActivateWaypoint && canActivatePosHold && canActivateAltHold && STATE(GPS_FIX_HOME) && ARMING_FLAG(ARMED) && posControl.waypointListValid && (posControl.waypointCount > 0)))
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
         }
         else {
@@ -2583,6 +2594,7 @@ void navigationInit(void)
 
     posControl.flags.estAltStatus = EST_NONE;
     posControl.flags.estPosStatus = EST_NONE;
+    posControl.flags.estVelStatus = EST_NONE;
     posControl.flags.estHeadingStatus = EST_NONE;
     posControl.flags.estAglStatus = EST_NONE;
 

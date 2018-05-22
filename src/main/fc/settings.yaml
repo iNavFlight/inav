@@ -67,7 +67,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "SBUS", "FPORT", "ALWAYS", "STAGE2"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -231,6 +231,9 @@ groups:
     members:
       - name: opflow_hardware
         table: opflow_hardware
+      - name: opflow_align
+        type: uint8_t
+        table: alignment
       - name: opflow_scale
         min: 0
         max: 10000
@@ -1075,6 +1078,9 @@ groups:
       - name: inav_use_gps_velned
         field: use_gps_velned
         type: bool
+      - name: inav_allow_dead_reckoning
+        field: allow_dead_reckoning
+        type: bool
       - name: inav_reset_altitude
         field: reset_altitude_type
         table: reset_type
@@ -1091,6 +1097,14 @@ groups:
         max: 10
       - name: inav_w_z_surface_v
         field: w_z_surface_v
+        min: 0
+        max: 10
+      - name: inav_w_xy_flow_p
+        field: w_xy_flow_p
+        min: 0
+        max: 10
+      - name: inav_w_xy_flow_v
+        field: w_xy_flow_v
         min: 0
         max: 10
       - name: inav_w_z_baro_p

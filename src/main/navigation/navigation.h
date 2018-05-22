@@ -80,6 +80,7 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
+    uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
 
@@ -93,6 +94,9 @@ typedef struct positionEstimationConfig_s {
 
     float w_xy_gps_p;   // Weight (cutoff frequency) for GPS position measurements
     float w_xy_gps_v;   // Weight (cutoff frequency) for GPS velocity measurements
+
+    float w_xy_flow_p;
+    float w_xy_flow_v;
 
     float w_z_res_v;    // When velocity sources lost slowly decrease estimated velocity with this weight
     float w_xy_res_v;
@@ -279,9 +283,20 @@ bool navIsCalibrationComplete(void);
 bool navigationTerrainFollowingEnabled(void);
 
 /* Access to estimated position and velocity */
+typedef struct {
+    uint8_t altStatus;
+    uint8_t posStatus;
+    uint8_t velStatus;
+    uint8_t aglStatus;
+    fpVector3_t pos;
+    fpVector3_t vel;
+    float agl;
+} navPositionAndVelocity_t;
+
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
 int32_t getTotalTravelDistance(void);
+void getEstimatedPositionAndVelocity(navPositionAndVelocity_t * pos);
 
 /* Waypoint list access functions */
 int getWaypointCount(void);

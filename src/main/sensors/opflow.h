@@ -43,8 +43,8 @@ typedef enum {
 
 typedef struct opticalFlowConfig_s  {
     uint8_t opflow_hardware;
-    float   opflow_scale;       // Scaler value to convert between raw sensor units to [deg/s]
     uint8_t opflow_align;
+    float   opflow_scale;       // Scaler value to convert between raw sensor units to [deg/s]
 } opticalFlowConfig_t;
 
 PG_DECLARE(opticalFlowConfig_t, opticalFlowConfig);
