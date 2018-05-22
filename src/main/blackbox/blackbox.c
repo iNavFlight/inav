@@ -1434,6 +1434,13 @@ static bool blackboxWriteSysinfo(void)
 #ifdef NAV_BLACKBOX
         BLACKBOX_PRINT_HEADER_LINE("waypoints", "%d,%d",                    getWaypointCount(),isWaypointListValid());
 #endif
+        BLACKBOX_PRINT_HEADER_LINE("acc_notch_hz", "%d",                    accelerometerConfig()->acc_notch_hz);
+        BLACKBOX_PRINT_HEADER_LINE("acc_notch_cutoff", "%d",                accelerometerConfig()->acc_notch_cutoff);
+        BLACKBOX_PRINT_HEADER_LINE("gyro_stage2_lowpass_hz", "%d",          gyroConfig()->gyro_stage2_lowpass_hz);
+        BLACKBOX_PRINT_HEADER_LINE("dterm_setpoint_weight", "%d",           pidProfile()->dterm_setpoint_weight);
+        BLACKBOX_PRINT_HEADER_LINE("pidSumLimit", "%d",                     pidProfile()->pidSumLimit);
+        BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitYaw", "%d",        pidProfile()->axisAccelerationLimitYaw);
+        BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitRollPitch", "%d",  pidProfile()->axisAccelerationLimitRollPitch);
         default:
             return true;
     }
