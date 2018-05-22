@@ -1505,8 +1505,12 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
         (posControl.homeFlags & (NAV_HOME_VALID_XY | NAV_HOME_VALID_Z)) &&
         (posControl.homeFlags & NAV_HOME_VALID_HEADING) == 0) {
 
-        int32_t yawRotation = newHeading - posControl.actualState.yaw;
-        posControl.homePosition.yaw += yawRotation;
+        // Home was stored using the fake heading (assuming boot as 0deg). Calculate
+        // the offset from the fake to the actual yaw and apply the same rotation
+        // to the home point.
+        int32_t fakeToRealYawOffset = newHeading - posControl.actualState.yaw;
+
+        posControl.homePosition.yaw += fakeToRealYawOffset;
         if (posControl.homePosition.yaw < 0) {
             posControl.homePosition.yaw += DEGREES_TO_CENTIDEGREES(360);
         }
