@@ -403,6 +403,14 @@ groups:
         field: motorPwmRate
         min: 50
         max: 32000
+      - name: motor_accel_time
+        field: motorAccelTimeMs
+        min: 0
+        max: 1000
+      - name: motor_decel_time
+        field: motorDecelTimeMs
+        min: 0
+        max: 1000
       - name: motor_pwm_protocol
         field: motorPwmProtocol
         table: motor_pwm_protocol
