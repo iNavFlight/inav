@@ -67,6 +67,7 @@ typedef enum {
     NAV_HOME_VALID_XY = 1 << 0,
     NAV_HOME_VALID_Z = 1 << 1,
     NAV_HOME_VALID_HEADING = 1 << 2,
+    NAV_HOME_VALID_ALL = NAV_HOME_VALID_XY | NAV_HOME_VALID_Z | NAV_HOME_VALID_HEADING,
 } navigationHomeFlags_t;
 
 typedef struct navigationFlags_s {
@@ -325,7 +326,7 @@ bool isLandingDetected(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
-void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
+void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
