@@ -81,6 +81,8 @@ typedef enum {
     OSD_MAP_TAKEOFF,
     OSD_RADAR,
     OSD_DEBUG, // Number 46. Intentionally absent from configurator and CMS. Set it from CLI.
+    OSD_WIND_SPEED_HORIZONTAL,
+    OSD_WIND_SPEED_VERTICAL,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

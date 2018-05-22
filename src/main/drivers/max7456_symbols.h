@@ -112,10 +112,6 @@
 #define SYM_HOME_DIST 0xA0
 #define SYM_TRIP_DIST 0x22
 
-// Gimbal active Mode
-#define SYM_GIMBAL  0x16
-#define SYM_GIMBAL1 0x17
-
 // AH Center screen Graphics
 #define SYM_AH_CENTER_LINE        0x26
 #define SYM_AH_CENTER_LINE_RIGHT  0x27
@@ -221,10 +217,10 @@
 // Menu cursor
 #define SYM_CURSOR SYM_AH_LEFT
 
-// Air speed
+// Air speed and wind
 #define SYM_AIR 151
-#define SYM_WIND_HORIZONTAL 171
-#define SYM_WIND_VERTICAL 172
+#define SYM_WIND_HORIZONTAL  22
+#define SYM_WIND_VERTICAL    23
 
 //Misc
 #define SYM_COLON 0x2D
