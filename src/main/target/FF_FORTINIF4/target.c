@@ -24,7 +24,7 @@
 
 #define TIM_EN      TIMER_OUTPUT_ENABLED
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM3, IO_TAG(PB0), TIM_Channel_3, TIM_EN, IOCFG_AF_PP, GPIO_AF_TIM3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // S1_OUT
     { TIM3, IO_TAG(PB1), TIM_Channel_4, TIM_EN, IOCFG_AF_PP, GPIO_AF_TIM3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // S2_OUT
     { TIM2, IO_TAG(PA2), TIM_Channel_3, TIM_EN, IOCFG_AF_PP, GPIO_AF_TIM2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // S3_OUT
@@ -38,3 +38,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 //    DEF_TIM(TIM4, CH4, PB9, TIM_USE_PPM,   TIMER_INPUT_ENABLED, 0 ),   // PPM IN
 //    DEF_TIM(TIM4, CH2, PB7, TIM_USE_LED,   TIMER_OUTPUT_STANDARD, 0),  // LED    - DMA1_ST3
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

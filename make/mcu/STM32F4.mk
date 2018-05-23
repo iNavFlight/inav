@@ -160,6 +160,8 @@ MCU_COMMON_SRC = \
             drivers/serial_softserial.c \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
+            drivers/timer.c \
+            drivers/timer_impl_stdperiph.c \
             drivers/timer_stm32f4xx.c \
             drivers/dma_stm32f4xx.c
 

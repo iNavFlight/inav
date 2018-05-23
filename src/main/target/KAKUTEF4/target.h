@@ -170,11 +170,7 @@
 
 
 #ifdef KAKUTEF4V2
-#   define USABLE_TIMER_CHANNEL_COUNT 6
 #   define MAX_PWM_OUTPUT_PORTS       4
-#   define USED_TIMERS  ( TIM_N(2) | TIM_N(3) |  TIM_N(8))
 #else
-#   define USABLE_TIMER_CHANNEL_COUNT 8
 #   define MAX_PWM_OUTPUT_PORTS       6
-#   define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(5)  |  TIM_N(8))
 #endif

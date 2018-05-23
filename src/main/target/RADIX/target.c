@@ -24,7 +24,7 @@
 #include "drivers/timer.h"
 
 /* TIMERS */
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM12, IO_TAG(PB14), TIM_Channel_1, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM12, TIM_USE_PPM },
     { TIM5,  IO_TAG(PA2),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM5,  TIM_USE_MC_MOTOR }, // S3_OUT
     { TIM5,  IO_TAG(PA3),  TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM5,  TIM_USE_MC_MOTOR }, // S4_OUT
@@ -33,3 +33,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM8,  TIM_USE_MC_MOTOR }, // S5_OUT
     { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR }, // S6_OUT
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

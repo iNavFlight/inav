@@ -2517,6 +2517,20 @@ static void cliVersion(char *cmdline)
     );
 }
 
+static void cliMemory(char *cmdline)
+{
+    UNUSED(cmdline);
+    cliPrintLinef("Dynamic memory usage:");
+    for (unsigned i = 0; i < OWNER_TOTAL_COUNT; i++) {
+        const char * owner = ownerNames[i];
+        const uint32_t memUsed = memGetUsedBytesByOwner(i);
+
+        if (memUsed) {
+            cliPrintLinef("%s : %d bytes", owner, memUsed);
+        }
+    }
+}
+
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
 static void cliResource(char *cmdline)
 {
@@ -2773,6 +2787,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
+    CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
     CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),

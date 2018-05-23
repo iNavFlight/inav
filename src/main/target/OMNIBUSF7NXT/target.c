@@ -53,7 +53,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,
 
 //BUSDEV_REGISTER_SPI(busdev_lps25h,      DEVHW_LPS25H,       LPS25H_SPI_BUS,     LPS25H_CS_PIN,      NONE,           DEVFLAGS_NONE);
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM,       0), // PPM
 
     // OUTPUT 1-4
@@ -70,3 +70,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM1, CH2, PA9, TIM_USE_LED,        1),     // LED
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_ANY,        0)      // SS1 TX
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

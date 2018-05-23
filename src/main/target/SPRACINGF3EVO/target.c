@@ -22,7 +22,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     // PPM / UART2 RX
     { TIM8,  IO_TAG(PA15), TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_PPM },  // PPM
 
@@ -47,3 +47,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     // IR / LED Strip Pad
     { TIM1,  IO_TAG(PA8),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6, TIM_USE_LED },  // GPIO_TIMER / LED_STRIP
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

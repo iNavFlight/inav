@@ -111,9 +111,6 @@
 #define TARGET_IO_PORTC         (BIT(13)|BIT(14)|BIT(15))
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
 
-#define USABLE_TIMER_CHANNEL_COUNT 7
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(17))
-
 // sn dec06.16 added MAX_PWM_OUTPUT_PORTS: number of available PWM outputs
 // porting inav to PIKO BLX by using betaflight target files from before inav changes to timer.h/timer_def.h
 // review of target.c shows definitions for PWB1-PWM9. PWM9 is for PPM input

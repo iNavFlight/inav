@@ -73,6 +73,7 @@ MCU_COMMON_SRC = \
             drivers/dma.c \
             drivers/serial_uart_stm32f30x.c \
             drivers/system_stm32f30x.c \
+            drivers/timer_impl_stdperiph.c \
             drivers/timer_stm32f30x.c
 
 DSP_LIB := $(ROOT)/lib/main/CMSIS/DSP

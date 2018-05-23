@@ -21,15 +21,15 @@
 
 #include "platform.h"
 
+#include "common/memory.h"
 #include "drivers/io.h"
-#include "io_impl.h"
-#include "timer.h"
-
+#include "drivers/io_impl.h"
+#include "drivers/timer.h"
 #include "drivers/logging.h"
 
-#include "pwm_output.h"
-#include "pwm_mapping.h"
-#include "rx_pwm.h"
+#include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/rx_pwm.h"
 
 enum {
     MAP_TO_NONE,
@@ -59,12 +59,13 @@ bool CheckGPIOPinSource(ioTag_t tag, GPIO_TypeDef *gpio, uint16_t pin)
 pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 {
     memset(&pwmIOConfiguration, 0, sizeof(pwmIOConfiguration));
+    pwmIOConfiguration.ioConfigurations = memAllocate(sizeof(pwmPortConfiguration_t) * timerHardwareCount, OWNER_PWMIO);
 
 #if defined(USE_RX_PWM) || defined(USE_RX_PPM)
     int channelIndex = 0;
 #endif
 
-    for (int timerIndex = 0; timerIndex < USABLE_TIMER_CHANNEL_COUNT; timerIndex++) {
+    for (int timerIndex = 0; timerIndex < timerHardwareCount; timerIndex++) {
         const timerHardware_t *timerHardwarePtr = &timerHardware[timerIndex];
         int type = MAP_TO_NONE;
 
