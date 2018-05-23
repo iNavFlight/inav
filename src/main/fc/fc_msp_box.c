@@ -181,12 +181,18 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
 
-    if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
+    // if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || 
+        // ((1) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || 
+        // (STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
+    if (sensors(SENSOR_ACC)) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
-        activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+
+        if (feature(FEATURE_GPS)) {
+            activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+        }
     }
 #endif
 
