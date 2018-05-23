@@ -28,6 +28,7 @@
 
 #include <platform.h>
 
+#include "common/memory.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
 #include "drivers/nvic.h"
@@ -139,21 +140,23 @@ void serialUARTInit(IO_t tx, IO_t rx, portMode_t mode, portOptions_t options, ui
 }
 
 #ifdef USE_UART1
-uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t options)
+uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t options, uint32_t rxBufSize, uint32_t txBufSize)
 {
     uartPort_t *s;
-    static volatile uint8_t rx1Buffer[UART1_RX_BUFFER_SIZE];
-    static volatile uint8_t tx1Buffer[UART1_TX_BUFFER_SIZE];
 
     s = &uartPort1;
     s->port.vTable = uartVTable;
 
     s->port.baudRate = baudRate;
 
-    s->port.rxBuffer = rx1Buffer;
-    s->port.txBuffer = tx1Buffer;
-    s->port.rxBufferSize = UART1_RX_BUFFER_SIZE;
-    s->port.txBufferSize = UART1_TX_BUFFER_SIZE;
+    s->port.rxBuffer = memAllocate(rxBufSize, OWNER_SERIAL);
+    s->port.txBuffer = memAllocate(txBufSize, OWNER_SERIAL);
+    s->port.rxBufferSize = rxBufSize;
+    s->port.txBufferSize = txBufSize;
+
+    if (s->port.rxBuffer == NULL || s->port.txBuffer == NULL) {
+        return NULL;
+    }
 
 #ifdef USE_UART1_RX_DMA
     s->rxDMAChannel = DMA1_Channel5;
@@ -187,21 +190,23 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
 #endif
 
 #ifdef USE_UART2
-uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t options)
+uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t options, uint32_t rxBufSize, uint32_t txBufSize)
 {
     uartPort_t *s;
-    static volatile uint8_t rx2Buffer[UART2_RX_BUFFER_SIZE];
-    static volatile uint8_t tx2Buffer[UART2_TX_BUFFER_SIZE];
 
     s = &uartPort2;
     s->port.vTable = uartVTable;
 
     s->port.baudRate = baudRate;
 
-    s->port.rxBufferSize = UART2_RX_BUFFER_SIZE;
-    s->port.txBufferSize = UART2_TX_BUFFER_SIZE;
-    s->port.rxBuffer = rx2Buffer;
-    s->port.txBuffer = tx2Buffer;
+    s->port.rxBuffer = memAllocate(rxBufSize, OWNER_SERIAL);
+    s->port.txBuffer = memAllocate(txBufSize, OWNER_SERIAL);
+    s->port.rxBufferSize = rxBufSize;
+    s->port.txBufferSize = txBufSize;
+
+    if (s->port.rxBuffer == NULL || s->port.txBuffer == NULL) {
+        return NULL;
+    }
 
     s->USARTx = USART2;
 
@@ -242,21 +247,23 @@ uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t option
 #endif
 
 #ifdef USE_UART3
-uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t options)
+uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t options, uint32_t rxBufSize, uint32_t txBufSize)
 {
     uartPort_t *s;
-    static volatile uint8_t rx3Buffer[UART3_RX_BUFFER_SIZE];
-    static volatile uint8_t tx3Buffer[UART3_TX_BUFFER_SIZE];
 
     s = &uartPort3;
     s->port.vTable = uartVTable;
 
     s->port.baudRate = baudRate;
 
-    s->port.rxBufferSize = UART3_RX_BUFFER_SIZE;
-    s->port.txBufferSize = UART3_TX_BUFFER_SIZE;
-    s->port.rxBuffer = rx3Buffer;
-    s->port.txBuffer = tx3Buffer;
+    s->port.rxBuffer = memAllocate(rxBufSize, OWNER_SERIAL);
+    s->port.txBuffer = memAllocate(txBufSize, OWNER_SERIAL);
+    s->port.rxBufferSize = rxBufSize;
+    s->port.txBufferSize = txBufSize;
+
+    if (s->port.rxBuffer == NULL || s->port.txBuffer == NULL) {
+        return NULL;
+    }
 
     s->USARTx = USART3;
 
@@ -297,28 +304,31 @@ uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t option
 #endif
 
 #ifdef USE_UART4
-uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t options)
+uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t options, uint32_t rxBufSize, uint32_t txBufSize)
 {
     uartPort_t *s;
-    static volatile uint8_t rx4Buffer[UART4_RX_BUFFER_SIZE];
-    static volatile uint8_t tx4Buffer[UART4_TX_BUFFER_SIZE];
-    NVIC_InitTypeDef NVIC_InitStructure;
 
     s = &uartPort4;
     s->port.vTable = uartVTable;
 
     s->port.baudRate = baudRate;
 
-    s->port.rxBufferSize = UART4_RX_BUFFER_SIZE;
-    s->port.txBufferSize = UART4_TX_BUFFER_SIZE;
-    s->port.rxBuffer = rx4Buffer;
-    s->port.txBuffer = tx4Buffer;
+    s->port.rxBuffer = memAllocate(rxBufSize, OWNER_SERIAL);
+    s->port.txBuffer = memAllocate(txBufSize, OWNER_SERIAL);
+    s->port.rxBufferSize = rxBufSize;
+    s->port.txBufferSize = txBufSize;
+
+    if (s->port.rxBuffer == NULL || s->port.txBuffer == NULL) {
+        return NULL;
+    }
 
     s->USARTx = UART4;
 
     RCC_ClockCmd(RCC_APB1(UART4), ENABLE);
 
     serialUARTInit(IOGetByTag(IO_TAG(UART4_TX_PIN)), IOGetByTag(IO_TAG(UART4_RX_PIN)), mode, options, GPIO_AF_5, 4);
+
+    NVIC_InitTypeDef NVIC_InitStructure;
 
     NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SERIALUART4);
@@ -331,28 +341,31 @@ uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t option
 #endif
 
 #ifdef USE_UART5
-uartPort_t *serialUART5(uint32_t baudRate, portMode_t mode, portOptions_t options)
+uartPort_t *serialUART5(uint32_t baudRate, portMode_t mode, portOptions_t options, uint32_t rxBufSize, uint32_t txBufSize)
 {
     uartPort_t *s;
-    static volatile uint8_t rx5Buffer[UART5_RX_BUFFER_SIZE];
-    static volatile uint8_t tx5Buffer[UART5_TX_BUFFER_SIZE];
-    NVIC_InitTypeDef NVIC_InitStructure;
 
     s = &uartPort5;
     s->port.vTable = uartVTable;
 
     s->port.baudRate = baudRate;
 
-    s->port.rxBufferSize = UART5_RX_BUFFER_SIZE;
-    s->port.txBufferSize = UART5_TX_BUFFER_SIZE;
-    s->port.rxBuffer = rx5Buffer;
-    s->port.txBuffer = tx5Buffer;
+    s->port.rxBuffer = memAllocate(rxBufSize, OWNER_SERIAL);
+    s->port.txBuffer = memAllocate(txBufSize, OWNER_SERIAL);
+    s->port.rxBufferSize = rxBufSize;
+    s->port.txBufferSize = txBufSize;
+
+    if (s->port.rxBuffer == NULL || s->port.txBuffer == NULL) {
+        return NULL;
+    }
 
     s->USARTx = UART5;
 
     RCC_ClockCmd(RCC_APB1(UART5), ENABLE);
 
     serialUARTInit(IOGetByTag(IO_TAG(UART5_TX_PIN)), IOGetByTag(IO_TAG(UART5_RX_PIN)), mode, options, GPIO_AF_5, 5);
+
+    NVIC_InitTypeDef NVIC_InitStructure;
 
     NVIC_InitStructure.NVIC_IRQChannel = UART5_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(NVIC_PRIO_SERIALUART5);

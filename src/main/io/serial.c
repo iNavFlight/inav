@@ -25,6 +25,7 @@
 
 
 #include "common/utils.h"
+#include "common/maths.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -94,6 +95,28 @@ const serialPortIdentifier_e serialPortIdentifiers[SERIAL_PORT_COUNT] = {
 #endif
 };
 
+#define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_DEBUG_TRACE)
+
+typedef struct {
+    serialPortFunction_e functionMask;
+    uint16_t txBufferSize;
+    uint16_t rxBufferSize;
+} serialPortFunctionRequirements_t;
+
+const serialPortFunctionRequirements_t serialPortFunctionRequirements[] = {
+    { .functionMask = FUNCTION_MSP,                                 .txBufferSize = 256, .rxBufferSize = 256 },
+    { .functionMask = FUNCTION_GPS,                                 .txBufferSize = 64,  .rxBufferSize = 256 },
+    { .functionMask = ALL_TELEMETRY_FUNCTIONS_MASK,                 .txBufferSize = 64,  .rxBufferSize = 16  },
+    { .functionMask = FUNCTION_RX_SERIAL,                           .txBufferSize = 64,  .rxBufferSize = 64  },
+    { .functionMask = FUNCTION_BLACKBOX,                            .txBufferSize = 256, .rxBufferSize = 16  },
+    { .functionMask = FUNCTION_RCDEVICE,                            .txBufferSize = 64,  .rxBufferSize = 64  },
+    { .functionMask = FUNCTION_VTX_SMARTAUDIO | FUNCTION_VTX_TRAMP, .txBufferSize = 64,  .rxBufferSize = 64  },
+    { .functionMask = FUNCTION_UAV_INTERCONNECT,                    .txBufferSize = 128, .rxBufferSize = 128 },
+    { .functionMask = FUNCTION_OPTICAL_FLOW,                        .txBufferSize = 16,  .rxBufferSize = 64  },
+    { .functionMask = FUNCTION_DEBUG_TRACE,                         .txBufferSize = 256, .rxBufferSize = 16  }
+};
+
 static uint8_t serialPortCount;
 
 const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000,
@@ -148,6 +171,24 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 #endif
 
     serialConfig->reboot_character = 'R';
+}
+
+static serialPortFunctionRequirements_t * calculateFunctionRequirements(serialPortFunction_e functionMask)
+{
+    static serialPortFunctionRequirements_t req;
+
+    // Request some small buffer by default
+    req.rxBufferSize = 8;
+    req.txBufferSize = 8;
+
+    for (unsigned i = 0; i < ARRAYLEN(serialPortFunctionRequirements); i++) {
+        if ((serialPortFunctionRequirements[i].functionMask & functionMask) != 0) {
+            req.rxBufferSize = MAX(req.rxBufferSize, serialPortFunctionRequirements[i].rxBufferSize);
+            req.txBufferSize = MAX(req.txBufferSize, serialPortFunctionRequirements[i].txBufferSize);
+        }
+    }
+
+    return &req;
 }
 
 baudRate_e lookupBaudRateIndex(uint32_t baudRate)
@@ -262,9 +303,6 @@ serialPort_t *findNextSharedSerialPort(uint16_t functionMask, serialPortFunction
     return NULL;
 }
 
-#define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
-#define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_DEBUG_TRACE)
-
 bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 {
     UNUSED(serialConfigToCheck);
@@ -344,11 +382,15 @@ serialPort_t *openSerialPort(
     UNUSED(options);
 #endif
 
-    serialPortUsage_t *serialPortUsage = findSerialPortUsageByIdentifier(identifier);
-    if (!serialPortUsage || serialPortUsage->function != FUNCTION_NONE) {
+    serialPortConfig_t * serialPortConfig = serialFindPortConfiguration(identifier);
+    serialPortUsage_t * serialPortUsage = findSerialPortUsageByIdentifier(identifier);
+    if (!serialPortUsage || !serialPortConfig || serialPortUsage->function != FUNCTION_NONE) {
         // not available / already in use
         return NULL;
     }
+
+    // Calculate buffer requirements
+    serialPortFunctionRequirements_t * req = calculateFunctionRequirements(serialPortConfig->functionMask);
 
     serialPort_t *serialPort = NULL;
 
@@ -360,42 +402,42 @@ serialPort_t *openSerialPort(
 #endif
 #ifdef USE_UART1
         case SERIAL_PORT_USART1:
-            serialPort = uartOpen(USART1, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(USART1, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_UART2
         case SERIAL_PORT_USART2:
-            serialPort = uartOpen(USART2, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(USART2, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_UART3
         case SERIAL_PORT_USART3:
-            serialPort = uartOpen(USART3, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(USART3, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_UART4
         case SERIAL_PORT_USART4:
-            serialPort = uartOpen(UART4, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(UART4, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_UART5
         case SERIAL_PORT_USART5:
-            serialPort = uartOpen(UART5, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(UART5, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_UART6
         case SERIAL_PORT_USART6:
-            serialPort = uartOpen(USART6, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(USART6, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_UART7
         case SERIAL_PORT_USART7:
-            serialPort = uartOpen(UART7, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(UART7, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_UART8
         case SERIAL_PORT_USART8:
-            serialPort = uartOpen(UART8, rxCallback, rxCallbackData, baudRate, mode, options);
+            serialPort = uartOpen(UART8, rxCallback, rxCallbackData, baudRate, mode, options, req->rxBufferSize, req->txBufferSize);
             break;
 #endif
 #ifdef USE_SOFTSERIAL1
