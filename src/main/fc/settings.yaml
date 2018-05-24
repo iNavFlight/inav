@@ -480,6 +480,10 @@ groups:
       - name: motor_pwm_protocol
         field: motorPwmProtocol
         table: motor_pwm_protocol
+      - name: throttle_full_bat_limit
+        field: throttleFullBatLimit
+        min: PWM_RANGE_MIN
+        max: PWM_RANGE_MAX
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
