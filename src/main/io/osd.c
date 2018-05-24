@@ -373,7 +373,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             suffix = SYM_MPH;
             break;
         case OSD_UNIT_METRIC:
-            centivalue = (ws * 36) / 10;;
+            centivalue = (ws * 36) / 10;
             suffix = SYM_KMH;
             break;
     }
