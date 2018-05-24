@@ -91,17 +91,20 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 #define DEFAULT_MIN_THROTTLE    1150
 #endif
 
+#define DEFAULT_MAX_THROTTLE    1850
+
 PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 2);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .minthrottle = DEFAULT_MIN_THROTTLE,
     .motorPwmProtocol = DEFAULT_PWM_PROTOCOL,
     .motorPwmRate = DEFAULT_PWM_RATE,
-    .maxthrottle = 1850,
+    .maxthrottle = DEFAULT_MAX_THROTTLE,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
-    .digitalIdleOffsetValue = 450   // Same scale as in Betaflight
+    .digitalIdleOffsetValue = 450,   // Same scale as in Betaflight
+    .throttleFullBatLimit = DEFAULT_MAX_THROTTLE
 );
 
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
@@ -349,9 +352,18 @@ void mixTable(const float dT)
         throttleMin = motorConfig()->minthrottle;
         throttleMax = motorConfig()->maxthrottle;
 
-        // Throttle compensation based on battery voltage
-        if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
-            throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+        if (isAmperageConfigured() && feature(FEATURE_VBAT)) {
+
+            // Throttle scaling to limit max throttle when battery is full
+            if (feature(FEATURE_THR_SCALING))
+                throttleCommand = scaleRange(throttleCommand - throttleMin, 0, throttleMax - throttleMin, 0, motorConfig()->throttleFullBatLimit - throttleMin) + throttleMin;
+
+            // Throttle compensation based on battery voltage
+            if (feature(FEATURE_THR_VBAT_COMP))
+                throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+
+        }
+
     }
 
     throttleRange = throttleMax - throttleMin;
