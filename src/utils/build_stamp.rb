@@ -65,7 +65,9 @@ class Stamper
         output = File.join(@stamp_dir, "stamp")
         stdout, stderr = @compiler.run(input, output, ["-dM", "-E"])
         File.delete(input)
-        File.delete(output)
+        if File.file?(output)
+            File.delete(output)
+        end
         return Digest::SHA1.hexdigest(stdout)
     end
 end
