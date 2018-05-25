@@ -1384,6 +1384,9 @@ groups:
         field: fw.cruise_yaw_rate
         min: 0
         max: 60
+      - name: nav_fw_allow_manual_thr_increase
+        field: fw.allow_manual_thr_increase
+        type: bool
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t

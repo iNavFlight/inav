@@ -750,7 +750,7 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
  * uses the THR value applied by the system rather than the
  * input value received by the sticks.
  **/
-static void osdFormatThrottlePosition(char *buff, bool autoThr)
+static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
     buff[0] = SYM_THR;
     buff[1] = SYM_THR1;
@@ -759,6 +759,8 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr)
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
         thr = rcCommand[THROTTLE];
+        if (isFixedWingAutoThrottleManuallyIncreased())
+            TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
 }
@@ -1344,7 +1346,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_THROTTLE_POS:
     {
-        osdFormatThrottlePosition(buff, false);
+        osdFormatThrottlePosition(buff, false, NULL);
         break;
     }
 
@@ -1736,7 +1738,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_THROTTLE_POS_AUTO_THR:
         {
-            osdFormatThrottlePosition(buff, true);
+            osdFormatThrottlePosition(buff, true, &elemAttr);
             break;
         }
 
