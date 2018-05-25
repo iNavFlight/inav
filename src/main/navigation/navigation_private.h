@@ -184,6 +184,9 @@ typedef enum {
     NAV_STATE_ALTHOLD_INITIALIZE,               // 2
     NAV_STATE_ALTHOLD_IN_PROGRESS,              // 3
 
+    NAV_STATE_UNUSED_1,                         // 4, was NAV_STATE_POSHOLD_2D_INITIALIZE
+    NAV_STATE_UNUSED_2,                         // 5, was NAV_STATE_POSHOLD_2D_IN_PROGRESS
+
     NAV_STATE_POSHOLD_3D_INITIALIZE,            // 6
     NAV_STATE_POSHOLD_3D_IN_PROGRESS,           // 7
 
