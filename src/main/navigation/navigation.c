@@ -1999,7 +1999,7 @@ static bool adjustPositionFromRCInput(void)
              * Set currnt position and target position
              * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
              */
-            setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_XY);
+            setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
 
             ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
             DEBUG_SET(DEBUG_BRAKING, 2, 1);
@@ -2077,7 +2077,7 @@ static bool adjustPositionFromRCInput(void)
              * When braking is done, store current position as desired one
              * We do not want to go back to the place where braking has started
              */
-            setDesiredPosition(&posControl.actualState.pos, 0, NAV_POS_UPDATE_XY);
+            setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
         }
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
