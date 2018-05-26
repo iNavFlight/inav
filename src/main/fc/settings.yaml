@@ -572,6 +572,10 @@ groups:
         field: appliedMixerPreset
         min: -1
         max: INT16_MAX
+      - name: fw_min_throttle_down_pitch
+        field: fwMinThrottleDownPitchAngle
+        min: 0
+        max: 450
 
   - name: PG_MOTOR_3D_CONFIG
     type: flight3DConfig_t
