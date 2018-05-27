@@ -2028,34 +2028,14 @@ static bool adjustPositionFromRCInput(void)
             DEBUG_SET(DEBUG_BRAKING, 2, 0); 
         }
 
-        //Forced BRAKING disengage routine
-        if (
-            STATE(NAV_CRUISE_BRAKING) &&
-            brakingModeDisengageAt < millis()
-        ) {
-            DISABLE_STATE(NAV_CRUISE_BRAKING);
-            DEBUG_SET(DEBUG_BRAKING, 0, 0);
-
-            DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-            DEBUG_SET(DEBUG_BRAKING, 1, 0);
-        }
-
-        //Forced BRAKING_BOOST disengage routine
-        if (
-            STATE(NAV_CRUISE_BRAKING_BOOST) &&
-            brakingBoostModeDisengageAt < millis()
-        ) {
-            DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-            DEBUG_SET(DEBUG_BRAKING, 1, 0);
-        }
-
         /*
          * Case when speed dropped, disengage BREAKING_BOOST
          */
         if (
-            STATE(NAV_CRUISE_BRAKING_BOOST) && 
-            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed
-        ) {
+            STATE(NAV_CRUISE_BRAKING_BOOST) && (
+                posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed ||
+                brakingBoostModeDisengageAt < millis()
+        )) {
             DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
             DEBUG_SET(DEBUG_BRAKING, 1, 0);
         }
@@ -2064,9 +2044,10 @@ static bool adjustPositionFromRCInput(void)
          * Case when we were braking but copter finally stopped or we started to move the sticks
          */
         if (STATE(NAV_CRUISE_BRAKING) && (
-            posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||
-            rcPitchAdjustment ||
-            rcRollAdjustment
+            posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||  //We stopped
+            rcPitchAdjustment ||                                                        //Moved pitch stick
+            rcRollAdjustment ||                                                         //Moved roll stick
+            brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
         )) {
             DISABLE_STATE(NAV_CRUISE_BRAKING);
             DEBUG_SET(DEBUG_BRAKING, 0, 0);
