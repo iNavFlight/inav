@@ -59,6 +59,22 @@ float getEstimatedWindSpeed(int axis)
     return estimatedWind[axis];
 }
 
+float getEstimatedHorizontalWindSpeed(uint16_t *angle)
+{
+    float xWindSpeed = getEstimatedWindSpeed(X);
+    float yWindSpeed = getEstimatedWindSpeed(Y);
+    if (angle) {
+        float horizontalWindAngle = atan2_approx(yWindSpeed, xWindSpeed);
+        // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
+        // We want [0, 360) in degrees
+        if (horizontalWindAngle < 0) {
+            horizontalWindAngle += 2 * M_PIf;
+        }
+        *angle = RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
+    }
+    return sqrtf(sq(xWindSpeed) + sq(yWindSpeed));
+}
+
 void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
