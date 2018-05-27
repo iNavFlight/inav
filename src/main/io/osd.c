@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -69,6 +70,7 @@
 
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
 
@@ -351,6 +353,39 @@ static void osdFormatVelocityStr(char* buff, int32_t vel)
         break;
     }
 }
+
+/**
+ * Converts wind speed into a string based on the current unit system, using
+ * always 3 digits and an additional character for the unit at the right. buff
+ * is null terminated.
+ * @param ws Raw wind speed in cm/s
+ */
+#ifdef USE_WIND_ESTIMATOR
+static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
+{
+    int32_t centivalue;
+    char suffix;
+    switch (osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_IMPERIAL:
+            centivalue = (ws * 224) / 100;
+            suffix = SYM_MPH;
+            break;
+        case OSD_UNIT_METRIC:
+            centivalue = (ws * 36) / 10;
+            suffix = SYM_KMH;
+            break;
+    }
+    if (isValid) {
+        osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
+    } else {
+        buff[0] = buff[1] = buff[2] = '-';
+    }
+    buff[3] = suffix;
+    buff[4] = '\0';
+}
+#endif
 
 /**
 * Converts altitude into a string based on the current unit system
@@ -1754,6 +1789,53 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_WIND_SPEED_HORIZONTAL:
+#ifdef USE_WIND_ESTIMATOR
+        {
+            bool valid = isEstimatedWindSpeedValid();
+            float horizontalWindSpeed;
+            if (valid) {
+                uint16_t angle;
+                horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
+                int16_t windDirection = osdGetHeadingAngle((int)angle - DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+                buff[1] = SYM_DIRECTION + (windDirection * 2 / 90);
+            } else {
+                horizontalWindSpeed = 0;
+                buff[1] = SYM_BLANK;
+            }
+            buff[0] = SYM_WIND_HORIZONTAL;
+            osdFormatWindSpeedStr(buff + 2, horizontalWindSpeed, valid);
+            break;
+        }
+#else
+        return false;
+#endif
+
+    case OSD_WIND_SPEED_VERTICAL:
+#ifdef USE_WIND_ESTIMATOR
+        {
+            buff[0] = SYM_WIND_VERTICAL;
+            buff[1] = SYM_BLANK;
+            bool valid = isEstimatedWindSpeedValid();
+            float verticalWindSpeed;
+            if (valid) {
+                verticalWindSpeed = getEstimatedWindSpeed(Z);
+                if (verticalWindSpeed < 0) {
+                    buff[1] = SYM_AH_DECORATION_DOWN;
+                    verticalWindSpeed = -verticalWindSpeed;
+                } else if (verticalWindSpeed > 0) {
+                    buff[1] = SYM_AH_DECORATION_UP;
+                }
+            } else {
+                verticalWindSpeed = 0;
+            }
+            osdFormatWindSpeedStr(buff + 2, verticalWindSpeed, valid);
+            break;
+        }
+#else
+        return false;
+#endif
+
     default:
         return false;
     }
@@ -1865,6 +1947,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);
 
     osdConfig->item_pos[0][OSD_AIR_SPEED] = OSD_POS(3, 5);
+    osdConfig->item_pos[0][OSD_WIND_SPEED_HORIZONTAL] = OSD_POS(3, 6);
+    osdConfig->item_pos[0][OSD_WIND_SPEED_VERTICAL] = OSD_POS(3, 7);
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;

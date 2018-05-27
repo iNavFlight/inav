@@ -20,11 +20,11 @@
 #include "common/maths.h"
 #include "common/vector.h"
 
+#include "config/feature.h"
+
 #include "flight/failsafe.h"
 
 #include "io/gps.h"
-
-#include "config/feature.h"
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;

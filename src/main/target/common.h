@@ -113,6 +113,8 @@
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
+// Wind estimator
+#define USE_WIND_ESTIMATOR
 
 #else // FLASH_SIZE < 128
 #define CLI_MINIMAL_VERBOSITY

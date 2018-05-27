@@ -45,6 +45,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
+#include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
 
@@ -124,7 +125,11 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
     // change this based on available hardware
     if (feature(FEATURE_GPS)) {
-        gpsThread();
+        if (gpsUpdate()) {
+#ifdef USE_WIND_ESTIMATOR
+            updateWindEstimator(currentTimeUs);
+#endif
+        }
     }
 
     if (sensors(SENSOR_GPS)) {

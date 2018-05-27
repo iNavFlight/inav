@@ -37,6 +37,10 @@ typedef uint32_t timeUs_t;
 #define TIMEUS_MAX UINT32_MAX
 #endif
 
+// Constants for better readability
+#define MILLISECS_PER_SEC 1000
+#define USECS_PER_SEC (1000 * 1000)
+
 static inline timeDelta_t cmpTimeUs(timeUs_t a, timeUs_t b) { return (timeDelta_t)(a - b); }
 
 typedef enum {
