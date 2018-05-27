@@ -139,6 +139,9 @@
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
+#define USE_ADC_AVERAGING
+#define ADC_AVERAGE_N_SAMPLES 50
+
 // XXX should use this
 //#define ADC_VOLTAGE_REFERENCE_MV 3245
 #define ADC_CHANNEL_1_PIN               PC1
