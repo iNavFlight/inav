@@ -276,8 +276,8 @@ static bool gpsFakeGPSUpdate(void)
 #define FAKE_GPS_INITIAL_LAT 509102311
 #define FAKE_GPS_INITIAL_LON -15349744
 #define FAKE_GPS_GROUND_ARMED_SPEED 350 // In cm/s
-#define FAKE_GPS_GROUND_UNARMED_GROUND_SPEED 0
-#define FAKE_GPS_GROUND_COURSE 0
+#define FAKE_GPS_GROUND_UNARMED_SPEED 0
+#define FAKE_GPS_GROUND_COURSE_DECIDEGREES 300 //30deg
 
     // Each degree in latitude corresponds to 111km.
     // Each degree in longitude at the equator is 111km,
@@ -290,10 +290,10 @@ static bool gpsFakeGPSUpdate(void)
     timeMs_t now = millis();
     uint32_t delta = now - gpsState.lastMessageMs;
     if (delta > 100) {
-        int32_t speed = ARMING_FLAG(ARMED) ? FAKE_GPS_GROUND_ARMED_SPEED : FAKE_GPS_GROUND_UNARMED_GROUND_SPEED;
+        int32_t speed = ARMING_FLAG(ARMED) ? FAKE_GPS_GROUND_ARMED_SPEED : FAKE_GPS_GROUND_UNARMED_SPEED;
         int32_t cmDelta = speed * (delta / 1000.0f);
-        int32_t latCmDelta = cmDelta * cos_approx(DEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE));
-        int32_t lonCmDelta = cmDelta * sin_approx(DEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE));
+        int32_t latCmDelta = cmDelta * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
+        int32_t lonCmDelta = cmDelta * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         int32_t latDelta = ceilf((float)latCmDelta / (111 * 1000 * 100 / 1e7));
         int32_t lonDelta = ceilf((float)lonCmDelta / (111 * 1000 * 100 / 1e7));
         if (speed > 0 && latDelta == 0 && lonDelta == 0) {
@@ -307,9 +307,9 @@ static bool gpsFakeGPSUpdate(void)
         gpsSol.llh.lon = lon;
         gpsSol.llh.alt = 0;
         gpsSol.groundSpeed = speed;
-        gpsSol.groundCourse = FAKE_GPS_GROUND_COURSE;
-        gpsSol.velNED[X] = speed * cos_approx(DEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE));
-        gpsSol.velNED[Y] = speed * sin_approx(DEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE));
+        gpsSol.groundCourse = FAKE_GPS_GROUND_COURSE_DECIDEGREES;
+        gpsSol.velNED[X] = speed * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
+        gpsSol.velNED[Y] = speed * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         gpsSol.velNED[Z] = 0;
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
