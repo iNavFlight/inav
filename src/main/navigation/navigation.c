@@ -2648,7 +2648,7 @@ rthState_e getStateOfForcedRTH(void)
 bool navigationIsControllingThrottle(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND)) || (STATE(FIXED_WING) && (stateFlags & (NAV_CTL_POS)));
+    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND));
 }
 
 bool navigationIsFlyingAutonomousMode(void)
