@@ -179,44 +179,44 @@ typedef enum {
 // This enum is used to keep values in blackbox logs stable, so we can
 // freely change navigationFSMState_t.
 typedef enum {
-    NAV_PUBLIC_STATE_UNDEFINED = 0,                     // 0
+    NAV_PERSISTENT_ID_UNDEFINED = 0,                     // 0
 
-    NAV_PUBLIC_STATE_IDLE,                              // 1
+    NAV_PERSISTENT_ID_IDLE,                              // 1
 
-    NAV_PUBLIC_STATE_ALTHOLD_INITIALIZE,                // 2
-    NAV_PUBLIC_STATE_ALTHOLD_IN_PROGRESS,               // 3
+    NAV_PERSISTENT_ID_ALTHOLD_INITIALIZE,                // 2
+    NAV_PERSISTENT_ID_ALTHOLD_IN_PROGRESS,               // 3
 
-    NAV_PUBLIC_STATE_UNUSED_1,                          // 4, was NAV_STATE_POSHOLD_2D_INITIALIZE
-    NAV_PUBLIC_STATE_UNUSED_2,                          // 5, was NAV_STATE_POSHOLD_2D_IN_PROGRESS
+    NAV_PERSISTENT_ID_UNUSED_1,                          // 4, was NAV_STATE_POSHOLD_2D_INITIALIZE
+    NAV_PERSISTENT_ID_UNUSED_2,                          // 5, was NAV_STATE_POSHOLD_2D_IN_PROGRESS
 
-    NAV_PUBLIC_STATE_POSHOLD_3D_INITIALIZE,             // 6
-    NAV_PUBLIC_STATE_POSHOLD_3D_IN_PROGRESS,            // 7
+    NAV_PERSISTENT_ID_POSHOLD_3D_INITIALIZE,             // 6
+    NAV_PERSISTENT_ID_POSHOLD_3D_IN_PROGRESS,            // 7
 
-    NAV_PUBLIC_STATE_RTH_INITIALIZE,                    // 8
-    NAV_PUBLIC_STATE_RTH_CLIMB_TO_SAFE_ALT,             // 9
-    NAV_PUBLIC_STATE_RTH_HEAD_HOME,                     // 10
-    NAV_PUBLIC_STATE_RTH_HOVER_PRIOR_TO_LANDING,        // 11
-    NAV_PUBLIC_STATE_RTH_LANDING,                       // 12
-    NAV_PUBLIC_STATE_RTH_FINISHING,                     // 13
-    NAV_PUBLIC_STATE_RTH_FINISHED,                      // 14
+    NAV_PERSISTENT_ID_RTH_INITIALIZE,                    // 8
+    NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT,             // 9
+    NAV_PERSISTENT_ID_RTH_HEAD_HOME,                     // 10
+    NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING,        // 11
+    NAV_PERSISTENT_ID_RTH_LANDING,                       // 12
+    NAV_PERSISTENT_ID_RTH_FINISHING,                     // 13
+    NAV_PERSISTENT_ID_RTH_FINISHED,                      // 14
 
-    NAV_PUBLIC_STATE_WAYPOINT_INITIALIZE,               // 15
-    NAV_PUBLIC_STATE_WAYPOINT_PRE_ACTION,               // 16
-    NAV_PUBLIC_STATE_WAYPOINT_IN_PROGRESS,              // 17
-    NAV_PUBLIC_STATE_WAYPOINT_REACHED,                  // 18
-    NAV_PUBLIC_STATE_WAYPOINT_NEXT,                     // 19
-    NAV_PUBLIC_STATE_WAYPOINT_FINISHED,                 // 20
-    NAV_PUBLIC_STATE_WAYPOINT_RTH_LAND,                 // 21
+    NAV_PERSISTENT_ID_WAYPOINT_INITIALIZE,               // 15
+    NAV_PERSISTENT_ID_WAYPOINT_PRE_ACTION,               // 16
+    NAV_PERSISTENT_ID_WAYPOINT_IN_PROGRESS,              // 17
+    NAV_PERSISTENT_ID_WAYPOINT_REACHED,                  // 18
+    NAV_PERSISTENT_ID_WAYPOINT_NEXT,                     // 19
+    NAV_PERSISTENT_ID_WAYPOINT_FINISHED,                 // 20
+    NAV_PERSISTENT_ID_WAYPOINT_RTH_LAND,                 // 21
 
-    NAV_PUBLIC_STATE_EMERGENCY_LANDING_INITIALIZE,      // 22
-    NAV_PUBLIC_STATE_EMERGENCY_LANDING_IN_PROGRESS,     // 23
-    NAV_PUBLIC_STATE_EMERGENCY_LANDING_FINISHED,        // 24
+    NAV_PERSISTENT_ID_EMERGENCY_LANDING_INITIALIZE,      // 22
+    NAV_PERSISTENT_ID_EMERGENCY_LANDING_IN_PROGRESS,     // 23
+    NAV_PERSISTENT_ID_EMERGENCY_LANDING_FINISHED,        // 24
 
-    NAV_PUBLIC_STATE_LAUNCH_INITIALIZE,                 // 25
-    NAV_PUBLIC_STATE_LAUNCH_WAIT,                       // 26
-    NAV_PUBLIC_STATE_UNUSED_3,                          // 27, was NAV_STATE_LAUNCH_MOTOR_DELAY
-    NAV_PUBLIC_STATE_LAUNCH_IN_PROGRESS,                // 28
-} navigationPublicState_t;
+    NAV_PERSISTENT_ID_LAUNCH_INITIALIZE,                 // 25
+    NAV_PERSISTENT_ID_LAUNCH_WAIT,                       // 26
+    NAV_PERSISTENT_ID_UNUSED_3,                          // 27, was NAV_STATE_LAUNCH_MOTOR_DELAY
+    NAV_PERSISTENT_ID_LAUNCH_IN_PROGRESS,                // 28
+} navigationPersistentId_e;
 
 typedef enum {
     NAV_STATE_UNDEFINED = 0,
@@ -284,7 +284,7 @@ typedef enum {
 } navigationFSMStateFlags_t;
 
 typedef struct {
-    navigationPublicState_t             publicState;
+    navigationPersistentId_e            persistentId;
     navigationFSMEvent_t                (*onEntry)(navigationFSMState_t previousState);
     uint32_t                            timeoutMs;
     navSystemStatus_State_e             mwState;
@@ -303,7 +303,7 @@ typedef struct {
 typedef struct {
     /* Flags and navigation system state */
     navigationFSMState_t        navState;
-    navigationPublicState_t     navPublicState;
+    navigationPersistentId_e    navPersistentId;
 
     navigationFlags_t           flags;
 

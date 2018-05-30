@@ -212,7 +212,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
 static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     /** Idle state ******************************************************/
     [NAV_STATE_IDLE] = {
-        .publicState = NAV_PUBLIC_STATE_IDLE,
+        .persistentId = NAV_PERSISTENT_ID_IDLE,
         .onEntry = navOnEnteringState_NAV_STATE_IDLE,
         .timeoutMs = 0,
         .stateFlags = 0,
@@ -231,7 +231,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 
     /** ALTHOLD mode ***************************************************/
     [NAV_STATE_ALTHOLD_INITIALIZE] = {
-        .publicState = NAV_PUBLIC_STATE_ALTHOLD_INITIALIZE,
+        .persistentId = NAV_PERSISTENT_ID_ALTHOLD_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT,
@@ -246,7 +246,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_ALTHOLD_IN_PROGRESS] = {
-        .publicState = NAV_PUBLIC_STATE_ALTHOLD_IN_PROGRESS,
+        .persistentId = NAV_PERSISTENT_ID_ALTHOLD_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_ALTHOLD_IN_PROGRESS,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT | NAV_RC_ALT,
@@ -265,7 +265,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 
     /** POSHOLD_3D mode ************************************************/
     [NAV_STATE_POSHOLD_3D_INITIALIZE] = {
-        .publicState = NAV_PUBLIC_STATE_POSHOLD_3D_INITIALIZE,
+        .persistentId = NAV_PERSISTENT_ID_POSHOLD_3D_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT,
@@ -280,7 +280,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_POSHOLD_3D_IN_PROGRESS] = {
-        .publicState = NAV_PUBLIC_STATE_POSHOLD_3D_IN_PROGRESS,
+        .persistentId = NAV_PERSISTENT_ID_POSHOLD_3D_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW,
@@ -299,7 +299,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 
     /** RTH_3D mode ************************************************/
     [NAV_STATE_RTH_INITIALIZE] = {
-        .publicState = NAV_PUBLIC_STATE_RTH_INITIALIZE,
+        .persistentId = NAV_PERSISTENT_ID_RTH_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_INITIALIZE,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
@@ -316,7 +316,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_RTH_CLIMB_TO_SAFE_ALT] = {
-        .publicState = NAV_PUBLIC_STATE_RTH_CLIMB_TO_SAFE_ALT,
+        .persistentId = NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,     // allow pos adjustment while climbind to safe alt
@@ -333,7 +333,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_RTH_HEAD_HOME] = {
-        .publicState = NAV_PUBLIC_STATE_RTH_HEAD_HOME,
+        .persistentId = NAV_PERSISTENT_ID_RTH_HEAD_HOME,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_HEAD_HOME,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
@@ -351,7 +351,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING] = {
-        .publicState = NAV_PUBLIC_STATE_RTH_HOVER_PRIOR_TO_LANDING,
+        .persistentId = NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING,
         .timeoutMs = 500,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
@@ -369,7 +369,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_RTH_LANDING] = {
-        .publicState = NAV_PUBLIC_STATE_RTH_LANDING,
+        .persistentId = NAV_PERSISTENT_ID_RTH_LANDING,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_LANDING,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
@@ -387,7 +387,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_RTH_FINISHING] = {
-        .publicState = NAV_PUBLIC_STATE_RTH_FINISHING,
+        .persistentId = NAV_PERSISTENT_ID_RTH_FINISHING,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_FINISHING,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
@@ -401,7 +401,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_RTH_FINISHED] = {
-        .publicState = NAV_PUBLIC_STATE_RTH_FINISHED,
+        .persistentId = NAV_PERSISTENT_ID_RTH_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_FINISHED,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
@@ -419,7 +419,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 
     /** WAYPOINT mode ************************************************/
     [NAV_STATE_WAYPOINT_INITIALIZE] = {
-        .publicState = NAV_PUBLIC_STATE_WAYPOINT_INITIALIZE,
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
@@ -435,7 +435,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_WAYPOINT_PRE_ACTION] = {
-        .publicState = NAV_PUBLIC_STATE_WAYPOINT_PRE_ACTION,
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_PRE_ACTION,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
@@ -451,7 +451,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_WAYPOINT_IN_PROGRESS] = {
-        .publicState = NAV_PUBLIC_STATE_WAYPOINT_IN_PROGRESS,
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
@@ -470,7 +470,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_WAYPOINT_REACHED] = {
-        .publicState = NAV_PUBLIC_STATE_WAYPOINT_REACHED,
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_REACHED,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_REACHED,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
@@ -491,7 +491,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_WAYPOINT_RTH_LAND] = {
-        .publicState = NAV_PUBLIC_STATE_WAYPOINT_RTH_LAND,
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_RTH_LAND,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
@@ -510,7 +510,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_WAYPOINT_NEXT] = {
-        .publicState = NAV_PUBLIC_STATE_WAYPOINT_NEXT,
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_NEXT,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_NEXT,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
@@ -524,7 +524,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_WAYPOINT_FINISHED] = {
-        .publicState = NAV_PUBLIC_STATE_WAYPOINT_FINISHED,
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
@@ -542,7 +542,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
 
     /** EMERGENCY LANDING ************************************************/
     [NAV_STATE_EMERGENCY_LANDING_INITIALIZE] = {
-        .publicState = NAV_PUBLIC_STATE_EMERGENCY_LANDING_INITIALIZE,
+        .persistentId = NAV_PERSISTENT_ID_EMERGENCY_LANDING_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_EMERG | NAV_REQUIRE_ANGLE,
@@ -558,7 +558,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS] = {
-        .publicState = NAV_PUBLIC_STATE_EMERGENCY_LANDING_IN_PROGRESS,
+        .persistentId = NAV_PERSISTENT_ID_EMERGENCY_LANDING_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_EMERG | NAV_REQUIRE_ANGLE,
@@ -574,7 +574,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_EMERGENCY_LANDING_FINISHED] = {
-        .publicState = NAV_PUBLIC_STATE_EMERGENCY_LANDING_FINISHED,
+        .persistentId = NAV_PERSISTENT_ID_EMERGENCY_LANDING_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINISHED,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_EMERG | NAV_REQUIRE_ANGLE,
@@ -588,7 +588,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_LAUNCH_INITIALIZE] = {
-        .publicState = NAV_PUBLIC_STATE_LAUNCH_INITIALIZE,
+        .persistentId = NAV_PERSISTENT_ID_LAUNCH_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_LAUNCH_INITIALIZE,
         .timeoutMs = 0,
         .stateFlags = NAV_REQUIRE_ANGLE,
@@ -603,7 +603,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_LAUNCH_WAIT] = {
-        .publicState = NAV_PUBLIC_STATE_LAUNCH_WAIT,
+        .persistentId = NAV_PERSISTENT_ID_LAUNCH_WAIT,
         .onEntry = navOnEnteringState_NAV_STATE_LAUNCH_WAIT,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_LAUNCH | NAV_REQUIRE_ANGLE,
@@ -619,7 +619,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
 
     [NAV_STATE_LAUNCH_IN_PROGRESS] = {
-        .publicState = NAV_PUBLIC_STATE_LAUNCH_IN_PROGRESS,
+        .persistentId = NAV_PERSISTENT_ID_LAUNCH_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS,
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_LAUNCH | NAV_REQUIRE_ANGLE,
@@ -1223,7 +1223,7 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
     previousState = posControl.navState;
     if (posControl.navState != newState) {
         posControl.navState = newState;
-        posControl.navPublicState = navFSM[newState].publicState;
+        posControl.navPersistentId = navFSM[newState].persistentId;
     }
     return previousState;
 }
@@ -2552,7 +2552,7 @@ void updateWaypointsAndNavigationMode(void)
     switchNavigationFlightModes();
 
 #if defined(NAV_BLACKBOX)
-    navCurrentState = (int16_t)posControl.navPublicState;
+    navCurrentState = (int16_t)posControl.navPersistentId;
 #endif
 }
 
