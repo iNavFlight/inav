@@ -1365,6 +1365,10 @@ groups:
         field: fw.launch_climb_angle
         min: 5
         max: 45
+      - name: nav_fw_cruise_yaw_rate
+        field: fw.cruise_yaw_rate
+        min: 0
+        max: 60
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t

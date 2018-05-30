@@ -144,7 +144,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_timeout = 5000,                // ms, timeout for launch procedure
         .launch_max_altitude = 0,              // cm, altitude where to consider launch ended
         .launch_climb_angle = 18,              // 18 degrees
-        .launch_max_angle = 45,                 // 45 deg
+        .launch_max_angle = 45,                // 45 deg
+        .cruise_yaw_rate  = 20,                // 20dps
     }
 );
 
@@ -189,11 +190,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_ALTHOLD_IN_PROGRESS(nav
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_INITIALIZE(navigationFSMState_t previousState);
-static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_ADJUSTING(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_IN_PROGRESS(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_ADJUSTING(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_INITIALIZE(navigationFSMState_t previousState);
-static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_ADJUSTING(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_IN_PROGRESS(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_ADJUSTING(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigationFSMState_t previousState);
@@ -279,7 +280,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_POSHOLD_3D_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT,
         .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_POSHOLD_MODE,
         .mwState = MW_NAV_STATE_HOLD_INFINIT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -294,7 +295,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_POSHOLD_3D_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_POSHOLD_MODE,
         .mwState = MW_NAV_STATE_HOLD_INFINIT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -311,11 +312,12 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     },
     /** CRUISE_2D mode ************************************************/
     [NAV_STATE_CRUISE_2D_INITIALIZE] = {
+        .persistentId = NAV_PERSISTENT_ID_CRUISE_2D_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_CRUISE_2D_INITIALIZE,
         .timeoutMs = 0,
         .stateFlags = NAV_REQUIRE_ANGLE,
         .mapToFlightModes = NAV_CRUISE_MODE,
-        .mwState = MW_NAV_STATE_NONE, ///////FIX ME
+        .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_CRUISE_2D_IN_PROGRESS,
@@ -324,12 +326,34 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         }
     },
 
-    [NAV_STATE_CRUISE_2D_ADJUSTING] = {
+    [NAV_STATE_CRUISE_2D_IN_PROGRESS] = {
+        .persistentId = NAV_PERSISTENT_ID_CRUISE_2D_IN_PROGRESS,
+        .onEntry = navOnEnteringState_NAV_STATE_CRUISE_2D_IN_PROGRESS,
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_RC_POS | NAV_RC_YAW,
+        .mapToFlightModes = NAV_CRUISE_MODE,
+        .mwState = MW_NAV_STATE_NONE,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_CRUISE_2D_IN_PROGRESS,    // re-process the state
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D]         = NAV_STATE_CRUISE_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_ADJ]        = NAV_STATE_CRUISE_2D_ADJUSTING,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]          = NAV_STATE_WAYPOINT_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+        }
+    },
+
+        [NAV_STATE_CRUISE_2D_ADJUSTING] = {
+        .persistentId = NAV_PERSISTENT_ID_CRUISE_2D_ADJUSTING,
         .onEntry = navOnEnteringState_NAV_STATE_CRUISE_2D_ADJUSTING,
         .timeoutMs = 10,
         .stateFlags =  NAV_REQUIRE_ANGLE | NAV_RC_POS,
         .mapToFlightModes = NAV_CRUISE_MODE,
-        .mwState = MW_NAV_STATE_NONE, ///////FIX ME
+        .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_CRUISE_2D_IN_PROGRESS,
@@ -339,34 +363,14 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         }
     },
 
-    [NAV_STATE_CRUISE_2D_IN_PROGRESS] = {
-        .onEntry = navOnEnteringState_NAV_STATE_CRUISE_2D_IN_PROGRESS,
-        .timeoutMs = 10,
-        .stateFlags = NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_RC_POS | NAV_RC_YAW,
-        .mapToFlightModes = NAV_CRUISE_MODE,
-        .mwState = MW_NAV_STATE_NONE, ///////FIX ME
-        .mwError = MW_NAV_ERROR_NONE,
-        .onEvent = {
-
-            //FIX WHOLE OF THIS:
-
-            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_CRUISE_2D_IN_PROGRESS,    // re-process the state
-            [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_CRUISE_2D_ADJUSTING,
-            [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
-            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]          = NAV_STATE_WAYPOINT_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-        }
-    },
-        /** CRUISE_3D mode ************************************************/
+    /** CRUISE_3D mode ************************************************/
     [NAV_STATE_CRUISE_3D_INITIALIZE] = {
+        .persistentId = NAV_PERSISTENT_ID_CRUISE_3D_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_CRUISE_3D_INITIALIZE,
         .timeoutMs = 0,
-        .stateFlags = NAV_REQUIRE_ANGLE| NAV_CTL_THR_FW,
+        .stateFlags = NAV_REQUIRE_ANGLE,
         .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_CRUISE_MODE,
-        .mwState = MW_NAV_STATE_NONE, ///////FIX ME
+        .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_CRUISE_3D_IN_PROGRESS,
@@ -374,13 +378,34 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
         }
     },
+    [NAV_STATE_CRUISE_3D_IN_PROGRESS] = {
+        .persistentId = NAV_PERSISTENT_ID_CRUISE_3D_IN_PROGRESS,
+        .onEntry = navOnEnteringState_NAV_STATE_CRUISE_3D_IN_PROGRESS,
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_RC_POS | NAV_RC_YAW | NAV_RC_ALT,
+        .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_CRUISE_MODE,
+        .mwState = MW_NAV_STATE_NONE,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_CRUISE_3D_IN_PROGRESS,    // re-process the state
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D]         = NAV_STATE_CRUISE_2D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_ADJ]        = NAV_STATE_CRUISE_3D_ADJUSTING,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]          = NAV_STATE_WAYPOINT_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+        }
+    },
 
-    [NAV_STATE_CRUISE_3D_ADJUSTING] = {
+        [NAV_STATE_CRUISE_3D_ADJUSTING] = {
+        .persistentId = NAV_PERSISTENT_ID_CRUISE_3D_ADJUSTING,
         .onEntry = navOnEnteringState_NAV_STATE_CRUISE_3D_ADJUSTING,
         .timeoutMs = 10,
-        .stateFlags =  NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_RC_POS,
-        .mapToFlightModes = NAV_CRUISE_MODE,
-        .mwState = MW_NAV_STATE_NONE, ///////FIX ME
+        .stateFlags =  NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_RC_POS | NAV_RC_ALT,
+        .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_CRUISE_MODE,
+        .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_CRUISE_3D_IN_PROGRESS,
@@ -390,33 +415,12 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         }
     },
 
-    [NAV_STATE_CRUISE_3D_IN_PROGRESS] = {
-        .onEntry = navOnEnteringState_NAV_STATE_CRUISE_3D_IN_PROGRESS,
-        .timeoutMs = 10,
-        .stateFlags = NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_RC_POS | NAV_RC_YAW | NAV_CTL_THR_FW,  //CHECK IF RC_POS IS NEEDED
-        .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_CRUISE_MODE,
-        .mwState = MW_NAV_STATE_NONE, ///////FIX ME
-        .mwError = MW_NAV_ERROR_NONE,
-        .onEvent = {
-
-            //FIX WHOLE OF THIS:
-            
-            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_CRUISE_3D_IN_PROGRESS,    // re-process the state
-            [NAV_FSM_EVENT_ERROR]                       = NAV_STATE_CRUISE_3D_ADJUSTING,
-            [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
-            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]          = NAV_STATE_WAYPOINT_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-        }
-    },
     /** RTH_3D mode ************************************************/
     [NAV_STATE_RTH_INITIALIZE] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_INITIALIZE,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_RTH_START,
         .mwError = MW_NAV_ERROR_NONE,
@@ -433,7 +437,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW | NAV_CTL_THR_FW,     // allow pos adjustment while climbind to safe alt
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,     // allow pos adjustment while climbind to safe alt
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_RTH_ENROUTE,
         .mwError = MW_NAV_ERROR_WAIT_FOR_RTH_ALT,
@@ -452,7 +456,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_HEAD_HOME,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_HEAD_HOME,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_RTH_ENROUTE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -472,7 +476,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING,
         .timeoutMs = 500,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LAND_SETTLE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -512,7 +516,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_LANDING,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_LANDING,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LAND_IN_PROGRESS,
         .mwError = MW_NAV_ERROR_LANDING,
@@ -523,8 +527,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D]         = NAV_STATE_CRUISE_2D_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D]         = NAV_STATE_CRUISE_3D_INITIALIZE,
         }
     },
 
@@ -532,7 +534,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_FINISHING,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_FINISHING,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LAND_IN_PROGRESS,
         .mwError = MW_NAV_ERROR_LANDING,
@@ -546,7 +548,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_FINISHED,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LANDED,
         .mwError = MW_NAV_ERROR_NONE,
@@ -564,7 +566,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_PROCESS_NEXT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -580,7 +582,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_PRE_ACTION,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_PROCESS_NEXT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -596,7 +598,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_WP_ENROUTE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -610,7 +612,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D]         = NAV_STATE_CRUISE_2D_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D]         = NAV_STATE_CRUISE_3D_INITIALIZE,
-            
         }
     },
 
@@ -618,7 +619,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_REACHED,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_REACHED,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_PROCESS_NEXT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -641,7 +642,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_RTH_LAND,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LAND_IN_PROGRESS,
         .mwError = MW_NAV_ERROR_LANDING,
@@ -662,7 +663,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_NEXT,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_NEXT,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_PROCESS_NEXT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -676,7 +677,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_WAYPOINT_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP | NAV_CTL_THR_FW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_WP_ENROUTE,
         .mwError = MW_NAV_ERROR_FINISH,
@@ -902,10 +903,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_INITIALIZE(na
 {
     const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
-    if (!STATE(FIXED_WING)) {return NAV_FSM_EVENT_ERROR;} //only on FW for now
+    if (!STATE(FIXED_WING)) { return NAV_FSM_EVENT_ERROR; } //only on FW for now
 
     DEBUG_SET(DEBUG_CRUISE, 0, 1);
-    if(checkForPositionSensorTimeout()){ return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //we do not have an healty position. switch to idle and try on next iteration
+    if (checkForPositionSensorTimeout()) { return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //Switch to IDLE if we do not have an healty position. Try the next iteration.
 
     resetGCSFlags();
 
@@ -913,18 +914,57 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_INITIALIZE(na
         resetPositionController();
     }
 
-    posControl.cruise.cruiseYaw=posControl.actualState.yaw; //store current heading
-    calculateFarAwayTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, 25000); //calculate a 250m far away target
+    posControl.cruise.cruiseYaw = posControl.actualState.yaw; //Store the yaw to follow
 
     return NAV_FSM_EVENT_SUCCESS; //go to NAV_STATE_CRUISE_2D_IN_PROGRESS
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_IN_PROGRESS(navigationFSMState_t previousState)
+{
+    const timeMs_t currentTimeMs = millis();
+    static timeMs_t lastYawChangeTime = 0;
+
+    if (checkForPositionSensorTimeout()) { return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //Switch to IDLE if we do not have an healty position. Do the CRUISE init the next iteration.
+
+    DEBUG_SET(DEBUG_CRUISE, 0, 2);
+    DEBUG_SET(DEBUG_CRUISE, 2, 0);
+
+    if (posControl.flags.isAdjustingPosition) {
+        return NAV_FSM_EVENT_SWITCH_TO_CRUISE_ADJ;
+    }
+
+    //User is yawing. We record the desidered yaw and we change the desidered target in the meanwhile
+    if (posControl.flags.isAdjustingHeading) {
+        timeMs_t timeDifference = currentTimeMs - lastYawChangeTime;
+        if (timeDifference>100) timeDifference = 0; //if adjustment was called long time ago, reset the time difference.
+        float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate), DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate));
+        float centidegsPerIteration = rateTarget / (1000.0f / timeDifference);
+        posControl.cruise.cruiseYaw -= centidegsPerIteration;
+        posControl.cruise.cruiseYaw = wrap_36000(posControl.cruise.cruiseYaw);
+        DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.cruiseYaw));
+        lastYawChangeTime = currentTimeMs;
+    }
+
+    uint32_t distance = gpsSol.groundSpeed*60; //next WP to be reached in 60s [cm]
+
+    if ((previousState == NAV_STATE_CRUISE_2D_INITIALIZE) || (previousState == NAV_STATE_CRUISE_2D_ADJUSTING) || posControl.flags.isAdjustingHeading) {
+        calculateFarAwayTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, distance);
+        DEBUG_SET(DEBUG_CRUISE, 2, 1);
+    } else if (calculateDistanceToDestination(&posControl.cruise.cruiseTargetPos) <= (navConfig()->fw.loiter_radius * 1.10f)) { //10% margin
+        calculateNewCruiseTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, distance);
+        DEBUG_SET(DEBUG_CRUISE, 2, 2);
+    }
+
+    setDesiredPosition(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, NAV_POS_UPDATE_XY);
+
+    return NAV_FSM_EVENT_NONE;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_ADJUSTING(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
-
     DEBUG_SET(DEBUG_CRUISE, 0, 3);
-    //user is rolling wait it stops to roll with angle mode and store the current yaw during roll.
+    //User is rolling, changing manually direction. Wait until it is done and then restore CRUISE
     if(posControl.flags.isAdjustingPosition) {
         resetPositionController();  //user is rolling bypass the controller and go the ANGLE.
         posControl.cruise.cruiseYaw = posControl.actualState.yaw; //store current heading
@@ -934,55 +974,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_ADJUSTING(nav
     return NAV_FSM_EVENT_SUCCESS; //go to NAV_STATE_CRUISE_2D_IN_PROGRESS
 }
 
-static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_IN_PROGRESS(navigationFSMState_t previousState)
-{
-
-    const timeMs_t currentYawChangeTime = millis();
-    static timeMs_t lastYawChangeTime = 0;
-
-    if (checkForPositionSensorTimeout()){ return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //in case of invalid position, re init.
-
-    #define MAX_CRUISE_CENTIDPS 2000.0f
-
-    if (posControl.flags.isAdjustingPosition) return NAV_FSM_EVENT_ERROR; // switch to roll adjustment state
-
-    //user is yawing. change target while yawing.
-    if (posControl.flags.isAdjustingHeading)
-    {
-        float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -MAX_CRUISE_CENTIDPS,MAX_CRUISE_CENTIDPS); //centidegs
-        float centidegsPerIteration = rateTarget/(1000.0f/(float)(currentYawChangeTime - lastYawChangeTime));
-        posControl.cruise.cruiseYaw -= centidegsPerIteration;
-        posControl.cruise.cruiseYaw = wrap_36000(posControl.cruise.cruiseYaw);
-        DEBUG_SET(DEBUG_CRUISE, 2,posControl.cruise.cruiseYaw/100);
-
-        lastYawChangeTime = currentYawChangeTime;
-    }
-
-    DEBUG_SET(DEBUG_CRUISE, 0, 2); //in progress state
-    DEBUG_SET(DEBUG_CRUISE, 1, 0); //no ajusting
-
-    if ((previousState == NAV_STATE_CRUISE_2D_INITIALIZE) || (previousState == NAV_STATE_CRUISE_2D_ADJUSTING) || posControl.flags.isAdjustingHeading) {
-       calculateFarAwayTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, 50000); //calculate a 500m far away target when user changed direction
-       DEBUG_SET(DEBUG_CRUISE, 1, 1); //adj
-    } else if (calculateDistanceToDestination(&posControl.cruise.cruiseTargetPos) < 10000) { //100m
-        calculateNewCruiseTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, 50000); //500m apart
-        DEBUG_SET(DEBUG_CRUISE, 1, 2); //renew
-    }
-
-    setDesiredPosition(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, NAV_POS_UPDATE_XY);
-
-    DEBUG_SET(DEBUG_CRUISE, 3, CENTIDEGREES_TO_DEGREES(posControl.cruise.cruiseYaw)); // log yaw
-
-    return NAV_FSM_EVENT_NONE;
-}
-
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_INITIALIZE(navigationFSMState_t previousState)
 {
-    if (!STATE(FIXED_WING)) {return NAV_FSM_EVENT_ERROR;} //only on FW for now
+    if (!STATE(FIXED_WING)) { return NAV_FSM_EVENT_ERROR; } //only on FW for now
+    if (checkForPositionSensorTimeout()) { return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //Switch to IDLE if we do not have an healty position. Do the CRUISE init the next iteration.
 
-    DEBUG_SET(DEBUG_CRUISE, 0, 1);
-    if(checkForPositionSensorTimeout()){ return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //we do not have an healty position. switch to idle and try on next iteration
-
+    DEBUG_SET(DEBUG_CRUISE, 0, 4);
     const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
     const bool terrainFollowingToggled = (posControl.flags.isTerrainFollowEnabled != navTerrainFollowingRequested());
 
@@ -1002,25 +999,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_INITIALIZE(na
         setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);  // This will reset surface offset
     }
 
-    posControl.cruise.cruiseYaw=posControl.actualState.yaw; //store current heading
-    calculateFarAwayTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, 25000); //calculate a 250m far away target
+    posControl.cruise.cruiseYaw = posControl.actualState.yaw; //store current heading
 
     return NAV_FSM_EVENT_SUCCESS;
-}
-
-static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_ADJUSTING(navigationFSMState_t previousState)
-{
-    UNUSED(previousState);
-
-    DEBUG_SET(DEBUG_CRUISE, 0, 3);
-    // user is rolling wait it stops to roll with angle mode and store the current yaw during roll.
-    if (posControl.flags.isAdjustingPosition) {
-        resetPositionController();  //user is rolling bypass the controller and go the ANGLE.
-        posControl.cruise.cruiseYaw = posControl.actualState.yaw; //store current heading
-        return NAV_FSM_EVENT_NONE;  //reprocess the state
-    }
-
-    return NAV_FSM_EVENT_SUCCESS; //go to NAV_STATE_CRUISE_2D_IN_PROGRESS
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_IN_PROGRESS(navigationFSMState_t previousState)
@@ -1033,43 +1014,57 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_IN_PROGRESS(n
         resetGCSFlags();
     }
 
-    const timeMs_t currentYawChangeTime = millis();
+    if (checkForPositionSensorTimeout()) { return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //in case of invalid position, re init.
+
+    const timeMs_t currentTimeMs = millis();
     static timeMs_t lastYawChangeTime = 0;
 
-    if(checkForPositionSensorTimeout()){ return NAV_FSM_EVENT_SWITCH_TO_IDLE; }  //in case of invalid position, re init.
+    DEBUG_SET(DEBUG_CRUISE, 0, 5);
+    DEBUG_SET(DEBUG_CRUISE, 2, 0);
 
-    #define MAX_CRUISE_CENTIDPS 2000.0f
+    if (posControl.flags.isAdjustingPosition) { return NAV_FSM_EVENT_SWITCH_TO_CRUISE_ADJ; }
 
-    if (posControl.flags.isAdjustingPosition) return NAV_FSM_EVENT_ERROR; // switch to roll adjustment state
-
-    //user is yawing. change target while yawing.
-    if (posControl.flags.isAdjustingHeading)
-    {
-        float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -MAX_CRUISE_CENTIDPS,MAX_CRUISE_CENTIDPS); //centidegs
-        float centidegsPerIteration = rateTarget/(1000.0f/(float)(currentYawChangeTime - lastYawChangeTime));
+    //User is yawing. We record the desidered yaw and we change the desidered target in the meanwhile
+    if (posControl.flags.isAdjustingHeading) {
+        timeMs_t timeDifference = currentTimeMs - lastYawChangeTime;
+        if (timeDifference>100) timeDifference = 0; //if adjustment was called long time ago, reset the time difference.
+        float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate), DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate));
+        float centidegsPerIteration = rateTarget / (1000.0f / timeDifference);
         posControl.cruise.cruiseYaw -= centidegsPerIteration;
         posControl.cruise.cruiseYaw = wrap_36000(posControl.cruise.cruiseYaw);
-        DEBUG_SET(DEBUG_CRUISE, 2,posControl.cruise.cruiseYaw/100);
-
-        lastYawChangeTime = currentYawChangeTime;
+        DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.cruiseYaw));
+        lastYawChangeTime = currentTimeMs;
     }
 
-    DEBUG_SET(DEBUG_CRUISE, 0, 2); //in progress state
-    DEBUG_SET(DEBUG_CRUISE, 1, 0); //no ajusting
+    uint32_t distance = gpsSol.groundSpeed*60; //next WP to be reached in 60s [cm]
 
-    if ((previousState == NAV_STATE_CRUISE_2D_INITIALIZE) || (previousState == NAV_STATE_CRUISE_2D_ADJUSTING) || posControl.flags.isAdjustingHeading) {
-       calculateFarAwayTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, 50000); //calculate a 500m far away target when user changed direction
-       DEBUG_SET(DEBUG_CRUISE, 1, 1); //adj
-    } else if (calculateDistanceToDestination(&posControl.cruise.cruiseTargetPos) < 10000) { //100m
-        calculateNewCruiseTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, 50000); //500m apart
-        DEBUG_SET(DEBUG_CRUISE, 1, 2); //renew
+    if ((previousState == NAV_STATE_CRUISE_3D_INITIALIZE) || (previousState == NAV_STATE_CRUISE_3D_ADJUSTING) || posControl.flags.isAdjustingHeading) {
+        calculateFarAwayTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, distance);
+        DEBUG_SET(DEBUG_CRUISE, 2, 1);
+    } else if (calculateDistanceToDestination(&posControl.cruise.cruiseTargetPos) <= (navConfig()->fw.loiter_radius * 1.10f)) { //10% margin
+        calculateNewCruiseTarget(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, distance);
+        DEBUG_SET(DEBUG_CRUISE, 2, 2);
     }
 
     setDesiredPosition(&posControl.cruise.cruiseTargetPos, posControl.cruise.cruiseYaw, NAV_POS_UPDATE_XY);
 
-    DEBUG_SET(DEBUG_CRUISE, 3, CENTIDEGREES_TO_DEGREES(posControl.cruise.cruiseYaw)); // log yaw
-
     return NAV_FSM_EVENT_NONE;
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_3D_ADJUSTING(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+
+    DEBUG_SET(DEBUG_CRUISE, 0, 6);
+
+    //User is rolling, changing manually direction. Wait until it is done and then restore CRUISE
+    if (posControl.flags.isAdjustingPosition) {
+        resetPositionController();  //user is rolling bypass the controller and go the ANGLE.
+        posControl.cruise.cruiseYaw = posControl.actualState.yaw; //store current heading
+        return NAV_FSM_EVENT_NONE;  //reprocess the state
+    }
+
+    return NAV_FSM_EVENT_SUCCESS; //go to NAV_STATE_CRUISE_3D_IN_PROGRESS
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigationFSMState_t previousState)
@@ -1528,10 +1523,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
         return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_LAUNCH_IN_PROGRESS
     }
 
-    //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle. 
-    if(feature(FEATURE_FW_LAUNCH)){
+    //allow to leave NAV_LAUNCH_MODE if it has being enabled as feature by moving sticks with low throttle.
+    if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus();
-        if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())){ 
+        if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
     }
@@ -2188,7 +2183,7 @@ void calculateInitialHoldPosition(fpVector3_t * pos)
  * Set active XYZ-target and desired heading
  *-----------------------------------------------------------*/
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask)
-{       
+{
     // XY-position
     if ((useMask & NAV_POS_UPDATE_XY) != 0) {
         posControl.desiredState.pos.x = pos->x;
@@ -2220,13 +2215,13 @@ void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t dista
     farAwayPos->y = navGetCurrentActualPositionAndVelocity()->pos.y + distance * sin_approx(CENTIDEGREES_TO_RADIANS(yaw));
     farAwayPos->z = navGetCurrentActualPositionAndVelocity()->pos.z;
 }
+
 void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance)
-{ 
+{
     origin->x = origin->x + distance * cos_approx(CENTIDEGREES_TO_RADIANS(yaw));
     origin->y = origin->y + distance * sin_approx(CENTIDEGREES_TO_RADIANS(yaw));
     origin->z = origin->z;
 }
-
 
 /*-----------------------------------------------------------
  * NAV land detector
@@ -2797,9 +2792,8 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
                 return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
         }
 
-
-        //PH has priority over CRUISE
-        //CRUISE 3D has priority on AH
+        // PH has priority over CRUISE
+        // CRUISE has priority on AH
         if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE)) {
 
             if (IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) && ((FLIGHT_MODE(NAV_CRUISE_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold)))
@@ -2954,7 +2948,7 @@ void updateFlightBehaviorModifiers(void)
  *  Update rate: RX (data driven or 50Hz)
  */
 void updateWaypointsAndNavigationMode(void)
-{   
+{
     /* Initiate home position update */
     updateHomePosition();
 
@@ -2972,7 +2966,7 @@ void updateWaypointsAndNavigationMode(void)
 
     // Process pilot's RC input to adjust behaviour
     processNavigationRCAdjustments();
-    
+
     // Map navMode back to enabled flight modes
     switchNavigationFlightModes();
 
