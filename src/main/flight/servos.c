@@ -183,7 +183,7 @@ static void filterServos(void)
 
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
             // Apply servo lowpass filter and do sanity cheching
-            servo[i] = (int16_t) biquadFilterApply(&servoFilter[i], (float)servo[i]);
+            servo[i] = (int16_t)lrintf(biquadFilterApply(&servoFilter[i], (float)servo[i]));
         }
     }
 
