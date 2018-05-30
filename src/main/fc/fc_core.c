@@ -792,7 +792,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 #endif
 
-    mixTable();
+    mixTable(dT);
 
     if (isMixerUsingServos()) {
         servoMixer(dT);
