@@ -174,8 +174,8 @@ static void resetHeadingController(void);
 void resetGCSFlags(void);
 
 static bool posEstimationHasGlobalReference(void);
-static void calcualteAndSetActiveWaypoint(const navWaypoint_t * waypoint);
-static void calcualteAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos);
+static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint);
+static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos);
 void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t distance);
 
@@ -1011,13 +1011,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
 
     switch (posControl.waypointList[posControl.activeWaypointIndex].action) {
         case NAV_WP_ACTION_WAYPOINT:
-            calcualteAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
+            calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
         case NAV_WP_ACTION_RTH:
         default:
             initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
-            calcualteAndSetActiveWaypointToLocalPosition(&posControl.homeWaypointAbove.pos);
+            calculateAndSetActiveWaypointToLocalPosition(&posControl.homeWaypointAbove.pos);
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
     };
 }
@@ -2107,7 +2107,7 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
     geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, localPos, GEO_ALT_RELATIVE);
 }
 
-static void calcualteAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
+static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
 {
     posControl.activeWaypoint.pos = *pos;
 
@@ -2118,11 +2118,11 @@ static void calcualteAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos
     setDesiredPosition(&posControl.activeWaypoint.pos, posControl.activeWaypoint.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
 }
 
-static void calcualteAndSetActiveWaypoint(const navWaypoint_t * waypoint)
+static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
 {
     fpVector3_t localPos;
     mapWaypointToLocalPosition(&localPos, waypoint);
-    calcualteAndSetActiveWaypointToLocalPosition(&localPos);
+    calculateAndSetActiveWaypointToLocalPosition(&localPos);
 }
 
 /**
