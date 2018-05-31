@@ -2322,9 +2322,13 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
                 }
             }
             else {
-                // If we were in LAUNCH mode - force switch to IDLE
+                // If we were in LAUNCH mode - force switch to IDLE only if the throttle is low
                 if (FLIGHT_MODE(NAV_LAUNCH_MODE)) {
-                    return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+                    throttleStatus_e throttleStatus = calculateThrottleStatus();
+                    if (throttleStatus != THROTTLE_LOW) 
+                        return NAV_FSM_EVENT_NONE;
+                    else 
+                        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
                 }
             }
         }
