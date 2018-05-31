@@ -78,7 +78,7 @@ typedef struct adc_config_s {
 
 extern const adcTagMap_t adcTagMap[ADC_TAG_MAP_COUNT];
 extern adc_config_t adcConfig[ADC_CHN_COUNT];
-extern volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT];
+extern volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES];
 
 void adcHardwareInit(drv_adc_config_t *init);
 ADCDevice adcDeviceByInstance(ADC_TypeDef *instance);
