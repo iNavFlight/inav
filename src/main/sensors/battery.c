@@ -275,7 +275,7 @@ uint32_t getBatteryRemainingCapacity(void)
 
 bool isAmperageConfigured(void)
 {
-    return batteryConfig()->current.type != CURRENT_SENSOR_NONE;
+    return feature(FEATURE_CURRENT_METER) && batteryConfig()->current.type != CURRENT_SENSOR_NONE;
 }
 
 int32_t getAmperage(void)
