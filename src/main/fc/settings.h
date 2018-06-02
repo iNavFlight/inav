@@ -6,7 +6,7 @@
 
 #include "config/parameter_group.h"
 
-#include "fc/settings_generated.h"
+#include "settings_generated.h"
 
 typedef struct lookupTableEntry_s {
     const char * const *values;

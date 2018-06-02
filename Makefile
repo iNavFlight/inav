@@ -274,9 +274,10 @@ TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(BUILD_SUFFIX).bin
 TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(BUILD_SUFFIX).hex
 endif
 
+TARGET_OBJ_DIR  = $(OBJECT_DIR)/$(TARGET)
 TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf
-TARGET_OBJS     = $(addsuffix .o,$(addprefix $(OBJECT_DIR)/$(TARGET)/,$(basename $(TARGET_SRC))))
-TARGET_DEPS     = $(addsuffix .d,$(addprefix $(OBJECT_DIR)/$(TARGET)/,$(basename $(TARGET_SRC))))
+TARGET_OBJS     = $(addsuffix .o,$(addprefix $(TARGET_OBJ_DIR)/,$(basename $(TARGET_SRC))))
+TARGET_DEPS     = $(addsuffix .d,$(addprefix $(TARGET_OBJ_DIR)/,$(basename $(TARGET_SRC))))
 TARGET_MAP      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).map
 
 
@@ -285,19 +286,22 @@ CLEAN_ARTIFACTS += $(TARGET_HEX)
 CLEAN_ARTIFACTS += $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 
 # Make sure build date and revision is updated on every incremental build
-$(OBJECT_DIR)/$(TARGET)/build/version.o : $(TARGET_SRC)
+$(TARGET_OBJ_DIR)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
 .PHONY: .FORCE settings clean-settings
-UTILS_DIR		= $(ROOT)/src/utils
-SETTINGS_GENERATOR	= $(UTILS_DIR)/settings.rb
-BUILD_STAMP		= $(UTILS_DIR)/build_stamp.rb
-STAMP			= $(BIN_DIR)/build.stamp
+UTILS_DIR               = $(ROOT)/src/utils
+SETTINGS_GENERATOR      = $(UTILS_DIR)/settings.rb
+BUILD_STAMP             = $(UTILS_DIR)/build_stamp.rb
+STAMP                   = $(TARGET_OBJ_DIR)/build.stamp
 
-GENERATED_SETTINGS	= $(SRC_DIR)/fc/settings_generated.h $(SRC_DIR)/fc/settings_generated.c
-SETTINGS_FILE 		= $(SRC_DIR)/fc/settings.yaml
-GENERATED_FILES		= $(GENERATED_SETTINGS)
+GENERATED_SETTINGS      = $(TARGET_OBJ_DIR)/settings_generated.h $(TARGET_OBJ_DIR)/settings_generated.c
+SETTINGS_FILE           = $(SRC_DIR)/fc/settings.yaml
+GENERATED_FILES         = $(GENERATED_SETTINGS)
 $(GENERATED_SETTINGS): $(SETTINGS_GENERATOR) $(SETTINGS_FILE) $(STAMP)
+
+# Make sure the generated files are in the include path
+CFLAGS                  += -I$(TARGET_OBJ_DIR)
 
 $(STAMP): .FORCE
 	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(BUILD_STAMP) $(SETTINGS_FILE) $(STAMP)
@@ -306,7 +310,7 @@ $(STAMP): .FORCE
 # See https://www.gnu.org/software/make/manual/make.html#Pattern-Examples
 %generated.h %generated.c:
 	$(V1) echo "settings.yaml -> settings_generated.h, settings_generated.c" "$(STDOUT)"
-	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE)
+	$(V1) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) -o $(TARGET_OBJ_DIR)
 
 settings-json:
 	$(V0) CFLAGS="$(CFLAGS)" TARGET=$(TARGET) ruby $(SETTINGS_GENERATOR) . $(SETTINGS_FILE) --json settings.json
@@ -329,18 +333,18 @@ $(TARGET_ELF): $(TARGET_OBJS)
 	$(V0) $(SIZE) $(TARGET_ELF)
 
 # Compile
-$(OBJECT_DIR)/$(TARGET)/%.o: %.c
+$(TARGET_OBJ_DIR)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
 	$(V1) $(CROSS_CC) -c -o $@ $(CFLAGS) $<
 
 # Assemble
-$(OBJECT_DIR)/$(TARGET)/%.o: %.s
+$(TARGET_OBJ_DIR)/%.o: %.s
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
 	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
 
-$(OBJECT_DIR)/$(TARGET)/%.o: %.S
+$(TARGET_OBJ_DIR)/%.o: %.S
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
 	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
@@ -377,8 +381,7 @@ $(VALID_TARGETS):
 clean:
 	$(V0) echo "Cleaning $(TARGET)"
 	$(V0) rm -f $(CLEAN_ARTIFACTS)
-	$(V0) rm -rf $(OBJECT_DIR)/$(TARGET)
-	$(V0) rm -f $(GENERATED_SETTINGS)
+	$(V0) rm -rf $(TARGET_OBJ_DIR)
 	$(V0) echo "Cleaning $(TARGET) succeeded."
 
 ## clean_test        : clean up all temporary / machine-generated files (tests)

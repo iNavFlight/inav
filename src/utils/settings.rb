@@ -260,10 +260,10 @@ end
 OFF_ON_TABLE = Hash["name" => "off_on", "values" => ["OFF", "ON"]]
 
 class Generator
-    def initialize(src_root, settings_file)
+    def initialize(src_root, settings_file, output_dir)
         @src_root = src_root
         @settings_file = settings_file
-        @output_dir = File.dirname(settings_file)
+        @output_dir = output_dir || File.dirname(settings_file)
 
         @compiler = Compiler.new
 
@@ -416,7 +416,7 @@ class Generator
         }
         add_header.call("platform.h")
         add_header.call("config/parameter_group_ids.h")
-        add_header.call("settings.h")
+        add_header.call("fc/settings.h")
 
         foreach_enabled_group do |group|
             (group["headers"] || []).each do |h|
@@ -623,10 +623,12 @@ class Generator
         # Use a temporary dir reachable by relative path
         # since g++ in cygwin fails to open files
         # with absolute paths
-        tmp = File.join("obj", "tmp")
+        tmp = File.join(@output_dir, "tmp")
         FileUtils.mkdir_p(tmp) unless File.directory?(tmp)
         value = yield(tmp)
-        FileUtils.remove_dir(tmp)
+        if File.directory?(tmp)
+            FileUtils.remove_dir(tmp)
+        end
         value
     end
 
@@ -882,17 +884,20 @@ if __FILE__ == $0
         exit(1)
     end
 
-    gen = Generator.new(src_root, settings_file)
 
     opts = GetoptLong.new(
+        [ "--output-dir", "-o", GetoptLong::REQUIRED_ARGUMENT ],
         [ "--help", "-h", GetoptLong::NO_ARGUMENT ],
         [ "--json", "-j", GetoptLong::REQUIRED_ARGUMENT ],
     )
 
     jsonFile = nil
+    output_dir = nil
 
     opts.each do |opt, arg|
         case opt
+        when "--output-dir"
+            output_dir = arg
         when "--help"
             usage()
             exit(0)
@@ -900,6 +905,8 @@ if __FILE__ == $0
             jsonFile = arg
         end
     end
+
+    gen = Generator.new(src_root, settings_file, output_dir)
 
     if jsonFile
         gen.write_json(jsonFile)
