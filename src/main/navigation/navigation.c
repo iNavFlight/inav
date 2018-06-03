@@ -2775,7 +2775,7 @@ bool navigationRequiresTurnAssistance(void)
     const navigationFSMStateFlags_t currentState = navGetStateFlags(posControl.navState);
     if (STATE(FIXED_WING)) {
         // For airplanes turn assistant is always required when controlling position
-        return (currentState & NAV_CTL_POS);
+        return (currentState & (NAV_CTL_POS | NAV_CTL_ALT));
     }
     else {
         return false;
