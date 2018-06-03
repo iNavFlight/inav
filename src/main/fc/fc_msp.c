@@ -647,7 +647,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_MISC:
-        sbufWriteU16(dst, rxConfig()->midrc);
+        sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
         sbufWriteU16(dst, motorConfig()->minthrottle);
         sbufWriteU16(dst, motorConfig()->maxthrottle);
@@ -677,7 +677,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP2_INAV_MISC:
-        sbufWriteU16(dst, rxConfig()->midrc);
+        sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
         sbufWriteU16(dst, motorConfig()->minthrottle);
         sbufWriteU16(dst, motorConfig()->maxthrottle);
@@ -829,7 +829,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_RX_CONFIG:
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
         sbufWriteU16(dst, rxConfig()->maxcheck);
-        sbufWriteU16(dst, rxConfig()->midrc);
+        sbufWriteU16(dst, PWM_RANGE_MIDDLE);
         sbufWriteU16(dst, rxConfig()->mincheck);
         sbufWriteU8(dst, rxConfig()->spektrum_sat_bind);
         sbufWriteU16(dst, rxConfig()->rx_min_usec);
@@ -1595,7 +1595,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_MISC:
         if (dataSize >= 22) {
-        rxConfigMutable()->midrc = constrain(sbufReadU16(src), MIDRC_MIN, MIDRC_MAX);
+        sbufReadU16(src);   // midrc
 
         motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
         motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -1635,7 +1635,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_SET_MISC:
         if (dataSize == 39) {
-            rxConfigMutable()->midrc = constrain(sbufReadU16(src), MIDRC_MIN, MIDRC_MAX);
+            sbufReadU16(src);       // midrc
 
             motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
             motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -2264,7 +2264,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize >= 24) {
             rxConfigMutable()->serialrx_provider = sbufReadU8(src);
             rxConfigMutable()->maxcheck = sbufReadU16(src);
-            rxConfigMutable()->midrc = sbufReadU16(src);
+            sbufReadU16(src); // midrc
             rxConfigMutable()->mincheck = sbufReadU16(src);
             rxConfigMutable()->spektrum_sat_bind = sbufReadU8(src);
             rxConfigMutable()->rx_min_usec = sbufReadU16(src);
