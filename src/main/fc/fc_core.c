@@ -488,7 +488,7 @@ void processRx(timeUs_t currentTimeUs)
 
     updateActivatedModes();
 
-    if (!cliMode) {
+    if ((!cliMode) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
         updateAdjustmentStates();
         processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile));
     }
