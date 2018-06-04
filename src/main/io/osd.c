@@ -1050,6 +1050,19 @@ static bool osdDrawSingleElement(uint8_t item)
         displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
         return true;
 
+    case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE:
+        osdFormatBatteryChargeSymbol(buff);
+        buff[1] = '\0';
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        elemAttr = TEXT_ATTRIBUTES_NONE;
+        osdFormatCentiNumber(buff, getSagCompensatedBatteryVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+        strcat(buff, "V");
+        if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getSagCompensatedBatteryVoltage() <= getBatteryWarningVoltage()))
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+        return true;
+
     case OSD_CURRENT_DRAW:
         buff[0] = SYM_AMP;
         osdFormatCentiNumber(buff + 1, getAmperage(), 0, 2, 0, 3);
@@ -1895,6 +1908,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
     osdConfig->item_pos[0][OSD_ALTITUDE] = OSD_POS(1, 0) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 0) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE] = OSD_POS(12, 1);
+
     osdConfig->item_pos[0][OSD_RSSI_VALUE] = OSD_POS(23, 0) | OSD_VISIBLE_FLAG;
     //line 2
     osdConfig->item_pos[0][OSD_HOME_DIST] = OSD_POS(1, 1);
