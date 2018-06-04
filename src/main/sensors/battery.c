@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+#include "build/debug.h"
+
 #include "common/maths.h"
 #include "common/filter.h"
 
@@ -32,7 +34,14 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/fc_core.h"
 #include "fc/runtime_config.h"
+#include "fc/stats.h"
+
+#include "flight/imu.h"
+#include "flight/mixer.h"
+
+#include "navigation/navigation.h"
 
 #include "config/feature.h"
 
@@ -44,7 +53,6 @@
 
 #include "io/beeper.h"
 
-#include "build/debug.h"
 
 #define ADCVREF 3300                 // in mV (3300 = 3.3V)
 
@@ -119,7 +127,11 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
         .offset = CURRENT_METER_OFFSET
     },
 
-    .voltageSource = BAT_VOLTAGE_RAW
+    .voltageSource = BAT_VOLTAGE_RAW,
+
+    .cruise_power = 0,
+    .idle_power = 0,
+    .rth_energy_margin = 5
 
 );
 
@@ -459,6 +471,14 @@ void powerMeterUpdate(timeUs_t timeDelta)
     mWhDrawn = mWhDrawnRaw / (3600 * 100);
 }
 
+// calculate true power including heat losses in power supply (battery + wires)
+// power is in cW (0.01W)
+// batteryWarningVoltage is in cV (0.01V)
+int32_t heatLossesCompensatedPower(int32_t power)
+{
+    return power + sq(power * 100 / batteryWarningVoltage) * powerSupplyImpedance / 100000;
+}
+
 void sagCompensatedVBatUpdate(timeUs_t currentTime)
 {
     static timeUs_t recordTimestamp = 0;
@@ -509,4 +529,14 @@ uint8_t calculateBatteryPercentage(void)
 
 void batteryDisableProfileAutoswitch(void) {
     profileAutoswitchDisable = true;
+}
+
+// returns cW (0.01W)
+int32_t calculateAveragePower() {
+    return (int64_t)mWhDrawn * 360 / getFlightTime();
+}
+
+// returns mWh / meter
+int32_t calculateAverageEfficiency() {
+    return getFlyingEnergy() * 100 / getTotalTravelDistance();
 }

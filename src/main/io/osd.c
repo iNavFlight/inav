@@ -67,9 +67,11 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/fc_tasks.h"
 
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "flight/rth_estimator.h"
 #include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
@@ -116,7 +118,6 @@
     x; \
 })
 
-static timeUs_t flyTime = 0;
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 
@@ -160,7 +161,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 2);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 3);
 
 static int digitCount(int32_t value)
 {
@@ -460,7 +461,7 @@ static inline void osdFormatOnTime(char *buff)
 
 static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
 {
-    uint32_t seconds = flyTime / 1000000;
+    uint32_t seconds = getFlightTime();
     osdFormatTime(buff, seconds, SYM_FLY_M, SYM_FLY_H);
     if (attr && osdConfig()->time_alarm > 0) {
        if (seconds / 60 >= osdConfig()->time_alarm && ARMING_FLAG(ARMED)) {
@@ -1233,6 +1234,60 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH:
+        {
+            static timeUs_t updatedTimestamp = 0;
+            /*static int32_t updatedTimeSeconds = 0;*/
+            timeUs_t currentTimeUs = micros();
+            static int32_t timeSeconds = -1;
+            if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+                timeSeconds = calculateRemainingFlightTimeBeforeRTH(osdConfig()->estimations_wind_compensation);
+                updatedTimestamp = currentTimeUs;
+            }
+            if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
+                buff[0] = SYM_FLY_M;
+                strcpy(buff + 1, "--:--");
+                updatedTimestamp = 0;
+            } else if (timeSeconds == -2) {
+                // Wind is too strong to come back with cruise throttle
+                buff[0] = SYM_FLY_M;
+                buff[1] = buff[2] = buff[4] = buff[5] = SYM_WIND_HORIZONTAL;
+                buff[3] = ':';
+                buff[6] = '\0';
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            } else {
+                osdFormatTime(buff, timeSeconds, SYM_FLY_M, SYM_FLY_H);
+                if (timeSeconds == 0)
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+        }
+        break;
+
+    case OSD_REMAINING_DISTANCE_BEFORE_RTH:;
+        static timeUs_t updatedTimestamp = 0;
+        timeUs_t currentTimeUs = micros();
+        static int32_t distanceMeters = -1;
+        if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= 1000000) {
+            distanceMeters = calculateRemainingDistanceBeforeRTH(osdConfig()->estimations_wind_compensation);
+            updatedTimestamp = currentTimeUs;
+        }
+        buff[0] = SYM_TRIP_DIST;
+        if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
+            buff[1] = SYM_DIST_M;
+            strcpy(buff + 2, "---");
+        } else if (distanceMeters == -2) {
+            // Wind is too strong to come back with cruise throttle
+            buff[0] = SYM_DIST_M;
+            buff[2] = buff[3] = buff[4] = SYM_WIND_HORIZONTAL;
+            buff[5] = '\0';
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        } else {
+            osdFormatDistanceSymbol(buff + 1, distanceMeters * 100);
+            if (distanceMeters == 0)
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        }
+        break;
+
     case OSD_FLYMODE:
         {
             char *p = "ACRO";
@@ -1875,6 +1930,9 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_EFFICIENCY_MAH_PER_KM) {
             elementIndex = OSD_TRIP_DIST;
         }
+        if (elementIndex == OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH) {
+            elementIndex = OSD_ITEM_COUNT;
+        }
     }
     if (!feature(FEATURE_GPS)) {
         if (elementIndex == OSD_GPS_SPEED) {
@@ -1952,6 +2010,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_FLYTIME] = OSD_POS(23, 9);
     osdConfig->item_pos[0][OSD_ONTIME_FLYTIME] = OSD_POS(23, 11) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_RTC_TIME] = OSD_POS(23, 12);
+    osdConfig->item_pos[0][OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH] = OSD_POS(23, 7);
+    osdConfig->item_pos[0][OSD_REMAINING_DISTANCE_BEFORE_RTH] = OSD_POS(23, 6);
 
     osdConfig->item_pos[0][OSD_GPS_SATS] = OSD_POS(0, 11) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
@@ -1995,6 +2055,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->units = OSD_UNIT_METRIC;
     osdConfig->main_voltage_decimals = 1;
     osdConfig->attitude_angle_decimals = 0;
+
+    osdConfig->estimations_wind_compensation = true;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
@@ -2196,7 +2258,7 @@ static void osdShowStats(void)
     }
 
     displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
-    uint32_t flySeconds = flyTime / 1000000;
+    uint16_t flySeconds = getFlightTime();
     uint16_t flyMinutes = flySeconds / 60;
     flySeconds %= 60;
     uint16_t flyHours = flyMinutes / 60;
@@ -2241,8 +2303,6 @@ static void osdShowArmed(void)
 
 static void osdRefresh(timeUs_t currentTimeUs)
 {
-    static timeUs_t lastTimeUs = 0;
-
     if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
       displayClearScreen(osdDisplayPort);
       armState = ARMING_FLAG(ARMED);
@@ -2262,13 +2322,6 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
         armState = ARMING_FLAG(ARMED);
     }
-
-    if (ARMING_FLAG(ARMED)) {
-        timeUs_t deltaT = currentTimeUs - lastTimeUs;
-        flyTime += deltaT;
-    }
-
-    lastTimeUs = currentTimeUs;
 
     if (resumeRefreshAt) {
         // If we already reached he time for the next refresh,

@@ -67,7 +67,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE", "VIBE", "CRUISE"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE", "VIBE", "CRUISE", "REM_FLIGHT_TIME"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -536,6 +536,17 @@ groups:
         field: voltageSource
         table: bat_voltage_source
         type: uint8_t
+      - name: cruise_power
+        field: cruise_power
+        min: 0
+        max: 4294967295
+      - name: idle_power
+        field: idle_power
+        min: 0
+        max: 65535
+      - name: rth_energy_margin
+        min: 0
+        max: 100
 
   - name: PG_BATTERY_PROFILES
     type: batteryProfile_t
@@ -1311,6 +1322,10 @@ groups:
         field: fw.loiter_radius
         min: 0
         max: 10000
+      - name: nav_fw_cruise_speed
+        field: fw.cruise_speed
+        min: 0
+        max: 65535
 
       - name: nav_fw_land_dive_angle
         field: fw.land_dive_angle
@@ -1530,6 +1545,10 @@ groups:
         field: attitude_angle_decimals
         min: 0
         max: 1
+
+      - name: osd_estimations_wind_compensation
+        field: estimations_wind_compensation
+        type: bool
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t

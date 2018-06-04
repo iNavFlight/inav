@@ -85,6 +85,8 @@ typedef enum {
     OSD_WIND_SPEED_VERTICAL,
     OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE,
     OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE,
+    OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,
+    OSD_REMAINING_DISTANCE_BEFORE_RTH,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -136,6 +138,8 @@ typedef struct osdConfig_s {
 
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
+
+    bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

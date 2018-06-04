@@ -23,6 +23,7 @@
 #endif
 #endif
 
+#include "common/axis.h"
 #include "common/time.h"
 
 bool isEstimatedWindSpeedValid(void);
