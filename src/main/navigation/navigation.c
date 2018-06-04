@@ -41,6 +41,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
 #include "flight/pid.h"
 
 #include "io/beeper.h"
@@ -2762,7 +2763,7 @@ rthState_e getStateOfForcedRTH(void)
 bool navigationIsControllingThrottle(void)
 {
     navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    return (stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND));
+    return ((stateFlags & (NAV_CTL_ALT | NAV_CTL_EMERG | NAV_CTL_LAUNCH | NAV_CTL_LAND)) && (getMotorStatus() != MOTOR_STOPPED_USER));
 }
 
 bool navigationIsFlyingAutonomousMode(void)
