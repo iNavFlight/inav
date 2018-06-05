@@ -107,6 +107,7 @@ typedef enum {
 } pidControllerFlags_e;
 
 typedef struct {
+    bool reset;
     pidControllerParam_t param;
     pt1Filter_t dterm_filter_state;  // last derivative for low-pass filter
     float integrator;       // integrator value
