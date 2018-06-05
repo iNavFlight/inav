@@ -144,6 +144,17 @@
     #endif
 #endif
 
+#if defined(USE_MAG_AK8975)
+    #if defined(AK8975_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_ak8963,      DEVHW_AK8975,       AK8975_SPI_BUS,     AK8975_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #elif defined(AK8975_I2C_BUS) || defined(MAG_I2C_BUS)
+    #if !defined(AK8975_I2C_BUS)
+        #define AK8975_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_ak8963,      DEVHW_AK8975,       AK8975_I2C_BUS,     0x0C,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_MAG_MAG3110)
     #if !defined(MAG3110_I2C_BUS)
         #define MAG3110_I2C_BUS MAG_I2C_BUS
