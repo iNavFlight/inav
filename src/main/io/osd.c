@@ -107,7 +107,7 @@
 // Adjust OSD_MESSAGE's default position when
 // changing OSD_MESSAGE_LENGTH
 #define OSD_MESSAGE_LENGTH 28
-#define OSD_ALTERNATING_TEXT(ms, num_choices) ((millis() / ms) % num_choices)
+#define OSD_ALTERNATING_CHOICES(ms, num_choices) ((millis() / ms) % num_choices)
 #define _CONST_STR_SIZE(s) ((sizeof(s)/sizeof(s[0]))-1) // -1 to avoid counting final '\0'
 // Wrap all string constants intenteded for display as messages with
 // this macro to ensure compile time length validation.
@@ -934,7 +934,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             break;
     }
 
-    if (STATE(GPS_FIX) && poiDistance > scale) {
+    if (STATE(GPS_FIX)) {
 
         int directionToPoi = osdGetHeadingAngle(poiDirection + referenceHeading);
         float poiAngle = DEGREES_TO_RADIANS(directionToPoi);
@@ -958,18 +958,21 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 continue;
             }
 
-            if (poiX == midX && poiY == midY && centerSym != SYM_BLANK) {
+            if (poiX == midX && poiY == midY) {
                 // We're over the map center symbol, so we would be drawing
-                // over it even if we increased the scale. No reason to run
-                // this loop 50 times.
-                break;
-            }
+                // over it even if we increased the scale. Alternate between
+                // drawing the center symbol or drawing the POI.
+                if (centerSym != SYM_BLANK && OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                    break;
+                }
+            } else {
 
-            uint8_t c;
-            if (displayReadCharWithAttr(osdDisplayPort, poiY, poiY, &c, NULL) && c != SYM_BLANK) {
-                // Something else written here, increase scale. If the display doesn't support reading
-                // back characters, we assume there's nothing.
-                continue;
+                uint8_t c;
+                if (displayReadCharWithAttr(osdDisplayPort, poiY, poiY, &c, NULL) && c != SYM_BLANK) {
+                    // Something else written here, increase scale. If the display doesn't support reading
+                    // back characters, we assume there's nothing.
+                    continue;
+                }
             }
 
             // Draw the point on the map
@@ -1590,7 +1593,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         messages[messageCount++] = navStateFSMessage;
                     }
                     if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_TEXT(1000, messageCount)];
+                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                         if (message == failsafeInfoMessage) {
                             // failsafeInfoMessage is not useful for recovering
                             // a lost model, but might help avoiding a crash.
@@ -1630,12 +1633,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     // Pick one of the available messages. Each message lasts
                     // a second.
                     if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_TEXT(1000, messageCount)];
+                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                     }
                 }
             } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
                 // Check if we're unable to arm for some reason
-                if (OSD_ALTERNATING_TEXT(1000, 2) == 0) {
+                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
                     message = "UNABLE TO ARM";
                     TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
                 } else {
