@@ -947,7 +947,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             int points = poiDistance / (float)(scale / charHeight);
 
             float pointsX = points * poiSin;
-            int poiX = midX + roundf(pointsX / charWidth);
+            int poiX = midX - roundf(pointsX / charWidth);
             if (poiX < minX || poiX > maxX) {
                 continue;
             }
@@ -1007,7 +1007,7 @@ static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t 
 static void osdDrawRadar(uint16_t *drawn)
 {
     int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
-    int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);
+    int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome - osdGetHeading() + 180);
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn);
 }
 
