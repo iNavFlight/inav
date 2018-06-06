@@ -121,7 +121,7 @@ typedef struct rxConfig_s {
     uint8_t rssi_channel;
     uint8_t rssi_scale;
     uint8_t rssiInvert;
-    uint16_t midrc;                         // Some radios have not a neutral point centered on 1500. can be changed here
+    uint16_t __reserved;                    // was micrd
     uint16_t mincheck;                      // minimum rc end
     uint16_t maxcheck;                      // maximum rc end
     uint16_t rx_min_usec;

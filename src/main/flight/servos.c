@@ -230,7 +230,7 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
         // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
-        if (feature(FEATURE_3D) && (rcData[THROTTLE] < rxConfig()->midrc) && 
+        if (feature(FEATURE_3D) && (rcData[THROTTLE] < PWM_RANGE_MIDDLE) && 
         (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
@@ -254,22 +254,22 @@ void servoMixer(float dT)
     // 2000 - 1500 = +500
     // 1500 - 1500 = 0
     // 1000 - 1500 = -500
-    input[INPUT_RC_ROLL]     = rcData[ROLL]     - rxConfig()->midrc;
-    input[INPUT_RC_PITCH]    = rcData[PITCH]    - rxConfig()->midrc;
-    input[INPUT_RC_YAW]      = rcData[YAW]      - rxConfig()->midrc;
-    input[INPUT_RC_THROTTLE] = rcData[THROTTLE] - rxConfig()->midrc;
-    input[INPUT_RC_CH5]      = rcData[AUX1]     - rxConfig()->midrc;
-    input[INPUT_RC_CH6]      = rcData[AUX2]     - rxConfig()->midrc;
-    input[INPUT_RC_CH7]      = rcData[AUX3]     - rxConfig()->midrc;
-    input[INPUT_RC_CH8]      = rcData[AUX4]     - rxConfig()->midrc;
-    input[INPUT_RC_CH9]      = rcData[AUX5]     - rxConfig()->midrc;
-    input[INPUT_RC_CH10]     = rcData[AUX6]     - rxConfig()->midrc;
-    input[INPUT_RC_CH11]     = rcData[AUX7]     - rxConfig()->midrc;
-    input[INPUT_RC_CH12]     = rcData[AUX8]     - rxConfig()->midrc;
-    input[INPUT_RC_CH13]     = rcData[AUX9]     - rxConfig()->midrc;
-    input[INPUT_RC_CH14]     = rcData[AUX10]    - rxConfig()->midrc;
-    input[INPUT_RC_CH15]     = rcData[AUX11]    - rxConfig()->midrc;
-    input[INPUT_RC_CH16]     = rcData[AUX12]    - rxConfig()->midrc;
+    input[INPUT_RC_ROLL]     = rcData[ROLL]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_PITCH]    = rcData[PITCH]    - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_YAW]      = rcData[YAW]      - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_THROTTLE] = rcData[THROTTLE] - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH5]      = rcData[AUX1]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH6]      = rcData[AUX2]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH7]      = rcData[AUX3]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH8]      = rcData[AUX4]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH9]      = rcData[AUX5]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH10]     = rcData[AUX6]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH11]     = rcData[AUX7]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH12]     = rcData[AUX8]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH13]     = rcData[AUX9]     - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH14]     = rcData[AUX10]    - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH15]     = rcData[AUX11]    - PWM_RANGE_MIDDLE;
+    input[INPUT_RC_CH16]     = rcData[AUX12]    - PWM_RANGE_MIDDLE;
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servo[i] = 0;

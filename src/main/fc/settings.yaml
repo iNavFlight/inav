@@ -321,10 +321,6 @@ groups:
       - name: receiver_type
         field: receiverType
         table: receiver_type
-      - name: mid_rc
-        field: midrc
-        min: MIDRC_MIN
-        max: MIDRC_MAX
       - name: min_check
         field: mincheck
         min: PWM_RANGE_MIN
