@@ -194,7 +194,8 @@ TARGET_SRC   := $(filter-out $(MCU_EXCLUDES), $(TARGET_SRC))
 ifneq ($(filter ONBOARDFLASH,$(FEATURES)),)
 TARGET_SRC += \
             drivers/flash_m25p16.c \
-            io/flashfs.c
+            io/flashfs.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter SDCARD,$(FEATURES)),)
@@ -202,11 +203,16 @@ TARGET_SRC += \
             drivers/sdcard.c \
             drivers/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
-            io/asyncfatfs/fat_standard.c
+            io/asyncfatfs/fat_standard.c \
+            $(MSC_SRC)
 endif
 
 ifneq ($(filter VCP,$(FEATURES)),)
 TARGET_SRC += $(VCP_SRC)
+endif
+
+ifneq ($(filter MSC,$(FEATURES)),)
+SRC += $(MSC_SRC)
 endif
 
 # Search path and source files for the ST stdperiph library

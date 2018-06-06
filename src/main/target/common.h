@@ -40,6 +40,11 @@
 #define ADC_AVERAGE_N_SAMPLES 20
 #endif
 
+// USB_MSC uses 9K of flash, we can't afford that on F3
+#if defined(STM32F4) || defined(STM32F7)
+#define USE_USB_MSC
+#endif
+
 #define USE_64BIT_TIME
 #define USE_BLACKBOX
 #define USE_GPS
