@@ -1324,12 +1324,16 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
     newProportional = error * pid->param.kP * gainScaler;
 
     /* D-term */
+    if (pid->reset) {
+        pid->last_input = (pidFlags & PID_DTERM_FROM_ERROR) ? error : measurement;
+        pid->reset = false;
+    }
+
     if (pidFlags & PID_DTERM_FROM_ERROR) {
         /* Error-tracking D-term */
         newDerivative = (error - pid->last_input) / dt;
         pid->last_input = error;
-    }
-    else {
+    } else {
         /* Measurement tracking D-term */
         newDerivative = -(measurement - pid->last_input) / dt;
         pid->last_input = measurement;
@@ -1371,6 +1375,7 @@ float navPidApply2(pidController_t *pid, const float setpoint, const float measu
 
 void navPidReset(pidController_t *pid)
 {
+    pid->reset = true;
     pid->integrator = 0.0f;
     pid->last_input = 0.0f;
     pid->dterm_filter_state.state = 0.0f;
