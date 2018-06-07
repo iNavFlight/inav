@@ -42,6 +42,7 @@
 
 #include "io/beeper.h"
 
+#include "build/debug.h"
 
 #define ADCVREF 3300                 // in mV (3300 = 3.3V)
 
@@ -65,6 +66,8 @@ static bool batteryFullWhenPluggedIn = false;
 static uint16_t vbat = 0;                   // battery voltage in 0.1V steps (filtered)
 static uint16_t vbatLatestADC = 0;          // most recent unsmoothed raw reading from vbat ADC
 static uint16_t amperageLatestADC = 0;      // most recent raw reading from current ADC
+static uint16_t powerSupplyImpedance = 0;   // calculated impedance in milliohm
+static uint16_t sagCompensatedVBat = 0;     // calculated no load vbat
 
 static int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
 static int32_t power = 0;                  // power draw in cW (0.01W resolution)
@@ -245,6 +248,16 @@ uint16_t getBatteryVoltage(void)
     return vbat;
 }
 
+uint16_t getSagCompensatedBatteryVoltage(void)
+{
+    return sagCompensatedVBat;
+}
+
+float calculateThrottleCompensationFactor(void)
+{
+    return batteryFullVoltage / sagCompensatedVBat;
+}
+
 uint16_t getBatteryVoltageLatestADC(void)
 {
     return vbatLatestADC;
@@ -340,6 +353,42 @@ void powerMeterUpdate(int32_t timeDelta)
     power = amperage * vbat / 100; // power unit is cW (0.01W resolution)
     mWhDrawnRaw += (power_mW * timeDelta) / 10000;
     mWhDrawn = mWhDrawnRaw / (3600 * 100);
+}
+
+void sagCompensatedVBatUpdate(timeUs_t currentTime)
+{
+    static timeUs_t recordTimestamp = 0;
+    static int32_t amperageRecord;
+    static uint16_t vbatRecord;
+
+    if (batteryState == BATTERY_NOT_PRESENT) {
+
+        recordTimestamp = 0;
+        powerSupplyImpedance = 0;
+        sagCompensatedVBat = vbat;
+
+    } else {
+
+        if (cmpTimeUs(currentTime, recordTimestamp) > 20000000)
+            recordTimestamp = 0;
+
+        if (!recordTimestamp) {
+            amperageRecord = amperage;
+            vbatRecord = vbat;
+            recordTimestamp = currentTime;
+        } else if ((amperage - amperageRecord >= 400) && ((int16_t)vbatRecord - vbat >= 10)) {
+            powerSupplyImpedance = (int32_t)(vbatRecord - vbat) * 1000 / (amperage - amperageRecord);
+            amperageRecord = amperage;
+            vbatRecord = vbat;
+            recordTimestamp = currentTime;
+        }
+
+        sagCompensatedVBat = MIN(batteryFullVoltage, vbat + powerSupplyImpedance * amperage / 1000);
+
+    }
+
+    DEBUG_SET(DEBUG_SAG_COMP_VOLTAGE, 0, powerSupplyImpedance);
+    DEBUG_SET(DEBUG_SAG_COMP_VOLTAGE, 1, sagCompensatedVBat);
 }
 
 uint8_t calculateBatteryPercentage(void)

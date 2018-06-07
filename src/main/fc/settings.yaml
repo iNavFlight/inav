@@ -67,7 +67,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -423,6 +423,9 @@ groups:
       - name: motor_pwm_protocol
         field: motorPwmProtocol
         table: motor_pwm_protocol
+      - name: throttle_vbat_compensation
+        field: throttleVBatCompensation
+        type: bool
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
