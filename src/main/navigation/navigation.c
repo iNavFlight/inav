@@ -2793,7 +2793,7 @@ void onNewGPSData(void)
             int32_t dir;
             GPS_distance_cm_bearing(gpsSol.llh.lat, gpsSol.llh.lon, GPS_home.lat, GPS_home.lon, &dist, &dir);
             GPS_distanceToHome = dist / 100;
-            GPS_directionToHome = dir / 100;
+            GPS_directionToHome = lrintf(dir / 100.0f);
         } else {
             GPS_distanceToHome = 0;
             GPS_directionToHome = 0;
