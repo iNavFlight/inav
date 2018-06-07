@@ -169,12 +169,6 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
     return true;
 }
 
-void rangefinderResetDynamicThreshold(void)
-{
-    rangefinder.snrThresholdReached = false;
-    rangefinder.dynamicDistanceThreshold = 0;
-}
-
 bool rangefinderInit(void)
 {
     if (!rangefinderDetect(&rangefinder.dev, rangefinderConfig()->rangefinder_hardware)) {
@@ -186,9 +180,6 @@ bool rangefinderInit(void)
     rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
     rangefinder.maxTiltCos = cos_approx(DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f));
     rangefinder.lastValidResponseTimeMs = millis();
-    rangefinder.snr = 0;
-
-    rangefinderResetDynamicThreshold();
 
     return true;
 }
@@ -211,35 +202,6 @@ static int32_t applyMedianFilter(int32_t newReading)
     return medianFilterReady ? quickMedianFilter5(filterSamples) : newReading;
 }
 
-static int16_t computePseudoSnr(int32_t newReading) {
-    #define SNR_SAMPLES 5
-    static int16_t snrSamples[SNR_SAMPLES];
-    static uint8_t snrSampleIndex = 0;
-    static int32_t previousReading = RANGEFINDER_OUT_OF_RANGE;
-    static bool snrReady = false;
-    int16_t pseudoSnr = 0;
-
-    snrSamples[snrSampleIndex] = constrain((int)(pow(newReading - previousReading, 2) / 10), 0, 6400);
-    ++snrSampleIndex;
-    if (snrSampleIndex == SNR_SAMPLES) {
-        snrSampleIndex = 0;
-        snrReady = true;
-    }
-
-    previousReading = newReading;
-
-    if (snrReady) {
-
-        for (uint8_t i = 0; i < SNR_SAMPLES; i++) {
-            pseudoSnr += snrSamples[i];
-        }
-
-        return constrain(pseudoSnr, 0, 32000);
-    } else {
-        return RANGEFINDER_OUT_OF_RANGE;
-    }
-}
-
 /*
  * This is called periodically by the scheduler
  */
@@ -250,34 +212,6 @@ timeDelta_t rangefinderUpdate(void)
     }
 
     return rangefinder.dev.delayMs * 1000;  // to microseconds
-}
-
-bool isSurfaceAltitudeValid() {
-
-    /*
-     * Preconditions: raw and calculated altidude > 0
-     * SNR lower than threshold
-     */ 
-    if (
-        rangefinder.calculatedAltitude > 0 &&
-        rangefinder.rawAltitude > 0 &&
-        rangefinder.snr < RANGEFINDER_DYNAMIC_THRESHOLD
-    ) {
-
-        /*
-         * When critical altitude was determined, distance reported by rangefinder
-         * has to be lower than it to assume healthy readout
-         */
-        if (rangefinder.snrThresholdReached) {
-            return (rangefinder.rawAltitude < rangefinder.dynamicDistanceThreshold);
-        } else {
-            return true;
-        }
-
-    } else {
-        return false;
-    }
-
 }
 
 /**
@@ -308,20 +242,6 @@ bool rangefinderProcess(float cosTiltAngle)
         else {
             // Invalid response / hardware failure
             rangefinder.rawAltitude = RANGEFINDER_HARDWARE_FAILURE;
-        }
-
-        rangefinder.snr = computePseudoSnr(distance);
-
-        if (rangefinder.snrThresholdReached == false && rangefinder.rawAltitude > 0) {
-
-            if (rangefinder.snr < RANGEFINDER_DYNAMIC_THRESHOLD && rangefinder.dynamicDistanceThreshold < rangefinder.rawAltitude) {
-                rangefinder.dynamicDistanceThreshold = rangefinder.rawAltitude * RANGEFINDER_DYNAMIC_FACTOR / 100;
-            }
-
-            if (rangefinder.snr >= RANGEFINDER_DYNAMIC_THRESHOLD) {
-                rangefinder.snrThresholdReached = true;
-            }
-
         }
     }
     else {
