@@ -84,7 +84,7 @@ static uint16_t sbusChannelsReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, 
     return (5 * rxRuntimeConfig->channelData[chan] / 8) + 880;
 }
 
-void sbusChannelsInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+void sbusChannelsInit(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     rxRuntimeConfig->rcReadRawFn = sbusChannelsReadRawRC;
     for (int b = 0; b < SBUS_MAX_CHANNEL; b++) {
