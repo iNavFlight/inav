@@ -233,7 +233,7 @@ void smartPortSendByte(uint8_t c, uint16_t *checksum, serialPort_t *port)
 
 bool smartPortPayloadContainsMSP(const smartPortPayload_t *payload)
 {
-    return payload->frameId == FSSP_MSPC_FRAME_SMARTPORT || payload->frameId == FSSP_MSPC_FRAME_FPORT;
+    return payload && (payload->frameId == FSSP_MSPC_FRAME_SMARTPORT || payload->frameId == FSSP_MSPC_FRAME_FPORT);
 }
 
 void smartPortWriteFrameSerial(const smartPortPayload_t *payload, serialPort_t *port, uint16_t checksum)
