@@ -936,7 +936,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
 
     if (STATE(GPS_FIX)) {
 
-        int directionToPoi = osdGetHeadingAngle(poiDirection + referenceHeading);
+        int directionToPoi = osdGetHeadingAngle(poiDirection - referenceHeading);
         float poiAngle = DEGREES_TO_RADIANS(directionToPoi);
         float poiSin = sin_approx(poiAngle);
         float poiCos = cos_approx(poiAngle);
@@ -1010,7 +1010,7 @@ static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t 
 static void osdDrawRadar(uint16_t *drawn)
 {
     int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
-    int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome - osdGetHeading() + 180);
+    int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn);
 }
 
