@@ -84,7 +84,6 @@ uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
 bool batteryWasFullWhenPluggedIn(void);
 bool batteryUsesCapacityThresholds(void);
-void batteryUpdate(uint32_t vbatTimeDelta);
 void batteryInit(void);
 
 bool isBatteryVoltageConfigured(void);
@@ -103,9 +102,10 @@ int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);
 
-void currentMeterUpdate(int32_t lastUpdateAt);
+void batteryUpdate(timeUs_t timeDelta);
+void currentMeterUpdate(timeUs_t timeDelta);
 void sagCompensatedVBatUpdate(timeUs_t currentTime);
-void powerMeterUpdate(int32_t lastUpdateAt);
+void powerMeterUpdate(timeUs_t timeDelta);
 
 uint8_t calculateBatteryPercentage(void);
 float calculateThrottleCompensationFactor(void);
