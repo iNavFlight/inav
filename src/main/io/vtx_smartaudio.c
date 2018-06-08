@@ -661,12 +661,7 @@ void vtxSAProcess(uint32_t now)
         // Command pending. Send it.
         // dprintf(("process: sending queue\r\n"));
         saSendQueue();
-    } else if (now - sa_lastTransmission >= 1000) {
-        // Heart beat for autobauding
-        //dprintf(("process: sending heartbeat\r\n"));
-        saGetSettings();
-        saSendQueue();
-    }
+    } 
 
 #ifdef SMARTAUDIO_TEST_VTX_COMMON
     // Testing VTX_COMMON API
