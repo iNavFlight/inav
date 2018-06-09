@@ -550,6 +550,9 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
             applyFixedWingPositionController(currentTimeUs);
 #endif
 
+        if (FLIGHT_MODE(NAV_CRUISE_MODE) && posControl.flags.isAdjustingPosition)
+            rcCommand[ROLL] = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
+
         //if (navStateFlags & NAV_CTL_YAW)
         if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS))
             applyFixedWingPitchRollThrottleController(navStateFlags, currentTimeUs);
