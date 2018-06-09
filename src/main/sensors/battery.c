@@ -125,20 +125,20 @@ void batteryInit(void)
     batteryCriticalVoltage = 0;
 }
 
-static void updateBatteryVoltage(uint32_t vbatTimeDelta)
+static void updateBatteryVoltage(timeUs_t timeDelta)
 {
     uint16_t vbatSample;
     static pt1Filter_t vbatFilterState;
 
     // store the battery voltage with some other recent battery voltage readings
     vbatSample = vbatLatestADC = adcGetChannel(ADC_BATTERY);
-    vbatSample = pt1FilterApply4(&vbatFilterState, vbatSample, VBATT_LPF_FREQ, vbatTimeDelta * 1e-6f);
+    vbatSample = pt1FilterApply4(&vbatFilterState, vbatSample, VBATT_LPF_FREQ, timeDelta * 1e-6f);
     vbat = batteryAdcToVoltage(vbatSample);
 }
 
-void batteryUpdate(uint32_t vbatTimeDelta)
+void batteryUpdate(timeUs_t timeDelta)
 {
-    updateBatteryVoltage(vbatTimeDelta);
+    updateBatteryVoltage(timeDelta);
 
     /* battery has just been connected*/
     if (batteryState == BATTERY_NOT_PRESENT && vbat > VBATT_PRESENT_THRESHOLD)
@@ -150,7 +150,7 @@ void batteryUpdate(uint32_t vbatTimeDelta)
         We only do this on the ground so don't care if we do block, not
         worse than original code anyway*/
         delay(VBATT_STABLE_DELAY);
-        updateBatteryVoltage(vbatTimeDelta);
+        updateBatteryVoltage(timeDelta);
 
         unsigned cells = (batteryAdcToVoltage(vbatLatestADC) / batteryConfig()->voltage.cellDetect) + 1;
         if (cells > 8) cells = 8; // something is wrong, we expect 8 cells maximum (and autodetection will be problematic at 6+ cells)
@@ -317,7 +317,7 @@ int32_t getMWhDrawn(void)
 }
 
 
-void currentMeterUpdate(int32_t timeDelta)
+void currentMeterUpdate(timeUs_t timeDelta)
 {
     static pt1Filter_t amperageFilterState;
     static int64_t mAhdrawnRaw = 0;
@@ -346,12 +346,12 @@ void currentMeterUpdate(int32_t timeDelta)
     mAhDrawn = mAhdrawnRaw / (3600 * 100);
 }
 
-void powerMeterUpdate(int32_t timeDelta)
+void powerMeterUpdate(timeUs_t timeDelta)
 {
     static int64_t mWhDrawnRaw = 0;
-    uint32_t power_mW = amperage * vbat / 10;
     power = amperage * vbat / 100; // power unit is cW (0.01W resolution)
-    mWhDrawnRaw += (power_mW * timeDelta) / 10000;
+    int32_t heatLossesCompensatedPower_mW = amperage * vbat / 10 + sq((int64_t)amperage) * powerSupplyImpedance / 10000;
+    mWhDrawnRaw += (int64_t)heatLossesCompensatedPower_mW * timeDelta / 10000;
     mWhDrawn = mWhDrawnRaw / (3600 * 100);
 }
 
