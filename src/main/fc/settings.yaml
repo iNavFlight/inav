@@ -1257,6 +1257,9 @@ groups:
         field: general.min_rth_distance
         min: 0
         max: 5000
+      - name: nav_overrides_motor_stop
+        field: general.flags.auto_overrides_motor_stop
+        type: bool
       - name: nav_rth_climb_first
         field: general.flags.rth_climb_first
         type: bool
