@@ -775,8 +775,13 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
 void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration)
 {
+    // Check if we're already yielding, in that case just extend
+    // the yield time without releasing the display again, otherwise
+    // the yield/grab become unbalanced.
+    if (cmsYieldUntil == 0) {
+        displayRelease(pPort);
+    }
     cmsYieldUntil = millis() + duration;
-    displayRelease(pPort);
 }
 
 // Stick/key detection and key codes
@@ -1209,6 +1214,8 @@ void cmsUpdate(uint32_t currentTimeUs)
 
         // Only scan keys and draw if we're not yielding
         if (cmsYieldUntil == 0) {
+            // XXX: Note that one call to cmsScanKeys() might generate multiple keypresses
+            // when repeating, that's why cmsYieldDisplay() has to check for multiple calls.
             rcDelayMs = cmsScanKeys(currentTimeMs, lastCalledMs, rcDelayMs);
             // Check again, the keypress might have produced a yield
             if (cmsYieldUntil == 0) {
