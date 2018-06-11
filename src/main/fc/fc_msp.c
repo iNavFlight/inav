@@ -2552,7 +2552,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if (!sbufReadU16Safe(&osdConfigMutable()->item_pos[layout][item], src)) {
                 return MSP_RESULT_ERROR;
             }
-            osdStartFullRedraw();
+            // If the layout is not already overriden and it's different
+            // than the layout for the item that was just configured,
+            // override it for 10 seconds.
+            bool overridden;
+            int activeLayout = osdGetActiveLayout(&overridden);
+            if (activeLayout != layout && !overridden) {
+                osdOverrideLayout(layout, 10000);
+            } else {
+                osdStartFullRedraw();
+            }
         }
 
         break;
