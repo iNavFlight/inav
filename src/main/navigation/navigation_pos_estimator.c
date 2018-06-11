@@ -494,8 +494,8 @@ static void estimationPredict(estimationContext_t * ctx)
         if (navIsHeadingUsable() && navIsAccelerationUsable()) {
             posEstimator.est.pos.x += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f;
             posEstimator.est.pos.y += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f;
-            posEstimator.est.vel.x += posEstimator.imu.accelNEU.z * ctx->dt;
-            posEstimator.est.vel.y += posEstimator.imu.accelNEU.z * ctx->dt;
+            posEstimator.est.vel.x += posEstimator.imu.accelNEU.x * ctx->dt;
+            posEstimator.est.vel.y += posEstimator.imu.accelNEU.y * ctx->dt;
         }
     }
 }
