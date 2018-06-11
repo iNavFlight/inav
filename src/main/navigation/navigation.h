@@ -223,7 +223,8 @@ typedef enum {
     MW_NAV_STATE_LAND_IN_PROGRESS,        // Land in Progress
     MW_NAV_STATE_LANDED,                  // Landed
     MW_NAV_STATE_LAND_SETTLE,             // Settling before land
-    MW_NAV_STATE_LAND_START_DESCENT       // Start descent
+    MW_NAV_STATE_LAND_START_DESCENT,      // Start descent
+    MW_NAV_STATE_HOVER_ABOVE_HOME         // Hover/Loitering above home
 } navSystemStatus_State_e;
 
 typedef enum {

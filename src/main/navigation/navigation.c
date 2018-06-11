@@ -192,6 +192,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHING(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigationFSMState_t previousState);
@@ -361,6 +362,24 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING,
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_RTH_LANDING,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME] = NAV_STATE_RTH_HOVER_ABOVE_HOME,
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+        }
+    },
+
+    [NAV_STATE_RTH_HOVER_ABOVE_HOME] = {
+        .persistentId = NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME,
+        .onEntry = navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME,
+        .timeoutMs = 500,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW | NAV_RC_ALT,
+        .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_HOVER_ABOVE_HOME,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_RTH_HOVER_ABOVE_HOME,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
@@ -925,12 +944,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
         // Wait until target heading is reached (with 15 deg margin for error)
         if (STATE(FIXED_WING)) {
             resetLandingDetector();
-            return NAV_FSM_EVENT_SUCCESS;
+            return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
         }
         else {
             if (ABS(wrap_18000(posControl.homeWaypointAbove.yaw - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) {
                 resetLandingDetector();
-                return NAV_FSM_EVENT_SUCCESS;
+                return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
             }
             else if (!validateRTHSanityChecker()) {
                 // Continue to check for RTH sanity during pre-landing hover
@@ -945,6 +964,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     else {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+
+    if (!(validateRTHSanityChecker() || (posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout()))
+        return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+
+    return NAV_FSM_EVENT_NONE;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationFSMState_t previousState)
@@ -963,28 +992,26 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
 
-        if (navigationRTHAllowsLanding()) {
-            float descentVelLimited = 0;
+        float descentVelLimited = 0;
 
-            // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
-            if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
-                // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
-                // Do not allow descent velocity slower than -30cm/s so the landing detector works.
-                descentVelLimited = MIN(-0.15f * navConfig()->general.land_descent_rate, -30.0f);
-            }
-            else {
-                // Ramp down descent velocity from 100% at maxAlt altitude to 25% from minAlt to 0cm.
-                float descentVelScaling = (navGetCurrentActualPositionAndVelocity()->pos.z - posControl.homePosition.pos.z - navConfig()->general.land_slowdown_minalt)
-                                            / (navConfig()->general.land_slowdown_maxalt - navConfig()->general.land_slowdown_minalt) * 0.75f + 0.25f;  // Yield 1.0 at 2000 alt and 0.25 at 500 alt
-
-                descentVelScaling = constrainf(descentVelScaling, 0.25f, 1.0f);
-
-                // Do not allow descent velocity slower than -50cm/s so the landing detector works.
-                descentVelLimited = MIN(-descentVelScaling * navConfig()->general.land_descent_rate, -50.0f);
-            }
-
-            updateClimbRateToAltitudeController(descentVelLimited, ROC_TO_ALT_NORMAL);
+        // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
+        if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
+            // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
+            // Do not allow descent velocity slower than -30cm/s so the landing detector works.
+            descentVelLimited = MIN(-0.15f * navConfig()->general.land_descent_rate, -30.0f);
         }
+        else {
+            // Ramp down descent velocity from 100% at maxAlt altitude to 25% from minAlt to 0cm.
+            float descentVelScaling = (navGetCurrentActualPositionAndVelocity()->pos.z - posControl.homePosition.pos.z - navConfig()->general.land_slowdown_minalt)
+                / (navConfig()->general.land_slowdown_maxalt - navConfig()->general.land_slowdown_minalt) * 0.75f + 0.25f;  // Yield 1.0 at 2000 alt and 0.25 at 500 alt
+
+            descentVelScaling = constrainf(descentVelScaling, 0.25f, 1.0f);
+
+            // Do not allow descent velocity slower than -50cm/s so the landing detector works.
+            descentVelLimited = MIN(-descentVelScaling * navConfig()->general.land_descent_rate, -50.0f);
+        }
+
+        updateClimbRateToAltitudeController(descentVelLimited, ROC_TO_ALT_NORMAL);
 
         return NAV_FSM_EVENT_NONE;
     }

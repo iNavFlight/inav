@@ -170,6 +170,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_ALTHOLD,
     NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D,
     NAV_FSM_EVENT_SWITCH_TO_RTH,
+    NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT,
     NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING,
     NAV_FSM_EVENT_SWITCH_TO_LAUNCH,
@@ -186,43 +187,44 @@ typedef enum {
 // This enum is used to keep values in blackbox logs stable, so we can
 // freely change navigationFSMState_t.
 typedef enum {
-    NAV_PERSISTENT_ID_UNDEFINED = 0,                     // 0
+    NAV_PERSISTENT_ID_UNDEFINED                                 = 0,
 
-    NAV_PERSISTENT_ID_IDLE,                              // 1
+    NAV_PERSISTENT_ID_IDLE                                      = 1,
 
-    NAV_PERSISTENT_ID_ALTHOLD_INITIALIZE,                // 2
-    NAV_PERSISTENT_ID_ALTHOLD_IN_PROGRESS,               // 3
+    NAV_PERSISTENT_ID_ALTHOLD_INITIALIZE                        = 2,
+    NAV_PERSISTENT_ID_ALTHOLD_IN_PROGRESS                       = 3,
 
-    NAV_PERSISTENT_ID_UNUSED_1,                          // 4, was NAV_STATE_POSHOLD_2D_INITIALIZE
-    NAV_PERSISTENT_ID_UNUSED_2,                          // 5, was NAV_STATE_POSHOLD_2D_IN_PROGRESS
+    NAV_PERSISTENT_ID_UNUSED_1                                  = 4,  // was NAV_STATE_POSHOLD_2D_INITIALIZE
+    NAV_PERSISTENT_ID_UNUSED_2                                  = 5,  // was NAV_STATE_POSHOLD_2D_IN_PROGRESS
 
-    NAV_PERSISTENT_ID_POSHOLD_3D_INITIALIZE,             // 6
-    NAV_PERSISTENT_ID_POSHOLD_3D_IN_PROGRESS,            // 7
+    NAV_PERSISTENT_ID_POSHOLD_3D_INITIALIZE                     = 6,
+    NAV_PERSISTENT_ID_POSHOLD_3D_IN_PROGRESS                    = 7,
 
-    NAV_PERSISTENT_ID_RTH_INITIALIZE,                    // 8
-    NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT,             // 9
-    NAV_PERSISTENT_ID_RTH_HEAD_HOME,                     // 10
-    NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING,        // 11
-    NAV_PERSISTENT_ID_RTH_LANDING,                       // 12
-    NAV_PERSISTENT_ID_RTH_FINISHING,                     // 13
-    NAV_PERSISTENT_ID_RTH_FINISHED,                      // 14
+    NAV_PERSISTENT_ID_RTH_INITIALIZE                            = 8,
+    NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT                     = 9,
+    NAV_PERSISTENT_ID_RTH_HEAD_HOME                             = 10,
+    NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING                = 11,
+    NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 29,
+    NAV_PERSISTENT_ID_RTH_LANDING                               = 12,
+    NAV_PERSISTENT_ID_RTH_FINISHING                             = 13,
+    NAV_PERSISTENT_ID_RTH_FINISHED                              = 14,
 
-    NAV_PERSISTENT_ID_WAYPOINT_INITIALIZE,               // 15
-    NAV_PERSISTENT_ID_WAYPOINT_PRE_ACTION,               // 16
-    NAV_PERSISTENT_ID_WAYPOINT_IN_PROGRESS,              // 17
-    NAV_PERSISTENT_ID_WAYPOINT_REACHED,                  // 18
-    NAV_PERSISTENT_ID_WAYPOINT_NEXT,                     // 19
-    NAV_PERSISTENT_ID_WAYPOINT_FINISHED,                 // 20
-    NAV_PERSISTENT_ID_WAYPOINT_RTH_LAND,                 // 21
+    NAV_PERSISTENT_ID_WAYPOINT_INITIALIZE                       = 15,
+    NAV_PERSISTENT_ID_WAYPOINT_PRE_ACTION                       = 16,
+    NAV_PERSISTENT_ID_WAYPOINT_IN_PROGRESS                      = 17,
+    NAV_PERSISTENT_ID_WAYPOINT_REACHED                          = 18,
+    NAV_PERSISTENT_ID_WAYPOINT_NEXT                             = 19,
+    NAV_PERSISTENT_ID_WAYPOINT_FINISHED                         = 20,
+    NAV_PERSISTENT_ID_WAYPOINT_RTH_LAND                         = 21,
 
-    NAV_PERSISTENT_ID_EMERGENCY_LANDING_INITIALIZE,      // 22
-    NAV_PERSISTENT_ID_EMERGENCY_LANDING_IN_PROGRESS,     // 23
-    NAV_PERSISTENT_ID_EMERGENCY_LANDING_FINISHED,        // 24
+    NAV_PERSISTENT_ID_EMERGENCY_LANDING_INITIALIZE              = 22,
+    NAV_PERSISTENT_ID_EMERGENCY_LANDING_IN_PROGRESS             = 23,
+    NAV_PERSISTENT_ID_EMERGENCY_LANDING_FINISHED                = 24,
 
-    NAV_PERSISTENT_ID_LAUNCH_INITIALIZE,                 // 25
-    NAV_PERSISTENT_ID_LAUNCH_WAIT,                       // 26
-    NAV_PERSISTENT_ID_UNUSED_3,                          // 27, was NAV_STATE_LAUNCH_MOTOR_DELAY
-    NAV_PERSISTENT_ID_LAUNCH_IN_PROGRESS,                // 28
+    NAV_PERSISTENT_ID_LAUNCH_INITIALIZE                         = 25,
+    NAV_PERSISTENT_ID_LAUNCH_WAIT                               = 26,
+    NAV_PERSISTENT_ID_UNUSED_3                                  = 27, // was NAV_STATE_LAUNCH_MOTOR_DELAY
+    NAV_PERSISTENT_ID_LAUNCH_IN_PROGRESS                        = 28,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -240,6 +242,7 @@ typedef enum {
     NAV_STATE_RTH_CLIMB_TO_SAFE_ALT,
     NAV_STATE_RTH_HEAD_HOME,
     NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING,
+    NAV_STATE_RTH_HOVER_ABOVE_HOME,
     NAV_STATE_RTH_LANDING,
     NAV_STATE_RTH_FINISHING,
     NAV_STATE_RTH_FINISHED,
