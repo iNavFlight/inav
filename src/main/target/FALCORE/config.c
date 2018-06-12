@@ -43,7 +43,7 @@
 void targetConfiguration(void)
 {
     systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
-    mixerConfigMutable()->mixerMode = MIXER_QUADX;
+    mixerConfigMutable()->platformType = PLATFORM_MULTIROTOR;
     
     featureSet(FEATURE_VBAT);
     featureSet(FEATURE_GPS);
@@ -177,8 +177,6 @@ void targetConfiguration(void)
     pidProfileMutable()->dterm_soft_notch_cutoff = 1;
     pidProfileMutable()->pidSumLimit = 500;
     pidProfileMutable()->yaw_p_limit = 300;
-    pidProfileMutable()->rollPitchItermIgnoreRate = 200;
-    pidProfileMutable()->yawItermIgnoreRate = 200;
     pidProfileMutable()->axisAccelerationLimitRollPitch = 0;
     pidProfileMutable()->axisAccelerationLimitYaw = 10000;
 

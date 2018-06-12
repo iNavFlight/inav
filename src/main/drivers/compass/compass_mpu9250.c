@@ -240,7 +240,6 @@ static bool mpu9250CompassRead(magDev_t * mag)
                     // too early. queue the status read again
                     ctx.state = CHECK_STATUS;
                     reprocess = true;
-                    debug[0]++;
                     return lastReadResult;
                 }
 
@@ -265,7 +264,6 @@ static bool mpu9250CompassRead(magDev_t * mag)
     uint8_t status2 = buf[6];
     if (!ack || (status2 & STATUS2_MAG_SENSOR_OVERFLOW)) {
         ctx.state = CHECK_STATUS;
-        debug[1]++;
         lastReadResult = false;
         return lastReadResult;
     }

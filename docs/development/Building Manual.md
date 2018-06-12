@@ -13,7 +13,7 @@ The PDF manual generation uses the Gimli for the conversion. It can be installed
 All markdown files need to be registered in the ```build_manual.sh``` file individually by modifying the ```doc_files``` variable / array:
 ```bash
 doc_files=( 'Configuration.md'
-	'Board - CC3D.md'
+	'Board - SPRACINGF3.md'
 	'...'
 	'...'
 )

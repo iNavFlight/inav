@@ -18,6 +18,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "drivers/time.h"
 
 #ifndef VBAT_SCALE_DEFAULT
 #define VBAT_SCALE_DEFAULT 1100
@@ -49,7 +50,8 @@ typedef struct batteryConfig_s {
 
     struct {
         uint16_t scale;         // adjust this to match battery voltage to reported value
-        uint16_t cellMax;       // maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, default is 421 (4.21V)
+        uint16_t cellDetect;    // maximum voltage per cell, used for auto-detecting battery cell count in 0.01V units, default is 430 (4.3V)
+        uint16_t cellMax;       // maximum voltage per cell, used for full battery detection and battery gauge voltage in 0.01V units, default is 424 (4.24V)
         uint16_t cellMin;       // minimum voltage per cell, this triggers battery critical alarm, in 0.01V units, default is 330 (3.3V)
         uint16_t cellWarning;   // warning voltage per cell, this triggers battery warning alarm, in 0.01V units, default is 350 (3.5V)
     } voltage;
@@ -82,11 +84,11 @@ uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
 bool batteryWasFullWhenPluggedIn(void);
 bool batteryUsesCapacityThresholds(void);
-void batteryUpdate(uint32_t vbatTimeDelta);
 void batteryInit(void);
 
 bool isBatteryVoltageConfigured(void);
 uint16_t getBatteryVoltage(void);
+uint16_t getSagCompensatedBatteryVoltage(void);
 uint16_t getBatteryVoltageLatestADC(void);
 uint16_t getBatteryWarningVoltage(void);
 uint8_t getBatteryCellCount(void);
@@ -100,8 +102,10 @@ int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);
 
-void currentMeterUpdate(int32_t lastUpdateAt);
-
-void powerMeterUpdate(int32_t lastUpdateAt);
+void batteryUpdate(timeUs_t timeDelta);
+void currentMeterUpdate(timeUs_t timeDelta);
+void sagCompensatedVBatUpdate(timeUs_t currentTime);
+void powerMeterUpdate(timeUs_t timeDelta);
 
 uint8_t calculateBatteryPercentage(void);
+float calculateThrottleCompensationFactor(void);

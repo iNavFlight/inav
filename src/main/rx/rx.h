@@ -25,7 +25,6 @@
 
 #define STICK_CHANNEL_COUNT 4
 
-#define PWM_RANGE_ZERO 0 // FIXME should all usages of this be changed to use PWM_RANGE_MIN?
 #define PWM_RANGE_MIN 1000
 #define PWM_RANGE_MAX 2000
 #define PWM_RANGE_MIDDLE (PWM_RANGE_MIN + ((PWM_RANGE_MAX - PWM_RANGE_MIN) / 2))
@@ -122,7 +121,7 @@ typedef struct rxConfig_s {
     uint8_t rssi_channel;
     uint8_t rssi_scale;
     uint8_t rssiInvert;
-    uint16_t midrc;                         // Some radios have not a neutral point centered on 1500. can be changed here
+    uint16_t __reserved;                    // was micrd
     uint16_t mincheck;                      // minimum rc end
     uint16_t maxcheck;                      // maximum rc end
     uint16_t rx_min_usec;

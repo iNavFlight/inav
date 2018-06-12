@@ -70,6 +70,7 @@
 #   define USE_MAG_QMC5883
 #   define USE_MAG_MAG3110
 #   define USE_MAG_IST8310
+#   define USE_MAG_IST8308
 
 #   define USE_BARO
 #   define BARO_I2C_BUS            BUS_I2C1
@@ -169,11 +170,7 @@
 
 
 #ifdef KAKUTEF4V2
-#   define USABLE_TIMER_CHANNEL_COUNT 6
 #   define MAX_PWM_OUTPUT_PORTS       4
-#   define USED_TIMERS  ( TIM_N(2) | TIM_N(3) |  TIM_N(8))
 #else
-#   define USABLE_TIMER_CHANNEL_COUNT 8
 #   define MAX_PWM_OUTPUT_PORTS       6
-#   define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(5)  |  TIM_N(8))
 #endif

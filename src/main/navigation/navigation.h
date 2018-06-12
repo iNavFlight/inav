@@ -20,11 +20,11 @@
 #include "common/maths.h"
 #include "common/vector.h"
 
+#include "config/feature.h"
+
 #include "flight/failsafe.h"
 
 #include "io/gps.h"
-
-#include "config/feature.h"
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
@@ -62,11 +62,11 @@ enum {
     NAV_HEADING_CONTROL_MANUAL
 };
 
-enum {
-    NAV_RESET_ALTITUDE_NEVER = 0,
-    NAV_RESET_ALTITUDE_ON_FIRST_ARM,
-    NAV_RESET_ALTITUDE_ON_EACH_ARM,
-};
+typedef enum {
+    NAV_RESET_NEVER = 0,
+    NAV_RESET_ON_FIRST_ARM,
+    NAV_RESET_ON_EACH_ARM,
+} nav_reset_type_e;
 
 typedef enum {
     NAV_RTH_ALLOW_LANDING_NEVER = 0,
@@ -76,7 +76,8 @@ typedef enum {
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
-    uint8_t reset_altitude_type;
+    uint8_t reset_altitude_type; // from nav_reset_type_e
+    uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
 
@@ -133,6 +134,7 @@ typedef struct navConfig_s {
         uint16_t rth_altitude;                  // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
+        uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
     } general;
 
     struct {
@@ -221,7 +223,8 @@ typedef enum {
     MW_NAV_STATE_LAND_IN_PROGRESS,        // Land in Progress
     MW_NAV_STATE_LANDED,                  // Landed
     MW_NAV_STATE_LAND_SETTLE,             // Settling before land
-    MW_NAV_STATE_LAND_START_DESCENT       // Start descent
+    MW_NAV_STATE_LAND_START_DESCENT,      // Start descent
+    MW_NAV_STATE_HOVER_ABOVE_HOME         // Hover/Loitering above home
 } navSystemStatus_State_e;
 
 typedef enum {
@@ -274,6 +277,7 @@ int8_t navigationGetHeadingControlState(void);
 bool navigationBlockArming(void);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
+bool navigationTerrainFollowingEnabled(void);
 
 /* Access to estimated position and velocity */
 float getEstimatedActualVelocity(int axis);
@@ -320,6 +324,12 @@ bool navigationRTHAllowsLanding(void);
 
 bool isNavLaunchEnabled(void);
 
+/* Returns the heading recorded when home position was acquired.
+ * Note that the navigation system uses deg*100 as unit and angles
+ * are in the [0, 360 * 100) interval.
+ */
+int32_t navigationGetHomeHeading(void);
+
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
 
@@ -328,7 +338,6 @@ extern int16_t navActualVelocity[3];
 extern int16_t navDesiredVelocity[3];
 extern int16_t navTargetPosition[3];
 extern int32_t navLatestActualPosition[3];
-extern int16_t navTargetSurface;
 extern int16_t navActualSurface;
 extern uint16_t navFlags;
 extern uint16_t navEPH;
@@ -343,5 +352,6 @@ extern int16_t navAccNEU[3];
 #define getEstimatedActualVelocity(axis) (0)
 #define navigationIsControllingThrottle() (0)
 #define navigationRTHAllowsLanding() (0)
+#define navigationGetHomeHeading(0)
 
 #endif

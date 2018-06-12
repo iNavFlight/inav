@@ -21,7 +21,7 @@
 #include "drivers/io.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] =
+const timerHardware_t timerHardware[] =
 {
     { TIM9,  IO_TAG(PA3),  TIM_Channel_2, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM9,  TIM_USE_PPM | TIM_USE_PWM }, // PPM
     { TIM9,  IO_TAG(PA2),  TIM_Channel_1, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM9,  TIM_USE_PWM },
@@ -39,8 +39,10 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] =
     { TIM4,  IO_TAG(PB9),  TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },
 #endif
 
-    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR },
-    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR },
+    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR },
+    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR },
 
     { TIM2,  IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2,  TIM_USE_ANY },
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

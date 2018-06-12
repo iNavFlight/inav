@@ -21,7 +21,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM9, IO_TAG(PA3),    TIM_Channel_2, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM9, TIM_USE_PPM },
 
 #ifdef MATEKF405_SERVOS6
@@ -40,7 +40,7 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 #else
     { TIM1, IO_TAG(PA8),    TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },
 #endif
-    { TIM4, IO_TAG(PB8),    TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_CHNFW |                    TIM_USE_FW_MOTOR },  //S7 DMA1_ST7 MT2
+    { TIM4, IO_TAG(PB8),    TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_SERVO |                    TIM_USE_FW_MOTOR },  //S7 DMA1_ST7 MT2
 
     { TIM5, IO_TAG(PA2),    TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM5, TIM_USE_PWM },  //TX2
 
@@ -48,3 +48,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM5, IO_TAG(PA1),    TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM5, TIM_USE_PWM },  //RX4 softserial1_rx
 
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

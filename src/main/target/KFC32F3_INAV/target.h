@@ -50,6 +50,7 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 
 #define USE_SPI
@@ -136,7 +137,6 @@
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    10
 #define TARGET_MOTOR_COUNT      10
-#define USE_SERVOS
 
 // IO - stm32f303cc in 48pin package
 #define TARGET_IO_PORTA         0xffff
@@ -144,6 +144,3 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTF         (BIT(4))
-
-#define USABLE_TIMER_CHANNEL_COUNT 11
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4))

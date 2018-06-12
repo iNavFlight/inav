@@ -4,10 +4,11 @@
 #include "common/string_light.h"
 #include "common/utils.h"
 
-#include "fc/settings_generated.h"
+#include "settings_generated.h"
+
 #include "fc/settings.h"
 
-#include "fc/settings_generated.c"
+#include "settings_generated.c"
 
 void setting_get_name(const setting_t *val, char *buf)
 {

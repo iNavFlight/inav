@@ -177,12 +177,13 @@ typedef struct {
 
 static navigationPosEstimator_t posEstimator;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 3);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
         .automatic_mag_declination = 1,
-        .reset_altitude_type = NAV_RESET_ALTITUDE_ON_FIRST_ARM,
+        .reset_altitude_type = NAV_RESET_ON_FIRST_ARM,
+        .reset_home_type = NAV_RESET_ON_EACH_ARM,
         .gravity_calibration_tolerance = 5,     // 5 cm/s/s calibration error accepted (0.5% of gravity)
         .use_gps_velned = 1,         // "Disabled" is mandatory with gps_dyn_model = Pedestrian
 
@@ -243,12 +244,12 @@ static bool updateTimer(navigationTimer_t * tim, timeUs_t interval, timeUs_t cur
 
 static bool shouldResetReferenceAltitude(void)
 {
-    switch (positionEstimationConfig()->reset_altitude_type) {
-        case NAV_RESET_ALTITUDE_NEVER:
+    switch ((nav_reset_type_e)positionEstimationConfig()->reset_altitude_type) {
+        case NAV_RESET_NEVER:
             return false;
-        case NAV_RESET_ALTITUDE_ON_FIRST_ARM:
+        case NAV_RESET_ON_FIRST_ARM:
             return !ARMING_FLAG(ARMED) && !ARMING_FLAG(WAS_EVER_ARMED);
-        case NAV_RESET_ALTITUDE_ON_EACH_ARM:
+        case NAV_RESET_ON_EACH_ARM:
             return !ARMING_FLAG(ARMED);
     }
 
@@ -827,8 +828,8 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     posEstimator.est.epv = newEPV;
 
     /* AGL estimation */
-#ifdef USE_RANGEFINDER
-    if (isSurfaceValid) {   // If surface topic is updated in timely manner - do something smart
+#if defined(USE_RANGEFINDER) && defined(USE_BARO)
+    if (isSurfaceValid && isBaroValid) {
         navAGLEstimateQuality_e newAglQuality = posEstimator.est.aglQual;
         bool resetSurfaceEstimate = false;
         switch (posEstimator.est.aglQual) {
@@ -892,7 +893,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         if (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) {
             // Correct estimate from rangefinder
             const float surfaceResidual = posEstimator.surface.alt - posEstimator.est.aglAlt;
-            const float bellCurveScaler = scaleRangef(bellCurve(surfaceResidual, 50.0f), 0.0f, 1.0f, 0.1f, 1.0f);
+            const float bellCurveScaler = scaleRangef(bellCurve(surfaceResidual, 75.0f), 0.0f, 1.0f, 0.1f, 1.0f);
 
             posEstimator.est.aglAlt += surfaceResidual * positionEstimationConfig()->w_z_surface_p * bellCurveScaler * posEstimator.surface.reliability * dt;
             posEstimator.est.aglVel += surfaceResidual * positionEstimationConfig()->w_z_surface_v * sq(bellCurveScaler) * sq(posEstimator.surface.reliability) * dt;
@@ -908,7 +909,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
             const float surfaceResidual = posEstimator.surface.alt - posEstimator.est.aglAlt;
             const float surfaceWeightScaler = scaleRangef(bellCurve(surfaceResidual, 50.0f), 0.0f, 1.0f, 0.1f, 1.0f) * posEstimator.surface.reliability;
             const float mixedResidual = surfaceResidual * surfaceWeightScaler + estAltResidual * (1.0f - surfaceWeightScaler);
-            
+
             posEstimator.est.aglAlt += mixedResidual * positionEstimationConfig()->w_z_surface_p * dt;
             posEstimator.est.aglVel += mixedResidual * positionEstimationConfig()->w_z_surface_v * dt;
         }

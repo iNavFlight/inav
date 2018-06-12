@@ -38,7 +38,6 @@
 #include "common/utils.h"
 
 #include "drivers/time.h"
-#include "drivers/gpio.h"
 #include "drivers/bus_i2c.h"
 
 #include "sensors/boardalignment.h"

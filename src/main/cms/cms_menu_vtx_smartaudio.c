@@ -365,7 +365,7 @@ static const char * const saCmsPitFModeNames[] = {
 
 static const OSD_TAB_t saCmsEntPitFMode = { &saCmsPitFMode, 1, saCmsPitFModeNames };
 
-static long sacms_SetupTopMenu(void); // Forward
+static long sacms_SetupTopMenu(const OSD_Entry *from); // Forward
 
 static long saCmsConfigFreqModeByGvar(displayPort_t *pDisp, const void *self)
 {
@@ -385,7 +385,7 @@ static long saCmsConfigFreqModeByGvar(displayPort_t *pDisp, const void *self)
         }
     }
 
-    sacms_SetupTopMenu();
+    sacms_SetupTopMenu(NULL);
 
     return 0;
 }
@@ -421,8 +421,10 @@ static long saCmsCommence(displayPort_t *pDisp, const void *self)
     return MENU_CHAIN_BACK;
 }
 
-static long saCmsSetPORFreqOnEnter(void)
+static long saCmsSetPORFreqOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     saCmsORFreqNew = saCmsORFreq;
 
     return 0;
@@ -456,8 +458,10 @@ static char *saCmsUserFreqGetString(void)
     return pbuf;
 }
 
-static long saCmsSetUserFreqOnEnter(void)
+static long saCmsSetUserFreqOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     saCmsUserFreqNew = saCmsUserFreq;
 
     return 0;
@@ -528,10 +532,10 @@ static const OSD_Entry saCmsMenuConfigEntries[] =
 {
     OSD_LABEL_ENTRY("- SA CONFIG -"),
 
-    { "OP MODEL",  OME_TAB,     saCmsConfigOpmodelByGvar,              &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
-    { "FSEL MODE", OME_TAB,     saCmsConfigFreqModeByGvar,             &saCmsEntFselMode,                                   DYNAMIC },
+    { "OP MODEL",  OME_TAB,  {.func = saCmsConfigOpmodelByGvar}, &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
+    { "FSEL MODE", OME_TAB,  {.func = saCmsConfigFreqModeByGvar}, &saCmsEntFselMode, DYNAMIC },
     OSD_TAB_CALLBACK_ENTRY("PIT FMODE", saCmsConfigPitFModeByGvar, &saCmsEntPitFMode),
-    { "POR FREQ",  OME_Submenu, (CMSEntryFuncPtr)saCmsORFreqGetString, (void *)&saCmsMenuPORFreq,                                   OPTSTRING },
+    { "POR FREQ",  OME_Submenu, {.menufunc = saCmsORFreqGetString}, (void *)&saCmsMenuPORFreq, OPTSTRING },
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 
     OSD_BACK_ENTRY,
@@ -569,12 +573,17 @@ static const CMS_Menu saCmsMenuCommence = {
     .entries = saCmsMenuCommenceEntries,
 };
 
+#pragma GCC diagnostic push
+#if (__GNUC__ > 7)
+    // This is safe on 32bit platforms, suppress warning for saCmsUserFreqGetString
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 static const OSD_Entry saCmsMenuFreqModeEntries[] =
 {
     OSD_LABEL_ENTRY("- SMARTAUDIO -"),
 
     OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
-    { "FREQ",   OME_Submenu, (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
+    { "FREQ",   OME_Submenu, {.menufunc = saCmsUserFreqGetString},  &saCmsMenuUserFreq, OPTSTRING },
     OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
@@ -582,6 +591,7 @@ static const OSD_Entry saCmsMenuFreqModeEntries[] =
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
+#pragma GCC diagnostic pop
 
 static const OSD_Entry saCmsMenuChanModeEntries[] =
 {
@@ -612,8 +622,10 @@ static const OSD_Entry saCmsMenuOfflineEntries[] =
 
 CMS_Menu cmsx_menuVtxSmartAudio; // Forward
 
-static long sacms_SetupTopMenu(void)
+static long sacms_SetupTopMenu(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     if (saCmsDeviceStatus) {
         if (saCmsFselMode == 0)
             cmsx_menuVtxSmartAudio.entries = saCmsMenuChanModeEntries;
