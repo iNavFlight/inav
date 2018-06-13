@@ -49,6 +49,14 @@ void pt1FilterInit(pt1Filter_t *filter, uint8_t f_cut, float dT)
     pt1FilterInitRC(filter, 1.0f / (2.0f * M_PIf * f_cut), dT);
 }
 
+void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau) {
+    filter->RC = tau;
+}
+
+float pt1FilterGetLastOutput(pt1Filter_t *filter) {
+    return filter->state;
+}
+
 float pt1FilterApply(pt1Filter_t *filter, float input)
 {
     filter->state = filter->state + filter->dT / (filter->RC + filter->dT) * (input - filter->state);
