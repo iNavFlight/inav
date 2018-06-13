@@ -79,6 +79,7 @@ static rssiSource_e rssiSource;
 static bool rxDataProcessingRequired = false;
 static bool auxiliaryProcessingRequired = false;
 
+static uint32_t rxValidFramesCount = 0;
 static bool rxSignalReceived = false;
 static bool rxFlightChannelsValid = false;
 static bool rxIsInFailsafeMode = true;
@@ -92,7 +93,8 @@ int16_t rcRaw[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
-#define MAX_INVALID_PULS_TIME    300
+#define FILTERING_SAMPLE_COUNT      5
+#define MAX_INVALID_PULS_TIME       300
 
 #define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)
 #define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)
@@ -364,6 +366,12 @@ bool rxIsReceivingSignal(void)
     return rxSignalReceived;
 }
 
+bool rxIsSignalStable(void)
+{
+    // Filtering may delay the channel values up to FILTERING_SAMPLE_COUNT in worst case
+    return rxIsReceivingSignal() && (rxValidFramesCount >= (rxRuntimeConfig.requireFiltering ? FILTERING_SAMPLE_COUNT : 1));
+}
+
 bool rxAreFlightChannelsValid(void)
 {
     return rxFlightChannelsValid;
@@ -432,7 +440,6 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
     return rxDataProcessingRequired || auxiliaryProcessingRequired; // data driven or 50Hz
 }
 
-#define FILTERING_SAMPLE_COUNT  5
 static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
 {
     static int16_t rcSamples[MAX_SUPPORTED_RC_CHANNEL_COUNT][FILTERING_SAMPLE_COUNT];
@@ -482,6 +489,15 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     rxDataProcessingRequired = false;
     rxNextUpdateAtUs = currentTimeUs + DELAY_50_HZ;
 
+    // We got here, that means we have received a valid frame (or a frame timeout)
+    // If we are receiving signal increase valid frame count (used as a consistency measurement)
+    if (rxSignalReceived) {
+        rxValidFramesCount++;
+    }
+    else {
+        rxValidFramesCount = 0;
+    }
+
     // only proceed when no more samples to skip and suspend period is over
     if (skipRxSamples) {
         if (currentTimeUs > suspendRxSignalUntil) {
@@ -492,7 +508,7 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rxFlightChannelsValid = true;
-    
+
     // Read and process channel data
     for (int channel = 0; channel < rxRuntimeConfig.channelCount; channel++) {
         const uint8_t rawChannel = calculateChannelRemapping(rxConfig()->rcmap, REMAPPABLE_CHANNEL_COUNT, channel);

@@ -129,15 +129,24 @@ void updateActivatedModes(void)
             // For AND logic, the specified condition count and valid condition count must be the same.
             // For OR logic, the valid condition count must be greater than zero.
 
-            if (modeActivationOperatorConfig()->modeActivationOperator == MODE_OPERATOR_AND) {
-                // AND the conditions
-                if (activeConditionCountPerMode[modeIndex] == specifiedConditionCountPerMode[modeIndex]) {
-                    bitArraySet(newMask.bits, modeIndex);
+            // Prohibit BOX mode change alltogether if RX link is not stable enough
+            if (rxIsSignalStable() || modeIndex == BOXFAILSAFE) {
+                if (modeActivationOperatorConfig()->modeActivationOperator == MODE_OPERATOR_AND) {
+                    // AND the conditions
+                    if (activeConditionCountPerMode[modeIndex] == specifiedConditionCountPerMode[modeIndex]) {
+                        bitArraySet(newMask.bits, modeIndex);
+                    }
+                }
+                else {
+                    // OR the conditions
+                    if (activeConditionCountPerMode[modeIndex] > 0) {
+                        bitArraySet(newMask.bits, modeIndex);
+                    }
                 }
             }
             else {
-                // OR the conditions
-                if (activeConditionCountPerMode[modeIndex] > 0) {
+                // Retail current mode state
+                if (bitArrayGet(rcModeActivationMask.bits, modeIndex)) {
                     bitArraySet(newMask.bits, modeIndex);
                 }
             }
