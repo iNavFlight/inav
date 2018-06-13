@@ -49,4 +49,4 @@ typedef struct sbusChannels_s {
 
 uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels);
 
-void sbusChannelsInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+void sbusChannelsInit(rxRuntimeConfig_t *rxRuntimeConfig);

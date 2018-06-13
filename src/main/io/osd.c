@@ -107,7 +107,7 @@
 // Adjust OSD_MESSAGE's default position when
 // changing OSD_MESSAGE_LENGTH
 #define OSD_MESSAGE_LENGTH 28
-#define OSD_ALTERNATING_TEXT(ms, num_choices) ((millis() / ms) % num_choices)
+#define OSD_ALTERNATING_CHOICES(ms, num_choices) ((millis() / ms) % num_choices)
 #define _CONST_STR_SIZE(s) ((sizeof(s)/sizeof(s[0]))-1) // -1 to avoid counting final '\0'
 // Wrap all string constants intenteded for display as messages with
 // this macro to ensure compile time length validation.
@@ -678,13 +678,12 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_LAND_START:
             return OSD_MESSAGE_STR("STARTING EMERGENCY LANDING");
         case MW_NAV_STATE_LAND_IN_PROGRESS:
-            if (!navigationRTHAllowsLanding()) {
-                if (STATE(FIXED_WING)) {
-                    return OSD_MESSAGE_STR("LOITERING AROUND HOME");
-                }
-                return OSD_MESSAGE_STR("HOVERING");
-            }
             return OSD_MESSAGE_STR("LANDING");
+        case MW_NAV_STATE_HOVER_ABOVE_HOME:
+            if (STATE(FIXED_WING)) {
+                return OSD_MESSAGE_STR("LOITERING AROUND HOME");
+            }
+            return OSD_MESSAGE_STR("HOVERING");
         case MW_NAV_STATE_LANDED:
             return OSD_MESSAGE_STR("LANDED");
         case MW_NAV_STATE_LAND_SETTLE:
@@ -934,9 +933,9 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             break;
     }
 
-    if (STATE(GPS_FIX) && poiDistance > scale) {
+    if (STATE(GPS_FIX)) {
 
-        int directionToPoi = osdGetHeadingAngle(poiDirection + referenceHeading);
+        int directionToPoi = osdGetHeadingAngle(poiDirection - referenceHeading);
         float poiAngle = DEGREES_TO_RADIANS(directionToPoi);
         float poiSin = sin_approx(poiAngle);
         float poiCos = cos_approx(poiAngle);
@@ -947,7 +946,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             int points = poiDistance / (float)(scale / charHeight);
 
             float pointsX = points * poiSin;
-            int poiX = midX + roundf(pointsX / charWidth);
+            int poiX = midX - roundf(pointsX / charWidth);
             if (poiX < minX || poiX > maxX) {
                 continue;
             }
@@ -958,18 +957,21 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 continue;
             }
 
-            if (poiX == midX && poiY == midY && centerSym != SYM_BLANK) {
+            if (poiX == midX && poiY == midY) {
                 // We're over the map center symbol, so we would be drawing
-                // over it even if we increased the scale. No reason to run
-                // this loop 50 times.
-                break;
-            }
+                // over it even if we increased the scale. Alternate between
+                // drawing the center symbol or drawing the POI.
+                if (centerSym != SYM_BLANK && OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                    break;
+                }
+            } else {
 
-            uint8_t c;
-            if (displayReadCharWithAttr(osdDisplayPort, poiY, poiY, &c, NULL) && c != SYM_BLANK) {
-                // Something else written here, increase scale. If the display doesn't support reading
-                // back characters, we assume there's nothing.
-                continue;
+                uint8_t c;
+                if (displayReadCharWithAttr(osdDisplayPort, poiY, poiY, &c, NULL) && c != SYM_BLANK) {
+                    // Something else written here, increase scale. If the display doesn't support reading
+                    // back characters, we assume there's nothing.
+                    continue;
+                }
             }
 
             // Draw the point on the map
@@ -1046,6 +1048,19 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatCentiNumber(buff, getBatteryVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
         strcat(buff, "V");
         if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+        return true;
+
+    case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE:
+        osdFormatBatteryChargeSymbol(buff);
+        buff[1] = '\0';
+        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        elemAttr = TEXT_ATTRIBUTES_NONE;
+        osdFormatCentiNumber(buff, getSagCompensatedBatteryVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
+        strcat(buff, "V");
+        if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getSagCompensatedBatteryVoltage() <= getBatteryWarningVoltage()))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
         return true;
@@ -1590,7 +1605,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         messages[messageCount++] = navStateFSMessage;
                     }
                     if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_TEXT(1000, messageCount)];
+                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                         if (message == failsafeInfoMessage) {
                             // failsafeInfoMessage is not useful for recovering
                             // a lost model, but might help avoiding a crash.
@@ -1630,12 +1645,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     // Pick one of the available messages. Each message lasts
                     // a second.
                     if (messageCount > 0) {
-                        message = messages[OSD_ALTERNATING_TEXT(1000, messageCount)];
+                        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];
                     }
                 }
             } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
                 // Check if we're unable to arm for some reason
-                if (OSD_ALTERNATING_TEXT(1000, 2) == 0) {
+                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
                     message = "UNABLE TO ARM";
                     TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
                 } else {
@@ -1895,6 +1910,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 {
     osdConfig->item_pos[0][OSD_ALTITUDE] = OSD_POS(1, 0) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_MAIN_BATT_VOLTAGE] = OSD_POS(12, 0) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE] = OSD_POS(12, 1);
+
     osdConfig->item_pos[0][OSD_RSSI_VALUE] = OSD_POS(23, 0) | OSD_VISIBLE_FLAG;
     //line 2
     osdConfig->item_pos[0][OSD_HOME_DIST] = OSD_POS(1, 1);
@@ -2223,6 +2240,12 @@ static void osdShowArmed(void)
 static void osdRefresh(timeUs_t currentTimeUs)
 {
     static timeUs_t lastTimeUs = 0;
+
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
+      displayClearScreen(osdDisplayPort);
+      armState = ARMING_FLAG(ARMED);
+      return;
+    }
 
     // detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {

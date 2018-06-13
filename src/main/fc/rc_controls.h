@@ -99,4 +99,4 @@ throttleStatus_e calculateThrottleStatus(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(throttleStatus_e throttleStatus);
 
-int32_t getRcStickDeflection(int32_t axis, uint16_t midrc);
+int32_t getRcStickDeflection(int32_t axis);

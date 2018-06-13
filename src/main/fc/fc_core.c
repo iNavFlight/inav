@@ -141,7 +141,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
     int16_t stickDeflection;
 
-    stickDeflection = constrain(rawData - rxConfig()->midrc, -500, 500);
+    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
     stickDeflection = applyDeadband(stickDeflection, deadband);
 
     return rcLookup(stickDeflection, rate);
@@ -401,14 +401,6 @@ void tryArm(void)
 #endif
         statsOnArm();
 
-#ifdef USE_RANGEFINDER
-        /*
-         * Since each arm can happen over different surface type, we have to reset
-         * previously computed max. dynamic range threshold
-         */ 
-        rangefinderResetDynamicThreshold();
-#endif
-
         return;
     }
 
@@ -488,7 +480,7 @@ void processRx(timeUs_t currentTimeUs)
 
     updateActivatedModes();
 
-    if (!cliMode) {
+    if ((!cliMode) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
         updateAdjustmentStates();
         processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile));
     }

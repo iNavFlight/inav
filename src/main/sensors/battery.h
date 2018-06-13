@@ -18,6 +18,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "drivers/time.h"
 
 #ifndef VBAT_SCALE_DEFAULT
 #define VBAT_SCALE_DEFAULT 1100
@@ -83,11 +84,11 @@ uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
 bool batteryWasFullWhenPluggedIn(void);
 bool batteryUsesCapacityThresholds(void);
-void batteryUpdate(uint32_t vbatTimeDelta);
 void batteryInit(void);
 
 bool isBatteryVoltageConfigured(void);
 uint16_t getBatteryVoltage(void);
+uint16_t getSagCompensatedBatteryVoltage(void);
 uint16_t getBatteryVoltageLatestADC(void);
 uint16_t getBatteryWarningVoltage(void);
 uint8_t getBatteryCellCount(void);
@@ -101,8 +102,10 @@ int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);
 
-void currentMeterUpdate(int32_t lastUpdateAt);
-
-void powerMeterUpdate(int32_t lastUpdateAt);
+void batteryUpdate(timeUs_t timeDelta);
+void currentMeterUpdate(timeUs_t timeDelta);
+void sagCompensatedVBatUpdate(timeUs_t currentTime);
+void powerMeterUpdate(timeUs_t timeDelta);
 
 uint8_t calculateBatteryPercentage(void);
+float calculateThrottleCompensationFactor(void);

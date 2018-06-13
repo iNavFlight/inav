@@ -50,6 +50,8 @@
 
 #include "rx/rx.h"
 
+#include "sensors/battery.h"
+
 
 //#define MIXER_DEBUG
 
@@ -87,7 +89,7 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 #define DEFAULT_MIN_THROTTLE    1150
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 2);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .minthrottle = DEFAULT_MIN_THROTTLE,
@@ -96,7 +98,8 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .maxthrottle = 1850,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
-    .motorDecelTimeMs = 0
+    .motorDecelTimeMs = 0,
+    .throttleVBatCompensation = false
 );
 
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
@@ -284,17 +287,17 @@ void mixTable(const float dT)
 
     // Find min and max throttle based on condition.
     if (feature(FEATURE_3D)) {
-        if (!ARMING_FLAG(ARMED)) throttlePrevious = rxConfig()->midrc; // When disarmed set to mid_rc. It always results in positive direction after arming.
+        if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
-        if ((rcCommand[THROTTLE] <= (rxConfig()->midrc - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
+        if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
             throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if (rcCommand[THROTTLE] >= (rxConfig()->midrc + rcControlsConfig()->deadband3d_throttle)) { // Positive handling
+        } else if (rcCommand[THROTTLE] >= (PWM_RANGE_MIDDLE + rcControlsConfig()->deadband3d_throttle)) { // Positive handling
             throttleMax = motorConfig()->maxthrottle;
             throttleMin = flight3DConfig()->deadband3d_high;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if ((throttlePrevious <= (rxConfig()->midrc - rcControlsConfig()->deadband3d_throttle)))  { // Deadband handling from negative to positive
+        } else if ((throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)))  { // Deadband handling from negative to positive
             throttleCommand = throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
         } else {  // Deadband handling from positive to negative
@@ -305,6 +308,10 @@ void mixTable(const float dT)
         throttleCommand = rcCommand[THROTTLE];
         throttleMin = motorConfig()->minthrottle;
         throttleMax = motorConfig()->maxthrottle;
+
+        // Throttle compensation based on battery voltage
+        if (motorConfig()->throttleVBatCompensation && STATE(FIXED_WING) && isAmperageConfigured() && feature(FEATURE_VBAT))
+            throttleCommand = MIN(throttleCommand * calculateThrottleCompensationFactor(), throttleMax);
     }
 
     throttleRange = throttleMax - throttleMin;
@@ -333,7 +340,7 @@ void mixTable(const float dT)
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
             } else if (feature(FEATURE_3D)) {
-                if (throttlePrevious <= (rxConfig()->midrc - rcControlsConfig()->deadband3d_throttle)) {
+                if (throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)) {
                     motor[i] = constrain(motor[i], motorConfig()->minthrottle, flight3DConfig()->deadband3d_low);
                 } else {
                     motor[i] = constrain(motor[i], flight3DConfig()->deadband3d_high, motorConfig()->maxthrottle);
@@ -349,7 +356,7 @@ void mixTable(const float dT)
                 bool userMotorStop = !navigationIsFlyingAutonomousMode() && !failsafeIsActive() && (rcData[THROTTLE] < rxConfig()->mincheck);
                 if (failsafeMotorStop || navMotorStop || userMotorStop) {
                     if (feature(FEATURE_3D)) {
-                        motor[i] = rxConfig()->midrc;
+                        motor[i] = PWM_RANGE_MIDDLE;
                     }
                     else {
                         motor[i] = motorConfig()->mincommand;

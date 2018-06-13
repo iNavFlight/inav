@@ -106,8 +106,10 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
 #ifdef USE_ADC
     if (feature(FEATURE_VBAT))
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
-    if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))
+    if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
+        sagCompensatedVBatUpdate(currentTimeUs);
+    }
 #endif
     batMonitoringLastServiced = currentTimeUs;
 }

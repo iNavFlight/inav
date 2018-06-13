@@ -392,8 +392,8 @@ void updatePIDCoefficients(void)
 static float calcHorizonRateMagnitude(void)
 {
     // Figure out the raw stick positions
-    const int32_t stickPosAil = ABS(getRcStickDeflection(FD_ROLL, rxConfig()->midrc));
-    const int32_t stickPosEle = ABS(getRcStickDeflection(FD_PITCH, rxConfig()->midrc));
+    const int32_t stickPosAil = ABS(getRcStickDeflection(FD_ROLL));
+    const int32_t stickPosEle = ABS(getRcStickDeflection(FD_PITCH));
     const float mostDeflectedStickPos = constrain(MAX(stickPosAil, stickPosEle), 0, 500) / 500.0f;
     const float modeTransitionStickPos = constrain(pidBank()->pid[PID_LEVEL].D, 0, 100) / 100.0f;
 
