@@ -1257,6 +1257,53 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[5] = '\0';
             break;
         }
+
+    case OSD_CRUISE_HEADING_ERROR:
+        {
+            if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(NAV_CRUISE_MODE)) {
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
+                return true;
+            }
+
+            buff[0] = SYM_HEADING;
+
+            if ((!ARMING_FLAG(ARMED)) || (FLIGHT_MODE(NAV_CRUISE_MODE) && isAdjustingPosition())) {
+                buff[1] = buff[2] = buff[3] = '-';
+            } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
+                int16_t herr = lrintf(CENTIDEGREES_TO_DEGREES((float)navigationGetHeadingError()));
+                if (ABS(herr) > 99)
+                    strcpy(buff + 1, ">99");
+                else
+                    tfp_sprintf(buff + 1, "%3d", herr);
+            }
+
+            buff[4] = SYM_DEGREES;
+            buff[5] = '\0';
+            break;
+        }
+
+    case OSD_CRUISE_HEADING_ADJUSTMENT:
+        {
+            int16_t heading_adjust = lrintf(CENTIDEGREES_TO_DEGREES((float)getCruiseHeadingAdjustment()));
+
+            if (ARMING_FLAG(ARMED) && ((!FLIGHT_MODE(NAV_CRUISE_MODE)) || !(isAdjustingPosition() || isAdjustingHeading() || (heading_adjust != 0)))) {
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
+                return true;
+            }
+
+            buff[0] = SYM_HEADING;
+
+            if (!ARMING_FLAG(ARMED)) {
+                buff[1] = buff[2] = buff[3] = buff[4] = '-';
+            } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
+                tfp_sprintf(buff + 1, "%4d", heading_adjust);
+            }
+
+            buff[5] = SYM_DEGREES;
+            buff[6] = '\0';
+            break;
+        }
+
     case OSD_GPS_HDOP:
         {
             buff[0] = SYM_HDP_L;
@@ -2194,6 +2241,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
     osdConfig->item_pos[0][OSD_HEADING] = OSD_POS(12, 2);
+    osdConfig->item_pos[0][OSD_CRUISE_HEADING_ERROR] = OSD_POS(12, 2);
+    osdConfig->item_pos[0][OSD_CRUISE_HEADING_ADJUSTMENT] = OSD_POS(12, 2);
     osdConfig->item_pos[0][OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(1, 3) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_MAH_DRAWN] = OSD_POS(1, 4) | OSD_VISIBLE_FLAG;

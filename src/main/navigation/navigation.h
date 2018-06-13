@@ -394,6 +394,11 @@ float calculateAverageSpeed();
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
+int32_t navigationGetHeadingError(void);
+int32_t getCruiseHeadingAdjustment(void);
+bool isAdjustingPosition(void);
+bool isAdjustingHeading(void);
+
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles
  * are in the [0, 360 * 100) interval.
