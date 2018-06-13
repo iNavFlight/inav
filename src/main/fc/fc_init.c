@@ -302,7 +302,7 @@ void init(void)
     pwm_params.useParallelPWM = (rxConfig()->receiverType == RX_TYPE_PWM);
     pwm_params.useRSSIADC = feature(FEATURE_RSSI_ADC);
     pwm_params.useCurrentMeterADC = feature(FEATURE_CURRENT_METER)
-        && batteryConfig()->current.type == CURRENT_SENSOR_ADC;
+        && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
     pwm_params.useLEDStrip = feature(FEATURE_LED_STRIP);
     pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
@@ -473,7 +473,7 @@ void init(void)
         adc_params.adcFunctionChannel[ADC_RSSI] = adcChannelConfig()->adcFunctionChannel[ADC_RSSI];
     }
 
-    if (feature(FEATURE_CURRENT_METER) && batteryConfig()->current.type == CURRENT_SENSOR_ADC) {
+    if (feature(FEATURE_CURRENT_METER) && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC) {
         adc_params.adcFunctionChannel[ADC_CURRENT] =  adcChannelConfig()->adcFunctionChannel[ADC_CURRENT];
     }
 

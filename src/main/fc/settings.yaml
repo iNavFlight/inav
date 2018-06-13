@@ -500,16 +500,43 @@ groups:
         field: yawDeciDegrees
         min: -1800
         max: 3600
-        
-  - name: PG_BATTERY_CONFIG
-    type: batteryConfig_t
+
+  - name: PG_BATTERY_METERS_CONFIG
+    type: batteryMetersConfig_t
     headers: ["sensors/battery.h"]
     members:
+      - name: bat_profile_autoswitch
+        field: profile_autoswitch
+        condition: USE_ADC
+        type: bool
       - name: vbat_scale
-        field: voltage.scale
+        field: voltage_scale
         condition: USE_ADC
         min: VBAT_SCALE_MIN
         max: VBAT_SCALE_MAX
+      - name: current_meter_scale
+        field: current.scale
+        min: -10000
+        max: 10000
+      - name: current_meter_offset
+        field: current.offset
+        min: -3300
+        max: 3300
+      - name: current_meter_type
+        field: current.type
+        table: current_sensor
+        type: uint8_t
+
+  - name: PG_BATTERY_PROFILES
+    type: batteryProfile_t
+    headers: ["sensors/battery.h"]
+    value_type: BATTERY_CONFIG_VALUE
+    members:
+      - name: bat_cells
+        field: cells
+        condition: USE_ADC
+        min: 0
+        max: 8
       - name: vbat_cell_detect_voltage
         field: voltage.cellDetect
         condition: USE_ADC
@@ -545,18 +572,6 @@ groups:
       - name: battery_capacity_unit
         field: capacity.unit
         table: bat_capacity_unit
-        type: uint8_t
-      - name: current_meter_scale
-        field: current.scale
-        min: -10000
-        max: 10000
-      - name: current_meter_offset
-        field: current.offset
-        min: -3300
-        max: 3300
-      - name: current_meter_type
-        field: current.type
-        table: current_sensor
         type: uint8_t
 
   - name: PG_MIXER_CONFIG

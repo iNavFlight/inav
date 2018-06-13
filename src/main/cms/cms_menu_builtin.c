@@ -46,6 +46,7 @@
 #include "cms/cms_menu_vtx.h"
 #include "cms/cms_menu_osd.h"
 #include "cms/cms_menu_ledstrip.h"
+#include "cms/cms_menu_battery.h"
 #include "cms/cms_menu_misc.h"
 
 // VTX supplied menus
@@ -150,6 +151,7 @@ static const OSD_Entry menuMainEntries[] =
     OSD_SUBMENU_ENTRY("OSD LAYOUTS", &cmsx_menuOsdLayout),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 #endif
+    OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBattery),
     OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
     OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
 

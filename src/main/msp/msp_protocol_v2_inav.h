@@ -39,3 +39,5 @@
 #define MSP2_INAV_OSD_SET_ALARMS                0x2015
 #define MSP2_INAV_OSD_PREFERENCES               0x2016
 #define MSP2_INAV_OSD_SET_PREFERENCES           0x2017
+
+#define MSP2_INAV_SELECT_BATTERY_PROFILE        0x2018

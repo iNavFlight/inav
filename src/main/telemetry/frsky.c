@@ -196,7 +196,7 @@ static void sendThrottleOrBatterySizeAsRpm(void)
                     throttleForRPM = 0;
         serialize16(throttleForRPM);
     } else {
-        serialize16((batteryConfig()->capacity.value / BLADE_NUMBER_DIVIDER));
+        serialize16((currentBatteryProfile->capacity.value / BLADE_NUMBER_DIVIDER));
     }
 
 }

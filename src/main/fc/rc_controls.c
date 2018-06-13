@@ -232,7 +232,6 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     }
 
     // actions during not armed
-    int i = 0;
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {
@@ -257,16 +256,38 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Multiple configuration profiles
     if (feature(FEATURE_TX_PROF_SEL)) {
+
+        uint8_t i = 0;
+
         if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
             i = 1;
         else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
             i = 2;
         else if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
             i = 3;
+
         if (i) {
             setConfigProfileAndWriteEEPROM(i - 1);
             return;
         }
+
+        i = 0;
+
+        // Multiple battery configuration profiles
+        if (rcSticks == THR_HI + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
+            i = 1;
+        else if (rcSticks == THR_HI + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
+            i = 2;
+        else if (rcSticks == THR_HI + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
+            i = 3;
+
+        if (i) {
+            setConfigBatteryProfileAndWriteEEPROM(i - 1);
+            batteryDisableProfileAutoswitch();
+            activateBatteryProfile();
+            return;
+        }
+
     }
 
     // Save config

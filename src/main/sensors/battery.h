@@ -34,6 +34,10 @@
 #define CURRENT_METER_OFFSET 0
 #endif
 
+#ifndef MAX_BATTERY_PROFILE_COUNT
+#define MAX_BATTERY_PROFILE_COUNT 3
+#endif
+
 typedef enum {
     CURRENT_SENSOR_NONE = 0,
     CURRENT_SENSOR_ADC,
@@ -46,21 +50,35 @@ typedef enum {
     BAT_CAPACITY_UNIT_MWH,
 } batCapacityUnit_e;
 
-typedef struct batteryConfig_s {
+typedef struct {
+  uint8_t profile_index;
+  uint16_t max_voltage;
+} profile_comp_t;
 
-    struct {
-        uint16_t scale;         // adjust this to match battery voltage to reported value
-        uint16_t cellDetect;    // maximum voltage per cell, used for auto-detecting battery cell count in 0.01V units, default is 430 (4.3V)
-        uint16_t cellMax;       // maximum voltage per cell, used for full battery detection and battery gauge voltage in 0.01V units, default is 424 (4.24V)
-        uint16_t cellMin;       // minimum voltage per cell, this triggers battery critical alarm, in 0.01V units, default is 330 (3.3V)
-        uint16_t cellWarning;   // warning voltage per cell, this triggers battery warning alarm, in 0.01V units, default is 350 (3.5V)
-    } voltage;
+typedef struct batteryMetersConfig_s {
+
+    bool profile_autoswitch;
+
+    uint16_t voltage_scale;
 
     struct {
         int16_t scale;          // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
         int16_t offset;         // offset of the current sensor in millivolt steps
         currentSensor_e type;   // type of current meter used, either ADC or virtual
     } current;
+
+} batteryMetersConfig_t;
+
+typedef struct batteryProfile_s {
+
+    uint8_t cells;
+
+    struct {
+        uint16_t cellDetect;    // maximum voltage per cell, used for auto-detecting battery cell count in 0.01V units, default is 430 (4.3V)
+        uint16_t cellMax;       // maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, default is 421 (4.21V)
+        uint16_t cellMin;       // minimum voltage per cell, this triggers battery critical alarm, in 0.01V units, default is 330 (3.3V)
+        uint16_t cellWarning;   // warning voltage per cell, this triggers battery warning alarm, in 0.01V units, default is 350 (3.5V)
+    } voltage;
 
     struct {
         uint32_t value;         // mAh or mWh (see capacity.unit)
@@ -69,9 +87,12 @@ typedef struct batteryConfig_s {
         batCapacityUnit_e unit; // Describes unit of capacity.value, capacity.warning and capacity.critical
     } capacity;
 
-} batteryConfig_t;
+} batteryProfile_t;
 
-PG_DECLARE(batteryConfig_t, batteryConfig);
+PG_DECLARE(batteryMetersConfig_t, batteryMetersConfig);
+PG_DECLARE_ARRAY(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles);
+
+extern const batteryProfile_t *currentBatteryProfile;
 
 typedef enum {
     BATTERY_OK = 0,
@@ -80,11 +101,15 @@ typedef enum {
     BATTERY_NOT_PRESENT
 } batteryState_e;
 
+
 uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
 bool batteryWasFullWhenPluggedIn(void);
 bool batteryUsesCapacityThresholds(void);
 void batteryInit(void);
+void setBatteryProfile(uint8_t profileIndex);
+void activateBatteryProfile(void);
+void batteryDisableProfileAutoswitch(void);
 
 bool isBatteryVoltageConfigured(void);
 uint16_t getBatteryVoltage(void);
