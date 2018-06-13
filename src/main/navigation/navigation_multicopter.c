@@ -426,10 +426,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         newAccelX = newAccelX * boostFactor;
         newAccelY = newAccelY * boostFactor;
 
-        //do a small, static, boost to max banking angle.
-        //This routine is very short, MR should be able to keep altitude
-        maxBankAngle = maxBankAngle * 120 / 100;
-
+        maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
         accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
     }
 

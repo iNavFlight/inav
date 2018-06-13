@@ -148,6 +148,7 @@ typedef struct navConfig_s {
         uint16_t braking_boost_timeout;         // Timeout for boost mode
         uint16_t braking_boost_speed_threshold; // Above this speed braking boost mode can engage
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
+        uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
     } mc;
 
     struct {
