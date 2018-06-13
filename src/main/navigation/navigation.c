@@ -119,9 +119,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_speed_threshold = 100,         // Braking can become active above 1m/s
         .braking_disengage_speed = 75,          // Stop when speed goes below 0.75m/s
         .braking_timeout = 2000,                // Timeout barking after 2s
-        .braking_boost_factor = 0,              // By default do not use boost factor
+        .braking_boost_factor = 100,            // A 100% boost by default
         .braking_boost_timeout = 750,           // Timout boost after 750ms
-        .braking_boost_speed_threshold = 200,   // Boost can happen only above 2m/s
+        .braking_boost_speed_threshold = 150,   // Boost can happen only above 1.5m/s
         .braking_boost_disengage_speed = 100,   // Disable boost at 1m/s
     },
 
@@ -2002,10 +2002,7 @@ static bool adjustPositionFromRCInput(void)
             setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
 
             ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-            DEBUG_SET(DEBUG_BRAKING, 2, 1);
-
             ENABLE_STATE(NAV_CRUISE_BRAKING);
-            DEBUG_SET(DEBUG_BRAKING, 0, 1);
 
             //Set forced BRAKING disengage moment
             brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
@@ -2013,7 +2010,6 @@ static bool adjustPositionFromRCInput(void)
             //If speed above threshold, start boost mode as well
             if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
                 ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-                DEBUG_SET(DEBUG_BRAKING, 1, 1);
 
                 brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
             }
@@ -2025,7 +2021,6 @@ static bool adjustPositionFromRCInput(void)
             (rcPitchAdjustment || rcRollAdjustment)
         ) {
             DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-            DEBUG_SET(DEBUG_BRAKING, 2, 0); 
         }
 
         /*
@@ -2037,7 +2032,6 @@ static bool adjustPositionFromRCInput(void)
                 brakingBoostModeDisengageAt < millis()
         )) {
             DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-            DEBUG_SET(DEBUG_BRAKING, 1, 0);
         }
 
         /*
@@ -2050,9 +2044,7 @@ static bool adjustPositionFromRCInput(void)
             brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
         )) {
             DISABLE_STATE(NAV_CRUISE_BRAKING);
-            DEBUG_SET(DEBUG_BRAKING, 0, 0);
             DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-            DEBUG_SET(DEBUG_BRAKING, 1, 0);
 
             /*
              * When braking is done, store current position as desired one

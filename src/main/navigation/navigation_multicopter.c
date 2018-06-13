@@ -422,8 +422,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
             rawBoostFactor
         );
 
-        DEBUG_SET(DEBUG_BRAKING_ACC, 3, boostFactor);
-
         //Boost required acceleration for harder braking
         newAccelX = newAccelX * boostFactor;
         newAccelY = newAccelY * boostFactor;
@@ -433,8 +431,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         maxBankAngle = maxBankAngle * 120 / 100;
 
         accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
-    } else {
-        DEBUG_SET(DEBUG_BRAKING_ACC, 3, 0);
     }
 
     // Save last acceleration target
@@ -444,10 +440,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply LPF to jerk limited acceleration target
     const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, accCutoffFrequency, US2S(deltaMicros));
     const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, accCutoffFrequency, US2S(deltaMicros));
-
-    DEBUG_SET(DEBUG_BRAKING_ACC, 0, STATE(NAV_CRUISE_BRAKING_BOOST));
-    DEBUG_SET(DEBUG_BRAKING_ACC, 1, accelN);
-    DEBUG_SET(DEBUG_BRAKING_ACC, 2, accelE);
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
