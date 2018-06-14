@@ -324,7 +324,7 @@ uint16_t getBatteryVoltage(void)
     return vbat;
 }
 
-uint16_t getSagCompensatedBatteryVoltage(void)
+uint16_t getBatterySagCompensatedVoltage(void)
 {
     return sagCompensatedVBat;
 }
@@ -353,6 +353,14 @@ uint16_t getBatteryAverageCellVoltage(void)
 {
     if (batteryCellCount > 0) {
         return vbat / batteryCellCount;
+    }
+    return 0;
+}
+
+uint16_t getBatterySagCompensatedAverageCellVoltage(void)
+{
+    if (batteryCellCount > 0) {
+        return sagCompensatedVBat / batteryCellCount;
     }
     return 0;
 }

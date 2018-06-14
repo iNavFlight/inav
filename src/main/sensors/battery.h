@@ -113,11 +113,12 @@ void batteryDisableProfileAutoswitch(void);
 
 bool isBatteryVoltageConfigured(void);
 uint16_t getBatteryVoltage(void);
-uint16_t getSagCompensatedBatteryVoltage(void);
+uint16_t getBatterySagCompensatedVoltage(void);
 uint16_t getBatteryVoltageLatestADC(void);
 uint16_t getBatteryWarningVoltage(void);
 uint8_t getBatteryCellCount(void);
 uint16_t getBatteryAverageCellVoltage(void);
+uint16_t getBatterySagCompensatedAverageCellVoltage(void);
 uint32_t getBatteryRemainingCapacity(void);
 
 bool isAmperageConfigured(void);

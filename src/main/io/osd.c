@@ -1015,6 +1015,24 @@ static void osdDrawRadar(uint16_t *drawn)
 
 #endif
 
+static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_t voltage, uint8_t decimals)
+{
+    char buff[6];
+    textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
+
+    osdFormatBatteryChargeSymbol(buff);
+    buff[1] = '\0';
+    osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+
+    elemAttr = TEXT_ATTRIBUTES_NONE;
+    osdFormatCentiNumber(buff, voltage, 0, decimals, 0, decimals + 2);
+    strcat(buff, "V");
+    if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdConfig()->item_pos[currentLayout][item];
@@ -1040,29 +1058,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAIN_BATT_VOLTAGE:
-        osdFormatBatteryChargeSymbol(buff);
-        buff[1] = '\0';
-        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
-        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
-        elemAttr = TEXT_ATTRIBUTES_NONE;
-        osdFormatCentiNumber(buff, getBatteryVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-        strcat(buff, "V");
-        if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryVoltage(), osdConfig()->main_voltage_decimals);
         return true;
 
     case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE:
-        osdFormatBatteryChargeSymbol(buff);
-        buff[1] = '\0';
-        osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
-        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
-        elemAttr = TEXT_ATTRIBUTES_NONE;
-        osdFormatCentiNumber(buff, getSagCompensatedBatteryVoltage(), 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
-        strcat(buff, "V");
-        if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getSagCompensatedBatteryVoltage() <= getBatteryWarningVoltage()))
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), osdConfig()->main_voltage_decimals);
         return true;
 
     case OSD_CURRENT_DRAW:
@@ -1664,17 +1664,13 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
-            uint16_t cellBattCentiVolts = getBatteryAverageCellVoltage();
-            osdFormatBatteryChargeSymbol(buff);
-            buff[1] = '\0';
-            osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
-            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
-            elemAttr = TEXT_ATTRIBUTES_NONE;
-            osdFormatCentiNumber(buff, cellBattCentiVolts, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 1);
-            strcat(buff, "V");
-            if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
-                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-            displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryAverageCellVoltage(), 2);
+            return true;
+        }
+
+    case OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE:
+        {
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), 2);
             return true;
         }
 
@@ -1917,6 +1913,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_HOME_DIST] = OSD_POS(1, 1);
     osdConfig->item_pos[0][OSD_TRIP_DIST] = OSD_POS(1, 2);
     osdConfig->item_pos[0][OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
+    osdConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
 
     osdConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
