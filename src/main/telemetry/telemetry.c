@@ -65,6 +65,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .smartportFuelUnit = SMARTPORT_FUEL_UNIT_MAH,
     .ibusTelemetryType = 0,
     .ltmUpdateRate = LTM_RATE_NORMAL,
+    .voltageSource = BAT_VOLTAGE_RAW
 );
 
 void telemetryInit(void)
@@ -102,6 +103,22 @@ void telemetryInit(void)
 #endif
 
     telemetryCheckState();
+}
+
+uint16_t getTelemetryBatteryVoltage() {
+    if (telemetryConfig()->voltageSource == BAT_VOLTAGE_SAG_COMP) {
+        return getBatterySagCompensatedVoltage();
+    }
+
+    return getBatteryVoltage();
+}
+
+uint16_t getTelemetryBatteryAverageCellVoltage() {
+    if (telemetryConfig()->voltageSource == BAT_VOLTAGE_SAG_COMP) {
+        return getBatterySagCompensatedAverageCellVoltage();
+    }
+
+    return getBatteryAverageCellVoltage();
 }
 
 bool telemetryDetermineEnabledState(portSharing_e portSharing)

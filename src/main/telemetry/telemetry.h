@@ -30,6 +30,7 @@
 
 #include "io/serial.h"
 
+#include "sensors/battery.h"
 
 typedef enum {
     FRSKY_FORMAT_DMS = 0,
@@ -67,6 +68,7 @@ typedef struct telemetryConfig_s {
     smartportFuelUnit_e smartportFuelUnit;
     uint8_t ibusTelemetryType;
     uint8_t ltmUpdateRate;
+    batVoltageSource_e voltageSource;
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);
@@ -82,3 +84,5 @@ void telemetryProcess(timeUs_t currentTimeUs);
 
 bool telemetryDetermineEnabledState(portSharing_e portSharing);
 
+uint16_t getTelemetryBatteryVoltage();
+uint16_t getTelemetryBatteryAverageCellVoltage();

@@ -153,9 +153,9 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT
         if (telemetryConfig()->report_cell_voltage) {
-            return sendIbusMeasurement2(address, getBatteryAverageCellVoltage());
+            return sendIbusMeasurement2(address, getTelemetryBatteryAverageCellVoltage());
         } else {
-            return sendIbusMeasurement2(address, getBatteryVoltage());
+            return sendIbusMeasurement2(address, getTelemetryBatteryVoltage());
         }
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_CURRENT) { //CURR in 10*mA, 1 = 10 mA
         if (feature(FEATURE_CURRENT_METER)) return sendIbusMeasurement2(address, (uint16_t) getAmperage()); //int32_t
