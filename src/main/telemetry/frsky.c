@@ -365,7 +365,7 @@ static void sendVoltage(void)
      * The actual value sent for cell voltage has resolution of 0.002 volts
      * Since vbat has resolution of 0.01 volts it has to be multiplied by 5
      */
-    cellVoltage = ((uint32_t)getBatteryVoltage() * 10) / (getBatteryCellCount() * 2);
+    cellVoltage = ((uint32_t)getTelemetryBatteryVoltage() * 10) / (getBatteryCellCount() * 2);
 
     // Cell number is at bit 9-12 (only uses vbat, so it can't send individual cell voltages, set cell number to 0)
     payload = 0;
@@ -385,7 +385,7 @@ static void sendVoltage(void)
  */
 static void sendVoltageAmp(void)
 {
-    uint16_t vbat = getBatteryVoltage();
+    uint16_t vbat = getTelemetryBatteryVoltage();
     if (telemetryConfig()->frsky_vfas_precision == FRSKY_VFAS_PRECISION_HIGH) {
         /*
          * Use new ID 0x39 to send voltage directly in 0.1 volts resolution

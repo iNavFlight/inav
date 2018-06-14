@@ -387,7 +387,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
         switch (id) {
             case FSSP_DATAID_VFAS       :
                 if (isBatteryVoltageConfigured()) {
-                    uint16_t vfasVoltage = telemetryConfig()->report_cell_voltage ? getBatteryAverageCellVoltage() : getBatteryVoltage();
+                    uint16_t vfasVoltage = telemetryConfig()->report_cell_voltage ? getTelemetryBatteryAverageCellVoltage() : getTelemetryBatteryVoltage();
                     smartPortSendPackage(id, vfasVoltage);
                     *clearToSend = false;
                 }
@@ -556,7 +556,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
 #endif
             case FSSP_DATAID_A4         :
                 if (isBatteryVoltageConfigured()) {
-                    smartPortSendPackage(id, getBatteryAverageCellVoltage());
+                    smartPortSendPackage(id, getTelemetryBatteryAverageCellVoltage());
                     *clearToSend = false;
                 }
                 break;
