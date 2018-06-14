@@ -326,8 +326,8 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
-    fpVector3_t                 cruiseTargetPos;
-    int32_t                     cruiseYaw;
+    fpVector3_t                 targetPos;
+    int32_t                     yaw;
 } navCruise_t;
 
 typedef struct {
