@@ -419,7 +419,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
             sbufWriteU16(dst, packSensorStatus());
             sbufWriteU16(dst, averageSystemLoadPercent);
-            sbufWriteU8(dst, (getConfigBatteryProfile() << 4) || getConfigProfile());
+            sbufWriteU8(dst, (getConfigBatteryProfile() << 4) | getConfigProfile());
             sbufWriteU32(dst, armingFlags);
             sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
         }
