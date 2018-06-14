@@ -22,6 +22,7 @@
 #if defined(USE_NAV)
 
 #include "common/filter.h"
+#include "common/time.h"
 #include "fc/runtime_config.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
@@ -34,13 +35,6 @@
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
-
-#define HZ2US(hz)   (1000000 / (hz))
-#define US2S(us)    ((us) * 1e-6f)
-#define US2MS(us)   ((us) * 1e-3f)
-#define MS2US(ms)   ((ms) * 1000)
-#define MS2S(ms)    ((ms) * 1e-3f)
-#define HZ2S(hz)    US2S(HZ2US(hz))
 
 typedef enum {
     NAV_POS_UPDATE_NONE                 = 0,

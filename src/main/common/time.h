@@ -41,6 +41,13 @@ typedef uint32_t timeUs_t;
 #define MILLISECS_PER_SEC 1000
 #define USECS_PER_SEC (1000 * 1000)
 
+#define HZ2US(hz)   (1000000 / (hz))
+#define US2S(us)    ((us) * 1e-6f)
+#define US2MS(us)   ((us) * 1e-3f)
+#define MS2US(ms)   ((ms) * 1000)
+#define MS2S(ms)    ((ms) * 1e-3f)
+#define HZ2S(hz)    US2S(HZ2US(hz))
+
 static inline timeDelta_t cmpTimeUs(timeUs_t a, timeUs_t b) { return (timeDelta_t)(a - b); }
 
 typedef enum {
