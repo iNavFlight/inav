@@ -117,7 +117,9 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
         .type = CURRENT_SENSOR_ADC,
         .scale = CURRENT_METER_SCALE,
         .offset = CURRENT_METER_OFFSET
-    }
+    },
+
+    .voltageSource = BAT_VOLTAGE_RAW
 
 );
 
@@ -263,21 +265,22 @@ void batteryUpdate(timeUs_t timeDelta)
             else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical)
                 batteryState = BATTERY_WARNING;
         } else {
+            uint16_t stateVoltage = getBatteryVoltage();
             switch (batteryState)
             {
                 case BATTERY_OK:
-                    if (vbat <= (batteryWarningVoltage - VBATT_HYSTERESIS))
+                    if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS))
                         batteryState = BATTERY_WARNING;
                     break;
                 case BATTERY_WARNING:
-                    if (vbat <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
+                    if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
                         batteryState = BATTERY_CRITICAL;
-                    } else if (vbat > (batteryWarningVoltage + VBATT_HYSTERESIS)){
+                    } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
                         batteryState = BATTERY_OK;
                     }
                     break;
                 case BATTERY_CRITICAL:
-                    if (vbat > (batteryCriticalVoltage + VBATT_HYSTERESIS))
+                    if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS))
                         batteryState = BATTERY_WARNING;
                     break;
                 default:
@@ -321,6 +324,15 @@ bool isBatteryVoltageConfigured(void)
 
 uint16_t getBatteryVoltage(void)
 {
+    if (batteryMetersConfig()->voltageSource == BAT_VOLTAGE_SAG_COMP) {
+        return sagCompensatedVBat;
+    }
+
+    return vbat;
+}
+
+uint16_t getBatteryRawVoltage(void)
+{
     return vbat;
 }
 
@@ -350,6 +362,14 @@ uint8_t getBatteryCellCount(void)
 }
 
 uint16_t getBatteryAverageCellVoltage(void)
+{
+    if (batteryCellCount > 0) {
+        return getBatteryVoltage() / batteryCellCount;
+    }
+    return 0;
+}
+
+uint16_t getBatteryRawAverageCellVoltage(void)
 {
     if (batteryCellCount > 0) {
         return vbat / batteryCellCount;
