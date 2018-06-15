@@ -55,6 +55,11 @@ typedef struct {
   uint16_t max_voltage;
 } profile_comp_t;
 
+typedef enum {
+    BAT_VOLTAGE_RAW,
+    BAT_VOLTAGE_SAG_COMP
+} batVoltageSource_e;
+
 typedef struct batteryMetersConfig_s {
 
     bool profile_autoswitch;
@@ -66,6 +71,8 @@ typedef struct batteryMetersConfig_s {
         int16_t offset;         // offset of the current sensor in millivolt steps
         currentSensor_e type;   // type of current meter used, either ADC or virtual
     } current;
+
+    batVoltageSource_e voltageSource;
 
 } batteryMetersConfig_t;
 
@@ -113,10 +120,12 @@ void batteryDisableProfileAutoswitch(void);
 
 bool isBatteryVoltageConfigured(void);
 uint16_t getBatteryVoltage(void);
+uint16_t getBatteryRawVoltage(void);
 uint16_t getBatterySagCompensatedVoltage(void);
 uint16_t getBatteryVoltageLatestADC(void);
 uint16_t getBatteryWarningVoltage(void);
 uint8_t getBatteryCellCount(void);
+uint16_t getBatteryRawAverageCellVoltage(void);
 uint16_t getBatteryAverageCellVoltage(void);
 uint16_t getBatterySagCompensatedAverageCellVoltage(void);
 uint32_t getBatteryRemainingCapacity(void);

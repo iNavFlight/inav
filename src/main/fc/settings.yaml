@@ -85,6 +85,9 @@ tables:
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
     enum: batCapacityUnit_e
+  - name: bat_voltage_source
+    values: ["RAW", "SAG_COMP"]
+    enum: batVoltageSource_e
   - name: smartport_fuel_unit
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
@@ -528,6 +531,10 @@ groups:
       - name: current_meter_type
         field: current.type
         table: current_sensor
+        type: uint8_t
+      - name: bat_voltage_src
+        field: voltageSource
+        table: bat_voltage_source
         type: uint8_t
 
   - name: PG_BATTERY_PROFILES
