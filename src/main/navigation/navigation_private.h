@@ -21,6 +21,7 @@
 
 #if defined(USE_NAV)
 
+#include "common/axis.h"
 #include "common/filter.h"
 #include "fc/runtime_config.h"
 
