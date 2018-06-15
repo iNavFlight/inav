@@ -57,8 +57,6 @@ typedef struct {
 
 typedef struct batteryMetersConfig_s {
 
-    bool profile_autoswitch;
-
     uint16_t voltage_scale;
 
     struct {

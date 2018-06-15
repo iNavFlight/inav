@@ -502,10 +502,6 @@ groups:
     type: batteryMetersConfig_t
     headers: ["sensors/battery.h"]
     members:
-      - name: bat_profile_autoswitch
-        field: profile_autoswitch
-        condition: USE_ADC
-        type: bool
       - name: vbat_scale
         field: voltage_scale
         condition: USE_ADC

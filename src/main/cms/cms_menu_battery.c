@@ -24,6 +24,8 @@
 
 #include "common/utils.h"
 
+#include "config/feature.h"
+
 #include "cms/cms.h"
 #include "cms/cms_types.h"
 #include "cms/cms_menu_misc.h"
@@ -37,6 +39,7 @@
 
 static uint8_t battDispProfileIndex;
 static uint8_t battProfileIndex;
+static bool featureProfAutoswitchEnabled;
 static char battProfileIndexString[] = " p";
 
 
@@ -47,6 +50,7 @@ static long cmsx_menuBattery_onEnter(const OSD_Entry *from)
     battProfileIndex = getConfigBatteryProfile();
     battDispProfileIndex = battProfileIndex + 1;
     battProfileIndexString[1] = '0' + battDispProfileIndex;
+    featureProfAutoswitchEnabled = feature(FEATURE_BAT_PROFILE_AUTOSWITCH);
 
     return 0;
 }
@@ -57,6 +61,12 @@ static long cmsx_menuBattery_onExit(const OSD_Entry *self)
 
     setConfigBatteryProfile(battProfileIndex);
     activateBatteryProfile();
+
+    if (featureProfAutoswitchEnabled) {
+        featureSet(FEATURE_BAT_PROFILE_AUTOSWITCH);
+    } else {
+        featureClear(FEATURE_BAT_PROFILE_AUTOSWITCH);
+    }
 
     return 0;
 }
@@ -118,7 +128,7 @@ static OSD_Entry menuBatteryEntries[]=
     OSD_LABEL_ENTRY("-- BATTERY --"),
 
 #ifdef USE_ADC
-    OSD_SETTING_ENTRY("PROF AUTOSWITCH", SETTING_BAT_PROFILE_AUTOSWITCH),
+    OSD_BOOL_ENTRY("PROF AUTOSWITCH", &featureProfAutoswitchEnabled),
 #endif
     OSD_UINT8_CALLBACK_ENTRY("PROF", cmsx_onBatteryProfileIndexChange, (&(const OSD_UINT8_t){ &battDispProfileIndex, 1, MAX_BATTERY_PROFILE_COUNT, 1})),
     OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuBattSettings),
