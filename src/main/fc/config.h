@@ -43,7 +43,7 @@ typedef enum {
 } asyncMode_e;
 
 typedef enum {
-    FEATURE_UNUSED_1 = 1 << 0,          // RX_PPM
+    FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
     FEATURE_UNUSED_2 = 1 << 3,          // RX_SERIAL

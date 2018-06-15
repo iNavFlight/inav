@@ -99,7 +99,6 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
-    .throttleVBatCompensation = false
 );
 
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
@@ -310,7 +309,7 @@ void mixTable(const float dT)
         throttleMax = motorConfig()->maxthrottle;
 
         // Throttle compensation based on battery voltage
-        if (motorConfig()->throttleVBatCompensation && STATE(FIXED_WING) && isAmperageConfigured() && feature(FEATURE_VBAT))
+        if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
             throttleCommand = MIN(throttleCommand * calculateThrottleCompensationFactor(), throttleMax);
     }
 

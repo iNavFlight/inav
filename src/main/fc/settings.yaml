@@ -423,9 +423,6 @@ groups:
       - name: motor_pwm_protocol
         field: motorPwmProtocol
         table: motor_pwm_protocol
-      - name: throttle_vbat_compensation
-        field: throttleVBatCompensation
-        type: bool
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
