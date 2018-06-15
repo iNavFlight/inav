@@ -21,6 +21,8 @@
 
 #if defined(USE_NAV)
 
+#include "common/axis.h"
+#include "common/maths.h"
 #include "common/filter.h"
 #include "fc/runtime_config.h"
 
@@ -80,6 +82,7 @@ typedef struct navigationFlags_s {
 
     navigationEstimateStatus_e estAltStatus;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
     navigationEstimateStatus_e estPosStatus;        // Indicates that GPS is working (or not)
+    navigationEstimateStatus_e estVelStatus;        // Indicates that GPS is working (or not)
     navigationEstimateStatus_e estAglStatus;
     navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
 
@@ -385,7 +388,7 @@ bool isApproachingLastWaypoint(void);
 float getActiveWaypointSpeed(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading);
-void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, float newY, float newVelX, float newVelY);
+void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
 
 bool checkForPositionSensorTimeout(void);
