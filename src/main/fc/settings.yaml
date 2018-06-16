@@ -67,7 +67,7 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE", "VIBE"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE", "VIBE", "CRUISE"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -1365,6 +1365,10 @@ groups:
         field: fw.launch_climb_angle
         min: 5
         max: 45
+      - name: nav_fw_cruise_yaw_rate
+        field: fw.cruise_yaw_rate
+        min: 0
+        max: 60
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t

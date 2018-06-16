@@ -78,6 +78,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT1, "OSD ALT 1", 42 },
     { BOXOSDALT2, "OSD ALT 2", 43 },
     { BOXOSDALT3, "OSD ALT 3", 44 },
+    { BOXNAVCRUISE, "NAV CRUISE", 45 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -196,6 +197,9 @@ void initActiveBoxIds(void)
 
         if (feature(FEATURE_GPS)) {
             activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+            if (STATE(FIXED_WING)) {
+                activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
+            }
         }
     }
 #endif
@@ -294,6 +298,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FAILSAFE_MODE)),        BOXFAILSAFE);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)),     BOXNAVALTHOLD);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_POSHOLD_MODE)),     BOXNAVPOSHOLD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_CRUISE_MODE)),      BOXNAVCRUISE);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)),         BOXNAVRTH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),          BOXNAVWP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),     BOXAIRMODE);

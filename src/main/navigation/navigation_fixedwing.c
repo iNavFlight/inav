@@ -182,6 +182,10 @@ void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
  *-----------------------------------------------------------*/
 bool adjustFixedWingHeadingFromRCInput(void)
 {
+    if (ABS(rcCommand[YAW]) > rcControlsConfig()->pos_hold_deadband) {
+        return true;
+    }
+
     return false;
 }
 
@@ -218,7 +222,8 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     #define TAN_15DEG    0.26795f
     bool needToCalculateCircularLoiter = isApproachingLastWaypoint()
                                             && (distanceToActualTarget <= (navConfig()->fw.loiter_radius / TAN_15DEG))
-                                            && (distanceToActualTarget > 50.0f);
+                                            && (distanceToActualTarget > 50.0f)
+                                            && !FLIGHT_MODE(NAV_CRUISE_MODE);
 
     // Calculate virtual position for straight movement
     if (needToCalculateCircularLoiter) {
@@ -544,6 +549,9 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
         if (navStateFlags & NAV_CTL_POS)
             applyFixedWingPositionController(currentTimeUs);
 #endif
+
+        if (FLIGHT_MODE(NAV_CRUISE_MODE) && posControl.flags.isAdjustingPosition)
+            rcCommand[ROLL] = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
 
         //if (navStateFlags & NAV_CTL_YAW)
         if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS))
