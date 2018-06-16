@@ -37,5 +37,6 @@ void brainFpvOsdArtificialHorizon(void);
 void brainFpvOsdCenterMark(void);
 void brainFpvOsdUserLogo(uint16_t x, uint16_t y);
 void brainFpvOsdMainLogo(uint16_t x, uint16_t y);
+void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y);
 
 #endif /* BRAINFPV_OSD */

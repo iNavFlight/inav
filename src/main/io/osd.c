@@ -926,6 +926,14 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_HOME_DIR:
+#if defined(USE_BRAINFPV_OSD)
+        {
+            int16_t home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+            brainFfpvOsdHomeArrow(home_dir, elemPosX, elemPosY);
+            brainfpv_item = true;
+            break;
+        }
+#else
         {
             int16_t h = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
 
@@ -942,7 +950,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[1] = 0;
             break;
         }
-
+#endif
     case OSD_HOME_DIST:
         {
             osdFormatDistanceSymbol(buff, GPS_distanceToHome * 100);

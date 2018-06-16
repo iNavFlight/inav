@@ -506,6 +506,44 @@ void brainFpvOsdMainLogo(uint16_t x, uint16_t y)
 {
     draw_image(x - image_mainlogo.width / 2, y - image_mainlogo.height / 2, &image_mainlogo);
 }
+
+const point_t HOME_ARROW[] = {
+    {
+        .x = 0,
+        .y = -10,
+    },
+    {
+        .x = 9,
+        .y = 1,
+    },
+    {
+        .x = 3,
+        .y = 1,
+    },
+    {
+        .x = 3,
+        .y = 8,
+    },
+    {
+        .x = -3,
+        .y = 8,
+    },
+    {
+        .x = -3,
+        .y = 1,
+    },
+    {
+        .x = -9,
+        .y = 1,
+    }
+};
+
+void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y)
+{
+    x = MAX_X(x);
+    y = MAX_Y(y);
+    draw_polygon(x, y, home_dir, HOME_ARROW, 7, 0, 1);
+}
 #endif /* USE_BRAINFPV_OSD */
 
 
