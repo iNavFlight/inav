@@ -69,7 +69,7 @@ OSD_UINT8_t entrySyncTh =  {&bfOsdConfigCms.sync_threshold, BRAINFPV_OSD_SYNC_TH
 OSD_INT8_t entryXoff =  {&bfOsdConfigCms.x_offset, -8, 7, 1};
 OSD_UINT8_t entryXScale =  {&bfOsdConfigCms.x_scale, 0, 15, 1};
 OSD_UINT8_t entry3DShift =  {&bfOsdConfigCms.sbs_3d_right_eye_offset, 10, 40, 1};
-
+OSD_UINT16_t entryMapMaxDist =  {&bfOsdConfigCms.map_max_dist_m, 10, 32767, 10};
 
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
@@ -78,6 +78,8 @@ OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
     {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
     {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale, 0},
     {"SPEED SCALE", OME_Bool, NULL, &bfOsdConfigCms.speed_scale, 0},
+    {"MAP", OME_Bool, NULL, &bfOsdConfigCms.map, 0},
+    {"MAP MAX DIST M", OME_UINT16, NULL, &entryMapMaxDist, 0},
     {"SHOW STICKS", OME_TAB, NULL, &entrySticksDisplay, 0},
     {"FONT", OME_TAB, NULL, &entryOSDFont, 0},
     {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel, 0},

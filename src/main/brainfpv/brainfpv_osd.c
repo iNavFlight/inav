@@ -118,6 +118,8 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .ahi_steps = 2,
   .altitude_scale = 1,
   .speed_scale = 1,
+  .map = 1,
+  .map_max_dist_m = 500,
   .sticks_display = 0,
   .show_logo_on_arm = 1,
   .show_pilot_logo = 1,
@@ -139,6 +141,8 @@ static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, in
         int16_t width, int16_t height, int8_t max_pitch,
         uint8_t n_pitch_steps);
 void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
+void draw_map_uav_center();
+
 
 /*******************************************************************************/
 // MAX7456 Emulation
@@ -301,9 +305,14 @@ void osdUpdateLocal()
         osd_draw_vertical_scale(altitude, 100, 1, GRAPHICS_RIGHT - 10, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
     }
 
-    if (bfOsdConfig()->speed_scale && sensors(SENSOR_GPS)) {
-        float speed = getVelocity();
-        osd_draw_vertical_scale(speed, 100, -1, GRAPHICS_LEFT + 5, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
+    if (sensors(SENSOR_GPS)) {
+        if (bfOsdConfig()->speed_scale) {
+            float speed = getVelocity();
+            osd_draw_vertical_scale(speed, 100, -1, GRAPHICS_LEFT + 5, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
+        }
+        if (bfOsdConfig()->map) {
+            draw_map_uav_center();
+        }
     }
 
     if (bfOsdConfig()->sticks_display == 1) {
@@ -543,6 +552,34 @@ void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y)
     x = MAX_X(x);
     y = MAX_Y(y);
     draw_polygon(x, y, home_dir, HOME_ARROW, 7, 0, 1);
+}
+
+#define MAP_MAX_DIST_PX 70
+void draw_map_uav_center()
+{
+    uint16_t x, y;
+
+    uint16_t dist_to_home_m = GPS_distanceToHome;
+
+    if (dist_to_home_m > bfOsdConfig()->map_max_dist_m) {
+        dist_to_home_m = bfOsdConfig()->map_max_dist_m;
+    }
+
+    float dist_to_home_px = MAP_MAX_DIST_PX * (float)dist_to_home_m / (float)bfOsdConfig()->map_max_dist_m;
+
+    // don't draw map if we are very close to home
+    if (dist_to_home_px < 1.0f) {
+        return;
+    }
+
+    // Get home direction relative to UAV
+    int16_t home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+
+    x = GRAPHICS_X_MIDDLE + roundf(dist_to_home_px * sinf(home_dir * (float)(M_PI / 180)));
+    y = GRAPHICS_Y_MIDDLE - roundf(dist_to_home_px * cosf(home_dir * (float)(M_PI / 180)));
+
+    // draw H to indicate home
+    write_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
 }
 #endif /* USE_BRAINFPV_OSD */
 

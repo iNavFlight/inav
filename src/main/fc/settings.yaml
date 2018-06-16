@@ -1731,6 +1731,13 @@ groups:
       - name: brainfpv_speed_scale
         field: speed_scale
         type: bool
+      - name: brainfpv_map
+        field: map
+        type: bool
+      - name: brainfpv_map_max_dist_m
+        field: map_max_dist_m
+        min: 10
+        max: 32767
       - name: brainfpv_sticks_display
         field: sticks_display
         type: bool
