@@ -84,7 +84,7 @@ static const struct video_type_boundary video_type_boundary_pal = {
 static const struct video_type_cfg video_type_cfg_ntsc = {
     .graphics_hight_real   = 240,   // Real visible lines
     .graphics_column_start = 260,   // First visible OSD column (after Hsync)
-    .graphics_line_start   = 20,    // First visible OSD line
+    .graphics_line_start   = 22,    // First visible OSD line
     .dma_buffer_length     = NTSC_BYTES + NTSC_BYTES % 4, // DMA buffer length in bytes (has to be multiple of 4)
 };
 
