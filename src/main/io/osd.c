@@ -1481,6 +1481,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_HEADING_GRAPH:
+#if defined(USE_BRAINFPV_OSD)
+        brainFpvOsdHeadingGraph(elemPosX, elemPosY);
+        brainfpv_item = true;
+        break;
+#else
         {
             static const uint8_t graph[] = {
                 SYM_HEADING_LINE,
@@ -1527,6 +1532,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[9] = '\0';
             break;
         }
+#endif
 
     case OSD_EFFICIENCY_MAH_PER_KM:
         {

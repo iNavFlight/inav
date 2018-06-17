@@ -581,6 +581,90 @@ void draw_map_uav_center()
     // draw H to indicate home
     write_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
 }
+
+
+
+
+static int round_up_multiple(int16_t num, int16_t multiple)
+{
+    int16_t pos = (int16_t)(num >= 0);
+    return ((num + pos * (multiple - 1)) / multiple) * multiple;
+}
+
+#define HGRAPH_WIDTH_PX       90
+#define HGRAPH_DEG_PER_PX      2
+#define HGRAPH_WIDTH_DEG     (HGRAPH_WIDTH_PX * HGRAPH_DEG_PER_PX)
+#define HGRAPH_SUB_TICKS_DEG  15
+#define HGRAPH_MAIN_TICKS_DEG 45 /* must be multiple of HGRAPH_SUB_TICKS_DEG */
+#define HGRAPH_MAIN_TICK_LEN   4
+#define HGRAPH_SUB_TICK_LEN    2
+
+void brainFpvOsdHeadingGraph(uint16_t x, uint16_t y)
+{
+    int16_t xp;
+    int16_t pos_g_360;
+    char tmp_str[2] = {0, 0};
+    x = MAX_X(x);
+    y = MAX_Y(y);
+
+    int16_t heading = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+
+    int16_t edge_g_left = heading - HGRAPH_WIDTH_DEG / 2;
+    int16_t edge_g_right = heading + HGRAPH_WIDTH_DEG / 2;
+
+    // Draw ticks
+    int16_t pos_g = round_up_multiple(edge_g_left, HGRAPH_SUB_TICKS_DEG);
+    while (pos_g <= edge_g_right) {
+        xp = x + (pos_g - edge_g_left) / HGRAPH_DEG_PER_PX;
+
+        if (pos_g % HGRAPH_MAIN_TICKS_DEG == 0) {
+            // major tick
+            write_vline_lm(xp, y, y + HGRAPH_MAIN_TICK_LEN, 1, 1);
+
+            pos_g_360 = pos_g;
+            if (pos_g_360 < 0) {
+                pos_g_360 += 360;
+            }
+            if (pos_g_360 >= 360) {
+                pos_g_360 -= 360;
+            }
+            tmp_str[0] = 0;
+            switch (pos_g_360) {
+                case 0:
+                    tmp_str[0] = 'N';
+                    break;
+                case 90:
+                    tmp_str[0] = 'E';
+                    break;
+                case 180:
+                    tmp_str[0] = 'S';
+                    break;
+                case 270:
+                    tmp_str[0] = 'W';
+                    break;
+                default:
+                    break;
+            }
+            if (tmp_str[0]) {
+                write_string(tmp_str, xp + 1, y + HGRAPH_MAIN_TICK_LEN + 3, 0, 0,
+                        TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+            }
+        }
+        else {
+            // minor tick
+            write_vline_lm(xp, y, y + HGRAPH_SUB_TICK_LEN, 0, 1);
+        }
+
+        pos_g += HGRAPH_SUB_TICKS_DEG;
+    }
+
+    // Draw center mark
+    xp = x + HGRAPH_WIDTH_PX / 2;
+    write_hline_lm(xp - 2, xp + 2, y, 1, 1);
+    write_line_lm(xp - 2, y, xp, y + 2, 1, 1);
+    write_line_lm(xp + 2, y, xp, y + 2, 1, 1);
+}
+
 #endif /* USE_BRAINFPV_OSD */
 
 
