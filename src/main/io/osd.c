@@ -871,7 +871,7 @@ static int osdGetHeadingAngle(int angle)
  */
 static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym,
                        uint32_t poiDistance, int16_t poiDirection, uint8_t poiSymbol,
-                       uint16_t *drawn)
+                       uint16_t *drawn, uint32_t *usedScale)
 {
     // TODO: These need to be tested with several setups. We might
     // need to make them configurable.
@@ -905,16 +905,20 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
         *drawn = 0;
     }
 
-    uint32_t scale;
+    uint32_t initialScale;
     float scaleToUnit;
     int scaleUnitDivisor;
     char symUnscaled;
     char symScaled;
     int maxDecimals;
+    const int scaleMultiplier = 2;
+    // We try to reduce the scale when the POI will be around half the distance
+    // between the center and the closers map edge, to avoid too much jumping
+    const int scaleReductionMultiplier = MIN(midX - hMargin, midY - vMargin) / 2;
 
     switch (osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
-            scale = 16; // 16m ~= 0.01miles
+            initialScale = 16; // 16m ~= 0.01miles
             scaleToUnit = 100 / 1609.3440f; // scale to 0.01mi for osdFormatCentiNumber()
             scaleUnitDivisor = 0;
             symUnscaled = SYM_MI;
@@ -924,13 +928,22 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
         case OSD_UNIT_UK:
             FALLTHROUGH;
         case OSD_UNIT_METRIC:
-            scale = 10; // 10m as initial scale
+            initialScale = 10; // 10m as initial scale
             scaleToUnit = 100; // scale to cm for osdFormatCentiNumber()
             scaleUnitDivisor = 1000; // Convert to km when scale gets bigger than 999m
             symUnscaled = SYM_M;
             symScaled = SYM_KM;
             maxDecimals = 0;
             break;
+    }
+
+    // Try to keep the same scale when getting closer until we draw over the center point
+    uint32_t scale = initialScale;
+    if (*usedScale) {
+        scale = *usedScale;
+        if (scale > initialScale && poiDistance < *usedScale * scaleReductionMultiplier) {
+            scale /= scaleMultiplier;
+        }
     }
 
     if (STATE(GPS_FIX)) {
@@ -941,7 +954,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
         float poiCos = cos_approx(poiAngle);
 
         // Now start looking for a valid scale that lets us draw everything
-        for (int ii = 0; ii < 50; ii++, scale *= 2) {
+        for (int ii = 0; ii < 50; ii++, scale *= scaleMultiplier) {
             // Calculate location of the aircraft in map
             int points = poiDistance / (float)(scale / charHeight);
 
@@ -993,24 +1006,25 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     buf[3] = scaled ? symScaled : symUnscaled;
     buf[4] = '\0';
     displayWrite(osdDisplayPort, minX + 1, maxY, buf);
+    *usedScale = scale;
 }
 
 /* Draws a map with the home in the center and the craft moving around.
  * See osdDrawMap() for reference.
  */
-static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn)
+static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn, uint32_t *usedScale)
 {
-    osdDrawMap(referenceHeading, referenceSym, SYM_HOME, GPS_distanceToHome, GPS_directionToHome, SYM_ARROW_UP, drawn);
+    osdDrawMap(referenceHeading, referenceSym, SYM_HOME, GPS_distanceToHome, GPS_directionToHome, SYM_ARROW_UP, drawn, usedScale);
 }
 
 /* Draws a map with the aircraft in the center and the home moving around.
  * See osdDrawMap() for reference.
  */
-static void osdDrawRadar(uint16_t *drawn)
+static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
 {
     int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
     int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);
-    osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn);
+    osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
 
 #endif
@@ -1180,19 +1194,22 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAP_NORTH:
         {
             static uint16_t drawn = 0;
-            osdDrawHomeMap(0, 'N', &drawn);
+            static uint32_t scale = 0;
+            osdDrawHomeMap(0, 'N', &drawn, &scale);
             return true;
         }
     case OSD_MAP_TAKEOFF:
         {
             static uint16_t drawn = 0;
-            osdDrawHomeMap(CENTIDEGREES_TO_DEGREES(navigationGetHomeHeading()), 'T', &drawn);
+            static uint32_t scale = 0;
+            osdDrawHomeMap(CENTIDEGREES_TO_DEGREES(navigationGetHomeHeading()), 'T', &drawn, &scale);
             return true;
         }
     case OSD_RADAR:
         {
             static uint16_t drawn = 0;
-            osdDrawRadar(&drawn);
+            static uint32_t scale = 0;
+            osdDrawRadar(&drawn, &scale);
             return true;
         }
 #endif // GPS
