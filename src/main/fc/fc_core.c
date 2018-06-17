@@ -94,6 +94,7 @@ enum {
 #define GYRO_WATCHDOG_DELAY 100  // Watchdog for boards without interrupt for gyro
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
+static timeUs_t flightTime = 0;
 
 float dT;
 
@@ -704,6 +705,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
+    if (ARMING_FLAG(ARMED) && ((!STATE(FIXED_WING)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected()))) {
+        flightTime += cycleTime;
+    }
+
 #ifdef USE_ASYNC_GYRO_PROCESSING
     if (getAsyncMode() == ASYNC_MODE_NONE) {
         taskGyro(currentTimeUs);
@@ -824,4 +829,9 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 {
     processRx(currentTimeUs);
     isRXDataNew = true;
+}
+
+// returns seconds
+float getFlightTime() {
+    return (float)(flightTime / 1000) / 1000;
 }

@@ -124,6 +124,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_climb_angle = 20,
         .max_dive_angle = 15,
         .cruise_throttle = 1400,
+        .cruise_speed = 0,         // cm/s
         .max_throttle = 1700,
         .min_throttle = 1200,
         .pitch_to_throttle = 10,   // pwm units per degree of pitch (10pwm units ~ 1% throttle)
@@ -1893,6 +1894,22 @@ static void updateHomePositionCompatibility(void)
     GPS_directionToHome = posControl.homeDirection / 100;
 }
 
+float RTHAltitude() {
+    switch (navConfig()->general.flags.rth_alt_control_mode) {
+        case NAV_RTH_NO_ALT:
+            return(posControl.actualState.abs.pos.z);
+        case NAV_RTH_EXTRA_ALT: // Maintain current altitude + predefined safety margin
+            return(posControl.actualState.abs.pos.z + navConfig()->general.rth_altitude);
+        case NAV_RTH_MAX_ALT:
+            return(MAX(posControl.homeWaypointAbove.pos.z, posControl.actualState.abs.pos.z));
+        case NAV_RTH_AT_LEAST_ALT:  // Climb to at least some predefined altitude above home
+            return(MAX(posControl.homePosition.pos.z + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z));
+        case NAV_RTH_CONST_ALT:     // Climb/descend to predefined altitude above home
+        default:
+            return(posControl.homePosition.pos.z + navConfig()->general.rth_altitude);
+    }
+}
+
 /*-----------------------------------------------------------
  * Reset home position to current position
  *-----------------------------------------------------------*/
@@ -1900,24 +1917,7 @@ static void updateDesiredRTHAltitude(void)
 {
     if (ARMING_FLAG(ARMED)) {
         if (!(navGetStateFlags(posControl.navState) & NAV_AUTO_RTH)) {
-            switch (navConfig()->general.flags.rth_alt_control_mode) {
-            case NAV_RTH_NO_ALT:
-                posControl.homeWaypointAbove.pos.z = posControl.actualState.abs.pos.z;
-                break;
-            case NAV_RTH_EXTRA_ALT: // Maintain current altitude + predefined safety margin
-                posControl.homeWaypointAbove.pos.z = posControl.actualState.abs.pos.z + navConfig()->general.rth_altitude;
-                break;
-            case NAV_RTH_MAX_ALT:
-                posControl.homeWaypointAbove.pos.z = MAX(posControl.homeWaypointAbove.pos.z, posControl.actualState.abs.pos.z);
-                break;
-            case NAV_RTH_AT_LEAST_ALT:  // Climb to at least some predefined altitude above home
-                posControl.homeWaypointAbove.pos.z = MAX(posControl.homePosition.pos.z + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
-                break;
-            case NAV_RTH_CONST_ALT:     // Climb/descend to predefined altitude above home
-            default:
-                posControl.homeWaypointAbove.pos.z = posControl.homePosition.pos.z + navConfig()->general.rth_altitude;
-                break;
-            }
+            posControl.homeWaypointAbove.pos.z = RTHAltitude();
         }
     }
     else {
@@ -3053,6 +3053,11 @@ int32_t navigationGetHomeHeading(void)
     return posControl.homePosition.yaw;
 }
 
+// returns m/s
+float calculateAverageSpeed() {
+    return (float)getTotalTravelDistance() / (getFlightTime() * 100);
+}
+
 #else // NAV
 
 #ifdef USE_GPS
@@ -3115,6 +3120,7 @@ int32_t getTotalTravelDistance(void)
 {
     return lrintf(GPS_totalTravelDistance);
 }
+
 #endif
 
 #endif  // NAV

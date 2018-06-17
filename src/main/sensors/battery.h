@@ -74,6 +74,10 @@ typedef struct batteryMetersConfig_s {
 
     batVoltageSource_e voltageSource;
 
+    uint32_t cruise_power;      // power drawn by the motor(s) at cruise throttle/speed (cW)
+    uint16_t idle_power;        // power drawn by the system when the motor(s) are stopped (cW)
+    uint8_t rth_energy_margin;  // Energy that should be left after RTH (%), used for remaining time/distance before RTH
+
 } batteryMetersConfig_t;
 
 typedef struct batteryProfile_s {
@@ -144,3 +148,6 @@ void powerMeterUpdate(timeUs_t timeDelta);
 
 uint8_t calculateBatteryPercentage(void);
 float calculateThrottleCompensationFactor(void);
+int32_t calculateAveragePower();
+int32_t calculateAverageEfficiency();
+int32_t heatLossesCompensatedPower(int32_t power);

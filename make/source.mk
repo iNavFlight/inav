@@ -74,6 +74,7 @@ COMMON_SRC = \
             flight/mixer.c \
             flight/pid.c \
             flight/pid_autotune.c \
+            flight/rth_estimator.c \
             flight/servos.c \
             flight/wind_estimator.c \
             io/beeper.c \

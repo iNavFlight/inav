@@ -152,6 +152,7 @@ typedef struct navConfig_s {
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_throttle;            // Cruise throttle
+        uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
         uint16_t min_throttle;               // Minimum allowed throttle in auto mode
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
@@ -309,6 +310,8 @@ void resetWaypointList(void);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 
+float RTHAltitude();
+
 /* Geodetic functions */
 typedef enum {
     GEO_ALT_ABSOLUTE,
@@ -339,6 +342,9 @@ bool navigationIsFlyingAutonomousMode(void);
 bool navigationRTHAllowsLanding(void);
 
 bool isNavLaunchEnabled(void);
+bool isFixedWingLaunchDetected(void);
+
+float calculateAverageSpeed();
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles
