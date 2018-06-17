@@ -1639,6 +1639,28 @@ static void cliFlashRead(char *cmdline)
 #endif
 
 #ifdef USE_OSD
+
+
+static void printOsdCustomString(uint8_t dumpMask, const osdConfig_t * oConfig)
+{
+    bool equalsDefault = strlen(oConfig->customString) == 0;
+    cliDumpPrintLinef(dumpMask, equalsDefault, "osd_custom_string %s", equalsDefault ? emptyName : oConfig->customString);
+}
+
+
+static void cliOsdCustomString(char *cmdline)
+{
+    int32_t len = strlen(cmdline);
+    if (len > 0) {
+        memset(osdConfigMutable()->customString, 0, ARRAYLEN(osdConfigMutable()->customString));
+        if (strncmp(cmdline, emptyName, len)) {
+            strncpy(osdConfigMutable()->customString, cmdline, MIN(len, MAX_NAME_LENGTH));
+        }
+    }
+    printOsdCustomString(DUMP_MASTER, osdConfig());
+}
+
+
 static void printOsdLayout(uint8_t dumpMask, const osdConfig_t *osdConfig, const osdConfig_t *osdConfigDefault, int layout, int item)
 {
     // "<layout> <item> <col> <row> <visible>"
@@ -2705,6 +2727,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
         printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
+        printOsdCustomString(dumpMask, &osdConfig_Copy);
 #endif
 
         cliPrintHashLine("master");
@@ -2835,6 +2858,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
     CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),
+    CLI_COMMAND_DEF("osd_custom_string", "user-defined osd string", NULL, cliOsdCustomString),    
 #ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
 #endif

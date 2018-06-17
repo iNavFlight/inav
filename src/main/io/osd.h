@@ -19,6 +19,7 @@
 
 #include "common/time.h"
 #include "config/parameter_group.h"
+#include "fc/config.h"
 
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
@@ -87,6 +88,7 @@ typedef enum {
     OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE,
     OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,
     OSD_REMAINING_DISTANCE_BEFORE_RTH,
+    OSD_CUSTOM_STRING,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -140,6 +142,7 @@ typedef struct osdConfig_s {
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
 
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
+    char customString[MAX_NAME_LENGTH + 1];
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

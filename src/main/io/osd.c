@@ -1344,7 +1344,18 @@ static bool osdDrawSingleElement(uint8_t item)
             }
         }
         break;
-
+    case OSD_CUSTOM_STRING:
+        if (!osdConfig()->customString[0]) {
+            strcpy(buff, "CUSTOM_STRING");
+        }
+        else {
+            for (int i = 0; i < MAX_NAME_LENGTH; i++) {
+                buff[i] = sl_toupper((unsigned char)osdConfig()->customString[i]);
+                if (osdConfig()->customString[i] == 0)
+                    break;
+            }
+        }
+        break;
     case OSD_THROTTLE_POS:
     {
         osdFormatThrottlePosition(buff, false, NULL);
@@ -2117,6 +2128,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->attitude_angle_decimals = 0;
 
     osdConfig->estimations_wind_compensation = true;
+    
+    osdConfig->customString[0] = '\0';
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
