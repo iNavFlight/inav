@@ -179,9 +179,7 @@ Re-apply any new defaults as desired.
 |  nav_fw_bank_angle  | 20 | Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll |
 |  nav_fw_climb_angle  | 20 | Max pitch angle when climbing in GPS assisted modes, is also restrained by global max_angle_inclination_pit |
 |  nav_fw_dive_angle  | 15 | Max negative pitch angle when diving in GPS assisted modes, is also restrained by global max_angle_inclination_pit |
-|  nav_fw_pitch2thr  | 10 | Amount of throttle applied related to pitch attitude in GPS assisted modes.
-Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle)
-(pitch_angle is negative when climbing and positive when diving) |
+|  nav_fw_pitch2thr  | 10 | Amount of throttle applied related to pitch attitude in GPS assisted modes. Throttle = nav_fw_cruise_throttle - (nav_fw_pitch2thr * pitch_angle). (pitch_angle is negative when climbing and positive when diving) |
 |  nav_fw_loiter_radius  | 5000 | PosHold radius. 3000 to 7500 is a good value (30-75m) [cm] |
 |  nav_fw_launch_velocity  | 300 | Forward velocity threshold for swing-launch detection [cm/s] |
 |  nav_fw_launch_accel  | 1863 | Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s |
