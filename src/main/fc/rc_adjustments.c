@@ -521,3 +521,12 @@ void updateAdjustmentStates(void)
         }
     }
 }
+
+bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction) {
+    for (uint8_t index = 0; index < MAX_SIMULTANEOUS_ADJUSTMENT_COUNT; ++index) {
+        if (adjustmentStates[index].config->adjustmentFunction == adjustmentFunction) {
+            return true;
+        }
+    }
+    return false;
+}
