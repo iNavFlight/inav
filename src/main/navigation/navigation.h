@@ -31,6 +31,8 @@ extern gpsLocation_t        GPS_home;
 extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
 
+extern bool autoThrottleManuallyIncreased;
+
 /* Navigation system updates */
 void onNewGPSData(void);
 
@@ -171,6 +173,7 @@ typedef struct navConfig_s {
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
+        bool     allow_manual_thr_increase;
     } fw;
 } navConfig_t;
 
@@ -335,6 +338,7 @@ rthState_e getStateOfForcedRTH(void);
 
 /* Getter functions which return data about the state of the navigation system */
 bool navigationIsControllingThrottle(void);
+bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 /* Returns true iff navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.

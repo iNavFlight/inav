@@ -48,6 +48,9 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#include "rx/rx.h"
+
+
 // If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
 #define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
 #define NAV_FW_MIN_VEL_SPEED_BOOST              700.0f      // 7 m/s
@@ -58,6 +61,7 @@
 static bool isPitchAdjustmentValid = false;
 static bool isRollAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
+static bool isAutoThrottleManuallyIncreased = false;
 
 
 /*-----------------------------------------------------------
@@ -450,6 +454,18 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         }
 
         uint16_t correctedThrottleValue = constrain(navConfig()->fw.cruise_throttle + throttleCorrection, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle);
+
+        // Manual throttle increase
+        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
+            if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95)
+                correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - navConfig()->fw.cruise_throttle);
+            else
+                correctedThrottleValue = motorConfig()->maxthrottle;
+            isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > navConfig()->fw.cruise_throttle);
+        } else {
+            isAutoThrottleManuallyIncreased = false;
+        }
+
         rcCommand[THROTTLE] = constrain(correctedThrottleValue, motorConfig()->minthrottle, motorConfig()->maxthrottle);
     }
 
@@ -474,6 +490,11 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         }
     }
 #endif
+}
+
+bool isFixedWingAutoThrottleManuallyIncreased()
+{
+    return isAutoThrottleManuallyIncreased;
 }
 
 /*-----------------------------------------------------------
