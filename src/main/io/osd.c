@@ -1128,10 +1128,14 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            int16_t h = osdGetHeadingAngle(GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()));
-            h = h * 2 / 45;
-
-            buff[0] = SYM_ARROW_UP + h;
+            // There are 16 orientations for the home direction arrow.
+            // so we use 22.5deg per image, where the 1st image is used
+            // for [349, 11], the 2nd for [12, 33], etc...
+            int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+            // Add 11 to the angle, so first character maps to [349, 11]
+            int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
+            unsigned arrowOffset = homeArrowDir * 2 / 45;
+            buff[0] = SYM_ARROW_UP + arrowOffset;
             buff[1] = 0;
             break;
         }
