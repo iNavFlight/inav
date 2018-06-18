@@ -2102,7 +2102,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->dist_alarm = 1000;
     osdConfig->neg_alt_alarm = 5;
 
-    osdConfig->video_system = 0;
+    osdConfig->video_system = VIDEO_SYSTEM_AUTO;
 
     osdConfig->ahi_reverse_roll = 0;
     osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;

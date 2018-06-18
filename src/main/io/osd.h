@@ -20,6 +20,8 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
+#include "drivers/vcd.h"
+
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
 #endif
@@ -124,7 +126,7 @@ typedef struct osdConfig_s {
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
 
-    uint8_t video_system;
+    videoSystem_e video_system;
     uint8_t row_shiftdown;
 
     // Preferences
