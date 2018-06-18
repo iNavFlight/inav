@@ -1387,13 +1387,13 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ATTITUDE_ROLL:
         buff[0] = SYM_ROLL_LEVEL;
-        if (attitude.values.roll)
+        if (ABS(attitude.values.roll) >= (osdConfig()->attitude_angle_decimals ? 1 : 10))
             buff[0] += (attitude.values.roll < 0 ? -1 : 1);
         osdFormatCentiNumber(buff + 1, ABS(attitude.values.roll) * 10, 0, osdConfig()->attitude_angle_decimals, 0, 2 + osdConfig()->attitude_angle_decimals);
         break;
 
     case OSD_ATTITUDE_PITCH:
-        if (attitude.values.pitch == 0)
+        if (ABS(attitude.values.pitch) < (osdConfig()->attitude_angle_decimals ? 1 : 10))
             buff[0] = 'P';
         else if (attitude.values.pitch > 0)
             buff[0] = SYM_PITCH_DOWN;
