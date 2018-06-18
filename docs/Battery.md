@@ -28,23 +28,42 @@ On the first battery connection is always advisable to use a current limiter dev
 
 See the [Sparky board chapter](Board - Sparky.md).
 
-## Configuration
+## Voltage measurement
 
-Enable the `VBAT` feature.
+Enable the `VBAT` feature to enable the measurement of the battery voltage and the use of the voltage based OSD battery gauge, voltage based and energy based battery alarms.
 
-Configure min/max cell voltages using the following CLI setting:
+### Calibration
 
-`vbat_scale` - Adjust this to match actual measured battery voltage to reported value.
+`vbat_scale` - Adjust this setting to match actual measured battery voltage to reported value. Increasing this value increases the measured voltage.
 
-`vbat_max_cell_voltage` - Maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, i.e. 430 = 4.30V
+### Voltage measurement source
 
-`set vbat_warning_cell_voltage` - Warning voltage per cell; this triggers battery-out alarms, in 0.01V units, i.e. 340 = 3.40V
+Two voltage sources are available: raw voltage and sag compensated voltage. The raw voltage is the voltage directly measured at the battery while the sag compensated voltage is calculated by an algorithm aiming to provide a stable voltage source for gauges, telemetry and alarms. When the current drawn from a battery varies the provided voltage also varies due to the internal resistance of the battery, it is called sag. The sag can often trigger the battery alarms before the battery is empty and if you are relying on the battery voltage to know the charge state of your battery you have to land or cut the throttle to know the real, without load, battery voltage. The sag compensation algorithm simulates a battery with zero internal resistance and provides a stable reading independent from the drawn current.
 
-`vbat_min_cell_voltage` - Minimum voltage per cell; this triggers battery-out alarms, in 0.01V units, i.e. 330 = 3.30V
+You can select the voltage source used for battery alarms and telemetry with the `bat_voltage_source` setting. It can be set to either `RAW` for using raw battery voltage or `SAG_COMP` for using the calculated sag compensated voltage.
+
+You can see an illustration of the sag compensation algorithm in action in the following graph:
+
+![Voltage graph](assets/images/sag_compensated_battery_voltage_plot.png)
+
+### Voltage based OSD gauge and alarms
+
+Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Each profile stores the following voltage settings:
+
+`bat_cells` - Specify the number of cells of your battery. Allows the automatic selection of the battery profile when set to a value greater than 0. Set to 0 (default) for auto-detecting the number of cells (see next setting)
+
+`vbat_cell_detect_voltage` - Maximum voltage per cell, used for auto-detecting the number of cells of the battery. Should be higher than maximum cell voltage to take into account possible drift in measured voltage and keep cell count detection accurate (0.01V unit, i.e. 430 = 4.30V)
+
+`vbat_max_cell_voltage` - Maximum voltage per cell when the battery is fully charged. Used for the OSD voltage based battery gauge (0.01V unit, i.e. 420 = 4.20V)
+
+`vbat_warning_cell_voltage` - Cell warning voltage. A cell voltage bellow this value triggers the first (short beeps) voltage based battery alarm if used and also the blinking of the OSD voltage indicator if the battery capacity is not used instead (see bellow) (0.01V unit, i.e. 370 = 3.70V)
+
+`vbat_min_cell_voltage` - Cell minimum voltage. A cell voltage bellow this value triggers the second (long beeps) voltage based battery alarm if used and the OSD gauge will display 0% if the battery capacity is not used instead (see bellow) (0.01V unit, i.e. 350 = 3.50V)
 
 e.g.
 
 ```
+battery_profile 1
 set vbat_scale = 1100
 set vbat_max_cell_voltage = 430
 set vbat_warning_cell_voltage = 340
@@ -172,3 +191,104 @@ set battery_capacity_critical = 440     // the battery critical alarm will sound
 ```
 
 Note that in this example even though your warning capacity (`battery_capacity_warning`) is set to 30% (660mAh), since 440mAh (`battery_capacity_critical`) is considered empty (0% left), the OSD capacity related items will only start to blink when the remaining battery percentage shown on the OSD is below 12%: (`battery_capacity_warning`-`battery_capacity_critical`)*100/(`battery_capacity`-`battery_capacity_critical`)=(660-440)*100/(2200-440)=12.5
+
+
+## Battery profiles
+
+Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Battery profiles store the following settings (see above for an explanation of each setting): `bat_cells`, `vbat_cell_detect_voltage`, `vbat_max_cell_voltage`, `vbat_warning_cell_voltage`, `vbat_min_cell_voltage`, `battery_capacity_unit`, `battery_capacity`, `battery_capacity_warning`, `battery_capacity_critical`
+
+To enable the automatic battery profile switching based on battery voltage enable the `BAT_PROF_AUTOSWITCH` feature. For a profile to be automatically selected the number of cells of the battery needs to be specified (>0).
+
+### Battery profiles configuration examples
+
+#### Simple example
+
+In this example we want to use two different type of batteries for the same aircraft and switch manually between them. The first battery is a Li-Po (4.20V/cell) and the second battery is a Li-Ion (4.10V/cell).
+
+```
+battery_profile 1
+
+set bat_cells = 0
+set vbat_max_cell_voltage = 420
+set vbat_warning_cell_voltage = 370
+set vbat_min_cell_voltage = 340
+
+
+battery_profile 2
+
+set bat_cells = 0
+set vbat_max_cell_voltage = 410
+set vbat_warning_cell_voltage = 280
+set vbat_min_cell_voltage = 250
+```
+
+#### Simple example with automatic profile switching
+
+In this example we want to use two different batteries for the same aircraft and automatically switch between them when the battery is plugged in. The first battery is a Li-Po 2200mAh 3S and the second battery is a LiPo 1500mAh 4S. Since the iNav defaults for the cell detection voltage and max voltage are adequate for standard LiPo batteries they will not be modified. The warning and minimum voltage are not modified either in this example but you can set them to the value you like. Since we are using battery capacities only the warning voltage (kept at default in this example) will be used and only for triggering the battery voltage indicator blinking in the OSD.
+
+```
+feature BAT_PROF_AUTOSWITCH
+
+
+battery_profile 1
+
+set bat_cells = 3
+set battery_capacity_unit = MAH
+set battery_capacity = 2200
+set battery_capacity_warning = 440
+set battery_capacity_critical = 220
+
+
+battery_profile 2
+
+set bat_cells = 4
+set battery_capacity_unit = MAH
+set battery_capacity = 1500
+set battery_capacity_warning = 300
+set battery_capacity_critical = 150
+```
+
+#### Advanced automatic switching example
+
+Profile 1 is for a 3S 2200mAh Li-Po pack (max 4.20V/cell), profile 2 for a 3S 4000mAh Li-Ion pack (max 4.10V/cell) and profile 3 for a 4S 1500mAh Li-Po pack (max 4.20V/cell).
+With this configuration if the battery plugged in is less than 12.36V (3 x 4.12) the profile 2 will be automatically selected else if the battery voltage is less than 12.66V (3 x 4.22) the profile 1 will be automatically selected else if the battery voltage is less 17.20V (4 x 4.3) the profile 3 will be automatically selected. If a matching profile can't be found the last selected profile is used.
+
+```
+feature BAT_PROF_AUTOSWITCH
+
+
+battery_profile 1
+
+set bat_cells = 3
+set vbat_cell_detect_voltage = 422
+set vbat_max_cell_voltage = 420
+set vbat_warning_cell_voltage = 350
+set vbat_min_cell_voltage = 330
+set battery_capacity = 2200
+set battery_capacity_warning = 440
+set battery_capacity_critical = 220
+
+
+battery_profile 2
+
+set bat_cells = 3
+set vbat_cell_detect_voltage = 412
+set vbat_max_cell_voltage = 410
+set vbat_warning_cell_voltage = 300
+set vbat_min_cell_voltage = 280
+set battery_capacity = 4000
+set battery_capacity_warning = 800
+set battery_capacity_critical = 400
+
+
+battery_profile 3
+
+set bat_cells = 4
+set vbat_cell_detect_voltage = 430
+set vbat_max_cell_voltage = 420
+set vbat_warning_cell_voltage = 350
+set vbat_min_cell_voltage = 330
+set battery_capacity = 1500
+set battery_capacity_warning = 300
+set battery_capacity_critical = 150
+```
