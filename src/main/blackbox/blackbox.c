@@ -866,7 +866,7 @@ static void writeInterframe(void)
         arraySubInt32(deltas, blackboxCurrent->mcPosAxisP, blackboxLast->mcPosAxisP, XYZ_AXIS_COUNT);
         blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
             arraySubInt32(deltas, blackboxCurrent->mcVelAxisPID[i], blackboxLast->mcVelAxisPID[i], XYZ_AXIS_COUNT);
             blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
         }
@@ -1247,7 +1247,7 @@ static void loadMainState(timeUs_t currentTimeUs)
 #endif
 #ifdef USE_NAV
         if (!STATE(FIXED_WING)) {
-            blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
+            blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained / 10);
             blackboxCurrent->mcVelAxisPID[0][i] = lrintf(nav_pids->vel[i].proportional / 10);
             blackboxCurrent->mcVelAxisPID[1][i] = lrintf(nav_pids->vel[i].integral / 10);
             blackboxCurrent->mcVelAxisPID[2][i] = lrintf(nav_pids->vel[i].derivative / 10);
@@ -1260,7 +1260,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional / 10);
         blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral / 10);
         blackboxCurrent->fwAltPID[2] = lrintf(nav_pids->fw_alt.derivative / 10);
-        blackboxCurrent->fwAltPIDOutput = lrintf(nav_pids->fw_nav.output_constrained / 10);
+        blackboxCurrent->fwAltPIDOutput = lrintf(nav_pids->fw_alt.output_constrained / 10);
 
         blackboxCurrent->fwPosPID[0] = lrintf(nav_pids->fw_nav.proportional / 10);
         blackboxCurrent->fwPosPID[1] = lrintf(nav_pids->fw_nav.integral / 10);
