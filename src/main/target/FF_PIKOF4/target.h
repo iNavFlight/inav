@@ -163,7 +163,7 @@
 /*---------------------------------*/
 
 /*-----------LED Strip-------------*/
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB7
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream2

@@ -116,7 +116,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define LED_STRIP_TIMER                 TIM5
 
 #define USE_RANGEFINDER
