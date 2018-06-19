@@ -68,6 +68,7 @@ CMSIS_DIR       := $(ROOT)/lib/main/CMSIS
 INCLUDE_DIRS    := $(SRC_DIR) \
                    $(ROOT)/src/main/target
 LINKER_DIR      := $(ROOT)/src/main/target/link
+UTILS_DIR       := $(ROOT)/src/utils
 
 # default xtal value for F4 targets
 HSE_VALUE       = 8000000
@@ -263,6 +264,9 @@ CPPCHECK        = cppcheck $(CSOURCES) --enable=all --platform=unix64 \
                   $(addprefix -I,$(INCLUDE_DIRS)) \
                   -I/usr/include -I/usr/include/linux
 
+STYLEFORMAT     = astyle --style=kr --indent=spaces=4 --indent-col1-comments --break-elseifs --add-braces --indent-after-parens --pad-header
+STYLECHECK      = $(STYLEFORMAT) --dry-run
+
 #
 # Things we will build
 #
@@ -290,7 +294,6 @@ $(TARGET_OBJ_DIR)/build/version.o : $(TARGET_SRC)
 
 # Settings generator
 .PHONY: .FORCE settings clean-settings
-UTILS_DIR               = $(ROOT)/src/utils
 SETTINGS_GENERATOR      = $(UTILS_DIR)/settings.rb
 BUILD_STAMP             = $(UTILS_DIR)/build_stamp.rb
 STAMP                   = $(TARGET_OBJ_DIR)/build.stamp
@@ -462,6 +465,14 @@ targets:
 ## test              : run the cleanflight test suite
 test:
 	$(V0) cd src/test && $(MAKE) test || true
+
+stylecheck: $(CSOURCES)
+	$(V0) @echo "Checking source code style..."
+	@ ! $(STYLECHECK) $(CSOURCES) | grep "Formatted" > /dev/null
+
+styleformat: $(CSOURCES)
+	$(V0) @echo "Reformatting source code style..."
+	$(V0) @ $(STYLEFORMAT) $(CSOURCES)
 
 # rebuild everything when makefile changes
 # Make the generated files and the build stamp order only prerequisites,
