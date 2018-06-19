@@ -67,7 +67,9 @@ tables:
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
-    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW", "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE", "VIBE", "CRUISE", "REM_FLIGHT_TIME"]
+    values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
+      "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE",
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -97,6 +99,9 @@ tables:
   - name: tz_automatic_dst
     values: ["OFF", "EU", "USA"]
     enum: tz_automatic_dst_e
+  - name: vtx_low_power_disarm
+    values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
+    enum: vtxLowerPowerDisarm_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1635,3 +1640,43 @@ groups:
       - name: display_force_sw_blink
         field: force_sw_blink
         type: bool
+
+  - name: PG_VTX_CONFIG
+    type: vtxConfig_t
+    headers: ["io/vtx_control.h"]
+    condition: USE_VTX_CONTROL && USE_VTX_COMMON
+    members:
+      - name: vtx_halfduplex
+        field: halfDuplex
+        type: bool
+
+  - name: PG_VTX_SETTINGS_CONFIG
+    type: vtxSettingsConfig_t
+    headers: ["drivers/vtx_common.h", "io/vtx.h"]
+    members:
+      - name: vtx_band
+        field: band
+        min: VTX_SETTINGS_NO_BAND
+        max: VTX_SETTINGS_MAX_BAND
+      - name: vtx_channel
+        field: channel
+        min: VTX_SETTINGS_MIN_CHANNEL
+        max: VTX_SETTINGS_MAX_CHANNEL
+      - name: vtx_power
+        field: power
+        min: VTX_SETTINGS_MIN_POWER
+        max: VTX_SETTINGS_MAX_POWER
+      - name: vtx_low_power_disarm
+        field: lowPowerDisarm
+        table: vtx_low_power_disarm
+        type: uint8_t
+      - name: vtx_freq
+        field: freq
+        min: VTX_SETTINGS_MIN_FREQUENCY_MHZ
+        max: VTX_SETTINGS_MAX_FREQUENCY_MHZ
+        condition: VTX_SETTINGS_FREQCMD
+      - name: vtx_pit_mode_freq
+        field: pitModeFreq
+        min: VTX_SETTINGS_MIN_FREQUENCY_MHZ
+        max: VTX_SETTINGS_MAX_FREQUENCY_MHZ
+        condition: VTX_SETTINGS_FREQCMD

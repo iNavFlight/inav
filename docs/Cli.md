@@ -417,6 +417,13 @@ Re-apply any new defaults as desired.
 |  model_preview_type        |  -1  | ID of mixer preset applied in a Configurator. **Do not modify manually**. Used only for backup/restore reasons.  |
 |  tz_offset  | 0 | Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs |
 |  tz_automatic_dst  | OFF | Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`.  |
+|  vtx_band  | 4 | Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race. |
+|  vtx_channel  | 1 | Channel to use within the configured `vtx_band`. Valid values are [1, 8]. |
+|  vtx_freq  | 5740 | Set the VTX frequency using raw MHz. This parameter is ignored unless `vtx_band` is 0. |
+|  vtx_halfduplex  | ON | Use half duplex UART to communicate with the VTX, using only a TX pin in the FC. |
+|  vtx_low_power_disarm  | OFF | When the craft is disarmed, set the VTX to its lowest power. `ON` will set the power to its minimum value on startup, increase it to `vtx_power` when arming and change it back to its lowest setting after disarming. `UNTIL_FIRST_ARM` will start with minimum power, but once the craft is armed it will increase to `vtx_power` and it will never decrease until the craft is power cycled. |
+|  vtx_pit_mode_freq  | Frequency to use (in MHz) when the VTX is in pit mode. |
+|  vtx_power  | 1 | VTX RF power level to use. The exact number of mw depends on the VTX hardware. |
 
 This Markdown table is made by MarkdwonTableMaker addon for google spreadsheet.
 Original Spreadsheet used to make this table can be found here https://docs.google.com/spreadsheets/d/1ubjYdMGmZ2aAMUNYkdfe3hhIF7wRfIjcuPOi_ysmp00/edit?usp=sharing

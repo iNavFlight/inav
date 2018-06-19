@@ -181,6 +181,7 @@ COMMON_SRC = \
             telemetry/msp_shared.c \
             telemetry/smartport.c \
             telemetry/telemetry.c \
+            io/vtx.c \
             io/vtx_string.c \
             io/vtx_smartaudio.c \
             io/vtx_tramp.c \

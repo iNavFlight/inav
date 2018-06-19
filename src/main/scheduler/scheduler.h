@@ -114,7 +114,7 @@ typedef enum {
 #ifdef USE_RCDEVICE
     TASK_RCDEVICE,
 #endif
-#ifdef VTX_CONTROL
+#ifdef USE_VTX_CONTROL
     TASK_VTXCTRL,
 #endif
 
