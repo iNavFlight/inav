@@ -96,6 +96,3 @@ extern serialPort_t *debugSerialPort;
 #else
 #define dprintf(x)
 #endif // SMARTAUDIO_DPRINTF
-
-int saDacToPowerIndex(int dac);
-bool vtxSmartAudioInit(void);

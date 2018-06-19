@@ -626,7 +626,7 @@ static long sacms_SetupTopMenu(const OSD_Entry *from)
 {
     UNUSED(from);
 
-    if (saCmsDeviceStatus) {
+    if (saDevice.version) {
         if (saCmsFselMode == 0)
             cmsx_menuVtxSmartAudio.entries = saCmsMenuChanModeEntries;
         else
