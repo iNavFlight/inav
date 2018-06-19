@@ -1108,6 +1108,15 @@ static bool osdDrawSingleElement(uint8_t item)
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
+    case OSD_POWER_SUPPLY_IMPEDANCE:
+        if (isPowerSupplyImpedanceValid())
+            tfp_sprintf(buff, "%3d", getPowerSupplyImpedance());
+        else
+            strcpy(buff, "---");
+        buff[3] = SYM_MILLIOHM;
+        buff[4] = '\0';
+        break;
+
 #ifdef USE_GPS
     case OSD_GPS_SATS:
         buff[0] = SYM_SAT_L;
@@ -2048,6 +2057,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_WH_DRAWN] = OSD_POS(1, 5);
     osdConfig->item_pos[0][OSD_BATTERY_REMAINING_CAPACITY] = OSD_POS(1, 6);
     osdConfig->item_pos[0][OSD_BATTERY_REMAINING_PERCENT] = OSD_POS(1, 7);
+    osdConfig->item_pos[0][OSD_POWER_SUPPLY_IMPEDANCE] = OSD_POS(1, 8);
 
     osdConfig->item_pos[0][OSD_EFFICIENCY_MAH_PER_KM] = OSD_POS(1, 5);
     osdConfig->item_pos[0][OSD_EFFICIENCY_WH_PER_KM] = OSD_POS(1, 5);
