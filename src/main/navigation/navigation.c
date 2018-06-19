@@ -1645,8 +1645,9 @@ void navPidReset(pidController_t *pid)
 {
     pid->reset = true;
     pid->proportional = 0.0f;
-    pid->integrator = 0.0f;
+    pid->integral = 0.0f;
     pid->derivative = 0.0f;
+    pid->integrator = 0.0f;
     pid->last_input = 0.0f;
     pid->dterm_filter_state.state = 0.0f;
     pid->dterm_filter_state.RC = 0.0f;
