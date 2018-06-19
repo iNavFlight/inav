@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "common/axis.h"
+#include "common/filter.h"
 #include "common/maths.h"
 #include "common/vector.h"
 
@@ -210,6 +212,46 @@ typedef struct {
     int32_t     yaw;             // deg * 100
 } navWaypointPosition_t;
 
+typedef struct {
+    float kP;
+    float kI;
+    float kD;
+    float kT;   // Tracking gain (anti-windup)
+} pidControllerParam_t;
+
+typedef struct {
+    float kP;
+} pControllerParam_t;
+
+typedef struct {
+    bool reset;
+    pidControllerParam_t param;
+    pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
+    float integrator;                   // integrator value
+    float last_input;                   // last input for derivative
+
+    float integral;                     // used integral value in output
+    float proportional;                 // used proportional value in output
+    float derivative;                   // used derivative value in output
+    float output_constrained;           // controller output constrained
+} pidController_t;
+
+typedef struct {
+    pControllerParam_t param;
+    float output_constrained;
+} pController_t;
+
+typedef struct navigationPIDControllers_s {
+    /* Multicopter PIDs */
+    pController_t   pos[XYZ_AXIS_COUNT];
+    pidController_t vel[XYZ_AXIS_COUNT];
+    pidController_t surface;
+
+    /* Fixed-wing PIDs */
+    pidController_t fw_alt;
+    pidController_t fw_nav;
+} navigationPIDControllers_t;
+
 /* MultiWii-compatible params for telemetry */
 typedef enum {
     MW_GPS_MODE_NONE = 0,
@@ -349,6 +391,8 @@ bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
 
 float calculateAverageSpeed();
+
+const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles

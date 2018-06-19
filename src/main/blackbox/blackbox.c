@@ -193,6 +193,34 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"axisD",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_0)},
     {"axisD",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_1)},
     {"axisD",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_2)},
+    {"fwAltP",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwAltI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwAltD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwAltOut",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwPosP",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwPosI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwPosD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"fwPosOut",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+    {"mcPosAxisP",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcPosAxisP",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcPosAxisP",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisP",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisP",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisP",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisI",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisI",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisI",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisD",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisD",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisD",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisOut",0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisOut",1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcVelAxisOut",2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcSurfaceP", -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcSurfaceI", -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcSurfaceD", -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+    {"mcSurfaceOut",-1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
+
     /* rcData are encoded together as a group: */
     {"rcData",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
     {"rcData",      1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
@@ -336,6 +364,18 @@ typedef struct blackboxMainState_s {
     int32_t axisPID_I[XYZ_AXIS_COUNT];
     int32_t axisPID_D[XYZ_AXIS_COUNT];
     int32_t axisPID_Setpoint[XYZ_AXIS_COUNT];
+
+    int32_t mcPosAxisP[XYZ_AXIS_COUNT];
+    int32_t mcVelAxisPID[3][XYZ_AXIS_COUNT];
+    int32_t mcVelAxisOutput[XYZ_AXIS_COUNT];
+
+    int32_t mcSurfacePID[3];
+    int32_t mcSurfacePIDOutput;
+
+    int32_t fwAltPID[3];
+    int32_t fwAltPIDOutput;
+    int32_t fwPosPID[3];
+    int32_t fwPosPIDOutput;
 
     int16_t rcData[4];
     int16_t rcCommand[4];
@@ -515,6 +555,20 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return false;
 #endif
 
+    case FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV:
+#ifdef USE_NAV
+        return STATE(FIXED_WING);
+#else
+        return false;
+#endif
+
+    case FLIGHT_LOG_FIELD_CONDITION_MC_NAV:
+#ifdef USE_NAV
+        return !STATE(FIXED_WING);
+#else
+        return false;
+#endif
+
     case FLIGHT_LOG_FIELD_CONDITION_RSSI:
         return rxConfig()->rssi_channel > 0 || feature(FEATURE_RSSI_ADC);
 
@@ -599,6 +653,27 @@ static void writeIntraframe(void)
         if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0 + x)) {
             blackboxWriteSignedVB(blackboxCurrent->axisPID_D[x]);
         }
+    }
+
+    if (testBlackboxCondition(CONDITION(FIXED_WING_NAV))) {
+        blackboxWriteSignedVBArray(blackboxCurrent->fwAltPID, 3);
+        blackboxWriteSignedVB(blackboxCurrent->fwAltPIDOutput);
+        blackboxWriteSignedVBArray(blackboxCurrent->fwPosPID, 3);
+        blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput);
+    }
+
+    if (testBlackboxCondition(CONDITION(MC_NAV))) {
+
+        blackboxWriteSignedVBArray(blackboxCurrent->mcPosAxisP, XYZ_AXIS_COUNT);
+
+        for (int i = 0; i < 3; i++) {
+            blackboxWriteSignedVBArray(blackboxCurrent->mcVelAxisPID[i], XYZ_AXIS_COUNT);
+        }
+
+        blackboxWriteSignedVBArray(blackboxCurrent->mcVelAxisOutput, XYZ_AXIS_COUNT);
+
+        blackboxWriteSignedVBArray(blackboxCurrent->mcSurfacePID, 3);
+        blackboxWriteSignedVB(blackboxCurrent->mcSurfacePIDOutput);
     }
 
     // Write raw stick positions
@@ -771,6 +846,38 @@ static void writeInterframe(void)
         if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0 + x)) {
             blackboxWriteSignedVB(blackboxCurrent->axisPID_D[x] - blackboxLast->axisPID_D[x]);
         }
+    }
+
+    if (testBlackboxCondition(CONDITION(FIXED_WING_NAV))) {
+
+        arraySubInt32(deltas, blackboxCurrent->fwAltPID, blackboxLast->fwAltPID, 3);
+        blackboxWriteSignedVBArray(deltas, 3);
+
+        blackboxWriteSignedVB(blackboxCurrent->fwAltPIDOutput);
+
+        arraySubInt32(deltas, blackboxCurrent->fwPosPID, blackboxLast->fwPosPID, 3);
+        blackboxWriteSignedVBArray(deltas, 3);
+
+        blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput);
+
+    }
+
+    if (testBlackboxCondition(CONDITION(MC_NAV))) {
+        arraySubInt32(deltas, blackboxCurrent->mcPosAxisP, blackboxLast->mcPosAxisP, XYZ_AXIS_COUNT);
+        blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
+
+        for (int i = 0; i < 3; i++) {
+            arraySubInt32(deltas, blackboxCurrent->mcVelAxisPID[i], blackboxLast->mcVelAxisPID[i], XYZ_AXIS_COUNT);
+            blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
+        }
+
+        arraySubInt32(deltas, blackboxCurrent->mcVelAxisOutput, blackboxLast->mcVelAxisOutput, XYZ_AXIS_COUNT);
+        blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
+
+        arraySubInt32(deltas, blackboxCurrent->mcSurfacePID, blackboxLast->mcSurfacePID, 3);
+        blackboxWriteSignedVBArray(deltas, 3);
+
+        blackboxWriteSignedVB(blackboxCurrent->mcSurfacePIDOutput);
     }
 
     /*
@@ -1124,6 +1231,10 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->time = currentTimeUs;
 
+#ifdef USE_NAV
+    const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+#endif
+
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         blackboxCurrent->axisPID_Setpoint[i] = axisPID_Setpoint[i];
         blackboxCurrent->axisPID_P[i] = axisPID_P[i];
@@ -1134,7 +1245,34 @@ static void loadMainState(timeUs_t currentTimeUs)
 #ifdef USE_MAG
         blackboxCurrent->magADC[i] = mag.magADC[i];
 #endif
+#ifdef USE_NAV
+        if (!STATE(FIXED_WING)) {
+            blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
+            blackboxCurrent->mcVelAxisPID[0][i] = lrintf(nav_pids->vel[i].proportional / 10);
+            blackboxCurrent->mcVelAxisPID[1][i] = lrintf(nav_pids->vel[i].integral / 10);
+            blackboxCurrent->mcVelAxisPID[2][i] = lrintf(nav_pids->vel[i].derivative / 10);
+        }
+#endif
     }
+
+#ifdef USE_NAV
+    if (STATE(FIXED_WING)) {
+        blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional / 10);
+        blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral / 10);
+        blackboxCurrent->fwAltPID[2] = lrintf(nav_pids->fw_alt.derivative / 10);
+        blackboxCurrent->fwAltPIDOutput = lrintf(nav_pids->fw_nav.output_constrained / 10);
+
+        blackboxCurrent->fwPosPID[0] = lrintf(nav_pids->fw_nav.proportional / 10);
+        blackboxCurrent->fwPosPID[1] = lrintf(nav_pids->fw_nav.integral / 10);
+        blackboxCurrent->fwPosPID[2] = lrintf(nav_pids->fw_nav.derivative / 10);
+        blackboxCurrent->fwPosPIDOutput = lrintf(nav_pids->fw_nav.output_constrained / 10);
+    } else {
+        blackboxCurrent->mcSurfacePID[0] = lrintf(nav_pids->surface.proportional / 10);
+        blackboxCurrent->mcSurfacePID[1] = lrintf(nav_pids->surface.integral / 10);
+        blackboxCurrent->mcSurfacePID[2] = lrintf(nav_pids->surface.derivative / 10);
+        blackboxCurrent->mcSurfacePIDOutput = lrintf(nav_pids->surface.output_constrained / 10);
+    }
+#endif
 
     for (int i = 0; i < 4; i++) {
         blackboxCurrent->rcData[i] = rcData[i];

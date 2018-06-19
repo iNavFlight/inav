@@ -92,45 +92,11 @@ typedef struct navigationFlags_s {
     bool forcedRTHActivated;
 } navigationFlags_t;
 
-typedef struct {
-    float kP;
-    float kI;
-    float kD;
-    float kT;   // Tracking gain (anti-windup)
-} pidControllerParam_t;
-
-typedef struct {
-    float kP;
-} pControllerParam_t;
-
 typedef enum {
     PID_DTERM_FROM_ERROR            = 1 << 0,
     PID_ZERO_INTEGRATOR             = 1 << 1,
     PID_SHRINK_INTEGRATOR           = 1 << 2,
 } pidControllerFlags_e;
-
-typedef struct {
-    bool reset;
-    pidControllerParam_t param;
-    pt1Filter_t dterm_filter_state;  // last derivative for low-pass filter
-    float integrator;       // integrator value
-    float last_input;       // last input for derivative
-} pidController_t;
-
-typedef struct {
-    pControllerParam_t param;
-} pController_t;
-
-typedef struct navigationPIDControllers_s {
-    /* Multicopter PIDs */
-    pController_t   pos[XYZ_AXIS_COUNT];
-    pidController_t vel[XYZ_AXIS_COUNT];
-    pidController_t surface;
-
-    /* Fixed-wing PIDs */
-    pidController_t fw_alt;
-    pidController_t fw_nav;
-} navigationPIDControllers_t;
 
 typedef struct {
     fpVector3_t pos;
