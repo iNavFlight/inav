@@ -292,3 +292,17 @@ set battery_capacity = 1500
 set battery_capacity_warning = 300
 set battery_capacity_critical = 150
 ```
+
+## Remaining flight time and flight distance estimation
+
+The estimated remaining flight time and flight distance estimations can be displayed on the OSD (for fixed wing only for the moment). They are calculated from the GPS distance from home, remaining battery capacity and average power draw. They are taking into account the requested altitude change and heading to home change after altitude change following the switch to RTH. They are also taking into account the estimated wind if `osd_use_wind_compensation` is set to `ON`. When the timer and distance indicator reach 0 they will blink and you need to go home in a straight line manually or by engaging RTH. You should be left with at least `rth_energy_margin`% of battery left when arriving home if the cruise speed and power are set correctly (see bellow).
+
+To use this feature the following conditions need to be met:
+- The `VBAT`, `CURRENT_METER` and `GPS` features need to be enabled
+- The battery capacity needs to be specified in mWh (`battery_capacity` setting > 0 and `battery_capacity_unit` set to `MWH`)
+- The average ground speed of the aircraft without wind at cruise throttle needs to be set (`nav_fw_cruise_speed` setting in cm/s)
+- The average power draw at zero throttle needs to be specified (`idle_power` setting in 0.01W unit)
+- The average power draw at cruise throttle needs to be specified (`cruise_power` setting in 0.01W unit)
+- The battery needs to be full when plugged in (voltage >= (`vbat_max_cell_voltage` - 100mV) * cells)
+
+It is advised to set `nav_fw_cruise_speed` a bit lower than the real speed and `cruise_power` 10% higher than the power at cruise throttle to ensure variations in throttle during cruise won't cause the aircraft to draw more power than estimated.
