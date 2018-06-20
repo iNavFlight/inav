@@ -699,6 +699,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, compassConfig()->mag_declination / 10);
 
         sbufWriteU16(dst, batteryMetersConfig()->voltage_scale);
+        sbufWriteU8(dst, batteryMetersConfig()->voltageSource);
+        sbufWriteU8(dst, currentBatteryProfile->cells);
         sbufWriteU16(dst, currentBatteryProfile->voltage.cellDetect);
         sbufWriteU16(dst, currentBatteryProfile->voltage.cellMin);
         sbufWriteU16(dst, currentBatteryProfile->voltage.cellMax);
@@ -712,6 +714,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_BATTERY_CONFIG:
         sbufWriteU16(dst, batteryMetersConfig()->voltage_scale);
+        sbufWriteU8(dst, batteryMetersConfig()->voltageSource);
+        sbufWriteU8(dst, currentBatteryProfile->cells);
         sbufWriteU16(dst, currentBatteryProfile->voltage.cellDetect);
         sbufWriteU16(dst, currentBatteryProfile->voltage.cellMin);
         sbufWriteU16(dst, currentBatteryProfile->voltage.cellMax);
@@ -1635,7 +1639,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_MISC:
-        if (dataSize == 39) {
+        if (dataSize == 41) {
             sbufReadU16(src);       // midrc
 
             motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -1665,6 +1669,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 
             batteryMetersConfigMutable()->voltage_scale = sbufReadU16(src);
+            batteryMetersConfigMutable()->voltageSource = sbufReadU8(src);
+            currentBatteryProfileMutable->cells = sbufReadU8(src);
             currentBatteryProfileMutable->voltage.cellDetect = sbufReadU16(src);
             currentBatteryProfileMutable->voltage.cellMin = sbufReadU16(src);
             currentBatteryProfileMutable->voltage.cellMax = sbufReadU16(src);
@@ -1674,6 +1680,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.unit = sbufReadU8(src);
+            if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
+                batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
+                return MSP_RESULT_ERROR;
+            }
             if ((currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
                 currentBatteryProfileMutable->capacity.unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
@@ -1683,8 +1693,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_BATTERY_CONFIG:
-        if (dataSize == 27) {
+        if (dataSize == 29) {
             batteryMetersConfigMutable()->voltage_scale = sbufReadU16(src);
+            batteryMetersConfigMutable()->voltageSource = sbufReadU8(src);
+            currentBatteryProfileMutable->cells = sbufReadU8(src);
             currentBatteryProfileMutable->voltage.cellDetect = sbufReadU16(src);
             currentBatteryProfileMutable->voltage.cellMin = sbufReadU16(src);
             currentBatteryProfileMutable->voltage.cellMax = sbufReadU16(src);
@@ -1697,6 +1709,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.unit = sbufReadU8(src);
+            if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
+                batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
+                return MSP_RESULT_ERROR;
+            }
             if ((currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
                 currentBatteryProfileMutable->capacity.unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
