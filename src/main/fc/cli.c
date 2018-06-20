@@ -139,7 +139,7 @@ static const char* const emptyName = "-";
 
 // sync this with features_e
 static const char * const featureNames[] = {
-    "RX_PPM", "VBAT", "TX_PROF_SEL", "", "MOTOR_STOP",
+    "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
     "", "SOFTSERIAL", "GPS", "",
     "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",

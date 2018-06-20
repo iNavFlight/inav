@@ -429,9 +429,6 @@ groups:
       - name: motor_pwm_protocol
         field: motorPwmProtocol
         table: motor_pwm_protocol
-      - name: throttle_vbat_compensation
-        field: throttleVBatCompensation
-        type: bool
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
@@ -511,10 +508,6 @@ groups:
     type: batteryMetersConfig_t
     headers: ["sensors/battery.h"]
     members:
-      - name: bat_profile_autoswitch
-        field: profile_autoswitch
-        condition: USE_ADC
-        type: bool
       - name: vbat_scale
         field: voltage_scale
         condition: USE_ADC

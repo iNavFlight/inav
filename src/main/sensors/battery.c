@@ -117,8 +117,6 @@ PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_B
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
-    .profile_autoswitch = false,
-
     .voltage_scale = VBAT_SCALE_DEFAULT,
 
     .current = {
@@ -232,7 +230,7 @@ void batteryUpdate(timeUs_t timeDelta)
         updateBatteryVoltage(timeDelta);
 
         int8_t detectedProfileIndex = -1;
-        if (batteryMetersConfig()->profile_autoswitch && (!profileAutoswitchDisable))
+        if (feature(FEATURE_BAT_PROFILE_AUTOSWITCH) && (!profileAutoswitchDisable))
             detectedProfileIndex = profileDetect();
 
         if (detectedProfileIndex != -1) {
