@@ -186,6 +186,7 @@ void estimationCalculateAGL(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_AGL, 3, posEstimator.est.aglVel);
 
 #else
+    UNUSED(ctx);
     posEstimator.est.aglAlt = posEstimator.est.pos.z;
     posEstimator.est.aglVel = posEstimator.est.vel.z;
     posEstimator.est.aglQual = SURFACE_QUAL_LOW;
