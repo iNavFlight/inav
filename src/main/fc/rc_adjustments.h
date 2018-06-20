@@ -131,7 +131,7 @@ typedef struct adjustmentState_s {
 #define MAX_SIMULTANEOUS_ADJUSTMENT_COUNT 4 // enough for 4 x 3position switches / 4 aux channel
 #endif
 
-#define MAX_ADJUSTMENT_RANGE_COUNT 12 // enough for 2 * 6pos switches.
+#define MAX_ADJUSTMENT_RANGE_COUNT 20 // enough for 2 * 6pos switches.
 
 PG_DECLARE_ARRAY(adjustmentRange_t, MAX_ADJUSTMENT_RANGE_COUNT, adjustmentRanges);
 
