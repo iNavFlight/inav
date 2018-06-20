@@ -2858,7 +2858,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
     CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),
+#ifdef USE_OSD
     CLI_COMMAND_DEF("osd_custom_string", "user-defined osd string", NULL, cliOsdCustomString),    
+#endif
 #ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
 #endif

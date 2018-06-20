@@ -1304,6 +1304,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+#ifdef USE_OSD
     case MSP2_INAV_OSD_GET_CUSTOM_STRING:
         {
             const char *customString = osdConfig()->customString;
@@ -1312,6 +1313,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
+#endif
 
     case MSP2_COMMON_TZ:
         sbufWriteU16(dst, (uint16_t)timeConfig()->tz_offset);
@@ -2463,6 +2465,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#ifdef USE_OSD
     case MSP2_INAV_OSD_SET_CUSTOM_STRING:
         if (dataSize <= MAX_NAME_LENGTH) {
           char *customString = osdConfigMutable()->customString;
@@ -2472,6 +2475,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+#endif
         
     case MSP2_COMMON_SET_TZ:
         if (dataSize == 2)
