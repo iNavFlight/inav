@@ -41,6 +41,7 @@
 
 #include "navigation/navigation.h"
 
+#include "flight/mixer.h"
 #include "flight/pid.h"
 
 #include "io/beeper.h"
@@ -182,6 +183,74 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .data = { .stepConfig = { .step = 5 }}
     }, {
         .adjustmentFunction = ADJUSTMENT_PITCH_BOARD_ALIGNMENT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_LEVEL_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_LEVEL_I,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_LEVEL_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_POS_XY_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_POS_XY_I,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_POS_XY_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_POS_Z_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_POS_Z_I,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_POS_Z_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_HEADING_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VEL_XY_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VEL_XY_I,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VEL_XY_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VEL_Z_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VEL_Z_I,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VEL_Z_D,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 5 }}
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
@@ -413,6 +482,103 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_PITCH_BOARD_ALIGNMENT:
             updateBoardAlignment(0, delta);
             blackboxLogInflightAdjustmentEvent(ADJUSTMENT_PITCH_BOARD_ALIGNMENT, boardAlignment()->pitchDeciDegrees);
+            break;
+        case ADJUSTMENT_LEVEL_P:
+            newValue = constrain((int)pidBank()->pid[PID_LEVEL].P + delta, 0, 200);
+            pidBankMutable()->pid[PID_LEVEL].P = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_LEVEL_P, newValue);
+            break;
+        case ADJUSTMENT_LEVEL_I:
+            newValue = constrain((int)pidBank()->pid[PID_LEVEL].I + delta, 0, 200);
+            pidBankMutable()->pid[PID_LEVEL].I = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_LEVEL_I, newValue);
+            break;
+        case ADJUSTMENT_LEVEL_D:
+            newValue = constrain((int)pidBank()->pid[PID_LEVEL].D + delta, 0, 200);
+            pidBankMutable()->pid[PID_LEVEL].D = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_LEVEL_D, newValue);
+            break;
+        case ADJUSTMENT_POS_XY_P:
+            newValue = constrain((int)pidBank()->pid[PID_POS_XY].P + delta, 0, 200);
+            pidBankMutable()->pid[PID_POS_XY].P = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_POS_XY_P, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_POS_XY_I:
+            newValue = constrain((int)pidBank()->pid[PID_POS_XY].I + delta, 0, 200);
+            pidBankMutable()->pid[PID_POS_XY].I = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_POS_XY_I, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_POS_XY_D:
+            newValue = constrain((int)pidBank()->pid[PID_POS_XY].D + delta, 0, 200);
+            pidBankMutable()->pid[PID_POS_XY].D = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_POS_XY_D, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_POS_Z_P:
+            newValue = constrain((int)pidBank()->pid[PID_POS_Z].P + delta, 0, 200);
+            pidBankMutable()->pid[PID_POS_Z].P = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_POS_Z_P, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_POS_Z_I:
+            newValue = constrain((int)pidBank()->pid[PID_POS_Z].I + delta, 0, 200);
+            pidBankMutable()->pid[PID_POS_Z].I = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_POS_Z_I, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_POS_Z_D:
+            newValue = constrain((int)pidBank()->pid[PID_POS_Z].D + delta, 0, 200);
+            pidBankMutable()->pid[PID_POS_Z].D = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_POS_Z_D, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_HEADING_P:
+            newValue = constrain((int)pidBank()->pid[PID_HEADING].P + delta, 0, 200);
+            pidBankMutable()->pid[PID_HEADING].P = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_HEADING_P, newValue);
+            break;
+        case ADJUSTMENT_VEL_XY_P:
+            newValue = constrain((int)pidBank()->pid[PID_VEL_XY].P + delta, 0, 200);
+            pidBankMutable()->pid[PID_VEL_XY].P = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_VEL_XY_P, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_VEL_XY_I:
+            newValue = constrain((int)pidBank()->pid[PID_VEL_XY].I + delta, 0, 200);
+            pidBankMutable()->pid[PID_VEL_XY].I = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_VEL_XY_I, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_VEL_XY_D:
+            newValue = constrain((int)pidBank()->pid[PID_VEL_XY].D + delta, 0, 200);
+            pidBankMutable()->pid[PID_VEL_XY].D = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_VEL_XY_D, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_VEL_Z_P:
+            newValue = constrain((int)pidBank()->pid[PID_VEL_Z].P + delta, 0, 200);
+            pidBankMutable()->pid[PID_VEL_Z].P = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_VEL_Z_P, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_VEL_Z_I:
+            newValue = constrain((int)pidBank()->pid[PID_VEL_Z].I + delta, 0, 200);
+            pidBankMutable()->pid[PID_VEL_Z].I = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_VEL_Z_I, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_VEL_Z_D:
+            newValue = constrain((int)pidBank()->pid[PID_VEL_Z].D + delta, 0, 200);
+            pidBankMutable()->pid[PID_VEL_Z].D = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_VEL_Z_D, newValue);
+            navigationUsePIDs();
+            break;
+        case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
+            newValue = constrain((int)mixerConfig()->fwMinThrottleDownPitchAngle + delta, 0, FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX);
+            mixerConfigMutable()->fwMinThrottleDownPitchAngle = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, newValue);
             break;
         default:
             break;
