@@ -173,6 +173,8 @@ Re-apply any new defaults as desired.
 |  nav_mc_hover_thr  | 1500 | Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering. |
 |  nav_mc_auto_disarm_delay  | 2000 |  |
 |  nav_fw_cruise_thr  | 1400 | Cruise throttle in GPS assisted modes, this includes RTH. Should be set high enough to avoid stalling. This values gives INAV a base for throttle when flying straight, and it will increase or decrease throttle based on pitch of airplane and the parameters below. In addition it will increase throttle if GPS speed gets below 7m/s ( hardcoded )  |
+|  nav_fw_cruise_speed  | 0 | Speed for the plane/wing at cruise throttle used for remaining flight time/distance estimation in cm/s |
+|  nav_fw_allow_manual_thr_increase  | OFF | Enable the possibility to manually increase the throttle in auto throttle controlled modes for fixed wing |
 |  nav_fw_min_thr  | 1200 | Minimum throttle for flying wing in GPS assisted modes |
 |  nav_fw_max_thr  | 1700 | Maximum throttle for flying wing in GPS assisted modes |
 |  nav_fw_bank_angle  | 20 | Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll |
@@ -213,7 +215,10 @@ Re-apply any new defaults as desired.
 |  ltm_update_rate  | NORMAL | Defines the LTM update rate (use of bandwidth [NORMAL/MEDIUM/SLOW]). See Telemetry.md, LTM section for details. |
 |  battery_capacity  | 0 | Battery capacity in mAH. This value is used in conjunction with the current meter to determine remaining battery capacity. |
 |  vbat_scale  | 1100 | Battery voltage calibration value. 1100 = 11:1 voltage divider (10k:1k) x 100. Adjust this slightly if reported pack voltage is different from multimeter reading. You can get current voltage by typing "status" in cli. |
-|  vbat_max_cell_voltage  | 424 | Maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, default is 424 (4.24V) |
+|  bat_voltage_src  | RAW | Chose between raw and sag compensated battery voltage to use for battery alarms and telemetry. Possible values are `RAW` and `SAG_COMP` |
+|  vbat_cells  | 0 | Number of cells of the battery (0 = autodetect), see battery documentation |
+|  vbat_cell_detect_voltage  | 430 | Maximum voltage per cell, used for auto-detecting the number of cells of the battery in 0.01V units, default is 4.30V |
+|  vbat_max_cell_voltage  | 420 | Maximum voltage per cell in 0.01V units, default is 4.20V |
 |  vbat_min_cell_voltage  | 330 | Minimum voltage per cell, this triggers battery out alarms, in 0.01V units, default is 330 (3.3V) |
 |  vbat_warning_cell_voltage  | 350 | Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, default is 350 (3.5V) |
 |  current_meter_scale  | 400 | This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt. |
@@ -222,6 +227,8 @@ Re-apply any new defaults as desired.
 |  battery_capacity_warning | 0 | If the remaining battery capacity goes below this threshold the beeper will emit short beeps and the relevant OSD items will blink. |
 |  battery_capacity_critical | 0 | If the remaining battery capacity goes below this threshold the battery is considered empty and the beeper will emit long beeps. |
 |  battery_capacity_unit | MAH | Unit used for `battery_capacity`, `battery_capacity_warning` and `battery_capacity_critical` [MAH/MWH] (milliAmpere hour / milliWatt hour). |
+|  cruise_power  | 0 | Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit |
+|  idle_power  | 0 | Power draw at zero throttle used for remaining flight time/distance estimation in 0.01W unit |
 |  multiwii_current_meter_output  | OFF | Default current output via MSP is in 0.01A steps. Setting this to 1 causes output in default multiwii scaling (1mA steps) |
 |  current_meter_type  | ADC | ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position. |
 |  align_gyro  | DEFAULT | When running on non-default hardware or adding support for new sensors/sensor boards, these values are used for sensor orientation. When carefully understood, these values can also be used to rotate (in 90deg steps) or flip the board. Possible values are: DEFAULT, CW0_DEG, CW90_DEG, CW180_DEG, CW270_DEG, CW0_DEG_FLIP, CW90_DEG_FLIP, CW180_DEG_FLIP, CW270_DEG_FLIP. |
@@ -276,38 +283,17 @@ Re-apply any new defaults as desired.
 |  blackbox_device  | SPIFLASH | Selection of where to write blackbox data |
 |  sdcard_detect_inverted  | `TARGET dependent` | This setting drives the way SD card is detected in card slot. On some targets (AnyFC F7 clone) different card slot was used and depending of hardware revision ON or OFF setting might be required. If card is not detected, change this value. |
 |  ledstrip_visual_beeper  | OFF |  |
-|  osd_video_system     | 0     |  |
-|  osd_row_shiftdown    | 0     |  |
+|  osd_video_system     | AUTO   | Video system used. Possible values are `AUTO`, `PAL` and `NTSC` |
+|  osd_row_shiftdown    | 0     | Number of rows to shift the OSD display (increase if top rows are cut off) |
 |  osd_units            | METRIC| IMPERIAL, METRIC, UK |
 |  osd_stats_energy_unit | MAH | Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour) |
 |  osd_main_voltage_decimals | 1 | Number of decimals for the battery voltages displayed in the OSD [1-2]. |
-|  osd_wh_drawn_pos | |  |
-|  osd_bat_remaining_capacity_pos | |  |
-|  osd_bat_remaining_percent_pos | |  |
-|  osd_efficiency_mah_pos | |  |
-|  osd_efficiency_wh_pos | |  |
-|  osd_rssi_alarm       | 20    |  |
-|  osd_time_alarm       | 10    |  |
-|  osd_alt_alarm        | 100   |  |
-|  osd_main_voltage_pos | 0     |  |
-|  osd_rssi_pos         | 0     |  |
-|  osd_flytimer_pos     | 0     |  |
-|  osd_ontime_pos       | 0     |  |
-|  osd_flymode_pos      | 0     |  |
-|  osd_throttle_pos     | 0     |  |
-|  osd_vtx_channel_pos  | 0     |  |
-|  osd_crosshairs       | 0     |  |
-|  osd_artificial_horizon  | 0  |  |
-|  osd_current_draw_pos | 0     |  |
-|  osd_mah_drawn_pos    | 0     |  |
-|  osd_craft_name_pos   | 0     |  |
-|  osd_gps_speed_pos    | 0     |  |
-|  osd_gps_sats_pos     | 0     |  |
-|  osd_altitude_pos     | 0     |  |
-|  osd_pid_roll_pos     | 0     |  |
-|  osd_pid_pitch_pos    | 0     |  |
-|  osd_pid_yaw_pos      | 0     |  |
-|  osd_power_pos        | 0     |  |
+|  osd_rssi_alarm       | 20    | Value bellow which to make the OSD RSSI indicator blink |
+|  osd_time_alarm       | 10    | Value above which to make the OSD flight time indicator blink (minutes) |
+|  osd_dist_alarm       | 1000  | Value above which to make the OSD distance from home indicator blink (meters) |
+|  osd_alt_alarm        | 100   | Value above which to make the OSD relative altitude indicator blink (meters) |
+|  osd_neg_alt_alarm    | 5    | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
+|  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_z  | 0 | Magnetometer calibration Z offset. If its 0 none offset has been applied and calibration is failed. |
@@ -375,6 +361,7 @@ Re-apply any new defaults as desired.
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point    |
 |  max_angle_inclination_rll  | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 |  max_angle_inclination_pit  | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
+|  fw_min_throttle_down_pitch  | 0 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle |
 |  gyro_lpf_hz  | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 |  acc_lpf_hz  | 15 | Software-based filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 |  dterm_lpf_hz  | 40 |  |
