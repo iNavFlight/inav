@@ -121,7 +121,12 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .name = { 0 }
 );
 
-PG_REGISTER(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 0);
+
+PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
+    .beeper_off_flags = 0,
+    .preferred_beeper_off_flags = 0
+);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 0);
 
