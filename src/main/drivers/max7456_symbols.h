@@ -23,7 +23,7 @@
 
 #ifdef USE_MAX7456
 
-// Character Symbols
+#define SYM_MILLIOHM 0x00
 #define SYM_BLANK 0x20
 
 // Satellite Graphics

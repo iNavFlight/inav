@@ -121,6 +121,7 @@ void activateBatteryProfile(void);
 void batteryDisableProfileAutoswitch(void);
 
 bool isBatteryVoltageConfigured(void);
+bool isPowerSupplyImpedanceValid(void);
 uint16_t getBatteryVoltage(void);
 uint16_t getBatteryRawVoltage(void);
 uint16_t getBatterySagCompensatedVoltage(void);
@@ -131,6 +132,7 @@ uint16_t getBatteryRawAverageCellVoltage(void);
 uint16_t getBatteryAverageCellVoltage(void);
 uint16_t getBatterySagCompensatedAverageCellVoltage(void);
 uint32_t getBatteryRemainingCapacity(void);
+uint16_t getPowerSupplyImpedance(void);
 
 bool isAmperageConfigured(void);
 int32_t getAmperage(void);
@@ -141,7 +143,7 @@ int32_t getMWhDrawn(void);
 
 void batteryUpdate(timeUs_t timeDelta);
 void currentMeterUpdate(timeUs_t timeDelta);
-void sagCompensatedVBatUpdate(timeUs_t currentTime);
+void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta);
 void powerMeterUpdate(timeUs_t timeDelta);
 
 uint8_t calculateBatteryPercentage(void);

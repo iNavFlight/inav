@@ -15,6 +15,8 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <math.h>
+
 #include "stdbool.h"
 #include "stdint.h"
 #include "stdlib.h"
@@ -62,6 +64,7 @@
 #define VBATT_HYSTERESIS 10          // Batt Hysteresis of +/-100mV for changing battery state
 #define VBATT_LPF_FREQ  1            // Battery voltage filtering cutoff
 #define AMPERAGE_LPF_FREQ  1         // Battery current filtering cutoff
+#define IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH 10 // Minimum sample count to consider calculated power supply impedance as stable
 
 
 // Battery monitoring stuff
@@ -79,6 +82,7 @@ static uint16_t vbatLatestADC = 0;          // most recent unsmoothed raw readin
 static uint16_t amperageLatestADC = 0;      // most recent raw reading from current ADC
 static uint16_t powerSupplyImpedance = 0;   // calculated impedance in milliohm
 static uint16_t sagCompensatedVBat = 0;     // calculated no load vbat
+static bool powerSupplyImpedanceIsValid = false;
 
 static int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
 static int32_t power = 0;                  // power draw in cW (0.01W resolution)
@@ -477,40 +481,69 @@ int32_t heatLossesCompensatedPower(int32_t power)
     return power + sq(power * 100 / batteryWarningVoltage) * powerSupplyImpedance / 100000;
 }
 
-void sagCompensatedVBatUpdate(timeUs_t currentTime)
+void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
 {
     static timeUs_t recordTimestamp = 0;
     static int32_t amperageRecord;
     static uint16_t vbatRecord;
+    static uint8_t impedanceSampleCount = 0;
+    static pt1Filter_t impedanceFilterState;
+    static pt1Filter_t sagCompVBatFilterState;
+    static batteryState_e last_battery_state = BATTERY_NOT_PRESENT;
+
+    if ((batteryState != BATTERY_NOT_PRESENT) && (last_battery_state == BATTERY_NOT_PRESENT)) {
+        pt1FilterReset(&sagCompVBatFilterState, vbat);
+        pt1FilterReset(&impedanceFilterState, 0);
+    }
 
     if (batteryState == BATTERY_NOT_PRESENT) {
 
         recordTimestamp = 0;
+        impedanceSampleCount = 0;
         powerSupplyImpedance = 0;
+        powerSupplyImpedanceIsValid = false;
         sagCompensatedVBat = vbat;
 
     } else {
 
-        if (cmpTimeUs(currentTime, recordTimestamp) > 20000000)
+        if (cmpTimeUs(currentTime, recordTimestamp) > 500000)
             recordTimestamp = 0;
 
         if (!recordTimestamp) {
             amperageRecord = amperage;
             vbatRecord = vbat;
             recordTimestamp = currentTime;
-        } else if ((amperage - amperageRecord >= 400) && ((int16_t)vbatRecord - vbat >= 10)) {
-            powerSupplyImpedance = (int32_t)(vbatRecord - vbat) * 1000 / (amperage - amperageRecord);
-            amperageRecord = amperage;
-            vbatRecord = vbat;
-            recordTimestamp = currentTime;
+        } else if ((amperage - amperageRecord >= 200) && ((int16_t)vbatRecord - vbat >= 4)) {
+
+            uint16_t impedanceSample = (int32_t)(vbatRecord - vbat) * 1000 / (amperage - amperageRecord);
+
+            if (impedanceSampleCount <= IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH) {
+                impedanceSampleCount += 1;
+            }
+
+            if (impedanceFilterState.state) {
+                pt1FilterSetTimeConstant(&impedanceFilterState, impedanceSampleCount > IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH ? 1.2 : 0.5);
+                pt1FilterApply3(&impedanceFilterState, impedanceSample, timeDelta * 1e-6f);
+            } else {
+                pt1FilterReset(&impedanceFilterState, impedanceSample);
+            }
+
+            if (impedanceSampleCount > IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH) {
+                powerSupplyImpedance = lrintf(pt1FilterGetLastOutput(&impedanceFilterState));
+                powerSupplyImpedanceIsValid = true;
+            }
+
         }
 
-        sagCompensatedVBat = MIN(batteryFullVoltage, vbat + powerSupplyImpedance * amperage / 1000);
-
+        uint16_t sagCompensatedVBatSample = MIN(batteryFullVoltage, vbat + powerSupplyImpedance * amperage / 1000);
+        sagCompVBatFilterState.RC = sagCompensatedVBatSample < sagCompVBatFilterState.state ? 40 : 500;
+        sagCompensatedVBat = lrintf(pt1FilterApply3(&sagCompVBatFilterState, sagCompensatedVBatSample, timeDelta * 1e-6f));
     }
 
     DEBUG_SET(DEBUG_SAG_COMP_VOLTAGE, 0, powerSupplyImpedance);
     DEBUG_SET(DEBUG_SAG_COMP_VOLTAGE, 1, sagCompensatedVBat);
+
+    last_battery_state = batteryState;
 }
 
 uint8_t calculateBatteryPercentage(void)
@@ -527,6 +560,14 @@ uint8_t calculateBatteryPercentage(void)
 
 void batteryDisableProfileAutoswitch(void) {
     profileAutoswitchDisable = true;
+}
+
+bool isPowerSupplyImpedanceValid(void) {
+    return powerSupplyImpedanceIsValid;
+}
+
+uint16_t getPowerSupplyImpedance(void) {
+    return powerSupplyImpedance;
 }
 
 // returns cW (0.01W)

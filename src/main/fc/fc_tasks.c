@@ -108,7 +108,7 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
     if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
-        sagCompensatedVBatUpdate(currentTimeUs);
+        sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
     }
 #endif
     batMonitoringLastServiced = currentTimeUs;
