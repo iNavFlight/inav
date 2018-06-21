@@ -338,6 +338,7 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
 
     {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 };
 
 typedef enum BlackboxState {
@@ -434,6 +435,7 @@ typedef struct blackboxSlowState_s {
     bool rxFlightChannelsValid;
     int32_t hwHealthStatus;
     uint16_t powerSupplyImpedance;
+    uint16_t sagCompensatedVBat;
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1017,6 +1019,7 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.hwHealthStatus);
 
     blackboxWriteUnsignedVB(slowHistory.powerSupplyImpedance);
+    blackboxWriteUnsignedVB(slowHistory.sagCompensatedVBat);
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1039,6 +1042,7 @@ static void loadSlowState(blackboxSlowState_t *slow)
                            (getHwRangefinderStatus()    << 2 * 5) |
                            (getHwPitotmeterStatus()     << 2 * 6);
     slow->powerSupplyImpedance = getPowerSupplyImpedance();
+    slow->sagCompensatedVBat = getBatterySagCompensatedVoltage();
 }
 
 /**
