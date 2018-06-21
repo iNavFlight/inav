@@ -47,7 +47,7 @@ void pca9685setPWMOff(uint8_t servoIndex, uint16_t off) {
 /*
 Writing new state every cycle for each servo is extremely time consuming
 and does not makes sense.
-On Flip32/Naze32 trying to sync 5 servos every 2000us extends looptime
+Trying to sync 5 servos every 2000us extends looptime
 to 3500us. Very, very bad...
 Instead of that, write desired values to temporary
 table and write it to PCA9685 only when there a need.

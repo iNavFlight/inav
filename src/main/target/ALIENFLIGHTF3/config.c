@@ -49,7 +49,7 @@ void targetConfiguration(void)
 {
     // alternative defaults settings for ALIENFLIGHTF1 and ALIENFLIGHTF3 targets
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    batteryConfigMutable()->voltage.scale = 200;
+    batteryMetersConfigMutable()->voltage_scale = 200;
     rxConfigMutable()->spektrum_sat_bind = 5;
     rxConfigMutable()->spektrum_sat_bind_autoreset = 1;
 

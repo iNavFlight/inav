@@ -275,7 +275,7 @@ void failsafeApplyControlInput(void)
                         break;
 
                     case THROTTLE:
-                        rcCommand[idx] = feature(FEATURE_3D) ? rxConfig()->midrc : motorConfig()->minthrottle;
+                        rcCommand[idx] = feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->minthrottle;
                         break;
                 }
                 break;
@@ -330,9 +330,9 @@ static bool failsafeCheckStickMotion(void)
     if (failsafeConfig()->failsafe_stick_motion_threshold > 0) {
         uint32_t totalRcDelta = 0;
 
-        totalRcDelta += ABS(rcData[ROLL] - rxConfig()->midrc);
-        totalRcDelta += ABS(rcData[PITCH] - rxConfig()->midrc);
-        totalRcDelta += ABS(rcData[YAW] - rxConfig()->midrc);
+        totalRcDelta += ABS(rcData[ROLL] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rcData[PITCH] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rcData[YAW] - PWM_RANGE_MIDDLE);
 
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }
@@ -498,7 +498,7 @@ void failsafeUpdateState(void)
 
             case FAILSAFE_LANDED:
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_FAILSAFE_SYSTEM); // To prevent accidently rearming by an intermittent rx link
-                mwDisarm(DISARM_FAILSAFE);
+                disarm(DISARM_FAILSAFE);
                 failsafeState.receivingRxDataPeriod = millis() + failsafeState.receivingRxDataPeriodPreset; // set required period of valid rxData
                 failsafeState.phase = FAILSAFE_RX_LOSS_MONITORING;
                 failsafeState.controlling = false;  // Failsafe no longer in control of the machine - release control to pilot

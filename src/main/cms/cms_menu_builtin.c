@@ -30,6 +30,8 @@
 
 #include "build/version.h"
 
+#include "common/utils.h"
+
 #include "drivers/time.h"
 
 #include "cms/cms.h"
@@ -44,6 +46,7 @@
 #include "cms/cms_menu_vtx.h"
 #include "cms/cms_menu_osd.h"
 #include "cms/cms_menu_ledstrip.h"
+#include "cms/cms_menu_battery.h"
 #include "cms/cms_menu_misc.h"
 
 // VTX supplied menus
@@ -59,8 +62,10 @@ static char infoTargetName[] = __TARGET__;
 
 #include "msp/msp_protocol.h" // XXX for FC identification... not available elsewhere
 
-static long cmsx_InfoInit(void)
+static long cmsx_InfoInit(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     int i;
     for ( i = 0 ; i < GIT_SHORT_REVISION_LENGTH ; i++) {
         if (shortGitRevision[i] >= 'a' && shortGitRevision[i] <= 'f')
@@ -142,15 +147,16 @@ static const OSD_Entry menuMainEntries[] =
 
     OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
     OSD_SUBMENU_ENTRY("FEATURES", &menuFeatures),
-#ifdef USE_OSD
-    OSD_SUBMENU_ENTRY("SCR LAYOUT", &cmsx_menuOsdLayout),
+#if defined(USE_OSD) && defined(CMS_MENU_OSD)
+    OSD_SUBMENU_ENTRY("OSD LAYOUTS", &cmsx_menuOsdLayout),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 #endif
+    OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBattery),
     OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
     OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
 
-    {"SAVE&REBOOT", OME_OSD_Exit, cmsMenuExit,   (void*)CMS_EXIT_SAVEREBOOT, 0},
-    {"EXIT",        OME_OSD_Exit, cmsMenuExit,   (void*)CMS_EXIT, 0},
+    {"SAVE&REBOOT", OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT_SAVEREBOOT, 0},
+    {"EXIT",        OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT, 0},
 #ifdef CMS_MENU_DEBUG
     OSD_SUBMENU_ENTRY("ERR SAMPLE", &menuInfoEntries[0]),
 #endif

@@ -411,12 +411,10 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
 
 static void mspEvaluateNonMspData(mspPort_t * mspPort, uint8_t receivedChar)
 {
-#ifdef USE_CLI
     if (receivedChar == '#') {
         mspPort->pendingRequest = MSP_PENDING_CLI;
         return;
     }
-#endif
 
     if (receivedChar == serialConfig()->reboot_character) {
         mspPort->pendingRequest = MSP_PENDING_BOOTLOADER;
@@ -437,7 +435,11 @@ static void mspProcessPendingRequest(mspPort_t * mspPort)
             break;
 
         case MSP_PENDING_CLI:
-            cliEnter(mspPort->port);
+            if (!cliMode) {
+                // When we enter CLI mode - disable this MSP port. Don't care about preserving the port since CLI can only be exited via reboot
+                cliEnter(mspPort->port);
+                mspPort->port = NULL;
+            }
             break;
 
         default:

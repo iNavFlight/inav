@@ -28,3 +28,16 @@
 #define MSP2_INAV_RATE_PROFILE                  0x2007
 #define MSP2_INAV_SET_RATE_PROFILE              0x2008
 #define MSP2_INAV_AIR_SPEED                     0x2009
+#define MSP2_INAV_OUTPUT_MAPPING                0x200A
+
+#define MSP2_INAV_MIXER                         0x2010
+#define MSP2_INAV_SET_MIXER                     0x2011
+
+#define MSP2_INAV_OSD_LAYOUTS                   0x2012
+#define MSP2_INAV_OSD_SET_LAYOUT_ITEM           0x2013
+#define MSP2_INAV_OSD_ALARMS                    0x2014
+#define MSP2_INAV_OSD_SET_ALARMS                0x2015
+#define MSP2_INAV_OSD_PREFERENCES               0x2016
+#define MSP2_INAV_OSD_SET_PREFERENCES           0x2017
+
+#define MSP2_INAV_SELECT_BATTERY_PROFILE        0x2018

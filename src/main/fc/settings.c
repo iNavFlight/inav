@@ -4,10 +4,11 @@
 #include "common/string_light.h"
 #include "common/utils.h"
 
-#include "fc/settings_generated.h"
+#include "settings_generated.h"
+
 #include "fc/settings.h"
 
-#include "fc/settings_generated.c"
+#include "settings_generated.c"
 
 void setting_get_name(const setting_t *val, char *buf)
 {
@@ -117,6 +118,8 @@ static uint16_t getValueOffset(const setting_t *value)
         return value->offset + sizeof(pidProfile_t) * getConfigProfile();
     case CONTROL_RATE_VALUE:
         return value->offset + sizeof(controlRateConfig_t) * getConfigProfile();
+    case BATTERY_CONFIG_VALUE:
+        return value->offset + sizeof(batteryProfile_t) * getConfigBatteryProfile();
     }
     return 0;
 }

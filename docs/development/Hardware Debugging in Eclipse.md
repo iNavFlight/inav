@@ -25,7 +25,7 @@ stop the board, flash the firmware, restart:
      sleep 100
      poll
      flash probe 0
-     flash write_image erase /home/user/git/inav/obj/inav_NAZE.hex 0x08000000
+     flash write_image erase /home/user/git/inav/obj/inav_SPRACINGF3.hex 0x08000000
      sleep 200
      soft_reset_halt
      wait_halt
@@ -47,7 +47,7 @@ If you use cygwin to build the binaries then be sure to have configured your com
 Create a new `GDB Hardware Debugging` launch configuration from the `Run` menu
 
 It's important to have build the executable compiled with GDB debugging information first.
-Select the appropriate .elf file (not hex file) - In these examples the target platform is an OLIMEXINO, not a naze32.
+Select the appropriate .elf file (not hex file).
 
 DISABLE auto-build
 

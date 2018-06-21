@@ -54,6 +54,14 @@
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 #define ACC_MPU6500_ALIGN       CW180_DEG
 
+// OmnibusF4 Nano v6 has a MPU6000
+#define USE_GYRO_MPU6000
+#define USE_ACC_MPU6000
+#define MPU6000_CS_PIN          PD2
+#define MPU6000_SPI_BUS         BUS_SPI3
+#define GYRO_MPU6000_ALIGN      CW180_DEG
+#define ACC_MPU6000_ALIGN       CW180_DEG
+
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_HMC5883
@@ -175,7 +183,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
-#define USABLE_TIMER_CHANNEL_COUNT 7
-
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(4) | TIM_N(9) | TIM_N(10) )

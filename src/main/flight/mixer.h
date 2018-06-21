@@ -19,9 +19,7 @@
 
 #include "config/parameter_group.h"
 
-#if defined(USE_QUAD_MIXER_ONLY)
-#define MAX_SUPPORTED_MOTORS 4
-#elif defined(TARGET_MOTOR_COUNT)
+#if defined(TARGET_MOTOR_COUNT)
 #define MAX_SUPPORTED_MOTORS TARGET_MOTOR_COUNT
 #else
 #define MAX_SUPPORTED_MOTORS 12
@@ -30,38 +28,17 @@
 #define YAW_JUMP_PREVENTION_LIMIT_LOW 80
 #define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
 
+#define FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX 450
 
-// Note: this is called MultiType/MULTITYPE_* in baseflight.
-typedef enum mixerMode
-{
-    MIXER_TRI = 1,
-    MIXER_QUADP = 2,
-    MIXER_QUADX = 3,
-    MIXER_BICOPTER = 4,
-    MIXER_GIMBAL = 5,
-    MIXER_Y6 = 6,
-    MIXER_HEX6 = 7,
-    MIXER_FLYING_WING = 8,
-    MIXER_Y4 = 9,
-    MIXER_HEX6X = 10,
-    MIXER_OCTOX8 = 11,
-    MIXER_OCTOFLATP = 12,
-    MIXER_OCTOFLATX = 13,
-    MIXER_AIRPLANE = 14,        // airplane / singlecopter / dualcopter (not yet properly supported)
-    MIXER_HELI_120_CCPM = 15,
-    MIXER_HELI_90_DEG = 16,
-    MIXER_VTAIL4 = 17,
-    MIXER_HEX6H = 18,
-    MIXER_PPM_TO_SERVO = 19,    // PPM -> servo relay
-    MIXER_DUALCOPTER = 20,
-    MIXER_SINGLECOPTER = 21,
-    MIXER_ATAIL4 = 22,
-    MIXER_CUSTOM = 23,
-    MIXER_CUSTOM_AIRPLANE = 24,
-    MIXER_CUSTOM_TRI = 25
-} mixerMode_e;
-
-#define DEFAULT_MIXER MIXER_QUADX
+typedef enum {
+    PLATFORM_MULTIROTOR     = 0,
+    PLATFORM_AIRPLANE       = 1,
+    PLATFORM_HELICOPTER     = 2,
+    PLATFORM_TRICOPTER      = 3,
+    PLATFORM_ROVER          = 4,
+    PLATFORM_BOAT           = 5,
+    PLATFORM_OTHER          = 6
+} flyingPlatformType_e;
 
 typedef struct motorAxisCorrectionLimits_s {
     int16_t min;
@@ -78,20 +55,13 @@ typedef struct motorMixer_s {
 
 PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
 
-// Custom mixer configuration
-typedef struct mixer_s {
-    mixerMode_e mixerMode;
-    const motorMixer_t *motor;
-    uint8_t flyingPlatformType;     // MC, FW or HELI
-    uint8_t motorCount;
-    bool useServos;
-    bool hasFlaps;
-} mixer_t;
-
 typedef struct mixerConfig_s {
-    uint8_t mixerMode;
     int8_t yaw_motor_direction;
     uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
+    uint8_t platformType;
+    bool hasFlaps;
+    int16_t appliedMixerPreset;
+    uint16_t fwMinThrottleDownPitchAngle;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
@@ -111,30 +81,32 @@ typedef struct motorConfig_s {
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
     uint8_t  motorPwmProtocol;
+    uint16_t motorAccelTimeMs;              // Time limit for motor to accelerate from 0 to 100% throttle [ms]
+    uint16_t motorDecelTimeMs;              // Time limit for motor to decelerate from 0 to 100% throttle [ms]
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
 
-#define CHANNEL_FORWARDING_DISABLED (uint8_t)0xFF
+typedef enum {
+    MOTOR_STOPPED_USER,
+    MOTOR_STOPPED_AUTO,
+    MOTOR_RUNNING
+} motorStatus_e;
 
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 
 uint8_t getMotorCount(void);
+float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
+motorStatus_e getMotorStatus(void);
 
 void writeAllMotors(int16_t mc);
-void mixerLoadMix(int index, motorMixer_t *customMixers);
 void mixerUsePWMIOConfiguration(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
-void mixTable(void);
+void mixTable(const float dT);
 void writeMotors(void);
-void processServoTilt(void);
 void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
-
-int getFlyingPlatformType(void);
-
-bool isMixerEnabled(mixerMode_e mixerMode);

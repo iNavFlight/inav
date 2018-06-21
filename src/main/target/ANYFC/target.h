@@ -52,6 +52,7 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
 #define USE_RANGEFINDER
@@ -140,6 +141,3 @@
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
-
-#define USABLE_TIMER_CHANNEL_COUNT 16
-#define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9))

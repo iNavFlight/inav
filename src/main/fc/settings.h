@@ -6,7 +6,7 @@
 
 #include "config/parameter_group.h"
 
-#include "fc/settings_generated.h"
+#include "settings_generated.h"
 
 typedef struct lookupTableEntry_s {
     const char * const *values;
@@ -34,6 +34,7 @@ typedef enum {
     MASTER_VALUE = (0 << SETTING_SECTION_OFFSET),
     PROFILE_VALUE = (1 << SETTING_SECTION_OFFSET),
     CONTROL_RATE_VALUE = (2 << SETTING_SECTION_OFFSET), // 0x20
+    BATTERY_CONFIG_VALUE = (3 << SETTING_SECTION_OFFSET),
 } setting_section_e;
 
 typedef enum {

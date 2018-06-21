@@ -55,6 +55,7 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 
 #define USE_BARO
@@ -115,7 +116,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define LED_STRIP_TIMER                 TIM5
 
 #define USE_RANGEFINDER
@@ -137,7 +138,3 @@
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
-
-#define USABLE_TIMER_CHANNEL_COUNT 11
-#define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9))
-

@@ -96,6 +96,7 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 
 #define USE_BARO
@@ -104,6 +105,11 @@
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
+
+  // Support external barometers
+  #define BARO_I2C_BUS          BUS_I2C2
+  #define USE_BARO_BMP085
+  #define USE_BARO_MS5611
 #else
   #define BARO_I2C_BUS          BUS_I2C2
   #define USE_BARO_BMP085
@@ -117,6 +123,10 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 #define USE_RANGEFINDER_HCSR04_I2C
+#define USE_RANGEFINDER_VL53L0X
+
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_CXOF
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
@@ -240,18 +250,6 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-#define USABLE_TIMER_CHANNEL_COUNT 13
-#else
-#define USABLE_TIMER_CHANNEL_COUNT 12
-#endif
-
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(4) | TIM_N(8) | TIM_N(9) | TIM_N(10) )
-#else
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9) )
-#endif
 
 #ifdef OMNIBUSF4PRO
 #define CURRENT_METER_SCALE   265

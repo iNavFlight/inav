@@ -83,6 +83,10 @@ void displayClearScreen(displayPort_t *instance)
 
 void displayDrawScreen(displayPort_t *instance)
 {
+    if (instance->rows == 0 || instance->cols == 0) {
+        // Display not fully initialized yet
+        displayResync(instance);
+    }
     instance->vTable->drawScreen(instance);
 }
 
@@ -168,6 +172,26 @@ int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint
     instance->posX = x + 1;
     instance->posY = y;
     return instance->vTable->writeChar(instance, x, y, c, attr);
+}
+
+bool displayReadCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t *c, textAttributes_t *attr)
+{
+    uint8_t dc;
+    textAttributes_t dattr;
+
+    if (!instance->vTable->readChar) {
+        return false;
+    }
+
+    if (!c) {
+        c = &dc;
+    }
+
+    if (!attr) {
+        attr = &dattr;
+    }
+
+    return instance->vTable->readChar(instance, x, y, c, attr);
 }
 
 bool displayIsTransferInProgress(const displayPort_t *instance)

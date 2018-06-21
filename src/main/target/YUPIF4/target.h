@@ -16,17 +16,36 @@
  */
 
 #pragma once
-#define TARGET_BOARD_IDENTIFIER "YPF4"
 
-#define USBD_PRODUCT_STRING     "YupiF4"
+#if defined (YUPIF4R2)
+#define TARGET_BOARD_IDENTIFIER "YPF4R2"
+#define USBD_PRODUCT_STRING "YUPIF4R2"
+#elif (YUPIF4MINI)
+#define TARGET_BOARD_IDENTIFIER "YPF4M"
+#define USBD_PRODUCT_STRING     "YUPIF4MINI"
+#else
+#define TARGET_BOARD_IDENTIFIER "YPF4"
+#define USBD_PRODUCT_STRING     "YUPIF4"
+#endif
+
+#define TARGET_CONFIG
 
 #define LED0                    PB6
 #define LED1                    PB4
 
+#if defined(YUPIF4R2)
 #define BEEPER                  PB14
+#else
+#define BEEPER                  PC9
+#endif
+
+#if defined(YUPIF4MINI)
+#define BEEPER_INVERTED
+#else
 #define BEEPER_PWM
 #define BEEPER_INVERTED
 #define BEEPER_PWM_FREQUENCY    3150
+#endif
 
 #define INVERTER_PIN_UART6      PB15
 
@@ -73,6 +92,8 @@
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PA14
 
+#if defined(YUPIF4MINI)
+#else
 #define USE_SDCARD
 #define USE_SDCARD_SPI3
 #define SDCARD_DETECT_INVERTED
@@ -83,6 +104,7 @@
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
 #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
 #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#endif
 
 #define USB_IO
 #define USE_VCP
@@ -130,7 +152,7 @@
 #define RSSI_ADC_CHANNEL        ADC_CHN_2
 
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB1
 #define WS2811_TIMER                    TIM8
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
@@ -154,6 +176,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
-
-#define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS             ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12))

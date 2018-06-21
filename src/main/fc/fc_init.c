@@ -48,7 +48,6 @@
 #include "drivers/dma.h"
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
-#include "drivers/gpio.h"
 #include "drivers/inverter.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
@@ -97,7 +96,6 @@
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
 #include "io/flashfs.h"
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/pwmdriver_i2c.h"
@@ -269,10 +267,8 @@ void init(void)
     debugTraceInit();
 #endif
 
-#ifdef USE_SERVOS
     servosInit();
     mixerUpdateStateFlags();    // This needs to be called early to allow pwm mapper to use information about FIXED_WING state
-#endif
 
     drv_pwm_config_t pwm_params;
     memset(&pwm_params, 0, sizeof(pwm_params));
@@ -290,11 +286,8 @@ void init(void)
 #endif
 
     // when using airplane/wing mixer, servo/motor outputs are remapped
-    pwm_params.flyingPlatformType = getFlyingPlatformType();
+    pwm_params.flyingPlatformType = mixerConfig()->platformType;
 
-#if defined(USE_UART2) && defined(STM32F10X)
-    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);
-#endif
 #ifdef STM32F303xC
     pwm_params.useUART3 = doesConfigurationUsePort(SERIAL_PORT_USART3);
 #endif
@@ -309,17 +302,14 @@ void init(void)
     pwm_params.useParallelPWM = (rxConfig()->receiverType == RX_TYPE_PWM);
     pwm_params.useRSSIADC = feature(FEATURE_RSSI_ADC);
     pwm_params.useCurrentMeterADC = feature(FEATURE_CURRENT_METER)
-        && batteryConfig()->current.type == CURRENT_SENSOR_ADC;
+        && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
     pwm_params.useLEDStrip = feature(FEATURE_LED_STRIP);
     pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
 
-#ifdef USE_SERVOS
     pwm_params.useServoOutputs = isMixerUsingServos();
-    pwm_params.useChannelForwarding = feature(FEATURE_CHANNEL_FORWARDING);
     pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
-#endif
 
     pwm_params.pwmProtocolType = motorConfig()->motorPwmProtocol;
 #ifndef BRUSHED_MOTORS
@@ -352,7 +342,6 @@ void init(void)
     */
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pwm_params.useServoOutputs = false;
-        pwm_params.useChannelForwarding = false;
     }
 #endif
 
@@ -378,14 +367,6 @@ void init(void)
         .isInverted = false
 #endif
     };
-
-#if defined(NAZE) && defined(USE_HARDWARE_REVISION_DETECTION)
-    if (hardwareRevision >= NAZE32_REV5) {
-        // naze rev4 and below used opendrain to PNP for buzzer. Rev5 and above use PP to NPN.
-        beeperDevConfig.isOD = false;
-        beeperDevConfig.isInverted = true;
-    }
-#endif
 
     beeperInit(&beeperDevConfig);
 #endif
@@ -492,7 +473,7 @@ void init(void)
         adc_params.adcFunctionChannel[ADC_RSSI] = adcChannelConfig()->adcFunctionChannel[ADC_RSSI];
     }
 
-    if (feature(FEATURE_CURRENT_METER) && batteryConfig()->current.type == CURRENT_SENSOR_ADC) {
+    if (feature(FEATURE_CURRENT_METER) && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC) {
         adc_params.adcFunctionChannel[ADC_CURRENT] =  adcChannelConfig()->adcFunctionChannel[ADC_CURRENT];
     }
 
@@ -554,19 +535,15 @@ void init(void)
 
     flashLedsAndBeep();
 
-#ifdef USE_DTERM_NOTCH
     pidInitFilters();
-#endif
 
     imuInit();
 
     // Sensors have now been detected, mspFcInit() can now be called
     // to set the boxes up
-     mspFcInit();
+    mspFcInit();
 
-#ifdef USE_CLI
     cliInit(serialConfig());
-#endif
 
     failsafeInit();
 
@@ -631,11 +608,7 @@ void init(void)
 #endif
 
 #ifdef USE_FLASHFS
-#ifdef NAZE
-    if (hardwareRevision == NAZE32_REV5) {
-        m25p16_init(0);
-    }
-#elif defined(USE_FLASH_M25P16)
+#ifdef USE_FLASH_M25P16
     m25p16_init(0);
 #endif
 
@@ -695,17 +668,9 @@ void init(void)
 
 #endif // VTX_CONTROL
 
-    // start all timers
-    // TODO - not implemented yet
-    timerStart();
-
     // Now that everything has powered up the voltage and cell count be determined.
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
         batteryInit();
-
-#ifdef CJMCU
-    LED2_ON;
-#endif
 
 #ifdef USE_PMW_SERVO_DRIVER
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {

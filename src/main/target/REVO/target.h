@@ -59,6 +59,7 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 
 #define USE_BARO
@@ -70,9 +71,10 @@
 
 #define USE_OPTICAL_FLOW
 #define USE_OPFLOW_CXOF
+#define USE_OPFLOW_MSP
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_UIB
+#define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_VL53L0X
 #define VL53L0X_I2C_BUS         BUS_I2C2
 
@@ -93,6 +95,7 @@
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
 
 #define USE_UART3
+#define I2C_DEVICE_2_SHARES_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 
@@ -153,6 +156,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
-#define USABLE_TIMER_CHANNEL_COUNT 12
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9) )
