@@ -1190,6 +1190,23 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_HOME_HEADING_ERROR:
+        {
+            buff[0] = SYM_HOME;
+            buff[1] = SYM_HEADING;
+
+            if (isImuHeadingValid() && navigationPositionEstimateIsHealthy()) {
+                int16_t h = lrintf(CENTIDEGREES_TO_DEGREES((float)wrap_18000(DEGREES_TO_CENTIDEGREES((int32_t)GPS_directionToHome) - DECIDEGREES_TO_CENTIDEGREES((int32_t)osdGetHeading()))));
+                tfp_sprintf(buff + 2, "%4d", h);
+            } else {
+                strcpy(buff + 2, "----");
+            }
+
+            buff[6] = SYM_DEGREES;
+            buff[7] = '\0';
+            break;
+        }
+
     case OSD_HOME_DIST:
         {
             buff[0] = SYM_HOME;
