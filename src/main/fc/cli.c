@@ -108,7 +108,7 @@ extern uint8_t __config_end;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 
-#include "telemetry/frsky.h"
+#include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
