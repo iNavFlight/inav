@@ -58,6 +58,7 @@
 #endif
 
 #if (FLASH_SIZE > 256)
+#define USE_EXTENDED_CMS_MENUS
 #define USE_UAV_INTERCONNECT
 #define USE_RX_UIB
 #endif
@@ -111,10 +112,10 @@
 #define USE_PITOT_ADC
 
 //Enable VTX controll
-#define VTX_COMMON
-#define VTX_CONTROL
-#define VTX_SMARTAUDIO
-#define VTX_TRAMP
+#define USE_VTX_COMMON
+#define USE_VTX_CONTROL
+#define USE_VTX_SMARTAUDIO
+#define USE_VTX_TRAMP
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST

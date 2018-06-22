@@ -103,6 +103,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
+#include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
@@ -653,20 +654,23 @@ void init(void)
     pitotStartCalibration();
 #endif
 
-#ifdef VTX_CONTROL
+#ifdef USE_VTX_CONTROL
     vtxControlInit();
 
+#if defined(USE_VTX_COMMON)
     vtxCommonInit();
+    vtxInit();
+#endif
 
-#ifdef VTX_SMARTAUDIO
+#ifdef USE_VTX_SMARTAUDIO
     vtxSmartAudioInit();
 #endif
 
-#ifdef VTX_TRAMP
+#ifdef USE_VTX_TRAMP
     vtxTrampInit();
 #endif
 
-#endif // VTX_CONTROL
+#endif // USE_VTX_CONTROL
 
     // Now that everything has powered up the voltage and cell count be determined.
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))

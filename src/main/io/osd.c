@@ -1401,7 +1401,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
     }
 
-#if defined(VTX) || defined(VTX_COMMON)
+#if defined(VTX) || defined(USE_VTX_COMMON)
     case OSD_VTX_CHANNEL:
 #if defined(VTX)
         // FIXME: This doesn't actually work. It's for boards with
@@ -1411,8 +1411,21 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             uint8_t band = 0;
             uint8_t channel = 0;
-            vtxCommonGetBandAndChannel(&band, &channel);
-            tfp_sprintf(buff, "CH:%c%s", vtx58BandLetter[band], vtx58ChannelNames[channel]);
+            uint8_t powerIndex = 0;
+            char bandChr = '-';
+            const char *channelStr = "-";
+            char powerChr = '-';
+            vtxDevice_t *vtxDevice = vtxCommonDevice();
+            if (vtxDevice) {
+                if (vtxCommonGetBandAndChannel(vtxDevice, &band, &channel)) {
+                    bandChr = vtx58BandLetter[band];
+                    channelStr = vtx58ChannelNames[channel];
+                }
+                if (vtxCommonGetPowerIndex(vtxDevice, &powerIndex)) {
+                    powerChr = '0' + powerIndex;
+                }
+            }
+            tfp_sprintf(buff, "CH:%c%s:%c", bandChr, channelStr, powerChr);
         }
 #endif
         break;
