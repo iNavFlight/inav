@@ -262,7 +262,7 @@ void max7456ReInit(void)
 
 
 //here we init only CS and try to init MAX for first time
-void max7456Init(const vcdProfile_t *pVcdProfile)
+void max7456Init(const videoSystem_e videoSystem)
 {
     max7456dev = busDeviceInit(BUSTYPE_SPI, DEVHW_MAX7456, 0, OWNER_OSD);
 
@@ -275,7 +275,7 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
     // force soft reset on Max7456
     busWrite(max7456dev, MAX7456ADD_VM0, MAX7456_RESET);
 
-    videoSignalCfg = pVcdProfile->video_system;
+    videoSignalCfg = videoSystem;
 
     // Set screenbuffer to all blanks
     for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {

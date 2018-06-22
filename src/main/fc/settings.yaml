@@ -59,6 +59,9 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
+  - name: osd_video_system
+    values: ["AUTO", "PAL", "NTSC"]
+    enum: videoSystem_e
   - name: frsky_unit
     values: ["METRIC", "IMPERIAL"]
     enum: frskyUnit_e
@@ -1483,13 +1486,13 @@ groups:
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
-    headers: ["io/osd.h"]
+    headers: ["io/osd.h", "drivers/vcd.h"]
     condition: USE_OSD
     members:
       - name: osd_video_system
+        table: osd_video_system
         field: video_system
-        min: 0
-        max: 2
+        type: uint8_t
       - name: osd_row_shiftdown
         field: row_shiftdown
         min: 0
