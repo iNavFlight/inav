@@ -62,6 +62,7 @@ static bool isPitchAdjustmentValid = false;
 static bool isRollAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
+static int32_t navHeadingError;
 
 
 /*-----------------------------------------------------------
@@ -280,29 +281,29 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
 
     // Calculate NAV heading error
-    int32_t headingError = wrap_18000(virtualTargetBearing - posControl.actualState.yaw);
+    navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.yaw);
 
     // Forced turn direction
     // If heading error is close to 180 deg we initiate forced turn and only disable it when heading error goes below 90 deg
-    if (ABS(headingError) > 17000) {
+    if (ABS(navHeadingError) > 17000) {
         forceTurnDirection = true;
     }
-    else if (ABS(headingError) < 9000 && forceTurnDirection) {
+    else if (ABS(navHeadingError) < 9000 && forceTurnDirection) {
         forceTurnDirection = false;
     }
 
     // If forced turn direction flag is enabled we fix the sign of the direction
     if (forceTurnDirection) {
-        headingError = ABS(headingError);
+        navHeadingError = ABS(navHeadingError);
     }
 
     // Slow error monitoring (2Hz rate)
     if ((currentTimeUs - previousTimeMonitoringUpdate) >= HZ2US(NAV_FW_CONTROL_MONITORING_RATE)) {
         // Check if error is decreasing over time
-        errorIsDecreasing = (ABS(previousHeadingError) > ABS(headingError));
+        errorIsDecreasing = (ABS(previousHeadingError) > ABS(navHeadingError));
 
         // Save values for next iteration
-        previousHeadingError = headingError;
+        previousHeadingError = navHeadingError;
         previousTimeMonitoringUpdate = currentTimeUs;
     }
 
@@ -310,7 +311,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
 
     // Input error in (deg*100), output pitch angle (deg*100)
-    float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.yaw + headingError, posControl.actualState.yaw, US2S(deltaMicros),
+    float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.yaw + navHeadingError, posControl.actualState.yaw, US2S(deltaMicros),
                                        -DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
                                         DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
                                         pidFlags);
@@ -580,6 +581,11 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
         if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS))
             applyFixedWingPitchRollThrottleController(navStateFlags, currentTimeUs);
     }
+}
+
+int32_t navigationGetHeadingError(void)
+{
+    return navHeadingError;
 }
 
 #endif  // NAV

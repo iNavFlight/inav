@@ -294,6 +294,8 @@ typedef struct {
 typedef struct {
     fpVector3_t                 targetPos;
     int32_t                     yaw;
+    int32_t                     previousYaw;
+    timeMs_t                    lastYawAdjustmentTime;
 } navCruise_t;
 
 typedef struct {
