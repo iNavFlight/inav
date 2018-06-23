@@ -430,7 +430,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             const OSD_SETTING_t *ptr = p->data;
             const setting_t *var = &settingsTable[ptr->val];
             int32_t value;
-            const void *valuePointer = setting_get_value_pointer(var);
+            const void *valuePointer = settingGetValuePointer(var);
             switch (SETTING_TYPE(var)) {
                 case VAR_UINT8:
                     value = *(uint8_t *)valuePointer;
@@ -1006,13 +1006,13 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             if (p->data) {
                 const OSD_SETTING_t *ptr = p->data;
                 const setting_t *var = &settingsTable[ptr->val];
-                setting_min_t min = setting_get_min(var);
-                setting_max_t max = setting_get_max(var);
+                setting_min_t min = settingGetMin(var);
+                setting_max_t max = settingGetMax(var);
                 float step = ptr->step ?: 1;
                 if (key != KEY_RIGHT) {
                     step = -step;
                 }
-                const void *valuePointer = setting_get_value_pointer(var);
+                const void *valuePointer = settingGetValuePointer(var);
                 switch (SETTING_TYPE(var)) {
                     case VAR_UINT8:
                         {

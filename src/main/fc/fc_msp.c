@@ -2578,7 +2578,7 @@ static const setting_t *mspReadSettingName(sbuf_t *src)
             return NULL;
         }
     }
-    return setting_find(name);
+    return settingFind(name);
 }
 
 static bool mspSettingCommand(sbuf_t *dst, sbuf_t *src)
@@ -2588,8 +2588,8 @@ static bool mspSettingCommand(sbuf_t *dst, sbuf_t *src)
         return false;
     }
 
-    const void *ptr = setting_get_value_pointer(setting);
-    size_t size = setting_get_value_size(setting);
+    const void *ptr = settingGetValuePointer(setting);
+    size_t size = settingGetValueSize(setting);
     sbufWriteDataSafe(dst, ptr, size);
     return true;
 }
@@ -2603,10 +2603,10 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
         return false;
     }
 
-    setting_min_t min = setting_get_min(setting);
-    setting_max_t max = setting_get_max(setting);
+    setting_min_t min = settingGetMin(setting);
+    setting_max_t max = settingGetMax(setting);
 
-    void *ptr = setting_get_value_pointer(setting);
+    void *ptr = settingGetValuePointer(setting);
     switch (SETTING_TYPE(setting)) {
         case VAR_UINT8:
             {

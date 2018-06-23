@@ -330,8 +330,8 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
         cliPrintf("%s", ftoa(*(float *)valuePointer, buf));
         if (full) {
             if (SETTING_MODE(var) == MODE_DIRECT) {
-                cliPrintf(" %s", ftoa((float)setting_get_min(var), buf));
-                cliPrintf(" %s", ftoa((float)setting_get_max(var), buf));
+                cliPrintf(" %s", ftoa((float)settingGetMin(var), buf));
+                cliPrintf(" %s", ftoa((float)settingGetMax(var), buf));
             }
         }
         return; // return from case for float only
@@ -345,7 +345,7 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
             cliPrintf("%d", value);
         if (full) {
             if (SETTING_MODE(var) == MODE_DIRECT) {
-                cliPrintf(" %d %u", setting_get_min(var), setting_get_max(var));
+                cliPrintf(" %d %u", settingGetMin(var), settingGetMax(var));
             }
         }
         break;
@@ -353,7 +353,7 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
         if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
             cliPrintf(settingLookupTables[var->config.lookup.tableIndex].values[value]);
         } else {
-            setting_get_name(var, buf);
+            settingGetName(var, buf);
             cliPrintLinef("VALUE %s OUT OF RANGE", buf);
         }
         break;
@@ -398,14 +398,14 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
     const char *defaultFormat = "#set %s = ";
     // During a dump, the PGs have been backed up to their "copy"
     // regions and the actual values have been reset to its
-    // defaults. This means that setting_get_value_pointer() will
-    // return the default value while setting_get_copy_value_pointer()
+    // defaults. This means that settingGetValuePointer() will
+    // return the default value while settingGetCopyValuePointer()
     // will return the actual value.
-    const void *valuePointer = setting_get_copy_value_pointer(value);
-    const void *defaultValuePointer = setting_get_value_pointer(value);
+    const void *valuePointer = settingGetCopyValuePointer(value);
+    const void *defaultValuePointer = settingGetValuePointer(value);
     const bool equalsDefault = valuePtrEqualsDefault(value->type, valuePointer, defaultValuePointer);
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
-        setting_get_name(value, name);
+        settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
             printValuePointer(value, defaultValuePointer, 0);
@@ -430,7 +430,7 @@ static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
 
 static void cliPrintVar(const setting_t *var, uint32_t full)
 {
-    const void *ptr = setting_get_value_pointer(var);
+    const void *ptr = settingGetValuePointer(var);
 
     printValuePointer(var, ptr, full);
 }
@@ -439,7 +439,7 @@ static void cliPrintVarRange(const setting_t *var)
 {
     switch (SETTING_MODE(var)) {
     case (MODE_DIRECT):
-        cliPrintLinef("Allowed range: %d - %u", setting_get_min(var), setting_get_max(var));
+        cliPrintLinef("Allowed range: %d - %u", settingGetMin(var), settingGetMax(var));
         break;
     case (MODE_LOOKUP): {
         const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
@@ -463,7 +463,7 @@ typedef union {
 
 static void cliSetVar(const setting_t *var, const int_float_value_t value)
 {
-    void *ptr = setting_get_value_pointer(var);
+    void *ptr = settingGetValuePointer(var);
 
     switch (SETTING_TYPE(var)) {
     case VAR_UINT8:
@@ -2260,7 +2260,7 @@ static void cliGet(char *cmdline)
 
     for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
         val = &settingsTable[i];
-        if (setting_name_contains(val, name, cmdline)) {
+        if (settingNameContains(val, name, cmdline)) {
             cliPrintf("%s = ", name);
             cliPrintVar(val, 0);
             cliPrintLinefeed();
@@ -2292,7 +2292,7 @@ static void cliSet(char *cmdline)
         cliPrintLine("Current settings:");
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
             val = &settingsTable[i];
-            setting_get_name(val, name);
+            settingGetName(val, name);
             cliPrintf("%s = ", name);
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
             cliPrintLinefeed();
@@ -2315,7 +2315,7 @@ static void cliSet(char *cmdline)
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
             val = &settingsTable[i];
             // ensure exact match when setting to prevent setting variables with shorter names
-            if (setting_name_exact_match(val, name, cmdline, variableNameLength)) {
+            if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 bool changeValue = false;
                 int_float_value_t tmp = {0};
                 const int mode = SETTING_MODE(val);
@@ -2325,7 +2325,7 @@ static void cliSet(char *cmdline)
                         if (*eqptr != 0 && strspn(eqptr, "0123456789.+-") == strlen(eqptr)) {
                             float valuef = fastA2F(eqptr);
                             // note: compare float values
-                            if (valuef >= (float)setting_get_min(val) && valuef <= (float)setting_get_max(val)) {
+                            if (valuef >= (float)settingGetMin(val) && valuef <= (float)settingGetMax(val)) {
 
                                 if (type == VAR_FLOAT)
                                     tmp.float_value = valuef;
