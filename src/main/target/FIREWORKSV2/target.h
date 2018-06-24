@@ -57,8 +57,8 @@
 // OmnibusF4 Nano v6 has a MPU6000
 #define USE_GYRO_MPU6000
 #define USE_ACC_MPU6000
-#define MPU6000_CS_PIN          PD2
-#define MPU6000_SPI_BUS         BUS_SPI3
+#define MPU6000_CS_PIN          PA4
+#define MPU6000_SPI_BUS         BUS_SPI1
 #define GYRO_MPU6000_ALIGN      CW180_DEG
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
