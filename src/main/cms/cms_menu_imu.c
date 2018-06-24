@@ -77,15 +77,6 @@ static long cmsx_menuImu_onEnter(const OSD_Entry *from)
     return 0;
 }
 
-static long cmsx_menuImu_onExit(const OSD_Entry *self)
-{
-    UNUSED(self);
-
-    setConfigProfile(profileIndex);
-
-    return 0;
-}
-
 static long cmsx_profileIndexOnChange(displayPort_t *displayPort, const void *ptr)
 {
     UNUSED(displayPort);
@@ -93,6 +84,7 @@ static long cmsx_profileIndexOnChange(displayPort_t *displayPort, const void *pt
 
     profileIndex = tmpProfileIndex - 1;
     profileIndexString[1] = '0' + tmpProfileIndex;
+    setConfigProfile(profileIndex);
 
     return 0;
 }
@@ -483,7 +475,7 @@ const CMS_Menu cmsx_menuImu = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuImu_onEnter,
-    .onExit = cmsx_menuImu_onExit,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = cmsx_menuImuEntries,
 };
