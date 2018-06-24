@@ -1281,6 +1281,9 @@ groups:
       - name: nav_rth_altitude
         field: general.rth_altitude
         max: 65000
+      - name: nav_rth_home_altitude
+        field: general.rth_home_altitude
+        max: 65000
 
       - name: nav_mc_bank_angle
         field: mc.max_bank_angle
