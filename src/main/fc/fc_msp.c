@@ -1336,16 +1336,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
 #if defined(USE_OSD)
-    case MSP2_INAV_OSD_LAYOUTS:
-        sbufWriteU8(dst, OSD_LAYOUT_COUNT);
-        sbufWriteU8(dst, OSD_ITEM_COUNT);
-        for (unsigned ii = 0; ii < OSD_LAYOUT_COUNT; ii++) {
-            for (unsigned jj = 0; jj < OSD_ITEM_COUNT; jj++) {
-                sbufWriteU16(dst, osdConfig()->item_pos[ii][jj]);
-            }
-        }
-        break;
-
     case MSP2_INAV_OSD_ALARMS:
         sbufWriteU8(dst, osdConfig()->rssi_alarm);
         sbufWriteU16(dst, osdConfig()->time_alarm);
@@ -2685,6 +2675,70 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
+bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
+{
+    switch (cmdMSP) {
+
+#if defined(USE_NAV)
+    case MSP_WP:
+        mspFcWaypointOutCommand(dst, src);
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
+
+#if defined(USE_FLASHFS)
+    case MSP_DATAFLASH_READ:
+        mspFcDataFlashReadCommand(dst, src);
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
+
+    case MSP2_COMMON_SETTING:
+        *ret = mspSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_COMMON_SET_SETTING:
+        *ret = mspSetSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+#if defined(USE_OSD)
+    case MSP2_INAV_OSD_LAYOUTS:
+        if (sbufBytesRemaining(src) >= 1) {
+            uint8_t layout = sbufReadU8(src);
+            if (layout >= OSD_LAYOUT_COUNT) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+            if (sbufBytesRemaining(src) >= 2) {
+                // Asking for an specific item in a layout
+                uint16_t item = sbufReadU16(src);
+                if (item >= OSD_ITEM_COUNT) {
+                    *ret = MSP_RESULT_ERROR;
+                    break;
+                }
+                sbufWriteU16(dst, osdConfig()->item_pos[layout][item]);
+            } else {
+                // Asking for an specific layout
+                for (unsigned ii = 0; ii < OSD_ITEM_COUNT; ii++) {
+                    sbufWriteU16(dst, osdConfig()->item_pos[layout][ii]);
+                }
+            }
+        } else {
+            // Return the number of layouts and items
+            sbufWriteU8(dst, OSD_LAYOUT_COUNT);
+            sbufWriteU8(dst, OSD_ITEM_COUNT);
+        }
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
+
+    default:
+        // Not handled
+        return false;
+    }
+    return true;
+}
+
 static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     UNUSED(src);
@@ -2711,7 +2765,7 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
  */
 mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
-    int ret = MSP_RESULT_ACK;
+    mspResult_e ret = MSP_RESULT_ACK;
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
     const uint16_t cmdMSP = cmd->cmd;
@@ -2727,22 +2781,10 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         mspFc4waySerialCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
 #endif
-#ifdef USE_NAV
-    } else if (cmdMSP == MSP_WP) {
-        mspFcWaypointOutCommand(dst, src);
-        ret = MSP_RESULT_ACK;
-#endif
-#ifdef USE_FLASHFS
-    } else if (cmdMSP == MSP_DATAFLASH_READ) {
-        mspFcDataFlashReadCommand(dst, src);
-        ret = MSP_RESULT_ACK;
-#endif
-    } else if (cmdMSP == MSP2_COMMON_SETTING) {
-        ret = mspSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
-    } else if (cmdMSP == MSP2_COMMON_SET_SETTING) {
-        ret = mspSetSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
     } else {
-        ret = mspFcProcessInCommand(cmdMSP, src);
+        if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
+            ret = mspFcProcessInCommand(cmdMSP, src);
+        }
     }
 
     // Process DONT_REPLY flag
