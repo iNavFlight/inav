@@ -1036,6 +1036,20 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
 
 #endif
 
+void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController) {
+    strcpy(buff, label);
+    uint8_t label_len = strlen(label);
+    for (uint8_t i = label_len; i < 5; ++i) buff[i] = ' ';
+    osdFormatCentiNumber(buff + 5, pidController->proportional, 0, 1, 0, 4);
+    buff[9] = ' ';
+    osdFormatCentiNumber(buff + 10, pidController->integrator, 0, 1, 0, 4);
+    buff[14] = ' ';
+    osdFormatCentiNumber(buff + 15, pidController->derivative, 0, 1, 0, 4);
+    buff[19] = ' ';
+    osdFormatCentiNumber(buff + 20, pidController->output_constrained, 0, 1, 0, 4);
+    buff[24] = '\0';
+}
+
 static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_t voltage, uint8_t decimals)
 {
     char buff[6];
@@ -1871,6 +1885,54 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "0TP", 0, (float)mixerConfig()->fwMinThrottleDownPitchAngle / 10, 3, 1, ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE);
         return true;
 
+    case OSD_FW_ALT_PID_OUTPUTS:
+        {
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+            osdFormatPidControllerOutput(buff, "PZO", &nav_pids->fw_alt);
+            break;
+        }
+
+    case OSD_FW_POS_PID_OUTPUTS:
+        {
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+            osdFormatPidControllerOutput(buff, "PXYO", &nav_pids->fw_nav);
+            break;
+        }
+
+    case OSD_MC_VEL_Z_PID_OUTPUTS:
+        {
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+            osdFormatPidControllerOutput(buff, "VZO", &nav_pids->vel[Z]);
+            break;
+        }
+
+    case OSD_MC_VEL_X_PID_OUTPUTS:
+        {
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+            osdFormatPidControllerOutput(buff, "VXO", &nav_pids->vel[X]);
+            break;
+        }
+
+    case OSD_MC_VEL_Y_PID_OUTPUTS:
+        {
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+            osdFormatPidControllerOutput(buff, "VYO", &nav_pids->vel[Y]);
+            break;
+        }
+
+    case OSD_MC_POS_XYZ_P_OUTPUTS:
+        {
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+            strcpy(buff, "POSO ");
+            osdFormatCentiNumber(buff + 5, nav_pids->pos[X].output_constrained, 0, 1, 0, 4);
+            buff[9] = ' ';
+            osdFormatCentiNumber(buff + 10, nav_pids->pos[Y].output_constrained, 0, 1, 0, 4);
+            buff[14] = ' ';
+            osdFormatCentiNumber(buff + 15, nav_pids->pos[Z].output_constrained, 0, 1, 0, 4);
+            buff[19] = '\0';
+            break;
+        }
+
     case OSD_POWER:
         {
             buff[0] = SYM_WATT;
@@ -2307,6 +2369,12 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_NAV_FW_CRUISE_THR] = OSD_POS(2, 12);
     osdConfig->item_pos[0][OSD_NAV_FW_PITCH2THR] = OSD_POS(2, 12);
     osdConfig->item_pos[0][OSD_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE] = OSD_POS(2, 12);
+    osdConfig->item_pos[0][OSD_FW_ALT_PID_OUTPUTS] = OSD_POS(2, 12);
+    osdConfig->item_pos[0][OSD_FW_POS_PID_OUTPUTS] = OSD_POS(2, 12);
+    osdConfig->item_pos[0][OSD_MC_VEL_X_PID_OUTPUTS] = OSD_POS(2, 12);
+    osdConfig->item_pos[0][OSD_MC_VEL_Y_PID_OUTPUTS] = OSD_POS(2, 12);
+    osdConfig->item_pos[0][OSD_MC_VEL_Z_PID_OUTPUTS] = OSD_POS(2, 12);
+    osdConfig->item_pos[0][OSD_MC_POS_XYZ_P_OUTPUTS] = OSD_POS(2, 12);
 
     osdConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);
 
