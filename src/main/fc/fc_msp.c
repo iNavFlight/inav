@@ -1278,8 +1278,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
 
-                uint8_t deviceType = 0;
-                vtxCommonGetDeviceType(vtxDevice);
+                uint8_t deviceType = vtxCommonGetDeviceType(vtxDevice);
 
                 // Return band, channel and power from vtxSettingsConfig_t
                 // since the VTX might be configured but temporarily offline.
@@ -1292,7 +1291,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, vtxSettingsConfig()->power);
                 sbufWriteU8(dst, pitmode);
 
-                // Betaflight doesn't send these fields
+                // Betaflight < 4 doesn't send these fields
                 sbufWriteU8(dst, vtxCommonDeviceIsReady(vtxDevice) ? 1 : 0);
                 sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
                 // future extensions here...
