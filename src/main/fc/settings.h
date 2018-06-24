@@ -27,6 +27,7 @@ typedef enum {
     VAR_INT16 = (3 << SETTING_TYPE_OFFSET),
     VAR_UINT32 = (4 << SETTING_TYPE_OFFSET),
     VAR_FLOAT = (5 << SETTING_TYPE_OFFSET), // 0x05
+    VAR_STRING = (6 << SETTING_TYPE_OFFSET) // 0x06
 } setting_type_e;
 
 typedef enum {
@@ -99,3 +100,13 @@ setting_min_t settingGetMin(const setting_t *val);
 // depends on the target and build options, but will always be an unsigned
 // integer (e.g. uintxx_t,)
 setting_max_t settingGetMax(const setting_t *val);
+// Returns the setting value as a const char * iff the setting is of type
+// VAR_STRING. Otherwise it returns NULL.
+const char * settingGetString(const setting_t *val);
+// Sets the value for the given string setting. Size indicates the number of
+// bytes in the string without the '\0' terminator (i.e. its strlen()).
+// If the setting is not of type VAR_STRING, this function does nothing.
+void settingSetString(const setting_t *val, const char *s, size_t size);
+// Returns the max string length (without counting the '\0' terminator)
+// for setting of type VAR_STRING. Otherwise it returns 0.
+setting_max_t settingGetStringMaxLength(const setting_t *val);

@@ -146,6 +146,7 @@ Re-apply any new defaults as desired.
 |  inav_w_acc_bias  | 0.010 | Weight for accelerometer drift estimation |
 |  inav_max_eph_epv  | 1000.000 | Maximum uncertainty value until estimated position is considered valid and is used for navigation [cm] |
 |  inav_baro_epv  | 100.000 | Uncertainty value for barometric sensor [cm] |
+|  name  | Empty string | Craft name |
 |  nav_disarm_on_landing  | OFF | If set to ON, iNav disarms the FC after landing |
 |  nav_use_midthr_for_althold  | OFF | If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude |
 |  nav_extra_arming_safety  | ON | If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured |

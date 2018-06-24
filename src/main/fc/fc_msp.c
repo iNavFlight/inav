@@ -2680,6 +2680,11 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 *((float*)ptr) = val;
             }
             break;
+        case VAR_STRING:
+            {
+                settingSetString(setting, (const char*)sbufPtr(src), sbufBytesRemaining(src));
+            }
+            break;
     }
 
     return true;

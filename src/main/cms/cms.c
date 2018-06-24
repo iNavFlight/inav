@@ -453,6 +453,9 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
                     // a data type yet.
                     ftoa(*(float *)valuePointer, buff);
                     break;
+                case VAR_STRING:
+                    strncpy(buff, valuePointer, sizeof(buff));
+                    break;
             }
             if (buff[0] == '\0') {
                 const char *suffix = NULL;
@@ -1056,6 +1059,8 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
                             *(float *)valuePointer = val;
                             break;
                         }
+                        break;
+                    case VAR_STRING:
                         break;
                 }
                 SET_PRINTVALUE(p, currentCtx.cursorRow);

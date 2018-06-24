@@ -92,6 +92,8 @@ size_t settingGetValueSize(const setting_t *val)
 			FALLTHROUGH;
 		case VAR_FLOAT:
 			return 4;
+		case VAR_STRING:
+			return settingGetMax(val);
 	}
 	return 0; // Unreachable
 }
@@ -150,4 +152,31 @@ setting_max_t settingGetMax(const setting_t *val)
 		return settingLookupTables[val->config.lookup.tableIndex].valueCount - 1;
 	}
 	return settingMinMaxTable[SETTING_INDEXES_GET_MAX(val)];
+}
+
+const char * settingGetString(const setting_t *val)
+{
+	if (SETTING_TYPE(val) == VAR_STRING) {
+		return settingGetValuePointer(val);
+	}
+	return NULL;
+}
+
+void settingSetString(const setting_t *val, const char *s, size_t size)
+{
+	if (SETTING_TYPE(val) == VAR_STRING) {
+		char *p = settingGetValuePointer(val);
+		size_t copySize = MIN(size, settingGetMax(val));
+		memcpy(p, s, copySize);
+		p[copySize] = '\0';
+	}
+}
+
+setting_max_t settingGetStringMaxLength(const setting_t *val)
+{
+	if (SETTING_TYPE(val) == VAR_STRING) {
+		// Max string length is stored as its max
+		return settingGetMax(val);
+	}
+	return 0;
 }

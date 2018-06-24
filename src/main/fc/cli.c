@@ -135,8 +135,6 @@ static void cliAssert(char *cmdline);
 static void cliBootlog(char *cmdline);
 #endif
 
-static const char* const emptyName = "-";
-
 // sync this with features_e
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
@@ -335,6 +333,10 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
             }
         }
         return; // return from case for float only
+
+    case VAR_STRING:
+        cliPrintf("%s", (const char *)valuePointer);
+        return;
     }
 
     switch (SETTING_MODE(var)) {
@@ -438,10 +440,15 @@ static void cliPrintVar(const setting_t *var, uint32_t full)
 static void cliPrintVarRange(const setting_t *var)
 {
     switch (SETTING_MODE(var)) {
-    case (MODE_DIRECT):
+    case MODE_DIRECT:
+        if (SETTING_TYPE(var) == VAR_STRING) {
+           cliPrintLinef("Max. length: %u", settingGetStringMaxLength(var));
+           break;
+        }
         cliPrintLinef("Allowed range: %d - %u", settingGetMin(var), settingGetMax(var));
         break;
-    case (MODE_LOOKUP): {
+    case MODE_LOOKUP:
+    {
         const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
         cliPrint("Allowed values:");
         for (uint32_t i = 0; i < tableEntry->valueCount ; i++) {
@@ -451,7 +458,7 @@ static void cliPrintVarRange(const setting_t *var)
         }
         cliPrintLinefeed();
     }
-    break;
+        break;
     }
 }
 
@@ -461,7 +468,7 @@ typedef union {
     float float_value;
 } int_float_value_t;
 
-static void cliSetVar(const setting_t *var, const int_float_value_t value)
+static void cliSetIntFloatVar(const setting_t *var, const int_float_value_t value)
 {
     void *ptr = settingGetValuePointer(var);
 
@@ -482,6 +489,10 @@ static void cliSetVar(const setting_t *var, const int_float_value_t value)
 
     case VAR_FLOAT:
         *(float *)ptr = (float)value.float_value;
+        break;
+
+    case VAR_STRING:
+        // Handled by cliSet directly
         break;
     }
 }
@@ -2123,24 +2134,6 @@ static void cliMotor(char *cmdline)
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
 }
 
-static void printName(uint8_t dumpMask, const systemConfig_t * sConfig)
-{
-    bool equalsDefault = strlen(sConfig->name) == 0;
-    cliDumpPrintLinef(dumpMask, equalsDefault, "name %s", equalsDefault ? emptyName : sConfig->name);
-}
-
-static void cliName(char *cmdline)
-{
-    int32_t len = strlen(cmdline);
-    if (len > 0) {
-        memset(systemConfigMutable()->name, 0, ARRAYLEN(systemConfigMutable()->name));
-        if (strncmp(cmdline, emptyName, len)) {
-            strncpy(systemConfigMutable()->name, cmdline, MIN(len, MAX_NAME_LENGTH));
-        }
-    }
-    printName(DUMP_MASTER, systemConfig());
-}
-
 #ifdef PLAY_SOUND
 static void cliPlaySound(char *cmdline)
 {
@@ -2316,10 +2309,14 @@ static void cliSet(char *cmdline)
             val = &settingsTable[i];
             // ensure exact match when setting to prevent setting variables with shorter names
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
+                const setting_type_e type = SETTING_TYPE(val);
+                if (type == VAR_STRING) {
+                    settingSetString(val, eqptr, strlen(eqptr));
+                    return;
+                }
+                const setting_mode_e mode = SETTING_MODE(val);
                 bool changeValue = false;
                 int_float_value_t tmp = {0};
-                const int mode = SETTING_MODE(val);
-                const int type = SETTING_TYPE(val);
                 switch (mode) {
                 case MODE_DIRECT: {
                         if (*eqptr != 0 && strspn(eqptr, "0123456789.+-") == strlen(eqptr)) {
@@ -2355,7 +2352,7 @@ static void cliSet(char *cmdline)
                 }
 
                 if (changeValue) {
-                    cliSetVar(val, tmp);
+                    cliSetIntFloatVar(val, tmp);
 
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
@@ -2676,9 +2673,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
 
-        cliPrintHashLine("name");
-        printName(dumpMask, &systemConfig_Copy);
-
         cliPrintHashLine("serial");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
 
@@ -2834,7 +2828,6 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
-    CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),
 #ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
 #endif
