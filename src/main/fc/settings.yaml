@@ -1592,6 +1592,7 @@ groups:
       - name: input_filtering_mode
         field: pwmRxInputFilteringMode
         type: bool
+      - name: name
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
     type: modeActivationOperatorConfig_t
