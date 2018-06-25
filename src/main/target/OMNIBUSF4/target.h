@@ -138,7 +138,7 @@
 
 #if defined(OMNIBUSF4V3)
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     NONE
+#define SOFTSERIAL_1_RX_PIN     PC6 //shared with UART6_TX
 #define SOFTSERIAL_1_TX_PIN     PC6 //shared with UART6_TX
 
 #define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1

@@ -147,7 +147,7 @@ Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount
 
 ### Omnibus F4 v3/v4/v5 SoftwareSerial Connections
 
-The SOFTSERIAL1 is an uni-directional (TX-only) port mapped to UART6-TX pin.
+The SOFTSERIAL1 is an uni-directional port mapped to UART6-TX pin.
 When enabled, the UART6 is still available as hardware port but it's then RX-only port (good for e.g. receiving S.BUS input). TX instead is controlled in software (can be used for e.g. transmitting one-way telemetry).
 
 
