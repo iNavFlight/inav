@@ -1061,7 +1061,7 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
-    osdFormatCentiNumber(buff, voltage, 0, decimals, 0, decimals + 2);
+    osdFormatCentiNumber(buff, voltage, 0, decimals, 0, decimals + 1);
     strcat(buff, "V");
     if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1838,7 +1838,7 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_YAW_RATE:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "YRT", 0, currentControlRateProfile->stabilized.rates[FD_YAW], 3, 0, ADJUSTMENT_YAW_RATE);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "SYR", 0, currentControlRateProfile->stabilized.rates[FD_YAW], 3, 0, ADJUSTMENT_YAW_RATE);
         return true;
 
     case OSD_MANUAL_RC_EXPO:
@@ -2239,11 +2239,19 @@ static bool osdDrawSingleElement(uint8_t item)
 static uint8_t osdIncElementIndex(uint8_t elementIndex)
 {
     ++elementIndex;
+
     if (!sensors(SENSOR_ACC)) {
         if (elementIndex == OSD_CROSSHAIRS) {
             elementIndex = OSD_ONTIME;
         }
     }
+
+    if (!feature(FEATURE_VBAT)) {
+        if (elementIndex == OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE) {
+            elementIndex = OSD_LEVEL_PIDS;
+        }
+    }
+
     if (!feature(FEATURE_CURRENT_METER)) {
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
@@ -2252,9 +2260,13 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
             elementIndex = OSD_TRIP_DIST;
         }
         if (elementIndex == OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH) {
-            elementIndex = OSD_ITEM_COUNT;
+            elementIndex = OSD_HOME_HEADING_ERROR;
+        }
+        if (elementIndex == OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE) {
+            elementIndex = OSD_LEVEL_PIDS;
         }
     }
+
     if (!feature(FEATURE_GPS)) {
         if (elementIndex == OSD_GPS_SPEED) {
             elementIndex = OSD_ALTITUDE;
@@ -2267,6 +2279,9 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         }
         if (elementIndex == OSD_TRIP_DIST) {
             elementIndex = OSD_ATTITUDE_PITCH;
+        }
+        if (elementIndex == OSD_MAP_NORTH) {
+            elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
         }
     }
 
