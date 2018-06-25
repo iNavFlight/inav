@@ -38,7 +38,7 @@
 * PPM and UART6 can be used together when S.BUS jumper is removed (close to PPM/SBUS connector)
 * Uses target **OMNIBUSF4V3**
 
-### Omnibus F4 v4
+### Omnibus F4 v4/v5
 
 * Switching voltage regulator - solves problem of overheating BEC
 * SD Card slot instead of flash memory
@@ -143,9 +143,13 @@ Please note that this is *not* the motor PWM5/PWM6 pins, but small surface mount
 | CH5   | RX                    |
 | CH6   | TX                    |
 
-## SoftwareSerial
-
 ![Omnibus F4 Pro SmartPort using SoftwareSerial](assets/images/omnibusf4pro_ss.png)
+
+### Omnibus F4 v3/v4/v5 SoftwareSerial Connections
+
+The SOFTSERIAL1 is an uni-directional port mapped to UART6-TX pin.
+When enabled, the UART6 is still available as hardware port but it's then RX-only port (good for e.g. receiving S.BUS input). TX instead is controlled in software (can be used for e.g. transmitting one-way telemetry).
+
 
 # Wiring diagrams for Omnibus F4 Pro
 
