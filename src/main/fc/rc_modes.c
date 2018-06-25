@@ -99,9 +99,12 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
         return false;
     }
 
-    uint16_t channelValue = constrain(rcData[auxChannelIndex + NON_AUX_CHANNEL_COUNT], CHANNEL_RANGE_MIN, CHANNEL_RANGE_MAX - 1);
-    return (channelValue >= 900 + (range->startStep * 25) &&
-            channelValue < 900 + (range->endStep * 25));
+    // No need to constrain() here, since we're testing for a closed range defined
+    // by the channelRange_t. If channelValue has an invalid value, the test will
+    // be false anyway.
+    uint16_t channelValue = rcData[auxChannelIndex + NON_AUX_CHANNEL_COUNT];
+    return (channelValue >= CHANNEL_RANGE_MIN + (range->startStep * CHANNEL_RANGE_STEP_WIDTH) &&
+            channelValue < CHANNEL_RANGE_MIN + (range->endStep * CHANNEL_RANGE_STEP_WIDTH));
 }
 
 void updateActivatedModes(void)
