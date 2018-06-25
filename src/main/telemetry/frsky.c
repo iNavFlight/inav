@@ -71,7 +71,7 @@ uint16_t frskyGetGPSState(void)
     tmpi += constrain(gpsSol.numSat, 0, 99);
     
     // hundreds column (satellite accuracy HDOP: 0 = worst [HDOP 6.5], 9 = best [HDOP 2.0])
-    tmpi += (9 - constrain((gpsSol.hdop - 200) / 50, 0, 9)) * 100;
+    tmpi += (9 - constrain((gpsSol.hdop - 151) / 50, 0, 9)) * 100;
     
     // thousands column (GPS fix status)
     if (STATE(GPS_FIX))
