@@ -570,11 +570,9 @@ static void applySelectAdjustment(uint8_t adjustmentFunction, uint8_t position)
 
 #define RESET_FREQUENCY_2HZ (1000 / 2)
 
-void processRcAdjustments(controlRateConfig_t *controlRateConfig)
+void processRcAdjustments(controlRateConfig_t *controlRateConfig, bool canUseRxData)
 {
     const uint32_t now = millis();
-
-    const bool canUseRxData = rxIsReceivingSignal();
 
     for (int adjustmentIndex = 0; adjustmentIndex < MAX_SIMULTANEOUS_ADJUSTMENT_COUNT; adjustmentIndex++) {
         adjustmentState_t * const adjustmentState = &adjustmentStates[adjustmentIndex];
@@ -636,23 +634,26 @@ void resetAdjustmentStates(void)
     memset(adjustmentStates, 0, sizeof(adjustmentStates));
 }
 
-void updateAdjustmentStates(void)
+void updateAdjustmentStates(bool canUseRxData)
 {
     for (int index = 0; index < MAX_ADJUSTMENT_RANGE_COUNT; index++) {
         const adjustmentRange_t * const adjustmentRange = adjustmentRanges(index);
+        const adjustmentConfig_t *adjustmentConfig = &defaultAdjustmentConfigs[adjustmentRange->adjustmentFunction - ADJUSTMENT_FUNCTION_CONFIG_INDEX_OFFSET];
 
-        if (isRangeActive(adjustmentRange->auxChannelIndex, &adjustmentRange->range)) {
-
-            const adjustmentConfig_t *adjustmentConfig = &defaultAdjustmentConfigs[adjustmentRange->adjustmentFunction - ADJUSTMENT_FUNCTION_CONFIG_INDEX_OFFSET];
-
+        if (canUseRxData && isRangeActive(adjustmentRange->auxChannelIndex, &adjustmentRange->range)) {
             configureAdjustment(adjustmentRange->adjustmentIndex, adjustmentRange->auxSwitchChannelIndex, adjustmentConfig);
+        } else {
+            adjustmentState_t * const adjustmentState = &adjustmentStates[index];
+            if (adjustmentState->config == adjustmentConfig) {
+                adjustmentState->config = NULL;
+            }
         }
     }
 }
 
 bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction) {
     for (uint8_t index = 0; index < MAX_SIMULTANEOUS_ADJUSTMENT_COUNT; ++index) {
-        if (adjustmentStates[index].config->adjustmentFunction == adjustmentFunction) {
+        if (adjustmentStates[index].config && adjustmentStates[index].config->adjustmentFunction == adjustmentFunction) {
             return true;
         }
     }
