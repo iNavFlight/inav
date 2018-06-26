@@ -483,9 +483,10 @@ void processRx(timeUs_t currentTimeUs)
 
     updateActivatedModes();
 
-    if ((!cliMode) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
-        updateAdjustmentStates();
-        processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile));
+    if (!cliMode) {
+        bool canUseRxData = rxIsReceivingSignal() && !FLIGHT_MODE(FAILSAFE_MODE);
+        updateAdjustmentStates(canUseRxData);
+        processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile), canUseRxData);
     }
 
     bool canUseHorizonMode = true;
