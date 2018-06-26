@@ -394,19 +394,19 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     if (options & SERIAL_BIDIR) {
         IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TXRX, RESOURCE_INDEX(device));
         if (options & SERIAL_BIDIR_PP)
-            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
+            IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
         else
             IOConfigGPIOAF(tx, IOCFG_AF_OD, uart->af);
     }
     else {
         if (mode & MODE_TX) {
             IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TX, RESOURCE_INDEX(device));
-            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
+            IOConfigGPIOAF(tx, IOCFG_AF_PP_UP, uart->af);
         }
 
         if (mode & MODE_RX) {
             IOInit(rx, OWNER_SERIAL, RESOURCE_UART_RX, RESOURCE_INDEX(device));
-            IOConfigGPIOAF(rx, IOCFG_AF_PP, uart->af);
+            IOConfigGPIOAF(rx, IOCFG_AF_PP_UP, uart->af);
         }
     }
 

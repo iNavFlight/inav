@@ -28,6 +28,13 @@
 #include "drivers/bus.h"
 #include "drivers/bus_spi.h"
 #include "drivers/time.h"
+#ifdef USE_DMA_SPI_DEVICE
+#ifndef GYRO_READ_TIMEOUT
+    #define GYRO_READ_TIMEOUT 20
+#endif //GYRO_READ_TIMEOUT
+#include "drivers/dma_spi.h"
+#include "drivers/time.h"
+#endif //USE_DMA_SPI_DEVICE
 
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 {
@@ -50,6 +57,33 @@ bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * d
 
     __NOP();
     IOHi(dev->busdev.spi.csnPin);
+
+    return true;
+}
+
+bool spiBusTransfer(const busDevice_t * dev, const uint8_t *txData, uint8_t *rxData, int length)
+{
+
+    #ifdef USE_DMA_SPI_DEVICE
+        (void)(dev);
+        uint32_t timeoutCheck = millis();
+        memcpy(dmaTxBuffer, (uint8_t *)txData, length);
+        dmaSpiTransmitReceive(dmaTxBuffer, dmaRxBuffer, length, 1);
+        while(dmaSpiReadStatus != DMA_SPI_READ_DONE)
+        {
+            if(millis() - timeoutCheck > GYRO_READ_TIMEOUT)
+            {
+                //GYRO_READ_TIMEOUT ms max, read failed, cleanup spi and return 0
+                dmaSpicleanupspi();
+                return false;
+            }
+        }
+        memcpy((uint8_t *)rxData, dmaRxBuffer, length);
+    #else
+        IOLo(dev->busdev.spi.csnPin);
+        spiTransfer(bus->busdev_u.spi.instance, txData, rxData, length);
+        IOHi(dev->busdev.spi.csnPin);
+    #endif
 
     return true;
 }

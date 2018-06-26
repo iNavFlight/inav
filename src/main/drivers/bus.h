@@ -87,6 +87,9 @@ typedef enum {
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
 
+    /* IMU chips */
+    DEVHW_IMUF9001,
+
     /* Barometer chips */
     DEVHW_BMP085,
     DEVHW_BMP280,
@@ -153,6 +156,9 @@ typedef struct busDevice_s {
         struct {
             SPIDevice spiBus;       // SPI bus ID
             IO_t csnPin;            // IO for CS# pin
+            #if defined(USE_GYRO_IMUF9001)          
+                IO_t rstPin;
+            #endif 
         } spi;
 #endif
 #ifdef USE_I2C
@@ -162,6 +168,7 @@ typedef struct busDevice_s {
         } i2c;
 #endif
     } busdev;
+
     IO_t irqPin;                    // Device IRQ pin. Bus system will only assign IO_t object to this var. Initialization is up to device driver
     uint32_t scratchpad[BUS_SCRATCHPAD_MEMORY_SIZE / sizeof(uint32_t)];     // Memory where device driver can store persistent data. Zeroed out when initializing the device 
                                                                             // for the first time. Useful when once device is shared between several sensors 

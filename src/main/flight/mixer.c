@@ -50,6 +50,7 @@
 
 #include "rx/rx.h"
 
+#include "sensors/gyro.h"
 
 //#define MIXER_DEBUG
 
@@ -461,7 +462,15 @@ void mixTable(void)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
+#ifdef USE_GYRO_IMUF9001 //for testing only!
+    if ( 
+            ( !gyroIsSane() && STATE(FIXED_WING) ) || //gyro is not healty, go into manual mode
+            (STATE(FIXED_WING) && FLIGHT_MODE(MANUAL_MODE))
+        )
+        {
+#else
     if (STATE(FIXED_WING) && FLIGHT_MODE(MANUAL_MODE)) {
+#endif
         // Direct passthru from RX
         input[ROLL] = rcCommand[ROLL];
         input[PITCH] = rcCommand[PITCH];

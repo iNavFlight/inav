@@ -68,6 +68,9 @@ extern uint8_t __config_end;
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -167,7 +170,7 @@ static const char * const featureNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "IMUF9001", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -1979,6 +1982,31 @@ static void cliEleresBind(char *cmdline)
 }
 #endif // USE_RX_ELERES
 
+#ifdef USE_GYRO_IMUF9001
+static void cliImufUpdate(char *cmdline)
+{
+    UNUSED(cmdline);
+    cliPrint("I muff, you muff, we all muff for IMU-F!");
+    cliPrintLinefeed();
+    (*((uint32_t *)0x2001FFEC)) = 0xF431FA77;
+    delay(1000);
+    cliReboot();
+}
+#endif
+
+#ifdef MSD_ADDRESS
+static void cliMsd(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    cliPrint("Loading as USB drive!");
+    cliPrintLinefeed();
+    (*((uint32_t *)0x2001FFF0)) = 0xF431FA11;
+    delay(1000);
+    cliReboot();
+}
+#endif
+
 static void cliExit(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2481,6 +2509,9 @@ static void cliVersion(char *cmdline)
         buildTime,
         shortGitRevision
     );
+#ifdef USE_GYRO_IMUF9001
+    cliPrintLinef("# IMU-F Version: %lu", imufCurrentVersion);
+#endif
 }
 
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
@@ -2722,6 +2753,12 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
+#ifdef USE_GYRO_IMUF9001
+    CLI_COMMAND_DEF("imufupdate", "update imu-f's firmware", NULL, cliImufUpdate),
+#endif
+#ifdef MSD_ADDRESS
+    CLI_COMMAND_DEF("msd", "boot into USB drive mode to download log files", NULL, cliMsd),
+#endif
     CLI_COMMAND_DEF("exit", NULL, NULL, cliExit),
     CLI_COMMAND_DEF("feature", "configure features",
         "list\r\n"

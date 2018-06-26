@@ -401,6 +401,12 @@ static float calcHorizonRateMagnitude(void)
     return horizonRateMagnitude;
 }
 
+uint32_t getSetpointRateInt(int axis)
+{
+    uint32_t* dataOutPtr = (uint32_t*)&(pidState[axis].rateTarget);
+    return ( *dataOutPtr );
+}
+
 static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude)
 {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers

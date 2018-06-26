@@ -11,6 +11,7 @@
 #include "drivers/exti.h"
 #include "drivers/io_impl.h"
 #include "drivers/nvic.h"
+#include "drivers/accgyro/accgyro_mpu.h"
 
 typedef struct {
     extiCallbackRec_t* handler;
@@ -195,7 +196,8 @@ void EXTI_IRQHandler(void)
     while (exti_active) {
         unsigned idx = 31 - __builtin_clz(exti_active);
         uint32_t mask = 1 << idx;
-        extiChannelRecs[idx].handler->fn(extiChannelRecs[idx].handler);
+        //extiChannelRecs[idx].handler->fn(extiChannelRecs[idx].handler);
+        mpuGyroDmaSpiReadStart();
         EXTI->PR = mask;  // clear pending mask (by writing 1)
         exti_active &= ~mask;
     }

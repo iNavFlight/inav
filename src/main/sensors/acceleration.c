@@ -49,6 +49,10 @@
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/logging.h"
 #include "drivers/sensor.h"
+#ifdef USE_ACC_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif //USE_ACC_IMUF9001
+#include "drivers/bus_spi.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -250,6 +254,19 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         FALLTHROUGH;
 #endif
 
+#ifdef USE_ACC_IMUF9001
+    case ACC_IMUF9001:
+        if (imufSpiAccDetect(dev)) {
+            accHardware = ACC_IMUF9001;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
 #ifdef USE_FAKE_ACC
     case ACC_FAKE:
         if (fakeAccDetect(dev)) {
@@ -275,7 +292,7 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         return false;
     }
 
-    detectedSensors[SENSOR_INDEX_ACC] = accHardware;
+    detectedSensors[SENSOR_INDEX_ACC]= accHardware;
     sensorsSet(SENSOR_ACC);
     return true;
 }
@@ -500,6 +517,7 @@ void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 
 void accUpdate(void)
 {
+
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
@@ -514,9 +532,10 @@ void accUpdate(void)
     }
 
     applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
-
+    #ifndef USE_ACC_IMUF9001
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
+    #endif //USE_ACC_IMUF9001
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.accADCf[axis] = (float)accADC[axis] / acc.dev.acc_1G;

@@ -267,7 +267,7 @@ bool ms5611Detect(baroDev_t *baro)
     }
 
     if (!deviceInit(baro)) {
-        busDeviceDeInit(baro->busDev);
+      busDeviceDeInit(baro->busDev);
         return false;
     }
 

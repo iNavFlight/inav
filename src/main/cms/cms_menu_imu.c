@@ -417,6 +417,93 @@ static const CMS_Menu cmsx_menuFilterPerProfile = {
     .onGlobalExit = NULL,
     .entries = cmsx_menuFilterPerProfileEntries,
 };
+//
+// SPRING Imuf
+//
+
+#if defined(USE_GYRO_IMUF9001)
+static uint16_t gyroConfig_imuf_mode;
+static uint16_t gyroConfig_imuf_pitch_q;
+static uint16_t gyroConfig_imuf_pitch_w;
+static uint16_t gyroConfig_imuf_roll_q;
+static uint16_t gyroConfig_imuf_roll_w;
+static uint16_t gyroConfig_imuf_yaw_q;
+static uint16_t gyroConfig_imuf_yaw_w;
+static uint16_t gyroConfig_imuf_pitch_lpf_cutoff_hz;
+static uint16_t gyroConfig_imuf_roll_lpf_cutoff_hz;
+static uint16_t gyroConfig_imuf_yaw_lpf_cutoff_hz;
+#endif
+
+#if defined(USE_GYRO_IMUF9001)
+static long cmsx_menuImuf_onEnter(void)
+{
+    gyroConfig_imuf_mode = gyroConfig()->imuf_mode;
+    gyroConfig_imuf_pitch_q = gyroConfig()->imuf_pitch_q;
+    gyroConfig_imuf_pitch_w = gyroConfig()->imuf_pitch_w;
+    gyroConfig_imuf_roll_q = gyroConfig()->imuf_roll_q;
+    gyroConfig_imuf_roll_w = gyroConfig()->imuf_roll_w;
+    gyroConfig_imuf_yaw_q = gyroConfig()->imuf_yaw_q;
+    gyroConfig_imuf_yaw_w = gyroConfig()->imuf_yaw_w;
+    gyroConfig_imuf_pitch_lpf_cutoff_hz = gyroConfig()->imuf_pitch_lpf_cutoff_hz;
+    gyroConfig_imuf_roll_lpf_cutoff_hz = gyroConfig()->imuf_roll_lpf_cutoff_hz;
+    gyroConfig_imuf_yaw_lpf_cutoff_hz = gyroConfig()->imuf_yaw_lpf_cutoff_hz;
+
+    return 0;
+}
+#endif
+
+#if defined(USE_GYRO_IMUF9001)
+static long cmsx_menuImuf_onExit(const OSD_Entry *self)
+{
+    UNUSED(self);
+
+    gyroConfigMutable()->imuf_mode =  gyroConfig_imuf_mode;
+    gyroConfigMutable()->imuf_pitch_q = gyroConfig_imuf_pitch_q;
+    gyroConfigMutable()->imuf_pitch_w = gyroConfig_imuf_pitch_w;
+    gyroConfigMutable()->imuf_roll_q = gyroConfig_imuf_roll_q;
+    gyroConfigMutable()->imuf_roll_w = gyroConfig_imuf_roll_w;
+    gyroConfigMutable()->imuf_yaw_q = gyroConfig_imuf_yaw_q;
+    gyroConfigMutable()->imuf_yaw_w = gyroConfig_imuf_yaw_w;
+    gyroConfigMutable()->imuf_pitch_lpf_cutoff_hz = gyroConfig_imuf_pitch_lpf_cutoff_hz;
+    gyroConfigMutable()->imuf_roll_lpf_cutoff_hz = gyroConfig_imuf_roll_lpf_cutoff_hz;
+    gyroConfigMutable()->imuf_yaw_lpf_cutoff_hz = gyroConfig_imuf_yaw_lpf_cutoff_hz;
+
+    return 0;
+}
+#endif
+
+#if defined(USE_GYRO_IMUF9001)
+static OSD_Entry cmsx_menuImufEntries[] =
+{
+    { "-- SPRING_IMUF --", OME_Label, NULL, NULL, 0 },
+
+    { "MODE",      OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_mode,                0, 255,    1 }, 0 },
+    { "PITCH Q",   OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_pitch_q,             0, 16000, 50 }, 0 },
+    { "PITCH W",   OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_pitch_w,             0, 16000,  1 }, 0 },
+    { "ROLL Q",    OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_roll_q,              0, 16000, 50 }, 0 },
+    { "ROLL W",    OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_roll_w,              0, 16000,  1 }, 0 },
+    { "YAW Q",     OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_yaw_q,               0, 16000, 50 }, 0 },
+    { "YAW W",     OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_yaw_w,               0, 16000,  1 }, 0 },
+    { "PITCH LPF", OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_pitch_lpf_cutoff_hz, 0, 255,    1 }, 0 },
+    { "ROLL LPF",  OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_roll_lpf_cutoff_hz,  0, 255,    1 }, 0 },
+    { "YAW LPF",   OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_yaw_lpf_cutoff_hz,   0, 255,    1 }, 0 },
+
+    { "BACK", OME_Back, NULL, NULL, 0 },
+    { NULL, OME_END, NULL, NULL, 0 }
+};
+#endif
+
+#if defined(USE_GYRO_IMUF9001)
+static CMS_Menu cmsx_menuImuf = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "XIMUF",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = cmsx_menuImuf_onEnter,
+    .onExit = cmsx_menuImuf_onExit,
+    .entries = cmsx_menuImufEntries,
+};
+#endif
 
 static const OSD_Entry cmsx_menuGyroEntries[] =
 {
@@ -459,6 +546,10 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     // Global
     OSD_SUBMENU_ENTRY("GYRO GLB",  &cmsx_menuGyro),
 
+    {"GYRO GLB",  OME_Submenu, cmsMenuChange,                 &cmsx_menuGyro,                                              0},
+#if defined(USE_GYRO_IMUF9001)
+    {"IMUF",      OME_Submenu, cmsMenuChange,                 &cmsx_menuImuf,                                                0},
+#endif
 #ifdef NOT_YET
     {"OTHER PP",  OME_Submenu, cmsMenuChange,                 &cmsx_menuProfileOther,                                      0},
     // Profile independent

@@ -26,15 +26,16 @@
 
 typedef enum {
     GYRO_NONE = 0,
-    GYRO_AUTODETECT,
-    GYRO_MPU6050,
-    GYRO_L3G4200D,
-    GYRO_MPU3050,
-    GYRO_L3GD20,
-    GYRO_MPU6000,
-    GYRO_MPU6500,
-    GYRO_MPU9250,
-    GYRO_FAKE
+    GYRO_AUTODETECT = 1,
+    GYRO_MPU6050 = 2,
+    GYRO_L3G4200D = 3,
+    GYRO_MPU3050 = 4,
+    GYRO_L3GD20 = 5,
+    GYRO_MPU6000 = 6,
+    GYRO_MPU6500 = 7,
+    GYRO_MPU9250 = 8,
+    GYRO_IMUF9001 = 9,
+    GYRO_FAKE,    
 } gyroSensor_e;
 
 typedef struct gyro_s {
@@ -43,6 +44,17 @@ typedef struct gyro_s {
 } gyro_t;
 
 extern gyro_t gyro;
+
+#if defined(USE_GYRO_IMUF9001)
+typedef enum {
+    IMUF_RATE_32K = 0,
+    IMUF_RATE_16K = 1,
+    IMUF_RATE_8K = 2,
+    IMUF_RATE_4K = 3,
+    IMUF_RATE_2K = 4,
+    IMUF_RATE_1K = 5
+} imufRate_e;
+#endif
 
 typedef struct gyroConfig_s {
     sensor_align_e gyro_align;              // gyro alignment
@@ -57,6 +69,19 @@ typedef struct gyroConfig_s {
     uint16_t gyro_soft_notch_cutoff_1;
     uint16_t gyro_soft_notch_hz_2;
     uint16_t gyro_soft_notch_cutoff_2;
+#if defined(USE_GYRO_IMUF9001)
+    uint16_t imuf_mode;
+    uint16_t imuf_rate;
+    uint16_t imuf_pitch_q;
+    uint16_t imuf_pitch_w;
+    uint16_t imuf_roll_q;
+    uint16_t imuf_roll_w;
+    uint16_t imuf_yaw_q;
+    uint16_t imuf_yaw_w;
+    uint16_t imuf_pitch_lpf_cutoff_hz;
+    uint16_t imuf_roll_lpf_cutoff_hz;
+    uint16_t imuf_yaw_lpf_cutoff_hz;
+#endif
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
@@ -71,3 +96,14 @@ bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 bool gyroSyncCheckUpdate(void);
+#ifdef USE_DMA_SPI_DEVICE
+void gyroDmaSpiFinishRead(void);
+void gyroDmaSpiStartRead(void);
+#endif
+#ifdef USE_GYRO_IMUF9001
+uint32_t lastImufExtiTime;
+uint32_t getSetpointRateInt(int axis);
+bool gyroIsSane(void);
+uint16_t returnGyroAlignmentForImuf9001(void);
+void setGyroData(float x, float y, float z);
+#endif

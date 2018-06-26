@@ -126,6 +126,8 @@ extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_Setpoint[];
 
 void pidInit(void);
 
+uint32_t getSetpointRateInt(int axis);
+
 #ifdef USE_DTERM_NOTCH
 bool pidInitFilters(void);
 #endif

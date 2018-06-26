@@ -80,6 +80,7 @@
     }))
 #define _ABS_I(x, var) _ABS_II(x, var)
 #define ABS(x) _ABS_I(x, _CHOOSE_VAR(_abs, __COUNTER__))
+#define CLAMP(value, low, high) (((value)<(low))?(low):(((value)>(high))?(high):(value)))
 
 // Floating point Euler angles.
 typedef struct fp_angles {
