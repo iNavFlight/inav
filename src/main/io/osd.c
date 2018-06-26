@@ -1050,7 +1050,7 @@ void osdFormatPidControllerOutput(char *buff, const char *label, const pidContro
     buff[24] = '\0';
 }
 
-static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_t voltage, uint8_t decimals)
+static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_t voltage, uint8_t digits, uint8_t decimals)
 {
     char buff[6];
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
@@ -1061,7 +1061,7 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
-    osdFormatCentiNumber(buff, voltage, 0, decimals, 0, decimals + 1);
+    osdFormatCentiNumber(buff, voltage, 0, decimals, 0, MIN(digits, 4));
     strcat(buff, "V");
     if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1131,11 +1131,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAIN_BATT_VOLTAGE:
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawVoltage(), osdConfig()->main_voltage_decimals);
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawVoltage(), 2 + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
 
     case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE:
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), osdConfig()->main_voltage_decimals);
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), 2 + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
 
     case OSD_CURRENT_DRAW:
@@ -2045,13 +2045,13 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), 2);
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), 3, 2);
             return true;
         }
 
     case OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE:
         {
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), 2);
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), 3, 2);
             return true;
         }
 
