@@ -108,6 +108,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .emerg_descent_rate = 500,    // 5 m/s
         .min_rth_distance = 500,      // If closer than 5m - land immediately
         .rth_altitude = 1000,         // 10m
+        .rth_home_altitude = 0,
         .rth_abort_threshold = 50000, // 500m - should be safe for all aircraft
         .max_terrain_follow_altitude = 100,     // max 1m altitude in terrain following mode
     },
@@ -1182,6 +1183,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
 
     // If position ok OR within valid timeout - continue
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout()) {
+
+        // set altitude to go to when landing is not allowed
+        if (navConfig()->general.rth_home_altitude && !navigationRTHAllowsLanding()) {
+            posControl.homeWaypointAbove.pos.z = navConfig()->general.rth_home_altitude;
+            setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z);
+        }
+
         // Wait until target heading is reached (with 15 deg margin for error)
         if (STATE(FIXED_WING)) {
             resetLandingDetector();
@@ -1201,8 +1209,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
                 return NAV_FSM_EVENT_NONE;
             }
         }
-    }
-    else {
+
+    } else {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 }
