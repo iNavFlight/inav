@@ -93,6 +93,8 @@
 #define BMP280_SPI_BUS       BUS_SPI3
 #define BMP280_CS_PIN        PB8
 
+#define USE_MAG
+
 #define USABLE_TIMER_CHANNEL_COUNT 8
 
 // Number of available PWM outputs
