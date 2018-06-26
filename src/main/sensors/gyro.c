@@ -48,6 +48,15 @@
 #include "drivers/accgyro/accgyro_mma845x.h"
 #include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_fake.h"
+#include "drivers/accgyro/accgyro_l3g4200d.h"
+#include "drivers/accgyro/accgyro_mma845x.h"
+#include "drivers/accgyro/accgyro_l3gd20.h"
+#include "drivers/accgyro/accgyro_lsm303dlhc.h"
+#include "drivers/accgyro/accgyro_mpu3050.h"
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#include "drivers/time.h"
+#endif //USE_GYRO_IMUF9001
 #include "drivers/io.h"
 #include "drivers/logging.h"
 
@@ -95,6 +104,32 @@ STATIC_FASTRAM void *notchFilter2[XYZ_AXIS_COUNT];
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 2);
 
+#ifdef USE_GYRO_IMUF9001
+PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
+    .gyro_lpf = GYRO_LPF_256HZ,
+    .gyro_soft_lpf_hz = 90,
+    .gyro_align = ALIGN_DEFAULT,
+    .gyroMovementCalibrationThreshold = 32,
+    .looptime = 62,
+    .gyroSync = 0,
+    .gyro_to_use = 0,
+    .gyro_soft_notch_hz_1 = 0,
+    .gyro_soft_notch_cutoff_1 = 1,
+    .gyro_soft_notch_hz_2 = 0,
+    .gyro_soft_notch_cutoff_2 = 1,
+    .imuf_mode = GTBCM_DEFAULT,
+    .imuf_rate = IMUF_RATE_16K,
+    .imuf_pitch_q = IMUF_DEFAULT_PITCH_Q,
+    .imuf_pitch_w = IMUF_DEFAULT_PITCH_W,
+    .imuf_roll_q = IMUF_DEFAULT_ROLL_Q,
+    .imuf_roll_w = IMUF_DEFAULT_ROLL_W,
+    .imuf_yaw_q = IMUF_DEFAULT_YAW_Q,
+    .imuf_yaw_w = IMUF_DEFAULT_YAW_W,
+    .imuf_pitch_lpf_cutoff_hz = 150.0f,
+    .imuf_roll_lpf_cutoff_hz = 150.0f,
+    .imuf_yaw_lpf_cutoff_hz = 150.0f
+);
+#else //USE_GYRO_IMUF9001
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
     .gyro_soft_lpf_hz = 60,
@@ -108,6 +143,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_soft_notch_hz_2 = 0,
     .gyro_soft_notch_cutoff_2 = 1
 );
+#endif //USE_GYRO_IMUF9001
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
 {
@@ -200,6 +236,15 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         }
         FALLTHROUGH;
 #endif
+
+#ifdef USE_GYRO_IMUF9001
+    case GYRO_IMUF9001:
+        if (imufSpiGyroDetect(dev)) {
+            gyroHardware = GYRO_IMUF9001;
+            break;
+        }
+        FALLTHROUGH;
+#endif //USE_GYRO_IMUF9001
 
 #ifdef USE_FAKE_GYRO
     case GYRO_FAKE:
@@ -300,6 +345,9 @@ void gyroInitFilters(void)
 
 void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired)
 {
+    #ifdef USE_GYRO_IMUF9001
+    imufStartCalibration();
+    #endif
     gyroCalibration.calibratingG = calibrationCyclesRequired;
 }
 
@@ -332,10 +380,15 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
             devClear(&gyroCalibration->var[axis]);
         }
 
+        #ifdef USE_GYRO_IMUF9001
+        gyroCalibration->g[axis] += (int32_t)(gyro.gyroADCf[axis] * 16.4f); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
+        devPush(&gyroCalibration->var[axis], (gyro.gyroADCf[axis] * 16.4f)); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
+        #else
         // Sum up CALIBRATING_GYRO_CYCLES readings
         gyroCalibration->g[axis] += dev->gyroADCRaw[axis];
         devPush(&gyroCalibration->var[axis], dev->gyroADCRaw[axis]);
-
+        #endif
+        
         // gyroZero is set to zero until calibration complete
         dev->gyroZero[axis] = 0;
 
@@ -346,8 +399,13 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t
                 gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
                 return;
             }
-            // calibration complete, so set the gyro zero values
+            #ifdef USE_GYRO_IMUF9001
+            dev->gyroZero[axis] = 0.0f;
+            devClear(&gyroCalibration->var[axis]);
+            #else
+            // calibration complete, so set the gyro zero values            
             dev->gyroZero[axis] = (gyroCalibration->g[axis] + (CALIBRATING_GYRO_CYCLES / 2)) / CALIBRATING_GYRO_CYCLES;
+            #endif
         }
     }
 
@@ -391,8 +449,38 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
 #endif
 }
 
+#ifdef USE_GYRO_IMUF9001
+void setGyroData(float x, float y, float z)
+{
+    gyro.gyroADCf[X] = x;
+    gyro.gyroADCf[Y] = y;
+    gyro.gyroADCf[Z] = z;
+}
+#endif
+
 void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 {
+    #ifdef USE_DMA_SPI_DEVICE
+    //if (!dmaSpiGyroDataReady) {
+    //    return;
+    //}
+    #endif
+    #ifdef USE_GYRO_IMUF9001
+    //if (1){
+    if (isCalibrationComplete(&gyroCalibration)){
+        gyroADC[X] = (int32_t)gyro.gyroADCf[X];
+        gyroADC[Y] = (int32_t)gyro.gyroADCf[Y];
+        gyroADC[Z] = (int32_t)gyro.gyroADCf[Z];
+    } else {
+        performGyroCalibration(&gyroDev0, &gyroCalibration, gyroConfig()->gyroMovementCalibrationThreshold);
+        // Reset gyro values to zero to prevent other code from using uncalibrated data
+        gyro.gyroADCf[X] = 0.0f;
+        gyro.gyroADCf[Y] = 0.0f;
+        gyro.gyroADCf[Z] = 0.0f;
+        // still calibrating, so no need to further process gyro data
+        return;
+    }
+    #else
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev0.readFn(&gyroDev0)) {
         if (isCalibrationComplete(&gyroCalibration)) {
@@ -433,6 +521,7 @@ void gyroUpdate(timeDelta_t gyroUpdateDeltaUs)
 #endif
         gyro.gyroADCf[axis] = gyroADCf;
     }
+    #endif
 
 #ifdef USE_ASYNC_GYRO_PROCESSING
     // Accumulate gyro readings for better IMU accuracy
@@ -462,8 +551,73 @@ int16_t gyroRateDps(int axis)
 
 bool gyroSyncCheckUpdate(void)
 {
+    #ifdef USE_GYRO_IMUF9001
+    if (!dmaSpiGyroDataReady) {
+        return false;
+    }
+    else
+    {
+        dmaSpiGyroDataReady = 0;
+        return true;
+    }
+    #endif
     if (!gyroDev0.intStatusFn)
         return false;
 
     return gyroDev0.intStatusFn(&gyroDev0);
 }
+
+#ifdef USE_GYRO_IMUF9001
+
+bool gyroIsSane(void)
+{
+    if (micros() - lastImufExtiTime > 1000)
+    {
+        //no EXTI in 1000 us, that's bad
+        return false;
+    }
+
+    //100 CRC errors is a lot
+    if (imufCrcErrorCount > 100)
+    {
+        imufCrcErrorCount = 0;
+        return false;
+    }
+
+    return true;
+}
+
+uint16_t returnGyroAlignmentForImuf9001(void)
+{
+    if (isBoardAlignmentStandard(boardAlignment())) 
+    {
+        if(gyroConfig()->gyro_align <= 1)
+        {
+            return 0;
+        }
+        else
+        {
+            return (uint16_t)(gyroConfig()->gyro_align - 1);
+        }
+    }
+    else 
+    {
+        return (uint16_t)IMU_CW0;
+    }
+}
+
+#endif
+
+#ifdef USE_DMA_SPI_DEVICE
+void gyroDmaSpiFinishRead(void)
+{
+    //called by dma callback
+    mpuGyroDmaSpiReadFinish(&gyroDev0);
+}
+
+void gyroDmaSpiStartRead(void)
+{
+    //called by scheduler
+    gyroDev0.readFn(&gyroDev0);
+}
+#endif

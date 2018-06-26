@@ -76,6 +76,9 @@
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
 
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
 #define DEFAULT_BLACKBOX_DEVICE     BLACKBOX_DEVICE_FLASH
@@ -1438,6 +1441,16 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_rate", "%d",                  motorConfig()->motorPwmRate);
         BLACKBOX_PRINT_HEADER_LINE("debug_mode", "%d",                      systemConfig()->debug_mode);
         BLACKBOX_PRINT_HEADER_LINE("features", "%d",                        featureConfig()->enabledFeatures);
+        #ifdef USE_GYRO_IMUF9001
+        BLACKBOX_PRINT_HEADER_LINE("IMUF revision", " %d",                  imufCurrentVersion);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF mode", " %d",                      gyroConfig()->imuf_mode);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF roll q", " %d",                    gyroConfig()->imuf_roll_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF pitch q", " %d",                   gyroConfig()->imuf_pitch_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF yaw q", " %d",                     gyroConfig()->imuf_yaw_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF roll w", " %d",                    gyroConfig()->imuf_roll_w);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF pitch w", " %d",                   gyroConfig()->imuf_pitch_w);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF yaw w", " %d",                     gyroConfig()->imuf_yaw_w);
+        #endif
 #ifdef NAV_BLACKBOX
         BLACKBOX_PRINT_HEADER_LINE("waypoints", "%d,%d",                    getWaypointCount(),isWaypointListValid());
 #endif

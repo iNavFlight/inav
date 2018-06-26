@@ -78,6 +78,12 @@
 #include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
+
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#include "drivers/dma_spi.h"
+#endif //USE_GYRO_IMUF9001
+
 #include "fc/config.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_tasks.h"
@@ -169,6 +175,42 @@ void flashLedsAndBeep(void)
     LED1_OFF;
 }
 
+void rebootUpdater(void)
+{
+    #ifdef UPT_ADDRESS
+    typedef void (*pFunction)(void);
+   	pFunction JumpToApplication;
+	uint32_t jumpAddress;
+
+    __disable_irq(); // disable interrupts for jump
+
+    jumpAddress = *(__IO uint32_t*)(UPT_ADDRESS + 4);
+    JumpToApplication = (pFunction)jumpAddress;
+
+    // Initialize user application's Stack Pointer
+    __set_MSP(*(__IO uint32_t*)UPT_ADDRESS);
+    JumpToApplication();
+    #endif
+}
+
+void rebootMsd(void)
+{
+    #ifdef MSD_ADDRESS
+    typedef void (*pFunction)(void);
+   	pFunction JumpToApplication;
+	uint32_t jumpAddress;
+
+    __disable_irq(); // disable interrupts for jump
+
+    jumpAddress = *(__IO uint32_t*)(MSD_ADDRESS + 4);
+    JumpToApplication = (pFunction)jumpAddress;
+
+    // Initialize user application's Stack Pointer
+    __set_MSP(*(__IO uint32_t*)MSD_ADDRESS);
+    JumpToApplication();
+    #endif
+}
+
 void init(void)
 {
 #ifdef USE_HAL_DRIVER
@@ -183,6 +225,13 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
+#ifdef USE_GYRO_IMUF9001
+    if (isMPUSoftReset()) {
+        resetImuf9001();
+    }
+#endif
+
+    //volatile int menuPoo = TARGET_IO_PORTx;
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
 
@@ -546,7 +595,9 @@ void init(void)
 
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
-        failureMode(FAILURE_MISSING_ACC);
+        flashLedsAndBeep();
+
+        //failureMode(FAILURE_MISSING_ACC);
     }
 
     addBootlogEvent2(BOOT_EVENT_SENSOR_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
@@ -568,6 +619,13 @@ void init(void)
     cliInit(serialConfig());
 #endif
 
+#ifdef USE_GYRO_IMUF9001
+    if(!gyroIsSane())
+    {
+        
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+    }
+#endif
     failsafeInit();
 
     rxInit();

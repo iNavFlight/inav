@@ -20,6 +20,9 @@
 #include "drivers/exti.h"
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 
 #define MPU_I2C_ADDRESS                 0x68
 
@@ -35,6 +38,9 @@
 #define ICM20602_WHO_AM_I_CONST             (0x12)
 #define ICM20608G_WHO_AM_I_CONST            (0xAF)
 #define ICM20689_WHO_AM_I_CONST             (0x98)
+#ifdef USE_GYRO_IMUF9001
+#define IMUF9001_WHO_AM_I_CONST             IMUF_FIRMWARE_VERSION
+#endif
 
 
 // RA = Register Address
@@ -187,3 +193,12 @@ bool mpuGyroRead(struct gyroDev_s *gyro);
 bool mpuGyroReadScratchpad(struct gyroDev_s *gyro);
 bool mpuAccReadScratchpad(struct accDev_s *acc);
 bool mpuTemperatureReadScratchpad(struct gyroDev_s *gyro, int16_t * data);
+void mpuDetect(struct gyroDev_s *gyro);
+bool mpuCheckDataReady(struct gyroDev_s *gyro);
+void mpuGyroSetIsrUpdate(struct gyroDev_s *gyro, sensorGyroUpdateFuncPtr updateFn);
+#ifdef USE_DMA_SPI_DEVICE
+static volatile int dmaSpiGyroDataReady;
+static volatile uint32_t imufCrcErrorCount;
+bool mpuGyroDmaSpiReadStart(void);
+void mpuGyroDmaSpiReadFinish(struct gyroDev_s *gyro);
+#endif

@@ -29,7 +29,6 @@
 #define GYRO_LPF_20HZ       4
 #define GYRO_LPF_10HZ       5
 #define GYRO_LPF_5HZ        6
-#define GYRO_LPF_NONE       7
 
 typedef struct {
     uint8_t gyroLpf;
@@ -45,6 +44,7 @@ typedef struct gyroDev_s {
     sensorGyroInterruptStatusFuncPtr intStatusFn;
     sensorGyroUpdateFuncPtr updateFn;
     extiCallbackRec_t exti;
+    //float gyroADC[XYZ_AXIS_COUNT];                      // gyro data after calibration and alignment
     float scale;                                        // scalefactor
     int16_t gyroADCRaw[XYZ_AXIS_COUNT];
     int16_t gyroZero[XYZ_AXIS_COUNT];
@@ -54,6 +54,7 @@ typedef struct gyroDev_s {
     volatile bool dataReady;
     uint32_t sampleRateIntervalUs;                      // Gyro driver should set this to actual sampling rate as signaled by IRQ
     sensor_align_e gyroAlign;
+    ioTag_t mpuIntExtiTag;
 } gyroDev_t;
 
 typedef struct accDev_s {
