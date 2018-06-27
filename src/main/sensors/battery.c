@@ -84,7 +84,7 @@ static uint16_t powerSupplyImpedance = 0;   // calculated impedance in milliohm
 static uint16_t sagCompensatedVBat = 0;     // calculated no load vbat
 static bool powerSupplyImpedanceIsValid = false;
 
-static int32_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
+static int16_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
 static int32_t power = 0;                  // power draw in cW (0.01W resolution)
 static int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
 static int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn from the battery since start
@@ -144,7 +144,7 @@ uint16_t batteryAdcToVoltage(uint16_t src)
     return((uint64_t)src * batteryMetersConfig()->voltage_scale * ADCVREF / (0xFFF * 1000));
 }
 
-int32_t currentSensorToCentiamps(uint16_t src)
+int16_t currentSensorToCentiamps(uint16_t src)
 {
     int32_t microvolts = ((uint32_t)src * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
     return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
@@ -410,12 +410,12 @@ bool isAmperageConfigured(void)
     return feature(FEATURE_CURRENT_METER) && batteryMetersConfig()->current.type != CURRENT_SENSOR_NONE;
 }
 
-int32_t getAmperage(void)
+int16_t getAmperage(void)
 {
     return amperage;
 }
 
-int32_t getAmperageLatestADC(void)
+int16_t getAmperageLatestADC(void)
 {
     return amperageLatestADC;
 }
@@ -461,15 +461,15 @@ void currentMeterUpdate(timeUs_t timeDelta)
             break;
     }
 
-    mAhdrawnRaw += (amperage * timeDelta) / 1000;
+    mAhdrawnRaw += (int32_t)amperage * timeDelta / 1000;
     mAhDrawn = mAhdrawnRaw / (3600 * 100);
 }
 
 void powerMeterUpdate(timeUs_t timeDelta)
 {
     static int64_t mWhDrawnRaw = 0;
-    power = amperage * vbat / 100; // power unit is cW (0.01W resolution)
-    int32_t heatLossesCompensatedPower_mW = amperage * vbat / 10 + sq((int64_t)amperage) * powerSupplyImpedance / 10000;
+    power = (int32_t)amperage * vbat / 100; // power unit is cW (0.01W resolution)
+    int32_t heatLossesCompensatedPower_mW = (int32_t)amperage * vbat / 10 + sq((int64_t)amperage) * powerSupplyImpedance / 10000;
     mWhDrawnRaw += (int64_t)heatLossesCompensatedPower_mW * timeDelta / 10000;
     mWhDrawn = mWhDrawnRaw / (3600 * 100);
 }
@@ -485,7 +485,7 @@ int32_t heatLossesCompensatedPower(int32_t power)
 void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
 {
     static timeUs_t recordTimestamp = 0;
-    static int32_t amperageRecord;
+    static int16_t amperageRecord;
     static uint16_t vbatRecord;
     static uint8_t impedanceSampleCount = 0;
     static pt1Filter_t impedanceFilterState;
@@ -536,7 +536,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
 
         }
 
-        uint16_t sagCompensatedVBatSample = MIN(batteryFullVoltage, vbat + powerSupplyImpedance * amperage / 1000);
+        uint16_t sagCompensatedVBatSample = MIN(batteryFullVoltage, vbat + (int32_t)powerSupplyImpedance * amperage / 1000);
         sagCompVBatFilterState.RC = sagCompensatedVBatSample < sagCompVBatFilterState.state ? 40 : 500;
         sagCompensatedVBat = lrintf(pt1FilterApply3(&sagCompVBatFilterState, sagCompensatedVBatSample, timeDelta * 1e-6f));
     }
