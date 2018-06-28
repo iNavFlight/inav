@@ -461,7 +461,10 @@ void currentMeterUpdate(timeUs_t timeDelta)
             break;
     }
 
-    mAhdrawnRaw += (int32_t)amperage * timeDelta / 1000;
+    // Work around int64 math compiler bug, don't change it unless the bug has been fixed !
+    // should be: mAhdrawnRaw += (int64_t)amperage * timeDelta / 1000;
+    mAhdrawnRaw += (int64_t)((int32_t)amperage * timeDelta) / 1000;
+
     mAhDrawn = mAhdrawnRaw / (3600 * 100);
 }
 
@@ -470,7 +473,11 @@ void powerMeterUpdate(timeUs_t timeDelta)
     static int64_t mWhDrawnRaw = 0;
     power = (int32_t)amperage * vbat / 100; // power unit is cW (0.01W resolution)
     int32_t heatLossesCompensatedPower_mW = (int32_t)amperage * vbat / 10 + sq((int64_t)amperage) * powerSupplyImpedance / 10000;
-    mWhDrawnRaw += (int64_t)heatLossesCompensatedPower_mW * timeDelta / 10000;
+
+    // Work around int64 math compiler bug, don't change it unless the bug has been fixed !
+    // should be: mWhDrawnRaw += (int64_t)heatLossesCompensatedPower_mW * timeDelta / 10000;
+    mWhDrawnRaw += (int64_t)((int64_t)heatLossesCompensatedPower_mW * timeDelta) / 10000;
+
     mWhDrawn = mWhDrawnRaw / (3600 * 100);
 }
 
