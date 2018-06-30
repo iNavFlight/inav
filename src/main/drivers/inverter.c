@@ -25,6 +25,31 @@
 
 #include "inverter.h"
 
+#if defined(INVERTER_PIN_UART1) && !defined(INVERTER_PIN_UART1_RX)
+#define INVERTER_PIN_UART1_RX INVERTER_PIN_UART1
+#endif
+
+#if defined(INVERTER_PIN_UART2) && !defined(INVERTER_PIN_UART2_RX)
+#define INVERTER_PIN_UART2_RX INVERTER_PIN_UART2
+#endif
+
+#if defined(INVERTER_PIN_UART3) && !defined(INVERTER_PIN_UART3_RX)
+#define INVERTER_PIN_UART3_RX INVERTER_PIN_UART3
+#endif
+
+#if defined(INVERTER_PIN_UART4) && !defined(INVERTER_PIN_UART4_RX)
+#define INVERTER_PIN_UART4_RX INVERTER_PIN_UART4
+#endif
+
+#if defined(INVERTER_PIN_UART5) && !defined(INVERTER_PIN_UART5_RX)
+#define INVERTER_PIN_UART5_RX INVERTER_PIN_UART5
+#endif
+
+#if defined(INVERTER_PIN_UART6) && !defined(INVERTER_PIN_UART6_RX)
+#define INVERTER_PIN_UART6_RX INVERTER_PIN_UART6
+#endif
+
+
 #ifdef USE_INVERTER
 static void inverterSet(IO_t pin, bool on)
 {
@@ -43,73 +68,144 @@ static void initInverter(ioTag_t ioTag)
 
 void initInverters(void)
 {
-#ifdef INVERTER_PIN_UART1
-    initInverter(IO_TAG(INVERTER_PIN_UART1));
+#ifdef INVERTER_PIN_UART1_TX
+    initInverter(IO_TAG(INVERTER_PIN_UART1_TX));
 #endif
 
-#ifdef INVERTER_PIN_UART2
-    initInverter(IO_TAG(INVERTER_PIN_UART2));
+#ifdef INVERTER_PIN_UART1_RX
+    initInverter(IO_TAG(INVERTER_PIN_UART1_RX));
 #endif
 
-#ifdef INVERTER_PIN_UART3
-    initInverter(IO_TAG(INVERTER_PIN_UART3));
+#ifdef INVERTER_PIN_UART2_TX
+    initInverter(IO_TAG(INVERTER_PIN_UART2_TX));
 #endif
 
-#ifdef INVERTER_PIN_USART4
-    initInverter(IO_TAG(INVERTER_PIN_USART4));
+#ifdef INVERTER_PIN_UART2_RX
+    initInverter(IO_TAG(INVERTER_PIN_UART2_RX));
 #endif
 
-#ifdef INVERTER_PIN_USART5
-    initInverter(IO_TAG(INVERTER_PIN_USART5));
+#ifdef INVERTER_PIN_UART3_TX
+    initInverter(IO_TAG(INVERTER_PIN_UART3_TX));
 #endif
 
-#ifdef INVERTER_PIN_UART6
-    initInverter(IO_TAG(INVERTER_PIN_UART6));
+#ifdef INVERTER_PIN_UART3_RX
+    initInverter(IO_TAG(INVERTER_PIN_UART3_RX));
+#endif
+
+#ifdef INVERTER_PIN_UART4_TX
+    initInverter(IO_TAG(INVERTER_PIN_UART4_TX));
+#endif
+
+#ifdef INVERTER_PIN_UART4_RX
+    initInverter(IO_TAG(INVERTER_PIN_UART4_RX));
+#endif
+
+#ifdef INVERTER_PIN_UART5_TX
+    initInverter(IO_TAG(INVERTER_PIN_UART5_TX));
+#endif
+
+#ifdef INVERTER_PIN_UART5_RX
+    initInverter(IO_TAG(INVERTER_PIN_UART5_RX));
+#endif
+
+#ifdef INVERTER_PIN_UART6_TX
+    initInverter(IO_TAG(INVERTER_PIN_UART6_TX));
+#endif
+
+#ifdef INVERTER_PIN_UART6_RX
+    initInverter(IO_TAG(INVERTER_PIN_UART6_RX));
 #endif
 }
 
 void enableInverter(USART_TypeDef *USARTx, bool on)
 {
 #ifdef USE_INVERTER
+    // TX path
     IO_t pin = IO_NONE;
 
-#ifdef INVERTER_PIN_UART1
+#ifdef INVERTER_PIN_UART1_TX
     if (USARTx == USART1) {
-        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART1));
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART1_TX));
     }
 #endif
 
-#ifdef INVERTER_PIN_UART2
+#ifdef INVERTER_PIN_UART2_TX
     if (USARTx == USART2) {
-        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART2));
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART2_TX));
     }
 #endif
 
-#ifdef INVERTER_PIN_UART3
+#ifdef INVERTER_PIN_UART3_TX
     if (USARTx == USART3) {
-        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART3));
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART3_TX));
     }
 #endif
 
-#ifdef INVERTER_PIN_USART4
+#ifdef INVERTER_PIN_USART4_TX
     if (USARTx == USART4) {
-        pin = IOGetByTag(IO_TAG(INVERTER_PIN_USART4));
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_USART4_TX));
     }
 #endif
 
-#ifdef INVERTER_PIN_USART5
+#ifdef INVERTER_PIN_USART5_TX
     if (USARTx == USART5) {
-        pin = IOGetByTag(IO_TAG(INVERTER_PIN_USART5));
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_USART5_TX));
     }
 #endif
 
-#ifdef INVERTER_PIN_UART6
+#ifdef INVERTER_PIN_UART6_TX
     if (USARTx == USART6) {
-        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART6));
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART6_TX));
     }
 #endif
 
-    inverterSet(pin, on);
+    if (pin != IO_NONE) {
+        inverterSet(pin, on);
+    }
+
+    // RX path
+    pin = IO_NONE;
+
+#ifdef INVERTER_PIN_UART1_RX
+    if (USARTx == USART1) {
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART1_RX));
+    }
+#endif
+
+#ifdef INVERTER_PIN_UART2_RX
+    if (USARTx == USART2) {
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART2_RX));
+    }
+#endif
+
+#ifdef INVERTER_PIN_UART3_RX
+    if (USARTx == USART3) {
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART3_RX));
+    }
+#endif
+
+#ifdef INVERTER_PIN_USART4_RX
+    if (USARTx == USART4) {
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_USART4_RX));
+    }
+#endif
+
+#ifdef INVERTER_PIN_USART5_RX
+    if (USARTx == USART5) {
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_USART5_RX));
+    }
+#endif
+
+#ifdef INVERTER_PIN_UART6_RX
+    if (USARTx == USART6) {
+        pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART6_RX));
+    }
+#endif
+
+    if (pin != IO_NONE) {
+        inverterSet(pin, on);
+    }
+
 #else
     UNUSED(USARTx);
     UNUSED(on);

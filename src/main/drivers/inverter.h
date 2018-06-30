@@ -17,7 +17,9 @@
 
 #pragma once
 
-#if defined(INVERTER_PIN_UART1) || defined(INVERTER_PIN_UART2) || defined(INVERTER_PIN_UART3) || defined(INVERTER_PIN_UART4) || defined(INVERTER_PIN_UART5) || defined(INVERTER_PIN_UART6)
+#if defined(INVERTER_PIN_UART1) || defined(INVERTER_PIN_UART2) || defined(INVERTER_PIN_UART3) || defined(INVERTER_PIN_UART4) || defined(INVERTER_PIN_UART5) || defined(INVERTER_PIN_UART6) || \
+    defined(INVERTER_PIN_UART1_RX) || defined(INVERTER_PIN_UART2_RX) || defined(INVERTER_PIN_UART3_RX) || defined(INVERTER_PIN_UART4_RX) || defined(INVERTER_PIN_UART5_RX) || defined(INVERTER_PIN_UART6_RX) || \
+    defined(INVERTER_PIN_UART1_TX) || defined(INVERTER_PIN_UART2_TX) || defined(INVERTER_PIN_UART3_TX) || defined(INVERTER_PIN_UART4_TX) || defined(INVERTER_PIN_UART5_TX) || defined(INVERTER_PIN_UART6_TX)
 #define USE_INVERTER
 #endif
 
