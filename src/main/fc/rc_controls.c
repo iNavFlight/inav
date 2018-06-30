@@ -63,7 +63,7 @@
 
 #define AIRMODE_DEADBAND 25
 #define MIN_RC_TICK_INTERVAL_MS             20
-#define DEFAULT_RC_SWITCH_DISARM_DELAY_MS   150     // Wait at least 150ms before disarming via switch
+#define DEFAULT_RC_SWITCH_DISARM_DELAY_MS   250     // Wait at least 250ms before disarming via switch
 
 stickPositions_e rcStickPositions;
 
@@ -352,4 +352,3 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 int32_t getRcStickDeflection(int32_t axis) {
     return MIN(ABS(rcData[axis] - PWM_RANGE_MIDDLE), 500);
 }
-
