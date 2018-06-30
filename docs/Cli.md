@@ -413,7 +413,7 @@ Re-apply any new defaults as desired.
 |  vtx_low_power_disarm  | OFF | When the craft is disarmed, set the VTX to its lowest power. `ON` will set the power to its minimum value on startup, increase it to `vtx_power` when arming and change it back to its lowest setting after disarming. `UNTIL_FIRST_ARM` will start with minimum power, but once the craft is armed it will increase to `vtx_power` and it will never decrease until the craft is power cycled. |
 |  vtx_pit_mode_freq  | Frequency to use (in MHz) when the VTX is in pit mode. |
 |  vtx_power  | 1 | VTX RF power level to use. The exact number of mw depends on the VTX hardware. |
-| switch_disarm_delay | 150 | Defines the minimum time for which a switch must be asserted to disarm (for switch disarming only). Allowed range is 0 - 1000 (milliseconds). 
+| switch_disarm_delay | 250 | Defines the minimum time for which a switch must be asserted to disarm (for switch disarming only). Allowed range is 0 - 1000 (milliseconds).
 | inav_reset_home | EACH_ARM | Defines when the home position is automatically reset. Allowed values: NEVER, FIRST_ARM, EACH_ARM
 
 This Markdown table is made by MarkdwonTableMaker addon for google spreadsheet.
