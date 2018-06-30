@@ -48,7 +48,6 @@
 #include "drivers/dma.h"
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
-#include "drivers/inverter.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
 #include "drivers/light_led.h"
@@ -69,6 +68,7 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
+#include "drivers/uart_inverter.h"
 #include "drivers/vcd.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
@@ -375,8 +375,8 @@ void init(void)
     lightsInit();
 #endif
 
-#ifdef USE_INVERTER
-    initInverters();
+#ifdef USE_UART_INVERTER
+    uartInverterInit();
 #endif
 
     // Initialize buses
