@@ -41,14 +41,6 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-#define USE_UART_INVERTER
-#if defined(OMNIBUSF4V3)
-  #define INVERTER_PIN_UART6_RX PC8
-  #define INVERTER_PIN_UART6_TX PC9
-#else
-  #define INVERTER_PIN_UART1_RX PC0 // PC0 has never been used as inverter control on genuine OMNIBUS F4 variants, but leave it as is since some clones actually implement it.
-#endif
-
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
@@ -134,10 +126,15 @@
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+#if !defined(OMNIBUSF4V3)
+#define INVERTER_PIN_UART1_RX PC0 // PC0 has never been used as inverter control on genuine OMNIBUS F4 variants, but leave it as is since some clones actually implement it.
+#endif
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -146,6 +143,10 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
+#if defined(OMNIBUSF4V3)
+  #define INVERTER_PIN_UART6_RX PC8
+  #define INVERTER_PIN_UART6_TX PC9
+#endif
 
 #if defined(OMNIBUSF4V3)
 #define USE_SOFTSERIAL1
