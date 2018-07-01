@@ -31,7 +31,6 @@
 #include "common/utils.h"
 #include "drivers/io.h"
 #include "drivers/nvic.h"
-#include "inverter.h"
 #include "dma.h"
 
 #include "serial.h"
