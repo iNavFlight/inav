@@ -133,7 +133,9 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
     .cruise_power = 0,
     .idle_power = 0,
-    .rth_energy_margin = 5
+    .rth_energy_margin = 5,
+
+    .throttle_compensation_weight = 1.0f
 
 );
 
@@ -358,7 +360,7 @@ uint16_t getBatterySagCompensatedVoltage(void)
 
 float calculateThrottleCompensationFactor(void)
 {
-    return batteryFullVoltage / sagCompensatedVBat;
+    return 1.0f + ((float)batteryFullVoltage / sagCompensatedVBat - 1.0f) * batteryMetersConfig()->throttle_compensation_weight;
 }
 
 uint16_t getBatteryVoltageLatestADC(void)
