@@ -35,6 +35,7 @@
 #include "cms/cms_types.h"
 
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "navigation/navigation.h"
 
