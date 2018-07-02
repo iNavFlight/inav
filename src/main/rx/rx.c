@@ -535,6 +535,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rcSampleIndex++;
+    return true;
 }
 
 void parseRcChannels(const char *input)
