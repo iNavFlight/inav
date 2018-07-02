@@ -465,7 +465,7 @@ static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
     return quickMedianFilter5_16(rcSamples[chan]);
 }
 
-void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
+bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
