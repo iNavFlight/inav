@@ -135,8 +135,8 @@ uint32_t getBatteryRemainingCapacity(void);
 uint16_t getPowerSupplyImpedance(void);
 
 bool isAmperageConfigured(void);
-int32_t getAmperage(void);
-int32_t getAmperageLatestADC(void);
+int16_t getAmperage(void);
+int16_t getAmperageLatestADC(void);
 int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);

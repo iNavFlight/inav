@@ -131,6 +131,7 @@ FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk 
 FC_VER_PATCH := $(shell grep " FC_VERSION_PATCH" src/main/build/version.h | awk '{print $$3}' )
 
 FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
+FC_VER_SUFFIX ?=
 
 BUILD_DATE = $(shell date +%Y%m%d)
 
@@ -266,13 +267,16 @@ CPPCHECK        = cppcheck $(CSOURCES) --enable=all --platform=unix64 \
 #
 # Things we will build
 #
-ifeq ($(BUILD_SUFFIX),)
-TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).bin
-TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET).hex
-else
-TARGET_BIN      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(BUILD_SUFFIX).bin
-TARGET_HEX      = $(BIN_DIR)/$(FORKNAME)_$(FC_VER)_$(TARGET)_$(BUILD_SUFFIX).hex
+TARGET_BIN	:= $(BIN_DIR)/$(FORKNAME)_$(FC_VER)
+ifneq ($(FC_VER_SUFFIX),)
+    TARGET_BIN	:= $(TARGET_BIN)-$(FC_VER_SUFFIX)
 endif
+TARGET_BIN	:= $(TARGET_BIN)_$(TARGET)
+ifneq ($(BUILD_SUFFIX),)
+    TARGET_BIN	:= $(TARGET_BIN)_$(BUILD_SUFFIX)
+endif
+TARGET_BIN	:= $(TARGET_BIN).bin
+TARGET_HEX	= $(TARGET_BIN:.bin=.hex)
 
 TARGET_OBJ_DIR  = $(OBJECT_DIR)/$(TARGET)
 TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf

@@ -541,16 +541,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP2_INAV_ANALOG:
+        // Bit 1: battery full, Bit 2: use capacity threshold, Bit 3-4: battery state, Bit 5-8: battery cell count
+        sbufWriteU8(dst, batteryWasFullWhenPluggedIn() | (batteryUsesCapacityThresholds() << 1) | (getBatteryState() << 2) | (getBatteryCellCount() << 4));
         sbufWriteU16(dst, getBatteryVoltage());
-        sbufWriteU8(dst, getBatteryCellCount());
-        sbufWriteU8(dst, calculateBatteryPercentage());
-        sbufWriteU16(dst, constrain(getPower(), 0, 0x7FFFFFFF));           // power draw
-        sbufWriteU16(dst, (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF)); // milliamp hours drawn from battery
-        sbufWriteU16(dst, (uint16_t)constrain(getMWhDrawn(), 0, 0xFFFF)); // milliWatt hours drawn from battery
-        sbufWriteU16(dst, getRSSI());
-        sbufWriteU16(dst, (int16_t)constrain(getAmperage(), -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
-        sbufWriteU8(dst, batteryWasFullWhenPluggedIn() | (batteryUsesCapacityThresholds() << 1) | (getBatteryState() << 2));
+        sbufWriteU16(dst, getAmperage()); // send amperage in 0.01 A steps
+        sbufWriteU32(dst, getPower());    // power draw
+        sbufWriteU32(dst, getMAhDrawn()); // milliamp hours drawn from battery
+        sbufWriteU32(dst, getMWhDrawn()); // milliWatt hours drawn from battery
         sbufWriteU32(dst, getBatteryRemainingCapacity());
+        sbufWriteU8(dst, calculateBatteryPercentage());
+        sbufWriteU16(dst, getRSSI());
         break;
 
     case MSP_ARMING_CONFIG:

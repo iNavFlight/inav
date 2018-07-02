@@ -1218,7 +1218,7 @@ static void writeGPSFrame(timeUs_t currentTimeUs)
     blackboxWriteUnsignedVB(gpsSol.numSat);
     blackboxWriteSignedVB(gpsSol.llh.lat - gpsHistory.GPS_home[0]);
     blackboxWriteSignedVB(gpsSol.llh.lon - gpsHistory.GPS_home[1]);
-    blackboxWriteUnsignedVB(gpsSol.llh.alt / 100); // meters
+    blackboxWriteSignedVB(gpsSol.llh.alt / 100); // meters
     blackboxWriteUnsignedVB(gpsSol.groundSpeed);
     blackboxWriteUnsignedVB(gpsSol.groundCourse);
     blackboxWriteUnsignedVB(gpsSol.hdop);
