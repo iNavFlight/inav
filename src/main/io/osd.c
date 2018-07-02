@@ -1429,7 +1429,7 @@ static bool osdDrawSingleElement(uint8_t item)
             strcpy(buff + 2, "---");
         } else if (distanceMeters == -2) {
             // Wind is too strong to come back with cruise throttle
-            buff[0] = SYM_DIST_M;
+            buff[1] = SYM_DIST_M;
             buff[2] = buff[3] = buff[4] = SYM_WIND_HORIZONTAL;
             buff[5] = '\0';
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);

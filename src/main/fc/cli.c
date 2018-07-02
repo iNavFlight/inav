@@ -362,10 +362,10 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
     }
 }
 
-static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptrDefault)
+static bool valuePtrEqualsDefault(const setting_t *value, const void *ptr, const void *ptrDefault)
 {
     bool result = false;
-    switch (type & SETTING_TYPE_MASK) {
+    switch (SETTING_TYPE(value)) {
     case VAR_UINT8:
         result = *(uint8_t *)ptr == *(uint8_t *)ptrDefault;
         break;
@@ -389,6 +389,10 @@ static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptr
     case VAR_FLOAT:
         result = *(float *)ptr == *(float *)ptrDefault;
         break;
+
+    case VAR_STRING:
+        result = strncmp(ptr, ptrDefault, settingGetStringMaxLength(value) + 1) == 0;
+        break;
     }
     return result;
 }
@@ -405,7 +409,7 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
     // will return the actual value.
     const void *valuePointer = settingGetCopyValuePointer(value);
     const void *defaultValuePointer = settingGetValuePointer(value);
-    const bool equalsDefault = valuePtrEqualsDefault(value->type, valuePointer, defaultValuePointer);
+    const bool equalsDefault = valuePtrEqualsDefault(value, valuePointer, defaultValuePointer);
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
         settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
