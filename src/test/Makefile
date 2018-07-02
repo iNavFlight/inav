@@ -122,6 +122,13 @@ $(OBJECT_DIR)/common/string_light.o : \
 	@mkdir -p $(dir $@)
 	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/string_light.c -o $@
 
+$(OBJECT_DIR)/flight/pathfinder.o : \
+	$(USER_DIR)/flight/pathfinder.c \
+	$(USER_DIR)/flight/pathfinder.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/flight/pathfinder.c -o $@
 
 $(OBJECT_DIR)/sensors/battery.o : $(USER_DIR)/sensors/battery.c $(USER_DIR)/sensors/battery.h $(GTEST_HEADERS)
 	@mkdir -p $(dir $@)
@@ -726,6 +733,22 @@ $(OBJECT_DIR)/bitarray_unittest.o : \
 $(OBJECT_DIR)/bitarray_unittest : \
 	$(OBJECT_DIR)/common/bitarray.o \
 	$(OBJECT_DIR)/bitarray_unittest.o \
+	$(OBJECT_DIR)/gtest_main.a
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
+
+$(OBJECT_DIR)/pathfinder_unittest.o : \
+	$(TEST_DIR)/pathfinder_unittest.cc \
+	$(USER_DIR)/flight/pathfinder.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/pathfinder_unittest.cc -o $@
+
+$(OBJECT_DIR)/pathfinder_unittest : \
+	$(OBJECT_DIR)/flight/pathfinder.o \
+	$(OBJECT_DIR)/pathfinder_unittest.o \
 	$(OBJECT_DIR)/gtest_main.a
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@

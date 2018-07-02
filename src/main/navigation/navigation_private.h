@@ -21,11 +21,14 @@
 
 #if defined(USE_NAV)
 
+#include "fc/runtime_config.h"
+
+#include "flight/pathfinder.h"
+
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
 #include "common/time.h"
-#include "fc/runtime_config.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
@@ -37,6 +40,9 @@
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
+
+#define PATHFINDER_RTH_CAPACITY             64
+#define PATHFINDER_RTH_INTERVAL_MS          1000
 
 typedef enum {
     NAV_POS_UPDATE_NONE                 = 0,
@@ -90,6 +96,7 @@ typedef struct navigationFlags_s {
     bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     bool forcedRTHActivated;
+    bool smartRTHActivated;
 } navigationFlags_t;
 
 typedef enum {
@@ -324,6 +331,7 @@ typedef struct {
     rthSanityChecker_t          rthSanityChecker;
     navWaypointPosition_t       homePosition;       // Special waypoint, stores original yaw (heading when launched)
     navWaypointPosition_t       homeWaypointAbove;  // NEU-coordinates and initial bearing + desired RTH altitude
+    navWaypointPosition_t       rthNextWaypoint;    // Used for smart RTH. In normal RTH, this has the same value as homeWaypointAbove
     navigationHomeFlags_t       homeFlags;
 
     uint32_t                    homeDistance;   // cm
@@ -343,6 +351,11 @@ typedef struct {
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
     float                       totalTripDistance;
+
+    /* Path finding */
+    pathfinder_t                rthPathfinder;
+    pathfinderPoint_t           rthPathfinderStorage[PATHFINDER_RTH_CAPACITY];
+    timeUs_t                    rthPathfinderLastUpdate;
 } navigationPosControl_t;
 
 extern navigationPosControl_t posControl;
@@ -378,6 +391,9 @@ float getActiveWaypointSpeed(void);
 void updateActualHeading(bool headingValid, int32_t newHeading);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
+
+void navigationResetRTHPathfinder(void);
+void navigationUpdateRTHPathfinder(timeUs_t currentTimeUs);
 
 bool checkForPositionSensorTimeout(void);
 

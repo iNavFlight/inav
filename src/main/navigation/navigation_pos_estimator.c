@@ -285,6 +285,8 @@ void onNewGPSData(void)
             isFirstGPSUpdate = false;
 
             lastGPSNewDataTime = currentTimeUs;
+
+            navigationUpdateRTHPathfinder(currentTimeUs);
         }
     }
     else {

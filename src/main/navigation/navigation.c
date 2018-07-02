@@ -187,6 +187,11 @@ void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distanc
 void initializeRTHSanityChecker(const fpVector3_t * pos);
 bool validateRTHSanityChecker(void);
 
+static void initializeStraightRTH(void);
+
+static bool initializeSmartRTH(void);
+static bool smartRTHPrepareNextPoint(void);
+
 /*************************************************************************************************/
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE(navigationFSMState_t previousState);
@@ -1011,6 +1016,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 {
     navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
+    // TODO: Use a setting or a dedicated FM. Remove hardcoded Smart RTH.
+    posControl.flags.smartRTHActivated = true;
+
     if ((posControl.flags.estHeadingStatus == EST_NONE) || (posControl.flags.estAltStatus == EST_NONE) || (posControl.flags.estPosStatus != EST_TRUSTED) || !STATE(GPS_FIX_HOME)) {
         // Heading sensor, altitude sensor and HOME fix are mandatory for RTH. If not satisfied - switch to emergency landing
         // If we are in dead-reckoning mode - also fail, since coordinates may be unreliable
@@ -1060,6 +1068,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 
             setDesiredPosition(&targetHoldPos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_HEADING);
 
+            // If we're doing SmartRTH, calculate the return path. If that fails,
+            // fallback to straight RTH.
+            if (!posControl.flags.smartRTHActivated || !initializeSmartRTH()) {
+                initializeStraightRTH();
+            }
+
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_RTH_CLIMB_TO_SAFE_ALT
         }
     }
@@ -1079,6 +1093,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
     if ((posControl.flags.estHeadingStatus == EST_NONE)) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+    }
+
+    // If we're doing SmartRTH, we don't need to climb.
+    if (posControl.flags.smartRTHActivated) {
+        return NAV_FSM_EVENT_SUCCESS; // NAV_STATE_RTH_HEAD_HOME
     }
 
     // If we have valid pos sensor OR we are configured to ignore GPS loss
@@ -1143,22 +1162,31 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 
     // If we have position sensor - continue home
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
-        if (isWaypointReached(&posControl.homeWaypointAbove, true)) {
+        // TODO: Should we use false for 2nd arg? true gives some
+        // leeway for the targetting on FIXED_WING
+        if (isWaypointReached(&posControl.rthNextWaypoint, true)) {
+            if (posControl.flags.smartRTHActivated && pathfinderCount(&posControl.rthPathfinder) > 0) {
+                // Go to next point
+                smartRTHPrepareNextPoint();
+                debug[2]++;
+                return NAV_FSM_EVENT_NONE; // Reprocess
+            }
+
             // Successfully reached position target - update XYZ-position
             setDesiredPosition(&posControl.homeWaypointAbove.pos, posControl.homeWaypointAbove.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
             return NAV_FSM_EVENT_SUCCESS;       // NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING
-        }
-        else if (!validateRTHSanityChecker()) {
+
+        } else if (!validateRTHSanityChecker()) {
             // Sanity check of RTH
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
         else {
             // Update XYZ-position target
             if (navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING)) {
-                setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
+                setDesiredPosition(&posControl.rthNextWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
             }
             else {
-                setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
+                setDesiredPosition(&posControl.rthNextWaypoint.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
             }
             return NAV_FSM_EVENT_NONE;
         }
@@ -1858,6 +1886,26 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
     posControl.flags.headingDataNew = 1;
 }
 
+void navigationResetRTHPathfinder(void)
+{
+    pathfinderReset(&posControl.rthPathfinder);
+    posControl.rthPathfinderLastUpdate = 0;
+}
+
+void navigationUpdateRTHPathfinder(timeUs_t currentTimeUs)
+{
+    if (STATE(GPS_FIX) && !FLIGHT_MODE(NAV_RTH_MODE) && (currentTimeUs - posControl.rthPathfinderLastUpdate) > MS2US(PATHFINDER_RTH_INTERVAL_MS)) {
+        navEstimatedPosVel_t *posvel = &posControl.actualState.abs;
+        timeUs_t before = micros();
+        pathfinderAdd(&posControl.rthPathfinder, gpsSol.llh.lat, gpsSol.llh.lon, posvel->pos.z);
+        // TODO: Remove debugging or use proper macros
+        debug[0] = micros() - before;
+        debug[1] = pathfinderCount(&posControl.rthPathfinder);
+        posControl.rthPathfinderLastUpdate = currentTimeUs;
+    }
+}
+
+
 /*-----------------------------------------------------------
  * Returns pointer to currently used position (ABS or AGL) depending on surface tracking status
  *-----------------------------------------------------------*/
@@ -1989,6 +2037,45 @@ bool validateRTHSanityChecker(void)
     return checkResult;
 }
 
+static void initializeStraightRTH(void)
+{
+    // Set the RTH target point to the point above home
+    posControl.rthNextWaypoint = posControl.homeWaypointAbove;
+}
+
+static pathfinder_alt_t rthPathfinderAltitudeCalculator(int32_t lat, int32_t lon, void *user_data)
+{
+    UNUSED(lat);
+    UNUSED(lon);
+    UNUSED(user_data);
+
+    return RTHAltitude();
+}
+
+static bool initializeSmartRTH(void)
+{
+    timeUs_t before = micros();
+    pathfinderPrepareReturn(&posControl.rthPathfinder, rthPathfinderAltitudeCalculator, NULL);
+    // TODO: Remove debugging or use proper macros
+    debug[3] = micros() - before;
+    // TODO: Make sure points close to home have some altitude margin
+    return smartRTHPrepareNextPoint();
+}
+
+static bool smartRTHPrepareNextPoint(void)
+{
+    gpsLocation_t wpLLH;
+    if (pathfinderPop(&posControl.rthPathfinder, &wpLLH.lat, &wpLLH.lon, &wpLLH.alt)) {
+        geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &posControl.rthNextWaypoint.pos, GEO_ALT_RELATIVE);
+        debug[1] = pathfinderCount(&posControl.rthPathfinder);
+        return true;
+    }
+    debug[1] = pathfinderCount(&posControl.rthPathfinder);
+    // Could not obtain next point. Go straight to home from here.
+    initializeStraightRTH();
+    return false;
+}
+
 /*-----------------------------------------------------------
  * Reset home position to current position
  *-----------------------------------------------------------*/
@@ -2074,6 +2161,7 @@ void updateHomePosition(void)
             }
             if (setHome) {
                 setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+                navigationResetRTHPathfinder();
             }
         }
     }
@@ -2993,6 +3081,8 @@ void navigationInit(void)
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
+
+    pathfinderInit(&posControl.rthPathfinder, posControl.rthPathfinderStorage, ARRAYLEN(posControl.rthPathfinderStorage));
 
     /* Set initial surface invalid */
     posControl.actualState.surfaceMin = -1.0f;
