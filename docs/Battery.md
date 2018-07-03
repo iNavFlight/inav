@@ -305,4 +305,10 @@ To use this feature the following conditions need to be met:
 - The average power draw at cruise throttle needs to be specified (`cruise_power` setting in 0.01W unit)
 - The battery needs to be full when plugged in (voltage >= (`vbat_max_cell_voltage` - 100mV) * cells)
 
-It is advised to set `nav_fw_cruise_speed` a bit lower than the real speed and `cruise_power` 10% higher than the power at cruise throttle to ensure variations in throttle during cruise won't cause the aircraft to draw more power than estimated.
+It is advised to set `nav_fw_cruise_speed` a bit lower than the real speed and `cruise_power` 10% higher than the power at cruise throttle to ensure variations in throttle during cruise won't cause the aircraft to draw more energy than estimated.
+
+If `---` is displayed during flight instead of the remaining flight time/distance it means at least one of the above conditions aren't met. If the OSD element is blinking and the digits are replaced by the horizontal wind symbol it means that the estimated horizontal wind is too strong to be able to return home at `nav_fw_cruise_speed`.
+
+## Automatic throttle compensation based on battery voltage
+
+Automatic throttle compensation based on battery voltage can be used by enabling the `THR_VBAT_COMP` feature. It is working like this: used_throttle = requested_throttle * battery_max_voltage / sag_compensated_voltage.
