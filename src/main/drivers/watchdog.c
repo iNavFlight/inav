@@ -26,8 +26,6 @@
 
 #include "platform.h"
 
-#include "build/debug.h"
-
 #include "drivers/watchdog.h"
 
 #define LSI_FREQ 32000 // 32khz
@@ -80,7 +78,7 @@ void watchdogSetTimeout(uint32_t ms)
     }
 
     uint32_t clk = LSI_FREQ / (0x04 << pr);
-    uint32_t rlr = ms * clk / 1000UL-1;
+    uint32_t rlr = ms * clk / 1000UL - 1;
 
     while (watchdogPrescalerIsBusy());
     // enable write to PR, RLR
