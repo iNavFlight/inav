@@ -100,10 +100,10 @@ void watchdogInit(void)
     // wait until LSI is ready
     while ((RCC->CSR & RCC_CSR_LSIRDY) == 0);
 
-    // Set default timeout
-    watchdogSetTimeout(0);
     // Start the watchdog
     IWDG->KR = IWDG_KR_START;
+    // Set default timeout
+    watchdogSetTimeout(1000);
 }
 
 void watchdogRestart(void)
