@@ -32,6 +32,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/settings.h"
 
 #include "sensors/battery.h"
 
