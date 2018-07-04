@@ -105,7 +105,7 @@ void watchdogInit(void)
     // Start the watchdog
     IWDG->KR = IWDG_KR_START;
     // Set default timeout
-    watchdogSetTimeout(1000);
+    watchdogSetTimeout(0);
 }
 
 void watchdogRestart(void)
