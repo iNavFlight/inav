@@ -29,7 +29,9 @@
 #include <stdbool.h>
 
 // Initializes the watchdog, typically called during system startup.
-// Note that once enabled, the watchdog can't be disabled.
+// Note that once enabled, the watchdog can't be disabled. This function
+// can be called multiple times and it will always set the watchdog
+// interval to 500ms.
 void watchdogInit(void);
 
 // Restart the watchdog counter.
