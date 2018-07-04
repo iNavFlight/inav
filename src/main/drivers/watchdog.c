@@ -26,6 +26,8 @@
 
 #include "platform.h"
 
+#if defined(USE_WATCHDOG)
+
 #include "drivers/watchdog.h"
 
 #define LSI_FREQ 32000 // 32khz
@@ -115,3 +117,5 @@ bool watchdogBarked(void)
 {
     return (RCC_GetFlagStatus(RCC_FLAG_IWDGRST) == SET);
 }
+
+#endif
