@@ -242,9 +242,6 @@ groups:
     members:
       - name: opflow_hardware
         table: opflow_hardware
-      - name: opflow_align
-        type: uint8_t
-        table: alignment
       - name: opflow_scale
         min: 0
         max: 10000

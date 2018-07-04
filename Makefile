@@ -390,7 +390,7 @@ clean:
 
 ## clean_test        : clean up all temporary / machine-generated files (tests)
 clean_test:
-	$(V0) cd src/test && $(MAKE) clean || true
+	$(V0) cd src/test && $(MAKE) clean
 
 ## clean_<TARGET>    : clean up one specific target
 $(CLEAN_TARGETS) :
@@ -465,7 +465,7 @@ targets:
 
 ## test              : run the cleanflight test suite
 test:
-	$(V0) cd src/test && $(MAKE) test || true
+	$(V0) cd src/test && $(MAKE) test
 
 # rebuild everything when makefile changes
 # Make the generated files and the build stamp order only prerequisites,

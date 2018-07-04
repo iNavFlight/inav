@@ -39,6 +39,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/settings.h"
 
 #include "io/flashfs.h"
 

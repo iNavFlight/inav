@@ -39,6 +39,7 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
+#include "fc/settings.h"
 
 #include "navigation/navigation.h"
 

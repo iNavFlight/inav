@@ -544,7 +544,7 @@ void sagCompensatedVBatUpdate(timeUs_t currentTime, timeUs_t timeDelta)
         }
 
         uint16_t sagCompensatedVBatSample = MIN(batteryFullVoltage, vbat + (int32_t)powerSupplyImpedance * amperage / 1000);
-        sagCompVBatFilterState.RC = sagCompensatedVBatSample < sagCompVBatFilterState.state ? 40 : 500;
+        pt1FilterSetTimeConstant(&sagCompVBatFilterState, sagCompensatedVBatSample < pt1FilterGetLastOutput(&sagCompVBatFilterState) ? 40 : 500);
         sagCompensatedVBat = lrintf(pt1FilterApply3(&sagCompVBatFilterState, sagCompensatedVBatSample, timeDelta * 1e-6f));
     }
 

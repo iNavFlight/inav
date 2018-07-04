@@ -24,8 +24,6 @@
 
 #include <stdint.h>
 
-#include "fc/settings.h"
-
 //type of elements
 
 typedef enum
