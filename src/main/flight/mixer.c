@@ -38,6 +38,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/failsafe.h"
@@ -76,7 +77,8 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .yaw_jump_prevention_limit = 200,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
-    .appliedMixerPreset = -1 //This flag is not available in CLI and used by Configurator only
+    .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
+    .fwMinThrottleDownPitchAngle = 0
 );
 
 #ifdef BRUSHED_MOTORS
@@ -99,7 +101,6 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
-    .throttleVBatCompensation = false
 );
 
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
@@ -310,7 +311,7 @@ void mixTable(const float dT)
         throttleMax = motorConfig()->maxthrottle;
 
         // Throttle compensation based on battery voltage
-        if (motorConfig()->throttleVBatCompensation && STATE(FIXED_WING) && isAmperageConfigured() && feature(FEATURE_VBAT))
+        if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
             throttleCommand = MIN(throttleCommand * calculateThrottleCompensationFactor(), throttleMax);
     }
 
@@ -350,17 +351,11 @@ void mixTable(const float dT)
             }
 
             // Motor stop handling
-            if (feature(FEATURE_MOTOR_STOP) && ARMING_FLAG(ARMED)) {
-                bool failsafeMotorStop = failsafeRequiresMotorStop();
-                bool navMotorStop = !failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE);
-                bool userMotorStop = !navigationIsFlyingAutonomousMode() && !failsafeIsActive() && (rcData[THROTTLE] < rxConfig()->mincheck);
-                if (failsafeMotorStop || navMotorStop || userMotorStop) {
-                    if (feature(FEATURE_3D)) {
-                        motor[i] = PWM_RANGE_MIDDLE;
-                    }
-                    else {
-                        motor[i] = motorConfig()->mincommand;
-                    }
+            if (ARMING_FLAG(ARMED) && (getMotorStatus() != MOTOR_RUNNING)) {
+                if (feature(FEATURE_MOTOR_STOP)) {
+                    motor[i] = (feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->mincommand);
+                } else {
+                    motor[i] = motorConfig()->minthrottle;
                 }
             }
         }
@@ -372,4 +367,15 @@ void mixTable(const float dT)
 
     /* Apply motor acceleration/deceleration limit */
     applyMotorRateLimiting(dT);
+}
+
+motorStatus_e getMotorStatus(void)
+{
+    if (failsafeRequiresMotorStop() || (!failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE)))
+        return MOTOR_STOPPED_AUTO;
+
+    if ((STATE(FIXED_WING) || !isAirmodeActive()) && (!navigationIsFlyingAutonomousMode()) && (!failsafeIsActive()) && (rcData[THROTTLE] < rxConfig()->mincheck))
+        return MOTOR_STOPPED_USER;
+
+    return MOTOR_RUNNING;
 }

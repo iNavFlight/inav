@@ -158,10 +158,10 @@ static const displayPortVTable_t max7456VTable = {
     .supportedTextAttributes = supportedTextAttributes,
 };
 
-displayPort_t *max7456DisplayPortInit(const vcdProfile_t *vcdProfile)
+displayPort_t *max7456DisplayPortInit(const videoSystem_e videoSystem)
 {
     displayInit(&max7456DisplayPort, &max7456VTable);
-    max7456Init(vcdProfile);
+    max7456Init(videoSystem);
     resync(&max7456DisplayPort);
     return &max7456DisplayPort;
 }

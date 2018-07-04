@@ -32,7 +32,6 @@
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
-#include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -58,6 +57,7 @@
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/vtx.h"
 
 #include "msp/msp_serial.h"
 
@@ -108,7 +108,7 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
     if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
-        sagCompensatedVBatUpdate(currentTimeUs);
+        sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
     }
 #endif
     batMonitoringLastServiced = currentTimeUs;
@@ -273,19 +273,6 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef VTX_CONTROL
-// Everything that listens to VTX devices
-void taskVtxControl(timeUs_t currentTimeUs)
-{
-    if (ARMING_FLAG(ARMED))
-        return;
-
-#ifdef VTX_COMMON
-    vtxCommonProcess(currentTimeUs);
-#endif
-}
-#endif
-
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -369,8 +356,8 @@ void fcTasksInit(void)
 #ifdef USE_OPTICAL_FLOW
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
 #endif
-#ifdef VTX_CONTROL
-#if defined(VTX_SMARTAUDIO) || defined(VTX_TRAMP)
+#ifdef USE_VTX_CONTROL
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
@@ -616,10 +603,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef VTX_CONTROL
+#ifdef USE_VTX_CONTROL
     [TASK_VTXCTRL] = {
         .taskName = "VTXCTRL",
-        .taskFunc = taskVtxControl,
+        .taskFunc = vtxUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(5),          // 5Hz @200msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },

@@ -152,7 +152,7 @@
 #define RSSI_ADC_CHANNEL        ADC_CHN_2
 
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB1
 #define WS2811_TIMER                    TIM8
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER

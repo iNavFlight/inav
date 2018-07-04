@@ -94,6 +94,7 @@ enum {
 #define GYRO_WATCHDOG_DELAY 100  // Watchdog for boards without interrupt for gyro
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
+static timeUs_t flightTime = 0;
 
 float dT;
 
@@ -373,6 +374,8 @@ void tryArm(void)
             return;
         }
 
+        lastDisarmReason = DISARM_NONE;
+
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
@@ -480,9 +483,10 @@ void processRx(timeUs_t currentTimeUs)
 
     updateActivatedModes();
 
-    if ((!cliMode) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
-        updateAdjustmentStates();
-        processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile));
+    if (!cliMode) {
+        bool canUseRxData = rxIsReceivingSignal() && !FLIGHT_MODE(FAILSAFE_MODE);
+        updateAdjustmentStates(canUseRxData);
+        processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile), canUseRxData);
     }
 
     bool canUseHorizonMode = true;
@@ -702,6 +706,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
+    if (ARMING_FLAG(ARMED) && ((!STATE(FIXED_WING)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected()))) {
+        flightTime += cycleTime;
+    }
+
 #ifdef USE_ASYNC_GYRO_PROCESSING
     if (getAsyncMode() == ASYNC_MODE_NONE) {
         taskGyro(currentTimeUs);
@@ -822,4 +830,9 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 {
     processRx(currentTimeUs);
     isRXDataNew = true;
+}
+
+// returns seconds
+float getFlightTime() {
+    return (float)(flightTime / 1000) / 1000;
 }

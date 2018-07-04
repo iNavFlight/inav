@@ -113,6 +113,7 @@ static bool cxofOpflowUpdate(opflowData_t * data)
                     tmpData.deltaTime += (currentTimeUs - previousTimeUs);
                     tmpData.flowRateRaw[0] += pkt->motionX;
                     tmpData.flowRateRaw[1] += pkt->motionY;
+                    tmpData.flowRateRaw[2] = 0;
                     tmpData.quality = (constrain(pkt->squal, 64, 78) - 64) * 100 / 14;
 
                     previousTimeUs = currentTimeUs;

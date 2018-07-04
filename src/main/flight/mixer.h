@@ -28,6 +28,8 @@
 #define YAW_JUMP_PREVENTION_LIMIT_LOW 80
 #define YAW_JUMP_PREVENTION_LIMIT_HIGH 500
 
+#define FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX 450
+
 typedef enum {
     PLATFORM_MULTIROTOR     = 0,
     PLATFORM_AIRPLANE       = 1,
@@ -59,6 +61,7 @@ typedef struct mixerConfig_s {
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
+    uint16_t fwMinThrottleDownPitchAngle;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
@@ -80,10 +83,15 @@ typedef struct motorConfig_s {
     uint8_t  motorPwmProtocol;
     uint16_t motorAccelTimeMs;              // Time limit for motor to accelerate from 0 to 100% throttle [ms]
     uint16_t motorDecelTimeMs;              // Time limit for motor to decelerate from 0 to 100% throttle [ms]
-    bool     throttleVBatCompensation;
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
+
+typedef enum {
+    MOTOR_STOPPED_USER,
+    MOTOR_STOPPED_AUTO,
+    MOTOR_RUNNING
+} motorStatus_e;
 
 extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
@@ -91,6 +99,7 @@ extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
+motorStatus_e getMotorStatus(void);
 
 void writeAllMotors(int16_t mc);
 void mixerUsePWMIOConfiguration(void);

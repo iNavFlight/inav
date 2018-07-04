@@ -63,7 +63,7 @@
 
 #define AIRMODE_DEADBAND 25
 #define MIN_RC_TICK_INTERVAL_MS             20
-#define DEFAULT_RC_SWITCH_DISARM_DELAY_MS   150     // Wait at least 150ms before disarming via switch
+#define DEFAULT_RC_SWITCH_DISARM_DELAY_MS   250     // Wait at least 250ms before disarming via switch
 
 stickPositions_e rcStickPositions;
 
@@ -232,7 +232,6 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     }
 
     // actions during not armed
-    int i = 0;
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {
@@ -257,16 +256,38 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Multiple configuration profiles
     if (feature(FEATURE_TX_PROF_SEL)) {
+
+        uint8_t i = 0;
+
         if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
             i = 1;
         else if (rcSticks == THR_LO + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
             i = 2;
         else if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
             i = 3;
+
         if (i) {
             setConfigProfileAndWriteEEPROM(i - 1);
             return;
         }
+
+        i = 0;
+
+        // Multiple battery configuration profiles
+        if (rcSticks == THR_HI + YAW_LO + PIT_CE + ROL_LO)          // ROLL left  -> Profile 1
+            i = 1;
+        else if (rcSticks == THR_HI + YAW_LO + PIT_HI + ROL_CE)     // PITCH up   -> Profile 2
+            i = 2;
+        else if (rcSticks == THR_HI + YAW_LO + PIT_CE + ROL_HI)     // ROLL right -> Profile 3
+            i = 3;
+
+        if (i) {
+            setConfigBatteryProfileAndWriteEEPROM(i - 1);
+            batteryDisableProfileAutoswitch();
+            activateBatteryProfile();
+            return;
+        }
+
     }
 
     // Save config
@@ -331,4 +352,3 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 int32_t getRcStickDeflection(int32_t axis) {
     return MIN(ABS(rcData[axis] - PWM_RANGE_MIDDLE), 500);
 }
-

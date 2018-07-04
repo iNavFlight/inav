@@ -51,11 +51,6 @@
 #define BMP280_SPI_BUS          BUS_SPI1
 #define BMP280_CS_PIN           PA13
 
-#define BARO_I2C_BUS             BUS_I2C1
-#define USE_BARO_BMP085 // External
-#define USE_BARO_BMP180 // External
-#define USE_BARO_MS5611 // External
-
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
@@ -63,13 +58,6 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
-
-#define USE_RANGEFINDER
-#define USE_RANGEFINDER_HCSR04
-#define RANGEFINDER_HCSR04_ECHO_PIN          PB2  // Has 1K series resistor
-#define RANGEFINDER_HCSR04_TRIGGER_PIN       PB4  // FT
-#define USE_RANGEFINDER_HCSR04_I2C
-#define RANGEFINDER_I2C_BUS                  BUS_I2C1
 
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5

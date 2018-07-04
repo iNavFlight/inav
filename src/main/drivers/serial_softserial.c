@@ -130,9 +130,11 @@ static void serialEnableCC(softSerial_t *softSerial)
 static void serialInputPortActivate(softSerial_t *softSerial)
 {
     if (softSerial->port.options & SERIAL_INVERTED) {
-        IOConfigGPIOAF(softSerial->rxIO, IOCFG_AF_PP_PD, softSerial->timerHardware->alternateFunction);
+        const uint8_t pinConfig = (softSerial->port.options & SERIAL_BIDIR_NOPULL) ? IOCFG_AF_PP : IOCFG_AF_PP_PD;
+        IOConfigGPIOAF(softSerial->rxIO, pinConfig, softSerial->timerHardware->alternateFunction);
     } else {
-        IOConfigGPIOAF(softSerial->rxIO, IOCFG_AF_PP_UP, softSerial->timerHardware->alternateFunction);
+        const uint8_t pinConfig = (softSerial->port.options & SERIAL_BIDIR_NOPULL) ? IOCFG_AF_PP : IOCFG_AF_PP_UP;
+        IOConfigGPIOAF(softSerial->rxIO, pinConfig, softSerial->timerHardware->alternateFunction);
     }
 
     softSerial->rxActive = true;

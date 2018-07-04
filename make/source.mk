@@ -74,6 +74,7 @@ COMMON_SRC = \
             flight/mixer.c \
             flight/pid.c \
             flight/pid_autotune.c \
+            flight/rth_estimator.c \
             flight/servos.c \
             flight/wind_estimator.c \
             io/beeper.c \
@@ -123,6 +124,7 @@ COMMON_SRC = \
             blackbox/blackbox_encoding.c \
             blackbox/blackbox_io.c \
             cms/cms.c \
+            cms/cms_menu_battery.c \
             cms/cms_menu_blackbox.c \
             cms/cms_menu_builtin.c \
             cms/cms_menu_imu.c \
@@ -163,12 +165,15 @@ COMMON_SRC = \
             navigation/navigation_geo.c \
             navigation/navigation_multicopter.c \
             navigation/navigation_pos_estimator.c \
+            navigation/navigation_pos_estimator_agl.c \
+            navigation/navigation_pos_estimator_flow.c \
             sensors/barometer.c \
             sensors/pitotmeter.c \
             sensors/rangefinder.c \
             sensors/opflow.c \
             telemetry/crsf.c \
             telemetry/frsky.c \
+            telemetry/frsky_d.c \
             telemetry/hott.c \
             telemetry/ibus_shared.c \
             telemetry/ibus.c \
@@ -177,6 +182,7 @@ COMMON_SRC = \
             telemetry/msp_shared.c \
             telemetry/smartport.c \
             telemetry/telemetry.c \
+            io/vtx.c \
             io/vtx_string.c \
             io/vtx_smartaudio.c \
             io/vtx_tramp.c \

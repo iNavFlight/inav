@@ -108,7 +108,7 @@ extern uint8_t __config_end;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 
-#include "telemetry/frsky.h"
+#include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
@@ -135,11 +135,9 @@ static void cliAssert(char *cmdline);
 static void cliBootlog(char *cmdline);
 #endif
 
-static const char* const emptyName = "-";
-
 // sync this with features_e
 static const char * const featureNames[] = {
-    "RX_PPM", "VBAT", "TX_PROF_SEL", "", "MOTOR_STOP",
+    "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
     "", "SOFTSERIAL", "GPS", "",
     "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
@@ -229,11 +227,12 @@ static void cliPutp(void *p, char ch)
 typedef enum {
     DUMP_MASTER = (1 << 0),
     DUMP_PROFILE = (1 << 1),
-    DUMP_RATES = (1 << 2),
-    DUMP_ALL = (1 << 3),
-    DO_DIFF = (1 << 4),
-    SHOW_DEFAULTS = (1 << 5),
-    HIDE_UNUSED = (1 << 6)
+    DUMP_BATTERY_PROFILE = (1 << 2),
+    DUMP_RATES = (1 << 3),
+    DUMP_ALL = (1 << 4),
+    DO_DIFF = (1 << 5),
+    SHOW_DEFAULTS = (1 << 6),
+    HIDE_UNUSED = (1 << 7)
 } dumpFlags_e;
 
 static void cliPrintfva(const char *format, va_list va)
@@ -329,11 +328,15 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
         cliPrintf("%s", ftoa(*(float *)valuePointer, buf));
         if (full) {
             if (SETTING_MODE(var) == MODE_DIRECT) {
-                cliPrintf(" %s", ftoa((float)setting_get_min(var), buf));
-                cliPrintf(" %s", ftoa((float)setting_get_max(var), buf));
+                cliPrintf(" %s", ftoa((float)settingGetMin(var), buf));
+                cliPrintf(" %s", ftoa((float)settingGetMax(var), buf));
             }
         }
         return; // return from case for float only
+
+    case VAR_STRING:
+        cliPrintf("%s", (const char *)valuePointer);
+        return;
     }
 
     switch (SETTING_MODE(var)) {
@@ -344,7 +347,7 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
             cliPrintf("%d", value);
         if (full) {
             if (SETTING_MODE(var) == MODE_DIRECT) {
-                cliPrintf(" %d %u", setting_get_min(var), setting_get_max(var));
+                cliPrintf(" %d %u", settingGetMin(var), settingGetMax(var));
             }
         }
         break;
@@ -352,17 +355,17 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
         if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
             cliPrintf(settingLookupTables[var->config.lookup.tableIndex].values[value]);
         } else {
-            setting_get_name(var, buf);
+            settingGetName(var, buf);
             cliPrintLinef("VALUE %s OUT OF RANGE", buf);
         }
         break;
     }
 }
 
-static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptrDefault)
+static bool valuePtrEqualsDefault(const setting_t *value, const void *ptr, const void *ptrDefault)
 {
     bool result = false;
-    switch (type & SETTING_TYPE_MASK) {
+    switch (SETTING_TYPE(value)) {
     case VAR_UINT8:
         result = *(uint8_t *)ptr == *(uint8_t *)ptrDefault;
         break;
@@ -386,6 +389,10 @@ static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptr
     case VAR_FLOAT:
         result = *(float *)ptr == *(float *)ptrDefault;
         break;
+
+    case VAR_STRING:
+        result = strncmp(ptr, ptrDefault, settingGetStringMaxLength(value) + 1) == 0;
+        break;
     }
     return result;
 }
@@ -397,14 +404,14 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
     const char *defaultFormat = "#set %s = ";
     // During a dump, the PGs have been backed up to their "copy"
     // regions and the actual values have been reset to its
-    // defaults. This means that setting_get_value_pointer() will
-    // return the default value while setting_get_copy_value_pointer()
+    // defaults. This means that settingGetValuePointer() will
+    // return the default value while settingGetCopyValuePointer()
     // will return the actual value.
-    const void *valuePointer = setting_get_copy_value_pointer(value);
-    const void *defaultValuePointer = setting_get_value_pointer(value);
-    const bool equalsDefault = valuePtrEqualsDefault(value->type, valuePointer, defaultValuePointer);
+    const void *valuePointer = settingGetCopyValuePointer(value);
+    const void *defaultValuePointer = settingGetValuePointer(value);
+    const bool equalsDefault = valuePtrEqualsDefault(value, valuePointer, defaultValuePointer);
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
-        setting_get_name(value, name);
+        settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
             printValuePointer(value, defaultValuePointer, 0);
@@ -429,7 +436,7 @@ static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
 
 static void cliPrintVar(const setting_t *var, uint32_t full)
 {
-    const void *ptr = setting_get_value_pointer(var);
+    const void *ptr = settingGetValuePointer(var);
 
     printValuePointer(var, ptr, full);
 }
@@ -437,10 +444,15 @@ static void cliPrintVar(const setting_t *var, uint32_t full)
 static void cliPrintVarRange(const setting_t *var)
 {
     switch (SETTING_MODE(var)) {
-    case (MODE_DIRECT):
-        cliPrintLinef("Allowed range: %d - %u", setting_get_min(var), setting_get_max(var));
+    case MODE_DIRECT:
+        if (SETTING_TYPE(var) == VAR_STRING) {
+           cliPrintLinef("Max. length: %u", settingGetStringMaxLength(var));
+           break;
+        }
+        cliPrintLinef("Allowed range: %d - %u", settingGetMin(var), settingGetMax(var));
         break;
-    case (MODE_LOOKUP): {
+    case MODE_LOOKUP:
+    {
         const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
         cliPrint("Allowed values:");
         for (uint32_t i = 0; i < tableEntry->valueCount ; i++) {
@@ -450,7 +462,7 @@ static void cliPrintVarRange(const setting_t *var)
         }
         cliPrintLinefeed();
     }
-    break;
+        break;
     }
 }
 
@@ -460,9 +472,9 @@ typedef union {
     float float_value;
 } int_float_value_t;
 
-static void cliSetVar(const setting_t *var, const int_float_value_t value)
+static void cliSetIntFloatVar(const setting_t *var, const int_float_value_t value)
 {
-    void *ptr = setting_get_value_pointer(var);
+    void *ptr = settingGetValuePointer(var);
 
     switch (SETTING_TYPE(var)) {
     case VAR_UINT8:
@@ -481,6 +493,10 @@ static void cliSetVar(const setting_t *var, const int_float_value_t value)
 
     case VAR_FLOAT:
         *(float *)ptr = (float)value.float_value;
+        break;
+
+    case VAR_STRING:
+        // Handled by cliSet directly
         break;
     }
 }
@@ -2122,24 +2138,6 @@ static void cliMotor(char *cmdline)
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
 }
 
-static void printName(uint8_t dumpMask, const systemConfig_t * sConfig)
-{
-    bool equalsDefault = strlen(sConfig->name) == 0;
-    cliDumpPrintLinef(dumpMask, equalsDefault, "name %s", equalsDefault ? emptyName : sConfig->name);
-}
-
-static void cliName(char *cmdline)
-{
-    int32_t len = strlen(cmdline);
-    if (len > 0) {
-        memset(systemConfigMutable()->name, 0, ARRAYLEN(systemConfigMutable()->name));
-        if (strncmp(cmdline, emptyName, len)) {
-            strncpy(systemConfigMutable()->name, cmdline, MIN(len, MAX_NAME_LENGTH));
-        }
-    }
-    printName(DUMP_MASTER, systemConfig());
-}
-
 #ifdef PLAY_SOUND
 static void cliPlaySound(char *cmdline)
 {
@@ -2203,6 +2201,33 @@ static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
     dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
 }
 
+static void cliBatteryProfile(char *cmdline)
+{
+    // CLI profile index is 1-based
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("battery_profile %d", getConfigBatteryProfile() + 1);
+        return;
+    } else {
+        const int i = fastA2I(cmdline) - 1;
+        if (i >= 0 && i < MAX_PROFILE_COUNT) {
+            setConfigBatteryProfileAndWriteEEPROM(i);
+            cliBatteryProfile("");
+        }
+    }
+}
+
+static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
+{
+    if (profileIndex >= MAX_BATTERY_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    setConfigBatteryProfile(profileIndex);
+    cliPrintHashLine("battery_profile");
+    cliPrintLinef("battery_profile %d\r\n", getConfigBatteryProfile() + 1);
+    dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
+}
+
 static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2232,7 +2257,7 @@ static void cliGet(char *cmdline)
 
     for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
         val = &settingsTable[i];
-        if (setting_name_contains(val, name, cmdline)) {
+        if (settingNameContains(val, name, cmdline)) {
             cliPrintf("%s = ", name);
             cliPrintVar(val, 0);
             cliPrintLinefeed();
@@ -2264,7 +2289,7 @@ static void cliSet(char *cmdline)
         cliPrintLine("Current settings:");
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
             val = &settingsTable[i];
-            setting_get_name(val, name);
+            settingGetName(val, name);
             cliPrintf("%s = ", name);
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
             cliPrintLinefeed();
@@ -2287,17 +2312,21 @@ static void cliSet(char *cmdline)
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
             val = &settingsTable[i];
             // ensure exact match when setting to prevent setting variables with shorter names
-            if (setting_name_exact_match(val, name, cmdline, variableNameLength)) {
+            if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
+                const setting_type_e type = SETTING_TYPE(val);
+                if (type == VAR_STRING) {
+                    settingSetString(val, eqptr, strlen(eqptr));
+                    return;
+                }
+                const setting_mode_e mode = SETTING_MODE(val);
                 bool changeValue = false;
                 int_float_value_t tmp = {0};
-                const int mode = SETTING_MODE(val);
-                const int type = SETTING_TYPE(val);
                 switch (mode) {
                 case MODE_DIRECT: {
                         if (*eqptr != 0 && strspn(eqptr, "0123456789.+-") == strlen(eqptr)) {
                             float valuef = fastA2F(eqptr);
                             // note: compare float values
-                            if (valuef >= (float)setting_get_min(val) && valuef <= (float)setting_get_max(val)) {
+                            if (valuef >= (float)settingGetMin(val) && valuef <= (float)settingGetMax(val)) {
 
                                 if (type == VAR_FLOAT)
                                     tmp.float_value = valuef;
@@ -2327,7 +2356,7 @@ static void cliSet(char *cmdline)
                 }
 
                 if (changeValue) {
-                    cliSetVar(val, tmp);
+                    cliSetIntFloatVar(val, tmp);
 
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
@@ -2583,6 +2612,8 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = DUMP_MASTER; // only
     } else if ((options = checkCommand(cmdline, "profile"))) {
         dumpMask = DUMP_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "battery_profile"))) {
+        dumpMask = DUMP_BATTERY_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -2594,11 +2625,13 @@ static void printConfig(const char *cmdline, bool doDiff)
     }
 
     const int currentProfileIndexSave = getConfigProfile();
+    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
     setConfigProfile(currentProfileIndexSave);
+    setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -2644,9 +2677,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
 
-        cliPrintHashLine("name");
-        printName(dumpMask, &systemConfig_Copy);
-
         cliPrintHashLine("serial");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
 
@@ -2681,22 +2711,34 @@ static void printConfig(const char *cmdline, bool doDiff)
         if (dumpMask & DUMP_ALL) {
             // dump all profiles
             const int currentProfileIndexSave = getConfigProfile();
+            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
                 cliDumpProfile(ii, dumpMask);
             }
+            for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
+                cliDumpBatteryProfile(ii, dumpMask);
+            }
             setConfigProfile(currentProfileIndexSave);
+            setConfigBatteryProfile(currentBatteryProfileIndexSave);
+
             cliPrintHashLine("restore original profile selection");
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
+            cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
             cliPrintHashLine("save configuration\r\nsave");
         } else {
-            // dump just the current profile
+            // dump just the current profiles
             cliDumpProfile(getConfigProfile(), dumpMask);
+            cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
         }
     }
 
     if (dumpMask & DUMP_PROFILE) {
         cliDumpProfile(getConfigProfile(), dumpMask);
+    }
+
+    if (dumpMask & DUMP_BATTERY_PROFILE) {
+        cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
     }
     // restore configs from copies
     restoreConfigs();
@@ -2760,9 +2802,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("defaults", "reset to defaults and reboot", NULL, cliDefaults),
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
-        "[master|profile|rates|all] {showdefaults}", cliDiff),
+        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDiff),
     CLI_COMMAND_DEF("dump", "dump configuration",
-        "[master|profile|rates|all] {showdefaults}", cliDump),
+        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
@@ -2790,12 +2832,13 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
-    CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),
 #ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
 #endif
     CLI_COMMAND_DEF("profile", "change profile",
         "[<index>]", cliProfile),
+    CLI_COMMAND_DEF("battery_profile", "change battery profile",
+        "[<index>]", cliBatteryProfile),
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
 #endif

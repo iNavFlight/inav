@@ -54,7 +54,7 @@ extern "C" {
     PG_REGISTER(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
 
     uint16_t testBatteryVoltage = 0;
-    int32_t testAmperage = 0;
+    int16_t testAmperage = 0;
     int32_t testMAhDrawn = 0;
 }
 
@@ -216,11 +216,15 @@ void serialSetMode(serialPort_t *instance, portMode_t mode) {
 }
 
 
-serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e functionMask, serialReceiveCallbackPtr callback, uint32_t baudRate, portMode_t mode, portOptions_t options) {
+serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e function,
+                             serialReceiveCallbackPtr rxCallback, void *rxCallbackData,
+                             uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
     UNUSED(identifier);
-    UNUSED(functionMask);
+    UNUSED(function);
+    UNUSED(rxCallback);
+    UNUSED(rxCallbackData);
     UNUSED(baudRate);
-    UNUSED(callback);
     UNUSED(mode);
     UNUSED(options);
 
@@ -266,7 +270,7 @@ uint16_t getBatteryVoltage(void) {
     return testBatteryVoltage;
 }
 
-int32_t getAmperage(void) {
+int16_t getAmperage(void) {
     return testAmperage;
 }
 

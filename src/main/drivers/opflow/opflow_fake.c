@@ -43,6 +43,7 @@ void fakeOpflowSet(timeDelta_t deltaTime, int32_t flowRateX, int32_t flowRateY, 
     fakeData.deltaTime = deltaTime;
     fakeData.flowRateRaw[0] = flowRateX;
     fakeData.flowRateRaw[1] = flowRateY;
+    fakeData.flowRateRaw[2] = 0;
     fakeData.quality = quality;
 }
 

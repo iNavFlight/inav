@@ -70,6 +70,9 @@
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 
+#define USE_PITOT_MS4525
+#define PITOT_I2C_BUS           BUS_I2C1
+
 // *************** SD Card **************************
 #define USE_SDCARD
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT

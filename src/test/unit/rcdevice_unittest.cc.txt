@@ -29,6 +29,7 @@ extern "C" {
     #include "common/maths.h"
     #include "common/utils.h"
     #include "common/streambuf.h"
+    #include "common/time.h"
 
     #include "config/parameter_group.h"
     #include "config/parameter_group_ids.h"
@@ -60,6 +61,9 @@ extern "C" {
         rcdeviceSwitchState_s switchState = switchStates[adjustBoxID];
         return switchState.isActivated;
     }
+    timeUs_t micros(void) { return 0; }
+    void tfp_sprintf(char *, char*, ...) { }
+    bool rtcGetDateTime(dateTime_t *dt) { UNUSED(dt); return false; }
 }
 
 #define MAX_RESPONSES_COUNT 10
@@ -95,7 +99,7 @@ static void addResponseData(uint8_t *data, uint8_t dataLen, bool withDataForFlus
         testData.responseBufCount++;
     }
 
-    
+
     memcpy(testData.responesBufs[testData.responseBufCount], data, dataLen);
     testData.responseBufsLen[testData.responseBufCount] = dataLen;
     testData.responseBufCount++;
@@ -133,7 +137,7 @@ TEST(RCDeviceTest, TestInitDevice)
     testData.isAllowBufferReadWrite = true;
     uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBD };
     addResponseData(responseData, sizeof(responseData), true);
-    
+
     bool result = runcamDeviceInit(&device);
     EXPECT_EQ(result, true);
 }
@@ -382,13 +386,13 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationProtocol)
     EXPECT_EQ(true, result);
     clearResponseBuff();
 
-    // open connection with correct response but wrong data length 
+    // open connection with correct response but wrong data length
     uint8_t incorrectResponseDataOfOpenConnection1[] = { 0xCC, 0x11, 0xe7, 0x55 };
     addResponseData(incorrectResponseDataOfOpenConnection1, sizeof(incorrectResponseDataOfOpenConnection1), true);
     result = runcamDeviceOpen5KeyOSDCableConnection(camDevice);
     EXPECT_EQ(true, result);
     clearResponseBuff();
-    
+
     // open connection with invalid crc
     uint8_t incorrectResponseDataOfOpenConnection2[] = { 0xCC, 0x10, 0x42 };
     addResponseData(incorrectResponseDataOfOpenConnection2, sizeof(incorrectResponseDataOfOpenConnection2), true);
@@ -408,7 +412,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationProtocol)
     EXPECT_EQ(true, result);
     clearResponseBuff();
 
-    // close connection with correct response but wrong data length 
+    // close connection with correct response but wrong data length
     uint8_t responseDataOfCloseConnection1[] = { 0xCC, 0x21, 0x11, 0xC1 };
     addResponseData(responseDataOfCloseConnection1, sizeof(responseDataOfCloseConnection1), true);
     result = runcamDeviceClose5KeyOSDCableConnection(camDevice);
@@ -434,7 +438,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationProtocol)
     EXPECT_EQ(true, result);
     clearResponseBuff();
 
-    // simulate press button with correct response but wrong data length 
+    // simulate press button with correct response but wrong data length
     uint8_t responseDataOfSimulation2[] = { 0xCC, 0xA5, 0x22 };
     addResponseData(responseDataOfSimulation2, sizeof(responseDataOfSimulation2), true);
     result = runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
@@ -448,7 +452,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationProtocol)
     EXPECT_EQ(false, result);
     clearResponseBuff();
 
-    // simulate release button event 
+    // simulate release button event
     result = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
     EXPECT_EQ(false, result);
     clearResponseBuff();
@@ -484,7 +488,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWithout5KeyFeatureSupport)
     rcData[YAW] = 1900; // Yaw High
     rcdeviceUpdate(0);
     EXPECT_EQ(false, rcdeviceInMenu);
-    
+
     // init device that have not 5 key OSD cable simulation feature
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -534,7 +538,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     EXPECT_EQ(true, rcdeviceInMenu);
     EXPECT_EQ(true, needRelease);
     clearResponseBuff();
-    // relase button 
+    // relase button
     rcData[ROLL] = 1500; // ROLL Mid
     rcData[PITCH] = 1500; // PITCH Mid
     rcData[YAW] = 1500; // Yaw High
@@ -555,7 +559,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     EXPECT_EQ(false, rcdeviceInMenu);
     EXPECT_EQ(true, needRelease);
     clearResponseBuff();
-    // relase button 
+    // relase button
     rcData[ROLL] = 1500; // ROLL Mid
     rcData[PITCH] = 1500; // PITCH Mid
     rcData[YAW] = 1500; // Yaw High
@@ -574,7 +578,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     EXPECT_EQ(true, rcdeviceInMenu);
     EXPECT_EQ(true, needRelease);
     clearResponseBuff();
-    // relase button 
+    // relase button
     rcData[ROLL] = 1500; // ROLL Mid
     rcData[PITCH] = 1500; // PITCH Mid
     rcData[YAW] = 1500; // Yaw High
@@ -589,7 +593,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     rcdeviceUpdate(0);
     EXPECT_EQ(true, needRelease);
     clearResponseBuff();
-    // relase button 
+    // relase button
     rcData[ROLL] = 1500; // ROLL Mid
     rcData[PITCH] = 1500; // PITCH Mid
     rcData[YAW] = 1500; // Yaw High
@@ -656,7 +660,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     EXPECT_EQ(true, needRelease);
     clearResponseBuff();
 
-    // relase button 
+    // relase button
     rcData[ROLL] = 1500; // ROLL Mid
     rcData[PITCH] = 1500; // PITCH Mid
     rcData[YAW] = 1500; // Yaw High
@@ -671,7 +675,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     rcdeviceUpdate(0);
     EXPECT_EQ(true, needRelease);
     clearResponseBuff();
-    // send relase button 
+    // send relase button
     rcData[ROLL] = 1500; // ROLL Mid
     rcData[PITCH] = 1500; // PITCH Mid
     rcData[YAW] = 1500; // Yaw High
@@ -692,7 +696,7 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
     EXPECT_EQ(false, rcdeviceInMenu);
     EXPECT_EQ(true, needRelease);
     clearResponseBuff();
-    // relase button 
+    // relase button
     rcData[ROLL] = 1500; // ROLL Mid
     rcData[PITCH] = 1500; // PITCH Mid
     rcData[YAW] = 1500; // Yaw High
@@ -703,12 +707,15 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
 }
 
 extern "C" {
-    serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e functionMask, serialReceiveCallbackPtr callback, uint32_t baudRate, portMode_t mode, portOptions_t options)
+    serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e function,
+                                serialReceiveCallbackPtr rxCallback, void *rxCallbackData,
+                                uint32_t baudRate, portMode_t mode, portOptions_t options)
     {
         UNUSED(identifier);
-        UNUSED(functionMask);
+        UNUSED(function);
+        UNUSED(rxCallback);
+        UNUSED(rxCallbackData);
         UNUSED(baudRate);
-        UNUSED(callback);
         UNUSED(mode);
         UNUSED(options);
 
@@ -752,8 +759,8 @@ extern "C" {
         return NULL;
     }
 
-    uint32_t serialRxBytesWaiting(const serialPort_t *instance) 
-    { 
+    uint32_t serialRxBytesWaiting(const serialPort_t *instance)
+    {
         UNUSED(instance);
 
         uint8_t bufIndex = testData.indexOfCurrentRespBuf;
@@ -771,8 +778,8 @@ extern "C" {
         return 0;
     }
 
-    uint8_t serialRead(serialPort_t *instance) 
-    { 
+    uint8_t serialRead(serialPort_t *instance)
+    {
         UNUSED(instance);
 
         uint8_t bufIndex = testData.indexOfCurrentRespBuf;
@@ -789,41 +796,41 @@ extern "C" {
             return buffer[testData.responseDataReadPos++];
         }
 
-        return 0; 
+        return 0;
     }
 
-    void sbufWriteString(sbuf_t *dst, const char *string) 
-    { 
-        UNUSED(dst); UNUSED(string); 
+    void sbufWriteString(sbuf_t *dst, const char *string)
+    {
+        UNUSED(dst); UNUSED(string);
 
         if (testData.isAllowBufferReadWrite) {
             sbufWriteData(dst, string, strlen(string));
         }
     }
-    void sbufWriteU8(sbuf_t *dst, uint8_t val) 
-    { 
-        UNUSED(dst); UNUSED(val); 
+
+    void sbufWriteU8(sbuf_t *dst, uint8_t val)
+    {
+        UNUSED(dst); UNUSED(val);
 
         if (testData.isAllowBufferReadWrite) {
             *dst->ptr++ = val;
         }
     }
-    
+
     void sbufWriteData(sbuf_t *dst, const void *data, int len)
     {
-        UNUSED(dst); UNUSED(data); UNUSED(len); 
+        UNUSED(dst); UNUSED(data); UNUSED(len);
 
         if (testData.isAllowBufferReadWrite) {
             memcpy(dst->ptr, data, len);
             dst->ptr += len;
-            
         }
     }
 
     // modifies streambuf so that written data are prepared for reading
     void sbufSwitchToReader(sbuf_t *buf, uint8_t *base)
     {
-        UNUSED(buf); UNUSED(base); 
+        UNUSED(buf); UNUSED(base);
 
         if (testData.isAllowBufferReadWrite) {
             buf->end = buf->ptr;
@@ -889,9 +896,9 @@ extern "C" {
 
     bool feature(uint32_t) { return false; }
 
-    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) 
-    { 
-        UNUSED(instance); UNUSED(data); UNUSED(count); 
+    void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count)
+    {
+        UNUSED(instance); UNUSED(data); UNUSED(count);
 
         // // reset the input buffer
         testData.responseDataReadPos = 0;
@@ -925,7 +932,6 @@ extern "C" {
         ret |= sbufReadU8(src) << 24;
         return ret;
     }
-    
 
     uint32_t millis(void) { return testData.millis++; }
 

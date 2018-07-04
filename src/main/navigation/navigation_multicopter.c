@@ -72,6 +72,8 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
         targetVel = constrainf(targetVel, -navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate);
     }
 
+    posControl.pids.pos[Z].output_constrained = targetVel;
+
     // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing velocity.
     // if we are decelerating - don't limit (allow better recovery from falling)
     if (ABS(targetVel) > ABS(posControl.desiredState.vel.z)) {
@@ -348,6 +350,9 @@ static void updatePositionVelocityController_MC(void)
         newVelY = maxSpeed * (newVelY / newVelTotal);
         newVelTotal = maxSpeed;
     }
+
+    posControl.pids.pos[X].output_constrained = newVelX;
+    posControl.pids.pos[Y].output_constrained = newVelY;
 
     // Apply expo & attenuation if heading in wrong direction - turn first, accelerate later (effective only in WP mode)
     const float velHeadFactor = getVelocityHeadingAttenuationFactor();

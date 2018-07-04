@@ -21,7 +21,10 @@
 
 #if defined(USE_NAV)
 
+#include "common/axis.h"
+#include "common/maths.h"
 #include "common/filter.h"
+#include "common/time.h"
 #include "fc/runtime_config.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
@@ -34,13 +37,6 @@
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
-
-#define HZ2US(hz)   (1000000 / (hz))
-#define US2S(us)    ((us) * 1e-6f)
-#define US2MS(us)   ((us) * 1e-3f)
-#define MS2US(ms)   ((ms) * 1000)
-#define MS2S(ms)    ((ms) * 1e-3f)
-#define HZ2S(hz)    US2S(HZ2US(hz))
 
 typedef enum {
     NAV_POS_UPDATE_NONE                 = 0,
@@ -80,6 +76,7 @@ typedef struct navigationFlags_s {
 
     navigationEstimateStatus_e estAltStatus;        // Indicates that we have a working altitude sensor (got at least one valid reading from it)
     navigationEstimateStatus_e estPosStatus;        // Indicates that GPS is working (or not)
+    navigationEstimateStatus_e estVelStatus;        // Indicates that GPS is working (or not)
     navigationEstimateStatus_e estAglStatus;
     navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
 
@@ -95,45 +92,11 @@ typedef struct navigationFlags_s {
     bool forcedRTHActivated;
 } navigationFlags_t;
 
-typedef struct {
-    float kP;
-    float kI;
-    float kD;
-    float kT;   // Tracking gain (anti-windup)
-} pidControllerParam_t;
-
-typedef struct {
-    float kP;
-} pControllerParam_t;
-
 typedef enum {
     PID_DTERM_FROM_ERROR            = 1 << 0,
     PID_ZERO_INTEGRATOR             = 1 << 1,
     PID_SHRINK_INTEGRATOR           = 1 << 2,
 } pidControllerFlags_e;
-
-typedef struct {
-    bool reset;
-    pidControllerParam_t param;
-    pt1Filter_t dterm_filter_state;  // last derivative for low-pass filter
-    float integrator;       // integrator value
-    float last_input;       // last input for derivative
-} pidController_t;
-
-typedef struct {
-    pControllerParam_t param;
-} pController_t;
-
-typedef struct navigationPIDControllers_s {
-    /* Multicopter PIDs */
-    pController_t   pos[XYZ_AXIS_COUNT];
-    pidController_t vel[XYZ_AXIS_COUNT];
-    pidController_t surface;
-
-    /* Fixed-wing PIDs */
-    pidController_t fw_alt;
-    pidController_t fw_nav;
-} navigationPIDControllers_t;
 
 typedef struct {
     fpVector3_t pos;
@@ -181,6 +144,9 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
 
+    NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D,
+    NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D,
+    NAV_FSM_EVENT_SWITCH_TO_CRUISE_ADJ,
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
 
@@ -225,6 +191,14 @@ typedef enum {
     NAV_PERSISTENT_ID_LAUNCH_WAIT                               = 26,
     NAV_PERSISTENT_ID_UNUSED_3                                  = 27, // was NAV_STATE_LAUNCH_MOTOR_DELAY
     NAV_PERSISTENT_ID_LAUNCH_IN_PROGRESS                        = 28,
+
+    NAV_PERSISTENT_ID_CRUISE_2D_INITIALIZE                      = 29,
+    NAV_PERSISTENT_ID_CRUISE_2D_IN_PROGRESS                     = 30,
+    NAV_PERSISTENT_ID_CRUISE_2D_ADJUSTING                       = 31,
+
+    NAV_PERSISTENT_ID_CRUISE_3D_INITIALIZE                      = 32,
+    NAV_PERSISTENT_ID_CRUISE_3D_IN_PROGRESS                     = 33,
+    NAV_PERSISTENT_ID_CRUISE_3D_ADJUSTING                       = 34,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -262,6 +236,13 @@ typedef enum {
     NAV_STATE_LAUNCH_INITIALIZE,
     NAV_STATE_LAUNCH_WAIT,
     NAV_STATE_LAUNCH_IN_PROGRESS,
+
+    NAV_STATE_CRUISE_2D_INITIALIZE,
+    NAV_STATE_CRUISE_2D_IN_PROGRESS,
+    NAV_STATE_CRUISE_2D_ADJUSTING,
+    NAV_STATE_CRUISE_3D_INITIALIZE,
+    NAV_STATE_CRUISE_3D_IN_PROGRESS,
+    NAV_STATE_CRUISE_3D_ADJUSTING,
 
     NAV_STATE_COUNT,
 } navigationFSMState_t;
@@ -311,6 +292,13 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
+    fpVector3_t                 targetPos;
+    int32_t                     yaw;
+    int32_t                     previousYaw;
+    timeMs_t                    lastYawAdjustmentTime;
+} navCruise_t;
+
+typedef struct {
     /* Flags and navigation system state */
     navigationFSMState_t        navState;
     navigationPersistentId_e    navPersistentId;
@@ -340,6 +328,9 @@ typedef struct {
 
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+
+    /* Cruise */
+    navCruise_t                 cruise;
 
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
@@ -385,7 +376,7 @@ bool isApproachingLastWaypoint(void);
 float getActiveWaypointSpeed(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading);
-void updateActualHorizontalPositionAndVelocity(bool estimateValid, float newX, float newY, float newVelX, float newVelY);
+void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
 
 bool checkForPositionSensorTimeout(void);

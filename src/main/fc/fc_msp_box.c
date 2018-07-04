@@ -79,7 +79,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT1, "OSD ALT 1", 42 },
     { BOXOSDALT2, "OSD ALT 2", 43 },
     { BOXOSDALT3, "OSD ALT 3", 44 },
-    { BOXBRAKING, "MC BRAKING", 45 },
+    { BOXNAVCRUISE, "NAV CRUISE", 45 },
+    { BOXBRAKING, "MC BRAKING", 46 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -184,12 +185,24 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXSURFACE;
     }
 
-    if ((feature(FEATURE_GPS) && sensors(SENSOR_MAG) && sensors(SENSOR_ACC)) || (STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS))) {
+    const bool navReadyQuads = !STATE(FIXED_WING) && (getHwCompassStatus() != HW_SENSOR_NONE) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    const bool navReadyPlanes = STATE(FIXED_WING) && sensors(SENSOR_ACC) && feature(FEATURE_GPS);
+    const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
+    if (navFlowDeadReckoning || navReadyQuads || navReadyPlanes) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+    }
+
+    if (navReadyQuads || navReadyPlanes) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
-        activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+
+        if (feature(FEATURE_GPS)) {
+            activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+            if (STATE(FIXED_WING)) {
+                activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
+            }
+        }
     }
 
     if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
@@ -292,6 +305,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(FAILSAFE_MODE)),        BOXFAILSAFE);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_ALTHOLD_MODE)),     BOXNAVALTHOLD);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_POSHOLD_MODE)),     BOXNAVPOSHOLD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_CRUISE_MODE)),      BOXNAVCRUISE);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_RTH_MODE)),         BOXNAVRTH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_WP_MODE)),          BOXNAVWP);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAIRMODE)),     BOXAIRMODE);
@@ -331,7 +345,7 @@ uint16_t packSensorStatus(void)
             IS_ENABLED(sensors(SENSOR_MAG))     << 2 |
             IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
             IS_ENABLED(sensors(SENSOR_RANGEFINDER))   << 4 |
-            //IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
+            IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
             IS_ENABLED(sensors(SENSOR_PITOT))   << 6;
 
     // Hardware failure indication bit

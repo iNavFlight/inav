@@ -20,6 +20,8 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 
+#include "drivers/vcd.h"
+
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
 #endif
@@ -80,10 +82,45 @@ typedef enum {
     OSD_MAP_NORTH,
     OSD_MAP_TAKEOFF,
     OSD_RADAR,
-    OSD_DEBUG, // Number 46. Intentionally absent from configurator and CMS. Set it from CLI.
     OSD_WIND_SPEED_HORIZONTAL,
     OSD_WIND_SPEED_VERTICAL,
+    OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH,
+    OSD_REMAINING_DISTANCE_BEFORE_RTH,
+    OSD_HOME_HEADING_ERROR,
+    OSD_CRUISE_HEADING_ERROR,
+    OSD_CRUISE_HEADING_ADJUSTMENT,
     OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE,
+    OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE,
+    OSD_POWER_SUPPLY_IMPEDANCE,
+    OSD_LEVEL_PIDS,
+    OSD_POS_XY_PIDS,
+    OSD_POS_Z_PIDS,
+    OSD_VEL_XY_PIDS,
+    OSD_VEL_Z_PIDS,
+    OSD_HEADING_P,
+    OSD_BOARD_ALIGN_ROLL,
+    OSD_BOARD_ALIGN_PITCH,
+    OSD_RC_EXPO,
+    OSD_RC_YAW_EXPO,
+    OSD_THROTTLE_EXPO,
+    OSD_PITCH_RATE,
+    OSD_ROLL_RATE,
+    OSD_YAW_RATE,
+    OSD_MANUAL_RC_EXPO,
+    OSD_MANUAL_RC_YAW_EXPO,
+    OSD_MANUAL_PITCH_RATE,
+    OSD_MANUAL_ROLL_RATE,
+    OSD_MANUAL_YAW_RATE,
+    OSD_NAV_FW_CRUISE_THR,
+    OSD_NAV_FW_PITCH2THR,
+    OSD_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE,
+    OSD_DEBUG, // Intentionally absent from configurator and CMS. Set it from CLI.
+    OSD_FW_ALT_PID_OUTPUTS,
+    OSD_FW_POS_PID_OUTPUTS,
+    OSD_MC_VEL_X_PID_OUTPUTS,
+    OSD_MC_VEL_Y_PID_OUTPUTS,
+    OSD_MC_VEL_Z_PID_OUTPUTS,
+    OSD_MC_POS_XYZ_P_OUTPUTS,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -121,7 +158,7 @@ typedef struct osdConfig_s {
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
 
-    uint8_t video_system;
+    videoSystem_e video_system;
     uint8_t row_shiftdown;
 
     // Preferences
@@ -135,6 +172,8 @@ typedef struct osdConfig_s {
 
     uint8_t units; // from osd_unit_e
     uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
+
+    bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

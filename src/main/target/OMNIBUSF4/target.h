@@ -105,6 +105,11 @@
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
+
+  // Support external barometers
+  #define BARO_I2C_BUS          BUS_I2C2
+  #define USE_BARO_BMP085
+  #define USE_BARO_MS5611
 #else
   #define BARO_I2C_BUS          BUS_I2C2
   #define USE_BARO_BMP085
@@ -118,6 +123,10 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 #define USE_RANGEFINDER_HCSR04_I2C
+#define USE_RANGEFINDER_VL53L0X
+
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_CXOF
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
@@ -137,7 +146,11 @@
 #define UART6_TX_PIN            PC6
 
 #if defined(OMNIBUSF4V3)
-#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART3, USART6
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PC6 //shared with UART6_TX
+#define SOFTSERIAL_1_TX_PIN     PC6 //shared with UART6_TX
+
+#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
 #else
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC8

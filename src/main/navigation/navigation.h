@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "common/axis.h"
+#include "common/filter.h"
 #include "common/maths.h"
 #include "common/vector.h"
 
@@ -30,6 +32,8 @@
 extern gpsLocation_t        GPS_home;
 extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
+
+extern bool autoThrottleManuallyIncreased;
 
 /* Navigation system updates */
 void onNewGPSData(void);
@@ -80,6 +84,7 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
     uint8_t use_gps_velned;
+    uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
 
@@ -93,6 +98,9 @@ typedef struct positionEstimationConfig_s {
 
     float w_xy_gps_p;   // Weight (cutoff frequency) for GPS position measurements
     float w_xy_gps_v;   // Weight (cutoff frequency) for GPS velocity measurements
+
+    float w_xy_flow_p;
+    float w_xy_flow_v;
 
     float w_z_res_v;    // When velocity sources lost slowly decrease estimated velocity with this weight
     float w_xy_res_v;
@@ -132,6 +140,7 @@ typedef struct navConfig_s {
         uint16_t land_slowdown_maxalt;          // Altitude to start lowering descent rate during RTH descend
         uint16_t emerg_descent_rate;            // emergency landing descent rate
         uint16_t rth_altitude;                  // altitude to maintain when RTH is active (depends on rth_alt_control_mode) (cm)
+        uint16_t rth_home_altitude;             // altitude to go to during RTH after the craft reached home (cm)
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
@@ -156,6 +165,7 @@ typedef struct navConfig_s {
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_throttle;            // Cruise throttle
+        uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
         uint16_t min_throttle;               // Minimum allowed throttle in auto mode
         uint16_t max_throttle;               // Maximum allowed throttle in auto mode
         uint8_t  pitch_to_throttle;          // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
@@ -173,6 +183,8 @@ typedef struct navConfig_s {
         uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
+        uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
+        bool     allow_manual_thr_increase;
     } fw;
 } navConfig_t;
 
@@ -208,6 +220,46 @@ typedef struct {
     fpVector3_t pos;
     int32_t     yaw;             // deg * 100
 } navWaypointPosition_t;
+
+typedef struct {
+    float kP;
+    float kI;
+    float kD;
+    float kT;   // Tracking gain (anti-windup)
+} pidControllerParam_t;
+
+typedef struct {
+    float kP;
+} pControllerParam_t;
+
+typedef struct {
+    bool reset;
+    pidControllerParam_t param;
+    pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
+    float integrator;                   // integrator value
+    float last_input;                   // last input for derivative
+
+    float integral;                     // used integral value in output
+    float proportional;                 // used proportional value in output
+    float derivative;                   // used derivative value in output
+    float output_constrained;           // controller output constrained
+} pidController_t;
+
+typedef struct {
+    pControllerParam_t param;
+    float output_constrained;
+} pController_t;
+
+typedef struct navigationPIDControllers_s {
+    /* Multicopter PIDs */
+    pController_t   pos[XYZ_AXIS_COUNT];
+    pidController_t vel[XYZ_AXIS_COUNT];
+    pidController_t surface;
+
+    /* Fixed-wing PIDs */
+    pidController_t fw_alt;
+    pidController_t fw_nav;
+} navigationPIDControllers_t;
 
 /* MultiWii-compatible params for telemetry */
 typedef enum {
@@ -288,9 +340,20 @@ bool navIsCalibrationComplete(void);
 bool navigationTerrainFollowingEnabled(void);
 
 /* Access to estimated position and velocity */
+typedef struct {
+    uint8_t altStatus;
+    uint8_t posStatus;
+    uint8_t velStatus;
+    uint8_t aglStatus;
+    fpVector3_t pos;
+    fpVector3_t vel;
+    float agl;
+} navPositionAndVelocity_t;
+
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
 int32_t getTotalTravelDistance(void);
+void getEstimatedPositionAndVelocity(navPositionAndVelocity_t * pos);
 
 /* Waypoint list access functions */
 int getWaypointCount(void);
@@ -300,6 +363,8 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
+
+float RTHAltitude();
 
 /* Geodetic functions */
 typedef enum {
@@ -324,6 +389,7 @@ rthState_e getStateOfForcedRTH(void);
 
 /* Getter functions which return data about the state of the navigation system */
 bool navigationIsControllingThrottle(void);
+bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 /* Returns true iff navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
@@ -331,6 +397,16 @@ bool navigationIsFlyingAutonomousMode(void);
 bool navigationRTHAllowsLanding(void);
 
 bool isNavLaunchEnabled(void);
+bool isFixedWingLaunchDetected(void);
+
+float calculateAverageSpeed();
+
+const navigationPIDControllers_t* getNavigationPIDControllers(void);
+
+int32_t navigationGetHeadingError(void);
+int32_t getCruiseHeadingAdjustment(void);
+bool isAdjustingPosition(void);
+bool isAdjustingHeading(void);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles

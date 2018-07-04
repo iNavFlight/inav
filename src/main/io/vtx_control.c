@@ -37,15 +37,27 @@
 #include "io/vtx_control.h"
 
 
-#if defined(VTX_CONTROL) && defined(VTX_COMMON)
+#if defined(USE_VTX_CONTROL) && defined(USE_VTX_COMMON)
 
-PG_REGISTER(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(vtxConfig_t, vtxConfig, PG_VTX_CONFIG, 2);
+
+PG_RESET_TEMPLATE(vtxConfig_t, vtxConfig,
+//    .vtxChannelActivationConditions = { 0 },
+      .halfDuplex = true,
+);
 
 static uint8_t locked = 0;
 
 void vtxControlInit(void)
 {
     // NOTHING TO DO
+}
+
+void vtxControlInputPoll(void)
+{
+  // Check variuos input sources for VTX config updates
+
+  // XXX: None supported in INAV
 }
 
 static void vtxUpdateBandAndChannel(uint8_t bandStep, uint8_t channelStep)
@@ -55,9 +67,12 @@ static void vtxUpdateBandAndChannel(uint8_t bandStep, uint8_t channelStep)
     }
 
     if (!locked) {
-        uint8_t band = 0, channel = 0;
-        vtxCommonGetBandAndChannel(&band, &channel);
-        vtxCommonSetBandAndChannel(band + bandStep, channel + channelStep);
+        vtxDevice_t *vtxDevice = vtxCommonDevice();
+        if (vtxDevice) {
+            uint8_t band = 0, channel = 0;
+            vtxCommonGetBandAndChannel(vtxDevice, &band, &channel);
+            vtxCommonSetBandAndChannel(vtxDevice, band + bandStep, channel + channelStep);
+        }
     }
 }
 
@@ -88,17 +103,20 @@ void vtxUpdateActivatedChannel(void)
     }
 
     if (!locked) {
-        static uint8_t lastIndex = -1;
+        vtxDevice_t *vtxDevice = vtxCommonDevice();
+        if (vtxDevice) {
+            static uint8_t lastIndex = -1;
 
-        for (uint8_t index = 0; index < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT; index++) {
-            const vtxChannelActivationCondition_t *vtxChannelActivationCondition = &vtxConfig()->vtxChannelActivationConditions[index];
+            for (uint8_t index = 0; index < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT; index++) {
+                const vtxChannelActivationCondition_t *vtxChannelActivationCondition = &vtxConfig()->vtxChannelActivationConditions[index];
 
-            if (isRangeActive(vtxChannelActivationCondition->auxChannelIndex, &vtxChannelActivationCondition->range)
-                && index != lastIndex) {
-                lastIndex = index;
+                if (isRangeActive(vtxChannelActivationCondition->auxChannelIndex, &vtxChannelActivationCondition->range)
+                    && index != lastIndex) {
+                    lastIndex = index;
 
-                vtxCommonSetBandAndChannel(vtxChannelActivationCondition->band, vtxChannelActivationCondition->channel);
-                break;
+                    vtxCommonSetBandAndChannel(vtxDevice, vtxChannelActivationCondition->band, vtxChannelActivationCondition->channel);
+                    break;
+                }
             }
         }
     }
@@ -106,10 +124,16 @@ void vtxUpdateActivatedChannel(void)
 
 void vtxCycleBandOrChannel(const uint8_t bandStep, const uint8_t channelStep)
 {
+    vtxDevice_t *vtxDevice = vtxCommonDevice();
+
+    if (!vtxDevice) {
+        return;
+    }
+
     uint8_t band = 0, channel = 0;
     vtxDeviceCapability_t capability;
 
-    bool haveAllNeededInfo = vtxCommonGetBandAndChannel(&band, &channel) && vtxCommonGetDeviceCapability(&capability);
+    bool haveAllNeededInfo = vtxCommonGetBandAndChannel(vtxDevice, &band, &channel) && vtxCommonGetDeviceCapability(vtxDevice, &capability);
     if (!haveAllNeededInfo) {
         return;
     }
@@ -128,15 +152,21 @@ void vtxCycleBandOrChannel(const uint8_t bandStep, const uint8_t channelStep)
         newBand = capability.bandCount;
     }
 
-    vtxCommonSetBandAndChannel(newBand, newChannel);
+    vtxCommonSetBandAndChannel(vtxDevice, newBand, newChannel);
 }
 
 void vtxCyclePower(const uint8_t powerStep)
 {
+    vtxDevice_t *vtxDevice = vtxCommonDevice();
+
+    if (!vtxDevice) {
+        return;
+    }
+
     uint8_t power = 0;
     vtxDeviceCapability_t capability;
 
-    bool haveAllNeededInfo = vtxCommonGetPowerIndex(&power) && vtxCommonGetDeviceCapability(&capability);
+    bool haveAllNeededInfo = vtxCommonGetPowerIndex(vtxDevice, &power) && vtxCommonGetDeviceCapability(vtxDevice, &capability);
     if (!haveAllNeededInfo) {
         return;
     }
@@ -148,7 +178,7 @@ void vtxCyclePower(const uint8_t powerStep)
         newPower = capability.powerCount;
     }
 
-    vtxCommonSetPowerByIndex(newPower);
+    vtxCommonSetPowerByIndex(vtxDevice, newPower);
 }
 
 #endif

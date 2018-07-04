@@ -38,7 +38,7 @@
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_GYRO
@@ -67,6 +67,8 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310

@@ -27,7 +27,7 @@
 //#define PG_SENSOR_ALIGNMENT_CONFIG 8 -- NOT USED in iNav
 //#define PG_SENSOR_TRIMS 9 -- NOT USED in iNav
 #define PG_GYRO_CONFIG 10
-#define PG_BATTERY_CONFIG 11
+#define PG_BATTERY_PROFILES 11
 #define PG_CONTROL_RATE_PROFILES 12
 #define PG_SERIAL_CONFIG 13
 #define PG_PID_PROFILE 14
@@ -63,6 +63,7 @@
 #define PG_SERVO_PARAMS 42
 //#define PG_RX_FAILSAFE_CHANNEL_CONFIG 43
 #define PG_RX_CHANNEL_RANGE_CONFIG 44
+#define PG_BATTERY_METERS_CONFIG 45
 //#define PG_MODE_COLOR_CONFIG 45
 //#define PG_SPECIAL_COLOR_CONFIG 46
 //#define PG_PILOT_CONFIG 47
@@ -79,6 +80,9 @@
 // Driver configuration
 //#define PG_DRIVER_PWM_RX_CONFIG 100
 //#define PG_DRIVER_FLASHCHIP_CONFIG 101
+
+// cleanflight v2 specific parameter group ids start at 256
+#define PG_VTX_SETTINGS_CONFIG 259
 
 // iNav specific parameter group ids start at 1000
 #define PG_INAV_START 1000

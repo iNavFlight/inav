@@ -76,6 +76,8 @@
 #include "io/osd.h"
 #include "io/serial.h"
 #include "io/serial_4way.h"
+#include "io/vtx.h"
+#include "io/vtx_string.h"
 
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
@@ -419,7 +421,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
             sbufWriteU16(dst, packSensorStatus());
             sbufWriteU16(dst, averageSystemLoadPercent);
-            sbufWriteU8(dst, getConfigProfile());
+            sbufWriteU8(dst, (getConfigBatteryProfile() << 4) | getConfigProfile());
             sbufWriteU32(dst, armingFlags);
             sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
         }
@@ -539,16 +541,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP2_INAV_ANALOG:
+        // Bit 1: battery full, Bit 2: use capacity threshold, Bit 3-4: battery state, Bit 5-8: battery cell count
+        sbufWriteU8(dst, batteryWasFullWhenPluggedIn() | (batteryUsesCapacityThresholds() << 1) | (getBatteryState() << 2) | (getBatteryCellCount() << 4));
         sbufWriteU16(dst, getBatteryVoltage());
-        sbufWriteU8(dst, getBatteryCellCount());
-        sbufWriteU8(dst, calculateBatteryPercentage());
-        sbufWriteU16(dst, constrain(getPower(), 0, 0x7FFFFFFF));           // power draw
-        sbufWriteU16(dst, (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF)); // milliamp hours drawn from battery
-        sbufWriteU16(dst, (uint16_t)constrain(getMWhDrawn(), 0, 0xFFFF)); // milliWatt hours drawn from battery
-        sbufWriteU16(dst, getRSSI());
-        sbufWriteU16(dst, (int16_t)constrain(getAmperage(), -0x8000, 0x7FFF)); // send amperage in 0.01 A steps, range is -320A to 320A
-        sbufWriteU8(dst, batteryWasFullWhenPluggedIn() | (batteryUsesCapacityThresholds() << 1) | (getBatteryState() << 2));
+        sbufWriteU16(dst, getAmperage()); // send amperage in 0.01 A steps
+        sbufWriteU32(dst, getPower());    // power draw
+        sbufWriteU32(dst, getMAhDrawn()); // milliamp hours drawn from battery
+        sbufWriteU32(dst, getMWhDrawn()); // milliWatt hours drawn from battery
         sbufWriteU32(dst, getBatteryRemainingCapacity());
+        sbufWriteU8(dst, calculateBatteryPercentage());
+        sbufWriteU16(dst, getRSSI());
         break;
 
     case MSP_ARMING_CONFIG:
@@ -670,10 +672,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         sbufWriteU16(dst, compassConfig()->mag_declination / 10);
 
-        sbufWriteU8(dst, batteryConfig()->voltage.scale / 10);
-        sbufWriteU8(dst, batteryConfig()->voltage.cellMin / 10);
-        sbufWriteU8(dst, batteryConfig()->voltage.cellMax / 10);
-        sbufWriteU8(dst, batteryConfig()->voltage.cellWarning / 10);
+        sbufWriteU8(dst, batteryMetersConfig()->voltage_scale / 10);
+        sbufWriteU8(dst, currentBatteryProfile->voltage.cellMin / 10);
+        sbufWriteU8(dst, currentBatteryProfile->voltage.cellMax / 10);
+        sbufWriteU8(dst, currentBatteryProfile->voltage.cellWarning / 10);
         break;
 
     case MSP2_INAV_MISC:
@@ -698,32 +700,36 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         sbufWriteU16(dst, compassConfig()->mag_declination / 10);
 
-        sbufWriteU16(dst, batteryConfig()->voltage.scale);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellDetect);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellMin);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellMax);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellWarning);
+        sbufWriteU16(dst, batteryMetersConfig()->voltage_scale);
+        sbufWriteU8(dst, batteryMetersConfig()->voltageSource);
+        sbufWriteU8(dst, currentBatteryProfile->cells);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellDetect);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellMin);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellMax);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellWarning);
 
-        sbufWriteU32(dst, batteryConfig()->capacity.value);
-        sbufWriteU32(dst, batteryConfig()->capacity.warning);
-        sbufWriteU32(dst, batteryConfig()->capacity.critical);
-        sbufWriteU8(dst, batteryConfig()->capacity.unit);
+        sbufWriteU32(dst, currentBatteryProfile->capacity.value);
+        sbufWriteU32(dst, currentBatteryProfile->capacity.warning);
+        sbufWriteU32(dst, currentBatteryProfile->capacity.critical);
+        sbufWriteU8(dst, currentBatteryProfile->capacity.unit);
         break;
 
     case MSP2_INAV_BATTERY_CONFIG:
-        sbufWriteU16(dst, batteryConfig()->voltage.scale);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellDetect);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellMin);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellMax);
-        sbufWriteU16(dst, batteryConfig()->voltage.cellWarning);
+        sbufWriteU16(dst, batteryMetersConfig()->voltage_scale);
+        sbufWriteU8(dst, batteryMetersConfig()->voltageSource);
+        sbufWriteU8(dst, currentBatteryProfile->cells);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellDetect);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellMin);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellMax);
+        sbufWriteU16(dst, currentBatteryProfile->voltage.cellWarning);
 
-        sbufWriteU16(dst, batteryConfig()->current.offset);
-        sbufWriteU16(dst, batteryConfig()->current.scale);
+        sbufWriteU16(dst, batteryMetersConfig()->current.offset);
+        sbufWriteU16(dst, batteryMetersConfig()->current.scale);
 
-        sbufWriteU32(dst, batteryConfig()->capacity.value);
-        sbufWriteU32(dst, batteryConfig()->capacity.warning);
-        sbufWriteU32(dst, batteryConfig()->capacity.critical);
-        sbufWriteU8(dst, batteryConfig()->capacity.unit);
+        sbufWriteU32(dst, currentBatteryProfile->capacity.value);
+        sbufWriteU32(dst, currentBatteryProfile->capacity.warning);
+        sbufWriteU32(dst, currentBatteryProfile->capacity.critical);
+        sbufWriteU8(dst, currentBatteryProfile->capacity.unit);
         break;
 
     case MSP_MOTOR_PINS:
@@ -809,17 +815,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_VOLTAGE_METER_CONFIG:
-        sbufWriteU8(dst, batteryConfig()->voltage.scale / 10);
-        sbufWriteU8(dst, batteryConfig()->voltage.cellMin / 10);
-        sbufWriteU8(dst, batteryConfig()->voltage.cellMax / 10);
-        sbufWriteU8(dst, batteryConfig()->voltage.cellWarning / 10);
+        sbufWriteU8(dst, batteryMetersConfig()->voltage_scale / 10);
+        sbufWriteU8(dst, currentBatteryProfile->voltage.cellMin / 10);
+        sbufWriteU8(dst, currentBatteryProfile->voltage.cellMax / 10);
+        sbufWriteU8(dst, currentBatteryProfile->voltage.cellWarning / 10);
         break;
 
     case MSP_CURRENT_METER_CONFIG:
-        sbufWriteU16(dst, batteryConfig()->current.scale);
-        sbufWriteU16(dst, batteryConfig()->current.offset);
-        sbufWriteU8(dst, batteryConfig()->current.type);
-        sbufWriteU16(dst, constrain(batteryConfig()->capacity.value, 0, 0xFFFF));
+        sbufWriteU16(dst, batteryMetersConfig()->current.scale);
+        sbufWriteU16(dst, batteryMetersConfig()->current.offset);
+        sbufWriteU8(dst, batteryMetersConfig()->current.type);
+        sbufWriteU16(dst, constrain(currentBatteryProfile->capacity.value, 0, 0xFFFF));
         break;
 
     case MSP_MIXER:
@@ -879,8 +885,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, boardAlignment()->pitchDeciDegrees);
         sbufWriteU16(dst, boardAlignment()->yawDeciDegrees);
 
-        sbufWriteU16(dst, batteryConfig()->current.scale);
-        sbufWriteU16(dst, batteryConfig()->current.offset);
+        sbufWriteU16(dst, batteryMetersConfig()->current.scale);
+        sbufWriteU16(dst, batteryMetersConfig()->current.offset);
         break;
 
     case MSP_CF_SERIAL_CONFIG:
@@ -964,7 +970,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->rssi_alarm);
-        sbufWriteU16(dst, batteryConfig()->capacity.warning);
+        sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
         sbufWriteU16(dst, osdConfig()->time_alarm);
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
@@ -1266,30 +1272,32 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#if defined(VTX_COMMON)
+#if defined(USE_VTX_COMMON)
     case MSP_VTX_CONFIG:
         {
-            uint8_t deviceType = vtxCommonGetDeviceType();
-            if (deviceType != VTXDEV_UNKNOWN) {
+            vtxDevice_t *vtxDevice = vtxCommonDevice();
+            if (vtxDevice) {
 
-                uint8_t band=0, channel=0;
-                vtxCommonGetBandAndChannel(&band,&channel);
+                uint8_t deviceType = vtxCommonGetDeviceType(vtxDevice);
 
-                uint8_t powerIdx=0; // debug
-                vtxCommonGetPowerIndex(&powerIdx);
-
-                uint8_t pitmode=0;
-                vtxCommonGetPitMode(&pitmode);
+                // Return band, channel and power from vtxSettingsConfig_t
+                // since the VTX might be configured but temporarily offline.
+                uint8_t pitmode = 0;
+                vtxCommonGetPitMode(vtxDevice, &pitmode);
 
                 sbufWriteU8(dst, deviceType);
-                sbufWriteU8(dst, band);
-                sbufWriteU8(dst, channel);
-                sbufWriteU8(dst, powerIdx);
+                sbufWriteU8(dst, vtxSettingsConfig()->band);
+                sbufWriteU8(dst, vtxSettingsConfig()->channel);
+                sbufWriteU8(dst, vtxSettingsConfig()->power);
                 sbufWriteU8(dst, pitmode);
+
+                // Betaflight < 4 doesn't send these fields
+                sbufWriteU8(dst, vtxCommonDeviceIsReady(vtxDevice) ? 1 : 0);
+                sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
                 // future extensions here...
             }
             else {
-                sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX detected
+                sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
             }
         }
         break;
@@ -1327,16 +1335,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
 #if defined(USE_OSD)
-    case MSP2_INAV_OSD_LAYOUTS:
-        sbufWriteU8(dst, OSD_LAYOUT_COUNT);
-        sbufWriteU8(dst, OSD_ITEM_COUNT);
-        for (unsigned ii = 0; ii < OSD_LAYOUT_COUNT; ii++) {
-            for (unsigned jj = 0; jj < OSD_ITEM_COUNT; jj++) {
-                sbufWriteU16(dst, osdConfig()->item_pos[ii][jj]);
-            }
-        }
-        break;
-
     case MSP2_INAV_OSD_ALARMS:
         sbufWriteU8(dst, osdConfig()->rssi_alarm);
         sbufWriteU16(dst, osdConfig()->time_alarm);
@@ -1426,6 +1424,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     uint8_t tmp_u8;
     uint16_t tmp_u16;
+    batteryProfile_t *currentBatteryProfileMutable = (batteryProfile_t*)currentBatteryProfile;
 
     const unsigned int dataSize = sbufBytesRemaining(src);
 
@@ -1636,16 +1635,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU16(src);
 #endif
 
-        batteryConfigMutable()->voltage.scale = sbufReadU8(src) * 10;
-        batteryConfigMutable()->voltage.cellMin = sbufReadU8(src) * 10;         // vbatlevel_warn1 in MWC2.3 GUI
-        batteryConfigMutable()->voltage.cellMax = sbufReadU8(src) * 10;         // vbatlevel_warn2 in MWC2.3 GUI
-        batteryConfigMutable()->voltage.cellWarning = sbufReadU8(src) * 10;     // vbatlevel when buzzer starts to alert
+        batteryMetersConfigMutable()->voltage_scale = sbufReadU8(src) * 10;
+        currentBatteryProfileMutable->voltage.cellMin = sbufReadU8(src) * 10;         // vbatlevel_warn1 in MWC2.3 GUI
+        currentBatteryProfileMutable->voltage.cellMax = sbufReadU8(src) * 10;         // vbatlevel_warn2 in MWC2.3 GUI
+        currentBatteryProfileMutable->voltage.cellWarning = sbufReadU8(src) * 10;     // vbatlevel when buzzer starts to alert
         } else
             return MSP_RESULT_ERROR;
         break;
 
     case MSP2_INAV_SET_MISC:
-        if (dataSize == 39) {
+        if (dataSize == 41) {
             sbufReadU16(src);       // midrc
 
             motorConfigMutable()->minthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -1674,18 +1673,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);
 #endif
 
-            batteryConfigMutable()->voltage.scale = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellDetect = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellMin = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellMax = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellWarning = sbufReadU16(src);
+            batteryMetersConfigMutable()->voltage_scale = sbufReadU16(src);
+            batteryMetersConfigMutable()->voltageSource = sbufReadU8(src);
+            currentBatteryProfileMutable->cells = sbufReadU8(src);
+            currentBatteryProfileMutable->voltage.cellDetect = sbufReadU16(src);
+            currentBatteryProfileMutable->voltage.cellMin = sbufReadU16(src);
+            currentBatteryProfileMutable->voltage.cellMax = sbufReadU16(src);
+            currentBatteryProfileMutable->voltage.cellWarning = sbufReadU16(src);
 
-            batteryConfigMutable()->capacity.value = sbufReadU32(src);
-            batteryConfigMutable()->capacity.warning = sbufReadU32(src);
-            batteryConfigMutable()->capacity.critical = sbufReadU32(src);
-            batteryConfigMutable()->capacity.unit = sbufReadU8(src);
-            if ((batteryConfig()->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (batteryConfig()->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
-                batteryConfigMutable()->capacity.unit = BAT_CAPACITY_UNIT_MAH;
+            currentBatteryProfileMutable->capacity.value = sbufReadU32(src);
+            currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
+            currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
+            currentBatteryProfileMutable->capacity.unit = sbufReadU8(src);
+            if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
+                batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
+                return MSP_RESULT_ERROR;
+            }
+            if ((currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
+                currentBatteryProfileMutable->capacity.unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
             }
         } else
@@ -1693,22 +1698,28 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_INAV_SET_BATTERY_CONFIG:
-        if (dataSize == 27) {
-            batteryConfigMutable()->voltage.scale = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellDetect = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellMin = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellMax = sbufReadU16(src);
-            batteryConfigMutable()->voltage.cellWarning = sbufReadU16(src);
+        if (dataSize == 29) {
+            batteryMetersConfigMutable()->voltage_scale = sbufReadU16(src);
+            batteryMetersConfigMutable()->voltageSource = sbufReadU8(src);
+            currentBatteryProfileMutable->cells = sbufReadU8(src);
+            currentBatteryProfileMutable->voltage.cellDetect = sbufReadU16(src);
+            currentBatteryProfileMutable->voltage.cellMin = sbufReadU16(src);
+            currentBatteryProfileMutable->voltage.cellMax = sbufReadU16(src);
+            currentBatteryProfileMutable->voltage.cellWarning = sbufReadU16(src);
 
-            batteryConfigMutable()->current.offset = sbufReadU16(src);
-            batteryConfigMutable()->current.scale = sbufReadU16(src);
+            batteryMetersConfigMutable()->current.offset = sbufReadU16(src);
+            batteryMetersConfigMutable()->current.scale = sbufReadU16(src);
 
-            batteryConfigMutable()->capacity.value = sbufReadU32(src);
-            batteryConfigMutable()->capacity.warning = sbufReadU32(src);
-            batteryConfigMutable()->capacity.critical = sbufReadU32(src);
-            batteryConfigMutable()->capacity.unit = sbufReadU8(src);
-            if ((batteryConfig()->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (batteryConfig()->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
-                batteryConfigMutable()->capacity.unit = BAT_CAPACITY_UNIT_MAH;
+            currentBatteryProfileMutable->capacity.value = sbufReadU32(src);
+            currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
+            currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
+            currentBatteryProfileMutable->capacity.unit = sbufReadU8(src);
+            if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
+                batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
+                return MSP_RESULT_ERROR;
+            }
+            if ((currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
+                currentBatteryProfileMutable->capacity.unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
             }
         } else
@@ -2100,7 +2111,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->rssi_alarm = sbufReadU8(src);
-                batteryConfigMutable()->capacity.warning = sbufReadU16(src);
+                currentBatteryProfileMutable->capacity.warning = sbufReadU16(src);
                 osdConfigMutable()->time_alarm = sbufReadU16(src);
                 osdConfigMutable()->alt_alarm = sbufReadU16(src);
                 // Won't be read if they weren't provided
@@ -2138,36 +2149,44 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif // USE_OSD
 
-#if defined(VTX_COMMON)
+#if defined(USE_VTX_COMMON)
     case MSP_SET_VTX_CONFIG:
-        if (dataSize >= 4) {
-            tmp_u16 = sbufReadU16(src);
-            const uint8_t band    = (tmp_u16 / 8) + 1;
-            const uint8_t channel = (tmp_u16 % 8) + 1;
+        if (dataSize >= 2) {
+            vtxDevice_t *vtxDevice = vtxCommonDevice();
+            if (vtxDevice) {
+                if (vtxCommonGetDeviceType(vtxDevice) != VTXDEV_UNKNOWN) {
+                    uint16_t newFrequency = sbufReadU16(src);
+                    if (newFrequency <= VTXCOMMON_MSP_BANDCHAN_CHKVAL) {  //value is band and channel
+                        const uint8_t newBand = (newFrequency / 8) + 1;
+                        const uint8_t newChannel = (newFrequency % 8) + 1;
+                        vtxSettingsConfigMutable()->band = newBand;
+                        vtxSettingsConfigMutable()->channel = newChannel;
+                        vtxSettingsConfigMutable()->freq = vtx58_Bandchan2Freq(newBand, newChannel);
+                    } else if (newFrequency <= VTX_SETTINGS_MAX_FREQUENCY_MHZ) {  //value is frequency in MHz. Ignore it if it's invalid
+                        vtxSettingsConfigMutable()->band = 0;
+                        vtxSettingsConfigMutable()->channel = 0;
+                        vtxSettingsConfigMutable()->freq = newFrequency;
+                    }
 
-            if (vtxCommonGetDeviceType() != VTXDEV_UNKNOWN) {
-                uint8_t current_band=0, current_channel=0;
-                vtxCommonGetBandAndChannel(&current_band,&current_channel);
-                if ((current_band != band) || (current_channel != channel))
-                    vtxCommonSetBandAndChannel(band,channel);
+                    if (sbufBytesRemaining(src) > 1) {
+                        vtxSettingsConfigMutable()->power = sbufReadU8(src);
+                        // Delegate pitmode to vtx directly
+                        const uint8_t newPitmode = sbufReadU8(src);
+                        uint8_t currentPitmode = 0;
+                        vtxCommonGetPitMode(vtxDevice, &currentPitmode);
+                        if (currentPitmode != newPitmode) {
+                            vtxCommonSetPitMode(vtxDevice, newPitmode);
+                        }
 
-                if (sbufBytesRemaining(src) < 2)
-                    break;
-
-                uint8_t power = sbufReadU8(src);
-                uint8_t current_power = 0;
-                vtxCommonGetPowerIndex(&current_power);
-                if (current_power != power)
-                    vtxCommonSetPowerByIndex(power);
-
-                uint8_t pitmode = sbufReadU8(src);
-                uint8_t current_pitmode = 0;
-                vtxCommonGetPitMode(&current_pitmode);
-                if (current_pitmode != pitmode)
-                    vtxCommonSetPitMode(pitmode);
+                        if (sbufBytesRemaining(src) > 0) {
+                            vtxSettingsConfigMutable()->lowPowerDisarm = sbufReadU8(src);
+                        }
+                    }
+                }
             }
-        } else
+        } else {
             return MSP_RESULT_ERROR;
+        }
         break;
 #endif
 
@@ -2245,20 +2264,20 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_VOLTAGE_METER_CONFIG:
         if (dataSize >= 4) {
-            batteryConfigMutable()->voltage.scale = sbufReadU8(src) * 10;
-            batteryConfigMutable()->voltage.cellMin = sbufReadU8(src) * 10;
-            batteryConfigMutable()->voltage.cellMax = sbufReadU8(src) * 10;
-            batteryConfigMutable()->voltage.cellWarning = sbufReadU8(src) * 10;
+            batteryMetersConfigMutable()->voltage_scale = sbufReadU8(src) * 10;
+            currentBatteryProfileMutable->voltage.cellMin = sbufReadU8(src) * 10;
+            currentBatteryProfileMutable->voltage.cellMax = sbufReadU8(src) * 10;
+            currentBatteryProfileMutable->voltage.cellWarning = sbufReadU8(src) * 10;
         } else
             return MSP_RESULT_ERROR;
         break;
 
     case MSP_SET_CURRENT_METER_CONFIG:
         if (dataSize >= 7) {
-            batteryConfigMutable()->current.scale = sbufReadU16(src);
-            batteryConfigMutable()->current.offset = sbufReadU16(src);
-            batteryConfigMutable()->current.type = sbufReadU8(src);
-            batteryConfigMutable()->capacity.value = sbufReadU16(src);
+            batteryMetersConfigMutable()->current.scale = sbufReadU16(src);
+            batteryMetersConfigMutable()->current.offset = sbufReadU16(src);
+            batteryMetersConfigMutable()->current.type = sbufReadU8(src);
+            currentBatteryProfileMutable->capacity.value = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2342,8 +2361,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             boardAlignmentMutable()->pitchDeciDegrees = sbufReadU16(src); // board_align_pitch
             boardAlignmentMutable()->yawDeciDegrees = sbufReadU16(src); // board_align_yaw
 
-            batteryConfigMutable()->current.scale = sbufReadU16(src);
-            batteryConfigMutable()->current.offset = sbufReadU16(src);
+            batteryMetersConfigMutable()->current.scale = sbufReadU16(src);
+            batteryMetersConfigMutable()->current.offset = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2538,6 +2557,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         navConfigMutable()->mc.braking_boost_disengage_speed = sbufReadU16(src);
         navConfigMutable()->mc.braking_bank_angle = sbufReadU8(src);
         break;
+        
+    case MSP2_INAV_SELECT_BATTERY_PROFILE:
+        if (!ARMING_FLAG(ARMED)) {
+            if (sbufReadU8Safe(&tmp_u8, src))
+                setConfigBatteryProfileAndWriteEEPROM(tmp_u8);
+        }
+        break;
 
     default:
         return MSP_RESULT_ERROR;
@@ -2563,7 +2589,7 @@ static const setting_t *mspReadSettingName(sbuf_t *src)
             return NULL;
         }
     }
-    return setting_find(name);
+    return settingFind(name);
 }
 
 static bool mspSettingCommand(sbuf_t *dst, sbuf_t *src)
@@ -2573,8 +2599,8 @@ static bool mspSettingCommand(sbuf_t *dst, sbuf_t *src)
         return false;
     }
 
-    const void *ptr = setting_get_value_pointer(setting);
-    size_t size = setting_get_value_size(setting);
+    const void *ptr = settingGetValuePointer(setting);
+    size_t size = settingGetValueSize(setting);
     sbufWriteDataSafe(dst, ptr, size);
     return true;
 }
@@ -2588,10 +2614,10 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
         return false;
     }
 
-    setting_min_t min = setting_get_min(setting);
-    setting_max_t max = setting_get_max(setting);
+    setting_min_t min = settingGetMin(setting);
+    setting_max_t max = settingGetMax(setting);
 
-    void *ptr = setting_get_value_pointer(setting);
+    void *ptr = settingGetValuePointer(setting);
     switch (SETTING_TYPE(setting)) {
         case VAR_UINT8:
             {
@@ -2665,8 +2691,77 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 *((float*)ptr) = val;
             }
             break;
+        case VAR_STRING:
+            {
+                settingSetString(setting, (const char*)sbufPtr(src), sbufBytesRemaining(src));
+            }
+            break;
     }
 
+    return true;
+}
+
+bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
+{
+    switch (cmdMSP) {
+
+#if defined(USE_NAV)
+    case MSP_WP:
+        mspFcWaypointOutCommand(dst, src);
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
+
+#if defined(USE_FLASHFS)
+    case MSP_DATAFLASH_READ:
+        mspFcDataFlashReadCommand(dst, src);
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
+
+    case MSP2_COMMON_SETTING:
+        *ret = mspSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_COMMON_SET_SETTING:
+        *ret = mspSetSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+#if defined(USE_OSD)
+    case MSP2_INAV_OSD_LAYOUTS:
+        if (sbufBytesRemaining(src) >= 1) {
+            uint8_t layout = sbufReadU8(src);
+            if (layout >= OSD_LAYOUT_COUNT) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            }
+            if (sbufBytesRemaining(src) >= 2) {
+                // Asking for an specific item in a layout
+                uint16_t item = sbufReadU16(src);
+                if (item >= OSD_ITEM_COUNT) {
+                    *ret = MSP_RESULT_ERROR;
+                    break;
+                }
+                sbufWriteU16(dst, osdConfig()->item_pos[layout][item]);
+            } else {
+                // Asking for an specific layout
+                for (unsigned ii = 0; ii < OSD_ITEM_COUNT; ii++) {
+                    sbufWriteU16(dst, osdConfig()->item_pos[layout][ii]);
+                }
+            }
+        } else {
+            // Return the number of layouts and items
+            sbufWriteU8(dst, OSD_LAYOUT_COUNT);
+            sbufWriteU8(dst, OSD_ITEM_COUNT);
+        }
+        *ret = MSP_RESULT_ACK;
+        break;
+#endif
+
+    default:
+        // Not handled
+        return false;
+    }
     return true;
 }
 
@@ -2696,7 +2791,7 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
  */
 mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
-    int ret = MSP_RESULT_ACK;
+    mspResult_e ret = MSP_RESULT_ACK;
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
     const uint16_t cmdMSP = cmd->cmd;
@@ -2712,22 +2807,10 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         mspFc4waySerialCommand(dst, src, mspPostProcessFn);
         ret = MSP_RESULT_ACK;
 #endif
-#ifdef USE_NAV
-    } else if (cmdMSP == MSP_WP) {
-        mspFcWaypointOutCommand(dst, src);
-        ret = MSP_RESULT_ACK;
-#endif
-#ifdef USE_FLASHFS
-    } else if (cmdMSP == MSP_DATAFLASH_READ) {
-        mspFcDataFlashReadCommand(dst, src);
-        ret = MSP_RESULT_ACK;
-#endif
-    } else if (cmdMSP == MSP2_COMMON_SETTING) {
-        ret = mspSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
-    } else if (cmdMSP == MSP2_COMMON_SET_SETTING) {
-        ret = mspSetSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
     } else {
-        ret = mspFcProcessInCommand(cmdMSP, src);
+        if (!mspFCProcessInOutCommand(cmdMSP, dst, src, &ret)) {
+            ret = mspFcProcessInCommand(cmdMSP, src);
+        }
     }
 
     // Process DONT_REPLY flag

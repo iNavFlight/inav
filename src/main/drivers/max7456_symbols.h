@@ -23,7 +23,6 @@
 
 #ifdef USE_MAX7456
 
-// Character Symbols
 #define SYM_BLANK 0x20
 
 // Satellite Graphics
@@ -155,6 +154,9 @@
 // Batt Icon´s
 #define SYM_MAIN_BATT 0x97
 #define SYM_VID_BAT   0xBF
+
+// Used for battery impedance
+#define SYM_MILLIOHM 0x3F
 
 // Unit Icon´s (Metric)
 #define SYM_MS          0x9F

@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include "drivers/vcd.h"
 
 #ifndef WHITEBRIGHTNESS
   #define WHITEBRIGHTNESS 0x01
@@ -43,7 +44,7 @@ enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 extern uint16_t maxScreenSize;
 
 struct vcdProfile_s;
-void    max7456Init(const struct vcdProfile_s *vcdProfile);
+void    max7456Init(const videoSystem_e videoSystem);
 void    max7456DrawScreenPartial(void);
 void    max7456WriteNvm(uint8_t char_address, const uint8_t *font_data);
 uint8_t max7456GetRowsCount(void);
