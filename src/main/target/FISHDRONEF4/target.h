@@ -28,9 +28,6 @@
 // *************** BEEPER *****************************
 #define BEEPER                  PC15
 
-// *************** INVERTER *****************************
-#define INVERTER_PIN_UART2     PB2
-
 // *************** SPI *****************************
 #define USE_SPI
 
@@ -114,6 +111,8 @@
 // *************** UART *****************************
 #define USE_VCP
 
+#define USE_UART_INVERTER
+
 // provide for Telemetry module
 #define USE_UART1
 #define UART1_RX_PIN            PA10
@@ -123,6 +122,7 @@
 #define USE_UART2
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
+#define INVERTER_PIN_UART2_RX   PB2
 
 // provide for GPS module
 #define USE_UART5

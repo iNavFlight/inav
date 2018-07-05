@@ -78,6 +78,8 @@
 #define VBUS_SENSING_PIN PC5
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -85,7 +87,7 @@
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
-#define INVERTER_PIN_UART3      PC15
+#define INVERTER_PIN_UART3_RX   PC15
 
 #define USE_UART4
 #define UART4_TX_PIN            PA0

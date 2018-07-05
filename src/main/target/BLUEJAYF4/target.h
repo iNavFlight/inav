@@ -35,9 +35,6 @@
 #define BEEPER_OPT              PB7
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART6      PB15
-//#define INVERTER_PIN_UART1     PC9
-
 // MPU6500 interrupt
 #define USE_MPU_DATA_READY_SIGNAL
 #define GYRO_INT_EXTI            PC5
@@ -92,9 +89,12 @@
 //#define VBUS_SENSING_PIN PA8
 //#define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
+//#define INVERTER_PIN_UART1_TX     PC9
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -103,6 +103,7 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
+#define INVERTER_PIN_UART6_RX   PB15
 
 #define USE_SOFTSERIAL1
 #define SERIAL_PORT_COUNT       5
