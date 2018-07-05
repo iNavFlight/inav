@@ -253,7 +253,7 @@ void batteryUpdate(timeUs_t timeDelta)
         batteryCriticalVoltage = batteryCellCount * currentBatteryProfile->voltage.cellMin;
 
         batteryFullWhenPluggedIn = batteryAdcToVoltage(vbatLatestADC) >= (batteryFullVoltage - batteryCellCount * VBATT_CELL_FULL_MAX_DIFF);
-        batteryUseCapacityThresholds = feature(FEATURE_CURRENT_METER) && batteryFullWhenPluggedIn && (currentBatteryProfile->capacity.value > 0) &&
+        batteryUseCapacityThresholds = isAmperageConfigured() && batteryFullWhenPluggedIn && (currentBatteryProfile->capacity.value > 0) &&
                                            (currentBatteryProfile->capacity.warning > 0) && (currentBatteryProfile->capacity.critical > 0);
 
     }
@@ -559,7 +559,7 @@ uint8_t calculateBatteryPercentage(void)
     if (batteryState == BATTERY_NOT_PRESENT)
         return 0;
 
-    if (batteryFullWhenPluggedIn && feature(FEATURE_CURRENT_METER) && (currentBatteryProfile->capacity.value > 0) && (currentBatteryProfile->capacity.critical > 0)) {
+    if (batteryFullWhenPluggedIn && isAmperageConfigured() && (currentBatteryProfile->capacity.value > 0) && (currentBatteryProfile->capacity.critical > 0)) {
         uint32_t capacityDiffBetweenFullAndEmpty = currentBatteryProfile->capacity.value - currentBatteryProfile->capacity.critical;
         return constrain(batteryRemainingCapacity * 100 / capacityDiffBetweenFullAndEmpty, 0, 100);
     } else

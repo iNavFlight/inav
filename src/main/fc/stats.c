@@ -57,7 +57,7 @@ void statsOnDisarm(void)
             statsConfigMutable()->stats_total_time += dt;   //[s]
             statsConfigMutable()->stats_total_dist += (getTotalTravelDistance() - arm_distance_cm) / 100;   //[m]
 #ifdef USE_ADC
-            if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
+            if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
                 const uint32_t energy = getMWhDrawn() - arm_mWhDrawn;
                 statsConfigMutable()->stats_total_energy += energy;
                 flyingEnergy += energy;
