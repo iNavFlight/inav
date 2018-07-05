@@ -113,6 +113,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
         memcpy(lastFuselageDirection, fuselageDirection, sizeof(lastFuselageDirection));
         memcpy(lastGroundVelocity, groundVelocity, sizeof(lastGroundVelocity));
+        debug[0]++;
         return;
     }
 
@@ -167,9 +168,14 @@ void updateWindEstimator(timeUs_t currentTimeUs)
             DEBUG_SET(DEBUG_WIND_ESTIMATOR, 0, estimatedWind[X]);
             DEBUG_SET(DEBUG_WIND_ESTIMATOR, 1, estimatedWind[Y]);
             DEBUG_SET(DEBUG_WIND_ESTIMATOR, 2, estimatedWind[Z]);
+        } else {
+            debug[1]++;
         }
         lastUpdateUs = currentTimeUs;
+        debug[3]++;
         hasValidWindEstimate = true;
+    } else {
+        debug[2]++;
     }
 }
 
