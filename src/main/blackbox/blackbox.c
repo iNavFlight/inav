@@ -340,9 +340,9 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"horizontalWindSpeed",   -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"verticalWindSpeed",     -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"windDirection",         -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"windX",                 -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"windY",                 -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"windZ",                 -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 };
 
 typedef enum BlackboxState {
@@ -440,9 +440,9 @@ typedef struct blackboxSlowState_s {
     int32_t hwHealthStatus;
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
-    int16_t horizontalWindSpeed;
-    int16_t verticalWindSpeed;
-    uint16_t windDirection;
+    int16_t windX;
+    int16_t windY;
+    int16_t windZ;
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1028,9 +1028,9 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.powerSupplyImpedance);
     blackboxWriteUnsignedVB(slowHistory.sagCompensatedVBat);
 
-    blackboxWriteUnsignedVB(slowHistory.horizontalWindSpeed);
-    blackboxWriteUnsignedVB(slowHistory.verticalWindSpeed);
-    blackboxWriteUnsignedVB(slowHistory.windDirection);
+    blackboxWriteUnsignedVB(slowHistory.windX);
+    blackboxWriteUnsignedVB(slowHistory.windY);
+    blackboxWriteUnsignedVB(slowHistory.windZ);
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1054,8 +1054,9 @@ static void loadSlowState(blackboxSlowState_t *slow)
                            (getHwPitotmeterStatus()     << 2 * 6);
     slow->powerSupplyImpedance = getPowerSupplyImpedance();
     slow->sagCompensatedVBat = getBatterySagCompensatedVoltage();
-    slow->horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&slow->windDirection);
-    slow->verticalWindSpeed = getEstimatedWindSpeed(Z);
+    slow->windX = getEstimatedWindSpeed(X);
+    slow->windY = getEstimatedWindSpeed(Y);
+    slow->windZ = getEstimatedWindSpeed(Z);
 }
 
 /**
