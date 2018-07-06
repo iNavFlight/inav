@@ -129,8 +129,10 @@ void taskSystem(timeUs_t currentTimeUs)
         totalWaitingTasks = 0;
     }
 
+#if defined(USE_WATCHDOG)
     // Restart watchdog counter
     watchdogRestart();
+#endif
 }
 
 #ifndef SKIP_TASK_STATISTICS
