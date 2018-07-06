@@ -76,6 +76,8 @@ typedef struct batteryMetersConfig_s {
     uint16_t idle_power;        // power drawn by the system when the motor(s) are stopped (cW)
     uint8_t rth_energy_margin;  // Energy that should be left after RTH (%), used for remaining time/distance before RTH
 
+    float throttle_compensation_weight;
+
 } batteryMetersConfig_t;
 
 typedef struct batteryProfile_s {

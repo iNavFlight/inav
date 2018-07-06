@@ -545,6 +545,10 @@ groups:
       - name: rth_energy_margin
         min: 0
         max: 100
+      - name: thr_comp_weight
+        field: throttle_compensation_weight
+        min: 0
+        max: 2
 
   - name: PG_BATTERY_PROFILES
     type: batteryProfile_t
