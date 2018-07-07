@@ -229,7 +229,7 @@
 #endif
 
 #if defined(USE_PMW_SERVO_DRIVER)
-    #if defined(USE_PWM_DRIVER_PCA9685)
+    #if defined(USE_PWM_DRIVER_PCA9685) && defined(USE_I2C)
         #if !defined(PCA9685_I2C_BUS)
             #define PCA9685_I2C_BUS BUS_I2C1
         #endif
