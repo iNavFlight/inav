@@ -93,7 +93,6 @@ void targetConfiguration(void)
     failsafeConfigMutable()->failsafe_recovery_delay = 5;
     failsafeConfigMutable()->failsafe_off_delay = 200;
     failsafeConfigMutable()->failsafe_throttle = 1200;
-    failsafeConfigMutable()->failsafe_throttle_low_delay = 100;
     failsafeConfigMutable()->failsafe_procedure = FAILSAFE_PROCEDURE_RTH;
     
     boardAlignmentMutable()->rollDeciDegrees = 0;

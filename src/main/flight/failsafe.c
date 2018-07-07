@@ -71,7 +71,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_recovery_delay = 5,       // 0.5 seconds (plus 200ms explicit delay)
     .failsafe_off_delay = 200,          // 20sec
     .failsafe_throttle = 1000,          // default throttle off.
-    .failsafe_throttle_low_delay = 100, // default throttle low delay for "just disarm" on failsafe condition
+    .failsafe_throttle_low_delay = 0,   // default throttle low delay for "just disarm" on failsafe condition
     .failsafe_procedure = FAILSAFE_PROCEDURE_AUTO_LANDING,            // default full failsafe procedure
     .failsafe_fw_roll_angle = -200,     // 20 deg left
     .failsafe_fw_pitch_angle = 100,     // 10 deg dive (yes, positive means dive)
