@@ -204,4 +204,13 @@
     BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE);
 #endif
 
+#if defined(USE_PMW_SERVO_DRIVER)
+    #if defined(USE_PWM_DRIVER_PCA9685)
+        #if !defined(PCA9685_I2C_BUS)
+            #define PCA9685_I2C_BUS BUS_I2C1
+        #endif
+        BUSDEV_REGISTER_I2C(busdev_pca9685,      DEVHW_PCA9685,       PCA9685_I2C_BUS,     0x40,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

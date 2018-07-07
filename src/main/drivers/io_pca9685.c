@@ -13,7 +13,6 @@
 #include "drivers/bus.h"
 #include "drivers/bus_i2c.h"
 
-#define PCA9685_ADDR 0x40
 #define PCA9685_MODE1 0x00
 #define PCA9685_PRESCALE 0xFE
 
