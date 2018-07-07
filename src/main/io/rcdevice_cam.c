@@ -100,7 +100,7 @@ static void rcdeviceCameraUpdateTime(void)
     if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_DEVICE_SETTINGS_ACCESS) &&
         !hasSynchronizedTime && retries < 3) {
 
-        if (rtcGetDateTime(&dt)) {
+        if (rtcGetDateTimeLocal(&dt)) {
             retries++;
             tfp_sprintf(buf, "%04d%02d%02dT%02d%02d%02d.0",
                 dt.year, dt.month, dt.day,

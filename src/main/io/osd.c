@@ -1956,9 +1956,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             // RTC not configured will show 00:00
             dateTime_t dateTime;
-            if (rtcGetDateTime(&dateTime)) {
-                dateTimeUTCToLocal(&dateTime, &dateTime);
-            }
+            rtcGetDateTimeLocal(&dateTime);
             buff[0] = SYM_CLOCK;
             tfp_sprintf(buff + 1, "%02u:%02u", dateTime.hours, dateTime.minutes);
             break;
