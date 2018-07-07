@@ -28,6 +28,8 @@
 
 #if defined(USE_WATCHDOG)
 
+#include "common/time.h"
+
 #include "drivers/watchdog.h"
 
 #define LSI_FREQ 32000 // 32khz
@@ -46,6 +48,13 @@
 #define IWDG_KR_UNLOCK			0x5555
 #define IWDG_KR_START			0xCCCC
 
+typedef struct watchdogState_s {
+    timeMs_t timeout;
+    bool suspended;
+} watchdogState_t;
+
+static watchdogState_t state;
+
 static bool watchdogPrescalerIsBusy(void)
 {
     return IWDG->SR & IWDG_SR_PVU;
@@ -56,7 +65,7 @@ static bool watchdogReloadIsBusy(void)
     return IWDG->SR & IWDG_SR_RVU;
 }
 
-void watchdogSetTimeout(uint32_t ms)
+void watchdogSetTimeout(timeMs_t ms)
 {
     if (ms <= 0) {
         ms = 500;
@@ -93,6 +102,7 @@ void watchdogSetTimeout(uint32_t ms)
     IWDG->RLR = rlr & RLR_MASK;
     // Reset the watchdog
     IWDG->KR = IWDG_KR_RESET;
+    state.timeout = ms;
 }
 
 void watchdogInit(void)
@@ -112,6 +122,29 @@ void watchdogRestart(void)
 {
     IWDG->KR = IWDG_KR_RESET;
 }
+
+bool watchdogSuspend(void)
+{
+    if (state.timeout > 0 && !state.suspended) {
+        // Since we can't suspend the watchdog, we set a big timeout
+        watchdogSetTimeout(60 * 1000);
+        state.suspended = true;
+        return true;
+    }
+    return false;
+}
+
+bool watchdogResume(void)
+{
+    if (state.timeout > 0 && state.suspended) {
+        watchdogRestart();
+        watchdogSetTimeout(state.timeout);
+        state.suspended = false;
+        return true;
+    }
+    return false;
+}
+
 
 bool watchdogBarked(void)
 {

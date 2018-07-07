@@ -64,6 +64,7 @@ extern uint8_t __config_end;
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
+#include "drivers/watchdog.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -1593,6 +1594,9 @@ static void cliFlashErase(char *cmdline)
     flashfsEraseCompletely();
 
     while (!flashfsIsReady()) {
+#if defined(USE_WATCHDOG)
+        watchdogRestart();
+#endif
         delay(100);
     }
 

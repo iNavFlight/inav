@@ -37,6 +37,16 @@ void watchdogInit(void);
 // Restart the watchdog counter.
 void watchdogRestart(void);
 
+// Momentarily suspend the watchdog. If the watchdog isn't running
+// (either not initialized or already suspended) this function does
+// nothing. Returns true iff the WD was suspended by this call.
+bool watchdogSuspend(void);
+
+// Resume the watchdog after suspending it via watchdogSuspend().
+// If the watchdog wasn't previously suspended, this function does
+// nothing. Returns true iff the WD was resumed by this call.
+bool watchdogResume(void);
+
 // Returns true iff the system was restarted
 // due to a watchdog reset. This MUST be called
 // before systemInit() (which resets the flags by
