@@ -1816,7 +1816,7 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
     }
 
 #if defined(NAV_BLACKBOX)
-    navLatestActualPosition[Z] = constrain(navGetCurrentActualPositionAndVelocity()->pos.z, -32678, 32767);
+    navLatestActualPosition[Z] = navGetCurrentActualPositionAndVelocity()->pos.z;
     navActualVelocity[Z] = constrain(navGetCurrentActualPositionAndVelocity()->vel.z, -32678, 32767);
 #endif
 }
