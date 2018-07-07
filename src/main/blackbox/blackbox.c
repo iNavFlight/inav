@@ -193,6 +193,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"axisD",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_0)},
     {"axisD",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_1)},
     {"axisD",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_2)},
+
     {"fwAltP",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwAltI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwAltD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
@@ -201,6 +202,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"fwPosI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosOut",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+
     {"mcPosAxisP",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
     {"mcPosAxisP",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
     {"mcPosAxisP",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
@@ -1256,25 +1258,34 @@ static void loadMainState(timeUs_t currentTimeUs)
 #endif
 #ifdef USE_NAV
         if (!STATE(FIXED_WING)) {
-            blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained / 10);
-            blackboxCurrent->mcVelAxisPID[0][i] = lrintf(nav_pids->vel[i].proportional / 10);
-            blackboxCurrent->mcVelAxisPID[1][i] = lrintf(nav_pids->vel[i].integral / 10);
-            blackboxCurrent->mcVelAxisPID[2][i] = lrintf(nav_pids->vel[i].derivative / 10);
+
+            // log requested velocity in cm/s
+            blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
+
+            // log requested acceleration in cm/s^2 and throttle adjustment in µs
+            blackboxCurrent->mcVelAxisPID[0][i] = lrintf(nav_pids->vel[i].proportional);
+            blackboxCurrent->mcVelAxisPID[1][i] = lrintf(nav_pids->vel[i].integral);
+            blackboxCurrent->mcVelAxisPID[2][i] = lrintf(nav_pids->vel[i].derivative);
+
         }
 #endif
     }
 
 #ifdef USE_NAV
     if (STATE(FIXED_WING)) {
-        blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional / 10);
-        blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral / 10);
-        blackboxCurrent->fwAltPID[2] = lrintf(nav_pids->fw_alt.derivative / 10);
-        blackboxCurrent->fwAltPIDOutput = lrintf(nav_pids->fw_alt.output_constrained / 10);
 
+        // log requested pitch in decidegrees
+        blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional);
+        blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral);
+        blackboxCurrent->fwAltPID[2] = lrintf(nav_pids->fw_alt.derivative);
+        blackboxCurrent->fwAltPIDOutput = lrintf(nav_pids->fw_alt.output_constrained);
+
+        // log requested roll in decidegrees
         blackboxCurrent->fwPosPID[0] = lrintf(nav_pids->fw_nav.proportional / 10);
         blackboxCurrent->fwPosPID[1] = lrintf(nav_pids->fw_nav.integral / 10);
         blackboxCurrent->fwPosPID[2] = lrintf(nav_pids->fw_nav.derivative / 10);
         blackboxCurrent->fwPosPIDOutput = lrintf(nav_pids->fw_nav.output_constrained / 10);
+
     } else {
         blackboxCurrent->mcSurfacePID[0] = lrintf(nav_pids->surface.proportional / 10);
         blackboxCurrent->mcSurfacePID[1] = lrintf(nav_pids->surface.integral / 10);

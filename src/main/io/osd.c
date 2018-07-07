@@ -1036,17 +1036,17 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
 
 #endif
 
-void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController) {
+static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
     strcpy(buff, label);
-    uint8_t label_len = strlen(label);
-    for (uint8_t i = label_len; i < 5; ++i) buff[i] = ' ';
-    osdFormatCentiNumber(buff + 5, pidController->proportional, 0, 1, 0, 4);
+    for (uint8_t i = strlen(label); i < 5; ++i) buff[i] = ' ';
+    uint8_t decimals = showDecimal ? 1 : 0;
+    osdFormatCentiNumber(buff + 5, pidController->proportional * scale, 0, decimals, 0, 4);
     buff[9] = ' ';
-    osdFormatCentiNumber(buff + 10, pidController->integrator, 0, 1, 0, 4);
+    osdFormatCentiNumber(buff + 10, pidController->integrator * scale, 0, decimals, 0, 4);
     buff[14] = ' ';
-    osdFormatCentiNumber(buff + 15, pidController->derivative, 0, 1, 0, 4);
+    osdFormatCentiNumber(buff + 15, pidController->derivative * scale, 0, decimals, 0, 4);
     buff[19] = ' ';
-    osdFormatCentiNumber(buff + 20, pidController->output_constrained, 0, 1, 0, 4);
+    osdFormatCentiNumber(buff + 20, pidController->output_constrained * scale, 0, decimals, 0, 4);
     buff[24] = '\0';
 }
 
@@ -1888,35 +1888,35 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_FW_ALT_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "PZO", &nav_pids->fw_alt);
+            osdFormatPidControllerOutput(buff, "PZO", &nav_pids->fw_alt, 10, true); // display requested pitch degrees
             break;
         }
 
     case OSD_FW_POS_PID_OUTPUTS:
         {
-            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "PXYO", &nav_pids->fw_nav);
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers(); // display requested roll degrees
+            osdFormatPidControllerOutput(buff, "PXYO", &nav_pids->fw_nav, 1, true);
             break;
         }
 
     case OSD_MC_VEL_Z_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "VZO", &nav_pids->vel[Z]);
+            osdFormatPidControllerOutput(buff, "VZO", &nav_pids->vel[Z], 100, false); // display throttle adjustment µs
             break;
         }
 
     case OSD_MC_VEL_X_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "VXO", &nav_pids->vel[X]);
+            osdFormatPidControllerOutput(buff, "VXO", &nav_pids->vel[X], 100, false); // display requested acceleration cm/s^2
             break;
         }
 
     case OSD_MC_VEL_Y_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "VYO", &nav_pids->vel[Y]);
+            osdFormatPidControllerOutput(buff, "VYO", &nav_pids->vel[Y], 100, false); // display requested acceleration cm/s^2
             break;
         }
 
@@ -1924,11 +1924,12 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
             strcpy(buff, "POSO ");
-            osdFormatCentiNumber(buff + 5, nav_pids->pos[X].output_constrained, 0, 1, 0, 4);
+            // display requested velocity cm/s
+            tfp_sprintf(buff + 5, "%4d", lrintf(nav_pids->pos[X].output_constrained * 100));
             buff[9] = ' ';
-            osdFormatCentiNumber(buff + 10, nav_pids->pos[Y].output_constrained, 0, 1, 0, 4);
+            tfp_sprintf(buff + 10, "%4d", lrintf(nav_pids->pos[Y].output_constrained * 100));
             buff[14] = ' ';
-            osdFormatCentiNumber(buff + 15, nav_pids->pos[Z].output_constrained, 0, 1, 0, 4);
+            tfp_sprintf(buff + 15, "%4d", lrintf(nav_pids->pos[Z].output_constrained * 100));
             buff[19] = '\0';
             break;
         }
