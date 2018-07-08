@@ -77,6 +77,16 @@ const setting_t *settingFind(const char *name)
 	return NULL;
 }
 
+const setting_t *settingGet(unsigned index)
+{
+	return index < SETTINGS_TABLE_COUNT ? &settingsTable[index] : NULL;
+}
+
+unsigned settingGetIndex(const setting_t *val)
+{
+	return val - settingsTable;
+}
+
 size_t settingGetValueSize(const setting_t *val)
 {
 	switch (SETTING_TYPE(val)) {
@@ -154,6 +164,17 @@ setting_max_t settingGetMax(const setting_t *val)
 	return settingMinMaxTable[SETTING_INDEXES_GET_MAX(val)];
 }
 
+const char * settingLookupValueName(const setting_t *val, unsigned v)
+{
+	if (SETTING_MODE(val) == MODE_LOOKUP && val->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
+		const lookupTableEntry_t *table = &settingLookupTables[val->config.lookup.tableIndex];
+		if (v < table->valueCount) {
+			return table->values[v];
+		}
+	}
+	return NULL;
+}
+
 const char * settingGetString(const setting_t *val)
 {
 	if (SETTING_TYPE(val) == VAR_STRING) {
@@ -179,4 +200,22 @@ setting_max_t settingGetStringMaxLength(const setting_t *val)
 		return settingGetMax(val);
 	}
 	return 0;
+}
+
+bool settingsGetParameterGroupIndexes(pgn_t pg, uint16_t *start, uint16_t *end)
+{
+	unsigned acc = 0;
+	for (int ii = 0; ii < SETTINGS_PGN_COUNT; ii++) {
+		if (settingsPgn[ii] == pg) {
+			if (start) {
+				*start = acc;
+			}
+			if (end) {
+				*end = acc + settingsPgnCounts[ii] - 1;
+			}
+			return true;
+		}
+		acc += settingsPgnCounts[ii];
+	}
+	return false;
 }

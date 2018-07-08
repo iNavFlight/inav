@@ -352,13 +352,16 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
         }
         break;
     case MODE_LOOKUP:
-        if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
-            cliPrintf(settingLookupTables[var->config.lookup.tableIndex].values[value]);
+    {
+        const char *name = settingLookupValueName(var, value);
+        if (name) {
+            cliPrintf(name);
         } else {
             settingGetName(var, buf);
-            cliPrintLinef("VALUE %s OUT OF RANGE", buf);
+            cliPrintLinef("VALUE %d OUT OF RANGE FOR %s", (int)value, buf);
         }
         break;
+    }
     }
 }
 
