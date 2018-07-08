@@ -1154,7 +1154,7 @@ void blackboxStart(void)
     blackboxHistory[1] = &blackboxHistoryRing[1];
     blackboxHistory[2] = &blackboxHistoryRing[2];
 
-    vbatReference = getBatteryVoltageLatestADC();
+    vbatReference = getBatteryRawVoltage();
 
     //No need to clear the content of blackboxHistoryRing since our first frame will be an intra which overwrites it
 
@@ -1325,8 +1325,8 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->motor[i] = motor[i];
     }
 
-    blackboxCurrent->vbatLatest = getBatteryVoltageLatestADC();
-    blackboxCurrent->amperageLatest = getAmperageLatestADC();
+    blackboxCurrent->vbatLatest = getBatteryRawVoltage();
+    blackboxCurrent->amperageLatest = getAmperage();
 
 #ifdef USE_BARO
     blackboxCurrent->BaroAlt = baro.BaroAlt;
