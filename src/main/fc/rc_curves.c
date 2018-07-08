@@ -17,8 +17,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "platform.h"
+
+#include "common/maths.h"
 
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
@@ -31,7 +34,7 @@
 
 #define PITCH_LOOKUP_LENGTH 7
 #define YAW_LOOKUP_LENGTH 7
-#define THROTTLE_LOOKUP_LENGTH 12
+#define THROTTLE_LOOKUP_LENGTH 11
 
 static int16_t lookupThrottleRC[THROTTLE_LOOKUP_LENGTH];    // lookup table for expo & mid THROTTLE
 int16_t lookupThrottleRCMid;                         // THROTTLE curve mid point
@@ -55,12 +58,15 @@ void generateThrottleCurve(const controlRateConfig_t *controlRateConfig)
 int16_t rcLookup(int32_t stickDeflection, uint8_t expo)
 {
     float tmpf = stickDeflection / 100.0f;
-    return (int16_t)((2500.0f + (float)expo * (tmpf * tmpf - 25.0f)) * tmpf / 25.0f);
+    return lrintf((2500.0f + (float)expo * (tmpf * tmpf - 25.0f)) * tmpf / 25.0f);
 }
 
-int16_t rcLookupThrottle(int32_t absoluteDeflection)
+uint16_t rcLookupThrottle(uint16_t absoluteDeflection)
 {
-    const int32_t lookupStep = absoluteDeflection / 100;
+    if (absoluteDeflection > 999)
+        return motorConfig()->maxthrottle;
+
+    const uint8_t lookupStep = absoluteDeflection / 100;
     return lookupThrottleRC[lookupStep] + (absoluteDeflection - lookupStep * 100) * (lookupThrottleRC[lookupStep + 1] - lookupThrottleRC[lookupStep]) / 100;
 }
 
