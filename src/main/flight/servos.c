@@ -59,7 +59,8 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
     .servoPwmRate = 50,             // Default for analog servos
     .servo_lowpass_freq = 20,       // Default servo update rate is 50Hz, everything above Nyquist frequency (25Hz) is going to fold and cause distortions
     .flaperon_throw_offset = FLAPERON_THROW_DEFAULT,
-    .tri_unarmed_servo = 1
+    .tri_unarmed_servo = 1,
+    .init_servo_after_gyro_calib = 0
 );
 
 PG_REGISTER_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 0);
@@ -199,6 +200,9 @@ void writeServos(void)
     int servoIndex = 0;
     bool zeroServoValue = false;
 
+    if (servoConfig()->init_servo_after_gyro_calib && !gyroIsCalibrationComplete())
+      zeroServoValue = true;
+    
     /*
      * in case of tricopters, there might me a need to zero servo output when unarmed
      */

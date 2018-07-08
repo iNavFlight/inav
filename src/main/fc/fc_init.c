@@ -309,7 +309,11 @@ void init(void)
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
 
     pwm_params.useServoOutputs = isMixerUsingServos();
-    pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
+    
+    if (servoConfig()->init_servo_after_gyro_calib)
+      pwm_params.servoCenterPulse = 0;
+    else
+      pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
 
     pwm_params.pwmProtocolType = motorConfig()->motorPwmProtocol;

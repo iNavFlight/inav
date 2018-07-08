@@ -121,6 +121,7 @@ typedef struct servoConfig_s {
     uint16_t flaperon_throw_offset;
     uint8_t __reserved;
     uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
+    uint8_t init_servo_after_gyro_calib;    // start send PWM after gyro calibration is complete
 } servoConfig_t;
 
 PG_DECLARE(servoConfig_t, servoConfig);

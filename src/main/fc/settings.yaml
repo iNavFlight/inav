@@ -659,6 +659,8 @@ groups:
         max: FLAPERON_THROW_MAX
       - name: tri_unarmed_servo
         type: bool
+      - name: init_servo_after_gyro_calib
+        type: bool
 
   - name: PG_CONTROL_RATE_PROFILES
     type: controlRateConfig_t
