@@ -310,10 +310,13 @@ void init(void)
 
     pwm_params.useServoOutputs = isMixerUsingServos();
     
-    if (servoConfig()->init_servo_after_gyro_calib)
+    if (servoConfig()->initAfterGyro) {
       pwm_params.servoCenterPulse = 0;
-    else
+    }
+    else {
       pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
+    }
+    
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
 
     pwm_params.pwmProtocolType = motorConfig()->motorPwmProtocol;
