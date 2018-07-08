@@ -58,7 +58,7 @@ PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
     .tz_automatic_dst = TZ_AUTO_DST_OFF,
 );
 
-static rtcTime_t dateTimeToRtcTime(dateTime_t *dt)
+static rtcTime_t dateTimeToRtcTime(const dateTime_t *dt)
 {
     unsigned int second = dt->seconds;  // 0-59
     unsigned int minute = dt->minutes;  // 0-59
@@ -205,7 +205,7 @@ static bool isDST(rtcTime_t t)
 }
 #endif
 
-static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, int16_t *minutes, bool automatic_dst)
+static void dateTimeWithOffset(dateTime_t *dateTimeOffset, const dateTime_t *dateTimeInitial, int16_t *minutes, bool automatic_dst)
 {
     rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
     rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + *minutes * 60, rtcTimeGetMillis(&initialTime));
@@ -279,7 +279,7 @@ bool dateTimeFormatLocal(char *buf, dateTime_t *dt)
     return dateTimeFormat(buf, dt, timeConfig()->tz_offset, true);
 }
 
-void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime)
+void dateTimeUTCToLocal(dateTime_t *localDateTime, const dateTime_t *utcDateTime)
 {
     int16_t offset = timeConfig()->tz_offset;
     dateTimeWithOffset(localDateTime, utcDateTime, &offset, true);
@@ -329,6 +329,15 @@ bool rtcGetDateTime(dateTime_t *dt)
     }
     // No time stored, fill dt with 0000-01-01T00:00:00.000
     rtcGetDefaultDateTime(dt);
+    return false;
+}
+
+bool rtcGetDateTimeLocal(dateTime_t *dt)
+{
+    if (rtcGetDateTime(dt)) {
+        dateTimeUTCToLocal(dt, dt);
+        return true;
+    }
     return false;
 }
 
