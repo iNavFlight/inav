@@ -468,7 +468,7 @@ class Generator
             buf << "};\n"
         end
 
-        buf << "const lookupTableEntry_t settingLookupTables[] = {\n"
+        buf << "static const lookupTableEntry_t settingLookupTables[] = {\n"
         table_names.each do |name|
             vn = table_variable_name(name)
             buf << "\t{ #{vn}, sizeof(#{vn}) / sizeof(char*) },\n"
@@ -476,7 +476,7 @@ class Generator
         buf << "};\n"
 
         # Write min/max values table
-        buf << "const uint32_t settingMinMaxTable[] = {\n"
+        buf << "static const uint32_t settingMinMaxTable[] = {\n"
         @value_encoder.values.each do |v|
             buf <<  "\t#{v},\n"
         end
@@ -492,7 +492,7 @@ class Generator
         end
 
         # Write setting_t values
-        buf << "const setting_t settingsTable[] = {\n"
+        buf << "static const setting_t settingsTable[] = {\n"
 
         last_group = nil
         foreach_enabled_member do |group, member|
