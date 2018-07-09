@@ -13,8 +13,6 @@ typedef struct lookupTableEntry_s {
     const uint8_t valueCount;
 } lookupTableEntry_t;
 
-extern const lookupTableEntry_t settingLookupTables[];
-
 #define SETTING_TYPE_OFFSET 0
 #define SETTING_SECTION_OFFSET 4
 #define SETTING_MODE_OFFSET 6
@@ -69,8 +67,6 @@ typedef struct {
 
 } __attribute__((packed)) setting_t;
 
-extern const setting_t settingsTable[];
-
 static inline setting_type_e SETTING_TYPE(const setting_t *s) { return s->type &  SETTING_TYPE_MASK; }
 static inline setting_section_e SETTING_SECTION(const setting_t *s) { return s->type & SETTING_SECTION_MASK; }
 static inline setting_mode_e SETTING_MODE(const setting_t *s) { return s->type & SETTING_MODE_MASK; }
@@ -105,6 +101,9 @@ setting_min_t settingGetMin(const setting_t *val);
 // depends on the target and build options, but will always be an unsigned
 // integer (e.g. uintxx_t,)
 setting_max_t settingGetMax(const setting_t *val);
+// Returns the lookup table for the given setting. If the setting mode
+// is not MODE_LOOKUP, it returns NULL;
+const lookupTableEntry_t * settingLookupTable(const setting_t *val);
 // Returns the string in the table which corresponds to the value v
 // for the given setting. If the setting mode is not MODE_LOOKUP or
 // if the value is out of range, it returns NULL.

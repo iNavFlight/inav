@@ -428,7 +428,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
             buff[0] = '\0';
             const OSD_SETTING_t *ptr = p->data;
-            const setting_t *var = &settingsTable[ptr->val];
+            const setting_t *var = settingGet(ptr->val);
             int32_t value;
             const void *valuePointer = settingGetValuePointer(var);
             switch (SETTING_TYPE(var)) {
@@ -476,13 +476,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
                         break;
                     case MODE_LOOKUP:
                         {
-                            const char *str = NULL;
-                            if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
-                                const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
-                                if (value < tableEntry->valueCount) {
-                                    str = tableEntry->values[value];
-                                }
-                            }
+                            const char *str = settingLookupValueName(var, value);
                             strncpy(buff, str ? str : "INVALID", sizeof(buff) - 1);
                         }
                         break;
@@ -1008,7 +1002,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
         case OME_Setting:
             if (p->data) {
                 const OSD_SETTING_t *ptr = p->data;
-                const setting_t *var = &settingsTable[ptr->val];
+                const setting_t *var = settingGet(ptr->val);
                 setting_min_t min = settingGetMin(var);
                 setting_max_t max = settingGetMax(var);
                 float step = ptr->step ?: 1;

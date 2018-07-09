@@ -164,13 +164,19 @@ setting_max_t settingGetMax(const setting_t *val)
 	return settingMinMaxTable[SETTING_INDEXES_GET_MAX(val)];
 }
 
-const char * settingLookupValueName(const setting_t *val, unsigned v)
+const lookupTableEntry_t * settingLookupTable(const setting_t *val)
 {
 	if (SETTING_MODE(val) == MODE_LOOKUP && val->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
-		const lookupTableEntry_t *table = &settingLookupTables[val->config.lookup.tableIndex];
-		if (v < table->valueCount) {
-			return table->values[v];
-		}
+		return &settingLookupTables[val->config.lookup.tableIndex];
+	}
+	return NULL;
+}
+
+const char * settingLookupValueName(const setting_t *val, unsigned v)
+{
+	const lookupTableEntry_t *table = settingLookupTable(val);
+	if (table && v < table->valueCount) {
+		return table->values[v];
 	}
 	return NULL;
 }

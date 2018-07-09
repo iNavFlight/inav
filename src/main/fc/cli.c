@@ -428,8 +428,8 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
 
 static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
 {
-    for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-        const setting_t *value = &settingsTable[i];
+    for (unsigned i = 0; i < SETTINGS_TABLE_COUNT; i++) {
+        const setting_t *value = settingGet(i);
         bufWriterFlush(cliWriter);
         if (SETTING_SECTION(value) == valueSection) {
             dumpPgValue(value, dumpMask);
@@ -456,7 +456,7 @@ static void cliPrintVarRange(const setting_t *var)
         break;
     case MODE_LOOKUP:
     {
-        const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
+        const lookupTableEntry_t *tableEntry = settingLookupTable(var);
         cliPrint("Allowed values:");
         for (uint32_t i = 0; i < tableEntry->valueCount ; i++) {
             if (i > 0)
@@ -2259,7 +2259,7 @@ static void cliGet(char *cmdline)
     char name[SETTING_MAX_NAME_LENGTH];
 
     for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-        val = &settingsTable[i];
+        val = settingGet(i);
         if (settingNameContains(val, name, cmdline)) {
             cliPrintf("%s = ", name);
             cliPrintVar(val, 0);
@@ -2291,7 +2291,7 @@ static void cliSet(char *cmdline)
     if (len == 0 || (len == 1 && cmdline[0] == '*')) {
         cliPrintLine("Current settings:");
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-            val = &settingsTable[i];
+            val = settingGet(i);
             settingGetName(val, name);
             cliPrintf("%s = ", name);
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
@@ -2313,7 +2313,7 @@ static void cliSet(char *cmdline)
         }
 
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-            val = &settingsTable[i];
+            val = settingGet(i);
             // ensure exact match when setting to prevent setting variables with shorter names
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
@@ -2344,7 +2344,7 @@ static void cliSet(char *cmdline)
                     }
                     break;
                 case MODE_LOOKUP: {
-                        const lookupTableEntry_t *tableEntry = &settingLookupTables[settingsTable[i].config.lookup.tableIndex];
+                        const lookupTableEntry_t *tableEntry = settingLookupTable(val);
                         bool matched = false;
                         for (uint32_t tableValueIndex = 0; tableValueIndex < tableEntry->valueCount && !matched; tableValueIndex++) {
                             matched = sl_strcasecmp(tableEntry->values[tableValueIndex], eqptr) == 0;
