@@ -300,7 +300,6 @@ Re-apply any new defaults as desired.
 |  osd_alt_alarm        | 100   | Value above which to make the OSD relative altitude indicator blink (meters) |
 |  osd_neg_alt_alarm    | 5    | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
-|  osd_attitude_angle_decimals | 0 | Chose the numbers of decimals displayed by OSD attitude angle elements [0-1] |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_z  | 0 | Magnetometer calibration Z offset. If its 0 none offset has been applied and calibration is failed. |
