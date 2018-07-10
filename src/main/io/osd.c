@@ -987,7 +987,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             } else {
 
                 uint8_t c;
-                if (displayReadCharWithAttr(osdDisplayPort, poiY, poiY, &c, NULL) && c != SYM_BLANK) {
+                if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
                     continue;
