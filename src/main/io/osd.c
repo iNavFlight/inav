@@ -1601,7 +1601,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 osdCrosshairsBounds(&cx, &cy, &cl);
                 crosshairsX = cx - elemPosX;
                 crosshairsY = cy - elemPosY;
-                crosshairsXEnd = crosshairsX + cl;
+                crosshairsXEnd = crosshairsX + cl - 1;
             }
 
             for (int x = -4; x <= 4; x++) {
