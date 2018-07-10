@@ -177,6 +177,7 @@ static void filterServos(void)
         if (!servoFilterIsSet) {
             for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
                 biquadFilterInitLPF(&servoFilter[i], servoConfig()->servo_lowpass_freq, gyro.targetLooptime);
+                biquadFilterReset(&servoFilter[i], servo[i]);
             }
             servoFilterIsSet = true;
         }
