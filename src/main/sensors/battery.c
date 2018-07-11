@@ -189,7 +189,13 @@ void setBatteryProfile(uint8_t profileIndex)
 
 void activateBatteryProfile(void)
 {
-    batteryInit();
+    static int8_t previous_battery_profile_index = -1;
+    // Don't call batteryInit if the battery profile was not changed to prevent batteryCellCount to be reset while adjusting board alignment
+    // causing the beeper to be silent when it is disabled while the board is connected through USB (beeper -ON_USB)
+    if (systemConfig()->current_battery_profile_index != previous_battery_profile_index) {
+        batteryInit();
+        previous_battery_profile_index = systemConfig()->current_battery_profile_index;
+    }
 }
 
 static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
