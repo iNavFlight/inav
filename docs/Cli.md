@@ -16,7 +16,7 @@ To exit the CLI without saving power off the flight controller or type in 'exit'
 
 To see a list of other commands type in 'help' and press return.
 
-To dump your configuration (including the current profile), use the 'dump' command.
+To dump your configuration (including the current profile), use the 'dump' or 'diff' command.
 
 See the other documentation sections for details of the cli commands and settings that are available.
 
@@ -42,23 +42,21 @@ dump profile
 
 copy screen output to a file and save it.
 
+Alternatively, use the `diff` command to dump only those settings that differ from their default values (those that have been changed).
+
+
 ## Restore via CLI.
 
 Use the cli `defaults` command first.
 
-When restoring from a backup it is a good idea to do a dump of the latest defaults so you know what has changed - if you do this each time a firmware release is created you will be able to see the cli changes between firmware versions.  For instance, in December 2014 the default GPS navigation PIDs changed.  If you blindly restore your backup you would not benefit from these new defaults.
+When restoring from backup it's a good idea to do a dump of the latest defaults so you know what has changed - if you do this each time a firmware release is created you will be able to see the cli changes between firmware versions. If you blindly restore your backup you would not benefit from these new defaults or may even end up with completely wrong settings in case some parameters changed semantics and/or value ranges.
 
-Use the CLI and send all the output from the saved backup commands.
+It may be good idea to restore settings using the `diff` output rather than complete `dump`. This way you can have more control on what is restored and the risk of mistakenly restoring bad values if the semantics changes is minimised.
 
-Do not send the file too fast, if you do the FC might not be able to keep up when using USART adapters (including built in ones) since there is no hardware serial flow control.
+To perform the restore simply paste the saved commands in the Configurator CLI tab and then type `save`.
 
-You may find you have to copy/paste a few lines at a time.
+After restoring it's always a good idea to `dump` or `diff` the settings once again and compare the output with previous one to verify if everything is set as it should be.
 
-Repeat the backup process again!
-
-Compare the two backups to make sure you are happy with your restored settings.
-
-Re-apply any new defaults as desired.
 
 ## CLI Command Reference
 
@@ -72,6 +70,7 @@ Re-apply any new defaults as desired.
 | `color`          | configure colors                               |
 | `defaults`       | reset to defaults and reboot                   |
 | `dump`           | print configurable settings in a pastable form |
+| `diff`           | print only settings that have been modified    |
 | `exit`           |                                                |
 | `feature`        | list or -val or val                            |
 | `get`            | get variable value                             |
