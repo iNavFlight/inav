@@ -56,19 +56,19 @@
 #include "io/beeper.h"
 
 
-#define ADCVREF 3300                 // in mV (3300 = 3.3V)
+#define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
-#define VBATT_CELL_FULL_MAX_DIFF 10  // Max difference with cell max voltage for the battery to be considered full (10mV steps)
-#define VBATT_PRESENT_THRESHOLD 100  // Minimum voltage to consider battery present
-#define VBATT_STABLE_DELAY 40        // Delay after connecting battery to begin monitoring
-#define VBATT_HYSTERESIS 10          // Batt Hysteresis of +/-100mV for changing battery state
-#define VBATT_LPF_FREQ  1            // Battery voltage filtering cutoff
-#define AMPERAGE_LPF_FREQ  1         // Battery current filtering cutoff
+#define VBATT_CELL_FULL_MAX_DIFF 10             // Max difference with cell max voltage for the battery to be considered full (10mV steps)
+#define VBATT_PRESENT_THRESHOLD 100             // Minimum voltage to consider battery present
+#define VBATT_STABLE_DELAY 40                   // Delay after connecting battery to begin monitoring
+#define VBATT_HYSTERESIS 10                     // Batt Hysteresis of +/-100mV for changing battery state
+#define VBATT_LPF_FREQ  1                       // Battery voltage filtering cutoff
+#define AMPERAGE_LPF_FREQ  1                    // Battery current filtering cutoff
 #define IMPEDANCE_STABLE_SAMPLE_COUNT_THRESH 10 // Minimum sample count to consider calculated power supply impedance as stable
 
 
 // Battery monitoring stuff
-static uint8_t batteryCellCount = 3;       // cell count
+static uint8_t batteryCellCount;                // cell count
 static uint16_t batteryFullVoltage;
 static uint16_t batteryWarningVoltage;
 static uint16_t batteryCriticalVoltage;
@@ -77,15 +77,15 @@ static bool batteryUseCapacityThresholds = false;
 static bool batteryFullWhenPluggedIn = false;
 static bool profileAutoswitchDisable = false;
 
-static uint16_t vbat = 0;                   // battery voltage in 0.1V steps (filtered)
-static uint16_t powerSupplyImpedance = 0;   // calculated impedance in milliohm
-static uint16_t sagCompensatedVBat = 0;     // calculated no load vbat
+static uint16_t vbat = 0;                       // battery voltage in 0.1V steps (filtered)
+static uint16_t powerSupplyImpedance = 0;       // calculated impedance in milliohm
+static uint16_t sagCompensatedVBat = 0;         // calculated no load vbat
 static bool powerSupplyImpedanceIsValid = false;
 
-static int16_t amperage = 0;               // amperage read by current sensor in centiampere (1/100th A)
-static int32_t power = 0;                  // power draw in cW (0.01W resolution)
-static int32_t mAhDrawn = 0;               // milliampere hours drawn from the battery since start
-static int32_t mWhDrawn = 0;               // energy (milliWatt hours) drawn from the battery since start
+static int16_t amperage = 0;                    // amperage read by current sensor in centiampere (1/100th A)
+static int32_t power = 0;                       // power draw in cW (0.01W resolution)
+static int32_t mAhDrawn = 0;                    // milliampere hours drawn from the battery since start
+static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) drawn from the battery since start
 
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
