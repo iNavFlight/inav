@@ -163,7 +163,6 @@ typedef struct osdConfig_s {
 
     // Preferences
     uint8_t main_voltage_decimals;
-    uint8_t attitude_angle_decimals;
     uint8_t ahi_reverse_roll;
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
