@@ -156,9 +156,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                 },
                 [PID_HEADING] = { 60, 0, 0 },
                 [PID_POS_Z] = {
-                    .P = 50,    // FW_POS_Z_P * 100
-                    .I = 0,     // not used
-                    .D = 0,     // not used
+                    .P = 40,    // FW_POS_Z_P * 100
+                    .I = 5,     // not used
+                    .D = 10,     // not used
                 },
                 [PID_POS_XY] = {
                     .P = 75,     // FW_NAV_P * 100
