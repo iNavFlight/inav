@@ -1618,25 +1618,32 @@ static bool osdDrawSingleElement(uint8_t item)
                 int wx = x + 4; // map the -4 to the 1st element in the writtenY array
                 int pwy = writtenY[wx]; // previously written Y at this X value
                 int wy = (y / AH_SYMBOL_COUNT);
-                // Check if we're overlapping with the crosshairs. Saves a few
-                // trips to the video driver.
+
+                unsigned chX = elemPosX + x;
+                unsigned chY =  elemPosY + wy;
+                uint8_t c;
+
+                // Check if we're overlapping with the crosshairs directly. Saves a few
+                // trips to the video driver. Also, test for other arbitrary overlapping
+                // elements if the display supports reading back characters.
                 bool overlaps = (crosshairsVisible &&
                             crosshairsY == wy &&
-                            x >= crosshairsX && x <= crosshairsXEnd);
+                            x >= crosshairsX && x <= crosshairsXEnd) ||
+                            (pwy != wy && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && c != SYM_BLANK);
 
                 if (y >= 0 && y <= 80 && !overlaps) {
                     if (pwy != -1 && pwy != wy) {
                         // Erase previous character at pwy rows below elemPosY
                         // iff we're writing at a different Y coordinate. Otherwise
                         // we just overwrite the previous one.
-                        displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + pwy, SYM_BLANK);
+                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
                     }
                     uint8_t ch = SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT);
-                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + wy, ch);
+                    displayWriteChar(osdDisplayPort, chX, chY, ch);
                     writtenY[wx] = wy;
                 } else {
                     if (pwy != -1) {
-                        displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + pwy, SYM_BLANK);
+                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
                         writtenY[wx] = -1;
                     }
                 }
