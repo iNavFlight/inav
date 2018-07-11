@@ -918,7 +918,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     char symUnscaled;
     char symScaled;
     int maxDecimals;
-    const int scaleMultiplier = 2;
+    const unsigned scaleMultiplier = 2;
     // We try to reduce the scale when the POI will be around half the distance
     // between the center and the closers map edge, to avoid too much jumping
     const int scaleReductionMultiplier = MIN(midX - hMargin, midY - vMargin) / 2;
@@ -961,19 +961,22 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
         float poiCos = cos_approx(poiAngle);
 
         // Now start looking for a valid scale that lets us draw everything
-        for (int ii = 0; ii < 50; ii++, scale *= scaleMultiplier) {
+        int ii;
+        for (ii = 0; ii < 50; ii++) {
             // Calculate location of the aircraft in map
-            int points = poiDistance / (float)(scale / charHeight);
+            int points = poiDistance / ((float)scale / charHeight);
 
             float pointsX = points * poiSin;
             int poiX = midX - roundf(pointsX / charWidth);
             if (poiX < minX || poiX > maxX) {
+                scale *= scaleMultiplier;
                 continue;
             }
 
             float pointsY = points * poiCos;
             int poiY = midY + roundf(pointsY / charHeight);
             if (poiY < minY || poiY > maxY) {
+                scale *= scaleMultiplier;
                 continue;
             }
 
@@ -990,6 +993,18 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
+                    //
+                    // If we're close to the center, decrease scale. Otherwise increase it.
+                    uint8_t centerDeltaX = (maxX - minX) / (scaleMultiplier * 2);
+                    uint8_t centerDeltaY = (maxY - minY) / (scaleMultiplier * 2);
+                    if (poiX >= midX - centerDeltaX && poiX <= midX + centerDeltaX &&
+                        poiY >= midY - centerDeltaY && poiY <= midY + centerDeltaY &&
+                        scale > scaleMultiplier) {
+
+                        scale /= scaleMultiplier;
+                    } else {
+                        scale *= scaleMultiplier;
+                    }
                     continue;
                 }
             }
