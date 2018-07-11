@@ -200,7 +200,7 @@ static void saPrintSettings(void)
 
 int saDacToPowerIndex(int dac)
 {
-    for (int idx = 3 ; idx >= 0 ; idx--) {
+    for (int idx = VTX_SMARTAUDIO_POWER_COUNT - 1 ; idx >= 0 ; idx--) {
         if (saPowerTable[idx].valueV1 <= dac) {
             return idx;
         }
