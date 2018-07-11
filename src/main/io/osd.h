@@ -121,6 +121,7 @@ typedef enum {
     OSD_MC_VEL_Y_PID_OUTPUTS,
     OSD_MC_VEL_Z_PID_OUTPUTS,
     OSD_MC_POS_XYZ_P_OUTPUTS,
+    OSD_GFORCE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -185,3 +186,4 @@ void osdStartFullRedraw(void);
 // to -1 to disable the override.
 void osdOverrideLayout(int layout);
 bool osdItemIsFixed(osd_items_e item);
+bool osdItemIsVisible(int item);

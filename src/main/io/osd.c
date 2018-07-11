@@ -86,6 +86,7 @@
 #include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/acceleration.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -133,6 +134,8 @@ typedef struct statistic_s {
     int16_t min_rssi;
     int32_t max_altitude;
     uint16_t max_distance;
+    int8_t min_gforce;
+    int8_t max_gforce;
 } statistic_t;
 
 static statistic_t stats;
@@ -2170,6 +2173,12 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GFORCE:
+        {
+            osdFormatCentiNumber(buff, (float)(imuMeasuredAccelBF.v[2]/GRAVITY_MSS), 0, 1, 0, 3);
+            break;
+        }
+
     case OSD_DEBUG:
         {
             // Longest representable string is -32768, hence 6 characters
@@ -2396,6 +2405,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_WIND_SPEED_HORIZONTAL] = OSD_POS(3, 6);
     osdConfig->item_pos[0][OSD_WIND_SPEED_VERTICAL] = OSD_POS(3, 7);
 
+    osdConfig->item_pos[0][OSD_GFORCE] = OSD_POS(12, 4);
+
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
 
@@ -2511,6 +2522,8 @@ static void osdResetStats(void)
     stats.min_voltage = 5000;
     stats.min_rssi = 99;
     stats.max_altitude = 0;
+    stats.min_gforce = 120;
+    stats.max_gforce = -120;
 }
 
 static void osdUpdateStats(void)
@@ -2543,6 +2556,20 @@ static void osdUpdateStats(void)
         stats.min_rssi = value;
 
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
+
+    if (osdItemIsVisible((int)OSD_GFORCE)) {
+        //osdUpdateStats is running at 5Hz, that is quite slow to catch true extremum g-force
+        //values. During flight pilot can see bigger values than on the summary screen, as
+        //taskUpateOsd runs at 250Hz. It is assumed that a min/max values lasting at least
+        //200ms are recorded for summary. Another "ugly" but "more immersive" way to register
+        //stats would be to move below code directly into osdRefresh function.
+        int16_t value = (float)(imuMeasuredAccelBF.v[2]/GRAVITY_MSS);
+        if (stats.min_gforce > value)
+            stats.min_gforce = value;
+
+        if (stats.max_gforce < value)
+            stats.max_gforce = value;
+    }
 }
 
 /* Attention: NTSC screen only has 12 fully visible lines - it is FULL now! */
@@ -2631,6 +2658,15 @@ static void osdShowStats(void)
     flyMinutes %= 60;
     tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    if (osdItemIsVisible((int)OSD_GFORCE)) {
+        displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX G-FORCE  :");
+        osdFormatCentiNumber(buff, stats.min_gforce, 0, 1, 0, 3);
+        strcat(buff," /");
+        displayWrite(osdDisplayPort, statValuesX, top, buff);
+        osdFormatCentiNumber(buff, stats.max_gforce, 0, 1, 0, 3);
+        displayWrite(osdDisplayPort, statValuesX+5, top++, buff);
+    }
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
@@ -2807,3 +2843,13 @@ bool osdItemIsFixed(osd_items_e item)
 }
 
 #endif // OSD
+
+bool osdItemIsVisible(int item) {
+    bool visible = false;
+    int i = 0;
+    while ((i < OSD_LAYOUT_COUNT) && (visible == false)) {
+        if (OSD_VISIBLE(osdConfig()->item_pos[i][item])) visible = true;
+        i++;
+    }
+    return visible;        
+}
