@@ -52,6 +52,7 @@ void registerExtiCallbackHandler(IRQn_Type irqn, extiCallbackHandlerFunc *fn)
 STATIC_UNIT_TESTED  timeUs_t usTicks = 0;
 // current uptime for 1kHz systick timer. will rollover after 49 days. hopefully we won't care.
 STATIC_UNIT_TESTED  volatile timeMs_t sysTickUptime = 0;
+STATIC_UNIT_TESTED volatile uint32_t sysTickValStamp = 0;
 // cached value of RCC->CSR
 uint32_t cachedRccCsrValue;
 
@@ -81,6 +82,7 @@ void SysTick_Handler(void)
 {
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
         sysTickUptime++;
+        sysTickValStamp = SysTick->VAL;
         sysTickPending = 0;
         (void)(SysTick->CTRL);
     }
@@ -148,12 +150,8 @@ timeUs_t micros(void)
     do {
         ms = sysTickUptime;
         cycle_cnt = SysTick->VAL;
-        /*
-         * If the SysTick timer expired during the previous instruction, we need to give it a little time for that
-         * interrupt to be delivered before we can recheck sysTickUptime:
-         */
-        asm volatile("\tnop\n");
-    } while (ms != sysTickUptime);
+    } while (ms != sysTickUptime || cycle_cnt > sysTickValStamp);
+
     return ((timeUs_t)ms * 1000LL) + (usTicks * 1000LL - (timeUs_t)cycle_cnt) / usTicks;
 }
 
