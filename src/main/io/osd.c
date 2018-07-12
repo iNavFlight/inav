@@ -488,25 +488,35 @@ static uint16_t osdConvertRSSI(void)
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
-    const int coordinateMaxLength = 12; // 11 for the number + 1 for the symbol
+    // This should be faster than pow(10, x). Make it available this
+    // via extern rather than _GNU_SOURCE, since it should be more
+    // portable.
+    extern float exp10f(float);
+
+    // up to 4 for number + 1 for the symbol + null terminator + fill the rest with decimals
+    const int coordinateMaxLength = osdConfig()->coordinate_digits + 1;
 
     buff[0] = sym;
     int32_t integerPart = val / GPS_DEGREES_DIVIDER;
-    int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
     // Latitude maximum integer width is 3 (-90) while
-    // longitude maximum integer width is 4 (-180). We always
-    // show 7 decimals, so we need to use 11 spaces because
-    // we're embedding the decimal separator between the
-    // two numbers.
-    int written = tfp_sprintf(buff + 1, "%d", integerPart);
-    tfp_sprintf(buff + 1 + written, "%07d", decimalPart);
+    // longitude maximum integer width is 4 (-180).
+    int integerDigits = tfp_sprintf(buff + 1, "%d", integerPart);
+    // We can show up to 7 digits in decimalPart. Remove
+    // some if needed.
+    int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
+    int trim = 7 - MAX(coordinateMaxLength - 1 - integerDigits, 0);
+    if (trim > 0) {
+        decimalPart /= (int32_t)exp10f(trim);
+    }
+    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%d", decimalPart);
     // Embbed the decimal separator
-    buff[1+written-1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
-    buff[1+written] += SYM_ZERO_HALF_LEADING_DOT - '0';
-    // Pad to 11 coordinateMaxLength
-    while(1 + 7 + written < coordinateMaxLength) {
-        buff[1 + 7 + written] = SYM_BLANK;
-        written++;
+    buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
+    buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    // Fill up to coordinateMaxLength with zeros
+    int total = 1 + integerDigits + decimalDigits;
+    while(total < coordinateMaxLength) {
+        buff[total] = '0';
+        total++;
     }
     buff[coordinateMaxLength] = '\0';
 }
@@ -2445,6 +2455,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->main_voltage_decimals = 1;
 
     osdConfig->estimations_wind_compensation = true;
+    osdConfig->coordinate_digits = 9;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {

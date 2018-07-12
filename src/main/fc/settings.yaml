@@ -1553,6 +1553,10 @@ groups:
         field: main_voltage_decimals
         min: 1
         max: 2
+      - name: osd_coordinate_digits
+        field: coordinate_digits
+        min: 8
+        max: 11
 
       - name: osd_estimations_wind_compensation
         field: estimations_wind_compensation
