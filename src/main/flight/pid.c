@@ -137,8 +137,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .D = 0,     // not used
                 },
                 [PID_VEL_Z] = {
-                    .P = 100,   // NAV_VEL_Z_P * 100
-                    .I = 50,    // NAV_VEL_Z_I * 100
+                    .P = 100,   // NAV_VEL_Z_P * 66.7
+                    .I = 50,    // NAV_VEL_Z_I * 20
                     .D = 10,    // NAV_VEL_Z_D * 100
                 }
             }
@@ -156,14 +156,14 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                 },
                 [PID_HEADING] = { 60, 0, 0 },
                 [PID_POS_Z] = {
-                    .P = 40,    // FW_POS_Z_P * 100
-                    .I = 5,     // not used
-                    .D = 10,     // not used
+                    .P = 40,    // FW_POS_Z_P * 10
+                    .I = 5,     // FW_POS_Z_I * 10
+                    .D = 10,    // FW_POS_Z_D * 10
                 },
                 [PID_POS_XY] = {
-                    .P = 75,     // FW_NAV_P * 100
-                    .I = 5,      // FW_NAV_I * 100
-                    .D = 8,      // FW_NAV_D * 100
+                    .P = 75,    // FW_POS_XY_P * 100
+                    .I = 5,     // FW_POS_XY_I * 100
+                    .D = 8,     // FW_POS_XY_D * 100
                 }
             }
         },
