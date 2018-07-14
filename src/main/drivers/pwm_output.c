@@ -76,6 +76,8 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, const timerHardware_t *timerH
     p->ccr = timerCCR(timerHardware->tim, timerHardware->channel);
     p->period = period;
     p->tim = timerHardware->tim;
+
+    *p->ccr = 0;
 }
 
 static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value, bool enableOutput)
