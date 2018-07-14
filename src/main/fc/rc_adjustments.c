@@ -638,12 +638,18 @@ void updateAdjustmentStates(bool canUseRxData)
 {
     for (int index = 0; index < MAX_ADJUSTMENT_RANGE_COUNT; index++) {
         const adjustmentRange_t * const adjustmentRange = adjustmentRanges(index);
+        if (adjustmentRange->adjustmentFunction == ADJUSTMENT_NONE) {
+            // Range not set up
+            continue;
+        }
         const adjustmentConfig_t *adjustmentConfig = &defaultAdjustmentConfigs[adjustmentRange->adjustmentFunction - ADJUSTMENT_FUNCTION_CONFIG_INDEX_OFFSET];
+        adjustmentState_t * const adjustmentState = &adjustmentStates[adjustmentRange->adjustmentIndex];
 
         if (canUseRxData && isRangeActive(adjustmentRange->auxChannelIndex, &adjustmentRange->range)) {
-            configureAdjustment(adjustmentRange->adjustmentIndex, adjustmentRange->auxSwitchChannelIndex, adjustmentConfig);
+            if (!adjustmentState->config) {
+                configureAdjustment(adjustmentRange->adjustmentIndex, adjustmentRange->auxSwitchChannelIndex, adjustmentConfig);
+            }
         } else {
-            adjustmentState_t * const adjustmentState = &adjustmentStates[adjustmentRange->adjustmentIndex];
             if (adjustmentState->config == adjustmentConfig) {
                 adjustmentState->config = NULL;
             }
