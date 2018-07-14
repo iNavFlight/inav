@@ -2683,13 +2683,21 @@ static void osdShowArmed(void)
     displayWrite(osdDisplayPort, 12, y, "ARMED");
     y += 2;
 
-    if (STATE(GPS_FIX)) {
-        osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
-        osdFormatCoordinate(buf, SYM_LON, gpsSol.llh.lon);
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
-        y += 3;
+#if defined(USE_GPS)
+    if (feature(FEATURE_GPS)) {
+        if (STATE(GPS_FIX_HOME)) {
+            osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
+            osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
+            y += 3;
+        } else {
+            strcpy(buf, "!NO HOME POSITION!");
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
+            y += 1;
+        }
     }
+#endif
 
     if (rtcGetDateTime(&dt)) {
         dateTimeFormatLocal(buf, &dt);
