@@ -643,7 +643,7 @@ void updateAdjustmentStates(bool canUseRxData)
         if (canUseRxData && isRangeActive(adjustmentRange->auxChannelIndex, &adjustmentRange->range)) {
             configureAdjustment(adjustmentRange->adjustmentIndex, adjustmentRange->auxSwitchChannelIndex, adjustmentConfig);
         } else {
-            adjustmentState_t * const adjustmentState = &adjustmentStates[index];
+            adjustmentState_t * const adjustmentState = &adjustmentStates[adjustmentRange->adjustmentIndex];
             if (adjustmentState->config == adjustmentConfig) {
                 adjustmentState->config = NULL;
             }
