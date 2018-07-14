@@ -500,7 +500,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     int32_t integerPart = val / GPS_DEGREES_DIVIDER;
     // Latitude maximum integer width is 3 (-90) while
     // longitude maximum integer width is 4 (-180).
-    int integerDigits = tfp_sprintf(buff + 1, "%d", integerPart);
+    int integerDigits = tfp_sprintf(buff + 1, (integerPart == 0 && val < 0) ? "-%d" : "%d", integerPart);
     // We can show up to 7 digits in decimalPart. Remove
     // some if needed.
     int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
