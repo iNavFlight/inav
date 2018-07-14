@@ -1235,14 +1235,23 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            // There are 16 orientations for the home direction arrow.
-            // so we use 22.5deg per image, where the 1st image is used
-            // for [349, 11], the 2nd for [12, 33], etc...
-            int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
-            // Add 11 to the angle, so first character maps to [349, 11]
-            int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
-            unsigned arrowOffset = homeArrowDir * 2 / 45;
-            buff[0] = SYM_ARROW_UP + arrowOffset;
+            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+                // There are 16 orientations for the home direction arrow.
+                // so we use 22.5deg per image, where the 1st image is used
+                // for [349, 11], the 2nd for [12, 33], etc...
+                int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+                // Add 11 to the angle, so first character maps to [349, 11]
+                int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
+                unsigned arrowOffset = homeArrowDir * 2 / 45;
+                buff[0] = SYM_ARROW_UP + arrowOffset;
+            } else {
+                // No home or no fix or unknown heading, blink.
+                // If we're unarmed, show the arrow pointing up so users can see the arrow
+                // while configuring the OSD. If we're armed, show a '-' indicating that
+                // we don't know the direction to home.
+                buff[0] = ARMING_FLAG(ARMED) ? '-' : SYM_ARROW_UP;
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             buff[1] = 0;
             break;
         }
