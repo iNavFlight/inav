@@ -349,6 +349,10 @@ groups:
       - name: rssi_invert
         field: rssiInvert
         type: bool
+      - name: sbus_sync_interval
+        field: sbusSyncInterval
+        min: 10000
+        max: 500
       - name: rc_smoothing
         field: rcSmoothing
         type: bool
