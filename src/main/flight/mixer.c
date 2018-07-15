@@ -312,7 +312,7 @@ void mixTable(const float dT)
 
         // Throttle compensation based on battery voltage
         if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
-            throttleCommand = MIN(throttleCommand * calculateThrottleCompensationFactor(), throttleMax);
+            throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
     }
 
     throttleRange = throttleMax - throttleMin;

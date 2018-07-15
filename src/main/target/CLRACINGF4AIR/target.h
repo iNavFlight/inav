@@ -32,7 +32,6 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 #define USE_SPI_DEVICE_3
@@ -78,10 +77,14 @@
 #define WS2811_DMA_CHANNEL              DMA_Channel_2
 
 #define USE_VCP
+
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+#define INVERTER_PIN_UART1_RX   PC0 // PC0 used as inverter select GPIO
 
 #if defined( CLRACINGF4AIRV2) || defined(CLRACINGF4AIRV3)
 #define USE_UART2

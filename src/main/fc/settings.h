@@ -13,8 +13,6 @@ typedef struct lookupTableEntry_s {
     const uint8_t valueCount;
 } lookupTableEntry_t;
 
-extern const lookupTableEntry_t settingLookupTables[];
-
 #define SETTING_TYPE_OFFSET 0
 #define SETTING_SECTION_OFFSET 4
 #define SETTING_MODE_OFFSET 6
@@ -69,8 +67,6 @@ typedef struct {
 
 } __attribute__((packed)) setting_t;
 
-extern const setting_t settingsTable[];
-
 static inline setting_type_e SETTING_TYPE(const setting_t *s) { return s->type &  SETTING_TYPE_MASK; }
 static inline setting_section_e SETTING_SECTION(const setting_t *s) { return s->type & SETTING_SECTION_MASK; }
 static inline setting_mode_e SETTING_MODE(const setting_t *s) { return s->type & SETTING_MODE_MASK; }
@@ -81,6 +77,11 @@ bool settingNameIsExactMatch(const setting_t *val, char *buf, const char *cmdlin
 // Returns a setting_t with the exact name (case sensitive), or
 // NULL if no setting with that name exists.
 const setting_t *settingFind(const char *name);
+// Returns the setting at the given index, or NULL if
+// the index is greater than the total count.
+const setting_t *settingGet(unsigned index);
+// Returns the setting index for the given setting.
+unsigned settingGetIndex(const setting_t *val);
 // Returns the size in bytes of the setting value.
 size_t settingGetValueSize(const setting_t *val);
 pgn_t settingGetPgn(const setting_t *val);
@@ -100,6 +101,13 @@ setting_min_t settingGetMin(const setting_t *val);
 // depends on the target and build options, but will always be an unsigned
 // integer (e.g. uintxx_t,)
 setting_max_t settingGetMax(const setting_t *val);
+// Returns the lookup table for the given setting. If the setting mode
+// is not MODE_LOOKUP, it returns NULL;
+const lookupTableEntry_t * settingLookupTable(const setting_t *val);
+// Returns the string in the table which corresponds to the value v
+// for the given setting. If the setting mode is not MODE_LOOKUP or
+// if the value is out of range, it returns NULL.
+const char * settingLookupValueName(const setting_t *val, unsigned v);
 // Returns the setting value as a const char * iff the setting is of type
 // VAR_STRING. Otherwise it returns NULL.
 const char * settingGetString(const setting_t *val);
@@ -110,3 +118,7 @@ void settingSetString(const setting_t *val, const char *s, size_t size);
 // Returns the max string length (without counting the '\0' terminator)
 // for setting of type VAR_STRING. Otherwise it returns 0.
 setting_max_t settingGetStringMaxLength(const setting_t *val);
+
+// Retrieve the setting indexes for the given PG. If the PG is not
+// found, these function returns false.
+bool settingsGetParameterGroupIndexes(pgn_t pg, uint16_t *start, uint16_t *end);

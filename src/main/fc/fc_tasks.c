@@ -101,12 +101,12 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
     static timeUs_t batMonitoringLastServiced = 0;
     timeUs_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
 
-    if (feature(FEATURE_CURRENT_METER))
+    if (isAmperageConfigured())
         currentMeterUpdate(BatMonitoringTimeSinceLastServiced);
 #ifdef USE_ADC
     if (feature(FEATURE_VBAT))
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
-    if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
+    if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
         sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
     }
@@ -306,7 +306,7 @@ void fcTasksInit(void)
 #ifdef USE_LIGHTS
     setTaskEnabled(TASK_LIGHTS, true);
 #endif
-    setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || feature(FEATURE_CURRENT_METER));
+    setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || isAmperageConfigured());
     setTaskEnabled(TASK_TEMPERATURE, true);
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS

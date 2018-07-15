@@ -76,6 +76,8 @@ typedef struct batteryMetersConfig_s {
     uint16_t idle_power;        // power drawn by the system when the motor(s) are stopped (cW)
     uint8_t rth_energy_margin;  // Energy that should be left after RTH (%), used for remaining time/distance before RTH
 
+    float throttle_compensation_weight;
+
 } batteryMetersConfig_t;
 
 typedef struct batteryProfile_s {
@@ -125,7 +127,6 @@ bool isPowerSupplyImpedanceValid(void);
 uint16_t getBatteryVoltage(void);
 uint16_t getBatteryRawVoltage(void);
 uint16_t getBatterySagCompensatedVoltage(void);
-uint16_t getBatteryVoltageLatestADC(void);
 uint16_t getBatteryWarningVoltage(void);
 uint8_t getBatteryCellCount(void);
 uint16_t getBatteryRawAverageCellVoltage(void);
@@ -136,7 +137,6 @@ uint16_t getPowerSupplyImpedance(void);
 
 bool isAmperageConfigured(void);
 int16_t getAmperage(void);
-int16_t getAmperageLatestADC(void);
 int32_t getPower(void);
 int32_t getMAhDrawn(void);
 int32_t getMWhDrawn(void);

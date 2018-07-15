@@ -89,7 +89,7 @@ static const OSD_TAB_t trampCmsEntChan = { &trampCmsChan, VTX_TRAMP_CHANNEL_COUN
 
 static uint8_t trampCmsPower = 1;
 
-static const OSD_TAB_t trampCmsEntPower = { &trampCmsPower, sizeof(trampPowerTable), trampPowerNames };
+static const OSD_TAB_t trampCmsEntPower = { &trampCmsPower, VTX_TRAMP_POWER_COUNT, trampPowerNames };
 
 static void trampCmsUpdateFreqRef(void)
 {

@@ -156,13 +156,13 @@ MCU_COMMON_SRC = \
             drivers/adc_stm32f4xx.c \
             drivers/adc_stm32f4xx.c \
             drivers/bus_i2c_stm32f40x.c \
-            drivers/inverter.c \
             drivers/serial_softserial.c \
             drivers/serial_uart_stm32f4xx.c \
             drivers/system_stm32f4xx.c \
             drivers/timer.c \
             drivers/timer_impl_stdperiph.c \
             drivers/timer_stm32f4xx.c \
+            drivers/uart_inverter.c \
             drivers/dma_stm32f4xx.c
 
 ifeq ($(PERIPH_DRIVER), HAL)

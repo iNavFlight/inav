@@ -311,4 +311,14 @@ If `---` is displayed during flight instead of the remaining flight time/distanc
 
 ## Automatic throttle compensation based on battery voltage
 
-Automatic throttle compensation based on battery voltage can be used by enabling the `THR_VBAT_COMP` feature. It is working like this: used_throttle = requested_throttle * battery_max_voltage / sag_compensated_voltage.
+This features aims to compensate the throttle to get constant thrust with the same throttle request despite the battery voltage going down during flight. It can be used by enabling the `THR_VBAT_COMP` feature. This feature needs the sag compensated voltage which needs a current sensor (real or virtual) to be calculated.
+
+It is working like this: `used_throttle = requested_throttle * (1 + (battery_full_voltage / sag_compensated_voltage - 1) * thr_comp_weight)`.
+
+The default `thr_comp_weight` of 1 should be close to idal but if you want to tune this feature you need to find the difference in throttle value to achieve the same thrust (same power) when your battery is full and when your battery is almost empty then set `thr_comp_weight` to `(empty_battery_throttle / full_battery_throttle - 1) / (battery_full_voltage / battery_empty_sag_compensated_voltage - 1)`
+
+Example:
+  If the drawn power is 100W when the battery is full (12.6V) with 53% throttle and the drawn power is 100W with 58% throttle when the battery is almost empty with the sag compensated voltage being 11.0V `thr_comp_weight` needs to be set to this value to compensate the throttle automatically:
+  `(58 / 53 - 1) / (12.6 / 11.0 - 1) = 0.649`
+
+Known limitation: it doesn't work in 3D mode (3D feature)

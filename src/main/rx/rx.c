@@ -100,7 +100,7 @@ uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 5);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -129,6 +129,7 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssi_channel = 0,
     .rssi_scale = RSSI_SCALE_DEFAULT,
     .rssiInvert = 0,
+    .sbusSyncInterval = SBUS_DEFAULT_INTERFRAME_DELAY_US,
     .rcSmoothing = 1,
 );
 

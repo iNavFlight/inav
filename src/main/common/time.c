@@ -58,7 +58,7 @@ PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
     .tz_automatic_dst = TZ_AUTO_DST_OFF,
 );
 
-static rtcTime_t dateTimeToRtcTime(dateTime_t *dt)
+static rtcTime_t dateTimeToRtcTime(const dateTime_t *dt)
 {
     unsigned int second = dt->seconds;  // 0-59
     unsigned int minute = dt->minutes;  // 0-59
@@ -157,6 +157,26 @@ static bool isDST(rtcTime_t t)
     switch ((tz_automatic_dst_e) timeConfig()->tz_automatic_dst) {
         case TZ_AUTO_DST_OFF:
             break;
+        case TZ_AUTO_DST_EU: // begins at 1:00 a.m. on the last Sunday of March and ends at 1:00 a.m. on the last Sunday of October
+            if (dateTime.month < 3 || dateTime.month > 10) {
+                return false;
+            }
+            if (dateTime.month > 3 && dateTime.month < 10) {
+                return true;
+            }
+            lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
+            if ((dateTime.day < lastSunday) || (dateTime.day > lastSunday)) {
+                return !(dateTime.month == 3);
+            }
+            if (dateTime.day == lastSunday) {
+                if (dateTime.month == 3) {
+                    return dateTime.hours >= 1;
+                }
+                if (dateTime.month == 10) {
+                    return dateTime.hours < 1;
+                }
+            }
+            break;
         case TZ_AUTO_DST_USA: // begins at 2:00 a.m. on the second Sunday of March and ends at 2:00 a.m. on the first Sunday of November
             if (dateTime.month < 3 || dateTime.month > 11) {
                 return false;
@@ -180,39 +200,24 @@ static bool isDST(rtcTime_t t)
                 return dateTime.day < firstSunday;
             }
             break;
-        case TZ_AUTO_DST_EU: // begins at 1:00 a.m. on the last Sunday of March and ends at 1:00 a.m. on the last Sunday of October
-            if (dateTime.month < 3 || dateTime.month > 10) {
-                return false;
-            }
-            if (dateTime.month > 3 && dateTime.month < 10) {
-                return true;
-            }
-            lastSunday = lastSundayOfMonth(dateTime.year, dateTime.month);
-            if ((dateTime.day < lastSunday) || (dateTime.day > lastSunday)) {
-                return !(dateTime.month == 3);
-            }
-            if (dateTime.day == lastSunday) {
-                if (dateTime.month == 3) {
-                    return dateTime.hours >= 1;
-                }
-                if (dateTime.month == 10) {
-                    return dateTime.hours < 1;
-                }
-            }
-            break;
     }
     return false;
 }
 #endif
 
-static void dateTimeWithOffset(dateTime_t *dateTimeOffset, dateTime_t *dateTimeInitial, int16_t minutes, bool automatic_dst)
+static void dateTimeWithOffset(dateTime_t *dateTimeOffset, const dateTime_t *dateTimeInitial, int16_t *minutes, bool automatic_dst)
 {
     rtcTime_t initialTime = dateTimeToRtcTime(dateTimeInitial);
-    rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + minutes * 60, rtcTimeGetMillis(&initialTime));
+    rtcTime_t offsetTime = rtcTimeMake(rtcTimeGetSeconds(&initialTime) + *minutes * 60, rtcTimeGetMillis(&initialTime));
 #if defined(RTC_AUTOMATIC_DST)
     if (automatic_dst && isDST(offsetTime)) {
-        offsetTime += 3600;
+        // Add one hour. Tell the caller that the
+        // offset has changed.
+        *minutes += 60;
+        offsetTime += 60 * 60 * MILLIS_PER_SECOND;
     }
+#else
+    UNUSED(automatic_dst);
 #endif
     rtcTimeToDateTime(dateTimeOffset, offsetTime);
 }
@@ -226,10 +231,10 @@ static bool dateTimeFormat(char *buf, dateTime_t *dateTime, int16_t offset, bool
     bool retVal = true;
 
     // Apply offset if necessary
-    if (offset != 0) {
+    if (offset != 0 || automatic_dst) {
+        dateTimeWithOffset(&local, dateTime, &offset, automatic_dst);
         tz_hours = offset / 60;
         tz_minutes = ABS(offset % 60);
-        dateTimeWithOffset(&local, dateTime, offset, automatic_dst);
         dateTime = &local;
     }
 
@@ -271,12 +276,13 @@ bool dateTimeFormatUTC(char *buf, dateTime_t *dt)
 
 bool dateTimeFormatLocal(char *buf, dateTime_t *dt)
 {
-    return dateTimeFormat(buf, dt, timeConfig()->tz_offset, timeConfig()->tz_automatic_dst);
+    return dateTimeFormat(buf, dt, timeConfig()->tz_offset, true);
 }
 
-void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime)
+void dateTimeUTCToLocal(dateTime_t *localDateTime, const dateTime_t *utcDateTime)
 {
-    dateTimeWithOffset(localDateTime, utcDateTime, timeConfig()->tz_offset, timeConfig()->tz_automatic_dst);
+    int16_t offset = timeConfig()->tz_offset;
+    dateTimeWithOffset(localDateTime, utcDateTime, &offset, true);
 }
 
 bool dateTimeSplitFormatted(char *formatted, char **date, char **time)
@@ -323,6 +329,15 @@ bool rtcGetDateTime(dateTime_t *dt)
     }
     // No time stored, fill dt with 0000-01-01T00:00:00.000
     rtcGetDefaultDateTime(dt);
+    return false;
+}
+
+bool rtcGetDateTimeLocal(dateTime_t *dt)
+{
+    if (rtcGetDateTime(dt)) {
+        dateTimeUTCToLocal(dt, dt);
+        return true;
+    }
     return false;
 }
 

@@ -61,9 +61,9 @@ static const OSD_Entry cmsx_menuAlarmsEntries[] = {
     OSD_END_ENTRY,
 };
 
-const CMS_Menu cmsx_menuAlarms = {
+static const CMS_Menu cmsx_menuAlarms = {
 #ifdef CMS_MENU_DEBUG
-    .GUARD_text = "MENUALARMS",
+    .GUARD_text = "MENUOSDA",
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = NULL,
@@ -144,7 +144,7 @@ static long osdElemActionsOnEnter(const OSD_Entry *from)
 
 static const OSD_Entry menuOsdElemsEntries[] =
 {
-    OSD_LABEL_ENTRY("--- OSD ---"),
+    OSD_LABEL_ENTRY("--- OSD ITEMS ---"),
 
     OSD_ELEMENT_ENTRY("RSSI", OSD_RSSI_VALUE),
     OSD_ELEMENT_ENTRY("MAIN BATTERY", OSD_MAIN_BATT_VOLTAGE),
@@ -257,7 +257,7 @@ _Static_assert(ARRAYLEN(menuOsdElemsEntries) - 3 + 1 == OSD_ITEM_COUNT, "missing
 
 const CMS_Menu menuOsdElements = {
 #ifdef CMS_MENU_DEBUG
-    .GUARD_text = "MENUOSDELEMS",
+    .GUARD_text = "MENUOSDE",
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = osdElementsOnEnter,
@@ -290,7 +290,7 @@ static const OSD_Entry cmsx_menuOsdLayoutEntries[] =
 
 const CMS_Menu cmsx_menuOsdLayout = {
 #ifdef CMS_MENU_DEBUG
-    .GUARD_text = "MENULAYOUT",
+    .GUARD_text = "MENUOSDL",
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = NULL,
@@ -316,5 +316,54 @@ static long osdElementsOnExit(const OSD_Entry *from)
     osdOverrideLayout(-1);
     return 0;
 }
+
+static const OSD_Entry menuOsdSettingsEntries[] = {
+    OSD_LABEL_ENTRY("--- OSD SETTINGS ---"),
+
+    OSD_SETTING_ENTRY("VOLT. DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),
+    OSD_SETTING_ENTRY("COORD. DIGITS", SETTING_OSD_COORDINATE_DIGITS),
+    OSD_SETTING_ENTRY("CROSSHAIRS STYLE", SETTING_OSD_CROSSHAIRS_STYLE),
+    OSD_SETTING_ENTRY("LEFT SCROLL", SETTING_OSD_LEFT_SIDEBAR_SCROLL),
+    OSD_SETTING_ENTRY("RIGHT SCROLL", SETTING_OSD_RIGHT_SIDEBAR_SCROLL),
+    OSD_SETTING_ENTRY("SCROLL ARROWS", SETTING_OSD_SIDEBAR_SCROLL_ARROWS),
+
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuOsdSettings = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUOSDS",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuOsdSettingsEntries,
+};
+
+static const OSD_Entry menuOsdEntries[] = {
+    OSD_LABEL_ENTRY("--- OSD ---"),
+
+    OSD_SUBMENU_ENTRY("LAYOUTS", &cmsx_menuOsdLayout),
+    OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuOsdSettings),
+    OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
+};
+
+
+const CMS_Menu cmsx_menuOsd = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUOSD",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuOsdEntries,
+};
 
 #endif // CMS

@@ -146,11 +146,11 @@ MCU_COMMON_SRC = \
             drivers/adc_stm32f7xx.c \
             drivers/bus_i2c_hal.c \
             drivers/dma_stm32f7xx.c \
-            drivers/inverter.c \
             drivers/bus_spi_hal.c \
             drivers/timer.c \
             drivers/timer_impl_hal.c \
             drivers/timer_stm32f7xx.c \
+            drivers/uart_inverter.c \
             drivers/system_stm32f7xx.c \
             drivers/serial_uart_stm32f7xx.c \
             drivers/serial_softserial.c \

@@ -61,6 +61,8 @@
 #define USE_VCP
 // #define VBUS_SENSING_PIN        PA9
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -69,11 +71,10 @@
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
 
-#define INVERTER_PIN_UART3      PA8
-
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
+#define INVERTER_PIN_UART3_RX   PA8
 
 #define USE_UART4
 #define UART4_RX_PIN            PC11
