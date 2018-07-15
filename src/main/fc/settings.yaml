@@ -351,8 +351,8 @@ groups:
         type: bool
       - name: sbus_sync_interval
         field: sbusSyncInterval
-        min: 10000
-        max: 500
+        min: 500
+        max: 10000
       - name: rc_smoothing
         field: rcSmoothing
         type: bool
