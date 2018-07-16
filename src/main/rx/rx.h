@@ -164,6 +164,7 @@ extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only need
 void rxInit(void);
 void rxUpdateRSSISource(void);
 bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime);
+bool rxIsSignalStable(void);
 bool rxIsReceivingSignal(void);
 bool rxAreFlightChannelsValid(void);
 bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
