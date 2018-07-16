@@ -59,8 +59,6 @@
 #include "telemetry/frsky.h"
 #include "telemetry/msp_shared.h"
 
-#define SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US 500
-
 // these data identifiers are obtained from https://github.com/opentx/opentx/blob/master/radio/src/telemetry/frsky_hub.h
 enum
 {
@@ -153,7 +151,7 @@ static smartPortWriteFrameFn *smartPortWriteFrame;
 static bool smartPortMspReplyPending = false;
 #endif
 
-smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t *clearToSendAt, smartPortCheckQueueEmptyFn *checkQueueEmpty, bool useChecksum)
+smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, smartPortCheckQueueEmptyFn *checkQueueEmpty, bool useChecksum)
 {
     static uint8_t rxBuffer[sizeof(smartPortPayload_t)];
     static uint8_t smartPortRxBytes = 0;
@@ -178,7 +176,6 @@ smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t
         if ((c == FSSP_SENSOR_ID1) && checkQueueEmpty()) {
             // our slot is starting, no need to decode more
             *clearToSend = true;
-            *clearToSendAt = micros() + SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US;
             skipUntilStart = true;
         } else if (c == FSSP_SENSOR_ID2) {
             checksum = 0;
@@ -200,7 +197,6 @@ smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t
             checksum += c;
 
             if (!useChecksum && (smartPortRxBytes == sizeof(smartPortPayload_t))) {
-                *clearToSendAt = micros() + SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US;
                 skipUntilStart = true;
 
                 return (smartPortPayload_t *)&rxBuffer;
@@ -211,7 +207,6 @@ smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t
             checksum += c;
             checksum = (checksum & 0xFF) + (checksum >> 8);
             if (checksum == 0xFF) {
-                *clearToSendAt = micros() + SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US;
                 return (smartPortPayload_t *)&rxBuffer;
             }
         }
@@ -526,22 +521,16 @@ static bool serialCheckQueueEmpty(void)
 
 void handleSmartPortTelemetry(void)
 {
-    static bool clearToSend = false;
-    static timeUs_t clearToSendAt;
-    static smartPortPayload_t *payload = NULL;
-
-    const uint32_t requestTimeout = millis() + SMARTPORT_SERVICE_TIMEOUT_MS;
-
     if (telemetryState == TELEMETRY_STATE_INITIALIZED_SERIAL && smartPortSerialPort) {
+        bool clearToSend = false;
+        smartPortPayload_t *payload = NULL;
+        const uint32_t requestTimeout = millis() + SMARTPORT_SERVICE_TIMEOUT_MS;
         while (serialRxBytesWaiting(smartPortSerialPort) > 0 && !payload) {
             uint8_t c = serialRead(smartPortSerialPort);
-            payload = smartPortDataReceive(c, &clearToSend, &clearToSendAt, serialCheckQueueEmpty, true);
+            payload = smartPortDataReceive(c, &clearToSend, serialCheckQueueEmpty, true);
         }
 
-        if (clearToSendAt > 0 && micros() >= clearToSendAt) {
-            processSmartPortTelemetry(payload, &clearToSend, &requestTimeout);
-            payload = NULL;
-        }
+        processSmartPortTelemetry(payload, &clearToSend, &requestTimeout);
     }
 }
 #endif
