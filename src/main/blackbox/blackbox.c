@@ -990,7 +990,7 @@ static void writeInterframe(void)
     }
 
     for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
-        blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - (blackboxHistory[1]->navTargetPos[x] + blackboxHistory[2]->navTargetPos[x]) / 2);
+        blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - blackboxLast->navTargetPos[x]);
     }
 
     blackboxWriteSignedVB(blackboxCurrent->navSurface - blackboxLast->navSurface);
