@@ -419,7 +419,7 @@ typedef struct blackboxMainState_s {
     int16_t navRealVel[XYZ_AXIS_COUNT];
     int16_t navAccNEU[XYZ_AXIS_COUNT];
     int16_t navTargetVel[XYZ_AXIS_COUNT];
-    int16_t navTargetPos[XYZ_AXIS_COUNT];
+    int32_t navTargetPos[XYZ_AXIS_COUNT];
     int16_t navHeading;
     int16_t navTargetHeading;
     int16_t navSurface;
