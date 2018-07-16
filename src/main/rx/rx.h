@@ -47,6 +47,8 @@
 #define DELAY_10_HZ (1000000 / 10)
 #define DELAY_5_HZ (1000000 / 5)
 
+#define RSSI_MAX_VALUE 1023
+
 typedef enum {
     RX_FRAME_PENDING = 0,               // No new data available from receiver
     RX_FRAME_COMPLETE = (1 << 0),       // There is new data available
@@ -101,6 +103,10 @@ extern int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // interval [1000;2
 #define RSSI_SCALE_MAX 255
 #define RSSI_SCALE_DEFAULT 100
 
+#define RSSI_OFFSET_MIN (-RSSI_MAX_VALUE)
+#define RSSI_OFFSET_MAX RSSI_MAX_VALUE
+#define RSSI_OFFSET_DEFAULT 0
+
 typedef struct rxChannelRangeConfig_s {
     uint16_t min;
     uint16_t max;
@@ -121,6 +127,7 @@ typedef struct rxConfig_s {
     uint8_t rssi_channel;
     uint8_t rssi_scale;
     uint8_t rssiInvert;
+    int16_t rssiOffset;
     uint16_t sbusSyncInterval;
     uint16_t mincheck;                      // minimum rc end
     uint16_t maxcheck;                      // maximum rc end
@@ -174,6 +181,7 @@ void parseRcChannels(const char *input);
 void setRSSI(uint16_t newRssi, rssiSource_e source, bool filtered);
 void setRSSIFromMSP(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
+// Returns RSSI in [0, RSSI_MAX_VALUE] range.
 uint16_t getRSSI(void);
 rssiSource_e getRSSISource(void);
 

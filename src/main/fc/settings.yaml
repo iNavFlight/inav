@@ -349,6 +349,10 @@ groups:
       - name: rssi_invert
         field: rssiInvert
         type: bool
+      - name: rssi_offset
+        field: rssiOffset
+        min: RSSI_OFFSET_MIN
+        max: RSSI_OFFSET_MAX
       - name: sbus_sync_interval
         field: sbusSyncInterval
         min: 500
