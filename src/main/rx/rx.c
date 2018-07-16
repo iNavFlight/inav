@@ -470,6 +470,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
+    int16_t rcStaging[MAX_SUPPORTED_RC_CHANNEL_COUNT];
     const timeMs_t currentTimeMs = millis();
 
     if (auxiliaryProcessingRequired) {
@@ -520,11 +521,21 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
             rcInvalidPulsPeriod[channel] = currentTimeMs + MAX_INVALID_PULS_TIME;
         }
 
-        // Update rcData channel value
+        // Save channel value
+        rcStaging[channel] = sample;
+    }
+
+    // Update rcData channel value if receiver is not in failsafe mode
+    // If receiver is in failsafe (not receiving signal or sending invalid channel values) - last good rcData values are retained
+    if (rxFlightChannelsValid && rxSignalReceived) {
         if (rxRuntimeConfig.requireFiltering) {
-            rcData[channel] = applyChannelFiltering(channel, sample);
+            for (int channel = 0; channel < rxRuntimeConfig.channelCount; channel++) {
+                rcData[channel] = applyChannelFiltering(channel, rcStaging[channel]);
+            }
         } else {
-            rcData[channel] = sample;
+            for (int channel = 0; channel < rxRuntimeConfig.channelCount; channel++) {
+                rcData[channel] = rcStaging[channel];
+            }
         }
     }
 
