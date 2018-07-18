@@ -343,12 +343,14 @@ groups:
       - name: rssi_channel
         min: 0
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
-      - name: rssi_scale
-        min: RSSI_SCALE_MIN
-        max: RSSI_SCALE_MAX
-      - name: rssi_invert
-        field: rssiInvert
-        type: bool
+      - name: rssi_min
+        field: rssiMin
+        min: RSSI_VISIBLE_VALUE_MIN
+        max: RSSI_VISIBLE_VALUE_MAX
+      - name: rssi_max
+        field: rssiMax
+        min: RSSI_VISIBLE_VALUE_MIN
+        max: RSSI_VISIBLE_VALUE_MAX
       - name: sbus_sync_interval
         field: sbusSyncInterval
         min: 500

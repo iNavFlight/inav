@@ -480,11 +480,8 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
  */
 static uint16_t osdConvertRSSI(void)
 {
-    uint16_t osdRssi = getRSSI() * 100 / 1024; // change range
-    if (osdRssi >= 100) {
-        osdRssi = 99;
-    }
-    return osdRssi;
+    // change range to [0, 99]
+    return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
