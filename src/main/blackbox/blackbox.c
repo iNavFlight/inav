@@ -419,7 +419,7 @@ typedef struct blackboxMainState_s {
     int16_t navRealVel[XYZ_AXIS_COUNT];
     int16_t navAccNEU[XYZ_AXIS_COUNT];
     int16_t navTargetVel[XYZ_AXIS_COUNT];
-    int16_t navTargetPos[XYZ_AXIS_COUNT];
+    int32_t navTargetPos[XYZ_AXIS_COUNT];
     int16_t navHeading;
     int16_t navTargetHeading;
     int16_t navSurface;
@@ -990,7 +990,7 @@ static void writeInterframe(void)
     }
 
     for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
-        blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - (blackboxHistory[1]->navTargetPos[x] + blackboxHistory[2]->navTargetPos[x]) / 2);
+        blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - blackboxLast->navTargetPos[x]);
     }
 
     blackboxWriteSignedVB(blackboxCurrent->navSurface - blackboxLast->navSurface);

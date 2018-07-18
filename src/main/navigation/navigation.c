@@ -163,7 +163,7 @@ int16_t navActualVelocity[3];
 int16_t navDesiredVelocity[3];
 int16_t navActualHeading;
 int16_t navDesiredHeading;
-int16_t navTargetPosition[3];
+int32_t navTargetPosition[3];
 int32_t navLatestActualPosition[3];
 int16_t navActualSurface;
 uint16_t navFlags;
@@ -2644,9 +2644,9 @@ void applyWaypointNavigationAndAltitudeHold(void)
     if (posControl.flags.isAdjustingAltitude)       navFlags |= (1 << 7);
     if (posControl.flags.isAdjustingHeading)        navFlags |= (1 << 8);
 
-    navTargetPosition[X] = constrain(lrintf(posControl.desiredState.pos.x), -32678, 32767);
-    navTargetPosition[Y] = constrain(lrintf(posControl.desiredState.pos.y), -32678, 32767);
-    navTargetPosition[Z] = constrain(lrintf(posControl.desiredState.pos.z), -32678, 32767);
+    navTargetPosition[X] = lrintf(posControl.desiredState.pos.x);
+    navTargetPosition[Y] = lrintf(posControl.desiredState.pos.y);
+    navTargetPosition[Z] = lrintf(posControl.desiredState.pos.z);
 #endif
 }
 
