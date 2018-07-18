@@ -2023,6 +2023,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             compassConfigMutable()->magZero.raw[X] = sbufReadU16(src);
             compassConfigMutable()->magZero.raw[Y] = sbufReadU16(src);
             compassConfigMutable()->magZero.raw[Z] = sbufReadU16(src);
+
+            // Set calibration flag if we have valid offsets in the config
+            compassUpdateCalibrationState();
 #else
             sbufReadU16(src);
             sbufReadU16(src);
@@ -2062,12 +2065,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#ifdef USE_MAG
     case MSP_MAG_CALIBRATION:
         if (!ARMING_FLAG(ARMED))
-            ENABLE_STATE(CALIBRATE_MAG);
+            compassStartCalibration();
         else
             return MSP_RESULT_ERROR;
         break;
+#endif
 
     case MSP_EEPROM_WRITE:
         if (!ARMING_FLAG(ARMED)) {

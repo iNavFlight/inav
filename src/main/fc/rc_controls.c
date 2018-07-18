@@ -58,6 +58,7 @@
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
+#include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/acceleration.h"
 
@@ -323,10 +324,12 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
 
     // Calibrating Mag
+#ifdef USE_MAG
     if (rcSticks == THR_HI + YAW_HI + PIT_LO + ROL_CE) {
-        ENABLE_STATE(CALIBRATE_MAG);
+        compassStartCalibration();
         return;
     }
+#endif
 
 
     // Accelerometer Trim

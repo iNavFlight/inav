@@ -71,3 +71,5 @@ bool compassInit(void);
 void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
+void compassStartCalibration(void);
+void compassUpdateCalibrationState(void);
