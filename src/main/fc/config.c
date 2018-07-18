@@ -73,6 +73,7 @@
 #include "fc/rc_curves.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "navigation/navigation.h"
 
@@ -323,6 +324,12 @@ void validateAndFixConfig(void)
     gyroConfigMutable()->gyroSync = false;
     systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
 #endif
+
+    if (settingsValidate(NULL)) {
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING);
+    } else {
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING);
+    }
 }
 
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch)

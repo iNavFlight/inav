@@ -823,8 +823,8 @@ groups:
         max: 250
       - name: 3d_deadband_throttle
         field: deadband3d_throttle
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
+        min: 0
+        max: 200
 
   - name: PG_PID_PROFILE
     type: pidProfile_t
@@ -1110,7 +1110,7 @@ groups:
         max: 100
       - name: fw_autotune_ff_to_i_tc
         field: fw_ff_to_i_time_constant
-        min: 1000
+        min: 100
         max: 5000
 
   - name: PG_POSITION_ESTIMATION_CONFIG
