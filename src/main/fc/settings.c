@@ -87,6 +87,66 @@ unsigned settingGetIndex(const setting_t *val)
 	return val - settingsTable;
 }
 
+bool settingsValidate(unsigned *invalidIndex)
+{
+	for (unsigned ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
+		const setting_t *setting = settingGet(ii);
+		setting_min_t min = settingGetMin(setting);
+		setting_max_t max = settingGetMax(setting);
+		void *ptr = settingGetValuePointer(setting);
+		bool isValid = false;
+		switch (SETTING_TYPE(setting)) {
+		case VAR_UINT8:
+		{
+			uint8_t *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_INT8:
+		{
+			int8_t *value = ptr;
+			isValid = *value >= min && *value <= (int8_t)max;
+			break;
+		}
+		case VAR_UINT16:
+		{
+			uint16_t *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_INT16:
+		{
+			int16_t *value = ptr;
+			isValid = *value >= min && *value <= (int16_t)max;
+			break;
+		}
+		case VAR_UINT32:
+		{
+			uint32_t *value = ptr;
+			isValid = *value >= (uint32_t)min && *value <= max;
+			break;
+		}
+		case VAR_FLOAT:
+		{
+			float *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_STRING:
+			// We assume all strings are valid
+			isValid = true;
+			break;
+		}
+		if (!isValid) {
+			if (invalidIndex) {
+				*invalidIndex = ii;
+			}
+			return false;
+		}
+	}
+	return true;
+}
+
 size_t settingGetValueSize(const setting_t *val)
 {
 	switch (SETTING_TYPE(val)) {

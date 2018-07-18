@@ -62,14 +62,15 @@
 #include "io/osd.h"
 #include "io/vtx_string.h"
 
-#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/fc_core.h"
+#include "fc/fc_tasks.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/fc_tasks.h"
+#include "fc/settings.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -598,6 +599,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
         case ARMING_DISABLED_OOM:
             return OSD_MESSAGE_STR("NOT ENOUGH MEMORY");
+        case ARMING_DISABLED_INVALID_SETTING:
+            return OSD_MESSAGE_STR("INVALID SETTING");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
@@ -2006,6 +2009,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MESSAGES:
         {
             const char *message = NULL;
+            char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
             if (ARMING_FLAG(ARMED)) {
                 // Aircraft is armed. We might have up to 4
                 // messages to show.
@@ -2070,13 +2074,28 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                 }
             } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+                unsigned invalidIndex;
                 // Check if we're unable to arm for some reason
-                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                    message = "UNABLE TO ARM";
-                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
+                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                        const setting_t *setting = settingGet(invalidIndex);
+                        settingGetName(setting, messageBuf);
+                        for (int ii = 0; messageBuf[ii]; ii++) {
+                            messageBuf[ii] = sl_toupper(messageBuf[ii]);
+                        }
+                        message = messageBuf;
+                    } else {
+                        message = "INVALID SETTING";
+                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                    }
                 } else {
-                    // Show the reason for not arming
-                    message = osdArmingDisabledReasonMessage();
+                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                        message = "UNABLE TO ARM";
+                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                    } else {
+                        // Show the reason for not arming
+                        message = osdArmingDisabledReasonMessage();
+                    }
                 }
             }
             osdFormatMessage(buff, sizeof(buff), message);
