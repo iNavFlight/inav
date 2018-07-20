@@ -447,6 +447,11 @@ static void saSendFrame(uint8_t *buf, int len)
         serialWrite(smartAudioSerialPort, buf[i]);
     }
 
+    // XXX: Workaround for early AKK SAudio-enabled VTX bug,
+    // shouldn't cause any problems with VTX with properly
+    // implemented SAudio.
+    serialWrite(smartAudioSerialPort, 0x00);
+
     sa_lastTransmissionMs = millis();
     saStat.pktsent++;
 }
