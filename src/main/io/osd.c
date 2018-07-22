@@ -162,8 +162,9 @@ static uint8_t armState;
 static displayPort_t *osdDisplayPort;
 
 #define AH_MAX_PITCH 200 // Specify maximum AHI pitch value displayed. Default 200 = 20.0 degrees
-#define AH_MAX_ROLL 400  // Specify maximum AHI roll value displayed. Default 400 = 40.0 degrees
-#define AH_SYMBOL_COUNT 9
+#define AH_H_SYM_COUNT 9
+#define AH_V_SYM_COUNT 6
+#define AH_PITCH_RAD_TO_CHAR (16.0f / DEGREES_TO_RADIANS(80)) // OSD has 16 columns, Typical FPV FOV 80°
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
@@ -1627,21 +1628,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
+
             elemPosX = 14;
-            elemPosY = 6 - 4; // Top center of the AH area
-            // Erase only the positions we drew over. Avoids
-            // thrashing the video driver buffer.
-            // writtenY[x] contains the Y position that was
-            // written to the OSD, counting from elemPosY.
-            // A negative value indicates that the whole
-            // column is blank.
-            static int8_t writtenY[AH_SYMBOL_COUNT];
+            elemPosY = 6; // Center of the AH area
 
-            bool crosshairsVisible;
-            int crosshairsX, crosshairsY, crosshairsXEnd;
+            // Store the positions we draw over to erase only these at the next iteration
+            static int8_t previous_written[9];
+            static int8_t previous_orient = -1;
 
-            int rollAngle = constrain(attitude.values.roll, -AH_MAX_ROLL, AH_MAX_ROLL);
-            int pitchAngle = constrain(attitude.values.pitch, -AH_MAX_PITCH, AH_MAX_PITCH);
+            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
@@ -1651,60 +1647,57 @@ static bool osdDrawSingleElement(uint8_t item)
                 ++elemPosY;
             }
 
-            // Convert pitchAngle to y compensation value
-            pitchAngle = ((pitchAngle * 25) / AH_MAX_PITCH) - 41; // 41 = 4 * 9 + 5
-            crosshairsVisible = OSD_VISIBLE(osdConfig()->item_pos[currentLayout][OSD_CROSSHAIRS]);
-            if (crosshairsVisible) {
-                uint8_t cx, cy, cl;
-                osdCrosshairsBounds(&cx, &cy, &cl);
-                crosshairsX = cx - elemPosX;
-                crosshairsY = cy - elemPosY;
-                crosshairsXEnd = crosshairsX + cl - 1;
-            }
+            float ky = sin_approx(rollAngle);
+            float kx = cos_approx(rollAngle);
 
-            for (int x = -4; x <= 4; x++) {
-                // Don't clear the whole area to save some time. Instead, clear
-                // only the positions we previously wrote iff we're writing
-                // at a different Y coordinate. The video buffer will take care
-                // of ignoring the write if we're writing the same character
-                // at the same Y coordinate.
-                //
-                // Note that this implementation leaves an untouched character
-                // in the bottom center of the indicator, which allows positioning
-                // the home directorion indicator there.
-                const int y = (-rollAngle * x) / 64 - pitchAngle;
-                int wx = x + 4; // map the -4 to the 1st element in the writtenY array
-                int pwy = writtenY[wx]; // previously written Y at this X value
-                int wy = (y / AH_SYMBOL_COUNT);
-
-                unsigned chX = elemPosX + x;
-                unsigned chY =  elemPosY + wy;
-                uint8_t c;
-
-                // Check if we're overlapping with the crosshairs directly. Saves a few
-                // trips to the video driver. Also, test for other arbitrary overlapping
-                // elements if the display supports reading back characters.
-                bool overlaps = (crosshairsVisible &&
-                            crosshairsY == wy &&
-                            x >= crosshairsX && x <= crosshairsXEnd) ||
-                            (pwy != wy && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && c != SYM_BLANK);
-
-                if (y >= 0 && y <= 80 && !overlaps) {
-                    if (pwy != -1 && pwy != wy) {
-                        // Erase previous character at pwy rows below elemPosY
-                        // iff we're writing at a different Y coordinate. Otherwise
-                        // we just overwrite the previous one.
-                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
-                    }
-                    uint8_t ch = SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT);
-                    displayWriteChar(osdDisplayPort, chX, chY, ch);
-                    writtenY[wx] = wy;
-                } else {
-                    if (pwy != -1) {
-                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
-                        writtenY[wx] = -1;
+            if (previous_orient != -1) {
+                for (int i = 0; i < 9; ++i) {
+                    if (previous_written[i] > -1) {
+                        int8_t dx = (previous_orient ? previous_written[i] : i) - 4;
+                        int8_t dy = (previous_orient ? i : previous_written[i]) - 4;
+                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, SYM_BLANK);
                     }
                 }
+            }
+
+            if (ABS(ky) < ABS(kx)) {
+
+                previous_orient = 0;
+
+                for (int8_t dx = -4; dx <= 4; dx++) {
+                    float fy = dx * (ky / kx) + pitchAngle * AH_PITCH_RAD_TO_CHAR + 0.5f;
+                    int8_t dy = floorf(fy);
+                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
+                    uint8_t c;
+
+                    if ((dy >= -4) && (dy <= 4) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                        c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
+                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, c);
+                        previous_written[dx + 4] = dy + 4;
+                    } else {
+                        previous_written[dx + 4] = -1;
+                    }
+                }
+
+            } else {
+
+                previous_orient = 1;
+
+                for (int8_t dy = -4; dy <= 4; dy++) {
+                    const float fx = (dy - pitchAngle * AH_PITCH_RAD_TO_CHAR) * (kx / ky) + 0.5f;
+                    const int8_t dx = floorf(fx);
+                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
+                    uint8_t c;
+
+                    if ((dx >= -4) && (dx <= 4) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                        c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
+                        displayWriteChar(osdDisplayPort, chX, chY, c);
+                        previous_written[dy + 4] = dx + 4;
+                    } else {
+                        previous_written[dy + 4] = -1;
+                    }
+                }
+
             }
 
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
@@ -2327,6 +2320,9 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 {
     ++elementIndex;
 
+    if (elementIndex == OSD_ARTIFICIAL_HORIZON)
+        ++elementIndex;
+
     if (!sensors(SENSOR_ACC)) {
         if (elementIndex == OSD_CROSSHAIRS) {
             elementIndex = OSD_ONTIME;
@@ -2390,6 +2386,9 @@ void osdDrawNextElement(void)
     do {
         elementIndex = osdIncElementIndex(elementIndex);
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
+
+    // Draw artificial horizon last
+    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
 }
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)

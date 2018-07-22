@@ -127,7 +127,8 @@
 #define SYM_AH_CROSSHAIRS_AIRCRAFT4 222
 
 // AH Bars
-#define SYM_AH_BAR9_0 0x80
+#define SYM_AH_H_START 0x80
+#define SYM_AH_V_START 0xE0
 
 // Temperature
 #define SYM_TEMP_F 0x0D
