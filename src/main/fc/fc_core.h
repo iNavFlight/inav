@@ -40,3 +40,5 @@ disarmReason_t getDisarmReason(void);
 
 bool isCalibrating(void);
 float getFlightTime();
+
+void fcReboot(bool bootLoader);

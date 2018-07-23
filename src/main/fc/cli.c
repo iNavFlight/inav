@@ -65,6 +65,7 @@ extern uint8_t __config_end;
 #include "drivers/time.h"
 #include "drivers/timer.h"
 
+#include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -2023,15 +2024,7 @@ static void cliRebootEx(bool bootLoader)
     bufWriterFlush(cliWriter);
     waitForSerialPortToFinishTransmitting(cliPort);
 
-    stopMotors();
-    stopPwmAllMotors();
-
-    delay(1000);
-    if (bootLoader) {
-        systemResetToBootloader();
-        return;
-    }
-    systemReset();
+    fcReboot(bootLoader);
 }
 
 static void cliReboot(void)

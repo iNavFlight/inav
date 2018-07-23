@@ -833,6 +833,26 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 }
 
 // returns seconds
-float getFlightTime() {
+float getFlightTime()
+{
     return (float)(flightTime / 1000) / 1000;
+}
+
+void fcReboot(bool bootLoader)
+{
+    // stop motor/servo outputs
+    stopMotors();
+    stopPwmAllMotors();
+
+    // extra delay before reboot to give ESCs chance to reset
+    delay(1000);
+
+    if (bootLoader) {
+        systemResetToBootloader();
+    }
+    else {
+        systemReset();
+    }
+
+    while (true);
 }
