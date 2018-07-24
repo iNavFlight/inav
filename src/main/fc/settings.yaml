@@ -1333,6 +1333,9 @@ groups:
       - name: nav_rth_alt_mode
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
+      - name: nav_rth_straight
+        field: general.rth_straight
+        type: bool
       - name: nav_rth_abort_threshold
         field: general.rth_abort_threshold
         max: 65000
