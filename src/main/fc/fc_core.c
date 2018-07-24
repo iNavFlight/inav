@@ -35,6 +35,7 @@
 #include "drivers/serial.h"
 #include "drivers/time.h"
 
+#include "drivers/system.h"
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/boardalignment.h"
