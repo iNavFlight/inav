@@ -49,6 +49,7 @@
 #include "drivers/timer.h"
 #include "drivers/vtx_common.h"
 
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
@@ -187,16 +188,7 @@ static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr
 static void mspRebootFn(serialPort_t *serialPort)
 {
     UNUSED(serialPort);
-
-    stopMotors();
-    stopPwmAllMotors();
-
-    // extra delay before reboot to give ESCs chance to reset
-    delay(1000);
-    systemReset();
-
-    // control should never return here.
-    while (true) ;
+    fcReboot(false);
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
