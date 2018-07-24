@@ -114,7 +114,7 @@ static uint16_t estimateRTHAltitudeChangeEnergy(float altitudeChange, float vert
 // *heading is in degrees 
 static float estimateRTHDistanceAndHeadingAfterAltitudeChange(float altitudeChange, float horizontalWindSpeed, float windHeading, float verticalWindSpeed, float *heading) {
     float estimatedAltitudeChangeGroundDistance = estimateRTHAltitudeChangeGroundDistance(altitudeChange, horizontalWindSpeed, windHeading, verticalWindSpeed);
-    if (altitudeChange > 0) {
+    if (navConfig()->general.flags.rth_climb_first && (altitudeChange > 0)) {
         float headingDiff = DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES((float)attitude.values.yaw) - GPS_directionToHome);
         float triangleAltitude = GPS_distanceToHome * sin_approx(headingDiff);
         float triangleAltitudeToReturnStart = estimatedAltitudeChangeGroundDistance - GPS_distanceToHome * cos_approx(headingDiff);
