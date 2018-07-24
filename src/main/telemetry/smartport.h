@@ -52,7 +52,7 @@ bool initSmartPortTelemetryExternal(smartPortWriteFrameFn *smartPortWriteFrameEx
 void handleSmartPortTelemetry(void);
 void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *hasRequest, const uint32_t *requestTimeout);
 
-smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t *clearToSendAt, smartPortCheckQueueEmptyFn *checkQueueEmpty, bool withChecksum);
+smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, smartPortCheckQueueEmptyFn *checkQueueEmpty, bool withChecksum);
 
 struct serialPort_s;
 void smartPortWriteFrameSerial(const smartPortPayload_t *payload, struct serialPort_s *port, uint16_t checksum);

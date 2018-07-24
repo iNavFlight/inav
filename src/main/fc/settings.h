@@ -82,6 +82,10 @@ const setting_t *settingFind(const char *name);
 const setting_t *settingGet(unsigned index);
 // Returns the setting index for the given setting.
 unsigned settingGetIndex(const setting_t *val);
+// Checks if all settings have values in their valid ranges.
+// If they don't, invalidIndex is filled with the first invalid
+// settings index and false is returned.
+bool settingsValidate(unsigned *invalidIndex);
 // Returns the size in bytes of the setting value.
 size_t settingGetValueSize(const setting_t *val);
 pgn_t settingGetPgn(const setting_t *val);

@@ -103,8 +103,8 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  min_check  | 1100 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  max_check  | 1900 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  rssi_channel  | 0 | RX channel containing the RSSI signal |
-|  rssi_scale  | 100 | By default RSSI expects to use full span of the input (0-3.3V for ADC, 1000-2000 for AUX channel). This scale (percentage) allows you to adjust the scaling to get 100% RSSI shown correctly |
-|  rssi_invert  | OFF |  |
+|  rssi_min  | 0 | The minimum RSSI value sent by the receiver, in %. For example, if your receiver's minimum RSSI value shows as 42% in the configurator/OSD set this parameter to 42. See also rssi_max. Note that rssi_min can be set to a value bigger than rssi_max to invert the RSSI calculation (i.e. bigger values mean lower RSSI). |
+|  rssi_max  | 100 | The maximum RSSI value sent by the receiver, in %. For example, if your receiver's maximum RSSI value shows as 83% in the configurator/OSD set this parameter to 83. See also rssi_min. |
 |  rc_smoothing  | ON | Interpolation of Rc data during looptimes when there are no new updates. This gives smoother RC input to PID controller and cleaner PIDsum |
 |  input_filtering_mode  | OFF | Filter out noise from OpenLRS Telemetry RX |
 |  min_throttle  | 1150 | These are min/max values (in us) that are sent to esc when armed. Defaults of 1150/1850 are OK for everyone, for use with AfroESC, they could be set to 1064/1864. |
@@ -163,6 +163,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  nav_land_slowdown_maxalt  | 2000 | Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm] |
 |  nav_emerg_landing_speed  | 500 | Rate of descent UAV will try to maintain when doing emergency descent sequence [cm/s] |
 |  nav_min_rth_distance  | 500 | Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase. |
+|  nav_overrides_motor_stop | ON | Setting to OFF combined with MOTOR_STOP feature will allow user to stop motor when in autonomous modes. On most places this setting is likely to cause a stall. |
 |  nav_rth_climb_first  | ON | If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way. |
 |  nav_rth_tail_first  | OFF | If set to ON drone will return tail-first. Obviously meaningless for airplanes. |
 |  nav_rth_allow_landing  | ALWAYS | If set to ON drone will land as a last phase of RTH. |
