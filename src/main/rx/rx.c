@@ -412,36 +412,16 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
         }
     }
 
-#if defined(USE_PWM) || defined(USE_PPM)
-    if (feature(FEATURE_RX_PPM)) {
-        if (isPPMDataBeingReceived()) {
-            rxDataProcessingRequired = true;
-            rxSignalReceived = true;
-            rxIsInFailsafeMode = false;
-            needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
-            resetPPMDataReceivedState();
-        }
-    } else if (feature(FEATURE_RX_PARALLEL_PWM)) {
-        if (isPWMDataBeingReceived()) {
-            rxDataProcessingRequired = true;
-            rxSignalReceived = true;
-            rxIsInFailsafeMode = false;
-            needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
-        }
-    } else
-#endif
-    {
-        const uint8_t frameStatus = rxRuntimeConfig.rcFrameStatusFn(&rxRuntimeConfig);
-        if (frameStatus & RX_FRAME_COMPLETE) {
-            rxDataProcessingRequired = true;
-            rxIsInFailsafeMode = (frameStatus & RX_FRAME_FAILSAFE) != 0;
-            rxSignalReceived = !rxIsInFailsafeMode;
-            needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
-        }
+    const uint8_t frameStatus = rxRuntimeConfig.rcFrameStatusFn(&rxRuntimeConfig);
+    if (frameStatus & RX_FRAME_COMPLETE) {
+        rxDataProcessingRequired = true;
+        rxIsInFailsafeMode = (frameStatus & RX_FRAME_FAILSAFE) != 0;
+        rxSignalReceived = !rxIsInFailsafeMode;
+        needRxSignalBefore = currentTimeUs + rxRuntimeConfig.rxSignalTimeout;
+    }
 
-        if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
-            auxiliaryProcessingRequired = true;
-        }
+    if (frameStatus & RX_FRAME_PROCESSING_REQUIRED) {
+        auxiliaryProcessingRequired = true;
     }
 
     if (cmpTimeUs(currentTimeUs, rxNextUpdateAtUs) > 0) {
