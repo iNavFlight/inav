@@ -336,7 +336,7 @@ void init(void)
     pwmRxInit(systemConfig()->pwmRxInputFilteringMode);
 #endif
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     /*
     If external PWM driver is enabled, for example PCA9685, disable internal
     servo handling mechanism, since external device will do that
@@ -674,7 +674,7 @@ void init(void)
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
         batteryInit();
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pwmDriverInitialize();
     }
