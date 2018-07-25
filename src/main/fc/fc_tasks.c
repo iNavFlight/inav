@@ -603,7 +603,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_VTX_CONTROL
+#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
     [TASK_VTXCTRL] = {
         .taskName = "VTXCTRL",
         .taskFunc = vtxUpdate,

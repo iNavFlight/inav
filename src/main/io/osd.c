@@ -2738,7 +2738,11 @@ static void osdShowArmed(void)
 
 static void osdRefresh(timeUs_t currentTimeUs)
 {
+#ifdef USE_CMS
     if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
+#else
+    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+#endif
       displayClearScreen(osdDisplayPort);
       armState = ARMING_FLAG(ARMED);
       return;

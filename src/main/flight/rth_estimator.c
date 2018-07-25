@@ -2,6 +2,7 @@
 #include "build/debug.h"
 
 #include "common/maths.h"
+#include "common/utils.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -132,13 +133,24 @@ static int32_t calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
     if (!STATE(FIXED_WING))
         return -1;
 
-    if (!(feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && navigationPositionEstimateIsHealthy() && (batteryMetersConfig()->cruise_power > 0) && (ARMING_FLAG(ARMED)) && ((!STATE(FIXED_WING)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected())) && (navConfig()->fw.cruise_speed > 0) && (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH) && (currentBatteryProfile->capacity.value > 0) && batteryWasFullWhenPluggedIn() && isEstimatedWindSpeedValid() && isImuHeadingValid()))
+    if (!(feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && navigationPositionEstimateIsHealthy() && (batteryMetersConfig()->cruise_power > 0) && (ARMING_FLAG(ARMED)) && ((!STATE(FIXED_WING)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected())) && (navConfig()->fw.cruise_speed > 0) && (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH) && (currentBatteryProfile->capacity.value > 0) && batteryWasFullWhenPluggedIn() && isImuHeadingValid()
+#ifdef USE_WIND_ESTIMATOR
+            && isEstimatedWindSpeedValid()
+#endif
+       ))
         return -1;
 
+#ifdef USE_WIND_ESTIMATOR
     uint16_t windHeading; // centidegrees
     const float horizontalWindSpeed = takeWindIntoAccount ? getEstimatedHorizontalWindSpeed(&windHeading) / 100 : 0; // m/s
     const float windHeadingDegrees = CENTIDEGREES_TO_DEGREES((float)windHeading);
     const float verticalWindSpeed = getEstimatedWindSpeed(Z) / 100;
+#else
+    UNUSED(takeWindIntoAccount);
+    const float horizontalWindSpeed = 0; // m/s
+    const float windHeadingDegrees = 0;
+    const float verticalWindSpeed = 0;
+#endif
 
     const float RTH_altitude_change = (RTHAltitude() - getEstimatedActualPosition(Z)) / 100;
     float RTH_heading; // degrees

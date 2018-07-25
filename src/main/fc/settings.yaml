@@ -1092,7 +1092,7 @@ groups:
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: USE_NAV
+    condition: USE_NAV && USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_overshoot_time
         field: fw_overshoot_time
@@ -1568,6 +1568,7 @@ groups:
         max: 11
 
       - name: osd_estimations_wind_compensation
+        condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
         type: bool
 
@@ -1663,6 +1664,7 @@ groups:
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
     headers: ["drivers/vtx_common.h", "io/vtx.h"]
+    condition: defined(VTX_COMMON) || (defined(USE_CMS) && defined(USE_VTX_SMARTAUDIO))
     members:
       - name: vtx_band
         field: band
