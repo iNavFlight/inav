@@ -17,7 +17,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "build/debug.h"
 
 #include "platform.h"
 
@@ -151,7 +150,6 @@ static bool m25p16_readIdentification(void)
     chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
 
     // All supported chips use the same pagesize of 256 bytes
-    DEBUG_TRACE("%x\n", chipID);
 
     switch (chipID) {
         case JEDEC_ID_MICRON_M25P16:
