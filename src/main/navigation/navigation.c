@@ -704,7 +704,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .timeoutMs = 0,
         .stateFlags = NAV_CTL_EMERG | NAV_REQUIRE_ANGLE,
         .mapToFlightModes = 0,
-        .mwState = MW_NAV_STATE_LAND_START,
+        .mwState = MW_NAV_STATE_EMERGENCY_LANDING,
         .mwError = MW_NAV_ERROR_LANDING,
         .onEvent = {
             [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS,
@@ -720,7 +720,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .timeoutMs = 10,
         .stateFlags = NAV_CTL_EMERG | NAV_REQUIRE_ANGLE,
         .mapToFlightModes = 0,
-        .mwState = MW_NAV_STATE_LAND_IN_PROGRESS,
+        .mwState = MW_NAV_STATE_EMERGENCY_LANDING,
         .mwError = MW_NAV_ERROR_LANDING,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_EMERGENCY_LANDING_IN_PROGRESS,    // re-process the state
@@ -3047,6 +3047,11 @@ rthState_e getStateOfForcedRTH(void)
     else {
         return RTH_IDLE;
     }
+}
+
+bool navigationIsExecutingAnEmergencyLanding(void)
+{
+    return navGetCurrentStateFlags() & NAV_CTL_EMERG;
 }
 
 bool navigationIsControllingThrottle(void)
