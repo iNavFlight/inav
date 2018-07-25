@@ -27,7 +27,7 @@ uint16_t frskyGetFlightMode(void)
         tmpi += 2;
     if (ARMING_FLAG(ARMED))
         tmpi += 4;
-    
+
     // tens column
     if (FLIGHT_MODE(ANGLE_MODE))
         tmpi += 10;
@@ -35,7 +35,7 @@ uint16_t frskyGetFlightMode(void)
         tmpi += 20;
     if (FLIGHT_MODE(MANUAL_MODE))
         tmpi += 40;
-    
+
     // hundreds column
     if (FLIGHT_MODE(HEADING_MODE))
         tmpi += 100;
@@ -43,15 +43,17 @@ uint16_t frskyGetFlightMode(void)
         tmpi += 200;
     if (FLIGHT_MODE(NAV_POSHOLD_MODE))
         tmpi += 400;
-    
+
     // thousands column
     if (FLIGHT_MODE(NAV_RTH_MODE))
         tmpi += 1000;
-    if (FLIGHT_MODE(NAV_WP_MODE))
+    if (FLIGHT_MODE(NAV_CRUISE_MODE)) // intentionally out of order and 'else-ifs' to prevent column overflow
+        tmpi += 8000;
+    else if (FLIGHT_MODE(NAV_WP_MODE))
         tmpi += 2000;
-    if (FLIGHT_MODE(HEADFREE_MODE))
+    else if (FLIGHT_MODE(HEADFREE_MODE))
         tmpi += 4000;
-    
+
     // ten thousands column
     if (FLIGHT_MODE(FLAPERON))
         tmpi += 10000;
