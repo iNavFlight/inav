@@ -1092,7 +1092,7 @@ groups:
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
-    condition: USE_NAV
+    condition: USE_NAV && USE_AUTOTUNE_FIXED_WING
     members:
       - name: fw_autotune_overshoot_time
         field: fw_overshoot_time
