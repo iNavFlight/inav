@@ -1568,6 +1568,7 @@ groups:
         max: 11
 
       - name: osd_estimations_wind_compensation
+        condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
         type: bool
 

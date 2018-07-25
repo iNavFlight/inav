@@ -1055,7 +1055,11 @@ static void loadSlowState(blackboxSlowState_t *slow)
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
     {
+#ifdef USE_WIND_ESTIMATOR
         slow->wind[i] = getEstimatedWindSpeed(i);
+#else
+        slow->wind[i] = 0;
+#endif
     }
 
 }
