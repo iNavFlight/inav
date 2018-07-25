@@ -154,6 +154,7 @@ static bool m25p16_readIdentification(void)
     switch (chipID) {
         case JEDEC_ID_MICRON_M25P16:
         case JEDEC_ID_SPANSION_S25FL116:
+        case JEDEC_ID_WINBOND_W25Q16:
             geometry.sectors = 32;
             geometry.pagesPerSector = 256;
             break;
