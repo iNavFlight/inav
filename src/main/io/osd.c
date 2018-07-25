@@ -691,7 +691,10 @@ static const char * navigationStateMessage(void)
             // Not used
             break;
         case MW_NAV_STATE_LAND_START:
-            return OSD_MESSAGE_STR("STARTING EMERGENCY LANDING");
+            // Not used
+            break;
+        case MW_NAV_STATE_EMERGENCY_LANDING:
+            return OSD_MESSAGE_STR("EMERGENCY LANDING");
         case MW_NAV_STATE_LAND_IN_PROGRESS:
             return OSD_MESSAGE_STR("LANDING");
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
@@ -2041,7 +2044,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         // will cause it to be missing from some frames.
                     }
                 } else {
-                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE)) {
+                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                         const char *navStateMessage = navigationStateMessage();
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
