@@ -73,9 +73,6 @@ gpsLocation_t GPS_home;
 uint32_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
-static uint32_t RTH_initial_distance_to_home;
-static int32_t RTH_initial_altitude;
-
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
@@ -94,6 +91,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .rth_climb_first = 1,                   // Climb first, turn after reaching safe altitude
             .rth_climb_ignore_emerg = 0,            // Ignore GPS loss on initial climb
             .rth_tail_first = 0,
+            .rth_straight = false,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
             .auto_overrides_motor_stop = 1,
@@ -115,7 +113,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .rth_altitude = 1000,         // 10m
         .rth_home_altitude = 0,
         .rth_abort_threshold = 50000, // 500m - should be safe for all aircraft
-        .rth_straight = false,
         .max_terrain_follow_altitude = 100,     // max 1m altitude in terrain following mode
     },
 
@@ -1123,8 +1120,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
                 initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
             }
 
-            RTH_initial_distance_to_home = GPS_distanceToHome;
-            RTH_initial_altitude = navGetCurrentActualPositionAndVelocity()->pos.z;
+            posControl.rthInitialHomeDistance = posControl.homeDistance;
 
             if (navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING)) {
                 setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
@@ -1193,10 +1189,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         }
         else {
-            if (navConfig()->general.rth_straight) {
+            if (navConfig()->general.flags.rth_straight) {
                 fpVector3_t pos;
-                /*pos.z = RTHAltitude() + (RTH_initial_altitude - RTHAltitude())*/
-                pos.z = RTH_initial_altitude - scaleRange(constrain((int32_t)RTH_initial_distance_to_home - GPS_distanceToHome, 0, RTH_initial_distance_to_home - navConfig()->fw.loiter_radius / 100), 0, RTH_initial_distance_to_home - navConfig()->fw.loiter_radius / 100, 0, RTH_initial_altitude - RTHAltitude());
+                pos.z = posControl.homeWaypointAbove.pos.z - scaleRange(constrain((int32_t)posControl.rthInitialHomeDistance - posControl.homeDistance, 0, posControl.rthInitialHomeDistance - navConfig()->fw.loiter_radius), 0, posControl.rthInitialHomeDistance - navConfig()->fw.loiter_radius, 0, posControl.homeWaypointAbove.pos.z - (posControl.homePosition.pos.z + navConfig()->general.rth_altitude));
                 setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z);
             }
 

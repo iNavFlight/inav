@@ -147,6 +147,7 @@ typedef struct navConfig_s {
             uint8_t rth_alt_control_mode;       // Controls the logic for choosing the RTH altitude
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
             uint8_t rth_tail_first;             // Return to home tail first
+            bool rth_straight;                  // Return to home in a straight line (altitude) to home altitude + rth_altitude
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
@@ -169,7 +170,6 @@ typedef struct navConfig_s {
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
-        bool rth_straight;
     } general;
 
     struct {
