@@ -501,7 +501,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     [NAV_STATE_RTH_HOVER_ABOVE_HOME] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME,
-        .timeoutMs = 500,
+        .timeoutMs = 10,
         .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW | NAV_RC_ALT,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_HOVER_ABOVE_HOME,
@@ -1185,20 +1185,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     // If position ok OR within valid timeout - continue
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout()) {
 
-        // set altitude to go to when landing is not allowed
-        if (navConfig()->general.rth_home_altitude && !navigationRTHAllowsLanding()) {
-            posControl.homeWaypointAbove.pos.z = navConfig()->general.rth_home_altitude;
-            setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z);
-        }
-
         // Wait until target heading is reached (with 15 deg margin for error)
         if (STATE(FIXED_WING)) {
             resetLandingDetector();
+            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
             return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
         }
         else {
             if (ABS(wrap_18000(posControl.homeWaypointAbove.yaw - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) {
                 resetLandingDetector();
+                updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
                 return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
             }
             else if (!validateRTHSanityChecker()) {
@@ -1222,6 +1218,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(na
 
     if (!(validateRTHSanityChecker() || (posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout()))
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+
+    if ((navConfig()->general.rth_home_altitude) && (posControl.desiredState.pos.z != navConfig()->general.rth_home_altitude)) {
+        int8_t altitudeChangeDirection = navConfig()->general.rth_home_altitude > posControl.homeWaypointAbove.pos.z ? 1 : -1;
+        float timeToReachHomeAltitude = altitudeChangeDirection * (navConfig()->general.rth_home_altitude - navGetCurrentActualPositionAndVelocity()->pos.z) / navConfig()->general.max_auto_climb_rate;
+        if (timeToReachHomeAltitude < 1) {
+            // we almost reached the target home altitude so set the desired altitude to the desired home altitude
+            posControl.homeWaypointAbove.pos.z = navConfig()->general.rth_home_altitude;
+            setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_Z);
+        } else {
+            updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, ROC_TO_ALT_NORMAL);
+        }
+    }
 
     return NAV_FSM_EVENT_NONE;
 }
