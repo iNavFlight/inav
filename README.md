@@ -55,6 +55,7 @@ See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 * [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
 * [Official Wiki](https://github.com/iNavFlight/inav/wiki)
 * [Slack channel](https://inavflight.signup.team/)
+* [IRC channel] (irc://irc.freenode.net/#inavflight)
 * [RC Groups Support](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-(navigation-rewrite)-project)
 * [Video series by Painless360](https://www.youtube.com/playlist?list=PLYsWjANuAm4qdXEGFSeUhOZ10-H8YTSnH)
 * [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
@@ -69,7 +70,7 @@ Contributions are welcome and encouraged.  You can contribute in many ways:
 * New features.
 * Telling us your ideas and suggestions.
 
-The best place to start is the IRC channel on freenode (see above), drop in, say hi. Next place is the github issue tracker:
+The best place to start is the IRC channel on freenode (#inavflight), drop in, say hi. Next place is the github issue tracker:
 
 https://github.com/iNavFlight/inav/issues
 
