@@ -486,37 +486,28 @@ static uint16_t osdConvertRSSI(void)
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
-    // This should be faster than pow(10, x). Make it available this
-    // via extern rather than _GNU_SOURCE, since it should be more
-    // portable.
-    extern float exp10f(float);
-
     // up to 4 for number + 1 for the symbol + null terminator + fill the rest with decimals
-    const int coordinateMaxLength = osdConfig()->coordinate_digits + 1;
+    const int coordinateLength = osdConfig()->coordinate_digits + 1;
 
     buff[0] = sym;
     int32_t integerPart = val / GPS_DEGREES_DIVIDER;
     // Latitude maximum integer width is 3 (-90) while
     // longitude maximum integer width is 4 (-180).
     int integerDigits = tfp_sprintf(buff + 1, (integerPart == 0 && val < 0) ? "-%d" : "%d", integerPart);
-    // We can show up to 7 digits in decimalPart. Remove
-    // some if needed.
+    // We can show up to 7 digits in decimalPart.
     int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
-    int trim = 7 - MAX(coordinateMaxLength - 1 - integerDigits, 0);
-    if (trim > 0) {
-        decimalPart /= (int32_t)exp10f(trim);
-    }
-    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%d", decimalPart);
+    STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
+    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", decimalPart);
     // Embbed the decimal separator
     buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
     buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
-    // Fill up to coordinateMaxLength with zeros
+    // Fill up to coordinateLength with zeros
     int total = 1 + integerDigits + decimalDigits;
-    while(total < coordinateMaxLength) {
+    while(total < coordinateLength) {
         buff[total] = '0';
         total++;
     }
-    buff[coordinateMaxLength] = '\0';
+    buff[coordinateLength] = '\0';
 }
 
 // Used twice, make sure it's exactly the same string
