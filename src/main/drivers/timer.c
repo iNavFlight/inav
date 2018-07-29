@@ -188,8 +188,14 @@ void timerInit(void)
     /* enable the timer peripherals */
     for (int i = 0; i < timerHardwareCount; i++) {
         unsigned timer = lookupTimerIndex(timerHardware[i].tim);
-        
         RCC_ClockCmd(timerDefinitions[timer].rcc, ENABLE);
+    }
+
+    /* Before 2.0 timer outputs were initialized to IOCFG_AF_PP_PD even if not used */
+    /* To keep compatibility make sure all timer output pins are mapped to INPUT with weak pull-down */
+    for (int i = 0; i < timerHardwareCount; i++) {
+        const timerHardware_t *timerHardwarePtr = &timerHardware[i];
+        IOConfigGPIO(IOGetByTag(timerHardwarePtr->tag), IOCFG_IPD);
     }
 }
 
