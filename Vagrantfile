@@ -14,14 +14,19 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "ubuntu/trusty64"
   config.vm.synced_folder ".", "/home/vagrant/inav"
-
+  config.vm.hostname = "iNavDev"
+  config.vm.define "iNavDev"
+  config.vm.provider :virtualbox do |vb|
+	vb.name = "iNavDev"
+  end
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
-	sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded
+	sudo apt-get remove -y --force-yes gcc-arm-none-eabi ruby
 	sudo apt-add-repository ppa:brightbox/ruby-ng
+	sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
 	sudo apt-get update
-	sudo apt-get install -y --force-yes git gcc-arm-none-eabi=4.9.3.2015q3-1trusty1 libnewlib-arm-none-eabi ruby2.4 ruby2.4-dev
+	sudo apt-get install -y --force-yes git gcc-arm-embedded ruby2.4 ruby2.4-dev
   SHELL
 end

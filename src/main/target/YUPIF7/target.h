@@ -15,10 +15,11 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "YPF7"
-
 #define USBD_PRODUCT_STRING     "YUPIF7"
+#define TARGET_CONFIG
 
 #define LED0                    PB4
 
@@ -32,7 +33,7 @@
 
 // Gyro interrupt
 #define USE_EXTI
-#define GYRO_INT_EXTI		PC4
+#define GYRO_INT_EXTI           PC4
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
@@ -92,7 +93,6 @@
 
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0
-// #define ESCSERIAL_TIMER_TX_PIN  PC8 // (Hardware=0, PPM)
 
 //SPI ports
 #define USE_SPI
@@ -119,25 +119,25 @@
 // OSD
 #define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_BUS		BUS_SPI1
-#define MAX7456_CS_PIN		PA14
+#define MAX7456_SPI_BUS         BUS_SPI1
+#define MAX7456_CS_PIN          PA14
 
 // Dataflash
 #define M25P16_CS_PIN           SPI3_NSS_PIN
-#define M25P16_SPI_BUS		BUS_SPI3
+#define M25P16_SPI_BUS          BUS_SPI3
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // ADC inputs
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN 	PC0 
-#define ADC_CHANNEL_2_PIN	PC1 
-#define ADC_CHANNEL_3_PIN	PC2 
+#define ADC_CHANNEL_1_PIN       PC0
+#define ADC_CHANNEL_2_PIN       PC1
+#define ADC_CHANNEL_3_PIN       PC2
 #define RSSI_ADC_CHANNEL                ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_3
-#define CURRENT_METER_SCALE 		235
+#define CURRENT_METER_SCALE             235
 
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
 #define USE_LED_STRIP
@@ -149,8 +149,6 @@
 #define WS2811_DMA_CHANNEL              DMA_CHANNEL_5
 #define WS2811_TIMER_GPIO_AF            GPIO_AF3_TIM8
 
-// #################################################
-
 // Default configuration
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
@@ -160,13 +158,10 @@
 // Target IO and timers
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define MAX_PWM_OUTPUT_PORTS	9
-#define TARGET_MOTOR_COUNT	6
+#define MAX_PWM_OUTPUT_PORTS    9
+#define TARGET_MOTOR_COUNT      6
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
-
-#define USABLE_TIMER_CHANNEL_COUNT 9
-#define USED_TIMERS             (TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(12))

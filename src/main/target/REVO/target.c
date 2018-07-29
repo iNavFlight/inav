@@ -37,7 +37,7 @@ BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS_EXT,
 BUSDEV_REGISTER_SPI    (busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,                       DEVFLAGS_NONE);
 
 /* TIMERS */
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR }, // S1_OUT
     { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR }, // S2_OUT
     { TIM9,  IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // S3_OUT
@@ -52,3 +52,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM8,  TIM_USE_PWM | TIM_USE_FW_SERVO },       // PWM5 - S5_IN
     { TIM8,  IO_TAG(PC9),  TIM_Channel_4, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM8,  TIM_USE_PWM | TIM_USE_FW_SERVO },       // PWM6 - S6_IN
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

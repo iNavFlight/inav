@@ -172,7 +172,7 @@ Flashing INAV will erase the TauLabs bootloader, this is not a problem and can e
 | 3     | USART2       | RX / PA3  | PWM6 / PA2 | On RX is on INPUT header.  Best port for Serial RX input       |
 | 4     | USART3       | RX / PB11 | TX / PB10  | RX/TX is on one end of the 6-pin header about the PWM outputs. |
 
-USB VCP *can* be used at the same time as other serial ports (unlike Naze32).
+USB VCP *can* be used at the same time as other serial port.
 
 All USART ports all support automatic hardware inversion which allows direct connection of serial rx receivers like the FrSky X4RSB - no external inverter needed.
 

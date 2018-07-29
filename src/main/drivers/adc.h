@@ -45,3 +45,7 @@ void adcInit(drv_adc_config_t *init);
 uint16_t adcGetChannel(uint8_t channel);
 bool adcIsFunctionAssigned(uint8_t function);
 int adcGetFunctionChannelAllocation(uint8_t function);
+
+#if !defined(USE_ADC_AVERAGING)
+#define ADC_AVERAGE_N_SAMPLES 1
+#endif

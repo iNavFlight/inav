@@ -29,7 +29,6 @@
 #include "build/build_config.h"
 
 #include "drivers/time.h"
-#include "drivers/gpio.h"
 #include "drivers/io.h"
 #include "io_impl.h"
 #include "rcc.h"
@@ -60,11 +59,6 @@ void rxSpiDeviceInit()
     const SPIDevice rxSPIDevice = spiDeviceByInstance(RX_SPI_INSTANCE);
     IOInit(IOGetByTag(IO_TAG(RX_NSS_PIN)), OWNER_SPI, RESOURCE_SPI_CS, rxSPIDevice + 1);
 
-#if defined(STM32F10X)
-    RCC_AHBPeriphClockCmd(RX_NSS_GPIO_CLK_PERIPHERAL, ENABLE);
-    RCC_AHBPeriphClockCmd(RX_CE_GPIO_CLK_PERIPHERAL, ENABLE);
-#endif
-
 #ifdef RX_IRQ_PIN
     rxIrqPin = IOGetByTag(IO_TAG(RX_IRQ_PIN));
     IOInit(rxIrqPin, OWNER_RX, RESOURCE_NONE, 0);
@@ -74,9 +68,7 @@ void rxSpiDeviceInit()
 #ifdef RX_CE_PIN
     // CE as OUTPUT
     IOInit(IOGetByTag(IO_TAG(RX_CE_PIN)), OWNER_RX_SPI, RESOURCE_RX_CE, rxSPIDevice + 1);
-#if defined(STM32F10X)
-    IOConfigGPIO(IOGetByTag(IO_TAG(RX_CE_PIN)), SPI_IO_CS_CFG);
-#elif defined(STM32F3) || defined(STM32F4)
+#if defined(STM32F3) || defined(STM32F4)
     IOConfigGPIOAF(IOGetByTag(IO_TAG(RX_CE_PIN)), SPI_IO_CS_CFG, 0);
 #endif
     RX_CE_LO();

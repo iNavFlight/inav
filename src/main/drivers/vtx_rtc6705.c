@@ -27,7 +27,7 @@
 
 #include "platform.h"
 
-#if defined(VTX_RTC6705) && !defined(VTX_RTC6705SOFTSPI)
+#if defined(USE_VTX_RTC6705) && !defined(VTX_RTC6705SOFTSPI)
 
 #include "common/maths.h"
 
@@ -118,7 +118,7 @@ static IO_t vtxCLKPin       = IO_NONE;
 
 
 // Define variables
-static const uint32_t channelArray[RTC6705_BAND_COUNT][RTC6705_CHANNEL_COUNT] = {
+static const uint32_t channelArray[VTX_RTC6705_BAND_COUNT][VTX_RTC6705_CHANNEL_COUNT] = {
     { RTC6705_SET_A1, RTC6705_SET_A2, RTC6705_SET_A3, RTC6705_SET_A4, RTC6705_SET_A5, RTC6705_SET_A6, RTC6705_SET_A7, RTC6705_SET_A8 },
     { RTC6705_SET_B1, RTC6705_SET_B2, RTC6705_SET_B3, RTC6705_SET_B4, RTC6705_SET_B5, RTC6705_SET_B6, RTC6705_SET_B7, RTC6705_SET_B8 },
     { RTC6705_SET_E1, RTC6705_SET_E2, RTC6705_SET_E3, RTC6705_SET_E4, RTC6705_SET_E5, RTC6705_SET_E6, RTC6705_SET_E7, RTC6705_SET_E8 },
@@ -200,8 +200,8 @@ static void rtc6705Transfer(uint32_t command)
  */
 void rtc6705SetBandAndChannel(uint8_t band, uint8_t channel)
 {
-    band = constrain(band, 0, RTC6705_BAND_COUNT - 1);
-    channel = constrain(channel, 0, RTC6705_CHANNEL_COUNT - 1);
+    band = constrain(band, 0, VTX_RTC6705_BAND_COUNT - 1);
+    channel = constrain(channel, 0, VTX_RTC6705_CHANNEL_COUNT - 1);
 
     spiSetSpeed(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
 
@@ -215,7 +215,7 @@ void rtc6705SetBandAndChannel(uint8_t band, uint8_t channel)
  */
 void rtc6705SetFreq(uint16_t frequency)
 {
-    frequency = constrain(frequency, RTC6705_FREQ_MIN, RTC6705_FREQ_MAX);
+    frequency = constrain(frequency, VTX_RTC6705_FREQ_MIN, VTX_RTC6705_FREQ_MAX);
 
     uint32_t val_hex = 0;
 
@@ -235,7 +235,7 @@ void rtc6705SetFreq(uint16_t frequency)
 
 void rtc6705SetRFPower(uint8_t rf_power)
 {
-    rf_power = constrain(rf_power, 0, RTC6705_RF_POWER_COUNT - 1);
+    rf_power = constrain(rf_power, 0, VTX_RTC6705_POWER_COUNT - 1);
 
     spiSetSpeed(RTC6705_SPI_INSTANCE, SPI_CLOCK_SLOW);
 

@@ -59,7 +59,7 @@ enum {
     CRSF_ADDRESS_CRSF_TRANSMITTER = 0xEE
 };
 
-#define CRSF_PAYLOAD_SIZE_MAX   32 // !!TODO needs checking
+#define CRSF_PAYLOAD_SIZE_MAX   62
 #define CRSF_FRAME_SIZE_MAX     (CRSF_PAYLOAD_SIZE_MAX + 4)
 
 typedef struct crsfFrameDef_s {

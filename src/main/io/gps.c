@@ -41,6 +41,10 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 
+#if defined(USE_FAKE_GPS)
+#include "fc/runtime_config.h"
+#endif
+
 #include "sensors/sensors.h"
 #include "sensors/compass.h"
 
@@ -154,7 +158,7 @@ static void gpsUpdateTime(void)
     }
 }
 
-static void gpsHandleProtocol(void)
+static bool gpsHandleProtocol(void)
 {
     bool newDataReceived = false;
 
@@ -192,6 +196,7 @@ static void gpsHandleProtocol(void)
         // Update statistics
         gpsStats.lastMessageDt = gpsState.lastMessageMs - gpsState.lastLastMessageMs;
     }
+    return newDataReceived;
 }
 
 static void gpsResetSolution(void)
@@ -266,18 +271,45 @@ void gpsInit(void)
 }
 
 #ifdef USE_FAKE_GPS
-static void gpsFakeGPSUpdate(void)
+static bool gpsFakeGPSUpdate(void)
 {
-    if (millis() - gpsState.lastMessageMs > 100) {
+#define FAKE_GPS_INITIAL_LAT 509102311
+#define FAKE_GPS_INITIAL_LON -15349744
+#define FAKE_GPS_GROUND_ARMED_SPEED 350 // In cm/s
+#define FAKE_GPS_GROUND_UNARMED_SPEED 0
+#define FAKE_GPS_GROUND_COURSE_DECIDEGREES 300 //30deg
+
+    // Each degree in latitude corresponds to 111km.
+    // Each degree in longitude at the equator is 111km,
+    // going down to zero as latitude gets close to 90º.
+    // We approximate it linearly.
+
+    static int32_t lat = FAKE_GPS_INITIAL_LAT;
+    static int32_t lon = FAKE_GPS_INITIAL_LON;
+
+    timeMs_t now = millis();
+    uint32_t delta = now - gpsState.lastMessageMs;
+    if (delta > 100) {
+        int32_t speed = ARMING_FLAG(ARMED) ? FAKE_GPS_GROUND_ARMED_SPEED : FAKE_GPS_GROUND_UNARMED_SPEED;
+        int32_t cmDelta = speed * (delta / 1000.0f);
+        int32_t latCmDelta = cmDelta * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
+        int32_t lonCmDelta = cmDelta * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
+        int32_t latDelta = ceilf((float)latCmDelta / (111 * 1000 * 100 / 1e7));
+        int32_t lonDelta = ceilf((float)lonCmDelta / (111 * 1000 * 100 / 1e7));
+        if (speed > 0 && latDelta == 0 && lonDelta == 0) {
+            return false;
+        }
+        lat += latDelta;
+        lon += lonDelta;
         gpsSol.fixType = GPS_FIX_3D;
         gpsSol.numSat = 6;
-        gpsSol.llh.lat = 509102311;
-        gpsSol.llh.lon = -15349744;
+        gpsSol.llh.lat = lat;
+        gpsSol.llh.lon = lon;
         gpsSol.llh.alt = 0;
-        gpsSol.groundSpeed = 0;
-        gpsSol.groundCourse = 0;
-        gpsSol.velNED[X] = 0;
-        gpsSol.velNED[Y] = 0;
+        gpsSol.groundSpeed = speed;
+        gpsSol.groundCourse = FAKE_GPS_GROUND_COURSE_DECIDEGREES;
+        gpsSol.velNED[X] = speed * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
+        gpsSol.velNED[Y] = speed * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         gpsSol.velNED[Z] = 0;
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
@@ -298,10 +330,12 @@ static void gpsFakeGPSUpdate(void)
         onNewGPSData();
 
         gpsState.lastLastMessageMs = gpsState.lastMessageMs;
-        gpsState.lastMessageMs = millis();
+        gpsState.lastMessageMs = now;
 
         gpsSetState(GPS_RECEIVING_DATA);
+        return true;
     }
+    return false;
 }
 #endif
 
@@ -329,19 +363,19 @@ uint16_t gpsConstrainHDOP(uint32_t hdop)
     return (hdop > 9999) ? 9999 : hdop; // max 99.99m error
 }
 
-void gpsThread(void)
+bool gpsUpdate(void)
 {
     /* Extra delay for at least 2 seconds after booting to give GPS time to initialise */
     if (!isMPUSoftReset() && (millis() < GPS_BOOT_DELAY)) {
         sensorsClear(SENSOR_GPS);
         DISABLE_STATE(GPS_FIX);
-        return;
+        return false;
     }
 
 #ifdef USE_FAKE_GPS
-    gpsFakeGPSUpdate();
+    return gpsFakeGPSUpdate();
 #else
-
+    bool updated = false;
     // Serial-based GPS
     if ((gpsProviders[gpsState.gpsConfig->provider].type == GPS_TYPE_SERIAL) && (gpsState.gpsPort != NULL)) {
         switch (gpsState.state) {
@@ -373,7 +407,7 @@ void gpsThread(void)
         case GPS_CHECK_VERSION:
         case GPS_CONFIGURE:
         case GPS_RECEIVING_DATA:
-            gpsHandleProtocol();
+            updated = gpsHandleProtocol();
             if ((millis() - gpsState.lastMessageMs) > GPS_TIMEOUT) {
                 // Check for GPS timeout
                 sensorsClear(SENSOR_GPS);
@@ -442,6 +476,7 @@ void gpsThread(void)
     else {
         // GPS_TYPE_NA
     }
+    return updated;
 #endif
 }
 
@@ -515,4 +550,10 @@ bool isGPSHealthy(void)
 {
     return true;
 }
+
+bool isGPSHeadingValid(void)
+{
+    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+}
+
 #endif

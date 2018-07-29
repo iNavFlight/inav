@@ -19,6 +19,53 @@
 
 #include "common/time.h"
 
+#define VTX_SETTINGS_NO_BAND        0 // used for custom frequency selection mode
+#define VTX_SETTINGS_MIN_BAND       1
+#define VTX_SETTINGS_MAX_BAND       5
+#define VTX_SETTINGS_MIN_CHANNEL    1
+#define VTX_SETTINGS_MAX_CHANNEL    8
+
+#define VTX_SETTINGS_BAND_COUNT     (VTX_SETTINGS_MAX_BAND - VTX_SETTINGS_MIN_BAND + 1)
+#define VTX_SETTINGS_CHANNEL_COUNT  (VTX_SETTINGS_MAX_CHANNEL - VTX_SETTINGS_MIN_CHANNEL + 1)
+
+#define VTX_SETTINGS_DEFAULT_BAND               4
+#define VTX_SETTINGS_DEFAULT_CHANNEL            1
+#define VTX_SETTINGS_DEFAULT_FREQ               5740
+#define VTX_SETTINGS_DEFAULT_PITMODE_FREQ       0
+#define VTX_SETTINGS_DEFAULT_LOW_POWER_DISARM   0
+
+#define VTX_SETTINGS_MIN_FREQUENCY_MHZ 0             //min freq (in MHz) for 'vtx_freq' setting
+#define VTX_SETTINGS_MAX_FREQUENCY_MHZ 5999          //max freq (in MHz) for 'vtx_freq' setting
+
+#if defined(USE_VTX_RTC6705)
+
+#include "drivers/vtx_rtc6705.h"
+
+#endif
+
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+
+#define VTX_SETTINGS_POWER_COUNT        5
+#define VTX_SETTINGS_DEFAULT_POWER      1
+#define VTX_SETTINGS_MIN_POWER          1
+#define VTX_SETTINGS_MIN_USER_FREQ      5000
+#define VTX_SETTINGS_MAX_USER_FREQ      5999
+#define VTX_SETTINGS_FREQCMD
+
+#elif defined(USE_VTX_RTC6705)
+
+#define VTX_SETTINGS_POWER_COUNT    VTX_RTC6705_POWER_COUNT
+#define VTX_SETTINGS_DEFAULT_POWER  VTX_RTC6705_DEFAULT_POWER
+#define VTX_SETTINGS_MIN_POWER      VTX_RTC6705_MIN_POWER
+
+#endif
+
+#define VTX_SETTINGS_MAX_POWER      (VTX_SETTINGS_POWER_COUNT - 1)
+
+// check value for MSP_SET_VTX_CONFIG to determine if value is encoded
+// band/channel or frequency in MHz (3 bits for band and 3 bits for channel)
+#define VTXCOMMON_MSP_BANDCHAN_CHKVAL ((uint16_t)((7 << 3) + 7))
+
 typedef enum {
     VTXDEV_UNSUPPORTED = 0, // reserved for MSP
     VTXDEV_RTC6705    = 1,
@@ -58,17 +105,19 @@ typedef struct vtxDevice_s {
 // {set,get}PitMode: 0 = OFF, 1 = ON
 
 typedef struct vtxVTable_s {
-    void (*process)(uint32_t currentTimeUs);
-    vtxDevType_e (*getDeviceType)(void);
-    bool (*isReady)(void);
+    void (*process)(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs);
+    vtxDevType_e (*getDeviceType)(const vtxDevice_t *vtxDevice);
+    bool (*isReady)(const vtxDevice_t *vtxDevice);
 
-    void (*setBandAndChannel)(uint8_t band, uint8_t channel);
-    void (*setPowerByIndex)(uint8_t level);
-    void (*setPitMode)(uint8_t onoff);
+    void (*setBandAndChannel)(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel);
+    void (*setPowerByIndex)(vtxDevice_t *vtxDevice, uint8_t level);
+    void (*setPitMode)(vtxDevice_t *vtxDevice, uint8_t onoff);
+    void (*setFrequency)(vtxDevice_t *vtxDevice, uint16_t freq);
 
-    bool (*getBandAndChannel)(uint8_t *pBand, uint8_t *pChannel);
-    bool (*getPowerIndex)(uint8_t *pIndex);
-    bool (*getPitMode)(uint8_t *pOnOff);
+    bool (*getBandAndChannel)(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel);
+    bool (*getPowerIndex)(const vtxDevice_t *vtxDevice, uint8_t *pIndex);
+    bool (*getPitMode)(const vtxDevice_t *vtxDevice, uint8_t *pOnOff);
+    bool (*getFrequency)(const vtxDevice_t *vtxDevice, uint16_t *pFreq);
 } vtxVTable_t;
 
 // 3.1.0
@@ -77,15 +126,19 @@ typedef struct vtxVTable_s {
 // - It is *NOT* RF on/off control ?
 
 void vtxCommonInit(void);
-void vtxCommonRegisterDevice(vtxDevice_t *pDevice);
+void vtxCommonSetDevice(vtxDevice_t *vtxDevice);
+vtxDevice_t *vtxCommonDevice(void);
 
 // VTable functions
-void vtxCommonProcess(timeUs_t currentTimeUs);
-uint8_t vtxCommonGetDeviceType(void);
-void vtxCommonSetBandAndChannel(uint8_t band, uint8_t channel);
-void vtxCommonSetPowerByIndex(uint8_t level);
-void vtxCommonSetPitMode(uint8_t onoff);
-bool vtxCommonGetBandAndChannel(uint8_t *pBand, uint8_t *pChannel);
-bool vtxCommonGetPowerIndex(uint8_t *pIndex);
-bool vtxCommonGetPitMode(uint8_t *pOnOff);
-bool vtxCommonGetDeviceCapability(vtxDeviceCapability_t *pDeviceCapability);
+void vtxCommonProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs);
+vtxDevType_e vtxCommonGetDeviceType(vtxDevice_t *vtxDevice);
+bool vtxCommonDeviceIsReady(vtxDevice_t *vtxDevice);
+void vtxCommonSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel);
+void vtxCommonSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index);
+void vtxCommonSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff);
+void vtxCommonSetFrequency(vtxDevice_t *vtxDevice, uint16_t frequency);
+bool vtxCommonGetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel);
+bool vtxCommonGetPowerIndex(vtxDevice_t *vtxDevice, uint8_t *pIndex);
+bool vtxCommonGetPitMode(vtxDevice_t *vtxDevice, uint8_t *pOnOff);
+bool vtxCommonGetFrequency(const vtxDevice_t *vtxDevice, uint16_t *pFreq);
+bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t *pDeviceCapability);

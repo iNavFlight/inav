@@ -25,7 +25,6 @@
 
 #define STICK_CHANNEL_COUNT 4
 
-#define PWM_RANGE_ZERO 0 // FIXME should all usages of this be changed to use PWM_RANGE_MIN?
 #define PWM_RANGE_MIN 1000
 #define PWM_RANGE_MAX 2000
 #define PWM_RANGE_MIDDLE (PWM_RANGE_MIN + ((PWM_RANGE_MAX - PWM_RANGE_MIN) / 2))
@@ -47,6 +46,8 @@
 #define DELAY_50_HZ (1000000 / 50)
 #define DELAY_10_HZ (1000000 / 10)
 #define DELAY_5_HZ (1000000 / 5)
+
+#define RSSI_MAX_VALUE 1023
 
 typedef enum {
     RX_FRAME_PENDING = 0,               // No new data available from receiver
@@ -94,13 +95,14 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
+extern int16_t rcRaw[MAX_SUPPORTED_RC_CHANNEL_COUNT];        // interval [1000;2000]
 extern int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // interval [1000;2000]
 
 #define MAX_MAPPABLE_RX_INPUTS 4
 
-#define RSSI_SCALE_MIN 1
-#define RSSI_SCALE_MAX 255
-#define RSSI_SCALE_DEFAULT 100
+#define RSSI_VISIBLE_VALUE_MIN 0
+#define RSSI_VISIBLE_VALUE_MAX 100
+#define RSSI_VISIBLE_FACTOR (RSSI_MAX_VALUE/(float)RSSI_VISIBLE_VALUE_MAX)
 
 typedef struct rxChannelRangeConfig_s {
     uint16_t min;
@@ -120,9 +122,9 @@ typedef struct rxConfig_s {
     uint8_t spektrum_sat_bind;              // number of bind pulses for Spektrum satellite receivers
     uint8_t spektrum_sat_bind_autoreset;    // whenever we will reset (exit) binding mode after hard reboot
     uint8_t rssi_channel;
-    uint8_t rssi_scale;
-    uint8_t rssiInvert;
-    uint16_t midrc;                         // Some radios have not a neutral point centered on 1500. can be changed here
+    uint8_t rssiMin;                        // minimum RSSI sent by the RX - [RSSI_VISIBLE_VALUE_MIN, RSSI_VISIBLE_VALUE_MAX]
+    uint8_t rssiMax;                        // maximum RSSI sent by the RX - [RSSI_VISIBLE_VALUE_MIN, RSSI_VISIBLE_VALUE_MAX]
+    uint16_t sbusSyncInterval;
     uint16_t mincheck;                      // minimum rc end
     uint16_t maxcheck;                      // maximum rc end
     uint16_t rx_min_usec;
@@ -166,7 +168,7 @@ void rxUpdateRSSISource(void);
 bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime);
 bool rxIsReceivingSignal(void);
 bool rxAreFlightChannelsValid(void);
-void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
+bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
 
 void parseRcChannels(const char *input);
 
@@ -175,6 +177,7 @@ void parseRcChannels(const char *input);
 void setRSSI(uint16_t newRssi, rssiSource_e source, bool filtered);
 void setRSSIFromMSP(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
+// Returns RSSI in [0, RSSI_MAX_VALUE] range.
 uint16_t getRSSI(void);
 rssiSource_e getRSSISource(void);
 

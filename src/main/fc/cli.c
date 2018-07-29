@@ -25,13 +25,9 @@
 
 #include "platform.h"
 
-// FIXME remove this for targets that don't need a CLI.  Perhaps use a no-op macro when USE_CLI is not enabled
-// signal that we're in cli mode
 uint8_t cliMode = 0;
 extern uint8_t __config_start;   // configured via linker script when building binaries.
 extern uint8_t __config_end;
-
-#ifdef USE_CLI
 
 #include "blackbox/blackbox.h"
 
@@ -69,6 +65,7 @@ extern uint8_t __config_end;
 #include "drivers/time.h"
 #include "drivers/timer.h"
 
+#include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -87,7 +84,6 @@ extern uint8_t __config_end;
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
 #include "io/flashfs.h"
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -113,7 +109,7 @@ extern uint8_t __config_end;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 
-#include "telemetry/frsky.h"
+#include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
@@ -140,27 +136,13 @@ static void cliAssert(char *cmdline);
 static void cliBootlog(char *cmdline);
 #endif
 
-static const char* const emptyName = "-";
-
-#ifndef USE_QUAD_MIXER_ONLY
-// sync this with mixerMode_e
-static const char * const mixerNames[] = {
-    "TRI", "QUADP", "QUADX", "BI",
-    "GIMBAL", "Y6", "HEX6",
-    "FLYING_WING", "Y4", "HEX6X", "OCTOX8", "OCTOFLATP", "OCTOFLATX",
-    "AIRPLANE", "HELI_120_CCPM", "HELI_90_DEG", "VTAIL4",
-    "HEX6H", "PPM_TO_SERVO", "DUALCOPTER", "SINGLECOPTER",
-    "ATAIL4", "CUSTOM", "CUSTOMAIRPLANE", "CUSTOMTRI", NULL
-};
-#endif
-
 // sync this with features_e
 static const char * const featureNames[] = {
-    "RX_PPM", "VBAT", "TX_PROF_SEL", "", "MOTOR_STOP",
-    "SERVO_TILT", "SOFTSERIAL", "GPS", "",
+    "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
+    "", "SOFTSERIAL", "GPS", "",
     "", "TELEMETRY", "CURRENT_METER", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
-    "BLACKBOX", "CHANNEL_FORWARDING", "TRANSPONDER", "AIRMODE",
+    "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
     "SUPEREXPO", "VTX", "RX_SPI", "", "PWM_SERVO_DRIVER", "PWM_OUTPUT_ENABLE",
     "OSD", "FW_LAUNCH", "TRACE" , NULL
 };
@@ -246,11 +228,12 @@ static void cliPutp(void *p, char ch)
 typedef enum {
     DUMP_MASTER = (1 << 0),
     DUMP_PROFILE = (1 << 1),
-    DUMP_RATES = (1 << 2),
-    DUMP_ALL = (1 << 3),
-    DO_DIFF = (1 << 4),
-    SHOW_DEFAULTS = (1 << 5),
-    HIDE_UNUSED = (1 << 6)
+    DUMP_BATTERY_PROFILE = (1 << 2),
+    DUMP_RATES = (1 << 3),
+    DUMP_ALL = (1 << 4),
+    DO_DIFF = (1 << 5),
+    SHOW_DEFAULTS = (1 << 6),
+    HIDE_UNUSED = (1 << 7)
 } dumpFlags_e;
 
 static void cliPrintfva(const char *format, va_list va)
@@ -346,11 +329,15 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
         cliPrintf("%s", ftoa(*(float *)valuePointer, buf));
         if (full) {
             if (SETTING_MODE(var) == MODE_DIRECT) {
-                cliPrintf(" %s", ftoa((float)setting_get_min(var), buf));
-                cliPrintf(" %s", ftoa((float)setting_get_max(var), buf));
+                cliPrintf(" %s", ftoa((float)settingGetMin(var), buf));
+                cliPrintf(" %s", ftoa((float)settingGetMax(var), buf));
             }
         }
         return; // return from case for float only
+
+    case VAR_STRING:
+        cliPrintf("%s", (const char *)valuePointer);
+        return;
     }
 
     switch (SETTING_MODE(var)) {
@@ -361,25 +348,28 @@ static void printValuePointer(const setting_t *var, const void *valuePointer, ui
             cliPrintf("%d", value);
         if (full) {
             if (SETTING_MODE(var) == MODE_DIRECT) {
-                cliPrintf(" %d %u", setting_get_min(var), setting_get_max(var));
+                cliPrintf(" %d %u", settingGetMin(var), settingGetMax(var));
             }
         }
         break;
     case MODE_LOOKUP:
-        if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
-            cliPrintf(settingLookupTables[var->config.lookup.tableIndex].values[value]);
+    {
+        const char *name = settingLookupValueName(var, value);
+        if (name) {
+            cliPrintf(name);
         } else {
-            setting_get_name(var, buf);
-            cliPrintLinef("VALUE %s OUT OF RANGE", buf);
+            settingGetName(var, buf);
+            cliPrintLinef("VALUE %d OUT OF RANGE FOR %s", (int)value, buf);
         }
         break;
     }
+    }
 }
 
-static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptrDefault)
+static bool valuePtrEqualsDefault(const setting_t *value, const void *ptr, const void *ptrDefault)
 {
     bool result = false;
-    switch (type & SETTING_TYPE_MASK) {
+    switch (SETTING_TYPE(value)) {
     case VAR_UINT8:
         result = *(uint8_t *)ptr == *(uint8_t *)ptrDefault;
         break;
@@ -403,6 +393,10 @@ static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptr
     case VAR_FLOAT:
         result = *(float *)ptr == *(float *)ptrDefault;
         break;
+
+    case VAR_STRING:
+        result = strncmp(ptr, ptrDefault, settingGetStringMaxLength(value) + 1) == 0;
+        break;
     }
     return result;
 }
@@ -414,14 +408,14 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
     const char *defaultFormat = "#set %s = ";
     // During a dump, the PGs have been backed up to their "copy"
     // regions and the actual values have been reset to its
-    // defaults. This means that setting_get_value_pointer() will
-    // return the default value while setting_get_copy_value_pointer()
+    // defaults. This means that settingGetValuePointer() will
+    // return the default value while settingGetCopyValuePointer()
     // will return the actual value.
-    const void *valuePointer = setting_get_copy_value_pointer(value);
-    const void *defaultValuePointer = setting_get_value_pointer(value);
-    const bool equalsDefault = valuePtrEqualsDefault(value->type, valuePointer, defaultValuePointer);
+    const void *valuePointer = settingGetCopyValuePointer(value);
+    const void *defaultValuePointer = settingGetValuePointer(value);
+    const bool equalsDefault = valuePtrEqualsDefault(value, valuePointer, defaultValuePointer);
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
-        setting_get_name(value, name);
+        settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
             printValuePointer(value, defaultValuePointer, 0);
@@ -435,8 +429,8 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
 
 static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
 {
-    for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-        const setting_t *value = &settingsTable[i];
+    for (unsigned i = 0; i < SETTINGS_TABLE_COUNT; i++) {
+        const setting_t *value = settingGet(i);
         bufWriterFlush(cliWriter);
         if (SETTING_SECTION(value) == valueSection) {
             dumpPgValue(value, dumpMask);
@@ -446,7 +440,7 @@ static void dumpAllValues(uint16_t valueSection, uint8_t dumpMask)
 
 static void cliPrintVar(const setting_t *var, uint32_t full)
 {
-    const void *ptr = setting_get_value_pointer(var);
+    const void *ptr = settingGetValuePointer(var);
 
     printValuePointer(var, ptr, full);
 }
@@ -454,11 +448,16 @@ static void cliPrintVar(const setting_t *var, uint32_t full)
 static void cliPrintVarRange(const setting_t *var)
 {
     switch (SETTING_MODE(var)) {
-    case (MODE_DIRECT):
-        cliPrintLinef("Allowed range: %d - %u", setting_get_min(var), setting_get_max(var));
+    case MODE_DIRECT:
+        if (SETTING_TYPE(var) == VAR_STRING) {
+           cliPrintLinef("Max. length: %u", settingGetStringMaxLength(var));
+           break;
+        }
+        cliPrintLinef("Allowed range: %d - %u", settingGetMin(var), settingGetMax(var));
         break;
-    case (MODE_LOOKUP): {
-        const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
+    case MODE_LOOKUP:
+    {
+        const lookupTableEntry_t *tableEntry = settingLookupTable(var);
         cliPrint("Allowed values:");
         for (uint32_t i = 0; i < tableEntry->valueCount ; i++) {
             if (i > 0)
@@ -467,7 +466,7 @@ static void cliPrintVarRange(const setting_t *var)
         }
         cliPrintLinefeed();
     }
-    break;
+        break;
     }
 }
 
@@ -477,9 +476,9 @@ typedef union {
     float float_value;
 } int_float_value_t;
 
-static void cliSetVar(const setting_t *var, const int_float_value_t value)
+static void cliSetIntFloatVar(const setting_t *var, const int_float_value_t value)
 {
-    void *ptr = setting_get_value_pointer(var);
+    void *ptr = settingGetValuePointer(var);
 
     switch (SETTING_TYPE(var)) {
     case VAR_UINT8:
@@ -498,6 +497,10 @@ static void cliSetVar(const setting_t *var, const int_float_value_t value)
 
     case VAR_FLOAT:
         *(float *)ptr = (float)value.float_value;
+        break;
+
+    case VAR_STRING:
+        // Handled by cliSet directly
         break;
     }
 }
@@ -974,7 +977,6 @@ static void cliAdjustmentRange(char *cmdline)
     }
 }
 
-#ifndef USE_QUAD_MIXER_ONLY
 static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer, const motorMixer_t *defaultCustomMotorMixer)
 {
     const char *format = "mmix %d %s %s %s %s";
@@ -1016,7 +1018,6 @@ static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer
 static void cliMotorMix(char *cmdline)
 {
     int check = 0;
-    uint8_t len;
     const char *ptr;
 
     if (isEmpty(cmdline)) {
@@ -1025,23 +1026,6 @@ static void cliMotorMix(char *cmdline)
         // erase custom mixer
         for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             customMotorMixerMutable(i)->throttle = 0.0f;
-        }
-    } else if (sl_strncasecmp(cmdline, "load", 4) == 0) {
-        ptr = nextArg(cmdline);
-        if (ptr) {
-            len = strlen(ptr);
-            for (uint32_t i = 0; ; i++) {
-                if (mixerNames[i] == NULL) {
-                    cliPrintLine("Invalid name");
-                    break;
-                }
-                if (sl_strncasecmp(ptr, mixerNames[i], len) == 0) {
-                    mixerLoadMix(i, customMotorMixerMutable(0));
-                    cliPrintLinef("Loaded %s", mixerNames[i]);
-                    cliMotorMix("");
-                    break;
-                }
-            }
         }
     } else {
         ptr = cmdline;
@@ -1077,7 +1061,6 @@ static void cliMotorMix(char *cmdline)
         }
     }
 }
-#endif // USE_QUAD_MIXER_ONLY
 
 static void printRxRange(uint8_t dumpMask, const rxChannelRangeConfig_t *channelRangeConfigs, const rxChannelRangeConfig_t *defaultChannelRangeConfigs)
 {
@@ -1281,11 +1264,10 @@ static void cliModeColor(char *cmdline)
 }
 #endif
 
-#ifdef USE_SERVOS
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
 {
     // print out servo settings
-    const char *format = "servo %u %d %d %d %d %d ";
+    const char *format = "servo %u %d %d %d %d";
     for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         const servoParam_t *servoConf = &servoParam[i];
         bool equalsDefault = false;
@@ -1294,15 +1276,13 @@ static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const s
             equalsDefault = servoConf->min == servoConfDefault->min
                 && servoConf->max == servoConfDefault->max
                 && servoConf->middle == servoConfDefault->middle
-                && servoConf->rate == servoConfDefault->rate
-                && servoConf->forwardFromChannel == servoConfDefault->forwardFromChannel;
+                && servoConf->rate == servoConfDefault->rate;
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 servoConfDefault->min,
                 servoConfDefault->max,
                 servoConfDefault->middle,
-                servoConfDefault->rate,
-                servoConfDefault->forwardFromChannel
+                servoConfDefault->rate
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -1310,8 +1290,7 @@ static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const s
             servoConf->min,
             servoConf->max,
             servoConf->middle,
-            servoConf->rate,
-            servoConf->forwardFromChannel
+            servoConf->rate
         );
     }
 
@@ -1337,7 +1316,7 @@ static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const s
 
 static void cliServo(char *cmdline)
 {
-    enum { SERVO_ARGUMENT_COUNT = 6 };
+    enum { SERVO_ARGUMENT_COUNT = 5 };
     int16_t arguments[SERVO_ARGUMENT_COUNT];
 
     servoParam_t *servo;
@@ -1375,7 +1354,7 @@ static void cliServo(char *cmdline)
             }
         }
 
-        enum {INDEX = 0, MIN, MAX, MIDDLE, RATE, FORWARD};
+        enum {INDEX = 0, MIN, MAX, MIDDLE, RATE};
 
         i = arguments[INDEX];
 
@@ -1392,8 +1371,7 @@ static void cliServo(char *cmdline)
             arguments[MAX] < PWM_PULSE_MIN || arguments[MAX] > PWM_PULSE_MAX ||
             arguments[MIDDLE] < arguments[MIN] || arguments[MIDDLE] > arguments[MAX] ||
             arguments[MIN] > arguments[MAX] || arguments[MAX] < arguments[MIN] ||
-            arguments[RATE] < -125 || arguments[RATE] > 125 ||
-            arguments[FORWARD] >= MAX_SUPPORTED_RC_CHANNEL_COUNT
+            arguments[RATE] < -125 || arguments[RATE] > 125
         ) {
             cliShowParseError();
             return;
@@ -1403,7 +1381,6 @@ static void cliServo(char *cmdline)
         servo->max = arguments[MAX];
         servo->middle = arguments[MIDDLE];
         servo->rate = arguments[RATE];
-        servo->forwardFromChannel = arguments[FORWARD];
     }
 }
 
@@ -1455,23 +1432,6 @@ static void cliServoMix(char *cmdline)
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
         for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
             servoParamsMutable(i)->reversedSources = 0;
-        }
-    } else if (sl_strncasecmp(cmdline, "load", 4) == 0) {
-        const char *ptr = nextArg(cmdline);
-        if (ptr) {
-            len = strlen(ptr);
-            for (uint32_t i = 0; ; i++) {
-                if (mixerNames[i] == NULL) {
-                    cliPrintLine("Invalid name");
-                    break;
-                }
-                if (sl_strncasecmp(ptr, mixerNames[i], len) == 0) {
-                    servoMixerLoadMix(i);
-                    cliPrintLinef("Loaded %s", mixerNames[i]);
-                    cliServoMix("");
-                    break;
-                }
-            }
         }
     } else if (sl_strncasecmp(cmdline, "reverse", 7) == 0) {
         enum {SERVO = 0, INPUT, REVERSE, ARGS_COUNT};
@@ -1544,7 +1504,6 @@ static void cliServoMix(char *cmdline)
         }
     }
 }
-#endif // USE_SERVOS
 
 #ifdef USE_SDCARD
 
@@ -1696,6 +1655,127 @@ static void cliFlashRead(char *cmdline)
 }
 
 #endif
+#endif
+
+#ifdef USE_OSD
+static void printOsdLayout(uint8_t dumpMask, const osdConfig_t *osdConfig, const osdConfig_t *osdConfigDefault, int layout, int item)
+{
+    // "<layout> <item> <col> <row> <visible>"
+    const char *format = "osd_layout %d %d %d %d %c";
+    for (int ii = 0; ii < OSD_LAYOUT_COUNT; ii++) {
+        if (layout >= 0 && layout != ii) {
+            continue;
+        }
+        const uint16_t *layoutItems = osdConfig->item_pos[ii];
+        const uint16_t *defaultLayoutItems = osdConfigDefault->item_pos[ii];
+        for (int jj = 0; jj < OSD_ITEM_COUNT; jj++) {
+            if (item >= 0 && item != jj) {
+                continue;
+            }
+            bool equalsDefault = layoutItems[jj] == defaultLayoutItems[jj];
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                ii, jj,
+                OSD_X(defaultLayoutItems[jj]),
+                OSD_Y(defaultLayoutItems[jj]),
+                OSD_VISIBLE(defaultLayoutItems[jj]) ? 'V' : 'H');
+
+            cliDumpPrintLinef(dumpMask, equalsDefault, format,
+                ii, jj,
+                OSD_X(layoutItems[jj]),
+                OSD_Y(layoutItems[jj]),
+                OSD_VISIBLE(layoutItems[jj]) ? 'V' : 'H');
+        }
+    }
+}
+
+static void cliOsdLayout(char *cmdline)
+{
+    char * saveptr;
+
+    int layout = -1;
+    int item = -1;
+    int col = 0;
+    int row = 0;
+    bool visible = false;
+    char *tok = strtok_r(cmdline, " ", &saveptr);
+
+    int ii;
+
+    for (ii = 0; tok != NULL; ii++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (ii) {
+            case 0:
+                layout = fastA2I(tok);
+                if (layout < 0 || layout >= OSD_LAYOUT_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 1:
+                item = fastA2I(tok);
+                if (item < 0 || item >= OSD_ITEM_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 2:
+                col = fastA2I(tok);
+                if (col < 0 || col > OSD_X(OSD_POS_MAX)) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 3:
+                row = fastA2I(tok);
+                if (row < 0 || row > OSD_Y(OSD_POS_MAX)) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 4:
+                switch (*tok) {
+                    case 'H':
+                        visible = false;
+                        break;
+                    case 'V':
+                        visible = true;
+                        break;
+                    default:
+                        cliShowParseError();
+                        return;
+                }
+                break;
+            default:
+                cliShowParseError();
+                return;
+        }
+    }
+
+    switch (ii) {
+        case 0:
+            FALLTHROUGH;
+        case 1:
+            FALLTHROUGH;
+        case 2:
+            // No args, or just layout or layout and item. If any of them not provided,
+            // it will be the -1 that we used during initialization, so printOsdLayout()
+            // won't use them for filtering.
+            printOsdLayout(DUMP_MASTER, osdConfig(), osdConfig(), layout, item);
+            break;
+        case 4:
+            // No visibility provided. Keep the previous one.
+            visible = OSD_VISIBLE(osdConfig()->item_pos[layout][item]);
+            FALLTHROUGH;
+        case 5:
+            // Layout, item, pos and visibility. Set the item.
+            osdConfigMutable()->item_pos[layout][item] = OSD_POS(col, row) | (visible ? OSD_VISIBLE_FLAG : 0);
+            break;
+        default:
+            // Unhandled
+            cliShowParseError();
+            return;
+    }
+}
+
 #endif
 
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
@@ -1944,15 +2024,7 @@ static void cliRebootEx(bool bootLoader)
     bufWriterFlush(cliWriter);
     waitForSerialPortToFinishTransmitting(cliPort);
 
-    stopMotors();
-    stopPwmAllMotors();
-
-    delay(1000);
-    if (bootLoader) {
-        systemResetToBootloader();
-        return;
-    }
-    systemReset();
+    fcReboot(bootLoader);
 }
 
 static void cliReboot(void)
@@ -2017,42 +2089,6 @@ static void cliGpsPassthrough(char *cmdline)
 }
 #endif
 
-#ifndef USE_QUAD_MIXER_ONLY
-static void cliMixer(char *cmdline)
-{
-    int len;
-
-    len = strlen(cmdline);
-
-    if (len == 0) {
-        cliPrintLinef("Mixer: %s", mixerNames[mixerConfigMutable()->mixerMode - 1]);
-        return;
-    } else if (sl_strncasecmp(cmdline, "list", len) == 0) {
-        cliPrint("Available mixers: ");
-        for (uint32_t i = 0; ; i++) {
-            if (mixerNames[i] == NULL)
-                break;
-            cliPrintf("%s ", mixerNames[i]);
-        }
-        cliPrintLinefeed();
-        return;
-    }
-
-    for (uint32_t i = 0; ; i++) {
-        if (mixerNames[i] == NULL) {
-            cliPrintLine("Invalid name");
-            return;
-        }
-        if (sl_strncasecmp(cmdline, mixerNames[i], len) == 0) {
-            mixerConfigMutable()->mixerMode = i + 1;
-            break;
-        }
-    }
-
-    cliMixer("");
-}
-#endif
-
 static void cliMotor(char *cmdline)
 {
     int motor_index = 0;
@@ -2096,24 +2132,6 @@ static void cliMotor(char *cmdline)
     }
 
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
-}
-
-static void printName(uint8_t dumpMask, const systemConfig_t * sConfig)
-{
-    bool equalsDefault = strlen(sConfig->name) == 0;
-    cliDumpPrintLinef(dumpMask, equalsDefault, "name %s", equalsDefault ? emptyName : sConfig->name);
-}
-
-static void cliName(char *cmdline)
-{
-    int32_t len = strlen(cmdline);
-    if (len > 0) {
-        memset(systemConfigMutable()->name, 0, ARRAYLEN(systemConfigMutable()->name));
-        if (strncmp(cmdline, emptyName, len)) {
-            strncpy(systemConfigMutable()->name, cmdline, MIN(len, MAX_NAME_LENGTH));
-        }
-    }
-    printName(DUMP_MASTER, systemConfig());
 }
 
 #ifdef PLAY_SOUND
@@ -2179,6 +2197,33 @@ static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
     dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
 }
 
+static void cliBatteryProfile(char *cmdline)
+{
+    // CLI profile index is 1-based
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("battery_profile %d", getConfigBatteryProfile() + 1);
+        return;
+    } else {
+        const int i = fastA2I(cmdline) - 1;
+        if (i >= 0 && i < MAX_PROFILE_COUNT) {
+            setConfigBatteryProfileAndWriteEEPROM(i);
+            cliBatteryProfile("");
+        }
+    }
+}
+
+static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
+{
+    if (profileIndex >= MAX_BATTERY_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    setConfigBatteryProfile(profileIndex);
+    cliPrintHashLine("battery_profile");
+    cliPrintLinef("battery_profile %d\r\n", getConfigBatteryProfile() + 1);
+    dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
+}
+
 static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2207,8 +2252,8 @@ static void cliGet(char *cmdline)
     char name[SETTING_MAX_NAME_LENGTH];
 
     for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-        val = &settingsTable[i];
-        if (setting_name_contains(val, name, cmdline)) {
+        val = settingGet(i);
+        if (settingNameContains(val, name, cmdline)) {
             cliPrintf("%s = ", name);
             cliPrintVar(val, 0);
             cliPrintLinefeed();
@@ -2239,8 +2284,8 @@ static void cliSet(char *cmdline)
     if (len == 0 || (len == 1 && cmdline[0] == '*')) {
         cliPrintLine("Current settings:");
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-            val = &settingsTable[i];
-            setting_get_name(val, name);
+            val = settingGet(i);
+            settingGetName(val, name);
             cliPrintf("%s = ", name);
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
             cliPrintLinefeed();
@@ -2261,19 +2306,23 @@ static void cliSet(char *cmdline)
         }
 
         for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
-            val = &settingsTable[i];
+            val = settingGet(i);
             // ensure exact match when setting to prevent setting variables with shorter names
-            if (setting_name_exact_match(val, name, cmdline, variableNameLength)) {
+            if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
+                const setting_type_e type = SETTING_TYPE(val);
+                if (type == VAR_STRING) {
+                    settingSetString(val, eqptr, strlen(eqptr));
+                    return;
+                }
+                const setting_mode_e mode = SETTING_MODE(val);
                 bool changeValue = false;
                 int_float_value_t tmp = {0};
-                const int mode = SETTING_MODE(val);
-                const int type = SETTING_TYPE(val);
                 switch (mode) {
                 case MODE_DIRECT: {
                         if (*eqptr != 0 && strspn(eqptr, "0123456789.+-") == strlen(eqptr)) {
                             float valuef = fastA2F(eqptr);
                             // note: compare float values
-                            if (valuef >= (float)setting_get_min(val) && valuef <= (float)setting_get_max(val)) {
+                            if (valuef >= (float)settingGetMin(val) && valuef <= (float)settingGetMax(val)) {
 
                                 if (type == VAR_FLOAT)
                                     tmp.float_value = valuef;
@@ -2288,7 +2337,7 @@ static void cliSet(char *cmdline)
                     }
                     break;
                 case MODE_LOOKUP: {
-                        const lookupTableEntry_t *tableEntry = &settingLookupTables[settingsTable[i].config.lookup.tableIndex];
+                        const lookupTableEntry_t *tableEntry = settingLookupTable(val);
                         bool matched = false;
                         for (uint32_t tableValueIndex = 0; tableValueIndex < tableEntry->valueCount && !matched; tableValueIndex++) {
                             matched = sl_strcasecmp(tableEntry->values[tableValueIndex], eqptr) == 0;
@@ -2303,7 +2352,7 @@ static void cliSet(char *cmdline)
                 }
 
                 if (changeValue) {
-                    cliSetVar(val, tmp);
+                    cliSetIntFloatVar(val, tmp);
 
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
@@ -2334,7 +2383,7 @@ static void cliStatus(char *cmdline)
 {
     UNUSED(cmdline);
 
-    char buf[FORMATTED_DATE_TIME_BUFSIZE];
+    char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
@@ -2344,7 +2393,6 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
-#if (FLASH_SIZE > 64)
     const uint32_t detectedSensorsMask = sensorsMask();
 
     for (int i = 0; i < SENSOR_INDEX_COUNT; i++) {
@@ -2384,7 +2432,6 @@ static void cliStatus(char *cmdline)
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
         hardwareSensorStatusNames[getHwGPSStatus()]
     );
-#endif
 
 #ifdef USE_SDCARD
     cliSdInfo(NULL);
@@ -2445,6 +2492,13 @@ static void cliStatus(char *cmdline)
 	if (bitpos > 6) cliPrintf(" %s", armingDisableFlagNames[bitpos - 7]);
     }
     cliPrintLinefeed();
+    if (armingFlags & ARMING_DISABLED_INVALID_SETTING) {
+        unsigned invalidIndex;
+        if (!settingsValidate(&invalidIndex)) {
+            settingGetName(settingGet(invalidIndex), buf);
+            cliPrintLinef("Invalid setting: %s", buf);
+        }
+    }
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
@@ -2493,6 +2547,20 @@ static void cliVersion(char *cmdline)
         buildTime,
         shortGitRevision
     );
+}
+
+static void cliMemory(char *cmdline)
+{
+    UNUSED(cmdline);
+    cliPrintLinef("Dynamic memory usage:");
+    for (unsigned i = 0; i < OWNER_TOTAL_COUNT; i++) {
+        const char * owner = ownerNames[i];
+        const uint32_t memUsed = memGetUsedBytesByOwner(i);
+
+        if (memUsed) {
+            cliPrintLinef("%s : %d bytes", owner, memUsed);
+        }
+    }
 }
 
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
@@ -2547,6 +2615,8 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = DUMP_MASTER; // only
     } else if ((options = checkCommand(cmdline, "profile"))) {
         dumpMask = DUMP_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "battery_profile"))) {
+        dumpMask = DUMP_BATTERY_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -2558,11 +2628,13 @@ static void printConfig(const char *cmdline, bool doDiff)
     }
 
     const int currentProfileIndexSave = getConfigProfile();
+    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
     setConfigProfile(currentProfileIndexSave);
+    setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -2583,18 +2655,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
-#ifndef USE_QUAD_MIXER_ONLY
         cliPrintHashLine("mixer");
-        const bool equalsDefault = mixerConfig_Copy.mixerMode == mixerConfig()->mixerMode;
-        const char *formatMixer = "mixer %s";
-        cliDefaultPrintLinef(dumpMask, equalsDefault, formatMixer, mixerNames[mixerConfig()->mixerMode - 1]);
-        cliDumpPrintLinef(dumpMask, equalsDefault, formatMixer, mixerNames[mixerConfig_Copy.mixerMode - 1]);
-
         cliDumpPrintLinef(dumpMask, customMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
 
         printMotorMix(dumpMask, customMotorMixer_CopyArray, customMotorMixer(0));
 
-#ifdef USE_SERVOS
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
         cliDumpPrintLinef(dumpMask, customServoMixers(0)->rate == 0, "smix reset\r\n");
@@ -2603,8 +2668,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         // print servo parameters
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
-#endif
-#endif
 
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
@@ -2616,9 +2679,6 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
-
-        cliPrintHashLine("name");
-        printName(dumpMask, &systemConfig_Copy);
 
         cliPrintHashLine("serial");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
@@ -2643,28 +2703,45 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
+#ifdef USE_OSD
+        cliPrintHashLine("osd_layout");
+        printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
+#endif
+
         cliPrintHashLine("master");
         dumpAllValues(MASTER_VALUE, dumpMask);
 
         if (dumpMask & DUMP_ALL) {
             // dump all profiles
             const int currentProfileIndexSave = getConfigProfile();
+            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
                 cliDumpProfile(ii, dumpMask);
             }
+            for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
+                cliDumpBatteryProfile(ii, dumpMask);
+            }
             setConfigProfile(currentProfileIndexSave);
+            setConfigBatteryProfile(currentBatteryProfileIndexSave);
+
             cliPrintHashLine("restore original profile selection");
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
+            cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
             cliPrintHashLine("save configuration\r\nsave");
         } else {
-            // dump just the current profile
+            // dump just the current profiles
             cliDumpProfile(getConfigProfile(), dumpMask);
+            cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
         }
     }
 
     if (dumpMask & DUMP_PROFILE) {
         cliDumpProfile(getConfigProfile(), dumpMask);
+    }
+
+    if (dumpMask & DUMP_BATTERY_PROFILE) {
+        cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
     }
     // restore configs from copies
     restoreConfigs();
@@ -2728,9 +2805,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("defaults", "reset to defaults and reboot", NULL, cliDefaults),
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
-        "[master|profile|rates|all] {showdefaults}", cliDiff),
+        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDiff),
     CLI_COMMAND_DEF("dump", "dump configuration",
-        "[master|profile|rates|all] {showdefaults}", cliDump),
+        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
@@ -2755,19 +2832,16 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
-#ifndef USE_QUAD_MIXER_ONLY
-    CLI_COMMAND_DEF("mixer", "configure mixer",
-        "list\r\n"
-        "\t<name>", cliMixer),
+    CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
-#endif
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
-    CLI_COMMAND_DEF("name", "name of craft", NULL, cliName),
 #ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
 #endif
     CLI_COMMAND_DEF("profile", "change profile",
         "[<index>]", cliProfile),
+    CLI_COMMAND_DEF("battery_profile", "change battery profile",
+        "[<index>]", cliBatteryProfile),
 #if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
 #endif
@@ -2777,17 +2851,13 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_SERIAL_PASSTHROUGH
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] : passthrough to serial", cliSerialPassthrough),
 #endif
-#ifdef USE_SERVOS
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
-#endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
-#ifdef USE_SERVOS
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed>\r\n"
         "\treset\r\n"
         "\tload <mixer>\r\n"
         "\treverse <servo> <source> r|n", cliServoMix),
-#endif
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
@@ -2796,6 +2866,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
+#ifdef USE_OSD
+    CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
+#endif
 };
 
 static void cliHelp(char *cmdline)
@@ -2927,6 +3000,10 @@ void cliProcess(void)
 
 void cliEnter(serialPort_t *serialPort)
 {
+    if (cliMode) {
+        return;
+    }
+
     cliMode = 1;
     cliPort = serialPort;
     setPrintfSerialPort(cliPort);
@@ -2945,4 +3022,3 @@ void cliInit(const serialConfig_t *serialConfig)
 {
     UNUSED(serialConfig);
 }
-#endif // USE_CLI

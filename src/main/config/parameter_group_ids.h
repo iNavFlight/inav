@@ -19,7 +19,7 @@
 #define PG_CF_START 1
 #define PG_FAILSAFE_CONFIG 1
 #define PG_BOARD_ALIGNMENT 2
-#define PG_GIMBAL_CONFIG 3
+// #define PG_GIMBAL_CONFIG 3 Not used since 2.0
 #define PG_MOTOR_MIXER 4
 #define PG_BLACKBOX_CONFIG 5
 #define PG_MOTOR_CONFIG 6
@@ -27,7 +27,7 @@
 //#define PG_SENSOR_ALIGNMENT_CONFIG 8 -- NOT USED in iNav
 //#define PG_SENSOR_TRIMS 9 -- NOT USED in iNav
 #define PG_GYRO_CONFIG 10
-#define PG_BATTERY_CONFIG 11
+#define PG_BATTERY_PROFILES 11
 #define PG_CONTROL_RATE_PROFILES 12
 #define PG_SERIAL_CONFIG 13
 #define PG_PID_PROFILE 14
@@ -63,6 +63,7 @@
 #define PG_SERVO_PARAMS 42
 //#define PG_RX_FAILSAFE_CHANNEL_CONFIG 43
 #define PG_RX_CHANNEL_RANGE_CONFIG 44
+#define PG_BATTERY_METERS_CONFIG 45
 //#define PG_MODE_COLOR_CONFIG 45
 //#define PG_SPECIAL_COLOR_CONFIG 46
 //#define PG_PILOT_CONFIG 47
@@ -79,6 +80,9 @@
 // Driver configuration
 //#define PG_DRIVER_PWM_RX_CONFIG 100
 //#define PG_DRIVER_FLASHCHIP_CONFIG 101
+
+// cleanflight v2 specific parameter group ids start at 256
+#define PG_VTX_SETTINGS_CONFIG 259
 
 // iNav specific parameter group ids start at 1000
 #define PG_INAV_START 1000
@@ -108,4 +112,8 @@
 #define PG_RESERVED_FOR_TESTING_1 4095
 #define PG_RESERVED_FOR_TESTING_2 4094
 #define PG_RESERVED_FOR_TESTING_3 4093
+
+#define PG_ID_INVALID   0
+#define PG_ID_FIRST     PG_CF_START
+#define PG_ID_LAST      PG_INAV_END
 

@@ -40,7 +40,7 @@
 #include "rx/rx.h"
 
 #include "telemetry/telemetry.h"
-#include "telemetry/frsky.h"
+#include "telemetry/frsky_d.h"
 #include "telemetry/hott.h"
 #include "telemetry/smartport.h"
 #include "telemetry/ltm.h"
@@ -97,7 +97,7 @@ void telemetryInit(void)
     initIbusTelemetry();
 #endif
 
-#if defined(USE_TELEMETRY_CRSF)
+#if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     initCrsfTelemetry();
 #endif
 
@@ -155,7 +155,7 @@ void telemetryCheckState(void)
     checkIbusTelemetryState();
 #endif
 
-#if defined(USE_TELEMETRY_CRSF)
+#if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     checkCrsfTelemetryState();
 #endif
 }
@@ -192,7 +192,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleIbusTelemetry();
 #endif
 
-#if defined(USE_TELEMETRY_CRSF)
+#if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     handleCrsfTelemetry(currentTimeUs);
 #endif
 }

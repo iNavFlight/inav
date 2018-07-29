@@ -26,6 +26,7 @@
 
 extern "C" {
     #include "common/maths.h"
+    #include "common/vector.h"
 }
 
 #include "unittest_macros.h"
@@ -118,33 +119,37 @@ TEST(MathsUnittest, TestApplyDeadband)
     EXPECT_EQ(applyDeadband(-11, 10), -1);
 }
 
-void expectVectorsAreEqual(struct fp_vector *a, struct fp_vector *b)
+void expectVectorsAreEqual(fpVector3_t *a, fpVector3_t *b)
 {
-    EXPECT_FLOAT_EQ(a->X, b->X);
-    EXPECT_FLOAT_EQ(a->Y, b->Y);
-    EXPECT_FLOAT_EQ(a->Z, b->Z);
+    EXPECT_FLOAT_EQ(a->x, b->x);
+    EXPECT_FLOAT_EQ(a->y, b->y);
+    EXPECT_FLOAT_EQ(a->z, b->z);
 }
 
 TEST(MathsUnittest, TestRotateVectorWithNoAngle)
 {
-    fp_vector vector = {1.0f, 0.0f, 0.0f};
+    fpVector3_t vector = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     fp_angles_t euler_angles = {.raw={0.0f, 0.0f, 0.0f}};
 
-    rotateV(&vector, &euler_angles);
-    fp_vector expected_result = {1.0f, 0.0f, 0.0f};
+    fpMat3_t rmat;
+    rotationMatrixFromAngles(&rmat, &euler_angles);
+    rotationMatrixRotateVector(&vector, &vector, &rmat);
 
+    fpVector3_t expected_result = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     expectVectorsAreEqual(&vector, &expected_result);
 }
 
 TEST(MathsUnittest, TestRotateVectorAroundAxis)
 {
     // Rotate a vector <1, 0, 0> around an each axis x y and z.
-    fp_vector vector = {1.0f, 0.0f, 0.0f};
+    fpVector3_t vector = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     fp_angles_t euler_angles = {.raw={90.0f, 0.0f, 0.0f}};
 
-    rotateV(&vector, &euler_angles);
-    fp_vector expected_result = {1.0f, 0.0f, 0.0f};
+    fpMat3_t rmat;
+    rotationMatrixFromAngles(&rmat, &euler_angles);
+    rotationMatrixRotateVector(&vector, &vector, &rmat);
 
+    fpVector3_t expected_result = { .x = 1.0f, .y = 0.0f, .z = 0.0f};
     expectVectorsAreEqual(&vector, &expected_result);
 }
 

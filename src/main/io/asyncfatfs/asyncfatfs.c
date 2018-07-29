@@ -2605,7 +2605,7 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
 
                 memcpy(entry->filename, opState->filename, FAT_FILENAME_LENGTH);
                 entry->attrib = file->attrib;
-                if (rtcGetDateTime(&now)) {
+                if (rtcGetDateTimeLocal(&now)) {
                     entry->creationDate = FAT_MAKE_DATE(now.year, now.month, now.day);
                     entry->creationTime = FAT_MAKE_TIME(now.hours, now.minutes, now.seconds);
                 } else {

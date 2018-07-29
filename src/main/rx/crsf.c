@@ -257,7 +257,7 @@ void crsfRxSendTelemetryData(void)
 bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     for (int ii = 0; ii < CRSF_MAX_CHANNEL; ++ii) {
-        crsfChannelData[ii] = (16 * rxConfig->midrc) / 10 - 1408;
+        crsfChannelData[ii] = (16 * PWM_RANGE_MIDDLE) / 10 - 1408;
     }
 
     rxRuntimeConfig->channelCount = CRSF_MAX_CHANNEL;

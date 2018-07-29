@@ -28,10 +28,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
-
-#ifdef USE_SERVOS
 #include "flight/servos.h"
-#endif
 
 #include "io/osd.h"
 #include "io/ledstrip.h"

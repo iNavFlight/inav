@@ -1,27 +1,31 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <ctype.h>
 #include <string.h>
 
 #include "platform.h"
 
-#if defined(USE_CMS) && defined(VTX_SMARTAUDIO)
+#if defined(USE_CMS) && defined(USE_VTX_SMARTAUDIO)
 
 #include "common/printf.h"
 #include "common/utils.h"
@@ -36,6 +40,7 @@
 
 #include "io/vtx_string.h"
 #include "io/vtx_smartaudio.h"
+#include "io/vtx.h"
 
 // Interface to CMS
 
@@ -65,8 +70,10 @@ uint16_t saCmsDeviceFreq = 0;
 
 uint8_t  saCmsDeviceStatus = 0;
 uint8_t  saCmsPower;
-uint8_t  saCmsPitFMode;         // In-Range or Out-Range
+uint8_t  saCmsPitFMode;          // Undef(0), In-Range(1) or Out-Range(2)
+
 uint8_t  saCmsFselMode;          // Channel(0) or User defined(1)
+uint8_t  saCmsFselModeNew;       // Channel(0) or User defined(1)
 
 uint16_t saCmsORFreq = 0;       // POR frequency
 uint16_t saCmsORFreqNew;        // POR frequency
@@ -74,43 +81,32 @@ uint16_t saCmsORFreqNew;        // POR frequency
 uint16_t saCmsUserFreq = 0;     // User defined frequency
 uint16_t saCmsUserFreqNew;      // User defined frequency
 
-void saCmsUpdate(void)
-{
-// XXX Take care of pit mode update somewhere???
-
-    if (saCmsOpmodel == SACMS_OPMODEL_UNDEF) {
-        // This is a first valid response to GET_SETTINGS.
-        saCmsOpmodel = (saDevice.mode & SA_MODE_GET_PITMODE) ? SACMS_OPMODEL_RACE : SACMS_OPMODEL_FREE;
-
-        saCmsFselMode = (saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ) ? 1 : 0;
-
-        saCmsBand = (saDevice.channel / 8) + 1;
-        saCmsChan = (saDevice.channel % 8) + 1;
-        saCmsFreqRef = vtx58frequencyTable[saDevice.channel / 8][saDevice.channel % 8];
-
-        saCmsDeviceFreq = vtx58frequencyTable[saDevice.channel / 8][saDevice.channel % 8];
-
-        if ((saDevice.mode & SA_MODE_GET_PITMODE) == 0) {
-            saCmsRFState = SACMS_TXMODE_ACTIVE;
-        } else if (saDevice.mode & SA_MODE_GET_IN_RANGE_PITMODE) {
-            saCmsRFState = SACMS_TXMODE_PIT_INRANGE;
-        } else {
-            saCmsRFState = SACMS_TXMODE_PIT_OUTRANGE;
-        }
-
-        if (saDevice.version == 2) {
-            saCmsPower = saDevice.power + 1; // XXX Take care V1
-        } else {
-            saCmsPower = saDacToPowerIndex(saDevice.power) + 1;
-        }
-    }
-}
-
 static long saCmsConfigOpmodelByGvar(displayPort_t *, const void *self);
 static long saCmsConfigPitFModeByGvar(displayPort_t *, const void *self);
 static long saCmsConfigBandByGvar(displayPort_t *, const void *self);
 static long saCmsConfigChanByGvar(displayPort_t *, const void *self);
 static long saCmsConfigPowerByGvar(displayPort_t *, const void *self);
+
+static bool saCmsUpdateCopiedState(void)
+{
+    if (saDevice.version == 0)
+        return false;
+
+    if (saCmsDeviceStatus == 0 && saDevice.version != 0)
+        saCmsDeviceStatus = saDevice.version;
+    if (saCmsORFreq == 0 && saDevice.orfreq != 0)
+        saCmsORFreq = saDevice.orfreq;
+    if (saCmsUserFreq == 0 && saDevice.freq != 0)
+        saCmsUserFreq = saDevice.freq;
+
+    if (saDevice.version == 2) {
+        if (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE)
+            saCmsPitFMode = 1;
+        else
+            saCmsPitFMode = 0;
+    }
+    return true;
+}
 
 static bool saCmsDrawStatusString(char *buf, unsigned bufsize)
 {
@@ -124,21 +120,10 @@ static bool saCmsDrawStatusString(char *buf, unsigned bufsize)
 
     strcpy(buf, defaultString);
 
-    if (saDevice.version == 0)
+    if (!saCmsUpdateCopiedState()) {
+        // VTX is not ready
         return true;
-
-    // XXX These should be done somewhere else
-    if (saCmsDeviceStatus == 0 && saDevice.version != 0)
-        saCmsDeviceStatus = saDevice.version;
-    if (saCmsORFreq == 0 && saDevice.orfreq != 0)
-        saCmsORFreq = saDevice.orfreq;
-    if (saCmsUserFreq == 0 && saDevice.freq != 0)
-        saCmsUserFreq = saDevice.freq;
-
-    if (saDevice.mode & SA_MODE_GET_OUT_RANGE_PITMODE)
-        saCmsPitFMode = 1;
-    else
-        saCmsPitFMode = 0;
+    }
 
     buf[0] = "-FR"[saCmsOpmodel];
 
@@ -174,6 +159,47 @@ static bool saCmsDrawStatusString(char *buf, unsigned bufsize)
         tfp_sprintf(&buf[10], "%3d", (saDevice.version == 2) ?  saPowerTable[saDevice.power].rfpower : saPowerTable[saDacToPowerIndex(saDevice.power)].rfpower);
     }
     return true;
+}
+
+void saCmsUpdate(void)
+{
+// XXX Take care of pit mode update somewhere???
+    if (saCmsOpmodel == SACMS_OPMODEL_UNDEF) {
+        // This is a first valid response to GET_SETTINGS.
+        saCmsOpmodel = (saDevice.mode & SA_MODE_GET_PITMODE) ? SACMS_OPMODEL_RACE : SACMS_OPMODEL_FREE;
+
+        saCmsFselMode = (saDevice.mode & SA_MODE_GET_FREQ_BY_FREQ) ? 1 : 0;
+
+        saCmsBand = vtxSettingsConfig()->band;
+        saCmsChan = vtxSettingsConfig()->channel;
+        saCmsFreqRef = vtxSettingsConfig()->freq;
+        saCmsDeviceFreq = saCmsFreqRef;
+
+        if ((saDevice.mode & SA_MODE_GET_PITMODE) == 0) {
+            saCmsRFState = SACMS_TXMODE_ACTIVE;
+        } else if (saDevice.mode & SA_MODE_GET_IN_RANGE_PITMODE) {
+            saCmsRFState = SACMS_TXMODE_PIT_INRANGE;
+        } else {
+            saCmsRFState = SACMS_TXMODE_PIT_OUTRANGE;
+        }
+
+        saCmsPower = vtxSettingsConfig()->power;
+
+        // if user-freq mode then track possible change
+        if (saCmsFselMode && vtxSettingsConfig()->freq) {
+            saCmsUserFreq = vtxSettingsConfig()->freq;
+        }
+
+        saCmsFselModeNew = saCmsFselMode;   //init mode for menu
+    }
+
+    saCmsUpdateCopiedState();
+}
+
+void saCmsResetOpmodel()
+{
+    // trigger data refresh in 'saCmsUpdate()'
+    saCmsOpmodel = SACMS_OPMODEL_UNDEF;
 }
 
 static long saCmsConfigBandByGvar(displayPort_t *pDisp, const void *self)
@@ -243,8 +269,9 @@ static long saCmsConfigPowerByGvar(displayPort_t *pDisp, const void *self)
         return 0;
     }
 
-    if (saCmsOpmodel == SACMS_OPMODEL_FREE)
-        saSetPowerByIndex(saCmsPower - 1);
+    if (saCmsOpmodel == SACMS_OPMODEL_FREE && !saDeferred) {
+        vtxSettingsConfigMutable()->power = saCmsPower;
+    }
 
     return 0;
 }
@@ -254,9 +281,21 @@ static long saCmsConfigPitFModeByGvar(displayPort_t *pDisp, const void *self)
     UNUSED(pDisp);
     UNUSED(self);
 
+    if (saDevice.version == 1) {
+        // V1 device doesn't support PIT mode; bounce back.
+        saCmsPitFMode = 0;
+        return 0;
+    }
+
     dprintf(("saCmsConfigPitFmodeByGbar: saCmsPitFMode %d\r\n", saCmsPitFMode));
 
     if (saCmsPitFMode == 0) {
+        // Bounce back
+        saCmsPitFMode = 1;
+        return 0;
+    }
+
+    if (saCmsPitFMode == 1) {
         saSetMode(SA_MODE_SET_IN_RANGE_PITMODE);
     } else {
         saSetMode(SA_MODE_SET_OUT_RANGE_PITMODE);
@@ -271,6 +310,12 @@ static long saCmsConfigOpmodelByGvar(displayPort_t *pDisp, const void *self)
 {
     UNUSED(pDisp);
     UNUSED(self);
+
+    if (saDevice.version == 1) {
+        if (saCmsOpmodel != SACMS_OPMODEL_FREE)
+            saCmsOpmodel = SACMS_OPMODEL_FREE;
+        return 0;
+    }
 
     uint8_t opmodel = saCmsOpmodel;
 
@@ -288,7 +333,7 @@ static long saCmsConfigOpmodelByGvar(displayPort_t *pDisp, const void *self)
         saCmsConfigPitFModeByGvar(pDisp, self);
 
         // Direct frequency mode is not available in RACE opmodel
-        saCmsFselMode = 0;
+        saCmsFselModeNew = 0;
         saCmsConfigFreqModeByGvar(pDisp, self);
     } else {
         // Trying to go back to unknown state; bounce back
@@ -298,6 +343,7 @@ static long saCmsConfigOpmodelByGvar(displayPort_t *pDisp, const void *self)
     return 0;
 }
 
+#ifdef USE_EXTENDED_CMS_MENUS
 static const char * const saCmsDeviceStatusNames[] = {
     "OFFL",
     "ONL V1",
@@ -332,20 +378,13 @@ static const CMS_Menu saCmsMenuStats = {
     .onGlobalExit = NULL,
     .entries = saCmsMenuStatsEntries
 };
+#endif /* USE_EXTENDED_CMS_MENUS */
 
-static const OSD_TAB_t saCmsEntBand = { &saCmsBand, 5, vtx58BandNames };
+static const OSD_TAB_t saCmsEntBand = { &saCmsBand, VTX_SMARTAUDIO_BAND_COUNT, vtx58BandNames };
 
-static const OSD_TAB_t saCmsEntChan = { &saCmsChan, 8, vtx58ChannelNames };
+static const OSD_TAB_t saCmsEntChan = { &saCmsChan, VTX_SMARTAUDIO_CHANNEL_COUNT, vtx58ChannelNames };
 
-static const char * const saCmsPowerNames[] = {
-    "---",
-    "25 ",
-    "200",
-    "500",
-    "800",
-};
-
-static const OSD_TAB_t saCmsEntPower = { &saCmsPower, 4, saCmsPowerNames};
+static const OSD_TAB_t saCmsEntPower = { &saCmsPower, VTX_SMARTAUDIO_POWER_COUNT, saPowerNames};
 
 static const char * const saCmsOpmodelNames[] = {
     "----",
@@ -359,33 +398,30 @@ static const char * const saCmsFselModeNames[] = {
 };
 
 static const char * const saCmsPitFModeNames[] = {
+    "---",
     "PIR",
     "POR"
 };
 
 static const OSD_TAB_t saCmsEntPitFMode = { &saCmsPitFMode, 1, saCmsPitFModeNames };
 
-static long sacms_SetupTopMenu(void); // Forward
+static long sacms_SetupTopMenu(const OSD_Entry *from); // Forward
 
 static long saCmsConfigFreqModeByGvar(displayPort_t *pDisp, const void *self)
 {
     UNUSED(pDisp);
     UNUSED(self);
 
-    if (saCmsFselMode == 0) {
-        // CHAN
-        saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-    } else {
-        // USER: User frequency mode is only available in FREE opmodel.
-        if (saCmsOpmodel == SACMS_OPMODEL_FREE) {
-            saSetFreq(saCmsUserFreq);
-        } else {
-            // Bounce back
-            saCmsFselMode = 0;
-        }
+    // if trying to do user frequency mode in RACE opmodel then
+    // revert because user-freq only available in FREE opmodel
+    if (saCmsFselModeNew != 0 && saCmsOpmodel != SACMS_OPMODEL_FREE) {
+        saCmsFselModeNew = 0;
     }
 
-    sacms_SetupTopMenu();
+    // don't call 'saSetBandAndChannel()' / 'saSetFreq()' here,
+    // wait until SET / 'saCmsCommence()' is activated
+
+    sacms_SetupTopMenu(NULL);
 
     return 0;
 }
@@ -395,12 +431,22 @@ static long saCmsCommence(displayPort_t *pDisp, const void *self)
     UNUSED(pDisp);
     UNUSED(self);
 
+    const vtxSettingsConfig_t prevSettings = {
+        .band = vtxSettingsConfig()->band,
+        .channel = vtxSettingsConfig()->channel,
+        .freq = vtxSettingsConfig()->freq,
+        .power = vtxSettingsConfig()->power,
+        .lowPowerDisarm = vtxSettingsConfig()->lowPowerDisarm,
+    };
+    vtxSettingsConfig_t newSettings = prevSettings;
+
     if (saCmsOpmodel == SACMS_OPMODEL_RACE) {
         // Race model
         // Setup band, freq and power.
 
-        saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-
+        newSettings.band = saCmsBand;
+        newSettings.channel = saCmsChan;
+        newSettings.freq = vtx58_Bandchan2Freq(saCmsBand, saCmsChan);
         // If in pit mode, cancel it.
 
         if (saCmsPitFMode == 0)
@@ -410,19 +456,37 @@ static long saCmsCommence(displayPort_t *pDisp, const void *self)
     } else {
         // Freestyle model
         // Setup band and freq / user freq
-        if (saCmsFselMode == 0)
-            saSetBandAndChannel(saCmsBand - 1, saCmsChan - 1);
-        else
-            saSetFreq(saCmsUserFreq);
+        if (saCmsFselModeNew == 0) {
+            newSettings.band = saCmsBand;
+            newSettings.channel = saCmsChan;
+            newSettings.freq = vtx58_Bandchan2Freq(saCmsBand, saCmsChan);
+        } else {
+            saSetMode(0);    //make sure FREE mode is setup
+            newSettings.band = 0;
+            newSettings.freq = saCmsUserFreq;
+        }
     }
 
-    saSetPowerByIndex(saCmsPower - 1);
+    newSettings.power = saCmsPower;
+
+    if (memcmp(&prevSettings, &newSettings, sizeof(vtxSettingsConfig_t))) {
+        vtxSettingsConfigMutable()->band = newSettings.band;
+        vtxSettingsConfigMutable()->channel = newSettings.channel;
+        vtxSettingsConfigMutable()->power = newSettings.power;
+        vtxSettingsConfigMutable()->freq = newSettings.freq;
+        saveConfigAndNotify();
+    }
 
     return MENU_CHAIN_BACK;
 }
 
-static long saCmsSetPORFreqOnEnter(void)
+static long saCmsSetPORFreqOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
+    if (saDevice.version == 1)
+        return MENU_CHAIN_BACK;
+
     saCmsORFreqNew = saCmsORFreq;
 
     return 0;
@@ -433,7 +497,7 @@ static long saCmsSetPORFreq(displayPort_t *pDisp, const void *self)
     UNUSED(pDisp);
     UNUSED(self);
 
-    saSetFreq(saCmsORFreqNew|SA_FREQ_SETPIT);
+    saSetPitFreq(saCmsORFreqNew);
 
     return 0;
 }
@@ -456,8 +520,10 @@ static char *saCmsUserFreqGetString(void)
     return pbuf;
 }
 
-static long saCmsSetUserFreqOnEnter(void)
+static long saCmsSetUserFreqOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     saCmsUserFreqNew = saCmsUserFreq;
 
     return 0;
@@ -469,7 +535,6 @@ static long saCmsConfigUserFreq(displayPort_t *pDisp, const void *self)
     UNUSED(self);
 
     saCmsUserFreq = saCmsUserFreqNew;
-    //saSetFreq(saCmsUserFreq);
 
     return MENU_CHAIN_BACK;
 }
@@ -522,17 +587,19 @@ static const CMS_Menu saCmsMenuUserFreq =
     .entries = saCmsMenuUserFreqEntries,
 };
 
-static const OSD_TAB_t saCmsEntFselMode = { &saCmsFselMode, 1, saCmsFselModeNames };
+static const OSD_TAB_t saCmsEntFselMode = { &saCmsFselModeNew, 1, saCmsFselModeNames };
 
 static const OSD_Entry saCmsMenuConfigEntries[] =
 {
     OSD_LABEL_ENTRY("- SA CONFIG -"),
 
-    { "OP MODEL",  OME_TAB,     saCmsConfigOpmodelByGvar,              &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
-    { "FSEL MODE", OME_TAB,     saCmsConfigFreqModeByGvar,             &saCmsEntFselMode,                                   DYNAMIC },
+    { "OP MODEL",  OME_TAB,  {.func = saCmsConfigOpmodelByGvar}, &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
+    { "FSEL MODE", OME_TAB,  {.func = saCmsConfigFreqModeByGvar}, &saCmsEntFselMode, DYNAMIC },
     OSD_TAB_CALLBACK_ENTRY("PIT FMODE", saCmsConfigPitFModeByGvar, &saCmsEntPitFMode),
-    { "POR FREQ",  OME_Submenu, (CMSEntryFuncPtr)saCmsORFreqGetString, (void *)&saCmsMenuPORFreq,                                   OPTSTRING },
+    { "POR FREQ",  OME_Submenu, {.menufunc = saCmsORFreqGetString}, (void *)&saCmsMenuPORFreq, OPTSTRING },
+#ifdef USE_EXTENDED_CMS_MENUS
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
+#endif /* USE_EXTENDED_CMS_MENUS */
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -569,12 +636,17 @@ static const CMS_Menu saCmsMenuCommence = {
     .entries = saCmsMenuCommenceEntries,
 };
 
+#pragma GCC diagnostic push
+#if (__GNUC__ > 7)
+    // This is safe on 32bit platforms, suppress warning for saCmsUserFreqGetString
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 static const OSD_Entry saCmsMenuFreqModeEntries[] =
 {
     OSD_LABEL_ENTRY("- SMARTAUDIO -"),
 
     OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
-    { "FREQ",   OME_Submenu, (CMSEntryFuncPtr)saCmsUserFreqGetString,  &saCmsMenuUserFreq, OPTSTRING },
+    { "FREQ",   OME_Submenu, {.menufunc = saCmsUserFreqGetString},  &saCmsMenuUserFreq, OPTSTRING },
     OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
@@ -582,6 +654,7 @@ static const OSD_Entry saCmsMenuFreqModeEntries[] =
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
+#pragma GCC diagnostic pop
 
 static const OSD_Entry saCmsMenuChanModeEntries[] =
 {
@@ -592,7 +665,7 @@ static const OSD_Entry saCmsMenuChanModeEntries[] =
     OSD_TAB_CALLBACK_ENTRY("CHAN", saCmsConfigChanByGvar, &saCmsEntChan),
     OSD_UINT16_RO_ENTRY("(FREQ)", &saCmsFreqRef),
     OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
-    OSD_SUBMENU_ENTRY("SET",  &saCmsMenuCommence),
+    OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
 
     OSD_BACK_ENTRY,
@@ -604,7 +677,9 @@ static const OSD_Entry saCmsMenuOfflineEntries[] =
     OSD_LABEL_ENTRY("- VTX SMARTAUDIO -"),
 
     OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
+#ifdef USE_EXTENDED_CMS_MENUS
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
+#endif /* USE_EXTENDED_CMS_MENUS */
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
@@ -612,10 +687,12 @@ static const OSD_Entry saCmsMenuOfflineEntries[] =
 
 CMS_Menu cmsx_menuVtxSmartAudio; // Forward
 
-static long sacms_SetupTopMenu(void)
+static long sacms_SetupTopMenu(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     if (saCmsDeviceStatus) {
-        if (saCmsFselMode == 0)
+        if (saCmsFselModeNew == 0)
             cmsx_menuVtxSmartAudio.entries = saCmsMenuChanModeEntries;
         else
             cmsx_menuVtxSmartAudio.entries = saCmsMenuFreqModeEntries;

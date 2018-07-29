@@ -73,5 +73,3 @@ More can be read about this procedure here: http://www.multiwii.com/forum/viewto
 ## Connections
 
 Connect +5v, Ground, I2C SDA and I2C SCL from the flight controller to the display.
-
-On Naze32 rev 5 boards the SDA and SCL pads are underneath the board.

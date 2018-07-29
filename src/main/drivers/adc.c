@@ -51,9 +51,13 @@
 
 #ifdef USE_ADC
 
+#if defined(USE_ADC_AVERAGING)
+static uint8_t activeChannelCount[ADCDEV_COUNT] = {0};
+#endif
+
 static int adcFunctionMap[ADC_FUNCTION_COUNT];
 adc_config_t adcConfig[ADC_CHN_COUNT];  // index 0 is dummy for ADC_CHN_NONE
-volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT];
+volatile uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES];
 
 uint8_t adcChannelByTag(ioTag_t ioTag)
 {
@@ -82,7 +86,15 @@ uint16_t adcGetChannel(uint8_t function)
         return 0;
 
     if (adcConfig[channel].adcDevice != ADCINVALID && adcConfig[channel].enabled) {
+#if !defined(USE_ADC_AVERAGING)
         return adcValues[adcConfig[channel].adcDevice][adcConfig[channel].dmaIndex];
+#else
+        uint32_t acc = 0;
+        for (int i = 0; i < ADC_AVERAGE_N_SAMPLES; i++) {
+            acc += adcValues[adcConfig[channel].adcDevice][adcConfig[channel].dmaIndex + i * activeChannelCount[adcConfig[channel].adcDevice]];
+        }
+        return acc / ADC_AVERAGE_N_SAMPLES;
+#endif
     } else {
         return 0;
     }
@@ -128,6 +140,9 @@ void adcInit(drv_adc_config_t *init)
         adcConfig[ADC_CHN_1].adcDevice = adcDeviceByInstance(ADC_CHANNEL_1_INSTANCE);
         if (adcConfig[ADC_CHN_1].adcDevice != ADCINVALID) {
             adcConfig[ADC_CHN_1].tag = IO_TAG(ADC_CHANNEL_1_PIN);
+#if defined(USE_ADC_AVERAGING)
+            activeChannelCount[adcConfig[ADC_CHN_1].adcDevice] += 1;
+#endif
         }
     }
 #else
@@ -139,6 +154,9 @@ void adcInit(drv_adc_config_t *init)
         adcConfig[ADC_CHN_2].adcDevice = adcDeviceByInstance(ADC_CHANNEL_2_INSTANCE);
         if (adcConfig[ADC_CHN_2].adcDevice != ADCINVALID) {
             adcConfig[ADC_CHN_2].tag = IO_TAG(ADC_CHANNEL_2_PIN);
+#if defined(USE_ADC_AVERAGING)
+            activeChannelCount[adcConfig[ADC_CHN_2].adcDevice] += 1;
+#endif
         }
     }
 #else
@@ -150,6 +168,9 @@ void adcInit(drv_adc_config_t *init)
         adcConfig[ADC_CHN_3].adcDevice = adcDeviceByInstance(ADC_CHANNEL_3_INSTANCE);
         if (adcConfig[ADC_CHN_3].adcDevice != ADCINVALID) {
             adcConfig[ADC_CHN_3].tag = IO_TAG(ADC_CHANNEL_3_PIN);
+#if defined(USE_ADC_AVERAGING)
+            activeChannelCount[adcConfig[ADC_CHN_3].adcDevice] += 1;
+#endif
         }
     }
 #else
@@ -161,6 +182,9 @@ void adcInit(drv_adc_config_t *init)
         adcConfig[ADC_CHN_4].adcDevice = adcDeviceByInstance(ADC_CHANNEL_4_INSTANCE);
         if (adcConfig[ADC_CHN_4].adcDevice != ADCINVALID) {
             adcConfig[ADC_CHN_4].tag = IO_TAG(ADC_CHANNEL_4_PIN);
+#if defined(USE_ADC_AVERAGING)
+            activeChannelCount[adcConfig[ADC_CHN_4].adcDevice] += 1;
+#endif
         }
     }
 #else

@@ -78,6 +78,7 @@ typedef struct displayPortVTable_s {
     int (*screenSize)(const displayPort_t *displayPort);
     int (*writeString)(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *text, textAttributes_t attr);
     int (*writeChar)(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr);
+    bool (*readChar)(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t *c, textAttributes_t *attr);
     bool (*isTransferInProgress)(const displayPort_t *displayPort);
     int (*heartbeat)(displayPort_t *displayPort);
     void (*resync)(displayPort_t *displayPort);
@@ -105,6 +106,7 @@ int displayWrite(displayPort_t *instance, uint8_t x, uint8_t y, const char *s);
 int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const char *s, textAttributes_t attr);
 int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c);
 int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr);
+bool displayReadCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t *c, textAttributes_t *attr);
 bool displayIsTransferInProgress(const displayPort_t *instance);
 void displayHeartbeat(displayPort_t *instance);
 void displayResync(displayPort_t *instance);
