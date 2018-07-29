@@ -119,7 +119,8 @@ static float estimateRTHDistanceAndHeadingAfterAltitudeChange(float altitudeChan
         float headingDiff = DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES((float)attitude.values.yaw) - GPS_directionToHome);
         float triangleAltitude = GPS_distanceToHome * sin_approx(headingDiff);
         float triangleAltitudeToReturnStart = estimatedAltitudeChangeGroundDistance - GPS_distanceToHome * cos_approx(headingDiff);
-        *heading = RADIANS_TO_DEGREES(atan2_approx(triangleAltitude, triangleAltitudeToReturnStart));
+        const float reverseHeadingDiff = RADIANS_TO_DEGREES(atan2_approx(triangleAltitude, triangleAltitudeToReturnStart));
+        *heading = CENTIDEGREES_TO_DEGREES(wrap_36000(DEGREES_TO_CENTIDEGREES(180 + reverseHeadingDiff + DECIDEGREES_TO_DEGREES((float)attitude.values.yaw))));
         return sqrt(sq(triangleAltitude) + sq(triangleAltitudeToReturnStart));
     } else {
         *heading = GPS_directionToHome;
