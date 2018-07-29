@@ -68,7 +68,9 @@ Contributions are welcome and encouraged.  You can contribute in many ways:
 * New features.
 * Telling us your ideas and suggestions.
 
-The best place to start is the IRC channel on freenode (#inavflight), drop in, say hi. Next place is the github issue tracker:
+A good place to start is Telegram channel, Slack, Facebook goop or IRC channel on freenode (#inavflight), drop in, say hi.
+
+Github issue tracker is a good place to search for existing issues or report a new bug/feature request:
 
 https://github.com/iNavFlight/inav/issues
 
