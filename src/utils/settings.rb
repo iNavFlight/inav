@@ -77,6 +77,7 @@ end
 
 class NameEncoder
     attr_reader :max_length
+    attr_reader :max_word_length
 
     def initialize(names, max_length)
         @names = names
@@ -90,6 +91,8 @@ class NameEncoder
         @non_split = Set.new
         # Key is the name, value is its encoding
         @encoded = Hash.new
+
+        @max_word_length = 0;
 
         update_words
         encode_names
@@ -105,10 +108,14 @@ class NameEncoder
 
     def estimated_size(settings_count)
         size = 0
+        @max_word_length = 0
         @words.each do |word, count|
-            size += word.length + 1
+            size += (word.length + 1) * (5/8.0)
+            if word.length > @max_word_length
+                @max_word_length = word.length
+            end
         end
-        return size + @max_length * settings_count
+        return size.to_i + @max_length * settings_count
     end
 
     def format_encoded_name(name)
@@ -329,11 +336,11 @@ class Generator
         puts "each setting name uses #{@name_encoder.max_length} bytes"
         puts "#{@name_encoder.estimated_size(@count)} bytes estimated for setting name storage"
         values_size = @value_encoder.values.length * 4
-        puts "value storage uses #{values_size} bytes"
+        puts "min/max value storage uses #{values_size} bytes"
         value_idx_size = @value_encoder.index_bytes * 2
         value_idx_total = value_idx_size * @count
         puts "value indexing uses #{value_idx_size} per setting, #{value_idx_total} bytes total"
-        puts "#{value_idx_size+value_idx_total} bytes estimated for value storage"
+        puts "#{value_idx_size+value_idx_total} bytes estimated for value+indexes storage"
 
         buf = StringIO.new
         buf << "#include \"fc/settings.h\"\n"
@@ -370,6 +377,7 @@ class Generator
         buf << "#pragma once\n"
         # Write setting_t size constants
         buf << "#define SETTING_MAX_NAME_LENGTH #{@max_name_length+1}\n" # +1 for the terminating '\0'
+        buf << "#define SETTING_MAX_WORD_LENGTH #{@name_encoder.max_word_length+1}\n" # +1 for the terminating '\0'
         buf << "#define SETTING_ENCODED_NAME_MAX_BYTES #{@name_encoder.max_length}\n"
         if @name_encoder.uses_byte_indexing
             buf << "#define SETTING_ENCODED_NAME_USES_BYTE_INDEXING\n"
@@ -406,7 +414,11 @@ class Generator
         ii = 0
         foreach_enabled_member do |group, member|
             name = member["name"]
-            buf << "#define SETTING_#{name.upcase} #{ii}\n"
+            min, max = resolve_range(member)
+            setting_name = "SETTING_#{name.upcase}"
+            buf << "#define #{setting_name} #{ii}\n"
+            buf << "#define #{setting_name}_MIN #{min}\n"
+            buf << "#define #{setting_name}_MAX #{max}\n"
             ii += 1
         end
 
@@ -455,13 +467,62 @@ class Generator
         buf << "};\n"
 
         # Write word list
-        buf << "static const char *settingNamesWords[] = {\n"
-        buf << "\tNULL,\n"
+        buf << "static const uint8_t settingNamesWords[] = {\n"
+        word_bits = 5
+        # We can keep up to 5 extra symbols outside a-z
+        rem_symbols = 5
+        symbols = Array.new
+        acc = 0
+        acc_bits = 0
+        encode_byte = lambda do |c|
+            if c == 0
+                chr = 0 # XXX: Remove this if we go for explicit lengths
+            elsif c >= 'a'.ord && c <= 'z'.ord
+                chr = 1 + (c - 'a'.ord)
+            elsif c >= 'A'.ord && c <= 'Z'.ord
+                raise "Cannot encode uppercase character #{c.ord} (#{c})"
+            else
+                idx = symbols.index(c)
+                if idx.nil?
+                    if rem_symbols == 0
+                        raise "Cannot encode character #{c.ord} (#{c}), no symbols remaining"
+                    end
+                    idx = symbols.length
+                    symbols.push(c)
+                end
+                chr = 1 + ('z'.ord - 'a'.ord + 1) + idx
+            end
+            if acc_bits >= (8 - word_bits)
+                # Write
+                remaining = 8 - acc_bits
+                acc |= chr << (remaining - word_bits)
+                buf << "0x#{acc.to_s(16)},"
+                acc = (chr << (8 - (word_bits - remaining))) & 0xff
+            else
+                # Accumulate for next byte
+                acc |= chr << (3 - acc_bits)
+            end
+            acc_bits = (acc_bits + word_bits) % 8
+        end
         @name_encoder.words.each do |w|
-            buf << "\t#{w.inspect},\n"
+            buf << "\t"
+            w.each_byte {|c| encode_byte.call(c)}
+            encode_byte.call(0)
+            buf << " /* #{w.inspect} */ \n"
+        end
+        if acc_bits > 0
+            buf << "\t0x#{acc.to_s(16)},"
+            if acc_bits > (8 - word_bits)
+                buf << "0x00"
+            end
+            buf << "\n"
         end
         buf << "};\n"
 
+        # Output symbol array
+        buf << "static const char wordSymbols[] = {"
+        symbols.each { |s| buf << "'#{s.chr}'," }
+        buf << "};\n"
         # Write the tables
         table_names = ordered_table_names()
         table_names.each do |name|
@@ -514,8 +575,7 @@ class Generator
                 buf << " | MODE_LOOKUP"
                 buf << ", .config.lookup = { #{table_constant_name(tbl)} }"
             else
-                min = @value_encoder.resolve_value(member["min"])
-                max = @value_encoder.resolve_value(member["max"])
+                min, max = resolve_range(member)
                 if min > max
                     raise "Error encoding #{name}: min (#{min}) > max (#{max})"
                 end
@@ -552,6 +612,12 @@ class Generator
 
     def value_type(group)
         return group["value_type"] || "MASTER_VALUE"
+    end
+
+    def resolve_range(member)
+        min = @value_encoder.resolve_value(member["min"])
+        max = @value_encoder.resolve_value(member["max"])
+        return min, max
     end
 
     def is_condition_enabled(cond)
