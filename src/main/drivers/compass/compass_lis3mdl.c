@@ -190,6 +190,15 @@ bool lis3mdlDetect(magDev_t * mag)
     }
 
     if (!deviceDetect(mag)) {
+    	busDeviceDeInit(mag->busDev);
+    	mag->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_LIS3MDL_A2, mag->magSensorToUse, OWNER_COMPASS);
+        if (mag->busDev == NULL) {
+            return false;
+        }
+    }
+
+
+    if (!deviceDetect(mag)) {
         busDeviceDeInit(mag->busDev);
         return false;
     }
