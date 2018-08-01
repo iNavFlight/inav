@@ -24,21 +24,11 @@
 
 #ifdef USE_MAG_LIS3MDL
 
-#include "build/debug.h"
-
 #include "common/axis.h"
-#include "common/maths.h"
 
 #include "drivers/time.h"
-#include "drivers/nvic.h"
-#include "drivers/io.h"
-#include "drivers/exti.h"
-#include "drivers/bus.h"
-#include "drivers/light_led.h"
-
-#include "drivers/logging.h"
-
 #include "drivers/sensor.h"
+
 #include "drivers/compass/compass.h"
 
 #include "compass_lis3mdl.h"
@@ -143,7 +133,7 @@ static bool lis3mdlRead(magDev_t * mag)
     return true;
 }
 
-#define DETECTION_MAX_RETRY_COUNT   200
+#define DETECTION_MAX_RETRY_COUNT   5
 static bool deviceDetect(magDev_t * mag)
 {
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
@@ -162,22 +152,11 @@ static bool deviceDetect(magDev_t * mag)
 
 static bool lis3mdlInit(magDev_t *mag)
 {
-    delay(5);
-
 	busWrite(mag->busDev, LIS3MDL_REG_CTRL_REG2, LIS3MDL_FS_4GAUSS);   // Configuration Register 2
-    delay(5);
-
-    busWrite(mag->busDev, LIS3MDL_REG_CTRL_REG1, (LIS3MDL_TEMP_EN | LIS3MDL_OM_ULTRA_HI_PROF | LIS3MDL_DO_80) );   // Configuration Register 1
-    delay(5);
-
+    busWrite(mag->busDev, LIS3MDL_REG_CTRL_REG1, LIS3MDL_TEMP_EN | LIS3MDL_OM_ULTRA_HI_PROF | LIS3MDL_DO_80);   // Configuration Register 1
     busWrite(mag->busDev, LIS3MDL_REG_CTRL_REG5, LIS3MDL_BDU);   // Configuration Register 5
-    delay(5);
-
     busWrite(mag->busDev, LIS3MDL_REG_CTRL_REG4, LIS3MDL_ZOM_UHP);   // Configuration Register 4
-    delay(5);
-
     busWrite(mag->busDev, LIS3MDL_REG_CTRL_REG3, 0x00);   // Configuration Register 3
-    delay(100);
 
     return true;
 }
