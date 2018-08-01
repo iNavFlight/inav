@@ -189,6 +189,8 @@ bool lis3mdlDetect(magDev_t * mag)
         return false;
     }
 
+// TODO: Add check for second possible I2C address
+
     if (!deviceDetect(mag)) {
         busDeviceDeInit(mag->busDev);
         return false;

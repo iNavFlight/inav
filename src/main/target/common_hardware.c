@@ -167,6 +167,7 @@
         #define LIS3MDL_I2C_BUS MAG_I2C_BUS
     #endif
     BUSDEV_REGISTER_I2C(busdev_lis3mdl,     DEVHW_LIS3MDL,      LIS3MDL_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE);
+//  ST LIS3MDL address can be changed by connecting it's SDO/SA1 pin to either supply or ground.
 //  BUSDEV_REGISTER_I2C(busdev_lis3mdl,     DEVHW_LIS3MDL,      LIS3MDL_I2C_BUS,    0x1C,               NONE,           DEVFLAGS_NONE);
 #endif
 
