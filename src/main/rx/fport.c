@@ -48,6 +48,7 @@
 #define FPORT_MIN_TELEMETRY_RESPONSE_DELAY_US 500
 #define FPORT_MAX_TELEMETRY_AGE_MS 500
 
+#define FPORT_TELEMETRY_MAX_CONSECUTIVE_SENSORS 2 // Needed to avoid lost sensors on FPort, see #3198
 
 #define FPORT_FRAME_MARKER 0x7E
 
@@ -340,7 +341,17 @@ static bool fportProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
     if (clearToSend) {
         DEBUG_SET(DEBUG_FPORT, DEBUG_FPORT_TELEMETRY_DELAY, currentTimeUs - lastTelemetryFrameReceivedUs);
 
-        processSmartPortTelemetry(mspPayload, &clearToSend, NULL);
+        uint8_t *consecutiveSensorCount = rxRuntimeConfig->frameData;
+        if (*consecutiveSensorCount >= FPORT_TELEMETRY_MAX_CONSECUTIVE_SENSORS && !smartPortPayloadContainsMSP(mspPayload)) {
+            // Stop one cycle to avoid saturating the buffer in the RX, since the
+            // downstream bandwidth doesn't allow sensor sensors on every cycle.
+            // We allow MSP frames to run over the resting period, expecting that
+            // the caller won't flood us with requests.
+            *consecutiveSensorCount = 0;
+        } else {
+            (*consecutiveSensorCount)++;
+            processSmartPortTelemetry(mspPayload, &clearToSend, NULL);
+        }
 
         if (clearToSend) {
             smartPortWriteFrameFport(&emptySmartPortFrame);
@@ -358,8 +369,10 @@ static bool fportProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
 bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
+    static uint8_t consecutiveSensorCount = 0;
     rxRuntimeConfig->channelData = sbusChannelData;
-    sbusChannelsInit(rxConfig, rxRuntimeConfig);
+    rxRuntimeConfig->frameData = &consecutiveSensorCount;
+    sbusChannelsInit(rxRuntimeConfig);
 
     rxRuntimeConfig->channelCount = SBUS_MAX_CHANNEL;
     rxRuntimeConfig->rxRefreshRate = 11000;

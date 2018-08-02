@@ -93,6 +93,12 @@
     #endif
 #endif
 
+#if defined(USE_BARO_LPS25H)
+    #if defined(LPS25H_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_lps25h,      DEVHW_LPS25H,       LPS25H_SPI_BUS,     LPS25H_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_BARO_MS5607)
     #if !defined(MS5607_I2C_BUS)
         #define MS5607_I2C_BUS BARO_I2C_BUS
@@ -138,6 +144,17 @@
     #endif
 #endif
 
+#if defined(USE_MAG_AK8975)
+    #if defined(AK8975_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_ak8975,      DEVHW_AK8975,       AK8975_SPI_BUS,     AK8975_CS_PIN,      NONE,           DEVFLAGS_NONE);
+    #elif defined(AK8975_I2C_BUS) || defined(MAG_I2C_BUS)
+    #if !defined(AK8975_I2C_BUS)
+        #define AK8975_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_ak8975,      DEVHW_AK8975,       AK8975_I2C_BUS,     0x0C,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
+
 #if defined(USE_MAG_MAG3110)
     #if !defined(MAG3110_I2C_BUS)
         #define MAG3110_I2C_BUS MAG_I2C_BUS
@@ -150,6 +167,13 @@
         #define IST8310_I2C_BUS MAG_I2C_BUS
     #endif
     BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
+#endif
+
+#if defined(USE_MAG_IST8308)
+    #if !defined(IST8308_I2C_BUS)
+        #define IST8308_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      IST8308_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
 #endif
 
 
@@ -204,5 +228,13 @@
     BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE);
 #endif
 
+#if defined(USE_PMW_SERVO_DRIVER)
+    #if defined(USE_PWM_DRIVER_PCA9685) && defined(USE_I2C)
+        #if !defined(PCA9685_I2C_BUS)
+            #define PCA9685_I2C_BUS BUS_I2C1
+        #endif
+        BUSDEV_REGISTER_I2C(busdev_pca9685,      DEVHW_PCA9685,       PCA9685_I2C_BUS,     0x40,               NONE,           DEVFLAGS_NONE);
+    #endif
+#endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

@@ -1,6 +1,4 @@
-# Board - Paris Air Hero 32 / Acro Naze 32 Mini
-
-This board uses the same firmware as the Naze32 board.
+# Board - Paris Air Hero 32
 
 ## Sensors
 

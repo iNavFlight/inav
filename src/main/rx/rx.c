@@ -100,7 +100,7 @@ uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 5);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -113,7 +113,6 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 4);
 #define DEFAULT_RX_TYPE   RX_TYPE_NONE
 #endif
 
-#define RX_MIDRC 1500
 #define RX_MIN_USEX 885
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
@@ -123,7 +122,6 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rx_spi_protocol = RX_SPI_DEFAULT_PROTOCOL,
     .spektrum_sat_bind = 0,
     .serialrx_inverted = 0,
-    .midrc = RX_MIDRC,
     .mincheck = 1100,
     .maxcheck = 1900,
     .rx_min_usec = RX_MIN_USEX,          // any of first 4 channels below this value will trigger rx loss detection
@@ -131,6 +129,7 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssi_channel = 0,
     .rssi_scale = RSSI_SCALE_DEFAULT,
     .rssiInvert = 0,
+    .sbusSyncInterval = SBUS_DEFAULT_INTERFRAME_DELAY_US,
     .rcSmoothing = 1,
 );
 
@@ -244,11 +243,11 @@ void rxInit(void)
     rcSampleIndex = 0;
 
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
-        rcData[i] = rxConfig()->midrc;
+        rcData[i] = PWM_RANGE_MIDDLE;
         rcInvalidPulsPeriod[i] = millis() + MAX_INVALID_PULS_TIME;
     }
 
-    rcData[THROTTLE] = (feature(FEATURE_3D)) ? rxConfig()->midrc : rxConfig()->rx_min_usec;
+    rcData[THROTTLE] = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
 
     // Initialize ARM switch to OFF position when arming via switch is defined
     for (int i = 0; i < MAX_MODE_ACTIVATION_CONDITION_COUNT; i++) {
@@ -467,7 +466,7 @@ static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
     return quickMedianFilter5_16(rcSamples[chan]);
 }
 
-void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
+bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
@@ -537,6 +536,7 @@ void calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rcSampleIndex++;
+    return true;
 }
 
 void parseRcChannels(const char *input)

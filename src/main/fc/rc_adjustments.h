@@ -57,8 +57,25 @@ typedef enum {
     ADJUSTMENT_NAV_FW_PITCH2THR         = 29,
     ADJUSTMENT_ROLL_BOARD_ALIGNMENT     = 30,
     ADJUSTMENT_PITCH_BOARD_ALIGNMENT    = 31,
+    ADJUSTMENT_LEVEL_P                  = 32,
+    ADJUSTMENT_LEVEL_I                  = 33,
+    ADJUSTMENT_LEVEL_D                  = 34,
+    ADJUSTMENT_POS_XY_P                 = 35,
+    ADJUSTMENT_POS_XY_I                 = 36,
+    ADJUSTMENT_POS_XY_D                 = 37,
+    ADJUSTMENT_POS_Z_P                  = 38,
+    ADJUSTMENT_POS_Z_I                  = 39,
+    ADJUSTMENT_POS_Z_D                  = 40,
+    ADJUSTMENT_HEADING_P                = 41,
+    ADJUSTMENT_VEL_XY_P                 = 42,
+    ADJUSTMENT_VEL_XY_I                 = 43,
+    ADJUSTMENT_VEL_XY_D                 = 44,
+    ADJUSTMENT_VEL_Z_P                  = 45,
+    ADJUSTMENT_VEL_Z_I                  = 46,
+    ADJUSTMENT_VEL_Z_D                  = 47,
+    ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE = 48,
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
-    ADJUSTMENT_PROFILE                  = 32,
+    ADJUSTMENT_PROFILE                  = 49,
 #endif
     ADJUSTMENT_FUNCTION_COUNT // must be last
 } adjustmentFunction_e;
@@ -118,6 +135,7 @@ typedef struct adjustmentState_s {
 PG_DECLARE_ARRAY(adjustmentRange_t, MAX_ADJUSTMENT_RANGE_COUNT, adjustmentRanges);
 
 void resetAdjustmentStates(void);
-void updateAdjustmentStates(void);
+void updateAdjustmentStates(bool canUseRxData);
 struct controlRateConfig_s;
-void processRcAdjustments(struct controlRateConfig_s *controlRateConfig);
+void processRcAdjustments(struct controlRateConfig_s *controlRateConfig, bool canUseRxData);
+bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction);

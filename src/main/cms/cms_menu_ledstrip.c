@@ -27,7 +27,6 @@
 #ifdef USE_CMS
 
 #include "common/axis.h"
-#include "io/gimbal.h"
 #include "flight/pid.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"

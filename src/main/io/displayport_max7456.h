@@ -19,5 +19,6 @@
 
 #include "config/parameter_group.h"
 #include "drivers/display.h"
+#include "drivers/vcd.h"
 
-displayPort_t *max7456DisplayPortInit(const struct vcdProfile_s *vcdProfile);
+displayPort_t *max7456DisplayPortInit(const videoSystem_e videoSystem);

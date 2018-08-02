@@ -71,7 +71,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_recovery_delay = 5,       // 0.5 seconds (plus 200ms explicit delay)
     .failsafe_off_delay = 200,          // 20sec
     .failsafe_throttle = 1000,          // default throttle off.
-    .failsafe_throttle_low_delay = 100, // default throttle low delay for "just disarm" on failsafe condition
+    .failsafe_throttle_low_delay = 0,   // default throttle low delay for "just disarm" on failsafe condition
     .failsafe_procedure = FAILSAFE_PROCEDURE_AUTO_LANDING,            // default full failsafe procedure
     .failsafe_fw_roll_angle = -200,     // 20 deg left
     .failsafe_fw_pitch_angle = 100,     // 10 deg dive (yes, positive means dive)
@@ -275,7 +275,7 @@ void failsafeApplyControlInput(void)
                         break;
 
                     case THROTTLE:
-                        rcCommand[idx] = feature(FEATURE_3D) ? rxConfig()->midrc : motorConfig()->minthrottle;
+                        rcCommand[idx] = feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->minthrottle;
                         break;
                 }
                 break;
@@ -330,9 +330,9 @@ static bool failsafeCheckStickMotion(void)
     if (failsafeConfig()->failsafe_stick_motion_threshold > 0) {
         uint32_t totalRcDelta = 0;
 
-        totalRcDelta += ABS(rcData[ROLL] - rxConfig()->midrc);
-        totalRcDelta += ABS(rcData[PITCH] - rxConfig()->midrc);
-        totalRcDelta += ABS(rcData[YAW] - rxConfig()->midrc);
+        totalRcDelta += ABS(rcData[ROLL] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rcData[PITCH] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rcData[YAW] - PWM_RANGE_MIDDLE);
 
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }
@@ -498,7 +498,7 @@ void failsafeUpdateState(void)
 
             case FAILSAFE_LANDED:
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_FAILSAFE_SYSTEM); // To prevent accidently rearming by an intermittent rx link
-                mwDisarm(DISARM_FAILSAFE);
+                disarm(DISARM_FAILSAFE);
                 failsafeState.receivingRxDataPeriod = millis() + failsafeState.receivingRxDataPeriodPreset; // set required period of valid rxData
                 failsafeState.phase = FAILSAFE_RX_LOSS_MONITORING;
                 failsafeState.controlling = false;  // Failsafe no longer in control of the machine - release control to pilot

@@ -30,7 +30,7 @@
 #define DEF_TIM(_tim, _ch, _pin, _usage, _flags) \
     { _tim, IO_TAG(_pin), DEF_TIM_CHNL_##_ch, _flags, IOCFG_AF_PP, GPIO_AF_##_tim, _usage }
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM4, CH3, PB8, TIM_USE_PWM | TIM_USE_PPM, 0), // PPM
     // DEF_TIM(TIM4, CH4, PB9, TIM_USE_PWM,               0), // S2_IN
     // DEF_TIM(TIM8, CH1, PC6, TIM_USE_PWM,               0), // S3_IN, UART6_TX
@@ -47,3 +47,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED,                            0), // LED strip
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

@@ -21,7 +21,6 @@
 
 #include "platform.h"
 #include "drivers/time.h"
-#include "drivers/gpio.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
@@ -108,9 +107,9 @@ static void adcInstanceInit(ADCDevice adcDevice)
     DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&adc->ADCx->DR;
     DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)adcValues[adcDevice];
     DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
-    DMA_InitStructure.DMA_BufferSize = adc->usedChannelCount;
+    DMA_InitStructure.DMA_BufferSize = adc->usedChannelCount * ADC_AVERAGE_N_SAMPLES;
     DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    DMA_InitStructure.DMA_MemoryInc = adc->usedChannelCount > 1 ? DMA_MemoryInc_Enable : DMA_MemoryInc_Disable;
+    DMA_InitStructure.DMA_MemoryInc = ((adc->usedChannelCount > 1) || (ADC_AVERAGE_N_SAMPLES > 1)) ? DMA_MemoryInc_Enable : DMA_MemoryInc_Disable;
     DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
     DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
     DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;

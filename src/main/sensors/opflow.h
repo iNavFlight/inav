@@ -30,9 +30,10 @@
 
 typedef enum {
     OPFLOW_NONE         = 0,
-    OPFLOW_FAKE         = 1,
+    OPFLOW_PMW3901      = 1,
     OPFLOW_CXOF         = 2,
-    OPFLOW_PMW3901      = 3
+    OPFLOW_MSP          = 3,
+    OPFLOW_FAKE         = 4,
 } opticalFlowSensor_e;
 
 typedef enum {
@@ -42,6 +43,7 @@ typedef enum {
 
 typedef struct opticalFlowConfig_s  {
     uint8_t opflow_hardware;
+    uint8_t opflow_align;
     float   opflow_scale;       // Scaler value to convert between raw sensor units to [deg/s]
 } opticalFlowConfig_t;
 

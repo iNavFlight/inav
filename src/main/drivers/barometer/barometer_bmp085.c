@@ -25,7 +25,6 @@
 
 #include "drivers/barometer/barometer.h"
 
-#include "drivers/gpio.h"
 #include "drivers/time.h"
 #include "drivers/bus.h"
 #include "drivers/nvic.h"

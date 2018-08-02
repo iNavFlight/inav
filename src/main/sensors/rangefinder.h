@@ -27,7 +27,8 @@ typedef enum {
     RANGEFINDER_SRF10       = 2,
     RANGEFINDER_HCSR04I2C   = 3,
     RANGEFINDER_VL53L0X     = 4,
-    RANGEFINDER_UIB         = 5,
+    RANGEFINDER_MSP         = 5,
+    RANGEFINDER_UIB         = 6,
 } rangefinderType_e;
 
 typedef struct rangefinderConfig_s {
@@ -43,17 +44,12 @@ typedef struct rangefinder_s {
     int32_t rawAltitude;
     int32_t calculatedAltitude;
     timeMs_t lastValidResponseTimeMs;
-    
-    bool snrThresholdReached;
-    int32_t dynamicDistanceThreshold;
-    int16_t snr;
 } rangefinder_t;
 
 extern rangefinder_t rangefinder;
 
 const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void);
 
-void rangefinderResetDynamicThreshold(void);
 bool rangefinderInit(void);
 
 int32_t rangefinderGetLatestAltitude(void);

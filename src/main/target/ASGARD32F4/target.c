@@ -39,7 +39,7 @@
     { _tim, IO_TAG(_pin), DEF_TIM_CHNL_##_ch, _flags, IOCFG_AF_PP, GPIO_AF_##_tim, _usage }
 
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM1,  CH1, PA8, TIM_USE_PPM,        0), // PPM  - timer clash with SS1_TX
 
     DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1), // M1
@@ -51,3 +51,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
     DEF_TIM(TIM1,  CH2, PA9, TIM_USE_ANY,        0), // SS1
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

@@ -37,6 +37,7 @@ extern const uint16_t trampPowerTable[VTX_TRAMP_POWER_COUNT];
 extern const char * const trampPowerNames[VTX_TRAMP_POWER_COUNT+1];
 
 typedef struct trampData_s {
+    bool setByFreqFlag;  //false = set via band/channel
     uint8_t band;
     uint8_t channel;
     uint16_t power;       // Actual transmitting power
@@ -49,7 +50,6 @@ typedef struct trampData_s {
 extern trampData_t trampData;
 
 bool vtxTrampInit(void);
-bool trampIsAvailable(void);
 bool trampCommitChanges(void);
 void trampSetPitMode(uint8_t onoff);
 void trampSetBandAndChannel(uint8_t band, uint8_t channel);

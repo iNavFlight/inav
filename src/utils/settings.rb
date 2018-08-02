@@ -260,10 +260,10 @@ end
 OFF_ON_TABLE = Hash["name" => "off_on", "values" => ["OFF", "ON"]]
 
 class Generator
-    def initialize(src_root, settings_file)
+    def initialize(src_root, settings_file, output_dir)
         @src_root = src_root
         @settings_file = settings_file
-        @output_dir = File.dirname(settings_file)
+        @output_dir = output_dir || File.dirname(settings_file)
 
         @compiler = Compiler.new
 
@@ -416,7 +416,7 @@ class Generator
         }
         add_header.call("platform.h")
         add_header.call("config/parameter_group_ids.h")
-        add_header.call("settings.h")
+        add_header.call("fc/settings.h")
 
         foreach_enabled_group do |group|
             (group["headers"] || []).each do |h|
@@ -468,7 +468,7 @@ class Generator
             buf << "};\n"
         end
 
-        buf << "const lookupTableEntry_t settingLookupTables[] = {\n"
+        buf << "static const lookupTableEntry_t settingLookupTables[] = {\n"
         table_names.each do |name|
             vn = table_variable_name(name)
             buf << "\t{ #{vn}, sizeof(#{vn}) / sizeof(char*) },\n"
@@ -476,7 +476,7 @@ class Generator
         buf << "};\n"
 
         # Write min/max values table
-        buf << "const uint32_t settingMinMaxTable[] = {\n"
+        buf << "static const uint32_t settingMinMaxTable[] = {\n"
         @value_encoder.values.each do |v|
             buf <<  "\t#{v},\n"
         end
@@ -492,7 +492,7 @@ class Generator
         end
 
         # Write setting_t values
-        buf << "const setting_t settingsTable[] = {\n"
+        buf << "static const setting_t settingsTable[] = {\n"
 
         last_group = nil
         foreach_enabled_member do |group, member|
@@ -532,6 +532,8 @@ class Generator
             return "VAR_UINT32"
         when "float"
             return "VAR_FLOAT"
+        when "string"
+            return "VAR_STRING"
         else
             raise "unknown variable type #{typ.inspect}"
         end
@@ -623,10 +625,12 @@ class Generator
         # Use a temporary dir reachable by relative path
         # since g++ in cygwin fails to open files
         # with absolute paths
-        tmp = File.join("obj", "tmp")
+        tmp = File.join(@output_dir, "tmp")
         FileUtils.mkdir_p(tmp) unless File.directory?(tmp)
         value = yield(tmp)
-        FileUtils.remove_dir(tmp)
+        if File.directory?(tmp)
+            FileUtils.remove_dir(tmp)
+        end
         value
     end
 
@@ -750,18 +754,22 @@ class Generator
         stderr.scan(/var_(\d+).*?', which is of non-class type '(.*)'/).each do |m|
             member = members[m[0].to_i]
             case m[1]
-            when "int8_t {aka signed char}"
+            when /^int8_t/ # {aka signed char}"
                 typ = "int8_t"
-            when "uint8_t {aka unsigned char}"
+            when /^uint8_t/ # {aka unsigned char}"
                 typ = "uint8_t"
-            when "int16_t {aka short int}"
+            when /^int16_t/ # {aka short int}"
                 typ = "int16_t"
-            when "uint16_t {aka short unsigned int}"
+            when /^uint16_t/ # {aka short unsigned int}"
                 typ = "uint16_t"
-            when "uint32_t {aka long unsigned int}"
+            when /^uint32_t/ # {aka long unsigned int}"
                 typ = "uint32_t"
             when "float"
                 typ = "float"
+            when /^char \[(\d+)\]/
+                # Substract 1 to show the maximum string size without the null terminator
+                member["max"] = $1.to_i - 1;
+                typ = "string"
             else
                 raise "Unknown type #{m[1]} when resolving type for setting #{member["name"]}"
             end
@@ -882,17 +890,20 @@ if __FILE__ == $0
         exit(1)
     end
 
-    gen = Generator.new(src_root, settings_file)
 
     opts = GetoptLong.new(
+        [ "--output-dir", "-o", GetoptLong::REQUIRED_ARGUMENT ],
         [ "--help", "-h", GetoptLong::NO_ARGUMENT ],
         [ "--json", "-j", GetoptLong::REQUIRED_ARGUMENT ],
     )
 
     jsonFile = nil
+    output_dir = nil
 
     opts.each do |opt, arg|
         case opt
+        when "--output-dir"
+            output_dir = arg
         when "--help"
             usage()
             exit(0)
@@ -900,6 +911,8 @@ if __FILE__ == $0
             jsonFile = arg
         end
     end
+
+    gen = Generator.new(src_root, settings_file, output_dir)
 
     if jsonFile
         gen.write_json(jsonFile)

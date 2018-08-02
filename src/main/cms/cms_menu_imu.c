@@ -39,6 +39,7 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
+#include "fc/settings.h"
 
 #include "navigation/navigation.h"
 
@@ -66,20 +67,13 @@ static void cmsx_WritebackPidFromArray(uint8_t *src, int pidIndex)
     pidBankMutable()->pid[pidIndex].D = src[2];
 }
 
-static long cmsx_menuImu_onEnter(void)
+static long cmsx_menuImu_onEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     profileIndex = getConfigProfile();
     tmpProfileIndex = profileIndex + 1;
     profileIndexString[1] = '0' + tmpProfileIndex;
-
-    return 0;
-}
-
-static long cmsx_menuImu_onExit(const OSD_Entry *self)
-{
-    UNUSED(self);
-
-    setConfigProfile(profileIndex);
 
     return 0;
 }
@@ -91,6 +85,7 @@ static long cmsx_profileIndexOnChange(displayPort_t *displayPort, const void *pt
 
     profileIndex = tmpProfileIndex - 1;
     profileIndexString[1] = '0' + tmpProfileIndex;
+    setConfigProfile(profileIndex);
 
     return 0;
 }
@@ -108,8 +103,10 @@ static long cmsx_PidRead(void)
     return 0;
 }
 
-static long cmsx_PidOnEnter(void)
+static long cmsx_PidOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     profileIndexString[1] = '0' + tmpProfileIndex;
     cmsx_PidRead();
 
@@ -164,8 +161,10 @@ static uint8_t cmsx_pidPosZ[3];
 static uint8_t cmsx_pidVelZ[3];
 static uint8_t cmsx_pidHead[3];
 
-static long cmsx_menuPidAltMag_onEnter(void)
+static long cmsx_menuPidAltMag_onEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     cmsx_ReadPidToArray(cmsx_pidPosZ, PID_POS_Z);
     cmsx_ReadPidToArray(cmsx_pidVelZ, PID_VEL_Z);
     cmsx_pidHead[0] = pidBank()->pid[PID_HEADING].P;
@@ -217,8 +216,10 @@ static const CMS_Menu cmsx_menuPidAltMag = {
 static uint8_t cmsx_pidPosXY[3];
 static uint8_t cmsx_pidVelXY[3];
 
-static long cmsx_menuPidGpsnav_onEnter(void)
+static long cmsx_menuPidGpsnav_onEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     cmsx_ReadPidToArray(cmsx_pidPosXY, PID_POS_XY);
     cmsx_ReadPidToArray(cmsx_pidVelXY, PID_VEL_XY);
 
@@ -475,7 +476,7 @@ const CMS_Menu cmsx_menuImu = {
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = cmsx_menuImu_onEnter,
-    .onExit = cmsx_menuImu_onExit,
+    .onExit = NULL,
     .onGlobalExit = NULL,
     .entries = cmsx_menuImuEntries,
 };

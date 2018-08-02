@@ -38,7 +38,7 @@
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_EXTI
-#define MPU_INT_EXTI            PC4
+#define GYRO_INT_EXTI            PC4
 #define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_GYRO
@@ -67,6 +67,8 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
@@ -173,6 +175,4 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USABLE_TIMER_CHANNEL_COUNT 12
 #define MAX_PWM_OUTPUT_PORTS       9
-#define USED_TIMERS             (TIM_N(1)|TIM_N(2)|TIM_N(3)|TIM_N(4)|TIM_N(5)|TIM_N(8)|TIM_N(9)|TIM_N(12))

@@ -27,8 +27,6 @@
 #define BEEPER                  PB2
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART1      PC3
-
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
@@ -52,6 +50,7 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
 #define USE_RANGEFINDER
@@ -68,9 +67,12 @@
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
+#define INVERTER_PIN_UART1_RX   PC3
 
 #define USE_UART2
 #define UART2_RX_PIN            PA3
@@ -140,6 +142,3 @@
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
-
-#define USABLE_TIMER_CHANNEL_COUNT 16
-#define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9))

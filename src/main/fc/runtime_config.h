@@ -76,11 +76,9 @@ typedef enum {
     FAILSAFE_MODE   = (1 << 9),
     AUTO_TUNE       = (1 << 10), // old G-Tune
     NAV_WP_MODE     = (1 << 11),
-    UNUSED_MODE2    = (1 << 12),
+    NAV_CRUISE_MODE = (1 << 12),
     FLAPERON        = (1 << 13),
-#ifdef USE_FLM_TURN_ASSIST
     TURN_ASSISTANT  = (1 << 14),
-#endif
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;

@@ -18,14 +18,9 @@
 #pragma once
 
 #include "drivers/io_types.h"
+#include "flight/mixer.h"
 
-#if defined(USE_QUAD_MIXER_ONLY)
-#define MAX_PWM_MOTORS  4
-#define MAX_PWM_SERVOS  1
-#define MAX_MOTORS  4
-#define MAX_SERVOS  1
-
-#elif defined(TARGET_MOTOR_COUNT)
+#if defined(TARGET_MOTOR_COUNT)
 #define MAX_PWM_MOTORS TARGET_MOTOR_COUNT
 #define MAX_PWM_SERVOS 8
 #define MAX_MOTORS  TARGET_MOTOR_COUNT
@@ -49,12 +44,6 @@ typedef struct rangefinderIOConfig_s {
     ioTag_t echoTag;
 } rangefinderIOConfig_t;
 
-typedef enum {
-    PLATFORM_MULTIROTOR     = 0,
-    PLATFORM_AIRPLANE       = 1,
-    PLATFORM_HELICOPTER     = 2
-} flyingPlatformType_e;
-
 typedef struct drv_pwm_config_s {
     int flyingPlatformType;
 
@@ -74,12 +63,9 @@ typedef struct drv_pwm_config_s {
 #ifdef USE_RANGEFINDER
     bool useTriggerRangefinder;
 #endif
-#ifdef USE_SERVOS
     bool useServoOutputs;
-    bool useChannelForwarding;      // configure additional channels as servos
     uint16_t servoPwmRate;
     uint16_t servoCenterPulse;
-#endif
     uint8_t pwmProtocolType;
     uint16_t motorPwmRate;
     uint16_t idlePulse;  // PWM value to use when initializing the driver. set this to either PULSE_1MS (regular pwm),
@@ -111,7 +97,7 @@ typedef struct pwmIOConfiguration_s {
     uint8_t ioCount;
     uint8_t pwmInputCount;
     uint8_t ppmInputCount;
-    pwmPortConfiguration_t ioConfigurations[USABLE_TIMER_CHANNEL_COUNT];
+    pwmPortConfiguration_t * ioConfigurations;
 } pwmIOConfiguration_t;
 
 // This indexes into the read-only hardware definition structure, timerHardware_t

@@ -32,7 +32,6 @@
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
-#include "drivers/vtx_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -45,6 +44,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
+#include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
 
@@ -57,6 +57,7 @@
 #include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/vtx.h"
 
 #include "msp/msp_serial.h"
 
@@ -86,13 +87,12 @@
 void taskHandleSerial(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-#ifdef USE_CLI
     // in cli mode, all serial stuff goes to here. enter cli mode by sending #
     if (cliMode) {
         cliProcess();
-        return;
     }
-#endif
+
+    // Allow MSP processing even if in CLI mode
     mspSerialProcess(ARMING_FLAG(ARMED) ? MSP_SKIP_NON_MSP_DATA : MSP_EVALUATE_NON_MSP_DATA, mspFcProcessCommand);
 }
 
@@ -101,13 +101,15 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
     static timeUs_t batMonitoringLastServiced = 0;
     timeUs_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
 
-    if (feature(FEATURE_CURRENT_METER))
+    if (isAmperageConfigured())
         currentMeterUpdate(BatMonitoringTimeSinceLastServiced);
 #ifdef USE_ADC
     if (feature(FEATURE_VBAT))
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
-    if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))
+    if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
+        sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
+    }
 #endif
     batMonitoringLastServiced = currentTimeUs;
 }
@@ -125,7 +127,11 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     // hardware, wrong baud rates, init GPS if needed, etc. Don't use SENSOR_GPS here as gpsThread() can and will
     // change this based on available hardware
     if (feature(FEATURE_GPS)) {
-        gpsThread();
+        if (gpsUpdate()) {
+#ifdef USE_WIND_ESTIMATOR
+            updateWindEstimator(currentTimeUs);
+#endif
+        }
     }
 
     if (sensors(SENSOR_GPS)) {
@@ -267,19 +273,6 @@ void taskUpdateOsd(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef VTX_CONTROL
-// Everything that listens to VTX devices
-void taskVtxControl(timeUs_t currentTimeUs)
-{
-    if (ARMING_FLAG(ARMED))
-        return;
-
-#ifdef VTX_COMMON
-    vtxCommonProcess(currentTimeUs);
-#endif
-}
-#endif
-
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -313,7 +306,7 @@ void fcTasksInit(void)
 #ifdef USE_LIGHTS
     setTaskEnabled(TASK_LIGHTS, true);
 #endif
-    setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || feature(FEATURE_CURRENT_METER));
+    setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || isAmperageConfigured());
     setTaskEnabled(TASK_TEMPERATURE, true);
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS
@@ -363,8 +356,8 @@ void fcTasksInit(void)
 #ifdef USE_OPTICAL_FLOW
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
 #endif
-#ifdef VTX_CONTROL
-#if defined(VTX_SMARTAUDIO) || defined(VTX_TRAMP)
+#ifdef USE_VTX_CONTROL
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
@@ -610,10 +603,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef VTX_CONTROL
+#ifdef USE_VTX_CONTROL
     [TASK_VTXCTRL] = {
         .taskName = "VTXCTRL",
-        .taskFunc = taskVtxControl,
+        .taskFunc = vtxUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(5),          // 5Hz @200msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },

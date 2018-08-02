@@ -84,7 +84,7 @@
 #define BMI160_SPI_BUS       BUS_SPI3
 #define BUS_SPEED_BMI160     BUS_SPEED_STANDARD
 #define BMI160_CS_PIN        PB4
-#define GYRO_INT_EXTI        PC13
+#define GYRO_EXTI_PIN        PC13
 
 #define USE_BARO
 #define USE_BARO_BMP280
@@ -170,11 +170,14 @@
 #define SDCARD_DMA_CLK                       RCC_AHB1Periph_DMA2
 #define SDCARD_DMA_CHANNEL                   DMA_Channel_3
 
-#define DEFAULT_FEATURES        (FEATURE_OSD)
-#define DEFAULT_RX_FEATURE      FEATURE_RX_PPM
+#define SENSORS_SET (SENSOR_ACC|SENSOR_BARO)
+
+#define DEFAULT_FEATURES        (FEATURE_OSD |FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
+
+#define DEFAULT_RX_FEATURE      RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
-#define SPEKTRUM_BIND
+#define USE_SPEKTRUM_BIND
 // PPM input
 #define BIND_PIN                PB14
 
@@ -185,7 +188,6 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USE_DSHOT
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
 
 bool brainfpv_settings_updated;
