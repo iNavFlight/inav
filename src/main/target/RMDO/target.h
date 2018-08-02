@@ -50,6 +50,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
