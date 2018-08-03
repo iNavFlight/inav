@@ -55,6 +55,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1 // Conn 1 - TX (PB6) RX PB7 (AF7)

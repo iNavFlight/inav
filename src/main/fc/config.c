@@ -284,7 +284,7 @@ void validateAndFixConfig(void)
     }
 #endif
 
-#ifndef USE_PMW_SERVO_DRIVER
+#ifndef USE_PWM_SERVO_DRIVER
     featureClear(FEATURE_PWM_SERVO_DRIVER);
 #endif
 

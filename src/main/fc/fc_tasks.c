@@ -239,7 +239,7 @@ void taskLedStrip(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
 void taskSyncPwmDriver(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -340,7 +340,7 @@ void fcTasksInit(void)
 #ifdef STACK_CHECK
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
 #ifdef USE_OSD
@@ -540,7 +540,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     [TASK_PWMDRIVER] = {
         .taskName = "PWMDRIVER",
         .taskFunc = taskSyncPwmDriver,
@@ -603,7 +603,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_VTX_CONTROL
+#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
     [TASK_VTXCTRL] = {
         .taskName = "VTXCTRL",
         .taskFunc = vtxUpdate,

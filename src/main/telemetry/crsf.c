@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_CRSF)
+#if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
 
 #include "build/build_config.h"
 #include "build/version.h"

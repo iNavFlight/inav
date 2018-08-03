@@ -227,7 +227,7 @@ bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, ui
 
 void pwmWriteServo(uint8_t index, uint16_t value)
 {
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
 
     /*
      *  If PCA9685 is enabled and but not detected, we do not want to write servo

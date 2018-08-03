@@ -483,7 +483,7 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
     }
 
-#ifdef AUTOTUNE_FIXED_WING
+#ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
         autotuneFixedWingUpdate(axis, pidState->rateTarget, pidState->gyroRate, newPTerm + newFFTerm);
     }
