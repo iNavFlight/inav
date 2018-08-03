@@ -430,6 +430,11 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 smartPortSendPackage(id, attitude.values.yaw * 10); // given in 10*deg, requested in 10000 = 100 deg
                 *clearToSend = false;
                 break;
+            //crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
+            //crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
+            //DECIDEGREES_TO_DEGREES(attitude.values.roll)
+            //DECIDEGREES_TO_RADIANS(attitude.values.roll)
+            // attitude.values = absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
             case FSSP_DATAID_PITCH    :
                 smartPortSendPackage(id, attitude.values.pitch * 10); // given in 10*deg, requested in 10000 = 100 deg
                 *clearToSend = false;
@@ -439,22 +444,19 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 *clearToSend = false;
                 break;
             case FSSP_DATAID_ACCX       :
-                //crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
                 smartPortSendPackage(id, attitude.values.pitch * 10);
                 //smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
                 *clearToSend = false;
                 break;
             case FSSP_DATAID_ACCY       :
-                //crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
                 smartPortSendPackage(id, attitude.values.roll * 10);
                 //smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
                 *clearToSend = false;
                 break;
             //case FSSP_DATAID_ACCZ       :
-                //crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw));
-                //smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
-                //*clearToSend = false;
-                //break;
+            //    smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
+            //    *clearToSend = false;
+            //    break;
             case FSSP_DATAID_T1         :
                 {
                     smartPortSendPackage(id, frskyGetFlightMode());
