@@ -622,7 +622,7 @@ static void updateRSSIPWM(void)
     int16_t pwmRssi = 0;
     // Read value of AUX channel as rssi
     if (rxConfig()->rssi_channel > 0) {
-        pwmRssi = rcData[rxConfig()->rssi_channel - 1];
+        pwmRssi = rcRaw[rxConfig()->rssi_channel - 1];
 
         // Range of rawPwmRssi is [1000;2000]. rssi should be in [0;1023];
         uint16_t rawRSSI = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * (RSSI_MAX_VALUE * 1.0f));
