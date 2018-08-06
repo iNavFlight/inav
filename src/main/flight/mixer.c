@@ -155,7 +155,7 @@ void mixerUsePWMIOConfiguration(void)
         currentMixer[i] = *customMotorMixer(i);
         motorCount++;
     }
-    
+
     // in 3D mode, mixer gain has to be halved
     if (feature(FEATURE_3D)) {
         if (motorCount > 1) {

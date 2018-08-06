@@ -34,7 +34,7 @@ const timerHardware_t timerHardware[] = {
     { TIM8, IO_TAG(PC9),    TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  //S4 DMA3_ST7 SV5
 
     { TIM2, IO_TAG(PA15),   TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2, TIM_USE_MC_MOTOR | TIM_USE_LED                         },  //S5 DMA1_ST5 2812LED
-    
+
 #ifdef MATEKF405_SERVOS6
     { TIM1, IO_TAG(PA8),    TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  //S6 DMA2_ST6 SV6
 #else

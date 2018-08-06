@@ -129,7 +129,7 @@ static bool cxofOpflowUpdate(opflowData_t * data)
             bufferPtr = 0;
         }
     }
-    
+
     if (newPacket) {
         *data = tmpData;
     }
