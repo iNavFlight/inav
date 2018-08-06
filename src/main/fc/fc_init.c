@@ -558,9 +558,6 @@ void init(void)
 
     rxInit();
 
-#if (defined(USE_OSD) || (defined(USE_MSP_DISPLAYPORT) && defined(USE_CMS)))
-    displayPort_t *osdDisplayPort = NULL;
-#endif
 
 #if defined(USE_OSD) && !defined(USE_BRAINFPV_OSD)
     if (feature(FEATURE_OSD)) {
