@@ -24,6 +24,7 @@
 #include <ctype.h>
 
 #include "platform.h"
+#include "common/utils.h"
 
 #ifdef USE_CMS
 
@@ -44,55 +45,41 @@
 
 bfOsdConfig_t bfOsdConfigCms;
 
-static long menuBrainFPVOnEnter(void)
+static long menuBrainFPVOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     memcpy(&bfOsdConfigCms, bfOsdConfig(), sizeof(bfOsdConfig_t));
     return 0;
 }
 
-static long menuBrainFPVOnExit(const OSD_Entry *self)
+static long menuBrainFPVOnExit(const OSD_Entry *from)
 {
-    (void)self;
+    UNUSED(from);
 
     memcpy(bfOsdConfigMutable(), &bfOsdConfigCms, sizeof(bfOsdConfig_t));
     return 0;
 }
 
-OSD_UINT8_t entryAhiSteps =  {&bfOsdConfigCms.ahi_steps, 0, 4, 1};
 const char *STICKS_DISPLAY_NAMES[] = {"OFF", "MODE2", "MODE1"};
-OSD_TAB_t entrySticksDisplay = {&bfOsdConfigCms.sticks_display, 2, &STICKS_DISPLAY_NAMES[0]};
 const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "BOLD"};
-OSD_TAB_t entryOSDFont = {&bfOsdConfigCms.font, 2, &FONT_NAMES[0]};
-OSD_UINT8_t entryWhiteLevel =  {&bfOsdConfigCms.white_level, 100, 120, 1};
-OSD_UINT8_t entryBlackLevel =  {&bfOsdConfigCms.black_level, 15, 40, 1};
-OSD_UINT8_t entrySyncTh =  {&bfOsdConfigCms.sync_threshold, BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX, 1};
-OSD_INT8_t entryXoff =  {&bfOsdConfigCms.x_offset, -8, 7, 1};
-OSD_UINT8_t entryXScale =  {&bfOsdConfigCms.x_scale, 0, 15, 1};
-OSD_UINT8_t entry3DShift =  {&bfOsdConfigCms.sbs_3d_right_eye_offset, 10, 40, 1};
-OSD_UINT16_t entryMapMaxDist =  {&bfOsdConfigCms.map_max_dist_m, 10, 32767, 10};
-
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
-    {"------- OSD --------", OME_Label, NULL, NULL, 0},
-    {"AHI STEPS", OME_UINT8, NULL, &entryAhiSteps, 0},
-    {"ALTITUDE SCALE", OME_Bool, NULL, &bfOsdConfigCms.altitude_scale, 0},
-    {"SPEED SCALE", OME_Bool, NULL, &bfOsdConfigCms.speed_scale, 0},
-    {"MAP", OME_Bool, NULL, &bfOsdConfigCms.map, 0},
-    {"MAP MAX DIST M", OME_UINT16, NULL, &entryMapMaxDist, 0},
-    {"SHOW STICKS", OME_TAB, NULL, &entrySticksDisplay, 0},
-    {"FONT", OME_TAB, NULL, &entryOSDFont, 0},
-    {"OSD WHITE", OME_UINT8, NULL, &entryWhiteLevel, 0},
-    {"OSD BLACK", OME_UINT8, NULL, &entryBlackLevel, 0},
-    {"INVERT", OME_Bool, NULL, &bfOsdConfigCms.invert, 0},
-    {"OSD SYNC TH", OME_UINT8, NULL, &entrySyncTh, 0},
-    {"OSD X OFF", OME_INT8, NULL, &entryXoff, 0},
-    {"OSD X SC", OME_UINT8, NULL, &entryXScale, 0},
-    {"3D MODE", OME_Bool, NULL, &bfOsdConfigCms.sbs_3d_enabled, 0},
-    {"3D R SHIFT", OME_UINT8, NULL, &entry3DShift, 0},
+    OSD_LABEL_ENTRY("-- OSD SETTINGS --"),
 
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_TAB_ENTRY("FONT", (&(const OSD_TAB_t){&bfOsdConfigCms.font, 2, &FONT_NAMES[0]})),
+    OSD_UINT8_ENTRY("OSD WHITE", (&(const OSD_UINT8_t){ &bfOsdConfigCms.white_level, 100, 120, 1 })),
+    OSD_UINT8_ENTRY("OSD BLACK", (&(const OSD_UINT8_t){ &bfOsdConfigCms.black_level, 15, 40, 1 })),
+    OSD_BOOL_ENTRY("INVERT",  &bfOsdConfigCms.invert),
+    OSD_UINT8_ENTRY("OSD SYNC TH", (&(const OSD_UINT8_t){ &bfOsdConfigCms.sync_threshold, BRAINFPV_OSD_SYNC_TH_MIN, BRAINFPV_OSD_SYNC_TH_MAX, 1 })),
+    OSD_INT8_ENTRY("OSD X OFF", (&(const OSD_INT8_t){ &bfOsdConfigCms.x_offset, -8, 7, 1 })),
+    OSD_UINT8_ENTRY("OSD X SC", (&(const OSD_UINT8_t){ &bfOsdConfigCms.x_scale, 0, 15, 1 })),
+    OSD_BOOL_ENTRY("3D MODE",  &bfOsdConfigCms.sbs_3d_enabled),
+    OSD_UINT8_ENTRY("3D R SHIFT", (&(const OSD_UINT8_t){ &bfOsdConfigCms.sbs_3d_right_eye_offset, 10, 40, 1 })),
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuBrainFPVOsd = {
@@ -103,13 +90,19 @@ CMS_Menu cmsx_menuBrainFPVOsd = {
 
 OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
-    {"--- BRAINFPV ---", OME_Label, NULL, NULL, 0},
-    {"OSD", OME_Submenu, cmsMenuChange, &cmsx_menuBrainFPVOsd, 0},
+    OSD_LABEL_ENTRY("-- BRAINFPV --"),
 
-    {"SHOW LOGO ON ARM", OME_Bool, NULL, &bfOsdConfigCms.show_logo_on_arm, 0},
-    {"SHOW PILOT LOGO", OME_Bool, NULL, &bfOsdConfigCms.show_pilot_logo, 0},
-    {"BACK", OME_Back, NULL, NULL, 0},
-    {NULL, OME_END, NULL, NULL, 0}
+    OSD_SUBMENU_ENTRY("OSD SETTINGS", &cmsx_menuBrainFPVOsd),
+    OSD_UINT8_ENTRY("AHI STEPS", (&(const OSD_UINT8_t){ &bfOsdConfigCms.ahi_steps, 0, 9, 1 })),
+    OSD_BOOL_ENTRY("ALTITUDE SCALE",  &bfOsdConfigCms.altitude_scale),
+    OSD_BOOL_ENTRY("SPEED SCALE",  &bfOsdConfigCms.speed_scale),
+    OSD_UINT16_ENTRY("RADAR MAX DIST M", (&(const OSD_UINT16_t){ &bfOsdConfigCms.radar_max_dist_m, 10, 32767, 10 })),
+    OSD_TAB_ENTRY("SHOW STICKS", (&(const OSD_TAB_t){&bfOsdConfigCms.sticks_display, 2, &STICKS_DISPLAY_NAMES[0]})),
+    OSD_BOOL_ENTRY("SHOW LOGO ON ARM",  &bfOsdConfigCms.show_logo_on_arm),
+    OSD_BOOL_ENTRY("SHOW PILOT LOGO",  &bfOsdConfigCms.show_pilot_logo),
+
+    OSD_BACK_ENTRY,
+    OSD_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuBrainFPV = {

@@ -88,6 +88,7 @@ typedef struct
 #define OSD_BOOL_ENTRY(label, val)              ((OSD_Entry){ label, OME_Bool, {.func = NULL}, val, 0 })
 #define OSD_BOOL_CALLBACK_ENTRY(label, cb, val) ((OSD_Entry){ label, OME_Bool, {.func = cb}, val, 0 })
 #define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, OME_BoolFunc, {.func = NULL}, fn, 0 })
+#define OSD_INT8_ENTRY(label, val)              ((OSD_Entry){ label, OME_INT8, {.func = NULL}, val, 0 })
 #define OSD_UINT8_ENTRY(label, val)             ((OSD_Entry){ label, OME_UINT8, {.func = NULL}, val, 0 })
 #define OSD_UINT8_CALLBACK_ENTRY(label, cb, val)((OSD_Entry){ label, OME_UINT8, {.func = cb}, val, 0 })
 #define OSD_UINT16_ENTRY(label, val)            ((OSD_Entry){ label, OME_UINT16, {.func = NULL}, val, 0 })

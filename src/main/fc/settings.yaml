@@ -1696,18 +1696,15 @@ groups:
       - name: brainfpv_osd_ahi_steps
         field: ahi_steps
         min: 0
-        max: 4
+        max: 9
       - name: brainfpv_altitude_scale
         field: altitude_scale
         type: bool
       - name: brainfpv_speed_scale
         field: speed_scale
         type: bool
-      - name: brainfpv_map
-        field: map
-        type: bool
-      - name: brainfpv_map_max_dist_m
-        field: map_max_dist_m
+      - name: brainfpv_radar_max_dist_m
+        field: radar_max_dist_m
         min: 10
         max: 32767
       - name: brainfpv_sticks_display
