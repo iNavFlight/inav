@@ -21,8 +21,7 @@ typedef struct bfOsdConfig_s {
     uint8_t ahi_steps;
     uint8_t altitude_scale;
     uint8_t speed_scale;
-    uint8_t map;
-    uint16_t map_max_dist_m;
+    uint16_t radar_max_dist_m;
     uint8_t sticks_display;
     uint8_t show_logo_on_arm;
     uint8_t show_pilot_logo;
@@ -40,6 +39,7 @@ void brainFpvOsdCenterMark(void);
 void brainFpvOsdUserLogo(uint16_t x, uint16_t y);
 void brainFpvOsdMainLogo(uint16_t x, uint16_t y);
 void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y);
+void brainFpvRadarMap();
 void brainFpvOsdHeadingGraph(uint16_t x, uint16_t y);
 
 

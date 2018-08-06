@@ -72,7 +72,6 @@
 #include "navigation/navigation.h"
 
 #include "io/flashfs.h"
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
@@ -118,8 +117,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .ahi_steps = 2,
   .altitude_scale = 1,
   .speed_scale = 1,
-  .map = 1,
-  .map_max_dist_m = 500,
+  .radar_max_dist_m = 500,
   .sticks_display = 0,
   .show_logo_on_arm = 1,
   .show_pilot_logo = 1,
@@ -136,12 +134,12 @@ extern uint8_t *disp_buffer;
 
 extern bool cmsInMenu;
 bool brainfpv_user_avatar_set = false;
+bool osd_arming_or_stats = false;
 
 static void simple_artificial_horizon(int16_t roll, int16_t pitch, int16_t x, int16_t y,
         int16_t width, int16_t height, int8_t max_pitch,
         uint8_t n_pitch_steps);
 void draw_stick(int16_t x, int16_t y, int16_t horizontal, int16_t vertical);
-void draw_map_uav_center();
 
 
 /*******************************************************************************/
@@ -151,11 +149,11 @@ void draw_map_uav_center();
 
 uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
-const vcdProfile_t * p_vcd_profile;
+static uint8_t videoSignalCfg = 0;
 
-void max7456Init(const vcdProfile_t *pVcdProfile)
+void max7456Init(const videoSystem_e videoSystem)
 {
-    p_vcd_profile = pVcdProfile;
+    videoSignalCfg = videoSystem;
 }
 
 void max7456Invert(bool invert)
@@ -184,16 +182,16 @@ void  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 
 uint8_t max7456GetRowsCount(void)
 {
-    switch (p_vcd_profile->video_system) {
-        case VIDEO_SYSTEM_AUTO:
+    switch (videoSignalCfg) {
+        case PAL:
+            return VIDEO_LINES_PAL;
+        case NTSC:
+            return VIDEO_LINES_NTSC;
+        default:
             if (Video_GetType() == VIDEO_TYPE_NTSC)
                 return VIDEO_LINES_NTSC;
             else
                 return VIDEO_LINES_PAL;
-        case VIDEO_SYSTEM_PAL:
-            return VIDEO_LINES_PAL;
-        case VIDEO_SYSTEM_NTSC:
-            return VIDEO_LINES_NTSC;
     }
     return VIDEO_LINES_PAL;
 }
@@ -225,16 +223,24 @@ uint8_t* max7456GetScreenBuffer(void)
 {
     return dummyBuffer;
 }
+
+bool max7456ReadChar(uint8_t x, uint8_t y, uint8_t *c, uint8_t *mode)
+{
+    (void)x;
+    (void)y;
+    (void)c;
+    (void)mode;
+
+    return true;
+}
+
 /*******************************************************************************/
 
 void brainFpvOsdInit(void)
 {
     Video_Init();
 
-    vcdProfile_t vcdProfile_ = {
-        .video_system=VIDEO_SYSTEM_AUTO
-    };
-    displayPort_t *osdDisplayPort = max7456DisplayPortInit(&vcdProfile_);
+    displayPort_t *osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
     osdInit(osdDisplayPort);
 
     for (uint16_t i=0; i<(image_userlogo.width * image_userlogo.height) / 4; i++) {
@@ -310,9 +316,6 @@ void osdUpdateLocal()
             float speed = getVelocity();
             osd_draw_vertical_scale(speed, 100, -1, GRAPHICS_LEFT + 5, GRAPHICS_Y_MIDDLE, 120, 10, 20, 5, 8, 11, 0);
         }
-        if (bfOsdConfig()->map) {
-            draw_map_uav_center();
-        }
     }
 
     if (bfOsdConfig()->sticks_display == 1) {
@@ -354,10 +357,10 @@ void brainFpvOsdMain(void) {
             brainFpvOsdWelcome();
         }
         else {
-           // draw normal OSD
+            // draw normal OSD
             uint32_t currentTimeUs = micros();
             osdRefresh(currentTimeUs);
-            if (!cmsInMenu){
+            if (!cmsInMenu && !osd_arming_or_stats){
                 osdUpdateLocal();
             }
         }
@@ -555,17 +558,17 @@ void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y)
 }
 
 #define MAP_MAX_DIST_PX 70
-void draw_map_uav_center()
+void brainFpvRadarMap()
 {
     uint16_t x, y;
 
     uint16_t dist_to_home_m = GPS_distanceToHome;
 
-    if (dist_to_home_m > bfOsdConfig()->map_max_dist_m) {
-        dist_to_home_m = bfOsdConfig()->map_max_dist_m;
+    if (dist_to_home_m > bfOsdConfig()->radar_max_dist_m) {
+        dist_to_home_m = bfOsdConfig()->radar_max_dist_m;
     }
 
-    float dist_to_home_px = MAP_MAX_DIST_PX * (float)dist_to_home_m / (float)bfOsdConfig()->map_max_dist_m;
+    float dist_to_home_px = MAP_MAX_DIST_PX * (float)dist_to_home_m / (float)bfOsdConfig()->radar_max_dist_m;
 
     // don't draw map if we are very close to home
     if (dist_to_home_px < 1.0f) {

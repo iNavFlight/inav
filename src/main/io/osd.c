@@ -95,6 +95,7 @@
 #include "brainfpv/brainfpv_osd.h"
 extern bool brainfpv_user_avatar_set;
 extern bool cmsInMenu;
+extern bool osd_arming_or_stats;
 #endif
 
 #define VIDEO_BUFFER_CHARS_PAL    480
@@ -1059,6 +1060,8 @@ static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t 
     osdDrawMap(referenceHeading, referenceSym, SYM_HOME, GPS_distanceToHome, GPS_directionToHome, SYM_ARROW_UP, drawn, usedScale);
 }
 
+#if !defined(USE_BRAINFPV_OSD)
+
 /* Draws a map with the aircraft in the center and the home moving around.
  * See osdDrawMap() for reference.
  */
@@ -1068,6 +1071,7 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
+#endif /* !defined(USE_BRAINFPV_OSD) */
 
 #endif
 
@@ -1396,12 +1400,18 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
     case OSD_RADAR:
+#if defined(USE_BRAINFPV_OSD)
+        brainfpv_item = true;
+        brainFpvRadarMap();
+        break;
+#else
         {
             static uint16_t drawn = 0;
             static uint32_t scale = 0;
             osdDrawRadar(&drawn, &scale);
             return true;
         }
+#endif /* defined(USE_BRAINFPV_OSD) */
 #endif // GPS
 
     case OSD_ALTITUDE:
@@ -2744,12 +2754,24 @@ static void osdShowArmed(void)
     char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
     char *date;
     char *time;
+
+#if defined(USE_BRAINFPV_OSD)
+    if (bfOsdConfig()->show_logo_on_arm) {
+        brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, 80);
+    }
+
+    uint8_t y = 9;
+
+    displayWrite(osdDisplayPort, 12, y, "ARMED");
+    y += 1;
+#else
     // We need 6 visible rows
     uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 6 - 1);
 
     displayClearScreen(osdDisplayPort);
     displayWrite(osdDisplayPort, 12, y, "ARMED");
     y += 2;
+#endif /* defined(USE_BRAINFPV_OSD) */
 
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
@@ -2758,7 +2780,7 @@ static void osdShowArmed(void)
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
             osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
-            y += 3;
+            y += 2;
         } else {
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
@@ -2778,7 +2800,8 @@ static void osdShowArmed(void)
 
 void osdRefresh(timeUs_t currentTimeUs)
 {
-    static timeUs_t lastTimeUs = 0;
+    static uint32_t counter = 0;
+
     static uint32_t armTime = 0;
     static uint32_t disarmTime = 0;
 
@@ -2804,21 +2827,16 @@ void osdRefresh(timeUs_t currentTimeUs)
         armState = ARMING_FLAG(ARMED);
     }
 
-    if (ARMING_FLAG(ARMED)) {
-        timeUs_t deltaT = currentTimeUs - lastTimeUs;
-        flyTime += deltaT;
-    }
-
-    lastTimeUs = currentTimeUs;
-
 #if defined(USE_BRAINFPV_OSD)
 #define IS_HI(X)  (rcData[X] > 1750)
 #define IS_LO(X)  (rcData[X] < 1250)
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+    osd_arming_or_stats = false;
     uint32_t now = millis();
     if (ARMING_FLAG(ARMED)) {
         if (now - armTime < 500) {
             osdShowArmed();
+            osd_arming_or_stats = true;
             return;
         }
     }
@@ -2826,8 +2844,43 @@ void osdRefresh(timeUs_t currentTimeUs)
         bool enter_menu = (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH));
         if ((disarmTime > 0) && (now - disarmTime < 10000) && !enter_menu && !cmsInMenu) {
             osdShowStats();
+            osd_arming_or_stats = true;
             return;
         }
+    }
+
+#if defined(OSD_ALTERNATE_LAYOUT_COUNT) && OSD_ALTERNATE_LAYOUT_COUNT > 0
+    // Check if the layout has changed. Higher numbered
+    // boxes take priority.
+    unsigned activeLayout;
+    if (layoutOverride >= 0) {
+        activeLayout = layoutOverride;
+    } else {
+#if OSD_ALTERNATE_LAYOUT_COUNT > 2
+        if (IS_RC_MODE_ACTIVE(BOXOSDALT3))
+            activeLayout = 3;
+        else
+#endif
+#if OSD_ALTERNATE_LAYOUT_COUNT > 1
+        if (IS_RC_MODE_ACTIVE(BOXOSDALT2))
+            activeLayout = 2;
+        else
+#endif
+        if (IS_RC_MODE_ACTIVE(BOXOSDALT1))
+            activeLayout = 1;
+        else
+            activeLayout = 0;
+    }
+    if (currentLayout != activeLayout) {
+        currentLayout = activeLayout;
+    }
+#endif
+
+    #define STATS_FREQ_DENOM    50
+    counter++;
+
+    if ((counter % STATS_FREQ_DENOM) == 0) {
+        osdUpdateStats();
     }
 
     osdDisplayPort->cleared = true;
