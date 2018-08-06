@@ -182,8 +182,15 @@ VPATH           := $(VPATH):$(TARGET_DIR)
 
 .DEFAULT_GOAL   := hex
 
+include $(ROOT)/make/brainfpv.mk
+
 include $(ROOT)/make/source.mk
 include $(ROOT)/make/release.mk
+
+#excludes
+TARGET_SRC   := $(filter-out $(EXCLUDES), $(TARGET_SRC))
+
+$(info $$TARGET_SRC is [${TARGET_SRC}])
 
 ###############################################################################
 # Things that might need changing to use different tools
