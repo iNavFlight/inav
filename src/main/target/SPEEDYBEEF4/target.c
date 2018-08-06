@@ -23,7 +23,7 @@
 #include "drivers/timer.h"
 #include "drivers/bus.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM5, IO_TAG(PA3), TIM_Channel_4, 0, IOCFG_AF_PP_UP, GPIO_AF_TIM5, TIM_USE_PPM}, // PPM
     { TIM8, IO_TAG(PC6), TIM_Channel_1, 1, IOCFG_AF_PP_UP, GPIO_AF_TIM8, TIM_USE_MC_MOTOR                    | TIM_USE_FW_MOTOR }, // S1  UP(1,2)
     { TIM8, IO_TAG(PC7), TIM_Channel_2, 1, IOCFG_AF_PP_UP, GPIO_AF_TIM8, TIM_USE_MC_MOTOR                    | TIM_USE_FW_MOTOR }, // S2  UP(2,1)
