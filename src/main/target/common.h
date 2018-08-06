@@ -36,8 +36,11 @@
 #endif
 
 #if defined(STM32F3) || defined(STM32F4)
-#define USE_ADC_AVERAGING
+#if defined(USE_ADC_AVERAGING)
+#if !defined(ADC_AVERAGE_N_SAMPLES)
 #define ADC_AVERAGE_N_SAMPLES 20
+#endif
+#endif
 #endif
 
 #define USE_64BIT_TIME
