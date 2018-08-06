@@ -76,8 +76,8 @@ enum
     FSSP_DATAID_CELLS      = 0x0300 ,
     FSSP_DATAID_CELLS_LAST = 0x030F ,
     FSSP_DATAID_HEADING    = 0x0840 ,
-    FSSP_DATAID_PITCH      = 0x0850 ,
-    FSSP_DATAID_ROLL       = 0x0860 ,
+    FSSP_DATAID_PITCH      = 0x0430 ,
+    FSSP_DATAID_ROLL       = 0x0440 ,
     FSSP_DATAID_ACCX       = 0x0700 ,
     FSSP_DATAID_ACCY       = 0x0710 ,
     FSSP_DATAID_ACCZ       = 0x0720 ,
@@ -430,33 +430,36 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 smartPortSendPackage(id, attitude.values.yaw * 10); // given in 10*deg, requested in 10000 = 100 deg
                 *clearToSend = false;
                 break;
-            //crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
-            //crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
-            //DECIDEGREES_TO_DEGREES(attitude.values.roll)
-            //DECIDEGREES_TO_RADIANS(attitude.values.roll)
-            // attitude.values = absolute angle inclination in multiple of 0.1 degree    180 deg = 1800
             case FSSP_DATAID_PITCH    :
-                smartPortSendPackage(id, attitude.values.pitch * 10); // given in 10*deg, requested in 10000 = 100 deg
-                *clearToSend = false;
+                if (telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, attitude.values.pitch); // given in 10*deg
+                    *clearToSend = false;
+                }
                 break;
             case FSSP_DATAID_ROLL    :
-                smartPortSendPackage(id, attitude.values.roll * 10); // given in 10*deg, requested in 10000 = 100 deg
-                *clearToSend = false;
+                if (telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, attitude.values.roll); // given in 10*deg
+                    *clearToSend = false;
+                }
                 break;
             case FSSP_DATAID_ACCX       :
-                smartPortSendPackage(id, attitude.values.pitch * 10);
-                //smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
-                *clearToSend = false;
+                if (!telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
+                    *clearToSend = false;
+                }
                 break;
             case FSSP_DATAID_ACCY       :
-                smartPortSendPackage(id, attitude.values.roll * 10);
-                //smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
-                *clearToSend = false;
+                if (!telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
+                    *clearToSend = false;
+                }
                 break;
-            //case FSSP_DATAID_ACCZ       :
-            //    smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
-            //    *clearToSend = false;
-            //    break;
+            case FSSP_DATAID_ACCZ       :
+                if (!telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
+                    *clearToSend = false;
+                }
+                break;
             case FSSP_DATAID_T1         :
                 {
                     smartPortSendPackage(id, frskyGetFlightMode());

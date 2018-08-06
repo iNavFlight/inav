@@ -1434,6 +1434,8 @@ groups:
       - name: frsky_vfas_precision
         min: FRSKY_VFAS_PRECISION_LOW
         max: FRSKY_VFAS_PRECISION_HIGH
+      - name: frsky_pitch_roll
+        type: bool
       - name: report_cell_voltage
         type: bool
       - name: hott_alarm_sound_interval
