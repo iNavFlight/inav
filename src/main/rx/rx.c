@@ -492,7 +492,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rxFlightChannelsValid = true;
-    
+
     // Read and process channel data
     for (int channel = 0; channel < rxRuntimeConfig.channelCount; channel++) {
         const uint8_t rawChannel = calculateChannelRemapping(rxConfig()->rcmap, REMAPPABLE_CHANNEL_COUNT, channel);

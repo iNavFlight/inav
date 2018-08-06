@@ -117,7 +117,7 @@ static void srf10_start_reading(rangefinderDev_t * rangefinder)
 
         isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_RangeLowByte, &lowByte);
         isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_RangeHighByte, &highByte);
-        
+
         srf10measurementCm =  highByte << 8 | lowByte;
 
         if (srf10measurementCm > SRF10_MAX_RANGE_CM) {
@@ -171,7 +171,7 @@ bool srf10Detect(rangefinderDev_t * rangefinder)
     if (rangefinder->busDev == NULL) {
         return false;
     }
-    
+
     if (!deviceDetect(rangefinder->busDev)) {
         busDeviceDeInit(rangefinder->busDev);
         return false;

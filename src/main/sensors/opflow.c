@@ -195,7 +195,7 @@ void opflowUpdate(timeUs_t currentTimeUs)
             DEBUG_SET(DEBUG_FLOW_RAW, 3, RADIANS_TO_DEGREES(opflow.bodyRate[Y]));
         }
         else {
-            // Opflow updated but invalid - zero out flow rates and body 
+            // Opflow updated but invalid - zero out flow rates and body
             opflow.flowRate[X] = 0;
             opflow.flowRate[Y] = 0;
 

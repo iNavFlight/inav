@@ -1027,7 +1027,7 @@ static void writeSlowFrame(void)
 
     blackboxWriteUnsignedVB(slowHistory.powerSupplyImpedance);
     blackboxWriteUnsignedVB(slowHistory.sagCompensatedVBat);
-    
+
     blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
 
     blackboxSlowFrameIterationTimer = 0;

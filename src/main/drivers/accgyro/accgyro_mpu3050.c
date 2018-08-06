@@ -121,7 +121,7 @@ bool mpu3050Detect(gyroDev_t *gyro)
     if (gyro->busDev == NULL) {
         return false;
     }
-    
+
     if (!deviceDetect(gyro->busDev)) {
         busDeviceDeInit(gyro->busDev);
         return false;

@@ -112,7 +112,7 @@ static uint16_t estimateRTHAltitudeChangeEnergy(float altitudeChange, float vert
 }
 
 // returns distance in m
-// *heading is in degrees 
+// *heading is in degrees
 static float estimateRTHDistanceAndHeadingAfterAltitudeChange(float altitudeChange, float horizontalWindSpeed, float windHeading, float verticalWindSpeed, float *heading) {
     float estimatedAltitudeChangeGroundDistance = estimateRTHAltitudeChangeGroundDistance(altitudeChange, horizontalWindSpeed, windHeading, verticalWindSpeed);
     if (navConfig()->general.flags.rth_climb_first && (altitudeChange > 0)) {

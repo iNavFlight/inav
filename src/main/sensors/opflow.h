@@ -59,7 +59,7 @@ typedef struct opflow_s {
     float           bodyRate[2];    // body inertial angular rate in rad/sec measured about the X and Y body axis
 
     float           gyroBodyRateAcc[2];
-    timeUs_t        gyroBodyRateTimeUs;    
+    timeUs_t        gyroBodyRateTimeUs;
 
     uint8_t         rawQuality;
 } opflow_t;

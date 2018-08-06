@@ -118,7 +118,7 @@ static bool mpu6500DeviceDetect(busDevice_t * dev)
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
     busWrite(dev, MPU_RA_PWR_MGMT_1, MPU6500_BIT_RESET);
-    
+
     do {
         delay(150);
 
