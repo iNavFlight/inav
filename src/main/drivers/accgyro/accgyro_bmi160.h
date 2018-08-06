@@ -1,4 +1,16 @@
 /*
+ *  ******************************************************************************
+ * @addtogroup PIOS PIOS Core hardware abstraction layer
+ * @{
+ * @addtogroup PIOS_BMI160 BMI160 Functions
+ * @brief Hardware functions to deal with the 6DOF gyro / accel sensor
+ * @{
+ *
+ * @file       pios_bmi160.c
+ * @author     dRonin, http://dRonin.org/, Copyright (C) 2016
+ * @brief      BMI160 Gyro / Accel Sensor Routines
+ * @see        The GNU Public License (GPL) Version 3
+ *
  * This file is part of INAV.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

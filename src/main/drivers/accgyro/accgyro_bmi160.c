@@ -1,4 +1,16 @@
 /*
+ *  ******************************************************************************
+ * @addtogroup PIOS PIOS Core hardware abstraction layer
+ * @{
+ * @addtogroup PIOS_BMI160 BMI160 Functions
+ * @brief Hardware functions to deal with the 6DOF gyro / accel sensor
+ * @{
+ *
+ * @file       pios_bmi160.c
+ * @author     dRonin, http://dRonin.org/, Copyright (C) 2016
+ * @brief      BMI160 Gyro / Accel Sensor Routines
+ * @see        The GNU Public License (GPL) Version 3
+ *
  * This file is part of INAV.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
@@ -36,6 +48,7 @@
 #include "drivers/time.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
+#include "drivers/nvic.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -43,6 +56,11 @@
 #include "drivers/accgyro/accgyro_bmi160.h"
 
 #if defined(USE_GYRO_BMI160) || defined(USE_ACC_BMI160)
+
+#if defined(USE_CHIBIOS)
+#include "ch.h"
+binary_semaphore_t gyroSem;
+#endif
 
 /* BMI160 Registers */
 #define BMI160_REG_CHIPID           0x00
@@ -103,6 +121,8 @@ typedef struct __attribute__ ((__packed__)) bmi160ContextData_s {
     uint8_t     accRaw[6];
 } bmi160ContextData_t;
 
+static void bmi160IntExtiInit(gyroDev_t *gyro);
+
 STATIC_ASSERT(sizeof(bmi160ContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
 static const gyroFilterAndRateConfig_t gyroConfigs[] = {
@@ -123,7 +143,13 @@ static const gyroFilterAndRateConfig_t gyroConfigs[] = {
 static void bmi160AccAndGyroInit(gyroDev_t *gyro)
 {
     uint8_t value;
+
+#if defined(USE_CHIBIOS)
+    chBSemObjectInit(&gyroSem, FALSE);
+    bmi160IntExtiInit(gyro);
+#else
     gyroIntExtiInit(gyro);
+#endif
 
     busSetSpeed(gyro->busDev, BUS_SPEED_INITIALIZATION);
 
@@ -173,8 +199,55 @@ static void bmi160AccAndGyroInit(gyroDev_t *gyro)
     busWrite(gyro->busDev, BMI160_REG_INT_MAP1, BMI160_REG_INT_MAP1_INT1_DRDY);
     delay(1);
 
+#if defined(USE_BRAINFPV_FPGA)
+    busSetSpeed(gyro->busDev, BUS_SPEED_STANDARD);
+#else
     busSetSpeed(gyro->busDev, BUS_SPEED_FAST);
+#endif
 }
+
+#if defined(USE_EXTI) && defined(GYRO_EXTI_PIN)
+#if defined(USE_CHIBIOS)
+void bmi160ExtiHandler(extiCallbackRec_t *cb)
+{
+    CH_IRQ_PROLOGUE();
+
+    gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
+    gyro->dataReady = true;
+
+    chSysLockFromISR();
+    chBSemSignalI(&gyroSem);
+    chSysUnlockFromISR();
+    CH_IRQ_EPILOGUE();
+}
+#else
+void bmi160ExtiHandler(extiCallbackRec_t *cb)
+{
+    gyroDev_t *gyro = container_of(cb, gyroDev_t, exti);
+    gyro->dataReady = true;
+}
+#endif /* defined(USE_CHIBIOS) */
+
+static void bmi160IntExtiInit(gyroDev_t *gyro)
+{
+    static bool bmi160ExtiInitDone = false;
+
+    if (bmi160ExtiInitDone) {
+        return;
+    }
+
+    IO_t mpuIntIO = IOGetByTag(IO_TAG(GYRO_EXTI_PIN));
+
+    IOInit(mpuIntIO, OWNER_MPU, RESOURCE_EXTI, 0);
+    IOConfigGPIO(mpuIntIO, IOCFG_IN_FLOATING);
+
+    EXTIHandlerInit(&gyro->exti, bmi160ExtiHandler);
+    EXTIConfig(mpuIntIO, &gyro->exti, NVIC_PRIO_GYRO_INT_EXTI, EXTI_Trigger_Rising);
+    EXTIEnable(mpuIntIO, true);
+
+    bmi160ExtiInitDone = true;
+}
+#endif /* defined(USE_EXTI) && defined(BMI160_INT_EXTI) */
 
 bool bmi160GyroReadScratchpad(gyroDev_t *gyro)
 {
