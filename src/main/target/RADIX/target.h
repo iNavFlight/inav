@@ -95,8 +95,6 @@
 
 #define USE_MAG
 
-#define USABLE_TIMER_CHANNEL_COUNT 8
-
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    6
 #define TARGET_MOTOR_COUNT      6
@@ -142,6 +140,7 @@
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC
 #define USE_ADC_AVERAGING
+#undef ADC_AVERAGE_N_SAMPLES
 #define ADC_AVERAGE_N_SAMPLES 50
 
 // XXX should use this
@@ -187,8 +186,6 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
-
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(8) | TIM_N(12) )
 
 bool brainfpv_settings_updated;
 bool brainfpv_settings_updated_from_cms;
