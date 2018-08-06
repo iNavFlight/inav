@@ -205,9 +205,9 @@ void EXTI_IRQHandler(uint32_t line_mask)
 
 _EXTI_IRQ_HANDLER(EXTI0_IRQHandler, 0x0001);
 _EXTI_IRQ_HANDLER(EXTI1_IRQHandler, 0x0002);
-#if defined(STM32F7)
+#if defined(STM32F7) || defined(STM32F4) || defined(STM32F7)
 _EXTI_IRQ_HANDLER(EXTI2_IRQHandler, 0x0004);
-#elif defined(STM32F3) || defined(STM32F4)
+#elif defined(STM32F3)
 _EXTI_IRQ_HANDLER(EXTI2_TS_IRQHandler, 0x0004);
 #else
 # warning "Unknown CPU"
