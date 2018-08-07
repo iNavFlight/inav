@@ -49,13 +49,15 @@ struct FontEntry {
 	const uint16_t* data;
 };
 
-#define NUM_FONTS  5
+#define NUM_FONTS  7
 
 #define INAV_DEFAULT 0
 #define INAV_LARGE 1
 #define INAV_BOLD 2
-#define FONT8X10 3
-#define FONT_OUTLINED8X8 4
+#define INAV_CLARITY 3
+#define INAV_VISION 4
+#define FONT8X10 5
+#define FONT_OUTLINED8X8 6
 
 
 #endif /* FONTS_H */
