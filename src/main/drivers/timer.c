@@ -58,7 +58,7 @@ uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
             return i;
         }
     }
-    
+
     // make sure final index is out of range
     return ~1;
 }

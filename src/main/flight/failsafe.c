@@ -77,7 +77,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_fw_pitch_angle = 100,     // 10 deg dive (yes, positive means dive)
     .failsafe_fw_yaw_rate = -45,        // 45 deg/s left yaw (left is negative, 8s for full turn)
     .failsafe_stick_motion_threshold = 50,
-    .failsafe_min_distance = 0,            // No minimum distance for failsafe by default  
+    .failsafe_min_distance = 0,            // No minimum distance for failsafe by default
     .failsafe_min_distance_procedure = FAILSAFE_PROCEDURE_DROP_IT   // default minimum distance failsafe procedure
 );
 
@@ -400,7 +400,7 @@ void failsafeUpdateState(void)
 
                     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
                     // GPS must also be working, and home position set
-                    if ((failsafeConfig()->failsafe_min_distance > 0) && 
+                    if ((failsafeConfig()->failsafe_min_distance > 0) &&
                         ((GPS_distanceToHome * 100) < failsafeConfig()->failsafe_min_distance) &&
                         sensors(SENSOR_GPS) && STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
                         // Use the alternate, minimum distance failsafe procedure instead

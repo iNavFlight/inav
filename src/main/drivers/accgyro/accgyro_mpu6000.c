@@ -162,7 +162,7 @@ static bool mpu6000DeviceDetect(busDevice_t * busDev)
     busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
 
     busWrite(busDev, MPU_RA_PWR_MGMT_1, BIT_H_RESET);
-    
+
     do {
         delay(150);
 

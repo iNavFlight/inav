@@ -130,7 +130,7 @@ bool l3g4200dDetect(gyroDev_t *gyro)
     if (gyro->busDev == NULL) {
         return false;
     }
-    
+
     if (!deviceDetect(gyro->busDev)) {
         busDeviceDeInit(gyro->busDev);
         return false;

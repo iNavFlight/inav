@@ -135,7 +135,7 @@
 #define UART6_RX_PIN            PC7
 
 #define USE_SOFTSERIAL1               //Frsky SmartPort on TX2 pad
-#define SOFTSERIAL_1_TX_PIN      PA2 
+#define SOFTSERIAL_1_TX_PIN      PA2
 #define SOFTSERIAL_1_RX_PIN      PA2
 
 #define SERIAL_PORT_COUNT       8
@@ -160,7 +160,7 @@
 #define WS2811_PIN                      PA15
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST5_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream5
-#define WS2811_DMA_CHANNEL              DMA_Channel_3 
+#define WS2811_DMA_CHANNEL              DMA_Channel_3
 
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL)

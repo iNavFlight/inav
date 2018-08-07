@@ -1046,7 +1046,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
 #ifdef USE_ACC_NOTCH
-        sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz); 
+        sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
 #else
         sbufWriteU16(dst, 0);
@@ -1054,9 +1054,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
 #ifdef USE_GYRO_BIQUAD_RC_FIR2
-        sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz); 
-#else 
-        sbufWriteU16(dst, 0); 
+        sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);
+#else
+        sbufWriteU16(dst, 0);
 #endif
         break;
 
@@ -1846,7 +1846,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 gyroConfigMutable()->gyro_soft_notch_cutoff_2 = constrain(sbufReadU16(src), 1, 500);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
 
 #ifdef USE_ACC_NOTCH
             if (dataSize >= 21) {
@@ -1854,14 +1854,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 accelerometerConfigMutable()->acc_notch_cutoff = constrain(sbufReadU16(src), 1, 255);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
 
 #ifdef USE_GYRO_BIQUAD_RC_FIR2
             if (dataSize >= 22) {
                 gyroConfigMutable()->gyro_stage2_lowpass_hz = constrain(sbufReadU16(src), 0, 500);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
         } else
             return MSP_RESULT_ERROR;
         break;

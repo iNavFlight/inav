@@ -210,10 +210,11 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  frsky_coordinates_format  | 0 | FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
 |  frsky_unit  | METRIC | METRIC , IMPERIAL |
 |  frsky_vfas_precision  | 0 | Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
+|  frsky_pitch_roll  | OFF | Send pitch and roll degrees*10 instead of raw accelerometer telemetry for S.Port and FrSky D-Series telemetry |
 |  report_cell_voltage  | OFF |  |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
 |  smartport_uart_unidir  | OFF | Turn UART into UNIDIR for smartport telemetry for usage on F1 and F4 target. See Telemetry.md for details |
-|  smartport_fuel_unit  | MAH | Unit of the value sent with the `FUEL` ID through the S.Port telemetry. Replaces the `smartport_fuel_percent` setting in versions < 1.9 [PERCENT/MAH/MWH] |
+|  smartport_fuel_unit  | MAH | Unit of the value sent with the `FUEL` ID through the S.Port and FrSky D-Series telemetry. [PERCENT/MAH/MWH] |
 |  ibus_telemetry_type  | 0 | Type compatibility ibus telemetry for transmitters. See Telemetry.md label IBUS for details. |
 |  ltm_update_rate  | NORMAL | Defines the LTM update rate (use of bandwidth [NORMAL/MEDIUM/SLOW]). See Telemetry.md, LTM section for details. |
 |  battery_capacity  | 0 | Battery capacity in mAH. This value is used in conjunction with the current meter to determine remaining battery capacity. |
