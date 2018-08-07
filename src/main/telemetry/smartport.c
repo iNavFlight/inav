@@ -430,13 +430,13 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 smartPortSendPackage(id, attitude.values.yaw * 10); // given in 10*deg, requested in 10000 = 100 deg
                 *clearToSend = false;
                 break;
-            case FSSP_DATAID_PITCH    :
+            case FSSP_DATAID_PITCH      :
                 if (telemetryConfig()->frsky_pitch_roll) {
                     smartPortSendPackage(id, attitude.values.pitch); // given in 10*deg
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_ROLL    :
+            case FSSP_DATAID_ROLL       :
                 if (telemetryConfig()->frsky_pitch_roll) {
                     smartPortSendPackage(id, attitude.values.roll); // given in 10*deg
                     *clearToSend = false;
