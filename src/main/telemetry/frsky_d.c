@@ -419,9 +419,13 @@ static void sendAmperage(void)
 
 static void sendFuelLevel(void)
 {
-    sendDataHead(ID_FUEL_LEVEL);
-
-    serialize16((uint16_t)calculateBatteryPercentage());
+    if (telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_PERCENT) {
+        sendDataHead(ID_FUEL_LEVEL);
+        serialize16((uint16_t)calculateBatteryPercentage());
+    } else if (isAmperageConfigured()) {
+        sendDataHead(ID_FUEL_LEVEL);
+        serialize16((uint16_t)telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_MAH ? getMAhDrawn() : getMWhDrawn());
+    }
 }
 
 static void sendHeading(void)
