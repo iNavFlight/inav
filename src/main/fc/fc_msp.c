@@ -35,6 +35,8 @@
 #include "common/time.h"
 #include "common/utils.h"
 
+#include "config/parameter_group_ids.h"
+
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
@@ -47,6 +49,7 @@
 #include "drivers/timer.h"
 #include "drivers/vtx_common.h"
 
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
@@ -185,16 +188,7 @@ static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr
 static void mspRebootFn(serialPort_t *serialPort)
 {
     UNUSED(serialPort);
-
-    stopMotors();
-    stopPwmAllMotors();
-
-    // extra delay before reboot to give ESCs chance to reset
-    delay(1000);
-    systemReset();
-
-    // control should never return here.
-    while (true) ;
+    fcReboot(false);
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
@@ -484,7 +478,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC:
         for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU16(dst, rcData[i]);
+            sbufWriteU16(dst, rcRaw[i]);
         }
         break;
 
@@ -1052,7 +1046,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
 #ifdef USE_ACC_NOTCH
-        sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz); 
+        sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
 #else
         sbufWriteU16(dst, 0);
@@ -1060,9 +1054,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
 #ifdef USE_GYRO_BIQUAD_RC_FIR2
-        sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz); 
-#else 
-        sbufWriteU16(dst, 0); 
+        sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);
+#else
+        sbufWriteU16(dst, 0);
 #endif
         break;
 
@@ -1863,7 +1857,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 gyroConfigMutable()->gyro_soft_notch_cutoff_2 = constrain(sbufReadU16(src), 1, 500);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
 
 #ifdef USE_ACC_NOTCH
             if (dataSize >= 21) {
@@ -1871,14 +1865,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 accelerometerConfigMutable()->acc_notch_cutoff = constrain(sbufReadU16(src), 1, 255);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
 
 #ifdef USE_GYRO_BIQUAD_RC_FIR2
             if (dataSize >= 22) {
                 gyroConfigMutable()->gyro_stage2_lowpass_hz = constrain(sbufReadU16(src), 0, 500);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2571,9 +2565,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     return MSP_RESULT_ACK;
 }
 
-static const setting_t *mspReadSettingName(sbuf_t *src)
+static const setting_t *mspReadSetting(sbuf_t *src)
 {
     char name[SETTING_MAX_NAME_LENGTH];
+    uint16_t id;
     uint8_t c;
     size_t s = 0;
     while (1) {
@@ -2582,6 +2577,14 @@ static const setting_t *mspReadSettingName(sbuf_t *src)
         }
         name[s++] = c;
         if (c == '\0') {
+            if (s == 1) {
+                // Payload starts with a zero, setting index
+                // as uint16_t follows
+                if (sbufReadU16Safe(&id, src)) {
+                    return settingGet(id);
+                }
+                return NULL;
+            }
             break;
         }
         if (s == SETTING_MAX_NAME_LENGTH) {
@@ -2594,7 +2597,7 @@ static const setting_t *mspReadSettingName(sbuf_t *src)
 
 static bool mspSettingCommand(sbuf_t *dst, sbuf_t *src)
 {
-    const setting_t *setting = mspReadSettingName(src);
+    const setting_t *setting = mspReadSetting(src);
     if (!setting) {
         return false;
     }
@@ -2609,7 +2612,7 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
 {
     UNUSED(dst);
 
-    const setting_t *setting = mspReadSettingName(src);
+    const setting_t *setting = mspReadSetting(src);
     if (!setting) {
         return false;
     }
@@ -2701,6 +2704,94 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
     return true;
 }
 
+static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const setting_t *setting = mspReadSetting(src);
+    if (!setting) {
+        return false;
+    }
+
+    // Parameter Group ID
+    sbufWriteU16(dst, settingGetPgn(setting));
+
+    // Type, section and mode
+    sbufWriteU8(dst, SETTING_TYPE(setting));
+    sbufWriteU8(dst, SETTING_SECTION(setting));
+    sbufWriteU8(dst, SETTING_MODE(setting));
+
+    // Min as int32_t
+    int32_t min = settingGetMin(setting);
+    sbufWriteU32(dst, (uint32_t)min);
+    // Max as uint32_t
+    uint32_t max = settingGetMax(setting);
+    sbufWriteU32(dst, max);
+
+    // Absolute setting index
+    sbufWriteU16(dst, settingGetIndex(setting));
+
+    // If the setting is profile based, send the current one
+    // and the count, both as uint8_t. For MASTER_VALUE, we
+    // send two zeroes, so the MSP client can assume there
+    // will always be two bytes.
+    switch (SETTING_SECTION(setting)) {
+    case MASTER_VALUE:
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, 0);
+        break;
+    case PROFILE_VALUE:
+        FALLTHROUGH;
+    case CONTROL_RATE_VALUE:
+        sbufWriteU8(dst, getConfigProfile());
+        sbufWriteU8(dst, MAX_PROFILE_COUNT);
+        break;
+    case BATTERY_CONFIG_VALUE:
+        sbufWriteU8(dst, getConfigBatteryProfile());
+        sbufWriteU8(dst, MAX_BATTERY_PROFILE_COUNT);
+        break;
+    }
+
+    // If the setting uses a table, send each possible string (null terminated)
+    if (SETTING_MODE(setting) == MODE_LOOKUP) {
+        for (int ii = (int)min; ii <= (int)max; ii++) {
+            const char *name = settingLookupValueName(setting, ii);
+            sbufWriteDataSafe(dst, name, strlen(name) + 1);
+        }
+    }
+
+    // Finally, include the setting value. This way resource constrained callers
+    // (e.g. a script in the radio) don't need to perform another call to retrieve
+    // the value.
+    const void *ptr = settingGetValuePointer(setting);
+    size_t size = settingGetValueSize(setting);
+    sbufWriteDataSafe(dst, ptr, size);
+
+    return true;
+}
+
+static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
+{
+    uint16_t first;
+    uint16_t last;
+    uint16_t start;
+    uint16_t end;
+
+    if (sbufReadU16Safe(&first, src)) {
+        last = first;
+    } else {
+        first = PG_ID_FIRST;
+        last = PG_ID_LAST;
+    }
+
+    for (int ii = first; ii <= last; ii++) {
+        if (settingsGetParameterGroupIndexes(ii, &start, &end)) {
+            sbufWriteU16(dst, ii);
+            sbufWriteU16(dst, start);
+            sbufWriteU16(dst, end);
+        }
+    }
+    return true;
+}
+
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
     switch (cmdMSP) {
@@ -2725,6 +2816,14 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
     case MSP2_COMMON_SET_SETTING:
         *ret = mspSetSettingCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_COMMON_SETTING_INFO:
+        *ret = mspSettingInfoCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_COMMON_PG_LIST:
+        *ret = mspParameterGroupsCommand(dst, src) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
         break;
 
 #if defined(USE_OSD)

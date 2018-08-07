@@ -240,8 +240,7 @@ class ValueEncoder
         return buf.to_carr
     end
 
-    private
-    def encode_value(buf, val)
+    def resolve_value(val)
         v = val || 0
         if !v.is_number_kind?
             v = @constants[val]
@@ -249,6 +248,12 @@ class ValueEncoder
                 raise "Could not resolve constant #{val}"
             end
         end
+        return v
+    end
+
+    private
+    def encode_value(buf, val)
+        v = resolve_value(val)
         pos = @values.find_index(v)
         if pos < 0
             raise "Could not encode value not in array #{v}"
@@ -468,7 +473,7 @@ class Generator
             buf << "};\n"
         end
 
-        buf << "const lookupTableEntry_t settingLookupTables[] = {\n"
+        buf << "static const lookupTableEntry_t settingLookupTables[] = {\n"
         table_names.each do |name|
             vn = table_variable_name(name)
             buf << "\t{ #{vn}, sizeof(#{vn}) / sizeof(char*) },\n"
@@ -476,7 +481,7 @@ class Generator
         buf << "};\n"
 
         # Write min/max values table
-        buf << "const uint32_t settingMinMaxTable[] = {\n"
+        buf << "static const uint32_t settingMinMaxTable[] = {\n"
         @value_encoder.values.each do |v|
             buf <<  "\t#{v},\n"
         end
@@ -492,7 +497,7 @@ class Generator
         end
 
         # Write setting_t values
-        buf << "const setting_t settingsTable[] = {\n"
+        buf << "static const setting_t settingsTable[] = {\n"
 
         last_group = nil
         foreach_enabled_member do |group, member|
@@ -501,14 +506,20 @@ class Generator
                 buf << "\t// #{group["name"]}\n"
             end
 
-            buf << "\t{ #{@name_encoder.format_encoded_name(member["name"])}, "
+            name = member["name"]
+            buf << "\t{ #{@name_encoder.format_encoded_name(name)}, "
             buf << "#{var_type(member["type"])} | #{value_type(group)}"
             tbl = member["table"]
             if tbl
                 buf << " | MODE_LOOKUP"
                 buf << ", .config.lookup = { #{table_constant_name(tbl)} }"
             else
-                enc = @value_encoder.encode_values(member["min"], member["max"])
+                min = @value_encoder.resolve_value(member["min"])
+                max = @value_encoder.resolve_value(member["max"])
+                if min > max
+                    raise "Error encoding #{name}: min (#{min}) > max (#{max})"
+                end
+                enc = @value_encoder.encode_values(min, max)
                 buf <<  ", .config.minmax.indexes = #{enc}"
             end
             buf << ", offsetof(#{group["type"]}, #{member["field"]}) },\n"

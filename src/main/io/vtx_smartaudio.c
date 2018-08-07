@@ -200,7 +200,7 @@ static void saPrintSettings(void)
 
 int saDacToPowerIndex(int dac)
 {
-    for (int idx = 3 ; idx >= 0 ; idx--) {
+    for (int idx = VTX_SMARTAUDIO_POWER_COUNT - 1 ; idx >= 0 ; idx--) {
         if (saPowerTable[idx].valueV1 <= dac) {
             return idx;
         }
@@ -446,6 +446,11 @@ static void saSendFrame(uint8_t *buf, int len)
     for (int i = 0 ; i < len ; i++) {
         serialWrite(smartAudioSerialPort, buf[i]);
     }
+
+    // XXX: Workaround for early AKK SAudio-enabled VTX bug,
+    // shouldn't cause any problems with VTX with properly
+    // implemented SAudio.
+    serialWrite(smartAudioSerialPort, 0x00);
 
     sa_lastTransmissionMs = millis();
     saStat.pktsent++;

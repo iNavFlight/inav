@@ -56,6 +56,7 @@
 #include "config/parameter_group_ids.h"
 
 // For 'ARM' related
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -428,7 +429,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
             buff[0] = '\0';
             const OSD_SETTING_t *ptr = p->data;
-            const setting_t *var = &settingsTable[ptr->val];
+            const setting_t *var = settingGet(ptr->val);
             int32_t value;
             const void *valuePointer = settingGetValuePointer(var);
             switch (SETTING_TYPE(var)) {
@@ -476,13 +477,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
                         break;
                     case MODE_LOOKUP:
                         {
-                            const char *str = NULL;
-                            if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
-                                const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
-                                if (value < tableEntry->valueCount) {
-                                    str = tableEntry->values[value];
-                                }
-                            }
+                            const char *str = settingLookupValueName(var, value);
                             strncpy(buff, str ? str : "INVALID", sizeof(buff) - 1);
                         }
                         break;
@@ -764,11 +759,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
         displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
 
-        stopMotors();
-        stopPwmAllMotors();
-        delay(200);
-
-        systemReset();
+        fcReboot(false);
     }
 
     DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
@@ -1008,7 +999,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
         case OME_Setting:
             if (p->data) {
                 const OSD_SETTING_t *ptr = p->data;
-                const setting_t *var = &settingsTable[ptr->val];
+                const setting_t *var = settingGet(ptr->val);
                 setting_min_t min = settingGetMin(var);
                 setting_max_t max = settingGetMax(var);
                 float step = ptr->step ?: 1;

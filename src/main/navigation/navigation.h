@@ -126,6 +126,7 @@ typedef struct navConfig_s {
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
+            uint8_t auto_overrides_motor_stop;  // Autonomous modes override motor_stop setting and user command to stop motor
         } flags;
 
         uint8_t  pos_failure_timeout;           // Time to wait before switching to emergency landing (0 - disable)
@@ -279,12 +280,13 @@ typedef enum {
     MW_NAV_STATE_WP_ENROUTE,              // WP Enroute
     MW_NAV_STATE_PROCESS_NEXT,            // Process next
     MW_NAV_STATE_DO_JUMP,                 // Jump
-    MW_NAV_STATE_LAND_START,              // Start Land
+    MW_NAV_STATE_LAND_START,              // Start Land (unused)
     MW_NAV_STATE_LAND_IN_PROGRESS,        // Land in Progress
     MW_NAV_STATE_LANDED,                  // Landed
     MW_NAV_STATE_LAND_SETTLE,             // Settling before land
     MW_NAV_STATE_LAND_START_DESCENT,      // Start descent
-    MW_NAV_STATE_HOVER_ABOVE_HOME         // Hover/Loitering above home
+    MW_NAV_STATE_HOVER_ABOVE_HOME,        // Hover/Loitering above home
+    MW_NAV_STATE_EMERGENCY_LANDING,       // Emergency landing
 } navSystemStatus_State_e;
 
 typedef enum {
@@ -391,6 +393,7 @@ rthState_e getStateOfForcedRTH(void);
 bool navigationIsControllingThrottle(void);
 bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
+bool navigationIsExecutingAnEmergencyLanding(void);
 /* Returns true iff navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */
@@ -420,7 +423,7 @@ extern navSystemStatus_t    NAV_Status;
 extern int16_t navCurrentState;
 extern int16_t navActualVelocity[3];
 extern int16_t navDesiredVelocity[3];
-extern int16_t navTargetPosition[3];
+extern int32_t navTargetPosition[3];
 extern int32_t navLatestActualPosition[3];
 extern int16_t navActualSurface;
 extern uint16_t navFlags;

@@ -62,14 +62,15 @@
 #include "io/osd.h"
 #include "io/vtx_string.h"
 
-#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/fc_core.h"
+#include "fc/fc_tasks.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/fc_tasks.h"
+#include "fc/settings.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -479,36 +480,34 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
  */
 static uint16_t osdConvertRSSI(void)
 {
-    uint16_t osdRssi = getRSSI() * 100 / 1024; // change range
-    if (osdRssi >= 100) {
-        osdRssi = 99;
-    }
-    return osdRssi;
+    // change range to [0, 99]
+    return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
-    const int coordinateMaxLength = 12; // 11 for the number + 1 for the symbol
+    // up to 4 for number + 1 for the symbol + null terminator + fill the rest with decimals
+    const int coordinateLength = osdConfig()->coordinate_digits + 1;
 
     buff[0] = sym;
     int32_t integerPart = val / GPS_DEGREES_DIVIDER;
-    int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
     // Latitude maximum integer width is 3 (-90) while
-    // longitude maximum integer width is 4 (-180). We always
-    // show 7 decimals, so we need to use 11 spaces because
-    // we're embedding the decimal separator between the
-    // two numbers.
-    int written = tfp_sprintf(buff + 1, "%d", integerPart);
-    tfp_sprintf(buff + 1 + written, "%07d", decimalPart);
+    // longitude maximum integer width is 4 (-180).
+    int integerDigits = tfp_sprintf(buff + 1, (integerPart == 0 && val < 0) ? "-%d" : "%d", integerPart);
+    // We can show up to 7 digits in decimalPart.
+    int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
+    STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
+    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", decimalPart);
     // Embbed the decimal separator
-    buff[1+written-1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
-    buff[1+written] += SYM_ZERO_HALF_LEADING_DOT - '0';
-    // Pad to 11 coordinateMaxLength
-    while(1 + 7 + written < coordinateMaxLength) {
-        buff[1 + 7 + written] = SYM_BLANK;
-        written++;
+    buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
+    buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    // Fill up to coordinateLength with zeros
+    int total = 1 + integerDigits + decimalDigits;
+    while(total < coordinateLength) {
+        buff[total] = '0';
+        total++;
     }
-    buff[coordinateMaxLength] = '\0';
+    buff[coordinateLength] = '\0';
 }
 
 // Used twice, make sure it's exactly the same string
@@ -588,6 +587,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
         case ARMING_DISABLED_OOM:
             return OSD_MESSAGE_STR("NOT ENOUGH MEMORY");
+        case ARMING_DISABLED_INVALID_SETTING:
+            return OSD_MESSAGE_STR("INVALID SETTING");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
@@ -681,7 +682,10 @@ static const char * navigationStateMessage(void)
             // Not used
             break;
         case MW_NAV_STATE_LAND_START:
-            return OSD_MESSAGE_STR("STARTING EMERGENCY LANDING");
+            // Not used
+            break;
+        case MW_NAV_STATE_EMERGENCY_LANDING:
+            return OSD_MESSAGE_STR("EMERGENCY LANDING");
         case MW_NAV_STATE_LAND_IN_PROGRESS:
             return OSD_MESSAGE_STR("LANDING");
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
@@ -918,7 +922,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     char symUnscaled;
     char symScaled;
     int maxDecimals;
-    const int scaleMultiplier = 2;
+    const unsigned scaleMultiplier = 2;
     // We try to reduce the scale when the POI will be around half the distance
     // between the center and the closers map edge, to avoid too much jumping
     const int scaleReductionMultiplier = MIN(midX - hMargin, midY - vMargin) / 2;
@@ -961,19 +965,22 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
         float poiCos = cos_approx(poiAngle);
 
         // Now start looking for a valid scale that lets us draw everything
-        for (int ii = 0; ii < 50; ii++, scale *= scaleMultiplier) {
+        int ii;
+        for (ii = 0; ii < 50; ii++) {
             // Calculate location of the aircraft in map
-            int points = poiDistance / (float)(scale / charHeight);
+            int points = poiDistance / ((float)scale / charHeight);
 
             float pointsX = points * poiSin;
             int poiX = midX - roundf(pointsX / charWidth);
             if (poiX < minX || poiX > maxX) {
+                scale *= scaleMultiplier;
                 continue;
             }
 
             float pointsY = points * poiCos;
             int poiY = midY + roundf(pointsY / charHeight);
             if (poiY < minY || poiY > maxY) {
+                scale *= scaleMultiplier;
                 continue;
             }
 
@@ -987,9 +994,21 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
             } else {
 
                 uint8_t c;
-                if (displayReadCharWithAttr(osdDisplayPort, poiY, poiY, &c, NULL) && c != SYM_BLANK) {
+                if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
+                    //
+                    // If we're close to the center, decrease scale. Otherwise increase it.
+                    uint8_t centerDeltaX = (maxX - minX) / (scaleMultiplier * 2);
+                    uint8_t centerDeltaY = (maxY - minY) / (scaleMultiplier * 2);
+                    if (poiX >= midX - centerDeltaX && poiX <= midX + centerDeltaX &&
+                        poiY >= midY - centerDeltaY && poiY <= midY + centerDeltaY &&
+                        scale > scaleMultiplier) {
+
+                        scale /= scaleMultiplier;
+                    } else {
+                        scale *= scaleMultiplier;
+                    }
                     continue;
                 }
             }
@@ -1036,17 +1055,17 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
 
 #endif
 
-void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController) {
+static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
     strcpy(buff, label);
-    uint8_t label_len = strlen(label);
-    for (uint8_t i = label_len; i < 5; ++i) buff[i] = ' ';
-    osdFormatCentiNumber(buff + 5, pidController->proportional, 0, 1, 0, 4);
+    for (uint8_t i = strlen(label); i < 5; ++i) buff[i] = ' ';
+    uint8_t decimals = showDecimal ? 1 : 0;
+    osdFormatCentiNumber(buff + 5, pidController->proportional * scale, 0, decimals, 0, 4);
     buff[9] = ' ';
-    osdFormatCentiNumber(buff + 10, pidController->integrator, 0, 1, 0, 4);
+    osdFormatCentiNumber(buff + 10, pidController->integrator * scale, 0, decimals, 0, 4);
     buff[14] = ' ';
-    osdFormatCentiNumber(buff + 15, pidController->derivative, 0, 1, 0, 4);
+    osdFormatCentiNumber(buff + 15, pidController->derivative * scale, 0, decimals, 0, 4);
     buff[19] = ' ';
-    osdFormatCentiNumber(buff + 20, pidController->output_constrained, 0, 1, 0, 4);
+    osdFormatCentiNumber(buff + 20, pidController->output_constrained * scale, 0, decimals, 0, 4);
     buff[24] = '\0';
 }
 
@@ -1210,14 +1229,23 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            // There are 16 orientations for the home direction arrow.
-            // so we use 22.5deg per image, where the 1st image is used
-            // for [349, 11], the 2nd for [12, 33], etc...
-            int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
-            // Add 11 to the angle, so first character maps to [349, 11]
-            int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
-            unsigned arrowOffset = homeArrowDir * 2 / 45;
-            buff[0] = SYM_ARROW_UP + arrowOffset;
+            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+                // There are 16 orientations for the home direction arrow.
+                // so we use 22.5deg per image, where the 1st image is used
+                // for [349, 11], the 2nd for [12, 33], etc...
+                int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+                // Add 11 to the angle, so first character maps to [349, 11]
+                int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
+                unsigned arrowOffset = homeArrowDir * 2 / 45;
+                buff[0] = SYM_ARROW_UP + arrowOffset;
+            } else {
+                // No home or no fix or unknown heading, blink.
+                // If we're unarmed, show the arrow pointing up so users can see the arrow
+                // while configuring the OSD. If we're armed, show a '-' indicating that
+                // we don't know the direction to home.
+                buff[0] = ARMING_FLAG(ARMED) ? '-' : SYM_ARROW_UP;
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             buff[1] = 0;
             break;
         }
@@ -1552,19 +1580,19 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ATTITUDE_ROLL:
         buff[0] = SYM_ROLL_LEVEL;
-        if (ABS(attitude.values.roll) >= (osdConfig()->attitude_angle_decimals ? 1 : 10))
+        if (ABS(attitude.values.roll) >= 1)
             buff[0] += (attitude.values.roll < 0 ? -1 : 1);
-        osdFormatCentiNumber(buff + 1, ABS(attitude.values.roll) * 10, 0, osdConfig()->attitude_angle_decimals, 0, 2 + osdConfig()->attitude_angle_decimals);
+        osdFormatCentiNumber(buff + 1, DECIDEGREES_TO_CENTIDEGREES(ABS(attitude.values.roll)), 0, 1, 0, 3);
         break;
 
     case OSD_ATTITUDE_PITCH:
-        if (ABS(attitude.values.pitch) < (osdConfig()->attitude_angle_decimals ? 1 : 10))
+        if (ABS(attitude.values.pitch) < 1)
             buff[0] = 'P';
         else if (attitude.values.pitch > 0)
             buff[0] = SYM_PITCH_DOWN;
         else if (attitude.values.pitch < 0)
             buff[0] = SYM_PITCH_UP;
-        osdFormatCentiNumber(buff + 1, ABS(attitude.values.pitch) * 10, 0, osdConfig()->attitude_angle_decimals, 0, 2 + osdConfig()->attitude_angle_decimals);
+        osdFormatCentiNumber(buff + 1, DECIDEGREES_TO_CENTIDEGREES(ABS(attitude.values.pitch)), 0, 1, 0, 3);
         break;
 
     case OSD_ARTIFICIAL_HORIZON:
@@ -1601,7 +1629,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 osdCrosshairsBounds(&cx, &cy, &cl);
                 crosshairsX = cx - elemPosX;
                 crosshairsY = cy - elemPosY;
-                crosshairsXEnd = crosshairsX + cl;
+                crosshairsXEnd = crosshairsX + cl - 1;
             }
 
             for (int x = -4; x <= 4; x++) {
@@ -1618,25 +1646,32 @@ static bool osdDrawSingleElement(uint8_t item)
                 int wx = x + 4; // map the -4 to the 1st element in the writtenY array
                 int pwy = writtenY[wx]; // previously written Y at this X value
                 int wy = (y / AH_SYMBOL_COUNT);
-                // Check if we're overlapping with the crosshairs. Saves a few
-                // trips to the video driver.
+
+                unsigned chX = elemPosX + x;
+                unsigned chY =  elemPosY + wy;
+                uint8_t c;
+
+                // Check if we're overlapping with the crosshairs directly. Saves a few
+                // trips to the video driver. Also, test for other arbitrary overlapping
+                // elements if the display supports reading back characters.
                 bool overlaps = (crosshairsVisible &&
                             crosshairsY == wy &&
-                            x >= crosshairsX && x <= crosshairsXEnd);
+                            x >= crosshairsX && x <= crosshairsXEnd) ||
+                            (pwy != wy && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && c != SYM_BLANK);
 
                 if (y >= 0 && y <= 80 && !overlaps) {
                     if (pwy != -1 && pwy != wy) {
                         // Erase previous character at pwy rows below elemPosY
                         // iff we're writing at a different Y coordinate. Otherwise
                         // we just overwrite the previous one.
-                        displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + pwy, SYM_BLANK);
+                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
                     }
                     uint8_t ch = SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT);
-                    displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + wy, ch);
+                    displayWriteChar(osdDisplayPort, chX, chY, ch);
                     writtenY[wx] = wy;
                 } else {
                     if (pwy != -1) {
-                        displayWriteChar(osdDisplayPort, elemPosX + x, elemPosY + pwy, SYM_BLANK);
+                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
                         writtenY[wx] = -1;
                     }
                 }
@@ -1888,35 +1923,35 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_FW_ALT_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "PZO", &nav_pids->fw_alt);
+            osdFormatPidControllerOutput(buff, "PZO", &nav_pids->fw_alt, 10, true); // display requested pitch degrees
             break;
         }
 
     case OSD_FW_POS_PID_OUTPUTS:
         {
-            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "PXYO", &nav_pids->fw_nav);
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers(); // display requested roll degrees
+            osdFormatPidControllerOutput(buff, "PXYO", &nav_pids->fw_nav, 1, true);
             break;
         }
 
     case OSD_MC_VEL_Z_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "VZO", &nav_pids->vel[Z]);
+            osdFormatPidControllerOutput(buff, "VZO", &nav_pids->vel[Z], 100, false); // display throttle adjustment µs
             break;
         }
 
     case OSD_MC_VEL_X_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "VXO", &nav_pids->vel[X]);
+            osdFormatPidControllerOutput(buff, "VXO", &nav_pids->vel[X], 100, false); // display requested acceleration cm/s^2
             break;
         }
 
     case OSD_MC_VEL_Y_PID_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "VYO", &nav_pids->vel[Y]);
+            osdFormatPidControllerOutput(buff, "VYO", &nav_pids->vel[Y], 100, false); // display requested acceleration cm/s^2
             break;
         }
 
@@ -1924,11 +1959,12 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
             strcpy(buff, "POSO ");
-            osdFormatCentiNumber(buff + 5, nav_pids->pos[X].output_constrained, 0, 1, 0, 4);
+            // display requested velocity cm/s
+            tfp_sprintf(buff + 5, "%4d", lrintf(nav_pids->pos[X].output_constrained * 100));
             buff[9] = ' ';
-            osdFormatCentiNumber(buff + 10, nav_pids->pos[Y].output_constrained, 0, 1, 0, 4);
+            tfp_sprintf(buff + 10, "%4d", lrintf(nav_pids->pos[Y].output_constrained * 100));
             buff[14] = ' ';
-            osdFormatCentiNumber(buff + 15, nav_pids->pos[Z].output_constrained, 0, 1, 0, 4);
+            tfp_sprintf(buff + 15, "%4d", lrintf(nav_pids->pos[Z].output_constrained * 100));
             buff[19] = '\0';
             break;
         }
@@ -1955,9 +1991,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             // RTC not configured will show 00:00
             dateTime_t dateTime;
-            if (rtcGetDateTime(&dateTime)) {
-                dateTimeUTCToLocal(&dateTime, &dateTime);
-            }
+            rtcGetDateTimeLocal(&dateTime);
             buff[0] = SYM_CLOCK;
             tfp_sprintf(buff + 1, "%02u:%02u", dateTime.hours, dateTime.minutes);
             break;
@@ -1966,6 +2000,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MESSAGES:
         {
             const char *message = NULL;
+            char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
             if (ARMING_FLAG(ARMED)) {
                 // Aircraft is armed. We might have up to 4
                 // messages to show.
@@ -2000,7 +2035,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         // will cause it to be missing from some frames.
                     }
                 } else {
-                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE)) {
+                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                         const char *navStateMessage = navigationStateMessage();
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
@@ -2030,13 +2065,28 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                 }
             } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+                unsigned invalidIndex;
                 // Check if we're unable to arm for some reason
-                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                    message = "UNABLE TO ARM";
-                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
+                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                        const setting_t *setting = settingGet(invalidIndex);
+                        settingGetName(setting, messageBuf);
+                        for (int ii = 0; messageBuf[ii]; ii++) {
+                            messageBuf[ii] = sl_toupper(messageBuf[ii]);
+                        }
+                        message = messageBuf;
+                    } else {
+                        message = "INVALID SETTING";
+                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                    }
                 } else {
-                    // Show the reason for not arming
-                    message = osdArmingDisabledReasonMessage();
+                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                        message = "UNABLE TO ARM";
+                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                    } else {
+                        // Show the reason for not arming
+                        message = osdArmingDisabledReasonMessage();
+                    }
                 }
             }
             osdFormatMessage(buff, sizeof(buff), message);
@@ -2422,9 +2472,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->units = OSD_UNIT_METRIC;
     osdConfig->main_voltage_decimals = 1;
-    osdConfig->attitude_angle_decimals = 0;
 
     osdConfig->estimations_wind_compensation = true;
+    osdConfig->coordinate_digits = 9;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
@@ -2652,13 +2702,21 @@ static void osdShowArmed(void)
     displayWrite(osdDisplayPort, 12, y, "ARMED");
     y += 2;
 
-    if (STATE(GPS_FIX)) {
-        osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
-        osdFormatCoordinate(buf, SYM_LON, gpsSol.llh.lon);
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
-        y += 3;
+#if defined(USE_GPS)
+    if (feature(FEATURE_GPS)) {
+        if (STATE(GPS_FIX_HOME)) {
+            osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
+            osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
+            y += 3;
+        } else {
+            strcpy(buf, "!NO HOME POSITION!");
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
+            y += 1;
+        }
     }
+#endif
 
     if (rtcGetDateTime(&dt)) {
         dateTimeFormatLocal(buf, &dt);
@@ -2671,7 +2729,11 @@ static void osdShowArmed(void)
 
 static void osdRefresh(timeUs_t currentTimeUs)
 {
+#ifdef USE_CMS
     if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
+#else
+    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+#endif
       displayClearScreen(osdDisplayPort);
       armState = ARMING_FLAG(ARMED);
       return;

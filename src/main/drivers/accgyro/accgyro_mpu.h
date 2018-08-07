@@ -138,7 +138,7 @@
 #define MPU_DLPF_188HZ          0x01
 #define MPU_DLPF_256HZ          0x00
 
-typedef struct mpuConfiguration_s {    
+typedef struct mpuConfiguration_s {
     uint8_t gyroReadXRegister; // Y and Z must registers follow this, 2 words each
 } mpuConfiguration_t;
 

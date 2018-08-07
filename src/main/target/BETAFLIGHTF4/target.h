@@ -27,9 +27,6 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-// PC13 used as inverter select GPIO for UART2
-#define INVERTER_PIN_UART2      PC13
-
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS		BUS_SPI1
 
@@ -71,6 +68,7 @@
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
 
 #define USE_UART1
 #define UART1_RX_PIN            PA10
@@ -80,7 +78,8 @@
 #define USE_UART2
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
-
+// PC13 used as inverter select GPIO for UART2
+#define INVERTER_PIN_UART2_RX   PC13
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -134,6 +133,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C2

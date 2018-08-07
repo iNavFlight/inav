@@ -93,7 +93,7 @@ typedef struct _dateTime_s {
 bool dateTimeFormatUTC(char *buf, dateTime_t *dt);
 bool dateTimeFormatLocal(char *buf, dateTime_t *dt);
 
-void dateTimeUTCToLocal(dateTime_t *utcDateTime, dateTime_t *localDateTime);
+void dateTimeUTCToLocal(dateTime_t *localDateTime, const dateTime_t *utcDateTime);
 // dateTimeSplitFormatted splits a formatted date into its date
 // and time parts. Note that the string pointed by formatted will
 // be modifed and will become invalid after calling this function.
@@ -105,4 +105,5 @@ bool rtcGet(rtcTime_t *t);
 bool rtcSet(rtcTime_t *t);
 
 bool rtcGetDateTime(dateTime_t *dt);
+bool rtcGetDateTimeLocal(dateTime_t *dt);
 bool rtcSetDateTime(dateTime_t *dt);

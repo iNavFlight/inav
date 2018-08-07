@@ -59,7 +59,7 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
     GPIO_StructInit(&GPIO_InitStructure);
 
     GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_All;
-    
+
     GPIO_InitStructure.GPIO_Pin &= ~(GPIO_Pin_13 | GPIO_Pin_14); // leave JTAG pins alone
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 

@@ -17,10 +17,12 @@
 
 #pragma once
 
-#if defined(INVERTER_PIN_UART1) || defined(INVERTER_PIN_UART2) || defined(INVERTER_PIN_UART3) || defined(INVERTER_PIN_UART4) || defined(INVERTER_PIN_UART5) || defined(INVERTER_PIN_UART6)
-#define USE_INVERTER
-#endif
+typedef enum {
+    UART_INVERTER_LINE_NONE = 0,
+    UART_INVERTER_LINE_RX = 1 << 0,
+    UART_INVERTER_LINE_TX = 1 << 1,
+} uartInverterLine_e;
 
-void initInverters(void);
+void uartInverterInit(void);
 
-void enableInverter(USART_TypeDef *USARTx, bool on);
+void uartInverterSet(USART_TypeDef *USARTx, uartInverterLine_e line, bool enable);

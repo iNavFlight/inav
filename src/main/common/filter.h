@@ -73,6 +73,7 @@ void biquadFilterInitNotch(biquadFilter_t *filter, uint32_t samplingIntervalUs, 
 void biquadFilterInitLPF(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs);
 void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samplingIntervalUs, float Q, biquadFilterType_e filterType);
 float biquadFilterApply(biquadFilter_t *filter, float sample);
+float biquadFilterReset(biquadFilter_t *filter, float value);
 float filterGetNotchQ(uint16_t centerFreq, uint16_t cutoff);
 
 void firFilterInit(firFilter_t *filter, float *buf, uint8_t bufLength, const float *coeffs);

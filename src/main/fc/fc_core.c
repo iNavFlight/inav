@@ -35,6 +35,7 @@
 #include "drivers/serial.h"
 #include "drivers/time.h"
 
+#include "drivers/system.h"
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/boardalignment.h"
@@ -210,7 +211,7 @@ static void updateArmingStatus(void)
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_SYSTEM_OVERLOADED);
         }
-        
+
 #if defined(USE_NAV)
         /* CHECK: Navigation safety */
         if (navigationBlockArming()) {
@@ -242,7 +243,7 @@ static void updateArmingStatus(void)
         /* CHECK: */
         if (!isHardwareHealthy()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
-        }        
+        }
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
         }
@@ -275,7 +276,7 @@ static void updateArmingStatus(void)
         /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
 	    ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
-	    } 
+	    }
         else {
 	    DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
 	    }
@@ -607,7 +608,7 @@ void processRx(timeUs_t currentTimeUs)
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 
-#if defined(AUTOTUNE_FIXED_WING) || defined(AUTOTUNE_MULTIROTOR)
+#if defined(USE_AUTOTUNE_FIXED_WING) || defined(USE_AUTOTUNE_MULTIROTOR)
     autotuneUpdateState();
 #endif
 
@@ -706,7 +707,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && ((!STATE(FIXED_WING)) || (isNavLaunchEnabled() && isFixedWingLaunchDetected()))) {
+    if (ARMING_FLAG(ARMED) && ((!STATE(FIXED_WING)) || (!isNavLaunchEnabled()) || (isNavLaunchEnabled() && isFixedWingLaunchDetected()))) {
         flightTime += cycleTime;
     }
 
@@ -833,6 +834,26 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 }
 
 // returns seconds
-float getFlightTime() {
+float getFlightTime()
+{
     return (float)(flightTime / 1000) / 1000;
+}
+
+void fcReboot(bool bootLoader)
+{
+    // stop motor/servo outputs
+    stopMotors();
+    stopPwmAllMotors();
+
+    // extra delay before reboot to give ESCs chance to reset
+    delay(1000);
+
+    if (bootLoader) {
+        systemResetToBootloader();
+    }
+    else {
+        systemReset();
+    }
+
+    while (true);
 }

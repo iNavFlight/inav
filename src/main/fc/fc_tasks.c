@@ -101,12 +101,12 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
     static timeUs_t batMonitoringLastServiced = 0;
     timeUs_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
 
-    if (feature(FEATURE_CURRENT_METER))
+    if (isAmperageConfigured())
         currentMeterUpdate(BatMonitoringTimeSinceLastServiced);
 #ifdef USE_ADC
     if (feature(FEATURE_VBAT))
         batteryUpdate(BatMonitoringTimeSinceLastServiced);
-    if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
+    if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
         powerMeterUpdate(BatMonitoringTimeSinceLastServiced);
         sagCompensatedVBatUpdate(currentTimeUs, BatMonitoringTimeSinceLastServiced);
     }
@@ -239,7 +239,7 @@ void taskLedStrip(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
 void taskSyncPwmDriver(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -306,7 +306,7 @@ void fcTasksInit(void)
 #ifdef USE_LIGHTS
     setTaskEnabled(TASK_LIGHTS, true);
 #endif
-    setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || feature(FEATURE_CURRENT_METER));
+    setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || isAmperageConfigured());
     setTaskEnabled(TASK_TEMPERATURE, true);
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS
@@ -340,7 +340,7 @@ void fcTasksInit(void)
 #ifdef STACK_CHECK
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     setTaskEnabled(TASK_PWMDRIVER, feature(FEATURE_PWM_SERVO_DRIVER));
 #endif
 #ifdef USE_OSD
@@ -540,7 +540,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     [TASK_PWMDRIVER] = {
         .taskName = "PWMDRIVER",
         .taskFunc = taskSyncPwmDriver,
@@ -603,7 +603,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_VTX_CONTROL
+#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
     [TASK_VTXCTRL] = {
         .taskName = "VTXCTRL",
         .taskFunc = vtxUpdate,

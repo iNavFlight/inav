@@ -34,6 +34,8 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
+#define BUS_SPI_SPEED_MAX BUS_SPEED_SLOW
+
 #define MPU6000_CS_PIN          PB5
 #define MPU6000_SPI_BUS         BUS_SPI2
 
@@ -52,6 +54,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_SPI
 #define USE_SPI_DEVICE_2 // PB12,13,14,15 on AF5

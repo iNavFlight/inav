@@ -33,6 +33,12 @@ void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 {
     const SPIClockSpeed_e spiClock[] = { SPI_CLOCK_INITIALIZATON, SPI_CLOCK_SLOW, SPI_CLOCK_STANDARD, SPI_CLOCK_FAST, SPI_CLOCK_ULTRAFAST };
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+
+#ifdef BUS_SPI_SPEED_MAX
+  if (speed > BUS_SPI_SPEED_MAX)
+    speed = BUS_SPI_SPEED_MAX;
+#endif
+
     spiSetSpeed(instance, spiClock[speed]);
 }
 

@@ -31,8 +31,6 @@
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART2      PB2
-
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
@@ -67,8 +65,12 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
+
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
@@ -81,6 +83,7 @@
 
 #define UART2_TX_PIN            PA2
 #define UART2_RX_PIN            PA3
+#define INVERTER_PIN_UART2_RX   PB2
 
 #define UART3_TX_PIN            PB10
 #define UART3_RX_PIN            PB11

@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "common/time.h"
+
 #define SMARTPORT_MSP_TX_BUF_SIZE 256
 #define SMARTPORT_MSP_RX_BUF_SIZE 64
 

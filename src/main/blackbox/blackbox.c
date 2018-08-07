@@ -75,6 +75,7 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
+#include "flight/wind_estimator.h"
 
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
@@ -193,6 +194,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"axisD",       0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_0)},
     {"axisD",       1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_1)},
     {"axisD",       2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(NONZERO_PID_D_2)},
+
     {"fwAltP",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwAltI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwAltD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
@@ -201,6 +203,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"fwPosI",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosD",     -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
     {"fwPosOut",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(FIXED_WING_NAV)},
+
     {"mcPosAxisP",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
     {"mcPosAxisP",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
     {"mcPosAxisP",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(MC_NAV)},
@@ -233,8 +236,8 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     /* Throttle is always in the range [minthrottle..maxthrottle]: */
     {"rcCommand",   3, UNSIGNED, .Ipredict = PREDICT(MINTHROTTLE), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),  .Pencode = ENCODING(TAG8_4S16), CONDITION(ALWAYS)},
 
-    {"vbatLatest",    -1, UNSIGNED, .Ipredict = PREDICT(VBATREF),  .Iencode = ENCODING(NEG_14BIT),   .Ppredict = PREDICT(PREVIOUS),  .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_VBAT},
-    {"amperageLatest",-1, UNSIGNED, .Ipredict = PREDICT(0),        .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS),  .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_AMPERAGE_ADC},
+    {"vbat",       -1, UNSIGNED, .Ipredict = PREDICT(VBATREF), .Iencode = ENCODING(NEG_14BIT),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_VBAT},
+    {"amperage",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_AMPERAGE},
 
 #ifdef USE_MAG
     {"magADC",      0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(TAG8_8SVB), FLIGHT_LOG_FIELD_CONDITION_MAG},
@@ -339,6 +342,9 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
 };
 
 typedef enum BlackboxState {
@@ -388,8 +394,8 @@ typedef struct blackboxMainState_s {
     int16_t motor[MAX_SUPPORTED_MOTORS];
     int16_t servo[MAX_SUPPORTED_SERVOS];
 
-    uint16_t vbatLatest;
-    uint16_t amperageLatest;
+    uint16_t vbat;
+    int16_t amperage;
 
 #ifdef USE_BARO
     int32_t BaroAlt;
@@ -413,7 +419,7 @@ typedef struct blackboxMainState_s {
     int16_t navRealVel[XYZ_AXIS_COUNT];
     int16_t navAccNEU[XYZ_AXIS_COUNT];
     int16_t navTargetVel[XYZ_AXIS_COUNT];
-    int16_t navTargetPos[XYZ_AXIS_COUNT];
+    int32_t navTargetPos[XYZ_AXIS_COUNT];
     int16_t navHeading;
     int16_t navTargetHeading;
     int16_t navSurface;
@@ -436,6 +442,7 @@ typedef struct blackboxSlowState_s {
     int32_t hwHealthStatus;
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
+    int16_t wind[XYZ_AXIS_COUNT];
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -549,7 +556,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_VBAT:
         return feature(FEATURE_VBAT);
 
-    case FLIGHT_LOG_FIELD_CONDITION_AMPERAGE_ADC:
+    case FLIGHT_LOG_FIELD_CONDITION_AMPERAGE:
         return feature(FEATURE_CURRENT_METER) && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
 
     case FLIGHT_LOG_FIELD_CONDITION_SURFACE:
@@ -699,12 +706,12 @@ static void writeIntraframe(void)
          *
          * Write 14 bits even if the number is negative (which would otherwise result in 32 bits)
          */
-        blackboxWriteUnsignedVB((vbatReference - blackboxCurrent->vbatLatest) & 0x3FFF);
+        blackboxWriteUnsignedVB((vbatReference - blackboxCurrent->vbat) & 0x3FFF);
     }
 
-    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AMPERAGE_ADC)) {
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AMPERAGE)) {
         // 12bit value directly from ADC
-        blackboxWriteUnsignedVB(blackboxCurrent->amperageLatest);
+        blackboxWriteSignedVB(blackboxCurrent->amperage);
     }
 
 #ifdef USE_MAG
@@ -907,11 +914,11 @@ static void writeInterframe(void)
     int optionalFieldCount = 0;
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_VBAT)) {
-        deltas[optionalFieldCount++] = (int32_t) blackboxCurrent->vbatLatest - blackboxLast->vbatLatest;
+        deltas[optionalFieldCount++] = (int32_t) blackboxCurrent->vbat - blackboxLast->vbat;
     }
 
-    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AMPERAGE_ADC)) {
-        deltas[optionalFieldCount++] = (int32_t) blackboxCurrent->amperageLatest - blackboxLast->amperageLatest;
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_AMPERAGE)) {
+        deltas[optionalFieldCount++] = (int32_t) blackboxCurrent->amperage - blackboxLast->amperage;
     }
 
 #ifdef USE_MAG
@@ -983,7 +990,7 @@ static void writeInterframe(void)
     }
 
     for (int x = 0; x < XYZ_AXIS_COUNT; x++) {
-        blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - (blackboxHistory[1]->navTargetPos[x] + blackboxHistory[2]->navTargetPos[x]) / 2);
+        blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - blackboxLast->navTargetPos[x]);
     }
 
     blackboxWriteSignedVB(blackboxCurrent->navSurface - blackboxLast->navSurface);
@@ -1021,6 +1028,8 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.powerSupplyImpedance);
     blackboxWriteUnsignedVB(slowHistory.sagCompensatedVBat);
 
+    blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
+
     blackboxSlowFrameIterationTimer = 0;
 }
 
@@ -1043,6 +1052,16 @@ static void loadSlowState(blackboxSlowState_t *slow)
                            (getHwPitotmeterStatus()     << 2 * 6);
     slow->powerSupplyImpedance = getPowerSupplyImpedance();
     slow->sagCompensatedVBat = getBatterySagCompensatedVoltage();
+
+    for (int i = 0; i < XYZ_AXIS_COUNT; i++)
+    {
+#ifdef USE_WIND_ESTIMATOR
+        slow->wind[i] = getEstimatedWindSpeed(i);
+#else
+        slow->wind[i] = 0;
+#endif
+    }
+
 }
 
 /**
@@ -1139,7 +1158,7 @@ void blackboxStart(void)
     blackboxHistory[1] = &blackboxHistoryRing[1];
     blackboxHistory[2] = &blackboxHistoryRing[2];
 
-    vbatReference = getBatteryVoltageLatestADC();
+    vbatReference = getBatteryRawVoltage();
 
     //No need to clear the content of blackboxHistoryRing since our first frame will be an intra which overwrites it
 
@@ -1256,25 +1275,34 @@ static void loadMainState(timeUs_t currentTimeUs)
 #endif
 #ifdef USE_NAV
         if (!STATE(FIXED_WING)) {
-            blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained / 10);
-            blackboxCurrent->mcVelAxisPID[0][i] = lrintf(nav_pids->vel[i].proportional / 10);
-            blackboxCurrent->mcVelAxisPID[1][i] = lrintf(nav_pids->vel[i].integral / 10);
-            blackboxCurrent->mcVelAxisPID[2][i] = lrintf(nav_pids->vel[i].derivative / 10);
+
+            // log requested velocity in cm/s
+            blackboxCurrent->mcPosAxisP[i] = lrintf(nav_pids->pos[i].output_constrained);
+
+            // log requested acceleration in cm/s^2 and throttle adjustment in µs
+            blackboxCurrent->mcVelAxisPID[0][i] = lrintf(nav_pids->vel[i].proportional);
+            blackboxCurrent->mcVelAxisPID[1][i] = lrintf(nav_pids->vel[i].integral);
+            blackboxCurrent->mcVelAxisPID[2][i] = lrintf(nav_pids->vel[i].derivative);
+
         }
 #endif
     }
 
 #ifdef USE_NAV
     if (STATE(FIXED_WING)) {
-        blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional / 10);
-        blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral / 10);
-        blackboxCurrent->fwAltPID[2] = lrintf(nav_pids->fw_alt.derivative / 10);
-        blackboxCurrent->fwAltPIDOutput = lrintf(nav_pids->fw_alt.output_constrained / 10);
 
+        // log requested pitch in decidegrees
+        blackboxCurrent->fwAltPID[0] = lrintf(nav_pids->fw_alt.proportional);
+        blackboxCurrent->fwAltPID[1] = lrintf(nav_pids->fw_alt.integral);
+        blackboxCurrent->fwAltPID[2] = lrintf(nav_pids->fw_alt.derivative);
+        blackboxCurrent->fwAltPIDOutput = lrintf(nav_pids->fw_alt.output_constrained);
+
+        // log requested roll in decidegrees
         blackboxCurrent->fwPosPID[0] = lrintf(nav_pids->fw_nav.proportional / 10);
         blackboxCurrent->fwPosPID[1] = lrintf(nav_pids->fw_nav.integral / 10);
         blackboxCurrent->fwPosPID[2] = lrintf(nav_pids->fw_nav.derivative / 10);
         blackboxCurrent->fwPosPIDOutput = lrintf(nav_pids->fw_nav.output_constrained / 10);
+
     } else {
         blackboxCurrent->mcSurfacePID[0] = lrintf(nav_pids->surface.proportional / 10);
         blackboxCurrent->mcSurfacePID[1] = lrintf(nav_pids->surface.integral / 10);
@@ -1301,8 +1329,8 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->motor[i] = motor[i];
     }
 
-    blackboxCurrent->vbatLatest = getBatteryVoltageLatestADC();
-    blackboxCurrent->amperageLatest = getAmperageLatestADC();
+    blackboxCurrent->vbat = getBatteryRawVoltage();
+    blackboxCurrent->amperage = getAmperage();
 
 #ifdef USE_BARO
     blackboxCurrent->BaroAlt = baro.BaroAlt;
@@ -1461,7 +1489,7 @@ static char *blackboxGetStartDateTime(char *buf)
     // rtcGetDateTime will fill dt with 0000-01-01T00:00:00
     // when time is not known.
     rtcGetDateTime(&dt);
-    dateTimeFormatUTC(buf, &dt);
+    dateTimeFormatLocal(buf, &dt);
     return buf;
 }
 

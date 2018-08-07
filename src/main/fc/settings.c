@@ -77,6 +77,76 @@ const setting_t *settingFind(const char *name)
 	return NULL;
 }
 
+const setting_t *settingGet(unsigned index)
+{
+	return index < SETTINGS_TABLE_COUNT ? &settingsTable[index] : NULL;
+}
+
+unsigned settingGetIndex(const setting_t *val)
+{
+	return val - settingsTable;
+}
+
+bool settingsValidate(unsigned *invalidIndex)
+{
+	for (unsigned ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
+		const setting_t *setting = settingGet(ii);
+		setting_min_t min = settingGetMin(setting);
+		setting_max_t max = settingGetMax(setting);
+		void *ptr = settingGetValuePointer(setting);
+		bool isValid = false;
+		switch (SETTING_TYPE(setting)) {
+		case VAR_UINT8:
+		{
+			uint8_t *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_INT8:
+		{
+			int8_t *value = ptr;
+			isValid = *value >= min && *value <= (int8_t)max;
+			break;
+		}
+		case VAR_UINT16:
+		{
+			uint16_t *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_INT16:
+		{
+			int16_t *value = ptr;
+			isValid = *value >= min && *value <= (int16_t)max;
+			break;
+		}
+		case VAR_UINT32:
+		{
+			uint32_t *value = ptr;
+			isValid = *value >= (uint32_t)min && *value <= max;
+			break;
+		}
+		case VAR_FLOAT:
+		{
+			float *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_STRING:
+			// We assume all strings are valid
+			isValid = true;
+			break;
+		}
+		if (!isValid) {
+			if (invalidIndex) {
+				*invalidIndex = ii;
+			}
+			return false;
+		}
+	}
+	return true;
+}
+
 size_t settingGetValueSize(const setting_t *val)
 {
 	switch (SETTING_TYPE(val)) {
@@ -154,6 +224,23 @@ setting_max_t settingGetMax(const setting_t *val)
 	return settingMinMaxTable[SETTING_INDEXES_GET_MAX(val)];
 }
 
+const lookupTableEntry_t * settingLookupTable(const setting_t *val)
+{
+	if (SETTING_MODE(val) == MODE_LOOKUP && val->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
+		return &settingLookupTables[val->config.lookup.tableIndex];
+	}
+	return NULL;
+}
+
+const char * settingLookupValueName(const setting_t *val, unsigned v)
+{
+	const lookupTableEntry_t *table = settingLookupTable(val);
+	if (table && v < table->valueCount) {
+		return table->values[v];
+	}
+	return NULL;
+}
+
 const char * settingGetString(const setting_t *val)
 {
 	if (SETTING_TYPE(val) == VAR_STRING) {
@@ -179,4 +266,22 @@ setting_max_t settingGetStringMaxLength(const setting_t *val)
 		return settingGetMax(val);
 	}
 	return 0;
+}
+
+bool settingsGetParameterGroupIndexes(pgn_t pg, uint16_t *start, uint16_t *end)
+{
+	unsigned acc = 0;
+	for (int ii = 0; ii < SETTINGS_PGN_COUNT; ii++) {
+		if (settingsPgn[ii] == pg) {
+			if (start) {
+				*start = acc;
+			}
+			if (end) {
+				*end = acc + settingsPgnCounts[ii] - 1;
+			}
+			return true;
+		}
+		acc += settingsPgnCounts[ii];
+	}
+	return false;
 }

@@ -58,6 +58,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_OSD
 #define USE_MAX7456
@@ -81,6 +82,8 @@
 #define VBUS_SENSING_ENABLED
 #define VBUS_SENSING_PIN        PC5
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -90,15 +93,13 @@
 #define USE_UART2
 #define UART2_RX_PIN            PA3 //Shared with PPM
 #define UART2_TX_PIN            PA2
-
-#define INVERTER_PIN_UART2      PC15
+#define INVERTER_PIN_UART2_RX   PC15
 
 //Telemetry
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
-
-#define INVERTER_PIN_UART3      PC14
+#define INVERTER_PIN_UART3_RX   PC14
 
 #define SERIAL_PORT_COUNT 4
 

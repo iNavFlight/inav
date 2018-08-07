@@ -205,6 +205,13 @@ float biquadFilterApply(biquadFilter_t *filter, float input)
     return result;
 }
 
+float biquadFilterReset(biquadFilter_t *filter, float value)
+{
+    filter->d1 = value - (value * filter->b0);
+    filter->d2 = (filter->b2 - filter->a2) * value;
+    return value;
+}
+
 /*
  * FIR filter
  */

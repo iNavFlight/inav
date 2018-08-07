@@ -33,8 +33,8 @@ const timerHardware_t timerHardware[] =
     { TIM4, IO_TAG(PB6),  TIM_Channel_1, 1, IOCFG_IPD,   GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },            // PWM6
     { TIM2, IO_TAG(PB10), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },            // PWM7
     { TIM2, IO_TAG(PB11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },            // PWM8
-    { TIM1, IO_TAG(PA8),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6, TIM_USE_MC_SERVO | TIM_USE_ANY | TIM_USE_LED },                 // S1_out
-    { TIM2, IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_IPD,   GPIO_AF_1, TIM_USE_MC_SERVO | TIM_USE_ANY },                 // S2_out
+    { TIM1, IO_TAG(PA8),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO | TIM_USE_ANY | TIM_USE_LED },                 // S1_out
+    { TIM2, IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_IPD,   GPIO_AF_1, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO |TIM_USE_ANY },                 // S2_out
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

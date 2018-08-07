@@ -32,9 +32,6 @@
 
 #define BEEPER                  PB4
 
-// PC0 used as inverter select GPIO
-#define INVERTER_PIN_UART1      PC0
-
 // MPU6000 interrupts
 #define USE_EXTI
 #define MPU6000_EXTI_PIN        PC4
@@ -61,6 +58,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -89,10 +87,14 @@
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+// PC0 used as inverter select GPIO
+#define INVERTER_PIN_UART1_RX   PC0
 
 #define USE_UART3
 #define I2C_DEVICE_2_SHARES_UART3

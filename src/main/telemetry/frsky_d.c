@@ -112,6 +112,8 @@ static portSharing_e frskyPortSharing;
 #define ID_GYRO_Y             0x41
 #define ID_GYRO_Z             0x42
 #define ID_HOME_DIST          0x07
+#define ID_PITCH              0x08
+#define ID_ROLL               0x20
 
 #define ID_VERT_SPEED         0x30 //opentx vario
 
@@ -430,6 +432,18 @@ static void sendHeading(void)
     serialize16(0);
 }
 
+static void sendPitch(void)
+{
+    sendDataHead(ID_PITCH);
+    serialize16(attitude.values.pitch);
+}
+
+static void sendRoll(void)
+{
+    sendDataHead(ID_ROLL);
+    serialize16(attitude.values.roll);
+}
+
 void initFrSkyTelemetry(void)
 {
     portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_FRSKY);
@@ -500,7 +514,12 @@ void handleFrSkyTelemetry(void)
     cycleNum++;
 
     // Sent every 125ms
-    sendAccel();
+    if (telemetryConfig()->frsky_pitch_roll) {
+        sendPitch();
+        sendRoll();
+    } else {
+        sendAccel();
+    }
     sendVario();
     sendTelemetryTail();
 

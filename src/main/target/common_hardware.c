@@ -162,6 +162,15 @@
     BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
 #endif
 
+#if defined(USE_MAG_LIS3MDL)
+    #if !defined(LIS3MDL_I2C_BUS)
+        #define LIS3MDL_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_lis3mdl,     DEVHW_LIS3MDL,      LIS3MDL_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE);
+//  ST LIS3MDL address can be changed by connecting it's SDO/SA1 pin to either supply or ground.
+//  BUSDEV_REGISTER_I2C(busdev_lis3mdl,     DEVHW_LIS3MDL,      LIS3MDL_I2C_BUS,    0x1C,               NONE,           DEVFLAGS_NONE);
+#endif
+
 #if defined(USE_MAG_IST8310)
     #if !defined(IST8310_I2C_BUS)
         #define IST8310_I2C_BUS MAG_I2C_BUS
@@ -226,6 +235,15 @@
         #define UG2864_I2C_BUS BUS_I2C1
     #endif
     BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE);
+#endif
+
+#if defined(USE_PWM_SERVO_DRIVER)
+    #if defined(USE_PWM_DRIVER_PCA9685) && defined(USE_I2C)
+        #if !defined(PCA9685_I2C_BUS)
+            #define PCA9685_I2C_BUS BUS_I2C1
+        #endif
+        BUSDEV_REGISTER_I2C(busdev_pca9685,      DEVHW_PCA9685,       PCA9685_I2C_BUS,     0x40,               NONE,           DEVFLAGS_NONE);
+    #endif
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

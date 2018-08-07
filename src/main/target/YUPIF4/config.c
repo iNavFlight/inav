@@ -57,7 +57,7 @@ void targetConfiguration(void)
     pidProfileMutable()->bank_mc.pid[PID_YAW].D = 0;
     pidProfileMutable()->bank_mc.pid[PID_LEVEL].P = 20;
     pidProfileMutable()->bank_mc.pid[PID_LEVEL].I = 10;
-    pidProfileMutable()->bank_mc.pid[PID_LEVEL].D = 75; 
+    pidProfileMutable()->bank_mc.pid[PID_LEVEL].D = 75;
 
 }
 #endif

@@ -48,7 +48,6 @@
 #include "drivers/dma.h"
 #include "drivers/exti.h"
 #include "drivers/flash_m25p16.h"
-#include "drivers/inverter.h"
 #include "drivers/io.h"
 #include "drivers/io_pca9685.h"
 #include "drivers/light_led.h"
@@ -69,6 +68,7 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
+#include "drivers/uart_inverter.h"
 #include "drivers/vcd.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
@@ -199,7 +199,7 @@ void init(void)
 
     // Re-initialize system clock to their final values (if necessary)
     systemClockSetup(systemConfig()->cpuUnderclock);
-    
+
     i2cSetSpeed(systemConfig()->i2c_speed);
 
 #ifdef USE_HARDWARE_PREBOOT_SETUP
@@ -336,7 +336,7 @@ void init(void)
     pwmRxInit(systemConfig()->pwmRxInputFilteringMode);
 #endif
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     /*
     If external PWM driver is enabled, for example PCA9685, disable internal
     servo handling mechanism, since external device will do that
@@ -375,8 +375,8 @@ void init(void)
     lightsInit();
 #endif
 
-#ifdef USE_INVERTER
-    initInverters();
+#ifdef USE_UART_INVERTER
+    uartInverterInit();
 #endif
 
     // Initialize buses
@@ -652,7 +652,7 @@ void init(void)
     pitotStartCalibration();
 #endif
 
-#ifdef USE_VTX_CONTROL
+#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
     vtxControlInit();
 
 #if defined(USE_VTX_COMMON)
@@ -668,13 +668,13 @@ void init(void)
     vtxTrampInit();
 #endif
 
-#endif // USE_VTX_CONTROL
+#endif // USE_VTX_COMMON && USE_VTX_CONTROL
 
     // Now that everything has powered up the voltage and cell count be determined.
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
         batteryInit();
 
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pwmDriverInitialize();
     }
