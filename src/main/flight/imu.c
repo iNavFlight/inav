@@ -507,9 +507,9 @@ static void imuCalculateEstimatedAttitude(float dT)
 
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
-    imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF, 
-                            useAcc ? &imuMeasuredAccelBF : NULL, 
-                            useMag ? &measuredMagBF : NULL, 
+    imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
+                            useAcc ? &imuMeasuredAccelBF : NULL,
+                            useMag ? &measuredMagBF : NULL,
                             useCOG, courseOverGround);
 
     imuUpdateEulerAngles();

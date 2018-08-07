@@ -31,12 +31,12 @@ typedef struct {
 } fpQuaternion_t;
 
 static inline fpQuaternion_t * quaternionInitUnit(fpQuaternion_t * result)
-{ 
+{
     result->q0 = 1.0f;
     result->q1 = 0.0f;
     result->q2 = 0.0f;
     result->q3 = 0.0f;
-    return result; 
+    return result;
 }
 
 static inline fpQuaternion_t * quaternionInitFromVector(fpQuaternion_t * result, const fpVector3_t * v)

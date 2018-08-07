@@ -126,12 +126,12 @@ static const uint8_t beep_hardwareFailure[] = {
     10, 10, BEEPER_COMMAND_STOP
 };
 // Cam connection opened
-static const uint8_t beep_camOpenBeep[] = { 
-    5, 15, 10, 15, 20, BEEPER_COMMAND_STOP 
-}; 
-// Cam connection close 
-static const uint8_t beep_camCloseBeep[] = { 
-    10, 8, 5, BEEPER_COMMAND_STOP 
+static const uint8_t beep_camOpenBeep[] = {
+    5, 15, 10, 15, 20, BEEPER_COMMAND_STOP
+};
+// Cam connection close
+static const uint8_t beep_camCloseBeep[] = {
+    10, 8, 5, BEEPER_COMMAND_STOP
 };
 
 

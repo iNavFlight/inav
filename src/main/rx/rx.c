@@ -84,13 +84,13 @@ static bool rxFlightChannelsValid = false;
 static bool rxIsInFailsafeMode = true;
 
 static timeUs_t rxNextUpdateAtUs = 0;
-static uint32_t needRxSignalBefore = 0;
-static uint32_t suspendRxSignalUntil = 0;
+static timeUs_t needRxSignalBefore = 0;
+static timeUs_t suspendRxSignalUntil = 0;
 static uint8_t skipRxSamples = 0;
 
 int16_t rcRaw[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
 int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
-uint32_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+timeMs_t rcInvalidPulsPeriod[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 #define MAX_INVALID_PULS_TIME    300
 
@@ -492,7 +492,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rxFlightChannelsValid = true;
-    
+
     // Read and process channel data
     for (int channel = 0; channel < rxRuntimeConfig.channelCount; channel++) {
         const uint8_t rawChannel = calculateChannelRemapping(rxConfig()->rcmap, REMAPPABLE_CHANNEL_COUNT, channel);
@@ -622,7 +622,7 @@ static void updateRSSIPWM(void)
     int16_t pwmRssi = 0;
     // Read value of AUX channel as rssi
     if (rxConfig()->rssi_channel > 0) {
-        pwmRssi = rcData[rxConfig()->rssi_channel - 1];
+        pwmRssi = rcRaw[rxConfig()->rssi_channel - 1];
 
         // Range of rawPwmRssi is [1000;2000]. rssi should be in [0;1023];
         uint16_t rawRSSI = (uint16_t)((constrain(pwmRssi - 1000, 0, 1000) / 1000.0f) * (RSSI_MAX_VALUE * 1.0f));
