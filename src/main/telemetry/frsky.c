@@ -16,7 +16,7 @@
 #include "io/gps.h"
 #include "telemetry/frsky.h"
 
-uint16_t frskyGetFlightMode(void) 
+uint16_t frskyGetFlightMode(void)
 {
     uint16_t tmpi = 0;
 
@@ -65,16 +65,16 @@ uint16_t frskyGetFlightMode(void)
     return tmpi;
 }
 
-uint16_t frskyGetGPSState(void) 
+uint16_t frskyGetGPSState(void)
 {
     uint16_t tmpi = 0;
 
     // ones and tens columns (# of satellites 0 - 99)
     tmpi += constrain(gpsSol.numSat, 0, 99);
-    
+
     // hundreds column (satellite accuracy HDOP: 0 = worst [HDOP > 5.5], 9 = best [HDOP <= 1.0])
     tmpi += (9 - constrain((gpsSol.hdop - 51) / 50, 0, 9)) * 100;
-    
+
     // thousands column (GPS fix status)
     if (STATE(GPS_FIX))
         tmpi += 1000;
@@ -82,7 +82,7 @@ uint16_t frskyGetGPSState(void)
         tmpi += 2000;
     if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
         tmpi += 4000;
-    
+
     return tmpi;
 }
 

@@ -68,14 +68,14 @@
 #define SPI4_NSS_PIN NONE
 #endif
 
-static const uint16_t spiDivisorMapFast[] = { 
+static const uint16_t spiDivisorMapFast[] = {
     SPI_BAUDRATEPRESCALER_256,    // SPI_CLOCK_INITIALIZATON      421.875 KBits/s
     SPI_BAUDRATEPRESCALER_128,    // SPI_CLOCK_SLOW               843.75 KBits/s
     SPI_BAUDRATEPRESCALER_16,     // SPI_CLOCK_STANDARD           6.75 MBits/s
     SPI_BAUDRATEPRESCALER_8,      // SPI_CLOCK_FAST               13.5 MBits/s
     SPI_BAUDRATEPRESCALER_4       // SPI_CLOCK_ULTRAFAST          27.0 MBits/s
 };
-static const uint16_t spiDivisorMapSlow[] = { 
+static const uint16_t spiDivisorMapSlow[] = {
     SPI_BAUDRATEPRESCALER_256,    // SPI_CLOCK_INITIALIZATON      210.937 KBits/s
     SPI_BAUDRATEPRESCALER_64,     // SPI_CLOCK_SLOW               843.75 KBits/s
     SPI_BAUDRATEPRESCALER_8,      // SPI_CLOCK_STANDARD           6.75 MBits/s
