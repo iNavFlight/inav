@@ -60,6 +60,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#undef USE_GPS_PROTO_I2C_NAV //Save some flash space
+
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5
 
