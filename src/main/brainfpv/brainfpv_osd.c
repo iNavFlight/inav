@@ -124,7 +124,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .invert = 0
 );
 
-//const char * const gitTag = __GIT_TAG__;
+const char * const gitTag = __GIT_TAG__;
 
 void video_qspi_enable(void);
 extern binary_semaphore_t onScreenDisplaySemaphore;
@@ -267,7 +267,7 @@ void brainFpvOsdWelcome(void)
 #define GY (GRAPHICS_BOTTOM / 2 - 30)
     brainFpvOsdMainLogo(GRAPHICS_X_MIDDLE, GY);
 
-    //tfp_sprintf(string_buffer, "BF VERSION: %s", gitTag);
+    tfp_sprintf(string_buffer, "VERSION: %s", gitTag);
     write_string(string_buffer, GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 60, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
     write_string("MENU: THRT MID YAW LEFT PITCH UP", GRAPHICS_X_MIDDLE, GRAPHICS_BOTTOM - 35, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT8X10);
 }

@@ -130,6 +130,7 @@ FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk 
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk '{print $$3}' )
 FC_VER_PATCH := $(shell grep " FC_VERSION_PATCH" src/main/build/version.h | awk '{print $$3}' )
 
+GIT_TAG =  $(shell git describe --tags)
 GIT_TAG_EXACT := $(shell git describe --exact-match HEAD 2>&1)
 ifneq (,$(findstring fatal,$(GIT_TAG_EXACT)))
     FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
@@ -240,6 +241,7 @@ CFLAGS      += $(ARCH_FLAGS) \
               -D'__FORKNAME__="$(FORKNAME)"' \
               -D'__TARGET__="$(TARGET)"' \
               -D'__REVISION__="$(REVISION)"' \
+              -D'__GIT_TAG__="$(GIT_TAG)"' \
               -save-temps=obj \
               -MMD -MP
 
