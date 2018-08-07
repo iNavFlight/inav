@@ -130,7 +130,13 @@ FC_VER_MAJOR := $(shell grep " FC_VERSION_MAJOR" src/main/build/version.h | awk 
 FC_VER_MINOR := $(shell grep " FC_VERSION_MINOR" src/main/build/version.h | awk '{print $$3}' )
 FC_VER_PATCH := $(shell grep " FC_VERSION_PATCH" src/main/build/version.h | awk '{print $$3}' )
 
-FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
+GIT_TAG_EXACT := $(shell git describe --exact-match HEAD 2>&1)
+ifneq (,$(findstring fatal,$(GIT_TAG_EXACT)))
+    FC_VER := $(FC_VER_MAJOR).$(FC_VER_MINOR).$(FC_VER_PATCH)
+else
+    FC_VER := $(GIT_TAG_EXACT)
+endif
+
 FC_VER_SUFFIX ?=
 
 BUILD_DATE = $(shell date +%Y%m%d)
@@ -183,14 +189,11 @@ VPATH           := $(VPATH):$(TARGET_DIR)
 .DEFAULT_GOAL   := hex
 
 include $(ROOT)/make/brainfpv.mk
-
 include $(ROOT)/make/source.mk
 include $(ROOT)/make/release.mk
 
-#excludes
+# Excludes
 TARGET_SRC   := $(filter-out $(EXCLUDES), $(TARGET_SRC))
-
-$(info $$TARGET_SRC is [${TARGET_SRC}])
 
 ###############################################################################
 # Things that might need changing to use different tools
@@ -284,9 +287,10 @@ ifneq ($(BUILD_SUFFIX),)
 endif
 TARGET_BIN	:= $(TARGET_BIN).bin
 TARGET_HEX	= $(TARGET_BIN:.bin=.hex)
+TARGET_ELF	= $(TARGET_BIN:.bin=.elf)
 
 TARGET_OBJ_DIR  = $(OBJECT_DIR)/$(TARGET)
-TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf
+#TARGET_ELF      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).elf
 TARGET_OBJS     = $(addsuffix .o,$(addprefix $(TARGET_OBJ_DIR)/,$(basename $(TARGET_SRC))))
 TARGET_DEPS     = $(addsuffix .d,$(addprefix $(TARGET_OBJ_DIR)/,$(basename $(TARGET_SRC))))
 TARGET_MAP      = $(OBJECT_DIR)/$(FORKNAME)_$(TARGET).map
