@@ -2342,6 +2342,8 @@ static bool adjustPositionFromRCInput(void)
         const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
         const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
 
+#ifdef USE_MR_BRAKING_MODE
+
         const bool brakingEntryAllowed = 
             IS_RC_MODE_ACTIVE(BOXBRAKING) &&
             !STATE(NAV_CRUISE_BRAKING_LOCKED) && 
@@ -2419,6 +2421,7 @@ static bool adjustPositionFromRCInput(void)
              */
             setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
         }
+#endif
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }

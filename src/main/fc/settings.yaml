@@ -1309,34 +1309,42 @@ groups:
         max: 10000
       - name: nav_mc_braking_speed_threshold
         field: mc.braking_speed_threshold
+        condition: USE_MR_BRAKING_MODE
         min: 0
         max: 1000   
       - name: nav_mc_braking_disengage_speed
         field: mc.braking_disengage_speed
+        condition: USE_MR_BRAKING_MODE
         min: 0
         max: 1000  
       - name: nav_mc_braking_timeout
         field: mc.braking_timeout
+        condition: USE_MR_BRAKING_MODE
         min: 100
         max: 5000 
       - name: nav_mc_braking_boost_factor
         field: mc.braking_boost_factor
+        condition: USE_MR_BRAKING_MODE
         min: 0
         max: 200  
       - name: nav_mc_braking_boost_timeout
         field: mc.braking_boost_timeout
+        condition: USE_MR_BRAKING_MODE
         min: 0
         max: 5000  
       - name: nav_mc_braking_boost_speed_threshold
         field: mc.braking_boost_speed_threshold
+        condition: USE_MR_BRAKING_MODE
         min: 100
         max: 1000  
       - name: nav_mc_braking_boost_disengage_speed
         field: mc.braking_boost_disengage_speed
+        condition: USE_MR_BRAKING_MODE
         min: 0
         max: 1000
       - name: nav_mc_braking_bank_angle
         field: mc.braking_bank_angle
+        condition: USE_MR_BRAKING_MODE
         min: 15
         max: 60  
       - name: nav_fw_cruise_thr

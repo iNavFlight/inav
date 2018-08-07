@@ -389,9 +389,11 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     float maxAccelChange = US2S(deltaMicros) * 1700.0f;
     //When braking, raise jerk limit even if we are not boosting acceleration
+#ifdef USE_MR_BRAKING_MODE
     if (STATE(NAV_CRUISE_BRAKING)) {
         maxAccelChange = maxAccelChange * 2;
     }
+#endif 
 
     const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
@@ -409,6 +411,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
     uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
 
+#ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
     if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0)
     {
@@ -434,6 +437,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
         accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
     }
+#endif
 
     // Save last acceleration target
     lastAccelTargetX = newAccelX;

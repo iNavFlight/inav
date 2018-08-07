@@ -205,9 +205,11 @@ void initActiveBoxIds(void)
         }
     }
 
+#ifdef USE_MR_BRAKING_MODE
     if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
         activeBoxIds[activeBoxIdCount++] = BOXBRAKING;
     }
+#endif
 
 #endif
 
