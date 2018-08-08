@@ -215,6 +215,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  smartport_uart_unidir  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
 |  report_cell_voltage  | OFF | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
+|  smartport_fuel_unit  | MAH | S.Port and D-Series telemetry: Unit of the value sent with the `FUEL` ID. [PERCENT/MAH/MWH] |
 |  ibus_telemetry_type  | 0 | Type compatibility ibus telemetry for transmitters. See Telemetry.md label IBUS for details. |
 |  ltm_update_rate  | NORMAL | Defines the LTM update rate (use of bandwidth [NORMAL/MEDIUM/SLOW]). See Telemetry.md, LTM section for details. |
 |  battery_capacity  | 0 | Battery capacity in mAH. This value is used in conjunction with the current meter to determine remaining battery capacity. |
