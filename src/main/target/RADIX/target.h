@@ -28,8 +28,8 @@
 
 #define TARGET_CONFIG
 
-#define LED0_PIN                PA4
-#define LED1_PIN                NONE
+#define LED0                    PA4
+#define LED1                    NONE
 #define LED0_INVERTED
 
 #define BEEPER                  NONE

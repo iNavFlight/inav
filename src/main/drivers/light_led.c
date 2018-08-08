@@ -22,6 +22,10 @@
 
 #include "drivers/light_led.h"
 
+#if defined(USE_BRAINFPV_FPGA)
+#include "fpga_drv.h"
+#endif
+
 static const IO_t leds[] = {
 #ifdef LED0
     DEFIO_IO(LED0),
@@ -108,11 +112,29 @@ void ledInit(bool alternative_led)
 
 void ledToggle(int led)
 {
+#if defined(USE_BRAINFPV_FPGA) && defined(RADIX)
+    if (led == 0)
+        IOToggle(leds[led + ledOffset]);
+    if (led == 1)
+        BRAINFPVFPGA_AlarmLEDToggle();
+#else
     IOToggle(leds[led + ledOffset]);
+#endif
 }
 
 void ledSet(int led, bool on)
 {
+
+#if defined(USE_BRAINFPV_FPGA) && defined(RADIX)
+    if (led == 0) {
+        const bool inverted = (1 << (led + ledOffset)) & ledPolarity;
+        IOWrite(leds[led + ledOffset], on ? inverted : !inverted);
+    }
+    if (led == 1) {
+        BRAINFPVFPGA_AlarmLED(on);
+    }
+#else
     const bool inverted = (1 << (led + ledOffset)) & ledPolarity;
     IOWrite(leds[led + ledOffset], on ? inverted : !inverted);
+#endif
 }
