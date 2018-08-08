@@ -940,6 +940,9 @@ groups:
       - name: dterm_lpf_hz
         min: 0
         max: 200
+      - name: dterm_lpf_hz2
+        min: 0
+        max: 500
       - name: use_dterm_fir_filter
         field: use_dterm_fir_filter
         type: bool

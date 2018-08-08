@@ -84,10 +84,17 @@ typedef struct {
 #ifdef USE_DTERM_NOTCH
     biquadFilter_t deltaNotchFilter;
 #endif
+#ifdef USE_DTERM_STAGE2_FILTER
+    pt1Filter_t dtermStage2LpfState;
+#endif
 } pidState_t;
 
 #ifdef USE_DTERM_NOTCH
 STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
+#endif
+
+#ifdef USE_DTERM_STAGE2_FILTER
+STATIC_FASTRAM filterApplyFnPtr dtermStage2ApplyFn;
 #endif
 
 extern float dT;
@@ -172,6 +179,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dterm_soft_notch_hz = 0,
         .dterm_soft_notch_cutoff = 1,
         .dterm_lpf_hz = 40,
+        .dterm_lpf_hz2 = 0,
 
         .use_dterm_fir_filter = 1,
 
@@ -220,17 +228,27 @@ void pidInit(void)
 bool pidInitFilters(void)
 {
     const uint32_t refreshRate = getPidUpdateRate();
-    notchFilterApplyFn = nullFilterApply;
 
     if (refreshRate == 0) {
         return false;
     }
 
 #ifdef USE_DTERM_NOTCH
+    notchFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_soft_notch_hz != 0) {
         notchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
         for (int axis = 0; axis < 3; ++ axis) {
             biquadFilterInitNotch(&pidState[axis].deltaNotchFilter, refreshRate, pidProfile()->dterm_soft_notch_hz, pidProfile()->dterm_soft_notch_cutoff);
+        }
+    }
+#endif
+
+#ifdef USE_DTERM_STAGE2_FILTER
+    dtermStage2ApplyFn = nullFilterApply;
+    if (pidProfile()->dterm_lpf_hz2 != 0) {
+        dtermStage2ApplyFn = (filterApplyFnPtr)pt1FilterApply;
+        for (int axis = 0; axis < 3; ++ axis) {
+            pt1FilterInit(&pidState[axis].dtermStage2LpfState, pidProfile()->dterm_lpf_hz2, refreshRate * 1e-6f);
         }
     }
 #endif
@@ -538,6 +556,10 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
         if (pidProfile()->dterm_lpf_hz) {
             deltaFiltered = biquadFilterApply(&pidState->deltaLpfState, deltaFiltered);
         }
+
+#ifdef USE_DTERM_STAGE2_FILTER
+        deltaFiltered = dtermStage2ApplyFn(&pidState->dtermStage2LpfState, deltaFiltered);
+#endif
 
         /*
          * Apply "Classical" INAV noise robust differentiator if configured to do so
