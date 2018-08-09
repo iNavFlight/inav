@@ -76,7 +76,8 @@
 #define USE_UART3
 #define USE_UART4
 #define USE_UART5
-#define SERIAL_PORT_COUNT       6
+#define USE_SOFTSERIAL1
+#define SERIAL_PORT_COUNT       7
 
 #define UART1_TX_PIN            PA9
 #define UART1_RX_PIN            PA10
@@ -93,11 +94,18 @@
 
 #define UART5_TX_PIN            PC12
 #define UART5_RX_PIN            PD2
+#if defined(SPRACINGF4EVO_REV) && (SPRACINGF4EVO_REV >= 2)
+    #define SOFTSERIAL_1_RX_PIN     PB6 // PWM5
+    #define SOFTSERIAL_1_TX_PIN     PB7 // PWM6
+#else
+    #define SOFTSERIAL_1_RX_PIN     PB8 // PWM5
+    #define SOFTSERIAL_1_TX_PIN     PB9 // PWM6
+#endif
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1
 
-#if (SPRACINGF4EVO_REV >= 2)
+#if defined(SPRACINGF4EVO_REV) && (SPRACINGF4EVO_REV >= 2)
     #define I2C1_SCL            PB8
     #define I2C1_SDA            PB9
 #else
@@ -173,7 +181,7 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_LED_STRIP)
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_LED_STRIP| FEATURE_SOFTSERIAL)
 #define SERIALRX_UART           SERIAL_PORT_USART2
 #define TELEMETRY_UART          SERIAL_PORT_USART5
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
