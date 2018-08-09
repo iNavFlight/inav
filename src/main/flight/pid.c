@@ -180,7 +180,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dterm_soft_notch_cutoff = 1,
         .dterm_lpf_hz = 40,
         .dterm_lpf_hz2 = 0,
-
+        .dterm_filter_type = DTERM_FILTER_BIQUAD,
         .use_dterm_fir_filter = 1,
 
         .yaw_lpf_hz = 30,

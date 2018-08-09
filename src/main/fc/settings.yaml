@@ -105,6 +105,9 @@ tables:
   - name: vtx_low_power_disarm
     values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
     enum: vtxLowerPowerDisarm_e
+  - name: dterm_lpf_filter_type
+    values: ["BIQUAD", "PT1"]
+    enum: dtermFilterType_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -946,6 +949,10 @@ groups:
       - name: use_dterm_fir_filter
         field: use_dterm_fir_filter
         type: bool
+      - name: dterm_lpf_type
+        field: dterm_filter_type
+        type: uint8_t
+        table: dterm_lpf_filter_type
       - name: yaw_lpf_hz
         min: 0
         max: 200

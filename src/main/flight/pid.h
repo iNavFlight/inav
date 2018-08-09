@@ -75,6 +75,11 @@ typedef struct pidBank_s {
     pid8_t  pid[PID_ITEM_COUNT];
 } pidBank_t;
 
+typedef enum {
+    DTERM_FILTER_BIQUAD = 0,
+    DTERM_FILTER_PT1 = 1
+} dtermFilterType_e;
+
 typedef struct pidProfile_s {
     pidBank_t bank_fw;
     pidBank_t bank_mc;
@@ -84,6 +89,8 @@ typedef struct pidProfile_s {
     uint8_t dterm_lpf_hz;                   // Dterm lowpass filter cutoff frequency
     uint16_t dterm_lpf_hz2;                 // Second lowpass filter cutoff frequency
     uint8_t use_dterm_fir_filter;           // Use classical INAV FIR differentiator. Very noise robust
+
+    dtermFilterType_e dterm_filter_type;
 
     uint8_t yaw_pterm_lpf_hz;               // Used for filering Pterm noise on noisy frames
     uint8_t acc_soft_lpf_hz;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
