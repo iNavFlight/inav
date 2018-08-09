@@ -261,6 +261,11 @@ bool isSerialPortShared(const serialPortConfig_t *portConfig, uint16_t functionM
     return (portConfig) && (portConfig->functionMask & sharedWithFunction) && (portConfig->functionMask & functionMask);
 }
 
+bool serialIsBidir(const serialPort_t *port)
+{
+    return port->options & (SERIAL_BIDIR | SERIAL_BIDIR_NOPULL | SERIAL_BIDIR_OD | SERIAL_BIDIR_PP);
+}
+
 static findSharedSerialPortState_t findSharedSerialPortState;
 
 serialPort_t *findSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction)
