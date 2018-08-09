@@ -47,6 +47,7 @@ typedef enum {
     FUNCTION_UAV_INTERCONNECT    = (1 << 13), // 8192
     FUNCTION_OPTICAL_FLOW        = (1 << 14), // 16384
     FUNCTION_DEBUG_TRACE         = (1 << 15), // 32768
+    FUNCTION_RANGEFINDER         = (1 << 16), // 65536
 } serialPortFunction_e;
 
 typedef enum {
