@@ -164,55 +164,79 @@ baudRate_e lookupBaudRateIndex(uint32_t baudRate)
 
 int findSerialPortIndexByIdentifier(serialPortIdentifier_e identifier)
 {
-    for (int index = 0; index < SERIAL_PORT_COUNT; index++) {
-        if (serialPortIdentifiers[index] == identifier) {
-            return index;
-        }
+    switch (identifier) {
+#ifdef USE_VCP
+    case SERIAL_PORT_USB_VCP:
+        return SERIAL_PORT_POSITION_USB_VCP;
+#endif
+#ifdef USE_UART1
+    case SERIAL_PORT_USART1:
+        return SERIAL_PORT_POSITION_USART1;
+#endif
+#ifdef USE_UART2
+    case SERIAL_PORT_USART2:
+        return SERIAL_PORT_POSITION_USART2;
+#endif
+#ifdef USE_UART3
+    case SERIAL_PORT_USART3:
+        return SERIAL_PORT_POSITION_USART3;
+#endif
+#ifdef USE_UART4
+    case SERIAL_PORT_USART4:
+        return SERIAL_PORT_POSITION_USART4;
+#endif
+#ifdef USE_UART5
+    case SERIAL_PORT_USART5:
+        return SERIAL_PORT_POSITION_USART5;
+#endif
+#ifdef USE_UART6
+    case SERIAL_PORT_USART6:
+        return SERIAL_PORT_POSITION_USART6;
+#endif
+#ifdef USE_UART7
+    case SERIAL_PORT_USART7:
+        return SERIAL_PORT_POSITION_USART7;
+#endif
+#ifdef USE_UART8
+    case SERIAL_PORT_USART8:
+        return SERIAL_PORT_POSITION_USART8;
+#endif
+#ifdef USE_SOFTSERIAL1
+    case SERIAL_PORT_SOFTSERIAL1:
+        return SERIAL_PORT_POSITION_SOFTSERIAL1;
+#endif
+#ifdef USE_SOFTSERIAL2
+    case SERIAL_PORT_SOFTSERIAL2:
+        return SERIAL_PORT_POSITION_SOFTSERIAL2;
+#endif
+    default:
+        break;
     }
     return -1;
 }
 
 serialPortUsage_t *findSerialPortUsageByIdentifier(serialPortIdentifier_e identifier)
 {
-    uint8_t index;
-    for (index = 0; index < SERIAL_PORT_COUNT; index++) {
-        serialPortUsage_t *candidate = &serialPortUsageList[index];
-        if (candidate->identifier == identifier) {
-            return candidate;
-        }
-    }
-    return NULL;
+    int index = findSerialPortIndexByIdentifier(identifier);
+    return index >= 0 ? &serialPortUsageList[index] : NULL;
 }
 
-serialPortUsage_t *findSerialPortUsageByPort(serialPort_t *serialPort) {
-    uint8_t index;
-    for (index = 0; index < SERIAL_PORT_COUNT; index++) {
-        serialPortUsage_t *candidate = &serialPortUsageList[index];
-        if (candidate->serialPort == serialPort) {
-            return candidate;
-        }
-    }
-    return NULL;
+serialPortUsage_t *findSerialPortUsageByPort(serialPort_t *serialPort)
+{
+    return findSerialPortUsageByIdentifier(serialPort->identifier);
 }
-
-typedef struct findSerialPortConfigState_s {
-    uint8_t lastIndex;
-} findSerialPortConfigState_t;
-
-static findSerialPortConfigState_t findSerialPortConfigState;
 
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function)
 {
-    memset(&findSerialPortConfigState, 0, sizeof(findSerialPortConfigState));
-
-    return findNextSerialPortConfig(function);
+    int portIndex = 0;
+    return findNextSerialPortConfig(function, &portIndex);
 }
 
-serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function)
+serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function, int *portIndex)
 {
-    while (findSerialPortConfigState.lastIndex < SERIAL_PORT_COUNT) {
-        serialPortConfig_t *candidate = &serialConfigMutable()->portConfigs[findSerialPortConfigState.lastIndex++];
-
+    while (*portIndex < SERIAL_PORT_COUNT) {
+        serialPortConfig_t *candidate = &serialConfigMutable()->portConfigs[*portIndex];
+        (*portIndex)++;
         if (candidate->functionMask & function) {
             return candidate;
         }
@@ -312,13 +336,8 @@ bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
 
 serialPortConfig_t *serialFindPortConfiguration(serialPortIdentifier_e identifier)
 {
-    for (int index = 0; index < SERIAL_PORT_COUNT; index++) {
-        serialPortConfig_t *candidate = &serialConfigMutable()->portConfigs[index];
-        if (candidate->identifier == identifier) {
-            return candidate;
-        }
-    }
-    return NULL;
+    int index = findSerialPortIndexByIdentifier(identifier);
+    return index >= 0 ? &serialConfigMutable()->portConfigs[index] : NULL;
 }
 
 bool doesConfigurationUsePort(serialPortIdentifier_e identifier)

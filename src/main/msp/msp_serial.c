@@ -49,22 +49,24 @@ static void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
 
 void mspSerialAllocatePorts(void)
 {
-    uint8_t portIndex = 0;
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP);
-    while (portConfig && portIndex < MAX_MSP_PORT_COUNT) {
-        mspPort_t *mspPort = &mspPorts[portIndex];
+    int serialPortIndex = 0;
+    int mspPortIndex = 0;
+    while (mspPortIndex < MAX_MSP_PORT_COUNT) {
+        serialPortConfig_t *portConfig = findNextSerialPortConfig(FUNCTION_MSP, &serialPortIndex);
+        if (!portConfig) {
+            break;
+        }
+        mspPort_t *mspPort = &mspPorts[mspPortIndex];
         if (mspPort->port) {
-            portIndex++;
+            mspPortIndex++;
             continue;
         }
 
         serialPort_t *serialPort = openSerialPort(portConfig->identifier, FUNCTION_MSP, NULL, NULL, baudRates[portConfig->msp_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
         if (serialPort) {
             resetMspPort(mspPort, serialPort);
-            portIndex++;
+            mspPortIndex++;
         }
-
-        portConfig = findNextSerialPortConfig(FUNCTION_MSP);
     }
 }
 

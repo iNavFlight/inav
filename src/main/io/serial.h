@@ -88,7 +88,43 @@ typedef enum {
     SERIAL_PORT_IDENTIFIER_MAX = SERIAL_PORT_SOFTSERIAL2
 } serialPortIdentifier_e;
 
-extern const serialPortIdentifier_e serialPortIdentifiers[SERIAL_PORT_COUNT];
+enum {
+#ifdef USE_VCP
+    SERIAL_PORT_POSITION_USB_VCP,
+#endif
+#ifdef USE_UART1
+    SERIAL_PORT_POSITION_USART1,
+#endif
+#ifdef USE_UART2
+    SERIAL_PORT_POSITION_USART2,
+#endif
+#ifdef USE_UART3
+    SERIAL_PORT_POSITION_USART3,
+#endif
+#ifdef USE_UART4
+    SERIAL_PORT_POSITION_USART4,
+#endif
+#ifdef USE_UART5
+    SERIAL_PORT_POSITION_USART5,
+#endif
+#ifdef USE_UART6
+    SERIAL_PORT_POSITION_USART6,
+#endif
+#ifdef USE_UART7
+    SERIAL_PORT_POSITION_USART7,
+#endif
+#ifdef USE_UART8
+    SERIAL_PORT_POSITION_USART8,
+#endif
+#ifdef USE_SOFTSERIAL1
+    SERIAL_PORT_POSITION_SOFTSERIAL1,
+#endif
+#ifdef USE_SOFTSERIAL2
+    SERIAL_PORT_POSITION_SOFTSERIAL2,
+#endif
+
+    SERIAL_PORT_COUNT,
+};
 
 //
 // runtime
@@ -134,7 +170,7 @@ bool isSerialConfigValid(const serialConfig_t *serialConfig);
 serialPortConfig_t *serialFindPortConfiguration(serialPortIdentifier_e identifier);
 bool doesConfigurationUsePort(serialPortIdentifier_e portIdentifier);
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function);
-serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function);
+serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function, int *portIndex);
 
 portSharing_e determinePortSharing(const serialPortConfig_t *portConfig, serialPortFunction_e function);
 bool isSerialPortShared(const serialPortConfig_t *portConfig, uint16_t functionMask, serialPortFunction_e sharedWithFunction);
