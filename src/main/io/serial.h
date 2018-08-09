@@ -69,6 +69,15 @@ typedef enum {
     BAUD_2470000
 } baudRate_e;
 
+#define BAUD_INVALID 0xFF
+
+typedef enum {
+    SERIAL_PORT_OPTION_NOT_INVERTED = 1 << 0,
+    SERIAL_PORT_OPTION_INVERTED = 1 << 1,
+    SERIAL_PORT_OPTION_FULL_DUPLEX = 1 << 2,
+    SERIAL_PORT_OPTION_HALF_DUPLEX = 1 << 3,
+} serialPortOption_e;
+
 extern const uint32_t baudRates[];
 
 // serial port identifiers are now fixed, these values are used by MSP commands.
@@ -148,6 +157,7 @@ typedef struct serialPortConfig_s {
     uint8_t gps_baudrateIndex;
     uint8_t peripheral_baudrateIndex;
     uint8_t telemetry_baudrateIndex; // not used for all telemetry systems, e.g. HoTT only works at 19200.
+    uint8_t options; // from serialPortOption_e
 } serialPortConfig_t;
 
 typedef struct serialConfig_s {

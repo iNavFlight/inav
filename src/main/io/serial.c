@@ -101,7 +101,7 @@ const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 1
 
 #define BAUD_RATE_COUNT (sizeof(baudRates) / sizeof(baudRates[0]))
 
-PG_REGISTER_WITH_RESET_FN(serialConfig_t, serialConfig, PG_SERIAL_CONFIG, 0);
+PG_REGISTER_WITH_RESET_FN(serialConfig_t, serialConfig, PG_SERIAL_CONFIG, 1);
 
 void pgResetFn_serialConfig(serialConfig_t *serialConfig)
 {
@@ -159,7 +159,7 @@ baudRate_e lookupBaudRateIndex(uint32_t baudRate)
             return index;
         }
     }
-    return BAUD_AUTO;
+    return BAUD_INVALID;
 }
 
 int findSerialPortIndexByIdentifier(serialPortIdentifier_e identifier)
@@ -367,6 +367,22 @@ serialPort_t *openSerialPort(
     if (!serialPortUsage || serialPortUsage->function != FUNCTION_NONE) {
         // not available / already in use
         return NULL;
+    }
+
+    // Check if the port has any override options
+    int portConfigIndex = findSerialPortIndexByIdentifier(identifier);
+    if (portConfigIndex >= 0) {
+        const serialPortConfig_t *portConfig = &serialConfig()->portConfigs[portConfigIndex];
+        if (portConfig->options & SERIAL_PORT_OPTION_NOT_INVERTED) {
+            options &= ~SERIAL_INVERTED;
+        } else if (portConfig->options & SERIAL_PORT_OPTION_INVERTED) {
+            options |= SERIAL_INVERTED;
+        }
+        if (portConfig->options & SERIAL_PORT_OPTION_FULL_DUPLEX) {
+            options &= ~SERIAL_BIDIR;
+        } else if (portConfig->options & SERIAL_PORT_OPTION_HALF_DUPLEX) {
+            options |= SERIAL_BIDIR;
+        }
     }
 
     serialPort_t *serialPort = NULL;
