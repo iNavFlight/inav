@@ -139,7 +139,7 @@ static bool ak8963Read(magDev_t * mag)
     }
 
     mag->magADCRaw[X] = -parseMag(buf + 0, magGain[X]);
-    mag->magADCRaw[Y] = -parseMag(buf + 2, magGain[Y]);
+    mag->magADCRaw[Y] = parseMag(buf + 2, magGain[Y]);
     mag->magADCRaw[Z] = -parseMag(buf + 4, magGain[Z]);
 
     return true;
