@@ -78,7 +78,8 @@ typedef struct {
     // Rate filtering
     rateLimitFilter_t axisAccelFilter;
     pt1Filter_t ptermLpfState;
-    biquadFilter_t deltaLpfState;
+    biquadFilter_t biQuadDeltaLpfState;
+    pt1Filter_t pt1DeltaLpfState;
 
     // Dterm notch filtering
 #ifdef USE_DTERM_NOTCH
@@ -96,6 +97,8 @@ STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
 #ifdef USE_DTERM_STAGE2_FILTER
 STATIC_FASTRAM filterApplyFnPtr dtermStage2ApplyFn;
 #endif
+
+STATIC_FASTRAM filterApplyFnPtr dtermLpfApplyFn;
 
 extern float dT;
 
@@ -254,8 +257,24 @@ bool pidInitFilters(void)
 #endif
 
     // Init other filters
-    for (int axis = 0; axis < 3; ++ axis) {
-        biquadFilterInitLPF(&pidState[axis].deltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+    if (pidProfile()->dterm_lpf_hz > 0) {
+
+        if (pidProfile()->dterm_filter_type == DTERM_FILTER_BIQUAD) {
+            dtermLpfApplyFn = (filterApplyFnPtr)biquadFilterApply;
+
+            for (int axis = 0; axis < 3; ++ axis) {
+               biquadFilterInitLPF(&pidState[axis].biQuadDeltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+            }
+        } else if (pidProfile()->dterm_filter_type == DTERM_FILTER_PT1) {
+            dtermLpfApplyFn = (filterApplyFnPtr)pt1FilterApply;
+
+            for (int axis = 0; axis < 3; ++ axis) {
+                pt1FilterInit(&pidState[axis].pt1DeltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate * 1e-6f);
+            }
+        }
+
+    } else {
+        dtermLpfApplyFn = nullFilterApply;
     }
 
     return true;
@@ -552,9 +571,13 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
         deltaFiltered = notchFilterApplyFn(&pidState->deltaNotchFilter, deltaFiltered);
 #endif
 
-        // Apply additional lowpass
-        if (pidProfile()->dterm_lpf_hz) {
-            deltaFiltered = biquadFilterApply(&pidState->deltaLpfState, deltaFiltered);
+        /*
+         * Apply stage1 delta (Dterm filter based on chosen filter type)
+         */
+        if (pidProfile()->dterm_filter_type == DTERM_FILTER_BIQUAD) {
+            deltaFiltered = dtermLpfApplyFn(&pidState->biQuadDeltaLpfState, deltaFiltered);
+        } else if (pidProfile()->dterm_filter_type == DTERM_FILTER_PT1) {
+            deltaFiltered = dtermLpfApplyFn(&pidState->pt1DeltaLpfState, deltaFiltered);
         }
 
 #ifdef USE_DTERM_STAGE2_FILTER
