@@ -2509,6 +2509,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
 
+    // brainfpv: enable by default
+    osdConfig->item_pos[0][OSD_CROSSHAIRS] = OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_RADAR] = OSD_VISIBLE_FLAG;
+
+
     for (unsigned ii = 1; ii < OSD_LAYOUT_COUNT; ii++) {
         for (unsigned jj = 0; jj < ARRAYLEN(osdConfig->item_pos[0]); jj++) {
              osdConfig->item_pos[ii][jj] = osdConfig->item_pos[0][jj] & ~OSD_VISIBLE_FLAG;
