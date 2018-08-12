@@ -39,7 +39,7 @@
 
 typedef enum {
     SPI_CLOCK_INITIALIZATON = 0,    // Lowest possible
-    SPI_CLOCK_SLOW          = 1,    // ~1 MHz    
+    SPI_CLOCK_SLOW          = 1,    // ~1 MHz
     SPI_CLOCK_STANDARD      = 2,    // ~10MHz
     SPI_CLOCK_FAST          = 3,    // ~20MHz
     SPI_CLOCK_ULTRAFAST     = 4     // Highest possible

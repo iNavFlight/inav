@@ -110,7 +110,13 @@ typedef struct fportFrame_s {
 
 #if defined(USE_SERIALRX_FPORT)
 
+#if defined(USE_TELEMETRY_SMARTPORT)
+
+static bool telemetryEnabled = false;
+
 static const smartPortPayload_t emptySmartPortFrame = { .frameId = 0, .valueId = 0, .data = 0 };
+
+#endif // USE_TELEMETRY_SMARTPORT
 
 #define FPORT_REQUEST_FRAME_LENGTH sizeof(fportFrame_t)
 #define FPORT_RESPONSE_FRAME_LENGTH (sizeof(uint8_t) + sizeof(smartPortPayload_t))
@@ -140,7 +146,6 @@ static smartPortPayload_t *mspPayload = NULL;
 static timeUs_t lastRcFrameReceivedMs = 0;
 
 static serialPort_t *fportPort;
-static bool telemetryEnabled = false;
 
 static void reportFrameError(uint8_t errorReason) {
     static volatile uint16_t frameErrors = 0;
@@ -244,7 +249,9 @@ static bool checkChecksum(uint8_t *data, uint8_t length)
 
 static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+#if defined(USE_TELEMETRY_SMARTPORT)
     static smartPortPayload_t payloadBuffer;
+#endif
     static bool hasTelemetryRequest = false;
 
     uint8_t result = RX_FRAME_PENDING;
@@ -267,7 +274,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                     } else {
                         result |= sbusChannelsDecode(rxRuntimeConfig, &frame->data.controlData.channels);
 
-                        setRSSI(scaleRange(constrain(frame->data.controlData.rssi, 0, 100), 0, 100, 0, 1024), RSSI_SOURCE_RX_PROTOCOL, false);
+                        setRSSI(scaleRange(frame->data.controlData.rssi, 0, 100, 0, RSSI_MAX_VALUE), RSSI_SOURCE_RX_PROTOCOL, false);
 
                         lastRcFrameReceivedMs = millis();
                     }

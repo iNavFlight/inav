@@ -122,7 +122,11 @@
 #define SOFTSERIAL_1_RX_PIN      PA1  //RX4
 #define SOFTSERIAL_1_TX_PIN      PA0  //TX4
 
-#define SERIAL_PORT_COUNT       7
+#define USE_SOFTSERIAL2
+#define SOFTSERIAL_2_RX_PIN      PA2  //TX2
+#define SOFTSERIAL_2_TX_PIN      PA2  //TX2
+
+#define SERIAL_PORT_COUNT       8
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -166,6 +170,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_OPTICAL_FLOW
 #define USE_OPFLOW_MSP
@@ -196,7 +201,7 @@
 #define WS2811_PIN                      PA15 // S5 pad for iNav
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST5_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream5
-#define WS2811_DMA_CHANNEL              DMA_Channel_3 
+#define WS2811_DMA_CHANNEL              DMA_Channel_3
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2

@@ -49,6 +49,7 @@
 #include "drivers/timer.h"
 #include "drivers/vtx_common.h"
 
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
@@ -187,16 +188,7 @@ static void mspFc4waySerialCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr
 static void mspRebootFn(serialPort_t *serialPort)
 {
     UNUSED(serialPort);
-
-    stopMotors();
-    stopPwmAllMotors();
-
-    // extra delay before reboot to give ESCs chance to reset
-    delay(1000);
-    systemReset();
-
-    // control should never return here.
-    while (true) ;
+    fcReboot(false);
 }
 
 static void serializeSDCardSummaryReply(sbuf_t *dst)
@@ -486,7 +478,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC:
         for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU16(dst, rcData[i]);
+            sbufWriteU16(dst, rcRaw[i]);
         }
         break;
 
@@ -1054,7 +1046,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
 #ifdef USE_ACC_NOTCH
-        sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz); 
+        sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
 #else
         sbufWriteU16(dst, 0);
@@ -1062,9 +1054,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
 #ifdef USE_GYRO_BIQUAD_RC_FIR2
-        sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz); 
-#else 
-        sbufWriteU16(dst, 0); 
+        sbufWriteU16(dst, gyroConfig()->gyro_stage2_lowpass_hz);
+#else
+        sbufWriteU16(dst, 0);
 #endif
         break;
 
@@ -1854,7 +1846,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 gyroConfigMutable()->gyro_soft_notch_cutoff_2 = constrain(sbufReadU16(src), 1, 500);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
 
 #ifdef USE_ACC_NOTCH
             if (dataSize >= 21) {
@@ -1862,14 +1854,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 accelerometerConfigMutable()->acc_notch_cutoff = constrain(sbufReadU16(src), 1, 255);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
 
 #ifdef USE_GYRO_BIQUAD_RC_FIR2
             if (dataSize >= 22) {
                 gyroConfigMutable()->gyro_stage2_lowpass_hz = constrain(sbufReadU16(src), 0, 500);
             } else
                 return MSP_RESULT_ERROR;
-#endif 
+#endif
         } else
             return MSP_RESULT_ERROR;
         break;

@@ -240,8 +240,7 @@ class ValueEncoder
         return buf.to_carr
     end
 
-    private
-    def encode_value(buf, val)
+    def resolve_value(val)
         v = val || 0
         if !v.is_number_kind?
             v = @constants[val]
@@ -249,6 +248,12 @@ class ValueEncoder
                 raise "Could not resolve constant #{val}"
             end
         end
+        return v
+    end
+
+    private
+    def encode_value(buf, val)
+        v = resolve_value(val)
         pos = @values.find_index(v)
         if pos < 0
             raise "Could not encode value not in array #{v}"
@@ -501,14 +506,20 @@ class Generator
                 buf << "\t// #{group["name"]}\n"
             end
 
-            buf << "\t{ #{@name_encoder.format_encoded_name(member["name"])}, "
+            name = member["name"]
+            buf << "\t{ #{@name_encoder.format_encoded_name(name)}, "
             buf << "#{var_type(member["type"])} | #{value_type(group)}"
             tbl = member["table"]
             if tbl
                 buf << " | MODE_LOOKUP"
                 buf << ", .config.lookup = { #{table_constant_name(tbl)} }"
             else
-                enc = @value_encoder.encode_values(member["min"], member["max"])
+                min = @value_encoder.resolve_value(member["min"])
+                max = @value_encoder.resolve_value(member["max"])
+                if min > max
+                    raise "Error encoding #{name}: min (#{min}) > max (#{max})"
+                end
+                enc = @value_encoder.encode_values(min, max)
                 buf <<  ", .config.minmax.indexes = #{enc}"
             end
             buf << ", offsetof(#{group["type"]}, #{member["field"]}) },\n"

@@ -65,6 +65,7 @@ extern uint8_t __config_end;
 #include "drivers/time.h"
 #include "drivers/timer.h"
 
+#include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -2023,15 +2024,7 @@ static void cliRebootEx(bool bootLoader)
     bufWriterFlush(cliWriter);
     waitForSerialPortToFinishTransmitting(cliPort);
 
-    stopMotors();
-    stopPwmAllMotors();
-
-    delay(1000);
-    if (bootLoader) {
-        systemResetToBootloader();
-        return;
-    }
-    systemReset();
+    fcReboot(bootLoader);
 }
 
 static void cliReboot(void)
@@ -2390,7 +2383,7 @@ static void cliStatus(char *cmdline)
 {
     UNUSED(cmdline);
 
-    char buf[FORMATTED_DATE_TIME_BUFSIZE];
+    char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
@@ -2499,6 +2492,13 @@ static void cliStatus(char *cmdline)
 	if (bitpos > 6) cliPrintf(" %s", armingDisableFlagNames[bitpos - 7]);
     }
     cliPrintLinefeed();
+    if (armingFlags & ARMING_DISABLED_INVALID_SETTING) {
+        unsigned invalidIndex;
+        if (!settingsValidate(&invalidIndex)) {
+            settingGetName(settingGet(invalidIndex), buf);
+            cliPrintLinef("Invalid setting: %s", buf);
+        }
+    }
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif

@@ -12,7 +12,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this software.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 
 #pragma once
 
@@ -70,7 +70,7 @@
 
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PC10
-#define SPI3_MISO_PIN           PC11 
+#define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PB5
 
 #define USE_OSD
@@ -100,13 +100,14 @@
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_BUS           DEFAULT_I2C_BUS 
+#define PITOT_I2C_BUS           DEFAULT_I2C_BUS
 
 //USART
 #define USE_VCP
@@ -144,9 +145,9 @@
 #define ADC_CHANNEL_3_PIN           PA0
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-#define RSSI_ADC_CHANNEL            ADC_CHN_3 
+#define RSSI_ADC_CHANNEL            ADC_CHN_3
 
-#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_OSD) 
+#define DEFAULT_FEATURES        (FEATURE_VBAT | FEATURE_OSD)
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

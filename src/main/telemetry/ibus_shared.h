@@ -35,18 +35,18 @@ typedef enum {
     IBUS_MEAS_TYPE_TEMPERATURE      = 0x01, //0 Temperature -##0.0 C, 0=-40.0 C, 400=0.0 C, 65535=6513.5 C
     IBUS_MEAS_TYPE_RPM              = 0x02, //0 Rotation RPM, ####0RPM, 0=0RPM, 65535=65535RPM
     IBUS_MEAS_TYPE_EXTERNAL_VOLTAGE = 0x03, //0 External Voltage, -##0.00V, 0=0.00V, 32767=327.67V, 32768=na, 32769=-327.67V, 65535=-0.01V
-    IBUS_MEAS_TYPE_HEADING          = 0x04, //3 
-    IBUS_MEAS_TYPE_CURRENT          = 0x05, //3 
+    IBUS_MEAS_TYPE_HEADING          = 0x04, //3
+    IBUS_MEAS_TYPE_CURRENT          = 0x05, //3
     IBUS_MEAS_TYPE_CLIMB            = 0x06, //3
-    IBUS_MEAS_TYPE_ACC_Z            = 0x07, //3 
-    IBUS_MEAS_TYPE_ACC_Y            = 0x08, //3 
-    IBUS_MEAS_TYPE_ACC_X            = 0x09, //3 
+    IBUS_MEAS_TYPE_ACC_Z            = 0x07, //3
+    IBUS_MEAS_TYPE_ACC_Y            = 0x08, //3
+    IBUS_MEAS_TYPE_ACC_X            = 0x09, //3
     IBUS_MEAS_TYPE_VSPEED           = 0x0a, //3
     IBUS_MEAS_TYPE_SPEED            = 0x0b, //3
-    IBUS_MEAS_TYPE_DIST             = 0x0c, //3 
-    IBUS_MEAS_TYPE_ARMED            = 0x0d,	//3 
-    IBUS_MEAS_TYPE_MODE             = 0x0e, //3 
-    //IBUS_MEAS_TYPE_RESERVED         = 0x0f, //3 
+    IBUS_MEAS_TYPE_DIST             = 0x0c, //3
+    IBUS_MEAS_TYPE_ARMED            = 0x0d,	//3
+    IBUS_MEAS_TYPE_MODE             = 0x0e, //3
+    //IBUS_MEAS_TYPE_RESERVED         = 0x0f, //3
     IBUS_MEAS_TYPE_PRES             = 0x41, // Pressure, not work
     //IBUS_MEAS_TYPE_ODO1             = 0x7c, // Odometer1, 0.0km, 0.0 only
     //IBUS_MEAS_TYPE_ODO2             = 0x7d, // Odometer2, 0.0km, 0.0 only
@@ -54,14 +54,14 @@ typedef enum {
     IBUS_MEAS_TYPE_COG              = 0x80, //3 2byte course deg * 100, 0.0..359.99
     IBUS_MEAS_TYPE_GPS_STATUS       = 0x81, //3 2byte special parse byte by byte
     IBUS_MEAS_TYPE_GPS_LON          = 0x82, //3 4byte signed WGS84 in deg * 1E7, format into %u?%02u'%02u
-    IBUS_MEAS_TYPE_GPS_LAT          = 0x83, //3 4byte signed WGS84 in deg * 1E7 
+    IBUS_MEAS_TYPE_GPS_LAT          = 0x83, //3 4byte signed WGS84 in deg * 1E7
     IBUS_MEAS_TYPE_ALT              = 0x84, //3 2byte signed barometer alt
-    IBUS_MEAS_TYPE_S85              = 0x85, //3 
-    IBUS_MEAS_TYPE_S86              = 0x86, //3 
-    IBUS_MEAS_TYPE_S87              = 0x87, //3 
-    IBUS_MEAS_TYPE_S88              = 0x88, //3 
-    IBUS_MEAS_TYPE_S89              = 0x89, //3 
-    IBUS_MEAS_TYPE_S8A              = 0x8A, //3 
+    IBUS_MEAS_TYPE_S85              = 0x85, //3
+    IBUS_MEAS_TYPE_S86              = 0x86, //3
+    IBUS_MEAS_TYPE_S87              = 0x87, //3
+    IBUS_MEAS_TYPE_S88              = 0x88, //3
+    IBUS_MEAS_TYPE_S89              = 0x89, //3
+    IBUS_MEAS_TYPE_S8A              = 0x8A, //3
     IBUS_MEAS_TYPE_GALT             = 0xf9, //2 Altitude m, not work
     //IBUS_MEAS_TYPE_SNR              = 0xfa, //  SNR, not work
     //IBUS_MEAS_TYPE_NOISE            = 0xfb, //  Noise, not work

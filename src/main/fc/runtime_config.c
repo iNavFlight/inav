@@ -34,7 +34,8 @@ static uint32_t enabledSensors = 0;
 const char *armingDisableFlagNames[]= {
     "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
     "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
-    "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM"
+    "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
+    "SETTINGFAIL",
 };
 #endif
 
@@ -127,6 +128,6 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
 
     if (FLIGHT_MODE(NAV_LAUNCH_MODE))
         return FLM_LAUNCH;
-    
+
     return FLM_ACRO;
 }

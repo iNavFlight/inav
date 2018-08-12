@@ -21,7 +21,6 @@
 #if !defined(USE_GPS)
 #error Wind Estimator requires GPS support
 #endif
-#endif
 
 #include "common/axis.h"
 #include "common/time.h"
@@ -34,3 +33,5 @@ float getEstimatedWindSpeed(int axis);
 float getEstimatedHorizontalWindSpeed(uint16_t *angle);
 
 void updateWindEstimator(timeUs_t currentTimeUs);
+
+#endif

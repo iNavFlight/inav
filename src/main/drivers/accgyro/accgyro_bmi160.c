@@ -179,13 +179,13 @@ static void bmi160AccAndGyroInit(gyroDev_t *gyro)
 
     busWrite(gyro->busDev, BMI160_REG_ACC_RANGE, BMI160_RANGE_8G);
     delay(1);
-        
+
     busWrite(gyro->busDev, BMI160_REG_GYR_RANGE, BMI160_RANGE_2000DPS);
-    delay(1);    
+    delay(1);
 
     // Enable offset compensation
     // uint8_t val = spiBusReadRegister(bus, BMI160_REG_OFFSET_0);
-    // busWrite(gyro->busDev, BMI160_REG_OFFSET_0, val | 0xC0);    
+    // busWrite(gyro->busDev, BMI160_REG_OFFSET_0, val | 0xC0);
 
     // Enable data ready interrupt
     busWrite(gyro->busDev, BMI160_REG_INT_EN1, BMI160_INT_EN1_DRDY);

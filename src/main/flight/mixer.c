@@ -155,7 +155,7 @@ void mixerUsePWMIOConfiguration(void)
         currentMixer[i] = *customMotorMixer(i);
         motorCount++;
     }
-    
+
     // in 3D mode, mixer gain has to be halved
     if (feature(FEATURE_3D)) {
         if (motorCount > 1) {
@@ -371,11 +371,15 @@ void mixTable(const float dT)
 
 motorStatus_e getMotorStatus(void)
 {
-    if (failsafeRequiresMotorStop() || (!failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE)))
+    if (failsafeRequiresMotorStop() || (!failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE))) {
         return MOTOR_STOPPED_AUTO;
+    }
 
-    if ((STATE(FIXED_WING) || !isAirmodeActive()) && (!navigationIsFlyingAutonomousMode()) && (!failsafeIsActive()) && (rcData[THROTTLE] < rxConfig()->mincheck))
-        return MOTOR_STOPPED_USER;
+    if (rcData[THROTTLE] < rxConfig()->mincheck) {
+        if ((STATE(FIXED_WING) || !isAirmodeActive()) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
+            return MOTOR_STOPPED_USER;
+        }
+    }
 
     return MOTOR_RUNNING;
 }

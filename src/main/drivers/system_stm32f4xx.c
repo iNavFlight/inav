@@ -94,10 +94,10 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
         RCC_APB1Periph_I2C1 |
         RCC_APB1Periph_I2C2 |
         RCC_APB1Periph_I2C3 |
-        RCC_APB1Periph_CAN1 |
-        RCC_APB1Periph_CAN2 |
+        // RCC_APB1Periph_CAN1 |
+        // RCC_APB1Periph_CAN2 |
         RCC_APB1Periph_PWR |
-        RCC_APB1Periph_DAC |
+        // RCC_APB1Periph_DAC |
         0, ENABLE);
 
     RCC_APB2PeriphClockCmd(
@@ -109,7 +109,7 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
         RCC_APB2Periph_ADC1 |
         RCC_APB2Periph_ADC2 |
         RCC_APB2Periph_ADC3 |
-        RCC_APB2Periph_SDIO |
+        // RCC_APB2Periph_SDIO |
         RCC_APB2Periph_SPI1 |
         RCC_APB2Periph_SYSCFG |
         RCC_APB2Periph_TIM9 |
@@ -119,7 +119,7 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
 
     GPIO_InitTypeDef GPIO_InitStructure;
     GPIO_StructInit(&GPIO_InitStructure);
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP; // default is un-pulled input
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 
     GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_All;
     GPIO_InitStructure.GPIO_Pin &= ~(GPIO_Pin_11 | GPIO_Pin_12); // leave USB D+/D- alone

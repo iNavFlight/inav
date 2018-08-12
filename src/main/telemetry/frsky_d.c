@@ -112,6 +112,8 @@ static portSharing_e frskyPortSharing;
 #define ID_GYRO_Y             0x41
 #define ID_GYRO_Z             0x42
 #define ID_HOME_DIST          0x07
+#define ID_PITCH              0x08
+#define ID_ROLL               0x20
 
 #define ID_VERT_SPEED         0x30 //opentx vario
 
@@ -417,9 +419,13 @@ static void sendAmperage(void)
 
 static void sendFuelLevel(void)
 {
-    sendDataHead(ID_FUEL_LEVEL);
-
-    serialize16((uint16_t)calculateBatteryPercentage());
+    if (telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_PERCENT) {
+        sendDataHead(ID_FUEL_LEVEL);
+        serialize16((uint16_t)calculateBatteryPercentage());
+    } else if (isAmperageConfigured()) {
+        sendDataHead(ID_FUEL_LEVEL);
+        serialize16((uint16_t)telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_MAH ? getMAhDrawn() : getMWhDrawn());
+    }
 }
 
 static void sendHeading(void)
@@ -428,6 +434,18 @@ static void sendHeading(void)
     serialize16(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
     sendDataHead(ID_COURSE_AP);
     serialize16(0);
+}
+
+static void sendPitch(void)
+{
+    sendDataHead(ID_PITCH);
+    serialize16(attitude.values.pitch);
+}
+
+static void sendRoll(void)
+{
+    sendDataHead(ID_ROLL);
+    serialize16(attitude.values.roll);
 }
 
 void initFrSkyTelemetry(void)
@@ -500,7 +518,12 @@ void handleFrSkyTelemetry(void)
     cycleNum++;
 
     // Sent every 125ms
-    sendAccel();
+    if (telemetryConfig()->frsky_pitch_roll) {
+        sendPitch();
+        sendRoll();
+    } else {
+        sendAccel();
+    }
     sendVario();
     sendTelemetryTail();
 

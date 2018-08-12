@@ -95,16 +95,15 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  looptime  | 1000 | This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible. |
 |  i2c_speed | 400KHZ | This setting controls the clock speed of I2C bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. User need to bear in mind that lower clock speeds might require higher looptimes (lower looptime rate) |
 |  cpu_underclock  | OFF | This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz |
-|  gyro_sync  | OFF | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Use gyro_lpf and gyro_sync_denom determine the gyro refresh rate. Note that different targets have different limits. Setting too high refresh rate can mean that FC cannot keep up with the gyro and higher gyro_sync_denom is needed, |
-|  gyro_sync_denom  | 2 | This option determines the sampling ratio. Denominator of 1 means full gyro sampling rate. Denominator 2 would mean 1/2 samples will be collected. Denominator and gyro_lpf will together determine the control loop speed. |
+|  gyro_sync  | OFF | This option enables gyro_sync feature. In this case the loop will be synced to gyro refresh rate. Loop will always wait for the newest gyro measurement. Maximum gyro refresh rate is determined by gyro_hardware_lpf  |
 |  acc_task_frequency  | 500 | Determines accelerometer task frequency in async_mode = ALL. Depending on UAV type this frequency can be lowered to conserve CPU resources as long as vibrations are not a problem. |
 |  attitude_task_frequency  | 250 | Determines attitude task frequency when async_mode = ALL |
-|  async_mode  | NONE | Enables asynchronous mode processing for gyro/accelerometer and attitude computations. Allowed modes: NONE -> default behavior, all calculations are executed in main PID loop. GYRO -> gyro sampling and filtering is detached from main PID loop. PID loop runs based on looptime while gyro sampling uses gyro_sync_denom and gyro_lpf combination to determine its frequency. ALL -> in this mode, gyro, accelerometer and attitude are running as separate tasks. Accelerometer task frequency is determined by acc_task_frequency, attitude task frequency by attitude_task_frequency. In this mode ANGLE and HORIZON, as well GPS assisted flight modes (including PosHold) performance might be lowered. |
+|  async_mode  | NONE | Enables asynchronous mode processing for gyro/accelerometer and attitude computations. Allowed modes: NONE -> default behavior, all calculations are executed in main PID loop. GYRO -> gyro sampling and filtering is detached from main PID loop. PID loop runs based on looptime while gyro sampling rate is determined by the gyro driver using also the gyro_hardware_lpf setting. ALL -> in this mode, gyro, accelerometer and attitude are running as separate tasks. Accelerometer task frequency is determined by acc_task_frequency, attitude task frequency by attitude_task_frequency. In this mode ANGLE and HORIZON, as well GPS assisted flight modes (including PosHold) performance might be lowered if improper settings are used. |
 |  min_check  | 1100 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  max_check  | 1900 | These are min/max values (in us) which, when a channel is smaller (min) or larger (max) than the value will activate various RC commands, such as arming, or stick configuration. Normally, every RC channel should be set so that min = 1000us, max = 2000us. On most transmitters this usually means 125% endpoints. Default check values are 100us above/below this value. |
 |  rssi_channel  | 0 | RX channel containing the RSSI signal |
-|  rssi_scale  | 100 | By default RSSI expects to use full span of the input (0-3.3V for ADC, 1000-2000 for AUX channel). This scale (percentage) allows you to adjust the scaling to get 100% RSSI shown correctly |
-|  rssi_invert  | OFF |  |
+|  rssi_min  | 0 | The minimum RSSI value sent by the receiver, in %. For example, if your receiver's minimum RSSI value shows as 42% in the configurator/OSD set this parameter to 42. See also rssi_max. Note that rssi_min can be set to a value bigger than rssi_max to invert the RSSI calculation (i.e. bigger values mean lower RSSI). |
+|  rssi_max  | 100 | The maximum RSSI value sent by the receiver, in %. For example, if your receiver's maximum RSSI value shows as 83% in the configurator/OSD set this parameter to 83. See also rssi_min. |
 |  rc_smoothing  | ON | Interpolation of Rc data during looptimes when there are no new updates. This gives smoother RC input to PID controller and cleaner PIDsum |
 |  input_filtering_mode  | OFF | Filter out noise from OpenLRS Telemetry RX |
 |  min_throttle  | 1150 | These are min/max values (in us) that are sent to esc when armed. Defaults of 1150/1850 are OK for everyone, for use with AfroESC, they could be set to 1064/1864. |
@@ -163,6 +162,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  nav_land_slowdown_maxalt  | 2000 | Defines at what altitude the descent velocity should start to ramp down from 100% nav_landing_speed to 25% nav_landing_speed. [cm] |
 |  nav_emerg_landing_speed  | 500 | Rate of descent UAV will try to maintain when doing emergency descent sequence [cm/s] |
 |  nav_min_rth_distance  | 500 | Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase. |
+|  nav_overrides_motor_stop | ON | Setting to OFF combined with MOTOR_STOP feature will allow user to stop motor when in autonomous modes. On most places this setting is likely to cause a stall. |
 |  nav_rth_climb_first  | ON | If set to ON drone will climb to nav_rth_altitude first and head home afterwards. If set to OFF drone will head home instantly and climb on the way. |
 |  nav_rth_tail_first  | OFF | If set to ON drone will return tail-first. Obviously meaningless for airplanes. |
 |  nav_rth_allow_landing  | ALWAYS | If set to ON drone will land as a last phase of RTH. |
@@ -205,15 +205,17 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  spektrum_sat_bind  | 0 | 0 = disabled. Used to bind the spektrum satellite to RX |
 |  telemetry_switch  | OFF | Which aux channel to use to change serial output & baud rate (MSP / Telemetry). It disables automatic switching to Telemetry when armed. |
 |  telemetry_inverted  | OFF | Determines if the telemetry protocol default signal inversion is reversed. This should be OFF in most cases unless a custom or hacked RX is used. |
-|  frsky_default_latitude  | 0.000 | OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
-|  frsky_default_longitude  | 0.000 | OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
-|  frsky_coordinates_format  | 0 | FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
-|  frsky_unit  | METRIC | METRIC , IMPERIAL |
-|  frsky_vfas_precision  | 0 | Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
-|  report_cell_voltage  | OFF |  |
+|  frsky_unit  | METRIC | Not used? [METRIC/IMPERIAL] |
+|  frsky_default_latitude  | 0.000 | D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
+|  frsky_default_longitude  | 0.000 | D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired. |
+|  frsky_coordinates_format  | 0 | D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA |
+|  frsky_vfas_precision  | 0 | D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
+|  frsky_pitch_roll  | OFF | S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data |
+|  smartport_fuel_unit  | MAH | S.Port telemetry only: Unit of the value sent with the `FUEL` ID (FrSky D-Series always sends precent). [PERCENT/MAH/MWH] |
+|  smartport_uart_unidir  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
+|  report_cell_voltage  | OFF | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
-|  smartport_uart_unidir  | OFF | Turn UART into UNIDIR for smartport telemetry for usage on F1 and F4 target. See Telemetry.md for details |
-|  smartport_fuel_unit  | MAH | Unit of the value sent with the `FUEL` ID through the S.Port telemetry. Replaces the `smartport_fuel_percent` setting in versions < 1.9 [PERCENT/MAH/MWH] |
+|  smartport_fuel_unit  | MAH | S.Port and D-Series telemetry: Unit of the value sent with the `FUEL` ID. [PERCENT/MAH/MWH] |
 |  ibus_telemetry_type  | 0 | Type compatibility ibus telemetry for transmitters. See Telemetry.md label IBUS for details. |
 |  ltm_update_rate  | NORMAL | Defines the LTM update rate (use of bandwidth [NORMAL/MEDIUM/SLOW]). See Telemetry.md, LTM section for details. |
 |  battery_capacity  | 0 | Battery capacity in mAH. This value is used in conjunction with the current meter to determine remaining battery capacity. |

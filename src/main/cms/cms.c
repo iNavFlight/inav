@@ -64,6 +64,7 @@
 #include "config/parameter_group_ids.h"
 
 // For 'ARM' related
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -766,11 +767,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
         displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
 
-        stopMotors();
-        stopPwmAllMotors();
-        delay(200);
-
-        systemReset();
+        fcReboot(false);
     }
 
     DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);

@@ -62,14 +62,15 @@
 #include "io/osd.h"
 #include "io/vtx_string.h"
 
-#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/fc_core.h"
+#include "fc/fc_tasks.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/fc_tasks.h"
+#include "fc/settings.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -486,46 +487,34 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
  */
 static uint16_t osdConvertRSSI(void)
 {
-    uint16_t osdRssi = getRSSI() * 100 / 1024; // change range
-    if (osdRssi >= 100) {
-        osdRssi = 99;
-    }
-    return osdRssi;
+    // change range to [0, 99]
+    return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
 }
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
-    // This should be faster than pow(10, x). Make it available this
-    // via extern rather than _GNU_SOURCE, since it should be more
-    // portable.
-    extern float exp10f(float);
-
     // up to 4 for number + 1 for the symbol + null terminator + fill the rest with decimals
-    const int coordinateMaxLength = osdConfig()->coordinate_digits + 1;
+    const int coordinateLength = osdConfig()->coordinate_digits + 1;
 
     buff[0] = sym;
     int32_t integerPart = val / GPS_DEGREES_DIVIDER;
     // Latitude maximum integer width is 3 (-90) while
     // longitude maximum integer width is 4 (-180).
     int integerDigits = tfp_sprintf(buff + 1, (integerPart == 0 && val < 0) ? "-%d" : "%d", integerPart);
-    // We can show up to 7 digits in decimalPart. Remove
-    // some if needed.
+    // We can show up to 7 digits in decimalPart.
     int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
-    int trim = 7 - MAX(coordinateMaxLength - 1 - integerDigits, 0);
-    if (trim > 0) {
-        decimalPart /= (int32_t)exp10f(trim);
-    }
-    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%d", decimalPart);
+    STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
+    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", decimalPart);
     // Embbed the decimal separator
     buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
     buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
-    // Fill up to coordinateMaxLength with zeros
+    // Fill up to coordinateLength with zeros
     int total = 1 + integerDigits + decimalDigits;
-    while(total < coordinateMaxLength) {
+    while(total < coordinateLength) {
         buff[total] = '0';
         total++;
     }
-    buff[coordinateMaxLength] = '\0';
+    buff[coordinateLength] = '\0';
 }
 
 // Used twice, make sure it's exactly the same string
@@ -605,6 +594,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("AUTOTRIM IS ACTIVE");
         case ARMING_DISABLED_OOM:
             return OSD_MESSAGE_STR("NOT ENOUGH MEMORY");
+        case ARMING_DISABLED_INVALID_SETTING:
+            return OSD_MESSAGE_STR("INVALID SETTING");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
             // Cases without message
@@ -698,7 +689,10 @@ static const char * navigationStateMessage(void)
             // Not used
             break;
         case MW_NAV_STATE_LAND_START:
-            return OSD_MESSAGE_STR("STARTING EMERGENCY LANDING");
+            // Not used
+            break;
+        case MW_NAV_STATE_EMERGENCY_LANDING:
+            return OSD_MESSAGE_STR("EMERGENCY LANDING");
         case MW_NAV_STATE_LAND_IN_PROGRESS:
             return OSD_MESSAGE_STR("LANDING");
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
@@ -2053,6 +2047,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MESSAGES:
         {
             const char *message = NULL;
+            char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
             if (ARMING_FLAG(ARMED)) {
                 // Aircraft is armed. We might have up to 4
                 // messages to show.
@@ -2087,7 +2082,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         // will cause it to be missing from some frames.
                     }
                 } else {
-                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE)) {
+                    if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                         const char *navStateMessage = navigationStateMessage();
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
@@ -2117,13 +2112,28 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                 }
             } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
+                unsigned invalidIndex;
                 // Check if we're unable to arm for some reason
-                if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
-                    message = "UNABLE TO ARM";
-                    TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                if (ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING) && !settingsValidate(&invalidIndex)) {
+                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                        const setting_t *setting = settingGet(invalidIndex);
+                        settingGetName(setting, messageBuf);
+                        for (int ii = 0; messageBuf[ii]; ii++) {
+                            messageBuf[ii] = sl_toupper(messageBuf[ii]);
+                        }
+                        message = messageBuf;
+                    } else {
+                        message = "INVALID SETTING";
+                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                    }
                 } else {
-                    // Show the reason for not arming
-                    message = osdArmingDisabledReasonMessage();
+                    if (OSD_ALTERNATING_CHOICES(1000, 2) == 0) {
+                        message = "UNABLE TO ARM";
+                        TEXT_ATTRIBUTES_ADD_INVERTED(elemAttr);
+                    } else {
+                        // Show the reason for not arming
+                        message = osdArmingDisabledReasonMessage();
+                    }
                 }
             }
             osdFormatMessage(buff, sizeof(buff), message);
@@ -2810,7 +2820,11 @@ void osdRefresh(timeUs_t currentTimeUs)
     static uint32_t armTime = 0;
     static uint32_t disarmTime = 0;
 
+#if defined(USE_CMS) && !defined(USE_BRAINFPV_OSD)
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
+#else
     if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+#endif
       displayClearScreen(osdDisplayPort);
       armState = ARMING_FLAG(ARMED);
       return;
