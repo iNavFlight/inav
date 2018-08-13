@@ -31,7 +31,12 @@ const timerHardware_t timerHardware[] = {
 #endif
     { TIM8, IO_TAG(PC7),    TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  //S2 DMA2_ST3 SV3
     { TIM8, IO_TAG(PC8),    TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  //S3 DMA2_ST4 SV4
+
+#ifdef MATEKF405_FWMOTORS4
+    { TIM3, IO_TAG(PC9),    TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR },  //S4 DMA3_ST7 MT2
+#else
     { TIM8, IO_TAG(PC9),    TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  //S4 DMA3_ST7 SV5
+#endif
 
     { TIM2, IO_TAG(PA15),   TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM2, TIM_USE_MC_MOTOR | TIM_USE_LED                         },  //S5 DMA1_ST5 2812LED
 
@@ -40,7 +45,10 @@ const timerHardware_t timerHardware[] = {
 #else
     { TIM1, IO_TAG(PA8),    TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },
 #endif
+
+#ifndef MATEKF405_FWMOTORS4
     { TIM4, IO_TAG(PB8),    TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_SERVO |                    TIM_USE_FW_MOTOR },  //S7 DMA1_ST7 MT2
+#endif
 
     { TIM5, IO_TAG(PA2),    TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM5, TIM_USE_PWM },  //TX2
 
