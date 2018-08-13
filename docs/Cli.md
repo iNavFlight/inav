@@ -301,7 +301,6 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  osd_alt_alarm        | 100   | Value above which to make the OSD relative altitude indicator blink (meters) |
 |  osd_neg_alt_alarm    | 5    | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
-|  display_force_sw_blink  | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_z  | 0 | Magnetometer calibration Z offset. If its 0 none offset has been applied and calibration is failed. |
