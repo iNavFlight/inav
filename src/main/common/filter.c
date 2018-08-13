@@ -70,7 +70,7 @@ float pt1FilterApply3(pt1Filter_t *filter, float input, float dT)
     return filter->state;
 }
 
-float pt1FilterApply4(pt1Filter_t *filter, float input, uint16_t f_cut, float dT)
+float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
 {
     // Pre calculate and store RC
     if (!filter->RC) {
