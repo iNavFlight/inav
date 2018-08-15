@@ -144,3 +144,5 @@
 #define TARGET_IO_PORTC         0xFFFF
 #define TARGET_IO_PORTD         0xFFFF
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
+
+#define PCA9685_I2C_BUS         BUS_I2C2

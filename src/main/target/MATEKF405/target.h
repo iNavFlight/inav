@@ -154,7 +154,6 @@
     #define DEFAULT_I2C_BUS         BUS_I2C1
 #endif
 
-
 #define USE_BARO
 #define BARO_I2C_BUS                DEFAULT_I2C_BUS
 #define USE_BARO_BMP280
@@ -214,3 +213,5 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS       6
+
+#define PCA9685_I2C_BUS             DEFAULT_I2C_BUS
