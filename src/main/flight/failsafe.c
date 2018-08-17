@@ -154,6 +154,7 @@ void failsafeReset(void)
     failsafeState.receivingRxDataPeriodPreset = 0;
     failsafeState.phase = FAILSAFE_IDLE;
     failsafeState.rxLinkState = FAILSAFE_RXLINK_DOWN;
+    failsafeState.bypassNavigation = true;
 
     failsafeState.lastGoodRcCommand[ROLL] = 0;
     failsafeState.lastGoodRcCommand[PITCH] = 0;
@@ -171,7 +172,7 @@ void failsafeInit(void)
 #ifdef USE_NAV
 bool failsafeBypassNavigation(void)
 {
-    return failsafeState.active && failsafeState.controlling && failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
+    return failsafeState.active && failsafeState.controlling && failsafeState.bypassNavigation;
 }
 
 bool failsafeMayRequireNavigationMode(void)
@@ -227,6 +228,7 @@ static void failsafeActivate(failsafePhase_e newPhase)
     failsafeState.active = true;
     failsafeState.controlling = true;
     failsafeState.phase = newPhase;
+    failsafeState.bypassNavigation = failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
     ENABLE_FLIGHT_MODE(FAILSAFE_MODE);
     failsafeState.landingShouldBeFinishedAt = millis() + failsafeConfig()->failsafe_off_delay * MILLIS_PER_TENTH_SECOND;
 
@@ -469,6 +471,7 @@ void failsafeUpdateState(void)
                             // This shouldn't happen. If RTH was somehow aborted during failsafe - fallback to FAILSAFE_LANDING procedure
                             abortForcedRTH();
                             failsafeActivate(FAILSAFE_LANDING);
+                            failsafeState.bypassNavigation = true;  // Force bypassing navigation
                             reprocessState = true;
                             break;
                     }
