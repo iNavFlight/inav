@@ -41,7 +41,15 @@ static bool isUsingNAVModes = false;
 #endif
 
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
-STATIC_ASSERT(CHECKBOX_ITEM_COUNT <= 32, too_many_box_modes);
+
+// TODO(alberto): It looks like we can now safely remove this assert, since everything
+// but BB is able to handle more than 32 boxes and all the definitions use
+// CHECKBOX_ITEM_COUNT rather than hardcoded values. Note, however, that BB will only
+// log the first 32 flight modes, so the ones affecting actual flight should be <= 32.
+//
+// Leaving the assert commented for now, just in case there are some unexpected issues
+// and someone else has to debug it.
+// STATIC_ASSERT(CHECKBOX_ITEM_COUNT <= 32, too_many_box_modes);
 
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
@@ -153,6 +161,7 @@ void updateUsedModeActivationConditionFlags(void)
 #ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
+                        isModeActivationConditionPresent(BOXNAVCRUISE) ||
                         isModeActivationConditionPresent(BOXNAVWP);
 #endif
 }

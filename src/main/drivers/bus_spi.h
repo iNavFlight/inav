@@ -31,11 +31,6 @@
 #define SPI_IO_AF_SCK_CFG_LOW   IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLDOWN)
 #define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLUP)
 #define SPI_IO_CS_CFG           IO_CONFIG(GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
-#elif defined(STM32F1)
-#define SPI_IO_AF_SCK_CFG       IO_CONFIG(GPIO_Mode_AF_PP,       GPIO_Speed_50MHz)
-#define SPI_IO_AF_MOSI_CFG      IO_CONFIG(GPIO_Mode_AF_PP,       GPIO_Speed_50MHz)
-#define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_Mode_IN_FLOATING, GPIO_Speed_50MHz)
-#define SPI_IO_CS_CFG           IO_CONFIG(GPIO_Mode_Out_PP,      GPIO_Speed_50MHz)
 #endif
 
 /*
@@ -44,7 +39,7 @@
 
 typedef enum {
     SPI_CLOCK_INITIALIZATON = 0,    // Lowest possible
-    SPI_CLOCK_SLOW          = 1,    // ~1 MHz    
+    SPI_CLOCK_SLOW          = 1,    // ~1 MHz
     SPI_CLOCK_STANDARD      = 2,    // ~10MHz
     SPI_CLOCK_FAST          = 3,    // ~20MHz
     SPI_CLOCK_ULTRAFAST     = 4     // Highest possible
@@ -58,9 +53,7 @@ typedef enum SPIDevice {
     SPIDEV_4
 } SPIDevice;
 
-#if defined(STM32F1)
-#define SPIDEV_COUNT 2
-#elif defined(STM32F3) || defined(STM32F4)
+#if defined(STM32F3) || defined(STM32F4)
 #define SPIDEV_COUNT 3
 #elif defined(STM32F7)
 #define SPIDEV_COUNT 4

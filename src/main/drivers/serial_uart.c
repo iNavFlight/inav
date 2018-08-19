@@ -28,24 +28,28 @@
 #include "build/build_config.h"
 
 #include "common/utils.h"
-#include "drivers/gpio.h"
-#include "inverter.h"
+
+#include "drivers/uart_inverter.h"
 
 #include "serial.h"
 #include "serial_uart.h"
 #include "serial_uart_impl.h"
 
 static void usartConfigurePinInversion(uartPort_t *uartPort) {
-#if !defined(USE_INVERTER) && !defined(STM32F303xC)
+#if !defined(USE_UART_INVERTER) && !defined(STM32F303xC)
     UNUSED(uartPort);
 #else
     bool inverted = uartPort->port.options & SERIAL_INVERTED;
 
-#ifdef USE_INVERTER
-    if (inverted) {
-        // Enable hardware inverter if available.
-        enableInverter(uartPort->USARTx, true);
+#ifdef USE_UART_INVERTER
+    uartInverterLine_e invertedLines = UART_INVERTER_LINE_NONE;
+    if (uartPort->port.mode & MODE_RX) {
+        invertedLines |= UART_INVERTER_LINE_RX;
     }
+    if (uartPort->port.mode & MODE_TX) {
+        invertedLines |= UART_INVERTER_LINE_TX;
+    }
+    uartInverterSet(uartPort->USARTx, invertedLines, inverted);
 #endif
 
 #ifdef STM32F303xC

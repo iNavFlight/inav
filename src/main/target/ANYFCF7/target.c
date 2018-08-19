@@ -22,13 +22,13 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM12, IO_TAG(PB14), TIM_CHANNEL_1, 0, IOCFG_AF_PP_PD,      GPIO_AF9_TIM12, TIM_USE_PPM | TIM_USE_PWM }, // S1_IN 1
     { TIM12, IO_TAG(PB15), TIM_CHANNEL_2, 0, IOCFG_AF_PP_PD,      GPIO_AF9_TIM12, TIM_USE_PWM }, // S2_IN 2
-    { TIM8,  IO_TAG(PC6),  TIM_CHANNEL_1, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO | TIM_USE_MC_CHNFW }, // S3_IN 3
-    { TIM8,  IO_TAG(PC7),  TIM_CHANNEL_2, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO | TIM_USE_MC_CHNFW }, // S4_IN 4
-    { TIM8,  IO_TAG(PC8),  TIM_CHANNEL_3, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO | TIM_USE_MC_CHNFW}, // S6_IN 6
-    { TIM8,  IO_TAG(PC9),  TIM_CHANNEL_4, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO | TIM_USE_MC_CHNFW}, // S5_IN 5
+    { TIM8,  IO_TAG(PC6),  TIM_CHANNEL_1, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO                    }, // S3_IN 3
+    { TIM8,  IO_TAG(PC7),  TIM_CHANNEL_2, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO                    }, // S4_IN 4
+    { TIM8,  IO_TAG(PC8),  TIM_CHANNEL_3, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO                    }, // S6_IN 6
+    { TIM8,  IO_TAG(PC9),  TIM_CHANNEL_4, 0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8,  TIM_USE_PWM | TIM_USE_MC_SERVO                    }, // S5_IN 5
 
     { TIM4,  IO_TAG(PB8),  TIM_CHANNEL_3, 1, IOCFG_AF_PP_PD, GPIO_AF2_TIM4,  TIM_USE_MC_MOTOR |                      TIM_USE_FW_SERVO  }, // S10_OUT16
     { TIM2,  IO_TAG(PA2),  TIM_CHANNEL_3, 1, IOCFG_AF_PP_PD, GPIO_AF1_TIM2,  TIM_USE_MC_MOTOR |                      TIM_USE_FW_SERVO  }, // S6_OUT 12
@@ -43,7 +43,7 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 };
 
 // ALTERNATE LAYOUT
-//const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+//const timerHardware_t timerHardware[] = {
 //    { TIM12, IO_TAG(PB14), TIM_CHANNEL_1, TIM8_BRK_TIM12_IRQn, 0, IOCFG_AF_PP_PD,      GPIO_AF9_TIM12 }, // S1_IN
 //    { TIM12, IO_TAG(PB15), TIM_CHANNEL_2, TIM8_BRK_TIM12_IRQn, 0, IOCFG_AF_PP_PD,      GPIO_AF9_TIM12 }, // S2_IN
 //    { TIM8,  IO_TAG(PC6),  TIM_CHANNEL_1, TIM8_CC_IRQn,        0, IOCFG_AF_PP_PD,      GPIO_AF3_TIM8  }, // S3_IN
@@ -62,3 +62,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 //    { TIM3,  IO_TAG(PB4),  TIM_CHANNEL_1, TIM3_IRQn,           1, IOCFG_AF_PP_PD, GPIO_AF2_TIM3 }, // S9_OUT
 //    { TIM10,  IO_TAG(PB8),  TIM_CHANNEL_1, TIM1_UP_TIM10_IRQn,           1, IOCFG_AF_PP_PD, GPIO_AF3_TIM10 }, // S10_OUT
 //};
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

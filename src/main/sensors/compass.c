@@ -36,8 +36,10 @@
 #include "drivers/compass/compass_hmc5883l.h"
 #include "drivers/compass/compass_mag3110.h"
 #include "drivers/compass/compass_ist8310.h"
+#include "drivers/compass/compass_ist8308.h"
 #include "drivers/compass/compass_qmc5883l.h"
 #include "drivers/compass/compass_mpu9250.h"
+#include "drivers/compass/compass_lis3mdl.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/logging.h"
@@ -53,10 +55,6 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
-
-#ifdef NAZE
-#include "hardware_revision.h"
-#endif
 
 mag_t mag;                   // mag access functions
 
@@ -206,6 +204,22 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
         FALLTHROUGH;
 
+    case MAG_IST8308:
+#ifdef USE_MAG_IST8308
+        if (ist8308Detect(dev)) {
+#ifdef MAG_IST8308_ALIGN
+            dev->magAlign.onBoard = MAG_IST8308_ALIGN;
+#endif
+            magHardware = MAG_IST8308;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
     case MAG_MPU9250:
 #ifdef USE_MAG_MPU9250
         if (mpu9250CompassDetect(dev)) {
@@ -216,6 +230,19 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
             break;
         }
 #endif
+        FALLTHROUGH;
+
+    case MAG_LIS3MDL:
+#ifdef USE_MAG_LIS3MDL
+        if (lis3mdlDetect(dev)) {
+#ifdef MAG_LIS3MDL_ALIGN
+            dev->magAlign = MAG_LIS3MDL_ALIGN;
+#endif
+            magHardware = MAG_LIS3MDL;
+            break;
+        }
+#endif
+
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;

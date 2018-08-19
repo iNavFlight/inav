@@ -23,7 +23,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM1, IO_TAG(PA10), TIM_Channel_3, 0, IOCFG_IPD, GPIO_AF_TIM1,    TIM_USE_PPM | TIM_USE_PWM }, // S1_IN
     { TIM8, IO_TAG(PC6),  TIM_Channel_1, 0, IOCFG_IPD, GPIO_AF_TIM8,    TIM_USE_PWM }, // S2_IN
     { TIM8, IO_TAG(PC7),  TIM_Channel_2, 0, IOCFG_IPD, GPIO_AF_TIM8,    TIM_USE_PWM }, // S3_IN
@@ -42,3 +42,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM10, IO_TAG(PB8),  TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM10, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR }, // S7_OUT
     { TIM11, IO_TAG(PB9),  TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM11, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR }, // S8_OUT
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

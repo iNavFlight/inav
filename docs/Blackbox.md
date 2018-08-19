@@ -98,8 +98,7 @@ save.
 You need to let INAV know which of [your serial ports][] you connect your OpenLog to (i.e. the Blackbox port),
 which you can do on the Configurator's Ports tab.
 
-You should use a hardware serial port (such as UART1 on the Naze32, the two-pin Tx/Rx header in the center of the
-board). SoftSerial ports can be used for the Blackbox. However, because they are limited to 19200 baud, your logging
+You should use a hardware serial port. SoftSerial ports can be used for the Blackbox. However, because they are limited to 19200 baud, your logging
 rate will need to be severely reduced to compensate. Therefore the use of SoftSerial is not recommended.
 
 When using a hardware serial port, Blackbox should be set to at least 115200 baud on that port. When using fast
@@ -114,24 +113,7 @@ Connect the "TX" pin of the serial port you've chosen to the OpenLog's "RXI" pin
 pin to the OpenLog, as this will cause the OpenLog to interfere with any shared functions on the serial port while
 disarmed.
 
-#### Naze32 serial port choices
-
-On the Naze32, the TX/RX pins on top of the board are connected to UART1, and are shared with the USB connector.
-Therefore, MSP must be enabled on UART1 in order to use the Configurator over USB. If Blackbox is connected to the pins
-on top of the Naze32, the Configurator will stop working once the board is armed. This configuration is usually a good
-choice if you don't already have an OSD installed which is using those pins while armed, and aren't using the FrSky
-telemetry pins.
-
-Pin RC3 on the side of the board is UART2's Tx pin. If Blackbox is configured on UART2, MSP can still be used on UART1
-when the board is armed, which means that the Configurator will continue to work simultaneously with Blackbox logging.
-Note that in `PARALLEL_PWM` mode this leaves the board with 6 input channels as RC3 and RC4 pins are used by UART2 as Tx and Rx. INAV automatically shifts logical channel mapping for you when UART2 is enabled in `Ports` tab so you'll have to shift receiver pins that are connected to Naze32 pins 3 to 6 by two.
-
-The OpenLog tolerates a power supply of between 3.3V and 12V. If you are powering your Naze32 with a standard 5V BEC,
-then you can use a spare motor header's +5V and GND pins to power the OpenLog with.
-
-#### Other flight controller hardware
-Boards other than the Naze32 may have more accessible hardware serial devices, in which case refer to their
-documentation to decide how to wire up the logger. The key criteria are:
+The key criteria to choose a serial port are:
 
 * Should be a hardware serial port rather than SoftSerial.
 * Cannot be shared with any other function (GPS, telemetry) except MSP.
@@ -173,11 +155,7 @@ tubing instead.
 Some flight controllers have an onboard SPI NOR dataflash chip which can be used to store flight logs instead of using
 an OpenLog.
 
-The full version of the Naze32 and the CC3D have an onboard "m25p16" 2 megabyte dataflash storage chip. This is a small
-chip with 8 fat legs, which can be found at the base of the Naze32's direction arrow. This chip is not present on the
-"Acro" version of the Naze32.
-
-The SPRacingF3 has a larger 8 megabyte dataflash chip onboard which allows for longer recording times.
+The SPRacingF3 has a 8 megabyte dataflash chip onboard which allows for longer recording times.
 
 These chips are also supported:
 

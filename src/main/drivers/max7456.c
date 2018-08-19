@@ -171,6 +171,7 @@ static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
 #define MAX_CHARS2UPDATE        10
 #define BYTES_PER_CHAR2UPDATE   8 // [3-4] spi regs + values for them
 
+static bool     firstInit = true;
 static uint8_t  videoSignalCfg   = 0;
 static uint8_t  videoSignalReg   = VIDEO_MODE_PAL | OSD_ENABLE; //PAL by default
 static bool  max7456Lock        = false;
@@ -186,8 +187,13 @@ static int max7456PrepareBuffer(uint8_t * buf, int bufPtr, uint8_t add, uint8_t 
 
 uint8_t max7456GetRowsCount(void)
 {
-    if (videoSignalReg & VIDEO_MODE_PAL)
+    if (firstInit) {
+        // Not initialized yet
+        return 0;
+    }
+    if (videoSignalReg & VIDEO_MODE_PAL) {
         return VIDEO_LINES_PAL;
+    }
 
     return VIDEO_LINES_NTSC;
 }
@@ -201,7 +207,6 @@ void max7456ReInit(void)
     int bufPtr;
     uint8_t maxScreenRows;
     uint8_t srdata = 0;
-    static bool firstInit = true;
 
     // Check if device is available
     if (max7456dev == NULL) {
@@ -257,7 +262,7 @@ void max7456ReInit(void)
 
 
 //here we init only CS and try to init MAX for first time
-void max7456Init(const vcdProfile_t *pVcdProfile)
+void max7456Init(const videoSystem_e videoSystem)
 {
     max7456dev = busDeviceInit(BUSTYPE_SPI, DEVHW_MAX7456, 0, OWNER_OSD);
 
@@ -270,7 +275,7 @@ void max7456Init(const vcdProfile_t *pVcdProfile)
     // force soft reset on Max7456
     busWrite(max7456dev, MAX7456ADD_VM0, MAX7456_RESET);
 
-    videoSignalCfg = pVcdProfile->video_system;
+    videoSignalCfg = videoSystem;
 
     // Set screenbuffer to all blanks
     for (uint_fast16_t ii = 0; ii < ARRAYLEN(screenBuffer); ii++) {
@@ -298,6 +303,18 @@ void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode)
         screenBuffer[pos] = val;
         bitArraySet(screenIsDirty, pos);
     }
+}
+
+bool max7456ReadChar(uint8_t x, uint8_t y, uint8_t *c, uint8_t *mode)
+{
+    unsigned pos = y * CHARS_PER_LINE + x;
+    if (pos < ARRAYLEN(screenBuffer)) {
+        uint16_t val = screenBuffer[pos];
+        *c = val >> 8;
+        *mode = val & 0xFF;
+        return true;
+    }
+    return false;
 }
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)

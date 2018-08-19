@@ -43,12 +43,12 @@ typedef enum {
 } asyncMode_e;
 
 typedef enum {
-    FEATURE_UNUSED_1 = 1 << 0,          // RX_PPM
+    FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
-    FEATURE_UNUSED_2 = 1 << 3,          // RX_SERIAL
+    FEATURE_BAT_PROFILE_AUTOSWITCH = 1 << 3,
     FEATURE_MOTOR_STOP = 1 << 4,
-    FEATURE_SERVO_TILT = 1 << 5,
+    NOT_USED_10 = 1 << 5,               // was FEATURE_SERVO_TILT
     FEATURE_SOFTSERIAL = 1 << 6,
     FEATURE_GPS = 1 << 7,
     FEATURE_UNUSED_3 = 1 << 8,          // was FEATURE_FAILSAFE
@@ -63,13 +63,13 @@ typedef enum {
     FEATURE_DASHBOARD = 1 << 17,
     FEATURE_UNUSED_7 = 1 << 18,         // Unused in INAV
     FEATURE_BLACKBOX = 1 << 19,
-    FEATURE_CHANNEL_FORWARDING = 1 << 20,
+    FEATURE_UNUSED_10 = 1 << 20,        // was FEATURE_CHANNEL_FORWARDING
     FEATURE_TRANSPONDER = 1 << 21,
     FEATURE_AIRMODE = 1 << 22,
     FEATURE_SUPEREXPO_RATES = 1 << 23,
     FEATURE_VTX = 1 << 24,
     FEATURE_UNUSED_8 = 1 << 25,         // RX_SPI
-    FEATURE_UNUSED_9 = 1 << 26,        //SOFTSPI
+    FEATURE_UNUSED_9 = 1 << 26,         //SOFTSPI
     FEATURE_PWM_SERVO_DRIVER = 1 << 27,
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,
     FEATURE_OSD = 1 << 29,
@@ -81,6 +81,7 @@ typedef struct systemConfig_s {
     uint16_t accTaskFrequency;
     uint16_t attitudeTaskFrequency;
     uint8_t current_profile_index;
+    uint8_t current_battery_profile_index;
     uint8_t asyncMode;
     uint8_t debug_mode;
     uint8_t i2c_speed;
@@ -133,6 +134,10 @@ void validateAndFixConfig(void);
 uint8_t getConfigProfile(void);
 bool setConfigProfile(uint8_t profileIndex);
 void setConfigProfileAndWriteEEPROM(uint8_t profileIndex);
+
+uint8_t getConfigBatteryProfile(void);
+bool setConfigBatteryProfile(uint8_t profileIndex);
+void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

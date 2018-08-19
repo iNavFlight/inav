@@ -17,26 +17,32 @@
 #if defined(CLRACINGF4AIRV2)
 #define TARGET_BOARD_IDENTIFIER "CLA2"
 #define USBD_PRODUCT_STRING "CLRACINGF4AIRV2"
+#elif defined(CLRACINGF4AIRV3)
+#define TARGET_BOARD_IDENTIFIER "CLA3"
+#define USBD_PRODUCT_STRING "CLRACINGF4AIRV3"
 #else
 #define TARGET_BOARD_IDENTIFIER "CLRA"
 #define USBD_PRODUCT_STRING "CLRACINGF4AIR"
 #endif
-
+#if defined(CLRACINGF4AIRV3)
+#define LED0                    PC14
+#else
 #define LED0                    PB5
+#endif
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART1      PC0 // PC0 used as inverter select GPIO
-// MPU-6000 GRYO
-#define MPU6000_CS_PIN          PA4
-#define MPU6000_SPI_BUS         BUS_SPI1
-#define USE_GYRO
-#define USE_GYRO_MPU6000
-#define GYRO_MPU6000_ALIGN      CW0_DEG
-#define USE_ACC
-#define USE_ACC_MPU6000
-#define ACC_MPU6000_ALIGN       CW0_DEG
-
+#define USE_SPI
+#define USE_SPI_DEVICE_1
+#define USE_SPI_DEVICE_3
+#define SPI3_NSS_PIN            PA15
+#define SPI3_SCK_PIN            PC10
+#define SPI3_MISO_PIN           PC11
+#if defined(CLRACINGF4AIRV3)
+#define SPI3_MOSI_PIN           PB5
+#else
+#define SPI3_MOSI_PIN           PC12
+#endif
 //MPU-9250
 #define MPU9250_CS_PIN          PA4
 #define MPU9250_SPI_BUS         BUS_SPI1
@@ -48,6 +54,7 @@
 #define ACC_MPU9250_ALIGN       CW0_DEG
 #define USE_MAG
 #define USE_MAG_MPU9250
+#define MAG_MPU9250_ALIGN       CW90_DEG
 
 // MPU6 interrupts
 #define USE_EXTI
@@ -68,17 +75,20 @@
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB8
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST7_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream7
+#define WS2811_DMA_STREAM                 DMA1_Stream7
 #define WS2811_DMA_CHANNEL              DMA_Channel_2
 
 #define USE_VCP
+
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+#define INVERTER_PIN_UART1_RX   PC0 // PC0 used as inverter select GPIO
 
-//V2 add another uart 2
-#if defined( CLRACINGF4AIRV2 )
+#if defined( CLRACINGF4AIRV2) || defined(CLRACINGF4AIRV3)
 #define USE_UART2
 #define UART2_RX_PIN            PA2
 #define UART2_TX_PIN            PA3
@@ -86,73 +96,58 @@
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
-
 #define USE_UART4
 #define UART4_RX_PIN            PA1
 #define UART4_TX_PIN            PA0
-
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 #if defined( CLRACINGF4AIRV2 )
 #define SERIAL_PORT_COUNT        6 //VCP, USART1, UART2, USART3,USART4, USART6,
+#elif defined(CLRACINGF4AIRV3)
+#define USE_UART5
+#define UART5_RX_PIN            PD2
+#define UART5_TX_PIN            PC12
+#define SERIAL_PORT_COUNT        7 //VCP, USART1, UART2, USART3,USART4, USART5,USART6,
 #else
 #define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3,USART4, USART6,
 #endif
-
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
-
-#if defined( CLRACINGF4AIRV2 )
+#if defined( CLRACINGF4AIRV2 ) || defined(CLRACINGF4AIRV3)
 #define USE_I2C
 #define I2C_DEVICE              (I2CDEV_2)
 #define I2C2_SCL                 PB10
 #define I2C2_SDA                PB11
 #endif
 
-#define USE_SPI
-#define USE_SPI_DEVICE_1
-
-#define USE_SPI_DEVICE_3
-#define SPI3_NSS_PIN            PA15
-#define SPI3_SCK_PIN            PC10
-#define SPI3_MISO_PIN           PC11
-#define SPI3_MOSI_PIN           PC12
-
 #define USE_ADC
+#define ADC_INSTANCE                         ADC1
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
 #define ADC_CHANNEL_3_PIN               PC3
 
+#define CURRENT_METER_ADC_CHANNEL        ADC_CHN_1
+#define VBAT_ADC_CHANNEL                 ADC_CHN_2
+#define RSSI_ADC_CHANNEL                   ADC_CHN_3
+
 // V2 has airspeed input
-#if defined( CLRACINGF4AIRV2 )
+#if defined( CLRACINGF4AIRV2 ) || defined(CLRACINGF4AIRV3)
 #define ADC_CHANNEL_4_PIN               PC5
 #define ADC_AIRSPEED_CHANNEL          ADC_CHN_4
 #define CURRENT_METER_SCALE 250
 #endif
 
-#define CURRENT_METER_ADC_CHANNEL        ADC_CHN_1
-#define VBAT_ADC_CHANNEL                 ADC_CHN_2
-#define RSSI_ADC_CHANNEL                 ADC_CHN_3
 #define USE_ESC_SENSOR
 #define DEFAULT_FEATURES         (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
 #define SPEKTRUM_BIND_PIN       UART1_RX_PIN
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    8
 #define TARGET_MOTOR_COUNT      8
 
-#define TARGET_IO_PORTA (0xffff & ~(BIT(14)|BIT(13)))
-#define TARGET_IO_PORTB (0xffff & ~(BIT(2)))
-#define TARGET_IO_PORTC (0xffff & ~(BIT(15)|BIT(14)|BIT(13)))
+#define TARGET_IO_PORTA (0xffff)
+#define TARGET_IO_PORTB (0xffff)
+#define TARGET_IO_PORTC (0xffff)
 #define TARGET_IO_PORTD BIT(2)
-// V2 has airspeed input
-#if defined( CLRACINGF4AIRV2 )
-#define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(3) | TIM_N(4) | TIM_N(8)| TIM_N(11) | TIM_N(12)  )
-#else
-#define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(9) | TIM_N(11) | TIM_N(12) )
-#endif

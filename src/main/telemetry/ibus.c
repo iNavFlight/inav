@@ -203,7 +203,7 @@ void initIbusTelemetry(void) {
         changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE_S85, IBUS_MEAS_VALUE_STATUS);
 #ifdef USE_PITOT
         if (sensors(SENSOR_PITOT)) changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE_VSPEED, IBUS_MEAS_VALUE_VSPEED);
-        else 
+        else
 #endif
             changeTypeIbusTelemetry(11,IBUS_MEAS_TYPE_PRES, IBUS_MEAS_VALUE_PRES);
     }
@@ -223,16 +223,16 @@ void initIbusTelemetry(void) {
         changeTypeIbusTelemetry(13,IBUS_MEAS_TYPE_S88, IBUS_MEAS_VALUE_GPS_LON);
         changeTypeIbusTelemetry(14,IBUS_MEAS_TYPE_S89, IBUS_MEAS_VALUE_GPS_LAT);
     }
-    if (type == 2 || type == 3 || type == 4 || type == 5) 
+    if (type == 2 || type == 3 || type == 4 || type == 5)
         changeTypeIbusTelemetry(10, IBUS_MEAS_TYPE_GALT, IBUS_MEAS_VALUE_GALT);
-    if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5) 
+    if (type == 1 || type == 2 || type == 3 || type == 4 || type == 5)
         changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE_SPE, IBUS_MEAS_VALUE_SPE);
     if ((type == 3 || type == 4 || type == 5) && speed)
         changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE_SPEED, IBUS_MEAS_VALUE_SPEED);
     if (type == 6) {
 #ifdef USE_PITOT
         if (sensors(SENSOR_PITOT)) changeTypeIbusTelemetry(9,IBUS_MEAS_TYPE1_VERTICAL_SPEED, IBUS_MEAS_VALUE_VSPEED);
-        else 
+        else
 #endif
             changeTypeIbusTelemetry(9, IBUS_MEAS_TYPE1_PRES, IBUS_MEAS_VALUE_PRES);
         changeTypeIbusTelemetry(15, IBUS_MEAS_TYPE1_S85, IBUS_MEAS_VALUE_STATUS);
@@ -243,7 +243,7 @@ void initIbusTelemetry(void) {
         changeTypeIbusTelemetry(15,IBUS_MEAS_TYPE1_FLIGHT_MODE, IBUS_MEAS_VALUE_MODE);
     }
     if (type == 6 || type == 7 || type == 8) {
-        if (batteryConfig()->current.type == CURRENT_SENSOR_VIRTUAL)
+        if (batteryMetersConfig()->current.type == CURRENT_SENSOR_VIRTUAL)
             changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_FUEL, IBUS_MEAS_VALUE_FUEL);
         else changeTypeIbusTelemetry(3, IBUS_MEAS_TYPE1_BAT_CURR, IBUS_MEAS_VALUE_CURRENT);
         changeTypeIbusTelemetry(4, IBUS_MEAS_TYPE1_CMP_HEAD, IBUS_MEAS_VALUE_HEADING);

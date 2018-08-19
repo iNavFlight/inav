@@ -1,27 +1,31 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of Cleanflight and Betaflight.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Cleanflight and Betaflight are free software. You can redistribute
+ * this software and/or modify this software under the terms of the
+ * GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option)
+ * any later version.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Cleanflight and Betaflight are distributed in the hope that they
+ * will be useful, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this software.
+ *
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "platform.h"
 
-#if defined(USE_CMS) && defined(VTX_TRAMP)
+#if defined(USE_CMS) && defined(USE_VTX_TRAMP)
 
 #include "common/printf.h"
 #include "common/utils.h"
@@ -35,6 +39,7 @@
 
 #include "io/vtx_string.h"
 #include "io/vtx_tramp.h"
+#include "io/vtx.h"
 
 static bool trampCmsDrawStatusString(char *buf, unsigned bufsize)
 {
@@ -48,7 +53,8 @@ static bool trampCmsDrawStatusString(char *buf, unsigned bufsize)
 
     strcpy(buf, defaultString);
 
-    if (!trampIsAvailable()) {
+    vtxDevice_t *vtxDevice = vtxCommonDevice();
+    if (!vtxDevice || vtxCommonGetDeviceType(vtxDevice) != VTXDEV_TRAMP || !vtxCommonDeviceIsReady(vtxDevice)) {
         return true;
     }
 
@@ -65,8 +71,7 @@ static bool trampCmsDrawStatusString(char *buf, unsigned bufsize)
 
     if (trampData.power) {
         tfp_sprintf(&buf[9], " %c%3d", (trampData.power == trampData.configuredPower) ? ' ' : '*', trampData.power);
-    }
-    else {
+    } else {
         tfp_sprintf(&buf[9], " ----");
     }
 
@@ -78,13 +83,13 @@ uint8_t trampCmsBand = 1;
 uint8_t trampCmsChan = 1;
 uint16_t trampCmsFreqRef;
 
-static const OSD_TAB_t trampCmsEntBand = { &trampCmsBand, 5, vtx58BandNames };
+static const OSD_TAB_t trampCmsEntBand = { &trampCmsBand, VTX_TRAMP_BAND_COUNT, vtx58BandNames };
 
-static const OSD_TAB_t trampCmsEntChan = { &trampCmsChan, 8, vtx58ChannelNames };
+static const OSD_TAB_t trampCmsEntChan = { &trampCmsChan, VTX_TRAMP_CHANNEL_COUNT, vtx58ChannelNames };
 
 static uint8_t trampCmsPower = 1;
 
-static const OSD_TAB_t trampCmsEntPower = { &trampCmsPower, 5, trampPowerNames };
+static const OSD_TAB_t trampCmsEntPower = { &trampCmsPower, VTX_TRAMP_POWER_COUNT, trampPowerNames };
 
 static void trampCmsUpdateFreqRef(void)
 {
@@ -164,20 +169,27 @@ static long trampCmsCommence(displayPort_t *pDisp, const void *self)
     // If it fails, the user should retry later
     trampCommitChanges();
 
+    // update'vtx_' settings
+    vtxSettingsConfigMutable()->band = trampCmsBand;
+    vtxSettingsConfigMutable()->channel = trampCmsChan;
+    vtxSettingsConfigMutable()->power = trampCmsPower;
+    vtxSettingsConfigMutable()->freq = vtx58_Bandchan2Freq(trampCmsBand, trampCmsChan);
+
+    saveConfigAndNotify();
 
     return MENU_CHAIN_BACK;
 }
 
 static void trampCmsInitSettings(void)
 {
-    if(trampData.band > 0) trampCmsBand = trampData.band;
-    if(trampData.channel > 0) trampCmsChan = trampData.channel;
+    if (trampData.band > 0) trampCmsBand = trampData.band;
+    if (trampData.channel > 0) trampCmsChan = trampData.channel;
 
     trampCmsUpdateFreqRef();
     trampCmsPitMode = trampData.pitMode + 1;
 
     if (trampData.configuredPower > 0) {
-        for (uint8_t i = 0; i < sizeof(trampPowerTable); i++) {
+        for (uint8_t i = 0; i < VTX_TRAMP_POWER_COUNT; i++) {
             if (trampData.configuredPower <= trampPowerTable[i]) {
                 trampCmsPower = i + 1;
                 break;
@@ -186,13 +198,16 @@ static void trampCmsInitSettings(void)
     }
 }
 
-static long trampCmsOnEnter(void)
+static long trampCmsOnEnter(const OSD_Entry *from)
 {
+    UNUSED(from);
+
     trampCmsInitSettings();
     return 0;
 }
 
-static const OSD_Entry trampCmsMenuCommenceEntries[] = {
+static const OSD_Entry trampCmsMenuCommenceEntries[] =
+{
     OSD_LABEL_ENTRY("CONFIRM"),
     OSD_FUNC_CALL_ENTRY("YES", trampCmsCommence),
 

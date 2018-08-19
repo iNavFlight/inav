@@ -92,6 +92,7 @@
 #define IST8310_REG_CNTRL1 0x0A
 #define IST8310_REG_CNTRL2 0x0B
 #define IST8310_REG_AVERAGE 0x41
+#define IST8310_REG_PDCNTL 0x42
 
 // Parameter
 // ODR = Output Data Rate, we use single measure mode for getting more data.
@@ -103,7 +104,8 @@
 
 // Device ID (ist8310 -> 0x10)
 #define IST8310_CHIP_ID 0x10
-#define IST8310_AVG_16 0x24
+#define IST8310_AVG_16  0x24
+#define IST8310_PULSE_DURATION_NORMAL 0xC0
 
 #define IST8310_CNTRL2_RESET 0x01
 #define IST8310_CNTRL2_DRPOL 0x04
@@ -115,6 +117,9 @@ static bool ist8310Init(magDev_t * mag)
     delay(5);
 
     busWrite(mag->busDev, IST8310_REG_AVERAGE, IST8310_AVG_16);
+    delay(5);
+
+    busWrite(mag->busDev, IST8310_REG_PDCNTL, IST8310_PULSE_DURATION_NORMAL);
     delay(5);
 
     return true;
@@ -135,10 +140,10 @@ static bool ist8310Read(magDev_t * mag)
         return false;
     }
 
-    // need to modify when confirming the pcb direction
-    mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
-    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
-    mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;
+    // Looks like datasheet is incorrect and we need to invert Y axis to conform to right hand rule
+    mag->magADCRaw[X] =  (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
+    mag->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
+    mag->magADCRaw[Z] =  (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;
 
     return true;
 }

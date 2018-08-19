@@ -42,10 +42,7 @@ extern "C" {
     #include "flight/lowpass.h"
 
     #include "io/escservo.h"
-    #include "io/gimbal.h"
     #include "io/rc_controls.h"
-
-    void forwardAuxChannelsToServos(uint8_t firstServoIndex);
 
     void mixerInit(mixerMode_e mixerMode, motorMixer_t *initialCustomMixers, servoMixer_t *initialCustomServoMixers);
     void mixerUsePWMOutputConfiguration(pwmOutputConfiguration_t *pwmOutputConfiguration);
@@ -96,7 +93,6 @@ TEST_F(ChannelForwardingTest, TestForwardAuxChannelsToServosWithNoServos)
     rcData[AUX4] = TEST_RC_MID;
 
     // when
-    forwardAuxChannelsToServos(MAX_SUPPORTED_SERVOS);
 
     // then
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
@@ -210,7 +206,6 @@ TEST_F(BasicMixerIntegrationTest, TestTricopterServo)
     servoConf[5].max = DEFAULT_SERVO_MAX;
     servoConf[5].middle = DEFAULT_SERVO_MIDDLE;
     servoConf[5].rate = 100;
-    servoConf[5].forwardFromChannel = CHANNEL_FORWARDING_DISABLED;
 
     configureMixer();
 
@@ -288,7 +283,6 @@ protected:
             servoConf[i].max = DEFAULT_SERVO_MAX;
             servoConf[i].middle = DEFAULT_SERVO_MIDDLE;
             servoConf[i].rate = 100;
-            servoConf[i].forwardFromChannel = CHANNEL_FORWARDING_DISABLED;
         }
 
         withDefaultEscAndServoConfiguration();

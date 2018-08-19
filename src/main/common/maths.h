@@ -153,7 +153,9 @@ float cos_approx(float x);
 float atan2_approx(float y, float x);
 float acos_approx(float x);
 #define tan_approx(x)       (sin_approx(x) / cos_approx(x))
+#define asin_approx(x)      (M_PIf / 2 - acos_approx(x))
 #else
+#define asin_approx(x)      asinf(x)
 #define sin_approx(x)       sinf(x)
 #define cos_approx(x)       cosf(x)
 #define atan2_approx(y,x)   atan2f(y,x)

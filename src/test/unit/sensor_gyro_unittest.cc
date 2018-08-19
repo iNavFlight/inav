@@ -112,10 +112,10 @@ TEST(SensorGyro, Update)
     EXPECT_EQ(false, isCalibrationComplete(&gyroCalibration));
     gyroInit();
     fakeGyroSet(5, 6, 7);
-    gyroUpdate();
+    gyroUpdate(0);
     EXPECT_EQ(false, isCalibrationComplete(&gyroCalibration));
     while (!isCalibrationComplete(&gyroCalibration)) {
-        gyroUpdate();
+        gyroUpdate(0);
     }
     EXPECT_EQ(true, isCalibrationComplete(&gyroCalibration));
     EXPECT_EQ(5, gyroDev0.gyroZero[X]);
@@ -124,13 +124,13 @@ TEST(SensorGyro, Update)
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[X]);
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[Y]);
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[Z]);
-    gyroUpdate();
+    gyroUpdate(0);
     // expect zero values since gyro is calibrated
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[X]);
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[Y]);
     EXPECT_FLOAT_EQ(0, gyro.gyroADCf[Z]);
     fakeGyroSet(15, 26, 97);
-    gyroUpdate();
+    gyroUpdate(0);
     EXPECT_FLOAT_EQ(10 * gyroDev0.scale, gyro.gyroADCf[X]); // gyroADCf values are scaled
     EXPECT_FLOAT_EQ(20 * gyroDev0.scale, gyro.gyroADCf[Y]);
     EXPECT_FLOAT_EQ(90 * gyroDev0.scale, gyro.gyroADCf[Z]);

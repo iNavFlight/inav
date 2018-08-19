@@ -21,16 +21,15 @@
 
 #include "platform.h"
 
-#include "drivers/gpio.h"
+#include "common/memory.h"
 #include "drivers/io.h"
-#include "io_impl.h"
-#include "timer.h"
-
+#include "drivers/io_impl.h"
+#include "drivers/timer.h"
 #include "drivers/logging.h"
 
-#include "pwm_output.h"
-#include "pwm_mapping.h"
-#include "rx_pwm.h"
+#include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/rx_pwm.h"
 
 enum {
     MAP_TO_NONE,
@@ -60,30 +59,15 @@ bool CheckGPIOPinSource(ioTag_t tag, GPIO_TypeDef *gpio, uint16_t pin)
 pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 {
     memset(&pwmIOConfiguration, 0, sizeof(pwmIOConfiguration));
+    pwmIOConfiguration.ioConfigurations = memAllocate(sizeof(pwmPortConfiguration_t) * timerHardwareCount, OWNER_PWMIO);
 
 #if defined(USE_RX_PWM) || defined(USE_RX_PPM)
     int channelIndex = 0;
 #endif
 
-    for (int timerIndex = 0; timerIndex < USABLE_TIMER_CHANNEL_COUNT; timerIndex++) {
+    for (int timerIndex = 0; timerIndex < timerHardwareCount; timerIndex++) {
         const timerHardware_t *timerHardwarePtr = &timerHardware[timerIndex];
         int type = MAP_TO_NONE;
-
-#ifdef OLIMEXINO_UNCUT_LED2_E_JUMPER
-        // PWM2 is connected to LED2 on the board and cannot be connected unless you cut LED2_E
-        if (timerIndex == PWM2) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
-#endif
-
-#ifdef STM32F10X
-        // skip UART2 ports
-        if (init->useUART2 && (timerHardwarePtr->tag == IO_TAG(PA2) || timerHardwarePtr->tag == IO_TAG(PA3))) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
-#endif
 
 #if defined(STM32F303xC) && defined(USE_UART3)
         // skip UART3 ports (PB10/PB11)
@@ -177,23 +161,16 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         }
 
         // Handle outputs - may override the PWM/PPM inputs
-        if (init->flyingPlatformType == PLATFORM_MULTIROTOR) {
+        if (init->flyingPlatformType == PLATFORM_MULTIROTOR || init->flyingPlatformType == PLATFORM_TRICOPTER) {
             // Multicopter
-#ifdef USE_SERVOS
             if (init->useServoOutputs && (timerHardwarePtr->usageFlags & TIM_USE_MC_SERVO)) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
-            else if (init->useChannelForwarding && (timerHardwarePtr->usageFlags & TIM_USE_MC_CHNFW)) {
-                type = MAP_TO_SERVO_OUTPUT;
-            }
             else
-#endif
             if (timerHardwarePtr->usageFlags & TIM_USE_MC_MOTOR) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
-        }
-#ifdef USE_SERVOS
-        else if (init->flyingPlatformType == PLATFORM_AIRPLANE || init->flyingPlatformType == PLATFORM_HELICOPTER) {
+        } else {
             // Fixed wing or HELI (one/two motors and a lot of servos
             if (timerHardwarePtr->usageFlags & TIM_USE_FW_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
@@ -202,37 +179,10 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
                 type = MAP_TO_MOTOR_OUTPUT;
             }
         }
-#endif
 
         // If timer not mapped - skip
         if (type == MAP_TO_NONE)
             continue;
-/*
-#ifdef USE_SERVOS
-        if (init->useServos && !init->airplane) {
-#if defined(SPRACINGF3MINI)
-            // remap PWM6+7 as servos
-            if ((timerIndex == PWM6 || timerIndex == PWM7) && timerHardwarePtr->tim == TIM15)
-                type = MAP_TO_SERVO_OUTPUT;
-#endif
-
-#if defined(SINGULARITY)
-            // remap PWM6+7 as servos
-            if (timerIndex == PWM6 || timerIndex == PWM7)
-                type = MAP_TO_SERVO_OUTPUT;
-#endif
-        }
-
-#if defined(SPRACINGF3MINI)
-            if (((timerIndex == PWM6 || timerIndex == PWM7) && timerHardwarePtr->tim == TIM15)
-                || ((timerIndex == PWM8 || timerIndex == PWM9 || timerIndex == PWM10 || timerIndex == PWM11) && timerHardwarePtr->tim == TIM2)) {
-                type = MAP_TO_SERVO_OUTPUT;
-            }
-#endif
-        }
-
-#endif // USE_SERVOS
-*/
 
         if (type == MAP_TO_PPM_INPUT) {
 #if defined(USE_RX_PPM)
@@ -284,7 +234,6 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
                 continue;
             }
 
-#ifdef USE_SERVOS
             if (pwmServoConfig(timerHardwarePtr, pwmIOConfiguration.servoCount, init->servoPwmRate, init->servoCenterPulse, init->enablePWMOutput)) {
                 pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_SERVO | PWM_PF_OUTPUT_PROTOCOL_PWM;
                 pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].index = pwmIOConfiguration.servoCount;
@@ -298,7 +247,6 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
                 addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
                 continue;
             }
-#endif
         } else {
             continue;
         }

@@ -19,12 +19,8 @@
 
 // Video Character Display parameters
 
-typedef struct vcdProfile_s {
-    uint8_t video_system;
-} vcdProfile_t;
-
-enum VIDEO_SYSTEMS {
+typedef enum {
     VIDEO_SYSTEM_AUTO = 0,
     VIDEO_SYSTEM_PAL,
     VIDEO_SYSTEM_NTSC
-};
+} videoSystem_e;

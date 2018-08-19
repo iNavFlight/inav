@@ -38,6 +38,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/failsafe.h"
@@ -50,6 +51,8 @@
 
 #include "rx/rx.h"
 
+#include "sensors/battery.h"
+
 
 //#define MIXER_DEBUG
 
@@ -57,8 +60,7 @@ static uint8_t motorCount;
 
 int16_t motor[MAX_SUPPORTED_MOTORS];
 int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
-
-static bool motorLimitReached = false;
+static float motorMixRange;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -68,13 +70,15 @@ PG_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig,
     .neutral3d = 1460
 );
 
-
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
-    .mixerMode = MIXER_QUADX,
     .yaw_motor_direction = 1,
-    .yaw_jump_prevention_limit = 200
+    .yaw_jump_prevention_limit = 200,
+    .platformType = PLATFORM_MULTIROTOR,
+    .hasFlaps = false,
+    .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
+    .fwMinThrottleDownPitchAngle = 0
 );
 
 #ifdef BRUSHED_MOTORS
@@ -87,254 +91,44 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 #define DEFAULT_MIN_THROTTLE    1150
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 2);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .minthrottle = DEFAULT_MIN_THROTTLE,
     .motorPwmProtocol = DEFAULT_PWM_PROTOCOL,
     .motorPwmRate = DEFAULT_PWM_RATE,
     .maxthrottle = 1850,
-    .mincommand = 1000
+    .mincommand = 1000,
+    .motorAccelTimeMs = 0,
+    .motorDecelTimeMs = 0,
 );
 
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer, PG_MOTOR_MIXER, 0);
 
-static const motorMixer_t mixerQuadX[] = {
-    { 1.0f, -1.0f,  1.0f, -1.0f },          // REAR_R
-    { 1.0f, -1.0f, -1.0f,  1.0f },          // FRONT_R
-    { 1.0f,  1.0f,  1.0f,  1.0f },          // REAR_L
-    { 1.0f,  1.0f, -1.0f, -1.0f },          // FRONT_L
-};
-
-#define DEF_MIXER(_mixerMode, _flyingPlatformType, _motorCount, _useServos, _hasFlaps, _motorMap) \
-    { .mixerMode=_mixerMode, .flyingPlatformType=_flyingPlatformType, .motorCount=_motorCount, .useServos=_useServos, .hasFlaps=_hasFlaps, .motor=_motorMap }
-
-#ifndef USE_QUAD_MIXER_ONLY
-static const motorMixer_t mixerTricopter[] = {
-    { 1.0f,  0.0f,  1.333333f,  0.0f },     // REAR
-    { 1.0f, -1.0f, -0.666667f,  0.0f },     // RIGHT
-    { 1.0f,  1.0f, -0.666667f,  0.0f },     // LEFT
-};
-
-static const motorMixer_t mixerQuadP[] = {
-    { 1.0f,  0.0f,  1.0f, -1.0f },          // REAR
-    { 1.0f, -1.0f,  0.0f,  1.0f },          // RIGHT
-    { 1.0f,  1.0f,  0.0f,  1.0f },          // LEFT
-    { 1.0f,  0.0f, -1.0f, -1.0f },          // FRONT
-};
-
-#ifndef DISABLE_UNCOMMON_MIXERS
-static const motorMixer_t mixerVtail4[] = {
-    { 1.0f,  -0.58f,  0.58f, 1.0f },        // REAR_R
-    { 1.0f,  -0.46f, -0.39f, -0.5f },       // FRONT_R
-    { 1.0f,  0.58f,  0.58f, -1.0f },        // REAR_L
-    { 1.0f,  0.46f, -0.39f, 0.5f },         // FRONT_L
-};
-
-static const motorMixer_t mixerAtail4[] = {
-    { 1.0f,  0.0f,  1.0f,  1.0f },          // REAR_R
-    { 1.0f, -1.0f, -1.0f,  0.0f },          // FRONT_R
-    { 1.0f,  0.0f,  1.0f, -1.0f },          // REAR_L
-    { 1.0f,  1.0f, -1.0f, -0.0f },          // FRONT_L
-};
-
-static const motorMixer_t mixerY4[] = {
-    { 1.0f,  0.0f,  1.0f, -1.0f },          // REAR_TOP CW
-    { 1.0f, -1.0f, -1.0f,  0.0f },          // FRONT_R CCW
-    { 1.0f,  0.0f,  1.0f,  1.0f },          // REAR_BOTTOM CCW
-    { 1.0f,  1.0f, -1.0f,  0.0f },          // FRONT_L CW
-};
-
-#if (MAX_SUPPORTED_MOTORS >= 6)
-static const motorMixer_t mixerHex6H[] = {
-    { 1.0f, -1.0f,  1.0f, -1.0f },     // REAR_R
-    { 1.0f, -1.0f, -1.0f,  1.0f },     // FRONT_R
-    { 1.0f,  1.0f,  1.0f,  1.0f },     // REAR_L
-    { 1.0f,  1.0f, -1.0f, -1.0f },     // FRONT_L
-    { 1.0f,  0.0f,  0.0f,  0.0f },     // RIGHT
-    { 1.0f,  0.0f,  0.0f,  0.0f },     // LEFT
-};
-
-static const motorMixer_t mixerY6[] = {
-    { 1.0f,  0.0f,  1.333333f,  1.0f },     // REAR
-    { 1.0f, -1.0f, -0.666667f, -1.0f },     // RIGHT
-    { 1.0f,  1.0f, -0.666667f, -1.0f },     // LEFT
-    { 1.0f,  0.0f,  1.333333f, -1.0f },     // UNDER_REAR
-    { 1.0f, -1.0f, -0.666667f,  1.0f },     // UNDER_RIGHT
-    { 1.0f,  1.0f, -0.666667f,  1.0f },     // UNDER_LEFT
-};
-
-static const motorMixer_t mixerHex6P[] = {
-    { 1.0f, -0.866025f,  0.5f,  1.0f },     // REAR_R
-    { 1.0f, -0.866025f, -0.5f, -1.0f },     // FRONT_R
-    { 1.0f,  0.866025f,  0.5f,  1.0f },     // REAR_L
-    { 1.0f,  0.866025f, -0.5f, -1.0f },     // FRONT_L
-    { 1.0f,  0.0f,      -1.0f,  1.0f },     // FRONT
-    { 1.0f,  0.0f,       1.0f, -1.0f },     // REAR
-};
-#endif
-
-#if (MAX_SUPPORTED_MOTORS >= 8)
-static const motorMixer_t mixerOctoFlatP[] = {
-    { 1.0f,  0.707107f, -0.707107f,  1.0f },    // FRONT_L
-    { 1.0f, -0.707107f, -0.707107f,  1.0f },    // FRONT_R
-    { 1.0f, -0.707107f,  0.707107f,  1.0f },    // REAR_R
-    { 1.0f,  0.707107f,  0.707107f,  1.0f },    // REAR_L
-    { 1.0f,  0.0f, -1.0f, -1.0f },              // FRONT
-    { 1.0f, -1.0f,  0.0f, -1.0f },              // RIGHT
-    { 1.0f,  0.0f,  1.0f, -1.0f },              // REAR
-    { 1.0f,  1.0f,  0.0f, -1.0f },              // LEFT
-};
-
-static const motorMixer_t mixerOctoFlatX[] = {
-    { 1.0f,  1.0f, -0.414178f,  1.0f },      // MIDFRONT_L
-    { 1.0f, -0.414178f, -1.0f,  1.0f },      // FRONT_R
-    { 1.0f, -1.0f,  0.414178f,  1.0f },      // MIDREAR_R
-    { 1.0f,  0.414178f,  1.0f,  1.0f },      // REAR_L
-    { 1.0f,  0.414178f, -1.0f, -1.0f },      // FRONT_L
-    { 1.0f, -1.0f, -0.414178f, -1.0f },      // MIDFRONT_R
-    { 1.0f, -0.414178f,  1.0f, -1.0f },      // REAR_R
-    { 1.0f,  1.0f,  0.414178f, -1.0f },      // MIDREAR_L
-};
-
-static const motorMixer_t mixerOctoX8[] = {
-    { 1.0f, -1.0f,  1.0f, -1.0f },          // REAR_R
-    { 1.0f, -1.0f, -1.0f,  1.0f },          // FRONT_R
-    { 1.0f,  1.0f,  1.0f,  1.0f },          // REAR_L
-    { 1.0f,  1.0f, -1.0f, -1.0f },          // FRONT_L
-    { 1.0f, -1.0f,  1.0f,  1.0f },          // UNDER_REAR_R
-    { 1.0f, -1.0f, -1.0f, -1.0f },          // UNDER_FRONT_R
-    { 1.0f,  1.0f,  1.0f, -1.0f },          // UNDER_REAR_L
-    { 1.0f,  1.0f, -1.0f,  1.0f },          // UNDER_FRONT_L
-};
-#endif
-#endif //DISABLE_UNCOMMON_MIXERS
-
-#if (MAX_SUPPORTED_MOTORS >= 6)
-static const motorMixer_t mixerHex6X[] = {
-    { 1.0f, -0.5f,  0.866025f,  1.0f },     // REAR_R
-    { 1.0f, -0.5f, -0.866025f,  1.0f },     // FRONT_R
-    { 1.0f,  0.5f,  0.866025f, -1.0f },     // REAR_L
-    { 1.0f,  0.5f, -0.866025f, -1.0f },     // FRONT_L
-    { 1.0f, -1.0f,  0.0f,      -1.0f },     // RIGHT
-    { 1.0f,  1.0f,  0.0f,       1.0f },     // LEFT
-};
-#endif
-
-static const motorMixer_t mixerDualProp[] = {
-    { 1.0f,  0.0f,  0.0f, 0.0f },
-    { 1.0f,  0.0f,  0.0f, 0.0f },
-};
-
-static const mixer_t mixerTable[] = {
-    // motors, use servo, motor mixer
-    //         mixerMode                flyingPlatformType   motorCount  useServos   hasFlaps    motorMap
-    DEF_MIXER( MIXER_TRI,               PLATFORM_MULTIROTOR, 3,          true,       false,      mixerTricopter ),
-    DEF_MIXER( MIXER_CUSTOM_TRI,        PLATFORM_MULTIROTOR, 3,          false,      false,      NULL ),
-
-    DEF_MIXER( MIXER_QUADP,             PLATFORM_MULTIROTOR, 4,          false,      false,      mixerQuadP ),
-    DEF_MIXER( MIXER_QUADX,             PLATFORM_MULTIROTOR, 4,          false,      false,      mixerQuadX ),
-
-#if (MAX_SUPPORTED_MOTORS >= 6)
-    DEF_MIXER( MIXER_HEX6X,             PLATFORM_MULTIROTOR, 6,          false,      false,      mixerHex6X ),
-#endif
-
-    DEF_MIXER( MIXER_CUSTOM,            PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
-
-    //DEF_MIXER( MIXER_BICOPTER,          PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
-    //DEF_MIXER( MIXER_GIMBAL,            PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
-
-    DEF_MIXER( MIXER_FLYING_WING,       PLATFORM_AIRPLANE,   2,          true,       false,      mixerDualProp ),
-    DEF_MIXER( MIXER_AIRPLANE,          PLATFORM_AIRPLANE,   2,          true,       true,       mixerDualProp ),
-    DEF_MIXER( MIXER_CUSTOM_AIRPLANE,   PLATFORM_AIRPLANE,   2,          true,       true,       NULL ),
-
-    //DEF_MIXER( MIXER_HELI_120_CCPM,     PLATFORM_HELICOPTER, 1,          true,       false,      NULL ),
-    //DEF_MIXER( MIXER_HELI_90_DEG,       PLATFORM_HELICOPTER, 1,          true,       false,      NULL ),
-
-    //DEF_MIXER( MIXER_PPM_TO_SERVO,      PLATFORM_MULTIROTOR, 0,          true,       false,      NULL ),
-    //DEF_MIXER( MIXER_DUALCOPTER,        PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
-    //DEF_MIXER( MIXER_SINGLECOPTER,      PLATFORM_MULTIROTOR, 0,          false,      false,      NULL ),
-
-#if !defined(DISABLE_UNCOMMON_MIXERS)
-    DEF_MIXER( MIXER_Y4,                PLATFORM_MULTIROTOR, 4,          false,      false,      mixerY4 ),
-    DEF_MIXER( MIXER_ATAIL4,            PLATFORM_MULTIROTOR, 4,          false,      false,      mixerAtail4 ),
-    DEF_MIXER( MIXER_VTAIL4,            PLATFORM_MULTIROTOR, 4,          false,      false,      mixerVtail4 ),
-
-#if (MAX_SUPPORTED_MOTORS >= 6)
-    DEF_MIXER( MIXER_Y6,                PLATFORM_MULTIROTOR, 6,          false,      false,      mixerY6 ),
-    DEF_MIXER( MIXER_HEX6,              PLATFORM_MULTIROTOR, 6,          false,      false,      mixerHex6P ),
-    DEF_MIXER( MIXER_HEX6H,             PLATFORM_MULTIROTOR, 6,          false,      false,      mixerHex6H ),
-#endif
-
-#if (MAX_SUPPORTED_MOTORS >= 8)
-    DEF_MIXER( MIXER_OCTOX8,            PLATFORM_MULTIROTOR, 8,          false,      false,      mixerOctoX8 ),
-    DEF_MIXER( MIXER_OCTOFLATP,         PLATFORM_MULTIROTOR, 8,          false,      false,      mixerOctoFlatP ),
-    DEF_MIXER( MIXER_OCTOFLATX,         PLATFORM_MULTIROTOR, 8,          false,      false,      mixerOctoFlatX ),
-#endif
-#endif
-};
-#else
-static const mixer_t quadMixerDescriptor = DEF_MIXER( MIXER_QUADX,             PLATFORM_MULTIROTOR, 4,          false,      false,      mixerQuadX );
-#endif // USE_QUAD_MIXER_ONLY
-
-const mixer_t * findMixer(mixerMode_e mixerMode)
-{
-#ifndef USE_QUAD_MIXER_ONLY
-    for (unsigned ii = 0; ii < sizeof(mixerTable)/sizeof(mixerTable[0]); ii++) {
-        if (mixerTable[ii].mixerMode == mixerMode)
-            return &mixerTable[ii];
-    }
-#else
-    if (mixerMode == MIXER_QUADX)
-        return &quadMixerDescriptor;
-#endif
-
-    return NULL;
-}
-
 uint8_t getMotorCount(void)
 {
     return motorCount;
 }
 
+float getMotorMixRange(void)
+{
+    return motorMixRange;
+}
+
 bool mixerIsOutputSaturated(void)
 {
-    return motorLimitReached;
+    return motorMixRange >= 1.0f;
 }
 
-bool isMixerEnabled(mixerMode_e mixerMode)
-{
-#ifdef USE_QUAD_MIXER_ONLY
-    UNUSED(mixerMode);
-    return true;
-#else
-    const mixer_t * mixer = findMixer(mixerMode);
-    return (mixer != NULL) ? true : false;
-#endif
-}
-
-int getFlyingPlatformType(void)
-{
-    const mixer_t * mixer = findMixer(mixerConfig()->mixerMode);
-
-    if (mixer)
-        return mixer->flyingPlatformType;
-    else
-        return PLATFORM_MULTIROTOR; // safe default
-}
-
-#ifdef USE_SERVOS
 void mixerUpdateStateFlags(void)
 {
-    const mixer_t * mixer = findMixer(mixerConfig()->mixerMode);
-
     // set flag that we're on something with wings
-    if (mixer->flyingPlatformType == PLATFORM_AIRPLANE) {
+    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         ENABLE_STATE(FIXED_WING);
         DISABLE_STATE(HELICOPTER);
-    } else if (mixer->flyingPlatformType == PLATFORM_HELICOPTER) {
+    } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         DISABLE_STATE(FIXED_WING);
         ENABLE_STATE(HELICOPTER);
     } else {
@@ -342,7 +136,7 @@ void mixerUpdateStateFlags(void)
         DISABLE_STATE(HELICOPTER);
     }
 
-    if (mixer->hasFlaps) {
+    if (mixerConfig()->hasFlaps) {
         ENABLE_STATE(FLAPERON_AVAILABLE);
     } else {
         DISABLE_STATE(FLAPERON_AVAILABLE);
@@ -353,26 +147,13 @@ void mixerUsePWMIOConfiguration(void)
 {
     motorCount = 0;
 
-    const mixerMode_e currentMixerMode = mixerConfig()->mixerMode;
-    const mixer_t * mixer = findMixer(mixerConfig()->mixerMode);
-
-    if (currentMixerMode == MIXER_CUSTOM || currentMixerMode == MIXER_CUSTOM_TRI || currentMixerMode == MIXER_CUSTOM_AIRPLANE) {
-        // load custom mixer into currentMixer
-        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            // check if done
-            if (customMotorMixer(i)->throttle == 0.0f)
-                break;
-            currentMixer[i] = *customMotorMixer(i);
-            motorCount++;
-        }
-    } else {
-        motorCount = MIN(mixer->motorCount, pwmGetOutputConfiguration()->motorCount);
-        // copy motor-based mixer
-        if (mixer->motor) {
-            for (int i = 0; i < motorCount; i++) {
-                currentMixer[i] = mixer->motor[i];
-            }
-        }
+    // load custom mixer into currentMixer
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        // check if done
+        if (customMotorMixer(i)->throttle == 0.0f)
+            break;
+        currentMixer[i] = *customMotorMixer(i);
+        motorCount++;
     }
 
     // in 3D mode, mixer gain has to be halved
@@ -388,38 +169,6 @@ void mixerUsePWMIOConfiguration(void)
 
     mixerResetDisarmedMotors();
 }
-#else
-void mixerUsePWMIOConfiguration(void)
-{
-    motorCount = 4;
-    for (int i = 0; i < motorCount; i++) {
-        currentMixer[i] = mixerQuadX[i];
-    }
-    mixerResetDisarmedMotors();
-}
-#endif
-
-
-#ifndef USE_QUAD_MIXER_ONLY
-void mixerLoadMix(int index, motorMixer_t *customMixers)
-{
-    // we're 1-based
-    index++;
-    // clear existing
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        customMixers[i].throttle = 0.0f;
-    }
-
-    // do we have anything here to begin with?
-    const mixer_t * mixer = findMixer(index);
-    if (mixer->motor != NULL) {
-        for (int i = 0; i < mixer->motorCount; i++) {
-            customMixers[i] = mixer->motor[i];
-        }
-    }
-}
-
-#endif
 
 void mixerResetDisarmedMotors(void)
 {
@@ -457,7 +206,45 @@ void stopPwmAllMotors(void)
     pwmShutdownPulsesForAllMotors(motorCount);
 }
 
-void mixTable(void)
+static void applyMotorRateLimiting(const float dT)
+{
+    static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
+
+    if (feature(FEATURE_3D)) {
+        // FIXME: Don't apply rate limiting in 3D mode
+        for (int i = 0; i < motorCount; i++) {
+            motorPrevious[i] = motor[i];
+        }
+    }
+    else {
+        // Calculate max motor step
+        const uint16_t motorRange = motorConfig()->maxthrottle - motorConfig()->minthrottle;
+        const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
+        const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
+
+        for (int i = 0; i < motorCount; i++) {
+            // Apply motor rate limiting
+            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
+
+            // Handle throttle below min_throttle (motor start/stop)
+            if (motorPrevious[i] < motorConfig()->minthrottle) {
+                if (motor[i] < motorConfig()->minthrottle) {
+                    motorPrevious[i] = motor[i];
+                }
+                else {
+                    motorPrevious[i] = motorConfig()->minthrottle;
+                }
+            }
+        }
+    }
+
+    // Update motor values
+    for (int i = 0; i < motorCount; i++) {
+        motor[i] = motorPrevious[i];
+    }
+}
+
+void mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
@@ -501,17 +288,17 @@ void mixTable(void)
 
     // Find min and max throttle based on condition.
     if (feature(FEATURE_3D)) {
-        if (!ARMING_FLAG(ARMED)) throttlePrevious = rxConfig()->midrc; // When disarmed set to mid_rc. It always results in positive direction after arming.
+        if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
 
-        if ((rcCommand[THROTTLE] <= (rxConfig()->midrc - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
+        if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
             throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if (rcCommand[THROTTLE] >= (rxConfig()->midrc + rcControlsConfig()->deadband3d_throttle)) { // Positive handling
+        } else if (rcCommand[THROTTLE] >= (PWM_RANGE_MIDDLE + rcControlsConfig()->deadband3d_throttle)) { // Positive handling
             throttleMax = motorConfig()->maxthrottle;
             throttleMin = flight3DConfig()->deadband3d_high;
             throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if ((throttlePrevious <= (rxConfig()->midrc - rcControlsConfig()->deadband3d_throttle)))  { // Deadband handling from negative to positive
+        } else if ((throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)))  { // Deadband handling from negative to positive
             throttleCommand = throttleMax = flight3DConfig()->deadband3d_low;
             throttleMin = motorConfig()->minthrottle;
         } else {  // Deadband handling from positive to negative
@@ -522,24 +309,25 @@ void mixTable(void)
         throttleCommand = rcCommand[THROTTLE];
         throttleMin = motorConfig()->minthrottle;
         throttleMax = motorConfig()->maxthrottle;
+
+        // Throttle compensation based on battery voltage
+        if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
+            throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
     }
 
     throttleRange = throttleMax - throttleMin;
 
     #define THROTTLE_CLIPPING_FACTOR    0.33f
-    if (rpyMixRange > throttleRange) {
-        motorLimitReached = true;
-        float mixReduction = (float)throttleRange / rpyMixRange;
-
+    motorMixRange = (float)rpyMixRange / (float)throttleRange;
+    if (motorMixRange > 1.0f) {
         for (int i = 0; i < motorCount; i++) {
-            rpyMix[i] =  mixReduction  * rpyMix[i];
+            rpyMix[i] /= motorMixRange;
         }
 
         // Allow some clipping on edges to soften correction response
         throttleMin = throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
         throttleMax = throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
     } else {
-        motorLimitReached = false;
         throttleMin = MIN(throttleMin + (rpyMixRange / 2), throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
         throttleMax = MAX(throttleMax - (rpyMixRange / 2), throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
     }
@@ -553,7 +341,7 @@ void mixTable(void)
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
             } else if (feature(FEATURE_3D)) {
-                if (throttlePrevious <= (rxConfig()->midrc - rcControlsConfig()->deadband3d_throttle)) {
+                if (throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)) {
                     motor[i] = constrain(motor[i], motorConfig()->minthrottle, flight3DConfig()->deadband3d_low);
                 } else {
                     motor[i] = constrain(motor[i], flight3DConfig()->deadband3d_high, motorConfig()->maxthrottle);
@@ -563,17 +351,11 @@ void mixTable(void)
             }
 
             // Motor stop handling
-            if (feature(FEATURE_MOTOR_STOP) && ARMING_FLAG(ARMED)) {
-                bool failsafeMotorStop = failsafeRequiresMotorStop();
-                bool navMotorStop = !failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE);
-                bool userMotorStop = !navigationIsFlyingAutonomousMode() && !failsafeIsActive() && (rcData[THROTTLE] < rxConfig()->mincheck);
-                if (failsafeMotorStop || navMotorStop || userMotorStop) {
-                    if (feature(FEATURE_3D)) {
-                        motor[i] = rxConfig()->midrc;
-                    }
-                    else {
-                        motor[i] = motorConfig()->mincommand;
-                    }
+            if (ARMING_FLAG(ARMED) && (getMotorStatus() != MOTOR_RUNNING)) {
+                if (feature(FEATURE_MOTOR_STOP)) {
+                    motor[i] = (feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->mincommand);
+                } else {
+                    motor[i] = motorConfig()->minthrottle;
                 }
             }
         }
@@ -582,4 +364,22 @@ void mixTable(void)
             motor[i] = motor_disarmed[i];
         }
     }
+
+    /* Apply motor acceleration/deceleration limit */
+    applyMotorRateLimiting(dT);
+}
+
+motorStatus_e getMotorStatus(void)
+{
+    if (failsafeRequiresMotorStop() || (!failsafeIsActive() && STATE(NAV_MOTOR_STOP_OR_IDLE))) {
+        return MOTOR_STOPPED_AUTO;
+    }
+
+    if (rcData[THROTTLE] < rxConfig()->mincheck) {
+        if ((STATE(FIXED_WING) || !isAirmodeActive()) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
+            return MOTOR_STOPPED_USER;
+        }
+    }
+
+    return MOTOR_RUNNING;
 }

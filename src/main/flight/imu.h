@@ -39,6 +39,7 @@ typedef union {
 
 extern fpQuaternion_t orientation;
 extern attitudeEulerAngles_t attitude;
+extern float rMat[3][3];
 
 typedef struct imuConfig_s {
     uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer

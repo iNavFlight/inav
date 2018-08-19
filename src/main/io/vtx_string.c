@@ -25,9 +25,12 @@
 #include "platform.h"
 #include "build/debug.h"
 
-#if defined(VTX_COMMON)
+#if defined(USE_VTX_COMMON)
 
-const uint16_t vtx58frequencyTable[5][8] =
+#define VTX_STRING_BAND_COUNT 5
+#define VTX_STRING_CHAN_COUNT 8
+
+const uint16_t vtx58frequencyTable[VTX_STRING_BAND_COUNT][VTX_STRING_CHAN_COUNT] =
 {
     { 5865, 5845, 5825, 5805, 5785, 5765, 5745, 5725 }, // Boscam A
     { 5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866 }, // Boscam B
@@ -36,7 +39,7 @@ const uint16_t vtx58frequencyTable[5][8] =
     { 5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917 }, // RaceBand
 };
 
-const char * const vtx58BandNames[] = {
+const char * const vtx58BandNames[VTX_STRING_BAND_COUNT + 1] = {
     "--------",
     "BOSCAM A",
     "BOSCAM B",
@@ -45,9 +48,9 @@ const char * const vtx58BandNames[] = {
     "RACEBAND",
 };
 
-const char vtx58BandLetter[] = "-ABEFR";
+const char vtx58BandLetter[VTX_STRING_BAND_COUNT + 1] = "-ABEFR";
 
-const char * const vtx58ChannelNames[] = {
+const char * const vtx58ChannelNames[VTX_STRING_CHAN_COUNT + 1] = {
     "-", "1", "2", "3", "4", "5", "6", "7", "8",
 };
 
@@ -72,6 +75,19 @@ bool vtx58_Freq2Bandchan(uint16_t freq, uint8_t *pBand, uint8_t *pChannel)
     *pChannel = 0;
 
     return false;
+}
+
+//Converts band and channel values to a frequency (in MHz) value.
+// band: Band value (1 to 5).
+// channel:  Channel value (1 to 8).
+// Returns frequency value (in MHz), or 0 if band/channel out of range.
+uint16_t vtx58_Bandchan2Freq(uint8_t band, uint8_t channel)
+{
+    if (band > 0 && band <= VTX_STRING_BAND_COUNT &&
+                          channel > 0 && channel <= VTX_STRING_CHAN_COUNT) {
+        return vtx58frequencyTable[band - 1][channel - 1];
+    }
+    return 0;
 }
 
 #endif

@@ -21,5 +21,5 @@ struct controlRateConfig_s;
 void generateThrottleCurve(const struct controlRateConfig_s *controlRateConfig);
 
 int16_t rcLookup(int32_t stickDeflection, uint8_t expo);
-int16_t rcLookupThrottle(int32_t tmp);
+uint16_t rcLookupThrottle(uint16_t tmp);
 int16_t rcLookupThrottleMid(void);

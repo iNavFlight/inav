@@ -34,6 +34,7 @@ typedef enum {
     GYRO_MPU6000,
     GYRO_MPU6500,
     GYRO_MPU9250,
+    GYRO_BMI160,
     GYRO_FAKE
 } gyroSensor_e;
 
@@ -57,6 +58,7 @@ typedef struct gyroConfig_s {
     uint16_t gyro_soft_notch_cutoff_1;
     uint16_t gyro_soft_notch_hz_2;
     uint16_t gyro_soft_notch_cutoff_2;
+    uint16_t gyro_stage2_lowpass_hz;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

@@ -61,6 +61,7 @@ typedef struct telemetryConfig_s {
     frskyGpsCoordFormat_e frsky_coordinate_format;
     frskyUnit_e frsky_unit;
     uint8_t frsky_vfas_precision;
+    uint8_t frsky_pitch_roll;
     uint8_t report_cell_voltage;
     uint8_t hottAlarmSoundInterval;
     uint8_t smartportUartUnidirectional;

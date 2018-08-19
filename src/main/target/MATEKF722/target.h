@@ -67,7 +67,12 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
+
+#define USE_PITOT_MS4525
+#define PITOT_I2C_BUS           BUS_I2C1
 
 // *************** SD Card **************************
 #define USE_SDCARD
@@ -139,6 +144,12 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_VL53L0X
+#define VL53L0X_I2C_BUS             BUS_I2C1
+#define RANGEFINDER_I2C_BUS         BUS_I2C1
+#define USE_RANGEFINDER_HCSR04_I2C
+
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
 #define USE_LED_STRIP
@@ -157,6 +168,4 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USABLE_TIMER_CHANNEL_COUNT  9
 #define MAX_PWM_OUTPUT_PORTS        7
-#define USED_TIMERS                 (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8))

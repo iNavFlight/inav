@@ -39,3 +39,7 @@ This board is available in the shop FR
 Website : http://www.yupif4.com
 
 ![YuPiF4 - Logo](http://www.yupif4.com/imgs/YuPiF4.jpg)
+
+
+Test YupiFc https://www.facebook.com/jimmy.mix/videos/10214800834801662/
+https://www.facebook.com/jimmy.mix/videos/10214893753404569/

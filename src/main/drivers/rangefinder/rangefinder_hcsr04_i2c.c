@@ -55,16 +55,16 @@ void hcsr04i2cUpdate(rangefinderDev_t *rangefinder)
     uint8_t response[3];
 
     isHcsr04i2cResponding = busReadBuf(rangefinder->busDev, HCSR04_I2C_REGISTRY_STATUS, response, 3);
-    
+
     if (!isHcsr04i2cResponding) {
         hcsr04i2cMeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
         return;
-    } 
+    }
 
     if (response[HCSR04_I2C_REGISTRY_STATUS] == 0) {
 
-        hcsr04i2cMeasurementCm = 
-            (int32_t)((int32_t)response[HCSR04_I2C_REGISTRY_DISTANCE_HIGH] << 8) + 
+        hcsr04i2cMeasurementCm =
+            (int32_t)((int32_t)response[HCSR04_I2C_REGISTRY_DISTANCE_HIGH] << 8) +
             response[HCSR04_I2C_REGISTRY_DISTANCE_LOW];
 
     } else {
@@ -105,7 +105,7 @@ bool hcsr04i2c0Detect(rangefinderDev_t *rangefinder)
     if (rangefinder->busDev == NULL) {
         return false;
     }
-    
+
     if (!deviceDetect(rangefinder->busDev)) {
         busDeviceDeInit(rangefinder->busDev);
         return false;

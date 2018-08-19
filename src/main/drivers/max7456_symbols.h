@@ -23,7 +23,6 @@
 
 #ifdef USE_MAX7456
 
-// Character Symbols
 #define SYM_BLANK 0x20
 
 // Satellite Graphics
@@ -83,7 +82,8 @@
 #define SYM_CELLF      0xC3
 
 // Map mode
-#define SYM_HOME       0x04
+#define SYM_SCALE      175
+#define SYM_HOME       191
 #define SYM_AIRCRAFT   0x05
 #define SYM_RANGE_100  0x21
 #define SYM_RANGE_500  0x22
@@ -110,10 +110,6 @@
 #define SYM_GLAND1    0xB8
 #define SYM_HOME_DIST 0xA0
 #define SYM_TRIP_DIST 0x22
-
-// Gimbal active Mode
-#define SYM_GIMBAL  0x16
-#define SYM_GIMBAL1 0x17
 
 // AH Center screen Graphics
 #define SYM_AH_CENTER_LINE        0x26
@@ -159,6 +155,9 @@
 #define SYM_MAIN_BATT 0x97
 #define SYM_VID_BAT   0xBF
 
+// Used for battery impedance
+#define SYM_MILLIOHM 0x3F
+
 // Unit Icon´s (Metric)
 #define SYM_MS          0x9F
 #define SYM_KMH         0xA1
@@ -184,7 +183,7 @@
 #define SYM_AMP   0x9A
 #define SYM_MAH   0x07
 #define SYM_WH    0xAB
-#define SYM_WATT  0x57
+#define SYM_WATT  0xAE
 
 // Efficiency
 #define SYM_MAH_KM_0    157
@@ -220,8 +219,10 @@
 // Menu cursor
 #define SYM_CURSOR SYM_AH_LEFT
 
-// Air speed
+// Air speed and wind
 #define SYM_AIR 151
+#define SYM_WIND_HORIZONTAL  22
+#define SYM_WIND_VERTICAL    23
 
 //Misc
 #define SYM_COLON 0x2D
@@ -231,5 +232,12 @@
 //sport
 #define SYM_MIN 0xB3
 #define SYM_AVG 0xB4
+
+// Attitude angles
+#define SYM_ROLL_LEFT 0xCC
+#define SYM_ROLL_LEVEL 0xCD
+#define SYM_ROLL_RIGHT 0xCE
+#define SYM_PITCH_UP 0xCF
+#define SYM_PITCH_DOWN 0xDF
 
 #endif // USE_MAX7456

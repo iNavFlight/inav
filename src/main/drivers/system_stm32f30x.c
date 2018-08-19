@@ -21,7 +21,6 @@
 
 #include "platform.h"
 
-#include "drivers/gpio.h"
 #include "drivers/nvic.h"
 #include "drivers/system.h"
 
@@ -56,19 +55,19 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
         ENABLE
     );
 
-    gpio_config_t gpio;
+    GPIO_InitTypeDef GPIO_InitStructure;
+    GPIO_StructInit(&GPIO_InitStructure);
 
-    gpio.mode = Mode_AIN;
+    GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_All;
 
-    gpio.pin = Pin_All & ~(Pin_13 | Pin_14 | Pin_15);  // Leave JTAG pins alone
-    gpioInit(GPIOA, &gpio);
+    GPIO_InitStructure.GPIO_Pin &= ~(GPIO_Pin_13 | GPIO_Pin_14); // leave JTAG pins alone
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    gpio.pin = Pin_All;
-    gpioInit(GPIOB, &gpio);
-    gpioInit(GPIOC, &gpio);
-    gpioInit(GPIOD, &gpio);
-    gpioInit(GPIOE, &gpio);
-    gpioInit(GPIOF, &gpio);
+    GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_All;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
+    GPIO_Init(GPIOD, &GPIO_InitStructure);
+    GPIO_Init(GPIOE, &GPIO_InitStructure);
 }
 
 bool isMPUSoftReset(void)

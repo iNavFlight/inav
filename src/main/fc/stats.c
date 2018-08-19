@@ -30,8 +30,14 @@ PG_RESET_TEMPLATE(statsConfig_t, statsConfig,
 
 static uint32_t arm_millis;
 static uint32_t arm_distance_cm;
+
 #ifdef USE_ADC
 static uint32_t arm_mWhDrawn;
+static uint32_t flyingEnergy; // energy drawn during flying up to last disarm (ARMED) mWh
+
+uint32_t getFlyingEnergy() {
+    return flyingEnergy;
+}
 #endif
 
 void statsOnArm(void)
@@ -51,8 +57,11 @@ void statsOnDisarm(void)
             statsConfigMutable()->stats_total_time += dt;   //[s]
             statsConfigMutable()->stats_total_dist += (getTotalTravelDistance() - arm_distance_cm) / 100;   //[m]
 #ifdef USE_ADC
-            if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))
-                statsConfigMutable()->stats_total_energy += getMWhDrawn() - arm_mWhDrawn;
+            if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
+                const uint32_t energy = getMWhDrawn() - arm_mWhDrawn;
+                statsConfigMutable()->stats_total_energy += energy;
+                flyingEnergy += energy;
+            }
 #endif
             writeEEPROM();
         }

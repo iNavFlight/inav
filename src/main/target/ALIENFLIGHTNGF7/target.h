@@ -63,9 +63,11 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
+#define USE_MAG_LIS3MDL
 
-#define MAG_AK9863_ALIGN        CW180_DEG_FLIP
-#define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
+#define MAG_AK9863_ALIGN        CW0_DEG
+#define MAG_MPU9250_ALIGN       CW0_DEG
 
 #define AK8963_CS_PIN           PC15
 #define AK8963_SPI_BUS          BUS_SPI3
@@ -102,11 +104,11 @@
 // Performance logging for SD card operations:
 // #define AFATFS_USE_INTROSPECTIVE_LOGGING
 
-//#define M25P16_CS_PIN        SPI2_NSS_PIN
-//#define M25P16_SPI_BUS       BUS_SPI2
+#define M25P16_CS_PIN        SPI2_NSS_PIN
+#define M25P16_SPI_BUS       BUS_SPI2
 
-//#define USE_FLASHFS
-//#define USE_FLASH_M25P16
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
 
 #define USE_VCP
 
@@ -118,15 +120,15 @@
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
 
-//#define USE_UART3
-//#define UART3_RX_PIN            PB11
-//#define UART3_TX_PIN            PB10
+#define USE_UART3
+#define UART3_RX_PIN            NONE
+#define UART3_TX_PIN            NONE
 
 #define USE_UART4
 #define UART4_RX_PIN            PC11
 #define UART4_TX_PIN            PC10
 
-#define SERIAL_PORT_COUNT       4
+#define SERIAL_PORT_COUNT       5
 
 //#define USE_ESCSERIAL
 //#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
@@ -156,6 +158,13 @@
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
+
+#define USE_OSD
+#define USE_MAX7456
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          PB12
+//#define MAX7456_SPI_CLK         (SPI_CLOCK_STANDARD) // 10MHz // XXX
+//#define MAX7456_RESTORE_CLK     (SPI_CLOCK_FAST) // XXX
 
 #define USE_ADC
 #define ADC1_DMA_STREAM         DMA2_Stream0
@@ -208,6 +217,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
-
-#define USABLE_TIMER_CHANNEL_COUNT      13
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(12) )

@@ -23,7 +23,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM15, IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_PWM | TIM_USE_PPM  }, // PWM1 / PPM / UART2 RX
     { TIM15, IO_TAG(PA2),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_PWM }, // PWM2
 
@@ -32,8 +32,8 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // ESC3
     { TIM3,  IO_TAG(PC6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // ESC4
 
-    { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // ESC5 (FW motor)
-    { TIM8,  IO_TAG(PC9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // ESC6 (FW motor)
+    { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // ESC5 (FW motor)
+    { TIM8,  IO_TAG(PC9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // ESC6 (FW motor)
 
     { TIM2,  IO_TAG(PB10), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_PWM },  // PWM3 - PB10 - *TIM2_CH3, UART3_TX (AF7)
     { TIM2,  IO_TAG(PB11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_PWM },  // PWM4 - PB11 - *TIM2_CH4, UART3_RX (AF7)
@@ -44,3 +44,4 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM1,   IO_TAG(PA8), TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6, TIM_USE_LED }
 };
 
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

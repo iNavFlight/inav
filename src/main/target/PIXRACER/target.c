@@ -35,7 +35,7 @@ BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,    
 // PixRacer has built-in HMC5983 compass on the same SPI bus as MPU9250
 BUSDEV_REGISTER_SPI_TAG(busdev_hmc5983_spi, DEVHW_HMC5883,      MPU9250_SPI_BUS,    PE15,               NONE,                   1,  DEVFLAGS_NONE);
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM3, IO_TAG(PB0),  TIM_Channel_3, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_PPM },  // PPM shared uart6 pc7
     { TIM1, IO_TAG(PE14), TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // S1_OUT
     { TIM1, IO_TAG(PE13), TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // S2_OUT
@@ -44,3 +44,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM4, IO_TAG(PD13), TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // S5_OUT
     { TIM4, IO_TAG(PD14), TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // S6_OUT
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

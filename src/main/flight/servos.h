@@ -19,11 +19,7 @@
 
 #include "config/parameter_group.h"
 
-#if defined(USE_QUAD_MIXER_ONLY)
-#define MAX_SUPPORTED_SERVOS 1
-#else
 #define MAX_SUPPORTED_SERVOS 8
-#endif
 
 // These must be consecutive, see 'reversedSources'
 enum {
@@ -35,13 +31,21 @@ enum {
     INPUT_RC_PITCH              = 5,
     INPUT_RC_YAW                = 6,
     INPUT_RC_THROTTLE           = 7,
-    INPUT_RC_AUX1               = 8,
-    INPUT_RC_AUX2               = 9,
-    INPUT_RC_AUX3               = 10,
-    INPUT_RC_AUX4               = 11,
+    INPUT_RC_CH5                = 8,
+    INPUT_RC_CH6                = 9,
+    INPUT_RC_CH7                = 10,
+    INPUT_RC_CH8                = 11,
     INPUT_GIMBAL_PITCH          = 12,
     INPUT_GIMBAL_ROLL           = 13,
     INPUT_FEATURE_FLAPS         = 14,
+    INPUT_RC_CH9                = 15,
+    INPUT_RC_CH10               = 16,
+    INPUT_RC_CH11               = 17,
+    INPUT_RC_CH12               = 18,
+    INPUT_RC_CH13               = 19,
+    INPUT_RC_CH14               = 20,
+    INPUT_RC_CH15               = 21,
+    INPUT_RC_CH16               = 22,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;
@@ -105,7 +109,6 @@ typedef struct servoParam_s {
     int16_t max;                            // servo max
     int16_t middle;                         // servo middle
     int8_t rate;                            // range [-125;+125] ; can be used to adjust a rate 0-125% and a direction
-    int8_t forwardFromChannel;              // RX channel index, 0 based.  See CHANNEL_FORWARDING_DISABLED
 } servoParam_t;
 
 PG_DECLARE_ARRAY(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams);
@@ -132,8 +135,7 @@ extern int16_t servo[MAX_SUPPORTED_SERVOS];
 bool isServoOutputEnabled(void);
 bool isMixerUsingServos(void);
 void writeServos(void);
-void servoMixerLoadMix(int index);
-bool loadCustomServoMixer(void);
+void loadCustomServoMixer(void);
 int servoDirection(int servoIndex, int fromChannel);
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);

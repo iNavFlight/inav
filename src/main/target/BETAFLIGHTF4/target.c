@@ -23,7 +23,7 @@
 /*#include "drivers/dma.h"*/
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM4, IO_TAG(PB8),  TIM_Channel_3, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_PPM }, // PPM
 
     // Motors
@@ -36,3 +36,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     // LED strip
     { TIM4, IO_TAG(PB6),  TIM_Channel_1, 1,                          IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_LED },   // D1_ST0
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

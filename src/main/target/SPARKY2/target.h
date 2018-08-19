@@ -29,8 +29,6 @@
 
 #define BEEPER                  PC9
 
-#define INVERTER_PIN_UART6      PC6
-
 #define USE_EXTI
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
@@ -49,13 +47,15 @@
 
 #define USE_MAG
 #define USE_MAG_MPU9250
-#define MAG_MPU9250_ALIGN       CW270_DEG
+#define MAG_MPU9250_ALIGN       CW0_DEG
 
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -76,6 +76,8 @@
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA8
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -87,6 +89,7 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6 //inverter
+#define INVERTER_PIN_UART6_RX   PC6
 
 #define SERIAL_PORT_COUNT 4
 
@@ -115,7 +118,7 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
-#define LED_STRIP
+#define USE_LED_STRIP
 #define LED_STRIP_TIMER                 TIM5
 
 #define USE_RANGEFINDER
@@ -138,6 +141,4 @@
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
 
-#define USABLE_TIMER_CHANNEL_COUNT 11
-#define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9))
-
+#define PCA9685_I2C_BUS         BUS_I2C2
