@@ -100,14 +100,14 @@ typedef struct serialPortUsage_s {
     serialPortFunction_e function;
 } serialPortUsage_t;
 
-serialPort_t *findSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction);
-serialPort_t *findNextSharedSerialPort(uint16_t functionMask, serialPortFunction_e sharedWithFunction);
+serialPort_t *findSharedSerialPort(uint32_t functionMask, serialPortFunction_e sharedWithFunction);
+serialPort_t *findNextSharedSerialPort(uint32_t functionMask, serialPortFunction_e sharedWithFunction);
 
 //
 // configuration
 //
 typedef struct serialPortConfig_s {
-    uint16_t functionMask;
+    uint32_t functionMask;
     serialPortIdentifier_e identifier;
     uint8_t msp_baudrateIndex;
     uint8_t gps_baudrateIndex;
@@ -138,7 +138,7 @@ serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function);
 serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function);
 
 portSharing_e determinePortSharing(const serialPortConfig_t *portConfig, serialPortFunction_e function);
-bool isSerialPortShared(const serialPortConfig_t *portConfig, uint16_t functionMask, serialPortFunction_e sharedWithFunction);
+bool isSerialPortShared(const serialPortConfig_t *portConfig, uint32_t functionMask, serialPortFunction_e sharedWithFunction);
 
 serialPortUsage_t *findSerialPortUsageByIdentifier(serialPortIdentifier_e identifier);
 int findSerialPortIndexByIdentifier(serialPortIdentifier_e identifier);
