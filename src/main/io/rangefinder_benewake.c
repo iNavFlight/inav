@@ -54,6 +54,7 @@ typedef struct __attribute__((packed)) {
 } tfminiPacket_t;
 
 #define BENEWAKE_PACKET_SIZE    sizeof(tfminiPacket_t)
+#define BENEWAKE_MIN_QUALITY    0
 
 static serialPort_t * serialPort = NULL;
 static serialPortConfig_t * portConfig;
@@ -118,6 +119,20 @@ static void benewakeRangefinderUpdate(void)
                 hasNewData = true;
                 sensorData = (((tfminiPacket_t *) &buffer[0])->distL << 0) | 
                              (((tfminiPacket_t *) &buffer[0])->distH << 8);
+
+                uint16_t qual = (((tfminiPacket_t *) &buffer[0])->strengthL << 0) |
+                                (((tfminiPacket_t *) &buffer[0])->strengthH << 8);
+
+                if (sensorData == 0 || qual <= BENEWAKE_MIN_QUALITY) {
+                    sensorData = -1;
+                }
+
+                /*
+                debug[0] = ((tfminiPacket_t *) &buffer[0])->distL;
+                debug[1] = ((tfminiPacket_t *) &buffer[0])->distH;
+                debug[2] = ((tfminiPacket_t *) &buffer[0])->strengthH;
+                debug[3] = ((tfminiPacket_t *) &buffer[0])->strengthL;
+                */
             }
 
             // Prepare for new packet
@@ -130,7 +145,7 @@ static int32_t benewakeRangefinderGetDistance(void)
 {
     if (hasNewData) {
         hasNewData = false;
-        return (sensorData > 0) ? (sensorData / 10) : RANGEFINDER_OUT_OF_RANGE;
+        return (sensorData > 0) ? (sensorData) : RANGEFINDER_OUT_OF_RANGE;
     }
     else {
         return RANGEFINDER_NO_NEW_DATA;
