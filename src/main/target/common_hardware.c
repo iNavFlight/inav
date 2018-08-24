@@ -159,7 +159,7 @@
     #if !defined(MAG3110_I2C_BUS)
         #define MAG3110_I2C_BUS MAG_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
 #endif
 
 #if defined(USE_MAG_LIS3MDL)
@@ -175,7 +175,7 @@
     #if !defined(IST8310_I2C_BUS)
         #define IST8310_I2C_BUS MAG_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
 #endif
 
 #if defined(USE_MAG_IST8308)
