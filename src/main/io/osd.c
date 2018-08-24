@@ -1472,39 +1472,31 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             char *p = "ACRO";
 
-            if (isAirmodeActive()) {
-                p = "AIR ";
-            }
-
-            if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
-            } else if (FLIGHT_MODE(MANUAL_MODE)) {
+            else if (FLIGHT_MODE(MANUAL_MODE))
                 p = "MANU";
-            } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
+            else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p = "RTH ";
-            } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
-                if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
-                    // 3D HOLD
-                    p = "HOLD";
-                } else {
-                    p = " PH ";
-                }
-            } else if (FLIGHT_MODE(NAV_CRUISE_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
+                p = "HOLD";
+            else if (FLIGHT_MODE(NAV_CRUISE_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
                 p = "3CRS";
-            } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
+            else if (FLIGHT_MODE(NAV_CRUISE_MODE))
                 p = "CRS ";
-            } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
+            else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
                 // If navigationRequiresAngleMode() returns false when ALTHOLD is active,
                 // it means it can be combined with ANGLE, HORIZON, ACRO, etc...
                 // and its display is handled by OSD_MESSAGES rather than OSD_FLYMODE.
                 p = " AH ";
-            } else if (FLIGHT_MODE(NAV_WP_MODE)) {
+            } else if (FLIGHT_MODE(NAV_WP_MODE))
                 p = " WP ";
-            } else if (FLIGHT_MODE(ANGLE_MODE)) {
+            else if (FLIGHT_MODE(ANGLE_MODE))
                 p = "ANGL";
-            } else if (FLIGHT_MODE(HORIZON_MODE)) {
+            else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
-            }
+            else if (isAirmodeActive())
+                p = "AIR ";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
