@@ -71,13 +71,13 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_recovery_delay = 5,       // 0.5 seconds (plus 200ms explicit delay)
     .failsafe_off_delay = 200,          // 20sec
     .failsafe_throttle = 1000,          // default throttle off.
-    .failsafe_throttle_low_delay = 100, // default throttle low delay for "just disarm" on failsafe condition
+    .failsafe_throttle_low_delay = 0,   // default throttle low delay for "just disarm" on failsafe condition
     .failsafe_procedure = FAILSAFE_PROCEDURE_AUTO_LANDING,            // default full failsafe procedure
     .failsafe_fw_roll_angle = -200,     // 20 deg left
     .failsafe_fw_pitch_angle = 100,     // 10 deg dive (yes, positive means dive)
     .failsafe_fw_yaw_rate = -45,        // 45 deg/s left yaw (left is negative, 8s for full turn)
     .failsafe_stick_motion_threshold = 50,
-    .failsafe_min_distance = 0,            // No minimum distance for failsafe by default  
+    .failsafe_min_distance = 0,            // No minimum distance for failsafe by default
     .failsafe_min_distance_procedure = FAILSAFE_PROCEDURE_DROP_IT   // default minimum distance failsafe procedure
 );
 
@@ -154,6 +154,7 @@ void failsafeReset(void)
     failsafeState.receivingRxDataPeriodPreset = 0;
     failsafeState.phase = FAILSAFE_IDLE;
     failsafeState.rxLinkState = FAILSAFE_RXLINK_DOWN;
+    failsafeState.bypassNavigation = true;
 
     failsafeState.lastGoodRcCommand[ROLL] = 0;
     failsafeState.lastGoodRcCommand[PITCH] = 0;
@@ -171,7 +172,7 @@ void failsafeInit(void)
 #ifdef USE_NAV
 bool failsafeBypassNavigation(void)
 {
-    return failsafeState.active && failsafeState.controlling && failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
+    return failsafeState.active && failsafeState.controlling && failsafeState.bypassNavigation;
 }
 
 bool failsafeMayRequireNavigationMode(void)
@@ -227,6 +228,7 @@ static void failsafeActivate(failsafePhase_e newPhase)
     failsafeState.active = true;
     failsafeState.controlling = true;
     failsafeState.phase = newPhase;
+    failsafeState.bypassNavigation = failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].bypassNavigation;
     ENABLE_FLIGHT_MODE(FAILSAFE_MODE);
     failsafeState.landingShouldBeFinishedAt = millis() + failsafeConfig()->failsafe_off_delay * MILLIS_PER_TENTH_SECOND;
 
@@ -275,7 +277,7 @@ void failsafeApplyControlInput(void)
                         break;
 
                     case THROTTLE:
-                        rcCommand[idx] = feature(FEATURE_3D) ? rxConfig()->midrc : motorConfig()->minthrottle;
+                        rcCommand[idx] = feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->minthrottle;
                         break;
                 }
                 break;
@@ -330,9 +332,9 @@ static bool failsafeCheckStickMotion(void)
     if (failsafeConfig()->failsafe_stick_motion_threshold > 0) {
         uint32_t totalRcDelta = 0;
 
-        totalRcDelta += ABS(rcData[ROLL] - rxConfig()->midrc);
-        totalRcDelta += ABS(rcData[PITCH] - rxConfig()->midrc);
-        totalRcDelta += ABS(rcData[YAW] - rxConfig()->midrc);
+        totalRcDelta += ABS(rcData[ROLL] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rcData[PITCH] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rcData[YAW] - PWM_RANGE_MIDDLE);
 
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }
@@ -400,7 +402,7 @@ void failsafeUpdateState(void)
 
                     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
                     // GPS must also be working, and home position set
-                    if ((failsafeConfig()->failsafe_min_distance > 0) && 
+                    if ((failsafeConfig()->failsafe_min_distance > 0) &&
                         ((GPS_distanceToHome * 100) < failsafeConfig()->failsafe_min_distance) &&
                         sensors(SENSOR_GPS) && STATE(GPS_FIX) && STATE(GPS_FIX_HOME)) {
                         // Use the alternate, minimum distance failsafe procedure instead
@@ -469,6 +471,7 @@ void failsafeUpdateState(void)
                             // This shouldn't happen. If RTH was somehow aborted during failsafe - fallback to FAILSAFE_LANDING procedure
                             abortForcedRTH();
                             failsafeActivate(FAILSAFE_LANDING);
+                            failsafeState.bypassNavigation = true;  // Force bypassing navigation
                             reprocessState = true;
                             break;
                     }
@@ -498,7 +501,7 @@ void failsafeUpdateState(void)
 
             case FAILSAFE_LANDED:
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_FAILSAFE_SYSTEM); // To prevent accidently rearming by an intermittent rx link
-                mwDisarm(DISARM_FAILSAFE);
+                disarm(DISARM_FAILSAFE);
                 failsafeState.receivingRxDataPeriod = millis() + failsafeState.receivingRxDataPeriodPreset; // set required period of valid rxData
                 failsafeState.phase = FAILSAFE_RX_LOSS_MONITORING;
                 failsafeState.controlling = false;  // Failsafe no longer in control of the machine - release control to pilot

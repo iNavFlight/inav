@@ -24,45 +24,46 @@ incorrect voltage or reversed polarity will likely fry your flight controller. E
 has a voltage divider capable of measuring your particular battery voltage.
 On the first battery connection is always advisable to use a current limiter device to limit damages if something is wrong in the setup.
 
-### Naze32
-
-The Naze32 has an on-board battery divider circuit; just connect your main battery to the VBAT connector.
-
-**CAUTION:**  When installing the connection from main battery to the VBAT connector, be sure to first disconnect the main battery from the frame/power distribution board.  Check the wiring very carefully before connecting battery again.  Incorrect connections can immediately and completely destroy the flight controller and connected peripherals (ESC, GPS, Receiver etc.).
-
-### CC3D
-
-The CC3D has no battery divider.  To use voltage monitoring, you must create a divider that gives a 3.3v
-MAXIMUM output when the main battery is fully charged.  Connect the divider output to S5_IN/PA0/RC5.
-
-Notes:
-
-* S5_IN/PA0/RC5 is Pin 7 on the 8 pin connector, second to last pin, on the opposite end from the
-  GND/+5/PPM signal input.
-
-* When battery monitoring is enabled on the CC3D, RC5 can no-longer be used for PWM input.
-
 ### Sparky
 
 See the [Sparky board chapter](Board - Sparky.md).
 
-## Configuration
+## Voltage measurement
 
-Enable the `VBAT` feature.
+Enable the `VBAT` feature to enable the measurement of the battery voltage and the use of the voltage based OSD battery gauge, voltage based and energy based battery alarms.
 
-Configure min/max cell voltages using the following CLI setting:
+### Calibration
 
-`vbat_scale` - Adjust this to match actual measured battery voltage to reported value.
+`vbat_scale` - Adjust this setting to match actual measured battery voltage to reported value. Increasing this value increases the measured voltage.
 
-`vbat_max_cell_voltage` - Maximum voltage per cell, used for auto-detecting battery voltage in 0.01V units, i.e. 430 = 4.30V
+### Voltage measurement source
 
-`set vbat_warning_cell_voltage` - Warning voltage per cell; this triggers battery-out alarms, in 0.01V units, i.e. 340 = 3.40V
+Two voltage sources are available: raw voltage and sag compensated voltage. The raw voltage is the voltage directly measured at the battery while the sag compensated voltage is calculated by an algorithm aiming to provide a stable voltage source for gauges, telemetry and alarms. When the current drawn from a battery varies the provided voltage also varies due to the internal resistance of the battery, it is called sag. The sag can often trigger the battery alarms before the battery is empty and if you are relying on the battery voltage to know the charge state of your battery you have to land or cut the throttle to know the real, without load, battery voltage. The sag compensation algorithm simulates a battery with zero internal resistance and provides a stable reading independent from the drawn current.
 
-`vbat_min_cell_voltage` - Minimum voltage per cell; this triggers battery-out alarms, in 0.01V units, i.e. 330 = 3.30V
+You can select the voltage source used for battery alarms and telemetry with the `bat_voltage_source` setting. It can be set to either `RAW` for using raw battery voltage or `SAG_COMP` for using the calculated sag compensated voltage.
+
+You can see an illustration of the sag compensation algorithm in action in the following graph:
+
+![Voltage graph](assets/images/sag_compensated_battery_voltage_plot.png)
+
+### Voltage based OSD gauge and alarms
+
+Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Each profile stores the following voltage settings:
+
+`bat_cells` - Specify the number of cells of your battery. Allows the automatic selection of the battery profile when set to a value greater than 0. Set to 0 (default) for auto-detecting the number of cells (see next setting)
+
+`vbat_cell_detect_voltage` - Maximum voltage per cell, used for auto-detecting the number of cells of the battery. Should be higher than maximum cell voltage to take into account possible drift in measured voltage and keep cell count detection accurate (0.01V unit, i.e. 430 = 4.30V)
+
+`vbat_max_cell_voltage` - Maximum voltage per cell when the battery is fully charged. Used for the OSD voltage based battery gauge (0.01V unit, i.e. 420 = 4.20V)
+
+`vbat_warning_cell_voltage` - Cell warning voltage. A cell voltage bellow this value triggers the first (short beeps) voltage based battery alarm if used and also the blinking of the OSD voltage indicator if the battery capacity is not used instead (see bellow) (0.01V unit, i.e. 370 = 3.70V)
+
+`vbat_min_cell_voltage` - Cell minimum voltage. A cell voltage bellow this value triggers the second (long beeps) voltage based battery alarm if used and the OSD gauge will display 0% if the battery capacity is not used instead (see bellow) (0.01V unit, i.e. 350 = 3.50V)
 
 e.g.
 
 ```
+battery_profile 1
 set vbat_scale = 1100
 set vbat_max_cell_voltage = 430
 set vbat_warning_cell_voltage = 340
@@ -190,3 +191,134 @@ set battery_capacity_critical = 440     // the battery critical alarm will sound
 ```
 
 Note that in this example even though your warning capacity (`battery_capacity_warning`) is set to 30% (660mAh), since 440mAh (`battery_capacity_critical`) is considered empty (0% left), the OSD capacity related items will only start to blink when the remaining battery percentage shown on the OSD is below 12%: (`battery_capacity_warning`-`battery_capacity_critical`)*100/(`battery_capacity`-`battery_capacity_critical`)=(660-440)*100/(2200-440)=12.5
+
+
+## Battery profiles
+
+Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Battery profiles store the following settings (see above for an explanation of each setting): `bat_cells`, `vbat_cell_detect_voltage`, `vbat_max_cell_voltage`, `vbat_warning_cell_voltage`, `vbat_min_cell_voltage`, `battery_capacity_unit`, `battery_capacity`, `battery_capacity_warning`, `battery_capacity_critical`
+
+To enable the automatic battery profile switching based on battery voltage enable the `BAT_PROF_AUTOSWITCH` feature. For a profile to be automatically selected the number of cells of the battery needs to be specified (>0).
+
+### Battery profiles configuration examples
+
+#### Simple example
+
+In this example we want to use two different type of batteries for the same aircraft and switch manually between them. The first battery is a Li-Po (4.20V/cell) and the second battery is a Li-Ion (4.10V/cell).
+
+```
+battery_profile 1
+
+set bat_cells = 0
+set vbat_max_cell_voltage = 420
+set vbat_warning_cell_voltage = 370
+set vbat_min_cell_voltage = 340
+
+
+battery_profile 2
+
+set bat_cells = 0
+set vbat_max_cell_voltage = 410
+set vbat_warning_cell_voltage = 280
+set vbat_min_cell_voltage = 250
+```
+
+#### Simple example with automatic profile switching
+
+In this example we want to use two different batteries for the same aircraft and automatically switch between them when the battery is plugged in. The first battery is a Li-Po 2200mAh 3S and the second battery is a LiPo 1500mAh 4S. Since the iNav defaults for the cell detection voltage and max voltage are adequate for standard LiPo batteries they will not be modified. The warning and minimum voltage are not modified either in this example but you can set them to the value you like. Since we are using battery capacities only the warning voltage (kept at default in this example) will be used and only for triggering the battery voltage indicator blinking in the OSD.
+
+```
+feature BAT_PROF_AUTOSWITCH
+
+
+battery_profile 1
+
+set bat_cells = 3
+set battery_capacity_unit = MAH
+set battery_capacity = 2200
+set battery_capacity_warning = 440
+set battery_capacity_critical = 220
+
+
+battery_profile 2
+
+set bat_cells = 4
+set battery_capacity_unit = MAH
+set battery_capacity = 1500
+set battery_capacity_warning = 300
+set battery_capacity_critical = 150
+```
+
+#### Advanced automatic switching example
+
+Profile 1 is for a 3S 2200mAh Li-Po pack (max 4.20V/cell), profile 2 for a 3S 4000mAh Li-Ion pack (max 4.10V/cell) and profile 3 for a 4S 1500mAh Li-Po pack (max 4.20V/cell).
+With this configuration if the battery plugged in is less than 12.36V (3 x 4.12) the profile 2 will be automatically selected else if the battery voltage is less than 12.66V (3 x 4.22) the profile 1 will be automatically selected else if the battery voltage is less 17.20V (4 x 4.3) the profile 3 will be automatically selected. If a matching profile can't be found the last selected profile is used.
+
+```
+feature BAT_PROF_AUTOSWITCH
+
+
+battery_profile 1
+
+set bat_cells = 3
+set vbat_cell_detect_voltage = 422
+set vbat_max_cell_voltage = 420
+set vbat_warning_cell_voltage = 350
+set vbat_min_cell_voltage = 330
+set battery_capacity = 2200
+set battery_capacity_warning = 440
+set battery_capacity_critical = 220
+
+
+battery_profile 2
+
+set bat_cells = 3
+set vbat_cell_detect_voltage = 412
+set vbat_max_cell_voltage = 410
+set vbat_warning_cell_voltage = 300
+set vbat_min_cell_voltage = 280
+set battery_capacity = 4000
+set battery_capacity_warning = 800
+set battery_capacity_critical = 400
+
+
+battery_profile 3
+
+set bat_cells = 4
+set vbat_cell_detect_voltage = 430
+set vbat_max_cell_voltage = 420
+set vbat_warning_cell_voltage = 350
+set vbat_min_cell_voltage = 330
+set battery_capacity = 1500
+set battery_capacity_warning = 300
+set battery_capacity_critical = 150
+```
+
+## Remaining flight time and flight distance estimation
+
+The estimated remaining flight time and flight distance estimations can be displayed on the OSD (for fixed wing only for the moment). They are calculated from the GPS distance from home, remaining battery capacity and average power draw. They are taking into account the requested altitude change and heading to home change after altitude change following the switch to RTH. They are also taking into account the estimated wind if `osd_use_wind_compensation` is set to `ON`. When the timer and distance indicator reach 0 they will blink and you need to go home in a straight line manually or by engaging RTH. You should be left with at least `rth_energy_margin`% of battery left when arriving home if the cruise speed and power are set correctly (see bellow).
+
+To use this feature the following conditions need to be met:
+- The `VBAT`, `CURRENT_METER` and `GPS` features need to be enabled
+- The battery capacity needs to be specified in mWh (`battery_capacity` setting > 0 and `battery_capacity_unit` set to `MWH`)
+- The average ground speed of the aircraft without wind at cruise throttle needs to be set (`nav_fw_cruise_speed` setting in cm/s)
+- The average power draw at zero throttle needs to be specified (`idle_power` setting in 0.01W unit)
+- The average power draw at cruise throttle needs to be specified (`cruise_power` setting in 0.01W unit)
+- The battery needs to be full when plugged in (voltage >= (`vbat_max_cell_voltage` - 100mV) * cells)
+
+It is advised to set `nav_fw_cruise_speed` a bit lower than the real speed and `cruise_power` 10% higher than the power at cruise throttle to ensure variations in throttle during cruise won't cause the aircraft to draw more energy than estimated.
+
+If `---` is displayed during flight instead of the remaining flight time/distance it means at least one of the above conditions aren't met. If the OSD element is blinking and the digits are replaced by the horizontal wind symbol it means that the estimated horizontal wind is too strong to be able to return home at `nav_fw_cruise_speed`.
+
+## Automatic throttle compensation based on battery voltage
+
+This features aims to compensate the throttle to get constant thrust with the same throttle request despite the battery voltage going down during flight. It can be used by enabling the `THR_VBAT_COMP` feature. This feature needs the sag compensated voltage which needs a current sensor (real or virtual) to be calculated.
+
+It is working like this: `used_throttle = requested_throttle * (1 + (battery_full_voltage / sag_compensated_voltage - 1) * thr_comp_weight)`.
+
+The default `thr_comp_weight` of 1 should be close to idal but if you want to tune this feature you need to find the difference in throttle value to achieve the same thrust (same power) when your battery is full and when your battery is almost empty then set `thr_comp_weight` to `(empty_battery_throttle / full_battery_throttle - 1) / (battery_full_voltage / battery_empty_sag_compensated_voltage - 1)`
+
+Example:
+  If the drawn power is 100W when the battery is full (12.6V) with 53% throttle and the drawn power is 100W with 58% throttle when the battery is almost empty with the sag compensated voltage being 11.0V `thr_comp_weight` needs to be set to this value to compensate the throttle automatically:
+  `(58 / 53 - 1) / (12.6 / 11.0 - 1) = 0.649`
+
+Known limitation: it doesn't work in 3D mode (3D feature)

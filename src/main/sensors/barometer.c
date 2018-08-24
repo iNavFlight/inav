@@ -33,6 +33,7 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp085.h"
 #include "drivers/barometer/barometer_bmp280.h"
+#include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
 #include "drivers/logging.h"
@@ -122,6 +123,19 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 #if defined(USE_BARO_BMP280) || defined(USE_BARO_SPI_BMP280)
         if (bmp280Detect(dev)) {
             baroHardware = BARO_BMP280;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_LPS25H:
+#if defined(USE_BARO_LPS25H)
+        if (lps25hDetect(dev)) {
+            baroHardware = BARO_LPS25H;
             break;
         }
 #endif

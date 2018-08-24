@@ -52,7 +52,6 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
-#include "io/gimbal.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
@@ -227,7 +226,7 @@ void mavlinkSendSystemStatus(void)
         // voltage_battery Battery voltage, in millivolts (1 = 1 millivolt)
         feature(FEATURE_VBAT) ? getBatteryVoltage() * 10 : 0,
         // current_battery Battery current, in 10*milliamperes (1 = 10 milliampere), -1: autopilot does not measure the current
-        feature(FEATURE_CURRENT_METER) ? getAmperage() : -1,
+        isAmperageConfigured() ? getAmperage() : -1,
         // battery_remaining Remaining battery energy: (0%: 0, 100%: 100), -1: autopilot estimate the remaining battery
         feature(FEATURE_VBAT) ? calculateBatteryPercentage() : 100,
         // drop_rate_comm Communication drops in percent, (0%: 0, 100%: 10'000), (UART, I2C, SPI, CAN), dropped packets on all links (packets that were corrupted on reception on the MAV)
@@ -428,34 +427,24 @@ void mavlinkSendHUDAndHeartbeat(void)
         mavModes |= MAV_MODE_FLAG_SAFETY_ARMED;
 
     uint8_t mavSystemType;
-    switch (mixerConfig()->mixerMode)
+    switch (mixerConfig()->platformType)
     {
-        case MIXER_TRI:
-            mavSystemType = MAV_TYPE_TRICOPTER;
-            break;
-        case MIXER_QUADP:
-        case MIXER_QUADX:
-        case MIXER_Y4:
-        case MIXER_VTAIL4:
+        case PLATFORM_MULTIROTOR:
             mavSystemType = MAV_TYPE_QUADROTOR;
             break;
-        case MIXER_Y6:
-        case MIXER_HEX6:
-        case MIXER_HEX6X:
-            mavSystemType = MAV_TYPE_HEXAROTOR;
+        case PLATFORM_TRICOPTER:
+            mavSystemType = MAV_TYPE_TRICOPTER;
             break;
-        case MIXER_OCTOX8:
-        case MIXER_OCTOFLATP:
-        case MIXER_OCTOFLATX:
-            mavSystemType = MAV_TYPE_OCTOROTOR;
-            break;
-        case MIXER_FLYING_WING:
-        case MIXER_AIRPLANE:
-        case MIXER_CUSTOM_AIRPLANE:
+        case PLATFORM_AIRPLANE:
             mavSystemType = MAV_TYPE_FIXED_WING;
             break;
-        case MIXER_HELI_120_CCPM:
-        case MIXER_HELI_90_DEG:
+        case PLATFORM_ROVER:
+            mavSystemType = MAV_TYPE_GROUND_ROVER;
+            break;
+        case PLATFORM_BOAT:
+            mavSystemType = MAV_TYPE_SURFACE_BOAT;
+            break;
+        case PLATFORM_HELICOPTER:
             mavSystemType = MAV_TYPE_HELICOPTER;
             break;
         default:

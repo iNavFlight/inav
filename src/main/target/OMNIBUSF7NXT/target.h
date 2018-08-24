@@ -63,12 +63,12 @@
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_BARO
-
-#define USE_BARO_BMP280
-#define BMP280_SPI_BUS        BUS_SPI2
-#define BMP280_CS_PIN         PA10
+#define USE_BARO_LPS25H
+#define LPS25H_SPI_BUS          BUS_SPI2
+#define LPS25H_CS_PIN           PA10
 
 #define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
@@ -186,7 +186,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
-#define USABLE_TIMER_CHANNEL_COUNT 8
-
-#define USED_TIMERS             (TIM_N(1) | TIM_N(3) | TIM_N(4) | TIM_N(8))

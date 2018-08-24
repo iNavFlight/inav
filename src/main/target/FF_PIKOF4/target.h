@@ -105,6 +105,8 @@
 //#define VBUS_SENSING_PIN        PA8
 //#define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -113,9 +115,9 @@
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 #if defined(FF_PIKOF4OSD)
-#define INVERTER_PIN_UART3      PC3
+#define INVERTER_PIN_UART3_RX   PC3
 #else
-#define INVERTER_PIN_UART3      PC8
+#define INVERTER_PIN_UART3_RX   PC8
 #endif
 
 #define USE_UART4
@@ -163,7 +165,7 @@
 /*---------------------------------*/
 
 /*-----------LED Strip-------------*/
-#define LED_STRIP
+#define USE_LED_STRIP
 #define WS2811_PIN                      PB7
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
 #define WS2811_DMA_STREAM               DMA1_Stream2
@@ -193,11 +195,7 @@
 /*--------------TIMERS-------------*/
 #if defined(FF_PIKOF4OSD)
 #define MAX_PWM_OUTPUT_PORTS        7
-#define USABLE_TIMER_CHANNEL_COUNT  7
-#define USED_TIMERS             ( TIM_N(3) | TIM_N(5) | TIM_N(12) )
 #else
 #define MAX_PWM_OUTPUT_PORTS        5
-#define USABLE_TIMER_CHANNEL_COUNT  5
-#define USED_TIMERS             ( TIM_N(2) | TIM_N(3) | TIM_N(4) )
 #endif
 /*---------------------------------*/

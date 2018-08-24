@@ -41,6 +41,7 @@
 #include "drivers/rangefinder/rangefinder_srf10.h"
 #include "drivers/rangefinder/rangefinder_hcsr04_i2c.h"
 #include "drivers/rangefinder/rangefinder_vl53l0x.h"
+#include "drivers/rangefinder/rangefinder_virtual.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -48,6 +49,8 @@
 #include "sensors/sensors.h"
 #include "sensors/rangefinder.h"
 #include "sensors/battery.h"
+
+#include "io/rangefinder.h"
 
 #include "scheduler/scheduler.h"
 
@@ -58,7 +61,7 @@ rangefinder_t rangefinder;
 #define RANGEFINDER_HARDWARE_TIMEOUT_MS         500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
 
 #define RANGEFINDER_DYNAMIC_THRESHOLD           600     //Used to determine max. usable rangefinder disatance
-#define RANGEFINDER_DYNAMIC_FACTOR              75    
+#define RANGEFINDER_DYNAMIC_FACTOR              75
 
 #ifdef USE_RANGEFINDER
 PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 1);
@@ -72,18 +75,7 @@ const rangefinderHardwarePins_t * rangefinderGetHardwarePins(void)
 {
     static rangefinderHardwarePins_t rangefinderHardwarePins;
 
-#if defined(RANGEFINDER_HCSR04_PWM_TRIGGER_PIN)
-    // If we are using softserial, parallel PWM or ADC current sensor, then use motor pins for sonar, otherwise use RC pins
-    if (feature(FEATURE_SOFTSERIAL)
-            || (rxConfig()->receiverType == RX_TYPE_PWM)
-            || (feature(FEATURE_CURRENT_METER) && batteryConfig()->currentMeterType == CURRENT_SENSOR_ADC)) {
-        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN_PWM);
-        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN_PWM);
-    } else {
-        rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
-        rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
-    }
-#elif defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
+#if defined(RANGEFINDER_HCSR04_TRIGGER_PIN)
     rangefinderHardwarePins.triggerTag = IO_TAG(RANGEFINDER_HCSR04_TRIGGER_PIN);
     rangefinderHardwarePins.echoTag = IO_TAG(RANGEFINDER_HCSR04_ECHO_PIN);
 #else
@@ -142,6 +134,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
+        case RANGEFINDER_MSP:
+#if defined(USE_RANGEFINDER_MSP)
+            if (virtualRangefinderDetect(dev, &rangefinderMSPVtable)) {
+                rangefinderHardware = RANGEFINDER_MSP;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
         case RANGEFINDER_UIB:
 #if defined(USE_RANGEFINDER_UIB)
             if (uibRangefinderDetect(dev)) {
@@ -168,12 +169,6 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
     return true;
 }
 
-void rangefinderResetDynamicThreshold(void)
-{
-    rangefinder.snrThresholdReached = false;
-    rangefinder.dynamicDistanceThreshold = 0;
-}
-
 bool rangefinderInit(void)
 {
     if (!rangefinderDetect(&rangefinder.dev, rangefinderConfig()->rangefinder_hardware)) {
@@ -185,9 +180,6 @@ bool rangefinderInit(void)
     rangefinder.calculatedAltitude = RANGEFINDER_OUT_OF_RANGE;
     rangefinder.maxTiltCos = cos_approx(DECIDEGREES_TO_RADIANS(rangefinder.dev.detectionConeExtendedDeciDegrees / 2.0f));
     rangefinder.lastValidResponseTimeMs = millis();
-    rangefinder.snr = 0;
-
-    rangefinderResetDynamicThreshold();
 
     return true;
 }
@@ -210,35 +202,6 @@ static int32_t applyMedianFilter(int32_t newReading)
     return medianFilterReady ? quickMedianFilter5(filterSamples) : newReading;
 }
 
-static int16_t computePseudoSnr(int32_t newReading) {
-    #define SNR_SAMPLES 5
-    static int16_t snrSamples[SNR_SAMPLES];
-    static uint8_t snrSampleIndex = 0;
-    static int32_t previousReading = RANGEFINDER_OUT_OF_RANGE;
-    static bool snrReady = false;
-    int16_t pseudoSnr = 0;
-
-    snrSamples[snrSampleIndex] = constrain((int)(pow(newReading - previousReading, 2) / 10), 0, 6400);
-    ++snrSampleIndex;
-    if (snrSampleIndex == SNR_SAMPLES) {
-        snrSampleIndex = 0;
-        snrReady = true;
-    }
-
-    previousReading = newReading;
-
-    if (snrReady) {
-
-        for (uint8_t i = 0; i < SNR_SAMPLES; i++) {
-            pseudoSnr += snrSamples[i];
-        }
-
-        return constrain(pseudoSnr, 0, 32000);
-    } else {
-        return RANGEFINDER_OUT_OF_RANGE;
-    }
-}
-
 /*
  * This is called periodically by the scheduler
  */
@@ -249,34 +212,6 @@ timeDelta_t rangefinderUpdate(void)
     }
 
     return rangefinder.dev.delayMs * 1000;  // to microseconds
-}
-
-bool isSurfaceAltitudeValid() {
-
-    /*
-     * Preconditions: raw and calculated altidude > 0
-     * SNR lower than threshold
-     */ 
-    if (
-        rangefinder.calculatedAltitude > 0 &&
-        rangefinder.rawAltitude > 0 &&
-        rangefinder.snr < RANGEFINDER_DYNAMIC_THRESHOLD
-    ) {
-
-        /*
-         * When critical altitude was determined, distance reported by rangefinder
-         * has to be lower than it to assume healthy readout
-         */
-        if (rangefinder.snrThresholdReached) {
-            return (rangefinder.rawAltitude < rangefinder.dynamicDistanceThreshold);
-        } else {
-            return true;
-        }
-
-    } else {
-        return false;
-    }
-
 }
 
 /**
@@ -308,28 +243,6 @@ bool rangefinderProcess(float cosTiltAngle)
             // Invalid response / hardware failure
             rangefinder.rawAltitude = RANGEFINDER_HARDWARE_FAILURE;
         }
-
-        rangefinder.snr = computePseudoSnr(distance);
-
-        if (rangefinder.snrThresholdReached == false && rangefinder.rawAltitude > 0) {
-
-            if (rangefinder.snr < RANGEFINDER_DYNAMIC_THRESHOLD && rangefinder.dynamicDistanceThreshold < rangefinder.rawAltitude) {
-                rangefinder.dynamicDistanceThreshold = rangefinder.rawAltitude * RANGEFINDER_DYNAMIC_FACTOR / 100;
-            }
-
-            if (rangefinder.snr >= RANGEFINDER_DYNAMIC_THRESHOLD) {
-                rangefinder.snrThresholdReached = true;
-            }
-
-        }
-
-        DEBUG_SET(DEBUG_RANGEFINDER, 3, rangefinder.snr);
-
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 0, rangefinder.rawAltitude);
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 1, rangefinder.snrThresholdReached);
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 2, rangefinder.dynamicDistanceThreshold);
-        DEBUG_SET(DEBUG_RANGEFINDER_QUALITY, 3, isSurfaceAltitudeValid());
-
     }
     else {
         // Bad configuration
@@ -347,9 +260,6 @@ bool rangefinderProcess(float cosTiltAngle)
     } else {
         rangefinder.calculatedAltitude = rangefinder.rawAltitude * cosTiltAngle;
     }
-
-    DEBUG_SET(DEBUG_RANGEFINDER, 1, rangefinder.rawAltitude);
-    DEBUG_SET(DEBUG_RANGEFINDER, 2, rangefinder.calculatedAltitude);
 
     return true;
 }

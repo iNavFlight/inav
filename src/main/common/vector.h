@@ -41,6 +41,13 @@ typedef struct {
 void rotationMatrixFromAngles(fpMat3_t * rmat, const fp_angles_t * angles);
 void rotationMatrixFromAxisAngle(fpMat3_t * rmat, const fpAxisAngle_t * a);
 
+static inline void vectorZero(fpVector3_t * v)
+{
+    v->x = 0.0f;
+    v->y = 0.0f;
+    v->z = 0.0f;
+}
+
 static inline fpVector3_t * rotationMatrixRotateVector(fpVector3_t * result, const fpVector3_t * a, const fpMat3_t * rmat)
 {
     fpVector3_t r;
@@ -54,7 +61,7 @@ static inline fpVector3_t * rotationMatrixRotateVector(fpVector3_t * result, con
 }
 
 static inline float vectorNormSquared(const fpVector3_t * v)
-{ 
+{
     return sq(v->x) + sq(v->y) + sq(v->z);
 }
 

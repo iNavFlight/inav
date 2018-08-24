@@ -30,9 +30,7 @@
 #define __PLATFORM_CONFIG_H
 
 /* Includes ------------------------------------------------------------------*/
-#if defined (STM32F10X_MD) || defined (STM32F10X_HD)
-#include "stm32f10x.h"
-#elif defined (STM32F303xC)
+#if defined (STM32F303xC)
 #include "stm32f30x.h"
 #endif
 

@@ -40,8 +40,6 @@
 #define BEEPER                  PC9
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART3      PB15
-
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC5
 #define USE_MPU_DATA_READY_SIGNAL
@@ -70,6 +68,8 @@
 #   define USE_MAG_QMC5883
 #   define USE_MAG_MAG3110
 #   define USE_MAG_IST8310
+#   define USE_MAG_IST8308
+#   define USE_MAG_LIS3MDL
 
 #   define USE_BARO
 #   define BARO_I2C_BUS            BUS_I2C1
@@ -93,6 +93,8 @@
 #define VBUS_SENSING_PIN        PA8
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -100,6 +102,7 @@
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
+#define INVERTER_PIN_UART3_RX   PB15
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
@@ -169,11 +172,7 @@
 
 
 #ifdef KAKUTEF4V2
-#   define USABLE_TIMER_CHANNEL_COUNT 6
 #   define MAX_PWM_OUTPUT_PORTS       4
-#   define USED_TIMERS  ( TIM_N(2) | TIM_N(3) |  TIM_N(8))
 #else
-#   define USABLE_TIMER_CHANNEL_COUNT 8
 #   define MAX_PWM_OUTPUT_PORTS       6
-#   define USED_TIMERS  ( TIM_N(2) | TIM_N(3) | TIM_N(5)  |  TIM_N(8))
 #endif

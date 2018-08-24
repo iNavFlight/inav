@@ -43,8 +43,8 @@ typedef enum {
     BEEPER_SYSTEM_INIT,             // Initialisation beeps when board is powered on
     BEEPER_USB,                     // Some boards have beeper powered USB connected
     BEEPER_LAUNCH_MODE_ENABLED,     // Fixed-wing launch mode enabled
-    BEEPER_CAM_CONNECTION_OPEN,     // When the 5 key simulation stated 
-    BEEPER_CAM_CONNECTION_CLOSE,    // When the 5 key simulation stop 
+    BEEPER_CAM_CONNECTION_OPEN,     // When the 5 key simulation stated
+    BEEPER_CAM_CONNECTION_CLOSE,    // When the 5 key simulation stop
 
     BEEPER_ALL,                     // Turn ON or OFF all beeper conditions
     BEEPER_PREFERENCE,              // Save preferred beeper configuration

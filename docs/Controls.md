@@ -28,6 +28,9 @@ The stick positions are combined to activate different functions:
 | Profile 1                     | LOW      | LOW     | CENTER | LOW    |
 | Profile 2                     | LOW      | LOW     | HIGH   | CENTER |
 | Profile 3                     | LOW      | LOW     | CENTER | HIGH   |
+| Battery profile 1             | HIGH     | LOW     | CENTER | LOW    |
+| Battery profile 2             | HIGH     | LOW     | HIGH   | CENTER |
+| Battery profile 3             | HIGH     | LOW     | CENTER | HIGH   |
 | Calibrate Gyro                | LOW      | LOW     | LOW    | CENTER |
 | Calibrate Acc                 | HIGH     | LOW     | LOW    | CENTER |
 | Calibrate Mag/Compass         | HIGH     | HIGH    | LOW    | CENTER |

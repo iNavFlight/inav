@@ -23,8 +23,6 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART6      PC8
-
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
@@ -61,6 +59,8 @@
 #define USE_VCP
 #define VBUS_SENSING_PIN PC5
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -72,6 +72,7 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
+#define INVERTER_PIN_UART6_RX   PC8
 
 #define SERIAL_PORT_COUNT       4   // VCP, UART1, UART3, UART6
 
@@ -112,6 +113,4 @@
 #define TARGET_IO_PORTC (0xffff & ~(BIT(15)|BIT(14)|BIT(13)))
 #define TARGET_IO_PORTD BIT(2)
 
-#define USABLE_TIMER_CHANNEL_COUNT  7
 #define MAX_PWM_OUTPUT_PORTS        6
-#define USED_TIMERS ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) )

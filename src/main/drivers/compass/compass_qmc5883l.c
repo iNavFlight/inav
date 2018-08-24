@@ -38,7 +38,6 @@
 #include "common/utils.h"
 
 #include "drivers/time.h"
-#include "drivers/gpio.h"
 #include "drivers/bus_i2c.h"
 
 #include "sensors/boardalignment.h"
@@ -123,18 +122,22 @@ static bool qmc5883Read(magDev_t * mag)
 #define DETECTION_MAX_RETRY_COUNT   5
 static bool deviceDetect(magDev_t * mag)
 {
-    // Must write reset first  - don't care about the result
-    busWrite(mag->busDev, QMC5883L_REG_CONF2, QMC5883L_RST);
-    delay(20);
-
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
-        delay(10);
+        // Must write reset first  - don't care about the result
+        busWrite(mag->busDev, QMC5883L_REG_CONF2, QMC5883L_RST);
+        delay(30);
 
         uint8_t sig = 0;
         bool ack = busRead(mag->busDev, QMC5883L_REG_ID, &sig);
 
         if (ack && sig == QMC5883_ID_VAL) {
-            return true;
+            // Should be in standby mode after soft reset and sensor is really present
+            // Reading ChipID of 0xFF alone is not sufficient to be sure the QMC is present
+
+            ack = busRead(mag->busDev, QMC5883L_REG_CONF1, &sig);
+            if (ack && sig == QMC5883L_MODE_STANDBY) {
+                return true;
+            }
         }
     }
 

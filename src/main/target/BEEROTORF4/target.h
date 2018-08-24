@@ -52,9 +52,13 @@
 #define MAG_I2C_BUS             BUS_I2C1
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_HMC5883
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_OSD
 #define USE_MAX7456
@@ -78,6 +82,8 @@
 #define VBUS_SENSING_ENABLED
 #define VBUS_SENSING_PIN        PC5
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -87,15 +93,13 @@
 #define USE_UART2
 #define UART2_RX_PIN            PA3 //Shared with PPM
 #define UART2_TX_PIN            PA2
-
-#define INVERTER_PIN_UART2      PC15
+#define INVERTER_PIN_UART2_RX   PC15
 
 //Telemetry
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
-
-#define INVERTER_PIN_UART3      PC14
+#define INVERTER_PIN_UART3_RX   PC14
 
 #define SERIAL_PORT_COUNT 4
 
@@ -180,6 +184,3 @@
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD (BIT(2))
-
-#define USABLE_TIMER_CHANNEL_COUNT 10
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(9) | TIM_N(11) )

@@ -16,16 +16,18 @@
 */
 
 #include <stdint.h>
-#include <platform.h>
+
+#include "platform.h"
+
+#include "drivers/bus.h"
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
-#include "drivers/bus.h"
 
 #define TIM_EN      TIMER_OUTPUT_ENABLED
 #define TIM_EN_N    TIMER_OUTPUT_ENABLED | TIMER_OUTPUT_N_CHANNEL
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     { TIM5, IO_TAG(PA3),    TIM_CHANNEL_4, 0,        IOCFG_AF_PP_PD, GPIO_AF2_TIM5, TIM_USE_PPM },
 
     { TIM3, IO_TAG(PC6),    TIM_CHANNEL_1, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, //S1 DMA1_ST4 MT1
@@ -33,10 +35,12 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM8, IO_TAG(PC8),    TIM_CHANNEL_3, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF3_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, //S3 DMA2_ST4 SV4
     { TIM8, IO_TAG(PC9),    TIM_CHANNEL_4, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF3_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, //S4 DMA2_ST7 SV5
     { TIM3, IO_TAG(PB1),    TIM_CHANNEL_4, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, //S5 DMA1_ST2 MT2
-    { TIM1, IO_TAG(PA8),    TIM_CHANNEL_1, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF1_TIM1, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, //S6 DMA2_ST6 SV6
+    { TIM1, IO_TAG(PA8),    TIM_CHANNEL_1, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF1_TIM1, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, //S6 DMA2_ST6 SV6
     { TIM4, IO_TAG(PB8),    TIM_CHANNEL_3, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM4, TIM_USE_MC_CHNFW | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, //S7 DMA1_ST7
 
-    //{ TIM5, IO_TAG(PA2),    TIM_CHANNEL_3, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM5, TIM_USE_ANY }, 
+    //{ TIM5, IO_TAG(PA2),    TIM_CHANNEL_3, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM5, TIM_USE_ANY },
 
     { TIM2, IO_TAG(PA15),   TIM_CHANNEL_1, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF1_TIM2, TIM_USE_LED}, //2812 STRIP DMA1_ST5
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

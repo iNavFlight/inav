@@ -22,7 +22,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     // PPM Pad
 #ifdef SPRACINGF3MINI_MKII_REVA
     { TIM3,  IO_TAG(PB5),  TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_PPM }, // PPM - PB5
@@ -38,14 +38,16 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM4,  IO_TAG(PB9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // PWM4 - PB9
     { TIM15, IO_TAG(PA2),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM5 - PA2
     { TIM15, IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM6 - PA3
-    { TIM2,  IO_TAG(PA0),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO },  // PWM7 - PA0
-    { TIM2,  IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO },  // PWM8 - PA1
+    { TIM2,  IO_TAG(PA0),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM7 - PA0
+    { TIM2,  IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM8 - PA1
 
     // UART3 RX/TX
-    { TIM2,  IO_TAG(PB10), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO }, // PWM9  - PB10 - TIM2_CH3 / UART3_TX (AF7)
-    { TIM2,  IO_TAG(PB11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO }, // PWM10 - PB11 - TIM2_CH4 / UART3_RX (AF7)
+    { TIM2,  IO_TAG(PB10), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, // PWM9  - PB10 - TIM2_CH3 / UART3_TX (AF7)
+    { TIM2,  IO_TAG(PB11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, // PWM10 - PB11 - TIM2_CH4 / UART3_RX (AF7)
 
     // LED Strip Pad
     { TIM1,  IO_TAG(PA8),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6, TIM_USE_LED },  // GPIO_TIMER / LED_STRIP
 };
 
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

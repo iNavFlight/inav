@@ -25,6 +25,7 @@ extern "C" {
     #include "drivers/time.h"
     extern timeUs_t usTicks;
     extern volatile timeMs_t sysTickUptime;
+    extern volatile timeMs_t sysTickValStamp;
 }
 
 #include "unittest_macros.h"
@@ -44,7 +45,7 @@ TEST(TimeUnittest, TestMillis)
 TEST(TimeUnittest, TestMicros)
 {
     usTicks = 168;
-    SysTick->VAL = 1000 * usTicks;
+    sysTickValStamp = SysTick->VAL = 1000 * usTicks;
     sysTickUptime = 0;
     EXPECT_EQ(0, micros());
     sysTickUptime = 1;
@@ -58,7 +59,7 @@ TEST(TimeUnittest, TestMicros)
     EXPECT_EQ(500000000, micros());
 
     sysTickUptime = 0;
-    SysTick->VAL = 0;
+    sysTickValStamp = SysTick->VAL = 0;
     EXPECT_EQ(1000, micros());
     sysTickUptime = 1;
     EXPECT_EQ(2000, micros());

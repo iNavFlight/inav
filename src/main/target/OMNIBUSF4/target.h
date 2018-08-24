@@ -41,12 +41,6 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-#if defined(OMNIBUSF4V3)
-  #define INVERTER_PIN_UART6      PC8
-#else
-  #define INVERTER_PIN_UART1      PC0 // PC0 has never been used as inverter control on genuine OMNIBUS F4 variants, but leave it as is since some clones actually implement it.
-#endif
-
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
@@ -96,7 +90,9 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_BARO
 
@@ -104,6 +100,11 @@
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
+
+  // Support external barometers
+  #define BARO_I2C_BUS          BUS_I2C2
+  #define USE_BARO_BMP085
+  #define USE_BARO_MS5611
 #else
   #define BARO_I2C_BUS          BUS_I2C2
   #define USE_BARO_BMP085
@@ -117,15 +118,24 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 #define USE_RANGEFINDER_HCSR04_I2C
+#define USE_RANGEFINDER_VL53L0X
+
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_CXOF
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
+#if !defined(OMNIBUSF4V3)
+#define INVERTER_PIN_UART1_RX PC0 // PC0 has never been used as inverter control on genuine OMNIBUS F4 variants, but leave it as is since some clones actually implement it.
+#endif
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -134,9 +144,17 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
+#if defined(OMNIBUSF4V3)
+  #define INVERTER_PIN_UART6_RX PC8
+  #define INVERTER_PIN_UART6_TX PC9
+#endif
 
 #if defined(OMNIBUSF4V3)
-#define SERIAL_PORT_COUNT       4 //VCP, USART1, USART3, USART6
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PC6 //shared with UART6_TX
+#define SOFTSERIAL_1_TX_PIN     PC6 //shared with UART6_TX
+
+#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
 #else
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC8
@@ -241,18 +259,8 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-#define USABLE_TIMER_CHANNEL_COUNT 13
-#else
-#define USABLE_TIMER_CHANNEL_COUNT 12
-#endif
-
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(4) | TIM_N(8) | TIM_N(9) | TIM_N(10) )
-#else
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(9) )
-#endif
-
 #ifdef OMNIBUSF4PRO
 #define CURRENT_METER_SCALE   265
 #endif
+
+#define PCA9685_I2C_BUS         BUS_I2C2

@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "common/time.h"
+
 #define SMARTPORT_MSP_TX_BUF_SIZE 256
 #define SMARTPORT_MSP_RX_BUF_SIZE 64
 
@@ -55,3 +57,4 @@ smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, smartPor
 struct serialPort_s;
 void smartPortWriteFrameSerial(const smartPortPayload_t *payload, struct serialPort_s *port, uint16_t checksum);
 void smartPortSendByte(uint8_t c, uint16_t *checksum, struct serialPort_s *port);
+bool smartPortPayloadContainsMSP(const smartPortPayload_t *payload);

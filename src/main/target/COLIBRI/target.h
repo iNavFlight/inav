@@ -36,8 +36,6 @@
 
 #define BEEPER                  PC5
 
-#define INVERTER_PIN_UART2      PB2 // PB2 used as inverter select GPIO
-
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
@@ -57,7 +55,9 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #ifdef QUANTON
 #define ACC_MPU6000_ALIGN       CW90_DEG
@@ -82,6 +82,8 @@
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
@@ -90,6 +92,7 @@
 #define USE_UART2
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
+#define INVERTER_PIN_UART2_RX   PB2 // PB2 used as inverter select GPIO
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -151,8 +154,5 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define MAX_PWM_OUTPUT_PORTS    15
-
-#define USABLE_TIMER_CHANNEL_COUNT 17
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(12) | TIM_N(8) | TIM_N(10) | TIM_N(11))
 
 #undef USE_PITOT

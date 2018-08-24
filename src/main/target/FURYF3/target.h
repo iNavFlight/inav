@@ -60,6 +60,7 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_MAG3110
 #define USE_MAG_QMC5883
+#define USE_MAG_LIS3MDL
 
 #define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C1
@@ -176,6 +177,3 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTF         (BIT(4))
-
-#define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(16) |TIM_N(17))

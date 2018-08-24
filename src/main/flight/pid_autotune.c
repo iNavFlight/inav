@@ -79,7 +79,7 @@ typedef struct {
 
 #define AUTOTUNE_SAVE_PERIOD        5000        // Save interval is 5 seconds - when we turn off autotune we'll restore values from previous update at most 5 sec ago
 
-#if defined(AUTOTUNE_FIXED_WING) || defined(AUTOTUNE_MULTIROTOR)
+#if defined(USE_AUTOTUNE_FIXED_WING) || defined(USE_AUTOTUNE_MULTIROTOR)
 
 static pidAutotuneData_t    tuneCurrent[XYZ_AXIS_COUNT];
 static pidAutotuneData_t    tuneSaved[XYZ_AXIS_COUNT];
@@ -159,7 +159,7 @@ static void blackboxLogAutotuneEvent(adjustmentFunction_e adjustmentFunction, in
 #endif
 }
 
-#if defined(AUTOTUNE_FIXED_WING)
+#if defined(USE_AUTOTUNE_FIXED_WING)
 
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput)
 {

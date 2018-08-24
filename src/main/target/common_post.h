@@ -21,7 +21,7 @@
 
 // Targets with built-in vtx do not need external vtx
 #if defined(VTX) || defined(USE_RTC6705)
-# undef VTX_CONTROL
+# undef USE_VTX_CONTROL
 #endif
 
 // Backward compatibility for I2C OLED display

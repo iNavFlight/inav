@@ -22,7 +22,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
     // PPM / UART2 RX
     { TIM8,  IO_TAG(PA15), TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_PPM },  // PPM
 
@@ -34,11 +34,11 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     { TIM16, IO_TAG(PA6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // PWM5 - PA6  - TIM3_CH1, TIM8_BKIN, TIM1_BKIN, *TIM16_CH1
     { TIM17, IO_TAG(PA7),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // PWM6 - PA7  - TIM3_CH2, *TIM17_CH1, TIM1_CH1N, TIM8_CH1
 #else
-    { TIM3,  IO_TAG(PA6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO },  // PWM5
-    { TIM3,  IO_TAG(PA7),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO },  // PWM6
+    { TIM3,  IO_TAG(PA6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM5
+    { TIM3,  IO_TAG(PA7),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM6
 #endif
-    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM7
-    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_CHNFW | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM8
+    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM7
+    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM8
 
     // UART3 RX/TX
     { TIM2,  IO_TAG(PB10), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // RC_CH4 - PB10 - *TIM2_CH3, USART3_TX (AF7)
@@ -47,3 +47,5 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     // IR / LED Strip Pad
     { TIM1,  IO_TAG(PA8),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6, TIM_USE_LED },  // GPIO_TIMER / LED_STRIP
 };
+
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

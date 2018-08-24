@@ -111,8 +111,9 @@ static bool cxofOpflowUpdate(opflowData_t * data)
                 if (pkt->header == 0xFE && pkt->footer == 0xAA) {
                     // Valid packet
                     tmpData.deltaTime += (currentTimeUs - previousTimeUs);
-                    tmpData.flowRateRaw[0] +=  pkt->motionX;
-                    tmpData.flowRateRaw[1] += -pkt->motionY;    // Flow sensor is facing down, apply 180 roll rotation
+                    tmpData.flowRateRaw[0] += pkt->motionX;
+                    tmpData.flowRateRaw[1] += pkt->motionY;
+                    tmpData.flowRateRaw[2] = 0;
                     tmpData.quality = (constrain(pkt->squal, 64, 78) - 64) * 100 / 14;
 
                     previousTimeUs = currentTimeUs;
@@ -128,7 +129,7 @@ static bool cxofOpflowUpdate(opflowData_t * data)
             bufferPtr = 0;
         }
     }
-    
+
     if (newPacket) {
         *data = tmpData;
     }

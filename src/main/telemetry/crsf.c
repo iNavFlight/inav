@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_CRSF)
+#if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
 
 #include "build/build_config.h"
 #include "build/version.h"
@@ -57,7 +57,13 @@
 #include "telemetry/telemetry.h"
 
 
-#define CRSF_CYCLETIME_US                   100000 // 100ms, 10 Hz
+#define CRSF_CYCLETIME_US                   100000  // 100ms, 10 Hz
+
+// According to TBS: "CRSF over serial should always use a sync byte at the beginning of each frame.
+// To get better performance it's recommended to use the sync byte 0xC8 to get better performance"
+//
+// Digitalentity: Using frame address byte as a sync field looks somewhat hacky to me, but seems it's needed to get CRSF working properly
+#define CRSF_TELEMETRY_SYNC_BYTE            0xC8
 
 static bool crsfTelemetryEnabled;
 static uint8_t crsfCrc;
@@ -69,7 +75,7 @@ static void crsfInitializeFrame(sbuf_t *dst)
     dst->ptr = crsfFrame;
     dst->end = ARRAYEND(crsfFrame);
 
-    sbufWriteU8(dst, CRSF_ADDRESS_BROADCAST);
+    sbufWriteU8(dst, CRSF_TELEMETRY_SYNC_BYTE);
 }
 
 static void crsfSerialize8(sbuf_t *dst, uint8_t v)

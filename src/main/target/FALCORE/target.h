@@ -54,7 +54,9 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1
@@ -143,6 +145,4 @@
 #define TARGET_IO_PORTD         0xFFFF
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
 
-#define USABLE_TIMER_CHANNEL_COUNT 9
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(16))
-
+#define PCA9685_I2C_BUS         BUS_I2C2

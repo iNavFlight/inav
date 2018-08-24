@@ -31,8 +31,6 @@
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART2      PB2
-
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC13
 #define USE_MPU_DATA_READY_SIGNAL
@@ -65,9 +63,14 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
+
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define USE_UART2
 #define USE_UART3
@@ -80,6 +83,7 @@
 
 #define UART2_TX_PIN            PA2
 #define UART2_RX_PIN            PA3
+#define INVERTER_PIN_UART2_RX   PB2
 
 #define UART3_TX_PIN            PB10
 #define UART3_RX_PIN            PB11
@@ -121,7 +125,7 @@
 #define SPI3_MISO_PIN           PB4  // NC
 #define SPI3_MOSI_PIN           PB5  // NC
 
-#define VTX_RTC6705
+#define USE_VTX_RTC6705
 #define VTX_RTC6705_OPTIONAL    // SPI3 on an F4 EVO may be used for RTC6705 VTX control.
 
 #define RTC6705_CS_PIN          SPI3_NSS_PIN
@@ -181,12 +185,4 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#define USABLE_TIMER_CHANNEL_COUNT  11
 #define MAX_PWM_OUTPUT_PORTS        8
-
-#if (SPRACINGF4NEO_REV >= 2)
-#define USED_TIMERS  (TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(9))
-#else
-#define USED_TIMERS  (TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(9))
-#endif
-

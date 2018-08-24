@@ -112,14 +112,14 @@
     #define USE_MAG_MAG3110
     #define USE_MAG_QMC5883
     #define USE_MAG_IST8310
+    #define USE_MAG_IST8308
+    #define USE_MAG_LIS3MDL
 
     #define MAX_PWM_OUTPUT_PORTS        8
     #define TARGET_MOTOR_COUNT          4
-    #define USABLE_TIMER_CHANNEL_COUNT  10
 #else
     #define MAX_PWM_OUTPUT_PORTS        10
     #define TARGET_MOTOR_COUNT          6
-    #define USABLE_TIMER_CHANNEL_COUNT  12
 #endif
 
 #define USE_SPEKTRUM_BIND
@@ -133,5 +133,3 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTF         (BIT(4))
-
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) )

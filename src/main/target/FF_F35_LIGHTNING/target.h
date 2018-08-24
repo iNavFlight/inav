@@ -61,6 +61,8 @@
 #define USE_VCP
 // #define VBUS_SENSING_PIN        PA9
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
@@ -69,11 +71,10 @@
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
 
-#define INVERTER_PIN_UART3      PA8
-
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
+#define INVERTER_PIN_UART3_RX   PA8
 
 #define USE_UART4
 #define UART4_RX_PIN            PC11
@@ -131,7 +132,6 @@
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS       6
-#define USABLE_TIMER_CHANNEL_COUNT 7
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -139,6 +139,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
-
-#define USED_TIMERS             ( TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) )
-

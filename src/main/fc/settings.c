@@ -4,12 +4,13 @@
 #include "common/string_light.h"
 #include "common/utils.h"
 
-#include "fc/settings_generated.h"
+#include "settings_generated.h"
+
 #include "fc/settings.h"
 
-#include "fc/settings_generated.c"
+#include "settings_generated.c"
 
-void setting_get_name(const setting_t *val, char *buf)
+void settingGetName(const setting_t *val, char *buf)
 {
 	uint8_t bpos = 0;
 	uint16_t n = 0;
@@ -51,24 +52,24 @@ void setting_get_name(const setting_t *val, char *buf)
 	buf[bpos] = '\0';
 }
 
-bool setting_name_contains(const setting_t *val, char *buf, const char *cmdline)
+bool settingNameContains(const setting_t *val, char *buf, const char *cmdline)
 {
-	setting_get_name(val, buf);
+	settingGetName(val, buf);
 	return strstr(buf, cmdline) != NULL;
 }
 
-bool setting_name_exact_match(const setting_t *val, char *buf, const char *cmdline, uint8_t var_name_length)
+bool settingNameIsExactMatch(const setting_t *val, char *buf, const char *cmdline, uint8_t var_name_length)
 {
-	setting_get_name(val, buf);
+	settingGetName(val, buf);
 	return sl_strncasecmp(cmdline, buf, strlen(buf)) == 0 && var_name_length == strlen(buf);
 }
 
-const setting_t *setting_find(const char *name)
+const setting_t *settingFind(const char *name)
 {
 	char buf[SETTING_MAX_NAME_LENGTH];
 	for (int ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
 		const setting_t *setting = &settingsTable[ii];
-		setting_get_name(setting, buf);
+		settingGetName(setting, buf);
 		if (strcmp(buf, name) == 0) {
 			return setting;
 		}
@@ -76,7 +77,77 @@ const setting_t *setting_find(const char *name)
 	return NULL;
 }
 
-size_t setting_get_value_size(const setting_t *val)
+const setting_t *settingGet(unsigned index)
+{
+	return index < SETTINGS_TABLE_COUNT ? &settingsTable[index] : NULL;
+}
+
+unsigned settingGetIndex(const setting_t *val)
+{
+	return val - settingsTable;
+}
+
+bool settingsValidate(unsigned *invalidIndex)
+{
+	for (unsigned ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
+		const setting_t *setting = settingGet(ii);
+		setting_min_t min = settingGetMin(setting);
+		setting_max_t max = settingGetMax(setting);
+		void *ptr = settingGetValuePointer(setting);
+		bool isValid = false;
+		switch (SETTING_TYPE(setting)) {
+		case VAR_UINT8:
+		{
+			uint8_t *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_INT8:
+		{
+			int8_t *value = ptr;
+			isValid = *value >= min && *value <= (int8_t)max;
+			break;
+		}
+		case VAR_UINT16:
+		{
+			uint16_t *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_INT16:
+		{
+			int16_t *value = ptr;
+			isValid = *value >= min && *value <= (int16_t)max;
+			break;
+		}
+		case VAR_UINT32:
+		{
+			uint32_t *value = ptr;
+			isValid = *value >= (uint32_t)min && *value <= max;
+			break;
+		}
+		case VAR_FLOAT:
+		{
+			float *value = ptr;
+			isValid = *value >= min && *value <= max;
+			break;
+		}
+		case VAR_STRING:
+			// We assume all strings are valid
+			isValid = true;
+			break;
+		}
+		if (!isValid) {
+			if (invalidIndex) {
+				*invalidIndex = ii;
+			}
+			return false;
+		}
+	}
+	return true;
+}
+
+size_t settingGetValueSize(const setting_t *val)
 {
 	switch (SETTING_TYPE(val)) {
 		case VAR_UINT8:
@@ -91,11 +162,13 @@ size_t setting_get_value_size(const setting_t *val)
 			FALLTHROUGH;
 		case VAR_FLOAT:
 			return 4;
+		case VAR_STRING:
+			return settingGetMax(val);
 	}
 	return 0; // Unreachable
 }
 
-pgn_t setting_get_pgn(const setting_t *val)
+pgn_t settingGetPgn(const setting_t *val)
 {
 	uint16_t pos = val - (const setting_t *)settingsTable;
 	uint16_t acc = 0;
@@ -117,23 +190,25 @@ static uint16_t getValueOffset(const setting_t *value)
         return value->offset + sizeof(pidProfile_t) * getConfigProfile();
     case CONTROL_RATE_VALUE:
         return value->offset + sizeof(controlRateConfig_t) * getConfigProfile();
+    case BATTERY_CONFIG_VALUE:
+        return value->offset + sizeof(batteryProfile_t) * getConfigBatteryProfile();
     }
     return 0;
 }
 
-void *setting_get_value_pointer(const setting_t *val)
+void *settingGetValuePointer(const setting_t *val)
 {
-    const pgRegistry_t *pg = pgFind(setting_get_pgn(val));
+    const pgRegistry_t *pg = pgFind(settingGetPgn(val));
     return pg->address + getValueOffset(val);
 }
 
-const void * setting_get_copy_value_pointer(const setting_t *val)
+const void * settingGetCopyValuePointer(const setting_t *val)
 {
-    const pgRegistry_t *pg = pgFind(setting_get_pgn(val));
+    const pgRegistry_t *pg = pgFind(settingGetPgn(val));
     return pg->copy + getValueOffset(val);
 }
 
-setting_min_t setting_get_min(const setting_t *val)
+setting_min_t settingGetMin(const setting_t *val)
 {
 	if (SETTING_MODE(val) == MODE_LOOKUP) {
 		return 0;
@@ -141,10 +216,72 @@ setting_min_t setting_get_min(const setting_t *val)
 	return settingMinMaxTable[SETTING_INDEXES_GET_MIN(val)];
 }
 
-setting_max_t setting_get_max(const setting_t *val)
+setting_max_t settingGetMax(const setting_t *val)
 {
 	if (SETTING_MODE(val) == MODE_LOOKUP) {
 		return settingLookupTables[val->config.lookup.tableIndex].valueCount - 1;
 	}
 	return settingMinMaxTable[SETTING_INDEXES_GET_MAX(val)];
+}
+
+const lookupTableEntry_t * settingLookupTable(const setting_t *val)
+{
+	if (SETTING_MODE(val) == MODE_LOOKUP && val->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
+		return &settingLookupTables[val->config.lookup.tableIndex];
+	}
+	return NULL;
+}
+
+const char * settingLookupValueName(const setting_t *val, unsigned v)
+{
+	const lookupTableEntry_t *table = settingLookupTable(val);
+	if (table && v < table->valueCount) {
+		return table->values[v];
+	}
+	return NULL;
+}
+
+const char * settingGetString(const setting_t *val)
+{
+	if (SETTING_TYPE(val) == VAR_STRING) {
+		return settingGetValuePointer(val);
+	}
+	return NULL;
+}
+
+void settingSetString(const setting_t *val, const char *s, size_t size)
+{
+	if (SETTING_TYPE(val) == VAR_STRING) {
+		char *p = settingGetValuePointer(val);
+		size_t copySize = MIN(size, settingGetMax(val));
+		memcpy(p, s, copySize);
+		p[copySize] = '\0';
+	}
+}
+
+setting_max_t settingGetStringMaxLength(const setting_t *val)
+{
+	if (SETTING_TYPE(val) == VAR_STRING) {
+		// Max string length is stored as its max
+		return settingGetMax(val);
+	}
+	return 0;
+}
+
+bool settingsGetParameterGroupIndexes(pgn_t pg, uint16_t *start, uint16_t *end)
+{
+	unsigned acc = 0;
+	for (int ii = 0; ii < SETTINGS_PGN_COUNT; ii++) {
+		if (settingsPgn[ii] == pg) {
+			if (start) {
+				*start = acc;
+			}
+			if (end) {
+				*end = acc + settingsPgnCounts[ii] - 1;
+			}
+			return true;
+		}
+		acc += settingsPgnCounts[ii];
+	}
+	return false;
 }

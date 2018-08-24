@@ -34,7 +34,11 @@ typedef enum rc_alias {
     AUX5,
     AUX6,
     AUX7,
-    AUX8
+    AUX8,
+    AUX9,
+    AUX10,
+    AUX11,
+    AUX12
 } rc_alias_e;
 
 typedef enum {
@@ -81,6 +85,7 @@ typedef struct armingConfig_s {
     uint8_t fixed_wing_auto_arm;            // Auto-arm fixed wing aircraft on throttle up and never disarm
     uint8_t disarm_kill_switch;             // allow disarm via AUX switch regardless of throttle value
     uint8_t auto_disarm_delay;              // allow automatically disarming multicopters after auto_disarm_delay seconds of zero throttle. Disabled when 0
+    uint16_t switchDisarmDelayMs;           // additional delay between ARM box going off and actual disarm
 } armingConfig_t;
 
 PG_DECLARE(armingConfig_t, armingConfig);
@@ -92,6 +97,6 @@ bool areSticksInApModePosition(uint16_t ap_mode);
 bool areSticksDeflectedMoreThanPosHoldDeadband(void);
 throttleStatus_e calculateThrottleStatus(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
-void processRcStickPositions(throttleStatus_e throttleStatus, bool disarm_kill_switch, bool fixed_wing_auto_arm);
+void processRcStickPositions(throttleStatus_e throttleStatus);
 
-int32_t getRcStickDeflection(int32_t axis, uint16_t midrc);
+int32_t getRcStickDeflection(int32_t axis);

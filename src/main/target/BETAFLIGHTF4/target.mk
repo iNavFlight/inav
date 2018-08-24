@@ -14,7 +14,9 @@ TARGET_SRC = \
             drivers/compass/compass_hmc5883l.c \
             drivers/compass/compass_qmc5883l.c \
             drivers/compass/compass_ist8310.c \
+            drivers/compass/compass_ist8308.c \
             drivers/compass/compass_mag3110.c \
+            drivers/compass/compass_lis3mdl.c \
             drivers/pitotmeter_ms4525.c \
             drivers/pitotmeter_adc.c \
             drivers/max7456.c \

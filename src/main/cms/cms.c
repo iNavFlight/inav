@@ -39,6 +39,7 @@
 
 #include "cms/cms.h"
 #include "cms/cms_menu_builtin.h"
+#include "cms/cms_menu_osd.h"
 #include "cms/cms_types.h"
 
 #include "common/maths.h"
@@ -55,6 +56,7 @@
 #include "config/parameter_group_ids.h"
 
 // For 'ARM' related
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -94,6 +96,7 @@ static displayPort_t *pCurrentDisplay;
 static displayPort_t *cmsDisplayPorts[CMS_MAX_DEVICE];
 static int cmsDeviceCount;
 static int cmsCurrentDevice = -1;
+static timeMs_t cmsYieldUntil = 0;
 
 bool cmsDisplayPortRegister(displayPort_t *pDisplay)
 {
@@ -307,8 +310,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             if ((p->type == OME_Submenu) && p->func && (p->flags & OPTSTRING)) {
 
                 // Special case of sub menu entry with optional value display.
-
-                char *str = ((CMSMenuOptFuncPtr)p->func)();
+                char *str = p->menufunc();
                 cnt = displayWrite(pDisplay, colPos, row, str);
                 colPos += strlen(str);
             }
@@ -348,21 +350,6 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             CLR_PRINTVALUE(p, screenRow);
         }
         break;
-
-#ifdef USE_OSD
-    case OME_VISIBLE:
-        if (IS_PRINTVALUE(p, screenRow) && p->data) {
-            uint16_t val = osdConfig()->item_pos[(int)p->data];
-
-            if (VISIBLE(val)) {
-                cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, "YES");
-            } else {
-                cnt = displayWrite(pDisplay, RIGHT_MENU_COLUMN(pDisplay), row, "NO ");
-            }
-            CLR_PRINTVALUE(p, screenRow);
-        }
-        break;
-#endif
 
     case OME_UINT8:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
@@ -442,9 +429,9 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
             buff[0] = '\0';
             const OSD_SETTING_t *ptr = p->data;
-            const setting_t *var = &settingsTable[ptr->val];
+            const setting_t *var = settingGet(ptr->val);
             int32_t value;
-            const void *valuePointer = setting_get_value_pointer(var);
+            const void *valuePointer = settingGetValuePointer(var);
             switch (SETTING_TYPE(var)) {
                 case VAR_UINT8:
                     value = *(uint8_t *)valuePointer;
@@ -467,6 +454,9 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
                     // a data type yet.
                     ftoa(*(float *)valuePointer, buff);
                     break;
+                case VAR_STRING:
+                    strncpy(buff, valuePointer, sizeof(buff));
+                    break;
             }
             if (buff[0] == '\0') {
                 const char *suffix = NULL;
@@ -487,13 +477,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
                         break;
                     case MODE_LOOKUP:
                         {
-                            const char *str = NULL;
-                            if (var->config.lookup.tableIndex < LOOKUP_TABLE_COUNT) {
-                                const lookupTableEntry_t *tableEntry = &settingLookupTables[var->config.lookup.tableIndex];
-                                if (value < tableEntry->valueCount) {
-                                    str = tableEntry->values[value];
-                                }
-                            }
+                            const char *str = settingLookupValueName(var, value);
                             strncpy(buff, str ? str : "INVALID", sizeof(buff) - 1);
                         }
                         break;
@@ -636,10 +620,8 @@ static void cmsMenuCountPage(displayPort_t *pDisplay)
 
 STATIC_UNIT_TESTED long cmsMenuBack(displayPort_t *pDisplay); // Forward; will be resolved after merging
 
-long cmsMenuChange(displayPort_t *pDisplay, const void *ptr)
+long cmsMenuChange(displayPort_t *pDisplay, const CMS_Menu *pMenu, const OSD_Entry *from)
 {
-    CMS_Menu *pMenu = (CMS_Menu *)ptr;
-
     if (!pMenu) {
         return 0;
     }
@@ -664,7 +646,7 @@ long cmsMenuChange(displayPort_t *pDisplay, const void *ptr)
         currentCtx.menu = pMenu;
         currentCtx.cursorRow = 0;
 
-        if (pMenu->onEnter && (pMenu->onEnter() == MENU_CHAIN_BACK)) {
+        if (pMenu->onEnter && (pMenu->onEnter(from) == MENU_CHAIN_BACK)) {
             return cmsMenuBack(pDisplay);
         }
 
@@ -731,7 +713,7 @@ STATIC_UNIT_TESTED void cmsMenuOpen(void)
         }
     }
     displayGrab(pCurrentDisplay); // grab the display for use by the CMS
-    cmsMenuChange(pCurrentDisplay, currentCtx.menu);
+    cmsMenuChange(pCurrentDisplay, currentCtx.menu, NULL);
 }
 
 static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
@@ -743,7 +725,7 @@ static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
     }
 
     if (pMenu->onGlobalExit) {
-        pMenu->onGlobalExit();
+        pMenu->onGlobalExit(NULL);
     }
 }
 
@@ -777,16 +759,23 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
         displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
 
-        stopMotors();
-        stopPwmAllMotors();
-        delay(200);
-
-        systemReset();
+        fcReboot(false);
     }
 
     DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
 
     return 0;
+}
+
+void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration)
+{
+    // Check if we're already yielding, in that case just extend
+    // the yield time without releasing the display again, otherwise
+    // the yield/grab become unbalanced.
+    if (cmsYieldUntil == 0) {
+        displayRelease(pPort);
+    }
+    cmsYieldUntil = millis() + duration;
 }
 
 // Stick/key detection and key codes
@@ -855,7 +844,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
     switch (p->type) {
         case OME_Submenu:
             if (key == KEY_RIGHT) {
-                cmsMenuChange(pDisplay, p->data);
+                cmsMenuChange(pDisplay, p->data, p);
                 res = BUTTON_PAUSE;
             }
             break;
@@ -889,6 +878,9 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
                 else
                     *val = 0;
                 SET_PRINTVALUE(p, currentCtx.cursorRow);
+                if (p->func) {
+                    p->func(pDisplay, p);
+                }
             }
             break;
 
@@ -900,20 +892,6 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
                 SET_PRINTVALUE(p, currentCtx.cursorRow);
             }
             break;
-
-#ifdef USE_OSD
-        case OME_VISIBLE:
-            if (p->data) {
-                uint16_t *val = &osdConfigMutable()->item_pos[(int)p->data];
-
-                if (key == KEY_RIGHT)
-                    *val |= VISIBLE_FLAG;
-                else
-                    *val %= ~VISIBLE_FLAG;
-                SET_PRINTVALUE(p, currentCtx.cursorRow);
-            }
-            break;
-#endif
 
         case OME_UINT8:
         case OME_FLOAT:
@@ -1021,14 +999,14 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
         case OME_Setting:
             if (p->data) {
                 const OSD_SETTING_t *ptr = p->data;
-                const setting_t *var = &settingsTable[ptr->val];
-                setting_min_t min = setting_get_min(var);
-                setting_max_t max = setting_get_max(var);
+                const setting_t *var = settingGet(ptr->val);
+                setting_min_t min = settingGetMin(var);
+                setting_max_t max = settingGetMax(var);
                 float step = ptr->step ?: 1;
                 if (key != KEY_RIGHT) {
                     step = -step;
                 }
-                const void *valuePointer = setting_get_value_pointer(var);
+                const void *valuePointer = settingGetValuePointer(var);
                 switch (SETTING_TYPE(var)) {
                     case VAR_UINT8:
                         {
@@ -1073,6 +1051,8 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
                             break;
                         }
                         break;
+                    case VAR_STRING:
+                        break;
                 }
                 SET_PRINTVALUE(p, currentCtx.cursorRow);
                 if (p->func) {
@@ -1107,6 +1087,97 @@ uint16_t cmsHandleKeyWithRepeat(displayPort_t *pDisplay, uint8_t key, int repeat
     return ret;
 }
 
+static uint16_t cmsScanKeys(timeMs_t currentTimeMs, timeMs_t lastCalledMs, int16_t rcDelayMs)
+{
+    static int holdCount = 1;
+    static int repeatCount = 1;
+    static int repeatBase = 0;
+
+    //
+    // Scan 'key' first
+    //
+
+    uint8_t key = KEY_NONE;
+
+    if (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
+        key = KEY_MENU;
+    }
+    else if (IS_HI(PITCH)) {
+        key = KEY_UP;
+    }
+    else if (IS_LO(PITCH)) {
+        key = KEY_DOWN;
+    }
+    else if (IS_LO(ROLL)) {
+        key = KEY_LEFT;
+    }
+    else if (IS_HI(ROLL)) {
+        key = KEY_RIGHT;
+    }
+    else if (IS_HI(YAW) || IS_LO(YAW))
+    {
+        key = KEY_ESC;
+    }
+
+    if (key == KEY_NONE) {
+        // No 'key' pressed, reset repeat control
+        holdCount = 1;
+        repeatCount = 1;
+        repeatBase = 0;
+    } else {
+        // The 'key' is being pressed; keep counting
+        ++holdCount;
+    }
+
+    if (rcDelayMs > 0) {
+        rcDelayMs -= (currentTimeMs - lastCalledMs);
+    } else if (key) {
+        rcDelayMs = cmsHandleKeyWithRepeat(pCurrentDisplay, key, repeatCount);
+
+        // Key repeat effect is implemented in two phases.
+        // First phldase is to decrease rcDelayMs reciprocal to hold time.
+        // When rcDelayMs reached a certain limit (scheduling interval),
+        // repeat rate will not raise anymore, so we call key handler
+        // multiple times (repeatCount).
+        //
+        // XXX Caveat: Most constants are adjusted pragmatically.
+        // XXX Rewrite this someday, so it uses actual hold time instead
+        // of holdCount, which depends on the scheduling interval.
+
+        if (((key == KEY_LEFT) || (key == KEY_RIGHT)) && (holdCount > 20)) {
+
+            // Decrease rcDelayMs reciprocally
+
+            rcDelayMs /= (holdCount - 20);
+
+            // When we reach the scheduling limit,
+
+            if (rcDelayMs <= 50) {
+
+                // start calling handler multiple times.
+
+                if (repeatBase == 0)
+                    repeatBase = holdCount;
+
+                if (holdCount < 100) {
+                    repeatCount = repeatCount + (holdCount - repeatBase) / 5;
+
+                    if (repeatCount > 5) {
+                        repeatCount= 5;
+                    }
+                } else {
+                    repeatCount = repeatCount + holdCount - repeatBase;
+
+                    if (repeatCount > 50) {
+                        repeatCount = 50;
+                    }
+                }
+            }
+        }
+    }
+    return rcDelayMs;
+}
+
 void cmsUpdate(uint32_t currentTimeUs)
 {
 #ifdef USE_RCDEVICE
@@ -1116,126 +1187,37 @@ void cmsUpdate(uint32_t currentTimeUs)
 #endif
 
     static int16_t rcDelayMs = BUTTON_TIME;
-    static int holdCount = 1;
-    static int repeatCount = 1;
-    static int repeatBase = 0;
-// e.g #define CMS_INJECTED_KEYS KEY_DOWN,KEY_RIGHT,KEY_DOWN,KEY_RIGHT,KEY_DOWN
-#define CMS_INJECTED_KEYS_INTERVAL 800
-#if defined CMS_INJECTED_KEYS
-    int cmsInjectedKeys[] = {KEY_NONE, CMS_INJECTED_KEYS};
-    static timeMs_t lastInjectedKeyMs = 0;
-    static unsigned lastInjectedKeyIndex = 0;
-#endif
 
-    static uint32_t lastCalledMs = 0;
+    static timeMs_t lastCalledMs = 0;
     static uint32_t lastCmsHeartBeatMs = 0;
 
-    const uint32_t currentTimeMs = currentTimeUs / 1000;
+    const timeMs_t currentTimeMs = currentTimeUs / 1000;
 
     if (!cmsInMenu) {
         // Detect menu invocation
-#if defined(CMS_INJECTED_KEYS)
-        cmsMenuOpen();
-        rcDelayMs = 0;
-#else
         if (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
             cmsMenuOpen();
             rcDelayMs = BUTTON_PAUSE;    // Tends to overshoot if BUTTON_TIME
         }
-#endif
     } else {
-        //
-        // Scan 'key' first
-        //
 
-        uint8_t key = KEY_NONE;
-
-        if (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
-            key = KEY_MENU;
-        }
-        else if (IS_HI(PITCH)) {
-            key = KEY_UP;
-        }
-        else if (IS_LO(PITCH)) {
-            key = KEY_DOWN;
-        }
-        else if (IS_LO(ROLL)) {
-            key = KEY_LEFT;
-        }
-        else if (IS_HI(ROLL)) {
-            key = KEY_RIGHT;
-        }
-        else if (IS_HI(YAW) || IS_LO(YAW))
-        {
-            key = KEY_ESC;
+        // Check if we're yielding and its's time to stop it
+        if (cmsYieldUntil > 0 && currentTimeMs > cmsYieldUntil) {
+            cmsYieldUntil = 0;
+            displayGrab(pCurrentDisplay);
+            displayClearScreen(pCurrentDisplay);
         }
 
-#if defined(CMS_INJECTED_KEYS)
-        if (lastInjectedKeyMs < currentTimeMs - CMS_INJECTED_KEYS_INTERVAL) {
-            if (lastInjectedKeyIndex < ARRAYLEN(cmsInjectedKeys)) {
-                key = cmsInjectedKeys[lastInjectedKeyIndex++];
-                lastInjectedKeyMs = currentTimeMs;
+        // Only scan keys and draw if we're not yielding
+        if (cmsYieldUntil == 0) {
+            // XXX: Note that one call to cmsScanKeys() might generate multiple keypresses
+            // when repeating, that's why cmsYieldDisplay() has to check for multiple calls.
+            rcDelayMs = cmsScanKeys(currentTimeMs, lastCalledMs, rcDelayMs);
+            // Check again, the keypress might have produced a yield
+            if (cmsYieldUntil == 0) {
+                cmsDrawMenu(pCurrentDisplay, currentTimeUs);
             }
         }
-#endif
-        if (key == KEY_NONE) {
-            // No 'key' pressed, reset repeat control
-            holdCount = 1;
-            repeatCount = 1;
-            repeatBase = 0;
-        } else {
-            // The 'key' is being pressed; keep counting
-            ++holdCount;
-        }
-
-        if (rcDelayMs > 0) {
-            rcDelayMs -= (currentTimeMs - lastCalledMs);
-        } else if (key) {
-            rcDelayMs = cmsHandleKeyWithRepeat(pCurrentDisplay, key, repeatCount);
-
-            // Key repeat effect is implemented in two phases.
-            // First phldase is to decrease rcDelayMs reciprocal to hold time.
-            // When rcDelayMs reached a certain limit (scheduling interval),
-            // repeat rate will not raise anymore, so we call key handler
-            // multiple times (repeatCount).
-            //
-            // XXX Caveat: Most constants are adjusted pragmatically.
-            // XXX Rewrite this someday, so it uses actual hold time instead
-            // of holdCount, which depends on the scheduling interval.
-
-            if (((key == KEY_LEFT) || (key == KEY_RIGHT)) && (holdCount > 20)) {
-
-                // Decrease rcDelayMs reciprocally
-
-                rcDelayMs /= (holdCount - 20);
-
-                // When we reach the scheduling limit,
-
-                if (rcDelayMs <= 50) {
-
-                    // start calling handler multiple times.
-
-                    if (repeatBase == 0)
-                        repeatBase = holdCount;
-
-                    if (holdCount < 100) {
-                        repeatCount = repeatCount + (holdCount - repeatBase) / 5;
-
-                        if (repeatCount > 5) {
-                            repeatCount= 5;
-                        }
-                    } else {
-                        repeatCount = repeatCount + holdCount - repeatBase;
-
-                        if (repeatCount > 50) {
-                            repeatCount= 50;
-                        }
-                    }
-                }
-            }
-        }
-
-        cmsDrawMenu(pCurrentDisplay, currentTimeUs);
 
         if (currentTimeMs > lastCmsHeartBeatMs + 500) {
             // Heart beat for external CMS display device @ 500msec

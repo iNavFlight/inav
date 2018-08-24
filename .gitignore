@@ -20,6 +20,4 @@ docs/Manual.pdf
 README.pdf
 
 # build generated files
-/src/main/fc/settings_generated.h
-/src/main/fc/settings_generated.c
 /settings.json

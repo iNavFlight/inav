@@ -47,10 +47,6 @@
 
 #include "io/beeper.h"
 
-#if FLASH_SIZE > 64
-#define BEEPER_NAMES
-#endif
-
 #define MAX_MULTI_BEEPS 20   //size limit for 'beep_multiBeeps[]'
 
 #define BEEPER_COMMAND_REPEAT 0xFE
@@ -130,12 +126,12 @@ static const uint8_t beep_hardwareFailure[] = {
     10, 10, BEEPER_COMMAND_STOP
 };
 // Cam connection opened
-static const uint8_t beep_camOpenBeep[] = { 
-    5, 15, 10, 15, 20, BEEPER_COMMAND_STOP 
-}; 
-// Cam connection close 
-static const uint8_t beep_camCloseBeep[] = { 
-    10, 8, 5, BEEPER_COMMAND_STOP 
+static const uint8_t beep_camOpenBeep[] = {
+    5, 15, 10, 15, 20, BEEPER_COMMAND_STOP
+};
+// Cam connection close
+static const uint8_t beep_camCloseBeep[] = {
+    10, 8, 5, BEEPER_COMMAND_STOP
 };
 
 
@@ -162,16 +158,10 @@ typedef struct beeperTableEntry_s {
     uint8_t mode;
     uint8_t priority; // 0 = Highest
     const uint8_t *sequence;
-#ifdef BEEPER_NAMES
     const char *name;
-#endif
 } beeperTableEntry_t;
 
-#ifdef BEEPER_NAMES
 #define BEEPER_ENTRY(a,b,c,d) a,b,c,d
-#else
-#define BEEPER_ENTRY(a,b,c,d) a,b,c
-#endif
 
 /*static*/ const beeperTableEntry_t beeperTable[] = {
     { BEEPER_ENTRY(BEEPER_RUNTIME_CALIBRATION_DONE, 0, beep_runtimeCalibrationDone, "RUNTIME_CALIBRATION") },
@@ -402,12 +392,7 @@ beeperMode_e beeperModeForTableIndex(int idx)
  */
 const char *beeperNameForTableIndex(int idx)
 {
-#ifndef BEEPER_NAMES
-    UNUSED(idx);
-    return NULL;
-#else
     return (idx >= 0 && idx < (int)BEEPER_TABLE_ENTRY_COUNT) ? beeperTable[idx].name : NULL;
-#endif
 }
 
 /*

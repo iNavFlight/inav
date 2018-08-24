@@ -50,10 +50,7 @@ typedef struct {
 static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
 static pwmOutputPort_t *motors[MAX_PWM_MOTORS];
-
-#ifdef USE_SERVOS
 static pwmOutputPort_t *servos[MAX_PWM_SERVOS];
-#endif
 
 #ifdef BEEPER_PWM
 static pwmOutputPort_t  beeperPwmPort;
@@ -65,87 +62,18 @@ static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
 
-
-static void pwmOCConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t value, uint8_t output)
-{
-#if defined(USE_HAL_DRIVER)
-    TIM_HandleTypeDef* Handle = timerFindTimerHandle(tim);
-    if (Handle == NULL) return;
-
-    TIM_OC_InitTypeDef TIM_OCInitStructure;
-
-    TIM_OCInitStructure.OCMode = TIM_OCMODE_PWM1;
-    TIM_OCInitStructure.OCIdleState = TIM_OCIDLESTATE_SET;
-    TIM_OCInitStructure.OCPolarity = (output & TIMER_OUTPUT_INVERTED) ? TIM_OCPOLARITY_LOW : TIM_OCPOLARITY_HIGH;
-    TIM_OCInitStructure.OCNIdleState = TIM_OCNIDLESTATE_SET;
-    TIM_OCInitStructure.OCNPolarity = (output & TIMER_OUTPUT_INVERTED) ? TIM_OCNPOLARITY_LOW : TIM_OCNPOLARITY_HIGH;
-    TIM_OCInitStructure.Pulse = value;
-    TIM_OCInitStructure.OCFastMode = TIM_OCFAST_DISABLE;
-
-    HAL_TIM_PWM_ConfigChannel(Handle, &TIM_OCInitStructure, channel);
-#else
-    TIM_OCInitTypeDef  TIM_OCInitStructure;
-
-    TIM_OCStructInit(&TIM_OCInitStructure);
-    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
-    if (output & TIMER_OUTPUT_N_CHANNEL) {
-        TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Disable;
-        TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
-	TIM_OCInitStructure.TIM_OCNPolarity = (output & TIMER_OUTPUT_INVERTED) ? TIM_OCPolarity_Low : TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCNIdleState = TIM_OCIdleState_Reset;
-    } else {
-        TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-        TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
-        TIM_OCInitStructure.TIM_OCPolarity = (output & TIMER_OUTPUT_INVERTED) ? TIM_OCPolarity_Low : TIM_OCPolarity_High;
-	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
-    }
-    TIM_OCInitStructure.TIM_Pulse = value;
-
-    timerOCInit(tim, channel, &TIM_OCInitStructure);
-    timerOCPreloadConfig(tim, channel, TIM_OCPreload_Enable);
-#endif
-}
-
 static void pwmOutConfigTimer(pwmOutputPort_t * p, const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value)
 {
-#if defined(USE_HAL_DRIVER)
-    TIM_HandleTypeDef* Handle = timerFindTimerHandle(timerHardware->tim);
-    if (Handle == NULL) return;
-#endif
+    timerConfigBase(timerHardware->tim, period, mhz);
+    timerPWMConfigChannel(timerHardware->tim, timerHardware->channel, timerHardware->output & TIMER_OUTPUT_N_CHANNEL, timerHardware->output & TIMER_OUTPUT_INVERTED, value);
 
-    configTimeBase(timerHardware->tim, period, mhz);
-    pwmOCConfig(timerHardware->tim, timerHardware->channel, value, timerHardware->output);
-
-#if defined(USE_HAL_DRIVER)
-    if (timerHardware->output & TIMER_OUTPUT_N_CHANNEL)
-        HAL_TIMEx_PWMN_Start(Handle, timerHardware->channel);
-    else
-        HAL_TIM_PWM_Start(Handle, timerHardware->channel);
-    HAL_TIM_Base_Start(Handle);
-
-    switch (timerHardware->channel) {
-        case TIM_CHANNEL_1:
-            p->ccr = &timerHardware->tim->CCR1;
-            break;
-        case TIM_CHANNEL_2:
-            p->ccr = &timerHardware->tim->CCR2;
-            break;
-        case TIM_CHANNEL_3:
-            p->ccr = &timerHardware->tim->CCR3;
-            break;
-        case TIM_CHANNEL_4:
-            p->ccr = &timerHardware->tim->CCR4;
-            break;
-    }
-#else
     if (timerHardware->output & TIMER_OUTPUT_ENABLED) {
-        TIM_CtrlPWMOutputs(timerHardware->tim, ENABLE);
+        timerPWMStart(timerHardware->tim, timerHardware->channel, timerHardware->output & TIMER_OUTPUT_N_CHANNEL);
     }
-    TIM_Cmd(timerHardware->tim, ENABLE);
+
+    timerEnable(timerHardware->tim);
 
     p->ccr = timerCCR(timerHardware->tim, timerHardware->channel);
-#endif
-
     p->period = period;
     p->tim = timerHardware->tim;
 
@@ -165,12 +93,7 @@ static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timerHardware, 
     IOInit(io, OWNER_MOTOR, RESOURCE_OUTPUT, allocatedOutputPortCount);
 
     if (enableOutput) {
-        // If PWM outputs are enabled - configure as AF_PP - map to timer
-#ifdef STM32F1
-        IOConfigGPIO(io, IOCFG_AF_PP);
-#else
         IOConfigGPIOAF(io, IOCFG_AF_PP, timerHardware->alternateFunction);
-#endif
     }
     else {
         // If PWM outputs are disabled - configure as GPIO and drive low
@@ -290,7 +213,6 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
     return false;
 }
 
-#ifdef USE_SERVOS
 bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)
 {
     pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, PWM_TIMER_MHZ, 1000000 / servoPwmRate, servoCenterPulse, enableOutput);
@@ -305,7 +227,7 @@ bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, ui
 
 void pwmWriteServo(uint8_t index, uint16_t value)
 {
-#ifdef USE_PMW_SERVO_DRIVER
+#ifdef USE_PWM_SERVO_DRIVER
 
     /*
      *  If PCA9685 is enabled and but not detected, we do not want to write servo
@@ -323,7 +245,6 @@ void pwmWriteServo(uint8_t index, uint16_t value)
     }
 #endif
 }
-#endif
 
 #ifdef BEEPER_PWM
 void pwmWriteBeeper(bool onoffBeep)

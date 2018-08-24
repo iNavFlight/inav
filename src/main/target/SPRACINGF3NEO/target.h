@@ -63,7 +63,9 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1
@@ -111,11 +113,11 @@
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
 
-#define VTX_RTC6705
+#define USE_VTX_RTC6705
 #define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
 
-#undef VTX_SMARTAUDIO           // Disabled due to flash size
-#undef VTX_TRAMP                // Disabled due to flash size
+#undef USE_VTX_SMARTAUDIO           // Disabled due to flash size
+#undef USE_VTX_TRAMP                // Disabled due to flash size
 
 #define RTC6705_CS_PIN          PF4
 #define RTC6705_SPI_INSTANCE    SPI3
@@ -152,15 +154,10 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-
-#define USE_LED_STRIP_ON_DMA1_CHANNEL2
+#define USE_LED_STRIP
 #define WS2811_PIN                      PA8
-#define WS2811_TIMER                    TIM1
-#define WS2811_DMA_CHANNEL              DMA1_Channel2
-#define WS2811_IRQ                      DMA1_Channel2_IRQn
-#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC2
+#define WS2811_DMA_STREAM               DMA1_Channel2
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
-#define WS2811_TIMER_GPIO_AF            GPIO_AF_6
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
@@ -191,6 +188,3 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD (BIT(2))
 #define TARGET_IO_PORTF (BIT(0)|BIT(1)|BIT(4))
-
-#define USABLE_TIMER_CHANNEL_COUNT 11 // 2xPPM, 6xPWM, UART3 RX/TX, LED Strip, IR.
-#define USED_TIMERS  (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(15) | TIM_N(16))

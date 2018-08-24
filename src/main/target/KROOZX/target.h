@@ -28,9 +28,6 @@
 #define BEEPER                  PC1
 #define BEEPER_INVERTED
 
-#define INVERTER_PIN_UART1      PB13
-#define INVERTER_PIN_UART6      PB12
-
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
 
@@ -53,7 +50,9 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C3
@@ -92,9 +91,12 @@
 
 #define USE_VCP
 
+#define USE_UART_INVERTER
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
+#define INVERTER_PIN_UART1_RX   PB13
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -111,6 +113,7 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
+#define INVERTER_PIN_UART6_RX   PB12
 
 #define SERIAL_PORT_COUNT       6
 
@@ -164,5 +167,3 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS    10
-#define USABLE_TIMER_CHANNEL_COUNT 11
-#define USED_TIMERS             (TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(8) | TIM_N(12))

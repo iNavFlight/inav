@@ -54,12 +54,14 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define MAG_MPU9250_ALIGN        CW270_DEG_FLIP
+#define MAG_MPU9250_ALIGN       CW270_DEG
 #define USE_MAG_MPU9250
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
+#define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1
@@ -158,6 +160,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         (BIT(13)|BIT(14)|BIT(15))
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
-
-#define USABLE_TIMER_CHANNEL_COUNT 12 // PPM, 8 PWM, UART3 RX/TX, LED Strip
-#define USED_TIMERS             (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(8) | TIM_N(15))
