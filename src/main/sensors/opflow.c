@@ -64,9 +64,15 @@
 
 opflow_t opflow;
 
+static bool opflowIsCalibrating = false;
+static timeMs_t opflowCalibrationStartedAt;
+static float opflowCalibrationBodyAcc;
+static float opflowCalibrationFlowAcc;
+
 #define OPFLOW_SQUAL_THRESHOLD_HIGH     35      // TBD
 #define OPFLOW_SQUAL_THRESHOLD_LOW      10      // TBD
 #define OPFLOW_UPDATE_TIMEOUT_US        200000  // At least 5Hz updates required
+#define OPFLOW_CALIBRATE_TIME_MS        30000   // 30 second calibration time
 
 #ifdef USE_OPTICAL_FLOW
 PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 1);
@@ -147,6 +153,14 @@ bool opflowInit(void)
     return true;
 }
 
+void opflowStartCalibration(void)
+{
+    opflowCalibrationStartedAt = millis();
+    opflowIsCalibrating = true;
+    opflowCalibrationBodyAcc = 0;
+    opflowCalibrationFlowAcc = 0;
+}
+
 /*
  * This is called periodically by the scheduler
  */
@@ -177,17 +191,36 @@ void opflowUpdate(timeUs_t currentTimeUs)
         }
 
         if ((opflow.flowQuality == OPFLOW_QUALITY_VALID) && (opflow.gyroBodyRateTimeUs > 0)) {
-            const float integralToRateScaler = (1.0e6 / opflow.dev.rawData.deltaTime) / (float)opticalFlowConfig()->opflow_scale;
+            const float integralToRateScaler = (opticalFlowConfig()->opflow_scale > 0.01f) ? (1.0e6 / opflow.dev.rawData.deltaTime) / (float)opticalFlowConfig()->opflow_scale : 0.0f;
 
             // Apply sensor alignment
             applySensorAlignment(opflow.dev.rawData.flowRateRaw, opflow.dev.rawData.flowRateRaw, opticalFlowConfig()->opflow_align);
-            //applyBoardAlignment(opflow.dev.rawData.flowRateRaw);
 
+            // Calculate flow rate and accumulated body rate
             opflow.flowRate[X] = DEGREES_TO_RADIANS(opflow.dev.rawData.flowRateRaw[X] * integralToRateScaler);
             opflow.flowRate[Y] = DEGREES_TO_RADIANS(opflow.dev.rawData.flowRateRaw[Y] * integralToRateScaler);
 
             opflow.bodyRate[X] = DEGREES_TO_RADIANS(opflow.gyroBodyRateAcc[X] / opflow.gyroBodyRateTimeUs);
             opflow.bodyRate[Y] = DEGREES_TO_RADIANS(opflow.gyroBodyRateAcc[Y] / opflow.gyroBodyRateTimeUs);
+
+            // Handle opflow calibration
+            if (opflowIsCalibrating) {
+                if ((millis() - opflowCalibrationStartedAt) > OPFLOW_CALIBRATE_TIME_MS) {
+                    // Finish calibration
+                    if (opflowCalibrationBodyAcc > 1000.0f) {
+                        opticalFlowConfigMutable()->opflow_scale = opflowCalibrationFlowAcc / opflowCalibrationBodyAcc;
+                    }
+
+                    opflowIsCalibrating = 0;
+                }
+                else {
+                    // Ongoing calibration - accumulate body and flow rates
+                    opflowCalibrationBodyAcc += ABS(opflow.bodyRate[X]);
+                    opflowCalibrationBodyAcc += ABS(opflow.bodyRate[Y]);
+                    opflowCalibrationFlowAcc += ABS(opflow.dev.rawData.flowRateRaw[X]) * (1.0e6 / opflow.dev.rawData.deltaTime);
+                    opflowCalibrationFlowAcc += ABS(opflow.dev.rawData.flowRateRaw[Y]) * (1.0e6 / opflow.dev.rawData.deltaTime);
+                }
+            }
 
             DEBUG_SET(DEBUG_FLOW_RAW, 0, RADIANS_TO_DEGREES(opflow.flowRate[X]));
             DEBUG_SET(DEBUG_FLOW_RAW, 1, RADIANS_TO_DEGREES(opflow.flowRate[Y]));

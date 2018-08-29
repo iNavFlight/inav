@@ -1252,6 +1252,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
     #endif
+
+    #ifdef USE_OPTICAL_FLOW
+        sbufWriteU16(dst, opticalFlowConfig()->opflow_scale * 256);
+    #else
+        sbufWriteU16(dst, 0);
+    #endif
         break;
 
     case MSP_POSITION_ESTIMATION_CONFIG:
@@ -2164,6 +2170,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);
             sbufReadU16(src);
 #endif
+#ifdef USE_OPTICAL_FLOW
+            if (dataSize >= 20) {
+                opticalFlowConfigMutable()->opflow_scale = sbufReadU16(src) / 256.0f;
+            }
+#endif
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2201,6 +2212,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_MAG_CALIBRATION:
         if (!ARMING_FLAG(ARMED))
             ENABLE_STATE(CALIBRATE_MAG);
+        else
+            return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_INAV_OPFLOW_CALIBRATION:
+        if (!ARMING_FLAG(ARMED))
+            opflowStartCalibration();
         else
             return MSP_RESULT_ERROR;
         break;
