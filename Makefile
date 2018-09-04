@@ -224,6 +224,7 @@ CFLAGS      += $(ARCH_FLAGS) \
               -Werror=switch \
               -ffunction-sections \
               -fdata-sections \
+              -fno-common \
               $(DEVICE_FLAGS) \
               -DUSE_STDPERIPH_DRIVER \
               $(TARGET_FLAGS) \
