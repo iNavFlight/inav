@@ -35,6 +35,7 @@ typedef enum {
     GYRO_MPU6500,
     GYRO_MPU9250,
     GYRO_BMI160,
+    GYRO_ICM20689,
     GYRO_FAKE
 } gyroSensor_e;
 

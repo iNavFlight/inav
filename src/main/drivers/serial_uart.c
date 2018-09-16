@@ -36,7 +36,7 @@
 #include "serial_uart_impl.h"
 
 static void usartConfigurePinInversion(uartPort_t *uartPort) {
-#if !defined(USE_UART_INVERTER) && !defined(STM32F303xC)
+#if !defined(USE_UART_INVERTER) && !defined(STM32F303xC) && !defined(STM32F7)
     UNUSED(uartPort);
 #else
     bool inverted = uartPort->port.options & SERIAL_INVERTED;

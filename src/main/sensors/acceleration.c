@@ -47,6 +47,7 @@
 #include "drivers/accgyro/accgyro_mma845x.h"
 #include "drivers/accgyro/accgyro_bma280.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
+#include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/logging.h"
 #include "drivers/sensor.h"
@@ -265,6 +266,23 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         }
         FALLTHROUGH;
 #endif
+
+#ifdef USE_ACC_ICM20689
+    case ACC_ICM20689:
+        if (icm20689AccDetect(dev)) {
+#ifdef ACC_ICM20689_ALIGN
+            dev->accAlign = ACC_ICM20689_ALIGN;
+#endif
+            accHardware = ACC_ICM20689;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
 
 #ifdef USE_FAKE_ACC
     case ACC_FAKE:
