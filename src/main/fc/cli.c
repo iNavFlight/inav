@@ -2547,6 +2547,9 @@ static void cliVersion(char *cmdline)
         buildTime,
         shortGitRevision
     );
+    cliPrintLinef("# GCC-%s",
+        compilerVersion
+    );
 }
 
 static void cliMemory(char *cmdline)

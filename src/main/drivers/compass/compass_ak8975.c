@@ -118,7 +118,7 @@ static bool ak8975Read(magDev_t * mag)
     }
 
     mag->magADCRaw[X] = -(int16_t)(buf[1] << 8 | buf[0]) * 4;
-    mag->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * 4;
+    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]) * 4;
     mag->magADCRaw[Z] = -(int16_t)(buf[5] << 8 | buf[4]) * 4;
 
     ack = busWrite(mag->busDev, AK8975_MAG_REG_CNTL, 0x01); // start reading again

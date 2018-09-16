@@ -1705,7 +1705,7 @@ groups:
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
     headers: ["drivers/vtx_common.h", "io/vtx.h"]
-    condition: defined(VTX_COMMON) || (defined(USE_CMS) && defined(USE_VTX_SMARTAUDIO))
+    condition: USE_VTX_COMMON
     members:
       - name: vtx_band
         field: band

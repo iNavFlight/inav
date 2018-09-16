@@ -22,7 +22,7 @@
 #define MAX_SUPPORTED_SERVOS 8
 
 // These must be consecutive, see 'reversedSources'
-enum {
+typedef enum {
     INPUT_STABILIZED_ROLL       = 0,
     INPUT_STABILIZED_PITCH      = 1,
     INPUT_STABILIZED_YAW        = 2,

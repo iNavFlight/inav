@@ -262,3 +262,5 @@
 #ifdef OMNIBUSF4PRO
 #define CURRENT_METER_SCALE   265
 #endif
+
+#define PCA9685_I2C_BUS         BUS_I2C2

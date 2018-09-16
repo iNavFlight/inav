@@ -47,7 +47,7 @@
 
 #define USE_MAG
 #define USE_MAG_MPU9250
-#define MAG_MPU9250_ALIGN       CW270_DEG
+#define MAG_MPU9250_ALIGN       CW0_DEG
 
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
@@ -114,7 +114,7 @@
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC2
-#define ADC_CHANNEL_2_PIN               PC1
+#define ADC_CHANNEL_2_PIN               PC3
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
@@ -140,3 +140,5 @@
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
 #define TARGET_IO_PORTC 0xffff
+
+#define PCA9685_I2C_BUS         BUS_I2C2
