@@ -125,35 +125,3 @@ DMA_t dmaFindHandlerIdentifier(DMA_Stream_TypeDef * stream)
 
     return NULL;
 }
-
-DMA_t dmaSetupMemoryToPeripheralTransfer(dmaTag_t tag, void * peripheralBaseAddr, void * memoryBaseAddr, uint32_t bufferSize)
-{
-    DMA_InitTypeDef DMA_InitStructure;
-    DMA_t dma = dmaGetByTag(tag);
-
-    if (dma == NULL) {
-        return NULL;
-    }
-
-    DMA_DeInit(dma->ref);
-    DMA_Cmd(dma->ref, DISABLE);
-
-    DMA_DeInit(dma->ref);
-    DMA_StructInit(&DMA_InitStructure);
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)peripheralBaseAddr;
-    DMA_InitStructure.DMA_BufferSize = bufferSize;
-    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_Channel = dmaGetChannelByTag(tag);
-    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)memoryBaseAddr;
-    DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
-    DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-
-    DMA_Init(dma->ref, &DMA_InitStructure);
-    DMA_ITConfig(dma->ref, DMA_IT_TC, ENABLE);
-
-    return dma;
-}

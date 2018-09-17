@@ -101,45 +101,13 @@ void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t prior
     NVIC_Init(&NVIC_InitStructure);
 }
 
-DMA_t dmaSetupMemoryToPeripheralTransfer(dmaTag_t tag, void * peripheralBaseAddr, void * memoryBaseAddr, uint32_t bufferSize)
+DMA_t dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel)
 {
-    DMA_InitTypeDef DMA_InitStructure;
-    DMA_t dma = dmaGetByTag(tag);
-
-    if (dma == NULL) {
-        return NULL;
+    for (unsigned i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
+        if (channel == dmaDescriptors[i].ref) {
+            return &dmaDescriptors[i];
+        }
     }
 
-    DMA_DeInit(dma->ref);
-    DMA_Cmd(dma->ref, DISABLE);
-
-    DMA_DeInit(dma->ref);
-    DMA_StructInit(&DMA_InitStructure);
-    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)peripheralBaseAddr;
-    DMA_InitStructure.DMA_BufferSize = bufferSize;
-    DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)memoryBaseAddr;
-    DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-    DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-    DMA_InitStructure.DMA_Priority = DMA_Priority_High;
-    DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-    DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-
-    DMA_Init(dma->ref, &DMA_InitStructure);
-    DMA_ITConfig(dma->ref, DMA_IT_TC, ENABLE);
-
-    return dma;
-}
-
-void dmaStartTransfer(DMA_t dma, uint32_t bufferSize)
-{
-    DMA_SetCurrDataCounter(dma->ref, bufferSize);  // load number of bytes to be transferred
-    DMA_Cmd(dma->ref, ENABLE);
-}
-
-void dmaStopTransfer(DMA_t dma)
-{
-    DMA_Cmd(dma->ref, DISABLE);
+    return NULL;
 }
