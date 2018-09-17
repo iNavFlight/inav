@@ -103,16 +103,16 @@ void ws2811LedStripInit(void)
     }
 
     /* Compute the prescaler value */
-    uint16_t period = 1000000 * WS2811_TIMER_MHZ / WS2811_CARRIER_HZ;
+    uint16_t period = WS2811_TIMER_HZ / WS2811_CARRIER_HZ;
 
-    BIT_COMPARE_1 = period / 3 * 2;
+    BIT_COMPARE_1 = period * 2 / 3;
     BIT_COMPARE_0 = period / 3;
 
     ws2811IO = IOGetByTag(IO_TAG(WS2811_PIN));
     IOInit(ws2811IO, OWNER_LED_STRIP, RESOURCE_OUTPUT, 0);
     IOConfigGPIOAF(ws2811IO, IOCFG_AF_PP_FAST, timHw->alternateFunction);
 
-    timerConfigBase(ws2811TCH, period, WS2811_TIMER_MHZ);
+    timerConfigBase(ws2811TCH, period, WS2811_TIMER_HZ);
     timerPWMConfigChannel(ws2811TCH, 0);
     timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, WS2811_DMA_BUFFER_SIZE);
 

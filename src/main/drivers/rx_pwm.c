@@ -358,7 +358,7 @@ void pwmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t channel)
     IOInit(io, OWNER_PWMINPUT, RESOURCE_INPUT, RESOURCE_INDEX(channel));
     IOConfigGPIOAF(io, timerHardwarePtr->ioMode, timerHardwarePtr->alternateFunction);
 
-    timerConfigure(tch, (uint16_t)PWM_TIMER_PERIOD, PWM_TIMER_MHZ);
+    timerConfigure(tch, (uint16_t)PWM_TIMER_PERIOD, PWM_TIMER_HZ);
     timerChInitCallbacks(&self->cb, (void*)self, &pwmEdgeCallback, &pwmOverflowCallback);
     timerChConfigCallbacks(tch, &self->cb);
     timerChConfigIC(tch, true, INPUT_FILTER_TICKS);
@@ -367,35 +367,7 @@ void pwmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t channel)
 #define UNUSED_PPM_TIMER_REFERENCE 0
 #define FIRST_PWM_PORT 0
 
-void ppmAvoidPWMTimerClash(const timerHardware_t *timerHardwarePtr, uint8_t motorPwmProtocol)
-{
-    for (int timerIndex = 0; timerIndex < timerHardwareCount; timerIndex++) {
-        // If PPM input timer is also mapped to motor - set PPM divisor accordingly
-        if (((timerHardware[timerIndex].usageFlags & (TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR)) == 0) || timerHardware[timerIndex].tim != timerHardwarePtr->tim)
-            continue;
-
-        switch (motorPwmProtocol) {
-        case PWM_TYPE_ONESHOT125:
-            ppmCountDivisor = ONESHOT125_TIMER_MHZ;
-            break;
-        case PWM_TYPE_ONESHOT42:
-            ppmCountDivisor = ONESHOT42_TIMER_MHZ;
-            break;
-        case PWM_TYPE_MULTISHOT:
-            ppmCountDivisor = MULTISHOT_TIMER_MHZ;
-            break;
-        case PWM_TYPE_BRUSHED:
-            ppmCountDivisor = PWM_BRUSHED_TIMER_MHZ;
-            break;
-        default:
-            break;
-        }
-
-        return;
-    }
-}
-
-void ppmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t motorPwmProtocol)
+void ppmInConfig(const timerHardware_t *timerHardwarePtr)
 {
     TCH_t * tch = timerGetTCH(timerHardware);
     if (tch == NULL) {
@@ -403,8 +375,6 @@ void ppmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t motorPwmProtoc
     }
 
     ppmInit();
-
-    ppmAvoidPWMTimerClash(timerHardwarePtr, motorPwmProtocol);
 
     pwmInputPort_t *self = &pwmInputPorts[FIRST_PWM_PORT];
 
@@ -414,7 +384,7 @@ void ppmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t motorPwmProtoc
     IOInit(io, OWNER_PPMINPUT, RESOURCE_INPUT, 0);
     IOConfigGPIOAF(io, timerHardwarePtr->ioMode, timerHardwarePtr->alternateFunction);
 
-    timerConfigure(tch, (uint16_t)PPM_TIMER_PERIOD, PWM_TIMER_MHZ);
+    timerConfigure(tch, (uint16_t)PPM_TIMER_PERIOD, PWM_TIMER_HZ);
     timerChInitCallbacks(&self->cb, (void*)self, &ppmEdgeCallback, &ppmOverflowCallback);
     timerChConfigCallbacks(tch, &self->cb);
     timerChConfigIC(tch, true, INPUT_FILTER_TICKS);

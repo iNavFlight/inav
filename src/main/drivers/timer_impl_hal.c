@@ -71,7 +71,7 @@ void impl_timerNVICConfigure(TCH_t * tch, int irqPriority)
     }
 }
 
-void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint8_t mhz)
+void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
 {
     // Get and verify HAL TIM_Handle object 
     TIM_HandleTypeDef * timHandle = tch->timCtx->timHandle;
@@ -82,7 +82,7 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint8_t mhz)
     }
 
     timHandle->Instance = timer;
-    timHandle->Init.Prescaler = (timerClock(timer) / ((uint32_t)mhz * 1000000)) - 1;
+    timHandle->Init.Prescaler = (timerGetBaseClock(tch) / hz) - 1;
     timHandle->Init.Period = (period - 1) & 0xffff; // AKA TIMx_ARR
     timHandle->Init.RepetitionCounter = 0;
     timHandle->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

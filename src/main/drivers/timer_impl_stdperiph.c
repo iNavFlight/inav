@@ -60,14 +60,14 @@ void impl_timerNVICConfigure(TCH_t * tch, int irqPriority)
     }
 }
 
-void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint8_t mhz)
+void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
 {
     TIM_TypeDef * tim = tch->timCtx->timDef->tim;
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 
     TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
     TIM_TimeBaseStructure.TIM_Period = (period - 1) & 0xffff; // AKA TIMx_ARR
-    TIM_TimeBaseStructure.TIM_Prescaler = (uint16_t)((SystemCoreClock / timerClockDivisor(tim) / ((uint32_t)mhz * 1000000)) - 1);
+    TIM_TimeBaseStructure.TIM_Prescaler = (timerGetBaseClock(tch) / hz) - 1;
     TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseInit(tim, &TIM_TimeBaseStructure);

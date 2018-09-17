@@ -185,9 +185,7 @@ static void serialTimerConfigureTimebase(TCH_t * tch, uint32_t baud)
         }
     } while (isTimerPeriodTooLarge(timerPeriod));
 
-    uint16_t mhz = baseClock / 1000000; // XXX Prepare for mhz > 255
-
-    timerConfigure(tch, timerPeriod, mhz);
+    timerConfigure(tch, timerPeriod, baseClock);
 }
 
 static void resetBuffers(softSerial_t *softSerial)

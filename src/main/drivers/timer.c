@@ -54,23 +54,23 @@ uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
     return ~1;
 }
 
-void timerConfigBase(TCH_t * tch, uint16_t period, uint8_t mhz)
+void timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
 {
     if (tch == NULL) {
         return;
     }
 
-    impl_timerConfigBase(tch, period, mhz);
+    impl_timerConfigBase(tch, period, hz);
 }
 
 // old interface for PWM inputs. It should be replaced
-void timerConfigure(TCH_t * tch, uint16_t period, uint8_t mhz)
+void timerConfigure(TCH_t * tch, uint16_t period, uint32_t hz)
 {
     if (tch == NULL) {
         return;
     }
 
-    impl_timerConfigBase(tch, period, mhz);
+    impl_timerConfigBase(tch, period, hz);
     impl_timerNVICConfigure(tch, NVIC_PRIO_TIMER);
     impl_enableTimer(tch);
 }
@@ -225,7 +225,12 @@ void timerChCaptureDisable(TCH_t * tch)
 
 uint32_t timerGetBaseClock(TCH_t * tch)
 {
-    return SystemCoreClock / timerClockDivisor(tch->timHw->tim);
+    return timerGetBaseClockHW(tch->timHw);
+}
+
+uint32_t timerGetBaseClockHW(const timerHardware_t * timHw)
+{
+    return SystemCoreClock / timerClockDivisor(timHw->tim);
 }
 
 bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)

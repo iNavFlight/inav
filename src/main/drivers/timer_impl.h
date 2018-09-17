@@ -45,7 +45,7 @@ volatile timCCR_t * impl_timerCCR(TCH_t * tch);
 void impl_timerCaptureCompareHandler(TIM_TypeDef *tim, timHardwareContext_t * timerCtx);
 
 void impl_timerNVICConfigure(TCH_t * tch, int irqPriority);
-void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint8_t mhz);
+void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz);
 void impl_enableTimer(TCH_t * tch);
 void impl_timerEnableIT(TCH_t * tch, uint32_t interrupt);
 void impl_timerDisableIT(TCH_t * tch, uint32_t interrupt);

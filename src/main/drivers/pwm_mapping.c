@@ -186,7 +186,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 
         if (type == MAP_TO_PPM_INPUT) {
 #if defined(USE_RX_PPM)
-            ppmInConfig(timerHardwarePtr, init->pwmProtocolType);
+            ppmInConfig(timerHardwarePtr);
             pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_PPM;
             pwmIOConfiguration.ppmInputCount++;
 
@@ -208,7 +208,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
                 continue;
             }
 
-            if (pwmMotorConfig(timerHardwarePtr, pwmIOConfiguration.motorCount, init->motorPwmRate, init->idlePulse, init->pwmProtocolType, init->enablePWMOutput)) {
+            if (pwmMotorConfig(timerHardwarePtr, pwmIOConfiguration.motorCount, init->motorPwmRate, init->pwmProtocolType, init->enablePWMOutput)) {
                 if (init->useFastPwm) {
                     pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_MOTOR | PWM_PF_OUTPUT_PROTOCOL_FASTPWM | PWM_PF_OUTPUT_PROTOCOL_PWM;
                 } else if (init->pwmProtocolType == PWM_TYPE_BRUSHED) {

@@ -161,12 +161,13 @@ typedef enum {
 } channelType_t;
 
 uint8_t timerClockDivisor(TIM_TypeDef *tim);
+uint32_t timerGetBaseClockHW(const timerHardware_t * timHw);
 
 const timerHardware_t * timerGetByTag(ioTag_t tag, timerUsageFlag_e flag);
 TCH_t * timerGetTCH(const timerHardware_t * timHw);
 
 uint32_t timerGetBaseClock(TCH_t * tch);
-void timerConfigure(TCH_t * tch, uint16_t period, uint8_t mhz);  // This interface should be replaced.
+void timerConfigure(TCH_t * tch, uint16_t period, uint32_t hz);  // This interface should be replaced.
 
 void timerChInitCallbacks(timerCallbacks_t * cb, void * callbackParam, timerCallbackFn * edgeCallback, timerCallbackFn * overflowCallback);
 void timerChConfigIC(TCH_t * tch, bool polarityRising, unsigned inputFilterSamples);
@@ -177,7 +178,7 @@ void timerChCaptureDisable(TCH_t * tch);
 void timerInit(void);
 void timerStart(void);
 
-void timerConfigBase(TCH_t * tch, uint16_t period, uint8_t mhz);  // TODO - just for migration
+void timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz);  // TODO - just for migration
 uint16_t timerGetPeriod(TCH_t * tch);
 
 void timerEnable(TCH_t * tch);
