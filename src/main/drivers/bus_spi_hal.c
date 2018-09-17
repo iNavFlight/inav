@@ -84,10 +84,10 @@ static const uint16_t spiDivisorMapSlow[] = {
 };
 
 static spiDevice_t spiHardwareMap[] = {
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF5_SPI1, .leadingEdge = false, .dmaIrqHandler = DMA2_ST3_HANDLER, .divisorMap = spiDivisorMapFast },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF5_SPI2, .leadingEdge = false, .dmaIrqHandler = DMA1_ST4_HANDLER, .divisorMap = spiDivisorMapSlow },
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF6_SPI3, .leadingEdge = false, .dmaIrqHandler = DMA1_ST7_HANDLER, .divisorMap = spiDivisorMapSlow },
-    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .af = GPIO_AF5_SPI4, .leadingEdge = false, .dmaIrqHandler = DMA2_ST1_HANDLER, .divisorMap = spiDivisorMapSlow }
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF5_SPI1, .leadingEdge = false, .dmaTag = DMA_TAG(2,3,0), .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF5_SPI2, .leadingEdge = false, .dmaTag = DMA_TAG(1,4,0), .divisorMap = spiDivisorMapSlow },
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF6_SPI3, .leadingEdge = false, .dmaTag = DMA_TAG(1,7,0), .divisorMap = spiDivisorMapSlow },
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .af = GPIO_AF5_SPI4, .leadingEdge = false, .dmaTag = DMA_TAG(2,1,0), .divisorMap = spiDivisorMapSlow }
 };
 
 SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
@@ -354,7 +354,7 @@ DMA_HandleTypeDef* spiSetDMATransmit(DMA_Stream_TypeDef *Stream, uint32_t Channe
     __HAL_LINKDMA(&spiHardwareMap[device].hspi, hdmatx, spiHardwareMap[device].hdma);
 
     // DMA TX Interrupt
-    dmaSetHandler(spiHardwareMap[device].dmaIrqHandler, dmaSPIIRQHandler, NVIC_BUILD_PRIORITY(3, 0), (uint32_t)device);
+    dmaSetHandler(dmaGetByTag(spiHardwareMap[device].dmaTag), dmaSPIIRQHandler, NVIC_BUILD_PRIORITY(3, 0), (uint32_t)device);
 
     //HAL_CLEANCACHE(pData,Size);
     // And Transmit

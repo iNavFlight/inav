@@ -41,8 +41,8 @@
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
 
 typedef struct {
+    TCH_t * tch;
     volatile timCCR_t *ccr;
-    TIM_TypeDef *tim;
     uint16_t period;
     pwmWriteFuncPtr pwmWritePtr;
 } pwmOutputPort_t;
@@ -62,38 +62,44 @@ static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
 
-static void pwmOutConfigTimer(pwmOutputPort_t * p, const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value)
+static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint8_t mhz, uint16_t period, uint16_t value)
 {
-    timerConfigBase(timerHardware->tim, period, mhz);
-    timerPWMConfigChannel(timerHardware->tim, timerHardware->channel, timerHardware->output & TIMER_OUTPUT_N_CHANNEL, timerHardware->output & TIMER_OUTPUT_INVERTED, value);
+    p->tch = tch;
+    
+    timerConfigBase(p->tch, period, mhz);
+    timerPWMConfigChannel(p->tch, value);
 
-    if (timerHardware->output & TIMER_OUTPUT_ENABLED) {
-        timerPWMStart(timerHardware->tim, timerHardware->channel, timerHardware->output & TIMER_OUTPUT_N_CHANNEL);
+    if (p->tch->timHw->output & TIMER_OUTPUT_ENABLED) {
+        timerPWMStart(p->tch);
     }
 
-    timerEnable(timerHardware->tim);
+    timerEnable(p->tch);
 
-    p->ccr = timerCCR(timerHardware->tim, timerHardware->channel);
     p->period = period;
-    p->tim = timerHardware->tim;
-
+    p->ccr = timerCCR(p->tch);
     *p->ccr = 0;
 }
 
-static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value, bool enableOutput)
+static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint8_t mhz, uint16_t period, uint16_t value, bool enableOutput)
 {
     if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
         DEBUG_TRACE("Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
 
+    // Attempt to allocate TCH
+    TCH_t * tch = timerGetTCH(timHw);
+    if (tch == NULL) {
+        return NULL;
+    }
+
     pwmOutputPort_t *p = &pwmOutputPorts[allocatedOutputPortCount++];
 
-    const IO_t io = IOGetByTag(timerHardware->tag);
+    const IO_t io = IOGetByTag(timHw->tag);
     IOInit(io, OWNER_MOTOR, RESOURCE_OUTPUT, allocatedOutputPortCount);
 
     if (enableOutput) {
-        IOConfigGPIOAF(io, IOCFG_AF_PP, timerHardware->alternateFunction);
+        IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
     }
     else {
         // If PWM outputs are disabled - configure as GPIO and drive low
@@ -101,7 +107,7 @@ static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timerHardware, 
         IOLo(io);
     }
 
-    pwmOutConfigTimer(p, timerHardware, mhz, period, value);
+    pwmOutConfigTimer(p, tch, mhz, period, value);
     return p;
 }
 
