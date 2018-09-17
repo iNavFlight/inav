@@ -230,15 +230,9 @@
 
 #define USE_LED_STRIP
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
-#   define WS2811_PIN                      PB6
-#   define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
-#   define WS2811_DMA_STREAM               DMA1_Stream0
-#   define WS2811_DMA_CHANNEL              DMA_Channel_2
+#   define WS2811_PIN                   PB6
 #else
-#   define WS2811_PIN                      PA1
-#   define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
-#   define WS2811_DMA_STREAM               DMA1_Stream4
-#   define WS2811_DMA_CHANNEL              DMA_Channel_6
+#   define WS2811_PIN                   PA1
 #endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM

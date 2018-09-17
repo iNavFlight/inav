@@ -145,16 +145,7 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define USE_LED_STRIP
-#define WS2811_GPIO_AF                  GPIO_AF_TIM4
 #define WS2811_PIN                      PB8
-#define WS2811_TIMER                    TIM4
-#define WS2811_TIMER_CHANNEL            TIM_Channel_3
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST7_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream7
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
-#define WS2811_DMA_IRQ                  DMA1_Stream7_IRQn
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF7
-#define WS2811_DMA_IT                   DMA_IT_TCIF7
 
 //#define TRANSPONDER
 //#define TRANSPONDER_GPIO_AF                  GPIO_AF_TIM4
