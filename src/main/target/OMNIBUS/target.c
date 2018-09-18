@@ -24,20 +24,22 @@
 
 const timerHardware_t timerHardware[] = {
     // PWM1 PPM Pad
-    { TIM3,  IO_TAG(PB4),  TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_2,  TIM_USE_PPM }, // Pin PPM - PB4
+    DEF_TIM(TIM3,  CH1, PB4, TIM_USE_PPM,                     0), // PPM - PB4
+
     // PB5 / TIM3 CH2 is connected to USBPresent
 
     // PWM2-PWM5
-    { TIM8,  IO_TAG(PB8),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_10, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR },// Pin PWM1 - PB8
-    { TIM4,  IO_TAG(PB9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_2,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR }, // Pin PWM2 - PB9
-    { TIM15, IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // Pin PWM3 - PA3
-    { TIM15, IO_TAG(PA2),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // Pin PWM4 - PA2
+    DEF_TIM(TIM8,  CH2, PB8, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR,    0), // PWM1 - PB8
+    DEF_TIM(TIM4,  CH4, PB9, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,                       0), // PWM2 - PB9
+    DEF_TIM(TIM15, CH2, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                       0), // PWM3 - PA3
+    DEF_TIM(TIM15, CH1, PA2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                       0), // PWM4 - PA2
+
 
     // For iNav, PWM6&7 (PWM pins 5&6) are shared with UART3
-    { TIM2,  IO_TAG(PB10), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // Pin PWM5 - PB10 - TIM2_CH3 / UART3_TX (AF7)
-    { TIM2,  IO_TAG(PB11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO }, // Pin PWM6 - PB11 - TIM2_CH4 / UART3_RX (AF7)
+    DEF_TIM(TIM2, CH3, PB10, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                       0), // PWM4 - PA2
+    DEF_TIM(TIM2, CH4, PB11, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                       0), // PWM4 - PA2
 
-    { TIM1, IO_TAG(PA8),   TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6,  TIM_USE_LED },
+    DEF_TIM(TIM1,  CH1, PA8, TIM_USE_LED, 0),
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

@@ -358,7 +358,7 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
 
     LL_DMA_Init(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->dma->tag)], &init);
 
-    // Start PWM generation 
+    // Start PWM generation
     if (tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
         HAL_TIMEx_PWMN_Start(tch->timCtx->timHandle, lookupTIMChannelTable[tch->timHw->channelIndex]);
     }

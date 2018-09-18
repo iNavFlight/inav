@@ -24,7 +24,7 @@
 #include "drivers/timer_def.h"
 #include "drivers/bus.h"
 
-const timerHardware_t timerHardware[] = {
+const timerHardware_t timerHardware[] = {    
     DEF_TIM(TIM16,  CH1,    PA6,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR,     0),  // PWM1
     DEF_TIM(TIM17,  CH1,    PA7,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR,     0), // PWM2
     DEF_TIM(TIM4,   CH1,    PA11,   TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO,     0), // PWM3
@@ -33,6 +33,7 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4,   CH4,    PB9,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO,     0), // PWM6
     DEF_TIM(TIM15,  CH1,    PA2,    TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,     0), // PWM7
     DEF_TIM(TIM15,  CH2,    PA3,    TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,     0), // PWM8
+
     DEF_TIM(TIM1,   CH1,    PA8,    TIM_USE_LED,                                                0), // GPIO_TIMER / LED_STRIP
 
     DEF_TIM(TIM2,   CH1,    PA0,    TIM_USE_PWM | TIM_USE_PPM,                                  0), // RC_CH1

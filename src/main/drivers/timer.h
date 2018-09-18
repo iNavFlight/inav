@@ -73,15 +73,14 @@ typedef enum {
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;
 
+// TCH hardware definition (listed in target.c)
 typedef struct timerHardware_s {
     TIM_TypeDef *tim;
     ioTag_t tag;
     uint8_t channelIndex;
     uint8_t output;
     ioConfig_t ioMode;
-#if defined(STM32F3) || defined(STM32F4) || defined(STM32F7)
     uint8_t alternateFunction;
-#endif
     uint32_t usageFlags;
     dmaTag_t dmaTag;
 } timerHardware_t;
@@ -99,8 +98,11 @@ typedef enum {
     TCH_DMA_ACTIVE,
 } tchDmaState_e;
 
-// Run-time context - timer channel - state, DMA buffer pointer, DMA completion callback
+// Some forward declarations for types
 struct TCH_s;
+struct timHardwareContext_s;
+
+// Timer generic callback
 typedef void timerCallbackFn(struct TCH_s * tch, uint32_t value);
 
 typedef struct timerCallbacks_s {
@@ -109,7 +111,7 @@ typedef struct timerCallbacks_s {
     timerCallbackFn * callbackOvr;
 } timerCallbacks_t;
 
-struct timHardwareContext_s;
+// Run-time TCH (Timer CHannel) context
 typedef struct TCH_s {
     struct timHardwareContext_s *   timCtx;         // Run-time initialized to parent timer
     const timerHardware_t *         timHw;          // Link to timerHardware_t definition (target-specific)
@@ -119,6 +121,7 @@ typedef struct TCH_s {
     void *                          dmaBuffer;
 } TCH_t;
 
+// Run-time timer context (dynamically allocated), includes 4x TCH
 typedef struct timHardwareContext_s {
     const timerDef_t *  timDef;
 #ifdef USE_HAL_DRIVER
@@ -137,8 +140,11 @@ typedef struct timHardwareContext_s {
 #error "Unknown CPU defined"
 #endif
 
+// Per MCU timer definitions
 extern timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
-extern const timerDef_t timerDefinitions[];
+extern const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT];
+
+// Per target timer output definitions
 extern const timerHardware_t timerHardware[];
 extern const int timerHardwareCount;
 

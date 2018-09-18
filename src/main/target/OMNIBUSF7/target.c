@@ -35,13 +35,15 @@ BUSDEV_REGISTER_SPI(    busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,
 
 const timerHardware_t timerHardware[] = {
 
-    { TIM2,  IO_TAG(PA3),  TIM_CHANNEL_4, 0, IOCFG_AF_PP_PD, GPIO_AF1_TIM2, TIM_USE_PPM         | TIM_USE_PWM       }, //PPM Input on UART2 RX
-    { TIM3,  IO_TAG(PB0),  TIM_CHANNEL_3, 1, IOCFG_AF_PP_PD, GPIO_AF2_TIM3, TIM_USE_MC_MOTOR    | TIM_USE_FW_MOTOR  }, //Motor 1
-    { TIM3,  IO_TAG(PB1),  TIM_CHANNEL_4, 1, IOCFG_AF_PP_PD, GPIO_AF2_TIM3, TIM_USE_MC_MOTOR    | TIM_USE_FW_MOTOR  }, //Motor 2
-    { TIM1,  IO_TAG(PE9),  TIM_CHANNEL_1, 1, IOCFG_AF_PP_PD, GPIO_AF1_TIM1, TIM_USE_MC_MOTOR    | TIM_USE_FW_SERVO  }, //Motor 3
-    { TIM1,  IO_TAG(PE11), TIM_CHANNEL_2, 1, IOCFG_AF_PP_PD, GPIO_AF1_TIM1, TIM_USE_MC_MOTOR    | TIM_USE_FW_SERVO  }, //Motor 4
+    DEF_TIM(TIM2, CH4, PA3,  TIM_USE_PPM,           0, 0 ), // UART2_RX, joined with PE13
+    // DEF_TIM(TIM1, CH3, PE13, TIM_USE_NONE,          0, 0 ), // RC1 / PPM, unusable
 
-    // DEF_TIM(TIM4,  CH1, PD12,  TIM_USE_LED, 1,  0 ), // LED
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MC_MOTOR    | TIM_USE_FW_MOTOR,         0, 0 ), // M1
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MC_MOTOR    | TIM_USE_FW_MOTOR,         0, 0 ), // M2
+    DEF_TIM(TIM1, CH1, PE9,  TIM_USE_MC_MOTOR    | TIM_USE_FW_SERVO,         0, 2 ), // M3
+    DEF_TIM(TIM1, CH2, PE11, TIM_USE_MC_MOTOR    | TIM_USE_FW_SERVO,         0, 1 ), // M4
+
+    DEF_TIM(TIM4, CH1, PD12, TIM_USE_LED,           0, 0 ), // LED
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

@@ -20,8 +20,6 @@
 #define TARGET_BOARD_IDENTIFIER "SP3N"
 #define TARGET_CONFIG
 
-#define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
-
 #define LED0                    PB9
 #define LED1                    PB2
 
@@ -86,9 +84,6 @@
 
 #define UART3_TX_PIN            PB10
 #define UART3_RX_PIN            PB11
-
-#define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_HARDWARE 0 // PWM 1
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1
@@ -156,8 +151,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
-#define WS2811_DMA_STREAM               DMA1_Channel2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 

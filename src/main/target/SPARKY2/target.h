@@ -118,8 +118,8 @@
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
-#define USE_LED_STRIP
-#define LED_STRIP_TIMER                 TIM5
+// #define USE_LED_STRIP
+// #define WS2811_PIN                      PA1
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_VL53L0X
