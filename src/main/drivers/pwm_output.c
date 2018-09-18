@@ -267,15 +267,21 @@ void pwmWriteBeeper(bool onoffBeep)
 
 void beeperPwmInit(ioTag_t tag, uint16_t frequency)
 {
-    const timerHardware_t *timer = timerGetByTag(tag, TIM_USE_BEEPER);
-    if (timer) {
+    beeperPwm = NULL;
+
+    const timerHardware_t *timHw = timerGetByTag(tag, TIM_USE_BEEPER);
+
+    if (timHw) {
+        // Attempt to allocate TCH
+        TCH_t * tch = timerGetTCH(timHw);
+        if (tch == NULL) {
+            return NULL;
+        }
+
         beeperPwm = &beeperPwmPort;
         beeperFrequency = frequency;
-        IOConfigGPIOAF(IOGetByTag(tag), IOCFG_AF_PP, timer->alternateFunction);
-        pwmOutConfigTimer(beeperPwm, timer, PWM_TIMER_MHZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
-    }
-    else {
-        beeperPwm = NULL;
+        IOConfigGPIOAF(IOGetByTag(tag), IOCFG_AF_PP, timHw->alternateFunction);
+        pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
     }
 }
 #endif
