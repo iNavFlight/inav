@@ -24,6 +24,10 @@ struct dmaChannelDescriptor_s;
 typedef uint16_t dmaTag_t;                          // Packed DMA adapter/channel/stream
 typedef struct dmaChannelDescriptor_s * DMA_t;
 
+#if defined(UNIT_TEST)
+typedef uint32_t DMA_TypeDef;
+#endif
+
 #define DMA_TAG(dma, stream, channel)   ( (((dma) & 0x03) << 7) | (((stream) & 0x07) << 4) | (((channel) & 0x0F) << 0) )
 #define DMA_NONE                        (0)
 
