@@ -70,10 +70,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
     
     timerConfigBase(p->tch, period, hz);
     timerPWMConfigChannel(p->tch, value);
-
-    if (p->tch->timHw->output & TIMER_OUTPUT_ENABLED) {
-        timerPWMStart(p->tch);
-    }
+    timerPWMStart(p->tch);
 
     timerEnable(p->tch);
 
