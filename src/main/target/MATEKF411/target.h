@@ -123,9 +123,6 @@
 // *************** LED2812 ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA2_ST1_HANDLER
-#define WS2811_DMA_STREAM               DMA2_Stream1
-#define WS2811_DMA_CHANNEL              DMA_Channel_6
 
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL )

@@ -69,7 +69,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         const timerHardware_t *timerHardwarePtr = &timerHardware[timerIndex];
         int type = MAP_TO_NONE;
 
-#if defined(STM32F303xC) && defined(USE_UART3)
+#if defined(STM32F3) && defined(USE_UART3)
         // skip UART3 ports (PB10/PB11)
         if (init->useUART3 && (timerHardwarePtr->tag == IO_TAG(UART3_TX_PIN) || timerHardwarePtr->tag == IO_TAG(UART3_RX_PIN))) {
             addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
@@ -85,36 +85,34 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 #endif
 
 #if defined(USE_SOFTSERIAL1)
-        const timerHardware_t *ss1TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_1_RX_PIN), TIM_USE_ANY);
-        if (init->useSoftSerial && ss1TimerHardware != NULL && ss1TimerHardware->tim == timerHardwarePtr->tim) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
+        if (init->useSoftSerial) {
+            const timerHardware_t *ss1TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_1_RX_PIN), TIM_USE_ANY);
+            if (ss1TimerHardware != NULL && ss1TimerHardware->tim == timerHardwarePtr->tim) {
+                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
+                continue;
+            }
         }
 #endif
 
 #if defined(USE_SOFTSERIAL2)
-        const timerHardware_t *ss2TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_2_RX_PIN), TIM_USE_ANY);
-        if (init->useSoftSerial && ss2TimerHardware != NULL && ss2TimerHardware->tim == timerHardwarePtr->tim) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
+        if (init->useSoftSerial) {
+            const timerHardware_t *ss2TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_2_RX_PIN), TIM_USE_ANY);
+            if (ss2TimerHardware != NULL && ss2TimerHardware->tim == timerHardwarePtr->tim) {
+                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
+                continue;
+            }
         }
 #endif
 
-#ifdef WS2811_TIMER
+#if defined(USE_LED_STRIP)
         // skip LED Strip output
         if (init->useLEDStrip) {
-            if (timerHardwarePtr->tim == WS2811_TIMER) {
+            const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
+            if (ledTimHw != NULL && timerHardwarePtr->tim == ledTimHw->tim) {
                 addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
                 continue;
             }
-#if defined(STM32F303xC) && defined(WS2811_PIN)
-            if (timerHardwarePtr->tag == IO_TAG(WS2811_PIN)) {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-                continue;
-            }
-#endif
         }
-
 #endif
 
 #ifdef VBAT_ADC_PIN
@@ -186,7 +184,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 
         if (type == MAP_TO_PPM_INPUT) {
 #if defined(USE_RX_PPM)
-            ppmInConfig(timerHardwarePtr, init->pwmProtocolType);
+            ppmInConfig(timerHardwarePtr);
             pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_PPM;
             pwmIOConfiguration.ppmInputCount++;
 
@@ -208,7 +206,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
                 continue;
             }
 
-            if (pwmMotorConfig(timerHardwarePtr, pwmIOConfiguration.motorCount, init->motorPwmRate, init->idlePulse, init->pwmProtocolType, init->enablePWMOutput)) {
+            if (pwmMotorConfig(timerHardwarePtr, pwmIOConfiguration.motorCount, init->motorPwmRate, init->pwmProtocolType, init->enablePWMOutput)) {
                 if (init->useFastPwm) {
                     pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_MOTOR | PWM_PF_OUTPUT_PROTOCOL_FASTPWM | PWM_PF_OUTPUT_PROTOCOL_PWM;
                 } else if (init->pwmProtocolType == PWM_TYPE_BRUSHED) {

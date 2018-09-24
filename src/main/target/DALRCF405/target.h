@@ -133,9 +133,7 @@
 //LED_STRIP
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB6
-#define WS2811_DMA_STREAM               DMA1_Stream0
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
+
 //ADC
 #define USE_ADC
 #define ADC_INSTANCE                ADC1

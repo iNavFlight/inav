@@ -12,5 +12,4 @@ TARGET_SRC = \
             drivers/pitotmeter_ms4525.c \
             drivers/pitotmeter_adc.c \
             drivers/light_ws2811strip.c \
-            drivers/light_ws2811strip_hal.c \
             drivers/max7456.c

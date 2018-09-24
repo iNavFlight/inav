@@ -74,9 +74,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB8
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST7_HANDLER
-#define WS2811_DMA_STREAM                 DMA1_Stream7
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
 
 #define USE_VCP
 
