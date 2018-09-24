@@ -26,6 +26,8 @@
 #define BEEPER                  PB13
 #define BEEPER_INVERTED
 
+#define USE_DSHOT
+
 // MPU6500 interrupt
 #define USE_EXTI
 #define GYRO_INT_EXTI            PA5

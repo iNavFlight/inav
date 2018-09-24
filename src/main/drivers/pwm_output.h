@@ -18,6 +18,7 @@
 #pragma once
 
 #include "drivers/io_types.h"
+#include "drivers/time.h"
 
 typedef enum {
     PWM_TYPE_STANDARD = 0,
@@ -25,16 +26,16 @@ typedef enum {
     PWM_TYPE_ONESHOT42,
     PWM_TYPE_MULTISHOT,
     PWM_TYPE_BRUSHED,
-#ifdef USE_DSHOT
     PWM_TYPE_DSHOT150,
     PWM_TYPE_DSHOT300,
     PWM_TYPE_DSHOT600,
     PWM_TYPE_DSHOT1200,
-#endif
 } motorPwmProtocolTypes_e;
 
 void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount);
+void pwmCompleteDshotUpdate(uint8_t motorCount, timeUs_t currentTimeUs);
+bool isMotorProtocolDshot(void);
 
 void pwmWriteServo(uint8_t index, uint16_t value);
 

@@ -298,10 +298,17 @@ void validateAndFixConfig(void)
 #endif
 
     // Limitations of different protocols
+#if !defined(USE_DSHOT)
+    if (motorConfig()->motorPwmProtocol > PWM_TYPE_BRUSHED) {
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+    }
+#endif
+
 #ifdef BRUSHED_MOTORS
     motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
 #else
     switch (motorConfig()->motorPwmProtocol) {
+    default:
     case PWM_TYPE_STANDARD: // Limited to 490 Hz
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 490);
         break;
@@ -317,6 +324,23 @@ void validateAndFixConfig(void)
     case PWM_TYPE_BRUSHED:      // 500Hz - 32kHz
         motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 500, 32000);
         break;
+#ifdef USE_DSHOT
+    // One DSHOT packet takes 16 bits x 19 ticks + 2uS = 304 timer ticks + 2uS
+    case PWM_TYPE_DSHOT150:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 4000);
+        break;
+    case PWM_TYPE_DSHOT300:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 8000);
+        break;
+    // Although DSHOT 600+ support >16kHz update rate it's not practical because of increased CPU load
+    // It's more reasonable to use slower-speed DSHOT at higher rate for better reliability
+    case PWM_TYPE_DSHOT600:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 16000);
+        break;
+    case PWM_TYPE_DSHOT1200:
+        motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
+        break;
+#endif
     }
 #endif
 
