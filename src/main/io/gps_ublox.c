@@ -34,6 +34,7 @@
 #include "common/axis.h"
 #include "common/typeconversion.h"
 #include "common/gps_conversion.h"
+#include "common/memory.h"
 #include "common/maths.h"
 #include "common/utils.h"
 
@@ -49,8 +50,6 @@
 
 //#define USE_GPS_PROTO_UBLOX_NEO7PLUS
 #define GPS_VERSION_DETECTION_TIMEOUT_MS    300
-#define MAX_UBLOX_PAYLOAD_SIZE              256
-#define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
 
 #define UBX_DYNMODEL_PEDESTRIAN 3
@@ -325,13 +324,13 @@ static bool capGalileo;
 
 
 // Send buffer
-static union {
+typedef union {
     ubx_message message;
     uint8_t bytes[58];
-} send_buffer;
+} ubloxSendBuffer_t;
 
 // Receive buffer
-static union {
+typedef union {
     ubx_nav_posllh posllh;
     ubx_nav_status status;
     ubx_nav_solution solution;
@@ -340,8 +339,10 @@ static union {
     ubx_nav_svinfo svinfo;
     ubx_mon_ver ver;
     ubx_nav_timeutc timeutc;
-    uint8_t bytes[UBLOX_BUFFER_SIZE];
-} _buffer;
+} ubloxReceiveBuffer_t;
+
+#define MAX_UBLOX_PAYLOAD_SIZE sizeof(ubloxReceiveBuffer_t)
+static ubloxReceiveBuffer_t * _buffer = NULL;
 
 void _update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b)
 {
@@ -361,25 +362,26 @@ static uint8_t gpsMapFixType(bool fixValid, uint8_t ubloxFixType)
     return GPS_NO_FIX;
 }
 
-static void sendConfigMessageUBLOX(void)
+static void sendConfigMessageUBLOX(ubloxSendBuffer_t * buf)
 {
     uint8_t ck_a=0, ck_b=0;
-    send_buffer.message.header.preamble1=PREAMBLE1;
-    send_buffer.message.header.preamble2=PREAMBLE2;
-    _update_checksum(&send_buffer.bytes[2], send_buffer.message.header.length+4, &ck_a, &ck_b);
-    send_buffer.bytes[send_buffer.message.header.length+6] = ck_a;
-    send_buffer.bytes[send_buffer.message.header.length+7] = ck_b;
-    serialWriteBuf(gpsState.gpsPort, send_buffer.bytes, send_buffer.message.header.length+8);
+    buf->message.header.preamble1=PREAMBLE1;
+    buf->message.header.preamble2=PREAMBLE2;
+    _update_checksum(&buf->bytes[2], buf->message.header.length+4, &ck_a, &ck_b);
+    buf->bytes[buf->message.header.length+6] = ck_a;
+    buf->bytes[buf->message.header.length+7] = ck_b;
+    serialWriteBuf(gpsState.gpsPort, buf->bytes, buf->message.header.length+8);
     //check ack/nack here
 }
 
 #ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
 static void pollVersion(void)
 {
+    ubloxSendBuffer_t send_buffer;
     send_buffer.message.header.msg_class = CLASS_MON;
     send_buffer.message.header.msg_id = MSG_VER;
     send_buffer.message.header.length = 0;
-    sendConfigMessageUBLOX();
+    sendConfigMessageUBLOX(&send_buffer);
 }
 #endif
 
@@ -405,34 +407,37 @@ static const uint8_t galileo_payload[] =  {
 
 static void configureGalileo(void)
 {
+    ubloxSendBuffer_t send_buffer;
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_GNSS;
     send_buffer.message.header.length = sizeof(galileo_payload);
     memcpy(send_buffer.message.payload.bytes, galileo_payload, sizeof(galileo_payload));
-    sendConfigMessageUBLOX();
+    sendConfigMessageUBLOX(&send_buffer);
 }
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
 {
+    ubloxSendBuffer_t send_buffer;
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_NAV_SETTINGS;
     send_buffer.message.header.length = 0x24;
     memcpy(send_buffer.message.payload.bytes, default_payload, sizeof(default_payload));
     send_buffer.message.payload.bytes[2] = dynModel;
     send_buffer.message.payload.bytes[3] = fixMode;
-    sendConfigMessageUBLOX();
+    sendConfigMessageUBLOX(&send_buffer);
 }
 
 
 static void configureMSG(uint8_t class, uint8_t id, uint8_t rate)
 {
+    ubloxSendBuffer_t send_buffer;
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_SET_RATE;
     send_buffer.message.header.length = 3;
     send_buffer.message.payload.msg.class = class;
     send_buffer.message.payload.msg.id = id;
     send_buffer.message.payload.msg.rate = rate;
-    sendConfigMessageUBLOX();
+    sendConfigMessageUBLOX(&send_buffer);
 }
 
 /*
@@ -442,19 +447,21 @@ static void configureMSG(uint8_t class, uint8_t id, uint8_t rate)
  */
 static void configureRATE(uint16_t measRate)
 {
+    ubloxSendBuffer_t send_buffer;
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_RATE;
     send_buffer.message.header.length = 6;
     send_buffer.message.payload.rate.meas=measRate;
     send_buffer.message.payload.rate.nav=1;
     send_buffer.message.payload.rate.time=1;
-    sendConfigMessageUBLOX();
+    sendConfigMessageUBLOX(&send_buffer);
 }
 
 /*
  */
 static void configureSBAS(void)
 {
+    ubloxSendBuffer_t send_buffer;
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_SBAS;
     send_buffer.message.header.length = 8;
@@ -463,7 +470,7 @@ static void configureSBAS(void)
     send_buffer.message.payload.sbas.maxSBAS=3;
     send_buffer.message.payload.sbas.scanmode2=0;
     send_buffer.message.payload.sbas.scanmode1=ubloxScanMode1[gpsState.gpsConfig->sbasMode];
-    sendConfigMessageUBLOX();
+    sendConfigMessageUBLOX(&send_buffer);
 }
 
 static bool gpsParceFrameUBLOX(void)
@@ -471,47 +478,47 @@ static bool gpsParceFrameUBLOX(void)
     switch (_msg_id) {
     case MSG_POSLLH:
         //i2c_dataset.time                = _buffer.posllh.time;
-        gpsSol.llh.lon = _buffer.posllh.longitude;
-        gpsSol.llh.lat = _buffer.posllh.latitude;
-        gpsSol.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
-        gpsSol.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
+        gpsSol.llh.lon = _buffer->posllh.longitude;
+        gpsSol.llh.lat = _buffer->posllh.latitude;
+        gpsSol.llh.alt = _buffer->posllh.altitude_msl / 10;  //alt in cm
+        gpsSol.eph = gpsConstrainEPE(_buffer->posllh.horizontal_accuracy / 10);
+        gpsSol.epv = gpsConstrainEPE(_buffer->posllh.vertical_accuracy / 10);
         gpsSol.flags.validEPE = 1;
         if (next_fix_type != GPS_NO_FIX)
             gpsSol.fixType = next_fix_type;
         _new_position = true;
         break;
     case MSG_STATUS:
-        next_fix_type = gpsMapFixType(_buffer.status.fix_status & NAV_STATUS_FIX_VALID, _buffer.status.fix_type);
+        next_fix_type = gpsMapFixType(_buffer->status.fix_status & NAV_STATUS_FIX_VALID, _buffer->status.fix_type);
         if (next_fix_type == GPS_NO_FIX)
             gpsSol.fixType = GPS_NO_FIX;
         break;
     case MSG_SOL:
-        next_fix_type = gpsMapFixType(_buffer.solution.fix_status & NAV_STATUS_FIX_VALID, _buffer.solution.fix_type);
+        next_fix_type = gpsMapFixType(_buffer->solution.fix_status & NAV_STATUS_FIX_VALID, _buffer->solution.fix_type);
         if (next_fix_type == GPS_NO_FIX)
             gpsSol.fixType = GPS_NO_FIX;
-        gpsSol.numSat = _buffer.solution.satellites;
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.solution.position_DOP);
+        gpsSol.numSat = _buffer->solution.satellites;
+        gpsSol.hdop = gpsConstrainHDOP(_buffer->solution.position_DOP);
         break;
     case MSG_VELNED:
-        gpsSol.groundSpeed = _buffer.velned.speed_2d;    // cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.velNED[0] = _buffer.velned.ned_north;
-        gpsSol.velNED[1] = _buffer.velned.ned_east;
-        gpsSol.velNED[2] = _buffer.velned.ned_down;
+        gpsSol.groundSpeed = _buffer->velned.speed_2d;    // cm/s
+        gpsSol.groundCourse = (uint16_t) (_buffer->velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSol.velNED[0] = _buffer->velned.ned_north;
+        gpsSol.velNED[1] = _buffer->velned.ned_east;
+        gpsSol.velNED[2] = _buffer->velned.ned_down;
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
-        if (UBX_VALID_GPS_DATE_TIME(_buffer.timeutc.valid)) {
-            gpsSol.time.year = _buffer.timeutc.year;
-            gpsSol.time.month = _buffer.timeutc.month;
-            gpsSol.time.day = _buffer.timeutc.day;
-            gpsSol.time.hours = _buffer.timeutc.hour;
-            gpsSol.time.minutes = _buffer.timeutc.min;
-            gpsSol.time.seconds = _buffer.timeutc.sec;
-            gpsSol.time.millis = _buffer.timeutc.nano / (1000*1000);
+        if (UBX_VALID_GPS_DATE_TIME(_buffer->timeutc.valid)) {
+            gpsSol.time.year = _buffer->timeutc.year;
+            gpsSol.time.month = _buffer->timeutc.month;
+            gpsSol.time.day = _buffer->timeutc.day;
+            gpsSol.time.hours = _buffer->timeutc.hour;
+            gpsSol.time.minutes = _buffer->timeutc.min;
+            gpsSol.time.seconds = _buffer->timeutc.sec;
+            gpsSol.time.millis = _buffer->timeutc.nano / (1000*1000);
 
             gpsSol.flags.validTime = 1;
         } else {
@@ -520,32 +527,32 @@ static bool gpsParceFrameUBLOX(void)
         break;
 #ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
     case MSG_PVT:
-        next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
+        next_fix_type = gpsMapFixType(_buffer->pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer->pvt.fix_type);
         gpsSol.fixType = next_fix_type;
-        gpsSol.llh.lon = _buffer.pvt.longitude;
-        gpsSol.llh.lat = _buffer.pvt.latitude;
-        gpsSol.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
-        gpsSol.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
-        gpsSol.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
-        gpsSol.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
-        gpsSol.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.numSat = _buffer.pvt.satellites;
-        gpsSol.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
+        gpsSol.llh.lon = _buffer->pvt.longitude;
+        gpsSol.llh.lat = _buffer->pvt.latitude;
+        gpsSol.llh.alt = _buffer->pvt.altitude_msl / 10;  //alt in cm
+        gpsSol.velNED[X]=_buffer->pvt.ned_north / 10;  // to cm/s
+        gpsSol.velNED[Y]=_buffer->pvt.ned_east / 10;   // to cm/s
+        gpsSol.velNED[Z]=_buffer->pvt.ned_down / 10;   // to cm/s
+        gpsSol.groundSpeed = _buffer->pvt.speed_2d / 10;    // to cm/s
+        gpsSol.groundCourse = (uint16_t) (_buffer->pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSol.numSat = _buffer->pvt.satellites;
+        gpsSol.eph = gpsConstrainEPE(_buffer->pvt.horizontal_accuracy / 10);
+        gpsSol.epv = gpsConstrainEPE(_buffer->pvt.vertical_accuracy / 10);
+        gpsSol.hdop = gpsConstrainHDOP(_buffer->pvt.position_DOP);
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
 
-        if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
-            gpsSol.time.year = _buffer.pvt.year;
-            gpsSol.time.month = _buffer.pvt.month;
-            gpsSol.time.day = _buffer.pvt.day;
-            gpsSol.time.hours = _buffer.pvt.hour;
-            gpsSol.time.minutes = _buffer.pvt.min;
-            gpsSol.time.seconds = _buffer.pvt.sec;
-            gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
+        if (UBX_VALID_GPS_DATE_TIME(_buffer->pvt.valid)) {
+            gpsSol.time.year = _buffer->pvt.year;
+            gpsSol.time.month = _buffer->pvt.month;
+            gpsSol.time.day = _buffer->pvt.day;
+            gpsSol.time.hours = _buffer->pvt.hour;
+            gpsSol.time.minutes = _buffer->pvt.min;
+            gpsSol.time.seconds = _buffer->pvt.sec;
+            gpsSol.time.millis = _buffer->pvt.nano / (1000*1000);
 
             gpsSol.flags.validTime = 1;
         } else {
@@ -560,8 +567,8 @@ static bool gpsParceFrameUBLOX(void)
             //uint32_t swver = _buffer.ver.swVersion;
             // EXT CORE 3.01 (107900)
             // 01234567890123456789012
-            gpsState.hwVersion = fastA2I(_buffer.ver.hwVersion);
-            capGalileo = ((gpsState.hwVersion >= 80000) && (_buffer.ver.swVersion[9] > '2')); // M8N and SW major 3 or later
+            gpsState.hwVersion = fastA2I(_buffer->ver.hwVersion);
+            capGalileo = ((gpsState.hwVersion >= 80000) && (_buffer->ver.swVersion[9] > '2')); // M8N and SW major 3 or later
         }
         break;
 #endif
@@ -632,7 +639,7 @@ static bool gpsNewFrameUBLOX(uint8_t data)
         case 6:
             _ck_b += (_ck_a += data);       // checksum byte
             if (_payload_counter < MAX_UBLOX_PAYLOAD_SIZE) {
-                _buffer.bytes[_payload_counter] = data;
+                ((uint8_t *)_buffer)[_payload_counter] = data;
             }
             // NOTE: check counter BEFORE increasing so that a payload_size of 65535 is correctly handled.  This can happen if garbage data is received.
             if (_payload_counter ==  _payload_length - 1) {
@@ -796,7 +803,7 @@ static bool gpsReceiveData(void)
 {
     bool hasNewData = false;
 
-    if (gpsState.gpsPort) {
+    if (gpsState.gpsPort && _buffer) {
         while (serialRxBytesWaiting(gpsState.gpsPort) && !hasNewData) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameUBLOX(newChar)) {
@@ -810,6 +817,10 @@ static bool gpsReceiveData(void)
 
 static bool gpsInitialize(void)
 {
+    if (_buffer == NULL) {
+        _buffer = memAllocate(MAX_UBLOX_PAYLOAD_SIZE);
+    }
+
     gpsSetState(GPS_CHANGE_BAUD);
     return false;
 }
