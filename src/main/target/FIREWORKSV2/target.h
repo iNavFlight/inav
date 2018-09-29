@@ -28,6 +28,8 @@
 
 #define USBD_PRODUCT_STRING     "OMNIBUS F4 FWX V2"
 
+#define USE_DSHOT
+
 // Status LED
 #define LED0                    PA8
 
