@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
 
 #include "platform.h"
 #include "build/debug.h"
@@ -98,7 +99,7 @@ static bool pwmMotorsEnabled = true;
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
 {
     p->tch = tch;
-    
+
     timerConfigBase(p->tch, period, hz);
     timerPWMConfigChannel(p->tch, value);
     timerPWMStart(p->tch);
