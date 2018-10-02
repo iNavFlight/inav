@@ -64,6 +64,8 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     DEF_TIM(TIM1,  CH3, PA10, TIM_USE_FW_SERVO | TIM_USE_PWM, 0, 1), // PWM 4
 };
 
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
+
 #if (SPRACINGF7DUAL_REV <= 1)
 
 #include "drivers/serial.h"

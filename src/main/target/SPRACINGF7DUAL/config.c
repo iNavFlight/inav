@@ -35,8 +35,6 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 
-#include "pg/rx.h"
-
 #include "rx/rx.h"
 
 #include "io/serial.h"
@@ -53,25 +51,17 @@
 
 #ifdef USE_TARGET_CONFIG
 
-#include "config_helper.h"
-
-#define TELEMETRY_UART                      SERIAL_PORT_UART5
-
-#ifdef USE_TELEMETRY
-static targetSerialPortFunction_t targetSerialPortFunction[] = {
-    { TELEMETRY_UART, FUNCTION_TELEMETRY_SMARTPORT },
-};
-#endif
+#define TELEMETRY_UART                      SERIAL_PORT_USART5
 
 void targetConfiguration(void)
 {
-    barometerConfigMutable()->baro_hardware = BARO_DEFAULT;
+    barometerConfigMutable()->baro_hardware = BARO_BMP280;
 
 #ifdef USE_TELEMETRY
-    targetSerialPortFunctionConfig(targetSerialPortFunction, ARRAYLEN(targetSerialPortFunction));
     // change telemetry settings
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
     telemetryConfigMutable()->telemetry_inverted = 1;
-    telemetryConfigMutable()->halfDuplex = 1;
+    //telemetryConfigMutable()->halfDuplex = 1;
 #endif
 }
 #endif
