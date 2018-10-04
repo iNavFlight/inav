@@ -63,6 +63,7 @@ static void *ctrlLineStateCbContext;
 static void (*baudRateCb)(void *context, uint32_t baud);
 static void *baudRateCbContext;
 
+__ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 
 CDC_IF_Prop_TypeDef VCP_fops = {VCP_Init, VCP_DeInit, VCP_Ctrl, VCP_DataTx, VCP_DataRx };
 

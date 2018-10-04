@@ -35,16 +35,18 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
-#define MULTISHOT_5US_PW    (MULTISHOT_TIMER_MHZ * 5)
-#define MULTISHOT_20US_MULT (MULTISHOT_TIMER_MHZ * 20 / 1000.0f)
+#define MULTISHOT_5US_PW    (MULTISHOT_TIMER_HZ * 5 / 1000000.0f)
+#define MULTISHOT_20US_MULT (MULTISHOT_TIMER_HZ * 20 / 1000000.0f / 1000.0f)
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
 
 typedef struct {
+    TCH_t * tch;
     volatile timCCR_t *ccr;
-    TIM_TypeDef *tim;
     uint16_t period;
     pwmWriteFuncPtr pwmWritePtr;
+    float pulseOffset;
+    float pulseScale;
 } pwmOutputPort_t;
 
 static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
@@ -62,38 +64,41 @@ static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
 
-static void pwmOutConfigTimer(pwmOutputPort_t * p, const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value)
+static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
 {
-    timerConfigBase(timerHardware->tim, period, mhz);
-    timerPWMConfigChannel(timerHardware->tim, timerHardware->channel, timerHardware->output & TIMER_OUTPUT_N_CHANNEL, timerHardware->output & TIMER_OUTPUT_INVERTED, value);
+    p->tch = tch;
+    
+    timerConfigBase(p->tch, period, hz);
+    timerPWMConfigChannel(p->tch, value);
+    timerPWMStart(p->tch);
 
-    if (timerHardware->output & TIMER_OUTPUT_ENABLED) {
-        timerPWMStart(timerHardware->tim, timerHardware->channel, timerHardware->output & TIMER_OUTPUT_N_CHANNEL);
-    }
+    timerEnable(p->tch);
 
-    timerEnable(timerHardware->tim);
-
-    p->ccr = timerCCR(timerHardware->tim, timerHardware->channel);
     p->period = period;
-    p->tim = timerHardware->tim;
-
+    p->ccr = timerCCR(p->tch);
     *p->ccr = 0;
 }
 
-static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timerHardware, uint8_t mhz, uint16_t period, uint16_t value, bool enableOutput)
+static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint32_t hz, uint16_t period, uint16_t value, bool enableOutput)
 {
     if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
         DEBUG_TRACE("Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
 
+    // Attempt to allocate TCH
+    TCH_t * tch = timerGetTCH(timHw);
+    if (tch == NULL) {
+        return NULL;
+    }
+
     pwmOutputPort_t *p = &pwmOutputPorts[allocatedOutputPortCount++];
 
-    const IO_t io = IOGetByTag(timerHardware->tag);
+    const IO_t io = IOGetByTag(timHw->tag);
     IOInit(io, OWNER_MOTOR, RESOURCE_OUTPUT, allocatedOutputPortCount);
 
     if (enableOutput) {
-        IOConfigGPIOAF(io, IOCFG_AF_PP, timerHardware->alternateFunction);
+        IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
     }
     else {
         // If PWM outputs are disabled - configure as GPIO and drive low
@@ -101,36 +106,14 @@ static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timerHardware, 
         IOLo(io);
     }
 
-    pwmOutConfigTimer(p, timerHardware, mhz, period, value);
+    pwmOutConfigTimer(p, tch, hz, period, value);
     return p;
 }
 
-static void pwmWriteBrushed(uint8_t index, uint16_t value)
-{
-    *motors[index]->ccr = (value - 1000) * motors[index]->period / 1000;
-}
-
-#ifndef BRUSHED_MOTORS
 static void pwmWriteStandard(uint8_t index, uint16_t value)
 {
-    *motors[index]->ccr = value;
+    *motors[index]->ccr = lrintf((value * motors[index]->pulseScale) + motors[index]->pulseOffset);
 }
-
-static void pwmWriteOneShot125(uint8_t index, uint16_t value)
-{
-    *motors[index]->ccr = lrintf((float)(value * ONESHOT125_TIMER_MHZ/8.0f));
-}
-
-static void pwmWriteOneShot42(uint8_t index, uint16_t value)
-{
-    *motors[index]->ccr = lrintf((float)(value * ONESHOT42_TIMER_MHZ/24.0f));
-}
-
-static void pwmWriteMultiShot(uint8_t index, uint16_t value)
-{
-    *motors[index]->ccr = lrintf(((float)(value-1000) * MULTISHOT_20US_MULT) + MULTISHOT_5US_PW);
-}
-#endif
 
 void pwmWriteMotor(uint8_t index, uint16_t value)
 {
@@ -162,51 +145,71 @@ bool isMotorBrushed(uint16_t motorPwmRate)
     return (motorPwmRate > 500);
 }
 
-bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, uint16_t idlePulse, motorPwmProtocolTypes_e proto, bool enableOutput)
+static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, float sMin, float sLen, uint32_t motorPwmRateHz, bool enableOutput)
 {
-    uint32_t timerMhzCounter;
+    const uint32_t baseClockHz = timerGetBaseClockHW(timerHardware);
+    const uint32_t prescaler = ((baseClockHz / motorPwmRateHz) + 0xffff) / 0x10000; /* rounding up */
+    const uint32_t timerHz = baseClockHz / prescaler;
+    const uint32_t period = timerHz / motorPwmRateHz;
+
+    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, timerHz, period, 0, enableOutput);
+
+    if (port) {
+        port->pulseScale = ((sLen == 0) ? period : (sLen * timerHz)) / 1000.0f;
+        port->pulseOffset = (sMin * timerHz) - (port->pulseScale * 1000);
+    }
+
+    return port;
+}
+
+bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, motorPwmProtocolTypes_e proto, bool enableOutput)
+{
+    pwmOutputPort_t * port = NULL;
     pwmWriteFuncPtr pwmWritePtr;
 
-    switch (proto) {
 #ifdef BRUSHED_MOTORS
-    default:
+    proto = PWM_TYPE_BRUSHED;   // Override proto
 #endif
+
+    switch (proto) {
     case PWM_TYPE_BRUSHED:
-        timerMhzCounter = PWM_BRUSHED_TIMER_MHZ;
-        pwmWritePtr = pwmWriteBrushed;
-        idlePulse = 0;
+        port = motorConfigPwm(timerHardware, 0.0f, 0.0f, motorPwmRate, enableOutput);
+        pwmWritePtr = pwmWriteStandard;
         break;
-#ifndef BRUSHED_MOTORS
     case PWM_TYPE_ONESHOT125:
-        timerMhzCounter = ONESHOT125_TIMER_MHZ;
-        pwmWritePtr = pwmWriteOneShot125;
+        port = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorPwmRate, enableOutput);
+        pwmWritePtr = pwmWriteStandard;
         break;
 
     case PWM_TYPE_ONESHOT42:
-        timerMhzCounter = ONESHOT42_TIMER_MHZ;
-        pwmWritePtr = pwmWriteOneShot42;
+        port = motorConfigPwm(timerHardware, 42e-6f, 42e-6f, motorPwmRate, enableOutput);
+        pwmWritePtr = pwmWriteStandard;
         break;
 
     case PWM_TYPE_MULTISHOT:
-        timerMhzCounter = MULTISHOT_TIMER_MHZ;
-        pwmWritePtr = pwmWriteMultiShot;
-        break;
-
-    case PWM_TYPE_STANDARD:
-    default:
-        timerMhzCounter = PWM_TIMER_MHZ;
+        port = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, motorPwmRate, enableOutput);
         pwmWritePtr = pwmWriteStandard;
         break;
+
+#ifdef USE_DSHOT
+    case PWM_TYPE_DSHOT1200:
+    case PWM_TYPE_DSHOT600:
+    case PWM_TYPE_DSHOT300:
+    case PWM_TYPE_DSHOT150:
+        port = NULL;
+        break;
 #endif
+
+    default:
+    case PWM_TYPE_STANDARD:
+        port = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, motorPwmRate, enableOutput);
+        pwmWritePtr = pwmWriteStandard;
+        break;
     }
 
-    const uint32_t hz = timerMhzCounter * 1000000;
-
-    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, timerMhzCounter, hz / motorPwmRate, idlePulse, enableOutput);
-
     if (port) {
+        port->pwmWritePtr = pwmWritePtr;
         motors[motorIndex] = port;
-        motors[motorIndex]->pwmWritePtr = pwmWritePtr;
         return true;
     }
 
@@ -215,7 +218,7 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
 
 bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)
 {
-    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, PWM_TIMER_MHZ, 1000000 / servoPwmRate, servoCenterPulse, enableOutput);
+    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, PWM_TIMER_HZ, PWM_TIMER_HZ / servoPwmRate, servoCenterPulse, enableOutput);
 
     if (port) {
         servos[servoIndex] = port;
@@ -261,15 +264,21 @@ void pwmWriteBeeper(bool onoffBeep)
 
 void beeperPwmInit(ioTag_t tag, uint16_t frequency)
 {
-    const timerHardware_t *timer = timerGetByTag(tag, TIM_USE_BEEPER);
-    if (timer) {
+    beeperPwm = NULL;
+
+    const timerHardware_t *timHw = timerGetByTag(tag, TIM_USE_BEEPER);
+
+    if (timHw) {
+        // Attempt to allocate TCH
+        TCH_t * tch = timerGetTCH(timHw);
+        if (tch == NULL) {
+            return NULL;
+        }
+
         beeperPwm = &beeperPwmPort;
         beeperFrequency = frequency;
-        IOConfigGPIOAF(IOGetByTag(tag), IOCFG_AF_PP, timer->alternateFunction);
-        pwmOutConfigTimer(beeperPwm, timer, PWM_TIMER_MHZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
-    }
-    else {
-        beeperPwm = NULL;
+        IOConfigGPIOAF(IOGetByTag(tag), IOCFG_AF_PP, timHw->alternateFunction);
+        pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
     }
 }
 #endif

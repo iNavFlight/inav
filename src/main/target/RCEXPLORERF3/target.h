@@ -92,10 +92,7 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define USE_LED_STRIP // LED strip configuration using PWM motor output pin 5.
-#define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PB8 // TIM16_CH1
-#define WS2811_DMA_STREAM               DMA1_Channel3
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04

@@ -30,26 +30,17 @@
 #include "drivers/timer.h"
 #include "drivers/bus.h"
 
-#define DEF_TIM_CHNL_CH1    TIM_Channel_1
-#define DEF_TIM_CHNL_CH2    TIM_Channel_2
-#define DEF_TIM_CHNL_CH3    TIM_Channel_3
-#define DEF_TIM_CHNL_CH4    TIM_Channel_4
-
-#define DEF_TIM(_tim, _ch, _pin, _usage, _flags) \
-    { _tim, IO_TAG(_pin), DEF_TIM_CHNL_##_ch, _flags, IOCFG_AF_PP, GPIO_AF_##_tim, _usage }
-
-
 const timerHardware_t timerHardware[] = {
-    // DEF_TIM(TIM1,  CH1, PA8, TIM_USE_PPM,        0), // PPM  - timer clash with SS1_TX
+    // DEF_TIM(TIM1,  CH1, PA8, TIM_USE_PPM,        0, 0), // PPM  - timer clash with SS1_TX
 
-    DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1), // M1
-    DEF_TIM(TIM3,  CH3, PB0, TIM_USE_MC_MOTOR,   1), // M2
-    DEF_TIM(TIM3,  CH4, PB1, TIM_USE_MC_MOTOR,   1), // M3
-    DEF_TIM(TIM4,  CH2, PB7, TIM_USE_MC_MOTOR,   1), // M4
+    DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1, 0), // M1
+    DEF_TIM(TIM3,  CH3, PB0, TIM_USE_MC_MOTOR,   1, 0), // M2
+    DEF_TIM(TIM3,  CH4, PB1, TIM_USE_MC_MOTOR,   1, 0), // M3
+    DEF_TIM(TIM4,  CH2, PB7, TIM_USE_MC_MOTOR,   1, 0), // M4
 
     // DEF_TIM(TIM4,  CH1, PB6, TIM_USE_LED,        0), // LED strip - timer clash with M4 output
 
-    DEF_TIM(TIM1,  CH2, PA9, TIM_USE_ANY,        0), // SS1
+    DEF_TIM(TIM1,  CH2, PA9, TIM_USE_ANY,        0, 0), // SS1
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

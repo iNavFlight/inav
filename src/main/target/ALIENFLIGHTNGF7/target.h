@@ -183,13 +183,6 @@
 #define USE_LED_STRIP
 // LED Strip can run off Pin 41 (PA8) of the ESC outputs.
 #define WS2811_PIN                      PA8
-#define WS2811_TIMER                    TIM1
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA2_ST1_HANDLER
-#define WS2811_DMA_STREAM               DMA2_Stream1
-#define WS2811_DMA_IT                   DMA_IT_TCIF1
-#define WS2811_DMA_CHANNEL              DMA_CHANNEL_6
-#define WS2811_TIMER_CHANNEL            TIM_CHANNEL_1
-#define WS2811_TIMER_GPIO_AF            GPIO_AF1_TIM1
 
 #define USE_SPEKTRUM_BIND
 // USART2, PA3

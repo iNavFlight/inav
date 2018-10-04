@@ -54,32 +54,10 @@ typedef enum {
 typedef struct {
     serialPort_t port;
 
-#if defined(STM32F7)
-    DMA_HandleTypeDef rxDMAHandle;
-    DMA_HandleTypeDef txDMAHandle;
-#endif
-#if defined(STM32F4) || defined(STM32F7)
-    DMA_Stream_TypeDef *rxDMAStream;
-    DMA_Stream_TypeDef *txDMAStream;
-    uint32_t rxDMAChannel;
-    uint32_t txDMAChannel;
-#else
-    DMA_Channel_TypeDef *rxDMAChannel;
-    DMA_Channel_TypeDef *txDMAChannel;
-#endif
-    uint32_t rxDMAIrq;
-    uint32_t txDMAIrq;
-
-    uint32_t rxDMAPos;
-    bool txDMAEmpty;
-
-    uint32_t txDMAPeripheralBaseAddr;
-    uint32_t rxDMAPeripheralBaseAddr;
-
 #ifdef USE_HAL_DRIVER
-    // All USARTs can also be used as UART, and we use them only as UART.
     UART_HandleTypeDef Handle;
 #endif
+
     USART_TypeDef *USARTx;
 } uartPort_t;
 

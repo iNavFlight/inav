@@ -110,10 +110,7 @@
 #define RSSI_ADC_CHANNEL         ADC_CHN_2
 
 #define USE_LED_STRIP
-#define USE_LED_STRIP_ON_DMA1_CHANNEL2
 #define WS2811_PIN                      PA8
-#define WS2811_DMA_STREAM               DMA1_Channel2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
