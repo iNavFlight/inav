@@ -51,10 +51,10 @@
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define USE_GYRO
-#define USE_GYRO_SPI_MPU6500
+#define USE_GYRO_MPU6500
 
 #define USE_ACC
-#define USE_ACC_SPI_MPU6500
+#define USE_ACC_MPU6500
 
 #if (SPRACINGF7DUAL_REV >= 2)
 #define ACC_MPU6500_1_ALIGN           CW0_DEG
@@ -177,9 +177,13 @@
 #define RTC6705_POWER_PIN                   PB7  // Shared with PWM6
 
 #define GYRO_1_CS_PIN                       SPI1_NSS_PIN
-#define GYRO_1_SPI_INSTANCE                 SPI1
+#define GYRO_1_SPI_INSTANCE                 BUS_SPI1
 #define GYRO_2_CS_PIN                       PB2
-#define GYRO_2_SPI_INSTANCE                 SPI1
+#define GYRO_2_SPI_INSTANCE                 BUS_SPI1
+#define MPU6500_CS_PIN                      GYRO_1_CS_PIN
+#define MPU6500_SPI_BUS                     GYRO_1_SPI_INSTANCE
+#define MPU6500_2_CS_PIN                    GYRO_2_CS_PIN
+#define MPU6500_2_SPI_BUS                   GYRO_2_SPI_INSTANCE
 
 #define USE_ADC
 // It's possible to use ADC1 or ADC3 on this target, same pins.

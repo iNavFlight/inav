@@ -26,7 +26,10 @@
 #include "drivers/timer.h"
 #include "drivers/timer_def.h"
 #include "drivers/dma.h"
+#include "drivers/bus.h"
 
+// Register second MPU6500 so cs pin is initialized
+BUSDEV_REGISTER_SPI(busdev_mpu6500_2,     DEVHW_MPU6500,      MPU6500_2_SPI_BUS,    MPU6500_2_CS_PIN,     GYRO_2_EXTI_PIN,  DEVFLAGS_NONE);
 
 const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
 
