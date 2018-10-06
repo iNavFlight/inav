@@ -195,12 +195,16 @@
 //#define ADC1_DMA_STREAM                     DMA2_Stream0
 
 // Using ADC3 frees up DMA2_Stream0 for SPI1_RX (not necessarily, SPI1_RX has DMA2_Stream2 as well)
-#define ADC_INSTANCE                        ADC3
-#define ADC3_DMA_STREAM                     DMA2_Stream0
+#define ADC_CHANNEL_1_PIN                   PC1
+#define ADC_CHANNEL_2_PIN                   PC2
+#define ADC_CHANNEL_3_PIN                   PC0
 
-#define VBAT_ADC_PIN                        PC1
-#define CURRENT_METER_ADC_PIN               PC2
-#define RSSI_ADC_PIN                        PC0
+
+//#define ADC_INSTANCE                        ADC3
+//#define ADC3_DMA_STREAM                     DMA2_Stream0
+#define VBAT_ADC_CHANNEL                    ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL           ADC_CHN_2
+#define RSSI_ADC_CHANNEL                    ADC_CHN_3
 
 #define CURRENT_METER_SCALE_DEFAULT         300
 
@@ -221,7 +225,7 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 //#define RX_CHANNELS_TAER
 #define DEFAULT_RX_FEATURE                  FEATURE_RX_SERIAL
-#define DEFAULT_FEATURES                    (FEATURE_TRANSPONDER | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP)
+#define DEFAULT_FEATURES                    (FEATURE_TRANSPONDER | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP| FEATURE_VBAT)
 
 #define GPS_UART                            SERIAL_PORT_USART3
 
