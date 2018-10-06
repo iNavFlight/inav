@@ -32,7 +32,7 @@ const timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM2, CH2, PB3,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S5
     DEF_TIM(TIM2, CH3, PB10, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S6
-    DEF_TIM(TIM2, CH1, PA15, TIM_USE_MC_CHNFW | TIM_USE_FW_SERVO, 0, 0), // S7
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S7
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_LED,   0, 0), // LED
     DEF_TIM(TIM5, CH1, PA0,  TIM_USE_PPM,   0, 0), //use rssi pad for PPM/softserial_tx1
