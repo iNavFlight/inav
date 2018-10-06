@@ -29,22 +29,18 @@
 
 #define USBD_PRODUCT_STRING     "SP Racing F7 DUAL"
 
-#define TEST_SOUND // for factory testing audio output
-
 #define USE_DUAL_GYRO
 //#define DEBUG_MODE DEBUG_DUAL_GYRO_DIFF
 
-#define ENABLE_DSHOT_DMAR       true
-
 #define LED0_PIN                PC4
 
-#define USE_BEEPER
-#define BEEPER_PIN              PC15
+#define BEEPER                  PC15
 #define BEEPER_INVERTED
 
 #define USE_EXTI
 #define GYRO_1_EXTI_PIN         PC13
 #define GYRO_2_EXTI_PIN         PC14
+#define GYRO_INT_EXTI           GYRO_1_EXTI_PIN
 #define MPU_INT_EXTI
 
 #define USE_MPU_DATA_READY_SIGNAL
@@ -71,22 +67,18 @@
 #endif
 
 
-// #define GYRO_1_ALIGN                GYRO_MPU6500_1_ALIGN
-// #define GYRO_2_ALIGN                GYRO_MPU6500_2_ALIGN
-// #define ACC_1_ALIGN                ACC_MPU6500_1_ALIGN
-// #define ACC_2_ALIGN                ACC_MPU6500_2_ALIGN
+#define GYRO_1_ALIGN                GYRO_MPU6500_1_ALIGN
+#define GYRO_2_ALIGN                GYRO_MPU6500_2_ALIGN
+#define ACC_1_ALIGN                 ACC_MPU6500_1_ALIGN
+#define ACC_2_ALIGN                 ACC_MPU6500_2_ALIGN
 
-#define ACC_MPU6500_ALIGN       ACC_MPU6500_1_ALIGN
-#define GYRO_MPU6500_ALIGN      GYRO_MPU6500_1_ALIGN
-
-#define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_BOTH
+#define ACC_MPU6500_ALIGN       ACC_1_ALIGN
+#define GYRO_MPU6500_ALIGN      GYRO_1_ALIGN
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
-
-#define DEFAULT_BARO_BMP280
 
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG
@@ -144,8 +136,8 @@
 #define SPI2_MOSI_PIN           PB15
 
 #define USE_MAX7456
-#define MAX7456_SPI_BUS    BUS_SPI2
-#define MAX7456_CS_PIN      SPI2_NSS_PIN
+#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          SPI2_NSS_PIN
 
 #define USE_SPI_DEVICE_3 // SDCARD
 #define SPI3_SCK_PIN            PB3
@@ -158,27 +150,29 @@
 #define SDCARD_SPI_CS_PIN                   PC3
 
 
+// unused but may be useful:
 // SPI3 is on the APB1 bus whose clock runs at 54MHz. Divide to under 400kHz for init:
-#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 54Mhz/256 = 210kHz
+// #define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 54Mhz/256 = 210kHz
 // Divide to under 25MHz for normal operation:
-#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 54Mhz/3 = 18Mhz // FIXME currently running slower than 18mhz for testing.
+// #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 54Mhz/3 = 18Mhz // FIXME currently running slower than 18mhz for testing.
 
-#define SDCARD_DMA_STREAM_TX_FULL           DMA1_Stream7
+// #define SDCARD_DMA_STREAM_TX_FULL           DMA1_Stream7
 #define SDCARD_DMA_TX                       DMA1
-#define SDCARD_DMA_STREAM_TX                7
+// #define SDCARD_DMA_STREAM_TX                7
 #define SDCARD_DMA_CLK                      LL_AHB1_GRP1_PERIPH_DMA1
 
 #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF7_4
 #define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_0
 
-#define USE_VTX_RTC6705
-#define USE_VTX_RTC6705_SOFTSPI
-#define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
+// disabled for motor outputs 5-8:
+//#define USE_VTX_RTC6705
+//#define USE_VTX_RTC6705_SOFTSPI
+//#define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
 
-#define RTC6705_SPI_MOSI_PIN                PB0  // Shared with PWM8
-#define RTC6705_CS_PIN                      PB6  // Shared with PWM5
-#define RTC6705_SPICLK_PIN                  PB1  // Shared with PWM7
-#define RTC6705_POWER_PIN                   PB7  // Shared with PWM6
+//#define RTC6705_SPI_MOSI_PIN                PB0  // Shared with PWM8
+//#define RTC6705_CS_PIN                      PB6  // Shared with PWM5
+//#define RTC6705_SPICLK_PIN                  PB1  // Shared with PWM7
+//#define RTC6705_POWER_PIN                   PB7  // Shared with PWM6
 
 #define GYRO_1_CS_PIN                       SPI1_NSS_PIN
 #define GYRO_1_SPI_INSTANCE                 BUS_SPI1
@@ -208,23 +202,13 @@
 
 #define CURRENT_METER_SCALE_DEFAULT         300
 
-#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
-#define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
-
 #define USE_OSD
-#define USE_OSD_OVER_MSP_DISPLAYPORT
-#define USE_MSP_CURRENT_METER
-
-#define USE_PID_AUDIO
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA1
 
-#define USE_TRANSPONDER
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 //#define RX_CHANNELS_TAER
-#define DEFAULT_RX_FEATURE                  FEATURE_RX_SERIAL
 #define DEFAULT_FEATURES                    (FEATURE_TRANSPONDER | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP| FEATURE_VBAT)
 
 #define GPS_UART                            SERIAL_PORT_USART3
@@ -236,10 +220,6 @@
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define USE_BUTTONS
-#define BUTTON_A_PIN            UART5_RX_PIN
-#define BUTTON_A_PIN_INVERTED
-
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
@@ -247,6 +227,6 @@
 
 //#define USABLE_TIMER_CHANNEL_COUNT 16 // 4xPWM, 8xESC, 2xESC via UART3 RX/TX, 1xLED Strip, 1xIR.
 #define USABLE_TIMER_CHANNEL_COUNT 16
-#define USED_TIMERS  (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(9))
+// #define USED_TIMERS  (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(9))
 
 #define MAX_PWM_OUTPUT_PORTS    8
