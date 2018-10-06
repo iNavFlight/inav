@@ -71,10 +71,13 @@
 #endif
 
 
-#define GYRO_1_ALIGN                GYRO_MPU6500_1_ALIGN
-#define GYRO_2_ALIGN                GYRO_MPU6500_2_ALIGN
-#define ACC_1_ALIGN                ACC_MPU6500_1_ALIGN
-#define ACC_2_ALIGN                ACC_MPU6500_2_ALIGN
+// #define GYRO_1_ALIGN                GYRO_MPU6500_1_ALIGN
+// #define GYRO_2_ALIGN                GYRO_MPU6500_2_ALIGN
+// #define ACC_1_ALIGN                ACC_MPU6500_1_ALIGN
+// #define ACC_2_ALIGN                ACC_MPU6500_2_ALIGN
+
+#define ACC_MPU6500_ALIGN       ACC_MPU6500_1_ALIGN
+#define GYRO_MPU6500_ALIGN      GYRO_MPU6500_1_ALIGN
 
 #define GYRO_CONFIG_USE_GYRO_DEFAULT GYRO_CONFIG_USE_GYRO_BOTH
 
