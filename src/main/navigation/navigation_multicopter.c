@@ -276,11 +276,8 @@ void resetMulticopterPositionController(void)
     }
 }
 
-bool adjustMulticopterPositionFromRCInput(void)
+bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
-    const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
-    const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
-
     if (rcPitchAdjustment || rcRollAdjustment) {
         // If mode is GPS_CRUISE, move target position, otherwise POS controller will passthru the RC input to ANGLE PID
         if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
@@ -382,15 +379,22 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     if (velErrorMagnitude > 0.1f) {
         accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
         accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
-    }
-    else {
+    } else {
         accelLimitX = maxAccelLimit / 1.414213f;
         accelLimitY = accelLimitX;
     }
 
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
-    const float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+
+    float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+    //When braking, raise jerk limit even if we are not boosting acceleration
+#ifdef USE_MR_BRAKING_MODE
+    if (STATE(NAV_CRUISE_BRAKING)) {
+        maxAccelChange = maxAccelChange * 2;
+    }
+#endif 
+
     const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
@@ -401,16 +405,47 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
     // Thus we don't need to do anything else with calculated acceleration
-    const float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
-    const float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
+    float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
+    float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
+
+    int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
+    uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
+
+#ifdef USE_MR_BRAKING_MODE
+    //Boost required accelerations
+    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0)
+    {
+        const float rawBoostFactor = (100.0f + (float)navConfig()->mc.braking_boost_factor) / 100.0f;
+        
+        //Scale boost factor according to speed
+        const float boostFactor = constrainf(
+            scaleRangef(
+                posControl.actualState.velXY, 
+                navConfig()->mc.braking_boost_speed_threshold, 
+                navConfig()->general.max_manual_speed, 
+                0, 
+                rawBoostFactor
+            ),
+            0, 
+            rawBoostFactor
+        );
+
+        //Boost required acceleration for harder braking
+        newAccelX = newAccelX * boostFactor;
+        newAccelY = newAccelY * boostFactor;
+
+        maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
+        accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
+    }
+#endif
 
     // Save last acceleration target
     lastAccelTargetX = newAccelX;
     lastAccelTargetY = newAccelY;
 
     // Apply LPF to jerk limited acceleration target
-    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
-    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
+    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, accCutoffFrequency, US2S(deltaMicros));
+    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, accCutoffFrequency, US2S(deltaMicros));
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
@@ -420,7 +455,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);
     const float desiredRoll = atan2_approx(accelRight * cos_approx(desiredPitch), GRAVITY_CMSS);
 
-    const int16_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
     posControl.rcAdjustment[ROLL] = constrain(RADIANS_TO_DECIDEGREES(desiredRoll), -maxBankAngle, maxBankAngle);
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
 }

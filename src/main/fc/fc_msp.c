@@ -1357,6 +1357,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, timerHardware[i].usageFlags);
         break;
 
+    case MSP2_INAV_MC_BRAKING:
+#ifdef USE_MR_BRAKING_MODE
+        sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
+        sbufWriteU16(dst, navConfig()->mc.braking_disengage_speed);
+        sbufWriteU16(dst, navConfig()->mc.braking_timeout);
+        sbufWriteU8(dst, navConfig()->mc.braking_boost_factor);
+        sbufWriteU16(dst, navConfig()->mc.braking_boost_timeout);
+        sbufWriteU16(dst, navConfig()->mc.braking_boost_speed_threshold);
+        sbufWriteU16(dst, navConfig()->mc.braking_boost_disengage_speed);
+        sbufWriteU8(dst, navConfig()->mc.braking_bank_angle);
+#endif
+        break;
+
     default:
         return false;
     }
@@ -2529,6 +2542,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         break;
 #endif
+
+    case MSP2_INAV_SET_MC_BRAKING:
+#ifdef USE_MR_BRAKING_MODE
+        navConfigMutable()->mc.braking_speed_threshold = sbufReadU16(src);
+        navConfigMutable()->mc.braking_disengage_speed = sbufReadU16(src);
+        navConfigMutable()->mc.braking_timeout = sbufReadU16(src);
+        navConfigMutable()->mc.braking_boost_factor = sbufReadU8(src);
+        navConfigMutable()->mc.braking_boost_timeout = sbufReadU16(src);
+        navConfigMutable()->mc.braking_boost_speed_threshold = sbufReadU16(src);
+        navConfigMutable()->mc.braking_boost_disengage_speed = sbufReadU16(src);
+        navConfigMutable()->mc.braking_bank_angle = sbufReadU8(src);
+#endif
+        break;
 
     case MSP2_INAV_SELECT_BATTERY_PROFILE:
         if (!ARMING_FLAG(ARMED)) {
