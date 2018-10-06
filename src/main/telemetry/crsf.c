@@ -269,7 +269,6 @@ void crsfFrameFlightMode(sbuf_t *dst)
         if (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME)) {
             flightMode = "!GPS";
         }
-        // Other arming disabled warnings go here, always start with "!"
     }
 
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
@@ -284,7 +283,6 @@ void crsfFrameFlightMode(sbuf_t *dst)
 #define CRSF_SCHEDULE_COUNT_MAX     5
 static uint8_t crsfScheduleCount;
 static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
-
 
 static void processCrsf(void)
 {
