@@ -236,7 +236,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
-    const char *flightMode = "!ERR";
+    const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
         if (isAirmodeActive()) {
             flightMode = "AIR";
@@ -266,10 +266,10 @@ void crsfFrameFlightMode(sbuf_t *dst)
         }
 #ifdef USE_GPS
     } else if (feature(FEATURE_GPS) && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
-        flightMode = "!GPS";
+        flightMode = "WAIT"; // Waiting for GPS lock
 #endif
-    } else if (!isArmingDisabled()) {
-        flightMode = "OK";
+    } else if (isArmingDisabled()) {
+        flightMode = "!ERR";
     }
 
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
