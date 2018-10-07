@@ -236,7 +236,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
-    const char *flightMode = "OK";
+    const char *flightMode = "!ERR";
     if (ARMING_FLAG(ARMED)) {
         if (isAirmodeActive()) {
             flightMode = "AIR";
@@ -264,11 +264,10 @@ void crsfFrameFlightMode(sbuf_t *dst)
         } else if (FLIGHT_MODE(HORIZON_MODE)) {
             flightMode = "HOR";
         }
-    } else if (isArmingDisabled()) {
-        flightMode = "!ARM";
-        if (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME)) {
-            flightMode = "!GPS";
-        }
+    } else if (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME)) {
+        flightMode = "WAIT";
+    } else if (!isArmingDisabled()) {
+        flightMode = "OK";
     }
 
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
