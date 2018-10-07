@@ -265,11 +265,11 @@ void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "HOR";
         }
 #ifdef USE_GPS
-    } else if (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME)) {
+    } else if (feature(FEATURE_GPS) && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
         flightMode = "!GPS";
 #endif
     } else if (!isArmingDisabled()) {
-        flightMode = "RTF";
+        flightMode = "OK";
     }
 
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
