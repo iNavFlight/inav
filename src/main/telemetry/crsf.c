@@ -229,7 +229,7 @@ char[]      Flight mode ( Null­terminated string )
 */
 void crsfFrameFlightMode(sbuf_t *dst)
 {
-    // just do Disarm for the moment as a placeholder
+    // just do "OK" for the moment as a placeholder
     // write zero for frame length, since we don't know it yet
     uint8_t *lengthPtr = sbufPtr(dst);
     sbufWriteU8(dst, 0);
