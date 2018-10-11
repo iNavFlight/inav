@@ -33,7 +33,7 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH3, PC8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0, 1), // S3  UP(2,1)
     DEF_TIM(TIM8, CH4, PC9,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0, 0), // S4  UP(2,1)
 
-    DEF_TIM(TIM2, CH1, PA15, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0, 0), // S5  UP(1,7)
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_MC_MOTOR | TIM_USE_LED                        , 0, 0), // S5  UP(1,7)
 
 #ifdef MATEKF405_SERVOS6
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0), // S6  UP(2,5)
@@ -41,7 +41,6 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0, 0), // S6  UP(2,5)
 #endif
     DEF_TIM(TIM4, CH3, PB8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0, 0), // S7  D(1,7)!S5 UP(2,6)
-    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_LED,                                            0, 0), // LED D(1,0) UP(2,6)
 
     DEF_TIM(TIM5, CH3, PA2,  TIM_USE_PWM,                                            0, 0), // TX2
 
