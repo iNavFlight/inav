@@ -395,14 +395,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         [TASK_ACC] = {
             .taskName = "ACC",
             .taskFunc = taskAcc,
-            .desiredPeriod = TASK_PERIOD_HZ(520), //520Hz is ACC bandwidth (260Hz) * 2
+            .desiredPeriod = TASK_PERIOD_HZ(1000), // anti aliasing still exists
             .staticPriority = TASK_PRIORITY_HIGH,
         },
 
         [TASK_ATTI] = {
             .taskName = "ATTITUDE",
             .taskFunc = taskAttitude,
-            .desiredPeriod = TASK_PERIOD_HZ(60), //With acc LPF at 15Hz 60Hz attitude refresh should be enough
+            .desiredPeriod = TASK_PERIOD_HZ(333), //With acc LPF at 15Hz 60Hz attitude refresh should be enough <-- it is NOT!
             .staticPriority = TASK_PRIORITY_HIGH,
         },
 
