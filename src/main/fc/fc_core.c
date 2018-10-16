@@ -638,7 +638,7 @@ void filterRc(bool isRXDataNew)
 
     // Calculate average cycle time (1Hz LPF on cycle time)
     if (!filterInitialised) {
-        biquadFilterInitLPF(&filteredCycleTimeState, 1, getPidUpdateRate());
+        biquadFilterInitLPF(&filteredCycleTimeState, 1, getLooptime());
         filterInitialised = true;
     }
 
@@ -676,7 +676,7 @@ void taskGyro(timeUs_t currentTimeUs) {
     if (gyroConfig()->gyroSync) {
         while (true) {
             gyroUpdateUs = micros();
-            if (gyroSyncCheckUpdate() || ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (getGyroUpdateRate() + GYRO_WATCHDOG_DELAY))) {
+            if (gyroSyncCheckUpdate() || ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (getLooptime() + GYRO_WATCHDOG_DELAY))) {
                 break;
             }
         }
@@ -711,22 +711,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         flightTime += cycleTime;
     }
 
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    if (getAsyncMode() == ASYNC_MODE_NONE) {
-        taskGyro(currentTimeUs);
-    }
-
-    if (getAsyncMode() != ASYNC_MODE_ALL && sensors(SENSOR_ACC)) {
-        imuUpdateAccelerometer();
-        imuUpdateAttitude(currentTimeUs);
-    }
-#else
-    /* Update gyroscope */
     taskGyro(currentTimeUs);
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
-#endif
-
 
     annexCode();
 

@@ -51,7 +51,7 @@ bool sensorsAutodetect(void)
         return false;
     }
 
-    accInit(getAccUpdateRate());
+    accInit(getLooptime());
 
 #ifdef USE_BARO
     baroInit();

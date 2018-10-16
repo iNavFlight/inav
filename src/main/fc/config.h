@@ -29,13 +29,6 @@
 #define ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS 1500
 #define MAX_NAME_LENGTH 16
 
-#define ACC_TASK_FREQUENCY_DEFAULT 500
-#define ACC_TASK_FREQUENCY_MIN 100
-#define ACC_TASK_FREQUENCY_MAX 1000
-#define ATTITUDE_TASK_FREQUENCY_DEFAULT 250
-#define ATTITUDE_TASK_FREQUENCY_MIN 100
-#define ATTITUDE_TASK_FREQUENCY_MAX 1000
-
 typedef enum {
     ASYNC_MODE_NONE,
     ASYNC_MODE_GYRO,
@@ -78,11 +71,8 @@ typedef enum {
 } features_e;
 
 typedef struct systemConfig_s {
-    uint16_t accTaskFrequency;
-    uint16_t attitudeTaskFrequency;
     uint8_t current_profile_index;
     uint8_t current_battery_profile_index;
-    uint8_t asyncMode;
     uint8_t debug_mode;
     uint8_t i2c_speed;
     uint8_t cpuUnderclock;
@@ -146,10 +136,4 @@ void createDefaultConfig(void);
 void resetConfigs(void);
 void targetConfiguration(void);
 
-uint32_t getPidUpdateRate(void);
-timeDelta_t getGyroUpdateRate(void);
-uint16_t getAccUpdateRate(void);
-#ifdef USE_ASYNC_GYRO_PROCESSING
-uint16_t getAttitudeUpdateRate(void);
-uint8_t getAsyncMode(void);
-#endif
+uint32_t getLooptime(void);

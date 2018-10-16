@@ -1080,15 +1080,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_INAV_PID:
-    #ifdef USE_ASYNC_GYRO_PROCESSING
-        sbufWriteU8(dst, systemConfig()->asyncMode);
-        sbufWriteU16(dst, systemConfig()->accTaskFrequency);
-        sbufWriteU16(dst, systemConfig()->attitudeTaskFrequency);
-    #else
-        sbufWriteU8(dst, 0);
-        sbufWriteU16(dst, 0);
-        sbufWriteU16(dst, 0);
-    #endif
+        sbufWriteU8(dst, 0); //Legacy, no longer in use async processing value
+        sbufWriteU16(dst, 0); //Legacy, no longer in use async processing value
+        sbufWriteU16(dst, 0); //Legacy, no longer in use async processing value
         sbufWriteU8(dst, pidProfile()->heading_hold_rate_limit);
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
         sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
@@ -1904,15 +1898,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_INAV_PID:
         if (dataSize >= 15) {
-#ifdef USE_ASYNC_GYRO_PROCESSING
-            systemConfigMutable()->asyncMode = sbufReadU8(src);
-            systemConfigMutable()->accTaskFrequency = sbufReadU16(src);
-            systemConfigMutable()->attitudeTaskFrequency = sbufReadU16(src);
-#else
-            sbufReadU8(src);
-            sbufReadU16(src);
-            sbufReadU16(src);
-#endif
+            sbufReadU8(src);  //Legacy, no longer in use async processing value
+            sbufReadU16(src);  //Legacy, no longer in use async processing value
+            sbufReadU16(src);  //Legacy, no longer in use async processing value
             pidProfileMutable()->heading_hold_rate_limit = sbufReadU8(src);
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
             mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
