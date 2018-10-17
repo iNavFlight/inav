@@ -101,7 +101,7 @@ STATIC_FASTRAM filterApplyFnPtr gyroFilterStage2ApplyFn;
 STATIC_FASTRAM void *stage2Filter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 4);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
@@ -109,7 +109,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_align = ALIGN_DEFAULT,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 1000,
-    .gyroSync = 0,
+    .gyroSync = 1,
     .gyro_to_use = 0,
     .gyro_soft_notch_hz_1 = 0,
     .gyro_soft_notch_cutoff_1 = 1,
