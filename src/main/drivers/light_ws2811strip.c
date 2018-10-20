@@ -114,7 +114,12 @@ void ws2811LedStripInit(void)
 
     timerConfigBase(ws2811TCH, period, WS2811_TIMER_HZ);
     timerPWMConfigChannel(ws2811TCH, 0);
-    timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, WS2811_DMA_BUFFER_SIZE);
+
+    // If DMA failed - abort
+    if (!timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, WS2811_DMA_BUFFER_SIZE)) {
+        ws2811Initialised = false;
+        return;
+    }
 
     // Zero out DMA buffer
     memset(&ledStripDMABuffer, 0, sizeof(ledStripDMABuffer));

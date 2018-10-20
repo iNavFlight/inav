@@ -32,6 +32,8 @@
 
 #define BEEPER                  PB4
 
+#define USE_DSHOT
+
 // MPU6000 interrupts
 #define USE_EXTI
 #define MPU6000_EXTI_PIN        PC4

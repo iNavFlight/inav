@@ -34,8 +34,9 @@
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
 #include "drivers/time.h"
-
 #include "drivers/system.h"
+#include "drivers/pwm_output.h"
+
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/boardalignment.h"
@@ -809,14 +810,25 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         writeMotors();
     }
 
-#ifdef USE_SDCARD
-    afatfs_poll();
-#endif
-
 #ifdef USE_BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
         blackboxUpdate(micros());
     }
+#endif
+}
+
+// This function is called in a busy-loop, everything called from here should do it's own
+// scheduling and avoid doing heavy calculations
+void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+
+#ifdef USE_SDCARD
+    afatfs_poll();
+#endif
+
+#ifdef USE_DSHOT
+    pwmCompleteDshotUpdate(getMotorCount(), currentTimeUs);
 #endif
 }
 

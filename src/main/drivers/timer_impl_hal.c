@@ -327,6 +327,11 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
         return false;
     }
 
+    // If DMA is already in use - abort
+    if (tch->dma->owner != OWNER_FREE) {
+        return false;
+    }
+
     // We assume that timer channels are already initialized by calls to:
     //  timerConfigBase
     //  timerPWMConfigChannel

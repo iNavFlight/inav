@@ -33,14 +33,14 @@
 const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM,                           0, 0), // PPM
 
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0), // S1_OUT
-    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0), // S2_OUT
-    DEF_TIM(TIM9, CH2, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0), // S3_OUT
-    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0), // S4_OUT
+    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0), // S1_OUT    D(1,7) U(1,2)
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0), // S2_OUT    D(1,2) U(1,2)
+    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 1), // S3_OUT    D(1,6) U(1,7)
+    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0), // S4_OUT    D(1,5) U(1,2)
 
-    DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED,        0, 0), // LED strip
+    DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED,                            0, 0), // LED strip D(1,0)
 
-    DEF_TIM(TIM1, CH2, PA9, TIM_USE_ANY,        0, 0), // SS1
+    DEF_TIM(TIM1, CH2, PA9, TIM_USE_ANY,                            0, 0), // SS1
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

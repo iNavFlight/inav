@@ -18,15 +18,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
 
 #include "platform.h"
 #include "build/debug.h"
 
+#include "common/maths.h"
+
 #include "drivers/io.h"
-#include "timer.h"
-#include "pwm_mapping.h"
-#include "pwm_output.h"
-#include "io_pca9685.h"
+#include "drivers/timer.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/pwm_output.h"
+#include "drivers/io_pca9685.h"
 
 #include "io/pwmdriver_i2c.h"
 
@@ -38,21 +41,50 @@
 #define MULTISHOT_5US_PW    (MULTISHOT_TIMER_HZ * 5 / 1000000.0f)
 #define MULTISHOT_20US_MULT (MULTISHOT_TIMER_HZ * 20 / 1000000.0f / 1000.0f)
 
+#ifdef USE_DSHOT
+#define MOTOR_DSHOT1200_HZ    24000000
+#define MOTOR_DSHOT600_HZ     12000000
+#define MOTOR_DSHOT300_HZ     6000000
+#define MOTOR_DSHOT150_HZ     3000000
+
+
+#define DSHOT_MOTOR_BIT_0       7
+#define DSHOT_MOTOR_BIT_1       14
+#define DSHOT_MOTOR_BITLENGTH   19
+
+#define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
+#endif
+
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
 
 typedef struct {
     TCH_t * tch;
-    volatile timCCR_t *ccr;
-    uint16_t period;
     pwmWriteFuncPtr pwmWritePtr;
+    bool configured;
+    uint16_t value;                 // Used to keep track of last motor value
+
+    // PWM parameters
+    volatile timCCR_t *ccr;         // Shortcut for timer CCR register
     float pulseOffset;
     float pulseScale;
+
+#ifdef USE_DSHOT
+    // DSHOT parameters
+    uint32_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
+#endif
 } pwmOutputPort_t;
 
 static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
 static pwmOutputPort_t *motors[MAX_PWM_MOTORS];
 static pwmOutputPort_t *servos[MAX_PWM_SERVOS];
+
+#ifdef USE_DSHOT
+
+static bool isProtocolDshot = false;
+static timeUs_t dshotMotorUpdateIntervalUs = 0;
+static timeUs_t dshotMotorLastUpdateUs;
+#endif
 
 #ifdef BEEPER_PWM
 static pwmOutputPort_t  beeperPwmPort;
@@ -67,14 +99,13 @@ static bool pwmMotorsEnabled = true;
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
 {
     p->tch = tch;
-    
+
     timerConfigBase(p->tch, period, hz);
     timerPWMConfigChannel(p->tch, value);
     timerPWMStart(p->tch);
 
     timerEnable(p->tch);
 
-    p->period = period;
     p->ccr = timerCCR(p->tch);
     *p->ccr = 0;
 }
@@ -140,9 +171,9 @@ void pwmEnableMotors(void)
     pwmMotorsEnabled = true;
 }
 
-bool isMotorBrushed(uint16_t motorPwmRate)
+bool isMotorBrushed(uint16_t motorPwmRateHz)
 {
-    return (motorPwmRate > 500);
+    return (motorPwmRateHz > 500);
 }
 
 static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, float sMin, float sLen, uint32_t motorPwmRateHz, bool enableOutput)
@@ -157,12 +188,119 @@ static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, fl
     if (port) {
         port->pulseScale = ((sLen == 0) ? period : (sLen * timerHz)) / 1000.0f;
         port->pulseOffset = (sMin * timerHz) - (port->pulseScale * 1000);
+        port->configured = true;
     }
 
     return port;
 }
 
-bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, motorPwmProtocolTypes_e proto, bool enableOutput)
+#ifdef USE_DSHOT
+uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
+{
+    switch (pwmProtocolType) {
+        case(PWM_TYPE_DSHOT1200):
+            return MOTOR_DSHOT1200_HZ;
+        case(PWM_TYPE_DSHOT600):
+            return MOTOR_DSHOT600_HZ;
+        case(PWM_TYPE_DSHOT300):
+            return MOTOR_DSHOT300_HZ;
+        default:
+        case(PWM_TYPE_DSHOT150):
+            return MOTOR_DSHOT150_HZ;
+    }
+}
+
+static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware, motorPwmProtocolTypes_e proto, uint16_t motorPwmRateHz, bool enableOutput)
+{
+    // Try allocating new port
+    pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, getDshotHz(proto), DSHOT_MOTOR_BITLENGTH, 0, enableOutput);
+
+    if (!port) {
+        return NULL;
+    }
+
+    // Keep track of motor update interval
+    const timeUs_t motorIntervalUs = 1000000 / motorPwmRateHz;
+    dshotMotorUpdateIntervalUs = MAX(dshotMotorUpdateIntervalUs, motorIntervalUs);
+
+    // Configure timer DMA
+    if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, DSHOT_DMA_BUFFER_SIZE)) {
+        // Only mark as DSHOT channel if DMA was set successfully
+        memset(port->dmaBuffer, 0, sizeof(port->dmaBuffer));
+        port->configured = true;
+    }
+
+    return port;
+}
+
+static void pwmWriteDshot(uint8_t index, uint16_t value)
+{
+    // DMA operation might still be running. Cache value for future use
+    motors[index]->value = value;
+}
+
+static void loadDmaBufferDshot(uint32_t * dmaBuffer, uint16_t packet)
+{
+    for (int i = 0; i < 16; i++) {
+        dmaBuffer[i] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first
+        packet <<= 1;
+    }
+}
+
+static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
+{
+    uint16_t packet = (value << 1) | (requestTelemetry ? 1 : 0);
+
+    // compute checksum
+    int csum = 0;
+    int csum_data = packet;
+    for (int i = 0; i < 3; i++) {
+        csum ^=  csum_data;   // xor data by nibbles
+        csum_data >>= 4;
+    }
+    csum &= 0xf;
+
+    // append checksum
+    packet = (packet << 4) | csum;
+
+    return packet;
+}
+
+void pwmCompleteDshotUpdate(uint8_t motorCount, timeUs_t currentTimeUs)
+{
+    // Enforce motor update rate
+    if (!isProtocolDshot || (dshotMotorUpdateIntervalUs == 0) || ((currentTimeUs - dshotMotorLastUpdateUs) <= dshotMotorUpdateIntervalUs)) {
+        return;
+    }
+
+    dshotMotorLastUpdateUs = currentTimeUs;
+
+    // Generate DMA buffers
+    for (int index = 0; index < motorCount; index++) {
+        if (motors[index] && motors[index]->configured) {
+            // TODO: ESC telemetry
+            uint16_t packet = prepareDshotPacket(motors[index]->value, false);
+
+            loadDmaBufferDshot(motors[index]->dmaBuffer, packet);
+            timerPWMPrepareDMA(motors[index]->tch, DSHOT_DMA_BUFFER_SIZE);
+        }
+    }
+
+    // Start DMA on all timers
+    for (int index = 0; index < motorCount; index++) {
+        if (motors[index] && motors[index]->configured) {
+            timerPWMStartDMA(motors[index]->tch);
+        }
+    }
+}
+
+bool isMotorProtocolDshot(void)
+{
+    return isProtocolDshot;
+}
+#endif
+
+bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, uint16_t motorPwmRateHz, motorPwmProtocolTypes_e proto, bool enableOutput)
 {
     pwmOutputPort_t * port = NULL;
     pwmWriteFuncPtr pwmWritePtr;
@@ -173,21 +311,21 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
 
     switch (proto) {
     case PWM_TYPE_BRUSHED:
-        port = motorConfigPwm(timerHardware, 0.0f, 0.0f, motorPwmRate, enableOutput);
+        port = motorConfigPwm(timerHardware, 0.0f, 0.0f, motorPwmRateHz, enableOutput);
         pwmWritePtr = pwmWriteStandard;
         break;
     case PWM_TYPE_ONESHOT125:
-        port = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorPwmRate, enableOutput);
+        port = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorPwmRateHz, enableOutput);
         pwmWritePtr = pwmWriteStandard;
         break;
 
     case PWM_TYPE_ONESHOT42:
-        port = motorConfigPwm(timerHardware, 42e-6f, 42e-6f, motorPwmRate, enableOutput);
+        port = motorConfigPwm(timerHardware, 42e-6f, 42e-6f, motorPwmRateHz, enableOutput);
         pwmWritePtr = pwmWriteStandard;
         break;
 
     case PWM_TYPE_MULTISHOT:
-        port = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, motorPwmRate, enableOutput);
+        port = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, motorPwmRateHz, enableOutput);
         pwmWritePtr = pwmWriteStandard;
         break;
 
@@ -196,13 +334,17 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
     case PWM_TYPE_DSHOT600:
     case PWM_TYPE_DSHOT300:
     case PWM_TYPE_DSHOT150:
-        port = NULL;
+        port = motorConfigDshot(timerHardware, proto, motorPwmRateHz, enableOutput);
+        if (port) {
+            isProtocolDshot = true;
+            pwmWritePtr = pwmWriteDshot;
+        }
         break;
 #endif
 
     default:
     case PWM_TYPE_STANDARD:
-        port = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, motorPwmRate, enableOutput);
+        port = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, motorPwmRateHz, enableOutput);
         pwmWritePtr = pwmWriteStandard;
         break;
     }
