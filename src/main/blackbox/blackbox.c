@@ -751,7 +751,7 @@ static void writeIntraframe(void)
     }
 
     //Motors can be below minthrottle when disarmed, but that doesn't happen much
-    blackboxWriteUnsignedVB(blackboxCurrent->motor[0] - motorConfig()->minthrottle);
+    blackboxWriteSignedVB(blackboxCurrent->motor[0]);
 
     //Motors tend to be similar to each other so use the first motor's value as a predictor of the others
     const int motorCount = getMotorCount();
@@ -1326,7 +1326,7 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     const int motorCount = getMotorCount();
     for (int i = 0; i < motorCount; i++) {
-        blackboxCurrent->motor[i] = motor[i];
+        blackboxCurrent->motor[i] = constrainf(motorValue[0], -1.0f, 1.0f) * 1000;
     }
 
     blackboxCurrent->vbat = getBatteryRawVoltage();

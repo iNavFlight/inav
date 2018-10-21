@@ -117,7 +117,7 @@ static const char * const flightControllerIdentifier = INAV_IDENTIFIER; // 4 UPP
 static const char * const boardIdentifier = TARGET_BOARD_IDENTIFIER;
 
 // from mixer.c
-extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
+extern float motorValueDisarmed[MAX_SUPPORTED_MOTORS];
 
 static const char pidnames[] =
     "ROLL;"
@@ -472,7 +472,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_MOTOR:
         for (unsigned i = 0; i < 8; i++) {
-            sbufWriteU16(dst, i < MAX_SUPPORTED_MOTORS ? motor[i] : 0);
+            sbufWriteU16(dst, i < MAX_SUPPORTED_MOTORS ? (int16_t)(motorValue[i] * 1000.0f) : 0);
         }
         break;
 
@@ -1735,7 +1735,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             for (int i = 0; i < 8; i++) {
                 const int16_t disarmed = sbufReadU16(src);
                 if (i < MAX_SUPPORTED_MOTORS) {
-                    motor_disarmed[i] = disarmed;
+                    motorValueDisarmed[i] = constrainf(disarmed, -1000, 1000) / 1000.0f;
                 }
             }
         } else

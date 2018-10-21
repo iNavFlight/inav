@@ -2123,15 +2123,15 @@ static void cliMotor(char *cmdline)
     }
 
     if (index == 2) {
-        if (motor_value < PWM_RANGE_MIN || motor_value > PWM_RANGE_MAX) {
-            cliShowArgumentRangeError("value", 1000, 2000);
+        if (motor_value < 0 || motor_value > 1000) {
+            cliShowArgumentRangeError("value", 0, 1000);
             return;
         } else {
-            motor_disarmed[motor_index] = motor_value;
+            motorValueDisarmed[motor_index] = motor_value / 1000.0f;
         }
     }
 
-    cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
+    cliPrintLinef("motor %d: %d", motor_index, (int)(1000.0f * motorValueDisarmed[motor_index]));
 }
 
 #ifdef PLAY_SOUND

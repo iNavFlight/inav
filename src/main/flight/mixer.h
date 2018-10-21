@@ -101,15 +101,14 @@ typedef enum {
     MOTOR_RUNNING
 } motorStatus_e;
 
-extern int16_t motor[MAX_SUPPORTED_MOTORS];
-extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
+extern float motorValue[MAX_SUPPORTED_MOTORS];
+extern float motorValueDisarmed[MAX_SUPPORTED_MOTORS];
 
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
 motorStatus_e getMotorStatus(void);
 
-void writeAllMotors(int16_t mc);
 void mixerUsePWMIOConfiguration(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);

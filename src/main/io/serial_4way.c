@@ -139,7 +139,7 @@ uint8_t esc4wayInit(void)
     pwmIOConfiguration_t *pwmIOConfiguration = pwmGetOutputConfiguration();
     for (volatile uint8_t i = 0; i < pwmIOConfiguration->ioCount; i++) {
         if ((pwmIOConfiguration->ioConfigurations[i].flags & PWM_PF_MOTOR) == PWM_PF_MOTOR) {
-            if (motor[pwmIOConfiguration->ioConfigurations[i].index] > 0) {
+            if (pwmIOConfiguration->ioConfigurations[i].index < getMotorCount()) {
                 escHardware[escCount].io = IOGetByTag(pwmIOConfiguration->ioConfigurations[i].timerHardware->tag);
                 setEscInput(escCount);
                 setEscHi(escCount);
