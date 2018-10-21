@@ -120,10 +120,12 @@
 /** COMPASS SENSORS **/
 
 #if defined(USE_MAG_HMC5883)
-    #if !defined(HMC5883_I2C_BUS)
+    #if defined(HMC5883_SPI_BUS)
+        BUSDEV_REGISTER_SPI(busdev_hmc5883,      DEVHW_HMC5883,       HMC5883_SPI_BUS,     HMC5883_CS_PIN,      MAG_INT_EXTI,           DEVFLAGS_NONE);
+    #elif !defined(HMC5883_I2C_BUS)
         #define HMC5883_I2C_BUS MAG_I2C_BUS
+        BUSDEV_REGISTER_I2C(busdev_hmc5883,     DEVHW_HMC5883,      HMC5883_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE);
     #endif
-    BUSDEV_REGISTER_I2C(busdev_hmc5883,     DEVHW_HMC5883,      HMC5883_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE);
 #endif
 
 #if defined(USE_MAG_QMC5883)
