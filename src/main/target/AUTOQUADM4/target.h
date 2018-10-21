@@ -147,8 +147,8 @@
 //#define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
-#define MAX_PWM_OUTPUT_PORTS    4
-#define TARGET_MOTOR_COUNT      4
+#define MAX_PWM_OUTPUT_PORTS    8
+#define TARGET_MOTOR_COUNT      8
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
