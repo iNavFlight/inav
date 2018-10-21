@@ -1,5 +1,6 @@
 F405_TARGETS   += $(TARGET)
 FEATURES       += VCP ONBOARDFLASH
+HSE_VALUE       = 25000000
 
 TARGET_SRC = \
             drivers/accgyro/accgyro_mpu6000.c \
