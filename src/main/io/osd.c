@@ -1219,6 +1219,15 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatVelocityStr(buff, gpsSol.groundSpeed);
         break;
 
+    case OSD_3D_SPEED:
+        {
+            int16_t vert_speed = getEstimatedActualVelocity(Z);
+            int16_t hor_speed = gpsSol.groundSpeed;
+            uint32_t speed_3d = sqrtf(sq(hor_speed) + sq(vert_speed));
+            osdFormatVelocityStr(buff, speed_3d);
+            break;
+        }
+
     case OSD_GPS_LAT:
         osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
         break;
@@ -2333,6 +2342,10 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_MAP_NORTH) {
             elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
         }
+        if (elementIndex == OSD_3D_SPEED) {
+            elementIndex++;
+        }
+
     }
 
     if (elementIndex == OSD_ITEM_COUNT) {
@@ -2364,6 +2377,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
+    osdConfig->item_pos[0][OSD_3D_SPEED] = OSD_POS(23, 1);
 
     osdConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
