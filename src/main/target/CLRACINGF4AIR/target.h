@@ -54,6 +54,8 @@
 #define ACC_MPU9250_ALIGN       CW0_DEG
 #define USE_MAG
 #define USE_MAG_MPU9250
+#define MAG_MPU9250_ALIGN       CW90_DEG
+
 // MPU6 interrupts
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC4
