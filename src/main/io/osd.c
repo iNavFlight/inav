@@ -1053,6 +1053,13 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
 
+static int16_t osdGet3DSpeed(void)
+{
+    int16_t vert_speed = getEstimatedActualVelocity(Z);
+    int16_t hor_speed = gpsSol.groundSpeed;
+    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
+}
+
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
@@ -1221,10 +1228,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_3D_SPEED:
         {
-            int16_t vert_speed = getEstimatedActualVelocity(Z);
-            int16_t hor_speed = gpsSol.groundSpeed;
-            uint32_t speed_3d = sqrtf(sq(hor_speed) + sq(vert_speed));
-            osdFormatVelocityStr(buff, speed_3d);
+            osdFormatVelocityStr(buff, osdGet3DSpeed());
             break;
         }
 
@@ -2584,7 +2588,7 @@ static void osdUpdateStats(void)
     int16_t value;
 
     if (feature(FEATURE_GPS)) {
-        value = gpsSol.groundSpeed;
+        value = osdGet3DSpeed();
         if (stats.max_speed < value)
             stats.max_speed = value;
 
