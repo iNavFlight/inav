@@ -66,7 +66,7 @@ const char *FONT_NAMES[] = {"DEFAULT", "LARGE", "BOLD", "CLARITY", "VISION"};
 
 OSD_Entry cmsx_menuBrainFPVOsdEntries[] =
 {
-    OSD_LABEL_ENTRY("-- OSD SETTINGS --"),
+    OSD_LABEL_ENTRY("-- BRAIN OSD ------"),
 
     OSD_TAB_ENTRY("FONT", (&(const OSD_TAB_t){&bfOsdConfigCms.font, 4, &FONT_NAMES[0]})),
     OSD_UINT8_ENTRY("OSD WHITE", (&(const OSD_UINT8_t){ &bfOsdConfigCms.white_level, 100, 120, 1 })),
@@ -92,7 +92,7 @@ OSD_Entry cmsx_menuBrainFPVEntires[] =
 {
     OSD_LABEL_ENTRY("-- BRAINFPV --"),
 
-    OSD_SUBMENU_ENTRY("OSD SETTINGS", &cmsx_menuBrainFPVOsd),
+    OSD_SUBMENU_ENTRY("BRAIN OSD", &cmsx_menuBrainFPVOsd),
     OSD_UINT8_ENTRY("AHI STEPS", (&(const OSD_UINT8_t){ &bfOsdConfigCms.ahi_steps, 0, 9, 1 })),
     OSD_BOOL_ENTRY("ALTITUDE SCALE",  &bfOsdConfigCms.altitude_scale),
     OSD_BOOL_ENTRY("SPEED SCALE",  &bfOsdConfigCms.speed_scale),
