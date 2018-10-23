@@ -495,42 +495,14 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
     accADC[Z] = (accADC[Z] - accZero->raw[Z]) * accGain->raw[Z] / 4096;
 }
 
-#ifdef USE_ASYNC_GYRO_PROCESSING
-STATIC_FASTRAM float accumulatedMeasurements[XYZ_AXIS_COUNT];
-STATIC_FASTRAM int   accumulatedMeasurementCount;
-
-static void accUpdateAccumulatedMeasurements(void)
-{
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        accumulatedMeasurements[axis] += acc.accADCf[axis];
-    }
-    accumulatedMeasurementCount++;
-}
-#endif
-
 /*
  * Calculate measured acceleration in body frame in g
  */
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    if (accumulatedMeasurementCount) {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            measuredAcc->v[axis] = accumulatedMeasurements[axis] * GRAVITY_CMSS / accumulatedMeasurementCount;
-            accumulatedMeasurements[axis] = 0;
-        }
-        accumulatedMeasurementCount = 0;
-    }
-    else {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
-        }
-    }
-#else
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
     }
-#endif
 }
 
 void accUpdate(void)
@@ -588,9 +560,6 @@ void accUpdate(void)
     }
 #endif
 
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    accUpdateAccumulatedMeasurements();
-#endif
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
