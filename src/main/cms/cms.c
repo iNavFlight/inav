@@ -104,7 +104,7 @@ static displayPort_t *pCurrentDisplay;
 static displayPort_t *cmsDisplayPorts[CMS_MAX_DEVICE];
 static int cmsDeviceCount;
 static int cmsCurrentDevice = -1;
-static timeMs_t cmsYieldUntil = 0;
+timeMs_t cmsYieldUntil = 0;
 
 bool cmsDisplayPortRegister(displayPort_t *pDisplay)
 {

@@ -96,6 +96,7 @@
 #include "brainfpv/brainfpv_osd.h"
 extern bool brainfpv_user_avatar_set;
 extern bool cmsInMenu;
+extern timeMs_t cmsYieldUntil;
 extern bool osd_arming_or_stats;
 #endif
 
@@ -2905,7 +2906,7 @@ void osdRefresh(timeUs_t currentTimeUs)
     osdDisplayPort->cleared = true;
     cmsUpdate(currentTimeUs);
 
-    if (!cmsInMenu) {
+    if (!cmsInMenu || (cmsYieldUntil > 0)) {
         osdDrawNextElement();
         displayHeartbeat(osdDisplayPort);
     }
