@@ -210,15 +210,11 @@ static void cliPrintLine(const char *str)
     cliPrintLinefeed();
 }
 
-#ifdef CLI_MINIMAL_VERBOSITY
-#define cliPrintHashLine(str)
-#else
 static void cliPrintHashLine(const char *str)
 {
     cliPrint("\r\n# ");
     cliPrintLine(str);
 }
-#endif
 
 static void cliPutp(void *p, char ch)
 {
@@ -2035,10 +2031,7 @@ static void cliReboot(void)
 static void cliDfu(char *cmdline)
 {
     UNUSED(cmdline);
-#ifndef CLI_MINIMAL_VERBOSITY
     cliPrint("\r\nRestarting in DFU mode");
-#endif
-    cliRebootEx(true);
 }
 
 #ifdef USE_RX_ELERES
@@ -2065,9 +2058,7 @@ static void cliExit(char *cmdline)
 {
     UNUSED(cmdline);
 
-#ifndef CLI_MINIMAL_VERBOSITY
     cliPrintLine("\r\nLeaving CLI mode, unsaved changes lost.");
-#endif
     bufWriterFlush(cliWriter);
 
     *cliBuffer = '\0';
@@ -2479,7 +2470,6 @@ static void cliStatus(char *cmdline)
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
     cliPrintLinef(", cycle time: %d, PID rate: %d, RX rate: %d, System rate: %d",  (uint16_t)cycleTime, pidRate, rxRate, systemRate);
-#if !defined(CLI_MINIMAL_VERBOSITY)
     cliPrint("Arming disabled flags:");
     uint32_t flags = armingFlags & ARMING_DISABLED_ALL_FLAGS;
     while (flags) {
@@ -2495,12 +2485,8 @@ static void cliStatus(char *cmdline)
             cliPrintLinef("Invalid setting: %s", buf);
         }
     }
-#else
-    cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
-#endif
 }
 
-#ifndef SKIP_TASK_STATISTICS
 static void cliTasks(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2529,7 +2515,6 @@ static void cliTasks(char *cmdline)
     cliPrintLinef("Task check function %13d %7d %25d", (uint32_t)checkFuncInfo.maxExecutionTime, (uint32_t)checkFuncInfo.averageExecutionTime, (uint32_t)checkFuncInfo.totalExecutionTime / 1000);
     cliPrintLinef("Total (excluding SERIAL) %21d.%1d%% %4d.%1d%%", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
 }
-#endif
 
 static void cliVersion(char *cmdline)
 {
@@ -2562,7 +2547,6 @@ static void cliMemory(char *cmdline)
     }
 }
 
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
 static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
@@ -2581,7 +2565,6 @@ static void cliResource(char *cmdline)
         }
     }
 }
-#endif
 
 static void backupConfigs(void)
 {
@@ -2644,11 +2627,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliVersion(NULL);
 
         if ((dumpMask & (DUMP_ALL | DO_DIFF)) == (DUMP_ALL | DO_DIFF)) {
-#ifndef CLI_MINIMAL_VERBOSITY
             cliPrintHashLine("reset configuration to default settings\r\ndefaults noreboot");
-#else
-            cliPrintLinef("defaults noreboot");
-#endif
         }
 
         cliPrintHashLine("resources");
@@ -2758,14 +2737,11 @@ static void cliDiff(char *cmdline)
 
 typedef struct {
     const char *name;
-#ifndef SKIP_CLI_COMMAND_HELP
     const char *description;
     const char *args;
-#endif
     void (*func)(char *cmdline);
 } clicmd_t;
 
-#ifndef SKIP_CLI_COMMAND_HELP
 #define CLI_COMMAND_DEF(name, description, args, method) \
 { \
     name , \
@@ -2773,13 +2749,6 @@ typedef struct {
     args , \
     method \
 }
-#else
-#define CLI_COMMAND_DEF(name, description, args, method) \
-{ \
-    name, \
-    method \
-}
-#endif
 
 static void cliHelp(char *cmdline);
 
@@ -2841,9 +2810,7 @@ const clicmd_t cmdTable[] = {
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
         "[<index>]", cliBatteryProfile),
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
-#endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
@@ -2861,9 +2828,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
-#ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
-#endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
@@ -2876,14 +2841,12 @@ static void cliHelp(char *cmdline)
 
     for (uint32_t i = 0; i < ARRAYLEN(cmdTable); i++) {
         cliPrint(cmdTable[i].name);
-#ifndef SKIP_CLI_COMMAND_HELP
         if (cmdTable[i].description) {
             cliPrintf(" - %s", cmdTable[i].description);
         }
         if (cmdTable[i].args) {
             cliPrintf("\r\n\t%s", cmdTable[i].args);
         }
-#endif
         cliPrintLinefeed();
     }
 }
@@ -3007,12 +2970,7 @@ void cliEnter(serialPort_t *serialPort)
     cliPort = serialPort;
     setPrintfSerialPort(cliPort);
     cliWriter = bufWriterInit(cliWriteBuffer, sizeof(cliWriteBuffer), (bufWrite_t)serialWriteBufShim, serialPort);
-
-#ifndef CLI_MINIMAL_VERBOSITY
     cliPrintLine("\r\nEntering CLI Mode, type 'exit' to return, or 'help'");
-#else
-    cliPrintLine("\r\nCLI");
-#endif
     cliPrompt();
     ENABLE_ARMING_FLAG(ARMING_DISABLED_CLI);
 }

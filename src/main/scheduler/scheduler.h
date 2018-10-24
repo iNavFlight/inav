@@ -136,10 +136,8 @@ typedef struct {
 
     /* Statistics */
     timeUs_t movingSumExecutionTime;  // moving sum over 32 samples
-#ifndef SKIP_TASK_STATISTICS
     timeUs_t maxExecutionTime;
     timeUs_t totalExecutionTime;    // total time consumed by task since boot
-#endif
 } cfTask_t;
 
 extern cfTask_t cfTasks[TASK_COUNT];

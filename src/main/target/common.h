@@ -70,7 +70,6 @@
 #define USE_RX_UIB
 #endif
 
-#if (FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_DEBUG_TRACE
@@ -127,12 +126,3 @@
 #define RTC_AUTOMATIC_DST
 // Wind estimator
 #define USE_WIND_ESTIMATOR
-
-#else // FLASH_SIZE < 128
-#define CLI_MINIMAL_VERBOSITY
-#define SKIP_TASK_STATISTICS
-#define SKIP_CLI_COMMAND_HELP
-#define SKIP_CLI_RESOURCES
-#define NAV_MAX_WAYPOINTS       30
-#define MAX_BOOTLOG_ENTRIES     32
-#endif
