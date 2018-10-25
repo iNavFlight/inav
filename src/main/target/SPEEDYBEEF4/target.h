@@ -27,10 +27,12 @@
 #define BEEPER_INVERTED
 
 #define USE_I2C
+#define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6        // SCL pad
 #define I2C1_SDA                PB7        // SDA pad
+#define I2C_DEVICE              (I2CDEV_1)
 
-#define UG2864_I2C_BUS BUS_I2C2
+#define UG2864_I2C_BUS BUS_I2C1
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -47,7 +49,7 @@
 #define ACC_MPU6000_ALIGN       CW0_DEG
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C1
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
@@ -63,10 +65,10 @@
 #define USE_BARO_MS5611
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_BUS           BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
 #define USE_RANGEFINDER_HCSR04_I2C
 
 #define USE_VCP
