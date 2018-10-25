@@ -677,7 +677,7 @@ void taskGyro(timeUs_t currentTimeUs) {
     if (gyroConfig()->gyroSync) {
         while (true) {
             gyroUpdateUs = micros();
-            if (gyroSyncCheckUpdate() || ((uint32_t)(currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (getLooptime() + GYRO_WATCHDOG_DELAY))) {
+            if (gyroSyncCheckUpdate() || ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (timeDelta_t)(getLooptime() + GYRO_WATCHDOG_DELAY))) {
                 break;
             }
         }
