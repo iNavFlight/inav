@@ -31,6 +31,7 @@
 #include "drivers/bus.h"
 
 #include "drivers/pwm_output.h"
+#include "common/maths.h"
 #include "fc/config.h"
 
 
