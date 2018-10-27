@@ -120,6 +120,7 @@ void ensureEEPROMContainsValidData(void);
 
 void saveConfigAndNotify(void);
 void validateAndFixConfig(void);
+void validateAndFixTargetConfig(void);
 
 uint8_t getConfigProfile(void);
 bool setConfigProfile(uint8_t profileIndex);

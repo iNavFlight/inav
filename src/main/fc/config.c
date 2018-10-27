@@ -140,6 +140,10 @@ void validateNavConfig(void)
 }
 #endif
 
+__attribute__((weak)) void validateAndFixTargetConfig(void)
+{
+    // Stub
+}
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
 #define FIRST_PORT_INDEX 1
@@ -292,6 +296,9 @@ void validateAndFixConfig(void)
 #if !defined(USE_MPU_DATA_READY_SIGNAL)
     gyroConfigMutable()->gyroSync = false;
 #endif
+
+    // Call target-specific validation function
+    validateAndFixTargetConfig();
 
     if (settingsValidate(NULL)) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_INVALID_SETTING);
