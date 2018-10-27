@@ -89,7 +89,7 @@ typedef struct gpsDataNmea_s {
     int32_t latitude;
     int32_t longitude;
     uint8_t numSat;
-    uint16_t altitude;
+    int32_t altitude;
     uint16_t speed;
     uint16_t ground_course;
     uint16_t hdop;
