@@ -30,13 +30,24 @@
 #include "drivers/timer.h"
 #include "drivers/bus.h"
 
+#include "drivers/pwm_output.h"
+#include "common/maths.h"
+#include "fc/config.h"
+
+
 const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM,                           0, 0), // PPM
 
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0), // S1_OUT    D(1,7) U(1,2)
-    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0), // S2_OUT    D(1,2) U(1,2)
-    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 1), // S3_OUT    D(1,6) U(1,7)
-    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0), // S4_OUT    D(1,5) U(1,2)
+    // Motor output 1: use different set of timers for MC and FW
+    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR,                       1, 0), // S1_OUT    D(1,7)
+    DEF_TIM(TIM8, CH2N, PB0,                    TIM_USE_FW_MOTOR,   1, 1), // S1_OUT    D(2,2,0),D(2,3,7)
+
+    // Motor output 2: use different set of timers for MC and FW
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR,                       1, 0), // S2_OUT    D(1,2)
+    DEF_TIM(TIM8, CH3N, PB1,                    TIM_USE_FW_MOTOR,   1, 1), // S2_OUT    D(2,2,0),D(2,4,7)
+
+    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 1), // S3_OUT    D(1,6)
+    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0), // S4_OUT    D(1,5)
 
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED,                            0, 0), // LED strip D(1,0)
 
@@ -44,3 +55,16 @@ const timerHardware_t timerHardware[] = {
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
+
+#ifdef USE_DSHOT
+void validateAndFixTargetConfig(void)
+{
+    // On airplanes DSHOT is not supported on this target
+    if (mixerConfig()->platformType != PLATFORM_MULTIROTOR && mixerConfig()->platformType != PLATFORM_TRICOPTER) {
+        if (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150) {
+            motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+            motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 490);
+        }
+    }
+}
+#endif
