@@ -38,8 +38,26 @@
  */
 
 #pragma once
-
 #include "common/time.h"
+
+/*
+    Protothreads are a extremely lightweight, stackless threads that provides a blocking context, without the overhead of per-thread stacks.
+    The purpose of protothreads is to implement sequential flow of control without using complex state machines or full multi-threading.
+    Protothreads provides conditional blocking inside a C function.
+
+    A protothread runs within a single C function and cannot span over other functions. A protothread may call normal C functions,
+    but cannot block inside a called function. Blocking inside nested function calls is instead made by spawning a separate protothread
+    for each potentially blocking function. The advantage of this approach is that blocking is explicit: the programmer knows exactly which
+    functions that may block that which functions that are not able block.
+
+    A protothread is driven by repeated calls to the function in which the protothread is running. Each time the function is called, the
+    protothread will run until it blocks or exits. Thus the scheduling of protothreads is done by the application that uses protothreads.
+
+    WARNING:
+
+    Because protothreads do not save the stack context across a blocking call, local variables are not preserved when the protothread blocks.
+    This means that local variables should be used with extreme caution - ultimately protothread function shouldn't use local variables at all.
+*/
 
 struct ptState_s {
   int           line;
@@ -65,6 +83,7 @@ struct ptState_s {
   switch (currentPt->line) {                                                \
   case 0:
 
+// Generate pt pointer
 #define ptGetHandle(name)   (&name##_protothreadState)
 
 // Restart protothread
@@ -74,8 +93,10 @@ struct ptState_s {
     (handle)->line = 0;                                                     \
   } while(0)
 
+// Returns true if protothread is stopped
 #define ptIsStopped(handle) ((handle)->line < 0)
 
+// Returns special value of protothread state (return value)
 #define ptGetReturnCode(handle) ((handle)->returnCode)
 
 // Low-level API to create continuation, normally should not be used
@@ -96,14 +117,31 @@ struct ptState_s {
     }                                                                       \
   } while (0)
 
+#define ptWaitTimeout(condition, timeoutMs)                                 \
+  do {                                                                      \
+    currentPt->startTime = (timeUs_t)millis();                              \
+    currentPt->delayTime = (timeoutMs);                                     \
+    ptLabel();                                                              \
+    if (!(condition) && ((timeDelta_t)(millis() - (currentPt)->startTime) <= (currentPt)->delayTime)) { \
+      return;                                                               \
+    }                                                                       \
+  } while (0)
+
 // Wait until thread finishes
-#define ptWaitThread(handle)    ptWait(ptIsStopped(handle))
+#define ptWaitThread(name)                                                  \
+  do {                                                                      \
+    ptLabel();                                                              \
+    name();                                                                 \
+    if (!ptIsStopped(ptGetHandle(name))) {                                  \
+      return;                                                               \
+    }                                                                       \
+  } while (0)
 
 // Execute a protothread and wait for completion
-#define ptSpawn(handle)                                                     \
+#define ptSpawn(name)                                                       \
   do {                                                                      \
-    ptRestart(handle);                                                      \
-    ptWaitThread(handle);                                                   \
+    ptRestart(ptGetHandle(name));                                           \
+    ptWaitThread(name);                                                     \
   } while (0)
 
 // Suspends protothread for a given amount of time
@@ -113,7 +151,7 @@ struct ptState_s {
     (currentPt)->startTime = (timeUs_t)millis();                            \
     (currentPt)->delayTime = (delay);                                       \
     ptLabel();                                                              \
-    if ((millis() - (currentPt)->localTime) <= (currentPt)->delayTime) {    \
+    if ((timeDelta_t)(millis() - (currentPt)->startTime) <= (currentPt)->delayTime) {    \
       return;                                                               \
     }                                                                       \
   } while (0)

@@ -118,7 +118,7 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
 #endif
 
     /* UBLOX7PLUS binary */
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
+#ifdef USE_GPS_PROTO_UBLOX
     { GPS_TYPE_SERIAL, MODE_RXTX, false,  NULL, &gpsHandleUBLOX },
 #else
     { GPS_TYPE_NA, 0, false,  NULL, NULL },
