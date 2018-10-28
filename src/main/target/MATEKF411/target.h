@@ -75,10 +75,17 @@
 #define UART2_RX_PIN            PA3
 
 #define USE_SOFTSERIAL1         //Frsky SmartPort on rssi pad
-#define SOFTSERIAL_1_TX_PIN      PA0
-#define SOFTSERIAL_1_RX_PIN      PA0
+#define SOFTSERIAL_1_TX_PIN     PA0
+#define SOFTSERIAL_1_RX_PIN     PA0
 
+#if defined(MATEKF411_SFTSRL2)
+#define USE_SOFTSERIAL2         //Smart Audio on LED pad
+#define SOFTSERIAL_2_TX_PIN     PA8
+#define SOFTSERIAL_2_RX_PIN     PA8
+#define SERIAL_PORT_COUNT       5
+#else
 #define SERIAL_PORT_COUNT       4
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -121,9 +128,10 @@
 //#define RSSI_ADC_CHANNEL            ADC_CHN_3
 
 // *************** LED2812 ************************
+#if !defined(MATEKF411_SFTSRL2)
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
-
+#endif
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL )
 
