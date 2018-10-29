@@ -23,14 +23,17 @@
 
 #define GPS_HDOP_TO_EPH_MULTIPLIER      2   // empirical value
 
+// GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 2000 ms)
+#define GPS_TIMEOUT             (1000)
+#define GPS_BAUD_CHANGE_DELAY   (200)
+#define GPS_INIT_DELAY          (500)
+#define GPS_BOOT_DELAY          (3000)
+
 typedef enum {
     GPS_UNKNOWN,                // 0
     GPS_INITIALIZING,           // 1
-    GPS_CHANGE_BAUD,            // 2
-    GPS_CHECK_VERSION,          // 3
-    GPS_CONFIGURE,              // 4
-    GPS_RECEIVING_DATA,         // 5
-    GPS_LOST_COMMUNICATION,     // 6
+    GPS_RUNNING,                // 2
+    GPS_LOST_COMMUNICATION,     // 3
 } gpsState_e;
 
 typedef struct {
@@ -44,7 +47,6 @@ typedef struct {
     gpsBaudRate_e   baudrateIndex;
     gpsBaudRate_e   autoBaudrateIndex;      // Driver internal use (for autoBaud)
     uint8_t         autoConfigStep;         // Driver internal use (for autoConfig)
-    uint8_t         autoConfigPosition;     // Driver internal use (for autoConfig)
 
     uint32_t        lastStateSwitchMs;
     uint32_t        lastLastMessageMs;
@@ -61,11 +63,14 @@ extern void gpsFinalizeChangeBaud(void);
 extern uint16_t gpsConstrainEPE(uint32_t epe);
 extern uint16_t gpsConstrainHDOP(uint32_t hdop);
 
+void gpsProcessNewSolutionData(void);
+void gpsResetProtocolTimeout(void);
+
+extern void gpsRestartUBLOX(void);
+extern void gpsHandleUBLOX(void);
+
 extern bool gpsHandleNMEA(void);
 extern bool gpsHandleMTK(void);
-extern bool gpsHandleUBLOX(void);
-extern bool gpsHandleI2CNAV(void);
-extern bool gpsDetectI2CNAV(void);
 extern bool gpsHandleNAZA(void);
 
 #endif
