@@ -93,6 +93,7 @@
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
+#define USE_MAG_AK8975
 
 #define USE_BARO
 
