@@ -182,3 +182,10 @@ struct ptState_s {
       return;                                                               \
     }                                                                       \
 
+//***************************
+// Abstract semaphore code
+typedef bool ptSemaphore_t;
+
+#define ptSemaphoreInit(sem)    do { sem = false; } while (0)
+#define ptSemaphoreWait(sem)    do { ptWait(sem); sem = false; } while (0)
+#define ptSemaphoreSignal(sem)  do { sem = true; } while (0)
