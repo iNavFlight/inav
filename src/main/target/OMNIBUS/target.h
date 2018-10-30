@@ -57,10 +57,12 @@
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+// #define USE_MAG_MAG3110
+// #define USE_MAG_LIS3MDL
+// #define USE_MAG_AK8975
 
-#undef USE_GPS_PROTO_I2C_NAV //Save some flash space
+// Disable certain features to save flash space
+#undef USE_GPS_PROTO_MTK
 
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5
