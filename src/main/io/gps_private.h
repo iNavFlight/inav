@@ -73,6 +73,7 @@ extern void gpsRestartNMEA_MTK(void);
 extern void gpsHandleNMEA(void);
 extern void gpsHandleMTK(void);
 
-extern bool gpsHandleNAZA(void);
+extern void gpsRestartNAZA(void);
+extern void gpsHandleNAZA(void);
 
 #endif
