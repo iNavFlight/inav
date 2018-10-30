@@ -69,8 +69,10 @@ void gpsResetProtocolTimeout(void);
 extern void gpsRestartUBLOX(void);
 extern void gpsHandleUBLOX(void);
 
-extern bool gpsHandleNMEA(void);
-extern bool gpsHandleMTK(void);
+extern void gpsRestartNMEA_MTK(void);
+extern void gpsHandleNMEA(void);
+extern void gpsHandleMTK(void);
+
 extern bool gpsHandleNAZA(void);
 
 #endif

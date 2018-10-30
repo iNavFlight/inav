@@ -25,7 +25,6 @@
 #include "platform.h"
 #include "build/build_config.h"
 
-
 #if defined(USE_GPS) && defined(USE_GPS_PROTO_UBLOX)
 
 #include "build/debug.h"
@@ -596,7 +595,6 @@ static bool gpsParceFrameUBLOX(void)
     // we only return true when we get new position and speed data
     // this ensures we don't use stale data
     if (_new_position && _new_speed) {
-        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
         _new_speed = _new_position = false;
         return true;
     }
@@ -852,10 +850,10 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         //  3. Wait for command to be received and processed by GPS
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-        //  3. Switch to [baudrateIndex]
+        //  4. Switch to [baudrateIndex]
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
 
-        //  4. Attempt to configure the GPS
+        //  5. Attempt to configure the GPS
         ptDelayMs(GPS_BAUD_CHANGE_DELAY);
     }
     else {
@@ -865,8 +863,10 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
         // Set baud rate and reset GPS timeout
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
-        gpsResetProtocolTimeout();
     }
+
+    // Reset protocol timeout
+    gpsResetProtocolTimeout();
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = 0;

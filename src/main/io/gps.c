@@ -77,7 +77,7 @@ baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, 
 static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
     /* NMEA GPS */
 #ifdef USE_GPS_PROTO_NMEA
-    { MODE_RX, false, &gpsRestartNMEA, &gpsHandleNMEA },
+    { MODE_RX, false, &gpsRestartNMEA_MTK, &gpsHandleNMEA },
 #else
     { 0, false,  NULL, NULL },
 #endif
@@ -108,7 +108,7 @@ static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
 
     /* MTK GPS */
 #ifdef USE_GPS_PROTO_MTK
-    { MODE_RXTX, false, &gpsRestartMTK, &gpsHandleMTK },
+    { MODE_RXTX, false, &gpsRestartNMEA_MTK, &gpsHandleMTK },
 #else
     { 0, false,  NULL, NULL },
 #endif
@@ -175,6 +175,9 @@ void gpsProcessNewSolutionData(void)
     // Update statistics
     gpsStats.lastMessageDt = gpsState.lastMessageMs - gpsState.lastLastMessageMs;
     gpsSol.flags.hasNewData = true;
+
+    // Toggle heartbeat
+    gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
 }
 
 static void gpsResetSolution(void)
