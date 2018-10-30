@@ -140,10 +140,11 @@ static void gpsUpdateTime(void)
     }
 }
 
-void gpsResetProtocolTimeout(void)
+void gpsSetProtocolTimeout(timeMs_t timeoutMs)
 {
     gpsState.lastLastMessageMs = gpsState.lastMessageMs;
     gpsState.lastMessageMs = millis();
+    gpsState.timeoutMs = timeoutMs;
 }
 
 void gpsProcessNewSolutionData(void)
@@ -170,7 +171,7 @@ void gpsProcessNewSolutionData(void)
     gpsUpdateTime();
 
     // Update timeout
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
 
     // Update statistics
     gpsStats.lastMessageDt = gpsState.lastMessageMs - gpsState.lastLastMessageMs;
@@ -204,12 +205,13 @@ void gpsInit(void)
 {
     gpsState.serialConfig = serialConfig();
     gpsState.gpsConfig = gpsConfig();
+
     gpsStats.errors = 0;
     gpsStats.timeouts = 0;
 
     // Reset solution, timeout and prepare to start
     gpsResetSolution();
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
     gpsSetState(GPS_UNKNOWN);
 
     // If given GPS provider has protocol() function not defined - we can't use it
@@ -308,7 +310,7 @@ static bool gpsFakeGPSUpdate(void)
         gpsUpdateTime();
         onNewGPSData();
 
-        gpsResetProtocolTimeout();
+        gpsSetProtocolTimeout(GPS_TIMEOUT);
 
         gpsSetState(GPS_RECEIVING_DATA);
         return true;
@@ -366,7 +368,7 @@ bool gpsUpdate(void)
             gpsProviders[gpsState.gpsConfig->provider].restart();
 
             // Switch to GPS_RUNNING state (mind the timeout)
-            gpsResetProtocolTimeout();
+            gpsSetProtocolTimeout(GPS_TIMEOUT);
             gpsSetState(GPS_RUNNING);
         }
         break;

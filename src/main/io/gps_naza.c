@@ -352,10 +352,11 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
-    // Reset protocol timeout
-    gpsResetProtocolTimeout();
-
     // No configuration is done for NAZA GPS
+
+    // GPS setup done, reset timeout
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
+
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {
         ptSemaphoreWait(semNewDataReady);
