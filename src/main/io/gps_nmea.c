@@ -362,7 +362,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThreadMTK)
     ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
     // Reset protocol timeout
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
 
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {
@@ -403,10 +403,10 @@ STATIC_PROTOTHREAD(gpsProtocolStateThreadNMEA)
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
-    // Reset protocol timeout
-    gpsResetProtocolTimeout();
-
     // No configuration is done for pure NMEA modules
+
+    // GPS setup done, reset timeout
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
 
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {

@@ -25,6 +25,7 @@
 
 // GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 2000 ms)
 #define GPS_TIMEOUT             (1000)
+#define GPS_SHORT_TIMEOUT       (500)
 #define GPS_BAUD_CHANGE_DELAY   (200)
 #define GPS_INIT_DELAY          (500)
 #define GPS_BOOT_DELAY          (3000)
@@ -48,9 +49,10 @@ typedef struct {
     gpsBaudRate_e   autoBaudrateIndex;      // Driver internal use (for autoBaud)
     uint8_t         autoConfigStep;         // Driver internal use (for autoConfig)
 
-    uint32_t        lastStateSwitchMs;
-    uint32_t        lastLastMessageMs;
-    uint32_t        lastMessageMs;
+    timeMs_t        lastStateSwitchMs;
+    timeMs_t        lastLastMessageMs;
+    timeMs_t        lastMessageMs;
+    timeMs_t        timeoutMs;
 } gpsReceiverData_t;
 
 extern gpsReceiverData_t gpsState;
@@ -64,7 +66,7 @@ extern uint16_t gpsConstrainEPE(uint32_t epe);
 extern uint16_t gpsConstrainHDOP(uint32_t hdop);
 
 void gpsProcessNewSolutionData(void);
-void gpsResetProtocolTimeout(void);
+void gpsSetProtocolTimeout(timeMs_t timeoutMs);
 
 extern void gpsRestartUBLOX(void);
 extern void gpsHandleUBLOX(void);

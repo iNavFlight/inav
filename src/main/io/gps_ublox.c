@@ -712,7 +712,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
     // Disable NMEA messages
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
     ptWait(_ack_state == UBX_ACK_GOT_ACK);
@@ -733,7 +733,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
     // Configure UBX binary messages
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
@@ -779,7 +779,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
     // Configure data rate
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
     if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= 70000)) {
         configureRATE(100); // 10Hz
     }
@@ -791,7 +791,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure SBAS
     // If particular SBAS setting is not supported by the hardware we'll get a NAK,
     // however GPS would be functional. We are waiting for any response - ACK/NACK
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
     configureSBAS();
     ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
@@ -799,7 +799,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
         // If GALILEO is not supported by the hardware we'll get a NAK,
         // however GPS would otherwise be perfectly initialized, so we are just waiting for any response
-        gpsResetProtocolTimeout();
+        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
         configureGalileo();
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
     }
@@ -866,7 +866,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     }
 
     // Reset protocol timeout
-    gpsResetProtocolTimeout();
+    gpsSetProtocolTimeout(MIN(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 1) * GPS_VERSION_DETECTION_TIMEOUT_MS)));
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = 0;
@@ -880,6 +880,9 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Configure GPS
     ptSpawn(gpsConfigure);
+
+    // GPS setup done, reset timeout
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
 
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {
