@@ -39,6 +39,10 @@
 
 #if defined(STM32F3)
 #define USE_UNDERCLOCK
+//save flash for F3 targets
+#define CLI_MINIMAL_VERBOSITY
+#define SKIP_CLI_COMMAND_HELP
+#define SKIP_CLI_RESOURCES
 #endif
 
 #if defined(STM32F3) || defined(STM32F4)
@@ -127,11 +131,6 @@
 #define RTC_AUTOMATIC_DST
 // Wind estimator
 #define USE_WIND_ESTIMATOR
-
-//save flash for F3 targets
-#define CLI_MINIMAL_VERBOSITY
-#define SKIP_CLI_COMMAND_HELP
-#define SKIP_CLI_RESOURCES
 
 #else // FLASH_SIZE < 128
 
