@@ -44,6 +44,7 @@
 #include "io/gps_private.h"
 #include "io/serial.h"
 
+#include "scheduler/protothreads.h"
 
 #define NAZA_MAX_PAYLOAD_SIZE   256
 
@@ -311,59 +312,76 @@ static bool gpsNewFrameNAZA(uint8_t data)
     return parsed;
 }
 
-static bool gpsReceiveData(void)
-{
-    bool hasNewData = false;
+static ptSemaphore_t semNewDataReady;
 
-    if (gpsState.gpsPort) {
+STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
+{
+    ptBegin(gpsProtocolReceiverThread);
+
+    while (1) {
+        // Wait until there are bytes to consume
+        ptWait(serialRxBytesWaiting(gpsState.gpsPort));
+
+        // Consume bytes until buffer empty of until we have full message received
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameNAZA(newChar)) {
-                gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
-                hasNewData = true;
+                ptSemaphoreSignal(semNewDataReady);
+                break;
             }
         }
     }
 
-    return hasNewData;
+    ptEnd(0);
 }
 
-static bool gpsInitialize(void)
+STATIC_PROTOTHREAD(gpsProtocolStateThread)
 {
-    gpsSetState(GPS_CHANGE_BAUD);
-    return false;
+    ptBegin(gpsProtocolStateThread);
+
+    // Change baud rate
+    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+    if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
+        // Cycle through available baud rates and hope that we will match GPS
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
+        gpsState.autoBaudrateIndex = (gpsState.autoBaudrateIndex + 1) % GPS_BAUDRATE_COUNT;
+        ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+    }
+    else {
+        // Set baud rate
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
+    }
+
+    // No configuration is done for NAZA GPS
+
+    // GPS setup done, reset timeout
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
+
+    // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
+    while (1) {
+        ptSemaphoreWait(semNewDataReady);
+        gpsProcessNewSolutionData();
+    }
+
+    ptEnd(0);
 }
 
-static bool gpsChangeBaud(void)
+void gpsRestartNAZA(void)
 {
-    gpsFinalizeChangeBaud();
-    return false;
+    ptSemaphoreInit(semNewDataReady);
+    ptRestart(ptGetHandle(gpsProtocolReceiverThread));
+    ptRestart(ptGetHandle(gpsProtocolStateThread));
 }
 
-bool gpsHandleNAZA(void)
+void gpsHandleNAZA(void)
 {
-    // Receive data
-    bool hasNewData = gpsReceiveData();
+    // Run the protocol threads
+    gpsProtocolReceiverThread();
+    gpsProtocolStateThread();
 
-    // Process state
-    switch (gpsState.state) {
-    default:
-        return false;
-
-    case GPS_INITIALIZING:
-        return gpsInitialize();
-
-    case GPS_CHANGE_BAUD:
-        return gpsChangeBaud();
-
-    case GPS_CHECK_VERSION:
-    case GPS_CONFIGURE:
-        // No autoconfig, switch straight to receiving data
-        gpsSetState(GPS_RECEIVING_DATA);
-        return false;
-
-    case GPS_RECEIVING_DATA:
-        return hasNewData;
+    // If thread stopped - signal communication loss and restart
+    if (ptIsStopped(ptGetHandle(gpsProtocolReceiverThread)) || ptIsStopped(ptGetHandle(gpsProtocolStateThread))) {
+        gpsSetState(GPS_LOST_COMMUNICATION);
     }
 }
 
