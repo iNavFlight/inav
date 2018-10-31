@@ -39,6 +39,10 @@
 
 #if defined(STM32F3)
 #define USE_UNDERCLOCK
+//save flash for F3 targets
+#define CLI_MINIMAL_VERBOSITY
+#define SKIP_CLI_COMMAND_HELP
+#define SKIP_CLI_RESOURCES
 #endif
 
 #if defined(STM32F3) || defined(STM32F4)
@@ -117,7 +121,7 @@
 #define USE_PITOT
 #define USE_PITOT_ADC
 
-//Enable VTX controll
+//Enable VTX control
 #define USE_VTX_COMMON
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
@@ -129,10 +133,7 @@
 #define USE_WIND_ESTIMATOR
 
 #else // FLASH_SIZE < 128
-#define CLI_MINIMAL_VERBOSITY
+
 #define SKIP_TASK_STATISTICS
-#define SKIP_CLI_COMMAND_HELP
-#define SKIP_CLI_RESOURCES
-#define NAV_MAX_WAYPOINTS       30
-#define MAX_BOOTLOG_ENTRIES     32
+
 #endif
