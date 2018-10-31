@@ -355,3 +355,21 @@ bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
             return false;
     }
 }
+
+void busSelectDevice(const busDevice_t * dev)
+{
+#ifdef USE_SPI
+    if (dev->busType == BUSTYPE_SPI && (dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
+        spiBusSelectDevice(dev);
+    }
+#endif
+}
+
+void busDeselectDevice(const busDevice_t * dev)
+{
+#ifdef USE_SPI
+    if (dev->busType == BUSTYPE_SPI && (dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
+        spiBusDeselectDevice(dev);
+    }
+#endif
+}

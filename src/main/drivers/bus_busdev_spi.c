@@ -29,6 +29,16 @@
 #include "drivers/bus_spi.h"
 #include "drivers/time.h"
 
+void spiBusSelectDevice(const busDevice_t * dev)
+{
+    IOLo(dev->busdev.spi.csnPin);
+}
+
+void spiBusDeselectDevice(const busDevice_t * dev)
+{
+    IOHi(dev->busdev.spi.csnPin);
+}
+
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 {
     const SPIClockSpeed_e spiClock[] = { SPI_CLOCK_INITIALIZATON, SPI_CLOCK_SLOW, SPI_CLOCK_STANDARD, SPI_CLOCK_FAST, SPI_CLOCK_ULTRAFAST };

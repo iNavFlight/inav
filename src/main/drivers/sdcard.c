@@ -22,20 +22,19 @@
 
 #ifdef USE_SDCARD
 
+#include "build/debug.h"
 #include "common/utils.h"
 
+#include "drivers/time.h"
 #include "drivers/nvic.h"
 #include "drivers/io.h"
-#include "dma.h"
-
 #include "drivers/bus_spi.h"
-#include "drivers/time.h"
 
-#include "sdcard.h"
-#include "sdcard_standard.h"
+#include "drivers/sdcard.h"
+#include "drivers/sdcard_standard.h"
+
 #include "blackbox/blackbox.h"
-
-#include "build/debug.h"
+#include "scheduler/protothreads.h"
 
 #ifdef AFATFS_USE_INTROSPECTIVE_LOGGING
     #define SDCARD_PROFILING
@@ -112,16 +111,6 @@ typedef struct sdcard_t {
 } sdcard_t;
 
 static sdcard_t sdcard;
-
-#ifdef SDCARD_DMA_CHANNEL_TX
-    static bool useDMAForTx;
-#if defined(USE_HAL_DRIVER)
-    DMA_HandleTypeDef *sdDMAHandle;
-#endif
-#else
-    // DMA channel not available so we can hard-code this to allow the non-DMA paths to be stripped by optimization
-    static const bool useDMAForTx = false;
-#endif
 
 STATIC_ASSERT(sizeof(sdcardCSD_t) == 16, sdcard_csd_bitfields_didnt_pack_properly);
 
@@ -421,48 +410,8 @@ static void sdcard_sendDataBlockBegin(uint8_t *buffer, bool multiBlockWrite)
 
     spiTransferByte(SDCARD_SPI_INSTANCE, multiBlockWrite ? SDCARD_MULTIPLE_BLOCK_WRITE_START_TOKEN : SDCARD_SINGLE_BLOCK_WRITE_START_TOKEN);
 
-    if (useDMAForTx) {
-#ifdef SDCARD_DMA_CHANNEL_TX
-#if defined(USE_HAL_DRIVER)
-        sdDMAHandle = spiSetDMATransmit(SDCARD_DMA_CHANNEL_TX, SDCARD_DMA_CHANNEL, SDCARD_SPI_INSTANCE, buffer, SDCARD_BLOCK_SIZE);
-#else
-        // Queue the transmission of the sector payload
-        DMA_InitTypeDef DMA_InitStructure;
-
-        DMA_StructInit(&DMA_InitStructure);
-#ifdef SDCARD_DMA_CHANNEL
-        DMA_InitStructure.DMA_Channel = SDCARD_DMA_CHANNEL;
-        DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t) buffer;
-        DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-#else
-        DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-        DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) buffer;
-        DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-#endif
-        DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &SDCARD_SPI_INSTANCE->DR;
-        DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
-        DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-        DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
-
-        DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-        DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-
-        DMA_InitStructure.DMA_BufferSize = SDCARD_BLOCK_SIZE;
-        DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-
-        DMA_DeInit(SDCARD_DMA_CHANNEL_TX);
-        DMA_Init(SDCARD_DMA_CHANNEL_TX, &DMA_InitStructure);
-
-        DMA_Cmd(SDCARD_DMA_CHANNEL_TX, ENABLE);
-
-        SPI_I2S_DMACmd(SDCARD_SPI_INSTANCE, SPI_I2S_DMAReq_Tx, ENABLE);
-#endif
-#endif
-    }
-    else {
-        // Send the first chunk now
-        spiTransfer(SDCARD_SPI_INSTANCE, NULL, buffer, SDCARD_NON_DMA_CHUNK_SIZE);
-    }
+    // Send the first chunk now
+    spiTransfer(SDCARD_SPI_INSTANCE, NULL, buffer, SDCARD_NON_DMA_CHUNK_SIZE);
 }
 
 static bool sdcard_receiveCID(void)
@@ -553,17 +502,6 @@ static bool sdcard_checkInitDone(void)
  */
 void sdcard_init(bool useDMA)
 {
-#ifdef SDCARD_DMA_CHANNEL_TX
-    useDMAForTx = useDMA;
-#if !defined(USE_HAL_DRIVER)
-    dmaEnableClock(dmaFindHandlerIdentifier(SDCARD_DMA_CHANNEL_TX));
-    DMA_Cmd(SDCARD_DMA_CHANNEL_TX, DISABLE);
-#endif
-#else
-    // DMA is not available
-    (void) useDMA;
-#endif
-
 #ifdef SDCARD_SPI_CS_PIN
     sdCardCsPin = IOGetByTag(IO_TAG(SDCARD_SPI_CS_PIN));
     IOInit(sdCardCsPin, OWNER_SDCARD, RESOURCE_SPI_CS, 0);
@@ -743,62 +681,10 @@ bool sdcard_poll(void)
             // Have we finished sending the write yet?
             sendComplete = false;
 
-#ifdef SDCARD_DMA_CHANNEL_TX
-#if defined(USE_HAL_DRIVER)
-            //if (useDMAForTx && __HAL_DMA_GET_FLAG(sdDMAHandle, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG) == SET) {
-            //if (useDMAForTx && HAL_DMA_PollForTransfer(sdDMAHandle, HAL_DMA_FULL_TRANSFER, HAL_MAX_DELAY) == HAL_OK) {
-            if (useDMAForTx && (sdDMAHandle->State == HAL_DMA_STATE_READY)) {
-                //__HAL_DMA_CLEAR_FLAG(sdDMAHandle, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG);
-
-                //__HAL_DMA_DISABLE(sdDMAHandle);
-
-                // Drain anything left in the Rx FIFO (we didn't read it during the write)
-                while (__HAL_SPI_GET_FLAG(spiHandleByInstance(SDCARD_SPI_INSTANCE), SPI_FLAG_RXNE) == SET) {
-                    SDCARD_SPI_INSTANCE->DR;
-                }
-
-                // Wait for the final bit to be transmitted
-                while (spiIsBusBusy(SDCARD_SPI_INSTANCE)) {
-                }
-
-                HAL_SPI_DMAStop(spiHandleByInstance(SDCARD_SPI_INSTANCE));
-
-                sendComplete = true;
-            }
-#else
-#ifdef SDCARD_DMA_CHANNEL
-            if (useDMAForTx && DMA_GetFlagStatus(SDCARD_DMA_CHANNEL_TX, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG) == SET) {
-                DMA_ClearFlag(SDCARD_DMA_CHANNEL_TX, SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG);
-#else
-            if (useDMAForTx && DMA_GetFlagStatus(SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG) == SET) {
-                DMA_ClearFlag(SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG);
-#endif
-
-                DMA_Cmd(SDCARD_DMA_CHANNEL_TX, DISABLE);
-
-                // Drain anything left in the Rx FIFO (we didn't read it during the write)
-                while (SPI_I2S_GetFlagStatus(SDCARD_SPI_INSTANCE, SPI_I2S_FLAG_RXNE) == SET) {
-                    SDCARD_SPI_INSTANCE->DR;
-                }
-
-                // Wait for the final bit to be transmitted
-                while (spiIsBusBusy(SDCARD_SPI_INSTANCE)) {
-                }
-
-                SPI_I2S_DMACmd(SDCARD_SPI_INSTANCE, SPI_I2S_DMAReq_Tx, DISABLE);
-
-                sendComplete = true;
-            }
-#endif
-#endif
-            if (!useDMAForTx) {
-                // Send another chunk
-                spiTransfer(SDCARD_SPI_INSTANCE, NULL, sdcard.pendingOperation.buffer + SDCARD_NON_DMA_CHUNK_SIZE * sdcard.pendingOperation.chunkIndex, SDCARD_NON_DMA_CHUNK_SIZE);
-
-                sdcard.pendingOperation.chunkIndex++;
-
-                sendComplete = sdcard.pendingOperation.chunkIndex == SDCARD_BLOCK_SIZE / SDCARD_NON_DMA_CHUNK_SIZE;
-            }
+            // Send another chunk
+            spiTransfer(SDCARD_SPI_INSTANCE, NULL, sdcard.pendingOperation.buffer + SDCARD_NON_DMA_CHUNK_SIZE * sdcard.pendingOperation.chunkIndex, SDCARD_NON_DMA_CHUNK_SIZE);
+            sdcard.pendingOperation.chunkIndex++;
+            sendComplete = sdcard.pendingOperation.chunkIndex == SDCARD_BLOCK_SIZE / SDCARD_NON_DMA_CHUNK_SIZE;
 
             if (sendComplete) {
                 // Finish up by sending the CRC and checking the SD-card's acceptance/rejectance

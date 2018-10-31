@@ -193,8 +193,10 @@
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
-  #define USE_SDCARD_SPI2
+  #define SDCARD_SPI_BUS        BUS_SPI2
+  #define SDCARD_CS_PIN         SPI2_NSS_PIN
 
+  #define USE_SDCARD_SPI2
   #define SDCARD_DETECT_INVERTED
   #define SDCARD_DETECT_PIN               PB7
   #define SDCARD_SPI_INSTANCE             SPI2

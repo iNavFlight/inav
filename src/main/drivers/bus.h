@@ -118,11 +118,13 @@ typedef enum {
     DEVHW_PCA9685,      // PWM output device
     DEVHW_M25P16,       // SPI NOR flash
     DEVHW_UG2864,       // I2C OLED display
+    DEVHW_SDCARD,       // Generic SD-Card
 } devHardwareType_e;
 
 typedef enum {
     DEVFLAGS_NONE                       = 0,
-    DEVFLAGS_USE_RAW_REGISTERS          = (1 << 0),             // Don't manipulate MSB for R/W selection
+    DEVFLAGS_USE_RAW_REGISTERS          = (1 << 0),     // Don't manipulate MSB for R/W selection
+    DEVFLAGS_USE_MANUAL_DEVICE_SELECT   = (1 << 1),     // Don't automatically select/deselect device (SPI only)
 } deviceFlags_e;
 
 typedef struct busDeviceDescriptor_s {
@@ -251,6 +253,8 @@ bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * dat
 bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
 bool spiBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
+void spiBusSelectDevice(const busDevice_t * dev);
+void spiBusDeselectDevice(const busDevice_t * dev);
 
 /* Pre-initialize all known device descriptors to make sure hardware state is consistent and known
  * Initialize bus hardware */
@@ -266,6 +270,10 @@ void busDeviceWriteScratchpad(busDevice_t * dev, uint32_t value);
 void * busDeviceGetScratchpadMemory(const busDevice_t * dev);
 
 void busSetSpeed(const busDevice_t * dev, busSpeed_e speed);
+
+/* Select/Deselect device will allow code to do something during device transfer or do transfer in chunks over some time */
+void busSelectDevice(const busDevice_t * dev);
+void busDeselectDevice(const busDevice_t * dev);
 
 bool busWriteBuf(const busDevice_t * busdev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool busReadBuf(const busDevice_t * busdev, uint8_t reg, uint8_t * data, uint8_t length);
