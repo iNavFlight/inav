@@ -400,7 +400,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_GPS] = {
         .taskName = "GPS",
         .taskFunc = taskProcessGPS,
-        .desiredPeriod = TASK_PERIOD_HZ(25),      // GPS usually don't go raster than 10Hz
+        .desiredPeriod = TASK_PERIOD_HZ(50),      // GPS usually don't go raster than 10Hz
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
