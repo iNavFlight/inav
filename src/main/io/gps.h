@@ -113,6 +113,7 @@ typedef struct gpsLocation_s {
 
 typedef struct gpsSolutionData_s {
     struct {
+        bool hasNewData;
         bool gpsHeartbeat;  // Toggle each update
         bool validVelNE;
         bool validVelD;

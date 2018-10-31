@@ -30,7 +30,6 @@ COMMON_SRC = \
             drivers/bus_spi.c \
             drivers/display.c \
             drivers/exti.c \
-            drivers/gps_i2cnav.c \
             drivers/io.c \
             drivers/io_pca9685.c \
             drivers/light_led.c \
@@ -156,7 +155,6 @@ COMMON_SRC = \
             io/gps_ublox.c \
             io/gps_nmea.c \
             io/gps_naza.c \
-            io/gps_i2cnav.c \
             io/ledstrip.c \
             io/osd.c \
             navigation/navigation.c \
