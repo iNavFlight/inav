@@ -55,7 +55,7 @@ typedef float (*filterApplyFnPtr)(void *filter, float input);
 
 float nullFilterApply(void *filter, float input);
 
-void pt1FilterInit(pt1Filter_t *filter, uint8_t f_cut, float dT);
+void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT);
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT);
 void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau);
 float pt1FilterGetLastOutput(pt1Filter_t *filter);

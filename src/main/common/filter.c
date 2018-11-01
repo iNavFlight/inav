@@ -44,7 +44,7 @@ void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT)
     filter->dT = dT;
 }
 
-void pt1FilterInit(pt1Filter_t *filter, uint8_t f_cut, float dT)
+void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT)
 {
     pt1FilterInitRC(filter, 1.0f / (2.0f * M_PIf * f_cut), dT);
 }

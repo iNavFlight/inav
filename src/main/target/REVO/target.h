@@ -24,8 +24,8 @@
 #define USBD_SERIALNUMBER_STRING "0x8020000"
 #endif
 
-// Use target-specific hardware descriptors (don't use common_hardware.h)
-#define USE_TARGET_HARDWARE_DESCRIPTORS
+// Use target-specific MAG hardware descriptors (don't use common_hardware.h)
+#define USE_TARGET_MAG_HARDWARE_DESCRIPTORS
 
 #define LED0                    PB5
 #define LED1                    PB4

@@ -39,6 +39,8 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
+#include "scheduler/protothreads.h"
+
 #include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 
@@ -46,14 +48,11 @@
 
 pitot_t pitot;
 
-static timeMs_t pitotCalibrationTimeout = 0;
-static bool pitotCalibrationFinished = false;
-static float pitotPressureZero = 0;
-static float pitotPressure = 0;
-static float pitotTemperature = 0;
-static float indicatedAirspeed = 0;
+PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
-PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 0);
+#define PITOT_HARDWARE_TIMEOUT_MS   500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
+#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
+#define P0                          101325.0f   // standard pressure [Pa]
 
 #ifdef USE_PITOT
 #define PITOT_HARDWARE_DEFAULT    PITOT_AUTODETECT
@@ -62,8 +61,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTME
 #endif
 PG_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig,
     .pitot_hardware = PITOT_HARDWARE_DEFAULT,
-    .use_median_filtering = 1,
-    .pitot_noise_lpf = 0.6f,
+    .pitot_lpf_milli_hz = 350,
     .pitot_scale = 1.00f
 );
 
@@ -155,112 +153,96 @@ bool pitotInit(void)
 
 bool pitotIsCalibrationComplete(void)
 {
-    return pitotCalibrationFinished;
+    return pitot.calibrationFinished;
 }
 
 void pitotStartCalibration(void)
 {
-    pitotCalibrationTimeout = millis();
-    pitotCalibrationFinished = false;
+    pitot.calibrationTimeoutMs = millis();
+    pitot.calibrationFinished = false;
 }
-
-#define PRESSURE_SAMPLES_MEDIAN 3
-
-static int32_t applyPitotmeterMedianFilter(int32_t newPressureReading)
-{
-    static int32_t pitotFilterSamples[PRESSURE_SAMPLES_MEDIAN];
-    static int currentFilterSampleIndex = 0;
-    static bool medianFilterReady = false;
-    int nextSampleIndex;
-
-    nextSampleIndex = (currentFilterSampleIndex + 1);
-    if (nextSampleIndex == PRESSURE_SAMPLES_MEDIAN) {
-        nextSampleIndex = 0;
-        medianFilterReady = true;
-    }
-
-    pitotFilterSamples[currentFilterSampleIndex] = newPressureReading;
-    currentFilterSampleIndex = nextSampleIndex;
-
-    if (medianFilterReady)
-        return quickMedianFilter3(pitotFilterSamples);
-    else
-        return newPressureReading;
-}
-
-typedef enum {
-    PITOTMETER_NEEDS_SAMPLES = 0,
-    PITOTMETER_NEEDS_CALCULATION,
-} pitotmeterState_e;
-
-uint32_t pitotUpdate(void)
-{
-    static pitotmeterState_e state = PITOTMETER_NEEDS_SAMPLES;
-
-    switch (state) {
-        default:
-        case PITOTMETER_NEEDS_SAMPLES:
-            pitot.dev.start(&pitot.dev);
-            state = PITOTMETER_NEEDS_CALCULATION;
-            return pitot.dev.delay;
-        break;
-
-        case PITOTMETER_NEEDS_CALCULATION:
-            pitot.dev.get(&pitot.dev);
-            pitot.dev.calculate(&pitot.dev, &pitotPressure, &pitotTemperature);
-            if (pitotmeterConfig()->use_median_filtering) {
-                pitotPressure = applyPitotmeterMedianFilter(pitotPressure);
-            }
-            state = PITOTMETER_NEEDS_SAMPLES;
-           return pitot.dev.delay;
-        break;
-    }
-}
-
-#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
-#define AIR_GAS_CONST               287.1f      //  J / (kg * K)
-#define P0                          101325.0f   // standard pressure
 
 static void performPitotCalibrationCycle(void)
 {
-    const float pitotPressureZeroError = pitotPressure - pitotPressureZero;
-    pitotPressureZero += pitotPressureZeroError * 0.15f;
+    const float pitotPressureZeroError = pitot.pressure - pitot.pressureZero;
+    pitot.pressureZero += pitotPressureZeroError * 0.25f;
 
-    if (ABS(pitotPressureZeroError) < (P0 * 0.00001f)) {    // 0.001% calibration error
-        if ((millis() - pitotCalibrationTimeout) > 250) {
-            pitotCalibrationFinished = true;
+    if (ABS(pitotPressureZeroError) < (P0 * 0.000005f)) {
+        if ((millis() - pitot.calibrationTimeoutMs) > 500) {
+            pitot.calibrationFinished = true;
         }
     }
     else {
-        pitotCalibrationTimeout = millis();
+        pitot.calibrationTimeoutMs = millis();
     }
+}
+
+STATIC_PROTOTHREAD(pitotThread)
+{
+    ptBegin(pitotThread);
+
+    static float pitotPressureTmp;
+    timeUs_t currentTimeUs;
+
+    // Init filter
+    pitot.lastMeasurementUs = micros();
+    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0);
+
+    while(1) {
+        // Start measurement
+        if (pitot.dev.start(&pitot.dev)) {
+            pitot.lastSeenHealthyMs = millis();
+        }
+
+        ptDelayUs(pitot.dev.delay);
+
+        // Read and calculate data
+        if (pitot.dev.get(&pitot.dev)) {
+            pitot.lastSeenHealthyMs = millis();
+        }
+
+        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, NULL);
+        ptYield();
+
+        // Filter pressure
+        currentTimeUs = micros();
+        pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, (currentTimeUs - pitot.lastMeasurementUs) * 1e-6f);
+        pitot.lastMeasurementUs = currentTimeUs;
+        ptDelayUs(pitot.dev.delay);
+
+        // Calculate IAS
+        if (pitotIsCalibrationComplete()) {
+            // https://en.wikipedia.org/wiki/Indicated_airspeed
+            // Indicated airspeed (IAS) is the airspeed read directly from the airspeed indicator on an aircraft, driven by the pitot-static system.
+            // The IAS is an important value for the pilot because it is the indicated speeds which are specified in the aircraft flight manual for
+            // such important performance values as the stall speed. A typical aircraft will always stall at the same indicated airspeed (for the current configuration)
+            // regardless of density, altitude or true airspeed.
+            //
+            // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
+            // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * sqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / AIR_DENSITY_SEA_LEVEL_15C) * 100;
+        } else {
+            performPitotCalibrationCycle();
+            pitot.airSpeed = 0;
+        }
+    }
+
+    ptEnd(0);
+}
+
+void pitotUpdate(void)
+{
+    pitotThread();
 }
 
 int32_t pitotCalculateAirSpeed(void)
 {
-    if (pitotIsCalibrationComplete()) {
-        // https://en.wikipedia.org/wiki/Indicated_airspeed
-        // Indicated airspeed (IAS) is the airspeed read directly from the airspeed indicator on an aircraft, driven by the pitot-static system.
-        // The IAS is an important value for the pilot because it is the indicated speeds which are specified in the aircraft flight manual for
-        // such important performance values as the stall speed. A typical aircraft will always stall at the same indicated airspeed (for the current configuration)
-        // regardless of density, altitude or true airspeed.
-        //
-        // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
-        // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
-        const float indicatedAirspeed_tmp = pitotmeterConfig()->pitot_scale * sqrtf(2.0f * fabsf(pitotPressure - pitotPressureZero) / AIR_DENSITY_SEA_LEVEL_15C);
-        indicatedAirspeed += pitotmeterConfig()->pitot_noise_lpf * (indicatedAirspeed_tmp - indicatedAirspeed);
-
-        pitot.airSpeed = indicatedAirspeed * 100;
-    } else {
-        performPitotCalibrationCycle();
-        pitot.airSpeed = 0;
-    }
     return pitot.airSpeed;
 }
 
 bool pitotIsHealthy(void)
 {
-    return true;
+    return (millis() - pitot.lastSeenHealthyMs) < PITOT_HARDWARE_TIMEOUT_MS;
 }
 
 #endif /* PITOT */
