@@ -27,4 +27,5 @@ typedef enum {
 
 // Temperature is returned in degC*10
 int16_t getTemperature(tempSensor_e sensor);
+int16_t getCurrentTemperature(void);
 void temperatureUpdate(void);

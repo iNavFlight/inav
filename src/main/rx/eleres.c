@@ -39,7 +39,7 @@
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
-#include "sensors/barometer.h"
+#include "sensors/temperature.h"
 #include "scheduler/scheduler.h"
 
 #ifdef USE_RX_ELERES
@@ -272,7 +272,7 @@ static void telemetryRX(void)
     presfil  -= presfil/4;
     presfil  += baro.baroPressure;
     thempfil -= thempfil/8;
-    thempfil += baro.baroTemperature/10;
+    thempfil += getCurrentTemperature();
 
     switch (telem_state++) {
     case 0:

@@ -36,6 +36,7 @@
 #include "io/serial.h"
 
 #include "sensors/barometer.h"
+#include "sensors/temperature.h"
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
@@ -140,11 +141,11 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
     }
 #endif
     if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_TEMPERATURE) { //BARO_TEMP\GYRO_TEMP
-        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((baro.baroTemperature + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t
+        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((DECIDEGREES_TO_CENTIDEGREES(getCurrentTemperature()) + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t
         else {
           /*
            * There is no temperature data
-           * assuming (baro.baroTemperature + 50) / 10
+           * assuming ((DECIDEGREES_TO_CENTIDEGREES(getCurrentTemperature()) + 50) / 10
            * 0 degrees (no sensor) equals 50 / 10 = 5
            */
           return sendIbusMeasurement2(address, (uint16_t) (5 + IBUS_TEMPERATURE_OFFSET)); //int16_t
