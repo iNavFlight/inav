@@ -21,6 +21,7 @@
 
 typedef enum {
     TEMP_GYRO = 0,
+    TEMP_BARO = 1,
     TEMP_COUNT
 } tempSensor_e;
 

@@ -25,8 +25,12 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "fc/runtime_config.h"
+
+#include "sensors/sensors.h"
 #include "sensors/temperature.h"
 #include "sensors/gyro.h"
+#include "sensors/barometer.h"
 
 static bool     tempSensorValid[TEMP_COUNT];
 static int16_t  tempSensorValue[TEMP_COUNT];
@@ -43,9 +47,14 @@ int16_t getTemperature(tempSensor_e sensor)
 
 void temperatureUpdate(void)
 {
-    // TEMP_GYRO: Update gyro temperature
+    // TEMP_GYRO: Update gyro temperature in decidegrees
     if (gyroReadTemperature()) {
         tempSensorValid[TEMP_GYRO] = true;
         tempSensorValue[TEMP_GYRO] = gyroGetTemperature();
+    }
+    // TEMP_BARO: Update baro temperature in decidegrees
+    if(sensors(SENSOR_BARO)){
+        tempSensorValid[TEMP_BARO] = true;
+        tempSensorValue[TEMP_BARO] = baroGetTemperature();
     }
 }
