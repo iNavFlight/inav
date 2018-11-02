@@ -87,6 +87,7 @@
 #include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/temperature.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -482,6 +483,27 @@ static uint16_t osdConvertRSSI(void)
 {
     // change range to [0, 99]
     return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
+}
+
+/**
+* Converts temperature into a string based on the current unit system
+* postfixed with a symbol to indicate the unit used.
+* @param temperature Raw temperature (i.e. as taken from getTemperature() in degC*10)
+*/
+static void osdFormatTemperatureSymbol(char *buff, int16_t temperature)
+{
+    int units_symbol;
+    switch ((osd_unit_e)osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            units_symbol = SYM_TEMP_F;
+            break;
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_METRIC:
+            units_symbol = SYM_TEMP_C;
+            break;
+    }
+    tfp_sprintf(buff, "%d.%d%c", ((int) (temperature / 10)), (temperature % 10), units_symbol);
 }
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
@@ -2223,6 +2245,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GYRO_TEMPERATURE:
+        {
+            int16_t temperature = getTemperature(TEMP_GYRO);
+            osdFormatTemperatureSymbol(buff, temperature);
+            break;
+        }
+
     case OSD_WIND_SPEED_HORIZONTAL:
 #ifdef USE_WIND_ESTIMATOR
         {
@@ -2434,6 +2463,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_MC_POS_XYZ_P_OUTPUTS] = OSD_POS(2, 12);
 
     osdConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);
+    osdConfig->item_pos[0][OSD_GYRO_TEMPERATURE] = OSD_POS(23, 2);
 
     osdConfig->item_pos[0][OSD_AIR_SPEED] = OSD_POS(3, 5);
     osdConfig->item_pos[0][OSD_WIND_SPEED_HORIZONTAL] = OSD_POS(3, 6);
