@@ -59,7 +59,8 @@ typedef enum {
     BUSTYPE_ANY  = 0,
     BUSTYPE_NONE = 0,
     BUSTYPE_I2C  = 1,
-    BUSTYPE_SPI  = 2
+    BUSTYPE_SPI  = 2,
+    BUSTYPE_SDIO = 3,
 } busType_e;
 
 /* Ultimately all hardware descriptors will go to target definition files.
@@ -246,8 +247,9 @@ bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
 bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
 
-
+bool spiBusIsBusy(const busDevice_t * dev);
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed);
+bool spiBusTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
 bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc, int count);
 bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
@@ -282,3 +284,5 @@ bool busWrite(const busDevice_t * busdev, uint8_t reg, uint8_t data);
 
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
 bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * buffers, int count);
+
+bool busIsBusy(const busDevice_t * dev);

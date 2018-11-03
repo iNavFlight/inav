@@ -68,25 +68,25 @@
 #define SPI4_NSS_PIN NONE
 #endif
 
-#if defined(SPI1_USE_DMA)
-    #define SPI1_USETXDMA   true
+#ifdef SPI1_CLOCK_LEADING_EDGE
+#  define SPI1_LEADING_EDGE true
 #else
-    #define SPI1_USETXDMA   false
+#  define SPI1_LEADING_EDGE false
 #endif
-#if defined(SPI2_USE_DMA)
-    #define SPI2_USETXDMA   true
+#ifdef SPI2_CLOCK_LEADING_EDGE
+#  define SPI2_LEADING_EDGE true
 #else
-    #define SPI2_USETXDMA   false
+#  define SPI2_LEADING_EDGE false
 #endif
-#if defined(SPI3_USE_DMA)
-    #define SPI3_USETXDMA   true
+#ifdef SPI3_CLOCK_LEADING_EDGE
+#  define SPI3_LEADING_EDGE true
 #else
-    #define SPI3_USETXDMA   false
+#  define SPI3_LEADING_EDGE false
 #endif
-#if defined(SPI4_USE_DMA)
-    #define SPI4_USETXDMA   true
+#ifdef SPI4_CLOCK_LEADING_EDGE
+#  define SPI4_LEADING_EDGE true
 #else
-    #define SPI4_USETXDMA   false
+#  define SPI4_LEADING_EDGE false
 #endif
 
 static const uint16_t spiDivisorMapFast[] = {
@@ -105,10 +105,10 @@ static const uint16_t spiDivisorMapSlow[] = {
 };
 
 static spiDevice_t spiHardwareMap[] = {
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF5_SPI1, .leadingEdge = false, .divisorMap = spiDivisorMapFast },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF5_SPI2, .leadingEdge = false, .divisorMap = spiDivisorMapSlow },
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF6_SPI3, .leadingEdge = false, .divisorMap = spiDivisorMapSlow },
-    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .af = GPIO_AF5_SPI4, .leadingEdge = false, .divisorMap = spiDivisorMapSlow }
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF5_SPI1, .leadingEdge = SPI1_LEADING_EDGE, .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF5_SPI2, .leadingEdge = SPI2_LEADING_EDGE, .divisorMap = spiDivisorMapSlow },
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF6_SPI3, .leadingEdge = SPI3_LEADING_EDGE, .divisorMap = spiDivisorMapSlow },
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .af = GPIO_AF5_SPI4, .leadingEdge = SPI4_LEADING_EDGE, .divisorMap = spiDivisorMapSlow }
 };
 
 SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)

@@ -204,6 +204,7 @@ endif
 ifneq ($(filter SDCARD,$(FEATURES)),)
 TARGET_SRC += \
             drivers/sdcard.c \
+            drivers/sdcard_spi.c \
             drivers/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
             io/asyncfatfs/fat_standard.c
