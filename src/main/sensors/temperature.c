@@ -52,9 +52,12 @@ void temperatureUpdate(void)
         tempSensorValue[TEMP_GYRO] = gyroGetTemperature();
         tempSensorValid = TEMP_GYRO;
     }
+    
+    #if defined(USE_BARO)
     // TEMP_BARO: Update baro temperature in decidegrees
     if(sensors(SENSOR_BARO)){
         tempSensorValue[TEMP_BARO] = baroGetTemperature();
         tempSensorValid = TEMP_BARO;
     }
+    #endif
 }
