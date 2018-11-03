@@ -272,7 +272,7 @@ static void telemetryRX(void)
     presfil  -= presfil/4;
     presfil  += baro.baroPressure;
     thempfil -= thempfil/8;
-    thempfil += getCurrentTemperature();
+    thempfil += DEGREES_TO_DECIDEGREES(getCurrentTemperature());
 
     switch (telem_state++) {
     case 0:

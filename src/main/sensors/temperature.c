@@ -40,9 +40,9 @@ int16_t getTemperature(tempSensor_e sensor)
     return tempSensorValue[sensor];
 }
 
-int16_t getCurrentTemperature(void)
-{
-    return tempSensorValue[tempSensorValid];
+float getCurrentTemperature(void)
+{   //returns current temperature in degrees celsius
+    return tempSensorValue[tempSensorValid]/10.0f;
 }
 
 void temperatureUpdate(void)
@@ -50,11 +50,11 @@ void temperatureUpdate(void)
     // TEMP_GYRO: Update gyro temperature in decidegrees
     if (gyroReadTemperature()) {
         tempSensorValue[TEMP_GYRO] = gyroGetTemperature();
-        tempSensorValid=TEMP_GYRO;
+        tempSensorValid = TEMP_GYRO;
     }
     // TEMP_BARO: Update baro temperature in decidegrees
     if(sensors(SENSOR_BARO)){
         tempSensorValue[TEMP_BARO] = baroGetTemperature();
-        tempSensorValid=TEMP_BARO;
+        tempSensorValid = TEMP_BARO;
     }
 }
