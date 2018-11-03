@@ -78,6 +78,11 @@ void dmaEnableClock(DMA_t dma)
     RCC_AHBPeriphClockCmd(dma->rcc, ENABLE);
 }
 
+resourceOwner_e dmaGetOwner(DMA_t dma)
+{
+    return dma->owner;
+}
+
 void dmaInit(DMA_t dma, resourceOwner_e owner, uint8_t resourceIndex)
 {
     dmaEnableClock(dma);

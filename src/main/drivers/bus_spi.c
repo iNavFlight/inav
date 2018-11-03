@@ -80,12 +80,19 @@ static const uint16_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               18.0 MBits/s
     SPI_BaudRatePrescaler_4       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
 };
+
 static const uint16_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      140.625 KBits/s
     SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               562.5 KBits/s
     SPI_BaudRatePrescaler_4,      // SPI_CLOCK_STANDARD           9.0 MBits/s
     SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               18.0 MBits/s
     SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
+};
+
+static spiDevice_t spiHardwareMap[] = {
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, .leadingEdge = false, .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, .leadingEdge = false, .divisorMap = spiDivisorMapSlow },
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, .leadingEdge = false, .divisorMap = spiDivisorMapSlow }
 };
 #elif defined(STM32F4)
 static const uint16_t spiDivisorMapFast[] = {
@@ -95,6 +102,7 @@ static const uint16_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               21.0 MBits/s
     SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          42.0 MBits/s
 };
+
 static const uint16_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      164.062 KBits/s
     SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               656.25 KBits/s
@@ -102,17 +110,15 @@ static const uint16_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               21.0 MBits/s
     SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          21.0 MBits/s
 };
+
+static spiDevice_t spiHardwareMap[] = {
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, .leadingEdge = false, .divisorMap = spiDivisorMapFast },
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, .leadingEdge = false, .divisorMap = spiDivisorMapSlow },
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, .leadingEdge = false, .divisorMap = spiDivisorMapSlow }
+};
 #else
 #error "Invalid CPU"
 #endif
-
-static spiDevice_t spiHardwareMap[] = {
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF_SPI1, false, .divisorMap = spiDivisorMapFast },
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF_SPI2, false, .divisorMap = spiDivisorMapSlow },
-#if defined(STM32F3) || defined(STM32F4)
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF_SPI3, false, .divisorMap = spiDivisorMapSlow }
-#endif
-};
 
 SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
 {

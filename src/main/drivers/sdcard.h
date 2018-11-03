@@ -53,7 +53,7 @@ typedef void(*sdcard_operationCompleteCallback_c)(sdcardBlockOperation_e operati
 
 typedef void(*sdcard_profilerCallback_c)(sdcardBlockOperation_e operation, uint32_t blockIndex, uint32_t duration);
 
-void sdcard_init(bool useDMA);
+void sdcard_init(void);
 
 bool sdcard_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_operationCompleteCallback_c callback, uint32_t callbackData);
 
