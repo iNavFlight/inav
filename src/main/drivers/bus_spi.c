@@ -154,12 +154,6 @@ void spiInitDevice(SPIDevice device)
 {
     spiDevice_t *spi = &(spiHardwareMap[device]);
 
-#ifdef SDCARD_SPI_INSTANCE
-    if (spi->dev == SDCARD_SPI_INSTANCE) {
-        spi->leadingEdge = true;
-    }
-#endif
-
     // Enable SPI clock
     RCC_ClockCmd(spi->rcc, ENABLE);
     RCC_ResetCmd(spi->rcc, ENABLE);
@@ -197,9 +191,11 @@ void spiInitDevice(SPIDevice device)
     spiInit.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
 
     if (spi->leadingEdge) {
+        // SPI_MODE0
         spiInit.SPI_CPOL = SPI_CPOL_Low;
         spiInit.SPI_CPHA = SPI_CPHA_1Edge;
     } else {
+        // SPI_MODE3
         spiInit.SPI_CPOL = SPI_CPOL_High;
         spiInit.SPI_CPHA = SPI_CPHA_2Edge;
     }

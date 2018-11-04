@@ -128,6 +128,7 @@
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
+#define SPI4_CLOCK_LEADING_EDGE
 
 #define USE_OSD
 #define USE_MAX7456
@@ -135,30 +136,15 @@
 #define MAX7456_CS_PIN          SPI3_NSS_PIN
 
 #define USE_SDCARD
-
-// This is needed for BangGood board that used wrong sdcard socket!!!
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PD3
-#define SDCARD_DETECT_EXTI_LINE             EXTI_Line3
-#define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource3
-#define SDCARD_DETECT_EXTI_PORT_SOURCE      EXTI_PortSourceGPIOD
-#define SDCARD_DETECT_EXTI_IRQn             EXTI3_IRQn
-
-#define SDCARD_SPI_INSTANCE                 SPI4
-#define SDCARD_SPI_CS_PIN                   SPI4_NSS_PIN
-
-#define SDCARD_DMA_CHANNEL_TX               DMA2_Stream1
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA2
-#define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
+#define SDCARD_DETECT_PIN       PD3
+#define SDCARD_SPI_BUS          SPI4
+#define SDCARD_CS_PIN           SPI4_NSS_PIN
 
 #define USE_I2C
 #define USE_I2C_DEVICE_4
 #define USE_I2C_DEVICE_2
-//#define USE_I2C_PULLUP
-
-//#define HIL
 
 #define MAG_GPS_ALIGN           CW180_DEG_FLIP
 

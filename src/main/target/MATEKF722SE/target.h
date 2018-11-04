@@ -104,9 +104,7 @@
 #define MAX7456_CS_PIN          PB12
 
 // *************** SPI3 SD BLACKBOX*******************
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #define USE_SDCARD
-
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PD2
@@ -116,6 +114,8 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** UART *****************************
 #define USE_VCP

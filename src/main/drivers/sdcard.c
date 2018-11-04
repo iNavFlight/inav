@@ -69,7 +69,11 @@ bool sdcard_isInserted(void)
 {
     if (sdcard.cardDetectPin) {
         bool result = (IORead(sdcard.cardDetectPin) != 0);
+#if defined(SDCARD_DETECT_INVERTED)
+        return !result;
+#else
         return result;
+#endif
     }
     else {
         return true;

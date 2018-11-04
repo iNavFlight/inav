@@ -146,17 +146,6 @@ void spiInitDevice(SPIDevice device)
         return;
     }
 
-#ifdef SDCARD_SPI_INSTANCE
-    if (spi->dev == SDCARD_SPI_INSTANCE) {
-        spi->leadingEdge = true;
-    }
-#endif
-#ifdef RX_SPI_INSTANCE
-    if (spi->dev == RX_SPI_INSTANCE) {
-        spi->leadingEdge = true;
-    }
-#endif
-
     // Enable SPI clock
     RCC_ClockCmd(spi->rcc, ENABLE);
     RCC_ResetCmd(spi->rcc, ENABLE);
@@ -198,6 +187,8 @@ void spiInitDevice(SPIDevice device)
 
     LL_SPI_Init(spi->dev, &init);
     LL_SPI_Enable(spi->dev);
+
+    SET_BIT(instance->CR2, SPI_RXFIFO_THRESHOLD);
 
     if (spi->nss) {
         IOHi(IOGetByTag(spi->nss));

@@ -63,6 +63,13 @@ typedef enum {
     BUSTYPE_SDIO = 3,
 } busType_e;
 
+typedef enum {
+    BUSINDEX_1  = 0,
+    BUSINDEX_2  = 1,
+    BUSINDEX_3  = 2,
+    BUSINDEX_4  = 3
+} busIndex_e;
+
 /* Ultimately all hardware descriptors will go to target definition files.
  * Driver code will merely query for it's HW descriptor and initialize it */
 typedef enum {
@@ -125,7 +132,8 @@ typedef enum {
 typedef enum {
     DEVFLAGS_NONE                       = 0,
     DEVFLAGS_USE_RAW_REGISTERS          = (1 << 0),     // Don't manipulate MSB for R/W selection
-    DEVFLAGS_USE_MANUAL_DEVICE_SELECT   = (1 << 1),     // Don't automatically select/deselect device (SPI only)
+    DEVFLAGS_USE_MANUAL_DEVICE_SELECT   = (1 << 1),     // (SPI only) Don't automatically select/deselect device
+    DEVFLAGS_SPI_MODE_0                 = (1 << 2),     // (SPI only) Use CPOL=0/CPHA=0 (if unset MODE3 is used - CPOL=1/CPHA=1)
 } deviceFlags_e;
 
 typedef struct busDeviceDescriptor_s {

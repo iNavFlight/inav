@@ -90,20 +90,18 @@
 #define MAX7456_SPI_BUS         BUS_SPI2
 
 // *************** SPI3 SD Card  ********************
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC14
+
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
+#define SPI3_CLOCK_LEADING_EDGE
 
-#define USE_SDCARD
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define SDCARD_SPI_INSTANCE     SPI3
-#define SDCARD_SPI_CS_PIN       PC14
-
-#define SDCARD_DMA_CHANNEL_TX               	DMA1_Stream7
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG 	DMA_FLAG_TCIF7
-#define SDCARD_DMA_CLK                      	RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  	DMA_Channel_0
 
 // *************** UART *****************************
 #define USE_VCP

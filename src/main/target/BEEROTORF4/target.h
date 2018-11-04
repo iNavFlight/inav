@@ -66,17 +66,11 @@
 #define MAX7456_CS_PIN          SPI3_NSS_PIN
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
-
-#define SDCARD_DETECT_PIN       PC3
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_SPI_INSTANCE     SPI2
-#define SDCARD_SPI_CS_PIN       SPI2_NSS_PIN
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define SDCARD_DETECT_PIN       PC3
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           SPI2_NSS_PIN
 
 #define USE_VCP
 #define VBUS_SENSING_ENABLED
@@ -121,6 +115,7 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
+#define SPI2_CLOCK_LEADING_EDGE
 
 //MAX7456 / SPI RX
 #define USE_SPI_DEVICE_3

@@ -230,8 +230,12 @@
     BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE);
 #endif
 
-#if defined(USE_SDCARD) && defined(SDCARD_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT);
+#if defined(USE_SDCARD) && defined(SDCARD_SPI)
+    BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT | DEVFLAGS_SPI_MODE_0);
+#endif
+
+#if defined(USE_SDCARD) && defined(SDCARD_SDIO)
+    BUSDEV_REGISTER_SDIO(busdev_sdcard_sdio,DEVHW_SDCARD,       SDCARD_SDIO_BUS,    SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT);
 #endif
 
 #if defined(USE_OLED_UG2864)

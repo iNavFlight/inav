@@ -169,6 +169,7 @@
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define USE_SPI_DEVICE_2
+  #define SPI2_CLOCK_LEADING_EDGE
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
   #define SPI2_MISO_PIN         PB14
@@ -193,19 +194,13 @@
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
+  #define USE_SDCARD_SPI
+
   #define SDCARD_SPI_BUS        BUS_SPI2
   #define SDCARD_CS_PIN         SPI2_NSS_PIN
 
-  #define USE_SDCARD_SPI2
+  #define SDCARD_DETECT_PIN     PB7
   #define SDCARD_DETECT_INVERTED
-  #define SDCARD_DETECT_PIN               PB7
-  #define SDCARD_SPI_INSTANCE             SPI2
-  #define SDCARD_SPI_CS_PIN               SPI2_NSS_PIN
-
-  #define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
-  #define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
-  #define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-  #define SDCARD_DMA_CHANNEL                  DMA_Channel_0
 #else
   #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
   #define M25P16_CS_PIN           SPI3_NSS_PIN
