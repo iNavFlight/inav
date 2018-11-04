@@ -70,11 +70,8 @@
 //#define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_OPTICAL_FLOW
-#define USE_OPFLOW_CXOF
-#define USE_OPFLOW_MSP
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_VL53L0X
 #define VL53L0X_I2C_BUS         BUS_I2C2
 

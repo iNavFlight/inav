@@ -145,6 +145,7 @@ COMMON_SRC = \
             drivers/opflow/opflow_virtual.c \
             drivers/vtx_common.c \
             io/rangefinder_msp.c \
+            io/rangefinder_benewake.c \
             io/opflow_cxof.c \
             io/opflow_msp.c \
             io/dashboard.c \
