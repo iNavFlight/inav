@@ -51,10 +51,11 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN               PB7
-#define SDCARD_SPI_INSTANCE             SPI2
-#define SDCARD_SPI_CS_PIN               SPI2_NSS_PIN
+#define SDCARD_DETECT_PIN       PB7
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           SPI2_NSS_PIN
 
 #define USE_VCP
 #define VBUS_SENSING_PIN PC5
@@ -84,6 +85,7 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
+#define SPI2_CLOCK_LEADING_EDGE
 
 #define USE_SPI_DEVICE_3
 #define SPI3_NSS_PIN            PA15

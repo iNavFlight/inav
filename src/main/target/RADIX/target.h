@@ -111,18 +111,14 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define USE_SDCARD
+// #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+// #define USE_SDCARD
+// #define USE_SDCARD_SPI
 
-#define SDCARD_DETECT_INVERTED
-#define SDCARD_SPI_INSTANCE             SPI2
-#define SDCARD_DETECT_PIN               PB13
-#define SDCARD_SPI_CS_PIN               PB15
-
-#define SDCARD_DMA_CHANNEL_TX               DMA2_Stream3
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF3
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA2
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_3
+// #define SDCARD_DETECT_INVERTED
+// #define SDCARD_DETECT_PIN               PB13
+// #define SDCARD_SPI_BUS                  BUS_SPI2
+// #define SDCARD_CS_PIN                   PB15
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_BARO)
 

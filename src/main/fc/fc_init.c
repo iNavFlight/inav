@@ -610,27 +610,8 @@ void init(void)
 #endif
 
 #ifdef USE_SDCARD
-    bool sdcardUseDMA = false;
-
     sdcardInsertionDetectInit();
-
-#ifdef SDCARD_DMA_CHANNEL_TX
-
-#if defined(USE_LED_STRIP) && defined(WS2811_DMA_CHANNEL)
-    // Ensure the SPI Tx DMA doesn't overlap with the led strip
-#if defined(STM32F4) || defined(STM32F7)
-    sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_STREAM;
-#else
-    sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_CHANNEL;
-#endif
-#else
-    sdcardUseDMA = true;
-#endif
-
-#endif
-
-    sdcard_init(sdcardUseDMA);
-
+    sdcard_init();
     afatfs_init();
 #endif
 
