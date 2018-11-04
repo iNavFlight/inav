@@ -188,7 +188,7 @@ void spiInitDevice(SPIDevice device)
     LL_SPI_Init(spi->dev, &init);
     LL_SPI_Enable(spi->dev);
 
-    SET_BIT(instance->CR2, SPI_RXFIFO_THRESHOLD);
+    SET_BIT(spi->dev->CR2, SPI_RXFIFO_THRESHOLD);
 
     if (spi->nss) {
         IOHi(IOGetByTag(spi->nss));
