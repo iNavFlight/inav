@@ -488,9 +488,9 @@ static uint16_t osdConvertRSSI(void)
 /**
 * Converts temperature into a string based on the current unit system
 * postfixed with a symbol to indicate the unit used.
-* @param temperature Raw temperature (i.e. as taken from getTemperature() in degC*10)
+* @param temperature Raw temperature (i.e. as taken from getCurrentTemperature() in degC)
 */
-static void osdFormatTemperatureSymbol(char *buff, int16_t temperature)
+static void osdFormatTemperatureSymbol(char *buff, float temperature)
 {
     int units_symbol;
     switch ((osd_unit_e)osdConfig()->units) {
@@ -503,7 +503,7 @@ static void osdFormatTemperatureSymbol(char *buff, int16_t temperature)
             units_symbol = SYM_TEMP_C;
             break;
     }
-    tfp_sprintf(buff, "%d%c", ((int) (temperature / 10)), units_symbol);
+    tfp_sprintf(buff, "%d%c", (int) temperature, units_symbol);
 }
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
@@ -2247,7 +2247,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GYRO_TEMPERATURE:
         {
-            int16_t temperature = getTemperature(TEMP_GYRO);
+            int16_t temperature = getCurrentTemperature();
             osdFormatTemperatureSymbol(buff, temperature);
             break;
         }
