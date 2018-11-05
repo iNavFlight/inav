@@ -496,6 +496,7 @@ static void osdFormatTemperatureSymbol(char *buff, float temperature)
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
             units_symbol = SYM_TEMP_F;
+            temperature = (temperature * (9/5)) + 32;
             break;
         case OSD_UNIT_UK:
             FALLTHROUGH;
