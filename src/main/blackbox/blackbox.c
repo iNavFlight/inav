@@ -346,7 +346,7 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"temperature",           -1, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"temperature",           -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
     {"temperatureSource",     -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 };
 
@@ -1036,7 +1036,7 @@ static void writeSlowFrame(void)
     blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
 
     blackboxWriteSignedVB(slowHistory.temperature);
-    blackboxWriteSignedVB(slowHistory.temperatureSource);
+    blackboxWriteUnsignedVB(slowHistory.temperatureSource);
 
     blackboxSlowFrameIterationTimer = 0;
 }
