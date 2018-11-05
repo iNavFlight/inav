@@ -317,6 +317,11 @@ int32_t baroGetLatestAltitude(void)
     return baro.BaroAlt;
 }
 
+int16_t baroGetTemperature(void)
+{   
+    return CENTIDEGREES_TO_DECIDEGREES(baro.baroTemperature);
+}
+
 bool baroIsHealthy(void)
 {
     return true;

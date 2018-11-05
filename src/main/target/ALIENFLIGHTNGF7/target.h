@@ -84,28 +84,14 @@
 #define BMP280_SPI_BUS          BUS_SPI3
 
 #define USE_SDCARD
-
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
+#define SDCARD_DETECT_PIN       PB11
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           PB10
 
-#define SDCARD_DETECT_PIN               PB11
-#define SDCARD_DETECT_EXTI_LINE         EXTI_Line10
-#define SDCARD_DETECT_EXTI_PIN_SOURCE   EXTI_PinSource10
-#define SDCARD_DETECT_EXTI_PORT_SOURCE  EXTI_PortSourceGPIOB
-#define SDCARD_DETECT_EXTI_IRQn         EXTI15_10_IRQn
-
-#define SDCARD_SPI_INSTANCE             SPI2
-#define SDCARD_SPI_CS_PIN               PB10
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_0
-
-// Performance logging for SD card operations:
-// #define AFATFS_USE_INTROSPECTIVE_LOGGING
-
-#define M25P16_CS_PIN        SPI2_NSS_PIN
-#define M25P16_SPI_BUS       BUS_SPI2
+#define M25P16_CS_PIN           SPI2_NSS_PIN
+#define M25P16_SPI_BUS          BUS_SPI2
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -147,6 +133,7 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PC2
 #define SPI2_MOSI_PIN           PC3
+#define SPI2_CLOCK_LEADING_EDGE
 
 #define SPI3_NSS_PIN            PA15
 #define SPI3_SCK_PIN            PB3

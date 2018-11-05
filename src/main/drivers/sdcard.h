@@ -21,19 +21,18 @@
 #include <stdbool.h>
 
 typedef struct sdcardMetadata_t {
-    uint8_t manufacturerID;
+    uint32_t numBlocks; /* Card capacity in 512-byte blocks*/
     uint16_t oemID;
+    uint8_t manufacturerID;
 
     char productName[5];
 
+    uint32_t productSerial;
     uint8_t productRevisionMajor;
     uint8_t productRevisionMinor;
-    uint32_t productSerial;
 
     uint16_t productionYear;
     uint8_t productionMonth;
-
-    uint32_t numBlocks; /* Card capacity in 512-byte blocks*/
 } sdcardMetadata_t;
 
 typedef enum {
@@ -51,9 +50,7 @@ typedef enum {
 
 typedef void(*sdcard_operationCompleteCallback_c)(sdcardBlockOperation_e operation, uint32_t blockIndex, uint8_t *buffer, uint32_t callbackData);
 
-typedef void(*sdcard_profilerCallback_c)(sdcardBlockOperation_e operation, uint32_t blockIndex, uint32_t duration);
-
-void sdcard_init(bool useDMA);
+void sdcard_init(void);
 
 bool sdcard_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_operationCompleteCallback_c callback, uint32_t callbackData);
 
@@ -69,5 +66,3 @@ bool sdcard_isFunctional(void);
 
 bool sdcard_poll(void);
 const sdcardMetadata_t* sdcard_getMetadata(void);
-
-void sdcard_setProfilerCallback(sdcard_profilerCallback_c callback);

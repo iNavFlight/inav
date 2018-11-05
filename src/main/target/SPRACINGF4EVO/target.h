@@ -119,6 +119,7 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
+#define SPI2_CLOCK_LEADING_EDGE
 
 #define SPI3_NSS_PIN            PA15 // NC
 #define SPI3_SCK_PIN            PB3  // NC
@@ -132,16 +133,11 @@
 #define RTC6705_SPI_INSTANCE    SPI3
 
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PC14
-
-#define SDCARD_SPI_INSTANCE                 SPI2
-#define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream4
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF4
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define SDCARD_DETECT_PIN       PC14
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           SPI2_NSS_PIN
 
 #define MPU6500_CS_PIN                      SPI1_NSS_PIN
 #define MPU6500_SPI_BUS                     BUS_SPI1

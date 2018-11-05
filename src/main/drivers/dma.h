@@ -148,6 +148,7 @@ DMA_t dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel);
 
 DMA_t dmaGetByTag(dmaTag_t tag);
 uint32_t dmaGetChannelByTag(dmaTag_t tag);
+resourceOwner_e dmaGetOwner(DMA_t dma);
 void dmaInit(DMA_t dma, resourceOwner_e owner, uint8_t resourceIndex);
 void dmaEnableClock(DMA_t dma);
 void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t priority, uint32_t userParam);

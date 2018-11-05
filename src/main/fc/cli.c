@@ -748,7 +748,7 @@ static void cliSerial(char *cmdline)
     ptr = nextArg(ptr);
     if (ptr) {
         val = fastA2I(ptr);
-        portConfig.functionMask = val & 0xFFFF;
+        portConfig.functionMask = val & 0xFFFFFFFF;
         validArgumentCount++;
     }
 

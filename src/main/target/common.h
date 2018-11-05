@@ -72,6 +72,14 @@
 #define USE_EXTENDED_CMS_MENUS
 #define USE_UAV_INTERCONNECT
 #define USE_RX_UIB
+
+// Allow default rangefinders
+#define USE_RANGEFINDER_MSP
+#define USE_RANGEFINDER_BENEWAKE
+
+// Allow default optic flow boards
+#define USE_OPFLOW_CXOF
+#define USE_OPFLOW_MSP
 #endif
 
 #if (FLASH_SIZE > 128)

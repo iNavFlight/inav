@@ -65,20 +65,11 @@
 #define USE_BARO_MS5611
 
 #define USE_SDCARD
-
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PD2
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   PA15
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
-
-// Performance logging for SD card operations:
-// #define AFATFS_USE_INTROSPECTIVE_LOGGING
+#define SDCARD_DETECT_PIN       PD2
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PA15
 
 #define M25P16_CS_PIN           PB7
 #define M25P16_SPI_BUS          BUS_SPI3
@@ -129,6 +120,7 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
+#define SPI3_CLOCK_LEADING_EDGE
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1

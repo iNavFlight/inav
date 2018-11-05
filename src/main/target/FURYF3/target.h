@@ -91,23 +91,13 @@
 #endif
 
 #ifdef USE_SDCARD
-#define USE_SDCARD_SPI2
+#define USE_SDCARD_SPI
+#define SPI2_CLOCK_LEADING_EDGE
 
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PB2
-#define SDCARD_DETECT_EXTI_LINE             EXTI_Line2
-#define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource2
-#define SDCARD_DETECT_EXTI_PORT_SOURCE      EXTI_PortSourceGPIOB
-#define SDCARD_DETECT_EXTI_IRQn             EXTI15_10_IRQn
-
-#define SDCARD_SPI_INSTANCE                 SPI2
-#define SDCARD_SPI_CS_GPIO                  SPI2_GPIO
-#define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
-
-// Note, this is the same DMA channel as UART1_RX. Luckily we don't use DMA for USART Rx.
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC5
+#define SDCARD_DETECT_PIN       PB2
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           SPI2_NSS_PIN
 #endif
 
 #define USE_VCP
