@@ -21,11 +21,11 @@
 
 typedef enum {
     TEMP_GYRO = 0,
+    TEMP_BARO = 1,
     TEMP_COUNT
 } tempSensor_e;
 
 // Temperature is returned in degC*10
-
-bool isTemperatureSensorValid(tempSensor_e sensor);
 int16_t getTemperature(tempSensor_e sensor);
+float getCurrentTemperature(void);
 void temperatureUpdate(void);
