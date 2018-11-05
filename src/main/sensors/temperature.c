@@ -45,6 +45,10 @@ float getCurrentTemperature(void)
     return tempSensorValue[tempSensorValid]/10.0f;
 }
 
+tempSensor_e getCurrentTemperatureSensorUsed(void) {
+    return tempSensorValid;
+}
+
 void temperatureUpdate(void)
 {
     // TEMP_GYRO: Update gyro temperature in decidegrees
@@ -52,7 +56,7 @@ void temperatureUpdate(void)
         tempSensorValue[TEMP_GYRO] = gyroGetTemperature();
         tempSensorValid = TEMP_GYRO;
     }
-    
+
     #if defined(USE_BARO)
     // TEMP_BARO: Update baro temperature in decidegrees
     if(sensors(SENSOR_BARO)){
