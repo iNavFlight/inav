@@ -865,21 +865,24 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
-    // Reset protocol timeout
-    gpsSetProtocolTimeout(MIN(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 1) * GPS_VERSION_DETECTION_TIMEOUT_MS)));
+    // Configure GPS module if enabled
+    if (gpsState.gpsConfig->autoConfig) {
+        // Reset protocol timeout
+        gpsSetProtocolTimeout(MIN(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 1) * GPS_VERSION_DETECTION_TIMEOUT_MS)));
 
-    // Attempt to detect GPS hw version
-    gpsState.hwVersion = 0;
-    gpsState.autoConfigStep = 0;
+        // Attempt to detect GPS hw version
+        gpsState.hwVersion = 0;
+        gpsState.autoConfigStep = 0;
 
-    do {
-        pollVersion();
-        gpsState.autoConfigStep++;
-        ptWaitTimeout((gpsState.hwVersion != 0), GPS_VERSION_DETECTION_TIMEOUT_MS);
-    } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == 0);
+        do {
+            pollVersion();
+            gpsState.autoConfigStep++;
+            ptWaitTimeout((gpsState.hwVersion != 0), GPS_VERSION_DETECTION_TIMEOUT_MS);
+        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == 0);
 
-    // Configure GPS
-    ptSpawn(gpsConfigure);
+        // Configure GPS
+        ptSpawn(gpsConfigure);
+    }
 
     // GPS setup done, reset timeout
     gpsSetProtocolTimeout(GPS_TIMEOUT);

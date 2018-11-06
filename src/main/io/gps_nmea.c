@@ -329,37 +329,39 @@ STATIC_PROTOTHREAD(gpsProtocolStateThreadMTK)
     }
 
     // Send configuration commands
-    // Disable all messages except GGA and RMC
-    serialPrint(gpsState.gpsPort, "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
-    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
-
-    // Set Nav Threshold (the minimum speed the GPS must be moving to update the position) to 0 m/s
-    serialPrint(gpsState.gpsPort, "$PMTK397,0*23\r\n");
-    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
-
-    // SBAS/WAAS
-    if (gpsState.gpsConfig->sbasMode != SBAS_NONE) {
-        serialPrint(gpsState.gpsPort, "$PMTK313,1*2E\r\n");     // SBAS ON
+    if (gpsState.gpsConfig->autoConfig) {
+        // Disable all messages except GGA and RMC
+        serialPrint(gpsState.gpsPort, "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-        serialPrint(gpsState.gpsPort, "$PMTK301,2*2E\r\n");     // WAAS ON
-        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));        
-    }
-    else {
-        serialPrint(gpsState.gpsPort, "$PMTK313,0*2F\r\n");     // SBAS OFF
+        // Set Nav Threshold (the minimum speed the GPS must be moving to update the position) to 0 m/s
+        serialPrint(gpsState.gpsPort, "$PMTK397,0*23\r\n");
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-        serialPrint(gpsState.gpsPort, "$PMTK301,0*2C\r\n");     // WAAS OFF
-        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));        
+        // SBAS/WAAS
+        if (gpsState.gpsConfig->sbasMode != SBAS_NONE) {
+            serialPrint(gpsState.gpsPort, "$PMTK313,1*2E\r\n");     // SBAS ON
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+            serialPrint(gpsState.gpsPort, "$PMTK301,2*2E\r\n");     // WAAS ON
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+        }
+        else {
+            serialPrint(gpsState.gpsPort, "$PMTK313,0*2F\r\n");     // SBAS OFF
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+            serialPrint(gpsState.gpsPort, "$PMTK301,0*2C\r\n");     // WAAS OFF
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+        }
+
+        // 5Hz update, should works for most modules
+        serialPrint(gpsState.gpsPort, "$PMTK220,200*2C\r\n");
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        // Try set 10Hz update rate. Module will ignore it if can't support
+        serialPrint(gpsState.gpsPort, "$PMTK220,100*2F\r\n");
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
     }
-
-    // 5Hz update, should works for most modules
-    serialPrint(gpsState.gpsPort, "$PMTK220,200*2C\r\n");
-    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
-
-    // Try set 10Hz update rate. Module will ignore it if can't support
-    serialPrint(gpsState.gpsPort, "$PMTK220,100*2F\r\n");
-    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
     // Reset protocol timeout
     gpsSetProtocolTimeout(GPS_TIMEOUT);
