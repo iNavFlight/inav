@@ -2246,7 +2246,7 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_GYRO_TEMPERATURE:
+    case OSD_TEMPERATURE:
         {
             int16_t temperature = getCurrentTemperature();
             osdFormatTemperatureSymbol(buff, temperature);
@@ -2464,7 +2464,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_MC_POS_XYZ_P_OUTPUTS] = OSD_POS(2, 12);
 
     osdConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);
-    osdConfig->item_pos[0][OSD_GYRO_TEMPERATURE] = OSD_POS(23, 2);
+    osdConfig->item_pos[0][OSD_TEMPERATURE] = OSD_POS(23, 2);
 
     osdConfig->item_pos[0][OSD_AIR_SPEED] = OSD_POS(3, 5);
     osdConfig->item_pos[0][OSD_WIND_SPEED_HORIZONTAL] = OSD_POS(3, 6);
