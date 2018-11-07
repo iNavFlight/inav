@@ -71,7 +71,7 @@ static const uint32_t ubloxScanMode1[] = {
     0x00000000, 0x00000851, 0x0004E004, 0x00020200, 0x00000180, 0x00000000,
 };
 
-static const char * baudInitData[GPS_BAUDRATE_COUNT] = {
+static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,115200,0*1E\r\n",     // GPS_BAUDRATE_115200
     "$PUBX,41,1,0003,0001,57600,0*2D\r\n",      // GPS_BAUDRATE_57600
     "$PUBX,41,1,0003,0001,38400,0*26\r\n",      // GPS_BAUDRATE_38400
@@ -696,6 +696,9 @@ STATIC_PROTOTHREAD(gpsConfigure)
 {
     ptBegin(gpsConfigure);
 
+    // Reset timeout
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+
     // Set dynamic model
     switch (gpsState.gpsConfig->dynModel) {
         case GPS_DYNMODEL_PEDESTRIAN:
@@ -845,7 +848,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         gpsState.autoBaudrateIndex = (gpsState.autoBaudrateIndex + 1) % GPS_BAUDRATE_COUNT;
 
         //  2. Send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
-        serialPrint(gpsState.gpsPort, baudInitData[gpsState.baudrateIndex]);
+        serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
 
         //  3. Wait for command to be received and processed by GPS
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
