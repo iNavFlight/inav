@@ -51,16 +51,16 @@
 #define VTX_SETTINGS_MIN_USER_FREQ      5000
 #define VTX_SETTINGS_MAX_USER_FREQ      5999
 #define VTX_SETTINGS_FREQCMD
+#define VTX_SETTINGS_MAX_POWER      (VTX_SETTINGS_POWER_COUNT - VTX_SETTINGS_MIN_POWER + 1)
 
 #elif defined(USE_VTX_RTC6705)
 
 #define VTX_SETTINGS_POWER_COUNT    VTX_RTC6705_POWER_COUNT
 #define VTX_SETTINGS_DEFAULT_POWER  VTX_RTC6705_DEFAULT_POWER
 #define VTX_SETTINGS_MIN_POWER      VTX_RTC6705_MIN_POWER
+#define VTX_SETTINGS_MAX_POWER      (VTX_SETTINGS_POWER_COUNT - 1)
 
 #endif
-
-#define VTX_SETTINGS_MAX_POWER      (VTX_SETTINGS_POWER_COUNT - 1)
 
 // check value for MSP_SET_VTX_CONFIG to determine if value is encoded
 // band/channel or frequency in MHz (3 bits for band and 3 bits for channel)
