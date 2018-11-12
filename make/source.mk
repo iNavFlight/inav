@@ -42,6 +42,7 @@ COMMON_SRC = \
             drivers/pwm_esc_detect.c \
             drivers/pwm_mapping.c \
             drivers/pwm_output.c \
+            drivers/pinio.c \
             drivers/rcc.c \
             drivers/rx_pwm.c \
             drivers/serial.c \
@@ -79,6 +80,7 @@ COMMON_SRC = \
             io/beeper.c \
             io/lights.c \
             io/pwmdriver_i2c.c \
+            io/piniobox.c \
             io/serial.c \
             io/serial_4way.c \
             io/serial_4way_avrootloader.c \

@@ -23,6 +23,8 @@
 
 #include "config/parameter_group.h"
 
+#define BOXID_NONE 255
+
 typedef enum {
     BOXARM          = 0,
     BOXANGLE        = 1,
@@ -61,6 +63,8 @@ typedef enum {
     BOXOSDALT3      = 34,
     BOXNAVCRUISE    = 35,
     BOXBRAKING      = 36,
+    BOXUSER1        = 37,
+    BOXUSER2        = 38,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

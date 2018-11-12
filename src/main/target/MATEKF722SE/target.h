@@ -20,6 +20,7 @@
 
 #define USE_TARGET_CONFIG
 
+#define USE_TARGET_CONFIG
 #define TARGET_BOARD_IDENTIFIER "MF7S"
 #define USBD_PRODUCT_STRING  "MatekF722SE"
 
@@ -164,12 +165,12 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL           ADC_CHN_4
-/*
+
+// *************** ADC *****************************
 #define USE_PINIO
-#define PINIO1_PIN              PC8 // VTX power switcher
-#define PINIO2_PIN              PC9 // 2xCamera switcher
 #define USE_PINIOBOX
-*/
+#define PINIO1_PIN                  PC8 // VTX power switcher
+#define PINIO2_PIN                  PC9 // 2xCamera switcher
 
 /*
 #define CAMERA_CONTROL_PIN   PA1 //RX4 pad with 200ohm

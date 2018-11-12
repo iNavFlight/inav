@@ -1719,3 +1719,22 @@ groups:
         min: VTX_SETTINGS_MIN_FREQUENCY_MHZ
         max: VTX_SETTINGS_MAX_FREQUENCY_MHZ
         condition: VTX_SETTINGS_FREQCMD
+
+  - name: PG_PINIOBOX_CONFIG
+    type: pinioBoxConfig_t
+    headers: ["io/piniobox.h"]
+    condition: USE_PINIOBOX
+    members:
+      - name: pinio_box1
+        field: permanentId[0]
+        type: uint8_t
+      - name: pinio_box2
+        field: permanentId[1]
+        type: uint8_t
+      - name: pinio_box3
+        field: permanentId[2]
+        type: uint8_t
+      - name: pinio_box4
+        field: permanentId[3]
+        type: uint8_t
+

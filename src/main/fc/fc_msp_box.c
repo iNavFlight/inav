@@ -81,6 +81,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT3, "OSD ALT 3", 44 },
     { BOXNAVCRUISE, "NAV CRUISE", 45 },
     { BOXBRAKING, "MC BRAKING", 46 },
+    { BOXUSER1, "USER1", 47 },
+    { BOXUSER2, "USER2", 48 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -264,6 +266,12 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA1;
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA2;
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
+#endif
+
+#ifdef USE_PINIOBOX
+    // USER modes are only used for PINIO at the moment
+    activeBoxIds[activeBoxIdCount++] = BOXUSER1;
+    activeBoxIds[activeBoxIdCount++] = BOXUSER2;
 #endif
 
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
