@@ -1727,14 +1727,22 @@ groups:
     members:
       - name: pinio_box1
         field: permanentId[0]
+        min: 0
+        max: 255
         type: uint8_t
       - name: pinio_box2
         field: permanentId[1]
+        min: 0
+        max: 255
         type: uint8_t
       - name: pinio_box3
         field: permanentId[2]
+        min: 0
+        max: 255
         type: uint8_t
       - name: pinio_box4
         field: permanentId[3]
+        min: 0
+        max: 255
         type: uint8_t
 
