@@ -504,7 +504,9 @@ static void osdFormatTemperatureSymbol(char *buff, float temperature)
             units_symbol = SYM_TEMP_C;
             break;
     }
-    tfp_sprintf(buff, "%d%c", (int) temperature, units_symbol);
+    osdFormatCentiNumber(buff, (int32_t) (temperature * 100), 0, 0, 0, 3);
+    buff[3] = units_symbol;
+    buff[4] = '\0';
 }
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
