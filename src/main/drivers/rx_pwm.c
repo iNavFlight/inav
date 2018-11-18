@@ -362,6 +362,7 @@ void pwmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t channel)
     timerChInitCallbacks(&self->cb, (void*)self, &pwmEdgeCallback, &pwmOverflowCallback);
     timerChConfigCallbacks(tch, &self->cb);
     timerChConfigIC(tch, true, INPUT_FILTER_TICKS);
+    timerChCaptureEnable(tch);
 }
 
 #define UNUSED_PPM_TIMER_REFERENCE 0
@@ -388,6 +389,7 @@ void ppmInConfig(const timerHardware_t *timerHardwarePtr)
     timerChInitCallbacks(&self->cb, (void*)self, &ppmEdgeCallback, &ppmOverflowCallback);
     timerChConfigCallbacks(tch, &self->cb);
     timerChConfigIC(tch, true, INPUT_FILTER_TICKS);
+    timerChCaptureEnable(tch);
 }
 
 uint16_t ppmRead(uint8_t channel)
