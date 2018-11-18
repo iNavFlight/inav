@@ -346,16 +346,16 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  */
-static void osdFormatVelocityStr(char* buff, int32_t vel)
+static void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
         FALLTHROUGH;
     case OSD_UNIT_IMPERIAL:
-        tfp_sprintf(buff, "%3d%c", osdConvertVelocityToUnit(vel), SYM_MPH);
+        tfp_sprintf(buff, "%3d%c", osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_MPH : SYM_MPH));
         break;
     case OSD_UNIT_METRIC:
-        tfp_sprintf(buff, "%3d%c", osdConvertVelocityToUnit(vel), SYM_KMH);
+        tfp_sprintf(buff, "%3d%c", osdConvertVelocityToUnit(vel), (_3D ? SYM_3D_KMH : SYM_KMH));
         break;
     }
 }
@@ -1223,12 +1223,12 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_GPS_SPEED:
-        osdFormatVelocityStr(buff, gpsSol.groundSpeed);
+        osdFormatVelocityStr(buff, gpsSol.groundSpeed, false);
         break;
 
     case OSD_3D_SPEED:
         {
-            osdFormatVelocityStr(buff, osdGet3DSpeed());
+            osdFormatVelocityStr(buff, osdGet3DSpeed(), true);
             break;
         }
 
@@ -1985,7 +1985,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
         #ifdef USE_PITOT
             buff[0] = SYM_AIR;
-            osdFormatVelocityStr(buff + 1, pitot.airSpeed);
+            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false);
         #else
             return false;
         #endif
@@ -2622,7 +2622,7 @@ static void osdShowStats(void)
 
     if (STATE(GPS_FIX)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
-        osdFormatVelocityStr(buff, stats.max_speed);
+        osdFormatVelocityStr(buff, stats.max_speed, true);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, statNameX, top, "MAX DISTANCE     :");

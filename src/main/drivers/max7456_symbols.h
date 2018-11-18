@@ -161,6 +161,7 @@
 // Unit Icon´s (Metric)
 #define SYM_MS          0x9F
 #define SYM_KMH         0xA1
+#define SYM_3D_KMH      0x89
 #define SYM_ALT_M       177
 #define SYM_ALT_KM      178
 #define SYM_DIST_M      181
@@ -171,6 +172,7 @@
 // Unit Icon´s (Imperial)
 #define SYM_FTS         0x99
 #define SYM_MPH         0xB0
+#define SYM_3D_MPH      0x8A
 #define SYM_ALT_FT      179
 #define SYM_ALT_KFT     180
 #define SYM_DIST_FT     183
