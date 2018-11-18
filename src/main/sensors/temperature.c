@@ -25,27 +25,39 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "fc/runtime_config.h"
+
+#include "sensors/sensors.h"
 #include "sensors/temperature.h"
 #include "sensors/gyro.h"
+#include "sensors/barometer.h"
 
-static bool     tempSensorValid[TEMP_COUNT];
 static int16_t  tempSensorValue[TEMP_COUNT];
-
-bool isTemperatureSensorValid(tempSensor_e sensor)
-{
-    return tempSensorValid[sensor];
-}
+static tempSensor_e tempSensorValid;
 
 int16_t getTemperature(tempSensor_e sensor)
 {
     return tempSensorValue[sensor];
 }
 
+float getCurrentTemperature(void)
+{   //returns current temperature in degrees celsius
+    return tempSensorValue[tempSensorValid]/10.0f;
+}
+
 void temperatureUpdate(void)
 {
-    // TEMP_GYRO: Update gyro temperature
+    // TEMP_GYRO: Update gyro temperature in decidegrees
     if (gyroReadTemperature()) {
-        tempSensorValid[TEMP_GYRO] = true;
         tempSensorValue[TEMP_GYRO] = gyroGetTemperature();
+        tempSensorValid = TEMP_GYRO;
     }
+    
+    #if defined(USE_BARO)
+    // TEMP_BARO: Update baro temperature in decidegrees
+    if(sensors(SENSOR_BARO)){
+        tempSensorValue[TEMP_BARO] = baroGetTemperature();
+        tempSensorValid = TEMP_BARO;
+    }
+    #endif
 }

@@ -145,6 +145,7 @@ COMMON_SRC = \
             drivers/opflow/opflow_virtual.c \
             drivers/vtx_common.c \
             io/rangefinder_msp.c \
+            io/rangefinder_benewake.c \
             io/opflow_cxof.c \
             io/opflow_msp.c \
             io/dashboard.c \
@@ -204,6 +205,7 @@ endif
 ifneq ($(filter SDCARD,$(FEATURES)),)
 TARGET_SRC += \
             drivers/sdcard.c \
+            drivers/sdcard_spi.c \
             drivers/sdcard_standard.c \
             io/asyncfatfs/asyncfatfs.c \
             io/asyncfatfs/fat_standard.c

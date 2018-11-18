@@ -897,6 +897,20 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+    case MSP2_COMMON_SERIAL_CONFIG:
+        for (int i = 0; i < SERIAL_PORT_COUNT; i++) {
+            if (!serialIsPortAvailable(serialConfig()->portConfigs[i].identifier)) {
+                continue;
+            };
+            sbufWriteU8(dst, serialConfig()->portConfigs[i].identifier);
+            sbufWriteU32(dst, serialConfig()->portConfigs[i].functionMask);
+            sbufWriteU8(dst, serialConfig()->portConfigs[i].msp_baudrateIndex);
+            sbufWriteU8(dst, serialConfig()->portConfigs[i].gps_baudrateIndex);
+            sbufWriteU8(dst, serialConfig()->portConfigs[i].telemetry_baudrateIndex);
+            sbufWriteU8(dst, serialConfig()->portConfigs[i].peripheral_baudrateIndex);
+        }
+        break;
+
 #ifdef USE_LED_STRIP
     case MSP_LED_COLORS:
         for (int i = 0; i < LED_CONFIGURABLE_COLOR_COUNT; i++) {
@@ -2371,6 +2385,34 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
                 portConfig->identifier = identifier;
                 portConfig->functionMask = sbufReadU16(src);
+                portConfig->msp_baudrateIndex = sbufReadU8(src);
+                portConfig->gps_baudrateIndex = sbufReadU8(src);
+                portConfig->telemetry_baudrateIndex = sbufReadU8(src);
+                portConfig->peripheral_baudrateIndex = sbufReadU8(src);
+            }
+        }
+        break;
+
+    case MSP2_COMMON_SET_SERIAL_CONFIG:
+        {
+            uint8_t portConfigSize = sizeof(uint8_t) + sizeof(uint32_t) + (sizeof(uint8_t) * 4);
+
+            if (dataSize % portConfigSize != 0) {
+                return MSP_RESULT_ERROR;
+            }
+
+            uint8_t remainingPortsInPacket = dataSize / portConfigSize;
+
+            while (remainingPortsInPacket--) {
+                uint8_t identifier = sbufReadU8(src);
+
+                serialPortConfig_t *portConfig = serialFindPortConfiguration(identifier);
+                if (!portConfig) {
+                    return MSP_RESULT_ERROR;
+                }
+
+                portConfig->identifier = identifier;
+                portConfig->functionMask = sbufReadU32(src);
                 portConfig->msp_baudrateIndex = sbufReadU8(src);
                 portConfig->gps_baudrateIndex = sbufReadU8(src);
                 portConfig->telemetry_baudrateIndex = sbufReadU8(src);

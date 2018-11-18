@@ -25,3 +25,6 @@
 
 #define MSP2_COMMON_SETTING_INFO    0x1007  //in/out message    Returns info about a setting (PG, type, flags, min/max, etc..).
 #define MSP2_COMMON_PG_LIST         0x1008  //in/out message    Returns a list of the PG ids used by the settings
+
+#define MSP2_COMMON_SERIAL_CONFIG       0x1009
+#define MSP2_COMMON_SET_SERIAL_CONFIG   0x100A

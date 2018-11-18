@@ -91,17 +91,14 @@
 #define SPI3_MISO_PIN   PB4
 #define SPI3_MOSI_PIN   PB5
 #define SPI3_NSS_PIN    PB6
+#define SPI3_CLOCK_LEADING_EDGE
 
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PB7
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   PB6
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define SDCARD_DETECT_PIN       PB7
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PB6
 
 // *************** Flash *****************************
 #define M25P16_CS_PIN           PA15

@@ -136,6 +136,7 @@
 #define SPI4_SCK_PIN            PE2
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
+#define SPI4_CLOCK_LEADING_EDGE
 
 
 #define USE_OSD
@@ -144,20 +145,11 @@
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
 
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PE3
-#define SDCARD_DETECT_EXTI_LINE             EXTI_Line3
-#define SDCARD_DETECT_EXTI_PIN_SOURCE       EXTI_PinSource3
-#define SDCARD_DETECT_EXTI_PORT_SOURCE      EXTI_PortSourceGPIOE
-#define SDCARD_DETECT_EXTI_IRQn             EXTI3_IRQn
-
-#define SDCARD_SPI_INSTANCE                 SPI4
-#define SDCARD_SPI_CS_PIN                   SPI4_NSS_PIN
-
-#define SDCARD_DMA_CHANNEL_TX               DMA2_Stream1
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF1_5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA2
-#define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_4
+#define SDCARD_DETECT_PIN       PE3
+#define SDCARD_SPI_BUS          BUS_SPI4
+#define SDCARD_CS_PIN           SPI4_NSS_PIN
 
 #define USE_I2C
 #define USE_I2C_DEVICE_2

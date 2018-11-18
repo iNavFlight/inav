@@ -93,15 +93,11 @@
 #if defined(YUPIF4MINI)
 #else
 #define USE_SDCARD
-#define USE_SDCARD_SPI3
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PD2
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   SPI3_NSS_PIN
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define SDCARD_DETECT_PIN       PD2
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           SPI3_NSS_PIN
 #endif
 
 #define USB_IO
@@ -143,6 +139,7 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
+#define SPI3_CLOCK_LEADING_EDGE
 
 // ADC inputs
 #define BOARD_HAS_VOLTAGE_DIVIDER
