@@ -1053,6 +1053,13 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
 
+static int16_t osdGet3DSpeed(void)
+{
+    int16_t vert_speed = getEstimatedActualVelocity(Z);
+    int16_t hor_speed = gpsSol.groundSpeed;
+    return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
+}
+
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
@@ -1218,6 +1225,12 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GPS_SPEED:
         osdFormatVelocityStr(buff, gpsSol.groundSpeed);
         break;
+
+    case OSD_3D_SPEED:
+        {
+            osdFormatVelocityStr(buff, osdGet3DSpeed());
+            break;
+        }
 
     case OSD_GPS_LAT:
         osdFormatCoordinate(buff, SYM_LAT, gpsSol.llh.lat);
@@ -2325,6 +2338,10 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_MAP_NORTH) {
             elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
         }
+        if (elementIndex == OSD_3D_SPEED) {
+            elementIndex++;
+        }
+
     }
 
     if (elementIndex == OSD_ITEM_COUNT) {
@@ -2356,6 +2373,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
+    osdConfig->item_pos[0][OSD_3D_SPEED] = OSD_POS(23, 1);
 
     osdConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
@@ -2562,7 +2580,7 @@ static void osdUpdateStats(void)
     int16_t value;
 
     if (feature(FEATURE_GPS)) {
-        value = gpsSol.groundSpeed;
+        value = osdGet3DSpeed();
         if (stats.max_speed < value)
             stats.max_speed = value;
 
