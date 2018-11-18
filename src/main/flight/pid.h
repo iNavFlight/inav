@@ -104,6 +104,7 @@ typedef struct pidProfile_s {
     uint16_t    fixedWingItermThrowLimit;
     float       fixedWingReferenceAirspeed;     // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
     float       fixedWingCoordinatedYawGain;    // This is the gain of the yaw rate required to keep the yaw rate consistent with the turn rate for a coordinated turn.
+    float       fixedWingItermLimitOnStickPosition;   //Do not allow Iterm to grow when stick position is above this point
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
