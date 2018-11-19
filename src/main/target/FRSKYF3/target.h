@@ -18,7 +18,6 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "FRF3"
-#define TARGET_CONFIG
 
 #define LED0_PIN                PB3
 #define BEEPER                  PC15

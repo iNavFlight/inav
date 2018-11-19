@@ -16,14 +16,11 @@
  */
 
 #include <stdint.h>
-#include <platform.h>
-
-#include "drivers/io.h"
-#include "rx/rx.h"
-#include "io/serial.h"
+#include "platform.h"
+#include "io/piniobox.h"
 
 void targetConfiguration(void)
 {
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    rxConfigMutable()->rssi_channel = 8;
+    pinioBoxConfigMutable()->permanentId[0] = 47;
+    pinioBoxConfigMutable()->permanentId[1] = 48;
 }

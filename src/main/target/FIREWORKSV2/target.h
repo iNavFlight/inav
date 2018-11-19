@@ -172,7 +172,6 @@
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SMARTAUDIO_UART                 SERIAL_PORT_USART4
 
-#define TARGET_CONFIG
 #define CURRENT_METER_SCALE             175
 #define CURRENT_METER_OFFSET            326
 

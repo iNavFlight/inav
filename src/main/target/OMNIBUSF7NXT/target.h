@@ -29,7 +29,6 @@
 #define USBD_PRODUCT_STRING     "OMNIBUS NEXT"
 
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS     // Don't use common busdev descriptors for IMU
-#define TARGET_CONFIG
 
 // Status LED
 #define LED0                    PB2

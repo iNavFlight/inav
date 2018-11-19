@@ -17,7 +17,6 @@
 
 #pragma once
 
-#define TARGET_CONFIG
 #define TARGET_BOARD_IDENTIFIER "SBF4"
 #define USBD_PRODUCT_STRING  "SpeedyBeeF4"
 

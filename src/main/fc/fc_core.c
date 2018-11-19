@@ -64,6 +64,7 @@
 #include "io/serial.h"
 #include "io/statusindicator.h"
 #include "io/asyncfatfs/asyncfatfs.h"
+#include "io/piniobox.h"
 
 #include "msp/msp_serial.h"
 
@@ -484,6 +485,10 @@ void processRx(timeUs_t currentTimeUs)
     processRcStickPositions(throttleStatus);
 
     updateActivatedModes();
+
+#ifdef USE_PINIOBOX
+    pinioBoxUpdate();
+#endif
 
     if (!cliMode) {
         bool canUseRxData = rxIsReceivingSignal() && !FLIGHT_MODE(FAILSAFE_MODE);

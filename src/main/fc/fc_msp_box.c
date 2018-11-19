@@ -81,6 +81,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT3, "OSD ALT 3", 44 },
     { BOXNAVCRUISE, "NAV CRUISE", 45 },
     { BOXBRAKING, "MC BRAKING", 46 },
+    { BOXUSER1, "USER1", 47 },
+    { BOXUSER2, "USER2", 48 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -266,6 +268,12 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
 #endif
 
+#ifdef USE_PINIOBOX
+    // USER modes are only used for PINIO at the moment
+    activeBoxIds[activeBoxIdCount++] = BOXUSER1;
+    activeBoxIds[activeBoxIdCount++] = BOXUSER2;
+#endif
+
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
 #if OSD_LAYOUT_COUNT > 0
     activeBoxIds[activeBoxIdCount++] = BOXOSDALT1;
@@ -329,6 +337,8 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT3)),     BOXOSDALT3);
     CHECK_ACTIVE_BOX(IS_ENABLED(navigationTerrainFollowingEnabled()),   BOXSURFACE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),     BOXBRAKING);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),       BOXUSER1);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),       BOXUSER2);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

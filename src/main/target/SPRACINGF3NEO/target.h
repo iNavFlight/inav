@@ -18,7 +18,6 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "SP3N"
-#define TARGET_CONFIG
 
 #define LED0                    PB9
 #define LED1                    PB2

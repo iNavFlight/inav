@@ -160,8 +160,6 @@
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SMARTAUDIO_UART                 SERIAL_PORT_USART2
 
-#define TARGET_CONFIG
-
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs

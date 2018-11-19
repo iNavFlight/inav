@@ -23,11 +23,11 @@
 
 #include "platform.h"
 
-#ifdef USE_TARGET_CONFIG
-
 #include "fc/config.h"
-
 #include "sensors/boardalignment.h"
 
-void targetConfiguration(void) { }
-#endif
+void targetConfiguration(void)
+{
+
+}
+

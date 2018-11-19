@@ -140,10 +140,18 @@ void validateNavConfig(void)
 }
 #endif
 
+
+// Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
-    // Stub
+    __NOP();
 }
+
+__attribute__((weak)) void targetConfiguration(void)
+{
+    __NOP();
+}
+
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
 #define FIRST_PORT_INDEX 1
@@ -329,9 +337,7 @@ void createDefaultConfig(void)
 #endif
 #endif
 
-#if defined(TARGET_CONFIG)
     targetConfiguration();
-#endif
 }
 
 void resetConfigs(void)

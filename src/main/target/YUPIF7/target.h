@@ -19,7 +19,6 @@
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "YPF7"
 #define USBD_PRODUCT_STRING     "YUPIF7"
-#define TARGET_CONFIG
 
 #define LED0                    PB4
 

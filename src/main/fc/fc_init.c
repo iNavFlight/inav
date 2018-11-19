@@ -107,6 +107,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/piniobox.h"
 
 #include "msp/msp_serial.h"
 
@@ -480,6 +481,14 @@ void init(void)
 #endif
 
     adcInit(&adc_params);
+#endif
+
+#ifdef USE_PINIO
+    pinioInit();
+#endif
+
+#ifdef USE_PINIOBOX
+    pinioBoxInit();
 #endif
 
 #if defined(USE_GPS) || defined(USE_MAG)
