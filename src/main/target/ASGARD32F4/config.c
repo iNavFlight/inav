@@ -25,7 +25,6 @@
 #include <stdint.h>
 #include <platform.h>
 
-#ifdef TARGET_CONFIG
 #include "drivers/io.h"
 #include "drivers/pwm_output.h"
 #include "flight/mixer.h"
@@ -40,4 +39,3 @@ void targetConfiguration(void)
     motorConfigMutable()->minthrottle = 1075;
     motorConfigMutable()->maxthrottle = 1950;
 }
-#endif

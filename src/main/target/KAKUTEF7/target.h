@@ -20,8 +20,6 @@
 
 #pragma once
 
-//#define USE_TARGET_CONFIG
-
 #define TARGET_BOARD_IDENTIFIER "KTF7"
 #define USBD_PRODUCT_STRING "KakuteF7"
 

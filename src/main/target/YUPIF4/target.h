@@ -28,8 +28,6 @@
 #define USBD_PRODUCT_STRING     "YUPIF4"
 #endif
 
-#define TARGET_CONFIG
-
 #define LED0                    PB6
 #define LED1                    PB4
 

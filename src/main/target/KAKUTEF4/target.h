@@ -31,8 +31,6 @@
 #   define USBD_PRODUCT_STRING "KakuteF4-V1"
 #endif
 
-#define USE_TARGET_CONFIG
-
 #define LED0                    PB5
 #define LED1                    PB4
 #define LED2                    PB6

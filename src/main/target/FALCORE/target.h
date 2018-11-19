@@ -19,8 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "FLCR" // FaLCoRre
 
-#define TARGET_CONFIG
-
 #define LED0                    PC2
 #define LED1                    PB11
 

@@ -17,7 +17,6 @@
 
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "FF35"
-#define TARGET_CONFIG
 
 #define USBD_PRODUCT_STRING     "FURIOUS F35-LIGHTNING"
 

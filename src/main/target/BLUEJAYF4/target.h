@@ -17,7 +17,6 @@
 
 #pragma once
 #define TARGET_BOARD_IDENTIFIER "BJF4"
-#define TARGET_CONFIG
 
 #define USBD_PRODUCT_STRING     "BlueJayF4"
 

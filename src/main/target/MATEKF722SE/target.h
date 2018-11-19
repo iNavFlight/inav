@@ -18,9 +18,6 @@
 
 #pragma once
 
-#define USE_TARGET_CONFIG
-
-#define USE_TARGET_CONFIG
 #define TARGET_BOARD_IDENTIFIER "MF7S"
 #define USBD_PRODUCT_STRING  "MatekF722SE"
 

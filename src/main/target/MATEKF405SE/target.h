@@ -19,7 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "MF4S"
 #define USBD_PRODUCT_STRING  "Matek_F405SE"
-#define TARGET_CONFIG
 
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green

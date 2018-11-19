@@ -20,13 +20,9 @@
 
 #include <platform.h>
 
-#ifdef USE_TARGET_CONFIG
 #include "rx/rx.h"
-
 #include "telemetry/telemetry.h"
-
 #include "sensors/battery.h"
-
 #define CURRENTSCALE 250
 
 void targetConfiguration(void)
@@ -35,4 +31,3 @@ void targetConfiguration(void)
     telemetryConfigMutable()->smartportUartUnidirectional = true;
     batteryMetersConfigMutable()->current.scale = CURRENTSCALE;
 }
-#endif

@@ -18,7 +18,6 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "SP4E"
-#define TARGET_CONFIG
 
 #ifndef SPRACINGF4EVO_REV
 #define SPRACINGF4EVO_REV 2
