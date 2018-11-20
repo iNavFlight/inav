@@ -468,6 +468,14 @@ static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_i
 
 bool isFixedWingItermLimitActive(float stickPosition)
 {
+    /*
+     * Iterm anti windup whould be active only when pilot controls the rotation
+     * velocity directly, not when ANGLE or HORIZON are used
+     */
+    if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
+        return false;
+    }
+
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
