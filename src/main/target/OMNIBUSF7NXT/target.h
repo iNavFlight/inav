@@ -136,7 +136,7 @@
 
 #define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PA15
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
