@@ -76,6 +76,7 @@
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
 #include "flight/wind_estimator.h"
+#include "sensors/temperature.h"
 
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
@@ -345,6 +346,8 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"temperature",           -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temperatureSource",     -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 };
 
 typedef enum BlackboxState {
@@ -443,6 +446,8 @@ typedef struct blackboxSlowState_s {
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
     int16_t wind[XYZ_AXIS_COUNT];
+    int16_t temperature;
+    uint8_t temperatureSource;
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1030,6 +1035,9 @@ static void writeSlowFrame(void)
 
     blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
 
+    blackboxWriteSignedVB(slowHistory.temperature);
+    blackboxWriteUnsignedVB(slowHistory.temperatureSource);
+
     blackboxSlowFrameIterationTimer = 0;
 }
 
@@ -1060,6 +1068,9 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #else
         slow->wind[i] = 0;
 #endif
+
+    slow->temperature = (int) getCurrentTemperature() * 10;
+    slow->temperatureSource = getCurrentTemperatureSensorUsed();
     }
 
 }
