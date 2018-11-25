@@ -39,6 +39,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
@@ -228,21 +229,49 @@ char[]      Flight mode ( Null­terminated string )
 */
 void crsfFrameFlightMode(sbuf_t *dst)
 {
-    // just do Angle for the moment as a placeholder
+    // just do "OK" for the moment as a placeholder
     // write zero for frame length, since we don't know it yet
     uint8_t *lengthPtr = sbufPtr(dst);
     sbufWriteU8(dst, 0);
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
-    // use same logic as OSD, so telemetry displays same flight text as OSD
-    const char *flightMode = "ACRO";
-    if (FLIGHT_MODE(FAILSAFE_MODE)) {
-        flightMode = "!FS";
-    } else if (FLIGHT_MODE(ANGLE_MODE)) {
-        flightMode = "ANGL";
-    } else if (FLIGHT_MODE(HORIZON_MODE)) {
-        flightMode = "HOR";
+    // use same logic as OSD, so telemetry displays same flight text as OSD when armed
+    const char *flightMode = "OK";
+    if (ARMING_FLAG(ARMED)) {
+        if (isAirmodeActive()) {
+            flightMode = "AIR";
+        } else {
+            flightMode = "ACRO";
+        }
+        if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            flightMode = "!FS!";
+        } else if (FLIGHT_MODE(MANUAL_MODE)) {
+            flightMode = "MANU";
+        } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
+            flightMode = "RTH";
+        } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+            flightMode = "HOLD";
+        } else if (FLIGHT_MODE(NAV_CRUISE_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            flightMode = "3CRS";
+        } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
+            flightMode = "CRS";
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
+            flightMode = "AH";
+        } else if (FLIGHT_MODE(NAV_WP_MODE)) {
+            flightMode = "WP";
+        } else if (FLIGHT_MODE(ANGLE_MODE)) {
+            flightMode = "ANGL";
+        } else if (FLIGHT_MODE(HORIZON_MODE)) {
+            flightMode = "HOR";
+        }
+#ifdef USE_GPS
+    } else if (feature(FEATURE_GPS) && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
+        flightMode = "WAIT"; // Waiting for GPS lock
+#endif
+    } else if (isArmingDisabled()) {
+        flightMode = "!ERR";
     }
+
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
     crsfSerialize8(dst, 0); // zero terminator for string
     // write in the length
@@ -255,7 +284,6 @@ void crsfFrameFlightMode(sbuf_t *dst)
 #define CRSF_SCHEDULE_COUNT_MAX     5
 static uint8_t crsfScheduleCount;
 static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
-
 
 static void processCrsf(void)
 {
