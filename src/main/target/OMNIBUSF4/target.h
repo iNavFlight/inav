@@ -26,6 +26,8 @@
 #define TARGET_BOARD_IDENTIFIER "OB43"
 #elif defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
+#elif defined(DYSF4PROV2)
+#define TARGET_BOARD_IDENTIFIER "DY42"
 #else
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
@@ -41,11 +43,20 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
+#if defined(DYSF4PROV2)
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL PB8
+#define I2C1_SDA PB9
+#define I2C_EXT_BUS BUS_I2C1
+#else
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
+#define I2C_EXT_BUS BUS_I2C2
+#endif
 
-#define UG2864_I2C_BUS BUS_I2C2
+#define UG2864_I2C_BUS I2C_EXT_BUS
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -85,7 +96,7 @@
 #endif
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             I2C_EXT_BUS
 #define MAG_HMC5883_ALIGN       CW90_DEG
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
@@ -102,21 +113,21 @@
   #define BMP280_CS_PIN         PB3 // v1
 
   // Support external barometers
-  #define BARO_I2C_BUS          BUS_I2C2
+  #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
   #define USE_BARO_MS5611
 #else
-  #define BARO_I2C_BUS          BUS_I2C2
+  #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
   #define USE_BARO_BMP280
   #define USE_BARO_MS5611
 #endif
 
 #define USE_PITOT_MS4525
-#define PITOT_I2C_BUS           BUS_I2C2
+#define PITOT_I2C_BUS           I2C_EXT_BUS
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C2
+#define RANGEFINDER_I2C_BUS     I2C_EXT_BUS
 #define USE_RANGEFINDER_HCSR04_I2C
 #define USE_RANGEFINDER_VL53L0X
 
@@ -254,4 +265,4 @@
 #define CURRENT_METER_SCALE   265
 #endif
 
-#define PCA9685_I2C_BUS         BUS_I2C2
+#define PCA9685_I2C_BUS         I2C_EXT_BUS
