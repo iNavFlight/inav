@@ -140,9 +140,11 @@
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
      
-// #define USE_SOFTSERIAL1
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN      PA2
+#define SOFTSERIAL_1_RX_PIN      PA2
 
-#define SERIAL_PORT_COUNT       6
+#define SERIAL_PORT_COUNT       7
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -168,10 +170,6 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC8 // VTX power switcher
 #define PINIO2_PIN                  PC9 // 2xCamera switcher
-
-/*
-#define CAMERA_CONTROL_PIN   PA1 //RX4 pad with 200ohm
-*/
 
 #define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL)
 #define CURRENT_METER_SCALE_DEFAULT     179

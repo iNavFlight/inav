@@ -44,9 +44,7 @@ const timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM9, CH2, PA3,  TIM_USE_PPM, 0, 0),   // PPM, RX2
 
-    // DEF_TIM(TIM9, CH1, PA2,  TIM_USE_PWM, 0, 0),   // TX2
-    // DEF_TIM(TIM5, CH2, PA1,  TIM_USE_PWM, 0, 0),   // RX4  
-    // DEF_TIM(TIM5, CH1, PA0,  TIM_USE_PWM, 0, 0),   // TX4
+    DEF_TIM(TIM5, CH3, PA2,  TIM_USE_PWM, 0, 0),   // TX2 & softserial1
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
