@@ -53,6 +53,11 @@ enum {
 };
 
 enum {
+    NAV_LOITER_RIGHT = 0,                    // Loitering direction right
+    NAV_LOITER_LEFT  = 1                     // Loitering direction left
+};
+
+enum {
     NAV_RTH_NO_ALT          = 0,            // Maintain current altitude
     NAV_RTH_EXTRA_ALT       = 1,            // Maintain current altitude + predefined safety margin
     NAV_RTH_CONST_ALT       = 2,            // Climb/descend to predefined altitude

@@ -213,6 +213,11 @@ void resetFixedWingPositionController(void)
     pt1FilterReset(&fwPosControllerCorrectionFilterState, 0.0f);
 }
 
+static int8_t loiterDirection(void) {
+    if (pidProfile()->loiter_direction == NAV_LOITER_LEFT) return -1;
+    else return 1;
+}
+
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
     float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
@@ -233,7 +238,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Calculate virtual position for straight movement
     if (needToCalculateCircularLoiter) {
         // We are closing in on a waypoint, calculate circular loiter
-        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(45.0f);
+        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(loiterDirection() * 45.0f);
 
         float loiterTargetX = posControl.desiredState.pos.x + navConfig()->fw.loiter_radius * cos_approx(loiterAngle);
         float loiterTargetY = posControl.desiredState.pos.y + navConfig()->fw.loiter_radius * sin_approx(loiterAngle);
@@ -294,7 +299,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     // If forced turn direction flag is enabled we fix the sign of the direction
     if (forceTurnDirection) {
-        navHeadingError = ABS(navHeadingError);
+        navHeadingError = loiterDirection() * ABS(navHeadingError);
     }
 
     // Slow error monitoring (2Hz rate)
@@ -310,7 +315,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     // Only allow PID integrator to shrink if error is decreasing over time
     const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
 
-    // Input error in (deg*100), output pitch angle (deg*100)
+    // Input error in (deg*100), output roll angle (deg*100)
     float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.yaw + navHeadingError, posControl.actualState.yaw, US2S(deltaMicros),
                                        -DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
                                         DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),

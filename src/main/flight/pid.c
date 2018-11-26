@@ -191,6 +191,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingItermThrowLimit = FW_ITERM_THROW_LIMIT_DEFAULT,
         .fixedWingReferenceAirspeed = 1000,
         .fixedWingCoordinatedYawGain = 1.0f,
+        .loiter_direction = NAV_LOITER_RIGHT,
 );
 
 void pidInit(void)
