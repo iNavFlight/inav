@@ -49,6 +49,8 @@ tables:
     enum: gpsDynModel_e
   - name: reset_type
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
+  - name: direction
+    values: ["RIGHT", "LEFT"]
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
@@ -950,6 +952,10 @@ groups:
         field: fixedWingItermThrowLimit
         min: FW_ITERM_THROW_LIMIT_MIN
         max: FW_ITERM_THROW_LIMIT_MAX
+      - name: fw_loiter_direction
+        field: loiter_direction
+        condition: USE_NAV
+        table: direction
       - name: fw_reference_airspeed
         field: fixedWingReferenceAirspeed
         min: 1
