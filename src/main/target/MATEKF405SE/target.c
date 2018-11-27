@@ -22,6 +22,8 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
+    DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM,   0, 0), //RX2
+    
     DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   1, 0), // S1
     DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   1, 0), // S2
 
@@ -35,7 +37,6 @@ const timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM2,  CH1, PA15, TIM_USE_LED,   0, 0), //2812LED
 
-    DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM,   0, 0), //RX2
     DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_ANY,   0, 0), //TX2  softserial1_Tx
 };
 
