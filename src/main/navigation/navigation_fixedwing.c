@@ -258,8 +258,6 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             // Rotate this target shift from body frame to to earth frame and apply to position target
             virtualDesiredPosition.x += -rcShiftY * posControl.actualState.sinYaw;
             virtualDesiredPosition.y +=  rcShiftY * posControl.actualState.cosYaw;
-
-            posControl.flags.isAdjustingPosition = true;
         }
     }
 }
