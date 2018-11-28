@@ -28,10 +28,11 @@
 #include "drivers/dma.h"
 #include "drivers/bus.h"
 
-// Register second MPU6500 so cs pin is initialized
+// Register both MPU6500
+BUSDEV_REGISTER_SPI(busdev_mpu6500_1,     DEVHW_MPU6500,      MPU6500_1_SPI_BUS,    MPU6500_1_CS_PIN,     GYRO_1_EXTI_PIN,  DEVFLAGS_NONE);
 BUSDEV_REGISTER_SPI(busdev_mpu6500_2,     DEVHW_MPU6500,      MPU6500_2_SPI_BUS,    MPU6500_2_CS_PIN,     GYRO_2_EXTI_PIN,  DEVFLAGS_NONE);
 
-const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
+const timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
     DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX

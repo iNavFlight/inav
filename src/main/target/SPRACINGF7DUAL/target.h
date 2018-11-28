@@ -30,7 +30,6 @@
 #define USBD_PRODUCT_STRING     "SP Racing F7 DUAL"
 
 #define USE_DUAL_GYRO
-//#define DEBUG_MODE DEBUG_DUAL_GYRO_DIFF
 
 #define LED0_PIN                PC4
 
@@ -46,6 +45,7 @@
 #define USE_MPU_DATA_READY_SIGNAL
 #define ENSURE_MPU_DATA_READY_IS_LOW
 
+#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_GYRO
 #define USE_GYRO_MPU6500
 
@@ -83,6 +83,11 @@
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG
 #define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_IST8308
+#define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1
@@ -139,30 +144,16 @@
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
 
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+
 #define USE_SPI_DEVICE_3 // SDCARD
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PB4
 #define SPI3_MOSI_PIN           PB5
-
-#define USE_SDCARD
-
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   PC3
-
-
-// unused but may be useful:
-// SPI3 is on the APB1 bus whose clock runs at 54MHz. Divide to under 400kHz for init:
-// #define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 256 // 54Mhz/256 = 210kHz
-// Divide to under 25MHz for normal operation:
-// #define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     4 // 54Mhz/3 = 18Mhz // FIXME currently running slower than 18mhz for testing.
-
-// #define SDCARD_DMA_STREAM_TX_FULL           DMA1_Stream7
-#define SDCARD_DMA_TX                       DMA1
-// #define SDCARD_DMA_STREAM_TX                7
-#define SDCARD_DMA_CLK                      LL_AHB1_GRP1_PERIPH_DMA1
-
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF7_4
-#define SDCARD_DMA_CHANNEL                  DMA_CHANNEL_0
+#define SPI3_CLOCK_LEADING_EDGE
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC3
 
 // disabled for motor outputs 5-8:
 //#define USE_VTX_RTC6705
@@ -178,8 +169,8 @@
 #define GYRO_1_SPI_INSTANCE                 BUS_SPI1
 #define GYRO_2_CS_PIN                       PB2
 #define GYRO_2_SPI_INSTANCE                 BUS_SPI1
-#define MPU6500_CS_PIN                      GYRO_1_CS_PIN
-#define MPU6500_SPI_BUS                     GYRO_1_SPI_INSTANCE
+#define MPU6500_1_CS_PIN                    GYRO_1_CS_PIN
+#define MPU6500_1_SPI_BUS                   GYRO_1_SPI_INSTANCE
 #define MPU6500_2_CS_PIN                    GYRO_2_CS_PIN
 #define MPU6500_2_SPI_BUS                   GYRO_2_SPI_INSTANCE
 
@@ -207,16 +198,13 @@
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA1
 
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 //#define RX_CHANNELS_TAER
-#define DEFAULT_FEATURES                    (FEATURE_TRANSPONDER | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP| FEATURE_VBAT)
+#define DEFAULT_FEATURES                    (FEATURE_TRANSPONDER | FEATURE_RSSI_ADC | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP| FEATURE_VBAT | FEATURE_CURRENT_METER| FEATURE_BLACKBOX)
 
 #define GPS_UART                            SERIAL_PORT_USART3
 
 #define SERIALRX_UART                       SERIAL_PORT_USART2
 #define SERIALRX_PROVIDER                   SERIALRX_SBUS
-
-#define SPEKTRUM_BIND_PIN       UART2_RX_PIN
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -224,9 +212,5 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
-
-//#define USABLE_TIMER_CHANNEL_COUNT 16 // 4xPWM, 8xESC, 2xESC via UART3 RX/TX, 1xLED Strip, 1xIR.
-#define USABLE_TIMER_CHANNEL_COUNT 16
-// #define USED_TIMERS  (TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(8) | TIM_N(9))
 
 #define MAX_PWM_OUTPUT_PORTS    8
