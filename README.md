@@ -1,87 +1,45 @@
-# INAV - navigation capable flight controller
+Project
 
-![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
-![Travis CI status](https://travis-ci.org/iNavFlight/inav.svg?branch=master)
+
+Goal: 
+Add a feature to create a radar map to see others wings and LOW Cost
+
+Material: (<10$)
+RF Transmitter (test in progress, Lora, HC12, NRF..)
+Arduino
+FC with inav :)
+
+Workflow
+
+
+How to ?
+Arduino/RF:
+Get FC data over MSP protocol 
+BroadCast data to other clients (done)
+Reply Data if not concerned (mesh network) (evolution)
+
+Second version (i hope) : without arduino, integrate wireless management in iNav (thx to Jelle)
+
+FC:
+Retrieve MSP datas sent by arduino in iNav
+Format: 
+OSD (see examples below)
+First step: Use actual Radar/map osd view and add waypoint of other planes
+Arrow white or black if wing is up to you or down to you
+2nd Version: create custom OSD view
+
+And now ? Whats DONE ?
+I’m actually near finish the electronics/wireless parts, Next : Custom inav !
+
+OSD EXAMPLE
+First dev : OSD base on Radar/map current inav view (adding waypoint of others planes)
+
+Nb: white is up to you, black is down to you
+
+OSD futur version (i hope!)
+
+Cross: plane in front of you (you can see it on your camera) 
+Circles: planes behind you !
 
 ## Features
 
-* Outstanding navigation performance out of the box
-* Position Hold, Altitude Hold, Return To Home and Missions
-* Excellent support for fixed wing UAVs: airplanes, flying wings 
-* Pitot tube support
-* Rangefinder support (sonar and laser)
-* Oneshot and Multishot ESC support.
-* Blackbox flight recorder logging (to onboard flash or external SD card).
-* Lux's new PID (uses float values internally, resistant to looptime variation).
-* Simultaneous Bluetooth configuration and OSD.
-* LTM Telemetry.
-* Smartport Telemetry.
-* RSSI via ADC - Uses ADC to read PWM RSSI signals, tested with FrSky D4R-II and X8R.
-* OLED Displays - Display information on: Battery voltage, profile, rate profile, version, sensors, RC, etc.
-* In-flight manual PID tuning and rate adjustment.
-* Rate profiles and in-flight selection of them.
-* Multiple simultaneous telemetry providers.
-* Configurable serial ports for Serial RX, Telemetry, MSP, GPS - Use most devices on any port, softserial too.
-* Multi-color RGB LED Strip support (each LED can be a different color using variable length WS2811 Addressable RGB strips - use for Orientation Indicators, Low Battery Warning, Flight Mode Status, etc)
-* PIDs from CF/BF can be used in INAV, no need to retune for INAV
-* And many more!
-
-For a list of features, changes and some discussion please review the thread on RCGroups forums and consult the documentation.
-
-## Tools
-
-### INAV Configurator
-
-Official too for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
-
-### INAV Blackbox Explorer
-
-Tool for Blackbox logs analysis is available [here](https://github.com/iNavFlight/blackbox-log-viewer/releases)
-
-### Telemetry screen for OpenTX
-
-Users of FrSky Taranis X9 and Q X7 can use INAV Lua Telemetry screen created by @teckel12 . Software and installation instruction are available here: [https://github.com/iNavFlight/LuaTelemetry](https://github.com/iNavFlight/LuaTelemetry)
-
-## Installation
-
-See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
-
-## Documentation, support and learning resources
-
-* [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
-* [Official Wiki](https://github.com/iNavFlight/inav/wiki)
-* [INAV Official on Telegram](https://t.me/INAVFlight)
-* [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
-* [INAV Official on Slack](https://publicslack.com/slacks/inavflight/invites/new)
-* [INAV IRC channel] (irc://irc.freenode.net/#inavflight)
-* [RC Groups Support](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-(navigation-rewrite)-project)
-* [Video series by Painless360](https://www.youtube.com/playlist?list=PLYsWjANuAm4qdXEGFSeUhOZ10-H8YTSnH)
-* [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
-
-## Contributing
-
-Contributions are welcome and encouraged.  You can contribute in many ways:
-
-* Documentation updates and corrections.
-* How-To guides - received help?  help others!
-* Bug fixes.
-* New features.
-* Telling us your ideas and suggestions.
-
-A good place to start is Telegram channel, Slack, Facebook goop or IRC channel on freenode (#inavflight), drop in, say hi.
-
-Github issue tracker is a good place to search for existing issues or report a new bug/feature request:
-
-https://github.com/iNavFlight/inav/issues
-
-https://github.com/iNavFlight/inav-configurator/issues
-
-Before creating new issues please check to see if there is an existing one, search first otherwise you waste peoples time when they could be coding instead!
-
-## Developers
-
-Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
-
-
-## INAV Releases
-https://github.com/iNavFlight/inav/releases
