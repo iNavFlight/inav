@@ -67,6 +67,7 @@ typedef enum {
     DEBUG_CRUISE,
     DEBUG_REM_FLIGHT_TIME,
     DEBUG_SMARTAUDIO,
+    DEBUG_ACC,
     DEBUG_COUNT
 } debugType_e;
 
