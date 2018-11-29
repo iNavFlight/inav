@@ -99,9 +99,9 @@
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 
-#define USE_UART4
-#define UART4_RX_PIN            PA1
-#define UART4_TX_PIN            NONE
+// #define USE_UART4
+// #define UART4_RX_PIN            PA1
+// #define UART4_TX_PIN            NONE
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
@@ -111,7 +111,7 @@
 #define SOFTSERIAL_1_RX_PIN     NONE
 #define SOFTSERIAL_1_TX_PIN     PA9     // Clash with UART1_TX, needed for S.Port
 
-#define SERIAL_PORT_COUNT       7       // VCP, USART1, USART2, USART3, USART4, USART6, SOFTSERIAL1
+#define SERIAL_PORT_COUNT       6       // VCP, USART1, USART2, USART3, USART6, SOFTSERIAL1
 
 #define USE_SPI
 
@@ -145,7 +145,7 @@
 #define USE_FLASH_M25P16
 
 #define USE_ADC
-#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_1_PIN               PA1
 #define ADC_CHANNEL_2_PIN               PC2
 #define ADC_CHANNEL_3_PIN               PA0
 
