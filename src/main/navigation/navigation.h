@@ -33,6 +33,28 @@ extern gpsLocation_t        GPS_home;
 extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
 
+//START CAMILLE
+
+
+typedef struct {
+    uint8_t action;
+    int32_t lat;
+    int32_t lon;
+    int32_t alt;
+    int16_t p1, p2, p3;
+    uint8_t flag;
+} navWaypoint_t;
+
+typedef struct wp_planes_s  {
+navWaypoint_t planeWP;
+uint32_t wp_nb;
+int16_t GPS_directionToMe;
+int16_t planePoiDirection;
+} wp_planes_t;
+
+extern wp_planes_t   planesInfos[4];
+//END CAMILLE
+
 extern bool autoThrottleManuallyIncreased;
 
 /* Navigation system updates */
@@ -200,14 +222,8 @@ typedef enum {
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 
-typedef struct {
-    uint8_t action;
-    int32_t lat;
-    int32_t lon;
-    int32_t alt;
-    int16_t p1, p2, p3;
-    uint8_t flag;
-} navWaypoint_t;
+
+
 
 typedef struct {
     fpVector3_t pos;

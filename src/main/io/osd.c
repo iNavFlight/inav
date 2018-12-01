@@ -1053,6 +1053,15 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
 
+//START CAMILLE
+static void osdDrawRadarWP(uint32_t GPS_distanceToMe,uint32_t poiDirectionPlanes, uint16_t *drawn, uint32_t *usedScale)
+{
+    int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
+    int16_t poiDirection = osdGetHeadingAngle(poiDirectionPlanes + 180);
+    osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToMe, poiDirection, SYM_ARROW_DOWN, drawn, usedScale);
+}
+//END CAMILLE
+
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
@@ -1373,7 +1382,15 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             static uint16_t drawn = 0;
             static uint32_t scale = 0;
-            osdDrawRadar(&drawn, &scale);
+            osdDrawRadar(&drawn, &scale); 
+//START CAMILLE
+            for (int i = 0; i < 5; i++) {   
+                if (planesInfos[i].planeWP.lat!=0){            
+                    osdDrawRadarWP(planesInfos[i].GPS_directionToMe,planesInfos[i].planePoiDirection,&drawn, &scale);
+                }
+            }
+//END CAMILLE
+
             return true;
         }
 #endif // GPS

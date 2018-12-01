@@ -71,6 +71,7 @@ gpsLocation_t GPS_home;
 uint16_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
+
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
@@ -1940,6 +1941,7 @@ static void updateHomePositionCompatibility(void)
     GPS_directionToHome = posControl.homeDirection / 100;
 }
 
+
 float RTHAltitude() {
     switch (navConfig()->general.flags.rth_alt_control_mode) {
         case NAV_RTH_NO_ALT:
@@ -2116,6 +2118,31 @@ void updateHomePosition(void)
 
         // Update distance and direction to home if armed (home is not updated when armed)
         if (STATE(GPS_FIX_HOME)) {
+
+  
+            /* LLH Location in NEU axis system */
+
+            //START CAMILLE
+            gpsLocation_t planeLocation;
+            fpVector3_t posPlane;
+            int y=100; // waypoint number start at 100 to 105 (up to 5 planes)
+            for (int i = 100; i < 106; i++) {
+                    getWaypoint(i,&planesInfos[y].planeWP); //load waypoint informations
+                    planesInfos[y].wp_nb=i; //store wp number
+                    
+                    //Create gpsLocation_t to Convert to POS with  geoConvertGeodeticToLocal
+                    planeLocation.lat=planesInfos[y].planeWP.lat;
+                    planeLocation.lon=planesInfos[y].planeWP.lon;
+                    planeLocation.alt=planesInfos[y].planeWP.alt;
+                    geoConvertGeodeticToLocal(&posControl.gpsOrigin, &planeLocation, &posPlane, GEO_ALT_ABSOLUTE);        
+                    planesInfos[y].GPS_directionToMe= calculateDistanceToDestination(&posPlane);
+                    planesInfos[y].planePoiDirection=calculateDistanceToDestination(&posPlane);
+                    
+					y++; 
+                }
+
+            //END CAMILLE
+
             posControl.homeDistance = calculateDistanceToDestination(&posControl.homePosition.pos);
             posControl.homeDirection = calculateBearingToDestination(&posControl.homePosition.pos);
             updateHomePositionCompatibility();
