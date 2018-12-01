@@ -37,9 +37,7 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH3, PB0, TIM_USE_MC_MOTOR,   1, 0), // M2
     DEF_TIM(TIM3,  CH4, PB1, TIM_USE_MC_MOTOR,   1, 0), // M3
     DEF_TIM(TIM4,  CH2, PB7, TIM_USE_MC_MOTOR,   1, 0), // M4
-
-    // DEF_TIM(TIM4,  CH1, PB6, TIM_USE_LED,        0), // LED strip - timer clash with M4 output
-
+    DEF_TIM(TIM5,  CH3, PA2, TIM_USE_LED,        0, 0), // TX2    D(1,0) ; SA port ---> LED
     DEF_TIM(TIM1,  CH2, PA9, TIM_USE_ANY,        0, 0), // SS1
 };
 
