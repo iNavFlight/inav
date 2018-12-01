@@ -2137,7 +2137,6 @@ void updateHomePosition(void)
                     geoConvertGeodeticToLocal(&posControl.gpsOrigin, &planeLocation, &posPlane, GEO_ALT_ABSOLUTE);        
                     planesInfos[y].GPS_directionToMe= calculateDistanceToDestination(&posPlane);
                     planesInfos[y].planePoiDirection=calculateDistanceToDestination(&posPlane);
-                    
 					y++; 
                 }
 

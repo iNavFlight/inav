@@ -1053,7 +1053,8 @@ static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
     osdDrawMap(reference, 0, SYM_ARROW_UP, GPS_distanceToHome, poiDirection, SYM_HOME, drawn, usedScale);
 }
 
-//START CAMILLE
+//START CAMILLE //
+//
 static void osdDrawRadarWP(uint32_t GPS_distanceToMe,uint32_t poiDirectionPlanes, uint16_t *drawn, uint32_t *usedScale)
 {
     int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
