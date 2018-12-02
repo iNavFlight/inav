@@ -1,0 +1,2103 @@
+[33mcommit 1b027d6189a96bb4bc20e6563d02fad54339ad1f[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 12:43:02 2018 -0500
+
+    Add Hex file
+
+[33mcommit 4be268be6ba3d94def0a146aead0976faa3cd76d[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 12:42:01 2018 -0500
+
+    Add Hex files
+
+[33mcommit 0883494649438c68d701817c085e2168af13da0c[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 12:38:57 2018 -0500
+
+    Add ClearDraw function
+
+[33mcommit 32298a70fc65b0a8d47760c136ddb58880d87ae3[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 12:11:15 2018 -0500
+
+    Up to 5 planes and draw Homepos
+
+[33mcommit 4949244f3c1b7064d68b6d8c5710ebbfe0ecfc31[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 09:52:18 2018 -0500
+
+    5 planes
+
+[33mcommit b8d6773c89785a0bcfa6ed5c1f8db55416724a3d[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 09:47:34 2018 -0500
+
+    5 planes
+
+[33mcommit 5f5450394547ef8df55b406b9849b1521a9ed80b[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 09:24:07 2018 -0500
+
+    debug
+
+[33mcommit 3b1b6f38e42f18462a97555f6cffb7786ee9d088[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 09:12:20 2018 -0500
+
+    Modifying RADARWP
+
+[33mcommit c8cf757b3b2b78933138f5ea08a962ccfd4232cc[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sun Dec 2 07:42:56 2018 -0500
+
+    Patch error navigation.c
+
+[33mcommit 750d3ca6f80b531ba120089baa1e9a83fe5f63f9[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sat Dec 1 18:35:24 2018 -0500
+
+    test commit
+
+[33mcommit d3342011c0f6ec7129df714d2d46514c176e64df[m
+Author: Camille <github@mariaweb.fr>
+Date:   Sat Dec 1 18:26:52 2018 -0500
+
+    first commit
+
+[33mcommit fe56b45a0a6ccff76d59d0dfd7608d47cbac3ad1[m
+Author: mistyk <github@mariaweb.fr>
+Date:   Thu Nov 29 22:26:39 2018 +0100
+
+    Update README.md
+
+[33mcommit bb4be6ff3a89a2f8b6fd93960639728a79b16f61[m
+Author: mistyk <github@mariaweb.fr>
+Date:   Thu Nov 29 22:07:55 2018 +0100
+
+    Update README.md
+
+[33mcommit 352666236ab7f65db0b09f902d8b1f6ba2efb560[m
+Author: mistyk <github@mariaweb.fr>
+Date:   Thu Nov 29 22:06:31 2018 +0100
+
+    Update README.md
+
+[33mcommit a04e68aaa0b326c3459465ad811bac9bf2477c10[m
+Merge: 174540a f532a1d
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Oct 31 18:17:31 2018 +0100
+
+    Merge pull request #3974 from iNavFlight/de_gps_overhaul_2_0_1
+    
+    GPS code overhaul (backport)
+
+[33mcommit f532a1d939238fffd957474f064283cd4db5d71f[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Wed Oct 31 17:15:38 2018 +0100
+
+    Bump version to 2.0.1
+
+[33mcommit 5c1526786aaa76bea09bfa3e72ad3997aa66d358[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Tue Oct 30 22:27:45 2018 +0100
+
+    Disable featured for OMNIBUS target to save space
+
+[33mcommit e072472ae025d67609a6b80f1d8475552cca6fca[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Tue Oct 30 22:05:20 2018 +0100
+
+    Variable GPS timeout during setup/operation phase
+
+[33mcommit baab6d76dc8aa47a9c0858abfa85ab5628eee5a6[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Tue Oct 30 21:49:50 2018 +0100
+
+    Refactor NAZA GPS
+
+[33mcommit 633bbda2ae45cca021de669673a3bfe67dcae0b8[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Tue Oct 30 21:39:03 2018 +0100
+
+    Refactor NMEA/MTK driver
+
+[33mcommit cd618f4de5b4af024964ccf33cb0ab69290882e9[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Mon Oct 29 21:55:00 2018 +0100
+
+    Remove I2C_GPS driver; Refactor GPS core code; Refactor UBLOX driver to be protothread-driven
+
+[33mcommit fb5a8663e8a6deac6c2198e638598edd774f7ed9[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sun Oct 28 12:32:56 2018 +0100
+
+    Update ublox version/config code to wait for ACK for each config message
+    Convert GPS configuration code to protothreads
+    Bump GPS task rate to 50Hz to handle 10Hz update rate better
+    Change gpsCheckVersion to protothread with retry twice to make sure we receive GPS version
+
+[33mcommit e548ed576256487c9abe8edde6dee7002035d0c8[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sun Oct 28 15:13:37 2018 +0100
+
+    Add generic protothreads library
+
+[33mcommit 174540ad2114db33ac71ff6fad256201b472534b[m
+Merge: dbdd165 768d165
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sun Aug 26 20:44:11 2018 +0200
+
+    Merge pull request #3798 from dbasch/master
+    
+    fixed I2C definitions
+
+[33mcommit 768d165184df463ee5647aaf86905513ea871cd0[m
+Author: Diego Basch <dbasch@gmail.com>
+Date:   Sat Aug 25 09:30:30 2018 -0700
+
+    fixed I2C definitions
+
+[33mcommit dbdd1656a84ee4f09ebc14b4c0b86a9476a48f46[m
+Merge: 65dd94d 1ca4ae3
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sun Aug 19 21:31:07 2018 +0200
+
+    Merge pull request #3700 from iNavFlight/development
+    
+    INAV 2.0.0
+
+[33mcommit 1ca4ae3d4bd40de5bf0567652a31efd36cfa9b4c[m
+Merge: 0630fae 0bf51de
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sat Aug 18 21:46:11 2018 +0200
+
+    Merge pull request #3762 from iNavFlight/de_cruise_failsafe_fix
+    
+    Fix failsafe RTH not activating from CRUISE mode if sticks were not centered
+
+[33mcommit 0630faeb4771aef02f848396c5c9eac4068e9141[m
+Merge: 3c56215 deb7db9
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Fri Aug 17 22:38:51 2018 +0200
+
+    Merge pull request #3760 from iNavFlight/de_improve_issue_templates
+    
+    Add categories for issue templates
+
+[33mcommit 0bf51debd428d651d1b1fba908cac0020e292c14[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Fri Aug 17 22:29:38 2018 +0200
+
+    Fix failsafe RTH not activating from CRUISE mode if sticks were not centered
+
+[33mcommit 3c56215dcecb456d73fd699ec98c50bfa3e8a77e[m
+Merge: 05e1440 91e4ea8
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Fri Aug 17 21:01:22 2018 +0200
+
+    Merge pull request #3754 from iNavFlight/de_smartaudio_fix
+    
+    Revert SmartAudio to use single stop bit
+
+[33mcommit deb7db9c761951b3ca22a7312e67b7e85d53a732[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Fri Aug 17 20:42:50 2018 +0200
+
+    Add categories for issue templates
+
+[33mcommit 91e4ea8b1c5d6532ce4b3294b5d3e50e4720d9b5[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Thu Aug 16 20:00:26 2018 +0200
+
+    Revert SA to 1 stop bit
+
+[33mcommit 05e1440dc8b8f2f12daf1c151baaa2ab35b29dde[m
+Merge: 8399c5a 1f0af8d
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Aug 14 20:54:48 2018 +0200
+
+    Merge pull request #3744 from iNavFlight/dzikuvx-fix-pca9685-i2c-bus
+    
+    Fix pca9685 on bunch of boards
+
+[33mcommit 1f0af8d0f34e1b2f502ce661dcd5eb622d00f11f[m
+Author: Pawel Spychalski (DzikuVx) <pspychalski@gmail.com>
+Date:   Tue Aug 14 19:59:26 2018 +0200
+
+    fix pca9685 on bunch of boards that were using I2C device 2
+
+[33mcommit 8399c5a72cecb34d308ac7f5f75fac3e3016cab9[m
+Merge: c88298f 491e02d
+Author: stronnag <jh+github@daria.co.uk>
+Date:   Mon Aug 13 20:06:53 2018 +0100
+
+    Merge pull request #3739 from iNavFlight/jh_remove_end_note_junk_from_cli_md
+    
+    remove obsolete end note from Cli.md
+
+[33mcommit 491e02da2a00531305b27ee8189d75bd18c0ba0a[m
+Author: Jonathan Hudson <jh+github@daria.co.uk>
+Date:   Mon Aug 13 19:25:53 2018 +0100
+
+    remove obsolete end note from Cli.md
+
+[33mcommit c88298f7f1ce69ca8a8d49acf58c4fe54debb91a[m
+Merge: 60042c6 edc8707
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Mon Aug 13 19:50:55 2018 +0200
+
+    Merge pull request #3737 from teckel12/te_force_sw_blink_doc
+    
+     display_force_sw_blink added to CLI docs
+
+[33mcommit edc8707ad3a3a6439d6934c37d52408a4ca57373[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Mon Aug 13 08:43:03 2018 -0400
+
+    display_force_sw_blink added to CLI docs
+
+[33mcommit fd307648160ad0f59bb82a5871b85e4a2a23fd22[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Mon Aug 13 08:41:31 2018 -0400
+
+    Update Cli.md
+
+[33mcommit ebd1927cd688bcfee2c34f3c2be86eefeb60726b[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Mon Aug 13 08:41:06 2018 -0400
+
+    Update Cli.md
+
+[33mcommit 60042c6a958c122f59020d13a8c88de45fe6c684[m
+Merge: 1c3b415 29bde7c
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Fri Aug 10 19:50:28 2018 +0200
+
+    Merge pull request #3447 from iNavFlight/agh_fix_ak_mag_orientations
+    
+    Fix orientation of the drivers for AK8963, AK8975 and MPU9250 MAGs
+
+[33mcommit 29bde7c1eb39ae2daddc202b4aadd8752308374f[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jun 25 19:36:57 2018 +0100
+
+    Fix orientation of the drivers for AK8963, AK8975 and MPU9250 MAGs
+    
+    Due to the unsual axis definition of the AKxxxx MAGs (the +Y axis
+    is 90ºCW from the +X axis when +Z points up), the driver needs to
+    invert e.g. X and Z, then rotate rather than inverting all of
+    X, Y and Z like it was doing.
+    
+    It seems this bug was introduced in 3d024c6f3 back in November,
+    between 1.8 and 1.9 and some targets were written or updated in the
+    meantime assuming the driver was correct and thus have incorrect mag
+    alignments. I've tried to fix them all, but I don't have all these
+    boards and while ones with the MP9250 are obvious (assumming the
+    acc/gyro orientation is right, the mag orientation can be derived
+    from it), some of them have AK8963 or AK8975 which might be
+    oriented differently than the acc/gyro.
+    
+    Fixes #3438
+    Fixes #3434
+
+[33mcommit 1c3b415275cc18d77c0a44a14ac65724ac3bab21[m
+Merge: 6640c9f b17146f
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Aug 8 18:29:35 2018 +0200
+
+    Merge pull request #3715 from iNavFlight/de_update_travis_gcc
+    
+    Update Travis CI gcc version
+
+[33mcommit 6640c9ff0770f296370c14e78439dd6368f81fec[m
+Merge: af1e2fc 2794b80
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Aug 8 18:29:20 2018 +0200
+
+    Merge pull request #3714 from iNavFlight/de_update_release_targets
+    
+    Add SPEEDYBEEF4 to release targets
+
+[33mcommit af1e2fcfda6aab23d9c9fb29dd17aeee7ff2ed90[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Wed Aug 8 12:29:07 2018 -0400
+
+     Make FrSky telem use smartport_fuel_unit (#3713)
+    
+    Make FrSky telem use smartport_fuel_unit
+
+[33mcommit 72fa19d87fee3e4d7298beb049e10513260675a8[m
+Merge: 05e0e94 5e05c7f
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Aug 8 18:28:36 2018 +0200
+
+    Merge pull request #3708 from giacomo892/fix_vtx_settings
+    
+    Fix missing vtx settings from CLI
+
+[33mcommit 05e0e946bcda99e031db133792280044adeb201a[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Tue Aug 7 16:23:30 2018 -0400
+
+    Telemetry documentation changes/clarification for 2.0 (#3712)
+    
+    Documentation clarification for telemetry
+
+[33mcommit b17146fea59d9c6cbddee8d0f0ea1a6d700d53dc[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Tue Aug 7 22:12:01 2018 +0200
+
+    Update Travis CI gcc version
+
+[33mcommit 5e05c7f5e88f01749564c211e73713d97392e68e[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Tue Aug 7 10:32:55 2018 +0200
+
+    fix missing vtx settings from CLI
+
+[33mcommit 2794b80f4972eac1c9b487923062e40905623708[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Tue Aug 7 21:42:35 2018 +0200
+
+    Add SPEEDYBEEF4 to release targets
+
+[33mcommit ceec94b9ba37182f73ae10d5cb94cd59f887438d[m
+Merge: 19235f7 bd50c3c
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Aug 7 21:39:00 2018 +0200
+
+    Merge pull request #3710 from giacomo892/remove_ancient_gps_protocol
+    
+    Drop multiwii I2C gps board support for OMNIBUS
+
+[33mcommit 19235f7efe909563b5fecb5d46d1f38523654810[m
+Merge: 4182e01 47adb97
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Aug 7 21:35:46 2018 +0200
+
+    Merge pull request #3704 from iNavFlight/de_update_contrib
+    
+    Update AUTHORS list. Add Contributor Code of Conduct
+
+[33mcommit bd50c3c6dd3f643c03a6be168f10618785f7b180[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Tue Aug 7 18:22:30 2018 +0200
+
+    drop multiwii I2C gps board support for OMNIBUS
+
+[33mcommit 4182e018b244a82e4b7f8d3e2966fffe1682469d[m
+Merge: a45ddf0 c0a9246
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Aug 7 07:41:17 2018 +0200
+
+    Merge pull request #3705 from iNavFlight/de_update_release_targets
+    
+    Add MATEKF411 to 'make release' targets
+
+[33mcommit c0a92465e7f23d2abdcc9eef132fcb7ae3c3d566[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Mon Aug 6 21:03:46 2018 +0200
+
+    Add MATEKF411 to 'make release' targets
+
+[33mcommit a45ddf08f6875b4c957869852be1b47fa4cdbe23[m
+Merge: 7be63db d17cb9e
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Mon Aug 6 21:00:49 2018 +0200
+
+    Merge pull request #3703 from iNavFlight/de_fix_rx_time_overflow
+    
+    Fix RX timekeeping overflow
+
+[33mcommit 47adb9760e6b05c8e62b8578d6627914ae799168[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Mon Aug 6 20:35:54 2018 +0200
+
+    Update AUTHORS list. Add Contributor Code of Conduct
+
+[33mcommit 7be63db29fc20abf08d7269a60bec9e26dbec777[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Mon Aug 6 14:22:32 2018 -0400
+
+    CLI switch to send pitch/roll instead of accelerometer FrSky telemetry (#3701)
+    
+    Option to send pitch/roll instead of accelerometer FrSky telemetry
+
+[33mcommit 16bacf813a91b2adf6fe6df0999c848ec5893ca1[m
+Merge: 7327f56 ad6b329
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Mon Aug 6 20:20:49 2018 +0200
+
+    Merge pull request #3702 from shellixyz/clean_targets
+    
+    Clean the CLRACINGF4AIR and SPEEDYBEEF4 targets
+
+[33mcommit 7327f56477257e91b8b2110d38cec163f5800a94[m
+Merge: 24398b1 c949d19
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Mon Aug 6 20:19:22 2018 +0200
+
+    Merge pull request #3299 from shellixyz/remove_trailing_whitespaces
+    
+    Remove all trailing whitespaces in .c and .h files
+
+[33mcommit d17cb9e1ce441d6d712aece10dae08d4c12b20c7[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Mon Aug 6 20:16:23 2018 +0200
+
+    Fix RX timekeeping overflow
+
+[33mcommit ad6b3294eb7a64fc0185cc0047d2b7f0b20a3ca5[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Mon Aug 6 16:02:34 2018 +0200
+
+    Clean the SPEEDYBEEF4 target
+
+[33mcommit f8cdf4961ec141fa1c0b3f3aebb144f73cd30301[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Mon Aug 6 16:02:23 2018 +0200
+
+    Clean the CLRACINGF4AIR target
+
+[33mcommit c949d1972528561ebbe82c8bb0c57683f945eae8[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Mon Aug 6 15:54:20 2018 +0200
+
+    Remove all trailing whitespaces in .c and .h files
+
+[33mcommit 24398b124de911a67a229b9df36da9e60cca0575[m
+Merge: a71f209 aa4eff9
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sun Aug 5 17:53:21 2018 +0200
+
+    Merge pull request #3696 from iNavFlight/de_rssi_channel_fix
+    
+    Fix RSSI channel freeze when receiver is in failsafe
+
+[33mcommit aa4eff980eb15d6f03acfc0390a6942dbc61dddb[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sat Aug 4 21:57:08 2018 +0200
+
+    Fix RSSI channel freeze when receiver is in failsafe
+
+[33mcommit a71f209cf4b6b280af6f813219f2c49045cc3a63[m
+Merge: 6529b6f 72740d0
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sat Aug 4 18:05:10 2018 +0200
+
+    Merge pull request #3694 from iNavFlight/jh_update_ubuntu_build_document
+    
+    update Ubuntu dev document to use the PPA compiler for all instances
+
+[33mcommit 72740d0e5682f1161e3ca1aa97ba3874ccd7a04c[m
+Author: Jonathan Hudson <jh+github@daria.co.uk>
+Date:   Sat Aug 4 12:29:53 2018 +0100
+
+    update Ubuntu dev document to use the PPA compiler for all instances
+
+[33mcommit 6529b6f25470015b7569d773d9e2fe49077de970[m
+Merge: ef746b2 f3d66ac
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Thu Aug 2 22:42:02 2018 +0200
+
+    Merge pull request #3347 from AlienFlightINAV/AFNGF7_OSD
+    
+    Add OSD support for AFNG F7 Horus30 boards
+
+[33mcommit f3d66ac9d23aef8550734deae9e6ef6ab93079c8[m
+Merge: 53d5276 ef746b2
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Thu Aug 2 20:46:58 2018 +0200
+
+    Merge branch 'development' into AFNGF7_OSD
+
+[33mcommit ef746b2b2256256eb48be2470c97e3a48976c9bb[m
+Merge: be5f1be 330dab1
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Thu Aug 2 20:38:42 2018 +0200
+
+    Merge pull request #3683 from bforbort/MAG_LIS3MDL
+    
+    Add support for ST LIS3MDL MEMS sensor
+
+[33mcommit 53d5276f4153ea1d08d5dccd513c530b05fe4839[m
+Author: MJ666 <michael.p.jakob@web.de>
+Date:   Wed May 30 21:55:05 2018 +0200
+
+    Add OSD support for AFNG F7 Horus30 boards
+    Enable SPI Flash for AFNG F7 Osiris20 boards
+
+[33mcommit 330dab1cdf6e21892207707de792eda9958cdc97[m
+Author: Blaine <b.forbort@gmail.com>
+Date:   Wed Aug 1 16:42:20 2018 -0700
+
+    Cleanup
+    
+    Removed unused includes
+    Reduced detection retry attempts
+    Removed delays from init
+    
+    Bench tested, detected and all init messages where acknoloadged
+
+[33mcommit 0492483bf9bbe00175b73e97e74465894446667c[m
+Author: Blaine <b.forbort@gmail.com>
+Date:   Wed Aug 1 15:00:17 2018 -0700
+
+    Add comment about second I2C address
+
+[33mcommit be5f1be1cbf9e2712864eef948d4438d88b2bc53[m
+Merge: 22da85a 537da9c
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Aug 1 19:52:19 2018 +0200
+
+    Merge pull request #3673 from iNavFlight/de_timer_fixes
+    
+    Initialize timer pins in a backward-compatible way.
+
+[33mcommit 8751f99ca23ed65781391b465eb61858efe44d79[m
+Author: Blaine <b.forbort@gmail.com>
+Date:   Tue Jul 31 20:09:30 2018 -0700
+
+    Revert "Detect LIS3MDL in either address configuration"
+    
+    This reverts commit d7addd5cc03a75667d65ada250c06f06492f9783.
+
+[33mcommit d7addd5cc03a75667d65ada250c06f06492f9783[m
+Author: Blaine <b.forbort@gmail.com>
+Date:   Tue Jul 31 18:38:55 2018 -0700
+
+    Detect LIS3MDL in either address configuration
+
+[33mcommit 9ddc2f782f9e07f7fef523422795c8400718cdd9[m
+Author: Blaine <b.forbort@gmail.com>
+Date:   Sun May 20 21:16:17 2018 -0700
+
+    Add support for ST LIS3MDL 3-axis MEMS magnetic field sensor
+    
+    This sensor is coming equipped on some newer GPS receivers.
+    
+    Testing with mRo uGPS ublox SAM M8Q on a Theer wing.
+    https://store.mrobotics.io/product-p/mro-ugps-samm8q-01.htm
+
+[33mcommit 22da85aac2ae1c9116a85aa675e7ee9136233e6b[m
+Merge: 2ac9ca1 ff0f3f3
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Mon Jul 30 20:29:01 2018 +0200
+
+    Merge pull request #3675 from shellixyz/fix_rth_estimator
+    
+    Fix for the RTH estimator
+
+[33mcommit ff0f3f333ce2ec90d528d590760074f407b25f07[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Mon Jul 30 01:05:41 2018 +0200
+
+    Fix for the RTH estimator
+
+[33mcommit 2ac9ca17e69a65be6819a6e3c51c51c38896c3bf[m
+Merge: cf4048d a4791b0
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sun Jul 29 21:54:32 2018 +0200
+
+    Merge pull request #3674 from iNavFlight/de_readme_update
+    
+    Update readme
+
+[33mcommit a4791b0bd21d211ab0dbff28e3f81df37685ab0b[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sun Jul 29 20:18:40 2018 +0200
+
+    Readme update
+
+[33mcommit 537da9c6945f4a3242341e1e1371804a09006b42[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sun Jul 29 20:08:43 2018 +0200
+
+    Initialize all timer pins as IN_PD. Disable some unused peripheral clocks
+
+[33mcommit 075b3fbfc4a7999b7c8c6ebd20cb7c1a35baec5b[m
+Merge: aaf9f6f cf4048d
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sun Jul 29 19:39:59 2018 +0200
+
+    Merge branch 'development' into patch-1
+
+[33mcommit cf4048d24e30d5e71d8fe040e37671a5530ed79e[m
+Merge: 6378aa1 c4fbe50
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sat Jul 28 09:43:35 2018 +0200
+
+    Merge pull request #3661 from iNavFlight/agh_fix_coordinate_display
+    
+    Fix missing leading zeroes in when formatting coordinates
+
+[33mcommit 6378aa18792c9827b71a798cffb8a7f54d9e09be[m
+Merge: e7f4881 f021a4d
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sat Jul 28 09:42:38 2018 +0200
+
+    Merge pull request #3665 from iNavFlight/gcc_8.2_trivia
+    
+    cleanup a pointless use of __packed (gcc 8.2 warning)
+
+[33mcommit aaf9f6fd23aa0cf7864529770f594c92e89af585[m
+Author: Joe Hermaszewski <git@monoid.al>
+Date:   Fri Jul 27 22:18:13 2018 +0100
+
+    Add missing IRC channel information
+    
+    Seems to have been removed in c507aa2d0f651f0506bac6e66993ada0b008f92e
+
+[33mcommit f021a4d5eefe8174f1ddccea2fd380b787cb78ef[m
+Author: Jonathan Hudson <jh+github@daria.co.uk>
+Date:   Fri Jul 27 17:54:32 2018 +0100
+
+    cleanup a pointless use of __packed (gcc 8.2 warning)
+
+[33mcommit e7f48816da893d41d8e81a60956ae9e03d33d2c3[m
+Merge: f55a945 0990e80
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Fri Jul 27 08:16:19 2018 +0100
+
+    Merge pull request #3033 from David-VG/development
+    
+    Add SOFTSERIAL support on TX2 for MATEKF405 target
+
+[33mcommit c4fbe500feadcc0b7abd9a4a5d26467c98b6bf2a[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 26 22:35:32 2018 +0100
+
+    Fix missing leading zeroes in when formatting coordinates
+    
+    Only trailing zeroes were being added, causing incorrect formatting
+    when the decimal part was less than 0.1deg.
+
+[33mcommit f55a94500aa6a9248de83b4fad348c85ae190387[m
+Merge: 4685025 601d77c
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Thu Jul 26 21:43:39 2018 +0200
+
+    Merge pull request #3660 from iNavFlight/de_rx_code_cleanups
+    
+    Remove dead PWM/PPM-related code
+
+[33mcommit 468502539a37f8c13a2eb548183bdedc74f005ca[m
+Merge: e7ad87f 606155d
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Thu Jul 26 21:36:10 2018 +0200
+
+    Merge pull request #3654 from shellixyz/limit_descent_to_home_altitude_to_max_auto_climb_rate
+    
+    Limit the climb/descent rate from RTH alt. to desired home alt.
+
+[33mcommit e7ad87fb9b3bca20bfe09a1e2304ba4bc6baf567[m
+Merge: 1456e12 a37d989
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Thu Jul 26 21:33:47 2018 +0200
+
+    Merge pull request #3631 from giacomo892/doc-fixes
+    
+    Gyro documentation updates
+
+[33mcommit 606155da27c3afe6f276c92507ba0f83cd952fc6[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Tue Jul 24 17:55:36 2018 +0200
+
+    Limit the climb/descent rate from RTH alt. to desired home alt. to the max auto climb rate setting
+
+[33mcommit 601d77c8394f25a61e90b43d34e79e056f0af019[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 25 22:20:23 2018 +0200
+
+    Remove dead PWM/PPM-related code
+
+[33mcommit 1456e12979a79a4f71944b726b10ab950195b54c[m
+Merge: 69dc2a5 68f33f5
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 25 20:58:28 2018 +0200
+
+    Merge pull request #3647 from teckel12/te_nav_cruise_mode_frsky_telemetry
+    
+    Add `NAV_CRUISE_MODE` to FrSky/S.Port Telemetry
+
+[33mcommit 69dc2a5297132cfb1b2066b09a2b4666e8f95197[m
+Merge: 2568254 818a52f
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 25 20:58:16 2018 +0200
+
+    Merge pull request #3653 from dbasch/development
+    
+    Added support for SPEEDYBEEF4 board
+
+[33mcommit 2568254e49451507770caa5ab070a8b40df34137[m
+Merge: 08d3918 e1e1474
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 25 20:58:06 2018 +0200
+
+    Merge pull request #3656 from shellixyz/fix_building_with_disabled_features
+    
+    Fix building with disabled features
+
+[33mcommit 08d39186a6827a6a122d3a438753d43401afa064[m
+Merge: 4cfe65e c717c49
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 25 20:57:51 2018 +0200
+
+    Merge pull request #3657 from shellixyz/fix_pmw_pwm_typo
+    
+    Fix typo USE_PMW_SERVO_DRIVER -> USE_PWM_SERVO_DRIVER
+
+[33mcommit 4cfe65e46e97d072a47f307342568ba506fe2421[m
+Merge: 9cf4439 49873ac
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 25 20:44:35 2018 +0200
+
+    Merge pull request #3648 from shellixyz/fix_emergency_landing_message
+    
+    Fix the OSD emergency landing warning message
+
+[33mcommit 49873acc9a963915b3b1e60e8e7488f85c868cd5[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 18:00:57 2018 +0200
+
+    Fix the OSD emergency landing warning message
+
+[33mcommit c717c49985357d431ac98a0b1e41d7f4597a7d26[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 17:46:30 2018 +0200
+
+    Fix typo USE_PMW_SERVO_DRIVER -> USE_PWM_SERVO_DRIVER
+
+[33mcommit 818a52f24d0de6810f698c11641fc0acf704646a[m
+Author: Diego Basch <dbasch@gmail.com>
+Date:   Wed Jul 25 08:10:51 2018 -0700
+
+    removed debug lines
+
+[33mcommit e1e14748b3b5e1c8ac7c467af9c48b4a516bc80c[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 17:03:23 2018 +0200
+
+    Add USE_ prefix to AUTOTUNE_FIXED_WING
+
+[33mcommit caea553eb7d85ee1130432b60bea91de1b50f0b6[m
+Author: Diego Basch <dbasch@gmail.com>
+Date:   Wed Jul 25 07:59:05 2018 -0700
+
+    added SPEEDYBEEF4 target
+
+[33mcommit 972f74bf607d7f3960e518b39297c20eb0979177[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 16:57:59 2018 +0200
+
+    Fix building without USE_VTX_*
+
+[33mcommit 9d73b0862e13076345ef5903d7aa0d41a61c73ed[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 16:38:28 2018 +0200
+
+    Fix building with USE_TELEMETRY_CRSF but without USE_SERIALRX_CRSF
+
+[33mcommit 5ced75a3756946cdeb8b7a7dd98fcd0473dba207[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 16:33:29 2018 +0200
+
+    Fix warnings when building without USE_TELEMETRY_SMARTPORT
+
+[33mcommit 11f1762d4510c09db19afcf2a6d4c4d6ee36e6ab[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 16:26:47 2018 +0200
+
+    Fix building without USE_CMS
+
+[33mcommit d61978b328a9432fe1ed8ba908875a86b8985030[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 25 16:23:59 2018 +0200
+
+    Fix building without USE_WIND_ESTIMATOR
+
+[33mcommit 68f33f507e74a1d10610b58d54679fea86895961[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Tue Jul 24 16:14:40 2018 -0400
+
+    Added cruise mode to frsky/s.port telemetry
+
+[33mcommit 9cf44393ce6f9d2a6065ebd501aa0dd0516e7ec0[m
+Merge: 0752cac 253c067
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Jul 24 20:41:06 2018 +0200
+
+    Merge pull request #3645 from iNavFlight/de_unify_reboot
+    
+    Unify reboot sequence across all use-cases
+
+[33mcommit 0752cac2fcab27d1269e2b4b4536680263801fe9[m
+Merge: 37f93ab 664da6f
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Jul 24 19:32:23 2018 +0200
+
+    Merge pull request #3646 from giacomo892/navConfig-broken-config-fix
+    
+    increase navConfig PG version
+
+[33mcommit 37f93abd4ddd32a26722bb573cefc46f33921d3a[m
+Merge: 14738b5 6bccc66
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Jul 24 19:24:15 2018 +0200
+
+    Merge pull request #3649 from shellixyz/take_into_account_climb_first_setting_for_rth_estimations
+    
+    Take into account the climb_first setting in RTH estimations
+
+[33mcommit 253c067d80af43a7b2010f7db1445094e898d183[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Tue Jul 24 19:23:46 2018 +0200
+
+    Fix compile-time issue
+
+[33mcommit 6bccc66ac37f8e3e14f06216b78f9bec81633e34[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Tue Jul 24 17:01:29 2018 +0200
+
+    Take into account the climb_first setting in RTH estimations
+
+[33mcommit 56d7d291f9d8a1b94a03e86c618c82dfa6a1ce70[m
+Merge: 2f32d56 14738b5
+Author: Tim Eckel <tim@leethost.com>
+Date:   Tue Jul 24 08:52:10 2018 -0400
+
+    Merge pull request #4 from iNavFlight/development
+    
+    Sync with INAV development
+
+[33mcommit 664da6f1047eaffe702d273f71253a3961a3eb7d[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Tue Jul 24 13:46:03 2018 +0200
+
+    increase navConfig PG version
+
+[33mcommit 873b517e6b742ad63ac602593dc005da2c2ce392[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Mon Jul 23 21:31:46 2018 +0200
+
+    Unify reboot sequence across all use-cases
+
+[33mcommit 14738b5c901e4367e6e1a5fb8ce0074bc5431308[m
+Merge: 6fe0734 0490486
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sat Jul 21 23:06:05 2018 +0200
+
+    Merge pull request #3635 from iNavFlight/de_crsf_fix
+    
+    Updated CRSF frame format to use the sync byte instead of the frame address
+
+[33mcommit 04904864e70ef4c81860ce3a80235aa27c39e956[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sat Jul 21 22:26:14 2018 +0200
+
+    Fix CRSF telemetry address byte
+
+[33mcommit 6fe07340fa2f364a9be477e9e8b38110d206694c[m
+Merge: b0dd9d1 7d7d09b
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sat Jul 21 21:31:50 2018 +0200
+
+    Merge pull request #3634 from iNavFlight/agh_fix_pixracer_mag_orientation
+    
+    Fix default mag orientation in PIXRACER target
+
+[33mcommit 7d7d09bab26914489d2a60b1755c26cf51d285c7[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 21 18:44:00 2018 +0100
+
+    Fix default mag orientation in PIXRACER target
+    
+    Orientation was not defined, so it used the default one
+    (non-flipped, non-rotated) while the MAG in this board is actually
+    rotated 90º CW.
+    
+    Thanks to Jivitesh Debata for testing the fix.
+
+[33mcommit b0dd9d14d969dc71d6f39a6890e5a1b4af73374a[m
+Merge: 2783dfc 84da3a5
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Fri Jul 20 23:23:51 2018 +0100
+
+    Merge pull request #3633 from iNavFlight/agh_akk_smartaudio_bug_workaround
+    
+    Add workaround for AKK VTX with S.Audio bug
+
+[33mcommit 84da3a5940b190311f371174ace6e6522b6d720e[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Fri Jul 20 21:21:04 2018 +0100
+
+    Add workaround for AKK VTX with S.Audio bug
+    
+    It shouldn't affect VTX properly implementing SmartAudio, since
+    the workaround only requires sending an extra zero byte. Tested
+    with AKK X2 Ultimate.
+    
+    Actual fix by @codecae and @mikeller from BF.
+    
+    Fixes #3625
+
+[33mcommit a37d989473b5ae1d2983f6649e666b88858987ea[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Fri Jul 20 09:58:18 2018 +0200
+
+    Documentation updates
+
+[33mcommit 2783dfc2c73db3d238b2384e4d69e7d58aa8aba5[m
+Merge: b1339d7 12b7745
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 18 21:26:58 2018 +0200
+
+    Merge pull request #3617 from shellixyz/rename_bb_vbat_and_amperage
+    
+    Rename BB vbat and amperage fields to match recent changes
+
+[33mcommit b1339d70f8248069c0d81803d2958709eb383e14[m
+Merge: c3d02e3 b1a07a6
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 18 21:26:08 2018 +0200
+
+    Merge pull request #3609 from giacomo892/navTgtPosition_int32
+    
+    Switch navTgtPos BB to int32_t
+
+[33mcommit c3d02e34086e0778e4b639db9a796994e1e69604[m
+Merge: 7207137 6370e97
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 18 21:12:53 2018 +0200
+
+    Merge pull request #3613 from iNavFlight/agh_new_rssi_min_max
+    
+    Replace rssi_scale and rssi_invert with rssi_min and rssi_max
+
+[33mcommit 72071378f8b9c2843cdb36c312c859d09133db47[m
+Merge: 2700108 9f81873
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Wed Jul 18 21:12:10 2018 +0200
+
+    Merge pull request #3619 from iNavFlight/agh_validate_settings
+    
+     Validate all settings at startup
+
+[33mcommit 9f81873d0a889d7d42f41f23e39260c787b90201[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 18 11:32:31 2018 +0100
+
+    Fix valid ranges for 3d_deadband_throttle and fw_ff_to_i_time_constant
+    
+    Their default values were outside their valid ranges
+
+[33mcommit 33372aacfb5d7eab2722df2b5a1d7a691bc87900[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 18 11:22:57 2018 +0100
+
+    Validate all settings in startup
+    
+    When reading the EEPROM, perform a full setting validation to ensure
+    all have values in their allowed ranges. This will prevent arming
+    in case of an improperly performed upgrade changes any setting to
+    an invalid value.
+
+[33mcommit 2700108bb7fb4613143f484e661ec11d47ec7fb9[m
+Merge: 3e670db 7290410
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Tue Jul 17 19:30:29 2018 +0200
+
+    Merge pull request #3616 from iNavFlight/agh_remove_sport_sensor_wait
+    
+    Eliminate 500us Smarport response delay
+
+[33mcommit 7290410d6f628ce7629da60565d5b52d6194164c[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 16 10:10:49 2018 +0100
+
+    Eliminate 500us Smarport response delay
+    
+    In 1.9.1, we didn't have any delays due to a bug which
+    wasn't updating the time of the last received S.Port request
+    but no problems were reported besides the lost of all sensors
+    after 35 minutes (caused by the overflow of the time
+    comparison).
+    
+    However, enforcing the delay seems to cause issues with MSP
+    over SmartPort, see the following BF issues which has
+    already included the fixed delay in a release:
+    
+    https://github.com/betaflight/betaflight/issues/6313
+    https://github.com/betaflight/betaflight/issues/6360
+    https://github.com/betaflight/betaflight/issues/6369
+    
+    Tracing back the origin of the delay, it looks like it was added
+    as a cautionary measure at some point because FPort does need it,
+    but everything indicates S.Port works fine without it.
+    
+    Inspired by @mikeller's fix in BF, the static variables have
+    been made non-static.
+
+[33mcommit 12b77450aff627fe079db2ed87c74dcc0307d831[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Tue Jul 17 15:23:52 2018 +0200
+
+    Rename BB vbat and amperage fields to match recent changes
+
+[33mcommit 6370e978f90dbb0e1020a68ed99553e1e5bd1c68[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 16 16:43:56 2018 +0100
+
+    Replace rssi_scale and rssi_invert with rssi_min and rssi_max
+    
+    rssi_min and rssi_max allow users to specify their RSSI range by
+    simply introducing the smaller and bigger values they see in the
+    configurator or OSD, similarly to how rxrange works.
+
+[33mcommit b1a07a61667363ae9b7c224272c85986f2630333[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Mon Jul 16 11:07:29 2018 +0200
+
+    switching navTgtPos to using real PREDICT(PREVIOUS)
+
+[33mcommit 440514087bb8d89be5445f276220a226d37f31c8[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Mon Jul 16 11:01:03 2018 +0200
+
+    make navTargetPos int32_t to allow logging of altitudes higher than 327m
+
+[33mcommit 3e670db83cdc0b55f49e8ac1310c0d2a8d27c9a5[m
+Merge: b98d3c0 5950237
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Mon Jul 16 21:05:16 2018 +0200
+
+    Merge pull request #3482 from iNavFlight/de_rcdata_ignore_failsafe
+    
+    Ignore RC channel values sent by receiver in failsafe
+
+[33mcommit b98d3c0f50e60230ca53e5643377dcc3b886008a[m
+Merge: 21e79e5 11cf23f
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Mon Jul 16 20:40:43 2018 +0200
+
+    Merge pull request #3612 from iNavFlight/agh_fix_f3evo_compass_direction
+    
+    Fix default compass direction for SPRACINGF3EVO
+
+[33mcommit 11cf23f2c9cadcee63f893d7cf85e4b590f61f36[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 16 17:09:03 2018 +0100
+
+    Fix default compass direction for SPRACINGF3EVO
+    
+    Fixes #3438
+
+[33mcommit 21e79e5d93c25c581211fcb3b0f46c7cde49aef5[m
+Merge: 1c06b30 1482e99
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 16 17:06:45 2018 +0100
+
+    Merge pull request #3608 from iNavFlight/agh_settings_validate_minmax
+    
+    When encoding settings, validate that min <= max for all settings
+
+[33mcommit 1482e994a77b33c525610fdfcf5e0e6889a3e386[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 15 23:35:40 2018 +0100
+
+    When encoding settings, validate that min <= max for all settings
+    
+    This will help catch errors like the one fixed in #3563 early.
+
+[33mcommit 1c06b30bdeb3c5ef27d68f2c076a1c7b92f5e341[m
+Merge: 6cc3d29 0ef59e3
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 15 23:34:58 2018 +0100
+
+    Merge pull request #3606 from Andreas-Hellberg/fix_sbus_sync_interval
+    
+    Fix sbus_sync_interval min/max values.
+
+[33mcommit 0ef59e3a79f1e75a104756a5ed3d0598fdcec1a7[m
+Author: AndreasHellberg <andreas.hellberg@gmail.com>
+Date:   Sun Jul 15 23:25:02 2018 +0200
+
+    Fix sbus_sync_interval min/max values.
+
+[33mcommit 6cc3d2900dee6c04a77eae3b586c555cde20d8fd[m
+Merge: f2cf315 1354cce
+Author: Konstantin Sharlaimov <konstantin.sharlaimov@gmail.com>
+Date:   Sun Jul 15 18:20:13 2018 +0200
+
+    Merge pull request #3349 from iNavFlight/de_nav_motor_stop
+    
+    New setting for disabling motor_stop in NAV modes
+
+[33mcommit 2f32d565591b15efe038924dbcb2d81e76fa4024[m
+Merge: 6c0e85e f2cf315
+Author: Tim Eckel <tim@leethost.com>
+Date:   Sat Jul 14 20:36:25 2018 -0400
+
+    Merge pull request #3 from iNavFlight/development
+    
+    Sync Development Branch
+
+[33mcommit f2cf315ada92eed3c352df59c224b435c5013d99[m
+Merge: c54f113 8277edd
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 22:23:51 2018 +0100
+
+    Merge pull request #3599 from iNavFlight/de_sbus_sync_config
+    
+    Make sbus sync delay configurable
+
+[33mcommit c54f11317dc47b0ce7db5c6b79eff4e674511bd8[m
+Merge: 7d3622b fa49e84
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 16:35:24 2018 +0100
+
+    Merge pull request #3597 from iNavFlight/shellixyz_change_default_fw_alt_pids
+    
+    Change default ALT PIDs for fixed wing
+
+[33mcommit 8277edd2f31c833078357f8888a0926ad4ce9a71[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sat Jul 14 17:14:13 2018 +0200
+
+    Make sbus sync delay configurable
+
+[33mcommit 7d3622b2666a87d7d9271bca37a92ed9d93c5192[m
+Merge: 9bce0ab a47b6c9
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 15:55:03 2018 +0100
+
+    Merge pull request #3596 from iNavFlight/agh_fix_rc_adjusments_speed
+    
+    Fix RC adjustments triggering too fast
+
+[33mcommit fa49e84507ece2bf10a4029938608ab49526f495[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Fri Jul 13 19:01:46 2018 +0200
+
+    Update PID init comments
+
+[33mcommit 5575617cd0a3694eb8f2519fb7aa64adac46b6c0[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Thu Jul 12 00:39:25 2018 +0200
+
+    Change default ALT PIDs for fixed wing
+
+[33mcommit a47b6c91d70c5b337dab14aafa0d896909d1728c[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 15:04:05 2018 +0100
+
+    Fix RC adjustments triggering too fast
+    
+    - Make sure we don't read before the adjustmentStates[0] element
+    - Prevent several adjustments using the same slot from resetting
+    the slot state (and hence, its timeout for the next update) when
+    another state using the same slot is active.
+
+[33mcommit 9bce0abd869856b1a182195649c303a5c68278c1[m
+Merge: 79147ce 4856038
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 15:02:29 2018 +0100
+
+    Merge pull request #3594 from iNavFlight/agh_home_arrow_show_unknown
+    
+    Make the home arrow show only when we know all needed data
+
+[33mcommit 79147ce085fc68881e912938c5c719dfb7adfdfe[m
+Merge: c811d3b b5d5886
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 14:49:38 2018 +0100
+
+    Merge pull request #3585 from junwoo091400/Fix_rc_adjustment_wrongIdxValue
+    
+    Fix for RC Adjustment Ranges index wrongfully Accessing States Array
+
+[33mcommit c811d3b86136820e1b20d0eebd4a1f9e0d88bdc7[m
+Merge: 2081d30 b61d46a
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 13:14:07 2018 +0100
+
+    Merge pull request #3595 from iNavFlight/agh_fix_small_negative_coordinates
+    
+    Correctly display coordinates in the (-1, 0) range
+
+[33mcommit b61d46a4551e347536a65b846156d745a74e78e2[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 11:59:03 2018 +0100
+
+    Correctly display coordinates in the (-1, 0) range
+    
+    Fixes #3592
+
+[33mcommit 48560383fa0701b82d2035a59f32b48cfcb4a8db[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 11:41:48 2018 +0100
+
+    Make the home arrow show only when we know all needed data
+    
+    Home arrow will only be displayed if we have a GPS fix, we have
+    a home direction recorded and we have a proper heading. Otherwise
+    the indicator will blink and it will show a fixed arrow point up
+    while unarmed (so users can see the arrow when configuring the OSD)
+    and a '-' character when armed (so users can see if some sensor
+    has failed during a flight).
+
+[33mcommit 2081d30a67c52caf7f3485293dec12fea807c140[m
+Merge: 8d0e443 ca3e537
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 11:45:25 2018 +0100
+
+    Merge pull request #3581 from iNavFlight/de_diehertz_micros_fix
+    
+    Ensured micros() doesn't return a smaller value on millisecond bound
+
+[33mcommit 8d0e443c06d8d02dd734a1564be0ac8ba9d4de84[m
+Merge: aadf8bf ea84f16
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 11:44:53 2018 +0100
+
+    Merge pull request #3588 from iNavFlight/agh_armed_no_home_position
+    
+    Show a message when arming with GPS but without HOME
+
+[33mcommit aadf8bfb76a76682b1e429980b0e4870a4741d22[m
+Merge: 81ce757 3ffef99
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 14 11:44:29 2018 +0100
+
+    Merge pull request #3593 from shellixyz/revert_PR_3540
+    
+    Revert "PWM driver - startup value fix"
+
+[33mcommit 3ffef998c80cd23bd7e88fde0ac64d20363a1e2d[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Sat Jul 14 09:42:41 2018 +0200
+
+    Revert "PWM driver - startup value fix"
+    
+    This reverts commit 4514aad8242bc0d23742d4faa99b6eac6bff3c43.
+
+[33mcommit ea84f16897a64083061b666995b0a691fdcf4a74[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Fri Jul 13 23:10:15 2018 +0100
+
+    Show a message when arming with GPS but without HOME
+    
+    Useful for people using extra_arming_safety = OFF, so they can
+    notice they armed without a home position recorded.
+
+[33mcommit ca3e537815c1037bdafe4a455a5225782a8cee07[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Fri Jul 13 20:31:44 2018 +0200
+
+    Fix tests
+
+[33mcommit b5d588634b0fcba266bc1080cf00e3cd811bdc1f[m
+Author: junwoo091400 <junwoo091400@gmail.com>
+Date:   Sat Jul 14 00:27:06 2018 +0900
+
+    Fixed wrong Idx value for States array from UpdateFunction
+
+[33mcommit 5838984b2c999ac11bc2950337ca7bf8c75a06f7[m
+Author: Andrey Mironov <diehertz@gmail.com>
+Date:   Thu Jul 12 16:40:02 2018 +0300
+
+    Ensured micros() doesn't return a smaller value on millisecond bound
+
+[33mcommit 81ce7574596c10350327ac8db4dd836966c18a8e[m
+Merge: d0d042b ad3b328
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 11:14:31 2018 +0100
+
+    Merge pull request #3575 from iNavFlight/agh_cms_osd_settings
+    
+    Add menu for OSD settings to CMS
+
+[33mcommit ad3b3284793d3ea35b70815e1b2e11ac6d0ea9f6[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 10:29:14 2018 +0100
+
+    Add menu for OSD settings to CMS
+    
+    Main voltage decimals, coordinate digits, etc...
+
+[33mcommit d0d042b008634c048be0e62ac39235a7781d8e38[m
+Merge: 53d8e78 8ca7f06
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 10:27:17 2018 +0100
+
+    Merge pull request #3573 from iNavFlight/agh_osd_coordinate_digits
+    
+    Add support for configurable coordinate digits in OSD
+
+[33mcommit 53d8e7804c264a3e3416bf4a5926c812ecaf6786[m
+Merge: 8852b7f 31840b3
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 09:47:49 2018 +0100
+
+    Merge pull request #3571 from iNavFlight/agh_map_decrease_scale
+    
+    Teach the map drawing code to reduce scale
+
+[33mcommit 8852b7f2d3b20b8a6e600ec3cf42165acea3ceea[m
+Merge: ced30ef d5af8eb
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 09:47:33 2018 +0100
+
+    Merge pull request #3572 from iNavFlight/agh_overlapping_ahi
+    
+    Avoid flickering when the AHI overlaps another element
+
+[33mcommit 8ca7f0686097f9c08f365ddfe546138291308dd0[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 00:48:33 2018 +0100
+
+    Add support for configurable coordinate digits in OSD
+    
+    8-11 are allowed values. This allows pilots to choose how much
+    space they want to dedicate to the coordinates, while providing
+    a consistent display with both latitude and longitude at the same
+    length.
+
+[33mcommit ced30ef58f9c320d1495c6a44a863dde72bb6714[m
+Merge: fba2e3e 0eded14
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 00:59:59 2018 +0100
+
+    Merge pull request #3570 from shellixyz/remove_battery_unnecessary_init
+    
+    Remove unnecessary batteryCellCount initialization
+
+[33mcommit d5af8ebf10e5b149a5fdab482a0072017809a811[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 12 00:08:41 2018 +0100
+
+    Avoid flickering when the AHI overlaps another element
+    
+    Make the AHI avoid drawing over other elements that might partially
+    overlap with it.
+
+[33mcommit 31840b3d44b46ef62ea5645a4e5c470ff2dcb2c1[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 23:51:08 2018 +0100
+
+    Teach the map drawing code to reduce scale
+    
+    When looking for another scale when drawing would overwrite a
+    non-blank character, reduce the scale when we're close to the center
+    and increase it when we're far from it. Otherwise there are some
+    pathological cases when an indicator next to the map center would
+    cause the map to not draw anything.
+
+[33mcommit 0eded14827aa43f0e43169abc6cb8ae9112c3147[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Thu Jul 12 00:42:07 2018 +0200
+
+    Remove unnecessary batteryCellCount initialization
+
+[33mcommit fba2e3ed77a05690e33a4999854044623db65db0[m
+Merge: 108e336 a5a8eea
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 21:56:17 2018 +0100
+
+    Merge pull request #3567 from shellixyz/fix_rc_alignment_beeper
+    
+    Fix beeping when using RC alignment adjust with beeper -ON_USB
+
+[33mcommit 108e336c5f4e6c85075344786b52d786ac945f77[m
+Merge: 878a2aa 09b7c7f
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 21:38:07 2018 +0100
+
+    Merge pull request #3555 from iNavFlight/de_qmc5883_detection
+    
+    Fix unreliable QMC5883L mag detection
+
+[33mcommit a5a8eea30f0c008fdebcfacfb8a524f4e9c4e3e4[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 11 22:15:33 2018 +0200
+
+    Fix beeping when using RC alignment adjust with beeper -ON_USB
+
+[33mcommit 878a2aab51b7a5e465449cc33c8a29d47792c3db[m
+Merge: 684a068 726a51e
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 20:43:37 2018 +0100
+
+    Merge pull request #3533 from shellixyz/improve_readability
+    
+    Improve readability
+
+[33mcommit 726a51ecd2dd038f2b70abe0af3509cd4f266347[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Sat Jul 7 19:12:20 2018 +0200
+
+    Improve readability
+
+[33mcommit 684a068ff27232585869298c81d17fe9d15f542f[m
+Merge: fabd320 be2dd33
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 19:03:12 2018 +0100
+
+    Merge pull request #3564 from iNavFlight/agh_fix_vtx_powerlevels
+    
+    Fix VTX power levels to be in 1-5 range rather than 0-4
+
+[33mcommit be2dd33dda558452dd930f1cf7008214e26924ca[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 16:48:08 2018 +0100
+
+    Fix VTX power levels to be in 1-5 range rather than 0-4
+    
+    Drivers ignore zero, so the minimum power is actually 1.
+    Also, remove some hardcoded values and use proper constants
+    for them, fixing an issue with the number of power levels in
+    Tramp (sizeof of an uint16_t array was used rather than its count).
+    
+    Fixes #3560
+
+[33mcommit fabd3205e10d1914f11a1206e3d953c98dc6af6f[m
+Merge: 3ccd486 1022ada
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 11:21:59 2018 +0100
+
+    Merge pull request #3561 from iNavFlight/agh_reset_servo_biquad
+    
+    Reset the biquad filter used for servos to 1500 on startup
+
+[33mcommit 3ccd4861d7fde5badf26d68333c823498e4ce2e9[m
+Merge: 327be8e 867e46e
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 11:21:27 2018 +0100
+
+    Merge pull request #3562 from iNavFlight/agh_fix_map_hittesting
+    
+    Check for the correct display coordinate when drawing POI
+
+[33mcommit 327be8eeedf124ffcc3f24904ceb994ecc74bfca[m
+Merge: 88b6131 a4a09f0
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 01:03:09 2018 +0100
+
+    Merge pull request #3551 from krzysztofmatula/km-doc-diff
+    
+    doc update: document 'diff' command
+
+[33mcommit 88b61318e81441e34432130a120358e8125487cb[m
+Merge: d882e0b c4605fe
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 01:02:43 2018 +0100
+
+    Merge pull request #3544 from shellixyz/fix_roll_attitude_angle_display
+    
+    Fix roll attitude angle display
+
+[33mcommit 867e46ebc9c4b362ae19ca71e116945397e36f83[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Wed Jul 11 00:54:57 2018 +0100
+
+    Check for the correct display coordinate when drawing POI
+    
+    When checking the display, we were testing for (poiY, poiY) rather
+    than (poiX, poiY), which was specially visible when drawing across
+    the horizontal line over the map center, since the test was always
+    for (0, 0), causing the scale to go to the maximum value since
+    (0, 0) always contains the map center symbol.
+    
+    Fixes #3508
+
+[33mcommit c4605fe1634710c305be67f1e425b46fea80d3a1[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 11 01:15:20 2018 +0200
+
+    Fix roll attitude angle display
+
+[33mcommit 1022ada9a766a2f9d57e3c7875775526b9664cf5[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Tue Jul 10 22:53:45 2018 +0100
+
+    Reset the biquad filter used for servos to 1500 on startup
+    
+    Filter was initialized at zero, which delayed the servo centering
+    by ~2 seconds. The filter is now reset to 1500 during initialization,
+    so the servos receive 1500 from the start.
+    
+    Coupled with #3540, this completely eliminates all servo twitching
+    during boot.
+    
+    Thanks to @shellixyz for testing!
+
+[33mcommit d882e0b596a685efac98434358d6fa739a898f21[m
+Merge: 6b6b494 e71725f
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Tue Jul 10 21:52:16 2018 +0100
+
+    Merge pull request #3557 from iNavFlight/agh_fix_missing_ahi_dot
+    
+    Draw missing AHI character when it overlaps with the crosshairs
+
+[33mcommit e71725fe53c600f9072ff8b645fb57e54de6bde1[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Tue Jul 10 14:04:15 2018 +0100
+
+    Draw missing AHI character when it overlaps with the crosshairs
+    
+    The crosshairs bounds were incorrectly calculated, causing the
+    character at the right of the crosshairs to not be drawn.
+    
+    References #3449
+
+[33mcommit 6b6b49451bf4c8a5a838b58aaa9bedcfe845b51c[m
+Merge: 579bd5c aa8e46b
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 9 23:31:45 2018 +0100
+
+    Merge pull request #3548 from iNavFlight/agh_settings_info
+    
+    Add support for retriving setting types and listing all of them
+
+[33mcommit aa8e46b2de4f3c4332c55fdaca9aefbd4c6fa36e[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 9 22:36:01 2018 +0100
+
+    Use new setting accessor functions for retriving settings
+    
+    This reduces flash usage by 96 bytes, making the cost of the whole
+    PR around 300 bytes.
+    Also, the settings tables in settings_generated.c are now made
+    static to make sure no code outside of settings.c can reference
+    them.
+
+[33mcommit 09b7c7f41ef43ff0bb8f1c3b25ce17d019dd4630[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Mon Jul 9 20:56:16 2018 +0200
+
+    Fix unreliable QMC5883L mag detection (kudos to MJ666)
+
+[33mcommit 579bd5c6b22d89663636af4703f0a0008de078d2[m
+Merge: c3296d5 c4401db
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 9 15:37:46 2018 +0100
+
+    Merge pull request #3546 from iNavFlight/de_ist8310_fix
+    
+    Fix datasheet incompliance for IST8310 compass chip
+
+[33mcommit c3296d592751c2d2bce9cbc73cdf40b634abc3d4[m
+Merge: 96fa973 257e326
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 9 15:29:43 2018 +0100
+
+    Merge pull request #3550 from krzysztofmatula/km-doc-omnibus-inverter
+    
+    doc update: OMNIBUSF4V5 UART6TX inverter
+
+[33mcommit 96fa973d3f49f5babf4c2b631a69ea16fa27729e[m
+Merge: 159a8d7 9a88769
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 9 15:29:17 2018 +0100
+
+    Merge pull request #3553 from giacomo892/patch-4
+    
+    Update README.md
+
+[33mcommit 9a88769317a04800e2a5196618705c43bf16c0f9[m
+Author: giacomo892 <giacomo1989@gmail.com>
+Date:   Mon Jul 9 14:58:49 2018 +0200
+
+    Update README.md
+
+[33mcommit 5468d2fe6e432482cb3112661b2c8c9d814f9811[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 9 00:30:58 2018 +0100
+
+    Add support for retriving setting types and listing all of them
+    
+    This allows an external caller to retrieve and change any setting
+    as well as listing all the available ones without any a priori
+    knowledge.
+
+[33mcommit 257e32622112fa756745c72a920cae02f3498b7b[m
+Author: Krzysztof Matula <km@apnet.pl>
+Date:   Mon Jul 9 10:56:22 2018 +0200
+
+    doc update: OMNIBUSF4V5 UART6TX inverter
+
+[33mcommit a4a09f0f5913e991647595ad37b313e44199cd09[m
+Author: Krzysztof Matula <km@apnet.pl>
+Date:   Mon Jul 9 10:55:28 2018 +0200
+
+    doc update: document 'diff' command
+
+[33mcommit 159a8d73ea4f1a0902c69ed89605312ba4c8e038[m
+Merge: 7ec8744 db9d29f
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 9 01:27:31 2018 +0100
+
+    Merge pull request #3547 from iNavFlight/agh_update_slack_link
+    
+    Update Slack auto-invite link
+
+[33mcommit db9d29f89617f2c4db5c76c811cbefa23caf4bdc[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 20:33:00 2018 +0100
+
+    Update Slack auto-invite link
+    
+    Replace signup.team, which has been down for some time, with
+    publicslack.com
+
+[33mcommit c4401dbc1dcc2772cfe6d15b1dc89ea5085702ac[m
+Author: Konstantin Sharlaimov (DigitalEntity) <konstantin.sharlaimov@gmail.com>
+Date:   Sun Jul 8 21:23:46 2018 +0200
+
+    Fix datasheet incompliance for IST8310 compass chip
+
+[33mcommit 7ec87447fb1cb109dcc3c57013e83e652596c6bf[m
+Merge: d1862ec 6f79b89
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 19:34:47 2018 +0100
+
+    Merge pull request #3537 from iNavFlight/agh_local_times
+    
+    Use local times (+TZ when possible) for external interfaces
+
+[33mcommit 6f79b8948da163cb9b43b843b2348608717007f9[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 22:35:15 2018 +0100
+
+    Use local times (+TZ when possible) for external interfaces
+    
+    - BB logs format the date in the local TZ, including the UTC
+    offset in the header line.
+    - Files created in the SD card use the local time for timestamps,
+    since FAT doesn't have any notion of timezones.
+    - Time sync with RC Split uses the local time, since it doesn't
+    support timezones.
+    - Added new rtcGetDateTimeLocal() function, which allows removing
+    some branching in osd.c
+    
+    Saves 40 bytes of flash on F3
+    
+    Fixes #3531
+
+[33mcommit d1862ecec26b221a7c1dacc4a159b5651e63c403[m
+Merge: 6b2d554 fa4c143
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 18:27:31 2018 +0100
+
+    Merge pull request #3542 from iNavFlight/agh_fix_auto_dst
+    
+    Fix automatic DST support
+
+[33mcommit fa4c1431c9a416bd988d83e2f7ad7d386a665202[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 17:27:36 2018 +0100
+
+    Fix automatic DST support
+    
+    - Apply an offset of 3600s, not 3600ms.
+    - Update the applied offset to the datetime, so callers can format
+    the UTC offset properly.
+    - Apply automatic DST even when non-DST tz offset is zero.
+
+[33mcommit 6b2d5546e672eb6bbcae0d52cad8be7a60e1f5f2[m
+Merge: 5535b49 74e5ae8
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 13:28:19 2018 +0100
+
+    Merge pull request #3536 from iNavFlight/agh_fix_smartport_time_overflow
+    
+    Prevent time comparison overflow in S.Port driver
+
+[33mcommit 5535b49f50d627487f9f5889c5ca21c935c5153b[m
+Merge: b9281e3 4514aad
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 13:25:33 2018 +0100
+
+    Merge pull request #3540 from iNavFlight/marbalon_pwm_startup_fix
+    
+    PWM driver - startup value fix
+
+[33mcommit b9281e3e5e5ec7db18b8407b5bcb3c677fae9df1[m
+Merge: 9043a95 afc5602
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 13:25:14 2018 +0100
+
+    Merge pull request #3519 from teckel12/te_tweak_frsky_hdop_range
+    
+    Fix FrSky HDOP range
+
+[33mcommit 9043a95ff4cfbcd4ff1ae4da71c43ff5a964e5c3[m
+Merge: 34eed40 e311f4a
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 13:13:03 2018 +0100
+
+    Merge pull request #3490 from shellixyz/fix_current_bb_loggin_improve_battery_code
+    
+    Fix current BB logging and improve battery code
+
+[33mcommit 34eed409e762a1fc0a1bfcdee526328bcbb79a49[m
+Merge: d7c8a6e 8fd2af3
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sun Jul 8 13:12:38 2018 +0100
+
+    Merge pull request #3502 from shellixyz/fix_division_by_0_in_generateThrottleCurve
+    
+    Fix division by 0 in generateThrottleCurve()
+
+[33mcommit 74e5ae86677f622836ea8b903d26f0ca5b2da7ef[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 20:40:53 2018 +0100
+
+    Prevent time comparison overflow in S.Port driver
+    
+    Would stop S.Port telemetry after ~36 minutes.
+    After discussing this with @mikeller, we've decided to enforce the
+    500us response delay for S.Port, since it might be needed for some
+    receivers.
+    
+    Fixes #3282
+
+[33mcommit 4514aad8242bc0d23742d4faa99b6eac6bff3c43[m
+Author: Marcin Baliniak <marcin@baliniak.pl>
+Date:   Sun Jul 8 10:28:32 2018 +0200
+
+    PWM driver - startup value fix
+
+[33mcommit 8fd2af31deb8ceda6efef159998fd04e0fcd8bd2[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Mon Jul 2 16:34:12 2018 +0200
+
+    Fix division by 0 in generateThrottleCurve()
+    
+    When `thr_mid` is set to 100 a division by 0 is done in `generateThrottleCurve()`
+
+[33mcommit e311f4ac1e7d4072d7acadd1b05de879adb47cb6[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Sun Jul 1 17:39:18 2018 +0200
+
+    Fix current BB logging and improve battery code
+
+[33mcommit d7c8a6e84d69cca2b05113e41aabbfec3b9bd706[m
+Merge: b0ccae5 950f96f
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 22:41:55 2018 +0100
+
+    Merge pull request #3522 from giacomo892/wind_speed_BB_slow
+    
+    Log estimated wind speed to BB slow frames
+
+[33mcommit b0ccae51793294af14e72a7be699b38b7faae679[m
+Merge: c1bcd75 6d3a338
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 22:40:28 2018 +0100
+
+    Merge pull request #3532 from iNavFlight/marbalon_limit_spi_speed
+    
+     Add definition for MAX_SPI_SPEED to limit spi seed if defined for target
+
+[33mcommit 6d3a338f931a4825e4e0bd5bb543943bc9c2e013[m
+Author: Marcin Baliniak <marcin@baliniak.pl>
+Date:   Sat Jul 7 23:00:19 2018 +0200
+
+    MAX_SPI_SPEED changed to BUS_SPI_SPEED_MAX
+
+[33mcommit c1bcd75d205dd572853e46e3f7c66f86081b5526[m
+Merge: 2072c74 c1fc548
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 21:07:18 2018 +0100
+
+    Merge pull request #3513 from giacomo892/BBPosZ_fix
+    
+    Remove posZ constrain to int16 for BB
+
+[33mcommit 2072c747d0a6108af9161f9adc1f0331767a11ad[m
+Merge: f1c8ac4 4baf5fd
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 21:02:06 2018 +0100
+
+    Merge pull request #3492 from shellixyz/fix_PID_output_display_and_logging
+    
+    Fix PID controllers output display and logging scaling
+
+[33mcommit f1c8ac484a7775c45389a023bdad96179944becc[m
+Merge: b500f44 b846044
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 20:36:28 2018 +0100
+
+    Merge pull request #3509 from shellixyz/fix_flight_timer
+    
+    Fix flight timer for fixed wing when not using launch mode
+
+[33mcommit b500f447a5999290da5b891521ee1f15f9526020[m
+Merge: 8d83448 884acf7
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 20:36:10 2018 +0100
+
+    Merge pull request #3512 from shellixyz/make_failsafe_throttle_low_delay_default_0
+    
+    Make failsafe_throttle_low_delay default 0
+
+[33mcommit 8d83448eb4888795307851663daeed320340f04a[m
+Merge: 2337752 a30fde5
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Sat Jul 7 20:35:18 2018 +0100
+
+    Merge pull request #3530 from iNavFlight/marbalon_fix_course4eleres2
+    
+    Fixed ground course for eleres telemetry
+
+[33mcommit ea685fe2f59cf48724d5beaafea97e71e6b45d82[m
+Author: Marcin Baliniak <marcin@baliniak.pl>
+Date:   Sat Jul 7 16:15:26 2018 +0200
+
+    Add definition for MAX_SPI_SPEED to limit spi seed if defined for target
+
+[33mcommit 2337752e818c8dbdc16113f1ae5f38c8d7894882[m
+Merge: 616835c a056c2d
+Author: Paweł Spychalski <pspychalski@gmail.com>
+Date:   Sat Jul 7 15:55:24 2018 +0200
+
+    Merge pull request #3528 from Pomezny/pca9685_fix
+    
+    fixed broken PWM_SERVO_DRIVER
+
+[33mcommit 616835c5c595e68ac8a59f558fac9f3fafbbe7bc[m
+Merge: b569c30 c146a3f
+Author: Paweł Spychalski <pspychalski@gmail.com>
+Date:   Sat Jul 7 15:51:42 2018 +0200
+
+    Merge pull request #3529 from iNavFlight/marbalon_fix_pwm_kfc32f3_inav
+    
+    Marbalon fix PWM9 and PWM10 for KFC32F3_INAV target
+
+[33mcommit a30fde56e31194a2db0abc97db94158022c9bd23[m
+Author: Marcin Baliniak <marcin@baliniak.pl>
+Date:   Sat Jul 7 15:36:10 2018 +0200
+
+    Fixed ground course fro eleres telemetry
+
+[33mcommit c146a3f833d05547236de66f63fef14b1c749466[m
+Author: Marcin Baliniak <marcin@baliniak.pl>
+Date:   Sat Jul 7 15:08:20 2018 +0200
+
+    Fixed PWM9 and PWM10 for KFC32F3_INAV target
+
+[33mcommit a056c2dd17b56c58010789ee7ac4b2391f2c368f[m
+Author: Martin Pomezný <martin@pomezny.cz>
+Date:   Sat Jul 7 08:42:22 2018 +0200
+
+    aditional I2C define check
+
+[33mcommit cd96a6f88cf38a4076d43485d0a8f96da2ad7fff[m
+Author: Martin Pomezný <martin@pomezny.cz>
+Date:   Sat Jul 7 02:51:39 2018 +0200
+
+    fixed broken PWM_SERVO_DRIVER
+
+[33mcommit 950f96f8cc22280f502ed55ce097687e5b85a5a5[m
+Author: giacomo892 <giacomo1989@gmail.com>
+Date:   Fri Jul 6 17:16:26 2018 +0200
+
+    more optimization
+
+[33mcommit b569c30517be94d1e867b87eb74e41900ce0ac55[m
+Merge: 7c301e6 a046a78
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Fri Jul 6 09:26:03 2018 +0100
+
+    Merge pull request #3486 from shellixyz/fix_battery_voltage_throttle_comp
+    
+    Fix battery voltage throttle compensation
+
+[33mcommit e9ac8b91f96dac19753fa6c23ad66dd7e5af3fca[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Fri Jul 6 09:40:19 2018 +0200
+
+    decrease CPU load on wind logging
+
+[33mcommit 4baf5fdadf836c179631f03720eea4334e049f78[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Sun Jul 1 18:59:36 2018 +0200
+
+    Fix PID controllers output display and logging scaling
+
+[33mcommit a046a780ce87eeb967e6e988e8c92a57e9c8a1dc[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Sun Jul 1 02:47:59 2018 +0200
+
+    Fix battery voltage throttle compensation
+
+[33mcommit 365d5c8f03ee7807b2c324dce7c21a3d0766cd0f[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Thu Jul 5 14:27:04 2018 +0200
+
+    Log estimated wind speed to BB slow frames
+
+[33mcommit 7c301e67d4aa16d5ef2992e49cc7134a990eb7b4[m
+Merge: 67f5fb8 851afb3
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 5 10:00:03 2018 +0100
+
+    Merge pull request #3485 from iNavFlight/agh_refactor_inverters
+    
+    Refactor the inverter driver
+
+[33mcommit 67f5fb8ae22f1367151d24185ed013adb11106dc[m
+Merge: 4c7b5b6 2b4c6ac
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 5 09:56:34 2018 +0100
+
+    Merge pull request #3510 from shellixyz/replace_feature_current_meter_with_isAmperageConfigured
+    
+    Replace feature(FEATURE_CURRENT_METER) by isAmperageConfigured() where it makes sense
+
+[33mcommit 4c7b5b637ffbccfbd13cadae4510a6c77ff67d04[m
+Merge: 3f11518 4920fb3
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Thu Jul 5 00:28:14 2018 +0100
+
+    Merge pull request #3515 from shellixyz/remove_CLI_servo_trailing_space
+    
+    Remove trailing space in CLI servo output lines
+
+[33mcommit afc56027589d0dfa852d7e20f6aada0324390132[m
+Author: Tim Eckel <tim@leethost.com>
+Date:   Wed Jul 4 15:18:19 2018 -0400
+
+    frsky telemetry hdop tweak
+
+[33mcommit 6c0e85ea3fb513187a55b0cf27bdeee00e7d729d[m
+Merge: 461745b 3f11518
+Author: Tim Eckel <tim@leethost.com>
+Date:   Wed Jul 4 14:32:21 2018 -0400
+
+    Merge pull request #2 from iNavFlight/development
+    
+    Sync with main repo
+
+[33mcommit 4920fb3c7603dbb9421cff89b3be90765990c19b[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Wed Jul 4 18:48:29 2018 +0200
+
+    Remove trailing space in CLI servo output lines
+
+[33mcommit c1fc5480d0b506036f1be98670e27d891636ecdf[m
+Author: giacomo892 <giacomo892@users.noreply.github.com>
+Date:   Wed Jul 4 15:33:18 2018 +0200
+
+    Remove posZ constrain
+
+[33mcommit 884acf7cafd566521056dbfa5be8aab37ddce1ef[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Tue Jul 3 23:53:40 2018 +0200
+
+    Make failsafe_throttle_low_delay default 0
+
+[33mcommit 3f115185b92901c351ec90ccd70ebc0eb69c6f0e[m
+Merge: 16616fa a2c4019
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Tue Jul 3 19:39:37 2018 +0100
+
+    Merge pull request #3481 from shellixyz/better_coding_practices_sagCompensatedVBatUpdate
+    
+    Use better coding practices in sagCompensatedVBatUpdate()
+
+[33mcommit 2b4c6acbb25c73b844e2bacbadee3336d67b244f[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Tue Jul 3 15:58:36 2018 +0200
+
+    Replace feature(FEATURE_CURRENT_METER) by isAmperageConfigured() where it makes sense
+    
+    The `CURRENT_METER` feature can be enableb but the current meter type
+    could have been set to none
+
+[33mcommit b846044322d80ded767353db31304749063f939d[m
+Author: Michel Pastor <shellixyz@gmail.com>
+Date:   Tue Jul 3 15:39:02 2018 +0200
+
+    Fix flight timer for fixed wing when not using launch mode
+
+[33mcommit 16616fa1b0da229ca30973ec2de324d9905e8d29[m
+Merge: 6c7eca3 8fab8a2
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Tue Jul 3 11:08:56 2018 +0100
+
+    Merge pull request #3493 from shellixyz/update_docs
+    
+    Update documentation
+
+[33mcommit 6c7eca3395c595f0da668d9213d22144939cbcf6[m
+Merge: 6ac165c 44b72b4
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Tue Jul 3 10:55:52 2018 +0100
+
+    Merge pull request #3494 from shellixyz/remove_duplicated_setting
+    
+    Remove duplicated setting
+
+[33mcommit 6ac165ca1b9367ccf502e729560ee32630b2c88a[m
+Merge: 6a0a25a e4d9425
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Tue Jul 3 10:54:50 2018 +0100
+
+    Merge pull request #3504 from iNavFlight/agh_fix_tests
+    
+    Fix broken tests, require them to pass in Travis checks
+
+[33mcommit 461745b59c7d81d46b65768aafd3a729cc5d306b[m
+Merge: 9ebdb83 6a0a25a
+Author: Tim Eckel <tim@leethost.com>
+Date:   Mon Jul 2 18:26:14 2018 -0400
+
+    Merge pull request #1 from iNavFlight/development
+    
+    Sync with development
+
+[33mcommit e4d9425a55c0668e5e2c88ff51bd15ba54b45e28[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 2 22:12:37 2018 +0100
+
+    Make calculateRxChannelsAndUpdateFailsafe() return true at the end
+    
+    This makes it return true when the channels have been updated
+
+[33mcommit f672affa8e60a6aa0e92954e8f0c4ea24d98e7e8[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 2 22:12:05 2018 +0100
+
+    Add missing include in CMS menus that reference setting IDs
+    
+    Header was accidentally included by cms/cms.h
+
+[33mcommit ee7bb8050552622ed47500e20cd240299c799a93[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 2 21:58:57 2018 +0100
+
+    Require test to actually pass when running make test
+    
+    The Makefile was returning success via || true even if the tests
+    failed to run.
+
+[33mcommit b9259d1df985b6a6156a6eb2009345f7dc36c5d7[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 2 21:55:37 2018 +0100
+
+    Disable rcdevice tests
+    
+    Unit test now compiles, but unfortunately it seems that the tests
+    are incorrectly mocking the device responses and a new driver is
+    on the way, so there's no reason to fix this test for now.
+
+[33mcommit cbd3fcdbf6573a24b668e9d16311fb0afdc9764d[m
+Author: Alberto García Hierro <alberto@garciahierro.com>
+Date:   Mon Jul 2 21:40:47 2018 +0100
+
+    Fix hott telemetry unit tests
+    
+    openSerial() and getAmperage() needed prototype changes

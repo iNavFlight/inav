@@ -2137,7 +2137,7 @@ void updateHomePosition(void)
 			}
 			
             int y=0; // plane array init
-            for (int i = 100; i < 106; i++) { //store waypoint 1 to 5
+            for (int i = 100; i < 105; i++) { //store waypoint 1 to 5
                     getWaypoint(i,&planesInfos[y].planeWP); //load waypoint informations
                     planesInfos[y].wp_nb=i; //store wp number
                     
