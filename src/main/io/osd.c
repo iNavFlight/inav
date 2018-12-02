@@ -881,6 +881,19 @@ static int osdGetHeadingAngle(int angle)
  * in-out used to store the last position where the craft was drawn to avoid
  * erasing all screen on each redraw.
  */
+
+//START CAMILLE
+
+static void clearDraw(uint16_t *drawn, uint32_t *usedScale)
+{
+    if (OSD_VISIBLE(*drawn)) {
+        displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
+        *drawn = 0;
+    }
+}
+
+//END CAMILLE
+
 static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym,
                        uint32_t poiDistance, int16_t poiDirection, uint8_t poiSymbol,
                        uint16_t *drawn, uint32_t *usedScale)
@@ -914,10 +927,14 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     // First, erase the previous drawing.
     //START CAMILE
     //Remove this function to clear when all is drawed
+
+    //START CAMILLE
+    
     /*if (OSD_VISIBLE(*drawn)) {
         displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
         *drawn = 0;
     }*/
+
     //END CAMILLE
 
     uint32_t initialScale;
@@ -1396,11 +1413,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     osdDrawRadarWP(planesInfos[i].GPS_directionToMe,planesInfos[i].planePoiDirection,&drawn, &scale);
                 }
             }
-            //CLEAR all after displayed to refresh
-            if (OSD_VISIBLE(*drawn)) {
-                displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
-                *drawn = 0;
-            }
+            clearDraw(&drawn, &scale);
 //END CAMILLE
 
             return true;

@@ -2150,6 +2150,7 @@ void updateHomePosition(void)
                     planesInfos[y].planePoiDirection=calculateDistanceToDestination(&posPlane);
 					y++; 
                 }
+                
 
             //END CAMILLE
 
