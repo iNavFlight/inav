@@ -958,6 +958,10 @@ groups:
         field: fixedWingCoordinatedYawGain
         min: 0
         max: 2
+      - name: fw_iterm_limit_stick_position
+        field: fixedWingItermLimitOnStickPosition
+        min: 0
+        max: 1
       - name: dterm_notch_hz
         field: dterm_soft_notch_hz
         condition: USE_DTERM_NOTCH

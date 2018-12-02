@@ -84,6 +84,7 @@ typedef struct {
 #ifdef USE_DTERM_NOTCH
     biquadFilter_t deltaNotchFilter;
 #endif
+    float stickPosition;
 } pidState_t;
 
 #ifdef USE_DTERM_NOTCH
@@ -107,7 +108,7 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 4);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 5);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -191,6 +192,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingItermThrowLimit = FW_ITERM_THROW_LIMIT_DEFAULT,
         .fixedWingReferenceAirspeed = 1000,
         .fixedWingCoordinatedYawGain = 1.0f,
+        .fixedWingItermLimitOnStickPosition = 0.5f,
 );
 
 void pidInit(void)
@@ -352,6 +354,13 @@ void updatePIDCoefficients(void)
         }
     }
 
+    /*
+     * Compute stick position in range of [-1.0f : 1.0f] without deadband and expo
+     */
+    for (int axis = 0; axis < 3; axis++) {
+        pidState[axis].stickPosition = constrain(rcData[axis] - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
+    }
+
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
@@ -457,6 +466,19 @@ static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_i
     }
 }
 
+bool isFixedWingItermLimitActive(float stickPosition)
+{
+    /*
+     * Iterm anti windup whould be active only when pilot controls the rotation
+     * velocity directly, not when ANGLE or HORIZON are used
+     */
+    if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
+        return false;
+    }
+
+    return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
+}
+
 static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
@@ -473,7 +495,7 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
     // Calculate integral
     pidState->errorGyroIf += rateError * pidState->kI * dT;
 
-    if (STATE(ANTI_WINDUP)) {
+    if (STATE(ANTI_WINDUP) || isFixedWingItermLimitActive(pidState->stickPosition)) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
     } else {
         pidState->errorGyroIfLimit = ABS(pidState->errorGyroIf);
