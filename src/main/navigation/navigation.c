@@ -2124,28 +2124,12 @@ void updateHomePosition(void)
   
             /* LLH Location in NEU axis system */
 
-            //START CAMILLE
-				
-			//CREATE FAKE WAYPOINT TO TEST
-			navWaypoint_t testwp;
-			testwp.action = NAV_WP_ACTION_WAYPOINT;
-			testwp.lat = 473455203;
-			testwp.lon = -15422623;
-			testwp.alt = 500;
-			testwp.p1 = 0;
-			testwp.p2 = 0;
-			testwp.p3 = 0;
-			testwp.flag = NAV_WP_FLAG_LAST;
-			
-			setWaypoint(100,&testwp);
-			
-			
-			
+            //START CAMILLE			
 			
             gpsLocation_t planeLocation;
             fpVector3_t posPlane;
 			
-			//INITIALISE 5 PLANES
+			//INITIALISE 5 PLANES (waypoint 100 to 105)
 			for (int i = 0; i < 4; i++) {
 				planesInfos[i].planeWP.lat=0;
 				planesInfos[i].planeWP.lon=0;
@@ -2153,11 +2137,11 @@ void updateHomePosition(void)
 			}
 			
             int y=0; // plane array init
-            for (int i = 100; i < 104; i++) {
+            for (int i = 100; i < 106; i++) { //store waypoint 1 to 5
                     getWaypoint(i,&planesInfos[y].planeWP); //load waypoint informations
                     planesInfos[y].wp_nb=i; //store wp number
                     
-                    //Create gpsLocation_t to Convert to POS with  geoConvertGeodeticToLocal
+                    //Create gpsLocation_t in order to Convert to POS vector with  geoConvertGeodeticToLocal
                     planeLocation.lat=planesInfos[y].planeWP.lat;
                     planeLocation.lon=planesInfos[y].planeWP.lon;
                     planeLocation.alt=planesInfos[y].planeWP.alt;
