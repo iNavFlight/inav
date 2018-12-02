@@ -89,12 +89,12 @@ static bool mavlinkTelemetryEnabled =  false;
 static portSharing_e mavlinkPortSharing;
 
 /* MAVLink datastream rates in Hz */
-static const uint8_t mavRates[] = {
+static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_EXTENDED_STATUS] = 2, //2Hz
     [MAV_DATA_STREAM_RC_CHANNELS] = 5, //5Hz
     [MAV_DATA_STREAM_POSITION] = 2, //2Hz
     [MAV_DATA_STREAM_EXTRA1] = 10, //10Hz
-    [MAV_DATA_STREAM_EXTRA2] = 10 //2Hz
+    [MAV_DATA_STREAM_EXTRA2] = 2 //2Hz
 };
 
 #define MAXSTREAMS (sizeof(mavRates) / sizeof(mavRates[0]))
@@ -168,6 +168,26 @@ void configureMAVLinkTelemetryPort(void)
     mavlinkTelemetryEnabled = true;
 }
 
+static void configureMAVLinkStreamRates(void)
+{
+
+    if(telemetryConfig()->mavExtendedStatusRate > 0)
+        mavRates[MAV_DATA_STREAM_EXTENDED_STATUS] = telemetryConfig()->mavExtendedStatusRate;
+
+    if(telemetryConfig()->mavRcChannelsRate > 0)
+        mavRates[MAV_DATA_STREAM_RC_CHANNELS] = telemetryConfig()->mavRcChannelsRate;
+
+    if(telemetryConfig()->mavPositionRate > 0)
+        mavRates[MAV_DATA_STREAM_POSITION] = telemetryConfig()->mavPositionRate;
+
+    if(telemetryConfig()->mavExtra1Rate > 0)
+        mavRates[MAV_DATA_STREAM_EXTRA1] = telemetryConfig()->mavExtra1Rate;
+
+    if(telemetryConfig()->mavExtra2Rate > 0)
+        mavRates[MAV_DATA_STREAM_EXTRA2] = telemetryConfig()->mavExtra2Rate;
+
+}
+
 void checkMAVLinkTelemetryState(void)
 {
     bool newTelemetryEnabledValue = telemetryDetermineEnabledState(mavlinkPortSharing);
@@ -176,8 +196,10 @@ void checkMAVLinkTelemetryState(void)
         return;
     }
 
-    if (newTelemetryEnabledValue)
+    if (newTelemetryEnabledValue){
         configureMAVLinkTelemetryPort();
+        configureMAVLinkStreamRates();
+    }
     else
         freeMAVLinkTelemetryPort();
 }

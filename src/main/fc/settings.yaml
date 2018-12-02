@@ -1459,6 +1459,26 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
+      - name: mavlink_extended_status_rate
+        field: mavExtendedStatusRate
+        min: 0
+        max: 255
+      - name: mavlink_rc_channels_rate
+        field: mavRcChannelsRate
+        min: 0
+        max: 255
+      - name: mavlink_position_rate
+        field: mavPositionRate
+        min: 0
+        max: 255
+      - name: mavlink_extra1_rate
+        field: mavExtra1Rate
+        min: 0
+        max: 255
+      - name: mavlink_extra2_rate
+        field: mavExtra2Rate
+        min: 0
+        max: 255
 
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
