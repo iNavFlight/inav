@@ -659,6 +659,7 @@ static const char * osdFailsafeInfoMessage(void)
 
 static const char * navigationStateMessage(void)
 {
+
     switch (NAV_Status.state) {
         case MW_NAV_STATE_NONE:
             break;
@@ -1383,7 +1384,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             static uint16_t drawn = 0;
             static uint32_t scale = 0;
-            osdDrawRadar(&drawn, &scale); 
+         //   osdDrawRadar(&drawn, &scale); 
 //START CAMILLE
             for (int i = 0; i < 5; i++) {   
                 if (planesInfos[i].planeWP.lat!=0){            

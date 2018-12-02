@@ -2125,6 +2125,23 @@ void updateHomePosition(void)
             /* LLH Location in NEU axis system */
 
             //START CAMILLE
+				
+			//CREATE FAKE WAYPOINT TO TEST
+			navWaypoint_t testwp;
+			testwp.action = NAV_WP_ACTION_WAYPOINT;
+			testwp.lat = 473455203;
+			testwp.lon = -15422623;
+			testwp.alt = 500;
+			testwp.p1 = 0;
+			testwp.p2 = 0;
+			testwp.p3 = 0;
+			testwp.flag = NAV_WP_FLAG_LAST;
+			
+			setWaypoint(100,&testwp);
+			
+			
+			
+			
             gpsLocation_t planeLocation;
             fpVector3_t posPlane;
 			
