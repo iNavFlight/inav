@@ -33,8 +33,6 @@ extern gpsLocation_t        GPS_home;
 extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
 
-//START CAMILLE
-
 
 typedef struct {
     uint8_t action;
@@ -44,6 +42,8 @@ typedef struct {
     int16_t p1, p2, p3;
     uint8_t flag;
 } navWaypoint_t;
+//START CAMILLE
+
 
 typedef struct wp_planes_s  {
 navWaypoint_t planeWP;
@@ -52,7 +52,7 @@ int16_t GPS_directionToMe;
 int16_t planePoiDirection;
 } wp_planes_t;
 
-extern wp_planes_t   planesInfos[4];
+extern wp_planes_t  planesInfos[4];
 //END CAMILLE
 
 extern bool autoThrottleManuallyIncreased;

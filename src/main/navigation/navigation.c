@@ -70,8 +70,10 @@
 gpsLocation_t GPS_home;
 uint16_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
+//START CAMILLE
+wp_planes_t  planesInfos[4];
 
-
+//END CAM
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
@@ -2125,6 +2127,14 @@ void updateHomePosition(void)
             //START CAMILLE
             gpsLocation_t planeLocation;
             fpVector3_t posPlane;
+			
+			//INITIALISE 5 PLANES
+			for (int i = 0; i < 5; i++) {
+				planesInfos[i].planeWP.lat=0;
+				planesInfos[i].planeWP.lon=0;
+				planesInfos[i].planeWP.alt=0;
+			}
+			
             int y=100; // waypoint number start at 100 to 105 (up to 5 planes)
             for (int i = 100; i < 106; i++) {
                     getWaypoint(i,&planesInfos[y].planeWP); //load waypoint informations
