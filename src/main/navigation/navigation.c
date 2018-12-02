@@ -2152,7 +2152,7 @@ void updateHomePosition(void)
 				planesInfos[i].planeWP.alt=0;
 			}
 			
-            int y=100; // waypoint number start at 100 to 105 (up to 5 planes)
+            int y=0; // plane array init
             for (int i = 100; i < 106; i++) {
                     getWaypoint(i,&planesInfos[y].planeWP); //load waypoint informations
                     planesInfos[y].wp_nb=i; //store wp number

@@ -1386,6 +1386,8 @@ static bool osdDrawSingleElement(uint8_t item)
             static uint32_t scale = 0;
          //   osdDrawRadar(&drawn, &scale); 
 //START CAMILLE
+        
+
             for (int i = 0; i < 5; i++) {   
                 if (planesInfos[i].planeWP.lat!=0){            
                     osdDrawRadarWP(planesInfos[i].GPS_directionToMe,planesInfos[i].planePoiDirection,&drawn, &scale);
