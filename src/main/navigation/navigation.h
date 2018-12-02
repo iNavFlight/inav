@@ -52,7 +52,7 @@ int16_t GPS_directionToMe;
 int16_t planePoiDirection;
 } wp_planes_t;
 
-extern wp_planes_t  planesInfos[4];
+extern wp_planes_t  planesInfos[5];
 //END CAMILLE
 
 extern bool autoThrottleManuallyIncreased;
