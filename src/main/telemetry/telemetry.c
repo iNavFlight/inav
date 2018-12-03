@@ -66,6 +66,11 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .smartportFuelUnit = SMARTPORT_FUEL_UNIT_MAH,
     .ibusTelemetryType = 0,
     .ltmUpdateRate = LTM_RATE_NORMAL,
+    .mavlink_extended_status_rate = 2,
+    .mavlink_rc_channels_rate = 5,
+    .mavlink_position_rate = 2,
+    .mavlink_extra1_rate = 10,
+    .mavlink_extra2_rate = 2
 );
 
 void telemetryInit(void)

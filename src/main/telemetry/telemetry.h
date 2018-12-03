@@ -68,11 +68,11 @@ typedef struct telemetryConfig_s {
     smartportFuelUnit_e smartportFuelUnit;
     uint8_t ibusTelemetryType;
     uint8_t ltmUpdateRate;
-    uint8_t mavExtendedStatusRate;
-    uint8_t mavRcChannelsRate;
-    uint8_t mavPositionRate;
-    uint8_t mavExtra1Rate;
-    uint8_t mavExtra2Rate;
+    uint8_t mavlink_extended_status_rate;
+    uint8_t mavlink_rc_channels_rate;
+    uint8_t mavlink_position_rate;
+    uint8_t mavlink_extra1_rate;
+    uint8_t mavlink_extra2_rate;
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);

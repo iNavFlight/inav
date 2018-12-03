@@ -170,22 +170,11 @@ void configureMAVLinkTelemetryPort(void)
 
 static void configureMAVLinkStreamRates(void)
 {
-
-    if(telemetryConfig()->mavExtendedStatusRate > 0)
-        mavRates[MAV_DATA_STREAM_EXTENDED_STATUS] = telemetryConfig()->mavExtendedStatusRate;
-
-    if(telemetryConfig()->mavRcChannelsRate > 0)
-        mavRates[MAV_DATA_STREAM_RC_CHANNELS] = telemetryConfig()->mavRcChannelsRate;
-
-    if(telemetryConfig()->mavPositionRate > 0)
-        mavRates[MAV_DATA_STREAM_POSITION] = telemetryConfig()->mavPositionRate;
-
-    if(telemetryConfig()->mavExtra1Rate > 0)
-        mavRates[MAV_DATA_STREAM_EXTRA1] = telemetryConfig()->mavExtra1Rate;
-
-    if(telemetryConfig()->mavExtra2Rate > 0)
-        mavRates[MAV_DATA_STREAM_EXTRA2] = telemetryConfig()->mavExtra2Rate;
-
+    mavRates[MAV_DATA_STREAM_EXTENDED_STATUS] = telemetryConfig()->mavlink_extended_status_rate;
+    mavRates[MAV_DATA_STREAM_RC_CHANNELS] = telemetryConfig()->mavlink_rc_channels_rate;
+    mavRates[MAV_DATA_STREAM_POSITION] = telemetryConfig()->mavlink_position_rate;
+    mavRates[MAV_DATA_STREAM_EXTRA1] = telemetryConfig()->mavlink_extra1_rate;
+    mavRates[MAV_DATA_STREAM_EXTRA2] = telemetryConfig()->mavlink_extra2_rate;
 }
 
 void checkMAVLinkTelemetryState(void)

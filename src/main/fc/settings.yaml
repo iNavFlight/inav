@@ -1460,23 +1460,28 @@ groups:
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
       - name: mavlink_extended_status_rate
-        field: mavExtendedStatusRate
+        field: mavlink_extended_status_rate
+        type: uint8_t
         min: 0
         max: 255
       - name: mavlink_rc_channels_rate
-        field: mavRcChannelsRate
+        field: mavlink_rc_channels_rate
+        type: uint8_t
         min: 0
         max: 255
       - name: mavlink_position_rate
-        field: mavPositionRate
+        field: mavlink_position_rate
+        type: uint8_t
         min: 0
         max: 255
       - name: mavlink_extra1_rate
-        field: mavExtra1Rate
+        field: mavlink_extra1_rate
+        type: uint8_t
         min: 0
         max: 255
       - name: mavlink_extra2_rate
-        field: mavExtra2Rate
+        field: mavlink_extra2_rate
+        type: uint8_t
         min: 0
         max: 255
 
