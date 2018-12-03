@@ -1257,8 +1257,8 @@ static void writeGPSFrame(timeUs_t currentTimeUs)
     blackboxWriteUnsignedVB(gpsSol.hdop);
     blackboxWriteUnsignedVB(gpsSol.eph);
     blackboxWriteUnsignedVB(gpsSol.epv);
-    blackboxWriteSignedVBArray(gpsSol.velNED, XYZ_AXIS_COUNT);
-    
+    blackboxWriteSigned16VBArray(gpsSol.velNED, XYZ_AXIS_COUNT);
+
     gpsHistory.GPS_numSat = gpsSol.numSat;
     gpsHistory.GPS_coord[0] = gpsSol.llh.lat;
     gpsHistory.GPS_coord[1] = gpsSol.llh.lon;
