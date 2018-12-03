@@ -928,12 +928,12 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     //START CAMILE
     //Remove this function to clear when all is drawed
 
-    //START CAMILLE
     
-    /*if (OSD_VISIBLE(*drawn)) {
+    
+    if (OSD_VISIBLE(*drawn)) {
         displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
         *drawn = 0;
-    }*/
+    }
 
     //END CAMILLE
 
@@ -1404,7 +1404,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             static uint16_t drawn = 0;
             static uint32_t scale = 0;
-            osdDrawRadar(&drawn, &scale); 
+           // osdDrawRadar(&drawn, &scale); 
 //START CAMILLE
         
 
