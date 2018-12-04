@@ -44,11 +44,13 @@ const timerHardware_t timerHardware[] = {
     // { TIM9,  IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM9, TIM_USE_MC_MOTOR                    | TIM_USE_FW_SERVO }, // MOTOR_3
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S5_OUT
-    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                                              0, 0), // LED strip for F4 V2 / F4-Pro-0X and later (RCD_CS for F4)
 #else
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S5_OUT
 #endif
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S6_OUT
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
+    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                                              0, 0), // LED strip for F4 V2 / F4-Pro-0X and later (RCD_CS for F4)
+#endif
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
