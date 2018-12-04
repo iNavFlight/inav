@@ -50,7 +50,7 @@ tables:
   - name: reset_type
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
   - name: direction
-    values: ["RIGHT", "LEFT"]
+    values: ["RIGHT", "LEFT", "YAW"]
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode

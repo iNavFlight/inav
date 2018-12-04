@@ -43,6 +43,7 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "navigation/navigation.h"
@@ -63,6 +64,7 @@ static bool isRollAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
+static int8_t loiterDirYaw = 1;
 
 
 /*-----------------------------------------------------------
@@ -214,8 +216,15 @@ void resetFixedWingPositionController(void)
 }
 
 static int8_t loiterDirection(void) {
-    if (pidProfile()->loiter_direction == NAV_LOITER_LEFT) return -1;
-    else return 1;
+    int8_t dir = 1; //NAV_LOITER_RIGHT
+    if (pidProfile()->loiter_direction == NAV_LOITER_LEFT) dir = -1;
+    if (pidProfile()->loiter_direction == NAV_LOITER_YAW) {
+        if (rcCommand[YAW] < -250) loiterDirYaw = 1; //RIGHT //yaw is contrariwise
+        if (rcCommand[YAW] > 250) loiterDirYaw = -1; //LEFT  //see annexCode in fc_core.c
+        dir = loiterDirYaw;
+    }
+    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) dir *= -1;
+    return dir;
 }
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)

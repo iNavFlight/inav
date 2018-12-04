@@ -54,7 +54,8 @@ enum {
 
 enum {
     NAV_LOITER_RIGHT = 0,                    // Loitering direction right
-    NAV_LOITER_LEFT  = 1                     // Loitering direction left
+    NAV_LOITER_LEFT  = 1,                    // Loitering direction left
+    NAV_LOITER_YAW   = 2
 };
 
 enum {
