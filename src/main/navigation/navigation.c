@@ -2121,36 +2121,36 @@ void updateHomePosition(void)
         // Update distance and direction to home if armed (home is not updated when armed)
         if (STATE(GPS_FIX_HOME)) {
 
-  
+
             /* LLH Location in NEU axis system */
 
-            //START CAMILLE			
-			
+            //START CAMILLE
+
             gpsLocation_t planeLocation;
             fpVector3_t posPlane;
-			
+
 			//INITIALISE 5 PLANES (waypoint 100 to 105)
 			for (int i = 0; i < 4; i++) {
 				planesInfos[i].planeWP.lat=0;
 				planesInfos[i].planeWP.lon=0;
 				planesInfos[i].planeWP.alt=0;
 			}
-			
+
             int y=0; // plane array init
-            for (int i = 100; i < 105; i++) { //store waypoint 1 to 5
+            for (int i = 1; i < 6; i++) { //store waypoint 1 to 5
                     getWaypoint(i,&planesInfos[y].planeWP); //load waypoint informations
                     planesInfos[y].wp_nb=i; //store wp number
-                    
+
                     //Create gpsLocation_t in order to Convert to POS vector with  geoConvertGeodeticToLocal
                     planeLocation.lat=planesInfos[y].planeWP.lat;
                     planeLocation.lon=planesInfos[y].planeWP.lon;
                     planeLocation.alt=planesInfos[y].planeWP.alt;
-                    geoConvertGeodeticToLocal(&posControl.gpsOrigin, &planeLocation, &posPlane, GEO_ALT_ABSOLUTE);        
+                    geoConvertGeodeticToLocal(&posControl.gpsOrigin, &planeLocation, &posPlane, GEO_ALT_ABSOLUTE);
                     planesInfos[y].GPS_directionToMe= calculateDistanceToDestination(&posPlane);
                     planesInfos[y].planePoiDirection=calculateDistanceToDestination(&posPlane);
-					y++; 
+					y++;
                 }
-                
+
 
             //END CAMILLE
 

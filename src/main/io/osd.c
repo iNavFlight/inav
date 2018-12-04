@@ -928,8 +928,8 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     //START CAMILE
     //Remove this function to clear when all is drawed
 
-    
-    
+
+
     if (OSD_VISIBLE(*drawn)) {
         displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
         *drawn = 0;
@@ -1404,16 +1404,16 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             static uint16_t drawn = 0;
             static uint32_t scale = 0;
-           // osdDrawRadar(&drawn, &scale); 
+           // osdDrawRadar(&drawn, &scale);
 //START CAMILLE
-        
 
-            for (int i = 0; i < 4; i++) {   
-                if (planesInfos[i].planeWP.lat!=0){            
+
+            for (int i = 0; i < 4; i++) {
+                if (planesInfos[i].planeWP.lat!=0){
                     osdDrawRadarWP(planesInfos[i].GPS_directionToMe,planesInfos[i].planePoiDirection,&drawn, &scale);
                 }
             }
-            clearDraw(&drawn, &scale);
+            //clearDraw(&drawn, &scale);
 //END CAMILLE
 
             return true;
