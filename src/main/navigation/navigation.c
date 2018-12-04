@@ -1901,6 +1901,15 @@ uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 
     return sqrtf(sq(deltaX) + sq(deltaY));
 }
+//START CAM
+
+uint32_t calculateAltitudeToMe(const fpVector3_t * destinationPos)
+{
+    const float deltaZ = destinationPos->z - navGetCurrentActualPositionAndVelocity()->pos.z;
+
+    return deltaZ;
+}
+//END CAM
 
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
 {
