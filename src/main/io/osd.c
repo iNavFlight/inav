@@ -884,7 +884,7 @@ static int osdGetHeadingAngle(int angle)
 
 //START CAMILLE
 
-static void clearDraw(uint16_t *drawn, uint32_t *usedScale)
+static void clearDraw(uint16_t *drawn)
 {
     if (OSD_VISIBLE(*drawn)) {
         displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
@@ -929,11 +929,12 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     //Remove this function to clear when all is drawed
 
 
-
+/*
     if (OSD_VISIBLE(*drawn)) {
         displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
         *drawn = 0;
     }
+*/
 
     //END CAMILLE
 
@@ -1413,7 +1414,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     osdDrawRadarWP(planesInfos[i].GPS_directionToMe,planesInfos[i].planePoiDirection,&drawn, &scale);
                 }
             }
-            //clearDraw(&drawn, &scale);
+            clearDraw(&drawn);
 //END CAMILLE
 
             return true;
