@@ -49,10 +49,14 @@ typedef struct wp_planes_s  {
 navWaypoint_t planeWP;
 uint32_t wp_nb;
 int16_t GPS_directionToMe;
+int16_t GPS_altitudeToMe;
 int16_t planePoiDirection;
 } wp_planes_t;
 
-extern wp_planes_t  planesInfos[5];
+//Numbers MAX of planes
+#define MAX_PLANES    5
+
+extern wp_planes_t  planesInfos[MAX_PLANES];
 //END CAMILLE
 
 extern bool autoThrottleManuallyIncreased;

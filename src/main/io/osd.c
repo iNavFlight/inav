@@ -123,6 +123,8 @@
     x; \
 })
 
+
+
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 
@@ -288,6 +290,26 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
         }
         break;
     }
+}
+//START CAM
+/**
+ * Get the minimum value in Array
+ * @param numbers of planes
+ */
+static int getNearPlaneNumber() {
+  int c, min, index;
+ 
+  min = planesInfos[0].planeWP.alt;
+  index = 0;
+ 
+  for (c = 0; c < MAX_PLANES; c++) {
+    if (planesInfos[c].planeWP.alt < min) {
+       index = c;
+       min = planesInfos[c].planeWP.alt;
+    }
+  }
+ 
+  return index;
 }
 
 /**
@@ -919,7 +941,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
         displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
         *drawn = 0;
     }
-    
+
     uint32_t initialScale;
     float scaleToUnit;
     int scaleUnitDivisor;
@@ -1040,15 +1062,19 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
 }
 
 
-
+//START CAMILLE
 static void osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *drawn, uint32_t *usedScale)
 {
-
     //REMOVE CENTER SYMP
     //REMOVE BLINKING WHEN POINT OVER ME
     int referenceHeading=DECIDEGREES_TO_DEGREES(osdGetHeading());
     uint8_t referenceSym=0;
     uint32_t poiDistance=planes[plane_id].GPS_directionToMe;
+    
+    //TODO : TEST FRONT VIEW EXPERIMENTAL
+    //uint32_t poiDistance=planes[plane_id].GPS_altitudeToMe;
+
+
     int16_t poiDirection=osdGetHeadingAngle(planes[plane_id].planePoiDirection + 180);
     uint8_t poiSymbol=SYM_ARROW_DOWN;
 
@@ -1185,6 +1211,16 @@ static void osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *drawn, u
     buf[4] = '\0';
     displayWrite(osdDisplayPort, minX + 1, maxY, buf);
     *usedScale = scale;
+
+    //DRAW altitude of nearest plane EXPERIMENTAL
+    /*
+    int nearPlaneNumber=getNearPlaneNumber()
+    buf[3] = planes[getNearPlaneNumber].planeWP.alt;
+    buf[4] = 'm';
+    displayWrite(osdDisplayPort, minX + 1, maxY+1, buf);    
+    */
+
+
 }
 
 /* Draws a map with the home in the center and the craft moving around.
@@ -1528,8 +1564,8 @@ static bool osdDrawSingleElement(uint8_t item)
            // osdDrawRadar(&drawn, &scale);
 //START CAMILLE
 
-
-            for (int i = 0; i < 4; i++) {
+            //DISPLAY RADARMAP
+            for (int i = 0; i < (MAX_PLANES); i++) {
                 if (planesInfos[i].planeWP.lat!=0){
                     osdDrawRadarMap(planesInfos,i,&drawn, &scale);
                 }
