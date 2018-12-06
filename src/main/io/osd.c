@@ -1074,13 +1074,8 @@ static void osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *drawn, u
     wp_planes_t currentPlane=planes[plane_id];
     uint32_t poiDistance=currentPlane.GPS_directionToMe;
 
-    //GET CURRENTPLANE
-   
-
     //TODO : TEST FRONT VIEW EXPERIMENTAL
     //uint32_t poiDistance=planes[plane_id].GPS_altitudeToMe;
-
-
     int16_t poiDirection=osdGetHeadingAngle(currentPlane.planePoiDirection + 180);
     uint8_t poiSymbol=SYM_ARROW_DOWN;
 
@@ -1109,7 +1104,7 @@ static void osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *drawn, u
     }
     displayWriteChar(osdDisplayPort, minX, maxY, SYM_SCALE);
 
-     if (OSD_VISIBLE(*drawn)) {
+     if (OSD_VISIBLE(currentPlane.drawn)) {
         displayWriteChar(osdDisplayPort, OSD_X(currentPlane.drawn), OSD_Y(currentPlane.drawn), SYM_BLANK);
         *drawn = 0;
     }

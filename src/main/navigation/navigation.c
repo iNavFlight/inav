@@ -2141,6 +2141,7 @@ void updateHomePosition(void)
 			//INITIALISE 5 PLANES (waypoint 100 to 105)
 			for (int i = 0; i < 4; i++) {
 				planesInfos[i].planeWP.lat=0;
+                planesInfos[i].drawn=0;
 				planesInfos[i].planeWP.lon=0;
 				planesInfos[i].planeWP.alt=0;
 			}
