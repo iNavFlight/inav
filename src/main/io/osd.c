@@ -167,7 +167,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 4);
 
 static int digitCount(int32_t value)
 {
@@ -2518,6 +2518,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->estimations_wind_compensation = true;
     osdConfig->coordinate_digits = 9;
+
+    osdConfig->osd_failsafe_switch_layout = false;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
@@ -2773,9 +2775,9 @@ static void osdShowArmed(void)
 static void osdRefresh(timeUs_t currentTimeUs)
 {
 #ifdef USE_CMS
-    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #else
-    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #endif
       displayClearScreen(osdDisplayPort);
       armState = ARMING_FLAG(ARMED);
@@ -2848,6 +2850,8 @@ void osdUpdate(timeUs_t currentTimeUs)
     unsigned activeLayout;
     if (layoutOverride >= 0) {
         activeLayout = layoutOverride;
+    } else if (osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE)) {
+        activeLayout = 0;
     } else {
 #if OSD_ALTERNATE_LAYOUT_COUNT > 2
         if (IS_RC_MODE_ACTIVE(BOXOSDALT3))
