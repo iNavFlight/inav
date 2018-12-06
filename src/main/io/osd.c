@@ -1064,31 +1064,24 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
 
 //START CAMILLE
 
-//ADD THIS NEW FUNCTION
-static void clearPlanesPoints(osd_point_t point) {
-
-if (OSD_VISIBLE(point.drawn)) {   
-        displayWriteChar(osdDisplayPort, OSD_X(point.drawn), OSD_Y(point.drawn), SYM_BLANK);
-    }
-}
-
 //REPLACE ORIGINAL FUNCTION (keep care it begin by static uint16 now)
-static osd_point_t osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *drawn, uint32_t *usedScale)
+static void osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *drawn, uint32_t *usedScale)
 {
-    //REMOVE CENTER SYMP
-    //REMOVE BLINKING WHEN POINT OVER ME
+    //REMOVED CENTER SYMP
+    //REMOVED BLINKING WHEN POINT OVER ME
     int referenceHeading=DECIDEGREES_TO_DEGREES(osdGetHeading());
     uint8_t referenceSym=0;
-    uint32_t poiDistance=planes[plane_id].GPS_directionToMe;
-    osd_point_t pointToClear;
+    wp_planes_t currentPlane=planes[plane_id];
+    uint32_t poiDistance=currentPlane.GPS_directionToMe;
 
-
+    //GET CURRENTPLANE
+   
 
     //TODO : TEST FRONT VIEW EXPERIMENTAL
     //uint32_t poiDistance=planes[plane_id].GPS_altitudeToMe;
 
 
-    int16_t poiDirection=osdGetHeadingAngle(planes[plane_id].planePoiDirection + 180);
+    int16_t poiDirection=osdGetHeadingAngle(currentPlane.planePoiDirection + 180);
     uint8_t poiSymbol=SYM_ARROW_DOWN;
 
     // TODO: These need to be tested with several setups. We might
@@ -1115,12 +1108,12 @@ static osd_point_t osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *d
         displayWriteChar(osdDisplayPort, maxX, minY + 1, referenceSym);
     }
     displayWriteChar(osdDisplayPort, minX, maxY, SYM_SCALE);
-/*
+
      if (OSD_VISIBLE(*drawn)) {
-        displayWriteChar(osdDisplayPort, OSD_X(*drawn), OSD_Y(*drawn), SYM_BLANK);
+        displayWriteChar(osdDisplayPort, OSD_X(currentPlane.drawn), OSD_Y(currentPlane.drawn), SYM_BLANK);
         *drawn = 0;
     }
-*/
+
 
 
     uint32_t initialScale;
@@ -1216,15 +1209,16 @@ static osd_point_t osdDrawRadarMap(wp_planes_t *planes,int plane_id, uint16_t *d
                 int mapHeading = osdGetHeadingAngle(DECIDEGREES_TO_DEGREES(osdGetHeading()) - referenceHeading);
                 poiSymbol += mapHeading * 2 / 45;
             }
+    			 
             displayWriteChar(osdDisplayPort, poiX, poiY, poiSymbol);
 
             // Update saved location
             *drawn = OSD_POS(poiX, poiY) | OSD_VISIBLE_FLAG;
-            //RECORD POSITION TO BE DELETED AFTER ALL DRAWING
-            pointToClear.drawn=*drawn;
+            //STORE POSITION IN ORDER TO BE DELETED IF NEW UPDATE
+            currentPlane.drawn=*drawn;
             break;
         }
-		return pointToClear;
+	
     }
 
     // Draw the used scale
@@ -1584,21 +1578,16 @@ static bool osdDrawSingleElement(uint8_t item)
             {
                 static uint16_t drawn = 0;
                 static uint32_t scale = 0;
-    			 osd_point_t pointsToClear[MAX_PLANES];
                // osdDrawRadar(&drawn, &scale);
     //START CAMILLE
 
                 //DISPLAY RADARMAP
                 for (int i = 0; i < (MAX_PLANES); i++) {
                     if (planesInfos[i].planeWP.lat!=0){
-                        pointsToClear[i]=osdDrawRadarMap(planesInfos,i,&drawn, &scale);
+                        osdDrawRadarMap(planesInfos,i,&drawn, &scale);
                     }
                 }
-    			//CLEAR ALL POINTS
-    			 for (int i = 0; i < (MAX_PLANES); i++) {
-    				 clearPlanesPoints(pointsToClear[i]);
-    			 }
-    			//*drawn = 0;
+  
 
                // osdDrawRadar(&drawn, &scale);
     //END CAMILLE

@@ -46,11 +46,12 @@ typedef struct {
 
 
 typedef struct wp_planes_s  {
-navWaypoint_t planeWP;
-uint32_t wp_nb;
-int16_t GPS_directionToMe;
-int16_t GPS_altitudeToMe;
-int16_t planePoiDirection;
+    navWaypoint_t planeWP;
+    uint32_t wp_nb;
+    int16_t GPS_directionToMe;
+    int16_t GPS_altitudeToMe;
+    int16_t planePoiDirection;
+    uint16_t drawn;
 } wp_planes_t;
 
 //Numbers MAX of planes
