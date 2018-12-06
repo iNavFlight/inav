@@ -147,6 +147,13 @@ typedef enum {
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 } osd_sidebar_scroll_e;
 
+// Camille
+typedef struct osd_point_s  {
+uint16_t drawn;
+int16_t x;
+int16_t y;
+} osd_point_t;
+// Camille
 typedef struct osdConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
