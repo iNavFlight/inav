@@ -2342,17 +2342,17 @@ static void resetPositionController(void)
 }
 
 
-static void processBrakingMode(const bool isAdjusting) 
+static void processBrakingMode(const bool isAdjusting)
 {
 #ifdef USE_MR_BRAKING_MODE
 
     static uint32_t brakingModeDisengageAt = 0;
     static uint32_t brakingBoostModeDisengageAt = 0;
 
-    const bool brakingEntryAllowed = 
+    const bool brakingEntryAllowed =
         IS_RC_MODE_ACTIVE(BOXBRAKING) &&
-        !STATE(NAV_CRUISE_BRAKING_LOCKED) && 
-        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold && 
+        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
+        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
         !isAdjusting &&
         navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
         navConfig()->mc.braking_speed_threshold > 0 &&
@@ -2422,6 +2422,8 @@ static void processBrakingMode(const bool isAdjusting)
             */
         setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
     }
+#else
+    UNUSED(isAdjusting);
 #endif
 }
 
