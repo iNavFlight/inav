@@ -17,16 +17,12 @@ typedef struct mspPackage_s {
 
 typedef union mspRxBuffer_u {
     uint8_t smartPortMspRxBuffer[SMARTPORT_MSP_RX_BUF_SIZE];
-#if 0
     uint8_t crsfMspRxBuffer[CRSF_MSP_RX_BUF_SIZE];
-#endif
 } mspRxBuffer_t;
 
 typedef union mspTxBuffer_u {
     uint8_t smartPortMspTxBuffer[SMARTPORT_MSP_TX_BUF_SIZE];
-#if 0
     uint8_t crsfMspTxBuffer[CRSF_MSP_TX_BUF_SIZE];
-#endif
 } mspTxBuffer_t;
 
 void initSharedMsp(void);
