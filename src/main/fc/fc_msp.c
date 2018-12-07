@@ -787,8 +787,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         // output some useful QA statistics
         // debug[x] = ((hse_value / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
 
-        for (int i = 0; i < DEBUG16_VALUE_COUNT; i++) {
+        for (int i = 0; i < 4; i++) {
             sbufWriteU16(dst, debug[i]);      // 4 variables are here for general monitoring purpose
+        }
+        break;
+
+    case MSP2_INAV_DEBUG:
+        for (int i = 0; i < DEBUG32_VALUE_COUNT; i++) {
+            sbufWriteU32(dst, debug[i]);      // 8 variables are here for general monitoring purpose
         }
         break;
 
