@@ -79,6 +79,7 @@
 #include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 
@@ -2002,9 +2003,9 @@ static bool osdDrawSingleElement(uint8_t item)
             const char *message = NULL;
             char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
             if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 4
+                // Aircraft is armed. We might have up to 5
                 // messages to show.
-                const char *messages[4];
+                const char *messages[5];
                 unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
@@ -2040,6 +2041,8 @@ static bool osdDrawSingleElement(uint8_t item)
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
+                    } else if (STATE(FIXED_WING) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                            messages[messageCount++] = "AUTOLAUNCH";
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                             // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
