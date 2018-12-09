@@ -1617,6 +1617,9 @@ groups:
         field: estimations_wind_compensation
         type: bool
 
+      - name: osd_failsafe_switch_layout
+        type: bool
+
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
     headers: ["fc/config.h"]

@@ -176,6 +176,8 @@ typedef struct osdConfig_s {
 
     bool    estimations_wind_compensation; // use wind compensation for estimated remaining flight/distance
     uint8_t coordinate_digits;
+
+    bool osd_failsafe_switch_layout;
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
