@@ -122,6 +122,8 @@ bool isFixedWingLaunchFinishedOrAborted(void)
     return launchState.launchFinished;
 }
 
+#define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500 //ms
+
 static void applyFixedWingLaunchIdleLogic(void)
 {
     // Until motors are started don't use PID I-term
@@ -131,12 +133,25 @@ static void applyFixedWingLaunchIdleLogic(void)
     pidResetTPAFilter();
 
     // Throttle control logic
-    if (navConfig()->fw.launch_idle_throttle <= motorConfig()->minthrottle) {
-        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);                       // If MOTOR_STOP is enabled mixer will keep motor stopped
-        rcCommand[THROTTLE] = motorConfig()->minthrottle;  // If MOTOR_STOP is disabled, motors will spin at minthrottle
+    if (navConfig()->fw.launch_idle_throttle <= motorConfig()->minthrottle)
+    {
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);             // If MOTOR_STOP is enabled mixer will keep motor stopped
+        rcCommand[THROTTLE] = motorConfig()->minthrottle; // If MOTOR_STOP is disabled, motors will spin at minthrottle
     }
-    else {
-        rcCommand[THROTTLE] = navConfig()->fw.launch_idle_throttle;
+    else
+    {
+        static float timeThrottleRaisedMs;
+        if (calculateThrottleStatus() == THROTTLE_LOW)
+        {
+            timeThrottleRaisedMs = millis();
+        }
+        else
+        {
+            const float timeSinceMotorStartMs = MIN(millis() - timeThrottleRaisedMs, LAUNCH_MOTOR_IDLE_SPINUP_TIME);
+            rcCommand[THROTTLE] = scaleRangef(timeSinceMotorStartMs,
+                                                0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME,
+                                                motorConfig()->minthrottle, navConfig()->fw.launch_idle_throttle);
+        }
     }
 }
 
