@@ -163,6 +163,8 @@ static displayPort_t *osdDisplayPort;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_HEIGHT 9
+#define AH_WIDTH 11
+#define AH_PREV_SIZE 11
 #define AH_H_SYM_COUNT 9
 #define AH_V_SYM_COUNT 6
 #define AH_SIDEBAR_WIDTH_POS 7
@@ -1633,7 +1635,7 @@ static bool osdDrawSingleElement(uint8_t item)
             elemPosY = 6; // Center of the AH area
 
             // Store the positions we draw over to erase only these at the next iteration
-            static int8_t previous_written[9];
+            static int8_t previous_written[AH_PREV_SIZE];
             static int8_t previous_orient = -1;
 
             float pitch_rad_to_char = (float)(AH_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
@@ -1653,11 +1655,12 @@ static bool osdDrawSingleElement(uint8_t item)
             float kx = cos_approx(rollAngle);
 
             if (previous_orient != -1) {
-                for (int i = 0; i < 9; ++i) {
+                for (int i = 0; i < AH_PREV_SIZE; ++i) {
                     if (previous_written[i] > -1) {
-                        int8_t dx = (previous_orient ? previous_written[i] : i) - 4;
-                        int8_t dy = (previous_orient ? i : previous_written[i]) - 4;
+                        int8_t dx = (previous_orient ? previous_written[i] : i) - AH_PREV_SIZE / 2;
+                        int8_t dy = (previous_orient ? i : previous_written[i]) - AH_PREV_SIZE / 2;
                         displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, SYM_BLANK);
+                        previous_written[i] = -1;
                     }
                 }
             }
@@ -1666,7 +1669,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 previous_orient = 0;
 
-                for (int8_t dx = -4; dx <= 4; dx++) {
+                for (int8_t dx = -AH_WIDTH / 2; dx <= AH_WIDTH / 2; dx++) {
                     float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
                     int8_t dy = floorf(fy);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
@@ -1675,9 +1678,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     if ((dy >= -4) && (dy <= 4) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
                         displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, c);
-                        previous_written[dx + 4] = dy + 4;
-                    } else {
-                        previous_written[dx + 4] = -1;
+                        previous_written[dx + AH_PREV_SIZE / 2] = dy + AH_PREV_SIZE / 2;
                     }
                 }
 
@@ -1691,12 +1692,10 @@ static bool osdDrawSingleElement(uint8_t item)
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
                     uint8_t c;
 
-                    if ((dx >= -4) && (dx <= 4) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                    if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
                         displayWriteChar(osdDisplayPort, chX, chY, c);
-                        previous_written[dy + 4] = dx + 4;
-                    } else {
-                        previous_written[dy + 4] = -1;
+                        previous_written[dy + AH_PREV_SIZE / 2] = dx + AH_PREV_SIZE / 2;
                     }
                 }
 
