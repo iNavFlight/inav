@@ -164,7 +164,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_HEIGHT 9
 #define AH_WIDTH 11
-#define AH_PREV_SIZE 11
+#define AH_PREV_SIZE 11 // This always needs to be set to the MAX(AH_HEIGHT, AH_WIDTH)
 #define AH_H_SYM_COUNT 9
 #define AH_V_SYM_COUNT 6
 #define AH_SIDEBAR_WIDTH_POS 7
@@ -1675,7 +1675,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
                     uint8_t c;
 
-                    if ((dy >= -4) && (dy <= 4) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                    if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
                         displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, c);
                         previous_written[dx + AH_PREV_SIZE / 2] = dy + AH_PREV_SIZE / 2;
@@ -1686,7 +1686,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 previous_orient = 1;
 
-                for (int8_t dy = -4; dy <= 4; dy++) {
+                for (int8_t dy = -AH_HEIGHT / 2; dy <= AH_HEIGHT / 2; dy++) {
                     const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
                     const int8_t dx = floorf(fx);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
