@@ -161,14 +161,14 @@ static uint8_t armState;
 
 static displayPort_t *osdDisplayPort;
 
-#define AH_MAX_PITCH 200 // Specify maximum AHI pitch value displayed. Default 200 = 20.0 degrees
+#define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
+#define AH_HEIGHT 9
 #define AH_H_SYM_COUNT 9
 #define AH_V_SYM_COUNT 6
-#define AH_PITCH_RAD_TO_CHAR (16.0f / DEGREES_TO_RADIANS(80)) // OSD has 16 columns, Typical FPV FOV 80°
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 4);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 5);
 
 static int digitCount(int32_t value)
 {
@@ -1636,6 +1636,8 @@ static bool osdDrawSingleElement(uint8_t item)
             static int8_t previous_written[9];
             static int8_t previous_orient = -1;
 
+            float pitch_rad_to_char = (float)(AH_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
+
             float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
             float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 
@@ -1665,7 +1667,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 previous_orient = 0;
 
                 for (int8_t dx = -4; dx <= 4; dx++) {
-                    float fy = dx * (ky / kx) + pitchAngle * AH_PITCH_RAD_TO_CHAR + 0.5f;
+                    float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
                     int8_t dy = floorf(fy);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
                     uint8_t c;
@@ -1684,7 +1686,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 previous_orient = 1;
 
                 for (int8_t dy = -4; dy <= 4; dy++) {
-                    const float fx = (dy - pitchAngle * AH_PITCH_RAD_TO_CHAR) * (kx / ky) + 0.5f;
+                    const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
                     const int8_t dx = floorf(fx);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
                     uint8_t c;
@@ -2507,6 +2509,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->video_system = VIDEO_SYSTEM_AUTO;
 
     osdConfig->ahi_reverse_roll = 0;
+    osdConfig->ahi_max_pitch = AH_MAX_PITCH_DEFAULT;
     osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
