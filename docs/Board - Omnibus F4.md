@@ -67,6 +67,13 @@
 * Integrated current meter
 * Uses target **OMNIBUSF4PRO**
 
+### Omnibus F4 Nano V6
+
+* Switching voltage regulator - solves problem of overheating BEC
+* SPI flash memory for blacbox
+* SBUS inverter connected to UART1
+* Uses target **FIREWORKSV2**
+
 ## **NOT** supported
 
 * HC-SR04 Rangefinder
@@ -156,6 +163,7 @@ When enabled, the UART6 is still available as hardware port but it's then RX-onl
 
 * [Omnibus F4 v5](https://inavflight.com/shop/p/OMNIBUSF4V5)
 * [Omnibus F4 Pro](https://inavflight.com/shop/p/OMNIBUSF4PRO)
+* [Omnibus F4 Nano V6](https://inavflight.com/shop/s/bg/1320256)
 
 # Wiring diagrams for Omnibus F4 Pro
 
