@@ -164,7 +164,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_HEIGHT 9
 #define AH_WIDTH 11
-#define AH_PREV_SIZE 11 // This always needs to be set to the MAX(AH_HEIGHT, AH_WIDTH)
+#define AH_PREV_SIZE (AH_WIDTH > AH_HEIGHT ? AH_WIDTH : AH_HEIGHT)
 #define AH_H_SYM_COUNT 9
 #define AH_V_SYM_COUNT 6
 #define AH_SIDEBAR_WIDTH_POS 7
