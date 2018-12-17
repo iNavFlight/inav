@@ -1588,6 +1588,10 @@ groups:
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll
         type: bool
+      - name: osd_artificial_horizon_max_pitch
+        field: ahi_max_pitch
+        min: 10
+        max: 90
       - name: osd_crosshairs_style
         field: crosshairs_style
         table: osd_crosshairs_style
