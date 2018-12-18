@@ -32,6 +32,7 @@
 #include "common/streambuf.h"
 #include "common/time.h"
 #include "common/utils.h"
+#include "common/printf.h"
 
 #include "config/feature.h"
 
@@ -74,6 +75,7 @@
 
 static uint8_t crsfCrc;
 static bool crsfTelemetryEnabled;
+static bool deviceInfoReplyPending;
 static uint8_t crsfFrame[CRSF_FRAME_SIZE_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
@@ -334,6 +336,38 @@ void crsfFrameFlightMode(sbuf_t *dst)
     *lengthPtr = sbufPtr(dst) - lengthPtr;
 }
 
+/*
+0x29 Device Info
+Payload:
+uint8_t     Destination
+uint8_t     Origin
+char[]      Device Name ( Null terminated string )
+uint32_t    Null Bytes
+uint32_t    Null Bytes
+uint32_t    Null Bytes
+uint8_t     255 (Max MSP Parameter)
+uint8_t     0x01 (Parameter version 1)
+*/
+void crsfFrameDeviceInfo(sbuf_t *dst) {
+
+    char buff[30];
+    tfp_sprintf(buff, "%s %s: %s", FC_FIRMWARE_NAME, FC_VERSION_STRING, systemConfig()->boardIdentifier);
+
+    uint8_t *lengthPtr = sbufPtr(dst);
+    sbufWriteU8(dst, 0);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_DEVICE_INFO);
+    crsfSerialize8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
+    crsfSerialize8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
+    crsfSerializeData(dst, (const uint8_t*)buff, strlen(buff));
+    crsfSerialize8(dst, 0); // zero terminator for string
+	for (unsigned int ii=0; ii<12; ii++) {
+        crsfSerialize8(dst, 0x00);
+    }
+    crsfSerialize8(dst, CRSF_DEVICEINFO_PARAMETER_COUNT);
+    crsfSerialize8(dst, CRSF_DEVICEINFO_VERSION);
+    *lengthPtr = sbufPtr(dst) - lengthPtr;
+}
+
 #define BV(x)  (1 << (x)) // bit value
 
 // schedule array to decide how often each type of frame is sent
@@ -406,12 +440,18 @@ static void processCrsf(void)
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
 
+void crsfScheduleDeviceInfoResponse(void)
+{
+    deviceInfoReplyPending = true;
+}
+
 void initCrsfTelemetry(void)
 {
     // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
     // and feature is enabled, if so, set CRSF telemetry enabled
     crsfTelemetryEnabled = crsfRxIsActive();
 
+    deviceInfoReplyPending = false;
 #if defined(USE_MSP_OVER_TELEMETRY)
     mspReplyPending = false;
 #endif
@@ -455,6 +495,17 @@ void handleCrsfTelemetry(timeUs_t currentTimeUs)
         return;
     }
 #endif
+
+    if (deviceInfoReplyPending) {
+        sbuf_t crsfPayloadBuf;
+        sbuf_t *dst = &crsfPayloadBuf;
+        crsfInitializeFrame(dst);
+        crsfFrameDeviceInfo(dst);
+        crsfFinalize(dst);
+        deviceInfoReplyPending = false;
+        crsfLastCycleTime = currentTimeUs; // reset telemetry timing due to ad-hoc request
+        return;
+    }
 
     // Actual telemetry data only needs to be sent at a low frequency, ie 10Hz
 	// Spread out scheduled frames evenly so each frame is sent at the same frequency.
