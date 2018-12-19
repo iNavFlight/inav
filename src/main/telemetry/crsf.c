@@ -303,6 +303,8 @@ void crsfFrameFlightMode(sbuf_t *dst)
         }
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
             flightMode = "!FS!";
+        } else if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
+            flightMode = "HRST";
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
         } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
@@ -313,7 +315,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "3CRS";
         } else if (FLIGHT_MODE(NAV_CRUISE_MODE)) {
             flightMode = "CRS";
-        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
             flightMode = "AH";
         } else if (FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "WP";
@@ -323,7 +325,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "HOR";
         }
 #ifdef USE_GPS
-    } else if (feature(FEATURE_GPS) && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
+    } else if (feature(FEATURE_GPS) && navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
         flightMode = "WAIT"; // Waiting for GPS lock
 #endif
     } else if (isArmingDisabled()) {
