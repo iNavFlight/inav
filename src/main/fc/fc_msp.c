@@ -956,16 +956,20 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BLACKBOX_CONFIG:
+        return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_BLACKBOX_CONFIG:
 #ifdef USE_BLACKBOX
         sbufWriteU8(dst, 1); //Blackbox supported
         sbufWriteU8(dst, blackboxConfig()->device);
-        sbufWriteU8(dst, blackboxConfig()->rate_num);
-        sbufWriteU8(dst, blackboxConfig()->rate_denom);
+        sbufWriteU16(dst, blackboxConfig()->rate_num);
+        sbufWriteU16(dst, blackboxConfig()->rate_denom);
 #else
         sbufWriteU8(dst, 0); // Blackbox not supported
         sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
 #endif
         break;
 
@@ -2092,11 +2096,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #ifdef USE_BLACKBOX
     case MSP_SET_BLACKBOX_CONFIG:
+        return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_SET_BLACKBOX_CONFIG:
         // Don't allow config to be updated while Blackbox is logging
-        if ((dataSize >= 3) && blackboxMayEditConfig()) {
+        if ((dataSize >= 5) && blackboxMayEditConfig()) {
             blackboxConfigMutable()->device = sbufReadU8(src);
-            blackboxConfigMutable()->rate_num = sbufReadU8(src);
-            blackboxConfigMutable()->rate_denom = sbufReadU8(src);
+            blackboxConfigMutable()->rate_num = sbufReadU16(src);
+            blackboxConfigMutable()->rate_denom = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;

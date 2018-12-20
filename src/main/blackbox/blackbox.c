@@ -93,7 +93,7 @@
 #define BLACKBOX_INTERVED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 1);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
@@ -1953,14 +1953,8 @@ void blackboxInit(void)
     if (blackboxConfig()->rate_denom <= 32) {
         blackboxIFrameInterval = 32;
     }
-    else if (blackboxConfig()->rate_denom <= 64) {
-        blackboxIFrameInterval = 64;
-    }
-    else if (blackboxConfig()->rate_denom <= 128) {
-        blackboxIFrameInterval = 128;
-    }
     else {
-        blackboxIFrameInterval = 256;
+        blackboxIFrameInterval = 1 << (32 - __builtin_clz (blackboxConfig()->rate_denom - 1));
     }
 }
 #endif
