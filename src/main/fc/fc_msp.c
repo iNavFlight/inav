@@ -956,7 +956,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BLACKBOX_CONFIG:
-        return MSP_RESULT_ERROR;
+        sbufWriteU8(dst, 0); // API no longer supported
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, 0);
         break;
 
     case MSP2_BLACKBOX_CONFIG:
