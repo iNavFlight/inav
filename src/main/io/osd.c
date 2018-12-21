@@ -417,7 +417,7 @@ static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
         case OSD_UNIT_UK:
             FALLTHROUGH;
         case OSD_UNIT_METRIC:
-            // alt is alredy in cm
+            // alt is already in cm
             if (osdFormatCentiNumber(buff+1, alt, 1000, 0, 2, 3)) {
                 // Scaled to km
                 buff[0] = SYM_ALT_KM;
@@ -807,6 +807,17 @@ static inline int32_t osdGetAltitude(void)
     return getEstimatedActualPosition(Z);
 #elif defined(USE_BARO)
     return baro.alt;
+#else
+    return 0;
+#endif
+}
+
+static inline int32_t osdGetAltitudeMsl(void)
+{
+#if defined(USE_NAV)
+    return getEstimatedActualPosition(Z)+GPS_home.alt;
+#elif defined(USE_BARO)
+    return baro.alt+GPS_home.alt;
 #else
     return 0;
 #endif
@@ -1433,6 +1444,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+ case OSD_ALTITUDE_MSL:
+        {
+            int32_t alt = osdGetAltitudeMsl();
+            osdFormatAltitudeSymbol(buff, alt);
+            break;
+        }		
+		
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
