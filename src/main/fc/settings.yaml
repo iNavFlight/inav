@@ -396,11 +396,11 @@ groups:
       - name: blackbox_rate_num
         field: rate_num
         min: 1
-        max: 8192
+        max: 65535
       - name: blackbox_rate_denom
         field: rate_denom
         min: 1
-        max: 8192
+        max: 65535
       - name: blackbox_device
         field: device
         table: blackbox_device
