@@ -123,6 +123,7 @@ typedef enum {
     OSD_MC_POS_XYZ_P_OUTPUTS,
     OSD_3D_SPEED,
     OSD_TEMPERATURE,
+    OSD_ALTITUDE_MSL,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
