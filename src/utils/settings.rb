@@ -487,6 +487,7 @@ class Generator
                     if rem_symbols == 0
                         raise "Cannot encode character #{c.ord} (#{c}), no symbols remaining"
                     end
+                    rem_symbols -= 1
                     idx = symbols.length
                     symbols.push(c)
                 end
