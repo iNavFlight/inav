@@ -1949,6 +1949,11 @@ void blackboxInit(void)
         blackboxSetState(BLACKBOX_STATE_DISABLED);
     }
 
+    /* FIXME is this really necessary ? Why?  */
+    int max_denom = 4096*1000 / gyroConfig()->looptime;
+    if (blackboxConfig()->rate_denom > max_denom) {
+        blackboxConfigMutable()->rate_denom = max_denom;
+    }
     /* Decide on how ofter are we going to log I-frames*/
     if (blackboxConfig()->rate_denom <= 32) {
         blackboxIFrameInterval = 32;
