@@ -1959,6 +1959,7 @@ void blackboxInit(void)
         blackboxIFrameInterval = 32;
     }
     else {
+            // Use next higher power of two via GCC builtin
         blackboxIFrameInterval = 1 << (32 - __builtin_clz (blackboxConfig()->rate_denom - 1));
     }
 }
