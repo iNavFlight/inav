@@ -24,8 +24,7 @@
 #define LED0                    PA14  //Blue   SWCLK
 #define LED1                    PA13  //Green  SWDIO
 
-#define USE_BEEPER
-#define BEEPER_PIN              PC13
+#define BEEPER                  PC13
 #define BEEPER_INVERTED
 
 // *************** SPI1 Gyro & ACC *******************
@@ -165,11 +164,15 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL           ADC_CHN_4
 
-// *************** ADC *****************************
+// *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC8 // VTX power switcher
 #define PINIO2_PIN                  PC9 // 2xCamera switcher
+
+// *************** LEDSTRIP ************************
+#define USE_LED_STRIP
+#define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL)
 #define CURRENT_METER_SCALE_DEFAULT     179
