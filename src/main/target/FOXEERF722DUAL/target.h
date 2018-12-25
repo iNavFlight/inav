@@ -152,7 +152,7 @@
 /*** Timer/PWM output ***/
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 #define MAX_PWM_OUTPUT_PORTS            6
-
+#define USE_DSHOT
 
 /*** Used pins ***/
 #define TARGET_IO_PORTA         0xffff
