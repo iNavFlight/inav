@@ -65,6 +65,7 @@ typedef enum {
     BOXBRAKING      = 36,
     BOXUSER1        = 37,
     BOXUSER2        = 38,
+    BOXFPVANGLEMIX  = 39,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

@@ -62,6 +62,10 @@ typedef struct controlRateConfig_s {
         uint8_t rates[3];
     } manual;
 
+    struct {
+        uint8_t fpvCamAngleDegrees;             // Camera angle to treat as "forward" base axis in ACRO (Roll and Yaw sticks will command rotation considering this axis)
+    } misc;
+
 } controlRateConfig_t;
 
 PG_DECLARE_ARRAY(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);
