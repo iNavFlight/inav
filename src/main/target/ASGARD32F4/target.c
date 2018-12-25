@@ -33,14 +33,14 @@
 const timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM1,  CH1, PA8, TIM_USE_PPM,        0, 0), // PPM  - timer clash with SS1_TX
 
-    DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1, 0), // M1
-    DEF_TIM(TIM3,  CH3, PB0, TIM_USE_MC_MOTOR,   1, 0), // M2
-    DEF_TIM(TIM3,  CH4, PB1, TIM_USE_MC_MOTOR,   1, 0), // M3
-    DEF_TIM(TIM4,  CH2, PB7, TIM_USE_MC_MOTOR,   1, 0), // M4
+    DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1, 0), // M1 - D(2, 2, 0)
+    DEF_TIM(TIM3,  CH3, PB0, TIM_USE_MC_MOTOR,   1, 0), // M2 - D(1, 7, 5)
+    DEF_TIM(TIM3,  CH4, PB1, TIM_USE_MC_MOTOR,   1, 0), // M3 - D(1, 2, 5)
+    DEF_TIM(TIM4,  CH2, PB7, TIM_USE_MC_MOTOR,   1, 0), // M4 - D(1, 3, 2)
 
     // DEF_TIM(TIM4,  CH1, PB6, TIM_USE_LED,        0), // LED strip - timer clash with M4 output
 
-    DEF_TIM(TIM1,  CH2, PA9, TIM_USE_ANY,        0, 0), // SS1
+    DEF_TIM(TIM1,  CH2, PA9, TIM_USE_ANY,        0, 0), // SS1 - D(2, 6, 0)
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
