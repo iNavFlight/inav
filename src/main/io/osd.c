@@ -788,8 +788,8 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
  **/
 static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
-    buff[0] = SYM_THR;
-    buff[1] = SYM_THR1;
+    buff[0] = SYM_BLANK;
+    buff[1] = SYM_THR;
     int16_t thr = rcData[THROTTLE];
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
