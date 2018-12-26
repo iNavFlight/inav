@@ -124,6 +124,7 @@ typedef enum {
     OSD_3D_SPEED,       // 85
     OSD_TEMPERATURE,    // 86
     OSD_ALTITUDE_MSL,   // 87
+    OSD_SLOPE_TO_HOME,   // 88
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
