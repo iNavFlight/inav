@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "bitarray.h"
 
@@ -35,6 +36,16 @@ void bitArraySet(bitarrayElement_t *array, unsigned bit)
 void bitArrayClr(bitarrayElement_t *array, unsigned bit)
 {
     BITARRAY_BIT_OP((uint32_t*)array, bit, &=~);
+}
+
+void bitArraySetAll(bitarrayElement_t *array, size_t size)
+{
+    memset(array, 0xFF, size);
+}
+
+void bitArrayClrAll(bitarrayElement_t *array, size_t size)
+{
+    memset(array, 0, size);
 }
 
 __attribute__((always_inline)) static inline uint8_t __CTZ(uint32_t val)
