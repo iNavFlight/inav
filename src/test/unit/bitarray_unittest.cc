@@ -59,6 +59,8 @@ TEST(BitArrayTest, TestFind)
     EXPECT_EQ(bitArrayFindFirstSet(p, 16, sizeof(p)), 44);
     EXPECT_EQ(bitArrayFindFirstSet(p, 17, sizeof(p)), 44);
     EXPECT_EQ(bitArrayFindFirstSet(p, 18, sizeof(p)), 44);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 43, sizeof(p)), 44);
+    EXPECT_EQ(bitArrayFindFirstSet(p, 44, sizeof(p)), 44);
     EXPECT_EQ(bitArrayFindFirstSet(p, 45, sizeof(p)), -1);
 
     bitArrayClr(p, 44);

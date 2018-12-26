@@ -67,7 +67,7 @@ int bitArrayFindFirstSet(const bitarrayElement_t *array, unsigned start, size_t 
     // First iteration might need to mask some bits
     uint32_t mask = 0xFFFFFFFF << (start % (8 * 4));
     if ((ret = __CTZ(*p & mask)) != 32) {
-        return ret;
+        return (((char *)p) - ((char *)ptr)) * 8 + ret;
     }
     p++;
     while (p < end) {
