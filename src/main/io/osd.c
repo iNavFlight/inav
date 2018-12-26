@@ -1450,6 +1450,31 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatAltitudeSymbol(buff, alt);
             break;
         }		
+
+ case OSD_GLIDE_RATIO:
+        {
+            int32_t gr_alt = osdGetAltitude();	
+            int32_t gr_dis = GPS_distanceToHome;
+		
+            if (gr_dis < 5) {
+		        buff[0] = buff[1] = buff[2] = '-';
+            } else {
+		        int32_t gr_per = round(gr_alt / gr_dis);
+		        if (gr_per < 1) {
+                    buff[0] = SYM_BLANK;
+                    buff[1] = '<';
+                    buff[2] = '1';
+				}
+		        else if (gr_per <= 999) {
+		            tfp_sprintf(buff, "%3d", gr_per);
+		        } else {
+			        buff[0] = buff[1] = buff[2] = '+';
+			    }
+		    }
+            buff[3] = '%';
+            buff[4] = '\0';
+            break;
+        }	
 		
     case OSD_ONTIME:
         {
