@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
@@ -222,6 +224,11 @@ typedef struct {
     int32_t     yaw;             // deg * 100
 } navWaypointPosition_t;
 
+typedef struct navDestinationPath_s {
+    uint32_t distance; // meters * 100
+    int32_t bearing; // deg * 100
+} navDestinationPath_t;
+
 typedef struct {
     float kP;
     float kI;
@@ -383,6 +390,9 @@ void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginRese
 void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, fpVector3_t * pos, geoAltitudeConversionMode_e altConv);
 void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * pos, gpsLocation_t * llh);
 float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
+
+/* Distance/bearing calculation */
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);
