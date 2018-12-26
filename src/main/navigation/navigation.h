@@ -197,7 +197,7 @@ typedef struct gpsOrigin_s {
     int32_t lat;    // Lattitude * 1e+7
     int32_t lon;    // Longitude * 1e+7
     int32_t alt;    // Altitude in centimeters (meters * 100)
-} gpsOrigin_s;
+} gpsOrigin_t;
 
 typedef enum {
     NAV_WP_ACTION_WAYPOINT = 0x01,
@@ -379,9 +379,25 @@ typedef enum {
     GEO_ORIGIN_RESET_ALTITUDE
 } geoOriginResetMode_e;
 
-void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginResetMode_e resetMode);
-void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, fpVector3_t * pos, geoAltitudeConversionMode_e altConv);
-void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * pos, gpsLocation_t * llh);
+// geoSetOrigin stores the location provided in llh as a GPS origin in the
+// provided origin parameter. resetMode indicates wether all origin coordinates
+// should be overwritten by llh (GEO_ORIGIN_SET) or just the altitude, leaving
+// other fields untouched (GEO_ORIGIN_RESET_ALTITUDE).
+void geoSetOrigin(gpsOrigin_t *origin, const gpsLocation_t *llh, geoOriginResetMode_e resetMode);
+// geoConvertGeodeticToLocal converts the geodetic location given in llh to
+// the local coordinate space and stores the result in pos. The altConv
+// indicates wether the altitude in llh is relative to the default GPS
+// origin (GEO_ALT_RELATIVE) or absolute (e.g. Earth frame)
+// (GEO_ALT_ABSOLUTE). If origin is invalid pos is set to
+// (0, 0, 0) and false is returned. It returns true otherwise.
+bool geoConvertGeodeticToLocal(fpVector3_t *pos, const gpsOrigin_t *origin, const gpsLocation_t *llh, geoAltitudeConversionMode_e altConv);
+// geoConvertGeodeticToLocalOrigin calls geoConvertGeodeticToLocal with the
+// default GPS origin.
+bool geoConvertGeodeticToLocalOrigin(fpVector3_t * pos, const gpsLocation_t *llh, geoAltitudeConversionMode_e altConv);
+// geoConvertLocalToGeodetic converts a local point as provided in pos to
+// geodetic coordinates using the provided GPS origin. It returns wether
+// the provided origin is valid and the conversion could be performed.
+bool geoConvertLocalToGeodetic(gpsLocation_t *llh, const gpsOrigin_t *origin, const fpVector3_t *pos);
 float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
 
 /* Failsafe-forced RTH mode */
