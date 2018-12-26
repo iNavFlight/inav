@@ -733,6 +733,10 @@ groups:
         field: manual.rates[FD_YAW]
         min: 0
         max: 100
+      - name: fpv_mix_degrees
+        field: misc.fpvCamAngleDegrees
+        min: 0
+        max: 50
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t
