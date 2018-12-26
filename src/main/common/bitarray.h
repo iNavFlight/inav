@@ -34,6 +34,12 @@ bool bitArrayGet(const bitarrayElement_t *array, unsigned bit);
 void bitArraySet(bitarrayElement_t *array, unsigned bit);
 void bitArrayClr(bitarrayElement_t *array, unsigned bit);
 
+void bitArraySetAll(bitarrayElement_t *array, size_t size);
+void bitArrayClrAll(bitarrayElement_t *array, size_t size);
+
+#define BITARRAY_SET_ALL(array) bitArraySetAll(array, sizeof(array))
+#define BITARRAY_CLR_ALL(array) bitArrayClrAll(array, sizeof(array))
+
 // Returns the first set bit with pos >= start_bit, or -1 if all bits
 // are zero. Note that size must indicate the size of array in bytes.
 // In most cases, you should use the BITARRAY_FIND_FIRST_SET() macro
