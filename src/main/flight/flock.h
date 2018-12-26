@@ -82,6 +82,7 @@ typedef struct flockBirdPosvel_s
 typedef enum {
     FLOCK_BIRD_FLAG_HAS_INFO = 1 << 0,
     FLOCK_BIRD_FLAG_HAS_POSVEL = 1 << 1,
+    FLOCK_BIRD_FLAG_HAS_REL_POS = 1 << 2,
 } flockBirdFlag_e;
 
 typedef struct flockBird_s
@@ -90,6 +91,11 @@ typedef struct flockBird_s
     flockBirdPosvel_t posvel;
     timeMs_t lastUpdate;
     uint8_t flags; // from flockBirdFlag_e
+    struct {
+        uint16_t ground_distance; //meters [0, 65535]
+        uint16_t vertical_distance : 13; // meters with +1000 offset [-1000, 7191]
+        uint16_t bearing : 11; // direction to aircraft in 0.2deg steps [0, 360]
+    } rel;
 } __attribute__((packed)) flockBird_t;
 
 typedef struct flockIterator_s {

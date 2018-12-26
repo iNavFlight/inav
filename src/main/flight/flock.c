@@ -21,16 +21,26 @@
 
 #include "platform.h"
 
+#include "common/bitarray.h"
 #include "common/utils.h"
 
 #include "drivers/time.h"
 
 #include "flight/flock.h"
 
-#ifdef USE_FLOCK
+#include "navigation/navigation.h"
+
+#define FLOCK_RAVEN_MAGIC_V1 "RVN1"
 
 #define FLOCK_TIMEOUT_MS 15000
-#define FLOCK_RAVEN_MAGIC_V1 "RVN1"
+
+#define FLOCK_MAX_UPDATES_PER_ITERATION 5
+
+// Flock keeps degrees in deg / 10`000 to save some memory, while
+// GPS/NAV/etc... use deg / 10`000`000
+#define FLOCK_DEGREES_MULTIPLIER 1000
+// Reverse flock +1000 meters offset, convert to cm
+#define FLOCK_ALT_TO_ALT(alt) ((((int32_t)alt) - 1000) * 100)
 
 #define FLOCK_BIRD_IS_VALID(b) ((b)->lastUpdate > 0)
 
@@ -50,8 +60,17 @@ typedef enum {
 
 typedef struct flock_s {
     flockBird_t birds[FLOCK_MAX_BIRDS];
+    uint16_t max_distance; // meters
     int count;
+    BITARRAY_DECLARE(dirty, FLOCK_MAX_BIRDS);
 } flock_t;
+
+
+#ifdef USE_FLOCK
+
+#ifndef USE_NAV
+#error "FLOCK requires NAV"
+#endif
 
 static flock_t flock;
 
@@ -61,15 +80,13 @@ void flockInit(void)
     flock.count = 0;
 }
 
-void flockUpdate(timeUs_t currentTimeUs)
+static void flockUpdateRemoveStaleEntries(timeMs_t currentTimeMs)
 {
-    timeMs_t now = currentTimeUs / 1000;
-
-    if (now <= FLOCK_TIMEOUT_MS) {
+    if (currentTimeMs <= FLOCK_TIMEOUT_MS) {
         return;
     }
 
-    timeMs_t threshold = now - FLOCK_TIMEOUT_MS;
+    timeMs_t threshold = currentTimeMs - FLOCK_TIMEOUT_MS;
     for (unsigned ii = 0; ii < ARRAYLEN(flock.birds); ii++) {
         flockBird_t *bird = &flock.birds[ii];
         if (FLOCK_BIRD_IS_VALID(bird) &&
@@ -77,6 +94,65 @@ void flockUpdate(timeUs_t currentTimeUs)
 
             bird->lastUpdate = 0;
             flock.count--;
+        }
+    }
+}
+
+static bool flockUpdateBirdRelativePosition(flockBird_t *bird)
+{
+    if (bird->flags & FLOCK_BIRD_FLAG_HAS_POSVEL) {
+        fpVector3_t pos;
+        gpsLocation_t llh = {
+            .lat = bird->posvel.lat * FLOCK_DEGREES_MULTIPLIER,
+            .lon = bird->posvel.lon * FLOCK_DEGREES_MULTIPLIER,
+            .alt = FLOCK_ALT_TO_ALT(bird->posvel.alt),
+        };
+        if (geoConvertGeodeticToLocalOrigin(&pos, &llh, GEO_ALT_ABSOLUTE)) {
+            navDestinationPath_t path;
+            if (navCalculatePathToDestination(&path, &pos)) {
+                bird->rel.ground_distance = constrain(path.distance / 100, 0, UINT16_MAX);
+                bird->rel.vertical_distance = constrain((pos.z - getEstimatedActualPosition(Z)) / 100, -1000, 7192) + 1000;
+                bird->rel.bearing = path.bearing / (100 / 5);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static void flockUpdateDirty(void)
+{
+    int p = BITARRAY_FIND_FIRST_SET(flock.dirty, 0);
+    if (p < 0) {
+        // We've passed over all entries. Update max values and start again.
+        flock.max_distance = 0;
+        for (unsigned ii = 0; ii < ARRAYLEN(flock.birds); ii++) {
+            flockBird_t *b = &flock.birds[p];
+            if (FLOCK_BIRD_IS_VALID(b) && (b->flags & FLOCK_BIRD_FLAG_HAS_REL_POS)) {
+                flock.max_distance = MAX(flock.max_distance, b->rel.ground_distance);
+            }
+        }
+        BITARRAY_SET_ALL(flock.dirty);
+        p = 0;
+    }
+    flockBird_t *bird = &flock.birds[p];
+    if (FLOCK_BIRD_IS_VALID(bird)) {
+        if (flockUpdateBirdRelativePosition(bird)) {
+            bird->flags |= FLOCK_BIRD_FLAG_HAS_REL_POS;
+        } else {
+            bird->flags &= ~FLOCK_BIRD_FLAG_HAS_REL_POS;
+        }
+    }
+    bitArrayClr(flock.dirty, p);
+}
+
+void flockUpdate(timeUs_t currentTimeUs)
+{
+    // Shortcircuit to avoid doing useless work
+    if (flock.count > 0) {
+        flockUpdateRemoveStaleEntries(currentTimeUs / 1000);
+        for (int ii = 0; ii < FLOCK_MAX_UPDATES_PER_ITERATION; ii++) {
+            flockUpdateDirty();
         }
     }
 }
