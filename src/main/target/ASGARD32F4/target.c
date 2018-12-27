@@ -33,7 +33,7 @@
 const timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM1,  CH1, PA8, TIM_USE_PPM,        0, 0), // PPM  - timer clash with SS1_TX
 
-    DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1, 0), // M1 - D(2, 2, 0)
+    DEF_TIM(TIM8,  CH3, PC8, TIM_USE_MC_MOTOR,   1, 1), // M1 - D(2, 4, 7)
     DEF_TIM(TIM3,  CH3, PB0, TIM_USE_MC_MOTOR,   1, 0), // M2 - D(1, 7, 5)
     DEF_TIM(TIM3,  CH4, PB1, TIM_USE_MC_MOTOR,   1, 0), // M3 - D(1, 2, 5)
     DEF_TIM(TIM4,  CH2, PB7, TIM_USE_MC_MOTOR,   1, 0), // M4 - D(1, 3, 2)
