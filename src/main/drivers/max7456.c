@@ -174,9 +174,30 @@ static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
 static bool     firstInit = true;
 static uint8_t  videoSignalCfg   = 0;
 static uint8_t  videoSignalReg   = VIDEO_MODE_PAL | OSD_ENABLE; //PAL by default
-static bool  max7456Lock        = false;
+static bool max7456Mutex        = false;
 static bool fontIsLoading       = false;
 static busDevice_t * max7456dev = NULL;
+
+static void max7456Lock(void)
+{
+    while(max7456Mutex);
+
+    max7456Mutex = true;
+}
+
+static void max7456Unlock(void)
+{
+    max7456Mutex = false;
+}
+
+static bool max7456TryLock(void)
+{
+    if (!max7456Mutex) {
+        max7456Mutex = true;
+        return true;
+    }
+    return false;
+}
 
 static int max7456PrepareBuffer(uint8_t * buf, int bufPtr, uint8_t add, uint8_t data)
 {
@@ -355,10 +376,8 @@ void max7456DrawScreenPartial(void)
         return;
     }
 
-    if (!max7456Lock && !fontIsLoading) {
+    if (!fontIsLoading && max7456TryLock()) {
         // (Re)Initialize MAX7456 at startup or stall is detected.
-
-        max7456Lock = true;
 
         // Stall check
         busRead(max7456dev, MAX7456ADD_VM0 | MAX7456ADD_READ, &stallCheck);
@@ -430,7 +449,7 @@ void max7456DrawScreenPartial(void)
             busTransfer(max7456dev, NULL, spiBuff, bufPtr);
         }
 
-        max7456Lock = false;
+        max7456Unlock();
     }
 }
 
@@ -447,9 +466,8 @@ void max7456RefreshAll(void)
         return;
     }
 
-    if (!max7456Lock) {
+    if (max7456TryLock()) {
         uint16_t xx;
-        max7456Lock = true;
 
         // Write characters. Start at character zero.
         bufPtr = 0;
@@ -499,7 +517,7 @@ void max7456RefreshAll(void)
 
         // All characters have been set to the MAX7456, none is dirty now.
         memset(screenIsDirty, 0, sizeof(screenIsDirty));
-        max7456Lock = false;
+        max7456Unlock();
     }
 }
 
@@ -513,8 +531,7 @@ void max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
         return;
     }
 
-    while (max7456Lock);
-    max7456Lock = true;
+    max7456Lock();
 
     // disable display
     fontIsLoading = true;
@@ -547,7 +564,7 @@ void max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 #endif
     }
 
-    max7456Lock = false;
+    max7456Unlock();
 }
 
 
