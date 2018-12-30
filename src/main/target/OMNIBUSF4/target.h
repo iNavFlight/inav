@@ -256,6 +256,7 @@
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    6
 #define TARGET_MOTOR_COUNT      6
+#define USE_DSHOT
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
