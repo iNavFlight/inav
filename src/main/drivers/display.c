@@ -54,12 +54,10 @@ static bool displayAttributesRequireEmulation(displayPort_t *instance, textAttri
 }
 
 static bool displayEmulateTextAttributes(displayPort_t *instance,
-                                        char *buf,
-                                        const char *s, size_t length,
+                                        char *buf, size_t length,
                                         textAttributes_t *attr)
 {
     UNUSED(instance);
-    UNUSED(s);
 
     // We only emulate blink for now, so there's no need to test
     // for it again.
@@ -148,7 +146,7 @@ int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const ch
         // We can't overwrite s, so we use an intermediate buffer if we need
         // text attribute emulation.
         size_t blockSize = length > sizeof(buf) ? sizeof(buf) : length;
-        if (displayEmulateTextAttributes(instance, buf, s, blockSize, &attr)) {
+        if (displayEmulateTextAttributes(instance, buf, blockSize, &attr)) {
             // Emulation required rewriting the string, use buf.
             s = buf;
         }
@@ -157,26 +155,29 @@ int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const ch
     return instance->vTable->writeString(instance, x, y, s, attr);
 }
 
-int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c)
+int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
 {
     instance->posX = x + 1;
     instance->posY = y;
     return instance->vTable->writeChar(instance, x, y, c, TEXT_ATTRIBUTES_NONE);
 }
 
-int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr)
+int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c, textAttributes_t attr)
 {
     if (displayAttributesRequireEmulation(instance, attr)) {
-        displayEmulateTextAttributes(instance, (char *)&c, (char *)&c, 1, &attr);
+        char ec;
+        if (displayEmulateTextAttributes(instance, &ec, 1, &attr)) {
+            c = ec;
+        }
     }
     instance->posX = x + 1;
     instance->posY = y;
     return instance->vTable->writeChar(instance, x, y, c, attr);
 }
 
-bool displayReadCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint8_t *c, textAttributes_t *attr)
+bool displayReadCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t *c, textAttributes_t *attr)
 {
-    uint8_t dc;
+    uint16_t dc;
     textAttributes_t dattr;
 
     if (!instance->vTable->readChar) {

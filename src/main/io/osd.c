@@ -1021,7 +1021,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 }
             } else {
 
-                uint8_t c;
+                uint16_t c;
                 if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
@@ -1673,7 +1673,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
                     int8_t dy = floorf(fy);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
@@ -1690,7 +1690,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
                     const int8_t dx = floorf(fx);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;

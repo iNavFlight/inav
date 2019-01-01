@@ -72,7 +72,7 @@ static int clearScreen(displayPort_t *displayPort)
 static int drawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    max7456DrawScreenPartial();
+    max7456Update();
 
     return 0;
 }
@@ -91,7 +91,7 @@ static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const c
     return 0;
 }
 
-static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c, textAttributes_t attr)
+static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t c, textAttributes_t attr)
 {
     UNUSED(displayPort);
     max7456WriteChar(x, y, c, max7456Mode(attr));
@@ -99,7 +99,7 @@ static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c
     return 0;
 }
 
-static bool readChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t *c, textAttributes_t *attr)
+static bool readChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t *c, textAttributes_t *attr)
 {
     UNUSED(displayPort);
     return max7456ReadChar(x, y, c, attr);
