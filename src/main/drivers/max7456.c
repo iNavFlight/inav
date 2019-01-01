@@ -647,7 +647,12 @@ void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
 
     max7456WaitUntilNoBusy();
 
-    max7456OSDEnable();
+    /* XXX: Don't call max7456OSDEnable(), it's intentionally ommited.
+     * If we continue drawing while characters are being uploaded, we
+     * get some corrupted characters from time to time. As a workaround,
+     * we require a reboot after characters have been uploaded to NVM.
+     */
+
     max7456Unlock();
 }
 
