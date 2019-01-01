@@ -149,8 +149,10 @@
 #define MAX7456ADD_RB15         0x1f
 #define MAX7456ADD_OSDBL        0x6c
 #define MAX7456ADD_STAT         0xA0
+#define MAX7456ADD_CMDO         0xC0
 
 #define NVM_RAM_SIZE            54
+#define READ_NVR                0x50
 #define WRITE_NVR               0xA0
 
 #define CHARS_PER_LINE          30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
@@ -173,10 +175,58 @@ static BITARRAY_DECLARE(screenIsDirty, VIDEO_BUFFER_CHARS_PAL);
 
 static bool     firstInit = true;
 static uint8_t  videoSignalCfg   = 0;
-static uint8_t  videoSignalReg   = VIDEO_MODE_PAL | OSD_ENABLE; //PAL by default
+// Buffer for VM0 register
+static uint8_t max7456VM0       = VIDEO_MODE_PAL | OSD_ENABLE; //PAL by defaultstatic bool max7456Mutex        = false;
 static bool max7456Mutex        = false;
-static bool fontIsLoading       = false;
 static busDevice_t * max7456dev = NULL;
+
+static bool max7456ReadVM0(uint8_t *vm0)
+{
+    return busRead(max7456dev, MAX7456ADD_VM0 | MAX7456ADD_READ, vm0);
+}
+
+static bool max7456IsBusy(void)
+{
+    uint8_t status;
+
+    if (busRead(max7456dev, MAX7456ADD_STAT, &status)) {
+        return status & STAT_NVR_BUSY;
+    }
+    // Read failed or busy
+    return true;
+}
+
+// Wait until max7456IsBusy() returns false, toggling a LED on each iteration
+static void max7456WaitUntilNoBusy(void)
+{
+    while (1) {
+        if (!max7456IsBusy()) {
+            break;
+        }
+#ifdef LED0_TOGGLE
+        LED0_TOGGLE;
+#else
+        LED1_TOGGLE;
+#endif
+    }
+}
+
+static bool max7456OSDDisable(void)
+{
+    max7456VM0 &= ~OSD_ENABLE;
+    return busWrite(max7456dev, MAX7456ADD_VM0, max7456VM0);
+}
+
+static bool max7456OSDEnable(void)
+{
+    max7456VM0 |= OSD_ENABLE;
+    return busWrite(max7456dev, MAX7456ADD_VM0, max7456VM0);
+}
+
+static bool max7456OSDIsEnabled(void)
+{
+    return max7456VM0 & OSD_ENABLE;
+}
 
 static void max7456Lock(void)
 {
@@ -212,7 +262,7 @@ uint8_t max7456GetRowsCount(void)
         // Not initialized yet
         return 0;
     }
-    if (videoSignalReg & VIDEO_MODE_PAL) {
+    if (max7456VM0 & VIDEO_MODE_PAL) {
         return VIDEO_LINES_PAL;
     }
 
@@ -240,18 +290,18 @@ void max7456ReInit(void)
 
     switch (videoSignalCfg) {
         case PAL:
-            videoSignalReg = VIDEO_MODE_PAL | OSD_ENABLE;
+            max7456VM0 = VIDEO_MODE_PAL | OSD_ENABLE;
             break;
         case NTSC:
-            videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
+            max7456VM0 = VIDEO_MODE_NTSC | OSD_ENABLE;
             break;
         default:
             busRead(max7456dev, MAX7456ADD_STAT, &srdata);
             if ((0x02 & srdata) == 0x02)
-                videoSignalReg = VIDEO_MODE_NTSC | OSD_ENABLE;
+                max7456VM0 = VIDEO_MODE_NTSC | OSD_ENABLE;
     }
 
-    if (videoSignalReg & VIDEO_MODE_PAL) { //PAL
+    if (max7456VM0 & VIDEO_MODE_PAL) { //PAL
         maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
         maxScreenRows = VIDEO_LINES_PAL;
     } else {              // NTSC
@@ -266,7 +316,7 @@ void max7456ReInit(void)
     }
 
     // make sure the Max7456 is enabled
-    bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM0, videoSignalReg);
+    bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM0, max7456VM0);
     bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM1, BLINK_DUTY_CYCLE_50_50 | BLINK_TIME_3 | BACKGROUND_BRIGHTNESS_28);
     bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_DMM, DMM_CLEAR_DISPLAY);
 
@@ -364,7 +414,7 @@ void max7456DrawScreenPartial(void)
     // in the MAX7456 is all bits to zero.
     static uint8_t setMode = 0;
 
-    uint8_t stallCheck;
+    uint8_t vm0;
     uint8_t videoSense;
     uint32_t nowMs;
     int pos;
@@ -376,15 +426,15 @@ void max7456DrawScreenPartial(void)
         return;
     }
 
-    if (!fontIsLoading && max7456TryLock()) {
+    if (max7456OSDIsEnabled() && max7456TryLock()) {
         // (Re)Initialize MAX7456 at startup or stall is detected.
 
         // Stall check
-        busRead(max7456dev, MAX7456ADD_VM0 | MAX7456ADD_READ, &stallCheck);
+        bool vm0Read = max7456ReadVM0(&vm0);
 
         nowMs = millis();
 
-        if (stallCheck != videoSignalReg) {
+        if (!vm0Read || vm0 != max7456VM0) {
             max7456ReInit();
         } else if ((videoSignalCfg == VIDEO_SYSTEM_AUTO)
                   && ((nowMs - lastSigCheckMs) > MAX7456_SIGNAL_CHECK_INTERVAL_MS)) {
@@ -395,8 +445,8 @@ void max7456DrawScreenPartial(void)
             if (videoSense & STAT_LOS) {
                 videoDetectTimeMs = 0;
             } else {
-                if ((VIN_IS_PAL(videoSense) && VIDEO_MODE_IS_NTSC(videoSignalReg))
-                  || (VIN_IS_NTSC_alt(videoSense) && VIDEO_MODE_IS_PAL(videoSignalReg))) {
+                if ((VIN_IS_PAL(videoSense) && VIDEO_MODE_IS_NTSC(max7456VM0))
+                  || (VIN_IS_NTSC_alt(videoSense) && VIDEO_MODE_IS_PAL(max7456VM0))) {
                     if (videoDetectTimeMs) {
                         if (millis() - videoDetectTimeMs > VIDEO_SIGNAL_DEBOUNCE_MS) {
                             max7456ReInit();
@@ -521,9 +571,41 @@ void max7456RefreshAll(void)
     }
 }
 
-void max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
+void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
 {
-    uint8_t spiBuff[(54 * 2 + 3) * 2];
+    // Check if device is available
+    if (max7456dev == NULL) {
+        return;
+    }
+
+    max7456Lock();
+    // OSD must be disabled to read or write to NVM
+    max7456OSDDisable();
+
+    busWrite(max7456dev, MAX7456ADD_CMAH, char_address);
+    if (char_address > 255) {
+        // AT7456E and AB7456 have 512 characters of NVM.
+        // To read/write to NVM they use CMAL[7:6] as the
+        // high bits of the character address.
+        uint8_t addr_h = char_address >> 8;
+        busWrite(max7456dev, MAX7456ADD_CMAL, addr_h << 6);
+    }
+    busWrite(max7456dev, MAX7456ADD_CMM, READ_NVR);
+
+    max7456WaitUntilNoBusy();
+
+    for (unsigned ii = 0; ii < sizeof(chr->data); ii++) {
+        busWrite(max7456dev, MAX7456ADD_CMAL, ii);
+        busRead(max7456dev, MAX7456ADD_CMDO, &chr->data[ii]);
+    }
+
+    max7456OSDEnable();
+    max7456Unlock();
+}
+
+void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
+{
+    uint8_t spiBuff[(sizeof(chr->data) * 2 + 2) * 2];
     int bufPtr = 0;
 
     // Check if device is available
@@ -532,16 +614,30 @@ void max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
     }
 
     max7456Lock();
+    // OSD must be disabled to read or write to NVM
+    max7456OSDDisable();
 
-    // disable display
-    fontIsLoading = true;
-
-    bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_VM0, 0);
     bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAH, char_address); // set start address high
 
-    for (int x = 0; x < 54; x++) {
-        bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAL, x); //set start address low
-        bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMDI, font_data[x]);
+    uint8_t or_val = 0;
+    if (char_address > 255) {
+        // AT7456E and AB7456 have 512 characters of NVM.
+        // To read/write to NVM they use CMAL[7:6] as the
+        // high bits of the character address.
+        //
+        // Instead of issuing an additional write to CMAL when
+        // we're done uploading to shadow RAM, we set the high
+        // bits of CMAL on every write since they have no side
+        // effects while writing from CMDI to RAM and when we
+        // issue the copy command to NVM, CMAL[7:6] is already
+        // set.
+        uint8_t addr_h = char_address >> 8;
+        or_val = addr_h << 6;
+    }
+
+    for (unsigned x = 0; x < sizeof(chr->data); x++) {
+        bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAL, x | or_val); //set start address low
+        bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMDI, chr->data[x]);
     }
 
     // transfer 54 bytes from shadow ram to NVM
@@ -549,21 +645,9 @@ void max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
 
     busTransfer(max7456dev, NULL, spiBuff, bufPtr);
 
-    while (1) {
-        uint8_t status;
+    max7456WaitUntilNoBusy();
 
-        busRead(max7456dev, MAX7456ADD_STAT, &status);
-        if ((status & STAT_NVR_BUSY) == 0x00) {
-            break;
-        }
-
-#ifdef LED0_TOGGLE
-        LED0_TOGGLE;
-#else
-        LED1_TOGGLE;
-#endif
-    }
-
+    max7456OSDEnable();
     max7456Unlock();
 }
 

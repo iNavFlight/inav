@@ -43,10 +43,14 @@ enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 
 extern uint16_t maxScreenSize;
 
-struct vcdProfile_s;
+typedef struct max7456Character_s {
+    uint8_t data[54];
+} max7456Character_t;
+
 void    max7456Init(const videoSystem_e videoSystem);
 void    max7456DrawScreenPartial(void);
-void    max7456WriteNvm(uint8_t char_address, const uint8_t *font_data);
+void    max7456ReadNvm(uint16_t char_address, max7456Character_t *chr);
+void    max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr);
 uint8_t max7456GetRowsCount(void);
 void    max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);
 void    max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode);

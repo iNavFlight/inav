@@ -2140,13 +2140,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_OSD_CHAR_WRITE:
 #ifdef USE_MAX7456
         if (dataSize >= 55) {
-            uint8_t font_data[64];
-            const uint8_t addr = sbufReadU8(src);
-            for (int i = 0; i < 54; i++) {
-                font_data[i] = sbufReadU8(src);
+            max7456Character_t chr;
+            uint16_t addr;
+            if (dataSize >= 56) {
+                addr = sbufReadU16(src);
+            } else {
+                addr = sbufReadU8(src);
+            }
+            for (unsigned ii = 0; ii < sizeof(chr.data); ii++) {
+                chr.data[ii] = sbufReadU8(src);
             }
             // !!TODO - replace this with a device independent implementation
-            max7456WriteNvm(addr, font_data);
+            max7456WriteNvm(addr, &chr);
         } else
             return MSP_RESULT_ERROR;
 #endif // USE_MAX7456
