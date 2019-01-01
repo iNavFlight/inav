@@ -17,23 +17,7 @@
 
 #pragma once
 
-#include "config/parameter_group.h"
+#include "drivers/io_types.h"
+#include "drivers/temperature/temperature.h"
 
-typedef enum {
-    TEMP_GYRO = 0,
-    TEMP_BARO = 1,
-#ifdef USE_TEMPERATURE_SENSOR
-    TEMP_LM75 = 2,
-#endif
-    TEMP_COUNT
-} tempSensor_e;
-
-// Temperature is returned in degC*10
-int16_t getTemperature(tempSensor_e sensor);
-float getCurrentTemperature(void);
-tempSensor_e getCurrentTemperatureSensorUsed(void);
-void temperatureUpdate(void);
-
-#ifdef USE_TEMPERATURE_SENSOR
-void temperatureInit(void);
-#endif
+bool lm75Detect(temperatureDev_t * mag);
