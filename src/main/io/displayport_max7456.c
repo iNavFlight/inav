@@ -193,8 +193,8 @@ static const displayPortVTable_t max7456VTable = {
 
 displayPort_t *max7456DisplayPortInit(const videoSystem_e videoSystem)
 {
-    displayInit(&max7456DisplayPort, &max7456VTable);
     max7456Init(videoSystem);
+    displayInit(&max7456DisplayPort, &max7456VTable);
     resync(&max7456DisplayPort);
     return &max7456DisplayPort;
 }
