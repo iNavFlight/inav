@@ -1588,7 +1588,6 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
     }
 
-#if defined(VTX) || defined(USE_VTX_COMMON)
     case OSD_VTX_CHANNEL:
 #if defined(VTX)
         // FIXME: This doesn't actually work. It's for boards with
@@ -1616,7 +1615,6 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
         break;
-#endif // VTX || VTX_COMMON
 
     case OSD_CROSSHAIRS:
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);

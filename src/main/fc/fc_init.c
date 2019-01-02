@@ -637,13 +637,10 @@ void init(void)
     pitotStartCalibration();
 #endif
 
-#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
+#if defined(USE_VTX_CONTROL)
     vtxControlInit();
-
-#if defined(USE_VTX_COMMON)
     vtxCommonInit();
     vtxInit();
-#endif
 
 #ifdef USE_VTX_SMARTAUDIO
     vtxSmartAudioInit();
@@ -653,7 +650,11 @@ void init(void)
     vtxTrampInit();
 #endif
 
-#endif // USE_VTX_COMMON && USE_VTX_CONTROL
+#ifdef USE_VTX_FFPV
+    vtxTrampInit();
+#endif
+
+#endif // USE_VTX_CONTROL
 
     // Now that everything has powered up the voltage and cell count be determined.
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
