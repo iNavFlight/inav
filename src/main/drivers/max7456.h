@@ -41,20 +41,19 @@ enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 #define MAX7456_MODE_BLINK    (1 << 4)
 #define MAX7456_MODE_SOLID_BG (1 << 5)
 
-extern uint16_t maxScreenSize;
-
 typedef struct max7456Character_s {
     uint8_t data[54];
 } max7456Character_t;
 
-void    max7456Init(const videoSystem_e videoSystem);
-void    max7456Update(void);
-void    max7456ReadNvm(uint16_t char_address, max7456Character_t *chr);
-void    max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr);
+void max7456Init(const videoSystem_e videoSystem);
+void max7456Update(void);
+void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr);
+void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr);
+uint16_t max7456GetScreenSize(void);
 uint8_t max7456GetRowsCount(void);
-void    max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);
-void    max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode);
-bool    max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode);
-void    max7456ClearScreen(void);
-void    max7456RefreshAll(void);
+void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);
+void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode);
+bool max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode);
+void max7456ClearScreen(void);
+void max7456RefreshAll(void);
 uint8_t* max7456GetScreenBuffer(void);

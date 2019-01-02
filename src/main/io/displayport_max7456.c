@@ -87,7 +87,7 @@ static int drawScreen(displayPort_t *displayPort)
 static int screenSize(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return maxScreenSize;
+    return max7456GetScreenSize();
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)

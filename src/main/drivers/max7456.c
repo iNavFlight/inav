@@ -161,6 +161,14 @@
 #define READ_NVR                0x50
 #define WRITE_NVR               0xA0
 
+// Maximum time to wait for video sync. After this we
+// default to PAL
+#define MAX_SYNC_WAIT_MS        1500
+
+// Maximum time to wait for a software reset to complete
+// Under normal conditions, it should take 20us
+#define MAX_RESET_TIMEOUT_MS    50
+
 #define CHARS_PER_LINE          30 // XXX Should be related to VIDEO_BUFFER_CHARS_*?
 #define MAKE_CHAR_MODE_U8(c, m) ((((uint16_t)c) << 8) | m)
 #define MAKE_CHAR_MODE(c, m)    (MAKE_CHAR_MODE_U8(c, m) | (c > 255 ? CHAR_MODE_EXT : 0))
@@ -170,8 +178,6 @@
 #define CHAR_IS_BLANK(x)        ((CHAR_BYTE(x) == 0x20 || CHAR_BYTE(x) == 0x00) && !CHAR_MODE_IS_EXT(MODE_BYTE(x)))
 #define CHAR_MODE_EXT           (1 << 2)
 #define CHAR_MODE_IS_EXT(m)     ((m) & CHAR_MODE_EXT)
-
-uint16_t maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
 
 // we write everything in screenBuffer and set a dirty bit
 // in screenIsDirty to upgrade only changed chars this solution
@@ -229,15 +235,18 @@ static void max7456WaitUntilNoBusy(void)
     }
 }
 
-static bool max7456OSDDisable(void)
+// Sets wether the OSD drawing is enabled. Returns true iff
+// changes were succesfully performed.
+static bool max7456OSDSetEnabled(bool enabled)
 {
-    state.registers.vm0 &= ~OSD_ENABLE;
-    return busWrite(state.dev, MAX7456ADD_VM0, state.registers.vm0);
-}
-
-static bool max7456OSDEnable(void)
-{
-    state.registers.vm0 |= OSD_ENABLE;
+    if (enabled && !(state.registers.vm0 | OSD_ENABLE)) {
+        state.registers.vm0 |= OSD_ENABLE;
+    } else if (!enabled && (state.registers.vm0 | OSD_ENABLE)) {
+        state.registers.vm0 &= ~OSD_ENABLE;
+    } else {
+        // No changes needed
+        return false;
+    }
     return busWrite(state.dev, MAX7456ADD_VM0, state.registers.vm0);
 }
 
@@ -274,6 +283,19 @@ static int max7456PrepareBuffer(uint8_t * buf, int bufPtr, uint8_t add, uint8_t 
     return bufPtr;
 }
 
+uint16_t max7456GetScreenSize(void)
+{
+    // Default to PAL while the display is not yet initialized. This
+    // was the initial behavior and not all callers might be able to
+    // deal with a zero returned from here.
+    // TODO: Inspect all callers, make sure they can handle zero and
+    // change this function to return zero before initialization.
+    if (state.isInitialized && (state.registers.vm0 & VIDEO_LINES_NTSC)) {
+        return VIDEO_BUFFER_CHARS_NTSC;
+    }
+    return VIDEO_BUFFER_CHARS_PAL;
+}
+
 uint8_t max7456GetRowsCount(void)
 {
     if (!state.isInitialized) {
@@ -292,59 +314,42 @@ uint8_t max7456GetRowsCount(void)
 //it might already have some data by the first time this function is called.
 static void max7456ReInit(void)
 {
-    uint8_t buf[(VIDEO_BUFFER_CHARS_PAL + 3) * 2];
+    uint8_t buf[2 * 2];
     int bufPtr;
-    uint8_t maxScreenRows;
-    uint8_t srdata = 0;
+    uint8_t statVal;
+
 
     // Check if device is available
     if (state.dev == NULL) {
         return;
     }
 
-    //do not init MAX before camera power up correctly
-    if (millis() < 1500) {
-        return;
-    }
+    uint8_t vm0Mode;
 
     switch (state.videoSystem) {
         case PAL:
-            state.registers.vm0 = VIDEO_MODE_PAL | OSD_ENABLE;
+            vm0Mode = VIDEO_MODE_PAL;
             break;
         case NTSC:
-            state.registers.vm0 = VIDEO_MODE_NTSC | OSD_ENABLE;
+            vm0Mode = VIDEO_MODE_NTSC;
             break;
         default:
-            busRead(state.dev, MAX7456ADD_STAT, &srdata);
-            if (VIN_IS_PAL(srdata)) {
-                state.registers.vm0 = VIDEO_MODE_PAL | OSD_ENABLE;
-                state.videoSystem = PAL;
-            } else if (VIN_IS_NTSC_alt(srdata)) {
-                state.registers.vm0 = VIDEO_MODE_NTSC | OSD_ENABLE;
-                state.videoSystem = NTSC;
+            busRead(state.dev, MAX7456ADD_STAT, &statVal);
+            if (VIN_IS_PAL(statVal) || millis() > MAX_SYNC_WAIT_MS) {
+                vm0Mode = VIDEO_MODE_PAL;
+            } else if (VIN_IS_NTSC_alt(statVal)) {
+                vm0Mode = VIDEO_MODE_NTSC;
+            } else {
+                // No signal detected yet, wait for detection timeout
+                return;
             }
     }
 
-    if (state.registers.vm0 & VIDEO_MODE_PAL) { //PAL
-        maxScreenSize = VIDEO_BUFFER_CHARS_PAL;
-        maxScreenRows = VIDEO_LINES_PAL;
-    } else {              // NTSC
-        maxScreenSize = VIDEO_BUFFER_CHARS_NTSC;
-        maxScreenRows = VIDEO_LINES_NTSC;
-    }
+    state.registers.vm0 = vm0Mode | OSD_ENABLE;
 
-    // set all rows to same charactor black/white level
-    bufPtr = 0;
-    for (int x = 0; x < maxScreenRows; x++) {
-        bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_RB0 + x, BWBRIGHTNESS);
-    }
-
-    // make sure the Max7456 is enabled
+    // Enable OSD drawing and clear the display
     bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM0, state.registers.vm0);
-    bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM1, BLINK_DUTY_CYCLE_50_50 | BLINK_TIME_3 | BACKGROUND_BRIGHTNESS_28);
     bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_DMM, DMM_CLEAR_DISPLAY);
-
-    state.registers.dmm = 0;
 
     // Transfer data to SPI
     busTransfer(state.dev, NULL, buf, bufPtr);
@@ -361,6 +366,8 @@ static void max7456ReInit(void)
 //here we init only CS and try to init MAX for first time
 void max7456Init(const videoSystem_e videoSystem)
 {
+    uint8_t buf[(VIDEO_LINES_PAL + 1) * 2];
+    int bufPtr;
     state.dev = busDeviceInit(BUSTYPE_SPI, DEVHW_MAX7456, 0, OWNER_OSD);
 
     if (state.dev == NULL) {
@@ -372,6 +379,8 @@ void max7456Init(const videoSystem_e videoSystem)
     // force soft reset on Max7456
     busWrite(state.dev, MAX7456ADD_VM0, MAX7456_RESET);
 
+    // DMM defaults to all zeroes on reset
+    state.registers.dmm = 0;
     state.videoSystem = videoSystem;
 
     // Set screenbuffer to all blanks
@@ -379,7 +388,24 @@ void max7456Init(const videoSystem_e videoSystem)
         screenBuffer[ii] = CHAR_BLANK;
     }
 
-    //real init will be made letter when driver idle detect
+    // Wait for software reset to finish
+    timeMs_t timeout = millis() + MAX_RESET_TIMEOUT_MS;
+    while(max7456ReadVM0(&state.registers.vm0) &&
+        (state.registers.vm0 | MAX7456_RESET) &&
+        millis() < timeout);
+
+    // Set all rows to same charactor black/white level. We
+    // can do this without finding wether the display is PAL
+    // NTSC because all the brightness registers can be written
+    // regardless of the video mode.
+    bufPtr = 0;
+    for (int ii = 0; ii < VIDEO_LINES_PAL; ii++) {
+        bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_RB0 + ii, BWBRIGHTNESS);
+    }
+
+    // Set the blink duty cycle
+    bufPtr = max7456PrepareBuffer(buf, bufPtr, MAX7456ADD_VM1, BLINK_DUTY_CYCLE_50_50 | BLINK_TIME_3 | BACKGROUND_BRIGHTNESS_28);
+    busTransfer(state.dev, NULL, buf, bufPtr);
 }
 
 void max7456ClearScreen(void)
@@ -448,7 +474,7 @@ static bool max7456DrawScreenPartial(void)
 
     for (pos = 0, updatedCharCount = 0;;) {
         pos = BITARRAY_FIND_FIRST_SET(screenIsDirty, pos);
-        if (pos < 0 || pos >= maxScreenSize) {
+        if (pos < 0) {
             // No more dirty chars.
             break;
         }
@@ -510,37 +536,38 @@ static void max7456StallCheck(void)
     static uint32_t videoDetectTimeMs = 0;
 
     uint8_t vm0;
-    uint8_t videoSense;
-    uint32_t nowMs = millis();
+    uint8_t statReg;
 
     if (!state.isInitialized || !max7456ReadVM0(&vm0) || vm0 != state.registers.vm0) {
         max7456ReInit();
         return;
     }
 
-    if ((state.videoSystem == VIDEO_SYSTEM_AUTO)
-        && ((nowMs - lastSigCheckMs) > MAX7456_SIGNAL_CHECK_INTERVAL_MS)) {
+    if (state.videoSystem == VIDEO_SYSTEM_AUTO) {
+        timeMs_t nowMs = millis();
+        if ((nowMs - lastSigCheckMs) > MAX7456_SIGNAL_CHECK_INTERVAL_MS) {
 
-        // Adjust output format based on the current input format.
-        busRead(state.dev, MAX7456ADD_STAT, &videoSense);
+            // Adjust output format based on the current input format.
+            busRead(state.dev, MAX7456ADD_STAT, &statReg);
 
-        if (videoSense & STAT_LOS) {
-            videoDetectTimeMs = 0;
-        } else {
-            if ((VIN_IS_PAL(videoSense) && VIDEO_MODE_IS_NTSC(state.registers.vm0))
-                || (VIN_IS_NTSC_alt(videoSense) && VIDEO_MODE_IS_PAL(state.registers.vm0))) {
-                if (videoDetectTimeMs) {
-                    if (millis() - videoDetectTimeMs > VIDEO_SIGNAL_DEBOUNCE_MS) {
-                        max7456ReInit();
+            if (statReg & STAT_LOS) {
+                videoDetectTimeMs = 0;
+            } else {
+                if ((VIN_IS_PAL(statReg) && VIDEO_MODE_IS_NTSC(state.registers.vm0))
+                    || (VIN_IS_NTSC_alt(statReg) && VIDEO_MODE_IS_PAL(state.registers.vm0))) {
+                    if (videoDetectTimeMs) {
+                        if (nowMs - videoDetectTimeMs > VIDEO_SIGNAL_DEBOUNCE_MS) {
+                            max7456ReInit();
+                        }
+                    } else {
+                        // Wait for signal to stabilize
+                        videoDetectTimeMs = nowMs;
                     }
-                } else {
-                    // Wait for signal to stabilize
-                    videoDetectTimeMs = millis();
                 }
             }
-        }
 
-        lastSigCheckMs = nowMs;
+            lastSigCheckMs = nowMs;
+        }
     }
 }
 
@@ -551,11 +578,12 @@ void max7456Update(void)
         return;
     }
 
-    if (max7456OSDIsEnabled() && max7456TryLock()) {
+    if ((max7456OSDIsEnabled() && max7456TryLock()) || !state.isInitialized) {
         // (Re)Initialize MAX7456 at startup or stall is detected.
         max7456StallCheck();
-        //------------   end of (re)init-------------------------------------
-        max7456DrawScreenPartial();
+        if (state.isInitialized) {
+            max7456DrawScreenPartial();
+        }
         max7456Unlock();
     }
 }
@@ -611,7 +639,7 @@ void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
 
     max7456Lock();
     // OSD must be disabled to read or write to NVM
-    max7456OSDDisable();
+    bool enabled = max7456OSDSetEnabled(false);
 
     busWrite(state.dev, MAX7456ADD_CMAH, char_address);
     if (char_address > 255) {
@@ -630,7 +658,7 @@ void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
         busRead(state.dev, MAX7456ADD_CMDO, &chr->data[ii]);
     }
 
-    max7456OSDEnable();
+    max7456OSDSetEnabled(enabled);
     max7456Unlock();
 }
 
@@ -646,7 +674,7 @@ void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
 
     max7456Lock();
     // OSD must be disabled to read or write to NVM
-    max7456OSDDisable();
+    max7456OSDSetEnabled(false);
 
     bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAH, char_address & 0xFF); // set start address high
 
