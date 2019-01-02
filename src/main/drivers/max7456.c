@@ -362,7 +362,6 @@ static void max7456ReInit(void)
     }
 }
 
-
 //here we init only CS and try to init MAX for first time
 void max7456Init(const videoSystem_e videoSystem)
 {
@@ -493,6 +492,11 @@ static bool max7456DrawScreenPartial(void)
 
             bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAH, ph | DMAH_8_BIT_DMDI_IS_CHAR_ATTR);
             bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAL, pl);
+            // Attribute bit positions on DMDI are 2 bits up relative to DMM.
+            // DMM uses [5:3] while DMDI uses [7:4] - one bit more for referencing
+            // characters in the [256, 511] range (which is not possible via DMM).
+            // Since we write mostly to DMM, the internal representation uses
+            // the format of the former and we shift it up here.
             bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMDI, charMode << 2);
 
             bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_DMAH, ph);
