@@ -33,6 +33,13 @@
 
 #include "io/displayport_max7456.h"
 
+// 'I', 'N', 'A', 'V', 1
+#define CHR_IS_METADATA(chr) ((chr)->data[0] == 'I' && \
+    (chr)->data[1] == 'N' && \
+    (chr)->data[2] == 'A' && \
+    (chr)->data[3] == 'V' && \
+    (chr)->data[4] == 1)
+
 displayPort_t max7456DisplayPort;
 
 static uint8_t max7456Mode(textAttributes_t attr)
@@ -142,6 +149,31 @@ static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort
     return attr;
 }
 
+static bool fontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
+{
+    UNUSED(displayPort);
+
+    max7456Character_t chr;
+
+    max7456ReadNvm(255, &chr);
+
+    if (CHR_IS_METADATA(&chr)) {
+        metadata->version = chr.data[5];
+        // Not all MAX7456 chips support 512 characters. To detect this,
+        // we place metadata in both characters 255 and 256. This way we
+        // can find out how many characters the font in NVM has.
+        max7456ReadNvm(256, &chr);
+        if (CHR_IS_METADATA(&chr)) {
+            metadata->charCount = 512;
+        } else {
+            metadata->charCount = 256;
+        }
+        return true;
+    }
+
+    return false;
+}
+
 static const displayPortVTable_t max7456VTable = {
     .grab = grab,
     .release = release,
@@ -156,6 +188,7 @@ static const displayPortVTable_t max7456VTable = {
     .resync = resync,
     .txBytesFree = txBytesFree,
     .supportedTextAttributes = supportedTextAttributes,
+    .fontMetadata = fontMetadata,
 };
 
 displayPort_t *max7456DisplayPortInit(const videoSystem_e videoSystem)

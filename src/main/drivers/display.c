@@ -157,6 +157,9 @@ int displayWriteWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, const ch
 
 int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
 {
+    if (c > instance->maxChar) {
+        return -1;
+    }
     instance->posX = x + 1;
     instance->posY = y;
     return instance->vTable->writeChar(instance, x, y, c, TEXT_ATTRIBUTES_NONE);
@@ -164,6 +167,9 @@ int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
 
 int displayWriteCharWithAttr(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c, textAttributes_t attr)
 {
+    if (c > instance->maxChar) {
+        return -1;
+    }
     if (displayAttributesRequireEmulation(instance, attr)) {
         char ec;
         if (displayEmulateTextAttributes(instance, &ec, 1, &attr)) {
@@ -215,6 +221,14 @@ uint16_t displayTxBytesFree(const displayPort_t *instance)
     return instance->vTable->txBytesFree(instance);
 }
 
+bool displayFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance)
+{
+    if (instance->vTable->fontMetadata) {
+        return instance->vTable->fontMetadata(metadata, instance);
+    }
+    return false;
+}
+
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
 {
     instance->vTable = vTable;
@@ -228,6 +242,14 @@ void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
     }
     if (displayConfig()->force_sw_blink) {
         TEXT_ATTRIBUTES_REMOVE_BLINK(instance->cachedSupportedTextAttributes);
+    }
+
+    displayFontMetadata_t metadata;
+    if (displayFontMetadata(&metadata, instance)) {
+        instance->maxChar = metadata.charCount - 1;
+    } else {
+        // Assume 8-bit character implementation
+        instance->maxChar = 255;
     }
 }
 

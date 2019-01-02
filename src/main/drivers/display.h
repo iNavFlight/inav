@@ -54,6 +54,11 @@ typedef uint8_t textAttributes_t;
 
 static inline void TEXT_ATTRIBUTES_COPY(textAttributes_t *dst, textAttributes_t *src) { *dst = *src; }
 
+typedef struct displayFontMetadata_s {
+    uint8_t version;
+    uint16_t charCount;
+} displayFontMetadata_t;
+
 struct displayPortVTable_s;
 typedef struct displayPort_s {
     const struct displayPortVTable_s *vTable;
@@ -68,6 +73,7 @@ typedef struct displayPort_s {
     int8_t cursorRow;
     int8_t grabCount;
     textAttributes_t cachedSupportedTextAttributes;
+    uint16_t maxChar;
 } displayPort_t;
 
 typedef struct displayPortVTable_s {
@@ -84,6 +90,7 @@ typedef struct displayPortVTable_s {
     void (*resync)(displayPort_t *displayPort);
     uint32_t (*txBytesFree)(const displayPort_t *displayPort);
     textAttributes_t (*supportedTextAttributes)(const displayPort_t *displayPort);
+    bool (*fontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
 } displayPortVTable_t;
 
 typedef struct displayPortProfile_s {
@@ -111,4 +118,5 @@ bool displayIsTransferInProgress(const displayPort_t *instance);
 void displayHeartbeat(displayPort_t *instance);
 void displayResync(displayPort_t *instance);
 uint16_t displayTxBytesFree(const displayPort_t *instance);
+bool displayFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance);
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable);
