@@ -1367,7 +1367,7 @@ static void cliServo(char *cmdline)
 
 static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixers, const servoMixer_t *defaultCustomServoMixers)
 {
-    const char *format = "smix %d %d %d %d %d";
+    const char *format = "smix %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_SERVO_RULES; i++) {
         const servoMixer_t customServoMixer = customServoMixers[i];
         if (customServoMixer.rate == 0) {
@@ -1380,14 +1380,20 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             equalsDefault = customServoMixer.targetChannel == customServoMixerDefault.targetChannel
                 && customServoMixer.inputSource == customServoMixerDefault.inputSource
                 && customServoMixer.rate == customServoMixerDefault.rate
-                && customServoMixer.speed == customServoMixerDefault.speed;
+                && customServoMixer.speed == customServoMixerDefault.speed
+                && customServoMixer.condition.operation == customServoMixerDefault.condition.operation
+                && customServoMixer.condition.operandA == customServoMixerDefault.condition.operandA
+                && customServoMixer.condition.operandB == customServoMixerDefault.condition.operandB;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 customServoMixerDefault.targetChannel,
                 customServoMixerDefault.inputSource,
                 customServoMixerDefault.rate,
-                customServoMixerDefault.speed
+                customServoMixerDefault.speed,
+                customServoMixer.condition.operation,
+                customServoMixer.condition.operandA,
+                customServoMixer.condition.operandB
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -1395,7 +1401,10 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             customServoMixer.targetChannel,
             customServoMixer.inputSource,
             customServoMixer.rate,
-            customServoMixer.speed
+            customServoMixer.speed,
+            customServoMixer.condition.operation,
+            customServoMixer.condition.operandA,
+            customServoMixer.condition.operandB
         );
     }
 }
@@ -1412,7 +1421,7 @@ static void cliServoMix(char *cmdline)
         // erase custom mixer
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
     } else {
-        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, ARGS_COUNT};
+        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, OPERAND_A, OPERAND_B, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
@@ -1425,15 +1434,23 @@ static void cliServoMix(char *cmdline)
         }
 
         int32_t i = args[RULE];
-        if (i >= 0 && i < MAX_SERVO_RULES &&
+        if (
+            i >= 0 && i < MAX_SERVO_RULES &&
             args[TARGET] >= 0 && args[TARGET] < MAX_SUPPORTED_SERVOS &&
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
             args[RATE] >= -125 && args[RATE] <= 125 &&
-            args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED) {
+            args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED &&
+            args[CONDITION] >= 0 && args[CONDITION] < MIXER_CONDITION_LAST &&
+            args[OPERAND_A] >= 0 && args[OPERAND_A] < 127 &&
+            args[OPERAND_B] >= 0 && args[OPERAND_B] < 127
+        ) {
             customServoMixersMutable(i)->targetChannel = args[TARGET];
             customServoMixersMutable(i)->inputSource = args[INPUT];
             customServoMixersMutable(i)->rate = args[RATE];
             customServoMixersMutable(i)->speed = args[SPEED];
+            customServoMixersMutable(i)->condition.operation = args[CONDITION];
+            customServoMixersMutable(i)->condition.operandA = args[OPERAND_A];
+            customServoMixersMutable(i)->condition.operandB = args[OPERAND_B];
             cliServoMix("");
         } else {
             cliShowParseError();
