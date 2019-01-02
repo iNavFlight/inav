@@ -149,7 +149,7 @@ static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort
     return attr;
 }
 
-static bool fontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
+static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
 
@@ -188,7 +188,7 @@ static const displayPortVTable_t max7456VTable = {
     .resync = resync,
     .txBytesFree = txBytesFree,
     .supportedTextAttributes = supportedTextAttributes,
-    .fontMetadata = fontMetadata,
+    .getFontMetadata = getFontMetadata,
 };
 
 displayPort_t *max7456DisplayPortInit(const videoSystem_e videoSystem)

@@ -90,7 +90,7 @@ typedef struct displayPortVTable_s {
     void (*resync)(displayPort_t *displayPort);
     uint32_t (*txBytesFree)(const displayPort_t *displayPort);
     textAttributes_t (*supportedTextAttributes)(const displayPort_t *displayPort);
-    bool (*fontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
+    bool (*getFontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
 } displayPortVTable_t;
 
 typedef struct displayPortProfile_s {

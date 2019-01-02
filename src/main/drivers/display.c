@@ -223,8 +223,8 @@ uint16_t displayTxBytesFree(const displayPort_t *instance)
 
 bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance)
 {
-    if (instance->vTable->fontMetadata) {
-        return instance->vTable->fontMetadata(metadata, instance);
+    if (instance->vTable->getFontMetadata) {
+        return instance->vTable->getFontMetadata(metadata, instance);
     }
     return false;
 }
