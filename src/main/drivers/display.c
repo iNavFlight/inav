@@ -221,7 +221,7 @@ uint16_t displayTxBytesFree(const displayPort_t *instance)
     return instance->vTable->txBytesFree(instance);
 }
 
-bool displayFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance)
+bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance)
 {
     if (instance->vTable->fontMetadata) {
         return instance->vTable->fontMetadata(metadata, instance);
@@ -245,7 +245,7 @@ void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
     }
 
     displayFontMetadata_t metadata;
-    if (displayFontMetadata(&metadata, instance)) {
+    if (displayGetFontMetadata(&metadata, instance)) {
         instance->maxChar = metadata.charCount - 1;
     } else {
         // Assume 8-bit character implementation

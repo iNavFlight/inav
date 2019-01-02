@@ -2555,7 +2555,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     uint8_t y = 1;
     displayFontMetadata_t metadata;
-    bool fontHasMetadata = displayFontMetadata(&metadata, osdDisplayPort);
+    bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
 
     if (fontHasMetadata && metadata.charCount > 256) {
         hasExtendedFont = true;
