@@ -10,8 +10,6 @@
 
 #include "settings_generated.c"
 
-#define SETTING_BITS_PER_CHAR 5
-
 static bool settingGetWord(char *buf, int idx)
 {
 	if (idx == 0) {
@@ -22,12 +20,12 @@ static bool settingGetWord(char *buf, int idx)
 	int used_bits = 0;
 	int word = 1;
 	for(;;) {
-		int shift = 8 - SETTING_BITS_PER_CHAR - used_bits;
+		int shift = 8 - SETTINGS_WORDS_BITS_PER_CHAR - used_bits;
 		char chr;
 		if (shift > 0) {
-			chr = (*ptr >> shift) & (0xff >> (8 - SETTING_BITS_PER_CHAR));
+			chr = (*ptr >> shift) & (0xff >> (8 - SETTINGS_WORDS_BITS_PER_CHAR));
 		} else {
-			chr = (*ptr & (0xff >> (8 - (SETTING_BITS_PER_CHAR + shift)))) << -shift;
+			chr = (*ptr & (0xff >> (8 - (SETTINGS_WORDS_BITS_PER_CHAR + shift)))) << -shift;
 			ptr++;
 			chr |= (*ptr) >> (8 + shift);
 		}
@@ -50,7 +48,7 @@ static bool settingGetWord(char *buf, int idx)
 				word++;
 			}
 		}
-		used_bits = (used_bits + SETTING_BITS_PER_CHAR) % 8;
+		used_bits = (used_bits + SETTINGS_WORDS_BITS_PER_CHAR) % 8;
 	}
 	return true;
 }

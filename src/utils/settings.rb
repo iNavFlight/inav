@@ -37,6 +37,8 @@ require_relative 'compiler'
 DEBUG = false
 INFO = false
 
+SETTINGS_WORDS_BITS_PER_CHAR = 5
+
 def dputs(s)
     puts s if DEBUG
 end
@@ -382,6 +384,7 @@ class Generator
         if @name_encoder.uses_byte_indexing
             buf << "#define SETTING_ENCODED_NAME_USES_BYTE_INDEXING\n"
         end
+        buf << "#define SETTINGS_WORDS_BITS_PER_CHAR #{SETTINGS_WORDS_BITS_PER_CHAR}\n"
         buf << "#define SETTINGS_TABLE_COUNT #{@count}\n"
         offset_type = "uint16_t"
         if can_use_byte_offsetof
@@ -468,9 +471,9 @@ class Generator
 
         # Write word list
         buf << "static const uint8_t settingNamesWords[] = {\n"
-        word_bits = 5
-        # We can keep up to 5 extra symbols outside a-z
-        rem_symbols = 5
+        word_bits = SETTINGS_WORDS_BITS_PER_CHAR
+        # We need 27 symbols for a-z + null
+        rem_symbols = 2 ** word_bits - 27
         symbols = Array.new
         acc = 0
         acc_bits = 0
