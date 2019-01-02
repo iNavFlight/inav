@@ -1441,8 +1441,8 @@ static void cliServoMix(char *cmdline)
             args[RATE] >= -125 && args[RATE] <= 125 &&
             args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED &&
             args[CONDITION] >= 0 && args[CONDITION] < MIXER_CONDITION_LAST &&
-            args[OPERAND_A] >= 0 && args[OPERAND_A] < 127 &&
-            args[OPERAND_B] >= 0 && args[OPERAND_B] < 127
+            args[OPERAND_A] >= -2000 && args[OPERAND_A] <= 2000 &&
+            args[OPERAND_B] >= -2000 && args[OPERAND_B] <= 2000
         ) {
             customServoMixersMutable(i)->targetChannel = args[TARGET];
             customServoMixersMutable(i)->inputSource = args[INPUT];

@@ -207,6 +207,29 @@ void writeServos(void)
     }
 }
 
+int getOperandValue(mixerConditionType_e operation, int operand) {
+    int retVal = 0;
+
+    switch (operation) {
+        case MIXER_CONDITION_RC_CHANNEL_GREATER_THAN:
+        case MIXER_CONDITION_RC_CHANNEL_LOWER_THAN:
+        case MIXER_CONDITION_RC_CHANNEL_LOW:
+        case MIXER_CONDITION_RC_CHANNEL_MID:
+        case MIXER_CONDITION_RC_CHANNEL_HIGH:
+            //Extract RC channel raw value
+            if (operand >= 1 && operand <= 16) {
+                retVal = rcData[operand - 1];
+            } 
+
+            break;
+
+        default:
+            break;
+    }
+
+    return retVal;
+}
+
 void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
@@ -269,6 +292,26 @@ void servoMixer(float dT)
 
     // mix servos according to rules
     for (int i = 0; i < servoRuleCount; i++) {
+
+        /*
+         * Check if conditions for a rule are met, not all conditions apply all the time
+         */
+        const int operation = currentServoMixer[i].condition.operation;
+        if (operation != MIXER_CONDITION_ALWAYS) {
+            int operandValue = getOperandValue(operation, currentServoMixer[i].condition.operandA);
+            
+            if (operation == MIXER_CONDITION_RC_CHANNEL_GREATER_THAN) {
+                if (operandValue > currentServoMixer[i].condition.operandB) {
+                    // we do want this to execute
+                } else {
+                    continue; // Condition not met, skip this rule
+                }
+            } else {
+                continue; //condition not supported
+            }
+
+        }
+
         const uint8_t target = currentServoMixer[i].targetChannel;
         const uint8_t from = currentServoMixer[i].inputSource;
 
