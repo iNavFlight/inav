@@ -316,12 +316,12 @@ static void max7456ReInit(void)
             break;
         default:
             busRead(state.dev, MAX7456ADD_STAT, &srdata);
-            if ((0x02 & srdata) == 0x02) {
-                state.registers.vm0 = VIDEO_MODE_NTSC | OSD_ENABLE;
-                state.videoSystem = NTSC;
-            } else {
+            if (VIN_IS_PAL(srdata)) {
                 state.registers.vm0 = VIDEO_MODE_PAL | OSD_ENABLE;
                 state.videoSystem = PAL;
+            } else if (VIN_IS_NTSC_alt(srdata)) {
+                state.registers.vm0 = VIDEO_MODE_NTSC | OSD_ENABLE;
+                state.videoSystem = NTSC;
             }
     }
 
