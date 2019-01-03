@@ -1293,25 +1293,6 @@ static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const s
             servoConf->rate
         );
     }
-
-    // print servo directions
-    if (defaultServoParam) {
-        for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            const servoParam_t *servoConf = &servoParam[i];
-            const servoParam_t *servoConfDefault = &defaultServoParam[i];
-            bool equalsDefault = servoConf->reversedSources == servoConfDefault->reversedSources;
-            for (uint32_t channel = 0; channel < INPUT_SOURCE_COUNT; channel++) {
-                equalsDefault = ~(servoConf->reversedSources ^ servoConfDefault->reversedSources) & (1 << channel);
-                const char *format = "smix reverse %d %d r";
-                if (servoConfDefault->reversedSources & (1 << channel)) {
-                    cliDefaultPrintLinef(dumpMask, equalsDefault, format, i , channel);
-                }
-                if (servoConf->reversedSources & (1 << channel)) {
-                    cliDumpPrintLinef(dumpMask, equalsDefault, format, i , channel);
-                }
-            }
-        }
-    }
 }
 
 static void cliServo(char *cmdline)
@@ -1430,51 +1411,6 @@ static void cliServoMix(char *cmdline)
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
-        for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            servoParamsMutable(i)->reversedSources = 0;
-        }
-    } else if (sl_strncasecmp(cmdline, "reverse", 7) == 0) {
-        enum {SERVO = 0, INPUT, REVERSE, ARGS_COUNT};
-        char *ptr = strchr(cmdline, ' ');
-
-        len = strlen(ptr);
-        if (len == 0) {
-            cliPrintf("s");
-            for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
-                cliPrintf("\ti%d", inputSource);
-            cliPrintLinefeed();
-
-            for (uint32_t servoIndex = 0; servoIndex < MAX_SUPPORTED_SERVOS; servoIndex++) {
-                cliPrintf("%d", servoIndex);
-                for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
-                    cliPrintf("\t%s  ", (servoParams(servoIndex)->reversedSources & (1 << inputSource)) ? "r" : "n");
-                cliPrintLinefeed();
-            }
-            return;
-        }
-
-        ptr = strtok_r(ptr, " ", &saveptr);
-        while (ptr != NULL && check < ARGS_COUNT - 1) {
-            args[check++] = fastA2I(ptr);
-            ptr = strtok_r(NULL, " ", &saveptr);
-        }
-
-        if (ptr == NULL || check != ARGS_COUNT - 1) {
-            cliShowParseError();
-            return;
-        }
-
-        if (args[SERVO] >= 0 && args[SERVO] < MAX_SUPPORTED_SERVOS
-                && args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT
-                && (*ptr == 'r' || *ptr == 'n')) {
-            if (*ptr == 'r')
-                servoParamsMutable(args[SERVO])->reversedSources |= 1 << args[INPUT];
-            else
-                servoParamsMutable(args[SERVO])->reversedSources &= ~(1 << args[INPUT]);
-        } else
-            cliShowParseError();
-
-        cliServoMix("reverse");
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
@@ -2854,9 +2790,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed>\r\n"
-        "\treset\r\n"
-        "\tload <mixer>\r\n"
-        "\treverse <servo> <source> r|n", cliServoMix),
+        "\treset\r\n", cliServoMix),
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
