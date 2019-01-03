@@ -461,6 +461,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
         }
         break;
+    case MSP2_INAV_SERVO_MIXER:
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            sbufWriteU8(dst, customServoMixers(i)->targetChannel);
+            sbufWriteU8(dst, customServoMixers(i)->inputSource);
+            sbufWriteU8(dst, customServoMixers(i)->rate);
+            sbufWriteU8(dst, customServoMixers(i)->speed);
+            sbufWriteU8(dst, customServoMixers(i)->condition.operation);
+            sbufWriteU16(dst, customServoMixers(i)->condition.operandA);
+            sbufWriteU16(dst, customServoMixers(i)->condition.operandB);
+        }
+        break;
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             sbufWriteU16(dst, customMotorMixer(i)->throttle * 1000);
@@ -1777,6 +1788,21 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
             sbufReadU16(src); //Read 2bytes for min/max and ignore it
             sbufReadU8(src); //Read 1 byte for `box` and ignore it
+            loadCustomServoMixer();
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+    
+    case MSP2_INAV_SET_SERVO_MIXER:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize >= 8) && (tmp_u8 < MAX_SERVO_RULES)) {
+            customServoMixersMutable(tmp_u8)->targetChannel = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->inputSource = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->rate = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->condition.operation = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->condition.operandA = sbufReadU16(src);
+            customServoMixersMutable(tmp_u8)->condition.operandB = sbufReadU16(src);
             loadCustomServoMixer();
         } else
             return MSP_RESULT_ERROR;
