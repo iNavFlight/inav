@@ -56,13 +56,27 @@ For example, `smix 0 2 0 100 0` will create rule number 0 assigning Stabilised R
 | 5  | RC PITCH |
 | 6  | RC YAW |
 | 7  | RC THROTTLE |
-| 8  | RC AUX 1 |
-| 9  | RC AUX 2 |
-| 10 | RC AUX 3 |
-| 11 | RC AUX 4 |
+| 8  | RC Channel 5 |
+| 9  | RC Channel 6 |
+| 10 | RC Channel 7 |
+| 11 | RC Channel 8 |
 | 12 | GIMBAL PITCH |
 | 13 | GIMBAL ROLL |
 | 14 | FEATURE FLAPS |
+| 15 | RC Channel 9 |
+| 16 | RC Channel 10 |
+| 17 | RC Channel 11 |
+| 18 | RC Channel 12 |
+| 19 | RC Channel 13 |
+| 20 | RC Channel 14 |
+| 21 | RC Channel 15 |
+| 22 | RC Channel 16 |
+| 23 | Stabilized ROLL+ |
+| 24 | Stabilized ROLL- |
+| 25 | Stabilized PITCH+ |
+| 26 | Stabilized PITCH- |
+| 27 | Stabilized YAW+ |
+| 28 | Stabilized YAW- |
 
 | id |  Servo Slot Optional Setup |
 |----|--------------|
