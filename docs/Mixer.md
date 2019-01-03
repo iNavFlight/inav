@@ -43,8 +43,11 @@ Note: the `mmix` command may show a motor mix that is not active, custom motor m
 
 Custom servo mixing rules can be applied to each servo.  Rules are applied in the CLI using `smix`. Rules link flight controller stabilization and receiver signals to physical PWM output pins on the FC board. Currently, pin id's 0 and 1 can only be used for motor outputs. Other pins may or may not work depending on the board you are using.
 
-The smix statement has the following syntax: `smix n SERVO_ID SIGNAL_SOURCE RATE SPEED` 
-For example, `smix 0 2 0 100 0` will create rule number 0 assigning Stabilised Roll to the third PWM pin on the FC board will full rate and no speed limit.
+The smix statement has the following syntax: 
+
+`smix n SERVO_ID SIGNAL_SOURCE RATE SPEED CONDITION OPERAND_A OPERAND_B` 
+
+For example, `smix 0 2 0 100 0 0 0 0` will create rule number 0 assigning Stabilised Roll to the third PWM pin on the FC board will full rate and no speed limit that is always active.
 
 | id | Flight Controller Output signal sources |
 |----|-----------------|
@@ -80,15 +83,15 @@ For example, `smix 0 2 0 100 0` will create rule number 0 assigning Stabilised R
 Servo rule rate should be understood as a weight of a rule. To obtain full servo throw without clipping sum of all `smix` rates for a servo should equal `100`. For example, is servo #2 should be driven by sources 0 and 1 (Stabilized Roll and Stabilized Pitch) with equal strength, correct rules would be:
 
 ```
-smix 0 2 0 50 0
-smix 1 2 1 50 0
+smix 0 2 0 50 0 0 0 0
+smix 1 2 1 50 0 0 0 0
 ```  
 
 To obtain the stronger input of one source, increase the rate of this source while decreasing the others. For example, to drive servo #2 in 75% from source 0 and in 25% from source 1, correct rules would be:
 
 ```
-smix 0 2 0 75 0
-smix 1 2 1 25 0
+smix 0 2 0 75 0 0 0 0
+smix 1 2 1 25 0 0 0 0
 ```  
 
 If a sum of weights would be bigger than `100`, clipping to servo min and max values might appear.
@@ -111,6 +114,29 @@ If value different than `0` is set as rule speed, the speed of change will be lo
 * 200 = 2000us/s -> full sweep in 0.5s 
 
 Servo speed might be useful for functions like flaps, landing gear retraction and other where full speed provided for hardware is too much.
+
+### Mixer rule condition
+
+INAV allows for conditional servo mixer rules. This means, selected rules will be active only when certail condition is met. For each rule, activation condition is defined as 3 numbers:
+
+1. Operator - defines condition type and logical operator
+1. Operand A - depending on used `Operator` it can define different flight controller parameters: RC channel value, ceratain telemetry values, speed, etc.
+1. Operand B - optional, depends on used `Operator` 
+
+| id | Flight Controller Output signal sources |
+| ----  | ------ |
+| 0     | Always active, `Operand A` and `Operand B` are not used
+| 1     | RC_CHANNEL_GREATER_THAN, active if RC Channel value defined in `Operand A` (1-16) is greater then `Operand B` (1000-2000) | 
+| 2     | RC_CHANNEL_LOWER_THAN, active if RC Channel value defined in `Operand A` (1-16) is lower then `Operand B` (1000-2000) | 
+| 3     | RC_CHANNEL_LOW, active if RC Channel value defined in `Operand A` (1-16) is in _LOW_ position (< 1333). `Operand B` is not used | 
+| 4     | RC_CHANNEL_MID, active if RC Channel value defined in `Operand A` (1-16) is in _MID_ position (>= 1333 and <= 1666). `Operand B` is not used | 
+| 5     | RC_CHANNEL_HIGH, active if RC Channel value defined in `Operand A` (1-16) is in _HIGH_ position (> 1666). `Operand B` is not used | 
+
+#### Examples
+
+* `smix 0 2 0 50 0 3 5 0` - active when RC channel 5 value is LOW (< 1333)
+* `smix 0 2 0 50 0 0 0 0` - rule always active
+* `smix 0 2 0 50 0 1 7 1500` - active when RC channel 7 value is greater than `1500`
 
 ## Servo Reversing
 
