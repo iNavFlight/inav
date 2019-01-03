@@ -74,12 +74,6 @@ typedef struct __attribute__((__packed__)) ffpvPacket_s {
 } ffpvPacket_t;
 
 typedef struct {
-    bool received;
-    unsigned bytePtr;
-    ffpvPacket_t pkt;
-} vtxProtoRecvState_t;
-
-typedef struct {
     bool ready;
     int protoTimeouts;
     unsigned updateReqMask;
@@ -95,8 +89,8 @@ typedef struct {
     // Requested VTX state
     struct {
         bool     setByFrequency;
-        unsigned band;
-        unsigned channel;
+        int      band;
+        int      channel;
         unsigned freq;
         unsigned power;
     } request;
@@ -106,6 +100,12 @@ typedef struct {
         unsigned freq;
         unsigned power;
     } state;
+
+    // Comms flags and state
+    ffpvPacket_t sendPkt;
+    ffpvPacket_t recvPkt;
+    unsigned     recvPtr;
+    bool         pktReceived;
 } vtxProtoState_t;
 
 /*****************************************************************************/
@@ -137,7 +137,6 @@ const unsigned ffpvPowerTable[VTX_FFPV_POWER_COUNT] = {
 /*******************************************************************************/
 static serialPort_t * vtxSerialPort = NULL;
 static vtxProtoState_t vtxState;
-static vtxProtoRecvState_t protoRecv;
 
 static uint8_t vtxCalcChecksum(ffpvPacket_t * pkt)
 {
@@ -148,39 +147,47 @@ static uint8_t vtxCalcChecksum(ffpvPacket_t * pkt)
     return sum;
 }
 
-static bool vtxProtoRecv(uint8_t cmd)
+static bool vtxProtoRecv(void)
 {
     // Return success instantly if packet is already awaiting processing
-    if (protoRecv.received) {
+    if (vtxState.pktReceived) {
         return true;
     }
 
-    uint8_t * bufPtr = (uint8_t*)&protoRecv.pkt;
-    while (serialRxBytesWaiting(vtxSerialPort) && !protoRecv.received) {
+    uint8_t * bufPtr = (uint8_t*)&vtxState.recvPkt;
+    while (serialRxBytesWaiting(vtxSerialPort) && !vtxState.pktReceived) {
         const uint8_t c = serialRead(vtxSerialPort);
 
-        if (protoRecv.bytePtr == 0) {
+        if (vtxState.recvPtr == 0) {
             // Wait for sync byte
             if (c == 0x0F) {
-                bufPtr[protoRecv.bytePtr++] = c;
+                bufPtr[vtxState.recvPtr++] = c;
             }
         }
         else {
             // Sync byte ok - wait for full packet
-            if (protoRecv.bytePtr < sizeof(protoRecv.pkt)) {
-                bufPtr[protoRecv.bytePtr++] = c;
+            if (vtxState.recvPtr < sizeof(vtxState.recvPkt)) {
+                bufPtr[vtxState.recvPtr++] = c;
             }
-            else {
+
+            // Received full packet - do some processing
+            if (vtxState.recvPtr == sizeof(vtxState.recvPkt)) {
                 // Full packet received - validate packet, make sure it's the one we expect
-                if (protoRecv.pkt.header == 0x0F && protoRecv.pkt.cmd == cmd && protoRecv.pkt.footer == 0x00 && protoRecv.pkt.checksum == vtxCalcChecksum(&protoRecv.pkt)) {
-                    // Packet valid - set received flag and return success
-                    protoRecv.received = true;
-                    return true;
-                }
-                else {
+                const bool pktValid = (vtxState.recvPkt.header == 0x0F && vtxState.recvPkt.cmd == vtxState.sendPkt.cmd && vtxState.recvPkt.footer == 0x00 && vtxState.recvPkt.checksum == vtxCalcChecksum(&vtxState.recvPkt));
+                if (!pktValid) {
                     // Reset the receiver state - keep waiting
-                    protoRecv.received = false;
-                    protoRecv.bytePtr = 0;
+                    vtxState.pktReceived = false;
+                    vtxState.recvPtr = 0;
+                }
+                // Make sure it's not the echo one (half-duplex serial might receive it's own data)
+                else if (memcmp(&vtxState.recvPkt.data, &vtxState.sendPkt.data, sizeof(vtxState.recvPkt.data)) == 0) {
+                    vtxState.pktReceived = false;
+                    vtxState.recvPtr = 0;
+                }
+                // Valid receive packet
+                else {
+                    vtxState.pktReceived = true;
+                    return true;
                 }
             }
         }
@@ -192,34 +199,32 @@ static bool vtxProtoRecv(uint8_t cmd)
 static void vtxProtoSend(uint8_t cmd, const uint8_t * data)
 {
     // Craft and send FPV packet
-    ffpvPacket_t pkt;
-
-    pkt.header = 0x0F;
-    pkt.cmd = cmd;
+    vtxState.sendPkt.header = 0x0F;
+    vtxState.sendPkt.cmd = cmd;
 
     if (data) {
-        memcpy(pkt.data, data, sizeof(pkt.data));
+        memcpy(vtxState.sendPkt.data, data, sizeof(vtxState.sendPkt.data));
     }
     else {
-        memset(pkt.data, 0, sizeof(pkt.data));
+        memset(vtxState.sendPkt.data, 0, sizeof(vtxState.sendPkt.data));
     }
 
-    pkt.checksum = vtxCalcChecksum(&pkt);
-    pkt.footer = 0x00;
+    vtxState.sendPkt.checksum = vtxCalcChecksum(&vtxState.sendPkt);
+    vtxState.sendPkt.footer = 0x00;
 
     // Send data 
-    serialWriteBuf(vtxSerialPort, (uint8_t *)&pkt, sizeof(pkt));
+    serialWriteBuf(vtxSerialPort, (uint8_t *)&vtxState.sendPkt, sizeof(vtxState.sendPkt));
 
     // Reset cmd response state
-    protoRecv.received = false;
-    protoRecv.bytePtr = 0;
+    vtxState.pktReceived = false;
+    vtxState.recvPtr = 0;
 }
 
 static void vtxProtoSend_SetFreqency(unsigned freq)
 {
     uint8_t data[12] = {0};
     data[0] = freq & 0xFF;
-    data[1] = (freq >> 8) && 0xFF;
+    data[1] = (freq >> 8) & 0xFF;
     vtxProtoSend(0x46, data);
 }
 
@@ -227,7 +232,7 @@ static void vtxProtoSend_SetPower(unsigned power)
 {
     uint8_t data[12] = {0};
     data[0] = power & 0xFF;
-    data[1] = (power >> 8) && 0xFF;
+    data[1] = (power >> 8) & 0xFF;
     vtxProtoSend(0x50, data);
 }
 
@@ -240,14 +245,14 @@ STATIC_PROTOTHREAD(impl_VtxProtocolThread)
     while(!vtxState.ready) {
         // Send capabilities request and wait
         vtxProtoSend(0x72, NULL);
-        ptWaitTimeout(vtxProtoRecv(0x72), VTX_FFPV_CMD_TIMEOUT_MS);
+        ptWaitTimeout(vtxProtoRecv(), VTX_FFPV_CMD_TIMEOUT_MS);
 
         // Check if we got a valid response
-        if (protoRecv.received) {
-            vtxState.capabilities.freqMin = protoRecv.pkt.data[0] | (protoRecv.pkt.data[1] << 8);
-            vtxState.capabilities.freqMax = protoRecv.pkt.data[2] | (protoRecv.pkt.data[3] << 8);
+        if (vtxState.pktReceived) {
+            vtxState.capabilities.freqMin = vtxState.recvPkt.data[0] | (vtxState.recvPkt.data[1] << 8);
+            vtxState.capabilities.freqMax = vtxState.recvPkt.data[2] | (vtxState.recvPkt.data[3] << 8);
             vtxState.capabilities.powerMin = 0;
-            vtxState.capabilities.powerMax = protoRecv.pkt.data[4] | (protoRecv.pkt.data[5] << 8);
+            vtxState.capabilities.powerMax = vtxState.recvPkt.data[4] | (vtxState.recvPkt.data[5] << 8);
             vtxState.ready = true;
         }
     }
@@ -278,12 +283,12 @@ STATIC_PROTOTHREAD(impl_VtxProtocolThread)
         else {
             // Periodic check for VTX liveness
             vtxProtoSend(0x76, NULL);
-            ptWaitTimeout(vtxProtoRecv(0x76), VTX_FFPV_CMD_TIMEOUT_MS);
+            ptWaitTimeout(vtxProtoRecv(), VTX_FFPV_CMD_TIMEOUT_MS);
 
-            if (protoRecv.received) {
+            if (vtxState.pktReceived) {
                 // Got a valid state from VTX
-                vtxState.state.freq = protoRecv.pkt.data[0] | (protoRecv.pkt.data[1] << 8);
-                vtxState.state.power = protoRecv.pkt.data[2] | (protoRecv.pkt.data[3] << 8);
+                vtxState.state.freq = (uint16_t)vtxState.recvPkt.data[0] | ((uint16_t)vtxState.recvPkt.data[1] << 8);
+                vtxState.state.power = (uint16_t)vtxState.recvPkt.data[2] | ((uint16_t)vtxState.recvPkt.data[3] << 8);
                 vtxState.protoTimeouts = 0;
 
                 // Check if VTX state matches VTX request
@@ -336,24 +341,26 @@ static bool impl_IsReady(const vtxDevice_t *vtxDevice)
     return vtxDevice != NULL && vtxSerialPort != NULL && vtxState.ready;
 }
 
-static void impl_DevSetFreq(uint16_t freq)
+static bool impl_DevSetFreq(uint16_t freq)
 {
     if (!vtxState.ready || freq < vtxState.capabilities.freqMin || freq > vtxState.capabilities.freqMax) {
-        return;
+        return false;
     }
 
     vtxState.request.freq = freq;
     vtxState.updateReqMask |= VTX_UPDATE_REQ_FREQUENCY;
+
+    return true;
 }
 
 static void impl_SetFreq(vtxDevice_t * vtxDevice, uint16_t freq)
 {
     UNUSED(vtxDevice);
 
-    impl_DevSetFreq(freq);
-
-    // Keep track that we set frequency directly
-    vtxState.request.setByFrequency = true;
+    if (impl_DevSetFreq(freq)) {
+        // Keep track that we set frequency directly
+        vtxState.request.setByFrequency = true;
+    }
 }
 
 static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_t channel)
@@ -365,12 +372,12 @@ static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_
         return;
     }
 
-    impl_DevSetFreq(ffpvFrequencyTable[band][channel]);
-
-    // Keep track of band/channel data
-    vtxState.request.setByFrequency = false;
-    vtxState.request.band = band;
-    vtxState.request.channel = channel;
+    if (impl_DevSetFreq(ffpvFrequencyTable[band][channel])) {
+        // Keep track of band/channel data
+        vtxState.request.setByFrequency = false;
+        vtxState.request.band = band;
+        vtxState.request.channel = channel;
+    }
 }
 
 static void impl_SetPowerByIndex(vtxDevice_t * vtxDevice, uint8_t index)
