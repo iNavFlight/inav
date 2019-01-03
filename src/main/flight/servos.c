@@ -230,6 +230,28 @@ int getOperandValue(mixerConditionType_e operation, int operand) {
     return retVal;
 }
 
+bool checkConditionForOperands(
+    mixerConditionType_e operation,
+    int operandA,
+    int operandB
+) {
+
+    if (operation == MIXER_CONDITION_RC_CHANNEL_GREATER_THAN) {
+        return operandA > operandB;
+    } else if (operation == MIXER_CONDITION_RC_CHANNEL_LOWER_THAN) {
+        return operandA < operandB;
+    } else if (operation == MIXER_CONDITION_RC_CHANNEL_LOW) {
+        return operandA < 1333;
+    } else if (operation == MIXER_CONDITION_RC_CHANNEL_MID) {
+        return operandA >= 1333 && operandA <= 1666;
+    } else if (operation == MIXER_CONDITION_RC_CHANNEL_HIGH) {
+        return operandA > 1666;
+    } else {
+        return false; //condition not supported, return false to skip this rule
+    }
+
+}
+
 void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
@@ -298,18 +320,10 @@ void servoMixer(float dT)
          */
         const int operation = currentServoMixer[i].condition.operation;
         if (operation != MIXER_CONDITION_ALWAYS) {
-            int operandValue = getOperandValue(operation, currentServoMixer[i].condition.operandA);
-            
-            if (operation == MIXER_CONDITION_RC_CHANNEL_GREATER_THAN) {
-                if (operandValue > currentServoMixer[i].condition.operandB) {
-                    // we do want this to execute
-                } else {
-                    continue; // Condition not met, skip this rule
-                }
-            } else {
-                continue; //condition not supported
+            const int operandValue = getOperandValue(operation, currentServoMixer[i].condition.operandA);
+            if (!checkConditionForOperands(operation, operandValue, currentServoMixer[i].condition.operandB)) {
+                continue;
             }
-
         }
 
         const uint8_t target = currentServoMixer[i].targetChannel;

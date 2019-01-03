@@ -90,8 +90,6 @@ typedef enum {
 
 typedef enum {
     MIXER_CONDITION_ALWAYS = 0,
-    MIXER_CONDITION_FLIGHT_MODE_ACTIVE, // Not yet supported
-    MIXER_CONDITION_FLIGHT_MODE_NOT_ACTIVE,  // Not yet supported
     MIXER_CONDITION_RC_CHANNEL_GREATER_THAN,  // Not yet supported
     MIXER_CONDITION_RC_CHANNEL_LOWER_THAN,  // Not yet supported
     MIXER_CONDITION_RC_CHANNEL_LOW,  // Not yet supported
