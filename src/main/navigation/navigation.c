@@ -1504,6 +1504,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus();
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+            abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
     }
