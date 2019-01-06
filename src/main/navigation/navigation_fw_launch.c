@@ -122,6 +122,11 @@ bool isFixedWingLaunchFinishedOrAborted(void)
     return launchState.launchFinished;
 }
 
+void abortFixedWingLaunch(void)
+{
+    launchState.launchFinished = true;
+}
+
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500 //ms
 
 static void applyFixedWingLaunchIdleLogic(void)
