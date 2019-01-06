@@ -124,8 +124,16 @@
     x; \
 })
 
+#define OSD_CHR_IS_NUM(c) (c >= '0' && c <= '9')
+
+#define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
+#define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
+
+#define OSD_MIN_FONT_VERSION 1
+
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
+static bool hasExtendedFont = false; // Wether the font supports characters > 256
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -1021,7 +1029,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 }
             } else {
 
-                uint8_t c;
+                uint16_t c;
                 if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
@@ -1673,7 +1681,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
                     int8_t dy = floorf(fy);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
@@ -1690,7 +1698,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
                     const int8_t dx = floorf(fx);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
@@ -2545,7 +2553,29 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     displayClearScreen(osdDisplayPort);
 
-    uint8_t y = 4;
+    uint8_t y = 1;
+    displayFontMetadata_t metadata;
+    bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
+
+    if (fontHasMetadata && metadata.charCount > 256) {
+        hasExtendedFont = true;
+        unsigned logo_c = SYM_LOGO_START;
+        unsigned logo_x = OSD_CENTER_LEN(SYM_LOGO_WIDTH);
+        for (unsigned ii = 0; ii < SYM_LOGO_HEIGHT; ii++) {
+            for (unsigned jj = 0; jj < SYM_LOGO_WIDTH; jj++) {
+                displayWriteChar(osdDisplayPort, logo_x + jj, y, logo_c++);
+            }
+            y++;
+        }
+        y++;
+    } else {
+        if (!fontHasMetadata || metadata.version < OSD_MIN_FONT_VERSION) {
+            const char *m = "INVALID FONT";
+            displayWrite(osdDisplayPort, OSD_CENTER_S(m), 3, m);
+        }
+        y = 4;
+    }
+
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
     displayWrite(osdDisplayPort, 5, y++, string_buffer);
