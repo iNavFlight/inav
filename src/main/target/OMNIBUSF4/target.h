@@ -106,6 +106,8 @@
 #define USE_MAG_LIS3MDL
 #define USE_MAG_AK8975
 
+#define TEMPERATURE_I2C_BUS     I2C_EXT_BUS
+
 #define USE_BARO
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)

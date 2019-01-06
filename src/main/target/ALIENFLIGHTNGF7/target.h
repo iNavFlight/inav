@@ -71,6 +71,8 @@
 #define AK8963_CS_PIN           PC15
 #define AK8963_SPI_BUS          BUS_SPI3
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611

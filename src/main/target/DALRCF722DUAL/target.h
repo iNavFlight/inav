@@ -86,6 +86,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_SPI

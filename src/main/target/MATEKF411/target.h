@@ -111,6 +111,8 @@
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
