@@ -788,8 +788,8 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
  **/
 static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
-    buff[0] = SYM_THR;
-    buff[1] = SYM_THR1;
+    buff[0] = SYM_BLANK;
+    buff[1] = SYM_THR;
     int16_t thr = rcData[THROTTLE];
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
@@ -1595,17 +1595,17 @@ static bool osdDrawSingleElement(uint8_t item)
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
         switch ((osd_crosshairs_style_e)osdConfig()->crosshairs_style) {
             case OSD_CROSSHAIRS_STYLE_DEFAULT:
-                buff[0] = SYM_AH_CENTER_LINE;
-                buff[1] = SYM_AH_CENTER;
-                buff[2] = SYM_AH_CENTER_LINE_RIGHT;
+                buff[0] = SYM_AH_CH_LEFT;
+                buff[1] = SYM_AH_CH_CENTER;
+                buff[2] = SYM_AH_CH_RIGHT;
                 buff[3] = '\0';
                 break;
             case OSD_CROSSHAIRS_STYLE_AIRCRAFT:
-                buff[0] = SYM_AH_CROSSHAIRS_AIRCRAFT0;
-                buff[1] = SYM_AH_CROSSHAIRS_AIRCRAFT1;
-                buff[2] = SYM_AH_CROSSHAIRS_AIRCRAFT2;
-                buff[3] = SYM_AH_CROSSHAIRS_AIRCRAFT3;
-                buff[4] = SYM_AH_CROSSHAIRS_AIRCRAFT4;
+                buff[0] = SYM_AH_CH_AIRCRAFT0;
+                buff[1] = SYM_AH_CH_AIRCRAFT1;
+                buff[2] = SYM_AH_CH_AIRCRAFT2;
+                buff[3] = SYM_AH_CH_AIRCRAFT3;
+                buff[4] = SYM_AH_CH_AIRCRAFT4;
                 buff[5] = '\0';
                 break;
         }
@@ -2448,7 +2448,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
-    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(12, 12) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(13, 12) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_LON] = OSD_POS(18, 12);
 
     osdConfig->item_pos[0][OSD_ROLL_PIDS] = OSD_POS(2, 10);

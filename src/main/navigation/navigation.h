@@ -417,6 +417,7 @@ bool navigationRTHAllowsLanding(void);
 
 bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
+bool isFixedWingLaunchFinishedOrAborted(void);
 
 float calculateAverageSpeed();
 

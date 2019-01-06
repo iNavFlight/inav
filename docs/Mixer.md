@@ -116,8 +116,6 @@ Servo speed might be useful for functions like flaps, landing gear retraction an
 
 Servos can be reversed using Configurator _Servo_ tab and _Reverse_ checkbox.
 
-`smix reverse` command is still working but it is advised not to use it anymore and it might be removed in next releases of firmware.
-
 ## Servo configuration
 
 The cli `servo` command defines the settings for the servo outputs.

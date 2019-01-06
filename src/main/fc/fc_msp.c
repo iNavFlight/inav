@@ -447,7 +447,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 255); // used to be forwardFromChannel, not used anymore, send 0xff for compatibility reasons
-            sbufWriteU32(dst, servoParams(i)->reversedSources);
+            sbufWriteU32(dst, 0); //Input reversing is not required since it can be done on mixer level
         }
         break;
     case MSP_SERVO_MIX_RULES:
@@ -1770,7 +1770,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
-            servoParamsMutable(tmp_u8)->reversedSources = sbufReadU32(src);
+            sbufReadU32(src); // used to be reversedSources
             servoComputeScalingFactors(tmp_u8);
         }
         break;

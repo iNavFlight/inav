@@ -424,6 +424,7 @@ void resetFixedWingLaunchController(timeUs_t currentTimeUs);
 bool isFixedWingLaunchDetected(void);
 void enableFixedWingLaunchController(timeUs_t currentTimeUs);
 bool isFixedWingLaunchFinishedOrAborted(void);
+void abortFixedWingLaunch(void);
 void applyFixedWingLaunchController(timeUs_t currentTimeUs);
 
 #endif
