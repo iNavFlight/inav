@@ -1504,6 +1504,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus();
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+            abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
     }
@@ -1943,7 +1944,7 @@ bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWayp
 
 static void updateHomePositionCompatibility(void)
 {
-    geoConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.homePosition.pos, &GPS_home);
+    geoConvertLocalToGeodetic(&GPS_home, &posControl.gpsOrigin, &posControl.homePosition.pos);
     GPS_distanceToHome = posControl.homeDistance / 100;
     GPS_directionToHome = posControl.homeDirection / 100;
 }
@@ -2342,17 +2343,17 @@ static void resetPositionController(void)
 }
 
 
-static void processBrakingMode(const bool isAdjusting) 
+static void processBrakingMode(const bool isAdjusting)
 {
 #ifdef USE_MR_BRAKING_MODE
 
     static uint32_t brakingModeDisengageAt = 0;
     static uint32_t brakingBoostModeDisengageAt = 0;
 
-    const bool brakingEntryAllowed = 
+    const bool brakingEntryAllowed =
         IS_RC_MODE_ACTIVE(BOXBRAKING) &&
-        !STATE(NAV_CRUISE_BRAKING_LOCKED) && 
-        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold && 
+        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
+        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
         !isAdjusting &&
         navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
         navConfig()->mc.braking_speed_threshold > 0 &&
@@ -2422,6 +2423,8 @@ static void processBrakingMode(const bool isAdjusting)
             */
         setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
     }
+#else
+    UNUSED(isAdjusting);
 #endif
 }
 
@@ -2478,7 +2481,7 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
     else if (wpNumber == 255) {
         gpsLocation_t wpLLH;
 
-        geoConvertLocalToGeodetic(&posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos, &wpLLH);
+        geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
 
         wpData->lat = wpLLH.lat;
         wpData->lon = wpLLH.lon;
@@ -2505,7 +2508,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     // WP #0 - special waypoint - HOME
     if ((wpNumber == 0) && ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus >= EST_USABLE) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled) {
         // Forcibly set home position. Note that this is only valid if already armed, otherwise home will be reset instantly
-        geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos, GEO_ALT_RELATIVE);
+        geoConvertGeodeticToLocal(&wpPos.pos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
         setHomePosition(&wpPos.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, NAV_HOME_VALID_ALL);
     }
     // WP #255 - special waypoint - directly set desiredPosition
@@ -2514,7 +2517,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
              ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus == EST_TRUSTED) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
              (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
         // Convert to local coordinates
-        geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos, GEO_ALT_RELATIVE);
+        geoConvertGeodeticToLocal(&wpPos.pos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
 
         navSetWaypointFlags_t waypointUpdateFlags = NAV_POS_UPDATE_XY;
 
@@ -2609,7 +2612,7 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
     wpLLH.lon = waypoint->lon;
     wpLLH.alt = waypoint->alt;
 
-    geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, localPos, GEO_ALT_RELATIVE);
+    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
 }
 
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)

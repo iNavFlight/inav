@@ -735,6 +735,10 @@ groups:
         field: manual.rates[FD_YAW]
         min: 0
         max: 100
+      - name: fpv_mix_degrees
+        field: misc.fpvCamAngleDegrees
+        min: 0
+        max: 50
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t
@@ -1594,6 +1598,10 @@ groups:
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll
         type: bool
+      - name: osd_artificial_horizon_max_pitch
+        field: ahi_max_pitch
+        min: 10
+        max: 90
       - name: osd_crosshairs_style
         field: crosshairs_style
         table: osd_crosshairs_style
@@ -1621,6 +1629,9 @@ groups:
       - name: osd_estimations_wind_compensation
         condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
+        type: bool
+
+      - name: osd_failsafe_switch_layout
         type: bool
 
   - name: PG_SYSTEM_CONFIG

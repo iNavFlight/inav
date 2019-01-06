@@ -447,7 +447,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 255); // used to be forwardFromChannel, not used anymore, send 0xff for compatibility reasons
-            sbufWriteU32(dst, servoParams(i)->reversedSources);
+            sbufWriteU32(dst, 0); //Input reversing is not required since it can be done on mixer level
         }
         break;
     case MSP_SERVO_MIX_RULES:
@@ -787,8 +787,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         // output some useful QA statistics
         // debug[x] = ((hse_value / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
 
-        for (int i = 0; i < DEBUG16_VALUE_COUNT; i++) {
+        for (int i = 0; i < 4; i++) {
             sbufWriteU16(dst, debug[i]);      // 4 variables are here for general monitoring purpose
+        }
+        break;
+
+    case MSP2_INAV_DEBUG:
+        for (int i = 0; i < DEBUG32_VALUE_COUNT; i++) {
+            sbufWriteU32(dst, debug[i]);      // 8 variables are here for general monitoring purpose
         }
         break;
 
@@ -1757,7 +1763,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
-            servoParamsMutable(tmp_u8)->reversedSources = sbufReadU32(src);
+            sbufReadU32(src); // used to be reversedSources
             servoComputeScalingFactors(tmp_u8);
         }
         break;
@@ -2134,13 +2140,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_OSD_CHAR_WRITE:
 #ifdef USE_MAX7456
         if (dataSize >= 55) {
-            uint8_t font_data[64];
-            const uint8_t addr = sbufReadU8(src);
-            for (int i = 0; i < 54; i++) {
-                font_data[i] = sbufReadU8(src);
+            max7456Character_t chr;
+            uint16_t addr;
+            if (dataSize >= 56) {
+                addr = sbufReadU16(src);
+            } else {
+                addr = sbufReadU8(src);
+            }
+            for (unsigned ii = 0; ii < sizeof(chr.data); ii++) {
+                chr.data[ii] = sbufReadU8(src);
             }
             // !!TODO - replace this with a device independent implementation
-            max7456WriteNvm(addr, font_data);
+            max7456WriteNvm(addr, &chr);
         } else
             return MSP_RESULT_ERROR;
 #endif // USE_MAX7456

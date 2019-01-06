@@ -70,7 +70,7 @@ typedef struct {
 
 #ifdef USE_DSHOT
     // DSHOT parameters
-    uint32_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
+    uint32_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE] __attribute__ ((aligned (4)));
 #endif
 } pwmOutputPort_t;
 

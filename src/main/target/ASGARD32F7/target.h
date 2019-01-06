@@ -142,6 +142,9 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
+#define USE_LED_STRIP
+#define WS2811_PIN                      PA2
+
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
 
 #define DEFAULT_FEATURES                (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD | FEATURE_SOFTSERIAL | FEATURE_TELEMETRY)
@@ -163,6 +166,7 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
+#define USE_DSHOT
 #define MAX_PWM_OUTPUT_PORTS    4
 #define TARGET_MOTOR_COUNT      4
 

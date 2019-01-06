@@ -301,6 +301,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  osd_alt_alarm        | 100   | Value above which to make the OSD relative altitude indicator blink (meters) |
 |  osd_neg_alt_alarm    | 5    | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
+|  osd_failsafe_switch_layout  | OFF | If enabled the OSD automatically switches to the first layout during failsafe |
 |  display_force_sw_blink  | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
@@ -370,6 +371,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point    |
 |  max_angle_inclination_rll  | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 |  max_angle_inclination_pit  | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
+|  fw_iterm_limit_stick_position  | 0.5 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |
 |  fw_min_throttle_down_pitch  | 0 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle |
 |  gyro_lpf_hz  | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 |  acc_lpf_hz  | 15 | Software-based filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
@@ -423,4 +425,12 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | motor_accel_time | 0 | Minimum time for the motor(s) to accelerate from 0 to 100% throttle (ms) [0-1000] |
 | motor_decel_time | 0 | Minimum time for the motor(s) to deccelerate from 100 to 0% throttle (ms) [0-1000] |
 | thr_comp_weight | 0.692 | Weight used for the throttle compensation based on battery voltage. See the [battery documentation](Battery.md#automatic-throttle-compensation-based-on-battery-voltage) |
-
+| nav_mc_braking_speed_threshold | 100 | min speed in cm/s above which braking can happen |
+| nav_mc_braking_disengage_speed | 75 | braking is disabled when speed goes below this value |
+| nav_mc_braking_timeout | 2000 | timeout in ms for braking |
+| nav_mc_braking_boost_factor | 100 | acceleration factor for BOOST phase |
+| nav_mc_braking_boost_timeout | 750 | how long in ms BOOST phase can happen |
+| nav_mc_braking_boost_speed_threshold | 150 | BOOST can be enabled when speed is above this value |
+| nav_mc_braking_boost_disengage_speed | 100 | BOOST will be disabled when speed goes below this value |
+| nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
+| osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |

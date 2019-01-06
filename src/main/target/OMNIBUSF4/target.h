@@ -104,6 +104,7 @@
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
+#define USE_MAG_AK8975
 
 #define USE_BARO
 
@@ -255,6 +256,7 @@
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    6
 #define TARGET_MOTOR_COUNT      6
+#define USE_DSHOT
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

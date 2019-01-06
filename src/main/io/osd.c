@@ -79,6 +79,7 @@
 #include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 
@@ -124,8 +125,16 @@
     x; \
 })
 
+#define OSD_CHR_IS_NUM(c) (c >= '0' && c <= '9')
+
+#define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
+#define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
+
+#define OSD_MIN_FONT_VERSION 1
+
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
+static bool hasExtendedFont = false; // Wether the font supports characters > 256
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -161,13 +170,16 @@ static uint8_t armState;
 
 static displayPort_t *osdDisplayPort;
 
-#define AH_MAX_PITCH 200 // Specify maximum AHI pitch value displayed. Default 200 = 20.0 degrees
-#define AH_MAX_ROLL 400  // Specify maximum AHI roll value displayed. Default 400 = 40.0 degrees
-#define AH_SYMBOL_COUNT 9
+#define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
+#define AH_HEIGHT 9
+#define AH_WIDTH 11
+#define AH_PREV_SIZE (AH_WIDTH > AH_HEIGHT ? AH_WIDTH : AH_HEIGHT)
+#define AH_H_SYM_COUNT 9
+#define AH_V_SYM_COUNT 6
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 5);
 
 static int digitCount(int32_t value)
 {
@@ -785,8 +797,8 @@ static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
  **/
 static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
 {
-    buff[0] = SYM_THR;
-    buff[1] = SYM_THR1;
+    buff[0] = SYM_BLANK;
+    buff[1] = SYM_THR;
     int16_t thr = rcData[THROTTLE];
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
@@ -1018,7 +1030,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 }
             } else {
 
-                uint8_t c;
+                uint16_t c;
                 if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
@@ -1592,17 +1604,17 @@ static bool osdDrawSingleElement(uint8_t item)
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
         switch ((osd_crosshairs_style_e)osdConfig()->crosshairs_style) {
             case OSD_CROSSHAIRS_STYLE_DEFAULT:
-                buff[0] = SYM_AH_CENTER_LINE;
-                buff[1] = SYM_AH_CENTER;
-                buff[2] = SYM_AH_CENTER_LINE_RIGHT;
+                buff[0] = SYM_AH_CH_LEFT;
+                buff[1] = SYM_AH_CH_CENTER;
+                buff[2] = SYM_AH_CH_RIGHT;
                 buff[3] = '\0';
                 break;
             case OSD_CROSSHAIRS_STYLE_AIRCRAFT:
-                buff[0] = SYM_AH_CROSSHAIRS_AIRCRAFT0;
-                buff[1] = SYM_AH_CROSSHAIRS_AIRCRAFT1;
-                buff[2] = SYM_AH_CROSSHAIRS_AIRCRAFT2;
-                buff[3] = SYM_AH_CROSSHAIRS_AIRCRAFT3;
-                buff[4] = SYM_AH_CROSSHAIRS_AIRCRAFT4;
+                buff[0] = SYM_AH_CH_AIRCRAFT0;
+                buff[1] = SYM_AH_CH_AIRCRAFT1;
+                buff[2] = SYM_AH_CH_AIRCRAFT2;
+                buff[3] = SYM_AH_CH_AIRCRAFT3;
+                buff[4] = SYM_AH_CH_AIRCRAFT4;
                 buff[5] = '\0';
                 break;
         }
@@ -1627,21 +1639,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
+
             elemPosX = 14;
-            elemPosY = 6 - 4; // Top center of the AH area
-            // Erase only the positions we drew over. Avoids
-            // thrashing the video driver buffer.
-            // writtenY[x] contains the Y position that was
-            // written to the OSD, counting from elemPosY.
-            // A negative value indicates that the whole
-            // column is blank.
-            static int8_t writtenY[AH_SYMBOL_COUNT];
+            elemPosY = 6; // Center of the AH area
 
-            bool crosshairsVisible;
-            int crosshairsX, crosshairsY, crosshairsXEnd;
+            // Store the positions we draw over to erase only these at the next iteration
+            static int8_t previous_written[AH_PREV_SIZE];
+            static int8_t previous_orient = -1;
 
-            int rollAngle = constrain(attitude.values.roll, -AH_MAX_ROLL, AH_MAX_ROLL);
-            int pitchAngle = constrain(attitude.values.pitch, -AH_MAX_PITCH, AH_MAX_PITCH);
+            float pitch_rad_to_char = (float)(AH_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
+
+            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
@@ -1651,60 +1660,54 @@ static bool osdDrawSingleElement(uint8_t item)
                 ++elemPosY;
             }
 
-            // Convert pitchAngle to y compensation value
-            pitchAngle = ((pitchAngle * 25) / AH_MAX_PITCH) - 41; // 41 = 4 * 9 + 5
-            crosshairsVisible = OSD_VISIBLE(osdConfig()->item_pos[currentLayout][OSD_CROSSHAIRS]);
-            if (crosshairsVisible) {
-                uint8_t cx, cy, cl;
-                osdCrosshairsBounds(&cx, &cy, &cl);
-                crosshairsX = cx - elemPosX;
-                crosshairsY = cy - elemPosY;
-                crosshairsXEnd = crosshairsX + cl - 1;
-            }
+            float ky = sin_approx(rollAngle);
+            float kx = cos_approx(rollAngle);
 
-            for (int x = -4; x <= 4; x++) {
-                // Don't clear the whole area to save some time. Instead, clear
-                // only the positions we previously wrote iff we're writing
-                // at a different Y coordinate. The video buffer will take care
-                // of ignoring the write if we're writing the same character
-                // at the same Y coordinate.
-                //
-                // Note that this implementation leaves an untouched character
-                // in the bottom center of the indicator, which allows positioning
-                // the home directorion indicator there.
-                const int y = (-rollAngle * x) / 64 - pitchAngle;
-                int wx = x + 4; // map the -4 to the 1st element in the writtenY array
-                int pwy = writtenY[wx]; // previously written Y at this X value
-                int wy = (y / AH_SYMBOL_COUNT);
-
-                unsigned chX = elemPosX + x;
-                unsigned chY =  elemPosY + wy;
-                uint8_t c;
-
-                // Check if we're overlapping with the crosshairs directly. Saves a few
-                // trips to the video driver. Also, test for other arbitrary overlapping
-                // elements if the display supports reading back characters.
-                bool overlaps = (crosshairsVisible &&
-                            crosshairsY == wy &&
-                            x >= crosshairsX && x <= crosshairsXEnd) ||
-                            (pwy != wy && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && c != SYM_BLANK);
-
-                if (y >= 0 && y <= 80 && !overlaps) {
-                    if (pwy != -1 && pwy != wy) {
-                        // Erase previous character at pwy rows below elemPosY
-                        // iff we're writing at a different Y coordinate. Otherwise
-                        // we just overwrite the previous one.
-                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
-                    }
-                    uint8_t ch = SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT);
-                    displayWriteChar(osdDisplayPort, chX, chY, ch);
-                    writtenY[wx] = wy;
-                } else {
-                    if (pwy != -1) {
-                        displayWriteChar(osdDisplayPort, chX, elemPosY + pwy, SYM_BLANK);
-                        writtenY[wx] = -1;
+            if (previous_orient != -1) {
+                for (int i = 0; i < AH_PREV_SIZE; ++i) {
+                    if (previous_written[i] > -1) {
+                        int8_t dx = (previous_orient ? previous_written[i] : i) - AH_PREV_SIZE / 2;
+                        int8_t dy = (previous_orient ? i : previous_written[i]) - AH_PREV_SIZE / 2;
+                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, SYM_BLANK);
+                        previous_written[i] = -1;
                     }
                 }
+            }
+
+            if (ABS(ky) < ABS(kx)) {
+
+                previous_orient = 0;
+
+                for (int8_t dx = -AH_WIDTH / 2; dx <= AH_WIDTH / 2; dx++) {
+                    float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
+                    int8_t dy = floorf(fy);
+                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
+                    uint16_t c;
+
+                    if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                        c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
+                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, c);
+                        previous_written[dx + AH_PREV_SIZE / 2] = dy + AH_PREV_SIZE / 2;
+                    }
+                }
+
+            } else {
+
+                previous_orient = 1;
+
+                for (int8_t dy = -AH_HEIGHT / 2; dy <= AH_HEIGHT / 2; dy++) {
+                    const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
+                    const int8_t dx = floorf(fx);
+                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
+                    uint16_t c;
+
+                    if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                        c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
+                        displayWriteChar(osdDisplayPort, chX, chY, c);
+                        previous_written[dy + AH_PREV_SIZE / 2] = dx + AH_PREV_SIZE / 2;
+                    }
+                }
+
             }
 
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
@@ -2032,9 +2035,9 @@ static bool osdDrawSingleElement(uint8_t item)
             const char *message = NULL;
             char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
             if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 4
+                // Aircraft is armed. We might have up to 5
                 // messages to show.
-                const char *messages[4];
+                const char *messages[5];
                 unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
@@ -2070,6 +2073,8 @@ static bool osdDrawSingleElement(uint8_t item)
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
+                    } else if (STATE(FIXED_WING) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                            messages[messageCount++] = "AUTOLAUNCH";
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                             // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
@@ -2327,6 +2332,9 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 {
     ++elementIndex;
 
+    if (elementIndex == OSD_ARTIFICIAL_HORIZON)
+        ++elementIndex;
+
     if (!sensors(SENSOR_ACC)) {
         if (elementIndex == OSD_CROSSHAIRS) {
             elementIndex = OSD_ONTIME;
@@ -2390,6 +2398,9 @@ void osdDrawNextElement(void)
     do {
         elementIndex = osdIncElementIndex(elementIndex);
     } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
+
+    // Draw artificial horizon last
+    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
 }
 
 void pgResetFn_osdConfig(osdConfig_t *osdConfig)
@@ -2448,7 +2459,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
-    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(12, 12) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(13, 12) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_LON] = OSD_POS(18, 12);
 
     osdConfig->item_pos[0][OSD_ROLL_PIDS] = OSD_POS(2, 10);
@@ -2508,6 +2519,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->video_system = VIDEO_SYSTEM_AUTO;
 
     osdConfig->ahi_reverse_roll = 0;
+    osdConfig->ahi_max_pitch = AH_MAX_PITCH_DEFAULT;
     osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
@@ -2518,6 +2530,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->estimations_wind_compensation = true;
     osdConfig->coordinate_digits = 9;
+
+    osdConfig->osd_failsafe_switch_layout = false;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
@@ -2542,7 +2556,29 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     displayClearScreen(osdDisplayPort);
 
-    uint8_t y = 4;
+    uint8_t y = 1;
+    displayFontMetadata_t metadata;
+    bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
+
+    if (fontHasMetadata && metadata.charCount > 256) {
+        hasExtendedFont = true;
+        unsigned logo_c = SYM_LOGO_START;
+        unsigned logo_x = OSD_CENTER_LEN(SYM_LOGO_WIDTH);
+        for (unsigned ii = 0; ii < SYM_LOGO_HEIGHT; ii++) {
+            for (unsigned jj = 0; jj < SYM_LOGO_WIDTH; jj++) {
+                displayWriteChar(osdDisplayPort, logo_x + jj, y, logo_c++);
+            }
+            y++;
+        }
+        y++;
+    } else {
+        if (!fontHasMetadata || metadata.version < OSD_MIN_FONT_VERSION) {
+            const char *m = "INVALID FONT";
+            displayWrite(osdDisplayPort, OSD_CENTER_S(m), 3, m);
+        }
+        y = 4;
+    }
+
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
     displayWrite(osdDisplayPort, 5, y++, string_buffer);
@@ -2773,9 +2809,9 @@ static void osdShowArmed(void)
 static void osdRefresh(timeUs_t currentTimeUs)
 {
 #ifdef USE_CMS
-    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu)) {
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #else
-    if (IS_RC_MODE_ACTIVE(BOXOSD)) {
+    if (IS_RC_MODE_ACTIVE(BOXOSD) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #endif
       displayClearScreen(osdDisplayPort);
       armState = ARMING_FLAG(ARMED);
@@ -2848,6 +2884,8 @@ void osdUpdate(timeUs_t currentTimeUs)
     unsigned activeLayout;
     if (layoutOverride >= 0) {
         activeLayout = layoutOverride;
+    } else if (osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE)) {
+        activeLayout = 0;
     } else {
 #if OSD_ALTERNATE_LAYOUT_COUNT > 2
         if (IS_RC_MODE_ACTIVE(BOXOSDALT3))

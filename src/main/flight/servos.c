@@ -64,7 +64,7 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
 
 PG_REGISTER_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 0);
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 2);
 
 void pgResetFn_servoParams(servoParam_t *instance)
 {
@@ -101,15 +101,6 @@ int16_t getFlaperonDirection(uint8_t servoPin)
     } else {
         return 1;
     }
-}
-
-int servoDirection(int servoIndex, int inputSource)
-{
-    // determine the direction (reversed or not) from the direction bitfield of the servo
-    if (servoParams(servoIndex)->reversedSources & (1 << inputSource))
-        return -1;
-    else
-        return 1;
 }
 
 /*
@@ -290,7 +281,7 @@ void servoMixer(float dT)
          */
         int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i], input[from], currentServoMixer[i].speed * 10, dT);
 
-        servo[target] += servoDirection(target, from) * ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
+        servo[target] += ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
     }
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
