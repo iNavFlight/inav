@@ -154,11 +154,13 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    if (sensors(SENSOR_BARO)) {
-        const uint32_t newDeadline = baroUpdate();
-        if (newDeadline != 0) {
-            rescheduleTask(TASK_SELF, newDeadline);
-        }
+    if (!sensors(SENSOR_BARO)) {
+        return;
+    }
+
+    const uint32_t newDeadline = baroUpdate();
+    if (newDeadline != 0) {
+        rescheduleTask(TASK_SELF, newDeadline);
     }
 
     updatePositionEstimator_BaroTopic(currentTimeUs);
@@ -168,11 +170,12 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
 #ifdef USE_PITOT
 void taskUpdatePitot(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
-    if (sensors(SENSOR_PITOT)) {
-        pitotUpdate();
+    if (!sensors(SENSOR_PITOT)) {
+        return;
     }
+
+    pitotUpdate();
+    updatePositionEstimator_PitotTopic(currentTimeUs);
 }
 #endif
 
