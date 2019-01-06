@@ -152,5 +152,3 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define MAX_PWM_OUTPUT_PORTS    15
-
-#undef USE_PITOT

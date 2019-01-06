@@ -124,7 +124,6 @@
   #define USE_BARO_MS5611
 #endif
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           I2C_EXT_BUS
 
 #define USE_RANGEFINDER
