@@ -188,7 +188,7 @@
 
 /** TEMP SENSORS **/
 
-#if !defined(LM75_I2C_BUS)
+#if defined(TEMPERATURE_I2C_BUS) && !defined(LM75_I2C_BUS)
     #define LM75_I2C_BUS TEMPERATURE_I2C_BUS
 #endif
 
@@ -223,7 +223,7 @@
 
 /** AIRSPEED SENSORS **/
 
-#if !defined(MS4525_I2C_BUS)
+#if defined(PITOT_I2C_BUS) && !defined(MS4525_I2C_BUS)
     #define MS4525_I2C_BUS PITOT_I2C_BUS
 #endif
 
