@@ -186,6 +186,16 @@
 #endif
 
 
+/** TEMP SENSORS **/
+
+#if defined(USE_TEMPERATURE_LM75)
+    #if !defined(LM75_I2C_BUS)
+        #define LM75_I2C_BUS TEMPERATURE_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_lm75,        DEVHW_LM75,         LM75_I2C_BUS,       0x48,               NONE,           DEVFLAGS_NONE);
+#endif
+
+
 /** RANGEFINDER SENSORS **/
 
 #if defined(USE_RANGEFINDER_SRF10)
