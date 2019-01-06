@@ -45,11 +45,7 @@
 #define SKIP_CLI_RESOURCES
 #endif
 
-#if defined(STM32F3) || defined(STM32F4)
 #define USE_ADC_AVERAGING
-#define ADC_AVERAGE_N_SAMPLES 20
-#endif
-
 #define USE_64BIT_TIME
 #define USE_BLACKBOX
 #define USE_GPS
