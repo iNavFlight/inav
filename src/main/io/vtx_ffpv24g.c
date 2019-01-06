@@ -50,9 +50,6 @@
 #include "io/serial.h"
 
 
-#define VTX_FFPV_BAND_COUNT         2
-#define VTX_FFPV_CHANNEL_COUNT      8
-#define VTX_FFPV_POWER_COUNT        4
 #define VTX_FFPV_CMD_TIMEOUT_MS     250
 #define VTX_FFPV_HEARTBEAT_MS       1000
 
@@ -93,6 +90,7 @@ typedef struct {
         int      channel;
         unsigned freq;
         unsigned power;
+        unsigned powerIndex;
     } request;
 
     // Actual VTX state
@@ -114,6 +112,8 @@ const char * const ffpvBandNames[VTX_FFPV_BAND_COUNT + 1] = {
     "FFPV 2.4 A",
     "FFPV 2.4 B",
 };
+
+const char * ffpvBandLetters = "-AB";
 
 const uint16_t ffpvFrequencyTable[VTX_FFPV_BAND_COUNT][VTX_FFPV_CHANNEL_COUNT] =
 {
@@ -363,16 +363,14 @@ static void impl_SetFreq(vtxDevice_t * vtxDevice, uint16_t freq)
     }
 }
 
-static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_t channel)
+void ffpvSetBandAndChannel(uint8_t band, uint8_t channel)
 {
-    UNUSED(vtxDevice);
-
     // Validate band and channel
     if (band < VTX_FFPV_MIN_BAND || band > VTX_FFPV_MAX_BAND || channel < VTX_FFPV_MIN_CHANNEL || channel > VTX_FFPV_MAX_CHANNEL) {
         return;
     }
 
-    if (impl_DevSetFreq(ffpvFrequencyTable[band][channel])) {
+    if (impl_DevSetFreq(ffpvFrequencyTable[band - 1][channel - 1])) {
         // Keep track of band/channel data
         vtxState.request.setByFrequency = false;
         vtxState.request.band = band;
@@ -380,22 +378,34 @@ static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_
     }
 }
 
-static void impl_SetPowerByIndex(vtxDevice_t * vtxDevice, uint8_t index)
+
+static void impl_SetBandAndChannel(vtxDevice_t * vtxDevice, uint8_t band, uint8_t channel)
 {
     UNUSED(vtxDevice);
+    ffpvSetBandAndChannel(band, channel);
+}
 
+void ffpvSetRFPowerByIndex(uint16_t index)
+{
     // Validate index
     if (index < 1 || index > VTX_FFPV_POWER_COUNT) {
         return;
     }
 
-    const unsigned power = ffpvPowerTable[index-1];
+    const unsigned power = ffpvPowerTable[index - 1];
     if (!vtxState.ready || power < vtxState.capabilities.powerMin || power > vtxState.capabilities.powerMax) {
         return;
     }
 
     vtxState.request.power = power;
+    vtxState.request.powerIndex = index;
     vtxState.updateReqMask |= VTX_UPDATE_REQ_POWER;
+}
+
+static void impl_SetPowerByIndex(vtxDevice_t * vtxDevice, uint8_t index)
+{
+    UNUSED(vtxDevice);
+    ffpvSetRFPowerByIndex(index);
 }
 
 static void impl_SetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
@@ -423,14 +433,7 @@ static bool impl_GetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
         return false;
     }
 
-    if (vtxState.state.power > 0) {
-        for (uint8_t i = 0; i < sizeof(ffpvPowerTable) / sizeof(ffpvPowerTable[0]); i++) {
-            if (vtxState.state.power <= ffpvPowerTable[i]) {
-                *pIndex = i + 1;
-                break;
-            }
-        }
-    }
+    *pIndex = vtxState.request.powerIndex;
 
     return true;
 }
@@ -454,6 +457,29 @@ static bool impl_GetFreq(const vtxDevice_t *vtxDevice, uint16_t *pFreq)
 
     *pFreq = vtxState.request.freq;
     return true;
+}
+
+vtxRunState_t * ffpvGetRuntimeState(void)
+{
+    static vtxRunState_t state;
+
+    if (vtxState.ready) {
+        state.pitMode = 0;
+        state.band = vtxState.request.band;
+        state.channel = vtxState.request.channel;
+        state.frequency = vtxState.request.freq;
+        state.powerIndex = vtxState.request.powerIndex;
+        state.powerMilliwatt = vtxState.request.power;
+    }
+    else {
+        state.pitMode = 0;
+        state.band = 1;
+        state.channel = 1;
+        state.frequency = ffpvFrequencyTable[0][0];
+        state.powerIndex = 1;
+        state.powerMilliwatt = 25;
+    }
+    return &state;
 }
 
 /*****************************************************************************/

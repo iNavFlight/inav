@@ -24,6 +24,28 @@
 
 #pragma once
 
+#include "platform.h"
+
+#include <stdbool.h>
 #include <stdint.h>
+#include <ctype.h>
+#include <string.h>
+
+#include "io/vtx.h"
+#include "io/vtx_control.h"
+
+#define VTX_FFPV_BAND_COUNT         2
+#define VTX_FFPV_CHANNEL_COUNT      8
+#define VTX_FFPV_POWER_COUNT        4
+
+extern const char * ffpvBandLetters;
+extern const char * const ffpvBandNames[VTX_FFPV_BAND_COUNT + 1];
+extern const char * const ffpvChannelNames[VTX_FFPV_CHANNEL_COUNT + 1];
+extern const char * const ffpvPowerNames[VTX_FFPV_POWER_COUNT + 1];
+extern const uint16_t ffpvFrequencyTable[VTX_FFPV_BAND_COUNT][VTX_FFPV_CHANNEL_COUNT];
 
 bool vtxFuriousFPVInit(void);
+void ffpvSetBandAndChannel(uint8_t band, uint8_t channel);
+void ffpvSetRFPowerByIndex(uint16_t index);
+
+vtxRunState_t * ffpvGetRuntimeState(void);
