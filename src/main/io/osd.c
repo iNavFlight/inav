@@ -821,6 +821,17 @@ static inline int32_t osdGetAltitude(void)
 #endif
 }
 
+static inline int32_t osdGetAltitudeMsl(void)
+{
+#if defined(USE_NAV)
+    return getEstimatedActualPosition(Z)+GPS_home.alt;
+#elif defined(USE_BARO)
+    return baro.alt+GPS_home.alt;
+#else
+    return 0;
+#endif
+}
+
 static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *sidebar, timeMs_t currentTimeMs)
 {
     // Scroll between SYM_AH_DECORATION_MIN and SYM_AH_DECORATION_MAX.
@@ -1442,6 +1453,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_ALTITUDE_MSL:
+        {
+            int32_t alt = osdGetAltitudeMsl();
+            osdFormatAltitudeSymbol(buff, alt);
+            break;
+        }		
+		
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
