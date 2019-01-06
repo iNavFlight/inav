@@ -42,6 +42,7 @@
 
 #include "common/axis.h"
 #include "common/filter.h"
+#include "common/olc.h"
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
@@ -2338,6 +2339,21 @@ static bool osdDrawSingleElement(uint8_t item)
         return false;
 #endif
 
+    case OSD_PLUS_CODE:
+        {
+            int digits = osdConfig()->plus_code_digits;
+            if (STATE(GPS_FIX)) {
+                olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
+            } else {
+                // +codes with > 8 digits have a + at the 9th digit
+                // and we only support 10 and up.
+                memset(buff, '-', digits + 1);
+                buff[8] = '+';
+                buff[digits + 1] = '\0';
+            }
+            break;
+        }
+
     default:
         return false;
     }
@@ -2477,6 +2493,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
+    // Put this on top of the latitude, since it's very unlikely
+    // that users will want to use both at the same time.
+    osdConfig->item_pos[0][OSD_PLUS_CODE] = OSD_POS(0, 12);
     osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(13, 12) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_LON] = OSD_POS(18, 12);
 
@@ -2550,6 +2569,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->coordinate_digits = 9;
 
     osdConfig->osd_failsafe_switch_layout = false;
+
+    osdConfig->plus_code_digits = 11;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
