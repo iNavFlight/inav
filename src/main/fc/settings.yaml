@@ -1697,7 +1697,7 @@ groups:
   - name: PG_VTX_CONFIG
     type: vtxConfig_t
     headers: ["io/vtx_control.h"]
-    condition: USE_VTX_CONTROL && USE_VTX_COMMON
+    condition: USE_VTX_CONTROL
     members:
       - name: vtx_halfduplex
         field: halfDuplex
@@ -1706,7 +1706,6 @@ groups:
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
     headers: ["drivers/vtx_common.h", "io/vtx.h"]
-    condition: USE_VTX_COMMON
     members:
       - name: vtx_band
         field: band

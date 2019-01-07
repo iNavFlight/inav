@@ -133,10 +133,10 @@
 #define USE_PITOT_ADC
 
 //Enable VTX control
-#define USE_VTX_COMMON
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
+#define USE_VTX_FFPV
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST

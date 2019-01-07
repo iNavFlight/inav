@@ -166,9 +166,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("THR. (MANU)", OSD_THROTTLE_POS),
     OSD_ELEMENT_ENTRY("THR. (MANU/AUTO)", OSD_THROTTLE_POS_AUTO_THR),
     OSD_ELEMENT_ENTRY("SYS MESSAGES", OSD_MESSAGES),
-#ifdef USE_VTX_COMMON
     OSD_ELEMENT_ENTRY("VTX CHAN", OSD_VTX_CHANNEL),
-#endif // VTX
     OSD_ELEMENT_ENTRY("CURRENT (A)", OSD_CURRENT_DRAW),
     OSD_ELEMENT_ENTRY("POWER", OSD_POWER),
     OSD_ELEMENT_ENTRY("USED MAH", OSD_MAH_DRAWN),
@@ -252,7 +250,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_END_ENTRY,
 };
 
-#if defined(USE_VTX_COMMON) && defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT)
+#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT)
 // All CMS OSD elements should be enabled in this case. The menu has 3 extra
 // elements (label, back and end), but there's an OSD element that we intentionally
 // don't show here (OSD_DEBUG).

@@ -137,6 +137,7 @@ COMMON_SRC = \
             cms/cms_menu_osd.c \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
+            cms/cms_menu_vtx_ffpv.c \
             common/colorconversion.c \
             common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
@@ -189,6 +190,7 @@ COMMON_SRC = \
             io/vtx_string.c \
             io/vtx_smartaudio.c \
             io/vtx_tramp.c \
+            io/vtx_ffpv24g.c \
             io/vtx_control.c
 
 COMMON_DEVICE_SRC = \

@@ -53,6 +53,7 @@
 
 #include "cms/cms_menu_vtx_smartaudio.h"
 #include "cms/cms_menu_vtx_tramp.h"
+#include "cms/cms_menu_vtx_ffpv.h"
 
 
 // Info
@@ -118,6 +119,9 @@ static const OSD_Entry menuFeaturesEntries[] =
 #endif
 #if defined(USE_VTX_TRAMP)
     OSD_SUBMENU_ENTRY("VTX TR", &cmsx_menuVtxTramp),
+#endif
+#if defined(USE_VTX_FFPV)
+    OSD_SUBMENU_ENTRY("VTX FFPV", &cmsx_menuVtxFFPV),
 #endif
 #endif // VTX_CONTROL
 #ifdef USE_LED_STRIP

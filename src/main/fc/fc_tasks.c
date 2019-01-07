@@ -531,11 +531,11 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
+#if defined(USE_VTX_CONTROL)
     [TASK_VTXCTRL] = {
         .taskName = "VTXCTRL",
         .taskFunc = vtxUpdate,
-        .desiredPeriod = TASK_PERIOD_HZ(5),          // 5Hz @200msec
+        .desiredPeriod = TASK_PERIOD_HZ(50),          // 50Hz @20msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif

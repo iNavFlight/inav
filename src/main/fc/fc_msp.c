@@ -1280,7 +1280,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#if defined(USE_VTX_COMMON)
     case MSP_VTX_CONFIG:
         {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -1309,7 +1308,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
-#endif
 
     case MSP_NAME:
         {
@@ -2158,7 +2156,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif // USE_OSD
 
-#if defined(USE_VTX_COMMON)
     case MSP_SET_VTX_CONFIG:
         if (dataSize >= 2) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -2197,7 +2194,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
-#endif
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:

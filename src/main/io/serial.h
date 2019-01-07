@@ -48,6 +48,7 @@ typedef enum {
     FUNCTION_OPTICAL_FLOW        = (1 << 14), // 16384
     FUNCTION_DEBUG_TRACE         = (1 << 15), // 32768
     FUNCTION_RANGEFINDER         = (1 << 16), // 65536
+    FUNCTION_VTX_FFPV            = (1 << 17), // 131072
 } serialPortFunction_e;
 
 typedef enum {
