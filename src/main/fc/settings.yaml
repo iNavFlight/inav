@@ -1628,6 +1628,11 @@ groups:
       - name: osd_failsafe_switch_layout
         type: bool
 
+      - name: osd_plus_code_digits
+        field: plus_code_digits
+        min: 10
+        max: 13
+
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
     headers: ["fc/config.h"]

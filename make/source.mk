@@ -12,6 +12,7 @@ COMMON_SRC = \
             common/filter.c \
             common/maths.c \
             common/memory.c \
+            common/olc.c \
             common/printf.c \
             common/streambuf.c \
             common/time.c \

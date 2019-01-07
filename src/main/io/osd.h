@@ -124,6 +124,7 @@ typedef enum {
     OSD_3D_SPEED,       // 85
     OSD_TEMPERATURE,    // 86
     OSD_ALTITUDE_MSL,   // 87
+    OSD_PLUS_CODE,      // 88
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -180,6 +181,7 @@ typedef struct osdConfig_s {
     uint8_t coordinate_digits;
 
     bool osd_failsafe_switch_layout;
+    uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
