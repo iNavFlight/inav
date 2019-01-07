@@ -118,7 +118,7 @@
 #endif
 
 /** COMPASS SENSORS **/
-
+#if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)
 #if defined(USE_MAG_HMC5883)
     #if !defined(HMC5883_I2C_BUS)
         #define HMC5883_I2C_BUS MAG_I2C_BUS
@@ -184,7 +184,7 @@
     #endif
     BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      IST8308_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
 #endif
-
+#endif
 
 /** TEMP SENSORS **/
 
