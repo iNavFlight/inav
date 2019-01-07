@@ -3180,8 +3180,10 @@ void activateForcedRTH(void)
 
 void abortForcedRTH(void)
 {
+    // Disable failsafe RTH and make sure we back out of navigation mode to IDLE
+    // If any navigation mode was active prior to RTH it will be re-enabled with next RX update
     posControl.flags.forcedRTHActivated = false;
-    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
 }
 
 rthState_e getStateOfForcedRTH(void)
