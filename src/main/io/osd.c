@@ -1466,12 +1466,12 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t gr_dis = GPS_distanceToHome;
 
             if (gr_dis < 5) {
-		        buff[0] = buff[1] = buff[2] = '-';
+                buff[0] = buff[1] = buff[2] = '-';
             } else {
-		        int16_t gr_per = round(gr_alt / gr_dis);
-			    gr_per = constrain(gr_per, -99, 999);
-	            tfp_sprintf(buff, "%3d", gr_per);
-		    }
+                int16_t gr_per = round(gr_alt / gr_dis);
+                gr_per = constrain(gr_per, -99, 999);
+                tfp_sprintf(buff, "%3d", gr_per);
+            }
             buff[3] = '%';
             buff[4] = '\0';
             break;
