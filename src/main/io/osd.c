@@ -1468,7 +1468,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (gr_dis < 5) {
 		        buff[0] = buff[1] = buff[2] = '-';
             } else {
-		        int16_t gr_per = round(gr_alt / gr_dis);
+		        int16_t gr_per = gr_alt / gr_dis;
 			    gr_per = constrain(gr_per, -99, 999);
 	            tfp_sprintf(buff, "%3d", gr_per);
 		    }
