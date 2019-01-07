@@ -20,7 +20,6 @@
 
 #define LAT_MAX (90 * OLC_DEG_MULTIPLIER)
 #define LON_MAX (180 * OLC_DEG_MULTIPLIER)
-#define LON_MAX_T2 (2 * LON_MAX)
 
 static const char alphabet[] = "23456789CFGHJMPQRVWX";
 
@@ -37,7 +36,7 @@ static void init_constants(void)
     inited = 1;
 
     // Work out the encoding base exponent necessary to represent 360 degrees.
-    olc_coord_t initial_exponent = floorf(logf(LON_MAX_T2 / OLC_DEG_MULTIPLIER) / logf(ENCODING_BASE));
+    olc_coord_t initial_exponent = floorf(logf(2 * (LON_MAX / OLC_DEG_MULTIPLIER)) / logf(ENCODING_BASE));
 
     // Work out the enclosing resolution (in degrees) for the grid algorithm.
     grid_size = (1 / powf(ENCODING_BASE, PAIR_CODE_LEN / 2 - (initial_exponent + 1))) * OLC_DEG_MULTIPLIER;
@@ -70,7 +69,7 @@ static float compute_precision_for_length(int length)
         return pow_negf(ENCODING_BASE, floorf((length / -2) + 2));
     }
 
-    return pow_negf(ENCODING_BASE, -3) / powf(5, length - PAIR_CODE_LEN);
+    return pow_negf(ENCODING_BASE, -3) / powf(5, length - (int)PAIR_CODE_LEN);
 }
 
 static olc_coord_t adjust_latitude(olc_coord_t lat, size_t code_len)
@@ -92,10 +91,12 @@ static olc_coord_t adjust_latitude(olc_coord_t lat, size_t code_len)
 static olc_coord_t normalize_longitude(olc_coord_t lon)
 {
     while (lon < -LON_MAX) {
-        lon += LON_MAX_T2;
+        lon += LON_MAX;
+        lon += LON_MAX;
     }
     while (lon >= LON_MAX) {
-        lon -= LON_MAX_T2;
+        lon -= LON_MAX;
+        lon -= LON_MAX;
     }
     return lon;
 }
@@ -104,7 +105,7 @@ static olc_coord_t normalize_longitude(olc_coord_t lon)
 // uses pairs of characters (latitude and longitude in that order) to represent
 // each step in a 20x20 grid.  Each code, therefore, has 1/400th the area of
 // the previous code.
-static unsigned encode_pairs(olc_coord_t lat, olc_coord_t lon, size_t length, char *buf, size_t bufsize)
+static unsigned encode_pairs(uolc_coord_t lat, uolc_coord_t lon, size_t length, char *buf, size_t bufsize)
 {
     if ((length + 1) >= bufsize) {
         buf[0] = '\0';
@@ -159,7 +160,7 @@ static unsigned encode_pairs(olc_coord_t lat, olc_coord_t lon, size_t length, ch
 //
 // This allows default accuracy OLC codes to be refined with just a single
 // character.
-static int encode_grid(olc_coord_t lat, olc_coord_t lon, size_t length,
+static int encode_grid(uolc_coord_t lat, uolc_coord_t lon, size_t length,
                        char *buf, size_t bufsize)
 {
     if ((length + 1) >= bufsize) {
@@ -172,8 +173,8 @@ static int encode_grid(olc_coord_t lat, olc_coord_t lon, size_t length,
     olc_coord_t lat_grid_size = grid_size;
     olc_coord_t lon_grid_size = grid_size;
 
-    lat %= OLC_DEG_MULTIPLIER;
-    lon %= OLC_DEG_MULTIPLIER;
+    lat %= lat_grid_size;
+    lon %= lon_grid_size;
 
     for (size_t i = 0; i < length; i++) {
         olc_coord_t lat_div = lat_grid_size / GRID_ROWS;
@@ -205,15 +206,15 @@ int olc_encode(olc_coord_t lat, olc_coord_t lon, size_t length, char *buf, size_
     length = MIN(length, CODE_LEN_MAX);
 
     // Adjust latitude and longitude so they fall into positive ranges.
-    lat = adjust_latitude(lat, length) + LAT_MAX;
-    lon = normalize_longitude(lon) + LON_MAX;
+    uolc_coord_t alat = adjust_latitude(lat, length) + LAT_MAX;
+    uolc_coord_t alon = normalize_longitude(lon) + LON_MAX;
 
     init_constants();
 
-    pos += encode_pairs(lat, lon, MIN(length, PAIR_CODE_LEN), buf + pos, bufsize - pos);
+    pos += encode_pairs(alat, alon, MIN(length, PAIR_CODE_LEN), buf + pos, bufsize - pos);
     // If the requested length indicates we want grid refined codes.
     if (length > PAIR_CODE_LEN) {
-        pos += encode_grid(lat, lon, length - PAIR_CODE_LEN, buf + pos, bufsize - pos);
+        pos += encode_grid(alat, alon, length - PAIR_CODE_LEN, buf + pos, bufsize - pos);
     }
     buf[pos] = '\0';
     return pos;
