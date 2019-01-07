@@ -59,6 +59,8 @@
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_QMC5883
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611

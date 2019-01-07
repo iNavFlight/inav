@@ -87,7 +87,6 @@
 #define USE_I2C_DEVICE_1 // PB6/SCL(PWM8), PB7/SDA(PWM7)
 #define USE_I2C_PULLUP
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_SPI

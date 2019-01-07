@@ -76,6 +76,12 @@
 // Allow default optic flow boards
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
+
+#define USE_PITOT
+#define USE_PITOT_MS4525
+
+#define USE_TEMPERATURE_SENSOR
+#define USE_TEMPERATURE_LM75
 #endif
 
 #if (FLASH_SIZE > 128)
