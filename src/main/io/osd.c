@@ -135,6 +135,7 @@
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
+static timeMs_t layoutOverrideUntil = 0;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -2900,6 +2901,12 @@ void osdUpdate(timeUs_t currentTimeUs)
     unsigned activeLayout;
     if (layoutOverride >= 0) {
         activeLayout = layoutOverride;
+        // Check for timed override, it will go into effect on
+        // the next OSD iteration
+        if (layoutOverrideUntil > 0 && millis() > layoutOverrideUntil) {
+            layoutOverrideUntil = 0;
+            layoutOverride = -1;
+        }
     } else if (osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE)) {
         activeLayout = 0;
     } else {
@@ -2955,9 +2962,22 @@ void osdStartFullRedraw(void)
     fullRedraw = true;
 }
 
-void osdOverrideLayout(int layout)
+void osdOverrideLayout(int layout, timeMs_t duration)
 {
     layoutOverride = constrain(layout, -1, ARRAYLEN(osdConfig()->item_pos) - 1);
+    if (layoutOverride >= 0 && duration > 0) {
+        layoutOverrideUntil = millis() + duration;
+    } else {
+        layoutOverrideUntil = 0;
+    }
+}
+
+int osdGetActiveLayout(bool *overridden)
+{
+    if (overridden) {
+        *overridden = layoutOverride >= 0;
+    }
+    return currentLayout;
 }
 
 bool osdItemIsFixed(osd_items_e item)

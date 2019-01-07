@@ -306,7 +306,7 @@ static long osdElementsOnEnter(const OSD_Entry *from)
     // First entry is the label. Store the current layout
     // and override it on the OSD so previews so this layout.
     osdCurrentLayout = from - cmsx_menuOsdLayoutEntries - 1;
-    osdOverrideLayout(osdCurrentLayout);
+    osdOverrideLayout(osdCurrentLayout, 0);
     return 0;
 }
 
@@ -315,7 +315,7 @@ static long osdElementsOnExit(const OSD_Entry *from)
     UNUSED(from);
 
     // Stop overriding OSD layout
-    osdOverrideLayout(-1);
+    osdOverrideLayout(-1, 0);
     return 0;
 }
 
