@@ -18,7 +18,7 @@
 #pragma once
 
 #if defined(STM32F3)
-#define DYNAMIC_HEAP_SIZE   1536
+#define DYNAMIC_HEAP_SIZE   1024
 #else
 #define DYNAMIC_HEAP_SIZE   2048
 #endif
@@ -70,10 +70,12 @@
 #define USE_RX_UIB
 
 // Allow default rangefinders
+#define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_BENEWAKE
 
 // Allow default optic flow boards
+#define USE_OPFLOW
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
 
@@ -82,6 +84,11 @@
 
 #define USE_TEMPERATURE_SENSOR
 #define USE_TEMPERATURE_LM75
+
+#define USE_MSP_DISPLAYPORT
+#define USE_DASHBOARD
+#define DASHBOARD_ARMED_BITMAP
+#define USE_OLED_UG2864
 #endif
 
 #if (FLASH_SIZE > 128)
@@ -97,10 +104,6 @@
 #define USE_ACC_NOTCH
 #define USE_CMS
 #define CMS_MENU_OSD
-#define USE_DASHBOARD
-#define USE_OLED_UG2864
-#define USE_MSP_DISPLAYPORT
-#define DASHBOARD_ARMED_BITMAP
 #define USE_GPS_PROTO_NMEA
 #define USE_GPS_PROTO_NAZA
 #define USE_GPS_PROTO_MTK
