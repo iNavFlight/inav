@@ -353,7 +353,7 @@ uint8_t     0x01 (Parameter version 1)
 void crsfFrameDeviceInfo(sbuf_t *dst) {
 
     char buff[30];
-    tfp_sprintf(buff, "%s %s: %s", FC_FIRMWARE_NAME, FC_VERSION_STRING, systemConfig()->boardIdentifier);
+    tfp_sprintf(buff, "%s %s: %s", FC_FIRMWARE_NAME, FC_VERSION_STRING, TARGET_BOARD_IDENTIFIER);
 
     uint8_t *lengthPtr = sbufPtr(dst);
     sbufWriteU8(dst, 0);
