@@ -81,9 +81,6 @@ typedef enum {
     CRSF_ADDRESS_CRSF_TRANSMITTER = 0xEE
 } crsfAddress_e;
 
-// #define CRSF_PAYLOAD_SIZE_MAX   62
-// #define CRSF_FRAME_SIZE_MAX     (CRSF_PAYLOAD_SIZE_MAX + 4)
-
 typedef enum {
     CRSF_FRAMETYPE_GPS = 0x02,
     CRSF_FRAMETYPE_BATTERY_SENSOR = 0x08,
@@ -105,7 +102,7 @@ typedef enum {
     CRSF_FRAMETYPE_DISPLAYPORT_CMD = 0x7D, // displayport control command
 } crsfFrameType_e;
 
- typedef struct crsfFrameDef_s {
+typedef struct crsfFrameDef_s {
     uint8_t deviceAddress;
     uint8_t frameLength;
     uint8_t type;
