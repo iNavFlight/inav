@@ -1900,20 +1900,49 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
 /*-----------------------------------------------------------
  * Calculates distance and bearing to destination point
  *-----------------------------------------------------------*/
+static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
+{
+    return sqrtf(sq(deltaX) + sq(deltaY));
+}
+
+static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
+{
+    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+}
+
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return sqrtf(sq(deltaX) + sq(deltaY));
+    return calculateDistanceFromDelta(deltaX, deltaY);
 }
 
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+    return calculateBearingFromDelta(deltaX, deltaY);
+}
+
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos)
+{
+    if (posControl.flags.estPosStatus == EST_NONE ||
+        posControl.flags.estHeadingStatus == EST_NONE) {
+
+        return false;
+    }
+
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
+
+    result->distance = calculateDistanceFromDelta(deltaX, deltaY);
+    result->bearing = calculateBearingFromDelta(deltaX, deltaY);
+    return true;
 }
 
 /*-----------------------------------------------------------

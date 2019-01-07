@@ -121,8 +121,9 @@ typedef enum {
     OSD_MC_VEL_Y_PID_OUTPUTS,
     OSD_MC_VEL_Z_PID_OUTPUTS,
     OSD_MC_POS_XYZ_P_OUTPUTS,
-    OSD_3D_SPEED,
-    OSD_TEMPERATURE,
+    OSD_3D_SPEED,       // 85
+    OSD_TEMPERATURE,    // 86
+    OSD_ALTITUDE_MSL,   // 87
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

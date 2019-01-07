@@ -64,12 +64,13 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_BARO
 #define USE_BARO_LPS25H
 #define LPS25H_SPI_BUS          BUS_SPI2
 #define LPS25H_CS_PIN           PA10
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER

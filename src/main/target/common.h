@@ -45,11 +45,7 @@
 #define SKIP_CLI_RESOURCES
 #endif
 
-#if defined(STM32F3) || defined(STM32F4)
 #define USE_ADC_AVERAGING
-#define ADC_AVERAGE_N_SAMPLES 20
-#endif
-
 #define USE_64BIT_TIME
 #define USE_BLACKBOX
 #define USE_GPS
@@ -82,6 +78,12 @@
 #define USE_OPFLOW
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
+
+#define USE_PITOT
+#define USE_PITOT_MS4525
+
+#define USE_TEMPERATURE_SENSOR
+#define USE_TEMPERATURE_LM75
 
 #define USE_MSP_DISPLAYPORT
 #define USE_DASHBOARD

@@ -188,10 +188,11 @@
 
 /** TEMP SENSORS **/
 
-#if defined(USE_TEMPERATURE_LM75)
-    #if !defined(LM75_I2C_BUS)
-        #define LM75_I2C_BUS TEMPERATURE_I2C_BUS
-    #endif
+#if defined(TEMPERATURE_I2C_BUS) && !defined(LM75_I2C_BUS)
+    #define LM75_I2C_BUS TEMPERATURE_I2C_BUS
+#endif
+
+#if defined(USE_TEMPERATURE_LM75) && defined(LM75_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_lm75,        DEVHW_LM75,         LM75_I2C_BUS,       0x48,               NONE,           DEVFLAGS_NONE);
 #endif
 
@@ -222,10 +223,11 @@
 
 /** AIRSPEED SENSORS **/
 
-#if defined(USE_PITOT_MS4525)
-    #if !defined(MS4525_I2C_BUS)
-        #define MS4525_I2C_BUS PITOT_I2C_BUS
-    #endif
+#if defined(PITOT_I2C_BUS) && !defined(MS4525_I2C_BUS)
+    #define MS4525_I2C_BUS PITOT_I2C_BUS
+#endif
+
+#if defined(USE_PITOT_MS4525) && defined(MS4525_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_NONE);
 #endif
 

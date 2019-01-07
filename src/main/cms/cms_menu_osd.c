@@ -198,6 +198,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("VARIO NUM", OSD_VARIO_NUM),
 #endif // defined
     OSD_ELEMENT_ENTRY("ALTITUDE", OSD_ALTITUDE),
+    OSD_ELEMENT_ENTRY("ALTITUDE MSL", OSD_ALTITUDE_MSL),	
 #if defined(USE_PITOT)
     OSD_ELEMENT_ENTRY("AIR SPEED", OSD_AIR_SPEED),
 #endif
