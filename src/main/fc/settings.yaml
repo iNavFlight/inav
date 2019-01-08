@@ -354,9 +354,10 @@ groups:
         field: sbusSyncInterval
         min: 500
         max: 10000
-      - name: rc_smoothing
-        field: rcSmoothing
-        type: bool
+      - name: rc_filter_frequency
+        field: rcFilterFrequency
+        min: 0
+        max: 100
       - name: serialrx_provider
         condition: USE_SERIAL_RX
         table: serial_rx
