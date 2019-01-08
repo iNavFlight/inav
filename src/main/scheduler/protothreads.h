@@ -156,6 +156,18 @@ struct ptState_s {
     }                                                                       \
   } while (0)
 
+// Suspends protothread for a given amount of time
+// Delay is evaluated only once
+#define ptDelayUs(delay)                                                    \
+  do {                                                                      \
+    (currentPt)->startTime = (timeUs_t)micros();                            \
+    (currentPt)->delayTime = (delay);                                       \
+    ptLabel();                                                              \
+    if ((timeDelta_t)(micros() - (currentPt)->startTime) <= (currentPt)->delayTime) {    \
+      return;                                                               \
+    }                                                                       \
+  } while (0)
+
 // Suspends protothread until it's called again
 #define ptYield()                                                           \
   do {                                                                      \

@@ -194,6 +194,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingReferenceAirspeed = 1000,
         .fixedWingCoordinatedYawGain = 1.0f,
         .fixedWingItermLimitOnStickPosition = 0.5f,
+
+        .loiter_direction = NAV_LOITER_RIGHT,
 );
 
 void pidInit(void)

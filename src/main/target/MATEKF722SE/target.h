@@ -81,7 +81,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define USE_PITOT_MS4525
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
@@ -185,3 +186,4 @@
 #define TARGET_IO_PORTD 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS        8
+#define USE_DSHOT

@@ -42,6 +42,7 @@
 
 #include "common/axis.h"
 #include "common/filter.h"
+#include "common/olc.h"
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
@@ -79,6 +80,7 @@
 #include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 
@@ -124,8 +126,17 @@
     x; \
 })
 
+#define OSD_CHR_IS_NUM(c) (c >= '0' && c <= '9')
+
+#define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
+#define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
+
+#define OSD_MIN_FONT_VERSION 1
+
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
+static bool hasExtendedFont = false; // Wether the font supports characters > 256
+static timeMs_t layoutOverrideUntil = 0;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -812,6 +823,17 @@ static inline int32_t osdGetAltitude(void)
 #endif
 }
 
+static inline int32_t osdGetAltitudeMsl(void)
+{
+#if defined(USE_NAV)
+    return getEstimatedActualPosition(Z)+GPS_home.alt;
+#elif defined(USE_BARO)
+    return baro.alt+GPS_home.alt;
+#else
+    return 0;
+#endif
+}
+
 static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *sidebar, timeMs_t currentTimeMs)
 {
     // Scroll between SYM_AH_DECORATION_MIN and SYM_AH_DECORATION_MAX.
@@ -1021,7 +1043,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 }
             } else {
 
-                uint8_t c;
+                uint16_t c;
                 if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
@@ -1433,6 +1455,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_ALTITUDE_MSL:
+        {
+            int32_t alt = osdGetAltitudeMsl();
+            osdFormatAltitudeSymbol(buff, alt);
+            break;
+        }		
+		
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
@@ -1561,7 +1590,6 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
     }
 
-#if defined(VTX) || defined(USE_VTX_COMMON)
     case OSD_VTX_CHANNEL:
 #if defined(VTX)
         // FIXME: This doesn't actually work. It's for boards with
@@ -1589,7 +1617,6 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
         break;
-#endif // VTX || VTX_COMMON
 
     case OSD_CROSSHAIRS:
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
@@ -1673,7 +1700,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
                     int8_t dy = floorf(fy);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
@@ -1690,7 +1717,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
                     const int8_t dx = floorf(fx);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
@@ -2026,9 +2053,9 @@ static bool osdDrawSingleElement(uint8_t item)
             const char *message = NULL;
             char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
             if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 4
+                // Aircraft is armed. We might have up to 5
                 // messages to show.
-                const char *messages[4];
+                const char *messages[5];
                 unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
@@ -2064,6 +2091,8 @@ static bool osdDrawSingleElement(uint8_t item)
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
+                    } else if (STATE(FIXED_WING) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                            messages[messageCount++] = "AUTOLAUNCH";
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                             // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
@@ -2309,6 +2338,22 @@ static bool osdDrawSingleElement(uint8_t item)
         return false;
 #endif
 
+    case OSD_PLUS_CODE:
+        {
+            STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
+            int digits = osdConfig()->plus_code_digits;
+            if (STATE(GPS_FIX)) {
+                olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
+            } else {
+                // +codes with > 8 digits have a + at the 9th digit
+                // and we only support 10 and up.
+                memset(buff, '-', digits + 1);
+                buff[8] = '+';
+                buff[digits + 1] = '\0';
+            }
+            break;
+        }
+
     default:
         return false;
     }
@@ -2448,6 +2493,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
+    // Put this on top of the latitude, since it's very unlikely
+    // that users will want to use both at the same time.
+    osdConfig->item_pos[0][OSD_PLUS_CODE] = OSD_POS(0, 12);
     osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(13, 12) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_LON] = OSD_POS(18, 12);
 
@@ -2521,6 +2569,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->coordinate_digits = 9;
 
     osdConfig->osd_failsafe_switch_layout = false;
+
+    osdConfig->plus_code_digits = 11;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
@@ -2545,7 +2595,29 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     displayClearScreen(osdDisplayPort);
 
-    uint8_t y = 4;
+    uint8_t y = 1;
+    displayFontMetadata_t metadata;
+    bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
+
+    if (fontHasMetadata && metadata.charCount > 256) {
+        hasExtendedFont = true;
+        unsigned logo_c = SYM_LOGO_START;
+        unsigned logo_x = OSD_CENTER_LEN(SYM_LOGO_WIDTH);
+        for (unsigned ii = 0; ii < SYM_LOGO_HEIGHT; ii++) {
+            for (unsigned jj = 0; jj < SYM_LOGO_WIDTH; jj++) {
+                displayWriteChar(osdDisplayPort, logo_x + jj, y, logo_c++);
+            }
+            y++;
+        }
+        y++;
+    } else {
+        if (!fontHasMetadata || metadata.version < OSD_MIN_FONT_VERSION) {
+            const char *m = "INVALID FONT";
+            displayWrite(osdDisplayPort, OSD_CENTER_S(m), 3, m);
+        }
+        y = 4;
+    }
+
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
     displayWrite(osdDisplayPort, 5, y++, string_buffer);
@@ -2851,6 +2923,12 @@ void osdUpdate(timeUs_t currentTimeUs)
     unsigned activeLayout;
     if (layoutOverride >= 0) {
         activeLayout = layoutOverride;
+        // Check for timed override, it will go into effect on
+        // the next OSD iteration
+        if (layoutOverrideUntil > 0 && millis() > layoutOverrideUntil) {
+            layoutOverrideUntil = 0;
+            layoutOverride = -1;
+        }
     } else if (osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE)) {
         activeLayout = 0;
     } else {
@@ -2906,9 +2984,22 @@ void osdStartFullRedraw(void)
     fullRedraw = true;
 }
 
-void osdOverrideLayout(int layout)
+void osdOverrideLayout(int layout, timeMs_t duration)
 {
     layoutOverride = constrain(layout, -1, ARRAYLEN(osdConfig()->item_pos) - 1);
+    if (layoutOverride >= 0 && duration > 0) {
+        layoutOverrideUntil = millis() + duration;
+    } else {
+        layoutOverrideUntil = 0;
+    }
+}
+
+int osdGetActiveLayout(bool *overridden)
+{
+    if (overridden) {
+        *overridden = layoutOverride >= 0;
+    }
+    return currentLayout;
 }
 
 bool osdItemIsFixed(osd_items_e item)

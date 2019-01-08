@@ -1287,7 +1287,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#if defined(USE_VTX_COMMON)
     case MSP_VTX_CONFIG:
         {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -1316,7 +1315,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
-#endif
 
     case MSP_NAME:
         {
@@ -2151,20 +2149,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_OSD_CHAR_WRITE:
 #ifdef USE_MAX7456
         if (dataSize >= 55) {
-            uint8_t font_data[64];
-            const uint8_t addr = sbufReadU8(src);
-            for (int i = 0; i < 54; i++) {
-                font_data[i] = sbufReadU8(src);
+            max7456Character_t chr;
+            uint16_t addr;
+            if (dataSize >= 56) {
+                addr = sbufReadU16(src);
+            } else {
+                addr = sbufReadU8(src);
+            }
+            for (unsigned ii = 0; ii < sizeof(chr.data); ii++) {
+                chr.data[ii] = sbufReadU8(src);
             }
             // !!TODO - replace this with a device independent implementation
-            max7456WriteNvm(addr, font_data);
+            max7456WriteNvm(addr, &chr);
         } else
             return MSP_RESULT_ERROR;
 #endif // USE_MAX7456
         break;
 #endif // USE_OSD
 
-#if defined(USE_VTX_COMMON)
     case MSP_SET_VTX_CONFIG:
         if (dataSize >= 2) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -2203,7 +2205,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
-#endif
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
@@ -2558,7 +2559,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if (!sbufReadU16Safe(&osdConfigMutable()->item_pos[layout][item], src)) {
                 return MSP_RESULT_ERROR;
             }
-            osdStartFullRedraw();
+            // If the layout is not already overriden and it's different
+            // than the layout for the item that was just configured,
+            // override it for 10 seconds.
+            bool overridden;
+            int activeLayout = osdGetActiveLayout(&overridden);
+            if (activeLayout != layout && !overridden) {
+                osdOverrideLayout(layout, 10000);
+            } else {
+                osdStartFullRedraw();
+            }
         }
 
         break;

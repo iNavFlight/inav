@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
@@ -50,6 +52,12 @@ void onNewGPSData(void);
 enum {
     NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
     NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
+};
+
+enum {
+    NAV_LOITER_RIGHT = 0,                    // Loitering direction right
+    NAV_LOITER_LEFT  = 1,                    // Loitering direction left
+    NAV_LOITER_YAW   = 2
 };
 
 enum {
@@ -222,6 +230,11 @@ typedef struct {
     int32_t     yaw;             // deg * 100
 } navWaypointPosition_t;
 
+typedef struct navDestinationPath_s {
+    uint32_t distance; // meters * 100
+    int32_t bearing; // deg * 100
+} navDestinationPath_t;
+
 typedef struct {
     float kP;
     float kI;
@@ -325,6 +338,7 @@ void navigationInit(void);
 void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs);
 void updatePositionEstimator_OpticalFlowTopic(timeUs_t currentTimeUs);
 void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfaceAlt);
+void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs);
 
 /* Navigation system updates */
 void updateWaypointsAndNavigationMode(void);
@@ -399,6 +413,9 @@ bool geoConvertGeodeticToLocalOrigin(fpVector3_t * pos, const gpsLocation_t *llh
 // the provided origin is valid and the conversion could be performed.
 bool geoConvertLocalToGeodetic(gpsLocation_t *llh, const gpsOrigin_t *origin, const fpVector3_t *pos);
 float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
+
+/* Distance/bearing calculation */
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);

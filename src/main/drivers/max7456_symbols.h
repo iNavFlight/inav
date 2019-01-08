@@ -196,6 +196,10 @@
 
 #define SYM_AH_V_START            0xE0 // 224 to 229 Vertical AHI
 
+#define SYM_LOGO_START            0x101 // 257 to 280, INAV logo
+#define SYM_LOGO_WIDTH            6
+#define SYM_LOGO_HEIGHT           4
+
 #define SYM_CURSOR SYM_AH_LEFT // Menu cursor
 
 #endif // USE_MAX7456
