@@ -696,7 +696,6 @@ $(OBJECT_DIR)/rcdevice_unittest : \
 	$(OBJECT_DIR)/io/rcdevice.o \
 	$(OBJECT_DIR)/io/rcdevice_cam.o \
 	$(OBJECT_DIR)/fc/rc_modes.o \
-	$(OBJECT_DIR)/rx/rx.o \
 	$(OBJECT_DIR)/common/maths.o \
 	$(OBJECT_DIR)/gtest_main.a 
 

@@ -1811,3 +1811,17 @@ groups:
         min: 0
         max: 255
         type: uint8_t
+
+  - name: PG_RCDEVICE_CONFIG
+    type: rcdeviceConfig_t
+    headers: ["io/rcdevice.h"]
+    condition: USE_RCDEVICE
+    members:
+      - name: rcdevice_protocol_version
+        field: protocolVersion
+        min: 0
+        max: 1
+      - name: rcdevice_feature
+        field: feature
+        min: 0
+        max: 65535
