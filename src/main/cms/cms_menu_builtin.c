@@ -155,10 +155,10 @@ static const OSD_Entry menuMainEntries[] =
     OSD_SUBMENU_ENTRY("OSD", &cmsx_menuOsd),
 #endif
     OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBattery),
-    OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
+    OSD_SUBMENU_ENTRY("FC+FW INFO", &menuInfo),
     OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
 
-    {"SAVE&REBOOT", OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT_SAVEREBOOT, 0},
+    {"SAVE+REBOOT", OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT_SAVEREBOOT, 0},
     {"EXIT",        OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT, 0},
 #ifdef CMS_MENU_DEBUG
     OSD_SUBMENU_ENTRY("ERR SAMPLE", &menuInfoEntries[0]),
