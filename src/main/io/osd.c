@@ -2827,7 +2827,10 @@ static void osdShowArmed(void)
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
             osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
-            y += 3;
+            int digits = osdConfig()->plus_code_digits;
+            olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
+			displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
+            y += 4;
         } else {
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
