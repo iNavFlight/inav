@@ -2813,8 +2813,8 @@ static void osdShowArmed(void)
     char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
     char *date;
     char *time;
-    // We need 6 visible rows
-    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 6 - 1);
+    // We need 7 visible rows
+    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 7 - 1);
 
     displayClearScreen(osdDisplayPort);
     displayWrite(osdDisplayPort, 12, y, "ARMED");
@@ -2827,7 +2827,10 @@ static void osdShowArmed(void)
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
             osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
-            y += 3;
+            int digits = osdConfig()->plus_code_digits;
+            olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
+			displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
+            y += 4;
         } else {
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
