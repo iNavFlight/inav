@@ -60,9 +60,7 @@
 // #define USE_OPFLOW_CXOF
 
 // #define USE_RANGEFINDER
-// #define USE_RANGEFINDER_UIB
-// #define USE_RANGEFINDER_VL53L0X
-// #define VL53L0X_I2C_BUS         BUS_I2C2
+// #define RANGEFINDER_I2C_BUS    BUS_I2C2
 
 #define USE_VCP
 #define VBUS_SENSING_PIN        PA9
