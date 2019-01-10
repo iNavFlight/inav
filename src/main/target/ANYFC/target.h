@@ -57,8 +57,7 @@
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS         BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

@@ -73,6 +73,7 @@
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_BENEWAKE
+#define USE_RANGEFINDER_VL53L0X
 
 // Allow default optic flow boards
 #define USE_OPFLOW

@@ -203,21 +203,28 @@
     #if !defined(SRF10_I2C_BUS)
         #define SRF10_I2C_BUS RANGEFINDER_I2C_BUS
     #endif
+    #if defined(SRF10_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_srf10,       DEVHW_SRF10,        SRF10_I2C_BUS,      0x70,               NONE,           DEVFLAGS_NONE);
+    #endif
 #endif
 
 #if defined(USE_RANGEFINDER_HCSR04_I2C)
     #if !defined(HCSR04_I2C_BUS)
         #define HCSR04_I2C_BUS RANGEFINDER_I2C_BUS
     #endif
+    #if defined(HCSR04_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_hcsr04,      DEVHW_HCSR04_I2C,   HCSR04_I2C_BUS,     0x14,               NONE,           DEVFLAGS_NONE);
+    #endif
 #endif
 
 #if defined(USE_RANGEFINDER_VL53L0X)
-    #if !defined(VL53L0X_I2C_BUS)
+    #if !defined(VL53L0X_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
         #define VL53L0X_I2C_BUS RANGEFINDER_I2C_BUS
     #endif
+
+    #if defined(VL53L0X_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_vl53l0x,     DEVHW_VL53L0X,      VL53L0X_I2C_BUS,    0x29,               NONE,           DEVFLAGS_NONE);
+    #endif
 #endif
 
 

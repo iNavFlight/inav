@@ -87,9 +87,7 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
-#define VL53L0X_I2C_BUS         BUS_I2C1
-#define USE_RANGEFINDER_HCSR04_I2C
-#define USE_RANGEFINDER_VL53L0X
+
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
