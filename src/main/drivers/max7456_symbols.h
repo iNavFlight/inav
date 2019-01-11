@@ -108,7 +108,7 @@
 
 #define SYM_AH_CH_CENTER          0x7E // 126 Crossair center
 
-//                                0x7F // 127 -
+#define SYM_SLOPE_TO_HOME         0x7F // 127 Slope to home
 
 #define SYM_AH_H_START            0x80 // 128 to 136 Horizontal AHI
 

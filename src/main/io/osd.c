@@ -1461,6 +1461,22 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatAltitudeSymbol(buff, alt);
             break;
         }		
+
+    case OSD_SLOPE_TO_HOME:
+        {
+            int32_t gr_alt = osdGetAltitude();	
+            int32_t gr_dis = GPS_distanceToHome;
+            buff[0] = SYM_SLOPE_TO_HOME;
+            if (gr_dis < 5) {
+                buff[1] = buff[2] = buff[3] = '-';
+            } else {
+                int16_t gr_per = gr_alt / gr_dis;
+                gr_per = constrain(gr_per, -99, 999);
+                tfp_sprintf(buff+1, "%3d", gr_per);
+            }
+            buff[4] = '\0';
+            break;
+        } 
 		
     case OSD_ONTIME:
         {
