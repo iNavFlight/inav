@@ -24,8 +24,7 @@
 #define LED0                    PA14  //Blue   SWCLK
 #define LED1                    PA13  //Green  SWDIO
 
-#define USE_BEEPER
-#define BEEPER_PIN              PC13
+#define BEEPER                  PC13
 #define BEEPER_INVERTED
 
 // *************** SPI1 Gyro & ACC *******************
@@ -82,14 +81,13 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define USE_PITOT_MS4525
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
-#define VL53L0X_I2C_BUS         BUS_I2C1
-#define USE_RANGEFINDER_HCSR04_I2C
-#define USE_RANGEFINDER_VL53L0X
+
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
@@ -165,11 +163,15 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL           ADC_CHN_4
 
-// *************** ADC *****************************
+// *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC8 // VTX power switcher
 #define PINIO2_PIN                  PC9 // 2xCamera switcher
+
+// *************** LEDSTRIP ************************
+#define USE_LED_STRIP
+#define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL)
 #define CURRENT_METER_SCALE_DEFAULT     179
@@ -182,3 +184,4 @@
 #define TARGET_IO_PORTD 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS        8
+#define USE_DSHOT

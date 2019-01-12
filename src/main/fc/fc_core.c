@@ -53,6 +53,7 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_adjustments.h"
+#include "fc/rc_smoothing.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
 #include "fc/rc_modes.h"
@@ -419,6 +420,7 @@ void processRx(timeUs_t currentTimeUs)
 {
     static bool armedBeeperOn = false;
 
+    // Calculate RPY channel data
     calculateRxChannelsAndUpdateFailsafe(currentTimeUs);
 
     // in 3D mode, we need to be able to disarm by switch at any time
@@ -634,44 +636,6 @@ void processRx(timeUs_t currentTimeUs)
 
 }
 
-void filterRc(bool isRXDataNew)
-{
-    static int16_t lastCommand[4] = { 0, 0, 0, 0 };
-    static int16_t deltaRC[4] = { 0, 0, 0, 0 };
-    static int16_t factor, rcInterpolationFactor;
-    static biquadFilter_t filteredCycleTimeState;
-    static bool filterInitialised;
-
-    // Calculate average cycle time (1Hz LPF on cycle time)
-    if (!filterInitialised) {
-        biquadFilterInitLPF(&filteredCycleTimeState, 1, getLooptime());
-        filterInitialised = true;
-    }
-
-    const timeDelta_t filteredCycleTime = biquadFilterApply(&filteredCycleTimeState, (float) cycleTime);
-    rcInterpolationFactor = rxGetRefreshRate() / filteredCycleTime + 1;
-
-    if (isRXDataNew) {
-        for (int channel=0; channel < 4; channel++) {
-            deltaRC[channel] = rcCommand[channel] -  (lastCommand[channel] - deltaRC[channel] * factor / rcInterpolationFactor);
-            lastCommand[channel] = rcCommand[channel];
-        }
-
-        factor = rcInterpolationFactor - 1;
-    } else {
-        factor--;
-    }
-
-    // Interpolate steps of rcCommand
-    if (factor > 0) {
-        for (int channel=0; channel < 4; channel++) {
-            rcCommand[channel] = lastCommand[channel] - deltaRC[channel] * factor/rcInterpolationFactor;
-         }
-    } else {
-        factor = 0;
-    }
-}
-
 // Function for loop trigger
 void taskGyro(timeUs_t currentTimeUs) {
     // getTaskDeltaTime() returns delta time frozen at the moment of entering the scheduler. currentTime is frozen at the very same point.
@@ -713,7 +677,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && ((!STATE(FIXED_WING)) || (!isNavLaunchEnabled()) || (isNavLaunchEnabled() && isFixedWingLaunchDetected()))) {
+    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
     }
 
@@ -723,8 +687,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     annexCode();
 
-    if (rxConfig()->rcSmoothing) {
-        filterRc(isRXDataNew);
+    if (rxConfig()->rcFilterFrequency) {
+        rcInterpolationApply(isRXDataNew);
     }
 
 #if defined(USE_NAV)

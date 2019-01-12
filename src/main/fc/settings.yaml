@@ -49,6 +49,8 @@ tables:
     enum: gpsDynModel_e
   - name: reset_type
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
+  - name: direction
+    values: ["RIGHT", "LEFT", "YAW"]
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
@@ -315,12 +317,9 @@ groups:
     members:
       - name: pitot_hardware
         table: pitot_hardware
-      - name: pitot_use_median_filter
-        field: use_median_filtering
-        type: bool
-      - name: pitot_noise_lpf
+      - name: pitot_lpf_milli_hz
         min: 0
-        max: 1
+        max: 10000
       - name: pitot_scale
         min: 0
         max: 100
@@ -355,9 +354,10 @@ groups:
         field: sbusSyncInterval
         min: 500
         max: 10000
-      - name: rc_smoothing
-        field: rcSmoothing
-        type: bool
+      - name: rc_filter_frequency
+        field: rcFilterFrequency
+        min: 0
+        max: 100
       - name: serialrx_provider
         condition: USE_SERIAL_RX
         table: serial_rx
@@ -733,6 +733,10 @@ groups:
         field: manual.rates[FD_YAW]
         min: 0
         max: 100
+      - name: fpv_mix_degrees
+        field: misc.fpvCamAngleDegrees
+        min: 0
+        max: 50
 
   - name: PG_SERIAL_CONFIG
     type: serialConfig_t
@@ -950,6 +954,10 @@ groups:
         field: fixedWingItermThrowLimit
         min: FW_ITERM_THROW_LIMIT_MIN
         max: FW_ITERM_THROW_LIMIT_MAX
+      - name: fw_loiter_direction
+        field: loiter_direction
+        condition: USE_NAV
+        table: direction
       - name: fw_reference_airspeed
         field: fixedWingReferenceAirspeed
         min: 1
@@ -1588,6 +1596,10 @@ groups:
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll
         type: bool
+      - name: osd_artificial_horizon_max_pitch
+        field: ahi_max_pitch
+        min: 10
+        max: 90
       - name: osd_crosshairs_style
         field: crosshairs_style
         table: osd_crosshairs_style
@@ -1616,6 +1628,14 @@ groups:
         condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
         type: bool
+
+      - name: osd_failsafe_switch_layout
+        type: bool
+
+      - name: osd_plus_code_digits
+        field: plus_code_digits
+        min: 10
+        max: 13
 
   - name: PG_SYSTEM_CONFIG
     type: systemConfig_t
@@ -1686,7 +1706,7 @@ groups:
   - name: PG_VTX_CONFIG
     type: vtxConfig_t
     headers: ["io/vtx_control.h"]
-    condition: USE_VTX_CONTROL && USE_VTX_COMMON
+    condition: USE_VTX_CONTROL
     members:
       - name: vtx_halfduplex
         field: halfDuplex
@@ -1695,7 +1715,6 @@ groups:
   - name: PG_VTX_SETTINGS_CONFIG
     type: vtxSettingsConfig_t
     headers: ["drivers/vtx_common.h", "io/vtx.h"]
-    condition: USE_VTX_COMMON
     members:
       - name: vtx_band
         field: band

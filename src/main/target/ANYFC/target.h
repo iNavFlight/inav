@@ -54,15 +54,15 @@
 #define USE_MAG_LIS3MDL
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS         BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
 
 #define USE_VCP

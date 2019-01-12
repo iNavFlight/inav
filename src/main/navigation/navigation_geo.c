@@ -133,7 +133,7 @@ float geoCalculateMagDeclination(const gpsLocation_t * llh) // degrees units
 }
 #endif
 
-void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginResetMode_e resetMode)
+void geoSetOrigin(gpsOrigin_t *origin, const gpsLocation_t *llh, geoOriginResetMode_e resetMode)
 {
     if (resetMode == GEO_ORIGIN_SET) {
         origin->valid = true;
@@ -147,7 +147,7 @@ void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginRese
     }
 }
 
-void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, fpVector3_t * pos, geoAltitudeConversionMode_e altConv)
+bool geoConvertGeodeticToLocal(fpVector3_t *pos, const gpsOrigin_t *origin, const gpsLocation_t *llh, geoAltitudeConversionMode_e altConv)
 {
     if (origin->valid) {
         pos->x = (llh->lat - origin->lat) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
@@ -159,15 +159,21 @@ void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, 
         } else {
             pos->z = llh->alt - origin->alt;
         }
+        return true;
     }
-    else {
-        pos->x = 0.0f;
-        pos->y = 0.0f;
-        pos->z = 0.0f;
-    }
+
+    pos->x = 0.0f;
+    pos->y = 0.0f;
+    pos->z = 0.0f;
+    return false;
 }
 
-void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * pos, gpsLocation_t * llh)
+bool geoConvertGeodeticToLocalOrigin(fpVector3_t * pos, const gpsLocation_t *llh, geoAltitudeConversionMode_e altConv)
+{
+    return geoConvertGeodeticToLocal(pos, &posControl.gpsOrigin, llh, altConv);
+}
+
+bool geoConvertLocalToGeodetic(gpsLocation_t *llh, const gpsOrigin_t * origin, const fpVector3_t *pos)
 {
     float scaleLonDown;
 
@@ -187,6 +193,7 @@ void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * p
     llh->lat += lrintf(pos->x / DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR);
     llh->lon += lrintf(pos->y / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * scaleLonDown));
     llh->alt += lrintf(pos->z);
+    return origin->valid;
 }
 
 

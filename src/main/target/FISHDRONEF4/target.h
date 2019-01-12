@@ -68,6 +68,9 @@
 #define USE_MAG_LIS3MDL
 #define MAG_IST8310_ALIGN CW270_DEG
 
+// *************** Temperature sensor *****************
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 // *************** BARO *****************************
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

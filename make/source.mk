@@ -12,6 +12,7 @@ COMMON_SRC = \
             common/filter.c \
             common/maths.c \
             common/memory.c \
+            common/olc.c \
             common/printf.c \
             common/streambuf.c \
             common/time.c \
@@ -52,6 +53,8 @@ COMMON_SRC = \
             drivers/system.c \
             drivers/timer.c \
             drivers/lights_io.c \
+            drivers/temperature/lm75.c \
+            drivers/pitotmeter_ms4525.c \
             fc/cli.c \
             fc/config.c \
             fc/controlrate_profile.c \
@@ -61,6 +64,7 @@ COMMON_SRC = \
             fc/fc_hardfaults.c \
             fc/fc_msp.c \
             fc/fc_msp_box.c \
+            fc/rc_smoothing.c \
             fc/rc_adjustments.c \
             fc/rc_controls.c \
             fc/rc_curves.c \
@@ -135,6 +139,7 @@ COMMON_SRC = \
             cms/cms_menu_osd.c \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
+            cms/cms_menu_vtx_ffpv.c \
             common/colorconversion.c \
             common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
@@ -187,6 +192,7 @@ COMMON_SRC = \
             io/vtx_string.c \
             io/vtx_smartaudio.c \
             io/vtx_tramp.c \
+            io/vtx_ffpv24g.c \
             io/vtx_control.c
 
 COMMON_DEVICE_SRC = \

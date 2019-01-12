@@ -67,6 +67,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXAIRMODE, "AIR MODE", 29 },
     { BOXHOMERESET, "HOME RESET", 30 },
     { BOXGCSNAV, "GCS NAV", 31 },
+    { BOXFPVANGLEMIX, "FPV ANGLE MIX", 32 },
     { BOXSURFACE, "SURFACE", 33 },
     { BOXFLAPERON, "FLAPERON", 34 },
     { BOXTURNASSIST, "TURN ASSIST", 35 },
@@ -83,6 +84,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXBRAKING, "MC BRAKING", 46 },
     { BOXUSER1, "USER1", 47 },
     { BOXUSER2, "USER2", 48 },
+    { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -178,6 +180,8 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
     }
 
+    activeBoxIds[activeBoxIdCount++] = BOXFPVANGLEMIX;
+
     //Camstab mode is enabled always
     activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
@@ -192,6 +196,9 @@ void initActiveBoxIds(void)
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     if (navFlowDeadReckoning || navReadyQuads || navReadyPlanes) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+        if (STATE(FIXED_WING)) {
+            activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
+        }
     }
 
     if (navReadyQuads || navReadyPlanes) {
@@ -304,6 +311,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)),        BOXHEADFREE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)),     BOXHEADADJ);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)),     BOXCAMSTAB);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX)), BOXFPVANGLEMIX);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(MANUAL_MODE)),          BOXMANUAL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)),    BOXBEEPERON);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)),      BOXLEDLOW);
@@ -339,6 +347,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),     BOXBRAKING);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),       BOXUSER1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),       BOXUSER2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),BOXLOITERDIRCHN);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

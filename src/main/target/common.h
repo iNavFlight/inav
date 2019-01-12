@@ -18,7 +18,7 @@
 #pragma once
 
 #if defined(STM32F3)
-#define DYNAMIC_HEAP_SIZE   1536
+#define DYNAMIC_HEAP_SIZE   1024
 #else
 #define DYNAMIC_HEAP_SIZE   2048
 #endif
@@ -45,11 +45,7 @@
 #define SKIP_CLI_RESOURCES
 #endif
 
-#if defined(STM32F3) || defined(STM32F4)
 #define USE_ADC_AVERAGING
-#define ADC_AVERAGE_N_SAMPLES 20
-#endif
-
 #define USE_64BIT_TIME
 #define USE_BLACKBOX
 #define USE_GPS
@@ -74,12 +70,28 @@
 #define USE_RX_UIB
 
 // Allow default rangefinders
+#define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_BENEWAKE
+#define USE_RANGEFINDER_VL53L0X
 
 // Allow default optic flow boards
+#define USE_OPFLOW
 #define USE_OPFLOW_CXOF
 #define USE_OPFLOW_MSP
+
+#define USE_PITOT
+#define USE_PITOT_MS4525
+
+#define USE_TEMPERATURE_SENSOR
+#define USE_TEMPERATURE_LM75
+
+#define USE_MSP_DISPLAYPORT
+#define USE_DASHBOARD
+#define DASHBOARD_ARMED_BITMAP
+#define USE_OLED_UG2864
+
+#define USE_PWM_DRIVER_PCA9685
 #endif
 
 #if (FLASH_SIZE > 128)
@@ -95,10 +107,6 @@
 #define USE_ACC_NOTCH
 #define USE_CMS
 #define CMS_MENU_OSD
-#define USE_DASHBOARD
-#define USE_OLED_UG2864
-#define USE_MSP_DISPLAYPORT
-#define DASHBOARD_ARMED_BITMAP
 #define USE_GPS_PROTO_NMEA
 #define USE_GPS_PROTO_NAZA
 #define USE_GPS_PROTO_MTK
@@ -120,7 +128,6 @@
 #define USE_SERIALRX_CRSF
 #define USE_PWM_SERVO_DRIVER
 #define USE_SERIAL_PASSTHROUGH
-#define USE_PWM_DRIVER_PCA9685
 #define NAV_MAX_WAYPOINTS       60
 #define MAX_BOOTLOG_ENTRIES     64
 #define USE_RCDEVICE
@@ -128,10 +135,10 @@
 #define USE_PITOT_ADC
 
 //Enable VTX control
-#define USE_VTX_COMMON
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
+#define USE_VTX_FFPV
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST

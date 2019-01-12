@@ -14,5 +14,4 @@ TARGET_SRC = \
             drivers/rangefinder/rangefinder_hcsr04.c \
             drivers/light_ws2811strip.c \
             drivers/serial_softserial.c \
-            drivers/pitotmeter_ms4525.c \
             drivers/pitotmeter_adc.c

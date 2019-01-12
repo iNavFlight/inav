@@ -48,7 +48,7 @@
 
 #include "scheduler/protothreads.h"
 
-#define GPS_VERSION_DETECTION_TIMEOUT_MS    200
+#define GPS_CFG_CMD_TIMEOUT_MS              200
 #define GPS_VERSION_RETRY_TIMES             2
 #define MAX_UBLOX_PAYLOAD_SIZE              256
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
@@ -796,7 +796,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // however GPS would be functional. We are waiting for any response - ACK/NACK
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
     configureSBAS();
-    ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Enable GALILEO
     if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
@@ -804,7 +804,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
         // however GPS would otherwise be perfectly initialized, so we are just waiting for any response
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
         configureGalileo();
-        ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
     }
 
     ptEnd(0);
@@ -839,6 +839,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Change baud rate
     if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
+#if 0
         // Autobaud logic:
         //  0. Wait for TX buffer to be empty
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
@@ -858,6 +859,26 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
         //  5. Attempt to configure the GPS
         ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+#else
+        //  0. Wait for TX buffer to be empty
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        // Try sending baud rate switch command at all common baud rates
+        gpsSetProtocolTimeout((GPS_BAUD_CHANGE_DELAY + 50) * (GPS_BAUDRATE_COUNT));
+        for (gpsState.autoBaudrateIndex = 0; gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT; gpsState.autoBaudrateIndex++) {
+            // 2. Set serial port to baud rate and send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
+            serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
+            serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
+
+            // 3. Wait for serial port to finish transmitting
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+            // 4. Extra wait to make sure GPS processed the command
+            ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+        }
+
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
+#endif
     }
     else {
         // No auto baud - set port baud rate to [baudrateIndex]
@@ -871,7 +892,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
         // Reset protocol timeout
-        gpsSetProtocolTimeout(MIN(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 1) * GPS_VERSION_DETECTION_TIMEOUT_MS)));
+        gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
 
         // Attempt to detect GPS hw version
         gpsState.hwVersion = 0;
@@ -880,7 +901,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         do {
             pollVersion();
             gpsState.autoConfigStep++;
-            ptWaitTimeout((gpsState.hwVersion != 0), GPS_VERSION_DETECTION_TIMEOUT_MS);
+            ptWaitTimeout((gpsState.hwVersion != 0), GPS_CFG_CMD_TIMEOUT_MS);
         } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == 0);
 
         // Configure GPS

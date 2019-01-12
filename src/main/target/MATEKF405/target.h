@@ -168,6 +168,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
+
 #define USE_OPTICAL_FLOW
 #define USE_OPFLOW_MSP
 
@@ -176,7 +178,6 @@
 #define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
 
 // *************** ADC *****************************

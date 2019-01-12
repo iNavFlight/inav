@@ -22,6 +22,9 @@
 typedef enum {
     TEMP_GYRO = 0,
     TEMP_BARO = 1,
+#ifdef USE_TEMPERATURE_SENSOR
+    TEMP_LM75 = 2,
+#endif
     TEMP_COUNT
 } tempSensor_e;
 
@@ -30,3 +33,7 @@ int16_t getTemperature(tempSensor_e sensor);
 float getCurrentTemperature(void);
 tempSensor_e getCurrentTemperatureSensorUsed(void);
 void temperatureUpdate(void);
+
+#ifdef USE_TEMPERATURE_SENSOR
+void temperatureInit(void);
+#endif

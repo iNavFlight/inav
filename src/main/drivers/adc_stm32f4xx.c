@@ -33,7 +33,7 @@
 #include "adc_impl.h"
 
 #if !defined(ADC1_DMA_STREAM)
-#define ADC1_DMA_STREAM DMA2_Stream4
+#define ADC1_DMA_STREAM DMA2_Stream0
 #endif
 
 static adcDevice_t adcHardware[ADCDEV_COUNT] = {
