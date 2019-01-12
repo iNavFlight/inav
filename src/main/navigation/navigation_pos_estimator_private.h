@@ -22,6 +22,7 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
+#include "common/filter.h"
 
 #include "sensors/sensors.h"
 
@@ -40,8 +41,12 @@
 
 #define INAV_GPS_TIMEOUT_MS                 1500    // GPS timeout
 #define INAV_BARO_TIMEOUT_MS                200     // Baro timeout
-#define INAV_SURFACE_TIMEOUT_MS             300     // Surface timeout    (missed 3 readings in a row)
+#define INAV_SURFACE_TIMEOUT_MS             400     // Surface timeout    (missed 3 readings in a row)
 #define INAV_FLOW_TIMEOUT_MS                200
+
+// Time constants for calculating Baro/Sonar averages. Should be the same value to impose same amount of group delay
+#define INAV_BARO_AVERAGE_HZ                1.0f
+#define INAV_SURFACE_AVERAGE_HZ             1.0f
 
 #define RANGEFINDER_RELIABILITY_RC_CONSTANT     (0.47802f)
 #define RANGEFINDER_RELIABILITY_LIGHT_THRESHOLD (0.15f)
@@ -67,6 +72,7 @@ typedef struct {
 
 typedef struct {
     timeUs_t    lastUpdateTime; // Last update time (us)
+    pt1Filter_t avgFilter;
     float       alt;            // Raw barometric altitude (cm)
     float       epv;
 } navPositionEstimatorBARO_t;
@@ -84,6 +90,7 @@ typedef enum {
 
 typedef struct {
     timeUs_t    lastUpdateTime; // Last update time (us)
+    pt1Filter_t avgFilter;
     float       alt;            // Raw altitude measurement (cm)
     float       reliability;
 } navPositionEstimatorSURFACE_t;

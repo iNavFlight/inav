@@ -309,9 +309,15 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
     }
 
     if (sensors(SENSOR_BARO) && baroIsCalibrationComplete()) {
+        const timeUs_t baroDtUs = currentTimeUs - posEstimator.baro.lastUpdateTime;
+
         posEstimator.baro.alt = newBaroAlt - initialBaroAltitudeOffset;
         posEstimator.baro.epv = positionEstimationConfig()->baro_epv;
         posEstimator.baro.lastUpdateTime = currentTimeUs;
+
+        if (baroDtUs <= MS2US(INAV_BARO_TIMEOUT_MS)) {
+            pt1FilterApply3(&posEstimator.baro.avgFilter, posEstimator.baro.alt, US2S(baroDtUs));
+        }
     }
     else {
         posEstimator.baro.alt = 0;
@@ -769,6 +775,9 @@ void initializePositionEstimator(void)
         posEstimator.est.pos.v[axis] = 0;
         posEstimator.est.vel.v[axis] = 0;
     }
+
+    pt1FilterInit(&posEstimator.baro.avgFilter, INAV_BARO_AVERAGE_HZ, 0.0f);
+    pt1FilterInit(&posEstimator.surface.avgFilter, INAV_SURFACE_AVERAGE_HZ, 0.0f);
 }
 
 /**
