@@ -40,6 +40,7 @@ float nullFilterApply(void *filter, float input)
 // f_cut = cutoff frequency
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT)
 {
+    filter->state = 0.0f;
     filter->RC = tau;
     filter->dT = dT;
 }
