@@ -839,6 +839,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Change baud rate
     if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
+#if 0
         // Autobaud logic:
         //  0. Wait for TX buffer to be empty
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
@@ -858,6 +859,26 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
         //  5. Attempt to configure the GPS
         ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+#else
+        //  0. Wait for TX buffer to be empty
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        // Try sending baud rate switch command at all common baud rates
+        gpsSetProtocolTimeout((GPS_BAUD_CHANGE_DELAY + 50) * (GPS_BAUDRATE_COUNT));
+        for (gpsState.autoBaudrateIndex = 0; gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT; gpsState.autoBaudrateIndex++) {
+            // 2. Set serial port to baud rate and send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
+            serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
+            serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
+
+            // 3. Wait for serial port to finish transmitting
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+            // 4. Extra wait to make sure GPS processed the command
+            ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+        }
+
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
+#endif
     }
     else {
         // No auto baud - set port baud rate to [baudrateIndex]
@@ -871,7 +892,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
         // Reset protocol timeout
-        gpsSetProtocolTimeout(MIN(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
+        gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
 
         // Attempt to detect GPS hw version
         gpsState.hwVersion = 0;

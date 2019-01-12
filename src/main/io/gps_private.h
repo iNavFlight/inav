@@ -26,7 +26,7 @@
 // GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 2000 ms)
 #define GPS_TIMEOUT             (1000)
 #define GPS_SHORT_TIMEOUT       (500)
-#define GPS_BAUD_CHANGE_DELAY   (200)
+#define GPS_BAUD_CHANGE_DELAY   (100)
 #define GPS_INIT_DELAY          (500)
 #define GPS_BOOT_DELAY          (3000)
 
