@@ -107,7 +107,10 @@ tables:
   - name: vtx_low_power_disarm
     values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
     enum: vtxLowerPowerDisarm_e
-
+  - name: cam_provider
+    values: ["RUNCAM", "CADDX_V2"]
+    enum: camProvider_e
+    
 groups:
   - name: PG_GYRO_CONFIG
     type: gyroConfig_t
@@ -1767,5 +1770,14 @@ groups:
         field: permanentId[3]
         min: 0
         max: 255
+        type: uint8_t
+  - name: PG_CAM_CONFIG
+    type: camConfig_t
+    headers: ["io/rcdevice.h"]
+    condition: USE_RCDEVICE
+    members:
+      - name: cam_provider
+        field: provider
+        table: cam_provider
         type: uint8_t
 

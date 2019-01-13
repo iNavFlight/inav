@@ -29,6 +29,7 @@
 
 #include "io/beeper.h"
 #include "io/rcdevice_cam.h"
+#include "io/rcdevice.h"
 
 #include "rx/rx.h"
 
@@ -37,10 +38,13 @@
 #define IS_HI(X) (rcData[X] > 1750)
 #define IS_LO(X) (rcData[X] < 1250)
 #define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+
 static runcamDevice_t runcamDevice;
 runcamDevice_t *camDevice = &runcamDevice;
+
 rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
 bool rcdeviceInMenu;
+bool caddxdeviceInMenu;
 bool needRelease = false;
 
 static bool isFeatureSupported(uint8_t feature)
@@ -57,11 +61,18 @@ static bool rcdeviceIsCameraControlEnabled(void)
     bool isPowerSimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON);
     bool isWiFiSimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON);
     bool isChangeModeSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE);
-
-    if (camDevice->serialPort != NULL && (isPowerSimulationSupported || isWiFiSimulationSupported || isChangeModeSupported)) {
+    if (camDevice->serialPort != NULL && (camDevice->info.protocolVersion != CADDXDEVICE_PROTOCOL_TURTLEV2) && (isPowerSimulationSupported || isWiFiSimulationSupported || isChangeModeSupported)) {
         return true;
     }
 
+    return false;
+}
+
+static bool caddxdeviceIsCameraControlEnabled(void)
+{
+    if (camDevice->serialPort != NULL && (camDevice->info.protocolVersion == CADDXDEVICE_PROTOCOL_TURTLEV2)) {
+        return true;
+    }
     return false;
 }
 
@@ -69,7 +80,7 @@ bool rcdeviceIsEnabled(void)
 {
     bool is5KeySimulationSupported = isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE);
 
-    if (camDevice->serialPort != NULL && (rcdeviceIsCameraControlEnabled() || is5KeySimulationSupported)) {
+    if (camDevice->serialPort != NULL && (caddxdeviceIsCameraControlEnabled() || rcdeviceIsCameraControlEnabled() || is5KeySimulationSupported)) {
         return true;
     }
 
@@ -78,12 +89,31 @@ bool rcdeviceIsEnabled(void)
 
 static bool rcdeviceIs5KeyEnabled(void)
 {
-    if (camDevice->serialPort != NULL && isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)) {
+    if (camDevice->serialPort != NULL && (camDevice->info.protocolVersion != CADDXDEVICE_PROTOCOL_TURTLEV2) && isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE)) {
         return true;
     }
 
     return false;
 }
+
+bool caddxdeviceIsEnabled(void)
+{
+    if ((camDevice->serialPort != NULL) && (camDevice->info.protocolVersion == CADDXDEVICE_PROTOCOL_TURTLEV2)) {
+        return true;
+    }
+
+    return false;
+}
+
+static bool caddxdeviceIs5KeyEnabled(void)
+{
+    if ((camDevice->serialPort != NULL) && (camDevice->info.protocolVersion == CADDXDEVICE_PROTOCOL_TURTLEV2)) {
+        return true;
+    }
+
+    return false;
+}
+
 
 static void rcdeviceCameraUpdateTime(void)
 {
@@ -158,6 +188,46 @@ static void rcdeviceCameraControlProcess(void)
     rcdeviceCameraUpdateTime();
 }
 
+static void caddxdeviceCameraControlProcess(void)
+{
+    for (boxId_e i = BOXCAMERA1; i <= BOXCAMERA3; i++) {
+        uint8_t switchIndex = i - BOXCAMERA1;
+
+        if (IS_RC_MODE_ACTIVE(i)) {
+            // check last state of this mode, if it's true, then ignore it.
+            // Here is a logic to make a toggle control for this mode
+            if (switchStates[switchIndex].isActivated) {
+                continue;
+            }
+
+            uint8_t behavior = CADDX_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION;
+            uint8_t command = CADDX_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_COMMAND;
+            switch (i) {
+            case BOXCAMERA1:
+                command = CADDX_PROTOCOL_CAM_CTRL_RECORD;
+                behavior = CADDX_PROTOCOL_CAM_CTRL_START_RECORDING;
+                break;
+            case BOXCAMERA2:
+                command = CADDX_PROTOCOL_CAM_CTRL_RECORD;
+                behavior = CADDX_PROTOCOL_CAM_CTRL_STOP_RECORDING;
+                break;
+            case BOXCAMERA3:
+                command = CADDX_PROTOCOL_CAM_CTRL_PHOTO;
+                behavior = CADDX_PROTOCOL_CAM_CTRL_TAKE_A_PHOTO;
+                break;
+            default:
+                break;
+            }
+            if (behavior != CADDX_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) {
+                caddxDeviceSendPacket(camDevice, command, behavior);
+                switchStates[switchIndex].isActivated = true;
+            }
+        } else {
+            switchStates[switchIndex].isActivated = false;
+        }
+    }
+}
+
 static bool rcdeviceCamSimulate5KeyCablePress(rcdeviceCamSimulationKeyEvent_e key)
 {
     uint8_t operation = RCDEVICE_PROTOCOL_5KEY_SIMULATION_NONE;
@@ -212,6 +282,51 @@ static bool rcdeviceSend5KeyOSDCableSimualtionEvent(rcdeviceCamSimulationKeyEven
         break;
     case RCDEVICE_CAM_KEY_RELEASE:
         reqResult = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
+        break;
+    default:
+        reqResult = false;
+        break;
+    }
+
+    return reqResult;
+}
+
+static bool caddxdeviceSend5KeyOSDCableSimualtionEvent(caddxdeviceCamSimulationKeyEvent_e key)
+{
+    bool reqResult = false;
+    switch (key) {
+    case CADDXDEVICE_CAM_KEY_CONNECTION_OPEN:
+        caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
+		    reqResult = true;
+        caddxdeviceInMenu = true;
+        beeper(BEEPER_CAM_CONNECTION_OPEN);
+        break;
+    case CADDXDEVICE_CAM_KEY_CONNECTION_CLOSE:
+        caddxdeviceInMenu = false;
+        beeper(BEEPER_CAM_CONNECTION_CLOSE);
+        break;
+    case CADDXDEVICE_CAM_KEY_ENTER:
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
+        reqResult = true;
+		break;
+    case CADDXDEVICE_CAM_KEY_LEFT:
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_LEFT);
+        reqResult = true;
+		break;
+    case CADDXDEVICE_CAM_KEY_UP:
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_UP);
+        reqResult = true;
+		break;
+    case CADDXDEVICE_CAM_KEY_RIGHT:
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_RIGHT);
+        reqResult = true;
+		break;
+    case CADDXDEVICE_CAM_KEY_DOWN:
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_DOWN);
+        reqResult = true;
+		break;
+    case CADDXDEVICE_CAM_KEY_RELEASE:
+        reqResult = true;
         break;
     default:
         reqResult = false;
@@ -284,6 +399,67 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
     }
 }
 
+static void caddxdevice5KeySimulationProcess(void)
+{
+#ifdef USE_CMS
+    if (cmsInMenu) {
+        return;
+    }
+#endif
+
+    if (camDevice->serialPort == 0) {
+        return;
+    }
+
+    caddxdeviceCamSimulationKeyEvent_e key = CADDXDEVICE_CAM_KEY_NONE;
+
+    if (needRelease) {
+        if (IS_MID(YAW) && IS_MID(PITCH) && IS_MID(ROLL)) {
+            key = CADDXDEVICE_CAM_KEY_RELEASE;
+            if (caddxdeviceSend5KeyOSDCableSimualtionEvent(key)) {
+                needRelease = false;
+            } else {
+                caddxdeviceInMenu = false;
+            }
+            return;
+        } else {
+            return;
+        }
+    } else {
+        if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_LO(YAW)) { // Disconnect HI YAW
+            if (caddxdeviceInMenu) {
+                key = CADDXDEVICE_CAM_KEY_CONNECTION_CLOSE;
+            }
+        } else {
+            if (caddxdeviceInMenu) {
+                if (IS_LO(ROLL)) { // Left LO ROLL
+                    key = CADDXDEVICE_CAM_KEY_LEFT;
+                } else if (IS_HI(PITCH)) { // Up HI PITCH
+                    key = CADDXDEVICE_CAM_KEY_UP;
+                } else if (IS_HI(ROLL)) { // Right HI ROLL
+                    key = CADDXDEVICE_CAM_KEY_RIGHT;
+                } else if (IS_LO(PITCH)) { // Down LO PITCH
+                    key = CADDXDEVICE_CAM_KEY_DOWN;
+                } else if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_HI(YAW)) { // Enter HI YAW
+                    key = CADDXDEVICE_CAM_KEY_ENTER;
+                }
+            } else {
+                if (IS_MID(THROTTLE) && IS_MID(ROLL) && IS_MID(PITCH) && IS_HI(YAW) && !ARMING_FLAG(ARMED)) { // Enter HI YAW
+                    key = CADDXDEVICE_CAM_KEY_CONNECTION_OPEN;
+                }
+            }
+        }
+    }
+
+    if (key != CADDXDEVICE_CAM_KEY_NONE) {
+        if (caddxdeviceSend5KeyOSDCableSimualtionEvent(key)) {
+            needRelease = true;
+        } else {
+            caddxdeviceInMenu = false;
+        }
+    }
+}
+
 void rcdeviceUpdate(timeUs_t currentTimeUs)
 {
     if (rcdeviceIsCameraControlEnabled()) {
@@ -292,6 +468,14 @@ void rcdeviceUpdate(timeUs_t currentTimeUs)
 
     if (rcdeviceIs5KeyEnabled()) {
         rcdevice5KeySimulationProcess(currentTimeUs);
+    }
+	    		
+	if (caddxdeviceIsCameraControlEnabled()) {
+        caddxdeviceCameraControlProcess();
+    }
+	
+	if (caddxdeviceIs5KeyEnabled()) {
+        caddxdevice5KeySimulationProcess();
     }
 }
 
@@ -306,7 +490,6 @@ bool rcdeviceInit(void)
         uint8_t switchIndex = i - BOXCAMERA1;
         switchStates[switchIndex].isActivated = true;
     }
-
     return true;
 }
 

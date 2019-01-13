@@ -83,6 +83,7 @@
 
 // cleanflight v2 specific parameter group ids start at 256
 #define PG_VTX_SETTINGS_CONFIG 259
+#define PG_CAM_CONFIG 260
 
 // iNav specific parameter group ids start at 1000
 #define PG_INAV_START 1000

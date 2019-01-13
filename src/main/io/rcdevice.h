@@ -37,6 +37,7 @@
 #define RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO                   0x00
 // camera control
 #define RCDEVICE_PROTOCOL_COMMAND_CAMERA_CONTROL                    0x01
+#define CADDXDEVICE_PROTOCOL_COMMAND_CAMERA_CONTROL                 0x01
 // 5 key osd cable simulation
 #define RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_PRESS             0x02
 #define RCDEVICE_PROTOCOL_COMMAND_5KEY_SIMULATION_RELEASE           0x03
@@ -44,6 +45,24 @@
 // device setting access
 #define RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL               0x11
 #define RCDEVICE_PROTOCOL_COMMAND_WRITE_SETTING                     0x13
+
+#define CADDX_PROTOCOL_HEADER                                       0x55
+#define CADDX_PROTOCOL_TAIL                                         0xAA
+
+
+typedef enum {
+    RUNCAM = 0,
+    CADDX_V2 = 1,
+} camProvider_e;
+
+typedef struct camConfig_s {
+    camProvider_e provider;
+} camConfig_t;
+
+PG_DECLARE(camConfig_t, camConfig);
+
+
+//extern camConfig_t *camConfig;
 
 // Feature Flag sets, it's a uint16_t flag
 typedef enum {
@@ -70,6 +89,21 @@ typedef enum {
     RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION = 0xFF
 } rcdevice_camera_control_opeation_e;
 
+typedef enum {
+    CADDX_PROTOCOL_CAM_CTRL_PHOTO                    = 0x02,
+    CADDX_PROTOCOL_CAM_CTRL_RECORD                   = 0x03,
+    CADDX_PROTOCOL_CAM_CTRL_KEY                      = 0x13,
+    CADDX_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_COMMAND   = 0xFF
+} caddx_device_camera_control_command_e;
+
+typedef enum {
+    CADDX_PROTOCOL_CAM_CTRL_START_RECORDING          = 0x01,
+    CADDX_PROTOCOL_CAM_CTRL_STOP_RECORDING           = 0x02,
+    CADDX_PROTOCOL_CAM_CTRL_TAKE_A_PHOTO             = 0x01,
+	CADDX_PROTOCOL_5KEY_INSTRUCTION                  = 0x13,
+    CADDX_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION = 0xFF
+} caddx_device_camera_control_operation_e;
+
 // Operation Of 5 Key OSD Cable Simulation
 typedef enum {
     RCDEVICE_PROTOCOL_5KEY_SIMULATION_NONE  = 0x00,
@@ -79,6 +113,17 @@ typedef enum {
     RCDEVICE_PROTOCOL_5KEY_SIMULATION_UP    = 0x04,
     RCDEVICE_PROTOCOL_5KEY_SIMULATION_DOWN  = 0x05
 } rcdevice_5key_simulation_operation_e;
+
+// Operation Of 5 Key OSD Cable Simulation
+typedef enum {
+    CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_NONE  = 0x00,
+    CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_SET   = 0x01,
+    CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_LEFT  = 0x04,
+    CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_RIGHT = 0x05,
+    CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_UP    = 0x02,
+    CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_DOWN  = 0x03
+} caddxdevice_5key_simulation_operation_e;
+
 
 // Operation of RCDEVICE_PROTOCOL_COMMAND_5KEY_CONNECTION
 typedef enum {
@@ -99,10 +144,23 @@ typedef enum {
 } rcdeviceCamSimulationKeyEvent_e;
 
 typedef enum {
+    CADDXDEVICE_CAM_KEY_NONE,
+    CADDXDEVICE_CAM_KEY_ENTER,
+    CADDXDEVICE_CAM_KEY_LEFT,
+    CADDXDEVICE_CAM_KEY_UP,
+    CADDXDEVICE_CAM_KEY_RIGHT,
+    CADDXDEVICE_CAM_KEY_DOWN,
+    CADDXDEVICE_CAM_KEY_CONNECTION_CLOSE,
+    CADDXDEVICE_CAM_KEY_CONNECTION_OPEN,
+    CADDXDEVICE_CAM_KEY_RELEASE,
+} caddxdeviceCamSimulationKeyEvent_e;
+
+typedef enum {
     RCDEVICE_PROTOCOL_RCSPLIT_VERSION = 0x00, // this is used to indicate the
                                               // device that using rcsplit
                                               // firmware version that <= 1.1.0
     RCDEVICE_PROTOCOL_VERSION_1_0 = 0x01,
+	CADDXDEVICE_PROTOCOL_TURTLEV2 = 0x02,
     RCDEVICE_PROTOCOL_UNKNOWN
 } rcdevice_protocol_version_e;
 
@@ -192,16 +250,21 @@ typedef struct runcamDeviceWriteSettingResponse_s {
     uint8_t needUpdateMenuItems;
 } runcamDeviceWriteSettingResponse_t;
 
+
+
 bool runcamDeviceInit(runcamDevice_t *device);
+void caddxDeviceSendPacket(runcamDevice_t *device, uint8_t command, uint8_t paramData);
 
 // camera button simulation
 bool runcamDeviceSimulateCameraButton(runcamDevice_t *device, uint8_t operation);
+bool caddxDeviceSimulateCameraButton(runcamDevice_t *device, uint8_t command, uint8_t operation);
 
 // 5 key osd cable simulation
 bool runcamDeviceOpen5KeyOSDCableConnection(runcamDevice_t *device);
 bool runcamDeviceClose5KeyOSDCableConnection(runcamDevice_t *device);
 bool runcamDeviceSimulate5KeyOSDCableButtonPress(runcamDevice_t *device, uint8_t operation);
 bool runcamDeviceSimulate5KeyOSDCableButtonRelease(runcamDevice_t *device);
+bool caddxDeviceSimulate5KeyOSDCableButtonPress(runcamDevice_t *device, uint8_t operation);
 
 // Device Setting Access
 bool runcamDeviceGetSettingDetail(runcamDevice_t *device, uint8_t settingID, runcamDeviceSettingDetail_t *outSettingDetail);

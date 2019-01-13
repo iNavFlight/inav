@@ -24,13 +24,19 @@
 #include "common/streambuf.h"
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "drivers/time.h"
 
 #include "io/serial.h"
 
-#include "rcdevice.h"
+#include "config/feature.h"
 
-#ifdef USE_RCDEVICE
+#include "rcdevice.h"
+#include "rcdevice_cam.h"
+
+def USE_RCDEVICE
 
 typedef enum {
     RCDP_SETTING_PARSE_WAITING_ID,
@@ -42,6 +48,12 @@ typedef struct runcamDeviceExpectedResponseLength_s {
     uint8_t command;
     uint8_t reponseLength;
 } runcamDeviceExpectedResponseLength_t;
+
+PG_REGISTER_WITH_RESET_TEMPLATE(camConfig_t, camConfig, PG_CAM_CONFIG, 0);
+
+PG_RESET_TEMPLATE(camConfig_t, camConfig,
+    .provider = RUNCAM,
+);
 
 static runcamDeviceExpectedResponseLength_t expectedResponsesLength[] = {
     { RCDEVICE_PROTOCOL_COMMAND_READ_SETTING_DETAIL,        0xFF},
@@ -180,6 +192,28 @@ static void runcamDeviceSendPacket(runcamDevice_t *device, uint8_t command, uint
     serialWriteBuf(device->serialPort, sbufPtr(&buf), sbufBytesRemaining(&buf));
 }
 
+void caddxDeviceSendPacket(runcamDevice_t *device, uint8_t command, uint8_t paramData)
+{
+    // is this device open?
+    if (!device->serialPort) {
+        return;
+    }
+
+	uint8_t uart_buffer[6] = {0};
+    uint8_t crc = 0;
+
+    uart_buffer[0] = CADDX_PROTOCOL_HEADER;
+    uart_buffer[1] = command;
+    uart_buffer[2] = paramData;
+    uart_buffer[3] = 0x00;
+    uart_buffer[5] = CADDX_PROTOCOL_TAIL;
+    crc = uart_buffer[0]+uart_buffer[1]+uart_buffer[2]+uart_buffer[3]+uart_buffer[5];
+
+    uart_buffer[4] = crc;
+    serialWriteBuf(device->serialPort, uart_buffer, 6);
+}
+
+
 // a common way to send a packet to device, and get response from the device.
 static bool runcamDeviceSendRequestAndWaitingResp(runcamDevice_t *device, uint8_t commandID, uint8_t *paramData, uint8_t paramDataLen, uint8_t *outputBuffer, uint8_t *outputBufferLen)
 {
@@ -253,6 +287,7 @@ static void sendCtrlCommand(runcamDevice_t *device, rcsplit_ctrl_argument_e argu
     // write to device
     serialWriteBuf(device->serialPort, uart_buffer, 5);
 }
+
 
 // get the device info(firmware version, protocol version and features, see the
 // definition of runcamDeviceInfo_t to know more)
@@ -339,8 +374,14 @@ bool runcamDeviceInit(runcamDevice_t *device)
     serialPortConfig_t *portConfig = findSerialPortConfig(portID);
     if (portConfig != NULL) {
         device->serialPort = openSerialPort(portConfig->identifier, portID, NULL, NULL, 115200, MODE_RXTX, SERIAL_NOT_INVERTED);
-
+        //const camConfig_t camSettings = camGetConfig();
+        if ((device->serialPort != NULL) && (camConfig()->provider == CADDX_V2)) {
+            device->info.protocolVersion = CADDXDEVICE_PROTOCOL_TURTLEV2;
+            device->info.features =  RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON | RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON | RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE | RCDEVICE_PROTOCOL_FEATURE_SIMULATE_5_KEY_OSD_CABLE;
+            return true;
+            }
         if (device->serialPort != NULL) {
+            
             // send RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO to device to retrive
             // device info, e.g protocol version, supported features
             uint8_t respBuf[RCDEVICE_PROTOCOL_MAX_PACKET_SIZE];
