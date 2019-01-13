@@ -39,8 +39,8 @@ typedef union flightDynamicsTrims_u {
     flightDynamicsTrims_def_t values;
 } flightDynamicsTrims_t;
 
-#define CALIBRATING_GYRO_CYCLES             1000
-#define CALIBRATING_ACC_CYCLES              400
+#define CALIBRATING_GYRO_TIME_MS            2000
+#define CALIBRATING_ACC_TIME_MS             500
 
 // These bits have to be aligned with sensorIndex_e
 typedef enum {

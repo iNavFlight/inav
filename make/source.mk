@@ -11,6 +11,7 @@ COMMON_SRC = \
             common/encoding.c \
             common/filter.c \
             common/maths.c \
+            common/calibration.c \
             common/memory.c \
             common/olc.c \
             common/printf.c \
