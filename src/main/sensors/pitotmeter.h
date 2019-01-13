@@ -19,6 +19,7 @@
 
 #include "config/parameter_group.h"
 #include "common/filter.h"
+#include "common/calibration.h"
 
 #include "drivers/pitotmeter.h"
 
@@ -46,11 +47,10 @@ typedef struct pito_s {
     pitotDev_t dev;
     float airSpeed;
 
+    zeroCalibrationScalar_t zeroCalibration;
     pt1Filter_t lpfState;
     timeUs_t lastMeasurementUs;
     timeMs_t lastSeenHealthyMs;
-    timeMs_t calibrationTimeoutMs;
-    bool calibrationFinished;
 
     float pressureZero;
     float pressure;

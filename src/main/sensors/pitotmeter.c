@@ -153,27 +153,21 @@ bool pitotInit(void)
 
 bool pitotIsCalibrationComplete(void)
 {
-    return pitot.calibrationFinished;
+    return zeroCalibrationIsCompleteS(&pitot.zeroCalibration) && zeroCalibrationIsSuccessfulS(&pitot.zeroCalibration);
 }
 
 void pitotStartCalibration(void)
 {
-    pitot.calibrationTimeoutMs = millis();
-    pitot.calibrationFinished = false;
+    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, P0 * 0.00001f, false);
 }
 
 static void performPitotCalibrationCycle(void)
 {
-    const float pitotPressureZeroError = pitot.pressure - pitot.pressureZero;
-    pitot.pressureZero += pitotPressureZeroError * 0.25f;
+    zeroCalibrationAddValueS(&pitot.zeroCalibration, pitot.pressure);
 
-    if (fabsf(pitotPressureZeroError) < (P0 * 0.000005f)) {
-        if ((millis() - pitot.calibrationTimeoutMs) > 500) {
-            pitot.calibrationFinished = true;
-        }
-    }
-    else {
-        pitot.calibrationTimeoutMs = millis();
+    if (zeroCalibrationIsCompleteS(&pitot.zeroCalibration)) {
+        zeroCalibrationGetZeroS(&pitot.zeroCalibration, &pitot.pressureZero);
+        DEBUG_TRACE_SYNC("Pitot calibration complete (%d)", lrintf(pitot.pressureZero));
     }
 }
 
