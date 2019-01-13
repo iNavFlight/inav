@@ -111,9 +111,6 @@
 #define USE_VTX_RTC6705
 #define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
 
-#define USE_VTX_RTC6705
-#define VTX_RTC6705_OPTIONAL    // VTX/OSD board is OPTIONAL
-
 #undef USE_VTX_SMARTAUDIO           // Disabled due to flash size
 #undef USE_VTX_TRAMP                // Disabled due to flash size
 
