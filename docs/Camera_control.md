@@ -16,7 +16,7 @@ Caddx: Connect Only Rx Pad at Caddx Turtle v2 to an unused Tx Pad on your FC.
 
 ## Configuration
 Select "Runcam" in the configurator for the port that you would like to use.
-in CLI: set cam_provider = CADDX_V2
+in CLI: set cam_provider = CADDX_V2 (Default is RUNCAM)
 in modes tab assign the function you want to channels/switches:
 CAMERA POWER Caddx: Photo shot
 CAMERA CHANGE MODE Caddx: Stop recording

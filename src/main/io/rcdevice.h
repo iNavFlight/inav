@@ -100,7 +100,7 @@ typedef enum {
     CADDX_PROTOCOL_CAM_CTRL_START_RECORDING          = 0x01,
     CADDX_PROTOCOL_CAM_CTRL_STOP_RECORDING           = 0x02,
     CADDX_PROTOCOL_CAM_CTRL_TAKE_A_PHOTO             = 0x01,
-	CADDX_PROTOCOL_5KEY_INSTRUCTION                  = 0x13,
+    CADDX_PROTOCOL_5KEY_INSTRUCTION                  = 0x13,
     CADDX_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION = 0xFF
 } caddx_device_camera_control_operation_e;
 

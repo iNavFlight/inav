@@ -36,7 +36,7 @@
 #include "rcdevice.h"
 #include "rcdevice_cam.h"
 
-def USE_RCDEVICE
+#ifdef USE_RCDEVICE
 
 typedef enum {
     RCDP_SETTING_PARSE_WAITING_ID,

@@ -306,23 +306,23 @@ static bool caddxdeviceSend5KeyOSDCableSimualtionEvent(caddxdeviceCamSimulationK
         beeper(BEEPER_CAM_CONNECTION_CLOSE);
         break;
     case CADDXDEVICE_CAM_KEY_ENTER:
-	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
         reqResult = true;
 		break;
     case CADDXDEVICE_CAM_KEY_LEFT:
-	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_LEFT);
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_LEFT);
         reqResult = true;
 		break;
     case CADDXDEVICE_CAM_KEY_UP:
-	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_UP);
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_UP);
         reqResult = true;
 		break;
     case CADDXDEVICE_CAM_KEY_RIGHT:
-	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_RIGHT);
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_RIGHT);
         reqResult = true;
 		break;
     case CADDXDEVICE_CAM_KEY_DOWN:
-	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, RCDEVICE_PROTOCOL_5KEY_SIMULATION_DOWN);
+	      caddxDeviceSendPacket(camDevice, CADDX_PROTOCOL_5KEY_INSTRUCTION, CADDXDEVICE_PROTOCOL_5KEY_SIMULATION_DOWN);
         reqResult = true;
 		break;
     case CADDXDEVICE_CAM_KEY_RELEASE:
