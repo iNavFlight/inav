@@ -370,6 +370,11 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         DEBUG_TRACE_SYNC("Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     }
+    else {
+        dev->gyroZero[0] = 0;
+        dev->gyroZero[1] = 0;
+        dev->gyroZero[2] = 0;
+    }
 }
 
 /*
