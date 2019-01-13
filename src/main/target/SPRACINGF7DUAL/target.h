@@ -193,7 +193,7 @@
 #define CURRENT_METER_ADC_CHANNEL           ADC_CHN_2
 #define RSSI_ADC_CHANNEL                    ADC_CHN_3
 
-#define CURRENT_METER_SCALE_DEFAULT         300
+#define CURRENT_METER_SCALE         300
 
 #define USE_OSD
 
