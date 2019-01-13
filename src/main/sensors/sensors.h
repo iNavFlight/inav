@@ -39,6 +39,7 @@ typedef union flightDynamicsTrims_u {
     flightDynamicsTrims_def_t values;
 } flightDynamicsTrims_t;
 
+#define CALIBRATING_BARO_TIME_MS            2000
 #define CALIBRATING_GYRO_TIME_MS            2000
 #define CALIBRATING_ACC_TIME_MS             500
 
