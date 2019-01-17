@@ -54,6 +54,7 @@
 #include "fc/controlrate_profile.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_smoothing.h"
+#include "fc/rc_control.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
 #include "fc/rc_modes.h"
@@ -140,16 +141,6 @@ bool isCalibrating(void)
     }
 
     return false;
-}
-
-int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
-{
-    int16_t stickDeflection;
-
-    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
-    stickDeflection = applyDeadband(stickDeflection, deadband);
-
-    return rcLookup(stickDeflection, rate);
 }
 
 static void updateArmingStatus(void)
@@ -292,48 +283,6 @@ static void updateArmingStatus(void)
 
         warningLedUpdate();
     }
-}
-
-void annexCode(void)
-{
-    int32_t throttleValue;
-
-    if (failsafeShouldApplyControlInput()) {
-        // Failsafe will apply rcCommand for us
-        failsafeApplyControlInput();
-    }
-    else {
-        // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rcData[ROLL], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rcData[PITCH], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[YAW] = -getAxisRcCommand(rcData[YAW], FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcYawExpo8 : currentControlRateProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
-
-        // Apply manual control rates
-        if (FLIGHT_MODE(MANUAL_MODE)) {
-            rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
-            rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
-            rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
-        }
-
-        //Compute THROTTLE command
-        throttleValue = constrain(rcData[THROTTLE], rxConfig()->mincheck, PWM_RANGE_MAX);
-        throttleValue = (uint32_t)(throttleValue - rxConfig()->mincheck) * PWM_RANGE_MIN / (PWM_RANGE_MAX - rxConfig()->mincheck);       // [MINCHECK;2000] -> [0;1000]
-        rcCommand[THROTTLE] = rcLookupThrottle(throttleValue);
-
-        // Signal updated rcCommand values to Failsafe system
-        failsafeUpdateRcCommandValues();
-
-        if (FLIGHT_MODE(HEADFREE_MODE)) {
-            const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
-            const float cosDiff = cos_approx(radDiff);
-            const float sinDiff = sin_approx(radDiff);
-            const int16_t rcCommand_PITCH = rcCommand[PITCH] * cosDiff + rcCommand[ROLL] * sinDiff;
-            rcCommand[ROLL] = rcCommand[ROLL] * cosDiff - rcCommand[PITCH] * sinDiff;
-            rcCommand[PITCH] = rcCommand_PITCH;
-        }
-    }
-
-    updateArmingStatus();
 }
 
 void disarm(disarmReason_t disarmReason)
@@ -595,7 +544,7 @@ void processRx(timeUs_t currentTimeUs)
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING))) {
+                if ((rollPitchStatus == ROLL_PITCH_CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING))) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
                 else {
@@ -674,6 +623,8 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+    rcCommand_t controlOutput;
+
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -685,10 +636,27 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode();
+    rcControlUpdateFromRX();
 
-    if (rxConfig()->rcFilterFrequency) {
-        rcInterpolationApply(isRXDataNew);
+    if (failsafeShouldApplyControlOutput()) {
+        // Failsafe will apply rcCommand for us
+        failsafeApplyControlOutput(&controlOutput);
+        rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_FAILSAFE);
+    } else {
+        if (FLIGHT_MODE(HEADFREE_MODE)) {
+            float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
+            rcCommandRotate(&controlOutput, rcControlGetOutput(), radDiff);
+            rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_HEADFREE);
+        }
+
+        // Signal updated rcCommand values to Failsafe system
+        failsafeUpdateLastGoodRcCommand(rcControlGetInput());
+    }
+
+    updateArmingStatus();
+
+    if (rxConfig()->rcFilterFrequency && rcInterpolationApply(&controlOutput, rcControlGetOutput(), isRXDataNew)) {
+        rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_KEEP);
     }
 
 #if defined(USE_NAV)
@@ -708,11 +676,13 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     // sticks, do not process yaw input from the rx.  We do this so the
     // motors do not spin up while we are trying to arm or disarm.
     // Allow yaw control for tricopters if the user wants the servo to move even when unarmed.
-    if (isUsingSticksForArming() && rcData[THROTTLE] <= rxConfig()->mincheck
+    if (isUsingSticksForArming() && rxGetChannelValue(THROTTLE) <= rxConfig()->mincheck
             && !((mixerConfig()->platformType == PLATFORM_TRICOPTER) && servoConfig()->tri_unarmed_servo)
             && mixerConfig()->platformType != PLATFORM_AIRPLANE
     ) {
-        rcCommand[YAW] = 0;
+        rcCommandCopy(&controlOutput, rcControlGetOutput());
+        controlOutput.yaw = 0;
+        rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_KEEP);
     }
 
     // Apply throttle tilt compensation
@@ -727,10 +697,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         }
 
         if (thrTiltCompStrength) {
-            rcCommand[THROTTLE] = constrain(motorConfig()->minthrottle
-                                            + (rcCommand[THROTTLE] - motorConfig()->minthrottle) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
-                                            motorConfig()->minthrottle,
-                                            motorConfig()->maxthrottle);
+            rcCommandCopy(&controlOutput, rcControlGetOutput());
+            controlOutput.throttle = constrainf(controlOutput.throttle * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
+                                        RC_COMMAND_MIN, RC_COMMAND_MAX);
+            rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_KEEP);
         }
     }
     else {

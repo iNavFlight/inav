@@ -47,8 +47,8 @@ typedef enum {
 } throttleStatus_e;
 
 typedef enum {
-    NOT_CENTERED = 0,
-    CENTERED
+    ROLL_PITCH_NOT_CENTERED = 0,
+    ROLL_PITCH_CENTERED
 } rollPitchStatus_e;
 
 typedef enum {
@@ -68,8 +68,6 @@ typedef enum {
     THR_CE = (3 << (2 * THROTTLE)),
     THR_HI = (2 << (2 * THROTTLE))
 } stickPositions_e;
-
-extern int16_t rcCommand[4];
 
 typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
@@ -93,10 +91,7 @@ PG_DECLARE(armingConfig_t, armingConfig);
 stickPositions_e getRcStickPositions(void);
 bool checkStickPosition(stickPositions_e stickPos);
 
-bool areSticksInApModePosition(uint16_t ap_mode);
 bool areSticksDeflectedMoreThanPosHoldDeadband(void);
 throttleStatus_e calculateThrottleStatus(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(throttleStatus_e throttleStatus);
-
-int32_t getRcStickDeflection(int32_t axis);

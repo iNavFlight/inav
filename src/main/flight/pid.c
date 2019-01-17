@@ -33,6 +33,8 @@
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/rc_command.h"
+#include "fc/rc_control.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -266,10 +268,10 @@ static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
     return scaleRangef((float) stick, -500.0f, 500.0f, (float) -maxInclination, (float) maxInclination);
 }
 
-int16_t pidAngleToRcCommand(float angleDeciDegrees, int16_t maxInclination)
+float pidAngleToRcCommand(float angleDeciDegrees, int16_t maxInclination)
 {
     angleDeciDegrees = constrainf(angleDeciDegrees, (float) -maxInclination, (float) maxInclination);
-    return scaleRangef((float) angleDeciDegrees, (float) -maxInclination, (float) maxInclination, -500.0f, 500.0f);
+    return scaleRangef((float) angleDeciDegrees, (float) -maxInclination, (float) maxInclination, RC_COMMAND_MIN, RC_COMMAND_MAX);
 }
 
 /*
@@ -361,7 +363,7 @@ void updatePIDCoefficients(void)
      * Compute stick position in range of [-1.0f : 1.0f] without deadband and expo
      */
     for (int axis = 0; axis < 3; axis++) {
-        pidState[axis].stickPosition = constrain(rcData[axis] - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
+        pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
 
     // If nothing changed - don't waste time recalculating coefficients
@@ -404,9 +406,11 @@ void updatePIDCoefficients(void)
 static float calcHorizonRateMagnitude(void)
 {
     // Figure out the raw stick positions
-    const int32_t stickPosAil = ABS(getRcStickDeflection(FD_ROLL));
-    const int32_t stickPosEle = ABS(getRcStickDeflection(FD_PITCH));
-    const float mostDeflectedStickPos = constrain(MAX(stickPosAil, stickPosEle), 0, 500) / 500.0f;
+    const rcCommand_t *input = rcControlGetInput();
+    const float pitchDeflection = ABS(input->pitch);
+
+    const float rollDeflection = ABS(input->roll);
+    const float mostDeflectedStickPos = MAX(pitchDeflection, rollDeflection);
     const float modeTransitionStickPos = constrain(pidBank()->pid[PID_LEVEL].D, 0, 100) / 100.0f;
 
     float horizonRateMagnitude;

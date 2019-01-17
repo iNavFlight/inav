@@ -436,7 +436,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_SERVO:
-        sbufWriteData(dst, &servo, MAX_SUPPORTED_SERVOS * 2);
+        for (int ii = 0; ii < MAX_SUPPORTED_SERVOS; ii++) {
+            int16_t s = servosGetPWMValue(ii);
+            sbufWriteU16(dst, s);
+        }
         break;
     case MSP_SERVO_CONFIGURATIONS:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
@@ -478,7 +481,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC:
         for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU16(dst, rcRaw[i]);
+            sbufWriteU16(dst, rxGetRawChannelValue(i));
         }
         break;
 
@@ -1762,7 +1765,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
             sbufReadU32(src); // used to be reversedSources
-            servoComputeScalingFactors(tmp_u8);
+            servoComputeMetadata(tmp_u8);
         }
         break;
 

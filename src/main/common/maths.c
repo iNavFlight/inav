@@ -139,6 +139,18 @@ int32_t applyDeadband(int32_t value, int32_t deadband)
     return value;
 }
 
+float applyDeadbandf(float value, float deadband)
+{
+    if (ABS(value) < deadband) {
+        value = 0;
+    } else if (value > 0) {
+        value -= deadband;
+    } else if (value < 0) {
+        value += deadband;
+    }
+    return value;
+}
+
 int constrain(int amt, int low, int high)
 {
     if (amt < low)

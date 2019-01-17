@@ -37,6 +37,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/rc_control.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -285,23 +286,27 @@ static void applyMotorRateLimiting(const float dT)
 
 void mixTable(const float dT)
 {
-    int16_t input[3];   // RPY, range [-500:+500]
+    float input[3];   // RPY, range [-1:+1]
+    const rcCommand_t *output = rcControlGetOutput();
     // Allow direct stick input to motors in passthrough mode on airplanes
     if (STATE(FIXED_WING) && FLIGHT_MODE(MANUAL_MODE)) {
         // Direct passthru from RX
-        input[ROLL] = rcCommand[ROLL];
-        input[PITCH] = rcCommand[PITCH];
-        input[YAW] = rcCommand[YAW];
+        input[ROLL] = output->roll;
+        input[PITCH] = output->pitch;
+        input[YAW] = output->yaw;
     }
     else {
+        // TODO: axisPID is not yet [-1;+1]
         input[ROLL] = axisPID[ROLL];
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
-
+        // TODO: Yaw jump prevention
+#if 0
         if (motorCount >= 4 && mixerConfig()->yaw_jump_prevention_limit < YAW_JUMP_PREVENTION_LIMIT_HIGH) {
             // prevent "yaw jump" during yaw correction
             input[YAW] = constrain(input[YAW], -mixerConfig()->yaw_jump_prevention_limit - ABS(rcCommand[YAW]), mixerConfig()->yaw_jump_prevention_limit + ABS(rcCommand[YAW]));
         }
+#endif
     }
 
     // Initial mixer concept by bdoiron74 reused and optimized for Air Mode
@@ -325,6 +330,8 @@ void mixTable(const float dT)
     int16_t throttleMin, throttleMax;
     static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
+// TODO: THR mapping
+#if 0
     // Find min and max throttle based on condition.
     if (feature(FEATURE_3D)) {
         if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
@@ -353,6 +360,7 @@ void mixTable(const float dT)
         if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
             throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
     }
+#endif
 
     throttleRange = throttleMax - throttleMin;
 
@@ -414,7 +422,7 @@ motorStatus_e getMotorStatus(void)
         return MOTOR_STOPPED_AUTO;
     }
 
-    if (rcData[THROTTLE] < rxConfig()->mincheck) {
+    if (rcControlGetOutput()->throttle == 0) {
         if ((STATE(FIXED_WING) || !isAirmodeActive()) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
             return MOTOR_STOPPED_USER;
         }

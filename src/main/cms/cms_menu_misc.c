@@ -56,7 +56,7 @@ static long cmsx_menuRcConfirmBack(const OSD_Entry *self)
 static const OSD_Entry cmsx_menuRcEntries[] =
 {
     OSD_LABEL_ENTRY("-- RC PREV --"),
-
+#if 0 // TODO: Do we really want this menu?
     OSD_INT16_RO_ENTRY("ROLL", &rcData[ROLL]),
     OSD_INT16_RO_ENTRY("PITCH", &rcData[PITCH]),
     OSD_INT16_RO_ENTRY("THR", &rcData[THROTTLE]),
@@ -66,7 +66,7 @@ static const OSD_Entry cmsx_menuRcEntries[] =
     OSD_INT16_RO_ENTRY("AUX2", &rcData[AUX2]),
     OSD_INT16_RO_ENTRY("AUX3", &rcData[AUX3]),
     OSD_INT16_RO_ENTRY("AUX4", &rcData[AUX4]),
-
+#endif
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };

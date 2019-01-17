@@ -780,9 +780,9 @@ void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration)
 
 // Stick/key detection and key codes
 
-#define IS_HI(X)  (rcData[X] > 1750)
-#define IS_LO(X)  (rcData[X] < 1250)
-#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+#define IS_HI(X)  (rxGetChannelValue(X) > 1750)
+#define IS_LO(X)  (rxGetChannelValue(X) < 1250)
+#define IS_MID(X) (rxGetChannelValue(X) > 1250 && rxGetChannelValue(X) < 1750)
 
 #define KEY_NONE    0
 #define KEY_UP      1

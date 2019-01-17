@@ -127,14 +127,17 @@ PG_DECLARE(servoConfig_t, servoConfig);
 typedef struct servoMetadata_s {
     float scaleMax;
     float scaleMin;
+    float minOutput;
+    float maxOutput;
+    float middleOutput;
 } servoMetadata_t;
-
-extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
 bool isServoOutputEnabled(void);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);
 void servoMixer(float dT);
-void servoComputeScalingFactors(uint8_t servoIndex);
+void servoComputeMetadata(uint8_t servoIndex);
 void servosInit(void);
+
+int16_t servosGetPWMValue(int idx);

@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -34,12 +35,13 @@
 
 #include "io/beeper.h"
 
-#include "fc/fc_core.h"
 #include "fc/config.h"
+#include "fc/controlrate_profile.h"
+#include "fc/fc_core.h"
+#include "fc/rc_command.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/controlrate_profile.h"
 
 #include "flight/failsafe.h"
 #include "flight/mixer.h"
@@ -156,10 +158,7 @@ void failsafeReset(void)
     failsafeState.rxLinkState = FAILSAFE_RXLINK_DOWN;
     failsafeState.bypassNavigation = true;
 
-    failsafeState.lastGoodRcCommand[ROLL] = 0;
-    failsafeState.lastGoodRcCommand[PITCH] = 0;
-    failsafeState.lastGoodRcCommand[YAW] = 0;
-    failsafeState.lastGoodRcCommand[THROTTLE] = 1000;
+    rcCommandReset(&failsafeState.lastGoodRcCommand);
 }
 
 void failsafeInit(void)
@@ -196,7 +195,7 @@ bool failsafeIsActive(void)
     return failsafeState.active;
 }
 
-bool failsafeShouldApplyControlInput(void)
+bool failsafeShouldApplyControlOutput(void)
 {
     return failsafeState.controlling;
 }
@@ -235,55 +234,50 @@ static void failsafeActivate(failsafePhase_e newPhase)
     failsafeState.events++;
 }
 
-void failsafeUpdateRcCommandValues(void)
+void failsafeUpdateLastGoodRcCommand(const rcCommand_t *input)
 {
     if (!failsafeState.active) {
-        for (int idx = 0; idx < 4; idx++) {
-            failsafeState.lastGoodRcCommand[idx] = rcCommand[idx];
-        }
+        memcpy(&failsafeState.lastGoodRcCommand, input, sizeof(*input));
     }
 }
 
-void failsafeApplyControlInput(void)
+void failsafeApplyControlOutput(rcCommand_t *cmd)
 {
-    // Prepare FAILSAFE_CHANNEL_AUTO values for rcCommand
-    int16_t autoRcCommand[4];
-    if (STATE(FIXED_WING)) {
-        autoRcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
-        autoRcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
-        autoRcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
-        autoRcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
-    }
-    else {
-        for (int i = 0; i < 3; i++) {
-            autoRcCommand[i] = 0;
-        }
-        autoRcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
-    }
-
     // Apply channel values
-    for (int idx = 0; idx < 4; idx++) {
+    for (int idx = 0; idx < RC_COMMAND_AXES_COUNT; idx++) {
         switch (failsafeProcedureLogic[failsafeConfig()->failsafe_procedure].channelBehavior[idx]) {
             case FAILSAFE_CHANNEL_HOLD:
-                rcCommand[idx] = failsafeState.lastGoodRcCommand[idx];
+                cmd->axes[idx] = failsafeState.lastGoodRcCommand.axes[idx];
                 break;
-
             case FAILSAFE_CHANNEL_NEUTRAL:
+                cmd->axes[idx] = RC_COMMAND_CENTER;
+                break;
+            case FAILSAFE_CHANNEL_AUTO:
                 switch (idx) {
                     case ROLL:
-                    case PITCH:
-                    case YAW:
-                        rcCommand[idx] = 0;
+                        if (STATE(FIXED_WING)) {
+                            cmd->roll = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
+                            break;
+                        }
+                        cmd->roll = RC_COMMAND_CENTER;
                         break;
-
+                    case PITCH:
+                        if (STATE(FIXED_WING)) {
+                            cmd->pitch = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
+                        }
+                        cmd->pitch = RC_COMMAND_CENTER;
+                        break;
+                    case YAW:
+                        if (STATE(FIXED_WING)) {
+                            // TODO: Why -?
+                            cmd->yaw = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
+                        }
+                        cmd->yaw = RC_COMMAND_CENTER;
+                        break;
                     case THROTTLE:
-                        rcCommand[idx] = feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->minthrottle;
+                        cmd->throttle = rcCommandMapUnidirectionalPWMValue(failsafeConfig()->failsafe_throttle);
                         break;
                 }
-                break;
-
-            case FAILSAFE_CHANNEL_AUTO:
-                rcCommand[idx] = autoRcCommand[idx];
                 break;
         }
     }
@@ -332,9 +326,9 @@ static bool failsafeCheckStickMotion(void)
     if (failsafeConfig()->failsafe_stick_motion_threshold > 0) {
         uint32_t totalRcDelta = 0;
 
-        totalRcDelta += ABS(rcData[ROLL] - PWM_RANGE_MIDDLE);
-        totalRcDelta += ABS(rcData[PITCH] - PWM_RANGE_MIDDLE);
-        totalRcDelta += ABS(rcData[YAW] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(ROLL) - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(PITCH) - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(YAW) - PWM_RANGE_MIDDLE);
 
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }
