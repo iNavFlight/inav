@@ -351,6 +351,7 @@ $(TARGET_ELF): $(TARGET_OBJS)
 $(TARGET_OBJ_DIR)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
+#	$(V1) $(CROSS_CC) -S -o $(patsubst %.o,%.txt.S,%@) $(CFLAGS) $<
 	$(V1) $(CROSS_CC) -c -o $@ $(CFLAGS) $<
 ifeq ($(GENERATE_ASM), 1)
 	$(V1) $(CROSS_CC) -S -fverbose-asm -Wa,-aslh -o $(patsubst %.o,%.txt.S,$@) -g $(ASM_CFLAGS) $<

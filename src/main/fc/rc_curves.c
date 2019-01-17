@@ -37,11 +37,12 @@
 #define THROTTLE_LOOKUP_LENGTH 11
 
 static int16_t lookupThrottleRC[THROTTLE_LOOKUP_LENGTH];    // lookup table for expo & mid THROTTLE
-int16_t lookupThrottleRCMid;                         // THROTTLE curve mid point
+static float throttleRCMid;                             // THROTTLE curve mid point
 
-void generateThrottleCurve(const controlRateConfig_t *controlRateConfig)
+void rcCurveGenerateThrottle(const controlRateConfig_t *controlRateConfig)
 {
-    lookupThrottleRCMid = motorConfig()->minthrottle + (int32_t)(motorConfig()->maxthrottle - motorConfig()->minthrottle) * controlRateConfig->throttle.rcMid8 / 100; // [MINTHROTTLE;MAXTHROTTLE]
+    // TODO: Proper curve
+    throttleRCMid = motorConfig()->minthrottle + (int32_t)(motorConfig()->maxthrottle - motorConfig()->minthrottle) * controlRateConfig->throttle.rcMid8 / 100; // [MINTHROTTLE;MAXTHROTTLE]
 
     for (int i = 0; i < THROTTLE_LOOKUP_LENGTH; i++) {
         const int16_t tmp = 10 * i - controlRateConfig->throttle.rcMid8;
@@ -55,14 +56,14 @@ void generateThrottleCurve(const controlRateConfig_t *controlRateConfig)
     }
 }
 
-int16_t rcLookup(int32_t stickDeflection, uint8_t expo)
+float rcCurveApplyExpo(float deflection, float expo)
 {
-    float tmpf = stickDeflection / 100.0f;
-    return lrintf((2500.0f + (float)expo * (tmpf * tmpf - 25.0f)) * tmpf / 25.0f);
+    return (1 + expo * (deflection * deflection - 1)) * deflection;
 }
 
-uint16_t rcLookupThrottle(uint16_t absoluteDeflection)
+float rcCurveApplyThrottleExpo(float absoluteDeflection)
 {
+    // TODO: Not converted
     if (absoluteDeflection > 999)
         return motorConfig()->maxthrottle;
 
@@ -70,7 +71,7 @@ uint16_t rcLookupThrottle(uint16_t absoluteDeflection)
     return lookupThrottleRC[lookupStep] + (absoluteDeflection - lookupStep * 100) * (lookupThrottleRC[lookupStep + 1] - lookupThrottleRC[lookupStep]) / 100;
 }
 
-int16_t rcLookupThrottleMid(void)
+float rcCurveGetThrottleMid(void)
 {
-    return lookupThrottleRCMid;
+    return throttleRCMid;
 }

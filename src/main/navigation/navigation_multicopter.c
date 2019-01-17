@@ -37,7 +37,7 @@
 #include "sensors/boardalignment.h"
 
 #include "fc/config.h"
-#include "fc/rc_controls.h"
+#include "fc/rc_control.h"
 #include "fc/rc_curves.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -54,8 +54,9 @@
 /*-----------------------------------------------------------
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
-static int16_t rcCommandAdjustedThrottle;
-static int16_t altHoldThrottleRCZero = 1500;
+static float rcCommandAdjustedThrottle;
+// Assume 50% of positive throttle to keep altitude
+static float altHoldThrottleRCZero = RC_COMMAND_MAX * 0.5f;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 
@@ -116,7 +117,7 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 bool adjustMulticopterAltitudeFromRCInput(void)
 {
     if (posControl.flags.isTerrainFollowEnabled) {
-        const float altTarget = scaleRangef(rcCommand[THROTTLE], motorConfig()->minthrottle, motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
+        const float altTarget = scaleRangef(rcControlGetInputAxis(THROTTLE), RC_COMMAND_CENTER, RC_COMMAND_MAX, 0, navConfig()->general.max_terrain_follow_altitude);
 
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
@@ -132,7 +133,8 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         return true;
     }
     else {
-        const int16_t rcThrottleAdjustment = applyDeadband(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband);
+        const float altHoldDeadband = rcCommandConvertPWMDeadband(rcControlsConfig()->alt_hold_deadband);
+        const float rcThrottleAdjustment = applyDeadbandf(rcControlGetInputAxis(THROTTLE) - altHoldThrottleRCZero, altHoldDeadband);
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
@@ -140,11 +142,19 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             // Make sure we can satisfy max_manual_climb_rate in both up and down directions
             if (rcThrottleAdjustment > 0) {
                 // Scaling from altHoldThrottleRCZero to maxthrottle
+<<<<<<< HEAD
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(motorConfig()->maxthrottle - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
             }
             else {
                 // Scaling from minthrottle to altHoldThrottleRCZero
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - motorConfig()->minthrottle - rcControlsConfig()->alt_hold_deadband);
+=======
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (RC_COMMAND_MAX - altHoldThrottleRCZero - altHoldDeadband);
+            }
+            else {
+                // Scaling from minthrottle to altHoldThrottleRCZero
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (altHoldThrottleRCZero - RC_COMMAND_CENTER - altHoldDeadband);
+>>>>>>> WIP [skip ci]
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
@@ -167,15 +177,15 @@ void setupMulticopterAltitudeController(void)
     const throttleStatus_e throttleStatus = calculateThrottleStatus();
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
-        altHoldThrottleRCZero = rcLookupThrottleMid();
+        altHoldThrottleRCZero = rcCurveGetThrottleMid();
     }
     else {
         // If throttle status is THROTTLE_LOW - use Thr Mid anyway
         if (throttleStatus == THROTTLE_LOW) {
-            altHoldThrottleRCZero = rcLookupThrottleMid();
+            altHoldThrottleRCZero = rcCurveGetThrottleMid();
         }
         else {
-            altHoldThrottleRCZero = rcCommand[THROTTLE];
+            altHoldThrottleRCZero = rcControlGetInputAxis(THROTTLE);
         }
     }
 
@@ -219,7 +229,10 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
     static timeUs_t previousTimeUpdate;                 // Occurs @ looptime rate
 
     const timeDelta_t deltaMicros = currentTimeUs - previousTimeUpdate;
+    rcCommand_t controlOutput;
+
     previousTimeUpdate = currentTimeUs;
+    rcCommandCopy(&controlOutput, rcControlGetOutput());
 
     // If last position update was too long in the past - ignore it (likely restarting altitude controller)
     if (deltaMicros > HZ2US(MIN_POSITION_UPDATE_RATE_HZ)) {
@@ -249,10 +262,12 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
     }
 
     // Update throttle controller
-    rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], motorConfig()->minthrottle, motorConfig()->maxthrottle);
+    controlOutput.throttle = rcCommandMapUnidirectionalPWMValue((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE]);
 
     // Save processed throttle for future use
-    rcCommandAdjustedThrottle = rcCommand[THROTTLE];
+    rcCommandAdjustedThrottle = controlOutput.throttle;
+
+    rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_NAVIGATION);
 }
 
 /*-----------------------------------------------------------
@@ -260,15 +275,13 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
  *-----------------------------------------------------------*/
 bool adjustMulticopterHeadingFromRCInput(void)
 {
-    if (ABS(rcCommand[YAW]) > rcControlsConfig()->pos_hold_deadband) {
+    if (rcControlGetInputAxisApplyingPosholdDeadband(YAW) != RC_COMMAND_CENTER) {
         // Can only allow pilot to set the new heading if doing PH, during RTH copter will target itself to home
         posControl.desiredState.yaw = posControl.actualState.yaw;
 
         return true;
     }
-    else {
-        return false;
-    }
+    return false;
 }
 
 /*-----------------------------------------------------------
@@ -378,8 +391,10 @@ void resetMulticopterPositionController(void)
     }
 }
 
-bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
+bool adjustMulticopterPositionFromRCInput(float rcPitchAdjustment, float rcRollAdjustment)
 {
+    // TODO: Needs to accept floats in [-1,1]
+
     // Process braking mode
     processMulticopterBrakingMode(rcPitchAdjustment || rcRollAdjustment);
 
@@ -566,6 +581,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
     const timeDelta_t deltaMicros = currentTimeUs - previousTimeUpdate;
     previousTimeUpdate = currentTimeUs;
     bool bypassPositionController;
+    rcCommand_t controlOutput;
 
     // We should passthrough rcCommand is adjusting position in GPS_ATTI mode
     bypassPositionController = (navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI) && posControl.flags.isAdjustingPosition;
@@ -609,8 +625,10 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
     }
 
     if (!bypassPositionController) {
-        rcCommand[PITCH] = pidAngleToRcCommand(posControl.rcAdjustment[PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
-        rcCommand[ROLL] = pidAngleToRcCommand(posControl.rcAdjustment[ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
+        rcCommandCopy(&controlOutput, rcControlGetOutput());
+        controlOutput.pitch = pidAngleToRcCommand(posControl.rcAdjustment[PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
+        controlOutput.roll = pidAngleToRcCommand(posControl.rcAdjustment[ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
+        rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_NAVIGATION);
     }
 }
 
@@ -689,12 +707,15 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     static timeUs_t previousTimeUpdate;
     static timeUs_t previousTimePositionUpdate;
     const timeDelta_t deltaMicros = currentTimeUs - previousTimeUpdate;
+    rcCommand_t controlOutput;
+
     previousTimeUpdate = currentTimeUs;
+    rcCommandCopy(&controlOutput, rcControlGetOutput());
 
     /* Attempt to stabilise */
-    rcCommand[ROLL] = 0;
-    rcCommand[PITCH] = 0;
-    rcCommand[YAW] = 0;
+    controlOutput.roll = RC_COMMAND_CENTER;
+    controlOutput.pitch = RC_COMMAND_CENTER;
+    controlOutput.yaw = RC_COMMAND_CENTER;
 
     if ((posControl.flags.estAltStatus >= EST_USABLE)) {
         // If last position update was too long in the past - ignore it (likely restarting altitude controller)
@@ -725,17 +746,18 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         }
 
         // Update throttle controller
-        rcCommand[THROTTLE] = constrain((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE], motorConfig()->minthrottle, motorConfig()->maxthrottle);
+        controlOutput.throttle = rcCommandMapUnidirectionalPWMValue((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE]);
     }
     else {
         /* Sensors has gone haywire, attempt to land regardless */
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
-            rcCommand[THROTTLE] = motorConfig()->minthrottle;
+            controlOutput.throttle = RC_COMMAND_CENTER;
         }
         else {
-            rcCommand[THROTTLE] = failsafeConfig()->failsafe_throttle;
+            controlOutput.throttle = rcCommandMapUnidirectionalPWMValue(failsafeConfig()->failsafe_throttle);
         }
     }
+    rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_NAVIGATION);
 }
 
 /*-----------------------------------------------------------

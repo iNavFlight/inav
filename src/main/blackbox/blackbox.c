@@ -49,6 +49,7 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
+#include "fc/rc_control.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -58,6 +59,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/wind_estimator.h"
 
 #include "io/beeper.h"
 #include "io/gps.h"
@@ -76,9 +78,9 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
 #include "sensors/sensors.h"
-#include "flight/wind_estimator.h"
 #include "sensors/temperature.h"
 
+#include "rx/rx.h"
 
 #if defined(ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT)
 #define DEFAULT_BLACKBOX_DEVICE     BLACKBOX_DEVICE_FLASH
@@ -1394,9 +1396,13 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
 #endif
 
+    const rcCommand_t *controlOutput = rcControlGetOutput();
     for (int i = 0; i < 4; i++) {
         blackboxCurrent->rcData[i] = rxGetChannelValue(i);
-        blackboxCurrent->rcCommand[i] = rcCommand[i];
+        // TODO: This changes THR to always be represented
+        // in bidirectional mode in logs. What should be
+        // done here?
+        blackboxCurrent->rcCommand[i] = rcCommandToPWMValue(controlOutput->axes[i]);
     }
 
     blackboxCurrent->attitude[0] = attitude.values.roll;

@@ -36,6 +36,7 @@
 
 #include "fc/fc_core.h"
 #include "fc/config.h"
+#include "fc/rc_control.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -970,7 +971,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_2D_IN_PROGRESS(n
     if (posControl.flags.isAdjustingHeading) {
         timeMs_t timeDifference = currentTimeMs - posControl.cruise.lastYawAdjustmentTime;
         if (timeDifference > 100) timeDifference = 0; // if adjustment was called long time ago, reset the time difference.
-        float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate), DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate));
+        // XXX: This was using rcCommand, changed to use the input instead
+        // of the input
+        // XXX2: Delete after code review
+        float rateTarget = scaleRangef(rcControlGetInput()->yaw, RC_COMMAND_MIN, RC_COMMAND_MAX, -DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate), DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate));
         float centidegsPerIteration = rateTarget * timeDifference / 1000.0f;
         posControl.cruise.yaw = wrap_36000(posControl.cruise.yaw - centidegsPerIteration);
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.yaw));
@@ -2487,8 +2491,8 @@ static bool adjustPositionFromRCInput(void)
     }
     else {
 
-        const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
-        const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
+        const float rcPitchAdjustment = rcControlGetInputAxisApplyingPosholdDeadband(PITCH);
+        const float rcRollAdjustment = rcControlGetInputAxisApplyingPosholdDeadband(ROLL);
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }
