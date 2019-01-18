@@ -18,8 +18,13 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "MF7S"
-#define USBD_PRODUCT_STRING  "MatekF722SE"
+#if defined(MATEKF722MINI)
+#   define TARGET_BOARD_IDENTIFIER "MF7M"
+#   define USBD_PRODUCT_STRING  "MatekF722Mini"
+#else
+#   define TARGET_BOARD_IDENTIFIER "MF7S"
+#   define USBD_PRODUCT_STRING  "MatekF722SE"
+#endif
 
 #define LED0                    PA14  //Blue   SWCLK
 #define LED1                    PA13  //Green  SWDIO
@@ -100,23 +105,25 @@
 #define MAX7456_CS_PIN          PB12
 
 // *************** SPI3 SD BLACKBOX*******************
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI3
-#define SDCARD_CS_PIN           PD2
-
 #define USE_SPI_DEVICE_3
-#define SPI3_CLOCK_LEADING_EDGE
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_SPI_BUS          BUS_SPI3
-#define M25P16_CS_PIN           PD2
+#if defined(MATEKF722MINI)
+#   define USE_FLASHFS
+#   define USE_FLASH_M25P16
+#   define M25P16_SPI_BUS          BUS_SPI3
+#   define M25P16_CS_PIN           PD2
+#   define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#else
+#   define USE_SDCARD
+#   define USE_SDCARD_SPI
+#   define SDCARD_SPI_BUS          BUS_SPI3
+#   define SDCARD_CS_PIN           PD2
+#   define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#   define SPI3_CLOCK_LEADING_EDGE                          // TODO(digitalentity): implement DEVFLAGS_SPI_MODE_0 flag in SPI drivers
+#endif
 
 // *************** UART *****************************
 #define USE_VCP
