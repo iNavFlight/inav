@@ -315,7 +315,7 @@ uint8_t max7456GetRowsCount(void)
 static void max7456ReInit(void)
 {
     uint8_t buf[2 * 2];
-    int bufPtr;
+    int bufPtr = 0;
     uint8_t statVal;
 
 
