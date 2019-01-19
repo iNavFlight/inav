@@ -834,7 +834,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
 {
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
-    int16_t thr = rcData[THROTTLE];
+    int16_t thr = rxGetChannelValue(THROTTLE);
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;

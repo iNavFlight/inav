@@ -371,7 +371,7 @@ void FAST_CODE NOINLINE updatePIDCoefficients(void)
      * Compute stick position in range of [-1.0f : 1.0f] without deadband and expo
      */
     for (int axis = 0; axis < 3; axis++) {
-        pidState[axis].stickPosition = constrain(rcData[axis] - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
+        pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
 
     // If nothing changed - don't waste time recalculating coefficients

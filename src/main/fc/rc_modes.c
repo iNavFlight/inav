@@ -102,7 +102,7 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
     // No need to constrain() here, since we're testing for a closed range defined
     // by the channelRange_t. If channelValue has an invalid value, the test will
     // be false anyway.
-    uint16_t channelValue = rcData[auxChannelIndex + NON_AUX_CHANNEL_COUNT];
+    uint16_t channelValue = rxGetChannelValue(auxChannelIndex + NON_AUX_CHANNEL_COUNT);
     return (channelValue >= CHANNEL_RANGE_MIN + (range->startStep * CHANNEL_RANGE_STEP_WIDTH) &&
             channelValue < CHANNEL_RANGE_MIN + (range->endStep * CHANNEL_RANGE_STEP_WIDTH));
 }
