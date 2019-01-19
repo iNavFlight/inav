@@ -323,6 +323,12 @@ settings-json:
 clean-settings:
 	$(V1) $(RM) $(GENERATED_SETTINGS)
 
+# CFLAGS used for ASM generation. These can't include the LTO related options
+# since they prevent proper ASM generation. Since $(LTO_FLAGS) includes the
+# optization level, we have to add it back. -g is required to make interleaved
+# source/ASM work.
+ASM_CFLAGS=-g $(OPTIMZE) $(filter-out $(LTO_FLAGS) -save-temps=obj, $(CFLAGS))
+
 # List of buildable ELF files and their object dependencies.
 # It would be nice to compute these lists, but that seems to be just beyond make.
 
@@ -342,6 +348,10 @@ $(TARGET_OBJ_DIR)/%.o: %.c
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
 	$(V1) $(CROSS_CC) -c -o $@ $(CFLAGS) $<
+ifeq ($(GENERATE_ASM), 1)
+	$(V1) $(CROSS_CC) -S -fverbose-asm -Wa,-aslh -o $(patsubst %.o,%.txt.S,$@) -g $(ASM_CFLAGS) $<
+endif
+
 
 # Assemble
 $(TARGET_OBJ_DIR)/%.o: %.s

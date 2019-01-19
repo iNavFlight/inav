@@ -335,10 +335,13 @@ static void max7456ReInit(void)
             break;
         default:
             busRead(state.dev, MAX7456ADD_STAT, &statVal);
-            if (VIN_IS_PAL(statVal) || millis() > MAX_SYNC_WAIT_MS) {
+            if (VIN_IS_PAL(statVal)) {
                 vm0Mode = VIDEO_MODE_PAL;
             } else if (VIN_IS_NTSC_alt(statVal)) {
                 vm0Mode = VIDEO_MODE_NTSC;
+            } else if ( millis() > MAX_SYNC_WAIT_MS) {
+                // Detection timed out, default to PAL
+                vm0Mode = VIDEO_MODE_PAL;
             } else {
                 // No signal detected yet, wait for detection timeout
                 return;

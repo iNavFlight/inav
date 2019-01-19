@@ -306,7 +306,11 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 {
     if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
         TCH_t * tch = (TCH_t *)descriptor->userParam;
-        tch->dmaState = TCH_DMA_IDLE;
+
+        // If it was ACTIVE - switch to IDLE
+        if (tch->dmaState == TCH_DMA_ACTIVE) {
+            tch->dmaState = TCH_DMA_IDLE;
+        }
 
         LL_DMA_DisableStream(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)]);
         LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
@@ -376,15 +380,20 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
     const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
     DMA_TypeDef * dmaBase = tch->dma->dma;
 
-    tch->dmaState = TCH_DMA_READY;
+    // Make sure we terminate any DMA transaction currently in progress
+    // Clear the flag as well, so even if DMA transfer finishes while within ATOMIC_BLOCK
+    // the resulting IRQ won't mess up the DMA state
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+        LL_DMA_DisableStream(dmaBase, streamLL);
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+    }
 
-    LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
-
-    LL_DMA_DisableStream(dmaBase, streamLL);
     LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferSize);
     LL_DMA_ConfigAddresses(dmaBase, streamLL, (uint32_t)tch->dmaBuffer, (uint32_t)impl_timerCCR(tch), LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
     LL_DMA_EnableStream(dmaBase, streamLL);
+    tch->dmaState = TCH_DMA_READY;
 }
 
 void impl_timerPWMStartDMA(TCH_t * tch)
