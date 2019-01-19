@@ -784,7 +784,7 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_DSHOT
-    pwmCompleteDshotUpdate(getMotorCount(), currentTimeUs);
+    pwmCompleteDshotUpdate(getMotorCount());
 #endif
 }
 
