@@ -347,9 +347,18 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
 
 void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
 {
-    tch->dmaState = TCH_DMA_READY;
+    // Make sure we terminate any DMA transaction currently in progress
+    // Clear the flag as well, so even if DMA transfer finishes while within ATOMIC_BLOCK
+    // the resulting IRQ won't mess up the DMA state
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        DMA_Cmd(tch->dma->ref, DISABLE);
+        TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+    }
+
     DMA_SetCurrDataCounter(tch->dma->ref, dmaBufferSize);
     DMA_Cmd(tch->dma->ref, ENABLE);
+    tch->dmaState = TCH_DMA_READY;
 }
 
 void impl_timerPWMStartDMA(TCH_t * tch)
