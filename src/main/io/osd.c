@@ -1692,7 +1692,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
             }
 
-            if (ABS(ky) < ABS(kx)) {
+            if (fabsf(ky) < fabsf(kx)) {
 
                 previous_orient = 0;
 

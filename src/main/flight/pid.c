@@ -501,7 +501,7 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
     if (STATE(ANTI_WINDUP) || isFixedWingItermLimitActive(pidState->stickPosition)) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
     } else {
-        pidState->errorGyroIfLimit = ABS(pidState->errorGyroIf);
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 
     if (pidProfile()->fixedWingItermThrowLimit != 0) {
@@ -582,7 +582,7 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
     if (STATE(ANTI_WINDUP) || mixerIsOutputSaturated()) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
     } else {
-        pidState->errorGyroIfLimit = ABS(pidState->errorGyroIf);
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 
     axisPID[axis] = newOutputLimited;

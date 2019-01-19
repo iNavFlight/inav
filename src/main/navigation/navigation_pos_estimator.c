@@ -382,7 +382,7 @@ static void updateIMUTopic(void)
             const float gravityOffsetError = posEstimator.imu.accelNEU.z - calibratedGravityCMSS;
             calibratedGravityCMSS += gravityOffsetError * 0.0025f;
 
-            if (ABS(gravityOffsetError) < positionEstimationConfig()->gravity_calibration_tolerance) {  // Error should be within 0.5% of calibrated gravity
+            if (fabsf(gravityOffsetError) < positionEstimationConfig()->gravity_calibration_tolerance) {  // Error should be within 0.5% of calibrated gravity
                 if ((millis() - gravityCalibrationTimeout) > 250) {
                     posEstimator.imu.gravityCalibrationComplete = true;
                 }
