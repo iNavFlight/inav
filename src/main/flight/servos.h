@@ -127,8 +127,21 @@ typedef struct servoConfig_s {
 PG_DECLARE(servoConfig_t, servoConfig);
 
 typedef struct servoMetadata_s {
-    float scaleMax;
-    float scaleMin;
+    union {
+        // [0] = max, [1] = min. An array is used to avoid
+        // a branch during servo updates by selecting the
+        // element using signbit()
+        float maxmin[2];
+        struct {
+            float max;
+            float min;
+        };
+    } scales;
+    struct {
+        float min;
+        float max;
+        float center;
+    } values;
 } servoMetadata_t;
 
 void servosInit(void);
