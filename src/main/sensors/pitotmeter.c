@@ -167,7 +167,7 @@ static void performPitotCalibrationCycle(void)
     const float pitotPressureZeroError = pitot.pressure - pitot.pressureZero;
     pitot.pressureZero += pitotPressureZeroError * 0.25f;
 
-    if (ABS(pitotPressureZeroError) < (P0 * 0.000005f)) {
+    if (fabsf(pitotPressureZeroError) < (P0 * 0.000005f)) {
         if ((millis() - pitot.calibrationTimeoutMs) > 500) {
             pitot.calibrationFinished = true;
         }

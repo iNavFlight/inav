@@ -76,7 +76,7 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 
     // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing velocity.
     // if we are decelerating - don't limit (allow better recovery from falling)
-    if (ABS(targetVel) > ABS(posControl.desiredState.vel.z)) {
+    if (fabsf(targetVel) > fabsf(posControl.desiredState.vel.z)) {
         const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS / 5.0f);
         posControl.desiredState.vel.z = constrainf(targetVel, posControl.desiredState.vel.z - maxVelDifference, posControl.desiredState.vel.z + maxVelDifference);
     }
