@@ -169,19 +169,16 @@ static void servosWrite(void)
     filterServos();
 
     int servoIndex = 0;
-    bool zeroServoValue = false;
 
     /*
      * in case of tricopters, there might me a need to zero servo output when unarmed
      */
     if (mixerConfig()->platformType == PLATFORM_TRICOPTER && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
-        zeroServoValue = true;
-    }
-
-    for (int i = minServoIndex; i <= maxServoIndex; i++) {
-        if (zeroServoValue) {
+        for (int i = minServoIndex; i <= maxServoIndex; i++) {
             pwmWriteServo(servoIndex++, 0);
-        } else {
+        }
+    } else {
+        for (int i = minServoIndex; i <= maxServoIndex; i++) {
             pwmWriteServo(servoIndex++, servo[i]);
         }
     }
