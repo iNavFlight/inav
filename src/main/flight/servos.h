@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "config/parameter_group.h"
 
 #define MAX_SUPPORTED_SERVOS 8
@@ -131,10 +133,20 @@ typedef struct servoMetadata_s {
 
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
-bool isServoOutputEnabled(void);
-bool isMixerUsingServos(void);
-void writeServos(void);
-void loadCustomServoMixer(void);
-void servoMixer(float dT);
-void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
+
+// Returns wether any servos are configured in the current mixer.
+bool servosAreEnabledForCurrentMixer(void);
+// Loads the rules for servos for the current mixer.
+void servosLoadMixer(void);
+// servosUpdate first updates the in-memory servo values and then
+// updates the the PWM outputs.
+void servosUpdate(float dT);
+// Updates metadata for the servo, which includes cached intermediate
+// values used during mixing. This should be called after any servo
+// parameters have been altered.
+void servosComputeMetadata(uint8_t servoIndex);
+
+// Updates autotrim values if needed. This function can be safely called
+// regardless of autotrim status, since it does its own checks.
+void servosUpdateAutotrim(void);

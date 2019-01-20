@@ -310,7 +310,7 @@ void init(void)
     pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
 
-    pwm_params.useServoOutputs = isMixerUsingServos();
+    pwm_params.useServoOutputs = servosAreEnabledForCurrentMixer();
     pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
 

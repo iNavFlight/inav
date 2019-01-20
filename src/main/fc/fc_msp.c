@@ -1762,7 +1762,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
             sbufReadU32(src); // used to be reversedSources
-            servoComputeScalingFactors(tmp_u8);
+            servosComputeMetadata(tmp_u8);
         }
         break;
 
@@ -1775,7 +1775,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
             sbufReadU16(src); //Read 2bytes for min/max and ignore it
             sbufReadU8(src); //Read 1 byte for `box` and ignore it
-            loadCustomServoMixer();
+            servosLoadMixer();
         } else
             return MSP_RESULT_ERROR;
         break;

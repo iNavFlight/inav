@@ -82,9 +82,7 @@ int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
-static int servoOutputEnabled;
 
-static uint8_t mixerUsesServos;
 static uint8_t minServoIndex;
 static uint8_t maxServoIndex;
 
@@ -93,23 +91,6 @@ static bool servoFilterIsSet;
 
 static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
 static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
-
-int16_t getFlaperonDirection(uint8_t servoPin)
-{
-    if (servoPin == SERVO_FLAPPERON_2) {
-        return -1;
-    } else {
-        return 1;
-    }
-}
-
-/*
- * Compute scaling factor for upper and lower servo throw
- */
-void servoComputeScalingFactors(uint8_t servoIndex) {
-    servoMetadata[servoIndex].scaleMax = (servoParams(servoIndex)->max - servoParams(servoIndex)->middle) / 500.0f;
-    servoMetadata[servoIndex].scaleMin = (servoParams(servoIndex)->middle - servoParams(servoIndex)->min) / 500.0f;
-}
 
 void servosInit(void)
 {
@@ -121,20 +102,19 @@ void servosInit(void)
     /*
      * load mixer
      */
-    loadCustomServoMixer();
+    servosLoadMixer();
 
-    // If there are servo rules after all, update variables
-    if (servoRuleCount > 0) {
-        servoOutputEnabled = 1;
-        mixerUsesServos = 1;
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        servosComputeMetadata(i);
     }
-
-    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++)
-        servoComputeScalingFactors(i);
-
 }
 
-void loadCustomServoMixer(void)
+bool servosAreEnabledForCurrentMixer(void)
+{
+    return servoRuleCount > 0;
+}
+
+void servosLoadMixer(void)
 {
     // reset settings
     servoRuleCount = 0;
@@ -184,7 +164,7 @@ static void filterServos(void)
     }
 }
 
-void writeServos(void)
+static void servosWrite(void)
 {
     filterServos();
 
@@ -207,7 +187,7 @@ void writeServos(void)
     }
 }
 
-void servoMixer(float dT)
+void servosUpdate(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
@@ -314,6 +294,17 @@ void servoMixer(float dT)
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
+
+    servosWrite();
+}
+
+/*
+ * Compute cached metadata for the servo
+ */
+void servosComputeMetadata(uint8_t servoIndex)
+{
+    servoMetadata[servoIndex].scaleMax = (servoParams(servoIndex)->max - servoParams(servoIndex)->middle) / 500.0f;
+    servoMetadata[servoIndex].scaleMin = (servoParams(servoIndex)->middle - servoParams(servoIndex)->min) / 500.0f;
 }
 
 #define SERVO_AUTOTRIM_TIMER_MS     2000
@@ -325,7 +316,7 @@ typedef enum {
     AUTOTRIM_DONE,
 } servoAutotrimState_e;
 
-void processServoAutotrim(void)
+void servosUpdateAutotrim(void)
 {
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
     static timeMs_t trimStartedAt;
@@ -396,14 +387,4 @@ void processServoAutotrim(void)
 
         trimState = AUTOTRIM_IDLE;
     }
-}
-
-bool isServoOutputEnabled(void)
-{
-    return servoOutputEnabled;
-}
-
-bool isMixerUsingServos(void)
-{
-    return mixerUsesServos;
 }
