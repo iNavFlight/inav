@@ -94,17 +94,12 @@ static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
 
 void servosInit(void)
 {
-    // give all servos a default command
-    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servo[i] = DEFAULT_SERVO_MIDDLE;
-    }
-
-    /*
-     * load mixer
-     */
     servosLoadMixer();
 
-    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+    // give all servos a default command and compute
+    // their metadata
+    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        servo[i] = DEFAULT_SERVO_MIDDLE;
         servosComputeMetadata(i);
     }
 }
