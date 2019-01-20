@@ -436,7 +436,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_SERVO:
-        sbufWriteData(dst, &servo, MAX_SUPPORTED_SERVOS * 2);
+        for (int ii = 0; ii < MAX_SUPPORTED_SERVOS; ii++) {
+            sbufWriteU16(dst, servosGetPWM(ii));
+        }
         break;
     case MSP_SERVO_CONFIGURATIONS:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {

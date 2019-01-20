@@ -131,8 +131,6 @@ typedef struct servoMetadata_s {
     float scaleMin;
 } servoMetadata_t;
 
-extern int16_t servo[MAX_SUPPORTED_SERVOS];
-
 void servosInit(void);
 
 // Returns wether any servos are configured in the current mixer.
@@ -150,3 +148,6 @@ void servosComputeMetadata(uint8_t servoIndex);
 // Updates autotrim values if needed. This function can be safely called
 // regardless of autotrim status, since it does its own checks.
 void servosUpdateAutotrim(void);
+
+// Returns the PWM value sent to the given servo index.
+int16_t servosGetPWM(uint8_t servoIndex);

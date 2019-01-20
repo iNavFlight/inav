@@ -78,7 +78,7 @@ void pgResetFn_servoParams(servoParam_t *instance)
     }
 }
 
-int16_t servo[MAX_SUPPORTED_SERVOS];
+static int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
@@ -384,4 +384,9 @@ void servosUpdateAutotrim(void)
 
         trimState = AUTOTRIM_IDLE;
     }
+}
+
+int16_t servosGetPWM(uint8_t servoIndex)
+{
+    return servo[servoIndex];
 }
