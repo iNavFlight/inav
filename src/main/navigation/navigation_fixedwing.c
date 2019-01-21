@@ -285,7 +285,7 @@ bool adjustFixedWingPositionFromRCInput(void)
 static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta_t deltaMicros)
 {
     static timeUs_t previousTimeMonitoringUpdate;
-    static float previousHeadingError;
+    static int32_t previousHeadingError;
     static bool errorIsDecreasing;
     static bool forceTurnDirection = false;
 
