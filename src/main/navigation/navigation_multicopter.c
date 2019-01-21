@@ -74,9 +74,10 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 
     posControl.pids.pos[Z].output_constrained = targetVel;
 
-    // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing velocity.
+    // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing RoC or RoD (only if vel is of the same sign)
     // if we are decelerating - don't limit (allow better recovery from falling)
-    if (fabsf(targetVel) > fabsf(posControl.desiredState.vel.z)) {
+    const bool isSameDirection = (targetVel > 0 && posControl.desiredState.vel.z > 0) || (targetVel < 0 && posControl.desiredState.vel.z < 0);
+    if (isSameDirection && (fabsf(targetVel) > fabsf(posControl.desiredState.vel.z))) {
         const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS / 5.0f);
         posControl.desiredState.vel.z = constrainf(targetVel, posControl.desiredState.vel.z - maxVelDifference, posControl.desiredState.vel.z + maxVelDifference);
     }
