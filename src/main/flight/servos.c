@@ -90,7 +90,7 @@ void pgResetFn_servoParams(servoParam_t *instance)
     }
 }
 
-static float servo[MAX_SUPPORTED_SERVOS]; // [SERVO_VALUE_MIN; SERVO_VALUE_MAX]
+STATIC_FASTRAM float servo[MAX_SUPPORTED_SERVOS]; // [SERVO_VALUE_MIN; SERVO_VALUE_MAX]
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
@@ -101,7 +101,7 @@ static uint8_t maxServoIndex;
 static biquadFilter_t servoFilter[MAX_SUPPORTED_SERVOS];
 static bool servoFilterIsSet;
 
-static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
+STATIC_FASTRAM servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
 static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
 
 void servosInit(void)
