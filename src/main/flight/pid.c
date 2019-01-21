@@ -220,13 +220,13 @@ void pidInit(void)
 bool pidInitFilters(void)
 {
     const uint32_t refreshRate = getLooptime();
-    notchFilterApplyFn = nullFilterApply;
 
     if (refreshRate == 0) {
         return false;
     }
 
 #ifdef USE_DTERM_NOTCH
+    notchFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_soft_notch_hz != 0) {
         notchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
         for (int axis = 0; axis < 3; ++ axis) {
