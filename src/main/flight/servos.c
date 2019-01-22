@@ -207,20 +207,20 @@ void writeServos(void)
     }
 }
 
-int getOperandValue(mixerConditionType_e operation, int operand) {
+int getOperandValue(logicOperandType_e type, int operand) {
     int retVal = 0;
 
-    switch (operation) {
-        case MIXER_CONDITION_RC_CHANNEL_GREATER_THAN:
-        case MIXER_CONDITION_RC_CHANNEL_LOWER_THAN:
-        case MIXER_CONDITION_RC_CHANNEL_LOW:
-        case MIXER_CONDITION_RC_CHANNEL_MID:
-        case MIXER_CONDITION_RC_CHANNEL_HIGH:
+    switch (type) {
+
+        case LOGIC_CONDITION_OPERAND_TYPE_VALUE:
+            retVal = operand;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL:
             //Extract RC channel raw value
             if (operand >= 1 && operand <= 16) {
                 retVal = rcData[operand - 1];
             } 
-
             break;
 
         default:
@@ -230,26 +230,45 @@ int getOperandValue(mixerConditionType_e operation, int operand) {
     return retVal;
 }
 
-bool checkConditionForOperands(
-    mixerConditionType_e operation,
+int computeLogicCondition(
+    logicOperation_e operation,
     int operandA,
     int operandB
 ) {
+    switch (operation) {
 
-    if (operation == MIXER_CONDITION_RC_CHANNEL_GREATER_THAN) {
-        return operandA > operandB;
-    } else if (operation == MIXER_CONDITION_RC_CHANNEL_LOWER_THAN) {
-        return operandA < operandB;
-    } else if (operation == MIXER_CONDITION_RC_CHANNEL_LOW) {
-        return operandA < 1333;
-    } else if (operation == MIXER_CONDITION_RC_CHANNEL_MID) {
-        return operandA >= 1333 && operandA <= 1666;
-    } else if (operation == MIXER_CONDITION_RC_CHANNEL_HIGH) {
-        return operandA > 1666;
-    } else {
-        return false; //condition not supported, return false to skip this rule
+        case LOGIC_CONDITION_TRUE:
+            return true;
+            break;
+
+        case LOGIC_CONDITION_EQUAL:
+            return operandA == operandB;
+            break;
+
+        case LOGIC_CONDITION_GREATER_THAN:
+            return operandA > operandB;
+            break;
+
+        case LOGIC_CONDITION_LOWER_THAN:
+            return operandA < operandB;
+            break;
+
+        case LOGIC_CONDITION_LOW:
+            return operandA < 1333;
+            break;
+
+        case LOGIC_CONDITION_MID:
+            return operandA >= 1333 && operandA <= 1666;
+            break;
+
+        case LOGIC_CONDITION_HIGH:
+            return operandA > 1666;
+            break;
+
+        default:
+            return false;
+            break; 
     }
-
 }
 
 void servoMixer(float dT)
@@ -319,9 +338,10 @@ void servoMixer(float dT)
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
         const int operation = currentServoMixer[i].condition.operation;
-        if (operation != MIXER_CONDITION_ALWAYS) {
-            const int operandValue = getOperandValue(operation, currentServoMixer[i].condition.operandA);
-            if (!checkConditionForOperands(operation, operandValue, currentServoMixer[i].condition.operandB)) {
+        if (operation != LOGIC_CONDITION_TRUE) {
+            const int operandAValue = getOperandValue(currentServoMixer[i].condition.operandA.type, currentServoMixer[i].condition.operandA.value);
+            const int operandBValue = getOperandValue(currentServoMixer[i].condition.operandB.type, currentServoMixer[i].condition.operandB.value);
+            if (!computeLogicCondition(operation, operandAValue, operandBValue)) {
                 continue;
             }
         }

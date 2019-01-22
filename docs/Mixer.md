@@ -45,9 +45,9 @@ Custom servo mixing rules can be applied to each servo.  Rules are applied in th
 
 The smix statement has the following syntax: 
 
-`smix n SERVO_ID SIGNAL_SOURCE RATE SPEED CONDITION OPERAND_A OPERAND_B` 
+`smix n SERVO_ID SIGNAL_SOURCE RATE SPEED OPERATOR OPERAND_A_TYPE OPERAND_A OPERAND_B_TYPE OPERAND_B` 
 
-For example, `smix 0 2 0 100 0 0 0 0` will create rule number 0 assigning Stabilised Roll to the third PWM pin on the FC board will full rate and no speed limit that is always active.
+For example, `smix 0 2 0 100 0 0 0 0 0` will create rule number 0 assigning Stabilised Roll to the third PWM pin on the FC board will full rate and no speed limit that is always active.
 
 | id | Flight Controller Output signal sources |
 |----|-----------------|
@@ -83,15 +83,15 @@ For example, `smix 0 2 0 100 0 0 0 0` will create rule number 0 assigning Stabil
 Servo rule rate should be understood as a weight of a rule. To obtain full servo throw without clipping sum of all `smix` rates for a servo should equal `100`. For example, is servo #2 should be driven by sources 0 and 1 (Stabilized Roll and Stabilized Pitch) with equal strength, correct rules would be:
 
 ```
-smix 0 2 0 50 0 0 0 0
-smix 1 2 1 50 0 0 0 0
+smix 0 2 0 50 0 0 0 0 0
+smix 1 2 1 50 0 0 0 0 0
 ```  
 
 To obtain the stronger input of one source, increase the rate of this source while decreasing the others. For example, to drive servo #2 in 75% from source 0 and in 25% from source 1, correct rules would be:
 
 ```
-smix 0 2 0 75 0 0 0 0
-smix 1 2 1 25 0 0 0 0
+smix 0 2 0 75 0 0 0 0 0
+smix 1 2 1 25 0 0 0 0 0
 ```  
 
 If a sum of weights would be bigger than `100`, clipping to servo min and max values might appear.
@@ -123,14 +123,20 @@ INAV allows for conditional servo mixer rules. This means, selected rules will b
 1. Operand A - depending on used `Operator` it can define different flight controller parameters: RC channel value, ceratain telemetry values, speed, etc.
 1. Operand B - optional, depends on used `Operator` 
 
-| id | Flight Controller Output signal sources |
+| id | Operator |
 | ----  | ------ |
-| 0     | Always active, `Operand A` and `Operand B` are not used
-| 1     | RC_CHANNEL_GREATER_THAN, active if RC Channel value defined in `Operand A` (1-16) is greater then `Operand B` (1000-2000) | 
-| 2     | RC_CHANNEL_LOWER_THAN, active if RC Channel value defined in `Operand A` (1-16) is lower then `Operand B` (1000-2000) | 
-| 3     | RC_CHANNEL_LOW, active if RC Channel value defined in `Operand A` (1-16) is in _LOW_ position (< 1333). `Operand B` is not used | 
-| 4     | RC_CHANNEL_MID, active if RC Channel value defined in `Operand A` (1-16) is in _MID_ position (>= 1333 and <= 1666). `Operand B` is not used | 
-| 5     | RC_CHANNEL_HIGH, active if RC Channel value defined in `Operand A` (1-16) is in _HIGH_ position (> 1666). `Operand B` is not used | 
+| 0     | `TRUE` - alway active |
+| 1     | `EQUAL` |
+| 2     | `GREATER_THAN` - active if `Operand A`  is greater then `Operand B` | 
+| 3     | `LOWER_THAN` - active if `Operand A` is lower then `Operand B` | 
+| 4     | `LOW` - active if `Operand A` is in _LOW_ position (< 1333). `Operand B` is not used | 
+| 5     | `MID` - active if `Operand A` is in _MID_ position (>= 1333 and <= 1666). `Operand B` is not used | 
+| 6     | `HIGH` - active if `Operand A` is in _HIGH_ position (> 1666). `Operand B` is not used | 
+
+| id    | Operand type  |
+| ----  | ----          |
+| 0     | `Value`       |
+| 1     | `RC Channel` - value of operand defines an index of RC channel (1-16) |
 
 #### Examples
 

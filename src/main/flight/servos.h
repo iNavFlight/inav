@@ -89,27 +89,39 @@ typedef enum {
 #define FLAPERON_THROW_MAX 450
 
 typedef enum {
-    MIXER_CONDITION_ALWAYS = 0,
-    MIXER_CONDITION_RC_CHANNEL_GREATER_THAN,
-    MIXER_CONDITION_RC_CHANNEL_LOWER_THAN,
-    MIXER_CONDITION_RC_CHANNEL_LOW,
-    MIXER_CONDITION_RC_CHANNEL_MID,
-    MIXER_CONDITION_RC_CHANNEL_HIGH,
-    MIXER_CONDITION_LAST
-} mixerConditionType_e;
+    LOGIC_CONDITION_TRUE = 0,
+    LOGIC_CONDITION_EQUAL,
+    LOGIC_CONDITION_GREATER_THAN,
+    LOGIC_CONDITION_LOWER_THAN,
+    LOGIC_CONDITION_LOW,
+    LOGIC_CONDITION_MID,
+    LOGIC_CONDITION_HIGH,
+    LOGIC_CONDITION_LAST
+} logicOperation_e;
+
+typedef enum {
+    LOGIC_CONDITION_OPERAND_TYPE_VALUE = 0,
+    LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL,
+    LOGIC_CONDITION_OPERAND_TYPE_LAST
+} logicOperandType_e;
+
+typedef struct logicOperand_s {
+    logicOperandType_e type;
+    int value;
+} logicOperand_t;
 
 typedef struct mixerCondition_s {
-    mixerConditionType_e operation;
-    int operandA;
-    int operandB;
-} mixerCondition_t;
+    logicOperation_e operation;
+    logicOperand_t operandA;
+    logicOperand_t operandB;
+} logicCondition_t;
 
 typedef struct servoMixer_s {
     uint8_t targetChannel;                  // servo that receives the output of the rule
     uint8_t inputSource;                    // input channel for this rule
     int8_t rate;                            // range [-125;+125] ; can be used to adjust a rate 0-125% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
-    mixerCondition_t condition;
+    logicCondition_t condition;
 } servoMixer_t;
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)

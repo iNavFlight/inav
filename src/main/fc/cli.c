@@ -1367,7 +1367,7 @@ static void cliServo(char *cmdline)
 
 static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixers, const servoMixer_t *defaultCustomServoMixers)
 {
-    const char *format = "smix %d %d %d %d %d %d %d %d";
+    const char *format = "smix %d %d %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_SERVO_RULES; i++) {
         const servoMixer_t customServoMixer = customServoMixers[i];
         if (customServoMixer.rate == 0) {
@@ -1382,8 +1382,10 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
                 && customServoMixer.rate == customServoMixerDefault.rate
                 && customServoMixer.speed == customServoMixerDefault.speed
                 && customServoMixer.condition.operation == customServoMixerDefault.condition.operation
-                && customServoMixer.condition.operandA == customServoMixerDefault.condition.operandA
-                && customServoMixer.condition.operandB == customServoMixerDefault.condition.operandB;
+                && customServoMixer.condition.operandA.type == customServoMixerDefault.condition.operandA.type
+                && customServoMixer.condition.operandB.type == customServoMixerDefault.condition.operandB.type
+                && customServoMixer.condition.operandA.value == customServoMixerDefault.condition.operandA.value
+                && customServoMixer.condition.operandB.value == customServoMixerDefault.condition.operandB.value;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
@@ -1392,8 +1394,10 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
                 customServoMixerDefault.rate,
                 customServoMixerDefault.speed,
                 customServoMixer.condition.operation,
-                customServoMixer.condition.operandA,
-                customServoMixer.condition.operandB
+                customServoMixer.condition.operandA.type,
+                customServoMixer.condition.operandA.value,
+                customServoMixer.condition.operandB.type,
+                customServoMixer.condition.operandB.value
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -1403,8 +1407,10 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             customServoMixer.rate,
             customServoMixer.speed,
             customServoMixer.condition.operation,
-            customServoMixer.condition.operandA,
-            customServoMixer.condition.operandB
+            customServoMixer.condition.operandA.type,
+            customServoMixer.condition.operandA.value,
+            customServoMixer.condition.operandB.type,
+            customServoMixer.condition.operandB.value
         );
     }
 }
@@ -1412,7 +1418,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
 static void cliServoMix(char *cmdline)
 {
     char * saveptr;
-    int args[8], check = 0;
+    int args[10], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1421,7 +1427,7 @@ static void cliServoMix(char *cmdline)
         // erase custom mixer
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
     } else {
-        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, OPERAND_A, OPERAND_B, ARGS_COUNT};
+        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, OPERAND_A_TYPE, OPERAND_A, OPERAND_B_TYPE, OPERAND_B, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
@@ -1440,7 +1446,9 @@ static void cliServoMix(char *cmdline)
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
             args[RATE] >= -125 && args[RATE] <= 125 &&
             args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED &&
-            args[CONDITION] >= 0 && args[CONDITION] < MIXER_CONDITION_LAST &&
+            args[CONDITION] >= 0 && args[CONDITION] < LOGIC_CONDITION_LAST &&
+            args[OPERAND_A_TYPE] >= 0 && args[OPERAND_A_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[OPERAND_B_TYPE] >= 0 && args[OPERAND_B_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
             args[OPERAND_A] >= -2000 && args[OPERAND_A] <= 2000 &&
             args[OPERAND_B] >= -2000 && args[OPERAND_B] <= 2000
         ) {
@@ -1449,8 +1457,10 @@ static void cliServoMix(char *cmdline)
             customServoMixersMutable(i)->rate = args[RATE];
             customServoMixersMutable(i)->speed = args[SPEED];
             customServoMixersMutable(i)->condition.operation = args[CONDITION];
-            customServoMixersMutable(i)->condition.operandA = args[OPERAND_A];
-            customServoMixersMutable(i)->condition.operandB = args[OPERAND_B];
+            customServoMixersMutable(i)->condition.operandA.type = args[OPERAND_A_TYPE];
+            customServoMixersMutable(i)->condition.operandA.value = args[OPERAND_A];
+            customServoMixersMutable(i)->condition.operandB.type = args[OPERAND_B_TYPE];
+            customServoMixersMutable(i)->condition.operandB.value = args[OPERAND_B];
             cliServoMix("");
         } else {
             cliShowParseError();
@@ -2806,7 +2816,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
-        "<rule> <servo> <source> <rate> <speed>\r\n"
+        "<rule> <servo> <source> <rate> <speed> <operation> <operand_a_type> <operand_a> <operand_b_type> <operand_b>\r\n"
         "\treset\r\n", cliServoMix),
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
