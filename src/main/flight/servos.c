@@ -207,70 +207,6 @@ void writeServos(void)
     }
 }
 
-int getOperandValue(logicOperandType_e type, int operand) {
-    int retVal = 0;
-
-    switch (type) {
-
-        case LOGIC_CONDITION_OPERAND_TYPE_VALUE:
-            retVal = operand;
-            break;
-
-        case LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL:
-            //Extract RC channel raw value
-            if (operand >= 1 && operand <= 16) {
-                retVal = rcData[operand - 1];
-            } 
-            break;
-
-        default:
-            break;
-    }
-
-    return retVal;
-}
-
-int computeLogicCondition(
-    logicOperation_e operation,
-    int operandA,
-    int operandB
-) {
-    switch (operation) {
-
-        case LOGIC_CONDITION_TRUE:
-            return true;
-            break;
-
-        case LOGIC_CONDITION_EQUAL:
-            return operandA == operandB;
-            break;
-
-        case LOGIC_CONDITION_GREATER_THAN:
-            return operandA > operandB;
-            break;
-
-        case LOGIC_CONDITION_LOWER_THAN:
-            return operandA < operandB;
-            break;
-
-        case LOGIC_CONDITION_LOW:
-            return operandA < 1333;
-            break;
-
-        case LOGIC_CONDITION_MID:
-            return operandA >= 1333 && operandA <= 1666;
-            break;
-
-        case LOGIC_CONDITION_HIGH:
-            return operandA > 1666;
-            break;
-
-        default:
-            return false;
-            break; 
-    }
-}
-
 void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
@@ -339,9 +275,9 @@ void servoMixer(float dT)
          */
         const int operation = currentServoMixer[i].condition.operation;
         if (operation != LOGIC_CONDITION_TRUE) {
-            const int operandAValue = getOperandValue(currentServoMixer[i].condition.operandA.type, currentServoMixer[i].condition.operandA.value);
-            const int operandBValue = getOperandValue(currentServoMixer[i].condition.operandB.type, currentServoMixer[i].condition.operandB.value);
-            if (!computeLogicCondition(operation, operandAValue, operandBValue)) {
+            const int operandAValue = logicConditionGetOperandValue(currentServoMixer[i].condition.operandA.type, currentServoMixer[i].condition.operandA.value);
+            const int operandBValue = logicConditionGetOperandValue(currentServoMixer[i].condition.operandB.type, currentServoMixer[i].condition.operandB.value);
+            if (!logicConditionCompute(operation, operandAValue, operandBValue)) {
                 continue;
             }
         }

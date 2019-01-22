@@ -10,6 +10,7 @@ COMMON_SRC = \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
+            common/logic_condition.h \
             common/maths.c \
             common/memory.c \
             common/olc.c \

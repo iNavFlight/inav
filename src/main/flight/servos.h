@@ -18,6 +18,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/logic_condition.h"
 
 #define MAX_SUPPORTED_SERVOS 8
 
@@ -87,34 +88,6 @@ typedef enum {
 #define FLAPERON_THROW_DEFAULT 200
 #define FLAPERON_THROW_MIN 50
 #define FLAPERON_THROW_MAX 450
-
-typedef enum {
-    LOGIC_CONDITION_TRUE = 0,
-    LOGIC_CONDITION_EQUAL,
-    LOGIC_CONDITION_GREATER_THAN,
-    LOGIC_CONDITION_LOWER_THAN,
-    LOGIC_CONDITION_LOW,
-    LOGIC_CONDITION_MID,
-    LOGIC_CONDITION_HIGH,
-    LOGIC_CONDITION_LAST
-} logicOperation_e;
-
-typedef enum {
-    LOGIC_CONDITION_OPERAND_TYPE_VALUE = 0,
-    LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL,
-    LOGIC_CONDITION_OPERAND_TYPE_LAST
-} logicOperandType_e;
-
-typedef struct logicOperand_s {
-    logicOperandType_e type;
-    int value;
-} logicOperand_t;
-
-typedef struct mixerCondition_s {
-    logicOperation_e operation;
-    logicOperand_t operandA;
-    logicOperand_t operandB;
-} logicCondition_t;
 
 typedef struct servoMixer_s {
     uint8_t targetChannel;                  // servo that receives the output of the rule
