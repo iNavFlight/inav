@@ -220,13 +220,13 @@ void pidInit(void)
 bool pidInitFilters(void)
 {
     const uint32_t refreshRate = getLooptime();
-    notchFilterApplyFn = nullFilterApply;
 
     if (refreshRate == 0) {
         return false;
     }
 
 #ifdef USE_DTERM_NOTCH
+    notchFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_soft_notch_hz != 0) {
         notchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
         for (int axis = 0; axis < 3; ++ axis) {
@@ -501,7 +501,7 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
     if (STATE(ANTI_WINDUP) || isFixedWingItermLimitActive(pidState->stickPosition)) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
     } else {
-        pidState->errorGyroIfLimit = ABS(pidState->errorGyroIf);
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 
     if (pidProfile()->fixedWingItermThrowLimit != 0) {
@@ -582,7 +582,7 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
     if (STATE(ANTI_WINDUP) || mixerIsOutputSaturated()) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
     } else {
-        pidState->errorGyroIfLimit = ABS(pidState->errorGyroIf);
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 
     axisPID[axis] = newOutputLimited;

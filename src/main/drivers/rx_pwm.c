@@ -346,7 +346,7 @@ void pwmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t channel)
 
     TCH_t * tch = timerGetTCH(timerHardwarePtr);
     if (tch == NULL) {
-        return NULL;
+        return;
     }
 
     self->state = 0;
@@ -372,7 +372,7 @@ void ppmInConfig(const timerHardware_t *timerHardwarePtr)
 {
     TCH_t * tch = timerGetTCH(timerHardwarePtr);
     if (tch == NULL) {
-        return NULL;
+        return;
     }
 
     ppmInit();

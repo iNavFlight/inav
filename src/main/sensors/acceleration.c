@@ -532,7 +532,7 @@ void accUpdate(void)
     }
 
     // Before filtering check for clipping and vibration levels
-    if (ABS(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
+    if (fabsf(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
         acc.accClipCount++;
     }
 
