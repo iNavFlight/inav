@@ -71,7 +71,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define USE_PITOT_MS4525
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define PITOT_I2C_BUS           BUS_I2C1
 
 // *************** SD Card **************************
@@ -142,10 +143,7 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS             BUS_I2C1
 #define RANGEFINDER_I2C_BUS         BUS_I2C1
-#define USE_RANGEFINDER_HCSR04_I2C
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 

@@ -77,17 +77,15 @@ static bool benewakeRangefinderDetect(void)
 static void benewakeRangefinderInit(void)
 {
     if (!portConfig) {
-        return false;
+        return;
     }
 
     serialPort = openSerialPort(portConfig->identifier, FUNCTION_RANGEFINDER, NULL, NULL, baudRates[BAUD_115200], MODE_RX, SERIAL_NOT_INVERTED);
     if (!serialPort) {
-        return false;
+        return;
     }
 
     bufferPtr = 0;
-
-    return true;
 }
 
 static void benewakeRangefinderUpdate(void)

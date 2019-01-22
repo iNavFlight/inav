@@ -152,9 +152,6 @@
 #undef USE_RX_PWM
 #undef USE_RX_PPM
 
-// Pitot not supported
-#undef USE_PITOT
-
 // Set default UARTs
 #define TELEMETRY_UART                  SERIAL_PORT_SOFTSERIAL1
 #define SERIALRX_UART                   SERIAL_PORT_USART1
@@ -172,4 +169,6 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
+#define PITOT_I2C_BUS           BUS_I2C2
 #define PCA9685_I2C_BUS         BUS_I2C2
+#define TEMPERATURE_I2C_BUS     BUS_I2C2

@@ -266,8 +266,11 @@ static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
     return packet;
 }
 
-void pwmCompleteDshotUpdate(uint8_t motorCount, timeUs_t currentTimeUs)
+void pwmCompleteDshotUpdate(uint8_t motorCount)
 {
+    // Get latest REAL time
+    timeUs_t currentTimeUs = micros();
+
     // Enforce motor update rate
     if (!isProtocolDshot || (dshotMotorUpdateIntervalUs == 0) || ((currentTimeUs - dshotMotorLastUpdateUs) <= dshotMotorUpdateIntervalUs)) {
         return;

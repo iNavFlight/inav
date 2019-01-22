@@ -34,7 +34,7 @@ typedef enum {
 
 void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount);
-void pwmCompleteDshotUpdate(uint8_t motorCount, timeUs_t currentTimeUs);
+void pwmCompleteDshotUpdate(uint8_t motorCount);
 bool isMotorProtocolDshot(void);
 
 void pwmWriteServo(uint8_t index, uint16_t value);

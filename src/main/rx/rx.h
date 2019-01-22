@@ -129,7 +129,7 @@ typedef struct rxConfig_s {
     uint16_t maxcheck;                      // maximum rc end
     uint16_t rx_min_usec;
     uint16_t rx_max_usec;
-    uint8_t rcSmoothing;                    // Enable/Disable RC filtering
+    uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);

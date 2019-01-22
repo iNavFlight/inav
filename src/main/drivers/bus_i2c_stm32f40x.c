@@ -192,7 +192,13 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
         case I2C_STATE_STARTING_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT) != ERROR) {
                 if (i2cBusState->rw == I2C_TXN_READ) {
-                    i2cBusState->state = I2C_STATE_R_ADDR;
+                    // Special case - no register address
+                    if (i2cBusState->reg == 0xFF) {
+                        i2cBusState->state = I2C_STATE_R_RESTART_ADDR;
+                    }
+                    else {
+                        i2cBusState->state = I2C_STATE_R_ADDR;
+                    }
                 }
                 else {
                     i2cBusState->state = I2C_STATE_W_ADDR;
@@ -390,7 +396,13 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
 
         case I2C_STATE_W_ADDR_WAIT:
             if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != ERROR) {
-                i2cBusState->state = I2C_STATE_W_REGISTER;
+                // Special no-address case, skip address byte transmission
+                if (i2cBusState->reg == 0xFF) {
+                    i2cBusState->state = I2C_STATE_W_TRANSFER;
+                }
+                else {
+                    i2cBusState->state = I2C_STATE_W_REGISTER;
+                }
             }
             else if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_AF) != RESET) {
                 i2cBusState->state = I2C_STATE_NACK;

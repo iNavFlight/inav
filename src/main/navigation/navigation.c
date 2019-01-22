@@ -1106,8 +1106,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
         const float rthAltitudeMargin = STATE(FIXED_WING) ?
-                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z)) :  // Airplane
-                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z));   // Copters
+                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z)) :  // Airplane
+                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z));   // Copters
 
         if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.homeWaypointAbove.pos.z) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
@@ -1504,6 +1504,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus();
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+            abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
     }
@@ -1666,7 +1667,7 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
             // Only allow integrator to shrink
-            if (ABS(newIntegrator) < ABS(pid->integrator)) {
+            if (fabsf(newIntegrator) < fabsf(pid->integrator)) {
                 pid->integrator = newIntegrator;
             }
         }
@@ -1899,20 +1900,49 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
 /*-----------------------------------------------------------
  * Calculates distance and bearing to destination point
  *-----------------------------------------------------------*/
+static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
+{
+    return sqrtf(sq(deltaX) + sq(deltaY));
+}
+
+static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
+{
+    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+}
+
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return sqrtf(sq(deltaX) + sq(deltaY));
+    return calculateDistanceFromDelta(deltaX, deltaY);
 }
 
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+    return calculateBearingFromDelta(deltaX, deltaY);
+}
+
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos)
+{
+    if (posControl.flags.estPosStatus == EST_NONE ||
+        posControl.flags.estHeadingStatus == EST_NONE) {
+
+        return false;
+    }
+
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
+
+    result->distance = calculateDistanceFromDelta(deltaX, deltaY);
+    result->bearing = calculateBearingFromDelta(deltaX, deltaY);
+    return true;
 }
 
 /*-----------------------------------------------------------
@@ -3150,8 +3180,10 @@ void activateForcedRTH(void)
 
 void abortForcedRTH(void)
 {
+    // Disable failsafe RTH and make sure we back out of navigation mode to IDLE
+    // If any navigation mode was active prior to RTH it will be re-enabled with next RX update
     posControl.flags.forcedRTHActivated = false;
-    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
 }
 
 rthState_e getStateOfForcedRTH(void)
@@ -3279,7 +3311,7 @@ void onNewGPSData(void)
         GPS_home.alt = gpsSol.llh.alt;
         GPS_distanceToHome = 0;
         GPS_directionToHome = 0;
-        GPS_scaleLonDown = cos_approx((ABS((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
+        GPS_scaleLonDown = cos_approx((fabsf((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
     }
 }
 

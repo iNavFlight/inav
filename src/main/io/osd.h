@@ -121,8 +121,10 @@ typedef enum {
     OSD_MC_VEL_Y_PID_OUTPUTS,
     OSD_MC_VEL_Z_PID_OUTPUTS,
     OSD_MC_POS_XYZ_P_OUTPUTS,
-    OSD_3D_SPEED,
-    OSD_TEMPERATURE,
+    OSD_3D_SPEED,       // 85
+    OSD_TEMPERATURE,    // 86
+    OSD_ALTITUDE_MSL,   // 87
+    OSD_PLUS_CODE,      // 88
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -179,6 +181,7 @@ typedef struct osdConfig_s {
     uint8_t coordinate_digits;
 
     bool osd_failsafe_switch_layout;
+    uint8_t plus_code_digits; // Number of digits to use in OSD_PLUS_CODE
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
@@ -188,6 +191,12 @@ void osdInit(struct displayPort_s *osdDisplayPort);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
 // Sets a fixed OSD layout ignoring the RC input. Set it
-// to -1 to disable the override.
-void osdOverrideLayout(int layout);
+// to -1 to disable the override. If layout is >= 0 and
+// duration is > 0, the override is automatically cleared by
+// the OSD after the given duration. Otherwise, the caller must
+// explicitely remove it.
+void osdOverrideLayout(int layout, timeMs_t duration);
+// Returns the current current layout as well as wether its
+// set by the user configuration (modes, etc..) or by overriding it.
+int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);

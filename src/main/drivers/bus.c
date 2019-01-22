@@ -356,6 +356,8 @@ void busSelectDevice(const busDevice_t * dev)
     if (dev->busType == BUSTYPE_SPI && (dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusSelectDevice(dev);
     }
+#else
+    UNUSED(dev);
 #endif
 }
 
@@ -365,6 +367,8 @@ void busDeselectDevice(const busDevice_t * dev)
     if (dev->busType == BUSTYPE_SPI && (dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusDeselectDevice(dev);
     }
+#else
+    UNUSED(dev);
 #endif
 }
 
@@ -375,6 +379,7 @@ bool busIsBusy(const busDevice_t * dev)
 #ifdef USE_SPI
             return spiBusIsBusy(dev);
 #else
+            UNUSED(dev);
             return false;
 #endif
 

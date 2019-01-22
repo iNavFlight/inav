@@ -1680,7 +1680,7 @@ void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data)
         blackboxWriteUnsignedVB(data->loggingResume.currentTimeUs);
         break;
     case FLIGHT_LOG_EVENT_IMU_FAILURE:
-        blackboxWrite(0);
+        blackboxWriteUnsignedVB(data->imuError.errorCode);
         break;
     case FLIGHT_LOG_EVENT_LOG_END:
         blackboxPrintf("End of log (disarm reason:%d)", getDisarmReason());
