@@ -50,6 +50,8 @@ typedef struct logicCondition_s {
     logicOperand_t operandB;
 } logicCondition_t;
 
+int logicConditionProcess(logicCondition_t *condition);
+
 int logicConditionCompute(
     logicOperation_e operation,
     int operandA,

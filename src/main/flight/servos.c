@@ -273,13 +273,8 @@ void servoMixer(float dT)
         /*
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
-        const int operation = currentServoMixer[i].condition.operation;
-        if (operation != LOGIC_CONDITION_TRUE) {
-            const int operandAValue = logicConditionGetOperandValue(currentServoMixer[i].condition.operandA.type, currentServoMixer[i].condition.operandA.value);
-            const int operandBValue = logicConditionGetOperandValue(currentServoMixer[i].condition.operandB.type, currentServoMixer[i].condition.operandB.value);
-            if (!logicConditionCompute(operation, operandAValue, operandBValue)) {
-                continue;
-            }
+        if (!logicConditionProcess(&currentServoMixer[i].condition)) {
+            continue;
         }
 
         const uint8_t target = currentServoMixer[i].targetChannel;

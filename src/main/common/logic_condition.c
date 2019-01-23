@@ -27,6 +27,12 @@
 #include "common/logic_condition.h"
 #include "rx/rx.h"
 
+int logicConditionProcess(logicCondition_t *condition) {
+    const int operandAValue = logicConditionGetOperandValue(condition->operandA.type, condition->operandA.value);
+    const int operandBValue = logicConditionGetOperandValue(condition->operandB.type, condition->operandB.value);
+    return logicConditionCompute(condition->operation, operandAValue, operandBValue);
+}
+
 int logicConditionCompute(
     logicOperation_e operation,
     int operandA,
