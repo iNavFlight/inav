@@ -90,6 +90,7 @@ typedef struct i2cBusState_s {
     uint32_t        timeout;
 
     /* Active transfer */
+    bool                        allowRawAccess;
     uint8_t                     addr;   // device address
     i2cTransferDirection_t      rw;     // direction
     uint8_t                     reg;    // register
@@ -153,7 +154,13 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
         case I2C_STATE_STARTING_WAIT:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_BUSY) == RESET) {
                 if (i2cBusState->rw == I2C_TXN_READ) {
-                    i2cBusState->state = I2C_STATE_R_ADDR;
+                    // Special case - no register address
+                    if (i2cBusState->reg == 0xFF && i2cBusState->allowRawAccess) {
+                        i2cBusState->state = I2C_STATE_R_RESTARTING;
+                    }
+                    else {
+                        i2cBusState->state = I2C_STATE_R_ADDR;
+                    }
                 }
                 else {
                     i2cBusState->state = I2C_STATE_W_ADDR;
@@ -233,10 +240,18 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const uint32_t currentT
 
         case I2C_STATE_W_ADDR:
             /* Configure slave address, nbytes, reload, end mode and start or stop generation */
-            I2C_TransferHandling(I2Cx, i2cBusState->addr, 1, I2C_Reload_Mode, I2C_Generate_Start_Write);
-            i2cBusState->state = I2C_STATE_W_ADDR_WAIT;
-            i2cBusState->timeout = currentTicks;
-            FALLTHROUGH;
+            if (i2cBusState->reg == 0xFF && i2cBusState->allowRawAccess) {
+                // Special no-address case, skip address byte transmission
+                I2C_TransferHandling(I2Cx, i2cBusState->addr, i2cBusState->len, I2C_AutoEnd_Mode, I2C_Generate_Start_Write);
+                i2cBusState->state = I2C_STATE_W_TRANSFER;
+                i2cBusState->timeout = currentTicks;
+            }
+            else {
+                I2C_TransferHandling(I2Cx, i2cBusState->addr, 1, I2C_Reload_Mode, I2C_Generate_Start_Write);
+                i2cBusState->state = I2C_STATE_W_ADDR_WAIT;
+                i2cBusState->timeout = currentTicks;
+            }
+            break;
 
         case I2C_STATE_W_ADDR_WAIT:
             if (I2C_GetFlagStatus(I2Cx, I2C_ISR_TXIS) != RESET) {
@@ -389,7 +404,7 @@ static void i2cWaitForCompletion(I2CDevice device)
     } while (busState[device].state != I2C_STATE_STOPPED);
 }
 
-bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data)
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data, bool allowRawAccess)
 {
     // Don't try to access the non-initialized device
     if (!busState[device].initialized)
@@ -403,6 +418,7 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, co
     busState[device].buf = CONST_CAST(uint8_t *, data);
     busState[device].txnOk = false;
     busState[device].state = I2C_STATE_STARTING;
+    busState[device].allowRawAccess = allowRawAccess;
 
     // Inject I2C_EVENT_START
     i2cWaitForCompletion(device);
@@ -410,13 +426,13 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, co
     return busState[device].txnOk;
 }
 
-bool i2cWrite(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t data)
+bool i2cWrite(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t data, bool allowRawAccess)
 {
-    return i2cWriteBuffer(device, addr, reg, 1, &data);
+    return i2cWriteBuffer(device, addr, reg, 1, &data, allowRawAccess);
 }
 
 
-bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t* buf)
+bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess)
 {
     // Don't try to access the non-initialized device
     if (!busState[device].initialized)
@@ -430,6 +446,7 @@ bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t* 
     busState[device].buf = buf;
     busState[device].txnOk = false;
     busState[device].state = I2C_STATE_STARTING;
+    busState[device].allowRawAccess = allowRawAccess;
 
     // Inject I2C_EVENT_START
     i2cWaitForCompletion(device);
