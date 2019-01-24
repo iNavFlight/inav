@@ -2293,7 +2293,7 @@ static void cliSet(char *cmdline)
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
                 } else {
-                    cliPrint("Invalid value.");
+                    cliPrint("Invalid value. ");
                     cliPrintVarRange(val);
                     cliPrintLinefeed();
                 }
