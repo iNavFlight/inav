@@ -102,7 +102,7 @@
 
 #define SYM_DIRECTION             0x72 // 114 to 121, directional little arrows
 
-//                                0x7A // 122 -
+#define SYM_HOME_NEAR             0x7A // 122 Home, near
 
 //                                0x7B // 123 to 125 ASCII
 
