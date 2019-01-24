@@ -134,6 +134,7 @@ typedef enum {
     OSD_TEMP_SENSOR_7_TEMPERATURE,
     OSD_ALTITUDE_MSL,
     OSD_PLUS_CODE,
+    OSD_SLOPE_TO_HOME,   // 98
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
