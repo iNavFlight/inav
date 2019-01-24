@@ -131,6 +131,14 @@
 #define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
 #define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
 
+#define OSD_SMARTCH_LIM_H1 7
+#define OSD_SMARTCH_LIM_H2 17
+#define OSD_SMARTCH_LIM_H3 40
+#define OSD_SMARTCH_LIM_V1 5
+#define OSD_SMARTCH_LIM_V2 10
+#define OSD_SMARTCH_LIM_V3 15
+#define OSD_SMARTCH_FOCUS 1
+
 #define OSD_MIN_FONT_VERSION 1
 
 static unsigned currentLayout = 0;
@@ -1626,7 +1634,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[1] = SYM_AH_CH_CENTER;
                 buff[2] = SYM_AH_CH_RIGHT;
                 buff[3] = '\0';
-                break;
+				break;
             case OSD_CROSSHAIRS_STYLE_AIRCRAFT:
                 buff[0] = SYM_AH_CH_AIRCRAFT0;
                 buff[1] = SYM_AH_CH_AIRCRAFT1;
@@ -1634,6 +1642,122 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[3] = SYM_AH_CH_AIRCRAFT3;
                 buff[4] = SYM_AH_CH_AIRCRAFT4;
                 buff[5] = '\0';
+                break;
+            case OSD_CROSSHAIRS_STYLE_CH_2:
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_2); // osdDrawSingleElement is limited to chars <256
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_2 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_2 + 2);
+                return true;
+                break;
+            case OSD_CROSSHAIRS_STYLE_CH_3:
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_3);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_3 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_3 + 2);
+                return true;
+                break;
+            case OSD_CROSSHAIRS_STYLE_CH_4:
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_4);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_4 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_4 + 2);
+                return true;
+                break;
+            case OSD_CROSSHAIRS_STYLE_CH_5:
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_5);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_5 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_5 + 2);
+                return true;
+                break;
+            case OSD_CROSSHAIRS_STYLE_CH_6:
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_6);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_6 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_6 + 2);
+                return true;
+                break;
+            case OSD_CROSSHAIRS_STYLE_SMART:
+                ;
+                int smartch_l = SYM_AH_SMART;
+                int smartch_r = SYM_AH_SMART+2;
+                int smartch_u = SYM_BLANK;
+                int smartch_d = SYM_BLANK;
+
+                if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+                    int smartch_curheading = DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    if (smartch_curheading >= 180) {
+                        smartch_curheading -= 360;
+                    }
+
+                    int smartch_diff_head = GPS_directionToHome - smartch_curheading;
+                    float smartch_focus_scale;
+
+                    switch ((osd_smartch_focus_e)osdConfig()->smartch_focus) {
+                        case OSD_SMARTCH_FOCUS_NARROW:
+                        smartch_focus_scale = 0.70;
+                        break;
+
+                        case OSD_SMARTCH_FOCUS_MEDIUM:
+                        smartch_focus_scale = 1;
+                        break;
+
+                        case OSD_SMARTCH_FOCUS_WIDE:
+                        smartch_focus_scale = 1.5;
+                        break;
+                        }
+
+                    int smartch_h1 = OSD_SMARTCH_LIM_H1 * smartch_focus_scale;
+                    int smartch_h2 = OSD_SMARTCH_LIM_H2 * smartch_focus_scale;
+                    int smartch_h3 = OSD_SMARTCH_LIM_H3 * smartch_focus_scale;
+
+                    if (smartch_diff_head > -smartch_h2 && smartch_diff_head <= -smartch_h1) {
+                        smartch_l = SYM_AH_SMART_L1;
+                    } else if (smartch_diff_head > -smartch_h3 && smartch_diff_head <= -smartch_h2) {
+                        smartch_l = SYM_AH_SMART_L2;
+                    } else if (smartch_diff_head <= -smartch_h3) {
+                        smartch_l = SYM_AH_SMART_L3;
+                    } else if (smartch_diff_head >= smartch_h1 && smartch_diff_head < smartch_h2) {
+                        smartch_r = SYM_AH_SMART_R1;
+                    } else if (smartch_diff_head >= smartch_h2 && smartch_diff_head < smartch_h3) {
+                        smartch_r = SYM_AH_SMART_R2;
+                    } else if (smartch_diff_head >= smartch_h3) {
+                        smartch_r = SYM_AH_SMART_R3;
+                    }
+
+                    if (ABS(smartch_diff_head) < 75) // Displaying the vertical indicator only when the aircraft is about facing the home point
+                        {
+                        int32_t smartch_altitude = osdGetAltitude() / 100;
+                        int32_t smartch_distance = GPS_distanceToHome;
+                        float smartch_home_angle = atan2_approx(smartch_altitude, smartch_distance);
+                        smartch_home_angle = RADIANS_TO_DEGREES(smartch_home_angle);
+                        int smartch_plane_angle = attitude.values.pitch / 10;
+                        int smartch_camera_angle = osdConfig()->camera_uptilt;
+
+                        int smartch_diff_vert = smartch_home_angle - smartch_plane_angle + smartch_camera_angle;
+
+                        int smartch_v1 = OSD_SMARTCH_LIM_V1 * smartch_focus_scale;
+                        int smartch_v2 = OSD_SMARTCH_LIM_V2 * smartch_focus_scale;
+                        int smartch_v3 = OSD_SMARTCH_LIM_V3 * smartch_focus_scale;
+                        
+                        if (smartch_diff_vert > -smartch_v2 && smartch_diff_vert <= -smartch_v1 ) {
+                            smartch_u = SYM_AH_SMART_U1;
+                        } else if (smartch_diff_vert > -smartch_v3 && smartch_diff_vert <= -smartch_v2) {
+                            smartch_u = SYM_AH_SMART_U2;
+                        } else if (smartch_diff_vert <= -smartch_v3) {
+                            smartch_u = SYM_AH_SMART_U3;
+                        } else if (smartch_diff_vert >= smartch_v1  && smartch_diff_vert < smartch_v2) {
+                            smartch_d = SYM_AH_SMART_D1;
+                        } else if (smartch_diff_vert >= smartch_v2 && smartch_diff_vert < smartch_v3) {
+                            smartch_d = SYM_AH_SMART_D2;
+                        } else if (smartch_diff_vert >= smartch_v3) {
+                            smartch_d = SYM_AH_SMART_D3;
+                        }
+                    }
+                }
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, smartch_l);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_SMART+1);
+                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, smartch_r);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY-1, smartch_u);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY+1, smartch_d);
+
+                return true;
                 break;
         }
         break;
@@ -2558,6 +2682,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->ahi_reverse_roll = 0;
     osdConfig->ahi_max_pitch = AH_MAX_PITCH_DEFAULT;
     osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
+    osdConfig->camera_uptilt = 0;
+    osdConfig->smartch_focus = OSD_SMARTCH_FOCUS_MEDIUM;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;

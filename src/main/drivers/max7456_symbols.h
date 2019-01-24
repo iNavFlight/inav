@@ -200,6 +200,26 @@
 #define SYM_LOGO_WIDTH            6
 #define SYM_LOGO_HEIGHT           4
 
+#define SYM_AH_CH_2                0x190 // 400 to 402, crosshair 2 diamond
+#define SYM_AH_CH_3                0x193 // 403 to 405, crosshair 3 X
+#define SYM_AH_CH_4                0x196 // 406 to 408, crosshair 4 Sniper
+#define SYM_AH_CH_5                0x199 // 409 to 411, crosshair 5 Square
+#define SYM_AH_CH_6                0x19C // 412 to 414, crosshair 6 Space
+#define SYM_AH_SMART               0x19F // 415 to 417, smart crosshair
+#define SYM_AH_SMART_L1            0x1A2 // 418 Smart crosshair
+#define SYM_AH_SMART_L2            0x1A3 // 419 Smart crosshair
+#define SYM_AH_SMART_L3            0x1A4 // 420 Smart crosshair
+#define SYM_AH_SMART_R1            0x1A5 // 421 Smart crosshair
+#define SYM_AH_SMART_R2            0x1A6 // 422 Smart crosshair
+#define SYM_AH_SMART_R3            0x1A7 // 423 Smart crosshair
+#define SYM_AH_SMART_U1            0x1A8 // 424 Smart crosshair
+#define SYM_AH_SMART_U2            0x1A9 // 425 Smart crosshair
+#define SYM_AH_SMART_U3            0x1AA // 426 Smart crosshair
+#define SYM_AH_SMART_D1            0x1AB // 427 Smart crosshair
+#define SYM_AH_SMART_D2            0x1AC // 428 Smart crosshair
+#define SYM_AH_SMART_D3            0x1AD // 429 Smart crosshair
+
+
 #define SYM_CURSOR SYM_AH_LEFT // Menu cursor
 
 #endif // USE_MAX7456
