@@ -1356,7 +1356,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_TRIP_DIST:
-        buff[0] = SYM_TRIP_DIST;
+        buff[0] = SYM_TOTAL;
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance());
         break;
 
