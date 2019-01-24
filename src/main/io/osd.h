@@ -177,6 +177,12 @@ typedef enum {
 } osd_crosshairs_style_e;
 
 typedef enum {
+    OSD_SMARTCH_FOCUS_NARROW,
+    OSD_SMARTCH_FOCUS_MEDIUM,
+    OSD_SMARTCH_FOCUS_WIDE,	
+} osd_smartch_focus_e;
+
+typedef enum {
     OSD_SIDEBAR_SCROLL_NONE,
     OSD_SIDEBAR_SCROLL_ALTITUDE,
     OSD_SIDEBAR_SCROLL_GROUND_SPEED,
