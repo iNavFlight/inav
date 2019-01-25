@@ -235,7 +235,7 @@
 #endif
 
 #if defined(USE_PITOT_MS4525) && defined(MS4525_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);    // Requires 0xFF to passthrough
 #endif
 
 
