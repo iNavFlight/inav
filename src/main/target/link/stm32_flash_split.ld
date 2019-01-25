@@ -49,6 +49,16 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH1
 
+  tcm_code = LOADADDR(.tcm_code); 
+  .tcm_code :
+  {
+    . = ALIGN(4);
+    tcm_code_start = .; 
+    *(.tcm_code)
+    *(.tcm_code*)
+    . = ALIGN(4);
+    tcm_code_end = .; 
+  } >ITCM_RAM
 
    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
     .ARM : {
