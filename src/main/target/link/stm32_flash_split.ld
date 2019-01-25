@@ -58,7 +58,7 @@ SECTIONS
     *(.tcm_code*)
     . = ALIGN(4);
     tcm_code_end = .; 
-  } >ITCM_RAM
+  } >ITCM_RAM AT >FLASH1
 
    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
     .ARM : {
