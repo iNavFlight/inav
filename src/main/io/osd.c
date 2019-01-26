@@ -1706,21 +1706,36 @@ static bool osdDrawSingleElement(uint8_t item)
                     int smartch_h2 = OSD_SMARTCH_LIM_H2 * smartch_focus_scale;
                     int smartch_h3 = OSD_SMARTCH_LIM_H3 * smartch_focus_scale;
 
-                    if (smartch_diff_head > -smartch_h2 && smartch_diff_head <= -smartch_h1) {
-                        smartch_l = SYM_AH_SMART_L1;
+					 if (smartch_diff_head <= -162 || smartch_diff_head >= 162) {
+                        smartch_l = SYM_AH_SMART_L3;
+                        smartch_r = SYM_AH_SMART_R3;
+                    } else if (smartch_diff_head > -162 && smartch_diff_head <= -126) {
+                        smartch_l = SYM_AH_SMART_L3;
+                        smartch_r = SYM_AH_SMART_R2;
+                    } else if (smartch_diff_head > -126 && smartch_diff_head <= -90) {
+                        smartch_l = SYM_AH_SMART_L3;
+                        smartch_r = SYM_AH_SMART_R1;
+                    } else if (smartch_diff_head > -90 && smartch_diff_head <= -smartch_h3) {
+                        smartch_l = SYM_AH_SMART_L3;
                     } else if (smartch_diff_head > -smartch_h3 && smartch_diff_head <= -smartch_h2) {
                         smartch_l = SYM_AH_SMART_L2;
-                    } else if (smartch_diff_head <= -smartch_h3) {
-                        smartch_l = SYM_AH_SMART_L3;
+                    } else if (smartch_diff_head > -smartch_h2 && smartch_diff_head <= -smartch_h1) {
+                        smartch_l = SYM_AH_SMART_L1;
                     } else if (smartch_diff_head >= smartch_h1 && smartch_diff_head < smartch_h2) {
                         smartch_r = SYM_AH_SMART_R1;
                     } else if (smartch_diff_head >= smartch_h2 && smartch_diff_head < smartch_h3) {
                         smartch_r = SYM_AH_SMART_R2;
-                    } else if (smartch_diff_head >= smartch_h3) {
+                    } else if (smartch_diff_head >= smartch_h3 && smartch_diff_head < 90) {
+                        smartch_r = SYM_AH_SMART_R3;
+                    } else if (smartch_diff_head >= 90 && smartch_diff_head < 126) {
+                        smartch_l = SYM_AH_SMART_L1;
+                        smartch_r = SYM_AH_SMART_R3;
+                    } else if (smartch_diff_head >= 126 && smartch_diff_head < 162) {
+                        smartch_l = SYM_AH_SMART_L2;
                         smartch_r = SYM_AH_SMART_R3;
                     }
 
-                    if (ABS(smartch_diff_head) < 75) // Displaying the vertical indicator only when the aircraft is about facing the home point
+                    if (ABS(smartch_diff_head) < 90) // Displaying the vertical indicator only when the aircraft is about facing the home point
                         {
                         int32_t smartch_altitude = osdGetAltitude() / 100;
                         int32_t smartch_distance = GPS_distanceToHome;
