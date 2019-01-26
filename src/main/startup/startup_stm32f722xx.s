@@ -134,6 +134,8 @@ LoopMarkHeapStack:
 	cmp	r2, r3
 	bcc	MarkHeapStack
 
+  bl CopyFastCode
+
 /* Call the clock system intitialization function.*/
   bl  SystemInit   
 /* Call static constructors */
