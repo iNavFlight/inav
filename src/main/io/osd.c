@@ -1705,8 +1705,8 @@ static bool osdDrawSingleElement(uint8_t item)
                     int smartch_h1 = OSD_SMARTCH_LIM_H1 * smartch_focus_scale;
                     int smartch_h2 = OSD_SMARTCH_LIM_H2 * smartch_focus_scale;
                     int smartch_h3 = OSD_SMARTCH_LIM_H3 * smartch_focus_scale;
-
-					 if (smartch_diff_head <= -162 || smartch_diff_head >= 162) {
+                    
+                    if (smartch_diff_head <= -162 || smartch_diff_head >= 162) {
                         smartch_l = SYM_AH_SMART_L3;
                         smartch_r = SYM_AH_SMART_R3;
                     } else if (smartch_diff_head > -162 && smartch_diff_head <= -126) {
