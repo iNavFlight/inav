@@ -1540,7 +1540,7 @@ static bool osdDrawSingleElement(uint8_t item)
             distanceMeters = calculateRemainingDistanceBeforeRTH(osdConfig()->estimations_wind_compensation);
             updatedTimestamp = currentTimeUs;
         }
-        buff[0] = SYM_TOTAL;
+        buff[0] = SYM_TRIP_DIST;
         if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
             buff[4] = SYM_DIST_M;
             buff[5] = '\0';
