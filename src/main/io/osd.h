@@ -182,8 +182,9 @@ typedef struct osdConfig_s {
     uint8_t ahi_reverse_roll;
     uint8_t ahi_max_pitch;
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
-	int8_t camera_uptilt;
-	uint8_t smartch_focus; // from osd_smartch_focus_e
+    int8_t camera_uptilt;
+    uint8_t smartch_focus; // from osd_smartch_focus_e
+    int8_t horizon_offset;
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;

@@ -1615,6 +1615,10 @@ groups:
         field: smartch_focus
         table: osd_smartch_focus
         type: uint8_t		
+      - name: osd_horizon_offset
+        field: horizon_offset
+        min: -2
+        max: 2
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll

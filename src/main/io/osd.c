@@ -781,21 +781,14 @@ static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *at
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
 }
 
-static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
+static void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 {
-    *x = 14 - 1; // Offset for 1 char to the left
+    *x = 14;
     *y = 6;
     if (IS_DISPLAY_PAL) {
         ++(*y);
     }
-    int size = 3;
-    if (osdConfig()->crosshairs_style == OSD_CROSSHAIRS_STYLE_AIRCRAFT) {
-        (*x)--;
-        size = 5;
-    }
-    if (length) {
-        *length = size;
-    }
+    *y += osdConfig()->horizon_offset;
 }
 
 /**
@@ -1626,15 +1619,18 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_CROSSHAIRS:
-        osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
+
+        osdCrosshairPosition(&elemPosX, &elemPosY);
         switch ((osd_crosshairs_style_e)osdConfig()->crosshairs_style) {
             case OSD_CROSSHAIRS_STYLE_DEFAULT:
+                elemPosX--;
                 buff[0] = SYM_AH_CH_LEFT;
                 buff[1] = SYM_AH_CH_CENTER;
                 buff[2] = SYM_AH_CH_RIGHT;
                 buff[3] = '\0';
 				break;
             case OSD_CROSSHAIRS_STYLE_AIRCRAFT:
+                elemPosX -= 2;			
                 buff[0] = SYM_AH_CH_AIRCRAFT0;
                 buff[1] = SYM_AH_CH_AIRCRAFT1;
                 buff[2] = SYM_AH_CH_AIRCRAFT2;
@@ -1643,33 +1639,33 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[5] = '\0';
                 break;
             case OSD_CROSSHAIRS_STYLE_CH_2:
-                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_2); // osdDrawSingleElement is limited to chars <256
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_2 + 1);
-                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_2 + 2);
+                displayWriteChar(osdDisplayPort, elemPosX-1, elemPosY, SYM_AH_CH_2); // osdDrawSingleElement is limited to chars <256
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_2 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_2 + 2);
                 return true;
                 break;
             case OSD_CROSSHAIRS_STYLE_CH_3:
-                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_3);
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_3 + 1);
-                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_3 + 2);
+                displayWriteChar(osdDisplayPort, elemPosX-1, elemPosY, SYM_AH_CH_3);
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_3 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_3 + 2);
                 return true;
                 break;
             case OSD_CROSSHAIRS_STYLE_CH_4:
-                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_4);
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_4 + 1);
-                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_4 + 2);
+                displayWriteChar(osdDisplayPort, elemPosX-1, elemPosY, SYM_AH_CH_4);
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_4 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_4 + 2);
                 return true;
                 break;
             case OSD_CROSSHAIRS_STYLE_CH_5:
-                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_5);
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_5 + 1);
-                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_5 + 2);
+                displayWriteChar(osdDisplayPort, elemPosX-1, elemPosY, SYM_AH_CH_5);
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_5 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_5 + 2);
                 return true;
                 break;
             case OSD_CROSSHAIRS_STYLE_CH_6:
-                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_6);
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_6 + 1);
-                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_AH_CH_6 + 2);
+                displayWriteChar(osdDisplayPort, elemPosX-1, elemPosY, SYM_AH_CH_6);
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_CH_6 + 1);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_CH_6 + 2);
                 return true;
                 break;
             case OSD_CROSSHAIRS_STYLE_SMART:
@@ -1680,12 +1676,16 @@ static bool osdDrawSingleElement(uint8_t item)
                 int smartch_d = SYM_BLANK;
 
                 if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
-                    int smartch_curheading = DECIDEGREES_TO_DEGREES(osdGetHeading());
-                    if (smartch_curheading >= 180) {
-                        smartch_curheading -= 360;
-                    }
 
-                    int smartch_diff_head = GPS_directionToHome - smartch_curheading;
+					int smartch_diff_head = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+					
+                    while (smartch_diff_head < -179) {
+                       smartch_diff_head += 360;
+                    }
+                    while (smartch_diff_head > 180) {
+                       smartch_diff_head -= 360;
+                    }
+					
                     float smartch_focus_scale;
 
                     switch ((osd_smartch_focus_e)osdConfig()->smartch_focus) {
@@ -1765,11 +1765,11 @@ static bool osdDrawSingleElement(uint8_t item)
                         }
                     }
                 }
-                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, smartch_l);
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_AH_SMART+1);
-                displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, smartch_r);
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY-1, smartch_u);
-                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY+1, smartch_d);
+                displayWriteChar(osdDisplayPort, elemPosX-1, elemPosY, smartch_l);
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_AH_SMART+1);
+                displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, smartch_r);
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY-1, smartch_u);
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY+1, smartch_d);
 
                 return true;
                 break;
@@ -1795,9 +1795,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-
-            elemPosX = 14;
-            elemPosY = 6; // Center of the AH area
+            osdCrosshairPosition(&elemPosX, &elemPosY);
 
             // Store the positions we draw over to erase only these at the next iteration
             static int8_t previous_written[AH_PREV_SIZE];
@@ -1810,10 +1808,6 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
-            }
-
-            if (IS_DISPLAY_PAL) {
-                ++elemPosY;
             }
 
             float ky = sin_approx(rollAngle);
@@ -1874,13 +1868,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HORIZON_SIDEBARS:
         {
-            elemPosX = 14;
-            elemPosY = 6;
-
-            if (IS_DISPLAY_PAL) {
-                ++elemPosY;
-            }
-
+            osdCrosshairPosition(&elemPosX, &elemPosY);
             static osd_sidebar_t left;
             static osd_sidebar_t right;
 
@@ -2698,6 +2686,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
     osdConfig->camera_uptilt = 0;
     osdConfig->smartch_focus = OSD_SMARTCH_FOCUS_MEDIUM;
+    osdConfig->horizon_offset = 0;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;
