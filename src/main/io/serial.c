@@ -115,7 +115,7 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
         serialConfig->portConfigs[i].peripheral_baudrateIndex = BAUD_115200;
     }
 
-    serialConfig->portConfigs[0].functionMask = FUNCTION_MSP;
+    serialConfig->portConfigs[0].functionMask = FUNCTION_MSP | FUNCTION_DEBUG_TRACE;
 
 #ifdef SERIALRX_UART
     serialPortConfig_t *serialRxUartConfig = serialFindPortConfiguration(SERIALRX_UART);
