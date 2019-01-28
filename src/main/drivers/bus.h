@@ -119,6 +119,9 @@ typedef enum {
     /* 1-wire interface chips */
     DEVHW_DS2482,
 
+    /* 1-wire interface chips */
+    DEVHW_DS2482,
+
     /* OSD chips */
     DEVHW_MAX7456,
 
