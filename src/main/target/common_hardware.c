@@ -186,6 +186,22 @@
 #endif
 #endif
 
+
+/** 1-Wire IF **/
+
+#ifdef USE_1WIRE
+
+#if defined(TEMPERATURE_I2C_BUS) && !defined(DS2482_I2C_BUS)
+    #define DS2482_I2C_BUS TEMPERATURE_I2C_BUS
+#endif
+
+#if defined(USE_1WIRE_DS2482) && defined(DS2482_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_ds2482,      DEVHW_DS2482,       DS2482_I2C_BUS,     0x18,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);
+#endif
+
+#endif
+
+
 /** TEMP SENSORS **/
 
 #if defined(TEMPERATURE_I2C_BUS) && !defined(LM75_I2C_BUS)

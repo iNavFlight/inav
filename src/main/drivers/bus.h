@@ -116,6 +116,9 @@ typedef enum {
     /* Temp sensor chips */
     DEVHW_LM75,
 
+    /* 1-wire interface chips */
+    DEVHW_DS2482,
+
     /* OSD chips */
     DEVHW_MAX7456,
 

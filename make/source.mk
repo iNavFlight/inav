@@ -54,6 +54,9 @@ COMMON_SRC = \
             drivers/system.c \
             drivers/timer.c \
             drivers/lights_io.c \
+            drivers/1-wire.c \
+            drivers/1-wire/ds_crc.c \
+            drivers/1-wire/ds2482.c \
             drivers/temperature/lm75.c \
             drivers/pitotmeter_ms4525.c \
             fc/cli.c \
