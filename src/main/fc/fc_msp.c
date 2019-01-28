@@ -2561,6 +2561,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
 
         break;
+
     case MSP2_INAV_OSD_SET_ALARMS:
         {
             sbufReadU8Safe(&osdConfigMutable()->rssi_alarm, src);
@@ -2572,18 +2573,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
 
         break;
+
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
-            sbufReadU8Safe(&osdConfigMutable()->video_system, src);
-            sbufReadU8Safe(&osdConfigMutable()->main_voltage_decimals, src);
-            sbufReadU8Safe(&osdConfigMutable()->ahi_reverse_roll, src);
-            sbufReadU8Safe(&osdConfigMutable()->crosshairs_style, src);
-            sbufReadU8Safe(&osdConfigMutable()->left_sidebar_scroll, src);
-            sbufReadU8Safe(&osdConfigMutable()->right_sidebar_scroll, src);
-            sbufReadU8Safe(&osdConfigMutable()->sidebar_scroll_arrows, src);
-            sbufReadU8Safe(&osdConfigMutable()->units, src);
-            sbufReadU8Safe(&osdConfigMutable()->stats_energy_unit, src);
-            osdStartFullRedraw();
+            if (dataSize == 9) {
+                osdConfigMutable()->video_system = sbufReadU8(src);
+                osdConfigMutable()->main_voltage_decimals = sbufReadU8(src);
+                osdConfigMutable()->ahi_reverse_roll = sbufReadU8(src);
+                osdConfigMutable()->crosshairs_style = sbufReadU8(src);
+                osdConfigMutable()->left_sidebar_scroll = sbufReadU8(src);
+                osdConfigMutable()->right_sidebar_scroll = sbufReadU8(src);
+                osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
+                osdConfigMutable()->units = sbufReadU8(src);
+                osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
+                osdStartFullRedraw();
+            } else
+                return MSP_RESULT_ERROR;
         }
 
         break;
@@ -2591,15 +2596,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_SET_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
-        navConfigMutable()->mc.braking_speed_threshold = sbufReadU16(src);
-        navConfigMutable()->mc.braking_disengage_speed = sbufReadU16(src);
-        navConfigMutable()->mc.braking_timeout = sbufReadU16(src);
-        navConfigMutable()->mc.braking_boost_factor = sbufReadU8(src);
-        navConfigMutable()->mc.braking_boost_timeout = sbufReadU16(src);
-        navConfigMutable()->mc.braking_boost_speed_threshold = sbufReadU16(src);
-        navConfigMutable()->mc.braking_boost_disengage_speed = sbufReadU16(src);
-        navConfigMutable()->mc.braking_bank_angle = sbufReadU8(src);
+        if (dataSize == 14) {
+            navConfigMutable()->mc.braking_speed_threshold = sbufReadU16(src);
+            navConfigMutable()->mc.braking_disengage_speed = sbufReadU16(src);
+            navConfigMutable()->mc.braking_timeout = sbufReadU16(src);
+            navConfigMutable()->mc.braking_boost_factor = sbufReadU8(src);
+            navConfigMutable()->mc.braking_boost_timeout = sbufReadU16(src);
+            navConfigMutable()->mc.braking_boost_speed_threshold = sbufReadU16(src);
+            navConfigMutable()->mc.braking_boost_disengage_speed = sbufReadU16(src);
+            navConfigMutable()->mc.braking_bank_angle = sbufReadU8(src);
+        } else
 #endif
+            return MSP_RESULT_ERROR;
         break;
 
     case MSP2_INAV_SELECT_BATTERY_PROFILE:
