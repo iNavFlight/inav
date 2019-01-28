@@ -20,4 +20,6 @@
 #include "drivers/io_types.h"
 #include "drivers/temperature/temperature.h"
 
-bool lm75Detect(temperatureDev_t * mag);
+#ifdef USE_TEMPERATURE_LM75
+bool lm75Detect(temperatureDev_t *tempDev, uint8_t partial_address);
+#endif

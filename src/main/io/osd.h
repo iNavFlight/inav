@@ -121,10 +121,19 @@ typedef enum {
     OSD_MC_VEL_Y_PID_OUTPUTS,
     OSD_MC_VEL_Z_PID_OUTPUTS,
     OSD_MC_POS_XYZ_P_OUTPUTS,
-    OSD_3D_SPEED,       // 85
-    OSD_TEMPERATURE,    // 86
-    OSD_ALTITUDE_MSL,   // 87
-    OSD_PLUS_CODE,      // 88
+    OSD_3D_SPEED,
+    OSD_MPU_TEMPERATURE,
+    OSD_BARO_TEMPERATURE,
+    OSD_TEMP_SENSOR_0_TEMPERATURE,
+    OSD_TEMP_SENSOR_1_TEMPERATURE,
+    OSD_TEMP_SENSOR_2_TEMPERATURE,
+    OSD_TEMP_SENSOR_3_TEMPERATURE,
+    OSD_TEMP_SENSOR_4_TEMPERATURE,
+    OSD_TEMP_SENSOR_5_TEMPERATURE,
+    OSD_TEMP_SENSOR_6_TEMPERATURE,
+    OSD_TEMP_SENSOR_7_TEMPERATURE,
+    OSD_ALTITUDE_MSL,
+    OSD_PLUS_CODE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -161,6 +170,12 @@ typedef struct osdConfig_s {
     uint16_t alt_alarm; // positive altitude in m
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
+    int16_t mpu_temp_alarm_min;
+    int16_t mpu_temp_alarm_max;
+#ifdef USE_BARO
+    int16_t baro_temp_alarm_min;
+    int16_t baro_temp_alarm_max;
+#endif
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;

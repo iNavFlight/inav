@@ -104,6 +104,7 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/opflow.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/telemetry.h"
 
@@ -1354,6 +1355,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+        sbufWriteU16(dst, osdConfig()->mpu_temp_alarm_min);
+        sbufWriteU16(dst, osdConfig()->mpu_temp_alarm_max);
+        sbufWriteU16(dst, osdConfig()->baro_temp_alarm_min);
+        sbufWriteU16(dst, osdConfig()->baro_temp_alarm_max);
         break;
 
     case MSP2_INAV_OSD_PREFERENCES:
@@ -1386,6 +1391,31 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->mc.braking_boost_speed_threshold);
         sbufWriteU16(dst, navConfig()->mc.braking_boost_disengage_speed);
         sbufWriteU8(dst, navConfig()->mc.braking_bank_angle);
+#endif
+        break;
+
+    case MSP2_INAV_TEMP_SENSOR_CONFIG:
+#ifdef USE_TEMPERATURE_SENSOR
+        for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
+            const tempSensorConfig_t *sensorConfig = tempSensorConfig(index);
+            sbufWriteU8(dst, sensorConfig->type);
+            for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+                sbufWriteU8(dst, ((uint8_t *)&sensorConfig->address)[addrIndex]);
+            for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+                sbufWriteU8(dst, sensorConfig->label[labelIndex]);
+            sbufWriteU16(dst, sensorConfig->alarm_min);
+            sbufWriteU16(dst, sensorConfig->alarm_max);
+        }
+#endif
+        break;
+
+    case MSP2_INAV_TEMPERATURES:
+#ifdef USE_TEMPERATURE_SENSOR
+        for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
+            int16_t temperature;
+            bool valid = getSensorTemperature(index, &temperature);
+            sbufWriteU16(dst, valid ? temperature : 0xFFFF);
+        }
 #endif
         break;
 
@@ -2571,12 +2601,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_ALARMS:
         {
-            sbufReadU8Safe(&osdConfigMutable()->rssi_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->time_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->alt_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->dist_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->neg_alt_alarm, src);
-            osdStartFullRedraw();
+            if (dataSize >= 17) {
+                osdConfigMutable()->rssi_alarm = sbufReadU8(src);
+                osdConfigMutable()->time_alarm = sbufReadU16(src);
+                osdConfigMutable()->alt_alarm = sbufReadU16(src);
+                osdConfigMutable()->dist_alarm = sbufReadU16(src);
+                osdConfigMutable()->neg_alt_alarm = sbufReadU16(src);
+                osdConfigMutable()->mpu_temp_alarm_min = sbufReadU16(src);
+                osdConfigMutable()->mpu_temp_alarm_max = sbufReadU16(src);
+                osdConfigMutable()->baro_temp_alarm_min = sbufReadU16(src);
+                osdConfigMutable()->baro_temp_alarm_max = sbufReadU16(src);
+            } else
+                return MSP_RESULT_ERROR;
         }
 
         break;
@@ -2623,6 +2659,25 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 setConfigBatteryProfileAndWriteEEPROM(tmp_u8);
         }
         break;
+
+    case MSP2_INAV_SET_TEMP_SENSOR_CONFIG:
+#ifdef USE_TEMPERATURE_SENSOR
+        if (dataSize >= sizeof(tempSensorConfig_t) * MAX_TEMP_SENSORS) {
+            for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
+                tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(index);
+                sensorConfig->type = sbufReadU8(src);
+                for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+                    ((uint8_t *)&sensorConfig->address)[addrIndex] = sbufReadU8(src);
+                for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+                    sensorConfig->label[labelIndex] = sbufReadU8(src);
+                sensorConfig->alarm_min = sbufReadU16(src);
+                sensorConfig->alarm_max = sbufReadU16(src);
+            }
+        } else
+#endif
+            return MSP_RESULT_ERROR;
+        break;
+
 
     default:
         return MSP_RESULT_ERROR;

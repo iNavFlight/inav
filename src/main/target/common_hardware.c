@@ -209,7 +209,14 @@
 #endif
 
 #if defined(USE_TEMPERATURE_LM75) && defined(LM75_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_lm75,        DEVHW_LM75,         LM75_I2C_BUS,       0x48,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_0,      DEVHW_LM75_0,         LM75_I2C_BUS,     0x48,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_1,      DEVHW_LM75_1,         LM75_I2C_BUS,     0x49,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_2,      DEVHW_LM75_2,         LM75_I2C_BUS,     0x4A,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_3,      DEVHW_LM75_3,         LM75_I2C_BUS,     0x4B,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_4,      DEVHW_LM75_4,         LM75_I2C_BUS,     0x4C,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_5,      DEVHW_LM75_5,         LM75_I2C_BUS,     0x4D,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_6,      DEVHW_LM75_6,         LM75_I2C_BUS,     0x4E,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_7,      DEVHW_LM75_7,         LM75_I2C_BUS,     0x4F,               NONE,           DEVFLAGS_NONE);
 #endif
 
 

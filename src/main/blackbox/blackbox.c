@@ -353,8 +353,20 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"temperature",           -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temperatureSource",     -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"MPU temperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+#ifdef USE_BARO
+    {"baro temperature",      -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    {"temp0 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temp1 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temp2 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temp3 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temp4 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temp5 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temp6 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"temp7 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+#endif
 };
 
 typedef enum BlackboxState {
@@ -453,8 +465,9 @@ typedef struct blackboxSlowState_s {
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
     int16_t wind[XYZ_AXIS_COUNT];
-    int16_t temperature;
-    uint8_t temperatureSource;
+    int16_t mpuTemperature;
+    int16_t baroTemperature;
+    int16_t tempSensorTemperature[MAX_TEMP_SENSORS];
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1042,8 +1055,10 @@ static void writeSlowFrame(void)
 
     blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
 
-    blackboxWriteSignedVB(slowHistory.temperature);
-    blackboxWriteUnsignedVB(slowHistory.temperatureSource);
+    blackboxWriteSignedVB(slowHistory.mpuTemperature);
+    blackboxWriteSignedVB(slowHistory.baroTemperature);
+
+    blackboxWriteSigned16VBArray(slowHistory.tempSensorTemperature, MAX_TEMP_SENSORS);
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1075,9 +1090,17 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #else
         slow->wind[i] = 0;
 #endif
+    }
 
-    slow->temperature = (int) getCurrentTemperature() * 10;
-    slow->temperatureSource = getCurrentTemperatureSensorUsed();
+    bool valid_temp;
+    valid_temp = getMPUTemperature(&slow->mpuTemperature);
+    if (!valid_temp) slow->mpuTemperature = 0xFFFF;
+    valid_temp = getBaroTemperature(&slow->baroTemperature);
+    if (!valid_temp) slow->baroTemperature = 0xFFFF;
+
+    for (uint8_t index; index < MAX_TEMP_SENSORS; ++index) {
+        valid_temp = getSensorTemperature(index, slow->tempSensorTemperature + index);
+        if (!valid_temp) slow->tempSensorTemperature[index] = 0xFFFF;
     }
 
 }

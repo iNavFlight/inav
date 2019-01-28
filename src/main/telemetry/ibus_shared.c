@@ -141,8 +141,12 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
     }
 #endif
     if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_TEMPERATURE) { //BARO_TEMP\GYRO_TEMP
-        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((DEGREES_TO_CENTIDEGREES(getCurrentTemperature()) + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t
-        else {
+        /*if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((DEGREES_TO_CENTIDEGREES(getCurrentTemperature()) + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t*/
+        if (sensors(SENSOR_BARO)) {
+            int16_t baroTemperature;
+            getBaroTemperature(&baroTemperature);
+            return sendIbusMeasurement2(address, (uint16_t) ((baroTemperature + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t // XXX
+        } else {
           /*
            * There is no temperature data
            * assuming ((DEGREES_TO_CENTIDEGREES(getCurrentTemperature()) + 50) / 10

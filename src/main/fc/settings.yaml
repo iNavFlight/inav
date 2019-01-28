@@ -1592,6 +1592,14 @@ groups:
         field: neg_alt_alarm
         min: 0
         max: 10000
+      - name: osd_mpu_temp_alarm_min
+        field: mpu_temp_alarm_min
+        min: -55
+        max: 125
+      - name: osd_mpu_temp_alarm_max
+        field: mpu_temp_alarm_max
+        min: -55
+        max: 125
 
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll
