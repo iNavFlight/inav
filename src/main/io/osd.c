@@ -1122,6 +1122,18 @@ static int16_t osdGet3DSpeed(void)
     return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
 }
 
+
+/**
+ * Converts a number between 0 and 200 into a single char symbol, by steps of 5.
+ * Rounding 2 down, 2 up . Require a compatible OSD font
+ */
+static uint16_t osdSmallNumber(uint16_t num)
+{
+	num = constrain(num, 0, 200) + 2;
+	num = SYM_SMALLNUMBERS + num / 5;
+    return num;
+}
+
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
