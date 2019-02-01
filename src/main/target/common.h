@@ -45,6 +45,10 @@
 #define SKIP_CLI_RESOURCES
 #endif
 
+#if defined(STM32F4) || defined(STM32F7)
+#define USE_USB_MSC
+#endif
+
 #define USE_ADC_AVERAGING
 #define USE_64BIT_TIME
 #define USE_BLACKBOX
