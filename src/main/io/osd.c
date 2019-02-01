@@ -1123,16 +1123,22 @@ static int16_t osdGet3DSpeed(void)
 }
 
 
-/**
- * Converts a number between 0 and 200 into a single char symbol, by steps of 5.
- * Rounding 2 down, 2 up . Require a compatible OSD font
- */
-static uint16_t osdSmallNumber(uint16_t num)
+/* Format a number between 0 and 209 as two-char, tequire a compatible OSD font
+ */ 
+static void osdFormatSmallNumber(uint16_t *smallnum, uint16_t num)
 {
-	num = constrain(num, 0, 200) + 2;
-	num = SYM_SMALLNUMBERS + num / 5;
-    return num;
-}
+    num = constrain(num, 0, 209);
+    uint16_t d = num / 10;
+    uint16_t u = SYM_SMALLNUMBERS + num  - d * 10;   
+    
+    if (d<1)
+        { d = SYM_BLANK; }
+    else
+        { d = SYM_SMALLNUMBERS + 10 + d; }
+    
+    smallnum[0] = d;
+    smallnum[1] = u;
+    }
 
 #endif
 
