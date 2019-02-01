@@ -143,7 +143,7 @@ static int8_t STORAGE_Init (uint8_t lun)
 {
 	UNUSED(lun);
 	LED0_OFF;
-	sdcard_init(false);
+	sdcard_init();
 	while (sdcard_poll() == 0);
 	LED0_ON;
 	return 0;
