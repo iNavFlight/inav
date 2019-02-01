@@ -45,14 +45,6 @@
 #define SKIP_CLI_RESOURCES
 #endif
 
-#ifdef STM32F7
-#define FAST_CODE                   __attribute__((section(".tcm_code")))
-#define NOINLINE                    __NOINLINE
-#else
-#define FAST_CODE
-#define NOINLINE
-#endif
-
 #define USE_ADC_AVERAGING
 #define USE_64BIT_TIME
 #define USE_BLACKBOX
