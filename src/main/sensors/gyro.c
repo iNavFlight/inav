@@ -349,7 +349,7 @@ void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired)
     gyroCalibration.calibratingG = calibrationCyclesRequired;
 }
 
-STATIC_UNIT_TESTED bool isCalibrationComplete(gyroCalibration_t *gyroCalibration)
+STATIC_UNIT_TESTED bool FAST_CODE NOINLINE isCalibrationComplete(gyroCalibration_t *gyroCalibration)
 {
     return gyroCalibration->calibratingG == 0;
 }
@@ -414,7 +414,7 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-void gyroUpdate()
+void FAST_CODE NOINLINE gyroUpdate()
 {
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev0.readFn(&gyroDev0)) {
