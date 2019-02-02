@@ -1355,10 +1355,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
-        sbufWriteU16(dst, osdConfig()->mpu_temp_alarm_min);
-        sbufWriteU16(dst, osdConfig()->mpu_temp_alarm_max);
+        sbufWriteU16(dst, osdConfig()->imu_temp_alarm_min);
+        sbufWriteU16(dst, osdConfig()->imu_temp_alarm_max);
+#ifdef USE_BARO
         sbufWriteU16(dst, osdConfig()->baro_temp_alarm_min);
         sbufWriteU16(dst, osdConfig()->baro_temp_alarm_max);
+#else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+#endif
         break;
 
     case MSP2_INAV_OSD_PREFERENCES:
@@ -1414,7 +1419,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
             int16_t temperature;
             bool valid = getSensorTemperature(index, &temperature);
-            sbufWriteU16(dst, valid ? temperature : 0xFFFF);
+            sbufWriteU16(dst, valid ? temperature : -1000);
         }
 #endif
         break;
@@ -2607,10 +2612,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->alt_alarm = sbufReadU16(src);
                 osdConfigMutable()->dist_alarm = sbufReadU16(src);
                 osdConfigMutable()->neg_alt_alarm = sbufReadU16(src);
-                osdConfigMutable()->mpu_temp_alarm_min = sbufReadU16(src);
-                osdConfigMutable()->mpu_temp_alarm_max = sbufReadU16(src);
+                osdConfigMutable()->imu_temp_alarm_min = sbufReadU16(src);
+                osdConfigMutable()->imu_temp_alarm_max = sbufReadU16(src);
+#ifdef USE_BARO
                 osdConfigMutable()->baro_temp_alarm_min = sbufReadU16(src);
                 osdConfigMutable()->baro_temp_alarm_max = sbufReadU16(src);
+#endif
             } else
                 return MSP_RESULT_ERROR;
         }
@@ -2662,7 +2669,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_SET_TEMP_SENSOR_CONFIG:
 #ifdef USE_TEMPERATURE_SENSOR
-        if (dataSize >= sizeof(tempSensorConfig_t) * MAX_TEMP_SENSORS) {
+        if (dataSize == sizeof(tempSensorConfig_t) * MAX_TEMP_SENSORS) {
             for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
                 tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(index);
                 sensorConfig->type = sbufReadU8(src);

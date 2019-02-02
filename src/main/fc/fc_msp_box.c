@@ -367,7 +367,8 @@ uint16_t packSensorStatus(void)
             IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
             IS_ENABLED(sensors(SENSOR_RANGEFINDER))   << 4 |
             IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
-            IS_ENABLED(sensors(SENSOR_PITOT))   << 6;
+            IS_ENABLED(sensors(SENSOR_PITOT))   << 6 |
+            IS_ENABLED(sensors(SENSOR_TEMP))   << 7;
 
     // Hardware failure indication bit
     if (!isHardwareHealthy()) {

@@ -122,7 +122,7 @@ typedef enum {
     OSD_MC_VEL_Z_PID_OUTPUTS,
     OSD_MC_POS_XYZ_P_OUTPUTS,
     OSD_3D_SPEED,
-    OSD_MPU_TEMPERATURE,
+    OSD_IMU_TEMPERATURE,
     OSD_BARO_TEMPERATURE,
     OSD_TEMP_SENSOR_0_TEMPERATURE,
     OSD_TEMP_SENSOR_1_TEMPERATURE,
@@ -170,8 +170,8 @@ typedef struct osdConfig_s {
     uint16_t alt_alarm; // positive altitude in m
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
-    int16_t mpu_temp_alarm_min;
-    int16_t mpu_temp_alarm_max;
+    int16_t imu_temp_alarm_min;
+    int16_t imu_temp_alarm_max;
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
     int16_t baro_temp_alarm_max;

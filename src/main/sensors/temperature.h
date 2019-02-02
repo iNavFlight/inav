@@ -24,8 +24,6 @@
 
 typedef enum {
     TEMP_SENSOR_NONE = 0,
-    TEMP_SENSOR_MPU,
-    TEMP_SENSOR_BARO,
     TEMP_SENSOR_LM75,
     TEMP_SENSOR_DS18B20
 } tempSensorType_e;
@@ -41,17 +39,17 @@ typedef struct {
 PG_DECLARE_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig);
 
 // Temperature is returned in degC*10
-bool getMPUTemperature(int16_t *temperature);
+bool getIMUTemperature(int16_t *temperature);
 bool getBaroTemperature(int16_t *temperature);
-bool getSensorTemperature(uint8_t sensorIndex, int16_t *temperature);
 void temperatureUpdate(void);
-
-void tempSensorAddressToString(uint64_t address, char *hex_address);
-bool tempSensorStringToAddress(const char *hex_address, uint64_t *address);
-//uint64_t tempSensorStringToAddress(const char *hex_address);
-
-void resetTempSensorConfig(void);
 
 #ifdef USE_TEMPERATURE_SENSOR
 void temperatureInit(void);
+
+bool getSensorTemperature(uint8_t sensorIndex, int16_t *temperature);
+
+void tempSensorAddressToString(uint64_t address, char *hex_address);
+bool tempSensorStringToAddress(const char *hex_address, uint64_t *address);
 #endif
+
+void resetTempSensorConfig(void);

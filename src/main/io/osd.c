@@ -2294,11 +2294,11 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_MPU_TEMPERATURE:
+    case OSD_IMU_TEMPERATURE:
         {
             int16_t temperature;
-            const bool valid = getMPUTemperature(&temperature);
-            osdDisplayTemperature(elemPosX, elemPosY, "MPU", valid, temperature, osdConfig()->mpu_temp_alarm_min, osdConfig()->mpu_temp_alarm_max);
+            const bool valid = getIMUTemperature(&temperature);
+            osdDisplayTemperature(elemPosX, elemPosY, "IMU", valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
             return true;
         }
 
@@ -2306,7 +2306,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int16_t temperature;
             const bool valid = getBaroTemperature(&temperature);
-            osdDisplayTemperature(elemPosX, elemPosY, "BARO", valid, temperature, osdConfig()->mpu_temp_alarm_min, osdConfig()->mpu_temp_alarm_max);
+            osdDisplayTemperature(elemPosX, elemPosY, "BARO", valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
             return true;
         }
 
@@ -2640,7 +2640,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 
     osdConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);
 
-    osdConfig->item_pos[0][OSD_MPU_TEMPERATURE] = OSD_POS(19, 2);
+    osdConfig->item_pos[0][OSD_IMU_TEMPERATURE] = OSD_POS(19, 2);
     osdConfig->item_pos[0][OSD_BARO_TEMPERATURE] = OSD_POS(19, 3);
     osdConfig->item_pos[0][OSD_TEMP_SENSOR_0_TEMPERATURE] = OSD_POS(19, 4);
     osdConfig->item_pos[0][OSD_TEMP_SENSOR_1_TEMPERATURE] = OSD_POS(19, 5);
@@ -2669,10 +2669,12 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->alt_alarm = 100;
     osdConfig->dist_alarm = 1000;
     osdConfig->neg_alt_alarm = 5;
-    osdConfig->mpu_temp_alarm_min = -200;
-    osdConfig->mpu_temp_alarm_max = 600;
+    osdConfig->imu_temp_alarm_min = -200;
+    osdConfig->imu_temp_alarm_max = 600;
+#ifdef USE_BARO
     osdConfig->baro_temp_alarm_min = -200;
     osdConfig->baro_temp_alarm_max = 600;
+#endif
 
     osdConfig->video_system = VIDEO_SYSTEM_AUTO;
 

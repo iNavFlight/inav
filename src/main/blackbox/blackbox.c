@@ -353,19 +353,19 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"MPU temperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"IMUTemperature",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
 #ifdef USE_BARO
-    {"baro temperature",      -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"baroTemperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
-    {"temp0 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temp1 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temp2 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temp3 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temp4 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temp5 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temp6 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temp7 temperature",     -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens0Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens1Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens2Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens3Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens4Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens5Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
 #endif
 };
 
@@ -465,9 +465,13 @@ typedef struct blackboxSlowState_s {
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
     int16_t wind[XYZ_AXIS_COUNT];
-    int16_t mpuTemperature;
+    int16_t imuTemperature;
+#ifdef USE_BARO
     int16_t baroTemperature;
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
     int16_t tempSensorTemperature[MAX_TEMP_SENSORS];
+#endif
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1055,10 +1059,15 @@ static void writeSlowFrame(void)
 
     blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
 
-    blackboxWriteSignedVB(slowHistory.mpuTemperature);
-    blackboxWriteSignedVB(slowHistory.baroTemperature);
+    blackboxWriteSignedVB(slowHistory.imuTemperature);
 
+#ifdef USE_BARO
+    blackboxWriteSignedVB(slowHistory.baroTemperature);
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
     blackboxWriteSigned16VBArray(slowHistory.tempSensorTemperature, MAX_TEMP_SENSORS);
+#endif
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1093,15 +1102,20 @@ static void loadSlowState(blackboxSlowState_t *slow)
     }
 
     bool valid_temp;
-    valid_temp = getMPUTemperature(&slow->mpuTemperature);
-    if (!valid_temp) slow->mpuTemperature = 0xFFFF;
+    valid_temp = getIMUTemperature(&slow->imuTemperature);
+    if (!valid_temp) slow->imuTemperature = 0xFFFF;
+
+#ifdef USE_BARO
     valid_temp = getBaroTemperature(&slow->baroTemperature);
     if (!valid_temp) slow->baroTemperature = 0xFFFF;
+#endif
 
+#ifdef USE_TEMPERATURE_SENSOR
     for (uint8_t index; index < MAX_TEMP_SENSORS; ++index) {
         valid_temp = getSensorTemperature(index, slow->tempSensorTemperature + index);
         if (!valid_temp) slow->tempSensorTemperature[index] = 0xFFFF;
     }
+#endif
 
 }
 

@@ -55,6 +55,7 @@ typedef enum {
     SENSOR_OPFLOW = 1 << 6,
     SENSOR_GPS = 1 << 7,
     SENSOR_GPSMAG = 1 << 8,
+    SENSOR_TEMP = 1 << 9
 } sensors_e;
 
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];

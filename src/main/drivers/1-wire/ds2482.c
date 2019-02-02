@@ -89,23 +89,20 @@ bool ds2482_write_config(_1WireDev_t *_1WireDev, uint8_t config)
     return busWrite(_1WireDev->busDev, DS2482_WRITE_CONFIG_CMD, DS2482_CONFIG_WRITE_BYTE(config));
 }
 
-bool ds2482_wait_for_bus(_1WireDev_t *_1WireDev)
+bool ds2482_poll(_1WireDev_t *_1WireDev, bool wait_for_bus, uint8_t *status)
 {
-    uint8_t status;
+    uint8_t status_temp;
     do {
-        bool ack = busRead(_1WireDev->busDev, 0xFF, &status);
+        bool ack = busRead(_1WireDev->busDev, 0xFF, &status_temp);
         if (!ack) return false;
-    } while (DS2482_1WIRE_BUSY(status));
+    } while (wait_for_bus && DS2482_1WIRE_BUSY(status_temp));
+    if (status) *status = status_temp;
     return true;
 }
 
-bool ds2482_poll(_1WireDev_t *_1WireDev, bool wait_for_bus, uint8_t *status)
+bool ds2482_wait_for_bus(_1WireDev_t *_1WireDev)
 {
-    do {
-        bool ack = busRead(_1WireDev->busDev, 0xFF, status);
-        if (!ack) return false;
-    } while (wait_for_bus && DS2482_1WIRE_BUSY(*status));
-    return true;
+    return ds2482_poll(_1WireDev, true, NULL);
 }
 
 bool ds2482_1wire_reset(_1WireDev_t *_1WireDev)
