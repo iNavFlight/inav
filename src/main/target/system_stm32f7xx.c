@@ -240,6 +240,17 @@
   * @{
   */
 
+void CopyFastCode(void)
+{
+#ifdef USE_ITCM_RAM
+    /* Load functions into ITCM RAM */
+    extern uint8_t tcm_code_start;
+    extern uint8_t tcm_code_end;
+    extern uint8_t tcm_code;
+    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
+#endif
+}
+
 /**
   * @brief  Setup the microcontroller system
   *         Initialize the Embedded Flash Interface, the PLL and update the
