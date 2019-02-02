@@ -93,7 +93,7 @@
 #define BLACKBOX_INTERVED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 1);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
@@ -1540,7 +1540,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("Firmware date", "%s %s",                buildDate, buildTime);
         BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime(buf));
         BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->name);
-        BLACKBOX_PRINT_HEADER_LINE("P interval", "%d/%d",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
+        BLACKBOX_PRINT_HEADER_LINE("P interval", "%u/%u",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
         BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     motorConfig()->minthrottle);
         BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     motorConfig()->maxthrottle);
         BLACKBOX_PRINT_HEADER_LINE("gyro_scale", "0x%x",                    castFloatBytesToInt(1.0f));
@@ -1949,18 +1949,18 @@ void blackboxInit(void)
         blackboxSetState(BLACKBOX_STATE_DISABLED);
     }
 
+    /* FIXME is this really necessary ? Why?  */
+    int max_denom = 4096*1000 / gyroConfig()->looptime;
+    if (blackboxConfig()->rate_denom > max_denom) {
+        blackboxConfigMutable()->rate_denom = max_denom;
+    }
     /* Decide on how ofter are we going to log I-frames*/
     if (blackboxConfig()->rate_denom <= 32) {
         blackboxIFrameInterval = 32;
     }
-    else if (blackboxConfig()->rate_denom <= 64) {
-        blackboxIFrameInterval = 64;
-    }
-    else if (blackboxConfig()->rate_denom <= 128) {
-        blackboxIFrameInterval = 128;
-    }
     else {
-        blackboxIFrameInterval = 256;
+            // Use next higher power of two via GCC builtin
+        blackboxIFrameInterval = 1 << (32 - __builtin_clz (blackboxConfig()->rate_denom - 1));
     }
 }
 #endif

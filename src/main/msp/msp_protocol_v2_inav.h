@@ -45,3 +45,6 @@
 #define MSP2_INAV_SELECT_BATTERY_PROFILE        0x2018
 
 #define MSP2_INAV_DEBUG                         0x2019
+
+#define MSP2_BLACKBOX_CONFIG                    0x201A
+#define MSP2_SET_BLACKBOX_CONFIG                0x201B

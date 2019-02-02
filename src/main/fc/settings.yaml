@@ -148,7 +148,7 @@ groups:
         field: gyro_soft_notch_cutoff_2
         condition: USE_GYRO_NOTCH_2
         min: 1
-        max: 500 
+        max: 500
       - name: gyro_stage2_lowpass_hz
         field: gyro_stage2_lowpass_hz
         condition: USE_GYRO_BIQUAD_RC_FIR2
@@ -396,11 +396,11 @@ groups:
       - name: blackbox_rate_num
         field: rate_num
         min: 1
-        max: 255
+        max: 65535
       - name: blackbox_rate_denom
         field: rate_denom
         min: 1
-        max: 255
+        max: 65535
       - name: blackbox_device
         field: device
         table: blackbox_device
@@ -1323,32 +1323,32 @@ groups:
         field: mc.braking_speed_threshold
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 1000   
+        max: 1000
       - name: nav_mc_braking_disengage_speed
         field: mc.braking_disengage_speed
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 1000  
+        max: 1000
       - name: nav_mc_braking_timeout
         field: mc.braking_timeout
         condition: USE_MR_BRAKING_MODE
         min: 100
-        max: 5000 
+        max: 5000
       - name: nav_mc_braking_boost_factor
         field: mc.braking_boost_factor
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 200  
+        max: 200
       - name: nav_mc_braking_boost_timeout
         field: mc.braking_boost_timeout
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 5000  
+        max: 5000
       - name: nav_mc_braking_boost_speed_threshold
         field: mc.braking_boost_speed_threshold
         condition: USE_MR_BRAKING_MODE
         min: 100
-        max: 1000  
+        max: 1000
       - name: nav_mc_braking_boost_disengage_speed
         field: mc.braking_boost_disengage_speed
         condition: USE_MR_BRAKING_MODE
@@ -1358,7 +1358,7 @@ groups:
         field: mc.braking_bank_angle
         condition: USE_MR_BRAKING_MODE
         min: 15
-        max: 60  
+        max: 60
       - name: nav_fw_cruise_thr
         field: fw.cruise_throttle
         min: 1000
@@ -1768,4 +1768,3 @@ groups:
         min: 0
         max: 255
         type: uint8_t
-
