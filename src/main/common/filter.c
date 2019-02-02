@@ -20,6 +20,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "platform.h"
+
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -58,7 +60,7 @@ float pt1FilterGetLastOutput(pt1Filter_t *filter) {
     return filter->state;
 }
 
-float pt1FilterApply(pt1Filter_t *filter, float input)
+float FAST_CODE NOINLINE pt1FilterApply(pt1Filter_t *filter, float input)
 {
     filter->state = filter->state + filter->dT / (filter->RC + filter->dT) * (input - filter->state);
     return filter->state;
@@ -198,7 +200,7 @@ void biquadFilterInit(biquadFilter_t *filter, uint16_t filterFreq, uint32_t samp
 }
 
 // Computes a biquad_t filter on a sample
-float biquadFilterApply(biquadFilter_t *filter, float input)
+float FAST_CODE NOINLINE biquadFilterApply(biquadFilter_t *filter, float input)
 {
     const float result = filter->b0 * input + filter->d1;
     filter->d1 = filter->b1 * input - filter->a1 * result + filter->d2;

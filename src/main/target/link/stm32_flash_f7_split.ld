@@ -50,7 +50,7 @@ SECTIONS
   } >FLASH1
 
   tcm_code = LOADADDR(.tcm_code); 
-  .tcm_code :
+  .tcm_code (NOLOAD) :
   {
     . = ALIGN(4);
     tcm_code_start = .; 

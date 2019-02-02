@@ -589,7 +589,7 @@ void imuCheckVibrationLevels(void)
     DEBUG_SET(DEBUG_VIBE, 3, accClipCount);
 }
 
-void imuUpdateAttitude(timeUs_t currentTimeUs)
+void FAST_CODE NOINLINE imuUpdateAttitude(timeUs_t currentTimeUs)
 {
     /* Calculate dT */
     static timeUs_t previousIMUUpdateTimeUs;

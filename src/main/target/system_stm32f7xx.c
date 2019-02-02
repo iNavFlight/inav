@@ -63,6 +63,7 @@
   * @{
   */
 
+#include <string.h>
 #include "stm32f7xx.h"
 
 #if !defined  (HSE_VALUE)
@@ -242,13 +243,11 @@
 
 void CopyFastCode(void)
 {
-#ifdef USE_ITCM_RAM
     /* Load functions into ITCM RAM */
     extern uint8_t tcm_code_start;
     extern uint8_t tcm_code_end;
     extern uint8_t tcm_code;
     memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
-#endif
 }
 
 /**
