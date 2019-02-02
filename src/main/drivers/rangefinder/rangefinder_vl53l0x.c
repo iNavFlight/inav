@@ -805,6 +805,9 @@ static void vl53l0x_Init(rangefinderDev_t * rangefinder)
     uint8_t byte;
     isInitialized = false;
 
+    // During init set timeout to a higher value
+    setTimeout(500);
+
     // VL53L0X_DataInit() begin
     // Switch sensor to 2.8V mode
     byte = readReg(rangefinder->busDev, VL53L0X_REG_VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV);
