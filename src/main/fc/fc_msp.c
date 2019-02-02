@@ -2096,10 +2096,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
 #ifdef USE_BLACKBOX
-    case MSP_SET_BLACKBOX_CONFIG:
-        return MSP_RESULT_ERROR;
-        break;
-
     case MSP2_SET_BLACKBOX_CONFIG:
         // Don't allow config to be updated while Blackbox is logging
         if ((dataSize >= 5) && blackboxMayEditConfig()) {
