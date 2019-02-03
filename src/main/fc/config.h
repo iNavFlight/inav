@@ -138,3 +138,5 @@ void resetConfigs(void);
 void targetConfiguration(void);
 
 uint32_t getLooptime(void);
+uint32_t getTargetPidInterval(void);
+int getPidSubtaskDenominator(void);

@@ -674,6 +674,9 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+    static uint32_t pidUpdateCounter = 0;
+    static timeUs_t lastPidSubtaskUs = 0;
+
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -737,11 +740,17 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         // FIXME: throttle pitch comp for FW
     }
 
-    // Update PID coefficients
-    updatePIDCoefficients(dT);
+    if (pidUpdateCounter++ % getPidSubtaskDenominator() == 0) {
+        float pidSubtaskdT = (float)(currentTimeUs - lastPidSubtaskUs) * 0.000001f * getPidSubtaskDenominator();
 
-    // Calculate stabilisation
-    pidController(dT);
+        // Update PID coefficients
+        updatePIDCoefficients(pidSubtaskdT);
+
+        // Calculate stabilisation
+        pidController(pidSubtaskdT);
+
+        lastPidSubtaskUs = currentTimeUs;
+    }
 
 #ifdef HIL
     if (hilActive) {

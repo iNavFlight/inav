@@ -165,6 +165,23 @@ uint32_t getLooptime(void) {
     return gyro.targetLooptime;
 } 
 
+uint32_t getTargetPidInterval(void) {
+    return gyro.targetLooptime * getPidSubtaskDenominator();
+} 
+
+int getPidSubtaskDenominator(void) {
+    static int denominator = 0;
+
+    if (denominator == 0) {
+        if (getLooptime() < 250) {
+            denominator = 2;
+        } else {
+            denominator = 1;
+        }
+    }
+    return denominator;
+}
+
 void validateAndFixConfig(void)
 {
 #ifdef USE_GYRO_NOTCH_1

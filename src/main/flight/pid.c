@@ -216,7 +216,7 @@ void pidInit(void)
 
 bool pidInitFilters(void)
 {
-    const uint32_t refreshRate = getLooptime();
+    const uint32_t refreshRate = getTargetPidInterval();
 
     if (refreshRate == 0) {
         return false;
@@ -243,7 +243,7 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (STATE(FIXED_WING) && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getLooptime() * 1e-6f);
+        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getTargetPidInterval() * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, motorConfig()->minthrottle);
     }
 }
