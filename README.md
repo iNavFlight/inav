@@ -32,7 +32,7 @@ For a list of features, changes and some discussion please review the thread on 
 
 ### INAV Configurator
 
-Official too for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
+Official tool for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
 
 ### INAV Blackbox Explorer
 
