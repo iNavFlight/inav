@@ -1107,7 +1107,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
         sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
         sbufWriteU8(dst, gyroConfig()->gyro_lpf);
-        sbufWriteU8(dst, pidProfile()->acc_soft_lpf_hz);
+        sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
@@ -1923,7 +1923,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
             mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
-            pidProfileMutable()->acc_soft_lpf_hz = sbufReadU8(src);
+            accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
