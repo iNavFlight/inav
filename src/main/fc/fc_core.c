@@ -738,10 +738,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
     // Update PID coefficients
-    updatePIDCoefficients();
+    updatePIDCoefficients(dT);
 
     // Calculate stabilisation
-    pidController();
+    pidController(dT);
 
 #ifdef HIL
     if (hilActive) {
