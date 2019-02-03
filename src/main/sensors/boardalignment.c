@@ -20,6 +20,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "platform.h"
+
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/axis.h"
