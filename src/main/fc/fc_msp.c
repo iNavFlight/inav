@@ -447,7 +447,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 255); // used to be forwardFromChannel, not used anymore, send 0xff for compatibility reasons
-            sbufWriteU32(dst, servoParams(i)->reversedSources);
+            sbufWriteU32(dst, 0); //Input reversing is not required since it can be done on mixer level
         }
         break;
     case MSP_SERVO_MIX_RULES:
@@ -787,8 +787,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         // output some useful QA statistics
         // debug[x] = ((hse_value / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
 
-        for (int i = 0; i < DEBUG16_VALUE_COUNT; i++) {
+        for (int i = 0; i < 4; i++) {
             sbufWriteU16(dst, debug[i]);      // 4 variables are here for general monitoring purpose
+        }
+        break;
+
+    case MSP2_INAV_DEBUG:
+        for (int i = 0; i < DEBUG32_VALUE_COUNT; i++) {
+            sbufWriteU32(dst, debug[i]);      // 8 variables are here for general monitoring purpose
         }
         break;
 
@@ -1101,7 +1107,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
         sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
         sbufWriteU8(dst, gyroConfig()->gyro_lpf);
-        sbufWriteU8(dst, pidProfile()->acc_soft_lpf_hz);
+        sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
@@ -1274,7 +1280,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#if defined(USE_VTX_COMMON)
     case MSP_VTX_CONFIG:
         {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -1303,7 +1308,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
-#endif
 
     case MSP_NAME:
         {
@@ -1757,7 +1761,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
-            servoParamsMutable(tmp_u8)->reversedSources = sbufReadU32(src);
+            sbufReadU32(src); // used to be reversedSources
             servoComputeScalingFactors(tmp_u8);
         }
         break;
@@ -1919,7 +1923,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
             mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
-            pidProfileMutable()->acc_soft_lpf_hz = sbufReadU8(src);
+            accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
@@ -2134,20 +2138,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_OSD_CHAR_WRITE:
 #ifdef USE_MAX7456
         if (dataSize >= 55) {
-            uint8_t font_data[64];
-            const uint8_t addr = sbufReadU8(src);
-            for (int i = 0; i < 54; i++) {
-                font_data[i] = sbufReadU8(src);
+            max7456Character_t chr;
+            uint16_t addr;
+            if (dataSize >= 56) {
+                addr = sbufReadU16(src);
+            } else {
+                addr = sbufReadU8(src);
+            }
+            for (unsigned ii = 0; ii < sizeof(chr.data); ii++) {
+                chr.data[ii] = sbufReadU8(src);
             }
             // !!TODO - replace this with a device independent implementation
-            max7456WriteNvm(addr, font_data);
+            max7456WriteNvm(addr, &chr);
         } else
             return MSP_RESULT_ERROR;
 #endif // USE_MAX7456
         break;
 #endif // USE_OSD
 
-#if defined(USE_VTX_COMMON)
     case MSP_SET_VTX_CONFIG:
         if (dataSize >= 2) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -2186,7 +2194,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
-#endif
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
@@ -2541,10 +2548,20 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if (!sbufReadU16Safe(&osdConfigMutable()->item_pos[layout][item], src)) {
                 return MSP_RESULT_ERROR;
             }
-            osdStartFullRedraw();
+            // If the layout is not already overriden and it's different
+            // than the layout for the item that was just configured,
+            // override it for 10 seconds.
+            bool overridden;
+            int activeLayout = osdGetActiveLayout(&overridden);
+            if (activeLayout != layout && !overridden) {
+                osdOverrideLayout(layout, 10000);
+            } else {
+                osdStartFullRedraw();
+            }
         }
 
         break;
+
     case MSP2_INAV_OSD_SET_ALARMS:
         {
             sbufReadU8Safe(&osdConfigMutable()->rssi_alarm, src);
@@ -2556,18 +2573,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
 
         break;
+
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
-            sbufReadU8Safe(&osdConfigMutable()->video_system, src);
-            sbufReadU8Safe(&osdConfigMutable()->main_voltage_decimals, src);
-            sbufReadU8Safe(&osdConfigMutable()->ahi_reverse_roll, src);
-            sbufReadU8Safe(&osdConfigMutable()->crosshairs_style, src);
-            sbufReadU8Safe(&osdConfigMutable()->left_sidebar_scroll, src);
-            sbufReadU8Safe(&osdConfigMutable()->right_sidebar_scroll, src);
-            sbufReadU8Safe(&osdConfigMutable()->sidebar_scroll_arrows, src);
-            sbufReadU8Safe(&osdConfigMutable()->units, src);
-            sbufReadU8Safe(&osdConfigMutable()->stats_energy_unit, src);
-            osdStartFullRedraw();
+            if (dataSize == 9) {
+                osdConfigMutable()->video_system = sbufReadU8(src);
+                osdConfigMutable()->main_voltage_decimals = sbufReadU8(src);
+                osdConfigMutable()->ahi_reverse_roll = sbufReadU8(src);
+                osdConfigMutable()->crosshairs_style = sbufReadU8(src);
+                osdConfigMutable()->left_sidebar_scroll = sbufReadU8(src);
+                osdConfigMutable()->right_sidebar_scroll = sbufReadU8(src);
+                osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
+                osdConfigMutable()->units = sbufReadU8(src);
+                osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
+                osdStartFullRedraw();
+            } else
+                return MSP_RESULT_ERROR;
         }
 
         break;
@@ -2575,15 +2596,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_SET_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
-        navConfigMutable()->mc.braking_speed_threshold = sbufReadU16(src);
-        navConfigMutable()->mc.braking_disengage_speed = sbufReadU16(src);
-        navConfigMutable()->mc.braking_timeout = sbufReadU16(src);
-        navConfigMutable()->mc.braking_boost_factor = sbufReadU8(src);
-        navConfigMutable()->mc.braking_boost_timeout = sbufReadU16(src);
-        navConfigMutable()->mc.braking_boost_speed_threshold = sbufReadU16(src);
-        navConfigMutable()->mc.braking_boost_disengage_speed = sbufReadU16(src);
-        navConfigMutable()->mc.braking_bank_angle = sbufReadU8(src);
+        if (dataSize == 14) {
+            navConfigMutable()->mc.braking_speed_threshold = sbufReadU16(src);
+            navConfigMutable()->mc.braking_disengage_speed = sbufReadU16(src);
+            navConfigMutable()->mc.braking_timeout = sbufReadU16(src);
+            navConfigMutable()->mc.braking_boost_factor = sbufReadU8(src);
+            navConfigMutable()->mc.braking_boost_timeout = sbufReadU16(src);
+            navConfigMutable()->mc.braking_boost_speed_threshold = sbufReadU16(src);
+            navConfigMutable()->mc.braking_boost_disengage_speed = sbufReadU16(src);
+            navConfigMutable()->mc.braking_bank_angle = sbufReadU8(src);
+        } else
 #endif
+            return MSP_RESULT_ERROR;
         break;
 
     case MSP2_INAV_SELECT_BATTERY_PROFILE:

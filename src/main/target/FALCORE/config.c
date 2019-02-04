@@ -49,7 +49,6 @@ void targetConfiguration(void)
     featureSet(FEATURE_TELEMETRY);
     featureSet(FEATURE_LED_STRIP);
     featureSet(FEATURE_BLACKBOX);
-    featureSet(FEATURE_AIRMODE);
 
     serialConfigMutable()->portConfigs[0].functionMask = FUNCTION_MSP;          // VCP
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_GPS;          // UART1

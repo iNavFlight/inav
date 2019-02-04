@@ -1106,8 +1106,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
         const float rthAltitudeMargin = STATE(FIXED_WING) ?
-                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z)) :  // Airplane
-                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z));   // Copters
+                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z)) :  // Airplane
+                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z));   // Copters
 
         if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.homeWaypointAbove.pos.z) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
@@ -1504,6 +1504,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus();
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+            abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
     }
@@ -1666,7 +1667,7 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
             // Only allow integrator to shrink
-            if (ABS(newIntegrator) < ABS(pid->integrator)) {
+            if (fabsf(newIntegrator) < fabsf(pid->integrator)) {
                 pid->integrator = newIntegrator;
             }
         }
@@ -1899,20 +1900,49 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
 /*-----------------------------------------------------------
  * Calculates distance and bearing to destination point
  *-----------------------------------------------------------*/
+static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
+{
+    return sqrtf(sq(deltaX) + sq(deltaY));
+}
+
+static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
+{
+    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+}
+
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return sqrtf(sq(deltaX) + sq(deltaY));
+    return calculateDistanceFromDelta(deltaX, deltaY);
 }
 
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+    return calculateBearingFromDelta(deltaX, deltaY);
+}
+
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos)
+{
+    if (posControl.flags.estPosStatus == EST_NONE ||
+        posControl.flags.estHeadingStatus == EST_NONE) {
+
+        return false;
+    }
+
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
+
+    result->distance = calculateDistanceFromDelta(deltaX, deltaY);
+    result->bearing = calculateBearingFromDelta(deltaX, deltaY);
+    return true;
 }
 
 /*-----------------------------------------------------------
@@ -1943,7 +1973,7 @@ bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWayp
 
 static void updateHomePositionCompatibility(void)
 {
-    geoConvertLocalToGeodetic(&posControl.gpsOrigin, &posControl.homePosition.pos, &GPS_home);
+    geoConvertLocalToGeodetic(&GPS_home, &posControl.gpsOrigin, &posControl.homePosition.pos);
     GPS_distanceToHome = posControl.homeDistance / 100;
     GPS_directionToHome = posControl.homeDirection / 100;
 }
@@ -2342,17 +2372,17 @@ static void resetPositionController(void)
 }
 
 
-static void processBrakingMode(const bool isAdjusting) 
+static void processBrakingMode(const bool isAdjusting)
 {
 #ifdef USE_MR_BRAKING_MODE
 
     static uint32_t brakingModeDisengageAt = 0;
     static uint32_t brakingBoostModeDisengageAt = 0;
 
-    const bool brakingEntryAllowed = 
+    const bool brakingEntryAllowed =
         IS_RC_MODE_ACTIVE(BOXBRAKING) &&
-        !STATE(NAV_CRUISE_BRAKING_LOCKED) && 
-        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold && 
+        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
+        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
         !isAdjusting &&
         navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
         navConfig()->mc.braking_speed_threshold > 0 &&
@@ -2422,6 +2452,8 @@ static void processBrakingMode(const bool isAdjusting)
             */
         setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
     }
+#else
+    UNUSED(isAdjusting);
 #endif
 }
 
@@ -2478,7 +2510,7 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
     else if (wpNumber == 255) {
         gpsLocation_t wpLLH;
 
-        geoConvertLocalToGeodetic(&posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos, &wpLLH);
+        geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &navGetCurrentActualPositionAndVelocity()->pos);
 
         wpData->lat = wpLLH.lat;
         wpData->lon = wpLLH.lon;
@@ -2505,7 +2537,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     // WP #0 - special waypoint - HOME
     if ((wpNumber == 0) && ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus >= EST_USABLE) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled) {
         // Forcibly set home position. Note that this is only valid if already armed, otherwise home will be reset instantly
-        geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos, GEO_ALT_RELATIVE);
+        geoConvertGeodeticToLocal(&wpPos.pos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
         setHomePosition(&wpPos.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, NAV_HOME_VALID_ALL);
     }
     // WP #255 - special waypoint - directly set desiredPosition
@@ -2514,7 +2546,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
              ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus == EST_TRUSTED) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
              (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
         // Convert to local coordinates
-        geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, &wpPos.pos, GEO_ALT_RELATIVE);
+        geoConvertGeodeticToLocal(&wpPos.pos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
 
         navSetWaypointFlags_t waypointUpdateFlags = NAV_POS_UPDATE_XY;
 
@@ -2609,7 +2641,7 @@ static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint
     wpLLH.lon = waypoint->lon;
     wpLLH.alt = waypoint->alt;
 
-    geoConvertGeodeticToLocal(&posControl.gpsOrigin, &wpLLH, localPos, GEO_ALT_RELATIVE);
+    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
 }
 
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
@@ -3148,8 +3180,10 @@ void activateForcedRTH(void)
 
 void abortForcedRTH(void)
 {
+    // Disable failsafe RTH and make sure we back out of navigation mode to IDLE
+    // If any navigation mode was active prior to RTH it will be re-enabled with next RX update
     posControl.flags.forcedRTHActivated = false;
-    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
 }
 
 rthState_e getStateOfForcedRTH(void)
@@ -3277,7 +3311,7 @@ void onNewGPSData(void)
         GPS_home.alt = gpsSol.llh.alt;
         GPS_distanceToHome = 0;
         GPS_directionToHome = 0;
-        GPS_scaleLonDown = cos_approx((ABS((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
+        GPS_scaleLonDown = cos_approx((fabsf((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
     }
 }
 

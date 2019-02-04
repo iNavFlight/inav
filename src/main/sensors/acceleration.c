@@ -513,6 +513,7 @@ void accUpdate(void)
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accADC[axis] = acc.dev.ADCRaw[axis];
+        DEBUG_SET(DEBUG_ACC, axis, accADC[axis]);
     }
 
     if (!accIsCalibrationComplete()) {
@@ -531,7 +532,7 @@ void accUpdate(void)
     }
 
     // Before filtering check for clipping and vibration levels
-    if (ABS(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || ABS(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
+    if (fabsf(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
         acc.accClipCount++;
     }
 

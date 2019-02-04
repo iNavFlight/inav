@@ -63,13 +63,10 @@ serialPort_t *debugSerialPort = NULL;
 
 static serialPort_t *smartAudioSerialPort = NULL;
 
-#if defined(USE_CMS) || defined(USE_VTX_COMMON)
 const char * const saPowerNames[VTX_SMARTAUDIO_POWER_COUNT+1] = {
     "---", "25 ", "200", "500", "800",
 };
-#endif
 
-#ifdef USE_VTX_COMMON
 static const vtxVTable_t saVTable;    // Forward
 static vtxDevice_t vtxSmartAudio = {
     .vTable = &saVTable,
@@ -80,7 +77,6 @@ static vtxDevice_t vtxSmartAudio = {
     .channelNames = (char **)vtx58ChannelNames,
     .powerNames = (char **)saPowerNames,
 };
-#endif
 
 // SmartAudio command and response codes
 enum {
@@ -339,10 +335,6 @@ static void saProcessResponse(uint8_t *buf, int len)
 #endif
     }
     saDevicePrev = saDevice;
-
-#ifdef USE_VTX_COMMON
-    // Todo: Update states in saVtxDevice?
-#endif
 
 #ifdef USE_CMS
     // Export current device status for CMS
@@ -671,12 +663,7 @@ bool vtxSmartAudioInit(void)
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_SMARTAUDIO);
     if (portConfig) {
         portOptions_t portOptions = SERIAL_BIDIR_NOPULL;
-#if defined(USE_VTX_COMMON)
         portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR | SERIAL_BIDIR_PP : SERIAL_UNIDIR);
-#else
-        portOptions = SERIAL_BIDIR;
-#endif
-
         smartAudioSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_SMARTAUDIO, NULL, NULL, 4800, MODE_RXTX, portOptions);
     }
 
@@ -766,7 +753,6 @@ static void vtxSAProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
     }
 }
 
-#ifdef USE_VTX_COMMON
 // Interface to common VTX API
 
 vtxDevType_e vtxSAGetDeviceType(const vtxDevice_t *vtxDevice)
@@ -893,7 +879,6 @@ static const vtxVTable_t saVTable = {
     .getPitMode = vtxSAGetPitMode,
     .getFrequency = vtxSAGetFreq,
 };
-#endif // VTX_COMMON
 
 
 #endif // VTX_SMARTAUDIO

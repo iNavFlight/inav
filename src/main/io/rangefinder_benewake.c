@@ -77,21 +77,20 @@ static bool benewakeRangefinderDetect(void)
 static void benewakeRangefinderInit(void)
 {
     if (!portConfig) {
-        return false;
+        return;
     }
 
     serialPort = openSerialPort(portConfig->identifier, FUNCTION_RANGEFINDER, NULL, NULL, baudRates[BAUD_115200], MODE_RX, SERIAL_NOT_INVERTED);
     if (!serialPort) {
-        return false;
+        return;
     }
 
     bufferPtr = 0;
-
-    return true;
 }
 
 static void benewakeRangefinderUpdate(void)
 {
+    tfminiPacket_t *tfminiPacket = (tfminiPacket_t *)buffer;
     while (serialRxBytesWaiting(serialPort) > 0) {
         uint8_t c = serialRead(serialPort);
 
@@ -101,12 +100,12 @@ static void benewakeRangefinderUpdate(void)
         }
 
         // Check header bytes
-        if ((bufferPtr == 1) && (((tfminiPacket_t *) &buffer[0])->header0 != 0x59)) {
+        if ((bufferPtr == 1) && (tfminiPacket->header0 != 0x59)) {
             bufferPtr = 0;
             continue;
         }
 
-        if ((bufferPtr == 2) && (((tfminiPacket_t *) &buffer[0])->header1 != 0x59)) {
+        if ((bufferPtr == 2) && (tfminiPacket->header1 != 0x59)) {
             bufferPtr = 0;
             continue;
         }
@@ -114,14 +113,12 @@ static void benewakeRangefinderUpdate(void)
         // Check for complete packet
         if (bufferPtr == BENEWAKE_PACKET_SIZE) {
             const uint8_t checksum = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6] + buffer[7];
-            if (((tfminiPacket_t *) &buffer[0])->checksum == checksum) {
+            if (tfminiPacket->checksum == checksum) {
                 // Valid packet
                 hasNewData = true;
-                sensorData = (((tfminiPacket_t *) &buffer[0])->distL << 0) | 
-                             (((tfminiPacket_t *) &buffer[0])->distH << 8);
+                sensorData = (tfminiPacket->distL << 0) | (tfminiPacket->distH << 8);
 
-                uint16_t qual = (((tfminiPacket_t *) &buffer[0])->strengthL << 0) |
-                                (((tfminiPacket_t *) &buffer[0])->strengthH << 8);
+                uint16_t qual = (tfminiPacket->strengthL << 0) | (tfminiPacket->strengthH << 8);
 
                 if (sensorData == 0 || qual <= BENEWAKE_MIN_QUALITY) {
                     sensorData = -1;

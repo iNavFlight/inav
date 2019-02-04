@@ -280,7 +280,7 @@ static void performBaroCalibrationCycle(void)
     const float baroGroundPressureError = baro.baroPressure - baroGroundPressure;
     baroGroundPressure += baroGroundPressureError * 0.15f;
 
-    if (ABS(baroGroundPressureError) < (baroGroundPressure * 0.00005f)) {    // 0.005% calibration error (should give c. 10cm calibration error)
+    if (fabsf(baroGroundPressureError) < (baroGroundPressure * 0.00005f)) {    // 0.005% calibration error (should give c. 10cm calibration error)
         if ((millis() - baroCalibrationTimeout) > 250) {
             baroGroundAltitude = pressureToAltitude(baroGroundPressure);
             baroCalibrationFinished = true;

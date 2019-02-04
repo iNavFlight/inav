@@ -70,7 +70,7 @@ typedef struct {
 
 #ifdef USE_DSHOT
     // DSHOT parameters
-    uint32_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
+    uint32_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE] __attribute__ ((aligned (4)));
 #endif
 } pwmOutputPort_t;
 
@@ -266,8 +266,11 @@ static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
     return packet;
 }
 
-void pwmCompleteDshotUpdate(uint8_t motorCount, timeUs_t currentTimeUs)
+void pwmCompleteDshotUpdate(uint8_t motorCount)
 {
+    // Get latest REAL time
+    timeUs_t currentTimeUs = micros();
+
     // Enforce motor update rate
     if (!isProtocolDshot || (dshotMotorUpdateIntervalUs == 0) || ((currentTimeUs - dshotMotorLastUpdateUs) <= dshotMotorUpdateIntervalUs)) {
         return;

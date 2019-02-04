@@ -35,11 +35,11 @@
 
 extern uint32_t timerClock(TIM_TypeDef *tim);
 
-const uint16_t lookupDMAIndexTable[] = { TIM_DMA_ID_CC1, TIM_DMA_ID_CC2, TIM_DMA_ID_CC3, TIM_DMA_ID_CC4 };
 const uint16_t lookupDMASourceTable[] = { TIM_DMA_CC1, TIM_DMA_CC2, TIM_DMA_CC3, TIM_DMA_CC4 };
 const uint8_t lookupTIMChannelTable[] = { TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4 };
 
-static const uint16_t lookupDMALLStreamTable[] = { LL_DMA_STREAM_0, LL_DMA_STREAM_1, LL_DMA_STREAM_2, LL_DMA_STREAM_3, LL_DMA_STREAM_4, LL_DMA_STREAM_5, LL_DMA_STREAM_6, LL_DMA_STREAM_7 };
+static const uint32_t lookupDMALLStreamTable[] = { LL_DMA_STREAM_0, LL_DMA_STREAM_1, LL_DMA_STREAM_2, LL_DMA_STREAM_3, LL_DMA_STREAM_4, LL_DMA_STREAM_5, LL_DMA_STREAM_6, LL_DMA_STREAM_7 };
+static const uint32_t lookupDMALLChannelTable[] = { LL_DMA_CHANNEL_0, LL_DMA_CHANNEL_1, LL_DMA_CHANNEL_2, LL_DMA_CHANNEL_3, LL_DMA_CHANNEL_4, LL_DMA_CHANNEL_5, LL_DMA_CHANNEL_6, LL_DMA_CHANNEL_7 };
 
 static TIM_HandleTypeDef timerHandle[HARDWARE_TIMER_DEFINITION_COUNT];
 
@@ -289,8 +289,6 @@ void impl_timerChCaptureCompareEnable(TCH_t * tch, bool enable)
     else {
         LL_TIM_CC_DisableChannel(tch->timHw->tim, lookupTIMLLChannelTable[tch->timHw->channelIndex]);
     }
-
-    //TIM_CCxChannelCmd(tch->timHw->tim, lookupTIMChannelTable[tch->timHw->channelIndex], (enable ? TIM_CCx_ENABLE : TIM_CCx_DISABLE));
 }
 
 // HAL_LL additionan implementation for enabling multiple DMA channels in one operation
@@ -308,9 +306,13 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 {
     if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
         TCH_t * tch = (TCH_t *)descriptor->userParam;
-        tch->dmaState = TCH_DMA_IDLE;
 
-        LL_DMA_DisableStream(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->dma->tag)]);
+        // If it was ACTIVE - switch to IDLE
+        if (tch->dmaState == TCH_DMA_ACTIVE) {
+            tch->dmaState = TCH_DMA_IDLE;
+        }
+
+        LL_DMA_DisableStream(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)]);
         LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
 
         DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
@@ -319,8 +321,6 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 
 bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)
 {
-    (void)dmaBufferSize;
-
     tch->dma = dmaGetByTag(tch->timHw->dmaTag);
     tch->dmaBuffer = dmaBuffer;
     if (tch->dma == NULL) {
@@ -328,21 +328,22 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
     }
 
     // If DMA is already in use - abort
-    if (tch->dma->owner != OWNER_FREE) {
+    if (dmaGetOwner(tch->dma) != OWNER_FREE) {
         return false;
     }
 
     // We assume that timer channels are already initialized by calls to:
     //  timerConfigBase
     //  timerPWMConfigChannel
+    const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
+    const uint32_t channelLL = lookupDMALLChannelTable[DMATAG_GET_CHANNEL(tch->timHw->dmaTag)];
 
-    LL_DMA_DeInit(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->dma->tag)]);
+    LL_DMA_DeInit(tch->dma->dma, streamLL);
 
     LL_DMA_InitTypeDef init;
     LL_DMA_StructInit(&init);
 
-    init.Channel = dmaGetChannelByTag(tch->timHw->dmaTag);
-
+    init.Channel = channelLL;
     init.PeriphOrM2MSrcAddress = (uint32_t)impl_timerCCR(tch);
     init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
     init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
@@ -353,15 +354,15 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
     init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
     init.Mode = LL_DMA_MODE_NORMAL;
     init.Priority = LL_DMA_PRIORITY_HIGH;
-    init.FIFOMode = DMA_FIFOMODE_DISABLE;
-    init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-    init.MemBurst = DMA_MBURST_SINGLE;
-    init.PeriphBurst = DMA_PBURST_SINGLE;
+    init.FIFOMode = LL_DMA_FIFOMODE_ENABLE;
+    init.FIFOThreshold = LL_DMA_FIFOTHRESHOLD_FULL;
+    init.MemBurst = LL_DMA_MBURST_SINGLE;
+    init.PeriphBurst = LL_DMA_PBURST_SINGLE;
 
     dmaInit(tch->dma, OWNER_TIMER, 0);
     dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_WS2811_DMA, (uint32_t)tch);
 
-    LL_DMA_Init(tch->dma->dma, lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->dma->tag)], &init);
+    LL_DMA_Init(tch->dma->dma, streamLL, &init);
 
     // Start PWM generation
     if (tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
@@ -376,16 +377,23 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
 
 void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
 {
-    const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->dma->tag)];
+    const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
     DMA_TypeDef * dmaBase = tch->dma->dma;
 
-    tch->dmaState = TCH_DMA_READY;
+    // Make sure we terminate any DMA transaction currently in progress
+    // Clear the flag as well, so even if DMA transfer finishes while within ATOMIC_BLOCK
+    // the resulting IRQ won't mess up the DMA state
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+        LL_DMA_DisableStream(dmaBase, streamLL);
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+    }
 
-    LL_DMA_DisableStream(dmaBase, streamLL);
     LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferSize);
     LL_DMA_ConfigAddresses(dmaBase, streamLL, (uint32_t)tch->dmaBuffer, (uint32_t)impl_timerCCR(tch), LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
     LL_DMA_EnableStream(dmaBase, streamLL);
+    tch->dmaState = TCH_DMA_READY;
 }
 
 void impl_timerPWMStartDMA(TCH_t * tch)
@@ -414,8 +422,8 @@ void impl_timerPWMStartDMA(TCH_t * tch)
     }
 
     if (dmaSources) {
-        LL_TIM_SetCounter(tch->timHw->tim, 0);
-        LL_TIM_EnableDMAReq_CCx(tch->timHw->tim, dmaSources);
+        LL_TIM_SetCounter(timCtx->timDef->tim, 0);
+        LL_TIM_EnableDMAReq_CCx(timCtx->timDef->tim, dmaSources);
     }
 }
 

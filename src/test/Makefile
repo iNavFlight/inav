@@ -730,6 +730,26 @@ $(OBJECT_DIR)/bitarray_unittest : \
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
 
+$(OBJECT_DIR)/common/olc.o : $(USER_DIR)/common/olc.c $(USER_DIR)/common/olc.h $(GTEST_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/olc.c -o $@
+
+$(OBJECT_DIR)/olc_unittest.o : \
+	$(TEST_DIR)/olc_unittest.cc \
+	$(USER_DIR)/common/olc.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/olc_unittest.cc -o $@
+
+$(OBJECT_DIR)/olc_unittest : \
+	$(OBJECT_DIR)/common/olc.o \
+	$(OBJECT_DIR)/olc_unittest.o \
+	$(OBJECT_DIR)/gtest_main.a
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
+
 
 test: $(TESTS:%=test-%)
 

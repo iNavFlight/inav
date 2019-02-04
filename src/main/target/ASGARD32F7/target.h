@@ -57,6 +57,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_BARO
 
 #define USE_BARO_BMP280
@@ -142,6 +144,9 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
+#define USE_LED_STRIP
+#define WS2811_PIN                      PA2
+
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
 
 #define DEFAULT_FEATURES                (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD | FEATURE_SOFTSERIAL | FEATURE_TELEMETRY)
@@ -152,9 +157,6 @@
 #undef USE_RX_PWM
 #undef USE_RX_PPM
 
-// Pitot not supported
-#undef USE_PITOT
-
 // Set default UARTs
 #define TELEMETRY_UART                  SERIAL_PORT_SOFTSERIAL1
 #define SERIALRX_UART                   SERIAL_PORT_USART1
@@ -163,6 +165,7 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
+#define USE_DSHOT
 #define MAX_PWM_OUTPUT_PORTS    4
 #define TARGET_MOTOR_COUNT      4
 
@@ -172,3 +175,4 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C2

@@ -20,10 +20,16 @@
 
 #include "platform.h"
 
+#include "build/debug.h"
+
 #include "common/maths.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
+
+#include "drivers/logging.h"
+#include "drivers/temperature/temperature.h"
+#include "drivers/temperature/lm75.h"
 
 #include "fc/runtime_config.h"
 
@@ -34,6 +40,18 @@
 
 static int16_t  tempSensorValue[TEMP_COUNT];
 static tempSensor_e tempSensorValid;
+
+#ifdef USE_TEMPERATURE_SENSOR
+
+static bool lm75Detected = false;
+temperatureDev_t temperatureDev;
+
+void temperatureInit(void)
+{
+    addBootlogEvent2(BOOT_EVENT_TEMP_SENSOR_DETECTION, BOOT_EVENT_FLAGS_NONE);
+    lm75Detected = lm75Detect(&temperatureDev);
+}
+#endif
 
 int16_t getTemperature(tempSensor_e sensor)
 {
@@ -62,6 +80,12 @@ void temperatureUpdate(void)
     if(sensors(SENSOR_BARO)){
         tempSensorValue[TEMP_BARO] = baroGetTemperature();
         tempSensorValid = TEMP_BARO;
+    }
+    #endif
+
+    #ifdef USE_TEMPERATURE_SENSOR
+    if (lm75Detected && temperatureDev.read(&temperatureDev, &tempSensorValue[TEMP_LM75])) {
+        tempSensorValid = TEMP_LM75;
     }
     #endif
 }

@@ -228,7 +228,7 @@ void onNewGPSData(void)
 
         if (posControl.gpsOrigin.valid) {
             /* Convert LLH position to local coordinates */
-            geoConvertGeodeticToLocal(&posControl.gpsOrigin, &newLLH, & posEstimator.gps.pos, GEO_ALT_ABSOLUTE);
+            geoConvertGeodeticToLocal(&posEstimator.gps.pos, &posControl.gpsOrigin, &newLLH, GEO_ALT_ABSOLUTE);
 
             /* If not the first update - calculate velocities */
             if (!isFirstGPSUpdate) {
@@ -309,9 +309,15 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
     }
 
     if (sensors(SENSOR_BARO) && baroIsCalibrationComplete()) {
+        const timeUs_t baroDtUs = currentTimeUs - posEstimator.baro.lastUpdateTime;
+
         posEstimator.baro.alt = newBaroAlt - initialBaroAltitudeOffset;
         posEstimator.baro.epv = positionEstimationConfig()->baro_epv;
         posEstimator.baro.lastUpdateTime = currentTimeUs;
+
+        if (baroDtUs <= MS2US(INAV_BARO_TIMEOUT_MS)) {
+            pt1FilterApply3(&posEstimator.baro.avgFilter, posEstimator.baro.alt, US2S(baroDtUs));
+        }
     }
     else {
         posEstimator.baro.alt = 0;
@@ -325,19 +331,10 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
  * Read Pitot and update airspeed topic
  *  Function is called at main loop rate, updates happen at reduced rate
  */
-static void updatePitotTopic(timeUs_t currentTimeUs)
+void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
 {
-    static navigationTimer_t pitotUpdateTimer;
-
-    if (updateTimer(&pitotUpdateTimer, HZ2US(INAV_PITOT_UPDATE_RATE), currentTimeUs)) {
-        float newTAS = pitotCalculateAirSpeed();
-        if (sensors(SENSOR_PITOT) && pitotIsCalibrationComplete()) {
-            posEstimator.pitot.airspeed = newTAS;
-        }
-        else {
-            posEstimator.pitot.airspeed = 0;
-        }
-    }
+    posEstimator.pitot.airspeed = pitot.airSpeed;
+    posEstimator.pitot.lastUpdateTime = currentTimeUs;
 }
 #endif
 
@@ -385,7 +382,7 @@ static void updateIMUTopic(void)
             const float gravityOffsetError = posEstimator.imu.accelNEU.z - calibratedGravityCMSS;
             calibratedGravityCMSS += gravityOffsetError * 0.0025f;
 
-            if (ABS(gravityOffsetError) < positionEstimationConfig()->gravity_calibration_tolerance) {  // Error should be within 0.5% of calibrated gravity
+            if (fabsf(gravityOffsetError) < positionEstimationConfig()->gravity_calibration_tolerance) {  // Error should be within 0.5% of calibrated gravity
                 if ((millis() - gravityCalibrationTimeout) > 250) {
                     posEstimator.imu.gravityCalibrationComplete = true;
                 }
@@ -778,6 +775,9 @@ void initializePositionEstimator(void)
         posEstimator.est.pos.v[axis] = 0;
         posEstimator.est.vel.v[axis] = 0;
     }
+
+    pt1FilterInit(&posEstimator.baro.avgFilter, INAV_BARO_AVERAGE_HZ, 0.0f);
+    pt1FilterInit(&posEstimator.surface.avgFilter, INAV_SURFACE_AVERAGE_HZ, 0.0f);
 }
 
 /**
@@ -794,11 +794,6 @@ void updatePositionEstimator(void)
     }
 
     const timeUs_t currentTimeUs = micros();
-
-    /* Periodic sensor updates */
-#if defined(USE_PITOT)
-    updatePitotTopic(currentTimeUs);
-#endif
 
     /* Read updates from IMU, preprocess */
     updateIMUTopic();

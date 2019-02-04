@@ -59,6 +59,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C3
+
 #ifdef QUANTON
 #define ACC_MPU6000_ALIGN       CW90_DEG
 #define GYRO_MPU6000_ALIGN      CW90_DEG
@@ -128,16 +130,10 @@
 #define I2C3_SDA                PC9
 
 #define USE_RANGEFINDER
-
+#define RANGEFINDER_I2C_BUS     BUS_I2C3
 #define USE_RANGEFINDER_HCSR04
 #define RANGEFINDER_HCSR04_TRIGGER_PIN      PB8
 #define RANGEFINDER_HCSR04_ECHO_PIN         PB9
-
-#define USE_RANGEFINDER_SRF10
-#define SRF10_I2C_BUS                       BUS_I2C3
-
-#define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS                     BUS_I2C3
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
@@ -152,5 +148,3 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define MAX_PWM_OUTPUT_PORTS    15
-
-#undef USE_PITOT
