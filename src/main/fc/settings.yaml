@@ -86,9 +86,12 @@ tables:
   - name: osd_crosshairs_style
     values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
-  - name: osd_smartch_focus
+  - name: osd_homing
+    values: ["OFF", "ON"]
+    enum: osd_homing_e
+  - name: osd_homing_focus
     values: ["NARROW", "MEDIUM", "WIDE"]
-    enum: osd_smartch_focus_e
+    enum: osd_homing_focus_e
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e

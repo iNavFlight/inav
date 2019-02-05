@@ -123,12 +123,12 @@
 #define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
 #define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
 
-#define OSD_SMARTCH_LIM_H1 7
-#define OSD_SMARTCH_LIM_H2 17
-#define OSD_SMARTCH_LIM_H3 40
-#define OSD_SMARTCH_LIM_V1 5
-#define OSD_SMARTCH_LIM_V2 10
-#define OSD_SMARTCH_LIM_V3 15
+#define OSD_HOMING_LIM_H1 7
+#define OSD_HOMING_LIM_H2 17
+#define OSD_HOMING_LIM_H3 40
+#define OSD_HOMING_LIM_V1 5
+#define OSD_HOMING_LIM_V2 10
+#define OSD_HOMING_LIM_V3 15
 
 #define OSD_MIN_FONT_VERSION 1
 
