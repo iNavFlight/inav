@@ -151,7 +151,18 @@ typedef enum {
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
     OSD_CROSSHAIRS_STYLE_AIRCRAFT,
+    OSD_CROSSHAIRS_STYLE_TYPE3,
+    OSD_CROSSHAIRS_STYLE_TYPE4,
+    OSD_CROSSHAIRS_STYLE_TYPE5,
+    OSD_CROSSHAIRS_STYLE_TYPE6,
+    OSD_CROSSHAIRS_STYLE_TYPE7,
 } osd_crosshairs_style_e;
+
+typedef enum {
+    OSD_HOMING_FOCUS_NARROW,
+    OSD_HOMING_FOCUS_MEDIUM,
+    OSD_HOMING_FOCUS_WIDE,	
+} osd_homing_focus_e;
 
 typedef enum {
     OSD_SIDEBAR_SCROLL_NONE,
@@ -185,6 +196,11 @@ typedef struct osdConfig_s {
     uint8_t ahi_reverse_roll;
     uint8_t ahi_max_pitch;
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
+    uint8_t homing; // from osd_homing_e
+    uint8_t homing_focus; // from osd_homing_focus_e
+    int8_t camera_uptilt;
+    int8_t horizon_offset;
+    bool smallnumbers;
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;

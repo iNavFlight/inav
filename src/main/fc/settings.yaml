@@ -81,8 +81,14 @@ tables:
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
   - name: osd_crosshairs_style
-    values: ["DEFAULT", "AIRCRAFT"]
+    values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
+  - name: osd_homing
+    values: ["OFF", "ON"]
+    enum: osd_homing_e
+  - name: osd_homing_focus
+    values: ["NARROW", "MEDIUM", "WIDE"]
+    enum: osd_homing_focus_e
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
@@ -1626,6 +1632,25 @@ groups:
         field: crosshairs_style
         table: osd_crosshairs_style
         type: uint8_t
+      - name: osd_camera_uptilt
+        field: camera_uptilt
+        min: -40
+        max: 80     
+      - name: osd_homing
+        field: homing
+        table: osd_homing
+        type: uint8_t   
+      - name: osd_homing_focus
+        field: homing_focus
+        table: osd_homing_focus
+        type: uint8_t       
+      - name: osd_smallnumbers
+        field: smallnumbers
+        type: bool  
+      - name: osd_horizon_offset
+        field: horizon_offset
+        min: -2
+        max: 2
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll
