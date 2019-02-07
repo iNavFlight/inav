@@ -2068,7 +2068,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_ACC_CALIBRATION:
         if (!ARMING_FLAG(ARMED))
-            accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
+            accStartCalibration();
         else
             return MSP_RESULT_ERROR;
         break;
