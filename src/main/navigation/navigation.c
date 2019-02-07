@@ -1661,7 +1661,7 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
     }
 
     /* Pre-calculate output and limit it if actuator is saturating */
-    const float outVal = newProportional + (pid->integrator * gainScaler) + newDerivative;
+    const float outVal = newProportional + (pid->integrator * gainScaler) + newDerivative + (setpoint * pid->param.kFF * gainScaler);
     const float outValConstrained = constrainf(outVal, outMin, outMax);
 
     pid->proportional = newProportional;
@@ -1706,11 +1706,12 @@ void navPidReset(pidController_t *pid)
     pid->output_constrained = 0.0f;
 }
 
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD)
+void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF)
 {
     pid->param.kP = _kP;
     pid->param.kI = _kI;
     pid->param.kD = _kD;
+    pid->param.kFF = _kFF;
 
     if (_kI > 1e-6f && _kP > 1e-6f) {
         float Ti = _kP / _kI;
@@ -3028,7 +3029,8 @@ void navigationUsePIDs(void)
 
         navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
-                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f);
+                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
+                                               0.0f);
     }
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
@@ -3036,10 +3038,12 @@ void navigationUsePIDs(void)
 
     navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 66.7f,
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 20.0f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f);
+                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f,
+                                        0.0f);
 
     // Initialize surface tracking PID
     navPidInit(&posControl.pids.surface, 2.0f,
+                                         0.0f,
                                          0.0f,
                                          0.0f);
 
@@ -3047,11 +3051,13 @@ void navigationUsePIDs(void)
     // Initialize fixed wing PID controllers
     navPidInit(&posControl.pids.fw_nav, (float)pidProfile()->bank_fw.pid[PID_POS_XY].P / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].I / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f);
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f,
+                                        0.0f);
 
     navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 10.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f);
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f,
+                                        0.0f);
 }
 
 void navigationInit(void)

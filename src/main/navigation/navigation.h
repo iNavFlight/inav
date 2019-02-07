@@ -240,6 +240,7 @@ typedef struct {
     float kI;
     float kD;
     float kT;   // Tracking gain (anti-windup)
+    float kFF;  // FeedForward Component
 } pidControllerParam_t;
 
 typedef struct {
