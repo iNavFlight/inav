@@ -63,6 +63,10 @@ static uint8_t sensorStatus[MAX_TEMP_SENSORS / 8 + (MAX_TEMP_SENSORS % 8 ? 1 : 0
 static temperatureDev_t lm75Dev[8];
 #endif
 
+#ifdef DS18B20_DRIVER_AVAILABLE
+static owDev_t *owDev;
+#endif
+
 static void newSensorCheckAndEnter(uint8_t type, uint64_t addr)
 {
     int8_t foundConfigIndex = -1, firstFreeConfigSlot = -1;
@@ -108,10 +112,11 @@ void temperatureInit(void)
 #endif
 
 #ifdef DS18B20_DRIVER_AVAILABLE
-    if (ds2482_detected) {
+    owDev = getOwDev();
+    if (owDev) {
         uint64_t ds18b20_rom_table[MAX_TEMP_SENSORS];
         uint8_t ds18b20_rom_count = MAX_TEMP_SENSORS;
-        ds18b20_enumerate(ds18b20_rom_table, &ds18b20_rom_count);
+        ds18b20Enumerate(owDev, ds18b20_rom_table, &ds18b20_rom_count);
 
         for (uint8_t rom_index = 0; rom_index < ds18b20_rom_count; ++rom_index)
             newSensorCheckAndEnter(TEMP_SENSOR_DS18B20, ds18b20_rom_table[rom_index]);
@@ -125,8 +130,10 @@ void temperatureInit(void)
         switch (configSlot->type) {
 #ifdef DS18B20_DRIVER_AVAILABLE
             case TEMP_SENSOR_DS18B20:
-                tempSensorValue[configIndex] = -1250;
-                ds18b20_configure(configSlot->address, DS18B20_CONFIG_9BIT);
+                if (owDev) {
+                    tempSensorValue[configIndex] = -1250;
+                    ds18b20Configure(owDev, configSlot->address, DS18B20_CONFIG_9BIT);
+                }
                 break;
 #endif
 
@@ -213,18 +220,20 @@ void temperatureUpdate(void)
                 #endif
                 break;
 
-            case TEMP_SENSOR_DS18B20:;
+            case TEMP_SENSOR_DS18B20:
                 #ifdef DS18B20_DRIVER_AVAILABLE
-                int16_t temperature;
-                if (ds18b20_read_temperature(configSlot->address, &temperature)) {
-                    if (temperatureSensorValueIsValid(sensorIndex) || (tempSensorValue[sensorIndex] == -1240)) {
-                        tempSensorValue[sensorIndex] = temperature;
-                        valueValid = true;
-                    } else
-                        tempSensorValue[sensorIndex] = -1240;
+                if (owDev) {
+                    int16_t temperature;
+                    if (ds18b20ReadTemperature(owDev, configSlot->address, &temperature)) {
+                        if (temperatureSensorValueIsValid(sensorIndex) || (tempSensorValue[sensorIndex] == -1240)) {
+                            tempSensorValue[sensorIndex] = temperature;
+                            valueValid = true;
+                        } else
+                            tempSensorValue[sensorIndex] = -1240;
 
-                } else
-                    tempSensorValue[sensorIndex] = -1250;
+                    } else
+                        tempSensorValue[sensorIndex] = -1250;
+                }
                 #endif
                 break;
 
@@ -242,7 +251,7 @@ void temperatureUpdate(void)
 #endif
 
 #ifdef DS18B20_DRIVER_AVAILABLE
-    ds18b20_start_conversion();
+    if (owDev) ds18b20StartConversion(owDev);
 #endif
 }
 

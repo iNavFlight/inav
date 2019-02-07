@@ -19,7 +19,7 @@ uint8_t ds_crc8_byte_update(uint8_t crc8, uint8_t byte)
     return crc8;
 }
 
-uint8_t ds_crc8(uint8_t *addr, uint8_t len)
+uint8_t ds_crc8(const uint8_t *addr, uint8_t len)
 {
      uint8_t crc8 = 0;
      for (uint8_t i=0; i < len; ++i) crc8 = ds_crc8_byte_update(crc8, addr[i]);

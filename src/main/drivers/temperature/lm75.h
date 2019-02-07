@@ -21,5 +21,9 @@
 #include "drivers/temperature/temperature.h"
 
 #ifdef USE_TEMPERATURE_LM75
+
+#define USE_TEMPERATURE_SENSOR
+
 bool lm75Detect(temperatureDev_t *tempDev, uint8_t partial_address);
-#endif
+
+#endif /* USE_TEMPERATURE_LM75 */

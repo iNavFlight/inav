@@ -534,7 +534,7 @@ void init(void)
 
     // 1-Wire IF chip
 #ifdef USE_1WIRE
-    _1WireInit();
+    owInit();
 #endif
 
     if (!sensorsAutodetect()) {

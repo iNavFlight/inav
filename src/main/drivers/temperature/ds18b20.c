@@ -38,104 +38,113 @@
 #define DS18B20_RECALL_EEPROM_CMD 0xB8
 #define DS18B20_READ_POWER_SUPPLY_CMD 0xB4
 
-#if defined(USE_1WIRE) && defined(USE_1WIRE_DS2482) && defined(USE_TEMPERATURE_DS18B20)
+#if defined(USE_1WIRE) && defined(USE_TEMPERATURE_DS18B20)
 
-#define _1WireDev (&ds2482Dev)
 
-bool ds18b20_enumerate(uint64_t *rom_table, uint8_t *rom_table_len)
+bool ds18b20Enumerate(owDev_t *owDev, uint64_t *rom_table, uint8_t *rom_table_len)
 {
-    return ds2482_1wire_search_rom(_1WireDev, DS18B20_FAMILY_CODE, rom_table, rom_table_len);
+    return owDev->owSearchRom(owDev, DS18B20_FAMILY_CODE, rom_table, rom_table_len);
 }
 
-bool ds18b20_configure(uint64_t rom, uint8_t config)
+bool ds18b20Configure(owDev_t *owDev, uint64_t rom, uint8_t config)
 {
-    bool ack = ds2482_1wire_reset_and_match_rom(_1WireDev, rom);
+    bool ack = owDev->owMatchRom(owDev, rom);
     if (!ack) return false;
 
     uint8_t buf[4] = { DS18B20_WRITE_SCRATCHPAD_CMD, 0, 0, config };
-    return ds2482_1wire_write_buf(_1WireDev, buf, sizeof(buf));
+    return owDev->owWriteBuf(owDev, buf, sizeof(buf));
 }
 
-static bool ds18b20_parasitic_powered_present()
+static bool readPowerSupply(owDev_t *owDev, bool *result)
 {
-    bool ack = ds2482_1wire_reset_and_skip_rom(_1WireDev);
+    bool ack = owDev->owWriteByte(owDev, DS18B20_READ_POWER_SUPPLY_CMD);
     if (!ack) return false;
 
-    ack = ds2482_1wire_write_byte(_1WireDev, DS18B20_READ_POWER_SUPPLY_CMD);
+    bool sbr;
+    ack = owDev->owSingleBit(owDev, OW_SINGLE_BIT_WRITE1_READ, &sbr);
     if (!ack) return false;
 
-    uint8_t status;
-    ack = ds2482_poll(_1WireDev, true, &status);
-    if (!ack) return false;
-
-    return !DS2482_SBR_VALUE(status);
-}
-
-static bool ds18b20_read_scratchpad()
-{
-    return ds2482_1wire_write_byte(_1WireDev, DS18B20_READ_SCRATCHPAD_CMD);
-}
-
-static bool ds18b20_read_scratchpad_buf(uint8_t *buf, uint8_t len)
-{
-    ds18b20_read_scratchpad(_1WireDev);
-    ds2482_wait_for_bus(_1WireDev);
-
-    for (uint8_t index = 0; index < len; ++index) {
-        bool ack = ds2482_1wire_read_byte(_1WireDev);
-        if (!ack) return false;
-
-        ack = ds2482_wait_for_bus(_1WireDev);
-        if (!ack) return false;
-
-        ack = ds2482_read_byte(_1WireDev, buf + index);
-        if (!ack) return false;
-    }
+    *result = !sbr;
     return true;
 }
 
-bool ds18b20_start_conversion()
+bool ds18b20ParasiticPoweredPresent(owDev_t *owDev, bool *result)
 {
-    bool parasitic_power = ds18b20_parasitic_powered_present(_1WireDev);
-    if (parasitic_power) return false;
-    bool ack = ds2482_1wire_reset_and_skip_rom(_1WireDev);
+    bool ack = owDev->owSkipRom(owDev);
     if (!ack) return false;
-    return ds2482_1wire_write_byte(_1WireDev, DS18B20_START_CONVERSION_CMD);
+
+    return readPowerSupply(owDev, result);
 }
 
-bool ds18b20_wait_for_conversion()
+bool ds18b20ReadPowerSupply(owDev_t *owDev, uint64_t rom, bool *parasiticPowered)
 {
-    bool ack;
-    uint8_t status, read_bit = 0;
-    while (!read_bit) {
-        ack = ds2482_wait_for_bus(_1WireDev);
+    bool ack = owDev->owMatchRom(owDev, rom);
+    if (!ack) return false;
+
+    return readPowerSupply(owDev, parasiticPowered);
+}
+
+bool ds18b20ReadScratchpadCommand(owDev_t *owDev)
+{
+    return owDev->owWriteByteCommand(owDev, DS18B20_READ_SCRATCHPAD_CMD);
+}
+
+static bool ds18b20ReadScratchpadBuf(owDev_t *owDev, uint8_t *buf, uint8_t len)
+{
+    bool ack = ds18b20ReadScratchpadCommand(owDev);
+    if (!ack) return false;
+    ack = owDev->waitForBus(owDev);
+    if (!ack) return false;
+    return owDev->owReadBuf(owDev, buf, len);
+}
+
+bool ds18b20StartConversionCommand(owDev_t *owDev)
+{
+    return owDev->owWriteByteCommand(owDev, DS18B20_START_CONVERSION_CMD);
+}
+
+// start conversion on all devices present on the bus
+// note: parasitic power only supports one device converting at a time
+bool ds18b20StartConversion(owDev_t *owDev)
+{
+    bool ack = owDev->owSkipRom(owDev);
+    if (!ack) return false;
+    return ds18b20StartConversionCommand(owDev);
+}
+
+bool ds18b20WaitForConversion(owDev_t *owDev)
+{
+    bool ack = owDev->waitForBus(owDev);
+    if (!ack) return false;
+
+    bool read_bit;
+    do {
+        ack = owDev->owSingleBit(owDev, OW_SINGLE_BIT_WRITE1_READ, &read_bit);
         if (!ack) return false;
+    } while (!read_bit);
 
-        ack = ds2482_1wire_single_bit(_1WireDev, DS2482_1WIRE_SINGLE_BIT_WRITE1_READ);
-        if (!ack) return false;
-
-        while (1) {
-            ack = busRead(_1WireDev->busDev, 0xFF, &status);
-            if (!ack) return false;
-            if ((status & 1) == 0) break;
-        }
-
-        read_bit = DS2482_SBR_VALUE(status);
-
-    }
     return true;
 }
 
-bool ds18b20_read_temperature(uint64_t rom, int16_t *temperature)
+bool ds18b20ReadTemperatureFromScratchPadBuf(const uint8_t *buf, int16_t *temperature)
 {
-    uint8_t buf[9];
-    bool ack = ds2482_1wire_reset_and_match_rom(_1WireDev, rom);
-    if (!ack) return false;
-    ack = ds18b20_read_scratchpad_buf(buf, 9);
-    if (!ack) return false;
     if (buf[8] != ds_crc8(buf, 8)) return false;
     *temperature = (int16_t)(((buf[0] | (buf[1] << 8)) >> 3) | ((buf[1] & 0x80) ? 0xE000 : 0)) * 5;
     return true;
 }
 
-#endif /* defined(USE_1WIRE) && defined(USE_1WIRE_DS2482) && defined(USE_TEMPERATURE_DS18B20) */
+bool ds18b20ReadTemperature(owDev_t *owDev, uint64_t rom, int16_t *temperature)
+{
+    bool ack = owDev->owMatchRom(owDev, rom);
+    if (!ack) return false;
+
+    uint8_t buf[9];
+    ack = ds18b20ReadScratchpadBuf(owDev, buf, 9);
+    if (!ack) return false;
+
+    if (buf[8] != ds_crc8(buf, 8)) return false;
+    *temperature = (int16_t)(((buf[0] | (buf[1] << 8)) >> 3) | ((buf[1] & 0x80) ? 0xE000 : 0)) * 5;
+    return true;
+}
+
+#endif /* defined(USE_1WIRE) && defined(USE_TEMPERATURE_DS18B20) */

@@ -5,8 +5,9 @@
 #include <stdbool.h>
 #include "drivers/1-wire.h"
 
-#if defined(USE_1WIRE) && defined(USE_1WIRE_DS2482) && defined(USE_TEMPERATURE_DS18B20)
+#if defined(USE_1WIRE) && defined(USE_TEMPERATURE_DS18B20)
 
+#define USE_TEMPERATURE_SENSOR
 #define DS18B20_DRIVER_AVAILABLE
 
 #define DS18B20_CONFIG_9BIT 0x1F
@@ -21,11 +22,15 @@
 #define DS18B20_12BIT_CONVERSION_TIME 750
 
 
-bool ds18b20_enumerate(uint64_t *rom_table, uint8_t *rom_table_len);
-bool ds18b20_configure(uint64_t rom, uint8_t config);
-bool ds18b20_wait_for_conversion();
-bool ds18b20_start_conversion();
-bool ds18b20_wait_for_conversion();
-bool ds18b20_read_temperature(uint64_t rom, int16_t *temperature);
+bool ds18b20Enumerate(owDev_t *owDev, uint64_t *rom_table, uint8_t *rom_table_len);
+bool ds18b20Configure(owDev_t *owDev, uint64_t rom, uint8_t config);
+bool ds18b20ParasiticPoweredPresent(owDev_t *owDev, bool *result);
+bool ds18b20ReadPowerSupply(owDev_t *owDev, uint64_t rom, bool *parasiticPowered);
+bool ds18b20StartConversionCommand(owDev_t *owDev);
+bool ds18b20StartConversion(owDev_t *owDev);
+bool ds18b20WaitForConversion(owDev_t *owDev);
+bool ds18b20ReadScratchpadCommand(owDev_t *owDev);
+bool ds18b20ReadTemperatureFromScratchPadBuf(const uint8_t *buf, int16_t *temperature);
+bool ds18b20ReadTemperature(owDev_t *owDev, uint64_t rom, int16_t *temperature);
 
-#endif /* defined(USE_1WIRE) && defined(USE_1WIRE_DS2482) && defined(USE_TEMPERATURE_DS18B20) */
+#endif /* defined(USE_1WIRE) && defined(USE_TEMPERATURE_DS18B20) */
