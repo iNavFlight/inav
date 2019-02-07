@@ -42,6 +42,8 @@
 #include "sensors/gyro.h"
 #include "sensors/barometer.h"
 
+#include "scheduler/protothreads.h"
+
 
 PG_REGISTER_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig, PG_TEMP_SENSOR_CONFIG, 0);
 
@@ -131,6 +133,9 @@ void temperatureInit(void)
 #ifdef DS18B20_DRIVER_AVAILABLE
             case TEMP_SENSOR_DS18B20:
                 if (owDev) {
+                    char address_string[17];
+                    tempSensorAddressToString(configSlot->address, address_string);
+                    DEBUG_TRACE_SYNC("%d: %s", configIndex, address_string);
                     tempSensorValue[configIndex] = -1250;
                     ds18b20Configure(owDev, configSlot->address, DS18B20_CONFIG_9BIT);
                 }
@@ -142,18 +147,18 @@ void temperatureInit(void)
     }
 }
 
-static bool temperatureSensorValueIsValid(uint8_t sensorIndex)
+static bool temperatureSensorValueIsValid(uint8_t temperatureUpdateSensorIndex)
 {
-    uint8_t mask = 1 << (sensorIndex % 8);
-    uint8_t byteIndex = sensorIndex / 8;
+    uint8_t mask = 1 << (temperatureUpdateSensorIndex % 8);
+    uint8_t byteIndex = temperatureUpdateSensorIndex / 8;
     return sensorStatus[byteIndex] & mask;
 }
 
 // returns decidegrees centigrade
-bool getSensorTemperature(uint8_t sensorIndex, int16_t *temperature)
+bool getSensorTemperature(uint8_t temperatureUpdateSensorIndex, int16_t *temperature)
 {
-    *temperature = tempSensorValue[sensorIndex];
-    return temperatureSensorValueIsValid(sensorIndex);
+    *temperature = tempSensorValue[temperatureUpdateSensorIndex];
+    return temperatureSensorValueIsValid(temperatureUpdateSensorIndex);
 }
 
 // Converts 64bit integer address to hex format
@@ -187,72 +192,120 @@ bool tempSensorStringToAddress(const char *hex_address, uint64_t *address)
 }
 #endif /* USE_TEMPERATURE_SENSOR */
 
-void temperatureUpdate(void)
-{
+#ifdef USE_TEMPERATURE_SENSOR
 
-    if (gyroReadTemperature()) {
-        mpuTemperature = gyroGetTemperature();
-        mpuBaroTempValid |= (1 << MPU_TEMP_VALID_BIT);
-    } else
-        mpuBaroTempValid &= ~(1 << MPU_TEMP_VALID_BIT);
+static uint8_t temperatureUpdateSensorIndex;
+static bool temperatureUpdateValueValid;
 
-#ifdef USE_BARO
-    if (sensors(SENSOR_BARO)) {
-        baroTemperature = baroGetTemperature();
-        mpuBaroTempValid |= (1 << BARO_TEMP_VALID_BIT);
-    } else
-        mpuBaroTempValid &= ~(1 << BARO_TEMP_VALID_BIT);
+#ifdef DS18B20_DRIVER_AVAILABLE
+static uint8_t temperatureUpdateIndex;
+static uint8_t temperatureUpdateBuf[9];
 #endif
 
+#endif /* defined(USE_TEMPERATURE_SENSOR) */
+
+PROTOTHREAD(temperatureUpdate)
+{
+    ptBegin(temperatureUpdate);
+
+    while (1) {
+
+        if (gyroReadTemperature()) {
+            mpuTemperature = gyroGetTemperature();
+            mpuBaroTempValid |= (1 << MPU_TEMP_VALID_BIT);
+        } else
+            mpuBaroTempValid &= ~(1 << MPU_TEMP_VALID_BIT);
+
+        #ifdef USE_BARO
+        if (sensors(SENSOR_BARO)) {
+            baroTemperature = baroGetTemperature();
+            mpuBaroTempValid |= (1 << BARO_TEMP_VALID_BIT);
+        } else
+            mpuBaroTempValid &= ~(1 << BARO_TEMP_VALID_BIT);
+        #endif
+
 #ifdef USE_TEMPERATURE_SENSOR
-    for (uint8_t sensorIndex = 0; sensorIndex < MAX_TEMP_SENSORS; ++sensorIndex) {
-        const tempSensorConfig_t *configSlot = tempSensorConfig(sensorIndex);
-        bool valueValid = false;
 
-        switch (configSlot->type) {
+        temperatureUpdateSensorIndex = 0;
+        do {
+            const tempSensorConfig_t *configSlot = tempSensorConfig(temperatureUpdateSensorIndex);
+            temperatureUpdateValueValid = false;
 
-            case TEMP_SENSOR_LM75:;
-                #ifdef USE_TEMPERATURE_LM75
+#ifdef USE_TEMPERATURE_LM75
+            if (configSlot->type == TEMP_SENSOR_LM75) {
                 if (configSlot->address < 8) {
                     temperatureDev_t *dev = lm75Dev + configSlot->address;
-                    if (dev->read && dev->read(dev, &tempSensorValue[sensorIndex])) valueValid = true;
+                    if (dev->read && dev->read(dev, &tempSensorValue[temperatureUpdateSensorIndex])) temperatureUpdateValueValid = true;
                 }
-                #endif
-                break;
-
-            case TEMP_SENSOR_DS18B20:
-                #ifdef DS18B20_DRIVER_AVAILABLE
-                if (owDev) {
-                    int16_t temperature;
-                    if (ds18b20ReadTemperature(owDev, configSlot->address, &temperature)) {
-                        if (temperatureSensorValueIsValid(sensorIndex) || (tempSensorValue[sensorIndex] == -1240)) {
-                            tempSensorValue[sensorIndex] = temperature;
-                            valueValid = true;
-                        } else
-                            tempSensorValue[sensorIndex] = -1240;
-
-                    } else
-                        tempSensorValue[sensorIndex] = -1250;
-                }
-                #endif
-                break;
-
-            default:;
-        }
-
-        uint8_t statusMask = 1 << (sensorIndex % 8);
-        uint8_t byteIndex = sensorIndex / 8;
-        if (valueValid)
-            sensorStatus[byteIndex] |= statusMask;
-        else
-            sensorStatus[byteIndex] &= ~statusMask;
-
-    }
+            }
 #endif
 
 #ifdef DS18B20_DRIVER_AVAILABLE
-    if (owDev) ds18b20StartConversion(owDev);
+            if ((configSlot->type == TEMP_SENSOR_DS18B20) && owDev) {
+                bool ack = owDev->owResetCommand(owDev);
+                if (!ack) goto temperatureUpdateError;
+                ptWait(owDev->owBusReady(owDev));
+
+                ack = owDev->owMatchRomCommand(owDev);
+                if (!ack) goto temperatureUpdateError;
+                ptWait(owDev->owBusReady(owDev));
+
+                temperatureUpdateIndex = 0;
+                do {
+                    ack = owDev->owWriteByteCommand(owDev, ((uint8_t *)&tempSensorConfig(temperatureUpdateSensorIndex)->address)[temperatureUpdateIndex]);
+                    if (!ack) goto temperatureUpdateError;
+                    ptWait(owDev->owBusReady(owDev));
+                } while (++temperatureUpdateIndex < 8);
+
+                ack = ds18b20ReadScratchpadCommand(owDev);
+                if (!ack) goto temperatureUpdateError;
+                ptWait(owDev->owBusReady(owDev));
+
+                temperatureUpdateIndex = 0;
+                do {
+                    ack = owDev->owReadByteCommand(owDev);
+                    if (!ack) goto temperatureUpdateError;
+                    ptWait(owDev->owBusReady(owDev));
+                    ack = owDev->owReadByteResult(owDev, temperatureUpdateBuf + temperatureUpdateIndex);
+                    if (!ack) goto temperatureUpdateError;
+                } while (++temperatureUpdateIndex < 9);
+
+                int16_t temperature;
+                if (ds18b20ReadTemperatureFromScratchPadBuf(temperatureUpdateBuf, &temperature)) {
+                    if (temperatureSensorValueIsValid(temperatureUpdateSensorIndex) || (tempSensorValue[temperatureUpdateSensorIndex] == -1240)) {
+                        tempSensorValue[temperatureUpdateSensorIndex] = temperature;
+                        temperatureUpdateValueValid = true;
+                    } else
+                        tempSensorValue[temperatureUpdateSensorIndex] = -1240;
+                } else
+                    tempSensorValue[temperatureUpdateSensorIndex] = -1250;
+            }
+
+temperatureUpdateError:;
 #endif
+
+           uint8_t statusMask = 1 << (temperatureUpdateSensorIndex % 8);
+           uint8_t byteIndex = temperatureUpdateSensorIndex / 8;
+           if (temperatureUpdateValueValid)
+               sensorStatus[byteIndex] |= statusMask;
+           else
+               sensorStatus[byteIndex] &= ~statusMask;
+
+           ptYield();
+
+        } while (++temperatureUpdateSensorIndex < MAX_TEMP_SENSORS);
+
+#ifdef DS18B20_DRIVER_AVAILABLE
+        if (owDev) ds18b20StartConversion(owDev);
+#endif
+
+#endif /* defined(USE_TEMPERATURE_SENSOR) */
+
+        ptDelayMs(1000);
+
+    }
+
+    ptEnd(0);
 }
 
 // returns decidegrees centigrade

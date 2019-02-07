@@ -39,6 +39,8 @@
 
 #pragma once
 #include "common/time.h"
+#include "common/utils.h"
+#include "drivers/time.h"
 
 /*
     Protothreads are a extremely lightweight, stackless threads that provides a blocking context, without the overhead of per-thread stacks.
