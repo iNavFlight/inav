@@ -301,7 +301,7 @@ temperatureUpdateError:;
 
 #endif /* defined(USE_TEMPERATURE_SENSOR) */
 
-        ptDelayMs(1000);
+        ptDelayMs(100); // DS18B20 sensors take 94ms for a temperature conversion with 9bit resolution
 
     }
 
