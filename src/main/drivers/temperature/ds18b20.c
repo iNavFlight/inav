@@ -142,9 +142,7 @@ bool ds18b20ReadTemperature(owDev_t *owDev, uint64_t rom, int16_t *temperature)
     ack = ds18b20ReadScratchpadBuf(owDev, buf, 9);
     if (!ack) return false;
 
-    if (buf[8] != ds_crc8(buf, 8)) return false;
-    *temperature = (int16_t)(((buf[0] | (buf[1] << 8)) >> 3) | ((buf[1] & 0x80) ? 0xE000 : 0)) * 5;
-    return true;
+    return ds18b20ReadTemperatureFromScratchPadBuf(buf, temperature);
 }
 
 #endif /* defined(USE_1WIRE) && defined(USE_TEMPERATURE_DS18B20) */
