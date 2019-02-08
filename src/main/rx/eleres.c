@@ -272,8 +272,12 @@ static void telemetryRX(void)
 
     presfil  -= presfil/4;
     presfil  += baro.baroPressure;
+
+    int16_t temperature;
+    const bool temp_valid = sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
+    if (!temp_valid) temperature = -1250; // If temperature not valid report -125°C
     thempfil -= thempfil/8;
-    thempfil += DEGREES_TO_DECIDEGREES(getCurrentTemperature());
+    thempfil += temperature;
 
     switch (telem_state++) {
     case 0:

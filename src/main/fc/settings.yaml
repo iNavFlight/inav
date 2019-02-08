@@ -1592,6 +1592,24 @@ groups:
         field: neg_alt_alarm
         min: 0
         max: 10000
+      - name: osd_imu_temp_alarm_min
+        field: imu_temp_alarm_min
+        min: -550
+        max: 1250
+      - name: osd_imu_temp_alarm_max
+        field: imu_temp_alarm_max
+        min: -550
+        max: 1250
+      - name: osd_baro_temp_alarm_min
+        field: baro_temp_alarm_min
+        condition: USE_BARO
+        min: -550
+        max: 1250
+      - name: osd_baro_temp_alarm_max
+        field: baro_temp_alarm_max
+        condition: USE_BARO
+        min: -550
+        max: 1250
 
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll

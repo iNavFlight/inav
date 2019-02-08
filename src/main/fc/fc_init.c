@@ -41,6 +41,7 @@
 
 #include "cms/cms.h"
 
+#include "drivers/1-wire.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/compass/compass.h"
@@ -529,6 +530,11 @@ void init(void)
     if (feature(FEATURE_GPS)) {
         gpsPreInit();
     }
+#endif
+
+    // 1-Wire IF chip
+#ifdef USE_1WIRE
+    owInit();
 #endif
 
     if (!sensorsAutodetect()) {

@@ -108,6 +108,7 @@ extern uint8_t __config_end;
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
@@ -1125,6 +1126,107 @@ static void cliRxRange(char *cmdline)
         }
     }
 }
+
+#ifdef USE_TEMPERATURE_SENSOR
+static void printTempSensor(uint8_t dumpMask, const tempSensorConfig_t *tempSensorConfigs, const tempSensorConfig_t *defaultTempSensorConfigs)
+{
+    const char *format = "temp_sensor %u %u %s %d %d %s";
+    for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+        bool equalsDefault = false;
+        char label[5], hex_address[17];
+        strncpy(label, tempSensorConfigs[i].label, TEMPERATURE_LABEL_LEN);
+        label[4] = '\0';
+        tempSensorAddressToString(tempSensorConfigs[i].address, hex_address);
+        if (defaultTempSensorConfigs) {
+            equalsDefault = tempSensorConfigs[i].type == defaultTempSensorConfigs[i].type
+                && tempSensorConfigs[i].address == defaultTempSensorConfigs[i].address
+                && !memcmp(tempSensorConfigs[i].label, defaultTempSensorConfigs[i].label, TEMPERATURE_LABEL_LEN)
+                && tempSensorConfigs[i].alarm_min == defaultTempSensorConfigs[i].alarm_min
+                && tempSensorConfigs[i].alarm_max == defaultTempSensorConfigs[i].alarm_max;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                defaultTempSensorConfigs[i].type,
+                "0",
+                defaultTempSensorConfigs[i].alarm_min,
+                defaultTempSensorConfigs[i].alarm_max,
+                ""
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            tempSensorConfigs[i].type,
+            hex_address,
+            tempSensorConfigs[i].alarm_min,
+            tempSensorConfigs[i].alarm_max,
+            label
+        );
+    }
+}
+
+static void cliTempSensor(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printTempSensor(DUMP_MASTER, tempSensorConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetTempSensorConfig();
+    } else {
+        int16_t i;
+        const char *ptr = cmdline, *label;
+        int16_t type, alarm_min, alarm_max;
+        bool addressValid = false;
+        uint64_t address;
+        uint8_t validArgumentCount = 0;
+        i = fastA2I(ptr);
+        if (i >= 0 && i < MAX_TEMP_SENSORS) {
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                type = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                addressValid = tempSensorStringToAddress(ptr, &address);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                alarm_min = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                alarm_max = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            label = nextArg(ptr);
+            if (label)
+                ++validArgumentCount;
+            else
+                label = "";
+
+            if (validArgumentCount < 4) {
+                cliShowParseError();
+            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || strlen(label) > 4 || !addressValid) {
+                cliShowParseError();
+            } else {
+                tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(i);
+                sensorConfig->type = type;
+                sensorConfig->address = address;
+                sensorConfig->alarm_min = alarm_min;
+                sensorConfig->alarm_max = alarm_max;
+                strncpy(sensorConfig->label, label, TEMPERATURE_LABEL_LEN);
+            }
+        } else {
+            cliShowArgumentRangeError("sensor index", 0, MAX_TEMP_SENSORS - 1);
+        }
+    }
+}
+#endif
 
 #ifdef USE_LED_STRIP
 static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledConfig_t *defaultLedConfigs)
@@ -2638,6 +2740,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
+#ifdef USE_TEMPERATURE_SENSOR
+        cliPrintHashLine("temp_sensor");
+        printTempSensor(dumpMask, tempSensorConfig_CopyArray, tempSensorConfig(0));
+#endif
+
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
         printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
@@ -2797,6 +2904,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
 #ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
 #ifdef USE_OSD

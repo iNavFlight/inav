@@ -17,13 +17,12 @@
 
 #pragma once
 
-#include "drivers/io_types.h"
-#include "drivers/temperature/temperature.h"
+//#include "drivers/io_types.h"
+#include <stdbool.h>
+#include "drivers/1-wire.h"
 
-#ifdef USE_TEMPERATURE_LM75
+#if defined(USE_1WIRE) && defined(USE_1WIRE_DS2482)
 
-#define USE_TEMPERATURE_SENSOR
+bool ds2482Detect(owDev_t *owDev);
 
-bool lm75Detect(temperatureDev_t *tempDev, uint8_t partial_address);
-
-#endif /* USE_TEMPERATURE_LM75 */
+#endif /* defined(USE_1WIRE) && defined(USE_1WIRE_DS2482) */

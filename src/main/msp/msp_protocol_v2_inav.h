@@ -48,3 +48,7 @@
 
 #define MSP2_BLACKBOX_CONFIG                    0x201A
 #define MSP2_SET_BLACKBOX_CONFIG                0x201B
+
+#define MSP2_INAV_TEMP_SENSOR_CONFIG            0x201C
+#define MSP2_INAV_SET_TEMP_SENSOR_CONFIG        0x201D
+#define MSP2_INAV_TEMPERATURES                  0x201E
