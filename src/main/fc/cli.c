@@ -1530,7 +1530,7 @@ static void cliServoMix(char *cmdline)
         if (i >= 0 && i < MAX_SERVO_RULES &&
             args[TARGET] >= 0 && args[TARGET] < MAX_SUPPORTED_SERVOS &&
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
-            args[RATE] >= -125 && args[RATE] <= 125 &&
+            args[RATE] >= -1000 && args[RATE] <= 1000 &&
             args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED) {
             customServoMixersMutable(i)->targetChannel = args[TARGET];
             customServoMixersMutable(i)->inputSource = args[INPUT];
