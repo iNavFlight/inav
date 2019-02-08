@@ -47,6 +47,9 @@
 
 #define DS2482_1WIRE_BUSY(status) (status & (1 << DS2482_STATUS_REG_1WB_POS))
 #define DS2482_DEVICE_PRESENT(status) (status & (1 << DS2482_STATUS_REG_PPD_POS)) // True if a device have been detected on the bus after a bus reset
+#define DS2482_RESET(status) (status & (1 << DS2482_STATUS_REG_RST_POS))
+#define DS2482_LOGIC_LEVEL(status) (status & (1 << DS2482_STATUS_REG_LL_POS))
+#define DS2482_SHORT_DETECTED(status) (status & (1 << DS2482_STATUS_REG_SD_POS))
 #define DS2482_SBR_VALUE(status) ((status >> DS2482_STATUS_REG_SBR_POS) & 1)      // Extract single bit read value or triplet first bit from status register value
 #define DS2482_TSB_VALUE(status) ((status >> DS2482_STATUS_REG_TSB_POS) & 1)      // Extract triplet second bit value from status register value
 #define DS2482_DIR_VALUE(status) ((status >> DS2482_STATUS_REG_DIR_POS) & 1)      // Extract triplet chosen direction bit value from status register value

@@ -5,6 +5,24 @@
 
 #ifdef USE_1WIRE
 
+#define OW_STATUS_1WB_POS 0     // 1-Wire busy
+#define OW_STATUS_PPD_POS 1     // Presense-pulse detect
+#define OW_STATUS_SD_POS 2      // Short detected
+#define OW_STATUS_LL_POS 3      // Logic level
+#define OW_STATUS_RST_POS 4     // Device reset
+#define OW_STATUS_SBR_POS 5     // Single bit result
+#define OW_STATUS_TSB_POS 6     // Triplet second bit
+#define OW_STATUS_DIR_POS 7     // Branch direction taken
+
+#define OW_BUS_BUSY(status) (status & (1 << OW_STATUS_1WB_POS))
+#define OW_DEVICE_PRESENT(status) (status & (1 << OW_STATUS_PPD_POS)) // True if a device have been detected on the bus after a bus reset
+#define OW_RESET(status) (status & (1 << OW_STATUS_RST_POS))
+#define OW_LOGIC_LEVEL(status) (status & (1 << OW_STATUS_LL_POS))
+#define OW_SHORT_DETECTED(status) (status & (1 << OW_STATUS_SD_POS))
+#define OW_SBR_VALUE(status) ((status >> OW_STATUS_SBR_POS) & 1)      // Extract single bit read value or triplet first bit from status register value
+#define OW_TSB_VALUE(status) ((status >> OW_STATUS_TSB_POS) & 1)      // Extract triplet second bit value from status register value
+#define OW_DIR_VALUE(status) ((status >> OW_STATUS_DIR_POS) & 1)      // Extract triplet chosen direction bit value from status register value
+
 #define OW_TRIPLET_FIRST_BIT(tripletResult) (tripletResult & (1 << 0))
 #define OW_TRIPLET_SECOND_BIT(tripletResult) (tripletResult & (1 << 1))
 #define OW_TRIPLET_DIRECTION_BIT(tripletResult) (tripletResult & (1 << 2))
