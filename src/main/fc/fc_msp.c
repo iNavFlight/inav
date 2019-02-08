@@ -1674,9 +1674,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
         sbufReadU8(src); // multiwiiCurrentMeterOutput
         tmp_u8 = sbufReadU8(src);
-        if (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT)
+        if (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT) {
             rxConfigMutable()->rssi_channel = tmp_u8;
-        rxUpdateRSSISource(); // Changing rssi_channel might change the RSSI source
+            rxUpdateRSSISource(); // Changing rssi_channel might change the RSSI source
+        }
         sbufReadU8(src);
 
 #ifdef USE_MAG
@@ -2379,10 +2380,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_RSSI_CONFIG:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize >= 1) && (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT))
+        if ((dataSize >= 1) && (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT)) {
             rxConfigMutable()->rssi_channel = tmp_u8;
-        else
+            rxUpdateRSSISource();
+        } else {
             return MSP_RESULT_ERROR;
+        }
         break;
 
     case MSP_SET_RX_MAP:
