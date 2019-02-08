@@ -261,7 +261,7 @@ static bool ds2482OwSkipRom(owDev_t *owDev)
 
 static bool ds2482OwMatchRomCommand(owDev_t *owDev)
 {
-    return ds2482OwWriteByte(owDev, _1WIRE_MATCH_ROM_CMD);
+    return ds2482OwWriteByteCommand(owDev, _1WIRE_MATCH_ROM_CMD);
 }
 
 static bool ds2482OwMatchRom(owDev_t *owDev, uint64_t rom)
