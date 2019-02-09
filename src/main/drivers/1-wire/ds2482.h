@@ -17,23 +17,12 @@
 
 #pragma once
 
-#include "blackbox/blackbox_fielddefs.h"
+//#include "drivers/io_types.h"
+#include <stdbool.h>
+#include "drivers/1-wire.h"
 
-#include "config/parameter_group.h"
+#if defined(USE_1WIRE) && defined(USE_1WIRE_DS2482)
 
-typedef struct blackboxConfig_s {
-    uint16_t rate_num;
-    uint16_t rate_denom;
-    uint8_t device;
-    uint8_t invertedCardDetection;
-} blackboxConfig_t;
+bool ds2482Detect(owDev_t *owDev);
 
-PG_DECLARE(blackboxConfig_t, blackboxConfig);
-
-void blackboxLogEvent(FlightLogEvent event, flightLogEventData_t *data);
-
-void blackboxInit(void);
-void blackboxUpdate(timeUs_t currentTimeUs);
-void blackboxStart(void);
-void blackboxFinish(void);
-bool blackboxMayEditConfig(void);
+#endif /* defined(USE_1WIRE) && defined(USE_1WIRE_DS2482) */

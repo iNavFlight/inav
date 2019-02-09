@@ -39,8 +39,10 @@ typedef union flightDynamicsTrims_u {
     flightDynamicsTrims_def_t values;
 } flightDynamicsTrims_t;
 
-#define CALIBRATING_GYRO_CYCLES             1000
-#define CALIBRATING_ACC_CYCLES              400
+#define CALIBRATING_BARO_TIME_MS            2000
+#define CALIBRATING_PITOT_TIME_MS           2000
+#define CALIBRATING_GYRO_TIME_MS            2000
+#define CALIBRATING_ACC_TIME_MS             500
 
 // These bits have to be aligned with sensorIndex_e
 typedef enum {
@@ -53,6 +55,7 @@ typedef enum {
     SENSOR_OPFLOW = 1 << 6,
     SENSOR_GPS = 1 << 7,
     SENSOR_GPSMAG = 1 << 8,
+    SENSOR_TEMP = 1 << 9
 } sensors_e;
 
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];

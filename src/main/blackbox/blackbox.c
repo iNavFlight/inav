@@ -93,7 +93,7 @@
 #define BLACKBOX_INTERVED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 1);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
@@ -353,8 +353,20 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"temperature",           -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"temperatureSource",     -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"IMUTemperature",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+#ifdef USE_BARO
+    {"baroTemperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    {"sens0Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens1Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens2Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens3Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens4Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens5Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+#endif
 };
 
 typedef enum BlackboxState {
@@ -453,8 +465,13 @@ typedef struct blackboxSlowState_s {
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
     int16_t wind[XYZ_AXIS_COUNT];
-    int16_t temperature;
-    uint8_t temperatureSource;
+    int16_t imuTemperature;
+#ifdef USE_BARO
+    int16_t baroTemperature;
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    int16_t tempSensorTemperature[MAX_TEMP_SENSORS];
+#endif
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1042,8 +1059,15 @@ static void writeSlowFrame(void)
 
     blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
 
-    blackboxWriteSignedVB(slowHistory.temperature);
-    blackboxWriteUnsignedVB(slowHistory.temperatureSource);
+    blackboxWriteSignedVB(slowHistory.imuTemperature);
+
+#ifdef USE_BARO
+    blackboxWriteSignedVB(slowHistory.baroTemperature);
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    blackboxWriteSigned16VBArray(slowHistory.tempSensorTemperature, MAX_TEMP_SENSORS);
+#endif
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1075,10 +1099,23 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #else
         slow->wind[i] = 0;
 #endif
-
-    slow->temperature = (int) getCurrentTemperature() * 10;
-    slow->temperatureSource = getCurrentTemperatureSensorUsed();
     }
+
+    bool valid_temp;
+    valid_temp = getIMUTemperature(&slow->imuTemperature);
+    if (!valid_temp) slow->imuTemperature = TEMPERATURE_INVALID_VALUE;
+
+#ifdef USE_BARO
+    valid_temp = getBaroTemperature(&slow->baroTemperature);
+    if (!valid_temp) slow->baroTemperature = TEMPERATURE_INVALID_VALUE;
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    for (uint8_t index; index < MAX_TEMP_SENSORS; ++index) {
+        valid_temp = getSensorTemperature(index, slow->tempSensorTemperature + index);
+        if (!valid_temp) slow->tempSensorTemperature[index] = TEMPERATURE_INVALID_VALUE;
+    }
+#endif
 
 }
 
@@ -1540,7 +1577,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("Firmware date", "%s %s",                buildDate, buildTime);
         BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime(buf));
         BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->name);
-        BLACKBOX_PRINT_HEADER_LINE("P interval", "%d/%d",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
+        BLACKBOX_PRINT_HEADER_LINE("P interval", "%u/%u",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
         BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     motorConfig()->minthrottle);
         BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     motorConfig()->maxthrottle);
         BLACKBOX_PRINT_HEADER_LINE("gyro_scale", "0x%x",                    castFloatBytesToInt(1.0f));
@@ -1949,18 +1986,18 @@ void blackboxInit(void)
         blackboxSetState(BLACKBOX_STATE_DISABLED);
     }
 
+    /* FIXME is this really necessary ? Why?  */
+    int max_denom = 4096*1000 / gyroConfig()->looptime;
+    if (blackboxConfig()->rate_denom > max_denom) {
+        blackboxConfigMutable()->rate_denom = max_denom;
+    }
     /* Decide on how ofter are we going to log I-frames*/
     if (blackboxConfig()->rate_denom <= 32) {
         blackboxIFrameInterval = 32;
     }
-    else if (blackboxConfig()->rate_denom <= 64) {
-        blackboxIFrameInterval = 64;
-    }
-    else if (blackboxConfig()->rate_denom <= 128) {
-        blackboxIFrameInterval = 128;
-    }
     else {
-        blackboxIFrameInterval = 256;
+            // Use next higher power of two via GCC builtin
+        blackboxIFrameInterval = 1 << (32 - __builtin_clz (blackboxConfig()->rate_denom - 1));
     }
 }
 #endif

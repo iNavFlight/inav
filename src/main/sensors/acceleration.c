@@ -27,6 +27,7 @@
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/calibration.h"
 
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
@@ -70,7 +71,7 @@
 
 FASTRAM acc_t acc;                       // acc access functions
 
-static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
+STATIC_FASTRAM zeroCalibrationVector_t zeroCalibration;
 
 STATIC_FASTRAM int32_t accADC[XYZ_AXIS_COUNT];
 
@@ -341,26 +342,6 @@ bool accInit(uint32_t targetLooptime)
     return true;
 }
 
-void accSetCalibrationCycles(uint16_t calibrationCyclesRequired)
-{
-    calibratingA = calibrationCyclesRequired;
-}
-
-bool accIsCalibrationComplete(void)
-{
-    return calibratingA == 0;
-}
-
-static bool isOnFinalAccelerationCalibrationCycle(void)
-{
-    return calibratingA == 1;
-}
-
-static bool isOnFirstAccelerationCalibrationCycle(void)
-{
-    return calibratingA == CALIBRATING_ACC_CYCLES;
-}
-
 static bool calibratedPosition[6];
 static int32_t accSamples[6][3];
 static int  calibratedAxisCount = 0;
@@ -406,17 +387,21 @@ static int getPrimaryAxisIndex(int32_t accADCData[3])
         return -1;
 }
 
-static void performAcclerationCalibration(void)
+bool accIsCalibrationComplete(void)
+{
+    return zeroCalibrationIsCompleteV(&zeroCalibration);
+}
+
+void accStartCalibration(void)
 {
     int positionIndex = getPrimaryAxisIndex(accADC);
 
-    // Check if sample is usable
     if (positionIndex < 0) {
         return;
     }
 
-    // Top-up and first calibration cycle, reset everything
-    if (positionIndex == 0 && isOnFirstAccelerationCalibrationCycle()) {
+    // Top+up and first calibration cycle, reset everything
+    if (positionIndex == 0) {
         for (int axis = 0; axis < 6; axis++) {
             calibratedPosition[axis] = false;
             accSamples[axis][X] = 0;
@@ -428,19 +413,40 @@ static void performAcclerationCalibration(void)
         DISABLE_STATE(ACCELEROMETER_CALIBRATED);
     }
 
+    zeroCalibrationStartV(&zeroCalibration, CALIBRATING_ACC_TIME_MS, acc.dev.acc_1G * 0.01f, true);
+}
+
+static void performAcclerationCalibration(void)
+{
+    fpVector3_t v;
+    int positionIndex = getPrimaryAxisIndex(accADC);
+
+    // Check if sample is usable
+    if (positionIndex < 0) {
+        return;
+    }
+
     if (!calibratedPosition[positionIndex]) {
-        accSamples[positionIndex][X] += accADC[X];
-        accSamples[positionIndex][Y] += accADC[Y];
-        accSamples[positionIndex][Z] += accADC[Z];
+        v.v[0] = accADC[0];
+        v.v[1] = accADC[1];
+        v.v[2] = accADC[2];
 
-        if (isOnFinalAccelerationCalibrationCycle()) {
-            calibratedPosition[positionIndex] = true;
+        zeroCalibrationAddValueV(&zeroCalibration, &v);
 
-            accSamples[positionIndex][X] = accSamples[positionIndex][X] / CALIBRATING_ACC_CYCLES;
-            accSamples[positionIndex][Y] = accSamples[positionIndex][Y] / CALIBRATING_ACC_CYCLES;
-            accSamples[positionIndex][Z] = accSamples[positionIndex][Z] / CALIBRATING_ACC_CYCLES;
+        if (zeroCalibrationIsCompleteV(&zeroCalibration)) {
+            if (zeroCalibrationIsSuccessfulV(&zeroCalibration)) {
+                zeroCalibrationGetZeroV(&zeroCalibration, &v);
 
-            calibratedAxisCount++;
+                accSamples[positionIndex][X] = v.v[X];
+                accSamples[positionIndex][Y] = v.v[Y];
+                accSamples[positionIndex][Z] = v.v[Z];
+
+                calibratedPosition[positionIndex] = true;
+                calibratedAxisCount++;
+            }
+            else {
+                calibratedPosition[positionIndex] = false;
+            }
 
             beeperConfirmationBeeps(2);
         }
@@ -459,9 +465,9 @@ static void performAcclerationCalibration(void)
 
         sensorCalibrationSolveForOffset(&calState, accTmp);
 
-        for (int axis = 0; axis < 3; axis++) {
-            accelerometerConfigMutable()->accZero.raw[axis] = lrintf(accTmp[axis]);
-        }
+        accelerometerConfigMutable()->accZero.raw[X] = lrintf(accTmp[X]);
+        accelerometerConfigMutable()->accZero.raw[Y] = lrintf(accTmp[Y]);
+        accelerometerConfigMutable()->accZero.raw[Z] = lrintf(accTmp[Z]);
 
         /* Not we can offset our accumulated averages samples and calculate scale factors and calculate gains */
         sensorCalibrationResetState(&calState);
@@ -484,8 +490,6 @@ static void performAcclerationCalibration(void)
 
         saveConfigAndNotify();
     }
-
-    calibratingA--;
 }
 
 static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const flightDynamicsTrims_t * accGain)

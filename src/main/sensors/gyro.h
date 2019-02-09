@@ -68,7 +68,7 @@ bool gyroInit(void);
 void gyroInitFilters(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate();
-void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
