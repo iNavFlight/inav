@@ -25,9 +25,9 @@
 #if defined(USE_NAV)
 
 #include "build/build_config.h"
-#include "build/debug.h"
 
 #include "common/axis.h"
+#include "common/log.h"
 #include "common/maths.h"
 
 #include "config/parameter_group.h"
@@ -388,7 +388,7 @@ static void updateIMUTopic(void)
 
             if (gravityCalibrationComplete()) {
                 zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
-                DEBUG_TRACE_SYNC("Gravity calibration complete (%d)", lrintf(posEstimator.imu.calibratedGravityCMSS));
+                LOG_D(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
             }
         }
 

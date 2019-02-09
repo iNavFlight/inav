@@ -112,6 +112,8 @@ tables:
     enum: vtxLowerPowerDisarm_e
   - name: filter_type
     values: ["PT1", "BIQUAD"]
+  - name: log_level
+    values: ["ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1811,3 +1813,16 @@ groups:
         min: 0
         max: 255
         type: uint8_t
+
+  - name: PG_LOG_CONFIG
+    type: logConfig_t
+    headers: ["common/log.h"]
+    condition: USE_LOG
+    members:
+        - name: log_level
+          field: level
+          table: log_level
+        - name: log_topics
+          field: topics
+          min: 0,
+          max: UINT32_MAX

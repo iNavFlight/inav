@@ -30,6 +30,7 @@
 
 #include "common/axis.h"
 #include "common/filter.h"
+#include "common/log.h"
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/quaternion.h"
@@ -265,13 +266,13 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
         // Previous quaternion valid. Reset to it
         orientation = *quat;
         imuErrorEvent.errorCode = 1;
-        DEBUG_TRACE("AHRS orientation quaternion error. Reset to last known good value");
+        LOG_E(IMU, "AHRS orientation quaternion error. Reset to last known good value");
     }
     else {
         // No valid reference. Best guess from accelerometer
         imuResetOrientationQuaternion(accBF);
         imuErrorEvent.errorCode = 2;
-        DEBUG_TRACE("AHRS orientation quaternion error. Best guess from ACC");
+        LOG_E(IMU, "AHRS orientation quaternion error. Best guess from ACC");
     }
 
 #ifdef USE_BLACKBOX

@@ -21,8 +21,7 @@
 
 #include "platform.h"
 
-#include "build/debug.h"
-
+#include "common/log.h"
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
@@ -167,7 +166,7 @@ static void performPitotCalibrationCycle(void)
 
     if (zeroCalibrationIsCompleteS(&pitot.zeroCalibration)) {
         zeroCalibrationGetZeroS(&pitot.zeroCalibration, &pitot.pressureZero);
-        DEBUG_TRACE_SYNC("Pitot calibration complete (%d)", lrintf(pitot.pressureZero));
+        LOG_D(PITOT, "Pitot calibration complete (%d)", (int)lrintf(pitot.pressureZero));
     }
 }
 
