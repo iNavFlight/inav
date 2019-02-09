@@ -445,7 +445,7 @@ typedef struct blackboxGpsState_s {
 // This data is updated really infrequently:
 typedef struct blackboxSlowState_s {
     uint32_t flightModeFlags; // extend this data size (from uint16_t)
-    uint8_t stateFlags;
+    uint32_t stateFlags;
     uint8_t failsafePhase;
     bool rxSignalReceived;
     bool rxFlightChannelsValid;
