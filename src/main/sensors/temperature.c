@@ -133,10 +133,7 @@ void temperatureInit(void)
 #ifdef DS18B20_DRIVER_AVAILABLE
             case TEMP_SENSOR_DS18B20:
                 if (owDev) {
-                    char address_string[17];
-                    tempSensorAddressToString(configSlot->address, address_string);
-                    DEBUG_TRACE_SYNC("%d: %s", configIndex, address_string);
-                    tempSensorValue[configIndex] = -1250;
+                    tempSensorValue[configIndex] = TEMPERATURE_INVALID_VALUE;
                     ds18b20Configure(owDev, configSlot->address, DS18B20_CONFIG_9BIT);
                 }
                 break;
@@ -278,7 +275,7 @@ PROTOTHREAD(temperatureUpdate)
                     } else
                         tempSensorValue[temperatureUpdateSensorIndex] = -1240;
                 } else
-                    tempSensorValue[temperatureUpdateSensorIndex] = -1250;
+                    tempSensorValue[temperatureUpdateSensorIndex] = TEMPERATURE_INVALID_VALUE;
             }
 
 temperatureUpdateError:;
