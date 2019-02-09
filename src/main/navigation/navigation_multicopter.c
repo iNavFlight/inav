@@ -497,11 +497,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
     const float accelLimitYMax = constrainf(lastAccelTargetY + maxAccelChange, -accelLimitY, +accelLimitY);
 
-    DEBUG_SET(DEBUG_GENERIC, 0, lastAccelTargetX);
-    DEBUG_SET(DEBUG_GENERIC, 1, maxAccelChange);
-    DEBUG_SET(DEBUG_GENERIC, 2, accelLimitX);
-    DEBUG_SET(DEBUG_GENERIC, 3, accelLimitY);
-
     // TODO: Verify if we need jerk limiting after all
 
     // Apply PID with output limiting and I-term anti-windup
@@ -509,9 +504,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Thus we don't need to do anything else with calculated acceleration
     float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
     float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
-
-    DEBUG_SET(DEBUG_GENERIC, 4, newAccelX);
-    DEBUG_SET(DEBUG_GENERIC, 5, newAccelY);
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
     uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
@@ -550,9 +542,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply LPF to jerk limited acceleration target
     const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, accCutoffFrequency, US2S(deltaMicros));
     const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, accCutoffFrequency, US2S(deltaMicros));
-
-    DEBUG_SET(DEBUG_GENERIC, 6, accelN);
-    DEBUG_SET(DEBUG_GENERIC, 7, accelE);
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
