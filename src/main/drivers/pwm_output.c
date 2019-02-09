@@ -74,10 +74,10 @@ typedef struct {
 #endif
 } pwmOutputPort_t;
 
-STATIC_FASTRAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
+static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
-STATIC_FASTRAM pwmOutputPort_t *motors[MAX_PWM_MOTORS];
-STATIC_FASTRAM pwmOutputPort_t *servos[MAX_PWM_SERVOS];
+static pwmOutputPort_t *motors[MAX_PWM_MOTORS];
+static pwmOutputPort_t *servos[MAX_PWM_SERVOS];
 
 #ifdef USE_DSHOT
 
