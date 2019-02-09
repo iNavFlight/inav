@@ -80,3 +80,4 @@ extern SysTick_Type *SysTick;
 #include "target.h"
 
 #define FAST_CODE 
+#define NOINLINE
