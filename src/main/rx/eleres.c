@@ -275,7 +275,7 @@ static void telemetryRX(void)
 
     int16_t temperature;
     const bool temp_valid = sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
-    if (!temp_valid) temperature = -1250; // If temperature not valid report -125°C
+    if (!temp_valid) temperature = TEMPERATURE_INVALID_VALUE; // If temperature not valid report value outside of range
     thempfil -= thempfil/8;
     thempfil += temperature;
 
