@@ -138,6 +138,7 @@ LoopMarkHeapStack:
   orr  r1,r1,#(0xF << 20)
   str  r1,[r0]
 
+  //If there was code addressed into ITCM, copy from flash to ITCM_RAM for execution
   bl CopyFastCode
 
 /* Call the clock system initialization function.*/
