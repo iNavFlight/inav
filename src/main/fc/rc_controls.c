@@ -235,7 +235,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {
-        gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
+        gyroStartCalibration();
         return;
     }
 
@@ -317,7 +317,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Calibrating Acc
     if (rcSticks == THR_HI + YAW_LO + PIT_LO + ROL_CE) {
-        accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
+        accStartCalibration();
         return;
     }
 

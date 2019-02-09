@@ -75,6 +75,9 @@
 #define UART2_RX_PIN            PA3
 
 #if defined(MATEKF411_SFTSRL2)
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN     PA0 // ST1 pad
+#define SOFTSERIAL_1_RX_PIN     PA0
 #define USE_SOFTSERIAL2
 #define SOFTSERIAL_2_TX_PIN     PA8 // LED pad
 #define SOFTSERIAL_2_RX_PIN     PA8

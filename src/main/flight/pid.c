@@ -109,7 +109,7 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 5);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 6);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -170,7 +170,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
             }
         },
 
-        .acc_soft_lpf_hz = 15,
         .dterm_soft_notch_hz = 0,
         .dterm_soft_notch_cutoff = 1,
         .dterm_lpf_hz = 40,

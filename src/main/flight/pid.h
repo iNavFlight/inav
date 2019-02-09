@@ -84,7 +84,6 @@ typedef struct pidProfile_s {
     uint8_t dterm_lpf_hz;                   // (default 17Hz, Range 1-50Hz) Used for PT1 element in PID1, PID2 and PID5
 
     uint8_t yaw_pterm_lpf_hz;               // Used for filering Pterm noise on noisy frames
-    uint8_t acc_soft_lpf_hz;                // Set the Low Pass Filter factor for ACC. Reducing this value would reduce ACC noise (visible in GUI), but would increase ACC lag time. Zero = no filter
     uint8_t yaw_lpf_hz;
     uint16_t yaw_p_limit;
 

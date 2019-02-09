@@ -290,7 +290,7 @@ uint16_t max7456GetScreenSize(void)
     // deal with a zero returned from here.
     // TODO: Inspect all callers, make sure they can handle zero and
     // change this function to return zero before initialization.
-    if (state.isInitialized && (state.registers.vm0 & VIDEO_LINES_NTSC)) {
+    if (state.isInitialized && ((state.registers.vm0 & VIDEO_MODE_PAL) == 0)) {
         return VIDEO_BUFFER_CHARS_NTSC;
     }
     return VIDEO_BUFFER_CHARS_PAL;

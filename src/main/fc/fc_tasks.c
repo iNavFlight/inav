@@ -387,7 +387,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_TEMPERATURE] = {
         .taskName = "TEMPERATURE",
         .taskFunc = taskUpdateTemperature,
-        .desiredPeriod = TASK_PERIOD_HZ(1),       // 1 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
         .staticPriority = TASK_PRIORITY_LOW,
     },
 
