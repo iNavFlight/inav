@@ -1219,7 +1219,10 @@ static void cliTempSensor(char *cmdline)
                 sensorConfig->address = address;
                 sensorConfig->alarm_min = alarm_min;
                 sensorConfig->alarm_max = alarm_max;
-                strncpy(sensorConfig->label, label, TEMPERATURE_LABEL_LEN);
+                for (uint8_t index; index < TEMPERATURE_LABEL_LEN; ++index) {
+                    sensorConfig->label[index] = toupper(label[index]);
+                    if (label[index] == '\0') break;
+                }
             }
         } else {
             cliShowArgumentRangeError("sensor index", 0, MAX_TEMP_SENSORS - 1);

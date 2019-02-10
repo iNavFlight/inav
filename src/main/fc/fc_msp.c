@@ -15,6 +15,7 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -2679,7 +2680,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
                     ((uint8_t *)&sensorConfig->address)[addrIndex] = sbufReadU8(src);
                 for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
-                    sensorConfig->label[labelIndex] = sbufReadU8(src);
+                    sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
                 sensorConfig->alarm_min = sbufReadU16(src);
                 sensorConfig->alarm_max = sbufReadU16(src);
             }
