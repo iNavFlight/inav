@@ -389,6 +389,7 @@ void setupMulticopterAltitudeController(void);
 void resetMulticopterAltitudeController(void);
 void resetMulticopterPositionController(void);
 void resetMulticopterHeadingController(void);
+void resetMulticopterBrakingMode(void);
 
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);
