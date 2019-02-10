@@ -293,7 +293,19 @@ temperatureUpdateError:;
         } while (++temperatureUpdateSensorIndex < MAX_TEMP_SENSORS);
 
 #ifdef DS18B20_DRIVER_AVAILABLE
-        if (owDev) ds18b20StartConversion(owDev);
+        if (owDev) {
+            bool ack = owDev->owResetCommand(owDev);
+            if (!ack) goto ds18b20StartConversionError;
+            ptWait(owDev->owBusReady(owDev));
+
+            ack = owDev->owSkipRomCommand(owDev);
+            if (!ack) goto ds18b20StartConversionError;
+            ptWait(owDev->owBusReady(owDev));
+
+            ds18b20StartConversionCommand(owDev);
+        }
+
+ds18b20StartConversionError:;
 #endif
 
 #endif /* defined(USE_TEMPERATURE_SENSOR) */
