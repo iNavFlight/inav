@@ -309,6 +309,8 @@ groups:
       - name: baro_median_filter
         field: use_median_filtering
         type: bool
+      - name: baro_cal_tolerance
+        field: baro_calibration_tolerance
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
