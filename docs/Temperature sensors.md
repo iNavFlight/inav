@@ -1,6 +1,6 @@
 # Temperature sensors
 
-It is now possible to measure temperatures with the help of the I²C LM75 and 1-Wire DS18B20 chips. The temperature values can be displayed on the OSD and they are also logged. A total maximum of 8 temperature sensors can be connected.
+It is now possible to measure temperatures with the help of the I²C LM75 and 1-Wire DS18B20 chips. The temperature values can be displayed on the OSD and they are also logged. A total maximum of 8 temperature sensors can be connected. The support is enabled by default on F4 and F7 FCs. To use with F3 FCs you need to build a custom firmware.
 
 ## LM75
 
@@ -55,3 +55,20 @@ temp_sensor 7 0 0 0 0
 To change for example the configuration of the fourth sensor to label `BATT`, minimum value alarm 0.5°C and maximum value alarm 45°C
 
 `temp_sensor 3 2 7d01186838f2ff28 5 450 BATT`
+
+## Building a custom firmware with temperature sensor support (F3 only)
+
+This needs to be added in the `target.h` file:
+
+```
+#define USE_TEMPERATURE_SENSOR
+#define TEMPERATURE_I2C_BUS BUS_I2Cx // replace x with the index of the I²C bus the temperature sensors will be connected to
+
+// for LM75 sensors support
+#define USE_TEMPERATURE_LM75
+
+// for DS18B20 sensors
+#define USE_1WIRE
+#define USE_1WIRE_DS2482
+#define USE_TEMPERATURE_DS18B20
+```
