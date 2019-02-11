@@ -311,6 +311,8 @@ groups:
         type: bool
       - name: baro_cal_tolerance
         field: baro_calibration_tolerance
+        min: 0
+        max: 1000
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
