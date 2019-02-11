@@ -1211,7 +1211,7 @@ static void cliTempSensor(char *cmdline)
 
             if (validArgumentCount < 4) {
                 cliShowParseError();
-            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || strlen(label) > 4 || !addressValid) {
+            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || strlen(label) > TEMPERATURE_LABEL_LEN || !addressValid) {
                 cliShowParseError();
             } else {
                 tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(i);
