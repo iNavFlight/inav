@@ -26,6 +26,13 @@
 
 #include "common/logic_condition.h"
 #include "rx/rx.h"
+#include "maths.h"
+#include "fc/fc_core.h"
+#include "fc/rc_controls.h"
+#include "navigation/navigation.h"
+#include "sensors/battery.h"
+#include "sensors/pitotmeter.h"
+#include "flight/imu.h"
 
 int logicConditionProcess(logicCondition_t *condition) {
     const int operandAValue = logicConditionGetOperandValue(condition->operandA.type, condition->operandA.value);
@@ -74,6 +81,88 @@ int logicConditionCompute(
     }
 }
 
+static int logicConditionGetFlightOperandValue(int operand) {
+
+    switch (operand) {
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ARM_TIMER: // in s
+            return constrain((uint32_t)getFlightTime(), 0, 32767);
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_HOME_DISTANCE: //in m
+            return constrain(GPS_distanceToHome, 0, 32767);
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_TRIP_DISTANCE: //in m
+            return constrain(getTotalTravelDistance() / 100, 0, 32767);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_RSSI:
+            return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_VBAT: // V / 10
+            return getBatteryVoltage();
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_CELL_VOLTAGE: // V / 10
+            return getBatteryAverageCellVoltage();
+            break;
+        case LOGIC_CONDITION_OPERAND_FLIGHT_CURRENT: // Amp / 100
+            return getAmperage();
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MAH_DRAWN: // mAh
+            return getMAhDrawn();
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_SATS:
+            return gpsSol.numSat;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_GROUD_SPEED: // cm/s
+            return gpsSol.groundSpeed;
+            break;
+
+        //FIXME align with osdGet3DSpeed
+        case LOGIC_CONDITION_OPERAND_FLIGHT_3D_SPEED: // cm/s
+            return (int) sqrtf(sq(gpsSol.groundSpeed) + sq((int)getEstimatedActualVelocity(Z)));
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
+        #ifdef USE_PITOT
+            return constrain(pitot.airSpeed, 0, 32767);
+        #else
+            return false;
+        #endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
+            return constrain(getEstimatedActualPosition(Z), -32678, 32767);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_VERTICAL_SPEED: // cm/s
+            return constrain(getEstimatedActualVelocity(Z), 0, 32767);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS: // %
+            return (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_ROLL: // deg
+            return constrain(attitude.values.roll / 10, -180, 180);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH: // deg
+            return constrain(attitude.values.pitch / 10, -180, 180);
+            break;
+
+        default:
+            return 0;
+            break;
+    }
+}
+
 int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
     int retVal = 0;
 
@@ -88,6 +177,10 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
             if (operand >= 1 && operand <= 16) {
                 retVal = rcData[operand - 1];
             } 
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_FLIGHT:
+            retVal = logicConditionGetFlightOperandValue(operand);
             break;
 
         default:
