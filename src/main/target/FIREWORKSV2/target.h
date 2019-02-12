@@ -27,13 +27,13 @@
 #if defined(OMNIBUSF4V6)
 #define TARGET_BOARD_IDENTIFIER "OBV6"
 #else 
-#define TARGET_BOARD_IDENTIFIER "OBFW"
+#define TARGET_BOARD_IDENTIFIER "FWX2"
 #endif
 
 #if defined(OMNIBUSF4V6)
 #define USBD_PRODUCT_STRING "OmnibusF4 V6"
 #else
-#define USBD_PRODUCT_STRING "OmnibusF4 Fireworks"
+#define USBD_PRODUCT_STRING "OmnibusF4 Fireworks V2"
 #endif
 // Status LED
 #define LED0                    PA8
@@ -68,12 +68,12 @@
 #define MPU6500_CS_PIN          PC14
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define GYRO_MPU6500_ALIGN      CW0_DEG
-#define ACC_MPU6500_ALIGN       
+#define ACC_MPU6500_ALIGN       CW0_DEG
 #else
 #define MPU6500_CS_PIN          PD2
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define GYRO_MPU6500_ALIGN      CW180_DEG
-#define ACC_MPU6500_ALIGN
+#define ACC_MPU6500_ALIGN       CW180_DEG
 #endif
 
 // OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
