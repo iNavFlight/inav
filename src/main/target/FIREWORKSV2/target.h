@@ -24,10 +24,17 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "FWX2"
+#if defined(OMNIBUSF4V6)
+#define TARGET_BOARD_IDENTIFIER "OBV6"
+#else 
+#define TARGET_BOARD_IDENTIFIER "OBFW"
+#endif
 
-#define USBD_PRODUCT_STRING     "OMNIBUS F4 FWX V2"
-
+#if defined(OMNIBUSF4V6)
+#define USBD_PRODUCT_STRING "OmnibusF4 V6"
+#else
+#define USBD_PRODUCT_STRING "OmnibusF4 Fireworks"
+#endif
 // Status LED
 #define LED0                    PA8
 
@@ -37,8 +44,15 @@
 
 // I2C
 #define USE_I2C
+#if defined(OMNIBUSF4V6)
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                PB8 // SCL PIN,alt MST8
+#define I2C1_SDA                PB9 // SDA PIN,alt MST7
+#define I2C_DEVICE              (I2CDEV_1)
+#else
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
+#endif
 
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC8
@@ -49,12 +63,20 @@
 
 #define USE_GYRO_MPU6500
 #define USE_ACC_MPU6500
+
+#if defined(OMNIBUSF4V6)
+#define MPU6500_CS_PIN          PC14
+#define MPU6500_SPI_BUS         BUS_SPI1
+#define GYRO_MPU6500_ALIGN      CW0_DEG
+#define ACC_MPU6500_ALIGN       
+#else
 #define MPU6500_CS_PIN          PD2
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define GYRO_MPU6500_ALIGN      CW180_DEG
-#define ACC_MPU6500_ALIGN       CW180_DEG
+#define ACC_MPU6500_ALIGN
+#endif
 
-// OmnibusF4 Nano v6 has a MPU6000
+// OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
 #define USE_GYRO_MPU6000
 #define USE_ACC_MPU6000
 #define MPU6000_CS_PIN          PA4
@@ -171,8 +193,10 @@
 #define SMARTAUDIO_UART                 SERIAL_PORT_USART4
 
 #define TARGET_CONFIG
+#if !defined(OMNIBUSF4V6)
 #define CURRENT_METER_SCALE             175
 #define CURRENT_METER_OFFSET            326
+#endif
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
