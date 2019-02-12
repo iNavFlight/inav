@@ -86,6 +86,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
+| `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
 | `version`        |                                                |
 
 ## CLI Variable Reference
@@ -431,3 +432,4 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | nav_mc_braking_boost_disengage_speed | 100 | BOOST will be disabled when speed goes below this value |
 | nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
 | osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
+| baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default  should allow the noisiest baro to complete calibration [cm]. | 
