@@ -108,6 +108,7 @@ extern uint8_t __config_end;
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
@@ -149,7 +150,7 @@ static const char * const featureNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -748,7 +749,7 @@ static void cliSerial(char *cmdline)
     ptr = nextArg(ptr);
     if (ptr) {
         val = fastA2I(ptr);
-        portConfig.functionMask = val & 0xFFFF;
+        portConfig.functionMask = val & 0xFFFFFFFF;
         validArgumentCount++;
     }
 
@@ -1126,6 +1127,110 @@ static void cliRxRange(char *cmdline)
     }
 }
 
+#ifdef USE_TEMPERATURE_SENSOR
+static void printTempSensor(uint8_t dumpMask, const tempSensorConfig_t *tempSensorConfigs, const tempSensorConfig_t *defaultTempSensorConfigs)
+{
+    const char *format = "temp_sensor %u %u %s %d %d %s";
+    for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+        bool equalsDefault = false;
+        char label[5], hex_address[17];
+        strncpy(label, tempSensorConfigs[i].label, TEMPERATURE_LABEL_LEN);
+        label[4] = '\0';
+        tempSensorAddressToString(tempSensorConfigs[i].address, hex_address);
+        if (defaultTempSensorConfigs) {
+            equalsDefault = tempSensorConfigs[i].type == defaultTempSensorConfigs[i].type
+                && tempSensorConfigs[i].address == defaultTempSensorConfigs[i].address
+                && !memcmp(tempSensorConfigs[i].label, defaultTempSensorConfigs[i].label, TEMPERATURE_LABEL_LEN)
+                && tempSensorConfigs[i].alarm_min == defaultTempSensorConfigs[i].alarm_min
+                && tempSensorConfigs[i].alarm_max == defaultTempSensorConfigs[i].alarm_max;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                defaultTempSensorConfigs[i].type,
+                "0",
+                defaultTempSensorConfigs[i].alarm_min,
+                defaultTempSensorConfigs[i].alarm_max,
+                ""
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            tempSensorConfigs[i].type,
+            hex_address,
+            tempSensorConfigs[i].alarm_min,
+            tempSensorConfigs[i].alarm_max,
+            label
+        );
+    }
+}
+
+static void cliTempSensor(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printTempSensor(DUMP_MASTER, tempSensorConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetTempSensorConfig();
+    } else {
+        int16_t i;
+        const char *ptr = cmdline, *label;
+        int16_t type, alarm_min, alarm_max;
+        bool addressValid = false;
+        uint64_t address;
+        uint8_t validArgumentCount = 0;
+        i = fastA2I(ptr);
+        if (i >= 0 && i < MAX_TEMP_SENSORS) {
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                type = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                addressValid = tempSensorStringToAddress(ptr, &address);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                alarm_min = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                alarm_max = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            label = nextArg(ptr);
+            if (label)
+                ++validArgumentCount;
+            else
+                label = "";
+
+            if (validArgumentCount < 4) {
+                cliShowParseError();
+            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || strlen(label) > TEMPERATURE_LABEL_LEN || !addressValid) {
+                cliShowParseError();
+            } else {
+                tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(i);
+                sensorConfig->type = type;
+                sensorConfig->address = address;
+                sensorConfig->alarm_min = alarm_min;
+                sensorConfig->alarm_max = alarm_max;
+                for (uint8_t index; index < TEMPERATURE_LABEL_LEN; ++index) {
+                    sensorConfig->label[index] = toupper(label[index]);
+                    if (label[index] == '\0') break;
+                }
+            }
+        } else {
+            cliShowArgumentRangeError("sensor index", 0, MAX_TEMP_SENSORS - 1);
+        }
+    }
+}
+#endif
+
 #ifdef USE_LED_STRIP
 static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledConfig_t *defaultLedConfigs)
 {
@@ -1293,25 +1398,6 @@ static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const s
             servoConf->rate
         );
     }
-
-    // print servo directions
-    if (defaultServoParam) {
-        for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            const servoParam_t *servoConf = &servoParam[i];
-            const servoParam_t *servoConfDefault = &defaultServoParam[i];
-            bool equalsDefault = servoConf->reversedSources == servoConfDefault->reversedSources;
-            for (uint32_t channel = 0; channel < INPUT_SOURCE_COUNT; channel++) {
-                equalsDefault = ~(servoConf->reversedSources ^ servoConfDefault->reversedSources) & (1 << channel);
-                const char *format = "smix reverse %d %d r";
-                if (servoConfDefault->reversedSources & (1 << channel)) {
-                    cliDefaultPrintLinef(dumpMask, equalsDefault, format, i , channel);
-                }
-                if (servoConf->reversedSources & (1 << channel)) {
-                    cliDumpPrintLinef(dumpMask, equalsDefault, format, i , channel);
-                }
-            }
-        }
-    }
 }
 
 static void cliServo(char *cmdline)
@@ -1430,51 +1516,6 @@ static void cliServoMix(char *cmdline)
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
-        for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            servoParamsMutable(i)->reversedSources = 0;
-        }
-    } else if (sl_strncasecmp(cmdline, "reverse", 7) == 0) {
-        enum {SERVO = 0, INPUT, REVERSE, ARGS_COUNT};
-        char *ptr = strchr(cmdline, ' ');
-
-        len = strlen(ptr);
-        if (len == 0) {
-            cliPrintf("s");
-            for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
-                cliPrintf("\ti%d", inputSource);
-            cliPrintLinefeed();
-
-            for (uint32_t servoIndex = 0; servoIndex < MAX_SUPPORTED_SERVOS; servoIndex++) {
-                cliPrintf("%d", servoIndex);
-                for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
-                    cliPrintf("\t%s  ", (servoParams(servoIndex)->reversedSources & (1 << inputSource)) ? "r" : "n");
-                cliPrintLinefeed();
-            }
-            return;
-        }
-
-        ptr = strtok_r(ptr, " ", &saveptr);
-        while (ptr != NULL && check < ARGS_COUNT - 1) {
-            args[check++] = fastA2I(ptr);
-            ptr = strtok_r(NULL, " ", &saveptr);
-        }
-
-        if (ptr == NULL || check != ARGS_COUNT - 1) {
-            cliShowParseError();
-            return;
-        }
-
-        if (args[SERVO] >= 0 && args[SERVO] < MAX_SUPPORTED_SERVOS
-                && args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT
-                && (*ptr == 'r' || *ptr == 'n')) {
-            if (*ptr == 'r')
-                servoParamsMutable(args[SERVO])->reversedSources |= 1 << args[INPUT];
-            else
-                servoParamsMutable(args[SERVO])->reversedSources &= ~(1 << args[INPUT]);
-        } else
-            cliShowParseError();
-
-        cliServoMix("reverse");
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
@@ -1492,7 +1533,7 @@ static void cliServoMix(char *cmdline)
         if (i >= 0 && i < MAX_SERVO_RULES &&
             args[TARGET] >= 0 && args[TARGET] < MAX_SUPPORTED_SERVOS &&
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
-            args[RATE] >= -125 && args[RATE] <= 125 &&
+            args[RATE] >= -1000 && args[RATE] <= 1000 &&
             args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED) {
             customServoMixersMutable(i)->targetChannel = args[TARGET];
             customServoMixersMutable(i)->inputSource = args[INPUT];
@@ -2357,7 +2398,7 @@ static void cliSet(char *cmdline)
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
                 } else {
-                    cliPrint("Invalid value.");
+                    cliPrint("Invalid value. ");
                     cliPrintVarRange(val);
                     cliPrintLinefeed();
                 }
@@ -2390,7 +2431,7 @@ static void cliStatus(char *cmdline)
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
-    cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
+    cliPrintLinef("Voltage: %d.%02dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
     const uint32_t detectedSensorsMask = sensorsMask();
@@ -2474,11 +2515,7 @@ static void cliStatus(char *cmdline)
 #endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
-#else
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_GYROPID);
-#endif
     const int pidRate = pidTaskDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)pidTaskDeltaTime));
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
@@ -2546,6 +2583,9 @@ static void cliVersion(char *cmdline)
         buildDate,
         buildTime,
         shortGitRevision
+    );
+    cliPrintLinef("# GCC-%s",
+        compilerVersion
     );
 }
 
@@ -2703,6 +2743,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
+#ifdef USE_TEMPERATURE_SENSOR
+        cliPrintHashLine("temp_sensor");
+        printTempSensor(dumpMask, tempSensorConfig_CopyArray, tempSensorConfig(0));
+#endif
+
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
         printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
@@ -2855,15 +2900,16 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed>\r\n"
-        "\treset\r\n"
-        "\tload <mixer>\r\n"
-        "\treverse <servo> <source> r|n", cliServoMix),
+        "\treset\r\n", cliServoMix),
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
 #ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
 #ifdef USE_OSD

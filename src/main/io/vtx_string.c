@@ -25,8 +25,6 @@
 #include "platform.h"
 #include "build/debug.h"
 
-#if defined(USE_VTX_COMMON)
-
 #define VTX_STRING_BAND_COUNT 5
 #define VTX_STRING_CHAN_COUNT 8
 
@@ -89,5 +87,3 @@ uint16_t vtx58_Bandchan2Freq(uint8_t band, uint8_t channel)
     }
     return 0;
 }
-
-#endif

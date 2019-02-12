@@ -26,6 +26,7 @@
 #include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
+#include "common/calibration.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -66,8 +67,7 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
 
 #ifdef USE_BARO
 
-static timeMs_t baroCalibrationTimeout = 0;
-static bool baroCalibrationFinished = false;
+static zeroCalibrationScalar_t zeroCalibration;
 static float baroGroundAltitude = 0;
 static float baroGroundPressure = 101325.0f; // 101325 pascal, 1 standard atmosphere
 
@@ -183,17 +183,6 @@ bool baroInit(void)
     return true;
 }
 
-bool baroIsCalibrationComplete(void)
-{
-    return baroCalibrationFinished;
-}
-
-void baroStartCalibration(void)
-{
-    baroCalibrationTimeout = millis();
-    baroCalibrationFinished = false;
-}
-
 #define PRESSURE_SAMPLES_MEDIAN 3
 
 /*
@@ -275,27 +264,33 @@ static float pressureToAltitude(const float pressure)
     return (1.0f - powf(pressure / 101325.0f, 0.190295f)) * 4433000.0f;
 }
 
-static void performBaroCalibrationCycle(void)
+static float altitudeToPressure(const float altCm)
 {
-    const float baroGroundPressureError = baro.baroPressure - baroGroundPressure;
-    baroGroundPressure += baroGroundPressureError * 0.15f;
+    return powf(1.0f - (altCm / 4433000.0f), 5.254999) * 101325.0f;
+}
 
-    if (ABS(baroGroundPressureError) < (baroGroundPressure * 0.00005f)) {    // 0.005% calibration error (should give c. 10cm calibration error)
-        if ((millis() - baroCalibrationTimeout) > 250) {
-            baroGroundAltitude = pressureToAltitude(baroGroundPressure);
-            baroCalibrationFinished = true;
-            DEBUG_TRACE_SYNC("Barometer calibration complete (%d)", lrintf(baroGroundAltitude));
-        }
-    }
-    else {
-        baroCalibrationTimeout = millis();
-    }
+bool baroIsCalibrationComplete(void)
+{
+    return zeroCalibrationIsCompleteS(&zeroCalibration) && zeroCalibrationIsSuccessfulS(&zeroCalibration);
+}
+
+void baroStartCalibration(void)
+{
+    const float acceptedPressureVariance = (101325.0f - altitudeToPressure(30.0f)); // max 30cm deviation during calibration (at sea level)
+    zeroCalibrationStartS(&zeroCalibration, CALIBRATING_BARO_TIME_MS, acceptedPressureVariance, false);
 }
 
 int32_t baroCalculateAltitude(void)
 {
     if (!baroIsCalibrationComplete()) {
-        performBaroCalibrationCycle();
+        zeroCalibrationAddValueS(&zeroCalibration, baro.baroPressure);
+
+        if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
+            zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
+            baroGroundAltitude = pressureToAltitude(baroGroundPressure);
+            DEBUG_TRACE_SYNC("Barometer calibration complete (%d)", lrintf(baroGroundAltitude));
+        }
+
         baro.BaroAlt = 0;
     }
     else {
@@ -315,6 +310,11 @@ int32_t baroCalculateAltitude(void)
 int32_t baroGetLatestAltitude(void)
 {
     return baro.BaroAlt;
+}
+
+int16_t baroGetTemperature(void)
+{   
+    return CENTIDEGREES_TO_DECIDEGREES(baro.baroTemperature);
 }
 
 bool baroIsHealthy(void)

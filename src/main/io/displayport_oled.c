@@ -66,7 +66,7 @@ static int oledWriteString(displayPort_t *displayPort, uint8_t x, uint8_t y, con
     return 0;
 }
 
-static int oledWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint8_t c,  textAttributes_t attr)
+static int oledWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t c,  textAttributes_t attr)
 {
     UNUSED(displayPort);
     UNUSED(attr);

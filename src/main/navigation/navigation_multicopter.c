@@ -39,6 +39,7 @@
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/pid.h"
@@ -74,9 +75,10 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 
     posControl.pids.pos[Z].output_constrained = targetVel;
 
-    // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing velocity.
+    // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing RoC or RoD (only if vel is of the same sign)
     // if we are decelerating - don't limit (allow better recovery from falling)
-    if (ABS(targetVel) > ABS(posControl.desiredState.vel.z)) {
+    const bool isSameDirection = (signbit(targetVel) == signbit(posControl.desiredState.vel.z)) && (targetVel != 0) && (posControl.desiredState.vel.z != 0);
+    if (isSameDirection && (fabsf(targetVel) > fabsf(posControl.desiredState.vel.z))) {
         const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS / 5.0f);
         posControl.desiredState.vel.z = constrainf(targetVel, posControl.desiredState.vel.z - maxVelDifference, posControl.desiredState.vel.z + maxVelDifference);
     }
@@ -264,6 +266,98 @@ bool adjustMulticopterHeadingFromRCInput(void)
 static pt1Filter_t mcPosControllerAccFilterStateX, mcPosControllerAccFilterStateY;
 static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
 
+void resetMulticopterBrakingMode(void)
+{
+    DISABLE_STATE(NAV_CRUISE_BRAKING);
+    DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+    DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+}
+
+static void processMulticopterBrakingMode(const bool isAdjusting)
+{
+#ifdef USE_MR_BRAKING_MODE
+    static uint32_t brakingModeDisengageAt = 0;
+    static uint32_t brakingBoostModeDisengageAt = 0;
+
+    if (!(NAV_Status.state == MW_NAV_STATE_NONE || NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT)) {
+        resetMulticopterBrakingMode();
+        return;
+    }
+
+    const bool brakingEntryAllowed =
+        IS_RC_MODE_ACTIVE(BOXBRAKING) &&
+        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
+        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
+        !isAdjusting &&
+        navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
+        navConfig()->mc.braking_speed_threshold > 0;
+
+
+    /*
+     * Case one, when we order to brake (sticks to the center) and we are moving above threshold
+     * Speed is above 1m/s and sticks are centered
+     * Extra condition: BRAKING flight mode has to be enabled
+     */
+    if (brakingEntryAllowed) {
+        /*
+         * Set currnt position and target position
+         * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
+         */
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+
+        ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+        ENABLE_STATE(NAV_CRUISE_BRAKING);
+
+        //Set forced BRAKING disengage moment
+        brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
+
+        //If speed above threshold, start boost mode as well
+        if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
+            ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+
+            brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
+        }
+
+    }
+
+    // We can enter braking only after user started to move the sticks
+    if (STATE(NAV_CRUISE_BRAKING_LOCKED) && isAdjusting) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+    }
+
+    /*
+     * Case when speed dropped, disengage BREAKING_BOOST
+     */
+    if (
+        STATE(NAV_CRUISE_BRAKING_BOOST) && (
+            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed ||
+            brakingBoostModeDisengageAt < millis()
+    )) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+    }
+
+    /*
+     * Case when we were braking but copter finally stopped or we started to move the sticks
+     */
+    if (STATE(NAV_CRUISE_BRAKING) && (
+        posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||  //We stopped
+        isAdjusting ||                                                              //Moved the sticks
+        brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
+    )) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING);
+        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+
+        /*
+         * When braking is done, store current position as desired one
+         * We do not want to go back to the place where braking has started
+         */
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+    }
+#else
+    UNUSED(isAdjusting);
+#endif
+}
+
 void resetMulticopterPositionController(void)
 {
     for (int axis = 0; axis < 2; axis++) {
@@ -276,11 +370,12 @@ void resetMulticopterPositionController(void)
     }
 }
 
-bool adjustMulticopterPositionFromRCInput(void)
+bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
-    const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
-    const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
+    // Process braking mode
+    processMulticopterBrakingMode(rcPitchAdjustment || rcRollAdjustment);
 
+    // Actually change position
     if (rcPitchAdjustment || rcRollAdjustment) {
         // If mode is GPS_CRUISE, move target position, otherwise POS controller will passthru the RC input to ANGLE PID
         if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
@@ -382,15 +477,22 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     if (velErrorMagnitude > 0.1f) {
         accelLimitX = maxAccelLimit / velErrorMagnitude * fabsf(velErrorX);
         accelLimitY = maxAccelLimit / velErrorMagnitude * fabsf(velErrorY);
-    }
-    else {
+    } else {
         accelLimitX = maxAccelLimit / 1.414213f;
         accelLimitY = accelLimitX;
     }
 
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
-    const float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+
+    float maxAccelChange = US2S(deltaMicros) * 1700.0f;
+    //When braking, raise jerk limit even if we are not boosting acceleration
+#ifdef USE_MR_BRAKING_MODE
+    if (STATE(NAV_CRUISE_BRAKING)) {
+        maxAccelChange = maxAccelChange * 2;
+    }
+#endif 
+
     const float accelLimitXMin = constrainf(lastAccelTargetX - maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitXMax = constrainf(lastAccelTargetX + maxAccelChange, -accelLimitX, +accelLimitX);
     const float accelLimitYMin = constrainf(lastAccelTargetY - maxAccelChange, -accelLimitY, +accelLimitY);
@@ -401,16 +503,46 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
     // Thus we don't need to do anything else with calculated acceleration
-    const float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
-    const float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
+    float newAccelX = navPidApply2(&posControl.pids.vel[X], posControl.desiredState.vel.x, navGetCurrentActualPositionAndVelocity()->vel.x, US2S(deltaMicros), accelLimitXMin, accelLimitXMax, 0);
+    float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
+
+    int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
+    uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
+
+#ifdef USE_MR_BRAKING_MODE
+    //Boost required accelerations
+    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
+        const float rawBoostFactor = (float)navConfig()->mc.braking_boost_factor / 100.0f;
+        
+        //Scale boost factor according to speed
+        const float boostFactor = constrainf(
+            scaleRangef(
+                posControl.actualState.velXY, 
+                navConfig()->mc.braking_boost_speed_threshold, 
+                navConfig()->general.max_manual_speed, 
+                0.0f,
+                rawBoostFactor
+            ),
+            0.0f, 
+            rawBoostFactor
+        );
+
+        //Boost required acceleration for harder braking
+        newAccelX = newAccelX * (1.0f + boostFactor);
+        newAccelY = newAccelY * (1.0f + boostFactor);
+
+        maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
+        accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
+    }
+#endif
 
     // Save last acceleration target
     lastAccelTargetX = newAccelX;
     lastAccelTargetY = newAccelY;
 
     // Apply LPF to jerk limited acceleration target
-    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
-    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, NAV_ACCEL_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
+    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, accCutoffFrequency, US2S(deltaMicros));
+    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, accCutoffFrequency, US2S(deltaMicros));
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
@@ -420,7 +552,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);
     const float desiredRoll = atan2_approx(accelRight * cos_approx(desiredPitch), GRAVITY_CMSS);
 
-    const int16_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
     posControl.rcAdjustment[ROLL] = constrain(RADIANS_TO_DECIDEGREES(desiredRoll), -maxBankAngle, maxBankAngle);
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
 }

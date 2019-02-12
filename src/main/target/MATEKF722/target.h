@@ -71,25 +71,23 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define USE_PITOT_MS4525
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define PITOT_I2C_BUS           BUS_I2C1
 
 // *************** SD Card **************************
 #define USE_SDCARD
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC1
 
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
+#define SPI3_CLOCK_LEADING_EDGE
 
-#define SDCARD_SPI_INSTANCE     SPI3
-#define SDCARD_SPI_CS_PIN       PC1
-
-#define SDCARD_DMA_CHANNEL_TX               	DMA1_Stream7
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG 	DMA_FLAG_TCIF7
-#define SDCARD_DMA_CLK                      	RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  	DMA_CHANNEL_0
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
@@ -145,18 +143,12 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS             BUS_I2C1
 #define RANGEFINDER_I2C_BUS         BUS_I2C1
-#define USE_RANGEFINDER_HCSR04_I2C
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA15   //TIM2_CH1
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST5_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream5
-#define WS2811_DMA_CHANNEL              DMA_CHANNEL_3
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3  //USART2_RX
@@ -169,3 +161,4 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS        7
+#define USE_DSHOT

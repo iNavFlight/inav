@@ -34,6 +34,7 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/pid.h"
@@ -84,6 +85,7 @@ typedef struct {
 #ifdef USE_DTERM_NOTCH
     biquadFilter_t deltaNotchFilter;
 #endif
+    float stickPosition;
 } pidState_t;
 
 #ifdef USE_DTERM_NOTCH
@@ -107,7 +109,7 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 4);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 6);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -168,7 +170,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
             }
         },
 
-        .acc_soft_lpf_hz = 15,
         .dterm_soft_notch_hz = 0,
         .dterm_soft_notch_cutoff = 1,
         .dterm_lpf_hz = 40,
@@ -191,6 +192,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingItermThrowLimit = FW_ITERM_THROW_LIMIT_DEFAULT,
         .fixedWingReferenceAirspeed = 1000,
         .fixedWingCoordinatedYawGain = 1.0f,
+        .fixedWingItermLimitOnStickPosition = 0.5f,
+
+        .loiter_direction = NAV_LOITER_RIGHT,
 );
 
 void pidInit(void)
@@ -214,14 +218,14 @@ void pidInit(void)
 
 bool pidInitFilters(void)
 {
-    const uint32_t refreshRate = getPidUpdateRate();
-    notchFilterApplyFn = nullFilterApply;
+    const uint32_t refreshRate = getLooptime();
 
     if (refreshRate == 0) {
         return false;
     }
 
 #ifdef USE_DTERM_NOTCH
+    notchFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_soft_notch_hz != 0) {
         notchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
         for (int axis = 0; axis < 3; ++ axis) {
@@ -241,7 +245,7 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (STATE(FIXED_WING) && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getPidUpdateRate() * 1e-6f);
+        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, getLooptime() * 1e-6f);
         pt1FilterReset(&fixedWingTpaFilter, motorConfig()->minthrottle);
     }
 }
@@ -352,6 +356,13 @@ void updatePIDCoefficients(void)
         }
     }
 
+    /*
+     * Compute stick position in range of [-1.0f : 1.0f] without deadband and expo
+     */
+    for (int axis = 0; axis < 3; axis++) {
+        pidState[axis].stickPosition = constrain(rcData[axis] - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
+    }
+
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
@@ -457,6 +468,19 @@ static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_i
     }
 }
 
+bool isFixedWingItermLimitActive(float stickPosition)
+{
+    /*
+     * Iterm anti windup whould be active only when pilot controls the rotation
+     * velocity directly, not when ANGLE or HORIZON are used
+     */
+    if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
+        return false;
+    }
+
+    return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
+}
+
 static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
@@ -473,10 +497,10 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
     // Calculate integral
     pidState->errorGyroIf += rateError * pidState->kI * dT;
 
-    if (STATE(ANTI_WINDUP)) {
+    if (STATE(ANTI_WINDUP) || isFixedWingItermLimitActive(pidState->stickPosition)) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
     } else {
-        pidState->errorGyroIfLimit = ABS(pidState->errorGyroIf);
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 
     if (pidProfile()->fixedWingItermThrowLimit != 0) {
@@ -557,7 +581,7 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
     if (STATE(ANTI_WINDUP) || mixerIsOutputSaturated()) {
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
     } else {
-        pidState->errorGyroIfLimit = ABS(pidState->errorGyroIf);
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
     }
 
     axisPID[axis] = newOutputLimited;
@@ -731,8 +755,28 @@ static void pidTurnAssistant(pidState_t *pidState)
     }
 }
 
+static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAngle)
+{
+    static uint8_t lastFpvCamAngleDegrees = 0;
+    static float cosCameraAngle = 1.0;
+    static float sinCameraAngle = 0.0;
+
+    if (lastFpvCamAngleDegrees != fpvCameraAngle) {
+        lastFpvCamAngleDegrees = fpvCameraAngle;
+        cosCameraAngle = cos_approx(DEGREES_TO_RADIANS(fpvCameraAngle));
+        sinCameraAngle = sin_approx(DEGREES_TO_RADIANS(fpvCameraAngle));
+    }
+
+    // Rotate roll/yaw command from camera-frame coordinate system to body-frame coordinate system
+    const float rollRate = pidState[ROLL].rateTarget;
+    const float yawRate = pidState[YAW].rateTarget;
+    pidState[ROLL].rateTarget = constrainf(rollRate * cosCameraAngle -  yawRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
+    pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
+}
+
 void pidController(void)
 {
+    bool canUseFpvCameraMix = true;
     uint8_t headingHoldState = getHeadingHoldState();
 
     if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
@@ -761,10 +805,16 @@ void pidController(void)
         const float horizonRateMagnitude = calcHorizonRateMagnitude();
         pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude);
         pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonRateMagnitude);
+        canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
     }
 
     if (FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) {
         pidTurnAssistant(pidState);
+        canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
+    }
+
+    if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlRateProfile->misc.fpvCamAngleDegrees) {
+        pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
 
     // Apply setpoint rate of change limits

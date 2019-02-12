@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
@@ -50,6 +52,12 @@ void onNewGPSData(void);
 enum {
     NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
     NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
+};
+
+enum {
+    NAV_LOITER_RIGHT = 0,                    // Loitering direction right
+    NAV_LOITER_LEFT  = 1,                    // Loitering direction left
+    NAV_LOITER_YAW   = 2
 };
 
 enum {
@@ -148,9 +156,17 @@ typedef struct navConfig_s {
     } general;
 
     struct {
-        uint8_t  max_bank_angle;             // multicopter max banking angle (deg)
-        uint16_t hover_throttle;             // multicopter hover throttle
-        uint16_t auto_disarm_delay;          // multicopter safety delay for landing detector
+        uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
+        uint16_t hover_throttle;                // multicopter hover throttle
+        uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
+        uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
+        uint16_t braking_disengage_speed;       // below this speed braking will be disengaged
+        uint16_t braking_timeout;               // Timeout for braking mode
+        uint8_t  braking_boost_factor;          // Acceleration boost multiplier at max speed
+        uint16_t braking_boost_timeout;         // Timeout for boost mode
+        uint16_t braking_boost_speed_threshold; // Above this speed braking boost mode can engage
+        uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
+        uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
     } mc;
 
     struct {
@@ -189,7 +205,7 @@ typedef struct gpsOrigin_s {
     int32_t lat;    // Lattitude * 1e+7
     int32_t lon;    // Longitude * 1e+7
     int32_t alt;    // Altitude in centimeters (meters * 100)
-} gpsOrigin_s;
+} gpsOrigin_t;
 
 typedef enum {
     NAV_WP_ACTION_WAYPOINT = 0x01,
@@ -213,6 +229,11 @@ typedef struct {
     fpVector3_t pos;
     int32_t     yaw;             // deg * 100
 } navWaypointPosition_t;
+
+typedef struct navDestinationPath_s {
+    uint32_t distance; // meters * 100
+    int32_t bearing; // deg * 100
+} navDestinationPath_t;
 
 typedef struct {
     float kP;
@@ -317,6 +338,7 @@ void navigationInit(void);
 void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs);
 void updatePositionEstimator_OpticalFlowTopic(timeUs_t currentTimeUs);
 void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfaceAlt);
+void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs);
 
 /* Navigation system updates */
 void updateWaypointsAndNavigationMode(void);
@@ -371,10 +393,29 @@ typedef enum {
     GEO_ORIGIN_RESET_ALTITUDE
 } geoOriginResetMode_e;
 
-void geoSetOrigin(gpsOrigin_s * origin, const gpsLocation_t * llh, geoOriginResetMode_e resetMode);
-void geoConvertGeodeticToLocal(gpsOrigin_s * origin, const gpsLocation_t * llh, fpVector3_t * pos, geoAltitudeConversionMode_e altConv);
-void geoConvertLocalToGeodetic(const gpsOrigin_s * origin, const fpVector3_t * pos, gpsLocation_t * llh);
+// geoSetOrigin stores the location provided in llh as a GPS origin in the
+// provided origin parameter. resetMode indicates wether all origin coordinates
+// should be overwritten by llh (GEO_ORIGIN_SET) or just the altitude, leaving
+// other fields untouched (GEO_ORIGIN_RESET_ALTITUDE).
+void geoSetOrigin(gpsOrigin_t *origin, const gpsLocation_t *llh, geoOriginResetMode_e resetMode);
+// geoConvertGeodeticToLocal converts the geodetic location given in llh to
+// the local coordinate space and stores the result in pos. The altConv
+// indicates wether the altitude in llh is relative to the default GPS
+// origin (GEO_ALT_RELATIVE) or absolute (e.g. Earth frame)
+// (GEO_ALT_ABSOLUTE). If origin is invalid pos is set to
+// (0, 0, 0) and false is returned. It returns true otherwise.
+bool geoConvertGeodeticToLocal(fpVector3_t *pos, const gpsOrigin_t *origin, const gpsLocation_t *llh, geoAltitudeConversionMode_e altConv);
+// geoConvertGeodeticToLocalOrigin calls geoConvertGeodeticToLocal with the
+// default GPS origin.
+bool geoConvertGeodeticToLocalOrigin(fpVector3_t * pos, const gpsLocation_t *llh, geoAltitudeConversionMode_e altConv);
+// geoConvertLocalToGeodetic converts a local point as provided in pos to
+// geodetic coordinates using the provided GPS origin. It returns wether
+// the provided origin is valid and the conversion could be performed.
+bool geoConvertLocalToGeodetic(gpsLocation_t *llh, const gpsOrigin_t *origin, const fpVector3_t *pos);
 float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
+
+/* Distance/bearing calculation */
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);
 
 /* Failsafe-forced RTH mode */
 void activateForcedRTH(void);
@@ -393,6 +434,7 @@ bool navigationRTHAllowsLanding(void);
 
 bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
+bool isFixedWingLaunchFinishedOrAborted(void);
 
 float calculateAverageSpeed();
 
