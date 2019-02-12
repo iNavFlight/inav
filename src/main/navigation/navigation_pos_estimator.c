@@ -342,18 +342,24 @@ void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
  * Update IMU topic
  *  Function is called at main loop rate
  */
+static void restartGravityCalibration(void)
+{
+    zeroCalibrationStartS(&posEstimator.imu.gravityCalibration, CALIBRATING_GRAVITY_TIME_MS, positionEstimationConfig()->gravity_calibration_tolerance, false);
+}
+
+static bool gravityCalibrationComplete(void)
+{
+    return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
+}
+
 static void updateIMUTopic(void)
 {
-    static float calibratedGravityCMSS = GRAVITY_CMSS;
-    static timeMs_t gravityCalibrationTimeout = 0;
-
     if (!isImuReady()) {
         posEstimator.imu.accelNEU.x = 0;
         posEstimator.imu.accelNEU.y = 0;
         posEstimator.imu.accelNEU.z = 0;
 
-        gravityCalibrationTimeout = millis();
-        posEstimator.imu.gravityCalibrationComplete = false;
+        restartGravityCalibration();
     }
     else {
         fpVector3_t accelBF;
@@ -377,24 +383,18 @@ static void updateIMUTopic(void)
         posEstimator.imu.accelNEU.z = accelBF.z;
 
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
-        if (!ARMING_FLAG(ARMED) && !posEstimator.imu.gravityCalibrationComplete) {
-            // Slowly converge on calibrated gravity while level
-            const float gravityOffsetError = posEstimator.imu.accelNEU.z - calibratedGravityCMSS;
-            calibratedGravityCMSS += gravityOffsetError * 0.0025f;
+        if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
+            zeroCalibrationAddValueS(&posEstimator.imu.gravityCalibration, posEstimator.imu.accelNEU.z);
 
-            if (fabsf(gravityOffsetError) < positionEstimationConfig()->gravity_calibration_tolerance) {  // Error should be within 0.5% of calibrated gravity
-                if ((millis() - gravityCalibrationTimeout) > 250) {
-                    posEstimator.imu.gravityCalibrationComplete = true;
-                }
-            }
-            else {
-                gravityCalibrationTimeout = millis();
+            if (gravityCalibrationComplete()) {
+                zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
+                DEBUG_TRACE_SYNC("Gravity calibration complete (%d)", lrintf(posEstimator.imu.calibratedGravityCMSS));
             }
         }
 
         /* If calibration is incomplete - report zero acceleration */
-        if (posEstimator.imu.gravityCalibrationComplete) {
-            posEstimator.imu.accelNEU.z -= calibratedGravityCMSS;
+        if (gravityCalibrationComplete()) {
+            posEstimator.imu.accelNEU.z -= posEstimator.imu.calibratedGravityCMSS;
         }
         else {
             posEstimator.imu.accelNEU.x = 0;
@@ -768,7 +768,7 @@ void initializePositionEstimator(void)
     posEstimator.est.flowCoordinates[X] = 0;
     posEstimator.est.flowCoordinates[Y] = 0;
 
-    posEstimator.imu.gravityCalibrationComplete = false;
+    restartGravityCalibration();
 
     for (axis = 0; axis < 3; axis++) {
         posEstimator.imu.accelBias.v[axis] = 0;
@@ -807,7 +807,7 @@ void updatePositionEstimator(void)
 
 bool navIsCalibrationComplete(void)
 {
-    return posEstimator.imu.gravityCalibrationComplete;
+    return gravityCalibrationComplete();
 }
 
 #endif

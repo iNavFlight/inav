@@ -114,7 +114,17 @@ typedef enum {
     DEVHW_LIS3MDL,
 
     /* Temp sensor chips */
-    DEVHW_LM75,
+    DEVHW_LM75_0,
+    DEVHW_LM75_1,
+    DEVHW_LM75_2,
+    DEVHW_LM75_3,
+    DEVHW_LM75_4,
+    DEVHW_LM75_5,
+    DEVHW_LM75_6,
+    DEVHW_LM75_7,
+
+    /* 1-wire interface chips */
+    DEVHW_DS2482,
 
     /* OSD chips */
     DEVHW_MAX7456,

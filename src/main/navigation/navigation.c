@@ -2368,93 +2368,8 @@ static void resetPositionController(void)
     }
     else {
         resetMulticopterPositionController();
+        resetMulticopterBrakingMode();
     }
-}
-
-
-static void processBrakingMode(const bool isAdjusting)
-{
-#ifdef USE_MR_BRAKING_MODE
-
-    static uint32_t brakingModeDisengageAt = 0;
-    static uint32_t brakingBoostModeDisengageAt = 0;
-
-    const bool brakingEntryAllowed =
-        IS_RC_MODE_ACTIVE(BOXBRAKING) &&
-        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
-        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
-        !isAdjusting &&
-        navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
-        navConfig()->mc.braking_speed_threshold > 0 &&
-        (
-            NAV_Status.state == MW_NAV_STATE_NONE ||
-            NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT
-        );
-
-
-    /*
-        * Case one, when we order to brake (sticks to the center) and we are moving above threshold
-        * Speed is above 1m/s and sticks are centered
-        * Extra condition: BRAKING flight mode has to be enabled
-        */
-    if (brakingEntryAllowed) {
-        /*
-            * Set currnt position and target position
-            * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
-            */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
-
-        ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-        ENABLE_STATE(NAV_CRUISE_BRAKING);
-
-        //Set forced BRAKING disengage moment
-        brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
-
-        //If speed above threshold, start boost mode as well
-        if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
-            ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-
-            brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
-        }
-
-    }
-
-    // We can enter braking only after user started to move the sticks
-    if (STATE(NAV_CRUISE_BRAKING_LOCKED) && isAdjusting) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-    }
-
-    /*
-     * Case when speed dropped, disengage BREAKING_BOOST
-     */
-    if (
-        STATE(NAV_CRUISE_BRAKING_BOOST) && (
-            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed ||
-            brakingBoostModeDisengageAt < millis()
-    )) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-    }
-
-    /*
-     * Case when we were braking but copter finally stopped or we started to move the sticks
-     */
-    if (STATE(NAV_CRUISE_BRAKING) && (
-        posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||  //We stopped
-        isAdjusting ||                                                              //Moved the sticks
-        brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
-    )) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING);
-        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-
-        /*
-            * When braking is done, store current position as desired one
-            * We do not want to go back to the place where braking has started
-            */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
-    }
-#else
-    UNUSED(isAdjusting);
-#endif
 }
 
 static bool adjustPositionFromRCInput(void)
@@ -2468,8 +2383,6 @@ static bool adjustPositionFromRCInput(void)
 
         const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
         const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
-
-        processBrakingMode(rcPitchAdjustment || rcRollAdjustment);
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }
@@ -2726,8 +2639,15 @@ static void processNavigationRCAdjustments(void)
         posControl.flags.isAdjustingAltitude = false;
     }
 
-    if ((navStateFlags & NAV_RC_POS) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
-        posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
+    if (navStateFlags & NAV_RC_POS) {
+        if (!FLIGHT_MODE(FAILSAFE_MODE)) {
+            posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
+        }
+        else {
+            if (!STATE(FIXED_WING)) {
+                resetMulticopterBrakingMode();
+            }
+        }
     }
     else {
         posControl.flags.isAdjustingPosition = false;

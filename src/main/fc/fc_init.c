@@ -41,6 +41,7 @@
 
 #include "cms/cms.h"
 
+#include "drivers/1-wire.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/compass/compass.h"
@@ -531,6 +532,11 @@ void init(void)
     }
 #endif
 
+    // 1-Wire IF chip
+#ifdef USE_1WIRE
+    owInit();
+#endif
+
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
@@ -629,7 +635,8 @@ void init(void)
     blackboxInit();
 #endif
 
-    gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
+    gyroStartCalibration();
+
 #ifdef USE_BARO
     baroStartCalibration();
 #endif

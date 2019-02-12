@@ -15,6 +15,7 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -104,6 +105,7 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/opflow.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/telemetry.h"
 
@@ -454,7 +456,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
             sbufWriteU8(dst, customServoMixers(i)->targetChannel);
             sbufWriteU8(dst, customServoMixers(i)->inputSource);
-            sbufWriteU8(dst, customServoMixers(i)->rate);
+            sbufWriteU16(dst, customServoMixers(i)->rate);
             sbufWriteU8(dst, customServoMixers(i)->speed);
             sbufWriteU8(dst, 0);
             sbufWriteU8(dst, 100);
@@ -969,16 +971,23 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_BLACKBOX_CONFIG:
+        sbufWriteU8(dst, 0); // API no longer supported
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, 0);
+        break;
+
+    case MSP2_BLACKBOX_CONFIG:
 #ifdef USE_BLACKBOX
         sbufWriteU8(dst, 1); //Blackbox supported
         sbufWriteU8(dst, blackboxConfig()->device);
-        sbufWriteU8(dst, blackboxConfig()->rate_num);
-        sbufWriteU8(dst, blackboxConfig()->rate_denom);
+        sbufWriteU16(dst, blackboxConfig()->rate_num);
+        sbufWriteU16(dst, blackboxConfig()->rate_denom);
 #else
         sbufWriteU8(dst, 0); // Blackbox not supported
         sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
 #endif
         break;
 
@@ -1120,7 +1129,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
         sbufWriteU16(dst, mixerConfig()->yaw_jump_prevention_limit);
         sbufWriteU8(dst, gyroConfig()->gyro_lpf);
-        sbufWriteU8(dst, pidProfile()->acc_soft_lpf_hz);
+        sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
@@ -1360,6 +1369,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+        sbufWriteU16(dst, osdConfig()->imu_temp_alarm_min);
+        sbufWriteU16(dst, osdConfig()->imu_temp_alarm_max);
+#ifdef USE_BARO
+        sbufWriteU16(dst, osdConfig()->baro_temp_alarm_min);
+        sbufWriteU16(dst, osdConfig()->baro_temp_alarm_max);
+#else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+#endif
         break;
 
     case MSP2_INAV_OSD_PREFERENCES:
@@ -1394,6 +1412,31 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, navConfig()->mc.braking_bank_angle);
 #endif
         break;
+
+#ifdef USE_TEMPERATURE_SENSOR
+    case MSP2_INAV_TEMP_SENSOR_CONFIG:
+        for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
+            const tempSensorConfig_t *sensorConfig = tempSensorConfig(index);
+            sbufWriteU8(dst, sensorConfig->type);
+            for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+                sbufWriteU8(dst, ((uint8_t *)&sensorConfig->address)[addrIndex]);
+            for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+                sbufWriteU8(dst, sensorConfig->label[labelIndex]);
+            sbufWriteU16(dst, sensorConfig->alarm_min);
+            sbufWriteU16(dst, sensorConfig->alarm_max);
+        }
+        break;
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    case MSP2_INAV_TEMPERATURES:
+        for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
+            int16_t temperature;
+            bool valid = getSensorTemperature(index, &temperature);
+            sbufWriteU16(dst, valid ? temperature : -1000);
+        }
+        break;
+#endif
 
     default:
         return false;
@@ -1645,9 +1688,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
         sbufReadU8(src); // multiwiiCurrentMeterOutput
         tmp_u8 = sbufReadU8(src);
-        if (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT)
+        if (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT) {
             rxConfigMutable()->rssi_channel = tmp_u8;
-        rxUpdateRSSISource(); // Changing rssi_channel might change the RSSI source
+            rxUpdateRSSISource(); // Changing rssi_channel might change the RSSI source
+        }
         sbufReadU8(src);
 
 #ifdef USE_MAG
@@ -1781,10 +1825,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_SERVO_MIX_RULE:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize >= 8) && (tmp_u8 < MAX_SERVO_RULES)) {
+        if ((dataSize >= 9) && (tmp_u8 < MAX_SERVO_RULES)) {
             customServoMixersMutable(tmp_u8)->targetChannel = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->inputSource = sbufReadU8(src);
-            customServoMixersMutable(tmp_u8)->rate = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->rate = sbufReadU16(src);
             customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
             sbufReadU16(src); //Read 2bytes for min/max and ignore it
             sbufReadU8(src); //Read 1 byte for `box` and ignore it
@@ -1953,7 +1997,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
             mixerConfigMutable()->yaw_jump_prevention_limit = sbufReadU16(src);
             gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
-            pidProfileMutable()->acc_soft_lpf_hz = sbufReadU8(src);
+            accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
@@ -2098,7 +2142,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_ACC_CALIBRATION:
         if (!ARMING_FLAG(ARMED))
-            accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
+            accStartCalibration();
         else
             return MSP_RESULT_ERROR;
         break;
@@ -2119,12 +2163,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
 #ifdef USE_BLACKBOX
-    case MSP_SET_BLACKBOX_CONFIG:
+    case MSP2_SET_BLACKBOX_CONFIG:
         // Don't allow config to be updated while Blackbox is logging
-        if ((dataSize >= 3) && blackboxMayEditConfig()) {
+        if ((dataSize >= 5) && blackboxMayEditConfig()) {
             blackboxConfigMutable()->device = sbufReadU8(src);
-            blackboxConfigMutable()->rate_num = sbufReadU8(src);
-            blackboxConfigMutable()->rate_denom = sbufReadU8(src);
+            blackboxConfigMutable()->rate_num = sbufReadU16(src);
+            blackboxConfigMutable()->rate_denom = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2367,10 +2411,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_RSSI_CONFIG:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize >= 1) && (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT))
+        if ((dataSize >= 1) && (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT)) {
             rxConfigMutable()->rssi_channel = tmp_u8;
-        else
+            rxUpdateRSSISource();
+        } else {
             return MSP_RESULT_ERROR;
+        }
         break;
 
     case MSP_SET_RX_MAP:
@@ -2594,12 +2640,20 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_ALARMS:
         {
-            sbufReadU8Safe(&osdConfigMutable()->rssi_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->time_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->alt_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->dist_alarm, src);
-            sbufReadU16Safe(&osdConfigMutable()->neg_alt_alarm, src);
-            osdStartFullRedraw();
+            if (dataSize >= 17) {
+                osdConfigMutable()->rssi_alarm = sbufReadU8(src);
+                osdConfigMutable()->time_alarm = sbufReadU16(src);
+                osdConfigMutable()->alt_alarm = sbufReadU16(src);
+                osdConfigMutable()->dist_alarm = sbufReadU16(src);
+                osdConfigMutable()->neg_alt_alarm = sbufReadU16(src);
+                osdConfigMutable()->imu_temp_alarm_min = sbufReadU16(src);
+                osdConfigMutable()->imu_temp_alarm_max = sbufReadU16(src);
+#ifdef USE_BARO
+                osdConfigMutable()->baro_temp_alarm_min = sbufReadU16(src);
+                osdConfigMutable()->baro_temp_alarm_max = sbufReadU16(src);
+#endif
+            } else
+                return MSP_RESULT_ERROR;
         }
 
         break;
@@ -2646,6 +2700,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 setConfigBatteryProfileAndWriteEEPROM(tmp_u8);
         }
         break;
+
+#ifdef USE_TEMPERATURE_SENSOR
+    case MSP2_INAV_SET_TEMP_SENSOR_CONFIG:
+        if (dataSize == sizeof(tempSensorConfig_t) * MAX_TEMP_SENSORS) {
+            for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
+                tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(index);
+                sensorConfig->type = sbufReadU8(src);
+                for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+                    ((uint8_t *)&sensorConfig->address)[addrIndex] = sbufReadU8(src);
+                for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+                    sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
+                sensorConfig->alarm_min = sbufReadU16(src);
+                sensorConfig->alarm_max = sbufReadU16(src);
+            }
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
 
     default:
         return MSP_RESULT_ERROR;
