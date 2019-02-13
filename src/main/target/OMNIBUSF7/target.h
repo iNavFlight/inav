@@ -212,5 +212,3 @@
 #define TARGET_IO_PORTE 0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
-
-#define USE_ITCM_RAM
