@@ -145,6 +145,10 @@
 #define USE_VTX_TRAMP
 #define USE_VTX_FFPV
 
+#ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
+#define USE_LOGIC_CONDITIONS
+#endif
+
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
 // Wind estimator

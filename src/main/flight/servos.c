@@ -273,9 +273,11 @@ void servoMixer(float dT)
         /*
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
+    #ifdef USE_LOGIC_CONDITIONS
         if (!logicConditionProcess(&currentServoMixer[i].condition)) {
             continue;
         }
+    #endif
 
         const uint8_t target = currentServoMixer[i].targetChannel;
         const uint8_t from = currentServoMixer[i].inputSource;

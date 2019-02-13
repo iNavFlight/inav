@@ -1486,11 +1486,14 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
                 && customServoMixer.inputSource == customServoMixerDefault.inputSource
                 && customServoMixer.rate == customServoMixerDefault.rate
                 && customServoMixer.speed == customServoMixerDefault.speed
+            #ifdef USE_LOGIC_CONDITIONS
                 && customServoMixer.condition.operation == customServoMixerDefault.condition.operation
                 && customServoMixer.condition.operandA.type == customServoMixerDefault.condition.operandA.type
                 && customServoMixer.condition.operandB.type == customServoMixerDefault.condition.operandB.type
                 && customServoMixer.condition.operandA.value == customServoMixerDefault.condition.operandA.value
-                && customServoMixer.condition.operandB.value == customServoMixerDefault.condition.operandB.value;
+                && customServoMixer.condition.operandB.value == customServoMixerDefault.condition.operandB.value
+            #endif
+            ;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
@@ -1498,11 +1501,19 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
                 customServoMixerDefault.inputSource,
                 customServoMixerDefault.rate,
                 customServoMixerDefault.speed,
+            #ifdef USE_LOGIC_CONDITIONS
                 customServoMixer.condition.operation,
                 customServoMixer.condition.operandA.type,
                 customServoMixer.condition.operandA.value,
                 customServoMixer.condition.operandB.type,
                 customServoMixer.condition.operandB.value
+            #else
+                0,
+                0,
+                0,
+                0,
+                0 
+            #endif
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -1511,11 +1522,19 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             customServoMixer.inputSource,
             customServoMixer.rate,
             customServoMixer.speed,
+        #ifdef USE_LOGIC_CONDITIONS
             customServoMixer.condition.operation,
             customServoMixer.condition.operandA.type,
             customServoMixer.condition.operandA.value,
             customServoMixer.condition.operandB.type,
             customServoMixer.condition.operandB.value
+        #else
+            0,
+            0,
+            0,
+            0,
+            0 
+        #endif
         );
     }
 }
@@ -1561,11 +1580,13 @@ static void cliServoMix(char *cmdline)
             customServoMixersMutable(i)->inputSource = args[INPUT];
             customServoMixersMutable(i)->rate = args[RATE];
             customServoMixersMutable(i)->speed = args[SPEED];
+        #ifdef USE_LOGIC_CONDITIONS
             customServoMixersMutable(i)->condition.operation = args[CONDITION];
             customServoMixersMutable(i)->condition.operandA.type = args[OPERAND_A_TYPE];
             customServoMixersMutable(i)->condition.operandA.value = args[OPERAND_A];
             customServoMixersMutable(i)->condition.operandB.type = args[OPERAND_B_TYPE];
             customServoMixersMutable(i)->condition.operandB.value = args[OPERAND_B];
+        #endif
             cliServoMix("");
         } else {
             cliShowParseError();

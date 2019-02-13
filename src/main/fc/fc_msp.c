@@ -469,11 +469,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, customServoMixers(i)->inputSource);
             sbufWriteU8(dst, customServoMixers(i)->rate);
             sbufWriteU8(dst, customServoMixers(i)->speed);
+        #ifdef USE_LOGIC_CONDITIONS
             sbufWriteU8(dst, customServoMixers(i)->condition.operation);
             sbufWriteU8(dst, customServoMixers(i)->condition.operandA.type);
             sbufWriteU16(dst, customServoMixers(i)->condition.operandA.value);
             sbufWriteU8(dst, customServoMixers(i)->condition.operandB.type);
             sbufWriteU16(dst, customServoMixers(i)->condition.operandB.value);
+        #else
+            sbufWriteU8(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU16(dst, 0);
+            sbufWriteU8(dst, 0);
+            sbufWriteU16(dst, 0);
+        #endif
         }
         break;
     case MSP2_COMMON_MOTOR_MIXER:
@@ -1844,11 +1852,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             customServoMixersMutable(tmp_u8)->inputSource = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->rate = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
+        #ifdef USE_LOGIC_CONDITIONS
             customServoMixersMutable(tmp_u8)->condition.operation = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->condition.operandA.type = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->condition.operandA.value = sbufReadU16(src);
             customServoMixersMutable(tmp_u8)->condition.operandB.type = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->condition.operandB.value = sbufReadU16(src);
+        #endif
             loadCustomServoMixer();
         } else
             return MSP_RESULT_ERROR;
