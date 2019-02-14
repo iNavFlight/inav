@@ -206,3 +206,7 @@ int logicConditionGetValue(uint8_t conditionId) {
         return true;
     }
 }
+
+void logicConditionUpdateTask(timeUs_t currentTimeUs) {
+    
+}

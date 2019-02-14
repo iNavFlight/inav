@@ -24,6 +24,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/time.h"
 
 #define MAX_LOGIC_CONDITIONS 8
 
@@ -89,3 +90,4 @@ int logicConditionCompute(
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
 int logicConditionGetValue(uint8_t conditionId);
+void logicConditionUpdateTask(timeUs_t currentTimeUs);
