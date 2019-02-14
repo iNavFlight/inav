@@ -112,9 +112,9 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
-#define USE_BARO_BMP280
 #define BMP280_SPI_BUS          BUS_SPI3
 #define BMP280_CS_PIN           PB3
+#define DEFAULT_BARO_SPI_BMP280
 
 #if defined(OMNIBUSF4V6)
 #define PITOT_I2C_BUS           BUS_I2C1
