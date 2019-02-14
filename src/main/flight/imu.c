@@ -291,7 +291,7 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 #endif
 }
 
-static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
+static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler, const fpVector3_t * velEF, bool velEFNew)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
@@ -386,14 +386,87 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     /* Step 2: Roll and pitch correction -  use measured acceleration vector */
     if (accBF) {
         static const fpVector3_t vGravity = { .v = { 0.0f, 0.0f, 1.0f } };
-        fpVector3_t vEstGravity, vAcc, vErr;
 
-        // Calculate estimated gravity vector in body frame
-        quaternionRotateVector(&vEstGravity, &vGravity, &orientation);    // EF -> BF
+        static bool         vVelEF_initialized;
+        static fpVector3_t  vVelEF_prev;
+        static fpVector3_t  vVelEF_AccIntegal;      // Integrated accelerometer value in EF
+        static float        vVelEF_integralTime;
+        static fpVector3_t  vVelEF_errorVector;
 
-        // Error is sum of cross product between estimated direction and measured direction of gravity
-        vectorNormalize(&vAcc, accBF);
-        vectorCrossProduct(&vErr, &vAcc, &vEstGravity);
+        fpVector3_t         vErr;
+
+        if (velEF && vVelEF_initialized) {
+            // We have valid velocity from GPS, use that to calculate correction vector
+            fpVector3_t vAccEF;
+
+            // Rotate ACC from BF to EF and accumulate
+            quaternionRotateVectorInv(&vAccEF, accBF, &orientation);
+            vectorAdd(&vVelEF_AccIntegal, &vVelEF_AccIntegal, &vAccEF);
+            vVelEF_integralTime += dt;
+
+            // Now if we got a GPS update we can calculate error vector according to
+            // the paper by Bill Premerlani (Roll-Pitch Gyro Drift Compensation)
+            if (velEFNew) {
+                fpVector3_t vTmp1, vTmp2;
+
+                // Calculate (V2 - V1) / (T2 - T1)
+                // Here T2-T1 = vVelEF_integralTime (accumulated time between two GPS updates, also time window we used to integrate accelerometer)
+                vectorSub(&vTmp1, &vVelEF_prev, velEF);
+                vectorScale(&vTmp1, &vTmp1, 1.0f / vVelEF_integralTime);
+
+                // Calculate Ge - (V2 - V1) / (T2 - T1)
+                vectorSub(&vTmp1, &vGravity, &vTmp1);
+                const float vTmp1Length = sqrtf(vectorNormSquared(&vTmp1));
+
+                if (vTmp1Length > 0.01f) {
+                    // Calculate acceleration by taking a derivative of acceleration integral
+                    // This effectively calculates average acceleration, but in a way that's more immune to jitter
+                    vectorScale(&vTmp2, &vVelEF_AccIntegal, 1.0f / vVelEF_integralTime);
+
+                    // Calculate cross product between accelerometer and VelEF/dT
+                    vectorCrossProduct(&vVelEF_errorVector, &vTmp2, &vTmp1);
+                    vectorScale(&vVelEF_errorVector, &vVelEF_errorVector, 1.0f / vTmp1Length);
+
+                    // Rotate error vector back to body frame
+                    quaternionRotateVector(&vVelEF_errorVector, &vVelEF_errorVector, &orientation);
+                }
+                else {
+                    // Free fall. No way of figuring reference vector - keep error at zero
+                    vectorZero(&vVelEF_errorVector);
+                }
+
+                // Get ready for next GPS update
+                vectorZero(&vVelEF_AccIntegal);
+                vVelEF_prev = *velEF;
+                vVelEF_integralTime = 0;
+            }
+
+            vErr = vVelEF_errorVector;
+        }
+        else if (velEF && !vVelEF_initialized && velEFNew) {
+            // Initial update - acquiring GPS
+            vectorZero(&vVelEF_AccIntegal);
+            vectorZero(&vVelEF_errorVector);
+            vVelEF_prev = *velEF;
+            vVelEF_integralTime = 0;
+            vVelEF_initialized = true;
+
+            vErr = vVelEF_errorVector;
+        }
+        else {
+            // We don't have velocity data in earth frame
+            vVelEF_initialized = false;
+
+            // Use plain vector as measured by accelerometer and hope for the best
+            fpVector3_t vEstGravity, vAcc;
+
+            // Calculate estimated gravity vector in body frame
+            quaternionRotateVector(&vEstGravity, &vGravity, &orientation);    // EF -> BF
+
+            // Error is sum of cross product between estimated direction and measured direction of gravity
+            vectorNormalize(&vAcc, accBF);
+            vectorCrossProduct(&vErr, &vAcc, &vEstGravity);
+        }
 
         // Compute and apply integral feedback if enabled
         if (imuRuntimeConfig.dcm_ki_acc > 0.0f) {
@@ -581,7 +654,8 @@ static void imuCalculateEstimatedAttitude(float dT)
                             useMag ? &measuredMagBF : NULL,
                             useCOG, courseOverGround,
                             accWeight,
-                            magWeight);
+                            magWeight,
+                            useGPSVelEF ? &gpsVelEF : NULL, gpsNewDataAvailable);
 
     imuUpdateEulerAngles();
 }
