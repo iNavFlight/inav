@@ -168,7 +168,7 @@ Only one receiver feature can be enabled at a time.
 
 The software has signal loss detection which is always enabled.  Signal loss detection is used for safety and failsafe reasons.
 
-The `rx_min_usec` and `rx_max_usec` settings helps detect when your RX stops sending any data, enters failsafe mode or when the RX looses signal.
+The `rx_min_usec` and `rx_max_usec` settings helps detect when your RX stops sending any data, enters failsafe mode or when the RX loses signal.
 
 By default, when the signal loss is detected the FC will set pitch/roll/yaw to the value configured for `mid_rc`. The throttle will be set to the value configured for `rx_min_usec` or `mid_rc` if using 3D feature.
 
@@ -177,49 +177,6 @@ Signal loss can be detected when:
 1. no rx data is received (due to radio reception, recevier configuration or cabling issues).
 2. using Serial RX and receiver indicates failsafe condition.
 3. using any of the first 4 stick channels do not have a value in the range specified by `rx_min_usec` and `rx_max_usec`.
-
-### RX loss configuration
-
-The `rxfail` cli command is used to configure per-channel rx-loss behaviour.
-You can use the `rxfail` command to change this behaviour.
-A flight channel can either be AUTOMATIC or HOLD, an AUX channel can either be SET or HOLD.  
-
-* AUTOMATIC - Flight channels are set to safe values (low throttle, mid position for yaw/pitch/roll).
-* HOLD - Channel holds the last value.
-* SET - Channel is set to a specific configured value.
-
-The default mode is AUTOMATIC for flight channels and HOLD for AUX channels.
-
-The rxfail command can be used in conjunction with mode ranges to trigger various actions.
-
-The `rxfail` command takes 2 or 3 arguments.
-* Index of channel (See below)
-* Mode ('a' = AUTOMATIC, 'h' = HOLD, 's' = SET)
-* A value to use when in SET mode.
-
-Channels are always specified in the same order, regardless of your channel mapping.
-
-* Roll is 0
-* Pitch is 1
-* Yaw is 2
-* Throttle is 3.
-* Aux channels are 4 onwards.
-
-Examples:
-
-To make Throttle channel have an automatic value when RX loss is detected:
-
-`rxfail 3 a`
-
-To make AUX4 have a value of 2000 when RX loss is detected:
-
-`rxfail 7 s 2000`
-
-To make AUX8 hold it's value when RX loss is detected:
-
-`rxfail 11 h`
-
-WARNING: Always make sure you test the behavior is as expected after configuring rxfail settings!
 
 #### `rx_min_usec`
 
