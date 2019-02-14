@@ -274,8 +274,8 @@ void servoMixer(float dT)
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
     #ifdef USE_LOGIC_CONDITIONS
-        if (!logicConditionProcess(&currentServoMixer[i].condition)) {
-            continue;
+        if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
+            continue; 
         }
     #endif
 

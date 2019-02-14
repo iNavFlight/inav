@@ -24,6 +24,9 @@
 
 #include <stdbool.h>
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
 #include "common/logic_condition.h"
 #include "rx/rx.h"
 #include "maths.h"
@@ -33,6 +36,8 @@
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
 #include "flight/imu.h"
+
+PG_REGISTER_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 0);
 
 int logicConditionProcess(logicCondition_t *condition) {
     const int operandAValue = logicConditionGetOperandValue(condition->operandA.type, condition->operandA.value);
@@ -188,4 +193,16 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
     }
 
     return retVal;
+}
+
+/*
+ * ConditionId is ordered from 1 while conditions are indexed from 0
+ * conditionId == 0 is always evaluated at true
+ */ 
+int logicConditionGetValue(uint8_t conditionId) {
+    if (conditionId > 0) {
+        return true;
+    } else {
+        return true;
+    }
 }

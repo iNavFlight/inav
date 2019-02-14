@@ -21,6 +21,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
+#pragma once
+
+#include "config/parameter_group.h"
+
+#define MAX_LOGIC_CONDITIONS 8
 
 typedef enum {
     LOGIC_CONDITION_TRUE = 0,       // 0
@@ -71,6 +76,8 @@ typedef struct logicCondition_s {
     logicOperand_t operandB;
 } logicCondition_t;
 
+PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);
+
 int logicConditionProcess(logicCondition_t *condition);
 
 int logicConditionCompute(
@@ -80,3 +87,5 @@ int logicConditionCompute(
 );
 
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
+
+int logicConditionGetValue(uint8_t conditionId);
