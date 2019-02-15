@@ -184,7 +184,7 @@ static bool detectGPSGlitch(timeUs_t currentTimeUs)
  * Update GPS topic
  *  Function is called on each GPS update
  */
-void onNewGPSData(void)
+void gpsNotifyNewData_Navigation(void)
 {
     static timeUs_t lastGPSNewDataTime;
     static int32_t previousLat;
@@ -247,7 +247,7 @@ void onNewGPSData(void)
                     posEstimator.gps.vel.y = (posEstimator.gps.vel.y + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (gpsSol.llh.lon - previousLon) / dT)) / 2.0f;
                 }
 
-                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelD) {
+                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
                     posEstimator.gps.vel.z = - gpsSol.velNED[2];   // NEU
                 }
                 else {

@@ -94,6 +94,8 @@ FASTRAM float rMat[3][3];
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 STATIC_FASTRAM pt1Filter_t rotRateFilter;
 
+/* Feedback from GPS */
+STATIC_FASTRAM bool gpsNewDataAvailable;
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
@@ -107,6 +109,11 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .acc_ignore_rate = 0,
     .acc_ignore_slope = 0
 );
+
+void gpsNotifyNewData_IMU(void)
+{
+    gpsNewDataAvailable = true;
+}
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
 {
@@ -643,6 +650,8 @@ static void imuCalculateEstimatedAttitude(float dT)
     }
 #endif
 
+    bool useGPSVelEF = sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelNE;
+    fpVector3_t gpsVelEF = { .v = { gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z] } };
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
@@ -657,6 +666,9 @@ static void imuCalculateEstimatedAttitude(float dT)
                             magWeight,
                             useGPSVelEF ? &gpsVelEF : NULL, gpsNewDataAvailable);
 
+    // Consumed GPS data
+    gpsNewDataAvailable = false;
+    
     imuUpdateEulerAngles();
 }
 

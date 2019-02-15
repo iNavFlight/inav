@@ -147,6 +147,12 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
     gpsState.timeoutMs = timeoutMs;
 }
 
+void gpsNotifyNewData(void)
+{
+    gpsNotifyNewData_Navigation();
+    gpsNotifyNewData_IMU();
+}
+
 void gpsProcessNewSolutionData(void)
 {
     // Set GPS fix flag only if we have 3D fix
@@ -165,7 +171,7 @@ void gpsProcessNewSolutionData(void)
     sensorsSet(SENSOR_GPS);
 
     // Pass on GPS update to NAV and IMU
-    onNewGPSData();
+    gpsNotifyNewData();
 
     // Update time
     gpsUpdateTime();
