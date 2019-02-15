@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 
+#include "config/config_reset.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
@@ -39,10 +40,33 @@
 
 PG_REGISTER_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 0);
 
-int logicConditionProcess(logicCondition_t *condition) {
-    const int operandAValue = logicConditionGetOperandValue(condition->operandA.type, condition->operandA.value);
-    const int operandBValue = logicConditionGetOperandValue(condition->operandB.type, condition->operandB.value);
-    return logicConditionCompute(condition->operation, operandAValue, operandBValue);
+void pgResetFn_logicConditions(logicCondition_t *instance)
+{
+    for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        RESET_CONFIG(logicCondition_t, &instance[i],
+            .enabled = 0,
+            .operation = LOGIC_CONDITION_TRUE,
+            .operandA = {
+                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
+                .value = 0
+            },
+            .operandB = {
+                .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
+                .value = 0
+            }
+        );
+    }
+}
+
+logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
+
+void logicConditionProcess(uint8_t i) {
+
+    const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+    const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+    const int value = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
+
+    logicConditionStates[i].value = value;
 }
 
 int logicConditionCompute(
@@ -201,12 +225,14 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
  */ 
 int logicConditionGetValue(uint8_t conditionId) {
     if (conditionId > 0) {
-        return true;
+        return logicConditionStates[conditionId-1].value;
     } else {
         return true;
     }
 }
 
 void logicConditionUpdateTask(timeUs_t currentTimeUs) {
-    
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        logicConditionProcess(i);
+    }
 }

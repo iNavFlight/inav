@@ -72,6 +72,7 @@ typedef struct logicOperand_s {
 } logicOperand_t;
 
 typedef struct logicCondition_s {
+    uint8_t enabled;
     logicOperation_e operation;
     logicOperand_t operandA;
     logicOperand_t operandB;
@@ -79,7 +80,11 @@ typedef struct logicCondition_s {
 
 PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);
 
-int logicConditionProcess(logicCondition_t *condition);
+typedef struct logicConditionState_s {
+    int value;
+} logicConditionState_t;
+
+void logicConditionProcess(uint8_t i);
 
 int logicConditionCompute(
     logicOperation_e operation,
