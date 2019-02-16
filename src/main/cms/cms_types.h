@@ -69,7 +69,7 @@ typedef struct
     };
     const void * const data;
     uint8_t flags;
-} OSD_Entry;
+} __attribute__((packed)) OSD_Entry;
 
 // Bits in flags
 #define PRINT_VALUE    (1 << 0)  // Value has been changed, need to redraw
