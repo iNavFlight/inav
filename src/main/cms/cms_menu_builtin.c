@@ -86,8 +86,7 @@ static const OSD_Entry menuInfoEntries[] = {
     OSD_STRING_ENTRY("GITREV", infoGitRev),
     OSD_STRING_ENTRY("TARGET", infoTargetName),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu menuInfo = {
@@ -128,8 +127,7 @@ static const OSD_Entry menuFeaturesEntries[] =
     OSD_SUBMENU_ENTRY("LED STRIP", &cmsx_menuLedstrip),
 #endif // LED_STRIP
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu menuFeatures = {

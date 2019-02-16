@@ -46,6 +46,7 @@ typedef enum
     //wlasciwosci elementow
     OME_TAB,
     OME_END,
+    OME_BACK_AND_END,
 
     // Debug aid
     OME_MENU,

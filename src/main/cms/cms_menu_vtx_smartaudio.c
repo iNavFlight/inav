@@ -364,8 +364,7 @@ static const OSD_Entry saCmsMenuStatsEntries[] = {
     OSD_UINT16_RO_ENTRY("CRCERR", &saStat.crc),
     OSD_UINT16_RO_ENTRY("OOOERR", &saStat.ooopresp),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuStats = {
@@ -547,8 +546,7 @@ static const OSD_Entry saCmsMenuPORFreqEntries[] =
     OSD_UINT16_ENTRY("NEW FREQ", (&(const OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsSetPORFreq),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuPORFreq =
@@ -571,8 +569,7 @@ static const OSD_Entry saCmsMenuUserFreqEntries[] =
     OSD_UINT16_ENTRY("NEW FREQ", (&(const OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsConfigUserFreq),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuUserFreq =
@@ -601,8 +598,7 @@ static const OSD_Entry saCmsMenuConfigEntries[] =
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 #endif /* USE_EXTENDED_CMS_MENUS */
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuConfig = {
@@ -621,8 +617,7 @@ static const OSD_Entry saCmsMenuCommenceEntries[] =
     OSD_LABEL_ENTRY("CONFIRM"),
     OSD_FUNC_CALL_ENTRY("YES", saCmsCommence),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuCommence = {
@@ -651,8 +646,7 @@ static const OSD_Entry saCmsMenuFreqModeEntries[] =
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 #pragma GCC diagnostic pop
 
@@ -668,8 +662,7 @@ static const OSD_Entry saCmsMenuChanModeEntries[] =
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const OSD_Entry saCmsMenuOfflineEntries[] =
@@ -681,8 +674,7 @@ static const OSD_Entry saCmsMenuOfflineEntries[] =
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 #endif /* USE_EXTENDED_CMS_MENUS */
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuVtxSmartAudio; // Forward

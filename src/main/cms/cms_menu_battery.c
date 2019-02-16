@@ -109,8 +109,7 @@ static const OSD_Entry menuBattSettingsEntries[]=
     OSD_SETTING_ENTRY("CAP WARN", SETTING_BATTERY_CAPACITY_WARNING),
     OSD_SETTING_ENTRY("CAP CRIT", SETTING_BATTERY_CAPACITY_CRITICAL),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuBattSettings = {
@@ -134,8 +133,7 @@ static OSD_Entry menuBatteryEntries[]=
     OSD_UINT8_CALLBACK_ENTRY("PROF", cmsx_onBatteryProfileIndexChange, (&(const OSD_UINT8_t){ &battDispProfileIndex, 1, MAX_BATTERY_PROFILE_COUNT, 1})),
     OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuBattSettings),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY
+    OSD_BACK_AND_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuBattery = {
