@@ -593,10 +593,10 @@ static const OSD_Entry saCmsMenuConfigEntries[] =
 {
     OSD_LABEL_ENTRY("- SA CONFIG -"),
 
-    { "OP MODEL",  OME_TAB,  {.func = saCmsConfigOpmodelByGvar}, &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
-    { "FSEL MODE", OME_TAB,  {.func = saCmsConfigFreqModeByGvar}, &saCmsEntFselMode, DYNAMIC },
+    { "OP MODEL",  {.func = saCmsConfigOpmodelByGvar}, &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, OME_TAB, DYNAMIC },
+    { "FSEL MODE", {.func = saCmsConfigFreqModeByGvar}, &saCmsEntFselMode, OME_TAB, DYNAMIC },
     OSD_TAB_CALLBACK_ENTRY("PIT FMODE", saCmsConfigPitFModeByGvar, &saCmsEntPitFMode),
-    { "POR FREQ",  OME_Submenu, {.menufunc = saCmsORFreqGetString}, (void *)&saCmsMenuPORFreq, OPTSTRING },
+    { "POR FREQ",  {.menufunc = saCmsORFreqGetString}, (void *)&saCmsMenuPORFreq, OME_Submenu, OPTSTRING },
 #ifdef USE_EXTENDED_CMS_MENUS
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 #endif /* USE_EXTENDED_CMS_MENUS */
@@ -646,7 +646,7 @@ static const OSD_Entry saCmsMenuFreqModeEntries[] =
     OSD_LABEL_ENTRY("- SMARTAUDIO -"),
 
     OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
-    { "FREQ",   OME_Submenu, {.menufunc = saCmsUserFreqGetString},  &saCmsMenuUserFreq, OPTSTRING },
+    { "FREQ", {.menufunc = saCmsUserFreqGetString},  &saCmsMenuUserFreq, OME_Submenu, OPTSTRING },
     OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
