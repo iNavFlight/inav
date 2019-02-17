@@ -1,5 +1,5 @@
-/* @file max7456_symbols.h
- * @brief max7456 symbols for the mwosd font set
+/* @file osd_symbols.h
+ * @brief Based on max7456 symbols for the mwosd font set
  *
  * @author Nathan Tsoi nathan@vertile.com
  *
@@ -21,7 +21,7 @@
 
 #pragma once
 
-#ifdef USE_MAX7456
+#ifdef USE_OSD
 
 #define SYM_RSSI                  0x01 // 001 Icon RSSI
 #define SYM_AH_LEFT               0x02 // 002 Arrow left
@@ -53,8 +53,8 @@
 #define SYM_HEADING_S             0x19 // 025 Heading Graphic south
 #define SYM_HEADING_E             0x1A // 026 Heading Graphic east
 #define SYM_HEADING_W             0x1B // 027 Heading Graphic west
-#define SYM_HEADING_DIVIDED_LINE  0x1C // 028 Heading Graphic 
-#define SYM_HEADING_LINE          0x1D // 029 Heading Graphic 
+#define SYM_HEADING_DIVIDED_LINE  0x1C // 028 Heading Graphic
+#define SYM_HEADING_LINE          0x1D // 029 Heading Graphic
 
 #define SYM_SAT_L                 0x1E // 030 Sats left
 #define SYM_SAT_R                 0x1F // 031 Sats right
@@ -124,13 +124,13 @@
 #define SYM_BATT_FULL             0x90 // 144 Battery full
 #define SYM_BATT_5                0x91 // 145 Battery
 #define SYM_BATT_4                0x92 // 146 Battery
-#define SYM_BATT_3                0x93 // 147 Battery 
+#define SYM_BATT_3                0x93 // 147 Battery
 #define SYM_BATT_2                0x94 // 148 Battery
 #define SYM_BATT_1                0x95 // 149 Battery
 #define SYM_BATT_EMPTY            0x96 // 150 Battery empty
 
 #define SYM_AIR                   0x97 // 151 Air speed
-//                                0x98 // 152 Home point map                                   
+//                                0x98 // 152 Home point map
 #define SYM_FTS                   0x99 // 153 FT/S
 #define SYM_AMP                   0x9A // 154 A
 #define SYM_ON_M                  0x9B // 155 On MN
@@ -187,9 +187,9 @@
 #define SYM_ZERO_HALF_LEADING_DOT 0xD0 // 208 to 217 Numbers with leading dot
 
 #define SYM_AH_CH_AIRCRAFT0       0xDA // 218 Crossair aircraft left
-#define SYM_AH_CH_AIRCRAFT1       0xDB // 219 Crossair aircraft 
+#define SYM_AH_CH_AIRCRAFT1       0xDB // 219 Crossair aircraft
 #define SYM_AH_CH_AIRCRAFT2       0xDC // 220 Crossair aircraft center
-#define SYM_AH_CH_AIRCRAFT3       0xDD // 221 Crossair aircraft 
+#define SYM_AH_CH_AIRCRAFT3       0xDD // 221 Crossair aircraft
 #define SYM_AH_CH_AIRCRAFT4       0xDE // 222 Crossair aircraft right
 
 #define SYM_PITCH_DOWN            0xDF // 223 Pitch down

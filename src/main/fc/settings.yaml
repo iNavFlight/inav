@@ -1572,7 +1572,7 @@ groups:
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
-    headers: ["io/osd.h", "drivers/vcd.h"]
+    headers: ["io/osd.h", "drivers/osd.h"]
     condition: USE_OSD
     members:
       - name: osd_video_system

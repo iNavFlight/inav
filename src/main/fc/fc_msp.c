@@ -41,8 +41,9 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
-#include "drivers/max7456.h"
-#include "drivers/max7456_symbols.h"
+#include "drivers/display.h"
+#include "drivers/osd.h"
+#include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/sdcard.h"
 #include "drivers/serial.h"
@@ -315,7 +316,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         // 0 = no OSD
         // 1 = OSD slave (not supported in INAV)
         // 2 = OSD chip on board
-#if defined(USE_OSD) && defined(USE_MAX7456)
+#if defined(USE_OSD)
         sbufWriteU8(dst, 2);
 #else
         sbufWriteU8(dst, 0);
@@ -1020,13 +1021,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_OSD_CONFIG:
 #ifdef USE_OSD
-        sbufWriteU8(dst, 1); // OSD supported
+        sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
         // send video system (AUTO/PAL/NTSC)
-#ifdef USE_MAX7456
         sbufWriteU8(dst, osdConfig()->video_system);
-#else
-        sbufWriteU8(dst, 0);
-#endif
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->rssi_alarm);
         sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
@@ -1038,7 +1035,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
         }
 #else
-        sbufWriteU8(dst, 0); // OSD not supported
+        sbufWriteU8(dst, OSD_DRIVER_NONE); // OSD not supported
 #endif
         break;
 
@@ -2234,11 +2231,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         // set all the other settings
         if ((int8_t)tmp_u8 == -1) {
             if (dataSize >= 10) {
-#ifdef USE_MAX7456
                 osdConfigMutable()->video_system = sbufReadU8(src);
-#else
-                sbufReadU8(src); // Skip video system
-#endif
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->rssi_alarm = sbufReadU8(src);
                 currentBatteryProfileMutable->capacity.warning = sbufReadU16(src);
@@ -2264,23 +2257,26 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_OSD_CHAR_WRITE:
-#ifdef USE_MAX7456
         if (dataSize >= 55) {
-            max7456Character_t chr;
+            osdCharacter_t chr;
             uint16_t addr;
             if (dataSize >= 56) {
+                // 16 bit character address
                 addr = sbufReadU16(src);
             } else {
+                // 8 bit character address, for backwards compatibility
                 addr = sbufReadU8(src);
             }
             for (unsigned ii = 0; ii < sizeof(chr.data); ii++) {
                 chr.data[ii] = sbufReadU8(src);
             }
-            // !!TODO - replace this with a device independent implementation
-            max7456WriteNvm(addr, &chr);
-        } else
+            displayPort_t *osdDisplayPort = osdGetDisplayPort();
+            if (osdDisplayPort) {
+                displayWriteFontCharacter(osdDisplayPort, addr, &chr);
+            }
+        } else {
             return MSP_RESULT_ERROR;
-#endif // USE_MAX7456
+        }
         break;
 #endif // USE_OSD
 
