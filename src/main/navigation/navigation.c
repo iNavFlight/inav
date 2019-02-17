@@ -1312,6 +1312,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     // Stay in this state
     UNUSED(previousState);
     updateClimbRateToAltitudeController(-0.3f * navConfig()->general.land_descent_rate, ROC_TO_ALT_NORMAL);  // FIXME
+
+    // Prevent I-terms growing when already landed
+    pidResetErrorAccumulators();
+
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -1477,6 +1481,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINIS
 {
     // TODO:
     UNUSED(previousState);
+
+    // Prevent I-terms growing when already landed
+    pidResetErrorAccumulators();
+
     return NAV_FSM_EVENT_SUCCESS;
 }
 
