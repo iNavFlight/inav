@@ -1514,6 +1514,30 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
+      - name: sim_ground_station_number
+        field: simGroundStationNumber
+        type: string
+        max: 16
+      - name: sim_transmission_interval
+        field: simTransmissionInterval
+        type: int16_t
+        min: -32768
+        max: 32767
+      - name: acc_event_threshold_high
+        field: accEventThresholdHigh
+        type: uint16_t
+        min: 0
+        max: 65535
+      - name: acc_event_threshold_low
+        field: accEventThresholdLow
+        type: uint16_t
+        min: 0
+        max: 65535
+      - name: acc_event_threshold_neg_x
+        field: accEventThresholdNegX
+        type: uint16_t
+        min: 0
+        max: 65535
 
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t

@@ -49,6 +49,7 @@ typedef enum {
     FUNCTION_DEBUG_TRACE         = (1 << 15), // 32768
     FUNCTION_RANGEFINDER         = (1 << 16), // 65536
     FUNCTION_VTX_FFPV            = (1 << 17), // 131072
+    FUNCTION_TELEMETRY_SIM       = (1 << 18)  // 262144
 } serialPortFunction_e;
 
 typedef enum {
