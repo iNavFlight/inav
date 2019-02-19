@@ -123,7 +123,9 @@
 #define USE_TELEMETRY_MAVLINK
 #define USE_TELEMETRY_SMARTPORT
 #define USE_TELEMETRY_CRSF
+#ifndef STM32F3
 #define USE_TELEMETRY_SIM
+#endif
 #define USE_MSP_OVER_TELEMETRY
 // These are rather exotic serial protocols
 #define USE_RX_MSP
