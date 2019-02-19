@@ -75,7 +75,6 @@
 
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
-#define MAX_GPS_HEADING_ERROR_DEG   60      // Amount of error between GPS CoG and estimated Yaw at witch we stop trusting GPS and fallback to MAG
 
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -493,13 +492,15 @@ static void imuCalculateEstimatedAttitude(float dT)
     if (STATE(FIXED_WING)) {
         bool canUseCOG = isGPSHeadingValid();
 
-        if (canUseCOG) {
+        // Prefer compass (if available)
+        if (canUseMAG) {
+            useMag = true;
+            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
+        }
+        else if (canUseCOG) {
             if (gpsHeadingInitialized) {
-                // Use GPS heading if error is acceptable or if it's the only source of heading
-                if (ABS(gpsSol.groundCourse - attitude.values.yaw) < DEGREES_TO_DECIDEGREES(MAX_GPS_HEADING_ERROR_DEG) || !canUseMAG) {
-                    courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-                    useCOG = true;
-                }
+                courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+                useCOG = true;
             }
             else {
                 // Re-initialize quaternion from known Roll, Pitch and GPS heading
@@ -509,15 +510,6 @@ static void imuCalculateEstimatedAttitude(float dT)
                 // Force reset of heading hold target
                 resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
             }
-
-            // If we can't use COG and there's MAG available - fallback
-            if (!useCOG && canUseMAG) {
-                useMag = true;
-            }
-        }
-        else if (canUseMAG) {
-            useMag = true;
-            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if possible
         }
     }
     else {
