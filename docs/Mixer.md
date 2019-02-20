@@ -1,16 +1,18 @@
 # Mixer and platform type
 
-INAV supports a number of mixing configurations as well as custom mixing.  Mixer configurations determine how the servos and motors work together to control the aircraft.
+Mixing rules determine how servos and motors react to user and FC inputs. INAV supports various preset mixer configurations as well as custom mixing rules.
 
 ## Configuration
 
-INAV Configurator provides graphical user interface for mixer configuration. All supported vehicle types are configurable with _mixer presets_ using Configurator. `mmix` and `smix` manual configuration in CLI should be used only for backup/restore purposes. 
+The mixer can be configured through the `Mixer` tab of the graphical user interface or using the CLI commands `mmix` and `smix`. `mmix` to define motor mixing rules and `smix` to define servo mixing rules.
 
-User interface is described in [this video](https://www.youtube.com/watch?v=0cLFu-5syi0)
+To use a mixer preset first select the platform type then the mixer preset matching your aircraft and either press the `Load and apply` or `Load mixer` buttons. The `Load and apply` button will load the mixer, save it and ask to reboot the flight controller. The `Load mixer` button only loads the preset mixing rules, you can then edit them to suit your needs and when you are done you need to press the `Save and Reboot` button to save the rules.
+
+Watch [this video](https://www.youtube.com/watch?v=0cLFu-5syi0) for a detailed description of the GUI and the documentation bellow for more details.
 
 ## Platform type
 
-INAV can be used on a variety of vehicle types configured via Configurator or `platform_type` CLI property. Certain settings applies only when specific platform type is selected. For example, _flaps_ can be configured only if **AIRPLANE** platform type is used. The same goes for flight modes, output mappings, stabilization algorithms, etc. 
+The platform type determines what features will be available to match the type of aircraft: available flight modes, flight modes behaviour, availability of flaps and displayed types of mixer presets. It can be set through the GUI's `Mixer tab` or through the CLI's `platform_type` setting.
 
 Currently, following platform types are supported:
 
@@ -18,127 +20,66 @@ Currently, following platform types are supported:
 * AIRPLANE
 * TRICOPTER
 
+## Writing custom mixing rules
+
 ## Motor Mixing
 
-Custom motor mixing allows for completely customized motor configurations. Each motor must be defined with a custom mixing table for that motor. The mix must reflect how close each motor is with reference to the CG (Center of Gravity) of the flight controller. A motor closer to the CG of the flight controller will need to travel less distance than a motor further away.  
+A motor mixing rule is needed for each motor. Each rule defines weights that determine how the motor it applies to will change its speed relative to the requested throttle and flight dynamics: roll rate, pitch rate and yaw rate. The heigher a weight the more the input will have an impact on the speed of the motor. Refer to the following table for the meaning of each weight.
 
-Steps to configure custom mixer in the CLI:
-
-1. Use `mmix reset` to erase any existing custom mixing.
-1. Issue a `mmix` statement for each motor.
-
-The mmix statement has the following syntax: `mmix n THROTTLE ROLL PITCH YAW`
-
-| Mixing table parameter | Definition |
+| Weight | Definition |
 | ---------------------- | ---------- |
-| n    | Motor ordering number |
-| THROTTLE    | All motors that are used in this configuration are set to 1.0. Unused set to 0.0. |
-| ROLL    | Indicates how much roll authority this motor imparts to the roll of the flight controller. Accepts values nominally from 1.0 to -1.0. |
-| PITCH    | Indicates the pitch authority this motor has over the flight controller. Also accepts values nominally from 1.0 to -1.0. |
-| YAW    | Indicates the direction of the motor rotation in a relationship with the flight controller. 1.0 = CCW -1.0 = CW. |
+| THROTTLE    | Speed of the motor relative to throttle. Range [0.0, 1.0]. A motor with a weight of 0.5 will receive a command that will half of a motor with a 1.0 weight |
+| ROLL    | Indicates how much roll authority this motor imparts to the roll rate of the aircraft. Range [-1.0, 1.0]. For fixed wing models this is usually set to 0. A positive value means that the motor needs to accelerate for a positive roll rate request (rolling right). A negative value means that the motor needs to decelerate. |
+| PITCH    | Indicates how much pitch authority this motor imparts to the pitch rate of the aircraft. Range [-1.0, 1.0]. For fixed wing models this is usually set to 0. A positive value means that the motor needs to accelerate for a positive pitch rate request (pitching down). A negative value means that the motor needs to decelerate. |
+| YAW    | Indicates how much yaw authority this motor imparts to the yaw rate of the aircraft. Range [-1.0, 1.0]. For fixed wing models with more than one motor this weight can be used to setup differential thrust. For fixed wing models with only one motor this is usually set to 0. A positive value means that the motor needs to accelerate for a positive yaw rate request (clockwise yaw seen from the top of the model). A negative value means that the motor needs to decelerate |
 
-Note: the `mmix` command may show a motor mix that is not active, custom motor mixes are only active for models that use custom mixers.
+CLI commands to configure motor mixing rules:
+
+The `mmix reset` command removes all the existing motor mixing rules.
+
+The `mmix` command is used to list, create or modify rules. To list the currently defined rules run the `mmix` command without parameters.
+
+To create or modify rules use the `mmix` command with the following syntax: `mmix <n> <throttle> <roll> <pitch> <yaw>`. `<n>` is representing the index of the motor output pin (integer). The other parameters are decimal weights for each of the inputs. To disable a mixing rule set the `throttle` weight to 0.
 
 ## Servo Mixing
 
-Custom servo mixing rules can be applied to each servo.  Rules are applied in the CLI using `smix`. Rules link flight controller stabilization and receiver signals to physical PWM output pins on the FC board. Currently, pin id's 0 and 1 can only be used for motor outputs. Other pins may or may not work depending on the board you are using.
+At least one servo mixing rule is needed for each servo. Each rule defines how a servo will move relative to a specific input like a RC channel, or a requested flight dynamics rate or position from the flight controller.
 
-The smix statement has the following syntax: `smix n SERVO_ID SIGNAL_SOURCE RATE SPEED` 
-For example, `smix 0 2 0 100 0` will create rule number 0 assigning Stabilised Roll to the third PWM pin on the FC board will full rate and no speed limit.
+Each servo mixing rule has the following parameters:
+* Servo index: defines which servo the rule will apply to. The absolute value of the index is not important, what matters is only the relative difference between the used indexes. The rule with the smaller servo index will apply to the first servo, the next higher servo index to the second servo, etc. More than one rule can use the same servo index. The output of the rules with the same servo index are added together to give the final output for the specified servo.
+* Input: the input for the mixing rule, see a summary of the input types table bellow.
+* Weight: percentage of the input to forward to the servo. Range [-1000, 1000]. Mixing rule output = input * weight. If the output of a set of mixing rules is lower/higher than the defined servo min/max the output is clipped (the servo will never travel farther than the set min/max).
+* Speed: maximum rate of change of the mixing rule output. Used to limit the servo speed. 1 corresponds to maximum 10µs/s output rate of change. Set to 0 for no speed limit. For example: 10 = full sweep (1000 to 2000) in 10s, 100 = full sweep in 1s.
 
-| id | Flight Controller Output signal sources |
-|----|-----------------|
-| 0  | Stabilised ROLL |
-| 1  | Stabilised PITCH |
-| 2  | Stabilised YAW |
-| 3  | Stabilised THROTTLE |
-| 4  | RC ROLL |
-| 5  | RC PITCH |
-| 6  | RC YAW |
-| 7  | RC THROTTLE |
-| 8  | RC AUX 1 |
-| 9  | RC AUX 2 |
-| 10 | RC AUX 3 |
-| 11 | RC AUX 4 |
-| 12 | GIMBAL PITCH |
-| 13 | GIMBAL ROLL |
-| 14 | FEATURE FLAPS |
+| CLI input ID | Mixer input | Description |
+|----|--------------------------|------------------------------------------------------------------------------|
+| 0  | Stabilised ROLL          | Roll command from the flight controller. Depends on the selected flight mode(s) |
+| 1  | Stabilised PITCH         | Pitch command from the flight controller. Depends on the selected flight mode(s) |
+| 2  | Stabilised YAW           | Yaw command from the flight controller. Depends on the selected flight mode(s) |
+| 3  | Stabilised THROTTLE      | Throttle command from the flight controller. Depends on the selected flight mode(s) |
+| 4  | RC ROLL                  | Raw roll RC channel |
+| 5  | RC PITCH                 | Raw pitch RC channel |
+| 6  | RC YAW                   | Raw yaw RC channel |
+| 7  | RC THROTTLE              | Raw throttle RC channel |
+| 8  | RC channel 5             | Raw RC channel 5 |
+| 9  | RC channel 6             | Raw RC channel 6 |
+| 10 | RC channel 7             | Raw RC channel 7 |
+| 11 | RC channel 8             | Raw RC channel 8 |
+| 12 | GIMBAL PITCH             | Scaled pitch attitude of the aircraft [-90°, 90°] => [-500, 500] |
+| 13 | GIMBAL ROLL              | Scaled roll attitude of the aircraft [-180°, 180°] => [-500, 500] |
+| 14 | FEATURE FLAPS            | This input value is equal to the `flaperon_throw_offset` setting when the `FLAPERON` flight mode is enabled, 0 otherwise |
+| 15 | RC channel 9             | Raw RC channel 9 |
+| 16 | RC channel 10            | Raw RC channel 10 |
+| 17 | RC channel 11            | Raw RC channel 11 |
+| 18 | RC channel 12            | Raw RC channel 12 |
+| 19 | RC channel 13            | Raw RC channel 13 |
+| 20 | RC channel 14            | Raw RC channel 14 |
+| 21 | RC channel 15            | Raw RC channel 15 |
+| 22 | RC channel 16            | Raw RC channel 16 |
 
-| id |  Servo Slot Optional Setup |
-|----|--------------|
-| 0  | GIMBAL PITCH |
-| 1  | GIMBAL ROLL |
-| 2  | ELEVATOR / SINGLECOPTER_4 |
-| 3  | FLAPPERON 1 (LEFT) / SINGLECOPTER_1 |
-| 4  | FLAPPERON 2 (RIGHT) / BICOPTER_LEFT / DUALCOPTER_LEFT / SINGLECOPTER_2 |
-| 5  | RUDDER / BICOPTER_RIGHT / DUALCOPTER_RIGHT / SINGLECOPTER_3 |
-| 6  | THROTTLE (Based ONLY on the first motor output) |
-| 7  | FLAPS |
 
-### Servo rule rate
+The `smix reset` command removes all the existing motor mixing rules.
 
-Servo rule rate should be understood as a weight of a rule. To obtain full servo throw without clipping sum of all `smix` rates for a servo should equal `100`. For example, is servo #2 should be driven by sources 0 and 1 (Stabilized Roll and Stabilized Pitch) with equal strength, correct rules would be:
+The `smix` command is used to list, create or modify rules. To list the currently defined rules run the `smix` command without parameters.
 
-```
-smix 0 2 0 50 0
-smix 1 2 1 50 0
-```  
-
-To obtain the stronger input of one source, increase the rate of this source while decreasing the others. For example, to drive servo #2 in 75% from source 0 and in 25% from source 1, correct rules would be:
-
-```
-smix 0 2 0 75 0
-smix 1 2 1 25 0
-```  
-
-If a sum of weights would be bigger than `100`, clipping to servo min and max values might appear.
-
-> Note: the `smix` command may show a servo mix that is not active, custom servo mixes are only active for models that use custom mixers.
-
-### Servo speed
-
-Custom servo mixer allows defining the speed of change for given servo rule. By default, all speeds are set to `0`, that means limiting is _NOT_ applied and rules source is directly written to a servo. That mean, if, for example, source (AUX) changes from 1000 to 2000 in one cycle, servo output will also change from 1000 to 2000 in one cycle. In this case, speed is limited only by the servo itself.
-
-If value different than `0` is set as rule speed, the speed of change will be lowered accordingly. 
-
-`1 speed = 10 us/s`
-
-**Example speed values**
-* 0 = no limiting
-* 1 = 10us/s -> full servo sweep (from 1000 to 2000) is performed in 100s 
-* 10 = 100us/s -> full sweep (from 1000 to 2000)  is performed in 10s
-* 100 = 1000us/s -> full sweep in 1s
-* 200 = 2000us/s -> full sweep in 0.5s 
-
-Servo speed might be useful for functions like flaps, landing gear retraction and other where full speed provided for hardware is too much.
-
-## Servo Reversing
-
-Servos can be reversed using Configurator _Servo_ tab and _Reverse_ checkbox.
-
-## Servo configuration
-
-The cli `servo` command defines the settings for the servo outputs.
-The cli mixer `smix` command controllers how the mixer maps internal FC data (RC input, PID stabilization output, channel forwarding, etc) to servo outputs.
-
-## Servo filtering
-
-A low-pass filter can be enabled for the servos.  It may be useful for avoiding structural modes in the airframe, for example.  
-
-### Configuration
-
-Currently, it can only be configured via the CLI:
-
-Use `set servo_lpf_hz=20` to enable filtering. This will set servo low pass filter to 20Hz.
-
-### Tuning
-
-One method for tuning the filter cutoff is as follows:
-
-1. Ensure your vehicle can move at least somewhat freely in the troublesome axis.  For example, if you are having yaw oscillations on a tricopter, ensure that the copter is supported in a way that allows it to rotate left and right to at least some degree.  Suspension near the CG is ideal.  Alternatively, you can just fly the vehicle and trigger the problematic condition you are trying to eliminate, although tuning will be more tedious.
-
-2. Tap the vehicle at its end in the axis under evaluation.  Directly commanding the servo in question to move may also be used.  In the tricopter example, tap the end of the tail boom from the side, or command a yaw using your transmitter.
-
-3. If your vehicle oscillates for several seconds or even continues oscillating indefinitely, then the filter cutoff frequency should be reduced. Reduce the value of `servo_lowpass_freq` by half its current value and repeat the previous step.
-
-4. If the oscillations are dampened within roughly a second or are no longer present, then you are done.  Be sure to run `save`.
+To create or modify rules use the `smix` command with the following syntax: `smix <n> <servo_index> <input_id> <weight> <speed>`. `<n>` is representing the index of the servo mixing rule to create or modify (integer). To disable a mixing rule set the weight to 0.
