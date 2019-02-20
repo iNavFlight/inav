@@ -49,6 +49,7 @@ void configureSimTelemetryPort(void);
 void sendATCommand(const char* command);
 void requestSendSMS();
 void detectAccEvents();
+void detectFailsafe();
 void transmit();
 void sendSMS(void);
 void readSMS(void);

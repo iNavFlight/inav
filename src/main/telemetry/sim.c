@@ -48,16 +48,17 @@ static bool simEnabled = false;
 
 static uint8_t atCommand[SIM_AT_COMMAND_MAX_SIZE];
 static int simTelemetryState = SIM_STATE_INIT;
-static timeUs_t sim_t_stateChange = 0;
+static timeMs_t sim_t_stateChange = 0;
+static timeMs_t sim_t_nextMessage = 0;
 static uint8_t simResponse[SIM_RESPONSE_BUFFER_SIZE + 1];
 static int atCommandStatus = SIM_AT_OK;
 static bool simWaitAfterResponse = false;
 static bool readingSMS = false;
-static bool failsafeMessageSent = false;
+static bool failsafeStatePrevious = false;
 
 int simRssi;
-uint32_t t_accEventDetected = 0;
-uint32_t t_accEventMessageSent = 0;
+timeMs_t  t_accEventDetected = 0;
+timeMs_t  t_accEventMessageSent = 0;
 uint8_t accEvent = ACC_EVENT_NONE;
 char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
 char* modeDescriptions[] = { "MAN", "ACR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "LAU", "FS" };
@@ -203,25 +204,25 @@ void detectAccEvents()
 
 void detectFailsafe()
 {
-    if (!failsafeMessageSent && FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(ARMED)) {
-        failsafeMessageSent = true;        
+    if (!failsafeStatePrevious && FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(WAS_EVER_ARMED)) {
         requestSendSMS();
+        if (telemetryConfig()->simTransmissionInterval < 0) {
+            telemetryConfigMutable()->simTransmissionInterval *= -1;
+            sim_t_nextMessage = millis() + 1000 * telemetryConfig()->simTransmissionInterval;
+        }
     }
-    if (!ARMING_FLAG(ARMED))
-        failsafeMessageSent = false;
+    failsafeStatePrevious = FLIGHT_MODE(FAILSAFE_MODE);
 }
 
 void transmit()
 {
-    static uint32_t t_nextMessage = 0;
-
     uint32_t now = millis();
 
-    if (!ARMING_FLAG(ARMED) || telemetryConfig()->simTransmissionInterval < SIM_MIN_TRANSMISSION_INTERVAL) {
-        t_nextMessage = 0;
-    } else if (now > t_nextMessage) {
+    if (!ARMING_FLAG(WAS_EVER_ARMED) || telemetryConfig()->simTransmissionInterval < SIM_MIN_TRANSMISSION_INTERVAL) {
+        sim_t_nextMessage = 0;
+    } else if (now > sim_t_nextMessage) {
         requestSendSMS();
-        t_nextMessage = now + 1000 * telemetryConfig()->simTransmissionInterval;
+        sim_t_nextMessage = now + 1000 * telemetryConfig()->simTransmissionInterval;
     }
 }
 
