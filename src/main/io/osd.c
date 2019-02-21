@@ -2783,7 +2783,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->homing_focus = OSD_HOMING_FOCUS_MEDIUM;
     osdConfig->camera_uptilt = 0;
     osdConfig->horizon_offset = 0;
-    osdConfig->smallnumbers = 0; 
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;
