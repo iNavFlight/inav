@@ -200,7 +200,6 @@ typedef struct osdConfig_s {
     uint8_t homing_focus; // from osd_homing_focus_e
     int8_t camera_uptilt;
     int8_t horizon_offset;
-    bool smallnumbers;
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;

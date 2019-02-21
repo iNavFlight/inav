@@ -1120,23 +1120,6 @@ static int16_t osdGet3DSpeed(void)
     return (int16_t)sqrtf(sq(hor_speed) + sq(vert_speed));
 }
 
-/* Format a number between 0 and 209 as two-char, tequire a compatible OSD font
- */ 
-static void osdFormatSmallNumber(uint16_t *smallnum, uint16_t num)
-{
-    num = constrain(num, 0, 209);
-    uint16_t d = num / 10;
-    uint16_t u = SYM_SMALLNUMBERS + num  - d * 10;   
-
-    if (d<1)
-        { d = SYM_BLANK; }
-    else
-        { d = SYM_SMALLNUMBERS + 10 + d; }
-
-    smallnum[0] = d;
-    smallnum[1] = u;
-    }
-
 #endif
 
 static void osdFormatPidControllerOutput(char *buff, const char *label, const pidController_t *pidController, uint8_t scale, bool showDecimal) {
@@ -1771,22 +1754,6 @@ static bool osdDrawSingleElement(uint8_t item)
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY+1, crh_d);  
         }
 
-        if (osdConfig()->smallnumbers) {
-            uint16_t smallnum[2];
-
-            // RSSI bottom-left
-            uint16_t crh_rssi = osdConvertRSSI();
-            osdFormatSmallNumber(smallnum, crh_rssi);
-            displayWriteChar(osdDisplayPort, elemPosX-2, elemPosY+1, smallnum[0]);
-            displayWriteChar(osdDisplayPort, elemPosX-1, elemPosY+1, smallnum[1]);
-
-            // 3D speed bottom-right
-            uint16_t crh_3dspeed = osdConvertVelocityToUnit(osdGet3DSpeed());  
-            osdFormatSmallNumber(smallnum, crh_3dspeed);
-            displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY+1, smallnum[0]);
-            displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY+1, smallnum[1]);
-           }
-           
         return true;
         break;
 
