@@ -114,58 +114,66 @@ PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
             .pid = {
-                [PID_ROLL] =    { 40, 30, 23 },
-                [PID_PITCH] =   { 40, 30, 23 },
-                [PID_YAW] =     { 85, 45, 0 },
+                [PID_ROLL] =    { 40, 30, 23, 0 },
+                [PID_PITCH] =   { 40, 30, 23, 0 },
+                [PID_YAW] =     { 85, 45, 0, 0 },
                 [PID_LEVEL] = {
                     .P = 20,    // Self-level strength
                     .I = 15,    // Self-leveing low-pass frequency (0 - disabled)
                     .D = 75,    // 75% horizon strength
+                    .FF = 0,
                 },
-                [PID_HEADING] = { 60, 0, 0 },
+                [PID_HEADING] = { 60, 0, 0, 0 },
                 [PID_POS_XY] = {
                     .P = 65,   // NAV_POS_XY_P * 100
                     .I = 120,  // posDecelerationTime * 100
                     .D = 10,   // posResponseExpo * 100
+                    .FF = 0,
                 },
                 [PID_VEL_XY] = {
                     .P = 40,   // NAV_VEL_XY_P * 20
                     .I = 15,   // NAV_VEL_XY_I * 100
                     .D = 100,  // NAV_VEL_XY_D * 100
+                    .FF = 0,
                 },
                 [PID_POS_Z] = {
                     .P = 50,    // NAV_POS_Z_P * 100
                     .I = 0,     // not used
                     .D = 0,     // not used
+                    .FF = 0,
                 },
                 [PID_VEL_Z] = {
                     .P = 100,   // NAV_VEL_Z_P * 66.7
                     .I = 50,    // NAV_VEL_Z_I * 20
                     .D = 10,    // NAV_VEL_Z_D * 100
+                    .FF = 0,
                 }
             }
         },
 
         .bank_fw = {
             .pid = {
-                [PID_ROLL] =    { 5, 7, 50 },
-                [PID_PITCH] =   { 5, 7, 50 },
-                [PID_YAW] =     { 6, 10, 60 },
+                [PID_ROLL] =    { 5, 7, 50, 0 },
+                [PID_PITCH] =   { 5, 7, 50, 0 },
+                [PID_YAW] =     { 6, 10, 60, 0 },
                 [PID_LEVEL] = {
                     .P = 20,    // Self-level strength
                     .I = 5,     // Self-leveing low-pass frequency (0 - disabled)
                     .D = 75,    // 75% horizon strength
+                    .FF = 0,
                 },
-                [PID_HEADING] = { 60, 0, 0 },
+                [PID_HEADING] = { 60, 0, 0, 0 },
                 [PID_POS_Z] = {
                     .P = 40,    // FW_POS_Z_P * 10
                     .I = 5,     // FW_POS_Z_I * 10
                     .D = 10,    // FW_POS_Z_D * 10
+                    .FF = 0,
                 },
                 [PID_POS_XY] = {
                     .P = 75,    // FW_POS_XY_P * 100
                     .I = 5,     // FW_POS_XY_I * 100
                     .D = 8,     // FW_POS_XY_D * 100
+                    .FF = 0,
                 }
             }
         },

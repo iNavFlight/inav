@@ -69,6 +69,7 @@ typedef struct pid8_s {
     uint8_t P;
     uint8_t I;
     uint8_t D;
+    uint8_t FF;
 } pid8_t;
 
 typedef struct pidBank_s {

@@ -3037,7 +3037,8 @@ void navigationUsePIDs(void)
         navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
-                                               0.0f);
+                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].FF / 10.0f
+        );
     }
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
