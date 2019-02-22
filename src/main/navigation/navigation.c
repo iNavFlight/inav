@@ -3037,7 +3037,7 @@ void navigationUsePIDs(void)
         navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
-                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].FF / 10.0f
+                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].FF / 100.0f
         );
     }
 
