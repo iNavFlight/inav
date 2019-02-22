@@ -413,7 +413,8 @@ void accStartCalibration(void)
         DISABLE_STATE(ACCELEROMETER_CALIBRATED);
     }
 
-    zeroCalibrationStartV(&zeroCalibration, CALIBRATING_ACC_TIME_MS, acc.dev.acc_1G * 0.01f, true);
+    // Tolerate 5% variance in accelerometer readings
+    zeroCalibrationStartV(&zeroCalibration, CALIBRATING_ACC_TIME_MS, acc.dev.acc_1G * 0.05f, true);
 }
 
 static void performAcclerationCalibration(void)
