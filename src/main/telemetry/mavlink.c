@@ -324,7 +324,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 
     mavlinkSendMessage();
 
-    // Global position
+    /*// Global position
     mavlink_msg_global_position_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
         currentTimeUs,
@@ -360,7 +360,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         // altitude Altitude(WGS84), expressed as * 1000
         GPS_home.alt * 10); // FIXME
 
-    mavlinkSendMessage();
+    mavlinkSendMessage();*/
 }
 #endif
 
