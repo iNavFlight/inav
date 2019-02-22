@@ -33,7 +33,7 @@
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_FW_PITCH_CUTOFF_FREQENCY_HZ     2       // low-pass filter on Z (pitch angle) for fixed wing
 #define NAV_FW_ROLL_CUTOFF_FREQUENCY_HZ     10      // low-pass filter on roll correction for fixed wing
-#define NAV_DTERM_CUT_HZ                    10
+#define NAV_DTERM_CUT_HZ                    10.0f
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
@@ -357,7 +357,7 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
 float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler);
 void navPidReset(pidController_t *pid);
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF);
+void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz);
 void navPInit(pController_t *p, float _kP);
 
 bool isThrustFacingDownwards(void);

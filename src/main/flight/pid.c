@@ -109,7 +109,7 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 6);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 7);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -204,6 +204,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingItermLimitOnStickPosition = 0.5f,
 
         .loiter_direction = NAV_LOITER_RIGHT,
+        .navVelXyDTermLpfHz = 10,
 );
 
 void pidInit(void)
