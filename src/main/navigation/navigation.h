@@ -257,6 +257,7 @@ typedef struct {
     float integral;                     // used integral value in output
     float proportional;                 // used proportional value in output
     float derivative;                   // used derivative value in output
+    float feedForward;                  // used FeedForward value in output
     float output_constrained;           // controller output constrained
 } pidController_t;
 

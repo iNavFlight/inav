@@ -1632,7 +1632,7 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
 float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler)
 {
-    float newProportional, newDerivative;
+    float newProportional, newDerivative, newFeedForward;
     float error = setpoint - measurement;
 
     /* P-term */
@@ -1660,13 +1660,19 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
         pid->integrator = 0.0f;
     }
 
+    /*
+     * Compute FeedForward parameter
+     */
+    newFeedForward = setpoint * pid->param.kFF * gainScaler;
+
     /* Pre-calculate output and limit it if actuator is saturating */
-    const float outVal = newProportional + (pid->integrator * gainScaler) + newDerivative + (setpoint * pid->param.kFF * gainScaler);
+    const float outVal = newProportional + (pid->integrator * gainScaler) + newDerivative + newFeedForward;
     const float outValConstrained = constrainf(outVal, outMin, outMax);
 
     pid->proportional = newProportional;
     pid->integral = pid->integrator;
     pid->derivative = newDerivative;
+    pid->feedForward = newFeedForward;
     pid->output_constrained = outValConstrained;
 
     /* Update I-term */
@@ -1701,6 +1707,7 @@ void navPidReset(pidController_t *pid)
     pid->derivative = 0.0f;
     pid->integrator = 0.0f;
     pid->last_input = 0.0f;
+    pid->feedForward = 0.0f;
     pid->dterm_filter_state.state = 0.0f;
     pid->dterm_filter_state.RC = 0.0f;
     pid->output_constrained = 0.0f;

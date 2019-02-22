@@ -396,7 +396,7 @@ typedef struct blackboxMainState_s {
     int32_t axisPID_Setpoint[XYZ_AXIS_COUNT];
 
     int32_t mcPosAxisP[XYZ_AXIS_COUNT];
-    int32_t mcVelAxisPID[3][XYZ_AXIS_COUNT];
+    int32_t mcVelAxisPID[4][XYZ_AXIS_COUNT];
     int32_t mcVelAxisOutput[XYZ_AXIS_COUNT];
 
     int32_t mcSurfacePID[3];
@@ -706,7 +706,7 @@ static void writeIntraframe(void)
 
         blackboxWriteSignedVBArray(blackboxCurrent->mcPosAxisP, XYZ_AXIS_COUNT);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             blackboxWriteSignedVBArray(blackboxCurrent->mcVelAxisPID[i], XYZ_AXIS_COUNT);
         }
 
@@ -906,7 +906,7 @@ static void writeInterframe(void)
         arraySubInt32(deltas, blackboxCurrent->mcPosAxisP, blackboxLast->mcPosAxisP, XYZ_AXIS_COUNT);
         blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
 
-        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+        for (int i = 0; i < 4; i++) {
             arraySubInt32(deltas, blackboxCurrent->mcVelAxisPID[i], blackboxLast->mcVelAxisPID[i], XYZ_AXIS_COUNT);
             blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
         }
@@ -1338,6 +1338,7 @@ static void loadMainState(timeUs_t currentTimeUs)
             blackboxCurrent->mcVelAxisPID[0][i] = lrintf(nav_pids->vel[i].proportional);
             blackboxCurrent->mcVelAxisPID[1][i] = lrintf(nav_pids->vel[i].integral);
             blackboxCurrent->mcVelAxisPID[2][i] = lrintf(nav_pids->vel[i].derivative);
+            blackboxCurrent->mcVelAxisPID[3][i] = lrintf(nav_pids->vel[i].feedForward);
             blackboxCurrent->mcVelAxisOutput[i] = lrintf(nav_pids->vel[i].output_constrained);
         }
 #endif
