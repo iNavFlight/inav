@@ -1703,7 +1703,6 @@ float navPidApply2(pidController_t *pid, const float setpoint, const float measu
     return navPidApply3(pid, setpoint, measurement, dt, outMin, outMax, pidFlags, 1.0f);
 }
 
-
 void navPidReset(pidController_t *pid)
 {
     pid->reset = true;
@@ -1713,8 +1712,7 @@ void navPidReset(pidController_t *pid)
     pid->integrator = 0.0f;
     pid->last_input = 0.0f;
     pid->feedForward = 0.0f;
-    pid->dterm_filter_state.state = 0.0f;
-    pid->dterm_filter_state.RC = 0.0f;
+    pt1FilterReset(&pid->dterm_filter_state, 0.0f);
     pid->output_constrained = 0.0f;
 }
 
