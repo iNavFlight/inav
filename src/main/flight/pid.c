@@ -134,7 +134,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .P = 40,   // NAV_VEL_XY_P * 20
                     .I = 15,   // NAV_VEL_XY_I * 100
                     .D = 100,  // NAV_VEL_XY_D * 100
-                    .FF = 0,
+                    .FF = 40,  // NAV_VEL_XY_D * 100
                 },
                 [PID_POS_Z] = {
                     .P = 50,    // NAV_POS_Z_P * 100
