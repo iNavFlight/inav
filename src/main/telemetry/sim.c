@@ -214,7 +214,7 @@ void transmit()
         now = millis();
         if (now > sim_t_nextMessage) {
             requestSendSMS();
-            sim_t_nextMessage = now + 1000 * telemetryConfig()->simTransmissionInterval;
+            sim_t_nextMessage = now + 1000 * MAX(SIM_MIN_TRANSMISSION_INTERVAL, ABS(telemetryConfig()->simTransmissionInterval));
         }
     }
 }
@@ -365,9 +365,14 @@ void configureSimTelemetryPort(void)
     if (!simPort) {
         return;
     }
+
+    if (telemetryConfig()->simTransmissionInterval > 0) {
+        transmissionState = SIM_TX;
+    } else {
+        transmissionState = SIM_TX_FS;
+    }
     simEnabled = true;
     sim_t_stateChange = millis() + SIM_STARTUP_DELAY_MS;
-    transmissionState = telemetryConfig()->simTransmissionInterval > 0 ? SIM_TX_FS : SIM_TX_NO;
 }
 
 #endif
