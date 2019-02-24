@@ -525,6 +525,11 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
+    if (axis == 0) {
+        DEBUG_SET(DEBUG_PID_DENOM, 2, pidState->gyroRate);
+        DEBUG_SET(DEBUG_PID_DENOM, 3, dT * 1000000);
+    }
+
     // Calculate new P-term
     float newPTerm = rateError * pidState->kP;
     // Constrain YAW by yaw_p_limit value if not servo driven (in that case servo limits apply)

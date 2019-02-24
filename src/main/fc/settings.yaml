@@ -74,7 +74,7 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO","ACC"]
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO","ACC", "PID_DENOM"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator

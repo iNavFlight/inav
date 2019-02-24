@@ -743,6 +743,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (pidUpdateCounter++ % getPidSubtaskDenominator() == 0) {
         float pidSubtaskdT = (float)(currentTimeUs - lastPidSubtaskUs) * 0.000001f * getPidSubtaskDenominator();
 
+        DEBUG_SET(DEBUG_PID_DENOM, 0, dT * 1000000);
+        DEBUG_SET(DEBUG_PID_DENOM, 1, pidSubtaskdT * 1000000);
+
         // Update PID coefficients
         updatePIDCoefficients(pidSubtaskdT);
 
