@@ -32,6 +32,12 @@ typedef enum  {
     SIM_AT_WAITING_FOR_RESPONSE
 } simATCommandState_e;
 
+typedef enum  {
+    SIM_TX_NO = 0,
+    SIM_TX_FS,
+    SIM_TX
+} simTransmissionState_e;
+
 typedef enum {
     ACC_EVENT_NONE = 0,
     ACC_EVENT_HIGH,
@@ -49,7 +55,6 @@ void configureSimTelemetryPort(void);
 void sendATCommand(const char* command);
 void requestSendSMS();
 void detectAccEvents();
-void detectFailsafe();
 void transmit();
 void sendSMS(void);
 void readSMS(void);

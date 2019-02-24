@@ -54,7 +54,7 @@ static uint8_t simResponse[SIM_RESPONSE_BUFFER_SIZE + 1];
 static int atCommandStatus = SIM_AT_OK;
 static bool simWaitAfterResponse = false;
 static bool readingSMS = false;
-static bool failsafeStatePrevious = false;
+static uint8_t transmissionState = SIM_TX_NO;
 
 int simRssi;
 timeMs_t  t_accEventDetected = 0;
@@ -168,7 +168,11 @@ void readOriginatingNumber(uint8_t* rv)
 void readSMS()
 {
     if (sl_strcasecmp((char*)simResponse, SIM_SMS_COMMAND_TRANSMISSION) == 0) {
-        telemetryConfigMutable()->simTransmissionInterval *= -1;
+        if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            transmissionState = (transmissionState == SIM_TX_NO) ? SIM_TX_FS : SIM_TX_NO;
+        } else {
+            transmissionState = (transmissionState == SIM_TX) ? SIM_TX_FS : SIM_TX;
+        }
         return;
     } else if (sl_strcasecmp((char*)simResponse, SIM_SMS_COMMAND_RTH) == 0) {
         if (!posControl.flags.forcedRTHActivated) {
@@ -182,7 +186,7 @@ void readSMS()
 
 void detectAccEvents()
 {
-    uint32_t now = millis();
+    timeMs_t now = millis();
 //    float acceleration = sqrtf(vectorNormSquared(acc.accADCf));
     uint32_t accSq = sq(imuMeasuredAccelBF.x) + sq(imuMeasuredAccelBF.y) + sq(imuMeasuredAccelBF.z);
 
@@ -202,27 +206,16 @@ void detectAccEvents()
     }
 }
 
-void detectFailsafe()
-{
-    if (!failsafeStatePrevious && FLIGHT_MODE(FAILSAFE_MODE) && ARMING_FLAG(WAS_EVER_ARMED)) {
-        requestSendSMS();
-        if (telemetryConfig()->simTransmissionInterval < 0) {
-            telemetryConfigMutable()->simTransmissionInterval *= -1;
-            sim_t_nextMessage = millis() + 1000 * telemetryConfig()->simTransmissionInterval;
-        }
-    }
-    failsafeStatePrevious = FLIGHT_MODE(FAILSAFE_MODE);
-}
-
 void transmit()
 {
-    uint32_t now = millis();
+    timeMs_t now;
 
-    if (!ARMING_FLAG(WAS_EVER_ARMED) || telemetryConfig()->simTransmissionInterval < SIM_MIN_TRANSMISSION_INTERVAL) {
-        sim_t_nextMessage = 0;
-    } else if (now > sim_t_nextMessage) {
-        requestSendSMS();
-        sim_t_nextMessage = now + 1000 * telemetryConfig()->simTransmissionInterval;
+    if (ARMING_FLAG(WAS_EVER_ARMED) && (transmissionState == SIM_TX || (transmissionState == SIM_TX_FS && FLIGHT_MODE(FAILSAFE_MODE)))) {
+        now = millis();
+        if (now > sim_t_nextMessage) {
+            requestSendSMS();
+            sim_t_nextMessage = now + 1000 * telemetryConfig()->simTransmissionInterval;
+        }
     }
 }
 
@@ -252,7 +245,6 @@ void handleSimTelemetry()
     }
 
     detectAccEvents();
-    detectFailsafe();
     transmit();
 
     if (now < sim_t_stateChange)
@@ -375,6 +367,7 @@ void configureSimTelemetryPort(void)
     }
     simEnabled = true;
     sim_t_stateChange = millis() + SIM_STARTUP_DELAY_MS;
+    transmissionState = telemetryConfig()->simTransmissionInterval > 0 ? SIM_TX_FS : SIM_TX_NO;
 }
 
 #endif
