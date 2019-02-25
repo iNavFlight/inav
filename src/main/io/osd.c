@@ -507,7 +507,7 @@ static uint16_t osdConvertRSSI(void)
 */
 static void osdDisplayTemperature(uint8_t elemPosX, uint8_t elemPosY, uint16_t symbol, const char *label, bool valid, int16_t temperature, int16_t alarm_min, int16_t alarm_max)
 {
-    char buff[TEMPERATURE_LABEL_LEN + 2 < 5 ? 5 : TEMPERATURE_LABEL_LEN + 2];
+    char buff[TEMPERATURE_LABEL_LEN + 2 < 6 ? 6 : TEMPERATURE_LABEL_LEN + 2];
     textAttributes_t elemAttr = valid ? TEXT_ATTRIBUTES_NONE : _TEXT_ATTRIBUTES_BLINK_BIT;
     uint8_t valueXOffset = 0;
 
