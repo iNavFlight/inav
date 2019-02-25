@@ -42,6 +42,7 @@
 
 #include "common/axis.h"
 #include "common/filter.h"
+#include "common/olc.h"
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
@@ -79,6 +80,7 @@
 #include "flight/wind_estimator.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 
@@ -124,8 +126,17 @@
     x; \
 })
 
+#define OSD_CHR_IS_NUM(c) (c >= '0' && c <= '9')
+
+#define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
+#define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
+
+#define OSD_MIN_FONT_VERSION 1
+
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
+static bool hasExtendedFont = false; // Wether the font supports characters > 256
+static timeMs_t layoutOverrideUntil = 0;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -170,7 +181,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 5);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
 
 static int digitCount(int32_t value)
 {
@@ -489,28 +500,61 @@ static uint16_t osdConvertRSSI(void)
 }
 
 /**
-* Converts temperature into a string based on the current unit system
-* postfixed with a symbol to indicate the unit used.
-* @param temperature Raw temperature (i.e. as taken from getCurrentTemperature() in degC)
+* Displays a temperature postfixed with a symbol depending on the current unit system
+* @param label to display
+* @param valid true if measurement is valid
+* @param temperature in deciDegrees Celcius
 */
-static void osdFormatTemperatureSymbol(char *buff, float temperature)
+static void osdDisplayTemperature(uint8_t elemPosX, uint8_t elemPosY, uint16_t symbol, const char *label, bool valid, int16_t temperature, int16_t alarm_min, int16_t alarm_max)
 {
-    int units_symbol;
-    switch ((osd_unit_e)osdConfig()->units) {
-        case OSD_UNIT_IMPERIAL:
-            units_symbol = SYM_TEMP_F;
-            temperature = (temperature * (9.0f/5)) + 32;
-            break;
-        case OSD_UNIT_UK:
-            FALLTHROUGH;
-        case OSD_UNIT_METRIC:
-            units_symbol = SYM_TEMP_C;
-            break;
+    char buff[TEMPERATURE_LABEL_LEN + 2 < 6 ? 6 : TEMPERATURE_LABEL_LEN + 2];
+    textAttributes_t elemAttr = valid ? TEXT_ATTRIBUTES_NONE : _TEXT_ATTRIBUTES_BLINK_BIT;
+    uint8_t valueXOffset = 0;
+
+    if (symbol) {
+        buff[0] = symbol;
+        buff[1] = '\0';
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        valueXOffset = 1;
     }
-    osdFormatCentiNumber(buff, (int32_t) (temperature * 100), 0, 0, 0, 3);
-    buff[3] = units_symbol;
+#ifdef USE_TEMPERATURE_SENSOR
+    else if (label[0] != '\0') {
+        uint8_t label_len = strnlen(label, TEMPERATURE_LABEL_LEN);
+        memcpy(buff, label, label_len);
+        memset(buff + label_len, ' ', TEMPERATURE_LABEL_LEN + 1 - label_len);
+        buff[5] = '\0';
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        valueXOffset = osdConfig()->temp_label_align == OSD_ALIGN_LEFT ? 5 : label_len + 1;
+    }
+#else
+    UNUSED(label);
+#endif
+
+    if (valid) {
+
+        if ((temperature <= alarm_min) || (temperature >= alarm_max)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        if (osdConfig()->units == OSD_UNIT_IMPERIAL) temperature = temperature * 9 / 5.0f + 320;
+        tfp_sprintf(buff, "%3d", temperature / 10);
+
+    } else
+        strcpy(buff, "---");
+
+    buff[3] = osdConfig()->units == OSD_UNIT_IMPERIAL ? SYM_TEMP_F : SYM_TEMP_C;
     buff[4] = '\0';
+
+    displayWriteWithAttr(osdDisplayPort, elemPosX + valueXOffset, elemPosY, buff, elemAttr);
 }
+
+#ifdef USE_TEMPERATURE_SENSOR
+static void osdDisplayTemperatureSensor(uint8_t elemPosX, uint8_t elemPosY, uint8_t sensorIndex)
+{
+    int16_t temperature;
+    const bool valid = getSensorTemperature(sensorIndex, &temperature);
+    const tempSensorConfig_t *sensorConfig = tempSensorConfig(sensorIndex);
+    uint16_t symbol = sensorConfig->osdSymbol ? SYM_TEMP_SENSOR_FIRST + sensorConfig->osdSymbol - 1 : 0;
+    osdDisplayTemperature(elemPosX, elemPosY, symbol, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
+}
+#endif
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
@@ -812,6 +856,17 @@ static inline int32_t osdGetAltitude(void)
 #endif
 }
 
+static inline int32_t osdGetAltitudeMsl(void)
+{
+#if defined(USE_NAV)
+    return getEstimatedActualPosition(Z)+GPS_home.alt;
+#elif defined(USE_BARO)
+    return baro.alt+GPS_home.alt;
+#else
+    return 0;
+#endif
+}
+
 static uint8_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *sidebar, timeMs_t currentTimeMs)
 {
     // Scroll between SYM_AH_DECORATION_MIN and SYM_AH_DECORATION_MAX.
@@ -1021,7 +1076,7 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
                 }
             } else {
 
-                uint8_t c;
+                uint16_t c;
                 if (displayReadCharWithAttr(osdDisplayPort, poiX, poiY, &c, NULL) && c != SYM_BLANK) {
                     // Something else written here, increase scale. If the display doesn't support reading
                     // back characters, we assume there's nothing.
@@ -1271,14 +1326,20 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_HOME_DIR:
         {
             if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
-                // There are 16 orientations for the home direction arrow.
-                // so we use 22.5deg per image, where the 1st image is used
-                // for [349, 11], the 2nd for [12, 33], etc...
-                int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
-                // Add 11 to the angle, so first character maps to [349, 11]
-                int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
-                unsigned arrowOffset = homeArrowDir * 2 / 45;
-                buff[0] = SYM_ARROW_UP + arrowOffset;
+                if (GPS_distanceToHome < (navConfig()->general.min_rth_distance / 100) ) {
+                    buff[0] = SYM_HOME_NEAR;
+                }
+                else
+                {
+                    // There are 16 orientations for the home direction arrow.
+                    // so we use 22.5deg per image, where the 1st image is used
+                    // for [349, 11], the 2nd for [12, 33], etc...
+                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    // Add 11 to the angle, so first character maps to [349, 11]
+                    int homeArrowDir = osdGetHeadingAngle(homeDirection + 11);
+                    unsigned arrowOffset = homeArrowDir * 2 / 45;
+                    buff[0] = SYM_ARROW_UP + arrowOffset;
+                }
             } else {
                 // No home or no fix or unknown heading, blink.
                 // If we're unarmed, show the arrow pointing up so users can see the arrow
@@ -1433,6 +1494,13 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_ALTITUDE_MSL:
+        {
+            int32_t alt = osdGetAltitudeMsl();
+            osdFormatAltitudeSymbol(buff, alt);
+            break;
+        }		
+		
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
@@ -1561,7 +1629,6 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
     }
 
-#if defined(VTX) || defined(USE_VTX_COMMON)
     case OSD_VTX_CHANNEL:
 #if defined(VTX)
         // FIXME: This doesn't actually work. It's for boards with
@@ -1589,7 +1656,6 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
         break;
-#endif // VTX || VTX_COMMON
 
     case OSD_CROSSHAIRS:
         osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
@@ -1665,7 +1731,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
             }
 
-            if (ABS(ky) < ABS(kx)) {
+            if (fabsf(ky) < fabsf(kx)) {
 
                 previous_orient = 0;
 
@@ -1673,7 +1739,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
                     int8_t dy = floorf(fy);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
@@ -1690,7 +1756,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
                     const int8_t dx = floorf(fx);
                     const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint8_t c;
+                    uint16_t c;
 
                     if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
                         c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
@@ -2026,9 +2092,9 @@ static bool osdDrawSingleElement(uint8_t item)
             const char *message = NULL;
             char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
             if (ARMING_FLAG(ARMED)) {
-                // Aircraft is armed. We might have up to 4
+                // Aircraft is armed. We might have up to 5
                 // messages to show.
-                const char *messages[4];
+                const char *messages[5];
                 unsigned messageCount = 0;
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {
                     // In FS mode while being armed too
@@ -2064,6 +2130,8 @@ static bool osdDrawSingleElement(uint8_t item)
                         if (navStateMessage) {
                             messages[messageCount++] = navStateMessage;
                         }
+                    } else if (STATE(FIXED_WING) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+                            messages[messageCount++] = "AUTOLAUNCH";
                     } else {
                         if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                             // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
@@ -2255,12 +2323,71 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_TEMPERATURE:
+    case OSD_IMU_TEMPERATURE:
         {
-            int16_t temperature = getCurrentTemperature();
-            osdFormatTemperatureSymbol(buff, temperature);
-            break;
+            int16_t temperature;
+            const bool valid = getIMUTemperature(&temperature);
+            osdDisplayTemperature(elemPosX, elemPosY, SYM_IMU_TEMP, NULL, valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
+            return true;
         }
+
+    case OSD_BARO_TEMPERATURE:
+        {
+            int16_t temperature;
+            const bool valid = getBaroTemperature(&temperature);
+            osdDisplayTemperature(elemPosX, elemPosY, SYM_BARO_TEMP, NULL, valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
+            return true;
+        }
+
+#ifdef USE_TEMPERATURE_SENSOR
+    case OSD_TEMP_SENSOR_0_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 0);
+            return true;
+        }
+
+    case OSD_TEMP_SENSOR_1_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 1);
+            return true;
+        }
+
+    case OSD_TEMP_SENSOR_2_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 2);
+            return true;
+        }
+
+    case OSD_TEMP_SENSOR_3_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 3);
+            return true;
+        }
+
+    case OSD_TEMP_SENSOR_4_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 4);
+            return true;
+        }
+
+    case OSD_TEMP_SENSOR_5_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 5);
+            return true;
+        }
+
+    case OSD_TEMP_SENSOR_6_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 6);
+            return true;
+        }
+
+    case OSD_TEMP_SENSOR_7_TEMPERATURE:
+        {
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 7);
+            return true;
+        }
+#endif /* ifdef USE_TEMPERATURE_SENSOR */
 
     case OSD_WIND_SPEED_HORIZONTAL:
 #ifdef USE_WIND_ESTIMATOR
@@ -2309,6 +2436,22 @@ static bool osdDrawSingleElement(uint8_t item)
         return false;
 #endif
 
+    case OSD_PLUS_CODE:
+        {
+            STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
+            int digits = osdConfig()->plus_code_digits;
+            if (STATE(GPS_FIX)) {
+                olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
+            } else {
+                // +codes with > 8 digits have a + at the 9th digit
+                // and we only support 10 and up.
+                memset(buff, '-', digits + 1);
+                buff[8] = '+';
+                buff[digits + 1] = '\0';
+            }
+            break;
+        }
+
     default:
         return false;
     }
@@ -2323,6 +2466,11 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
 
     if (elementIndex == OSD_ARTIFICIAL_HORIZON)
         ++elementIndex;
+
+#ifndef USE_TEMPERATURE_SENSOR
+    if (elementIndex == OSD_TEMP_SENSOR_0_TEMPERATURE)
+        elementIndex = OSD_ALTITUDE_MSL;
+#endif
 
     if (!sensors(SENSOR_ACC)) {
         if (elementIndex == OSD_CROSSHAIRS) {
@@ -2370,7 +2518,6 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_3D_SPEED) {
             elementIndex++;
         }
-
     }
 
     if (elementIndex == OSD_ITEM_COUNT) {
@@ -2448,7 +2595,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GPS_HDOP] = OSD_POS(0, 10);
 
     osdConfig->item_pos[0][OSD_GPS_LAT] = OSD_POS(0, 12);
-    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(12, 12) | OSD_VISIBLE_FLAG;
+    // Put this on top of the latitude, since it's very unlikely
+    // that users will want to use both at the same time.
+    osdConfig->item_pos[0][OSD_PLUS_CODE] = OSD_POS(0, 12);
+    osdConfig->item_pos[0][OSD_FLYMODE] = OSD_POS(13, 12) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_GPS_LON] = OSD_POS(18, 12);
 
     osdConfig->item_pos[0][OSD_ROLL_PIDS] = OSD_POS(2, 10);
@@ -2484,7 +2634,17 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_MC_POS_XYZ_P_OUTPUTS] = OSD_POS(2, 12);
 
     osdConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);
-    osdConfig->item_pos[0][OSD_TEMPERATURE] = OSD_POS(23, 2);
+
+    osdConfig->item_pos[0][OSD_IMU_TEMPERATURE] = OSD_POS(19, 2);
+    osdConfig->item_pos[0][OSD_BARO_TEMPERATURE] = OSD_POS(19, 3);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_0_TEMPERATURE] = OSD_POS(19, 4);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_1_TEMPERATURE] = OSD_POS(19, 5);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_2_TEMPERATURE] = OSD_POS(19, 6);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_3_TEMPERATURE] = OSD_POS(19, 7);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_4_TEMPERATURE] = OSD_POS(19, 8);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_5_TEMPERATURE] = OSD_POS(19, 9);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_6_TEMPERATURE] = OSD_POS(19, 10);
+    osdConfig->item_pos[0][OSD_TEMP_SENSOR_7_TEMPERATURE] = OSD_POS(19, 11);
 
     osdConfig->item_pos[0][OSD_AIR_SPEED] = OSD_POS(3, 5);
     osdConfig->item_pos[0][OSD_WIND_SPEED_HORIZONTAL] = OSD_POS(3, 6);
@@ -2504,6 +2664,16 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->alt_alarm = 100;
     osdConfig->dist_alarm = 1000;
     osdConfig->neg_alt_alarm = 5;
+    osdConfig->imu_temp_alarm_min = -200;
+    osdConfig->imu_temp_alarm_max = 600;
+#ifdef USE_BARO
+    osdConfig->baro_temp_alarm_min = -200;
+    osdConfig->baro_temp_alarm_max = 600;
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    osdConfig->temp_label_align = OSD_ALIGN_LEFT;
+#endif
 
     osdConfig->video_system = VIDEO_SYSTEM_AUTO;
 
@@ -2521,6 +2691,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->coordinate_digits = 9;
 
     osdConfig->osd_failsafe_switch_layout = false;
+
+    osdConfig->plus_code_digits = 11;
 }
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
@@ -2545,7 +2717,29 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     displayClearScreen(osdDisplayPort);
 
-    uint8_t y = 4;
+    uint8_t y = 1;
+    displayFontMetadata_t metadata;
+    bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
+
+    if (fontHasMetadata && metadata.charCount > 256) {
+        hasExtendedFont = true;
+        unsigned logo_c = SYM_LOGO_START;
+        unsigned logo_x = OSD_CENTER_LEN(SYM_LOGO_WIDTH);
+        for (unsigned ii = 0; ii < SYM_LOGO_HEIGHT; ii++) {
+            for (unsigned jj = 0; jj < SYM_LOGO_WIDTH; jj++) {
+                displayWriteChar(osdDisplayPort, logo_x + jj, y, logo_c++);
+            }
+            y++;
+        }
+        y++;
+    } else {
+        if (!fontHasMetadata || metadata.version < OSD_MIN_FONT_VERSION) {
+            const char *m = "INVALID FONT";
+            displayWrite(osdDisplayPort, OSD_CENTER_S(m), 3, m);
+        }
+        y = 4;
+    }
+
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
     displayWrite(osdDisplayPort, 5, y++, string_buffer);
@@ -2741,8 +2935,8 @@ static void osdShowArmed(void)
     char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
     char *date;
     char *time;
-    // We need 6 visible rows
-    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 6 - 1);
+    // We need 7 visible rows
+    uint8_t y = MIN((osdDisplayPort->rows / 2) - 1, osdDisplayPort->rows - 7 - 1);
 
     displayClearScreen(osdDisplayPort);
     displayWrite(osdDisplayPort, 12, y, "ARMED");
@@ -2755,7 +2949,10 @@ static void osdShowArmed(void)
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
             osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
-            y += 3;
+            int digits = osdConfig()->plus_code_digits;
+            olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
+			displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
+            y += 4;
         } else {
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
@@ -2851,6 +3048,12 @@ void osdUpdate(timeUs_t currentTimeUs)
     unsigned activeLayout;
     if (layoutOverride >= 0) {
         activeLayout = layoutOverride;
+        // Check for timed override, it will go into effect on
+        // the next OSD iteration
+        if (layoutOverrideUntil > 0 && millis() > layoutOverrideUntil) {
+            layoutOverrideUntil = 0;
+            layoutOverride = -1;
+        }
     } else if (osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE)) {
         activeLayout = 0;
     } else {
@@ -2906,9 +3109,22 @@ void osdStartFullRedraw(void)
     fullRedraw = true;
 }
 
-void osdOverrideLayout(int layout)
+void osdOverrideLayout(int layout, timeMs_t duration)
 {
     layoutOverride = constrain(layout, -1, ARRAYLEN(osdConfig()->item_pos) - 1);
+    if (layoutOverride >= 0 && duration > 0) {
+        layoutOverrideUntil = millis() + duration;
+    } else {
+        layoutOverrideUntil = 0;
+    }
+}
+
+int osdGetActiveLayout(bool *overridden)
+{
+    if (overridden) {
+        *overridden = layoutOverride >= 0;
+    }
+    return currentLayout;
 }
 
 bool osdItemIsFixed(osd_items_e item)

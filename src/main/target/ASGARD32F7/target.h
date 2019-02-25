@@ -57,6 +57,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_BARO
 
 #define USE_BARO_BMP280
@@ -155,9 +157,6 @@
 #undef USE_RX_PWM
 #undef USE_RX_PPM
 
-// Pitot not supported
-#undef USE_PITOT
-
 // Set default UARTs
 #define TELEMETRY_UART                  SERIAL_PORT_SOFTSERIAL1
 #define SERIALRX_UART                   SERIAL_PORT_USART1
@@ -176,3 +175,4 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C2

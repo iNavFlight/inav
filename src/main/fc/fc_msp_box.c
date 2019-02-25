@@ -84,6 +84,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXBRAKING, "MC BRAKING", 46 },
     { BOXUSER1, "USER1", 47 },
     { BOXUSER2, "USER2", 48 },
+    { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -195,6 +196,9 @@ void initActiveBoxIds(void)
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     if (navFlowDeadReckoning || navReadyQuads || navReadyPlanes) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+        if (STATE(FIXED_WING)) {
+            activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
+        }
     }
 
     if (navReadyQuads || navReadyPlanes) {
@@ -343,6 +347,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),     BOXBRAKING);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),       BOXUSER1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),       BOXUSER2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),BOXLOITERDIRCHN);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
@@ -362,7 +367,8 @@ uint16_t packSensorStatus(void)
             IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
             IS_ENABLED(sensors(SENSOR_RANGEFINDER))   << 4 |
             IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
-            IS_ENABLED(sensors(SENSOR_PITOT))   << 6;
+            IS_ENABLED(sensors(SENSOR_PITOT))   << 6 |
+            IS_ENABLED(sensors(SENSOR_TEMP))   << 7;
 
     // Hardware failure indication bit
     if (!isHardwareHealthy()) {

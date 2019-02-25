@@ -41,6 +41,7 @@
 
 #include "cms/cms.h"
 
+#include "drivers/1-wire.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/compass/compass.h"
@@ -107,6 +108,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
 
 #include "msp/msp_serial.h"
@@ -530,6 +532,11 @@ void init(void)
     }
 #endif
 
+    // 1-Wire IF chip
+#ifdef USE_1WIRE
+    owInit();
+#endif
+
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
@@ -628,7 +635,8 @@ void init(void)
     blackboxInit();
 #endif
 
-    gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
+    gyroStartCalibration();
+
 #ifdef USE_BARO
     baroStartCalibration();
 #endif
@@ -637,13 +645,10 @@ void init(void)
     pitotStartCalibration();
 #endif
 
-#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
+#if defined(USE_VTX_CONTROL)
     vtxControlInit();
-
-#if defined(USE_VTX_COMMON)
     vtxCommonInit();
     vtxInit();
-#endif
 
 #ifdef USE_VTX_SMARTAUDIO
     vtxSmartAudioInit();
@@ -653,7 +658,11 @@ void init(void)
     vtxTrampInit();
 #endif
 
-#endif // USE_VTX_COMMON && USE_VTX_CONTROL
+#ifdef USE_VTX_FFPV
+    vtxFuriousFPVInit();
+#endif
+
+#endif // USE_VTX_CONTROL
 
     // Now that everything has powered up the voltage and cell count be determined.
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))

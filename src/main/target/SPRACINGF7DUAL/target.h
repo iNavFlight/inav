@@ -89,6 +89,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_VCP
 #define USE_UART1
 #define USE_UART2
@@ -191,7 +193,7 @@
 #define CURRENT_METER_ADC_CHANNEL           ADC_CHN_2
 #define RSSI_ADC_CHANNEL                    ADC_CHN_3
 
-#define CURRENT_METER_SCALE_DEFAULT         300
+#define CURRENT_METER_SCALE         300
 
 #define USE_OSD
 
@@ -214,3 +216,5 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS    8
+
+#define USE_DSHOT

@@ -61,8 +61,8 @@ typedef struct i2cDevice_s {
 
 void i2cSetSpeed(uint8_t speed);
 void i2cInit(I2CDevice device);
-bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data);
-bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data);
-bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf);
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess);
+bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);
+bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
 
 uint16_t i2cGetErrorCounter(void);

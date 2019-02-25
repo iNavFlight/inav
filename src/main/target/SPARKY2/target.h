@@ -57,6 +57,8 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_MS5611
@@ -122,8 +124,7 @@
 // #define WS2811_PIN                      PA1
 
 #define USE_RANGEFINDER
-#define USE_RANGEFINDER_VL53L0X
-#define VL53L0X_I2C_BUS                 BUS_I2C2
+#define RANGEFINDER_I2C_BUS             BUS_I2C2
 
 #define USE_OPTICAL_FLOW
 #define USE_OPFLOW_CXOF

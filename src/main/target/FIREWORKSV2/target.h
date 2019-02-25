@@ -24,9 +24,17 @@
 
 #pragma once
 
+#if defined(OMNIBUSF4V6)
+#define TARGET_BOARD_IDENTIFIER "OBV6"
+#else 
 #define TARGET_BOARD_IDENTIFIER "FWX2"
+#endif
 
-#define USBD_PRODUCT_STRING     "OMNIBUS F4 FWX V2"
+#if defined(OMNIBUSF4V6)
+#define USBD_PRODUCT_STRING "OmnibusF4 V6"
+#else
+#define USBD_PRODUCT_STRING "OMNIBUS F4 FWX V2"
+#endif
 
 #define USE_DSHOT
 
@@ -39,8 +47,15 @@
 
 // I2C
 #define USE_I2C
+#if defined(OMNIBUSF4V6)
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                PB8 // SCL PIN,alt MST8
+#define I2C1_SDA                PB9 // SDA PIN,alt MST7
+#define DEFAULT_I2C_BUS         BUS_I2C1
+#else
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
+#endif
 
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC8
@@ -51,12 +66,20 @@
 
 #define USE_GYRO_MPU6500
 #define USE_ACC_MPU6500
+
+#if defined(OMNIBUSF4V6)
+#define MPU6500_CS_PIN          PC14
+#define MPU6500_SPI_BUS         BUS_SPI1
+#define GYRO_MPU6500_ALIGN      CW0_DEG
+#define ACC_MPU6500_ALIGN       CW0_DEG
+#else
 #define MPU6500_CS_PIN          PD2
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define GYRO_MPU6500_ALIGN      CW180_DEG
 #define ACC_MPU6500_ALIGN       CW180_DEG
+#endif
 
-// OmnibusF4 Nano v6 has a MPU6000
+// OmnibusF4 Nano v6 and OmnibusF4 V6 has a MPU6000
 #define USE_GYRO_MPU6000
 #define USE_ACC_MPU6000
 #define MPU6000_CS_PIN          PA4
@@ -65,24 +88,43 @@
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
 #define USE_MAG
+#if defined(OMNIBUSF4V6)
+#define MAG_I2C_BUS             BUS_I2C1
+#else
 #define MAG_I2C_BUS             BUS_I2C2
+#endif
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#if defined(OMNIBUSF4V6)
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+#else
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+#endif
+
 #define USE_BARO
-
 #define USE_BARO_BMP280
-#define BMP280_SPI_BUS        BUS_SPI3
-#define BMP280_CS_PIN         PB3
+#define BMP280_SPI_BUS          BUS_SPI3
+#define BMP280_CS_PIN           PB3
+#if defined(OMNIBUSF4V6)
+#define BARO_I2C_BUS            BUS_I2C1
+#endif
 
-#define USE_PITOT_MS4525
+#if defined(OMNIBUSF4V6)
+#define PITOT_I2C_BUS           BUS_I2C1
+#else
 #define PITOT_I2C_BUS           BUS_I2C2
+#endif
 
 #define USE_RANGEFINDER
+#if defined(OMNIBUSF4V6)
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#else
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
+#endif
 #define USE_RANGEFINDER_HCSR04_I2C
 
 #define USE_VCP
@@ -172,8 +214,11 @@
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SMARTAUDIO_UART                 SERIAL_PORT_USART4
 
+//Default values for OmnibusF4V6,calib values for FireworksV2
+#if !defined(OMNIBUSF4V6)
 #define CURRENT_METER_SCALE             175
 #define CURRENT_METER_OFFSET            326
+#endif
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -186,4 +231,8 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
+#if defined(OMNIBUSF4V6)
+#define PCA9685_I2C_BUS         BUS_I2C1
+#else
 #define PCA9685_I2C_BUS         BUS_I2C2
+#endif

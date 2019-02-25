@@ -71,8 +71,9 @@
 #define USE_BARO_MS5611
 
 #define USE_PITOT_ADC
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C2
+
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
 
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_BUS          BUS_SPI3
@@ -156,3 +157,5 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+
+#define USE_DSHOT

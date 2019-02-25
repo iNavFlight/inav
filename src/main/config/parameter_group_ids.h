@@ -75,7 +75,8 @@
 //#define PG_IBUS_TELEMETRY_CONFIG 53
 #define PG_VTX_CONFIG 54
 #define PG_ELERES_CONFIG 55
-#define PG_CF_END 56
+#define PG_TEMP_SENSOR_CONFIG 56
+#define PG_CF_END 57
 
 // Driver configuration
 //#define PG_DRIVER_PWM_RX_CONFIG 100

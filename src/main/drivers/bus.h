@@ -113,6 +113,19 @@ typedef enum {
     DEVHW_MAG3110,
     DEVHW_LIS3MDL,
 
+    /* Temp sensor chips */
+    DEVHW_LM75_0,
+    DEVHW_LM75_1,
+    DEVHW_LM75_2,
+    DEVHW_LM75_3,
+    DEVHW_LM75_4,
+    DEVHW_LM75_5,
+    DEVHW_LM75_6,
+    DEVHW_LM75_7,
+
+    /* 1-wire interface chips */
+    DEVHW_DS2482,
+
     /* OSD chips */
     DEVHW_MAX7456,
 
@@ -131,7 +144,7 @@ typedef enum {
 
 typedef enum {
     DEVFLAGS_NONE                       = 0,
-    DEVFLAGS_USE_RAW_REGISTERS          = (1 << 0),     // Don't manipulate MSB for R/W selection
+    DEVFLAGS_USE_RAW_REGISTERS          = (1 << 0),     // Don't manipulate MSB for R/W selection (SPI), allow using 0xFF register to raw i2c reads/writes
     DEVFLAGS_USE_MANUAL_DEVICE_SELECT   = (1 << 1),     // (SPI only) Don't automatically select/deselect device
     DEVFLAGS_SPI_MODE_0                 = (1 << 2),     // (SPI only) Use CPOL=0/CPHA=0 (if unset MODE3 is used - CPOL=1/CPHA=1)
 } deviceFlags_e;

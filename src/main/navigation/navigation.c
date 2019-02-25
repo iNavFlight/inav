@@ -574,7 +574,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_FINISHED,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LANDED,
         .mwError = MW_NAV_ERROR_NONE,
@@ -1106,8 +1106,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
         const float rthAltitudeMargin = STATE(FIXED_WING) ?
-                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z)) :  // Airplane
-                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * ABS(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z));   // Copters
+                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z)) :  // Airplane
+                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.homeWaypointAbove.pos.z - posControl.homePosition.pos.z));   // Copters
 
         if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.homeWaypointAbove.pos.z) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
@@ -1312,6 +1312,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     // Stay in this state
     UNUSED(previousState);
     updateClimbRateToAltitudeController(-0.3f * navConfig()->general.land_descent_rate, ROC_TO_ALT_NORMAL);  // FIXME
+
+    // Prevent I-terms growing when already landed
+    pidResetErrorAccumulators();
+
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -1477,6 +1481,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINIS
 {
     // TODO:
     UNUSED(previousState);
+
+    // Prevent I-terms growing when already landed
+    pidResetErrorAccumulators();
+
     return NAV_FSM_EVENT_SUCCESS;
 }
 
@@ -1504,6 +1512,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
     if (feature(FEATURE_FW_LAUNCH)) {
         throttleStatus_e throttleStatus = calculateThrottleStatus();
         if ((throttleStatus == THROTTLE_LOW) && (areSticksDeflectedMoreThanPosHoldDeadband())) {
+            abortFixedWingLaunch();
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
     }
@@ -1666,7 +1675,7 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
             // Only allow integrator to shrink
-            if (ABS(newIntegrator) < ABS(pid->integrator)) {
+            if (fabsf(newIntegrator) < fabsf(pid->integrator)) {
                 pid->integrator = newIntegrator;
             }
         }
@@ -1899,20 +1908,49 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void)
 /*-----------------------------------------------------------
  * Calculates distance and bearing to destination point
  *-----------------------------------------------------------*/
+static uint32_t calculateDistanceFromDelta(float deltaX, float deltaY)
+{
+    return sqrtf(sq(deltaX) + sq(deltaY));
+}
+
+static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
+{
+    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+}
+
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return sqrtf(sq(deltaX) + sq(deltaY));
+    return calculateDistanceFromDelta(deltaX, deltaY);
 }
 
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
 {
-    const float deltaX = destinationPos->x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float deltaY = destinationPos->y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
 
-    return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
+    return calculateBearingFromDelta(deltaX, deltaY);
+}
+
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos)
+{
+    if (posControl.flags.estPosStatus == EST_NONE ||
+        posControl.flags.estHeadingStatus == EST_NONE) {
+
+        return false;
+    }
+
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
+
+    result->distance = calculateDistanceFromDelta(deltaX, deltaY);
+    result->bearing = calculateBearingFromDelta(deltaX, deltaY);
+    return true;
 }
 
 /*-----------------------------------------------------------
@@ -2338,93 +2376,8 @@ static void resetPositionController(void)
     }
     else {
         resetMulticopterPositionController();
+        resetMulticopterBrakingMode();
     }
-}
-
-
-static void processBrakingMode(const bool isAdjusting)
-{
-#ifdef USE_MR_BRAKING_MODE
-
-    static uint32_t brakingModeDisengageAt = 0;
-    static uint32_t brakingBoostModeDisengageAt = 0;
-
-    const bool brakingEntryAllowed =
-        IS_RC_MODE_ACTIVE(BOXBRAKING) &&
-        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
-        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
-        !isAdjusting &&
-        navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
-        navConfig()->mc.braking_speed_threshold > 0 &&
-        (
-            NAV_Status.state == MW_NAV_STATE_NONE ||
-            NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT
-        );
-
-
-    /*
-        * Case one, when we order to brake (sticks to the center) and we are moving above threshold
-        * Speed is above 1m/s and sticks are centered
-        * Extra condition: BRAKING flight mode has to be enabled
-        */
-    if (brakingEntryAllowed) {
-        /*
-            * Set currnt position and target position
-            * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
-            */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
-
-        ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-        ENABLE_STATE(NAV_CRUISE_BRAKING);
-
-        //Set forced BRAKING disengage moment
-        brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
-
-        //If speed above threshold, start boost mode as well
-        if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
-            ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-
-            brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
-        }
-
-    }
-
-    // We can enter braking only after user started to move the sticks
-    if (STATE(NAV_CRUISE_BRAKING_LOCKED) && isAdjusting) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-    }
-
-    /*
-     * Case when speed dropped, disengage BREAKING_BOOST
-     */
-    if (
-        STATE(NAV_CRUISE_BRAKING_BOOST) && (
-            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed ||
-            brakingBoostModeDisengageAt < millis()
-    )) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-    }
-
-    /*
-     * Case when we were braking but copter finally stopped or we started to move the sticks
-     */
-    if (STATE(NAV_CRUISE_BRAKING) && (
-        posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||  //We stopped
-        isAdjusting ||                                                              //Moved the sticks
-        brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
-    )) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING);
-        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-
-        /*
-            * When braking is done, store current position as desired one
-            * We do not want to go back to the place where braking has started
-            */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
-    }
-#else
-    UNUSED(isAdjusting);
-#endif
 }
 
 static bool adjustPositionFromRCInput(void)
@@ -2438,8 +2391,6 @@ static bool adjustPositionFromRCInput(void)
 
         const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
         const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
-
-        processBrakingMode(rcPitchAdjustment || rcRollAdjustment);
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }
@@ -2696,8 +2647,15 @@ static void processNavigationRCAdjustments(void)
         posControl.flags.isAdjustingAltitude = false;
     }
 
-    if ((navStateFlags & NAV_RC_POS) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
-        posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
+    if (navStateFlags & NAV_RC_POS) {
+        if (!FLIGHT_MODE(FAILSAFE_MODE)) {
+            posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
+        }
+        else {
+            if (!STATE(FIXED_WING)) {
+                resetMulticopterBrakingMode();
+            }
+        }
     }
     else {
         posControl.flags.isAdjustingPosition = false;
@@ -3150,8 +3108,10 @@ void activateForcedRTH(void)
 
 void abortForcedRTH(void)
 {
+    // Disable failsafe RTH and make sure we back out of navigation mode to IDLE
+    // If any navigation mode was active prior to RTH it will be re-enabled with next RX update
     posControl.flags.forcedRTHActivated = false;
-    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
 }
 
 rthState_e getStateOfForcedRTH(void)
@@ -3279,7 +3239,7 @@ void onNewGPSData(void)
         GPS_home.alt = gpsSol.llh.alt;
         GPS_distanceToHome = 0;
         GPS_directionToHome = 0;
-        GPS_scaleLonDown = cos_approx((ABS((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
+        GPS_scaleLonDown = cos_approx((fabsf((float)gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
     }
 }
 

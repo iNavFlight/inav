@@ -337,6 +337,8 @@ void createDefaultConfig(void)
 #endif
 #endif
 
+    featureSet(FEATURE_AIRMODE);
+
     targetConfiguration();
 }
 

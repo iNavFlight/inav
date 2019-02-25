@@ -50,6 +50,8 @@ typedef bool (*sensorGyroInterruptStatusFuncPtr)(struct gyroDev_s *gyro);
 struct magDev_s;
 typedef bool (*sensorMagInitFuncPtr)(struct magDev_s *mag);
 typedef bool (*sensorMagReadFuncPtr)(struct magDev_s *mag);
+struct temperatureDev_s;
+typedef bool (*sensorTempReadFuncPtr)(struct temperatureDev_s *tempDev, int16_t *temperature);
 struct opflowDev_s;
 typedef bool (*sensorOpflowInitFuncPtr)(struct opflowDev_s *mag);
 typedef bool (*sensorOpflowUpdateFuncPtr)(struct opflowDev_s *mag);

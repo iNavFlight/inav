@@ -73,7 +73,7 @@ PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
 
 bool accInit(uint32_t accTargetLooptime);
 bool accIsCalibrationComplete(void);
-void accSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+void accStartCalibration(void);
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
 void accGetVibrationLevels(fpVector3_t *accVibeLevels);
 float accGetVibrationLevel(void);

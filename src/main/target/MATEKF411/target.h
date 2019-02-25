@@ -75,6 +75,9 @@
 #define UART2_RX_PIN            PA3
 
 #if defined(MATEKF411_SFTSRL2)
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN     PA0 // ST1 pad
+#define SOFTSERIAL_1_RX_PIN     PA0
 #define USE_SOFTSERIAL2
 #define SOFTSERIAL_2_TX_PIN     PA8 // LED pad
 #define SOFTSERIAL_2_RX_PIN     PA8
@@ -111,6 +114,8 @@
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_HMC5883
@@ -119,7 +124,6 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
 
 // *************** ADC *****************************

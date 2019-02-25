@@ -102,7 +102,7 @@
 
 #define SYM_DIRECTION             0x72 // 114 to 121, directional little arrows
 
-//                                0x7A // 122 -
+#define SYM_HOME_NEAR             0x7A // 122 Home, near
 
 //                                0x7B // 123 to 125 ASCII
 
@@ -195,6 +195,18 @@
 #define SYM_PITCH_DOWN            0xDF // 223 Pitch down
 
 #define SYM_AH_V_START            0xE0 // 224 to 229 Vertical AHI
+
+#define SYM_BARO_TEMP             0xF0
+#define SYM_IMU_TEMP              0xF1
+#define SYM_TEMP                  0xF2
+
+#define SYM_TEMP_SENSOR_FIRST     0xF2
+#define SYM_TEMP_SENSOR_LAST      0xF7
+#define TEMP_SENSOR_SYM_COUNT     (SYM_TEMP_SENSOR_LAST - SYM_TEMP_SENSOR_FIRST + 1)
+
+#define SYM_LOGO_START            0x101 // 257 to 280, INAV logo
+#define SYM_LOGO_WIDTH            6
+#define SYM_LOGO_HEIGHT           4
 
 #define SYM_CURSOR SYM_AH_LEFT // Menu cursor
 

@@ -166,9 +166,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("THR. (MANU)", OSD_THROTTLE_POS),
     OSD_ELEMENT_ENTRY("THR. (MANU/AUTO)", OSD_THROTTLE_POS_AUTO_THR),
     OSD_ELEMENT_ENTRY("SYS MESSAGES", OSD_MESSAGES),
-#ifdef USE_VTX_COMMON
     OSD_ELEMENT_ENTRY("VTX CHAN", OSD_VTX_CHANNEL),
-#endif // VTX
     OSD_ELEMENT_ENTRY("CURRENT (A)", OSD_CURRENT_DRAW),
     OSD_ELEMENT_ENTRY("POWER", OSD_POWER),
     OSD_ELEMENT_ENTRY("USED MAH", OSD_MAH_DRAWN),
@@ -188,6 +186,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("GPS LON", OSD_GPS_LON),
     OSD_ELEMENT_ENTRY("GPS HDOP", OSD_GPS_HDOP),
     OSD_ELEMENT_ENTRY("3D SPEED", OSD_3D_SPEED),
+    OSD_ELEMENT_ENTRY("PLUS CODE", OSD_PLUS_CODE),
 #endif // GPS
     OSD_ELEMENT_ENTRY("HEADING", OSD_HEADING),
     OSD_ELEMENT_ENTRY("HEADING GR.", OSD_HEADING_GRAPH),
@@ -198,6 +197,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("VARIO NUM", OSD_VARIO_NUM),
 #endif // defined
     OSD_ELEMENT_ENTRY("ALTITUDE", OSD_ALTITUDE),
+    OSD_ELEMENT_ENTRY("ALTITUDE MSL", OSD_ALTITUDE_MSL),	
 #if defined(USE_PITOT)
     OSD_ELEMENT_ENTRY("AIR SPEED", OSD_AIR_SPEED),
 #endif
@@ -245,13 +245,27 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("WIND HOR", OSD_WIND_SPEED_HORIZONTAL),
     OSD_ELEMENT_ENTRY("WIND VERT", OSD_WIND_SPEED_VERTICAL),
 
-    OSD_ELEMENT_ENTRY("TEMPERATURE", OSD_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("IMU TEMP", OSD_IMU_TEMPERATURE),
+#ifdef USE_BARO
+    OSD_ELEMENT_ENTRY("BARO TEMP", OSD_BARO_TEMPERATURE),
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    OSD_ELEMENT_ENTRY("SENSOR 0 TEMP", OSD_TEMP_SENSOR_0_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 1 TEMP", OSD_TEMP_SENSOR_1_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 2 TEMP", OSD_TEMP_SENSOR_2_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 3 TEMP", OSD_TEMP_SENSOR_3_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 4 TEMP", OSD_TEMP_SENSOR_4_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 5 TEMP", OSD_TEMP_SENSOR_5_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 6 TEMP", OSD_TEMP_SENSOR_6_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 7 TEMP", OSD_TEMP_SENSOR_7_TEMPERATURE),
+#endif
 
     OSD_BACK_ENTRY,
     OSD_END_ENTRY,
 };
 
-#if defined(USE_VTX_COMMON) && defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT)
+#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR)
 // All CMS OSD elements should be enabled in this case. The menu has 3 extra
 // elements (label, back and end), but there's an OSD element that we intentionally
 // don't show here (OSD_DEBUG).
@@ -307,7 +321,7 @@ static long osdElementsOnEnter(const OSD_Entry *from)
     // First entry is the label. Store the current layout
     // and override it on the OSD so previews so this layout.
     osdCurrentLayout = from - cmsx_menuOsdLayoutEntries - 1;
-    osdOverrideLayout(osdCurrentLayout);
+    osdOverrideLayout(osdCurrentLayout, 0);
     return 0;
 }
 
@@ -316,7 +330,7 @@ static long osdElementsOnExit(const OSD_Entry *from)
     UNUSED(from);
 
     // Stop overriding OSD layout
-    osdOverrideLayout(-1);
+    osdOverrideLayout(-1, 0);
     return 0;
 }
 
