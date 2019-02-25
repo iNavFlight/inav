@@ -312,7 +312,7 @@ static bool gpsFakeGPSUpdate(void)
 
         gpsSetProtocolTimeout(GPS_TIMEOUT);
 
-        gpsSetState(GPS_RECEIVING_DATA);
+        gpsSetState(GPS_RUNNING);
         return true;
     }
     return false;

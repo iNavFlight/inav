@@ -23,19 +23,19 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
-    { TIM1, IO_TAG(PA8),  TIM_Channel_1, 0, IOCFG_IPD,   GPIO_AF_TIM1, TIM_USE_PPM | TIM_USE_PWM }, // PWM1  - PA8  RC1
-    { TIM3, IO_TAG(PB0),  TIM_Channel_3, 0, IOCFG_IPD,   GPIO_AF_TIM3, TIM_USE_PWM }, // PWM2  - PB0  RC2
-    { TIM3, IO_TAG(PB1),  TIM_Channel_4, 0, IOCFG_IPD,   GPIO_AF_TIM3, TIM_USE_PWM }, // PWM3  - PB1  RC3
-    { TIM1, IO_TAG(PB14), TIM_Channel_2, 0, IOCFG_IPD,   GPIO_AF_TIM1, TIM_USE_PWM }, // PWM4  - PA14 RC4
-    { TIM1, IO_TAG(PB15), TIM_Channel_3, 0, IOCFG_IPD,   GPIO_AF_TIM1, TIM_USE_PWM }, // PWM5  - PA15 RC5
-    { TIM4, IO_TAG(PB8),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_TIM4, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // PWM6  - PB8  OUT1
-    { TIM4, IO_TAG(PB9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_TIM4, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // PWM7  - PB9  OUT2
-    { TIM5, IO_TAG(PA0),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_TIM5, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // PWM8  - PA0  OUT3
-    { TIM5, IO_TAG(PA1),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_TIM5, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // PWM9  - PA1  OUT4
-    { TIM8, IO_TAG(PC6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // PWM10 - PC6  OUT5
-    { TIM8, IO_TAG(PC7),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // PWM11 - PC7  OUT6
-    { TIM8, IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // PWM13 - PC8  OUT7
-    { TIM8, IO_TAG(PC9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // PWM13 - PC9  OUT8
+    DEF_TIM(TIM1, CH1, PA8,  TIM_USE_PWM | TIM_USE_PPM,                     0, 1), // PWM1  - PA8  RC1  - DMA2_ST1
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_PWM,                                   0, 0), // PWM2  - PB0  RC2  - DMA1_ST5
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_PWM,                                   0, 0), // PWM3  - PB1  RC3  - DMA1_ST7
+    DEF_TIM(TIM1, CH2, PB14, TIM_USE_PWM,                                   0, 1), // PWM4  - PA14 RC4  - DMA2_ST2
+    DEF_TIM(TIM1, CH3, PB15, TIM_USE_PWM | TIM_USE_LED,                     0, 0), // PWM5  - PA15 RC5  - DMA2_ST6
+    DEF_TIM(TIM4, CH3, PB8,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,           0, 0), // PWM6  - PB8  OUT1 - DMA1_ST7
+    DEF_TIM(TIM4, CH4, PB9,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,           0, 0), // PWM7  - PB9  OUT2 - DMA_NONE
+    DEF_TIM(TIM5, CH1, PA0,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,           0, 0), // PWM8  - PA0  OUT3 - DMA1_ST2
+    DEF_TIM(TIM5, CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,           0, 0), // PWM9  - PA1  OUT4 - DMA1_ST4
+    DEF_TIM(TIM8, CH1, PC6,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,           0, 0), // PWM10 - PC6  OUT5 - DMA2_ST2
+    DEF_TIM(TIM8, CH2, PC7,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,           0, 0), // PWM11 - PC7  OUT6 - DMA2_ST3
+    DEF_TIM(TIM8, CH3, PC8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,           0, 1), // PWM13 - PC8  OUT7 - DMA2_ST4
+    DEF_TIM(TIM8, CH4, PC9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,           0, 0), // PWM13 - PC9  OUT8 - DMA2_ST7
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

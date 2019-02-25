@@ -40,6 +40,7 @@
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
 #include "sensors/barometer.h"
+#include "sensors/temperature.h"
 #include "scheduler/scheduler.h"
 
 #ifdef USE_RX_ELERES
@@ -271,8 +272,12 @@ static void telemetryRX(void)
 
     presfil  -= presfil/4;
     presfil  += baro.baroPressure;
+
+    int16_t temperature;
+    const bool temp_valid = sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
+    if (!temp_valid) temperature = TEMPERATURE_INVALID_VALUE; // If temperature not valid report value outside of range
     thempfil -= thempfil/8;
-    thempfil += baro.baroTemperature/10;
+    thempfil += temperature;
 
     switch (telem_state++) {
     case 0:

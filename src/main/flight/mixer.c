@@ -101,6 +101,7 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
+    .digitalIdleOffsetValue = 450   // Same scale as in Betaflight
 );
 
 static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
@@ -181,7 +182,45 @@ void mixerResetDisarmedMotors(void)
 void writeMotors(void)
 {
     for (int i = 0; i < motorCount; i++) {
-        pwmWriteMotor(i, motor[i]);
+        uint16_t motorValue;
+
+#ifdef USE_DSHOT
+        // If we use DSHOT we need to convert motorValue to DSHOT ranges
+        if (isMotorProtocolDshot()) {
+            const float dshotMinThrottleOffset = (DSHOT_MAX_THROTTLE - DSHOT_MIN_THROTTLE) / 10000.0f * motorConfig()->digitalIdleOffsetValue;
+
+            if (feature(FEATURE_3D)) {
+                if (motor[i] >= motorConfig()->minthrottle && motor[i] <= flight3DConfig()->deadband3d_low) {
+                    motorValue = scaleRangef(motor[i], motorConfig()->minthrottle, flight3DConfig()->deadband3d_low, DSHOT_3D_DEADBAND_LOW, dshotMinThrottleOffset + DSHOT_MIN_THROTTLE);
+                    motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
+                }
+                else if (motor[i] >= flight3DConfig()->deadband3d_high && motor[i] <= motorConfig()->maxthrottle) {
+                    motorValue = scaleRangef(motor[i], flight3DConfig()->deadband3d_high, motorConfig()->maxthrottle, dshotMinThrottleOffset + DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+                    motorValue = constrain(motorValue, DSHOT_3D_DEADBAND_HIGH, DSHOT_MAX_THROTTLE);
+                }
+                else {
+                    motorValue = DSHOT_DISARM_COMMAND;
+                }
+            }
+            else {
+                if (motor[i] < motorConfig()->minthrottle) {    // motor disarmed
+                    motorValue = DSHOT_DISARM_COMMAND;
+                }
+                else {
+                    motorValue = scaleRangef(motor[i], motorConfig()->minthrottle, motorConfig()->maxthrottle, (dshotMinThrottleOffset + DSHOT_MIN_THROTTLE), DSHOT_MAX_THROTTLE);
+                    motorValue = constrain(motorValue, (dshotMinThrottleOffset + DSHOT_MIN_THROTTLE), DSHOT_MAX_THROTTLE);
+                }
+            }
+        }
+        else {
+            motorValue = motor[i];
+        }
+#else
+        // We don't define USE_DSHOT
+        motorValue = motor[i];
+#endif
+
+        pwmWriteMotor(i, motorValue);
     }
 }
 

@@ -154,11 +154,13 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    if (sensors(SENSOR_BARO)) {
-        const uint32_t newDeadline = baroUpdate();
-        if (newDeadline != 0) {
-            rescheduleTask(TASK_SELF, newDeadline);
-        }
+    if (!sensors(SENSOR_BARO)) {
+        return;
+    }
+
+    const uint32_t newDeadline = baroUpdate();
+    if (newDeadline != 0) {
+        rescheduleTask(TASK_SELF, newDeadline);
     }
 
     updatePositionEstimator_BaroTopic(currentTimeUs);
@@ -168,11 +170,12 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
 #ifdef USE_PITOT
 void taskUpdatePitot(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
-    if (sensors(SENSOR_PITOT)) {
-        pitotUpdate();
+    if (!sensors(SENSOR_PITOT)) {
+        return;
     }
+
+    pitotUpdate();
+    updatePositionEstimator_PitotTopic(currentTimeUs);
 }
 #endif
 
@@ -250,20 +253,6 @@ void taskSyncPwmDriver(timeUs_t currentTimeUs)
 }
 #endif
 
-#ifdef USE_ASYNC_GYRO_PROCESSING
-void taskAttitude(timeUs_t currentTimeUs)
-{
-    imuUpdateAttitude(currentTimeUs);
-}
-
-void taskAcc(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-
-    imuUpdateAccelerometer();
-}
-#endif
-
 #ifdef USE_OSD
 void taskUpdateOsd(timeUs_t currentTimeUs)
 {
@@ -277,27 +266,8 @@ void fcTasksInit(void)
 {
     schedulerInit();
 
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    rescheduleTask(TASK_PID, getPidUpdateRate());
-    setTaskEnabled(TASK_PID, true);
-
-    if (getAsyncMode() != ASYNC_MODE_NONE) {
-        rescheduleTask(TASK_GYRO, getGyroUpdateRate());
-        setTaskEnabled(TASK_GYRO, true);
-    }
-
-    if (getAsyncMode() == ASYNC_MODE_ALL && sensors(SENSOR_ACC)) {
-        rescheduleTask(TASK_ACC, getAccUpdateRate());
-        setTaskEnabled(TASK_ACC, true);
-
-        rescheduleTask(TASK_ATTI, getAttitudeUpdateRate());
-        setTaskEnabled(TASK_ATTI, true);
-    }
-
-#else
-    rescheduleTask(TASK_GYROPID, getGyroUpdateRate());
+    rescheduleTask(TASK_GYROPID, getLooptime());
     setTaskEnabled(TASK_GYROPID, true);
-#endif
 
     setTaskEnabled(TASK_SERIAL, true);
 #ifdef BEEPER
@@ -376,51 +346,12 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .desiredPeriod = TASK_PERIOD_HZ(10),              // run every 100 ms, 10Hz
         .staticPriority = TASK_PRIORITY_HIGH,
     },
-
-    #ifdef USE_ASYNC_GYRO_PROCESSING
-        [TASK_PID] = {
-            .taskName = "PID",
-            .taskFunc = taskMainPidLoop,
-            .desiredPeriod = TASK_PERIOD_HZ(500), // Run at 500Hz
-            .staticPriority = TASK_PRIORITY_HIGH,
-        },
-
-        [TASK_GYRO] = {
-            .taskName = "GYRO",
-            .taskFunc = taskGyro,
-            .desiredPeriod = TASK_PERIOD_HZ(1000), //Run at 1000Hz
-            .staticPriority = TASK_PRIORITY_REALTIME,
-        },
-
-        [TASK_ACC] = {
-            .taskName = "ACC",
-            .taskFunc = taskAcc,
-            .desiredPeriod = TASK_PERIOD_HZ(520), //520Hz is ACC bandwidth (260Hz) * 2
-            .staticPriority = TASK_PRIORITY_HIGH,
-        },
-
-        [TASK_ATTI] = {
-            .taskName = "ATTITUDE",
-            .taskFunc = taskAttitude,
-            .desiredPeriod = TASK_PERIOD_HZ(60), //With acc LPF at 15Hz 60Hz attitude refresh should be enough
-            .staticPriority = TASK_PRIORITY_HIGH,
-        },
-
-    #else
-
-        /*
-         * Legacy synchronous PID/gyro/acc/atti mode
-         * for 64kB targets and other smaller targets
-         */
-
-        [TASK_GYROPID] = {
-            .taskName = "GYRO/PID",
-            .taskFunc = taskMainPidLoop,
-            .desiredPeriod = TASK_PERIOD_US(1000),
-            .staticPriority = TASK_PRIORITY_REALTIME,
-        },
-    #endif
-
+    [TASK_GYROPID] = {
+        .taskName = "GYRO/PID",
+        .taskFunc = taskMainPidLoop,
+        .desiredPeriod = TASK_PERIOD_US(1000),
+        .staticPriority = TASK_PRIORITY_REALTIME,
+    },
     [TASK_SERIAL] = {
         .taskName = "SERIAL",
         .taskFunc = taskHandleSerial,
@@ -456,7 +387,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_TEMPERATURE] = {
         .taskName = "TEMPERATURE",
         .taskFunc = taskUpdateTemperature,
-        .desiredPeriod = TASK_PERIOD_HZ(1),       // 1 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(100),     // 100 Hz
         .staticPriority = TASK_PRIORITY_LOW,
     },
 
@@ -499,7 +430,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PITOT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
-        .desiredPeriod = TASK_PERIOD_HZ(10),
+        .desiredPeriod = TASK_PERIOD_HZ(100),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
@@ -603,7 +534,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
+#if defined(USE_VTX_CONTROL)
     [TASK_VTXCTRL] = {
         .taskName = "VTXCTRL",
         .taskFunc = vtxUpdate,

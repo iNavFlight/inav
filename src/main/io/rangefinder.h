@@ -30,5 +30,6 @@
 #include "drivers/rangefinder/rangefinder_virtual.h"
 
 extern virtualRangefinderVTable_t rangefinderMSPVtable;
+extern virtualRangefinderVTable_t rangefinderBenewakeVtable;
 
 void mspRangefinderReceiveNewData(uint8_t * bufferPtr);

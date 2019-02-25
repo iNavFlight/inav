@@ -511,7 +511,7 @@ void featureSet(uint32_t mask) {UNUSED(mask);}
 void featureClearAll() {}
 uint32_t featureMask(void) {return 0;}
 // from debug.c
-int16_t debug[DEBUG16_VALUE_COUNT];
+int32_t debug[DEBUG32_VALUE_COUNT];
 // from gps.c
 #define GPS_SV_MAXSATS   16
 int32_t GPS_coord[2];               // LAT/LON

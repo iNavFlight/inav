@@ -42,7 +42,6 @@
 
 void targetConfiguration(void)
 {
-    systemConfigMutable()->asyncMode = ASYNC_MODE_NONE;
     mixerConfigMutable()->platformType = PLATFORM_MULTIROTOR;
 
     featureSet(FEATURE_VBAT);
@@ -50,7 +49,6 @@ void targetConfiguration(void)
     featureSet(FEATURE_TELEMETRY);
     featureSet(FEATURE_LED_STRIP);
     featureSet(FEATURE_BLACKBOX);
-    featureSet(FEATURE_AIRMODE);
 
     serialConfigMutable()->portConfigs[0].functionMask = FUNCTION_MSP;          // VCP
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_GPS;          // UART1

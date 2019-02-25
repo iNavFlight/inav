@@ -35,6 +35,7 @@ typedef enum {
     GYRO_MPU6500,
     GYRO_MPU9250,
     GYRO_BMI160,
+    GYRO_ICM20689,
     GYRO_FAKE
 } gyroSensor_e;
 
@@ -66,8 +67,8 @@ PG_DECLARE(gyroConfig_t, gyroConfig);
 bool gyroInit(void);
 void gyroInitFilters(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
-void gyroUpdate(timeDelta_t gyroUpdateDeltaUs);
-void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+void gyroUpdate();
+void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);

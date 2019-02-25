@@ -19,7 +19,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "MF4S"
 #define USBD_PRODUCT_STRING  "Matek_F405SE"
-#define TARGET_CONFIG
 
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green
@@ -75,8 +74,14 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define USE_PITOT_MS4525
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
+
 #define PITOT_I2C_BUS           BUS_I2C2
+
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 
 // *************** SPI2 OSD ***************************
 #define USE_SPI_DEVICE_2
@@ -90,20 +95,18 @@
 #define MAX7456_SPI_BUS         BUS_SPI2
 
 // *************** SPI3 SD Card  ********************
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC14
+
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
+#define SPI3_CLOCK_LEADING_EDGE
 
-#define USE_SDCARD
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#define SDCARD_SPI_INSTANCE     SPI3
-#define SDCARD_SPI_CS_PIN       PC14
-
-#define SDCARD_DMA_CHANNEL_TX               	DMA1_Stream7
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG 	DMA_FLAG_TCIF7
-#define SDCARD_DMA_CLK                      	RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  	DMA_Channel_0
 
 // *************** UART *****************************
 #define USE_VCP

@@ -39,6 +39,8 @@
 
 #pragma once
 #include "common/time.h"
+#include "common/utils.h"
+#include "drivers/time.h"
 
 /*
     Protothreads are a extremely lightweight, stackless threads that provides a blocking context, without the overhead of per-thread stacks.
@@ -152,6 +154,18 @@ struct ptState_s {
     (currentPt)->delayTime = (delay);                                       \
     ptLabel();                                                              \
     if ((timeDelta_t)(millis() - (currentPt)->startTime) <= (currentPt)->delayTime) {    \
+      return;                                                               \
+    }                                                                       \
+  } while (0)
+
+// Suspends protothread for a given amount of time
+// Delay is evaluated only once
+#define ptDelayUs(delay)                                                    \
+  do {                                                                      \
+    (currentPt)->startTime = (timeUs_t)micros();                            \
+    (currentPt)->delayTime = (delay);                                       \
+    ptLabel();                                                              \
+    if ((timeDelta_t)(micros() - (currentPt)->startTime) <= (currentPt)->delayTime) {    \
       return;                                                               \
     }                                                                       \
   } while (0)

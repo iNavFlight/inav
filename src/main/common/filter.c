@@ -40,11 +40,12 @@ float nullFilterApply(void *filter, float input)
 // f_cut = cutoff frequency
 void pt1FilterInitRC(pt1Filter_t *filter, float tau, float dT)
 {
+    filter->state = 0.0f;
     filter->RC = tau;
     filter->dT = dT;
 }
 
-void pt1FilterInit(pt1Filter_t *filter, uint8_t f_cut, float dT)
+void pt1FilterInit(pt1Filter_t *filter, float f_cut, float dT)
 {
     pt1FilterInitRC(filter, 1.0f / (2.0f * M_PIf * f_cut), dT);
 }
@@ -70,7 +71,7 @@ float pt1FilterApply3(pt1Filter_t *filter, float input, float dT)
     return filter->state;
 }
 
-float pt1FilterApply4(pt1Filter_t *filter, float input, uint16_t f_cut, float dT)
+float pt1FilterApply4(pt1Filter_t *filter, float input, float f_cut, float dT)
 {
     // Pre calculate and store RC
     if (!filter->RC) {

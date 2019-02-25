@@ -24,23 +24,23 @@
 
 const timerHardware_t timerHardware[] = {
     // MOTOR outputs
-    { TIM8,  IO_TAG(PC6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_4,    TIM_USE_MC_MOTOR }, // PWM1 - PC6 - TIM8_CH1
-    { TIM8,  IO_TAG(PC7),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_4,    TIM_USE_MC_MOTOR }, // PWM2 - PC7 - TIM8_CH2
-    { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_4,    TIM_USE_MC_MOTOR }, // PWM3 - PC8 - TIM8_CH3
-    { TIM8,  IO_TAG(PC9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_4,    TIM_USE_MC_MOTOR }, // PWM4 - PC9 - TIM8_CH4
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MC_MOTOR, 1),
+    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MC_MOTOR, 1),
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR, 1),
+    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR, 1),
 
     // Additional servo outputs
-    { TIM3,  IO_TAG(PA4),  TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_MC_SERVO }, // PWM5 - PA4  - TIM3_CH2
-    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_MC_SERVO }, // PWM6 - PB1  - TIM3_CH4
+    DEF_TIM(TIM3,  CH2, PA4,  TIM_USE_MC_SERVO, 0),
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_SERVO, 0),
 
     // PPM PORT - Also USART2 RX (AF5)
-    { TIM2,  IO_TAG(PA3),  TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PPM }, // PPM - PA3  - TIM2_CH4
+    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_PPM, 0),
 
     // LED_STRIP
-    { TIM1,  IO_TAG(PA8),  TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_6,    TIM_USE_ANY },  // GPIO_TIMER / LED_STRIP
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_ANY, 0),
 
     // PWM_BUZZER
-    { TIM16, IO_TAG(PB4),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_BEEPER },  // BUZZER - PB4 - TIM16_CH1N
+    DEF_TIM(TIM16, CH1, PB4,  TIM_USE_BEEPER, 0),
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
