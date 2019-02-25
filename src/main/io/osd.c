@@ -2467,6 +2467,11 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
     if (elementIndex == OSD_ARTIFICIAL_HORIZON)
         ++elementIndex;
 
+#ifndef USE_TEMPERATURE_SENSOR
+    if (elementIndex == OSD_TEMP_SENSOR_0_TEMPERATURE)
+        elementIndex = OSD_ALTITUDE_MSL;
+#endif
+
     if (!sensors(SENSOR_ACC)) {
         if (elementIndex == OSD_CROSSHAIRS) {
             elementIndex = OSD_ONTIME;
@@ -2513,7 +2518,6 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_3D_SPEED) {
             elementIndex++;
         }
-
     }
 
     if (elementIndex == OSD_ITEM_COUNT) {
