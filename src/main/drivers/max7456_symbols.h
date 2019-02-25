@@ -196,6 +196,14 @@
 
 #define SYM_AH_V_START            0xE0 // 224 to 229 Vertical AHI
 
+#define SYM_BARO_TEMP             0xF0
+#define SYM_IMU_TEMP              0xF1
+#define SYM_TEMP                  0xF2
+
+#define SYM_TEMP_SENSOR_FIRST     0xF2
+#define SYM_TEMP_SENSOR_LAST      0xF7
+#define TEMP_SENSOR_SYM_COUNT     (SYM_TEMP_SENSOR_LAST - SYM_TEMP_SENSOR_FIRST + 1)
+
 #define SYM_LOGO_START            0x101 // 257 to 280, INAV logo
 #define SYM_LOGO_WIDTH            6
 #define SYM_LOGO_HEIGHT           4
