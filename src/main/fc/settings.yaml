@@ -64,6 +64,9 @@ tables:
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC"]
     enum: videoSystem_e
+  - name: osd_alignment
+    values: ["LEFT", "RIGHT"]
+    enum: osd_alignment_e
   - name: frsky_unit
     values: ["METRIC", "IMPERIAL"]
     enum: frskyUnit_e
@@ -1614,6 +1617,11 @@ groups:
         condition: USE_BARO
         min: -550
         max: 1250
+      - name: osd_temp_label_align
+        field: temp_label_align
+        condition: USE_TEMPERATURE_SENSOR
+        table: osd_alignment
+        type: uint8_t
 
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll

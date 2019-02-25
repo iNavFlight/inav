@@ -181,7 +181,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 6);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
 
 static int digitCount(int32_t value)
 {
@@ -524,7 +524,7 @@ static void osdDisplayTemperature(uint8_t elemPosX, uint8_t elemPosY, uint16_t s
         memset(buff + label_len, ' ', TEMPERATURE_LABEL_LEN + 1 - label_len);
         buff[5] = '\0';
         displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
-        valueXOffset = 5;
+        valueXOffset = osdConfig()->temp_label_align == OSD_ALIGN_LEFT ? 5 : label_len + 1;
     }
 #else
     UNUSED(label);
@@ -2665,6 +2665,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 #ifdef USE_BARO
     osdConfig->baro_temp_alarm_min = -200;
     osdConfig->baro_temp_alarm_max = 600;
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    osdConfig->temp_label_align = OSD_ALIGN_LEFT;
 #endif
 
     osdConfig->video_system = VIDEO_SYSTEM_AUTO;
