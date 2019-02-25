@@ -181,7 +181,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 6);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
 
 static int digitCount(int32_t value)
 {
@@ -505,18 +505,30 @@ static uint16_t osdConvertRSSI(void)
 * @param valid true if measurement is valid
 * @param temperature in deciDegrees Celcius
 */
-static void osdDisplayTemperature(uint8_t elemPosX, uint8_t elemPosY, const char *label, bool valid, int16_t temperature, int16_t alarm_min, int16_t alarm_max)
+static void osdDisplayTemperature(uint8_t elemPosX, uint8_t elemPosY, uint16_t symbol, const char *label, bool valid, int16_t temperature, int16_t alarm_min, int16_t alarm_max)
 {
-    char buff[TEMPERATURE_LABEL_LEN + 2 < 5 ? 5 : TEMPERATURE_LABEL_LEN + 2];
+    char buff[TEMPERATURE_LABEL_LEN + 2 < 6 ? 6 : TEMPERATURE_LABEL_LEN + 2];
     textAttributes_t elemAttr = valid ? TEXT_ATTRIBUTES_NONE : _TEXT_ATTRIBUTES_BLINK_BIT;
+    uint8_t valueXOffset = 0;
 
-    if (label[0] != '\0') {
+    if (symbol) {
+        buff[0] = symbol;
+        buff[1] = '\0';
+        displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        valueXOffset = 1;
+    }
+#ifdef USE_TEMPERATURE_SENSOR
+    else if (label[0] != '\0') {
         uint8_t label_len = strnlen(label, TEMPERATURE_LABEL_LEN);
         memcpy(buff, label, label_len);
         memset(buff + label_len, ' ', TEMPERATURE_LABEL_LEN + 1 - label_len);
         buff[5] = '\0';
         displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+        valueXOffset = osdConfig()->temp_label_align == OSD_ALIGN_LEFT ? 5 : label_len + 1;
     }
+#else
+    UNUSED(label);
+#endif
 
     if (valid) {
 
@@ -530,8 +542,19 @@ static void osdDisplayTemperature(uint8_t elemPosX, uint8_t elemPosY, const char
     buff[3] = osdConfig()->units == OSD_UNIT_IMPERIAL ? SYM_TEMP_F : SYM_TEMP_C;
     buff[4] = '\0';
 
-    displayWriteWithAttr(osdDisplayPort, elemPosX + 5, elemPosY, buff, elemAttr);
+    displayWriteWithAttr(osdDisplayPort, elemPosX + valueXOffset, elemPosY, buff, elemAttr);
 }
+
+#ifdef USE_TEMPERATURE_SENSOR
+static void osdDisplayTemperatureSensor(uint8_t elemPosX, uint8_t elemPosY, uint8_t sensorIndex)
+{
+    int16_t temperature;
+    const bool valid = getSensorTemperature(sensorIndex, &temperature);
+    const tempSensorConfig_t *sensorConfig = tempSensorConfig(sensorIndex);
+    uint16_t symbol = sensorConfig->osdSymbol ? SYM_TEMP_SENSOR_FIRST + sensorConfig->osdSymbol - 1 : 0;
+    osdDisplayTemperature(elemPosX, elemPosY, symbol, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
+}
+#endif
 
 static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
@@ -2304,7 +2327,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int16_t temperature;
             const bool valid = getIMUTemperature(&temperature);
-            osdDisplayTemperature(elemPosX, elemPosY, "IMU", valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
+            osdDisplayTemperature(elemPosX, elemPosY, SYM_IMU_TEMP, NULL, valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
             return true;
         }
 
@@ -2312,97 +2335,59 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int16_t temperature;
             const bool valid = getBaroTemperature(&temperature);
-            osdDisplayTemperature(elemPosX, elemPosY, "BARO", valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
+            osdDisplayTemperature(elemPosX, elemPosY, SYM_BARO_TEMP, NULL, valid, temperature, osdConfig()->imu_temp_alarm_min, osdConfig()->imu_temp_alarm_max);
             return true;
         }
 
+#ifdef USE_TEMPERATURE_SENSOR
     case OSD_TEMP_SENSOR_0_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(0, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(0);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 0);
             return true;
         }
 
     case OSD_TEMP_SENSOR_1_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(1, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(1);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 1);
             return true;
         }
 
     case OSD_TEMP_SENSOR_2_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(2, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(2);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 2);
             return true;
         }
 
     case OSD_TEMP_SENSOR_3_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(3, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(3);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 3);
             return true;
         }
 
     case OSD_TEMP_SENSOR_4_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(4, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(4);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 4);
             return true;
         }
 
     case OSD_TEMP_SENSOR_5_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(5, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(5);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 5);
             return true;
         }
 
     case OSD_TEMP_SENSOR_6_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(6, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(6);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 6);
             return true;
         }
 
     case OSD_TEMP_SENSOR_7_TEMPERATURE:
         {
-#ifdef USE_TEMPERATURE_SENSOR
-            int16_t temperature;
-            const bool valid = getSensorTemperature(7, &temperature);
-            const tempSensorConfig_t *sensorConfig = tempSensorConfig(7);
-            osdDisplayTemperature(elemPosX, elemPosY, sensorConfig->label, valid, temperature, sensorConfig->alarm_min, sensorConfig->alarm_max);
-#endif
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, 7);
             return true;
         }
+#endif /* ifdef USE_TEMPERATURE_SENSOR */
 
     case OSD_WIND_SPEED_HORIZONTAL:
 #ifdef USE_WIND_ESTIMATOR
@@ -2482,6 +2467,11 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
     if (elementIndex == OSD_ARTIFICIAL_HORIZON)
         ++elementIndex;
 
+#ifndef USE_TEMPERATURE_SENSOR
+    if (elementIndex == OSD_TEMP_SENSOR_0_TEMPERATURE)
+        elementIndex = OSD_ALTITUDE_MSL;
+#endif
+
     if (!sensors(SENSOR_ACC)) {
         if (elementIndex == OSD_CROSSHAIRS) {
             elementIndex = OSD_ONTIME;
@@ -2528,7 +2518,6 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_3D_SPEED) {
             elementIndex++;
         }
-
     }
 
     if (elementIndex == OSD_ITEM_COUNT) {
@@ -2680,6 +2669,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
 #ifdef USE_BARO
     osdConfig->baro_temp_alarm_min = -200;
     osdConfig->baro_temp_alarm_max = 600;
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    osdConfig->temp_label_align = OSD_ALIGN_LEFT;
 #endif
 
     osdConfig->video_system = VIDEO_SYSTEM_AUTO;

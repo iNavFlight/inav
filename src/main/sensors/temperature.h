@@ -33,6 +33,7 @@ typedef enum {
 typedef struct {
     tempSensorType_e type;
     uint64_t address;
+    uint8_t osdSymbol;
     char label[TEMPERATURE_LABEL_LEN];
     int16_t alarm_min;
     int16_t alarm_max;

@@ -160,6 +160,11 @@ typedef enum {
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 } osd_sidebar_scroll_e;
 
+typedef enum {
+    OSD_ALIGN_LEFT,
+    OSD_ALIGN_RIGHT
+} osd_alignment_e;
+
 typedef struct osdConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
@@ -175,6 +180,9 @@ typedef struct osdConfig_s {
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
     int16_t baro_temp_alarm_max;
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    osd_alignment_e temp_label_align;
 #endif
 
     videoSystem_e video_system;
