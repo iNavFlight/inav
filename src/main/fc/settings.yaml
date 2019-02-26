@@ -1516,25 +1516,30 @@ groups:
         table: ltm_rates
       - name: sim_ground_station_number
         field: simGroundStationNumber
+        condition: USE_TELEMETRY_SIM
         type: string
         max: 16
       - name: sim_transmission_interval
         field: simTransmissionInterval
+        condition: USE_TELEMETRY_SIM
         type: int16_t
         min: -32768
         max: 32767
       - name: acc_event_threshold_high
         field: accEventThresholdHigh
+        condition: USE_TELEMETRY_SIM
         type: uint16_t
         min: 0
         max: 65535
       - name: acc_event_threshold_low
         field: accEventThresholdLow
+        condition: USE_TELEMETRY_SIM
         type: uint16_t
         min: 0
-        max: 65535
+        max: 900
       - name: acc_event_threshold_neg_x
         field: accEventThresholdNegX
+        condition: USE_TELEMETRY_SIM
         type: uint16_t
         min: 0
         max: 65535

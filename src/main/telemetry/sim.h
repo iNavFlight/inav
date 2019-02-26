@@ -52,17 +52,8 @@ typedef enum {
 } accEvent_t;
 
 
-void readSimResponse(void);
 void handleSimTelemetry(void);
 void freeSimTelemetryPort(void);
 void initSimTelemetry(void);
 void checkSimTelemetryState(void);
 void configureSimTelemetryPort(void);
-void sendATCommand(const char* command);
-void requestSendSMS(void);
-void detectAccEvents(void);
-void transmit(void);
-void sendSMS(void);
-void readSMS(void);
-void readOriginatingNumber(uint8_t*);
-bool isGroundStationNumberDefined(void);

@@ -63,12 +63,6 @@ uint8_t accEvent = ACC_EVENT_NONE;
 char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
 char* modeDescriptions[] = { "MAN", "ACR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "LAU", "FS" };
 
-extern gpsLocation_t        GPS_home;
-extern uint16_t             GPS_distanceToHome;
-extern int16_t              GPS_directionToHome;
-extern gpsSolutionData_t    gpsSol;
-extern navigationPosControl_t  posControl;
-
 
 bool isGroundStationNumberDefined() {
     return telemetryConfig()->simGroundStationNumber[0] != '\0';
@@ -86,6 +80,17 @@ bool checkGroundStationNumber(uint8_t* rv) {
     return true;
 }
 
+void readOriginatingNumber(uint8_t* rv)
+{
+    int i;
+    uint8_t* gsn = telemetryConfigMutable()->simGroundStationNumber;
+    if (gsn[0] != '\0')
+        return;
+    for (i = 0; i < 15 && rv[i] != '\"'; i++)
+         gsn[i] = rv[i];
+    gsn[i] = '\0';
+}
+
 void requestSendSMS()
 {
     if (simTelemetryState == SIM_STATE_SEND_SMS_ENTER_MESSAGE)
@@ -93,6 +98,25 @@ void requestSendSMS()
     simTelemetryState = SIM_STATE_SEND_SMS;
     if (atCommandStatus != SIM_AT_WAITING_FOR_RESPONSE)
         sim_t_stateChange = 0; // send immediately
+}
+
+void readSMS()
+{
+    if (sl_strcasecmp((char*)simResponse, SIM_SMS_COMMAND_TRANSMISSION) == 0) {
+        if (FLIGHT_MODE(FAILSAFE_MODE)) {
+            transmissionState = (transmissionState == SIM_TX_NO) ? SIM_TX_FS : SIM_TX_NO;
+        } else {
+            transmissionState = (transmissionState == SIM_TX) ? SIM_TX_FS : SIM_TX;
+        }
+        return;
+    } else if (sl_strcasecmp((char*)simResponse, SIM_SMS_COMMAND_RTH) == 0) {
+        if (!posControl.flags.forcedRTHActivated) {
+            activateForcedRTH();
+        } else {
+            abortForcedRTH();
+        }
+    }
+    requestSendSMS();
 }
 
 void readSimResponse()
@@ -154,36 +178,6 @@ void readSimResponse()
     }
 }
 
-void readOriginatingNumber(uint8_t* rv)
-{
-    int i;
-    uint8_t* gsn = telemetryConfigMutable()->simGroundStationNumber;
-    if (gsn[0] != '\0')
-        return;
-    for (i = 0; i < 15 && rv[i] != '\"'; i++)
-         gsn[i] = rv[i];
-    gsn[i] = '\0';
-}
-
-void readSMS()
-{
-    if (sl_strcasecmp((char*)simResponse, SIM_SMS_COMMAND_TRANSMISSION) == 0) {
-        if (FLIGHT_MODE(FAILSAFE_MODE)) {
-            transmissionState = (transmissionState == SIM_TX_NO) ? SIM_TX_FS : SIM_TX_NO;
-        } else {
-            transmissionState = (transmissionState == SIM_TX) ? SIM_TX_FS : SIM_TX;
-        }
-        return;
-    } else if (sl_strcasecmp((char*)simResponse, SIM_SMS_COMMAND_RTH) == 0) {
-        if (!posControl.flags.forcedRTHActivated) {
-            activateForcedRTH();
-        } else {
-            abortForcedRTH();
-        }
-    }
-    requestSendSMS();
-}
-
 void detectAccEvents()
 {
     timeMs_t now = millis();
@@ -217,6 +211,51 @@ void transmit()
             sim_t_nextMessage = now + 1000 * MAX(SIM_MIN_TRANSMISSION_INTERVAL, ABS(telemetryConfig()->simTransmissionInterval));
         }
     }
+}
+
+void sendATCommand(const char* command)
+{
+    atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
+    int len = strlen((char*)command);
+    if (len >SIM_AT_COMMAND_MAX_SIZE)
+        len = SIM_AT_COMMAND_MAX_SIZE;
+    serialWriteBuf(simPort, (const uint8_t*) command, len);
+}
+
+
+void sendSMS(void)
+{
+    int32_t lat = 0, lon = 0, alt = 0, gs = 0;
+    int vbat = getBatteryVoltage();
+    int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
+    int avgSpeed = (int)round(10 * calculateAverageSpeed());
+    uint32_t now = millis();
+
+    if (sensors(SENSOR_GPS)) {
+        lat = gpsSol.llh.lat;
+        lon = gpsSol.llh.lon;
+        gs = gpsSol.groundSpeed / 100;
+    }
+#if defined(USE_NAV)
+    alt = getEstimatedActualPosition(Z); // cm
+#else
+    alt = sensors(SENSOR_GPS) ? gpsSol.llh.alt : 0; // cm
+#endif
+    int len;
+    int32_t E7 = 10000000;
+    // \x1a sends msg, \x1b cancels
+    len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%ld SPD:%ld/%d.%d DIS:%d/%d SAT:%d SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld,500m\x1a",
+        (now - t_accEventDetected) < 5000 ? accEventDescriptions[accEvent] : "",
+        vbat / 100, vbat % 100,
+        amps / 10, amps % 10,
+        alt / 100,
+        gs, avgSpeed / 10, avgSpeed % 10,
+        GPS_distanceToHome, getTotalTravelDistance() / 100,
+        gpsSol.numSat, simRssi,
+        posControl.flags.forcedRTHActivated ? "RTH" : modeDescriptions[getFlightModeForTelemetry()],
+        lat / E7, lat % E7, lon / E7, lon % E7);
+    serialWriteBuf(simPort, atCommand, len);
+    atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
 }
 
 void handleSimTelemetry()
@@ -285,52 +324,6 @@ void handleSimTelemetry()
         simWaitAfterResponse = true;
         break;
     }
-}
-
-
-void sendATCommand(const char* command)
-{
-    atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
-    int len = strlen((char*)command);
-    if (len >SIM_AT_COMMAND_MAX_SIZE)
-        len = SIM_AT_COMMAND_MAX_SIZE;
-    serialWriteBuf(simPort, (const uint8_t*) command, len);
-}
-
-
-void sendSMS()
-{
-    int32_t lat = 0, lon = 0, alt = 0, gs = 0;
-    int vbat = getBatteryVoltage();
-    int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
-    int avgSpeed = (int)round(10 * calculateAverageSpeed());
-    uint32_t now = millis();
-
-    if (sensors(SENSOR_GPS)) {
-        lat = gpsSol.llh.lat;
-        lon = gpsSol.llh.lon;
-        gs = gpsSol.groundSpeed / 100;
-    }
-#if defined(USE_NAV)
-    alt = getEstimatedActualPosition(Z); // cm
-#else
-    alt = sensors(SENSOR_GPS) ? gpsSol.llh.alt : 0; // cm
-#endif
-    int len;
-    int32_t E7 = 10000000;
-    // \x1a sends msg, \x1b cancels
-    len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%ld SPD:%ld/%d.%d DIS:%d/%d SAT:%d SIG:%d %s google.com/maps/place/%ld.%07ld,%ld.%07ld,500m\x1a",
-        (now - t_accEventDetected) < 5000 ? accEventDescriptions[accEvent] : "",
-        vbat / 100, vbat % 100,
-        amps / 10, amps % 10,
-        alt / 100,
-        gs, avgSpeed / 10, avgSpeed % 10,
-        GPS_distanceToHome, getTotalTravelDistance() / 100,
-        gpsSol.numSat, simRssi,
-        posControl.flags.forcedRTHActivated ? "RTH" : modeDescriptions[getFlightModeForTelemetry()],
-        lat / E7, lat % E7, lon / E7, lon % E7);
-    serialWriteBuf(simPort, atCommand, len);
-    atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
 }
 
 void freeSimTelemetryPort(void)
