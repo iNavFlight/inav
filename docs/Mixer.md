@@ -76,6 +76,12 @@ Each servo mixing rule has the following parameters:
 | 20 | RC channel 14            | Raw RC channel 14 |
 | 21 | RC channel 15            | Raw RC channel 15 |
 | 22 | RC channel 16            | Raw RC channel 16 |
+| 23 | Stabilized ROLL+         | Clipped between 0 and 1000 |       
+| 24 | Stabilized ROLL-         | Clipped between -1000 and 0 |
+| 25 | Stabilized PITCH+        | Clipped between 0 and 1000 |
+| 26 | Stabilized PITCH-        | Clipped between -1000 and 0 |
+| 27 | Stabilized YAW+          | Clipped between 0 and 1000 |
+| 28 | Stabilized YAW-          | Clipped between -1000 and 0 |
 
 
 The `smix reset` command removes all the existing motor mixing rules.
