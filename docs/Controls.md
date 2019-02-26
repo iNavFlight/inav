@@ -42,6 +42,7 @@ The stick positions are combined to activate different functions:
 | Load current waypoint mission | LOW      | CENTER  | HIGH   | HIGH   |
 | Save setting                  | LOW      | LOW     | LOW    | HIGH   |
 | Enter OSD Menu (CMS)          | CENTER   | LOW     | HIGH   | CENTER |
+
 ![Stick Positions](assets/images/StickPositions.png)
 
 ## Yaw control

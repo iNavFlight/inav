@@ -39,6 +39,7 @@
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "flight/pid.h"
@@ -265,6 +266,98 @@ bool adjustMulticopterHeadingFromRCInput(void)
 static pt1Filter_t mcPosControllerAccFilterStateX, mcPosControllerAccFilterStateY;
 static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
 
+void resetMulticopterBrakingMode(void)
+{
+    DISABLE_STATE(NAV_CRUISE_BRAKING);
+    DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+    DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+}
+
+static void processMulticopterBrakingMode(const bool isAdjusting)
+{
+#ifdef USE_MR_BRAKING_MODE
+    static uint32_t brakingModeDisengageAt = 0;
+    static uint32_t brakingBoostModeDisengageAt = 0;
+
+    if (!(NAV_Status.state == MW_NAV_STATE_NONE || NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT)) {
+        resetMulticopterBrakingMode();
+        return;
+    }
+
+    const bool brakingEntryAllowed =
+        IS_RC_MODE_ACTIVE(BOXBRAKING) &&
+        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
+        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
+        !isAdjusting &&
+        navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
+        navConfig()->mc.braking_speed_threshold > 0;
+
+
+    /*
+     * Case one, when we order to brake (sticks to the center) and we are moving above threshold
+     * Speed is above 1m/s and sticks are centered
+     * Extra condition: BRAKING flight mode has to be enabled
+     */
+    if (brakingEntryAllowed) {
+        /*
+         * Set currnt position and target position
+         * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
+         */
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+
+        ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+        ENABLE_STATE(NAV_CRUISE_BRAKING);
+
+        //Set forced BRAKING disengage moment
+        brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
+
+        //If speed above threshold, start boost mode as well
+        if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
+            ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+
+            brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
+        }
+
+    }
+
+    // We can enter braking only after user started to move the sticks
+    if (STATE(NAV_CRUISE_BRAKING_LOCKED) && isAdjusting) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
+    }
+
+    /*
+     * Case when speed dropped, disengage BREAKING_BOOST
+     */
+    if (
+        STATE(NAV_CRUISE_BRAKING_BOOST) && (
+            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed ||
+            brakingBoostModeDisengageAt < millis()
+    )) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+    }
+
+    /*
+     * Case when we were braking but copter finally stopped or we started to move the sticks
+     */
+    if (STATE(NAV_CRUISE_BRAKING) && (
+        posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||  //We stopped
+        isAdjusting ||                                                              //Moved the sticks
+        brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
+    )) {
+        DISABLE_STATE(NAV_CRUISE_BRAKING);
+        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
+
+        /*
+         * When braking is done, store current position as desired one
+         * We do not want to go back to the place where braking has started
+         */
+        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+    }
+#else
+    UNUSED(isAdjusting);
+#endif
+}
+
 void resetMulticopterPositionController(void)
 {
     for (int axis = 0; axis < 2; axis++) {
@@ -279,6 +372,10 @@ void resetMulticopterPositionController(void)
 
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
+    // Process braking mode
+    processMulticopterBrakingMode(rcPitchAdjustment || rcRollAdjustment);
+
+    // Actually change position
     if (rcPitchAdjustment || rcRollAdjustment) {
         // If mode is GPS_CRUISE, move target position, otherwise POS controller will passthru the RC input to ANGLE PID
         if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
@@ -414,9 +511,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
-    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0)
-    {
-        const float rawBoostFactor = (100.0f + (float)navConfig()->mc.braking_boost_factor) / 100.0f;
+    if (STATE(NAV_CRUISE_BRAKING_BOOST) && navConfig()->mc.braking_boost_factor > 0) {
+        const float rawBoostFactor = (float)navConfig()->mc.braking_boost_factor / 100.0f;
         
         //Scale boost factor according to speed
         const float boostFactor = constrainf(
@@ -424,16 +520,16 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
                 posControl.actualState.velXY, 
                 navConfig()->mc.braking_boost_speed_threshold, 
                 navConfig()->general.max_manual_speed, 
-                0, 
+                0.0f,
                 rawBoostFactor
             ),
-            0, 
+            0.0f, 
             rawBoostFactor
         );
 
         //Boost required acceleration for harder braking
-        newAccelX = newAccelX * boostFactor;
-        newAccelY = newAccelY * boostFactor;
+        newAccelX = newAccelX * (1.0f + boostFactor);
+        newAccelY = newAccelY * (1.0f + boostFactor);
 
         maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
         accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;

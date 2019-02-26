@@ -19,10 +19,10 @@ UG-2864HSWEG01
 
 ## Configuration
 
-From the CLI enable the `DISPLAY` feature
+From the CLI enable the `DASHBOARD` feature
 
 ```
-feature DISPLAY
+feature DASHBOARD
 ```
 
 
