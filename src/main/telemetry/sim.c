@@ -53,7 +53,7 @@ static timeMs_t sim_t_nextMessage = 0;
 static uint8_t simResponse[SIM_RESPONSE_BUFFER_SIZE + 1];
 static int atCommandStatus = SIM_AT_OK;
 static bool simWaitAfterResponse = false;
-static bool readingSMS = false;
+static uint8_t readState = SIM_READSTATE_RESPONSE;
 static uint8_t transmissionState = SIM_TX_NO;
 
 int simRssi;
@@ -97,9 +97,12 @@ void requestSendSMS()
 
 void readSimResponse()
 {
-    if (readingSMS) {
+    if (readState == SIM_READSTATE_SKIP) {
+        readState = SIM_READSTATE_RESPONSE;
+        return;
+    } else if (readState == SIM_READSTATE_SMS) {
         readSMS();
-        readingSMS = false;
+        readState = SIM_READSTATE_RESPONSE;
         return;
     }
 
@@ -144,12 +147,9 @@ void readSimResponse()
         // +CMT: "+3581234567","","19/02/12,14:57:24+08"
         readOriginatingNumber(&simResponse[7]);
         if (checkGroundStationNumber(&simResponse[7])) {
-            readingSMS = true; // next simResponse line will be SMS content
+            readState = SIM_READSTATE_SMS; // next simResponse line will be SMS content
         } else {
-            // skip SMS content
-            while (serialRxBytesWaiting(simPort)) {
-                if (serialRead(simPort) == '\n') return;
-            }
+            readState = SIM_READSTATE_SKIP; // skip SMS content
         }
     }
 }
@@ -371,8 +371,10 @@ void configureSimTelemetryPort(void)
     } else {
         transmissionState = SIM_TX_FS;
     }
-    simEnabled = true;
     sim_t_stateChange = millis() + SIM_STARTUP_DELAY_MS;
+    simTelemetryState = SIM_STATE_INIT;
+    readState = SIM_READSTATE_RESPONSE;
+    simEnabled = true;
 }
 
 #endif

@@ -33,6 +33,12 @@ typedef enum  {
 } simATCommandState_e;
 
 typedef enum  {
+    SIM_READSTATE_RESPONSE = 0,
+    SIM_READSTATE_SMS,
+    SIM_READSTATE_SKIP
+} simReadState_e;
+
+typedef enum  {
     SIM_TX_NO = 0,
     SIM_TX_FS,
     SIM_TX
@@ -47,16 +53,16 @@ typedef enum {
 
 
 void readSimResponse(void);
-void handleSimTelemetry();
+void handleSimTelemetry(void);
 void freeSimTelemetryPort(void);
 void initSimTelemetry(void);
 void checkSimTelemetryState(void);
 void configureSimTelemetryPort(void);
 void sendATCommand(const char* command);
-void requestSendSMS();
-void detectAccEvents();
-void transmit();
+void requestSendSMS(void);
+void detectAccEvents(void);
+void transmit(void);
 void sendSMS(void);
 void readSMS(void);
 void readOriginatingNumber(uint8_t*);
-bool isGroundStationNumberDefined();
+bool isGroundStationNumberDefined(void);
