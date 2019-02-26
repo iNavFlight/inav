@@ -2341,50 +2341,15 @@ static bool osdDrawSingleElement(uint8_t item)
 
 #ifdef USE_TEMPERATURE_SENSOR
     case OSD_TEMP_SENSOR_0_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 0);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_1_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 1);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_2_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 2);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_3_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 3);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_4_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 4);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_5_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 5);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_6_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 6);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_7_TEMPERATURE:
         {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 7);
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, item - OSD_TEMP_SENSOR_0_TEMPERATURE);
             return true;
         }
 #endif /* ifdef USE_TEMPERATURE_SENSOR */
