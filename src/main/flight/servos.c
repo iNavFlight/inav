@@ -405,12 +405,12 @@ void processServoAutotrim(void)
     }
 }
 
-bool isServoOutputEnabled(void)
+bool FAST_CODE NOINLINE isServoOutputEnabled(void)
 {
     return servoOutputEnabled;
 }
 
-bool isMixerUsingServos(void)
+bool FAST_CODE NOINLINE isMixerUsingServos(void)
 {
     return mixerUsesServos;
 }

@@ -58,8 +58,8 @@
 
 static uint8_t motorCount;
 
-int16_t motor[MAX_SUPPORTED_MOTORS];
-int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
+FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
+FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
@@ -176,7 +176,7 @@ void mixerResetDisarmedMotors(void)
     }
 }
 
-void writeMotors(void)
+void FAST_CODE NOINLINE writeMotors(void)
 {
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
@@ -280,7 +280,7 @@ static void applyMotorRateLimiting(const float dT)
     }
 }
 
-void mixTable(const float dT)
+void FAST_CODE NOINLINE mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
