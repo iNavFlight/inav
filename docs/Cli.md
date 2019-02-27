@@ -433,3 +433,8 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
 | osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
 | baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default  should allow the noisiest baro to complete calibration [cm]. | 
+| sim_ground_station_number | Empty string | Number of phone that is used to communicate with SIM module. Messages / calls from other numbers are ignored. If undefined, can be set by calling or sending a message to the module. |
+| sim_transmission_interval | -60 | Text message transmission interval in seconds for SIM module. Negative value means transmission is off but can be switched on by sending a "T" message. |
+| acc_event_threshold_high | 0 | Acceleration threshold [cm/s/s] for impact detection text messages sent by SIM module. 0 = detection off. |
+| acc_event_threshold_low | 0 | Acceleration threshold [cm/s/s] for low-g / freefall detection text messages sent by SIM module. Valid values: [0-900] |
+| acc_event_threshold_neg_x | 0 | Acceleration threshold [cm/s/s] for backwards acceleration / fixed wing landing detection text messages sent by SIM module. 0 = detection off. |
