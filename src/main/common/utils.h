@@ -28,11 +28,20 @@
 #define CONCAT_HELPER(x,y) x ## y
 #define CONCAT(x,y) CONCAT_HELPER(x, y)
 
+#define CONCAT4_HELPER(x, y, z, w) x ## y ## z ## w
+#define CONCAT4(x, y, z, w) CONCAT4_HELPER(x, y, z, w)
+
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
 #define EXPAND_I(x) x
 #define EXPAND(x) EXPAND_I(x)
+
+// Expand all argumens and call macro with them. When expansion of some argument contains ',', it will be passed as multiple arguments
+// #define TAKE3(_1,_2,_3) CONCAT3(_1,_2,_3)
+// #define MULTI2 A,B
+// PP_CALL(TAKE3, MULTI2, C) expands to ABC
+#define PP_CALL(macro, ...) macro(__VA_ARGS__)
 
 #if !defined(UNUSED)
 #define UNUSED(x) (void)(x)

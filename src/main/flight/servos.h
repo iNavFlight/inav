@@ -21,8 +21,8 @@
 
 #define MAX_SUPPORTED_SERVOS 8
 
-// These must be consecutive, see 'reversedSources'
-enum {
+// These must be consecutive
+typedef enum {
     INPUT_STABILIZED_ROLL       = 0,
     INPUT_STABILIZED_PITCH      = 1,
     INPUT_STABILIZED_YAW        = 2,
@@ -91,7 +91,7 @@ typedef enum {
 typedef struct servoMixer_s {
     uint8_t targetChannel;                  // servo that receives the output of the rule
     uint8_t inputSource;                    // input channel for this rule
-    int8_t rate;                            // range [-125;+125] ; can be used to adjust a rate 0-125% and a direction
+    int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
 } servoMixer_t;
 
@@ -104,7 +104,6 @@ typedef struct servoMixer_s {
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
 typedef struct servoParam_s {
-    uint32_t reversedSources;               // the direction of servo movement for each input source of the servo mixer, bit set=inverted
     int16_t min;                            // servo min
     int16_t max;                            // servo max
     int16_t middle;                         // servo middle
@@ -136,7 +135,6 @@ bool isServoOutputEnabled(void);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);
-int servoDirection(int servoIndex, int fromChannel);
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);

@@ -57,6 +57,7 @@
 
 #include "cms/cms_menu_vtx_smartaudio.h"
 #include "cms/cms_menu_vtx_tramp.h"
+#include "cms/cms_menu_vtx_ffpv.h"
 
 
 // Info
@@ -123,6 +124,9 @@ static const OSD_Entry menuFeaturesEntries[] =
 #if defined(USE_VTX_TRAMP)
     OSD_SUBMENU_ENTRY("VTX TR", &cmsx_menuVtxTramp),
 #endif
+#if defined(USE_VTX_FFPV)
+    OSD_SUBMENU_ENTRY("VTX FFPV", &cmsx_menuVtxFFPV),
+#endif
 #endif // VTX_CONTROL
 #ifdef USE_LED_STRIP
     OSD_SUBMENU_ENTRY("LED STRIP", &cmsx_menuLedstrip),
@@ -160,10 +164,10 @@ static const OSD_Entry menuMainEntries[] =
     OSD_SUBMENU_ENTRY("OSD", &cmsx_menuOsd),
 #endif
     OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBattery),
-    OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
+    OSD_SUBMENU_ENTRY("FC+FW INFO", &menuInfo),
     OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
 
-    {"SAVE&REBOOT", OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT_SAVEREBOOT, 0},
+    {"SAVE+REBOOT", OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT_SAVEREBOOT, 0},
     {"EXIT",        OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT, 0},
 #ifdef CMS_MENU_DEBUG
     OSD_SUBMENU_ENTRY("ERR SAMPLE", &menuInfoEntries[0]),

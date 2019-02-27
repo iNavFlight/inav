@@ -14,5 +14,4 @@ TARGET_SRC = \
            drivers/display_ug2864hsweg01.c \
            drivers/serial_usb_vcp.c \
            drivers/flash_m25p16.c \
-           drivers/light_ws2811strip.c \
-           drivers/light_ws2811strip_stdperiph.c
+           drivers/light_ws2811strip.c

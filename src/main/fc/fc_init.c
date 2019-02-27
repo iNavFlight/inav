@@ -41,6 +41,7 @@
 
 #include "cms/cms.h"
 
+#include "drivers/1-wire.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/compass/compass.h"
@@ -107,6 +108,8 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/vtx_ffpv24g.h"
+#include "io/piniobox.h"
 
 #include "msp/msp_serial.h"
 
@@ -323,15 +326,10 @@ void init(void)
                             (motorConfig()->motorPwmProtocol == PWM_TYPE_MULTISHOT);
 #endif
     pwm_params.motorPwmRate = motorConfig()->motorPwmRate;
-    pwm_params.idlePulse = motorConfig()->mincommand;
-    if (feature(FEATURE_3D)) {
-        pwm_params.idlePulse = flight3DConfig()->neutral3d;
-    }
 
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
         pwm_params.useFastPwm = false;
         featureClear(FEATURE_3D);
-        pwm_params.idlePulse = 0; // brushed motors
     }
 
     pwm_params.enablePWMOutput = feature(FEATURE_PWM_OUTPUT_ENABLE);
@@ -495,6 +493,14 @@ void init(void)
     adcInit(&adc_params);
 #endif
 
+#ifdef USE_PINIO
+    pinioInit();
+#endif
+
+#ifdef USE_PINIOBOX
+    pinioBoxInit();
+#endif
+
 #if defined(USE_GPS) || defined(USE_MAG)
     delay(500);
 
@@ -532,6 +538,11 @@ void init(void)
     if (feature(FEATURE_GPS)) {
         gpsPreInit();
     }
+#endif
+
+    // 1-Wire IF chip
+#ifdef USE_1WIRE
+    owInit();
 #endif
 
     if (!sensorsAutodetect()) {
@@ -620,27 +631,8 @@ void init(void)
 #endif
 
 #ifdef USE_SDCARD
-    bool sdcardUseDMA = false;
-
     sdcardInsertionDetectInit();
-
-#ifdef SDCARD_DMA_CHANNEL_TX
-
-#if defined(USE_LED_STRIP) && defined(WS2811_DMA_CHANNEL)
-    // Ensure the SPI Tx DMA doesn't overlap with the led strip
-#if defined(STM32F4) || defined(STM32F7)
-    sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_STREAM;
-#else
-    sdcardUseDMA = !feature(FEATURE_LED_STRIP) || SDCARD_DMA_CHANNEL_TX != WS2811_DMA_CHANNEL;
-#endif
-#else
-    sdcardUseDMA = true;
-#endif
-
-#endif
-
-    sdcard_init(sdcardUseDMA);
-
+    sdcard_init();
     afatfs_init();
 #endif
 
@@ -648,7 +640,8 @@ void init(void)
     blackboxInit();
 #endif
 
-    gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
+    gyroStartCalibration();
+
 #ifdef USE_BARO
     baroStartCalibration();
 #endif
@@ -657,13 +650,10 @@ void init(void)
     pitotStartCalibration();
 #endif
 
-#if defined(USE_VTX_COMMON) && defined(USE_VTX_CONTROL)
+#if defined(USE_VTX_CONTROL)
     vtxControlInit();
-
-#if defined(USE_VTX_COMMON)
     vtxCommonInit();
     vtxInit();
-#endif
 
 #ifdef USE_VTX_SMARTAUDIO
     vtxSmartAudioInit();
@@ -673,7 +663,11 @@ void init(void)
     vtxTrampInit();
 #endif
 
-#endif // USE_VTX_COMMON && USE_VTX_CONTROL
+#ifdef USE_VTX_FFPV
+    vtxFuriousFPVInit();
+#endif
+
+#endif // USE_VTX_CONTROL
 
     // Now that everything has powered up the voltage and cell count be determined.
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))

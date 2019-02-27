@@ -20,8 +20,6 @@
 
 #include "platform.h"
 
-#ifdef TARGET_CONFIG
-
 #include "io/serial.h"
 
 #include "sensors/sensors.h"
@@ -39,4 +37,3 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(GPS_UART)].functionMask = FUNCTION_GPS;
     //telemetryConfigMutable()->halfDuplex = 1;
 }
-#endif

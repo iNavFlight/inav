@@ -105,6 +105,15 @@ $(OBJECT_DIR)/common/maths.o : \
 	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/maths.c -o $@
 
 
+$(OBJECT_DIR)/common/calibration.o : \
+	$(USER_DIR)/common/calibration.c \
+	$(USER_DIR)/common/calibration.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/calibration.c -o $@
+
+
 $(OBJECT_DIR)/common/bitarray.o : \
 	$(USER_DIR)/common/bitarray.c \
 	$(USER_DIR)/common/bitarray.h \
@@ -639,6 +648,7 @@ $(OBJECT_DIR)/sensor_gyro_unittest.o : \
 $(OBJECT_DIR)/sensor_gyro_unittest : \
 	$(OBJECT_DIR)/build/debug.o \
 	$(OBJECT_DIR)/common/maths.o \
+	$(OBJECT_DIR)/common/calibration.o \
 	$(OBJECT_DIR)/common/filter.o \
 	$(OBJECT_DIR)/drivers/accgyro/accgyro_fake.o \
 	$(OBJECT_DIR)/sensors/gyro.o \
@@ -729,6 +739,26 @@ $(OBJECT_DIR)/bitarray_unittest : \
 	$(OBJECT_DIR)/gtest_main.a
 
 	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
+$(OBJECT_DIR)/common/olc.o : $(USER_DIR)/common/olc.c $(USER_DIR)/common/olc.h $(GTEST_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(C_FLAGS) $(TEST_CFLAGS) -c $(USER_DIR)/common/olc.c -o $@
+
+$(OBJECT_DIR)/olc_unittest.o : \
+	$(TEST_DIR)/olc_unittest.cc \
+	$(USER_DIR)/common/olc.h \
+	$(GTEST_HEADERS)
+
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXX_FLAGS) $(TEST_CFLAGS) -c $(TEST_DIR)/olc_unittest.cc -o $@
+
+$(OBJECT_DIR)/olc_unittest : \
+	$(OBJECT_DIR)/common/olc.o \
+	$(OBJECT_DIR)/olc_unittest.o \
+	$(OBJECT_DIR)/gtest_main.a
+
+	$(CXX) $(CXX_FLAGS) $^ -o $(OBJECT_DIR)/$@
+
 
 
 test: $(TESTS:%=test-%)

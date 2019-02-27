@@ -5,7 +5,6 @@ TARGET_SRC = \
             drivers/accgyro/accgyro_mpu.c \
             drivers/accgyro/accgyro_mpu6000.c \
             drivers/light_ws2811strip.c \
-            drivers/light_ws2811strip_stdperiph.c \
             drivers/serial_softserial.c
 			
 # seth neiman dec06.16 porting inav to PIKO BLX using betaflight target related files from before timer.h/timer_def.h changes

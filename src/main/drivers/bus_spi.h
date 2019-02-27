@@ -19,6 +19,7 @@
 
 #include "drivers/io_types.h"
 #include "drivers/rcc_types.h"
+#include "drivers/dma.h"
 
 #if defined(STM32F4) || defined(STM32F3)
 #define SPI_IO_AF_CFG           IO_CONFIG(GPIO_Mode_AF,  GPIO_Speed_50MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL)
@@ -69,22 +70,16 @@ typedef struct SPIDevice_s {
     ioTag_t miso;
     rccPeriphTag_t rcc;
     uint8_t af;
-    volatile uint16_t errorCount;
     bool leadingEdge;
-#if defined(STM32F7)
-    SPI_HandleTypeDef hspi;
-    DMA_HandleTypeDef hdma;
-    uint8_t dmaIrqHandler;
-#endif
     const uint16_t * divisorMap;
+    volatile uint16_t errorCount;
 } spiDevice_t;
 
 bool spiInit(SPIDevice device);
+bool spiIsBusBusy(SPI_TypeDef *instance);
 void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed);
 uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t in);
-bool spiIsBusBusy(SPI_TypeDef *instance);
-
-bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len);
+bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len);
 
 uint16_t spiGetErrorCounter(SPI_TypeDef *instance);
 void spiResetErrorCounter(SPI_TypeDef *instance);

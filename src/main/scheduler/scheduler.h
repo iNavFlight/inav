@@ -51,14 +51,7 @@ typedef struct {
 typedef enum {
     /* Actual tasks */
     TASK_SYSTEM = 0,
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    TASK_PID,
-    TASK_GYRO,
-    TASK_ACC,
-    TASK_ATTI,
-#else
     TASK_GYROPID,
-#endif
     TASK_RX,
     TASK_SERIAL,
     TASK_BATTERY,
@@ -162,6 +155,7 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId);
 void schedulerInit(void);
 void scheduler(void);
 void taskSystem(timeUs_t currentTimeUs);
+void taskRunRealtimeCallbacks(timeUs_t currentTimeUs);
 
 #define TASK_PERIOD_HZ(hz) (1000000 / (hz))
 #define TASK_PERIOD_MS(ms) ((ms) * 1000)

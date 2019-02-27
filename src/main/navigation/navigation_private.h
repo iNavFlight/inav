@@ -318,7 +318,7 @@ typedef struct {
     uint32_t                    lastValidAltitudeTimeMs;
 
     /* INAV GPS origin (position where GPS fix was first acquired) */
-    gpsOrigin_s                 gpsOrigin;
+    gpsOrigin_t                 gpsOrigin;
 
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
     rthSanityChecker_t          rthSanityChecker;
@@ -389,10 +389,11 @@ void setupMulticopterAltitudeController(void);
 void resetMulticopterAltitudeController(void);
 void resetMulticopterPositionController(void);
 void resetMulticopterHeadingController(void);
+void resetMulticopterBrakingMode(void);
 
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);
-bool adjustMulticopterPositionFromRCInput(void);
+bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment);
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
@@ -424,6 +425,7 @@ void resetFixedWingLaunchController(timeUs_t currentTimeUs);
 bool isFixedWingLaunchDetected(void);
 void enableFixedWingLaunchController(timeUs_t currentTimeUs);
 bool isFixedWingLaunchFinishedOrAborted(void);
+void abortFixedWingLaunch(void);
 void applyFixedWingLaunchController(timeUs_t currentTimeUs);
 
 #endif

@@ -74,9 +74,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB8
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST7_HANDLER
-#define WS2811_DMA_STREAM                 DMA1_Stream7
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
 
 #define USE_VCP
 
@@ -119,6 +116,8 @@
 #define I2C_DEVICE              (I2CDEV_2)
 #define I2C2_SCL                 PB10
 #define I2C2_SDA                PB11
+
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
 #endif
 
 #define USE_ADC

@@ -95,8 +95,8 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
     case MAG_QMC5883:
 #ifdef USE_MAG_QMC5883
         if (qmc5883Detect(dev)) {
-#ifdef MAG_QMC5883L_ALIGN
-            dev->magAlign.onBoard = MAG_QMC5883L_ALIGN;
+#ifdef MAG_QMC5883_ALIGN
+            dev->magAlign.onBoard = MAG_QMC5883_ALIGN;
 #endif
             magHardware = MAG_QMC5883;
             break;

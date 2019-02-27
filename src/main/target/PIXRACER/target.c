@@ -36,13 +36,15 @@ BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,    
 BUSDEV_REGISTER_SPI_TAG(busdev_hmc5983_spi, DEVHW_HMC5883,      MPU9250_SPI_BUS,    PE15,               NONE,                   1,  DEVFLAGS_NONE);
 
 const timerHardware_t timerHardware[] = {
-    { TIM3, IO_TAG(PB0),  TIM_Channel_3, 0, IOCFG_AF_PP_PD, GPIO_AF_TIM3, TIM_USE_PPM },  // PPM shared uart6 pc7
-    { TIM1, IO_TAG(PE14), TIM_Channel_4, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // S1_OUT
-    { TIM1, IO_TAG(PE13), TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // S2_OUT
-    { TIM1, IO_TAG(PE11), TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // S3_OUT
-    { TIM1, IO_TAG(PE9),  TIM_Channel_1, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // S4_OUT
-    { TIM4, IO_TAG(PD13), TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // S5_OUT
-    { TIM4, IO_TAG(PD14), TIM_Channel_3, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // S6_OUT
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_PPM,         0, 0 ),   // PPM shared uart6 pc7
+
+    DEF_TIM(TIM1, CH4, PE14,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S1_OUT
+    DEF_TIM(TIM1, CH3, PE13,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S2_OUT
+    DEF_TIM(TIM1, CH2, PE11,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S3_OUT
+    DEF_TIM(TIM1, CH1, PE9,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S4_OUT
+
+    DEF_TIM(TIM4, CH2, PD13,    TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,         0, 0 ),   // S5_OUT
+    DEF_TIM(TIM4, CH3, PD14,    TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,         0, 0 ),   // S6_OUT
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

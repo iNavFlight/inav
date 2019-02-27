@@ -38,14 +38,16 @@
 #define PITOT_ADC_VOLTAGE_ZERO          (2.5f)              // Pressure offset is 2.5V
 #define PITOT_ADC_VOLTAGE_TO_PRESSURE   (1000.0f)           // 1V/kPa = 1000 Pa/V
 
-static void adcPitotStart(pitotDev_t *pitot)
+static bool adcPitotStart(pitotDev_t *pitot)
 {
     UNUSED(pitot);
+    return true;
 }
 
-static void adcPitotRead(pitotDev_t *pitot)
+static bool adcPitotRead(pitotDev_t *pitot)
 {
     UNUSED(pitot);
+    return true;
 }
 
 static void adcPitotCalculate(pitotDev_t *pitot, float *pressure, float *temperature)

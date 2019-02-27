@@ -34,8 +34,9 @@ typedef enum {
 } baroSensor_e;
 
 typedef struct barometerConfig_s {
-    uint8_t baro_hardware;              // Barometer hardware to use
-    uint8_t use_median_filtering;       // Use 3-point median filtering
+    uint8_t baro_hardware;                  // Barometer hardware to use
+    uint8_t use_median_filtering;           // Use 3-point median filtering
+    uint16_t baro_calibration_tolerance;    // Baro calibration tolerance (cm at sea level)
 } barometerConfig_t;
 
 PG_DECLARE(barometerConfig_t, barometerConfig);
@@ -55,4 +56,5 @@ void baroStartCalibration(void);
 uint32_t baroUpdate(void);
 int32_t baroCalculateAltitude(void);
 int32_t baroGetLatestAltitude(void);
+int16_t baroGetTemperature(void);
 bool baroIsHealthy(void);

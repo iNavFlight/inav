@@ -33,7 +33,7 @@
 #define MAX_SERVOS  8
 #endif
 
-#define PWM_TIMER_MHZ 1
+#define PWM_TIMER_HZ    1000000
 
 #define PULSE_1MS   (1000)      // 1ms pulse width
 
@@ -68,8 +68,6 @@ typedef struct drv_pwm_config_s {
     uint16_t servoCenterPulse;
     uint8_t pwmProtocolType;
     uint16_t motorPwmRate;
-    uint16_t idlePulse;  // PWM value to use when initializing the driver. set this to either PULSE_1MS (regular pwm),
-                         // some higher value (used by 3d mode), or 0, for brushed pwm drivers.
     rangefinderIOConfig_t rangefinderIOConfig;
 } drv_pwm_config_t;
 

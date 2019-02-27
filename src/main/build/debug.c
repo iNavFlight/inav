@@ -43,7 +43,7 @@
 timeUs_t sectionTimes[2][4];
 #endif
 
-int16_t debug[DEBUG16_VALUE_COUNT];
+int32_t debug[DEBUG32_VALUE_COUNT];
 uint8_t debugMode;
 
 #if defined(USE_DEBUG_TRACE)

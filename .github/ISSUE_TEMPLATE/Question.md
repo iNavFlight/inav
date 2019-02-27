@@ -9,8 +9,6 @@ For immediate help, just ask your question on one of the following platforms:
 * [Telegram channel](https://t.me/INAVFlight)
 * [Facebook group](https://www.facebook.com/groups/INAVOfficial)
 * [RC Groups thread](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-%28navigation-rewrite%29-project)
-* [IRC channel](irc://irc.freenode.net/#inavflight)
-* [Slack channel](https://publicslack.com/slacks/inavflight/invites/new)
 
 You can also read public documentations or watch video tutorials:
 
