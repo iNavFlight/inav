@@ -35,6 +35,8 @@ http://www.frsky-rc.com/product/pro.php?pro_id=21
 
 ## Serial Receivers
 
+*Connect the receivers to UARTs and not to Software Serial ports. Using software serial for RX input can cause unexpected behaviours beacause the port cannot handle reliably the bit rate needed by the most common protocols*
+
 ### Spektrum
 
 8 channels via serial currently supported.
