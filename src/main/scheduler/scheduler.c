@@ -349,9 +349,7 @@ void scheduler(void)
 #if defined(SCHEDULER_DEBUG)
         DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs);
 #endif
-    }
 #if defined(USE_CHIBIOS)
-    else {
         extern bool brainfpv_settings_updated;
         if (brainfpv_settings_updated) {
             brainFPVUpdateSettings();
@@ -359,6 +357,6 @@ void scheduler(void)
         }
         // wait for gyro if no tasks are ready
         chBSemWaitTimeout(&gyroSem, MS2ST(2));
-    }
 #endif
+    }
 }
