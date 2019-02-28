@@ -45,6 +45,33 @@ typedef enum {
 #define LTM_MAX_PAYLOAD_SIZE 14
 #define LTM_MAX_MESSAGE_SIZE (LTM_MAX_PAYLOAD_SIZE+4)
 
+
+typedef enum {
+    LTM_MODE_MANUAL = 0,
+    LTM_MODE_RATE,
+    LTM_MODE_ANGLE,
+    LTM_MODE_HORIZON,
+    LTM_MODE_ACRO,
+    LTM_MODE_STABALIZED1,
+    LTM_MODE_STABALIZED2,
+    LTM_MODE_STABILIZED3,
+    LTM_MODE_ALTHOLD,
+    LTM_MODE_GPSHOLD,
+    LTM_MODE_WAYPOINTS,
+    LTM_MODE_HEADHOLD,
+    LTM_MODE_CIRCLE,
+    LTM_MODE_RTH,
+    LTM_MODE_FOLLOWWME,
+    LTM_MODE_LAND,
+    LTM_MODE_FLYBYWIRE1,
+    LTM_MODE_FLYBYWIRE2,
+    LTM_MODE_CRUISE,
+    LTM_MODE_UNKNOWN,
+        // iNav specific extensions
+    LTM_MODE_LAUNCH,
+    LTM_MODE_AUTOTUNE
+} ltm_modes_e;
+
 void initLtmTelemetry(void);
 void handleLtmTelemetry(void);
 void checkLtmTelemetryState(void);
@@ -53,4 +80,3 @@ void freeLtmTelemetryPort(void);
 void configureLtmTelemetryPort(void);
 
 int getLtmFrame(uint8_t *frame, ltm_frame_e ltmFrameType);
-
