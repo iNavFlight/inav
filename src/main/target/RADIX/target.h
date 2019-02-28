@@ -195,6 +195,6 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-bool brainfpv_settings_updated;
-bool brainfpv_settings_updated_from_cms;
+extern bool brainfpv_settings_updated;
+extern bool brainfpv_settings_updated_from_cms;
 void brainFPVUpdateSettings(void);
