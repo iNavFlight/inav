@@ -104,7 +104,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
         }
 #endif
 
-#if defined(USE_LED_STRIP)
+#if defined(USE_LED_STRIP) && !defined(USE_BRAINFPV_FPGA)
         // skip LED Strip output
         if (init->useLEDStrip) {
             const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
