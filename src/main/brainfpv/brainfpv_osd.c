@@ -156,6 +156,17 @@ void max7456Init(const videoSystem_e videoSystem)
     videoSignalCfg = videoSystem;
 }
 
+void max7456Update(void)
+{
+}
+
+void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
+{
+    (void)char_address;
+    (void)chr;
+}
+
+
 void max7456Invert(bool invert)
 {
     (void)invert;
@@ -175,10 +186,27 @@ bool max7456DmaInProgress(void)
 void max7456DrawScreenPartial(void)
 {}
 
-void  max7456WriteNvm(uint8_t char_address, const uint8_t *font_data)
+void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
 {
-    (void)char_address; (void)font_data;
+    (void)char_address; (void)chr;
 }
+
+uint16_t max7456GetScreenSize(void)
+{
+    switch (videoSignalCfg) {
+        case PAL:
+            return VIDEO_BUFFER_CHARS_PAL;
+        case NTSC:
+            return VIDEO_BUFFER_CHARS_NTSC;
+        default:
+            if (Video_GetType() == VIDEO_TYPE_NTSC)
+                return VIDEO_BUFFER_CHARS_NTSC;
+            else
+                return VIDEO_BUFFER_CHARS_PAL;
+    }
+    return VIDEO_BUFFER_CHARS_PAL;
+}
+
 
 uint8_t max7456GetRowsCount(void)
 {
@@ -202,7 +230,7 @@ void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
     write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bfOsdConfig()->font);
 }
 
-void max7456WriteChar(uint8_t x, uint8_t y, uint8_t c, uint8_t mode)
+void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode)
 {
     (void)mode; //XXX
     char buff[2] = {c, 0};
@@ -224,7 +252,7 @@ uint8_t* max7456GetScreenBuffer(void)
     return dummyBuffer;
 }
 
-bool max7456ReadChar(uint8_t x, uint8_t y, uint8_t *c, uint8_t *mode)
+bool max7456ReadChar(uint8_t x, uint8_t y, uint16_t *c, uint8_t *mode)
 {
     (void)x;
     (void)y;
