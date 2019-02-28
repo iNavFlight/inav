@@ -77,8 +77,12 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
 );
 
 #ifdef USE_MAG
-
-static uint8_t magUpdatedAtLeastOnce = 0;
+static bool magUpdatedAtLeastOnce = false;
+static bool isCalibrating = false;
+static timeUs_t calibrationStartedAt;
+static sensorCalibrationState_t calState;           // Holds equasion state for static calibration
+static int32_t magCalPrev[XYZ_AXIS_COUNT];          // Holds either previous raw value when calculating static calibration offsets or previous de-biased value for dynamic calibration
+static float dynMagZerof[3] = {0.0f, 0.0f, 0.0f};   // Dynamic calibration values
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -281,6 +285,9 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 
 bool compassInit(void)
 {
+    // Set calibration flag if we have valid offsets in the config
+    compassUpdateCalibrationState();
+
 #ifdef USE_DUAL_MAG
     mag.dev.magSensorToUse = compassConfig()->mag_to_use;
 #else
@@ -298,6 +305,7 @@ bool compassInit(void)
     if (!ret) {
         addBootlogEvent2(BOOT_EVENT_MAG_INIT_FAILED, BOOT_EVENT_FLAGS_ERROR);
         sensorsClear(SENSOR_MAG);
+        return false;
     }
 
     if (compassConfig()->rollDeciDegrees != 0 ||
@@ -333,20 +341,117 @@ bool compassIsReady(void)
     return magUpdatedAtLeastOnce;
 }
 
+void compassUpdateCalibrationState(void)
+{
+    // Check magZero
+    if ((compassConfig()->magZero.raw[X] != 0) || (compassConfig()->magZero.raw[Y] != 0) || (compassConfig()->magZero.raw[Z] != 0)) {
+        ENABLE_STATE(COMPASS_CALIBRATED);
+        return;
+    }
+
+    DISABLE_STATE(COMPASS_CALIBRATED);
+}
+
+void compassStartCalibration(void)
+{
+    isCalibrating = true;
+    calibrationStartedAt = micros();
+
+    for (int axis = 0; axis < 3; axis++) {
+        compassConfigMutable()->magZero.raw[axis] = 0;
+        magCalPrev[axis] = 0;
+    }
+
+    beeper(BEEPER_ACTION_SUCCESS);
+
+    sensorCalibrationResetState(&calState);
+}
+
+static bool compassIsNewSampleSeparated(void)
+{
+    float diffMag = 0;
+    float avgMag = 0;
+
+    for (int axis = 0; axis < 3; axis++) {
+        diffMag += sq(mag.magADC[axis] - magCalPrev[axis]);
+        avgMag += sq(mag.magADC[axis] + magCalPrev[axis]) / 4.0f;
+    }
+
+    // sqrtf(diffMag / avgMag) is a rough approximation of tangent of angle between magADC and magPrev. tan(8 deg) = 0.14
+    if ((avgMag > 0.01f) && ((diffMag / avgMag) > (0.14f * 0.14f))) {
+        return true;
+    }
+
+    return false;
+}
+
+static void compassUpdatePreviousValue(void)
+{
+    for (int axis = 0; axis < 3; axis++) {
+        magCalPrev[axis] = mag.magADC[axis];
+    }
+}
+
+static void compassProcessStaticCalibration(timeUs_t currentTimeUs)
+{
+    if ((currentTimeUs - calibrationStartedAt) < (compassConfig()->magCalibrationTimeLimit * 1000000)) {
+        LED0_TOGGLE;
+
+        // Accumulate samples if they are far enough from each other
+        if (compassIsNewSampleSeparated()) {
+            // Accumulate sample
+            sensorCalibrationPushSampleForOffsetCalculation(&calState, mag.magADC);
+
+            // Update previous value
+            compassUpdatePreviousValue();
+        }
+    } else {
+        float magZerof[3];
+        sensorCalibrationSolveForOffset(&calState, magZerof);
+
+        for (int axis = 0; axis < 3; axis++) {
+            compassConfigMutable()->magZero.raw[axis] = lrintf(magZerof[axis]);
+        }
+
+        compassUpdateCalibrationState();
+        isCalibrating = false;
+
+        saveConfigAndNotify();
+    }
+}
+
+#define MAG_CALIBRATION_GAIN        0.1f
+#define COMPASS_OFS_LIMIT           2000
+
+static void compassProcessDynamicCalibration(void)
+{
+    // Apply dynamic compass offsets
+    mag.magADC[X] -= lrintf(dynMagZerof[X]);
+    mag.magADC[Y] -= lrintf(dynMagZerof[Y]);
+    mag.magADC[Z] -= lrintf(dynMagZerof[Z]);
+
+    // Check if we have enough separation to apply dynamic offset calibration
+    if (compassIsNewSampleSeparated()) {
+        // Slowly recalculate offsets
+        const float magNormCurr = sqrtf(sq(mag.magADC[0]) + sq(mag.magADC[1]) + sq(mag.magADC[2]));
+        const float magNormPrev = sqrtf(sq(magCalPrev[0]) + sq(magCalPrev[1]) + sq(magCalPrev[2]));
+        const float magNormDiff = sqrtf(sq(mag.magADC[0] - magCalPrev[0]) + sq(mag.magADC[1] - magCalPrev[1]) + sq(mag.magADC[2] - magCalPrev[2]));
+
+        // Sanity check to avoid dividing by small value
+        if (magNormDiff > 0.1f) {
+            for (int axis = 0; axis < 3; axis++) {
+                dynMagZerof[axis] += MAG_CALIBRATION_GAIN * (mag.magADC[axis] - magCalPrev[axis]) * (magNormCurr - magNormPrev) / magNormDiff;
+                dynMagZerof[axis] = constrainf(dynMagZerof[axis], -COMPASS_OFS_LIMIT, COMPASS_OFS_LIMIT);
+            }
+        }
+
+        // Update previous value
+        compassUpdatePreviousValue();
+    }
+}
+
 void compassUpdate(timeUs_t currentTimeUs)
 {
-    static sensorCalibrationState_t calState;
-    static timeUs_t calStartedAt = 0;
-    static int16_t magPrev[XYZ_AXIS_COUNT];
-
-    // Check magZero
-    if ((compassConfig()->magZero.raw[X] == 0) && (compassConfig()->magZero.raw[Y] == 0) && (compassConfig()->magZero.raw[Z] == 0)) {
-        DISABLE_STATE(COMPASS_CALIBRATED);
-    }
-    else {
-        ENABLE_STATE(COMPASS_CALIBRATED);
-    }
-
     if (!mag.dev.read(&mag.dev)) {
         mag.magADC[X] = 0;
         mag.magADC[Y] = 0;
@@ -358,56 +463,18 @@ void compassUpdate(timeUs_t currentTimeUs)
         mag.magADC[axis] = mag.dev.magADCRaw[axis];  // int32_t copy to work with
     }
 
-    if (STATE(CALIBRATE_MAG)) {
-        calStartedAt = currentTimeUs;
-
-        for (int axis = 0; axis < 3; axis++) {
-            compassConfigMutable()->magZero.raw[axis] = 0;
-            magPrev[axis] = 0;
-        }
-
-        beeper(BEEPER_ACTION_SUCCESS);
-
-        sensorCalibrationResetState(&calState);
-        DISABLE_STATE(CALIBRATE_MAG);
-    }
-
-    if (calStartedAt != 0) {
-        if ((currentTimeUs - calStartedAt) < (compassConfig()->magCalibrationTimeLimit * 1000000)) {
-            LED0_TOGGLE;
-
-            float diffMag = 0;
-            float avgMag = 0;
-
-            for (int axis = 0; axis < 3; axis++) {
-                diffMag += (mag.magADC[axis] - magPrev[axis]) * (mag.magADC[axis] - magPrev[axis]);
-                avgMag += (mag.magADC[axis] + magPrev[axis]) * (mag.magADC[axis] + magPrev[axis]) / 4.0f;
-            }
-
-            // sqrtf(diffMag / avgMag) is a rough approximation of tangent of angle between magADC and magPrev. tan(8 deg) = 0.14
-            if ((avgMag > 0.01f) && ((diffMag / avgMag) > (0.14f * 0.14f))) {
-                sensorCalibrationPushSampleForOffsetCalculation(&calState, mag.magADC);
-
-                for (int axis = 0; axis < 3; axis++) {
-                    magPrev[axis] = mag.magADC[axis];
-                }
-            }
-        } else {
-            float magZerof[3];
-            sensorCalibrationSolveForOffset(&calState, magZerof);
-
-            for (int axis = 0; axis < 3; axis++) {
-                compassConfigMutable()->magZero.raw[axis] = lrintf(magZerof[axis]);
-            }
-
-            calStartedAt = 0;
-            saveConfigAndNotify();
-        }
+    // Process calibration and de-biasing
+    if (isCalibrating) {
+        compassProcessStaticCalibration(currentTimeUs);
     }
     else {
+        // De-bias compass values
         mag.magADC[X] -= compassConfig()->magZero.raw[X];
         mag.magADC[Y] -= compassConfig()->magZero.raw[Y];
         mag.magADC[Z] -= compassConfig()->magZero.raw[Z];
+
+        // Process and apply dynamic calibration
+        compassProcessDynamicCalibration();
     }
 
     if (mag.dev.magAlign.useExternal) {

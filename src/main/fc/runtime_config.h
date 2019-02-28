@@ -91,7 +91,7 @@ extern uint32_t flightModeFlags;
 typedef enum {
     GPS_FIX_HOME            = (1 << 0),
     GPS_FIX                 = (1 << 1),
-    CALIBRATE_MAG           = (1 << 2),
+    //CALIBRATE_MAG           = (1 << 2),
     SMALL_ANGLE             = (1 << 3),
     FIXED_WING              = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
     ANTI_WINDUP             = (1 << 5),
