@@ -189,7 +189,10 @@ void ws2811UpdateStrip(void)
 #else
 static uint8_t last_active_led = 0;
 static uint8_t led_data[WS2811_LED_STRIP_LENGTH * 3];
-
+bool isWS2811LedStripReady(void)
+{
+    return true;
+}
 void ws2811UpdateStrip(void)
 {
     static rgbColor24bpp_t *rgb24;
