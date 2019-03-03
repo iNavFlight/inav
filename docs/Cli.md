@@ -167,6 +167,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  nav_rth_climb_ignore_emerg  | OFF | If set to ON, aircraft will execute initial climb regardless of position sensor (GPS) status. |
 |  nav_rth_alt_mode  | AT_LEAST | Configure how the aircraft will manage altitude on the way home, see Navigation modes on wiki for more details |
 |  nav_rth_altitude  | 1000 | Used in EXTRA, FIXED and AT_LEAST rth alt modes [cm] (Default 1000 means 10 meters) |
+|  nav_max_altitude  | 0 | Allowed max altitude in [cm] in all cases when Altitude control is enabled. This does not affects manual modes. If AltHold enabled when above allowed altitude, it will not descend, only do not allow to climb higher (Default 0 means disabled) |
 |  nav_rth_home_altitude  | 0 | Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm] |
 |  nav_rth_abort_threshold  | 50000 | RTH sanity checking feature will notice if distance to home is increasing during RTH and once amount of increase exceeds the threshold defined by this parameter, instead of continuing RTH machine will enter emergency landing, self-level and go down safely. Default is 500m which is safe enough for both multirotor machines and airplanes. [cm] |
 |  nav_mc_bank_angle  | 30 | Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude |
