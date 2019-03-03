@@ -57,7 +57,7 @@
 
 mag_t mag;                   // mag access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(compassConfig_t, compassConfig, PG_COMPASS_CONFIG, 4);
 
 #ifdef USE_MAG
 #define MAG_HARDWARE_DEFAULT    MAG_AUTODETECT
@@ -334,6 +334,7 @@ void compassUpdate(timeUs_t currentTimeUs)
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
+    static int magGain[XYZ_AXIS_COUNT] = {-4096, -4096, -4096};
 
     // Check magZero
     if ((compassConfig()->magZero.raw[X] == 0) && (compassConfig()->magZero.raw[Y] == 0) && (compassConfig()->magZero.raw[Z] == 0)) {
@@ -375,9 +376,15 @@ void compassUpdate(timeUs_t currentTimeUs)
             float diffMag = 0;
             float avgMag = 0;
 
-            for (int axis = 0; axis < 3; axis++) {
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 diffMag += (mag.magADC[axis] - magPrev[axis]) * (mag.magADC[axis] - magPrev[axis]);
                 avgMag += (mag.magADC[axis] + magPrev[axis]) * (mag.magADC[axis] + magPrev[axis]) / 4.0f;
+
+                int32_t sample = ABS(mag.magADC[axis]);
+                if (sample > magGain[axis]) {
+                    magGain[axis] = sample;
+                }
+
             }
 
             // sqrtf(diffMag / avgMag) is a rough approximation of tangent of angle between magADC and magPrev. tan(8 deg) = 0.14
@@ -396,14 +403,23 @@ void compassUpdate(timeUs_t currentTimeUs)
                 compassConfigMutable()->magZero.raw[axis] = lrintf(magZerof[axis]);
             }
 
+            /*
+             * Scale calibration
+             * We use max absolute value of each axis as scale calibration with constant 1024 as base
+             * It is dirty, but worth checking if this will solve the problem of changing mag vector when UAV is tilted
+             */
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                compassConfigMutable()->magGain[axis] = magGain[axis] - compassConfig()->magZero.raw[axis];
+            }
+
             calStartedAt = 0;
             saveConfigAndNotify();
         }
     }
     else {
-        mag.magADC[X] -= compassConfig()->magZero.raw[X];
-        mag.magADC[Y] -= compassConfig()->magZero.raw[Y];
-        mag.magADC[Z] -= compassConfig()->magZero.raw[Z];
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * compassConfig()->magGain[axis] / 1024;
+        }
     }
 
     if (mag.dev.magAlign.useExternal) {
