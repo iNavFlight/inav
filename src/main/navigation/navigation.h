@@ -153,6 +153,7 @@ typedef struct navConfig_s {
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
+        uint16_t max_altitude;                  // Max altitude when in AltHold mode (not Surface Following)
     } general;
 
     struct {

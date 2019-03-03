@@ -1307,6 +1307,9 @@ groups:
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
         max: 1000
+      - name: nav_max_altitude
+        field: general.max_altitude
+        max: 65000
       - name: nav_rth_altitude
         field: general.rth_altitude
         max: 65000
