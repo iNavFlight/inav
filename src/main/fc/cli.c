@@ -1531,7 +1531,7 @@ static void cliServoMix(char *cmdline)
         // erase custom mixer
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
     } else {
-        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, OPERAND_A_TYPE, OPERAND_A, OPERAND_B_TYPE, OPERAND_B, ARGS_COUNT};
+        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
@@ -1550,7 +1550,7 @@ static void cliServoMix(char *cmdline)
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
             args[RATE] >= -1000 && args[RATE] <= 1000 &&
             args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED &&
-            args[CONDITION] >= 0 && args[CONDITION] < MAX_LOGIC_CONDITIONS
+            args[CONDITION] >= -1 && args[CONDITION] < MAX_LOGIC_CONDITIONS
         ) {
             customServoMixersMutable(i)->targetChannel = args[TARGET];
             customServoMixersMutable(i)->inputSource = args[INPUT];
@@ -1565,6 +1565,112 @@ static void cliServoMix(char *cmdline)
         }
     }
 }
+
+#ifdef USE_LOGIC_CONDITIONS
+
+static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
+{
+    const char *format = "logic %d %d %d %d %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        const logicCondition_t logic = logicConditions[i];
+        
+        bool equalsDefault = false;
+        if (defaultLogicConditions) {
+            logicCondition_t defaultValue = defaultLogicConditions[i];
+            equalsDefault = 
+                logic.enabled == defaultValue.enabled &&
+                logic.operation == defaultValue.operation &&
+                logic.operandA.type == defaultValue.operandA.type &&
+                logic.operandA.value == defaultValue.operandA.value &&
+                logic.operandB.type == defaultValue.operandB.type &&
+                logic.operandB.value == defaultValue.operandB.value &&
+                logic.flags == defaultValue.flags;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                logic.enabled,
+                logic.operation,
+                logic.operandA.type,
+                logic.operandA.value,
+                logic.operandB.type,
+                logic.operandB.value,
+                logic.flags
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            logic.enabled,
+            logic.operation,
+            logic.operandA.type,
+            logic.operandA.value,
+            logic.operandB.type,
+            logic.operandB.value,
+            logic.flags
+        );
+    }
+}
+
+static void cliLogic(char *cmdline) {
+    char * saveptr;
+    int args[10], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printLogic(DUMP_MASTER, logicConditions(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(logicConditionsMutable(0), PG_SERVO_MIXER);
+    } else {
+        //TODO implement
+        
+        enum {
+            INDEX = 0,
+            ENABLED,
+            OPERATION,
+            OPERAND_A_TYPE, 
+            OPERAND_A_VALUE,
+            OPERAND_B_TYPE, 
+            OPERAND_B_VALUE,
+            FLAGS,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_LOGIC_CONDITIONS &&
+            args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[OPERATION] >= 0 && args[OPERATION] < LOGIC_CONDITION_LAST &&
+            args[OPERAND_A_TYPE] >= 0 && args[OPERAND_A_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[OPERAND_A_VALUE] >= -1000000 && args[OPERAND_A_VALUE] <= 1000000 &&
+            args[OPERAND_B_TYPE] >= 0 && args[OPERAND_B_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[OPERAND_B_VALUE] >= -1000000 && args[OPERAND_B_VALUE] <= 1000000 &&
+            args[FLAGS] >= 0 && args[FLAGS] <= 255
+        
+        ) {
+            logicConditionsMutable(i)->enabled = args[ENABLED];
+            logicConditionsMutable(i)->operation = args[OPERATION];
+            logicConditionsMutable(i)->operandA.type = args[OPERAND_A_TYPE];
+            logicConditionsMutable(i)->operandA.value = args[OPERAND_A_VALUE];
+            logicConditionsMutable(i)->operandB.type = args[OPERAND_B_TYPE];
+            logicConditionsMutable(i)->operandB.value = args[OPERAND_B_VALUE];
+            logicConditionsMutable(i)->flags = args[FLAGS];
+
+            cliLogic("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+#endif
 
 #ifdef USE_SDCARD
 
@@ -2729,6 +2835,9 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
+        cliPrintHashLine("logic");
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
@@ -2917,6 +3026,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] : passthrough to serial", cliSerialPassthrough),
 #endif
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
+#ifdef USE_LOGIC_CONDITIONS
+    CLI_COMMAND_DEF("logic", "configure logic conditions", 
+        "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
+        "\treset\r\n", cliLogic),
+#endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed> <conditionId>\r\n"

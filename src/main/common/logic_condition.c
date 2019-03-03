@@ -224,9 +224,9 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
  * ConditionId is ordered from 1 while conditions are indexed from 0
  * conditionId == 0 is always evaluated at true
  */ 
-int logicConditionGetValue(uint8_t conditionId) {
-    if (conditionId > 0) {
-        return logicConditionStates[conditionId-1].value;
+int logicConditionGetValue(int8_t conditionId) {
+    if (conditionId >= 0) {
+        return logicConditionStates[conditionId].value;
     } else {
         return true;
     }

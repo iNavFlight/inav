@@ -72,7 +72,7 @@ typedef enum {
 
 typedef struct logicOperand_s {
     logicOperandType_e type;
-    int value;
+    int32_t value;
 } logicOperand_t;
 
 typedef struct logicCondition_s {
@@ -100,5 +100,5 @@ int logicConditionCompute(
 
 int logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
-int logicConditionGetValue(uint8_t conditionId);
+int logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
