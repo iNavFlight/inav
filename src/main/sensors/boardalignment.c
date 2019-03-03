@@ -29,7 +29,15 @@
 
 #include "drivers/sensor.h"
 
+#if defined(UNIT_TEST)
+// Unit tests can't include settings. Provide some dummy limits.
+#define SETTING_ALIGN_BOARD_ROLL_MIN -1800
+#define SETTING_ALIGN_BOARD_ROLL_MAX 3600
+#define SETTING_ALIGN_BOARD_PITCH_MIN -1800
+#define SETTING_ALIGN_BOARD_PITCH_MAX 3600
+#else
 #include "fc/settings.h"
+#endif
 
 #include "boardalignment.h"
 
