@@ -1425,6 +1425,21 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
+    case MSP2_INAV_NAV_FW_LAUNCH_CONFIG:
+        sbufWriteU16(dst, navConfig()->fw.launch_velocity_thresh);
+        sbufWriteU16(dst, navConfig()->fw.launch_accel_thresh);
+        sbufWriteU16(dst, navConfig()->fw.launch_time_thresh);
+        sbufWriteU16(dst, navConfig()->fw.launch_idle_throttle);
+        sbufWriteU16(dst, navConfig()->fw.launch_throttle);
+        sbufWriteU16(dst, navConfig()->fw.launch_motor_timer);
+        sbufWriteU16(dst, navConfig()->fw.launch_motor_spinup_time);
+        sbufWriteU16(dst, navConfig()->fw.launch_min_time);
+        sbufWriteU16(dst, navConfig()->fw.launch_timeout);
+        sbufWriteU16(dst, navConfig()->fw.launch_max_altitude);
+        sbufWriteU8(dst, navConfig()->fw.launch_climb_angle);
+        sbufWriteU8(dst, navConfig()->fw.launch_max_angle);
+        break;
+
     default:
         return false;
     }
@@ -2688,6 +2703,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 #endif
+
+    case MSP2_INAV_SET_NAV_FW_LAUNCH_CONFIG:
+        if (dataSize == 22) {
+            navConfigMutable()->fw.launch_velocity_thresh = sbufReadU16(src);
+            navConfigMutable()->fw.launch_accel_thresh = sbufReadU16(src);
+            navConfigMutable()->fw.launch_time_thresh = sbufReadU16(src);
+            navConfigMutable()->fw.launch_idle_throttle = sbufReadU16(src);
+            navConfigMutable()->fw.launch_throttle = sbufReadU16(src);
+            navConfigMutable()->fw.launch_motor_timer = sbufReadU16(src);
+            navConfigMutable()->fw.launch_motor_spinup_time = sbufReadU16(src);
+            navConfigMutable()->fw.launch_min_time = sbufReadU16(src);
+            navConfigMutable()->fw.launch_timeout = sbufReadU16(src);
+            navConfigMutable()->fw.launch_max_altitude = sbufReadU16(src);
+            navConfigMutable()->fw.launch_climb_angle = sbufReadU8(src);
+            navConfigMutable()->fw.launch_max_angle = sbufReadU8(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;
 
     default:
         return MSP_RESULT_ERROR;
