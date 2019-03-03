@@ -210,4 +210,8 @@
 
 #define SYM_CURSOR SYM_AH_LEFT // Menu cursor
 
+#else
+
+#define TEMP_SENSOR_SYM_COUNT 0
+
 #endif // USE_MAX7456

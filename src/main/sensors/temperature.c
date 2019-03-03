@@ -45,7 +45,7 @@
 #include "scheduler/protothreads.h"
 
 
-PG_REGISTER_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig, PG_TEMP_SENSOR_CONFIG, 1);
+PG_REGISTER_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig, PG_TEMP_SENSOR_CONFIG, 2);
 
 #define MPU_TEMP_VALID_BIT 0
 #define BARO_TEMP_VALID_BIT 1
