@@ -66,6 +66,10 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH, // deg
 } logicFlightOperands_e;
 
+typedef enum {
+    LOGIC_CONDITION_FLAG_LATCH      = 1 << 0,
+} logicConditionFlags_e;
+
 typedef struct logicOperand_s {
     logicOperandType_e type;
     int value;
@@ -76,12 +80,14 @@ typedef struct logicCondition_s {
     logicOperation_e operation;
     logicOperand_t operandA;
     logicOperand_t operandB;
+    uint8_t flags;
 } logicCondition_t;
 
 PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);
 
 typedef struct logicConditionState_s {
     int value;
+    uint8_t flags;
 } logicConditionState_t;
 
 void logicConditionProcess(uint8_t i);
