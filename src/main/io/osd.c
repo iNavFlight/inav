@@ -55,6 +55,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/display.h"
+#include "drivers/display_font_metadata.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
@@ -179,6 +180,7 @@ typedef struct osdMapData_s {
 static osdMapData_t osdMapData;
 
 static displayPort_t *osdDisplayPort;
+static bool osdDisplayIsReady = false;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_HEIGHT 9
@@ -2829,26 +2831,25 @@ static void osdSetNextRefreshIn(uint32_t timeMs) {
     refreshWaitForResumeCmdRelease = true;
 }
 
-void osdInit(displayPort_t *osdDisplayPortToUse)
+static void osdCompleteAsyncInitialization(void)
 {
-    if (!osdDisplayPortToUse)
+    if (!displayIsReady(osdDisplayPort)) {
+        // Update the display.
+        // XXX: Rename displayDrawScreen() and associated functions
+        // to displayUpdate()
+        displayDrawScreen(osdDisplayPort);
         return;
+    }
 
-    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
-
-    osdDisplayPort = osdDisplayPortToUse;
-
-#ifdef USE_CMS
-    cmsDisplayPortRegister(osdDisplayPort);
-#endif
-
-    armState = ARMING_FLAG(ARMED);
+    osdDisplayIsReady = true;
 
     displayClearScreen(osdDisplayPort);
 
     uint8_t y = 1;
     displayFontMetadata_t metadata;
     bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
+    DEBUG_TRACE("Font metadata version %d: %u (%u chars)",
+        (int)fontHasMetadata, metadata.version, metadata.charCount);
 
     if (fontHasMetadata && metadata.charCount > 256) {
         hasExtendedFont = true;
@@ -2922,6 +2923,23 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
 
     displayResync(osdDisplayPort);
     osdSetNextRefreshIn(SPLASH_SCREEN_DISPLAY_TIME);
+}
+
+void osdInit(displayPort_t *osdDisplayPortToUse)
+{
+    if (!osdDisplayPortToUse)
+        return;
+
+    BUILD_BUG_ON(OSD_POS_MAX != OSD_POS(31,31));
+
+    osdDisplayPort = osdDisplayPortToUse;
+
+#ifdef USE_CMS
+    cmsDisplayPortRegister(osdDisplayPort);
+#endif
+
+    armState = ARMING_FLAG(ARMED);
+    osdCompleteAsyncInitialization();
 }
 
 static void osdResetStats(void)
@@ -3208,6 +3226,11 @@ void osdUpdate(timeUs_t currentTimeUs)
 
     // don't touch buffers if DMA transaction is in progress
     if (displayIsTransferInProgress(osdDisplayPort)) {
+        return;
+    }
+
+    if (!osdDisplayIsReady) {
+        osdCompleteAsyncInitialization();
         return;
     }
 

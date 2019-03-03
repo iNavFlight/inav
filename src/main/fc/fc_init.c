@@ -95,6 +95,7 @@
 #include "io/beeper.h"
 #include "io/lights.h"
 #include "io/dashboard.h"
+#include "io/displayport_agh_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
 #include "io/flashfs.h"
@@ -507,11 +508,21 @@ void init(void)
 
 #ifdef USE_OSD
     if (feature(FEATURE_OSD)) {
+#if defined(USE_AGHOSD)
+        if (!osdDisplayPort) {
+            osdDisplayPort = aghOSDDisplayPortInit(osdConfig()->video_system);
+        }
+#endif
 #if defined(USE_MAX7456)
-        // If there is a max7456 chip for the OSD then use it
-        osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
+        // If there is a max7456 chip for the OSD and we have no
+        // external OSD initialized, use it.
+        if (!osdDisplayPort) {
+            osdDisplayPort = max7456DisplayPortInit(osdConfig()->video_system);
+        }
 #elif defined(USE_OSD_OVER_MSP_DISPLAYPORT) // OSD over MSP; not supported (yet)
-        osdDisplayPort = displayPortMspInit();
+        if (!osdDisplayPort) {
+            osdDisplayPort = displayPortMspInit();
+        }
 #endif
         // osdInit  will register with CMS by itself.
         osdInit(osdDisplayPort);

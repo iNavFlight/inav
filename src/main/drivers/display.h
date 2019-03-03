@@ -56,14 +56,11 @@ typedef uint8_t textAttributes_t;
 
 static inline void TEXT_ATTRIBUTES_COPY(textAttributes_t *dst, textAttributes_t *src) { *dst = *src; }
 
-typedef struct displayFontMetadata_s {
-    uint8_t version;
-    uint16_t charCount;
-} displayFontMetadata_t;
+typedef struct displayFontMetadata_s displayFontMetadata_t;
+typedef struct displayPortVTable_s displayPortVTable_t;
 
-struct displayPortVTable_s;
 typedef struct displayPort_s {
-    const struct displayPortVTable_s *vTable;
+    const displayPortVTable_t *vTable;
     void *device;
     uint8_t rows;
     uint8_t cols;
@@ -95,6 +92,7 @@ typedef struct displayPortVTable_s {
     textAttributes_t (*supportedTextAttributes)(const displayPort_t *displayPort);
     bool (*getFontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
     int (*writeFontCharacter)(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
+    bool (*isReady)(const displayPort_t *displayPort);
 } displayPortVTable_t;
 
 typedef struct displayPortProfile_s {
@@ -124,4 +122,5 @@ void displayResync(displayPort_t *instance);
 uint16_t displayTxBytesFree(const displayPort_t *instance);
 bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance);
 int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
+bool displayIsReady(const displayPort_t *instance);
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable);

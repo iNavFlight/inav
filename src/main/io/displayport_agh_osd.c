@@ -20,35 +20,17 @@
 
 #include "platform.h"
 
-#ifdef USE_MAX7456
+#if defined(USE_AGHOSD)
 
 #include "common/utils.h"
 
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
-
 #include "drivers/display.h"
 #include "drivers/display_font_metadata.h"
-#include "drivers/max7456.h"
 
-#include "io/displayport_max7456.h"
+#include "io/agh_osd.h"
+#include "io/displayport_agh_osd.h"
 
-displayPort_t max7456DisplayPort;
-
-static uint8_t max7456Mode(textAttributes_t attr)
-{
-    uint8_t mode = 0;
-    if (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) {
-        mode |= MAX7456_MODE_BLINK;
-    }
-    if (TEXT_ATTRIBUTES_HAVE_INVERTED(attr)) {
-        mode |= MAX7456_MODE_INVERT;
-    }
-    if (TEXT_ATTRIBUTES_HAVE_SOLID_BG(attr)) {
-        mode |= MAX7456_MODE_SOLID_BG;
-    }
-    return mode;
-}
+static displayPort_t aghOSDDisplayPort;
 
 static int grab(displayPort_t *displayPort)
 {
@@ -65,14 +47,14 @@ static int release(displayPort_t *displayPort)
 static int clearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    max7456ClearScreen();
+    aghOSDClearScreen();
     return 0;
 }
 
 static int drawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    max7456Update();
+    aghOSDUpdate();
 
     return 0;
 }
@@ -80,29 +62,29 @@ static int drawScreen(displayPort_t *displayPort)
 static int screenSize(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return max7456GetScreenSize();
+    return aghOSDGetGridRows() * aghOSDGetGridCols();
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
 {
     UNUSED(displayPort);
-    max7456Write(x, y, s, max7456Mode(attr));
 
+    aghOSDDrawStringInGrid(x, y, s, attr);
     return 0;
 }
 
 static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t c, textAttributes_t attr)
 {
     UNUSED(displayPort);
-    max7456WriteChar(x, y, c, max7456Mode(attr));
 
+    aghOSDDrawCharInGrid(x, y, c, attr);
     return 0;
 }
 
 static bool readChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t *c, textAttributes_t *attr)
 {
     UNUSED(displayPort);
-    return max7456ReadChar(x, y, c, attr);
+    return false;
 }
 
 static bool isTransferInProgress(const displayPort_t *displayPort)
@@ -114,9 +96,9 @@ static bool isTransferInProgress(const displayPort_t *displayPort)
 static void resync(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    max7456RefreshAll();
-    displayPort->rows = max7456GetRowsCount();
-    displayPort->cols = 30;
+    // TODO: Refresh here?
+    displayPort->rows = aghOSDGetGridRows();
+    displayPort->cols = aghOSDGetGridCols();
 }
 
 static int heartbeat(displayPort_t *displayPort)
@@ -138,7 +120,7 @@ static textAttributes_t supportedTextAttributes(const displayPort_t *displayPort
     textAttributes_t attr = TEXT_ATTRIBUTES_NONE;
     TEXT_ATTRIBUTES_ADD_INVERTED(attr);
     TEXT_ATTRIBUTES_ADD_SOLID_BG(attr);
-    TEXT_ATTRIBUTES_ADD_BLINK(attr);
+    // TEXT_ATTRIBUTES_ADD_BLINK(attr); TODO?
     return attr;
 }
 
@@ -148,29 +130,28 @@ static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
 
     osdCharacter_t chr;
 
-    max7456ReadNvm(FONT_METADATA_CHR_INDEX, &chr);
+    metadata->charCount = 512;
+    return aghOSDReadFontCharacter(FONT_METADATA_CHR_INDEX, &chr) &&
+        displayFontMetadataUpdateFromCharacter(metadata, &chr);
 
-    if (displayFontMetadataUpdateFromCharacter(metadata, &chr)) {
-        // Not all MAX7456 chips support 512 characters. To detect this,
-        // we place metadata in both characters 255 and 256. This way we
-        // can find out how many characters the font in NVM has.
-        max7456ReadNvm(FONT_METADATA_CHR_INDEX_2ND_PAGE, &chr);
-        metadata->charCount = FONT_CHR_IS_METADATA(&chr) ? 512 : 256;
-        return true;
-    }
-
-    return false;
 }
 
 static int writeFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr)
 {
     UNUSED(instance);
 
-    max7456WriteNvm(addr, chr);
+    aghOSDWriteFontCharacter(addr, chr);
     return 0;
 }
 
-static const displayPortVTable_t max7456VTable = {
+static bool isReady(const displayPort_t *instance)
+{
+    UNUSED(instance);
+
+    return aghOSDIsReady();
+}
+
+static const displayPortVTable_t aghOSDVTable = {
     .grab = grab,
     .release = release,
     .clearScreen = clearScreen,
@@ -186,13 +167,17 @@ static const displayPortVTable_t max7456VTable = {
     .supportedTextAttributes = supportedTextAttributes,
     .getFontMetadata = getFontMetadata,
     .writeFontCharacter = writeFontCharacter,
+    .isReady = isReady,
 };
 
-displayPort_t *max7456DisplayPortInit(const videoSystem_e videoSystem)
+displayPort_t *aghOSDDisplayPortInit(const videoSystem_e videoSystem)
 {
-    max7456Init(videoSystem);
-    displayInit(&max7456DisplayPort, &max7456VTable);
-    resync(&max7456DisplayPort);
-    return &max7456DisplayPort;
+    if (aghOSDInit(videoSystem)) {
+        displayInit(&aghOSDDisplayPort, &aghOSDVTable);
+        resync(&aghOSDDisplayPort);
+        return &aghOSDDisplayPort;
+    }
+    return NULL;
 }
-#endif // USE_MAX7456
+
+#endif // USE_AGHOSD
