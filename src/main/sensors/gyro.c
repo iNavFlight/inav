@@ -96,11 +96,12 @@ STATIC_FASTRAM filterApplyFnPtr gyroFilterStage2ApplyFn;
 STATIC_FASTRAM void *stage2Filter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 5);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
     .gyro_soft_lpf_hz = 60,
+    .gyro_soft_lpf_type = FILTER_BIQUAD,
     .gyro_align = ALIGN_DEFAULT,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 1000,
@@ -311,10 +312,23 @@ void gyroInitFilters(void)
 #endif
 
     if (gyroConfig()->gyro_soft_lpf_hz) {
-        softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
-        for (int axis = 0; axis < 3; axis++) {
-            softLpfFilter[axis] = &gyroFilterLPF[axis];
-            biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+        
+        switch (gyroConfig()->gyro_soft_lpf_type) 
+        {
+        case FILTER_PT1:
+            softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
+            for (int axis = 0; axis < 3; axis++) {
+                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                pt1FilterInit(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+            }
+            break;
+        case FILTER_BIQUAD:
+            softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
+            for (int axis = 0; axis < 3; axis++) {
+                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+            }
+            break;
         }
     }
 
