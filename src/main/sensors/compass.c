@@ -418,7 +418,7 @@ void compassUpdate(timeUs_t currentTimeUs)
     }
     else {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * compassConfig()->magGain[axis] / 1024;
+            mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * 1024 / compassConfig()->magGain[axis];
         }
     }
 
