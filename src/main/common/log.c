@@ -86,7 +86,7 @@ void logInit(void)
         }
     }
     // Initialization done
-    LOG_I_SYNC(SYSTEM, "%s/%s %s %s / %s (%s)",
+    LOG_I(SYSTEM, "%s/%s %s %s / %s (%s)",
         FC_FIRMWARE_NAME,
         targetName,
         FC_VERSION_STRING,
@@ -101,15 +101,12 @@ static void logPutcp(void *p, char ch)
     *(*((char **) p))++ = ch;
 }
 
-static void logPrint(bool synchronous, const char *buf, size_t size)
+static void logPrint(const char *buf, size_t size)
 {
     if (logPort) {
         // Send data via UART (if configured & connected - a safeguard against zombie VCP)
         if (serialIsConnected(logPort)) {
             serialPrint(logPort, buf);
-            if (synchronous) {
-                waitForSerialPortToFinishTransmitting(logPort);
-            }
         }
     } else if (mspLogPort) {
         mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, size, mspLogPort, MSP_V2_NATIVE);
@@ -132,7 +129,7 @@ static bool logIsEnabled(logTopic_e topic, unsigned level)
     return logHasOutput() && (level <= logConfig()->level || (logConfig()->topics & (1 << topic)));
 }
 
-void _logf(logTopic_e topic, unsigned level, bool synchronous, const char *fmt, ...)
+void _logf(logTopic_e topic, unsigned level, const char *fmt, ...)
 {
     char buf[128];
     char *bufPtr;
@@ -156,10 +153,10 @@ void _logf(logTopic_e topic, unsigned level, bool synchronous, const char *fmt, 
     charCount += 2;
     va_end(va);
 
-    logPrint(synchronous, buf, charCount);
+    logPrint(buf, charCount);
 }
 
-void _logBufferHex(logTopic_e topic, unsigned level, bool synchronous, const void *buffer, size_t size)
+void _logBufferHex(logTopic_e topic, unsigned level, const void *buffer, size_t size)
 {
     // Print lines of up to maxBytes bytes. We need 5 characters per byte
     // 0xAB[space|\n]
@@ -181,7 +178,7 @@ void _logBufferHex(logTopic_e topic, unsigned level, bool synchronous, const voi
         if (bufPos == sizeof(buf)-1) {
             buf[bufPos-1] = '\n';
             buf[bufPos] = '\0';
-            logPrint(synchronous, buf, bufPos + 1);
+            logPrint(buf, bufPos + 1);
             bufPos = LOG_PREFIX_FORMATTED_SIZE;
         }
     }
@@ -189,7 +186,7 @@ void _logBufferHex(logTopic_e topic, unsigned level, bool synchronous, const voi
     if (bufPos > LOG_PREFIX_FORMATTED_SIZE) {
         buf[bufPos-1] = '\n';
         buf[bufPos] = '\0';
-        logPrint(synchronous, buf, bufPos + 1);
+        logPrint(buf, bufPos + 1);
     }
 }
 
