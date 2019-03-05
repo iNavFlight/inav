@@ -31,10 +31,6 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-//#define SPI1_SCK_PIN            PA5
-//#define SPI1_MISO_PIN   	    PA6
-//#define SPI1_MOSI_PIN   	    PA7
-
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
