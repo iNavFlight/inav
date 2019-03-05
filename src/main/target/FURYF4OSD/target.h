@@ -19,7 +19,7 @@
 
 #define TARGET_BOARD_IDENTIFIER "FYF4"
 
-#define USBD_PRODUCT_STRING  "FuryF4"
+#define USBD_PRODUCT_STRING     "FuryF4"
 
 #define LED0                    PB5
 #define LED1                    PB4
@@ -59,19 +59,12 @@
 #define USE_ACC_MPU6000
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
-// *************** SD Card **************************
-//#define USE_SDCARD
-//#define USE_SDCARD_SPI
-//#define SDCARD_SPI_BUS          BUS_SPI2
-//#define SDCARD_CS_PIN           PB12
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PC10
-#define SPI3_MISO_PIN   	    PC11
-#define SPI3_MOSI_PIN   	    PC12
+#define SPI3_MISO_PIN   	      PC11
+#define SPI3_MOSI_PIN   	      PC12
 #define SPI3_CLOCK_LEADING_EDGE
-
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
@@ -82,8 +75,8 @@
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN   	    PB14
-#define SPI2_MOSI_PIN   	    PB15
+#define SPI2_MISO_PIN   	      PB14
+#define SPI2_MOSI_PIN   	      PB15
 
 #define USE_OSD
 #define USE_MAX7456
@@ -108,12 +101,12 @@
 #define UART6_TX_PIN            PC6
 
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN      PA1  //RX4
-#define SOFTSERIAL_1_TX_PIN      PC9  //TX4
+#define SOFTSERIAL_1_RX_PIN      PA1
+#define SOFTSERIAL_1_TX_PIN      PC9  // PPM
 
 //#define USE_SOFTSERIAL2
-//#define SOFTSERIAL_2_RX_PIN      PA2  //TX2
-//#define SOFTSERIAL_2_TX_PIN      PA2  //TX2
+//#define SOFTSERIAL_2_RX_PIN      PA2
+//#define SOFTSERIAL_2_TX_PIN      PA2
 
 #define SERIAL_PORT_COUNT       4
 
@@ -161,17 +154,17 @@
 #define ADC_INSTANCE                ADC1
 #define ADC1_DMA_STREAM             DMA2_Stream0
 #define ADC_CHANNEL_1_PIN           PC1
-//#define ADC_CHANNEL_2_PIN           PC2
-//#define ADC_CHANNEL_3_PIN           PC3
+#define ADC_CHANNEL_2_PIN           PC2
+#define ADC_CHANNEL_3_PIN           PC3
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
-//#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-//#define RSSI_ADC_CHANNEL            ADC_CHN_3
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
+#define RSSI_ADC_CHANNEL            ADC_CHN_3
 
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY )
 #define CURRENT_METER_SCALE   179
 
 #define USE_LED_STRIP
-#define WS2811_PIN                      PA0 // S5 pad for iNav
+#define WS2811_PIN                  PA0
 
 //#define USE_SPEKTRUM_BIND
 //#define BIND_PIN                PA3 //  RX2
