@@ -476,6 +476,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         #endif
         }
         break;
+#ifdef USE_LOGIC_CONDITIONS
+    case MSP2_INAV_LOGIC_CONDITIONS:
+        for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+            sbufWriteU8(dst, logicConditions(i)->enabled);
+            sbufWriteU8(dst, logicConditions(i)->operation);
+            sbufWriteU8(dst, logicConditions(i)->operandA.type);
+            sbufWriteU32(dst, logicConditions(i)->operandA.value);
+            sbufWriteU8(dst, logicConditions(i)->operandB.type);
+            sbufWriteU32(dst, logicConditions(i)->operandB.value);
+            sbufWriteU8(dst, logicConditions(i)->flags);
+        }
+        break;
+#endif
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
             sbufWriteU16(dst, customMotorMixer(i)->throttle * 1000);
@@ -1853,7 +1866,21 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-
+#ifdef USE_LOGIC_CONDITIONS
+    case MSP2_INAV_SET_LOGIC_CONDITIONS:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == 13) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
+            logicConditionsMutable(tmp_u8)->enabled = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operation = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operandA.type = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operandA.value = sbufReadU32(src);
+            logicConditionsMutable(tmp_u8)->operandB.type = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operandB.value = sbufReadU32(src);
+            logicConditionsMutable(tmp_u8)->flags = sbufReadU8(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_SUPPORTED_MOTORS)) {
