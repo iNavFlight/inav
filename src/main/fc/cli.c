@@ -1538,7 +1538,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
 static void cliServoMix(char *cmdline)
 {
     char * saveptr;
-    int args[10], check = 0;
+    int args[6], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1628,7 +1628,7 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
 
 static void cliLogic(char *cmdline) {
     char * saveptr;
-    int args[10], check = 0;
+    int args[8], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1636,8 +1636,6 @@ static void cliLogic(char *cmdline) {
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         pgResetCopy(logicConditionsMutable(0), PG_SERVO_MIXER);
     } else {
-        //TODO implement
-        
         enum {
             INDEX = 0,
             ENABLED,

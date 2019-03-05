@@ -1852,10 +1852,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     
     case MSP2_INAV_SET_SERVO_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 12) && (tmp_u8 < MAX_SERVO_RULES)) {
+        if ((dataSize == 7) && (tmp_u8 < MAX_SERVO_RULES)) {
             customServoMixersMutable(tmp_u8)->targetChannel = sbufReadU8(src);
             customServoMixersMutable(tmp_u8)->inputSource = sbufReadU8(src);
-            customServoMixersMutable(tmp_u8)->rate = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->rate = sbufReadU16(src);
             customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
         #ifdef USE_LOGIC_CONDITIONS
             customServoMixersMutable(tmp_u8)->conditionId = sbufReadU8(src);
