@@ -53,7 +53,7 @@
 
 baro_t baro;                        // barometer access functions
 
-PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER_CONFIG, 1);
 
 #ifdef USE_BARO
 #define BARO_HARDWARE_DEFAULT    BARO_AUTODETECT
@@ -62,7 +62,8 @@ PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER
 #endif
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_hardware = BARO_HARDWARE_DEFAULT,
-    .use_median_filtering = 1
+    .use_median_filtering = 1,
+    .baro_calibration_tolerance = 150
 );
 
 #ifdef USE_BARO
@@ -276,7 +277,7 @@ bool baroIsCalibrationComplete(void)
 
 void baroStartCalibration(void)
 {
-    const float acceptedPressureVariance = (101325.0f - altitudeToPressure(30.0f)); // max 30cm deviation during calibration (at sea level)
+    const float acceptedPressureVariance = (101325.0f - altitudeToPressure(barometerConfig()->baro_calibration_tolerance)); // max 30cm deviation during calibration (at sea level)
     zeroCalibrationStartS(&zeroCalibration, CALIBRATING_BARO_TIME_MS, acceptedPressureVariance, false);
 }
 

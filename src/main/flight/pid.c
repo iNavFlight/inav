@@ -337,7 +337,7 @@ void schedulePidGainsUpdate(void)
     pidGainsUpdateRequired = true;
 }
 
-void updatePIDCoefficients(void)
+void FAST_CODE NOINLINE updatePIDCoefficients(void)
 {
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
@@ -459,7 +459,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 }
 
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
-static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const uint32_t axisAccelLimit = (axis == FD_YAW) ? pidProfile()->axisAccelerationLimitYaw : pidProfile()->axisAccelerationLimitRollPitch;
 
@@ -481,7 +481,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
-static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
@@ -774,7 +774,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void pidController(void)
+void FAST_CODE pidController(void)
 {
     bool canUseFpvCameraMix = true;
     uint8_t headingHoldState = getHeadingHoldState();

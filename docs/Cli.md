@@ -86,6 +86,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
+| `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
 | `version`        |                                                |
 
 ## CLI Variable Reference
@@ -369,7 +370,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  max_angle_inclination_rll  | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 |  max_angle_inclination_pit  | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
 |  fw_iterm_limit_stick_position  | 0.5 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |
-|  fw_min_throttle_down_pitch  | 0 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle |
+|  fw_min_throttle_down_pitch  | 0 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees) |
 |  gyro_lpf_hz  | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 |  acc_lpf_hz  | 15 | Software-based filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 |  dterm_lpf_hz  | 40 |  |
@@ -431,3 +432,4 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | nav_mc_braking_boost_disengage_speed | 100 | BOOST will be disabled when speed goes below this value |
 | nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
 | osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
+| baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default  should allow the noisiest baro to complete calibration [cm]. | 

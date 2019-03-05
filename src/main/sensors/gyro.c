@@ -344,7 +344,7 @@ void gyroStartCalibration(void)
     zeroCalibrationStartV(&gyroCalibration, CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
 }
 
-bool gyroIsCalibrationComplete(void)
+bool FAST_CODE NOINLINE gyroIsCalibrationComplete(void)
 {
     return zeroCalibrationIsCompleteV(&gyroCalibration) && zeroCalibrationIsSuccessfulV(&gyroCalibration);
 }
@@ -387,7 +387,7 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-void gyroUpdate()
+void FAST_CODE NOINLINE gyroUpdate()
 {
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev0.readFn(&gyroDev0)) {

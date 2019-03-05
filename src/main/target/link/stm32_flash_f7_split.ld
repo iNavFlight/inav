@@ -49,12 +49,23 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH1
 
-   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
-    .ARM : {
+  tcm_code = LOADADDR(.tcm_code); 
+  .tcm_code (NOLOAD) :
+  {
+    . = ALIGN(4);
+    tcm_code_start = .; 
+    *(.tcm_code)
+    *(.tcm_code*)
+    . = ALIGN(4);
+    tcm_code_end = .; 
+  } >ITCM_RAM AT >FLASH1
+
+  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
+  .ARM : {
     __exidx_start = .;
-      *(.ARM.exidx*)
-      __exidx_end = .;
-    } >FLASH
+    *(.ARM.exidx*)
+    __exidx_end = .;
+  } >FLASH
 
   .busdev_registry :
   {

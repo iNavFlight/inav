@@ -241,10 +241,17 @@ void servoMixer(float dT)
         }
     }
 
+    input[INPUT_STABILIZED_ROLL_PLUS] = constrain(input[INPUT_STABILIZED_ROLL], 0, 1000);
+    input[INPUT_STABILIZED_ROLL_MINUS] = constrain(input[INPUT_STABILIZED_ROLL], -1000, 0);
+    input[INPUT_STABILIZED_PITCH_PLUS] = constrain(input[INPUT_STABILIZED_PITCH], 0, 1000);
+    input[INPUT_STABILIZED_PITCH_MINUS] = constrain(input[INPUT_STABILIZED_PITCH], -1000, 0);
+    input[INPUT_STABILIZED_YAW_PLUS] = constrain(input[INPUT_STABILIZED_YAW], 0, 1000);
+    input[INPUT_STABILIZED_YAW_MINUS] = constrain(input[INPUT_STABILIZED_YAW], -1000, 0);
+
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
-        input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -1800, 1800, -500, +500);
+        input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -900, 900, -500, +500);
         input[INPUT_GIMBAL_ROLL] = scaleRange(attitude.values.roll, -1800, 1800, -500, +500);
     } else {
         input[INPUT_GIMBAL_PITCH] = 0;
@@ -421,12 +428,12 @@ void processServoAutotrim(void)
     }
 }
 
-bool isServoOutputEnabled(void)
+bool FAST_CODE NOINLINE isServoOutputEnabled(void)
 {
     return servoOutputEnabled;
 }
 
-bool isMixerUsingServos(void)
+bool FAST_CODE NOINLINE isMixerUsingServos(void)
 {
     return mixerUsesServos;
 }

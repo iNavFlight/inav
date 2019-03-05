@@ -45,7 +45,7 @@
 #include "scheduler/protothreads.h"
 
 
-PG_REGISTER_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig, PG_TEMP_SENSOR_CONFIG, 0);
+PG_REGISTER_ARRAY(tempSensorConfig_t, MAX_TEMP_SENSORS, tempSensorConfig, PG_TEMP_SENSOR_CONFIG, 1);
 
 #define MPU_TEMP_VALID_BIT 0
 #define BARO_TEMP_VALID_BIT 1
@@ -92,6 +92,7 @@ static void newSensorCheckAndEnter(uint8_t type, uint64_t addr)
         tempSensorConfig_t *configSlot = tempSensorConfigMutable(firstFreeConfigSlot);
         configSlot->type = type;
         configSlot->address = addr;
+        configSlot->osdSymbol = 0;
         configSlot->label[0] = '\0';
         configSlot->alarm_min = -200;
         configSlot->alarm_max = 600;

@@ -297,7 +297,7 @@ void pwmCompleteDshotUpdate(uint8_t motorCount)
     }
 }
 
-bool isMotorProtocolDshot(void)
+bool FAST_CODE NOINLINE isMotorProtocolDshot(void)
 {
     return isProtocolDshot;
 }

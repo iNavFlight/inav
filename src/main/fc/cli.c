@@ -56,6 +56,7 @@ extern uint8_t __config_end;
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/logging.h"
+#include "drivers/max7456_symbols.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/sdcard.h"
 #include "drivers/sensor.h"
@@ -116,6 +117,10 @@ extern uint8_t __config_end;
 
 #if FLASH_SIZE > 128
 #define PLAY_SOUND
+#endif
+
+#ifndef USE_MAX7456
+#define TEMP_SENSOR_SYM_COUNT 0
 #endif
 
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
@@ -1130,7 +1135,7 @@ static void cliRxRange(char *cmdline)
 #ifdef USE_TEMPERATURE_SENSOR
 static void printTempSensor(uint8_t dumpMask, const tempSensorConfig_t *tempSensorConfigs, const tempSensorConfig_t *defaultTempSensorConfigs)
 {
-    const char *format = "temp_sensor %u %u %s %d %d %s";
+    const char *format = "temp_sensor %u %u %s %d %d %u %s";
     for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
         bool equalsDefault = false;
         char label[5], hex_address[17];
@@ -1140,6 +1145,7 @@ static void printTempSensor(uint8_t dumpMask, const tempSensorConfig_t *tempSens
         if (defaultTempSensorConfigs) {
             equalsDefault = tempSensorConfigs[i].type == defaultTempSensorConfigs[i].type
                 && tempSensorConfigs[i].address == defaultTempSensorConfigs[i].address
+                && tempSensorConfigs[i].osdSymbol == defaultTempSensorConfigs[i].osdSymbol
                 && !memcmp(tempSensorConfigs[i].label, defaultTempSensorConfigs[i].label, TEMPERATURE_LABEL_LEN)
                 && tempSensorConfigs[i].alarm_min == defaultTempSensorConfigs[i].alarm_min
                 && tempSensorConfigs[i].alarm_max == defaultTempSensorConfigs[i].alarm_max;
@@ -1149,6 +1155,7 @@ static void printTempSensor(uint8_t dumpMask, const tempSensorConfig_t *tempSens
                 "0",
                 defaultTempSensorConfigs[i].alarm_min,
                 defaultTempSensorConfigs[i].alarm_max,
+                0,
                 ""
             );
         }
@@ -1158,6 +1165,7 @@ static void printTempSensor(uint8_t dumpMask, const tempSensorConfig_t *tempSens
             hex_address,
             tempSensorConfigs[i].alarm_min,
             tempSensorConfigs[i].alarm_max,
+            tempSensorConfigs[i].osdSymbol,
             label
         );
     }
@@ -1175,6 +1183,7 @@ static void cliTempSensor(char *cmdline)
         int16_t type, alarm_min, alarm_max;
         bool addressValid = false;
         uint64_t address;
+        int8_t osdSymbol;
         uint8_t validArgumentCount = 0;
         i = fastA2I(ptr);
         if (i >= 0 && i < MAX_TEMP_SENSORS) {
@@ -1203,6 +1212,12 @@ static void cliTempSensor(char *cmdline)
                 validArgumentCount++;
             }
 
+            ptr = nextArg(ptr);
+            if (ptr) {
+                osdSymbol = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
             label = nextArg(ptr);
             if (label)
                 ++validArgumentCount;
@@ -1211,7 +1226,7 @@ static void cliTempSensor(char *cmdline)
 
             if (validArgumentCount < 4) {
                 cliShowParseError();
-            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || strlen(label) > TEMPERATURE_LABEL_LEN || !addressValid) {
+            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || osdSymbol < 0 || osdSymbol > TEMP_SENSOR_SYM_COUNT || strlen(label) > TEMPERATURE_LABEL_LEN || !addressValid) {
                 cliShowParseError();
             } else {
                 tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(i);
@@ -1219,6 +1234,7 @@ static void cliTempSensor(char *cmdline)
                 sensorConfig->address = address;
                 sensorConfig->alarm_min = alarm_min;
                 sensorConfig->alarm_max = alarm_max;
+                sensorConfig->osdSymbol = osdSymbol;
                 for (uint8_t index; index < TEMPERATURE_LABEL_LEN; ++index) {
                     sensorConfig->label[index] = toupper(label[index]);
                     if (label[index] == '\0') break;

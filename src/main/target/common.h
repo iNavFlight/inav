@@ -159,3 +159,7 @@
 #define SKIP_TASK_STATISTICS
 
 #endif
+
+#ifdef STM32F7
+#define USE_ITCM_RAM
+#endif
