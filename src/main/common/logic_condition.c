@@ -63,11 +63,13 @@ logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
 void logicConditionProcess(uint8_t i) {
 
-    const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-    const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-    const int value = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
-
-    logicConditionStates[i].value = value;
+    if (logicConditions(i)->enabled) {
+        const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+        const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+        logicConditionStates[i].value = logicConditionCompute(logicConditions(i)->operation, operandAValue, operandBValue);
+    } else {
+        logicConditionStates[i].value = false;
+    }
 }
 
 int logicConditionCompute(
