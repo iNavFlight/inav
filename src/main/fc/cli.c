@@ -2851,8 +2851,10 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
+#ifdef USE_LOGIC_CONDITIONS
         cliPrintHashLine("logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+#endif
 
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());

@@ -71,8 +71,10 @@ void pgResetFn_customServoMixers(servoMixer_t *instance)
             .targetChannel = 0,
             .inputSource = 0,
             .rate = 0,
-            .speed = 0,
-            .conditionId = -1
+            .speed = 0
+#ifdef USE_LOGIC_CONDITIONS
+            ,.conditionId = -1
+#endif
         );
     }
 }
