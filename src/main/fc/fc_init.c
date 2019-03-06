@@ -347,7 +347,7 @@ void init(void)
     // pwmInit() needs to be called as soon as possible for ESC compatibility reasons
     pwmInit(&pwm_params);
 
-    mixerUsePWMIOConfiguration();
+    mixerPrepare();
 
     if (!pwm_params.useFastPwm)
         motorControlEnable = true;

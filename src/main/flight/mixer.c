@@ -57,6 +57,8 @@ FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
 static float mixerScale = 1.0f;
+static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
+static EXTENDED_FASTRAM uint8_t motorCount = 0;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -100,24 +102,22 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .digitalIdleOffsetValue = 450   // Same scale as in Betaflight
 );
 
-PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer, PG_MOTOR_MIXER, 0);
+PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
-uint8_t FAST_CODE NOINLINE getMotorCount(void)
+static void computeMotorCount(void)
 {
-    static int8_t _motorCount = -1;
-
-    if (_motorCount == -1) {
-        _motorCount = 0;
-        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            // check if done
-            if (getMotorMixer(i)->throttle == 0.0f) {
-                break;
-            }
-            _motorCount++;
+    motorCount = 0;
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        // check if done
+        if (primaryMotorMixer(i)->throttle == 0.0f) {
+            break;
         }
+        motorCount++;
     }
+}
 
-    return _motorCount;
+uint8_t FAST_CODE NOINLINE getMotorCount(void) {
+    return motorCount;
 }
 
 float getMotorMixRange(void)
@@ -148,8 +148,10 @@ void mixerUpdateStateFlags(void)
     }
 }
 
-void mixerUsePWMIOConfiguration(void)
+void mixerPrepare(void)
 {
+    computeMotorCount();
+    loadPrimaryMotorMixer();
     // in 3D mode, mixer gain has to be halved
     if (feature(FEATURE_3D)) {
         mixerScale = 0.5f;
@@ -168,7 +170,7 @@ void mixerResetDisarmedMotors(void)
 
 void FAST_CODE NOINLINE writeMotors(void)
 {
-    for (int i = 0; i < getMotorCount(); i++) {
+    for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
 
 #ifdef USE_DSHOT
@@ -214,7 +216,7 @@ void FAST_CODE NOINLINE writeMotors(void)
 void writeAllMotors(int16_t mc)
 {
     // Sends commands to all motors
-    for (int i = 0; i < getMotorCount(); i++) {
+    for (int i = 0; i < motorCount; i++) {
         motor[i] = mc;
     }
     writeMotors();
@@ -229,7 +231,7 @@ void stopMotors(void)
 
 void stopPwmAllMotors(void)
 {
-    pwmShutdownPulsesForAllMotors(getMotorCount());
+    pwmShutdownPulsesForAllMotors(motorCount);
 }
 
 static void applyMotorRateLimiting(const float dT)
@@ -238,7 +240,7 @@ static void applyMotorRateLimiting(const float dT)
 
     if (feature(FEATURE_3D)) {
         // FIXME: Don't apply rate limiting in 3D mode
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < motorCount; i++) {
             motorPrevious[i] = motor[i];
         }
     }
@@ -248,7 +250,7 @@ static void applyMotorRateLimiting(const float dT)
         const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
         const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
 
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < motorCount; i++) {
             // Apply motor rate limiting
             motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
 
@@ -265,7 +267,7 @@ static void applyMotorRateLimiting(const float dT)
     }
 
     // Update motor values
-    for (int i = 0; i < getMotorCount(); i++) {
+    for (int i = 0; i < motorCount; i++) {
         motor[i] = motorPrevious[i];
     }
 }
@@ -285,7 +287,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
 
-        if (getMotorCount() >= 4 && mixerConfig()->yaw_jump_prevention_limit < YAW_JUMP_PREVENTION_LIMIT_HIGH) {
+        if (motorCount >= 4 && mixerConfig()->yaw_jump_prevention_limit < YAW_JUMP_PREVENTION_LIMIT_HIGH) {
             // prevent "yaw jump" during yaw correction
             input[YAW] = constrain(input[YAW], -mixerConfig()->yaw_jump_prevention_limit - ABS(rcCommand[YAW]), mixerConfig()->yaw_jump_prevention_limit + ABS(rcCommand[YAW]));
         }
@@ -297,11 +299,11 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     int16_t rpyMixMin = 0;
 
     // motors for non-servo mixes
-    for (int i = 0; i < getMotorCount(); i++) {
+    for (int i = 0; i < motorCount; i++) {
         rpyMix[i] =
-            (input[PITCH] * getMotorMixer(i)->pitch +
-            input[ROLL] * getMotorMixer(i)->roll +
-            -mixerConfig()->yaw_motor_direction * input[YAW] * getMotorMixer(i)->yaw) * mixerScale;
+            (input[PITCH] * currentMixer[i].pitch +
+            input[ROLL] * currentMixer[i].roll +
+            -mixerConfig()->yaw_motor_direction * input[YAW] * currentMixer[i].yaw) * mixerScale;
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
@@ -346,7 +348,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     #define THROTTLE_CLIPPING_FACTOR    0.33f
     motorMixRange = (float)rpyMixRange / (float)throttleRange;
     if (motorMixRange > 1.0f) {
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < motorCount; i++) {
             rpyMix[i] /= motorMixRange;
         }
 
@@ -361,8 +363,8 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
-        for (int i = 0; i < getMotorCount(); i++) {
-            motor[i] = rpyMix[i] + constrain(throttleCommand * getMotorMixer(i)->throttle, throttleMin, throttleMax);
+        for (int i = 0; i < motorCount; i++) {
+            motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
@@ -386,7 +388,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
             }
         }
     } else {
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < motorCount; i++) {
             motor[i] = motor_disarmed[i];
         }
     }
@@ -410,7 +412,8 @@ motorStatus_e getMotorStatus(void)
     return MOTOR_RUNNING;
 }
 
-motorMixer_t FAST_CODE NOINLINE *getMotorMixer(uint8_t rule)
-{
-    return (motorMixer_t *)customMotorMixer(rule);
+void loadPrimaryMotorMixer(void) {
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        currentMixer[i] = *primaryMotorMixer(i);
+    }
 }

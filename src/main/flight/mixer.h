@@ -60,7 +60,7 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
-PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
+PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
 typedef struct mixerConfig_s {
     int8_t yaw_motor_direction;
@@ -110,7 +110,7 @@ bool mixerIsOutputSaturated(void);
 motorStatus_e getMotorStatus(void);
 
 void writeAllMotors(int16_t mc);
-void mixerUsePWMIOConfiguration(void);
+void mixerPrepare(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
 void mixTable(const float dT);
@@ -119,4 +119,4 @@ void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
 
-motorMixer_t *getMotorMixer(uint8_t rule);
+void loadPrimaryMotorMixer(void);

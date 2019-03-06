@@ -983,7 +983,7 @@ static void cliAdjustmentRange(char *cmdline)
     }
 }
 
-static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer, const motorMixer_t *defaultCustomMotorMixer)
+static void printMotorMix(uint8_t dumpMask, const motorMixer_t *primaryMotorMixer, const motorMixer_t *defaultprimaryMotorMixer)
 {
     const char *format = "mmix %d %s %s %s %s";
     char buf0[FTOA_BUFFER_SIZE];
@@ -991,18 +991,18 @@ static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer
     char buf2[FTOA_BUFFER_SIZE];
     char buf3[FTOA_BUFFER_SIZE];
     for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        if (customMotorMixer[i].throttle == 0.0f)
+        if (primaryMotorMixer[i].throttle == 0.0f)
             break;
-        const float thr = customMotorMixer[i].throttle;
-        const float roll = customMotorMixer[i].roll;
-        const float pitch = customMotorMixer[i].pitch;
-        const float yaw = customMotorMixer[i].yaw;
+        const float thr = primaryMotorMixer[i].throttle;
+        const float roll = primaryMotorMixer[i].roll;
+        const float pitch = primaryMotorMixer[i].pitch;
+        const float yaw = primaryMotorMixer[i].yaw;
         bool equalsDefault = false;
-        if (defaultCustomMotorMixer) {
-            const float thrDefault = defaultCustomMotorMixer[i].throttle;
-            const float rollDefault = defaultCustomMotorMixer[i].roll;
-            const float pitchDefault = defaultCustomMotorMixer[i].pitch;
-            const float yawDefault = defaultCustomMotorMixer[i].yaw;
+        if (defaultprimaryMotorMixer) {
+            const float thrDefault = defaultprimaryMotorMixer[i].throttle;
+            const float rollDefault = defaultprimaryMotorMixer[i].roll;
+            const float pitchDefault = defaultprimaryMotorMixer[i].pitch;
+            const float yawDefault = defaultprimaryMotorMixer[i].yaw;
             const bool equalsDefault = thr == thrDefault && roll == rollDefault && pitch == pitchDefault && yaw == yawDefault;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
@@ -1027,11 +1027,11 @@ static void cliMotorMix(char *cmdline)
     const char *ptr;
 
     if (isEmpty(cmdline)) {
-        printMotorMix(DUMP_MASTER, customMotorMixer(0), NULL);
+        printMotorMix(DUMP_MASTER, primaryMotorMixer(0), NULL);
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
         for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            customMotorMixerMutable(i)->throttle = 0.0f;
+            primaryMotorMixerMutable(i)->throttle = 0.0f;
         }
     } else {
         ptr = cmdline;
@@ -1039,28 +1039,28 @@ static void cliMotorMix(char *cmdline)
         if (i < MAX_SUPPORTED_MOTORS) {
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->throttle = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->throttle = fastA2F(ptr);
                 check++;
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->roll = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->roll = fastA2F(ptr);
                 check++;
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->pitch = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->pitch = fastA2F(ptr);
                 check++;
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->yaw = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->yaw = fastA2F(ptr);
                 check++;
             }
             if (check != 4) {
                 cliShowParseError();
             } else {
-                printMotorMix(DUMP_MASTER, customMotorMixer(0), NULL);
+                printMotorMix(DUMP_MASTER, primaryMotorMixer(0), NULL);
             }
         } else {
             cliShowArgumentRangeError("index", 0, MAX_SUPPORTED_MOTORS - 1);
@@ -2836,9 +2836,9 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("mixer");
-        cliDumpPrintLinef(dumpMask, customMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
+        cliDumpPrintLinef(dumpMask, primaryMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
 
-        printMotorMix(dumpMask, customMotorMixer_CopyArray, customMotorMixer(0));
+        printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
