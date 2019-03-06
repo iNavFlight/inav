@@ -56,6 +56,7 @@
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
+static float mixerScale = 1.0f;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -149,17 +150,10 @@ void mixerUpdateStateFlags(void)
 
 void mixerUsePWMIOConfiguration(void)
 {
-    //FIXME this is not compatible with new model, find a good way to fix it
     // in 3D mode, mixer gain has to be halved
-    // if (feature(FEATURE_3D)) {
-    //     if (getMotorCount() > 1) {
-    //         for (int i = 0; i < getMotorCount(); i++) {
-    //             currentMixer[i].pitch *= 0.5f;
-    //             currentMixer[i].roll *= 0.5f;
-    //             currentMixer[i].yaw *= 0.5f;
-    //         }
-    //     }
-    // }
+    if (feature(FEATURE_3D)) {
+        mixerScale = 0.5f;
+    }
 
     mixerResetDisarmedMotors();
 }
@@ -305,9 +299,9 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // motors for non-servo mixes
     for (int i = 0; i < getMotorCount(); i++) {
         rpyMix[i] =
-            input[PITCH] * getMotorMixer(i)->pitch +
+            (input[PITCH] * getMotorMixer(i)->pitch +
             input[ROLL] * getMotorMixer(i)->roll +
-            -mixerConfig()->yaw_motor_direction * input[YAW] * getMotorMixer(i)->yaw;
+            -mixerConfig()->yaw_motor_direction * input[YAW] * getMotorMixer(i)->yaw) * mixerScale;
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
