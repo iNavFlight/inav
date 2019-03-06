@@ -118,3 +118,5 @@ void writeMotors(void);
 void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
+
+motorMixer_t *getMotorMixer(uint8_t rule);
