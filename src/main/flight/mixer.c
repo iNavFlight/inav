@@ -53,8 +53,6 @@
 
 #include "sensors/battery.h"
 
-//#define MIXER_DEBUG
-
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
@@ -103,9 +101,9 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer, PG_MOTOR_MIXER, 0);
 
-uint8_t getMotorCount(void)
+uint8_t FAST_CODE NOINLINE getMotorCount(void)
 {
-    STATIC_FASTRAM int8_t _motorCount = -1;
+    static int8_t _motorCount = -1;
 
     if (_motorCount == -1) {
         _motorCount = 0;
@@ -418,7 +416,7 @@ motorStatus_e getMotorStatus(void)
     return MOTOR_RUNNING;
 }
 
-motorMixer_t *getMotorMixer(uint8_t rule)
+motorMixer_t FAST_CODE NOINLINE *getMotorMixer(uint8_t rule)
 {
     return (motorMixer_t *)customMotorMixer(rule);
 }
