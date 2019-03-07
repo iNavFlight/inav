@@ -35,3 +35,7 @@
 #if !defined(USE_MSP_DISPLAYPORT) && (FLASH_SIZE > 128) && !defined(USE_OSD)
 #define USE_MSP_DISPLAYPORT
 #endif
+
+#ifdef STM32F3
+#undef USE_TELEMETRY_FRSKY
+#endif
