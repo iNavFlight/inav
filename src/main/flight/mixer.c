@@ -53,14 +53,12 @@
 
 #include "sensors/battery.h"
 
-
-//#define MIXER_DEBUG
-
-static uint8_t motorCount;
-
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
+static float mixerScale = 1.0f;
+static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
+static EXTENDED_FASTRAM uint8_t motorCount = 0;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -104,12 +102,21 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .digitalIdleOffsetValue = 450   // Same scale as in Betaflight
 );
 
-static motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
+PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
-PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer, PG_MOTOR_MIXER, 0);
-
-uint8_t getMotorCount(void)
+static void computeMotorCount(void)
 {
+    motorCount = 0;
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        // check if done
+        if (primaryMotorMixer(i)->throttle == 0.0f) {
+            break;
+        }
+        motorCount++;
+    }
+}
+
+uint8_t FAST_CODE NOINLINE getMotorCount(void) {
     return motorCount;
 }
 
@@ -141,28 +148,13 @@ void mixerUpdateStateFlags(void)
     }
 }
 
-void mixerUsePWMIOConfiguration(void)
+void mixerPrepare(void)
 {
-    motorCount = 0;
-
-    // load custom mixer into currentMixer
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        // check if done
-        if (customMotorMixer(i)->throttle == 0.0f)
-            break;
-        currentMixer[i] = *customMotorMixer(i);
-        motorCount++;
-    }
-
+    computeMotorCount();
+    loadPrimaryMotorMixer();
     // in 3D mode, mixer gain has to be halved
     if (feature(FEATURE_3D)) {
-        if (motorCount > 1) {
-            for (int i = 0; i < motorCount; i++) {
-                currentMixer[i].pitch *= 0.5f;
-                currentMixer[i].roll *= 0.5f;
-                currentMixer[i].yaw *= 0.5f;
-            }
-        }
+        mixerScale = 0.5f;
     }
 
     mixerResetDisarmedMotors();
@@ -309,9 +301,9 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // motors for non-servo mixes
     for (int i = 0; i < motorCount; i++) {
         rpyMix[i] =
-            input[PITCH] * currentMixer[i].pitch +
+            (input[PITCH] * currentMixer[i].pitch +
             input[ROLL] * currentMixer[i].roll +
-            -mixerConfig()->yaw_motor_direction * input[YAW] * currentMixer[i].yaw;
+            -mixerConfig()->yaw_motor_direction * input[YAW] * currentMixer[i].yaw) * mixerScale;
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
@@ -418,4 +410,10 @@ motorStatus_e getMotorStatus(void)
     }
 
     return MOTOR_RUNNING;
+}
+
+void loadPrimaryMotorMixer(void) {
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        currentMixer[i] = *primaryMotorMixer(i);
+    }
 }
