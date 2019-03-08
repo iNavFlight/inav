@@ -182,11 +182,11 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#define M25P16_CS_PIN           PB12
-#define M25P16_SPI_BUS          BUS_SPI2
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
+#define M25P16_CS_PIN           PB12
+#define M25P16_SPI_BUS          BUS_SPI2
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
@@ -223,8 +223,8 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
-#define MAX_PWM_OUTPUT_PORTS    4
-#define TARGET_MOTOR_COUNT      4
+#define MAX_PWM_OUTPUT_PORTS    8
+#define TARGET_MOTOR_COUNT      6
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
