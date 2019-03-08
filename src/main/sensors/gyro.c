@@ -319,7 +319,7 @@ void gyroInitFilters(void)
             softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
             for (int axis = 0; axis < 3; axis++) {
                 softLpfFilter[axis] = &gyroFilterLPF[axis];
-                pt1FilterInit(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+                pt1FilterInit(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime()* 1e-6f);
             }
             break;
         case FILTER_BIQUAD:
