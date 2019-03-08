@@ -416,6 +416,8 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
     switch ((osd_unit_e)osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             if (osdFormatCentiNumber(buff + 1, CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, 3)) {
                 // Scaled to kft
@@ -425,8 +427,6 @@ static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
                 buff[0] = SYM_ALT_FT;
             }
             break;
-        case OSD_UNIT_UK:
-            FALLTHROUGH;
         case OSD_UNIT_METRIC:
             // alt is alredy in cm
             if (osdFormatCentiNumber(buff+1, alt, 1000, 0, 2, 3)) {
@@ -1864,13 +1864,13 @@ static bool osdDrawSingleElement(uint8_t item)
             int16_t value = getEstimatedActualVelocity(Z);
             char sym;
             switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     // Convert to centifeet/s
                     value = CENTIMETERS_TO_CENTIFEET(value);
                     sym = SYM_FTS;
                     break;
-                case OSD_UNIT_UK:
-                    FALLTHROUGH;
                 case OSD_UNIT_METRIC:
                     // Already in cm/s
                     sym = SYM_MS;
