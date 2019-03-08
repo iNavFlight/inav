@@ -110,6 +110,8 @@ tables:
   - name: vtx_low_power_disarm
     values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
     enum: vtxLowerPowerDisarm_e
+  - name: filter_type
+    values: ["PT1", "BIQUAD"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -131,6 +133,9 @@ groups:
       - name: gyro_lpf_hz
         field: gyro_soft_lpf_hz
         max: 200
+      - name: gyro_lpf_type
+        field: gyro_soft_lpf_type
+        table: filter_type
       - name: moron_threshold
         field: gyroMovementCalibrationThreshold
         max: 128
