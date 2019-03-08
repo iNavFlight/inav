@@ -73,7 +73,6 @@ int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
-PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 

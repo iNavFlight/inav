@@ -87,6 +87,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
 | `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
+| `wp`             | list or configure waypoints. See more in docs/Navigation.md section NAV WP |
 | `version`        |                                                |
 
 ## CLI Variable Reference

@@ -345,6 +345,10 @@ typedef struct {
     float                       totalTripDistance;
 } navigationPosControl_t;
 
+#if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
+PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
+#endif
+
 extern navigationPosControl_t posControl;
 
 /* Internally used functions */
