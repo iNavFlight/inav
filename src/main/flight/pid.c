@@ -175,6 +175,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dterm_lpf_hz = 40,
         .yaw_lpf_hz = 30,
         .dterm_setpoint_weight = 1.0f,
+        .use_dterm_fir_filter = 1,
 
         .itermWindupPointPercent = 50,       // Percent
 
@@ -203,8 +204,10 @@ void pidInit(void)
     // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
     // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
     static const float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH] = {5.0f/8, 2.0f/8, -8.0f/8, -2.0f/8, 3.0f/8};
-    for (int axis = 0; axis < 3; ++ axis) {
-        firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
+    if (pidProfile()->use_dterm_fir_filter) {
+        for (int axis = 0; axis < 3; ++ axis) {
+            firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
+        }
     }
 
     pidResetTPAFilter();
@@ -558,9 +561,19 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
             deltaFiltered = biquadFilterApply(&pidState->deltaLpfState, deltaFiltered);
         }
 
+        /*
+         * Apply "Classical" INAV noise robust differentiator if configured to do so
+         * This filter is not configurable in any way, it only can be enabled or disabled
+         */
+        if (pidProfile()->use_dterm_fir_filter) {
+            firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
+            newDTerm = firFilterApply(&pidState->gyroRateFilter);
+        } else {
+            newDTerm = deltaFiltered;
+        }
+
         // Calculate derivative
-        firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
-        newDTerm = firFilterApply(&pidState->gyroRateFilter) * (pidState->kD / dT);
+        newDTerm =  newDTerm * (pidState->kD / dT);
 
         // Additionally constrain D
         newDTerm = constrainf(newDTerm, -300.0f, 300.0f);
