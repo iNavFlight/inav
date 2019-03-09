@@ -153,9 +153,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .bank_fw = {
             .pid = {
-                [PID_ROLL] =    { 5, 7, 50, 0 },
-                [PID_PITCH] =   { 5, 7, 50, 0 },
-                [PID_YAW] =     { 6, 10, 60, 0 },
+                [PID_ROLL] =    { 5, 7, 0, 50 },
+                [PID_PITCH] =   { 5, 7, 0, 50 },
+                [PID_YAW] =     { 6, 10, 0, 60 },
                 [PID_LEVEL] = {
                     .P = 20,    // Self-level strength
                     .I = 5,     // Self-leveing low-pass frequency (0 - disabled)
@@ -386,7 +386,7 @@ void FAST_CODE NOINLINE updatePIDCoefficients(void)
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER  * tpaFactor;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
             pidState[axis].kD  = 0.0f;
-            pidState[axis].kFF = pidBank()->pid[axis].D / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
+            pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
             pidState[axis].kT  = 0.0f;
         }
         else {

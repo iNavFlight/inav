@@ -906,7 +906,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_pitch
-        field: bank_fw.pid[PID_PITCH].D
+        field: bank_fw.pid[PID_PITCH].FF
         min: 0
         max: 200
       - name: fw_p_roll
@@ -918,7 +918,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_roll
-        field: bank_fw.pid[PID_ROLL].D
+        field: bank_fw.pid[PID_ROLL].FF
         min: 0
         max: 200
       - name: fw_p_yaw
@@ -930,7 +930,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_yaw
-        field: bank_fw.pid[PID_YAW].D
+        field: bank_fw.pid[PID_YAW].FF
         min: 0
         max: 200
       - name: fw_p_level
