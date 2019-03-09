@@ -956,6 +956,9 @@ groups:
       - name: dterm_lpf_hz
         min: 0
         max: 200
+      - name: use_dterm_fir_filter
+        field: use_dterm_fir_filter
+        type: bool
       - name: yaw_lpf_hz
         min: 0
         max: 200
