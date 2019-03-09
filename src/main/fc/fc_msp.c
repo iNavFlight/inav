@@ -627,6 +627,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+    case MSP2_PID:
+        for (int i = 0; i < PID_ITEM_COUNT; i++) {
+            sbufWriteU8(dst, pidBank()->pid[i].P);
+            sbufWriteU8(dst, pidBank()->pid[i].I);
+            sbufWriteU8(dst, pidBank()->pid[i].D);
+            sbufWriteU8(dst, pidBank()->pid[i].FF);
+        }
+        break;
+
     case MSP_PIDNAMES:
         for (const char *c = pidnames; *c; c++) {
             sbufWriteU8(dst, *c);
@@ -1562,6 +1571,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 pidBankMutable()->pid[i].P = sbufReadU8(src);
                 pidBankMutable()->pid[i].I = sbufReadU8(src);
                 pidBankMutable()->pid[i].D = sbufReadU8(src);
+            }
+            schedulePidGainsUpdate();
+#if defined(USE_NAV)
+            navigationUsePIDs();
+#endif
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_SET_PID:
+        if (dataSize >= PID_ITEM_COUNT * 4) {
+            for (int i = 0; i < PID_ITEM_COUNT; i++) {
+                pidBankMutable()->pid[i].P = sbufReadU8(src);
+                pidBankMutable()->pid[i].I = sbufReadU8(src);
+                pidBankMutable()->pid[i].D = sbufReadU8(src);
+                pidBankMutable()->pid[i].FF = sbufReadU8(src);
             }
             schedulePidGainsUpdate();
 #if defined(USE_NAV)
