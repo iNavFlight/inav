@@ -119,10 +119,6 @@ extern uint8_t __config_end;
 #define PLAY_SOUND
 #endif
 
-#ifndef USE_MAX7456
-#define TEMP_SENSOR_SYM_COUNT 0
-#endif
-
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 

@@ -42,6 +42,7 @@
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
 #include "drivers/max7456.h"
+#include "drivers/max7456_symbols.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/sdcard.h"
 #include "drivers/serial.h"
@@ -1442,10 +1443,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, sensorConfig->type);
             for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
                 sbufWriteU8(dst, ((uint8_t *)&sensorConfig->address)[addrIndex]);
-            for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
-                sbufWriteU8(dst, sensorConfig->label[labelIndex]);
             sbufWriteU16(dst, sensorConfig->alarm_min);
             sbufWriteU16(dst, sensorConfig->alarm_max);
+            sbufWriteU8(dst, sensorConfig->osdSymbol);
+            for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+                sbufWriteU8(dst, sensorConfig->label[labelIndex]);
         }
         break;
 #endif
@@ -2761,10 +2763,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 sensorConfig->type = sbufReadU8(src);
                 for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
                     ((uint8_t *)&sensorConfig->address)[addrIndex] = sbufReadU8(src);
-                for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
-                    sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
                 sensorConfig->alarm_min = sbufReadU16(src);
                 sensorConfig->alarm_max = sbufReadU16(src);
+                tmp_u8 = sbufReadU8(src);
+                sensorConfig->osdSymbol = tmp_u8 > TEMP_SENSOR_SYM_COUNT ? 0 : tmp_u8;
+                for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+                    sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
             }
         } else
             return MSP_RESULT_ERROR;
