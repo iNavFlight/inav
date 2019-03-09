@@ -3168,7 +3168,7 @@ bool navigationRTHAllowsLanding(void)
         (allow == NAV_RTH_ALLOW_LANDING_FS_ONLY && FLIGHT_MODE(FAILSAFE_MODE));
 }
 
-bool isNavLaunchEnabled(void)
+bool FAST_CODE isNavLaunchEnabled(void)
 {
     return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
 }

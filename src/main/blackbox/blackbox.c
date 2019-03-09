@@ -520,10 +520,10 @@ static blackboxGpsState_t gpsHistory;
 static blackboxSlowState_t slowHistory;
 
 // Keep a history of length 2, plus a buffer for MW to store the new values into
-static blackboxMainState_t blackboxHistoryRing[3];
+static EXTENDED_FASTRAM blackboxMainState_t blackboxHistoryRing[3];
 
 // These point into blackboxHistoryRing, use them to know where to store history of a given age (0, 1 or 2 generations old)
-static blackboxMainState_t* blackboxHistory[3];
+static EXTENDED_FASTRAM blackboxMainState_t* blackboxHistory[3];
 
 static bool blackboxModeActivationConditionPresent = false;
 
