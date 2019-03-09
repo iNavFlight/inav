@@ -77,7 +77,7 @@ PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 4);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -127,6 +127,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_boost_speed_threshold = 150,   // Boost can happen only above 1.5m/s
         .braking_boost_disengage_speed = 100,   // Disable boost at 1m/s
         .braking_bank_angle = 40,               // Max braking angle     
+        .posDecelerationTime = 120,             // posDecelerationTime * 100
+        .posResponseExpo = 10,                  // posResponseExpo * 100
     },
 
     // Fixed wing
@@ -3025,10 +3027,10 @@ void navigationUsePIDs(void)
 {
     /** Multicopter PIDs */
     // Brake time parameter
-    posControl.posDecelerationTime = (float)pidProfile()->bank_mc.pid[PID_POS_XY].I / 100.0f;
+    posControl.posDecelerationTime = (float)navConfig()->mc.posDecelerationTime / 100.0f;
 
     // Position controller expo (taret vel expo for MC)
-    posControl.posResponseExpo = constrainf((float)pidProfile()->bank_mc.pid[PID_POS_XY].D / 100.0f, 0.0f, 1.0f);
+    posControl.posResponseExpo = constrainf((float)navConfig()->mc.posResponseExpo / 100.0f, 0.0f, 1.0f);
 
     // Initialize position hold P-controller
     for (int axis = 0; axis < 2; axis++) {

@@ -1048,16 +1048,6 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
-      - name: nav_mc_pos_xy_i
-        field: bank_mc.pid[PID_POS_XY].I
-        condition: USE_NAV
-        min: 0
-        max: 255
-      - name: nav_mc_pos_xy_d
-        field: bank_mc.pid[PID_POS_XY].D
-        condition: USE_NAV
-        min: 0
-        max: 255
       - name: nav_mc_vel_xy_p
         field: bank_mc.pid[PID_VEL_XY].P
         condition: USE_NAV
@@ -1376,6 +1366,16 @@ groups:
         condition: USE_MR_BRAKING_MODE
         min: 15
         max: 60
+      - name: nav_mc_pos_deceleration_time
+        field: mc.posDecelerationTime
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_mc_pos_expo
+        field: mc.posResponseExpo
+        condition: USE_NAV
+        min: 0
+        max: 255
       - name: nav_fw_cruise_thr
         field: fw.cruise_throttle
         min: 1000
