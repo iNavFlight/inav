@@ -437,5 +437,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | nav_mc_braking_boost_speed_threshold | 150 | BOOST can be enabled when speed is above this value |
 | nav_mc_braking_boost_disengage_speed | 100 | BOOST will be disabled when speed goes below this value |
 | nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
+| nav_mc_pos_deceleration_time | 120 | Used for stoping distance calculation. Stop position is computed as _speed_ * _nav_mc_pos_deceleration_time_ from the place where sticks are released. Braking mode overrides this setting |
+| nav_mc_pos_expo | 10 | Expo for PosHold control |
 | osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
 | baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default  should allow the noisiest baro to complete calibration [cm]. | 
