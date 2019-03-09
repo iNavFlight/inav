@@ -29,6 +29,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "common/logic_condition.h"
+#include "common/utils.h"
 #include "rx/rx.h"
 #include "maths.h"
 #include "fc/fc_core.h"
@@ -235,6 +236,7 @@ int logicConditionGetValue(int8_t conditionId) {
 }
 
 void logicConditionUpdateTask(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
