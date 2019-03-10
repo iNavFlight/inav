@@ -10,7 +10,7 @@ COMMON_SRC = \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
-            common/logic_condition.h \
+            common/logic_condition.c \
             common/maths.c \
             common/calibration.c \
             common/memory.c \
