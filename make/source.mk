@@ -12,14 +12,10 @@ COMMON_SRC = \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
-<<<<<<< 547858a800b6c00acbae25b9ab4a37cdde6e4f46
             common/gps_conversion.c \
             common/log.c \
             common/logic_condition.c \
-=======
-            common/logic_condition.h \
-            common/global_functions.h \
->>>>>>> First cut on data structure
+            common/global_functions.c \
             common/maths.c \
             common/memory.c \
             common/olc.c \
