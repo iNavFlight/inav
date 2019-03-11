@@ -43,6 +43,43 @@ Sequences:
     14   DISARM_REPEAT         0, 100, 10		Stick held in disarm position (after pause)
     15   ARMED                 0, 245, 10, 5	Board is armed (after pause ; repeats until board is disarmed or throttle is increased)
 
+## Controlling buzzer usage
+
+The usage of the buzzer can be controlled by the CLI `beeper` command.
+
+### List current usage
+
+```
+beeper 
+```
+### List all buzzer setting options
+
+```
+beeper list
+```
+giving:
+
+```
+Available:  RUNTIME_CALIBRATION  HW_FAILURE  RX_LOST  RX_LOST_LANDING  DISARMING  ARMING  ARMING_GPS_FIX  BAT_CRIT_LOW  BAT_LOW  GPS_STATUS  RX_SET  ACTION_SUCCESS  ACTION_FAIL  READY_BEEP  MULTI_BEEPS  DISARM_REPEAT  ARMED  SYSTEM_INIT  ON_USB  LAUNCH_MODE  CAM_CONNECTION_OPEN  CAM_CONNECTION_CLOSED  ALL  PREFERED
+```
+
+The `beeper` command  syntax follows that of the `feature` command; a minus (`-`) in front of a name disables that function.
+
+So to disable the beeper / buzzer when connected to USB (may enhance domestic harmony)
+
+```
+beeper -ON_USB
+```
+
+Now the `beeper` command will show:
+
+```
+# beeper
+Disabled:  ON_USB
+
+```
+
+As with other CLI commands, the `save` command is needed to save the new settings.
 
 ## Types of buzzer supported
 
