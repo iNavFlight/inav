@@ -16,7 +16,7 @@
 #
 
 # The target to build, see VALID_TARGETS below
-TARGET    ?= OMNIBUSF4V3
+TARGET    ?= REVO
 
 # Compile-time options
 OPTIONS   ?=
