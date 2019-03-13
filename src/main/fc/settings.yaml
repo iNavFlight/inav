@@ -623,6 +623,9 @@ groups:
         field: platformType
         type: uint8_t
         table: platform_type
+      - name: has_spoilers
+        field: hasSpoilers
+        type: bool
       - name: has_flaps
         field: hasFlaps
         type: bool
@@ -670,6 +673,9 @@ groups:
       - name: flaperon_throw_offset
         min: FLAPERON_THROW_MIN
         max: FLAPERON_THROW_MAX
+      - name: spoileron_throw_offset
+        min: SPOILERON_THROW_MIN
+        max: SPOILERON_THROW_MAX
       - name: tri_unarmed_servo
         type: bool
 

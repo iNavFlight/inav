@@ -82,6 +82,7 @@ Each servo mixing rule has the following parameters:
 | 26 | Stabilized PITCH-        | Clipped between -1000 and 0 |
 | 27 | Stabilized YAW+          | Clipped between 0 and 1000 |
 | 28 | Stabilized YAW-          | Clipped between -1000 and 0 |
+| 29 | FEATURE SPOILERON        | This input value is equal to the `spoileron_throw_offset` setting when the `SPOILERON` flight mode is enabled, 0 otherwise |
 
 
 The `smix reset` command removes all the existing motor mixing rules.

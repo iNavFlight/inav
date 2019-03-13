@@ -52,13 +52,14 @@
 
 #include "sensors/gyro.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 1);
 
 PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
     .servoCenterPulse = 1500,
     .servoPwmRate = 50,             // Default for analog servos
     .servo_lowpass_freq = 20,       // Default servo update rate is 50Hz, everything above Nyquist frequency (25Hz) is going to fold and cause distortions
     .flaperon_throw_offset = FLAPERON_THROW_DEFAULT,
+    .spoileron_throw_offset = SPOILERON_THROW_DEFAULT,
     .tri_unarmed_servo = 1
 );
 
@@ -236,6 +237,7 @@ void servoMixer(float dT)
     input[INPUT_STABILIZED_YAW_MINUS] = constrain(input[INPUT_STABILIZED_YAW], -1000, 0);
 
     input[INPUT_FEATURE_FLAPS] = FLIGHT_MODE(FLAPERON) ? servoConfig()->flaperon_throw_offset : 0;
+    input[INPUT_FEATURE_SPOILERS] = FLIGHT_MODE(SPOILERON) ? -servoConfig()->spoileron_throw_offset : 0;
 
     if (IS_RC_MODE_ACTIVE(BOXCAMSTAB)) {
         input[INPUT_GIMBAL_PITCH] = scaleRange(attitude.values.pitch, -900, 900, -500, +500);

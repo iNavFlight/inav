@@ -80,6 +80,7 @@ typedef enum {
     NAV_CRUISE_MODE = (1 << 12),
     FLAPERON        = (1 << 13),
     TURN_ASSISTANT  = (1 << 14),
+    SPOILERON       = (1 << 15),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
@@ -103,6 +104,7 @@ typedef enum {
     NAV_CRUISE_BRAKING      = (1 << 11),
     NAV_CRUISE_BRAKING_BOOST = (1 << 12),
     NAV_CRUISE_BRAKING_LOCKED = (1 << 13),
+    SPOILERON_AVAILABLE     = (1 << 14),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

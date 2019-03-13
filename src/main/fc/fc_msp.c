@@ -347,7 +347,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, MW_VERSION);
         sbufWriteU8(dst, 3); //We no longer have mixerMode, just sent 3 (QuadX) as fallback
         sbufWriteU8(dst, MSP_PROTOCOL_VERSION);
-        sbufWriteU32(dst, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | CAP_FLAPS | CAP_NAVCAP | CAP_EXTAUX); // "capability"
+        sbufWriteU32(dst, CAP_PLATFORM_32BIT | CAP_DYNBALANCE | CAP_FLAPS | CAP_NAVCAP | CAP_EXTAUX | CAP_SPOILERS); // "capability"
         break;
 
 #ifdef HIL
@@ -1347,6 +1347,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
         sbufWriteU8(dst, MAX_SUPPORTED_MOTORS);
         sbufWriteU8(dst, MAX_SUPPORTED_SERVOS);
+        sbufWriteU8(dst, mixerConfig()->hasSpoilers);
         break;
 
 #if defined(USE_OSD)
@@ -2577,6 +2578,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
         sbufReadU8(src); //Read and ignore MAX_SUPPORTED_MOTORS
         sbufReadU8(src); //Read and ignore MAX_SUPPORTED_SERVOS
+        mixerConfigMutable()->hasSpoilers = sbufReadU8(src);
         mixerUpdateStateFlags();
         break;
 

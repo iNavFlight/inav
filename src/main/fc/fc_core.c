@@ -536,7 +536,15 @@ void processRx(timeUs_t currentTimeUs)
     } else {
         DISABLE_FLIGHT_MODE(FLAPERON);
     }
-
+    /* Spoileron mode */
+    if (IS_RC_MODE_ACTIVE(BOXSPOILERON) && STATE(SPOILERON_AVAILABLE)) {
+        if (!FLIGHT_MODE(SPOILERON)) {
+            ENABLE_FLIGHT_MODE(SPOILERON);
+        }
+    } else {
+        DISABLE_FLIGHT_MODE(SPOILERON);
+    }
+	
     /* Turn assistant mode */
     if (IS_RC_MODE_ACTIVE(BOXTURNASSIST)) {
         if (!FLIGHT_MODE(TURN_ASSISTANT)) {

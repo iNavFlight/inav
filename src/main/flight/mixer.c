@@ -70,13 +70,14 @@ PG_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig,
     .neutral3d = 1460
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_CONFIG, 2);
 
 PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .yaw_motor_direction = 1,
     .yaw_jump_prevention_limit = 200,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
+    .hasSpoilers = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
     .fwMinThrottleDownPitchAngle = 0
 );
@@ -138,6 +139,11 @@ void mixerUpdateStateFlags(void)
         ENABLE_STATE(FLAPERON_AVAILABLE);
     } else {
         DISABLE_STATE(FLAPERON_AVAILABLE);
+    }
+    if (mixerConfig()->hasSpoilers) {
+        ENABLE_STATE(SPOILERON_AVAILABLE);
+    } else {
+        DISABLE_STATE(SPOILERON_AVAILABLE);
     }
 }
 

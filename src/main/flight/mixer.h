@@ -67,6 +67,7 @@ typedef struct mixerConfig_s {
     uint16_t yaw_jump_prevention_limit;      // make limit configurable (original fixed value was 100)
     uint8_t platformType;
     bool hasFlaps;
+    bool hasSpoilers;
     int16_t appliedMixerPreset;
     uint16_t fwMinThrottleDownPitchAngle;
 } mixerConfig_t;

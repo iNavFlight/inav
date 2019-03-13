@@ -60,7 +60,7 @@
 #define MSP_PROTOCOL_VERSION                0   // Same version over MSPv1 & MSPv2 - message format didn't change and it backward compatible
 
 #define API_VERSION_MAJOR                   2   // increment when major changes are made
-#define API_VERSION_MINOR                   3   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
+#define API_VERSION_MINOR                   4   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
 
 #define API_VERSION_LENGTH                  2
 
@@ -92,6 +92,7 @@
 #define CAP_FLAPS                   ((uint32_t)1 << 3)
 #define CAP_NAVCAP                  ((uint32_t)1 << 4)
 #define CAP_EXTAUX                  ((uint32_t)1 << 5)
+#define CAP_SPOILERS                ((uint32_t)1 << 6)
 
 #define MSP_API_VERSION                 1    //out message
 #define MSP_FC_VARIANT                  2    //out message
