@@ -797,7 +797,7 @@ static void writeIntraframe(void)
 
     for (int x = 0; x < MAX_SUPPORTED_SERVOS; x++) {
         //Assume that servos spends most of its time around the center
-        blackboxWriteSignedVB(blackboxCurrent->servo[x] - 1500);
+        blackboxWriteSignedVB(blackboxCurrent->servo[x] - servoParams(x)->middle);
     }
 
 #ifdef NAV_BLACKBOX
