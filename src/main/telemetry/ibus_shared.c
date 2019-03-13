@@ -144,7 +144,7 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         int16_t temperature;
         const bool temp_valid = sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
         if (!temp_valid || (temperature < -400)) temperature = -400; // Minimum reported temperature is -40°C
-        return sendIbusMeasurement2(address, (uint16_t)((temperature + 50) / 10  + IBUS_TEMPERATURE_OFFSET));
+        return sendIbusMeasurement2(address, (uint16_t)(temperature  + IBUS_TEMPERATURE_OFFSET));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_RPM) {
         return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT
