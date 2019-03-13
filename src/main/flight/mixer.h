@@ -30,6 +30,13 @@
 
 #define FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX 450
 
+// Digital protocol has fixed values
+#define DSHOT_DISARM_COMMAND      0
+#define DSHOT_MIN_THROTTLE       48
+#define DSHOT_MAX_THROTTLE     2047
+#define DSHOT_3D_DEADBAND_LOW  1047
+#define DSHOT_3D_DEADBAND_HIGH 1048
+
 typedef enum {
     PLATFORM_MULTIROTOR     = 0,
     PLATFORM_AIRPLANE       = 1,
@@ -53,7 +60,7 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
-PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, customMotorMixer);
+PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
 typedef struct mixerConfig_s {
     int8_t yaw_motor_direction;
@@ -83,6 +90,7 @@ typedef struct motorConfig_s {
     uint8_t  motorPwmProtocol;
     uint16_t motorAccelTimeMs;              // Time limit for motor to accelerate from 0 to 100% throttle [ms]
     uint16_t motorDecelTimeMs;              // Time limit for motor to decelerate from 0 to 100% throttle [ms]
+    uint16_t digitalIdleOffsetValue;
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
@@ -102,7 +110,7 @@ bool mixerIsOutputSaturated(void);
 motorStatus_e getMotorStatus(void);
 
 void writeAllMotors(int16_t mc);
-void mixerUsePWMIOConfiguration(void);
+void mixerPrepare(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
 void mixTable(const float dT);
@@ -110,3 +118,5 @@ void writeMotors(void);
 void processServoAutotrim(void);
 void stopMotors(void);
 void stopPwmAllMotors(void);
+
+void loadPrimaryMotorMixer(void);

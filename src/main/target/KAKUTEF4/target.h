@@ -31,8 +31,6 @@
 #   define USBD_PRODUCT_STRING "KakuteF4-V1"
 #endif
 
-#define USE_TARGET_CONFIG
-
 #define LED0                    PB5
 #define LED1                    PB4
 #define LED2                    PB6
@@ -69,6 +67,9 @@
 #   define USE_MAG_MAG3110
 #   define USE_MAG_IST8310
 #   define USE_MAG_IST8308
+#   define USE_MAG_LIS3MDL
+
+#   define TEMPERATURE_I2C_BUS     BUS_I2C1
 
 #   define USE_BARO
 #   define BARO_I2C_BUS            BUS_I2C1

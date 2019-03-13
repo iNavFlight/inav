@@ -25,6 +25,7 @@
 
 #if defined(USE_RX_PWM) || defined(USE_RX_PPM)
 
+#include "build/debug.h"
 #include "common/utils.h"
 
 #include "config/feature.h"

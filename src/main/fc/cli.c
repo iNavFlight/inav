@@ -56,6 +56,7 @@ extern uint8_t __config_end;
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/logging.h"
+#include "drivers/max7456_symbols.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/sdcard.h"
 #include "drivers/sensor.h"
@@ -65,6 +66,7 @@ extern uint8_t __config_end;
 #include "drivers/time.h"
 #include "drivers/timer.h"
 
+#include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -107,6 +109,7 @@ extern uint8_t __config_end;
 #include "sensors/rangefinder.h"
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
@@ -148,7 +151,7 @@ static const char * const featureNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "L3G4200D", "MPU3050", "L3GD20", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -747,7 +750,7 @@ static void cliSerial(char *cmdline)
     ptr = nextArg(ptr);
     if (ptr) {
         val = fastA2I(ptr);
-        portConfig.functionMask = val & 0xFFFF;
+        portConfig.functionMask = val & 0xFFFFFFFF;
         validArgumentCount++;
     }
 
@@ -976,7 +979,7 @@ static void cliAdjustmentRange(char *cmdline)
     }
 }
 
-static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer, const motorMixer_t *defaultCustomMotorMixer)
+static void printMotorMix(uint8_t dumpMask, const motorMixer_t *primaryMotorMixer, const motorMixer_t *defaultprimaryMotorMixer)
 {
     const char *format = "mmix %d %s %s %s %s";
     char buf0[FTOA_BUFFER_SIZE];
@@ -984,18 +987,18 @@ static void printMotorMix(uint8_t dumpMask, const motorMixer_t *customMotorMixer
     char buf2[FTOA_BUFFER_SIZE];
     char buf3[FTOA_BUFFER_SIZE];
     for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        if (customMotorMixer[i].throttle == 0.0f)
+        if (primaryMotorMixer[i].throttle == 0.0f)
             break;
-        const float thr = customMotorMixer[i].throttle;
-        const float roll = customMotorMixer[i].roll;
-        const float pitch = customMotorMixer[i].pitch;
-        const float yaw = customMotorMixer[i].yaw;
+        const float thr = primaryMotorMixer[i].throttle;
+        const float roll = primaryMotorMixer[i].roll;
+        const float pitch = primaryMotorMixer[i].pitch;
+        const float yaw = primaryMotorMixer[i].yaw;
         bool equalsDefault = false;
-        if (defaultCustomMotorMixer) {
-            const float thrDefault = defaultCustomMotorMixer[i].throttle;
-            const float rollDefault = defaultCustomMotorMixer[i].roll;
-            const float pitchDefault = defaultCustomMotorMixer[i].pitch;
-            const float yawDefault = defaultCustomMotorMixer[i].yaw;
+        if (defaultprimaryMotorMixer) {
+            const float thrDefault = defaultprimaryMotorMixer[i].throttle;
+            const float rollDefault = defaultprimaryMotorMixer[i].roll;
+            const float pitchDefault = defaultprimaryMotorMixer[i].pitch;
+            const float yawDefault = defaultprimaryMotorMixer[i].yaw;
             const bool equalsDefault = thr == thrDefault && roll == rollDefault && pitch == pitchDefault && yaw == yawDefault;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
@@ -1020,11 +1023,11 @@ static void cliMotorMix(char *cmdline)
     const char *ptr;
 
     if (isEmpty(cmdline)) {
-        printMotorMix(DUMP_MASTER, customMotorMixer(0), NULL);
+        printMotorMix(DUMP_MASTER, primaryMotorMixer(0), NULL);
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
         for (uint32_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            customMotorMixerMutable(i)->throttle = 0.0f;
+            primaryMotorMixerMutable(i)->throttle = 0.0f;
         }
     } else {
         ptr = cmdline;
@@ -1032,28 +1035,28 @@ static void cliMotorMix(char *cmdline)
         if (i < MAX_SUPPORTED_MOTORS) {
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->throttle = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->throttle = fastA2F(ptr);
                 check++;
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->roll = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->roll = fastA2F(ptr);
                 check++;
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->pitch = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->pitch = fastA2F(ptr);
                 check++;
             }
             ptr = nextArg(ptr);
             if (ptr) {
-                customMotorMixerMutable(i)->yaw = fastA2F(ptr);
+                primaryMotorMixerMutable(i)->yaw = fastA2F(ptr);
                 check++;
             }
             if (check != 4) {
                 cliShowParseError();
             } else {
-                printMotorMix(DUMP_MASTER, customMotorMixer(0), NULL);
+                printMotorMix(DUMP_MASTER, primaryMotorMixer(0), NULL);
             }
         } else {
             cliShowArgumentRangeError("index", 0, MAX_SUPPORTED_MOTORS - 1);
@@ -1124,6 +1127,121 @@ static void cliRxRange(char *cmdline)
         }
     }
 }
+
+#ifdef USE_TEMPERATURE_SENSOR
+static void printTempSensor(uint8_t dumpMask, const tempSensorConfig_t *tempSensorConfigs, const tempSensorConfig_t *defaultTempSensorConfigs)
+{
+    const char *format = "temp_sensor %u %u %s %d %d %u %s";
+    for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+        bool equalsDefault = false;
+        char label[5], hex_address[17];
+        strncpy(label, tempSensorConfigs[i].label, TEMPERATURE_LABEL_LEN);
+        label[4] = '\0';
+        tempSensorAddressToString(tempSensorConfigs[i].address, hex_address);
+        if (defaultTempSensorConfigs) {
+            equalsDefault = tempSensorConfigs[i].type == defaultTempSensorConfigs[i].type
+                && tempSensorConfigs[i].address == defaultTempSensorConfigs[i].address
+                && tempSensorConfigs[i].osdSymbol == defaultTempSensorConfigs[i].osdSymbol
+                && !memcmp(tempSensorConfigs[i].label, defaultTempSensorConfigs[i].label, TEMPERATURE_LABEL_LEN)
+                && tempSensorConfigs[i].alarm_min == defaultTempSensorConfigs[i].alarm_min
+                && tempSensorConfigs[i].alarm_max == defaultTempSensorConfigs[i].alarm_max;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                defaultTempSensorConfigs[i].type,
+                "0",
+                defaultTempSensorConfigs[i].alarm_min,
+                defaultTempSensorConfigs[i].alarm_max,
+                0,
+                ""
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            tempSensorConfigs[i].type,
+            hex_address,
+            tempSensorConfigs[i].alarm_min,
+            tempSensorConfigs[i].alarm_max,
+            tempSensorConfigs[i].osdSymbol,
+            label
+        );
+    }
+}
+
+static void cliTempSensor(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printTempSensor(DUMP_MASTER, tempSensorConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetTempSensorConfig();
+    } else {
+        int16_t i;
+        const char *ptr = cmdline, *label;
+        int16_t type, alarm_min, alarm_max;
+        bool addressValid = false;
+        uint64_t address;
+        int8_t osdSymbol;
+        uint8_t validArgumentCount = 0;
+        i = fastA2I(ptr);
+        if (i >= 0 && i < MAX_TEMP_SENSORS) {
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                type = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                addressValid = tempSensorStringToAddress(ptr, &address);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                alarm_min = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                alarm_max = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            ptr = nextArg(ptr);
+            if (ptr) {
+                osdSymbol = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            label = nextArg(ptr);
+            if (label)
+                ++validArgumentCount;
+            else
+                label = "";
+
+            if (validArgumentCount < 4) {
+                cliShowParseError();
+            } else if (type < 0 || type > TEMP_SENSOR_DS18B20 || alarm_min < -550 || alarm_min > 1250 || alarm_max < -550 || alarm_max > 1250 || osdSymbol < 0 || osdSymbol > TEMP_SENSOR_SYM_COUNT || strlen(label) > TEMPERATURE_LABEL_LEN || !addressValid) {
+                cliShowParseError();
+            } else {
+                tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(i);
+                sensorConfig->type = type;
+                sensorConfig->address = address;
+                sensorConfig->alarm_min = alarm_min;
+                sensorConfig->alarm_max = alarm_max;
+                sensorConfig->osdSymbol = osdSymbol;
+                for (uint8_t index; index < TEMPERATURE_LABEL_LEN; ++index) {
+                    sensorConfig->label[index] = toupper(label[index]);
+                    if (label[index] == '\0') break;
+                }
+            }
+        } else {
+            cliShowArgumentRangeError("sensor index", 0, MAX_TEMP_SENSORS - 1);
+        }
+    }
+}
+#endif
 
 #ifdef USE_LED_STRIP
 static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledConfig_t *defaultLedConfigs)
@@ -1292,25 +1410,6 @@ static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const s
             servoConf->rate
         );
     }
-
-    // print servo directions
-    if (defaultServoParam) {
-        for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            const servoParam_t *servoConf = &servoParam[i];
-            const servoParam_t *servoConfDefault = &defaultServoParam[i];
-            bool equalsDefault = servoConf->reversedSources == servoConfDefault->reversedSources;
-            for (uint32_t channel = 0; channel < INPUT_SOURCE_COUNT; channel++) {
-                equalsDefault = ~(servoConf->reversedSources ^ servoConfDefault->reversedSources) & (1 << channel);
-                const char *format = "smix reverse %d %d r";
-                if (servoConfDefault->reversedSources & (1 << channel)) {
-                    cliDefaultPrintLinef(dumpMask, equalsDefault, format, i , channel);
-                }
-                if (servoConf->reversedSources & (1 << channel)) {
-                    cliDumpPrintLinef(dumpMask, equalsDefault, format, i , channel);
-                }
-            }
-        }
-    }
 }
 
 static void cliServo(char *cmdline)
@@ -1385,7 +1484,7 @@ static void cliServo(char *cmdline)
 
 static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixers, const servoMixer_t *defaultCustomServoMixers)
 {
-    const char *format = "smix %d %d %d %d %d";
+    const char *format = "smix %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_SERVO_RULES; i++) {
         const servoMixer_t customServoMixer = customServoMixers[i];
         if (customServoMixer.rate == 0) {
@@ -1398,14 +1497,23 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             equalsDefault = customServoMixer.targetChannel == customServoMixerDefault.targetChannel
                 && customServoMixer.inputSource == customServoMixerDefault.inputSource
                 && customServoMixer.rate == customServoMixerDefault.rate
-                && customServoMixer.speed == customServoMixerDefault.speed;
+                && customServoMixer.speed == customServoMixerDefault.speed
+            #ifdef USE_LOGIC_CONDITIONS
+                && customServoMixer.conditionId == customServoMixerDefault.conditionId
+            #endif
+            ;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 customServoMixerDefault.targetChannel,
                 customServoMixerDefault.inputSource,
                 customServoMixerDefault.rate,
-                customServoMixerDefault.speed
+                customServoMixerDefault.speed,
+            #ifdef USE_LOGIC_CONDITIONS
+                customServoMixer.conditionId
+            #else
+                0
+            #endif
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -1413,7 +1521,12 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             customServoMixer.targetChannel,
             customServoMixer.inputSource,
             customServoMixer.rate,
-            customServoMixer.speed
+            customServoMixer.speed,
+        #ifdef USE_LOGIC_CONDITIONS
+            customServoMixer.conditionId
+        #else
+            0
+        #endif
         );
     }
 }
@@ -1421,7 +1534,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
 static void cliServoMix(char *cmdline)
 {
     char * saveptr;
-    int args[8], check = 0;
+    int args[6], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1429,53 +1542,8 @@ static void cliServoMix(char *cmdline)
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
-        for (uint32_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-            servoParamsMutable(i)->reversedSources = 0;
-        }
-    } else if (sl_strncasecmp(cmdline, "reverse", 7) == 0) {
-        enum {SERVO = 0, INPUT, REVERSE, ARGS_COUNT};
-        char *ptr = strchr(cmdline, ' ');
-
-        len = strlen(ptr);
-        if (len == 0) {
-            cliPrintf("s");
-            for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
-                cliPrintf("\ti%d", inputSource);
-            cliPrintLinefeed();
-
-            for (uint32_t servoIndex = 0; servoIndex < MAX_SUPPORTED_SERVOS; servoIndex++) {
-                cliPrintf("%d", servoIndex);
-                for (uint32_t inputSource = 0; inputSource < INPUT_SOURCE_COUNT; inputSource++)
-                    cliPrintf("\t%s  ", (servoParams(servoIndex)->reversedSources & (1 << inputSource)) ? "r" : "n");
-                cliPrintLinefeed();
-            }
-            return;
-        }
-
-        ptr = strtok_r(ptr, " ", &saveptr);
-        while (ptr != NULL && check < ARGS_COUNT - 1) {
-            args[check++] = fastA2I(ptr);
-            ptr = strtok_r(NULL, " ", &saveptr);
-        }
-
-        if (ptr == NULL || check != ARGS_COUNT - 1) {
-            cliShowParseError();
-            return;
-        }
-
-        if (args[SERVO] >= 0 && args[SERVO] < MAX_SUPPORTED_SERVOS
-                && args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT
-                && (*ptr == 'r' || *ptr == 'n')) {
-            if (*ptr == 'r')
-                servoParamsMutable(args[SERVO])->reversedSources |= 1 << args[INPUT];
-            else
-                servoParamsMutable(args[SERVO])->reversedSources &= ~(1 << args[INPUT]);
-        } else
-            cliShowParseError();
-
-        cliServoMix("reverse");
     } else {
-        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, ARGS_COUNT};
+        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
@@ -1488,21 +1556,131 @@ static void cliServoMix(char *cmdline)
         }
 
         int32_t i = args[RULE];
-        if (i >= 0 && i < MAX_SERVO_RULES &&
+        if (
+            i >= 0 && i < MAX_SERVO_RULES &&
             args[TARGET] >= 0 && args[TARGET] < MAX_SUPPORTED_SERVOS &&
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
-            args[RATE] >= -125 && args[RATE] <= 125 &&
-            args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED) {
+            args[RATE] >= -1000 && args[RATE] <= 1000 &&
+            args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED &&
+            args[CONDITION] >= -1 && args[CONDITION] < MAX_LOGIC_CONDITIONS
+        ) {
             customServoMixersMutable(i)->targetChannel = args[TARGET];
             customServoMixersMutable(i)->inputSource = args[INPUT];
             customServoMixersMutable(i)->rate = args[RATE];
             customServoMixersMutable(i)->speed = args[SPEED];
+        #ifdef USE_LOGIC_CONDITIONS
+            customServoMixersMutable(i)->conditionId = args[CONDITION];
+        #endif
             cliServoMix("");
         } else {
             cliShowParseError();
         }
     }
 }
+
+#ifdef USE_LOGIC_CONDITIONS
+
+static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
+{
+    const char *format = "logic %d %d %d %d %d %d %d %d";
+    for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        const logicCondition_t logic = logicConditions[i];
+        
+        bool equalsDefault = false;
+        if (defaultLogicConditions) {
+            logicCondition_t defaultValue = defaultLogicConditions[i];
+            equalsDefault = 
+                logic.enabled == defaultValue.enabled &&
+                logic.operation == defaultValue.operation &&
+                logic.operandA.type == defaultValue.operandA.type &&
+                logic.operandA.value == defaultValue.operandA.value &&
+                logic.operandB.type == defaultValue.operandB.type &&
+                logic.operandB.value == defaultValue.operandB.value &&
+                logic.flags == defaultValue.flags;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                logic.enabled,
+                logic.operation,
+                logic.operandA.type,
+                logic.operandA.value,
+                logic.operandB.type,
+                logic.operandB.value,
+                logic.flags
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            logic.enabled,
+            logic.operation,
+            logic.operandA.type,
+            logic.operandA.value,
+            logic.operandB.type,
+            logic.operandB.value,
+            logic.flags
+        );
+    }
+}
+
+static void cliLogic(char *cmdline) {
+    char * saveptr;
+    int args[8], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printLogic(DUMP_MASTER, logicConditions(0), NULL);
+    } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
+        pgResetCopy(logicConditionsMutable(0), PG_SERVO_MIXER);
+    } else {
+        enum {
+            INDEX = 0,
+            ENABLED,
+            OPERATION,
+            OPERAND_A_TYPE, 
+            OPERAND_A_VALUE,
+            OPERAND_B_TYPE, 
+            OPERAND_B_VALUE,
+            FLAGS,
+            ARGS_COUNT
+            };
+        char *ptr = strtok_r(cmdline, " ", &saveptr);
+        while (ptr != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptr);
+            ptr = strtok_r(NULL, " ", &saveptr);
+        }
+
+        if (ptr != NULL || check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        int32_t i = args[INDEX];
+        if (
+            i >= 0 && i < MAX_LOGIC_CONDITIONS &&
+            args[ENABLED] >= 0 && args[ENABLED] <= 1 &&
+            args[OPERATION] >= 0 && args[OPERATION] < LOGIC_CONDITION_LAST &&
+            args[OPERAND_A_TYPE] >= 0 && args[OPERAND_A_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[OPERAND_A_VALUE] >= -1000000 && args[OPERAND_A_VALUE] <= 1000000 &&
+            args[OPERAND_B_TYPE] >= 0 && args[OPERAND_B_TYPE] < LOGIC_CONDITION_OPERAND_TYPE_LAST &&
+            args[OPERAND_B_VALUE] >= -1000000 && args[OPERAND_B_VALUE] <= 1000000 &&
+            args[FLAGS] >= 0 && args[FLAGS] <= 255
+        
+        ) {
+            logicConditionsMutable(i)->enabled = args[ENABLED];
+            logicConditionsMutable(i)->operation = args[OPERATION];
+            logicConditionsMutable(i)->operandA.type = args[OPERAND_A_TYPE];
+            logicConditionsMutable(i)->operandA.value = args[OPERAND_A_VALUE];
+            logicConditionsMutable(i)->operandB.type = args[OPERAND_B_TYPE];
+            logicConditionsMutable(i)->operandB.value = args[OPERAND_B_VALUE];
+            logicConditionsMutable(i)->flags = args[FLAGS];
+
+            cliLogic("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+#endif
 
 #ifdef USE_SDCARD
 
@@ -2023,15 +2201,7 @@ static void cliRebootEx(bool bootLoader)
     bufWriterFlush(cliWriter);
     waitForSerialPortToFinishTransmitting(cliPort);
 
-    stopMotors();
-    stopPwmAllMotors();
-
-    delay(1000);
-    if (bootLoader) {
-        systemResetToBootloader();
-        return;
-    }
-    systemReset();
+    fcReboot(bootLoader);
 }
 
 static void cliReboot(void)
@@ -2364,7 +2534,7 @@ static void cliSet(char *cmdline)
                     cliPrintf("%s set to ", name);
                     cliPrintVar(val, 0);
                 } else {
-                    cliPrint("Invalid value.");
+                    cliPrint("Invalid value. ");
                     cliPrintVarRange(val);
                     cliPrintLinefeed();
                 }
@@ -2390,14 +2560,14 @@ static void cliStatus(char *cmdline)
 {
     UNUSED(cmdline);
 
-    char buf[FORMATTED_DATE_TIME_BUFSIZE];
+    char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
-    cliPrintLinef("Voltage: %d.%dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
+    cliPrintLinef("Voltage: %d.%02dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
     const uint32_t detectedSensorsMask = sensorsMask();
@@ -2481,11 +2651,7 @@ static void cliStatus(char *cmdline)
 #endif
 
     cliPrintf("System load: %d", averageSystemLoadPercent);
-#ifdef USE_ASYNC_GYRO_PROCESSING
-    const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
-#else
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_GYROPID);
-#endif
     const int pidRate = pidTaskDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)pidTaskDeltaTime));
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
@@ -2499,6 +2665,13 @@ static void cliStatus(char *cmdline)
 	if (bitpos > 6) cliPrintf(" %s", armingDisableFlagNames[bitpos - 7]);
     }
     cliPrintLinefeed();
+    if (armingFlags & ARMING_DISABLED_INVALID_SETTING) {
+        unsigned invalidIndex;
+        if (!settingsValidate(&invalidIndex)) {
+            settingGetName(settingGet(invalidIndex), buf);
+            cliPrintLinef("Invalid setting: %s", buf);
+        }
+    }
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
@@ -2546,6 +2719,9 @@ static void cliVersion(char *cmdline)
         buildDate,
         buildTime,
         shortGitRevision
+    );
+    cliPrintLinef("# GCC-%s",
+        compilerVersion
     );
 }
 
@@ -2656,9 +2832,9 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("mixer");
-        cliDumpPrintLinef(dumpMask, customMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
+        cliDumpPrintLinef(dumpMask, primaryMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
 
-        printMotorMix(dumpMask, customMotorMixer_CopyArray, customMotorMixer(0));
+        printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
         cliPrintHashLine("servo mix");
@@ -2668,6 +2844,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         // print servo parameters
         cliPrintHashLine("servo");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
+
+#ifdef USE_LOGIC_CONDITIONS
+        cliPrintHashLine("logic");
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+#endif
 
         cliPrintHashLine("feature");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
@@ -2702,6 +2883,11 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
+
+#ifdef USE_TEMPERATURE_SENSOR
+        cliPrintHashLine("temp_sensor");
+        printTempSensor(dumpMask, tempSensorConfig_CopyArray, tempSensorConfig(0));
+#endif
 
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
@@ -2852,18 +3038,24 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] : passthrough to serial", cliSerialPassthrough),
 #endif
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
+#ifdef USE_LOGIC_CONDITIONS
+    CLI_COMMAND_DEF("logic", "configure logic conditions", 
+        "<rule> <enabled> <operation> <operand A type> <operand A value> <operand B type> <operand B value> <flags>\r\n"
+        "\treset\r\n", cliLogic),
+#endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
-        "<rule> <servo> <source> <rate> <speed>\r\n"
-        "\treset\r\n"
-        "\tload <mixer>\r\n"
-        "\treverse <servo> <source> r|n", cliServoMix),
+        "<rule> <servo> <source> <rate> <speed> <conditionId>\r\n"
+        "\treset\r\n", cliServoMix),
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
 #ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
 #ifdef USE_OSD

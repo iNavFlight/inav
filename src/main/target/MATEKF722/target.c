@@ -24,23 +24,25 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-#define TIM_EN      TIMER_OUTPUT_ENABLED
-#define TIM_EN_N    TIMER_OUTPUT_ENABLED | TIMER_OUTPUT_N_CHANNEL
-
 const timerHardware_t timerHardware[] = {
-    { TIM5, IO_TAG(PA3),    TIM_CHANNEL_4, 0,        IOCFG_AF_PP_PD, GPIO_AF2_TIM5, TIM_USE_PPM },
+    DEF_TIM(TIM5, CH4, PA3, TIM_USE_PPM,                         0, 0),                     // PPM
 
-    { TIM3, IO_TAG(PC6),    TIM_CHANNEL_1, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, //S1 DMA1_ST4 MT1
-    { TIM8, IO_TAG(PC7),    TIM_CHANNEL_2, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF3_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, //S2 DMA2_ST3 SV3
-    { TIM8, IO_TAG(PC8),    TIM_CHANNEL_3, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF3_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, //S3 DMA2_ST4 SV4
-    { TIM8, IO_TAG(PC9),    TIM_CHANNEL_4, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF3_TIM8, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, //S4 DMA2_ST7 SV5
-    { TIM3, IO_TAG(PB1),    TIM_CHANNEL_4, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, //S5 DMA1_ST2 MT2
-    { TIM1, IO_TAG(PA8),    TIM_CHANNEL_1, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF1_TIM1, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, //S6 DMA2_ST6 SV6
-    { TIM4, IO_TAG(PB8),    TIM_CHANNEL_3, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM4, TIM_USE_MC_CHNFW | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO }, //S7 DMA1_ST7
+    DEF_TIM(TIM3, CH1, PC6, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),                     // S1 D(1, 4, 5)
+    DEF_TIM(TIM8, CH2, PC7, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),                     // S2 D(2, 3, 7)
+    DEF_TIM(TIM8, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),                     // S3 D(2, 4, 7)
+    DEF_TIM(TIM8, CH4, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),                     // S4 D(2, 7, 7)
 
-    //{ TIM5, IO_TAG(PA2),    TIM_CHANNEL_3, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF2_TIM5, TIM_USE_ANY }, 
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),                     // S5 DMA1_ST2
+#ifdef MATEKF722_HEXSERVO
+    DEF_TIM(TIM1, CH1, PA8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),                     // S6 DMA2_ST6
+#else
+    DEF_TIM(TIM1, CH1, PA8, TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0),  // S6 DMA2_ST6
+#endif
+    DEF_TIM(TIM4, CH3, PB8, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0, 0),                     // S7 DMA1_ST7
 
-    { TIM2, IO_TAG(PA15),   TIM_CHANNEL_1, TIM_EN,   IOCFG_AF_PP_PD, GPIO_AF1_TIM2, TIM_USE_LED}, //2812 STRIP DMA1_ST5
+    // DEF_TIM(TIM5, CH3, PA2, TIM_USE_ANY, 0, 0),                                           // TX2/S8  DMA1_ST0
+
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_LED, 0, 0),                                            // LED STRIP  D(1, 5, 3)
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

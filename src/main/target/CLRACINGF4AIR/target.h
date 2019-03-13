@@ -54,6 +54,8 @@
 #define ACC_MPU9250_ALIGN       CW0_DEG
 #define USE_MAG
 #define USE_MAG_MPU9250
+#define MAG_MPU9250_ALIGN       CW90_DEG
+
 // MPU6 interrupts
 #define USE_EXTI
 #define GYRO_INT_EXTI            PC4
@@ -72,9 +74,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB8
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST7_HANDLER
-#define WS2811_DMA_STREAM                 DMA1_Stream7
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
 
 #define USE_VCP
 
@@ -117,6 +116,8 @@
 #define I2C_DEVICE              (I2CDEV_2)
 #define I2C2_SCL                 PB10
 #define I2C2_SDA                PB11
+
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
 #endif
 
 #define USE_ADC
@@ -149,12 +150,3 @@
 #define TARGET_IO_PORTB (0xffff)
 #define TARGET_IO_PORTC (0xffff)
 #define TARGET_IO_PORTD BIT(2)
-
-// V2 has airspeed input
-#if defined( CLRACINGF4AIRV2 ) || defined(CLRACINGF4AIRV3)
-#define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(3) | TIM_N(4) | TIM_N(8)| TIM_N(11) | TIM_N(12)  )
-#else
-#define USABLE_TIMER_CHANNEL_COUNT 8
-#define USED_TIMERS  ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(9) | TIM_N(11) | TIM_N(12) )
-#endif

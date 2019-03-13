@@ -98,11 +98,11 @@ The following sensors are transmitted
 * **VFAS** : actual vbat value.
 * **Curr** : actual current comsuption, in amps.
 * **Alt** : barometer based altitude, relative to home location.
-* **Fuel** : if `battery_capacity` variable set and variable `smartport_fuel_percent = ON` remaining battery percentage, mAh drawn otherwise.
+* **Fuel** : if `smartport_fuel_unit = PERCENT` remaining battery percentage sent, MAH drawn otherwise.
 * **GPS** : GPS coordinates.
 * **VSpd** : vertical speed, unit is cm/s.
 * **Hdg** : heading, North is 0°, South is 180°.
-* **AccX,Y,Z** : accelerometer values.
+* **AccX,Y,Z** : accelerometer values (not sent if `frsky_pitch_roll = ON`).
 * **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
   * **A** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
   * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
@@ -118,6 +118,8 @@ The following sensors are transmitted
 * **ASpd** : true air speed, from pitot sensor.
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
 * **0420** : distance to GPS home fix, in meters
+* **0430** : if `frsky_pitch_roll = ON` set this will be pitch degrees*10
+* **0440** : if `frsky_pitch_roll = ON` set this will be roll degrees*10
 
 ### Compatible SmartPort/INAV telemetry flight status
 
@@ -160,10 +162,10 @@ This is new setting which supports VFAS resolution of 0.1 volts and is supported
 
 ### Notes
 
+Many of the same SmartPort telemetry values listed above are also sent with FrSky D-Series telemetry.
+
 RPM shows throttle output when armed.
 RPM shows when disarmed.
-TEMP2 shows Satellite Signal Quality when GPS is enabled.
-
 RPM requires that the 'blades' setting is set to 12 on your receiver/display - tested with Taranis/OpenTX.
 
 ## HoTT telemetry

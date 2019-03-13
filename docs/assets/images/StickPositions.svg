@@ -14,7 +14,7 @@
    viewBox="0 0 8782.4284 4964.1146"
    id="svg2"
    version="1.1"
-   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="StickPositions.svg"
    inkscape:export-filename="C:\Users\stuphi\Dropbox\projects\quad\StickPositions.png"
    inkscape:export-xdpi="74.996788"
@@ -781,6 +781,17 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="5630.3838"
+       y="1642.0621"
+       id="text4221"><tspan
+         sodipodi:role="line"
+         x="5630.3838"
+         y="1642.0621"
+         id="tspan4219"
+         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Enter OSD Menu (CMS)</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        x="2179.2812"
        y="-2663.0625"
        id="text7907"><tspan
@@ -914,5 +925,35 @@
        style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        inkscape:transform-center-y="-73.935654"
        inkscape:transform-center-x="73.935669" />
+    <rect
+       ry="0"
+       y="-1679.5159"
+       x="-6530.0146"
+       height="288.94339"
+       width="288.94339"
+       id="rect5919-6"
+       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       transform="scale(-1)" />
+    <path
+       sodipodi:nodetypes="sssss"
+       inkscape:connector-curvature="0"
+       id="path5923-2"
+       d="m 6352.7615,1369.2446 c 0,-10.5728 14.6765,-19.1438 32.7809,-19.1438 18.1044,0 32.7809,8.571 32.7809,19.1438 0,10.5729 -14.6765,163.5957 -32.7809,163.5957 -18.1044,0 -32.7809,-153.0228 -32.7809,-163.5957 z"
+       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
+       ry="0"
+       y="1390.7616"
+       x="-6125.2622"
+       height="288.94339"
+       width="288.94339"
+       id="rect5733-9"
+       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       transform="scale(-1,1)" />
+    <path
+       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 5814.1209,1502.592 c -10.5728,0 -19.1438,14.6765 -19.1438,32.7809 0,18.1044 8.571,32.7809 19.1438,32.7809 10.5729,0 163.5957,-14.6765 163.5957,-32.7809 0,-18.1044 -153.0228,-32.7809 -163.5957,-32.7809 z"
+       id="path5747-5"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="sssss" />
   </g>
 </svg>

@@ -71,9 +71,8 @@ typedef struct {
 
     uint8_t missedEvents;
 
-    const timerHardware_t *timerHardware;
-    timerCCHandlerRec_t edgeCb;
-    timerOvrHandlerRec_t overflowCb;
+    timerCallbacks_t cb;
+    const TCH_t * tch;
 } pwmInputPort_t;
 
 static pwmInputPort_t pwmInputPorts[PWM_INPUT_PORT_COUNT];
@@ -170,9 +169,9 @@ static void ppmInit(void)
     ppmDev.overflowed   = false;
 }
 
-static void ppmOverflowCallback(timerOvrHandlerRec_t* cbRec, captureCompare_t capture)
+static void ppmOverflowCallback(struct TCH_s * tch, uint32_t capture)
 {
-    UNUSED(cbRec);
+    UNUSED(tch);
     ppmISREvent(SOURCE_OVERFLOW, capture);
 
     ppmDev.largeCounter += capture + 1;
@@ -181,9 +180,9 @@ static void ppmOverflowCallback(timerOvrHandlerRec_t* cbRec, captureCompare_t ca
     }
 }
 
-static void ppmEdgeCallback(timerCCHandlerRec_t* cbRec, captureCompare_t capture)
+static void ppmEdgeCallback(struct TCH_s * tch, uint32_t capture)
 {
-    UNUSED(cbRec);
+    UNUSED(tch);
     ppmISREvent(SOURCE_EDGE, capture);
 
     int32_t i;
@@ -303,10 +302,10 @@ bool isPWMDataBeingReceived(void)
     return false;
 }
 
-static void pwmOverflowCallback(timerOvrHandlerRec_t* cbRec, captureCompare_t capture)
+static void pwmOverflowCallback(struct TCH_s * tch, uint32_t capture)
 {
     UNUSED(capture);
-    pwmInputPort_t *pwmInputPort = container_of(cbRec, pwmInputPort_t, overflowCb);
+    pwmInputPort_t *pwmInputPort = (pwmInputPort_t *)tch->cb->callbackParam;
 
     if (++pwmInputPort->missedEvents > MAX_MISSED_PWM_EVENTS) {
         captures[pwmInputPort->channel] = PPM_RCVR_TIMEOUT;
@@ -314,15 +313,14 @@ static void pwmOverflowCallback(timerOvrHandlerRec_t* cbRec, captureCompare_t ca
     }
 }
 
-static void pwmEdgeCallback(timerCCHandlerRec_t *cbRec, captureCompare_t capture)
+static void pwmEdgeCallback(struct TCH_s * tch, uint32_t capture)
 {
-    pwmInputPort_t *pwmInputPort = container_of(cbRec, pwmInputPort_t, edgeCb);
-    const timerHardware_t *timerHardwarePtr = pwmInputPort->timerHardware;
+    pwmInputPort_t *pwmInputPort = (pwmInputPort_t *)tch->cb->callbackParam;
 
     if (pwmInputPort->state == 0) {
         pwmInputPort->rise = capture;
         pwmInputPort->state = 1;
-        timerChConfigIC(timerHardwarePtr, false, INPUT_FILTER_TICKS);
+        timerChConfigIC(tch, false, INPUT_FILTER_TICKS);
     } else {
         pwmInputPort->fall = capture;
 
@@ -331,13 +329,13 @@ static void pwmEdgeCallback(timerCCHandlerRec_t *cbRec, captureCompare_t capture
             pwmInputPort->capture = pwmInputPort->fall - pwmInputPort->rise;
         }
         else {
-            pwmInputPort->capture = (pwmInputPort->fall + timerGetPeriod(timerHardwarePtr)) - pwmInputPort->rise;
+            pwmInputPort->capture = (pwmInputPort->fall + timerGetPeriod(tch)) - pwmInputPort->rise;
         }
         captures[pwmInputPort->channel] = pwmInputPort->capture;
 
         // switch state
         pwmInputPort->state = 0;
-        timerChConfigIC(timerHardwarePtr, true, INPUT_FILTER_TICKS);
+        timerChConfigIC(tch, true, INPUT_FILTER_TICKS);
         pwmInputPort->missedEvents = 0;
     }
 }
@@ -346,74 +344,52 @@ void pwmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t channel)
 {
     pwmInputPort_t *self = &pwmInputPorts[channel];
 
+    TCH_t * tch = timerGetTCH(timerHardwarePtr);
+    if (tch == NULL) {
+        return;
+    }
+
     self->state = 0;
     self->missedEvents = 0;
     self->channel = channel;
     self->mode = INPUT_MODE_PWM;
-    self->timerHardware = timerHardwarePtr;
 
     IO_t io = IOGetByTag(timerHardwarePtr->tag);
     IOInit(io, OWNER_PWMINPUT, RESOURCE_INPUT, RESOURCE_INDEX(channel));
     IOConfigGPIOAF(io, timerHardwarePtr->ioMode, timerHardwarePtr->alternateFunction);
 
-    timerConfigure(timerHardwarePtr, (uint16_t)PWM_TIMER_PERIOD, PWM_TIMER_MHZ);
-    timerChCCHandlerInit(&self->edgeCb, pwmEdgeCallback);
-    timerChOvrHandlerInit(&self->overflowCb, pwmOverflowCallback);
-    timerChConfigCallbacks(timerHardwarePtr, &self->edgeCb, &self->overflowCb);
-    timerChConfigIC(timerHardwarePtr, true, INPUT_FILTER_TICKS);
+    timerConfigure(tch, (uint16_t)PWM_TIMER_PERIOD, PWM_TIMER_HZ);
+    timerChInitCallbacks(&self->cb, (void*)self, &pwmEdgeCallback, &pwmOverflowCallback);
+    timerChConfigCallbacks(tch, &self->cb);
+    timerChConfigIC(tch, true, INPUT_FILTER_TICKS);
+    timerChCaptureEnable(tch);
 }
 
 #define UNUSED_PPM_TIMER_REFERENCE 0
 #define FIRST_PWM_PORT 0
 
-void ppmAvoidPWMTimerClash(const timerHardware_t *timerHardwarePtr, uint8_t motorPwmProtocol)
+void ppmInConfig(const timerHardware_t *timerHardwarePtr)
 {
-    for (int timerIndex = 0; timerIndex < timerHardwareCount; timerIndex++) {
-        // If PPM input timer is also mapped to motor - set PPM divisor accordingly
-        if (((timerHardware[timerIndex].usageFlags & (TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR)) == 0) || timerHardware[timerIndex].tim != timerHardwarePtr->tim)
-            continue;
-
-        switch (motorPwmProtocol) {
-        case PWM_TYPE_ONESHOT125:
-            ppmCountDivisor = ONESHOT125_TIMER_MHZ;
-            break;
-        case PWM_TYPE_ONESHOT42:
-            ppmCountDivisor = ONESHOT42_TIMER_MHZ;
-            break;
-        case PWM_TYPE_MULTISHOT:
-            ppmCountDivisor = MULTISHOT_TIMER_MHZ;
-            break;
-        case PWM_TYPE_BRUSHED:
-            ppmCountDivisor = PWM_BRUSHED_TIMER_MHZ;
-            break;
-        default:
-            break;
-        }
-
+    TCH_t * tch = timerGetTCH(timerHardwarePtr);
+    if (tch == NULL) {
         return;
     }
-}
 
-void ppmInConfig(const timerHardware_t *timerHardwarePtr, uint8_t motorPwmProtocol)
-{
     ppmInit();
-
-    ppmAvoidPWMTimerClash(timerHardwarePtr, motorPwmProtocol);
 
     pwmInputPort_t *self = &pwmInputPorts[FIRST_PWM_PORT];
 
     self->mode = INPUT_MODE_PPM;
-    self->timerHardware = timerHardwarePtr;
 
     IO_t io = IOGetByTag(timerHardwarePtr->tag);
     IOInit(io, OWNER_PPMINPUT, RESOURCE_INPUT, 0);
     IOConfigGPIOAF(io, timerHardwarePtr->ioMode, timerHardwarePtr->alternateFunction);
 
-    timerConfigure(timerHardwarePtr, (uint16_t)PPM_TIMER_PERIOD, PWM_TIMER_MHZ);
-    timerChCCHandlerInit(&self->edgeCb, ppmEdgeCallback);
-    timerChOvrHandlerInit(&self->overflowCb, ppmOverflowCallback);
-    timerChConfigCallbacks(timerHardwarePtr, &self->edgeCb, &self->overflowCb);
-    timerChConfigIC(timerHardwarePtr, true, INPUT_FILTER_TICKS);
+    timerConfigure(tch, (uint16_t)PPM_TIMER_PERIOD, PWM_TIMER_HZ);
+    timerChInitCallbacks(&self->cb, (void*)self, &ppmEdgeCallback, &ppmOverflowCallback);
+    timerChConfigCallbacks(tch, &self->cb);
+    timerChConfigIC(tch, true, INPUT_FILTER_TICKS);
+    timerChCaptureEnable(tch);
 }
 
 uint16_t ppmRead(uint8_t channel)

@@ -35,7 +35,7 @@
 
 #include "io/osd.h"
 
-#define OSD_ITEM_ENTRY(label, item_id)      ((OSD_Entry){ label, OME_Submenu, {.itemId  = item_id}, &cmsx_menuOsdElementActions, 0 })
+#define OSD_ITEM_ENTRY(label, item_id)      ((OSD_Entry){ label, {.itemId  = item_id}, &cmsx_menuOsdElementActions, OME_Submenu, 0 })
 
 static int osdCurrentLayout = -1;
 static int osdCurrentItem = -1;
@@ -57,13 +57,12 @@ static const OSD_Entry cmsx_menuAlarmsEntries[] = {
     OSD_SETTING_ENTRY("MAX DIST", SETTING_OSD_DIST_ALARM),
     OSD_SETTING_ENTRY("MAX NEG ALT", SETTING_OSD_NEG_ALT_ALARM),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
-const CMS_Menu cmsx_menuAlarms = {
+static const CMS_Menu cmsx_menuAlarms = {
 #ifdef CMS_MENU_DEBUG
-    .GUARD_text = "MENUALARMS",
+    .GUARD_text = "MENUOSDA",
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = NULL,
@@ -101,8 +100,7 @@ static const OSD_Entry menuOsdElemActionsEntries[] = {
     OSD_UINT8_CALLBACK_ENTRY("COLUMN", cmsx_osdElementOnChange, (&(const OSD_UINT8_t){ &osdCurrentElementColumn, 0, OSD_Y(OSD_POS_MAX), 1 })),
     OSD_FUNC_CALL_ENTRY("PREVIEW", osdElementPreview),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const OSD_Entry menuOsdFixedElemActionsEntries[] = {
@@ -110,8 +108,7 @@ static const OSD_Entry menuOsdFixedElemActionsEntries[] = {
     OSD_BOOL_CALLBACK_ENTRY("ENABLED", cmsx_osdElementOnChange, &osdCurrentElementVisible),
     OSD_FUNC_CALL_ENTRY("PREVIEW", osdElementPreview),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuOsdElementActions = {
@@ -144,7 +141,7 @@ static long osdElemActionsOnEnter(const OSD_Entry *from)
 
 static const OSD_Entry menuOsdElemsEntries[] =
 {
-    OSD_LABEL_ENTRY("--- OSD ---"),
+    OSD_LABEL_ENTRY("--- OSD ITEMS ---"),
 
     OSD_ELEMENT_ENTRY("RSSI", OSD_RSSI_VALUE),
     OSD_ELEMENT_ENTRY("MAIN BATTERY", OSD_MAIN_BATT_VOLTAGE),
@@ -166,9 +163,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("THR. (MANU)", OSD_THROTTLE_POS),
     OSD_ELEMENT_ENTRY("THR. (MANU/AUTO)", OSD_THROTTLE_POS_AUTO_THR),
     OSD_ELEMENT_ENTRY("SYS MESSAGES", OSD_MESSAGES),
-#ifdef USE_VTX_COMMON
     OSD_ELEMENT_ENTRY("VTX CHAN", OSD_VTX_CHANNEL),
-#endif // VTX
     OSD_ELEMENT_ENTRY("CURRENT (A)", OSD_CURRENT_DRAW),
     OSD_ELEMENT_ENTRY("POWER", OSD_POWER),
     OSD_ELEMENT_ENTRY("USED MAH", OSD_MAH_DRAWN),
@@ -187,6 +182,8 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("GPS LAT", OSD_GPS_LAT),
     OSD_ELEMENT_ENTRY("GPS LON", OSD_GPS_LON),
     OSD_ELEMENT_ENTRY("GPS HDOP", OSD_GPS_HDOP),
+    OSD_ELEMENT_ENTRY("3D SPEED", OSD_3D_SPEED),
+    OSD_ELEMENT_ENTRY("PLUS CODE", OSD_PLUS_CODE),
 #endif // GPS
     OSD_ELEMENT_ENTRY("HEADING", OSD_HEADING),
     OSD_ELEMENT_ENTRY("HEADING GR.", OSD_HEADING_GRAPH),
@@ -197,6 +194,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("VARIO NUM", OSD_VARIO_NUM),
 #endif // defined
     OSD_ELEMENT_ENTRY("ALTITUDE", OSD_ALTITUDE),
+    OSD_ELEMENT_ENTRY("ALTITUDE MSL", OSD_ALTITUDE_MSL),	
 #if defined(USE_PITOT)
     OSD_ELEMENT_ENTRY("AIR SPEED", OSD_AIR_SPEED),
 #endif
@@ -246,20 +244,35 @@ static const OSD_Entry menuOsdElemsEntries[] =
     
     OSD_ELEMENT_ENTRY("OSD G-FORCE", OSD_GFORCE),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_ELEMENT_ENTRY("IMU TEMP", OSD_IMU_TEMPERATURE),
+#ifdef USE_BARO
+    OSD_ELEMENT_ENTRY("BARO TEMP", OSD_BARO_TEMPERATURE),
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    OSD_ELEMENT_ENTRY("SENSOR 0 TEMP", OSD_TEMP_SENSOR_0_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 1 TEMP", OSD_TEMP_SENSOR_1_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 2 TEMP", OSD_TEMP_SENSOR_2_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 3 TEMP", OSD_TEMP_SENSOR_3_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 4 TEMP", OSD_TEMP_SENSOR_4_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 5 TEMP", OSD_TEMP_SENSOR_5_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 6 TEMP", OSD_TEMP_SENSOR_6_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 7 TEMP", OSD_TEMP_SENSOR_7_TEMPERATURE),
+#endif
+
+    OSD_BACK_AND_END_ENTRY,
 };
 
-#if defined(USE_VTX_COMMON) && defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT)
-// All CMS OSD elements should be enabled in this case. The menu has 3 extra
-// elements (label, back and end), but there's an OSD element that we intentionally
+#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR)
+// All CMS OSD elements should be enabled in this case. The menu has 2 extra
+// elements (label, back+end), but there's an OSD element that we intentionally
 // don't show here (OSD_DEBUG).
-_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 3 + 1 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
+_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 2 + 1 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
 #endif
 
 const CMS_Menu menuOsdElements = {
 #ifdef CMS_MENU_DEBUG
-    .GUARD_text = "MENUOSDELEMS",
+    .GUARD_text = "MENUOSDE",
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = osdElementsOnEnter,
@@ -286,13 +299,12 @@ static const OSD_Entry cmsx_menuOsdLayoutEntries[] =
 #endif
 #endif
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuOsdLayout = {
 #ifdef CMS_MENU_DEBUG
-    .GUARD_text = "MENULAYOUT",
+    .GUARD_text = "MENUOSDL",
     .GUARD_type = OME_MENU,
 #endif
     .onEnter = NULL,
@@ -306,7 +318,7 @@ static long osdElementsOnEnter(const OSD_Entry *from)
     // First entry is the label. Store the current layout
     // and override it on the OSD so previews so this layout.
     osdCurrentLayout = from - cmsx_menuOsdLayoutEntries - 1;
-    osdOverrideLayout(osdCurrentLayout);
+    osdOverrideLayout(osdCurrentLayout, 0);
     return 0;
 }
 
@@ -315,8 +327,54 @@ static long osdElementsOnExit(const OSD_Entry *from)
     UNUSED(from);
 
     // Stop overriding OSD layout
-    osdOverrideLayout(-1);
+    osdOverrideLayout(-1, 0);
     return 0;
 }
+
+static const OSD_Entry menuOsdSettingsEntries[] = {
+    OSD_LABEL_ENTRY("--- OSD SETTINGS ---"),
+
+    OSD_SETTING_ENTRY("VOLT. DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),
+    OSD_SETTING_ENTRY("COORD. DIGITS", SETTING_OSD_COORDINATE_DIGITS),
+    OSD_SETTING_ENTRY("CROSSHAIRS STYLE", SETTING_OSD_CROSSHAIRS_STYLE),
+    OSD_SETTING_ENTRY("LEFT SCROLL", SETTING_OSD_LEFT_SIDEBAR_SCROLL),
+    OSD_SETTING_ENTRY("RIGHT SCROLL", SETTING_OSD_RIGHT_SIDEBAR_SCROLL),
+    OSD_SETTING_ENTRY("SCROLL ARROWS", SETTING_OSD_SIDEBAR_SCROLL_ARROWS),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuOsdSettings = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUOSDS",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuOsdSettingsEntries,
+};
+
+static const OSD_Entry menuOsdEntries[] = {
+    OSD_LABEL_ENTRY("--- OSD ---"),
+
+    OSD_SUBMENU_ENTRY("LAYOUTS", &cmsx_menuOsdLayout),
+    OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuOsdSettings),
+    OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+
+const CMS_Menu cmsx_menuOsd = {
+#ifdef CMS_MENU_DEBUG
+    .GUARD_text = "MENUOSD",
+    .GUARD_type = OME_MENU,
+#endif
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = menuOsdEntries,
+};
 
 #endif // CMS

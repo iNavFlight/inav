@@ -18,7 +18,6 @@
 #include <stdint.h>
 #include <platform.h>
 
-#ifdef TARGET_CONFIG
 #include "drivers/io.h"
 #include "rx/rx.h"
 #include "io/serial.h"
@@ -28,4 +27,3 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
     rxConfigMutable()->rssi_channel = 8;
 }
-#endif

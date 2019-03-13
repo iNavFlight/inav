@@ -25,24 +25,28 @@
 #include "drivers/bus.h"
 
 const timerHardware_t timerHardware[] = {
-    { TIM2,  IO_TAG(PA0),  TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PPM | TIM_USE_PWM },    // PWM1 - RC1
-    { TIM2,  IO_TAG(PA1),  TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PWM },                  // PWM2 - RC2
-    { TIM2,  IO_TAG(PA2),  TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PWM },                  // PWM3 - RC3
-    { TIM2,  IO_TAG(PA3),  TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_1,    TIM_USE_PWM },                  // PWM4 - RC4
-    { TIM3,  IO_TAG(PA6),  TIM_Channel_1, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM },                  // PWM5 - RC5
-    { TIM3,  IO_TAG(PA7),  TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_PWM },                  // PWM6 - RC6
+    DEF_TIM(TIM2,   CH1, PA0,  TIM_USE_PPM | TIM_USE_PWM, 0),
+    DEF_TIM(TIM2,   CH2, PA1,  TIM_USE_PWM,               0),
+    DEF_TIM(TIM2,   CH3, PA2,  TIM_USE_PWM,               0),
+    DEF_TIM(TIM2,   CH4, PA3,  TIM_USE_PWM,               0),
+    DEF_TIM(TIM3,   CH1, PA6,  TIM_USE_PWM | TIM_USE_ANY, 0),
+    DEF_TIM(TIM3,   CH2, PA7,  TIM_USE_PWM,               0),
 
-    //{ TIM3,  IO_TAG(PB0),  TIM_Channel_3, 0, IOCFG_AF_PP, GPIO_AF_2},  // PWM7 - not broken out
-    //{ TIM3,  IO_TAG(PB1),  TIM_Channel_4, 0, IOCFG_AF_PP, GPIO_AF_2},  // PWM8 - not broken out
-
-    { TIM1,  IO_TAG(PA8),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR },  // PWM9 - OUT1
-    { TIM1,  IO_TAG(PA11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_11,   TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // PWM10 - OUT2
-    { TIM8,  IO_TAG(PB6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_5,    TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  // PWM11 - OUT3
-    { TIM4,  IO_TAG(PB7),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_2,    TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO },  // PWM12 - OUT4
+#if 1
+    DEF_TIM(TIM1,   CH1, PA8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0), // DMA1_CH2
+    DEF_TIM(TIM1,   CH4, PA11, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0), // DMA1_CH4
+    DEF_TIM(TIM8,   CH1, PB6,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0), // DMA2_CH3
+    DEF_TIM(TIM4,   CH2, PB7,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO, 0), // DMA1_CH4 - conflict with TIM1_CH4
+#else
+    DEF_TIM(TIM1,   CH1, PA8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR, 0), // DMA1_CH2
+    DEF_TIM(TIM4,   CH1, PA11, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0), // DMA1_CH1
+    DEF_TIM(TIM8,   CH1, PB6,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0), // DMA2_CH3
+    DEF_TIM(TIM4,   CH2, PB7,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0), // DMA1_CH4
+#endif
 
 #if !defined(AIRHEROF3_QUAD)
-    { TIM8,  IO_TAG(PB8),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_10,   TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO },  // PWM13 - OUT5
-    { TIM8,  IO_TAG(PB9),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_10,   TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }   // PWM14 - OUT6
+    DEF_TIM(TIM8,   CH2, PB8,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0), // DMA2_CH5
+    DEF_TIM(TIM8,   CH3, PB9,  TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO, 0), // DMA2_CH1
 #endif
 };
 

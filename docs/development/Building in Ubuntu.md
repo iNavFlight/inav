@@ -2,13 +2,13 @@
 
 iNav requires a reasonably modern `gcc-arm-none-eabi` compiler. As a consequence of the long term support options in Ubuntu, it is possible that the distribution compiler will be too old to build iNav firmware. For example, Ubuntu 16.04 LTS ships with version 4.9.3 which cannot compile contemporary iNav.
 
-As of March 2018, the recommendation for Ubuntu releases is:
+As of August 2018, the recommendation for Ubuntu releases is:
 
 | Release | Compiler Source |
 | ------- | --------------- |
 | 16.04 or earlier | Use the 'official' PPA |
 | 17.10 | Use the 'official' PPA as the distro compiler (5.4) *may* be too old |
-| 18.04 | Use the distro compiler (6.3+) |
+| 18.04 | Use the 'official' PPA, as the distro compiler (6.3) was broken when last tested |
 
 For Ubuntu derivatives (ElementaryOS, Mint etc.), please check the distro provided version, and if it's lower than 6, use the PPA.
 
@@ -47,14 +47,15 @@ sudo apt-get install ruby2.4 ruby2.4-dev
 
 # Using the Distro compiler
 
-For Releases after 17.10 is is recommended to use the distro provided compiler, at least until it proves to be too old.
+In case Ubuntu ever provides a modern compiler (as of August 2018, not recommended):
+
 ```
 sudo apt install gcc-arm-none-eabi
 ```
 
 # Using the PPA compiler
 
-For releases prior to (and perhaps including) 17.10, the PPA compiler is used. This can be used on releases post 17.10 if you really wish to have a newer compiler than the distro default.
+The PPA compiler is recommended for all cases:
 
 ```
 sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
@@ -84,9 +85,9 @@ cd inav
 make
 ```
 
-If you have a github account with registered ssh key you can replace the `git clone` command with  `git clone https://github.com/iNavFlight/inav.git` instead of the https link.
+If you have a github account with registered ssh key you can replace the `git clone` command with  `git clone git@github.com:iNavFlight/inav.git` instead of the https link.
 
-By default, this builds the SPRACINGF3 target, to build another target, specify the target name to the make command, for example:
+By default, this builds the REVO target, to build another target, specify the target name to the make command, for example:
 ```
 make TARGET=MATEKF405
 ```
@@ -94,7 +95,7 @@ The resultant hex file are in the `obj/` directory.
 
 You can use the INAV Configurator to flash the local ```obj/inav_TARGET.hex``` file, or use `stm32flash` or `dfu-util` directly from the command line.
 
-https://github.com/fiam/msp-tool and https://github.com/stronnag/mwptools/blob/master/docs/MiscTools.asciidoc#flashsh provide / describe helper tools for command line flashing.
+[msp-tool](https://github.com/fiam/msp-tool) and [flash.sh](https://github.com/stronnag/mwptools/blob/master/docs/MiscTools.asciidoc#flashsh) provide / describe 3rd party helper tools for command line flashing.
 
 # Updating and rebuilding
 

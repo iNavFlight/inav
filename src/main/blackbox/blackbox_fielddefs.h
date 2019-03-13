@@ -38,7 +38,7 @@ typedef enum FlightLogFieldCondition {
     FLIGHT_LOG_FIELD_CONDITION_BARO,
     FLIGHT_LOG_FIELD_CONDITION_PITOT,
     FLIGHT_LOG_FIELD_CONDITION_VBAT,
-    FLIGHT_LOG_FIELD_CONDITION_AMPERAGE_ADC,
+    FLIGHT_LOG_FIELD_CONDITION_AMPERAGE,
     FLIGHT_LOG_FIELD_CONDITION_SURFACE,
     FLIGHT_LOG_FIELD_CONDITION_FIXED_WING_NAV,
     FLIGHT_LOG_FIELD_CONDITION_MC_NAV,
@@ -139,6 +139,10 @@ typedef struct flightLogEvent_loggingResume_s {
     timeUs_t currentTimeUs;
 } flightLogEvent_loggingResume_t;
 
+typedef struct flightLogEvent_IMUError_s {
+    uint32_t errorCode;
+} flightLogEvent_IMUError_t;
+
 #define FLIGHT_LOG_EVENT_INFLIGHT_ADJUSTMENT_FUNCTION_FLOAT_VALUE_FLAG 128
 
 typedef union flightLogEventData_u {
@@ -146,6 +150,7 @@ typedef union flightLogEventData_u {
     flightLogEvent_flightMode_t flightMode; // New event data
     flightLogEvent_inflightAdjustment_t inflightAdjustment;
     flightLogEvent_loggingResume_t loggingResume;
+    flightLogEvent_IMUError_t imuError;
 } flightLogEventData_t;
 
 typedef struct flightLogEvent_s {

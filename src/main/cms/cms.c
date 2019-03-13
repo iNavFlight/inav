@@ -56,6 +56,7 @@
 #include "config/parameter_group_ids.h"
 
 // For 'ARM' related
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -206,6 +207,9 @@ static void cmsUpdateMaxRow(displayPort_t *instance)
 
     for (const OSD_Entry *ptr = pageTop; ptr->type != OME_END; ptr++) {
         pageMaxRow++;
+        if (ptr->type == OME_BACK_AND_END) {
+            break;
+        }
     }
 
     if (pageMaxRow >  MAX_MENU_ITEMS(instance)) {
@@ -515,6 +519,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
     case OME_OSD_Exit:
     case OME_END:
     case OME_Back:
+    case OME_BACK_AND_END:
         break;
 
     case OME_MENU:
@@ -591,8 +596,12 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
             coloff += cmsElementIsLabel(p->type) ? 1 : 2;
             room -= displayWrite(pDisplay, coloff, i + top, p->text);
             CLR_PRINTLABEL(p, i);
-            if (room < 30)
+            if (room < 30) {
                 return;
+            }
+        }
+        if (p->type == OME_BACK_AND_END) {
+            break;
         }
     }
 
@@ -604,8 +613,12 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
     for (i = 0, p = pageTop; i < MAX_MENU_ITEMS(pDisplay) && p->type != OME_END; i++, p++) {
         if (IS_PRINTVALUE(p, i)) {
             room -= cmsDrawMenuEntry(pDisplay, p, top + i, i);
-            if (room < 30)
+            if (room < 30) {
                 return;
+            }
+        }
+        if (p->type == OME_BACK_AND_END) {
+            break;
         }
     }
 }
@@ -613,7 +626,12 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
 static void cmsMenuCountPage(displayPort_t *pDisplay)
 {
     const OSD_Entry *p;
-    for (p = currentCtx.menu->entries; p->type != OME_END; p++);
+    for (p = currentCtx.menu->entries; p->type != OME_END; p++) {
+        if (p->type == OME_BACK_AND_END) {
+            p++;
+            break;
+        }
+    }
     pageCount = (p - currentCtx.menu->entries - 1) / MAX_MENU_ITEMS(pDisplay) + 1;
 }
 
@@ -721,6 +739,9 @@ static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
         if (p->type == OME_Submenu) {
             cmsTraverseGlobalExit(p->data);
         }
+        if (p->type == OME_BACK_AND_END) {
+            break;
+        }
     }
 
     if (pMenu->onGlobalExit) {
@@ -758,11 +779,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 
         displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
 
-        stopMotors();
-        stopPwmAllMotors();
-        delay(200);
-
-        systemReset();
+        fcReboot(false);
     }
 
     DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
@@ -869,6 +886,7 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
             break;
 
         case OME_Back:
+        case OME_BACK_AND_END:
             cmsMenuBack(pDisplay);
             res = BUTTON_PAUSE;
             break;

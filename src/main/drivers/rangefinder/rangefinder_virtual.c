@@ -21,7 +21,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
- 
+
 /*
  * This is a bridge driver between a sensor reader that operates at high level (on top of UART or UIB)
  */

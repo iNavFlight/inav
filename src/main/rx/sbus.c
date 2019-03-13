@@ -52,8 +52,6 @@
  * time to send frame: 3ms.
  */
 
-#define SBUS_MIN_INTERFRAME_DELAY_US    3000                // According to FrSky interframe is 6.67ms, we go smaller just in case
-
 #define SBUS_FRAME_SIZE (SBUS_CHANNEL_DATA_LENGTH + 2)
 
 #define SBUS_FRAME_BEGIN_BYTE 0x0F
@@ -114,7 +112,7 @@ static void sbusDataReceive(uint16_t c, void *data)
     sbusFrameData->lastActivityTimeUs = currentTimeUs;
 
     // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
-    if (sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= SBUS_MIN_INTERFRAME_DELAY_US) {
+    if (sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
         DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_INTERFRAME_TIME, timeSinceLastByteUs);
         sbusFrameData->state = STATE_SBUS_SYNC;
     }

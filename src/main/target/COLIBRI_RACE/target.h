@@ -26,6 +26,8 @@
 #define BEEPER                  PB13
 #define BEEPER_INVERTED
 
+#define USE_DSHOT
+
 // MPU6500 interrupt
 #define USE_EXTI
 #define GYRO_INT_EXTI            PA5
@@ -77,6 +79,7 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1
@@ -110,10 +113,7 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define USE_LED_STRIP
-#define WS2811_PIN                      PA6 // TIM16_CH1
-#define WS2811_DMA_STREAM               DMA1_Channel3
-#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC3
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
+#define WS2811_PIN                      PA6
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_VBAT)
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
@@ -121,8 +121,6 @@
 #define SERIALRX_UART           SERIAL_PORT_USART3
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
-#define TARGET_CONFIG
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    10
@@ -133,3 +131,5 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
+
+#define PCA9685_I2C_BUS         BUS_I2C2

@@ -29,6 +29,7 @@
 #include "fc/config.h"
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
+#include "flight/mixer.h"
 
 #include "io/osd.h"
 
@@ -66,6 +67,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXAIRMODE, "AIR MODE", 29 },
     { BOXHOMERESET, "HOME RESET", 30 },
     { BOXGCSNAV, "GCS NAV", 31 },
+    { BOXFPVANGLEMIX, "FPV ANGLE MIX", 32 },
     { BOXSURFACE, "SURFACE", 33 },
     { BOXFLAPERON, "FLAPERON", 34 },
     { BOXTURNASSIST, "TURN ASSIST", 35 },
@@ -79,6 +81,10 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { BOXOSDALT2, "OSD ALT 2", 43 },
     { BOXOSDALT3, "OSD ALT 3", 44 },
     { BOXNAVCRUISE, "NAV CRUISE", 45 },
+    { BOXBRAKING, "MC BRAKING", 46 },
+    { BOXUSER1, "USER1", 47 },
+    { BOXUSER2, "USER2", 48 },
+    { BOXLOITERDIRCHN, "LOITER CHANGE", 49 },
     { CHECKBOX_ITEM_COUNT, NULL, 0xFF }
 };
 
@@ -174,6 +180,8 @@ void initActiveBoxIds(void)
         activeBoxIds[activeBoxIdCount++] = BOXHEADADJ;
     }
 
+    activeBoxIds[activeBoxIdCount++] = BOXFPVANGLEMIX;
+
     //Camstab mode is enabled always
     activeBoxIds[activeBoxIdCount++] = BOXCAMSTAB;
 
@@ -188,6 +196,9 @@ void initActiveBoxIds(void)
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     if (navFlowDeadReckoning || navReadyQuads || navReadyPlanes) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVPOSHOLD;
+        if (STATE(FIXED_WING)) {
+            activeBoxIds[activeBoxIdCount++] = BOXLOITERDIRCHN;
+        }
     }
 
     if (navReadyQuads || navReadyPlanes) {
@@ -202,6 +213,13 @@ void initActiveBoxIds(void)
             }
         }
     }
+
+#ifdef USE_MR_BRAKING_MODE
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+        activeBoxIds[activeBoxIdCount++] = BOXBRAKING;
+    }
+#endif
+
 #endif
 
     if (STATE(FIXED_WING)) {
@@ -210,7 +228,7 @@ void initActiveBoxIds(void)
            activeBoxIds[activeBoxIdCount++] = BOXNAVLAUNCH;
         }
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTRIM;
-#if defined(AUTOTUNE_FIXED_WING)
+#if defined(USE_AUTOTUNE_FIXED_WING)
         activeBoxIds[activeBoxIdCount++] = BOXAUTOTUNE;
 #endif
     }
@@ -257,6 +275,12 @@ void initActiveBoxIds(void)
     activeBoxIds[activeBoxIdCount++] = BOXCAMERA3;
 #endif
 
+#ifdef USE_PINIOBOX
+    // USER modes are only used for PINIO at the moment
+    activeBoxIds[activeBoxIdCount++] = BOXUSER1;
+    activeBoxIds[activeBoxIdCount++] = BOXUSER2;
+#endif
+
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
 #if OSD_LAYOUT_COUNT > 0
     activeBoxIds[activeBoxIdCount++] = BOXOSDALT1;
@@ -287,6 +311,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(HEADFREE_MODE)),        BOXHEADFREE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHEADADJ)),     BOXHEADADJ);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMSTAB)),     BOXCAMSTAB);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX)), BOXFPVANGLEMIX);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(MANUAL_MODE)),          BOXMANUAL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBEEPERON)),    BOXBEEPERON);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLEDLOW)),      BOXLEDLOW);
@@ -319,6 +344,10 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT2)),     BOXOSDALT2);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXOSDALT3)),     BOXOSDALT3);
     CHECK_ACTIVE_BOX(IS_ENABLED(navigationTerrainFollowingEnabled()),   BOXSURFACE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),     BOXBRAKING);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),       BOXUSER1);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),       BOXUSER2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),BOXLOITERDIRCHN);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
@@ -338,7 +367,8 @@ uint16_t packSensorStatus(void)
             IS_ENABLED(sensors(SENSOR_GPS))     << 3 |
             IS_ENABLED(sensors(SENSOR_RANGEFINDER))   << 4 |
             IS_ENABLED(sensors(SENSOR_OPFLOW))  << 5 |
-            IS_ENABLED(sensors(SENSOR_PITOT))   << 6;
+            IS_ENABLED(sensors(SENSOR_PITOT))   << 6 |
+            IS_ENABLED(sensors(SENSOR_TEMP))   << 7;
 
     // Hardware failure indication bit
     if (!isHardwareHealthy()) {

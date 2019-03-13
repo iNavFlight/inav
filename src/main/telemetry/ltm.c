@@ -158,28 +158,32 @@ void ltm_gframe(sbuf_t *dst)
 
 void ltm_sframe(sbuf_t *dst)
 {
-    uint8_t lt_flightmode;
+    ltm_modes_e lt_flightmode;
 
     if (FLIGHT_MODE(MANUAL_MODE))
-        lt_flightmode = 0;
+        lt_flightmode = LTM_MODE_MANUAL;
     else if (FLIGHT_MODE(NAV_WP_MODE))
-        lt_flightmode = 10;
+        lt_flightmode = LTM_MODE_WAYPOINTS;
     else if (FLIGHT_MODE(NAV_RTH_MODE))
-        lt_flightmode = 13;
+        lt_flightmode = LTM_MODE_RTH;
     else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
-        lt_flightmode = 9;
+        lt_flightmode = LTM_MODE_GPSHOLD;
     else if (FLIGHT_MODE(NAV_CRUISE_MODE))
-        lt_flightmode = 18;
+        lt_flightmode = LTM_MODE_CRUISE;
+    else if (FLIGHT_MODE(NAV_LAUNCH_MODE))
+        lt_flightmode = LTM_MODE_LAUNCH;
+    else if (FLIGHT_MODE(AUTO_TUNE))
+        lt_flightmode = LTM_MODE_AUTOTUNE;
     else if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
-        lt_flightmode = 8;
+        lt_flightmode = LTM_MODE_ALTHOLD;
     else if (FLIGHT_MODE(HEADFREE_MODE) || FLIGHT_MODE(HEADING_MODE))
-        lt_flightmode = 11;
+        lt_flightmode = LTM_MODE_HEADHOLD;
     else if (FLIGHT_MODE(ANGLE_MODE))
-        lt_flightmode = 2;
+        lt_flightmode = LTM_MODE_ANGLE;
     else if (FLIGHT_MODE(HORIZON_MODE))
-        lt_flightmode = 3;
+        lt_flightmode = LTM_MODE_HORIZON;
     else
-        lt_flightmode = 1;      // Rate mode
+        lt_flightmode = LTM_MODE_RATE;      // Rate mode
 
     uint8_t lt_statemode = (ARMING_FLAG(ARMED)) ? 1 : 0;
     if (failsafeIsActive())
@@ -454,7 +458,7 @@ void checkLtmTelemetryState(void)
         if (newTelemetryEnabledValue){
             configureLtmScheduler();
             configureLtmTelemetryPort();
-            
+
     }
         else
             freeLtmTelemetryPort();

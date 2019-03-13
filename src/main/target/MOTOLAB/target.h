@@ -56,6 +56,7 @@
 //#define USE_MAG_IST8310
 //#define USE_MAG_IST8308
 //#define USE_MAG_MAG3110
+//#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1
@@ -101,11 +102,6 @@
 
 #define USE_LED_STRIP_ON_DMA1_CHANNEL3
 #define WS2811_PIN                      PB8 // TIM16_CH1
-#define WS2811_TIMER                    TIM16
-#define WS2811_DMA_STREAM               DMA1_Channel3
-#define WS2811_IRQ                      DMA1_Channel3_IRQn
-#define WS2811_DMA_TC_FLAG              DMA1_FLAG_TC3
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
 
 
 #define USE_SPEKTRUM_BIND
@@ -130,3 +126,5 @@
 // #define TARGET_IO_PORTF         (BIT(0)|BIT(1))
 // !!TODO - check the following line is correct
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(3)|BIT(4))
+
+#define PCA9685_I2C_BUS         BUS_I2C2

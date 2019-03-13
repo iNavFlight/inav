@@ -25,7 +25,6 @@
 #include <stdint.h>
 #include <platform.h>
 
-#ifdef TARGET_CONFIG
 #include "drivers/io.h"
 #include "rx/rx.h"
 #include "io/serial.h"
@@ -36,4 +35,3 @@ void targetConfiguration(void)
     ledStripConfigMutable()->ledConfigs[0] = DEFINE_LED(0, 0, COLOR_GREEN, 0, LED_FUNCTION_ARM_STATE, LED_FLAG_OVERLAY(LED_OVERLAY_WARNING), 0);
     // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
 }
-#endif

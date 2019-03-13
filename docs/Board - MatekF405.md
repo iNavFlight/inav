@@ -3,17 +3,10 @@
 
 ![Matek F405-AIO](http://www.mateksys.com/wp-content/uploads/2017/06/F405-AIO_2.jpg)
 
-### Matek F405-CTR
-http://www.mateksys.com/?portfolio=f405-ctr
-
-### Matek F405-STD
-http://www.mateksys.com/?portfolio=f405-std
-
-### Matek F405-AIO (end-of-life)
-http://www.mateksys.com/?portfolio=f405-aio
-
-### Matek F405-OSD (end-of-life)
-http://www.mateksys.com/?portfolio=f405-osd
+### [Matek F405-CTR](https://inavflight.com/shop/p/MATEKF405CTR)
+### [Matek F405-STD](https://inavflight.com/shop/p/MATEKF405STD)
+### [Matek F405-AIO (end-of-life)](http://www.mateksys.com/?portfolio=f405-aio)
+### [Matek F405-OSD (end-of-life)](http://www.mateksys.com/?portfolio=f405-osd)
 
 ## Firmware
 
@@ -79,10 +72,10 @@ I2C requires that the WS2812 led strip is moved to S5, thus WS2812 is not usable
 
 ### Soft Serial
 
-Soft serial is available as an alternative to a hardware UART on RX4/TX4. By default this is NOT inverted. In order to use this feature:
+Soft serial is available as an alternative to a hardware UART on RX4/TX4 and TX2. By default this is NOT inverted. In order to use this feature:
 
 * Enable soft serial
-* Do not assign any function to hardware UART 4
+* Do not assign any function to hardware UART4 or UART2-TX
 * Assign the desired function to the soft-serial port
 
 ### USB
@@ -105,7 +98,8 @@ Matek Systems: http://www.mateksys.com/
 
 ## Distributors
 
-http://www.mateksys.com/?page_id=1212
+* [Matek F405-CTR](https://inavflight.com/shop/p/MATEKF405CTR)
+* [Matek F405-STD](https://inavflight.com/shop/p/MATEKF405STD)
 
 ## FAQ & Known Issues
 

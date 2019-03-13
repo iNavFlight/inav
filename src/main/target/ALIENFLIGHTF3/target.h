@@ -18,7 +18,6 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "AFF3" // ALIENFLIGHT F3
-#define TARGET_CONFIG
 
 #define USE_HARDWARE_REVISION_DETECTION
 #define HW_PIN                  PB2
@@ -69,7 +68,7 @@
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_MPU9250
-#define MAG_MPU9250_ALIGN       CW180_DEG_FLIP
+#define MAG_MPU9250_ALIGN       CW0_DEG
 #define USE_MAG_AK8963
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
@@ -77,6 +76,7 @@
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
+#define USE_MAG_LIS3MDL
 
 #define USE_VCP
 #define USE_UART1 // Not connected - TX (PB6) RX PB7 (AF7)
@@ -141,3 +141,5 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 #define TARGET_IO_PORTF         (BIT(0)|BIT(1)|BIT(4))
+
+#define PCA9685_I2C_BUS         BUS_I2C2

@@ -170,7 +170,7 @@ static bool i2cHandleHardwareFailure(I2CDevice device)
     return false;
 }
 
-bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data)
+bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
 {
     if (device == I2CINVALID)
         return false;
@@ -183,10 +183,12 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
 
     HAL_StatusTypeDef status;
 
-    if (reg_ == 0xFF)
+    if (reg_ == 0xFF && allowRawAccess) {
         status = HAL_I2C_Master_Transmit(&i2cHandle[device].Handle, addr_ << 1, (uint8_t *)data, len_, I2C_DEFAULT_TIMEOUT);
-    else
+    }
+    else {
         status = HAL_I2C_Mem_Write(&i2cHandle[device].Handle,addr_ << 1, reg_, I2C_MEMADD_SIZE_8BIT, (uint8_t *)data, len_, I2C_DEFAULT_TIMEOUT);
+    }
 
     if (status != HAL_OK)
         return i2cHandleHardwareFailure(device);
@@ -194,12 +196,12 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
     return true;
 }
 
-bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data)
+bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, bool allowRawAccess)
 {
-    return i2cWriteBuffer(device, addr_, reg_, 1, &data);
+    return i2cWriteBuffer(device, addr_, reg_, 1, &data, allowRawAccess);
 }
 
-bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf)
+bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, bool allowRawAccess)
 {
     if (device == I2CINVALID)
         return false;
@@ -212,10 +214,12 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
 
     HAL_StatusTypeDef status;
 
-    if (reg_ == 0xFF)
+    if (reg_ == 0xFF && allowRawAccess) {
         status = HAL_I2C_Master_Receive(&i2cHandle[device].Handle,addr_ << 1,buf, len, I2C_DEFAULT_TIMEOUT);
-    else
+    }
+    else {
         status = HAL_I2C_Mem_Read(&i2cHandle[device].Handle,addr_ << 1, reg_, I2C_MEMADD_SIZE_8BIT,buf, len, I2C_DEFAULT_TIMEOUT);
+    }
 
     if (status != HAL_OK)
         return i2cHandleHardwareFailure(device);

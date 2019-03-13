@@ -65,7 +65,11 @@
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
 #define USE_MAG_QMC5883
+#define USE_MAG_LIS3MDL
 #define MAG_IST8310_ALIGN CW270_DEG
+
+// *************** Temperature sensor *****************
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
 
 // *************** BARO *****************************
 #define USE_BARO
@@ -90,17 +94,14 @@
 #define SPI3_MISO_PIN   PB4
 #define SPI3_MOSI_PIN   PB5
 #define SPI3_NSS_PIN    PB6
+#define SPI3_CLOCK_LEADING_EDGE
 
 #define USE_SDCARD
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PB7
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   PB6
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define SDCARD_DETECT_PIN       PB7
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PB6
 
 // *************** Flash *****************************
 #define M25P16_CS_PIN           PA15
@@ -134,14 +135,6 @@
 // *************** WS2811 *****************************
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB1
-#define WS2811_TIMER                    TIM3
-#define WS2811_TIMER_CHANNEL            TIM_Channel_4
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream2
-#define WS2811_DMA_FLAG                 DMA_FLAG_TCIF2
-#define WS2811_DMA_IT                   DMA_IT_TCIF2
-#define WS2811_DMA_CHANNEL              DMA_Channel_5
-#define WS2811_DMA_IRQ                  DMA1_Stream2_IRQn
 
 // *************** IIC *****************************
 #define USE_I2C

@@ -59,8 +59,6 @@
 #include "telemetry/frsky.h"
 #include "telemetry/msp_shared.h"
 
-#define SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US 500
-
 // these data identifiers are obtained from https://github.com/opentx/opentx/blob/master/radio/src/telemetry/frsky_hub.h
 enum
 {
@@ -78,6 +76,8 @@ enum
     FSSP_DATAID_CELLS      = 0x0300 ,
     FSSP_DATAID_CELLS_LAST = 0x030F ,
     FSSP_DATAID_HEADING    = 0x0840 ,
+    FSSP_DATAID_PITCH      = 0x0430 ,
+    FSSP_DATAID_ROLL       = 0x0440 ,
     FSSP_DATAID_ACCX       = 0x0700 ,
     FSSP_DATAID_ACCY       = 0x0710 ,
     FSSP_DATAID_ACCZ       = 0x0720 ,
@@ -106,6 +106,8 @@ const uint16_t frSkyDataIdTable[] = {
     //FSSP_DATAID_CELLS     ,
     //FSSP_DATAID_CELLS_LAST,
     FSSP_DATAID_HEADING   ,
+    FSSP_DATAID_PITCH     ,
+    FSSP_DATAID_ROLL      ,
     FSSP_DATAID_ACCX      ,
     FSSP_DATAID_ACCY      ,
     FSSP_DATAID_ACCZ      ,
@@ -153,7 +155,7 @@ static smartPortWriteFrameFn *smartPortWriteFrame;
 static bool smartPortMspReplyPending = false;
 #endif
 
-smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t *clearToSendAt, smartPortCheckQueueEmptyFn *checkQueueEmpty, bool useChecksum)
+smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, smartPortCheckQueueEmptyFn *checkQueueEmpty, bool useChecksum)
 {
     static uint8_t rxBuffer[sizeof(smartPortPayload_t)];
     static uint8_t smartPortRxBytes = 0;
@@ -178,7 +180,6 @@ smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t
         if ((c == FSSP_SENSOR_ID1) && checkQueueEmpty()) {
             // our slot is starting, no need to decode more
             *clearToSend = true;
-            *clearToSendAt = micros() + SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US;
             skipUntilStart = true;
         } else if (c == FSSP_SENSOR_ID2) {
             checksum = 0;
@@ -200,7 +201,6 @@ smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t
             checksum += c;
 
             if (!useChecksum && (smartPortRxBytes == sizeof(smartPortPayload_t))) {
-                *clearToSendAt = micros() + SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US;
                 skipUntilStart = true;
 
                 return (smartPortPayload_t *)&rxBuffer;
@@ -211,7 +211,6 @@ smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, timeUs_t
             checksum += c;
             checksum = (checksum & 0xFF) + (checksum >> 8);
             if (checksum == 0xFF) {
-                *clearToSendAt = micros() + SMARTPORT_MIN_TELEMETRY_RESPONSE_DELAY_US;
                 return (smartPortPayload_t *)&rxBuffer;
             }
         }
@@ -431,17 +430,35 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 smartPortSendPackage(id, attitude.values.yaw * 10); // given in 10*deg, requested in 10000 = 100 deg
                 *clearToSend = false;
                 break;
+            case FSSP_DATAID_PITCH      :
+                if (telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, attitude.values.pitch); // given in 10*deg
+                    *clearToSend = false;
+                }
+                break;
+            case FSSP_DATAID_ROLL       :
+                if (telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, attitude.values.roll); // given in 10*deg
+                    *clearToSend = false;
+                }
+                break;
             case FSSP_DATAID_ACCX       :
-                smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
-                *clearToSend = false;
+                if (!telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
+                    *clearToSend = false;
+                }
                 break;
             case FSSP_DATAID_ACCY       :
-                smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
-                *clearToSend = false;
+                if (!telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
+                    *clearToSend = false;
+                }
                 break;
             case FSSP_DATAID_ACCZ       :
-                smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
-                *clearToSend = false;
+                if (!telemetryConfig()->frsky_pitch_roll) {
+                    smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
+                    *clearToSend = false;
+                }
                 break;
             case FSSP_DATAID_T1         :
                 {
@@ -526,22 +543,16 @@ static bool serialCheckQueueEmpty(void)
 
 void handleSmartPortTelemetry(void)
 {
-    static bool clearToSend = false;
-    static timeUs_t clearToSendAt;
-    static smartPortPayload_t *payload = NULL;
-
-    const uint32_t requestTimeout = millis() + SMARTPORT_SERVICE_TIMEOUT_MS;
-
     if (telemetryState == TELEMETRY_STATE_INITIALIZED_SERIAL && smartPortSerialPort) {
+        bool clearToSend = false;
+        smartPortPayload_t *payload = NULL;
+        const uint32_t requestTimeout = millis() + SMARTPORT_SERVICE_TIMEOUT_MS;
         while (serialRxBytesWaiting(smartPortSerialPort) > 0 && !payload) {
             uint8_t c = serialRead(smartPortSerialPort);
-            payload = smartPortDataReceive(c, &clearToSend, &clearToSendAt, serialCheckQueueEmpty, true);
+            payload = smartPortDataReceive(c, &clearToSend, serialCheckQueueEmpty, true);
         }
 
-        if (clearToSendAt > 0 && micros() >= clearToSendAt) {
-            processSmartPortTelemetry(payload, &clearToSend, &requestTimeout);
-            payload = NULL;
-        }
+        processSmartPortTelemetry(payload, &clearToSend, &requestTimeout);
     }
 }
 #endif

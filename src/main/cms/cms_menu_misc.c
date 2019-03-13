@@ -67,8 +67,7 @@ static const OSD_Entry cmsx_menuRcEntries[] =
     OSD_INT16_RO_ENTRY("AUX3", &rcData[AUX3]),
     OSD_INT16_RO_ENTRY("AUX4", &rcData[AUX4]),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuRcPreview = {
@@ -94,8 +93,7 @@ static const OSD_Entry menuMiscEntries[]=
 
     OSD_SUBMENU_ENTRY("RC PREV", &cmsx_menuRcPreview),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuMisc = {

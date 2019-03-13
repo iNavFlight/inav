@@ -53,6 +53,7 @@
 
 #include "cms/cms_menu_vtx_smartaudio.h"
 #include "cms/cms_menu_vtx_tramp.h"
+#include "cms/cms_menu_vtx_ffpv.h"
 
 
 // Info
@@ -85,8 +86,7 @@ static const OSD_Entry menuInfoEntries[] = {
     OSD_STRING_ENTRY("GITREV", infoGitRev),
     OSD_STRING_ENTRY("TARGET", infoTargetName),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu menuInfo = {
@@ -119,13 +119,15 @@ static const OSD_Entry menuFeaturesEntries[] =
 #if defined(USE_VTX_TRAMP)
     OSD_SUBMENU_ENTRY("VTX TR", &cmsx_menuVtxTramp),
 #endif
+#if defined(USE_VTX_FFPV)
+    OSD_SUBMENU_ENTRY("VTX FFPV", &cmsx_menuVtxFFPV),
+#endif
 #endif // VTX_CONTROL
 #ifdef USE_LED_STRIP
     OSD_SUBMENU_ENTRY("LED STRIP", &cmsx_menuLedstrip),
 #endif // LED_STRIP
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu menuFeatures = {
@@ -148,15 +150,14 @@ static const OSD_Entry menuMainEntries[] =
     OSD_SUBMENU_ENTRY("PID TUNING", &cmsx_menuImu),
     OSD_SUBMENU_ENTRY("FEATURES", &menuFeatures),
 #if defined(USE_OSD) && defined(CMS_MENU_OSD)
-    OSD_SUBMENU_ENTRY("OSD LAYOUTS", &cmsx_menuOsdLayout),
-    OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
+    OSD_SUBMENU_ENTRY("OSD", &cmsx_menuOsd),
 #endif
     OSD_SUBMENU_ENTRY("BATTERY", &cmsx_menuBattery),
-    OSD_SUBMENU_ENTRY("FC&FW INFO", &menuInfo),
+    OSD_SUBMENU_ENTRY("FC+FW INFO", &menuInfo),
     OSD_SUBMENU_ENTRY("MISC", &cmsx_menuMisc),
 
-    {"SAVE&REBOOT", OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT_SAVEREBOOT, 0},
-    {"EXIT",        OME_OSD_Exit, {.func = cmsMenuExit}, (void*)CMS_EXIT, 0},
+    {"SAVE+REBOOT", {.func = cmsMenuExit}, (void*)CMS_EXIT_SAVEREBOOT, OME_OSD_Exit, 0},
+    {"EXIT"       , {.func = cmsMenuExit}, (void*)CMS_EXIT, OME_OSD_Exit, 0},
 #ifdef CMS_MENU_DEBUG
     OSD_SUBMENU_ENTRY("ERR SAMPLE", &menuInfoEntries[0]),
 #endif

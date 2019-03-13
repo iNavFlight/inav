@@ -357,7 +357,7 @@ static void showStatusPage(void)
 
     if (feature(FEATURE_VBAT)) {
         i2c_OLED_set_line(rowIndex++);
-        tfp_sprintf(lineBuffer, "V: %d.%1d ", getBatteryVoltage() / 100, getBatteryVoltage() % 100);
+        tfp_sprintf(lineBuffer, "V: %d.%02d ", getBatteryVoltage() / 100, getBatteryVoltage() % 100);
         padLineBufferToChar(12);
         i2c_OLED_send_string(lineBuffer);
 
@@ -387,7 +387,7 @@ static void showStatusPage(void)
         i2c_OLED_set_xy(HALF_SCREEN_CHARACTER_COLUMN_COUNT, rowIndex++);
         i2c_OLED_send_string(lineBuffer);
 
-        tfp_sprintf(lineBuffer, "HDOP: %d.%1d", gpsSol.hdop / 100, gpsSol.hdop % 100);
+        tfp_sprintf(lineBuffer, "HDOP: %d.%02d", gpsSol.hdop / 100, gpsSol.hdop % 100);
         padLineBuffer();
         i2c_OLED_set_line(rowIndex++);
         i2c_OLED_send_string(lineBuffer);

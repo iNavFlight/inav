@@ -67,7 +67,7 @@
 
 stickPositions_e rcStickPositions;
 
-int16_t rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
+FASTRAM int16_t rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 0);
 
@@ -235,7 +235,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {
-        gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
+        gyroStartCalibration();
         return;
     }
 
@@ -317,7 +317,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // Calibrating Acc
     if (rcSticks == THR_HI + YAW_LO + PIT_LO + ROL_CE) {
-        accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
+        accStartCalibration();
         return;
     }
 

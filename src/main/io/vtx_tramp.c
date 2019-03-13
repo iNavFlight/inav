@@ -44,7 +44,7 @@
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 
-#if defined(USE_CMS) || defined(USE_VTX_COMMON)
+#if defined(USE_CMS)
 const uint16_t trampPowerTable[VTX_TRAMP_POWER_COUNT] = {
     25, 100, 200, 400, 600
 };
@@ -54,18 +54,16 @@ const char * const trampPowerNames[VTX_TRAMP_POWER_COUNT+1] = {
 };
 #endif
 
-#if defined(USE_VTX_COMMON)
 static const vtxVTable_t trampVTable; // forward
 static vtxDevice_t vtxTramp = {
     .vTable = &trampVTable,
     .capability.bandCount = VTX_TRAMP_BAND_COUNT,
     .capability.channelCount = VTX_TRAMP_CHANNEL_COUNT,
-    .capability.powerCount = sizeof(trampPowerTable),
+    .capability.powerCount = VTX_TRAMP_POWER_COUNT,
     .bandNames = (char **)vtx58BandNames,
     .channelNames = (char **)vtx58ChannelNames,
     .powerNames = (char **)trampPowerNames,
 };
-#endif
 
 static serialPort_t *trampSerialPort = NULL;
 
@@ -196,7 +194,7 @@ bool trampCommitChanges(void)
 // return false if index out of range
 static bool trampDevSetPowerByIndex(uint8_t index)
 {
-    if (index > 0 && index <= sizeof(trampPowerTable)) {
+    if (index > 0 && index <= VTX_TRAMP_POWER_COUNT) {
         trampSetRFPower(trampPowerTable[index - 1]);
         trampCommitChanges();
         return true;
@@ -479,8 +477,6 @@ static void vtxTrampProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 }
 
 
-#ifdef USE_VTX_COMMON
-
 // Interface to common VTX API
 
 static vtxDevType_e vtxTrampGetDeviceType(const vtxDevice_t *vtxDevice)
@@ -588,7 +584,6 @@ static const vtxVTable_t trampVTable = {
     .getFrequency = vtxTrampGetFreq,
 };
 
-#endif
 
 bool vtxTrampInit(void)
 {
@@ -596,11 +591,7 @@ bool vtxTrampInit(void)
 
     if (portConfig) {
         portOptions_t portOptions = 0;
-#if defined(USE_VTX_COMMON)
         portOptions = portOptions | (vtxConfig()->halfDuplex ? SERIAL_BIDIR : SERIAL_UNIDIR);
-#else
-        portOptions = SERIAL_BIDIR;
-#endif
 
         trampSerialPort = openSerialPort(portConfig->identifier, FUNCTION_VTX_TRAMP, NULL, NULL, 9600, MODE_RXTX, portOptions);
     }
@@ -609,9 +600,7 @@ bool vtxTrampInit(void)
         return false;
     }
 
-#if defined(USE_VTX_COMMON)
     vtxCommonSetDevice(&vtxTramp);
-#endif
 
     return true;
 }

@@ -113,7 +113,7 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     return output(displayPort, MSP_DISPLAYPORT, buf, len + 4);
 }
 
-static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint8_t c, textAttributes_t attr)
+static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t c, textAttributes_t attr)
 {
     char buf[2];
 

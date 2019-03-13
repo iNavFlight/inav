@@ -61,7 +61,7 @@ rangefinder_t rangefinder;
 #define RANGEFINDER_HARDWARE_TIMEOUT_MS         500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
 
 #define RANGEFINDER_DYNAMIC_THRESHOLD           600     //Used to determine max. usable rangefinder disatance
-#define RANGEFINDER_DYNAMIC_FACTOR              75    
+#define RANGEFINDER_DYNAMIC_FACTOR              75
 
 #ifdef USE_RANGEFINDER
 PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 1);
@@ -148,6 +148,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             if (uibRangefinderDetect(dev)) {
                 rangefinderHardware = RANGEFINDER_UIB;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_UIB_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
+        case RANGEFINDER_BENEWAKE:
+#if defined(USE_RANGEFINDER_BENEWAKE)
+            if (virtualRangefinderDetect(dev, &rangefinderBenewakeVtable)) {
+                rangefinderHardware = RANGEFINDER_BENEWAKE;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
             }
 #endif
             break;

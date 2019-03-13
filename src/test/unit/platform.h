@@ -78,3 +78,7 @@ extern SysTick_Type *SysTick;
 #define WS2811_DMA_HANDLER_IDENTIFER 0
 
 #include "target.h"
+
+#define FAST_CODE 
+#define NOINLINE
+#define EXTENDED_FASTRAM

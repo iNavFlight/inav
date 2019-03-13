@@ -35,6 +35,7 @@ typedef enum {
     GYRO_MPU6500,
     GYRO_MPU9250,
     GYRO_BMI160,
+    GYRO_ICM20689,
     GYRO_FAKE
 } gyroSensor_e;
 
@@ -48,11 +49,11 @@ extern gyro_t gyro;
 typedef struct gyroConfig_s {
     sensor_align_e gyro_align;              // gyro alignment
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
-    uint8_t  __deprecated_0;                // Was: gyro sync denominator
     uint8_t  gyroSync;                      // Enable interrupt based loop
     uint16_t looptime;                      // imu loop time in us
     uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint8_t  gyro_soft_lpf_hz;
+    uint8_t  gyro_soft_lpf_type;
     uint8_t  gyro_to_use;
     uint16_t gyro_soft_notch_hz_1;
     uint16_t gyro_soft_notch_cutoff_1;
@@ -66,8 +67,8 @@ PG_DECLARE(gyroConfig_t, gyroConfig);
 bool gyroInit(void);
 void gyroInitFilters(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
-void gyroUpdate(timeDelta_t gyroUpdateDeltaUs);
-void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired);
+void gyroUpdate();
+void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);

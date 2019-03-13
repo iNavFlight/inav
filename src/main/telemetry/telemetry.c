@@ -59,6 +59,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .frsky_coordinate_format = FRSKY_FORMAT_DMS,
     .frsky_unit = FRSKY_UNIT_METRICS,
     .frsky_vfas_precision = 0,
+    .frsky_pitch_roll = 0,
     .report_cell_voltage = 0,
     .hottAlarmSoundInterval = 5,
     .smartportUartUnidirectional = 0,
@@ -97,7 +98,7 @@ void telemetryInit(void)
     initIbusTelemetry();
 #endif
 
-#if defined(USE_TELEMETRY_CRSF)
+#if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     initCrsfTelemetry();
 #endif
 
@@ -155,7 +156,7 @@ void telemetryCheckState(void)
     checkIbusTelemetryState();
 #endif
 
-#if defined(USE_TELEMETRY_CRSF)
+#if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     checkCrsfTelemetryState();
 #endif
 }
@@ -192,7 +193,7 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleIbusTelemetry();
 #endif
 
-#if defined(USE_TELEMETRY_CRSF)
+#if defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
     handleCrsfTelemetry(currentTimeUs);
 #endif
 }

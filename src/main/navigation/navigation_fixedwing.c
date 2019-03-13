@@ -43,6 +43,7 @@
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "navigation/navigation.h"
@@ -63,6 +64,7 @@ static bool isRollAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
+static int8_t loiterDirYaw = 1;
 
 
 /*-----------------------------------------------------------
@@ -213,6 +215,18 @@ void resetFixedWingPositionController(void)
     pt1FilterReset(&fwPosControllerCorrectionFilterState, 0.0f);
 }
 
+static int8_t loiterDirection(void) {
+    int8_t dir = 1; //NAV_LOITER_RIGHT
+    if (pidProfile()->loiter_direction == NAV_LOITER_LEFT) dir = -1;
+    if (pidProfile()->loiter_direction == NAV_LOITER_YAW) {
+        if (rcCommand[YAW] < -250) loiterDirYaw = 1; //RIGHT //yaw is contrariwise
+        if (rcCommand[YAW] > 250) loiterDirYaw = -1; //LEFT  //see annexCode in fc_core.c
+        dir = loiterDirYaw;
+    }
+    if (IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)) dir *= -1;
+    return dir;
+}
+
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
     float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
@@ -233,7 +247,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Calculate virtual position for straight movement
     if (needToCalculateCircularLoiter) {
         // We are closing in on a waypoint, calculate circular loiter
-        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(45.0f);
+        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(loiterDirection() * 45.0f);
 
         float loiterTargetX = posControl.desiredState.pos.x + navConfig()->fw.loiter_radius * cos_approx(loiterAngle);
         float loiterTargetY = posControl.desiredState.pos.y + navConfig()->fw.loiter_radius * sin_approx(loiterAngle);
@@ -258,8 +272,6 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             // Rotate this target shift from body frame to to earth frame and apply to position target
             virtualDesiredPosition.x += -rcShiftY * posControl.actualState.sinYaw;
             virtualDesiredPosition.y +=  rcShiftY * posControl.actualState.cosYaw;
-
-            posControl.flags.isAdjustingPosition = true;
         }
     }
 }
@@ -273,7 +285,7 @@ bool adjustFixedWingPositionFromRCInput(void)
 static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta_t deltaMicros)
 {
     static timeUs_t previousTimeMonitoringUpdate;
-    static float previousHeadingError;
+    static int32_t previousHeadingError;
     static bool errorIsDecreasing;
     static bool forceTurnDirection = false;
 
@@ -294,7 +306,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     // If forced turn direction flag is enabled we fix the sign of the direction
     if (forceTurnDirection) {
-        navHeadingError = ABS(navHeadingError);
+        navHeadingError = loiterDirection() * ABS(navHeadingError);
     }
 
     // Slow error monitoring (2Hz rate)
@@ -310,7 +322,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     // Only allow PID integrator to shrink if error is decreasing over time
     const pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR | (errorIsDecreasing ? PID_SHRINK_INTEGRATOR : 0);
 
-    // Input error in (deg*100), output pitch angle (deg*100)
+    // Input error in (deg*100), output roll angle (deg*100)
     float rollAdjustment = navPidApply2(&posControl.pids.fw_nav, posControl.actualState.yaw + navHeadingError, posControl.actualState.yaw, US2S(deltaMicros),
                                        -DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
                                         DEGREES_TO_CENTIDEGREES(navConfig()->fw.max_bank_angle),
@@ -398,7 +410,7 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
                 float velThrottleBoost = (NAV_FW_MIN_VEL_SPEED_BOOST - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
                 // If we are in the deadband of 50cm/s - don't update speed boost
-                if (ABS(posControl.actualState.velXY - NAV_FW_MIN_VEL_SPEED_BOOST) > 50) {
+                if (fabsf(posControl.actualState.velXY - NAV_FW_MIN_VEL_SPEED_BOOST) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
                 }
 

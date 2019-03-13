@@ -33,7 +33,7 @@
 #include "fc/runtime_config.h"
 
 #if !defined(DYNAMIC_HEAP_SIZE)
-#define DYNAMIC_HEAP_SIZE   (1024)
+#define DYNAMIC_HEAP_SIZE   (2048)
 #endif
 
 static uint32_t dynHeap[DYNAMIC_HEAP_SIZE / sizeof(uint32_t)];

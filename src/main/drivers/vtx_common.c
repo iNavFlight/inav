@@ -25,8 +25,6 @@
 #include "platform.h"
 #include "build/debug.h"
 
-#if defined(USE_VTX_COMMON)
-
 #include "vtx_common.h"
 
 static vtxDevice_t *commonVtxDevice = NULL;
@@ -77,7 +75,7 @@ void vtxCommonSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t ch
 
     if ((band > vtxDevice->capability.bandCount) || (channel > vtxDevice->capability.channelCount))
         return;
-    
+
     if (vtxDevice->vTable->setBandAndChannel) {
         vtxDevice->vTable->setBandAndChannel(vtxDevice, band, channel);
     }
@@ -91,7 +89,7 @@ void vtxCommonSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 
     if (index > vtxDevice->capability.powerCount)
         return;
-    
+
     if (vtxDevice->vTable->setPowerByIndex) {
         vtxDevice->vTable->setPowerByIndex(vtxDevice, index);
     }
@@ -152,4 +150,3 @@ bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t 
     }
     return false;
 }
-#endif

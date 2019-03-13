@@ -28,8 +28,6 @@
 #define USBD_PRODUCT_STRING     "YUPIF4"
 #endif
 
-#define TARGET_CONFIG
-
 #define LED0                    PB6
 #define LED1                    PB4
 
@@ -80,6 +78,8 @@
 #define MAG_HMC5883_ALIGN       CW270_DEG_FLIP
 #define USE_MAG_QMC5883
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_MS5611
@@ -93,15 +93,11 @@
 #if defined(YUPIF4MINI)
 #else
 #define USE_SDCARD
-#define USE_SDCARD_SPI3
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN                   PD2
-#define SDCARD_SPI_INSTANCE                 SPI3
-#define SDCARD_SPI_CS_PIN                   SPI3_NSS_PIN
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Stream5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA_FLAG_TCIF5
-#define SDCARD_DMA_CLK                      RCC_AHB1Periph_DMA1
-#define SDCARD_DMA_CHANNEL                  DMA_Channel_0
+#define SDCARD_DETECT_PIN       PD2
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           SPI3_NSS_PIN
 #endif
 
 #define USB_IO
@@ -143,6 +139,7 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
+#define SPI3_CLOCK_LEADING_EDGE
 
 // ADC inputs
 #define BOARD_HAS_VOLTAGE_DIVIDER
@@ -155,10 +152,6 @@
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB1
-#define WS2811_TIMER                    TIM8
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST2_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream2
-#define WS2811_DMA_CHANNEL              DMA_Channel_5
 
 // Features
 // #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
@@ -177,3 +170,5 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
+
+#define PCA9685_I2C_BUS         BUS_I2C2

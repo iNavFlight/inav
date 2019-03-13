@@ -23,8 +23,7 @@
 
 #include "platform.h"
 
-#if defined(USE_GPS)
-#if defined(USE_GPS_PROTO_NMEA) || defined(USE_GPS_PROTO_MTK)
+#if defined(USE_GPS) && (defined(USE_GPS_PROTO_NMEA) || defined(USE_GPS_PROTO_MTK))
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -43,6 +42,8 @@
 #include "io/serial.h"
 #include "io/gps.h"
 #include "io/gps_private.h"
+
+#include "scheduler/protothreads.h"
 
 /* This is a light implementation of a GPS frame decoding
    This should work with most of modern GPS devices configured to output 5 frames.
@@ -89,7 +90,7 @@ typedef struct gpsDataNmea_s {
     int32_t latitude;
     int32_t longitude;
     uint8_t numSat;
-    uint16_t altitude;
+    int32_t altitude;
     uint16_t speed;
     uint16_t ground_course;
     uint16_t hdop;
@@ -261,150 +262,183 @@ static bool gpsNewFrameNMEA(char c)
     return frameOK;
 }
 
-static bool gpsReceiveData(void)
-{
-    bool hasNewData = false;
+static ptSemaphore_t semNewDataReady;
 
-    if (gpsState.gpsPort) {
+STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
+{
+    ptBegin(gpsProtocolReceiverThread);
+
+    while (1) {
+        // Wait until there are bytes to consume
+        ptWait(serialRxBytesWaiting(gpsState.gpsPort));
+
+        // Consume bytes until buffer empty of until we have full message received
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameNMEA(newChar)) {
-                gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
                 gpsSol.flags.validVelNE = 0;
                 gpsSol.flags.validVelD = 0;
-                hasNewData = true;
+                ptSemaphoreSignal(semNewDataReady);
+                break;
             }
         }
     }
 
-    return hasNewData;
+    ptEnd(0);
 }
 
 #ifdef USE_GPS_PROTO_MTK
-
-static uint8_t *mtk_conf[] = {
-(uint8_t *)"$PMTK251,57600*2C\r\n", //change baudrate to 57600
-(uint8_t *)"$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n", //disable all messages except GGA and RMC
-(uint8_t *)"$PMTK220,200*2C\r\n", //5Hz update, should works for most modules
-(uint8_t *)"$PMTK220,100*2F\r\n" //try set 10Hz update if supported
+static const char * mtkBaudInitData[GPS_BAUDRATE_COUNT] = {
+    "$PMTK251,115200*1F\r\n",     // GPS_BAUDRATE_115200
+    "$PMTK251,57600*2C\r\n",      // GPS_BAUDRATE_57600
+    "$PMTK251,38400*27\r\n",      // GPS_BAUDRATE_38400
+    "$PMTK251,19200*22\r\n",      // GPS_BAUDRATE_19200
+    "$PMTK251,9600*17\r\n"        // GPS_BAUDRATE_9600
 };
 
-// Send NMEA command like normal string
-static bool nmeaTransmitAutoConfigCommands(const uint8_t * cmd)
+STATIC_PROTOTHREAD(gpsProtocolStateThreadMTK)
 {
-    while (serialTxBytesFree(gpsState.gpsPort) > 0) {
-        if (cmd[gpsState.autoConfigPosition] != 0) {
-            serialWrite(gpsState.gpsPort, cmd[gpsState.autoConfigPosition]);
-            gpsState.autoConfigPosition++;
-        }
-        else if (isSerialTransmitBufferEmpty(gpsState.gpsPort)) {
-            gpsState.autoConfigStep++;
-            gpsState.autoConfigPosition = 0;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
+    ptBegin(gpsProtocolStateThreadMTK);
 
-    return false;
-}
+    // Change baud rate
+    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+    if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
+        // Autobaud logic:
+        //  0. Wait for TX buffer to be empty
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-bool gpsConfigure(void)
-{
+        //  1. Set serial port to baud rate specified by [autoBaudrateIndex]
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
+        gpsState.autoBaudrateIndex = (gpsState.autoBaudrateIndex + 1) % GPS_BAUDRATE_COUNT;
 
-    if (gpsState.autoConfigStep < sizeof(mtk_conf)/sizeof(mtk_conf[0])) {
-        nmeaTransmitAutoConfigCommands(mtk_conf[gpsState.autoConfigStep]);
+        //  2. Send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
+        serialPrint(gpsState.gpsPort, mtkBaudInitData[gpsState.baudrateIndex]);
+
+        //  3. Wait for command to be received and processed by GPS
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        //  4. Switch to [baudrateIndex]
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
+
+        //  5. Attempt to configure the GPS
+        ptDelayMs(GPS_BAUD_CHANGE_DELAY);
     }
     else {
-        gpsSetState(GPS_RECEIVING_DATA);
+        // Set baud rate
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
-    return false;
-}
+    // Send configuration commands
+    if (gpsState.gpsConfig->autoConfig) {
+        // Disable all messages except GGA and RMC
+        serialPrint(gpsState.gpsPort, "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-#endif
+        // Set Nav Threshold (the minimum speed the GPS must be moving to update the position) to 0 m/s
+        serialPrint(gpsState.gpsPort, "$PMTK397,0*23\r\n");
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-static bool gpsInitialize(void)
-{
-    gpsSetState(GPS_CHANGE_BAUD);
-    return false;
-}
+        // SBAS/WAAS
+        if (gpsState.gpsConfig->sbasMode != SBAS_NONE) {
+            serialPrint(gpsState.gpsPort, "$PMTK313,1*2E\r\n");     // SBAS ON
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-static bool gpsChangeBaud(void)
-{
-#ifdef USE_GPS_PROTO_MTK
-    if ((gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) && (gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT)) {
-        // Do the switch only if TX buffer is empty - make sure all init string was sent at the same baud
-        if (isSerialTransmitBufferEmpty(gpsState.gpsPort)) {
-            // Cycle through all possible bauds and send init string
-            serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
-            gpsState.autoBaudrateIndex++;
-            gpsSetState(GPS_CHANGE_BAUD);   // switch to the same state to reset state transition time
+            serialPrint(gpsState.gpsPort, "$PMTK301,2*2E\r\n");     // WAAS ON
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
         }
-    } else
-#endif
-    {
-        gpsFinalizeChangeBaud();
+        else {
+            serialPrint(gpsState.gpsPort, "$PMTK313,0*2F\r\n");     // SBAS OFF
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+            serialPrint(gpsState.gpsPort, "$PMTK301,0*2C\r\n");     // WAAS OFF
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+        }
+
+        // 5Hz update, should works for most modules
+        serialPrint(gpsState.gpsPort, "$PMTK220,200*2C\r\n");
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        // Try set 10Hz update rate. Module will ignore it if can't support
+        serialPrint(gpsState.gpsPort, "$PMTK220,100*2F\r\n");
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
     }
 
-    return false;
+    // Reset protocol timeout
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
+
+    // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
+    while (1) {
+        ptSemaphoreWait(semNewDataReady);
+        gpsProcessNewSolutionData();
+    }
+
+    ptEnd(0);
 }
 
-bool gpsHandleNMEA(void)
+void gpsHandleMTK(void)
 {
-    // Receive data
-    bool hasNewData = gpsReceiveData();
+    // Run the protocol threads
+    gpsProtocolReceiverThread();
+    gpsProtocolStateThreadMTK();
 
-    // Process state
-    switch (gpsState.state) {
-    default:
-        return false;
-
-    case GPS_INITIALIZING:
-        return gpsInitialize();
-
-    case GPS_CHANGE_BAUD:
-        return gpsChangeBaud();
-
-
-    case GPS_CHECK_VERSION:
-    case GPS_CONFIGURE:
-        // No autoconfig, switch straight to receiving data
-        gpsSetState(GPS_RECEIVING_DATA);
-        return false;
-
-    case GPS_RECEIVING_DATA:
-        return hasNewData;
+    // If thread stopped - signal communication loss and restart
+    if (ptIsStopped(ptGetHandle(gpsProtocolReceiverThread)) || ptIsStopped(ptGetHandle(gpsProtocolStateThreadMTK))) {
+        gpsSetState(GPS_LOST_COMMUNICATION);
     }
 }
-
-bool gpsHandleMTK(void)
-{
-    // Receive data
-    bool hasNewData = gpsReceiveData();
-
-    // Process state
-    switch(gpsState.state) {
-    default:
-        return false;
-
-    case GPS_INITIALIZING:
-        return gpsInitialize();
-
-    case GPS_CHANGE_BAUD:
-        return gpsChangeBaud();
-
-
-    case GPS_CHECK_VERSION:
-    case GPS_CONFIGURE:
-        gpsConfigure();
-        return false;
-
-    case GPS_RECEIVING_DATA:
-        return hasNewData;
-    }
-}
-
 #endif
+
+STATIC_PROTOTHREAD(gpsProtocolStateThreadNMEA)
+{
+    ptBegin(gpsProtocolStateThreadNMEA);
+
+    // Change baud rate
+    ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+    if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
+        // Cycle through available baud rates and hope that we will match GPS
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
+        gpsState.autoBaudrateIndex = (gpsState.autoBaudrateIndex + 1) % GPS_BAUDRATE_COUNT;
+        ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+    }
+    else {
+        // Set baud rate
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
+    }
+
+    // No configuration is done for pure NMEA modules
+
+    // GPS setup done, reset timeout
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
+
+    // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
+    while (1) {
+        ptSemaphoreWait(semNewDataReady);
+        gpsProcessNewSolutionData();
+    }
+
+    ptEnd(0);
+}
+
+void gpsHandleNMEA(void)
+{
+    // Run the protocol threads
+    gpsProtocolReceiverThread();
+    gpsProtocolStateThreadNMEA();
+
+    // If thread stopped - signal communication loss and restart
+    if (ptIsStopped(ptGetHandle(gpsProtocolReceiverThread)) || ptIsStopped(ptGetHandle(gpsProtocolStateThreadNMEA))) {
+        gpsSetState(GPS_LOST_COMMUNICATION);
+    }
+}
+
+void gpsRestartNMEA_MTK(void)
+{
+    ptSemaphoreInit(semNewDataReady);
+    ptRestart(ptGetHandle(gpsProtocolReceiverThread));
+    ptRestart(ptGetHandle(gpsProtocolStateThreadNMEA));
+#ifdef USE_GPS_PROTO_MTK
+    ptRestart(ptGetHandle(gpsProtocolStateThreadMTK));
+#endif
+}
+
 #endif
