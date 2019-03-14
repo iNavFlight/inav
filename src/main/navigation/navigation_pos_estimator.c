@@ -59,7 +59,7 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
         .automatic_mag_declination = 1,
         .reset_altitude_type = NAV_RESET_ON_FIRST_ARM,
-        .reset_home_type = NAV_RESET_ON_EACH_ARM,
+        .reset_home_type = NAV_RESET_ON_FIRST_ARM,
         .gravity_calibration_tolerance = 5,     // 5 cm/s/s calibration error accepted (0.5% of gravity)
         .use_gps_velned = 1,         // "Disabled" is mandatory with gps_dyn_model = Pedestrian
         .allow_dead_reckoning = 0,
