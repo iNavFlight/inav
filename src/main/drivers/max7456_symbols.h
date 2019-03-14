@@ -24,8 +24,8 @@
 #ifdef USE_MAX7456
 
 #define SYM_RSSI                  0x01 // 001 Icon RSSI
-#define SYM_AH_RIGHT              0x02 // 002 Arrow left
-#define SYM_AH_LEFT               0x03 // 003 Arrow right
+#define SYM_AH_LEFT               0x02 // 002 Arrow left
+#define SYM_AH_RIGHT              0x03 // 003 Arrow right
 #define SYM_THR                   0x04 // 004 Throttle
 #define SYM_AH_DECORATION_UP      0x05 // 005 Arrow up AHI
 #define SYM_VOLT                  0x06 // 006 V
@@ -207,8 +207,6 @@
 #define SYM_LOGO_START            0x101 // 257 to 280, INAV logo
 #define SYM_LOGO_WIDTH            6
 #define SYM_LOGO_HEIGHT           4
-
-#define SYM_CURSOR SYM_AH_LEFT // Menu cursor
 
 #else
 
