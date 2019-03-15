@@ -534,7 +534,7 @@ static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flig
 #endif
 }
 
-static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
