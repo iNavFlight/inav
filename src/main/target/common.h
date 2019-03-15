@@ -99,6 +99,8 @@
 
 #define USE_BOOTLOG
 #define BOOTLOG_DESCRIPTIONS
+
+#define NAV_NON_VOLATILE_WAYPOINT_CLI
 #endif
 
 #if (FLASH_SIZE > 128)

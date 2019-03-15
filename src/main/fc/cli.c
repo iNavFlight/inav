@@ -91,6 +91,7 @@ extern uint8_t __config_end;
 #include "io/serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 #include "rx/spektrum.h"
@@ -1241,6 +1242,123 @@ static void cliTempSensor(char *cmdline)
         }
     }
 }
+#endif
+
+#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
+{
+    cliPrintLinef("#wp %d %svalid", posControl.waypointCount, posControl.waypointListValid ? "" : "in"); //int8_t bool
+    const char *format = "wp %u %u %d %d %d %d %u"; //uint8_t action; int32_t lat; int32_t lon; int32_t alt; int16_t p1; uint8_t flag
+    for (uint8_t i = 0; i < NAV_MAX_WAYPOINTS; i++) {
+        bool equalsDefault = false;
+        if (defaultNavWaypoint) {
+            equalsDefault = navWaypoint[i].action == defaultNavWaypoint[i].action
+                && navWaypoint[i].lat == defaultNavWaypoint[i].lat
+                && navWaypoint[i].lon == defaultNavWaypoint[i].lon
+                && navWaypoint[i].alt == defaultNavWaypoint[i].alt
+                && navWaypoint[i].p1 == defaultNavWaypoint[i].p1
+                && navWaypoint[i].flag == defaultNavWaypoint[i].flag;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                defaultNavWaypoint[i].action,
+                defaultNavWaypoint[i].lat,
+                defaultNavWaypoint[i].lon,
+                defaultNavWaypoint[i].alt,
+                defaultNavWaypoint[i].p1,
+                defaultNavWaypoint[i].flag
+            );
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            navWaypoint[i].action,
+            navWaypoint[i].lat,
+            navWaypoint[i].lon,
+            navWaypoint[i].alt,
+            navWaypoint[i].p1,
+            navWaypoint[i].flag
+        );
+    }
+}
+
+static void cliWaypoints(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printWaypoints(DUMP_MASTER, posControl.waypointList, NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetWaypointList();
+    } else if (sl_strcasecmp(cmdline, "load") == 0) {
+        loadNonVolatileWaypointList();
+    } else if (sl_strcasecmp(cmdline, "save") == 0) {
+        posControl.waypointListValid = false;
+        for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_RTH)) break;
+            if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
+                posControl.waypointCount = i + 1;
+                posControl.waypointListValid = true;
+                break;
+            }
+        }
+        if (posControl.waypointListValid) {
+            saveNonVolatileWaypointList();
+        } else {
+            cliShowParseError();
+        }
+    } else {
+        int16_t i, p1;
+        uint8_t action, flag;
+        int32_t lat, lon, alt;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        i = fastA2I(ptr);
+        if (i >= 0 && i < NAV_MAX_WAYPOINTS) {
+            ptr = nextArg(ptr);
+            if (ptr) {
+                action = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                lat = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                lon = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                alt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                p1 = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            ptr = nextArg(ptr);
+            if (ptr) {
+                flag = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if (validArgumentCount < 4) {
+                cliShowParseError();
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+                cliShowParseError();
+            } else {
+                posControl.waypointList[i].action = action;
+                posControl.waypointList[i].lat = lat;
+                posControl.waypointList[i].lon = lon;
+                posControl.waypointList[i].alt = alt;
+                posControl.waypointList[i].p1 = p1;
+                posControl.waypointList[i].flag = flag;
+            }
+        } else {
+            cliShowArgumentRangeError("wp index", 0, NAV_MAX_WAYPOINTS - 1);
+        }
+    }
+}
+
 #endif
 
 #ifdef USE_LED_STRIP
@@ -2889,6 +3007,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         printTempSensor(dumpMask, tempSensorConfig_CopyArray, tempSensorConfig(0));
 #endif
 
+#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+        cliPrintHashLine("wp");
+        printWaypoints(dumpMask, posControl.waypointList, nonVolatileWaypointList(0));
+#endif
+
 #ifdef USE_OSD
         cliPrintHashLine("osd_layout");
         printOsdLayout(dumpMask, &osdConfig_Copy, osdConfig(), -1, -1);
@@ -3058,6 +3181,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
     CLI_COMMAND_DEF("version", "show version", NULL, cliVersion),
+#if defined(USE_NAV) && defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
+    CLI_COMMAND_DEF("wp", "waypoint list", NULL, cliWaypoints),
+#endif
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
