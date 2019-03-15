@@ -1735,14 +1735,6 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kF
 }
 
 /*-----------------------------------------------------------
- * Float point P-controller implementation
- *-----------------------------------------------------------*/
-void navPInit(pController_t *p, float _kP)
-{
-    p->param.kP = _kP;
-}
-
-/*-----------------------------------------------------------
  * Detects if thrust vector is facing downwards
  *-----------------------------------------------------------*/
 bool isThrustFacingDownwards(void)
@@ -3033,22 +3025,39 @@ void navigationUsePIDs(void)
 
     // Initialize position hold P-controller
     for (int axis = 0; axis < 2; axis++) {
-        navPInit(&posControl.pids.pos[axis], (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f);
+        navPidInit(
+            &posControl.pids.pos[axis], 
+            (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f,
+            (float)pidProfile()->bank_mc.pid[PID_POS_XY].I / 100.0f,
+            (float)pidProfile()->bank_mc.pid[PID_POS_XY].D / 100.0f,
+            (float)pidProfile()->bank_mc.pid[PID_POS_XY].FF / 100.0f
+        );
 
-        navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
-                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
-                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
-                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].FF / 100.0f
+        navPidInit(
+            &posControl.pids.vel[axis],
+            (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
+            (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
+            (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
+            (float)pidProfile()->bank_mc.pid[PID_VEL_XY].FF / 100.0f
         );
     }
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
-    navPInit(&posControl.pids.pos[Z], (float)pidProfile()->bank_mc.pid[PID_POS_Z].P / 100.0f);
+    navPidInit(
+        &posControl.pids.pos[Z], 
+        (float)pidProfile()->bank_mc.pid[PID_POS_Z].P / 100.0f,
+        (float)pidProfile()->bank_mc.pid[PID_POS_Z].I / 100.0f,
+        (float)pidProfile()->bank_mc.pid[PID_POS_Z].D / 100.0f,
+        (float)pidProfile()->bank_mc.pid[PID_POS_Z].FF / 100.0f
+    );
 
-    navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 66.7f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 20.0f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f,
-                                        0.0f);
+    navPidInit(
+        &posControl.pids.vel[Z],
+        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 66.7f,
+        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 20.0f,
+        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f,
+        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].FF / 100.0f
+    );
 
     // Initialize surface tracking PID
     navPidInit(&posControl.pids.surface, 2.0f,
@@ -3061,12 +3070,12 @@ void navigationUsePIDs(void)
     navPidInit(&posControl.pids.fw_nav, (float)pidProfile()->bank_fw.pid[PID_POS_XY].P / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].I / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f,
-                                        0.0f);
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_XY].FF / 100.0f);
 
     navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f,
-                                        0.0f);
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].FF / 10.0f);
 }
 
 void navigationInit(void)

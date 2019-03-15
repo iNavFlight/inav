@@ -62,18 +62,22 @@ static bool prepareForTakeoffOnReset = false;
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    const float altitudeError = posControl.desiredState.pos.z - navGetCurrentActualPositionAndVelocity()->pos.z;
-    float targetVel = altitudeError * posControl.pids.pos[Z].param.kP;
-
-    // hard limit desired target velocity to max_climb_rate
+    uint16_t maxClimbRate;
     if (posControl.flags.isAdjustingAltitude) {
-        targetVel = constrainf(targetVel, -navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate);
-    }
-    else {
-        targetVel = constrainf(targetVel, -navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate);
+        maxClimbRate = navConfig()->general.max_manual_climb_rate;
+    } else {
+        maxClimbRate = navConfig()->general.max_auto_climb_rate;
     }
 
-    posControl.pids.pos[Z].output_constrained = targetVel;
+    const float targetVel = navPidApply2(
+        &posControl.pids.pos[Z], 
+        posControl.desiredState.pos.z, 
+        navGetCurrentActualPositionAndVelocity()->pos.z, 
+        US2S(deltaMicros), 
+        -maxClimbRate, 
+        maxClimbRate, 
+        0
+    );
 
     // limit max vertical acceleration to 1/5G (~200 cm/s/s) if we are increasing RoC or RoD (only if vel is of the same sign)
     // if we are decelerating - don't limit (allow better recovery from falling)
