@@ -116,6 +116,23 @@ typedef union crsfFrame_u {
     crsfFrameDef_t frame;
 } crsfFrame_t;
 
+typedef struct crsfPayloadLinkStatistics_s {
+    uint8_t     uplinkRSSIAnt1;
+    uint8_t     uplinkRSSIAnt2;
+    uint8_t     uplinkLQ;
+    int8_t      uplinkSNR;
+    uint8_t     activeAntenna;
+    uint8_t     rfMode;
+    uint8_t     uplinkTXPower;
+    uint8_t     downlinkRSSI;
+    uint8_t     downlinkLQ;
+    int8_t      downlinkSNR;
+} __attribute__ ((__packed__)) crsfPayloadLinkStatistics_t;
+
+// The power levels represented by uplinkTXPower above in mW
+extern const uint16_t crsfPowerStates[];
+
+extern crsfPayloadLinkStatistics_t crsfLinkStatistics;
 
 void crsfRxWriteTelemetryData(const void *data, int len);
 void crsfRxSendTelemetryData(void);

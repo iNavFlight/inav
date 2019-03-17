@@ -58,6 +58,8 @@ static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
+crsfPayloadLinkStatistics_t crsfLinkStatistics;
+const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000};
 
 /*
  * CRSF protocol
@@ -107,21 +109,6 @@ struct crsfPayloadRcChannelsPacked_s {
 } __attribute__ ((__packed__));
 
 typedef struct crsfPayloadRcChannelsPacked_s crsfPayloadRcChannelsPacked_t;
-
-struct crsfPayloadLinkStatistics_s {
-    uint8_t     uplinkRSSIAnt1;
-    uint8_t     uplinkRSSIAnt2;
-    uint8_t     uplinkLQ;
-    int8_t      uplinkSNR;
-    uint8_t     activeAntenna;
-    uint8_t     rfMode;
-    uint8_t     uplinkTXPower;
-    uint8_t     downlinkRSSI;
-    uint8_t     downlinkLQ;
-    int8_t      downlinkSNR;
-} __attribute__ ((__packed__));
-
-typedef struct crsfPayloadLinkStatistics_s crsfPayloadLinkStatistics_t;
 
 STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
 {
@@ -229,9 +216,10 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             }
             crsfFrame.frame.frameLength = CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC;
 
-            // Inject link quality into channel 17
             const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
+            memcpy(&crsfLinkStatistics, linkStats, sizeof(crsfPayloadLinkStatistics_t));
 
+            // Inject link quality into channel 17
             crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
 
             lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 0, RSSI_MAX_VALUE));
