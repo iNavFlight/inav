@@ -99,6 +99,8 @@
 
 #define USE_BOOTLOG
 #define BOOTLOG_DESCRIPTIONS
+
+#define NAV_NON_VOLATILE_WAYPOINT_CLI
 #endif
 
 #if (FLASH_SIZE > 128)
@@ -144,6 +146,10 @@
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
 #define USE_VTX_FFPV
+
+#ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
+#define USE_LOGIC_CONDITIONS
+#endif
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST

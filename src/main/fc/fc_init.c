@@ -54,6 +54,7 @@
 #include "drivers/light_led.h"
 #include "drivers/logging.h"
 #include "drivers/nvic.h"
+#include "drivers/osd.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -70,7 +71,6 @@
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
-#include "drivers/vcd.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/io_pca9685.h"
@@ -347,7 +347,7 @@ void init(void)
     // pwmInit() needs to be called as soon as possible for ESC compatibility reasons
     pwmInit(&pwm_params);
 
-    mixerUsePWMIOConfiguration();
+    mixerPrepare();
 
     if (!pwm_params.useFastPwm)
         motorControlEnable = true;

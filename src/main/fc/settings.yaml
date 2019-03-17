@@ -110,6 +110,8 @@ tables:
   - name: vtx_low_power_disarm
     values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
     enum: vtxLowerPowerDisarm_e
+  - name: filter_type
+    values: ["PT1", "BIQUAD"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -131,6 +133,9 @@ groups:
       - name: gyro_lpf_hz
         field: gyro_soft_lpf_hz
         max: 200
+      - name: gyro_lpf_type
+        field: gyro_soft_lpf_type
+        table: filter_type
       - name: moron_threshold
         field: gyroMovementCalibrationThreshold
         max: 128
@@ -901,7 +906,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_pitch
-        field: bank_fw.pid[PID_PITCH].D
+        field: bank_fw.pid[PID_PITCH].FF
         min: 0
         max: 200
       - name: fw_p_roll
@@ -913,7 +918,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_roll
-        field: bank_fw.pid[PID_ROLL].D
+        field: bank_fw.pid[PID_ROLL].FF
         min: 0
         max: 200
       - name: fw_p_yaw
@@ -925,7 +930,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_yaw
-        field: bank_fw.pid[PID_YAW].D
+        field: bank_fw.pid[PID_YAW].FF
         min: 0
         max: 200
       - name: fw_p_level
@@ -951,6 +956,9 @@ groups:
       - name: dterm_lpf_hz
         min: 0
         max: 200
+      - name: use_dterm_fir_filter
+        field: use_dterm_fir_filter
+        type: bool
       - name: yaw_lpf_hz
         min: 0
         max: 200
@@ -1043,16 +1051,6 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
-      - name: nav_mc_pos_xy_i
-        field: bank_mc.pid[PID_POS_XY].I
-        condition: USE_NAV
-        min: 0
-        max: 255
-      - name: nav_mc_pos_xy_d
-        field: bank_mc.pid[PID_POS_XY].D
-        condition: USE_NAV
-        min: 0
-        max: 255
       - name: nav_mc_vel_xy_p
         field: bank_mc.pid[PID_VEL_XY].P
         condition: USE_NAV
@@ -1065,6 +1063,11 @@ groups:
         max: 255
       - name: nav_mc_vel_xy_d
         field: bank_mc.pid[PID_VEL_XY].D
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_mc_vel_xy_ff
+        field: bank_mc.pid[PID_VEL_XY].FF
         condition: USE_NAV
         min: 0
         max: 255
@@ -1366,6 +1369,16 @@ groups:
         condition: USE_MR_BRAKING_MODE
         min: 15
         max: 60
+      - name: nav_mc_pos_deceleration_time
+        field: mc.posDecelerationTime
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_mc_pos_expo
+        field: mc.posResponseExpo
+        condition: USE_NAV
+        min: 0
+        max: 255
       - name: nav_fw_cruise_thr
         field: fw.cruise_throttle
         min: 1000
@@ -1559,7 +1572,7 @@ groups:
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
-    headers: ["io/osd.h", "drivers/vcd.h"]
+    headers: ["io/osd.h", "drivers/osd.h"]
     condition: USE_OSD
     members:
       - name: osd_video_system

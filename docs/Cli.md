@@ -65,6 +65,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `1wire <esc>`    | passthrough 1wire to the specified esc         |
 | `adjrange`       | show/set adjustment ranges settings            |
 | `aux`            | show/set aux settings                          |
+| `beeper`         | show/set beeper (buzzer) usage (see docs/Buzzer.md) |
 | `mmix`           | design custom motor mixer                      |
 | `smix`           | design custom servo mixer                      |
 | `color`          | configure colors                               |
@@ -87,6 +88,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
 | `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
+| `wp`             | list or configure waypoints. See more in docs/Navigation.md section NAV WP |
 | `version`        |                                                |
 
 ## CLI Variable Reference
@@ -298,8 +300,13 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  osd_dist_alarm       | 1000  | Value above which to make the OSD distance from home indicator blink (meters) |
 |  osd_alt_alarm        | 100   | Value above which to make the OSD relative altitude indicator blink (meters) |
 |  osd_neg_alt_alarm    | 5    | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
+|  osd_imu_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
+|  osd_imu_temp_alarm_max | 600 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
+|  osd_baro_temp_alarm_min | -200 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |
+|  osd_baro_temp_alarm_max | 600 | Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_estimations_wind_compensation  | ON | Use wind estimation for remaining flight time/distance estimation |
 |  osd_failsafe_switch_layout  | OFF | If enabled the OSD automatically switches to the first layout during failsafe |
+|  osd_temp_label_align | LEFT | Allows to chose between left and right alignment for the OSD temperature sensor labels. Valid values are `LEFT` and `RIGHT` |
 |  display_force_sw_blink  | OFF | OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON |
 |  magzero_x  | 0 | Magnetometer calibration X offset. If its 0 none offset has been applied and calibration is failed. |
 |  magzero_y  | 0 | Magnetometer calibration Y offset. If its 0 none offset has been applied and calibration is failed. |
@@ -372,6 +379,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  fw_iterm_limit_stick_position  | 0.5 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |
 |  fw_min_throttle_down_pitch  | 0 | Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees) |
 |  gyro_lpf_hz  | 60 | Software-based filter to remove mechanical vibrations from the gyro signal. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
+|  gyro_lpf_type  | BIQUAD | Specifies the type of the software LPF of the gyro signals. BIQUAD gives better filtering and more delay, PT1 less filtering and less delay, so use only on clean builds. |
 |  acc_lpf_hz  | 15 | Software-based filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz). For larger frames with bigger props set to lower value. |
 |  dterm_lpf_hz  | 40 |  |
 |  yaw_lpf_hz  | 30 |  |
@@ -431,5 +439,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | nav_mc_braking_boost_speed_threshold | 150 | BOOST can be enabled when speed is above this value |
 | nav_mc_braking_boost_disengage_speed | 100 | BOOST will be disabled when speed goes below this value |
 | nav_mc_braking_bank_angle | 40 | max angle that MR is allowed to bank in BOOST mode |
+| nav_mc_pos_deceleration_time | 120 | Used for stoping distance calculation. Stop position is computed as _speed_ * _nav_mc_pos_deceleration_time_ from the place where sticks are released. Braking mode overrides this setting |
+| nav_mc_pos_expo | 10 | Expo for PosHold control |
 | osd_artificial_horizon_max_pitch | 20 | Max pitch, in degrees, for OSD artificial horizon |
 | baro_cal_tolerance | 150 | Baro calibration tolerance in cm. The default  should allow the noisiest baro to complete calibration [cm]. | 

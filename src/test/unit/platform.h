@@ -81,3 +81,4 @@ extern SysTick_Type *SysTick;
 
 #define FAST_CODE 
 #define NOINLINE
+#define EXTENDED_FASTRAM

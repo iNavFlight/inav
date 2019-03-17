@@ -29,15 +29,13 @@
 #include "common/utils.h"
 
 #include "drivers/bus.h"
-#include "drivers/light_led.h"
-#include "drivers/io.h"
-#include "drivers/time.h"
-#include "drivers/nvic.h"
 #include "drivers/dma.h"
-#include "drivers/vcd.h"
+#include "drivers/io.h"
+#include "drivers/light_led.h"
+#include "drivers/nvic.h"
+#include "drivers/time.h"
 
 #include "max7456.h"
-#include "max7456_symbols.h"
 
 // VM0 bits
 #define VIDEO_BUFFER_DISABLE        0x01
@@ -637,7 +635,7 @@ void max7456RefreshAll(void)
     }
 }
 
-void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
+void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr)
 {
     // Check if device is available
     if (state.dev == NULL) {
@@ -669,7 +667,7 @@ void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
     max7456Unlock();
 }
 
-void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
+void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
 {
     uint8_t spiBuff[(sizeof(chr->data) * 2 + 2) * 2];
     int bufPtr = 0;
