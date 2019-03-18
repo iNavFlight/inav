@@ -208,7 +208,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
         case LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL:
             //Extract RC channel raw value
             if (operand >= 1 && operand <= 16) {
-                retVal = rcData[operand - 1];
+                retVal = rxGetChannelValue(operand - 1);
             } 
             break;
 

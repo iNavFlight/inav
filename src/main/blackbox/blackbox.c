@@ -1380,7 +1380,7 @@ static void loadMainState(timeUs_t currentTimeUs)
 #endif
 
     for (int i = 0; i < 4; i++) {
-        blackboxCurrent->rcData[i] = rcData[i];
+        blackboxCurrent->rcData[i] = rxGetChannelValue(i);
         blackboxCurrent->rcCommand[i] = rcCommand[i];
     }
 
