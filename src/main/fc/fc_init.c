@@ -30,9 +30,10 @@
 
 #include "common/axis.h"
 #include "common/color.h"
+#include "common/log.h"
 #include "common/maths.h"
-#include "common/printf.h"
 #include "common/memory.h"
+#include "common/printf.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -260,15 +261,15 @@ void init(void)
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
 
-    // Initialize MSP serial ports here so DEBUG_TRACE can share a port with MSP.
+    // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
     mspSerialInit();
 
-#if defined(USE_DEBUG_TRACE)
-    // Debug trace uses serial output, so we only can init it after serial port is ready
-    // From this point on we can use DEBUG_TRACE() to produce real-time debugging information
-    debugTraceInit();
+#if defined(USE_LOG)
+    // LOG might use serial output, so we only can init it after serial port is ready
+    // From this point on we can use LOG_*() to produce real-time debugging information
+    logInit();
 #endif
 
     servosInit();
