@@ -1154,8 +1154,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
                 if (navConfig()->general.flags.rth_tail_first) {
                     setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
-                }
-                else {
+                } else {
                     setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
                 }
             }
@@ -1191,7 +1190,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         else {
             if (navConfig()->general.flags.rth_straight) {
                 fpVector3_t pos;
-                pos.z = posControl.homeWaypointAbove.pos.z - scaleRange(constrain((int32_t)posControl.rthInitialHomeDistance - posControl.homeDistance, 0, posControl.rthInitialHomeDistance - navConfig()->fw.loiter_radius), 0, posControl.rthInitialHomeDistance - navConfig()->fw.loiter_radius, 0, posControl.homeWaypointAbove.pos.z - (posControl.homePosition.pos.z + navConfig()->general.rth_altitude));
+                uint16_t loiterDistanceFromHome = STATE(FIXED_WING) ? navConfig()->fw.loiter_radius : 0;
+                uint32_t distanceToLoiterToTravelFromRTHStart = posControl.rthInitialHomeDistance - loiterDistanceFromHome;
+                uint32_t distanceToLoiterTraveled = constrain((int32_t)posControl.rthInitialHomeDistance - posControl.homeDistance, 0, distanceToLoiterToTravelFromRTHStart);
+                float RTHStartAltitude = posControl.homeWaypointAbove.pos.z;
+                float finalRTHAltitude = posControl.homePosition.pos.z + navConfig()->general.rth_altitude;
+                pos.z = RTHStartAltitude - scaleRange(distanceToLoiterTraveled, 0, distanceToLoiterToTravelFromRTHStart, 0, RTHStartAltitude - finalRTHAltitude);
                 setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z);
             }
 
