@@ -18,6 +18,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/logic_condition.h"
 
 #define MAX_SUPPORTED_SERVOS 8
 
@@ -103,6 +104,9 @@ typedef struct servoMixer_s {
     uint8_t inputSource;                    // input channel for this rule
     int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+#ifdef USE_LOGIC_CONDITIONS
+    int8_t conditionId;
+#endif
 } servoMixer_t;
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)

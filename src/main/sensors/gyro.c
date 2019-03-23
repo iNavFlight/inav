@@ -26,9 +26,10 @@
 #include "build/debug.h"
 
 #include "common/axis.h"
-#include "common/maths.h"
 #include "common/calibration.h"
 #include "common/filter.h"
+#include "common/log.h"
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "config/parameter_group.h"
@@ -96,11 +97,12 @@ STATIC_FASTRAM filterApplyFnPtr gyroFilterStage2ApplyFn;
 STATIC_FASTRAM void *stage2Filter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 5);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
     .gyro_soft_lpf_hz = 60,
+    .gyro_soft_lpf_type = FILTER_BIQUAD,
     .gyro_align = ALIGN_DEFAULT,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 1000,
@@ -311,10 +313,23 @@ void gyroInitFilters(void)
 #endif
 
     if (gyroConfig()->gyro_soft_lpf_hz) {
-        softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
-        for (int axis = 0; axis < 3; axis++) {
-            softLpfFilter[axis] = &gyroFilterLPF[axis];
-            biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+        
+        switch (gyroConfig()->gyro_soft_lpf_type) 
+        {
+        case FILTER_PT1:
+            softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
+            for (int axis = 0; axis < 3; axis++) {
+                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                pt1FilterInit(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime()* 1e-6f);
+            }
+            break;
+        case FILTER_BIQUAD:
+            softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
+            for (int axis = 0; axis < 3; axis++) {
+                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+            }
+            break;
         }
     }
 
@@ -344,7 +359,7 @@ void gyroStartCalibration(void)
     zeroCalibrationStartV(&gyroCalibration, CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
 }
 
-bool gyroIsCalibrationComplete(void)
+bool FAST_CODE NOINLINE gyroIsCalibrationComplete(void)
 {
     return zeroCalibrationIsCompleteV(&gyroCalibration) && zeroCalibrationIsSuccessfulV(&gyroCalibration);
 }
@@ -367,7 +382,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[1] = v.v[1];
         dev->gyroZero[2] = v.v[2];
 
-        DEBUG_TRACE_SYNC("Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
+        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     }
     else {
@@ -387,7 +402,7 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-void gyroUpdate()
+void FAST_CODE NOINLINE gyroUpdate()
 {
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev0.readFn(&gyroDev0)) {

@@ -54,7 +54,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/display.h"
-#include "drivers/max7456_symbols.h"
+#include "drivers/osd_symbols.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
@@ -169,6 +169,13 @@ static bool refreshWaitForResumeCmdRelease;
 static bool fullRedraw = false;
 
 static uint8_t armState;
+
+typedef struct osdMapData_s {
+    uint32_t scale;
+    char referenceSymbol;
+} osdMapData_t;
+
+static osdMapData_t osdMapData;
 
 static displayPort_t *osdDisplayPort;
 
@@ -416,6 +423,8 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
     switch ((osd_unit_e)osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
             if (osdFormatCentiNumber(buff + 1, CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, 3)) {
                 // Scaled to kft
@@ -425,8 +434,6 @@ static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
                 buff[0] = SYM_ALT_FT;
             }
             break;
-        case OSD_UNIT_UK:
-            FALLTHROUGH;
         case OSD_UNIT_METRIC:
             // alt is alredy in cm
             if (osdFormatCentiNumber(buff+1, alt, 1000, 0, 2, 3)) {
@@ -834,7 +841,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
 {
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
-    int16_t thr = rcData[THROTTLE];
+    int16_t thr = rxGetChannelValue(THROTTLE);
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
@@ -976,8 +983,6 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     const int charWidth = 12;
     const int charHeight = 18;
 
-    char buf[16];
-
     uint8_t minX = hMargin;
     uint8_t maxX = osdDisplayPort->cols - 1 - hMargin;
     uint8_t minY = vMargin;
@@ -986,11 +991,6 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     uint8_t midY = osdDisplayPort->rows / 2;
 
     // Fixed marks
-    if (referenceSym) {
-        displayWriteChar(osdDisplayPort, maxX, minY, SYM_DIRECTION);
-        displayWriteChar(osdDisplayPort, maxX, minY + 1, referenceSym);
-    }
-    displayWriteChar(osdDisplayPort, minX, maxY, SYM_SCALE);
     displayWriteChar(osdDisplayPort, midX, midY, centerSym);
 
     // First, erase the previous drawing.
@@ -1000,11 +1000,6 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     }
 
     uint32_t initialScale;
-    float scaleToUnit;
-    int scaleUnitDivisor;
-    char symUnscaled;
-    char symScaled;
-    int maxDecimals;
     const unsigned scaleMultiplier = 2;
     // We try to reduce the scale when the POI will be around half the distance
     // between the center and the closers map edge, to avoid too much jumping
@@ -1013,21 +1008,11 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
     switch (osdConfig()->units) {
         case OSD_UNIT_IMPERIAL:
             initialScale = 16; // 16m ~= 0.01miles
-            scaleToUnit = 100 / 1609.3440f; // scale to 0.01mi for osdFormatCentiNumber()
-            scaleUnitDivisor = 0;
-            symUnscaled = SYM_MI;
-            symScaled = SYM_MI;
-            maxDecimals = 2;
             break;
         case OSD_UNIT_UK:
             FALLTHROUGH;
         case OSD_UNIT_METRIC:
             initialScale = 10; // 10m as initial scale
-            scaleToUnit = 100; // scale to cm for osdFormatCentiNumber()
-            scaleUnitDivisor = 1000; // Convert to km when scale gets bigger than 999m
-            symUnscaled = SYM_M;
-            symScaled = SYM_KM;
-            maxDecimals = 0;
             break;
     }
 
@@ -1110,12 +1095,11 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
         }
     }
 
-    // Draw the used scale
-    bool scaled = osdFormatCentiNumber(buf, scale * scaleToUnit, scaleUnitDivisor, maxDecimals, 2, 3);
-    buf[3] = scaled ? symScaled : symUnscaled;
-    buf[4] = '\0';
-    displayWrite(osdDisplayPort, minX + 1, maxY, buf);
     *usedScale = scale;
+
+    // Update global map data for scale and reference
+    osdMapData.scale = scale;
+    osdMapData.referenceSymbol = referenceSym;
 }
 
 /* Draws a map with the home in the center and the craft moving around.
@@ -1814,8 +1798,8 @@ static bool osdDrawSingleElement(uint8_t item)
             }
 
             // AH level indicators
-            displayWriteChar(osdDisplayPort, elemPosX - hudwidth + 1, elemPosY, SYM_AH_LEFT);
-            displayWriteChar(osdDisplayPort, elemPosX + hudwidth - 1, elemPosY, SYM_AH_RIGHT);
+            displayWriteChar(osdDisplayPort, elemPosX - hudwidth + 1, elemPosY, SYM_AH_RIGHT);
+            displayWriteChar(osdDisplayPort, elemPosX + hudwidth - 1, elemPosY, SYM_AH_LEFT);
 
             return true;
         }
@@ -1864,13 +1848,13 @@ static bool osdDrawSingleElement(uint8_t item)
             int16_t value = getEstimatedActualVelocity(Z);
             char sym;
             switch ((osd_unit_e)osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
                     // Convert to centifeet/s
                     value = CENTIMETERS_TO_CENTIFEET(value);
                     sym = SYM_FTS;
                     break;
-                case OSD_UNIT_UK:
-                    FALLTHROUGH;
                 case OSD_UNIT_METRIC:
                     // Already in cm/s
                     sym = SYM_MS;
@@ -2341,50 +2325,15 @@ static bool osdDrawSingleElement(uint8_t item)
 
 #ifdef USE_TEMPERATURE_SENSOR
     case OSD_TEMP_SENSOR_0_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 0);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_1_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 1);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_2_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 2);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_3_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 3);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_4_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 4);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_5_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 5);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_6_TEMPERATURE:
-        {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 6);
-            return true;
-        }
-
     case OSD_TEMP_SENSOR_7_TEMPERATURE:
         {
-            osdDisplayTemperatureSensor(elemPosX, elemPosY, 7);
+            osdDisplayTemperatureSensor(elemPosX, elemPosY, item - OSD_TEMP_SENSOR_0_TEMPERATURE);
             return true;
         }
 #endif /* ifdef USE_TEMPERATURE_SENSOR */
@@ -2452,6 +2401,59 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_MAP_SCALE:
+        {
+            float scaleToUnit;
+            int scaleUnitDivisor;
+            char symUnscaled;
+            char symScaled;
+            int maxDecimals;
+
+            switch (osdConfig()->units) {
+            case OSD_UNIT_IMPERIAL:
+                scaleToUnit = 100 / 1609.3440f; // scale to 0.01mi for osdFormatCentiNumber()
+                scaleUnitDivisor = 0;
+                symUnscaled = SYM_MI;
+                symScaled = SYM_MI;
+                maxDecimals = 2;
+                break;
+            case OSD_UNIT_UK:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC:
+                scaleToUnit = 100; // scale to cm for osdFormatCentiNumber()
+                scaleUnitDivisor = 1000; // Convert to km when scale gets bigger than 999m
+                symUnscaled = SYM_M;
+                symScaled = SYM_KM;
+                maxDecimals = 0;
+                break;
+            }
+            buff[0] = SYM_SCALE;
+            if (osdMapData.scale > 0) {
+                bool scaled = osdFormatCentiNumber(&buff[1], osdMapData.scale * scaleToUnit, scaleUnitDivisor, maxDecimals, 2, 3);
+                buff[4] = scaled ? symScaled : symUnscaled;
+                // Make sure this is cleared if the map stops being drawn
+                osdMapData.scale = 0;
+            } else {
+                memset(&buff[1], '-', 4);
+            }
+            buff[5] = '\0';
+            break;
+        }
+    case OSD_MAP_REFERENCE:
+        {
+            char referenceSymbol;
+            if (osdMapData.referenceSymbol) {
+                referenceSymbol = osdMapData.referenceSymbol;
+                // Make sure this is cleared if the map stops being drawn
+                osdMapData.referenceSymbol = 0;
+            } else {
+                referenceSymbol = '-';
+            }
+            displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_DIRECTION);
+            displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 1, referenceSymbol);
+            return true;
+        }
+
     default:
         return false;
     }
@@ -2512,7 +2514,7 @@ static uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_TRIP_DIST) {
             elementIndex = OSD_ATTITUDE_PITCH;
         }
-        if (elementIndex == OSD_MAP_NORTH) {
+        if (elementIndex == OSD_WIND_SPEED_HORIZONTAL) {
             elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
         }
         if (elementIndex == OSD_3D_SPEED) {
@@ -3132,6 +3134,11 @@ bool osdItemIsFixed(osd_items_e item)
     return item == OSD_CROSSHAIRS ||
         item == OSD_ARTIFICIAL_HORIZON ||
         item == OSD_HORIZON_SIDEBARS;
+}
+
+displayPort_t *osdGetDisplayPort(void)
+{
+    return osdDisplayPort;
 }
 
 #endif // OSD

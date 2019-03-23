@@ -90,21 +90,21 @@ extern uint32_t flightModeFlags;
 #define FLIGHT_MODE(mask) (flightModeFlags & (mask))
 
 typedef enum {
-    GPS_FIX_HOME            = (1 << 0),
-    GPS_FIX                 = (1 << 1),
-    CALIBRATE_MAG           = (1 << 2),
-    SMALL_ANGLE             = (1 << 3),
-    FIXED_WING              = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
-    ANTI_WINDUP             = (1 << 5),
-    FLAPERON_AVAILABLE      = (1 << 6),
-    NAV_MOTOR_STOP_OR_IDLE  = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
-    COMPASS_CALIBRATED      = (1 << 8),
-    ACCELEROMETER_CALIBRATED= (1 << 9),
-    PWM_DRIVER_AVAILABLE    = (1 << 10),
-    NAV_CRUISE_BRAKING      = (1 << 11),
-    NAV_CRUISE_BRAKING_BOOST = (1 << 12),
-    NAV_CRUISE_BRAKING_LOCKED = (1 << 13),
-    SPOILERON_AVAILABLE     = (1 << 14),
+    GPS_FIX_HOME                = (1 << 0),
+    GPS_FIX                     = (1 << 1),
+    CALIBRATE_MAG               = (1 << 2),
+    SMALL_ANGLE                 = (1 << 3),
+    FIXED_WING                  = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
+    ANTI_WINDUP                 = (1 << 5),
+    FLAPERON_AVAILABLE          = (1 << 6),
+    NAV_MOTOR_STOP_OR_IDLE      = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
+    COMPASS_CALIBRATED          = (1 << 8),
+    ACCELEROMETER_CALIBRATED    = (1 << 9),
+    PWM_DRIVER_AVAILABLE        = (1 << 10),
+    NAV_CRUISE_BRAKING          = (1 << 11),
+    NAV_CRUISE_BRAKING_BOOST    = (1 << 12),
+    NAV_CRUISE_BRAKING_LOCKED   = (1 << 13),
+    SPOILERON_AVAILABLE         = (1 << 14),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

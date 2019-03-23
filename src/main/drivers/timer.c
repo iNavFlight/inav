@@ -23,10 +23,10 @@
 #include "platform.h"
 
 #include "build/atomic.h"
-#include "build/debug.h"
 
-#include "common/utils.h"
+#include "common/log.h"
 #include "common/memory.h"
+#include "common/utils.h"
 
 #include "drivers/io.h"
 #include "drivers/rcc.h"
@@ -80,7 +80,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
     const int timerIndex = lookupTimerIndex(timHw->tim);
     
     if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
-        DEBUG_TRACE("Can't find hardware timer definition");
+        LOG_E(TIMER, "Can't find hardware timer definition");
         return NULL;
     }
 
@@ -90,7 +90,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
         
         // Check for OOM
         if (timerCtx[timerIndex] == NULL) {
-            DEBUG_TRACE("Can't allocate TCH object");
+            LOG_E(TIMER, "Can't allocate TCH object");
             return NULL;
         }
 

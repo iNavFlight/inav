@@ -7,11 +7,15 @@ COMMON_SRC = \
             build/debug.c \
             build/version.c \
             common/bitarray.c \
+            common/calibration.c \
+            common/colorconversion.c \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
+            common/gps_conversion.c \
+            common/log.c \
+            common/logic_condition.c \
             common/maths.c \
-            common/calibration.c \
             common/memory.c \
             common/olc.c \
             common/printf.c \
@@ -145,8 +149,6 @@ COMMON_SRC = \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
             cms/cms_menu_vtx_ffpv.c \
-            common/colorconversion.c \
-            common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
             drivers/rangefinder/rangefinder_hcsr04.c \
             drivers/rangefinder/rangefinder_hcsr04_i2c.c \
