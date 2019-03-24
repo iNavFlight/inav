@@ -539,7 +539,7 @@ static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flig
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
-    static float previousDeltaFiltered = 0.0f;
+    static float previousDeltaFiltered[FLIGHT_DYNAMICS_INDEX_COUNT] = {0.0f, 0.0f, 0.0f};
 
     // Calculate new P-term
     float newPTerm = rateError * pidState->kP;
@@ -580,8 +580,8 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
             firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
             newDTerm = firFilterApply(&pidState->gyroRateFilter);
         } else {
-            newDTerm = deltaFiltered - previousDeltaFiltered; //Simple differentiator to replace Dterm FIR
-            previousDeltaFiltered = deltaFiltered;
+            newDTerm = deltaFiltered - previousDeltaFiltered[axis]; //Simple differentiator to replace Dterm FIR
+            previousDeltaFiltered[axis] = deltaFiltered;
         }
 
         // Calculate derivative
