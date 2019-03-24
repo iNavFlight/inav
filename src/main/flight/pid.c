@@ -227,10 +227,26 @@ bool pidInitFilters(void)
         return false;
     }
 
-    // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
-    // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
-    // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
-    static const float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH] = {5.0f/8, 2.0f/8, -8.0f/8, -2.0f/8, 3.0f/8};
+    static float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH];
+
+    if (pidProfile()->use_dterm_fir_filter) {
+        // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
+        // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+        // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
+        dtermCoeffs[0] = 5.0f/8;
+        dtermCoeffs[1] = 2.0f/8;
+        dtermCoeffs[2] = -8.0f/8;
+        dtermCoeffs[3] = -2.0f/8;
+        dtermCoeffs[4] = 3.0f/8;
+    } else {
+        //simple d(t) - d(t-1) differentiator 
+        dtermCoeffs[0] = 1.0f;
+        dtermCoeffs[1] = -1.0f;
+        dtermCoeffs[2] = 0.0f;
+        dtermCoeffs[3] = 0.0f;
+        dtermCoeffs[4] = 0.0f;
+    }
+
     for (int axis = 0; axis < 3; ++ axis) {
         firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
     }
@@ -539,7 +555,6 @@ static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flig
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
-    static float previousDeltaFiltered[FLIGHT_DYNAMICS_INDEX_COUNT] = {0.0f, 0.0f, 0.0f};
 
     // Calculate new P-term
     float newPTerm = rateError * pidState->kP;
@@ -572,17 +587,8 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
             deltaFiltered = biquadFilterApply(&pidState->deltaLpfState, deltaFiltered);
         }
 
-        /*
-         * Apply "Classical" INAV noise robust differentiator if configured to do so
-         * This filter is not configurable in any way, it only can be enabled or disabled
-         */
-        if (pidProfile()->use_dterm_fir_filter) {
-            firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
-            newDTerm = firFilterApply(&pidState->gyroRateFilter);
-        } else {
-            newDTerm = deltaFiltered - previousDeltaFiltered[axis]; //Simple differentiator to replace Dterm FIR
-            previousDeltaFiltered[axis] = deltaFiltered;
-        }
+        firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
+        newDTerm = firFilterApply(&pidState->gyroRateFilter);
 
         // Calculate derivative
         newDTerm =  newDTerm * (pidState->kD / dT);
