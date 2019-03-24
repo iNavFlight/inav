@@ -232,7 +232,7 @@
     #endif
 #endif
 
-#if defined(USE_RANGEFINDER_HCSR04_I2C)
+#if defined(USE_RANGEFINDER_HCSR04_I2C) && (defined(HCSR04_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
     #if !defined(HCSR04_I2C_BUS)
         #define HCSR04_I2C_BUS RANGEFINDER_I2C_BUS
     #endif

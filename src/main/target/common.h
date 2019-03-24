@@ -74,6 +74,7 @@
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_BENEWAKE
 #define USE_RANGEFINDER_VL53L0X
+#define USE_RANGEFINDER_HCSR04_I2C
 
 // Allow default optic flow boards
 #define USE_OPFLOW
