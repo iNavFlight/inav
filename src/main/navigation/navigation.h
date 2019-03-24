@@ -49,6 +49,8 @@ void onNewGPSData(void);
 #define NAV_MAX_WAYPOINTS 15
 #endif
 
+#define NAV_ACCEL_CUTOFF_FREQUENCY_HZ 2       // low-pass filter on XY-acceleration target
+
 enum {
     NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
     NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
@@ -253,6 +255,7 @@ typedef struct {
     bool reset;
     pidControllerParam_t param;
     pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
+    float dTermLpfHz;                   // dTerm low pass filter cutoff frequency
     float integrator;                   // integrator value
     float last_input;                   // last input for derivative
 

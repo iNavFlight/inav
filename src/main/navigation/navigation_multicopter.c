@@ -263,7 +263,6 @@ bool adjustMulticopterHeadingFromRCInput(void)
 /*-----------------------------------------------------------
  * XY-position controller for multicopter aircraft
  *-----------------------------------------------------------*/
-static pt1Filter_t mcPosControllerAccFilterStateX, mcPosControllerAccFilterStateY;
 static float lastAccelTargetX = 0.0f, lastAccelTargetY = 0.0f;
 
 void resetMulticopterBrakingMode(void)
@@ -363,8 +362,6 @@ void resetMulticopterPositionController(void)
     for (int axis = 0; axis < 2; axis++) {
         navPidReset(&posControl.pids.vel[axis]);
         posControl.rcAdjustment[axis] = 0;
-        pt1FilterReset(&mcPosControllerAccFilterStateX, 0.0f);
-        pt1FilterReset(&mcPosControllerAccFilterStateY, 0.0f);
         lastAccelTargetX = 0.0f;
         lastAccelTargetY = 0.0f;
     }
@@ -507,7 +504,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     float newAccelY = navPidApply2(&posControl.pids.vel[Y], posControl.desiredState.vel.y, navGetCurrentActualPositionAndVelocity()->vel.y, US2S(deltaMicros), accelLimitYMin, accelLimitYMax, 0);
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
-    uint8_t accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ;
 
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
@@ -532,7 +528,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         newAccelY = newAccelY * (1.0f + boostFactor);
 
         maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
-        accCutoffFrequency = NAV_ACCEL_CUTOFF_FREQUENCY_HZ * 2;
     }
 #endif
 
@@ -540,13 +535,9 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     lastAccelTargetX = newAccelX;
     lastAccelTargetY = newAccelY;
 
-    // Apply LPF to jerk limited acceleration target
-    const float accelN = pt1FilterApply4(&mcPosControllerAccFilterStateX, newAccelX, accCutoffFrequency, US2S(deltaMicros));
-    const float accelE = pt1FilterApply4(&mcPosControllerAccFilterStateY, newAccelY, accCutoffFrequency, US2S(deltaMicros));
-
     // Rotate acceleration target into forward-right frame (aircraft)
-    const float accelForward = accelN * posControl.actualState.cosYaw + accelE * posControl.actualState.sinYaw;
-    const float accelRight = -accelN * posControl.actualState.sinYaw + accelE * posControl.actualState.cosYaw;
+    const float accelForward = newAccelX * posControl.actualState.cosYaw + newAccelY * posControl.actualState.sinYaw;
+    const float accelRight = -newAccelX * posControl.actualState.sinYaw + newAccelY * posControl.actualState.cosYaw;
 
     // Calculate banking angles
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);

@@ -1078,6 +1078,10 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_mc_vel_xy_dterm_lpf_hz
+        field: navVelXyDTermLpfHz
+        min: 0
+        max: 100
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
         condition: USE_NAV

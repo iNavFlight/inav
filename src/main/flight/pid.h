@@ -108,6 +108,7 @@ typedef struct pidProfile_s {
     float       fixedWingItermLimitOnStickPosition;   //Do not allow Iterm to grow when stick position is above this point
 
     uint8_t     loiter_direction;               // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
+    float       navVelXyDTermLpfHz;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
