@@ -70,7 +70,7 @@ typedef struct {
 
 #ifdef USE_DSHOT
     // DSHOT parameters
-    uint8_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
+    uint32_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE] __attribute__ ((aligned (4)));
 #endif
 } pwmOutputPort_t;
 
@@ -224,7 +224,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     dshotMotorUpdateIntervalUs = MAX(dshotMotorUpdateIntervalUs, motorIntervalUs);
 
     // Configure timer DMA
-    if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(uint8_t), DSHOT_DMA_BUFFER_SIZE)) {
+    if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, DSHOT_DMA_BUFFER_SIZE)) {
         // Only mark as DSHOT channel if DMA was set successfully
         memset(port->dmaBuffer, 0, sizeof(port->dmaBuffer));
         port->configured = true;
@@ -239,7 +239,7 @@ static void pwmWriteDshot(uint8_t index, uint16_t value)
     motors[index]->value = value;
 }
 
-static void loadDmaBufferDshot(uint8_t *dmaBuffer, uint16_t packet)
+static void loadDmaBufferDshot(uint32_t * dmaBuffer, uint16_t packet)
 {
     for (int i = 0; i < 16; i++) {
         dmaBuffer[i] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first
