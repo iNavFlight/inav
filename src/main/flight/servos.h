@@ -53,7 +53,8 @@ typedef enum {
     INPUT_STABILIZED_PITCH_MINUS    = 26,
     INPUT_STABILIZED_YAW_PLUS       = 27,
     INPUT_STABILIZED_YAW_MINUS      = 28,
-    
+    INPUT_LOGIC_ONE                 = 29,
+
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
