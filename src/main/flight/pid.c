@@ -94,6 +94,7 @@ STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
 
 extern float dT;
 
+STATIC_FASTRAM bool pidFiltersConfigured = false;
 FASTRAM float headingHoldCosZLimit;
 FASTRAM int16_t headingHoldTarget;
 STATIC_FASTRAM pt1Filter_t headingHoldRateFilter;
@@ -209,16 +210,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
 void pidInit(void)
 {
-    // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
-    // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
-    // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
-    static const float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH] = {5.0f/8, 2.0f/8, -8.0f/8, -2.0f/8, 3.0f/8};
-    if (pidProfile()->use_dterm_fir_filter) {
-        for (int axis = 0; axis < 3; ++ axis) {
-            firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
-        }
-    }
-
     pidResetTPAFilter();
 
     // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
@@ -236,6 +227,30 @@ bool pidInitFilters(void)
         return false;
     }
 
+    static float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH];
+
+    if (pidProfile()->use_dterm_fir_filter) {
+        // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
+        // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+        // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
+        dtermCoeffs[0] = 5.0f/8;
+        dtermCoeffs[1] = 2.0f/8;
+        dtermCoeffs[2] = -8.0f/8;
+        dtermCoeffs[3] = -2.0f/8;
+        dtermCoeffs[4] = 3.0f/8;
+    } else {
+        //simple d(t) - d(t-1) differentiator 
+        dtermCoeffs[0] = 1.0f;
+        dtermCoeffs[1] = -1.0f;
+        dtermCoeffs[2] = 0.0f;
+        dtermCoeffs[3] = 0.0f;
+        dtermCoeffs[4] = 0.0f;
+    }
+
+    for (int axis = 0; axis < 3; ++ axis) {
+        firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
+    }
+
 #ifdef USE_DTERM_NOTCH
     notchFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_soft_notch_hz != 0) {
@@ -250,6 +265,8 @@ bool pidInitFilters(void)
     for (int axis = 0; axis < 3; ++ axis) {
         biquadFilterInitLPF(&pidState[axis].deltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
     }
+
+    pidFiltersConfigured = true;
 
     return true;
 }
@@ -570,16 +587,8 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
             deltaFiltered = biquadFilterApply(&pidState->deltaLpfState, deltaFiltered);
         }
 
-        /*
-         * Apply "Classical" INAV noise robust differentiator if configured to do so
-         * This filter is not configurable in any way, it only can be enabled or disabled
-         */
-        if (pidProfile()->use_dterm_fir_filter) {
-            firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
-            newDTerm = firFilterApply(&pidState->gyroRateFilter);
-        } else {
-            newDTerm = deltaFiltered;
-        }
+        firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
+        newDTerm = firFilterApply(&pidState->gyroRateFilter);
 
         // Calculate derivative
         newDTerm =  newDTerm * (pidState->kD / dT);
@@ -798,6 +807,10 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
 
 void FAST_CODE pidController(void)
 {
+    if (!pidFiltersConfigured) {
+        return;
+    }
+
     bool canUseFpvCameraMix = true;
     uint8_t headingHoldState = getHeadingHoldState();
 
