@@ -233,14 +233,14 @@ uint32_t timerGetBaseClockHW(const timerHardware_t * timHw)
     return SystemCoreClock / timerClockDivisor(timHw->tim);
 }
 
-bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)
+bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
 {
-    return impl_timerPWMConfigChannelDMA(tch, dmaBuffer, dmaBufferSize);
+    return impl_timerPWMConfigChannelDMA(tch, dmaBuffer, dmaBufferElementSize, dmaBufferElementCount);
 }
 
-void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
+void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
 {
-    impl_timerPWMPrepareDMA(tch, dmaBufferSize);
+    impl_timerPWMPrepareDMA(tch, dmaBufferElementCount);
 }
 
 void timerPWMStartDMA(TCH_t * tch)
