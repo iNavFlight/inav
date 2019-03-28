@@ -304,6 +304,10 @@
 // #define MSP_BIND                 240    //in message          no param
 // #define MSP_ALARMS               242
 
+// radar commands
+#define MSP_SET_RADAR_POS        248 //SET radar position information
+#define MSP_SET_RADAR_ITD        249 //SET radar information to display
+
 #define MSP_EEPROM_WRITE         250    //in message          no param
 #define MSP_RESERVE_1            251    //reserved for system usage
 #define MSP_RESERVE_2            252    //reserved for system usage

@@ -171,6 +171,7 @@ COMMON_SRC = \
             io/gps_nmea.c \
             io/gps_naza.c \
             io/ledstrip.c \
+            io/osd_hud.c \
             io/osd.c \
             navigation/navigation.c \
             navigation/navigation_fixedwing.c \

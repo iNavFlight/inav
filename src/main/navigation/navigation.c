@@ -71,6 +71,8 @@ gpsLocation_t GPS_home;
 uint16_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
+radar_pois_t radar_pois[RADAR_MAX_POIS];
+
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
@@ -1929,6 +1931,13 @@ static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
     return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
 }
 
+uint32_t calculateAltitudeToMe(const fpVector3_t * destinationPos)
+{
+    const float deltaZ = destinationPos->z - navGetCurrentActualPositionAndVelocity()->pos.z;
+
+    return deltaZ;
+}
+
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 {
     const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
@@ -2515,6 +2524,29 @@ void resetWaypointList(void)
     }
 }
 
+/*-----------------------------------------------------------
+ * Radar, calc dir, dis and relative alt
+ *-----------------------------------------------------------*/
+
+void radarCalc(uint8_t poiNumber) {
+    fpVector3_t poi;
+
+    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[poiNumber].gps, GEO_ALT_RELATIVE);
+    radar_pois[poiNumber].distance = calculateDistanceToDestination(&poi) / 100; // In meters
+    radar_pois[poiNumber].direction = calculateBearingToDestination(&poi) / 100; // In °
+    radar_pois[poiNumber].altitude = calculateAltitudeToMe(&poi) / 100; // In meters, - is below
+
+    uint32_t now = millis();
+    uint16_t diff_time = now - radar_pois[poiNumber].pasttime;
+    
+    if (diff_time > RADAR_TICK_DELAY) {
+        int diff_tick = (radar_pois[poiNumber].ticker - radar_pois[poiNumber].pasttick) % 255;
+        radar_pois[poiNumber].signal = constrain((diff_tick + 1) * RADAR_UPDATE_HZ * 1000 / RADAR_TICK_DELAY, 0 , 4); 
+        radar_pois[poiNumber].pasttime = now;
+        radar_pois[poiNumber].pasttick = radar_pois[poiNumber].ticker; 
+    }
+}
+
 bool isWaypointListValid(void)
 {
     return posControl.waypointListValid;
@@ -3015,6 +3047,9 @@ void updateWaypointsAndNavigationMode(void)
 
     // Map navMode back to enabled flight modes
     switchNavigationFlightModes();
+
+    // Update Inav Radar
+    //radarUpdatePois();
 
 #if defined(NAV_BLACKBOX)
     navCurrentState = (int16_t)posControl.navPersistentId;
