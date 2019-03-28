@@ -3048,9 +3048,6 @@ void updateWaypointsAndNavigationMode(void)
     // Map navMode back to enabled flight modes
     switchNavigationFlightModes();
 
-    // Update Inav Radar
-    //radarUpdatePois();
-
 #if defined(NAV_BLACKBOX)
     navCurrentState = (int16_t)posControl.navPersistentId;
 #endif
