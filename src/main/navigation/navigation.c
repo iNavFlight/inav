@@ -1193,9 +1193,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
                 uint16_t loiterDistanceFromHome = STATE(FIXED_WING) ? navConfig()->fw.loiter_radius : 0;
                 uint32_t distanceToLoiterToTravelFromRTHStart = posControl.rthInitialHomeDistance - loiterDistanceFromHome;
                 uint32_t distanceToLoiterTraveled = constrain((int32_t)posControl.rthInitialHomeDistance - posControl.homeDistance, 0, distanceToLoiterToTravelFromRTHStart);
-                float RTHStartAltitude = posControl.homeWaypointAbove.pos.z;
+                float startRTHAltitude = posControl.homeWaypointAbove.pos.z;
                 float finalRTHAltitude = posControl.homePosition.pos.z + navConfig()->general.rth_altitude;
-                pos.z = RTHStartAltitude - scaleRange(distanceToLoiterTraveled, 0, distanceToLoiterToTravelFromRTHStart, 0, RTHStartAltitude - finalRTHAltitude);
+                pos.z = startRTHAltitude - scaleRange(distanceToLoiterTraveled, 0, distanceToLoiterToTravelFromRTHStart, 0, startRTHAltitude - finalRTHAltitude);
                 setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z);
             }
 
