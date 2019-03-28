@@ -216,6 +216,12 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
             retVal = logicConditionGetFlightOperandValue(operand);
             break;
 
+        case LOGIC_CONDITION_OPERAND_TYPE_LC:
+            if (operand >= 0 && operand < MAX_LOGIC_CONDITIONS) {
+                retVal = logicConditionGetValue(operand);
+            }
+            break;
+
         default:
             break;
     }
@@ -224,8 +230,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 }
 
 /*
- * ConditionId is ordered from 1 while conditions are indexed from 0
- * conditionId == 0 is always evaluated at true
+ * conditionId == -1 is always evaluated as true
  */ 
 int logicConditionGetValue(int8_t conditionId) {
     if (conditionId >= 0) {
