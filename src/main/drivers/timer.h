@@ -190,11 +190,8 @@ void timerEnable(TCH_t * tch);
 void timerPWMConfigChannel(TCH_t * tch, uint16_t value);
 void timerPWMStart(TCH_t * tch);
 
-// dmaBufferElementSize is the size in bytes of each element in the memory
-// buffer. 1, 2 or 4 are the only valid values.
-// dmaBufferElementCount is the number of elements in the buffer
-bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount);
-void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount);
+bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize);
+void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize);
 void timerPWMStartDMA(TCH_t * tch);
 void timerPWMStopDMA(TCH_t * tch);
 bool timerPWMDMAInProgress(TCH_t * tch);
