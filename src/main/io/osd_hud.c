@@ -26,6 +26,8 @@
 #include "navigation/navigation.h"
 #include "common/printf.h"
 
+#ifdef USE_OSD
+
 #define HUD_DRAWN_MAXCHARS 48 // 8 POI (1 home, 4 radar, 3 waypoints) x 6 chars max for each
 
 static int8_t hud_drawn[HUD_DRAWN_MAXCHARS][2];
@@ -342,3 +344,5 @@ void osdHudDrawDebug(uint8_t px, uint8_t py)
         displayWrite(osdDisplayPort, px, py, "NO POI FOUND ");
     }
 }
+
+#endif // USE_OSD
