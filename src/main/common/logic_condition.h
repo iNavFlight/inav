@@ -40,7 +40,8 @@ typedef enum {
     LOGIC_CONDITION_OR,             // 8
     LOGIC_CONDITION_XOR,            // 9
     LOGIC_CONDITION_NAND,           // 10
-    LOGIC_CONDITION_NOR,           // 11
+    LOGIC_CONDITION_NOR,            // 11
+    LOGIC_CONDITION_NOT,            // 12
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 

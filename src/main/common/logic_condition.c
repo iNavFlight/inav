@@ -128,6 +128,10 @@ int logicConditionCompute(
             return !(operandA || operandB);
             break; 
 
+        case LOGIC_CONDITION_NOT:
+            return !operandA;
+            break;
+
         default:
             return false;
             break; 
