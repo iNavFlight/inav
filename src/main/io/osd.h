@@ -44,9 +44,9 @@
 #define METERS_PER_KILOMETER                    1000
 #define METERS_PER_MILE                         1609
 
-#define OSD_HOMING_LIM_H1 7
-#define OSD_HOMING_LIM_H2 17
-#define OSD_HOMING_LIM_H3 40
+#define OSD_HOMING_LIM_H1 6
+#define OSD_HOMING_LIM_H2 16
+#define OSD_HOMING_LIM_H3 38
 #define OSD_HOMING_LIM_V1 5
 #define OSD_HOMING_LIM_V2 10
 #define OSD_HOMING_LIM_V3 15
@@ -177,12 +177,6 @@ typedef enum {
 } osd_crosshairs_style_e;
 
 typedef enum {
-    OSD_HOMING_FOCUS_NARROW,
-    OSD_HOMING_FOCUS_MEDIUM,
-    OSD_HOMING_FOCUS_WIDE,
-} osd_homing_focus_e;
-
-typedef enum {
     OSD_HUDMODE_OFF,
     OSD_HUDMODE_3D,
     OSD_HUDMODE_MAP,
@@ -229,7 +223,6 @@ typedef struct osdConfig_s {
     uint8_t ahi_max_pitch;
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
     bool homing;
-    uint8_t homing_focus; // from osd_homing_focus_e
     int8_t camera_uptilt;
     uint8_t camera_fov_h;
     uint8_t camera_fov_v;

@@ -86,9 +86,6 @@ tables:
   - name: osd_crosshairs_style
     values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
-  - name: osd_homing_focus
-    values: ["NARROW", "MEDIUM", "WIDE"]
-    enum: osd_homing_focus_e
   - name: osd_hudmode
     values: ["OFF", "3D", "MAP"]
     enum: osd_hudmode_e
@@ -1666,10 +1663,6 @@ groups:
       - name: osd_homing
         field: homing
         type: bool
-      - name: osd_homing_focus
-        field: homing_focus
-        table: osd_homing_focus
-        type: uint8_t
       - name: osd_camera_uptilt
         field: camera_uptilt
         min: -40

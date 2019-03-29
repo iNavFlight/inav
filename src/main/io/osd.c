@@ -2698,7 +2698,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->ahi_max_pitch = AH_MAX_PITCH_DEFAULT;
     osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
     osdConfig->homing = 0;
-    osdConfig->homing_focus = OSD_HOMING_FOCUS_MEDIUM;
     osdConfig->camera_uptilt = 0;
     osdConfig->camera_fov_h = 135;
     osdConfig->camera_fov_v = 85;
