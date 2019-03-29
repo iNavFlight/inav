@@ -18,9 +18,10 @@
 #include <stdint.h>
 
 #include "platform.h"
-#include "drivers/osd_symbols.h"
 #include "flight/imu.h"
 #include "io/osd.h"
+#include "drivers/osd.h"
+#include "drivers/osd_symbols.h"
 #include "drivers/display.h"
 #include "navigation/navigation.h"
 #include "common/printf.h"

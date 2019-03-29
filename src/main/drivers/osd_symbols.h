@@ -196,19 +196,19 @@
 
 #define SYM_AH_V_START            0xE0 // 224 to 229 Vertical AHI
 
-#define SYM_BARO_TEMP             0xF0
-#define SYM_IMU_TEMP              0xF1
-#define SYM_TEMP                  0xF2
+#define SYM_BARO_TEMP             0xF0 // 240
+#define SYM_IMU_TEMP              0xF1 // 241
+#define SYM_TEMP                  0xF2 // 242
 
-#define SYM_TEMP_SENSOR_FIRST     0xF2
-#define SYM_TEMP_SENSOR_LAST      0xF7
+#define SYM_TEMP_SENSOR_FIRST     0xF2 // 242
+#define SYM_TEMP_SENSOR_LAST      0xF7 // 247
 #define TEMP_SENSOR_SYM_COUNT     (SYM_TEMP_SENSOR_LAST - SYM_TEMP_SENSOR_FIRST + 1)
 
-#define SYM_HUD_SIGNAL_0          0xF8  // Hud signal icon Lost
-#define SYM_HUD_SIGNAL_1          0xF9  // Hud signal icon 25%
-#define SYM_HUD_SIGNAL_2          0xFA  // Hud signal icon 50%
-#define SYM_HUD_SIGNAL_3          0xFB  // Hud signal icon 75%
-#define SYM_HUD_SIGNAL_4          0xFC  // Hud signal icon 100%
+#define SYM_HUD_SIGNAL_0          0xF8  // 248 Hud signal icon Lost
+#define SYM_HUD_SIGNAL_1          0xF9  // 249 Hud signal icon 25%
+#define SYM_HUD_SIGNAL_2          0xFA  // 250 Hud signal icon 50%
+#define SYM_HUD_SIGNAL_3          0xFB  // 251 Hud signal icon 75%
+#define SYM_HUD_SIGNAL_4          0xFC  // 252 Hud signal icon 100%
 
 #define SYM_LOGO_START            0x101 // 257 to 280, INAV logo
 #define SYM_LOGO_WIDTH            6
@@ -232,8 +232,6 @@
 #define SYM_HUD_ARROWS_D1         0x1AB // 427 Smart crosshair
 #define SYM_HUD_ARROWS_D2         0x1AC // 428 Smart crosshair
 #define SYM_HUD_ARROWS_D3         0x1AD // 429 Smart crosshair
-
-
 
 #else
 

@@ -22,8 +22,6 @@
 #include "config/parameter_group.h"
 
 #include "drivers/osd.h"
-//#include "drivers/vcd.h"
-//#include "drivers/display.h"
 
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
