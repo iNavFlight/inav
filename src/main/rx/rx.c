@@ -339,11 +339,6 @@ void rxUpdateRSSISource(void)
         return;
     }
 
-    if (rxConfig()->rssi_channel > 0) {
-        rssiSource = RSSI_SOURCE_RX_CHANNEL;
-        return;
-    }
-
     bool serialProtocolSupportsRSSI = false;
     switch (rxConfig()->receiverType) {
 #if defined(USE_SERIAL_RX)
