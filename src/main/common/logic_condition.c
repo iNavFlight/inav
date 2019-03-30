@@ -108,6 +108,30 @@ int logicConditionCompute(
             return operandA > 1666;
             break;
 
+        case LOGIC_CONDITION_AND:
+            return (operandA && operandB);
+            break;
+
+        case LOGIC_CONDITION_OR:
+            return (operandA || operandB);
+            break;
+
+        case LOGIC_CONDITION_XOR:
+            return (operandA != operandB);
+            break;
+
+        case LOGIC_CONDITION_NAND:
+            return !(operandA && operandB);
+            break;
+
+        case LOGIC_CONDITION_NOR:
+            return !(operandA || operandB);
+            break; 
+
+        case LOGIC_CONDITION_NOT:
+            return !operandA;
+            break;
+
         default:
             return false;
             break; 
