@@ -9,6 +9,7 @@
 #define SIM_SMS_COMMAND_TRANSMISSION    "T"
 #define SIM_SMS_COMMAND_RTH             "RTH"
 #define SIM_PIN "0000"
+#define GROUND_STATION_NUMBER_DIGITS 7
 
 #define SIM_RESPONSE_CODE_OK    ('O' << 24 | 'K' << 16)
 #define SIM_RESPONSE_CODE_ERROR ('E' << 24 | 'R' << 16 | 'R' << 8 | 'O')

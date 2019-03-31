@@ -68,17 +68,23 @@ bool isGroundStationNumberDefined() {
     return telemetryConfig()->simGroundStationNumber[0] != '\0';
 }
 
-bool checkGroundStationNumber(uint8_t* rv) {
+bool checkGroundStationNumber(uint8_t* rv)
+{
+    int i;
     const uint8_t* gsn = telemetryConfig()->simGroundStationNumber;
-    if (strlen((char*)gsn) == 0) return false;
-    if (gsn[0] == '+')
-        gsn++;
-    if (rv[0] == '+')
-        rv++;
-    for (int i = 0; i < 16 && rv[i] != '\"'; i++)
-        if (gsn[i] != rv[i]) return false;
+
+    for (i = 0; i < 16 && *gsn != '\0'; i++) gsn++;
+    if (i == 0)
+        return false;
+    for (i = 0; i < 16 && *rv != '\"'; i++) rv++;
+    gsn--; rv--;
+    for (i = 0; i < GROUND_STATION_NUMBER_DIGITS; i++) {
+        if (*rv != *gsn) return false;
+        gsn--; rv--;
+    }
     return true;
 }
+
 
 void readOriginatingNumber(uint8_t* rv)
 {
