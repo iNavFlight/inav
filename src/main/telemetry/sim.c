@@ -55,6 +55,7 @@ static int atCommandStatus = SIM_AT_OK;
 static bool simWaitAfterResponse = false;
 static uint8_t readState = SIM_READSTATE_RESPONSE;
 static uint8_t transmissionState = SIM_TX_NO;
+uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
 
 int simRssi;
 timeMs_t  t_accEventDetected = 0;
@@ -78,7 +79,7 @@ bool checkGroundStationNumber(uint8_t* rv)
         return false;
     for (i = 0; i < 16 && *rv != '\"'; i++) rv++;
     gsn--; rv--;
-    for (i = 0; i < GROUND_STATION_NUMBER_DIGITS; i++) {
+    for (i = 0; i < SIM_GROUND_STATION_NUMBER_DIGITS; i++) {
         if (*rv != *gsn) return false;
         gsn--; rv--;
     }
@@ -172,6 +173,13 @@ void readSimResponse()
         if (checkGroundStationNumber(&simResponse[8])) {
             requestSendSMS();
         }
+    } else if (responseCode == SIM_RESPONSE_CODE_CREG) {
+        // +CREG: 0,1
+        if (simResponse[9] == '1' || simResponse[9] == '5') {
+            simModuleState = SIM_MODULE_REGISTERED;
+        } else {
+            simModuleState = SIM_MODULE_NOT_REGISTERED;
+        }        
     } else if (responseCode == SIM_RESPONSE_CODE_CMT) {
         // +CMT: <oa>,[<alpha>],<scts>[,<tooa>,<fo>,<pid>,<dcs>,<sca>,<tosca>,<length>]<CR><LF><data>
         // +CMT: "+3581234567","","19/02/12,14:57:24+08"
@@ -200,7 +208,7 @@ void detectAccEvents()
         return;
 
     t_accEventDetected = now;
-    if (now - t_accEventMessageSent > 5000) {
+    if (now - t_accEventMessageSent > 1000 * SIM_MIN_TRANSMISSION_INTERVAL) {
         requestSendSMS();
         t_accEventMessageSent = now;
     }
