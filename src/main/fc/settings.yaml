@@ -64,6 +64,9 @@ tables:
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC"]
     enum: videoSystem_e
+  - name: osd_alignment
+    values: ["LEFT", "RIGHT"]
+    enum: osd_alignment_e
   - name: frsky_unit
     values: ["METRIC", "IMPERIAL"]
     enum: frskyUnit_e
@@ -74,7 +77,7 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO","ACC"]
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -107,6 +110,10 @@ tables:
   - name: vtx_low_power_disarm
     values: ["OFF", "ON", "UNTIL_FIRST_ARM"]
     enum: vtxLowerPowerDisarm_e
+  - name: filter_type
+    values: ["PT1", "BIQUAD"]
+  - name: log_level
+    values: ["ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG"]
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -128,6 +135,9 @@ groups:
       - name: gyro_lpf_hz
         field: gyro_soft_lpf_hz
         max: 200
+      - name: gyro_lpf_type
+        field: gyro_soft_lpf_type
+        table: filter_type
       - name: moron_threshold
         field: gyroMovementCalibrationThreshold
         max: 128
@@ -148,7 +158,7 @@ groups:
         field: gyro_soft_notch_cutoff_2
         condition: USE_GYRO_NOTCH_2
         min: 1
-        max: 500 
+        max: 500
       - name: gyro_stage2_lowpass_hz
         field: gyro_stage2_lowpass_hz
         condition: USE_GYRO_BIQUAD_RC_FIR2
@@ -309,6 +319,10 @@ groups:
       - name: baro_median_filter
         field: use_median_filtering
         type: bool
+      - name: baro_cal_tolerance
+        field: baro_calibration_tolerance
+        min: 0
+        max: 1000
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
@@ -396,11 +410,11 @@ groups:
       - name: blackbox_rate_num
         field: rate_num
         min: 1
-        max: 255
+        max: 65535
       - name: blackbox_rate_denom
         field: rate_denom
         min: 1
-        max: 255
+        max: 65535
       - name: blackbox_device
         field: device
         table: blackbox_device
@@ -894,7 +908,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_pitch
-        field: bank_fw.pid[PID_PITCH].D
+        field: bank_fw.pid[PID_PITCH].FF
         min: 0
         max: 200
       - name: fw_p_roll
@@ -906,7 +920,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_roll
-        field: bank_fw.pid[PID_ROLL].D
+        field: bank_fw.pid[PID_ROLL].FF
         min: 0
         max: 200
       - name: fw_p_yaw
@@ -918,7 +932,7 @@ groups:
         min: 0
         max: 200
       - name: fw_ff_yaw
-        field: bank_fw.pid[PID_YAW].D
+        field: bank_fw.pid[PID_YAW].FF
         min: 0
         max: 200
       - name: fw_p_level
@@ -944,6 +958,9 @@ groups:
       - name: dterm_lpf_hz
         min: 0
         max: 200
+      - name: use_dterm_fir_filter
+        field: use_dterm_fir_filter
+        type: bool
       - name: yaw_lpf_hz
         min: 0
         max: 200
@@ -1036,16 +1053,6 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
-      - name: nav_mc_pos_xy_i
-        field: bank_mc.pid[PID_POS_XY].I
-        condition: USE_NAV
-        min: 0
-        max: 255
-      - name: nav_mc_pos_xy_d
-        field: bank_mc.pid[PID_POS_XY].D
-        condition: USE_NAV
-        min: 0
-        max: 255
       - name: nav_mc_vel_xy_p
         field: bank_mc.pid[PID_VEL_XY].P
         condition: USE_NAV
@@ -1061,11 +1068,20 @@ groups:
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_mc_vel_xy_ff
+        field: bank_mc.pid[PID_VEL_XY].FF
+        condition: USE_NAV
+        min: 0
+        max: 255
       - name: nav_mc_heading_p
         field: bank_mc.pid[PID_HEADING].P
         condition: USE_NAV
         min: 0
         max: 255
+      - name: nav_mc_vel_xy_dterm_lpf_hz
+        field: navVelXyDTermLpfHz
+        min: 0
+        max: 100
       - name: nav_fw_pos_z_p
         field: bank_fw.pid[PID_POS_Z].P
         condition: USE_NAV
@@ -1323,32 +1339,32 @@ groups:
         field: mc.braking_speed_threshold
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 1000   
+        max: 1000
       - name: nav_mc_braking_disengage_speed
         field: mc.braking_disengage_speed
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 1000  
+        max: 1000
       - name: nav_mc_braking_timeout
         field: mc.braking_timeout
         condition: USE_MR_BRAKING_MODE
         min: 100
-        max: 5000 
+        max: 5000
       - name: nav_mc_braking_boost_factor
         field: mc.braking_boost_factor
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 200  
+        max: 200
       - name: nav_mc_braking_boost_timeout
         field: mc.braking_boost_timeout
         condition: USE_MR_BRAKING_MODE
         min: 0
-        max: 5000  
+        max: 5000
       - name: nav_mc_braking_boost_speed_threshold
         field: mc.braking_boost_speed_threshold
         condition: USE_MR_BRAKING_MODE
         min: 100
-        max: 1000  
+        max: 1000
       - name: nav_mc_braking_boost_disengage_speed
         field: mc.braking_boost_disengage_speed
         condition: USE_MR_BRAKING_MODE
@@ -1358,7 +1374,17 @@ groups:
         field: mc.braking_bank_angle
         condition: USE_MR_BRAKING_MODE
         min: 15
-        max: 60  
+        max: 60
+      - name: nav_mc_pos_deceleration_time
+        field: mc.posDecelerationTime
+        condition: USE_NAV
+        min: 0
+        max: 255
+      - name: nav_mc_pos_expo
+        field: mc.posResponseExpo
+        condition: USE_NAV
+        min: 0
+        max: 255
       - name: nav_fw_cruise_thr
         field: fw.cruise_throttle
         min: 1000
@@ -1552,7 +1578,7 @@ groups:
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
-    headers: ["io/osd.h", "drivers/vcd.h"]
+    headers: ["io/osd.h", "drivers/osd.h"]
     condition: USE_OSD
     members:
       - name: osd_video_system
@@ -1592,6 +1618,29 @@ groups:
         field: neg_alt_alarm
         min: 0
         max: 10000
+      - name: osd_imu_temp_alarm_min
+        field: imu_temp_alarm_min
+        min: -550
+        max: 1250
+      - name: osd_imu_temp_alarm_max
+        field: imu_temp_alarm_max
+        min: -550
+        max: 1250
+      - name: osd_baro_temp_alarm_min
+        field: baro_temp_alarm_min
+        condition: USE_BARO
+        min: -550
+        max: 1250
+      - name: osd_baro_temp_alarm_max
+        field: baro_temp_alarm_max
+        condition: USE_BARO
+        min: -550
+        max: 1250
+      - name: osd_temp_label_align
+        field: temp_label_align
+        condition: USE_TEMPERATURE_SENSOR
+        table: osd_alignment
+        type: uint8_t
 
       - name: osd_artificial_horizon_reverse_roll
         field: ahi_reverse_roll
@@ -1769,3 +1818,15 @@ groups:
         max: 255
         type: uint8_t
 
+  - name: PG_LOG_CONFIG
+    type: logConfig_t
+    headers: ["common/log.h"]
+    condition: USE_LOG
+    members:
+        - name: log_level
+          field: level
+          table: log_level
+        - name: log_topics
+          field: topics
+          min: 0,
+          max: UINT32_MAX

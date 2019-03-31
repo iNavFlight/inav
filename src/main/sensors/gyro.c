@@ -26,8 +26,10 @@
 #include "build/debug.h"
 
 #include "common/axis.h"
-#include "common/maths.h"
+#include "common/calibration.h"
 #include "common/filter.h"
+#include "common/log.h"
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "config/parameter_group.h"
@@ -74,13 +76,7 @@ FASTRAM gyro_t gyro; // gyro sensor object
 STATIC_UNIT_TESTED gyroDev_t gyroDev0;  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature0;
 
-typedef struct gyroCalibration_s {
-    int32_t g[XYZ_AXIS_COUNT];
-    stdev_t var[XYZ_AXIS_COUNT];
-    uint16_t calibratingG;
-} gyroCalibration_t;
-
-STATIC_FASTRAM_UNIT_TESTED gyroCalibration_t gyroCalibration;
+STATIC_FASTRAM_UNIT_TESTED zeroCalibrationVector_t gyroCalibration;
 STATIC_FASTRAM int32_t gyroADC[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr softLpfFilterApplyFn;
@@ -101,11 +97,12 @@ STATIC_FASTRAM filterApplyFnPtr gyroFilterStage2ApplyFn;
 STATIC_FASTRAM void *stage2Filter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 5);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = GYRO_LPF_42HZ,      // 42HZ value is defined for Invensense/TDK gyros
     .gyro_soft_lpf_hz = 60,
+    .gyro_soft_lpf_type = FILTER_BIQUAD,
     .gyro_align = ALIGN_DEFAULT,
     .gyroMovementCalibrationThreshold = 32,
     .looptime = 1000,
@@ -316,10 +313,23 @@ void gyroInitFilters(void)
 #endif
 
     if (gyroConfig()->gyro_soft_lpf_hz) {
-        softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
-        for (int axis = 0; axis < 3; axis++) {
-            softLpfFilter[axis] = &gyroFilterLPF[axis];
-            biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+        
+        switch (gyroConfig()->gyro_soft_lpf_type) 
+        {
+        case FILTER_PT1:
+            softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
+            for (int axis = 0; axis < 3; axis++) {
+                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                pt1FilterInit(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime()* 1e-6f);
+            }
+            break;
+        case FILTER_BIQUAD:
+            softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
+            for (int axis = 0; axis < 3; axis++) {
+                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
+            }
+            break;
         }
     }
 
@@ -344,64 +354,42 @@ void gyroInitFilters(void)
 #endif
 }
 
-void gyroSetCalibrationCycles(uint16_t calibrationCyclesRequired)
+void gyroStartCalibration(void)
 {
-    gyroCalibration.calibratingG = calibrationCyclesRequired;
+    zeroCalibrationStartV(&gyroCalibration, CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
 }
 
-STATIC_UNIT_TESTED bool isCalibrationComplete(gyroCalibration_t *gyroCalibration)
+bool FAST_CODE NOINLINE gyroIsCalibrationComplete(void)
 {
-    return gyroCalibration->calibratingG == 0;
+    return zeroCalibrationIsCompleteV(&gyroCalibration) && zeroCalibrationIsSuccessfulV(&gyroCalibration);
 }
 
-bool gyroIsCalibrationComplete(void)
+STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
 {
-    return gyroCalibration.calibratingG == 0;
-}
+    fpVector3_t v;
 
-static bool isOnFinalGyroCalibrationCycle(gyroCalibration_t *gyroCalibration)
-{
-    return gyroCalibration->calibratingG == 1;
-}
+    // Consume gyro reading
+    v.v[0] = dev->gyroADCRaw[0];
+    v.v[1] = dev->gyroADCRaw[1];
+    v.v[2] = dev->gyroADCRaw[2];
 
-static bool isOnFirstGyroCalibrationCycle(gyroCalibration_t *gyroCalibration)
-{
-    return gyroCalibration->calibratingG == CALIBRATING_GYRO_CYCLES;
-}
+    zeroCalibrationAddValueV(gyroCalibration, &v);
 
-STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, gyroCalibration_t *gyroCalibration, uint8_t gyroMovementCalibrationThreshold)
-{
-    for (int axis = 0; axis < 3; axis++) {
-        // Reset g[axis] at start of calibration
-        if (isOnFirstGyroCalibrationCycle(gyroCalibration)) {
-            gyroCalibration->g[axis] = 0;
-            devClear(&gyroCalibration->var[axis]);
-        }
+    // Check if calibration is complete after this cycle
+    if (zeroCalibrationIsCompleteV(gyroCalibration)) {
+        zeroCalibrationGetZeroV(gyroCalibration, &v);
+        dev->gyroZero[0] = v.v[0];
+        dev->gyroZero[1] = v.v[1];
+        dev->gyroZero[2] = v.v[2];
 
-        // Sum up CALIBRATING_GYRO_CYCLES readings
-        gyroCalibration->g[axis] += dev->gyroADCRaw[axis];
-        devPush(&gyroCalibration->var[axis], dev->gyroADCRaw[axis]);
-
-        // gyroZero is set to zero until calibration complete
-        dev->gyroZero[axis] = 0;
-
-        if (isOnFinalGyroCalibrationCycle(gyroCalibration)) {
-            const float stddev = devStandardDeviation(&gyroCalibration->var[axis]);
-            // check deviation and start over if the model was moved
-            if (gyroMovementCalibrationThreshold && stddev > gyroMovementCalibrationThreshold) {
-                gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
-                return;
-            }
-            // calibration complete, so set the gyro zero values
-            dev->gyroZero[axis] = (gyroCalibration->g[axis] + (CALIBRATING_GYRO_CYCLES / 2)) / CALIBRATING_GYRO_CYCLES;
-        }
-    }
-
-    if (isOnFinalGyroCalibrationCycle(gyroCalibration)) {
-        DEBUG_TRACE_SYNC("Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
+        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[0], dev->gyroZero[1], dev->gyroZero[2]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     }
-    gyroCalibration->calibratingG--;
+    else {
+        dev->gyroZero[0] = 0;
+        dev->gyroZero[1] = 0;
+        dev->gyroZero[2] = 0;
+    }
 }
 
 /*
@@ -414,11 +402,11 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-void gyroUpdate()
+void FAST_CODE NOINLINE gyroUpdate()
 {
     // range: +/- 8192; +/- 2000 deg/sec
     if (gyroDev0.readFn(&gyroDev0)) {
-        if (isCalibrationComplete(&gyroCalibration)) {
+        if (zeroCalibrationIsCompleteV(&gyroCalibration)) {
             // Copy gyro value into int32_t (to prevent overflow) and then apply calibration and alignment
             gyroADC[X] = (int32_t)gyroDev0.gyroADCRaw[X] - (int32_t)gyroDev0.gyroZero[X];
             gyroADC[Y] = (int32_t)gyroDev0.gyroADCRaw[Y] - (int32_t)gyroDev0.gyroZero[Y];
@@ -426,7 +414,7 @@ void gyroUpdate()
             applySensorAlignment(gyroADC, gyroADC, gyroDev0.gyroAlign);
             applyBoardAlignment(gyroADC);
         } else {
-            performGyroCalibration(&gyroDev0, &gyroCalibration, gyroConfig()->gyroMovementCalibrationThreshold);
+            performGyroCalibration(&gyroDev0, &gyroCalibration);
             // Reset gyro values to zero to prevent other code from using uncalibrated data
             gyro.gyroADCf[X] = 0.0f;
             gyro.gyroADCf[Y] = 0.0f;

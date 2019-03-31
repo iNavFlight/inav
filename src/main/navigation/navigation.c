@@ -73,11 +73,10 @@ int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
-PG_DECLARE_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList);
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 4);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -127,6 +126,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_boost_speed_threshold = 150,   // Boost can happen only above 1.5m/s
         .braking_boost_disengage_speed = 100,   // Disable boost at 1m/s
         .braking_bank_angle = 40,               // Max braking angle     
+        .posDecelerationTime = 120,             // posDecelerationTime * 100
+        .posResponseExpo = 10,                  // posResponseExpo * 100
     },
 
     // Fixed wing
@@ -574,7 +575,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_RTH_FINISHED,
         .onEntry = navOnEnteringState_NAV_STATE_RTH_FINISHED,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH,
         .mapToFlightModes = NAV_RTH_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LANDED,
         .mwError = MW_NAV_ERROR_NONE,
@@ -1312,6 +1313,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     // Stay in this state
     UNUSED(previousState);
     updateClimbRateToAltitudeController(-0.3f * navConfig()->general.land_descent_rate, ROC_TO_ALT_NORMAL);  // FIXME
+
+    // Prevent I-terms growing when already landed
+    pidResetErrorAccumulators();
+
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -1477,6 +1482,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINIS
 {
     // TODO:
     UNUSED(previousState);
+
+    // Prevent I-terms growing when already landed
+    pidResetErrorAccumulators();
+
     return NAV_FSM_EVENT_SUCCESS;
 }
 
@@ -1624,7 +1633,7 @@ static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
 // http://www.cds.caltech.edu/~murray/courses/cds101/fa02/caltech/astrom-ch6.pdf
 float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler)
 {
-    float newProportional, newDerivative;
+    float newProportional, newDerivative, newFeedForward;
     float error = setpoint - measurement;
 
     /* P-term */
@@ -1646,19 +1655,29 @@ float navPidApply3(pidController_t *pid, const float setpoint, const float measu
         pid->last_input = measurement;
     }
 
-    newDerivative = pid->param.kD * pt1FilterApply4(&pid->dterm_filter_state, newDerivative, NAV_DTERM_CUT_HZ, dt) * gainScaler;
+    if (pid->dTermLpfHz > 0) {
+        newDerivative = pid->param.kD * pt1FilterApply4(&pid->dterm_filter_state, newDerivative, pid->dTermLpfHz, dt) * gainScaler;
+    } else {
+        newDerivative = pid->param.kD * newDerivative;
+    }
 
     if (pidFlags & PID_ZERO_INTEGRATOR) {
         pid->integrator = 0.0f;
     }
 
+    /*
+     * Compute FeedForward parameter
+     */
+    newFeedForward = setpoint * pid->param.kFF * gainScaler;
+
     /* Pre-calculate output and limit it if actuator is saturating */
-    const float outVal = newProportional + (pid->integrator * gainScaler) + newDerivative;
+    const float outVal = newProportional + (pid->integrator * gainScaler) + newDerivative + newFeedForward;
     const float outValConstrained = constrainf(outVal, outMin, outMax);
 
     pid->proportional = newProportional;
     pid->integral = pid->integrator;
     pid->derivative = newDerivative;
+    pid->feedForward = newFeedForward;
     pid->output_constrained = outValConstrained;
 
     /* Update I-term */
@@ -1684,7 +1703,6 @@ float navPidApply2(pidController_t *pid, const float setpoint, const float measu
     return navPidApply3(pid, setpoint, measurement, dt, outMin, outMax, pidFlags, 1.0f);
 }
 
-
 void navPidReset(pidController_t *pid)
 {
     pid->reset = true;
@@ -1693,16 +1711,17 @@ void navPidReset(pidController_t *pid)
     pid->derivative = 0.0f;
     pid->integrator = 0.0f;
     pid->last_input = 0.0f;
-    pid->dterm_filter_state.state = 0.0f;
-    pid->dterm_filter_state.RC = 0.0f;
+    pid->feedForward = 0.0f;
+    pt1FilterReset(&pid->dterm_filter_state, 0.0f);
     pid->output_constrained = 0.0f;
 }
 
-void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD)
+void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz)
 {
     pid->param.kP = _kP;
     pid->param.kI = _kI;
     pid->param.kD = _kD;
+    pid->param.kFF = _kFF;
 
     if (_kI > 1e-6f && _kP > 1e-6f) {
         float Ti = _kP / _kI;
@@ -1713,7 +1732,7 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD)
         pid->param.kI = 0.0;
         pid->param.kT = 0.0;
     }
-
+    pid->dTermLpfHz = _dTermLpfHz;
     navPidReset(pid);
 }
 
@@ -2368,93 +2387,8 @@ static void resetPositionController(void)
     }
     else {
         resetMulticopterPositionController();
+        resetMulticopterBrakingMode();
     }
-}
-
-
-static void processBrakingMode(const bool isAdjusting)
-{
-#ifdef USE_MR_BRAKING_MODE
-
-    static uint32_t brakingModeDisengageAt = 0;
-    static uint32_t brakingBoostModeDisengageAt = 0;
-
-    const bool brakingEntryAllowed =
-        IS_RC_MODE_ACTIVE(BOXBRAKING) &&
-        !STATE(NAV_CRUISE_BRAKING_LOCKED) &&
-        posControl.actualState.velXY > navConfig()->mc.braking_speed_threshold &&
-        !isAdjusting &&
-        navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE &&
-        navConfig()->mc.braking_speed_threshold > 0 &&
-        (
-            NAV_Status.state == MW_NAV_STATE_NONE ||
-            NAV_Status.state == MW_NAV_STATE_HOLD_INFINIT
-        );
-
-
-    /*
-        * Case one, when we order to brake (sticks to the center) and we are moving above threshold
-        * Speed is above 1m/s and sticks are centered
-        * Extra condition: BRAKING flight mode has to be enabled
-        */
-    if (brakingEntryAllowed) {
-        /*
-            * Set currnt position and target position
-            * Enabling NAV_CRUISE_BRAKING locks other routines from setting position!
-            */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
-
-        ENABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-        ENABLE_STATE(NAV_CRUISE_BRAKING);
-
-        //Set forced BRAKING disengage moment
-        brakingModeDisengageAt = millis() + navConfig()->mc.braking_timeout;
-
-        //If speed above threshold, start boost mode as well
-        if (posControl.actualState.velXY > navConfig()->mc.braking_boost_speed_threshold) {
-            ENABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-
-            brakingBoostModeDisengageAt = millis() + navConfig()->mc.braking_boost_timeout;
-        }
-
-    }
-
-    // We can enter braking only after user started to move the sticks
-    if (STATE(NAV_CRUISE_BRAKING_LOCKED) && isAdjusting) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING_LOCKED);
-    }
-
-    /*
-     * Case when speed dropped, disengage BREAKING_BOOST
-     */
-    if (
-        STATE(NAV_CRUISE_BRAKING_BOOST) && (
-            posControl.actualState.velXY <= navConfig()->mc.braking_boost_disengage_speed ||
-            brakingBoostModeDisengageAt < millis()
-    )) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-    }
-
-    /*
-     * Case when we were braking but copter finally stopped or we started to move the sticks
-     */
-    if (STATE(NAV_CRUISE_BRAKING) && (
-        posControl.actualState.velXY <= navConfig()->mc.braking_disengage_speed ||  //We stopped
-        isAdjusting ||                                                              //Moved the sticks
-        brakingModeDisengageAt < millis()                                           //Braking is done to timed disengage
-    )) {
-        DISABLE_STATE(NAV_CRUISE_BRAKING);
-        DISABLE_STATE(NAV_CRUISE_BRAKING_BOOST);
-
-        /*
-            * When braking is done, store current position as desired one
-            * We do not want to go back to the place where braking has started
-            */
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
-    }
-#else
-    UNUSED(isAdjusting);
-#endif
 }
 
 static bool adjustPositionFromRCInput(void)
@@ -2468,8 +2402,6 @@ static bool adjustPositionFromRCInput(void)
 
         const int16_t rcPitchAdjustment = applyDeadband(rcCommand[PITCH], rcControlsConfig()->pos_hold_deadband);
         const int16_t rcRollAdjustment = applyDeadband(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband);
-
-        processBrakingMode(rcPitchAdjustment || rcRollAdjustment);
 
         retValue = adjustMulticopterPositionFromRCInput(rcPitchAdjustment, rcRollAdjustment);
     }
@@ -2726,8 +2658,15 @@ static void processNavigationRCAdjustments(void)
         posControl.flags.isAdjustingAltitude = false;
     }
 
-    if ((navStateFlags & NAV_RC_POS) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
-        posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
+    if (navStateFlags & NAV_RC_POS) {
+        if (!FLIGHT_MODE(FAILSAFE_MODE)) {
+            posControl.flags.isAdjustingPosition = adjustPositionFromRCInput();
+        }
+        else {
+            if (!STATE(FIXED_WING)) {
+                resetMulticopterBrakingMode();
+            }
+        }
     }
     else {
         posControl.flags.isAdjustingPosition = false;
@@ -3089,10 +3028,10 @@ void navigationUsePIDs(void)
 {
     /** Multicopter PIDs */
     // Brake time parameter
-    posControl.posDecelerationTime = (float)pidProfile()->bank_mc.pid[PID_POS_XY].I / 100.0f;
+    posControl.posDecelerationTime = (float)navConfig()->mc.posDecelerationTime / 100.0f;
 
     // Position controller expo (taret vel expo for MC)
-    posControl.posResponseExpo = constrainf((float)pidProfile()->bank_mc.pid[PID_POS_XY].D / 100.0f, 0.0f, 1.0f);
+    posControl.posResponseExpo = constrainf((float)navConfig()->mc.posResponseExpo / 100.0f, 0.0f, 1.0f);
 
     // Initialize position hold P-controller
     for (int axis = 0; axis < 2; axis++) {
@@ -3100,7 +3039,10 @@ void navigationUsePIDs(void)
 
         navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
-                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f);
+                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
+                                               (float)pidProfile()->bank_mc.pid[PID_VEL_XY].FF / 100.0f,
+                                               pidProfile()->navVelXyDTermLpfHz
+        );
     }
 
     // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
@@ -3108,22 +3050,34 @@ void navigationUsePIDs(void)
 
     navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 66.7f,
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 20.0f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f);
+                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f,
+                                        0.0f,
+                                        NAV_DTERM_CUT_HZ
+    );
 
     // Initialize surface tracking PID
     navPidInit(&posControl.pids.surface, 2.0f,
                                          0.0f,
-                                         0.0f);
+                                         0.0f,
+                                         0.0f,
+                                         NAV_DTERM_CUT_HZ
+    );
 
     /** Airplane PIDs */
     // Initialize fixed wing PID controllers
     navPidInit(&posControl.pids.fw_nav, (float)pidProfile()->bank_fw.pid[PID_POS_XY].P / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].I / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f);
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f,
+                                        0.0f,
+                                        NAV_DTERM_CUT_HZ
+    );
 
     navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 10.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f);
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f,
+                                        0.0f,
+                                        NAV_DTERM_CUT_HZ
+    );
 }
 
 void navigationInit(void)
@@ -3226,7 +3180,7 @@ bool navigationRTHAllowsLanding(void)
         (allow == NAV_RTH_ALLOW_LANDING_FS_ONLY && FLIGHT_MODE(FAILSAFE_MODE));
 }
 
-bool isNavLaunchEnabled(void)
+bool FAST_CODE isNavLaunchEnabled(void)
 {
     return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
 }

@@ -17,10 +17,12 @@
 
 #pragma once
 
-// Video Character Display parameters
+//#include "drivers/io_types.h"
+#include <stdbool.h>
+#include "drivers/1-wire.h"
 
-typedef enum {
-    VIDEO_SYSTEM_AUTO = 0,
-    VIDEO_SYSTEM_PAL,
-    VIDEO_SYSTEM_NTSC
-} videoSystem_e;
+#if defined(USE_1WIRE) && defined(USE_1WIRE_DS2482)
+
+bool ds2482Detect(owDev_t *owDev);
+
+#endif /* defined(USE_1WIRE) && defined(USE_1WIRE_DS2482) */

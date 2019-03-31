@@ -48,7 +48,7 @@ static bool lm75Read(temperatureDev_t *tempDev, int16_t *temperature)
     return false;
 }
 
-#define DETECTION_MAX_RETRY_COUNT   20
+#define DETECTION_MAX_RETRY_COUNT 5
 static bool deviceDetect(temperatureDev_t *tempDev)
 {
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
@@ -59,9 +59,11 @@ static bool deviceDetect(temperatureDev_t *tempDev)
     return false;
 }
 
-bool lm75Detect(temperatureDev_t *tempDev)
+bool lm75Detect(temperatureDev_t *tempDev, uint8_t partialAddress)
 {
-    tempDev->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_LM75, 0, OWNER_TEMPERATURE);
+    if (partialAddress > 7)  return false; // invalid address
+
+    tempDev->busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_LM75_0 + partialAddress, 0, OWNER_TEMPERATURE);
     if (tempDev->busDev == NULL) {
         return false;
     }

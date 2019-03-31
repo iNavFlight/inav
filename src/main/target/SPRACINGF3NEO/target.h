@@ -116,6 +116,9 @@
 #undef USE_VTX_TRAMP                // Disabled due to flash size
 #undef USE_PWM_SERVO_DRIVER         // Disabled due to RAM size
 
+#undef USE_PITOT                    // Disabled due to RAM size
+#undef USE_PITOT_ADC                // Disabled due to RAM size
+
 #define RTC6705_CS_PIN          PF4
 #define RTC6705_SPI_INSTANCE    SPI3
 #define RTC6705_POWER_PIN       PC3
@@ -177,3 +180,5 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD (BIT(2))
 #define TARGET_IO_PORTF (BIT(0)|BIT(1)|BIT(4))
+
+#undef USE_TELEMETRY_FRSKY

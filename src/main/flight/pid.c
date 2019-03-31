@@ -94,6 +94,7 @@ STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
 
 extern float dT;
 
+STATIC_FASTRAM bool pidFiltersConfigured = false;
 FASTRAM float headingHoldCosZLimit;
 FASTRAM int16_t headingHoldTarget;
 STATIC_FASTRAM pt1Filter_t headingHoldRateFilter;
@@ -109,73 +110,81 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 5);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 7);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
             .pid = {
-                [PID_ROLL] =    { 40, 30, 23 },
-                [PID_PITCH] =   { 40, 30, 23 },
-                [PID_YAW] =     { 85, 45, 0 },
+                [PID_ROLL] =    { 40, 30, 23, 0 },
+                [PID_PITCH] =   { 40, 30, 23, 0 },
+                [PID_YAW] =     { 85, 45, 0, 0 },
                 [PID_LEVEL] = {
                     .P = 20,    // Self-level strength
                     .I = 15,    // Self-leveing low-pass frequency (0 - disabled)
                     .D = 75,    // 75% horizon strength
+                    .FF = 0,
                 },
-                [PID_HEADING] = { 60, 0, 0 },
+                [PID_HEADING] = { 60, 0, 0, 0 },
                 [PID_POS_XY] = {
                     .P = 65,   // NAV_POS_XY_P * 100
-                    .I = 120,  // posDecelerationTime * 100
-                    .D = 10,   // posResponseExpo * 100
+                    .I = 0,
+                    .D = 0,
+                    .FF = 0,
                 },
                 [PID_VEL_XY] = {
                     .P = 40,   // NAV_VEL_XY_P * 20
                     .I = 15,   // NAV_VEL_XY_I * 100
                     .D = 100,  // NAV_VEL_XY_D * 100
+                    .FF = 40,  // NAV_VEL_XY_D * 100
                 },
                 [PID_POS_Z] = {
                     .P = 50,    // NAV_POS_Z_P * 100
                     .I = 0,     // not used
                     .D = 0,     // not used
+                    .FF = 0,
                 },
                 [PID_VEL_Z] = {
                     .P = 100,   // NAV_VEL_Z_P * 66.7
                     .I = 50,    // NAV_VEL_Z_I * 20
                     .D = 10,    // NAV_VEL_Z_D * 100
+                    .FF = 0,
                 }
             }
         },
 
         .bank_fw = {
             .pid = {
-                [PID_ROLL] =    { 5, 7, 50 },
-                [PID_PITCH] =   { 5, 7, 50 },
-                [PID_YAW] =     { 6, 10, 60 },
+                [PID_ROLL] =    { 5, 7, 0, 50 },
+                [PID_PITCH] =   { 5, 7, 0, 50 },
+                [PID_YAW] =     { 6, 10, 0, 60 },
                 [PID_LEVEL] = {
                     .P = 20,    // Self-level strength
                     .I = 5,     // Self-leveing low-pass frequency (0 - disabled)
                     .D = 75,    // 75% horizon strength
+                    .FF = 0,
                 },
-                [PID_HEADING] = { 60, 0, 0 },
+                [PID_HEADING] = { 60, 0, 0, 0 },
                 [PID_POS_Z] = {
                     .P = 40,    // FW_POS_Z_P * 10
                     .I = 5,     // FW_POS_Z_I * 10
                     .D = 10,    // FW_POS_Z_D * 10
+                    .FF = 0,
                 },
                 [PID_POS_XY] = {
                     .P = 75,    // FW_POS_XY_P * 100
                     .I = 5,     // FW_POS_XY_I * 100
                     .D = 8,     // FW_POS_XY_D * 100
+                    .FF = 0,
                 }
             }
         },
 
-        .acc_soft_lpf_hz = 15,
         .dterm_soft_notch_hz = 0,
         .dterm_soft_notch_cutoff = 1,
         .dterm_lpf_hz = 40,
         .yaw_lpf_hz = 30,
         .dterm_setpoint_weight = 1.0f,
+        .use_dterm_fir_filter = 1,
 
         .itermWindupPointPercent = 50,       // Percent
 
@@ -196,18 +205,11 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingItermLimitOnStickPosition = 0.5f,
 
         .loiter_direction = NAV_LOITER_RIGHT,
+        .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
 );
 
 void pidInit(void)
 {
-    // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
-    // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
-    // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
-    static const float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH] = {5.0f/8, 2.0f/8, -8.0f/8, -2.0f/8, 3.0f/8};
-    for (int axis = 0; axis < 3; ++ axis) {
-        firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
-    }
-
     pidResetTPAFilter();
 
     // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
@@ -225,6 +227,30 @@ bool pidInitFilters(void)
         return false;
     }
 
+    static float dtermCoeffs[PID_GYRO_RATE_BUF_LENGTH];
+
+    if (pidProfile()->use_dterm_fir_filter) {
+        // Calculate derivative using 5-point noise-robust differentiators without time delay (one-sided or forward filters)
+        // by Pavel Holoborodko, see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
+        // h[0] = 5/8, h[-1] = 1/4, h[-2] = -1, h[-3] = -1/4, h[-4] = 3/8
+        dtermCoeffs[0] = 5.0f/8;
+        dtermCoeffs[1] = 2.0f/8;
+        dtermCoeffs[2] = -8.0f/8;
+        dtermCoeffs[3] = -2.0f/8;
+        dtermCoeffs[4] = 3.0f/8;
+    } else {
+        //simple d(t) - d(t-1) differentiator 
+        dtermCoeffs[0] = 1.0f;
+        dtermCoeffs[1] = -1.0f;
+        dtermCoeffs[2] = 0.0f;
+        dtermCoeffs[3] = 0.0f;
+        dtermCoeffs[4] = 0.0f;
+    }
+
+    for (int axis = 0; axis < 3; ++ axis) {
+        firFilterInit(&pidState[axis].gyroRateFilter, pidState[axis].gyroRateBuf, PID_GYRO_RATE_BUF_LENGTH, dtermCoeffs);
+    }
+
 #ifdef USE_DTERM_NOTCH
     notchFilterApplyFn = nullFilterApply;
     if (pidProfile()->dterm_soft_notch_hz != 0) {
@@ -239,6 +265,8 @@ bool pidInitFilters(void)
     for (int axis = 0; axis < 3; ++ axis) {
         biquadFilterInitLPF(&pidState[axis].deltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
     }
+
+    pidFiltersConfigured = true;
 
     return true;
 }
@@ -338,7 +366,7 @@ void schedulePidGainsUpdate(void)
     pidGainsUpdateRequired = true;
 }
 
-void updatePIDCoefficients(void)
+void FAST_CODE NOINLINE updatePIDCoefficients(void)
 {
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
@@ -361,7 +389,7 @@ void updatePIDCoefficients(void)
      * Compute stick position in range of [-1.0f : 1.0f] without deadband and expo
      */
     for (int axis = 0; axis < 3; axis++) {
-        pidState[axis].stickPosition = constrain(rcData[axis] - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
+        pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
 
     // If nothing changed - don't waste time recalculating coefficients
@@ -379,7 +407,7 @@ void updatePIDCoefficients(void)
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER  * tpaFactor;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER  * tpaFactor;
             pidState[axis].kD  = 0.0f;
-            pidState[axis].kFF = pidBank()->pid[axis].D / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
+            pidState[axis].kFF = pidBank()->pid[axis].FF / FP_PID_RATE_FF_MULTIPLIER * tpaFactor;
             pidState[axis].kT  = 0.0f;
         }
         else {
@@ -460,7 +488,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 }
 
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
-static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const uint32_t axisAccelLimit = (axis == FD_YAW) ? pidProfile()->axisAccelerationLimitYaw : pidProfile()->axisAccelerationLimitRollPitch;
 
@@ -482,7 +510,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
-static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
@@ -524,7 +552,7 @@ static void pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamic
 #endif
 }
 
-static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
@@ -559,9 +587,11 @@ static void pidApplyMulticopterRateController(pidState_t *pidState, flight_dynam
             deltaFiltered = biquadFilterApply(&pidState->deltaLpfState, deltaFiltered);
         }
 
-        // Calculate derivative
         firFilterUpdate(&pidState->gyroRateFilter, deltaFiltered);
-        newDTerm = firFilterApply(&pidState->gyroRateFilter) * (pidState->kD / dT);
+        newDTerm = firFilterApply(&pidState->gyroRateFilter);
+
+        // Calculate derivative
+        newDTerm =  newDTerm * (pidState->kD / dT);
 
         // Additionally constrain D
         newDTerm = constrainf(newDTerm, -300.0f, 300.0f);
@@ -775,8 +805,12 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void pidController(void)
+void FAST_CODE pidController(void)
 {
+    if (!pidFiltersConfigured) {
+        return;
+    }
+
     bool canUseFpvCameraMix = true;
     uint8_t headingHoldState = getHeadingHoldState();
 

@@ -30,9 +30,10 @@
 
 #include "common/axis.h"
 #include "common/color.h"
+#include "common/log.h"
 #include "common/maths.h"
-#include "common/printf.h"
 #include "common/memory.h"
+#include "common/printf.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -41,6 +42,7 @@
 
 #include "cms/cms.h"
 
+#include "drivers/1-wire.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/adc.h"
 #include "drivers/compass/compass.h"
@@ -53,6 +55,7 @@
 #include "drivers/light_led.h"
 #include "drivers/logging.h"
 #include "drivers/nvic.h"
+#include "drivers/osd.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -69,7 +72,6 @@
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
-#include "drivers/vcd.h"
 #include "drivers/io.h"
 #include "drivers/exti.h"
 #include "drivers/io_pca9685.h"
@@ -262,15 +264,15 @@ void init(void)
     serialInit(feature(FEATURE_SOFTSERIAL), SERIAL_PORT_NONE);
 #endif
 
-    // Initialize MSP serial ports here so DEBUG_TRACE can share a port with MSP.
+    // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
     // to run after the sensors have been detected.
     mspSerialInit();
 
-#if defined(USE_DEBUG_TRACE)
-    // Debug trace uses serial output, so we only can init it after serial port is ready
-    // From this point on we can use DEBUG_TRACE() to produce real-time debugging information
-    debugTraceInit();
+#if defined(USE_LOG)
+    // LOG might use serial output, so we only can init it after serial port is ready
+    // From this point on we can use LOG_*() to produce real-time debugging information
+    logInit();
 #endif
 
     servosInit();
@@ -349,7 +351,7 @@ void init(void)
     // pwmInit() needs to be called as soon as possible for ESC compatibility reasons
     pwmInit(&pwm_params);
 
-    mixerUsePWMIOConfiguration();
+    mixerPrepare();
 
     if (!pwm_params.useFastPwm)
         motorControlEnable = true;
@@ -548,6 +550,11 @@ void init(void)
     }
 #endif
 
+    // 1-Wire IF chip
+#ifdef USE_1WIRE
+    owInit();
+#endif
+
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
@@ -646,7 +653,8 @@ void init(void)
     blackboxInit();
 #endif
 
-    gyroSetCalibrationCycles(CALIBRATING_GYRO_CYCLES);
+    gyroStartCalibration();
+
 #ifdef USE_BARO
     baroStartCalibration();
 #endif

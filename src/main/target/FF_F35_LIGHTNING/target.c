@@ -22,6 +22,7 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
+
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 1, 0),
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 1, 0),
     DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 1, 0),
@@ -29,7 +30,15 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 1, 0),
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 1, 0),
 
-    DEF_TIM(TIM2,  CH3, PB10, TIM_USE_PPM, 0, 0),
+    DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_ANY, 0, 0),
+    DEF_TIM(TIM5,  CH4, PA3,  TIM_USE_ANY, 0, 0),
+
+#ifdef WINGFC
+    DEF_TIM(TIM2,  CH4, PB11, TIM_USE_PPM, 0, 0), // UART3 RX
+#else
+    DEF_TIM(TIM2,  CH3, PB10, TIM_USE_PPM, 0, 0), // UART3 TX
+#endif
+
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
