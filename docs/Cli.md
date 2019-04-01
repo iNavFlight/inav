@@ -131,7 +131,6 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  inav_auto_mag_decl  | ON | Automatic setting of magnetic declination based on GPS position. When used manual magnetic declination is ignored. |
 |  inav_gravity_cal_tolerance  | 5 | Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value. |
 |  inav_use_gps_velned  | ON | Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance. |
-|  inav_gps_delay  | 200 | GPS position and velocity data usually arrive with a delay. This parameter defines this delay. Default (200) should be reasonable for most GPS receivers. |
 |  inav_reset_altitude | FIRST_ARM | Defines when relative estimated altitude is reset to zero. Variants - `NEVER` (once reference is acquired it's used regardless); `FIRST_ARM` (keep altitude at zero until firstly armed), `EACH_ARM` (altitude is reset to zero on each arming) |
 |  inav_reset_home | EACH_ARM | Allows to chose when the home position is reset. Can help prevent resetting home position after accidental mid-air disarm. Possible values are: NEVER, FIRST_ARM and EACH_ARM |
 |  inav_max_surface_altitude  | 200 | Max allowed altitude for surface following mode. [cm] |
