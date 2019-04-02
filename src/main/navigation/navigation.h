@@ -247,8 +247,7 @@ typedef struct radar_pois_s {
 } radar_pois_t;
 
 #define RADAR_MAX_POIS 4
-#define RADAR_UPDATE_HZ 2 //
-#define RADAR_TICK_DELAY 4000 // 4 seconds
+#define RADAR_LOOPTIME 400 // 400 milliseconds, 2.5Hz
 
 extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 

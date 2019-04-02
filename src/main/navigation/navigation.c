@@ -2539,9 +2539,9 @@ void radarCalc(uint8_t poiNumber) {
     uint32_t now = millis();
     uint16_t diff_time = now - radar_pois[poiNumber].pasttime;
     
-    if (diff_time > RADAR_TICK_DELAY) {
+    if (diff_time > RADAR_LOOPTIME * 8) { // We count over 8 cycles
         int diff_tick = (radar_pois[poiNumber].ticker - radar_pois[poiNumber].pasttick) % 255;
-        radar_pois[poiNumber].signal = constrain((diff_tick + 1) * RADAR_UPDATE_HZ * 1000 / RADAR_TICK_DELAY, 0 , 4); 
+        radar_pois[poiNumber].signal = constrain((diff_tick + 1) / 2, 0 , 4); 
         radar_pois[poiNumber].pasttime = now;
         radar_pois[poiNumber].pasttick = radar_pois[poiNumber].ticker; 
     }
