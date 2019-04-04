@@ -2525,7 +2525,7 @@ void resetWaypointList(void)
 }
 
 /*-----------------------------------------------------------
- * Radar, calc dir, dis and relative alt
+ * Radar, calculate direction, distance, relative altitude and signal strength
  *-----------------------------------------------------------*/
 
 void radarCalc(uint8_t poiNumber) {
@@ -2535,16 +2535,6 @@ void radarCalc(uint8_t poiNumber) {
     radar_pois[poiNumber].distance = calculateDistanceToDestination(&poi) / 100; // In meters
     radar_pois[poiNumber].direction = calculateBearingToDestination(&poi) / 100; // In °
     radar_pois[poiNumber].altitude = calculateAltitudeToMe(&poi) / 100; // In meters, - is below
-
-    uint32_t now = millis();
-    uint16_t diff_time = now - radar_pois[poiNumber].pasttime;
-    
-    if (diff_time > RADAR_LOOPTIME * 8) { // We count over 8 cycles
-        int diff_tick = (radar_pois[poiNumber].ticker - radar_pois[poiNumber].pasttick) % 255;
-        radar_pois[poiNumber].signal = constrain((diff_tick + 1) / 2, 0 , 4); 
-        radar_pois[poiNumber].pasttime = now;
-        radar_pois[poiNumber].pasttick = radar_pois[poiNumber].ticker; 
-    }
 }
 
 bool isWaypointListValid(void)

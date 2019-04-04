@@ -86,9 +86,9 @@ tables:
   - name: osd_crosshairs_style
     values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
-  - name: osd_hudmode
+  - name: osd_hud_mode
     values: ["OFF", "3D", "MAP"]
-    enum: osd_hudmode_e
+    enum: osd_hud_mode_e
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
@@ -1659,10 +1659,11 @@ groups:
       - name: osd_horizon_offset
         field: horizon_offset
         min: -2
-        max: 2        
-      - name: osd_homing
-        field: homing
-        type: bool
+        max: 2
+      - name: osd_hud_mode
+        field: hud_mode
+        table: osd_hud_mode
+        type: uint8_t
       - name: osd_camera_uptilt
         field: camera_uptilt
         min: -40
@@ -1675,10 +1676,6 @@ groups:
         field: camera_fov_v
         min: 30
         max: 120
-      - name: osd_hudmode
-        field: hudmode
-        table: osd_hudmode
-        type: uint8_t
       - name: osd_hud_margin_h
         field: hud_margin_h
         min: 0
@@ -1686,29 +1683,36 @@ groups:
       - name: osd_hud_margin_v
         field: hud_margin_v
         min: 0
-        max: 4       
-      - name: osd_hud_disp_home
-        field: hud_disp_home
-        type: bool
-      - name: osd_hud_disp_radar
-        field: hud_disp_radar
-        min: 0
         max: 4
-      - name: osd_hud_disp_wp
-        field: hud_disp_wp
+      - name: osd_hud_homing
+        field: hud_homing
+        type: bool
+      - name: osd_hud_homepoint
+        field: hud_homepoint
+        type: bool
+      - name: osd_hud_wp_disp
+        field: hud_wp_disp
         min: 0
         max: 3
-      - name: osd_hud_disp_mindist
-        field: hud_disp_mindist
+      - name: osd_hud_radar_disp
+        field: hud_radar_disp
+        min: 0
+        max: 4
+      - name: osd_hud_radar_range_min
+        field: hud_radar_range_min
         min: 1
-        max: 30        
-      - name: osd_hud_disp_maxdist
-        field: hud_disp_maxdist
+        max: 30
+      - name: osd_hud_radar_range_max
+        field: hud_radar_range_max
         min: 100
         max: 9990
-      - name: osd_hud_debug
-        field: hud_debug
+      - name: osd_hud_radar_nearest
+        field: hud_radar_nearest
         type: bool
+      - name: osd_hud_radar_cycle
+        field: hud_radar_cycle
+        min: 100
+        max: 1000
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll

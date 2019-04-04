@@ -23,8 +23,10 @@
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/display.h"
+#include "drivers/time.h"
 #include "navigation/navigation.h"
 #include "common/printf.h"
+
 
 #ifdef USE_OSD
 
@@ -123,13 +125,31 @@ int radarGetFarthestPoi()
     uint16_t max = 0;
 
     for (int i = 0; i < RADAR_MAX_POIS; i++) {
-         if ((radar_pois[i].distance > max) && (radar_pois[i].distance <= osdConfig()->hud_disp_maxdist)) { // (radar_pois[i].state == 1)
+         if ((radar_pois[i].distance > max) && (radar_pois[i].distance <= osdConfig()->hud_radar_range_max)) { // (radar_pois[i].state == 1)
             max = radar_pois[i].distance;
             poi = i;
         }
     }
     return poi;
 }
+
+
+/* Calculate the signal quality
+ */
+
+void radarUpdateSignal(uint8_t poi_id)
+{
+    uint32_t now = millis();
+    uint16_t diff_time = millis() - radar_pois[poi_id].pasttime;
+
+    if (diff_time > osdConfig()->hud_radar_cycle * 8.4) { // +5% overhead 4 bars
+        int diff_tick = (radar_pois[poi_id].ticker - radar_pois[poi_id].pasttick) % 255;
+        radar_pois[poi_id].signal = constrain(diff_tick / 2, 0 , 4);
+        radar_pois[poi_id].pasttime = now;
+        radar_pois[poi_id].pasttick = radar_pois[poi_id].ticker;
+    }
+}
+
 /* Display one POI on the hud, centered on crosshair position.
  * poiDistance and poiAltitude in meters, poiAltitude is relative to the aircraft (negative means below)
  */
@@ -307,33 +327,36 @@ void osdHudDrawHoming(uint8_t px, uint8_t py)
 }
 
 
-/* Debug overlay
+/* Draw nearest radar POI
  */
 
-void osdHudDrawDebug(uint8_t px, uint8_t py)
+void osdHudDrawNearest(uint8_t px, uint8_t py)
 {
     int poi_id = radarGetNearestPoi();
-    char buftmp[11];
+    char buftmp[19];
 
     if (poi_id >= 0) {
-        tfp_sprintf(buftmp, "%c%10d", SYM_LAT,  radar_pois[poi_id].gps.lat);
+        tfp_sprintf(buftmp, "%c %3d%c %4d%c", 65 + poi_id,
+            radar_pois[poi_id].ticker, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].signal,
+            radar_pois[poi_id].distance, SYM_DIST_M
+            );
+
         displayWrite(osdDisplayPort, px, py, buftmp);
-        tfp_sprintf(buftmp, "%c%10d", SYM_LON,  radar_pois[poi_id].gps.lon);
-        displayWrite(osdDisplayPort, px, py + 1, buftmp);
-        tfp_sprintf(buftmp, "%c%10d", SYM_ALT_M,  radar_pois[poi_id].gps.alt);
-        displayWrite(osdDisplayPort, px, py + 2, buftmp);
-        tfp_sprintf(buftmp, "%3d", radar_pois[poi_id].ticker);
-        displayWrite(osdDisplayPort, px, py + 3, buftmp);
-        tfp_sprintf(buftmp, "%c%6d", SYM_DIST_M ,  radar_pois[poi_id].distance);
-        displayWrite(osdDisplayPort, px, py + 7, buftmp);
-        tfp_sprintf(buftmp, "%c%6d", SYM_DEGREES,  radar_pois[poi_id].direction);
-        displayWrite(osdDisplayPort, px, py + 8, buftmp);
-        tfp_sprintf(buftmp, "%c%6d", SYM_ALT_M,  radar_pois[poi_id].altitude);
-        displayWrite(osdDisplayPort, px , py + 9, buftmp);
+
+        tfp_sprintf(buftmp, "%3d%c %4d%c",
+            radar_pois[poi_id].direction, SYM_DEGREES,
+            radar_pois[poi_id].altitude, SYM_ALT_M
+            );
+
+        displayWrite(osdDisplayPort, px + 1, py + 1, buftmp);
+
+
+//        tfp_sprintf(buftmp, "%c%10d", SYM_LAT,  radar_pois[poi_id].gps.lat);
+//        tfp_sprintf(buftmp, "%c%10d", SYM_LON,  radar_pois[poi_id].gps.lon);
+//        tfp_sprintf(buftmp, "%c%10d", SYM_ALT_M,  radar_pois[poi_id].gps.alt);
+
     }
-    else {
-        displayWrite(osdDisplayPort, px, py, "NO POI FOUND ");
-    }
+
 }
 
 #endif // USE_OSD

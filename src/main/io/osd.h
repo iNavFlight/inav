@@ -177,10 +177,10 @@ typedef enum {
 } osd_crosshairs_style_e;
 
 typedef enum {
-    OSD_HUDMODE_OFF,
-    OSD_HUDMODE_3D,
-    OSD_HUDMODE_MAP,
-} osd_hudmode_e;
+    OSD_HUD_MODE_OFF,
+    OSD_HUD_MODE_3D,
+    OSD_HUD_MODE_MAP,
+} osd_hud_mode_e;
 
 typedef enum {
     OSD_SIDEBAR_SCROLL_NONE,
@@ -222,20 +222,22 @@ typedef struct osdConfig_s {
     uint8_t ahi_reverse_roll;
     uint8_t ahi_max_pitch;
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
-    bool homing;
+    int8_t horizon_offset;
+    uint8_t hud_mode; // from osd_hud_mode_e
     int8_t camera_uptilt;
     uint8_t camera_fov_h;
     uint8_t camera_fov_v;
-    uint8_t hudmode; // from osd_hudmode_e
     uint8_t hud_margin_h;
     uint8_t hud_margin_v;
-    bool hud_disp_home;
-    uint8_t hud_disp_radar;
-    uint8_t hud_disp_wp;
-    uint16_t hud_disp_mindist;
-    uint16_t hud_disp_maxdist;
-    bool hud_debug;
-    int8_t horizon_offset;
+    bool hud_homing;
+    bool hud_homepoint;
+    uint8_t hud_radar_disp;
+    uint16_t hud_radar_range_min;
+    uint16_t hud_radar_range_max;
+    bool hud_radar_nearest;
+    uint16_t hud_radar_cycle;
+    uint8_t hud_wp_disp;
+    
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;
@@ -286,9 +288,10 @@ int osdHudWrite(uint8_t x, uint8_t y, uint16_t symb, bool crush);
 void osdHudDrawCrosshair(uint8_t px, uint8_t py);
 void osdHudDrawHoming(uint8_t px, uint8_t py);
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiSignal, uint16_t poiSymbol);
-void osdHudDrawDebug(uint8_t px, uint8_t py);
+void osdHudDrawNearest(uint8_t px, uint8_t py);
 
 // Radar -----
 
 int radarGetNearestPoi();
 int radarGetFarthestPoi();
+void radarUpdateSignal(uint8_t poi_id);
