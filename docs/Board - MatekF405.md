@@ -107,4 +107,6 @@ Rcgroups Thread Matek F405: https://www.rcgroups.com/forums/showthread.php?28892
 
 Rcgroups Thread Matek F405-AIO: https://www.rcgroups.com/forums/showthread.php?2912273-Matek-Flight-Controller-F405-AIO
 
+This board doesn't have hardware inverters for UART pins. This page explains getting SmartPort telemetry working on F4 board:  https://github.com/iNavFlight/inav/blob/master/docs/Telemetry.md
+
 
