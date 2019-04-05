@@ -234,9 +234,9 @@ typedef struct radar_pois_s {
     uint8_t state;
     uint16_t heading;
     uint16_t speed;
-    char c1;
-    char c2;
-    char c3;
+//    char c1;
+//    char c2;
+//    char c3;
     uint8_t ticker;
     uint32_t pasttime;
     uint8_t pasttick;

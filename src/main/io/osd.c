@@ -1637,7 +1637,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if ((osd_hud_mode_e)osdConfig()->hud_mode == OSD_HUD_MODE_3D) { // 3D mode
 
-                if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
+                if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0) {
                     osdHudClear();
                 }
 
@@ -1645,19 +1645,13 @@ static bool osdDrawSingleElement(uint8_t item)
                     osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 5, SYM_HOME);
                 }
 
-                if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar (A B C ...)
+                if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
                     for (int i = 0; i < osdConfig()->hud_radar_disp; i++) {
                         if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
                             radarUpdateSignal(i);
                             osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].signal, 65 + i);
                         }
                     }
-                }
-
-                if (osdConfig()->hud_wp_disp > 0) { // Display the next waypoints (1 2 3 ...)
-
-                    //    osdHudDrawPoi(___distance, ___direction, ___altitude, 5, 49 + ___i);
-
                 }
             }
             else if ((osd_hud_mode_e)osdConfig()->hud_mode == OSD_HUD_MODE_MAP) { // Map mode, view from the top, only the closest radar POI for now
@@ -2708,7 +2702,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_margin_v = 3;
     osdConfig->hud_homing = 0;
     osdConfig->hud_homepoint = 1;
-    osdConfig->hud_wp_disp = 0;
     osdConfig->hud_radar_disp = 4;
     osdConfig->hud_radar_range_min = 1;
     osdConfig->hud_radar_range_max = 4000;

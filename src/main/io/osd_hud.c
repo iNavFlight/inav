@@ -30,7 +30,7 @@
 
 #ifdef USE_OSD
 
-#define HUD_DRAWN_MAXCHARS 48 // 8 POI (1 home, 4 radar, 3 waypoints) x 6 chars max for each
+#define HUD_DRAWN_MAXCHARS 47 // 8 POI (1 home, 7 radar) x 6 chars max for each, minus 1 (no LQ for home)
 
 static int8_t hud_drawn[HUD_DRAWN_MAXCHARS][2];
 static int8_t hud_drawn_pt;
@@ -349,12 +349,6 @@ void osdHudDrawNearest(uint8_t px, uint8_t py)
             );
 
         displayWrite(osdDisplayPort, px + 1, py + 1, buftmp);
-
-
-//        tfp_sprintf(buftmp, "%c%10d", SYM_LAT,  radar_pois[poi_id].gps.lat);
-//        tfp_sprintf(buftmp, "%c%10d", SYM_LON,  radar_pois[poi_id].gps.lon);
-//        tfp_sprintf(buftmp, "%c%10d", SYM_ALT_M,  radar_pois[poi_id].gps.alt);
-
     }
 
 }

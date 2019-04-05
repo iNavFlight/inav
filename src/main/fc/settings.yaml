@@ -1690,10 +1690,6 @@ groups:
       - name: osd_hud_homepoint
         field: hud_homepoint
         type: bool
-      - name: osd_hud_wp_disp
-        field: hud_wp_disp
-        min: 0
-        max: 3
       - name: osd_hud_radar_disp
         field: hud_radar_disp
         min: 0
@@ -1712,7 +1708,7 @@ groups:
       - name: osd_hud_radar_cycle
         field: hud_radar_cycle
         min: 100
-        max: 1000
+        max: 2000
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll

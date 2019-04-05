@@ -2380,9 +2380,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             radar_pois[msp_radar_no].gps.alt = sbufReadU32(src);  // to set altitude (cm)
             radar_pois[msp_radar_no].heading = sbufReadU16(src);  // deg
             radar_pois[msp_radar_no].speed = sbufReadU16(src);    // cm/s
-            radar_pois[msp_radar_no].c1 = sbufReadU8(src);       // Name 1
-            radar_pois[msp_radar_no].c2 = sbufReadU8(src);       // Name 2
-            radar_pois[msp_radar_no].c3 = sbufReadU8(src);       // Name 3
+            sbufReadU8(src);       // Name 1
+            sbufReadU8(src);       // Name 2
+            sbufReadU8(src);       // Name 3
             radar_pois[msp_radar_no].ticker = sbufReadU8(src);    // Counts from 0 to 255 then back to 0
             radarCalc(msp_radar_no);
         } else
