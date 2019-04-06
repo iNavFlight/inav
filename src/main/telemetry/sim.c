@@ -56,6 +56,7 @@ static bool simWaitAfterResponse = false;
 static uint8_t readState = SIM_READSTATE_RESPONSE;
 static uint8_t transmissionState = SIM_TX_NO;
 uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
+timeMs_t  t_lastMessageSent = 0;
 
 int simRssi;
 timeMs_t  t_accEventDetected = 0;
@@ -63,6 +64,7 @@ timeMs_t  t_accEventMessageSent = 0;
 uint8_t accEvent = ACC_EVENT_NONE;
 char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
 char* modeDescriptions[] = { "MAN", "ACR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "LAU", "FS" };
+const char gpsFixIndicators[] = { '!', '*', ' ' };
 
 
 bool isGroundStationNumberDefined() {
@@ -236,7 +238,6 @@ void sendATCommand(const char* command)
     serialWriteBuf(simPort, (const uint8_t*) command, len);
 }
 
-
 void sendSMS(void)
 {
     int32_t lat = 0, lon = 0, alt = 0, gs = 0;
@@ -258,17 +259,19 @@ void sendSMS(void)
     int len;
     int32_t E7 = 10000000;
     // \x1a sends msg, \x1b cancels
-    len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%ld SPD:%ld/%d.%d DIS:%d/%d SAT:%d SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld,500m\x1a",
+    len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%ld SPD:%ld/%d.%d DIS:%d/%d SAT:%d%c SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld\x1a",
         (now - t_accEventDetected) < 5000 ? accEventDescriptions[accEvent] : "",
         vbat / 100, vbat % 100,
         amps / 10, amps % 10,
         alt / 100,
         gs, avgSpeed / 10, avgSpeed % 10,
         GPS_distanceToHome, getTotalTravelDistance() / 100,
-        gpsSol.numSat, simRssi,
+        gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
+        simRssi,
         posControl.flags.forcedRTHActivated ? "RTH" : modeDescriptions[getFlightModeForTelemetry()],
         lat / E7, lat % E7, lon / E7, lon % E7);
     serialWriteBuf(simPort, atCommand, len);
+    t_lastMessageSent = now;
     atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
 }
 
