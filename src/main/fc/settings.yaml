@@ -1519,12 +1519,16 @@ groups:
         condition: USE_TELEMETRY_SIM
         type: string
         max: 16
-      - name: sim_transmission_interval
-        field: simTransmissionInterval
+      - name: sim_transmit_interval
+        field: simTransmitInterval
         condition: USE_TELEMETRY_SIM
-        type: int16_t
-        min: -32768
-        max: 32767
+        type: uint16_t
+        min: 10
+        max: 65535
+      - name: sim_transmit_flags
+        field: simTransmitFlags
+        condition: USE_TELEMETRY_SIM
+        type: string
       - name: acc_event_threshold_high
         field: accEventThresholdHigh
         condition: USE_TELEMETRY_SIM

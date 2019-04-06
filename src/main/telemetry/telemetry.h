@@ -68,7 +68,8 @@ typedef struct telemetryConfig_s {
     smartportFuelUnit_e smartportFuelUnit;
     uint8_t ibusTelemetryType;
     uint8_t ltmUpdateRate;
-    int16_t simTransmissionInterval;
+    uint16_t simTransmitInterval;
+    uint8_t simTransmitFlags[4];
     uint16_t accEventThresholdHigh;
     uint16_t accEventThresholdLow;
     uint16_t accEventThresholdNegX;

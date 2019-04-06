@@ -1,12 +1,11 @@
 #define SIM_AT_COMMAND_MAX_SIZE 256
 #define SIM_RESPONSE_BUFFER_SIZE 256
 #define SIM_CYCLE_MS 5000 								// wait between sim command cycles
-#define SIM_MIN_TRANSMISSION_INTERVAL 10
 #define SIM_AT_COMMAND_DELAY_MS 3000
 #define SIM_AT_COMMAND_DELAY_MIN_MS 500
 #define SIM_STARTUP_DELAY_MS 10000
-#define SIM_DEFAULT_TRANSMISSION_INTERVAL -60           // negative value: transmission off
-#define SIM_SMS_COMMAND_TRANSMISSION    "T"
+#define SIM_MIN_TRANSMIT_INTERVAL 10
+#define SIM_DEFAULT_TRANSMIT_INTERVAL 60
 #define SIM_SMS_COMMAND_RTH             "RTH"
 #define SIM_PIN "0000"
 #define SIM_GROUND_STATION_NUMBER_DIGITS 7
@@ -18,6 +17,12 @@
 #define SIM_RESPONSE_CODE_CREG  ('C' << 24 | 'R' << 16 | 'E' << 8 | 'G')
 #define SIM_RESPONSE_CODE_CSQ   ('C' << 24 | 'S' << 16 | 'Q' << 8 | ':')
 #define SIM_RESPONSE_CODE_CMT   ('C' << 24 | 'M' << 16 | 'T' << 8 | ':')
+
+typedef enum  {
+    SIM_TX_FLAG                 = (1 << 0),
+    SIM_TX_FLAG_FAILSAFE        = (1 << 1),
+    SIM_TX_FLAG_GPS             = (1 << 2)
+} simTxFlags_e;
 
 typedef enum  {
     SIM_MODULE_NOT_DETECTED = 0,
