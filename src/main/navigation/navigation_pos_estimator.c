@@ -25,9 +25,9 @@
 #if defined(USE_NAV)
 
 #include "build/build_config.h"
-#include "build/debug.h"
 
 #include "common/axis.h"
+#include "common/log.h"
 #include "common/maths.h"
 
 #include "config/parameter_group.h"
@@ -59,7 +59,7 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
         .automatic_mag_declination = 1,
         .reset_altitude_type = NAV_RESET_ON_FIRST_ARM,
-        .reset_home_type = NAV_RESET_ON_EACH_ARM,
+        .reset_home_type = NAV_RESET_ON_FIRST_ARM,
         .gravity_calibration_tolerance = 5,     // 5 cm/s/s calibration error accepted (0.5% of gravity)
         .use_gps_velned = 1,         // "Disabled" is mandatory with gps_dyn_model = Pedestrian
         .allow_dead_reckoning = 0,
@@ -388,7 +388,7 @@ static void updateIMUTopic(void)
 
             if (gravityCalibrationComplete()) {
                 zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
-                DEBUG_TRACE_SYNC("Gravity calibration complete (%d)", lrintf(posEstimator.imu.calibratedGravityCMSS));
+                LOG_D(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
             }
         }
 
@@ -784,7 +784,7 @@ void initializePositionEstimator(void)
  * Update estimator
  *  Update rate: loop rate (>100Hz)
  */
-void updatePositionEstimator(void)
+void FAST_CODE NOINLINE updatePositionEstimator(void)
 {
     static bool isInitialized = false;
 

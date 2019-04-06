@@ -26,6 +26,12 @@ ENTRY(Reset_Handler)
 /* Specify the memory areas */
 MEMORY
 {
+    ITCM_RAM (rx)			: ORIGIN = 0x00000000, LENGTH = 16K
+    ITCM_FLASH (rx)        	: ORIGIN = 0x00200000, LENGTH = 32K
+    /* config occupies the entire flash sector 1 for the ease of erasure, 32K on F74x */
+    ITCM_FLASH_CONFIG (r)  	: ORIGIN = 0x00208000, LENGTH = 32K
+    ITCM_FLASH1 (rx)       	: ORIGIN = 0x00210000, LENGTH = 960K
+
     FLASH (rx)        : ORIGIN = 0x08000000, LENGTH = 32K
     FLASH_CONFIG (r)  : ORIGIN = 0x08008000, LENGTH = 32K
     FLASH1 (rx)       : ORIGIN = 0x08010000, LENGTH = 960K
@@ -38,4 +44,4 @@ MEMORY
 REGION_ALIAS("STACKRAM", TCM)
 REGION_ALIAS("FASTRAM", TCM)
 
-INCLUDE "stm32_flash_split.ld"
+INCLUDE "stm32_flash_f7_split.ld"

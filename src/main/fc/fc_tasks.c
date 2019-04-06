@@ -26,6 +26,7 @@
 #include "common/axis.h"
 #include "common/color.h"
 #include "common/utils.h"
+#include "common/logic_condition.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/compass/compass.h"
@@ -337,6 +338,9 @@ void fcTasksInit(void)
 #ifdef USE_RCDEVICE
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
 #endif
+#ifdef USE_LOGIC_CONDITIONS
+    setTaskEnabled(TASK_LOGIC_CONDITIONS, true);
+#endif
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -539,6 +543,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "VTXCTRL",
         .taskFunc = vtxUpdate,
         .desiredPeriod = TASK_PERIOD_HZ(5),          // 5Hz @200msec
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+#ifdef USE_LOGIC_CONDITIONS
+    [TASK_LOGIC_CONDITIONS] = {
+        .taskName = "LOGIC",
+        .taskFunc = logicConditionUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif

@@ -18,34 +18,42 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/logic_condition.h"
 
 #define MAX_SUPPORTED_SERVOS 8
 
 // These must be consecutive
 typedef enum {
-    INPUT_STABILIZED_ROLL       = 0,
-    INPUT_STABILIZED_PITCH      = 1,
-    INPUT_STABILIZED_YAW        = 2,
-    INPUT_STABILIZED_THROTTLE   = 3,
-    INPUT_RC_ROLL               = 4,
-    INPUT_RC_PITCH              = 5,
-    INPUT_RC_YAW                = 6,
-    INPUT_RC_THROTTLE           = 7,
-    INPUT_RC_CH5                = 8,
-    INPUT_RC_CH6                = 9,
-    INPUT_RC_CH7                = 10,
-    INPUT_RC_CH8                = 11,
-    INPUT_GIMBAL_PITCH          = 12,
-    INPUT_GIMBAL_ROLL           = 13,
-    INPUT_FEATURE_FLAPS         = 14,
-    INPUT_RC_CH9                = 15,
-    INPUT_RC_CH10               = 16,
-    INPUT_RC_CH11               = 17,
-    INPUT_RC_CH12               = 18,
-    INPUT_RC_CH13               = 19,
-    INPUT_RC_CH14               = 20,
-    INPUT_RC_CH15               = 21,
-    INPUT_RC_CH16               = 22,
+    INPUT_STABILIZED_ROLL           = 0,
+    INPUT_STABILIZED_PITCH          = 1,
+    INPUT_STABILIZED_YAW            = 2,
+    INPUT_STABILIZED_THROTTLE       = 3,
+    INPUT_RC_ROLL                   = 4,
+    INPUT_RC_PITCH                  = 5,
+    INPUT_RC_YAW                    = 6,
+    INPUT_RC_THROTTLE               = 7,
+    INPUT_RC_CH5                    = 8,
+    INPUT_RC_CH6                    = 9,
+    INPUT_RC_CH7                    = 10,
+    INPUT_RC_CH8                    = 11,
+    INPUT_GIMBAL_PITCH              = 12,
+    INPUT_GIMBAL_ROLL               = 13,
+    INPUT_FEATURE_FLAPS             = 14,
+    INPUT_RC_CH9                    = 15,
+    INPUT_RC_CH10                   = 16,
+    INPUT_RC_CH11                   = 17,
+    INPUT_RC_CH12                   = 18,
+    INPUT_RC_CH13                   = 19,
+    INPUT_RC_CH14                   = 20,
+    INPUT_RC_CH15                   = 21,
+    INPUT_RC_CH16                   = 22,
+    INPUT_STABILIZED_ROLL_PLUS      = 23,
+    INPUT_STABILIZED_ROLL_MINUS     = 24,
+    INPUT_STABILIZED_PITCH_PLUS     = 25,
+    INPUT_STABILIZED_PITCH_MINUS    = 26,
+    INPUT_STABILIZED_YAW_PLUS       = 27,
+    INPUT_STABILIZED_YAW_MINUS      = 28,
+    INPUT_LOGIC_ONE                 = 29,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;
@@ -93,6 +101,9 @@ typedef struct servoMixer_s {
     uint8_t inputSource;                    // input channel for this rule
     int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+#ifdef USE_LOGIC_CONDITIONS
+    int8_t conditionId;
+#endif
 } servoMixer_t;
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)

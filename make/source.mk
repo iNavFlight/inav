@@ -7,11 +7,15 @@ COMMON_SRC = \
             build/debug.c \
             build/version.c \
             common/bitarray.c \
+            common/calibration.c \
+            common/colorconversion.c \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
+            common/gps_conversion.c \
+            common/log.c \
+            common/logic_condition.c \
             common/maths.c \
-            common/calibration.c \
             common/memory.c \
             common/olc.c \
             common/printf.c \

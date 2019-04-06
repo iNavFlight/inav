@@ -47,3 +47,29 @@ When deciding what altitude to maintain, RTH has 4 different modes of operation 
 * 2 (NAV_RTH_CONST_ALT) - climb/descend to predefined altitude before heading home (*nav_rth_altitude* defined altitude above launch point (cm))
 * 3 (NAV_RTH_MAX_ALT) - track maximum altitude of the whole flight, climb to that altitude prior to the return (*nav_rth_altitude* is ignored)
 * 4 (NAV_RTH_AT_LEAST_ALT) - same as 2 (NAV_RTH_CONST_ALT), but only climb, do not descend
+
+## CLI command `wp` to manage waypoints
+
+`wp` - List all waypoints.
+
+`wp load` - Load list of waypoints from EEPROM to FC.
+
+`wp <n> <action> <lat> <lon> <alt> <p1> <flag>` - Set parameters of waypoint with index `<n>`.
+
+Parameters:
+
+  * `<action>` - When 0 then waypoint is not used, when 1 then it is normal waypoint, when 4 then it is RTH.
+  
+  * `<lat>` - Latitude (WGS84), in degrees * 1E7 (for example 123456789 means 12.3456789).
+  
+  * `<lon>` - Longitude.
+  
+  * `<alt>` - Altitude in cm.
+  
+  * `<p1>` - For a "RTH waypoint" p1 > 0 alow landing. For a normal waypoint it means speed to this waypoint, it is taken into account only for multicopters and when > 50 and < nav_auto_speed.
+  
+  * `<flag>` - Last waypoint must have set `flag` to 165 (0xA5), otherwise 0.
+  
+`wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
+
+`wp reset` - Resets the list, sets the waypoints number to 0 and mark it as invalid (but doesn't delete the waypoints).

@@ -332,9 +332,9 @@ static bool failsafeCheckStickMotion(void)
     if (failsafeConfig()->failsafe_stick_motion_threshold > 0) {
         uint32_t totalRcDelta = 0;
 
-        totalRcDelta += ABS(rcData[ROLL] - PWM_RANGE_MIDDLE);
-        totalRcDelta += ABS(rcData[PITCH] - PWM_RANGE_MIDDLE);
-        totalRcDelta += ABS(rcData[YAW] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(ROLL) - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(PITCH) - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(YAW) - PWM_RANGE_MIDDLE);
 
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }

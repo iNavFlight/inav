@@ -173,8 +173,7 @@ static const OSD_Entry ffpvCmsMenuCommenceEntries[] =
     OSD_LABEL_ENTRY("CONFIRM"),
     OSD_FUNC_CALL_ENTRY("YES", ffpvCmsCommence),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu ffpvCmsMenuCommence = {
@@ -199,8 +198,7 @@ static const OSD_Entry ffpvMenuEntries[] =
     OSD_TAB_CALLBACK_ENTRY("POWER", ffpvCmsConfigPower, &ffpvCmsEntPower),
     OSD_SUBMENU_ENTRY("SET", &ffpvCmsMenuCommence),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuVtxFFPV = {

@@ -69,6 +69,7 @@ typedef struct pid8_s {
     uint8_t P;
     uint8_t I;
     uint8_t D;
+    uint8_t FF;
 } pid8_t;
 
 typedef struct pidBank_s {
@@ -82,6 +83,7 @@ typedef struct pidProfile_s {
     uint16_t dterm_soft_notch_hz;           // Dterm Notch frequency
     uint16_t dterm_soft_notch_cutoff;       // Dterm Notch Cutoff frequency
     uint8_t dterm_lpf_hz;                   // (default 17Hz, Range 1-50Hz) Used for PT1 element in PID1, PID2 and PID5
+    uint8_t use_dterm_fir_filter;           // Use classical INAV FIR differentiator. Very noise robust, can be quite slowish
 
     uint8_t yaw_pterm_lpf_hz;               // Used for filering Pterm noise on noisy frames
     uint8_t yaw_lpf_hz;
@@ -106,6 +108,7 @@ typedef struct pidProfile_s {
     float       fixedWingItermLimitOnStickPosition;   //Do not allow Iterm to grow when stick position is above this point
 
     uint8_t     loiter_direction;               // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
+    float       navVelXyDTermLpfHz;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

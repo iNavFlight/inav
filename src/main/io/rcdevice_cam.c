@@ -34,9 +34,9 @@
 
 #ifdef USE_RCDEVICE
 
-#define IS_HI(X) (rcData[X] > 1750)
-#define IS_LO(X) (rcData[X] < 1250)
-#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+#define IS_HI(X) (rxGetChannelValue(X) > 1750)
+#define IS_LO(X) (rxGetChannelValue(X) < 1250)
+#define IS_MID(X) (rxGetChannelValue(X) > 1250 && rxGetChannelValue(X) < 1750)
 static runcamDevice_t runcamDevice;
 runcamDevice_t *camDevice = &runcamDevice;
 rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];

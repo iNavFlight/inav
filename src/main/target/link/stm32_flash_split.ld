@@ -49,7 +49,6 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH1
 
-
    .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
     .ARM : {
     __exidx_start = .;

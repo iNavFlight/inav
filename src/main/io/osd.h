@@ -18,9 +18,10 @@
 #pragma once
 
 #include "common/time.h"
+
 #include "config/parameter_group.h"
 
-#include "drivers/vcd.h"
+#include "drivers/osd.h"
 
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
@@ -134,6 +135,8 @@ typedef enum {
     OSD_TEMP_SENSOR_7_TEMPERATURE,
     OSD_ALTITUDE_MSL,
     OSD_PLUS_CODE,
+    OSD_MAP_SCALE,
+    OSD_MAP_REFERENCE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -209,8 +212,9 @@ typedef struct osdConfig_s {
 
 PG_DECLARE(osdConfig_t, osdConfig);
 
-struct displayPort_s;
-void osdInit(struct displayPort_s *osdDisplayPort);
+typedef struct displayPort_s displayPort_t;
+
+void osdInit(displayPort_t *osdDisplayPort);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
 // Sets a fixed OSD layout ignoring the RC input. Set it
@@ -223,3 +227,4 @@ void osdOverrideLayout(int layout, timeMs_t duration);
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);
+displayPort_t *osdGetDisplayPort(void);

@@ -87,7 +87,11 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-#define SERIAL_PORT_COUNT       7 //VCP, UART1, UART2, UART3, UART4, UART5, UART6
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA3     // shared with UART2 RX
+#define SOFTSERIAL_1_TX_PIN     PA2     // shared with UART2 TX
+
+#define SERIAL_PORT_COUNT       8       //VCP, UART1, UART2, UART3, UART4, UART5, UART6
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1

@@ -226,6 +226,9 @@ static void cmsUpdateMaxRow(displayPort_t *instance)
 
     for (const OSD_Entry *ptr = pageTop; ptr->type != OME_END; ptr++) {
         pageMaxRow++;
+        if (ptr->type == OME_BACK_AND_END) {
+            break;
+        }
     }
 
     if (pageMaxRow > maxMenuItems) {
@@ -549,9 +552,11 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
         }
         break;
 
-        case OME_OSD_Exit:
-        case OME_END:
-        case OME_Back:
+
+    case OME_OSD_Exit:
+    case OME_END:
+    case OME_Back:
+    case OME_BACK_AND_END:
         break;
 
         case OME_MENU:
@@ -629,8 +634,13 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
             coloff += (p->type == OME_Label) ? 0 : 1;
             room -= displayWrite(pDisplay, coloff, top + i * linesPerMenuItem, p->text);
             CLR_PRINTLABEL(p, i);
-            if (room < 30)
-            return;
+            if (room < 30) {
+                return;
+            }
+        }
+        if (p->type == OME_BACK_AND_END) {
+            break;
+
         }
     }
     // Print values
@@ -640,8 +650,12 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
     for (i = 0, p = pageTop; i < maxMenuItems && p->type != OME_END; i++, p++) {
         if (IS_PRINTVALUE(p, i)) {
             room -= cmsDrawMenuEntry(pDisplay, p, top + i * linesPerMenuItem, i);
-            if (room < 30)
-            return;
+            if (room < 30) {
+                return;
+            }
+        }
+        if (p->type == OME_BACK_AND_END) {
+            break;
         }
     }
 }
@@ -650,7 +664,12 @@ static void cmsMenuCountPage(displayPort_t *pDisplay)
 {
     UNUSED(pDisplay);
     const OSD_Entry *p;
-    for (p = currentCtx.menu->entries; p->type != OME_END; p++);
+    for (p = currentCtx.menu->entries; p->type != OME_END; p++) {
+        if (p->type == OME_BACK_AND_END) {
+            p++;
+            break;
+        }
+    }
     pageCount = (p - currentCtx.menu->entries - 1) / maxMenuItems + 1;
 }
 
@@ -784,6 +803,9 @@ static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
         if (p->type == OME_Submenu) {
             cmsTraverseGlobalExit(p->data);
         }
+        if (p->type == OME_BACK_AND_END) {
+            break;
+        }
     }
 
     if (pMenu->onGlobalExit) {
@@ -858,9 +880,9 @@ void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration)
 
 // Stick/key detection and key codes
 
-#define IS_HI(X)  (rcData[X] > 1750)
-#define IS_LO(X)  (rcData[X] < 1250)
-#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+#define IS_HI(X)  (rxGetChannelValue(X) > 1750)
+#define IS_LO(X)  (rxGetChannelValue(X) < 1250)
+#define IS_MID(X) (rxGetChannelValue(X) > 1250 && rxGetChannelValue(X) < 1750)
 
 #define BUTTON_TIME   250 // msec
 #define BUTTON_PAUSE  500 // msec
@@ -941,9 +963,10 @@ STATIC_UNIT_TESTED uint16_t cmsHandleKey(displayPort_t *pDisplay, uint8_t key)
         break;
 
         case OME_Back:
-        cmsMenuBack(pDisplay);
-        res = BUTTON_PAUSE;
-        break;
+        case OME_BACK_AND_END:
+            cmsMenuBack(pDisplay);
+            res = BUTTON_PAUSE;
+            break;
 
         case OME_Bool:
         if (p->data) {

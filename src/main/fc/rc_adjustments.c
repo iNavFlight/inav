@@ -601,9 +601,9 @@ void processRcAdjustments(controlRateConfig_t *controlRateConfig, bool canUseRxD
 
         if (adjustmentState->config->mode == ADJUSTMENT_MODE_STEP) {
             int delta;
-            if (rcData[channelIndex] > PWM_RANGE_MIDDLE + 200) {
+            if (rxGetChannelValue(channelIndex) > PWM_RANGE_MIDDLE + 200) {
                 delta = adjustmentState->config->data.stepConfig.step;
-            } else if (rcData[channelIndex] < PWM_RANGE_MIDDLE - 200) {
+            } else if (rxGetChannelValue(channelIndex) < PWM_RANGE_MIDDLE - 200) {
                 delta = 0 - adjustmentState->config->data.stepConfig.step;
             } else {
                 // returning the switch to the middle immediately resets the ready state
@@ -620,7 +620,7 @@ void processRcAdjustments(controlRateConfig_t *controlRateConfig, bool canUseRxD
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
         } else if (adjustmentState->config->mode == ADJUSTMENT_MODE_SELECT) {
             const uint16_t rangeWidth = ((2100 - 900) / adjustmentState->config->data.selectConfig.switchPositions);
-            const uint8_t position = (constrain(rcData[channelIndex], 900, 2100 - 1) - 900) / rangeWidth;
+            const uint8_t position = (constrain(rxGetChannelValue(channelIndex), 900, 2100 - 1) - 900) / rangeWidth;
 
             applySelectAdjustment(adjustmentFunction, position);
 #endif
