@@ -55,6 +55,7 @@ static bool simWaitAfterResponse = false;
 static uint8_t readState = SIM_READSTATE_RESPONSE;
 static uint8_t transmitFlags = 0;
 static timeMs_t  t_lastMessageSent = 0;
+static uint8_t lastMessageTriggeredBy = 0;
 uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
 
 int simRssi;
@@ -117,8 +118,9 @@ void readTransmitFlags(const uint8_t* fs)
     }
 }
 
-void requestSendSMS()
+void requestSendSMS(uint8_t trigger)
 {
+    lastMessageTriggeredBy = trigger;
     if (simTelemetryState == SIM_STATE_SEND_SMS_ENTER_MESSAGE)
         return; // sending right now, don't reissue AT command
     simTelemetryState = SIM_STATE_SEND_SMS;
@@ -137,7 +139,7 @@ void readSMS()
     } else {
         readTransmitFlags(simResponse);
     }
-    requestSendSMS();
+    requestSendSMS(SIM_TX_FLAG_RESPONSE);
 }
 
 void readSimResponse()
@@ -185,7 +187,7 @@ void readSimResponse()
         // +CLIP: "+3581234567"
         readOriginatingNumber(&simResponse[8]);
         if (checkGroundStationNumber(&simResponse[8])) {
-            requestSendSMS();
+            requestSendSMS(SIM_TX_FLAG_RESPONSE);
         }
     } else if (responseCode == SIM_RESPONSE_CODE_CREG) {
         // +CREG: 0,1
@@ -221,8 +223,8 @@ void detectAccEvents()
     else
         return;
 
-    if (now - t_lastMessageSent > 1000 * SIM_MIN_TRANSMIT_INTERVAL) {
-        requestSendSMS();
+    if (lastMessageTriggeredBy != SIM_TX_FLAG_ACC || now - t_lastMessageSent > 1000 * telemetryConfig()->simTransmitInterval) {
+        requestSendSMS(SIM_TX_FLAG_ACC);
     }
 }
 
@@ -230,18 +232,19 @@ void transmit()
 {
     timeMs_t now = millis();
 
-    uint8_t transmitConditions = SIM_TX_FLAG;
+    uint8_t triggers = SIM_TX_FLAG;
 
     if (now - t_lastMessageSent < 1000 * MAX(SIM_MIN_TRANSMIT_INTERVAL, telemetryConfig()->simTransmitInterval))
         return;
 
     if (FLIGHT_MODE(FAILSAFE_MODE))
-        transmitConditions |= SIM_TX_FLAG_FAILSAFE;
+        triggers |= SIM_TX_FLAG_FAILSAFE;
     if (gpsSol.fixType != GPS_NO_FIX && gpsSol.numSat < gpsConfig()->gpsMinSats)
-        transmitConditions |= SIM_TX_FLAG_GPS;
+        triggers |= SIM_TX_FLAG_GPS;
 
-    if (ARMING_FLAG(WAS_EVER_ARMED) && (transmitConditions & transmitFlags)) {
-        requestSendSMS();
+    triggers &= transmitFlags;
+    if (ARMING_FLAG(WAS_EVER_ARMED) && triggers) {
+        requestSendSMS(triggers);
     }
 }
 

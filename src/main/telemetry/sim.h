@@ -21,7 +21,9 @@
 typedef enum  {
     SIM_TX_FLAG                 = (1 << 0),
     SIM_TX_FLAG_FAILSAFE        = (1 << 1),
-    SIM_TX_FLAG_GPS             = (1 << 2)
+    SIM_TX_FLAG_GPS             = (1 << 2),
+    SIM_TX_FLAG_ACC             = (1 << 3),
+    SIM_TX_FLAG_RESPONSE        = (1 << 4)
 } simTxFlags_e;
 
 typedef enum  {
