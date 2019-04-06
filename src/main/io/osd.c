@@ -1633,45 +1633,22 @@ static bool osdDrawSingleElement(uint8_t item)
             osdHudDrawHoming(elemPosX, elemPosY);
         }
 
-        if (((osd_hud_mode_e)osdConfig()->hud_mode != OSD_HUD_MODE_OFF) && (STATE(GPS_FIX) && isImuHeadingValid())) {
+        if (STATE(GPS_FIX) && isImuHeadingValid()) {
 
-            if ((osd_hud_mode_e)osdConfig()->hud_mode == OSD_HUD_MODE_3D) { // 3D mode
-
-                if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0) {
+            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0) {
                     osdHudClear();
-                }
-
-                if (osdConfig()->hud_homepoint) { // Display the home point (H)
-                    osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 5, SYM_HOME);
-                }
-
-                if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
-                    for (int i = 0; i < osdConfig()->hud_radar_disp; i++) {
-                        if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
-                            radarUpdateSignal(i);
-                            osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].signal, 65 + i);
-                        }
-                    }
-                }
             }
-            else if ((osd_hud_mode_e)osdConfig()->hud_mode == OSD_HUD_MODE_MAP) { // Map mode, view from the top, only the closest radar POI for now
 
-                static uint16_t drawn = 0;
-                static uint32_t scale = 0;
+            if (osdConfig()->hud_homepoint) { // Display the home point (H)
+                osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, 5, SYM_HOME);
+            }
 
-                if (osdConfig()->hud_radar_disp > 0) {
-
-                    int poi_id = radarGetNearestPoi();
-
-                    if ((poi_id >= 0) && (radar_pois[poi_id].distance <= osdConfig()->hud_radar_range_max)) { // At least 1 POI found, ignores min distance in map mode
-                        // radarUpdateSignal(poi_id);
-                        osdDrawMap(DECIDEGREES_TO_DEGREES(osdGetHeading()), 0, SYM_ARROW_UP, radar_pois[poi_id].distance,
-                                  osdGetHeadingAngle(radar_pois[poi_id].direction) - 180, 65 + poi_id, &drawn, &scale);
+            if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
+                for (int i = 0; i < osdConfig()->hud_radar_disp; i++) {
+                    if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
+                        radarUpdateSignal(i);
+                        osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].signal, 65 + i);
                     }
-                }
-                else if (osdConfig()->hud_homepoint) { // Display the home point, ignores max view distance in map mode
-                    osdDrawMap(DECIDEGREES_TO_DEGREES(osdGetHeading()), 0, SYM_ARROW_UP, GPS_distanceToHome,
-                               osdGetHeadingAngle(GPS_directionToHome) - 180, SYM_HOME, &drawn, &scale);
                 }
             }
         }
@@ -2697,7 +2674,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->camera_uptilt = 0;
     osdConfig->camera_fov_h = 135;
     osdConfig->camera_fov_v = 85;
-    osdConfig->hud_mode = OSD_HUD_MODE_3D;
     osdConfig->hud_margin_h = 6;
     osdConfig->hud_margin_v = 3;
     osdConfig->hud_homing = 0;

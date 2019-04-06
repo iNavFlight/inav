@@ -86,9 +86,6 @@ tables:
   - name: osd_crosshairs_style
     values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
-  - name: osd_hud_mode
-    values: ["OFF", "3D", "MAP"]
-    enum: osd_hud_mode_e
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
@@ -1660,10 +1657,6 @@ groups:
         field: horizon_offset
         min: -2
         max: 2
-      - name: osd_hud_mode
-        field: hud_mode
-        table: osd_hud_mode
-        type: uint8_t
       - name: osd_camera_uptilt
         field: camera_uptilt
         min: -40

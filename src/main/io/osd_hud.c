@@ -30,7 +30,7 @@
 
 #ifdef USE_OSD
 
-#define HUD_DRAWN_MAXCHARS 47 // 8 POI (1 home, 7 radar) x 6 chars max for each, minus 1 (no LQ for home)
+#define HUD_DRAWN_MAXCHARS 54 // 8 POI (1 home, 7 radar) x 7 chars max for each, minus 2 because no LQ no heading for home
 
 static int8_t hud_drawn[HUD_DRAWN_MAXCHARS][2];
 static int8_t hud_drawn_pt;
@@ -142,7 +142,7 @@ void radarUpdateSignal(uint8_t poi_id)
     uint32_t now = millis();
     uint16_t diff_time = millis() - radar_pois[poi_id].pasttime;
 
-    if (diff_time > osdConfig()->hud_radar_cycle * 8.4) { // +5% overhead 4 bars
+    if (diff_time > osdConfig()->hud_radar_cycle * 9) { 
         int diff_tick = (radar_pois[poi_id].ticker - radar_pois[poi_id].pasttick) % 255;
         radar_pois[poi_id].signal = constrain(diff_tick / 2, 0 , 4);
         radar_pois[poi_id].pasttime = now;
@@ -154,7 +154,7 @@ void radarUpdateSignal(uint8_t poi_id)
  * poiDistance and poiAltitude in meters, poiAltitude is relative to the aircraft (negative means below)
  */
 
-void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiSignal, uint16_t poiSymbol)
+void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, int16_t poiHeading, uint8_t poiSignal, uint16_t poiSymbol)
 {
     int poi_x;
     int poi_y;
@@ -175,15 +175,10 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         float scaled_x = sin_approx(DEGREES_TO_RADIANS(error_x)) / sin_approx(DEGREES_TO_RADIANS(osdConfig()->camera_fov_h / 2));
         poi_x = center_x + 15 * scaled_x;
 
-        if (poi_x > maxX) { // Out of hud area to the right
-            poi_x = maxX;
+        if (poi_x < minX || poi_x > maxX ) { // In camera view, but out of the hud area
             poi_is_oos = 1;
             }
-        else if (poi_x < minX) { // Out of hud area to the left
-            poi_x = minX;
-            poi_is_oos = 1;
-            }
-        else { // On sight, lets compute the vertical then
+        else { // POI is on sight, compute the vertical
             float poi_angle = atan2_approx(-poiAltitude, poiDistance);
             poi_angle = RADIANS_TO_DEGREES(poi_angle);
             int16_t plane_angle = attitude.values.pitch / 10;
@@ -194,28 +189,49 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         }
     }
     else {
-        poi_is_oos = 1; // POI is out of view for sure
-        poi_x = (error_x > 0 ) ? maxX : minX;
+        poi_is_oos = 1; // POI is out of camera view for sure
     }
 
+    // Out-of-sight arrows and stacking
+    
     if (poi_is_oos) {
+        uint16_t d;
         uint16_t c;
-        uint8_t d = SYM_DIRECTION + (4 + (error_x + 180 + 22) / 45) % 8;
-        poi_y = center_y - 2;
 
-        while (displayReadCharWithAttr(osdDisplayPort, poi_x, poi_y, &c, NULL) && c != SYM_BLANK && poi_y < maxY - 3) { // Stacks the out-of-sight POI from top to bottom
-            poi_y += 2;
+        poi_x = (error_x > 0 ) ? maxX : minX;
+        poi_y = center_y;
+        
+        if (displayReadCharWithAttr(osdDisplayPort, poi_x, poi_y, &c, NULL) && c != SYM_BLANK) {
+            poi_y = center_y - 2;        
+            while (displayReadCharWithAttr(osdDisplayPort, poi_x, poi_y, &c, NULL) && c != SYM_BLANK && poi_y < maxY - 3) { // Stacks the out-of-sight POI from top to bottom
+                poi_y += 2;
+            }
         }
-
-        osdHudWrite(poi_x + 1, poi_y, d, 1);
+        
+        if (error_x > 0 ) {
+            d = SYM_HUD_ARROWS_R3 - constrain ((180 - error_x) / 45, 0, 2);
+            osdHudWrite(poi_x + 2, poi_y, d, 1);            
+        }
+        else {
+            d = SYM_HUD_ARROWS_L3 - constrain ((180 + error_x) / 45, 0, 2);    
+            osdHudWrite(poi_x - 2, poi_y, d, 1);            
+        }
     }
 
+    // POI marker (A B C ...)
+    
     osdHudWrite(poi_x, poi_y, poiSymbol, 1);
 
-    if (poiSignal < 5) { // 0 to 4 = signal bars, 5 = Display nothing (Navigation point)
-        osdHudWrite(poi_x - 1, poi_y, SYM_HUD_SIGNAL_0 + poiSignal, 1);
+    // Signal on the right, heading on the left
+    
+    if (poiSignal < 5) { // 0 to 4 = signal bars, 5 = No LQ and no heading displayed
+        error_x = hudWrap360(poiHeading - DECIDEGREES_TO_DEGREES(osdGetHeading()));
+        osdHudWrite(poi_x - 1, poi_y, SYM_DIRECTION + ((error_x + 22) / 45) % 8, 1);        
+        osdHudWrite(poi_x + 1, poi_y, SYM_HUD_SIGNAL_0 + poiSignal, 1);
         }
 
+    // Distance
+        
     char buff[3];
     if ((osd_unit_e)osdConfig()->units == OSD_UNIT_IMPERIAL) {
         osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3);
@@ -228,7 +244,6 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     osdHudWrite(poi_x , poi_y + 1, buff[1], 0);
     osdHudWrite(poi_x + 1, poi_y + 1, buff[2], 0);
 }
-
 
 /* Draw the crosshair
  */
@@ -349,8 +364,8 @@ void osdHudDrawNearest(uint8_t px, uint8_t py)
             );
 
         displayWrite(osdDisplayPort, px + 1, py + 1, buftmp);
-    }
 
+        }
 }
 
 #endif // USE_OSD
