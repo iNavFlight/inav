@@ -150,8 +150,13 @@
 #define ADC_INSTANCE                ADC1
 #define ADC1_DMA_STREAM             DMA2_Stream0
 #define ADC_CHANNEL_1_PIN           PC1
+#ifdef MAMBAF405
+#define ADC_CHANNEL_2_PIN           PC3
+#define ADC_CHANNEL_3_PIN           PC2
+#else
 #define ADC_CHANNEL_2_PIN           PC2
 #define ADC_CHANNEL_3_PIN           PC3
+#endif
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3

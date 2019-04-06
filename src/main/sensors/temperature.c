@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#include "build/debug.h"
-
 #include "common/maths.h"
 #include "common/printf.h"
 

@@ -26,7 +26,7 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
-#define MAX_LOGIC_CONDITIONS 8
+#define MAX_LOGIC_CONDITIONS 16
 
 typedef enum {
     LOGIC_CONDITION_TRUE = 0,       // 0
@@ -36,6 +36,12 @@ typedef enum {
     LOGIC_CONDITION_LOW,            // 4
     LOGIC_CONDITION_MID,            // 5
     LOGIC_CONDITION_HIGH,           // 6
+    LOGIC_CONDITION_AND,            // 7
+    LOGIC_CONDITION_OR,             // 8
+    LOGIC_CONDITION_XOR,            // 9
+    LOGIC_CONDITION_NAND,           // 10
+    LOGIC_CONDITION_NOR,            // 11
+    LOGIC_CONDITION_NOT,            // 12
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
@@ -43,6 +49,7 @@ typedef enum logicOperandType_s {
     LOGIC_CONDITION_OPERAND_TYPE_VALUE = 0,
     LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL,
     LOGIC_CONDITION_OPERAND_TYPE_FLIGHT,
+    LOGIC_CONDITION_OPERAND_TYPE_LC,    // Result of different LC and LC operand
     LOGIC_CONDITION_OPERAND_TYPE_LAST
 } logicOperandType_e;
 

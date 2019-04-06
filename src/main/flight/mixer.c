@@ -403,7 +403,7 @@ motorStatus_e getMotorStatus(void)
         return MOTOR_STOPPED_AUTO;
     }
 
-    if (rcData[THROTTLE] < rxConfig()->mincheck) {
+    if (rxGetChannelValue(THROTTLE) < rxConfig()->mincheck) {
         if ((STATE(FIXED_WING) || !isAirmodeActive()) && (!(navigationIsFlyingAutonomousMode() && navConfig()->general.flags.auto_overrides_motor_stop)) && (!failsafeIsActive())) {
             return MOTOR_STOPPED_USER;
         }

@@ -108,6 +108,30 @@ int logicConditionCompute(
             return operandA > 1666;
             break;
 
+        case LOGIC_CONDITION_AND:
+            return (operandA && operandB);
+            break;
+
+        case LOGIC_CONDITION_OR:
+            return (operandA || operandB);
+            break;
+
+        case LOGIC_CONDITION_XOR:
+            return (operandA != operandB);
+            break;
+
+        case LOGIC_CONDITION_NAND:
+            return !(operandA && operandB);
+            break;
+
+        case LOGIC_CONDITION_NOR:
+            return !(operandA || operandB);
+            break; 
+
+        case LOGIC_CONDITION_NOT:
+            return !operandA;
+            break;
+
         default:
             return false;
             break; 
@@ -208,12 +232,18 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
         case LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL:
             //Extract RC channel raw value
             if (operand >= 1 && operand <= 16) {
-                retVal = rcData[operand - 1];
+                retVal = rxGetChannelValue(operand - 1);
             } 
             break;
 
         case LOGIC_CONDITION_OPERAND_TYPE_FLIGHT:
             retVal = logicConditionGetFlightOperandValue(operand);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_TYPE_LC:
+            if (operand >= 0 && operand < MAX_LOGIC_CONDITIONS) {
+                retVal = logicConditionGetValue(operand);
+            }
             break;
 
         default:
@@ -224,8 +254,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 }
 
 /*
- * ConditionId is ordered from 1 while conditions are indexed from 0
- * conditionId == 0 is always evaluated at true
+ * conditionId == -1 is always evaluated as true
  */ 
 int logicConditionGetValue(int8_t conditionId) {
     if (conditionId >= 0) {

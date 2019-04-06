@@ -727,7 +727,7 @@ static void applyLedThrustRingLayer(bool updateNow, timeUs_t *timer)
     if (updateNow) {
         rotationPhase = rotationPhase > 0 ? rotationPhase - 1 : ledCounts.ringSeqLen - 1;
 
-        int scale = scaledThrottle; // ARMING_FLAG(ARMED) ? scaleRange(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
+        int scale = scaledThrottle; // ARMING_FLAG(ARMED) ? scaleRange(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
         *timer += LED_STRIP_HZ(5) * 10 / scale;  // 5 - 50Hz update rate
     }
 
@@ -949,7 +949,7 @@ void ledStripUpdate(timeUs_t currentTimeUs)
 
     // apply all layers; triggered timed functions has to update timers
 
-    scaledThrottle = ARMING_FLAG(ARMED) ? scaleRange(rcData[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
+    scaledThrottle = ARMING_FLAG(ARMED) ? scaleRange(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX, 10, 100) : 10;
 
     applyLedFixedLayers();
 
