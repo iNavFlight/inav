@@ -39,12 +39,12 @@ static int hottScreenSize(const displayPort_t *displayPort)
     return displayPort->rows * displayPort->cols;
 }
 
-static int hottWriteChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint8_t c, textAttributes_t attr)
+static int hottWriteChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t c, textAttributes_t attr)
 {
     UNUSED(displayPort);
     UNUSED(attr);
 
-    hottTextmodeWriteChar(col, row, c);
+    hottTextmodeWriteChar(col, row, (uint8_t)c);
     return 0;
 }
 

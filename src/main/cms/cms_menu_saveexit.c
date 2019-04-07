@@ -37,10 +37,10 @@ static const OSD_Entry cmsx_menuSaveExitEntries[] =
 {
     OSD_LABEL_ENTRY("-- SAVE/EXIT --"),
 
-    {"EXIT",        OME_OSD_Exit, {.func = cmsMenuExit},   (void *)CMS_EXIT, 0},
-    {"SAVE&EXIT",   OME_OSD_Exit, {.func = cmsMenuExit},   (void *)CMS_POPUP_SAVE, 0},
-    {"SAVE&REBOOT", OME_OSD_Exit, {.func = cmsMenuExit},   (void *)CMS_POPUP_SAVEREBOOT, 0},
-    {"BACK", OME_Back, {.func = NULL}, NULL, 0 },
+    {"EXIT",        {.func = cmsMenuExit},  (void *)CMS_EXIT,               OME_OSD_Exit,   0 },
+    {"SAVE&EXIT",   {.func = cmsMenuExit},  (void *)CMS_POPUP_SAVE,         OME_OSD_Exit,   0 },
+    {"SAVE&REBOOT", {.func = cmsMenuExit},  (void *)CMS_POPUP_SAVEREBOOT,   OME_OSD_Exit,   0 },
+    {"BACK",        {.func = NULL},         NULL,                           OME_Back,       0 },
     OSD_END_ENTRY
 };
 
