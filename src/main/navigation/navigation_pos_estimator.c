@@ -247,7 +247,7 @@ void gpsNotifyNewData_Navigation(void)
                     posEstimator.gps.vel.y = (posEstimator.gps.vel.y + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (gpsSol.llh.lon - previousLon) / dT)) / 2.0f;
                 }
 
-                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
+                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelD) {
                     posEstimator.gps.vel.z = - gpsSol.velNED[2];   // NEU
                 }
                 else {
