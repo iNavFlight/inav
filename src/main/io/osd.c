@@ -1654,7 +1654,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
         if (osdConfig()->hud_radar_nearest) {
-            osdHudDrawNearest(elemPosX - 6, elemPosY + 2);
+            osdHudDrawNearest(elemPosX - 8, elemPosY + 2);
         }
 
         return true;

@@ -348,19 +348,21 @@ void osdHudDrawHoming(uint8_t px, uint8_t py)
 void osdHudDrawNearest(uint8_t px, uint8_t py)
 {
     int poi_id = radarGetNearestPoi();
-    char buftmp[19];
+    char buftmp[18];
 
     if (poi_id >= 0) {
-        tfp_sprintf(buftmp, "%c %3d%c %4d%c", 65 + poi_id,
+        tfp_sprintf(buftmp, "%c %3d%c %4d%c %3d%c", 65 + poi_id,
             radar_pois[poi_id].ticker, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].signal,
-            radar_pois[poi_id].distance, SYM_DIST_M
+            radar_pois[poi_id].distance, SYM_DIST_M,
+            radar_pois[poi_id].direction, SYM_DEGREES
             );
 
         displayWrite(osdDisplayPort, px, py, buftmp);
 
-        tfp_sprintf(buftmp, "%3d%c %4d%c",
-            radar_pois[poi_id].direction, SYM_DEGREES,
-            radar_pois[poi_id].altitude, SYM_ALT_M
+        tfp_sprintf(buftmp, "%4d%c %3d%c %2d%c", 
+            radar_pois[poi_id].altitude, SYM_ALT_M,
+            radar_pois[poi_id].heading, SYM_HEADING,
+            radar_pois[poi_id].speed / 100, SYM_MS
             );
 
         displayWrite(osdDisplayPort, px + 1, py + 1, buftmp);
