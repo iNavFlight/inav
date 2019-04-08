@@ -69,7 +69,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .ibusTelemetryType = 0,
     .ltmUpdateRate = LTM_RATE_NORMAL,
     .simTransmitInterval = SIM_DEFAULT_TRANSMIT_INTERVAL,
-    .simTransmitFlags = { 'f', 0, 0, 0 },
+    .simTransmitFlags = SIM_DEFAULT_TX_FLAGS,
     .accEventThresholdHigh = 0,
     .accEventThresholdLow = 0,
     .accEventThresholdNegX = 0

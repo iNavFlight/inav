@@ -26,6 +26,9 @@ typedef enum  {
     SIM_TX_FLAG_RESPONSE        = (1 << 4)
 } simTxFlags_e;
 
+#define SIM_N_TX_FLAGS 5
+#define SIM_DEFAULT_TX_FLAGS "f"
+
 typedef enum  {
     SIM_MODULE_NOT_DETECTED = 0,
     SIM_MODULE_NOT_REGISTERED,

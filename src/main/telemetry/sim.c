@@ -41,7 +41,6 @@
 #include "telemetry/sim.h"
 #include "telemetry/telemetry.h"
 
-
 static serialPort_t *simPort;
 static serialPortConfig_t *portConfig;
 static bool simEnabled = false;
@@ -54,7 +53,7 @@ static int atCommandStatus = SIM_AT_OK;
 static bool simWaitAfterResponse = false;
 static uint8_t readState = SIM_READSTATE_RESPONSE;
 static uint8_t transmitFlags = 0;
-static timeMs_t  t_lastMessageSent = 0;
+static timeMs_t t_lastMessageSent = 0;
 static uint8_t lastMessageTriggeredBy = 0;
 uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
 
@@ -103,15 +102,15 @@ void readTransmitFlags(const uint8_t* fs)
     int i;
 
     transmitFlags = 0;
-    for (i = 0; i < 4 && fs[i] != '\0'; i++) {
+    for (i = 0; i < SIM_N_TX_FLAGS && fs[i] != '\0'; i++) {
         switch (fs[i]) {
-            case 't':
+            case 'T': case 't':
             transmitFlags |= SIM_TX_FLAG;
             break;
-            case 'f':
+            case 'F': case 'f':
             transmitFlags |= SIM_TX_FLAG_FAILSAFE;
             break;
-            case 'g':
+            case 'G': case 'g':
             transmitFlags |= SIM_TX_FLAG_GPS;
             break;
         }
@@ -210,9 +209,13 @@ void readSimResponse()
 
 void detectAccEvents()
 {
-    timeMs_t now = millis();
-//    float acceleration = sqrtf(vectorNormSquared(acc.accADCf));
+    timeMs_t timeSinceMsg = millis() - t_lastMessageSent;
+
+    if (lastMessageTriggeredBy == SIM_TX_FLAG_ACC && timeSinceMsg < 2000)
+        return;
+
     uint32_t accSq = sq(imuMeasuredAccelBF.x) + sq(imuMeasuredAccelBF.y) + sq(imuMeasuredAccelBF.z);
+//    float acceleration = sqrtf(vectorNormSquared(acc.accADCf));
 
     if (telemetryConfig()->accEventThresholdHigh > 0 && accSq > sq(telemetryConfig()->accEventThresholdHigh))
         accEvent = ACC_EVENT_HIGH;
@@ -223,19 +226,19 @@ void detectAccEvents()
     else
         return;
 
-    if (lastMessageTriggeredBy != SIM_TX_FLAG_ACC || now - t_lastMessageSent > 1000 * telemetryConfig()->simTransmitInterval) {
+    if (lastMessageTriggeredBy != SIM_TX_FLAG_ACC || timeSinceMsg > 1000 * telemetryConfig()->simTransmitInterval) {
         requestSendSMS(SIM_TX_FLAG_ACC);
     }
 }
 
 void transmit()
 {
-    timeMs_t now = millis();
+    timeMs_t timeSinceMsg = millis() - t_lastMessageSent;
+
+    if (timeSinceMsg < 1000 * MAX(SIM_MIN_TRANSMIT_INTERVAL, telemetryConfig()->simTransmitInterval))
+        return;
 
     uint8_t triggers = SIM_TX_FLAG;
-
-    if (now - t_lastMessageSent < 1000 * MAX(SIM_MIN_TRANSMIT_INTERVAL, telemetryConfig()->simTransmitInterval))
-        return;
 
     if (FLIGHT_MODE(FAILSAFE_MODE))
         triggers |= SIM_TX_FLAG_FAILSAFE;

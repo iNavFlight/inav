@@ -1463,7 +1463,7 @@ groups:
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
-    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h"]
+    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h", "telemetry/sim.h"]
     condition: USE_TELEMETRY
     members:
       - name: telemetry_switch
@@ -1523,12 +1523,13 @@ groups:
         field: simTransmitInterval
         condition: USE_TELEMETRY_SIM
         type: uint16_t
-        min: 10
+        min: SIM_MIN_TRANSMIT_INTERVAL
         max: 65535
       - name: sim_transmit_flags
         field: simTransmitFlags
         condition: USE_TELEMETRY_SIM
         type: string
+        max: SIM_N_TX_FLAGS
       - name: acc_event_threshold_high
         field: accEventThresholdHigh
         condition: USE_TELEMETRY_SIM
