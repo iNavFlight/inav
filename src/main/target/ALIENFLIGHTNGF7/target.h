@@ -134,7 +134,6 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PC2
 #define SPI2_MOSI_PIN           PC3
-#define SPI2_CLOCK_LEADING_EDGE
 
 #define SPI3_NSS_PIN            PA15
 #define SPI3_SCK_PIN            PB3

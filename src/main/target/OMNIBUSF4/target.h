@@ -180,7 +180,6 @@
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define USE_SPI_DEVICE_2
-  #define SPI2_CLOCK_LEADING_EDGE
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
   #define SPI2_MISO_PIN         PB14

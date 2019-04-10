@@ -90,7 +90,9 @@ static bool busDevInit_SPI(busDevice_t * dev, const busDeviceDescriptor_t * desc
     dev->irqPin = IOGetByTag(descriptor->irqPin);
     dev->busdev.spi.spiBus = descriptor->busdev.spi.spiBus;
     dev->busdev.spi.csnPin = IOGetByTag(descriptor->busdev.spi.csnPin);
-    if (dev->busdev.spi.csnPin) {
+
+    if (dev->busdev.spi.csnPin && spiBusInitHost(dev)) {
+        // Init CSN pin
         IOInit(dev->busdev.spi.csnPin, owner, RESOURCE_SPI_CS, 0);
         IOConfigGPIO(dev->busdev.spi.csnPin, SPI_IO_CS_CFG);
         IOHi(dev->busdev.spi.csnPin);
