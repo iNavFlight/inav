@@ -22,6 +22,7 @@
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
+#include "blackbox/blackbox_io.h"
 
 #include "build/assert.h"
 #include "build/atomic.h"
@@ -597,21 +598,30 @@ void init(void)
     }
 #endif
 
+#ifdef USE_BLACKBOX
+    // SDCARD and FLASHFS are used only for blackbox
+    // Make sure we only init what's necessary for blackbox
+    switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
+        case BLACKBOX_DEVICE_FLASH:
 #ifdef USE_FLASH_M25P16
-    m25p16_init(0);
+            m25p16_init(0);
 #endif
-
-    flashfsInit();
+            flashfsInit();
+            break;
 #endif
 
 #ifdef USE_SDCARD
-    sdcardInsertionDetectInit();
-    sdcard_init();
-    afatfs_init();
+        case BLACKBOX_DEVICE_SDCARD:
+            sdcardInsertionDetectInit();
+            sdcard_init();
+            afatfs_init();
+            break;
 #endif
+        default:
+            break;
+    }
 
-#ifdef USE_BLACKBOX
     blackboxInit();
 #endif
 
