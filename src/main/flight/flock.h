@@ -25,75 +25,75 @@
 #include "common/time.h"
 
 #if !defined(FLOCK_MAX_NAME_LENGTH)
-#define FLOCK_MAX_NAME_LENGTH 16
+#define FLOCK_MAX_NAME_LENGTH 17
 #endif
 
 #if !defined(FLOCK_MAX_BIRDS)
-#define FLOCK_MAX_BIRDS 32
+#define FLOCK_MAX_BIRDS 8
 #endif
 
+#define FLOCK_MAX_PAYLOAD_SIZE 64
+
 #define FLOCK_ADDR_SIZE 6
+#define FLOCK_VERTICAL_DISTANCE_BITS 13
+
 #define FLOCK_EINVALIDINPUT -1
 #define FLOCK_ENOMEM -2
 
 typedef enum {
-    FLOCK_VEHICLE_TYPE_AIRPLANE = 0,
-    FLOCK_VEHICLE_TYPE_BOAT = 1,
-    FLOCK_VEHICLE_TYPE_FLYING_WING = 2,
-    FLOCK_VEHICLE_TYPE_HELICOPTER = 3,
-    FLOCK_VEHICLE_TYPE_MULTIROTOR = 4,
-    FLOCK_VEHICLE_TYPE_ROVER = 5,
-    FLOCK_VEHICLE_TYPE_TRICOPTER = 6,
-} flockVehicleType_e;
+    FLOCK_BIRD_TYPE_UNKNOWN = 0,
+    FLOCK_BIRD_TYPE_AIRPLANE = 1,
+    FLOCK_BIRD_TYPE_BOAT = 2,
+    FLOCK_BIRD_TYPE_FLYING_WING = 3,
+    FLOCK_BIRD_TYPE_HELICOPTER = 4,
+    FLOCK_BIRD_TYPE_MULTIROTOR = 5,
+    FLOCK_BIRD_TYPE_ROVER = 6,
+} flockBirdType_e;
+
+typedef enum {
+    FLOCK_BIRD_CAN_NOTIFY_PILOT = 1 << 0,
+    FLOCK_BIRD_HAS_AUTOPILOT = 1 << 2,
+    FLOCK_BIRD_HAS_COLLISION_AVOIDANCE = 1 << 3,
+    FLOCK_BIRD_IS_MANNED = 1 << 4,
+} flockBirdFlags_t;
 
 typedef struct flockAdress_s {
     uint8_t addr[FLOCK_ADDR_SIZE];
 } flockAddress_t;
 
-typedef struct flockBirdInfo_s
-{
-    flockAddress_t txAddr;
-    flockAddress_t rxAddr;
-    char txName[FLOCK_MAX_NAME_LENGTH];
-    char rxName[FLOCK_MAX_NAME_LENGTH];
-    unsigned vehicleType : 4; // from flockVehicleType_e
-    unsigned flags : 4; // reserved
-} __attribute__((packed)) flockBirdInfo_t;
-
-#define FLOCK_ALTITUDE_BITS 13
-#define FLOCK_ALTITUDE_MAX ((1 << FLOCK_ALTITUDE_BITS) - 1)
-#define FLOCK_GROUND_SPEED_BITS 9
-#define FLOCK_GROUND_SPEED_MAX ((1 << FLOCK_GROUND_SPEED_BITS) - 1)
-#define FLOCK_VERTICAL_SPEED_BITS 7
-#define FLOCK_VERTICAL_SPEED_MIN -(1 << (FLOCK_VERTICAL_SPEED_BITS - 1))
-#define FLOCK_VERTICAL_SPEED_MAX ((1 << (FLOCK_VERTICAL_SPEED_BITS - 1)) - 1)
-#define FLOCK_HEADING(degs) (degs * (256.0f / 360.f))
-
-typedef struct flockBirdPosvel_s
-{
-    int32_t lat : 21;                                  // deg / 10`000
-    int32_t lon : 22;                                  // deg / 10`000
-    uint16_t alt : FLOCK_ALTITUDE_BITS;                // absolute altitude in m with +1000m offset, range [-1000, 7191] m
-    uint16_t ground_speed : FLOCK_GROUND_SPEED_BITS;   // 0.1 m/s, range [0, 51.1] m/s
-    int8_t vertical_speed : FLOCK_VERTICAL_SPEED_BITS; // 0.1 m/s, range [-6.4, 6.3] m/s
-    uint8_t heading;                                   // deg, on 360/256 increments
-} __attribute__((packed)) flockBirdPosvel_t;
-
 typedef enum {
     FLOCK_BIRD_FLAG_HAS_INFO = 1 << 0,
     FLOCK_BIRD_FLAG_HAS_POSVEL = 1 << 1,
     FLOCK_BIRD_FLAG_HAS_REL_POS = 1 << 2,
-} flockBirdFlag_e;
+} flockBirdStateFlags_t;
+
+typedef struct flockBirdInfo_s
+{
+    flockAddress_t addr;
+    char name[FLOCK_MAX_NAME_LENGTH];
+    uint8_t birdType; // from flockBirdType_e
+    uint8_t flags; // from flockBirdFlags_t
+} __attribute__((packed)) flockBirdInfo_t;
+
+typedef struct flockBirdPosvel_s
+{
+    int32_t lat;                // deg * 10`000`000
+    int32_t lon;                // deg * 10`000`000
+    uint16_t alt;               // absolute altitude in m with +1000m offset (e.g. 1000 is 0 MSL)
+    uint16_t groundSpeed;       // m/s * 10
+    int8_t verticalSpeed;       // m/s * 10
+    int16_t heading;            // deg * 10
+} __attribute__((packed)) flockBirdPosvel_t;
 
 typedef struct flockBird_s
 {
     flockBirdInfo_t info;
     flockBirdPosvel_t posvel;
     timeMs_t lastUpdate;
-    uint8_t flags; // from flockBirdFlag_e
+    uint8_t stateFlags; // from flockBirdStateFlags_t
     struct {
-        uint16_t ground_distance; //meters [0, 65535]
-        uint16_t vertical_distance : 13; // meters with +1000 offset [-1000, 7191]
+        uint16_t groundDistance; //meters [0, 65535]
+        int16_t verticalDistance : FLOCK_VERTICAL_DISTANCE_BITS; // meters [-4096, 4096]
         uint16_t bearing : 11; // direction to aircraft in 0.2deg steps [0, 360]
     } rel;
 } __attribute__((packed)) flockBird_t;
@@ -106,7 +106,7 @@ void flockInit(void);
 void flockUpdate(timeUs_t currentTimeUs);
 int flockGetCount(void);
 
-int flockWrite(const void *data, size_t dataSize, void *buf, size_t bufSize);
+int flockReceivedMSP(const void *data, size_t dataSize, void *buf, size_t bufSize);
 
 void flockIteratorInit(flockIterator_t *it);
 bool flockIteratorNext(flockIterator_t *it);

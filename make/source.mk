@@ -167,6 +167,7 @@ COMMON_SRC = \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
+            io/flock_serial.c \
             io/gps.c \
             io/gps_ublox.c \
             io/gps_nmea.c \

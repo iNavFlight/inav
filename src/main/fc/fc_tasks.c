@@ -342,6 +342,9 @@ void fcTasksInit(void)
 #ifdef USE_LOGIC_CONDITIONS
     setTaskEnabled(TASK_LOGIC_CONDITIONS, true);
 #endif
+#ifdef USE_FLOCK
+    setTaskEnabled(TASK_FLOCK, true);
+#endif
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {

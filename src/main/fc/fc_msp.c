@@ -3077,7 +3077,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             size_t srcSize = sbufBytesRemaining(src);
             void *dstPtr = sbufPtr(dst);
             size_t dstSize = sbufBytesRemaining(dst);
-            int ret = flockWrite(srcPtr, srcSize, dstPtr, dstSize);
+            int ret = flockReceivedMSP(srcPtr, srcSize, dstPtr, dstSize);
             if (ret > 0) {
                 dst->ptr += ret;
             }
