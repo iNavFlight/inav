@@ -28,12 +28,33 @@
 
 #define MAX_GLOBAL_FUNCTIONS 8
 
+typedef enum {
+    GLOBAL_FUNCTION_ACTION_OVERRIDE_ARMING_SAFETY = 0,
+    GLOBAL_FUNCTION_ACTION_LAST
+} globalFunctionActions_e;
+
+typedef enum {
+    GLOBAL_FUNCTION_FLAG_OVERRIDE_ARMING_SAFETY = (1 << 0),
+} globalFunctionFlags_t;
+
 typedef struct globalFunction_s {
     uint8_t enabled;
     int8_t conditionId;
-    uint8_t execute;
+    uint8_t action;
     logicOperand_t withValue;
     uint8_t flags;
 } globalFunction_t;
 
+typedef struct globalFunctionState_s {
+    uint8_t active;
+    int value;
+    uint8_t flags;
+} globalFunctionState_t;
+
+#define GLOBAL_FUNCTION_FLAG_DISABLE(mask) (globalFunctionsFlags &= ~(mask))
+#define GLOBAL_FUNCTION_FLAG_ENABLE(mask) (globalFunctionsFlags |= (mask))
+#define GLOBAL_FUNCTION_FLAG(mask) (globalFunctionsFlags & (mask))
+
 PG_DECLARE_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions);
+
+void globalFunctionsUpdateTask(timeUs_t currentTimeUs);

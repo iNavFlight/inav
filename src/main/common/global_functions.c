@@ -26,10 +26,13 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#include "common/utils.h"
 #include "common/global_functions.h"
 #include "common/logic_condition.h"
 
 PG_REGISTER_ARRAY(globalFunction_t, MAX_GLOBAL_FUNCTIONS, globalFunctions, PG_GLOBAL_FUNCTIONS, 0);
+
+EXTENDED_FASTRAM uint32_t globalFunctionsFlags = 0;
 
 void pgResetFn_globalFunctions(globalFunction_t *instance)
 {
@@ -37,7 +40,7 @@ void pgResetFn_globalFunctions(globalFunction_t *instance)
         RESET_CONFIG(globalFunction_t, &instance[i],
             .enabled = 0,
             .conditionId = -1,
-            .execute = 0,
+            .action = 0,
             .withValue = {
                 .type = LOGIC_CONDITION_OPERAND_TYPE_VALUE,
                 .value = 0
@@ -45,4 +48,9 @@ void pgResetFn_globalFunctions(globalFunction_t *instance)
             .flags = 0
         );
     }
+}
+
+void globalFunctionsUpdateTask(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
+    //TODO fill processing task
 }
