@@ -1206,6 +1206,10 @@ groups:
         field: w_xy_res_v
         min: 0
         max: 10
+      - name: inav_w_xyz_acc_p
+        field: w_xyz_acc_p
+        min: 0
+        max: 1
       - name: inav_w_acc_bias
         field: w_acc_bias
         min: 0

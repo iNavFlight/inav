@@ -53,7 +53,7 @@
 
 navigationPosEstimator_t posEstimator;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 4);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
@@ -65,6 +65,8 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .allow_dead_reckoning = 0,
 
         .max_surface_altitude = 200,
+
+        .w_xyz_acc_p = 1.0f,
 
         .w_z_baro_p = 0.35f,
 
@@ -433,6 +435,12 @@ static bool navIsHeadingUsable(void)
     }
 }
 
+float navGetAccelerometerWeight(void)
+{
+    // TODO(digitalentity): consider accelerometer health in weight calculation
+    return positionEstimationConfig()->w_xyz_acc_p;
+}
+
 static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
 {
     /* Figure out if we have valid position data from our data sources */
@@ -474,11 +482,13 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
 
 static void estimationPredict(estimationContext_t * ctx)
 {
+    const float accWeight = navGetAccelerometerWeight();
+
     /* Prediction step: Z-axis */
     if ((ctx->newFlags & EST_Z_VALID)) {
         posEstimator.est.pos.z += posEstimator.est.vel.z * ctx->dt;
-        posEstimator.est.pos.z += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f;
-        posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt;
+        posEstimator.est.pos.z += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f * accWeight;
+        posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt * sq(accWeight);
     }
 
     /* Prediction step: XY-axis */
@@ -489,10 +499,10 @@ static void estimationPredict(estimationContext_t * ctx)
 
         // If heading is valid, accelNEU is valid as well. Account for acceleration
         if (navIsHeadingUsable() && navIsAccelerationUsable()) {
-            posEstimator.est.pos.x += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f;
-            posEstimator.est.pos.y += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f;
-            posEstimator.est.vel.x += posEstimator.imu.accelNEU.x * ctx->dt;
-            posEstimator.est.vel.y += posEstimator.imu.accelNEU.y * ctx->dt;
+            posEstimator.est.pos.x += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f * accWeight;
+            posEstimator.est.pos.y += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f * accWeight;
+            posEstimator.est.vel.x += posEstimator.imu.accelNEU.x * ctx->dt * sq(accWeight);
+            posEstimator.est.vel.y += posEstimator.imu.accelNEU.y * ctx->dt * sq(accWeight);
         }
     }
 }
