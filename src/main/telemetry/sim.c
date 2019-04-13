@@ -116,6 +116,9 @@ void readTransmitFlags(const uint8_t* fs)
             case 'L': case 'l':
             transmitFlags |= SIM_TX_FLAG_LOW_ALT;
             break;
+            case 'A': case 'a':
+            transmitFlags |= SIM_TX_FLAG_ACC;
+            break;
         }
     }
 }
@@ -210,30 +213,6 @@ void readSimResponse()
     }
 }
 
-void detectAccEvents()
-{
-    timeMs_t timeSinceMsg = millis() - t_lastMessageSent;
-
-    if (lastMessageTriggeredBy == SIM_TX_FLAG_ACC && timeSinceMsg < 2000)
-        return;
-
-    uint32_t accSq = sq(imuMeasuredAccelBF.x) + sq(imuMeasuredAccelBF.y) + sq(imuMeasuredAccelBF.z);
-//    float acceleration = sqrtf(vectorNormSquared(acc.accADCf));
-
-    if (telemetryConfig()->accEventThresholdHigh > 0 && accSq > sq(telemetryConfig()->accEventThresholdHigh))
-        accEvent = ACC_EVENT_HIGH;
-    else if (accSq < sq(telemetryConfig()->accEventThresholdLow))
-        accEvent = ACC_EVENT_LOW;
-    else if (telemetryConfig()->accEventThresholdNegX > 0 && imuMeasuredAccelBF.x < -telemetryConfig()->accEventThresholdNegX)
-        accEvent = ACC_EVENT_NEG_X;
-    else
-        return;
-
-    if (lastMessageTriggeredBy != SIM_TX_FLAG_ACC || timeSinceMsg > 1000 * telemetryConfig()->simTransmitInterval) {
-        requestSendSMS(SIM_TX_FLAG_ACC);
-    }
-}
-
 int getAltMeters()
 {
 #if defined(USE_NAV)
@@ -246,11 +225,22 @@ int getAltMeters()
 void transmit()
 {
     timeMs_t timeSinceMsg = millis() - t_lastMessageSent;
-
-    if (timeSinceMsg < 1000 * MAX(SIM_MIN_TRANSMIT_INTERVAL, telemetryConfig()->simTransmitInterval))
-        return;
-
     uint8_t triggers = SIM_TX_FLAG;
+    uint32_t accSq = sq(imuMeasuredAccelBF.x) + sq(imuMeasuredAccelBF.y) + sq(imuMeasuredAccelBF.z);
+
+    if (telemetryConfig()->accEventThresholdHigh > 0 && accSq > sq(telemetryConfig()->accEventThresholdHigh)) {
+        triggers |= SIM_TX_FLAG_ACC;
+        accEvent = ACC_EVENT_HIGH;
+    } else if (accSq < sq(telemetryConfig()->accEventThresholdLow)) {
+        triggers |= SIM_TX_FLAG_ACC;
+        accEvent = ACC_EVENT_LOW;
+    } else if (telemetryConfig()->accEventThresholdNegX > 0 && imuMeasuredAccelBF.x < -telemetryConfig()->accEventThresholdNegX) {
+        triggers |= SIM_TX_FLAG_ACC;
+        accEvent = ACC_EVENT_NEG_X;
+    }
+
+    if ((lastMessageTriggeredBy & SIM_TX_FLAG_ACC) && timeSinceMsg < 2000)
+        accEvent = ACC_EVENT_NONE;
 
     if (FLIGHT_MODE(FAILSAFE_MODE))
         triggers |= SIM_TX_FLAG_FAILSAFE;
@@ -260,7 +250,14 @@ void transmit()
         triggers |= SIM_TX_FLAG_LOW_ALT;
 
     triggers &= transmitFlags;
-    if (ARMING_FLAG(WAS_EVER_ARMED) && triggers) {
+
+    if (!triggers)
+        return;
+    if (!ARMING_FLAG(WAS_EVER_ARMED))
+        return;
+
+    if ((triggers & ~lastMessageTriggeredBy) // if new trigger activated after last msg, don't wait
+        || timeSinceMsg > 1000 * MAX(SIM_MIN_TRANSMIT_INTERVAL, telemetryConfig()->simTransmitInterval)) {
         requestSendSMS(triggers);
     }
 }
@@ -332,7 +329,6 @@ void handleSimTelemetry()
         }
     }
 
-    detectAccEvents();
     transmit();
 
     if (now < sim_t_stateChange)
