@@ -84,12 +84,43 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `profile`        | index (0 to 2)                                 |
 | `rxrange`        | configure rx channel ranges (end-points) |
 | `save`           | save and reboot                                |
+| `serial`         | Configure serial ports                         |
 | `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
 | `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
 | `wp`             | list or configure waypoints. See more in docs/Navigation.md section NAV WP |
 | `version`        |                                                |
+
+### serial
+
+The syntax of the `serial` command is `serial <id>  <functions> <msp-baudrate> <gps-baudrate> <telemetry-baudate> <peripheral-baudrate>`.
+
+A shorter form is also supported to enable and disable functions using `serial <id> +n` and
+`serial <id> -n`, where n is the a serial function identifier. The following values are available:
+
+| Function              | Identifier    |
+|-----------------------|---------------|
+| MSP                   | 0             |
+| GPS                   | 1             |
+| TELEMETRY_FRSKY       | 2             |
+| TELEMETRY_HOTT        | 3             |
+| TELEMETRY_LTM         | 4             |
+| TELEMETRY_SMARTPORT   | 5             |
+| RX_SERIAL             | 6             |
+| BLACKBOX              | 7             |
+| TELEMETRY_MAVLINK     | 8             |
+| TELEMETRY_IBUS        | 9             |
+| RCDEVICE              | 10            |
+| VTX_SMARTAUDIO        | 11            |
+| VTX_TRAMP             | 12            |
+| UAV_INTERCONNECT      | 13            |
+| OPTICAL_FLOW          | 14            |
+| LOG                   | 15            |
+| RANGEFINDER           | 16            |
+| VTX_FFPV              | 17            |
+
+`serial` can also be used without any argument to print the current configuration of all the serial ports.
 
 ## CLI Variable Reference
 
