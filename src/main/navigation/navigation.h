@@ -213,7 +213,8 @@ typedef struct gpsOrigin_s {
 
 typedef enum {
     NAV_WP_ACTION_WAYPOINT = 0x01,
-    NAV_WP_ACTION_RTH      = 0x04
+    NAV_WP_ACTION_RTH      = 0x04,
+    NAV_WP_ACTION_RELATIVE = 0x09
 } navWaypointActions_e;
 
 typedef enum {
@@ -384,7 +385,7 @@ bool isWaypointListValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
-bool loadNonVolatileWaypointList(void);
+bool loadNonVolatileWaypointList(bool checkRelativeCalculate);
 bool saveNonVolatileWaypointList(void);
 
 float RTHAltitude();

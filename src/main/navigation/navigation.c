@@ -2495,7 +2495,12 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     }
     // WP #1 - #15 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !ARMING_FLAG(ARMED)) {
-        if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_RTH) {
+        if (wpData->action == NAV_WP_ACTION_WAYPOINT
+         || wpData->action == NAV_WP_ACTION_RTH
+#ifdef NAV_NON_VOLATILE_WAYPOINT_CLI
+         || wpData->action == NAV_WP_ACTION_RELATIVE
+#endif
+           ) {
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 posControl.waypointList[wpNumber - 1] = *wpData;
@@ -2525,14 +2530,66 @@ int getWaypointCount(void)
     return posControl.waypointCount;
 }
 
+void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint)
+{
+    gpsLocation_t wpLLH;
+
+    wpLLH.lat = waypoint->lat;
+    wpLLH.lon = waypoint->lon;
+    wpLLH.alt = waypoint->alt;
+
+    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
+}
+
 #ifdef NAV_NON_VOLATILE_WAYPOINT_STORAGE
-bool loadNonVolatileWaypointList(void)
+
+#ifdef NAV_NON_VOLATILE_WAYPOINT_CLI
+bool calculateFromRelativeWaypoint(bool checkRelativeCalculate, int wpNumer, navWaypoint_t * waypoint) {
+    if (waypoint->action == NAV_WP_ACTION_RELATIVE) { //waypoint->lat is distance, waypoint->lon is course
+        if (posControl.flags.estPosStatus < EST_USABLE || !posControl.gpsOrigin.valid)
+            return !checkRelativeCalculate;
+        navWaypoint_t previous;
+        if (wpNumer == 0) {
+            previous.lat = gpsSol.llh.lat; //current position
+            previous.lon = gpsSol.llh.lon;
+        } else {
+            getWaypoint(wpNumer, &previous);
+            if (previous.action == NAV_WP_ACTION_RELATIVE) 
+                return false;
+        }
+        fpVector3_t localPos;
+        mapWaypointToLocalPosition(&localPos, &previous);
+        localPos.x += waypoint->lat * 100 * cos_approx(DEGREES_TO_RADIANS(waypoint->lon));
+        localPos.y += waypoint->lat * 100 * sin_approx(DEGREES_TO_RADIANS(waypoint->lon));
+        gpsLocation_t wpLLH;
+        geoConvertLocalToGeodetic(&wpLLH, &posControl.gpsOrigin, &localPos);
+        waypoint->lat = wpLLH.lat;
+        waypoint->lon = wpLLH.lon;
+        waypoint->action = NAV_WP_ACTION_WAYPOINT;
+    }
+    return true;
+}
+#endif
+
+bool loadNonVolatileWaypointList(bool checkRelativeCalculate)
 {
     if (ARMING_FLAG(ARMED))
         return false;
 
     resetWaypointList();
 
+#ifdef NAV_NON_VOLATILE_WAYPOINT_CLI
+    bool calcOk = true;
+    for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
+        navWaypoint_t navWaypoint = *nonVolatileWaypointList(i);
+        if (!calculateFromRelativeWaypoint(checkRelativeCalculate, i, &navWaypoint))
+            calcOk = false;
+        setWaypoint(i + 1, &navWaypoint);
+        if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST)
+            break;
+    }
+    if (!calcOk) posControl.waypointListValid = false;
+#else
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
         // Load waypoint
         setWaypoint(i + 1, nonVolatileWaypointList(i));
@@ -2541,6 +2598,7 @@ bool loadNonVolatileWaypointList(void)
         if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST)
             break;
     }
+#endif
 
     // Mission sanity check failed - reset the list
     if (!posControl.waypointListValid) {
@@ -2564,17 +2622,6 @@ bool saveNonVolatileWaypointList(void)
     return true;
 }
 #endif
-
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint)
-{
-    gpsLocation_t wpLLH;
-
-    wpLLH.lat = waypoint->lat;
-    wpLLH.lon = waypoint->lon;
-    wpLLH.alt = waypoint->alt;
-
-    geoConvertGeodeticToLocal(localPos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
-}
 
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos)
 {

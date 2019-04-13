@@ -1287,11 +1287,13 @@ static void cliWaypoints(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
         resetWaypointList();
     } else if (sl_strcasecmp(cmdline, "load") == 0) {
-        loadNonVolatileWaypointList();
+        loadNonVolatileWaypointList(false);
     } else if (sl_strcasecmp(cmdline, "save") == 0) {
         posControl.waypointListValid = false;
         for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[i].action == NAV_WP_ACTION_RTH)) break;
+            if (!(posControl.waypointList[i].action == NAV_WP_ACTION_WAYPOINT
+               || posControl.waypointList[i].action == NAV_WP_ACTION_RTH
+               || posControl.waypointList[i].action == NAV_WP_ACTION_RELATIVE)) break;
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
                 posControl.waypointCount = i + 1;
                 posControl.waypointListValid = true;
@@ -1343,7 +1345,10 @@ static void cliWaypoints(char *cmdline)
             }
             if (validArgumentCount < 4) {
                 cliShowParseError();
-            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH) || (p1 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
+            } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH || action == NAV_WP_ACTION_RELATIVE)
+                    || (p1 < 0) 
+                    || !(flag == 0 || flag == NAV_WP_FLAG_LAST)
+                    || (action == NAV_WP_ACTION_RELATIVE && (lat < 0 || lat * 100 > navConfig()->general.waypoint_safe_distance || lon < 0 || lon > 359))) {
                 cliShowParseError();
             } else {
                 posControl.waypointList[i].action = action;
