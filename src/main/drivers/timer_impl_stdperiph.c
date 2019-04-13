@@ -284,7 +284,7 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
     }
 }
 
-bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
+bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)
 {
     DMA_InitTypeDef DMA_InitStructure;
     TIM_TypeDef * timer = tch->timHw->tim;
@@ -319,29 +319,11 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     DMA_StructInit(&DMA_InitStructure);
 
     DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)impl_timerCCR(tch);
-    DMA_InitStructure.DMA_BufferSize = dmaBufferElementCount;
+    DMA_InitStructure.DMA_BufferSize = dmaBufferSize;
     DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
     DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    uint32_t DMA_MemoryDataSize;
-    switch (dmaBufferElementSize) {
-        case 1:
-            DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-            break;
-        case 2:
-            DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
-            break;
-        case 4:
-            DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
-            break;
-        default:
-            // Programmer error
-            while(1) {
-
-            }
-    }
-    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize;
+    DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
     DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
-
 
 #ifdef STM32F4
     DMA_InitStructure.DMA_Channel = dmaGetChannelByTag(tch->timHw->dmaTag);
@@ -363,7 +345,7 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     return true;
 }
 
-void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
+void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
 {
     // Make sure we terminate any DMA transaction currently in progress
     // Clear the flag as well, so even if DMA transfer finishes while within ATOMIC_BLOCK
@@ -374,7 +356,7 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
     }
 
-    DMA_SetCurrDataCounter(tch->dma->ref, dmaBufferElementCount);
+    DMA_SetCurrDataCounter(tch->dma->ref, dmaBufferSize);
     DMA_Cmd(tch->dma->ref, ENABLE);
     tch->dmaState = TCH_DMA_READY;
 }
