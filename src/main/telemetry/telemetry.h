@@ -73,6 +73,7 @@ typedef struct telemetryConfig_s {
     uint16_t accEventThresholdHigh;
     uint16_t accEventThresholdLow;
     uint16_t accEventThresholdNegX;
+    int16_t simLowAltitude;
     uint8_t simGroundStationNumber[16];
 } telemetryConfig_t;
 

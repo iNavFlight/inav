@@ -70,6 +70,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .ltmUpdateRate = LTM_RATE_NORMAL,
     .simTransmitInterval = SIM_DEFAULT_TRANSMIT_INTERVAL,
     .simTransmitFlags = SIM_DEFAULT_TX_FLAGS,
+    .simLowAltitude = INT16_MIN,
     .accEventThresholdHigh = 0,
     .accEventThresholdLow = 0,
     .accEventThresholdNegX = 0

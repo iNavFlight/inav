@@ -1548,6 +1548,10 @@ groups:
         type: uint16_t
         min: 0
         max: 65535
+      - name: sim_low_altitude
+        field: simLowAltitude
+        condition: USE_TELEMETRY_SIM
+        type: int16_t
 
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t

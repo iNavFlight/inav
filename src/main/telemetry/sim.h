@@ -9,6 +9,7 @@
 #define SIM_SMS_COMMAND_RTH             "RTH"
 #define SIM_PIN "0000"
 #define SIM_GROUND_STATION_NUMBER_DIGITS 7
+#define SIM_LOW_ALT_WARNING_MODES (NAV_ALTHOLD_MODE || NAV_RTH_MODE || NAV_WP_MODE || FAILSAFE_MODE)
 
 #define SIM_RESPONSE_CODE_OK    ('O' << 24 | 'K' << 16)
 #define SIM_RESPONSE_CODE_ERROR ('E' << 24 | 'R' << 16 | 'R' << 8 | 'O')
@@ -23,7 +24,8 @@ typedef enum  {
     SIM_TX_FLAG_FAILSAFE        = (1 << 1),
     SIM_TX_FLAG_GPS             = (1 << 2),
     SIM_TX_FLAG_ACC             = (1 << 3),
-    SIM_TX_FLAG_RESPONSE        = (1 << 4)
+    SIM_TX_FLAG_LOW_ALT         = (1 << 4),
+    SIM_TX_FLAG_RESPONSE        = (1 << 5)
 } simTxFlags_e;
 
 #define SIM_N_TX_FLAGS 5

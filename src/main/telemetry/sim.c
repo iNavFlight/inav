@@ -113,6 +113,9 @@ void readTransmitFlags(const uint8_t* fs)
             case 'G': case 'g':
             transmitFlags |= SIM_TX_FLAG_GPS;
             break;
+            case 'L': case 'l':
+            transmitFlags |= SIM_TX_FLAG_LOW_ALT;
+            break;
         }
     }
 }
@@ -231,6 +234,15 @@ void detectAccEvents()
     }
 }
 
+int getAltMeters()
+{
+#if defined(USE_NAV)
+    return getEstimatedActualPosition(Z) / 100;
+#else
+    return sensors(SENSOR_GPS) ? gpsSol.llh.alt / 100 : 0;
+#endif
+}
+
 void transmit()
 {
     timeMs_t timeSinceMsg = millis() - t_lastMessageSent;
@@ -244,6 +256,8 @@ void transmit()
         triggers |= SIM_TX_FLAG_FAILSAFE;
     if (gpsSol.fixType != GPS_NO_FIX && gpsSol.numSat < gpsConfig()->gpsMinSats)
         triggers |= SIM_TX_FLAG_GPS;
+    if (gpsSol.fixType != GPS_NO_FIX && FLIGHT_MODE(SIM_LOW_ALT_WARNING_MODES) && getAltMeters() < telemetryConfig()->simLowAltitude)
+        triggers |= SIM_TX_FLAG_LOW_ALT;
 
     triggers &= transmitFlags;
     if (ARMING_FLAG(WAS_EVER_ARMED) && triggers) {
@@ -255,14 +269,14 @@ void sendATCommand(const char* command)
 {
     atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
     int len = strlen((char*)command);
-    if (len >SIM_AT_COMMAND_MAX_SIZE)
+    if (len > SIM_AT_COMMAND_MAX_SIZE)
         len = SIM_AT_COMMAND_MAX_SIZE;
     serialWriteBuf(simPort, (const uint8_t*) command, len);
 }
 
 void sendSMS(void)
 {
-    int32_t lat = 0, lon = 0, alt = 0, gs = 0;
+    int32_t lat = 0, lon = 0, gs = 0;
     int vbat = getBatteryVoltage();
     int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
     int avgSpeed = (int)round(10 * calculateAverageSpeed());
@@ -273,11 +287,6 @@ void sendSMS(void)
         lon = gpsSol.llh.lon;
         gs = gpsSol.groundSpeed / 100;
     }
-#if defined(USE_NAV)
-    alt = getEstimatedActualPosition(Z); // cm
-#else
-    alt = sensors(SENSOR_GPS) ? gpsSol.llh.alt : 0; // cm
-#endif
     int len;
     int32_t E7 = 10000000;
     // \x1a sends msg, \x1b cancels
@@ -285,7 +294,7 @@ void sendSMS(void)
         accEventDescriptions[accEvent],
         vbat / 100, vbat % 100,
         amps / 10, amps % 10,
-        alt / 100,
+        getAltMeters(),
         gs, avgSpeed / 10, avgSpeed % 10,
         GPS_distanceToHome, getTotalTravelDistance() / 100,
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
