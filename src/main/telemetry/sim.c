@@ -273,7 +273,8 @@ void sendATCommand(const char* command)
 
 void sendSMS(void)
 {
-    int32_t lat = 0, lon = 0, gs = 0;
+    int32_t lat = 0, lon = 0;
+    int16_t gs = 0, gc = 0;
     int vbat = getBatteryVoltage();
     int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
     int avgSpeed = (int)round(10 * calculateAverageSpeed());
@@ -283,17 +284,19 @@ void sendSMS(void)
         lat = gpsSol.llh.lat;
         lon = gpsSol.llh.lon;
         gs = gpsSol.groundSpeed / 100;
+        gc = gpsSol.groundCourse / 10;
     }
     int len;
     int32_t E7 = 10000000;
     // \x1a sends msg, \x1b cancels
-    len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%ld SPD:%ld/%d.%d DIS:%d/%d SAT:%d%c SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld\x1a",
+    len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%ld SPD:%ld/%d.%d DIS:%d/%d COG:%d SAT:%d%c SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld\x1a",
         accEventDescriptions[accEvent],
         vbat / 100, vbat % 100,
         amps / 10, amps % 10,
         getAltMeters(),
         gs, avgSpeed / 10, avgSpeed % 10,
         GPS_distanceToHome, getTotalTravelDistance() / 100,
+        gc,
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         posControl.flags.forcedRTHActivated ? "RTH" : modeDescriptions[getFlightModeForTelemetry()],
