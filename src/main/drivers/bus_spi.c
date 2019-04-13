@@ -73,6 +73,7 @@
 #endif
 
 #if defined(STM32F3)
+#if defined(USE_SPI_DEVICE_1)
 static const uint16_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
     SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               562.5 KBits/s
@@ -80,7 +81,9 @@ static const uint16_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               18.0 MBits/s
     SPI_BaudRatePrescaler_4       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
 };
+#endif
 
+#if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)
 static const uint16_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      140.625 KBits/s
     SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               562.5 KBits/s
@@ -88,6 +91,7 @@ static const uint16_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               18.0 MBits/s
     SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
 };
+#endif
 
 static spiDevice_t spiHardwareMap[] = {
 #ifdef USE_SPI_DEVICE_1
@@ -108,6 +112,7 @@ static spiDevice_t spiHardwareMap[] = {
     { .dev = NULL },    // No SPI4
 };
 #elif defined(STM32F4)
+#if defined(USE_SPI_DEVICE_1)
 static const uint16_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      328.125 KBits/s
     SPI_BaudRatePrescaler_128,    // SPI_CLOCK_SLOW               656.25 KBits/s
@@ -115,7 +120,9 @@ static const uint16_t spiDivisorMapFast[] = {
     SPI_BaudRatePrescaler_4,      // SPI_CLOCK_FAST               21.0 MBits/s
     SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          42.0 MBits/s
 };
+#endif
 
+#if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)
 static const uint16_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_256,    // SPI_CLOCK_INITIALIZATON      164.062 KBits/s
     SPI_BaudRatePrescaler_64,     // SPI_CLOCK_SLOW               656.25 KBits/s
@@ -123,6 +130,7 @@ static const uint16_t spiDivisorMapSlow[] = {
     SPI_BaudRatePrescaler_2,      // SPI_CLOCK_FAST               21.0 MBits/s
     SPI_BaudRatePrescaler_2       // SPI_CLOCK_ULTRAFAST          21.0 MBits/s
 };
+#endif
 
 static spiDevice_t spiHardwareMap[] = {
 #ifdef USE_SPI_DEVICE_1

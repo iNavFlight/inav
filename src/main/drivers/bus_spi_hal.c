@@ -68,6 +68,7 @@
 #define SPI4_NSS_PIN NONE
 #endif
 
+#if defined(USE_SPI_DEVICE_1)
 static const uint16_t spiDivisorMapFast[] = {
     LL_SPI_BAUDRATEPRESCALER_DIV256,    // SPI_CLOCK_INITIALIZATON      421.875 KBits/s
     LL_SPI_BAUDRATEPRESCALER_DIV32,     // SPI_CLOCK_SLOW               843.75 KBits/s
@@ -75,6 +76,9 @@ static const uint16_t spiDivisorMapFast[] = {
     LL_SPI_BAUDRATEPRESCALER_DIV8,      // SPI_CLOCK_FAST               13.5 MBits/s
     LL_SPI_BAUDRATEPRESCALER_DIV4       // SPI_CLOCK_ULTRAFAST          27.0 MBits/s
 };
+#endif
+
+#if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3) || defined(USE_SPI_DEVICE_4)
 static const uint16_t spiDivisorMapSlow[] = {
     LL_SPI_BAUDRATEPRESCALER_DIV256,    // SPI_CLOCK_INITIALIZATON      210.937 KBits/s
     LL_SPI_BAUDRATEPRESCALER_DIV64,     // SPI_CLOCK_SLOW               843.75 KBits/s
@@ -82,6 +86,7 @@ static const uint16_t spiDivisorMapSlow[] = {
     LL_SPI_BAUDRATEPRESCALER_DIV4,      // SPI_CLOCK_FAST               13.5 MBits/s
     LL_SPI_BAUDRATEPRESCALER_DIV2       // SPI_CLOCK_ULTRAFAST          27.0 MBits/s
 };
+#endif
 
 static spiDevice_t spiHardwareMap[] = {
 #ifdef USE_SPI_DEVICE_1
