@@ -162,8 +162,8 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     uint8_t center_y;
     bool poi_is_oos = 0;
 
-    uint8_t minX = osdConfig()->hud_margin_h + 1;
-    uint8_t maxX = osdDisplayPort->cols - osdConfig()->hud_margin_h - 2;
+    uint8_t minX = osdConfig()->hud_margin_h + 2;
+    uint8_t maxX = osdDisplayPort->cols - osdConfig()->hud_margin_h - 3;
     uint8_t minY = osdConfig()->hud_margin_v;
     uint8_t maxY = osdDisplayPort->rows - osdConfig()->hud_margin_v - 2;
 
