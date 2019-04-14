@@ -50,7 +50,7 @@
 
 #define DSHOT_MOTOR_BIT_0       7
 #define DSHOT_MOTOR_BIT_1       14
-#define DSHOT_MOTOR_BITLENGTH   19
+#define DSHOT_MOTOR_BITLENGTH   20
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 #endif

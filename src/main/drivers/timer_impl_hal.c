@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 #include "platform.h"
 
@@ -82,7 +83,7 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
     }
 
     timHandle->Instance = timer;
-    timHandle->Init.Prescaler = (timerGetBaseClock(tch) / hz) - 1;
+    timHandle->Init.Prescaler = lrintf((float)timerGetBaseClock(tch) / hz + 0.01f) - 1;
     timHandle->Init.Period = (period - 1) & 0xffff; // AKA TIMx_ARR
     timHandle->Init.RepetitionCounter = 0;
     timHandle->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
