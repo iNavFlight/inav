@@ -60,7 +60,6 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN   	      PC11
 #define SPI3_MOSI_PIN   	      PC12
-#define SPI3_CLOCK_LEADING_EDGE
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
