@@ -220,6 +220,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_WAIT(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_REACHED(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_NEXT(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_FINISHED(navigationFSMState_t previousState);
@@ -631,7 +632,28 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_WAYPOINT_IN_PROGRESS,   // re-process the state
-            [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_WAYPOINT_REACHED,       // successfully reached waypoint
+            [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_WAYPOINT_WAIT,       // successfully reached waypoint, wait by p2 time
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]               = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_2D]         = NAV_STATE_CRUISE_2D_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_CRUISE_3D]         = NAV_STATE_CRUISE_3D_INITIALIZE,
+        }
+    },
+
+    [NAV_STATE_WAYPOINT_WAIT] = {
+        .persistentId = NAV_PERSISTENT_ID_WAYPOINT_WAIT,
+        .onEntry = navOnEnteringState_NAV_STATE_WAYPOINT_WAIT,
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_WP,
+        .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_HOLD_TIMED,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                     = NAV_STATE_WAYPOINT_WAIT,   // re-process the state
+            [NAV_FSM_EVENT_SUCCESS]                     = NAV_STATE_WAYPOINT_REACHED,       // successfully reached waypoint and wait end
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]              = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]           = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]        = NAV_STATE_POSHOLD_3D_INITIALIZE,
@@ -1372,7 +1394,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
             default:
                 if (isWaypointReached(&posControl.activeWaypoint, isDoingRTH) || isWaypointMissed(&posControl.activeWaypoint)) {
                     // Waypoint reached
-                    return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_REACHED
+                    posControl.lastWaypointReachedAt = millis();
+                    return NAV_FSM_EVENT_SUCCESS;   // will switch to NAV_STATE_WAYPOINT_WAIT
                 }
                 else {
                     // Update XY-position target to active waypoint
@@ -1388,6 +1411,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
     }
     else {
         return NAV_FSM_EVENT_NONE;      // will re-process state in >10ms
+    }
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_WAIT(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+
+    uint32_t wait = posControl.waypointList[posControl.activeWaypointIndex].p2 > 0 ? posControl.waypointList[posControl.activeWaypointIndex].p2 : 0;
+    if ((millis() - posControl.lastWaypointReachedAt) >= wait * 1000) {
+        return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_WAYPOINT_NEXT
+    } else {
+        return NAV_FSM_EVENT_NONE;
     }
 }
 
@@ -2620,6 +2655,11 @@ bool isApproachingLastWaypoint(void)
     else {
         return false;
     }
+}
+
+bool isWaypointWait(void)
+{
+    return NAV_Status.state == MW_NAV_STATE_HOLD_TIMED;
 }
 
 float getActiveWaypointSpeed(void)

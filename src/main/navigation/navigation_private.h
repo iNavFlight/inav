@@ -169,7 +169,7 @@ typedef enum {
     NAV_PERSISTENT_ID_RTH_CLIMB_TO_SAFE_ALT                     = 9,
     NAV_PERSISTENT_ID_RTH_HEAD_HOME                             = 10,
     NAV_PERSISTENT_ID_RTH_HOVER_PRIOR_TO_LANDING                = 11,
-    NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 29,
+    NAV_PERSISTENT_ID_RTH_HOVER_ABOVE_HOME                      = 35,
     NAV_PERSISTENT_ID_RTH_LANDING                               = 12,
     NAV_PERSISTENT_ID_RTH_FINISHING                             = 13,
     NAV_PERSISTENT_ID_RTH_FINISHED                              = 14,
@@ -177,6 +177,7 @@ typedef enum {
     NAV_PERSISTENT_ID_WAYPOINT_INITIALIZE                       = 15,
     NAV_PERSISTENT_ID_WAYPOINT_PRE_ACTION                       = 16,
     NAV_PERSISTENT_ID_WAYPOINT_IN_PROGRESS                      = 17,
+    NAV_PERSISTENT_ID_WAYPOINT_WAIT                             = 36,
     NAV_PERSISTENT_ID_WAYPOINT_REACHED                          = 18,
     NAV_PERSISTENT_ID_WAYPOINT_NEXT                             = 19,
     NAV_PERSISTENT_ID_WAYPOINT_FINISHED                         = 20,
@@ -223,6 +224,7 @@ typedef enum {
     NAV_STATE_WAYPOINT_INITIALIZE,
     NAV_STATE_WAYPOINT_PRE_ACTION,
     NAV_STATE_WAYPOINT_IN_PROGRESS,
+    NAV_STATE_WAYPOINT_WAIT,
     NAV_STATE_WAYPOINT_REACHED,
     NAV_STATE_WAYPOINT_NEXT,
     NAV_STATE_WAYPOINT_FINISHED,
@@ -338,6 +340,7 @@ typedef struct {
 
     navWaypointPosition_t       activeWaypoint;     // Local position and initial bearing, filled on waypoint activation
     int8_t                      activeWaypointIndex;
+    uint32_t                    lastWaypointReachedAt;
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
@@ -375,6 +378,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
 
 bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
 bool isWaypointMissed(const navWaypointPosition_t * waypoint);
+bool isWaypointWait(void);
 bool isApproachingLastWaypoint(void);
 float getActiveWaypointSpeed(void);
 
