@@ -145,7 +145,7 @@ typedef struct statistic_s {
     int16_t max_power; // /100
     int16_t min_rssi;
     int32_t max_altitude;
-    uint16_t max_distance;
+    uint32_t max_distance;
 } statistic_t;
 
 static statistic_t stats;
