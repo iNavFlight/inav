@@ -320,7 +320,7 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
     }
 }
 
-bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)
+bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
 {
     tch->dma = dmaGetByTag(tch->timHw->dmaTag);
     tch->dmaBuffer = dmaBuffer;
@@ -347,11 +347,30 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
     init.Channel = channelLL;
     init.PeriphOrM2MSrcAddress = (uint32_t)impl_timerCCR(tch);
     init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
-    init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
+
+    switch (dmaBufferElementSize) {
+        case 1:
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_MDATAALIGN_BYTE;
+            break;
+        case 2:
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+            break;
+        case 4:
+            init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
+            init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_WORD;
+            break;
+        default:
+            // Programmer error
+            while(1) {
+
+            }
+    }
+
     init.MemoryOrM2MDstAddress = (uint32_t)dmaBuffer;
     init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
-    init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_WORD;
-    init.NbData = dmaBufferSize;
+    init.NbData = dmaBufferElementCount;
     init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
     init.Mode = LL_DMA_MODE_NORMAL;
     init.Priority = LL_DMA_PRIORITY_HIGH;
@@ -376,10 +395,10 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBu
     return true;
 }
 
-void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
+void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
 {
     const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
-    DMA_TypeDef * dmaBase = tch->dma->dma;
+    DMA_TypeDef *dmaBase = tch->dma->dma;
 
     // Make sure we terminate any DMA transaction currently in progress
     // Clear the flag as well, so even if DMA transfer finishes while within ATOMIC_BLOCK
@@ -390,7 +409,7 @@ void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
     }
 
-    LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferSize);
+    LL_DMA_SetDataLength(dmaBase, streamLL, dmaBufferElementCount);
     LL_DMA_ConfigAddresses(dmaBase, streamLL, (uint32_t)tch->dmaBuffer, (uint32_t)impl_timerCCR(tch), LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
     LL_DMA_EnableStream(dmaBase, streamLL);
