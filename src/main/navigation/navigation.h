@@ -32,7 +32,7 @@
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
-extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
+extern uint32_t             GPS_distanceToHome;        // distance to home point in meters 
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
 
 extern bool autoThrottleManuallyIncreased;

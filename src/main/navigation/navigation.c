@@ -68,7 +68,7 @@
  * Compatibility for home position
  *-----------------------------------------------------------*/
 gpsLocation_t GPS_home;
-uint16_t      GPS_distanceToHome;        // distance to home point in meters
+uint32_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 #if defined(USE_NAV)
