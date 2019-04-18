@@ -215,7 +215,7 @@ static void updateArmingStatus(void)
 
 #if defined(USE_NAV)
         /* CHECK: Navigation safety */
-        if (navigationBlockArming()) {
+        if (navigationIsBlockingArming(NULL) != NAV_ARMING_BLOCKER_NONE) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
         }
         else {
@@ -373,6 +373,16 @@ void tryArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
+
+#if defined(USE_NAV)
+        // Check if we need to make the navigation safety
+        // bypass permanent until power off. See documentation
+        // for these functions.
+        bool usedBypass = false;
+        if (navigationIsBlockingArming(&usedBypass)) {
+            navigationSetBlockingArmingBypassWithoutSticks(true);
+        }
+#endif
 
         lastDisarmReason = DISARM_NONE;
 

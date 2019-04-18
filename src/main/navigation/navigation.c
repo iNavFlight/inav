@@ -50,6 +50,8 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
+#include "rx/rx.h"
+
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
@@ -83,7 +85,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
         .flags = {
             .use_thr_mid_for_althold = 0,
-            .extra_arming_safety = 1,
+            .extra_arming_safety = NAV_EXTRA_ARMING_SAFETY_ON,
             .user_control_mode = NAV_GPS_ATTI,
             .rth_alt_control_mode = NAV_RTH_AT_LEAST_ALT,
             .rth_climb_first = 1,                   // Climb first, turn after reaching safe altitude
@@ -165,6 +167,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
 navigationPosControl_t  posControl;
 navSystemStatus_t       NAV_Status;
+static bool blockingArmingBypassWithoutSticks;
 
 #if defined(NAV_BLACKBOX)
 int16_t navCurrentState;
@@ -2919,23 +2922,34 @@ bool navigationTerrainFollowingEnabled(void)
     return posControl.flags.isTerrainFollowEnabled;
 }
 
-bool navigationBlockArming(void)
+navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 {
     const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING) && IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
     const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
-    bool shouldBlockArming = false;
 
-    if (!navConfig()->general.flags.extra_arming_safety)
-        return false;
+    if (usedBypass) {
+        *usedBypass = false;
+    }
+
+    if (navConfig()->general.flags.extra_arming_safety == NAV_EXTRA_ARMING_SAFETY_OFF) {
+        return NAV_ARMING_BLOCKER_NONE;
+    }
 
     // Apply extra arming safety only if pilot has any of GPS modes configured
     if ((isUsingNavigationModes() || failsafeMayRequireNavigationMode()) && !((posControl.flags.estPosStatus >= EST_USABLE) && STATE(GPS_FIX_HOME))) {
-        shouldBlockArming = true;
+        if (navConfig()->general.flags.extra_arming_safety == NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS &&
+            (blockingArmingBypassWithoutSticks || rxGetChannelValue(YAW) > 1750)) {
+            if (usedBypass) {
+                *usedBypass = true;
+            }
+            return NAV_ARMING_BLOCKER_NONE;
+        }
+        return NAV_ARMING_BLOCKER_MISSING_GPS_FIX;
     }
 
     // Don't allow arming if any of NAV modes is active
     if (!ARMING_FLAG(ARMED) && navBoxModesEnabled && !navLaunchComboModesEnabled) {
-        shouldBlockArming = true;
+        return NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE;
     }
 
     // Don't allow arming if first waypoint is farther than configured safe distance
@@ -2946,13 +2960,17 @@ bool navigationBlockArming(void)
         const bool navWpMissionStartTooFar = calculateDistanceToDestination(&startingWaypointPos) > navConfig()->general.waypoint_safe_distance;
 
         if (navWpMissionStartTooFar) {
-            shouldBlockArming = true;
+            return NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR;
         }
     }
 
-    return shouldBlockArming;
+    return NAV_ARMING_BLOCKER_NONE;
 }
 
+void navigationSetBlockingArmingBypassWithoutSticks(bool allow)
+{
+    blockingArmingBypassWithoutSticks = allow;
+}
 
 bool navigationPositionEstimateIsHealthy(void)
 {
