@@ -57,10 +57,12 @@
 #define USE_MAG_QMC5883
 #define USE_MAG_IST8310
 #define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+// #define USE_MAG_MAG3110
+// #define USE_MAG_LIS3MDL
+// #define USE_MAG_AK8975
 
-#undef USE_GPS_PROTO_I2C_NAV //Save some flash space
+// Disable certain features to save flash space
+#undef USE_GPS_PROTO_MTK
 
 #define USB_CABLE_DETECTION
 #define USB_DETECT_PIN          PB5
@@ -85,7 +87,6 @@
 #define USE_I2C_DEVICE_1 // PB6/SCL(PWM8), PB7/SDA(PWM7)
 #define USE_I2C_PULLUP
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_SPI
@@ -95,26 +96,18 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
+#define SPI2_CLOCK_LEADING_EDGE
 
 //#define USE_RX_SPI
 #define RX_SPI_INSTANCE SPI2
 #define RX_NSS_PIN PB3
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
-
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PC14
-#define SDCARD_SPI_INSTANCE                 SPI2
-#define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
-
-// Note, this is the same DMA channel as UART1_RX. Luckily we don't use DMA for USART Rx.
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC5
-
-// Performance logging for SD card operations:
-// #define AFATFS_USE_INTROSPECTIVE_LOGGING
+#define SDCARD_DETECT_PIN       PC14
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           SPI2_NSS_PIN
 
 #define USE_OSD
 #define USE_MAX7456
@@ -134,8 +127,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
-#define WS2811_DMA_STREAM               DMA1_Channel2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH2_HANDLER
 
 //#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 

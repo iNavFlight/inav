@@ -59,8 +59,16 @@ typedef enum {
     BUSTYPE_ANY  = 0,
     BUSTYPE_NONE = 0,
     BUSTYPE_I2C  = 1,
-    BUSTYPE_SPI  = 2
+    BUSTYPE_SPI  = 2,
+    BUSTYPE_SDIO = 3,
 } busType_e;
+
+typedef enum {
+    BUSINDEX_1  = 0,
+    BUSINDEX_2  = 1,
+    BUSINDEX_3  = 2,
+    BUSINDEX_4  = 3
+} busIndex_e;
 
 /* Ultimately all hardware descriptors will go to target definition files.
  * Driver code will merely query for it's HW descriptor and initialize it */
@@ -83,6 +91,7 @@ typedef enum {
     DEVHW_MPU6050,
     DEVHW_MPU6500,
     DEVHW_BMI160,
+    DEVHW_ICM20689,
 
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
@@ -104,6 +113,19 @@ typedef enum {
     DEVHW_MAG3110,
     DEVHW_LIS3MDL,
 
+    /* Temp sensor chips */
+    DEVHW_LM75_0,
+    DEVHW_LM75_1,
+    DEVHW_LM75_2,
+    DEVHW_LM75_3,
+    DEVHW_LM75_4,
+    DEVHW_LM75_5,
+    DEVHW_LM75_6,
+    DEVHW_LM75_7,
+
+    /* 1-wire interface chips */
+    DEVHW_DS2482,
+
     /* OSD chips */
     DEVHW_MAX7456,
 
@@ -117,11 +139,14 @@ typedef enum {
     DEVHW_PCA9685,      // PWM output device
     DEVHW_M25P16,       // SPI NOR flash
     DEVHW_UG2864,       // I2C OLED display
+    DEVHW_SDCARD,       // Generic SD-Card
 } devHardwareType_e;
 
 typedef enum {
     DEVFLAGS_NONE                       = 0,
-    DEVFLAGS_USE_RAW_REGISTERS          = (1 << 0),             // Don't manipulate MSB for R/W selection
+    DEVFLAGS_USE_RAW_REGISTERS          = (1 << 0),     // Don't manipulate MSB for R/W selection (SPI), allow using 0xFF register to raw i2c reads/writes
+    DEVFLAGS_USE_MANUAL_DEVICE_SELECT   = (1 << 1),     // (SPI only) Don't automatically select/deselect device
+    DEVFLAGS_SPI_MODE_0                 = (1 << 2),     // (SPI only) Use CPOL=0/CPHA=0 (if unset MODE3 is used - CPOL=1/CPHA=1)
 } deviceFlags_e;
 
 typedef struct busDeviceDescriptor_s {
@@ -243,13 +268,16 @@ bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
 bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
 
-
+bool spiBusIsBusy(const busDevice_t * dev);
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed);
+bool spiBusTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
 bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc, int count);
 bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
 bool spiBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
+void spiBusSelectDevice(const busDevice_t * dev);
+void spiBusDeselectDevice(const busDevice_t * dev);
 
 /* Pre-initialize all known device descriptors to make sure hardware state is consistent and known
  * Initialize bus hardware */
@@ -266,6 +294,10 @@ void * busDeviceGetScratchpadMemory(const busDevice_t * dev);
 
 void busSetSpeed(const busDevice_t * dev, busSpeed_e speed);
 
+/* Select/Deselect device will allow code to do something during device transfer or do transfer in chunks over some time */
+void busSelectDevice(const busDevice_t * dev);
+void busDeselectDevice(const busDevice_t * dev);
+
 bool busWriteBuf(const busDevice_t * busdev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool busReadBuf(const busDevice_t * busdev, uint8_t reg, uint8_t * data, uint8_t length);
 bool busRead(const busDevice_t * busdev, uint8_t reg, uint8_t * data);
@@ -273,3 +305,5 @@ bool busWrite(const busDevice_t * busdev, uint8_t reg, uint8_t data);
 
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
 bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * buffers, int count);
+
+bool busIsBusy(const busDevice_t * dev);

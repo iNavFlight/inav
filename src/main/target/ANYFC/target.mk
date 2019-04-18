@@ -11,6 +11,4 @@ TARGET_SRC = \
             drivers/compass/compass_ist8308.c \
             drivers/compass/compass_lis3mdl.c \
             drivers/light_ws2811strip.c \
-            drivers/light_ws2811strip_stdperiph.c \
-            drivers/pitotmeter_ms4525.c
 

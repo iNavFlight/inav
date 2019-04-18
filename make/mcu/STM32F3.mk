@@ -70,7 +70,7 @@ MCU_COMMON_SRC = \
             drivers/accgyro/accgyro.c \
             drivers/adc_stm32f30x.c \
             drivers/bus_i2c_stm32f30x.c \
-            drivers/dma.c \
+            drivers/dma_stm32f3xx.c \
             drivers/serial_uart_stm32f30x.c \
             drivers/system_stm32f30x.c \
             drivers/timer_impl_stdperiph.c \

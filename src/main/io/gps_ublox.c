@@ -25,7 +25,6 @@
 #include "platform.h"
 #include "build/build_config.h"
 
-
 #if defined(USE_GPS) && defined(USE_GPS_PROTO_UBLOX)
 
 #include "build/debug.h"
@@ -47,8 +46,10 @@
 #include "io/gps.h"
 #include "io/gps_private.h"
 
-//#define USE_GPS_PROTO_UBLOX_NEO7PLUS
-#define GPS_VERSION_DETECTION_TIMEOUT_MS    300
+#include "scheduler/protothreads.h"
+
+#define GPS_CFG_CMD_TIMEOUT_MS              200
+#define GPS_VERSION_RETRY_TIMES             2
 #define MAX_UBLOX_PAYLOAD_SIZE              256
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
@@ -70,7 +71,7 @@ static const uint32_t ubloxScanMode1[] = {
     0x00000000, 0x00000851, 0x0004E004, 0x00020200, 0x00000180, 0x00000000,
 };
 
-static const char * baudInitData[GPS_BAUDRATE_COUNT] = {
+static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,115200,0*1E\r\n",     // GPS_BAUDRATE_115200
     "$PUBX,41,1,0003,0001,57600,0*2D\r\n",      // GPS_BAUDRATE_57600
     "$PUBX,41,1,0003,0001,38400,0*26\r\n",      // GPS_BAUDRATE_38400
@@ -242,6 +243,11 @@ typedef struct {
     uint16_t reserved3;
 } ubx_nav_pvt;
 
+typedef struct {
+    uint8_t class;
+    uint8_t msg;
+} ubx_ack_ack;
+
 enum {
     PREAMBLE1 = 0xB5,
     PREAMBLE2 = 0x62,
@@ -288,6 +294,12 @@ enum {
     NAV_STATUS_FIX_VALID = 1
 } ubx_nav_status_bits;
 
+enum {
+    UBX_ACK_WAITING = 0,
+    UBX_ACK_GOT_ACK = 1,
+    UBX_ACK_GOT_NAK = 2
+} ubx_ack_state;
+
 // Packet checksum accumulators
 static uint8_t _ck_a;
 static uint8_t _ck_b;
@@ -301,6 +313,8 @@ static uint16_t _payload_counter;
 
 static uint8_t next_fix_type;
 static uint8_t _class;
+static uint8_t _ack_state;
+static uint8_t _ack_waiting_msg;
 
 // do we have new position information?
 static bool _new_position;
@@ -340,6 +354,7 @@ static union {
     ubx_nav_svinfo svinfo;
     ubx_mon_ver ver;
     ubx_nav_timeutc timeutc;
+    ubx_ack_ack ack;
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
@@ -370,10 +385,12 @@ static void sendConfigMessageUBLOX(void)
     send_buffer.bytes[send_buffer.message.header.length+6] = ck_a;
     send_buffer.bytes[send_buffer.message.header.length+7] = ck_b;
     serialWriteBuf(gpsState.gpsPort, send_buffer.bytes, send_buffer.message.header.length+8);
-    //check ack/nack here
+
+    // Save state for ACK waiting
+    _ack_waiting_msg = send_buffer.message.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
 }
 
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
 static void pollVersion(void)
 {
     send_buffer.message.header.msg_class = CLASS_MON;
@@ -381,7 +398,6 @@ static void pollVersion(void)
     send_buffer.message.header.length = 0;
     sendConfigMessageUBLOX();
 }
-#endif
 
 static const uint8_t default_payload[] = {
     0xFF, 0xFF, 0x03, 0x03, 0x00,           // CFG-NAV5 - Set engine settings (original MWII code)
@@ -422,7 +438,6 @@ static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
     send_buffer.message.payload.bytes[3] = fixMode;
     sendConfigMessageUBLOX();
 }
-
 
 static void configureMSG(uint8_t class, uint8_t id, uint8_t rate)
 {
@@ -518,7 +533,6 @@ static bool gpsParceFrameUBLOX(void)
             gpsSol.flags.validTime = 0;
         }
         break;
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
     case MSG_PVT:
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
         gpsSol.fixType = next_fix_type;
@@ -564,7 +578,16 @@ static bool gpsParceFrameUBLOX(void)
             capGalileo = ((gpsState.hwVersion >= 80000) && (_buffer.ver.swVersion[9] > '2')); // M8N and SW major 3 or later
         }
         break;
-#endif
+    case MSG_ACK_ACK:
+        if ((_ack_state == UBX_ACK_WAITING) && (_buffer.ack.msg == _ack_waiting_msg)) {
+            _ack_state = UBX_ACK_GOT_ACK;
+        }
+        break;
+    case MSG_ACK_NACK:
+        if ((_ack_state == UBX_ACK_WAITING) && (_buffer.ack.msg == _ack_waiting_msg)) {
+            _ack_state = UBX_ACK_GOT_NAK;
+        }
+        break;
     default:
         return false;
     }
@@ -572,7 +595,6 @@ static bool gpsParceFrameUBLOX(void)
     // we only return true when we get new position and speed data
     // this ensures we don't use stale data
     if (_new_position && _new_speed) {
-        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
         _new_speed = _new_position = false;
         return true;
     }
@@ -670,200 +692,250 @@ static bool gpsNewFrameUBLOX(uint8_t data)
     return parsed;
 }
 
-static bool gpsConfigure(void)
+STATIC_PROTOTHREAD(gpsConfigure)
 {
-    switch (gpsState.autoConfigStep) {
-    case 0: // NAV5
-        switch (gpsState.gpsConfig->dynModel) {
-            case GPS_DYNMODEL_PEDESTRIAN:
-                configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
-                break;
-            case GPS_DYNMODEL_AIR_1G:   // Default to this
-            default:
-                configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
-                break;
-            case GPS_DYNMODEL_AIR_4G:
-                configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
-                break;
-        }
-        gpsState.autoConfigStep++;
-        break;
+    ptBegin(gpsConfigure);
 
-    case 1: // NAVX5 - skip
-        gpsState.autoConfigStep++;
-        break;
+    // Reset timeout
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
-    case 2: // Disable NMEA messages
-        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
-        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GLL, 0);
-        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSA, 0);
-        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSV, 0);
-        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_RMC, 0);
-        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_VGS, 0);
-        gpsState.autoConfigStep++;
-        break;
-
-    case 3: // Enable UBX messages
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
-#endif
-            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
-            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
-            configureMSG(MSG_CLASS_UBX, MSG_SOL,    1);
-            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
-            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
-            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC,10);
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
-            configureMSG(MSG_CLASS_UBX, MSG_PVT,    0);
-        }
-        else if (gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) {
-            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
-            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
-            configureMSG(MSG_CLASS_UBX, MSG_SOL,    0);
-            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
-            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
-            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC,0);
-            configureMSG(MSG_CLASS_UBX, MSG_PVT,    1);
-        }
-#endif
-        gpsState.autoConfigStep++;
-        break;
-
-    case 4: // Configure RATE
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
-#endif
-            configureRATE(200); // 5Hz
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
-        }
-        else if (gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) {
-            configureRATE(100); // 10Hz
-        }
-#endif
-        gpsState.autoConfigStep++;
-        break;
-
-    case 5: // SBAS
-        configureSBAS();
-        gpsState.autoConfigStep++;
-        break;
-
-    case 6: // Galileo
-        if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
-            configureGalileo();
-        }
-        gpsState.autoConfigStep++;
-        break;
-
-    default:
-        // ublox should be initialised, try receiving
-        gpsSetState(GPS_RECEIVING_DATA);
-        break;
+    // Set dynamic model
+    switch (gpsState.gpsConfig->dynModel) {
+        case GPS_DYNMODEL_PEDESTRIAN:
+            configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
+            break;
+        case GPS_DYNMODEL_AIR_1G:   // Default to this
+        default:
+            configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
+            break;
+        case GPS_DYNMODEL_AIR_4G:
+            configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
+            break;
     }
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    return false;
-}
+    // Disable NMEA messages
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
-static bool gpsCheckVersion(void)
-{
-#ifdef USE_GPS_PROTO_UBLOX_NEO7PLUS
-    if (gpsState.autoConfigStep == 0) {
-        pollVersion();
-        gpsState.autoConfigStep++;
+    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GLL, 0);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSA, 0);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSV, 0);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_RMC, 0);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_VGS, 0);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    // Configure UBX binary messages
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+
+    if ((gpsState.gpsConfig->provider == GPS_UBLOX) || (gpsState.hwVersion < 70000)) {
+        configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 10);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        // This may fail on old UBLOX units, advance forward on both ACK and NAK
+        configureMSG(MSG_CLASS_UBX, MSG_PVT, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
     }
     else {
-        // Wait until version found
-        if (gpsState.hwVersion != 0) {
-            gpsState.autoConfigStep = 0;
-            gpsState.autoConfigPosition = 0;
-            gpsSetState(GPS_CONFIGURE);
-        }
-        else if ((millis() - gpsState.lastStateSwitchMs) >= GPS_VERSION_DETECTION_TIMEOUT_MS) {
-            gpsState.hwVersion = 0;
-            gpsState.autoConfigStep = 0;
-            gpsState.autoConfigPosition = 0;
-            gpsSetState(GPS_CONFIGURE);
-        }
+        configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_SOL, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
     }
-#else
-    gpsState.hwVersion = 0;
-    gpsSetState(GPS_CONFIGURE);
-#endif
-    return false;
+
+    configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    // Configure data rate
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+    if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= 70000)) {
+        configureRATE(100); // 10Hz
+    }
+    else {
+        configureRATE(200); // 5Hz
+    }
+    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+    // Configure SBAS
+    // If particular SBAS setting is not supported by the hardware we'll get a NAK,
+    // however GPS would be functional. We are waiting for any response - ACK/NACK
+    gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+    configureSBAS();
+    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+    // Enable GALILEO
+    if (gpsState.gpsConfig->ubloxUseGalileo && capGalileo) {
+        // If GALILEO is not supported by the hardware we'll get a NAK,
+        // however GPS would otherwise be perfectly initialized, so we are just waiting for any response
+        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+        configureGalileo();
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+    }
+
+    ptEnd(0);
 }
 
-static bool gpsReceiveData(void)
-{
-    bool hasNewData = false;
+static ptSemaphore_t semNewDataReady;
 
-    if (gpsState.gpsPort) {
-        while (serialRxBytesWaiting(gpsState.gpsPort) && !hasNewData) {
+STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
+{
+    ptBegin(gpsProtocolReceiverThread);
+
+    while (1) {
+        // Wait until there are bytes to consume
+        ptWait(serialRxBytesWaiting(gpsState.gpsPort));
+
+        // Consume bytes until buffer empty of until we have full message received
+        while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameUBLOX(newChar)) {
-                hasNewData = true;
+                ptSemaphoreSignal(semNewDataReady);
+                break;
             }
         }
     }
 
-    return hasNewData;
+    ptEnd(0);
 }
 
-static bool gpsInitialize(void)
+STATIC_PROTOTHREAD(gpsProtocolStateThread)
 {
-    gpsSetState(GPS_CHANGE_BAUD);
-    return false;
-}
+    ptBegin(gpsProtocolStateThread);
 
-static bool gpsChangeBaud(void)
-{
-    if ((gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) && (gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT)) {
-        // Do the switch only if TX buffer is empty - make sure all init string was sent at the same baud
-        if (isSerialTransmitBufferEmpty(gpsState.gpsPort)) {
-            // Cycle through all possible bauds and send init string
+    // Change baud rate
+    if (gpsState.gpsConfig->autoBaud != GPS_AUTOBAUD_OFF) {
+#if 0
+        // Autobaud logic:
+        //  0. Wait for TX buffer to be empty
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        //  1. Set serial port to baud rate specified by [autoBaudrateIndex]
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
+        gpsState.autoBaudrateIndex = (gpsState.autoBaudrateIndex + 1) % GPS_BAUDRATE_COUNT;
+
+        //  2. Send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
+        serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
+
+        //  3. Wait for command to be received and processed by GPS
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        //  4. Switch to [baudrateIndex]
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
+
+        //  5. Attempt to configure the GPS
+        ptDelayMs(GPS_BAUD_CHANGE_DELAY);
+#else
+        //  0. Wait for TX buffer to be empty
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        // Try sending baud rate switch command at all common baud rates
+        gpsSetProtocolTimeout((GPS_BAUD_CHANGE_DELAY + 50) * (GPS_BAUDRATE_COUNT));
+        for (gpsState.autoBaudrateIndex = 0; gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT; gpsState.autoBaudrateIndex++) {
+            // 2. Set serial port to baud rate and send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
             serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
-            serialPrint(gpsState.gpsPort, baudInitData[gpsState.baudrateIndex]);
-            gpsState.autoBaudrateIndex++;
-            gpsSetState(GPS_CHANGE_BAUD);   // switch to the same state to reset state transition time
+            serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
+
+            // 3. Wait for serial port to finish transmitting
+            ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+            // 4. Extra wait to make sure GPS processed the command
+            ptDelayMs(GPS_BAUD_CHANGE_DELAY);
         }
+
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
+#endif
     }
     else {
-        gpsFinalizeChangeBaud();
+        // No auto baud - set port baud rate to [baudrateIndex]
+        // Wait for TX buffer to be empty
+        ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
+
+        // Set baud rate and reset GPS timeout
+        serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
-    return false;
+    // Configure GPS module if enabled
+    if (gpsState.gpsConfig->autoConfig) {
+        // Reset protocol timeout
+        gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
+
+        // Attempt to detect GPS hw version
+        gpsState.hwVersion = 0;
+        gpsState.autoConfigStep = 0;
+
+        do {
+            pollVersion();
+            gpsState.autoConfigStep++;
+            ptWaitTimeout((gpsState.hwVersion != 0), GPS_CFG_CMD_TIMEOUT_MS);
+        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == 0);
+
+        // Configure GPS
+        ptSpawn(gpsConfigure);
+    }
+
+    // GPS setup done, reset timeout
+    gpsSetProtocolTimeout(GPS_TIMEOUT);
+
+    // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
+    while (1) {
+        ptSemaphoreWait(semNewDataReady);
+        gpsProcessNewSolutionData();
+    }
+
+    ptEnd(0);
 }
 
-bool gpsHandleUBLOX(void)
+void gpsRestartUBLOX(void)
 {
-    // Receive data
-    bool hasNewData = gpsReceiveData();
+    ptSemaphoreInit(semNewDataReady);
+    ptRestart(ptGetHandle(gpsProtocolReceiverThread));
+    ptRestart(ptGetHandle(gpsProtocolStateThread));
+}
 
-    // Process state
-    switch (gpsState.state) {
-    default:
-        return false;
+void gpsHandleUBLOX(void)
+{
+    // Run the protocol threads
+    gpsProtocolReceiverThread();
+    gpsProtocolStateThread();
 
-    case GPS_INITIALIZING:
-        return gpsInitialize();
-
-    case GPS_CHANGE_BAUD:
-        return gpsChangeBaud();
-
-    case GPS_CHECK_VERSION:
-        return gpsCheckVersion();
-
-    case GPS_CONFIGURE:
-        // Either use specific config file for GPS or let dynamically upload config
-        if (gpsState.gpsConfig->autoConfig == GPS_AUTOCONFIG_OFF) {
-            gpsSetState(GPS_RECEIVING_DATA);
-            return false;
-        }
-        else {
-            return gpsConfigure();
-        }
-
-    case GPS_RECEIVING_DATA:
-        return hasNewData;
+    // If thread stopped - signal communication loss and restart
+    if (ptIsStopped(ptGetHandle(gpsProtocolReceiverThread)) || ptIsStopped(ptGetHandle(gpsProtocolStateThread))) {
+        gpsSetState(GPS_LOST_COMMUNICATION);
     }
 }
 

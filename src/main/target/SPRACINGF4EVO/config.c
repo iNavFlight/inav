@@ -20,12 +20,9 @@
 
 #include <platform.h>
 
-#ifdef TARGET_CONFIG
-
 #include "io/serial.h"
 #include "sensors/barometer.h"
 #include "telemetry/telemetry.h"
-
 
 void targetConfiguration(void)
 {
@@ -33,4 +30,3 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP; // So SPRacingF3OSD users don't have to change anything.
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
 }
-#endif
