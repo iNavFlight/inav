@@ -23,8 +23,6 @@
 
 #include "platform.h"
 
-#if defined(USE_VTX_COMMON)
-
 #include "common/maths.h"
 #include "common/time.h"
 
@@ -275,5 +273,3 @@ void vtxUpdate(timeUs_t currentTimeUs)
         }
     }
 }
-
-#endif

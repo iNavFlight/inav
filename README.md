@@ -26,13 +26,13 @@
 * PIDs from CF/BF can be used in INAV, no need to retune for INAV
 * And many more!
 
-For a list of features, changes and some discussion please review the thread on RCGroups forums and consult the documentation.
+For a list of features, changes and some discussion please review consult the releases [page](https://github.com/iNavFlight/inav/releases) and the documentation.
 
 ## Tools
 
 ### INAV Configurator
 
-Official too for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
+Official tool for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
 
 ### INAV Blackbox Explorer
 
@@ -52,8 +52,6 @@ See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 * [Official Wiki](https://github.com/iNavFlight/inav/wiki)
 * [INAV Official on Telegram](https://t.me/INAVFlight)
 * [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
-* [INAV Official on Slack](https://publicslack.com/slacks/inavflight/invites/new)
-* [INAV IRC channel] (irc://irc.freenode.net/#inavflight)
 * [RC Groups Support](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-(navigation-rewrite)-project)
 * [Video series by Painless360](https://www.youtube.com/playlist?list=PLYsWjANuAm4qdXEGFSeUhOZ10-H8YTSnH)
 * [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
@@ -67,8 +65,9 @@ Contributions are welcome and encouraged.  You can contribute in many ways:
 * Bug fixes.
 * New features.
 * Telling us your ideas and suggestions.
+* Buying your hardware from this [link](https://inavflight.com/shop/u/bg/)
 
-A good place to start is Telegram channel, Slack, Facebook goop or IRC channel on freenode (#inavflight), drop in, say hi.
+A good place to start is Telegram channel or Facebook group. Drop in, say hi.
 
 Github issue tracker is a good place to search for existing issues or report a new bug/feature request:
 

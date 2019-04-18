@@ -75,7 +75,6 @@
 
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
-#define MAX_GPS_HEADING_ERROR_DEG   60      // Amount of error between GPS CoG and estimated Yaw at witch we stop trusting GPS and fallback to MAG
 
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -236,27 +235,48 @@ static void imuResetOrientationQuaternion(const fpVector3_t * accBF)
     quaternionNormalize(&orientation, &orientation);
 }
 
-static void imuCheckAndResetOrientationQuaternion(const fpVector3_t * accBF)
+static bool imuValidateQuaternion(const fpQuaternion_t * quat)
 {
-    // Check if some calculation in IMU update yield NAN or zero quaternion
-    // Reset quaternion from accelerometer - this might be incorrect, but it's better than no attitude at all
-    const float check = fabs(orientation.q0) + fabs(orientation.q1) + fabs(orientation.q2) + fabs(orientation.q3);
+    const float check = fabs(quat->q0) + fabs(quat->q1) + fabs(quat->q2) + fabs(quat->q3);
 
     if (!isnan(check) && !isinf(check)) {
-        return;
+        return true;
     }
 
     const float normSq = quaternionNormSqared(&orientation);
     if (normSq > (1.0f - 1e-6f) && normSq < (1.0f + 1e-6f)) {
+        return true;
+    }
+
+    return false;
+}
+
+static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, const fpVector3_t * accBF)
+{
+    // Check if some calculation in IMU update yield NAN or zero quaternion
+    if (imuValidateQuaternion(&orientation)) {
         return;
     }
 
-    imuResetOrientationQuaternion(accBF);
-    DEBUG_TRACE("AHRS orientation quaternion error");
+    flightLogEvent_IMUError_t imuErrorEvent;
+
+    // Orientation is invalid. We need to reset it
+    if (imuValidateQuaternion(quat)) {
+        // Previous quaternion valid. Reset to it
+        orientation = *quat;
+        imuErrorEvent.errorCode = 1;
+        DEBUG_TRACE("AHRS orientation quaternion error. Reset to last known good value");
+    }
+    else {
+        // No valid reference. Best guess from accelerometer
+        imuResetOrientationQuaternion(accBF);
+        imuErrorEvent.errorCode = 2;
+        DEBUG_TRACE("AHRS orientation quaternion error. Best guess from ACC");
+    }
 
 #ifdef USE_BLACKBOX
     if (feature(FEATURE_BLACKBOX)) {
-        blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, NULL);
+        blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, (flightLogEventData_t*)&imuErrorEvent);
     }
 #endif
 }
@@ -265,6 +285,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
+    fpQuaternion_t prevOrientation = orientation;
     fpVector3_t vRotation = *gyroBF;
 
     /* Calculate general spin rate (rad/s) */
@@ -290,15 +311,18 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // Ignore magnetic inclination
             vMag.z = 0.0f;
 
-            // Normalize to unit vector
-            vectorNormalize(&vMag, &vMag);
+            // We zeroed out vMag.z -  make sure the whole vector didn't go to zero
+            if (vectorNormSquared(&vMag) > 0.01f) {
+                // Normalize to unit vector
+                vectorNormalize(&vMag, &vMag);
 
-            // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
-            // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-            vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);
+                // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
+                // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
+                vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);
 
-            // Rotate error back into body frame
-            quaternionRotateVector(&vErr, &vErr, &orientation);
+                // Rotate error back into body frame
+                quaternionRotateVector(&vErr, &vErr, &orientation);
+            }
         }
         else if (useCOG) {
             fpVector3_t vHeadingEF;
@@ -318,14 +342,17 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
             vHeadingEF.z = 0.0f;
 
-            // Normalize to unit vector
-            vectorNormalize(&vHeadingEF, &vHeadingEF);
+            // We zeroed out vHeadingEF.z -  make sure the whole vector didn't go to zero
+            if (vectorNormSquared(&vHeadingEF) > 0.01f) {
+                // Normalize to unit vector
+                vectorNormalize(&vHeadingEF, &vHeadingEF);
 
-            // error is cross product between reference heading and estimated heading (calculated in EF)
-            vectorCrossProduct(&vErr, &vCoG, &vHeadingEF);
+                // error is cross product between reference heading and estimated heading (calculated in EF)
+                vectorCrossProduct(&vErr, &vCoG, &vHeadingEF);
 
-            // Rotate error back into body frame
-            quaternionRotateVector(&vErr, &vErr, &orientation);
+                // Rotate error back into body frame
+                quaternionRotateVector(&vErr, &vErr, &orientation);
+            }
         }
 
         // Compute and apply integral feedback if enabled
@@ -408,8 +435,8 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         quaternionNormalize(&orientation, &orientation);
     }
 
-    // Check for invalid quaternion
-    imuCheckAndResetOrientationQuaternion(accBF);
+    // Check for invalid quaternion and reset to previous known good one
+    imuCheckAndResetOrientationQuaternion(&prevOrientation, accBF);
 
     // Pre-compute rotation matrix from quaternion
     imuComputeRotationMatrix();
@@ -465,13 +492,15 @@ static void imuCalculateEstimatedAttitude(float dT)
     if (STATE(FIXED_WING)) {
         bool canUseCOG = isGPSHeadingValid();
 
-        if (canUseCOG) {
+        // Prefer compass (if available)
+        if (canUseMAG) {
+            useMag = true;
+            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
+        }
+        else if (canUseCOG) {
             if (gpsHeadingInitialized) {
-                // Use GPS heading if error is acceptable or if it's the only source of heading
-                if (ABS(gpsSol.groundCourse - attitude.values.yaw) < DEGREES_TO_DECIDEGREES(MAX_GPS_HEADING_ERROR_DEG) || !canUseMAG) {
-                    courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-                    useCOG = true;
-                }
+                courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+                useCOG = true;
             }
             else {
                 // Re-initialize quaternion from known Roll, Pitch and GPS heading
@@ -481,15 +510,6 @@ static void imuCalculateEstimatedAttitude(float dT)
                 // Force reset of heading hold target
                 resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
             }
-
-            // If we can't use COG and there's MAG available - fallback
-            if (!useCOG && canUseMAG) {
-                useMag = true;
-            }
-        }
-        else if (canUseMAG) {
-            useMag = true;
-            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if possible
         }
     }
     else {

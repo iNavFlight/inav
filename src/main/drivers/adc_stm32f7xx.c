@@ -34,7 +34,7 @@
 #include "adc_impl.h"
 
 static adcDevice_t adcHardware[ADCDEV_COUNT] = {
-    { .ADCx = ADC1, .rccADC = RCC_APB2(ADC1), .rccDMA = RCC_AHB1(DMA2), .DMAy_Streamx = DMA2_Stream4, .channel = DMA_CHANNEL_0, .enabled = false, .usedChannelCount = 0 },
+    { .ADCx = ADC1, .rccADC = RCC_APB2(ADC1), .rccDMA = RCC_AHB1(DMA2), .DMAy_Streamx = DMA2_Stream0, .channel = DMA_CHANNEL_0, .enabled = false, .usedChannelCount = 0 },
     //{ .ADCx = ADC2, .rccADC = RCC_APB2(ADC2), .rccDMA = RCC_AHB1(DMA2), .DMAy_Streamx = DMA2_Stream1, .channel = DMA_Channel_0, .enabled = false, .usedChannelCount = 0 }
 };
 
@@ -110,7 +110,7 @@ static void adcInstanceInit(ADCDevice adcDevice)
     adc->DmaHandle.Init.Channel = adc->channel;
     adc->DmaHandle.Init.Direction = DMA_PERIPH_TO_MEMORY;
     adc->DmaHandle.Init.PeriphInc = DMA_PINC_DISABLE;
-    adc->DmaHandle.Init.MemInc = adc->usedChannelCount > 1 ? DMA_MINC_ENABLE : DMA_MINC_DISABLE;
+    adc->DmaHandle.Init.MemInc = ((adc->usedChannelCount > 1) || (ADC_AVERAGE_N_SAMPLES > 1)) ? DMA_MINC_ENABLE : DMA_MINC_DISABLE;
     adc->DmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
     adc->DmaHandle.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
     adc->DmaHandle.Init.Mode = DMA_CIRCULAR;
@@ -152,7 +152,7 @@ static void adcInstanceInit(ADCDevice adcDevice)
 
     //HAL_CLEANINVALIDATECACHE((uint32_t*)&adcValues[adcDevice], configuredAdcChannels);
     /*##-4- Start the conversion process #######################################*/
-    if (HAL_ADC_Start_DMA(&adc->ADCHandle, (uint32_t*)&adcValues[adcDevice], adc->usedChannelCount) != HAL_OK)
+    if (HAL_ADC_Start_DMA(&adc->ADCHandle, (uint32_t*)&adcValues[adcDevice], adc->usedChannelCount * ADC_AVERAGE_N_SAMPLES) != HAL_OK)
     {
         /* Start Conversation Error */
     }

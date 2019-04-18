@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <platform.h>
-#ifdef TARGET_CONFIG
+
 #include "config/feature.h"
 #include "drivers/pwm_output.h"
 #include "blackbox/blackbox.h"
@@ -60,4 +60,3 @@ void targetConfiguration(void)
     pidProfileMutable()->bank_mc.pid[PID_LEVEL].D = 75;
 
 }
-#endif

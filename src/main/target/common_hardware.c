@@ -118,7 +118,7 @@
 #endif
 
 /** COMPASS SENSORS **/
-
+#if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)
 #if defined(USE_MAG_HMC5883)
     #if !defined(HMC5883_I2C_BUS)
         #define HMC5883_I2C_BUS MAG_I2C_BUS
@@ -159,7 +159,7 @@
     #if !defined(MAG3110_I2C_BUS)
         #define MAG3110_I2C_BUS MAG_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
 #endif
 
 #if defined(USE_MAG_LIS3MDL)
@@ -175,7 +175,7 @@
     #if !defined(IST8310_I2C_BUS)
         #define IST8310_I2C_BUS MAG_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
 #endif
 
 #if defined(USE_MAG_IST8308)
@@ -183,6 +183,40 @@
         #define IST8308_I2C_BUS MAG_I2C_BUS
     #endif
     BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      IST8308_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
+#endif
+#endif
+
+
+/** 1-Wire IF **/
+
+#ifdef USE_1WIRE
+
+#if defined(TEMPERATURE_I2C_BUS) && !defined(DS2482_I2C_BUS)
+    #define DS2482_I2C_BUS TEMPERATURE_I2C_BUS
+#endif
+
+#if defined(USE_1WIRE_DS2482) && defined(DS2482_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_ds2482,      DEVHW_DS2482,       DS2482_I2C_BUS,     0x18,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);
+#endif
+
+#endif
+
+
+/** TEMP SENSORS **/
+
+#if defined(TEMPERATURE_I2C_BUS) && !defined(LM75_I2C_BUS)
+    #define LM75_I2C_BUS TEMPERATURE_I2C_BUS
+#endif
+
+#if defined(USE_TEMPERATURE_LM75) && defined(LM75_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_lm75_0,      DEVHW_LM75_0,         LM75_I2C_BUS,     0x48,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_1,      DEVHW_LM75_1,         LM75_I2C_BUS,     0x49,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_2,      DEVHW_LM75_2,         LM75_I2C_BUS,     0x4A,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_3,      DEVHW_LM75_3,         LM75_I2C_BUS,     0x4B,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_4,      DEVHW_LM75_4,         LM75_I2C_BUS,     0x4C,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_5,      DEVHW_LM75_5,         LM75_I2C_BUS,     0x4D,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_6,      DEVHW_LM75_6,         LM75_I2C_BUS,     0x4E,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_lm75_7,      DEVHW_LM75_7,         LM75_I2C_BUS,     0x4F,               NONE,           DEVFLAGS_NONE);
 #endif
 
 
@@ -192,31 +226,39 @@
     #if !defined(SRF10_I2C_BUS)
         #define SRF10_I2C_BUS RANGEFINDER_I2C_BUS
     #endif
+    #if defined(SRF10_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_srf10,       DEVHW_SRF10,        SRF10_I2C_BUS,      0x70,               NONE,           DEVFLAGS_NONE);
+    #endif
 #endif
 
 #if defined(USE_RANGEFINDER_HCSR04_I2C)
     #if !defined(HCSR04_I2C_BUS)
         #define HCSR04_I2C_BUS RANGEFINDER_I2C_BUS
     #endif
+    #if defined(HCSR04_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_hcsr04,      DEVHW_HCSR04_I2C,   HCSR04_I2C_BUS,     0x14,               NONE,           DEVFLAGS_NONE);
+    #endif
 #endif
 
 #if defined(USE_RANGEFINDER_VL53L0X)
-    #if !defined(VL53L0X_I2C_BUS)
+    #if !defined(VL53L0X_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
         #define VL53L0X_I2C_BUS RANGEFINDER_I2C_BUS
     #endif
+
+    #if defined(VL53L0X_I2C_BUS)
     BUSDEV_REGISTER_I2C(busdev_vl53l0x,     DEVHW_VL53L0X,      VL53L0X_I2C_BUS,    0x29,               NONE,           DEVFLAGS_NONE);
+    #endif
 #endif
 
 
 /** AIRSPEED SENSORS **/
 
-#if defined(USE_PITOT_MS4525)
-    #if !defined(MS4525_I2C_BUS)
-        #define MS4525_I2C_BUS PITOT_I2C_BUS
-    #endif
-    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_NONE);
+#if defined(PITOT_I2C_BUS) && !defined(MS4525_I2C_BUS)
+    #define MS4525_I2C_BUS PITOT_I2C_BUS
+#endif
+
+#if defined(USE_PITOT_MS4525) && defined(MS4525_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS);    // Requires 0xFF to passthrough
 #endif
 
 
@@ -228,6 +270,14 @@
 
 #if defined(USE_FLASH_M25P16)
     BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE);
+#endif
+
+#if defined(USE_SDCARD) && defined(USE_SDCARD_SPI)
+    BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT | DEVFLAGS_SPI_MODE_0);
+#endif
+
+#if defined(USE_SDCARD) && defined(USE_SDCARD_SDIO)
+    BUSDEV_REGISTER_SDIO(busdev_sdcard_sdio,DEVHW_SDCARD,       SDCARD_SDIO_BUS,    SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT);
 #endif
 
 #if defined(USE_OLED_UG2864)

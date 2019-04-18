@@ -102,11 +102,12 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
-#define USE_PITOT_MS4525
 #define PITOT_I2C_BUS           DEFAULT_I2C_BUS
 
 //USART
@@ -133,9 +134,7 @@
 //LED_STRIP
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB6
-#define WS2811_DMA_STREAM               DMA1_Stream0
-#define WS2811_DMA_CHANNEL              DMA_Channel_2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
+
 //ADC
 #define USE_ADC
 #define ADC_INSTANCE                ADC1

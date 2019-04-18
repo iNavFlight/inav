@@ -8,18 +8,17 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
-    { TIM2,  IO_TAG(PB3), TIM_Channel_2, 0, IOCFG_AF_PP,  GPIO_AF_1,    TIM_USE_PPM | TIM_USE_PWM }, // PPM IN
+    DEF_TIM(TIM2, CH2, PB3, TIM_USE_PPM, 0), // PPM IN
+    
+    DEF_TIM(TIM4,  CH2, PB7, TIM_USE_MC_MOTOR, 0),
+    DEF_TIM(TIM4,  CH1, PB6, TIM_USE_MC_MOTOR, 0),
+    DEF_TIM(TIM17, CH1, PB5, TIM_USE_MC_MOTOR, 0),
+    DEF_TIM(TIM16, CH1, PB4, TIM_USE_MC_MOTOR, 0),
 
-    { TIM4,  IO_TAG(PB7), TIM_Channel_2, 1, IOCFG_AF_PP,  GPIO_AF_2,    TIM_USE_MC_MOTOR }, // PWM4 - S1
-    { TIM4,  IO_TAG(PB6), TIM_Channel_1, 1, IOCFG_AF_PP,  GPIO_AF_2,    TIM_USE_MC_MOTOR }, // PWM5 - S2
-    { TIM17, IO_TAG(PB5), TIM_Channel_1, 1, IOCFG_AF_PP,  GPIO_AF_10,   TIM_USE_MC_MOTOR }, // PWM6 - S3
-    { TIM16, IO_TAG(PB4), TIM_Channel_1, 1, IOCFG_AF_PP,  GPIO_AF_1,    TIM_USE_MC_MOTOR }, // PWM7 - S4
+    DEF_TIM(TIM3,  CH3, PB0, TIM_USE_MC_MOTOR, 0),
+    DEF_TIM(TIM3,  CH4, PB1, TIM_USE_MC_MOTOR, 0),
 
-    { TIM3,  IO_TAG(PB0), TIM_Channel_3, 1, IOCFG_AF_PP,  GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_MOTOR }, // SS1 - PB0  - *TIM3_CH3, TIM1_CH2N, TIM8_CH2N
-    { TIM3,  IO_TAG(PB1), TIM_Channel_4, 1, IOCFG_AF_PP,  GPIO_AF_2,    TIM_USE_PWM | TIM_USE_MC_MOTOR }, // SS1 - PB1  - *TIM3_CH4, TIM1_CH3N, TIM8_CH3N
-
-    { TIM1,  IO_TAG(PA8), TIM_Channel_1, 1, IOCFG_AF_PP,  GPIO_AF_6,    TIM_USE_ANY }, // GPIO TIMER - LED_STRIP
-
+    DEF_TIM(TIM1,  CH1, PA8, TIM_USE_ANY,      0),
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

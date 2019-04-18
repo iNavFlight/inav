@@ -20,9 +20,6 @@
 
 #define TARGET_BOARD_IDENTIFIER "BFF3"
 
-#define CONFIG_FASTLOOP_PREFERRED_ACC ACC_DEFAULT
-#define TARGET_CONFIG
-
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
@@ -86,25 +83,19 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
+#define SPI2_CLOCK_LEADING_EDGE
 
 #define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_BUS    BUS_SPI1
-#define MAX7456_CS_PIN      PA1
+#define MAX7456_SPI_BUS         BUS_SPI1
+#define MAX7456_CS_PIN          PA1
 
 #define USE_SDCARD
-#define USE_SDCARD_SPI2
+#define USE_SDCARD_SPI
 #define SDCARD_DETECT_INVERTED
-
-#define SDCARD_DETECT_PIN                   PC14
-#define SDCARD_SPI_INSTANCE                 SPI2
-#define SDCARD_SPI_CS_PIN                   SPI2_NSS_PIN
-
-//#define SDCARD_SPI_INITIALIZATION_CLOCK_DIVIDER 128 // XXX
-//#define SDCARD_SPI_FULL_SPEED_CLOCK_DIVIDER     2 // XXX
-
-#define SDCARD_DMA_CHANNEL_TX               DMA1_Channel5
-#define SDCARD_DMA_CHANNEL_TX_COMPLETE_FLAG DMA1_FLAG_TC5
+#define SDCARD_DETECT_PIN           PC14
+#define SDCARD_SPI_BUS              BUS_SPI2
+#define SDCARD_CS_PIN               SPI2_NSS_PIN
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
 #define USE_ADC

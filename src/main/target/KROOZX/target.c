@@ -23,17 +23,20 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
-    {TIM8,  IO_TAG(PC7),  TIM_Channel_2,  0, IOCFG_AF_PP_PD,  GPIO_AF_TIM8,     TIM_USE_PPM }, // PPM IN
-    {TIM5,  IO_TAG(PA1),  TIM_Channel_2,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM5,     TIM_USE_MC_MOTOR }, // PWM2
-    {TIM5,  IO_TAG(PA3),  TIM_Channel_4,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM5,     TIM_USE_MC_MOTOR }, // PWM3
-    {TIM5,  IO_TAG(PA0),  TIM_Channel_1,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM5,     TIM_USE_MC_MOTOR }, // PWM4
-    {TIM5,  IO_TAG(PA2),  TIM_Channel_3,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM5,     TIM_USE_MC_MOTOR }, // PWM5
-    {TIM3,  IO_TAG(PB1),  TIM_Channel_4,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM3,     TIM_USE_MC_MOTOR }, // PWM6
-    {TIM3,  IO_TAG(PB0),  TIM_Channel_3,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM3,     TIM_USE_MC_MOTOR }, // PWM7
-    {TIM4,  IO_TAG(PB8),  TIM_Channel_3,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM4,     TIM_USE_MC_MOTOR }, // PWM8
-    {TIM4,  IO_TAG(PB9),  TIM_Channel_4,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM4,     TIM_USE_MC_MOTOR }, // PWM9
-    {TIM12, IO_TAG(PB14), TIM_Channel_1,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM12,    TIM_USE_MC_MOTOR }, // PWM10
-    {TIM12, IO_TAG(PB15), TIM_Channel_2,  1, IOCFG_AF_PP_PD,  GPIO_AF_TIM12,    TIM_USE_MC_MOTOR }, // PWM11
+    DEF_TIM(TIM8, CH2, PC7,  TIM_USE_PPM,   0, 0), // PPM IN
+
+    DEF_TIM(TIM5, CH2, PA1,  TIM_USE_MC_MOTOR, 0, 0), // PWM4
+    DEF_TIM(TIM5, CH4, PA3,  TIM_USE_MC_MOTOR, 0, 0), // PWM2
+    DEF_TIM(TIM5, CH1, PA0,  TIM_USE_MC_MOTOR, 0, 0), // PWM3
+    DEF_TIM(TIM5, CH3, PA2,  TIM_USE_MC_MOTOR, 0, 0), // PWM1
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MC_MOTOR, 0, 0), // PWM5
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MC_MOTOR, 0, 0), // PWM6
+    DEF_TIM(TIM4, CH3, PB8,  TIM_USE_MC_MOTOR, 0, 0), // PWM7
+    DEF_TIM(TIM4, CH4, PB9,  TIM_USE_MC_MOTOR, 0, 0), // PWM8
+    DEF_TIM(TIM4, CH1, PB14, TIM_USE_MC_MOTOR, 0, 0), // PWM9
+    DEF_TIM(TIM4, CH2, PB15, TIM_USE_MC_MOTOR, 0, 0), // PWM10
+
+    DEF_TIM(TIM8, CH1, PC6,  TIM_USE_LED,   0, 0), // LED_STRIP
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
