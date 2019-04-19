@@ -266,14 +266,9 @@ typedef struct {
     float output_constrained;           // controller output constrained
 } pidController_t;
 
-typedef struct {
-    pControllerParam_t param;
-    float output_constrained;
-} pController_t;
-
 typedef struct navigationPIDControllers_s {
     /* Multicopter PIDs */
-    pController_t   pos[XYZ_AXIS_COUNT];
+    pidController_t   pos[XYZ_AXIS_COUNT];
     pidController_t vel[XYZ_AXIS_COUNT];
     pidController_t surface;
 
