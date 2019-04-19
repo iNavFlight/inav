@@ -318,9 +318,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  accgain_z  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
 |  nav_mc_pos_z_p  | 50 | P gain of altitude PID controller (Multirotor) |
 |  nav_fw_pos_z_p  | 50 | P gain of altitude PID controller (Fixedwing) |
-|  nav_mc_pos_z_i  | 0 | I gain of altitude PID controller (Multirotor) |
 |  nav_fw_pos_z_i  | 0 | I gain of altitude PID controller (Fixedwing) |
-|  nav_mc_pos_z_d  | 0 | D gain of altitude PID controller (Multirotor) |
 |  nav_fw_pos_z_d  | 0 | D gain of altitude PID controller (Fixedwing) |
 |  nav_mc_vel_z_p  | 100 | P gain of velocity PID controller |
 |  nav_mc_vel_z_i  | 50 | I gain of velocity PID controller |
