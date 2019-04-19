@@ -2591,6 +2591,9 @@ void osdDrawNextElement(void)
        osdDrawSingleElement(elementIndex);
        elementIndex = osdIncElementIndex(elementIndex);
    } while (elementIndex != 0);
+
+   // Draw artificial horizon last
+   osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
 }
 #else
 void osdDrawNextElement(void)
