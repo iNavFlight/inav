@@ -3031,9 +3031,9 @@ void navigationUsePIDs(void)
         navPidInit(
             &posControl.pids.pos[axis], 
             (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f,
-            (float)pidProfile()->bank_mc.pid[PID_POS_XY].I / 100.0f,
-            (float)pidProfile()->bank_mc.pid[PID_POS_XY].D / 100.0f,
-            (float)pidProfile()->bank_mc.pid[PID_POS_XY].FF / 100.0f,
+            0.0f,
+            0.0f,
+            0.0f,
             NAV_DTERM_CUT_HZ
         );
 
@@ -3049,16 +3049,16 @@ void navigationUsePIDs(void)
     navPidInit(
         &posControl.pids.pos[Z], 
         (float)pidProfile()->bank_mc.pid[PID_POS_Z].P / 100.0f,
-        (float)pidProfile()->bank_mc.pid[PID_POS_Z].I / 100.0f,
-        (float)pidProfile()->bank_mc.pid[PID_POS_Z].D / 100.0f,
-        (float)pidProfile()->bank_mc.pid[PID_POS_Z].FF / 100.0f,
+        0.0f,
+        0.0f,
+        0.0f,
         NAV_DTERM_CUT_HZ
     );
 
     navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 66.7f,
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 20.0f,
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].FF / 100.0f,
+                                        0.0f,
                                         NAV_DTERM_CUT_HZ
     );
 
@@ -3075,14 +3075,14 @@ void navigationUsePIDs(void)
     navPidInit(&posControl.pids.fw_nav, (float)pidProfile()->bank_fw.pid[PID_POS_XY].P / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].I / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_XY].FF / 100.0f,
+                                        0.0f,
                                         NAV_DTERM_CUT_HZ
     );
 
     navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].FF / 100.0f,
+                                        0.0f,
                                         NAV_DTERM_CUT_HZ
     );
 }
