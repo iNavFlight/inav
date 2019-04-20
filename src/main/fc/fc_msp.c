@@ -2372,7 +2372,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
     case MSP_SET_RADAR_POS:
-        if (dataSize >= 21) {
+        if (dataSize >= 19) {
             const uint8_t msp_radar_no = sbufReadU8(src);         // get the radar poi number
             radar_pois[msp_radar_no].state = sbufReadU8(src);     // 0=undefined, 1=armed, 2=hidden
             radar_pois[msp_radar_no].gps.lat = sbufReadU32(src);  // lat
@@ -2380,9 +2380,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             radar_pois[msp_radar_no].gps.alt = sbufReadU32(src);  // to set altitude (cm)
             radar_pois[msp_radar_no].heading = sbufReadU16(src);  // deg
             radar_pois[msp_radar_no].speed = sbufReadU16(src);    // cm/s
-            sbufReadU8(src);       // Name 1
-            sbufReadU8(src);       // Name 2
-            sbufReadU8(src);       // Name 3
             radar_pois[msp_radar_no].ticker = sbufReadU8(src);    // Counts from 0 to 255 then back to 0
             radarCalc(msp_radar_no);
         } else
