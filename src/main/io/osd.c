@@ -2674,7 +2674,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->camera_uptilt = 0;
     osdConfig->camera_fov_h = 135;
     osdConfig->camera_fov_v = 85;
-    osdConfig->hud_margin_h = 6;
+    osdConfig->hud_margin_h = 4;
     osdConfig->hud_margin_v = 3;
     osdConfig->hud_homing = 0;
     osdConfig->hud_homepoint = 1;
@@ -2682,7 +2682,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_radar_range_min = 1;
     osdConfig->hud_radar_range_max = 4000;
     osdConfig->hud_radar_nearest = 0;
-    osdConfig->hud_radar_cycle = 400;
+    osdConfig->hud_radar_cycle = 500;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;
