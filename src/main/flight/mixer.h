@@ -107,12 +107,18 @@ extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
+// Returns wether reversing motor direction is possible
+// (e.g. bidirectional ESC or PWM protocol supports momentarily
+// reversing motor direction).
+bool mixerCanReverseMotors(void);
+// Returns wether the mixer is currently driving the motors
+// in reverse.
+bool mixerIsReversingMotors(void);
 motorStatus_e getMotorStatus(void);
 
 void writeAllMotors(int16_t mc);
 void mixerInit(void);
 void mixerUpdateStateFlags(void);
-void mixerResetDisarmedMotors(void);
 void mixTable(const float dT);
 void writeMotors(void);
 void processServoAutotrim(void);

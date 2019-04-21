@@ -81,7 +81,7 @@ const rcCommand_t *rcControlGetInput(void)
 
 float rcControlGetInputAxis(rc_alias_e axis)
 {
-    if (axis >= ROLL && axis <= THROTTLE) {
+    if (axis <= THROTTLE) {
         return control.input.axes[axis];
     }
     return 0;
@@ -100,7 +100,7 @@ const rcCommand_t *rcControlGetOutput(void)
 
 float rcControlGetOutputAxis(rc_alias_e axis)
 {
-    if (axis >= ROLL && axis <= THROTTLE) {
+    if (axis <= THROTTLE) {
         return control.output.axes[axis];
     }
     return 0;

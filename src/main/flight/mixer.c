@@ -38,7 +38,6 @@
 
 #include "fc/config.h"
 #include "fc/rc_control.h"
-#include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
@@ -55,6 +54,10 @@
 #include "sensors/battery.h"
 
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
+// TODO(agh): Looks like this could be deleted. We set
+// it on startup to the value to be sent to the motors while
+// they're disarmed and we allow changing that via MSP at
+// runtime, however that's never stored, so it seems useless.
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
 static float mixerScale = 1.0f;
@@ -131,6 +134,16 @@ bool mixerIsOutputSaturated(void)
     return motorMixRange >= 1.0f;
 }
 
+bool mixerCanReverseMotors(void)
+{
+    return feature(FEATURE_3D);
+}
+
+bool mixerIsReversingMotors(void)
+{
+    return mixerCanReverseMotors() && rcControlGetOutputAxis(THROTTLE) < 0;
+}
+
 void mixerUpdateStateFlags(void)
 {
     // set flag that we're on something with wings
@@ -156,16 +169,6 @@ void mixerInit(void)
     // in 3D mode, mixer gain has to be halved
     if (feature(FEATURE_3D)) {
         mixerScale = 0.5f;
-    }
-
-    mixerResetDisarmedMotors();
-}
-
-void mixerResetDisarmedMotors(void)
-{
-    // set disarmed motor values
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        motor_disarmed[i] = feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand;
     }
 }
 
@@ -275,27 +278,26 @@ static void applyMotorRateLimiting(const float dT)
 
 void FAST_CODE NOINLINE mixTable(const float dT)
 {
-    float input[3];   // RPY, range [-1:+1]
-    const rcCommand_t *output = rcControlGetOutput();
+    int16_t input[3];   // RPY, range [-500:+500]
     // Allow direct stick input to motors in passthrough mode on airplanes
     if (STATE(FIXED_WING) && FLIGHT_MODE(MANUAL_MODE)) {
         // Direct passthru from RX
-        input[ROLL] = output->roll;
-        input[PITCH] = output->pitch;
-        input[YAW] = output->yaw;
+        input[ROLL] = rcControlGetOutputAxis(ROLL) * 500.0f;
+        input[PITCH] = rcControlGetOutputAxis(PITCH) * 500.0f;
+        input[YAW] = rcControlGetOutputAxis(YAW) * 500.0f;
     }
     else {
-        // TODO: axisPID is not yet [-1;+1]
         input[ROLL] = axisPID[ROLL];
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
-        // TODO: Yaw jump prevention
-#if 0
+
         if (motorCount >= 4 && mixerConfig()->yaw_jump_prevention_limit < YAW_JUMP_PREVENTION_LIMIT_HIGH) {
             // prevent "yaw jump" during yaw correction
-            input[YAW] = constrain(input[YAW], -mixerConfig()->yaw_jump_prevention_limit - ABS(rcCommand[YAW]), mixerConfig()->yaw_jump_prevention_limit + ABS(rcCommand[YAW]));
+            int16_t yawDelta = fabsf(rcControlGetOutputAxis(YAW)) * 500.0f;
+            int16_t yawMin = -mixerConfig()->yaw_jump_prevention_limit - yawDelta;
+            int16_t yawMax = mixerConfig()->yaw_jump_prevention_limit + yawDelta;
+            input[YAW] = constrain(input[YAW], yawMin, yawMax);
         }
-#endif
     }
 
     // Initial mixer concept by bdoiron74 reused and optimized for Air Mode
@@ -317,39 +319,42 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     int16_t rpyMixRange = rpyMixMax - rpyMixMin;
     int16_t throttleRange, throttleCommand;
     int16_t throttleMin, throttleMax;
-    static int16_t throttlePrevious = 0;   // Store the last throttle direction for deadband transitions
 
-// TODO: THR mapping
-#if 0
+    // Store the last throttle direction for deadband transitions
+    static float throttlePreviousOutput = 0;
+
     // Find min and max throttle based on condition.
-    if (feature(FEATURE_3D)) {
-        if (!ARMING_FLAG(ARMED)) throttlePrevious = PWM_RANGE_MIDDLE; // When disarmed set to mid_rc. It always results in positive direction after arming.
+    float throttleOutput = rcControlGetOutputAxis(THROTTLE);
 
-        if ((rcCommand[THROTTLE] <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle))) { // Out of band handling
-            throttleMax = flight3DConfig()->deadband3d_low;
-            throttleMin = motorConfig()->minthrottle;
-            throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if (rcCommand[THROTTLE] >= (PWM_RANGE_MIDDLE + rcControlsConfig()->deadband3d_throttle)) { // Positive handling
-            throttleMax = motorConfig()->maxthrottle;
+    if (mixerCanReverseMotors()) {
+        if (throttleOutput > 0 || (throttleOutput == 0 && throttlePreviousOutput > 0)) { // Positive handling
             throttleMin = flight3DConfig()->deadband3d_high;
-            throttlePrevious = throttleCommand = rcCommand[THROTTLE];
-        } else if ((throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)))  { // Deadband handling from negative to positive
-            throttleCommand = throttleMax = flight3DConfig()->deadband3d_low;
-            throttleMin = motorConfig()->minthrottle;
-        } else {  // Deadband handling from positive to negative
             throttleMax = motorConfig()->maxthrottle;
-            throttleCommand = throttleMin = flight3DConfig()->deadband3d_high;
+
+            throttleCommand = throttleMin + (throttleMax - throttleMin) * throttleOutput;
+        } else {
+            throttleMin = motorConfig()->minthrottle;
+            throttleMax = flight3DConfig()->deadband3d_low;
+
+            throttleCommand = throttleMin + (throttleMax - throttleMin) * (RC_COMMAND_MAX + throttleOutput);
         }
     } else {
-        throttleCommand = rcCommand[THROTTLE];
+        // Clip to [0, 1]
+        throttleOutput = constrainf(throttleOutput, RC_COMMAND_CENTER, RC_COMMAND_MAX);
+
         throttleMin = motorConfig()->minthrottle;
         throttleMax = motorConfig()->maxthrottle;
 
-        // Throttle compensation based on battery voltage
-        if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured())
-            throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+        // Map to [minthrottle, maxthrottle]
+        throttleCommand = throttleMin + (throttleMax - throttleMin) * throttleOutput;
     }
-#endif
+
+    // Throttle compensation based on battery voltage
+    if (feature(FEATURE_THR_VBAT_COMP) && feature(FEATURE_VBAT) && isAmperageConfigured()) {
+        throttleCommand = MIN(throttleMin + (throttleCommand - throttleMin) * calculateThrottleCompensationFactor(), throttleMax);
+    }
+
+    throttlePreviousOutput = throttleOutput;
 
     throttleRange = throttleMax - throttleMin;
 
@@ -377,7 +382,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
             } else if (feature(FEATURE_3D)) {
-                if (throttlePrevious <= (PWM_RANGE_MIDDLE - rcControlsConfig()->deadband3d_throttle)) {
+                if (throttlePreviousOutput < 0) {
                     motor[i] = constrain(motor[i], motorConfig()->minthrottle, flight3DConfig()->deadband3d_low);
                 } else {
                     motor[i] = constrain(motor[i], flight3DConfig()->deadband3d_high, motorConfig()->maxthrottle);
@@ -396,8 +401,9 @@ void FAST_CODE NOINLINE mixTable(const float dT)
             }
         }
     } else {
+        int16_t motorDisarmed = feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand;
         for (int i = 0; i < motorCount; i++) {
-            motor[i] = motor_disarmed[i];
+            motor[i] = motorDisarmed;
         }
     }
 

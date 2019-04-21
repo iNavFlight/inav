@@ -232,6 +232,12 @@ void writeServos(void)
     }
 }
 
+static bool servoYawNeedsReversingWithMotors(void)
+{
+    // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
+    return mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER;
+}
+
 static int16_t servoMixerGetThrottleChannelOutput(void)
 {
     // For backwards compatibility, this considers only
@@ -252,7 +258,6 @@ void servoMixer(float dT)
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
     if (FLIGHT_MODE(MANUAL_MODE)) {
-        const rcCommand_t *rcOutput = rcControlGetOutput();
         input[INPUT_STABILIZED_ROLL] = servoMixerGetRCCommandChannelOutput(ROLL);
         input[INPUT_STABILIZED_PITCH] = servoMixerGetRCCommandChannelOutput(PITCH);
         input[INPUT_STABILIZED_YAW] = servoMixerGetRCCommandChannelOutput(YAW);
@@ -262,10 +267,8 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_PITCH] = axisPID[PITCH];
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
-        // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
 #warning check if mixer is in 3d mode and throttle is negative
-        if (feature(FEATURE_3D) && (rxGetChannelValue(THROTTLE) < PWM_RANGE_MIDDLE) &&
-        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)) {
+        if (mixerIsReversingMotors() && servoYawNeedsReversingWithMotors()) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }
