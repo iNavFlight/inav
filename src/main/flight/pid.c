@@ -110,7 +110,12 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 7);
+static EXTENDED_FASTRAM pt1Filter_t windupLpf[XYZ_AXIS_COUNT];
+static EXTENDED_FASTRAM uint8_t itermRelax;
+static EXTENDED_FASTRAM uint8_t itermRelaxType;
+static EXTENDED_FASTRAM float itermRelaxSetpointThreshold;
+
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 8);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -206,6 +211,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .loiter_direction = NAV_LOITER_RIGHT,
         .navVelXyDTermLpfHz = NAV_ACCEL_CUTOFF_FREQUENCY_HZ,
+        .iterm_relax_type = ITERM_RELAX_SETPOINT,
+        .iterm_relax_cutoff = MC_ITERM_RELAX_CUTOFF_DEFAULT,
+        .iterm_relax = ITERM_RELAX_OFF,
 );
 
 void pidInit(void)
@@ -217,6 +225,10 @@ void pidInit(void)
                            cos_approx(DECIDEGREES_TO_RADIANS(pidProfile()->max_angle_inclination[FD_PITCH]));
 
     pidGainsUpdateRequired = false;
+
+    itermRelax = pidProfile()->iterm_relax;
+    itermRelaxType = pidProfile()->iterm_relax_type;
+    itermRelaxSetpointThreshold = MC_ITERM_RELAX_SETPOINT_THRESHOLD * MC_ITERM_RELAX_CUTOFF_DEFAULT / pidProfile()->iterm_relax_cutoff;
 }
 
 bool pidInitFilters(void)
@@ -264,6 +276,10 @@ bool pidInitFilters(void)
     // Init other filters
     for (int axis = 0; axis < 3; ++ axis) {
         biquadFilterInitLPF(&pidState[axis].deltaLpfState, pidProfile()->dterm_lpf_hz, refreshRate);
+    }
+
+    for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+        pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, refreshRate * 1e-6f);
     }
 
     pidFiltersConfigured = true;
@@ -552,6 +568,36 @@ static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flig
 #endif
 }
 
+static void FAST_CODE applyItermRelax(const int axis, const float iterm,
+    const float gyroRate, float *itermErrorRate, float currentPidSetpoint)
+{
+    const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
+    const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
+
+    if (itermRelax) {
+        if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY || itermRelax == ITERM_RELAX_RPY_INC) {
+            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / itermRelaxSetpointThreshold);
+            const bool isDecreasingI =
+                ((iterm > 0) && (*itermErrorRate < 0)) || ((iterm < 0) && (*itermErrorRate > 0));
+            if ((itermRelax >= ITERM_RELAX_RP_INC) && isDecreasingI) {
+                // Do Nothing, use the precalculed itermErrorRate
+            } else if (itermRelaxType == ITERM_RELAX_SETPOINT) {
+                *itermErrorRate *= itermRelaxFactor;
+            } else if (itermRelaxType == ITERM_RELAX_GYRO ) {
+                *itermErrorRate = fapplyDeadband(setpointLpf - gyroRate, setpointHpf);
+            } else {
+                *itermErrorRate = 0.0f;
+            }
+
+            if (axis == FD_ROLL) {
+                DEBUG_SET(DEBUG_ITERM_RELAX, 0, lrintf(setpointHpf));
+                DEBUG_SET(DEBUG_ITERM_RELAX, 1, lrintf(itermRelaxFactor * 100.0f));
+                DEBUG_SET(DEBUG_ITERM_RELAX, 2, lrintf(*itermErrorRate));
+            }
+        }
+    }
+}
+
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
@@ -605,7 +651,10 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
     const float motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
     const float antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
 
-    pidState->errorGyroIf += (rateError * pidState->kI * antiWindupScaler * dT)
+    float itermErrorRate = rateError;
+    applyItermRelax(axis, pidState->errorGyroIf, pidState->gyroRate, &itermErrorRate, pidState->rateTarget);
+
+    pidState->errorGyroIf += (itermErrorRate * pidState->kI * antiWindupScaler * dT)
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);
 
     // Don't grow I-term if motors are at their limit
