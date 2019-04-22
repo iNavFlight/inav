@@ -568,20 +568,17 @@ static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flig
 #endif
 }
 
-static void FAST_CODE applyItermRelax(const int axis, const float iterm,
-    const float gyroRate, float *itermErrorRate, float currentPidSetpoint)
+static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, float currentPidSetpoint, float *itermErrorRate)
 {
     const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
     const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
 
     if (itermRelax) {
-        if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY || itermRelax == ITERM_RELAX_RPY_INC) {
+        if (axis < FD_YAW || itermRelax == ITERM_RELAX_RPY) {
+
             const float itermRelaxFactor = MAX(0, 1 - setpointHpf / itermRelaxSetpointThreshold);
-            const bool isDecreasingI =
-                ((iterm > 0) && (*itermErrorRate < 0)) || ((iterm < 0) && (*itermErrorRate > 0));
-            if ((itermRelax >= ITERM_RELAX_RP_INC) && isDecreasingI) {
-                // Do Nothing, use the precalculed itermErrorRate
-            } else if (itermRelaxType == ITERM_RELAX_SETPOINT) {
+
+            if (itermRelaxType == ITERM_RELAX_SETPOINT) {
                 *itermErrorRate *= itermRelaxFactor;
             } else if (itermRelaxType == ITERM_RELAX_GYRO ) {
                 *itermErrorRate = fapplyDeadband(setpointLpf - gyroRate, setpointHpf);
@@ -652,7 +649,7 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
     const float antiWindupScaler = constrainf((1.0f - getMotorMixRange()) / motorItermWindupPoint, 0.0f, 1.0f);
 
     float itermErrorRate = rateError;
-    applyItermRelax(axis, pidState->errorGyroIf, pidState->gyroRate, &itermErrorRate, pidState->rateTarget);
+    applyItermRelax(axis, pidState->gyroRate, pidState->rateTarget, &itermErrorRate);
 
     pidState->errorGyroIf += (itermErrorRate * pidState->kI * antiWindupScaler * dT)
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);

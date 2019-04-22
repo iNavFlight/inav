@@ -115,7 +115,7 @@ tables:
   - name: log_level
     values: ["ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG"]
   - name: iterm_relax
-    values: ["OFF", "RP", "RPY", "RP_INC", "ITERM_RELAX_RPY_INC"]
+    values: ["OFF", "RP", "RPY"]
     enum: itermRelax_e
   - name: iterm_relax_type
     values: ["GYRO", "SETPOINT"]
