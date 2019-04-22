@@ -142,19 +142,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             // Make sure we can satisfy max_manual_climb_rate in both up and down directions
             if (rcThrottleAdjustment > 0) {
                 // Scaling from altHoldThrottleRCZero to maxthrottle
-<<<<<<< HEAD
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(motorConfig()->maxthrottle - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
-            }
-            else {
-                // Scaling from minthrottle to altHoldThrottleRCZero
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - motorConfig()->minthrottle - rcControlsConfig()->alt_hold_deadband);
-=======
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (RC_COMMAND_MAX - altHoldThrottleRCZero - altHoldDeadband);
             }
             else {
                 // Scaling from minthrottle to altHoldThrottleRCZero
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (altHoldThrottleRCZero - RC_COMMAND_CENTER - altHoldDeadband);
->>>>>>> WIP [skip ci]
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
@@ -393,17 +385,17 @@ void resetMulticopterPositionController(void)
 
 bool adjustMulticopterPositionFromRCInput(float rcPitchAdjustment, float rcRollAdjustment)
 {
-    // TODO: Needs to accept floats in [-1,1]
+    bool isAdjusting = rcPitchAdjustment != 0 || rcRollAdjustment != 0;
 
     // Process braking mode
-    processMulticopterBrakingMode(rcPitchAdjustment || rcRollAdjustment);
+    processMulticopterBrakingMode(isAdjusting);
 
     // Actually change position
-    if (rcPitchAdjustment || rcRollAdjustment) {
+    if (isAdjusting) {
         // If mode is GPS_CRUISE, move target position, otherwise POS controller will passthru the RC input to ANGLE PID
         if (navConfig()->general.flags.user_control_mode == NAV_GPS_CRUISE) {
-            const float rcVelX = rcPitchAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
-            const float rcVelY = rcRollAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
+            const float rcVelX = rcPitchAdjustment * navConfig()->general.max_manual_speed;
+            const float rcVelY = rcRollAdjustment * navConfig()->general.max_manual_speed;
 
             // Rotate these velocities from body frame to to earth frame
             const float neuVelX = rcVelX * posControl.actualState.cosYaw - rcVelY * posControl.actualState.sinYaw;
