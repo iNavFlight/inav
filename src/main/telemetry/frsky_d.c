@@ -194,7 +194,7 @@ static void sendGpsAltitude(void)
 
 static void sendThrottleOrBatterySizeAsRpm(void)
 {
-    uint16_t throttleForRPM = ABS(rcControlGetOutput()->throttle) * (1000.0f / BLADE_NUMBER_DIVIDER);
+    uint16_t throttleForRPM = fabsf(rcControlGetOutput()->throttle) * (1000.0f / BLADE_NUMBER_DIVIDER);
     sendDataHead(ID_RPM);
     if (ARMING_FLAG(ARMED)) {
         const throttleStatus_e throttleStatus = calculateThrottleStatus();

@@ -400,7 +400,7 @@ static float calculateMultirotorTPAFactor(void)
     float tpaFactor;
 
     // TPA should be updated only when TPA is actually set
-    float thr = ABS(rcControlGetOutput()->throttle);
+    float thr = fabsf(rcControlGetOutput()->throttle);
     float paBreakpoint = rcCommandMapUnidirectionalPWMValue(currentControlRateProfile->throttle.pa_breakpoint);
     if (currentControlRateProfile->throttle.dynPID == 0 || thr < paBreakpoint) {
         tpaFactor = 1.0f;
@@ -486,9 +486,9 @@ static float calcHorizonRateMagnitude(void)
 {
     // Figure out the raw stick positions
     const rcCommand_t *input = rcControlGetInput();
-    const float pitchDeflection = ABS(input->pitch);
+    const float pitchDeflection = fabsf(input->pitch);
 
-    const float rollDeflection = ABS(input->roll);
+    const float rollDeflection = fabsf(input->roll);
     const float mostDeflectedStickPos = MAX(pitchDeflection, rollDeflection);
     const float modeTransitionStickPos = constrain(pidBank()->pid[PID_LEVEL].D, 0, 100) / 100.0f;
 

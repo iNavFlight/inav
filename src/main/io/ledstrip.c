@@ -666,7 +666,7 @@ static void applyLedIndicatorLayer(bool updateNow, timeUs_t *timer)
     if (updateNow) {
         if (rxIsReceivingSignal()) {
             // calculate update frequency
-            float scale = MAX(ABS(controlOutput->roll), ABS(controlOutput->pitch));  // 0 - 1
+            float scale = MAX(fabsf(controlOutput->roll), fabsf(controlOutput->pitch));  // 0 - 1
             scale = applyDeadbandf(scale, INDICATOR_DEADBAND);
             *timer += LED_STRIP_HZ(5) * 50 / MAX(50, scale * 500.0f);   // 5 - 50Hz update, 2.5 - 25Hz blink
 

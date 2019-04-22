@@ -440,7 +440,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
         case CURRENT_SENSOR_VIRTUAL:
             amperage = batteryMetersConfig()->current.offset;
             if (ARMING_FLAG(ARMED)) {
-                int32_t throttleOffset = ABS(rcControlGetOutput()->throttle) * 1000;
+                int32_t throttleOffset = fabsf(rcControlGetOutput()->throttle) * 1000;
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
             }

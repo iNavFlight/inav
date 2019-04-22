@@ -92,7 +92,7 @@ bool areSticksDeflectedMoreThanPosHoldDeadband(void)
 {
     const rcCommand_t *input = rcControlGetInput();
     float deadband = rcCommandConvertPWMDeadband(rcControlsConfig()->pos_hold_deadband);
-    return ABS(input->roll) > deadband || ABS(input->pitch) > deadband;
+    return fabsf(input->roll) > deadband || fabsf(input->pitch) > deadband;
 }
 
 throttleStatus_e calculateThrottleStatus(void)
