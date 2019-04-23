@@ -610,7 +610,7 @@ void processRx(timeUs_t currentTimeUs)
         else {
             DISABLE_STATE(ANTI_WINDUP);
         }
-    } else if (rcControlsConfig()->airmodeHandlingType == AIRMODE_THROTTLE_THRESHOLD) {
+    } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
         DISABLE_STATE(ANTI_WINDUP);
         //This case applies only to MR when Airmode management is throttle threshold activated
         if (throttleStatus == THROTTLE_LOW && !isAirmodeActive()) {
