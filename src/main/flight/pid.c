@@ -581,7 +581,7 @@ static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, floa
             if (itermRelaxType == ITERM_RELAX_SETPOINT) {
                 *itermErrorRate *= itermRelaxFactor;
             } else if (itermRelaxType == ITERM_RELAX_GYRO ) {
-                *itermErrorRate = fapplyDeadband(setpointLpf - gyroRate, setpointHpf);
+                *itermErrorRate = fapplyDeadbandf(setpointLpf - gyroRate, setpointHpf);
             } else {
                 *itermErrorRate = 0.0f;
             }

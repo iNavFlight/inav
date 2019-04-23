@@ -139,7 +139,7 @@ int32_t applyDeadband(int32_t value, int32_t deadband)
     return value;
 }
 
-float fapplyDeadband(const float value, const float deadband)
+float fapplyDeadbandf(float value, float deadband)
 {
     if (fabsf(value) < deadband) {
         return 0;
