@@ -20,7 +20,7 @@ static float getAxisRcCommand(float input, uint8_t expo, float deadband)
     // constrain here, since the only caller is rcControlUpdateFromRX()
     // which already constrains the input.
     // TODO: Precompute expo/100.0f
-    float stickDeflection = applyDeadbandf(input, deadband) / (RC_COMMAND_MAX - deadband);
+    float stickDeflection = fapplyDeadbandf(input, deadband) / (RC_COMMAND_MAX - deadband);
     return rcCurveApplyExpo(stickDeflection, expo / 100.0f);
 }
 
@@ -44,7 +44,7 @@ void rcControlUpdateFromRX(void)
     control.input.yaw = rcCommandMapPWMValue(yaw);
     if (throttleIsBidirectional()) {
         float deadband3d_throttle = rcCommandConvertPWMDeadband(rcControlsConfig()->deadband3d_throttle);
-        control.input.throttle = applyDeadbandf(rcCommandMapPWMValue(throttle), deadband3d_throttle);
+        control.input.throttle = fapplyDeadbandf(rcCommandMapPWMValue(throttle), deadband3d_throttle);
     } else {
         if (throttle < rxConfig()->mincheck) {
             control.input.throttle = 0;
@@ -92,7 +92,7 @@ float rcControlGetInputAxis(rc_alias_e axis)
 float rcControlGetInputAxisApplyingPosholdDeadband(rc_alias_e axis)
 {
     float deadband = rcCommandConvertPWMDeadband(rcControlsConfig()->pos_hold_deadband);
-    return applyDeadbandf(rcControlGetInputAxis(axis), deadband) / (RC_COMMAND_MAX - deadband);
+    return fapplyDeadbandf(rcControlGetInputAxis(axis), deadband) / (RC_COMMAND_MAX - deadband);
 }
 
 const rcCommand_t *rcControlGetOutput(void)

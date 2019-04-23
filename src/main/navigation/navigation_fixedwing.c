@@ -230,7 +230,7 @@ static int8_t loiterDirection(void) {
         case NAV_LOITER_YAW:
         {
             // Require the stick to be either in the first 25% or the last 25% of the range
-            float yaw = applyDeadbandf(rcControlGetInputAxis(YAW), RC_COMMAND_RANGE / 4.0f);
+            float yaw = fapplyDeadbandf(rcControlGetInputAxis(YAW), RC_COMMAND_RANGE / 4.0f);
             if (yaw > 0) {
                 // Turn to the right
                 loiterDirYaw = 1;
