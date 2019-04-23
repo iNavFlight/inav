@@ -22,6 +22,8 @@
 #define AUTO_DISARM_DELAY_MIN 0
 #define AUTO_DISARM_DELAY_MAX 60
 
+#define AIRMODE_THROTTLE_THRESHOLD 1250
+
 typedef enum rc_alias {
     ROLL = 0,
     PITCH,
@@ -52,6 +54,11 @@ typedef enum {
 } rollPitchStatus_e;
 
 typedef enum {
+    STICK_CENTER = 0,
+    THROTTLE_THRESHOLD
+} airmodeAndAntiWindupHandlingType_e;
+
+typedef enum {
     ROL_LO = (1 << (2 * ROLL)),
     ROL_CE = (3 << (2 * ROLL)),
     ROL_HI = (2 << (2 * ROLL)),
@@ -77,6 +84,7 @@ typedef struct rcControlsConfig_s {
     uint8_t pos_hold_deadband;              // Adds ability to adjust the Hold-position when moving the sticks (assisted mode)
     uint8_t alt_hold_deadband;              // Defines the neutral zone of throttle stick during altitude hold
     uint16_t deadband3d_throttle;           // default throttle deadband from MIDRC
+    uint8_t airmodeHandlingType;            // Defaults to ANTI_WINDUP triggered at sticks centered
 } rcControlsConfig_t;
 
 PG_DECLARE(rcControlsConfig_t, rcControlsConfig);

@@ -31,6 +31,7 @@
 
 #include "fc/config.h"
 #include "fc/rc_controls.h"
+#include "fc/runtime_config.h"
 
 #include "rx/rx.h"
 
@@ -39,6 +40,8 @@ static bool isUsingSticksToArm = true;
 #ifdef USE_NAV
 static bool isUsingNAVModes = false;
 #endif
+
+static EXTENDED_FASTRAM uint8_t airmodeActivationFlag = false;
 
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 
@@ -59,9 +62,45 @@ bool isUsingSticksForArming(void)
     return isUsingSticksToArm;
 }
 
+void processAirmode(void) {
+    if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+        airmodeActivationFlag = feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
+    } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
+
+        if (!ARMING_FLAG(ARMED)) {
+            /*
+             * Disarm disables airmode immediately
+             */
+            airmodeActivationFlag = false;
+        } else if (
+            !airmodeActivationFlag && 
+            rcCommand[THROTTLE] > AIRMODE_THROTTLE_THRESHOLD &&
+            (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
+        ) {
+            /*
+             * Airmode is allowed to be active only after ARMED and then THROTTLE goes above
+             * activation threshold
+             */
+            airmodeActivationFlag = true;
+        } else if (
+            airmodeActivationFlag &&
+            !feature(FEATURE_AIRMODE) &&
+            !IS_RC_MODE_ACTIVE(BOXAIRMODE)
+        ) {
+            /*
+             *  When user disables BOXAIRMODE, turn airmode off as well
+             */
+            airmodeActivationFlag = false;
+        }
+
+    } else {
+        airmodeActivationFlag = false;
+    }
+}
+
 bool isAirmodeActive(void)
 {
-    return feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
+    return airmodeActivationFlag;
 }
 
 #if defined(USE_NAV)

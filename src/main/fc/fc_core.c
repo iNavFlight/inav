@@ -485,7 +485,7 @@ void processRx(timeUs_t currentTimeUs)
     }
 
     processRcStickPositions(throttleStatus);
-
+    processAirmode();
     updateActivatedModes();
 
 #ifdef USE_PINIOBOX
@@ -589,7 +589,7 @@ void processRx(timeUs_t currentTimeUs)
         /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
         pidResetErrorAccumulators();
     }
-    else {
+    else if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
             if (isAirmodeActive() && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
@@ -609,6 +609,12 @@ void processRx(timeUs_t currentTimeUs)
         }
         else {
             DISABLE_STATE(ANTI_WINDUP);
+        }
+    } else if (rcControlsConfig()->airmodeHandlingType == AIRMODE_THROTTLE_THRESHOLD) {
+        DISABLE_STATE(ANTI_WINDUP);
+        //This case applies only to MR when Airmode management is throttle threshold activated
+        if (throttleStatus == THROTTLE_LOW && !isAirmodeActive()) {
+            pidResetErrorAccumulators();
         }
     }
 
