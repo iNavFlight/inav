@@ -74,7 +74,7 @@ void processAirmode(void) {
             airmodeActivationFlag = false;
         } else if (
             !airmodeActivationFlag && 
-            rcCommand[THROTTLE] > AIRMODE_THROTTLE_THRESHOLD &&
+            rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
             (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
         ) {
             /*

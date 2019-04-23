@@ -85,6 +85,7 @@ typedef struct rcControlsConfig_s {
     uint8_t alt_hold_deadband;              // Defines the neutral zone of throttle stick during altitude hold
     uint16_t deadband3d_throttle;           // default throttle deadband from MIDRC
     uint8_t airmodeHandlingType;            // Defaults to ANTI_WINDUP triggered at sticks centered
+    uint16_t airmodeThrottleThreshold;      // Throttle threshold for airmode initial activation
 } rcControlsConfig_t;
 
 PG_DECLARE(rcControlsConfig_t, rcControlsConfig);

@@ -77,7 +77,8 @@ PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .pos_hold_deadband = 20,
     .alt_hold_deadband = 50,
     .deadband3d_throttle = 50,
-    .airmodeHandlingType = STICK_CENTER
+    .airmodeHandlingType = STICK_CENTER,
+    .airmodeThrottleThreshold = AIRMODE_THROTTLE_THRESHOLD,
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 1);
