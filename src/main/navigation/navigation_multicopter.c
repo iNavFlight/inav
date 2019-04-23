@@ -55,8 +55,7 @@
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
 static float rcCommandAdjustedThrottle;
-// Assume 50% of positive throttle to keep altitude
-static float altHoldThrottleRCZero = RC_COMMAND_MAX * 0.5f;
+static float altHoldThrottleRCZero;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 
@@ -182,9 +181,12 @@ void setupMulticopterAltitudeController(void)
     }
 
     // Make sure we are able to satisfy the deadband
-    altHoldThrottleRCZero = constrain(altHoldThrottleRCZero,
-                                      motorConfig()->minthrottle + rcControlsConfig()->alt_hold_deadband + 10,
-                                      motorConfig()->maxthrottle - rcControlsConfig()->alt_hold_deadband - 10);
+    float altHoldDeadband = rcCommandConvertPWMDeadband(rcControlsConfig()->alt_hold_deadband);
+    // This used to be 10 PWM units (1000 range)
+    float altHoldDeadbandMargin = 0.01f;
+    float altHoldThrMin = RC_COMMAND_CENTER + altHoldDeadband + altHoldDeadbandMargin;
+    float altHoldThrMax = RC_COMMAND_MAX - altHoldDeadband - altHoldDeadbandMargin;
+    altHoldThrottleRCZero = constrain(altHoldThrottleRCZero, altHoldThrMin, altHoldThrMax);
 
     // Force AH controller to initialize althold integral for pending takeoff on reset
     // Signal for that is low throttle _and_ low actual altitude

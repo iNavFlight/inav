@@ -27,6 +27,7 @@
 
 #include "common/axis.h"
 #include "common/filter.h"
+#include "common/log.h"
 #include "common/maths.h"
 
 #include "config/config_reset.h"
@@ -267,7 +268,6 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_PITCH] = axisPID[PITCH];
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
 
-#warning check if mixer is in 3d mode and throttle is negative
         if (mixerIsReversingMotors() && servoYawNeedsReversingWithMotors()) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }

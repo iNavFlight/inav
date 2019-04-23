@@ -14,12 +14,14 @@
 
 static rcControl_t control;
 
-static float getAxisRcCommand(float input, int16_t rate, float deadband)
+static float getAxisRcCommand(float input, uint8_t expo, float deadband)
 {
-    float constrained = constrainf(input, RC_COMMAND_MIN, RC_COMMAND_MAX);
-    float stickDeflection = applyDeadbandf(constrained, deadband);
-
-    return rcCurveApplyExpo(stickDeflection, rate);
+    // XXX: As long as we make sure expo is in [0, 100], there's no need to
+    // constrain here, since the only caller is rcControlUpdateFromRX()
+    // which already constrains the input.
+    // TODO: Precompute expo/100.0f
+    float stickDeflection = applyDeadbandf(input, deadband) / (RC_COMMAND_MAX - deadband);
+    return rcCurveApplyExpo(stickDeflection, expo / 100.0f);
 }
 
 static bool throttleIsBidirectional(void)
