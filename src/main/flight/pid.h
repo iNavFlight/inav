@@ -50,6 +50,9 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_LEVEL_P_MULTIPLIER   6.56f       // Level P gain units is [1/sec] and angle error is [deg] => [deg/s]
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
+#define MC_ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
+#define MC_ITERM_RELAX_CUTOFF_DEFAULT 20
+
 typedef enum {
     /* PID              MC      FW  */
     PID_ROLL,       //   +       +
@@ -75,6 +78,17 @@ typedef struct pid8_s {
 typedef struct pidBank_s {
     pid8_t  pid[PID_ITEM_COUNT];
 } pidBank_t;
+
+typedef enum {
+    ITERM_RELAX_OFF = 0,
+    ITERM_RELAX_RP,
+    ITERM_RELAX_RPY
+} itermRelax_e;
+
+typedef enum {
+    ITERM_RELAX_GYRO = 0,
+    ITERM_RELAX_SETPOINT
+} itermRelaxType_e;
 
 typedef struct pidProfile_s {
     pidBank_t bank_fw;
@@ -109,6 +123,10 @@ typedef struct pidProfile_s {
 
     uint8_t     loiter_direction;               // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
     float       navVelXyDTermLpfHz;
+
+    uint8_t iterm_relax_type;               // Specifies type of relax algorithm
+    uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
+    uint8_t iterm_relax;                    // Enable iterm suppression during stick input
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
