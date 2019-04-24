@@ -79,12 +79,11 @@ PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .deadband3d_throttle = 50
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 2);
 
 PG_RESET_TEMPLATE(armingConfig_t, armingConfig,
     .fixed_wing_auto_arm = 0,
     .disarm_kill_switch = 1,
-    .auto_disarm_delay = 5,
     .switchDisarmDelayMs = DEFAULT_RC_SWITCH_DISARM_DELAY_MS,
 );
 

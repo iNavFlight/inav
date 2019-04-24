@@ -793,9 +793,6 @@ groups:
         type: bool
       - name: disarm_kill_switch
         type: bool
-      - name: auto_disarm_delay
-        min: 0
-        max: 60
       - name: switch_disarm_delay
         field: switchDisarmDelayMs
         min: 0
