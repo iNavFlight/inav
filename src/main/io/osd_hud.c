@@ -133,23 +133,6 @@ int radarGetFarthestPoi()
     return poi;
 }
 
-
-/* Calculate the signal quality
- */
-
-void radarUpdateSignal(uint8_t poi_id)
-{
-    uint32_t now = millis();
-    uint16_t diff_time = millis() - radar_pois[poi_id].pasttime;
-
-    if (diff_time > osdConfig()->hud_radar_cycle * 9) { 
-        int diff_tick = (radar_pois[poi_id].ticker - radar_pois[poi_id].pasttick) % 255;
-        radar_pois[poi_id].signal = constrain(diff_tick / 2, 0 , 4);
-        radar_pois[poi_id].pasttime = now;
-        radar_pois[poi_id].pasttick = radar_pois[poi_id].ticker;
-    }
-}
-
 /* Display one POI on the hud, centered on crosshair position.
  * poiDistance and poiAltitude in meters, poiAltitude is relative to the aircraft (negative means below)
  */
@@ -351,8 +334,8 @@ void osdHudDrawNearest(uint8_t px, uint8_t py)
     char buftmp[18];
 
     if (poi_id >= 0) {
-        tfp_sprintf(buftmp, "%c %3d%c %4d%c %3d%c", 65 + poi_id,
-            radar_pois[poi_id].ticker, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].signal,
+        tfp_sprintf(buftmp, "%c%c %4d%c %3d%c", 65 + poi_id,
+            SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq,
             radar_pois[poi_id].distance, SYM_DIST_M,
             radar_pois[poi_id].direction, SYM_DEGREES
             );

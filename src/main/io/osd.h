@@ -228,7 +228,6 @@ typedef struct osdConfig_s {
     uint16_t hud_radar_range_min;
     uint16_t hud_radar_range_max;
     bool hud_radar_nearest;
-    uint16_t hud_radar_cycle;
     
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
@@ -286,4 +285,3 @@ void osdHudDrawNearest(uint8_t px, uint8_t py);
 
 int radarGetNearestPoi();
 int radarGetFarthestPoi();
-void radarUpdateSignal(uint8_t poi_id);

@@ -1646,8 +1646,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
                 for (int i = 0; i < osdConfig()->hud_radar_disp; i++) {
                     if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
-                        radarUpdateSignal(i);
-                        osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].signal, 65 + i);
+                        osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
                     }
                 }
             }
@@ -2682,7 +2681,6 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_radar_range_min = 1;
     osdConfig->hud_radar_range_max = 4000;
     osdConfig->hud_radar_nearest = 0;
-    osdConfig->hud_radar_cycle = 500;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;
