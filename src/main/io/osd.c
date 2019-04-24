@@ -600,10 +600,6 @@ static const char * osdArmingDisabledReasonMessage(void)
             // See handling of FAILSAFE_RX_LOSS_MONITORING in failsafe.c
             if (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) {
                 if (failsafeIsReceivingRxData()) {
-                    if (isUsingSticksForArming()) {
-                        // Need to power-cycle
-                        return OSD_MESSAGE_STR("POWER CYCLE TO ARM");
-                    }
                     // If we're not using sticks, it means the ARM switch
                     // hasn't been off since entering FAILSAFE_RX_LOSS_MONITORING
                     // yet

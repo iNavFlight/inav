@@ -54,11 +54,6 @@ boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
 
-bool isUsingSticksForArming(void)
-{
-    return isUsingSticksToArm;
-}
-
 bool isAirmodeActive(void)
 {
     return feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
