@@ -35,7 +35,6 @@
 #include "rx/rx.h"
 
 static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
-static bool isUsingSticksToArm = true;
 #ifdef USE_NAV
 static bool isUsingNAVModes = false;
 #endif
@@ -153,8 +152,6 @@ void updateUsedModeActivationConditionFlags(void)
             specifiedConditionCountPerMode[modeActivationConditions(index)->modeId]++;
         }
     }
-
-    isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM);
 
 #ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
