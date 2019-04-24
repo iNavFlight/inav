@@ -250,13 +250,11 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: Arming switch */
-        if (!isUsingSticksForArming()) {
-            // If arming is disabled and the ARM switch is on
-            if (isArmingDisabled() && IS_RC_MODE_ACTIVE(BOXARM)) {
-                ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-            } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
-                DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-            }
+        // If arming is disabled and the ARM switch is on
+        if (isArmingDisabled() && IS_RC_MODE_ACTIVE(BOXARM)) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
+        } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
         }
 
         /* CHECK: BOXFAILSAFE */
@@ -654,17 +652,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
 #endif
-
-    // If we're armed, at minimum throttle, and we do arming via the
-    // sticks, do not process yaw input from the rx.  We do this so the
-    // motors do not spin up while we are trying to arm or disarm.
-    // Allow yaw control for tricopters if the user wants the servo to move even when unarmed.
-    if (isUsingSticksForArming() && rxGetChannelValue(THROTTLE) <= rxConfig()->mincheck
-            && !((mixerConfig()->platformType == PLATFORM_TRICOPTER) && servoConfig()->tri_unarmed_servo)
-            && mixerConfig()->platformType != PLATFORM_AIRPLANE
-    ) {
-        rcCommand[YAW] = 0;
-    }
 
     // Apply throttle tilt compensation
     if (!STATE(FIXED_WING)) {

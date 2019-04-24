@@ -177,25 +177,23 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     rcSticks = stTmp;
 
     // perform actions
-    if (!isUsingSticksForArming()) {
-        if (IS_RC_MODE_ACTIVE(BOXARM)) {
-            rcDisarmTimeMs = currentTimeMs;
-            tryArm();
-        } else {
-            // Disarming via ARM BOX
-            // Don't disarm via switch if failsafe is active or receiver doesn't receive data - we can't trust receiver
-            // and can't afford to risk disarming in the air
-            if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
-                const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
-                if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
-                    if (armingConfig()->disarm_kill_switch || (throttleStatus == THROTTLE_LOW)) {
-                        disarm(DISARM_SWITCH);
-                    }
+    if (IS_RC_MODE_ACTIVE(BOXARM)) {
+        rcDisarmTimeMs = currentTimeMs;
+        tryArm();
+    } else {
+        // Disarming via ARM BOX
+        // Don't disarm via switch if failsafe is active or receiver doesn't receive data - we can't trust receiver
+        // and can't afford to risk disarming in the air
+        if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
+            const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
+            if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
+                if (armingConfig()->disarm_kill_switch || (throttleStatus == THROTTLE_LOW)) {
+                    disarm(DISARM_SWITCH);
                 }
             }
-            else {
-                rcDisarmTimeMs = currentTimeMs;
-            }
+        }
+        else {
+            rcDisarmTimeMs = currentTimeMs;
         }
     }
 
@@ -207,23 +205,6 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     if (rcDelayCommand != 20) {
         return;
     }
-
-   if (isUsingSticksForArming()) {
-        // Disarm on throttle down + yaw
-        if (rcSticks == THR_LO + YAW_LO + PIT_CE + ROL_CE) {
-            // Dont disarm if fixedwing and motorstop
-            if (STATE(FIXED_WING) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
-                return;
-            }
-            else if (ARMING_FLAG(ARMED)) {
-                disarm(DISARM_STICKS);
-            }
-            else {
-                beeper(BEEPER_DISARM_REPEAT);    // sound tone while stick held
-                rcDelayCommand = 0;              // reset so disarm tone will repeat
-            }
-        }
-   }
 
     if (ARMING_FLAG(ARMED)) {
         // actions during armed
@@ -294,39 +275,17 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         saveConfigAndNotify();
     }
 
-
-    // Arming by sticks
-    if (isUsingSticksForArming()) {
-        if (STATE(FIXED_WING) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
-            // Auto arm on throttle when using fixedwing and motorstop
-            if (throttleStatus != THROTTLE_LOW) {
-                tryArm();
-                return;
-            }
-        }
-        else {
-            if (rcSticks == THR_LO + YAW_HI + PIT_CE + ROL_CE) {
-                // Arm via YAW
-                tryArm();
-                return;
-            }
-        }
-    }
-
-
     // Calibrating Acc
     if (rcSticks == THR_HI + YAW_LO + PIT_LO + ROL_CE) {
         accStartCalibration();
         return;
     }
 
-
     // Calibrating Mag
     if (rcSticks == THR_HI + YAW_HI + PIT_LO + ROL_CE) {
         ENABLE_STATE(CALIBRATE_MAG);
         return;
     }
-
 
     // Accelerometer Trim
     if (rcSticks == THR_HI + YAW_CE + PIT_HI + ROL_CE) {
