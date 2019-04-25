@@ -369,10 +369,6 @@ int8_t navigationGetHeadingControlState(void);
 // If usedBypass is provided, it will indicate wether any checks
 // were bypassed due to user input.
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass);
-// If navigation arming block bypass is used for arming, it's kept
-// until power off. This allows rearming quickly in case of an
-// accidentatal mid-air disarm.
-void navigationSetBlockingArmingBypassWithoutSticks(bool allow);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
 bool navigationTerrainFollowingEnabled(void);

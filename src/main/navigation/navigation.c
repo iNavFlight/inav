@@ -167,7 +167,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
 navigationPosControl_t  posControl;
 navSystemStatus_t       NAV_Status;
-static bool blockingArmingBypassWithoutSticks;
 
 #if defined(NAV_BLACKBOX)
 int16_t navCurrentState;
@@ -2938,7 +2937,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     // Apply extra arming safety only if pilot has any of GPS modes configured
     if ((isUsingNavigationModes() || failsafeMayRequireNavigationMode()) && !((posControl.flags.estPosStatus >= EST_USABLE) && STATE(GPS_FIX_HOME))) {
         if (navConfig()->general.flags.extra_arming_safety == NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS &&
-            (blockingArmingBypassWithoutSticks || rxGetChannelValue(YAW) > 1750)) {
+            (STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED) || rxGetChannelValue(YAW) > 1750)) {
             if (usedBypass) {
                 *usedBypass = true;
             }
@@ -2965,11 +2964,6 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     }
 
     return NAV_ARMING_BLOCKER_NONE;
-}
-
-void navigationSetBlockingArmingBypassWithoutSticks(bool allow)
-{
-    blockingArmingBypassWithoutSticks = allow;
 }
 
 bool navigationPositionEstimateIsHealthy(void)

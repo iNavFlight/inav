@@ -375,12 +375,14 @@ void tryArm(void)
         }
 
 #if defined(USE_NAV)
-        // Check if we need to make the navigation safety
-        // bypass permanent until power off. See documentation
-        // for these functions.
+        // If nav_extra_arming_safety was bypassed we always
+        // allow bypassing it even without the sticks set
+        // in the correct position to allow re-arming quickly
+        // in case of a mid-air accidental disarm.
         bool usedBypass = false;
-        if (navigationIsBlockingArming(&usedBypass)) {
-            navigationSetBlockingArmingBypassWithoutSticks(true);
+        navigationIsBlockingArming(&usedBypass);
+        if (usedBypass) {
+            ENABLE_STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED);
         }
 #endif
 
