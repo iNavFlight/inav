@@ -93,6 +93,7 @@ COMMON_SRC = \
             io/beeper.c \
             io/lights.c \
             io/pwmdriver_i2c.c \
+            io/esc_serialshot.c \
             io/piniobox.c \
             io/serial.c \
             io/serial_4way.c \

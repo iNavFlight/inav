@@ -175,7 +175,7 @@ void FAST_CODE NOINLINE writeMotors(void)
 
 #ifdef USE_DSHOT
         // If we use DSHOT we need to convert motorValue to DSHOT ranges
-        if (isMotorProtocolDshot()) {
+        if (isMotorProtocolDigital()) {
             const float dshotMinThrottleOffset = (DSHOT_MAX_THROTTLE - DSHOT_MIN_THROTTLE) / 10000.0f * motorConfig()->digitalIdleOffsetValue;
 
             if (feature(FEATURE_3D)) {

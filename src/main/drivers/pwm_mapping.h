@@ -57,7 +57,6 @@ typedef struct drv_pwm_config_s {
     bool useUART3;
     bool useUART6;
     bool useVbat;
-    bool useFastPwm;
     bool useSoftSerial;
     bool useLEDStrip;
 #ifdef USE_RANGEFINDER
@@ -66,8 +65,6 @@ typedef struct drv_pwm_config_s {
     bool useServoOutputs;
     uint16_t servoPwmRate;
     uint16_t servoCenterPulse;
-    uint8_t pwmProtocolType;
-    uint16_t motorPwmRate;
     rangefinderIOConfig_t rangefinderIOConfig;
 } drv_pwm_config_t;
 
@@ -75,9 +72,6 @@ typedef enum {
     PWM_PF_NONE = 0,
     PWM_PF_MOTOR = (1 << 0),
     PWM_PF_SERVO = (1 << 1),
-    PWM_PF_MOTOR_MODE_BRUSHED = (1 << 2),
-    PWM_PF_OUTPUT_PROTOCOL_PWM = (1 << 3),
-    PWM_PF_OUTPUT_PROTOCOL_FASTPWM = (1 << 4),
     PWM_PF_PPM = (1 << 5),
     PWM_PF_PWM = (1 << 6)
 } pwmPortFlags_e;

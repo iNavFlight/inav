@@ -317,16 +317,7 @@ void init(void)
     pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
 
-    pwm_params.pwmProtocolType = motorConfig()->motorPwmProtocol;
-#ifndef BRUSHED_MOTORS
-    pwm_params.useFastPwm = (motorConfig()->motorPwmProtocol == PWM_TYPE_ONESHOT125) ||
-                            (motorConfig()->motorPwmProtocol == PWM_TYPE_ONESHOT42) ||
-                            (motorConfig()->motorPwmProtocol == PWM_TYPE_MULTISHOT);
-#endif
-    pwm_params.motorPwmRate = motorConfig()->motorPwmRate;
-
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        pwm_params.useFastPwm = false;
         featureClear(FEATURE_3D);
     }
 
@@ -350,9 +341,6 @@ void init(void)
     pwmInit(&pwm_params);
 
     mixerPrepare();
-
-    if (!pwm_params.useFastPwm)
-        motorControlEnable = true;
 
     addBootlogEvent2(BOOT_EVENT_PWM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_MOTORS_READY;
