@@ -8,6 +8,7 @@
 #include "fc/rc_control.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
+#include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
 #include "rx/rx.h"
@@ -26,7 +27,7 @@ static float getAxisRcCommand(float input, uint8_t expo, float deadband)
 
 static bool throttleIsBidirectional(void)
 {
-    return false;
+    return IS_RC_MODE_ACTIVE(BOXBIDIRTHR);
 }
 
 void rcControlUpdateFromRX(void)
@@ -43,8 +44,10 @@ void rcControlUpdateFromRX(void)
     control.input.pitch = rcCommandMapPWMValue(pitch);
     control.input.yaw = rcCommandMapPWMValue(yaw);
     if (throttleIsBidirectional()) {
-        float deadband3d_throttle = rcCommandConvertPWMDeadband(rcControlsConfig()->deadband3d_throttle);
-        control.input.throttle = fapplyDeadbandf(rcCommandMapPWMValue(throttle), deadband3d_throttle);
+        float deadband3d = rcCommandConvertPWMDeadband(rcControlsConfig()->deadband3d_throttle);
+        control.input.throttle = fapplyDeadbandf(rcCommandMapPWMValue(throttle), deadband3d);
+        // Normalize to [-1, 1] taking the deadband into account
+        control.input.throttle /= RC_COMMAND_MAX - deadband3d;
     } else {
         if (throttle < rxConfig()->mincheck) {
             control.input.throttle = 0;
