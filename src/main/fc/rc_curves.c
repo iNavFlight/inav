@@ -36,43 +36,45 @@
 static float throttleRcMid;
 static float throttleRcExpo;
 
-void rcCurveGenerateThrottle(const controlRateConfig_t *controlRateConfig)
+void rcCurvePrepareThrottle(const controlRateConfig_t *controlRateConfig)
 {
-    throttleRcMid = controlRateConfig->throttle.rcMid8 / 100.0f + -0.5f;
+    throttleRcMid = constrainf(controlRateConfig->throttle.rcMid8 / 100.0f, 0, 1);
     throttleRcExpo = constrainf(controlRateConfig->throttle.rcExpo8 / 100.0f, 0, 1);
-#if 0
-    // TODO: Proper curve
-    for (int i = 0; i < THROTTLE_LOOKUP_LENGTH; i++) {
-        const int16_t tmp = 10 * i - controlRateConfig->throttle.rcMid8;
-        uint8_t y = 1;
-        if (tmp > 0)
-            y = 100 - controlRateConfig->throttle.rcMid8;
-        if (tmp < 0)
-            y = controlRateConfig->throttle.rcMid8;
-        lookupThrottleRC[i] = 10 * controlRateConfig->throttle.rcMid8 + tmp * (100 - controlRateConfig->throttle.rcExpo8 + (int32_t) controlRateConfig->throttle.rcExpo8 * (tmp * tmp) / (y * y)) / 10;
-        lookupThrottleRC[i] = motorConfig()->minthrottle + (int32_t) (motorConfig()->maxthrottle - motorConfig()->minthrottle) * lookupThrottleRC[i] / 1000; // [MINTHROTTLE;MAXTHROTTLE]
-    }
-#endif
 }
 
 float rcCurveApplyExpo(float deflection, float expo)
 {
+    // This is just
+    // ((1 - expo) * deflection) + (expo * deflection^3))
+    // rearranged, so instead of doing
+    // 1 add, 1 sub, 4 mult
+    // it does
+    // 1 add, 1 sub, 3 mult
     return (1 + expo * (deflection * deflection - 1)) * deflection;
 }
 
-float rcCurveApplyThrottleExpo(float absoluteDeflection)
+float rcCurveApplyThrottleExpo(float deflection)
 {
-    if (absoluteDeflection < 0) {
-        return -rcCurveApplyThrottleExpo(-absoluteDeflection);
+    if (deflection < 0) {
+        return -rcCurveApplyThrottleExpo(-deflection);
     }
 
-    // absoluteDeflection is always >= 0 past this point
+    // deflection is always >= 0 past this point
 
-    if (absoluteDeflection > RC_COMMAND_MAX * 0.99f) {
+    if (deflection >= RC_COMMAND_MAX * 0.99f) {
         return RC_COMMAND_MAX;
     }
 
-    return absoluteDeflection;
+    float tmp = deflection - throttleRcMid;
+    float y = 1;
+    if (tmp > 0) {
+        y = 1 - throttleRcMid;
+    } else if (tmp < 0) {
+        y = throttleRcMid;
+    }
+
+    // See docs/Stick Input.md
+    return throttleRcMid + tmp * (1 - throttleRcExpo + throttleRcExpo * sq(tmp) / sq(y));
 }
 
 float rcCurveGetThrottleMid(void)

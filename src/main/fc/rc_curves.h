@@ -19,7 +19,7 @@
 
 typedef struct controlRateConfig_s controlRateConfig_t;
 
-void rcCurveGenerateThrottle(const controlRateConfig_t *controlRateConfig);
+void rcCurvePrepareThrottle(const controlRateConfig_t *controlRateConfig);
 
 // Deflection and expo must be in [-1, 1], expo must be in [0, 1]
 float rcCurveApplyExpo(float deflection, float expo);
