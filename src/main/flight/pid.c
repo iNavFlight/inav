@@ -358,13 +358,13 @@ Rate 20 means 200dps at full stick deflection
 float pidRateToRcCommand(float rateDPS, uint8_t rate)
 {
     const float maxRateDPS = rate * 10.0f;
-    return scaleRangef(rateDPS, -maxRateDPS, maxRateDPS, -500.0f, 500.0f);
+    return scaleRangef(rateDPS, -maxRateDPS, maxRateDPS, RC_COMMAND_MIN, RC_COMMAND_MAX);
 }
 
-float pidRcCommandToRate(int16_t stick, uint8_t rate)
+static float pidRcCommandToRate(float stick, uint8_t rate)
 {
     const float maxRateDPS = rate * 10.0f;
-    return scaleRangef((float) stick, -500.0f, 500.0f, -maxRateDPS, maxRateDPS);
+    return scaleRangef(stick, RC_COMMAND_MIN, RC_COMMAND_MAX, -maxRateDPS, maxRateDPS);
 }
 
 static float calculateFixedWingTPAFactor(uint16_t throttle)
@@ -422,7 +422,8 @@ void FAST_CODE NOINLINE updatePIDCoefficients(void)
 {
     STATIC_FASTRAM float prevThrottle = 0;
 
-    float thr = rcControlGetOutput()->throttle;
+    const rcCommand_t *controlOutput = rcControlGetOutput();
+    float thr = controlOutput->throttle;
     // Check if throttle changed. Different logic for fixed wing vs multirotor
     if (STATE(FIXED_WING) && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
         float filteredThrottle = pt1FilterApply3(&fixedWingTpaFilter, thr, dT);
@@ -441,8 +442,8 @@ void FAST_CODE NOINLINE updatePIDCoefficients(void)
     /*
      * Compute stick position in range of [-1.0f : 1.0f] without deadband and expo
      */
-    for (int axis = 0; axis < 3; axis++) {
-        pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
+    for (int axis = ROLL; axis < THROTTLE; axis++) {
+        pidState[axis].stickPosition = controlOutput->axes[axis];
     }
 
     // If nothing changed - don't waste time recalculating coefficients
