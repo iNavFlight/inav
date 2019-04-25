@@ -449,10 +449,11 @@ void processRx(timeUs_t currentTimeUs)
     // Calculate RPY channel data
     calculateRxChannelsAndUpdateFailsafe(currentTimeUs);
 
-    // in 3D mode, we need to be able to disarm by switch at any time
-    if (feature(FEATURE_3D)) {
+    // TODO: This seems superfluous
+    // in bidir mode, we need to be able to disarm by switch at any time
+    if (feature(FEATURE_BIDIR_MOTORS)) {
         if (!IS_RC_MODE_ACTIVE(BOXARM))
-            disarm(DISARM_SWITCH_3D);
+            disarm(DISARM_SWITCH_BIDIR);
     }
 
     updateRSSI(currentTimeUs);

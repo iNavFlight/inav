@@ -136,7 +136,7 @@ bool mixerIsOutputSaturated(void)
 
 bool mixerCanReverseMotors(void)
 {
-    return feature(FEATURE_3D);
+    return feature(FEATURE_BIDIR_MOTORS);
 }
 
 bool mixerIsReversingMotors(void)
@@ -166,10 +166,27 @@ void mixerInit(void)
 {
     computeMotorCount();
     loadPrimaryMotorMixer();
+    // TODO: We can probably get rid of this
     // in 3D mode, mixer gain has to be halved
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_BIDIR_MOTORS)) {
         mixerScale = 0.5f;
     }
+}
+
+static int16_t mixerMotorStoppedPWMValue(void)
+{
+    if (feature(FEATURE_BIDIR_MOTORS)) {
+        return flight3DConfig()->neutral3d;
+    }
+    return motorConfig()->mincommand;
+}
+
+static int16_t mixerMotorMinimumSpinPWMValue(void)
+{
+    if (feature(FEATURE_BIDIR_MOTORS)) {
+        return flight3DConfig()->deadband3d_high;
+    }
+    return motorConfig()->minthrottle;
 }
 
 void FAST_CODE NOINLINE writeMotors(void)
@@ -182,7 +199,7 @@ void FAST_CODE NOINLINE writeMotors(void)
         if (isMotorProtocolDigital()) {
             const float dshotMinThrottleOffset = (DSHOT_MAX_THROTTLE - DSHOT_MIN_THROTTLE) / 10000.0f * motorConfig()->digitalIdleOffsetValue;
 
-            if (feature(FEATURE_3D)) {
+            if (feature(FEATURE_BIDIR_MOTORS)) {
                 if (motor[i] >= motorConfig()->minthrottle && motor[i] <= flight3DConfig()->deadband3d_low) {
                     motorValue = scaleRangef(motor[i], motorConfig()->minthrottle, flight3DConfig()->deadband3d_low, DSHOT_3D_DEADBAND_LOW, dshotMinThrottleOffset + DSHOT_MIN_THROTTLE);
                     motorValue = constrain(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_DEADBAND_LOW);
@@ -228,7 +245,7 @@ void writeAllMotors(int16_t mc)
 
 void stopMotors(void)
 {
-    writeAllMotors(feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand);
+    writeAllMotors(mixerMotorStoppedPWMValue());
 
     delay(50); // give the timers and ESCs a chance to react.
 }
@@ -242,7 +259,7 @@ static void applyMotorRateLimiting(const float dT)
 {
     static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
 
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_BIDIR_MOTORS)) {
         // FIXME: Don't apply rate limiting in 3D mode
         for (int i = 0; i < motorCount; i++) {
             motorPrevious[i] = motor[i];
@@ -275,23 +292,6 @@ static void applyMotorRateLimiting(const float dT)
         motor[i] = motorPrevious[i];
     }
 }
-
-static int16_t mixerMotorStoppedPWMValue(void)
-{
-    if (feature(FEATURE_3D)) {
-        return flight3DConfig()->neutral3d;
-    }
-    return motorConfig()->mincommand;
-}
-
-static int16_t mixerMotorMinimumSpinPWMValue(void)
-{
-    if (feature(FEATURE_3D)) {
-        return flight3DConfig()->deadband3d_high;
-    }
-    return motorConfig()->minthrottle;
-}
-
 
 void FAST_CODE NOINLINE mixTable(const float dT)
 {
@@ -398,7 +398,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
-            } else if (feature(FEATURE_3D)) {
+            } else if (feature(FEATURE_BIDIR_MOTORS)) {
                 if (throttlePreviousOutput < 0) {
                     motor[i] = constrain(motor[i], motorConfig()->minthrottle, flight3DConfig()->deadband3d_low);
                 } else {

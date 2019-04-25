@@ -254,7 +254,7 @@ void rxInit(void)
         rcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
     }
 
-    rcChannels[THROTTLE].raw = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
+    rcChannels[THROTTLE].raw = (feature(FEATURE_BIDIR_MOTORS)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
     rcChannels[THROTTLE].data = rcChannels[THROTTLE].raw;
 
     // Initialize ARM switch to OFF position when arming via switch is defined

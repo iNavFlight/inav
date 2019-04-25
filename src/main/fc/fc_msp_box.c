@@ -299,7 +299,7 @@ void initActiveBoxIds(void)
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     activeBoxIds[activeBoxIdCount++] = BOXMSPRCOVERRIDE;
 #endif
-    if (feature(FEATURE_3D)) {
+    if (feature(FEATURE_BIDIR_MOTORS)) {
         activeBoxIds[activeBoxIdCount++] = BOXBIDIRTHR;
     }
 }
