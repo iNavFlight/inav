@@ -1,6 +1,6 @@
 # Stick Input
 
-## How INAV interpret the sticks
+## How INAV interprets the sticks
 
 INAV maps all stick input to `[-1, 1]`. The orientations for each axis are:
 
