@@ -814,6 +814,15 @@ groups:
         min: 0
         max: 1000
 
+  - name: PG_GENERAL_SETTINGS
+    type: generalSettings_t
+    members:
+      - name: applied_defaults
+        field: appliedDefaults
+        type: uint8_t
+        min: 0
+        max: 3
+
   - name: PG_GPS_CONFIG
     type: gpsConfig_t
     condition: USE_GPS
