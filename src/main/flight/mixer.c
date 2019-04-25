@@ -276,6 +276,23 @@ static void applyMotorRateLimiting(const float dT)
     }
 }
 
+static int16_t mixerMotorStoppedPWMValue(void)
+{
+    if (feature(FEATURE_3D)) {
+        return flight3DConfig()->neutral3d;
+    }
+    return motorConfig()->mincommand;
+}
+
+static int16_t mixerMotorMinimumSpinPWMValue(void)
+{
+    if (feature(FEATURE_3D)) {
+        return flight3DConfig()->deadband3d_high;
+    }
+    return motorConfig()->minthrottle;
+}
+
+
 void FAST_CODE NOINLINE mixTable(const float dT)
 {
     int16_t input[3];   // RPY, range [-500:+500]
@@ -327,7 +344,7 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     float throttleOutput = rcControlGetOutputAxis(THROTTLE);
 
     if (mixerCanReverseMotors()) {
-        if (throttleOutput > 0 || (throttleOutput == 0 && throttlePreviousOutput > 0)) { // Positive handling
+        if (throttleOutput > 0 || (throttleOutput == 0 && throttlePreviousOutput >= 0)) { // Positive handling
             throttleMin = flight3DConfig()->deadband3d_high;
             throttleMax = motorConfig()->maxthrottle;
 
@@ -393,15 +410,11 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 
             // Motor stop handling
             if (ARMING_FLAG(ARMED) && (getMotorStatus() != MOTOR_RUNNING)) {
-                if (feature(FEATURE_MOTOR_STOP)) {
-                    motor[i] = (feature(FEATURE_3D) ? PWM_RANGE_MIDDLE : motorConfig()->mincommand);
-                } else {
-                    motor[i] = motorConfig()->minthrottle;
-                }
+                motor[i] = feature(FEATURE_MOTOR_STOP) ? mixerMotorStoppedPWMValue() : mixerMotorMinimumSpinPWMValue();
             }
         }
     } else {
-        int16_t motorDisarmed = feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand;
+        int16_t motorDisarmed = mixerMotorStoppedPWMValue();
         for (int i = 0; i < motorCount; i++) {
             motor[i] = motorDisarmed;
         }
