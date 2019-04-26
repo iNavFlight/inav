@@ -91,6 +91,8 @@ static uint8_t entry_flags[32];
 #define IS_DYNAMIC(p)   ((p)->flags & DYNAMIC)
 #define IS_READONLY(p)  ((p)->flags & READONLY)
 
+#define SETTING_INVALID_VALUE_NAME "INVALID"
+
 static displayPort_t *pCurrentDisplay;
 
 static displayPort_t *cmsDisplayPorts[CMS_MAX_DEVICE];
@@ -379,7 +381,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             if (*((uint8_t *)(p->data))) {
                 strcpy(buff, "YES");
             } else {
-                strcpy(buff, "NO ");
+                strcpy(buff, "NO");
             }
 
             cnt = cmsDrawMenuItemValue(pDisplay, buff, row, 3);
@@ -393,7 +395,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             if (func(NULL)) {
                 strcpy(buff, "YES");
             } else {
-                strcpy(buff, "NO ");
+                strcpy(buff, "NO");
             }
 
             cnt = cmsDrawMenuItemValue(pDisplay, buff, row, 3);
@@ -482,6 +484,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
 
     case OME_Setting:
         if (IS_PRINTVALUE(p, screenRow) && p->data) {
+            uint8_t maxSize = CMS_NUM_FIELD_LEN;
             buff[0] = '\0';
             const OSD_SETTING_t *ptr = p->data;
             const setting_t *var = settingGet(ptr->val);
@@ -533,7 +536,8 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
                     case MODE_LOOKUP:
                         {
                             const char *str = settingLookupValueName(var, value);
-                            strncpy(buff, str ? str : "INVALID", sizeof(buff) - 1);
+                            strncpy(buff, str ? str : SETTING_INVALID_VALUE_NAME, sizeof(buff) - 1);
+                            maxSize = MAX(settingGetValueNameMaxSize(var), strlen(SETTING_INVALID_VALUE_NAME));
                         }
                         break;
                 }
@@ -541,8 +545,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
                     strcat(buff, suffix);
                 }
             }
-
-            cnt = cmsDrawMenuItemValue(pDisplay, buff, row, CMS_NUM_FIELD_LEN);
+            cnt = cmsDrawMenuItemValue(pDisplay, buff, row, maxSize);
             CLR_PRINTVALUE(p, screenRow);
         }
         break;
