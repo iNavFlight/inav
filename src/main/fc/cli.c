@@ -733,7 +733,6 @@ static void cliSerial(char *cmdline)
         return;
     }
     serialPortConfig_t portConfig;
-    memset(&portConfig, 0 , sizeof(portConfig));
 
     serialPortConfig_t *currentConfig;
 
@@ -743,15 +742,35 @@ static void cliSerial(char *cmdline)
 
     int val = fastA2I(ptr++);
     currentConfig = serialFindPortConfiguration(val);
-    if (currentConfig) {
-        portConfig.identifier = val;
-        validArgumentCount++;
+    if (!currentConfig) {
+        // Invalid port ID
+        cliPrintLinef("Invalid port ID %d", val);
+        return;
     }
+    memcpy(&portConfig, currentConfig, sizeof(portConfig));
+    validArgumentCount++;
 
     ptr = nextArg(ptr);
     if (ptr) {
-        val = fastA2I(ptr);
-        portConfig.functionMask = val & 0xFFFFFFFF;
+        switch (*ptr) {
+            case '+':
+                // Add function
+                ptr++;
+                val = fastA2I(ptr);
+                portConfig.functionMask |= (1 << val);
+                break;
+            case '-':
+                // Remove function
+                ptr++;
+                val = fastA2I(ptr);
+                portConfig.functionMask &= 0xFFFFFFFF ^ (1 << val);
+                break;
+            default:
+                // Set functions
+                val = fastA2I(ptr);
+                portConfig.functionMask = val & 0xFFFFFFFF;
+                break;
+        }
         validArgumentCount++;
     }
 
@@ -798,7 +817,7 @@ static void cliSerial(char *cmdline)
         validArgumentCount++;
     }
 
-    if (validArgumentCount < 6) {
+    if (validArgumentCount < 2) {
         cliShowParseError();
         return;
     }
