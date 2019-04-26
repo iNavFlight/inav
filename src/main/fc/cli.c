@@ -2565,6 +2565,8 @@ static void cliGet(char *cmdline)
     int matchedCommands = 0;
     char name[SETTING_MAX_NAME_LENGTH];
 
+    while(*cmdline == ' ') ++cmdline; // ignore spaces
+
     for (uint32_t i = 0; i < SETTINGS_TABLE_COUNT; i++) {
         val = settingGet(i);
         if (settingNameContains(val, name, cmdline)) {
@@ -2592,6 +2594,8 @@ static void cliSet(char *cmdline)
     const setting_t *val;
     char *eqptr = NULL;
     char name[SETTING_MAX_NAME_LENGTH];
+
+    while(*cmdline == ' ') ++cmdline; // ignore spaces
 
     len = strlen(cmdline);
 
