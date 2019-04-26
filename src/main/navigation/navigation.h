@@ -398,7 +398,7 @@ void resetWaypointList(void);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 
-float RTHAltitude();
+float RTHAltitude(void);
 
 /* Geodetic functions */
 typedef enum {
@@ -454,7 +454,7 @@ bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
 bool isFixedWingLaunchFinishedOrAborted(void);
 
-float calculateAverageSpeed();
+float calculateAverageSpeed(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
