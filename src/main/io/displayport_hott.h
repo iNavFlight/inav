@@ -18,9 +18,9 @@
 #pragma once
 #include "drivers/display.h"
 
-displayPort_t *displayPortHottInit();
+displayPort_t *displayPortHottInit(void);
 extern displayPort_t hottDisplayPort;
 
-void hottDisplayportRegister();
-void hottCmsOpen();
+void hottDisplayportRegister(void);
+void hottCmsOpen(void);
 void hottSetCmsKey(uint8_t hottKey, bool esc);

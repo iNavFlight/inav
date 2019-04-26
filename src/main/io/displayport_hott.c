@@ -120,7 +120,7 @@ static const displayPortVTable_t hottVTable = {
     .txBytesFree = hottTxBytesFree
 };
 
-displayPort_t *displayPortHottInit()
+displayPort_t *displayPortHottInit(void)
 {
     hottDisplayPort.device = NULL;
     displayInit(&hottDisplayPort, &hottVTable);
@@ -130,12 +130,12 @@ displayPort_t *displayPortHottInit()
     return &hottDisplayPort;
 }
 
-void hottDisplayportRegister()
+void hottDisplayportRegister(void)
 {
     cmsDisplayPortRegister(displayPortHottInit());
 }
 
-void hottCmsOpen()
+void hottCmsOpen(void)
 {
     if (!cmsInMenu) {
         cmsDisplayPortSelect(&hottDisplayPort);
