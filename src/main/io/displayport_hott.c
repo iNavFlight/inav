@@ -154,7 +154,7 @@ void hottSetCmsKey(uint8_t hottKey, bool keepCmsOpen)
             break;
         case HOTTV4_BUTTON_SET:
             if (cmsInMenu) {
-                cmsMenuExit(pCurrentDisplay, (void*)CMS_EXIT_SAVE);
+                cmsMenuExit(cmsDisplayPortGetCurrent(), (void*)CMS_EXIT_SAVE);
             }
             cmsSetExternKey(CMS_KEY_NONE);
             break;

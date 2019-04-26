@@ -19,9 +19,8 @@ typedef enum {
 
 
 extern bool cmsInMenu;
-extern displayPort_t *pCurrentDisplay;
 
-// Device managementa
+// Device management
 bool cmsDisplayPortRegister(displayPort_t *pDisplay);
 
 // For main.c and scheduler
@@ -29,6 +28,8 @@ void cmsInit(void);
 void cmsHandler(timeUs_t currentTimeUs);
 
 bool cmsDisplayPortSelect(displayPort_t *instance);
+displayPort_t *cmsDisplayPortGetCurrent(void);
+
 void cmsMenuOpen(void);
 long cmsMenuChange(displayPort_t *pPort, const CMS_Menu *menu, const OSD_Entry *from);
 long cmsMenuExit(displayPort_t *pPort, const void *ptr);

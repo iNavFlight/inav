@@ -91,7 +91,7 @@ static uint8_t entry_flags[32];
 #define IS_DYNAMIC(p)   ((p)->flags & DYNAMIC)
 #define IS_READONLY(p)  ((p)->flags & READONLY)
 
-displayPort_t *pCurrentDisplay;
+static displayPort_t *pCurrentDisplay;
 
 static displayPort_t *cmsDisplayPorts[CMS_MAX_DEVICE];
 static int cmsDeviceCount;
@@ -140,6 +140,11 @@ bool cmsDisplayPortSelect(displayPort_t *instance)
         }
     }
     return false;
+}
+
+displayPort_t *cmsDisplayPortGetCurrent(void)
+{
+    return pCurrentDisplay;
 }
 
 #define CMS_UPDATE_INTERVAL_US  50000   // Interval of key scans (microsec)
