@@ -67,7 +67,10 @@ extern "C" {
         rcdeviceSwitchState_s switchState = switchStates[adjustBoxID];
         return switchState.isActivated;
     }
-
+    int16_t rxGetChannelValue(unsigned ch)
+    {
+        return rcData[ch];
+    }
 
     uint32_t millis(void);
     int minTimeout = 180;
