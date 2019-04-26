@@ -39,6 +39,6 @@ void tryArm(void);
 disarmReason_t getDisarmReason(void);
 
 bool isCalibrating(void);
-float getFlightTime();
+float getFlightTime(void);
 
 void fcReboot(bool bootLoader);
