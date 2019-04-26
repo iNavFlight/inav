@@ -47,7 +47,7 @@ bool waitingDeviceResponse = false;
 
 static bool isFeatureSupported(uint8_t feature)
 {
-    if (camDevice->info.features & feature || rcdeviceConfig()->feature & feature) {
+    if (camDevice->info.features & feature) {
         return true;
     }
 

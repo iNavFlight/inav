@@ -53,14 +53,6 @@ static runcamDeviceExpectedResponseLength_t expectedResponsesLength[] = {
 rcdeviceWaitingResponseQueue watingResponseQueue;
 static uint8_t recvBuf[RCDEVICE_PROTOCOL_MAX_PACKET_SIZE]; // all the response contexts using same recv buffer
 
-PG_REGISTER_WITH_RESET_FN(rcdeviceConfig_t, rcdeviceConfig, PG_RCDEVICE_CONFIG, 0);
-
-void pgResetFn_rcdeviceConfig(rcdeviceConfig_t *rcdeviceConfig)
-{
-    rcdeviceConfig->feature = 0;
-    rcdeviceConfig->protocolVersion = 0;
-}
-
 static uint8_t runcamDeviceGetRespLen(uint8_t command)
 {
     for (unsigned int i = 0; i < ARRAYLEN(expectedResponsesLength); i++) {
@@ -288,7 +280,8 @@ void runcamDeviceInit(runcamDevice_t *device)
     serialPortConfig_t *portConfig = findSerialPortConfig(portID);
     if (portConfig != NULL) {
         device->serialPort = openSerialPort(portConfig->identifier, portID, NULL, NULL, baudRates[BAUD_115200], MODE_RXTX, SERIAL_NOT_INVERTED);
-        device->info.protocolVersion = rcdeviceConfig()->protocolVersion;
+        // device->info.protocolVersion = rcdeviceConfig()->protocolVersion;
+        device->info.protocolVersion = RCDEVICE_PROTOCOL_VERSION_1_0;
         if (device->serialPort != NULL) {
             runcamDeviceGetDeviceInfo(device);
         }

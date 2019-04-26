@@ -60,7 +60,6 @@ extern "C" {
     extern bool isButtonPressed;
     extern bool rcdeviceInMenu;
     extern rcdeviceWaitingResponseQueue watingResponseQueue;
-    // PG_REGISTER_WITH_RESET_FN(rcdeviceConfig_t, rcdeviceConfig, PG_RCDEVICE_CONFIG, 0);
     bool unitTestIsSwitchActivited(boxId_e boxId)
     {
         uint8_t adjustBoxID = boxId - BOXCAMERA1;
