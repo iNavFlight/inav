@@ -236,7 +236,7 @@ static void runcamSplitSendCommand(runcamDevice_t *device, uint8_t argument)
     serialWriteBuf(device->serialPort, uart_buffer, 5);
 }
 
-static void runcamDevieSendV1Initialize(runcamDevice_t *device)
+static void runcamDeviceSendV1Initialize(runcamDevice_t *device)
 {
     runcamDeviceFlushRxBuffer(device);
 
@@ -259,7 +259,7 @@ static void runcamDevieSendV1Initialize(runcamDevice_t *device)
 static void runcamDeviceParseV2DeviceInfo(rcdeviceResponseParsingContext_t *ctx)
 {
     if (ctx->result != RCDEVICE_RESP_SUCCESS) {
-        runcamDevieSendV1Initialize(ctx->device);
+        runcamDeviceSendV1Initialize(ctx->device);
         return;
     }
 
