@@ -305,16 +305,6 @@ void validateAndFixConfig(void)
     gyroConfigMutable()->gyroSync = false;
 #endif
 
-    /*
-     * MOTOR_STOP is no longer allowed on Multirotors and Tricopters
-     */
-    if (
-        feature(FEATURE_MOTOR_STOP) &&
-        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)
-    ) {
-        featureClear(FEATURE_MOTOR_STOP);
-    }
-
     // Call target-specific validation function
     validateAndFixTargetConfig();
 
