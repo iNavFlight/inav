@@ -2,6 +2,8 @@
 
 #include "fc/rc_command.h"
 
+#include "flight/mixer.h"
+
 #include "rx/rx.h"
 
 void rcCommandReset(rcCommand_t *cmd)
@@ -39,6 +41,11 @@ int16_t rcCommandToPWMValue(float cmd)
 {
     int16_t value = cmd * ((PWM_RANGE_MAX - PWM_RANGE_MIN) / RC_COMMAND_RANGE) + PWM_RANGE_MIDDLE;
     return constrain(value, PWM_RANGE_MIN, PWM_RANGE_MAX);
+}
+
+float rcCommandMapUnidirectionalPWMThrottle(int16_t thr)
+{
+    return constrainf(scaleRangef(thr, motorConfig()->minthrottle, motorConfig()->maxthrottle, RC_COMMAND_CENTER, RC_COMMAND_MAX), RC_COMMAND_CENTER, RC_COMMAND_MAX);
 }
 
 float rcCommandMapUnidirectionalPWMValue(int16_t value)

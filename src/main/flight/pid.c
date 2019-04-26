@@ -401,7 +401,7 @@ static float calculateMultirotorTPAFactor(void)
 
     // TPA should be updated only when TPA is actually set
     float thr = fabsf(rcControlGetOutput()->throttle);
-    float paBreakpoint = rcCommandMapUnidirectionalPWMValue(currentControlRateProfile->throttle.pa_breakpoint);
+    float paBreakpoint = rcCommandMapUnidirectionalPWMThrottle(currentControlRateProfile->throttle.pa_breakpoint);
     if (currentControlRateProfile->throttle.dynPID == 0 || thr < paBreakpoint) {
         tpaFactor = 1.0f;
     } else if (thr < RC_COMMAND_MAX) {
@@ -515,7 +515,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
     // XXX: Should we do this for negative THR?
     float thr = controlOutput->throttle;
-    float cruiseThr = rcCommandMapUnidirectionalPWMValue(navConfig()->fw.cruise_throttle);
+    float cruiseThr = rcCommandMapUnidirectionalPWMThrottle(navConfig()->fw.cruise_throttle);
     if ((axis == FD_PITCH) && STATE(FIXED_WING) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
         angleTarget += scaleRangef(MAX(0, cruiseThr - thr), 0, cruiseThr - RC_COMMAND_CENTER, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
 

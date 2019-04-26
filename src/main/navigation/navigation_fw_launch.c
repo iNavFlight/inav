@@ -156,7 +156,7 @@ static void applyFixedWingLaunchIdleLogic(rcCommand_t *controlOutput)
             float thr = scaleRangef(timeSinceMotorStartMs,
                                                 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME,
                                                 motorConfig()->minthrottle, navConfig()->fw.launch_idle_throttle);
-            controlOutput->throttle = rcCommandMapUnidirectionalPWMValue(thr);
+            controlOutput->throttle = rcCommandMapUnidirectionalPWMThrottle(thr);
         }
     }
 }

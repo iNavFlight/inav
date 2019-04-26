@@ -256,7 +256,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
     }
 
     // Update throttle controller
-    controlOutput.throttle = rcCommandMapUnidirectionalPWMValue((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE]);
+    controlOutput.throttle = rcCommandMapUnidirectionalPWMThrottle((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE]);
 
     // Save processed throttle for future use
     rcCommandAdjustedThrottle = controlOutput.throttle;
@@ -740,7 +740,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         }
 
         // Update throttle controller
-        controlOutput.throttle = rcCommandMapUnidirectionalPWMValue((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE]);
+        controlOutput.throttle = rcCommandMapUnidirectionalPWMThrottle((int16_t)navConfig()->mc.hover_throttle + posControl.rcAdjustment[THROTTLE]);
     }
     else {
         /* Sensors has gone haywire, attempt to land regardless */
@@ -748,7 +748,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
             controlOutput.throttle = RC_COMMAND_CENTER;
         }
         else {
-            controlOutput.throttle = rcCommandMapUnidirectionalPWMValue(failsafeConfig()->failsafe_throttle);
+            controlOutput.throttle = rcCommandMapUnidirectionalPWMThrottle(failsafeConfig()->failsafe_throttle);
         }
     }
     rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_NAVIGATION);

@@ -495,8 +495,8 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
         }
 
-        float correctedThrottleValue = rcCommandMapUnidirectionalPWMValue(constrain(navConfig()->fw.cruise_throttle + throttleCorrection, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle));
-        float cruiseThr = rcCommandMapUnidirectionalPWMValue(navConfig()->fw.cruise_throttle);
+        float correctedThrottleValue = rcCommandMapUnidirectionalPWMThrottle(constrain(navConfig()->fw.cruise_throttle + throttleCorrection, navConfig()->fw.min_throttle, navConfig()->fw.max_throttle));
+        float cruiseThr = rcCommandMapUnidirectionalPWMThrottle(navConfig()->fw.cruise_throttle);
 
         // Manual throttle increase
         if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
@@ -575,7 +575,7 @@ void applyFixedWingEmergencyLandingController(void)
     controlOutput.roll = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
     controlOutput.pitch = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
     controlOutput.yaw = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
-    controlOutput.throttle = rcCommandMapUnidirectionalPWMValue(failsafeConfig()->failsafe_throttle);
+    controlOutput.throttle = rcCommandMapUnidirectionalPWMThrottle(failsafeConfig()->failsafe_throttle);
     rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_NAVIGATION);
 }
 

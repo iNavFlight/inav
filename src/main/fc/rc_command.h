@@ -29,7 +29,12 @@ void rcCommandReset(rcCommand_t *cmd);
 void rcCommandRotate(rcCommand_t *dst, const rcCommand_t *src, float radians);
 void rcCommandCopy(rcCommand_t *dst, const rcCommand_t *src);
 
+// Maps a PWM value in [PWM_RANGE_MIN, PWM_RANGE_MAX] to [RC_COMMAND_MIN, RC_COMMAND_MAX]
 float rcCommandMapPWMValue(int16_t value);
+// Maps a throttle PWM value in [motorConfig()->minthrottle, motorConfig->maxthrottle]
+// to [RC_COMMAND_CENTER, RC_COMMAND_MAX]
+float rcCommandMapUnidirectionalPWMThrottle(int16_t thr);
+// Maps a PWM value in [PWM_RANGE_MIN, PWM_RANGE_MAX] to [RC_COMMAND_CENTER, RC_COMMAND_MAX]
 float rcCommandMapUnidirectionalPWMValue(int16_t value);
 
 int16_t rcCommandToPWMValue(float cmd);
