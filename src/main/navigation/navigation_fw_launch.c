@@ -129,11 +129,8 @@ void abortFixedWingLaunch(void)
 
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500 //ms
 
-static void applyFixedWingLaunchIdleLogic(void)
+static void applyFixedWingLaunchIdleLogic(rcCommand_t *controlOutput)
 {
-    rcCommand_t controlOutput;
-    rcCommandCopy(&controlOutput, rcControlGetOutput());
-
     // Until motors are started don't use PID I-term
     pidResetErrorAccumulators();
 
@@ -144,7 +141,7 @@ static void applyFixedWingLaunchIdleLogic(void)
     if (navConfig()->fw.launch_idle_throttle <= motorConfig()->minthrottle)
     {
         ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);           // If MOTOR_STOP is enabled mixer will keep motor stopped
-        controlOutput.throttle = RC_COMMAND_CENTER;     // If MOTOR_STOP is disabled, motors will spin at minthrottle
+        controlOutput->throttle = RC_COMMAND_CENTER;    // If MOTOR_STOP is disabled, motors will spin at minthrottle
     }
     else
     {
@@ -159,10 +156,9 @@ static void applyFixedWingLaunchIdleLogic(void)
             float thr = scaleRangef(timeSinceMotorStartMs,
                                                 0.0f, LAUNCH_MOTOR_IDLE_SPINUP_TIME,
                                                 motorConfig()->minthrottle, navConfig()->fw.launch_idle_throttle);
-            controlOutput.throttle = rcCommandMapUnidirectionalPWMValue(thr);
+            controlOutput->throttle = rcCommandMapUnidirectionalPWMValue(thr);
         }
     }
-    rcControlUpdateOutput(&controlOutput, RC_CONTROL_SOURCE_NAVIGATION);
 }
 
 static inline bool isFixedWingLaunchMaxAltitudeReached(void)
@@ -217,13 +213,13 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
                 else {
                     thr = navConfig()->fw.launch_throttle;
                 }
-                controlOutput.throttle = rcCommandMapUnidirectionalPWMValue(thr);
+                controlOutput.throttle = rcCommandMapUnidirectionalPWMThrottle(thr);
             }
         }
 
         if (applyLaunchIdleLogic) {
             // Launch idle logic - low throttle and zero out PIDs
-            applyFixedWingLaunchIdleLogic();
+            applyFixedWingLaunchIdleLogic(&controlOutput);
         }
     }
     else {
@@ -231,7 +227,7 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
         updateFixedWingLaunchDetector(currentTimeUs);
 
         // Launch idle logic - low throttle and zero out PIDs
-        applyFixedWingLaunchIdleLogic();
+        applyFixedWingLaunchIdleLogic(&controlOutput);
     }
 
     // Control beeper
