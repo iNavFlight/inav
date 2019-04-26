@@ -120,6 +120,9 @@ tables:
   - name: iterm_relax_type
     values: ["GYRO", "SETPOINT"]
     enum: itermRelaxType_e
+  - name: nav_extra_arming_safety
+    values: ["OFF", "ON", "ALLOW_BYPASS"]
+    enum: navExtraArmingSafety_e
 
 groups:
   - name: PG_GYRO_CONFIG
@@ -1244,7 +1247,7 @@ groups:
         type: bool
       - name: nav_extra_arming_safety
         field: general.flags.extra_arming_safety
-        type: bool
+        table: nav_extra_arming_safety
       - name: nav_user_control_mode
         field: general.flags.user_control_mode
         table: nav_user_control_mode

@@ -215,7 +215,7 @@ static void updateArmingStatus(void)
 
 #if defined(USE_NAV)
         /* CHECK: Navigation safety */
-        if (navigationBlockArming()) {
+        if (navigationIsBlockingArming(NULL) != NAV_ARMING_BLOCKER_NONE) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
         }
         else {
@@ -373,6 +373,18 @@ void tryArm(void)
         if (ARMING_FLAG(ARMED)) {
             return;
         }
+
+#if defined(USE_NAV)
+        // If nav_extra_arming_safety was bypassed we always
+        // allow bypassing it even without the sticks set
+        // in the correct position to allow re-arming quickly
+        // in case of a mid-air accidental disarm.
+        bool usedBypass = false;
+        navigationIsBlockingArming(&usedBypass);
+        if (usedBypass) {
+            ENABLE_STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED);
+        }
+#endif
 
         lastDisarmReason = DISARM_NONE;
 

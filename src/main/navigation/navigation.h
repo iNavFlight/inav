@@ -88,6 +88,19 @@ typedef enum {
     NAV_RTH_ALLOW_LANDING_FS_ONLY = 2, // Allow landing only if RTH was triggered by failsafe
 } navRTHAllowLanding_e;
 
+typedef enum {
+    NAV_EXTRA_ARMING_SAFETY_OFF = 0,
+    NAV_EXTRA_ARMING_SAFETY_ON = 1,
+    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 2, // Allow disabling by holding THR+YAW low
+} navExtraArmingSafety_e;
+
+typedef enum {
+    NAV_ARMING_BLOCKER_NONE = 0,
+    NAV_ARMING_BLOCKER_MISSING_GPS_FIX = 1,
+    NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE = 2,
+    NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR = 3,
+} navArmingBlocker_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -128,7 +141,7 @@ typedef struct navConfig_s {
     struct {
         struct {
             uint8_t use_thr_mid_for_althold;    // Don't remember throttle when althold was initiated, assume that throttle is at Thr Mid = zero climb rate
-            uint8_t extra_arming_safety;        // Forcibly apply 100% throttle tilt compensation
+            uint8_t extra_arming_safety;        // from navExtraArmingSafety_e
             uint8_t user_control_mode;          // NAV_GPS_ATTI or NAV_GPS_CRUISE
             uint8_t rth_alt_control_mode;       // Controls the logic for choosing the RTH altitude
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
@@ -352,7 +365,10 @@ bool navigationRequiresAngleMode(void);
 bool navigationRequiresThrottleTiltCompensation(void);
 bool navigationRequiresTurnAssistance(void);
 int8_t navigationGetHeadingControlState(void);
-bool navigationBlockArming(void);
+// Returns wether arming is blocked by the navigation system.
+// If usedBypass is provided, it will indicate wether any checks
+// were bypassed due to user input.
+navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
 bool navigationTerrainFollowingEnabled(void);
