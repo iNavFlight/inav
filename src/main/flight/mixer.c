@@ -348,7 +348,10 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         if (motorConfig()->motorBidirectionalReverse) {
             throttleOutput = -throttleOutput;
         }
-        if (throttleOutput > 0 || (throttleOutput == 0 && throttlePreviousOutput >= 0)) { // Positive handling
+        if (throttleOutput > 0 ||
+            (throttleOutput == 0 && throttlePreviousOutput > 0) ||
+            (throttleOutput == 0 && throttlePreviousOutput == 0 && !motorConfig()->motorBidirectionalReverse)) { // Positive handling
+
             throttleMin = flight3DConfig()->deadband3d_high;
             throttleMax = motorConfig()->maxthrottle;
 
@@ -381,43 +384,41 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 
     #define THROTTLE_CLIPPING_FACTOR    0.33f
     motorMixRange = (float)rpyMixRange / (float)throttleRange;
+    uint16_t clippedThrottleMin;
+    uint16_t clippedThrottleMax;
     if (motorMixRange > 1.0f) {
         for (int i = 0; i < motorCount; i++) {
             rpyMix[i] /= motorMixRange;
         }
 
         // Allow some clipping on edges to soften correction response
-        throttleMin = throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
-        throttleMax = throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
+        clippedThrottleMin = throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
+        clippedThrottleMax = throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
     } else {
-        throttleMin = MIN(throttleMin + (rpyMixRange / 2), throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
-        throttleMax = MAX(throttleMax - (rpyMixRange / 2), throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
+        clippedThrottleMin = MIN(throttleMin + (rpyMixRange / 2), throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
+        clippedThrottleMax = MAX(throttleMax - (rpyMixRange / 2), throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
     }
 
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
         for (int i = 0; i < motorCount; i++) {
-            motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+            motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, clippedThrottleMin, clippedThrottleMax);
 
+            int16_t low = throttleMin;
             if (failsafeIsActive()) {
-                motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
-            } else if (feature(FEATURE_BIDIR_MOTORS)) {
-                if (throttlePreviousOutput < 0) {
-                    motor[i] = constrain(motor[i], motorConfig()->minthrottle, flight3DConfig()->deadband3d_low);
-                } else {
-                    motor[i] = constrain(motor[i], flight3DConfig()->deadband3d_high, motorConfig()->maxthrottle);
-                }
-            } else {
-                motor[i] = constrain(motor[i], motorConfig()->minthrottle, motorConfig()->maxthrottle);
+                low = motorConfig()->mincommand;
             }
+            motor[i] = constrain(motor[i], low, throttleMax);
 
             // Motor stop handling
             if (ARMING_FLAG(ARMED) && (getMotorStatus() != MOTOR_RUNNING)) {
+                throttlePreviousOutput = 0;
                 motor[i] = feature(FEATURE_MOTOR_STOP) ? mixerMotorStoppedPWMValue() : mixerMotorMinimumSpinPWMValue();
             }
         }
     } else {
+        throttlePreviousOutput = 0;
         int16_t motorDisarmed = mixerMotorStoppedPWMValue();
         for (int i = 0; i < motorCount; i++) {
             motor[i] = motorDisarmed;
