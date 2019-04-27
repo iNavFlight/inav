@@ -93,7 +93,7 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
 #define DEFAULT_MIN_THROTTLE    1150
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 3);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .minthrottle = DEFAULT_MIN_THROTTLE,
@@ -103,7 +103,8 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .mincommand = 1000,
     .motorAccelTimeMs = 0,
     .motorDecelTimeMs = 0,
-    .digitalIdleOffsetValue = 450   // Same scale as in Betaflight
+    .digitalIdleOffsetValue = 450,   // Same scale as in Betaflight
+    .motorBidirectionalReverse = 0,
 );
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
@@ -344,6 +345,9 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     float throttleOutput = rcControlGetOutputAxis(THROTTLE);
 
     if (mixerCanReverseMotors()) {
+        if (motorConfig()->motorBidirectionalReverse) {
+            throttleOutput = -throttleOutput;
+        }
         if (throttleOutput > 0 || (throttleOutput == 0 && throttlePreviousOutput >= 0)) { // Positive handling
             throttleMin = flight3DConfig()->deadband3d_high;
             throttleMax = motorConfig()->maxthrottle;
