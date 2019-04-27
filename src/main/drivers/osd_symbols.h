@@ -196,20 +196,45 @@
 
 #define SYM_AH_V_START            0xE0 // 224 to 229 Vertical AHI
 
-#define SYM_BARO_TEMP             0xF0
-#define SYM_IMU_TEMP              0xF1
-#define SYM_TEMP                  0xF2
+#define SYM_BARO_TEMP             0xF0 // 240
+#define SYM_IMU_TEMP              0xF1 // 241
+#define SYM_TEMP                  0xF2 // 242
 
-#define SYM_TEMP_SENSOR_FIRST     0xF2
-#define SYM_TEMP_SENSOR_LAST      0xF7
+#define SYM_TEMP_SENSOR_FIRST     0xF2 // 242
+#define SYM_TEMP_SENSOR_LAST      0xF7 // 247
 #define TEMP_SENSOR_SYM_COUNT     (SYM_TEMP_SENSOR_LAST - SYM_TEMP_SENSOR_FIRST + 1)
+
+#define SYM_HUD_SIGNAL_0          0xF8  // 248 Hud signal icon Lost
+#define SYM_HUD_SIGNAL_1          0xF9  // 249 Hud signal icon 25%
+#define SYM_HUD_SIGNAL_2          0xFA  // 250 Hud signal icon 50%
+#define SYM_HUD_SIGNAL_3          0xFB  // 251 Hud signal icon 75%
+#define SYM_HUD_SIGNAL_4          0xFC  // 252 Hud signal icon 100%
 
 #define SYM_LOGO_START            0x101 // 257 to 280, INAV logo
 #define SYM_LOGO_WIDTH            6
 #define SYM_LOGO_HEIGHT           4
 
+#define SYM_AH_CH_TYPE3           0x190 // 400 to 402, crosshair 3
+#define SYM_AH_CH_TYPE4           0x193 // 403 to 405, crosshair 4
+#define SYM_AH_CH_TYPE5           0x196 // 406 to 408, crosshair 5
+#define SYM_AH_CH_TYPE6           0x199 // 409 to 411, crosshair 6
+#define SYM_AH_CH_TYPE7           0x19C // 412 to 414, crosshair 7
+
+#define SYM_HUD_ARROWS_L1         0x1A2 // 418 Smart crosshair
+#define SYM_HUD_ARROWS_L2         0x1A3 // 419 Smart crosshair
+#define SYM_HUD_ARROWS_L3         0x1A4 // 420 Smart crosshair
+#define SYM_HUD_ARROWS_R1         0x1A5 // 421 Smart crosshair
+#define SYM_HUD_ARROWS_R2         0x1A6 // 422 Smart crosshair
+#define SYM_HUD_ARROWS_R3         0x1A7 // 423 Smart crosshair
+#define SYM_HUD_ARROWS_U1         0x1A8 // 424 Smart crosshair
+#define SYM_HUD_ARROWS_U2         0x1A9 // 425 Smart crosshair
+#define SYM_HUD_ARROWS_U3         0x1AA // 426 Smart crosshair
+#define SYM_HUD_ARROWS_D1         0x1AB // 427 Smart crosshair
+#define SYM_HUD_ARROWS_D2         0x1AC // 428 Smart crosshair
+#define SYM_HUD_ARROWS_D3         0x1AD // 429 Smart crosshair
+
 #else
 
 #define TEMP_SENSOR_SYM_COUNT 0
 
-#endif // USE_MAX7456
+#endif // USE_OSD

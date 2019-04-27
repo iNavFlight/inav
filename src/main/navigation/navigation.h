@@ -242,6 +242,21 @@ typedef struct {
     uint8_t flag;
 } navWaypoint_t;
 
+typedef struct radar_pois_s {
+    gpsLocation_t gps;
+    uint8_t state;
+    uint16_t heading;
+    uint16_t speed;
+    uint8_t lq;
+    uint16_t distance;
+    int16_t altitude;
+    int16_t direction;
+} radar_pois_t;
+
+#define RADAR_MAX_POIS 4
+
+extern radar_pois_t radar_pois[RADAR_MAX_POIS];
+
 typedef struct {
     fpVector3_t pos;
     int32_t     yaw;             // deg * 100
@@ -395,6 +410,7 @@ bool isWaypointListValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
+void radarCalc(uint8_t poiNumber);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 

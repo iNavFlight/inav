@@ -36,6 +36,21 @@
 #define OSD_POS_MAX         0x3FF
 #define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
 
+#define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
+#define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
+#define CENTIMETERS_TO_METERS(cm)               (cm / 100)
+#define FEET_PER_MILE                           5280
+#define FEET_PER_KILOFEET                       1000 // Used for altitude
+#define METERS_PER_KILOMETER                    1000
+#define METERS_PER_MILE                         1609
+
+#define OSD_HOMING_LIM_H1 6
+#define OSD_HOMING_LIM_H2 16
+#define OSD_HOMING_LIM_H3 38
+#define OSD_HOMING_LIM_V1 5
+#define OSD_HOMING_LIM_V2 10
+#define OSD_HOMING_LIM_V3 15
+
 typedef enum {
     OSD_RSSI_VALUE,
     OSD_MAIN_BATT_VOLTAGE,
@@ -154,6 +169,11 @@ typedef enum {
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
     OSD_CROSSHAIRS_STYLE_AIRCRAFT,
+    OSD_CROSSHAIRS_STYLE_TYPE3,
+    OSD_CROSSHAIRS_STYLE_TYPE4,
+    OSD_CROSSHAIRS_STYLE_TYPE5,
+    OSD_CROSSHAIRS_STYLE_TYPE6,
+    OSD_CROSSHAIRS_STYLE_TYPE7,
 } osd_crosshairs_style_e;
 
 typedef enum {
@@ -196,6 +216,19 @@ typedef struct osdConfig_s {
     uint8_t ahi_reverse_roll;
     uint8_t ahi_max_pitch;
     uint8_t crosshairs_style; // from osd_crosshairs_style_e
+    int8_t horizon_offset;
+    int8_t camera_uptilt;
+    uint8_t camera_fov_h;
+    uint8_t camera_fov_v;
+    uint8_t hud_margin_h;
+    uint8_t hud_margin_v;
+    bool hud_homing;
+    bool hud_homepoint;
+    uint8_t hud_radar_disp;
+    uint16_t hud_radar_range_min;
+    uint16_t hud_radar_range_max;
+    bool hud_radar_nearest;
+    
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;
@@ -227,4 +260,28 @@ void osdOverrideLayout(int layout, timeMs_t duration);
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);
+
 displayPort_t *osdGetDisplayPort(void);
+
+int16_t osdGetHeading(void);
+int32_t osdGetAltitude(void);
+void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn, uint32_t *usedScale);
+void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale);
+void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym, uint32_t poiDistance, int16_t poiDirection, uint8_t poiSymbol, uint16_t *drawn, uint32_t *usedScale);
+void osdCrosshairPosition(uint8_t *x, uint8_t *y);
+int osdGetHeadingAngle(int angle);
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
+
+// Hud -----
+
+void osdHudClear(void);
+int osdHudWrite(uint8_t x, uint8_t y, uint16_t symb, bool crush);
+void osdHudDrawCrosshair(uint8_t px, uint8_t py);
+void osdHudDrawHoming(uint8_t px, uint8_t py);
+void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, int16_t poiHeading, uint8_t poiSignal, uint16_t poiSymbol);
+void osdHudDrawNearest(uint8_t px, uint8_t py);
+
+// Radar -----
+
+int radarGetNearestPoi(void);
+int radarGetFarthestPoi(void);

@@ -73,6 +73,8 @@ gpsLocation_t GPS_home;
 uint32_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
+radar_pois_t radar_pois[RADAR_MAX_POIS];
+
 #if defined(USE_NAV)
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 0);
@@ -1924,6 +1926,13 @@ static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
     return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
 }
 
+uint32_t calculateAltitudeToMe(const fpVector3_t * destinationPos)
+{
+    const float deltaZ = destinationPos->z - navGetCurrentActualPositionAndVelocity()->pos.z;
+
+    return deltaZ;
+}
+
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 {
     const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
@@ -2508,6 +2517,19 @@ void resetWaypointList(void)
         posControl.waypointCount = 0;
         posControl.waypointListValid = false;
     }
+}
+
+/*-----------------------------------------------------------
+ * Radar, calculate direction, distance, relative altitude and signal strength
+ *-----------------------------------------------------------*/
+
+void radarCalc(uint8_t poiNumber) {
+    fpVector3_t poi;
+
+    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[poiNumber].gps, GEO_ALT_RELATIVE);
+    radar_pois[poiNumber].distance = calculateDistanceToDestination(&poi) / 100; // In meters
+    radar_pois[poiNumber].direction = calculateBearingToDestination(&poi) / 100; // In °
+    radar_pois[poiNumber].altitude = calculateAltitudeToMe(&poi) / 100; // In meters, - is below
 }
 
 bool isWaypointListValid(void)
