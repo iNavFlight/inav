@@ -578,7 +578,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ARMING_CONFIG:
-        sbufWriteU8(dst, armingConfig()->auto_disarm_delay);
+        sbufWriteU8(dst, 0);
         sbufWriteU8(dst, armingConfig()->disarm_kill_switch);
         break;
 
@@ -1547,7 +1547,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_ARMING_CONFIG:
         if (dataSize >= 2) {
-            armingConfigMutable()->auto_disarm_delay = constrain(sbufReadU8(src), AUTO_DISARM_DELAY_MIN, AUTO_DISARM_DELAY_MAX);
+            sbufReadU8(src); //Swallow the first byte, used to be auto_disarm_delay
             armingConfigMutable()->disarm_kill_switch = !!sbufReadU8(src);
         } else
             return MSP_RESULT_ERROR;

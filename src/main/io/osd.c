@@ -600,10 +600,6 @@ static const char * osdArmingDisabledReasonMessage(void)
             // See handling of FAILSAFE_RX_LOSS_MONITORING in failsafe.c
             if (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) {
                 if (failsafeIsReceivingRxData()) {
-                    if (isUsingSticksForArming()) {
-                        // Need to power-cycle
-                        return OSD_MESSAGE_STR("POWER CYCLE TO ARM");
-                    }
                     // If we're not using sticks, it means the ARM switch
                     // hasn't been off since entering FAILSAFE_RX_LOSS_MONITORING
                     // yet
@@ -620,7 +616,20 @@ static const char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_SYSTEM_OVERLOADED:
             return OSD_MESSAGE_STR("SYSTEM OVERLOADED");
         case ARMING_DISABLED_NAVIGATION_UNSAFE:
-            return OSD_MESSAGE_STR("NAVIGATION IS UNSAFE");
+#if defined(USE_NAV)
+            // Check the exact reason
+            switch (navigationIsBlockingArming(NULL)) {
+                case NAV_ARMING_BLOCKER_NONE:
+                    break;
+                case NAV_ARMING_BLOCKER_MISSING_GPS_FIX:
+                    return OSD_MESSAGE_STR("WAITING FOR GPS FIX");
+                case NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE:
+                    return OSD_MESSAGE_STR("DISABLE NAVIGATION FIRST");
+                case NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR:
+                    return OSD_MESSAGE_STR("FIRST WAYPOINT IS TOO FAR");
+            }
+#endif
+            break;
         case ARMING_DISABLED_COMPASS_NOT_CALIBRATED:
             return OSD_MESSAGE_STR("COMPASS NOT CALIBRATED");
         case ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED:

@@ -36,7 +36,6 @@
 #include "rx/rx.h"
 
 static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
-static bool isUsingSticksToArm = true;
 #ifdef USE_NAV
 static bool isUsingNAVModes = false;
 #endif
@@ -56,11 +55,6 @@ boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
-
-bool isUsingSticksForArming(void)
-{
-    return isUsingSticksToArm;
-}
 
 void processAirmode(void) {
     if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
@@ -197,8 +191,6 @@ void updateUsedModeActivationConditionFlags(void)
             specifiedConditionCountPerMode[modeActivationConditions(index)->modeId]++;
         }
     }
-
-    isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM);
 
 #ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||

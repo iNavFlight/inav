@@ -106,8 +106,6 @@ int16_t headFreeModeHold;
 
 uint8_t motorControlEnable = false;
 
-static uint32_t disarmAt;     // Time of automatic disarm when "Don't spin the motors when armed" is enabled and auto_disarm_delay is nonzero
-
 static bool isRXDataNew;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 
@@ -217,7 +215,7 @@ static void updateArmingStatus(void)
 
 #if defined(USE_NAV)
         /* CHECK: Navigation safety */
-        if (navigationBlockArming()) {
+        if (navigationIsBlockingArming(NULL) != NAV_ARMING_BLOCKER_NONE) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_NAVIGATION_UNSAFE);
         }
         else {
@@ -252,13 +250,11 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: Arming switch */
-        if (!isUsingSticksForArming()) {
-            // If arming is disabled and the ARM switch is on
-            if (isArmingDisabled() && IS_RC_MODE_ACTIVE(BOXARM)) {
-                ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-            } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
-                DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-            }
+        // If arming is disabled and the ARM switch is on
+        if (isArmingDisabled() && IS_RC_MODE_ACTIVE(BOXARM)) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
+        } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
         }
 
         /* CHECK: BOXFAILSAFE */
@@ -378,6 +374,18 @@ void tryArm(void)
             return;
         }
 
+#if defined(USE_NAV)
+        // If nav_extra_arming_safety was bypassed we always
+        // allow bypassing it even without the sticks set
+        // in the correct position to allow re-arming quickly
+        // in case of a mid-air accidental disarm.
+        bool usedBypass = false;
+        navigationIsBlockingArming(&usedBypass);
+        if (usedBypass) {
+            ENABLE_STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED);
+        }
+#endif
+
         lastDisarmReason = DISARM_NONE;
 
         ENABLE_ARMING_FLAG(ARMED);
@@ -395,7 +403,6 @@ void tryArm(void)
             blackboxStart();
         }
 #endif
-        disarmAt = millis() + armingConfig()->auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
         //beep to indicate arming
 #ifdef USE_NAV
@@ -418,8 +425,6 @@ void tryArm(void)
 
 void processRx(timeUs_t currentTimeUs)
 {
-    static bool armedBeeperOn = false;
-
     // Calculate RPY channel data
     calculateRxChannelsAndUpdateFailsafe(currentTimeUs);
 
@@ -439,50 +444,6 @@ void processRx(timeUs_t currentTimeUs)
     failsafeUpdateState();
 
     const throttleStatus_e throttleStatus = calculateThrottleStatus();
-
-    // When armed and motors aren't spinning, do beeps and then disarm
-    // board after delay so users without buzzer won't lose fingers.
-    // mixTable constrains motor commands, so checking  throttleStatus is enough
-    if (ARMING_FLAG(ARMED)
-        && feature(FEATURE_MOTOR_STOP)
-        && !STATE(FIXED_WING)
-    ) {
-        if (isUsingSticksForArming()) {
-            if (throttleStatus == THROTTLE_LOW) {
-                if (armingConfig()->auto_disarm_delay != 0
-                    && (int32_t)(disarmAt - millis()) < 0
-                ) {
-                    // auto-disarm configured and delay is over
-                    disarm(DISARM_TIMEOUT);
-                    armedBeeperOn = false;
-                } else {
-                    // still armed; do warning beeps while armed
-                    beeper(BEEPER_ARMED);
-                    armedBeeperOn = true;
-                }
-            } else {
-                // throttle is not low
-                if (armingConfig()->auto_disarm_delay != 0) {
-                    // extend disarm time
-                    disarmAt = millis() + armingConfig()->auto_disarm_delay * 1000;
-                }
-
-                if (armedBeeperOn) {
-                    beeperSilence();
-                    armedBeeperOn = false;
-                }
-            }
-        } else {
-            // arming is via AUX switch; beep while throttle low
-            if (throttleStatus == THROTTLE_LOW) {
-                beeper(BEEPER_ARMED);
-                armedBeeperOn = true;
-            } else if (armedBeeperOn) {
-                beeperSilence();
-                armedBeeperOn = false;
-            }
-        }
-    }
 
     processRcStickPositions(throttleStatus);
     processAirmode();
@@ -709,17 +670,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     updatePositionEstimator();
     applyWaypointNavigationAndAltitudeHold();
 #endif
-
-    // If we're armed, at minimum throttle, and we do arming via the
-    // sticks, do not process yaw input from the rx.  We do this so the
-    // motors do not spin up while we are trying to arm or disarm.
-    // Allow yaw control for tricopters if the user wants the servo to move even when unarmed.
-    if (isUsingSticksForArming() && rxGetChannelValue(THROTTLE) <= rxConfig()->mincheck
-            && !((mixerConfig()->platformType == PLATFORM_TRICOPTER) && servoConfig()->tri_unarmed_servo)
-            && mixerConfig()->platformType != PLATFORM_AIRPLANE
-    ) {
-        rcCommand[YAW] = 0;
-    }
 
     // Apply throttle tilt compensation
     if (!STATE(FIXED_WING)) {

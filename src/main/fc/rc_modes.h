@@ -120,7 +120,6 @@ void rcModeUpdate(boxBitmask_t *newState);
 
 bool isModeActivationConditionPresent(boxId_e modeId);
 
-bool isUsingSticksForArming(void);
 void processAirmode(void);
 bool isAirmodeActive(void);
 bool isUsingNavigationModes(void);
