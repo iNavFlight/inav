@@ -60,11 +60,6 @@ float rcCurveApplyThrottleExpo(float deflection)
     }
 
     // deflection is always >= 0 past this point
-
-    if (deflection >= RC_COMMAND_MAX * 0.99f) {
-        return RC_COMMAND_MAX;
-    }
-
     float tmp = deflection - throttleRcMid;
     float y = 1;
     if (tmp > 0) {
