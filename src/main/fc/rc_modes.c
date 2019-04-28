@@ -54,8 +54,16 @@ boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 PG_REGISTER_ARRAY(modeActivationCondition_t, MAX_MODE_ACTIVATION_CONDITION_COUNT, modeActivationConditions, PG_MODE_ACTIVATION_PROFILE, 0);
 PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MODE_ACTIVATION_OPERATOR_CONFIG, 0);
 
-void processAirmode(void) {
-    if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
+static void processAirmodeAirplane(void) {
+    if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
+        ENABLE_STATE(AIRMODE_ACTIVE);
+    } else {
+        DISABLE_STATE(AIRMODE_ACTIVE);
+    }
+}
+
+static void processAirmodeMultirotor(void) {
+    if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
             ENABLE_STATE(AIRMODE_ACTIVE);
         } else {
@@ -92,6 +100,16 @@ void processAirmode(void) {
     } else {
         DISABLE_STATE(AIRMODE_ACTIVE);
     }
+}
+
+void processAirmode(void) {
+
+    if (STATE(FIXED_WING)) {
+        processAirmodeAirplane();
+    } else {
+        processAirmodeMultirotor();
+    }
+
 }
 
 #if defined(USE_NAV)
