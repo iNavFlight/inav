@@ -56,10 +56,17 @@
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
 // This is used by the configurator for motor testing.
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
+
 static float motorMixRange;
 static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
+
+// Rate limiting
+static float motorMaxInc;
+static float motorMaxDec;
+static uint16_t motorRange;
+static float motorPrevious[MAX_SUPPORTED_MOTORS];
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -160,6 +167,15 @@ void mixerUpdateStateFlags(void)
     }
 }
 
+static float mixerCalculateRateLimiterStep(uint16_t motorRange, uint16_t timeMs)
+{
+    if (timeMs == 0) {
+        // No time limit, allow full range on a single step
+        return PWM_RANGE_MAX - PWM_RANGE_MIN;
+    }
+    return motorRange / (timeMs * 1e-3f);
+}
+
 void mixerInit(void)
 {
     computeMotorCount();
@@ -169,6 +185,9 @@ void mixerInit(void)
     if (feature(FEATURE_BIDIR_MOTORS)) {
         mixerScale = 0.5f;
     }
+    motorRange = motorConfig()->maxthrottle - motorConfig()->minthrottle;
+    motorMaxInc = mixerCalculateRateLimiterStep(motorRange, motorConfig()->motorAccelTimeMs);
+    motorMaxDec = mixerCalculateRateLimiterStep(motorRange, motorConfig()->motorDecelTimeMs);
 
     mixerResetDisarmedMotors();
 }
@@ -265,23 +284,40 @@ void stopPwmAllMotors(void)
 
 static void applyMotorRateLimiting(const float dT)
 {
-    static float motorPrevious[MAX_SUPPORTED_MOTORS] = { 0 };
+    // Calculate max motor step
+    const float maxInc = motorMaxInc * dT;
+    const float maxDec = motorMaxDec * dT;
 
     if (feature(FEATURE_BIDIR_MOTORS)) {
+        for (int i = 0; i < motorCount; i++) {
+            if (motorPrevious[i] >= flight3DConfig()->neutral3d) {
+                // Higher values increase motor speed
+                motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - maxDec, motorPrevious[i] + maxInc);
+            } else {
+                // Lower values increase motor speed
+                motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - maxInc, motorPrevious[i] + maxDec);
+            }
+            if (motorPrevious[i] > flight3DConfig()->deadband3d_low && motorPrevious[i] < flight3DConfig()->deadband3d_high) {
+                if (motor[i] > flight3DConfig()->deadband3d_low && motor[i] < flight3DConfig()->deadband3d_high) {
+                    motorPrevious[i] = motor[i];
+                } else {
+                    if (motor[i] <= flight3DConfig()->deadband3d_low) {
+                        motorPrevious[i] = flight3DConfig()->deadband3d_low;
+                    } else { // motor[i] >= flight3DConfig()->deadband3d_high
+                        motorPrevious[i] = flight3DConfig()->deadband3d_high;
+                    }
+                }
+            }
+        }
         // FIXME: Don't apply rate limiting in 3D mode
         for (int i = 0; i < motorCount; i++) {
             motorPrevious[i] = motor[i];
         }
     }
     else {
-        // Calculate max motor step
-        const uint16_t motorRange = motorConfig()->maxthrottle - motorConfig()->minthrottle;
-        const float motorMaxInc = (motorConfig()->motorAccelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorAccelTimeMs * 1e-3f);
-        const float motorMaxDec = (motorConfig()->motorDecelTimeMs == 0) ? 2000 : motorRange * dT / (motorConfig()->motorDecelTimeMs * 1e-3f);
-
         for (int i = 0; i < motorCount; i++) {
             // Apply motor rate limiting
-            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - motorMaxDec, motorPrevious[i] + motorMaxInc);
+            motorPrevious[i] = constrainf(motor[i], motorPrevious[i] - maxDec, motorPrevious[i] + maxInc);
 
             // Handle throttle below min_throttle (motor start/stop)
             if (motorPrevious[i] < motorConfig()->minthrottle) {
