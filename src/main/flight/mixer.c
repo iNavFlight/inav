@@ -54,10 +54,7 @@
 #include "sensors/battery.h"
 
 FASTRAM int16_t motor[MAX_SUPPORTED_MOTORS];
-// TODO(agh): Looks like this could be deleted. We set
-// it on startup to the value to be sent to the motors while
-// they're disarmed and we allow changing that via MSP at
-// runtime, however that's never stored, so it seems useless.
+// This is used by the configurator for motor testing.
 FASTRAM int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 static float motorMixRange;
 static float mixerScale = 1.0f;
@@ -172,6 +169,8 @@ void mixerInit(void)
     if (feature(FEATURE_BIDIR_MOTORS)) {
         mixerScale = 0.5f;
     }
+
+    mixerResetDisarmedMotors();
 }
 
 static int16_t mixerMotorStoppedPWMValue(void)
@@ -188,6 +187,14 @@ static int16_t mixerMotorMinimumSpinPWMValue(void)
         return flight3DConfig()->deadband3d_high;
     }
     return motorConfig()->minthrottle;
+}
+
+void mixerResetDisarmedMotors(void)
+{
+    // set disarmed motor values
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        motor_disarmed[i] = mixerMotorStoppedPWMValue();
+    }
 }
 
 void FAST_CODE NOINLINE writeMotors(void)
@@ -419,9 +426,8 @@ void FAST_CODE NOINLINE mixTable(const float dT)
         }
     } else {
         throttlePreviousOutput = 0;
-        int16_t motorDisarmed = mixerMotorStoppedPWMValue();
         for (int i = 0; i < motorCount; i++) {
-            motor[i] = motorDisarmed;
+            motor[i] = motor_disarmed[i];
         }
     }
 
