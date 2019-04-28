@@ -40,8 +40,6 @@ static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
 static bool isUsingNAVModes = false;
 #endif
 
-static EXTENDED_FASTRAM uint8_t airmodeActivationFlag = false;
-
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 
 // TODO(alberto): It looks like we can now safely remove this assert, since everything
@@ -58,16 +56,20 @@ PG_REGISTER(modeActivationOperatorConfig_t, modeActivationOperatorConfig, PG_MOD
 
 void processAirmode(void) {
     if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
-        airmodeActivationFlag = feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE);
+        if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
+            ENABLE_STATE(AIRMODE_ACTIVE);
+        } else {
+            DISABLE_STATE(AIRMODE_ACTIVE);
+        }
     } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
 
         if (!ARMING_FLAG(ARMED)) {
             /*
              * Disarm disables airmode immediately
              */
-            airmodeActivationFlag = false;
+            DISABLE_STATE(AIRMODE_ACTIVE);
         } else if (
-            !airmodeActivationFlag && 
+            !STATE(AIRMODE_ACTIVE) && 
             rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
             (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
         ) {
@@ -75,26 +77,21 @@ void processAirmode(void) {
              * Airmode is allowed to be active only after ARMED and then THROTTLE goes above
              * activation threshold
              */
-            airmodeActivationFlag = true;
+            ENABLE_STATE(AIRMODE_ACTIVE);
         } else if (
-            airmodeActivationFlag &&
+            STATE(AIRMODE_ACTIVE) &&
             !feature(FEATURE_AIRMODE) &&
             !IS_RC_MODE_ACTIVE(BOXAIRMODE)
         ) {
             /*
              *  When user disables BOXAIRMODE, turn airmode off as well
              */
-            airmodeActivationFlag = false;
+            DISABLE_STATE(AIRMODE_ACTIVE);
         }
 
     } else {
-        airmodeActivationFlag = false;
+        DISABLE_STATE(AIRMODE_ACTIVE);
     }
-}
-
-bool isAirmodeActive(void)
-{
-    return airmodeActivationFlag;
 }
 
 #if defined(USE_NAV)

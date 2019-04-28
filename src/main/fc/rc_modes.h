@@ -121,7 +121,6 @@ void rcModeUpdate(boxBitmask_t *newState);
 bool isModeActivationConditionPresent(boxId_e modeId);
 
 void processAirmode(void);
-bool isAirmodeActive(void);
 bool isUsingNavigationModes(void);
 bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 

@@ -552,7 +552,7 @@ void processRx(timeUs_t currentTimeUs)
     }
     else if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
-            if (isAirmodeActive() && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
@@ -574,7 +574,7 @@ void processRx(timeUs_t currentTimeUs)
     } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
         DISABLE_STATE(ANTI_WINDUP);
         //This case applies only to MR when Airmode management is throttle threshold activated
-        if (throttleStatus == THROTTLE_LOW && !isAirmodeActive()) {
+        if (throttleStatus == THROTTLE_LOW && !STATE(AIRMODE_ACTIVE)) {
             pidResetErrorAccumulators();
         }
     }
