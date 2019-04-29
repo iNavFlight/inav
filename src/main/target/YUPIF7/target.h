@@ -95,6 +95,14 @@
 #define USE_ESCSERIAL
 #define ESCSERIAL_TIMER_TX_HARDWARE 0
 
+#define UG2864_I2C_BUS          BUS_I2C1
+#define USE_DASHBOARD
+#define USE_OLED_UG2864
+#define DASHBOARD_ARMED_BITMAP
+
+#define USE_PITOT
+#define PITOT_I2C_BUS           BUS_I2C1
+
 //SPI ports
 #define USE_SPI
 
