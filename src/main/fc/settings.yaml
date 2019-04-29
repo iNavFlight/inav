@@ -120,6 +120,8 @@ tables:
   - name: iterm_relax_type
     values: ["GYRO", "SETPOINT"]
     enum: itermRelaxType_e
+  - name: airmodeHandlingType
+    values: ["STICK_CENTER", "THROTTLE_THRESHOLD"]
   - name: nav_extra_arming_safety
     values: ["OFF", "ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
@@ -851,6 +853,13 @@ groups:
         field: deadband3d_throttle
         min: 0
         max: 200
+      - name: mc_airmode_type
+        field: airmodeHandlingType
+        table: airmodeHandlingType
+      - name: mc_airmode_threshold
+        field: airmodeThrottleThreshold
+        min: 1000
+        max: 2000
 
   - name: PG_PID_PROFILE
     type: pidProfile_t

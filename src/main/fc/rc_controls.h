@@ -19,6 +19,8 @@
 
 #include "config/parameter_group.h"
 
+#define AIRMODE_THROTTLE_THRESHOLD 1300
+
 typedef enum rc_alias {
     ROLL = 0,
     PITCH,
@@ -49,6 +51,11 @@ typedef enum {
 } rollPitchStatus_e;
 
 typedef enum {
+    STICK_CENTER = 0,
+    THROTTLE_THRESHOLD
+} airmodeAndAntiWindupHandlingType_e;
+
+typedef enum {
     ROL_LO = (1 << (2 * ROLL)),
     ROL_CE = (3 << (2 * ROLL)),
     ROL_HI = (2 << (2 * ROLL)),
@@ -74,6 +81,8 @@ typedef struct rcControlsConfig_s {
     uint8_t pos_hold_deadband;              // Adds ability to adjust the Hold-position when moving the sticks (assisted mode)
     uint8_t alt_hold_deadband;              // Defines the neutral zone of throttle stick during altitude hold
     uint16_t deadband3d_throttle;           // default throttle deadband from MIDRC
+    uint8_t airmodeHandlingType;            // Defaults to ANTI_WINDUP triggered at sticks centered
+    uint16_t airmodeThrottleThreshold;      // Throttle threshold for airmode initial activation
 } rcControlsConfig_t;
 
 PG_DECLARE(rcControlsConfig_t, rcControlsConfig);
