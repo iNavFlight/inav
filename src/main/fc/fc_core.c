@@ -445,6 +445,19 @@ void processRx(timeUs_t currentTimeUs)
 
     const throttleStatus_e throttleStatus = calculateThrottleStatus();
 
+    // When armed and motors aren't spinning, do beeps periodically
+    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING)) {
+        static bool armedBeeperOn = false;
+
+        if (throttleStatus == THROTTLE_LOW) {
+            beeper(BEEPER_ARMED);
+            armedBeeperOn = true;
+        } else if (armedBeeperOn) {
+            beeperSilence();
+            armedBeeperOn = false;
+        }
+    }
+
     processRcStickPositions(throttleStatus);
     processAirmode();
     updateActivatedModes();
