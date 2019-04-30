@@ -70,7 +70,7 @@ typedef struct {
 
 #ifdef USE_DSHOT
     // DSHOT parameters
-    uint16_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
+    timerDMASafeType_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
 #endif
 } pwmOutputPort_t;
 
@@ -239,7 +239,7 @@ static void pwmWriteDshot(uint8_t index, uint16_t value)
     motors[index]->value = value;
 }
 
-static void loadDmaBufferDshot(uint16_t *dmaBuffer, uint16_t packet)
+static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
 {
     for (int i = 0; i < 16; i++) {
         dmaBuffer[i] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first

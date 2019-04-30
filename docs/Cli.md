@@ -84,12 +84,43 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `profile`        | index (0 to 2)                                 |
 | `rxrange`        | configure rx channel ranges (end-points) |
 | `save`           | save and reboot                                |
+| `serial`         | Configure serial ports                         |
 | `serialpassthrough <id> <baud> <mode>`| where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
 | `set`            | name=value or blank or * for list              |
 | `status`         | show system status                             |
 | `temp_sensor`    | list or configure temperature sensor(s). See docs/Temperature sensors.md |
 | `wp`             | list or configure waypoints. See more in docs/Navigation.md section NAV WP |
 | `version`        |                                                |
+
+### serial
+
+The syntax of the `serial` command is `serial <id>  <functions> <msp-baudrate> <gps-baudrate> <telemetry-baudate> <peripheral-baudrate>`.
+
+A shorter form is also supported to enable and disable functions using `serial <id> +n` and
+`serial <id> -n`, where n is the a serial function identifier. The following values are available:
+
+| Function              | Identifier    |
+|-----------------------|---------------|
+| MSP                   | 0             |
+| GPS                   | 1             |
+| TELEMETRY_FRSKY       | 2             |
+| TELEMETRY_HOTT        | 3             |
+| TELEMETRY_LTM         | 4             |
+| TELEMETRY_SMARTPORT   | 5             |
+| RX_SERIAL             | 6             |
+| BLACKBOX              | 7             |
+| TELEMETRY_MAVLINK     | 8             |
+| TELEMETRY_IBUS        | 9             |
+| RCDEVICE              | 10            |
+| VTX_SMARTAUDIO        | 11            |
+| VTX_TRAMP             | 12            |
+| UAV_INTERCONNECT      | 13            |
+| OPTICAL_FLOW          | 14            |
+| LOG                   | 15            |
+| RANGEFINDER           | 16            |
+| VTX_FFPV              | 17            |
+
+`serial` can also be used without any argument to print the current configuration of all the serial ports.
 
 ## CLI Variable Reference
 
@@ -117,7 +148,6 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  motor_pwm_protocol  | STANDARD | Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED |
 |  fixed_wing_auto_arm  | OFF | Auto-arm fixed wing aircraft on throttle above min_throttle, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 |  disarm_kill_switch  | ON | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
-|  auto_disarm_delay  | 5 | Delay before automatic disarming when using stick arming and MOTOR_STOP. This does not apply when using FIXED_WING |
 |  switch_disarm_delay | 250 | Delay before disarming when requested by switch (ms) [0-1000] |
 |  small_angle  | 25 | If the aircraft tilt angle exceed this value the copter will refuse to arm.  |
 |  reboot_character  | 82 | Special character used to trigger reboot |
@@ -147,7 +177,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  name  | Empty string | Craft name |
 |  nav_disarm_on_landing  | OFF | If set to ON, iNav disarms the FC after landing |
 |  nav_use_midthr_for_althold  | OFF | If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude |
-|  nav_extra_arming_safety  | ON | If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured |
+|  nav_extra_arming_safety  | ON | If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured. ALLOW_BYPASS allows the user to momentarily disable this check by holding yaw high (left stick held at the bottom right in mode 2) when switch arming is used |
 |  nav_user_control_mode  | ATTI | Defines how Pitch/Roll input from RC receiver affects flight in POSHOLD mode: ATTI - right stick controls attitude like in ANGLE mode; CRUISE - right stick controls velocity in forward and right direction. |
 |  nav_position_timeout  | 5 | If GPS fails wait for this much seconds before switching to emergency landing mode (0 - disable) |
 |  nav_wp_radius  | 100 | Waypoint radius [cm]. Waypoint would be considered reached if machine is within this radius |
@@ -318,9 +348,7 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 |  accgain_z  | 4096 | Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page. |
 |  nav_mc_pos_z_p  | 50 | P gain of altitude PID controller (Multirotor) |
 |  nav_fw_pos_z_p  | 50 | P gain of altitude PID controller (Fixedwing) |
-|  nav_mc_pos_z_i  | 0 | I gain of altitude PID controller (Multirotor) |
 |  nav_fw_pos_z_i  | 0 | I gain of altitude PID controller (Fixedwing) |
-|  nav_mc_pos_z_d  | 0 | D gain of altitude PID controller (Multirotor) |
 |  nav_fw_pos_z_d  | 0 | D gain of altitude PID controller (Fixedwing) |
 |  nav_mc_vel_z_p  | 100 | P gain of velocity PID controller |
 |  nav_mc_vel_z_i  | 50 | I gain of velocity PID controller |
