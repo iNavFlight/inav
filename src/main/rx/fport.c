@@ -256,8 +256,8 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     static smartPortPayload_t payloadBuffer;
     static bool rxDrivenFrameRate = false;
     static uint8_t consecutiveTelemetryFrameCount = 0;
-    static bool hasTelemetryRequest = false;
 #endif
+    static bool hasTelemetryRequest = false;
 
     uint8_t result = RX_FRAME_PENDING;
 
