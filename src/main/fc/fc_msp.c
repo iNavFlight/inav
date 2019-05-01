@@ -2216,12 +2216,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#ifdef USE_OPFLOW
     case MSP2_INAV_OPFLOW_CALIBRATION:
         if (!ARMING_FLAG(ARMED))
             opflowStartCalibration();
         else
             return MSP_RESULT_ERROR;
         break;
+#endif
 
     case MSP_EEPROM_WRITE:
         if (!ARMING_FLAG(ARMED)) {
