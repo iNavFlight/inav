@@ -73,12 +73,25 @@ bool checkGroundStationNumber(uint8_t* rv)
     int i;
     const uint8_t* gsn = telemetryConfig()->simGroundStationNumber;
 
+    int digitsToCheck = strlen((char*)gsn);
+    if (gsn[0] == '+') {
+        digitsToCheck -= 5;        // ignore country code (max 4 digits)
+    } else if (gsn[0] == '0') { // ignore trunk prefixes: '0', '8', 01', '02', '06'
+        digitsToCheck--;
+        if (gsn[1] == '1' || gsn[1] == '2' || gsn[1] == '6') {
+            digitsToCheck--;
+        }
+    } else if (gsn[0] == '8') {
+        digitsToCheck--;
+    }
+
     for (i = 0; i < 16 && *gsn != '\0'; i++) gsn++;
     if (i == 0)
         return false;
     for (i = 0; i < 16 && *rv != '\"'; i++) rv++;
+
     gsn--; rv--;
-    for (i = 0; i < SIM_GROUND_STATION_NUMBER_DIGITS; i++) {
+    for (i = 0; i < digitsToCheck; i++) {
         if (*rv != *gsn) return false;
         gsn--; rv--;
     }

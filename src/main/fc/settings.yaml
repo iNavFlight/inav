@@ -1552,7 +1552,8 @@ groups:
         field: simLowAltitude
         condition: USE_TELEMETRY_SIM
         type: int16_t
-
+        min: INT16_MIN
+        max: INT16_MAX
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
