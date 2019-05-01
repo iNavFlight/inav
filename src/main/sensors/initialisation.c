@@ -74,7 +74,7 @@ bool sensorsAutodetect(void)
     rangefinderInit();
 #endif
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     opflowInit();
 #endif
 

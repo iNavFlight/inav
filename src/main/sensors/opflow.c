@@ -41,6 +41,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/io.h"
+#include "drivers/light_led.h"
 #include "drivers/logging.h"
 #include "drivers/time.h"
 
@@ -74,7 +75,7 @@ static float opflowCalibrationFlowAcc;
 #define OPFLOW_UPDATE_TIMEOUT_US        200000  // At least 5Hz updates required
 #define OPFLOW_CALIBRATE_TIME_MS        30000   // 30 second calibration time
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
 PG_REGISTER_WITH_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig, PG_OPFLOW_CONFIG, 1);
 
 PG_RESET_TEMPLATE(opticalFlowConfig_t, opticalFlowConfig,
@@ -171,8 +172,8 @@ void opflowUpdate(timeUs_t currentTimeUs)
 
     if (opflow.dev.updateFn(&opflow.dev)) {
         // Indicate valid update
-        opflow.lastValidUpdate = currentTimeUs;
         opflow.isHwHealty = true;
+        opflow.lastValidUpdate = currentTimeUs;
         opflow.rawQuality = opflow.dev.rawData.quality;
 
         // Handle state switching
@@ -190,51 +191,64 @@ void opflowUpdate(timeUs_t currentTimeUs)
                 break;
         }
 
-        if ((opflow.flowQuality == OPFLOW_QUALITY_VALID) && (opflow.gyroBodyRateTimeUs > 0)) {
+        // Opflow updated. Assume zero valus unless further processing sets otherwise
+        opflow.flowRate[X] = 0;
+        opflow.flowRate[Y] = 0;
+        opflow.bodyRate[X] = 0;
+        opflow.bodyRate[Y] = 0;
+
+        // In the following code we operate deg/s and do conversion to rad/s in the last step
+        // Calculate body rates
+        if (opflow.gyroBodyRateTimeUs > 0) {
+            opflow.bodyRate[X] = opflow.gyroBodyRateAcc[X] / opflow.gyroBodyRateTimeUs;
+            opflow.bodyRate[Y] = opflow.gyroBodyRateAcc[Y] / opflow.gyroBodyRateTimeUs;
+        }
+
+        // If quality of the flow from the sensor is good - process further
+        if (opflow.flowQuality == OPFLOW_QUALITY_VALID) {
             const float integralToRateScaler = (opticalFlowConfig()->opflow_scale > 0.01f) ? (1.0e6 / opflow.dev.rawData.deltaTime) / (float)opticalFlowConfig()->opflow_scale : 0.0f;
 
             // Apply sensor alignment
             applySensorAlignment(opflow.dev.rawData.flowRateRaw, opflow.dev.rawData.flowRateRaw, opticalFlowConfig()->opflow_align);
 
             // Calculate flow rate and accumulated body rate
-            opflow.flowRate[X] = DEGREES_TO_RADIANS(opflow.dev.rawData.flowRateRaw[X] * integralToRateScaler);
-            opflow.flowRate[Y] = DEGREES_TO_RADIANS(opflow.dev.rawData.flowRateRaw[Y] * integralToRateScaler);
+            opflow.flowRate[X] = opflow.dev.rawData.flowRateRaw[X] * integralToRateScaler;
+            opflow.flowRate[Y] = opflow.dev.rawData.flowRateRaw[Y] * integralToRateScaler;
 
-            opflow.bodyRate[X] = DEGREES_TO_RADIANS(opflow.gyroBodyRateAcc[X] / opflow.gyroBodyRateTimeUs);
-            opflow.bodyRate[Y] = DEGREES_TO_RADIANS(opflow.gyroBodyRateAcc[Y] / opflow.gyroBodyRateTimeUs);
+            // Only update DEBUG_FLOW_RAW if flow is good
+            DEBUG_SET(DEBUG_FLOW_RAW, 0, (opflow.flowRate[X]));
+            DEBUG_SET(DEBUG_FLOW_RAW, 1, (opflow.flowRate[Y]));
+            DEBUG_SET(DEBUG_FLOW_RAW, 2, (opflow.bodyRate[X]));
+            DEBUG_SET(DEBUG_FLOW_RAW, 3, (opflow.bodyRate[Y]));
+        }
 
-            // Handle opflow calibration
-            if (opflowIsCalibrating) {
-                if ((millis() - opflowCalibrationStartedAt) > OPFLOW_CALIBRATE_TIME_MS) {
-                    // Finish calibration
-                    if (opflowCalibrationBodyAcc > 1000.0f) {
-                        opticalFlowConfigMutable()->opflow_scale = opflowCalibrationFlowAcc / opflowCalibrationBodyAcc;
-                    }
+        // Process calibration
+        if (opflowIsCalibrating) {
+            // Blink LED
+            LED0_TOGGLE;
 
-                    opflowIsCalibrating = 0;
+            if ((millis() - opflowCalibrationStartedAt) > OPFLOW_CALIBRATE_TIME_MS) {
+                // Finish calibration if we accumulated more than 3600 deg of rotation over 30 seconds
+                if (opflowCalibrationBodyAcc > 3600.0f) {
+                    opticalFlowConfigMutable()->opflow_scale = opflowCalibrationFlowAcc / opflowCalibrationBodyAcc;
+                    saveConfigAndNotify();
                 }
-                else {
-                    // Ongoing calibration - accumulate body and flow rates
-                    opflowCalibrationBodyAcc += ABS(opflow.bodyRate[X]);
-                    opflowCalibrationBodyAcc += ABS(opflow.bodyRate[Y]);
-                    opflowCalibrationFlowAcc += ABS(opflow.dev.rawData.flowRateRaw[X]) * (1.0e6 / opflow.dev.rawData.deltaTime);
-                    opflowCalibrationFlowAcc += ABS(opflow.dev.rawData.flowRateRaw[Y]) * (1.0e6 / opflow.dev.rawData.deltaTime);
-                }
+
+                opflowIsCalibrating = 0;
             }
-
-            DEBUG_SET(DEBUG_FLOW_RAW, 0, RADIANS_TO_DEGREES(opflow.flowRate[X]));
-            DEBUG_SET(DEBUG_FLOW_RAW, 1, RADIANS_TO_DEGREES(opflow.flowRate[Y]));
-            DEBUG_SET(DEBUG_FLOW_RAW, 2, RADIANS_TO_DEGREES(opflow.bodyRate[X]));
-            DEBUG_SET(DEBUG_FLOW_RAW, 3, RADIANS_TO_DEGREES(opflow.bodyRate[Y]));
+            else if (opflow.flowQuality == OPFLOW_QUALITY_VALID) {
+                // Ongoing calibration - accumulate body and flow rotation magniture if opflow quality is good enough
+                const float invDt = 1.0e6 / opflow.dev.rawData.deltaTime;
+                opflowCalibrationBodyAcc += sqrtf(sq(opflow.bodyRate[X]) + sq(opflow.bodyRate[Y]));
+                opflowCalibrationFlowAcc += sqrtf(sq(opflow.dev.rawData.flowRateRaw[X]) + sq(opflow.dev.rawData.flowRateRaw[Y])) * invDt;
+            }
         }
-        else {
-            // Opflow updated but invalid - zero out flow rates and body
-            opflow.flowRate[X] = 0;
-            opflow.flowRate[Y] = 0;
 
-            opflow.bodyRate[X] = 0;
-            opflow.bodyRate[Y] = 0;
-        }
+        // Convert to radians so NAV doesn't have to do the conversion
+        opflow.bodyRate[X] = DEGREES_TO_RADIANS(opflow.bodyRate[X]);
+        opflow.bodyRate[Y] = DEGREES_TO_RADIANS(opflow.bodyRate[Y]);
+        opflow.flowRate[X] = DEGREES_TO_RADIANS(opflow.flowRate[X]);
+        opflow.flowRate[Y] = DEGREES_TO_RADIANS(opflow.flowRate[Y]);
 
         // Zero out gyro accumulators to calculate rotation per flow update
         opflowZeroBodyGyroAcc();
