@@ -635,7 +635,7 @@ void FAST_CODE NOINLINE taskGyro(timeUs_t currentTimeUs) {
     /* Update actual hardware readings */
     gyroUpdate();
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     if (sensors(SENSOR_OPFLOW)) {
         opflowGyroUpdateCallback((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
     }

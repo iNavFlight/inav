@@ -261,7 +261,7 @@ groups:
   - name: PG_OPFLOW_CONFIG
     type: opticalFlowConfig_t
     headers: ["sensors/opflow.h"]
-    condition: USE_OPTICAL_FLOW
+    condition: USE_OPFLOW
     members:
       - name: opflow_hardware
         table: opflow_hardware
