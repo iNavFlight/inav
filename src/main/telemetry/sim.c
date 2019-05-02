@@ -293,12 +293,17 @@ void sendSMS(void)
     int avgSpeed = (int)round(10 * calculateAverageSpeed());
     uint32_t now = millis();
 
+    if (getFlightTime() == 0.0F) {
+        avgSpeed = 0;
+    }
+
     if (sensors(SENSOR_GPS)) {
         lat = gpsSol.llh.lat;
         lon = gpsSol.llh.lon;
         gs = gpsSol.groundSpeed / 100;
         gc = gpsSol.groundCourse / 10;
     }
+
     int len;
     int32_t E7 = 10000000;
     // \x1a sends msg, \x1b cancels
