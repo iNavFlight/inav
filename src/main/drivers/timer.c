@@ -23,6 +23,7 @@
 #include "platform.h"
 
 #include "build/atomic.h"
+#include "build/debug.h"
 
 #include "common/utils.h"
 #include "common/memory.h"
@@ -35,17 +36,7 @@
 #include "drivers/timer.h"
 #include "drivers/timer_impl.h"
 
-#define TIM_N(n) (1 << (n))
-
-/*
-    Groups that allow running different period (ex 50Hz servos + 400Hz throttle + etc):
-    TIM1 2 channels
-    TIM2 4 channels
-    TIM3 4 channels
-    TIM4 4 channels
-*/
-
-timerConfig_t * timerConfig[HARDWARE_TIMER_DEFINITION_COUNT];
+timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
 
 // return index of timer in timer table. Lowest timer has index 0
 uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
@@ -63,127 +54,114 @@ uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
     return ~1;
 }
 
-static inline uint8_t lookupChannelIndex(const uint16_t channel)
+void timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
 {
-    return channel >> 2;
-}
-
-void timerNVICConfigure(uint8_t irq, int irqPriority)
-{
-    impl_timerNVICConfigure(irq, irqPriority);
-}
-
-void timerConfigBase(TIM_TypeDef *tim, uint16_t period, uint8_t mhz)
-{
-    impl_timerConfigBase(tim, period, mhz);
-}
-
-// old interface for PWM inputs. It should be replaced
-void timerConfigure(const timerHardware_t *timerHardwarePtr, uint16_t period, uint8_t mhz)
-{
-    unsigned timer = lookupTimerIndex(timerHardwarePtr->tim);
-
-    impl_timerConfigBase(timerDefinitions[timer].tim, period, mhz);
-    impl_enableTimer(timerDefinitions[timer].tim);
-
-    if (timerDefinitions[timer].irq != 0) {
-        impl_timerNVICConfigure(timerDefinitions[timer].irq, NVIC_PRIO_TIMER);
-    }
-
-    if (timerDefinitions[timer].secondIrq != 0) {
-        impl_timerNVICConfigure(timerDefinitions[timer].secondIrq, NVIC_PRIO_TIMER);
-    }
-}
-
-void timerChCCHandlerInit(timerCCHandlerRec_t *self, timerCCHandlerCallback *fn)
-{
-    self->fn = fn;
-}
-
-void timerChOvrHandlerInit(timerOvrHandlerRec_t *self, timerOvrHandlerCallback *fn)
-{
-    self->fn = fn;
-    self->next = NULL;
-}
-
-// update overflow callback list
-// some synchronization mechanism is neccesary to avoid disturbing other channels (BASEPRI used now)
-static void timerChConfig_UpdateOverflow(timerConfig_t *cfg, TIM_TypeDef *tim) {
-    timerOvrHandlerRec_t **chain = &cfg->overflowCallbackActive;
-    ATOMIC_BLOCK(NVIC_PRIO_TIMER) {
-        for (int i = 0; i < CC_CHANNELS_PER_TIMER; i++)
-            if (cfg->overflowCallback[i]) {
-                *chain = cfg->overflowCallback[i];
-                chain = &cfg->overflowCallback[i]->next;
-            }
-        *chain = NULL;
-    }
-
-    // enable or disable IRQ
-    if (cfg->overflowCallbackActive) {
-        impl_timerEnableIT(tim, IMPL_TIM_IT_UPDATE_INTERRUPT);
-    }
-    else {
-        impl_timerDisableIT(tim, IMPL_TIM_IT_UPDATE_INTERRUPT);
-    }
-}
-
-timerConfig_t * timerGetConfigContext(int timerIndex)
-{
-    // If timer context does not exist - allocate memory
-    if (timerConfig[timerIndex] == NULL) {
-        timerConfig[timerIndex] = memAllocate(sizeof(timerConfig_t), OWNER_TIMER);
-    }
-
-    return timerConfig[timerIndex];
-}
-
-// config edge and overflow callback for channel. Try to avoid overflowCallback, it is a bit expensive
-void timerChConfigCallbacks(const timerHardware_t *timHw, timerCCHandlerRec_t *edgeCallback, timerOvrHandlerRec_t *overflowCallback)
-{
-    uint8_t timerIndex = lookupTimerIndex(timHw->tim);
-
-    if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
+    if (tch == NULL) {
         return;
     }
 
-    uint8_t channelIndex = lookupChannelIndex(timHw->channel);
-    if (edgeCallback == NULL)   // disable irq before changing callback to NULL
-        impl_timerDisableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
+    impl_timerConfigBase(tch, period, hz);
+}
 
-    timerConfig_t * cfg = timerGetConfigContext(timerIndex);
-
-    if (cfg) {
-        // setup callback info
-        cfg->edgeCallback[channelIndex] = edgeCallback;
-        cfg->overflowCallback[channelIndex] = overflowCallback;
-
-        // enable channel IRQ
-        if (edgeCallback)
-            impl_timerEnableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
-
-        timerChConfig_UpdateOverflow(cfg, timHw->tim);
+// old interface for PWM inputs. It should be replaced
+void timerConfigure(TCH_t * tch, uint16_t period, uint32_t hz)
+{
+    if (tch == NULL) {
+        return;
     }
-    else {
-        // OOM error, disable IRQs for this timer
-        impl_timerDisableIT(timHw->tim, TIM_IT_CCx(timHw->channel));
+
+    impl_timerConfigBase(tch, period, hz);
+    impl_timerNVICConfigure(tch, NVIC_PRIO_TIMER);
+    impl_enableTimer(tch);
+}
+
+TCH_t * timerGetTCH(const timerHardware_t * timHw)
+{
+    const int timerIndex = lookupTimerIndex(timHw->tim);
+    
+    if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
+        DEBUG_TRACE("Can't find hardware timer definition");
+        return NULL;
+    }
+
+    // If timer context does not exist - allocate memory
+    if (timerCtx[timerIndex] == NULL) {
+        timerCtx[timerIndex] = memAllocate(sizeof(timHardwareContext_t), OWNER_TIMER);
+        
+        // Check for OOM
+        if (timerCtx[timerIndex] == NULL) {
+            DEBUG_TRACE("Can't allocate TCH object");
+            return NULL;
+        }
+
+        // Initialize parent object
+        memset(timerCtx[timerIndex], 0, sizeof(timHardwareContext_t));
+        timerCtx[timerIndex]->timDef = &timerDefinitions[timerIndex];
+        timerCtx[timerIndex]->ch[0].timCtx = timerCtx[timerIndex];
+        timerCtx[timerIndex]->ch[1].timCtx = timerCtx[timerIndex];
+        timerCtx[timerIndex]->ch[2].timCtx = timerCtx[timerIndex];
+        timerCtx[timerIndex]->ch[3].timCtx = timerCtx[timerIndex];
+
+        // Implementation-specific init
+        impl_timerInitContext(timerCtx[timerIndex]);
+    }
+
+    // Initialize timer channel object
+    timerCtx[timerIndex]->ch[timHw->channelIndex].timHw = timHw;
+    timerCtx[timerIndex]->ch[timHw->channelIndex].dma = NULL;
+    timerCtx[timerIndex]->ch[timHw->channelIndex].cb = NULL;
+    timerCtx[timerIndex]->ch[timHw->channelIndex].dmaState = TCH_DMA_IDLE;
+
+    return &timerCtx[timerIndex]->ch[timHw->channelIndex];
+}
+
+// config edge and overflow callback for channel. Try to avoid overflowCallback, it is a bit expensive
+void timerChInitCallbacks(timerCallbacks_t * cb, void * callbackParam, timerCallbackFn * edgeCallback, timerCallbackFn * overflowCallback)
+{
+    cb->callbackParam = callbackParam;
+    cb->callbackEdge = edgeCallback;
+    cb->callbackOvr = overflowCallback;
+}
+
+void timerChConfigCallbacks(TCH_t * tch, timerCallbacks_t * cb)
+{
+    if (tch == NULL) {
+        return;
+    }
+
+    if (cb->callbackEdge == NULL) {
+        impl_timerDisableIT(tch, TIM_IT_CCx(tch->timHw->channelIndex));
+    }
+    
+    if (cb->callbackOvr == NULL) {
+        impl_timerDisableIT(tch, IMPL_TIM_IT_UPDATE_INTERRUPT);
+    }
+
+    tch->cb = cb;
+
+    if (cb->callbackEdge) {
+        impl_timerEnableIT(tch, TIM_IT_CCx(tch->timHw->channelIndex));
+    }
+
+    if (cb->callbackOvr) {
+        impl_timerEnableIT(tch, IMPL_TIM_IT_UPDATE_INTERRUPT);
     }
 }
 
 // Configure input captupre
-void timerChConfigIC(const timerHardware_t *timHw, bool polarityRising, unsigned inputFilterTicks)
+void timerChConfigIC(TCH_t * tch, bool polarityRising, unsigned inputFilterSamples)
 {
-    impl_timerChConfigIC(timHw, polarityRising, inputFilterTicks);
+    impl_timerChConfigIC(tch, polarityRising, inputFilterSamples);
 }
 
-uint16_t timerGetPeriod(const timerHardware_t *timHw)
+uint16_t timerGetPeriod(TCH_t * tch)
 {
-    return timHw->tim->ARR;
+    return tch->timHw->tim->ARR;
 }
 
 void timerInit(void)
 {
-    memset(timerConfig, 0, sizeof (timerConfig));
+    memset(timerCtx, 0, sizeof (timerCtx));
 
     /* enable the timer peripherals */
     for (int i = 0; i < timerHardwareCount; i++) {
@@ -199,7 +177,7 @@ void timerInit(void)
     }
 }
 
-const timerHardware_t *timerGetByTag(ioTag_t tag, timerUsageFlag_e flag)
+const timerHardware_t * timerGetByTag(ioTag_t tag, timerUsageFlag_e flag)
 {
     if (!tag) {
         return NULL;
@@ -215,36 +193,67 @@ const timerHardware_t *timerGetByTag(ioTag_t tag, timerUsageFlag_e flag)
     return NULL;
 }
 
-void timerPWMConfigChannel(TIM_TypeDef * tim, uint8_t channel, bool isNChannel, bool inverted, uint16_t value)
+void timerPWMConfigChannel(TCH_t * tch, uint16_t value)
 {
-    impl_timerPWMConfigChannel(tim, channel, isNChannel, inverted, value);
+    impl_timerPWMConfigChannel(tch, value);
 }
 
-void timerEnable(TIM_TypeDef * tim)
+void timerEnable(TCH_t * tch)
 {
-    impl_enableTimer(tim);
+    impl_enableTimer(tch);
 }
 
-void timerPWMStart(TIM_TypeDef * tim, uint8_t channel, bool isNChannel)
+void timerPWMStart(TCH_t * tch)
 {
-    impl_timerPWMStart(tim, channel, isNChannel);
+    impl_timerPWMStart(tch);
 }
 
-uint16_t timerDmaSource(uint8_t channel)
+volatile timCCR_t *timerCCR(TCH_t * tch)
 {
-    return impl_timerDmaSource(channel);
+    return impl_timerCCR(tch);
 }
 
-volatile timCCR_t * timerCCR(TIM_TypeDef *tim, uint8_t channel)
+void timerChCaptureEnable(TCH_t * tch)
 {
-    return impl_timerCCR(tim, channel);
+    impl_timerChCaptureCompareEnable(tch, true);
 }
 
-uint16_t timerGetPrescalerByDesiredMhz(TIM_TypeDef *tim, uint16_t mhz)
+void timerChCaptureDisable(TCH_t * tch)
 {
-    // protection here for desired MHZ > SystemCoreClock???
-    if ((uint32_t)(mhz * 1000000) > (SystemCoreClock / timerClockDivisor(tim))) {
-        return 0;
-    }
-    return (uint16_t)(round((SystemCoreClock / timerClockDivisor(tim) / (mhz * 1000000)) - 1));
+    impl_timerChCaptureCompareEnable(tch, false);
+}
+
+uint32_t timerGetBaseClock(TCH_t * tch)
+{
+    return timerGetBaseClockHW(tch->timHw);
+}
+
+uint32_t timerGetBaseClockHW(const timerHardware_t * timHw)
+{
+    return SystemCoreClock / timerClockDivisor(timHw->tim);
+}
+
+bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize)
+{
+    return impl_timerPWMConfigChannelDMA(tch, dmaBuffer, dmaBufferSize);
+}
+
+void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize)
+{
+    impl_timerPWMPrepareDMA(tch, dmaBufferSize);
+}
+
+void timerPWMStartDMA(TCH_t * tch)
+{
+    impl_timerPWMStartDMA(tch);
+}
+
+void timerPWMStopDMA(TCH_t * tch)
+{
+    impl_timerPWMStopDMA(tch);
+}
+
+bool timerPWMDMAInProgress(TCH_t * tch)
+{
+    return tch->dmaState != TCH_DMA_IDLE;
 }

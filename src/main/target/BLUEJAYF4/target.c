@@ -23,14 +23,15 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
-    { TIM8, IO_TAG(PC7), TIM_Channel_2, 0, IOCFG_AF_PP, GPIO_AF_TIM8, TIM_USE_PPM }, // PPM IN
+    DEF_TIM(TIM8, CH2,  PC7, TIM_USE_PPM,                 0, 0 ), // PPM IN
 
-    { TIM5, IO_TAG(PA0), TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_TIM5, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR}, // S1_OUT
-    { TIM5, IO_TAG(PA1), TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_TIM5, TIM_USE_MC_MOTOR |                    TIM_USE_FW_MOTOR }, // S2_OUT
-    { TIM2, IO_TAG(PA2), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_TIM2, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // S3_OUT
-    { TIM9, IO_TAG(PA3), TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_TIM9, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // S4_OUT
-    { TIM3, IO_TAG(PB1), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_TIM3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // S5_OUT
-    { TIM3, IO_TAG(PB0), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_TIM3, TIM_USE_MC_MOTOR |                    TIM_USE_FW_SERVO }, // S6_OUT
+    DEF_TIM(TIM5, CH1,  PA0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,               0, 0 ), // S1_OUT - DMA1_ST2
+    DEF_TIM(TIM5, CH2,  PA1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,               0, 0 ), // S2_OUT - DMA1_ST4
+    DEF_TIM(TIM2, CH3,  PA2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // S3_OUT - DMA1_ST1
+    DEF_TIM(TIM9, CH2,  PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // S4_OUT - no DMA
+    // DEF_TIM(TIM5, CH4,  PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 1 ), // S4_OUT - DMA1_ST3 (Could be DMA1_ST1 with dmaopt=0)
+    DEF_TIM(TIM3, CH4,  PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO | TIM_USE_LED, 0, 0 ), // S5_OUT - DMA1_ST2
+    DEF_TIM(TIM3, CH3,  PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0 ), // S6_OUT - DMA1_ST7
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

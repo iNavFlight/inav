@@ -17,14 +17,10 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-
 #include <platform.h>
-
-#ifdef TARGET_CONFIG
 #include "sensors/battery.h"
 
 void targetConfiguration(void)
 {
     batteryMetersConfigMutable()->current.scale = 20;
 }
-#endif

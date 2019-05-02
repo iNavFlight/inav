@@ -24,24 +24,23 @@
 #include "drivers/timer.h"
 
 const timerHardware_t timerHardware[] = {
-    { TIM15, IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_PWM | TIM_USE_PPM  }, // PWM1 / PPM / UART2 RX
-    { TIM15, IO_TAG(PA2),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_9, TIM_USE_PWM }, // PWM2
+    DEF_TIM(TIM15, CH2, PA3,  TIM_USE_PWM | TIM_USE_PPM,            0), // PWM1 / PPM / UART2 RX
+    DEF_TIM(TIM15, CH1, PA2,  TIM_USE_PWM,                          0), // PWM2
 
-    { TIM3,  IO_TAG(PB1),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // ESC1
-    { TIM3,  IO_TAG(PC7),  TIM_Channel_2, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // ESC2
-    { TIM3,  IO_TAG(PB0),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // ESC3
-    { TIM3,  IO_TAG(PC6),  TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO },  // ESC4
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // ESC1
+    DEF_TIM(TIM3,  CH2, PC7,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // ESC2
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // ESC3
+    DEF_TIM(TIM3,  CH1, PC6,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // ESC4
 
-    { TIM8,  IO_TAG(PC8),  TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // ESC5 (FW motor)
-    { TIM8,  IO_TAG(PC9),  TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_4, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR },  // ESC6 (FW motor)
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0), // ESC5 (FW motor)
+    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0), // ESC6 (FW motor)
 
-    { TIM2,  IO_TAG(PB10), TIM_Channel_3, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_PWM },  // PWM3 - PB10 - *TIM2_CH3, UART3_TX (AF7)
-    { TIM2,  IO_TAG(PB11), TIM_Channel_4, 1, IOCFG_AF_PP, GPIO_AF_1, TIM_USE_PWM },  // PWM4 - PB11 - *TIM2_CH4, UART3_RX (AF7)
 
-    // with DSHOT DMA1-CH3 conflicts with TIM3_CH4 / ESC1.
-    //{ TIM16,  IO_TAG(PB8), TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_1 },    // What's PB8 ???
+    DEF_TIM(TIM2,  CH3, PB10, TIM_USE_PWM,                          0), // PWM3 - PB10 - *TIM2_CH3, UART3_TX (AF7)
+    DEF_TIM(TIM2,  CH4, PB11, TIM_USE_PWM,                          0), // PWM4 - PB11 - *TIM2_CH4, UART3_RX (AF7)
 
-    { TIM1,   IO_TAG(PA8), TIM_Channel_1, 1, IOCFG_AF_PP, GPIO_AF_6, TIM_USE_LED }
+    DEF_TIM(TIM16, CH1, PB8,  TIM_USE_ANY,                          0),
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_LED,                          0),
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

@@ -23,7 +23,6 @@
 #define TARGET_BOARD_IDENTIFIER "PIK4"
 #define USBD_PRODUCT_STRING     "PikoF4"
 #endif
-#define USE_TARGET_CONFIG
 /*--------------LED----------------*/
 #if defined(FF_PIKOF4OSD)
 #define LED0                    PB5

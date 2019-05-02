@@ -20,7 +20,7 @@
 
 struct pitotDev_s;
 
-typedef void (*pitotOpFuncPtr)(struct pitotDev_s * pitot);                       // pitot start operation
+typedef bool (*pitotOpFuncPtr)(struct pitotDev_s * pitot);                       // pitot start operation
 typedef void (*pitotCalculateFuncPtr)(struct pitotDev_s * pitot, float *pressure, float *temperature); // airspeed calculation (filled params are pressure and temperature)
 
 typedef struct pitotDev_s {

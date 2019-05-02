@@ -25,8 +25,6 @@
 #include "platform.h"
 #include "build/debug.h"
 
-#if defined(USE_VTX_COMMON)
-
 #include "vtx_common.h"
 
 static vtxDevice_t *commonVtxDevice = NULL;
@@ -152,4 +150,3 @@ bool vtxCommonGetDeviceCapability(vtxDevice_t *vtxDevice, vtxDeviceCapability_t 
     }
     return false;
 }
-#endif

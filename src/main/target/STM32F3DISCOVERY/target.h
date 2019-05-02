@@ -135,9 +135,6 @@
 
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB8 // TIM16_CH1
-#define WS2811_TIMER                    TIM16
-#define WS2811_DMA_STREAM               DMA1_Channel3
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_CH3_HANDLER
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 // USART2, PA3
