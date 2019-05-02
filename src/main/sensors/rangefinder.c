@@ -34,7 +34,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/io.h"
-#include "drivers/logging.h"
 #include "drivers/time.h"
 #include "drivers/rangefinder/rangefinder.h"
 #include "drivers/rangefinder/rangefinder_hcsr04.h"
@@ -165,8 +164,6 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             rangefinderHardware = RANGEFINDER_NONE;
             break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_RANGEFINDER_DETECTION, BOOT_EVENT_FLAGS_NONE, rangefinderHardware, 0, 0, 0);
 
     if (rangefinderHardware == RANGEFINDER_NONE) {
         sensorsClear(SENSOR_RANGEFINDER);

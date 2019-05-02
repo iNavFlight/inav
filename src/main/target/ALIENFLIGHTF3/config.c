@@ -23,6 +23,7 @@
 #include "common/axis.h"
 
 #include "drivers/pwm_esc_detect.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 
 #include "fc/controlrate_profile.h"

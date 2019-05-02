@@ -118,13 +118,13 @@ busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, re
         if (hw == descriptor->devHwType && (bus == descriptor->busType || bus == BUSTYPE_ANY) && (tag == descriptor->tag)) {
             // We have a candidate - initialize device context memory
             busDevice_t * dev = descriptor->devicePtr;
-            memset(dev, 0, sizeof(busDevice_t));
-
-            dev->descriptorPtr = descriptor;
-            dev->busType = descriptor->busType;
-            dev->flags = descriptor->flags;
-
             if (dev) {
+                memset(dev, 0, sizeof(busDevice_t));
+
+                dev->descriptorPtr = descriptor;
+                dev->busType = descriptor->busType;
+                dev->flags = descriptor->flags;
+
                 switch (descriptor->busType) {
                     default:
                     case BUSTYPE_NONE:

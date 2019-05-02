@@ -123,13 +123,6 @@ static void benewakeRangefinderUpdate(void)
                 if (sensorData == 0 || qual <= BENEWAKE_MIN_QUALITY) {
                     sensorData = -1;
                 }
-
-                /*
-                debug[0] = ((tfminiPacket_t *) &buffer[0])->distL;
-                debug[1] = ((tfminiPacket_t *) &buffer[0])->distH;
-                debug[2] = ((tfminiPacket_t *) &buffer[0])->strengthH;
-                debug[3] = ((tfminiPacket_t *) &buffer[0])->strengthL;
-                */
             }
 
             // Prepare for new packet

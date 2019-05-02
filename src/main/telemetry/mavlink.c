@@ -89,12 +89,12 @@ static bool mavlinkTelemetryEnabled =  false;
 static portSharing_e mavlinkPortSharing;
 
 /* MAVLink datastream rates in Hz */
-static const uint8_t mavRates[] = {
-    [MAV_DATA_STREAM_EXTENDED_STATUS] = 2, //2Hz
-    [MAV_DATA_STREAM_RC_CHANNELS] = 5, //5Hz
-    [MAV_DATA_STREAM_POSITION] = 2, //2Hz
-    [MAV_DATA_STREAM_EXTRA1] = 10, //10Hz
-    [MAV_DATA_STREAM_EXTRA2] = 10 //2Hz
+static uint8_t mavRates[] = {
+    [MAV_DATA_STREAM_EXTENDED_STATUS] = 2,      // 2Hz
+    [MAV_DATA_STREAM_RC_CHANNELS] = 5,          // 5Hz
+    [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
+    [MAV_DATA_STREAM_EXTRA1] = 10,              // 10Hz
+    [MAV_DATA_STREAM_EXTRA2] = 2                // 2Hz
 };
 
 #define MAXSTREAMS (sizeof(mavRates) / sizeof(mavRates[0]))
@@ -168,6 +168,15 @@ void configureMAVLinkTelemetryPort(void)
     mavlinkTelemetryEnabled = true;
 }
 
+static void configureMAVLinkStreamRates(void)
+{
+    mavRates[MAV_DATA_STREAM_EXTENDED_STATUS] = telemetryConfig()->mavlink.extended_status_rate;
+    mavRates[MAV_DATA_STREAM_RC_CHANNELS] = telemetryConfig()->mavlink.rc_channels_rate;
+    mavRates[MAV_DATA_STREAM_POSITION] = telemetryConfig()->mavlink.position_rate;
+    mavRates[MAV_DATA_STREAM_EXTRA1] = telemetryConfig()->mavlink.extra1_rate;
+    mavRates[MAV_DATA_STREAM_EXTRA2] = telemetryConfig()->mavlink.extra2_rate;
+}
+
 void checkMAVLinkTelemetryState(void)
 {
     bool newTelemetryEnabledValue = telemetryDetermineEnabledState(mavlinkPortSharing);
@@ -176,9 +185,10 @@ void checkMAVLinkTelemetryState(void)
         return;
     }
 
-    if (newTelemetryEnabledValue)
+    if (newTelemetryEnabledValue) {
         configureMAVLinkTelemetryPort();
-    else
+        configureMAVLinkStreamRates();
+    } else
         freeMAVLinkTelemetryPort();
 }
 
@@ -467,7 +477,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     if (flm != FLM_MANUAL) {
         mavModes |= MAV_MODE_FLAG_STABILIZE_ENABLED;
     }
-    else if (flm == FLM_POSITION_HOLD || flm == FLM_RTH || flm == FLM_MISSION) {
+    if (flm == FLM_POSITION_HOLD || flm == FLM_RTH || flm == FLM_MISSION) {
         mavModes |= MAV_MODE_FLAG_GUIDED_ENABLED;
     }
 

@@ -27,6 +27,7 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -86,6 +87,13 @@ typedef struct {
     biquadFilter_t deltaNotchFilter;
 #endif
     float stickPosition;
+
+#ifdef USE_D_BOOST
+    float previousRateTarget;
+    float previousRateGyro;
+    pt1Filter_t dBoostLpf;
+    biquadFilter_t dBoostGyroLpf;
+#endif
 } pidState_t;
 
 #ifdef USE_DTERM_NOTCH
@@ -115,7 +123,15 @@ static EXTENDED_FASTRAM uint8_t itermRelax;
 static EXTENDED_FASTRAM uint8_t itermRelaxType;
 static EXTENDED_FASTRAM float itermRelaxSetpointThreshold;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 8);
+#define D_BOOST_GYRO_LPF_HZ 80    // Biquad lowpass input cutoff to peak D around propwash frequencies
+#define D_BOOST_LPF_HZ 10         // PT1 lowpass cutoff to smooth the boost effect
+
+#ifdef USE_D_BOOST
+static EXTENDED_FASTRAM float dBoostFactor;
+static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
+#endif
+
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -214,6 +230,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .iterm_relax_type = ITERM_RELAX_SETPOINT,
         .iterm_relax_cutoff = MC_ITERM_RELAX_CUTOFF_DEFAULT,
         .iterm_relax = ITERM_RELAX_OFF,
+        .dBoostFactor = 1.0f,
+        .dBoostMaxAtAlleceleration = 7500.0f,
+        .dBoostGyroDeltaLpfHz = D_BOOST_GYRO_LPF_HZ,
 );
 
 void pidInit(void)
@@ -229,6 +248,12 @@ void pidInit(void)
     itermRelax = pidProfile()->iterm_relax;
     itermRelaxType = pidProfile()->iterm_relax_type;
     itermRelaxSetpointThreshold = MC_ITERM_RELAX_SETPOINT_THRESHOLD * MC_ITERM_RELAX_CUTOFF_DEFAULT / pidProfile()->iterm_relax_cutoff;
+
+#ifdef USE_D_BOOST
+    dBoostFactor = pidProfile()->dBoostFactor;
+    dBoostMaxAtAlleceleration = pidProfile()->dBoostMaxAtAlleceleration;
+#endif
+
 }
 
 bool pidInitFilters(void)
@@ -281,6 +306,12 @@ bool pidInitFilters(void)
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, refreshRate * 1e-6f);
     }
+
+#ifdef USE_D_BOOST
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        biquadFilterInitLPF(&pidState[axis].dBoostGyroLpf, pidProfile()->dBoostGyroDeltaLpfHz, getLooptime());
+    }
+#endif
 
     pidFiltersConfigured = true;
 
@@ -369,7 +400,7 @@ static float calculateMultirotorTPAFactor(void)
     if (currentControlRateProfile->throttle.dynPID == 0 || rcCommand[THROTTLE] < currentControlRateProfile->throttle.pa_breakpoint) {
         tpaFactor = 1.0f;
     } else if (rcCommand[THROTTLE] < motorConfig()->maxthrottle) {
-        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (motorConfig()->maxthrottle - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
+        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(motorConfig()->maxthrottle - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
     } else {
         tpaFactor = (100 - currentControlRateProfile->throttle.dynPID) / 100.0f;
     }
@@ -594,6 +625,42 @@ static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, floa
         }
     }
 }
+#ifdef USE_D_BOOST
+static float FAST_CODE applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis) {
+    
+    float dBoost = 1.0f;
+    
+    if (dBoostFactor > 1) {
+        const float dBoostGyroDelta = (pidState->gyroRate - pidState->previousRateGyro) / dT;
+        const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&pidState->dBoostGyroLpf, dBoostGyroDelta));
+        const float dBoostRateAcceleration = fabsf((pidState->rateTarget - pidState->previousRateTarget) / dT);
+        
+        const float acceleration = MAX(dBoostGyroAcceleration, dBoostRateAcceleration);
+        dBoost = scaleRangef(acceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
+        dBoost = pt1FilterApply4(&pidState->dBoostLpf, dBoost, D_BOOST_LPF_HZ, dT);
+        dBoost = constrainf(dBoost, 1.0f, dBoostFactor);
+
+        if (axis == FD_ROLL) {
+            DEBUG_SET(DEBUG_D_BOOST, 0, dBoostGyroAcceleration);
+            DEBUG_SET(DEBUG_D_BOOST, 1, dBoostRateAcceleration);
+            DEBUG_SET(DEBUG_D_BOOST, 2, dBoost * 100);
+        } else if (axis == FD_PITCH) {
+            DEBUG_SET(DEBUG_D_BOOST, 3, dBoost * 100);
+        }
+
+        pidState->previousRateTarget = pidState->rateTarget;
+        pidState->previousRateGyro = pidState->gyroRate;
+    } 
+
+    return dBoost;
+}
+#else 
+static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis) {
+    UNUSED(pidState);
+    UNUSED(axis);
+    return 1.0f;
+}
+#endif
 
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
@@ -634,7 +701,7 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
 
         // Calculate derivative
-        newDTerm =  newDTerm * (pidState->kD / dT);
+        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, axis);
 
         // Additionally constrain D
         newDTerm = constrainf(newDTerm, -300.0f, 300.0f);
@@ -763,7 +830,7 @@ float pidHeadingHold(void)
         New controller for 2deg error requires 2,6dps. 4dps for 3deg and so on up until mag_hold_rate_limit is reached.
     */
 
-    headingHoldRate = error * pidBank()->pid[PID_HEADING].P / 30;
+    headingHoldRate = error * pidBank()->pid[PID_HEADING].P / 30.0f;
     headingHoldRate = constrainf(headingHoldRate, -pidProfile()->heading_hold_rate_limit, pidProfile()->heading_hold_rate_limit);
     headingHoldRate = pt1FilterApply4(&headingHoldRateFilter, headingHoldRate, HEADING_HOLD_ERROR_LPF_FREQ, dT);
 
@@ -913,4 +980,22 @@ void FAST_CODE pidController(void)
             pidApplyMulticopterRateController(&pidState[axis], axis);
         }
     }
+}
+
+pidType_e pidIndexGetType(pidIndex_e pidIndex)
+{
+    if (STATE(FIXED_WING)) {
+        // FW specific
+        if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
+            return PID_TYPE_PIFF;
+        }
+        if (pidIndex == PID_VEL_XY || pidIndex == PID_VEL_Z) {
+            return PID_TYPE_NONE;
+        }
+    }
+    // Common
+    if (pidIndex == PID_SURFACE) {
+        return PID_TYPE_NONE;
+    }
+    return PID_TYPE_PID;
 }

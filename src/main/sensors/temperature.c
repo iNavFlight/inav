@@ -28,7 +28,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/1-wire.h"
-#include "drivers/logging.h"
 #include "drivers/temperature/temperature.h"
 #include "drivers/temperature/lm75.h"
 #include "drivers/temperature/ds18b20.h"
@@ -100,7 +99,6 @@ static void newSensorCheckAndEnter(uint8_t type, uint64_t addr)
 void temperatureInit(void)
 {
     memset(sensorStatus, 0, sizeof(sensorStatus) * sizeof(*sensorStatus));
-    addBootlogEvent2(BOOT_EVENT_TEMP_SENSOR_DETECTION, BOOT_EVENT_FLAGS_NONE);
 
     sensorsSet(SENSOR_TEMP);
 
@@ -162,7 +160,7 @@ bool getSensorTemperature(uint8_t temperatureUpdateSensorIndex, int16_t *tempera
 void tempSensorAddressToString(uint64_t address, char *hex_address)
 {
     if (address < 8)
-        tfp_sprintf(hex_address, "%d", address);
+        tfp_sprintf(hex_address, "%d", (int)address);
     else {
         uint32_t *address32 = (uint32_t *)&address;
         tfp_sprintf(hex_address, "%08lx%08lx", address32[1], address32[0]);

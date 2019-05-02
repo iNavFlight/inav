@@ -29,10 +29,10 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/logging.h"
 #include "drivers/pitotmeter.h"
 #include "drivers/pitotmeter_ms4525.h"
 #include "drivers/pitotmeter_adc.h"
+#include "drivers/pitotmeter_virtual.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -50,8 +50,6 @@ pitot_t pitot;
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
 #define PITOT_HARDWARE_TIMEOUT_MS   500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
-#define AIR_DENSITY_SEA_LEVEL_15C   1.225f      // Air density at sea level and 15 degrees Celsius
-#define P0                          101325.0f   // standard pressure [Pa]
 
 #ifdef USE_PITOT
 #define PITOT_HARDWARE_DEFAULT    PITOT_AUTODETECT
@@ -98,13 +96,11 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             FALLTHROUGH;
 
         case PITOT_VIRTUAL:
-#if defined(USE_PITOT_VIRTUAL)
-            /*
-            if (adcPitotDetect(&pitot)) {
-                pitotHardware = PITOT_ADC;
+#if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL) 
+            if ((pitotHardwareToUse != PITOT_AUTODETECT) && virtualPitotDetect(dev)) {
+                pitotHardware = PITOT_VIRTUAL;
                 break;
             }
-            */
 #endif
             /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
@@ -129,8 +125,6 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             pitotHardware = PITOT_NONE;
             break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_PITOT_DETECTION, BOOT_EVENT_FLAGS_NONE, pitotHardware, 0, 0, 0);
 
     if (pitotHardware == PITOT_NONE) {
         sensorsClear(SENSOR_PITOT);

@@ -68,6 +68,13 @@ typedef enum {
     PID_ITEM_COUNT
 } pidIndex_e;
 
+// TODO(agh): PIDFF
+typedef enum {
+    PID_TYPE_NONE,  // Not used in the current platform/mixer/configuration
+    PID_TYPE_PID,   // Uses P, I and D terms
+    PID_TYPE_PIFF,  // Uses P, I and FF, ignoring D
+} pidType_e;
+
 typedef struct pid8_s {
     uint8_t P;
     uint8_t I;
@@ -127,6 +134,10 @@ typedef struct pidProfile_s {
     uint8_t iterm_relax_type;               // Specifies type of relax algorithm
     uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
     uint8_t iterm_relax;                    // Enable iterm suppression during stick input
+
+    float dBoostFactor;
+    float dBoostMaxAtAlleceleration;
+    uint8_t dBoostGyroDeltaLpfHz;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
@@ -178,3 +189,5 @@ int16_t getHeadingHoldTarget(void);
 
 void autotuneUpdateState(void);
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput);
+
+pidType_e pidIndexGetType(pidIndex_e pidIndex);
