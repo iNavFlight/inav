@@ -257,7 +257,7 @@ void transmit()
 
     if (FLIGHT_MODE(FAILSAFE_MODE))
         triggers |= SIM_TX_FLAG_FAILSAFE;
-    if (gpsSol.fixType != GPS_NO_FIX && gpsSol.numSat < gpsConfig()->gpsMinSats)
+    if (gpsSol.fixType != GPS_NO_FIX && posControl.flags.estPosStatus < EST_USABLE)
         triggers |= SIM_TX_FLAG_GPS;
     if (gpsSol.fixType != GPS_NO_FIX && FLIGHT_MODE(SIM_LOW_ALT_WARNING_MODES) && getAltMeters() < telemetryConfig()->simLowAltitude)
         triggers |= SIM_TX_FLAG_LOW_ALT;
