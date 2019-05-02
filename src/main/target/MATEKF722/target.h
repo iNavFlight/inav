@@ -75,6 +75,14 @@
 
 #define PITOT_I2C_BUS           BUS_I2C1
 
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_MSP
+#define USE_RANGEFINDER_HCSR04_I2C
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
+
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_MSP
+
 // *************** SD Card **************************
 #define USE_SDCARD
 #define USE_SDCARD_SPI
@@ -140,9 +148,6 @@
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
-
-#define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS         BUS_I2C1
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
