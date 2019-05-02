@@ -141,15 +141,10 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
     }
 #endif
     if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_TEMPERATURE) { //BARO_TEMP\GYRO_TEMP
-        if (sensors(SENSOR_BARO)) return sendIbusMeasurement2(address, (uint16_t) ((DEGREES_TO_CENTIDEGREES(getCurrentTemperature()) + 50) / 10  + IBUS_TEMPERATURE_OFFSET)); //int32_t
-        else {
-          /*
-           * There is no temperature data
-           * assuming ((DEGREES_TO_CENTIDEGREES(getCurrentTemperature()) + 50) / 10
-           * 0 degrees (no sensor) equals 50 / 10 = 5
-           */
-          return sendIbusMeasurement2(address, (uint16_t) (5 + IBUS_TEMPERATURE_OFFSET)); //int16_t
-        }
+        int16_t temperature;
+        const bool temp_valid = sensors(SENSOR_BARO) ? getBaroTemperature(&temperature) : getIMUTemperature(&temperature);
+        if (!temp_valid || (temperature < -400)) temperature = -400; // Minimum reported temperature is -40°C
+        return sendIbusMeasurement2(address, (uint16_t)(temperature  + IBUS_TEMPERATURE_OFFSET));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_RPM) {
         return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT

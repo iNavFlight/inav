@@ -61,6 +61,10 @@ class Compiler
             if flag == "" || flag == "-MMD" || flag == "-MP" || flag.start_with?("-save-temps")
                 next
             end
+            # -Wstrict-prototypes is not valid for C++
+            if flag == "-Wstrict-prototypes"
+                next
+            end
             if flag.start_with? "-std="
                 flag = "-std=c++11"
             end

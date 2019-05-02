@@ -95,9 +95,6 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
-extern int16_t rcRaw[MAX_SUPPORTED_RC_CHANNEL_COUNT];        // interval [1000;2000]
-extern int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // interval [1000;2000]
-
 #define MAX_MAPPABLE_RX_INPUTS 4
 
 #define RSSI_VISIBLE_VALUE_MIN 0
@@ -187,3 +184,13 @@ void suspendRxSignal(void);
 void resumeRxSignal(void);
 
 uint16_t rxGetRefreshRate(void);
+
+// Processed RC channel value. These values might include
+// filtering and some extra processing like value holding
+// during failsafe. Most callers should use this instead
+// of rxGetRawChannelValue()
+int16_t rxGetChannelValue(unsigned channelNumber);
+
+// Raw RC channel data as received by the RX. Should only
+// be used by very low level subsystems, like blackbox.
+int16_t rxGetRawChannelValue(unsigned channelNumber);

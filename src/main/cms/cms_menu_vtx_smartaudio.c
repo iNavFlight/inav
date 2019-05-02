@@ -364,8 +364,7 @@ static const OSD_Entry saCmsMenuStatsEntries[] = {
     OSD_UINT16_RO_ENTRY("CRCERR", &saStat.crc),
     OSD_UINT16_RO_ENTRY("OOOERR", &saStat.ooopresp),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuStats = {
@@ -547,8 +546,7 @@ static const OSD_Entry saCmsMenuPORFreqEntries[] =
     OSD_UINT16_ENTRY("NEW FREQ", (&(const OSD_UINT16_t){ &saCmsORFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsSetPORFreq),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuPORFreq =
@@ -571,8 +569,7 @@ static const OSD_Entry saCmsMenuUserFreqEntries[] =
     OSD_UINT16_ENTRY("NEW FREQ", (&(const OSD_UINT16_t){ &saCmsUserFreqNew, 5000, 5900, 1 })),
     OSD_FUNC_CALL_ENTRY("SET", saCmsConfigUserFreq),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuUserFreq =
@@ -593,16 +590,15 @@ static const OSD_Entry saCmsMenuConfigEntries[] =
 {
     OSD_LABEL_ENTRY("- SA CONFIG -"),
 
-    { "OP MODEL",  OME_TAB,  {.func = saCmsConfigOpmodelByGvar}, &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, DYNAMIC },
-    { "FSEL MODE", OME_TAB,  {.func = saCmsConfigFreqModeByGvar}, &saCmsEntFselMode, DYNAMIC },
+    { "OP MODEL",  {.func = saCmsConfigOpmodelByGvar}, &(const OSD_TAB_t){ &saCmsOpmodel, 2, saCmsOpmodelNames }, OME_TAB, DYNAMIC },
+    { "FSEL MODE", {.func = saCmsConfigFreqModeByGvar}, &saCmsEntFselMode, OME_TAB, DYNAMIC },
     OSD_TAB_CALLBACK_ENTRY("PIT FMODE", saCmsConfigPitFModeByGvar, &saCmsEntPitFMode),
-    { "POR FREQ",  OME_Submenu, {.menufunc = saCmsORFreqGetString}, (void *)&saCmsMenuPORFreq, OPTSTRING },
+    { "POR FREQ",  {.menufunc = saCmsORFreqGetString}, (void *)&saCmsMenuPORFreq, OME_Submenu, OPTSTRING },
 #ifdef USE_EXTENDED_CMS_MENUS
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 #endif /* USE_EXTENDED_CMS_MENUS */
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuConfig = {
@@ -621,8 +617,7 @@ static const OSD_Entry saCmsMenuCommenceEntries[] =
     OSD_LABEL_ENTRY("CONFIRM"),
     OSD_FUNC_CALL_ENTRY("YES", saCmsCommence),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu saCmsMenuCommence = {
@@ -646,13 +641,12 @@ static const OSD_Entry saCmsMenuFreqModeEntries[] =
     OSD_LABEL_ENTRY("- SMARTAUDIO -"),
 
     OSD_LABEL_FUNC_DYN_ENTRY("", saCmsDrawStatusString),
-    { "FREQ",   OME_Submenu, {.menufunc = saCmsUserFreqGetString},  &saCmsMenuUserFreq, OPTSTRING },
+    { "FREQ", {.menufunc = saCmsUserFreqGetString},  &saCmsMenuUserFreq, OME_Submenu, OPTSTRING },
     OSD_TAB_CALLBACK_ENTRY("POWER", saCmsConfigPowerByGvar, &saCmsEntPower),
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 #pragma GCC diagnostic pop
 
@@ -668,8 +662,7 @@ static const OSD_Entry saCmsMenuChanModeEntries[] =
     OSD_SUBMENU_ENTRY("SET", &saCmsMenuCommence),
     OSD_SUBMENU_ENTRY("CONFIG", &saCmsMenuConfig),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const OSD_Entry saCmsMenuOfflineEntries[] =
@@ -681,8 +674,7 @@ static const OSD_Entry saCmsMenuOfflineEntries[] =
     OSD_SUBMENU_ENTRY("STATX", &saCmsMenuStats),
 #endif /* USE_EXTENDED_CMS_MENUS */
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 CMS_Menu cmsx_menuVtxSmartAudio; // Forward

@@ -21,8 +21,8 @@
 #include <string.h>
 
 #include "platform.h"
-#include "build/debug.h"
 
+#include "common/log.h"
 #include "common/maths.h"
 
 #include "drivers/io.h"
@@ -50,7 +50,7 @@
 
 #define DSHOT_MOTOR_BIT_0       7
 #define DSHOT_MOTOR_BIT_1       14
-#define DSHOT_MOTOR_BITLENGTH   19
+#define DSHOT_MOTOR_BITLENGTH   20
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 #endif
@@ -70,7 +70,7 @@ typedef struct {
 
 #ifdef USE_DSHOT
     // DSHOT parameters
-    uint32_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE] __attribute__ ((aligned (4)));
+    timerDMASafeType_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
 #endif
 } pwmOutputPort_t;
 
@@ -113,7 +113,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
 static pwmOutputPort_t *pwmOutConfigMotor(const timerHardware_t *timHw, uint32_t hz, uint16_t period, uint16_t value, bool enableOutput)
 {
     if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
-        DEBUG_TRACE("Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
+        LOG_E(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
 
@@ -224,7 +224,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     dshotMotorUpdateIntervalUs = MAX(dshotMotorUpdateIntervalUs, motorIntervalUs);
 
     // Configure timer DMA
-    if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, DSHOT_DMA_BUFFER_SIZE)) {
+    if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
         // Only mark as DSHOT channel if DMA was set successfully
         memset(port->dmaBuffer, 0, sizeof(port->dmaBuffer));
         port->configured = true;
@@ -239,7 +239,7 @@ static void pwmWriteDshot(uint8_t index, uint16_t value)
     motors[index]->value = value;
 }
 
-static void loadDmaBufferDshot(uint32_t * dmaBuffer, uint16_t packet)
+static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
 {
     for (int i = 0; i < 16; i++) {
         dmaBuffer[i] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first
@@ -297,7 +297,7 @@ void pwmCompleteDshotUpdate(uint8_t motorCount)
     }
 }
 
-bool isMotorProtocolDshot(void)
+bool FAST_CODE NOINLINE isMotorProtocolDshot(void)
 {
     return isProtocolDshot;
 }

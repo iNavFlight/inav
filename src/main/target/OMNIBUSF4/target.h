@@ -166,6 +166,18 @@
 #define SOFTSERIAL_1_TX_PIN     PC6 //shared with UART6_TX
 
 #define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
+
+#elif defined(OMNIBUSF4V3_SFTSRL2)
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA1 //shared with S5
+#define SOFTSERIAL_1_TX_PIN     PA1 //shared with S5
+
+#define USE_SOFTSERIAL2
+#define SOFTSERIAL_2_RX_PIN     PA8 //shared with S6
+#define SOFTSERIAL_2_TX_PIN     PA8 //shared with S6
+
+#define SERIAL_PORT_COUNT       6 //VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
+
 #else
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC8
@@ -180,7 +192,6 @@
 
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
   #define USE_SPI_DEVICE_2
-  #define SPI2_CLOCK_LEADING_EDGE
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
   #define SPI2_MISO_PIN         PB14

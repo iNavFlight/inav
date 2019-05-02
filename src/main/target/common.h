@@ -74,6 +74,7 @@
 #define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_BENEWAKE
 #define USE_RANGEFINDER_VL53L0X
+#define USE_RANGEFINDER_HCSR04_I2C
 
 // Allow default optic flow boards
 #define USE_OPFLOW
@@ -83,8 +84,12 @@
 #define USE_PITOT
 #define USE_PITOT_MS4525
 
+#define USE_1WIRE
+#define USE_1WIRE_DS2482
+
 #define USE_TEMPERATURE_SENSOR
 #define USE_TEMPERATURE_LM75
+#define USE_TEMPERATURE_DS18B20
 
 #define USE_MSP_DISPLAYPORT
 #define USE_DASHBOARD
@@ -95,12 +100,16 @@
 
 #define USE_BOOTLOG
 #define BOOTLOG_DESCRIPTIONS
+
+#define NAV_NON_VOLATILE_WAYPOINT_CLI
+#else // FLASH_SIZE < 256
+#define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
 #endif
 
 #if (FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
 #define USE_AUTOTUNE_FIXED_WING
-#define USE_DEBUG_TRACE
+#define USE_LOG
 #define USE_STATS
 #define USE_GYRO_NOTCH_1
 #define USE_GYRO_NOTCH_2
@@ -141,6 +150,10 @@
 #define USE_VTX_TRAMP
 #define USE_VTX_FFPV
 
+#ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
+#define USE_LOGIC_CONDITIONS
+#endif
+
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
 // Wind estimator
@@ -150,4 +163,8 @@
 
 #define SKIP_TASK_STATISTICS
 
+#endif
+
+#ifdef STM32F7
+#define USE_ITCM_RAM
 #endif

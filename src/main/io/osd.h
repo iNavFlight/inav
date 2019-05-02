@@ -18,9 +18,10 @@
 #pragma once
 
 #include "common/time.h"
+
 #include "config/parameter_group.h"
 
-#include "drivers/vcd.h"
+#include "drivers/osd.h"
 
 #ifndef OSD_ALTERNATE_LAYOUT_COUNT
 #define OSD_ALTERNATE_LAYOUT_COUNT 3
@@ -121,10 +122,21 @@ typedef enum {
     OSD_MC_VEL_Y_PID_OUTPUTS,
     OSD_MC_VEL_Z_PID_OUTPUTS,
     OSD_MC_POS_XYZ_P_OUTPUTS,
-    OSD_3D_SPEED,       // 85
-    OSD_TEMPERATURE,    // 86
-    OSD_ALTITUDE_MSL,   // 87
-    OSD_PLUS_CODE,      // 88
+    OSD_3D_SPEED,
+    OSD_IMU_TEMPERATURE,
+    OSD_BARO_TEMPERATURE,
+    OSD_TEMP_SENSOR_0_TEMPERATURE,
+    OSD_TEMP_SENSOR_1_TEMPERATURE,
+    OSD_TEMP_SENSOR_2_TEMPERATURE,
+    OSD_TEMP_SENSOR_3_TEMPERATURE,
+    OSD_TEMP_SENSOR_4_TEMPERATURE,
+    OSD_TEMP_SENSOR_5_TEMPERATURE,
+    OSD_TEMP_SENSOR_6_TEMPERATURE,
+    OSD_TEMP_SENSOR_7_TEMPERATURE,
+    OSD_ALTITUDE_MSL,
+    OSD_PLUS_CODE,
+    OSD_MAP_SCALE,
+    OSD_MAP_REFERENCE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -151,6 +163,11 @@ typedef enum {
     OSD_SIDEBAR_SCROLL_HOME_DISTANCE,
 } osd_sidebar_scroll_e;
 
+typedef enum {
+    OSD_ALIGN_LEFT,
+    OSD_ALIGN_RIGHT
+} osd_alignment_e;
+
 typedef struct osdConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
@@ -161,6 +178,15 @@ typedef struct osdConfig_s {
     uint16_t alt_alarm; // positive altitude in m
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
+    int16_t imu_temp_alarm_min;
+    int16_t imu_temp_alarm_max;
+#ifdef USE_BARO
+    int16_t baro_temp_alarm_min;
+    int16_t baro_temp_alarm_max;
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    osd_alignment_e temp_label_align;
+#endif
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;
@@ -186,8 +212,9 @@ typedef struct osdConfig_s {
 
 PG_DECLARE(osdConfig_t, osdConfig);
 
-struct displayPort_s;
-void osdInit(struct displayPort_s *osdDisplayPort);
+typedef struct displayPort_s displayPort_t;
+
+void osdInit(displayPort_t *osdDisplayPort);
 void osdUpdate(timeUs_t currentTimeUs);
 void osdStartFullRedraw(void);
 // Sets a fixed OSD layout ignoring the RC input. Set it
@@ -200,3 +227,4 @@ void osdOverrideLayout(int layout, timeMs_t duration);
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);
+displayPort_t *osdGetDisplayPort(void);

@@ -49,8 +49,9 @@ typedef enum {
     BOOT_EVENT_TIMER_CH_MAPPED          = 19,   // 0 - PPM, 1 - PWM, 2 - MOTOR, 3 - SERVO
     BOOT_EVENT_PITOT_DETECTION          = 20,
     BOOT_EVENT_TEMP_SENSOR_DETECTION    = 21,
-    BOOT_EVENT_HARDWARE_IO_CONFLICT     = 22,   // Hardware IO resource conflict, parameters: #1 - current owner, #2 - requested owner
-    BOOT_EVENT_OPFLOW_DETECTION         = 23,
+    BOOT_EVENT_1WIRE_DETECTION          = 22,
+    BOOT_EVENT_HARDWARE_IO_CONFLICT     = 23,   // Hardware IO resource conflict, parameters: #1 - current owner, #2 - requested owner
+    BOOT_EVENT_OPFLOW_DETECTION         = 24,
 
     BOOT_EVENT_CODE_COUNT
 } bootLogEventCode_e;

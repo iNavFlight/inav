@@ -35,7 +35,7 @@
 
 #include "io/osd.h"
 
-#define OSD_ITEM_ENTRY(label, item_id)      ((OSD_Entry){ label, OME_Submenu, {.itemId  = item_id}, &cmsx_menuOsdElementActions, 0 })
+#define OSD_ITEM_ENTRY(label, item_id)      ((OSD_Entry){ label, {.itemId  = item_id}, &cmsx_menuOsdElementActions, OME_Submenu, 0 })
 
 static int osdCurrentLayout = -1;
 static int osdCurrentItem = -1;
@@ -57,8 +57,7 @@ static const OSD_Entry cmsx_menuAlarmsEntries[] = {
     OSD_SETTING_ENTRY("MAX DIST", SETTING_OSD_DIST_ALARM),
     OSD_SETTING_ENTRY("MAX NEG ALT", SETTING_OSD_NEG_ALT_ALARM),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuAlarms = {
@@ -101,8 +100,7 @@ static const OSD_Entry menuOsdElemActionsEntries[] = {
     OSD_UINT8_CALLBACK_ENTRY("COLUMN", cmsx_osdElementOnChange, (&(const OSD_UINT8_t){ &osdCurrentElementColumn, 0, OSD_Y(OSD_POS_MAX), 1 })),
     OSD_FUNC_CALL_ENTRY("PREVIEW", osdElementPreview),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const OSD_Entry menuOsdFixedElemActionsEntries[] = {
@@ -110,8 +108,7 @@ static const OSD_Entry menuOsdFixedElemActionsEntries[] = {
     OSD_BOOL_CALLBACK_ENTRY("ENABLED", cmsx_osdElementOnChange, &osdCurrentElementVisible),
     OSD_FUNC_CALL_ENTRY("PREVIEW", osdElementPreview),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static CMS_Menu cmsx_menuOsdElementActions = {
@@ -205,6 +202,8 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("MAP NORTH", OSD_MAP_NORTH),
     OSD_ELEMENT_ENTRY("MAP TAKE OFF", OSD_MAP_TAKEOFF),
     OSD_ELEMENT_ENTRY("RADAR", OSD_RADAR),
+    OSD_ELEMENT_ENTRY("MAP SCALE", OSD_MAP_SCALE),
+    OSD_ELEMENT_ENTRY("MAP REFERENCE", OSD_MAP_REFERENCE),
 #endif
     OSD_ELEMENT_ENTRY("EXPO", OSD_RC_EXPO),
     OSD_ELEMENT_ENTRY("YAW EXPO", OSD_RC_YAW_EXPO),
@@ -245,17 +244,30 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("WIND HOR", OSD_WIND_SPEED_HORIZONTAL),
     OSD_ELEMENT_ENTRY("WIND VERT", OSD_WIND_SPEED_VERTICAL),
 
-    OSD_ELEMENT_ENTRY("TEMPERATURE", OSD_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("IMU TEMP", OSD_IMU_TEMPERATURE),
+#ifdef USE_BARO
+    OSD_ELEMENT_ENTRY("BARO TEMP", OSD_BARO_TEMPERATURE),
+#endif
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+#ifdef USE_TEMPERATURE_SENSOR
+    OSD_ELEMENT_ENTRY("SENSOR 0 TEMP", OSD_TEMP_SENSOR_0_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 1 TEMP", OSD_TEMP_SENSOR_1_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 2 TEMP", OSD_TEMP_SENSOR_2_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 3 TEMP", OSD_TEMP_SENSOR_3_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 4 TEMP", OSD_TEMP_SENSOR_4_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 5 TEMP", OSD_TEMP_SENSOR_5_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 6 TEMP", OSD_TEMP_SENSOR_6_TEMPERATURE),
+    OSD_ELEMENT_ENTRY("SENSOR 7 TEMP", OSD_TEMP_SENSOR_7_TEMPERATURE),
+#endif
+
+    OSD_BACK_AND_END_ENTRY,
 };
 
-#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT)
-// All CMS OSD elements should be enabled in this case. The menu has 3 extra
-// elements (label, back and end), but there's an OSD element that we intentionally
+#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR)
+// All CMS OSD elements should be enabled in this case. The menu has 2 extra
+// elements (label, back+end), but there's an OSD element that we intentionally
 // don't show here (OSD_DEBUG).
-_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 3 + 1 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
+_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 2 + 1 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
 #endif
 
 const CMS_Menu menuOsdElements = {
@@ -287,8 +299,7 @@ static const OSD_Entry cmsx_menuOsdLayoutEntries[] =
 #endif
 #endif
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuOsdLayout = {
@@ -330,9 +341,7 @@ static const OSD_Entry menuOsdSettingsEntries[] = {
     OSD_SETTING_ENTRY("RIGHT SCROLL", SETTING_OSD_RIGHT_SIDEBAR_SCROLL),
     OSD_SETTING_ENTRY("SCROLL ARROWS", SETTING_OSD_SIDEBAR_SCROLL_ARROWS),
 
-
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuOsdSettings = {
@@ -353,8 +362,7 @@ static const OSD_Entry menuOsdEntries[] = {
     OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuOsdSettings),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 

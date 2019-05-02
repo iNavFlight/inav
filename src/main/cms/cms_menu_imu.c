@@ -142,8 +142,7 @@ static const OSD_Entry cmsx_menuPidEntries[] =
     OSD_UINT8_ENTRY("YAW   I", (&(const OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 })),
     OSD_UINT8_ENTRY("YAW   D", (&(const OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 })),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuPid = {
@@ -198,8 +197,7 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 
     OSD_UINT8_ENTRY("MAG P", (&(const OSD_UINT8_t){ &cmsx_pidHead[0], 0, 255, 1 })),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuPidAltMag = {
@@ -248,8 +246,7 @@ static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
     OSD_UINT8_ENTRY("POSR I", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[1], 0, 255, 1 })),
     OSD_UINT8_ENTRY("POSR D", (&(const OSD_UINT8_t){ &cmsx_pidVelXY[2], 0, 255, 1 })),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuPidGpsnav = {
@@ -277,8 +274,7 @@ static const OSD_Entry cmsx_menuManualRateProfileEntries[] =
     OSD_SETTING_ENTRY("MANU RC EXPO", SETTING_MANUAL_RC_EXPO),
     OSD_SETTING_ENTRY("MANU RC YAW EXP", SETTING_MANUAL_RC_YAW_EXPO),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuManualRateProfile = {
@@ -317,8 +313,7 @@ static const OSD_Entry cmsx_menuRateProfileEntries[] =
     OSD_SETTING_ENTRY("THRPID ATT", SETTING_TPA_RATE),
     OSD_SETTING_ENTRY_STEP("TPA BRKPT", SETTING_TPA_BREAKPOINT, 10),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuRateProfile = {
@@ -376,8 +371,7 @@ static const OSD_Entry cmsx_menuProfileOtherEntries[] = {
     { "HORZN STR",   OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_horizonStrength,     0, 200, 1 }    , 0 },
     { "HORZN TRS",   OME_UINT8, NULL, &(OSD_UINT8_t){ &cmsx_horizonTransition,   0, 200, 1 }    , 0 },
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuProfileOther = {
@@ -404,8 +398,7 @@ static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
     OSD_SETTING_ENTRY("YAW P LIM", SETTING_YAW_P_LIMIT),
     OSD_SETTING_ENTRY("YAW LPF", SETTING_YAW_LPF_HZ),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuFilterPerProfile = {
@@ -426,8 +419,7 @@ static const OSD_Entry cmsx_menuGyroEntries[] =
     OSD_SETTING_ENTRY("GYRO SYNC", SETTING_GYRO_SYNC),
     OSD_SETTING_ENTRY("GYRO LPF", SETTING_GYRO_HARDWARE_LPF),
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 static const CMS_Menu cmsx_menuGyro = {
@@ -466,8 +458,7 @@ static const OSD_Entry cmsx_menuImuEntries[] =
     {"FILT GLB",  OME_Submenu, cmsMenuChange,                 &cmsx_menuFilterGlobal,                                      0},
 #endif
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuImu = {

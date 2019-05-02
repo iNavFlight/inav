@@ -117,7 +117,6 @@
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
-#define SPI2_CLOCK_LEADING_EDGE
 
 //MAX7456 / SPI RX
 #define USE_SPI_DEVICE_3
