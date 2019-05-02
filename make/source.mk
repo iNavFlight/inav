@@ -146,6 +146,7 @@ COMMON_SRC = \
             cms/cms_menu_misc.c \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
+            cms/cms_menu_saveexit.c \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
             cms/cms_menu_vtx_ffpv.c \
@@ -166,6 +167,7 @@ COMMON_SRC = \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
+            io/displayport_hott.c \
             io/gps.c \
             io/gps_ublox.c \
             io/gps_nmea.c \
