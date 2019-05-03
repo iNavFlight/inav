@@ -37,12 +37,6 @@ float rcCommandMapPWMValue(int16_t value)
     return constrainf(scaleRangef(value, PWM_RANGE_MIN, PWM_RANGE_MAX, RC_COMMAND_MIN, RC_COMMAND_MAX), RC_COMMAND_MIN, RC_COMMAND_MAX);
 }
 
-int16_t rcCommandToPWMValue(float cmd)
-{
-    int16_t value = cmd * ((PWM_RANGE_MAX - PWM_RANGE_MIN) / RC_COMMAND_RANGE) + PWM_RANGE_MIDDLE;
-    return constrain(value, PWM_RANGE_MIN, PWM_RANGE_MAX);
-}
-
 float rcCommandMapUnidirectionalPWMThrottle(int16_t thr)
 {
     return constrainf(scaleRangef(thr, motorConfig()->minthrottle, motorConfig()->maxthrottle, RC_COMMAND_CENTER, RC_COMMAND_MAX), RC_COMMAND_CENTER, RC_COMMAND_MAX);
@@ -51,6 +45,17 @@ float rcCommandMapUnidirectionalPWMThrottle(int16_t thr)
 float rcCommandMapUnidirectionalPWMValue(int16_t value)
 {
     return constrainf(scaleRangef(value, PWM_RANGE_MIN, PWM_RANGE_MAX, RC_COMMAND_CENTER, RC_COMMAND_MAX), RC_COMMAND_CENTER, RC_COMMAND_MAX);
+}
+
+int16_t rcCommandToPWMValue(float cmd)
+{
+    int16_t value = cmd * ((PWM_RANGE_MAX - PWM_RANGE_MIN) / RC_COMMAND_RANGE) + PWM_RANGE_MIDDLE;
+    return constrain(value, PWM_RANGE_MIN, PWM_RANGE_MAX);
+}
+
+int16_t rcCommandThrottleMagnitudeToPWM(float thr)
+{
+    return motorConfig()->minthrottle + (motorConfig()->maxthrottle - motorConfig()->minthrottle) * fabsf(thr);
 }
 
 float rcCommandConvertPWMDeadband(uint8_t deadband)

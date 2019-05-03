@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define RC_COMMAND_AXES_COUNT 4
@@ -39,5 +40,7 @@ float rcCommandMapUnidirectionalPWMValue(int16_t value);
 
 int16_t rcCommandToPWMValue(float cmd);
 
+// Returns the absolute value of throttle mapped to [motorConfig()->minthrottle, motorConfig->maxthrottle]
+int16_t rcCommandThrottleMagnitudeToPWM(float thr);
 
 float rcCommandConvertPWMDeadband(uint8_t deadband);
