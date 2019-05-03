@@ -265,7 +265,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_ALTHOLD_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT | NAV_REQUIRE_THR_BIDIR,
         .mapToFlightModes = NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -280,7 +280,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_ALTHOLD_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_ALTHOLD_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT | NAV_RC_ALT,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT | NAV_REQUIRE_THR_BIDIR | NAV_RC_ALT,
         .mapToFlightModes = NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -301,7 +301,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_POSHOLD_3D_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_REQUIRE_THR_BIDIR,
         .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_POSHOLD_MODE,
         .mwState = MW_NAV_STATE_HOLD_INFINIT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -316,7 +316,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_POSHOLD_3D_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_REQUIRE_THR_BIDIR | NAV_RC_ALT | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_POSHOLD_MODE,
         .mwState = MW_NAV_STATE_HOLD_INFINIT,
         .mwError = MW_NAV_ERROR_NONE,
@@ -1563,6 +1563,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
     return NAV_FSM_EVENT_NONE;
 }
 
+static void navUpdateBidirThrottleMode(void)
+{
+    navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+    if (navStateFlags & NAV_REQUIRE_THR_BIDIR) {
+        rcControlSetBidirThrottleMode(RC_CONTROL_BIDIR_THR_ON);
+    } else if (navStateFlags & NAV_REQUIRE_THR_UNIDIR) {
+        rcControlSetBidirThrottleMode(RC_CONTROL_BIDIR_THR_OFF);
+    } else {
+        rcControlSetBidirThrottleMode(RC_CONTROL_BIDIR_THR_USER);
+    }
+}
+
 static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
 {
     navigationFSMState_t previousState;
@@ -1571,6 +1583,7 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
     if (posControl.navState != newState) {
         posControl.navState = newState;
         posControl.navPersistentId = navFSM[newState].persistentId;
+        navUpdateBidirThrottleMode();
     }
     return previousState;
 }

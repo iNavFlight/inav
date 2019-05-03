@@ -115,8 +115,9 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 
 bool adjustMulticopterAltitudeFromRCInput(void)
 {
+    float inputThr = rcControlGetInputAxis(THROTTLE);
     if (posControl.flags.isTerrainFollowEnabled) {
-        const float altTarget = scaleRangef(rcControlGetInputAxis(THROTTLE), RC_COMMAND_CENTER, RC_COMMAND_MAX, 0, navConfig()->general.max_terrain_follow_altitude);
+        const float altTarget = scaleRangef(inputThr, RC_COMMAND_MIN, RC_COMMAND_MAX, 0, navConfig()->general.max_terrain_follow_altitude);
 
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
@@ -133,7 +134,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
     }
     else {
         const float altHoldDeadband = rcCommandConvertPWMDeadband(rcControlsConfig()->alt_hold_deadband);
-        const float rcThrottleAdjustment = fapplyDeadbandf(rcControlGetInputAxis(THROTTLE) - altHoldThrottleRCZero, altHoldDeadband);
+        const float rcThrottleAdjustment = fapplyDeadbandf(inputThr - altHoldThrottleRCZero, altHoldDeadband);
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
@@ -145,7 +146,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             }
             else {
                 // Scaling from minthrottle to altHoldThrottleRCZero
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (altHoldThrottleRCZero - RC_COMMAND_CENTER - altHoldDeadband);
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (altHoldThrottleRCZero - RC_COMMAND_MIN - altHoldDeadband);
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
@@ -168,12 +169,12 @@ void setupMulticopterAltitudeController(void)
     const throttleStatus_e throttleStatus = calculateThrottleStatus();
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
-        altHoldThrottleRCZero = rcCurveGetThrottleMid();
+        altHoldThrottleRCZero = RC_COMMAND_CENTER;
     }
     else {
         // If throttle status is THROTTLE_LOW - use Thr Mid anyway
         if (throttleStatus == THROTTLE_LOW) {
-            altHoldThrottleRCZero = rcCurveGetThrottleMid();
+            altHoldThrottleRCZero = RC_COMMAND_CENTER;
         }
         else {
             altHoldThrottleRCZero = rcControlGetInputAxis(THROTTLE);
@@ -184,7 +185,7 @@ void setupMulticopterAltitudeController(void)
     float altHoldDeadband = rcCommandConvertPWMDeadband(rcControlsConfig()->alt_hold_deadband);
     // This used to be 10 PWM units (1000 range)
     float altHoldDeadbandMargin = 0.01f;
-    float altHoldThrMin = RC_COMMAND_CENTER + altHoldDeadband + altHoldDeadbandMargin;
+    float altHoldThrMin = RC_COMMAND_MIN + altHoldDeadband + altHoldDeadbandMargin;
     float altHoldThrMax = RC_COMMAND_MAX - altHoldDeadband - altHoldDeadbandMargin;
     altHoldThrottleRCZero = constrain(altHoldThrottleRCZero, altHoldThrMin, altHoldThrMax);
 

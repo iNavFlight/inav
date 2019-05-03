@@ -14,6 +14,7 @@
 #include "rx/rx.h"
 
 static rcControl_t control;
+static rcControlBidirThrottleMode_e bidirThrottleMode;
 
 static float getAxisRcCommand(float input, uint8_t expo, float deadband)
 {
@@ -27,7 +28,15 @@ static float getAxisRcCommand(float input, uint8_t expo, float deadband)
 
 static bool throttleIsBidirectional(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXBIDIRTHR);
+    switch (bidirThrottleMode) {
+        case RC_CONTROL_BIDIR_THR_USER:
+            return IS_RC_MODE_ACTIVE(BOXBIDIRTHR);
+        case RC_CONTROL_BIDIR_THR_ON:
+            return true;
+        case RC_CONTROL_BIDIR_THR_OFF:
+            return false;
+    }
+    return false;
 }
 
 void rcControlUpdateFromRX(void)
@@ -96,6 +105,21 @@ float rcControlGetInputAxisApplyingPosholdDeadband(rc_alias_e axis)
 {
     float deadband = rcCommandConvertPWMDeadband(rcControlsConfig()->pos_hold_deadband);
     return fapplyDeadbandf(rcControlGetInputAxis(axis), deadband) / (RC_COMMAND_MAX - deadband);
+}
+
+rcControlBidirThrottleMode_e rcControlGetBidirThrottleMode(void)
+{
+    return bidirThrottleMode;
+}
+
+void rcControlSetBidirThrottleMode(rcControlBidirThrottleMode_e mode)
+{
+    if (mode != bidirThrottleMode) {
+        bidirThrottleMode = mode;
+        // Changing the throttle mode might have changed wether
+        // THR is bidir or not, recalculate.
+        rcControlUpdateFromRX();
+    }
 }
 
 const rcCommand_t *rcControlGetOutput(void)

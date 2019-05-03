@@ -71,8 +71,3 @@ float rcCurveApplyThrottleExpo(float deflection)
     // See docs/Stick Input.md
     return throttleRcMid + tmp * (1 - throttleRcExpo + throttleRcExpo * sq(tmp) / sq(y));
 }
-
-float rcCurveGetThrottleMid(void)
-{
-    return rcCurveApplyThrottleExpo(RC_COMMAND_MAX / 2.0f);
-}
