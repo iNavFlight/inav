@@ -1045,6 +1045,13 @@ static void writeInterframe(void)
     blackboxLoggedAnyFrames = true;
 }
 
+// for gcc9 (and maybe later), we warn on (mainly harmless) unaligned packed structure member pointer access
+// minimise the effect to the affected functions and compiler versions.
+#if (__GNUC__ >= 9)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
+
 /* Write the contents of the global "slowHistory" to the log as an "S" frame. Because this data is logged so
  * infrequently, delta updates are not reasonable, so we log independent frames. */
 static void writeSlowFrame(void)
@@ -1130,6 +1137,10 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #endif
 
 }
+
+#if (__GNUC__ >= 9)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * If the data in the slow frame has changed, log a slow frame.
