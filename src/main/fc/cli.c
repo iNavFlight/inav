@@ -877,7 +877,7 @@ static void cliSerialPassthrough(char *cmdline)
             tfp_printf("Port %d could not be opened.\r\n", id);
             return;
         }
-        tfp_printf("Port %d opened, baud = %d.\r\n", id, baud);
+        tfp_printf("Port %d opened, baud = %u.\r\n", id, (unsigned)baud);
     } else {
         passThroughPort = passThroughPortUsage->serialPort;
         // If the user supplied a mode, override the port's mode, otherwise
