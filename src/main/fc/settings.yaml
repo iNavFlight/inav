@@ -221,7 +221,11 @@ groups:
       - name: acc_hardware
         table: acc_hardware
       - name: acc_lpf_hz
+        min: 0
         max: 200
+      - name: acc_lpf_type
+        field: acc_soft_lpf_type
+        table: filter_type
       - name: acczero_x
         field: accZero.raw[X]
         min: INT16_MIN

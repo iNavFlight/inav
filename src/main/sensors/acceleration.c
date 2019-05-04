@@ -75,7 +75,9 @@ STATIC_FASTRAM zeroCalibrationVector_t zeroCalibration;
 
 STATIC_FASTRAM int32_t accADC[XYZ_AXIS_COUNT];
 
-STATIC_FASTRAM biquadFilter_t accFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filter_t accFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr accSoftLpfFilterApplyFn;
+STATIC_FASTRAM void *accSoftLpfFilter[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM pt1Filter_t accVibeFloorFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
@@ -85,7 +87,7 @@ STATIC_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 STATIC_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 2);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 3);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
@@ -94,7 +96,8 @@ void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
         .acc_hardware = ACC_AUTODETECT,
         .acc_lpf_hz = 15,
         .acc_notch_hz = 0,
-        .acc_notch_cutoff = 1
+        .acc_notch_cutoff = 1,
+        .acc_soft_lpf_type = FILTER_BIQUAD
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accZero,
         .raw[X] = 0,
@@ -552,11 +555,10 @@ void accUpdate(void)
     }
 
     // Filter acceleration
-    if (accelerometerConfig()->acc_lpf_hz) {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            acc.accADCf[axis] = biquadFilterApply(&accFilter[axis], acc.accADCf[axis]);
-        }
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        acc.accADCf[axis] = accSoftLpfFilterApplyFn(accSoftLpfFilter[axis], acc.accADCf[axis]);
     }
+    
 
 #ifdef USE_ACC_NOTCH
     if (accelerometerConfig()->acc_notch_hz) {
@@ -597,11 +599,29 @@ void accSetCalibrationValues(void)
 }
 
 void accInitFilters(void)
-{
+{   
+    accSoftLpfFilterApplyFn = nullFilterApply;
+
     if (acc.accTargetLooptime && accelerometerConfig()->acc_lpf_hz) {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterInitLPF(&accFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime);
+
+        switch (accelerometerConfig()->acc_soft_lpf_type) 
+        {
+        case FILTER_PT1:
+            accSoftLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                accSoftLpfFilter[axis] = &accFilter[axis].pt1;
+                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime * 1e-6f);
+            }
+            break;
+        case FILTER_BIQUAD:
+            accSoftLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                accSoftLpfFilter[axis] = &accFilter[axis].biquad;
+                biquadFilterInitLPF(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime);
+            }
+            break;
         }
+
     }
 
     const float accDt = acc.accTargetLooptime * 1e-6f;
