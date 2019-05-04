@@ -75,10 +75,6 @@
 // until this is resolved in mavlink library - ignore -Wpedantic for mavlink code
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-// For gcc9, the mavlink libary also fails on unaligned unaligned packed structure member pointer access
-#if (__GNUC__ >= 9)
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-#endif
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 
