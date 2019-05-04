@@ -112,8 +112,8 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
         ctx->newEPH = updateEPE(posEstimator.est.eph, ctx->dt, sqrtf(sq(flowResidualX) + sq(flowResidualY)), positionEstimationConfig()->w_xy_flow_p);
     }
 
-    DEBUG_SET(DEBUG_FLOW, 0, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[Y]));
-    DEBUG_SET(DEBUG_FLOW, 1, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[X]));
+    DEBUG_SET(DEBUG_FLOW, 0, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[X]));
+    DEBUG_SET(DEBUG_FLOW, 1, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[Y]));
     DEBUG_SET(DEBUG_FLOW, 2, posEstimator.est.flowCoordinates[X]);
     DEBUG_SET(DEBUG_FLOW, 3, posEstimator.est.flowCoordinates[Y]);
 
