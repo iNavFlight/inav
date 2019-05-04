@@ -24,6 +24,8 @@
  * @author Alberto Garcia Hierro <alberto@garciahierro.com>
  */
 
+#include <math.h>
+
 #include "common/maths.h"
 
 #include "fc/rc_command.h"
