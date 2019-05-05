@@ -580,6 +580,7 @@ void imuCheckVibrationLevels(void)
     DEBUG_SET(DEBUG_VIBE, 1, accVibeLevels.y * 100);
     DEBUG_SET(DEBUG_VIBE, 2, accVibeLevels.z * 100);
     DEBUG_SET(DEBUG_VIBE, 3, accClipCount);
+    // DEBUG_VIBE values 4-7 are used by NAV estimator
 }
 
 void FAST_CODE NOINLINE imuUpdateAttitude(timeUs_t currentTimeUs)

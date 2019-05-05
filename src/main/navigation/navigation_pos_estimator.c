@@ -25,6 +25,7 @@
 #if defined(USE_NAV)
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/log.h"
@@ -367,12 +368,17 @@ static void updateIMUEstimationWeight(const float dt)
         const float relAlpha = dt / (dt + INAV_ACC_CLIPPING_RC_CONSTANT);
         posEstimator.imu.accWeightFactor = posEstimator.imu.accWeightFactor * (1.0f - relAlpha) + 1.0f * relAlpha;
     }
+
+    // DEBUG_VIBE[0-3] are used in IMU
+    DEBUG_SET(DEBUG_VIBE, 4, posEstimator.imu.accWeightFactor * 1000);
 }
 
 float navGetAccelerometerWeight(void)
 {
-    // TODO(digitalentity): consider accelerometer health in weight calculation
-    return posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
+    const float accWeightScaled = posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
+    DEBUG_SET(DEBUG_VIBE, 5, accWeightScaled * 1000);
+
+    return accWeightScaled;
 }
 
 static void updateIMUTopic(timeUs_t currentTimeUs)
