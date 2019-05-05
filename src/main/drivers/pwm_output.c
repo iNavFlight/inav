@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#include "build/debug.h"
+
 #include "common/log.h"
 #include "common/maths.h"
 
@@ -76,7 +78,6 @@ typedef struct {
 
 typedef struct {
     pwmOutputPort_t *   pwmPort;        // May be NULL if motor doesn't use the PWM port
-    pwmWriteFuncPtr     pwmWritePtr;    // Function to update the "value" and/or pwmPort
     uint16_t            value;          // Used to keep track of last motor value
 } pwmOutputMotor_t;
 
@@ -86,6 +87,8 @@ static pwmOutputMotor_t motors[MAX_PWM_MOTORS];
 static pwmOutputPort_t *servos[MAX_PWM_SERVOS];
 
 static motorPwmProtocolTypes_e initMotorProtocol;
+static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write value to motors
+
 
 #if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
 static timeUs_t digitalMotorUpdateIntervalUs = 0;
@@ -170,8 +173,8 @@ static void pwmWriteStandard(uint8_t index, uint16_t value)
 
 void pwmWriteMotor(uint8_t index, uint16_t value)
 {
-    if (motors[index].pwmWritePtr && index < MAX_MOTORS && pwmMotorsEnabled) {
-        motors[index].pwmWritePtr(index, value);
+    if (motorWritePtr && index < MAX_MOTORS && pwmMotorsEnabled) {
+        motorWritePtr(index, value);
     }
 }
 
@@ -386,22 +389,22 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
     switch (initMotorProtocol) {
     case PWM_TYPE_BRUSHED:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 0.0f, 0.0f, motorPwmRateHz, enableOutput);
-        motors[motorIndex].pwmWritePtr = pwmWriteStandard;
+        motorWritePtr = pwmWriteStandard;
         break;
 
     case PWM_TYPE_ONESHOT125:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorPwmRateHz, enableOutput);
-        motors[motorIndex].pwmWritePtr = pwmWriteStandard;
+        motorWritePtr = pwmWriteStandard;
         break;
 
     case PWM_TYPE_ONESHOT42:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 42e-6f, 42e-6f, motorPwmRateHz, enableOutput);
-        motors[motorIndex].pwmWritePtr = pwmWriteStandard;
+        motorWritePtr = pwmWriteStandard;
         break;
 
     case PWM_TYPE_MULTISHOT:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, motorPwmRateHz, enableOutput);
-        motors[motorIndex].pwmWritePtr = pwmWriteStandard;
+        motorWritePtr = pwmWriteStandard;
         break;
 
 #ifdef USE_DSHOT
@@ -410,7 +413,7 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
     case PWM_TYPE_DSHOT300:
     case PWM_TYPE_DSHOT150:
         motors[motorIndex].pwmPort = motorConfigDshot(timerHardware, initMotorProtocol, motorPwmRateHz, enableOutput);
-        motors[motorIndex].pwmWritePtr = pwmWriteDigital;
+        motorWritePtr = pwmWriteDigital;
         break;
 #endif
 
@@ -421,16 +424,17 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, ui
         // We rely on the fact that all FCs define hardware PWM motor outputs. To make this bullet-proof we need to change the 
         // init sequence to originate from the mixer and allocate timers only if necessary
         motorConfigSerialShot(motorPwmRateHz);
+        // Make sure pwmMotorConfig fails and doesn't mark timer as occupied by a motor
         motors[motorIndex].pwmPort = NULL;
         // Serialshot uses the same throttle interpretation as DSHOT, so we use the same write function here
-        motors[motorIndex].pwmWritePtr = pwmWriteDigital;
+        motorWritePtr = pwmWriteDigital;
         break;
 #endif
 
     default:
     case PWM_TYPE_STANDARD:
         motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, motorPwmRateHz, enableOutput);
-        motors[motorIndex].pwmWritePtr = pwmWriteStandard;
+        motorWritePtr = pwmWriteStandard;
         break;
     }
 

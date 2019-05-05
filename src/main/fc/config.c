@@ -298,6 +298,11 @@ void validateAndFixConfig(void)
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
         break;
 #endif
+#ifdef USE_SERIALSHOT
+    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
+        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
+        break;
+#endif
     }
 #endif
 
