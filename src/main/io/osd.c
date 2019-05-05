@@ -868,8 +868,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
 {
     buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
-    // TODO: Indicate bidirectional THR
-    int thr = MIN(rcControlGetOutput()->throttle * 100, 99);
+    int thr = constrain(rcControlGetOutput()->throttle * 100, -99, 99);
     if (autoThr && navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
