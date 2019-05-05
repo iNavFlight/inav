@@ -33,6 +33,7 @@
 #include "build/debug.h"
 
 #include "common/maths.h"
+#include "common/crc.h"
 
 #include "io/serial.h"
 #include "io/esc_serialshot.h"
@@ -42,7 +43,16 @@
 #define SERIALSHOT_UART_BAUD        921600
 #define THROTTLE_DATA_FRAME_SIZE    9
 
+typedef struct __attribute__((packed)) {
+    uint8_t hdr;            // Header/version marker
+    uint8_t motorData[6];   // 12 bit per motor
+    uint8_t crc;            // CRC8/DVB-T of hdr & motorData
+} serialShortPacket_t;
+
+
+static serialShortPacket_t txPkt;
 static uint8_t txBuffer[THROTTLE_DATA_FRAME_SIZE];
+static uint16_t motorValues[4];
 static serialPort_t * escPort = NULL;
 static serialPortConfig_t * portConfig;
 
@@ -72,8 +82,7 @@ void serialshotUpdateMotor(int index, uint16_t value)
         return;
     }
 
-    txBuffer[index * 2 + 0] = 0xFF & (value >> 8);
-    txBuffer[index * 2 + 1] = 0xFF & (value >> 0);
+    motorValues[index] = value;
 }
 
 void serialshotSendUpdate(void)
@@ -84,6 +93,17 @@ void serialshotSendUpdate(void)
         return;
     }
 
+#if 0
+    // Build motor values
+    txBuffer[0 * 2 + 0] = 0xFF & (motorValues[0] >> 8);
+    txBuffer[0 * 2 + 1] = 0xFF & (motorValues[0] >> 0);
+    txBuffer[1 * 2 + 0] = 0xFF & (motorValues[1] >> 8);
+    txBuffer[1 * 2 + 1] = 0xFF & (motorValues[1] >> 0);
+    txBuffer[2 * 2 + 0] = 0xFF & (motorValues[2] >> 8);
+    txBuffer[2 * 2 + 1] = 0xFF & (motorValues[2] >> 0);
+    txBuffer[3 * 2 + 0] = 0xFF & (motorValues[3] >> 8);
+    txBuffer[3 * 2 + 1] = 0xFF & (motorValues[3] >> 0);
+
     // Calculate checksum
     txBuffer[8] = 
         txBuffer[0] + txBuffer[1] +
@@ -93,6 +113,21 @@ void serialshotSendUpdate(void)
 
     // Send data 
     serialWriteBuf(escPort, txBuffer, THROTTLE_DATA_FRAME_SIZE);
+#else 
+    txPkt.hdr = 0x00;
+
+    txPkt.motorData[0] = motorValues[0] & 0x00FF;
+    txPkt.motorData[1] = motorValues[1] & 0x00FF;
+    txPkt.motorData[2] = motorValues[2] & 0x00FF;
+    txPkt.motorData[3] = motorValues[3] & 0x00FF;
+    txPkt.motorData[4] = (((motorValues[0] & 0xF00) >> 8) << 0) | (((motorValues[1] & 0xF00) >> 8) << 4);
+    txPkt.motorData[5] = (((motorValues[2] & 0xF00) >> 8) << 0) | (((motorValues[3] & 0xF00) >> 8) << 4);
+
+    txPkt.crc = crc8_dvb_s2(0x00, txPkt.hdr);
+    txPkt.crc = crc8_dvb_s2_update(txPkt.crc, txPkt.motorData, sizeof(txPkt.motorData));
+
+    serialWriteBuf(escPort, (const uint8_t *)&txPkt, sizeof(txPkt));
+#endif
 }
 
 #endif
