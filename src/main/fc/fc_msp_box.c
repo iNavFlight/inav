@@ -201,17 +201,18 @@ void initActiveBoxIds(void)
         }
     }
 
+    if (navReadyQuads || navReadyPlanes || navFlowDeadReckoning) {
+        activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
+    }
+
     if (navReadyQuads || navReadyPlanes) {
         activeBoxIds[activeBoxIdCount++] = BOXNAVRTH;
         activeBoxIds[activeBoxIdCount++] = BOXNAVWP;
         activeBoxIds[activeBoxIdCount++] = BOXHOMERESET;
+    }
 
-        if (feature(FEATURE_GPS)) {
-            activeBoxIds[activeBoxIdCount++] = BOXGCSNAV;
-            if (STATE(FIXED_WING)) {
-                activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
-            }
-        }
+    if (navReadyPlanes) {
+        activeBoxIds[activeBoxIdCount++] = BOXNAVCRUISE;
     }
 
 #ifdef USE_MR_BRAKING_MODE
