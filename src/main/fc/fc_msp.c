@@ -3134,7 +3134,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
         ret = mspProcessSensorCommand(cmdMSP, src);
 #if defined(USE_ROBOT)
     } else if (MSP2_INAV_IS_ROBOT_MESSAGE(cmdMSP)) {
-        ret = mspProcessRobotCommand(cmdMSP, src);
+        ret = mspProcessRobotCommand(cmdMSP, dst, src);
 #endif
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;

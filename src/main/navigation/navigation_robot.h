@@ -25,18 +25,18 @@
 #include "common/vector.h"
 
 typedef enum {
-	NAV_ROBOT_MOVE_NOOP = 0,		// Do nothing
-    NAV_ROBOT_MOVE_ABSOLUTE = 1,	// Set to absolute value ([cm] for position, [deg] for heading)
-    NAV_ROBOT_MOVE_RELATIVE = 2,	// Set relative to current drone position
-    NAV_ROBOT_MOVE_INCREMENTAL = 3,	// Set relative to previous command
+    NAV_ROBOT_MOVE_NOOP         = 0,    // Do nothing
+    NAV_ROBOT_MOVE_ABSOLUTE     = 1,    // Set to absolute value ([cm] for position, [deg] for heading)
+    NAV_ROBOT_MOVE_RELATIVE     = 2,    // Set relative to current drone position
+    NAV_ROBOT_MOVE_INCREMENTAL  = 3,    // Set relative to previous command
 } navRobotMotionMode_e;
 
 typedef struct {
     navRobotMotionMode_e    posMoveMode;
     navRobotMotionMode_e    headMoveMode;
     fpVector3_t             posMotion;
-    float					headMotion;
+    float                   headMotion;
 } navRobotMovement_t;
 
-extern void navRobotModeMoveHandler(const navRobotMovement_t * move);
+extern void navRobotModeMoveHandler(const navRobotMovement_t * move, bool bodyFrameXY);
 

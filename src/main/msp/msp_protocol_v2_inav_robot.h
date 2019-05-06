@@ -22,11 +22,34 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#define MSP2_INAV_IS_ROBOT_MESSAGE(x)   			((x) >= 0x2F00 && (x) <= 0x2FFF)
+#define MSP2_INAV_IS_ROBOT_MESSAGE(x)               ((x) >= 0x2F00 && (x) <= 0x2FFF)
 
 
-#define MSP2_INAV_ROBOT_GET_STATUS					0x2F00
-#define MSP2_INAV_ROBOT_CMD_STOP					0x2F01
-#define MSP2_INAV_ROBOT_CMD_MOVE_ABSOLUTE			0x2F02
-#define MSP2_INAV_ROBOT_CMD_MOVE_RELATIVE			0x2F03
-#define MSP2_INAV_ROBOT_CMD_MOVE_INCREMENTAL		0x2F04
+#define MSP2_INAV_ROBOT_GET_STATUS                  0x2F00
+/* Gets navigation system state. Takes no arguments.
+ */
+
+#define MSP2_INAV_ROBOT_CMD_STOP                    0x2F01
+/* Aborts current motion. Takes no arguments.
+ */
+
+
+#define MSP2_INAV_ROBOT_CMD_MOVE                    0x2F02
+/* Moves the current PosHold position in absolute frame of reference
+ *  uint8_t  : position move mode (0: noop, 1: absolute, 2: relative, 3: incremental)
+ *  uint8_t  : heading move mode (0: noop, 1: absolute, 2: relative, 3: incremental)
+ *  uint32_t : position X (North), centimeters
+ *  uint32_t : position Y (East), centimeters
+ *  uint32_t : position Z (Up), centimeters
+ *  uint16_t : heading, degrees, clockwise
+ */
+
+#define MSP2_INAV_ROBOT_CMD_MOVE_BODY_FRAME         0x2F03
+/* Moves the current PosHold position in relative (drone) frame of reference
+ *  uint8_t  : position move mode (0: noop, 1: absolute, 2: relative, 3: incremental)
+ *  uint8_t  : heading move mode (0: noop, 1: absolute, 2: relative, 3: incremental)
+ *  uint32_t : position X (Forward), centimeters
+ *  uint32_t : position Y (Right), centimeters
+ *  uint32_t : position Z (Up), centimeters
+ *  uint16_t : heading, degrees, clockwise
+ */

@@ -42,17 +42,54 @@
 #if defined(USE_ROBOT)
 
 #include "fc/fc_robot.h"
+#include "navigation/navigation_robot.h"
 
-mspResult_e mspProcessRobotCommand(uint16_t cmdMSP, sbuf_t *src) 
+//static bool mspUnpackRobotCommand()
+
+mspResult_e mspProcessRobotCommand(uint16_t cmdMSP, sbuf_t * dst, sbuf_t * src)
 {
-    UNUSED(src);
+    navRobotMovement_t move;
 
     switch (cmdMSP) {
         case MSP2_INAV_ROBOT_GET_STATUS:
-            break;
+            return MSP_RESULT_ACK;
+
+        case MSP2_INAV_ROBOT_CMD_STOP:
+            move.posMoveMode    = NAV_ROBOT_MOVE_RELATIVE;
+            move.headMoveMode   = NAV_ROBOT_MOVE_RELATIVE;
+            move.posMotion.x    = 0;
+            move.posMotion.y    = 0;
+            move.posMotion.z    = 0;
+            move.headMotion     = 0;
+            navRobotModeMoveHandler(&move, false);
+            return MSP_RESULT_ACK;
+
+        case MSP2_INAV_ROBOT_CMD_MOVE:
+            move.posMoveMode    = sbufReadU8(src);
+            move.headMoveMode   = sbufReadU8(src);
+            move.posMotion.x    = ((int32_t)sbufReadU32(src));
+            move.posMotion.y    = ((int32_t)sbufReadU32(src));
+            move.posMotion.z    = ((int32_t)sbufReadU32(src));
+            move.headMotion     = ((int16_t)sbufReadU16(src));
+            navRobotModeMoveHandler(&move, false);
+            return MSP_RESULT_ACK;
+
+        case MSP2_INAV_ROBOT_CMD_MOVE_BODY_FRAME:
+            move.posMoveMode    = sbufReadU8(src);
+            move.headMoveMode   = sbufReadU8(src);
+            move.posMotion.x    = ((int32_t)sbufReadU32(src));
+            move.posMotion.y    = ((int32_t)sbufReadU32(src));
+            move.posMotion.z    = ((int32_t)sbufReadU32(src));
+            move.headMotion     = ((int16_t)sbufReadU16(src));
+            navRobotModeMoveHandler(&move, true);
+            return MSP_RESULT_ACK;
+
+        default:
+            return MSP_RESULT_ERROR;
     }
 
-    return MSP_RESULT_NO_REPLY;
+    // Error out by default
+    return MSP_RESULT_ERROR;
 }
 
 

@@ -25,4 +25,4 @@
 #pragma once
 #include "msp/msp.h"
 
-mspResult_e mspProcessRobotCommand(uint16_t cmdMSP, sbuf_t *src);
+extern mspResult_e mspProcessRobotCommand(uint16_t cmdMSP, sbuf_t * dst, sbuf_t * src);

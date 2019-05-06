@@ -2643,12 +2643,13 @@ float getActiveWaypointSpeed(void)
 /*-----------------------------------------------------------
  * Robot mode PH handler
  *-----------------------------------------------------------*/
-void navRobotModeMoveHandler(const navRobotMovement_t * move)
+void navRobotModeMoveHandler(const navRobotMovement_t * move, bool bodyFrameXY)
 {
     // ROBOT mode is a combination of 3D POSHOLD + GCS_NAV
     // External navigation may choose to enable SURFACE mode as well if desired
     if (ARMING_FLAG(ARMED) && posControl.flags.isGCSAssistedNavigationEnabled && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
         navSetWaypointFlags_t updateFlags = 0;;
+        fpVector3_t           posMotionEF;
         fpVector3_t           newPos;
         float                 newHeading;
 
@@ -2656,18 +2657,28 @@ void navRobotModeMoveHandler(const navRobotMovement_t * move)
         vectorZero(&newPos);
         newHeading = 0;
 
+        // Convert motion into Earth/Global frame of reference
+        if (bodyFrameXY) {
+            posMotionEF.x = move->posMotion.x * posControl.actualState.cosYaw - move->posMotion.y * posControl.actualState.sinYaw;
+            posMotionEF.y = move->posMotion.x * posControl.actualState.sinYaw + move->posMotion.y * posControl.actualState.cosYaw;
+            posMotionEF.z = move->posMotion.z;
+        }
+        else {
+            vectorCopy(&posMotionEF, &move->posMotion);
+        }
+
         // Update position
         switch (move->posMoveMode) {
             case NAV_ROBOT_MOVE_ABSOLUTE:
-                vectorCopy(&newPos, &move->posMotion);
+                vectorCopy(&newPos, &posMotionEF);
                 updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
                 break;
             case NAV_ROBOT_MOVE_RELATIVE:
-                vectorAdd(&newPos, &navGetCurrentActualPositionAndVelocity()->pos, &move->posMotion);
+                vectorAdd(&newPos, &navGetCurrentActualPositionAndVelocity()->pos, &posMotionEF);
                 updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
                 break;
             case NAV_ROBOT_MOVE_INCREMENTAL:
-                vectorAdd(&newPos, &posControl.desiredState.pos, &move->posMotion);
+                vectorAdd(&newPos, &posControl.desiredState.pos, &posMotionEF);
                 updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
                 break;
             case NAV_ROBOT_MOVE_NOOP:
