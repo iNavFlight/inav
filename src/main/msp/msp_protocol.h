@@ -329,3 +329,4 @@
 #include "msp_protocol_v2_common.h"
 #include "msp_protocol_v2_sensor.h"
 #include "msp_protocol_v2_inav.h"
+#include "msp_protocol_v2_inav_robot.h"

@@ -48,6 +48,7 @@
 #include "io/gps.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_robot.h"
 #include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
@@ -2640,6 +2641,18 @@ float getActiveWaypointSpeed(void)
 }
 
 /*-----------------------------------------------------------
+ * Robot mode PH handler
+ *-----------------------------------------------------------*/
+void navRobotModeMoveHandler(const navRobotMovement_t * move)
+{
+    // ROBOT mode is a combination of 3D POSHOLD + GCS_NAV
+    // External navigation may choose to enable SURFACE mode as well if desired
+    if (ARMING_FLAG(ARMED) && posControl.flags.isGCSAssistedNavigationEnabled && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+        // TODO
+    }
+}
+
+/*-----------------------------------------------------------
  * Process adjustments to alt, pos and yaw controllers
  *-----------------------------------------------------------*/
 static void processNavigationRCAdjustments(void)
@@ -2988,11 +3001,13 @@ static void updateReadyStatus(void)
 
 void updateFlightBehaviorModifiers(void)
 {
-    if (posControl.flags.isGCSAssistedNavigationEnabled && !IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
+    const bool isAssistedNavigationRequested = IS_RC_MODE_ACTIVE(BOXGCSNAV);
+
+    if (posControl.flags.isGCSAssistedNavigationEnabled && !isAssistedNavigationRequested) {
         posControl.flags.isGCSAssistedNavigationReset = true;
     }
 
-    posControl.flags.isGCSAssistedNavigationEnabled = IS_RC_MODE_ACTIVE(BOXGCSNAV);
+    posControl.flags.isGCSAssistedNavigationEnabled = isAssistedNavigationRequested;
 }
 
 /**

@@ -156,3 +156,5 @@
 #define TARGET_IO_PORTD         0xffff
 
 #define PCA9685_I2C_BUS         BUS_I2C2
+
+#define USE_ROBOT

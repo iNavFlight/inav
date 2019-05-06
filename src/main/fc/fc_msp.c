@@ -57,6 +57,7 @@
 #include "fc/controlrate_profile.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_msp_box.h"
+#include "fc/fc_robot.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -3131,6 +3132,10 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
 
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
+#if defined(USE_ROBOT)
+    } else if (MSP2_INAV_IS_ROBOT_MESSAGE(cmdMSP)) {
+        ret = mspProcessRobotCommand(cmdMSP, src);
+#endif
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE

@@ -28,6 +28,8 @@
 
 #include "flight/failsafe.h"
 
+#include "navigation/navigation_robot.h"
+
 #include "io/gps.h"
 
 /* GPS Home location data */
