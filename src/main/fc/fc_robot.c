@@ -42,6 +42,9 @@
 #if defined(USE_ROBOT)
 
 #include "fc/fc_robot.h"
+#include "flight/imu.h"
+#include "sensors/rangefinder.h"
+#include "navigation/navigation.h"
 #include "navigation/navigation_robot.h"
 
 //static bool mspUnpackRobotCommand()
@@ -52,6 +55,11 @@ mspResult_e mspProcessRobotCommand(uint16_t cmdMSP, sbuf_t * dst, sbuf_t * src)
 
     switch (cmdMSP) {
         case MSP2_INAV_ROBOT_GET_STATUS:
+            sbufWriteU32(dst, lrintf(getEstimatedActualPosition(X)));
+            sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Y)));
+            sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
+            sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+            sbufWriteU32(dst, rangefinderGetLatestAltitude());
             return MSP_RESULT_ACK;
 
         case MSP2_INAV_ROBOT_CMD_STOP:
