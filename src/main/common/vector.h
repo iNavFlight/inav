@@ -41,6 +41,13 @@ typedef struct {
 void rotationMatrixFromAngles(fpMat3_t * rmat, const fp_angles_t * angles);
 void rotationMatrixFromAxisAngle(fpMat3_t * rmat, const fpAxisAngle_t * a);
 
+static inline void vectorCopy(fpVector3_t * result, const fpVector3_t * v)
+{
+    result->x = v->x;
+    result->y = v->y;
+    result->z = v->z;
+}
+
 static inline void vectorZero(fpVector3_t * v)
 {
     v->x = 0.0f;

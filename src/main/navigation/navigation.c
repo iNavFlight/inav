@@ -2229,7 +2229,7 @@ void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlag
     // Heading
     if ((useMask & NAV_POS_UPDATE_HEADING) != 0) {
         // Heading
-        posControl.desiredState.yaw = yaw;
+        posControl.desiredState.yaw = wrap_36000(yaw);
     }
     else if ((useMask & NAV_POS_UPDATE_BEARING) != 0) {
         posControl.desiredState.yaw = calculateBearingToDestination(pos);
@@ -2648,7 +2648,54 @@ void navRobotModeMoveHandler(const navRobotMovement_t * move)
     // ROBOT mode is a combination of 3D POSHOLD + GCS_NAV
     // External navigation may choose to enable SURFACE mode as well if desired
     if (ARMING_FLAG(ARMED) && posControl.flags.isGCSAssistedNavigationEnabled && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
-        // TODO
+        navSetWaypointFlags_t updateFlags = 0;;
+        fpVector3_t           newPos;
+        float                 newHeading;
+
+        // Zero out motion
+        vectorZero(&newPos);
+        newHeading = 0;
+
+        // Update position
+        switch (move->posMoveMode) {
+            case NAV_ROBOT_MOVE_ABSOLUTE:
+                vectorCopy(&newPos, &move->posMotion);
+                updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
+                break;
+            case NAV_ROBOT_MOVE_RELATIVE:
+                vectorAdd(&newPos, &navGetCurrentActualPositionAndVelocity()->pos, &move->posMotion);
+                updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
+                break;
+            case NAV_ROBOT_MOVE_INCREMENTAL:
+                vectorAdd(&newPos, &posControl.desiredState.pos, &move->posMotion);
+                updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
+                break;
+            case NAV_ROBOT_MOVE_NOOP:
+            default:
+                break;
+        }
+
+        // Update heading
+        switch (move->headMoveMode) {
+            case NAV_ROBOT_MOVE_ABSOLUTE:
+                newHeading = move->headMotion;
+                updateFlags |= NAV_POS_UPDATE_HEADING;
+                break;
+            case NAV_ROBOT_MOVE_RELATIVE:
+                newHeading = CENTIDEGREES_TO_DEGREES(posControl.actualState.yaw) + move->headMotion;
+                updateFlags |= NAV_POS_UPDATE_HEADING;
+                break;
+            case NAV_ROBOT_MOVE_INCREMENTAL:
+                newHeading = CENTIDEGREES_TO_DEGREES(posControl.desiredState.yaw) + move->headMotion;
+                updateFlags |= NAV_POS_UPDATE_HEADING;
+                break;
+            case NAV_ROBOT_MOVE_NOOP:
+            default:
+                break;
+        }
+
+        // Update current hold position
+        setDesiredPosition(&newPos, DEGREES_TO_CENTIDEGREES(newHeading), updateFlags);
     }
 }
 
