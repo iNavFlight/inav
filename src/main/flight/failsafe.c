@@ -278,7 +278,6 @@ void failsafeApplyControlOutput(rcCommand_t *cmd)
                         break;
                     case YAW:
                         if (STATE(FIXED_WING)) {
-                            // TODO: Why -?
                             cmd->yaw = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
                         }
                         cmd->yaw = RC_COMMAND_CENTER;
