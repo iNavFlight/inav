@@ -17,7 +17,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "platform.h"
 
@@ -247,7 +246,7 @@ static void failsafeActivate(failsafePhase_e newPhase)
 void failsafeUpdateLastGoodRcCommand(const rcCommand_t *input)
 {
     if (!failsafeState.active) {
-        memcpy(&failsafeState.lastGoodRcCommand, input, sizeof(*input));
+        rcCommandCopy(&failsafeState.lastGoodRcCommand, input);
     }
 }
 
