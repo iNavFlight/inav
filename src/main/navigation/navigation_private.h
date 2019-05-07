@@ -52,12 +52,6 @@ typedef enum {
 } climbRateToAltitudeControllerMode_e;
 
 typedef enum {
-    EST_NONE = 0,       // No valid sensor present
-    EST_USABLE = 1,     // Estimate is usable but may be inaccurate
-    EST_TRUSTED = 2     // Estimate is usable and based on actual sensor data
-} navigationEstimateStatus_e;
-
-typedef enum {
     NAV_HOME_INVALID = 0,
     NAV_HOME_VALID_XY = 1 << 0,
     NAV_HOME_VALID_Z = 1 << 1,

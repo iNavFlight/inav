@@ -55,11 +55,31 @@ mspResult_e mspProcessRobotCommand(uint16_t cmdMSP, sbuf_t * dst, sbuf_t * src)
 
     switch (cmdMSP) {
         case MSP2_INAV_ROBOT_GET_STATUS:
-            sbufWriteU32(dst, lrintf(getEstimatedActualPosition(X)));
-            sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Y)));
-            sbufWriteU32(dst, lrintf(getEstimatedActualPosition(Z)));
-            sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-            sbufWriteU32(dst, rangefinderGetLatestAltitude());
+            if (1) {
+                navPositionAndVelocity_t pv;
+                getEstimatedPositionAndVelocity(&pv);
+
+                // Position status [0 - none, 1 - usable, 2 - trusted]
+                sbufWriteU8(dst, pv.altStatus);
+                sbufWriteU8(dst, pv.aglStatus);
+                sbufWriteU8(dst, pv.posStatus);
+
+                // Estimated position
+                sbufWriteU32(dst, lrintf(pv.estPos.x));
+                sbufWriteU32(dst, lrintf(pv.estPos.y));
+                sbufWriteU32(dst, lrintf(pv.estPos.z));
+
+                // Target position
+                sbufWriteU32(dst, lrintf(pv.tgtPos.x));
+                sbufWriteU32(dst, lrintf(pv.tgtPos.y));
+                sbufWriteU32(dst, lrintf(pv.tgtPos.z));
+
+                // Heading
+                sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+
+                // Raw rangefinder altitude
+                sbufWriteU32(dst, rangefinderGetLatestAltitude());
+            }
             return MSP_RESULT_ACK;
 
         case MSP2_INAV_ROBOT_CMD_STOP:

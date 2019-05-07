@@ -376,15 +376,21 @@ bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
 bool navigationTerrainFollowingEnabled(void);
 
+typedef enum {
+    EST_NONE = 0,       // No valid sensor present
+    EST_USABLE = 1,     // Estimate is usable but may be inaccurate
+    EST_TRUSTED = 2     // Estimate is usable and based on actual sensor data
+} navigationEstimateStatus_e;
+
 /* Access to estimated position and velocity */
 typedef struct {
-    uint8_t altStatus;
-    uint8_t posStatus;
-    uint8_t velStatus;
-    uint8_t aglStatus;
-    fpVector3_t pos;
-    fpVector3_t vel;
-    float agl;
+    navigationEstimateStatus_e altStatus;
+    navigationEstimateStatus_e aglStatus;
+    navigationEstimateStatus_e posStatus;
+    navigationEstimateStatus_e velStatus;
+    fpVector3_t estPos;
+    fpVector3_t estVel;
+    fpVector3_t tgtPos;
 } navPositionAndVelocity_t;
 
 float getEstimatedActualVelocity(int axis);

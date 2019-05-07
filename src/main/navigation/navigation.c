@@ -3206,6 +3206,17 @@ void navigationInit(void)
 /*-----------------------------------------------------------
  * Access to estimated position/velocity data
  *-----------------------------------------------------------*/
+void getEstimatedPositionAndVelocity(navPositionAndVelocity_t * pos)
+{
+    pos->altStatus = posControl.flags.estAltStatus;
+    pos->aglStatus = posControl.flags.estAglStatus;
+    pos->posStatus = posControl.flags.estPosStatus;
+    pos->velStatus = posControl.flags.estVelStatus;
+    vectorCopy(&pos->estPos, &navGetCurrentActualPositionAndVelocity()->pos);
+    vectorCopy(&pos->estVel, &navGetCurrentActualPositionAndVelocity()->vel);
+    vectorCopy(&pos->tgtPos, &posControl.desiredState.pos);
+}
+
 float getEstimatedActualVelocity(int axis)
 {
     return navGetCurrentActualPositionAndVelocity()->vel.v[axis];
