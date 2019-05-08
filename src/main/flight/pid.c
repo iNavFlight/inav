@@ -115,7 +115,20 @@ static EXTENDED_FASTRAM uint8_t itermRelax;
 static EXTENDED_FASTRAM uint8_t itermRelaxType;
 static EXTENDED_FASTRAM float itermRelaxSetpointThreshold;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 8);
+#if defined(USE_D_BOOST)
+#define D_BOOST_GYRO_LPF_HZ 80    // Biquad lowpass input cutoff to peak D around propwash frequencies
+#define D_BOOST_LPF_HZ 10         // PT1 lowpass cutoff to smooth the boost effect
+
+static EXTENDED_FASTRAM float dBoostFactor;
+static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
+static EXTENDED_FASTRAM pt1Filter_t dBoostLpf[XYZ_AXIS_COUNT];
+static EXTENDED_FASTRAM biquadFilter_t dBoostGyroLpf[XYZ_AXIS_COUNT];
+
+static EXTENDED_FASTRAM float previousRateTarget[XYZ_AXIS_COUNT] = {0, 0, 0};
+static EXTENDED_FASTRAM float previousRateGyro[XYZ_AXIS_COUNT] = {0, 0, 0};
+#endif
+
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -214,6 +227,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .iterm_relax_type = ITERM_RELAX_SETPOINT,
         .iterm_relax_cutoff = MC_ITERM_RELAX_CUTOFF_DEFAULT,
         .iterm_relax = ITERM_RELAX_OFF,
+        .dBoostFactor = 1.0f,
+        .dBoostMaxAtAlleceleration = 7500.0f,
 );
 
 void pidInit(void)
@@ -229,6 +244,16 @@ void pidInit(void)
     itermRelax = pidProfile()->iterm_relax;
     itermRelaxType = pidProfile()->iterm_relax_type;
     itermRelaxSetpointThreshold = MC_ITERM_RELAX_SETPOINT_THRESHOLD * MC_ITERM_RELAX_CUTOFF_DEFAULT / pidProfile()->iterm_relax_cutoff;
+
+#ifdef USE_D_BOOST
+    dBoostFactor = pidProfile()->dBoostFactor;
+    dBoostMaxAtAlleceleration = pidProfile()->dBoostMaxAtAlleceleration;
+
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        biquadFilterInitLPF(&dBoostGyroLpf[axis], D_BOOST_GYRO_LPF_HZ, getLooptime());
+    }
+#endif
+
 }
 
 bool pidInitFilters(void)
@@ -594,6 +619,43 @@ static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, floa
         }
     }
 }
+#ifdef USE_D_BOOST
+static float FAST_CODE applyDBoost(float rateTarget, float gyroRate, flight_dynamics_index_t axis) {
+    
+    float dBoost = 1.0f;
+    
+    if (dBoostFactor > 1) {
+        const float dBoostGyroDelta = (gyroRate - previousRateGyro[axis]) / dT;
+        const float dBoostGyroAcceleration = fabsf(biquadFilterApply(&dBoostGyroLpf[axis], dBoostGyroDelta));
+        const float dBoostStickAcceleration = fabsf((rateTarget - previousRateTarget[axis]) / dT);
+        
+        const float acceleration = MAX(dBoostGyroAcceleration, dBoostStickAcceleration);
+        dBoost = scaleRangef(acceleration, 0.0f, dBoostMaxAtAlleceleration, 1.0f, dBoostFactor);
+        dBoost = pt1FilterApply4(&dBoostLpf[axis], dBoost, D_BOOST_LPF_HZ, dT);
+        dBoost = constrainf(dBoost, 1.0f, dBoostFactor);
+
+        if (axis == FD_ROLL) {
+            DEBUG_SET(DEBUG_D_BOOST, 0, dBoostGyroAcceleration);
+            DEBUG_SET(DEBUG_D_BOOST, 1, dBoostStickAcceleration);
+            DEBUG_SET(DEBUG_D_BOOST, 2, dBoost * 100);
+        } else if (axis == FD_PITCH) {
+            DEBUG_SET(DEBUG_D_BOOST, 3, dBoost * 100);
+        }
+
+        previousRateTarget[axis] = rateTarget;
+        previousRateGyro[axis] = gyroRate;
+    } 
+
+    return dBoost;
+}
+#else 
+static float applyDBoost(float rateTarget, float gyroRate, flight_dynamics_index_t axis) {
+    UNUSED(rateTarget);
+    UNUSED(gyroRate);
+    UNUSED(axis);
+    return 1.0f
+}
+#endif
 
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
@@ -634,7 +696,7 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
 
         // Calculate derivative
-        newDTerm =  newDTerm * (pidState->kD / dT);
+        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState->rateTarget, pidState->gyroRate, axis);
 
         // Additionally constrain D
         newDTerm = constrainf(newDTerm, -300.0f, 300.0f);

@@ -77,7 +77,7 @@ tables:
   - name: debug_modes
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
       "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX"]
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", "D_BOOST"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
@@ -1136,6 +1136,16 @@ groups:
         field: iterm_relax_cutoff
         min: 1
         max: 100
+      - name: d_boost_factor
+        field: dBoostFactor
+        condition: USE_D_BOOST
+        min: 1
+        max: 3
+      - name: d_boost_max_at_acceleration
+        field: dBoostMaxAtAlleceleration
+        condition: USE_D_BOOST
+        min: 1000
+        max: 16000
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
