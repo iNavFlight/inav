@@ -21,6 +21,18 @@
 #if defined(USE_ADC) && defined(USE_GPS)
 
 /* INPUTS:
+ *   - heading degrees
+ *   - horizontalWindSpeed
+ *   - windHeading degrees
+ * OUTPUT:
+ *   returns same unit as horizontalWindSpeed
+ */
+static float forwardWindSpeed(float heading, float horizontalWindSpeed, float windHeading) {
+    return horizontalWindSpeed * cos_approx(DEGREES_TO_RADIANS(windHeading - heading));
+}
+
+#ifdef USE_WIND_ESTIMATOR
+/* INPUTS:
  *   - forwardSpeed (same unit as horizontalWindSpeed)
  *   - heading degrees
  *   - horizontalWindSpeed (same unit as forwardSpeed)
@@ -45,17 +57,6 @@ static float windDriftCorrectedForwardSpeed(float forwardSpeed, float heading, f
 }
 
 /* INPUTS:
- *   - heading degrees
- *   - horizontalWindSpeed
- *   - windHeading degrees
- * OUTPUT:
- *   returns same unit as horizontalWindSpeed
- */
-static float forwardWindSpeed(float heading, float horizontalWindSpeed, float windHeading) {
-    return horizontalWindSpeed * cos_approx(DEGREES_TO_RADIANS(windHeading - heading));
-}
-
-/* INPUTS:
  *   - forwardSpeed (same unit as horizontalWindSpeed)
  *   - heading degrees
  *   - horizontalWindSpeed (same unit as forwardSpeed)
@@ -66,6 +67,7 @@ static float forwardWindSpeed(float heading, float horizontalWindSpeed, float wi
 static float windCompensatedForwardSpeed(float forwardSpeed, float heading, float horizontalWindSpeed, float windHeading) {
     return windDriftCorrectedForwardSpeed(forwardSpeed, heading, horizontalWindSpeed, windHeading) + forwardWindSpeed(heading, horizontalWindSpeed, windHeading);
 }
+#endif
 
 // returns degrees
 static int8_t RTHInitialAltitudeChangePitchAngle(float altitudeChange) {
@@ -156,13 +158,13 @@ static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
 
     const float RTH_initial_altitude_change = MAX(0, (RTHAltitude() - getEstimatedActualPosition(Z)) / 100);
 
+    float RTH_heading; // degrees
 #ifdef USE_WIND_ESTIMATOR
     uint16_t windHeading; // centidegrees
     const float horizontalWindSpeed = takeWindIntoAccount ? getEstimatedHorizontalWindSpeed(&windHeading) / 100 : 0; // m/s
     const float windHeadingDegrees = CENTIDEGREES_TO_DEGREES((float)windHeading);
     const float verticalWindSpeed = getEstimatedWindSpeed(Z) / 100;
 
-    float RTH_heading; // degrees
     const float RTH_distance = estimateRTHDistanceAndHeadingAfterAltitudeChange(RTH_initial_altitude_change, horizontalWindSpeed, windHeadingDegrees, verticalWindSpeed, &RTH_heading);
     const float RTH_speed = windCompensatedForwardSpeed((float)navConfig()->fw.cruise_speed / 100, RTH_heading, horizontalWindSpeed, windHeadingDegrees);
 #else
@@ -174,12 +176,18 @@ static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
     DEBUG_SET(DEBUG_REM_FLIGHT_TIME, 0, lrintf(RTH_initial_altitude_change * 100));
     DEBUG_SET(DEBUG_REM_FLIGHT_TIME, 1, lrintf(RTH_distance * 100));
     DEBUG_SET(DEBUG_REM_FLIGHT_TIME, 2, lrintf(RTH_speed * 100));
+#ifdef USE_WIND_ESTIMATOR
     DEBUG_SET(DEBUG_REM_FLIGHT_TIME, 3, lrintf(horizontalWindSpeed * 100));
+#endif
 
     if (RTH_speed <= 0)
         return -2; // wind is too strong to return at cruise throttle (TODO: might be possible to take into account min speed thr boost)
 
+#ifdef USE_WIND_ESTIMATOR
     const float energy_to_home = estimateRTHInitialAltitudeChangeEnergy(RTH_initial_altitude_change, verticalWindSpeed) + estimateRTHEnergyAfterInitialClimb(RTH_distance, RTH_speed); // Wh
+#else
+    const float energy_to_home = estimateRTHInitialAltitudeChangeEnergy(RTH_initial_altitude_change, 0) + estimateRTHEnergyAfterInitialClimb(RTH_distance, RTH_speed); // Wh
+#endif
     const float energy_margin_abs = (currentBatteryProfile->capacity.value - currentBatteryProfile->capacity.critical) * batteryMetersConfig()->rth_energy_margin / 100000; // Wh
     const float remaining_energy_before_rth = getBatteryRemainingCapacity() / 1000 - energy_margin_abs - energy_to_home; // Wh
 
