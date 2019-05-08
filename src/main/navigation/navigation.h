@@ -63,11 +63,13 @@ enum {
 };
 
 enum {
-    NAV_RTH_NO_ALT          = 0,            // Maintain current altitude
-    NAV_RTH_EXTRA_ALT       = 1,            // Maintain current altitude + predefined safety margin
-    NAV_RTH_CONST_ALT       = 2,            // Climb/descend to predefined altitude
-    NAV_RTH_MAX_ALT         = 3,            // Track maximum altitude and climb to it when RTH
-    NAV_RTH_AT_LEAST_ALT    = 4,            // Climb to predefined altitude if below it
+    NAV_RTH_NO_ALT                       = 0, // Maintain current altitude
+    NAV_RTH_EXTRA_ALT                    = 1, // Maintain current altitude + predefined safety margin
+    NAV_RTH_CONST_ALT                    = 2, // Climb/descend to predefined altitude
+    NAV_RTH_MAX_ALT                      = 3, // Track maximum altitude and climb to it when RTH
+    NAV_RTH_AT_LEAST_ALT                 = 4, // Climb to predefined altitude if below it
+    NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT  = 5, // Climb to predefined altitude if below it,
+                                              // descend linearly to reach home at predefined altitude if above it
 };
 
 enum {
@@ -147,7 +149,6 @@ typedef struct navConfig_s {
             uint8_t rth_alt_control_mode;       // Controls the logic for choosing the RTH altitude
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
             uint8_t rth_tail_first;             // Return to home tail first
-            bool rth_straight;                  // Return to home in a straight line (altitude) to home altitude + rth_altitude
             uint8_t disarm_on_landing;          //
             uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
             uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH

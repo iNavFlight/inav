@@ -54,7 +54,7 @@ tables:
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
-    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST"]
+    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "UK"]
     enum: osd_unit_e
@@ -1333,9 +1333,6 @@ groups:
       - name: nav_rth_alt_mode
         field: general.flags.rth_alt_control_mode
         table: nav_rth_alt_mode
-      - name: nav_rth_straight
-        field: general.flags.rth_straight
-        type: bool
       - name: nav_rth_abort_threshold
         field: general.rth_abort_threshold
         max: 65000

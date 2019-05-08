@@ -136,7 +136,7 @@ static float estimateRTHDistanceAndHeadingAfterAltitudeChange(float altitudeChan
 // output in Watt
 static float estimateRTHEnergyAfterInitialClimb(float distanceToHome, float speedToHome) {
     const float timeToHome = distanceToHome / speedToHome; // seconds
-    const float altitudeChangeDescentToHome = CENTIMETERS_TO_METERS(navConfig()->general.flags.rth_straight ? MAX(0, getEstimatedActualPosition(Z) - RTHAltitude()) : 0);
+    const float altitudeChangeDescentToHome = CENTIMETERS_TO_METERS(navConfig()->general.flags.rth_alt_control_mode == NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT ? MAX(0, getEstimatedActualPosition(Z) - RTHAltitude()) : 0);
     const float pitchToHome = MIN(RADIANS_TO_DEGREES(atan2_approx(altitudeChangeDescentToHome, distanceToHome)), navConfig()->fw.max_dive_angle);
     return estimatePitchPower(pitchToHome) * timeToHome / 3600;
 }
