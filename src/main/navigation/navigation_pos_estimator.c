@@ -25,6 +25,7 @@
 #if defined(USE_NAV)
 
 #include "build/build_config.h"
+#include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/log.h"
@@ -354,8 +355,37 @@ static bool gravityCalibrationComplete(void)
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
 
-static void updateIMUTopic(void)
+static void updateIMUEstimationWeight(const float dt)
 {
+    bool isAccClipped = accIsClipped();
+
+    // If accelerometer measurement is clipped - drop the acc weight to zero
+    // and gradually restore weight back to 1.0 over time
+    if (isAccClipped) {
+        posEstimator.imu.accWeightFactor = 0.0f;
+    }
+    else {
+        const float relAlpha = dt / (dt + INAV_ACC_CLIPPING_RC_CONSTANT);
+        posEstimator.imu.accWeightFactor = posEstimator.imu.accWeightFactor * (1.0f - relAlpha) + 1.0f * relAlpha;
+    }
+
+    // DEBUG_VIBE[0-3] are used in IMU
+    DEBUG_SET(DEBUG_VIBE, 4, posEstimator.imu.accWeightFactor * 1000);
+}
+
+float navGetAccelerometerWeight(void)
+{
+    const float accWeightScaled = posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
+    DEBUG_SET(DEBUG_VIBE, 5, accWeightScaled * 1000);
+
+    return accWeightScaled;
+}
+
+static void updateIMUTopic(timeUs_t currentTimeUs)
+{
+    const float dt = US2S(currentTimeUs - posEstimator.imu.lastUpdateTime);
+    posEstimator.imu.lastUpdateTime = currentTimeUs;
+
     if (!isImuReady()) {
         posEstimator.imu.accelNEU.x = 0;
         posEstimator.imu.accelNEU.y = 0;
@@ -364,6 +394,9 @@ static void updateIMUTopic(void)
         restartGravityCalibration();
     }
     else {
+        /* Update acceleration weight based on vibration levels and clipping */
+        updateIMUEstimationWeight(dt);
+
         fpVector3_t accelBF;
 
         /* Read acceleration data in body frame */
@@ -433,12 +466,6 @@ static bool navIsHeadingUsable(void)
         // If we don't have GPS - we may use whatever we have, other sensors are operating in body frame
         return isImuHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
     }
-}
-
-float navGetAccelerometerWeight(void)
-{
-    // TODO(digitalentity): consider accelerometer health in weight calculation
-    return positionEstimationConfig()->w_xyz_acc_p;
 }
 
 static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
@@ -768,6 +795,7 @@ void initializePositionEstimator(void)
     posEstimator.est.eph = positionEstimationConfig()->max_eph_epv + 0.001f;
     posEstimator.est.epv = positionEstimationConfig()->max_eph_epv + 0.001f;
 
+    posEstimator.imu.lastUpdateTime = 0;
     posEstimator.gps.lastUpdateTime = 0;
     posEstimator.baro.lastUpdateTime = 0;
     posEstimator.surface.lastUpdateTime = 0;
@@ -777,6 +805,8 @@ void initializePositionEstimator(void)
 
     posEstimator.est.flowCoordinates[X] = 0;
     posEstimator.est.flowCoordinates[Y] = 0;
+
+    posEstimator.imu.accWeightFactor = 0;
 
     restartGravityCalibration();
 
@@ -806,7 +836,7 @@ void FAST_CODE NOINLINE updatePositionEstimator(void)
     const timeUs_t currentTimeUs = micros();
 
     /* Read updates from IMU, preprocess */
-    updateIMUTopic();
+    updateIMUTopic(currentTimeUs);
 
     /* Update estimate */
     updateEstimatedTopic(currentTimeUs);
