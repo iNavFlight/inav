@@ -87,6 +87,11 @@ void serialshotUpdateMotor(int index, uint16_t value)
 
 void serialshotSendUpdate(void)
 {
+    // Check if the port is initialized
+    if (!escPort) {
+        return;
+    }
+
     // Skip update if previous one is not yet fully sent
     // This helps to avoid buffer overflow and evenyually the data corruption
     if (!isSerialTransmitBufferEmpty(escPort)) {
