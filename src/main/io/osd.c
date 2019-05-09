@@ -137,7 +137,8 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
-static pt1Filter_t GForceFilter;
+static pt1Filter_t GForceFilter, GForceFilterZ;
+static float GForce, GForceZ;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -189,7 +190,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 8);
 
 static int digitCount(int32_t value)
 {
@@ -2309,16 +2310,13 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GFORCE:
         {
-            static timeUs_t timeStamp = 0;
-            float GForce = sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
-
-            if (timeStamp)
-                GForce = pt1FilterApply3(&GForceFilter, GForce, cmpTimeUs(micros(), timeStamp) * 1e-6);
-            else
-                pt1FilterReset(&GForceFilter, GForce);
-
-            timeStamp = micros();
             osdFormatCentiNumber(buff, GForce, 0, 2, 0, 3);
+            break;
+        }
+
+    case OSD_GFORCE_Z:
+        {
+            osdFormatCentiNumber(buff, GForceZ, 0, 2, 0, 3);
             break;
         }
 
@@ -2678,6 +2676,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_WIND_SPEED_VERTICAL] = OSD_POS(3, 7);
 
     osdConfig->item_pos[0][OSD_GFORCE] = OSD_POS(12, 4);
+    osdConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 5);
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
@@ -2747,6 +2746,7 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     displayClearScreen(osdDisplayPort);
 
     pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
+    pt1FilterInitRC(&GForceFilterZ, GFORCE_FILTER_TC, 0);
 
     uint8_t y = 1;
     displayFontMetadata_t metadata;
@@ -3014,8 +3014,28 @@ static void osdShowArmed(void)
     }
 }
 
+static void osdFilterData(timeUs_t currentTimeUs) {
+    static timeUs_t lastRefresh = 0;
+    float refresh_dT = cmpTimeUs(currentTimeUs, lastRefresh) * 1e-6;
+
+    GForce = sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
+    GForceZ = imuMeasuredAccelBF.z / GRAVITY_MSS;
+
+    if (lastRefresh) {
+        GForce = pt1FilterApply3(&GForceFilter, GForce, refresh_dT);
+        GForceZ = pt1FilterApply3(&GForceFilterZ, GForceZ, refresh_dT);
+    } else {
+        pt1FilterReset(&GForceFilter, GForce);
+        pt1FilterReset(&GForceFilterZ, GForceZ);
+    }
+
+    lastRefresh = currentTimeUs;
+}
+
 static void osdRefresh(timeUs_t currentTimeUs)
 {
+    osdFilterData(currentTimeUs);
+
 #ifdef USE_CMS
     if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #else
