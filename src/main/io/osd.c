@@ -2942,7 +2942,7 @@ static void osdShowStats(void)
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
-    displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX G-FORCE  :");
+    displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
     osdFormatCentiNumber(buff, acc_extremes[Z].min, 0, 1, 0, 3);
     strcat(buff," /");
     displayWrite(osdDisplayPort, statValuesX, top, buff);
