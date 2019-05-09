@@ -104,6 +104,8 @@
 #define METERS_PER_KILOMETER                    1000
 #define METERS_PER_MILE                         1609
 
+#define GFORCE_FILTER_TC 0.2
+
 #define DELAYED_REFRESH_RESUME_COMMAND (checkStickPosition(THR_HI) || checkStickPosition(PIT_HI))
 
 #define SPLASH_SCREEN_DISPLAY_TIME 4000 // ms
@@ -135,6 +137,7 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
+static pt1Filter_t GForceFilter;
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -2306,7 +2309,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GFORCE:
         {
-            osdFormatCentiNumber(buff, sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS, 0, 1, 0, 3);
+            static timeUs_t timeStamp = 0;
+            float GForce = sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
+
+            if (timeStamp)
+                GForce = pt1FilterApply3(&GForceFilter, GForce, cmpTimeUs(micros(), timeStamp) * 1e-6);
+            else
+                pt1FilterReset(&GForceFilter, GForce);
+
+            timeStamp = micros();
+            osdFormatCentiNumber(buff, GForce, 0, 2, 0, 3);
             break;
         }
 
@@ -2733,6 +2745,8 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     armState = ARMING_FLAG(ARMED);
 
     displayClearScreen(osdDisplayPort);
+
+    pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
 
     uint8_t y = 1;
     displayFontMetadata_t metadata;
