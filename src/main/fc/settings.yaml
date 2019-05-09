@@ -54,7 +54,7 @@ tables:
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
-    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST"]
+    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "UK"]
     enum: osd_unit_e
