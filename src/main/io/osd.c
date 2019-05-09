@@ -2941,6 +2941,11 @@ static void osdShowStats(void)
     tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
+    const float max_gforce = accGetMeasuredMaxG();
+    displayWrite(osdDisplayPort, statNameX, top, "MAX G-FORCE      :");
+    osdFormatCentiNumber(buff, max_gforce * 100, 0, 2, 0, 3);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
     const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
     displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
     osdFormatCentiNumber(buff, acc_extremes[Z].min * 100, 0, 2, 0, 4);
