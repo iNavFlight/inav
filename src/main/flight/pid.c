@@ -27,6 +27,7 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "common/maths.h"
+#include "common/utils.h"
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -653,7 +654,7 @@ static float applyDBoost(float rateTarget, float gyroRate, flight_dynamics_index
     UNUSED(rateTarget);
     UNUSED(gyroRate);
     UNUSED(axis);
-    return 1.0f
+    return 1.0f;
 }
 #endif
 
