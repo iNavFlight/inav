@@ -36,9 +36,6 @@
 #define OSD_POS_MAX         0x3FF
 #define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)            (cm * (328 / 100.0))
-#define CENTIMETERS_TO_FEET(cm)                 (cm * (328 / 10000.0))
-#define CENTIMETERS_TO_METERS(cm)               (cm / 100)
 #define FEET_PER_MILE                           5280
 #define FEET_PER_KILOFEET                       1000 // Used for altitude
 #define METERS_PER_KILOMETER                    1000
