@@ -2943,10 +2943,10 @@ static void osdShowStats(void)
 
     const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
     displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
-    osdFormatCentiNumber(buff, acc_extremes[Z].min, 0, 1, 0, 3);
-    strcat(buff," /");
+    osdFormatCentiNumber(buff, acc_extremes[Z].min * 100, 0, 2, 0, 4);
+    strcat(buff,"/");
     displayWrite(osdDisplayPort, statValuesX, top, buff);
-    osdFormatCentiNumber(buff, acc_extremes[Z].max, 0, 1, 0, 3);
+    osdFormatCentiNumber(buff, acc_extremes[Z].max * 100, 0, 2, 0, 3);
     displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
