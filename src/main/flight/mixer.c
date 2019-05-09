@@ -76,7 +76,8 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
-    .fwMinThrottleDownPitchAngle = 0
+    .fwMinThrottleDownPitchAngle = 0,
+    .pitchRollWeight = 30
 );
 
 #ifdef BRUSHED_MOTORS

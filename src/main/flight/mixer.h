@@ -69,6 +69,7 @@ typedef struct mixerConfig_s {
     bool hasFlaps;
     int16_t appliedMixerPreset;
     uint16_t fwMinThrottleDownPitchAngle;
+    uint8_t pitchRollWeight;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
