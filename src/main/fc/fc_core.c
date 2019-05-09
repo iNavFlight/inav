@@ -659,6 +659,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
+        updateAccExtremes();
     }
 
     taskGyro(currentTimeUs);

@@ -62,6 +62,7 @@ typedef struct acc_s {
     uint32_t accClipCount;
     bool isClipped;
     acc_extremes_t extremes[XYZ_AXIS_COUNT];
+    float maxG;
 } acc_t;
 
 extern acc_t acc;
@@ -84,6 +85,8 @@ bool accIsCalibrationComplete(void);
 void accStartCalibration(void);
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
 const acc_extremes_t* accGetMeasuredExtremes(void);
+float accGetMeasuredMaxG(void);
+void updateAccExtremes(void);
 void accGetVibrationLevels(fpVector3_t *accVibeLevels);
 float accGetVibrationLevel(void);
 uint32_t accGetClipCount(void);
