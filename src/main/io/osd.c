@@ -2306,7 +2306,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_GFORCE:
         {
-            osdFormatCentiNumber(buff, imuMeasuredAccelBF.z / GRAVITY_MSS, 0, 1, 0, 3);
+            osdFormatCentiNumber(buff, sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS, 0, 1, 0, 3);
             break;
         }
 
