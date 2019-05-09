@@ -223,9 +223,9 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 3, 3);
     }
 
-    osdHudWrite(poi_x - 1, poi_y + 1, buff[0], 0);
-    osdHudWrite(poi_x , poi_y + 1, buff[1], 0);
-    osdHudWrite(poi_x + 1, poi_y + 1, buff[2], 0);
+    osdHudWrite(poi_x - 1, poi_y + 1, buff[0], 1);
+    osdHudWrite(poi_x , poi_y + 1, buff[1], 1);
+    osdHudWrite(poi_x + 1, poi_y + 1, buff[2], 1);
 }
 
 /* Draw the crosshair
