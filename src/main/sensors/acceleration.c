@@ -513,6 +513,11 @@ void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
     }
 }
 
+const acc_extremes_t* accGetMeasuredExtremes(void)
+{
+    return (const acc_extremes_t *)&acc.extremes;
+}
+
 void accUpdate(void)
 {
     if (!acc.dev.readFn(&acc.dev)) {
@@ -571,6 +576,12 @@ void accUpdate(void)
         }
     }
 #endif
+
+    // Record extremes
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        if (acc.accADCf[axis] < acc.extremes[axis].min) acc.extremes[axis].min = acc.accADCf[axis];
+        if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
+    }
 
 }
 

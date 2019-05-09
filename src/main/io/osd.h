@@ -137,6 +137,7 @@ typedef enum {
     OSD_PLUS_CODE,
     OSD_MAP_SCALE,
     OSD_MAP_REFERENCE,
+    OSD_GFORCE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

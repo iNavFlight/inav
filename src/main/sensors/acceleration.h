@@ -49,6 +49,11 @@ typedef enum {
     ACC_MAX = ACC_FAKE
 } accelerationSensor_e;
 
+typedef struct {
+    float min;
+    float max;
+} acc_extremes_t;
+
 typedef struct acc_s {
     accDev_t dev;
     uint32_t accTargetLooptime;
@@ -56,6 +61,7 @@ typedef struct acc_s {
     float accVibeSq[XYZ_AXIS_COUNT];
     uint32_t accClipCount;
     bool isClipped;
+    acc_extremes_t extremes[XYZ_AXIS_COUNT];
 } acc_t;
 
 extern acc_t acc;
@@ -77,6 +83,7 @@ bool accInit(uint32_t accTargetLooptime);
 bool accIsCalibrationComplete(void);
 void accStartCalibration(void);
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
+const acc_extremes_t* accGetMeasuredExtremes(void);
 void accGetVibrationLevels(fpVector3_t *accVibeLevels);
 float accGetVibrationLevel(void);
 uint32_t accGetClipCount(void);

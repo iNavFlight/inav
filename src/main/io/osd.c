@@ -84,6 +84,7 @@
 
 #include "rx/rx.h"
 
+#include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/boardalignment.h"
 #include "sensors/diagnostics.h"
@@ -2303,6 +2304,12 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GFORCE:
+        {
+            osdFormatCentiNumber(buff, imuMeasuredAccelBF.z / GRAVITY_MSS, 0, 1, 0, 3);
+            break;
+        }
+
     case OSD_DEBUG:
         {
             // Longest representable string is -32768, hence 6 characters
@@ -2658,6 +2665,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_WIND_SPEED_HORIZONTAL] = OSD_POS(3, 6);
     osdConfig->item_pos[0][OSD_WIND_SPEED_VERTICAL] = OSD_POS(3, 7);
 
+    osdConfig->item_pos[0][OSD_GFORCE] = OSD_POS(12, 4);
+
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
 
@@ -2931,6 +2940,14 @@ static void osdShowStats(void)
     flyMinutes %= 60;
     tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
+    displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX G-FORCE  :");
+    osdFormatCentiNumber(buff, acc_extremes[Z].min, 0, 1, 0, 3);
+    strcat(buff," /");
+    displayWrite(osdDisplayPort, statValuesX, top, buff);
+    osdFormatCentiNumber(buff, acc_extremes[Z].max, 0, 1, 0, 3);
+    displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
