@@ -61,6 +61,7 @@
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
+#include "io/osd_hud.h"
 #include "io/vtx_string.h"
 
 #include "fc/config.h"
@@ -169,7 +170,7 @@ typedef struct osdMapData_s {
 
 static osdMapData_t osdMapData;
 
-displayPort_t *osdDisplayPort;
+static displayPort_t *osdDisplayPort;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_HEIGHT 9
@@ -203,7 +204,7 @@ static int digitCount(int32_t value)
  * it will be divided by scale and true will be returned.
  */
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
- {
+{
     char *ptr = buff;
     char *dec;
     int decimals = maxDecimals;
@@ -308,35 +309,35 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
  * Converts distance into a string based on the current unit system.
  * @param dist Distance in centimeters
  */
- static void osdFormatDistanceStr(char *buff, int32_t dist)
- {
-     int32_t centifeet;
-     switch ((osd_unit_e)osdConfig()->units) {
-     case OSD_UNIT_IMPERIAL:
-        centifeet = CENTIMETERS_TO_CENTIFEET(dist);
-        if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
-            // Show feet when dist < 0.5mi
-            tfp_sprintf(buff, "%d%c", centifeet / 100, SYM_FT);
-        } else {
-            // Show miles when dist >= 0.5mi
-            tfp_sprintf(buff, "%d.%02d%c", centifeet / (100*FEET_PER_MILE),
-            (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
-        }
-        break;
-     case OSD_UNIT_UK:
-         FALLTHROUGH;
-     case OSD_UNIT_METRIC:
-        if (abs(dist) < METERS_PER_KILOMETER * 100) {
-            // Show meters when dist < 1km
-            tfp_sprintf(buff, "%d%c", dist / 100, SYM_M);
-        } else {
-            // Show kilometers when dist >= 1km
-            tfp_sprintf(buff, "%d.%02d%c", dist / (100*METERS_PER_KILOMETER),
-                (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
-         }
-         break;
-     }
- }
+static void osdFormatDistanceStr(char *buff, int32_t dist)
+{
+    int32_t centifeet;
+    switch ((osd_unit_e)osdConfig()->units) {
+        case OSD_UNIT_IMPERIAL:
+            centifeet = CENTIMETERS_TO_CENTIFEET(dist);
+            if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
+                // Show feet when dist < 0.5mi
+                tfp_sprintf(buff, "%d%c", centifeet / 100, SYM_FT);
+            } else {
+                // Show miles when dist >= 0.5mi
+                tfp_sprintf(buff, "%d.%02d%c", centifeet / (100*FEET_PER_MILE),
+                        (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
+            }
+            break;
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_METRIC:
+            if (abs(dist) < METERS_PER_KILOMETER * 100) {
+                // Show meters when dist < 1km
+                tfp_sprintf(buff, "%d%c", dist / 100, SYM_M);
+            } else {
+                // Show kilometers when dist >= 1km
+                tfp_sprintf(buff, "%d.%02d%c", dist / (100*METERS_PER_KILOMETER),
+                        (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
+            }
+            break;
+    }
+}
 
 /**
  * Converts velocity based on the current unit system (kmh or mph).
@@ -940,7 +941,7 @@ int16_t osdGetHeading(void)
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
-int osdGetHeadingAngle(int angle)
+static int osdGetHeadingAngle(int angle)
 {
     while (angle < 0) {
         angle += 360;
@@ -961,7 +962,7 @@ int osdGetHeadingAngle(int angle)
  * in-out used to store the last position where the craft was drawn to avoid
  * erasing all screen on each redraw.
  */
-void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym,
+static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym,
                        uint32_t poiDistance, int16_t poiDirection, uint8_t poiSymbol,
                        uint16_t *drawn, uint32_t *usedScale)
 {
@@ -1096,7 +1097,7 @@ void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym,
 /* Draws a map with the home in the center and the craft moving around.
  * See osdDrawMap() for reference.
  */
-void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn, uint32_t *usedScale)
+static void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn, uint32_t *usedScale)
 {
     osdDrawMap(referenceHeading, referenceSym, SYM_HOME, GPS_distanceToHome, GPS_directionToHome, SYM_ARROW_UP, drawn, usedScale);
 }
@@ -1104,7 +1105,7 @@ void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn,
 /* Draws a map with the aircraft in the center and the home moving around.
  * See osdDrawMap() for reference.
  */
-void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
+static void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale)
 {
     int16_t reference = DECIDEGREES_TO_DEGREES(osdGetHeading());
     int16_t poiDirection = osdGetHeadingAngle(GPS_directionToHome + 180);

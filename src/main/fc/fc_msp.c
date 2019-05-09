@@ -2373,14 +2373,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
     case MSP2_COMMON_SET_RADAR_POS:
         if (dataSize >= 19) {
-            const uint8_t msp_radar_no = sbufReadU8(src);         // get the radar poi number
-            radar_pois[msp_radar_no].state = sbufReadU8(src);     // 0=undefined, 1=armed, 2=lost
-            radar_pois[msp_radar_no].gps.lat = sbufReadU32(src);  // lat
-            radar_pois[msp_radar_no].gps.lon = sbufReadU32(src);  // lon
-            radar_pois[msp_radar_no].gps.alt = sbufReadU32(src);  // altitude (cm)
-            radar_pois[msp_radar_no].heading = sbufReadU16(src);  // deg x 10
-            radar_pois[msp_radar_no].speed = sbufReadU16(src);    // cm/s
-            radar_pois[msp_radar_no].lq = sbufReadU8(src);    // Link quality, from 0 to 4
+            const uint8_t msp_radar_no = MIN(sbufReadU8(src), RADAR_MAX_POIS - 1); // get the radar poi number
+            radar_pois[msp_radar_no].state = sbufReadU8(src);                      // 0=undefined, 1=armed, 2=lost
+            radar_pois[msp_radar_no].gps.lat = sbufReadU32(src);                   // lat
+            radar_pois[msp_radar_no].gps.lon = sbufReadU32(src);                   // lon
+            radar_pois[msp_radar_no].gps.alt = sbufReadU32(src);                   // altitude (cm)
+            radar_pois[msp_radar_no].heading = sbufReadU16(src);                   // deg x 10
+            radar_pois[msp_radar_no].speed = sbufReadU16(src);                     // cm/s
+            radar_pois[msp_radar_no].lq = sbufReadU8(src);                         // Link quality, from 0 to 4
             radarCalc(msp_radar_no);
         } else
             return MSP_RESULT_ERROR;

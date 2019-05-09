@@ -262,23 +262,6 @@ displayPort_t *osdGetDisplayPort(void);
 
 int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
-void osdDrawHomeMap(int referenceHeading, uint8_t referenceSym, uint16_t *drawn, uint32_t *usedScale);
-void osdDrawRadar(uint16_t *drawn, uint32_t *usedScale);
-void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t centerSym, uint32_t poiDistance, int16_t poiDirection, uint8_t poiSymbol, uint16_t *drawn, uint32_t *usedScale);
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
-int osdGetHeadingAngle(int angle);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
 
-// Hud -----
-
-void osdHudClear(void);
-int osdHudWrite(uint8_t x, uint8_t y, uint16_t symb, bool crush);
-void osdHudDrawCrosshair(uint8_t px, uint8_t py);
-void osdHudDrawHoming(uint8_t px, uint8_t py);
-void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, int16_t poiHeading, uint8_t poiSignal, uint16_t poiSymbol);
-void osdHudDrawNearest(uint8_t px, uint8_t py);
-
-// Radar -----
-
-int radarGetNearestPoi(void);
-int radarGetFarthestPoi(void);
