@@ -2371,7 +2371,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-    case MSP_SET_RADAR_POS:
+    case MSP2_COMMON_SET_RADAR_POS:
         if (dataSize >= 19) {
             const uint8_t msp_radar_no = sbufReadU8(src);         // get the radar poi number
             radar_pois[msp_radar_no].state = sbufReadU8(src);     // 0=undefined, 1=armed, 2=lost
