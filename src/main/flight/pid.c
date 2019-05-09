@@ -513,11 +513,12 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
     float angleTarget = pidRcCommandToAngle(controlOutput->axes[axis], pidProfile()->max_angle_inclination[axis]);
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
-    // XXX: Should we do this for negative THR?
-    float thr = controlOutput->throttle;
-    float cruiseThr = rcCommandMapUnidirectionalPWMThrottle(navConfig()->fw.cruise_throttle);
-    if ((axis == FD_PITCH) && STATE(FIXED_WING) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle())
+    if ((axis == FD_PITCH) && STATE(FIXED_WING) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
+        // XXX: Should we do this for negative THR?
+        float thr = controlOutput->throttle;
+        float cruiseThr = rcCommandMapUnidirectionalPWMThrottle(navConfig()->fw.cruise_throttle);
         angleTarget += scaleRangef(MAX(0, cruiseThr - thr), 0, cruiseThr - RC_COMMAND_CENTER, 0, mixerConfig()->fwMinThrottleDownPitchAngle);
+    }
 
     const float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
 
