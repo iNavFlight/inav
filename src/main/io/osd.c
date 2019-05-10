@@ -2311,6 +2311,9 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GFORCE:
         {
             osdFormatCentiNumber(buff, GForce, 0, 2, 0, 3);
+            if (GForce > osdConfig()->gforce_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             break;
         }
 
@@ -2318,7 +2321,11 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GFORCE_Y:
     case OSD_GFORCE_Z:
         {
-            osdFormatCentiNumber(buff, GForceAxis[item - OSD_GFORCE_X], 0, 2, 0, 4);
+            float GForceValue = GForceAxis[item - OSD_GFORCE_X];
+            osdFormatCentiNumber(buff, GForceValue, 0, 2, 0, 4);
+            if ((GForceValue < osdConfig()->gforce_axis_alarm_min) || (GForceValue > osdConfig()->gforce_axis_alarm_max)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
             break;
         }
 
@@ -2698,6 +2705,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->neg_alt_alarm = 5;
     osdConfig->imu_temp_alarm_min = -200;
     osdConfig->imu_temp_alarm_max = 600;
+    osdConfig->gforce_alarm = 5;
+    osdConfig->gforce_axis_alarm_min = -5;
+    osdConfig->gforce_axis_alarm_max = 5;
 #ifdef USE_BARO
     osdConfig->baro_temp_alarm_min = -200;
     osdConfig->baro_temp_alarm_max = 600;

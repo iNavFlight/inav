@@ -184,6 +184,9 @@ typedef struct osdConfig_s {
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
     int16_t imu_temp_alarm_min;
     int16_t imu_temp_alarm_max;
+    float gforce_alarm;
+    float gforce_axis_alarm_min;
+    float gforce_axis_alarm_max;
 #ifdef USE_BARO
     int16_t baro_temp_alarm_min;
     int16_t baro_temp_alarm_max;
