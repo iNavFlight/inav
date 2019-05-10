@@ -2315,20 +2315,10 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_GFORCE_X:
-        {
-            osdFormatCentiNumber(buff, GForceAxis[X], 0, 2, 0, 4);
-            break;
-        }
-
     case OSD_GFORCE_Y:
-        {
-            osdFormatCentiNumber(buff, GForceAxis[Y], 0, 2, 0, 4);
-            break;
-        }
-
     case OSD_GFORCE_Z:
         {
-            osdFormatCentiNumber(buff, GForceAxis[Z], 0, 2, 0, 4);
+            osdFormatCentiNumber(buff, GForceAxis[item - OSD_GFORCE_X], 0, 2, 0, 4);
             break;
         }
 
