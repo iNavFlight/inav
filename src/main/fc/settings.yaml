@@ -1146,6 +1146,11 @@ groups:
         condition: USE_D_BOOST
         min: 1000
         max: 16000
+      - name: d_boost_gyro_delta_lpf_hz
+        field: dBoostGyroDeltaLpfHz
+        condition: USE_D_BOOST
+        min: 10
+        max: 250
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t

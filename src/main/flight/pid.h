@@ -130,6 +130,7 @@ typedef struct pidProfile_s {
 
     float dBoostFactor;
     float dBoostMaxAtAlleceleration;
+    uint8_t dBoostGyroDeltaLpfHz;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {

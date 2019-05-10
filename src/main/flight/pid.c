@@ -230,6 +230,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .iterm_relax = ITERM_RELAX_OFF,
         .dBoostFactor = 1.0f,
         .dBoostMaxAtAlleceleration = 7500.0f,
+        .dBoostGyroDeltaLpfHz = D_BOOST_GYRO_LPF_HZ,
 );
 
 void pidInit(void)
@@ -251,7 +252,7 @@ void pidInit(void)
     dBoostMaxAtAlleceleration = pidProfile()->dBoostMaxAtAlleceleration;
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        biquadFilterInitLPF(&dBoostGyroLpf[axis], D_BOOST_GYRO_LPF_HZ, getLooptime());
+        biquadFilterInitLPF(&dBoostGyroLpf[axis], pidProfile()->dBoostGyroDeltaLpfHz, getLooptime());
     }
 #endif
 
