@@ -137,8 +137,8 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
-static pt1Filter_t GForceFilter, GForceFilterZ;
-static float GForce, GForceZ;
+static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
+static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -2314,9 +2314,21 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GFORCE_X:
+        {
+            osdFormatCentiNumber(buff, GForceAxis[X], 0, 2, 0, 4);
+            break;
+        }
+
+    case OSD_GFORCE_Y:
+        {
+            osdFormatCentiNumber(buff, GForceAxis[Y], 0, 2, 0, 4);
+            break;
+        }
+
     case OSD_GFORCE_Z:
         {
-            osdFormatCentiNumber(buff, GForceZ, 0, 2, 0, 3);
+            osdFormatCentiNumber(buff, GForceAxis[Z], 0, 2, 0, 4);
             break;
         }
 
@@ -2676,7 +2688,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_WIND_SPEED_VERTICAL] = OSD_POS(3, 7);
 
     osdConfig->item_pos[0][OSD_GFORCE] = OSD_POS(12, 4);
-    osdConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 5);
+    osdConfig->item_pos[0][OSD_GFORCE_X] = OSD_POS(12, 5);
+    osdConfig->item_pos[0][OSD_GFORCE_Y] = OSD_POS(12, 6);
+    osdConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 7);
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
@@ -2744,9 +2758,6 @@ void osdInit(displayPort_t *osdDisplayPortToUse)
     armState = ARMING_FLAG(ARMED);
 
     displayClearScreen(osdDisplayPort);
-
-    pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
-    pt1FilterInitRC(&GForceFilterZ, GFORCE_FILTER_TC, 0);
 
     uint8_t y = 1;
     displayFontMetadata_t metadata;
@@ -3019,14 +3030,19 @@ static void osdFilterData(timeUs_t currentTimeUs) {
     float refresh_dT = cmpTimeUs(currentTimeUs, lastRefresh) * 1e-6;
 
     GForce = sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
-    GForceZ = imuMeasuredAccelBF.z / GRAVITY_MSS;
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) GForceAxis[axis] = imuMeasuredAccelBF.v[axis] / GRAVITY_MSS;
 
     if (lastRefresh) {
         GForce = pt1FilterApply3(&GForceFilter, GForce, refresh_dT);
-        GForceZ = pt1FilterApply3(&GForceFilterZ, GForceZ, refresh_dT);
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) pt1FilterApply3(GForceFilterAxis + axis, GForceAxis[axis], refresh_dT);
     } else {
+        pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
         pt1FilterReset(&GForceFilter, GForce);
-        pt1FilterReset(&GForceFilterZ, GForceZ);
+
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) {
+            pt1FilterInitRC(GForceFilterAxis + axis, GFORCE_FILTER_TC, 0);
+            pt1FilterReset(GForceFilterAxis + axis, GForceAxis[axis]);
+        }
     }
 
     lastRefresh = currentTimeUs;
