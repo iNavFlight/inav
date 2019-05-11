@@ -49,29 +49,24 @@
 #include "io/serial.h"
 
 #include "rx/rx.h"
+#include "rx/crsf.h"
+#include "rx/eleres.h"
+#include "rx/ibus.h"
+#include "rx/jetiexbus.h"
 #include "rx/fport.h"
+#include "rx/msp.h"
+#include "rx/msp_override.h"
 #include "rx/pwm.h"
+#include "rx/rx_spi.h"
 #include "rx/sbus.h"
 #include "rx/spektrum.h"
 #include "rx/sumd.h"
 #include "rx/sumh.h"
-#include "rx/msp.h"
-#include "rx/xbus.h"
-#include "rx/ibus.h"
-#include "rx/jetiexbus.h"
-#include "rx/rx_spi.h"
-#include "rx/crsf.h"
-#include "rx/eleres.h"
 #include "rx/uib_rx.h"
+#include "rx/xbus.h"
 
 
 //#define DEBUG_RX_SIGNAL_LOSS
-
-typedef struct rcChannel_s {
-    int16_t raw;        // Value received via RX - [1000;2000]
-    int16_t data;       // Value after processing - [1000;2000]
-    timeMs_t expiresAt; // Time when this value becomes too old and it's discarded
-} rcChannel_t;
 
 const char rcChannelLetters[] = "AERT";
 
@@ -95,8 +90,6 @@ static timeUs_t suspendRxSignalUntil = 0;
 static uint8_t skipRxSamples = 0;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
-
-#define MAX_INVALID_PULS_TIME    300
 
 #define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)
 #define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)
@@ -172,7 +165,7 @@ static uint8_t nullFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     return RX_FRAME_PENDING;
 }
 
-static bool isPulseValid(uint16_t pulseDuration)
+bool isRxPulseValid(uint16_t pulseDuration)
 {
     return  pulseDuration >= rxConfig()->rx_min_usec &&
             pulseDuration <= rxConfig()->rx_max_usec;
@@ -251,7 +244,7 @@ void rxInit(void)
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
         rcChannels[i].raw = PWM_RANGE_MIDDLE;
         rcChannels[i].data = PWM_RANGE_MIDDLE;
-        rcChannels[i].expiresAt = nowMs + MAX_INVALID_PULS_TIME;
+        rcChannels[i].expiresAt = nowMs + MAX_INVALID_RX_PULSE_TIME;
     }
 
     rcChannels[THROTTLE].raw = (feature(FEATURE_3D)) ? PWM_RANGE_MIDDLE : rxConfig()->rx_min_usec;
@@ -321,6 +314,12 @@ void rxInit(void)
     }
 
     rxUpdateRSSISource();
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if (rxConfig()->receiverType != RX_TYPE_MSP) {
+        mspOverrideInit();
+    }
+#endif
 }
 
 void rxUpdateRSSISource(void)
@@ -375,7 +374,7 @@ void rxUpdateRSSISource(void)
     }
 }
 
-static uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap)
+uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap)
 {
     if (channelToRemap < channelMapEntryCount) {
         return channelMap[channelToRemap];
@@ -433,7 +432,22 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
         rxDataProcessingRequired = true;
     }
 
-    return rxDataProcessingRequired || auxiliaryProcessingRequired; // data driven or 50Hz
+    bool result = rxDataProcessingRequired || auxiliaryProcessingRequired;
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if (rxConfig()->receiverType != RX_TYPE_MSP) {
+        result = result || mspOverrideUpdateCheck(currentTimeUs, currentDeltaTime);
+        /*mspOverrideUpdateCheck(currentTimeUs, currentDeltaTime);*/
+    }
+#endif
+
+    return result;
+
+/*#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)*/
+    /*return rxDataProcessingRequired || auxiliaryProcessingRequired || rxMSPOverrideUpdateCheck(currentTimeUs, currentDeltaTime); // data driven or 50Hz*/
+/*#else*/
+    /*return rxDataProcessingRequired || auxiliaryProcessingRequired; // data driven or 50Hz*/
+/*#endif*/
 }
 
 #define FILTERING_SAMPLE_COUNT  5
@@ -515,13 +529,13 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         rcChannels[channel].raw = sample;
 
         // Apply invalid pulse value logic
-        if (!isPulseValid(sample)) {
+        if (!isRxPulseValid(sample)) {
             sample = rcChannels[channel].data;   // hold channel, replace with old value
             if ((currentTimeMs > rcChannels[channel].expiresAt) && (channel < NON_AUX_CHANNEL_COUNT)) {
                 rxFlightChannelsValid = false;
             }
         } else {
-            rcChannels[channel].expiresAt = currentTimeMs + MAX_INVALID_PULS_TIME;
+            rcChannels[channel].expiresAt = currentTimeMs + MAX_INVALID_RX_PULSE_TIME;
         }
 
         // Save channel value
@@ -541,6 +555,12 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
             }
         }
     }
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if ((rxConfig()->receiverType != RX_TYPE_MSP) && mspOverrideCalculateChannels(currentTimeUs)) {
+        if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)) mspOverrideChannels(rcChannels);
+    }
+#endif
 
     // Update failsafe
     if (rxFlightChannelsValid && rxSignalReceived) {
