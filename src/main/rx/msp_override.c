@@ -36,6 +36,8 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 
+#include "flight/failsafe.h"
+
 #include "rx/rx.h"
 #include "rx/msp.h"
 #include "rx/msp_override.h"
@@ -47,6 +49,12 @@ static bool rxDataProcessingRequired = false;
 
 static bool rxSignalReceived = false;
 static bool rxFlightChannelsValid = false;
+static bool rxFailsafe = true;
+
+static timeMs_t rxDataFailurePeriod;
+static timeMs_t rxDataRecoveryPeriod;
+static timeMs_t validRxDataReceivedAt = 0;
+static timeMs_t validRxDataFailedAt = 0;
 
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
@@ -92,6 +100,9 @@ void mspOverrideInit(void)
         }
     }
 
+    rxDataFailurePeriod = PERIOD_RXDATA_FAILURE + failsafeConfig()->failsafe_delay * MILLIS_PER_TENTH_SECOND;
+    rxDataRecoveryPeriod = PERIOD_RXDATA_RECOVERY + failsafeConfig()->failsafe_recovery_delay * MILLIS_PER_TENTH_SECOND;
+
     rxMspInit(rxConfig(), &rxRuntimeConfigMSP);
 }
 
@@ -103,6 +114,11 @@ bool mspOverrideIsReceivingSignal(void)
 bool mspOverrideAreFlightChannelsValid(void)
 {
     return rxFlightChannelsValid;
+}
+
+bool mspOverrideIsInFailsafe(void)
+{
+    return rxFailsafe;
 }
 
 bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
@@ -129,7 +145,7 @@ bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime
     return rxDataProcessingRequired; // data driven or 50Hz
 }
 
-void mspOverrideCalculateChannels(timeUs_t currentTimeUs)
+bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
 {
     int16_t rcStaging[MAX_SUPPORTED_RC_CHANNEL_COUNT];
     const timeMs_t currentTimeMs = millis();
@@ -178,11 +194,23 @@ void mspOverrideCalculateChannels(timeUs_t currentTimeUs)
     if (rxFlightChannelsValid && rxSignalReceived) {
         for (int channel = 0; channel < rxRuntimeConfigMSP.channelCount; channel++) {
             mspRcChannels[channel].data = rcStaging[channel];
-            if (channel <= 4)
-                debug[channel] = mspRcChannels[channel].data;
         }
     }
 
+    // Update failsafe
+    if (rxFlightChannelsValid && rxSignalReceived) {
+        validRxDataReceivedAt = millis();
+        if ((validRxDataReceivedAt - validRxDataFailedAt) > rxDataRecoveryPeriod) {
+            rxFailsafe = false;
+        }
+    } else {
+        validRxDataFailedAt = millis();
+        if ((validRxDataFailedAt - validRxDataReceivedAt) > rxDataFailurePeriod) {
+            rxFailsafe = true;
+        }
+    }
+
+    return true;
 }
 
 void mspOverrideChannels(rcChannel_t *rcChannels)
