@@ -416,6 +416,11 @@ groups:
       - name: serialrx_halfduplex
         field: halfDuplex
         type: bool
+      - name: msp_override_channels
+        field: mspOverrideChannels
+        condition: USE_MSP_RC_OVERRIDE
+        min: 0
+        max: 65535
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t

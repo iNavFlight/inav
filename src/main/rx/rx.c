@@ -132,7 +132,9 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssiMax = RSSI_VISIBLE_VALUE_MAX,
     .sbusSyncInterval = SBUS_DEFAULT_INTERFRAME_DELAY_US,
     .rcFilterFrequency = 50,
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     .mspOverrideChannels = 15,
+#endif
 );
 
 void resetAllRxChannelRangeConfigurations(void)
