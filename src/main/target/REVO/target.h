@@ -33,7 +33,6 @@
 #define BEEPER                  PB4
 
 #define USE_DSHOT
-#define USE_SERIALSHOT
 
 // MPU6000 interrupts
 #define USE_EXTI
