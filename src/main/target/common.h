@@ -132,7 +132,7 @@
 #define USE_MSP_OVER_TELEMETRY
 // These are rather exotic serial protocols
 #define USE_RX_MSP
-#define USE_MSP_RC_OVERRIDE
+//#define USE_MSP_RC_OVERRIDE
 #define USE_SERIALRX_SUMD
 #define USE_SERIALRX_SUMH
 #define USE_SERIALRX_XBUS
