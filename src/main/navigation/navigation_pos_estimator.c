@@ -41,6 +41,7 @@
 #include "flight/imu.h"
 
 #include "io/gps.h"
+#include "io/beeper.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -362,6 +363,8 @@ static void updateIMUEstimationWeight(const float dt)
     // If accelerometer measurement is clipped - drop the acc weight to zero
     // and gradually restore weight back to 1.0 over time
     if (isAccClipped) {
+        // Also emmit a short beep to warn the pilot about this
+        beeper(BEEPER_HARDWARE_FAILURE);
         posEstimator.imu.accWeightFactor = 0.0f;
     }
     else {

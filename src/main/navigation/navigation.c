@@ -2643,7 +2643,20 @@ float getActiveWaypointSpeed(void)
 /*-----------------------------------------------------------
  * Robot mode PH handler
  *-----------------------------------------------------------*/
-void navRobotModeMoveHandler(const navRobotMovement_t * move, bool bodyFrameXY)
+static void navRobotConvertToGlobalFrame(fpVector3_t * dst, const fpVector3_t * src, bool isInBodyFrameXY)
+{
+    // Convert motion into Earth/Global frame of reference
+    if (isInBodyFrameXY) {
+        dst->x = src->x * posControl.actualState.cosYaw - src->y * posControl.actualState.sinYaw;
+        dst->y = src->x * posControl.actualState.sinYaw + src->y * posControl.actualState.cosYaw;
+        dst->z = src->z;
+    }
+    else {
+        vectorCopy(dst, src);
+    }
+}
+
+void navRobotModeMoveHandler(const navRobotMovement_t * move, bool isInBodyFrameXY)
 {
     // ROBOT mode is a combination of 3D POSHOLD + GCS_NAV
     // External navigation may choose to enable SURFACE mode as well if desired
@@ -2657,27 +2670,20 @@ void navRobotModeMoveHandler(const navRobotMovement_t * move, bool bodyFrameXY)
         vectorZero(&newPos);
         newHeading = 0;
 
-        // Convert motion into Earth/Global frame of reference
-        if (bodyFrameXY) {
-            posMotionEF.x = move->posMotion.x * posControl.actualState.cosYaw - move->posMotion.y * posControl.actualState.sinYaw;
-            posMotionEF.y = move->posMotion.x * posControl.actualState.sinYaw + move->posMotion.y * posControl.actualState.cosYaw;
-            posMotionEF.z = move->posMotion.z;
-        }
-        else {
-            vectorCopy(&posMotionEF, &move->posMotion);
-        }
-
         // Update position
         switch (move->posMoveMode) {
             case NAV_ROBOT_MOVE_ABSOLUTE:
-                vectorCopy(&newPos, &posMotionEF);
+                // Don't do coordinate transformation - this is always global
+                vectorCopy(&newPos, &move->posMotion);
                 updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
                 break;
             case NAV_ROBOT_MOVE_RELATIVE:
+                navRobotConvertToGlobalFrame(&posMotionEF, &move->posMotion, isInBodyFrameXY);
                 vectorAdd(&newPos, &navGetCurrentActualPositionAndVelocity()->pos, &posMotionEF);
                 updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
                 break;
             case NAV_ROBOT_MOVE_INCREMENTAL:
+                navRobotConvertToGlobalFrame(&posMotionEF, &move->posMotion, isInBodyFrameXY);
                 vectorAdd(&newPos, &posControl.desiredState.pos, &posMotionEF);
                 updateFlags |= NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z;
                 break;
