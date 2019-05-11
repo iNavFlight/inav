@@ -1654,6 +1654,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
                 for (int i = 0; i < osdConfig()->hud_radar_disp; i++) {
                     if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
+						radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
                         osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
                     }
                 }

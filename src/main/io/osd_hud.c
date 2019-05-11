@@ -28,10 +28,9 @@
 #include "navigation/navigation.h"
 #include "common/printf.h"
 
-
 #ifdef USE_OSD
 
-#define HUD_DRAWN_MAXCHARS 35 // 5 POI (1 home, 4 radar) x 7 chars max for each
+#define HUD_DRAWN_MAXCHARS 40 // 6 POI (1 home, 5 radar) x 7 chars max for each minus 2 for H (no icons for heading and signal)
 
 static int8_t hud_drawn[HUD_DRAWN_MAXCHARS][2];
 static int8_t hud_drawn_pt;
@@ -128,8 +127,7 @@ static int16_t radarGetFarthestPoi(void)
 
 /*
  * Display one POI on the hud, centered on crosshair position.
- * poiDistance and poiAltitude in meters, poiAltitude is relative to the aircraft (negative means below)
- * Distance (m), Direction (°), Altitude (relative, m), Heading (°), Signal 0 to 5, Symbol 0 to 480
+ * Distance (m), Direction (°), Altitude (relative, m, negative means below), Heading (°), Signal 0 to 5, Symbol 0 to 480
  */
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, int16_t poiHeading, uint8_t poiSignal, uint16_t poiSymbol)
 {
@@ -325,7 +323,7 @@ void osdHudDrawHoming(uint8_t px, uint8_t py)
 void osdHudDrawNearest(uint8_t px, uint8_t py)
 {
     int poi_id = radarGetNearestPOI();
-    char buftmp[18];
+    char buftmp[15];
 
     if (poi_id >= 0) {
         tfp_sprintf(buftmp, "%c%c %4d%c %3d%c", 65 + poi_id,
@@ -342,7 +340,7 @@ void osdHudDrawNearest(uint8_t px, uint8_t py)
                 radar_pois[poi_id].speed / 100, SYM_MS
                 );
 
-        displayWrite(osdGetDisplayPort(), px + 1, py + 1, buftmp);
+        displayWrite(osdGetDisplayPort(), px, py + 1, buftmp);
 
     }
 }

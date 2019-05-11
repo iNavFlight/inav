@@ -1926,13 +1926,6 @@ static int32_t calculateBearingFromDelta(float deltaX, float deltaY)
     return wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaY, deltaX)));
 }
 
-uint32_t calculateAltitudeToMe(const fpVector3_t * destinationPos)
-{
-    const float deltaZ = destinationPos->z - navGetCurrentActualPositionAndVelocity()->pos.z;
-
-    return deltaZ;
-}
-
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos)
 {
     const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
@@ -2529,7 +2522,6 @@ void radarCalc(uint8_t poiNumber) {
     geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[poiNumber].gps, GEO_ALT_RELATIVE);
     radar_pois[poiNumber].distance = calculateDistanceToDestination(&poi) / 100; // In meters
     radar_pois[poiNumber].direction = calculateBearingToDestination(&poi) / 100; // In °
-    radar_pois[poiNumber].altitude = calculateAltitudeToMe(&poi) / 100; // In meters, - is below
 }
 
 bool isWaypointListValid(void)
