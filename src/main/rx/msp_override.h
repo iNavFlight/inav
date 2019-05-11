@@ -19,5 +19,10 @@
 
 void mspOverrideInit(void);
 bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime);
-bool mspOverrideCalculateChannels(timeUs_t currentTimeUs);
+void mspOverrideCalculateChannels(timeUs_t currentTimeUs);
 void mspOverrideChannels(rcChannel_t *rcChannels);
+bool mspOverrideIsReceivingSignal(void);
+bool mspOverrideAreFlightChannelsValid(void);
+uint16_t mspOverrideGetRefreshRate(void);
+int16_t mspOverrideGetChannelValue(unsigned channelNumber);
+int16_t mspOverrideGetRawChannelValue(unsigned channelNumber);

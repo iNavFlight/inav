@@ -17,9 +17,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-/*#include <stdlib.h>*/
-
-/*#include <string.h>*/
 
 #include "platform.h"
 
@@ -39,19 +36,12 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 
-/*#include "flight/failsafe.h"*/
-
 #include "rx/rx.h"
 #include "rx/msp.h"
 #include "rx/msp_override.h"
 
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-
-/*const char rcChannelLetters[] = "AERT";*/
-
-/*static uint16_t rssi = 0;                  // range: [0;1023]*/
-/*static timeUs_t lastMspRssiUpdateUs = 0;*/
 
 static bool rxDataProcessingRequired = false;
 
@@ -60,16 +50,12 @@ static bool rxFlightChannelsValid = false;
 
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
-/*static timeUs_t suspendRxSignalUntil = 0;*/
-/*static uint8_t skipRxSamples = 0;*/
 
 static uint16_t mspOverrideCtrlChannels = 0; // bitmask representing which channels are used to control MSP override
 static rcChannel_t mspRcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
-/*#define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)*/
-/*#define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)*/
-
 static rxRuntimeConfig_t rxRuntimeConfigMSP;
+
 
 void mspOverrideInit(void)
 {
@@ -100,12 +86,10 @@ void mspOverrideInit(void)
             armChannel->data = value;
         }
 
-#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
         // Find which channels are used to control MSP override
         if (modeActivationConditions(i)->modeId == BOXMSPRCOVERRIDE && IS_RANGE_USABLE(&modeActivationConditions(i)->range)) {
             mspOverrideCtrlChannels |= 1 << (modeActivationConditions(i)->auxChannelIndex + NON_AUX_CHANNEL_COUNT);
         }
-#endif
     }
 
     rxMspInit(rxConfig(), &rxRuntimeConfigMSP);
@@ -120,22 +104,6 @@ bool mspOverrideAreFlightChannelsValid(void)
 {
     return rxFlightChannelsValid;
 }
-
-#if 0
-void suspendRxSignal(void)
-{
-    failsafeOnRxSuspend();
-    suspendRxSignalUntil = micros() + SKIP_RC_ON_SUSPEND_PERIOD;
-    skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
-}
-
-void resumeRxSignal(void)
-{
-    suspendRxSignalUntil = micros();
-    skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
-    failsafeOnRxResume();
-}
-#endif
 
 bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 {
@@ -161,7 +129,7 @@ bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime
     return rxDataProcessingRequired; // data driven or 50Hz
 }
 
-bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
+void mspOverrideCalculateChannels(timeUs_t currentTimeUs)
 {
     int16_t rcStaging[MAX_SUPPORTED_RC_CHANNEL_COUNT];
     const timeMs_t currentTimeMs = millis();
@@ -172,17 +140,6 @@ bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
 
     rxDataProcessingRequired = false;
     rxNextUpdateAtUs = currentTimeUs + DELAY_50_HZ;
-
-#if 0
-    // only proceed when no more samples to skip and suspend period is over
-    if (skipRxSamples) {
-        if (currentTimeUs > suspendRxSignalUntil) {
-            skipRxSamples--;
-        }
-
-        return true;
-    }
-#endif
 
     rxFlightChannelsValid = true;
 
@@ -221,99 +178,35 @@ bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
     if (rxFlightChannelsValid && rxSignalReceived) {
         for (int channel = 0; channel < rxRuntimeConfigMSP.channelCount; channel++) {
             mspRcChannels[channel].data = rcStaging[channel];
+            if (channel <= 4)
+                debug[channel] = mspRcChannels[channel].data;
         }
     }
 
-    // Update failsafe
-#if 0
-    if (rxFlightChannelsValid && rxSignalReceived) {
-        failsafeOnValidDataReceived();
-    } else {
-        failsafeOnValidDataFailed();
-    }
-#endif
-
-    /*return true;*/
-    return rxFlightChannelsValid && rxSignalReceived;
 }
 
 void mspOverrideChannels(rcChannel_t *rcChannels)
 {
-    /*uint16_t channelMask = 1;*/
     for (uint16_t channel = 0, channelMask = 1; channel < rxRuntimeConfigMSP.channelCount; ++channel, channelMask <<= 1) {
         if (rxConfig()->mspOverrideChannels & ~mspOverrideCtrlChannels & channelMask) {
-            rcChannels[channel].data = mspRcChannels[channel].data;
+            rcChannels[channel].raw = rcChannels[channel].data = mspRcChannels[channel].data;
         }
     }
 }
 
-#if 0
-#define RSSI_SAMPLE_COUNT 16
-
-void setRSSI(uint16_t rssiValue, rssiSource_e source, bool filtered)
-{
-    if (source != rssiSource) {
-        return;
-    }
-
-    static uint16_t rssiSamples[RSSI_SAMPLE_COUNT];
-    static uint8_t rssiSampleIndex = 0;
-    static unsigned sum = 0;
-
-    if (filtered) {
-        // Value is already filtered
-        rssi = rssiValue;
-
-    } else {
-        sum = sum + rssiValue;
-        sum = sum - rssiSamples[rssiSampleIndex];
-        rssiSamples[rssiSampleIndex] = rssiValue;
-        rssiSampleIndex = (rssiSampleIndex + 1) % RSSI_SAMPLE_COUNT;
-
-        int16_t rssiMean = sum / RSSI_SAMPLE_COUNT;
-
-        rssi = rssiMean;
-    }
-
-    // Apply min/max values
-    int rssiMin = rxConfig()->rssiMin * RSSI_VISIBLE_FACTOR;
-    int rssiMax = rxConfig()->rssiMax * RSSI_VISIBLE_FACTOR;
-    if (rssiMin > rssiMax) {
-        int tmp = rssiMax;
-        rssiMax = rssiMin;
-        rssiMin = tmp;
-        int delta = rssi >= rssiMin ? rssi - rssiMin : 0;
-        rssi = rssiMax >= delta ? rssiMax - delta : 0;
-    }
-    rssi = constrain(scaleRange(rssi, rssiMin, rssiMax, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
-}
-
-void setRSSIFromMSP(uint8_t newMspRssi)
-{
-    if (rssiSource == RSSI_SOURCE_NONE) {
-        rssiSource = RSSI_SOURCE_MSP;
-    }
-
-    if (rssiSource == RSSI_SOURCE_MSP) {
-        rssi = ((uint16_t)newMspRssi) << 2;
-        lastMspRssiUpdateUs = micros();
-    }
-}
-
-uint16_t rxGetRefreshRate(void)
+uint16_t mspOverrideGetRefreshRate(void)
 {
     return rxRuntimeConfigMSP.rxRefreshRate;
 }
 
-int16_t rxGetChannelValue(unsigned channelNumber)
+int16_t mspOverrideGetChannelValue(unsigned channelNumber)
 {
     return mspRcChannels[channelNumber].data;
 }
 
-int16_t rxGetRawChannelValue(unsigned channelNumber)
+int16_t mspOverrideGetRawChannelValue(unsigned channelNumber)
 {
     return mspRcChannels[channelNumber].raw;
 }
-#endif
 
 #endif // defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)

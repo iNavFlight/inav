@@ -101,7 +101,7 @@ static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 8);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
 #define RX_SPI_DEFAULT_PROTOCOL 0
@@ -132,6 +132,7 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssiMax = RSSI_VISIBLE_VALUE_MAX,
     .sbusSyncInterval = SBUS_DEFAULT_INTERFRAME_DELAY_US,
     .rcFilterFrequency = 50,
+    .mspOverrideChannels = 15,
 );
 
 void resetAllRxChannelRangeConfigurations(void)
@@ -493,8 +494,8 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     const timeMs_t currentTimeMs = millis();
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    if ((rxConfig()->receiverType != RX_TYPE_MSP) && mspOverrideDataProcessingRequired && mspOverrideCalculateChannels(currentTimeUs)) {
-        if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)) mspOverrideChannels(rcChannels);
+    if ((rxConfig()->receiverType != RX_TYPE_MSP) && mspOverrideDataProcessingRequired) {
+        mspOverrideCalculateChannels(currentTimeUs);
     }
 #endif
 
@@ -563,6 +564,12 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
             }
         }
     }
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && mspOverrideAreFlightChannelsValid() && mspOverrideIsReceivingSignal()) {
+        mspOverrideChannels(rcChannels);
+    }
+#endif
 
     // Update failsafe
     if (rxFlightChannelsValid && rxSignalReceived) {
