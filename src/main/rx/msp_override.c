@@ -163,8 +163,6 @@ bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime
 
 bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
     int16_t rcStaging[MAX_SUPPORTED_RC_CHANNEL_COUNT];
     const timeMs_t currentTimeMs = millis();
 

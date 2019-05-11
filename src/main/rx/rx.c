@@ -80,6 +80,10 @@ static rssiSource_e rssiSource;
 static bool rxDataProcessingRequired = false;
 static bool auxiliaryProcessingRequired = false;
 
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+static bool mspOverrideDataProcessingRequired = false;
+#endif
+
 static bool rxSignalReceived = false;
 static bool rxFlightChannelsValid = false;
 static bool rxIsInFailsafeMode = true;
@@ -436,8 +440,8 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     if (rxConfig()->receiverType != RX_TYPE_MSP) {
-        result = result || mspOverrideUpdateCheck(currentTimeUs, currentDeltaTime);
-        /*mspOverrideUpdateCheck(currentTimeUs, currentDeltaTime);*/
+        mspOverrideDataProcessingRequired = mspOverrideUpdateCheck(currentTimeUs, currentDeltaTime);
+        result = result || mspOverrideDataProcessingRequired;
     }
 #endif
 
@@ -485,10 +489,14 @@ static uint16_t applyChannelFiltering(uint8_t chan, uint16_t sample)
 
 bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 {
-    UNUSED(currentTimeUs);
-
     int16_t rcStaging[MAX_SUPPORTED_RC_CHANNEL_COUNT];
     const timeMs_t currentTimeMs = millis();
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    if ((rxConfig()->receiverType != RX_TYPE_MSP) && mspOverrideDataProcessingRequired && mspOverrideCalculateChannels(currentTimeUs)) {
+        if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)) mspOverrideChannels(rcChannels);
+    }
+#endif
 
     if (auxiliaryProcessingRequired) {
         auxiliaryProcessingRequired = !rxRuntimeConfig.rcProcessFrameFn(&rxRuntimeConfig);
@@ -555,12 +563,6 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
             }
         }
     }
-
-#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    if ((rxConfig()->receiverType != RX_TYPE_MSP) && mspOverrideCalculateChannels(currentTimeUs)) {
-        if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)) mspOverrideChannels(rcChannels);
-    }
-#endif
 
     // Update failsafe
     if (rxFlightChannelsValid && rxSignalReceived) {
