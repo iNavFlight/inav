@@ -129,6 +129,7 @@ static int16_t radarGetFarthestPoi(void)
 /*
  * Display one POI on the hud, centered on crosshair position.
  * poiDistance and poiAltitude in meters, poiAltitude is relative to the aircraft (negative means below)
+ * Distance (m), Direction (°), Altitude (relative, m), Heading (°), Signal 0 to 5, Symbol 0 to 480
  */
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, int16_t poiHeading, uint8_t poiSignal, uint16_t poiSymbol)
 {

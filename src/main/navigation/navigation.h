@@ -245,12 +245,12 @@ typedef struct {
 typedef struct radar_pois_s {
     gpsLocation_t gps;
     uint8_t state;
-    uint16_t heading;
-    uint16_t speed;
-    uint8_t lq;
-    uint16_t distance;
-    int16_t altitude;
-    int16_t direction;
+    uint16_t heading; // °
+    uint16_t speed; // cm/s
+    uint8_t lq; // from 0 t o 4
+    uint16_t distance; // m
+    int16_t altitude; // m
+    int16_t direction; // °
 } radar_pois_t;
 
 #define RADAR_MAX_POIS 4
