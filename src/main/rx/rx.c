@@ -449,12 +449,6 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime)
 #endif
 
     return result;
-
-/*#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)*/
-    /*return rxDataProcessingRequired || auxiliaryProcessingRequired || rxMSPOverrideUpdateCheck(currentTimeUs, currentDeltaTime); // data driven or 50Hz*/
-/*#else*/
-    /*return rxDataProcessingRequired || auxiliaryProcessingRequired; // data driven or 50Hz*/
-/*#endif*/
 }
 
 #define FILTERING_SAMPLE_COUNT  5
