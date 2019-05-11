@@ -1643,16 +1643,16 @@ groups:
         max: 10000
       - name: osd_gforce_alarm
         field: gforce_alarm
-        min: -1000
-        max: 1000
+        min: -20
+        max: 20
       - name: osd_gforce_axis_alarm_min
         field: gforce_axis_alarm_min
-        min: -1000
-        max: 1000
+        min: -20
+        max: 20
       - name: osd_gforce_axis_alarm_max
         field: gforce_axis_alarm_max
-        min: -1000
-        max: 1000
+        min: -20
+        max: 20
       - name: osd_imu_temp_alarm_min
         field: imu_temp_alarm_min
         min: -550
