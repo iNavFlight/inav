@@ -329,6 +329,9 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  osd_dist_alarm       | 1000  | Value above which to make the OSD distance from home indicator blink (meters) |
 |  osd_alt_alarm        | 100   | Value above which to make the OSD relative altitude indicator blink (meters) |
 |  osd_neg_alt_alarm    | 5    | Value bellow which (negative altitude) to make the OSD relative altitude indicator blink (meters) |
+|  osd_gforce_alarm     | 5    | Value above which the OSD g force indicator will blink (g) |
+|  osd_gforce_axis_alarm_min | -5 | Value under which the OSD axis g force indicators will blink (g) |
+|  osd_gforce_axis_alarm_max | 5  | Value above which the OSD axis g force indicators will blink (g) |
 |  osd_imu_temp_alarm_min | -200 | Temperature under which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_imu_temp_alarm_max | 600 | Temperature above which the IMU temperature OSD element will start blinking (decidegrees centigrade) |
 |  osd_baro_temp_alarm_min | -200 | Temperature under which the baro temperature OSD element will start blinking (decidegrees centigrade) |

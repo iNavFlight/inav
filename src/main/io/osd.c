@@ -84,6 +84,7 @@
 
 #include "rx/rx.h"
 
+#include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/boardalignment.h"
 #include "sensors/diagnostics.h"
@@ -102,6 +103,8 @@
 #define FEET_PER_KILOFEET                       1000 // Used for altitude
 #define METERS_PER_KILOMETER                    1000
 #define METERS_PER_MILE                         1609
+
+#define GFORCE_FILTER_TC 0.2
 
 #define DELAYED_REFRESH_RESUME_COMMAND (checkStickPosition(THR_HI) || checkStickPosition(PIT_HI))
 
@@ -134,6 +137,8 @@ static unsigned currentLayout = 0;
 static int layoutOverride = -1;
 static bool hasExtendedFont = false; // Wether the font supports characters > 256
 static timeMs_t layoutOverrideUntil = 0;
+static pt1Filter_t GForceFilter, GForceFilterAxis[XYZ_AXIS_COUNT];
+static float GForce, GForceAxis[XYZ_AXIS_COUNT];
 
 typedef struct statistic_s {
     uint16_t max_speed;
@@ -185,7 +190,7 @@ static displayPort_t *osdDisplayPort;
 #define AH_SIDEBAR_WIDTH_POS 7
 #define AH_SIDEBAR_HEIGHT_POS 3
 
-PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
+PG_REGISTER_WITH_RESET_FN(osdConfig_t, osdConfig, PG_OSD_CONFIG, 8);
 
 static int digitCount(int32_t value)
 {
@@ -2303,6 +2308,27 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GFORCE:
+        {
+            osdFormatCentiNumber(buff, GForce, 0, 2, 0, 3);
+            if (GForce > osdConfig()->gforce_alarm) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
+        }
+
+    case OSD_GFORCE_X:
+    case OSD_GFORCE_Y:
+    case OSD_GFORCE_Z:
+        {
+            float GForceValue = GForceAxis[item - OSD_GFORCE_X];
+            osdFormatCentiNumber(buff, GForceValue, 0, 2, 0, 4);
+            if ((GForceValue < osdConfig()->gforce_axis_alarm_min) || (GForceValue > osdConfig()->gforce_axis_alarm_max)) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+            break;
+        }
+
     case OSD_DEBUG:
         {
             // Longest representable string is -32768, hence 6 characters
@@ -2658,6 +2684,11 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_WIND_SPEED_HORIZONTAL] = OSD_POS(3, 6);
     osdConfig->item_pos[0][OSD_WIND_SPEED_VERTICAL] = OSD_POS(3, 7);
 
+    osdConfig->item_pos[0][OSD_GFORCE] = OSD_POS(12, 4);
+    osdConfig->item_pos[0][OSD_GFORCE_X] = OSD_POS(12, 5);
+    osdConfig->item_pos[0][OSD_GFORCE_Y] = OSD_POS(12, 6);
+    osdConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 7);
+
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
 
@@ -2674,6 +2705,9 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->neg_alt_alarm = 5;
     osdConfig->imu_temp_alarm_min = -200;
     osdConfig->imu_temp_alarm_max = 600;
+    osdConfig->gforce_alarm = 5;
+    osdConfig->gforce_axis_alarm_min = -5;
+    osdConfig->gforce_axis_alarm_max = 5;
 #ifdef USE_BARO
     osdConfig->baro_temp_alarm_min = -200;
     osdConfig->baro_temp_alarm_max = 600;
@@ -2932,6 +2966,19 @@ static void osdShowStats(void)
     tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
+    const float max_gforce = accGetMeasuredMaxG();
+    displayWrite(osdDisplayPort, statNameX, top, "MAX G-FORCE      :");
+    osdFormatCentiNumber(buff, max_gforce * 100, 0, 2, 0, 3);
+    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+
+    const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
+    displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
+    osdFormatCentiNumber(buff, acc_extremes[Z].min * 100, 0, 2, 0, 4);
+    strcat(buff,"/");
+    displayWrite(osdDisplayPort, statValuesX, top, buff);
+    osdFormatCentiNumber(buff, acc_extremes[Z].max * 100, 0, 2, 0, 3);
+    displayWrite(osdDisplayPort, statValuesX + 5, top++, buff);
+
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
 }
@@ -2978,8 +3025,33 @@ static void osdShowArmed(void)
     }
 }
 
+static void osdFilterData(timeUs_t currentTimeUs) {
+    static timeUs_t lastRefresh = 0;
+    float refresh_dT = cmpTimeUs(currentTimeUs, lastRefresh) * 1e-6;
+
+    GForce = sqrtf(vectorNormSquared(&imuMeasuredAccelBF)) / GRAVITY_MSS;
+    for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) GForceAxis[axis] = imuMeasuredAccelBF.v[axis] / GRAVITY_MSS;
+
+    if (lastRefresh) {
+        GForce = pt1FilterApply3(&GForceFilter, GForce, refresh_dT);
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) pt1FilterApply3(GForceFilterAxis + axis, GForceAxis[axis], refresh_dT);
+    } else {
+        pt1FilterInitRC(&GForceFilter, GFORCE_FILTER_TC, 0);
+        pt1FilterReset(&GForceFilter, GForce);
+
+        for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; ++axis) {
+            pt1FilterInitRC(GForceFilterAxis + axis, GFORCE_FILTER_TC, 0);
+            pt1FilterReset(GForceFilterAxis + axis, GForceAxis[axis]);
+        }
+    }
+
+    lastRefresh = currentTimeUs;
+}
+
 static void osdRefresh(timeUs_t currentTimeUs)
 {
+    osdFilterData(currentTimeUs);
+
 #ifdef USE_CMS
     if (IS_RC_MODE_ACTIVE(BOXOSD) && (!cmsInMenu) && !(osdConfig()->osd_failsafe_switch_layout && FLIGHT_MODE(FAILSAFE_MODE))) {
 #else
