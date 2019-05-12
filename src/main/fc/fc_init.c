@@ -273,43 +273,28 @@ void init(void)
     logInit();
 #endif
 
+    // Initialize servo and motor mixers
+    // This needs to be called early to set up platform type correctly and count required motors & servos
     servosInit();
-    mixerUpdateStateFlags();    // This needs to be called early to allow pwm mapper to use information about FIXED_WING state
+    mixerUpdateStateFlags();
+    mixerInit();
 
+    // Some sanity checking
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
+        featureClear(FEATURE_3D);
+    }
+
+    // Initialize motor and servo outpus
+    pwmMotorAndServoInit();
+
+    /*
     drv_pwm_config_t pwm_params;
     memset(&pwm_params, 0, sizeof(pwm_params));
-
-#ifdef USE_RANGEFINDER_HCSR04
-    // HC-SR04 has a dedicated connection to FC and require two pins
-    if (rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) {
-        const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
-        if (rangefinderHardwarePins) {
-            pwm_params.useTriggerRangefinder = true;
-            pwm_params.rangefinderIOConfig.triggerTag = rangefinderHardwarePins->triggerTag;
-            pwm_params.rangefinderIOConfig.echoTag = rangefinderHardwarePins->echoTag;
-        }
-    }
-#endif
 
     // when using airplane/wing mixer, servo/motor outputs are remapped
     pwm_params.flyingPlatformType = mixerConfig()->platformType;
 
-#ifdef STM32F303xC
-    pwm_params.useUART3 = doesConfigurationUsePort(SERIAL_PORT_USART3);
-#endif
-#if defined(USE_UART2) && defined(STM32F40_41xxx)
-    pwm_params.useUART2 = doesConfigurationUsePort(SERIAL_PORT_USART2);
-#endif
-#if defined(USE_UART6) && defined(STM32F40_41xxx)
-    pwm_params.useUART6 = doesConfigurationUsePort(SERIAL_PORT_USART6);
-#endif
-    pwm_params.useVbat = feature(FEATURE_VBAT);
-    pwm_params.useSoftSerial = feature(FEATURE_SOFTSERIAL);
     pwm_params.useParallelPWM = (rxConfig()->receiverType == RX_TYPE_PWM);
-    pwm_params.useRSSIADC = feature(FEATURE_RSSI_ADC);
-    pwm_params.useCurrentMeterADC = feature(FEATURE_CURRENT_METER)
-        && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
-    pwm_params.useLEDStrip = feature(FEATURE_LED_STRIP);
     pwm_params.usePPM = (rxConfig()->receiverType == RX_TYPE_PPM);
     pwm_params.useSerialRx = (rxConfig()->receiverType == RX_TYPE_SERIAL);
 
@@ -317,9 +302,6 @@ void init(void)
     pwm_params.servoCenterPulse = servoConfig()->servoCenterPulse;
     pwm_params.servoPwmRate = servoConfig()->servoPwmRate;
 
-    if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
-        featureClear(FEATURE_3D);
-    }
 
     pwm_params.enablePWMOutput = feature(FEATURE_PWM_OUTPUT_ENABLE);
 
@@ -328,19 +310,13 @@ void init(void)
 #endif
 
 #ifdef USE_PWM_SERVO_DRIVER
-    /*
-    If external PWM driver is enabled, for example PCA9685, disable internal
-    servo handling mechanism, since external device will do that
-    */
+    // If external PWM driver is enabled, for example PCA9685, disable internal
+    // servo handling mechanism, since external device will do that
     if (feature(FEATURE_PWM_SERVO_DRIVER)) {
         pwm_params.useServoOutputs = false;
     }
 #endif
-
-    // pwmInit() needs to be called as soon as possible for ESC compatibility reasons
-    pwmInit(&pwm_params);
-
-    mixerPrepare();
+    */
 
     addBootlogEvent2(BOOT_EVENT_PWM_INIT_DONE, BOOT_EVENT_FLAGS_NONE);
     systemState |= SYSTEM_STATE_MOTORS_READY;

@@ -21,161 +21,268 @@
 
 #include "platform.h"
 
+#include "build/debug.h"
 #include "common/memory.h"
+
+#include "config/feature.h"
+#include "fc/config.h"
+
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/timer.h"
 #include "drivers/logging.h"
-
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_mapping.h"
-#include "drivers/rx_pwm.h"
+//#include "drivers/rx_pwm.h"
+
+#include "io/serial.h"
 
 enum {
     MAP_TO_NONE,
-    MAP_TO_PPM_INPUT,
-    MAP_TO_PWM_INPUT,
     MAP_TO_MOTOR_OUTPUT,
     MAP_TO_SERVO_OUTPUT,
 };
 
-static pwmIOConfiguration_t pwmIOConfiguration;
+typedef struct {
+    int maxTimMotorCount;
+    int maxTimServoCount;
+    const timerHardware_t * timMotors[MAX_PWM_OUTPUT_PORTS];
+    const timerHardware_t * timServos[MAX_PWM_OUTPUT_PORTS];
+} timMotorServoHardware_t;
 
-pwmIOConfiguration_t *pwmGetOutputConfiguration(void)
+static const motorProtocolProperties_t motorProtocolProperties[] = {
+    [PWM_TYPE_STANDARD]     = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
+    [PWM_TYPE_ONESHOT125]   = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
+    [PWM_TYPE_ONESHOT42]    = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
+    [PWM_TYPE_MULTISHOT]    = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
+    [PWM_TYPE_BRUSHED]      = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
+    [PWM_TYPE_DSHOT150]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
+    [PWM_TYPE_DSHOT300]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
+    [PWM_TYPE_DSHOT600]     = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
+    [PWM_TYPE_DSHOT1200]    = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
+    [PWM_TYPE_SERIALSHOT]   = { .usesHwTimer = false,   .isDSHOT = false,   .isSerialShot = true  },
+};
+
+const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto)
 {
-    return &pwmIOConfiguration;
+    return &motorProtocolProperties[proto];
 }
 
-bool CheckGPIOPin(ioTag_t tag, GPIO_TypeDef *gpio, uint16_t pin)
+static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 {
-    return IO_GPIOBYTAG(tag) == gpio && IO_PINBYTAG(tag) == pin;
-}
-
-bool CheckGPIOPinSource(ioTag_t tag, GPIO_TypeDef *gpio, uint16_t pin)
-{
-    return IO_GPIOBYTAG(tag) == gpio && IO_GPIO_PinSource(IOGetByTag(tag)) == pin;
-}
-
-pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
-{
-    memset(&pwmIOConfiguration, 0, sizeof(pwmIOConfiguration));
-    pwmIOConfiguration.ioConfigurations = memAllocate(sizeof(pwmPortConfiguration_t) * timerHardwareCount, OWNER_PWMIO);
-
-#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
-    int channelIndex = 0;
+#if defined(USE_UART2)
+    if (doesConfigurationUsePort(SERIAL_PORT_USART2) && (timHw->tag == IO_TAG(UART2_TX_PIN) || timHw->tag == IO_TAG(UART2_RX_PIN))) {
+        return true;
+    }
 #endif
 
-    for (int timerIndex = 0; timerIndex < timerHardwareCount; timerIndex++) {
-        const timerHardware_t *timerHardwarePtr = &timerHardware[timerIndex];
-        int type = MAP_TO_NONE;
-
-#if defined(STM32F3) && defined(USE_UART3)
-        // skip UART3 ports (PB10/PB11)
-        if (init->useUART3 && (timerHardwarePtr->tag == IO_TAG(UART3_TX_PIN) || timerHardwarePtr->tag == IO_TAG(UART3_RX_PIN))) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
+#if defined(USE_UART3)
+    if (doesConfigurationUsePort(SERIAL_PORT_USART3) && (timHw->tag == IO_TAG(UART3_TX_PIN) || timHw->tag == IO_TAG(UART3_RX_PIN))) {
+        return true;
+    }
 #endif
 
-#if defined(UART6_TX_PIN) || defined(UART6_RX_PIN)
-        if (init->useUART6 && (timerHardwarePtr->tag == IO_TAG(UART6_TX_PIN) || timerHardwarePtr->tag == IO_TAG(UART6_RX_PIN))) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
+#if defined(USE_UART4)
+    if (doesConfigurationUsePort(SERIAL_PORT_USART4) && (timHw->tag == IO_TAG(UART4_TX_PIN) || timHw->tag == IO_TAG(UART4_RX_PIN))) {
+        return true;
+    }
+#endif
+
+#if defined(USE_UART5)
+    if (doesConfigurationUsePort(SERIAL_PORT_USART5) && (timHw->tag == IO_TAG(UART5_TX_PIN) || timHw->tag == IO_TAG(UART5_RX_PIN))) {
+        return true;
+    }
+#endif
+
+#if defined(USE_UART6)
+    if (doesConfigurationUsePort(SERIAL_PORT_USART6) && (timHw->tag == IO_TAG(UART6_TX_PIN) || timHw->tag == IO_TAG(UART6_RX_PIN))) {
+        return true;
+    }
 #endif
 
 #if defined(USE_SOFTSERIAL1)
-        if (init->useSoftSerial) {
-            const timerHardware_t *ss1TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_1_RX_PIN), TIM_USE_ANY);
-            if (ss1TimerHardware != NULL && ss1TimerHardware->tim == timerHardwarePtr->tim) {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-                continue;
-            }
+    if (feature(FEATURE_SOFTSERIAL)) {
+        const timerHardware_t *ssrx = timerGetByTag(IO_TAG(SOFTSERIAL_1_RX_PIN), TIM_USE_ANY);
+        const timerHardware_t *sstx = timerGetByTag(IO_TAG(SOFTSERIAL_1_TX_PIN), TIM_USE_ANY);
+        if ((ssrx != NULL && ssrx->tim == timHw->tim) || (sstx != NULL && sstx->tim == timHw->tim)) {
+            return true;
         }
+    }
 #endif
 
 #if defined(USE_SOFTSERIAL2)
-        if (init->useSoftSerial) {
-            const timerHardware_t *ss2TimerHardware = timerGetByTag(IO_TAG(SOFTSERIAL_2_RX_PIN), TIM_USE_ANY);
-            if (ss2TimerHardware != NULL && ss2TimerHardware->tim == timerHardwarePtr->tim) {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-                continue;
-            }
+    if (feature(FEATURE_SOFTSERIAL)) {
+        const timerHardware_t *ssrx = timerGetByTag(IO_TAG(SOFTSERIAL_2_RX_PIN), TIM_USE_ANY);
+        const timerHardware_t *sstx = timerGetByTag(IO_TAG(SOFTSERIAL_2_TX_PIN), TIM_USE_ANY);
+        if ((ssrx != NULL && ssrx->tim == timHw->tim) || (sstx != NULL && sstx->tim == timHw->tim)) {
+            return true;
         }
+    }
 #endif
 
 #if defined(USE_LED_STRIP)
-        // skip LED Strip output
-        if (init->useLEDStrip) {
-            const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
-            if (ledTimHw != NULL && timerHardwarePtr->tim == ledTimHw->tim) {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-                continue;
-            }
+    if (feature(FEATURE_LED_STRIP)) {
+        const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
+        if (ledTimHw != NULL && timHw->tim == ledTimHw->tim) {
+            return true;
         }
+    }
 #endif
 
-#ifdef VBAT_ADC_PIN
-        if (init->useVbat && timerHardwarePtr->tag == IO_TAG(VBAT_ADC_PIN)) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
+#if defined(USE_ADC)
+#if defined(ADC_CHANNEL_1_PIN)
+    if (timHw->tag == IO_TAG(ADC_CHANNEL_1_PIN)) {
+        return true;
+    }
+#endif
+#if defined(ADC_CHANNEL_2_PIN)
+    if (timHw->tag == IO_TAG(ADC_CHANNEL_2_PIN)) {
+        return true;
+    }
+#endif
+#if defined(ADC_CHANNEL_3_PIN)
+    if (timHw->tag == IO_TAG(ADC_CHANNEL_3_PIN)) {
+        return true;
+    }
+#endif
+#if defined(ADC_CHANNEL_4_PIN)
+    if (timHw->tag == IO_TAG(ADC_CHANNEL_4_PIN)) {
+        return true;
+    }
+#endif
 #endif
 
-#ifdef RSSI_ADC_PIN
-        if (init->useRSSIADC && timerHardwarePtr->tag == IO_TAG(RSSI_ADC_PIN)) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
-#endif
-
-#ifdef CURRENT_METER_ADC_PIN
-        if (init->useCurrentMeterADC && timerHardwarePtr->tag == IO_TAG(CURRENT_METER_ADC_PIN)) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
-        }
-#endif
 
 #ifdef USE_RANGEFINDER_HCSR04
-        if (init->useTriggerRangefinder &&
-            (
-                timerHardwarePtr->tag == init->rangefinderIOConfig.triggerTag ||
-                timerHardwarePtr->tag == init->rangefinderIOConfig.echoTag
-            )) {
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
-            continue;
+    // HC-SR04 has a dedicated connection to FC and require two pins
+    if (rangefinderConfig()->rangefinder_hardware == RANGEFINDER_HCSR04) {
+        const rangefinderHardwarePins_t *rangefinderHardwarePins = rangefinderGetHardwarePins();
+        if (rangefinderHardwarePins && (timHw->tag == rangefinderHardwarePins->triggerTag || timHw->tag == rangefinderHardwarePins->echoTag)) {
+            return true;
         }
+    }
 #endif
 
-        // Handle timer mapping to PWM/PPM inputs
-        if (init->useSerialRx) {
-            type = MAP_TO_NONE;
-        }
-        else if (init->useParallelPWM && (timerHardwarePtr->usageFlags & TIM_USE_PWM)) {
-            type = MAP_TO_PWM_INPUT;
-        }
-        else if (init->usePPM && (timerHardwarePtr->usageFlags & TIM_USE_PPM)) {
-            type = MAP_TO_PPM_INPUT;
+    return false;
+}
+
+void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs)
+{
+    timOutputs->maxTimMotorCount = 0;
+    timOutputs->maxTimServoCount = 0;
+
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        const timerHardware_t *timHw = &timerHardware[idx];
+        int type = MAP_TO_NONE;
+
+        // Check for known conflicts (i.e. UART, LEDSTRIP, Rangefinder and ADC)
+        if (checkPwmTimerConflicts(timHw)) {
+            continue;
         }
 
-        // Handle outputs - may override the PWM/PPM inputs
-        if (init->flyingPlatformType == PLATFORM_MULTIROTOR || init->flyingPlatformType == PLATFORM_TRICOPTER) {
+        // Determine if timer belongs to motor/servo
+        if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER) {
             // Multicopter
-            if (init->useServoOutputs && (timerHardwarePtr->usageFlags & TIM_USE_MC_SERVO)) {
+            if (timHw->usageFlags & TIM_USE_MC_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
-            else if (timerHardwarePtr->usageFlags & TIM_USE_MC_MOTOR) {
+            else if (timHw->usageFlags & TIM_USE_MC_MOTOR) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
         } else {
             // Fixed wing or HELI (one/two motors and a lot of servos
-            if (timerHardwarePtr->usageFlags & TIM_USE_FW_SERVO) {
+            if (timHw->usageFlags & TIM_USE_FW_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
-            else if (timerHardwarePtr->usageFlags & TIM_USE_FW_MOTOR) {
+            else if (timHw->usageFlags & TIM_USE_FW_MOTOR) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
         }
+
+        switch(type) {
+            case MAP_TO_MOTOR_OUTPUT:
+                timOutputs->timMotors[timOutputs->maxTimMotorCount++] = timHw;
+                break;
+            case MAP_TO_SERVO_OUTPUT:
+                timOutputs->timServos[timOutputs->maxTimServoCount++] = timHw;
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+
+void pwmMotorAndServoInit(void)
+{
+    timMotorServoHardware_t timOutputs;
+
+    // Build temporary timer mappings for motor and servo
+    pwmBuildTimerOutputList(&timOutputs);
+
+    // At this point we have built tables of timers suitable for motor and servo mappings
+    // Now we can actually initialize them according to motor/servo count from mixer
+    if (getMotorCount() > MAX_MOTORS) {
+        // Too many motors
+    }
+    else {
+        // Do the pre-configuration. For motors w/o hardware timers this should be sufficient
+        pwmMotorPreconfigure();
+
+        // Now if we need to configure individual motor outputs - do that
+        if (getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer) {
+            const int motorCount = getMotorCount();
+            if (motorCount > timOutputs.maxTimMotorCount) {
+                // TODO: Can't accommodate all required motors
+                // Indicate failure here
+            }
+            else {
+                for (int idx = 0; idx < motorCount; idx++) {
+                    const timerHardware_t *timHw = timOutputs.timMotors[idx];
+
+                    if (!pwmMotorConfig(timHw, idx, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
+                        // TODO: Add error handling here
+                    }
+                }
+            }
+        }
+    }
+
+    // Initialize servos:
+    if (isMixerUsingServos()) {
+        if (getServoCount() > MAX_SERVOS) {
+            // Too many servos
+        }
+        else {
+            // Do the pre-configuration. This should configure non-timer PWM drivers
+            if (!feature(FEATURE_PWM_SERVO_DRIVER)) {
+                const int servoCount = getServoCount();
+                if (servoCount > timOutputs.maxTimServoCount) {
+                    // TODO: Can't accommodate all required servos
+                    // Indicate failure here
+                }
+                else {
+                    for (int idx = 0; idx < servoCount; idx++) {
+                        const timerHardware_t *timHw = timOutputs.timServos[idx];
+
+                        if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
+                            // TODO: Add error handling here
+                        }
+                    }
+                }
+
+            }
+            else {
+                // External PWM servo driver
+            }
+        }
+    }
+}
+
+/*
+pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
+{
+
 
         // If timer not mapped - skip
         if (type == MAP_TO_NONE)
@@ -199,7 +306,7 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
             addBootlogEvent6(BOOT_EVENT_TIMER_CH_MAPPED, BOOT_EVENT_FLAGS_NONE, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 1);
 #endif
         } else if (type == MAP_TO_MOTOR_OUTPUT) {
-            /* Check if we already configured maximum supported number of motors and skip the rest */
+            // Check if we already configured maximum supported number of motors and skip the rest
             if (pwmIOConfiguration.motorCount >= MAX_MOTORS) {
                 addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 2);
                 continue;
@@ -246,3 +353,4 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 
     return &pwmIOConfiguration;
 }
+*/
