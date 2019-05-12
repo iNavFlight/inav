@@ -50,7 +50,6 @@
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_fake.h"
-#include "drivers/logging.h"
 #include "drivers/sensor.h"
 
 #include "fc/config.h"
@@ -306,8 +305,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         accHardware = ACC_NONE;
         break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_ACC_DETECTION, BOOT_EVENT_FLAGS_NONE, accHardware, 0, 0, 0);
 
     if (accHardware == ACC_NONE) {
         return false;

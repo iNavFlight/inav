@@ -28,15 +28,15 @@
 #include "config/feature.h"
 
 #include "fc/config.h"
-#include "fc/runtime_config.h"
 
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/timer.h"
-#include "drivers/logging.h"
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_mapping.h"
 //#include "drivers/rx_pwm.h"
+
+#include "sensors/rangefinder.h"
 
 #include "io/serial.h"
 
@@ -53,6 +53,17 @@ typedef struct {
     const timerHardware_t * timServos[MAX_PWM_OUTPUT_PORTS];
 } timMotorServoHardware_t;
 
+static pwmInitError_e pwmInitError = PWM_INIT_ERROR_NONE;
+
+static const char * pwmInitErrorMsg[] = {
+    /* PWM_INIT_ERROR_NONE */                     "No error",
+    /* PWM_INIT_ERROR_TOO_MANY_MOTORS */          "Mixer defines too many motors",
+    /* PWM_INIT_ERROR_TOO_MANY_SERVOS */          "Mixer defines too many servos",
+    /* PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS */ "Not enough motor outputs/timers",
+    /* PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS */ "Not enough servo outputs/timers",
+    /* PWM_INIT_ERROR_TIMER_INIT_FAILED */        "Output timer init failed"
+};
+
 static const motorProtocolProperties_t motorProtocolProperties[] = {
     [PWM_TYPE_STANDARD]     = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
     [PWM_TYPE_ONESHOT125]   = { .usesHwTimer = true,    .isDSHOT = false,   .isSerialShot = false },
@@ -65,6 +76,16 @@ static const motorProtocolProperties_t motorProtocolProperties[] = {
     [PWM_TYPE_DSHOT1200]    = { .usesHwTimer = true,    .isDSHOT = true,    .isSerialShot = false },
     [PWM_TYPE_SERIALSHOT]   = { .usesHwTimer = false,   .isDSHOT = false,   .isSerialShot = true  },
 };
+
+pwmInitError_e getPwmInitError(void)
+{
+    return pwmInitError;
+}
+
+const char * getPwmInitErrorMessage(void)
+{
+    return pwmInitErrorMsg[pwmInitError];
+}
 
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto)
 {
@@ -227,14 +248,10 @@ bool pwmMotorAndServoInit(void)
     const int servoCount = getServoCount();
     const int motorCount = getMotorCount();
 
-    // Disable the arming blocked flag, everything is ok
-    DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
-
     // At this point we have built tables of timers suitable for motor and servo mappings
     // Now we can actually initialize them according to motor/servo count from mixer
     if (motorCount > MAX_MOTORS) {
-        // Too many motors
-        ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+        pwmInitError = PWM_INIT_ERROR_TOO_MANY_MOTORS;
         LOG_E(PWM, "Too many motors. Mixer requested %d, max %d", motorCount, MAX_MOTORS);
     }
     else {
@@ -244,14 +261,14 @@ bool pwmMotorAndServoInit(void)
         // Now if we need to configure individual motor outputs - do that
         if (getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer) {
             if (motorCount > timOutputs.maxTimMotorCount) {
-                ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
-                LOG_E(PWM, "Too many motors. Mixer requested %d, timer outputs %d", motorCount, timOutputs.maxTimMotorCount);
+                pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS;
+                LOG_E(PWM, "Not enough motor outputs. Mixer requested %d, outputs %d", motorCount, timOutputs.maxTimMotorCount);
             }
             else {
                 for (int idx = 0; idx < motorCount; idx++) {
                     const timerHardware_t *timHw = timOutputs.timMotors[idx];
                     if (!pwmMotorConfig(timHw, idx, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
-                        ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+                        pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
                         LOG_E(PWM, "Timer allocation failed for motor %d", idx);
                     }
                 }
@@ -266,14 +283,14 @@ bool pwmMotorAndServoInit(void)
     if (isMixerUsingServos()) {
         if (servoCount > MAX_SERVOS) {
             // Too many servos
-            ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+            pwmInitError = PWM_INIT_ERROR_TOO_MANY_SERVOS;
             LOG_E(PWM, "Too many servos. Mixer requested %d, max %d", servoCount, MAX_SERVOS);
         }
         else {
             // Do the pre-configuration. This should configure non-timer PWM drivers
             if (!feature(FEATURE_PWM_SERVO_DRIVER)) {
                 if (servoCount > timOutputs.maxTimServoCount) {
-                    ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+                    pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS;
                     LOG_E(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs.maxTimServoCount);
                 }
                 else {
@@ -281,7 +298,7 @@ bool pwmMotorAndServoInit(void)
                         const timerHardware_t *timHw = timOutputs.timServos[idx];
 
                         if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
-                            ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+                            pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
                             LOG_E(PWM, "Timer allocation failed for servo %d", idx);
                         }
                     }
@@ -295,7 +312,7 @@ bool pwmMotorAndServoInit(void)
         }
     }
 
-    return true;
+    return (pwmInitError == PWM_INIT_ERROR_NONE);
 }
 
 /*
@@ -313,7 +330,6 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
             pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_PPM;
             pwmIOConfiguration.ppmInputCount++;
 
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_MAPPED, BOOT_EVENT_FLAGS_NONE, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 0);
 #endif
         } else if (type == MAP_TO_PWM_INPUT) {
 #if defined(USE_RX_PWM)
@@ -322,12 +338,10 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
             pwmIOConfiguration.pwmInputCount++;
             channelIndex++;
 
-            addBootlogEvent6(BOOT_EVENT_TIMER_CH_MAPPED, BOOT_EVENT_FLAGS_NONE, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 1);
 #endif
         } else if (type == MAP_TO_MOTOR_OUTPUT) {
             // Check if we already configured maximum supported number of motors and skip the rest
             if (pwmIOConfiguration.motorCount >= MAX_MOTORS) {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 2);
                 continue;
             }
 
@@ -338,15 +352,12 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 
                 pwmIOConfiguration.motorCount++;
 
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_MAPPED, BOOT_EVENT_FLAGS_NONE, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 2);
             }
             else {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 2);
                 continue;
             }
         } else if (type == MAP_TO_SERVO_OUTPUT) {
             if (pwmIOConfiguration.servoCount >=  MAX_SERVOS) {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
                 continue;
             }
 
@@ -357,10 +368,8 @@ pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
 
                 pwmIOConfiguration.servoCount++;
 
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_MAPPED, BOOT_EVENT_FLAGS_NONE, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
             }
             else {
-                addBootlogEvent6(BOOT_EVENT_TIMER_CH_SKIPPED, BOOT_EVENT_FLAGS_WARNING, timerIndex, pwmIOConfiguration.motorCount, pwmIOConfiguration.servoCount, 3);
                 continue;
             }
         } else {

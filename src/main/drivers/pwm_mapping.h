@@ -53,6 +53,15 @@ typedef enum {
     PWM_TYPE_SERIALSHOT,
 } motorPwmProtocolTypes_e;
 
+typedef enum {
+    PWM_INIT_ERROR_NONE = 0,
+    PWM_INIT_ERROR_TOO_MANY_MOTORS,
+    PWM_INIT_ERROR_TOO_MANY_SERVOS,
+    PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS,
+    PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS,
+    PWM_INIT_ERROR_TIMER_INIT_FAILED,
+} pwmInitError_e;
+
 typedef struct rangefinderIOConfig_s {
     ioTag_t triggerTag;
     ioTag_t echoTag;
@@ -88,5 +97,7 @@ enum {
     PWM20
 };
 
-const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 bool pwmMotorAndServoInit(void);
+const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
+pwmInitError_e getPwmInitError(void);
+const char * getPwmInitErrorMessage(void);
