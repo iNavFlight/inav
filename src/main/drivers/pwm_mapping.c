@@ -22,10 +22,13 @@
 #include "platform.h"
 
 #include "build/debug.h"
+#include "common/log.h"
 #include "common/memory.h"
 
 #include "config/feature.h"
+
 #include "fc/config.h"
+#include "fc/runtime_config.h"
 
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
@@ -177,6 +180,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs)
 
         // Check for known conflicts (i.e. UART, LEDSTRIP, Rangefinder and ADC)
         if (checkPwmTimerConflicts(timHw)) {
+            LOG_W(PWM, "Timer output %d skipped", idx);
             continue;
         }
 
@@ -213,17 +217,25 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs)
 }
 
 
-void pwmMotorAndServoInit(void)
+bool pwmMotorAndServoInit(void)
 {
     timMotorServoHardware_t timOutputs;
 
     // Build temporary timer mappings for motor and servo
     pwmBuildTimerOutputList(&timOutputs);
 
+    const int servoCount = getServoCount();
+    const int motorCount = getMotorCount();
+
+    // Disable the arming blocked flag, everything is ok
+    DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+
     // At this point we have built tables of timers suitable for motor and servo mappings
     // Now we can actually initialize them according to motor/servo count from mixer
-    if (getMotorCount() > MAX_MOTORS) {
+    if (motorCount > MAX_MOTORS) {
         // Too many motors
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+        LOG_E(PWM, "Too many motors. Mixer requested %d, max %d", motorCount, MAX_MOTORS);
     }
     else {
         // Do the pre-configuration. For motors w/o hardware timers this should be sufficient
@@ -231,42 +243,46 @@ void pwmMotorAndServoInit(void)
 
         // Now if we need to configure individual motor outputs - do that
         if (getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer) {
-            const int motorCount = getMotorCount();
             if (motorCount > timOutputs.maxTimMotorCount) {
-                // TODO: Can't accommodate all required motors
-                // Indicate failure here
+                ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+                LOG_E(PWM, "Too many motors. Mixer requested %d, timer outputs %d", motorCount, timOutputs.maxTimMotorCount);
             }
             else {
                 for (int idx = 0; idx < motorCount; idx++) {
                     const timerHardware_t *timHw = timOutputs.timMotors[idx];
-
                     if (!pwmMotorConfig(timHw, idx, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
-                        // TODO: Add error handling here
+                        ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+                        LOG_E(PWM, "Timer allocation failed for motor %d", idx);
                     }
                 }
             }
+        }
+        else {
+            LOG_I(PWM, "Skipped timer init for motors");
         }
     }
 
     // Initialize servos:
     if (isMixerUsingServos()) {
-        if (getServoCount() > MAX_SERVOS) {
+        if (servoCount > MAX_SERVOS) {
             // Too many servos
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+            LOG_E(PWM, "Too many servos. Mixer requested %d, max %d", servoCount, MAX_SERVOS);
         }
         else {
             // Do the pre-configuration. This should configure non-timer PWM drivers
             if (!feature(FEATURE_PWM_SERVO_DRIVER)) {
-                const int servoCount = getServoCount();
                 if (servoCount > timOutputs.maxTimServoCount) {
-                    // TODO: Can't accommodate all required servos
-                    // Indicate failure here
+                    ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+                    LOG_E(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs.maxTimServoCount);
                 }
                 else {
                     for (int idx = 0; idx < servoCount; idx++) {
                         const timerHardware_t *timHw = timOutputs.timServos[idx];
 
                         if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
-                            // TODO: Add error handling here
+                            ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+                            LOG_E(PWM, "Timer allocation failed for servo %d", idx);
                         }
                     }
                 }
@@ -274,9 +290,12 @@ void pwmMotorAndServoInit(void)
             }
             else {
                 // External PWM servo driver
+                LOG_I(PWM, "Skipped timer init for servos - using FEATURE_PWM_SERVO_DRIVER");
             }
         }
     }
+
+    return true;
 }
 
 /*

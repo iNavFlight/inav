@@ -89,4 +89,4 @@ enum {
 };
 
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
-void pwmMotorAndServoInit(void);
+bool pwmMotorAndServoInit(void);
