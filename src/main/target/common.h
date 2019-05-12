@@ -27,7 +27,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_RX_PWM
 #define USE_RX_PPM
 #define USE_SERIAL_RX
 #define USE_SERIALRX_SPEKTRUM   // Cheap and fairly common protocol

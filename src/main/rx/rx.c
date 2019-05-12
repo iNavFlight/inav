@@ -275,10 +275,13 @@ void rxInit(void)
     }
 
     switch (rxConfig()->receiverType) {
-#if defined(USE_RX_PWM) || defined(USE_RX_PPM)
-        case RX_TYPE_PWM:
+#if defined(USE_RX_PPM)
         case RX_TYPE_PPM:
-            rxPwmInit(rxConfig(), &rxRuntimeConfig);
+            if (!rxPpmInit(&rxRuntimeConfig)) {
+                rxConfigMutable()->receiverType = RX_TYPE_NONE;
+                rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
+                rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
+            }
             break;
 #endif
 
@@ -314,9 +317,12 @@ void rxInit(void)
             break;
 #endif
 
-        case RX_TYPE_NONE:
         default:
-            // Already configured for NONE
+        case RX_TYPE_NONE:
+        case RX_TYPE_PWM:
+            rxConfigMutable()->receiverType = RX_TYPE_NONE;
+            rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
+            rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
             break;
     }
 

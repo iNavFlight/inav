@@ -1738,9 +1738,6 @@ groups:
         field: throttle_tilt_compensation_strength
         min: 0
         max: 100
-      - name: input_filtering_mode
-        field: pwmRxInputFilteringMode
-        type: bool
       - name: name
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG

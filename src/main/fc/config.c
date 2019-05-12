@@ -107,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -116,7 +116,6 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .i2c_speed = I2C_SPEED_400KHZ,
     .cpuUnderclock = 0,
     .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
-    .pwmRxInputFilteringMode = INPUT_FILTERING_DISABLED,
     .name = { 0 }
 );
 
