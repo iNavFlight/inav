@@ -237,6 +237,99 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs)
     }
 }
 
+static bool motorsUseHardwareTimers(void)
+{
+    return getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer;
+}
+
+static bool servosUseHardwareTimers(void)
+{
+    return !feature(FEATURE_PWM_SERVO_DRIVER);
+}
+
+static void pwmInitMotors(timMotorServoHardware_t * timOutputs)
+{
+    const int motorCount = getMotorCount();
+
+    // Check if too many motors
+    if (motorCount > MAX_MOTORS) {
+        pwmInitError = PWM_INIT_ERROR_TOO_MANY_MOTORS;
+        LOG_E(PWM, "Too many motors. Mixer requested %d, max %d", motorCount, MAX_MOTORS);
+        return;
+    }
+
+    // Do the pre-configuration. For motors w/o hardware timers this should be sufficient
+    pwmMotorPreconfigure();
+
+    // Now if we need to configure individual motor outputs - do that
+    if (!motorsUseHardwareTimers()) {
+        LOG_I(PWM, "Skipped timer init for motors");
+        return;
+    }
+
+    // If mixer requests more motors than we have timer outputs - throw an error
+    if (motorCount > timOutputs->maxTimMotorCount) {
+        pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS;
+        LOG_E(PWM, "Not enough motor outputs. Mixer requested %d, outputs %d", motorCount, timOutputs->maxTimMotorCount);
+        return;
+    }
+
+    // Finally initialize individual motor outputs
+    for (int idx = 0; idx < motorCount; idx++) {
+        const timerHardware_t *timHw = timOutputs->timMotors[idx];
+        if (!pwmMotorConfig(timHw, idx, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
+            pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
+            LOG_E(PWM, "Timer allocation failed for motor %d", idx);
+            return;
+        }
+    }
+}
+
+static void pwmInitServos(timMotorServoHardware_t * timOutputs)
+{
+    const int servoCount = getServoCount();
+
+    if (!isMixerUsingServos()) {
+        LOG_I(PWM, "Mixer does not use servos");
+        return;
+    }
+
+    // Check if too many servos
+    if (servoCount > MAX_SERVOS) {
+        pwmInitError = PWM_INIT_ERROR_TOO_MANY_SERVOS;
+        LOG_E(PWM, "Too many servos. Mixer requested %d, max %d", servoCount, MAX_SERVOS);
+        return;
+    }
+
+    // Do the pre-configuration. This should configure non-timer PWM drivers
+    pwmServoPreconfigure();
+
+    // Check if we need to init timer output for servos
+    if (!servosUseHardwareTimers()) {
+        // External PWM servo driver
+        LOG_I(PWM, "Skipped timer init for servos - using external servo driver");
+        return;
+    }
+
+    // If mixer requests more servos than we have timer outputs - throw an error
+    if (servoCount > timOutputs->maxTimServoCount) {
+        pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS;
+        LOG_E(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs->maxTimServoCount);
+        return;
+    }
+
+    // Configure individual servo outputs
+    for (int idx = 0; idx < servoCount; idx++) {
+        const timerHardware_t *timHw = timOutputs->timServos[idx];
+
+        if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
+            pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
+            LOG_E(PWM, "Timer allocation failed for servo %d", idx);
+            return;
+        }
+    }
+}
+
 
 bool pwmMotorAndServoInit(void)
 {
@@ -245,140 +338,10 @@ bool pwmMotorAndServoInit(void)
     // Build temporary timer mappings for motor and servo
     pwmBuildTimerOutputList(&timOutputs);
 
-    const int servoCount = getServoCount();
-    const int motorCount = getMotorCount();
-
     // At this point we have built tables of timers suitable for motor and servo mappings
     // Now we can actually initialize them according to motor/servo count from mixer
-    if (motorCount > MAX_MOTORS) {
-        pwmInitError = PWM_INIT_ERROR_TOO_MANY_MOTORS;
-        LOG_E(PWM, "Too many motors. Mixer requested %d, max %d", motorCount, MAX_MOTORS);
-    }
-    else {
-        // Do the pre-configuration. For motors w/o hardware timers this should be sufficient
-        pwmMotorPreconfigure();
-
-        // Now if we need to configure individual motor outputs - do that
-        if (getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer) {
-            if (motorCount > timOutputs.maxTimMotorCount) {
-                pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS;
-                LOG_E(PWM, "Not enough motor outputs. Mixer requested %d, outputs %d", motorCount, timOutputs.maxTimMotorCount);
-            }
-            else {
-                for (int idx = 0; idx < motorCount; idx++) {
-                    const timerHardware_t *timHw = timOutputs.timMotors[idx];
-                    if (!pwmMotorConfig(timHw, idx, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
-                        pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
-                        LOG_E(PWM, "Timer allocation failed for motor %d", idx);
-                    }
-                }
-            }
-        }
-        else {
-            LOG_I(PWM, "Skipped timer init for motors");
-        }
-    }
-
-    // Initialize servos:
-    if (isMixerUsingServos()) {
-        if (servoCount > MAX_SERVOS) {
-            // Too many servos
-            pwmInitError = PWM_INIT_ERROR_TOO_MANY_SERVOS;
-            LOG_E(PWM, "Too many servos. Mixer requested %d, max %d", servoCount, MAX_SERVOS);
-        }
-        else {
-            // Do the pre-configuration. This should configure non-timer PWM drivers
-            if (!feature(FEATURE_PWM_SERVO_DRIVER)) {
-                if (servoCount > timOutputs.maxTimServoCount) {
-                    pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS;
-                    LOG_E(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs.maxTimServoCount);
-                }
-                else {
-                    for (int idx = 0; idx < servoCount; idx++) {
-                        const timerHardware_t *timHw = timOutputs.timServos[idx];
-
-                        if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
-                            pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
-                            LOG_E(PWM, "Timer allocation failed for servo %d", idx);
-                        }
-                    }
-                }
-
-            }
-            else {
-                // External PWM servo driver
-                LOG_I(PWM, "Skipped timer init for servos - using FEATURE_PWM_SERVO_DRIVER");
-            }
-        }
-    }
+    pwmInitMotors(&timOutputs);
+    pwmInitServos(&timOutputs);
 
     return (pwmInitError == PWM_INIT_ERROR_NONE);
 }
-
-/*
-pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init)
-{
-
-
-        // If timer not mapped - skip
-        if (type == MAP_TO_NONE)
-            continue;
-
-        if (type == MAP_TO_PPM_INPUT) {
-#if defined(USE_RX_PPM)
-            ppmInConfig(timerHardwarePtr);
-            pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_PPM;
-            pwmIOConfiguration.ppmInputCount++;
-
-#endif
-        } else if (type == MAP_TO_PWM_INPUT) {
-#if defined(USE_RX_PWM)
-            pwmInConfig(timerHardwarePtr, channelIndex);
-            pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_PWM;
-            pwmIOConfiguration.pwmInputCount++;
-            channelIndex++;
-
-#endif
-        } else if (type == MAP_TO_MOTOR_OUTPUT) {
-            // Check if we already configured maximum supported number of motors and skip the rest
-            if (pwmIOConfiguration.motorCount >= MAX_MOTORS) {
-                continue;
-            }
-
-            if (pwmMotorConfig(timerHardwarePtr, pwmIOConfiguration.motorCount, motorConfig()->motorPwmRate, init->enablePWMOutput)) {
-                pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_MOTOR;
-                pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].index = pwmIOConfiguration.motorCount;
-                pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].timerHardware = timerHardwarePtr;
-
-                pwmIOConfiguration.motorCount++;
-
-            }
-            else {
-                continue;
-            }
-        } else if (type == MAP_TO_SERVO_OUTPUT) {
-            if (pwmIOConfiguration.servoCount >=  MAX_SERVOS) {
-                continue;
-            }
-
-            if (pwmServoConfig(timerHardwarePtr, pwmIOConfiguration.servoCount, init->servoPwmRate, init->servoCenterPulse, init->enablePWMOutput)) {
-                pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].flags = PWM_PF_SERVO;
-                pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].index = pwmIOConfiguration.servoCount;
-                pwmIOConfiguration.ioConfigurations[pwmIOConfiguration.ioCount].timerHardware = timerHardwarePtr;
-
-                pwmIOConfiguration.servoCount++;
-
-            }
-            else {
-                continue;
-            }
-        } else {
-            continue;
-        }
-
-        pwmIOConfiguration.ioCount++;
-    }
-
-    return &pwmIOConfiguration;
-}
-*/

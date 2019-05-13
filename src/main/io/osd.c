@@ -681,6 +681,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("INVALID SETTING");
         case ARMING_DISABLED_CLI:
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
+        case ARMING_DISABLED_PWM_OUTPUT_ERROR:
+            return OSD_MESSAGE_STR("PWM INIT ERROR");
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;

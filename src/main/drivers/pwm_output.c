@@ -83,12 +83,12 @@ typedef struct {
 
 static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
-static pwmOutputMotor_t motors[MAX_PWM_MOTORS];
-static pwmOutputPort_t *servos[MAX_PWM_SERVOS];
-
+static pwmOutputMotor_t        motors[MAX_PWM_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
 static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write value to motors
 
+static pwmOutputPort_t *       servos[MAX_PWM_SERVOS];
+static pwmWriteFuncPtr         servoWritePtr = NULL;    // Function to write value to motors
 
 #if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
 static timeUs_t digitalMotorUpdateIntervalUs = 0;
@@ -465,6 +465,35 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
     }
 }
 
+static void pwmServoWriteStandard(uint8_t index, uint16_t value)
+{
+    if (servos[index]) {
+        *servos[index]->ccr = value;
+    }
+}
+
+#ifdef USE_PWM_SERVO_DRIVER
+static void pwmServoWriteExternalDriver(uint8_t index, uint16_t value)
+{
+    // If PCA9685 is not detected, we do not want to write servo output anywhere
+    if (STATE(PWM_DRIVER_AVAILABLE)) {
+        pwmDriverSetPulse(index, value);
+    }
+}
+#endif
+
+void pwmServoPreconfigure(void)
+{
+    servoWritePtr = pwmServoWriteStandard;
+
+#ifdef USE_PWM_SERVO_DRIVER
+    // If PCA9685 is enabled - switch the servo write function to external
+    if (feature(FEATURE_PWM_SERVO_DRIVER)) {
+        servoWritePtr = pwmServoWriteExternalDriver;
+    }
+#endif
+}
+
 bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput)
 {
     pwmOutputPort_t * port = pwmOutConfigMotor(timerHardware, PWM_TIMER_HZ, PWM_TIMER_HZ / servoPwmRate, servoCenterPulse, enableOutput);
@@ -479,23 +508,9 @@ bool pwmServoConfig(const timerHardware_t *timerHardware, uint8_t servoIndex, ui
 
 void pwmWriteServo(uint8_t index, uint16_t value)
 {
-#ifdef USE_PWM_SERVO_DRIVER
-
-    /*
-     *  If PCA9685 is enabled and but not detected, we do not want to write servo
-     * output anywhere
-     */
-    if (feature(FEATURE_PWM_SERVO_DRIVER) && STATE(PWM_DRIVER_AVAILABLE)) {
-        pwmDriverSetPulse(index, value);
-    } else if (!feature(FEATURE_PWM_SERVO_DRIVER) && servos[index] && index < MAX_SERVOS) {
-        *servos[index]->ccr = value;
+    if (servoWritePtr && index < MAX_SERVOS) {
+        servoWritePtr(index, value);
     }
-
-#else
-    if (servos[index] && index < MAX_SERVOS) {
-        *servos[index]->ccr = value;
-    }
-#endif
 }
 
 #ifdef BEEPER_PWM
