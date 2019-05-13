@@ -2311,7 +2311,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_GFORCE:
         {
             osdFormatCentiNumber(buff, GForce, 0, 2, 0, 3);
-            if (GForce > osdConfig()->gforce_alarm) {
+            if (GForce > osdConfig()->gforce_alarm * 100) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
@@ -2323,7 +2323,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             float GForceValue = GForceAxis[item - OSD_GFORCE_X];
             osdFormatCentiNumber(buff, GForceValue, 0, 2, 0, 4);
-            if ((GForceValue < osdConfig()->gforce_axis_alarm_min) || (GForceValue > osdConfig()->gforce_axis_alarm_max)) {
+            if ((GForceValue < osdConfig()->gforce_axis_alarm_min * 100) || (GForceValue > osdConfig()->gforce_axis_alarm_max * 100)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             break;
