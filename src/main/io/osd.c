@@ -2505,7 +2505,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             const char *source_text = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe() ? "MSP" : "STD";
             if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && mspOverrideIsInFailsafe()) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, source_text);
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, source_text, elemAttr);
             return true;
         }
 #endif
