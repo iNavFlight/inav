@@ -2381,7 +2381,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             radar_pois[msp_radar_no].heading = sbufReadU16(src);                   // °
             radar_pois[msp_radar_no].speed = sbufReadU16(src);                     // cm/s
             radar_pois[msp_radar_no].lq = sbufReadU8(src);                         // Link quality, from 0 to 4
-            radarCalc(msp_radar_no);
         } else
             return MSP_RESULT_ERROR;
         break;

@@ -410,7 +410,6 @@ bool isWaypointListValid(void);
 void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData);
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData);
 void resetWaypointList(void);
-void radarCalc(uint8_t poiNumber);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 

@@ -2512,18 +2512,6 @@ void resetWaypointList(void)
     }
 }
 
-/*-----------------------------------------------------------
- * Radar, calculate direction, distance, relative altitude and signal strength
- *-----------------------------------------------------------*/
-
-void radarCalc(uint8_t poiNumber) {
-    fpVector3_t poi;
-
-    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[poiNumber].gps, GEO_ALT_RELATIVE);
-    radar_pois[poiNumber].distance = calculateDistanceToDestination(&poi) / 100; // In meters
-    radar_pois[poiNumber].direction = calculateBearingToDestination(&poi) / 100; // In °
-}
-
 bool isWaypointListValid(void)
 {
     return posControl.waypointListValid;
