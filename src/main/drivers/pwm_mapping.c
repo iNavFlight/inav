@@ -34,6 +34,8 @@
 #include "drivers/timer.h"
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_mapping.h"
+#include "drivers/serial.h"
+#include "drivers/serial_uart.h"
 //#include "drivers/rx_pwm.h"
 
 #include "sensors/rangefinder.h"
@@ -94,32 +96,53 @@ const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTyp
 
 static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 {
+    serialPortPins_t uartPins;
+
 #if defined(USE_UART2)
-    if (doesConfigurationUsePort(SERIAL_PORT_USART2) && (timHw->tag == IO_TAG(UART2_TX_PIN) || timHw->tag == IO_TAG(UART2_RX_PIN))) {
+    uartGetPortPins(UARTDEV_2, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART2) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART3)
-    if (doesConfigurationUsePort(SERIAL_PORT_USART3) && (timHw->tag == IO_TAG(UART3_TX_PIN) || timHw->tag == IO_TAG(UART3_RX_PIN))) {
+    uartGetPortPins(UARTDEV_3, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART3) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART4)
-    if (doesConfigurationUsePort(SERIAL_PORT_USART4) && (timHw->tag == IO_TAG(UART4_TX_PIN) || timHw->tag == IO_TAG(UART4_RX_PIN))) {
+    uartGetPortPins(UARTDEV_4, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART4) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART5)
-    if (doesConfigurationUsePort(SERIAL_PORT_USART5) && (timHw->tag == IO_TAG(UART5_TX_PIN) || timHw->tag == IO_TAG(UART5_RX_PIN))) {
+    uartGetPortPins(UARTDEV_5, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART5) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART6)
-    if (doesConfigurationUsePort(SERIAL_PORT_USART6) && (timHw->tag == IO_TAG(UART6_TX_PIN) || timHw->tag == IO_TAG(UART6_RX_PIN))) {
+    uartGetPortPins(UARTDEV_6, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART6) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
+        return true;
+    }
+#endif
+
+#if defined(USE_UART7)
+    uartGetPortPins(UARTDEV_7, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART7) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
+        return true;
+    }
+#endif
+
+#if defined(USE_UART8)
+    uartGetPortPins(UARTDEV_8, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART8) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif

@@ -73,30 +73,6 @@ typedef struct {
     bool isSerialShot;
 } motorProtocolProperties_t;
 
-// This indexes into the read-only hardware definition structure, timerHardware_t
-enum {
-    PWM1 = 0,
-    PWM2,
-    PWM3,
-    PWM4,
-    PWM5,
-    PWM6,
-    PWM7,
-    PWM8,
-    PWM9,
-    PWM10,
-    PWM11,
-    PWM12,
-    PWM13,
-    PWM14,
-    PWM15,
-    PWM16,
-    PWM17,
-    PWM18,
-    PWM19,
-    PWM20
-};
-
 bool pwmMotorAndServoInit(void);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
