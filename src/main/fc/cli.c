@@ -92,6 +92,7 @@ extern uint8_t __config_end;
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "navigation/navigation_pos_estimator_private.h"
 
 #include "rx/rx.h"
 #include "rx/spektrum.h"
@@ -2797,6 +2798,10 @@ static void cliStatus(char *cmdline)
     const int rxRate = getTaskDeltaTime(TASK_RX) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_RX)));
     const int systemRate = getTaskDeltaTime(TASK_SYSTEM) == 0 ? 0 : (int)(1000000.0f / ((float)getTaskDeltaTime(TASK_SYSTEM)));
     cliPrintLinef(", cycle time: %d, PID rate: %d, RX rate: %d, System rate: %d",  (uint16_t)cycleTime, pidRate, rxRate, systemRate);
+#ifdef USE_GPS
+    float declination = getMagDeclination();
+    cliPrintf("Magnetic declination: %d°,%d'", (int)declination, (int)(declination-(int)declination)*60);
+#endif
 #if !defined(CLI_MINIMAL_VERBOSITY)
     cliPrint("Arming disabled flags:");
     uint32_t flags = armingFlags & ARMING_DISABLED_ALL_FLAGS;

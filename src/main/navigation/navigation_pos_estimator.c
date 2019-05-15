@@ -53,6 +53,7 @@
 #include "sensors/opflow.h"
 
 navigationPosEstimator_t posEstimator;
+float calculatedMagDeclination;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 4);
 
@@ -211,10 +212,13 @@ void onNewGPSData(void)
 
 #if defined(NAV_AUTO_MAG_DECLINATION)
         /* Automatic magnetic declination calculation - do this once */
-        static bool magDeclinationSet = false;
-        if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
-            imuSetMagneticDeclination(geoCalculateMagDeclination(&newLLH));
-            magDeclinationSet = true;
+        if(STATE(GPS_FIX_HOME)){
+            static bool magDeclinationSet = false;
+            if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
+                calculatedMagDeclination = geoCalculateMagDeclination(&newLLH);
+                imuSetMagneticDeclination(calculatedMagDeclination);
+                magDeclinationSet = true;
+            }
         }
 #endif
 
@@ -848,6 +852,17 @@ void FAST_CODE NOINLINE updatePositionEstimator(void)
 bool navIsCalibrationComplete(void)
 {
     return gravityCalibrationComplete();
+}
+
+float getMagDeclination(void)
+{
+    if(positionEstimationConfig()->automatic_mag_declination){
+        return calculatedMagDeclination;
+    }
+    else
+    {
+        return compassConfig()->mag_declination;
+    }
 }
 
 #endif
