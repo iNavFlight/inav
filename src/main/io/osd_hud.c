@@ -18,15 +18,21 @@
 #include <stdint.h>
 
 #include "platform.h"
+
+#include "common/constants.h"
+#include "common/printf.h"
+
 #include "flight/imu.h"
+
 #include "io/osd.h"
 #include "io/osd_hud.h"
+
+#include "drivers/display.h"
 #include "drivers/osd.h"
 #include "drivers/osd_symbols.h"
-#include "drivers/display.h"
 #include "drivers/time.h"
+
 #include "navigation/navigation.h"
-#include "common/printf.h"
 
 #ifdef USE_OSD
 
