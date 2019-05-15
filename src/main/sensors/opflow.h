@@ -70,3 +70,4 @@ void opflowGyroUpdateCallback(timeUs_t gyroUpdateDeltaUs);
 bool opflowInit(void);
 void opflowUpdate(timeUs_t currentTimeUs);
 bool opflowIsHealthy(void);
+void opflowStartCalibration(void);

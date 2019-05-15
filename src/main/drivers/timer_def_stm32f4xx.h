@@ -17,7 +17,7 @@
 
 #pragma once
 
-#define timerDMASafeType_t  uint16_t
+#define timerDMASafeType_t  uint32_t
 
 #define DEF_TIM_DMAMAP__D(dma, stream, channel)         DMA_TAG(dma, stream, channel)
 #define DEF_TIM_DMAMAP__NONE                            DMA_NONE

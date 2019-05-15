@@ -33,6 +33,11 @@ typedef struct biquadFilter_s {
     float d1, d2;
 } biquadFilter_t;
 
+typedef union { 
+    biquadFilter_t biquad; 
+    pt1Filter_t pt1; 
+} filter_t;
+
 typedef enum {
     FILTER_PT1 = 0,
     FILTER_BIQUAD,

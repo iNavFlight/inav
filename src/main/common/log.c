@@ -116,7 +116,7 @@ static void logPrint(const char *buf, size_t size)
 static size_t logFormatPrefix(char *buf, const timeMs_t timeMs)
 {
     // Write timestamp
-    return tfp_sprintf(buf, LOG_PREFIX, timeMs / 1000, timeMs % 1000);
+    return tfp_sprintf(buf, LOG_PREFIX, (int)(timeMs / 1000), (int)(timeMs % 1000));
 }
 
 static bool logHasOutput(void)

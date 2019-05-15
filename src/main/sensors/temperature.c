@@ -162,7 +162,7 @@ bool getSensorTemperature(uint8_t temperatureUpdateSensorIndex, int16_t *tempera
 void tempSensorAddressToString(uint64_t address, char *hex_address)
 {
     if (address < 8)
-        tfp_sprintf(hex_address, "%d", address);
+        tfp_sprintf(hex_address, "%d", (int)address);
     else {
         uint32_t *address32 = (uint32_t *)&address;
         tfp_sprintf(hex_address, "%08lx%08lx", address32[1], address32[0]);

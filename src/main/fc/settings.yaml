@@ -32,7 +32,7 @@ tables:
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
-    values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200"]
+    values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -54,7 +54,7 @@ tables:
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
-    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST"]
+    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "UK"]
     enum: osd_unit_e
@@ -76,7 +76,7 @@ tables:
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
-      "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE",
+      "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
@@ -120,6 +120,8 @@ tables:
   - name: iterm_relax_type
     values: ["GYRO", "SETPOINT"]
     enum: itermRelaxType_e
+  - name: airmodeHandlingType
+    values: ["STICK_CENTER", "THROTTLE_THRESHOLD"]
   - name: nav_extra_arming_safety
     values: ["OFF", "ON", "ALLOW_BYPASS"]
     enum: navExtraArmingSafety_e
@@ -219,7 +221,11 @@ groups:
       - name: acc_hardware
         table: acc_hardware
       - name: acc_lpf_hz
+        min: 0
         max: 200
+      - name: acc_lpf_type
+        field: acc_soft_lpf_type
+        table: filter_type
       - name: acczero_x
         field: accZero.raw[X]
         min: INT16_MIN
@@ -259,7 +265,7 @@ groups:
   - name: PG_OPFLOW_CONFIG
     type: opticalFlowConfig_t
     headers: ["sensors/opflow.h"]
-    condition: USE_OPTICAL_FLOW
+    condition: USE_OPFLOW
     members:
       - name: opflow_hardware
         table: opflow_hardware
@@ -851,6 +857,13 @@ groups:
         field: deadband3d_throttle
         min: 0
         max: 200
+      - name: mc_airmode_type
+        field: airmodeHandlingType
+        table: airmodeHandlingType
+      - name: mc_airmode_threshold
+        field: airmodeThrottleThreshold
+        min: 1000
+        max: 2000
 
   - name: PG_PID_PROFILE
     type: pidProfile_t
@@ -1180,19 +1193,19 @@ groups:
       - name: inav_w_z_surface_p
         field: w_z_surface_p
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_z_surface_v
         field: w_z_surface_v
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_xy_flow_p
         field: w_xy_flow_p
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_xy_flow_v
         field: w_xy_flow_v
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_z_baro_p
         field: w_z_baro_p
         min: 0
@@ -1221,6 +1234,10 @@ groups:
         field: w_xy_res_v
         min: 0
         max: 10
+      - name: inav_w_xyz_acc_p
+        field: w_xyz_acc_p
+        min: 0
+        max: 1
       - name: inav_w_acc_bias
         field: w_acc_bias
         min: 0
@@ -1624,6 +1641,18 @@ groups:
         field: neg_alt_alarm
         min: 0
         max: 10000
+      - name: osd_gforce_alarm
+        field: gforce_alarm
+        min: -20
+        max: 20
+      - name: osd_gforce_axis_alarm_min
+        field: gforce_axis_alarm_min
+        min: -20
+        max: 20
+      - name: osd_gforce_axis_alarm_max
+        field: gforce_axis_alarm_max
+        min: -20
+        max: 20
       - name: osd_imu_temp_alarm_min
         field: imu_temp_alarm_min
         min: -550

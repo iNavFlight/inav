@@ -98,7 +98,7 @@ typedef enum {
 #ifdef USE_CMS
     TASK_CMS,
 #endif
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     TASK_OPFLOW,
 #endif
 #ifdef USE_UAV_INTERCONNECT
