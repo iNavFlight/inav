@@ -199,7 +199,7 @@ static long cmsx_menuServoMixerIndexOnChange(displayPort_t *displayPort, const v
 static const OSD_Entry cmsx_menuServoMixerEntries[] =
 {
        OSD_LABEL_ENTRY("-- SERVO MIXER --"),
-       OSD_UINT8_CALLBACK_ENTRY("SERVO MIX", cmsx_menuServoMixerIndexOnChange, (&(const OSD_UINT8_t){ &tmpcurrentServoMixerIndex, 1, MAX_SERVO_RULES - 1, 1})),
+       OSD_UINT8_CALLBACK_ENTRY("SERVO MIX", cmsx_menuServoMixerIndexOnChange, (&(const OSD_UINT8_t){ &tmpcurrentServoMixerIndex, 1, MAX_SERVO_RULES, 1})),
        OSD_UINT8_DYN_ENTRY("SERVO", (&(const OSD_UINT8_t){ &tmpServoMixer.targetChannel, 0, MAX_SUPPORTED_SERVOS, 1})),
        OSD_TAB_DYN_ENTRY("INPUT", (&(const OSD_TAB_t){ &tmpServoMixer.inputSource, SERVO_MIXER_INPUT_CMS_NAMES_COUNT - 1, servoMixerInputCmsNames})),
        OSD_INT16_DYN_ENTRY("WEIGHT", (&(const OSD_INT16_t){&tmpServoMixer.rate, 0, 1000, 1})),
