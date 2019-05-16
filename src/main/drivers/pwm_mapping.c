@@ -213,7 +213,7 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
     return false;
 }
 
-void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs)
+void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
 {
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
@@ -231,7 +231,8 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs)
         // Determine if timer belongs to motor/servo
         if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER) {
             // Multicopter
-            if (timHw->usageFlags & TIM_USE_MC_SERVO) {
+            // We enable mapping to servos if mixer is actually using them
+            if (isMixerUsingServos && timHw->usageFlags & TIM_USE_MC_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
             else if (timHw->usageFlags & TIM_USE_MC_MOTOR) {
@@ -359,7 +360,7 @@ bool pwmMotorAndServoInit(void)
     timMotorServoHardware_t timOutputs;
 
     // Build temporary timer mappings for motor and servo
-    pwmBuildTimerOutputList(&timOutputs);
+    pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
 
     // At this point we have built tables of timers suitable for motor and servo mappings
     // Now we can actually initialize them according to motor/servo count from mixer
