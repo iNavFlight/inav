@@ -55,7 +55,7 @@ void osdHudClear(void)
     hud_drawn_pt = 0;
 }
 
-/* 
+/*
  * Write a single char on the OSD, and record the position for the next loop
  */
 static int osdHudWrite(uint8_t px, uint8_t py, uint16_t symb, bool crush)
@@ -98,9 +98,9 @@ static int16_t hudWrap360(int16_t angle)
 /*
  * Radar, get the nearest POI
  */
-static int16_t radarGetNearestPOI(void)
+int8_t radarGetNearestPOI(void)
 {
-    int16_t poi = -1;
+    int8_t poi = -1;
     uint16_t min = 10000; // 10kms
 
     for (int i = 0; i < RADAR_MAX_POIS; i++) {
@@ -111,25 +111,6 @@ static int16_t radarGetNearestPOI(void)
     }
     return poi;
 }
-
-/*
- * Radar, get the farthest POI
- */
-#if 0
-static int16_t radarGetFarthestPoi(void)
-{
-    int16_t poi = -1;
-    uint16_t max = 0;
-
-    for (int i = 0; i < RADAR_MAX_POIS; i++) {
-        if ((radar_pois[i].distance > max) && (radar_pois[i].distance <= osdConfig()->hud_radar_range_max)) { // XXX (radar_pois[i].state == 1)
-            max = radar_pois[i].distance;
-            poi = i;
-        }
-    }
-    return poi;
-}
-#endif
 
 /*
  * Display one POI on the hud, centered on crosshair position.
@@ -324,31 +305,36 @@ void osdHudDrawHoming(uint8_t px, uint8_t py)
 
 
 /*
- * Draw nearest radar POI
+ * Draw extra datas for a radar POI
  */
-void osdHudDrawNearest(uint8_t px, uint8_t py)
+void osdHudDrawExtras(uint8_t poi_id)
 {
-    int poi_id = radarGetNearestPOI();
-    char buftmp[15];
+    char buftmp[6];
 
-    if (poi_id >= 0) {
-        tfp_sprintf(buftmp, "%c%c %4d%c %3d%c", 65 + poi_id,
-                SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq,
-                radar_pois[poi_id].distance, SYM_DIST_M,
-                radar_pois[poi_id].direction, SYM_DEGREES
-                );
+    uint8_t minX = osdConfig()->hud_margin_h + 1;
+    uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 2;
+    uint8_t lineY = osdGetDisplayPort()->rows - osdConfig()->hud_margin_v - 2;
 
-        displayWrite(osdGetDisplayPort(), px, py, buftmp);
+    displayWriteChar(osdGetDisplayPort(), minX + 3, lineY, 65 + poi_id);
+    displayWriteChar(osdGetDisplayPort(), minX + 4, lineY, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq);
 
-        tfp_sprintf(buftmp, "%4d%c %3d%c %2d%c",
-                radar_pois[poi_id].altitude, SYM_ALT_M,
-                radar_pois[poi_id].heading, SYM_HEADING,
-                radar_pois[poi_id].speed / 100, SYM_MS
-                );
-
-        displayWrite(osdGetDisplayPort(), px, py + 1, buftmp);
-
+    if (radar_pois[poi_id].altitude < 0) {
+        osdFormatAltitudeSymbol(buftmp, -radar_pois[poi_id].altitude * 100);
+        displayWriteChar(osdGetDisplayPort(), minX + 10, lineY, SYM_HUD_ARROWS_D2);
     }
+    else {
+        osdFormatAltitudeSymbol(buftmp, radar_pois[poi_id].altitude * 100);
+        displayWriteChar(osdGetDisplayPort(), minX + 10, lineY, SYM_HUD_ARROWS_U2);
+    }
+
+    displayWrite(osdGetDisplayPort(), minX + 6, lineY, buftmp);
+
+    osdFormatVelocityStr(buftmp, radar_pois[poi_id].speed, false);
+    displayWrite(osdGetDisplayPort(), round(minX + maxX / 2) - 2, lineY, buftmp);
+
+    tfp_sprintf(buftmp, "%3d%c", radar_pois[poi_id].heading, SYM_HEADING);
+    displayWrite(osdGetDisplayPort(), maxX - 6, lineY, buftmp);
+
 }
 
 #endif // USE_OSD

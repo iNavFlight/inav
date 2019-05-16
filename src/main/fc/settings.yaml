@@ -1732,7 +1732,8 @@ groups:
         max: 9990
       - name: osd_hud_radar_nearest
         field: hud_radar_nearest
-        type: bool
+        min: 0
+        max: 4000
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll

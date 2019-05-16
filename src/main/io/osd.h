@@ -226,7 +226,7 @@ typedef struct osdConfig_s {
     uint8_t hud_radar_disp;
     uint16_t hud_radar_range_min;
     uint16_t hud_radar_range_max;
-    bool hud_radar_nearest;
+    uint16_t hud_radar_nearest;
     
     uint8_t left_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
@@ -266,4 +266,5 @@ int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
-
+void osdFormatAltitudeSymbol(char *buff, int32_t alt);
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D);

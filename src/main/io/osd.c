@@ -367,7 +367,7 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  */
-static void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
@@ -419,7 +419,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 * prefixed by a a symbol to indicate the unit used.
 * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt in centimeters)
 */
-static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
+void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
@@ -1658,22 +1658,25 @@ static bool osdDrawSingleElement(uint8_t item)
             }
 
             if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
-                for (int i = 0; i < osdConfig()->hud_radar_disp; i++) {
+                for (uint8_t i = 0; i < osdConfig()->hud_radar_disp; i++) {
                     fpVector3_t poi;
                     geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
                     radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
 
                     if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
-                            radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
-                            radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
-                            osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
+                        radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
+                        radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
+                        osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
+                    }
+                }
+
+                if (osdConfig()->hud_radar_nearest > 0) { // Display extra datas for 1 POI closer than a set distance
+                    int poi_id = radarGetNearestPOI();
+                    if (poi_id >= 0 && radar_pois[poi_id].distance <= osdConfig()->hud_radar_nearest) {
+                        osdHudDrawExtras(poi_id);
                     }
                 }
             }
-        }
-
-        if (osdConfig()->hud_radar_nearest) {
-            osdHudDrawNearest(elemPosX - 8, elemPosY + 2);
         }
 
         return true;
@@ -2726,10 +2729,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_margin_v = 3;
     osdConfig->hud_homing = 0;
     osdConfig->hud_homepoint = 0;
-    osdConfig->hud_radar_disp = 4;
+    osdConfig->hud_radar_disp = 0;
     osdConfig->hud_radar_range_min = 1;
     osdConfig->hud_radar_range_max = 4000;
-    osdConfig->hud_radar_nearest = 0;
+    osdConfig->hud_radar_nearest = 200;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;
