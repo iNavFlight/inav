@@ -1534,7 +1534,7 @@ groups:
         field: hottAlarmSoundInterval
         min: 0
         max: 120
-      - name: uart_unidir
+      - name: telemetry_uart_unidir
         field: uartUnidirectional
         type: bool
       - name: smartport_fuel_unit
