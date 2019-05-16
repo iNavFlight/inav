@@ -1621,7 +1621,7 @@ static void cliServo(char *cmdline)
 
 static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixers, const servoMixer_t *defaultCustomServoMixers)
 {
-    const char *format = "smix %d %d %d %d %d %d";
+    const char *format = "smix %d %d %d %d %d %d %d";
     for (uint32_t i = 0; i < MAX_SERVO_RULES; i++) {
         const servoMixer_t customServoMixer = customServoMixers[i];
         if (customServoMixer.rate == 0) {
@@ -1638,6 +1638,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             #ifdef USE_LOGIC_CONDITIONS
                 && customServoMixer.conditionId == customServoMixerDefault.conditionId
             #endif
+                && customServoMixer.userParamId == customServoMixerDefault.userParamId
             ;
 
             cliDefaultPrintLinef(dumpMask, equalsDefault, format,
@@ -1647,10 +1648,11 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
                 customServoMixerDefault.rate,
                 customServoMixerDefault.speed,
             #ifdef USE_LOGIC_CONDITIONS
-                customServoMixer.conditionId
+                customServoMixer.conditionId,
             #else
-                0
+                0,
             #endif
+                customServoMixerDefault.userParamId
             );
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format,
@@ -1660,10 +1662,11 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
             customServoMixer.rate,
             customServoMixer.speed,
         #ifdef USE_LOGIC_CONDITIONS
-            customServoMixer.conditionId
+            customServoMixer.conditionId,
         #else
-            0
+            0,
         #endif
+            customServoMixer.userParamId
         );
     }
 }
@@ -1680,7 +1683,7 @@ static void cliServoMix(char *cmdline)
         // erase custom mixer
         pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
     } else {
-        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
+        enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, USERPARAM, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
@@ -1699,7 +1702,8 @@ static void cliServoMix(char *cmdline)
             args[INPUT] >= 0 && args[INPUT] < INPUT_SOURCE_COUNT &&
             args[RATE] >= -1000 && args[RATE] <= 1000 &&
             args[SPEED] >= 0 && args[SPEED] <= MAX_SERVO_SPEED &&
-            args[CONDITION] >= -1 && args[CONDITION] < MAX_LOGIC_CONDITIONS
+            args[CONDITION] >= -1 && args[CONDITION] < MAX_LOGIC_CONDITIONS &&
+            args[USERPARAM] >= -1 && args[USERPARAM] < MAX_MIXER_USER_PARAMS
         ) {
             customServoMixersMutable(i)->targetChannel = args[TARGET];
             customServoMixersMutable(i)->inputSource = args[INPUT];
@@ -1708,6 +1712,7 @@ static void cliServoMix(char *cmdline)
         #ifdef USE_LOGIC_CONDITIONS
             customServoMixersMutable(i)->conditionId = args[CONDITION];
         #endif
+            customServoMixersMutable(i)->userParamId = args[USERPARAM];
             cliServoMix("");
         } else {
             cliShowParseError();
