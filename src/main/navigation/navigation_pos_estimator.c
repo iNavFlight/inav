@@ -209,15 +209,14 @@ void onNewGPSData(void)
             isFirstGPSUpdate = true;
         }
 
-#if defined(NAV_AUTO_MAG_DECLINATION)
         /* Automatic magnetic declination calculation - do this once */
-        static bool magDeclinationSet = false;
-        if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
-            imuSetMagneticDeclination(geoCalculateMagDeclination(&newLLH));
-            magDeclinationSet = true;
+        if(STATE(GPS_FIX_HOME)){
+            static bool magDeclinationSet = false;
+            if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
+                imuSetMagneticDeclination(geoCalculateMagDeclination(&newLLH));
+                magDeclinationSet = true;
+            }
         }
-#endif
-
         /* Process position update if GPS origin is already set, or precision is good enough */
         // FIXME: Add HDOP check for acquisition of GPS origin
         /* Set GPS origin or reset the origin altitude - keep initial pre-arming altitude at zero */

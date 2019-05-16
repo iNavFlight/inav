@@ -1168,7 +1168,6 @@ groups:
     members:
       - name: inav_auto_mag_decl
         field: automatic_mag_declination
-        condition: NAV_AUTO_MAG_DECLINATION
         type: bool
       - name: inav_gravity_cal_tolerance
         field: gravity_calibration_tolerance
