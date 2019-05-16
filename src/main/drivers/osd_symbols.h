@@ -63,7 +63,8 @@
 
 //                                0x21 // 033 ASCII !
 
-#define SYM_TRIP_DIST             0x22 // 034 Icon total distance
+#define SYM_TRIP_DIST             0x22 // 034 Trip distance
+#define SYM_TOTAL                 0x22 // 034 Total
 
 //                                0x23 // 035 ASCII #
 

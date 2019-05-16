@@ -296,20 +296,22 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_IMPERIAL:
-        if (osdFormatCentiNumber(buff + 1, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_MILE, 0, 3, 3)) {
-            buff[0] = SYM_DIST_MI;
+        if (osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_MILE, 0, 3, 3)) {
+            buff[3] = SYM_DIST_MI;
         } else {
-            buff[0] = SYM_DIST_FT;
+            buff[3] = SYM_DIST_FT;
         }
+        buff[4] = '\0';
         break;
     case OSD_UNIT_UK:
         FALLTHROUGH;
     case OSD_UNIT_METRIC:
-        if (osdFormatCentiNumber(buff + 1, dist, METERS_PER_KILOMETER, 0, 3, 3)) {
-            buff[0] = SYM_DIST_KM;
+        if (osdFormatCentiNumber(buff, dist, METERS_PER_KILOMETER, 0, 3, 3)) {
+            buff[3] = SYM_DIST_KM;
         } else {
-            buff[0] = SYM_DIST_M;
+            buff[3] = SYM_DIST_M;
         }
+        buff[4] = '\0';
         break;
     }
 }
@@ -428,23 +430,25 @@ static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
         case OSD_UNIT_UK:
             FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            if (osdFormatCentiNumber(buff + 1, CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, 3)) {
+            if (osdFormatCentiNumber(buff , CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, 3)) {
                 // Scaled to kft
-                buff[0] = SYM_ALT_KFT;
+                buff[3] = SYM_ALT_KFT;
             } else {
                 // Formatted in feet
-                buff[0] = SYM_ALT_FT;
+                buff[3] = SYM_ALT_FT;
             }
+            buff[4] = '\0';
             break;
         case OSD_UNIT_METRIC:
             // alt is alredy in cm
-            if (osdFormatCentiNumber(buff+1, alt, 1000, 0, 2, 3)) {
+            if (osdFormatCentiNumber(buff, alt, 1000, 0, 2, 3)) {
                 // Scaled to km
-                buff[0] = SYM_ALT_KM;
+                buff[3] = SYM_ALT_KM;
             } else {
                 // Formatted in m
-                buff[0] = SYM_ALT_M;
+                buff[3] = SYM_ALT_M;
             }
+            buff[4] = '\0';
             break;
     }
 }
@@ -1165,8 +1169,10 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
-    osdFormatCentiNumber(buff, voltage, 0, decimals, 0, MIN(digits, 4));
-    strcat(buff, "V");
+    digits = MIN(digits, 4);
+    osdFormatCentiNumber(buff, voltage, 0, decimals, 0, digits);
+    buff[digits] = SYM_VOLT;
+    buff[digits+1] = '\0';
     if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
@@ -1243,33 +1249,39 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_CURRENT_DRAW:
-        buff[0] = SYM_AMP;
-        osdFormatCentiNumber(buff + 1, getAmperage(), 0, 2, 0, 3);
+
+        osdFormatCentiNumber(buff, getAmperage(), 0, 2, 0, 3);
+        buff[3] = SYM_AMP;
+        buff[4] = '\0';
         break;
 
     case OSD_MAH_DRAWN:
-        buff[0] = SYM_MAH;
-        tfp_sprintf(buff + 1, "%-4d", (int)getMAhDrawn());
+        tfp_sprintf(buff, "%4d", (int)getMAhDrawn());
+        buff[4] = SYM_MAH;
+        buff[5] = '\0';
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
 
     case OSD_WH_DRAWN:
-        buff[0] = SYM_WH;
-        osdFormatCentiNumber(buff + 1, getMWhDrawn() / 10, 0, 2, 0, 3);
+        osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        buff[3] = SYM_WH;
+        buff[4] = '\0';
         break;
 
     case OSD_BATTERY_REMAINING_CAPACITY:
-        buff[0] = (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH);
 
         if (currentBatteryProfile->capacity.value == 0)
-            tfp_sprintf(buff + 1, "NA");
+            tfp_sprintf(buff, "  NA");
         else if (!batteryWasFullWhenPluggedIn())
-            tfp_sprintf(buff + 1, "NF");
+            tfp_sprintf(buff, "  NF");
         else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH)
-            tfp_sprintf(buff + 1, "%-4lu", getBatteryRemainingCapacity());
+            tfp_sprintf(buff, "%4lu", getBatteryRemainingCapacity());
         else // currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH
             osdFormatCentiNumber(buff + 1, getBatteryRemainingCapacity() / 10, 0, 2, 0, 3);
+
+        buff[3] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
+        buff[4] = '\0';
 
         if ((getBatteryState() != BATTERY_NOT_PRESENT) && batteryUsesCapacityThresholds() && (getBatteryRemainingCapacity() <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -1343,7 +1355,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[0] = ARMING_FLAG(ARMED) ? '-' : SYM_ARROW_UP;
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
-            buff[1] = 0;
+            buff[1] = '\0';
             break;
         }
 
@@ -1376,7 +1388,7 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_TRIP_DIST:
-        buff[0] = SYM_TRIP_DIST;
+        buff[0] = SYM_TOTAL;
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance());
         break;
 
@@ -1392,8 +1404,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 buff[1] = buff[2] = buff[3] = '-';
             }
-            buff[4] = SYM_DEGREES;
-            buff[5] = '\0';
+            buff[4] = '\0';
             break;
         }
 
@@ -1494,8 +1505,8 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t alt = osdGetAltitudeMsl();
             osdFormatAltitudeSymbol(buff, alt);
             break;
-        }		
-		
+        }
+
     case OSD_ONTIME:
         {
             osdFormatOnTime(buff);
@@ -1557,12 +1568,13 @@ static bool osdDrawSingleElement(uint8_t item)
         }
         buff[0] = SYM_TRIP_DIST;
         if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
-            buff[1] = SYM_DIST_M;
-            strcpy(buff + 2, "---");
+            buff[4] = SYM_DIST_M;
+            buff[5] = '\0';
+            strcpy(buff + 1, "---");
         } else if (distanceMeters == -2) {
             // Wind is too strong to come back with cruise throttle
-            buff[1] = SYM_DIST_M;
-            buff[2] = buff[3] = buff[4] = SYM_WIND_HORIZONTAL;
+            buff[1] = buff[2] = buff[3] = SYM_WIND_HORIZONTAL;
+            buff[4] = SYM_DIST_M;
             buff[5] = '\0';
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         } else {
@@ -2056,8 +2068,9 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_POWER:
         {
-            buff[0] = SYM_WATT;
-            osdFormatCentiNumber(buff + 1, getPower(), 0, 2, 0, 3);
+            osdFormatCentiNumber(buff, getPower(), 0, 2, 0, 3);
+            buff[3] = SYM_WATT;
+            buff[4] = '\0';
             break;
         }
 
@@ -2594,7 +2607,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_CRUISE_HEADING_ERROR] = OSD_POS(12, 2);
     osdConfig->item_pos[0][OSD_CRUISE_HEADING_ADJUSTMENT] = OSD_POS(12, 2);
     osdConfig->item_pos[0][OSD_HEADING_GRAPH] = OSD_POS(18, 2);
-    osdConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(1, 3) | OSD_VISIBLE_FLAG;
+    osdConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(2, 3) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_MAH_DRAWN] = OSD_POS(1, 4) | OSD_VISIBLE_FLAG;
     osdConfig->item_pos[0][OSD_WH_DRAWN] = OSD_POS(1, 5);
     osdConfig->item_pos[0][OSD_BATTERY_REMAINING_CAPACITY] = OSD_POS(1, 6);
