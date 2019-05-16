@@ -458,9 +458,4 @@ uint16_t getCurrentMinthrottle(void)
     return testMinThrottle;
 }
 
-bool isUsingSticksForArming(void)
-{
-    return isUsingSticksToArm;
-}
-
 }

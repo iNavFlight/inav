@@ -298,22 +298,17 @@ void validateAndFixConfig(void)
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
         break;
 #endif
+#ifdef USE_SERIALSHOT
+    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
+        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
+        break;
+#endif
     }
 #endif
 
 #if !defined(USE_MPU_DATA_READY_SIGNAL)
     gyroConfigMutable()->gyroSync = false;
 #endif
-
-    /*
-     * MOTOR_STOP is no longer allowed on Multirotors and Tricopters
-     */
-    if (
-        feature(FEATURE_MOTOR_STOP) &&
-        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)
-    ) {
-        featureClear(FEATURE_MOTOR_STOP);
-    }
 
     // Call target-specific validation function
     validateAndFixTargetConfig();

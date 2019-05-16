@@ -75,7 +75,9 @@ STATIC_FASTRAM zeroCalibrationVector_t zeroCalibration;
 
 STATIC_FASTRAM int32_t accADC[XYZ_AXIS_COUNT];
 
-STATIC_FASTRAM biquadFilter_t accFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filter_t accFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM filterApplyFnPtr accSoftLpfFilterApplyFn;
+STATIC_FASTRAM void *accSoftLpfFilter[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM pt1Filter_t accVibeFloorFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
@@ -85,7 +87,7 @@ STATIC_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 STATIC_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 #endif
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 2);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 3);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
@@ -94,7 +96,8 @@ void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
         .acc_hardware = ACC_AUTODETECT,
         .acc_lpf_hz = 15,
         .acc_notch_hz = 0,
-        .acc_notch_cutoff = 1
+        .acc_notch_cutoff = 1,
+        .acc_soft_lpf_type = FILTER_BIQUAD
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accZero,
         .raw[X] = 0,
@@ -336,6 +339,11 @@ bool accInit(uint32_t targetLooptime)
     acc.accClipCount = 0;
     accInitFilters();
 
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        acc.extremes[axis].min = 100;
+        acc.extremes[axis].max = -100;
+    }
+
     if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
         acc.dev.accAlign = accelerometerConfig()->acc_align;
     }
@@ -501,13 +509,26 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
 }
 
 /*
- * Calculate measured acceleration in body frame in g
+ * Calculate measured acceleration in body frame in m/s^2
  */
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
     }
+}
+
+/*
+ * Return g's
+ */
+const acc_extremes_t* accGetMeasuredExtremes(void)
+{
+    return (const acc_extremes_t *)&acc.extremes;
+}
+
+float accGetMeasuredMaxG(void)
+{
+    return acc.maxG;
 }
 
 void accUpdate(void)
@@ -538,7 +559,11 @@ void accUpdate(void)
 
     // Before filtering check for clipping and vibration levels
     if (fabsf(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
+        acc.isClipped = true;
         acc.accClipCount++;
+    }
+    else {
+        acc.isClipped = false;
     }
 
     // Calculate vibration levels
@@ -552,10 +577,8 @@ void accUpdate(void)
     }
 
     // Filter acceleration
-    if (accelerometerConfig()->acc_lpf_hz) {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            acc.accADCf[axis] = biquadFilterApply(&accFilter[axis], acc.accADCf[axis]);
-        }
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        acc.accADCf[axis] = accSoftLpfFilterApplyFn(accSoftLpfFilter[axis], acc.accADCf[axis]);
     }
 
 #ifdef USE_ACC_NOTCH
@@ -566,6 +589,18 @@ void accUpdate(void)
     }
 #endif
 
+}
+
+// Record extremes: min/max for each axis and acceleration vector modulus
+void updateAccExtremes(void)
+{
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        if (acc.accADCf[axis] < acc.extremes[axis].min) acc.extremes[axis].min = acc.accADCf[axis];
+        if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
+    }
+
+    float gforce = sqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
@@ -585,6 +620,11 @@ uint32_t accGetClipCount(void)
     return acc.accClipCount;
 }
 
+bool accIsClipped(void)
+{
+    return acc.isClipped;
+}
+
 void accSetCalibrationValues(void)
 {
     if ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
@@ -597,11 +637,29 @@ void accSetCalibrationValues(void)
 }
 
 void accInitFilters(void)
-{
+{   
+    accSoftLpfFilterApplyFn = nullFilterApply;
+
     if (acc.accTargetLooptime && accelerometerConfig()->acc_lpf_hz) {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterInitLPF(&accFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime);
+
+        switch (accelerometerConfig()->acc_soft_lpf_type) 
+        {
+        case FILTER_PT1:
+            accSoftLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                accSoftLpfFilter[axis] = &accFilter[axis].pt1;
+                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime * 1e-6f);
+            }
+            break;
+        case FILTER_BIQUAD:
+            accSoftLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                accSoftLpfFilter[axis] = &accFilter[axis].biquad;
+                biquadFilterInitLPF(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime);
+            }
+            break;
         }
+
     }
 
     const float accDt = acc.accTargetLooptime * 1e-6f;

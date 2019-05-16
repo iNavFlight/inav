@@ -174,6 +174,7 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define USE_DSHOT
+#define USE_SERIALSHOT
 
 // Number of available PWM outputs
 #define MAX_PWM_OUTPUT_PORTS    6

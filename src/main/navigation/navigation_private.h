@@ -324,6 +324,7 @@ typedef struct {
     navWaypointPosition_t       homePosition;       // Special waypoint, stores original yaw (heading when launched)
     navWaypointPosition_t       homeWaypointAbove;  // NEU-coordinates and initial bearing + desired RTH altitude
     navigationHomeFlags_t       homeFlags;
+    uint32_t                    rthInitialHomeDistance;  // Distance to home after RTH has been initiated and the initial climb/descent is done
 
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100

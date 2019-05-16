@@ -445,8 +445,21 @@ void processRx(timeUs_t currentTimeUs)
 
     const throttleStatus_e throttleStatus = calculateThrottleStatus();
 
-    processRcStickPositions(throttleStatus);
+    // When armed and motors aren't spinning, do beeps periodically
+    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING)) {
+        static bool armedBeeperOn = false;
 
+        if (throttleStatus == THROTTLE_LOW) {
+            beeper(BEEPER_ARMED);
+            armedBeeperOn = true;
+        } else if (armedBeeperOn) {
+            beeperSilence();
+            armedBeeperOn = false;
+        }
+    }
+
+    processRcStickPositions(throttleStatus);
+    processAirmode();
     updateActivatedModes();
 
 #ifdef USE_PINIOBOX
@@ -550,9 +563,9 @@ void processRx(timeUs_t currentTimeUs)
         /* In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL) */
         pidResetErrorAccumulators();
     }
-    else {
+    else if (STATE(FIXED_WING) || rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleStatus == THROTTLE_LOW) {
-            if (isAirmodeActive() && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive() && ARMING_FLAG(ARMED)) {
                 rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
 
                 // ANTI_WINDUP at centred stick with MOTOR_STOP is needed on MRs and not needed on FWs
@@ -570,6 +583,12 @@ void processRx(timeUs_t currentTimeUs)
         }
         else {
             DISABLE_STATE(ANTI_WINDUP);
+        }
+    } else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
+        DISABLE_STATE(ANTI_WINDUP);
+        //This case applies only to MR when Airmode management is throttle threshold activated
+        if (throttleStatus == THROTTLE_LOW && !STATE(AIRMODE_ACTIVE)) {
+            pidResetErrorAccumulators();
         }
     }
 
@@ -616,7 +635,7 @@ void FAST_CODE NOINLINE taskGyro(timeUs_t currentTimeUs) {
     /* Update actual hardware readings */
     gyroUpdate();
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     if (sensors(SENSOR_OPFLOW)) {
         opflowGyroUpdateCallback((timeUs_t)currentDeltaTime + (gyroUpdateUs - currentTimeUs));
     }
@@ -640,6 +659,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
+        updateAccExtremes();
     }
 
     taskGyro(currentTimeUs);
@@ -734,7 +754,7 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_DSHOT
-    pwmCompleteDshotUpdate(getMotorCount());
+    pwmCompleteMotorUpdate();
 #endif
 }
 

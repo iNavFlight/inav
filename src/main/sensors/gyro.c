@@ -288,7 +288,7 @@ bool gyroInit(void)
 
 void gyroInitFilters(void)
 {
-    STATIC_FASTRAM biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM filter_t gyroFilterLPF[XYZ_AXIS_COUNT];
     softLpfFilterApplyFn = nullFilterApply;
 #ifdef USE_GYRO_NOTCH_1
     STATIC_FASTRAM biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
@@ -319,14 +319,14 @@ void gyroInitFilters(void)
         case FILTER_PT1:
             softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
             for (int axis = 0; axis < 3; axis++) {
-                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                softLpfFilter[axis] = &gyroFilterLPF[axis].pt1;
                 pt1FilterInit(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime()* 1e-6f);
             }
             break;
         case FILTER_BIQUAD:
             softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
             for (int axis = 0; axis < 3; axis++) {
-                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                softLpfFilter[axis] = &gyroFilterLPF[axis].biquad;
                 biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
             }
             break;
