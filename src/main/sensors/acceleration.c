@@ -339,6 +339,11 @@ bool accInit(uint32_t targetLooptime)
     acc.accClipCount = 0;
     accInitFilters();
 
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        acc.extremes[axis].min = 100;
+        acc.extremes[axis].max = -100;
+    }
+
     if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
         acc.dev.accAlign = accelerometerConfig()->acc_align;
     }
@@ -504,13 +509,26 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
 }
 
 /*
- * Calculate measured acceleration in body frame in g
+ * Calculate measured acceleration in body frame in m/s^2
  */
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
     }
+}
+
+/*
+ * Return g's
+ */
+const acc_extremes_t* accGetMeasuredExtremes(void)
+{
+    return (const acc_extremes_t *)&acc.extremes;
+}
+
+float accGetMeasuredMaxG(void)
+{
+    return acc.maxG;
 }
 
 void accUpdate(void)
@@ -541,7 +559,11 @@ void accUpdate(void)
 
     // Before filtering check for clipping and vibration levels
     if (fabsf(acc.accADCf[X]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Y]) > ACC_CLIPPING_THRESHOLD_G || fabsf(acc.accADCf[Z]) > ACC_CLIPPING_THRESHOLD_G) {
+        acc.isClipped = true;
         acc.accClipCount++;
+    }
+    else {
+        acc.isClipped = false;
     }
 
     // Calculate vibration levels
@@ -558,7 +580,6 @@ void accUpdate(void)
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.accADCf[axis] = accSoftLpfFilterApplyFn(accSoftLpfFilter[axis], acc.accADCf[axis]);
     }
-    
 
 #ifdef USE_ACC_NOTCH
     if (accelerometerConfig()->acc_notch_hz) {
@@ -568,6 +589,18 @@ void accUpdate(void)
     }
 #endif
 
+}
+
+// Record extremes: min/max for each axis and acceleration vector modulus
+void updateAccExtremes(void)
+{
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        if (acc.accADCf[axis] < acc.extremes[axis].min) acc.extremes[axis].min = acc.accADCf[axis];
+        if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
+    }
+
+    float gforce = sqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
 void accGetVibrationLevels(fpVector3_t *accVibeLevels)
@@ -585,6 +618,11 @@ float accGetVibrationLevel(void)
 uint32_t accGetClipCount(void)
 {
     return acc.accClipCount;
+}
+
+bool accIsClipped(void)
+{
+    return acc.isClipped;
 }
 
 void accSetCalibrationValues(void)
