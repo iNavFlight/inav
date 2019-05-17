@@ -1031,6 +1031,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+        sbufWriteU8(dst, osdConfig()->current_alarm);
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
             sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
         }
@@ -1395,6 +1396,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+        sbufWriteU8(dst, osdConfig()->current_alarm);
         sbufWriteU16(dst, osdConfig()->imu_temp_alarm_min);
         sbufWriteU16(dst, osdConfig()->imu_temp_alarm_max);
 #ifdef USE_BARO
@@ -1879,7 +1881,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-    
+
     case MSP2_INAV_SET_SERVO_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 7) && (tmp_u8 < MAX_SERVO_RULES)) {
@@ -2260,6 +2262,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 // Won't be read if they weren't provided
                 sbufReadU16Safe(&osdConfigMutable()->dist_alarm, src);
                 sbufReadU16Safe(&osdConfigMutable()->neg_alt_alarm, src);
+                sbufReadU8Safe(&osdConfigMutable()->current_alarm, src);
             } else
                 return MSP_RESULT_ERROR;
         } else {
@@ -2716,6 +2719,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->alt_alarm = sbufReadU16(src);
                 osdConfigMutable()->dist_alarm = sbufReadU16(src);
                 osdConfigMutable()->neg_alt_alarm = sbufReadU16(src);
+                osdConfigMutable()->current_alarm = sbufReadU8(src);
                 osdConfigMutable()->imu_temp_alarm_min = sbufReadU16(src);
                 osdConfigMutable()->imu_temp_alarm_max = sbufReadU16(src);
 #ifdef USE_BARO

@@ -182,6 +182,7 @@ typedef struct osdConfig_s {
     uint16_t alt_alarm; // positive altitude in m
     uint16_t dist_alarm; // home distance in m
     uint16_t neg_alt_alarm; // abs(negative altitude) in m
+    uint8_t current_alarm; // current consumption in A
     int16_t imu_temp_alarm_min;
     int16_t imu_temp_alarm_max;
     float gforce_alarm;
