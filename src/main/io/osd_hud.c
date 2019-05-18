@@ -313,7 +313,7 @@ void osdHudDrawExtras(uint8_t poi_id)
 
     uint8_t minX = osdConfig()->hud_margin_h + 1;
     uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 2;
-    uint8_t lineY = osdGetDisplayPort()->rows - osdConfig()->hud_margin_v - 2;
+    uint8_t lineY = osdGetDisplayPort()->rows - osdConfig()->hud_margin_v - 1;
 
     displayWriteChar(osdGetDisplayPort(), minX + 3, lineY, 65 + poi_id);
     displayWriteChar(osdGetDisplayPort(), minX + 4, lineY, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq);
