@@ -193,6 +193,16 @@ const timerHardware_t * timerGetByTag(ioTag_t tag, timerUsageFlag_e flag)
     return NULL;
 }
 
+const timerHardware_t * timerGetByUsageFlag(timerUsageFlag_e flag)
+{
+    for (int i = 0; i < timerHardwareCount; i++) {
+        if (timerHardware[i].usageFlags & flag) {
+            return &timerHardware[i];
+        }
+    }
+    return NULL;
+}
+
 void timerPWMConfigChannel(TCH_t * tch, uint16_t value)
 {
     impl_timerPWMConfigChannel(tch, value);

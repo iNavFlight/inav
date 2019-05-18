@@ -53,7 +53,6 @@
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
-#include "drivers/logging.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -244,8 +243,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_NONE:
         gyroHardware = GYRO_NONE;
     }
-
-    addBootlogEvent6(BOOT_EVENT_GYRO_DETECTION, BOOT_EVENT_FLAGS_NONE, gyroHardware, 0, 0, 0);
 
     if (gyroHardware != GYRO_NONE) {
         detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;

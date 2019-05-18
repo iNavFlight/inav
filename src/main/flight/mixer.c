@@ -148,7 +148,7 @@ void mixerUpdateStateFlags(void)
     }
 }
 
-void mixerPrepare(void)
+void mixerInit(void)
 {
     computeMotorCount();
     loadPrimaryMotorMixer();
