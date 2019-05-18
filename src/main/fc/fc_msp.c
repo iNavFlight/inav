@@ -1384,7 +1384,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
-        sbufWriteU8(dst, mixerConfig()->pitchRollWeight);
         sbufWriteU8(dst, MAX_SUPPORTED_MOTORS);
         sbufWriteU8(dst, MAX_SUPPORTED_SERVOS);
         break;
@@ -2676,7 +2675,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         mixerConfigMutable()->platformType = sbufReadU8(src);
         mixerConfigMutable()->hasFlaps = sbufReadU8(src);
         mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
-        mixerConfigMutable()->pitchRollWeight = sbufReadU8(src);
         sbufReadU8(src); //Read and ignore MAX_SUPPORTED_MOTORS
         sbufReadU8(src); //Read and ignore MAX_SUPPORTED_SERVOS
         mixerUpdateStateFlags();
