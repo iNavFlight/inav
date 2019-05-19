@@ -69,5 +69,6 @@ typedef enum {
     DEBUG_ACC,
     DEBUG_GENERIC,
     DEBUG_ITERM_RELAX,
+    DEBUG_D_BOOST,
     DEBUG_COUNT
 } debugType_e;

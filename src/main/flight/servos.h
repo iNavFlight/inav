@@ -149,3 +149,4 @@ void loadCustomServoMixer(void);
 void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
+int getServoCount(void);

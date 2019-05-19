@@ -28,7 +28,6 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/1-wire.h"
-#include "drivers/logging.h"
 #include "drivers/temperature/temperature.h"
 #include "drivers/temperature/lm75.h"
 #include "drivers/temperature/ds18b20.h"
@@ -100,7 +99,6 @@ static void newSensorCheckAndEnter(uint8_t type, uint64_t addr)
 void temperatureInit(void)
 {
     memset(sensorStatus, 0, sizeof(sensorStatus) * sizeof(*sensorStatus));
-    addBootlogEvent2(BOOT_EVENT_TEMP_SENSOR_DETECTION, BOOT_EVENT_FLAGS_NONE);
 
     sensorsSet(SENSOR_TEMP);
 

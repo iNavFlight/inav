@@ -29,7 +29,6 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
-#include "drivers/logging.h"
 #include "drivers/pitotmeter.h"
 #include "drivers/pitotmeter_ms4525.h"
 #include "drivers/pitotmeter_adc.h"
@@ -129,8 +128,6 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             pitotHardware = PITOT_NONE;
             break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_PITOT_DETECTION, BOOT_EVENT_FLAGS_NONE, pitotHardware, 0, 0, 0);
 
     if (pitotHardware == PITOT_NONE) {
         sensorsClear(SENSOR_PITOT);
