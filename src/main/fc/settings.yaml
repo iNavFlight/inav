@@ -1655,6 +1655,10 @@ groups:
         field: neg_alt_alarm
         min: 0
         max: 10000
+      - name: osd_current_alarm
+        field: current_alarm
+        min: 0
+        max: 255
       - name: osd_gforce_alarm
         field: gforce_alarm
         min: -20
