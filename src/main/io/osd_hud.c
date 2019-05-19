@@ -315,25 +315,25 @@ void osdHudDrawExtras(uint8_t poi_id)
     uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 2;
     uint8_t lineY = osdGetDisplayPort()->rows - osdConfig()->hud_margin_v - 1;
 
-    displayWriteChar(osdGetDisplayPort(), minX + 3, lineY, 65 + poi_id);
-    displayWriteChar(osdGetDisplayPort(), minX + 4, lineY, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq);
+    displayWriteChar(osdGetDisplayPort(), minX + 1, lineY, 65 + poi_id);
+    displayWriteChar(osdGetDisplayPort(), minX + 2, lineY, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq);
 
     if (radar_pois[poi_id].altitude < 0) {
         osdFormatAltitudeSymbol(buftmp, -radar_pois[poi_id].altitude * 100);
-        displayWriteChar(osdGetDisplayPort(), minX + 10, lineY, SYM_HUD_ARROWS_D2);
+        displayWriteChar(osdGetDisplayPort(), minX + 8, lineY, SYM_HUD_ARROWS_D2);
     }
     else {
         osdFormatAltitudeSymbol(buftmp, radar_pois[poi_id].altitude * 100);
-        displayWriteChar(osdGetDisplayPort(), minX + 10, lineY, SYM_HUD_ARROWS_U2);
+        displayWriteChar(osdGetDisplayPort(), minX + 8, lineY, SYM_HUD_ARROWS_U2);
     }
 
-    displayWrite(osdGetDisplayPort(), minX + 6, lineY, buftmp);
+    displayWrite(osdGetDisplayPort(), minX + 4, lineY, buftmp);
 
     osdFormatVelocityStr(buftmp, radar_pois[poi_id].speed, false);
-    displayWrite(osdGetDisplayPort(), round(minX + maxX / 2) - 2, lineY, buftmp);
+    displayWrite(osdGetDisplayPort(), maxX - 9, lineY, buftmp);
 
     tfp_sprintf(buftmp, "%3d%c", radar_pois[poi_id].heading, SYM_HEADING);
-    displayWrite(osdGetDisplayPort(), maxX - 6, lineY, buftmp);
+    displayWrite(osdGetDisplayPort(), maxX - 4, lineY, buftmp);
 
 }
 

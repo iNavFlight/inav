@@ -1707,7 +1707,7 @@ groups:
       - name: osd_hud_margin_h
         field: hud_margin_h
         min: 0
-        max: 7
+        max: 4
       - name: osd_hud_margin_v
         field: hud_margin_v
         min: 0
