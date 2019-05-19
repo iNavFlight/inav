@@ -32,8 +32,6 @@
 #include "drivers/nvic.h"
 #include "drivers/rcc.h"
 
-#include "drivers/logging.h"
-
 #include "drivers/rangefinder/rangefinder.h"
 #include "drivers/rangefinder/rangefinder_hcsr04.h"
 
@@ -161,12 +159,10 @@ bool hcsr04Detect(rangefinderDev_t *dev, const rangefinderHardwarePins_t * range
     echoIO = IOGetByTag(rangefinderHardwarePins->echoTag);
 
     if (IOGetOwner(triggerIO) != OWNER_FREE) {
-        addBootlogEvent4(BOOT_EVENT_HARDWARE_IO_CONFLICT, BOOT_EVENT_FLAGS_WARNING, IOGetOwner(triggerIO), OWNER_RANGEFINDER);
         return false;
     }
 
     if (IOGetOwner(echoIO) != OWNER_FREE) {
-        addBootlogEvent4(BOOT_EVENT_HARDWARE_IO_CONFLICT, BOOT_EVENT_FLAGS_WARNING, IOGetOwner(echoIO), OWNER_RANGEFINDER);
         return false;
     }
 

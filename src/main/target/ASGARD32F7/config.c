@@ -27,6 +27,7 @@
 
 #include "drivers/io.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "flight/mixer.h"
 #include "rx/rx.h"
 #include "io/serial.h"

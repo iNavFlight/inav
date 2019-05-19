@@ -19,6 +19,7 @@
 
 #include "drivers/io_types.h"
 #include "flight/mixer.h"
+#include "flight/servos.h"
 
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_PWM_MOTORS TARGET_MOTOR_COUNT
@@ -39,87 +40,40 @@
 
 #define MAX_INPUTS  8
 
+typedef enum {
+    PWM_TYPE_STANDARD = 0,
+    PWM_TYPE_ONESHOT125,
+    PWM_TYPE_ONESHOT42,
+    PWM_TYPE_MULTISHOT,
+    PWM_TYPE_BRUSHED,
+    PWM_TYPE_DSHOT150,
+    PWM_TYPE_DSHOT300,
+    PWM_TYPE_DSHOT600,
+    PWM_TYPE_DSHOT1200,
+    PWM_TYPE_SERIALSHOT,
+} motorPwmProtocolTypes_e;
+
+typedef enum {
+    PWM_INIT_ERROR_NONE = 0,
+    PWM_INIT_ERROR_TOO_MANY_MOTORS,
+    PWM_INIT_ERROR_TOO_MANY_SERVOS,
+    PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS,
+    PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS,
+    PWM_INIT_ERROR_TIMER_INIT_FAILED,
+} pwmInitError_e;
+
 typedef struct rangefinderIOConfig_s {
     ioTag_t triggerTag;
     ioTag_t echoTag;
 } rangefinderIOConfig_t;
 
-typedef struct drv_pwm_config_s {
-    int flyingPlatformType;
+typedef struct {
+    bool usesHwTimer;
+    bool isDSHOT;
+    bool isSerialShot;
+} motorProtocolProperties_t;
 
-    bool enablePWMOutput;
-    bool useParallelPWM;
-    bool usePPM;
-    bool useSerialRx;
-    bool useRSSIADC;
-    bool useCurrentMeterADC;
-    bool useUART2;
-    bool useUART3;
-    bool useUART6;
-    bool useVbat;
-    bool useSoftSerial;
-    bool useLEDStrip;
-#ifdef USE_RANGEFINDER
-    bool useTriggerRangefinder;
-#endif
-    bool useServoOutputs;
-    uint16_t servoPwmRate;
-    uint16_t servoCenterPulse;
-    rangefinderIOConfig_t rangefinderIOConfig;
-} drv_pwm_config_t;
-
-typedef enum {
-    PWM_PF_NONE = 0,
-    PWM_PF_MOTOR = (1 << 0),
-    PWM_PF_SERVO = (1 << 1),
-    PWM_PF_PPM = (1 << 5),
-    PWM_PF_PWM = (1 << 6)
-} pwmPortFlags_e;
-
-struct timerHardware_s;
-typedef struct pwmPortConfiguration_s {
-    uint8_t index;
-    pwmPortFlags_e flags;
-    const struct timerHardware_s *timerHardware;
-} pwmPortConfiguration_t;
-
-typedef struct pwmIOConfiguration_s {
-    uint8_t servoCount;
-    uint8_t motorCount;
-    uint8_t ioCount;
-    uint8_t pwmInputCount;
-    uint8_t ppmInputCount;
-    pwmPortConfiguration_t * ioConfigurations;
-} pwmIOConfiguration_t;
-
-// This indexes into the read-only hardware definition structure, timerHardware_t
-enum {
-    PWM1 = 0,
-    PWM2,
-    PWM3,
-    PWM4,
-    PWM5,
-    PWM6,
-    PWM7,
-    PWM8,
-    PWM9,
-    PWM10,
-    PWM11,
-    PWM12,
-    PWM13,
-    PWM14,
-    PWM15,
-    PWM16,
-    PWM17,
-    PWM18,
-    PWM19,
-    PWM20
-};
-
-extern const uint16_t multiPPM[];
-extern const uint16_t multiPWM[];
-extern const uint16_t airPPM[];
-extern const uint16_t airPWM[];
-
-pwmIOConfiguration_t *pwmInit(drv_pwm_config_t *init);
-pwmIOConfiguration_t *pwmGetOutputConfiguration(void);
+bool pwmMotorAndServoInit(void);
+const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
+pwmInitError_e getPwmInitError(void);
+const char * getPwmInitErrorMessage(void);

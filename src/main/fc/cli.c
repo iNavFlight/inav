@@ -50,12 +50,12 @@ extern uint8_t __config_end;
 #include "config/parameter_group_ids.h"
 
 #include "drivers/accgyro/accgyro.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/buf_writer.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
-#include "drivers/logging.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/rx_pwm.h"
 #include "drivers/sdcard.h"
@@ -133,10 +133,6 @@ static uint32_t bufferIndex = 0;
 
 #if defined(USE_ASSERT)
 static void cliAssert(char *cmdline);
-#endif
-
-#if defined(USE_BOOTLOG)
-static void cliBootlog(char *cmdline);
 #endif
 
 // sync this with features_e
@@ -576,46 +572,6 @@ static void cliAssert(char *cmdline)
     }
     else {
         cliPrintLine("No assert() failed");
-    }
-}
-#endif
-
-#if defined(USE_BOOTLOG)
-static void cliBootlog(char *cmdline)
-{
-    UNUSED(cmdline);
-
-    int bootEventCount = getBootlogEventCount();
-
-#if defined(BOOTLOG_DESCRIPTIONS)
-    cliPrintLine("Time Evt            Description  Parameters");
-#else
-    cliPrintLine("Time Evt Parameters");
-#endif
-
-    for (int idx = 0; idx < bootEventCount; idx++) {
-        bootLogEntry_t * event = getBootlogEvent(idx);
-
-#if defined(BOOTLOG_DESCRIPTIONS)
-        const char * eventDescription = getBootlogEventDescription(event->eventCode);
-        if (!eventDescription) {
-            eventDescription = "";
-        }
-
-        cliPrintf("%4d: %2d %22s ", event->timestamp, event->eventCode, eventDescription);
-#else
-        cliPrintf("%4d: %2d ", event->timestamp, event->eventCode);
-#endif
-
-        if (event->eventFlags & BOOT_EVENT_FLAGS_PARAM16) {
-            cliPrintLinef(" (%d, %d, %d, %d)", event->params.u16[0], event->params.u16[1], event->params.u16[2], event->params.u16[3]);
-        }
-        else if (event->eventFlags & BOOT_EVENT_FLAGS_PARAM32) {
-            cliPrintLinef(" (%d, %d)", event->params.u32[0], event->params.u32[1]);
-        }
-        else {
-            cliPrintLinefeed();
-        }
     }
 }
 #endif
@@ -2816,6 +2772,11 @@ static void cliStatus(char *cmdline)
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
+
+    // If we are blocked by PWM init - provide more information
+    if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
+        cliPrintLinef("PWM output init error: %s", getPwmInitErrorMessage());
+    }
 }
 
 #ifndef SKIP_TASK_STATISTICS

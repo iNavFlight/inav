@@ -27,7 +27,6 @@
 #define I2C2_OVERCLOCK false
 #define USE_I2C_PULLUP          // Enable built-in pullups on all boards in case external ones are too week
 
-#define USE_RX_PWM
 #define USE_RX_PPM
 #define USE_SERIAL_RX
 #define USE_SERIALRX_SPEKTRUM   // Cheap and fairly common protocol
@@ -99,11 +98,12 @@
 
 #define USE_PWM_DRIVER_PCA9685
 
-#define USE_BOOTLOG
-#define BOOTLOG_DESCRIPTIONS
-
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
+
 #define NAV_AUTO_MAG_DECLINATION_PRECISE
+
+#define USE_D_BOOST
+
 
 #else // FLASH_SIZE < 256
 #define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
@@ -141,7 +141,6 @@
 #define USE_PWM_SERVO_DRIVER
 #define USE_SERIAL_PASSTHROUGH
 #define NAV_MAX_WAYPOINTS       60
-#define MAX_BOOTLOG_ENTRIES     64
 #define USE_RCDEVICE
 #define USE_PITOT
 #define USE_PITOT_ADC
