@@ -1031,7 +1031,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
-        sbufWriteU8(dst, osdConfig()->current_alarm);
         for (int i = 0; i < OSD_ITEM_COUNT; i++) {
             sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
         }
@@ -1396,6 +1395,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+        sbufWriteU16(dst, osdConfig()->gforce_alarm * 1000);
+        sbufWriteU16(dst, (int16_t)(osdConfig()->gforce_axis_alarm_min * 1000));
+        sbufWriteU16(dst, (int16_t)(osdConfig()->gforce_axis_alarm_max * 1000));
         sbufWriteU8(dst, osdConfig()->current_alarm);
         sbufWriteU16(dst, osdConfig()->imu_temp_alarm_min);
         sbufWriteU16(dst, osdConfig()->imu_temp_alarm_max);
@@ -2262,7 +2264,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 // Won't be read if they weren't provided
                 sbufReadU16Safe(&osdConfigMutable()->dist_alarm, src);
                 sbufReadU16Safe(&osdConfigMutable()->neg_alt_alarm, src);
-                sbufReadU8Safe(&osdConfigMutable()->current_alarm, src);
             } else
                 return MSP_RESULT_ERROR;
         } else {
@@ -2713,12 +2714,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_ALARMS:
         {
-            if (dataSize >= 17) {
+            if (dataSize == 24) {
                 osdConfigMutable()->rssi_alarm = sbufReadU8(src);
                 osdConfigMutable()->time_alarm = sbufReadU16(src);
                 osdConfigMutable()->alt_alarm = sbufReadU16(src);
                 osdConfigMutable()->dist_alarm = sbufReadU16(src);
                 osdConfigMutable()->neg_alt_alarm = sbufReadU16(src);
+                tmp_u16 = sbufReadU16(src);
+                osdConfigMutable()->gforce_alarm = tmp_u16 / 1000.0f;
+                tmp_u16 = sbufReadU16(src);
+                osdConfigMutable()->gforce_axis_alarm_min = (int16_t)tmp_u16 / 1000.0f;
+                tmp_u16 = sbufReadU16(src);
+                osdConfigMutable()->gforce_axis_alarm_max = (int16_t)tmp_u16 / 1000.0f;
                 osdConfigMutable()->current_alarm = sbufReadU8(src);
                 osdConfigMutable()->imu_temp_alarm_min = sbufReadU16(src);
                 osdConfigMutable()->imu_temp_alarm_max = sbufReadU16(src);

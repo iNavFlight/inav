@@ -1661,7 +1661,7 @@ groups:
         max: 255
       - name: osd_gforce_alarm
         field: gforce_alarm
-        min: -20
+        min: 0
         max: 20
       - name: osd_gforce_axis_alarm_min
         field: gforce_axis_alarm_min
