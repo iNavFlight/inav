@@ -94,12 +94,12 @@ COMMON_SRC = \
             flight/servos.c \
             flight/wind_estimator.c \
             flight/gyroanalyse.c \
-            io/agh_osd.c \
             io/beeper.c \
-            io/lights.c \
-            io/pwmdriver_i2c.c \
             io/esc_serialshot.c \
+            io/frsky_osd.c \
+            io/lights.c \
             io/piniobox.c \
+            io/pwmdriver_i2c.c \
             io/serial.c \
             io/serial_4way.c \
             io/serial_4way_avrootloader.c \
@@ -173,7 +173,7 @@ COMMON_SRC = \
             io/opflow_cxof.c \
             io/opflow_msp.c \
             io/dashboard.c \
-            io/displayport_agh_osd.c \
+            io/displayport_frsky_osd.c \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \

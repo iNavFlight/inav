@@ -20,17 +20,17 @@
 
 #include "platform.h"
 
-#if defined(USE_AGHOSD)
+#if defined(USE_FRSKYOSD)
 
 #include "common/utils.h"
 
 #include "drivers/display.h"
 #include "drivers/display_font_metadata.h"
 
-#include "io/agh_osd.h"
-#include "io/displayport_agh_osd.h"
+#include "io/displayport_frsky_osd.h"
+#include "io/frsky_osd.h"
 
-static displayPort_t aghOSDDisplayPort;
+static displayPort_t frskyOSDDisplayPort;
 
 static int grab(displayPort_t *displayPort)
 {
@@ -47,14 +47,14 @@ static int release(displayPort_t *displayPort)
 static int clearScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    aghOSDClearScreen();
+    frskyOSDClearScreen();
     return 0;
 }
 
 static int drawScreen(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    aghOSDUpdate();
+    frskyOSDUpdate();
 
     return 0;
 }
@@ -62,14 +62,14 @@ static int drawScreen(displayPort_t *displayPort)
 static int screenSize(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return aghOSDGetGridRows() * aghOSDGetGridCols();
+    return frskyOSDGetGridRows() * frskyOSDGetGridCols();
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const char *s, textAttributes_t attr)
 {
     UNUSED(displayPort);
 
-    aghOSDDrawStringInGrid(x, y, s, attr);
+    frskyOSDDrawStringInGrid(x, y, s, attr);
     return 0;
 }
 
@@ -77,7 +77,7 @@ static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t 
 {
     UNUSED(displayPort);
 
-    aghOSDDrawCharInGrid(x, y, c, attr);
+    frskyOSDDrawCharInGrid(x, y, c, attr);
     return 0;
 }
 
@@ -96,9 +96,11 @@ static bool isTransferInProgress(const displayPort_t *displayPort)
 static void resync(displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    // TODO: Refresh here?
-    displayPort->rows = aghOSDGetGridRows();
-    displayPort->cols = aghOSDGetGridCols();
+    // TODO(agh): Do we need to flush the screen here?
+    // MAX7456's driver does a full redraw in resync(),
+    // so some callers might be expecting that.
+    displayPort->rows = frskyOSDGetGridRows();
+    displayPort->cols = frskyOSDGetGridCols();
 }
 
 static int heartbeat(displayPort_t *displayPort)
@@ -131,7 +133,7 @@ static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
     osdCharacter_t chr;
 
     metadata->charCount = 512;
-    return aghOSDReadFontCharacter(FONT_METADATA_CHR_INDEX, &chr) &&
+    return frskyOSDReadFontCharacter(FONT_METADATA_CHR_INDEX, &chr) &&
         displayFontMetadataUpdateFromCharacter(metadata, &chr);
 
 }
@@ -140,7 +142,7 @@ static int writeFontCharacter(displayPort_t *instance, uint16_t addr, const osdC
 {
     UNUSED(instance);
 
-    aghOSDWriteFontCharacter(addr, chr);
+    frskyOSDWriteFontCharacter(addr, chr);
     return 0;
 }
 
@@ -148,10 +150,10 @@ static bool isReady(const displayPort_t *instance)
 {
     UNUSED(instance);
 
-    return aghOSDIsReady();
+    return frskyOSDIsReady();
 }
 
-static const displayPortVTable_t aghOSDVTable = {
+static const displayPortVTable_t frskyOSDVTable = {
     .grab = grab,
     .release = release,
     .clearScreen = clearScreen,
@@ -170,14 +172,14 @@ static const displayPortVTable_t aghOSDVTable = {
     .isReady = isReady,
 };
 
-displayPort_t *aghOSDDisplayPortInit(const videoSystem_e videoSystem)
+displayPort_t *frskyOSDDisplayPortInit(const videoSystem_e videoSystem)
 {
-    if (aghOSDInit(videoSystem)) {
-        displayInit(&aghOSDDisplayPort, &aghOSDVTable);
-        resync(&aghOSDDisplayPort);
-        return &aghOSDDisplayPort;
+    if (frskyOSDInit(videoSystem)) {
+        displayInit(&frskyOSDDisplayPort, &frskyOSDVTable);
+        resync(&frskyOSDDisplayPort);
+        return &frskyOSDDisplayPort;
     }
     return NULL;
 }
 
-#endif // USE_AGHOSD
+#endif // USE_FRSKYOSD

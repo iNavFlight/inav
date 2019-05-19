@@ -95,7 +95,7 @@
 #include "io/beeper.h"
 #include "io/lights.h"
 #include "io/dashboard.h"
-#include "io/displayport_agh_osd.h"
+#include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
 #include "io/flashfs.h"
@@ -508,9 +508,9 @@ void init(void)
 
 #ifdef USE_OSD
     if (feature(FEATURE_OSD)) {
-#if defined(USE_AGHOSD)
+#if defined(USE_FRSKYOSD)
         if (!osdDisplayPort) {
-            osdDisplayPort = aghOSDDisplayPortInit(osdConfig()->video_system);
+            osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
 #if defined(USE_MAX7456)

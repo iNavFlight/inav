@@ -4,4 +4,4 @@
 
 typedef struct displayPort_s displayPort_t;
 
-displayPort_t *aghOSDDisplayPortInit(const videoSystem_e videoSystem);
+displayPort_t *frskyOSDDisplayPortInit(const videoSystem_e videoSystem);

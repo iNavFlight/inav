@@ -4,7 +4,7 @@
 
 #include "platform.h"
 
-#if defined(USE_AGHOSD)
+#if defined(USE_FRSKYOSD)
 
 #include "common/crc.h"
 #include "common/log.h"
@@ -13,25 +13,25 @@
 
 #include "drivers/time.h"
 
-#include "io/agh_osd.h"
+#include "io/frsky_osd.h"
 #include "io/serial.h"
 
-#define AGH_OSD_BAUDRATE 115200
+#define FRSKY_OSD_BAUDRATE 115200
 
-#define AGH_OSD_PREAMBLE_BYTE_0 '$'
-#define AGH_OSD_PREAMBLE_BYTE_1 'A'
+#define FRSKY_OSD_PREAMBLE_BYTE_0 '$'
+#define FRSKY_OSD_PREAMBLE_BYTE_1 'A'
 
-#define AGH_OSD_RECV_BUFFER_SIZE 64
+#define FRSKY_OSD_RECV_BUFFER_SIZE 64
 
-#define AGH_OSD_CMD_INFO 1
-#define AGH_OSD_CMD_READ_FONT 2
-#define AGH_OSD_CMD_WRITE_FONT 3
-#define AGH_OSD_CMD_CLEAR 4
-#define AGH_OSD_CMD_DRAW_GRID_CHAR 5
-#define AGH_OSD_CMD_DRAW_GRID_STR 6
+#define FRSKY_OSD_CMD_INFO 1
+#define FRSKY_OSD_CMD_READ_FONT 2
+#define FRSKY_OSD_CMD_WRITE_FONT 3
+#define FRSKY_OSD_CMD_CLEAR 4
+#define FRSKY_OSD_CMD_DRAW_GRID_CHAR 5
+#define FRSKY_OSD_CMD_DRAW_GRID_STR 6
 
-#define AGH_OSD_DEBUG(fmt, ...) LOG_D(OSD, fmt,  ##__VA_ARGS__)
-#define AGH_OSD_ERROR(fmt, ...) LOG_E(OSD, fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_ERROR(fmt, ...) LOG_E(OSD, fmt,  ##__VA_ARGS__)
 
 typedef enum {
     RECV_STATE_NONE,
@@ -41,9 +41,9 @@ typedef enum {
     RECV_STATE_DATA,
     RECV_STATE_CHECKSUM,
     RECV_STATE_DONE,
-} aghOSDRecvState_e;
+} frskyOSDRecvState_e;
 
-typedef struct aghOSDInfoResponse_s {
+typedef struct frskyOSDInfoResponse_s {
     uint8_t magic[3];
     uint8_t versionMajor;
     uint8_t versionMinor;
@@ -52,27 +52,27 @@ typedef struct aghOSDInfoResponse_s {
     uint8_t gridColumns;
     uint16_t pixelWidth;
     uint16_t pixelHeight;
-} __attribute__((packed)) aghOSDInfoResponse_t;
+} __attribute__((packed)) frskyOSDInfoResponse_t;
 
-typedef struct aghOSDFontCharacter_s {
+typedef struct frskyOSDFontCharacter_s {
     uint16_t addr;
     uint8_t data[54]; // 12x18 2bpp
-} __attribute__((packed)) aghOSDCharacter_t;
+} __attribute__((packed)) frskyOSDCharacter_t;
 
-typedef struct aghOSDDrawGridCharCmd_s {
+typedef struct frskyOSDDrawGridCharCmd_s {
     uint8_t gx;
     uint8_t gy;
     uint16_t chr;
     uint8_t attr;
-} __attribute__((packed)) aghOSDDrawGridCharCmd_t;
+} __attribute__((packed)) frskyOSDDrawGridCharCmd_t;
 
-typedef struct aghOSDState_s {
+typedef struct frskyOSDState_s {
     struct {
         uint8_t state;
         uint8_t cmd;
         uint8_t crc;
         uint8_t expected;
-        uint8_t data[AGH_OSD_RECV_BUFFER_SIZE];
+        uint8_t data[FRSKY_OSD_RECV_BUFFER_SIZE];
         uint8_t pos;
     } recv_buffer;
     struct {
@@ -89,16 +89,16 @@ typedef struct aghOSDState_s {
         } viewport;
     } info;
     serialPort_t *port;
-} aghOSDState_t;
+} frskyOSDState_t;
 
-static aghOSDState_t state;
+static frskyOSDState_t state;
 
-static uint8_t aghOSDChecksum(uint8_t crc, uint8_t c)
+static uint8_t frskyOSDChecksum(uint8_t crc, uint8_t c)
 {
     return crc8_dvb_s2(crc, c);
 }
 
-static void aghOSDResetReceiveBuffer(void)
+static void frskyOSDResetReceiveBuffer(void)
 {
     state.recv_buffer.state = RECV_STATE_NONE;
     state.recv_buffer.cmd = 0;
@@ -107,9 +107,9 @@ static void aghOSDResetReceiveBuffer(void)
     state.recv_buffer.pos = 0;
 }
 
-static void aghOSDStateReset(serialPort_t *port)
+static void frskyOSDStateReset(serialPort_t *port)
 {
-    aghOSDResetReceiveBuffer();
+    frskyOSDResetReceiveBuffer();
     state.info.grid.rows = 0;
     state.info.grid.columns = 0;
     state.info.viewport.width = 0;
@@ -118,77 +118,77 @@ static void aghOSDStateReset(serialPort_t *port)
     state.port = port;
 }
 
-static void aghOSDUpdateReceiveBuffer(void)
+static void frskyOSDUpdateReceiveBuffer(void)
 {
     while (serialRxBytesWaiting(state.port) > 0) {
         uint8_t c = serialRead(state.port);
-        switch ((aghOSDRecvState_e)state.recv_buffer.state) {
+        switch ((frskyOSDRecvState_e)state.recv_buffer.state) {
             case RECV_STATE_NONE:
-                if (c != AGH_OSD_PREAMBLE_BYTE_0) {
+                if (c != FRSKY_OSD_PREAMBLE_BYTE_0) {
                     break;
                 }
                 state.recv_buffer.state = RECV_STATE_SYNC;
                 break;
             case RECV_STATE_SYNC:
-                if (c != AGH_OSD_PREAMBLE_BYTE_1) {
-                    aghOSDResetReceiveBuffer();
+                if (c != FRSKY_OSD_PREAMBLE_BYTE_1) {
+                    frskyOSDResetReceiveBuffer();
                     break;
                 }
                 state.recv_buffer.state = RECV_STATE_CMD;
                 break;
             case RECV_STATE_CMD:
-                state.recv_buffer.crc = aghOSDChecksum(state.recv_buffer.crc, c);
+                state.recv_buffer.crc = frskyOSDChecksum(state.recv_buffer.crc, c);
                 state.recv_buffer.cmd = c;
                 state.recv_buffer.state = RECV_STATE_LENGTH;
                 break;
             case RECV_STATE_LENGTH:
                 if (c > sizeof(state.recv_buffer.data)) {
-                    AGH_OSD_ERROR("Can't handle payload of size %u with a buffer of size %u",
+                    FRSKY_OSD_ERROR("Can't handle payload of size %u with a buffer of size %u",
                         c, sizeof(state.recv_buffer.data));
-                    aghOSDResetReceiveBuffer();
+                    frskyOSDResetReceiveBuffer();
                     break;
                 }
-                state.recv_buffer.crc = aghOSDChecksum(state.recv_buffer.crc, c);
+                state.recv_buffer.crc = frskyOSDChecksum(state.recv_buffer.crc, c);
                 state.recv_buffer.expected = c;
                 state.recv_buffer.state = c > 0 ? RECV_STATE_DATA : RECV_STATE_CHECKSUM;
                 break;
             case RECV_STATE_DATA:
                 state.recv_buffer.data[state.recv_buffer.pos++] = c;
-                state.recv_buffer.crc = aghOSDChecksum(state.recv_buffer.crc, c);
+                state.recv_buffer.crc = frskyOSDChecksum(state.recv_buffer.crc, c);
                 if (state.recv_buffer.pos == state.recv_buffer.expected) {
                     state.recv_buffer.state = RECV_STATE_CHECKSUM;
                 }
                 break;
             case RECV_STATE_CHECKSUM:
                 if (c != state.recv_buffer.crc) {
-                    AGH_OSD_DEBUG("Checksum error %u != %u. Discarding %u bytes",
+                    FRSKY_OSD_DEBUG("Checksum error %u != %u. Discarding %u bytes",
                         c, state.recv_buffer.crc, state.recv_buffer.pos);
-                    aghOSDResetReceiveBuffer();
+                    frskyOSDResetReceiveBuffer();
                     break;
                 }
                 state.recv_buffer.state = RECV_STATE_DONE;
                 break;
             case RECV_STATE_DONE:
-                AGH_OSD_DEBUG("Received unexpected byte %u after data", c);
+                FRSKY_OSD_DEBUG("Received unexpected byte %u after data", c);
                 break;
         }
     }
 }
 
-static bool aghOSDIsResponseAvailable(void)
+static bool frskyOSDIsResponseAvailable(void)
 {
     return state.recv_buffer.state == RECV_STATE_DONE;
 }
 
-static bool aghOSDHandleCommand(void)
+static bool frskyOSDHandleCommand(void)
 {
     const void *data = state.recv_buffer.data;
     switch (state.recv_buffer.cmd) {
-        case AGH_OSD_CMD_INFO:
-            if (state.recv_buffer.expected >= sizeof(aghOSDInfoResponse_t)) {
-                const aghOSDInfoResponse_t *resp = data;
+        case FRSKY_OSD_CMD_INFO:
+            if (state.recv_buffer.expected >= sizeof(frskyOSDInfoResponse_t)) {
+                const frskyOSDInfoResponse_t *resp = data;
                 if (resp->magic[0] != 'A' || resp->magic[1] != 'G' || resp->magic[2] != 'H') {
-                    AGH_OSD_ERROR("Invalid magic number %x %x %x, expecting AGH",
+                    FRSKY_OSD_ERROR("Invalid magic number %x %x %x, expecting AGH",
                         resp->magic[0], resp->magic[1], resp->magic[2]);
                     return false;
                 }
@@ -198,7 +198,7 @@ static bool aghOSDHandleCommand(void)
                 state.info.grid.columns = resp->gridColumns;
                 state.info.viewport.width = resp->pixelWidth;
                 state.info.viewport.height = resp->pixelHeight;
-                AGH_OSD_DEBUG("AGH OSD initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
+                FRSKY_OSD_DEBUG("FrSky OSD initialized. Version %u.%u.%u, pixels=%ux%u, grid=%ux%u",
                     resp->versionMajor, resp->versionMinor, resp->versionPatch,
                     resp->pixelWidth, resp->pixelHeight, resp->gridColumns, resp->gridRows);
                 return true;
@@ -208,28 +208,28 @@ static bool aghOSDHandleCommand(void)
     return false;
 }
 
-static void aghOSDDispatchCommand(void)
+static void frskyOSDDispatchCommand(void)
 {
-    if (!aghOSDHandleCommand()) {
-        AGH_OSD_DEBUG("Discarding unknown command %u (%u bytes)",
+    if (!frskyOSDHandleCommand()) {
+        FRSKY_OSD_DEBUG("Discarding unknown command %u (%u bytes)",
             state.recv_buffer.cmd, state.recv_buffer.pos);
     }
-    aghOSDResetReceiveBuffer();
+    frskyOSDResetReceiveBuffer();
 }
 
-static void aghOSDClearReceiveBuffer(void)
+static void frskyOSDClearReceiveBuffer(void)
 {
-    aghOSDUpdateReceiveBuffer();
+    frskyOSDUpdateReceiveBuffer();
 
-    if (aghOSDIsResponseAvailable()) {
-        aghOSDDispatchCommand();
+    if (frskyOSDIsResponseAvailable()) {
+        frskyOSDDispatchCommand();
     } else if (state.recv_buffer.pos > 0) {
-        AGH_OSD_DEBUG("Discarding receive buffer with %u bytes", state.recv_buffer.pos);
-        aghOSDResetReceiveBuffer();
+        FRSKY_OSD_DEBUG("Discarding receive buffer with %u bytes", state.recv_buffer.pos);
+        frskyOSDResetReceiveBuffer();
     }
 }
 
-static void aghOSDProcessCommandU8(uint8_t *crc, uint8_t c)
+static void frskyOSDProcessCommandU8(uint8_t *crc, uint8_t c)
 {
     while (serialTxBytesFree(state.port) == 0) {
     };
@@ -239,142 +239,142 @@ static void aghOSDProcessCommandU8(uint8_t *crc, uint8_t c)
     }
 }
 
-static void aghOSDProcessCommandU16(uint8_t *crc, uint16_t c)
+static void frskyOSDProcessCommandU16(uint8_t *crc, uint16_t c)
 {
-    aghOSDProcessCommandU8(crc, c & 0xFF);
-    aghOSDProcessCommandU8(crc, c >> 8);
+    frskyOSDProcessCommandU8(crc, c & 0xFF);
+    frskyOSDProcessCommandU8(crc, c >> 8);
 }
 
-static void aghOSDSendPreamble(uint8_t *crc, uint8_t cmd)
+static void frskyOSDSendPreamble(uint8_t *crc, uint8_t cmd)
 {
     // TODO: Implement uvarint
-    aghOSDProcessCommandU8(NULL, AGH_OSD_PREAMBLE_BYTE_0);
-    aghOSDProcessCommandU8(NULL, AGH_OSD_PREAMBLE_BYTE_1);
-    aghOSDProcessCommandU8(crc, cmd);
+    frskyOSDProcessCommandU8(NULL, FRSKY_OSD_PREAMBLE_BYTE_0);
+    frskyOSDProcessCommandU8(NULL, FRSKY_OSD_PREAMBLE_BYTE_1);
+    frskyOSDProcessCommandU8(crc, cmd);
 }
 
-static void aghOSDSendAsyncCommand(uint8_t cmd, const void *data, size_t size)
+static void frskyOSDSendAsyncCommand(uint8_t cmd, const void *data, size_t size)
 {
-    AGH_OSD_DEBUG("Send async cmd %u", cmd);
+    FRSKY_OSD_DEBUG("Send async cmd %u", cmd);
     uint8_t crc = 0;
 
-    aghOSDSendPreamble(&crc, cmd);
+    frskyOSDSendPreamble(&crc, cmd);
 
     if (data && size > 0) {
-        aghOSDProcessCommandU8(&crc, size & 0x7F);
+        frskyOSDProcessCommandU8(&crc, size & 0x7F);
         const uint8_t *p = data;
         const uint8_t *end = p + size;
         for(; p != end; p++) {
-            aghOSDProcessCommandU8(&crc, *p);
+            frskyOSDProcessCommandU8(&crc, *p);
         }
     } else {
-        aghOSDProcessCommandU8(&crc, 0);
+        frskyOSDProcessCommandU8(&crc, 0);
     }
-    aghOSDProcessCommandU8(NULL, crc);
+    frskyOSDProcessCommandU8(NULL, crc);
 }
 
-static bool aghOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, timeMs_t timeout)
+static bool frskyOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, timeMs_t timeout)
 {
-    aghOSDClearReceiveBuffer();
-    aghOSDSendAsyncCommand(cmd, data, size);
+    frskyOSDClearReceiveBuffer();
+    frskyOSDSendAsyncCommand(cmd, data, size);
     timeMs_t end = millis() + timeout;
     while (millis() < end) {
-        aghOSDUpdateReceiveBuffer();
-        if (aghOSDIsResponseAvailable()) {
+        frskyOSDUpdateReceiveBuffer();
+        if (frskyOSDIsResponseAvailable()) {
             return true;
         }
     }
     return false;
 }
 
-static void aghOSDRequestInfo(void)
+static void frskyOSDRequestInfo(void)
 {
     timeMs_t now = millis();
     if (state.info.nextRequest < now) {
-        aghOSDSendAsyncCommand(AGH_OSD_CMD_INFO, NULL, 0);
+        frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_INFO, NULL, 0);
         state.info.nextRequest = now + 1000;
     }
 }
 
-bool aghOSDInit(videoSystem_e videoSystem)
+bool frskyOSDInit(videoSystem_e videoSystem)
 {
     // TODO: Use videoSystem to set the signal standard when
     // no input is detected.
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_AGH_OSD);
+    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_FRSKY_OSD);
     if (portConfig) {
         portOptions_t portOptions = 0;
         serialPort_t *port = openSerialPort(portConfig->identifier,
-            FUNCTION_AGH_OSD, NULL, NULL, AGH_OSD_BAUDRATE,
+            FUNCTION_FRSKY_OSD, NULL, NULL, FRSKY_OSD_BAUDRATE,
             MODE_RXTX, portOptions);
 
         if (port) {
-            aghOSDStateReset(port);
-            aghOSDRequestInfo();
+            frskyOSDStateReset(port);
+            frskyOSDRequestInfo();
             return true;
         }
     }
     return false;
 }
 
-bool aghOSDIsReady(void)
+bool frskyOSDIsReady(void)
 {
     return state.info.minor > 0 || state.info.major > 0;
 }
 
-void aghOSDUpdate(void)
+void frskyOSDUpdate(void)
 {
     if (!state.port) {
         return;
     }
-    aghOSDUpdateReceiveBuffer();
+    frskyOSDUpdateReceiveBuffer();
 
-    if (aghOSDIsResponseAvailable()) {
-        aghOSDDispatchCommand();
+    if (frskyOSDIsResponseAvailable()) {
+        frskyOSDDispatchCommand();
     }
 
-    if (!aghOSDIsReady()) {
+    if (!frskyOSDIsReady()) {
         // Info not received yet
-        aghOSDRequestInfo();
+        frskyOSDRequestInfo();
     }
 }
 
-bool aghOSDReadFontCharacter(unsigned char_address, osdCharacter_t *chr)
+bool frskyOSDReadFontCharacter(unsigned char_address, osdCharacter_t *chr)
 {
-    if (!aghOSDIsReady()) {
+    if (!frskyOSDIsReady()) {
         return false;
     }
 
     uint16_t addr = char_address;
 
     // 200ms should be more than enough to receive ~60 bytes @ 115200 bps
-    if (aghOSDSendSyncCommand(AGH_OSD_CMD_READ_FONT, &addr, sizeof(addr), 200)) {
-        if (state.recv_buffer.cmd != AGH_OSD_CMD_READ_FONT ||
+    if (frskyOSDSendSyncCommand(FRSKY_OSD_CMD_READ_FONT, &addr, sizeof(addr), 200)) {
+        if (state.recv_buffer.cmd != FRSKY_OSD_CMD_READ_FONT ||
             state.recv_buffer.expected < sizeof(*chr) + sizeof(addr)) {
 
-            aghOSDResetReceiveBuffer();
-            AGH_OSD_DEBUG("Bad font character at position %u", char_address);
+            frskyOSDResetReceiveBuffer();
+            FRSKY_OSD_DEBUG("Bad font character at position %u", char_address);
             return false;
         }
         // Skip character address
         memcpy(chr, &state.recv_buffer.data[2], sizeof(*chr));
-        aghOSDResetReceiveBuffer();
+        frskyOSDResetReceiveBuffer();
         return true;
     }
     return false;
 }
 
-bool aghOSDWriteFontCharacter(unsigned char_address, const osdCharacter_t *chr)
+bool frskyOSDWriteFontCharacter(unsigned char_address, const osdCharacter_t *chr)
 {
-    if (!aghOSDIsReady()) {
+    if (!frskyOSDIsReady()) {
         return false;
     }
 
-    aghOSDCharacter_t c;
+    frskyOSDCharacter_t c;
     STATIC_ASSERT(sizeof(*chr) == sizeof(c.data), invalid_character_size);
 
     memcpy(c.data, chr, sizeof(c.data));
     c.addr = char_address;
-    aghOSDSendAsyncCommand(AGH_OSD_CMD_WRITE_FONT, &c, sizeof(c));
+    frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_WRITE_FONT, &c, sizeof(c));
     // Wait until all bytes have been sent. Otherwise uploading
     // the very last character of the font might fail.
     // TODO: Investigate if we can change the max7456 handling to
@@ -383,59 +383,59 @@ bool aghOSDWriteFontCharacter(unsigned char_address, const osdCharacter_t *chr)
     return true;
 }
 
-unsigned aghOSDGetGridRows(void)
+unsigned frskyOSDGetGridRows(void)
 {
     return state.info.grid.rows;
 }
 
-unsigned aghOSDGetGridCols(void)
+unsigned frskyOSDGetGridCols(void)
 {
     return state.info.grid.columns;
 }
 
-void aghOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
+void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
 {
     uint8_t crc = 0;
-    aghOSDSendPreamble(&crc, AGH_OSD_CMD_DRAW_GRID_STR);
+    frskyOSDSendPreamble(&crc, FRSKY_OSD_CMD_DRAW_GRID_STR);
     uint8_t size = 1 + 1 + strlen(buff) + 1;
     if (attr != 0) {
         size += 1;
     }
-    aghOSDProcessCommandU8(&crc, size);
-    aghOSDProcessCommandU8(&crc, x);
-    aghOSDProcessCommandU8(&crc, y);
+    frskyOSDProcessCommandU8(&crc, size);
+    frskyOSDProcessCommandU8(&crc, x);
+    frskyOSDProcessCommandU8(&crc, y);
     for (const char *p = buff; *p; p++) {
-        aghOSDProcessCommandU8(&crc, *p);
+        frskyOSDProcessCommandU8(&crc, *p);
     }
     // Terminate string
-    aghOSDProcessCommandU8(&crc, 0);
+    frskyOSDProcessCommandU8(&crc, 0);
     if (attr != 0) {
-        aghOSDProcessCommandU8(&crc, attr);
+        frskyOSDProcessCommandU8(&crc, attr);
     }
-    aghOSDProcessCommandU8(NULL, crc);
+    frskyOSDProcessCommandU8(NULL, crc);
 }
 
-void aghOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
+void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
 {
     uint8_t crc = 0;
-    aghOSDSendPreamble(&crc, AGH_OSD_CMD_DRAW_GRID_CHAR);
+    frskyOSDSendPreamble(&crc, FRSKY_OSD_CMD_DRAW_GRID_CHAR);
     uint8_t size = 1 + 1 + 2;
     if (attr != 0) {
         size += 1;
     }
-    aghOSDProcessCommandU8(&crc, size);
-    aghOSDProcessCommandU8(&crc, x);
-    aghOSDProcessCommandU8(&crc, y);
-    aghOSDProcessCommandU16(&crc, chr);
+    frskyOSDProcessCommandU8(&crc, size);
+    frskyOSDProcessCommandU8(&crc, x);
+    frskyOSDProcessCommandU8(&crc, y);
+    frskyOSDProcessCommandU16(&crc, chr);
     if (attr != 0) {
-        aghOSDProcessCommandU8(&crc, attr);
+        frskyOSDProcessCommandU8(&crc, attr);
     }
-    aghOSDProcessCommandU8(NULL, crc);
+    frskyOSDProcessCommandU8(NULL, crc);
 }
 
-void aghOSDClearScreen(void)
+void frskyOSDClearScreen(void)
 {
-    aghOSDSendAsyncCommand(AGH_OSD_CMD_CLEAR, NULL, 0);
+    frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_CLEAR, NULL, 0);
 }
 
 #endif
