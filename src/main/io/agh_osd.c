@@ -6,9 +6,8 @@
 
 #if defined(USE_AGHOSD)
 
-#include "build/debug.h"
-
 #include "common/crc.h"
+#include "common/log.h"
 #include "common/time.h"
 #include "common/utils.h"
 
@@ -31,8 +30,8 @@
 #define AGH_OSD_CMD_DRAW_GRID_CHAR 5
 #define AGH_OSD_CMD_DRAW_GRID_STR 6
 
-#define AGH_OSD_DEBUG(fmt, ...) DEBUG_TRACE(fmt,  ##__VA_ARGS__)
-#define AGH_OSD_ERROR(fmt, ...) DEBUG_TRACE(fmt,  ##__VA_ARGS__)
+#define AGH_OSD_DEBUG(fmt, ...) LOG_D(OSD, fmt,  ##__VA_ARGS__)
+#define AGH_OSD_ERROR(fmt, ...) LOG_E(OSD, fmt,  ##__VA_ARGS__)
 
 typedef enum {
     RECV_STATE_NONE,
@@ -418,7 +417,6 @@ void aghOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttrib
 
 void aghOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
 {
-    DEBUG_TRACE("WRITE CHAR GRID CHR %u %u %u", x, y, chr);
     uint8_t crc = 0;
     aghOSDSendPreamble(&crc, AGH_OSD_CMD_DRAW_GRID_CHAR);
     uint8_t size = 1 + 1 + 2;

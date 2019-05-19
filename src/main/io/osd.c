@@ -43,6 +43,7 @@
 #include "common/axis.h"
 #include "common/constants.h"
 #include "common/filter.h"
+#include "common/log.h"
 #include "common/olc.h"
 #include "common/printf.h"
 #include "common/string_light.h"
@@ -2848,7 +2849,7 @@ static void osdCompleteAsyncInitialization(void)
     uint8_t y = 1;
     displayFontMetadata_t metadata;
     bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
-    DEBUG_TRACE("Font metadata version %d: %u (%u chars)",
+    LOG_D(OSD, "Font metadata version %d: %u (%u chars)",
         (int)fontHasMetadata, metadata.version, metadata.charCount);
 
     if (fontHasMetadata && metadata.charCount > 256) {
