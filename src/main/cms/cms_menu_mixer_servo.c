@@ -25,7 +25,7 @@
 
 #include "platform.h"
 
-//#ifdef USE_CMS
+#ifdef USE_CMS
 
 #include "common/utils.h"
 
@@ -308,4 +308,4 @@ const CMS_Menu cmsx_menuMixerServo = {
     .entries = cmsx_mixerServoEntries
 };
 
-//#endif
+#endif
