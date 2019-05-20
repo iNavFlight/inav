@@ -1207,7 +1207,7 @@ static void cliTempSensor(char *cmdline)
                 sensorConfig->alarm_min = alarm_min;
                 sensorConfig->alarm_max = alarm_max;
                 sensorConfig->osdSymbol = osdSymbol;
-                for (uint8_t index; index < TEMPERATURE_LABEL_LEN; ++index) {
+                for (uint8_t index = 0; index < TEMPERATURE_LABEL_LEN; ++index) {
                     sensorConfig->label[index] = toupper(label[index]);
                     if (label[index] == '\0') break;
                 }
