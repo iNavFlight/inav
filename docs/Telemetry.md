@@ -40,7 +40,7 @@ Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry
 
 ```
 set telemetry_inverted = OFF
-set smartport_uart_unidir = OFF
+set telemetry_uart_unidir = OFF
 ```
 
 ### Receiver univerted hack
@@ -49,7 +49,7 @@ Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport 
 
 ```
 set telemetry_inverted = ON
-set smartport_uart_unidir = OFF
+set telemetry_uart_unidir = OFF
 ```
 
 ### Software Serial
@@ -86,7 +86,7 @@ It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and
 When external inverter is used, following configuration has to be applied:
 
 ```
-set smartport_uart_unidir = ON
+set telemetry_uart_unidir = ON
 set telemetry_inverted = ON
 ```
 
