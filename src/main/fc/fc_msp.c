@@ -1453,7 +1453,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, sensorConfig->alarm_min);
             sbufWriteU16(dst, sensorConfig->alarm_max);
             sbufWriteU8(dst, sensorConfig->osdSymbol);
-            for (uint8_t labelIndex = 0; labelIndex < 4; ++labelIndex)
+            for (uint8_t labelIndex = 0; labelIndex < TEMPERATURE_LABEL_LEN; ++labelIndex)
                 sbufWriteU8(dst, sensorConfig->label[labelIndex]);
         }
         break;
@@ -2794,7 +2794,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 sensorConfig->alarm_max = sbufReadU16(src);
                 tmp_u8 = sbufReadU8(src);
                 sensorConfig->osdSymbol = tmp_u8 > TEMP_SENSOR_SYM_COUNT ? 0 : tmp_u8;
-                for (uint8_t labelIndex = 0; labelIndex < 4; ++labelIndex)
+                for (uint8_t labelIndex = 0; labelIndex < TEMPERATURE_LABEL_LEN; ++labelIndex)
                     sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
             }
         } else
