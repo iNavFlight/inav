@@ -1123,7 +1123,7 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #endif
 
 #ifdef USE_TEMPERATURE_SENSOR
-    for (uint8_t index; index < MAX_TEMP_SENSORS; ++index) {
+    for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
         valid_temp = getSensorTemperature(index, slow->tempSensorTemperature + index);
         if (!valid_temp) slow->tempSensorTemperature[index] = TEMPERATURE_INVALID_VALUE;
     }

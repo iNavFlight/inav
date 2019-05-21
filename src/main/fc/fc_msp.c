@@ -1448,12 +1448,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
             const tempSensorConfig_t *sensorConfig = tempSensorConfig(index);
             sbufWriteU8(dst, sensorConfig->type);
-            for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+            for (uint8_t addrIndex = 0; addrIndex < 8; ++addrIndex)
                 sbufWriteU8(dst, ((uint8_t *)&sensorConfig->address)[addrIndex]);
             sbufWriteU16(dst, sensorConfig->alarm_min);
             sbufWriteU16(dst, sensorConfig->alarm_max);
             sbufWriteU8(dst, sensorConfig->osdSymbol);
-            for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+            for (uint8_t labelIndex = 0; labelIndex < 4; ++labelIndex)
                 sbufWriteU8(dst, sensorConfig->label[labelIndex]);
         }
         break;
@@ -2788,13 +2788,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
                 tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(index);
                 sensorConfig->type = sbufReadU8(src);
-                for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+                for (uint8_t addrIndex = 0; addrIndex < 8; ++addrIndex)
                     ((uint8_t *)&sensorConfig->address)[addrIndex] = sbufReadU8(src);
                 sensorConfig->alarm_min = sbufReadU16(src);
                 sensorConfig->alarm_max = sbufReadU16(src);
                 tmp_u8 = sbufReadU8(src);
                 sensorConfig->osdSymbol = tmp_u8 > TEMP_SENSOR_SYM_COUNT ? 0 : tmp_u8;
-                for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
+                for (uint8_t labelIndex = 0; labelIndex < 4; ++labelIndex)
                     sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
             }
         } else
