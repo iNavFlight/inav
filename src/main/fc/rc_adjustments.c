@@ -264,10 +264,10 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 5 }}
-	}, {
-		.adjustmentFunction = ADJUSTMENT_VTX_POWER_LEVEL,
-		.mode = ADJUSTMENT_MODE_STEP,
-		.data = { .stepConfig = { .step = 1 }}  
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VTX_POWER_LEVEL,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}  
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
     }, {
         .adjustmentFunction = ADJUSTMENT_PROFILE,
@@ -548,9 +548,9 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &mixerConfigMutable()->fwMinThrottleDownPitchAngle, delta, 0, FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX);
             break;
-		case ADJUSTMENT_VTX_POWER_LEVEL:
-			applyAdjustmentU8(ADJUSTMENT_VTX_POWER_LEVEL, &vtxSettingsConfigMutable()->power, delta, VTX_SETTINGS_MIN_POWER, VTX_SETTINGS_MAX_POWER);
-			break;
+        case ADJUSTMENT_VTX_POWER_LEVEL:
+            applyAdjustmentU8(ADJUSTMENT_VTX_POWER_LEVEL, &vtxSettingsConfigMutable()->power, delta, VTX_SETTINGS_MIN_POWER, VTX_SETTINGS_MAX_POWER);
+            break;
         default:
             break;
     };
