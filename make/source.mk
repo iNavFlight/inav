@@ -44,6 +44,7 @@ COMMON_SRC = \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
             drivers/pitotmeter_adc.c \
+            drivers/pitotmeter_virtual.c \
             drivers/pwm_esc_detect.c \
             drivers/pwm_mapping.c \
             drivers/pwm_output.c \

@@ -145,6 +145,7 @@
 #define USE_RCDEVICE
 #define USE_PITOT
 #define USE_PITOT_ADC
+#define USE_PITOT_VIRTUAL
 
 //Enable VTX control
 #define USE_VTX_CONTROL
