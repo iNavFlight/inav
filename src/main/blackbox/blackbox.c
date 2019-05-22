@@ -65,6 +65,7 @@
 #include "navigation/navigation.h"
 
 #include "rx/rx.h"
+#include "rx/msp_override.h"
 
 #include "sensors/diagnostics.h"
 #include "sensors/acceleration.h"
@@ -363,6 +364,9 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
     {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
     {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    {"mspOverrideFlags",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+#endif
     {"IMUTemperature",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
 #ifdef USE_BARO
     {"baroTemperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
@@ -475,6 +479,9 @@ typedef struct blackboxSlowState_s {
     uint16_t powerSupplyImpedance;
     uint16_t sagCompensatedVBat;
     int16_t wind[XYZ_AXIS_COUNT];
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    uint16_t mspOverrideFlags;
+#endif
     int16_t imuTemperature;
 #ifdef USE_BARO
     int16_t baroTemperature;
@@ -1071,6 +1078,10 @@ static void writeSlowFrame(void)
 
     blackboxWriteSigned16VBArray(slowHistory.wind, XYZ_AXIS_COUNT);
 
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    blackboxWriteUnsignedVB(slowHistory.mspOverrideFlags);
+#endif
+
     blackboxWriteSignedVB(slowHistory.imuTemperature);
 
 #ifdef USE_BARO
@@ -1112,6 +1123,10 @@ static void loadSlowState(blackboxSlowState_t *slow)
         slow->wind[i] = 0;
 #endif
     }
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    slow->mspOverrideFlags = (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) ? 2 : 0) + (mspOverrideIsInFailsafe() ? 1 : 0);
+#endif
 
     bool valid_temp;
     valid_temp = getIMUTemperature(&slow->imuTemperature);

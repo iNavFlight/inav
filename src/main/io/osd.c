@@ -83,6 +83,7 @@
 #include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
+#include "rx/msp_override.h"
 
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
@@ -2505,6 +2506,16 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    case OSD_RC_SOURCE:
+        {
+            const char *source_text = IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe() ? "MSP" : "STD";
+            if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && mspOverrideIsInFailsafe()) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, source_text, elemAttr);
+            return true;
+        }
+#endif
+
     default:
         return false;
     }
@@ -2707,6 +2718,10 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GFORCE_X] = OSD_POS(12, 5);
     osdConfig->item_pos[0][OSD_GFORCE_Y] = OSD_POS(12, 6);
     osdConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 7);
+
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    osdConfig->item_pos[0][OSD_RC_SOURCE] = OSD_POS(3, 4);
+#endif
 
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;

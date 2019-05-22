@@ -102,11 +102,13 @@ COMMON_SRC = \
             io/rcdevice.c \
             io/rcdevice_cam.c \
             msp/msp_serial.c \
+            rx/crsf.c \
+            rx/eleres.c \
             rx/fport.c \
             rx/ibus.c \
             rx/jetiexbus.c \
             rx/msp.c \
-            rx/uib_rx.c \
+            rx/msp_override.c \
             rx/nrf24_cx10.c \
             rx/nrf24_inav.c \
             rx/nrf24_h8_3d.c \
@@ -115,14 +117,13 @@ COMMON_SRC = \
             rx/pwm.c \
             rx/rx.c \
             rx/rx_spi.c \
-            rx/crsf.c \
             rx/sbus.c \
             rx/sbus_channels.c \
             rx/spektrum.c \
             rx/sumd.c \
             rx/sumh.c \
+            rx/uib_rx.c \
             rx/xbus.c \
-            rx/eleres.c \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \

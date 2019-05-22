@@ -249,6 +249,10 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("G-FORCE Y", OSD_GFORCE),
     OSD_ELEMENT_ENTRY("G-FORCE Z", OSD_GFORCE),
 
+#if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
+    OSD_ELEMENT_ENTRY("RC SOURCE", OSD_RC_SOURCE),
+#endif
+
     OSD_ELEMENT_ENTRY("IMU TEMP", OSD_IMU_TEMPERATURE),
 #ifdef USE_BARO
     OSD_ELEMENT_ENTRY("BARO TEMP", OSD_BARO_TEMPERATURE),
@@ -268,7 +272,7 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_BACK_AND_END_ENTRY,
 };
 
-#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR)
+#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR) && defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
 // All CMS OSD elements should be enabled in this case. The menu has 2 extra
 // elements (label, back+end), but there's an OSD element that we intentionally
 // don't show here (OSD_DEBUG).
