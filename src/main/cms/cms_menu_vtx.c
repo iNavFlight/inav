@@ -128,8 +128,7 @@ static const OSD_Entry cmsx_menuVtxEntries[] =
     OSD_BOOL_ENTRY("LOW POWER", &masterConfig.vtx_power),
 #endif // USE_RTC6705
 
-    OSD_BACK_ENTRY,
-    OSD_END_ENTRY,
+    OSD_BACK_AND_END_ENTRY,
 };
 
 const CMS_Menu cmsx_menuVtx = {

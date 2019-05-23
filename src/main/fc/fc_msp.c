@@ -41,7 +41,9 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/compass/compass.h"
-#include "drivers/max7456.h"
+#include "drivers/display.h"
+#include "drivers/osd.h"
+#include "drivers/osd_symbols.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/sdcard.h"
 #include "drivers/serial.h"
@@ -314,7 +316,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         // 0 = no OSD
         // 1 = OSD slave (not supported in INAV)
         // 2 = OSD chip on board
-#if defined(USE_OSD) && defined(USE_MAX7456)
+#if defined(USE_OSD)
         sbufWriteU8(dst, 2);
 #else
         sbufWriteU8(dst, 0);
@@ -463,12 +465,38 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, 0);
         }
         break;
+    case MSP2_INAV_SERVO_MIXER:
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            sbufWriteU8(dst, customServoMixers(i)->targetChannel);
+            sbufWriteU8(dst, customServoMixers(i)->inputSource);
+            sbufWriteU16(dst, customServoMixers(i)->rate);
+            sbufWriteU8(dst, customServoMixers(i)->speed);
+        #ifdef USE_LOGIC_CONDITIONS
+            sbufWriteU8(dst, customServoMixers(i)->conditionId);
+        #else
+            sbufWriteU8(dst, -1);
+        #endif
+        }
+        break;
+#ifdef USE_LOGIC_CONDITIONS
+    case MSP2_INAV_LOGIC_CONDITIONS:
+        for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+            sbufWriteU8(dst, logicConditions(i)->enabled);
+            sbufWriteU8(dst, logicConditions(i)->operation);
+            sbufWriteU8(dst, logicConditions(i)->operandA.type);
+            sbufWriteU32(dst, logicConditions(i)->operandA.value);
+            sbufWriteU8(dst, logicConditions(i)->operandB.type);
+            sbufWriteU32(dst, logicConditions(i)->operandB.value);
+            sbufWriteU8(dst, logicConditions(i)->flags);
+        }
+        break;
+#endif
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            sbufWriteU16(dst, customMotorMixer(i)->throttle * 1000);
-            sbufWriteU16(dst, constrainf(customMotorMixer(i)->roll + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(customMotorMixer(i)->pitch + 2.0f, 0.0f, 4.0f) * 1000);
-            sbufWriteU16(dst, constrainf(customMotorMixer(i)->yaw + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, primaryMotorMixer(i)->throttle * 1000);
+            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->roll + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->pitch + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->yaw + 2.0f, 0.0f, 4.0f) * 1000);
         }
         break;
 
@@ -480,7 +508,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_RC:
         for (int i = 0; i < rxRuntimeConfig.channelCount; i++) {
-            sbufWriteU16(dst, rcRaw[i]);
+            sbufWriteU16(dst, rxGetRawChannelValue(i));
         }
         break;
 
@@ -514,7 +542,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP2_INAV_OPTICAL_FLOW:
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
         sbufWriteU8(dst, opflow.rawQuality);
         sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[X]));
         sbufWriteU16(dst, RADIANS_TO_DEGREES(opflow.flowRate[Y]));
@@ -550,7 +578,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ARMING_CONFIG:
-        sbufWriteU8(dst, armingConfig()->auto_disarm_delay);
+        sbufWriteU8(dst, 0);
         sbufWriteU8(dst, armingConfig()->disarm_kill_switch);
         break;
 
@@ -598,6 +626,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, pidBank()->pid[i].P);
             sbufWriteU8(dst, pidBank()->pid[i].I);
             sbufWriteU8(dst, pidBank()->pid[i].D);
+        }
+        break;
+
+    case MSP2_PID:
+        for (int i = 0; i < PID_ITEM_COUNT; i++) {
+            sbufWriteU8(dst, pidBank()->pid[i].P);
+            sbufWriteU8(dst, pidBank()->pid[i].I);
+            sbufWriteU8(dst, pidBank()->pid[i].D);
+            sbufWriteU8(dst, pidBank()->pid[i].FF);
         }
         break;
 
@@ -984,13 +1021,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_OSD_CONFIG:
 #ifdef USE_OSD
-        sbufWriteU8(dst, 1); // OSD supported
+        sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
         // send video system (AUTO/PAL/NTSC)
-#ifdef USE_MAX7456
         sbufWriteU8(dst, osdConfig()->video_system);
-#else
-        sbufWriteU8(dst, 0);
-#endif
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->rssi_alarm);
         sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
@@ -1002,7 +1035,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, osdConfig()->item_pos[0][i]);
         }
 #else
-        sbufWriteU8(dst, 0); // OSD not supported
+        sbufWriteU8(dst, OSD_DRIVER_NONE); // OSD not supported
 #endif
         break;
 
@@ -1029,7 +1062,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, gyroConfig()->gyro_align);
         sbufWriteU8(dst, accelerometerConfig()->acc_align);
         sbufWriteU8(dst, compassConfig()->mag_align);
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
         sbufWriteU8(dst, opticalFlowConfig()->opflow_align);
 #else
         sbufWriteU8(dst, 0);
@@ -1145,7 +1178,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
 #endif
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
         sbufWriteU8(dst, opticalFlowConfig()->opflow_hardware);
 #else
         sbufWriteU8(dst, 0);
@@ -1217,6 +1250,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     #else
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+    #endif
+
+    #ifdef USE_OPFLOW
+        sbufWriteU16(dst, opticalFlowConfig()->opflow_scale * 256);
+    #else
         sbufWriteU16(dst, 0);
     #endif
         break;
@@ -1356,6 +1395,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, osdConfig()->alt_alarm);
         sbufWriteU16(dst, osdConfig()->dist_alarm);
         sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
+        sbufWriteU16(dst, osdConfig()->gforce_alarm * 1000);
+        sbufWriteU16(dst, (int16_t)(osdConfig()->gforce_axis_alarm_min * 1000));
+        sbufWriteU16(dst, (int16_t)(osdConfig()->gforce_axis_alarm_max * 1000));
+        sbufWriteU8(dst, osdConfig()->current_alarm);
         sbufWriteU16(dst, osdConfig()->imu_temp_alarm_min);
         sbufWriteU16(dst, osdConfig()->imu_temp_alarm_max);
 #ifdef USE_BARO
@@ -1405,12 +1448,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
             const tempSensorConfig_t *sensorConfig = tempSensorConfig(index);
             sbufWriteU8(dst, sensorConfig->type);
-            for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+            for (uint8_t addrIndex = 0; addrIndex < 8; ++addrIndex)
                 sbufWriteU8(dst, ((uint8_t *)&sensorConfig->address)[addrIndex]);
-            for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
-                sbufWriteU8(dst, sensorConfig->label[labelIndex]);
             sbufWriteU16(dst, sensorConfig->alarm_min);
             sbufWriteU16(dst, sensorConfig->alarm_max);
+            sbufWriteU8(dst, sensorConfig->osdSymbol);
+            for (uint8_t labelIndex = 0; labelIndex < TEMPERATURE_LABEL_LEN; ++labelIndex)
+                sbufWriteU8(dst, sensorConfig->label[labelIndex]);
         }
         break;
 #endif
@@ -1513,7 +1557,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_ARMING_CONFIG:
         if (dataSize >= 2) {
-            armingConfigMutable()->auto_disarm_delay = constrain(sbufReadU8(src), AUTO_DISARM_DELAY_MIN, AUTO_DISARM_DELAY_MAX);
+            sbufReadU8(src); //Swallow the first byte, used to be auto_disarm_delay
             armingConfigMutable()->disarm_kill_switch = !!sbufReadU8(src);
         } else
             return MSP_RESULT_ERROR;
@@ -1536,6 +1580,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 pidBankMutable()->pid[i].P = sbufReadU8(src);
                 pidBankMutable()->pid[i].I = sbufReadU8(src);
                 pidBankMutable()->pid[i].D = sbufReadU8(src);
+            }
+            schedulePidGainsUpdate();
+#if defined(USE_NAV)
+            navigationUsePIDs();
+#endif
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_SET_PID:
+        if (dataSize >= PID_ITEM_COUNT * 4) {
+            for (int i = 0; i < PID_ITEM_COUNT; i++) {
+                pidBankMutable()->pid[i].P = sbufReadU8(src);
+                pidBankMutable()->pid[i].I = sbufReadU8(src);
+                pidBankMutable()->pid[i].D = sbufReadU8(src);
+                pidBankMutable()->pid[i].FF = sbufReadU8(src);
             }
             schedulePidGainsUpdate();
 #if defined(USE_NAV)
@@ -1824,13 +1884,44 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+    case MSP2_INAV_SET_SERVO_MIXER:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == 7) && (tmp_u8 < MAX_SERVO_RULES)) {
+            customServoMixersMutable(tmp_u8)->targetChannel = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->inputSource = sbufReadU8(src);
+            customServoMixersMutable(tmp_u8)->rate = sbufReadU16(src);
+            customServoMixersMutable(tmp_u8)->speed = sbufReadU8(src);
+        #ifdef USE_LOGIC_CONDITIONS
+            customServoMixersMutable(tmp_u8)->conditionId = sbufReadU8(src);
+        #else
+            sbufReadU8(src);
+        #endif
+            loadCustomServoMixer();
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#ifdef USE_LOGIC_CONDITIONS
+    case MSP2_INAV_SET_LOGIC_CONDITIONS:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == 14) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
+            logicConditionsMutable(tmp_u8)->enabled = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operation = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operandA.type = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operandA.value = sbufReadU32(src);
+            logicConditionsMutable(tmp_u8)->operandB.type = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->operandB.value = sbufReadU32(src);
+            logicConditionsMutable(tmp_u8)->flags = sbufReadU8(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_SUPPORTED_MOTORS)) {
-            customMotorMixerMutable(tmp_u8)->throttle = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 1.0f);
-            customMotorMixerMutable(tmp_u8)->roll = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
-            customMotorMixerMutable(tmp_u8)->pitch = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
-            customMotorMixerMutable(tmp_u8)->yaw = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
+            primaryMotorMixerMutable(tmp_u8)->throttle = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 1.0f);
+            primaryMotorMixerMutable(tmp_u8)->roll = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
+            primaryMotorMixerMutable(tmp_u8)->pitch = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
+            primaryMotorMixerMutable(tmp_u8)->yaw = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -1867,7 +1958,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #else
             sbufReadU8(src);
 #endif
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
             opticalFlowConfigMutable()->opflow_align = sbufReadU8(src);
 #else
             sbufReadU8(src);
@@ -1999,7 +2090,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #else
             sbufReadU8(src);        // rangefinder hardware
 #endif
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
             opticalFlowConfigMutable()->opflow_hardware = sbufReadU8(src);
 #else
             sbufReadU8(src);        // optical flow hardware
@@ -2083,6 +2174,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);
             sbufReadU16(src);
 #endif
+#ifdef USE_OPFLOW
+            if (dataSize >= 20) {
+                opticalFlowConfigMutable()->opflow_scale = sbufReadU16(src) / 256.0f;
+            }
+#endif
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2124,6 +2220,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#ifdef USE_OPFLOW
+    case MSP2_INAV_OPFLOW_CALIBRATION:
+        if (!ARMING_FLAG(ARMED))
+            opflowStartCalibration();
+        else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
+
     case MSP_EEPROM_WRITE:
         if (!ARMING_FLAG(ARMED)) {
             writeEEPROM();
@@ -2150,11 +2255,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         // set all the other settings
         if ((int8_t)tmp_u8 == -1) {
             if (dataSize >= 10) {
-#ifdef USE_MAX7456
                 osdConfigMutable()->video_system = sbufReadU8(src);
-#else
-                sbufReadU8(src); // Skip video system
-#endif
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->rssi_alarm = sbufReadU8(src);
                 currentBatteryProfileMutable->capacity.warning = sbufReadU16(src);
@@ -2180,23 +2281,26 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_OSD_CHAR_WRITE:
-#ifdef USE_MAX7456
         if (dataSize >= 55) {
-            max7456Character_t chr;
+            osdCharacter_t chr;
             uint16_t addr;
             if (dataSize >= 56) {
+                // 16 bit character address
                 addr = sbufReadU16(src);
             } else {
+                // 8 bit character address, for backwards compatibility
                 addr = sbufReadU8(src);
             }
             for (unsigned ii = 0; ii < sizeof(chr.data); ii++) {
                 chr.data[ii] = sbufReadU8(src);
             }
-            // !!TODO - replace this with a device independent implementation
-            max7456WriteNvm(addr, &chr);
-        } else
+            displayPort_t *osdDisplayPort = osdGetDisplayPort();
+            if (osdDisplayPort) {
+                displayWriteFontCharacter(osdDisplayPort, addr, &chr);
+            }
+        } else {
             return MSP_RESULT_ERROR;
-#endif // USE_MAX7456
+        }
         break;
 #endif // USE_OSD
 
@@ -2610,12 +2714,19 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_ALARMS:
         {
-            if (dataSize >= 17) {
+            if (dataSize == 24) {
                 osdConfigMutable()->rssi_alarm = sbufReadU8(src);
                 osdConfigMutable()->time_alarm = sbufReadU16(src);
                 osdConfigMutable()->alt_alarm = sbufReadU16(src);
                 osdConfigMutable()->dist_alarm = sbufReadU16(src);
                 osdConfigMutable()->neg_alt_alarm = sbufReadU16(src);
+                tmp_u16 = sbufReadU16(src);
+                osdConfigMutable()->gforce_alarm = tmp_u16 / 1000.0f;
+                tmp_u16 = sbufReadU16(src);
+                osdConfigMutable()->gforce_axis_alarm_min = (int16_t)tmp_u16 / 1000.0f;
+                tmp_u16 = sbufReadU16(src);
+                osdConfigMutable()->gforce_axis_alarm_max = (int16_t)tmp_u16 / 1000.0f;
+                osdConfigMutable()->current_alarm = sbufReadU8(src);
                 osdConfigMutable()->imu_temp_alarm_min = sbufReadU16(src);
                 osdConfigMutable()->imu_temp_alarm_max = sbufReadU16(src);
 #ifdef USE_BARO
@@ -2677,12 +2788,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             for (uint8_t index = 0; index < MAX_TEMP_SENSORS; ++index) {
                 tempSensorConfig_t *sensorConfig = tempSensorConfigMutable(index);
                 sensorConfig->type = sbufReadU8(src);
-                for (uint8_t addrIndex; addrIndex < 8; ++addrIndex)
+                for (uint8_t addrIndex = 0; addrIndex < 8; ++addrIndex)
                     ((uint8_t *)&sensorConfig->address)[addrIndex] = sbufReadU8(src);
-                for (uint8_t labelIndex; labelIndex < 4; ++labelIndex)
-                    sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
                 sensorConfig->alarm_min = sbufReadU16(src);
                 sensorConfig->alarm_max = sbufReadU16(src);
+                tmp_u8 = sbufReadU8(src);
+                sensorConfig->osdSymbol = tmp_u8 > TEMP_SENSOR_SYM_COUNT ? 0 : tmp_u8;
+                for (uint8_t labelIndex = 0; labelIndex < TEMPERATURE_LABEL_LEN; ++labelIndex)
+                    sensorConfig->label[labelIndex] = toupper(sbufReadU8(src));
             }
         } else
             return MSP_RESULT_ERROR;

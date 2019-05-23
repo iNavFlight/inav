@@ -18,7 +18,8 @@
 #pragma once
 
 #include <stdbool.h>
-#include "drivers/vcd.h"
+
+#include "drivers/osd.h"
 
 #ifndef WHITEBRIGHTNESS
   #define WHITEBRIGHTNESS 0x01
@@ -41,14 +42,10 @@ enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 #define MAX7456_MODE_BLINK    (1 << 4)
 #define MAX7456_MODE_SOLID_BG (1 << 5)
 
-typedef struct max7456Character_s {
-    uint8_t data[54];
-} max7456Character_t;
-
 void max7456Init(const videoSystem_e videoSystem);
 void max7456Update(void);
-void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr);
-void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr);
+void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr);
+void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr);
 uint16_t max7456GetScreenSize(void);
 uint8_t max7456GetRowsCount(void);
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);

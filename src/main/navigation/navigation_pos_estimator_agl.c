@@ -149,9 +149,10 @@ void estimationCalculateAGL(estimationContext_t * ctx)
         }
 
         // Update estimate
+        const float accWeight = navGetAccelerometerWeight();
         posEstimator.est.aglAlt += posEstimator.est.aglVel * ctx->dt;
-        posEstimator.est.aglAlt += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f;
-        posEstimator.est.aglVel += posEstimator.imu.accelNEU.z * ctx->dt;
+        posEstimator.est.aglAlt += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f * accWeight;
+        posEstimator.est.aglVel += posEstimator.imu.accelNEU.z * ctx->dt * sq(accWeight);
 
         // Apply correction
         if (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) {

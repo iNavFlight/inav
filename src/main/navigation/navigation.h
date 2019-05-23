@@ -32,7 +32,7 @@
 
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
-extern uint16_t             GPS_distanceToHome;        // distance to home point in meters
+extern uint32_t             GPS_distanceToHome;        // distance to home point in meters 
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
 
 extern bool autoThrottleManuallyIncreased;
@@ -49,6 +49,8 @@ void onNewGPSData(void);
 #define NAV_MAX_WAYPOINTS 15
 #endif
 
+#define NAV_ACCEL_CUTOFF_FREQUENCY_HZ 2       // low-pass filter on XY-acceleration target
+
 enum {
     NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
     NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
@@ -61,11 +63,13 @@ enum {
 };
 
 enum {
-    NAV_RTH_NO_ALT          = 0,            // Maintain current altitude
-    NAV_RTH_EXTRA_ALT       = 1,            // Maintain current altitude + predefined safety margin
-    NAV_RTH_CONST_ALT       = 2,            // Climb/descend to predefined altitude
-    NAV_RTH_MAX_ALT         = 3,            // Track maximum altitude and climb to it when RTH
-    NAV_RTH_AT_LEAST_ALT    = 4,            // Climb to predefined altitude if below it
+    NAV_RTH_NO_ALT                       = 0, // Maintain current altitude
+    NAV_RTH_EXTRA_ALT                    = 1, // Maintain current altitude + predefined safety margin
+    NAV_RTH_CONST_ALT                    = 2, // Climb/descend to predefined altitude
+    NAV_RTH_MAX_ALT                      = 3, // Track maximum altitude and climb to it when RTH
+    NAV_RTH_AT_LEAST_ALT                 = 4, // Climb to predefined altitude if below it
+    NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT  = 5, // Climb to predefined altitude if below it,
+                                              // descend linearly to reach home at predefined altitude if above it
 };
 
 enum {
@@ -85,6 +89,19 @@ typedef enum {
     NAV_RTH_ALLOW_LANDING_ALWAYS = 1,
     NAV_RTH_ALLOW_LANDING_FS_ONLY = 2, // Allow landing only if RTH was triggered by failsafe
 } navRTHAllowLanding_e;
+
+typedef enum {
+    NAV_EXTRA_ARMING_SAFETY_OFF = 0,
+    NAV_EXTRA_ARMING_SAFETY_ON = 1,
+    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 2, // Allow disabling by holding THR+YAW low
+} navExtraArmingSafety_e;
+
+typedef enum {
+    NAV_ARMING_BLOCKER_NONE = 0,
+    NAV_ARMING_BLOCKER_MISSING_GPS_FIX = 1,
+    NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE = 2,
+    NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR = 3,
+} navArmingBlocker_e;
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
@@ -114,6 +131,7 @@ typedef struct positionEstimationConfig_s {
     float w_xy_res_v;
 
     float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
+    float w_xyz_acc_p;
 
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
@@ -126,7 +144,7 @@ typedef struct navConfig_s {
     struct {
         struct {
             uint8_t use_thr_mid_for_althold;    // Don't remember throttle when althold was initiated, assume that throttle is at Thr Mid = zero climb rate
-            uint8_t extra_arming_safety;        // Forcibly apply 100% throttle tilt compensation
+            uint8_t extra_arming_safety;        // from navExtraArmingSafety_e
             uint8_t user_control_mode;          // NAV_GPS_ATTI or NAV_GPS_CRUISE
             uint8_t rth_alt_control_mode;       // Controls the logic for choosing the RTH altitude
             uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
@@ -167,6 +185,8 @@ typedef struct navConfig_s {
         uint16_t braking_boost_speed_threshold; // Above this speed braking boost mode can engage
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
+        uint8_t posDecelerationTime;            // Brake time parameter
+        uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
     } mc;
 
     struct {
@@ -240,6 +260,7 @@ typedef struct {
     float kI;
     float kD;
     float kT;   // Tracking gain (anti-windup)
+    float kFF;  // FeedForward Component
 } pidControllerParam_t;
 
 typedef struct {
@@ -250,23 +271,20 @@ typedef struct {
     bool reset;
     pidControllerParam_t param;
     pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
+    float dTermLpfHz;                   // dTerm low pass filter cutoff frequency
     float integrator;                   // integrator value
     float last_input;                   // last input for derivative
 
     float integral;                     // used integral value in output
     float proportional;                 // used proportional value in output
     float derivative;                   // used derivative value in output
+    float feedForward;                  // used FeedForward value in output
     float output_constrained;           // controller output constrained
 } pidController_t;
 
-typedef struct {
-    pControllerParam_t param;
-    float output_constrained;
-} pController_t;
-
 typedef struct navigationPIDControllers_s {
     /* Multicopter PIDs */
-    pController_t   pos[XYZ_AXIS_COUNT];
+    pidController_t   pos[XYZ_AXIS_COUNT];
     pidController_t vel[XYZ_AXIS_COUNT];
     pidController_t surface;
 
@@ -350,7 +368,10 @@ bool navigationRequiresAngleMode(void);
 bool navigationRequiresThrottleTiltCompensation(void);
 bool navigationRequiresTurnAssistance(void);
 int8_t navigationGetHeadingControlState(void);
-bool navigationBlockArming(void);
+// Returns wether arming is blocked by the navigation system.
+// If usedBypass is provided, it will indicate wether any checks
+// were bypassed due to user input.
+navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass);
 bool navigationPositionEstimateIsHealthy(void);
 bool navIsCalibrationComplete(void);
 bool navigationTerrainFollowingEnabled(void);
@@ -380,7 +401,8 @@ void resetWaypointList(void);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 
-float RTHAltitude();
+float RTHAltitude(void);
+int16_t fixedWingPitchToThrottleCorrection(int16_t pitch);
 
 /* Geodetic functions */
 typedef enum {
@@ -436,7 +458,7 @@ bool isNavLaunchEnabled(void);
 bool isFixedWingLaunchDetected(void);
 bool isFixedWingLaunchFinishedOrAborted(void);
 
-float calculateAverageSpeed();
+float calculateAverageSpeed(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 

@@ -7,11 +7,15 @@ COMMON_SRC = \
             build/debug.c \
             build/version.c \
             common/bitarray.c \
+            common/calibration.c \
+            common/colorconversion.c \
             common/crc.c \
             common/encoding.c \
             common/filter.c \
+            common/gps_conversion.c \
+            common/log.c \
+            common/logic_condition.c \
             common/maths.c \
-            common/calibration.c \
             common/memory.c \
             common/olc.c \
             common/printf.c \
@@ -35,12 +39,12 @@ COMMON_SRC = \
             drivers/io.c \
             drivers/io_pca9685.c \
             drivers/light_led.c \
-            drivers/logging.c \
             drivers/resource.c \
             drivers/rx_nrf24l01.c \
             drivers/rx_spi.c \
             drivers/rx_xn297.c \
             drivers/pitotmeter_adc.c \
+            drivers/pitotmeter_virtual.c \
             drivers/pwm_esc_detect.c \
             drivers/pwm_mapping.c \
             drivers/pwm_output.c \
@@ -89,6 +93,7 @@ COMMON_SRC = \
             io/beeper.c \
             io/lights.c \
             io/pwmdriver_i2c.c \
+            io/esc_serialshot.c \
             io/piniobox.c \
             io/serial.c \
             io/serial_4way.c \
@@ -98,11 +103,13 @@ COMMON_SRC = \
             io/rcdevice.c \
             io/rcdevice_cam.c \
             msp/msp_serial.c \
+            rx/crsf.c \
+            rx/eleres.c \
             rx/fport.c \
             rx/ibus.c \
             rx/jetiexbus.c \
             rx/msp.c \
-            rx/uib_rx.c \
+            rx/msp_override.c \
             rx/nrf24_cx10.c \
             rx/nrf24_inav.c \
             rx/nrf24_h8_3d.c \
@@ -111,14 +118,13 @@ COMMON_SRC = \
             rx/pwm.c \
             rx/rx.c \
             rx/rx_spi.c \
-            rx/crsf.c \
             rx/sbus.c \
             rx/sbus_channels.c \
             rx/spektrum.c \
             rx/sumd.c \
             rx/sumh.c \
+            rx/uib_rx.c \
             rx/xbus.c \
-            rx/eleres.c \
             scheduler/scheduler.c \
             sensors/acceleration.c \
             sensors/battery.c \
@@ -142,11 +148,10 @@ COMMON_SRC = \
             cms/cms_menu_misc.c \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
+            cms/cms_menu_saveexit.c \
             cms/cms_menu_vtx_smartaudio.c \
             cms/cms_menu_vtx_tramp.c \
             cms/cms_menu_vtx_ffpv.c \
-            common/colorconversion.c \
-            common/gps_conversion.c \
             drivers/display_ug2864hsweg01.c \
             drivers/rangefinder/rangefinder_hcsr04.c \
             drivers/rangefinder/rangefinder_hcsr04_i2c.c \
@@ -164,6 +169,7 @@ COMMON_SRC = \
             io/displayport_max7456.c \
             io/displayport_msp.c \
             io/displayport_oled.c \
+            io/displayport_hott.c \
             io/gps.c \
             io/gps_ublox.c \
             io/gps_nmea.c \

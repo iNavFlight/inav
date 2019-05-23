@@ -22,6 +22,8 @@
 
 #include "config/parameter_group.h"
 
+typedef struct osdCharacter_s osdCharacter_t;
+
 typedef struct displayConfig_s {
     bool force_sw_blink; // Enable SW blinking. Used for chips which don't work correctly with HW blink.
 } displayConfig_t;
@@ -69,6 +71,7 @@ typedef struct displayPort_s {
     uint8_t posY;
 
     // CMS state
+    bool useFullscreen;
     bool cleared;
     int8_t cursorRow;
     int8_t grabCount;
@@ -91,6 +94,7 @@ typedef struct displayPortVTable_s {
     uint32_t (*txBytesFree)(const displayPort_t *displayPort);
     textAttributes_t (*supportedTextAttributes)(const displayPort_t *displayPort);
     bool (*getFontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
+    int (*writeFontCharacter)(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
 } displayPortVTable_t;
 
 typedef struct displayPortProfile_s {
@@ -119,4 +123,5 @@ void displayHeartbeat(displayPort_t *instance);
 void displayResync(displayPort_t *instance);
 uint16_t displayTxBytesFree(const displayPort_t *instance);
 bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance);
+int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable);

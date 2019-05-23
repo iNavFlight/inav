@@ -98,6 +98,47 @@ static uartPort_t uartPort4;
 static uartPort_t uartPort5;
 #endif
 
+
+void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
+{
+    switch(device) {
+#ifdef USE_UART1
+        case UARTDEV_1:
+            pins->txPin = IO_TAG(UART1_TX_PIN);
+            pins->rxPin = IO_TAG(UART1_RX_PIN);
+            break;
+#endif
+#ifdef USE_UART2
+        case UARTDEV_2:
+            pins->txPin = IO_TAG(UART2_TX_PIN);
+            pins->rxPin = IO_TAG(UART2_RX_PIN);
+            break;
+#endif
+#ifdef USE_UART3
+        case UARTDEV_3:
+            pins->txPin = IO_TAG(UART3_TX_PIN);
+            pins->rxPin = IO_TAG(UART3_RX_PIN);
+            break;
+#endif
+#ifdef USE_UART4
+        case UARTDEV_4:
+            pins->txPin = IO_TAG(UART4_TX_PIN);
+            pins->rxPin = IO_TAG(UART4_RX_PIN);
+            break;
+#endif
+#ifdef USE_UART5
+        case UARTDEV_5:
+            pins->txPin = IO_TAG(UART5_TX_PIN);
+            pins->rxPin = IO_TAG(UART5_RX_PIN);
+            break;
+#endif
+        default:
+            pins->txPin = IO_TAG(NONE);
+            pins->rxPin = IO_TAG(NONE);
+            break;
+    }
+}
+
 void serialUARTInit(IO_t tx, IO_t rx, portMode_t mode, portOptions_t options, uint8_t af, uint8_t index)
 {
     if (options & SERIAL_BIDIR) {

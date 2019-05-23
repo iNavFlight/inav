@@ -84,7 +84,6 @@
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
-#define SPI1_CLOCK_LEADING_EDGE
 
 #define SPI2_NSS_PIN            PB12
 #define SPI2_SCK_PIN            PB13

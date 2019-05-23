@@ -296,7 +296,7 @@ void crsfFrameFlightMode(sbuf_t *dst)
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
-        if (isAirmodeActive()) {
+        if (STATE(AIRMODE_ACTIVE)) {
             flightMode = "AIR";
         } else {
             flightMode = "ACRO";

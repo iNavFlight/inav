@@ -94,7 +94,6 @@
 #define SPI3_MISO_PIN   PB4
 #define SPI3_MOSI_PIN   PB5
 #define SPI3_NSS_PIN    PB6
-#define SPI3_CLOCK_LEADING_EDGE
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI
@@ -161,7 +160,6 @@
 
 // *************** NAV *****************************
 #define USE_NAV
-#define NAV_AUTO_MAG_DECLINATION
 #define NAV_GPS_GLITCH_DETECTION
 #define NAV_MAX_WAYPOINTS       60
 

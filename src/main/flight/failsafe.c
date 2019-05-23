@@ -332,9 +332,9 @@ static bool failsafeCheckStickMotion(void)
     if (failsafeConfig()->failsafe_stick_motion_threshold > 0) {
         uint32_t totalRcDelta = 0;
 
-        totalRcDelta += ABS(rcData[ROLL] - PWM_RANGE_MIDDLE);
-        totalRcDelta += ABS(rcData[PITCH] - PWM_RANGE_MIDDLE);
-        totalRcDelta += ABS(rcData[YAW] - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(ROLL) - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(PITCH) - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(YAW) - PWM_RANGE_MIDDLE);
 
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }
@@ -513,7 +513,7 @@ void failsafeUpdateState(void)
                 if (receivingRxDataAndNotFailsafeMode) {
                     if (millis() > failsafeState.receivingRxDataPeriod) {
                         // rx link is good now, when arming via ARM switch, it must be OFF first
-                        if (!(!isUsingSticksForArming() && IS_RC_MODE_ACTIVE(BOXARM))) {
+                        if (!IS_RC_MODE_ACTIVE(BOXARM)) {
                             // XXX: Requirements for removing the ARMING_DISABLED_FAILSAFE_SYSTEM flag
                             // are tested by osd.c to show the user how to re-arm. If these
                             // requirements change, update osdArmingDisabledReasonMessage().
