@@ -63,6 +63,7 @@
 #include "io/gps.h"
 #include "io/osd.h"
 #include "io/osd_hud.h"
+#include "io/vtx.h"
 #include "io/vtx_string.h"
 
 #include "fc/config.h"
@@ -508,6 +509,14 @@ static uint16_t osdConvertRSSI(void)
 {
     // change range to [0, 99]
     return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
+}
+
+static void osdGetVTXPowerChar(char *buff)
+{
+    buff[0] = '-';
+    buff[1] = '\0';
+    uint8_t powerIndex = 0;
+    if (vtxCommonGetPowerIndex(vtxCommonDevice(), &powerIndex)) buff[0] = '0' + powerIndex;
 }
 
 /**
@@ -1638,24 +1647,30 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             uint8_t band = 0;
             uint8_t channel = 0;
-            uint8_t powerIndex = 0;
             char bandChr = '-';
             const char *channelStr = "-";
-            char powerChr = '-';
-            vtxDevice_t *vtxDevice = vtxCommonDevice();
-            if (vtxDevice) {
-                if (vtxCommonGetBandAndChannel(vtxDevice, &band, &channel)) {
-                    bandChr = vtx58BandLetter[band];
-                    channelStr = vtx58ChannelNames[channel];
-                }
-                if (vtxCommonGetPowerIndex(vtxDevice, &powerIndex)) {
-                    powerChr = '0' + powerIndex;
-                }
+            if (vtxCommonGetBandAndChannel(vtxCommonDevice(), &band, &channel)) {
+                bandChr = vtx58BandLetter[band];
+                channelStr = vtx58ChannelNames[channel];
             }
-            tfp_sprintf(buff, "CH:%c%s:%c", bandChr, channelStr, powerChr);
+            tfp_sprintf(buff, "CH:%c%s:", bandChr, channelStr);
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
+
+            osdGetVTXPowerChar(buff);
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX + 6, elemPosY, buff, elemAttr);
+            return true;
         }
 #endif
         break;
+
+    case OSD_VTX_POWER:
+        {
+            osdGetVTXPowerChar(buff);
+            if (isAdjustmentFunctionSelected(ADJUSTMENT_VTX_POWER_LEVEL)) TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+            return true;
+        }
 
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
@@ -2717,6 +2732,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->item_pos[0][OSD_GFORCE_X] = OSD_POS(12, 5);
     osdConfig->item_pos[0][OSD_GFORCE_Y] = OSD_POS(12, 6);
     osdConfig->item_pos[0][OSD_GFORCE_Z] = OSD_POS(12, 7);
+
+    osdConfig->item_pos[0][OSD_VTX_POWER] = OSD_POS(3, 5);
 
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     osdConfig->item_pos[0][OSD_RC_SOURCE] = OSD_POS(3, 4);
