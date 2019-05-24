@@ -514,6 +514,8 @@ groups:
         max: 65000
       - name: failsafe_min_distance_procedure
         table: failsafe_procedure
+      - name: failsafe_mission
+        type: bool
 
   - name: PG_LIGHTS_CONFIG
     type: lightsConfig_t
