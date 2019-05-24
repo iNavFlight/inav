@@ -104,7 +104,7 @@ int8_t radarGetNearestPOI(void)
     uint16_t min = 10000; // 10kms
 
     for (int i = 0; i < RADAR_MAX_POIS; i++) {
-        if ((radar_pois[i].distance > 0) && (radar_pois[i].distance < min)) { // (radar_pois[i].state == 1)
+        if ((radar_pois[i].distance > 0) && (radar_pois[i].distance < min) && (radar_pois[i].state != 2)) {
             min = radar_pois[i].distance;
             poi = i;
         }
