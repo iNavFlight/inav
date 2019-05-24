@@ -41,6 +41,7 @@
 #include "cms/cms_menu_osd.h"
 
 #include "common/axis.h"
+#include "common/constants.h"
 #include "common/filter.h"
 #include "common/olc.h"
 #include "common/printf.h"
@@ -61,6 +62,7 @@
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
+#include "io/osd_hud.h"
 #include "io/vtx_string.h"
 
 #include "fc/config.h"
@@ -99,11 +101,6 @@
 
 #define VIDEO_BUFFER_CHARS_PAL    480
 #define IS_DISPLAY_PAL (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_PAL)
-
-#define FEET_PER_MILE                           5280
-#define FEET_PER_KILOFEET                       1000 // Used for altitude
-#define METERS_PER_KILOMETER                    1000
-#define METERS_PER_MILE                         1609
 
 #define GFORCE_FILTER_TC 0.2
 
@@ -213,8 +210,8 @@ static int digitCount(int32_t value)
  * of the same length. If the value doesn't fit into the provided length
  * it will be divided by scale and true will be returned.
  */
- static bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
- {
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
+{
     char *ptr = buff;
     char *dec;
     int decimals = maxDecimals;
@@ -321,35 +318,35 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist)
  * Converts distance into a string based on the current unit system.
  * @param dist Distance in centimeters
  */
- static void osdFormatDistanceStr(char *buff, int32_t dist)
- {
-     int32_t centifeet;
-     switch ((osd_unit_e)osdConfig()->units) {
-     case OSD_UNIT_IMPERIAL:
-        centifeet = CENTIMETERS_TO_CENTIFEET(dist);
-        if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
-            // Show feet when dist < 0.5mi
-            tfp_sprintf(buff, "%d%c", (int)(centifeet / 100), SYM_FT);
-        } else {
-            // Show miles when dist >= 0.5mi
-            tfp_sprintf(buff, "%d.%02d%c", (int)(centifeet / (100*FEET_PER_MILE)),
-            (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
-        }
-        break;
-     case OSD_UNIT_UK:
-         FALLTHROUGH;
-     case OSD_UNIT_METRIC:
-        if (abs(dist) < METERS_PER_KILOMETER * 100) {
-            // Show meters when dist < 1km
-            tfp_sprintf(buff, "%d%c", (int)(dist / 100), SYM_M);
-        } else {
-            // Show kilometers when dist >= 1km
-            tfp_sprintf(buff, "%d.%02d%c", (int)(dist / (100*METERS_PER_KILOMETER)),
-                (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
-         }
-         break;
+static void osdFormatDistanceStr(char *buff, int32_t dist)
+{
+ int32_t centifeet;
+ switch ((osd_unit_e)osdConfig()->units) {
+ case OSD_UNIT_IMPERIAL:
+    centifeet = CENTIMETERS_TO_CENTIFEET(dist);
+    if (abs(centifeet) < FEET_PER_MILE * 100 / 2) {
+        // Show feet when dist < 0.5mi
+        tfp_sprintf(buff, "%d%c", (int)(centifeet / 100), SYM_FT);
+    } else {
+        // Show miles when dist >= 0.5mi
+        tfp_sprintf(buff, "%d.%02d%c", (int)(centifeet / (100*FEET_PER_MILE)),
+        (abs(centifeet) % (100 * FEET_PER_MILE)) / FEET_PER_MILE, SYM_MI);
+    }
+    break;
+ case OSD_UNIT_UK:
+     FALLTHROUGH;
+ case OSD_UNIT_METRIC:
+    if (abs(dist) < METERS_PER_KILOMETER * 100) {
+        // Show meters when dist < 1km
+        tfp_sprintf(buff, "%d%c", (int)(dist / 100), SYM_M);
+    } else {
+        // Show kilometers when dist >= 1km
+        tfp_sprintf(buff, "%d.%02d%c", (int)(dist / (100*METERS_PER_KILOMETER)),
+            (abs(dist) % (100 * METERS_PER_KILOMETER)) / METERS_PER_KILOMETER, SYM_KM);
      }
+     break;
  }
+}
 
 /**
  * Converts velocity based on the current unit system (kmh or mph).
@@ -373,7 +370,7 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * Converts velocity into a string based on the current unit system.
  * @param alt Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  */
-static void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
+void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D)
 {
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
@@ -425,7 +422,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 * prefixed by a a symbol to indicate the unit used.
 * @param alt Raw altitude/distance (i.e. as taken from baro.BaroAlt in centimeters)
 */
-static void osdFormatAltitudeSymbol(char *buff, int32_t alt)
+void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
@@ -832,21 +829,11 @@ static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *at
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
 }
 
-static void osdCrosshairsBounds(uint8_t *x, uint8_t *y, uint8_t *length)
+void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 {
-    *x = 14 - 1; // Offset for 1 char to the left
-    *y = 6;
-    if (IS_DISPLAY_PAL) {
-        ++(*y);
-    }
-    int size = 3;
-    if (osdConfig()->crosshairs_style == OSD_CROSSHAIRS_STYLE_AIRCRAFT) {
-        (*x)--;
-        size = 5;
-    }
-    if (length) {
-        *length = size;
-    }
+    *x = osdDisplayPort->cols / 2;
+    *y = osdDisplayPort->rows / 2;
+    *y += osdConfig()->horizon_offset;
 }
 
 /**
@@ -870,7 +857,7 @@ static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t
     tfp_sprintf(buff + 2, "%3d", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN));
 }
 
-static inline int32_t osdGetAltitude(void)
+int32_t osdGetAltitude(void)
 {
 #if defined(USE_NAV)
     return getEstimatedActualPosition(Z);
@@ -961,7 +948,7 @@ static bool osdIsHeadingValid(void)
     return isImuHeadingValid();
 }
 
-static int16_t osdGetHeading(void)
+int16_t osdGetHeading(void)
 {
     return attitude.values.yaw;
 }
@@ -994,8 +981,8 @@ static void osdDrawMap(int referenceHeading, uint8_t referenceSym, uint8_t cente
 {
     // TODO: These need to be tested with several setups. We might
     // need to make them configurable.
-    const int hMargin = 1;
-    const int vMargin = 1;
+    const int hMargin = 5;
+    const int vMargin = 3;
 
     // TODO: Get this from the display driver?
     const int charWidth = 12;
@@ -1225,7 +1212,6 @@ static bool osdDrawSingleElement(uint8_t item)
     if (!OSD_VISIBLE(pos)) {
         return false;
     }
-
     uint8_t elemPosX = OSD_X(pos);
     uint8_t elemPosY = OSD_Y(pos);
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
@@ -1671,24 +1657,48 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
         break;
 
-    case OSD_CROSSHAIRS:
-        osdCrosshairsBounds(&elemPosX, &elemPosY, NULL);
-        switch ((osd_crosshairs_style_e)osdConfig()->crosshairs_style) {
-            case OSD_CROSSHAIRS_STYLE_DEFAULT:
-                buff[0] = SYM_AH_CH_LEFT;
-                buff[1] = SYM_AH_CH_CENTER;
-                buff[2] = SYM_AH_CH_RIGHT;
-                buff[3] = '\0';
-                break;
-            case OSD_CROSSHAIRS_STYLE_AIRCRAFT:
-                buff[0] = SYM_AH_CH_AIRCRAFT0;
-                buff[1] = SYM_AH_CH_AIRCRAFT1;
-                buff[2] = SYM_AH_CH_AIRCRAFT2;
-                buff[3] = SYM_AH_CH_AIRCRAFT3;
-                buff[4] = SYM_AH_CH_AIRCRAFT4;
-                buff[5] = '\0';
-                break;
+    case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
+
+        osdCrosshairPosition(&elemPosX, &elemPosY);
+        osdHudDrawCrosshair(elemPosX, elemPosY);
+
+        if (osdConfig()->hud_homing && STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+            osdHudDrawHoming(elemPosX, elemPosY);
         }
+
+        if (STATE(GPS_FIX) && isImuHeadingValid()) {
+
+            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0) {
+                    osdHudClear();
+            }
+
+            if (osdConfig()->hud_homepoint) { // Display the home point (H)
+                osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, 5, SYM_HOME);
+            }
+
+            if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
+                for (uint8_t i = 0; i < osdConfig()->hud_radar_disp; i++) {
+                    fpVector3_t poi;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
+                    radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
+
+                    if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
+                        radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
+                        radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
+                        osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
+                    }
+                }
+
+                if (osdConfig()->hud_radar_nearest > 0) { // Display extra datas for 1 POI closer than a set distance
+                    int poi_id = radarGetNearestPOI();
+                    if (poi_id >= 0 && radar_pois[poi_id].distance <= osdConfig()->hud_radar_nearest) {
+                        osdHudDrawExtras(poi_id);
+                    }
+                }
+            }
+        }
+
+        return true;
         break;
 
     case OSD_ATTITUDE_ROLL:
@@ -1710,9 +1720,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-
-            elemPosX = 14;
-            elemPosY = 6; // Center of the AH area
+            osdCrosshairPosition(&elemPosX, &elemPosY);
 
             // Store the positions we draw over to erase only these at the next iteration
             static int8_t previous_written[AH_PREV_SIZE];
@@ -1725,10 +1733,6 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
-            }
-
-            if (IS_DISPLAY_PAL) {
-                ++elemPosY;
             }
 
             float ky = sin_approx(rollAngle);
@@ -1789,12 +1793,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HORIZON_SIDEBARS:
         {
-            elemPosX = 14;
-            elemPosY = 6;
-
-            if (IS_DISPLAY_PAL) {
-                ++elemPosY;
-            }
+            osdCrosshairPosition(&elemPosX, &elemPosY);
 
             static osd_sidebar_t left;
             static osd_sidebar_t right;
@@ -2757,6 +2756,18 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->ahi_reverse_roll = 0;
     osdConfig->ahi_max_pitch = AH_MAX_PITCH_DEFAULT;
     osdConfig->crosshairs_style = OSD_CROSSHAIRS_STYLE_DEFAULT;
+    osdConfig->horizon_offset = 0;
+    osdConfig->camera_uptilt = 0;
+    osdConfig->camera_fov_h = 135;
+    osdConfig->camera_fov_v = 85;
+    osdConfig->hud_margin_h = 3;
+    osdConfig->hud_margin_v = 3;
+    osdConfig->hud_homing = 0;
+    osdConfig->hud_homepoint = 0;
+    osdConfig->hud_radar_disp = 0;
+    osdConfig->hud_radar_range_min = 1;
+    osdConfig->hud_radar_range_max = 4000;
+    osdConfig->hud_radar_nearest = 0;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;
@@ -3041,7 +3052,7 @@ static void osdShowArmed(void)
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 1, buf);
             int digits = osdConfig()->plus_code_digits;
             olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
-			displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y + 2, buf);
             y += 4;
         } else {
             strcpy(buf, "!NO HOME POSITION!");
