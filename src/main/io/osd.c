@@ -1682,7 +1682,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
                     radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
 
-                    if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max))) {
+                    if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max)) && (radar_pois[i].state != 2)) {
                         radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
                         radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
                         osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
