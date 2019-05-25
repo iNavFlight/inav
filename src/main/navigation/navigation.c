@@ -2204,7 +2204,7 @@ static void updateNavigationFlightStatistics(void)
     }
 }
 
-int32_t getTotalTravelDistance(void)
+uint32_t getTotalTravelDistance(void)
 {
     return lrintf(posControl.totalTripDistance);
 }
@@ -3226,7 +3226,9 @@ int32_t navigationGetHomeHeading(void)
 
 // returns m/s
 float calculateAverageSpeed() {
-    return (float)getTotalTravelDistance() / (getFlightTime() * 100);
+    float flightTime = getFlightTime();
+    if (flightTime == 0.0f) return 0;
+    return (float)getTotalTravelDistance() / (flightTime * 100);
 }
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void) {
