@@ -288,7 +288,7 @@ const CMS_Menu cmsx_menuMotorMixer = {
 
 static const OSD_Entry cmsx_mixerServoEntries[] =
 {
-        OSD_LABEL_ENTRY("-- MIXER & SERVOS --"),
+        OSD_LABEL_ENTRY("-- MIXER AND SERVOS --"),
         OSD_SETTING_ENTRY("PLATFORM", SETTING_PLATFORM_TYPE),
         OSD_SETTING_ENTRY("HAS FLAPS", SETTING_HAS_FLAPS),
         OSD_SUBMENU_ENTRY("MOTOR MIXER", &cmsx_menuMotorMixer),
