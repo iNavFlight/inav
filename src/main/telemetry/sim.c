@@ -1,45 +1,118 @@
+/*
+ * This file is part of Cleanflight.
+ *
+ * Cleanflight is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Cleanflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "platform.h"
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SIM)
 
 #include <string.h>
 
-#include "common/axis.h"
-#include "common/streambuf.h"
-#include "common/utils.h"
 #include "common/printf.h"
 
 #include "drivers/time.h"
 
-#include "fc/config.h"
 #include "fc/fc_core.h"
-#include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
-#include "fc/fc_init.h"
 
 #include "flight/imu.h"
-#include "flight/failsafe.h"
-#include "flight/pid.h"
 
 #include "io/gps.h"
 #include "io/serial.h"
 
 #include "navigation/navigation.h"
-#include "navigation/navigation_private.h"
 
-#include "sensors/acceleration.h"
 #include "sensors/battery.h"
-#include "sensors/boardalignment.h"
-#include "sensors/diagnostics.h"
-#include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
 #include "common/string_light.h"
 #include "common/typeconversion.h"
-#include "build/debug.h"
 
 #include "telemetry/sim.h"
 #include "telemetry/telemetry.h"
+
+
+#define SIM_AT_COMMAND_MAX_SIZE 255
+#define SIM_RESPONSE_BUFFER_SIZE 255
+#define SIM_CYCLE_MS 5000                       // wait between sim command cycles
+#define SIM_AT_COMMAND_DELAY_MS 3000
+#define SIM_AT_COMMAND_DELAY_MIN_MS 500
+#define SIM_STARTUP_DELAY_MS 10000
+#define SIM_SMS_COMMAND_RTH "RTH"
+#define SIM_PIN "0000"
+#define SIM_LOW_ALT_WARNING_MODES (NAV_ALTHOLD_MODE || NAV_RTH_MODE || NAV_WP_MODE || FAILSAFE_MODE)
+
+#define SIM_RESPONSE_CODE_OK    ('O' << 24 | 'K' << 16)
+#define SIM_RESPONSE_CODE_ERROR ('E' << 24 | 'R' << 16 | 'R' << 8 | 'O')
+#define SIM_RESPONSE_CODE_RING  ('R' << 24 | 'I' << 16 | 'N' << 8 | 'G')
+#define SIM_RESPONSE_CODE_CLIP  ('C' << 24 | 'L' << 16 | 'I' << 8 | 'P')
+#define SIM_RESPONSE_CODE_CREG  ('C' << 24 | 'R' << 16 | 'E' << 8 | 'G')
+#define SIM_RESPONSE_CODE_CSQ   ('C' << 24 | 'S' << 16 | 'Q' << 8 | ':')
+#define SIM_RESPONSE_CODE_CMT   ('C' << 24 | 'M' << 16 | 'T' << 8 | ':')
+
+
+typedef enum  {
+    SIM_TX_FLAG                 = (1 << 0),
+    SIM_TX_FLAG_FAILSAFE        = (1 << 1),
+    SIM_TX_FLAG_GPS             = (1 << 2),
+    SIM_TX_FLAG_ACC             = (1 << 3),
+    SIM_TX_FLAG_LOW_ALT         = (1 << 4),
+    SIM_TX_FLAG_RESPONSE        = (1 << 5)
+} simTxFlags_e;
+
+typedef enum  {
+    SIM_MODULE_NOT_DETECTED = 0,
+    SIM_MODULE_NOT_REGISTERED,
+    SIM_MODULE_REGISTERED,
+} simModuleState_e;
+
+typedef enum  {
+    SIM_STATE_INIT = 0,
+    SIM_STATE_INIT2,
+    SIM_STATE_INIT_ENTER_PIN,
+    SIM_STATE_SET_MODES,
+    SIM_STATE_SEND_SMS,
+    SIM_STATE_SEND_SMS_ENTER_MESSAGE
+} simTelemetryState_e;
+
+typedef enum  {
+    SIM_AT_OK = 0,
+    SIM_AT_ERROR,
+    SIM_AT_WAITING_FOR_RESPONSE
+} simATCommandState_e;
+
+typedef enum  {
+    SIM_READSTATE_RESPONSE = 0,
+    SIM_READSTATE_SMS,
+    SIM_READSTATE_SKIP
+} simReadState_e;
+
+typedef enum  {
+    SIM_TX_NO = 0,
+    SIM_TX_FS,
+    SIM_TX
+} simTransmissionState_e;
+
+typedef enum {
+    ACC_EVENT_NONE = 0,
+    ACC_EVENT_HIGH,
+    ACC_EVENT_LOW,
+    ACC_EVENT_NEG_X
+} accEvent_t;
+
 
 static serialPort_t *simPort;
 static serialPortConfig_t *portConfig;
@@ -55,20 +128,23 @@ static uint8_t readState = SIM_READSTATE_RESPONSE;
 static uint8_t transmitFlags = 0;
 static timeMs_t t_lastMessageSent = 0;
 static uint8_t lastMessageTriggeredBy = 0;
-uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
+static uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
 
-int simRssi;
-uint8_t accEvent = ACC_EVENT_NONE;
-char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
-char* modeDescriptions[] = { "MAN", "ACR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "LAU", "FS" };
-const char gpsFixIndicators[] = { '!', '*', ' ' };
+static int simRssi;
+static uint8_t accEvent = ACC_EVENT_NONE;
+static char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
+static char* modeDescriptions[] = { "MAN", "ACR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "LAU", "FS" };
+static const char gpsFixIndicators[] = { '!', '*', ' ' };
 
 
-bool isGroundStationNumberDefined() {
+// XXX UNUSED
+#if 0
+static bool isGroundStationNumberDefined(void) {
     return telemetryConfig()->simGroundStationNumber[0] != '\0';
 }
+#endif
 
-bool checkGroundStationNumber(uint8_t* rv)
+static bool checkGroundStationNumber(uint8_t* rv)
 {
     int i;
     const uint8_t* gsn = telemetryConfig()->simGroundStationNumber;
@@ -99,7 +175,7 @@ bool checkGroundStationNumber(uint8_t* rv)
 }
 
 
-void readOriginatingNumber(uint8_t* rv)
+static void readOriginatingNumber(uint8_t* rv)
 {
     int i;
     uint8_t* gsn = telemetryConfigMutable()->simGroundStationNumber;
@@ -110,7 +186,7 @@ void readOriginatingNumber(uint8_t* rv)
     gsn[i] = '\0';
 }
 
-void readTransmitFlags(const uint8_t* fs)
+static void readTransmitFlags(const uint8_t* fs)
 {
     int i;
 
@@ -136,7 +212,7 @@ void readTransmitFlags(const uint8_t* fs)
     }
 }
 
-void requestSendSMS(uint8_t trigger)
+static void requestSendSMS(uint8_t trigger)
 {
     lastMessageTriggeredBy = trigger;
     if (simTelemetryState == SIM_STATE_SEND_SMS_ENTER_MESSAGE)
@@ -146,10 +222,10 @@ void requestSendSMS(uint8_t trigger)
         sim_t_stateChange = 0; // send immediately
 }
 
-void readSMS()
+static void readSMS(void)
 {
     if (sl_strcasecmp((char*)simResponse, SIM_SMS_COMMAND_RTH) == 0) {
-        if (!posControl.flags.forcedRTHActivated) {
+        if (getStateOfForcedRTH() == RTH_IDLE) {
             activateForcedRTH();
         } else {
             abortForcedRTH();
@@ -160,7 +236,7 @@ void readSMS()
     requestSendSMS(SIM_TX_FLAG_RESPONSE);
 }
 
-void readSimResponse()
+static void readSimResponse(void)
 {
     if (readState == SIM_READSTATE_SKIP) {
         readState = SIM_READSTATE_RESPONSE;
@@ -226,7 +302,7 @@ void readSimResponse()
     }
 }
 
-int getAltMeters()
+static int16_t getAltitudeMeters(void)
 {
 #if defined(USE_NAV)
     return getEstimatedActualPosition(Z) / 100;
@@ -235,7 +311,7 @@ int getAltMeters()
 #endif
 }
 
-void transmit()
+static void transmit(void)
 {
     timeMs_t timeSinceMsg = millis() - t_lastMessageSent;
     uint8_t triggers = SIM_TX_FLAG;
@@ -257,9 +333,9 @@ void transmit()
 
     if (FLIGHT_MODE(FAILSAFE_MODE))
         triggers |= SIM_TX_FLAG_FAILSAFE;
-    if (gpsSol.fixType != GPS_NO_FIX && posControl.flags.estPosStatus < EST_USABLE)
+    if (!navigationPositionEstimateIsHealthy())
         triggers |= SIM_TX_FLAG_GPS;
-    if (gpsSol.fixType != GPS_NO_FIX && FLIGHT_MODE(SIM_LOW_ALT_WARNING_MODES) && getAltMeters() < telemetryConfig()->simLowAltitude)
+    if (gpsSol.fixType != GPS_NO_FIX && FLIGHT_MODE(SIM_LOW_ALT_WARNING_MODES) && getAltitudeMeters() < telemetryConfig()->simLowAltitude)
         triggers |= SIM_TX_FLAG_LOW_ALT;
 
     triggers &= transmitFlags;
@@ -275,50 +351,44 @@ void transmit()
     }
 }
 
-void sendATCommand(const char* command)
+static void sendATCommand(const char* command)
 {
     atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
-    int len = strlen((char*)command);
-    if (len > SIM_AT_COMMAND_MAX_SIZE)
-        len = SIM_AT_COMMAND_MAX_SIZE;
+    uint8_t len = MIN((uint8_t)strlen(command), SIM_AT_COMMAND_MAX_SIZE);
     serialWriteBuf(simPort, (const uint8_t*) command, len);
 }
 
-void sendSMS(void)
+static void sendSMS(void)
 {
     int32_t lat = 0, lon = 0;
-    int16_t gs = 0, gc = 0;
-    int vbat = getBatteryVoltage();
+    int16_t groundSpeed = 0;
+    uint16_t vbat = getBatteryVoltage();
     int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
-    int avgSpeed = (int)round(10 * calculateAverageSpeed());
+    uint16_t avgSpeed = lrintf(10 * calculateAverageSpeed());
     uint32_t now = millis();
-
-    if (getFlightTime() == 0.0F) {
-        avgSpeed = 0;
-    }
 
     if (sensors(SENSOR_GPS)) {
         lat = gpsSol.llh.lat;
         lon = gpsSol.llh.lon;
-        gs = gpsSol.groundSpeed / 100;
-        gc = gpsSol.groundCourse / 10;
+        groundSpeed = gpsSol.groundSpeed / 100;
     }
 
-    int len;
-    int32_t E7 = 10000000;
+    const int32_t E7 = 10000000;
+
     // \x1a sends msg, \x1b cancels
-    len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%ld SPD:%ld/%d.%d DIS:%d/%d COG:%d SAT:%d%c SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld\x1a",
+    uint8_t len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%d SPD:%d/%d.%d DIS:%lu/%lu HDG:%d SAT:%d%c SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld\x1a",
         accEventDescriptions[accEvent],
         vbat / 100, vbat % 100,
         amps / 10, amps % 10,
-        getAltMeters(),
-        gs, avgSpeed / 10, avgSpeed % 10,
+        getAltitudeMeters(),
+        groundSpeed, avgSpeed / 10, avgSpeed % 10,
         GPS_distanceToHome, getTotalTravelDistance() / 100,
-        gc,
+        attitude.values.yaw,
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
-        posControl.flags.forcedRTHActivated ? "RTH" : modeDescriptions[getFlightModeForTelemetry()],
+        getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
         lat / E7, lat % E7, lon / E7, lon % E7);
+
     serialWriteBuf(simPort, atCommand, len);
     t_lastMessageSent = now;
     accEvent = ACC_EVENT_NONE;
@@ -355,8 +425,8 @@ void handleSimTelemetry()
     if (now < sim_t_stateChange)
         return;
 
-    sim_t_stateChange = now + SIM_AT_COMMAND_DELAY_MS;       // by default, if OK or ERROR not received, wait this long
-    simWaitAfterResponse = false;   // by default, if OK or ERROR received, go to next state immediately.
+    sim_t_stateChange = now + SIM_AT_COMMAND_DELAY_MS;  // by default, if OK or ERROR not received, wait this long
+    simWaitAfterResponse = false;                       // by default, if OK or ERROR received, go to next state immediately.
     switch (simTelemetryState) {
         case SIM_STATE_INIT:
         sendATCommand("AT\r");
@@ -392,27 +462,22 @@ void handleSimTelemetry()
     }
 }
 
-void freeSimTelemetryPort(void)
+// XXX UNUSED
+#if 0
+static void freeSimTelemetryPort(void)
 {
     closeSerialPort(simPort);
     simPort = NULL;
     simEnabled = false;
 }
+#endif
 
 void initSimTelemetry(void)
 {
     portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_SIM);
 }
 
-void checkSimTelemetryState(void)
-{
-    if (simEnabled) {
-        return;
-    }
-    configureSimTelemetryPort();
-}
-
-void configureSimTelemetryPort(void)
+static void configureSimTelemetryPort(void)
 {
     if (!portConfig) {
         return;
@@ -430,6 +495,14 @@ void configureSimTelemetryPort(void)
     readState = SIM_READSTATE_RESPONSE;
     readTransmitFlags(telemetryConfig()->simTransmitFlags);
     simEnabled = true;
+}
+
+void checkSimTelemetryState(void)
+{
+    if (simEnabled) {
+        return;
+    }
+    configureSimTelemetryPort();
 }
 
 #endif
