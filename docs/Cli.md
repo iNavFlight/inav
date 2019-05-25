@@ -241,7 +241,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  frsky_vfas_precision  | 0 | D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method |
 |  frsky_pitch_roll  | OFF | S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data |
 |  smartport_fuel_unit  | MAH | S.Port telemetry only: Unit of the value sent with the `FUEL` ID (FrSky D-Series always sends precent). [PERCENT/MAH/MWH] |
-|  smartport_uart_unidir  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
+|  telemetry_uart_unidir  | OFF | S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details |
 |  report_cell_voltage  | OFF | S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON |
 |  hott_alarm_sound_interval  | 5 | Battery alarm delay in seconds for Hott telemetry |
 |  smartport_fuel_unit  | MAH | S.Port and D-Series telemetry: Unit of the value sent with the `FUEL` ID. [PERCENT/MAH/MWH] |
