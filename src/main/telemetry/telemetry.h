@@ -68,6 +68,13 @@ typedef struct telemetryConfig_s {
     smartportFuelUnit_e smartportFuelUnit;
     uint8_t ibusTelemetryType;
     uint8_t ltmUpdateRate;
+    uint16_t simTransmitInterval;
+    uint8_t simTransmitFlags[4];
+    uint16_t accEventThresholdHigh;
+    uint16_t accEventThresholdLow;
+    uint16_t accEventThresholdNegX;
+    int16_t simLowAltitude;
+    uint8_t simGroundStationNumber[16];
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);

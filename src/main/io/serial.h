@@ -50,6 +50,7 @@ typedef enum {
     FUNCTION_RANGEFINDER         = (1 << 16), // 65536
     FUNCTION_VTX_FFPV            = (1 << 17), // 131072
     FUNCTION_SERIALSHOT          = (1 << 18), // 262144
+    FUNCTION_TELEMETRY_SIM       = (1 << 19)  // 524288
 } serialPortFunction_e;
 
 typedef enum {

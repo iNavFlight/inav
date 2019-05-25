@@ -1529,7 +1529,7 @@ groups:
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
-    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h"]
+    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h", "telemetry/sim.h"]
     condition: USE_TELEMETRY
     members:
       - name: telemetry_switch
@@ -1580,7 +1580,46 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
-
+      - name: sim_ground_station_number
+        field: simGroundStationNumber
+        condition: USE_TELEMETRY_SIM
+        type: string
+        max: 16
+      - name: sim_transmit_interval
+        field: simTransmitInterval
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: SIM_MIN_TRANSMIT_INTERVAL
+        max: 65535
+      - name: sim_transmit_flags
+        field: simTransmitFlags
+        condition: USE_TELEMETRY_SIM
+        type: string
+        max: SIM_N_TX_FLAGS
+      - name: acc_event_threshold_high
+        field: accEventThresholdHigh
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: 0
+        max: 65535
+      - name: acc_event_threshold_low
+        field: accEventThresholdLow
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: 0
+        max: 900
+      - name: acc_event_threshold_neg_x
+        field: accEventThresholdNegX
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: 0
+        max: 65535
+      - name: sim_low_altitude
+        field: simLowAltitude
+        condition: USE_TELEMETRY_SIM
+        type: int16_t
+        min: INT16_MIN
+        max: INT16_MAX
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
