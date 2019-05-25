@@ -286,6 +286,18 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     return scaled;
 }
 
+/*
+ * Aligns text to the left side. Adds spaces at the end to keep string length unchanged.
+ */
+static void osdLeftAlignString(char *buff)
+{
+    uint8_t sp = 0, ch = 0;
+    uint8_t len = strlen(buff);
+    while (buff[sp] == ' ') sp++;
+    for (ch = 0; ch < (len - sp); ch++) buff[ch] = buff[ch + sp];
+    for (sp = ch; sp < len; sp++) buff[sp] = ' ';
+}
+
 /**
  * Converts distance into a string based on the current unit system
  * prefixed by a a symbol to indicate the unit used.
@@ -2958,6 +2970,7 @@ static void osdShowStats(void)
     if (STATE(GPS_FIX)) {
         displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
         osdFormatVelocityStr(buff, stats.max_speed, true);
+        osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
         displayWrite(osdDisplayPort, statNameX, top, "MAX DISTANCE     :");
@@ -2976,6 +2989,7 @@ static void osdShowStats(void)
     displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
     osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
     strcat(buff, "V");
+    osdLeftAlignString(buff);
     displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
     displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
