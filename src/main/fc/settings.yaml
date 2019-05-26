@@ -1620,6 +1620,31 @@ groups:
         type: int16_t
         min: INT16_MIN
         max: INT16_MAX
+      - name: mavlink_ext_status_rate
+        field: mavlink.extended_status_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_rc_chan_rate
+        field: mavlink.rc_channels_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_pos_rate
+        field: mavlink.position_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_extra1_rate
+        field: mavlink.extra1_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_extra2_rate
+        field: mavlink.extra2_rate
+        type: uint8_t
+        min: 0
+        max: 255
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]

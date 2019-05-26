@@ -51,7 +51,7 @@
 #include "telemetry/sim.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 3);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .gpsNoFixLatitude = 0,
@@ -73,7 +73,15 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .simLowAltitude = INT16_MIN,
     .accEventThresholdHigh = 0,
     .accEventThresholdLow = 0,
-    .accEventThresholdNegX = 0
+    .accEventThresholdNegX = 0,
+
+    .mavlink = {
+        .extended_status_rate = 2,
+        .rc_channels_rate = 5,
+        .position_rate = 2,
+        .extra1_rate = 10,
+        .extra2_rate = 2
+    }
 );
 
 void telemetryInit(void)

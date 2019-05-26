@@ -75,6 +75,13 @@ typedef struct telemetryConfig_s {
     uint16_t accEventThresholdNegX;
     int16_t simLowAltitude;
     uint8_t simGroundStationNumber[16];
+    struct {
+        uint8_t extended_status_rate;
+        uint8_t rc_channels_rate;
+        uint8_t position_rate;
+        uint8_t extra1_rate;
+        uint8_t extra2_rate;
+    } mavlink;
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);
