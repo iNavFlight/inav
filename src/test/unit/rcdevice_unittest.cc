@@ -29,24 +29,27 @@ extern "C" {
     #include "common/maths.h"
     #include "common/utils.h"
     #include "common/streambuf.h"
-    #include "common/time.h"
 
-    #include "config/parameter_group.h"
-    #include "config/parameter_group_ids.h"
+    #include "drivers/serial.h"
 
     #include "fc/rc_controls.h"
     #include "fc/rc_modes.h"
+
 
 
     #include "io/beeper.h"
     #include "io/serial.h"
 
     #include "scheduler/scheduler.h"
-    #include "drivers/serial.h"
-    #include "drivers/vcd.h"
     #include "io/rcdevice_cam.h"
     #include "io/osd.h"
     #include "io/rcdevice.h"
+
+    #include "config/parameter_group_ids.h"
+    // #include "pg/pg_ids.h"
+    // #include "pg/vcd.h"
+    // #include "pg/rx.h"
+    // #include "pg/rcdevice.h"
 
     #include "rx/rx.h"
 
@@ -54,19 +57,34 @@ extern "C" {
 
     extern rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
     extern runcamDevice_t *camDevice;
-    extern bool needRelease;
+    extern bool isButtonPressed;
+    extern bool rcdeviceInMenu;
+    extern rcdeviceWaitingResponseQueue watingResponseQueue;
     bool unitTestIsSwitchActivited(boxId_e boxId)
     {
         uint8_t adjustBoxID = boxId - BOXCAMERA1;
         rcdeviceSwitchState_s switchState = switchStates[adjustBoxID];
         return switchState.isActivated;
     }
-    timeUs_t micros(void) { return 0; }
-    void tfp_sprintf(char *, char*, ...) { }
-    bool rtcGetDateTime(dateTime_t *dt) { UNUSED(dt); return false; }
+    int16_t rxGetChannelValue(unsigned ch)
+    {
+        return rcData[ch];
+    }
+
+    uint32_t millis(void);
+    int minTimeout = 180;
+
+    void rcdeviceSend5KeyOSDCableSimualtionEvent(rcdeviceCamSimulationKeyEvent_e key);
+    rcdeviceResponseParsingContext_t* rcdeviceRespCtxQueueShift(rcdeviceWaitingResponseQueue *queue);
+
+    const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000,
+        460800, 921600, 1000000, 1500000, 2000000, 2470000 }; // see baudRate_e
 }
 
 #define MAX_RESPONSES_COUNT 10
+#define FIVE_KEY_JOYSTICK_MIN FIVE_KEY_CABLE_JOYSTICK_MIN - 1
+#define FIVE_KEY_JOYSTICK_MID FIVE_KEY_CABLE_JOYSTICK_MID_START + 1
+#define FIVE_KEY_JOYSTICK_MAX FIVE_KEY_CABLE_JOYSTICK_MAX + 1
 
 typedef struct testData_s {
     bool isRunCamSplitPortConfigurated;
@@ -82,6 +100,7 @@ typedef struct testData_s {
 } testData_t;
 
 static testData_t testData;
+extern rcdeviceWaitingResponseQueue watingResponseQueue;
 
 static void clearResponseBuff()
 {
@@ -89,17 +108,22 @@ static void clearResponseBuff()
     testData.responseBufCount = 0;
     memset(testData.responseBufsLen, 0, MAX_RESPONSES_COUNT);
     memset(testData.responesBufs, 0, MAX_RESPONSES_COUNT * 60);
+
+    while (rcdeviceRespCtxQueueShift(&watingResponseQueue)) {
+
+    }
+}
+
+static void resetRCDeviceStatus()
+{
+    isButtonPressed = false;
+    rcdeviceInMenu = false;
+    clearResponseBuff();
 }
 
 static void addResponseData(uint8_t *data, uint8_t dataLen, bool withDataForFlushSerial)
 {
-    if (withDataForFlushSerial) {
-        memcpy(testData.responesBufs[testData.responseBufCount], "0", 1);
-        testData.responseBufsLen[testData.responseBufCount] = 1;
-        testData.responseBufCount++;
-    }
-
-
+    UNUSED(withDataForFlushSerial);
     memcpy(testData.responesBufs[testData.responseBufCount], data, dataLen);
     testData.responseBufsLen[testData.responseBufCount] = dataLen;
     testData.responseBufCount++;
@@ -109,28 +133,43 @@ TEST(RCDeviceTest, TestRCSplitInitWithoutPortConfigurated)
 {
     runcamDevice_t device;
 
+    resetRCDeviceStatus();
+
+    watingResponseQueue.headPos = 0;
+    watingResponseQueue.tailPos = 0;
+    watingResponseQueue.itemCount = 0;
     memset(&testData, 0, sizeof(testData));
-    bool result = runcamDeviceInit(&device);
-    EXPECT_EQ(false, result);
+    runcamDeviceInit(&device);
+    EXPECT_EQ(false, device.isReady);
 }
 
 TEST(RCDeviceTest, TestRCSplitInitWithoutOpenPortConfigurated)
 {
     runcamDevice_t device;
 
+    resetRCDeviceStatus();
+
+    watingResponseQueue.headPos = 0;
+    watingResponseQueue.tailPos = 0;
+    watingResponseQueue.itemCount = 0;
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = false;
     testData.isRunCamSplitPortConfigurated = true;
 
-    bool result = runcamDeviceInit(&device);
-    EXPECT_EQ(false, result);
+    runcamDeviceInit(&device);
+    EXPECT_EQ(false, device.isReady);
 }
 
 TEST(RCDeviceTest, TestInitDevice)
 {
     runcamDevice_t device;
 
+    resetRCDeviceStatus();
+
     // test correct response
+    watingResponseQueue.headPos = 0;
+    watingResponseQueue.tailPos = 0;
+    watingResponseQueue.itemCount = 0;
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
@@ -138,15 +177,26 @@ TEST(RCDeviceTest, TestInitDevice)
     uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBD };
     addResponseData(responseData, sizeof(responseData), true);
 
-    bool result = runcamDeviceInit(&device);
-    EXPECT_EQ(result, true);
+    runcamDeviceInit(&device);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(device.isReady, true);
 }
 
 TEST(RCDeviceTest, TestInitDeviceWithInvalidResponse)
 {
     runcamDevice_t device;
 
+    resetRCDeviceStatus();
+
     // test correct response data with incorrect len
+    watingResponseQueue.headPos = 0;
+    watingResponseQueue.tailPos = 0;
+    watingResponseQueue.itemCount = 0;
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
@@ -154,46 +204,82 @@ TEST(RCDeviceTest, TestInitDeviceWithInvalidResponse)
 
     uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBD, 0x33 };
     addResponseData(responseData, sizeof(responseData), true);
-    bool result = runcamDeviceInit(&device);
-    EXPECT_EQ(result, true);
+    runcamDeviceInit(&device);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    EXPECT_EQ(device.isReady, true);
     clearResponseBuff();
+    testData.millis += minTimeout;
 
     // invalid crc
     uint8_t responseDataWithInvalidCRC[] = { 0xCC, 0x01, 0x37, 0x00, 0xBE };
     addResponseData(responseDataWithInvalidCRC, sizeof(responseDataWithInvalidCRC), true);
-    result = runcamDeviceInit(&device);
-    EXPECT_EQ(result, false);
+    runcamDeviceInit(&device);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    EXPECT_EQ(device.isReady, false);
     clearResponseBuff();
+    testData.millis += minTimeout;
 
     // incomplete response data
     uint8_t incompleteResponseData[] = { 0xCC, 0x01, 0x37 };
     addResponseData(incompleteResponseData, sizeof(incompleteResponseData), true);
-    result = runcamDeviceInit(&device);
-    EXPECT_EQ(result, false);
+    runcamDeviceInit(&device);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(device.isReady, false);
     clearResponseBuff();
+    testData.millis += minTimeout;
 
     // test timeout
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     testData.isAllowBufferReadWrite = true;
-    result = runcamDeviceInit(&device);
-    EXPECT_EQ(result, false);
+    runcamDeviceInit(&device);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    EXPECT_EQ(device.isReady, false);
     clearResponseBuff();
+    testData.millis += minTimeout;
 }
 
 TEST(RCDeviceTest, TestWifiModeChangeWithDeviceUnready)
 {
+    resetRCDeviceStatus();
+
     // test correct response
+    watingResponseQueue.headPos = 0;
+    watingResponseQueue.tailPos = 0;
+    watingResponseQueue.itemCount = 0;
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
     testData.isAllowBufferReadWrite = true;
     testData.maxTimesOfRespDataAvailable = 0;
-    uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBC };
+    uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBC }; // wrong response
     addResponseData(responseData, sizeof(responseData), true);
-    bool result = rcdeviceInit();
-    EXPECT_EQ(result, false);
+    rcdeviceInit();
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(camDevice->isReady, false);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
     for (uint8_t i = 0; i <= (BOXCAMERA3 - BOXCAMERA1); i++) {
@@ -218,6 +304,8 @@ TEST(RCDeviceTest, TestWifiModeChangeWithDeviceUnready)
     modeActivationConditionsMutable(2)->range.startStep = CHANNEL_VALUE_TO_STEP(1300);
     modeActivationConditionsMutable(2)->range.endStep = CHANNEL_VALUE_TO_STEP(1600);
 
+    updateUsedModeActivationConditionFlags();
+
     // make the binded mode inactive
     rcData[modeActivationConditions(0)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1800;
     rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 900;
@@ -235,6 +323,8 @@ TEST(RCDeviceTest, TestWifiModeChangeWithDeviceUnready)
 
 TEST(RCDeviceTest, TestWifiModeChangeWithDeviceReady)
 {
+    resetRCDeviceStatus();
+
     // test correct response
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
@@ -243,13 +333,22 @@ TEST(RCDeviceTest, TestWifiModeChangeWithDeviceReady)
     testData.maxTimesOfRespDataAvailable = 0;
     uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBD };
     addResponseData(responseData, sizeof(responseData), true);
-    bool result = rcdeviceInit();
-    EXPECT_EQ(result, true);
+    camDevice->info.features = 15;
+    rcdeviceInit();
+    testData.millis += 3001;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(camDevice->isReady, true);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
     for (uint8_t i = 0; i <= BOXCAMERA3 - BOXCAMERA1; i++) {
         memset(modeActivationConditionsMutable(i), 0, sizeof(modeActivationCondition_t));
     }
+
 
     // bind aux1 to wifi button with range [900,1600]
     modeActivationConditionsMutable(0)->auxChannelIndex = 0;
@@ -273,7 +372,6 @@ TEST(RCDeviceTest, TestWifiModeChangeWithDeviceReady)
     rcData[modeActivationConditions(1)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 2000;
     rcData[modeActivationConditions(2)->auxChannelIndex + NON_AUX_CHANNEL_COUNT] = 1700;
 
-    updateUsedModeActivationConditionFlags();
     updateActivatedModes();
 
     // runn process loop
@@ -288,6 +386,8 @@ TEST(RCDeviceTest, TestWifiModeChangeWithDeviceReady)
 
 TEST(RCDeviceTest, TestWifiModeChangeCombine)
 {
+    resetRCDeviceStatus();
+
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
@@ -295,8 +395,14 @@ TEST(RCDeviceTest, TestWifiModeChangeCombine)
     testData.maxTimesOfRespDataAvailable = 0;
     uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBD };
     addResponseData(responseData, sizeof(responseData), true);
-    bool result = rcdeviceInit();
-    EXPECT_EQ(true, result);
+    rcdeviceInit();
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, camDevice->isReady);
 
     // bind aux1, aux2, aux3 channel to wifi button, power button and change mode
     for (uint8_t i = 0; i <= BOXCAMERA3 - BOXCAMERA1; i++) {
@@ -364,6 +470,8 @@ TEST(RCDeviceTest, TestWifiModeChangeCombine)
 
 TEST(RCDeviceTest, Test5KeyOSDCableSimulationProtocol)
 {
+    resetRCDeviceStatus();
+
     memset(&testData, 0, sizeof(testData));
     testData.isRunCamSplitOpenPortSupported = true;
     testData.isRunCamSplitPortConfigurated = true;
@@ -371,123 +479,203 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationProtocol)
     testData.maxTimesOfRespDataAvailable = 0;
     uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBD };
     addResponseData(responseData, sizeof(responseData), true);
-    bool result = rcdeviceInit();
-    EXPECT_EQ(true, result);
+    rcdeviceInit();
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, camDevice->isReady);
+    clearResponseBuff();
 
     // test timeout of open connection
-    result = runcamDeviceOpen5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(false, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_OPEN);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += 3000;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, rcdeviceInMenu);
     clearResponseBuff();
 
     // open connection with correct response
     uint8_t responseDataOfOpenConnection[] = { 0xCC, 0x11, 0xe7 };
     addResponseData(responseDataOfOpenConnection, sizeof(responseDataOfOpenConnection), true);
-    result = runcamDeviceOpen5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_OPEN);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, rcdeviceInMenu);
     clearResponseBuff();
 
     // open connection with correct response but wrong data length
     uint8_t incorrectResponseDataOfOpenConnection1[] = { 0xCC, 0x11, 0xe7, 0x55 };
     addResponseData(incorrectResponseDataOfOpenConnection1, sizeof(incorrectResponseDataOfOpenConnection1), true);
-    result = runcamDeviceOpen5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_OPEN);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, rcdeviceInMenu);
     clearResponseBuff();
 
     // open connection with invalid crc
     uint8_t incorrectResponseDataOfOpenConnection2[] = { 0xCC, 0x10, 0x42 };
     addResponseData(incorrectResponseDataOfOpenConnection2, sizeof(incorrectResponseDataOfOpenConnection2), true);
-    result = runcamDeviceOpen5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(false, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_OPEN);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, rcdeviceInMenu); // when crc wrong won't change the menu state
     clearResponseBuff();
 
     // test timeout of close connection
-    runcamDeviceClose5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(false, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_CLOSE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += 3000;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, rcdeviceInMenu); // close menu timeout won't change the menu state
     clearResponseBuff();
 
     // close connection with correct response
     uint8_t responseDataOfCloseConnection[] = { 0xCC, 0x21, 0x11 };
     addResponseData(responseDataOfCloseConnection, sizeof(responseDataOfCloseConnection), true);
-    result = runcamDeviceClose5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_CLOSE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, rcdeviceInMenu);
     clearResponseBuff();
 
     // close connection with correct response but wrong data length
+    addResponseData(responseDataOfOpenConnection, sizeof(responseDataOfOpenConnection), true);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_OPEN); // open menu again
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, rcdeviceInMenu);
+    clearResponseBuff();
+
     uint8_t responseDataOfCloseConnection1[] = { 0xCC, 0x21, 0x11, 0xC1 };
     addResponseData(responseDataOfCloseConnection1, sizeof(responseDataOfCloseConnection1), true);
-    result = runcamDeviceClose5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_CLOSE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, rcdeviceInMenu);
     clearResponseBuff();
 
     // close connection with response that invalid crc
+    addResponseData(responseDataOfOpenConnection, sizeof(responseDataOfOpenConnection), true);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_OPEN); // open menu again
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, rcdeviceInMenu);
+    clearResponseBuff();
+
     uint8_t responseDataOfCloseConnection2[] = { 0xCC, 0x21, 0xA1 };
     addResponseData(responseDataOfCloseConnection2, sizeof(responseDataOfCloseConnection2), true);
-    result = runcamDeviceClose5KeyOSDCableConnection(camDevice);
-    EXPECT_EQ(false, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_CONNECTION_CLOSE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, rcdeviceInMenu);
+    clearResponseBuff();
+
+    // release button first
+    uint8_t responseDataOfSimulation4[] = { 0xCC, 0xA5 };
+    addResponseData(responseDataOfSimulation4, sizeof(responseDataOfSimulation4), true);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, isButtonPressed);
     clearResponseBuff();
 
     // simulate press button with no response
-    result = runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
-    EXPECT_EQ(false, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_ENTER);
+    testData.millis += 2000;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, isButtonPressed);
     clearResponseBuff();
 
     // simulate press button with correct response
     uint8_t responseDataOfSimulation1[] = { 0xCC, 0xA5 };
     addResponseData(responseDataOfSimulation1, sizeof(responseDataOfSimulation1), true);
-    result = runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_ENTER);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, isButtonPressed);
     clearResponseBuff();
 
     // simulate press button with correct response but wrong data length
+    addResponseData(responseDataOfSimulation4, sizeof(responseDataOfSimulation4), true); // release first
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, isButtonPressed);
+    clearResponseBuff();
+
     uint8_t responseDataOfSimulation2[] = { 0xCC, 0xA5, 0x22 };
     addResponseData(responseDataOfSimulation2, sizeof(responseDataOfSimulation2), true);
-    result = runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_ENTER);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, isButtonPressed);
     clearResponseBuff();
 
     // simulate press button event with incorrect response
     uint8_t responseDataOfSimulation3[] = { 0xCC, 0xB5, 0x22 };
     addResponseData(responseDataOfSimulation3, sizeof(responseDataOfSimulation3), true);
-    result = runcamDeviceSimulate5KeyOSDCableButtonPress(camDevice, RCDEVICE_PROTOCOL_5KEY_SIMULATION_SET);
-    EXPECT_EQ(false, result);
-    clearResponseBuff();
-
-    // simulate release button event
-    result = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
-    EXPECT_EQ(false, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_ENTER);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, isButtonPressed);
     clearResponseBuff();
 
     // simulate release button with correct response
-    uint8_t responseDataOfSimulation4[] = { 0xCC, 0xA5 };
     addResponseData(responseDataOfSimulation4, sizeof(responseDataOfSimulation4), true);
-    result = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, isButtonPressed);
     clearResponseBuff();
 
     // simulate release button with correct response but wrong data length
+    addResponseData(responseDataOfSimulation1, sizeof(responseDataOfSimulation1), true); // press first
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_ENTER);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(true, isButtonPressed);
+    clearResponseBuff();
+
     uint8_t responseDataOfSimulation5[] = { 0xCC, 0xA5, 0xFF };
     addResponseData(responseDataOfSimulation5, sizeof(responseDataOfSimulation5), true);
-    result = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
-    EXPECT_EQ(true, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, isButtonPressed);
     clearResponseBuff();
 
     // simulate release button with incorrect response
     uint8_t responseDataOfSimulation6[] = { 0xCC, 0x31, 0xFF };
     addResponseData(responseDataOfSimulation6, sizeof(responseDataOfSimulation6), true);
-    result = runcamDeviceSimulate5KeyOSDCableButtonRelease(camDevice);
-    EXPECT_EQ(false, result);
+    rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += minTimeout;
+    EXPECT_EQ(false, isButtonPressed);
     clearResponseBuff();
 }
 
 TEST(RCDeviceTest, Test5KeyOSDCableSimulationWithout5KeyFeatureSupport)
 {
+    resetRCDeviceStatus();
+
     // test simulation without device init
-    rcData[THROTTLE] = 1500; // THROTTLE Mid
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1900; // Yaw High
-    rcdeviceUpdate(0);
+    rcData[THROTTLE] = FIVE_KEY_JOYSTICK_MID; // THROTTLE Mid
+    rcData[ROLL] = FIVE_KEY_JOYSTICK_MID; // ROLL Mid
+    rcData[PITCH] = FIVE_KEY_JOYSTICK_MID; // PITCH Mid
+    rcData[YAW] = FIVE_KEY_JOYSTICK_MAX; // Yaw High
+    rcdeviceUpdate(millis() * 1000);
     EXPECT_EQ(false, rcdeviceInMenu);
+    // remove all request from queue
+    for (int i = 0; i < 10; i++) {
+        testData.millis += 500000;
+        rcdeviceReceive(millis());
+    }
 
     // init device that have not 5 key OSD cable simulation feature
     memset(&testData, 0, sizeof(testData));
@@ -496,225 +684,31 @@ TEST(RCDeviceTest, Test5KeyOSDCableSimulationWithout5KeyFeatureSupport)
     testData.isAllowBufferReadWrite = true;
     testData.maxTimesOfRespDataAvailable = 0;
     uint8_t responseData[] = { 0xCC, 0x01, 0x37, 0x00, 0xBD };
+    rcdeviceInit();
+    testData.millis += 3001;
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += 200;
+    testData.responseDataReadPos = 0;
+    testData.indexOfCurrentRespBuf = 0;
     addResponseData(responseData, sizeof(responseData), true);
-    bool result = rcdeviceInit();
-    EXPECT_EQ(result, true);
+    rcdeviceReceive(millis() * 1000);
+    testData.millis += 200;
+    EXPECT_EQ(camDevice->isReady, true);
     clearResponseBuff();
 
     // open connection, rcdeviceInMenu will be false if the codes is right
     uint8_t responseDataOfOpenConnection[] = { 0xCC, 0x11, 0xe7 };
     addResponseData(responseDataOfOpenConnection, sizeof(responseDataOfOpenConnection), false);
-    rcdeviceUpdate(0);
+    rcdeviceUpdate(millis() * 1000);
     EXPECT_EQ(false, rcdeviceInMenu);
-    clearResponseBuff();
-}
-
-TEST(RCDeviceTest, Test5KeyOSDCableSimulationWith5KeyFeatureSupport)
-{
-    // test simulation without device init
-    rcData[THROTTLE] = 1500; // THROTTLE Mid
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1900; // Yaw High
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, rcdeviceInMenu);
-
-    // init device that have not 5 key OSD cable simulation feature
-    memset(&testData, 0, sizeof(testData));
-    testData.isRunCamSplitOpenPortSupported = true;
-    testData.isRunCamSplitPortConfigurated = true;
-    testData.isAllowBufferReadWrite = true;
-    testData.maxTimesOfRespDataAvailable = 0;
-    uint8_t responseData[] = { 0xCC, 0x01, 0x3F, 0x00, 0xE5 };
-    addResponseData(responseData, sizeof(responseData), true);
-    bool result = rcdeviceInit();
-    EXPECT_EQ(result, true);
-    clearResponseBuff();
-
-    // open connection
-    uint8_t responseDataOfOpenConnection[] = { 0xCC, 0x11, 0xe7 };
-    addResponseData(responseDataOfOpenConnection, sizeof(responseDataOfOpenConnection), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, rcdeviceInMenu);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // relase button
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    uint8_t responseDataOfReleaseButton[] = { 0xCC, 0xA5 };
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    clearResponseBuff();
-
-    // close connection
-    rcData[THROTTLE] = 1500; // THROTTLE Mid
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 900; // Yaw High
-    uint8_t responseDataOfCloseConnection[] = { 0xCC, 0x21, 0x11 };
-    addResponseData(responseDataOfCloseConnection, sizeof(responseDataOfCloseConnection), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, rcdeviceInMenu);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // relase button
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    clearResponseBuff();
-
-    // open osd menu again
-    rcData[THROTTLE] = 1500; // THROTTLE Mid
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1900; // Yaw High
-    addResponseData(responseDataOfOpenConnection, sizeof(responseDataOfOpenConnection), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, rcdeviceInMenu);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // relase button
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    clearResponseBuff();
-
-    // send down button event
-    rcData[PITCH] = 900;
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // relase button
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    rcData[PITCH] = 1500; // rest down button
-    clearResponseBuff();
-
-    // simulate right button long press
-    rcData[ROLL] = 1900;
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, needRelease);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, needRelease);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // send relase button event
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    rcData[ROLL] = 1500; // reset right button
-    clearResponseBuff();
-
-    // simulate right button and get failed response, then FC should release the controller of joysticks
-    rcData[ROLL] = 1900;
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // send relase button with empty response, so the release will failed
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, needRelease);
-    EXPECT_EQ(false, rcdeviceInMenu); // if failed on release button event, then FC side need release the controller of joysticks
-    rcData[ROLL] = 1500; // rest right button
-    // send again release button with correct response
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    clearResponseBuff();
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    EXPECT_EQ(false, rcdeviceInMenu);
-    clearResponseBuff();
-
-    // open OSD menu again
-    rcData[THROTTLE] = 1500; // THROTTLE Mid
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1900; // Yaw High
-    clearResponseBuff();
-    addResponseData(responseDataOfOpenConnection, sizeof(responseDataOfOpenConnection), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, rcdeviceInMenu);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-
-    // relase button
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    clearResponseBuff();
-
-    // send left event
-    rcData[ROLL] = 900;
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // send relase button
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
-    EXPECT_EQ(true, rcdeviceInMenu);
-    clearResponseBuff();
-    rcData[ROLL] = 1500; // rest right button
-
-    // close connection
-    rcData[THROTTLE] = 1500; // THROTTLE Mid
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 900; // Yaw High
-    addResponseData(responseDataOfCloseConnection, sizeof(responseDataOfCloseConnection), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, rcdeviceInMenu);
-    EXPECT_EQ(true, needRelease);
-    clearResponseBuff();
-    // relase button
-    rcData[ROLL] = 1500; // ROLL Mid
-    rcData[PITCH] = 1500; // PITCH Mid
-    rcData[YAW] = 1500; // Yaw High
-    addResponseData(responseDataOfReleaseButton, sizeof(responseDataOfReleaseButton), true);
-    rcdeviceUpdate(0);
-    EXPECT_EQ(false, needRelease);
     clearResponseBuff();
 }
 
 extern "C" {
-    serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e function,
-                                serialReceiveCallbackPtr rxCallback, void *rxCallbackData,
-                                uint32_t baudRate, portMode_t mode, portOptions_t options)
+    serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e functionMask, serialReceiveCallbackPtr callback, void *callbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
     {
         UNUSED(identifier);
-        UNUSED(function);
-        UNUSED(rxCallback);
-        UNUSED(rxCallbackData);
+        UNUSED(functionMask);
         UNUSED(baudRate);
         UNUSED(mode);
         UNUSED(options);
@@ -732,7 +726,8 @@ extern "C" {
             s.txBuffer = s.txBuffer;
 
             // callback works for IRQ-based RX ONLY
-            s.rxCallback = NULL;
+            s.rxCallback = callback;
+            s.rxCallbackData = callbackData;
             s.baudRate = 0;
 
             return (serialPort_t *)&s;
@@ -751,6 +746,7 @@ extern "C" {
             portConfig.msp_baudrateIndex = BAUD_115200;
             portConfig.gps_baudrateIndex = BAUD_57600;
             portConfig.telemetry_baudrateIndex = BAUD_AUTO;
+            portConfig.peripheral_baudrateIndex = BAUD_115200;
             portConfig.functionMask = FUNCTION_MSP;
 
             return &portConfig;
@@ -765,10 +761,10 @@ extern "C" {
 
         uint8_t bufIndex = testData.indexOfCurrentRespBuf;
         uint8_t leftDataLen = 0;
-        if (testData.responseDataReadPos >= testData.responseBufsLen[bufIndex]) {
+        if (testData.responseDataReadPos + 1 > testData.responseBufsLen[bufIndex]) {
             return 0;
         } else {
-            leftDataLen = testData.responseBufsLen[bufIndex] - testData.responseDataReadPos;
+            leftDataLen = testData.responseBufsLen[bufIndex] - (testData.responseDataReadPos);
         }
 
         if (leftDataLen) {
@@ -801,16 +797,17 @@ extern "C" {
 
     void sbufWriteString(sbuf_t *dst, const char *string)
     {
-        UNUSED(dst); UNUSED(string);
+        UNUSED(dst);
+        UNUSED(string);
 
         if (testData.isAllowBufferReadWrite) {
             sbufWriteData(dst, string, strlen(string));
         }
     }
-
     void sbufWriteU8(sbuf_t *dst, uint8_t val)
     {
-        UNUSED(dst); UNUSED(val);
+        UNUSED(dst);
+        UNUSED(val);
 
         if (testData.isAllowBufferReadWrite) {
             *dst->ptr++ = val;
@@ -819,7 +816,9 @@ extern "C" {
 
     void sbufWriteData(sbuf_t *dst, const void *data, int len)
     {
-        UNUSED(dst); UNUSED(data); UNUSED(len);
+        UNUSED(dst);
+        UNUSED(data);
+        UNUSED(len);
 
         if (testData.isAllowBufferReadWrite) {
             memcpy(dst->ptr, data, len);
@@ -830,7 +829,8 @@ extern "C" {
     // modifies streambuf so that written data are prepared for reading
     void sbufSwitchToReader(sbuf_t *buf, uint8_t *base)
     {
-        UNUSED(buf); UNUSED(base);
+        UNUSED(buf);
+        UNUSED(base);
 
         if (testData.isAllowBufferReadWrite) {
             buf->end = buf->ptr;
@@ -867,10 +867,11 @@ extern "C" {
         return buf->ptr;
     }
 
-    void sbufReadData(const sbuf_t *src, void *data, int len)
+    void sbufReadData(const sbuf_t *dst, void *data, int len)
     {
+        UNUSED(dst);
         if (testData.isAllowBufferReadWrite) {
-            memcpy(data, src->ptr, len);
+            memcpy(data, data, len);
         }
     }
 
@@ -898,11 +899,16 @@ extern "C" {
 
     void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count)
     {
-        UNUSED(instance); UNUSED(data); UNUSED(count);
+        UNUSED(instance);
+        UNUSED(data);
+        UNUSED(count);
 
-        // // reset the input buffer
+        // reset the input buffer
         testData.responseDataReadPos = 0;
         testData.indexOfCurrentRespBuf++;
+        if (testData.indexOfCurrentRespBuf >= testData.responseBufCount) {
+            testData.indexOfCurrentRespBuf = 0;
+        }
         // testData.maxTimesOfRespDataAvailable = testData.responseDataLen + 1;
     }
 
@@ -934,14 +940,10 @@ extern "C" {
     }
 
     uint32_t millis(void) { return testData.millis++; }
-
+    uint32_t micros(void) { return millis() * 1000; }
     void beeper(beeperMode_e mode) { UNUSED(mode); }
     uint8_t armingFlags = 0;
     bool cmsInMenu;
     uint32_t resumeRefreshAt = 0;
-
-    void failsafeOnRxSuspend(uint32_t ) {}
-    void failsafeOnRxResume(void) {}
-    void failsafeOnValidDataReceived(void) {}
-    void failsafeOnValidDataFailed(void) {}
+    int getArmingDisableFlags(void) {return 0;}
 }
