@@ -314,31 +314,16 @@ static bool emergencyArmingIsTriggered(void)
         emergencyArming.start >= millis() - EMERGENCY_ARMING_TIME_WINDOW_MS;
 }
 
-static bool emergencyArmingCanOverrideArmingPrevention(void)
+static bool emergencyArmingCanOverrideArmingDisabled(void)
 {
     uint32_t armingPrevention = armingFlags & ARMING_DISABLED_ALL_FLAGS;
-
-    // This flag is to require a switch flip if it's turned on while arming
-    // is disabled (otherwise craft could arm suddenly if the arming prevention
-    // reasons stop happening - e.g. THR high)
-    armingPrevention &= ~ARMING_DISABLED_ARM_SWITCH;
-
-    // Always override not level, unsafe navigation and compass not calibrated
-    armingPrevention &= ~ARMING_DISABLED_NOT_LEVEL;
-    armingPrevention &= ~ARMING_DISABLED_NAVIGATION_UNSAFE;
-    armingPrevention &= ~ARMING_DISABLED_COMPASS_NOT_CALIBRATED;
-
-    // In the event of a hardware failure, check wether the essential
-    // hardware is working. In that case, go ahead
-    if (getHwGyroStatus() == HW_SENSOR_OK && getHwAccelerometerStatus() == HW_SENSOR_OK) {
-        armingPrevention &= ~ARMING_DISABLED_HARDWARE_FAILURE;
-    }
+    armingPrevention &= ~ARMING_DISABLED_EMERGENCY_OVERRIDE;
     return armingPrevention == 0;
 }
 
 static bool emergencyArmingIsEnabled(void)
 {
-    return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingPrevention();
+    return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
 void annexCode(void)

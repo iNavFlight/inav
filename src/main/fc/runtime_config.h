@@ -52,8 +52,21 @@ typedef enum {
                                                        ARMING_DISABLED_BOXKILLSWITCH | ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI |
                                                        ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU | ARMING_DISABLED_ROLLPITCH_NOT_CENTERED |
                                                        ARMING_DISABLED_SERVO_AUTOTRIM | ARMING_DISABLED_OOM | ARMING_DISABLED_INVALID_SETTING |
-                                                       ARMING_DISABLED_PWM_OUTPUT_ERROR)
+                                                       ARMING_DISABLED_PWM_OUTPUT_ERROR),
 } armingFlag_e;
+
+// Arming blockers that can be overriden by emergency arming.
+// Keep in mind that this feature is intended to allow arming in
+// situations where we might just need the motors to spin so the
+// aircraft can move (even unpredictably) and get unstuck (e.g.
+// crashed into a high tree).
+#define ARMING_DISABLED_EMERGENCY_OVERRIDE  (ARMING_DISABLED_NOT_LEVEL \
+                                            | ARMING_DISABLED_NAVIGATION_UNSAFE \
+                                            | ARMING_DISABLED_COMPASS_NOT_CALIBRATED \
+                                            | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED \
+                                            | ARMING_DISABLED_ARM_SWITCH \
+                                            | ARMING_DISABLED_HARDWARE_FAILURE)
+
 
 extern uint32_t armingFlags;
 
