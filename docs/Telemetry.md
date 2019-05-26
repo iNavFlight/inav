@@ -40,7 +40,7 @@ Only TX serial pin has to be connected to Smartport receiver. Disable `telemetry
 
 ```
 set telemetry_inverted = OFF
-set smartport_uart_unidir = OFF
+set telemetry_uart_unidir = OFF
 ```
 
 ### Receiver univerted hack
@@ -49,7 +49,7 @@ Some receivers (X4R, XSR and so on) can be hacked to get _uninverted_ Smartport 
 
 ```
 set telemetry_inverted = ON
-set smartport_uart_unidir = OFF
+set telemetry_uart_unidir = OFF
 ```
 
 ### Software Serial
@@ -86,7 +86,7 @@ It is possible to use DIY UART inverter to connect SmartPort receivers to F1 and
 When external inverter is used, following configuration has to be applied:
 
 ```
-set smartport_uart_unidir = ON
+set telemetry_uart_unidir = ON
 set telemetry_inverted = ON
 ```
 
@@ -176,6 +176,9 @@ Use the latest Graupner firmware for your transmitter and receiver.
 
 Older HoTT transmitters required the EAM and GPS modules to be enabled in the telemetry menu of the transmitter. (e.g. on MX-20)
 
+You can use a single connection, connect HoTT RX/TX only to serial TX, leave serial RX open and make sure the setting `telemetry_uart_unidir` is OFF.
+
+The following information is deprecated, use only for compatibility:
 Serial ports use two wires but HoTT uses a single wire so some electronics are required so that the signals don't get mixed up.  The TX and RX pins of
 a serial port should be connected using a diode and a single wire to the `T` port on a HoTT receiver.
 
@@ -191,6 +194,8 @@ The diode should be arranged to allow the data signals to flow the right way
 ```
 
 1N4148 diodes have been tested and work with the GR-24.
+
+When using the diode enable `telemetry_uart_unidir`, go to CLI and type `set telemetry_uart_unidir = ON`, don't forget a `save` afterwards.
 
 As noticed by Skrebber the GR-12 (and probably GR-16/24, too) are based on a PIC 24FJ64GA-002, which has 5V tolerant digital pins.
 
