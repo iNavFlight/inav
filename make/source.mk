@@ -146,6 +146,7 @@ COMMON_SRC = \
             cms/cms_menu_imu.c \
             cms/cms_menu_ledstrip.c \
             cms/cms_menu_misc.c \
+            cms/cms_menu_mixer_servo.c \
             cms/cms_menu_navigation.c \
             cms/cms_menu_osd.c \
             cms/cms_menu_saveexit.c \
