@@ -1,6 +1,9 @@
 ---
-name: "\U00002753Question"
+name: "❓Question"
 about: Have a question?
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
@@ -16,3 +19,5 @@ You can also read public documentations or watch video tutorials:
 * [Official Wiki](https://github.com/iNavFlight/inav/wiki)
 * [Video series by Painless360](https://www.youtube.com/playlist?list=PLYsWjANuAm4qdXEGFSeUhOZ10-H8YTSnH)
 * [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
+* [How to setup INAV on a flying wing](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLn_lCX7UB2OPLzR4w5G4el3)
+* [How to setup INAV on a 5" quad](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLl9M6Vm-ZNLMCr6_9yNVHQG)
