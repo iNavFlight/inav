@@ -54,6 +54,9 @@ extern "C" {
     #include "rx/rx.h"
 
     int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
+    int16_t rcCommand[4];
+    uint32_t stateFlags;
+    rcControlsConfig_t rcControlsConfig_System;
 
     extern rcdeviceSwitchState_t switchStates[BOXCAMERA3 - BOXCAMERA1 + 1];
     extern runcamDevice_t *camDevice;
