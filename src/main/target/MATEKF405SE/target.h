@@ -75,6 +75,7 @@
 #define USE_MAG_LIS3MDL
 
 #define USE_RANGEFINDER
+#define USE_RANGEFINDER_MSP
 #define USE_RANGEFINDER_HCSR04_I2C
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
@@ -82,6 +83,8 @@
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_MSP
 
 // *************** SPI2 OSD ***************************
 #define USE_SPI_DEVICE_2

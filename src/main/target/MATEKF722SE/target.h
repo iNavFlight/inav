@@ -92,6 +92,11 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define USE_RANGEFINDER_MSP
+#define USE_RANGEFINDER_HCSR04_I2C
+
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_MSP
 
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2

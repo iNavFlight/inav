@@ -176,6 +176,9 @@
 
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
 
+#define USE_OPTICAL_FLOW
+#define USE_OPFLOW_MSP
+
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
