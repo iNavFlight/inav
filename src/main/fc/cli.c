@@ -1638,12 +1638,13 @@ static void cliServoMix(char *cmdline)
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
+        args[CONDITION] = -1;
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
             ptr = strtok_r(NULL, " ", &saveptr);
         }
 
-        if (ptr != NULL || check != ARGS_COUNT) {
+        if (ptr != NULL || (check < ARGS_COUNT - 1)) {
             cliShowParseError();
             return;
         }
