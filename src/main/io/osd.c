@@ -1949,12 +1949,12 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_VEL_XY_PIDS:
-        if (STATE(FIXED_WING))
+        if (!STATE(FIXED_WING))
             osdDisplayPIDValues(elemPosX, elemPosY, "VXY", &pidBank()->pid[PID_VEL_XY], ADJUSTMENT_VEL_XY_P, ADJUSTMENT_VEL_XY_I, ADJUSTMENT_VEL_XY_D);
         return true;
 
     case OSD_VEL_Z_PIDS:
-        if (STATE(FIXED_WING))
+        if (!STATE(FIXED_WING))
             osdDisplayPIDValues(elemPosX, elemPosY, "VZ", &pidBank()->pid[PID_VEL_Z], ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
         return true;
 
