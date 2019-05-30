@@ -248,6 +248,26 @@ for PX4, PIXHAWK, APM and Parrot AR.Drone platforms.
 
 MAVLink implementation in INAV is transmit-only and usable on low baud rates and can be used over soft serial.
 
+
+## Cellular telemetry via text messages
+
+INAV can use a SimCom SIM800 series cellular module to provide telemetry via text messages. Telemetry messages can be requested by calling the module's number or sending it a text message. The module can be set to transmit messages at regular intervals, or when an acceleration event is detected. A text message command can be used to put the flight controller into RTH mode.
+
+The telemetry message looks like this:
+```
+12.34V 2.0A ALT:5 SPD:10/13.6 DIS:78/19833 COG:16 SAT:21  SIG:9 ANG maps.google.com/?q=@50.3812711,20.1440378
+```
+giving battery voltage, current, altitude (m), speed / average speed (m/s), distance to home / total traveled distance (m), course over ground (degrees), number of satellites, cellular signal strength, flight mode and GPS coordinates as a Google Maps link. `SIG` has a range of 0 -- 31, with a value of 10 or higher indicating a usable signal quality.
+
+Transmission at regular intervals can be set by giving a string of flags in the CLI variable `sim_transmit_flags`: `T` - transmit continuously, `F` - transmit in failsafe mode, `A` - transmit when altitude is lower than `sim_low_altitude`, `G` - transmit when GPS signal quality is low. `A` only transmits in ALT HOLD, WAYPOINT, RTH, and FAILSAFE flight modes. The transmission interval is given by `sim_transmit_interval` and is 60 seconds by default.
+
+Text messages sent to the module can be used to set the transmission flags during flight, or to issue a RTH command to the flight controller. If a message begins with `RTH` it toggles forced RTH on / off, otherwise it is taken as a value for `sim_transmit_flags`. Note that an empty message turns transmission off, setting all flags to zero.
+
+Acceleration events are indicated at the beginning of the message as follows: `HIT!` indicates impact / high g event, `HIT` indicates landing / backwards acceleration event, `DROP` indicates freefall / low g event.
+
+To receive acceleration event messages, set one or more of the acceleration event threshold CLI variables to a nonzero value, and use the `A` flag in `sim_transmit_flags`. `acc_event_threshold_high` is the threshold (in cm/s/s) for impact detection by high magnitude of acceleration. `acc_event_threshold_low` is the threshold for freefall detection by low magnitude of acceleration. `acc_event_threshold_neg_x` is the threshold for landing detection (for fixed wing models) by high magnitude of negative x axis acceleration.
+
+
 ## Ibus telemetry
 
 Ibus telemetry requires a single connection from the TX pin of a bidirectional serial port to the Ibus sens pin on an FlySky telemetry receiver. (tested with fs-iA6B receiver, iA10 should work)
