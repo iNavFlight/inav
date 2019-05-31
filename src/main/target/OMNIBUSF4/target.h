@@ -22,7 +22,7 @@
 #endif
 #ifdef OMNIBUSF4PRO
 #define TARGET_BOARD_IDENTIFIER "OBSD"
-#elif defined(OMNIBUSF4V3)
+#elif defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
 #define TARGET_BOARD_IDENTIFIER "OB43"
 #elif defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
@@ -35,7 +35,7 @@
 #if defined(DYSF4PRO)
 #define USBD_PRODUCT_STRING "DysF4Pro"
 #else
-#define USBD_PRODUCT_STRING     "Omnibus F4"
+#define USBD_PRODUCT_STRING "Omnibus F4"
 #endif
 
 #define LED0                    PB5
