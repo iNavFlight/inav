@@ -197,6 +197,11 @@
 
 #define SYM_AH_V_START            0xE0 // 224 to 229 Vertical AHI
 
+#define SYM_GFORCE                0xE6 // 230 Gforce (all axis)
+#define SYM_GFORCE_X              0xE7 // 231 Gforce X
+#define SYM_GFORCE_Y              0xE8 // 232 Gforce Y
+#define SYM_GFORCE_Z              0xE9 // 233 Gforce Z
+
 #define SYM_BARO_TEMP             0xF0 // 240
 #define SYM_IMU_TEMP              0xF1 // 241
 #define SYM_TEMP                  0xF2 // 242
