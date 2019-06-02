@@ -1121,14 +1121,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
                 initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
             }
 
-            posControl.rthInitialHomeDistance = posControl.homeDistance;
-
             if (navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING)) {
                 setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
             }
             else {
                 setDesiredPosition(&posControl.homeWaypointAbove.pos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
             }
+
+            // Save initial home distance for future use
+            posControl.rthInitialHomeDistance = posControl.homeDistance;
 
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_RTH_HEAD_HOME
         }
@@ -1181,7 +1182,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
         if (isWaypointReached(&posControl.homeWaypointAbove, true)) {
             // Successfully reached position target - update XYZ-position
-            setDesiredPosition(&posControl.homeWaypointAbove.pos, posControl.homeWaypointAbove.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            fpVector3_t pos = posControl.homeWaypointAbove.pos;
+
+            // NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT changes the behavior of altitude controller and meaning of homeWaypointAbove.pos position
+            if (navConfig()->general.flags.rth_alt_control_mode == NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT) {
+                pos.z = posControl.homePosition.pos.z + navConfig()->general.rth_altitude;
+            }
+
+            setDesiredPosition(&pos, posControl.homeWaypointAbove.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+
             return NAV_FSM_EVENT_SUCCESS;       // NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING
         }
         else if (!validateRTHSanityChecker()) {
@@ -1192,18 +1201,17 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
             if (navConfig()->general.flags.rth_alt_control_mode == NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT) {
                 // Calculate required travel and actual travel distance
                 float rthTotalDistanceToTravel = posControl.rthInitialHomeDistance - (STATE(FIXED_WING) ? navConfig()->fw.loiter_radius : 0);
-                float rthTravelledDistance = MIN((posControl.rthInitialHomeDistance - posControl.homeDistance), rthTotalDistanceToTravel);
 
                 // At this point `posControl.homeWaypointAbove.pos.z` is initial altitude at RTH start
                 // while (posControl.homePosition.pos.z + navConfig()->general.rth_altitude) is a target altitude above home point
                 // We will scale gradually between the two, but only if rthTotalDistanceToTravel is more than 1m (otherwise probably no point)
-
                 if (rthTotalDistanceToTravel >= 100) {
                     fpVector3_t pos;
 
-                    float ratioTravelled = rthTravelledDistance / rthTotalDistanceToTravel;
-                    pos.z = posControl.homeWaypointAbove.pos.z -
-                                (posControl.homeWaypointAbove.pos.z - (posControl.homePosition.pos.z + navConfig()->general.rth_altitude)) * ratioTravelled;
+                    float ratioNotTravelled = constrainf(posControl.homeDistance / rthTotalDistanceToTravel, 0.0f, 1.0f);
+
+                    pos.z = (posControl.homeWaypointAbove.pos.z * ratioNotTravelled) +
+                            ((posControl.homePosition.pos.z + navConfig()->general.rth_altitude) * (1.0f - ratioNotTravelled));
 
                     setDesiredPosition(&pos, 0, NAV_POS_UPDATE_Z);
                 }
