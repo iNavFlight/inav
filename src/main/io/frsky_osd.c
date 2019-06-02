@@ -281,9 +281,11 @@ static bool frskyOSDSendSyncCommand(uint8_t cmd, const void *data, size_t size, 
     while (millis() < end) {
         frskyOSDUpdateReceiveBuffer();
         if (frskyOSDIsResponseAvailable()) {
+            FRSKY_OSD_DEBUG("Got sync response");
             return true;
         }
     }
+    FRSKY_OSD_DEBUG("Sync response failed");
     return false;
 }
 
@@ -346,8 +348,9 @@ bool frskyOSDReadFontCharacter(unsigned char_address, osdCharacter_t *chr)
 
     uint16_t addr = char_address;
 
-    // 200ms should be more than enough to receive ~60 bytes @ 115200 bps
-    if (frskyOSDSendSyncCommand(FRSKY_OSD_CMD_READ_FONT, &addr, sizeof(addr), 200)) {
+    // 500ms should be more than enough to receive ~60 bytes @ 115200 bps
+    if (frskyOSDSendSyncCommand(FRSKY_OSD_CMD_READ_FONT, &addr, sizeof(addr), 500)) {
+        FRSKY_OSD_DEBUG("CMD %d got %u, expect %u", state.recv_buffer.cmd, state.recv_buffer.expected, sizeof(*chr) + sizeof(addr));
         if (state.recv_buffer.cmd != FRSKY_OSD_CMD_READ_FONT ||
             state.recv_buffer.expected < sizeof(*chr) + sizeof(addr)) {
 
@@ -374,12 +377,14 @@ bool frskyOSDWriteFontCharacter(unsigned char_address, const osdCharacter_t *chr
 
     memcpy(c.data, chr, sizeof(c.data));
     c.addr = char_address;
-    frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_WRITE_FONT, &c, sizeof(c));
+    FRSKY_OSD_DEBUG("WRITE FONT CHR %u", char_address);
+    frskyOSDSendSyncCommand(FRSKY_OSD_CMD_WRITE_FONT, &c, sizeof(c), 1000);
+//    frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_WRITE_FONT, &c, sizeof(c));
     // Wait until all bytes have been sent. Otherwise uploading
     // the very last character of the font might fail.
     // TODO: Investigate if we can change the max7456 handling to
     // stop rebooting when a font is uploaded
-    waitForSerialPortToFinishTransmitting(state.port);
+    //waitForSerialPortToFinishTransmitting(state.port);
     return true;
 }
 

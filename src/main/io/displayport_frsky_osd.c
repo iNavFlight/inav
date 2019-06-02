@@ -26,6 +26,7 @@
 
 #include "drivers/display.h"
 #include "drivers/display_font_metadata.h"
+#include "drivers/max7456.h"
 
 #include "io/displayport_frsky_osd.h"
 #include "io/frsky_osd.h"
@@ -76,7 +77,8 @@ static int writeString(displayPort_t *displayPort, uint8_t x, uint8_t y, const c
 static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t c, textAttributes_t attr)
 {
     UNUSED(displayPort);
-
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
+    max7456ScreenBuffer[pos] = c;
     frskyOSDDrawCharInGrid(x, y, c, attr);
     return 0;
 }
@@ -84,7 +86,11 @@ static int writeChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t 
 static bool readChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint16_t *c, textAttributes_t *attr)
 {
     UNUSED(displayPort);
-    return false;
+    UNUSED(attr);
+    // XXX: We don't actually read the attributes, just the character
+    unsigned pos = y * MAX7456_CHARS_PER_LINE + x;
+    *c = max7456ScreenBuffer[pos];
+    return true;
 }
 
 static bool isTransferInProgress(const displayPort_t *displayPort)
