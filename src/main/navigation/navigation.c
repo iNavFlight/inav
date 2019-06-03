@@ -90,8 +90,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
             .extra_arming_safety = NAV_EXTRA_ARMING_SAFETY_ON,
             .user_control_mode = NAV_GPS_ATTI,
             .rth_alt_control_mode = NAV_RTH_AT_LEAST_ALT,
-            .rth_climb_first = 1,                   // Climb first, turn after reaching safe altitude
-            .rth_climb_ignore_emerg = 0,            // Ignore GPS loss on initial climb
+            .rth_climb_first = 1,               // Climb first, turn after reaching safe altitude
+            .rth_climb_ignore_emerg = 0,        // Ignore GPS loss on initial climb
             .rth_tail_first = 0,
             .disarm_on_landing = 0,
             .rth_allow_landing = NAV_RTH_ALLOW_LANDING_ALWAYS,
@@ -99,29 +99,29 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         },
 
         // General navigation parameters
-        .pos_failure_timeout = 5,     // 5 sec
-        .waypoint_radius = 100,       // 2m diameter
-        .waypoint_safe_distance = 10000,    // 100m - first waypoint should be closer than this
-        .max_auto_speed = 300,             // 3 m/s = 10.8 km/h
-        .max_auto_climb_rate = 500,        // 5 m/s
+        .pos_failure_timeout = 5,               // 5 sec
+        .waypoint_radius = 100,                 // 2m diameter
+        .waypoint_safe_distance = 10000,        // centimeters - first waypoint should be closer than this
+        .max_auto_speed = 300,                  // 3 m/s = 10.8 km/h
+        .max_auto_climb_rate = 500,             // 5 m/s
         .max_manual_speed = 500,
         .max_manual_climb_rate = 200,
-        .land_descent_rate = 200,     // 2 m/s
-        .land_slowdown_minalt = 500,  // 5 meters of altitude
-        .land_slowdown_maxalt = 2000, // 20 meters of altitude
-        .emerg_descent_rate = 500,    // 5 m/s
-        .min_rth_distance = 500,      // If closer than 5m - land immediately
-        .rth_altitude = 1000,         // 10m
-        .rth_home_altitude = 0,
-        .rth_abort_threshold = 50000, // 500m - should be safe for all aircraft
-        .max_terrain_follow_altitude = 100,     // max 1m altitude in terrain following mode
+        .land_descent_rate = 200,               // centimeters/s
+        .land_slowdown_minalt = 500,            // altitude in centimeters
+        .land_slowdown_maxalt = 2000,           // altitude in meters
+        .emerg_descent_rate = 500,              // centimeters/s
+        .min_rth_distance = 500,                // centimeters, if closer than this land immediately
+        .rth_altitude = 1000,                   // altitude in centimeters
+        .rth_home_altitude = 0,                 // altitude in centimeters
+        .rth_abort_threshold = 50000,           // centimeters - 500m should be safe for all aircraft
+        .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
     },
 
     // MC-specific
     .mc = {
-        .max_bank_angle = 30,                   // 30 deg
+        .max_bank_angle = 30,                   // degrees
         .hover_throttle = 1500,
-        .auto_disarm_delay = 2000,
+        .auto_disarm_delay = 2000,              // milliseconds - time before disarming when auto disarm is enabled and landing is confirmed
         .braking_speed_threshold = 100,         // Braking can become active above 1m/s
         .braking_disengage_speed = 75,          // Stop when speed goes below 0.75m/s
         .braking_timeout = 2000,                // Timeout barking after 2s
@@ -136,33 +136,33 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
     // Fixed wing
     .fw = {
-        .max_bank_angle = 20,      // 30 deg
-        .max_climb_angle = 20,
-        .max_dive_angle = 15,
+        .max_bank_angle = 35,                   // degrees
+        .max_climb_angle = 20,                  // degrees
+        .max_dive_angle = 15,                   // degrees
         .cruise_throttle = 1400,
-        .cruise_speed = 0,         // cm/s
+        .cruise_speed = 0,                      // cm/s
         .max_throttle = 1700,
         .min_throttle = 1200,
-        .pitch_to_throttle = 10,   // pwm units per degree of pitch (10pwm units ~ 1% throttle)
-        .loiter_radius = 5000,     // 50m
+        .pitch_to_throttle = 10,                // pwm units per degree of pitch (10pwm units ~ 1% throttle)
+        .loiter_radius = 5000,                  // 50m
 
         //Fixed wing landing
-        .land_dive_angle = 2,   // 2 degrees dive by default
+        .land_dive_angle = 2,                   // 2 degrees dive by default
 
         // Fixed wing launch
-        .launch_velocity_thresh = 300,         // 3 m/s
-        .launch_accel_thresh = 1.9f * 981,     // cm/s/s (1.9*G)
-        .launch_time_thresh = 40,              // 40ms
+        .launch_velocity_thresh = 300,          // 3 m/s
+        .launch_accel_thresh = 1.9f * 981,      // cm/s/s (1.9*G)
+        .launch_time_thresh = 40,               // 40ms
         .launch_throttle = 1700,
-        .launch_idle_throttle = 1000,          // Motor idle or MOTOR_STOP
-        .launch_motor_timer = 500,             // ms
-        .launch_motor_spinup_time = 100,       // ms, time to gredually increase throttle from idle to launch
-        .launch_min_time = 0,                  // ms, min time in launch mode
-        .launch_timeout = 5000,                // ms, timeout for launch procedure
-        .launch_max_altitude = 0,              // cm, altitude where to consider launch ended
-        .launch_climb_angle = 18,              // 18 degrees
-        .launch_max_angle = 45,                // 45 deg
-        .cruise_yaw_rate  = 20,                // 20dps
+        .launch_idle_throttle = 1000,           // Motor idle or MOTOR_STOP
+        .launch_motor_timer = 500,              // ms
+        .launch_motor_spinup_time = 100,        // ms, time to gredually increase throttle from idle to launch
+        .launch_min_time = 0,                   // ms, min time in launch mode
+        .launch_timeout = 5000,                 // ms, timeout for launch procedure
+        .launch_max_altitude = 0,               // cm, altitude where to consider launch ended
+        .launch_climb_angle = 18,               // 18 degrees
+        .launch_max_angle = 45,                 // 45 deg
+        .cruise_yaw_rate  = 20,                 // 20dps
         .allow_manual_thr_increase = false
     }
 );
