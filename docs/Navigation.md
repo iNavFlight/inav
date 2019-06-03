@@ -54,7 +54,7 @@ When deciding what altitude to maintain, RTH has 4 different modes of operation 
 
 `wp load` - Load list of waypoints from EEPROM to FC.
 
-`wp <n> <action> <lat> <lon> <alt> <p1> <flag>` - Set parameters of waypoint with index `<n>`.
+`wp <n> <action> <lat> <lon> <alt> <p1> <p2> <flag>` - Set parameters of waypoint with index `<n>`.
 
 Parameters:
 
@@ -67,9 +67,11 @@ Parameters:
   * `<alt>` - Altitude in cm.
   
   * `<p1>` - For a "RTH waypoint" p1 > 0 alow landing. For a normal waypoint it means speed to this waypoint, it is taken into account only for multicopters and when > 50 and < nav_auto_speed.
-  
+
+  * `<p2>` - If p2 > 0 after reaching waypoint wait `p2` seconds in posHold and then continue mission. For a "RTH waypoint" when reach home point, count `p2` seconds and at the same time descent (climb) to rth_home_altitude and then land (if land is enabled).
+
   * `<flag>` - Last waypoint must have set `flag` to 165 (0xA5), otherwise 0.
-  
+
 `wp save` - Checks list of waypoints and save from FC to EEPROM (warning: it also saves all unsaved CLI settings like normal `save`).
 
 `wp reset` - Resets the list, sets the waypoints number to 0 and mark it as invalid (but doesn't delete the waypoints).
