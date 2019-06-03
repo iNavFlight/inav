@@ -1307,9 +1307,12 @@ static void cliWaypoints(char *cmdline)
             cliShowParseError();
         }
     } else {
-        int16_t i, p1, p2;
-        uint8_t action, flag;
+        int16_t i;
+        uint8_t action;
         int32_t lat, lon, alt;
+        int16_t p1 = 0;
+        int16_t p2 = 0;
+        uint8_t flag = 0;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         i = fastA2I(ptr);
@@ -1349,7 +1352,7 @@ static void cliWaypoints(char *cmdline)
                 flag = fastA2I(ptr);
                 validArgumentCount++;
             }
-            if (validArgumentCount < 7) {
+            if (validArgumentCount < 4) {
                 cliShowParseError();
             } else if (!(action == 0 || action == NAV_WP_ACTION_WAYPOINT || action == NAV_WP_ACTION_RTH)
 		     || (p1 < 0) || (p2 < 0) || !(flag == 0 || flag == NAV_WP_FLAG_LAST)) {
