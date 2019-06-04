@@ -36,11 +36,14 @@ If one of the core developers has the hardware in possession they may opt in and
 
 2. Manufacturer or community member providing the hardware bears all the costs of the hardware, delivery and VAT/customs duties. Hardware manufacturer also assumes the responsibility to provide up to date specs, documentation and firmware (if applicable).
 
-3. The new target and new hardware policies do not apply in the following cases. Developers may still chose to apply the "own hardware exception" at their own discretion.
+3. Before sending samples the providing party should reach out to developers and agree on specific terms of implementing support for the unsupported hardware. Developers may place additional requirements on a case by case basis and at their sole discretion.
+
+4. The new target and new hardware policies do not apply in the following cases. Developers may still chose to apply the "own hardware exception" at their own discretion.
 
   * if the receiving developer has to bear part of the costs (and is not reimbursed by the sender)
-  * if the hardware provided does not behave according to specs (different communication protocol, undocumented or incorrect CPU pin mappings, damaged or dead on arrival) and the sender doesn't provide a way to resolve the problem (up to date docs, new firmware etc). 
+  * if the hardware provided does not behave according to specs (different communication protocol, undocumented or incorrect CPU pin mappings, damaged or dead on arrival) and the sender doesn't provide a way to resolve the problem (up to date docs, new firmware etc).
+  * if the hardware was sent without reaching out to developers and agreeing on the terms first.
 
-4. It's advised to provide more than one sample to avoid issues with damaged or dead on arrival hardware.
+5. It's advised to provide more than one sample to avoid issues with damaged or dead on arrival hardware.
 
 
