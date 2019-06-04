@@ -2089,7 +2089,7 @@ static void updateDesiredRTHAltitude(void)
                     break;
 
                 case NAV_RTH_MAX_ALT:
-                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.homePosition.pos.z, posControl.actualState.abs.pos.z);
+                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.rthInitialAltitude, posControl.actualState.abs.pos.z);
                     posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
