@@ -1113,11 +1113,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
 
     // If we have valid pos sensor OR we are configured to ignore GPS loss
     if ((posControl.flags.estPosStatus >= EST_USABLE) || !checkForPositionSensorTimeout() || navConfig()->general.flags.rth_climb_ignore_emerg) {
-        const float rthAltitudeMargin = STATE(FIXED_WING) ?
-                MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (FW_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z)) :  // Airplane
-                MAX(MR_RTH_CLIMB_MARGIN_MIN_CM, (MR_RTH_CLIMB_MARGIN_PERCENT/100.0) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));   // Copters
+        const uint8_t rthClimbMarginPercent = STATE(FIXED_WING) ? FW_RTH_CLIMB_MARGIN_PERCENT : MR_RTH_CLIMB_MARGIN_PERCENT;
+        const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
 
+        // If we reached desired initial RTH altitude or we don't want to climb first
         if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (!navConfig()->general.flags.rth_climb_first)) {
+
             // Delayed initialization for RTH sanity check on airplanes - allow to finish climb first as it can take some distance
             if (STATE(FIXED_WING)) {
                 initializeRTHSanityChecker(&navGetCurrentActualPositionAndVelocity()->pos);
@@ -1135,23 +1136,21 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
             }
 
             return NAV_FSM_EVENT_SUCCESS;   // NAV_STATE_RTH_HEAD_HOME
-        }
-        else {
+
+        } else {
+
             fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL);
 
             /* For multi-rotors execute sanity check during initial ascent as well */
-            if (!STATE(FIXED_WING)) {
-                if (!validateRTHSanityChecker()) {
-                    return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
-                }
+            if (!STATE(FIXED_WING) && !validateRTHSanityChecker()) {
+                return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
             }
 
             // Climb to safe altitude and turn to correct direction
             if (STATE(FIXED_WING)) {
                 tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
                 setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
-            }
-            else {
+            } else {
                 // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
                 // it in a reasonable time. Immediately after we finish this phase - target the original altitude.
                 tmpHomePos->z += MR_RTH_CLIMB_OVERSHOOT_CM;
@@ -1164,6 +1163,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
             }
 
             return NAV_FSM_EVENT_NONE;
+
         }
     }
     /* Position sensor failure timeout - land */
@@ -2109,8 +2109,7 @@ static void updateDesiredRTHAltitude(void)
                     posControl.rthState.rthFinalAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude;
             }
         }
-    }
-    else {
+    } else {
         posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
         posControl.rthState.rthFinalAltitude = posControl.actualState.abs.pos.z;
     }
