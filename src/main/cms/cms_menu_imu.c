@@ -47,8 +47,15 @@
 
 
 //
-// PID
+// PIDFF
 //
+
+#define PIDFF_PARAM_COUNT 4
+
+static uint8_t cmsx_pidRoll[PIDFF_PARAM_COUNT];
+static uint8_t cmsx_pidPitch[PIDFF_PARAM_COUNT];
+static uint8_t cmsx_pidYaw[PIDFF_PARAM_COUNT];
+
 static uint8_t tmpProfileIndex;
 static uint8_t profileIndex;
 static char profileIndexString[] = " p";
@@ -58,6 +65,7 @@ static void cmsx_ReadPidToArray(uint8_t *dst, int pidIndex)
     dst[0] = pidBank()->pid[pidIndex].P;
     dst[1] = pidBank()->pid[pidIndex].I;
     dst[2] = pidBank()->pid[pidIndex].D;
+    dst[3] = pidBank()->pid[pidIndex].FF;
 }
 
 static void cmsx_WritebackPidFromArray(uint8_t *src, int pidIndex)
@@ -65,6 +73,7 @@ static void cmsx_WritebackPidFromArray(uint8_t *src, int pidIndex)
     pidBankMutable()->pid[pidIndex].P = src[0];
     pidBankMutable()->pid[pidIndex].I = src[1];
     pidBankMutable()->pid[pidIndex].D = src[2];
+    pidBankMutable()->pid[pidIndex].FF = src[3];
 }
 
 static long cmsx_menuImu_onEnter(const OSD_Entry *from)
@@ -89,10 +98,6 @@ static long cmsx_profileIndexOnChange(displayPort_t *displayPort, const void *pt
 
     return 0;
 }
-
-static uint8_t cmsx_pidRoll[3];
-static uint8_t cmsx_pidPitch[3];
-static uint8_t cmsx_pidYaw[3];
 
 static long cmsx_PidRead(void)
 {
@@ -130,17 +135,20 @@ static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
 
-    OSD_UINT8_ENTRY("ROLL P", (&(const OSD_UINT8_t){ &cmsx_pidRoll[0],  0, 200, 1 })),
-    OSD_UINT8_ENTRY("ROLL I", (&(const OSD_UINT8_t){ &cmsx_pidRoll[1],  0, 200, 1 })),
-    OSD_UINT8_ENTRY("ROLL D", (&(const OSD_UINT8_t){ &cmsx_pidRoll[2],  0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL P", (&(const OSD_UINT8_t){ &cmsx_pidRoll[0], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL I", (&(const OSD_UINT8_t){ &cmsx_pidRoll[1], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL D", (&(const OSD_UINT8_t){ &cmsx_pidRoll[2], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("ROLL FF", (&(const OSD_UINT8_t){ &cmsx_pidRoll[3], 0, 200, 1 })),
 
     OSD_UINT8_ENTRY("PITCH P", (&(const OSD_UINT8_t){ &cmsx_pidPitch[0], 0, 200, 1 })),
     OSD_UINT8_ENTRY("PITCH I", (&(const OSD_UINT8_t){ &cmsx_pidPitch[1], 0, 200, 1 })),
     OSD_UINT8_ENTRY("PITCH D", (&(const OSD_UINT8_t){ &cmsx_pidPitch[2], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("PITCH FF", (&(const OSD_UINT8_t){ &cmsx_pidPitch[3], 0, 200, 1 })),
 
-    OSD_UINT8_ENTRY("YAW   P", (&(const OSD_UINT8_t){ &cmsx_pidYaw[0],   0, 200, 1 })),
-    OSD_UINT8_ENTRY("YAW   I", (&(const OSD_UINT8_t){ &cmsx_pidYaw[1],   0, 200, 1 })),
-    OSD_UINT8_ENTRY("YAW   D", (&(const OSD_UINT8_t){ &cmsx_pidYaw[2],   0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   P", (&(const OSD_UINT8_t){ &cmsx_pidYaw[0], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   I", (&(const OSD_UINT8_t){ &cmsx_pidYaw[1], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   D", (&(const OSD_UINT8_t){ &cmsx_pidYaw[2], 0, 200, 1 })),
+    OSD_UINT8_ENTRY("YAW   FF", (&(const OSD_UINT8_t){ &cmsx_pidYaw[3], 0, 200, 1 })),
 
     OSD_BACK_AND_END_ENTRY,
 };
