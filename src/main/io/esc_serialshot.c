@@ -78,7 +78,7 @@ bool serialshotInitialize(void)
 
 void serialshotUpdateMotor(int index, uint16_t value)
 {
-    if (index < 0 && index > 3) {
+    if (index < 0 || index > 3) {
         return;
     }
 
