@@ -298,6 +298,23 @@ typedef struct {
 } navCruise_t;
 
 typedef struct {
+    navigationHomeFlags_t   homeFlags;
+    navWaypointPosition_t   homePosition;       // Original home position and base altitude
+    float                   rthInitialAltitude; // Altitude at start of RTH
+    float                   rthFinalAltitude;   // Altitude at end of RTH approach
+    float                   rthInitialDistance; // Distance when starting flight home
+    fpVector3_t             homeTmpWaypoint;    // Temporary storage for home target
+} rthState_t;
+
+typedef enum {
+    RTH_HOME_ENROUTE_INITIAL,       // Initial position for RTH approach
+    RTH_HOME_ENROUTE_PROPORTIONAL,  // Prorpotional position for RTH approach
+    RTH_HOME_ENROUTE_FINAL,         // Final position for RTH approach
+    RTH_HOME_FINAL_HOVER,           // Final hover altitude (if rth_home_altitude is set)
+    RTH_HOME_FINAL_LAND,            // Home position and altitude
+} rthTargetMode_e;
+
+typedef struct {
     /* Flags and navigation system state */
     navigationFSMState_t        navState;
     navigationPersistentId_e    navPersistentId;
@@ -321,11 +338,9 @@ typedef struct {
 
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
     rthSanityChecker_t          rthSanityChecker;
-    navWaypointPosition_t       homePosition;       // Special waypoint, stores original yaw (heading when launched)
-    navWaypointPosition_t       homeWaypointAbove;  // NEU-coordinates and initial bearing + desired RTH altitude
-    navigationHomeFlags_t       homeFlags;
-    uint32_t                    rthInitialHomeDistance;  // Distance to home after RTH has been initiated and the initial climb/descent is done
+    rthState_t                  rthState;
 
+    /* Home parameters */
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
 

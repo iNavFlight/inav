@@ -416,7 +416,7 @@ void resetWaypointList(void);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 
-float RTHAltitude(void);
+float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch);
 
 /* Geodetic functions */
