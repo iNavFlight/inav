@@ -2080,33 +2080,33 @@ static void updateDesiredRTHAltitude(void)
             switch (navConfig()->general.flags.rth_alt_control_mode) {
                 case NAV_RTH_NO_ALT:
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
-                    posControl.rthState.rthFinalAltitude = posControl.actualState.abs.pos.z;
+                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_EXTRA_ALT: // Maintain current altitude + predefined safety margin
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z + navConfig()->general.rth_altitude;
-                    posControl.rthState.rthFinalAltitude = posControl.actualState.abs.pos.z + navConfig()->general.rth_altitude;
+                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_MAX_ALT:
-                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.rthInitialAltitude, posControl.actualState.abs.pos.z);
-                    posControl.rthState.rthFinalAltitude = MAX(posControl.rthState.rthFinalAltitude, posControl.actualState.abs.pos.z);
+                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.homePosition.pos.z, posControl.actualState.abs.pos.z);
+                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_AT_LEAST_ALT:  // Climb to at least some predefined altitude above home
-                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.rthInitialAltitude + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
-                    posControl.rthState.rthFinalAltitude = MAX(posControl.rthState.rthFinalAltitude + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
+                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
+                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT:
-                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.rthInitialAltitude + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
+                    posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
                     posControl.rthState.rthFinalAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude;
                     break;
 
                 case NAV_RTH_CONST_ALT:     // Climb/descend to predefined altitude above home
                 default:
                     posControl.rthState.rthInitialAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude;
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude;
+                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
             }
         }
     } else {
