@@ -3091,11 +3091,19 @@ void updateFlightBehaviorModifiers(void)
 
 void processGeofenceStatus(void)
 {
-    // No need to update status if F/S has already been enforced
-    if (getStateOfForcedRTH() == RTH_IDLE) {
+    static bool geofenceTriggered = false;
+
+    if (!geofenceTriggered) {
         if ((navConfig()->general.geofence_radius > 0 && GPS_distanceToHome > navConfig()->general.geofence_radius) || (navConfig()->general.geofence_height > 0 && posControl.actualState.abs.pos.z > navConfig()->general.geofence_height * 100)) {
-            activateForcedRTH();
+            geofenceTriggered = true;
+            // No need to update status if F/S has already been enforced
+            if (getStateOfForcedRTH() == RTH_IDLE) {
+                    activateForcedRTH();
+            }
         }
+    // Only re-enable geofence if the aircraft gets back inside it
+    } else if (GPS_distanceToHome < navConfig()->general.geofence_radius && posControl.actualState.abs.pos.z < navConfig()->general.geofence_height * 100) {
+        geofenceTriggered = false;
     }
 }
 
