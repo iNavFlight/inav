@@ -117,6 +117,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_terrain_follow_altitude = 100,     // max altitude in centimeters in terrain following mode
         .geofence_radius = 0,                   // distance in meters
         .geofence_height = 0,                   // altitude in meters
+        .geofence_buffer = 10,                  // distance in meters
     },
 
     // MC-specific
@@ -3089,20 +3090,31 @@ void updateFlightBehaviorModifiers(void)
     posControl.flags.isGCSAssistedNavigationEnabled = IS_RC_MODE_ACTIVE(BOXGCSNAV);
 }
 
+
+bool isOutsideGeofence(void)
+{
+    return (navConfig()->general.geofence_radius > 0 && GPS_distanceToHome > navConfig()->general.geofence_radius) || (navConfig()->general.geofence_height > 0 && posControl.actualState.abs.pos.z > navConfig()->general.geofence_height * 100);
+}
+
+bool isInsideBufferedGeofence(void)
+{
+    uint32_t bufferedRadius = navConfig()->general.geofence_radius - navConfig()->general.geofence_buffer;
+    uint32_t bufferedHeight = navConfig()->general.geofence_height - navConfig()->general.geofence_buffer;
+    return GPS_distanceToHome < (bufferedRadius > 0 ? bufferedRadius : 0) && posControl.actualState.abs.pos.z < (bufferedHeight > 0 ? bufferedHeight : 0) * 100;
+}
+
 void processGeofenceStatus(void)
 {
     static bool geofenceTriggered = false;
 
-    if (!geofenceTriggered) {
-        if ((navConfig()->general.geofence_radius > 0 && GPS_distanceToHome > navConfig()->general.geofence_radius) || (navConfig()->general.geofence_height > 0 && posControl.actualState.abs.pos.z > navConfig()->general.geofence_height * 100)) {
-            geofenceTriggered = true;
-            // No need to update status if F/S has already been enforced
-            if (getStateOfForcedRTH() == RTH_IDLE) {
-                    activateForcedRTH();
-            }
+    if (!geofenceTriggered && isOutsideGeofence()) {
+        geofenceTriggered = true;
+        // No need to update status if F/S has already been enforced
+        if (getStateOfForcedRTH() == RTH_IDLE) {
+                activateForcedRTH();
         }
     // Only re-enable geofence if the aircraft gets back inside it
-    } else if (GPS_distanceToHome < navConfig()->general.geofence_radius && posControl.actualState.abs.pos.z < navConfig()->general.geofence_height * 100) {
+    } else if (isInsideBufferedGeofence()) {
         geofenceTriggered = false;
     }
 }

@@ -1372,6 +1372,9 @@ groups:
       - name: geofence_height
         field: general.geofence_radius
         max: 4294967295
+      - name: geofence_buffer
+        field: general.geofence_buffer
+        max: 100
 
       - name: nav_mc_bank_angle
         field: mc.max_bank_angle

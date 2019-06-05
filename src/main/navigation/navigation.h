@@ -171,8 +171,9 @@ typedef struct navConfig_s {
         uint16_t min_rth_distance;              // 0 Disables. Minimal distance for RTH in cm, otherwise it will just autoland
         uint16_t rth_abort_threshold;           // Initiate emergency landing if during RTH we get this much [cm] away from home
         uint16_t max_terrain_follow_altitude;   // Max altitude to be used in SURFACE TRACKING mode
-        uint16_t geofence_radius;               // cylindrical geofence radius (m)
-        uint16_t geofence_height;               // cylindrical geofence height (m)
+        uint32_t geofence_radius;               // cylindrical geofence radius (m)
+        uint32_t geofence_height;               // cylindrical geofence height (m)
+        uint16_t geofence_buffer;               // minimum distance inwards from limit to re-enable geofence (m)
     } general;
 
     struct {
