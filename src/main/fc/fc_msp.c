@@ -1210,6 +1210,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->general.land_slowdown_minalt);
         sbufWriteU16(dst, navConfig()->general.land_slowdown_maxalt);
         sbufWriteU16(dst, navConfig()->general.emerg_descent_rate);
+        sbufWriteU32(dst, navConfig()->general.geofence_radius);
+        sbufWriteU32(dst, navConfig()->general.geofence_height);
         break;
 
     case MSP_FW_CONFIG:
@@ -2128,6 +2130,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.land_slowdown_minalt = sbufReadU16(src);
             navConfigMutable()->general.land_slowdown_maxalt = sbufReadU16(src);
             navConfigMutable()->general.emerg_descent_rate = sbufReadU16(src);
+            navConfigMutable()->general.geofence_radius = sbufReadU32(src);
+            navConfigMutable()->general.geofence_height = sbufReadU32(src);
         } else
             return MSP_RESULT_ERROR;
         break;
