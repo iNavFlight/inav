@@ -8,9 +8,11 @@
 
 #include "common/crc.h"
 #include "common/log.h"
+#include "common/maths.h"
 #include "common/time.h"
 #include "common/utils.h"
 
+#include "drivers/max7456.h"
 #include "drivers/time.h"
 
 #include "io/frsky_osd.h"
@@ -21,14 +23,53 @@
 #define FRSKY_OSD_PREAMBLE_BYTE_0 '$'
 #define FRSKY_OSD_PREAMBLE_BYTE_1 'A'
 
-#define FRSKY_OSD_RECV_BUFFER_SIZE 64
+#define FRSKY_OSD_GRID_BUFFER_POS(x, y) (y * MAX7456_CHARS_PER_LINE + x)
+#define FRSKY_OSD_GRID_BUFFER_CHAR_BITS 9
+#define FRSKY_OSD_GRID_BUFFER_CHAR_MASK ((1 << FRSKY_OSD_GRID_BUFFER_CHAR_BITS) - 1)
+#define FRSKY_OSD_GRID_BUFFER_ENCODE(chr, attr) ((chr & FRSKY_OSD_GRID_BUFFER_CHAR_MASK) | (attr << FRSKY_OSD_GRID_BUFFER_CHAR_BITS))
 
-#define FRSKY_OSD_CMD_INFO 1
-#define FRSKY_OSD_CMD_READ_FONT 2
-#define FRSKY_OSD_CMD_WRITE_FONT 3
-#define FRSKY_OSD_CMD_CLEAR 4
-#define FRSKY_OSD_CMD_DRAW_GRID_CHAR 5
-#define FRSKY_OSD_CMD_DRAW_GRID_STR 6
+#define FRSKY_OSD_CHAR_ATTRIBUTE_COLOR_INVERSE (1 << 0)
+#define FRSKY_OSD_CHAR_ATTRIBUTE_SOLID_BACKGROUND (1 << 1)
+
+#define FRSKY_OSD_CHAR_DATA_BYTES 54
+#define FRSKY_OSD_CHAR_METADATA_BYTES 10
+#define FRSKY_OSD_CHAR_TOTAL_BYTES (FRSKY_OSD_CHAR_DATA_BYTES + FRSKY_OSD_CHAR_METADATA_BYTES)
+
+#define FRSKY_OSD_RECV_BUFFER_SIZE 128
+
+typedef enum
+{
+    OSD_CMD_INFO = 1,
+    OSD_CMD_READ_FONT = 2,
+    OSD_CMD_WRITE_FONT = 3,
+    OSD_CMD_GET_CAMERA = 4,
+    OSD_CMD_SET_CAMERA = 5,
+    OSD_CMD_GET_ACTIVE_CAMERA = 6,
+    OSD_CMD_GET_OSD_ENABLED = 7,
+    OSD_CMD_SET_OSD_ENABLED = 8,
+
+    OSD_CMD_PATH_BEGIN = 32,
+    OSD_CMD_PATH_MOVE_TO_POINT = 33,
+    OSD_CMD_PATH_ADD_LINE_TO_POINT = 34,
+    OSD_CMD_PATH_ADD_RECT = 35,
+    OSD_CMD_PATH_ADD_ARC = 36,
+    OSD_CMD_PATH_CLOSE = 37,
+    OSD_CMD_PATH_SET_STROKE_COLOR = 38,
+    OSD_CMD_PATH_SET_FILL_COLOR = 39,
+    OSD_CMD_PATH_STROKE = 40,
+    OSD_CMD_PATH_FILL = 41,
+
+    OSD_CMD_CTM_SET_IDENTITY = 50,
+    OSD_CMD_CTM_SET = 51,
+    OSD_CMD_CTM_TRANSLATE = 52,
+    OSD_CMD_CTM_SCALE = 53,
+    OSD_CMD_CTM_ROTATE = 54,
+
+    // MAX7456 emulation commands
+    OSD_CMD_CLEAR = 64,
+    OSD_CMD_DRAW_GRID_CHR = 65,
+    OSD_CMD_DRAW_GRID_STR = 66,
+} osd_command_t;
 
 #define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, fmt,  ##__VA_ARGS__)
 #define FRSKY_OSD_ERROR(fmt, ...) LOG_E(OSD, fmt,  ##__VA_ARGS__)
@@ -56,7 +97,10 @@ typedef struct frskyOSDInfoResponse_s {
 
 typedef struct frskyOSDFontCharacter_s {
     uint16_t addr;
-    uint8_t data[54]; // 12x18 2bpp
+    struct {
+        uint8_t bitmap[FRSKY_OSD_CHAR_DATA_BYTES]; // 12x18 2bpp
+        uint8_t metadata[FRSKY_OSD_CHAR_METADATA_BYTES];
+    } data;
 } __attribute__((packed)) frskyOSDCharacter_t;
 
 typedef struct frskyOSDDrawGridCharCmd_s {
@@ -184,7 +228,7 @@ static bool frskyOSDHandleCommand(void)
 {
     const void *data = state.recv_buffer.data;
     switch (state.recv_buffer.cmd) {
-        case FRSKY_OSD_CMD_INFO:
+        case OSD_CMD_INFO:
             if (state.recv_buffer.expected >= sizeof(frskyOSDInfoResponse_t)) {
                 const frskyOSDInfoResponse_t *resp = data;
                 if (resp->magic[0] != 'A' || resp->magic[1] != 'G' || resp->magic[2] != 'H') {
@@ -293,13 +337,26 @@ static void frskyOSDRequestInfo(void)
 {
     timeMs_t now = millis();
     if (state.info.nextRequest < now) {
-        frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_INFO, NULL, 0);
+        frskyOSDSendAsyncCommand(OSD_CMD_INFO, NULL, 0);
         state.info.nextRequest = now + 1000;
     }
 }
 
+static uint8_t frskyOSDEncodeAttr(textAttributes_t attr)
+{
+    uint8_t frskyOSDAttr = 0;
+    if (TEXT_ATTRIBUTES_HAVE_INVERTED(attr)) {
+        frskyOSDAttr |= FRSKY_OSD_CHAR_ATTRIBUTE_COLOR_INVERSE;
+    }
+    if (TEXT_ATTRIBUTES_HAVE_SOLID_BG(attr)) {
+        frskyOSDAttr |= FRSKY_OSD_CHAR_ATTRIBUTE_SOLID_BACKGROUND;
+    }
+    return frskyOSDAttr;
+}
+
 bool frskyOSDInit(videoSystem_e videoSystem)
 {
+    UNUSED(videoSystem);
     // TODO: Use videoSystem to set the signal standard when
     // no input is detected.
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_FRSKY_OSD);
@@ -349,17 +406,17 @@ bool frskyOSDReadFontCharacter(unsigned char_address, osdCharacter_t *chr)
     uint16_t addr = char_address;
 
     // 500ms should be more than enough to receive ~60 bytes @ 115200 bps
-    if (frskyOSDSendSyncCommand(FRSKY_OSD_CMD_READ_FONT, &addr, sizeof(addr), 500)) {
+    if (frskyOSDSendSyncCommand(OSD_CMD_READ_FONT, &addr, sizeof(addr), 500)) {
         FRSKY_OSD_DEBUG("CMD %d got %u, expect %u", state.recv_buffer.cmd, state.recv_buffer.expected, sizeof(*chr) + sizeof(addr));
-        if (state.recv_buffer.cmd != FRSKY_OSD_CMD_READ_FONT ||
-            state.recv_buffer.expected < sizeof(*chr) + sizeof(addr)) {
+        if (state.recv_buffer.cmd != OSD_CMD_READ_FONT ||
+            state.recv_buffer.expected < sizeof(frskyOSDCharacter_t)) {
 
             frskyOSDResetReceiveBuffer();
             FRSKY_OSD_DEBUG("Bad font character at position %u", char_address);
             return false;
         }
         // Skip character address
-        memcpy(chr, &state.recv_buffer.data[2], sizeof(*chr));
+        memcpy(chr, &state.recv_buffer.data[2], MIN(sizeof(*chr), (size_t)FRSKY_OSD_CHAR_TOTAL_BYTES));
         frskyOSDResetReceiveBuffer();
         return true;
     }
@@ -375,16 +432,10 @@ bool frskyOSDWriteFontCharacter(unsigned char_address, const osdCharacter_t *chr
     frskyOSDCharacter_t c;
     STATIC_ASSERT(sizeof(*chr) == sizeof(c.data), invalid_character_size);
 
-    memcpy(c.data, chr, sizeof(c.data));
+    memcpy(&c.data, chr, sizeof(c.data));
     c.addr = char_address;
     FRSKY_OSD_DEBUG("WRITE FONT CHR %u", char_address);
-    frskyOSDSendSyncCommand(FRSKY_OSD_CMD_WRITE_FONT, &c, sizeof(c), 1000);
-//    frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_WRITE_FONT, &c, sizeof(c));
-    // Wait until all bytes have been sent. Otherwise uploading
-    // the very last character of the font might fail.
-    // TODO: Investigate if we can change the max7456 handling to
-    // stop rebooting when a font is uploaded
-    //waitForSerialPortToFinishTransmitting(state.port);
+    frskyOSDSendSyncCommand(OSD_CMD_WRITE_FONT, &c, sizeof(c), 1000);
     return true;
 }
 
@@ -400,8 +451,34 @@ unsigned frskyOSDGetGridCols(void)
 
 void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr)
 {
+    unsigned charsUpdated = 0;
+    char updatedChar = 0;
+    const char *updatedCharAt = NULL;
+    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
+    for (const char *p = buff; *p; p++, pos++) {
+        unsigned val = FRSKY_OSD_GRID_BUFFER_ENCODE(*p, attr);
+        if (max7456ScreenBuffer[pos] != val) {
+            if (charsUpdated++ == 1) {
+                // First character that needs to be updated, save it
+                // in case we can issue a single update.
+                updatedChar = *p;
+                updatedCharAt = p;
+            }
+
+        }
+    }
+
+    if (charsUpdated == 0) {
+        return;
+    }
+
+    if (charsUpdated == 1) {
+        frskyOSDDrawCharInGrid(x + (updatedCharAt - buff), y, updatedChar, attr);
+        return;
+    }
+
     uint8_t crc = 0;
-    frskyOSDSendPreamble(&crc, FRSKY_OSD_CMD_DRAW_GRID_STR);
+    frskyOSDSendPreamble(&crc, OSD_CMD_DRAW_GRID_STR);
     uint8_t size = 1 + 1 + strlen(buff) + 1;
     if (attr != 0) {
         size += 1;
@@ -415,15 +492,24 @@ void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttr
     // Terminate string
     frskyOSDProcessCommandU8(&crc, 0);
     if (attr != 0) {
-        frskyOSDProcessCommandU8(&crc, attr);
+        frskyOSDProcessCommandU8(&crc, frskyOSDEncodeAttr(attr));
     }
     frskyOSDProcessCommandU8(NULL, crc);
 }
 
 void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr)
 {
+    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
+    unsigned val = FRSKY_OSD_GRID_BUFFER_ENCODE(chr, attr);
+
+    if (max7456ScreenBuffer[pos] == val) {
+        return;
+    }
+
+    max7456ScreenBuffer[pos] = val;
+
     uint8_t crc = 0;
-    frskyOSDSendPreamble(&crc, FRSKY_OSD_CMD_DRAW_GRID_CHAR);
+    frskyOSDSendPreamble(&crc, OSD_CMD_DRAW_GRID_CHR);
     uint8_t size = 1 + 1 + 2;
     if (attr != 0) {
         size += 1;
@@ -433,14 +519,25 @@ void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes
     frskyOSDProcessCommandU8(&crc, y);
     frskyOSDProcessCommandU16(&crc, chr);
     if (attr != 0) {
-        frskyOSDProcessCommandU8(&crc, attr);
+        frskyOSDProcessCommandU8(&crc, frskyOSDEncodeAttr(attr));
     }
     frskyOSDProcessCommandU8(NULL, crc);
 }
 
+bool frskyOSDReadCharInGrid(unsigned x, unsigned y, uint16_t *c, textAttributes_t *attr)
+{
+    unsigned pos = FRSKY_OSD_GRID_BUFFER_POS(x, y);
+    uint16_t val = max7456ScreenBuffer[pos];
+    // We use the lower 10 bits for characters
+    *c = val & FRSKY_OSD_GRID_BUFFER_CHAR_MASK;
+    *attr = val >> FRSKY_OSD_GRID_BUFFER_CHAR_BITS;
+    return true;
+}
+
 void frskyOSDClearScreen(void)
 {
-    frskyOSDSendAsyncCommand(FRSKY_OSD_CMD_CLEAR, NULL, 0);
+    memset(max7456ScreenBuffer, 0, sizeof(max7456ScreenBuffer));
+    frskyOSDSendAsyncCommand(OSD_CMD_CLEAR, NULL, 0);
 }
 
 #endif

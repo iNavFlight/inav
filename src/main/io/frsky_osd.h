@@ -15,4 +15,5 @@ unsigned frskyOSDGetGridRows(void);
 unsigned frskyOSDGetGridCols(void);
 void frskyOSDDrawStringInGrid(unsigned x, unsigned y, const char *buff, textAttributes_t attr);
 void frskyOSDDrawCharInGrid(unsigned x, unsigned y, uint16_t chr, textAttributes_t attr);
+bool frskyOSDReadCharInGrid(unsigned x, unsigned y, uint16_t *c, textAttributes_t *attr);
 void frskyOSDClearScreen(void);
