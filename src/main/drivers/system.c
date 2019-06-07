@@ -132,7 +132,7 @@ timeUs_t microsISR(void)
         pending = sysTickPending;
     }
 
-    return ((timeUs_t)(ms + pending) * 1000LL) + (usTicks * 1000LL - (timeUs_t)cycle_cnt) / usTicks;
+    return (((timeUs_t)ms + pending) * 1000) + ((timeUs_t)usTicks * 1000 - cycle_cnt) / usTicks;
 }
 
 timeUs_t micros(void)
@@ -152,7 +152,7 @@ timeUs_t micros(void)
         cycle_cnt = SysTick->VAL;
     } while (ms != sysTickUptime || cycle_cnt > sysTickValStamp);
 
-    return ((timeUs_t)ms * 1000LL) + (usTicks * 1000LL - (timeUs_t)cycle_cnt) / usTicks;
+    return ((timeUs_t)ms * 1000) + ((timeUs_t)usTicks * 1000 - cycle_cnt) / usTicks;
 }
 
 // Return system uptime in milliseconds (rollover in 49 days)
