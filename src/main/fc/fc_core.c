@@ -58,6 +58,7 @@
 #include "fc/rc_curves.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
+#include "fc/heli_curves.h"
 
 #include "io/beeper.h"
 #include "io/dashboard.h"
@@ -719,10 +720,15 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 #endif
 
+	int16_t collectivePitch = 0;
+	if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+		collectivePitch = calculateCollectivePitchAndUpdateThrottle();
+	}
+
     mixTable(dT);
 
     if (isMixerUsingServos()) {
-        servoMixer(dT);
+        servoMixer(dT, collectivePitch);
         processServoAutotrim();
     }
 

@@ -147,6 +147,6 @@ bool isServoOutputEnabled(void);
 bool isMixerUsingServos(void);
 void writeServos(void);
 void loadCustomServoMixer(void);
-void servoMixer(float dT);
+void servoMixer(float dT, int16_t collectivePitch);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);

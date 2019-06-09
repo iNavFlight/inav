@@ -78,6 +78,7 @@ COMMON_SRC = \
             fc/rc_controls.c \
             fc/rc_curves.c \
             fc/rc_modes.c \
+            fc/heli_curves.c \
             fc/runtime_config.c \
             fc/settings.c \
             fc/stats.c \

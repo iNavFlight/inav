@@ -105,7 +105,8 @@
 #define PG_PINIOBOX_CONFIG 1015
 #define PG_LOGIC_CONDITIONS 1016
 #define PG_LOG_CONFIG 1017
-#define PG_INAV_END 1017
+#define PG_HELI_CURVES_CONFIG 1018
+#define PG_INAV_END 1018
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047

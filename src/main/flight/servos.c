@@ -222,7 +222,7 @@ void writeServos(void)
     }
 }
 
-void servoMixer(float dT)
+void servoMixer(float dT, int16_t collectivePitch)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
@@ -264,7 +264,7 @@ void servoMixer(float dT)
 
     input[INPUT_STABILIZED_THROTTLE] = motor[0] - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
     
-    input[INPUT_FEATURE_COLLECTIVE_PITCH] = 0;
+    input[INPUT_FEATURE_COLLECTIVE_PITCH] = collectivePitch;
 
     // center the RC input value around the RC middle value
     // by subtracting the RC middle value from the RC input value, we get:
