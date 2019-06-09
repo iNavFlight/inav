@@ -22,7 +22,7 @@
 #endif
 #ifdef OMNIBUSF4PRO
 #define TARGET_BOARD_IDENTIFIER "OBSD"
-#elif defined(OMNIBUSF4V3)
+#elif defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
 #define TARGET_BOARD_IDENTIFIER "OB43"
 #elif defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
@@ -35,7 +35,7 @@
 #if defined(DYSF4PRO)
 #define USBD_PRODUCT_STRING "DysF4Pro"
 #else
-#define USBD_PRODUCT_STRING     "Omnibus F4"
+#define USBD_PRODUCT_STRING "Omnibus F4"
 #endif
 
 #define LED0                    PB5
@@ -69,22 +69,22 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define USE_GYRO_MPU6000
-  #define GYRO_MPU6000_ALIGN      CW270_DEG
-
-  #define USE_ACC_MPU6000
-  #define ACC_MPU6000_ALIGN       CW270_DEG
-#else
+#if defined(DYSF4PRO) || defined(DYSF4PROV2)
   #define USE_GYRO_MPU6000
   #define GYRO_MPU6000_ALIGN      CW180_DEG
 
   #define USE_ACC_MPU6000
   #define ACC_MPU6000_ALIGN       CW180_DEG
+#else
+  #define USE_GYRO_MPU6000
+  #define GYRO_MPU6000_ALIGN      CW270_DEG
+
+  #define USE_ACC_MPU6000
+  #define ACC_MPU6000_ALIGN       CW270_DEG
 #endif
 
 // Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
-#if defined (OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4PRO_LEDSTRIPM5)
+#if !defined(DYSF4PRO) && !defined(DYSF4PROV2)
   #define MPU6500_CS_PIN          MPU6000_CS_PIN
   #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
 
@@ -110,7 +110,12 @@
 
 #define USE_BARO
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(DYSF4PRO) || defined(DYSF4PROV2)
+  #define BARO_I2C_BUS          I2C_EXT_BUS
+  #define USE_BARO_BMP085
+  #define USE_BARO_BMP280
+  #define USE_BARO_MS5611
+#else
   #define USE_BARO_BMP280
   #define BMP280_SPI_BUS        BUS_SPI3
   #define BMP280_CS_PIN         PB3 // v1
@@ -118,11 +123,6 @@
   // Support external barometers
   #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
-  #define USE_BARO_MS5611
-#else
-  #define BARO_I2C_BUS          I2C_EXT_BUS
-  #define USE_BARO_BMP085
-  #define USE_BARO_BMP280
   #define USE_BARO_MS5611
 #endif
 
@@ -141,7 +141,7 @@
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
-#if !defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4PRO_LEDSTRIPM5)
 #define INVERTER_PIN_UART1_RX PC0 // PC0 has never been used as inverter control on genuine OMNIBUS F4 variants, but leave it as is since some clones actually implement it.
 #endif
 
@@ -152,42 +152,56 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
-#if defined(OMNIBUSF4V3)
+#if defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define INVERTER_PIN_UART6_RX PC8
   #define INVERTER_PIN_UART6_TX PC9
 #endif
 
 #if defined(OMNIBUSF4V3)
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PC6 //shared with UART6_TX
-#define SOFTSERIAL_1_TX_PIN     PC6 //shared with UART6_TX
+#define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
+#define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
 
-#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
-#elif defined(OMNIBUSF4V3_SFTSRL2)
+#elif defined(OMNIBUSF4V3_S6_SS)        // one softserial on S6
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PA1 //shared with S5
-#define SOFTSERIAL_1_TX_PIN     PA1 //shared with S5
+#define SOFTSERIAL_1_RX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_1_TX_PIN     PA8     // shared with S6 output
+
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+
+#elif defined(OMNIBUSF4V3_S5S6_SS)      // one softserial on S5/RX S6/TX
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA1     // shared with S5 output
+#define SOFTSERIAL_1_TX_PIN     PA8     // shared with S6 output
+
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+
+#elif defined(OMNIBUSF4V3_S5_S6_2SS)    // two softserials, one on S5 and one on S6
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA1     // shared with S5 output
+#define SOFTSERIAL_1_TX_PIN     PA1     // shared with S5 output
 
 #define USE_SOFTSERIAL2
-#define SOFTSERIAL_2_RX_PIN     PA8 //shared with S6
-#define SOFTSERIAL_2_TX_PIN     PA8 //shared with S6
+#define SOFTSERIAL_2_RX_PIN     PA8     // shared with S6 output
+#define SOFTSERIAL_2_TX_PIN     PA8     // shared with S6 output
 
-#define SERIAL_PORT_COUNT       6 //VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
+#define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
 
-#else
+#else                                   // One softserial on versions other than OMNIBUSF4V3
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PC8
-#define SOFTSERIAL_1_TX_PIN     PC9
+#define SOFTSERIAL_1_RX_PIN     PC8     // pad labelled CH5 on OMNIBUSF4PRO
+#define SOFTSERIAL_1_TX_PIN     PC9     // pad labelled CH6 on OMNIBUSF4PRO
 
-#define SERIAL_PORT_COUNT       5 //VCP, USART1, USART3, USART6, SOFTSERIAL1
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 #endif
 
 #define USE_SPI
 
 #define USE_SPI_DEVICE_1
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if !defined(DYSF4PRO) && !defined(DYSF4PROV2)
   #define USE_SPI_DEVICE_2
   #define SPI2_NSS_PIN          PB12
   #define SPI2_SCK_PIN          PB13
@@ -196,7 +210,7 @@
 #endif
 
 #define USE_SPI_DEVICE_3
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if !defined(DYSF4PRO) && !defined(DYSF4PROV2)
   #define SPI3_NSS_PIN          PA15
 #else
   #define SPI3_NSS_PIN          PB3
@@ -210,7 +224,13 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
+#if defined(DYSF4PRO) || defined(DYSF4PROV2)
+  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+  #define M25P16_CS_PIN           SPI3_NSS_PIN
+  #define M25P16_SPI_BUS          BUS_SPI3
+  #define USE_FLASHFS
+  #define USE_FLASH_M25P16
+#else
   #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
   #define USE_SDCARD
   #define USE_SDCARD_SPI
@@ -220,12 +240,6 @@
 
   #define SDCARD_DETECT_PIN     PB7
   #define SDCARD_DETECT_INVERTED
-#else
-  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-  #define M25P16_CS_PIN           SPI3_NSS_PIN
-  #define M25P16_SPI_BUS          BUS_SPI3
-  #define USE_FLASHFS
-  #define USE_FLASH_M25P16
 #endif
 
 #define USE_ADC

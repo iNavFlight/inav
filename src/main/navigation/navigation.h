@@ -63,11 +63,13 @@ enum {
 };
 
 enum {
-    NAV_RTH_NO_ALT          = 0,            // Maintain current altitude
-    NAV_RTH_EXTRA_ALT       = 1,            // Maintain current altitude + predefined safety margin
-    NAV_RTH_CONST_ALT       = 2,            // Climb/descend to predefined altitude
-    NAV_RTH_MAX_ALT         = 3,            // Track maximum altitude and climb to it when RTH
-    NAV_RTH_AT_LEAST_ALT    = 4,            // Climb to predefined altitude if below it
+    NAV_RTH_NO_ALT                       = 0, // Maintain current altitude
+    NAV_RTH_EXTRA_ALT                    = 1, // Maintain current altitude + predefined safety margin
+    NAV_RTH_CONST_ALT                    = 2, // Climb/descend to predefined altitude
+    NAV_RTH_MAX_ALT                      = 3, // Track maximum altitude and climb to it when RTH
+    NAV_RTH_AT_LEAST_ALT                 = 4, // Climb to predefined altitude if below it
+    NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT  = 5, // Climb to predefined altitude if below it,
+                                              // descend linearly to reach home at predefined altitude if above it
 };
 
 enum {
@@ -129,6 +131,7 @@ typedef struct positionEstimationConfig_s {
     float w_xy_res_v;
 
     float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
+    float w_xyz_acc_p;
 
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
@@ -241,6 +244,21 @@ typedef struct {
     int16_t p1, p2, p3;
     uint8_t flag;
 } navWaypoint_t;
+
+typedef struct radar_pois_s {
+    gpsLocation_t gps;
+    uint8_t state;
+    uint16_t heading; // °
+    uint16_t speed; // cm/s
+    uint8_t lq; // from 0 t o 4
+    uint16_t distance; // m
+    int16_t altitude; // m
+    int16_t direction; // °
+} radar_pois_t;
+
+#define RADAR_MAX_POIS 5
+
+extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 
 typedef struct {
     fpVector3_t pos;
@@ -386,7 +404,7 @@ typedef struct {
 
 float getEstimatedActualVelocity(int axis);
 float getEstimatedActualPosition(int axis);
-int32_t getTotalTravelDistance(void);
+uint32_t getTotalTravelDistance(void);
 void getEstimatedPositionAndVelocity(navPositionAndVelocity_t * pos);
 
 /* Waypoint list access functions */
@@ -398,7 +416,8 @@ void resetWaypointList(void);
 bool loadNonVolatileWaypointList(void);
 bool saveNonVolatileWaypointList(void);
 
-float RTHAltitude(void);
+float getFinalRTHAltitude(void);
+int16_t fixedWingPitchToThrottleCorrection(int16_t pitch);
 
 /* Geodetic functions */
 typedef enum {

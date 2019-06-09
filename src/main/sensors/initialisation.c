@@ -24,8 +24,6 @@
 
 #include "config/config_eeprom.h"
 
-#include "drivers/logging.h"
-
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 

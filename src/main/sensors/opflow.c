@@ -42,7 +42,6 @@
 
 #include "drivers/io.h"
 #include "drivers/light_led.h"
-#include "drivers/logging.h"
 #include "drivers/time.h"
 
 #include "drivers/opflow/opflow.h"
@@ -118,8 +117,6 @@ static bool opflowDetect(opflowDev_t * dev, uint8_t opflowHardwareToUse)
             opflowHardware = OPFLOW_NONE;
             break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_OPFLOW_DETECTION, BOOT_EVENT_FLAGS_NONE, opflowHardware, 0, 0, 0);
 
     if (opflowHardware == OPFLOW_NONE) {
         sensorsClear(SENSOR_OPFLOW);

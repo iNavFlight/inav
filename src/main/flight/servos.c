@@ -144,9 +144,19 @@ void servosInit(void)
         mixerUsesServos = 1;
     }
 
-    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++)
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servoComputeScalingFactors(i);
+    }
+}
 
+int getServoCount(void)
+{
+    if (servoRuleCount) {
+        return 1 + maxServoIndex - minServoIndex;
+    }
+    else {
+        return 0;
+    }
 }
 
 void loadCustomServoMixer(void)

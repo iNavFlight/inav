@@ -98,6 +98,21 @@ enum {
 
 #define GYRO_WATCHDOG_DELAY 100  // Watchdog for boards without interrupt for gyro
 
+#define EMERGENCY_ARMING_TIME_WINDOW_MS 10000
+#define EMERGENCY_ARMING_COUNTER_STEP_MS 100
+
+typedef struct emergencyArmingState_s {
+    bool armingSwitchWasOn;
+    // Each entry in the queue is an offset from start,
+    // in 0.1s increments. This lets us represent up to 25.5s
+    // so it will work fine as long as the window for the triggers
+    // is smaller (see EMERGENCY_ARMING_TIME_WINDOW_MS). First
+    // entry of the queue is implicit.
+    timeMs_t start;
+    uint8_t queue[9];
+    uint8_t queueCount;
+} emergencyArmingState_t;
+
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
 
@@ -109,6 +124,7 @@ uint8_t motorControlEnable = false;
 
 static bool isRXDataNew;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
+static emergencyArmingState_t emergencyArming;
 
 bool isCalibrating(void)
 {
@@ -291,6 +307,26 @@ static void updateArmingStatus(void)
     }
 }
 
+static bool emergencyArmingIsTriggered(void)
+{
+    int threshold = (EMERGENCY_ARMING_TIME_WINDOW_MS / EMERGENCY_ARMING_COUNTER_STEP_MS);
+    return emergencyArming.queueCount == ARRAYLEN(emergencyArming.queue) + 1 &&
+        emergencyArming.queue[ARRAYLEN(emergencyArming.queue) - 1] < threshold &&
+        emergencyArming.start >= millis() - EMERGENCY_ARMING_TIME_WINDOW_MS;
+}
+
+static bool emergencyArmingCanOverrideArmingDisabled(void)
+{
+    uint32_t armingPrevention = armingFlags & ARMING_DISABLED_ALL_FLAGS;
+    armingPrevention &= ~ARMING_DISABLED_EMERGENCY_OVERRIDE;
+    return armingPrevention == 0;
+}
+
+static bool emergencyArmingIsEnabled(void)
+{
+    return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
+}
+
 void annexCode(void)
 {
     int32_t throttleValue;
@@ -356,6 +392,39 @@ disarmReason_t getDisarmReason(void)
     return lastDisarmReason;
 }
 
+void emergencyArmingUpdate(bool armingSwitchIsOn)
+{
+    if (armingSwitchIsOn == emergencyArming.armingSwitchWasOn) {
+        return;
+    }
+    if (armingSwitchIsOn) {
+        timeMs_t now = millis();
+        if (emergencyArming.queueCount == 0) {
+            emergencyArming.queueCount = 1;
+            emergencyArming.start = now;
+        } else {
+            while (emergencyArming.start < now - EMERGENCY_ARMING_TIME_WINDOW_MS || emergencyArmingIsTriggered()) {
+                if (emergencyArming.queueCount > 1) {
+                    uint8_t delta = emergencyArming.queue[0];
+                    emergencyArming.start += delta * EMERGENCY_ARMING_COUNTER_STEP_MS;
+                    for (int ii = 0; ii < emergencyArming.queueCount - 2; ii++) {
+                        emergencyArming.queue[ii] = emergencyArming.queue[ii + 1] - delta;
+                    }
+                    emergencyArming.queueCount--;
+                } else {
+                    emergencyArming.start = now;
+                }
+            }
+            uint8_t delta = (now - emergencyArming.start) / EMERGENCY_ARMING_COUNTER_STEP_MS;
+            if (delta > 0) {
+                emergencyArming.queue[emergencyArming.queueCount - 1] = delta;
+                emergencyArming.queueCount++;
+            }
+        }
+    }
+    emergencyArming.armingSwitchWasOn = !emergencyArming.armingSwitchWasOn;
+}
+
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 
 void releaseSharedTelemetryPorts(void) {
@@ -370,7 +439,7 @@ void tryArm(void)
 {
     updateArmingStatus();
 
-    if (!isArmingDisabled()) {
+    if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
         if (ARMING_FLAG(ARMED)) {
             return;
         }
@@ -660,6 +729,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && (isFixedWingLaunchDetected() || isFixedWingLaunchFinishedOrAborted())))) {
         flightTime += cycleTime;
+        updateAccExtremes();
     }
 
     taskGyro(currentTimeUs);
@@ -759,7 +829,7 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_DSHOT
-    pwmCompleteDshotUpdate(getMotorCount());
+    pwmCompleteMotorUpdate();
 #endif
 }
 

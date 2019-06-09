@@ -179,7 +179,9 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     rcSticks = stTmp;
 
     // perform actions
-    if (IS_RC_MODE_ACTIVE(BOXARM)) {
+    bool armingSwitchIsActive = IS_RC_MODE_ACTIVE(BOXARM);
+    emergencyArmingUpdate(armingSwitchIsActive);
+    if (armingSwitchIsActive) {
         rcDisarmTimeMs = currentTimeMs;
         tryArm();
     } else {

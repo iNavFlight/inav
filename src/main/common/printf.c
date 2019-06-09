@@ -60,7 +60,7 @@ static void *stdout_putp;
 
 // print bf, padded from left to at least n characters.
 // padding is zero ('0') if z!=0, space (' ') otherwise
-static int putchw(void *putp, putcf putf, int n, char z, char *bf)
+static int putchw(void *putp, const void *end, putcf putf, int n, char z, char *bf)
 {
     int written = 0;
     char fc = z ? '0' : ' ';
@@ -75,30 +75,49 @@ static int putchw(void *putp, putcf putf, int n, char z, char *bf)
         n--;
     if (pr == 0) {
         while (n-- > 0) {
-            putf(putp, fc); written++;
+            if (putp < end) {
+                putf(putp, fc);
+            }
+            written++;
         }
     }
     while ((ch = *bf++)) {
-        putf(putp, ch); written++;
+        if (putp < end) {
+            putf(putp, ch);
+        }
+        written++;
     }
     if (pr == 1) {
         while (n-- > 0) {
-            putf(putp, fc); written++;
+            if (putp < end) {
+                putf(putp, fc);
+            }
+            written++;
         }
     }
     return written;
 }
 
-// retrun number of bytes written
 int tfp_format(void *putp, putcf putf, const char *fmt, va_list va)
+{
+    return tfp_nformat(putp, -1, putf, fmt, va);
+}
+
+// return number of bytes written
+int tfp_nformat(void *putp, int size, void (*putf) (void *, char), const char *fmt, va_list va)
 {
     char bf[12];
     int written = 0;
     char ch;
 
+    const void *end = size < 0 ? (void*)UINT32_MAX : ((char *)putp + size - 1);
+
     while ((ch = *(fmt++))) {
         if (ch != '%') {
-            putf(putp, ch); written++;
+            if (putp < end) {
+                putf(putp, ch);
+            }
+            written++;
         } else {
             char lz = 0;
             char pr = 0; // padding at the right?
@@ -137,7 +156,7 @@ int tfp_format(void *putp, putcf putf, const char *fmt, va_list va)
                     else
 #endif
                         ui2a(va_arg(va, unsigned int), 10, 0, bf);
-                    written += putchw(putp, putf, w, lz, bf);
+                    written += putchw(putp, end, putf, w, lz, bf);
                     break;
                 }
             case 'd':{
@@ -147,7 +166,7 @@ int tfp_format(void *putp, putcf putf, const char *fmt, va_list va)
                     else
 #endif
                         i2a(va_arg(va, int), bf);
-                    written += putchw(putp, putf, w, lz, bf);
+                    written += putchw(putp, end, putf, w, lz, bf);
                     break;
                 }
             case 'x':
@@ -158,23 +177,29 @@ int tfp_format(void *putp, putcf putf, const char *fmt, va_list va)
                 else
 #endif
                     ui2a(va_arg(va, unsigned int), 16, (ch == 'X'), bf);
-                written += putchw(putp, putf, w, lz, bf);
+                written += putchw(putp, end, putf, w, lz, bf);
                 break;
             case 'c':
-                putf(putp, (char) (va_arg(va, int))); written++;
+                if (putp < end) {
+                    putf(putp, (char) (va_arg(va, int)));
+                }
+                written++;
                 break;
             case 's':
-                written += putchw(putp, putf, w, 0, va_arg(va, char *));
+                written += putchw(putp, end, putf, w, 0, va_arg(va, char *));
                 break;
             case '%':
-                putf(putp, ch); written++;
+                if (putp < end) {
+                    putf(putp, ch);
+                }
+                written++;
                 break;
             case 'n':
                 *va_arg(va, int*) = written;
                 break;
             case 'f':
                 ftoa(va_arg(va, double), bf);
-                written += putchw(putp, putf, w, lz, bf);
+                written += putchw(putp, end, putf, w, lz, bf);
                 break;
             default:
                 break;
@@ -211,9 +236,30 @@ int tfp_sprintf(char *s, const char *fmt, ...)
     va_list va;
 
     va_start(va, fmt);
-    int written = tfp_format(&s, putcp, fmt, va);
-    putcp(&s, 0);
+    int written = tfp_vsprintf(s, fmt, va);
     va_end(va);
+    return written;
+}
+
+int tfp_snprintf(char *s, int size, const char *fmt, ...)
+{
+    va_list va;
+
+    va_start(va, fmt);
+    int written = tfp_vsnprintf(s, size, fmt, va);
+    va_end(va);
+    return written;
+}
+
+int tfp_vsprintf(char *s, const char *fmt, va_list va)
+{
+    return tfp_vsnprintf(s, -1, fmt, va);
+}
+
+int tfp_vsnprintf(char *s, int size, const char *fmt, va_list va)
+{
+    int written = tfp_nformat(&s, size, putcp, fmt, va);
+    putcp(&s, 0);
     return written;
 }
 

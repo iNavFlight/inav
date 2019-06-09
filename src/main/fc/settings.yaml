@@ -32,7 +32,7 @@ tables:
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
-    values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200"]
+    values: ["STANDARD", "ONESHOT125", "ONESHOT42", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "DSHOT1200", "SERIALSHOT"]
   - name: failsafe_procedure
     values: ["SET-THR", "DROP", "RTH", "NONE"]
   - name: current_sensor
@@ -54,7 +54,7 @@ tables:
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
-    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST"]
+    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "UK"]
     enum: osd_unit_e
@@ -76,15 +76,15 @@ tables:
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
   - name: debug_modes
     values: ["NONE", "GYRO", "NOTCH", "NAV_LANDING", "FW_ALTITUDE", "AGL", "FLOW_RAW",
-      "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "WIND_ESTIMATOR", "SAG_COMP_VOLTAGE",
-      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX"]
+      "FLOW", "SBUS", "FPORT", "ALWAYS", "STAGE2", "SAG_COMP_VOLTAGE",
+      "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC", "GENERIC", "ITERM_RELAX", "D_BOOST"]
   - name: async_mode
     values: ["NONE", "GYRO", "ALL"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
   - name: osd_crosshairs_style
-    values: ["DEFAULT", "AIRCRAFT"]
+    values: ["DEFAULT", "AIRCRAFT", "TYPE3", "TYPE4", "TYPE5", "TYPE6", "TYPE7"]
     enum: osd_crosshairs_style_e
   - name: osd_sidebar_scroll
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
@@ -221,7 +221,11 @@ groups:
       - name: acc_hardware
         table: acc_hardware
       - name: acc_lpf_hz
+        min: 0
         max: 200
+      - name: acc_lpf_type
+        field: acc_soft_lpf_type
+        table: filter_type
       - name: acczero_x
         field: accZero.raw[X]
         min: INT16_MIN
@@ -412,6 +416,11 @@ groups:
       - name: serialrx_halfduplex
         field: halfDuplex
         type: bool
+      - name: msp_override_channels
+        field: mspOverrideChannels
+        condition: USE_MSP_RC_OVERRIDE
+        min: 0
+        max: 65535
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
@@ -505,6 +514,8 @@ groups:
         max: 65000
       - name: failsafe_min_distance_procedure
         table: failsafe_procedure
+      - name: failsafe_mission
+        type: bool
 
   - name: PG_LIGHTS_CONFIG
     type: lightsConfig_t
@@ -1132,6 +1143,21 @@ groups:
         field: iterm_relax_cutoff
         min: 1
         max: 100
+      - name: d_boost_factor
+        field: dBoostFactor
+        condition: USE_D_BOOST
+        min: 1
+        max: 3
+      - name: d_boost_max_at_acceleration
+        field: dBoostMaxAtAlleceleration
+        condition: USE_D_BOOST
+        min: 1000
+        max: 16000
+      - name: d_boost_gyro_delta_lpf_hz
+        field: dBoostGyroDeltaLpfHz
+        condition: USE_D_BOOST
+        min: 10
+        max: 250
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -1164,7 +1190,6 @@ groups:
     members:
       - name: inav_auto_mag_decl
         field: automatic_mag_declination
-        condition: NAV_AUTO_MAG_DECLINATION
         type: bool
       - name: inav_gravity_cal_tolerance
         field: gravity_calibration_tolerance
@@ -1189,19 +1214,19 @@ groups:
       - name: inav_w_z_surface_p
         field: w_z_surface_p
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_z_surface_v
         field: w_z_surface_v
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_xy_flow_p
         field: w_xy_flow_p
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_xy_flow_v
         field: w_xy_flow_v
         min: 0
-        max: 10
+        max: 100
       - name: inav_w_z_baro_p
         field: w_z_baro_p
         min: 0
@@ -1230,6 +1255,10 @@ groups:
         field: w_xy_res_v
         min: 0
         max: 10
+      - name: inav_w_xyz_acc_p
+        field: w_xyz_acc_p
+        min: 0
+        max: 1
       - name: inav_w_acc_bias
         field: w_acc_bias
         min: 0
@@ -1500,7 +1529,7 @@ groups:
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
-    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h"]
+    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h", "telemetry/sim.h"]
     condition: USE_TELEMETRY
     members:
       - name: telemetry_switch
@@ -1534,9 +1563,8 @@ groups:
         field: hottAlarmSoundInterval
         min: 0
         max: 120
-      - name: smartport_uart_unidir
-        field: smartportUartUnidirectional
-        condition: USE_TELEMETRY_SMARTPORT
+      - name: telemetry_uart_unidir
+        field: uartUnidirectional
         type: bool
       - name: smartport_fuel_unit
         field: smartportFuelUnit
@@ -1551,7 +1579,71 @@ groups:
         field: ltmUpdateRate
         condition: USE_TELEMETRY_LTM
         table: ltm_rates
-
+      - name: sim_ground_station_number
+        field: simGroundStationNumber
+        condition: USE_TELEMETRY_SIM
+        type: string
+        max: 16
+      - name: sim_transmit_interval
+        field: simTransmitInterval
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: SIM_MIN_TRANSMIT_INTERVAL
+        max: 65535
+      - name: sim_transmit_flags
+        field: simTransmitFlags
+        condition: USE_TELEMETRY_SIM
+        type: string
+        max: SIM_N_TX_FLAGS
+      - name: acc_event_threshold_high
+        field: accEventThresholdHigh
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: 0
+        max: 65535
+      - name: acc_event_threshold_low
+        field: accEventThresholdLow
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: 0
+        max: 900
+      - name: acc_event_threshold_neg_x
+        field: accEventThresholdNegX
+        condition: USE_TELEMETRY_SIM
+        type: uint16_t
+        min: 0
+        max: 65535
+      - name: sim_low_altitude
+        field: simLowAltitude
+        condition: USE_TELEMETRY_SIM
+        type: int16_t
+        min: INT16_MIN
+        max: INT16_MAX
+      - name: mavlink_ext_status_rate
+        field: mavlink.extended_status_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_rc_chan_rate
+        field: mavlink.rc_channels_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_pos_rate
+        field: mavlink.position_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_extra1_rate
+        field: mavlink.extra1_rate
+        type: uint8_t
+        min: 0
+        max: 255
+      - name: mavlink_extra2_rate
+        field: mavlink.extra2_rate
+        type: uint8_t
+        min: 0
+        max: 255
   - name: PG_ELERES_CONFIG
     type: eleresConfig_t
     headers: ["rx/eleres.h"]
@@ -1633,6 +1725,22 @@ groups:
         field: neg_alt_alarm
         min: 0
         max: 10000
+      - name: osd_current_alarm
+        field: current_alarm
+        min: 0
+        max: 255
+      - name: osd_gforce_alarm
+        field: gforce_alarm
+        min: 0
+        max: 20
+      - name: osd_gforce_axis_alarm_min
+        field: gforce_axis_alarm_min
+        min: -20
+        max: 20
+      - name: osd_gforce_axis_alarm_max
+        field: gforce_axis_alarm_max
+        min: -20
+        max: 20
       - name: osd_imu_temp_alarm_min
         field: imu_temp_alarm_min
         min: -550
@@ -1668,6 +1776,52 @@ groups:
         field: crosshairs_style
         table: osd_crosshairs_style
         type: uint8_t
+      - name: osd_horizon_offset
+        field: horizon_offset
+        min: -2
+        max: 2
+      - name: osd_camera_uptilt
+        field: camera_uptilt
+        min: -40
+        max: 80
+      - name: osd_camera_fov_h
+        field: camera_fov_h
+        min: 60
+        max: 150
+      - name: osd_camera_fov_v
+        field: camera_fov_v
+        min: 30
+        max: 120
+      - name: osd_hud_margin_h
+        field: hud_margin_h
+        min: 0
+        max: 4
+      - name: osd_hud_margin_v
+        field: hud_margin_v
+        min: 0
+        max: 4
+      - name: osd_hud_homing
+        field: hud_homing
+        type: bool
+      - name: osd_hud_homepoint
+        field: hud_homepoint
+        type: bool
+      - name: osd_hud_radar_disp
+        field: hud_radar_disp
+        min: 0
+        max: 4
+      - name: osd_hud_radar_range_min
+        field: hud_radar_range_min
+        min: 1
+        max: 30
+      - name: osd_hud_radar_range_max
+        field: hud_radar_range_max
+        min: 100
+        max: 9990
+      - name: osd_hud_radar_nearest
+        field: hud_radar_nearest
+        min: 0
+        max: 4000
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll
@@ -1718,9 +1872,6 @@ groups:
         field: throttle_tilt_compensation_strength
         min: 0
         max: 100
-      - name: input_filtering_mode
-        field: pwmRxInputFilteringMode
-        type: bool
       - name: name
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
