@@ -361,23 +361,37 @@ static void sendATCommand(const char* command)
 
 static void sendSMS(void)
 {
-    char pluscode[16];
+    char pluscode_url[20];
     int16_t groundSpeed = 0;
     uint16_t vbat = getBatteryVoltage();
     int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
     uint16_t avgSpeed = lrintf(10 * calculateAverageSpeed());
     uint32_t now = millis();
 
+    memset(pluscode_url, 0, sizeof(pluscode_url));
+
     if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
         groundSpeed = gpsSol.groundSpeed / 100;
-        olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, 11, pluscode, sizeof(pluscode));
-    }
-    else {
-        pluscode[0] = '\0';
+
+        char buf[20];
+        olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, 11, buf, sizeof(buf));
+
+        // URLencode plus code (replace plus sign with %2B)
+        for (char *in = buf, *out = pluscode_url; *in; ) {
+            if (*in == '+') {
+                in++;
+                *out++ = '%';
+                *out++ = '2';
+                *out++ = 'B';
+            }
+            else {
+                *out++ = *in++;
+            }
+        }
     }
 
     // \x1a sends msg, \x1b cancels
-    uint8_t len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%d SPD:%d/%d.%d DIS:%lu/%lu HDG:%d SAT:%d%c SIG:%d %s %s\x1a",
+    uint8_t len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%d SPD:%d/%d.%d DIS:%lu/%lu HDG:%d SAT:%d%c SIG:%d %s https://maps.google.com/?q=%s\x1a",
         accEventDescriptions[accEvent],
         vbat / 100, vbat % 100,
         amps / 10, amps % 10,
@@ -388,7 +402,7 @@ static void sendSMS(void)
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
-        pluscode);
+        pluscode_url);
 
     serialWriteBuf(simPort, atCommand, len);
     t_lastMessageSent = now;
