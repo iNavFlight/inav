@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "common/printf.h"
+#include "common/olc.h"
 
 #include "drivers/time.h"
 
@@ -360,23 +361,23 @@ static void sendATCommand(const char* command)
 
 static void sendSMS(void)
 {
-    int32_t lat = 0, lon = 0;
+    char pluscode[16];
     int16_t groundSpeed = 0;
     uint16_t vbat = getBatteryVoltage();
     int16_t amps = isAmperageConfigured() ? getAmperage() / 10 : 0; // 1 = 100 milliamps
     uint16_t avgSpeed = lrintf(10 * calculateAverageSpeed());
     uint32_t now = millis();
 
-    if (sensors(SENSOR_GPS)) {
-        lat = gpsSol.llh.lat;
-        lon = gpsSol.llh.lon;
+    if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
         groundSpeed = gpsSol.groundSpeed / 100;
+        olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, 11, pluscode, sizeof(pluscode));
+    }
+    else {
+        pluscode[0] = '\0';
     }
 
-    const int32_t E7 = 10000000;
-
     // \x1a sends msg, \x1b cancels
-    uint8_t len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%d SPD:%d/%d.%d DIS:%lu/%lu HDG:%d SAT:%d%c SIG:%d %s maps.google.com/?q=@%ld.%07ld,%ld.%07ld\x1a",
+    uint8_t len = tfp_sprintf((char*)atCommand, "%s%d.%02dV %d.%dA ALT:%d SPD:%d/%d.%d DIS:%lu/%lu HDG:%d SAT:%d%c SIG:%d %s %s\x1a",
         accEventDescriptions[accEvent],
         vbat / 100, vbat % 100,
         amps / 10, amps % 10,
@@ -387,7 +388,7 @@ static void sendSMS(void)
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
-        lat / E7, lat % E7, lon / E7, lon % E7);
+        pluscode);
 
     serialWriteBuf(simPort, atCommand, len);
     t_lastMessageSent = now;
