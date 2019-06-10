@@ -53,7 +53,6 @@
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
-#include "drivers/logging.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -245,8 +244,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         gyroHardware = GYRO_NONE;
     }
 
-    addBootlogEvent6(BOOT_EVENT_GYRO_DETECTION, BOOT_EVENT_FLAGS_NONE, gyroHardware, 0, 0, 0);
-
     if (gyroHardware != GYRO_NONE) {
         detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
         sensorsSet(SENSOR_GYRO);
@@ -288,7 +285,7 @@ bool gyroInit(void)
 
 void gyroInitFilters(void)
 {
-    STATIC_FASTRAM biquadFilter_t gyroFilterLPF[XYZ_AXIS_COUNT];
+    STATIC_FASTRAM filter_t gyroFilterLPF[XYZ_AXIS_COUNT];
     softLpfFilterApplyFn = nullFilterApply;
 #ifdef USE_GYRO_NOTCH_1
     STATIC_FASTRAM biquadFilter_t gyroFilterNotch_1[XYZ_AXIS_COUNT];
@@ -319,14 +316,14 @@ void gyroInitFilters(void)
         case FILTER_PT1:
             softLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
             for (int axis = 0; axis < 3; axis++) {
-                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                softLpfFilter[axis] = &gyroFilterLPF[axis].pt1;
                 pt1FilterInit(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime()* 1e-6f);
             }
             break;
         case FILTER_BIQUAD:
             softLpfFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
             for (int axis = 0; axis < 3; axis++) {
-                softLpfFilter[axis] = &gyroFilterLPF[axis];
+                softLpfFilter[axis] = &gyroFilterLPF[axis].biquad;
                 biquadFilterInitLPF(softLpfFilter[axis], gyroConfig()->gyro_soft_lpf_hz, getLooptime());
             }
             break;

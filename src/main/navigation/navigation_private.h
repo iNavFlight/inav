@@ -302,6 +302,23 @@ typedef struct {
 } navCruise_t;
 
 typedef struct {
+    navigationHomeFlags_t   homeFlags;
+    navWaypointPosition_t   homePosition;       // Original home position and base altitude
+    float                   rthInitialAltitude; // Altitude at start of RTH
+    float                   rthFinalAltitude;   // Altitude at end of RTH approach
+    float                   rthInitialDistance; // Distance when starting flight home
+    fpVector3_t             homeTmpWaypoint;    // Temporary storage for home target
+} rthState_t;
+
+typedef enum {
+    RTH_HOME_ENROUTE_INITIAL,       // Initial position for RTH approach
+    RTH_HOME_ENROUTE_PROPORTIONAL,  // Prorpotional position for RTH approach
+    RTH_HOME_ENROUTE_FINAL,         // Final position for RTH approach
+    RTH_HOME_FINAL_HOVER,           // Final hover altitude (if rth_home_altitude is set)
+    RTH_HOME_FINAL_LAND,            // Home position and altitude
+} rthTargetMode_e;
+
+typedef struct {
     /* Flags and navigation system state */
     navigationFSMState_t        navState;
     navigationPersistentId_e    navPersistentId;
@@ -325,10 +342,9 @@ typedef struct {
 
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
     rthSanityChecker_t          rthSanityChecker;
-    navWaypointPosition_t       homePosition;       // Special waypoint, stores original yaw (heading when launched)
-    navWaypointPosition_t       homeWaypointAbove;  // NEU-coordinates and initial bearing + desired RTH altitude
-    navigationHomeFlags_t       homeFlags;
+    rthState_t                  rthState;
 
+    /* Home parameters */
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
 
@@ -362,7 +378,6 @@ float navPidApply2(pidController_t *pid, const float setpoint, const float measu
 float navPidApply3(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags, const float gainScaler);
 void navPidReset(pidController_t *pid);
 void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz);
-void navPInit(pController_t *p, float _kP);
 
 bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);

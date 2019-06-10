@@ -64,21 +64,22 @@
 
 static failsafeState_t failsafeState;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig, PG_FAILSAFE_CONFIG, 1);
 
 PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
-    .failsafe_delay = 5,                // 0.5 sec
-    .failsafe_recovery_delay = 5,       // 0.5 seconds (plus 200ms explicit delay)
-    .failsafe_off_delay = 200,          // 20sec
-    .failsafe_throttle = 1000,          // default throttle off.
-    .failsafe_throttle_low_delay = 0,   // default throttle low delay for "just disarm" on failsafe condition
-    .failsafe_procedure = FAILSAFE_PROCEDURE_AUTO_LANDING,            // default full failsafe procedure
-    .failsafe_fw_roll_angle = -200,     // 20 deg left
-    .failsafe_fw_pitch_angle = 100,     // 10 deg dive (yes, positive means dive)
-    .failsafe_fw_yaw_rate = -45,        // 45 deg/s left yaw (left is negative, 8s for full turn)
+    .failsafe_delay = 5,                                                // 0.5 sec
+    .failsafe_recovery_delay = 5,                                       // 0.5 seconds (plus 200ms explicit delay)
+    .failsafe_off_delay = 200,                                          // 20sec
+    .failsafe_throttle = 1000,                                          // default throttle off.
+    .failsafe_throttle_low_delay = 0,                                   // default throttle low delay for "just disarm" on failsafe condition
+    .failsafe_procedure = FAILSAFE_PROCEDURE_AUTO_LANDING,              // default full failsafe procedure
+    .failsafe_fw_roll_angle = -200,                                     // 20 deg left
+    .failsafe_fw_pitch_angle = 100,                                     // 10 deg dive (yes, positive means dive)
+    .failsafe_fw_yaw_rate = -45,                                        // 45 deg/s left yaw (left is negative, 8s for full turn)
     .failsafe_stick_motion_threshold = 50,
-    .failsafe_min_distance = 0,            // No minimum distance for failsafe by default
-    .failsafe_min_distance_procedure = FAILSAFE_PROCEDURE_DROP_IT   // default minimum distance failsafe procedure
+    .failsafe_min_distance = 0,                                         // No minimum distance for failsafe by default
+    .failsafe_min_distance_procedure = FAILSAFE_PROCEDURE_DROP_IT,      // default minimum distance failsafe procedure
+    .failsafe_mission = true,                                           // Enable failsafe in WP mode or not
 );
 
 typedef enum {
@@ -400,6 +401,10 @@ void failsafeUpdateState(void)
                 } else {
                     uint8_t failsafe_procedure_to_use = failsafeConfig()->failsafe_procedure;
 
+                    if (FLIGHT_MODE(NAV_WP_MODE) && !failsafeConfig()->failsafe_mission) {
+                        failsafe_procedure_to_use = FAILSAFE_PROCEDURE_NONE;
+                    }
+
                     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
                     // GPS must also be working, and home position set
                     if ((failsafeConfig()->failsafe_min_distance > 0) &&
@@ -513,7 +518,7 @@ void failsafeUpdateState(void)
                 if (receivingRxDataAndNotFailsafeMode) {
                     if (millis() > failsafeState.receivingRxDataPeriod) {
                         // rx link is good now, when arming via ARM switch, it must be OFF first
-                        if (!(!isUsingSticksForArming() && IS_RC_MODE_ACTIVE(BOXARM))) {
+                        if (!IS_RC_MODE_ACTIVE(BOXARM)) {
                             // XXX: Requirements for removing the ARMING_DISABLED_FAILSAFE_SYSTEM flag
                             // are tested by osd.c to show the user how to re-arm. If these
                             // requirements change, update osdArmingDisabledReasonMessage().

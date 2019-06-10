@@ -90,7 +90,9 @@ static bool busDevInit_SPI(busDevice_t * dev, const busDeviceDescriptor_t * desc
     dev->irqPin = IOGetByTag(descriptor->irqPin);
     dev->busdev.spi.spiBus = descriptor->busdev.spi.spiBus;
     dev->busdev.spi.csnPin = IOGetByTag(descriptor->busdev.spi.csnPin);
-    if (dev->busdev.spi.csnPin) {
+
+    if (dev->busdev.spi.csnPin && spiBusInitHost(dev)) {
+        // Init CSN pin
         IOInit(dev->busdev.spi.csnPin, owner, RESOURCE_SPI_CS, 0);
         IOConfigGPIO(dev->busdev.spi.csnPin, SPI_IO_CS_CFG);
         IOHi(dev->busdev.spi.csnPin);
@@ -116,13 +118,13 @@ busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, re
         if (hw == descriptor->devHwType && (bus == descriptor->busType || bus == BUSTYPE_ANY) && (tag == descriptor->tag)) {
             // We have a candidate - initialize device context memory
             busDevice_t * dev = descriptor->devicePtr;
-            memset(dev, 0, sizeof(busDevice_t));
-
-            dev->descriptorPtr = descriptor;
-            dev->busType = descriptor->busType;
-            dev->flags = descriptor->flags;
-
             if (dev) {
+                memset(dev, 0, sizeof(busDevice_t));
+
+                dev->descriptorPtr = descriptor;
+                dev->busType = descriptor->busType;
+                dev->flags = descriptor->flags;
+
                 switch (descriptor->busType) {
                     default:
                     case BUSTYPE_NONE:

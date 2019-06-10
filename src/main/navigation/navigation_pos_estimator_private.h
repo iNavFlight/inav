@@ -51,6 +51,8 @@
 #define INAV_BARO_AVERAGE_HZ                1.0f
 #define INAV_SURFACE_AVERAGE_HZ             1.0f
 
+#define INAV_ACC_CLIPPING_RC_CONSTANT           (0.010f)    // Reduce acc weight for ~10ms after clipping
+
 #define RANGEFINDER_RELIABILITY_RC_CONSTANT     (0.47802f)
 #define RANGEFINDER_RELIABILITY_LIGHT_THRESHOLD (0.15f)
 #define RANGEFINDER_RELIABILITY_LOW_THRESHOLD   (0.33f)
@@ -126,9 +128,11 @@ typedef struct {
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
+     timeUs_t               lastUpdateTime;
     fpVector3_t             accelNEU;
     fpVector3_t             accelBias;
     float                   calibratedGravityCMSS;
+    float                   accWeightFactor;
     zeroCalibrationScalar_t gravityCalibration;
 } navPosisitonEstimatorIMU_t;
 
@@ -182,5 +186,5 @@ typedef struct {
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);
 extern bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx);
-
+extern float navGetAccelerometerWeight(void);
 

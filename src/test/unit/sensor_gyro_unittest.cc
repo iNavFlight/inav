@@ -140,8 +140,6 @@ timeMs_t millis(void) {return milliTime++;}
 uint32_t micros(void) {return 0;}
 void beeper(beeperMode_e) {}
 uint8_t detectedSensors[] = { GYRO_NONE, ACC_NONE };
-void addBootlogEvent6(bootLogEventCode_e eventCode, uint16_t eventFlags, uint16_t param1, uint16_t param2, uint16_t param3, uint16_t param4)
-    {UNUSED(eventCode);UNUSED(eventFlags);UNUSED(param1);UNUSED(param2);UNUSED(param3);UNUSED(param4);}
 timeDelta_t getLooptime(void) {return gyro.targetLooptime;}
 void sensorsSet(uint32_t) {}
 void schedulerResetTaskStatistics(cfTaskId_e) {}

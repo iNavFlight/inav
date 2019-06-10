@@ -136,17 +136,17 @@ uint8_t esc4wayInit(void)
     pwmDisableMotors();
     escCount = 0;
     memset(&escHardware, 0, sizeof(escHardware));
-    pwmIOConfiguration_t *pwmIOConfiguration = pwmGetOutputConfiguration();
-    for (volatile uint8_t i = 0; i < pwmIOConfiguration->ioCount; i++) {
-        if ((pwmIOConfiguration->ioConfigurations[i].flags & PWM_PF_MOTOR) == PWM_PF_MOTOR) {
-            if (motor[pwmIOConfiguration->ioConfigurations[i].index] > 0) {
-                escHardware[escCount].io = IOGetByTag(pwmIOConfiguration->ioConfigurations[i].timerHardware->tag);
-                setEscInput(escCount);
-                setEscHi(escCount);
-                escCount++;
-            }
+
+    for (int idx = 0; idx < getMotorCount(); idx++) {
+        ioTag_t tag = pwmGetMotorPinTag(idx);
+        if (tag != IOTAG_NONE) {
+            escHardware[escCount].io = IOGetByTag(tag);
+            setEscInput(escCount);
+            setEscHi(escCount);
+            escCount++;
         }
     }
+
     return escCount;
 }
 

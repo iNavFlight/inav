@@ -60,7 +60,6 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN   	      PC11
 #define SPI3_MOSI_PIN   	      PC12
-#define SPI3_CLOCK_LEADING_EDGE
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
@@ -134,9 +133,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
-
-#define USE_OPTICAL_FLOW
-#define USE_OPFLOW_MSP
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP

@@ -61,7 +61,6 @@ typedef enum {
     DEBUG_FPORT,
     DEBUG_ALWAYS,
     DEBUG_STAGE2,
-    DEBUG_WIND_ESTIMATOR,
     DEBUG_SAG_COMP_VOLTAGE,
     DEBUG_VIBE,
     DEBUG_CRUISE,
@@ -69,5 +68,7 @@ typedef enum {
     DEBUG_SMARTAUDIO,
     DEBUG_ACC,
     DEBUG_GENERIC,
+    DEBUG_ITERM_RELAX,
+    DEBUG_D_BOOST,
     DEBUG_COUNT
 } debugType_e;
