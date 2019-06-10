@@ -265,14 +265,6 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
         }
 
-        /* CHECK: Arming switch */
-        // If arming is disabled and the ARM switch is on
-        if (isArmingDisabled() && IS_RC_MODE_ACTIVE(BOXARM)) {
-            ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-        } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
-            DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
-        }
-
         /* CHECK: BOXFAILSAFE */
         if (IS_RC_MODE_ACTIVE(BOXFAILSAFE)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_BOXFAILSAFE);
@@ -281,20 +273,31 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXFAILSAFE);
         }
 
-        /* CHECK: BOXFAILSAFE */
+        /* CHECK: BOXKILLSWITCH */
         if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
         }
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
         }
+
         /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-	    ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+	       ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
 	    }
         else {
-	    DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+	       DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
 	    }
+
+        /* CHECK: Arming switch */
+        // If arming is disabled and the ARM switch is on
+        // Note that this should be last check so all other blockers could be cleared correctly
+        // if blocking modes are linked to the same RC channel
+        if (isArmingDisabled() && IS_RC_MODE_ACTIVE(BOXARM)) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
+        } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_ARM_SWITCH);
+        }
 
         if (isArmingDisabled()) {
             warningLedFlash();
