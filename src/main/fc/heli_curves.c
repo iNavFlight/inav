@@ -33,47 +33,47 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(heliCurvesConfig_t, heliCurvesConfig, PG_HELI_CURVES_CONFIG, 0);
 
 PG_RESET_TEMPLATE(heliCurvesConfig_t, heliCurvesConfig,
-	.accelerationRC = 30,
-	.accelerationCollectivePitch = 0,
-	.throttleFromCollectivePitch = {10000, 9000, 8400, 8000, 7660, 7400, 7660, 8000, 8400, 9000, 10000}
+    .accelerationRC = 30,
+    .accelerationCollectivePitch = 0,
+    .throttleFromCollectivePitch = {10000, 9000, 8400, 8000, 7660, 7400, 7660, 8000, 8400, 9000, 10000}
 );
 
 static uint16_t getThrottleFromCollectivePitch(int16_t cp)
 {
-	int throttleBlock = (cp+500)/100;
-	int16_t lowThrottle = (int16_t)heliCurvesConfig()->throttleFromCollectivePitch[throttleBlock];
-	int16_t highThrottle = (int16_t)heliCurvesConfig()->throttleFromCollectivePitch[throttleBlock+1];
-	int32_t blockPercent = (cp+500)%100;
-	return (uint16_t)scaleRange(blockPercent, 0, 100, lowThrottle, highThrottle);
+    int throttleBlock = (cp+500)/100;
+    int16_t lowThrottle = (int16_t)heliCurvesConfig()->throttleFromCollectivePitch[throttleBlock];
+    int16_t highThrottle = (int16_t)heliCurvesConfig()->throttleFromCollectivePitch[throttleBlock+1];
+    int32_t blockPercent = (cp+500)%100;
+    return (uint16_t)scaleRange(blockPercent, 0, 100, lowThrottle, highThrottle);
 }
 
 int16_t calculateCollectivePitchAndUpdateThrottle(void)
 {
-	uint16_t minThrottle = motorConfig()->minthrottle;
-	uint16_t maxThrottle = motorConfig()->maxthrottle;
-	uint16_t rc = rcCommand[THROTTLE];
-	uint16_t rcPercent;
-	if (rc<minThrottle) {
-		rcPercent = 0;
-	} else if (rc>maxThrottle) {
-		rcPercent = 10000;
-	} else {
-		rcPercent = (uint16_t)scaleRange(rc, minThrottle, maxThrottle, 0, 10000);
-	}
-	uint16_t accelerationRC = (uint16_t)heliCurvesConfig()->accelerationRC*100;
-	int16_t collectivePitch;
-	uint16_t throttle;
-	if (rcPercent<accelerationRC) { //Initial main rotor acceleration
-		uint16_t accPercent = (uint16_t)((uint32_t)rcPercent*10000/accelerationRC);
-		collectivePitch = heliCurvesConfig()->accelerationCollectivePitch;
-		uint16_t accelerationThrottle = getThrottleFromCollectivePitch(collectivePitch);
-		throttle = (uint16_t)((uint32_t)accPercent*accelerationThrottle/10000);
-	} else { //Normal flight
-		uint16_t pitchPercent = (uint16_t)scaleRange(rcPercent, accelerationRC, 10000, 0, 10000);
-		int16_t accCollectivePitch = heliCurvesConfig()->accelerationCollectivePitch;
-		collectivePitch = (int16_t)scaleRange(pitchPercent, 0, 10000, accCollectivePitch, 500);
-		throttle = getThrottleFromCollectivePitch(collectivePitch);
-	}
-	rcCommand[THROTTLE] = (uint16_t)scaleRange(throttle, 0, 10000, minThrottle, maxThrottle);
-	return collectivePitch;
+    uint16_t minThrottle = motorConfig()->minthrottle;
+    uint16_t maxThrottle = motorConfig()->maxthrottle;
+    uint16_t rc = rcCommand[THROTTLE];
+    uint16_t rcPercent;
+    if (rc<minThrottle) {
+        rcPercent = 0;
+    } else if (rc>maxThrottle) {
+        rcPercent = 10000;
+    } else {
+        rcPercent = (uint16_t)scaleRange(rc, minThrottle, maxThrottle, 0, 10000);
+    }
+    uint16_t accelerationRC = (uint16_t)heliCurvesConfig()->accelerationRC*100;
+    int16_t collectivePitch;
+    uint16_t throttle;
+    if (rcPercent<accelerationRC) { //Initial main rotor acceleration
+        uint16_t accPercent = (uint16_t)((uint32_t)rcPercent*10000/accelerationRC);
+        collectivePitch = heliCurvesConfig()->accelerationCollectivePitch;
+        uint16_t accelerationThrottle = getThrottleFromCollectivePitch(collectivePitch);
+        throttle = (uint16_t)((uint32_t)accPercent*accelerationThrottle/10000);
+    } else { //Normal flight
+        uint16_t pitchPercent = (uint16_t)scaleRange(rcPercent, accelerationRC, 10000, 0, 10000);
+        int16_t accCollectivePitch = heliCurvesConfig()->accelerationCollectivePitch;
+        collectivePitch = (int16_t)scaleRange(pitchPercent, 0, 10000, accCollectivePitch, 500);
+        throttle = getThrottleFromCollectivePitch(collectivePitch);
+    }
+    rcCommand[THROTTLE] = (uint16_t)scaleRange(throttle, 0, 10000, minThrottle, maxThrottle);
+    return collectivePitch;
 }

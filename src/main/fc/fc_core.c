@@ -205,14 +205,14 @@ static void updateArmingStatus(void)
             }
         }
 
-	/* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
-	if (isNavLaunchEnabled()) {
-	  if (areSticksDeflectedMoreThanPosHoldDeadband()) {
-	    ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
-	  } else {
-	    DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
-	  }
-	}
+    /* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
+    if (isNavLaunchEnabled()) {
+      if (areSticksDeflectedMoreThanPosHoldDeadband()) {
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+      } else {
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+      }
+    }
 
         /* CHECK: Angle */
         if (!STATE(SMALL_ANGLE)) {
@@ -291,11 +291,11 @@ static void updateArmingStatus(void)
         }
         /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-	    ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
-	    }
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+        }
         else {
-	    DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
-	    }
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+        }
 
         if (isArmingDisabled()) {
             warningLedFlash();
@@ -790,10 +790,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 #endif
 
-	int16_t collectivePitch = 0;
-	if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-		collectivePitch = calculateCollectivePitchAndUpdateThrottle();
-	}
+    int16_t collectivePitch = 0;
+    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+        collectivePitch = calculateCollectivePitchAndUpdateThrottle();
+    }
 
     mixTable(dT);
 
