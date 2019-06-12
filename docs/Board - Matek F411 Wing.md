@@ -23,6 +23,7 @@
 * `MATEKF411` if you want to control LEDs and have SS1 TX on ST1 pad.
 * `MATEKF411_SFTSRL2`if you want to use two softserials (TX only) at the same time. Eg. Smart Audio + S. Port,  Smart Audio + LTM
 * `MATEKF411_RSSI` if you want to have analog RSSI input on ST1 pad. SS1 TX will be available on the LED pad.
+* ` MATEKF411_FD_SFTSRL` if you need for instance an MSP port, this adds a single full duplex software serial on ST1 (TX) / LED (RX) pads.
 
 ## Where to buy:
 
