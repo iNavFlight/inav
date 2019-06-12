@@ -54,6 +54,7 @@ typedef enum {
     INPUT_STABILIZED_YAW_PLUS       = 27,
     INPUT_STABILIZED_YAW_MINUS      = 28,
     INPUT_LOGIC_ONE                 = 29,
+    INPUT_FIXED_VALUE               = 30,
 
     INPUT_SOURCE_COUNT
 } inputSource_e;
@@ -101,6 +102,7 @@ typedef struct servoMixer_s {
     uint8_t inputSource;                    // input channel for this rule
     int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+    uint16_t fixedValue;                    // range [1000;2000] ; used to output a fixed value
 #ifdef USE_LOGIC_CONDITIONS
     int8_t conditionId;
 #endif

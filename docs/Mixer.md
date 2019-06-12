@@ -50,6 +50,7 @@ Each servo mixing rule has the following parameters:
 * Input: the input for the mixing rule, see a summary of the input types table bellow.
 * Weight: percentage of the input to forward to the servo. Range [-1000, 1000]. Mixing rule output = input * weight. If the output of a set of mixing rules is lower/higher than the defined servo min/max the output is clipped (the servo will never travel farther than the set min/max).
 * Speed: maximum rate of change of the mixing rule output. Used to limit the servo speed. 1 corresponds to maximum 10µs/s output rate of change. Set to 0 for no speed limit. For example: 10 = full sweep (1000 to 2000) in 10s, 100 = full sweep in 1s.
+* Fixed value: a constant µs value the output will be set to if the selected input source is "Fixed Value".
 
 | CLI input ID | Mixer input | Description |
 |----|--------------------------|------------------------------------------------------------------------------|
@@ -65,8 +66,8 @@ Each servo mixing rule has the following parameters:
 | 9  | RC channel 6             | Raw RC channel 6 |
 | 10 | RC channel 7             | Raw RC channel 7 |
 | 11 | RC channel 8             | Raw RC channel 8 |
-| 12 | GIMBAL PITCH             | Scaled pitch attitude of the aircraft [-90°, 90°] => [-500, 500] |
-| 13 | GIMBAL ROLL              | Scaled roll attitude of the aircraft [-180°, 180°] => [-500, 500] |
+| 12 | GIMBAL PITCH             | Scaled pitch attitude of the aircraft [-90°, 90°] => [-500, +500] from middle value |
+| 13 | GIMBAL ROLL              | Scaled roll attitude of the aircraft [-180°, 180°] => [-500, +500] from middle value |
 | 14 | FEATURE FLAPS            | This input value is equal to the `flaperon_throw_offset` setting when the `FLAPERON` flight mode is enabled, 0 otherwise |
 | 15 | RC channel 9             | Raw RC channel 9 |
 | 16 | RC channel 10            | Raw RC channel 10 |
@@ -76,18 +77,19 @@ Each servo mixing rule has the following parameters:
 | 20 | RC channel 14            | Raw RC channel 14 |
 | 21 | RC channel 15            | Raw RC channel 15 |
 | 22 | RC channel 16            | Raw RC channel 16 |
-| 23 | Stabilized ROLL+         | Clipped between 0 and 1000 |       
+| 23 | Stabilized ROLL+         | Clipped between 0 and 1000 |
 | 24 | Stabilized ROLL-         | Clipped between -1000 and 0 |
 | 25 | Stabilized PITCH+        | Clipped between 0 and 1000 |
 | 26 | Stabilized PITCH-        | Clipped between -1000 and 0 |
 | 27 | Stabilized YAW+          | Clipped between 0 and 1000 |
 | 28 | Stabilized YAW-          | Clipped between -1000 and 0 |
-| 29 | One                      | Constant value of 500 |
+| 29 | One                      | Constant value of +500 from middle value |
+| 30 | Fixed Value              | A configurable constant µs value [1000, 2000] |
 
 The `smix reset` command removes all the existing motor mixing rules.
 
 The `smix` command is used to list, create or modify rules. To list the currently defined rules run the `smix` command without parameters.
 
-To create or modify rules use the `smix` command with the following syntax: `smix <n> <servo_index> <input_id> <weight> <speed> <logic_condition_id>`. `<n>` is representing the index of the servo mixing rule to create or modify (integer). To disable a mixing rule set the weight to 0.
+To create or modify rules use the `smix` command with the following syntax: `smix <n> <servo_index> <input_id> <weight> <speed> <fixed_value> <logic_condition_id>`. `<n>` is representing the index of the servo mixing rule to create or modify (integer). To disable a mixing rule set the weight to 0.
 
-`logic_condition_id` default value is `-1` for rules that should be always executed. 
+`logic_condition_id` default value is `-1` for rules that should be always executed.

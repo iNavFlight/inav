@@ -62,7 +62,7 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
     .tri_unarmed_servo = 1
 );
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 2);
 
 void pgResetFn_customServoMixers(servoMixer_t *instance)
 {
@@ -71,7 +71,8 @@ void pgResetFn_customServoMixers(servoMixer_t *instance)
             .targetChannel = 0,
             .inputSource = 0,
             .rate = 0,
-            .speed = 0
+            .speed = 0,
+            .fixedValue = 1500
 #ifdef USE_LOGIC_CONDITIONS
             ,.conditionId = -1
 #endif
@@ -317,6 +318,11 @@ void servoMixer(float dT)
 
         const uint8_t target = currentServoMixer[i].targetChannel;
         const uint8_t from = currentServoMixer[i].inputSource;
+
+        if (from == INPUT_FIXED_VALUE) {
+            // Must be [-500:+500], so center it around middle value (data - middle = input)
+            input[INPUT_FIXED_VALUE] = constrain(currentServoMixer[i].fixedValue - 1500, -500, 500);
+        }
 
         /*
          * Apply mixer speed limit. 1 [one] speed unit is defined as 10us/s:
