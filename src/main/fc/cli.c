@@ -1630,7 +1630,7 @@ static void printServoMix(uint8_t dumpMask, const servoMixer_t *customServoMixer
 static void cliServoMix(char *cmdline)
 {
     char * saveptr;
-    int args[6], check = 0;
+    int args[7], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
@@ -1641,13 +1641,14 @@ static void cliServoMix(char *cmdline)
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, FIXED_VALUE, CONDITION, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
+        args[FIXED_VALUE] = 1500;
         args[CONDITION] = -1;
         while (ptr != NULL && check < ARGS_COUNT) {
             args[check++] = fastA2I(ptr);
             ptr = strtok_r(NULL, " ", &saveptr);
         }
 
-        if (ptr != NULL || (check < ARGS_COUNT - 1)) {
+        if (ptr != NULL || (check < ARGS_COUNT - 2) || (check > ARGS_COUNT)) {
             cliShowParseError();
             return;
         }
@@ -3158,7 +3159,7 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
-        "<rule> <servo> <source> <rate> <speed> <fixed value> <logic condition id>\r\n"
+        "<rule> <servo> <source> <rate> <speed> [<fixed value> <logic condition id>]\r\n"
         "\treset\r\n", cliServoMix),
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
