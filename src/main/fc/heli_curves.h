@@ -29,7 +29,7 @@
 #include "config/parameter_group.h"
 
 typedef struct heliCurvesConfig_s {
-    uint8_t accelerationRC;
+    uint16_t accelerationRC;
     int16_t accelerationCollectivePitch;
     uint16_t throttleFromCollectivePitch[11];
 } heliCurvesConfig_t;

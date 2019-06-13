@@ -1996,3 +1996,73 @@ groups:
           field: topics
           min: 0,
           max: UINT32_MAX
+
+  - name: PG_HELI_CURVES_CONFIG
+    type: heliCurvesConfig_t
+    headers: ["fc/heli_curves.h"]
+    members:
+      - name: heli_rotor_acc_rc
+        field: accelerationRC
+        type: uint16_t
+        min: 50
+        max: 700
+      - name: heli_rotor_acc_collective_pitch
+        field: accelerationCollectivePitch
+        type: int16_t
+        min: -1000
+        max: 1000
+      - name: heli_throttle_pitch_curve_min
+        field: throttleFromCollectivePitch[0]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_m4
+        field: throttleFromCollectivePitch[1]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_m3
+        field: throttleFromCollectivePitch[2]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_m2
+        field: throttleFromCollectivePitch[3]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_m1
+        field: throttleFromCollectivePitch[4]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_center
+        field: throttleFromCollectivePitch[5]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_p1
+        field: throttleFromCollectivePitch[6]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_p2
+        field: throttleFromCollectivePitch[7]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_p3
+        field: throttleFromCollectivePitch[8]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_p4
+        field: throttleFromCollectivePitch[9]
+        type: uint16_t
+        min: 0
+        max: 1000
+      - name: heli_throttle_pitch_curve_max
+        field: throttleFromCollectivePitch[10]
+        type: uint16_t
+        min: 0
+        max: 1000

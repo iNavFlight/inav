@@ -33,9 +33,9 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(heliCurvesConfig_t, heliCurvesConfig, PG_HELI_CURVES_CONFIG, 0);
 
 PG_RESET_TEMPLATE(heliCurvesConfig_t, heliCurvesConfig,
-    .accelerationRC = 30,
+    .accelerationRC = 300,
     .accelerationCollectivePitch = 0,
-    .throttleFromCollectivePitch = {10000, 9000, 8400, 8000, 7660, 7400, 7660, 8000, 8400, 9000, 10000}
+    .throttleFromCollectivePitch = {1000, 900, 840, 800, 766, 740, 766, 800, 840, 900, 1000}
 );
 
 static uint16_t getThrottleFromCollectivePitch(int16_t cp)
@@ -56,24 +56,24 @@ int16_t calculateCollectivePitchAndUpdateThrottle(void)
     if (rc<minThrottle) {
         rcPercent = 0;
     } else if (rc>maxThrottle) {
-        rcPercent = 10000;
+        rcPercent = 1000;
     } else {
-        rcPercent = (uint16_t)scaleRange(rc, minThrottle, maxThrottle, 0, 10000);
+        rcPercent = (uint16_t)scaleRange(rc, minThrottle, maxThrottle, 0, 1000);
     }
-    uint16_t accelerationRC = (uint16_t)heliCurvesConfig()->accelerationRC*100;
+    uint16_t accelerationRC = heliCurvesConfig()->accelerationRC;
     int16_t collectivePitch;
     uint16_t throttle;
     if (rcPercent<accelerationRC) { //Initial main rotor acceleration
-        uint16_t accPercent = (uint16_t)((uint32_t)rcPercent*10000/accelerationRC);
+        uint16_t accPercent = (uint16_t)((uint32_t)rcPercent*1000/accelerationRC);
         collectivePitch = heliCurvesConfig()->accelerationCollectivePitch;
         uint16_t accelerationThrottle = getThrottleFromCollectivePitch(collectivePitch);
-        throttle = (uint16_t)((uint32_t)accPercent*accelerationThrottle/10000);
+        throttle = (uint16_t)((uint32_t)accPercent*accelerationThrottle/1000);
     } else { //Normal flight
-        uint16_t pitchPercent = (uint16_t)scaleRange(rcPercent, accelerationRC, 10000, 0, 10000);
+        uint16_t pitchPercent = (uint16_t)scaleRange(rcPercent, accelerationRC, 1000, 0, 1000);
         int16_t accCollectivePitch = heliCurvesConfig()->accelerationCollectivePitch;
-        collectivePitch = (int16_t)scaleRange(pitchPercent, 0, 10000, accCollectivePitch, 500);
+        collectivePitch = (int16_t)scaleRange(pitchPercent, 0, 1000, accCollectivePitch, 500);
         throttle = getThrottleFromCollectivePitch(collectivePitch);
     }
-    rcCommand[THROTTLE] = (uint16_t)scaleRange(throttle, 0, 10000, minThrottle, maxThrottle);
+    rcCommand[THROTTLE] = (uint16_t)scaleRange(throttle, 0, 1000, minThrottle, maxThrottle);
     return collectivePitch;
 }
