@@ -215,6 +215,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(attitude.values.pitch / 10, -180, 180);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE:
+            return true;
+            break;
+
         default:
             return 0;
             break;
@@ -226,39 +230,39 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
     switch (operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_FAILSAFE:
-            return FLIGHT_MODE(FAILSAFE_MODE);
+            return (bool) FLIGHT_MODE(FAILSAFE_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_MANUAL:
-            return FLIGHT_MODE(MANUAL_MODE);
+            return (bool) FLIGHT_MODE(MANUAL_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_RTH:
-            return FLIGHT_MODE(NAV_RTH_MODE);
+            return (bool) FLIGHT_MODE(NAV_RTH_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_POSHOLD:
-            return FLIGHT_MODE(NAV_POSHOLD_MODE);
+            return (bool) FLIGHT_MODE(NAV_POSHOLD_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
-            return FLIGHT_MODE(NAV_CRUISE_MODE);
+            return (bool) FLIGHT_MODE(NAV_CRUISE_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:
-            return FLIGHT_MODE(NAV_ALTHOLD_MODE);
+            return (bool) FLIGHT_MODE(NAV_ALTHOLD_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLE:
-            return FLIGHT_MODE(ANGLE_MODE);
+            return (bool) FLIGHT_MODE(ANGLE_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_HORIZON:
-            return FLIGHT_MODE(HORIZON_MODE);
+            return (bool) FLIGHT_MODE(HORIZON_MODE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
-            return FLIGHT_MODE(AIRMODE_ACTIVE);
+            return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
             break;
 
         default:
