@@ -1607,6 +1607,11 @@ groups:
         condition: USE_TELEMETRY_SIM
         type: string
         max: 16
+      - name: sim_pin
+        field: simPin
+        condition: USE_TELEMETRY_SIM
+        type: string
+        max: 8
       - name: sim_transmit_interval
         field: simTransmitInterval
         condition: USE_TELEMETRY_SIM
