@@ -451,7 +451,9 @@ void handleSimTelemetry()
         simTelemetryState = SIM_STATE_INIT_ENTER_PIN;
         break;
         case SIM_STATE_INIT_ENTER_PIN:
-        sendATCommand("AT+CPIN=" SIM_PIN "\r");
+        sendATCommand("AT+CPIN=");
+        sendATCommand((char*)telemetryConfig()->simPin);        
+        sendATCommand("\r");
         simTelemetryState = SIM_STATE_SET_MODES;
         break;
         case SIM_STATE_SET_MODES:
