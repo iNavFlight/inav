@@ -45,7 +45,6 @@
 #include "telemetry/sim.h"
 #include "telemetry/telemetry.h"
 
-
 #define SIM_AT_COMMAND_MAX_SIZE 255
 #define SIM_RESPONSE_BUFFER_SIZE 255
 #define SIM_CYCLE_MS 5000                       // wait between sim command cycles
@@ -398,7 +397,7 @@ static void sendSMS(void)
         getAltitudeMeters(),
         groundSpeed, avgSpeed / 10, avgSpeed % 10,
         GPS_distanceToHome, getTotalTravelDistance() / 100,
-        attitude.values.yaw,
+        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
