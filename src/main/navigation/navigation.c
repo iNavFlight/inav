@@ -3240,6 +3240,7 @@ float getEstimatedActualPosition(int axis)
  *-----------------------------------------------------------*/
 void activateForcedRTH(void)
 {
+    abortFixedWingLaunch();
     posControl.flags.forcedRTHActivated = true;
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 }
