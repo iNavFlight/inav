@@ -345,19 +345,22 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 
     throttleRange = throttleMax - throttleMin;
 
-    #define THROTTLE_CLIPPING_FACTOR    0.33f
-    motorMixRange = (float)rpyMixRange / (float)throttleRange;
-    if (motorMixRange > 1.0f) {
-        for (int i = 0; i < motorCount; i++) {
-            rpyMix[i] /= motorMixRange;
-        }
+    //We don't need this for non-coaxial helicopters and, possibly, for fixed-wing also
+    if (mixerConfig()->platformType != PLATFORM_HELICOPTER) { 
+        #define THROTTLE_CLIPPING_FACTOR    0.33f
+        motorMixRange = (float)rpyMixRange / (float)throttleRange;
+        if (motorMixRange > 1.0f) {
+            for (int i = 0; i < motorCount; i++) {
+                rpyMix[i] /= motorMixRange;
+            }
 
-        // Allow some clipping on edges to soften correction response
-        throttleMin = throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
-        throttleMax = throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
-    } else {
-        throttleMin = MIN(throttleMin + (rpyMixRange / 2), throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
-        throttleMax = MAX(throttleMax - (rpyMixRange / 2), throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
+            // Allow some clipping on edges to soften correction response
+            throttleMin = throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
+            throttleMax = throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2);
+        } else {
+            throttleMin = MIN(throttleMin + (rpyMixRange / 2), throttleMin + (throttleRange / 2) - (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
+            throttleMax = MAX(throttleMax - (rpyMixRange / 2), throttleMin + (throttleRange / 2) + (throttleRange * THROTTLE_CLIPPING_FACTOR / 2));
+        }
     }
 
     // Now add in the desired throttle, but keep in a range that doesn't clip adjusted
