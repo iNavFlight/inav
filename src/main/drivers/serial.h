@@ -16,6 +16,12 @@
  */
 
 #pragma once
+#include "drivers/io.h"
+
+typedef struct {
+    ioTag_t rxPin;
+    ioTag_t txPin;
+} serialPortPins_t;
 
 typedef enum portMode_t {
     MODE_RX = 1 << 0,

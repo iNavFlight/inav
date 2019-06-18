@@ -35,7 +35,7 @@ The `temp_sensor` CLI command can be used to display and change the temperature 
 * `address` is the address of the device on the bus. 0 to 7 for a LM75 or the full 64bit ROM in hex format for a 18B20
 * `alarm_min` is the temperature under which the corresponding OSD element will start blinking (decidegrees centigrade)
 * `alarm_max` is the temperature above which the corresponding OSD element will start blinking (decidegrees centigrade)
-* `osd_symbol` is the ID of a symbol to display on the OSD to the left of the temperature value. Use 0 to display a label instea (see next parameter). See the table bellow for the available IDs
+* `osd_symbol` is the ID of a symbol to display on the OSD to the left of the temperature value. Use 0 to display a label instead (see next parameter). See the table bellow for the available IDs
 * `label` is a 4 characters maximum label that is displayed on the OSD next to the temperature value
 
 | Symbol ID | Description                 |

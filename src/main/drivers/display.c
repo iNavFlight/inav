@@ -229,10 +229,19 @@ bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
     return false;
 }
 
+int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr)
+{
+    if (instance->vTable->writeFontCharacter) {
+        return instance->vTable->writeFontCharacter(instance, addr, chr);
+    }
+    return -1;
+}
+
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
 {
     instance->vTable = vTable;
     instance->vTable->clearScreen(instance);
+    instance->useFullscreen = false;
     instance->cleared = true;
     instance->grabCount = 0;
     instance->cursorRow = -1;

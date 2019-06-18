@@ -136,8 +136,6 @@
 #define SPI4_SCK_PIN            PE2
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
-#define SPI4_CLOCK_LEADING_EDGE
-
 
 #define USE_OSD
 #define USE_MAX7456

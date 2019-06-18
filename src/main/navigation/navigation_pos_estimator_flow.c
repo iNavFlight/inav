@@ -45,7 +45,7 @@
 
 extern navigationPosEstimator_t posEstimator;
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
 /**
  * Read optical flow topic
  *  Function is called by OPFLOW task as soon as new update is available
@@ -63,7 +63,7 @@ void updatePositionEstimator_OpticalFlowTopic(timeUs_t currentTimeUs)
 
 bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
 {
-#if defined(USE_RANGEFINDER) && defined(USE_OPTICAL_FLOW)
+#if defined(USE_RANGEFINDER) && defined(USE_OPFLOW)
     if (!((ctx->newFlags & EST_FLOW_VALID) && (ctx->newFlags & EST_SURFACE_VALID) && (ctx->newFlags & EST_Z_VALID))) {
         return false;
     }
@@ -112,8 +112,8 @@ bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx)
         ctx->newEPH = updateEPE(posEstimator.est.eph, ctx->dt, sqrtf(sq(flowResidualX) + sq(flowResidualY)), positionEstimationConfig()->w_xy_flow_p);
     }
 
-    DEBUG_SET(DEBUG_FLOW, 0, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[Y]));
-    DEBUG_SET(DEBUG_FLOW, 1, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[X]));
+    DEBUG_SET(DEBUG_FLOW, 0, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[X]));
+    DEBUG_SET(DEBUG_FLOW, 1, RADIANS_TO_DEGREES(posEstimator.flow.flowRate[Y]));
     DEBUG_SET(DEBUG_FLOW, 2, posEstimator.est.flowCoordinates[X]);
     DEBUG_SET(DEBUG_FLOW, 3, posEstimator.est.flowCoordinates[Y]);
 

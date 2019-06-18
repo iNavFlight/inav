@@ -67,7 +67,6 @@ typedef enum {
     FEATURE_PWM_OUTPUT_ENABLE = 1 << 28,
     FEATURE_OSD = 1 << 29,
     FEATURE_FW_LAUNCH = 1 << 30,
-    FEATURE_DEBUG_TRACE = 1 << 31,
 } features_e;
 
 typedef struct systemConfig_s {
@@ -77,7 +76,6 @@ typedef struct systemConfig_s {
     uint8_t i2c_speed;
     uint8_t cpuUnderclock;
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
-    inputFilteringMode_e pwmRxInputFilteringMode;
     char name[MAX_NAME_LENGTH + 1];
 } systemConfig_t;
 

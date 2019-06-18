@@ -48,7 +48,9 @@ const timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 1), // S3_OUT    D(1,6)
     DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0), // S4_OUT    D(1,5)
-
+    DEF_TIM(TIM3, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    0, 0), // S5_OUT    D(1,7)
+    DEF_TIM(TIM3, CH4, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    0, 0), // S6_OUT    D(1,8)
+	
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED,                            0, 0), // LED strip D(1,0)
 
     DEF_TIM(TIM1, CH2, PA9, TIM_USE_ANY,                            0, 0), // SS1

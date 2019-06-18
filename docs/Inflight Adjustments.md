@@ -21,15 +21,20 @@ Up to 4 RX channels can be used to make different adjustments at the same time.
 
 The adjustment a channel makes can be controlled by another channel.
 
-The following adjustments can be made, in flight, as well as on the ground.
+The following adjustments can be made in flight as well as on the ground.
 
 * RC Rate
 * RC Expo
 * Throttle Expo
-* Roll & Pitch Rate
-* Yaw Rate
-* Pitch+Roll P I and D
-* Yaw P I and D
+* Pitch, Roll, Yaw Rates
+* Pitch, Roll, Yaw PIDs
+* Rate profile
+* Manual rates
+* FW cruise_throttle, pitch2thr, min_throttle_down_pitch_angle 
+* Board alignment
+* Level PIDs
+* PosHold, AltHold PIDs
+* PIDs profile
 
 Example scenarios:
 Up to 4 3-position switches or pots can be used to adjust 4 different settings at the same time.
@@ -117,7 +122,36 @@ this reason ensure that you define enough ranges to cover the range channel's us
 | 17    | PITCH_D |
 | 18    | ROLL_P |
 | 19    | ROLL_I |
-| 20    | ROLL_D |
+| 20    | RC_YAW_EXPO |
+| 21    | MANUAL_RC_EXPO |
+| 22    | MANUAL_RC_YAW_EXPO |
+| 23    | MANUAL_PITCH_ROLL_RATE |
+| 24    | MANUAL_ROLL_RATE |
+| 25    | MANUAL_PITCH_RATE |
+| 26    | MANUAL_YAW_RATE |
+| 27    | NAV_FW_CRUISE_THROTTLE |
+| 28    | NAV_FW_PITCH2THR |
+| 29    | ROLL_BOARD_ALIGNMENT |
+| 30    | PITCH_BOARD_ALIGNMENT |
+| 31    | LEVEL_P |
+| 32    | LEVEL_I |
+| 33    | LEVEL_D |
+| 34    | POS_XY_P |
+| 35    | POS_XY_I |
+| 36    | POS_XY_D |
+| 37    | POS_Z_P |
+| 38    | POS_Z_I |
+| 39    | POS_Z_D |
+| 40    | HEADING_P |
+| 41    | VEL_XY_P |
+| 42    | VEL_XY_I |
+| 43    | VEL_XY_D |
+| 44    | VEL_Z_P |
+| 45    | VEL_Z_P |
+| 46    | VEL_Z_I |
+| 47    | VEL_Z_D |
+| 48    | FW_MIN_THROTTLE_DOWN_PITCH_ANGLE |
+| 49    | PROFILE | Switch between 3 rate profiles using a 3 position switch. |
 
 ## Examples
 

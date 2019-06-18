@@ -38,6 +38,7 @@
 
 #include "drivers/system.h"
 #include "drivers/rx_spi.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
@@ -106,7 +107,7 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 3);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -115,7 +116,6 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .i2c_speed = I2C_SPEED_400KHZ,
     .cpuUnderclock = 0,
     .throttle_tilt_compensation_strength = 0,      // 0-100, 0 - disabled
-    .pwmRxInputFilteringMode = INPUT_FILTERING_DISABLED,
     .name = { 0 }
 );
 
@@ -296,6 +296,11 @@ void validateAndFixConfig(void)
         break;
     case PWM_TYPE_DSHOT1200:
         motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 32000);
+        break;
+#endif
+#ifdef USE_SERIALSHOT
+    case PWM_TYPE_SERIALSHOT:   // 2-4 kHz
+        motorConfigMutable()->motorPwmRate = constrain(motorConfig()->motorPwmRate, 2000, 4000);
         break;
 #endif
     }

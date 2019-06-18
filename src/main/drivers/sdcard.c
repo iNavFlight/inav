@@ -83,7 +83,7 @@ bool sdcard_isInserted(void)
 /**
  * Dispatch
  */
-sdcardVTable_t *sdcardVTable;
+sdcardVTable_t *sdcardVTable = NULL;
 
 void sdcard_init(void)
 {
@@ -100,17 +100,29 @@ void sdcard_init(void)
 
 bool sdcard_readBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_operationCompleteCallback_c callback, uint32_t callbackData)
 {
-    return sdcardVTable->readBlock(blockIndex, buffer, callback, callbackData);
+    if (sdcardVTable) {
+        return sdcardVTable->readBlock(blockIndex, buffer, callback, callbackData);
+    } else {
+        return false;
+    }
 }
 
 sdcardOperationStatus_e sdcard_beginWriteBlocks(uint32_t blockIndex, uint32_t blockCount)
 {
-    return sdcardVTable->beginWriteBlocks(blockIndex, blockCount);
+    if (sdcardVTable) {
+        return sdcardVTable->beginWriteBlocks(blockIndex, blockCount);
+    } else {
+        return false;
+    }
 }
 
 sdcardOperationStatus_e sdcard_writeBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_operationCompleteCallback_c callback, uint32_t callbackData)
 {
-    return sdcardVTable->writeBlock(blockIndex, buffer, callback, callbackData);
+    if (sdcardVTable) {
+        return sdcardVTable->writeBlock(blockIndex, buffer, callback, callbackData);
+    } else {
+        return false;
+    }
 }
 
 bool sdcard_poll(void)

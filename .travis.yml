@@ -5,6 +5,9 @@ env:
   - GOAL=targets-group-2
   - GOAL=targets-group-3
   - GOAL=targets-group-4
+  - GOAL=targets-group-5
+  - GOAL=targets-group-6
+  - GOAL=targets-group-7
   - GOAL=targets-group-rest
 
 # use new docker environment
@@ -28,7 +31,7 @@ before_install:
 
 install:
   - ./install-toolchain.sh
-  - export TOOLCHAINPATH=$PWD/gcc-arm-none-eabi-7-2018-q2-update/bin
+  - export TOOLCHAINPATH=$PWD/gcc-arm-none-eabi-8-2018-q4-major/bin
   - export PATH=$TOOLCHAINPATH:$PATH
 
 before_script:
@@ -41,7 +44,7 @@ script: ./.travis.sh
 cache: 
   apt: true
   directories:
-  - $PWD/gcc-arm-none-eabi-7-2018-q2-update
+  - $PWD/gcc-arm-none-eabi-8-2018-q4-major
 
 notifications:
   #slack: inavflight:UWRoWFJ4cbbpHXT8HJJlAPXa

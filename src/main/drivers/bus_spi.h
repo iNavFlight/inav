@@ -70,12 +70,12 @@ typedef struct SPIDevice_s {
     ioTag_t miso;
     rccPeriphTag_t rcc;
     uint8_t af;
-    bool leadingEdge;
     const uint16_t * divisorMap;
     volatile uint16_t errorCount;
+    bool initDone;
 } spiDevice_t;
 
-bool spiInit(SPIDevice device);
+bool spiInitDevice(SPIDevice device, bool leadingEdge);
 bool spiIsBusBusy(SPI_TypeDef *instance);
 void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed);
 uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t in);

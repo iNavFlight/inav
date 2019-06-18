@@ -55,7 +55,7 @@ void impl_timerChCaptureCompareEnable(TCH_t * tch, bool enable);
 
 void impl_timerPWMConfigChannel(TCH_t * tch, uint16_t value);
 void impl_timerPWMStart(TCH_t * tch);
-bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize);
-void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize);
+bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount);
+void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount);
 void impl_timerPWMStartDMA(TCH_t * tch);
 void impl_timerPWMStopDMA(TCH_t * tch);

@@ -70,7 +70,7 @@ typedef struct FixedWingLaunchState_s {
     bool motorControlAllowed;
 } FixedWingLaunchState_t;
 
-static FixedWingLaunchState_t   launchState;
+static EXTENDED_FASTRAM FixedWingLaunchState_t   launchState;
 
 #define COS_MAX_LAUNCH_ANGLE                0.70710678f                 // cos(45), just to be safe
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
@@ -106,7 +106,7 @@ void resetFixedWingLaunchController(timeUs_t currentTimeUs)
     launchState.motorControlAllowed = false;
 }
 
-bool isFixedWingLaunchDetected(void)
+bool FAST_CODE isFixedWingLaunchDetected(void)
 {
     return launchState.launchDetected;
 }
@@ -117,7 +117,7 @@ void enableFixedWingLaunchController(timeUs_t currentTimeUs)
     launchState.motorControlAllowed = true;
 }
 
-bool isFixedWingLaunchFinishedOrAborted(void)
+bool FAST_CODE isFixedWingLaunchFinishedOrAborted(void)
 {
     return launchState.launchFinished;
 }

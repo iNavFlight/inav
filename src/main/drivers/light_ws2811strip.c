@@ -43,13 +43,15 @@
 #include "drivers/timer.h"
 #include "drivers/light_ws2811strip.h"
 
-static uint32_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+#define WS2811_PERIOD (WS2811_TIMER_HZ / WS2811_CARRIER_HZ)
+#define WS2811_BIT_COMPARE_1 ((WS2811_PERIOD * 2) / 3)
+#define WS2811_BIT_COMPARE_0 (WS2811_PERIOD / 3)
+
+static timerDMASafeType_t ledStripDMABuffer[WS2811_DMA_BUFFER_SIZE];
+
 static IO_t ws2811IO = IO_NONE;
 static TCH_t * ws2811TCH = NULL;
 static bool ws2811Initialised = false;
-
-static uint16_t BIT_COMPARE_1 = 0;
-static uint16_t BIT_COMPARE_0 = 0;
 
 static hsvColor_t ledColorBuffer[WS2811_LED_STRIP_LENGTH];
 
@@ -103,10 +105,7 @@ void ws2811LedStripInit(void)
     }
 
     /* Compute the prescaler value */
-    uint16_t period = WS2811_TIMER_HZ / WS2811_CARRIER_HZ;
-
-    BIT_COMPARE_1 = period * 2 / 3;
-    BIT_COMPARE_0 = period / 3;
+    uint8_t period = WS2811_TIMER_HZ / WS2811_CARRIER_HZ;
 
     ws2811IO = IOGetByTag(IO_TAG(WS2811_PIN));
     IOInit(ws2811IO, OWNER_LED_STRIP, RESOURCE_OUTPUT, 0);
@@ -116,7 +115,7 @@ void ws2811LedStripInit(void)
     timerPWMConfigChannel(ws2811TCH, 0);
 
     // If DMA failed - abort
-    if (!timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, WS2811_DMA_BUFFER_SIZE)) {
+    if (!timerPWMConfigChannelDMA(ws2811TCH, ledStripDMABuffer, sizeof(ledStripDMABuffer[0]), WS2811_DMA_BUFFER_SIZE)) {
         ws2811Initialised = false;
         return;
     }
@@ -141,7 +140,7 @@ STATIC_UNIT_TESTED void fastUpdateLEDDMABuffer(rgbColor24bpp_t *color)
     uint32_t grb = (color->rgb.g << 16) | (color->rgb.r << 8) | (color->rgb.b);
 
     for (int8_t index = 23; index >= 0; index--) {
-        ledStripDMABuffer[dmaBufferOffset++] = (grb & (1 << index)) ? BIT_COMPARE_1 : BIT_COMPARE_0;
+        ledStripDMABuffer[dmaBufferOffset++] = (grb & (1 << index)) ? WS2811_BIT_COMPARE_1 : WS2811_BIT_COMPARE_0;
     }
 }
 
