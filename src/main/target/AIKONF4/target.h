@@ -80,6 +80,21 @@
 #define SOFTSERIAL_2_RX_PIN     PA1
 #define SOFTSERIAL_2_TX_PIN     PA1
 
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
+#define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_UART           SERIAL_PORT_USART1
+
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_BLACKBOX | FEATURE_SOFTSERIAL)
+
+#define USE_ADC
+#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_2_PIN               PC2
+#define ADC_CHANNEL_3_PIN               PC3
+
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
+#define VBAT_ADC_CHANNEL                ADC_CHN_2
+#define RSSI_ADC_CHANNEL                ADC_CHN_3
+
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 #define SPI1_NSS_PIN            PA4
@@ -129,18 +144,5 @@
 #define I2C_DEVICE              (I2CDEV_1)
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
-
-#define USE_ADC
-#define CURRENT_METER_ADC_PIN   PC1
-#define VBAT_ADC_PIN            PC2
-#define RSSI_ADC_PIN            PC3
-#define DEFAULT_VOLTAGE_METER_SOURCE VOLTAGE_METER_ADC
-#define DEFAULT_CURRENT_METER_SOURCE CURRENT_METER_ADC
-
-#define SERIALRX_PROVIDER       SERIALRX_SBUS
-#define SERIALRX_UART           SERIAL_PORT_USART1
-
-#define DEFAULT_RX_FEATURE      FEATURE_RX_SERIAL
-#define DEFAULT_FEATURES        ( FEATURE_OSD | FEATURE_SOFTSERIAL )
 
 */
