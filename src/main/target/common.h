@@ -157,6 +157,8 @@
 
 #ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_LOGIC_CONDITIONS
+
+#define USE_CLI_BATCH
 #endif
 
 //Enable DST calculations
