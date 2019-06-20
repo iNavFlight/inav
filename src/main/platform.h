@@ -62,3 +62,10 @@
 #include "target/common.h"
 #include "target.h"
 #include "target/common_post.h"
+
+// Remove the unaligned packed structure member pointer access warning
+// The compiler guarantees that unaligned access is safe for packed structures.
+
+#if (__GNUC__ >= 9)
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif

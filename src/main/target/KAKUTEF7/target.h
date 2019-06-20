@@ -20,8 +20,13 @@
 
 #pragma once
 
+#ifdef KAKUTEF7MINI
+#define TARGET_BOARD_IDENTIFIER "KF7M"
+#define USBD_PRODUCT_STRING "KakuteF7-Mini"
+#else
 #define TARGET_BOARD_IDENTIFIER "KTF7"
 #define USBD_PRODUCT_STRING "KakuteF7"
+#endif
 
 #define LED0                PA2
 
@@ -100,12 +105,20 @@
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
 
+#if defined(KAKUTEF7MINI)
+#define M25P16_CS_PIN           SPI1_NSS_PIN
+#define M25P16_SPI_BUS          BUS_SPI1
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#else
 #define USE_SDCARD
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI1
 #define SDCARD_CS_PIN           SPI1_NSS_PIN
 #define SDCARD_DETECT_INVERTED
 #define SDCARD_DETECT_PIN       PD8
+#endif
 
 #define USE_I2C
 #define USE_I2C_DEVICE_1

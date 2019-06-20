@@ -36,7 +36,6 @@
 #include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
-#include "drivers/logging.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
@@ -162,8 +161,6 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         baroHardware = BARO_NONE;
         break;
     }
-
-    addBootlogEvent6(BOOT_EVENT_BARO_DETECTION, BOOT_EVENT_FLAGS_NONE, baroHardware, 0, 0, 0);
 
     if (baroHardware == BARO_NONE) {
         sensorsClear(SENSOR_BARO);

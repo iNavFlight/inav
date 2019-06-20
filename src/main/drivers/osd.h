@@ -25,7 +25,10 @@
 #define OSD_CHAR_WIDTH 12
 #define OSD_CHAR_HEIGHT 18
 #define OSD_CHAR_BITS_PER_PIXEL 2
-#define OSD_CHAR_BYTES (OSD_CHAR_WIDTH * OSD_CHAR_HEIGHT * OSD_CHAR_BITS_PER_PIXEL / 8)
+#define OSD_CHAR_VISIBLE_BYTES (OSD_CHAR_WIDTH * OSD_CHAR_HEIGHT * OSD_CHAR_BITS_PER_PIXEL / 8)
+// Only the first 54 bytes of a character represent visible data. However, some OSD drivers
+// accept 64 bytes and use the extra 10 bytes for metadata.
+#define OSD_CHAR_BYTES 64
 
 #define OSD_CHARACTER_COLOR_BLACK 0
 #define OSD_CHARACTER_COLOR_TRANSPARENT 1

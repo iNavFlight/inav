@@ -658,7 +658,7 @@ void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr)
 
     max7456WaitUntilNoBusy();
 
-    for (unsigned ii = 0; ii < sizeof(chr->data); ii++) {
+    for (unsigned ii = 0; ii < OSD_CHAR_VISIBLE_BYTES; ii++) {
         busWrite(state.dev, MAX7456ADD_CMAL, ii);
         busRead(state.dev, MAX7456ADD_CMDO, &chr->data[ii]);
     }
@@ -699,7 +699,7 @@ void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
         or_val = addr_h << 6;
     }
 
-    for (unsigned x = 0; x < sizeof(chr->data); x++) {
+    for (unsigned x = 0; x < OSD_CHAR_VISIBLE_BYTES; x++) {
         bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMAL, x | or_val); //set start address low
         bufPtr = max7456PrepareBuffer(spiBuff, bufPtr, MAX7456ADD_CMDI, chr->data[x]);
     }

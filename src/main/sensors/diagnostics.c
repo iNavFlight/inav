@@ -192,7 +192,7 @@ hardwareSensorStatus_e getHwGPSStatus(void)
 
 hardwareSensorStatus_e getHwOpticalFlowStatus(void)
 {
-#if defined(USE_OPTICAL_FLOW)
+#if defined(USE_OPFLOW)
     if (detectedSensors[SENSOR_INDEX_OPFLOW] != OPFLOW_NONE) {
         if (opflowIsHealthy()) {
             return HW_SENSOR_OK;

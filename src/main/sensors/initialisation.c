@@ -24,8 +24,6 @@
 
 #include "config/config_eeprom.h"
 
-#include "drivers/logging.h"
-
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
@@ -74,7 +72,7 @@ bool sensorsAutodetect(void)
     rangefinderInit();
 #endif
 
-#ifdef USE_OPTICAL_FLOW
+#ifdef USE_OPFLOW
     opflowInit();
 #endif
 
