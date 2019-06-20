@@ -28,16 +28,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.08"
-     inkscape:cx="3126.7378"
-     inkscape:cy="2663.9858"
+     inkscape:zoom="0.13995495"
+     inkscape:cx="4701.8211"
+     inkscape:cy="2120.4595"
      inkscape:document-units="px"
      inkscape:current-layer="g4157"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1103"
-     inkscape:window-x="1680"
-     inkscape:window-y="27"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
      inkscape:window-maximized="1"
      fit-margin-top="1"
      fit-margin-left="1"
@@ -122,88 +122,6 @@
      inkscape:groupmode="layer"
      style="display:inline"
      transform="translate(2203.3186,3074.6376)">
-    <rect
-       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="rect4136"
-       width="288.94339"
-       height="288.94339"
-       x="708.38544"
-       y="-2363.0334"
-       ry="0" />
-    <path
-       inkscape:transform-center-x="-73.935657"
-       inkscape:transform-center-y="73.935654"
-       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 948.22718,-2076.8243 c 7.47613,7.4761 23.9146,3.1588 36.71634,-9.6429 12.80173,-12.8017 17.11898,-29.2402 9.64285,-36.7163 -7.47612,-7.4762 -126.05745,-105.3018 -138.85919,-92.5 -12.80175,12.8017 85.02386,131.383 92.5,138.8592 z"
-       id="path4175"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="sssss" />
-    <rect
-       ry="0"
-       y="-2363.0334"
-       x="1114.0997"
-       height="288.94339"
-       width="288.94339"
-       id="rect4208"
-       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-    <circle
-       r="31.819805"
-       cy="-2218.5618"
-       cx="1258.5714"
-       id="circle4210"
-       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="486.66803"
-       y="-2113.553"
-       id="text4574"><tspan
-         sodipodi:role="line"
-         x="486.668"
-         y="-2113.553"
-         id="tspan4578"
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end">Arm</tspan></text>
-    <rect
-       ry="0"
-       y="-1942.6254"
-       x="708.38544"
-       height="288.94339"
-       width="288.94339"
-       id="rect4615"
-       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
-    <path
-       inkscape:transform-center-x="73.935653"
-       inkscape:transform-center-y="73.935654"
-       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:8.07780743;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       d="m 756.60309,-1656.4162 c -7.47613,7.4761 -23.9146,3.1589 -36.71634,-9.6428 -12.80173,-12.8018 -17.11899,-29.2402 -9.64285,-36.7164 7.47612,-7.4761 126.05745,-105.3017 138.85919,-92.5 12.80175,12.8018 -85.02386,131.3831 -92.5,138.8592 z"
-       id="path4621"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="sssss" />
-    <rect
-       style="display:inline;opacity:1;fill:none;fill-opacity:1;stroke:#808080;stroke-width:11.05660725;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="rect4637"
-       width="288.94339"
-       height="288.94339"
-       x="1114.0997"
-       y="-1942.6254"
-       ry="0" />
-    <circle
-       style="display:inline;opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="circle4639"
-       cx="1258.5714"
-       cy="-1798.1537"
-       r="31.819805" />
-    <text
-       id="text4657"
-       y="-1693.1448"
-       x="486.66803"
-       style="font-style:normal;font-weight:normal;line-height:0%;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       xml:space="preserve"><tspan
-         style="font-size:286.5987854px;line-height:1.25;text-align:end;text-anchor:end"
-         id="tspan4659"
-         y="-1693.1448"
-         x="486.66803"
-         sodipodi:role="line">Disarm</tspan></text>
     <rect
        ry="0"
        y="-1522.2173"
