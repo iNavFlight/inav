@@ -122,7 +122,6 @@
 #   define SDCARD_SPI_BUS          BUS_SPI3
 #   define SDCARD_CS_PIN           PD2
 #   define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#   define SPI3_CLOCK_LEADING_EDGE                          // TODO(digitalentity): implement DEVFLAGS_SPI_MODE_0 flag in SPI drivers
 #endif
 
 // *************** UART *****************************
@@ -197,3 +196,4 @@
 
 #define MAX_PWM_OUTPUT_PORTS        8
 #define USE_DSHOT
+#define USE_SERIALSHOT

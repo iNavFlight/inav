@@ -81,24 +81,16 @@ typedef enum {
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
-#define MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT  8
 #define MAX_SUPPORTED_RC_CHANNEL_COUNT              18
 
 #define NON_AUX_CHANNEL_COUNT 4
 #define MAX_AUX_CHANNEL_COUNT (MAX_SUPPORTED_RC_CHANNEL_COUNT - NON_AUX_CHANNEL_COUNT)
 
-#if MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT > MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT
-#define MAX_SUPPORTED_RX_PARALLEL_PWM_OR_PPM_CHANNEL_COUNT MAX_SUPPORTED_RC_PARALLEL_PWM_CHANNEL_COUNT
-#else
-#define MAX_SUPPORTED_RX_PARALLEL_PWM_OR_PPM_CHANNEL_COUNT MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT
-#endif
-
 extern const char rcChannelLetters[];
 
-extern int16_t rcRaw[MAX_SUPPORTED_RC_CHANNEL_COUNT];        // interval [1000;2000]
-extern int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // interval [1000;2000]
-
 #define MAX_MAPPABLE_RX_INPUTS 4
+
+#define MAX_INVALID_RX_PULSE_TIME    300
 
 #define RSSI_VISIBLE_VALUE_MIN 0
 #define RSSI_VISIBLE_VALUE_MAX 100
@@ -130,6 +122,7 @@ typedef struct rxConfig_s {
     uint16_t rx_min_usec;
     uint16_t rx_max_usec;
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
+    uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);
@@ -153,6 +146,12 @@ typedef struct rxRuntimeConfig_s {
     void *frameData;
 } rxRuntimeConfig_t;
 
+typedef struct rcChannel_s {
+    int16_t raw;        // Value received via RX - [1000;2000]
+    int16_t data;       // Value after processing - [1000;2000]
+    timeMs_t expiresAt; // Time when this value becomes too old and it's discarded
+} rcChannel_t;
+
 typedef enum {
     RSSI_SOURCE_NONE = 0,
     RSSI_SOURCE_ADC,
@@ -169,7 +168,9 @@ bool rxUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime);
 bool rxIsReceivingSignal(void);
 bool rxAreFlightChannelsValid(void);
 bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
+bool isRxPulseValid(uint16_t pulseDuration);
 
+uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap);
 void parseRcChannels(const char *input);
 
 // filtered = true indicates that newRssi comes from a source which already does
@@ -187,3 +188,13 @@ void suspendRxSignal(void);
 void resumeRxSignal(void);
 
 uint16_t rxGetRefreshRate(void);
+
+// Processed RC channel value. These values might include
+// filtering and some extra processing like value holding
+// during failsafe. Most callers should use this instead
+// of rxGetRawChannelValue()
+int16_t rxGetChannelValue(unsigned channelNumber);
+
+// Raw RC channel data as received by the RX. Should only
+// be used by very low level subsystems, like blackbox.
+int16_t rxGetRawChannelValue(unsigned channelNumber);

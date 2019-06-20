@@ -24,8 +24,8 @@ When selecting a USB to UART converter choose one that has DTR exposed as well a
 
 Examples:
 
- * [FT232RL FTDI USB To TTL Serial Converter Adapter](http://www.banggood.com/FT232RL-FTDI-USB-To-TTL-Serial-Converter-Adapter-Module-For-Arduino-p-917226.html)
- * [USB To TTL / COM Converter Module buildin-in CP2102](http://www.banggood.com/Wholesale-USB-To-TTL-Or-COM-Converter-Module-Buildin-in-CP2102-New-p-27989.html)
+ * [FT232RL FTDI USB To TTL Serial Converter Adapter](https://inavflight.com/shop/s/bg/917226)
+ * [USB To TTL / COM Converter Module buildin-in CP2102](https://inavflight.com/shop/s/bg/27989)
 
 Both SoftSerial and UART ports can be connected to your computer via USB to UART converter boards.
 
@@ -59,11 +59,11 @@ You can use the CLI for configuration but the commands are reserved for develope
 The `serial` CLI command takes 6 arguments.
 
 1. Identifier
-1. Function bitmask (see serialPortFunction_e in the source)
-1. MSP baud rate
-1. GPS baud rate
-1. Telemetry baud rate (auto baud allowed)
-1. Blackbox baud rate
+2. Function bitmask (see serialPortFunction_e in the source)
+3. MSP baud rate
+4. GPS baud rate
+5. Telemetry baud rate (auto baud allowed)
+6. Blackbox baud rate
 
 
 ### Baud Rates

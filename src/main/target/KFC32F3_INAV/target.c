@@ -25,7 +25,7 @@
 const timerHardware_t timerHardware[] =
 {
     DEF_TIM(TIM2,  CH1, PA0,  TIM_USE_PPM,                          0), // PPM
-    
+
     DEF_TIM(TIM8,  CH3, PB9,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0), // PWM1
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // PWM2
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // PWM3
@@ -35,7 +35,7 @@ const timerHardware_t timerHardware[] =
     DEF_TIM(TIM2,  CH3, PB10, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // PWM7
     DEF_TIM(TIM2,  CH4, PB11, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // PWM8
 
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO | TIM_USE_LED,  0), // S1_out
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,  0), // S1_out
     DEF_TIM(TIM2,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,                0), // S2_out
 };
 

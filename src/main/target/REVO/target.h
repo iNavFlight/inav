@@ -33,6 +33,7 @@
 #define BEEPER                  PB4
 
 #define USE_DSHOT
+#define USE_SERIALSHOT
 
 // MPU6000 interrupts
 #define USE_EXTI
@@ -69,8 +70,6 @@
 #define USE_BARO_MS5611
 
 #define PITOT_I2C_BUS           BUS_I2C2
-
-#define USE_OPTICAL_FLOW
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2

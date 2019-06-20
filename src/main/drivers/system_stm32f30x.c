@@ -27,19 +27,36 @@
 #define AIRCR_VECTKEY_MASK    ((uint32_t)0x05FA0000)
 void SetSysClock(uint8_t underclock);
 
+inline static void NVIC_DisableAllIRQs(void)
+{
+    // We access CMSIS NVIC registers directly here
+    for (int x = 0; x < 8; x++) {
+        // Mask all IRQs controlled by a ICERx
+        NVIC->ICER[x] = 0xFFFFFFFF;
+        // Clear all pending IRQs controlled by a ICPRx
+        NVIC->ICPR[x] = 0xFFFFFFFF;
+    }
+}
+
 void systemReset(void)
 {
+    // Disable all NVIC interrupts
+    __disable_irq();
+    NVIC_DisableAllIRQs();
+
     // Generate system reset
     SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t)0x04;
 }
 
 void systemResetToBootloader(void)
 {
-    // 1FFFF000 -> 20000200 -> SP
-    // 1FFFF004 -> 1FFFF021 -> PC
+    __disable_irq();
+    NVIC_DisableAllIRQs();
 
     *((uint32_t *)0x20009FFC) = 0xDEADBEEF; // 40KB SRAM STM32F30X
-    systemReset();
+
+    // Generate system reset
+    SCB->AIRCR = AIRCR_VECTKEY_MASK | (uint32_t)0x04;
 }
 
 
