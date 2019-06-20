@@ -115,7 +115,7 @@ typedef struct emergencyArmingState_s {
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
 
-float dT;
+EXTENDED_FASTRAM float dT;
 
 int16_t headFreeModeHold;
 
@@ -780,10 +780,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
     // Update PID coefficients
-    updatePIDCoefficients();
+    updatePIDCoefficients(dT);
 
     // Calculate stabilisation
-    pidController();
+    pidController(dT);
 
 #ifdef HIL
     if (hilActive) {
