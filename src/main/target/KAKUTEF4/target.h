@@ -31,8 +31,6 @@
 #   define USBD_PRODUCT_STRING "KakuteF4-V1"
 #endif
 
-#define USE_TARGET_CONFIG
-
 #define LED0                    PB5
 #define LED1                    PB4
 #define LED2                    PB6
@@ -149,14 +147,8 @@
 #define USE_LED_STRIP
 #if !defined(KAKUTEF4V2TRI)
 #define WS2811_PIN                      PC8
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA2_ST4_HANDLER
-#define WS2811_DMA_STREAM               DMA2_Stream4
-#define WS2811_DMA_CHANNEL              DMA_Channel_7
 #else
 #define WS2811_PIN                      PA2
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream0
-#define WS2811_DMA_CHANNEL              DMA_Channel_6
 #endif
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
