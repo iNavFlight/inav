@@ -59,6 +59,7 @@ static float motorMixRange;
 static float mixerScale = 1.0f;
 static EXTENDED_FASTRAM motorMixer_t currentMixer[MAX_SUPPORTED_MOTORS];
 static EXTENDED_FASTRAM uint8_t motorCount = 0;
+static EXTENDED_FASTRAM uint8_t revFlags[16];  // sibi
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
 
@@ -76,7 +77,8 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .platformType = PLATFORM_MULTIROTOR,
     .hasFlaps = false,
     .appliedMixerPreset = -1, //This flag is not available in CLI and used by Configurator only
-    .fwMinThrottleDownPitchAngle = 0
+    .fwMinThrottleDownPitchAngle = 0,
+    .pwmOutputsReversed = 0   // sibi
 );
 
 #ifdef BRUSHED_MOTORS
@@ -104,14 +106,18 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
+// sibi
 static void computeMotorCount(void)
 {
+    uint16_t checkFlags = 1;  // sibi
     motorCount = 0;
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         // check if done
         if (primaryMotorMixer(i)->throttle == 0.0f) {
             break;
         }
+        revFlags[i] = checkFlags & (mixerConfig()->pwmOutputsReversed);  // sibi
+        checkFlags <<= 1;
         motorCount++;
     }
 }
@@ -162,9 +168,14 @@ void mixerInit(void)
 
 void mixerResetDisarmedMotors(void)
 {
+    // sibi
     // set disarmed motor values
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        motor_disarmed[i] = feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand;
+//        if (!revFlags[i] || isMotorProtocolDigital()) {
+            motor_disarmed[i] = feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->mincommand;
+//        } else {
+//            motor_disarmed[i] = feature(FEATURE_3D) ? flight3DConfig()->neutral3d : motorConfig()->maxthrottle;
+//        }
     }
 }
 
@@ -202,11 +213,29 @@ void FAST_CODE NOINLINE writeMotors(void)
             }
         }
         else {
-            motorValue = motor[i];
+            // sibi
+            if (revFlags[i]) {
+                if (motor[i] == motorConfig()->mincommand) {
+                    motorValue = motorConfig()->maxthrottle;
+                } else {
+                    motorValue = (motorConfig()->maxthrottle + motorConfig()->minthrottle) - motor[i];
+                }
+            } else {
+                motorValue = motor[i];
+            }
         }
 #else
         // We don't define USE_DSHOT
-        motorValue = motor[i];
+        // sibi
+        if (revFlags[i]) {
+            if (motor[i] == motorConfig()->mincommand) {
+                motorValue = motorConfig()->maxthrottle;
+            } else {
+                motorValue = (motorConfig()->maxthrottle + motorConfig()->minthrottle) - motor[i];
+            }
+        } else {
+            motorValue = motor[i];
+        }
 #endif
 
         pwmWriteMotor(i, motorValue);
