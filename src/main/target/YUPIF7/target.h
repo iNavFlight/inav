@@ -152,6 +152,9 @@
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB1
 
+// DSHOT
+#define USE_DSHOT
+
 // Default configuration
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART6
