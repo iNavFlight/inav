@@ -144,6 +144,13 @@ typedef struct pidAutotuneConfig_s {
 PG_DECLARE_PROFILE(pidProfile_t, pidProfile);
 PG_DECLARE(pidAutotuneConfig_t, pidAutotuneConfig);
 
+// sibi
+typedef struct pidAdjust_s {
+    uint8_t pid_adjust_aux_channel;              // AUX channel-No (0:off / 1-n:AUX1-AUXn) used to adjust PID according to the flight mode (helicopter like vehicles)
+} pidAdjust_t;
+
+PG_DECLARE(pidAdjust_t, pidAdjust);
+
 static inline const pidBank_t * pidBank(void) { return STATE(FIXED_WING) ? &pidProfile()->bank_fw : &pidProfile()->bank_mc; }
 static inline pidBank_t * pidBankMutable(void) { return STATE(FIXED_WING) ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc; }
 

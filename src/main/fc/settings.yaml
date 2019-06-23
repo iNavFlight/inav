@@ -2000,3 +2000,11 @@ groups:
           field: topics
           min: 0,
           max: UINT32_MAX
+
+  - name: PG_PID_ADJUST
+    type: pidAdjust_t
+    members:
+        - name: pid_adjust_aux_channel
+          min: 0
+          max: MAX_AUX_CHANNEL_COUNT
+          type: uint8_t

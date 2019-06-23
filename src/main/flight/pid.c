@@ -131,6 +131,13 @@ static EXTENDED_FASTRAM float dBoostFactor;
 static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 #endif
 
+// sibi
+PG_REGISTER_WITH_RESET_TEMPLATE(pidAdjust_t, pidAdjust, PG_PID_ADJUST, 0);
+
+PG_RESET_TEMPLATE(pidAdjust_t, pidAdjust,
+    .pid_adjust_aux_channel = 0
+);
+
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
@@ -235,8 +242,19 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dBoostGyroDeltaLpfHz = D_BOOST_GYRO_LPF_HZ,
 );
 
+// sibi
+static EXTENDED_FASTRAM uint8_t pidAdjustmentChannel = 0;
+static EXTENDED_FASTRAM float pidAdjustmentFactor = 1;
+
 void pidInit(void)
 {
+    //sibi
+    pidAdjustmentFactor = 1;
+    pidAdjustmentChannel = pidAdjust()->pid_adjust_aux_channel;
+    if (pidAdjustmentChannel) {
+        pidAdjustmentChannel += NON_AUX_CHANNEL_COUNT - 1;
+    }
+
     pidResetTPAFilter();
 
     // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
@@ -664,6 +682,11 @@ static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis) {
 
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
+    // sibi
+    if (pidAdjustmentChannel) {
+        pidAdjustmentFactor = (scaleRangef((float)rxGetChannelValue(pidAdjustmentChannel), PWM_RANGE_MIN, PWM_RANGE_MAX, 2.0f, 0.0f));
+    }
+
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
     // Calculate new P-term
