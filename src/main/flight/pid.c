@@ -690,7 +690,8 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
     // Calculate new P-term
-    float newPTerm = rateError * pidState->kP;
+    // sibi
+    float newPTerm = rateError * pidState->kP * pidAdjustmentFactor;
     // Constrain YAW by yaw_p_limit value if not servo driven (in that case servo limits apply)
     if (axis == FD_YAW && (getMotorCount() >= 4 && pidProfile()->yaw_p_limit)) {
         newPTerm = constrain(newPTerm, -pidProfile()->yaw_p_limit, pidProfile()->yaw_p_limit);
@@ -724,7 +725,8 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
 
         // Calculate derivative
-        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, axis);
+        // sibi
+        newDTerm =  newDTerm * (pidState->kD / dT * pidAdjustmentFactor) * applyDBoost(pidState, axis);
 
         // Additionally constrain D
         newDTerm = constrainf(newDTerm, -300.0f, 300.0f);
