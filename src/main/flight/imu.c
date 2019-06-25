@@ -76,6 +76,7 @@
 
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_SQ_NEARNESS         25      // 25% or G^2, accepted acceleration of (0.87 - 1.12G)
+#define IMU_CENTRIFUGAL_LPF         1       // Hz
 
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -89,6 +90,7 @@ FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclinatio
 FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
+STATIC_FASTRAM pt1Filter_t rotRateFilter;
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
@@ -99,7 +101,8 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_ki_acc = 50,               // 0.005 * 10000
     .dcm_kp_mag = 10000,            // 1.00 * 10000
     .dcm_ki_mag = 0,                // 0.00 * 10000
-    .small_angle = 25
+    .small_angle = 25,
+    .acc_ignore_rate = 0
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -156,6 +159,9 @@ void imuInit(void)
 
     quaternionInitUnit(&orientation);
     imuComputeRotationMatrix();
+
+    // Initialize rotation rate filter
+    pt1FilterReset(&rotRateFilter, 0);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -461,8 +467,33 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-static bool imuCanUseAccelerometerForCorrection(void)
+static bool imuCanUseAccelerometerForCorrection(const float dT)
 {
+    // Experiment: if rotation rate on a FIXED_WING is higher than a threshold - centrifugal force messes up too much and we 
+    // should not use measured accel for AHRS comp
+    //      Centrifugal acceleration AccelC = Omega^2 * R = Speed^2 / R
+    //          Omega = Speed / R
+    //      For a banked turn R = Speed^2 / (G * tan(Roll))
+    //          Omega = G * tan(Roll) / Speed 
+    //      Knowing the typical airspeed is around ~20 m/s we can calculate roll angles that yield certain angular rate
+    //          1 deg   =>  0.49 deg/s
+    //          2 deg   =>  0.98 deg/s
+    //          5 deg   =>  2.45 deg/s
+    //         10 deg   =>  4.96 deg/s
+    //      Therefore for a typical plane a sustained angular rate of ~2.45 deg/s will yield a banking error of ~5 deg
+    //  Since we can't do proper centrifugal compensation at the moment we pass the magnitude of angular rate through an 
+    //  LPF with a low cutoff and if it's larger than our threshold - invalidate accelerometer
+
+    if (STATE(FIXED_WING) && imuConfig()->acc_ignore_rate) {
+        const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
+        const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, IMU_CENTRIFUGAL_LPF, dT);
+
+        if (rotRateMagnitudeFiltered > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate)) {
+            return false;
+        }
+    }
+
+    // If centrifugal test passed - do the usual "nearness" style check
     float accMagnitudeSq = 0;
 
     for (int axis = 0; axis < 3; axis++) {
@@ -483,7 +514,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     const bool canUseMAG = false;
 #endif
 
-    const bool useAcc = imuCanUseAccelerometerForCorrection();
+    const bool useAcc = imuCanUseAccelerometerForCorrection(dT);
 
     float courseOverGround = 0;
     bool useMag = false;
