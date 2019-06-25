@@ -2796,7 +2796,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_homing = 0;
     osdConfig->hud_homepoint = 0;
     osdConfig->hud_radar_disp = 0;
-    osdConfig->hud_radar_range_min = 1;
+    osdConfig->hud_radar_range_min = 10;
     osdConfig->hud_radar_range_max = 4000;
     osdConfig->hud_radar_nearest = 0;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
