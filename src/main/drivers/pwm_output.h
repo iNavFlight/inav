@@ -20,29 +20,23 @@
 #include "drivers/io_types.h"
 #include "drivers/time.h"
 
-typedef enum {
-    PWM_TYPE_STANDARD = 0,
-    PWM_TYPE_ONESHOT125,
-    PWM_TYPE_ONESHOT42,
-    PWM_TYPE_MULTISHOT,
-    PWM_TYPE_BRUSHED,
-    PWM_TYPE_DSHOT150,
-    PWM_TYPE_DSHOT300,
-    PWM_TYPE_DSHOT600,
-    PWM_TYPE_DSHOT1200,
-} motorPwmProtocolTypes_e;
+ioTag_t pwmGetMotorPinTag(int motorIndex);
 
 void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount);
-void pwmCompleteDshotUpdate(uint8_t motorCount);
-bool isMotorProtocolDshot(void);
+void pwmCompleteMotorUpdate(void);
+bool isMotorProtocolDigital(void);
 
 void pwmWriteServo(uint8_t index, uint16_t value);
 
 void pwmDisableMotors(void);
 void pwmEnableMotors(void);
 struct timerHardware_s;
-bool pwmMotorConfig(const struct timerHardware_s *timerHardware, uint8_t motorIndex, uint16_t motorPwmRate, motorPwmProtocolTypes_e proto, bool enableOutput);
+
+void pwmMotorPreconfigure(void);
+bool pwmMotorConfig(const struct timerHardware_s *timerHardware, uint8_t motorIndex, bool enableOutput);
+
+void pwmServoPreconfigure(void);
 bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput);
 void pwmWriteBeeper(bool onoffBeep);
 void beeperPwmInit(ioTag_t tag, uint16_t frequency);

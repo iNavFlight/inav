@@ -16,11 +16,11 @@
  */
 
 #pragma once
+#include "drivers/display.h"
 
-// Video Character Display parameters
+displayPort_t *displayPortHottInit(void);
+extern displayPort_t hottDisplayPort;
 
-typedef enum {
-    VIDEO_SYSTEM_AUTO = 0,
-    VIDEO_SYSTEM_PAL,
-    VIDEO_SYSTEM_NTSC
-} videoSystem_e;
+void hottDisplayportRegister(void);
+void hottCmsOpen(void);
+void hottSetCmsKey(uint8_t hottKey, bool esc);

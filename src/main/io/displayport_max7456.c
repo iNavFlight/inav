@@ -29,7 +29,6 @@
 
 #include "drivers/display.h"
 #include "drivers/max7456.h"
-#include "drivers/vcd.h"
 
 #include "io/displayport_max7456.h"
 
@@ -153,7 +152,7 @@ static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
 {
     UNUSED(displayPort);
 
-    max7456Character_t chr;
+    osdCharacter_t chr;
 
     max7456ReadNvm(255, &chr);
 
@@ -174,6 +173,14 @@ static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t
     return false;
 }
 
+static int writeFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr)
+{
+    UNUSED(instance);
+
+    max7456WriteNvm(addr, chr);
+    return 0;
+}
+
 static const displayPortVTable_t max7456VTable = {
     .grab = grab,
     .release = release,
@@ -189,6 +196,7 @@ static const displayPortVTable_t max7456VTable = {
     .txBytesFree = txBytesFree,
     .supportedTextAttributes = supportedTextAttributes,
     .getFontMetadata = getFontMetadata,
+    .writeFontCharacter = writeFontCharacter,
 };
 
 displayPort_t *max7456DisplayPortInit(const videoSystem_e videoSystem)

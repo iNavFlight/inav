@@ -168,6 +168,7 @@ typedef enum {
 uint8_t timerClockDivisor(TIM_TypeDef *tim);
 uint32_t timerGetBaseClockHW(const timerHardware_t * timHw);
 
+const timerHardware_t * timerGetByUsageFlag(timerUsageFlag_e flag);
 const timerHardware_t * timerGetByTag(ioTag_t tag, timerUsageFlag_e flag);
 TCH_t * timerGetTCH(const timerHardware_t * timHw);
 
@@ -190,8 +191,11 @@ void timerEnable(TCH_t * tch);
 void timerPWMConfigChannel(TCH_t * tch, uint16_t value);
 void timerPWMStart(TCH_t * tch);
 
-bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint32_t dmaBufferSize);
-void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferSize);
+// dmaBufferElementSize is the size in bytes of each element in the memory
+// buffer. 1, 2 or 4 are the only valid values.
+// dmaBufferElementCount is the number of elements in the buffer
+bool timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount);
+void timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount);
 void timerPWMStartDMA(TCH_t * tch);
 void timerPWMStopDMA(TCH_t * tch);
 bool timerPWMDMAInProgress(TCH_t * tch);

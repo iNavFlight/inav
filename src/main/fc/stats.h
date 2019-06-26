@@ -11,7 +11,7 @@ typedef struct statsConfig_s {
     uint8_t  stats_enabled;
 } statsConfig_t;
 
-uint32_t getFlyingEnergy();
+uint32_t getFlyingEnergy(void);
 void statsOnArm(void);
 void statsOnDisarm(void);
 

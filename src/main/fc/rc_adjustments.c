@@ -33,6 +33,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/time.h"
+#include "drivers/vtx_common.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -45,6 +46,7 @@
 #include "flight/pid.h"
 
 #include "io/beeper.h"
+#include "io/vtx.h"
 
 #include "sensors/boardalignment.h"
 
@@ -262,6 +264,10 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 5 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_VTX_POWER_LEVEL,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
     }, {
         .adjustmentFunction = ADJUSTMENT_PROFILE,
@@ -542,6 +548,14 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &mixerConfigMutable()->fwMinThrottleDownPitchAngle, delta, 0, FW_MIN_THROTTLE_DOWN_PITCH_ANGLE_MAX);
             break;
+        case ADJUSTMENT_VTX_POWER_LEVEL:
+            {
+                vtxDeviceCapability_t vtxDeviceCapability;
+                if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                    applyAdjustmentU8(ADJUSTMENT_VTX_POWER_LEVEL, &vtxSettingsConfigMutable()->power, delta, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                }
+            }
+            break;
         default:
             break;
     };
@@ -601,9 +615,9 @@ void processRcAdjustments(controlRateConfig_t *controlRateConfig, bool canUseRxD
 
         if (adjustmentState->config->mode == ADJUSTMENT_MODE_STEP) {
             int delta;
-            if (rcData[channelIndex] > PWM_RANGE_MIDDLE + 200) {
+            if (rxGetChannelValue(channelIndex) > PWM_RANGE_MIDDLE + 200) {
                 delta = adjustmentState->config->data.stepConfig.step;
-            } else if (rcData[channelIndex] < PWM_RANGE_MIDDLE - 200) {
+            } else if (rxGetChannelValue(channelIndex) < PWM_RANGE_MIDDLE - 200) {
                 delta = 0 - adjustmentState->config->data.stepConfig.step;
             } else {
                 // returning the switch to the middle immediately resets the ready state
@@ -620,7 +634,7 @@ void processRcAdjustments(controlRateConfig_t *controlRateConfig, bool canUseRxD
 #ifdef USE_INFLIGHT_PROFILE_ADJUSTMENT
         } else if (adjustmentState->config->mode == ADJUSTMENT_MODE_SELECT) {
             const uint16_t rangeWidth = ((2100 - 900) / adjustmentState->config->data.selectConfig.switchPositions);
-            const uint8_t position = (constrain(rcData[channelIndex], 900, 2100 - 1) - 900) / rangeWidth;
+            const uint8_t position = (constrain(rxGetChannelValue(channelIndex), 900, 2100 - 1) - 900) / rangeWidth;
 
             applySelectAdjustment(adjustmentFunction, position);
 #endif

@@ -48,7 +48,7 @@ void targetConfiguration(void)
     rxConfigMutable()->serialrx_provider = SERIALRX_CRSF;
 
     serialConfigMutable()->portConfigs[6].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
-    telemetryConfigMutable()->smartportUartUnidirectional = 1;
+    telemetryConfigMutable()->uartUnidirectional = 1;
 
     mixerConfigMutable()->platformType = PLATFORM_AIRPLANE;
 }

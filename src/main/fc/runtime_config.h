@@ -39,17 +39,34 @@ typedef enum {
     ARMING_DISABLED_CLI                             = (1 << 20),
     ARMING_DISABLED_CMS_MENU                        = (1 << 21),
     ARMING_DISABLED_OSD_MENU                        = (1 << 22),
-    ARMING_DISABLED_ROLLPITCH_NOT_CENTERED	        = (1 << 23),
+    ARMING_DISABLED_ROLLPITCH_NOT_CENTERED          = (1 << 23),
     ARMING_DISABLED_SERVO_AUTOTRIM                  = (1 << 24),
     ARMING_DISABLED_OOM                             = (1 << 25),
     ARMING_DISABLED_INVALID_SETTING                 = (1 << 26),
+    ARMING_DISABLED_PWM_OUTPUT_ERROR                = (1 << 27),
 
-    ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING | ARMING_DISABLED_SYSTEM_OVERLOADED |
-                                                       ARMING_DISABLED_NAVIGATION_UNSAFE | ARMING_DISABLED_COMPASS_NOT_CALIBRATED | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED |
-                                                       ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_HARDWARE_FAILURE | ARMING_DISABLED_BOXFAILSAFE | ARMING_DISABLED_BOXKILLSWITCH |
-                                                       ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI | ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU |
-                                                       ARMING_DISABLED_ROLLPITCH_NOT_CENTERED | ARMING_DISABLED_SERVO_AUTOTRIM | ARMING_DISABLED_OOM | ARMING_DISABLED_INVALID_SETTING)
+    ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING | 
+                                                       ARMING_DISABLED_SYSTEM_OVERLOADED | ARMING_DISABLED_NAVIGATION_UNSAFE |
+                                                       ARMING_DISABLED_COMPASS_NOT_CALIBRATED | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED |
+                                                       ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_HARDWARE_FAILURE | ARMING_DISABLED_BOXFAILSAFE |
+                                                       ARMING_DISABLED_BOXKILLSWITCH | ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI |
+                                                       ARMING_DISABLED_CMS_MENU | ARMING_DISABLED_OSD_MENU | ARMING_DISABLED_ROLLPITCH_NOT_CENTERED |
+                                                       ARMING_DISABLED_SERVO_AUTOTRIM | ARMING_DISABLED_OOM | ARMING_DISABLED_INVALID_SETTING |
+                                                       ARMING_DISABLED_PWM_OUTPUT_ERROR),
 } armingFlag_e;
+
+// Arming blockers that can be overriden by emergency arming.
+// Keep in mind that this feature is intended to allow arming in
+// situations where we might just need the motors to spin so the
+// aircraft can move (even unpredictably) and get unstuck (e.g.
+// crashed into a high tree).
+#define ARMING_DISABLED_EMERGENCY_OVERRIDE  (ARMING_DISABLED_NOT_LEVEL \
+                                            | ARMING_DISABLED_NAVIGATION_UNSAFE \
+                                            | ARMING_DISABLED_COMPASS_NOT_CALIBRATED \
+                                            | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED \
+                                            | ARMING_DISABLED_ARM_SWITCH \
+                                            | ARMING_DISABLED_HARDWARE_FAILURE)
+
 
 extern uint32_t armingFlags;
 
@@ -89,21 +106,22 @@ extern uint32_t flightModeFlags;
 #define FLIGHT_MODE(mask) (flightModeFlags & (mask))
 
 typedef enum {
-    GPS_FIX_HOME            = (1 << 0),
-    GPS_FIX                 = (1 << 1),
-    CALIBRATE_MAG           = (1 << 2),
-    SMALL_ANGLE             = (1 << 3),
-    FIXED_WING              = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
-    ANTI_WINDUP             = (1 << 5),
-    FLAPERON_AVAILABLE      = (1 << 6),
-    NAV_MOTOR_STOP_OR_IDLE  = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
-    COMPASS_CALIBRATED      = (1 << 8),
-    ACCELEROMETER_CALIBRATED= (1 << 9),
-    PWM_DRIVER_AVAILABLE    = (1 << 10),
-    HELICOPTER              = (1 << 11),
-    NAV_CRUISE_BRAKING      = (1 << 12),
-    NAV_CRUISE_BRAKING_BOOST = (1 << 13),
-    NAV_CRUISE_BRAKING_LOCKED = (1 << 14),
+    GPS_FIX_HOME                        = (1 << 0),
+    GPS_FIX                             = (1 << 1),
+    CALIBRATE_MAG                       = (1 << 2),
+    SMALL_ANGLE                         = (1 << 3),
+    FIXED_WING                          = (1 << 4),     // set when in flying_wing or airplane mode. currently used by althold selection code
+    ANTI_WINDUP                         = (1 << 5),
+    FLAPERON_AVAILABLE                  = (1 << 6),
+    NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
+    COMPASS_CALIBRATED                  = (1 << 8),
+    ACCELEROMETER_CALIBRATED            = (1 << 9),
+    PWM_DRIVER_AVAILABLE                = (1 << 10),
+    NAV_CRUISE_BRAKING                  = (1 << 11),
+    NAV_CRUISE_BRAKING_BOOST            = (1 << 12),
+    NAV_CRUISE_BRAKING_LOCKED           = (1 << 13),
+    NAV_EXTRA_ARMING_SAFETY_BYPASSED    = (1 << 14),    // nav_extra_arming_safey was bypassed. Keep it until power cycle.
+    AIRMODE_ACTIVE                      = (1 << 15),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

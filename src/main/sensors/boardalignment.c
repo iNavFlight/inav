@@ -20,6 +20,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "platform.h"
+
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/axis.h"
@@ -28,6 +30,16 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/sensor.h"
+
+#if defined(UNIT_TEST)
+// Unit tests can't include settings. Provide some dummy limits.
+#define SETTING_ALIGN_BOARD_ROLL_MIN -1800
+#define SETTING_ALIGN_BOARD_ROLL_MAX 3600
+#define SETTING_ALIGN_BOARD_PITCH_MIN -1800
+#define SETTING_ALIGN_BOARD_PITCH_MAX 3600
+#else
+#include "fc/settings.h"
+#endif
 
 #include "boardalignment.h"
 
@@ -64,13 +76,16 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     const float sinAlignYaw = sin_approx(DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees));
     const float cosAlignYaw = cos_approx(DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees));
 
-    boardAlignmentMutable()->rollDeciDegrees += -sinAlignYaw * pitch + cosAlignYaw * roll;
-    boardAlignmentMutable()->pitchDeciDegrees += cosAlignYaw * pitch + sinAlignYaw * roll;
+    int16_t rollDeciDegrees = boardAlignment()->rollDeciDegrees + -sinAlignYaw * pitch + cosAlignYaw * roll;
+    int16_t pitchDeciDegrees = boardAlignment()->pitchDeciDegrees + cosAlignYaw * pitch + sinAlignYaw * roll;
+
+    boardAlignmentMutable()->rollDeciDegrees = constrain(rollDeciDegrees, SETTING_ALIGN_BOARD_ROLL_MIN, SETTING_ALIGN_BOARD_ROLL_MAX);
+    boardAlignmentMutable()->pitchDeciDegrees = constrain(pitchDeciDegrees, SETTING_ALIGN_BOARD_PITCH_MIN, SETTING_ALIGN_BOARD_PITCH_MAX);
 
     initBoardAlignment();
 }
 
-void applyBoardAlignment(int32_t *vec)
+void FAST_CODE applyBoardAlignment(int32_t *vec)
 {
     if (standardBoardAlignment) {
         return;
@@ -84,7 +99,7 @@ void applyBoardAlignment(int32_t *vec)
     vec[Z] = lrintf(fpVec.z);
 }
 
-void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation)
+void FAST_CODE applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation)
 {
     // Create a copy so we could use the same buffer for src & dest
     const int32_t x = src[X];
