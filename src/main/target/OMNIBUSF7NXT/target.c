@@ -40,12 +40,37 @@ const timerHardware_t timerHardware[] = {
     // OUTPUT 1-4
     DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 5, 5)
     DEF_TIM(TIM3, CH1, PB4, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 4, 5)
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 7, 5)
+//    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 7, 5)
+	DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR,                       1, 0), // S1_OUT    D(1,7)
+    DEF_TIM(TIM1, CH2N, PB0,                    TIM_USE_FW_MOTOR,   1, 1), // S1_OUT    D(2,2,0),D(2,3,7)
+	
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(1, 2, 5)
 
     // OUTPUT 5-6
+	#ifdef GRAUPNERF7NXT
+	DEF_TIM(TIM8, CH4, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0),  // D(2, 7, 7)
+    DEF_TIM(TIM8, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 1),  // D(2, 2, 0)
+//	DEF_TIM(TIM3, CH3, PC8,                    TIM_USE_FW_SERVO,    0, 0),
+	
+	#else
     DEF_TIM(TIM8, CH4, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 0),  // D(2, 7, 7)
     DEF_TIM(TIM8, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,    1, 1),  // D(2, 2, 0)
+	#endif
+
+	#ifdef GRAUPNERF7NXT
+	DEF_TIM(TIM2, CH1, PA0, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,    0, 0),  // S7_OUT TX4  		TIM2 or TIM5
+//	DEF_TIM(TIM2, CH2, PA1, TIM_USE_MC_SERVO,                       0, 0),  // S8_OUT RX4		TIM2 or TIM5
+	DEF_TIM(TIM2, CH2, PA1, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,    0, 0),  // S8_OUT RX4		TIM2 or TIM5	
+	
+//	DEF_TIM(TIM5, CH3, PA2, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,    0, 0),  // S9_OUT TX2		TIM2 or TIM5 or TIM9_CH1
+//	DEF_TIM(TIM5, CH4, PA3, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,    0, 0),  // S10_OUT RX2		TIM2 or TIM5 or TIM9_CH2
+	#endif
+
+//	#ifdef GRAUPNERF7NXT
+//	DEF_TIM(TIM1, CH2, PA9, TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR,    0, 0), // S10_OUT LED Strip
+//	#else
+//	DEF_TIM(TIM1, CH2, PA9, TIM_USE_LED,                            1, 0), // LED strip D(1,0)	
+//	#endif
 
     // AUXILARY pins
     DEF_TIM(TIM1, CH2, PA9, TIM_USE_LED,                            1, 0),  // LED

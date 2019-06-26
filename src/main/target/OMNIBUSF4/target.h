@@ -26,6 +26,8 @@
 #define TARGET_BOARD_IDENTIFIER "OB43"
 #elif defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
+#elif defined(GRAUPNERF4V3)
+#define TARGET_BOARD_IDENTIFIER "GR43"
 #elif defined(DYSF4PROV2)
 #define TARGET_BOARD_IDENTIFIER "DY42"
 #else
@@ -34,6 +36,8 @@
 
 #if defined(DYSF4PRO)
 #define USBD_PRODUCT_STRING "DysF4Pro"
+#elif defined(GRAUPNERF4V3)
+#define USBD_PRODUCT_STRING "GRAUPNERF4V3"
 #else
 #define USBD_PRODUCT_STRING "Omnibus F4"
 #endif
@@ -152,7 +156,7 @@
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
-#if defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
+#if defined(OMNIBUSF4V3) || defined(GRAUPNERF4V3) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
   #define INVERTER_PIN_UART6_RX PC8
   #define INVERTER_PIN_UART6_TX PC9
 #endif
@@ -161,6 +165,13 @@
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
 #define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
+
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+
+#elif defined(GRAUPNERF4V3)        // one softserial on TX1
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA9     
+#define SOFTSERIAL_1_TX_PIN     PA9     
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
@@ -257,15 +268,21 @@
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
 
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
-
-#define USE_LED_STRIP
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
+	#ifndef GRAUPNERF4V3
+	#define USE_LED_STRIP
+	#endif
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(GRAUPNERF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
 #   define WS2811_PIN                   PB6
 #else
 #   define WS2811_PIN                   PA1
 #endif
 
+#ifdef GRAUPNERF4V3
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
+#else
 #define DEFAULT_RX_TYPE         RX_TYPE_PPM
+#endif
+
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
 
@@ -275,8 +292,14 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
+#ifdef GRAUPNERF4V3
+#define MAX_PWM_OUTPUT_PORTS    7
+#define TARGET_MOTOR_COUNT      6
+#else
 #define MAX_PWM_OUTPUT_PORTS    6
 #define TARGET_MOTOR_COUNT      6
+#endif
+
 #define USE_DSHOT
 
 #define TARGET_IO_PORTA         0xffff

@@ -24,9 +24,13 @@
 
 #pragma once
 
+#ifdef GRAUPNERF7NXT
+#define TARGET_BOARD_IDENTIFIER "GRXT"
+#define USBD_PRODUCT_STRING     "GRAUPNER NEXT"
+#else
 #define TARGET_BOARD_IDENTIFIER "ONXT"
-
 #define USBD_PRODUCT_STRING     "OMNIBUS NEXT"
+#endif
 
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS     // Don't use common busdev descriptors for IMU
 
@@ -84,17 +88,23 @@
 #define UART1_RX_PIN            PB7
 #define UART1_TX_PIN            PB6
 
+#ifndef GRAUPNERF7NXT
 #define USE_UART2
 #define UART2_RX_PIN            NONE
 #define UART2_TX_PIN            PA2
+#endif
 
+//#ifndef GRAUPNERF7NXT
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
+//#endif
 
+#ifndef GRAUPNERF7NXT
 #define USE_UART4
 #define UART4_RX_PIN            PA1
 #define UART4_TX_PIN            PA0
+#endif
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
@@ -104,8 +114,11 @@
 #define SOFTSERIAL_1_RX_PIN     NONE
 #define SOFTSERIAL_1_TX_PIN     PB6     // Clash with UART1_TX, needed for S.Port
 
+#ifdef GRAUPNERF7NXT
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+#else
 #define SERIAL_PORT_COUNT       7       // VCP, USART1, USART2, USART3, USART4, USART6, SOFTSERIAL1
-
+#endif
 // I2C
 #define USE_I2C
 
@@ -158,7 +171,11 @@
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
 
 #define USE_LED_STRIP
+#ifdef GRAUPNERF7NXT
+#define WS2811_PIN                      PA9			//NONE
+#else
 #define WS2811_PIN                      PA9
+#endif
 
 #define DEFAULT_FEATURES                (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_SOFTSERIAL | FEATURE_TELEMETRY)
 #define DEFAULT_RX_TYPE                 RX_TYPE_SERIAL
@@ -174,11 +191,16 @@
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define USE_DSHOT
-#define USE_SERIALSHOT
 
 // Number of available PWM outputs
+
+#ifdef GRAUPNERF7NXT
+#define MAX_PWM_OUTPUT_PORTS    8
+#define TARGET_MOTOR_COUNT      6
+#else
 #define MAX_PWM_OUTPUT_PORTS    6
 #define TARGET_MOTOR_COUNT      6
+#endif
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff

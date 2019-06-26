@@ -23,15 +23,15 @@
 
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_PWM_MOTORS TARGET_MOTOR_COUNT
-#define MAX_PWM_SERVOS 8
+#define MAX_PWM_SERVOS 12
 #define MAX_MOTORS  TARGET_MOTOR_COUNT
-#define MAX_SERVOS  8
+#define MAX_SERVOS  12
 
 #else
 #define MAX_PWM_MOTORS  12
-#define MAX_PWM_SERVOS  8
+#define MAX_PWM_SERVOS  12
 #define MAX_MOTORS  12
-#define MAX_SERVOS  8
+#define MAX_SERVOS  12
 #endif
 
 #define PWM_TIMER_HZ    1000000

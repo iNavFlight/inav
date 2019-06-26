@@ -24,15 +24,17 @@
 
 #pragma once
 
-#if defined(OMNIBUSF4V6)
+#ifdef GRAUPNERF4V6
+#define TARGET_BOARD_IDENTIFIER "GRV6"
+#define USBD_PRODUCT_STRING     "GRAUPNERF4 V6"
+#elif defined(OMNIBUSF4V6)
 #define TARGET_BOARD_IDENTIFIER "OBV6"
-#else 
-#define TARGET_BOARD_IDENTIFIER "FWX2"
-#endif
-
-#if defined(OMNIBUSF4V6)
-#define USBD_PRODUCT_STRING "OmnibusF4 V6"
+#define USBD_PRODUCT_STRING     "OmnibusF4 V6"
+#elif defined(GRAUPNERF413)
+#define TARGET_BOARD_IDENTIFIER "GR13"
+#define USBD_PRODUCT_STRING     "GRAUPNERF413"
 #else
+#define TARGET_BOARD_IDENTIFIER "FWX2"
 #define USBD_PRODUCT_STRING "OMNIBUS F4 FWX V2"
 #endif
 
@@ -47,7 +49,7 @@
 
 // I2C
 #define USE_I2C
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6))
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB8 // SCL PIN,alt MST8
 #define I2C1_SDA                PB9 // SDA PIN,alt MST7
@@ -67,7 +69,7 @@
 #define USE_GYRO_MPU6500
 #define USE_ACC_MPU6500
 
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
 #define MPU6500_CS_PIN          PC14
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define GYRO_MPU6500_ALIGN      CW0_DEG
@@ -88,7 +90,7 @@
 #define ACC_MPU6000_ALIGN       CW180_DEG
 
 #define USE_MAG
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6))
 #define MAG_I2C_BUS             BUS_I2C1
 #else
 #define MAG_I2C_BUS             BUS_I2C2
@@ -99,7 +101,7 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #else
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
@@ -109,18 +111,18 @@
 #define USE_BARO_BMP280
 #define BMP280_SPI_BUS          BUS_SPI3
 #define BMP280_CS_PIN           PB3
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
 #define BARO_I2C_BUS            BUS_I2C1
 #endif
 
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
 #define PITOT_I2C_BUS           BUS_I2C1
 #else
 #define PITOT_I2C_BUS           BUS_I2C2
 #endif
 
 #define USE_RANGEFINDER
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
 #else
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
@@ -131,21 +133,30 @@
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
+#if (defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
-
-#define USE_UART2
-#define UART2_RX_PIN            NONE
-#define UART2_TX_PIN            PA2
-
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
+#else
+#define USE_UART1
+#define UART1_RX_PIN            PA10
+#define UART1_TX_PIN            PA9	
+#define USE_UART2
+#define UART2_RX_PIN            NONE
+#define UART2_TX_PIN            PA2
+#define USE_UART3
+#define UART3_RX_PIN            PB11
+#define UART3_TX_PIN            PB10
+#endif
 
+#ifndef GRAUPNERF413
 #define USE_UART4
 #define UART4_RX_PIN            PA1
 #define UART4_TX_PIN            NONE
+#endif
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
@@ -155,7 +166,13 @@
 #define SOFTSERIAL_1_RX_PIN     NONE
 #define SOFTSERIAL_1_TX_PIN     PA9     // Clash with UART1_TX, needed for S.Port
 
+#ifdef GRAUPNERF4V6
+#define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+#elif GRAUPNERF413
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+#else
 #define SERIAL_PORT_COUNT       7       // VCP, USART1, USART2, USART3, USART4, USART6, SOFTSERIAL1
+#endif
 
 #define USE_SPI
 
@@ -188,17 +205,35 @@
 #define M25P16_SPI_BUS          BUS_SPI2
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
+#if (defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
+#define USE_ADC
+#define ADC_CHANNEL_1_PIN               PC1
+#define ADC_CHANNEL_2_PIN               PC2	
+#else
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
 #define ADC_CHANNEL_3_PIN               PA0
+#endif
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
+#ifndef GRAUPNERF4V6	
 #define RSSI_ADC_CHANNEL                ADC_CHN_3
+#endif
 
 #define SENSORS_SET (SENSOR_ACC | SENSOR_BARO)
 
+#if (defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
+#define DEFAULT_FEATURES                (FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_SOFTSERIAL | FEATURE_TELEMETRY)
+#define DEFAULT_RX_TYPE                 RX_TYPE_SERIAL
+#define SERIALRX_PROVIDER               SERIALRX_SUMD
+#define DISABLE_RX_PWM_FEATURE
+
+#define TELEMETRY_UART                  SERIAL_PORT_SOFTSERIAL1
+#define SERIALRX_UART                   SERIAL_PORT_USART1
+
+#else
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB6
 #define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST0_HANDLER
@@ -213,25 +248,39 @@
 #define TELEMETRY_UART                  SERIAL_PORT_SOFTSERIAL1
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SMARTAUDIO_UART                 SERIAL_PORT_USART4
+#endif								
+
 
 //Default values for OmnibusF4V6,calib values for FireworksV2
 #if !defined(OMNIBUSF4V6)
 #define CURRENT_METER_SCALE             175
 #define CURRENT_METER_OFFSET            326
+#elif (defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
+#define CURRENT_METER_SCALE             175
+#define CURRENT_METER_OFFSET            326	
 #endif
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 // Number of available PWM outputs
+
+#ifdef GRAUPNERF4V6
+#define MAX_PWM_OUTPUT_PORTS    10
+#define TARGET_MOTOR_COUNT      8
+#elif GRAUPNERF413
+#define MAX_PWM_OUTPUT_PORTS    13
+#define TARGET_MOTOR_COUNT      8
+#else
 #define MAX_PWM_OUTPUT_PORTS    8
 #define TARGET_MOTOR_COUNT      6
+#endif
 
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#if defined(OMNIBUSF4V6)
+#if (defined(OMNIBUSF4V6) || defined(GRAUPNERF4V6) || defined(GRAUPNERF413))
 #define PCA9685_I2C_BUS         BUS_I2C1
 #else
 #define PCA9685_I2C_BUS         BUS_I2C2

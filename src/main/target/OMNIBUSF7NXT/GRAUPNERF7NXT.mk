@@ -1,0 +1,1 @@
+# GRAUPNERF7NXT, without UART3, but with 8 PWM outputs

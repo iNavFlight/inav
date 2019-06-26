@@ -26,7 +26,10 @@
 const timerHardware_t timerHardware[] = {
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
     DEF_TIM(TIM10, CH1, PB8,  TIM_USE_PPM,                  0, 0), // PPM
-    DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_ANY,                  0, 0), // S2_IN
+    DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_ANY,                  0, 0), // S2_IN		
+#elif defined(GRAUPNERF4V3)
+//    DEF_TIM(TIM10, CH1, PB8,  TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR, 0, 0), // PPM
+//    DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_ANY,                  0, 0), // S2_IN		TIM4_CH4	TIM11_CH1
 #else
     DEF_TIM(TIM12, CH1, PB14, TIM_USE_PPM,                  0, 0), // PPM
     DEF_TIM(TIM12, CH2, PB15, TIM_USE_ANY,                  0, 0), // S2_IN
@@ -36,13 +39,19 @@ const timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_ANY,                 0, 0), // S5_IN // pad labelled CH5 on OMNIBUSF4PRO
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_ANY,                 0, 0), // S6_IN // pad labelled CH6 on OMNIBUSF4PRO
 
+	#ifdef GRAUPNERF4V3
+	DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0), // S1_OUT D1_ST7
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0), // S2_OUT D1_ST2
+	#else
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,               0, 0), // S1_OUT D1_ST7
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,               0, 0), // S2_OUT D1_ST2
-    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 1), // S3_OUT D1_ST6
+	#endif
+ 
+	DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 1), // S3_OUT D1_ST6
     DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,               0, 0), // S4_OUT D1_ST1
 
     // { TIM9,  IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM9, TIM_USE_MC_MOTOR                    | TIM_USE_FW_SERVO }, // MOTOR_3
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
+#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(GRAUPNERF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S5_OUT
 #else
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,   0, 0), // S5_OUT
@@ -51,6 +60,10 @@ const timerHardware_t timerHardware[] = {
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
     DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                                              0, 0), // LED strip for F4 V2 / F4-Pro-0X and later (RCD_CS for F4)
 #endif
+	#ifdef GRAUPNERF4V3
+    DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR, 0, 0), // PPM	TIM4_CH3	TIM10_CH1
+	DEF_TIM(TIM11,  CH1, PB9,  TIM_USE_ANY,                  0, 0), // S2_IN		TIM4_CH4	TIM11_CH1
+	#endif
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
