@@ -94,7 +94,7 @@ STATIC_FASTRAM pt1Filter_t rotRateFilter;
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 1);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_acc = 2500,             // 0.25 * 10000
@@ -102,7 +102,7 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_mag = 10000,            // 1.00 * 10000
     .dcm_ki_mag = 0,                // 0.00 * 10000
     .small_angle = 25,
-    .acc_ignore_rate = 0
+    .acc_ignore_rate = 0            
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
