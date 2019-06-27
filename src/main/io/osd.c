@@ -437,6 +437,10 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 */
 void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
+    uint8_t n_decimals = 0;
+    int16_t neg_thre = osdConfig()->alt_decimal_neg_threshold * (-1);
+    int16_t pos_thre = osdConfig()->alt_decimal_pos_threshold;
+
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
@@ -452,7 +456,12 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
             break;
         case OSD_UNIT_METRIC:
             // alt is alredy in cm
-            if (osdFormatCentiNumber(buff, alt, 1000, 0, 2, 3)) {
+            if (neg_thre || pos_thre) {
+                if(alt > neg_thre && alt < pos_thre) {
+                    n_decimals = 1;
+                }
+            }
+            if (osdFormatCentiNumber(buff, alt, 1000, n_decimals, 2, 3)) {
                 // Scaled to km
                 buff[3] = SYM_ALT_KM;
             } else {
@@ -2799,6 +2808,8 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_radar_range_min = 1;
     osdConfig->hud_radar_range_max = 4000;
     osdConfig->hud_radar_nearest = 0;
+    osdConfig->alt_decimal_neg_threshold = 1000;
+    osdConfig->alt_decimal_pos_threshold = 2000;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->right_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
     osdConfig->sidebar_scroll_arrows = 0;

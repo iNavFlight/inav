@@ -1822,6 +1822,14 @@ groups:
         field: hud_radar_nearest
         min: 0
         max: 4000
+      - name: osd_alt_decimal_neg_threshold
+        field: alt_decimal_neg_threshold
+        min: 0
+        max: 10000
+      - name: osd_alt_decimal_pos_threshold
+        field: alt_decimal_pos_threshold
+        min: 0
+        max: 10000
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll
         table: osd_sidebar_scroll
