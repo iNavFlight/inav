@@ -48,6 +48,7 @@ typedef struct imuConfig_s {
     uint16_t dcm_ki_mag;                    // DCM filter integral gain ( x 10000) for magnetometer and GPS heading
     uint8_t small_angle;
     uint8_t acc_ignore_rate;
+    uint8_t acc_ignore_slope;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);

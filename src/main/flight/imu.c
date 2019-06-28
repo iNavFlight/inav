@@ -94,7 +94,7 @@ STATIC_FASTRAM pt1Filter_t rotRateFilter;
 
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_acc = 2500,             // 0.25 * 10000
@@ -102,7 +102,8 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_kp_mag = 10000,            // 1.00 * 10000
     .dcm_ki_mag = 0,                // 0.00 * 10000
     .small_angle = 25,
-    .acc_ignore_rate = 0            
+    .acc_ignore_rate = 0,
+    .acc_ignore_slope = 0
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -288,7 +289,7 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 #endif
 }
 
-static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround)
+static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
@@ -375,7 +376,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         }
 
         // Calculate kP gain and apply proportional feedback
-        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_mag * imuGetPGainScaleFactor());
+        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_mag * magWScaler);
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
 
@@ -405,7 +406,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         }
 
         // Calculate kP gain and apply proportional feedback
-        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_acc * imuGetPGainScaleFactor());
+        vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_acc * accWScaler);
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
 
@@ -467,8 +468,19 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-static bool imuCanUseAccelerometerForCorrection(const float dT)
+static float imuCalculateAccelerometerWeight(const float dT)
 {
+    // If centrifugal test passed - do the usual "nearness" style check
+    float accMagnitudeSq = 0;
+
+    for (int axis = 0; axis < 3; axis++) {
+        accMagnitudeSq += acc.accADCf[axis] * acc.accADCf[axis];
+    }
+
+    // Magnitude^2 in percent of G^2
+    const float nearness = ABS(100 - (accMagnitudeSq * 100));
+    const float accWeight_Nearness = (nearness > MAX_ACC_SQ_NEARNESS) ? 0.0f : 1.0f;
+
     // Experiment: if rotation rate on a FIXED_WING is higher than a threshold - centrifugal force messes up too much and we 
     // should not use measured accel for AHRS comp
     //      Centrifugal acceleration AccelC = Omega^2 * R = Speed^2 / R
@@ -484,26 +496,27 @@ static bool imuCanUseAccelerometerForCorrection(const float dT)
     //  Since we can't do proper centrifugal compensation at the moment we pass the magnitude of angular rate through an 
     //  LPF with a low cutoff and if it's larger than our threshold - invalidate accelerometer
 
-    if (STATE(FIXED_WING) && imuConfig()->acc_ignore_rate) {
+    // Default - don't apply rate/ignore scaling
+    float accWeight_RateIgnore = 1.0f;
+
+    if (ARMING_FLAG(ARMED) && STATE(FIXED_WING) && imuConfig()->acc_ignore_rate) {
         const float rotRateMagnitude = sqrtf(vectorNormSquared(&imuMeasuredRotationBF));
         const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, IMU_CENTRIFUGAL_LPF, dT);
 
-        if (rotRateMagnitudeFiltered > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate)) {
-            return false;
+        if (imuConfig()->acc_ignore_slope) {
+            const float rateSlopeMin = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate - imuConfig()->acc_ignore_slope));
+            const float rateSlopeMax = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate + imuConfig()->acc_ignore_slope));
+
+            accWeight_RateIgnore = scaleRangef(constrainf(rotRateMagnitudeFiltered, rateSlopeMin, rateSlopeMax), rateSlopeMin, rateSlopeMax, 1.0f, 0.0f);
+        }
+        else {
+            if (rotRateMagnitudeFiltered > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate)) {
+                accWeight_RateIgnore = 0.0f;
+            }
         }
     }
 
-    // If centrifugal test passed - do the usual "nearness" style check
-    float accMagnitudeSq = 0;
-
-    for (int axis = 0; axis < 3; axis++) {
-        accMagnitudeSq += acc.accADCf[axis] * acc.accADCf[axis];
-    }
-
-    // Magnitude^2 in percent of G^2
-    const float nearness = ABS(100 - (accMagnitudeSq * 100));
-
-    return (nearness > MAX_ACC_SQ_NEARNESS) ? false : true;
+    return accWeight_Nearness * accWeight_RateIgnore;
 }
 
 static void imuCalculateEstimatedAttitude(float dT)
@@ -513,8 +526,6 @@ static void imuCalculateEstimatedAttitude(float dT)
 #else
     const bool canUseMAG = false;
 #endif
-
-    const bool useAcc = imuCanUseAccelerometerForCorrection(dT);
 
     float courseOverGround = 0;
     bool useMag = false;
@@ -559,10 +570,16 @@ static void imuCalculateEstimatedAttitude(float dT)
 
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
 
+    const float magWeight = imuGetPGainScaleFactor() * 1.0f;
+    const float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeight(dT);
+    const bool useAcc = (accWeight > 0.001f);
+
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
                             useAcc ? &imuMeasuredAccelBF : NULL,
                             useMag ? &measuredMagBF : NULL,
-                            useCOG, courseOverGround);
+                            useCOG, courseOverGround,
+                            accWeight,
+                            magWeight);
 
     imuUpdateEulerAngles();
 }
