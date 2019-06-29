@@ -1705,14 +1705,16 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
                 for (uint8_t i = 0; i < osdConfig()->hud_radar_disp; i++) {
-                    fpVector3_t poi;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
-                    radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
+                    if (radar_pois[i].gps.lat != 0 && radar_pois[i].gps.lon != 0 && radar_pois[i].state < 2) { // state 2 means POI has been lost and must be skipped
+                        fpVector3_t poi;
+                        geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
+                        radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
 
-                    if ((radar_pois[i].distance >= (osdConfig()->hud_radar_range_min)) && (radar_pois[i].distance <= (osdConfig()->hud_radar_range_max)) && (radar_pois[i].state != 2)) {
-                        radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
-                        radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
-                        osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
+                        if (radar_pois[i].distance >= osdConfig()->hud_radar_range_min && radar_pois[i].distance <= osdConfig()->hud_radar_range_max) {
+                            radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
+                            radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
+                            osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, radar_pois[i].heading, radar_pois[i].lq, 65 + i);
+                        }
                     }
                 }
 
@@ -2796,7 +2798,7 @@ void pgResetFn_osdConfig(osdConfig_t *osdConfig)
     osdConfig->hud_homing = 0;
     osdConfig->hud_homepoint = 0;
     osdConfig->hud_radar_disp = 0;
-    osdConfig->hud_radar_range_min = 1;
+    osdConfig->hud_radar_range_min = 10;
     osdConfig->hud_radar_range_max = 4000;
     osdConfig->hud_radar_nearest = 0;
     osdConfig->left_sidebar_scroll = OSD_SIDEBAR_SCROLL_NONE;
