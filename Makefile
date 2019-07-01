@@ -71,6 +71,7 @@ LINKER_DIR      := $(ROOT)/src/main/target/link
 
 # default xtal value for F4 targets
 HSE_VALUE       = 8000000
+MHZ_VALUE      ?=
 
 # used for turning on features like VCP and SDCARD
 FEATURES        =
@@ -166,6 +167,10 @@ TARGET_FLAGS    := $(TARGET_FLAGS) -D$(TARGET_MCU) -D$(TARGET)
 
 ifneq ($(HSE_VALUE),)
 DEVICE_FLAGS    := $(DEVICE_FLAGS) -DHSE_VALUE=$(HSE_VALUE)
+endif
+
+ifneq ($(MHZ_VALUE),)
+DEVICE_FLAGS    := $(DEVICE_FLAGS) -DMHZ_VALUE=$(MHZ_VALUE)
 endif
 
 ifneq ($(BASE_TARGET), $(TARGET))
