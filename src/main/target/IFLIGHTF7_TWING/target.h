@@ -27,6 +27,8 @@
 #define BEEPER_INVERTED
 
 // *************** Gyro & ACC **********************
+#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS     // Don't use common busdev descriptors for IMU
+
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
@@ -36,12 +38,18 @@
 
 #define USE_ACC
 #define USE_GYRO 
+#define USE_DUAL_GYRO
 
 #define USE_ACC_MPU6500
 #define USE_GYRO_MPU6500
-#define MPU6500_CS_PIN          PC3
-#define MPU6500_SPI_BUS         BUS_SPI1
-#define MPU6500_EXTI_PIN        PC13
+
+#define MPU6500_0_CS_PIN        PC3
+#define MPU6500_0_SPI_BUS       BUS_SPI1
+#define MPU6500_0_EXTI_PIN      PB2
+
+#define MPU6500_1_CS_PIN        PA15
+#define MPU6500_1_SPI_BUS       BUS_SPI1
+#define MPU6500_1_EXTI_PIN      PA8
 
 #define GYRO_MPU6500_ALIGN      CW90_DEG
 #define ACC_MPU6500_ALIGN       CW90_DEG
