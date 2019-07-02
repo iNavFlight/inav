@@ -45,7 +45,7 @@
 #define GYRO_ICM20689_ALIGN      CW270_DEG
 #define ACC_ICM20689_ALIGN       CW270_DEG
 
-#define ICM20689_EXTI_PIN            PE1
+#define GYRO_INT_EXTI            PE1
 #define ICM20689_CS_PIN          SPI4_NSS_PIN
 #define ICM20689_SPI_BUS         BUS_SPI4
 
