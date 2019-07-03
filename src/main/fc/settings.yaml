@@ -801,6 +801,14 @@ groups:
       - name: small_angle
         min: 0
         max: 180
+      - name: imu_acc_ignore_rate
+        field: acc_ignore_rate
+        min: 0
+        max: 20
+      - name: imu_acc_ignore_slope
+        field: acc_ignore_slope
+        min: 0
+        max: 5
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

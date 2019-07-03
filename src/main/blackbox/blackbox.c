@@ -576,7 +576,8 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_2:
-        return pidBank()->pid[condition - FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0].D != 0;
+        // D output can be set by either the D or the FF term
+        return pidBank()->pid[condition - FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0].D != 0 || pidBank()->pid[condition - FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0].FF != 0;
 
     case FLIGHT_LOG_FIELD_CONDITION_MAG:
 #ifdef USE_MAG

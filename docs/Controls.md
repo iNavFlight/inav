@@ -23,8 +23,6 @@ The stick positions are combined to activate different functions:
 
 | Function                      | Throttle | Yaw     | Pitch  | Roll   |
 | ----------------------------- | -------- | ------- | ------ | ------ |
-| ARM                           | LOW      | HIGH    | CENTER | CENTER |
-| DISARM                        | LOW      | LOW     | CENTER | CENTER |
 | Profile 1                     | LOW      | LOW     | CENTER | LOW    |
 | Profile 2                     | LOW      | LOW     | HIGH   | CENTER |
 | Profile 3                     | LOW      | LOW     | CENTER | HIGH   |
