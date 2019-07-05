@@ -461,14 +461,14 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
                     n_decimals = 1;
                 }
             }
-            if (osdFormatCentiNumber(buff, alt, 1000, n_decimals, 2, 3)) {
+            if (osdFormatCentiNumber(buff, alt, 1000, n_decimals, 2, 4)) {
                 // Scaled to km
-                buff[3] = SYM_ALT_KM;
+                buff[4] = SYM_ALT_KM;
             } else {
                 // Formatted in m
-                buff[3] = SYM_ALT_M;
+                buff[4] = SYM_ALT_M;
             }
-            buff[4] = '\0';
+            buff[5] = '\0';
             break;
     }
 }
