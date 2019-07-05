@@ -148,6 +148,6 @@ void powerMeterUpdate(timeUs_t timeDelta);
 
 uint8_t calculateBatteryPercentage(void);
 float calculateThrottleCompensationFactor(void);
-int32_t calculateAveragePower();
-int32_t calculateAverageEfficiency();
+int32_t calculateAveragePower(void);
+int32_t calculateAverageEfficiency(void);
 int32_t heatLossesCompensatedPower(int32_t power);

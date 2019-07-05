@@ -61,7 +61,6 @@ typedef enum {
     DEBUG_FPORT,
     DEBUG_ALWAYS,
     DEBUG_STAGE2,
-    DEBUG_WIND_ESTIMATOR,
     DEBUG_SAG_COMP_VOLTAGE,
     DEBUG_VIBE,
     DEBUG_CRUISE,
@@ -69,20 +68,7 @@ typedef enum {
     DEBUG_SMARTAUDIO,
     DEBUG_ACC,
     DEBUG_GENERIC,
+    DEBUG_ITERM_RELAX,
+    DEBUG_D_BOOST,
     DEBUG_COUNT
 } debugType_e;
-
-#if defined(USE_DEBUG_TRACE)
-void debugTraceInit(void);
-void debugTracePrintf(bool synchronous, const char *format, ...);
-void debugTracePrintBufferHex(bool synchronous, const void *buffer, size_t size);
-#define DEBUG_TRACE(fmt, ...)                   debugTracePrintf(false, fmt, ##__VA_ARGS__)
-#define DEBUG_TRACE_SYNC(fmt, ...)              debugTracePrintf(true, fmt, ##__VA_ARGS__)
-#define DEBUG_TRACE_BUFFER_HEX(buf, size)       debugTracePrintBufferHex(false, buf, size)
-#define DEBUG_TRACE_BUFFER_HEX_SYNC(buf, size)  debugTracePrintBufferHex(true, buf, size)
-#else
-#define DEBUG_TRACE(fmt, ...)
-#define DEBUG_TRACE_SYNC(fmt, ...)
-#define DEBUG_TRACE_BUFFER_HEX(buf, size)
-#define DEBUG_TRACE_BUFFER_HEX_SYNC(buf, size)
-#endif

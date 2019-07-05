@@ -545,7 +545,7 @@ uint16_t cycleTime = 0;         // this is the number in micro second to achieve
 // from navigation.c
 int32_t GPS_home[2];
 int32_t GPS_hold[2];
-uint16_t GPS_distanceToHome;        // distance to home point in meters
+uint32_t GPS_distanceToHome;        // distance to home point in meters
 int16_t GPS_directionToHome;        // direction to home or hol point in degrees
 navigationMode_e nav_mode = NAV_MODE_NONE;    // Navigation mode
 void GPS_set_next_wp(int32_t *lat, int32_t *lon) {UNUSED(lat);UNUSED(lon);}

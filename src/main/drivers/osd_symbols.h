@@ -1,5 +1,5 @@
-/* @file max7456_symbols.h
- * @brief max7456 symbols for the mwosd font set
+/* @file osd_symbols.h
+ * @brief Based on max7456 symbols for the mwosd font set
  *
  * @author Nathan Tsoi nathan@vertile.com
  *
@@ -21,11 +21,11 @@
 
 #pragma once
 
-#ifdef USE_MAX7456
+#ifdef USE_OSD
 
 #define SYM_RSSI                  0x01 // 001 Icon RSSI
-#define SYM_AH_RIGHT              0x02 // 002 Arrow left
-#define SYM_AH_LEFT               0x03 // 003 Arrow right
+#define SYM_AH_LEFT               0x02 // 002 Arrow left
+#define SYM_AH_RIGHT              0x03 // 003 Arrow right
 #define SYM_THR                   0x04 // 004 Throttle
 #define SYM_AH_DECORATION_UP      0x05 // 005 Arrow up AHI
 #define SYM_VOLT                  0x06 // 006 V
@@ -53,8 +53,8 @@
 #define SYM_HEADING_S             0x19 // 025 Heading Graphic south
 #define SYM_HEADING_E             0x1A // 026 Heading Graphic east
 #define SYM_HEADING_W             0x1B // 027 Heading Graphic west
-#define SYM_HEADING_DIVIDED_LINE  0x1C // 028 Heading Graphic 
-#define SYM_HEADING_LINE          0x1D // 029 Heading Graphic 
+#define SYM_HEADING_DIVIDED_LINE  0x1C // 028 Heading Graphic
+#define SYM_HEADING_LINE          0x1D // 029 Heading Graphic
 
 #define SYM_SAT_L                 0x1E // 030 Sats left
 #define SYM_SAT_R                 0x1F // 031 Sats right
@@ -63,7 +63,8 @@
 
 //                                0x21 // 033 ASCII !
 
-#define SYM_TRIP_DIST             0x22 // 034 Icon total distance
+#define SYM_TRIP_DIST             0x22 // 034 Trip distance
+#define SYM_TOTAL                 0x22 // 034 Total
 
 //                                0x23 // 035 ASCII #
 
@@ -124,13 +125,13 @@
 #define SYM_BATT_FULL             0x90 // 144 Battery full
 #define SYM_BATT_5                0x91 // 145 Battery
 #define SYM_BATT_4                0x92 // 146 Battery
-#define SYM_BATT_3                0x93 // 147 Battery 
+#define SYM_BATT_3                0x93 // 147 Battery
 #define SYM_BATT_2                0x94 // 148 Battery
 #define SYM_BATT_1                0x95 // 149 Battery
 #define SYM_BATT_EMPTY            0x96 // 150 Battery empty
 
 #define SYM_AIR                   0x97 // 151 Air speed
-//                                0x98 // 152 Home point map                                   
+//                                0x98 // 152 Home point map
 #define SYM_FTS                   0x99 // 153 FT/S
 #define SYM_AMP                   0x9A // 154 A
 #define SYM_ON_M                  0x9B // 155 On MN
@@ -187,27 +188,59 @@
 #define SYM_ZERO_HALF_LEADING_DOT 0xD0 // 208 to 217 Numbers with leading dot
 
 #define SYM_AH_CH_AIRCRAFT0       0xDA // 218 Crossair aircraft left
-#define SYM_AH_CH_AIRCRAFT1       0xDB // 219 Crossair aircraft 
+#define SYM_AH_CH_AIRCRAFT1       0xDB // 219 Crossair aircraft
 #define SYM_AH_CH_AIRCRAFT2       0xDC // 220 Crossair aircraft center
-#define SYM_AH_CH_AIRCRAFT3       0xDD // 221 Crossair aircraft 
+#define SYM_AH_CH_AIRCRAFT3       0xDD // 221 Crossair aircraft
 #define SYM_AH_CH_AIRCRAFT4       0xDE // 222 Crossair aircraft right
 
 #define SYM_PITCH_DOWN            0xDF // 223 Pitch down
 
 #define SYM_AH_V_START            0xE0 // 224 to 229 Vertical AHI
 
-#define SYM_BARO_TEMP             0xF0
-#define SYM_IMU_TEMP              0xF1
-#define SYM_TEMP                  0xF2
+#define SYM_GFORCE                0xE6 // 230 Gforce (all axis)
+#define SYM_GFORCE_X              0xE7 // 231 Gforce X
+#define SYM_GFORCE_Y              0xE8 // 232 Gforce Y
+#define SYM_GFORCE_Z              0xE9 // 233 Gforce Z
 
-#define SYM_TEMP_SENSOR_FIRST     0xF2
-#define SYM_TEMP_SENSOR_LAST      0xF7
+#define SYM_BARO_TEMP             0xF0 // 240
+#define SYM_IMU_TEMP              0xF1 // 241
+#define SYM_TEMP                  0xF2 // 242
+
+#define SYM_TEMP_SENSOR_FIRST     0xF2 // 242
+#define SYM_TEMP_SENSOR_LAST      0xF7 // 247
 #define TEMP_SENSOR_SYM_COUNT     (SYM_TEMP_SENSOR_LAST - SYM_TEMP_SENSOR_FIRST + 1)
+
+#define SYM_HUD_SIGNAL_0          0xF8  // 248 Hud signal icon Lost
+#define SYM_HUD_SIGNAL_1          0xF9  // 249 Hud signal icon 25%
+#define SYM_HUD_SIGNAL_2          0xFA  // 250 Hud signal icon 50%
+#define SYM_HUD_SIGNAL_3          0xFB  // 251 Hud signal icon 75%
+#define SYM_HUD_SIGNAL_4          0xFC  // 252 Hud signal icon 100%
 
 #define SYM_LOGO_START            0x101 // 257 to 280, INAV logo
 #define SYM_LOGO_WIDTH            6
 #define SYM_LOGO_HEIGHT           4
 
-#define SYM_CURSOR SYM_AH_LEFT // Menu cursor
+#define SYM_AH_CH_TYPE3           0x190 // 400 to 402, crosshair 3
+#define SYM_AH_CH_TYPE4           0x193 // 403 to 405, crosshair 4
+#define SYM_AH_CH_TYPE5           0x196 // 406 to 408, crosshair 5
+#define SYM_AH_CH_TYPE6           0x199 // 409 to 411, crosshair 6
+#define SYM_AH_CH_TYPE7           0x19C // 412 to 414, crosshair 7
 
-#endif // USE_MAX7456
+#define SYM_HUD_ARROWS_L1         0x1A2 // 418 1 arrow left
+#define SYM_HUD_ARROWS_L2         0x1A3 // 419 2 arrows left
+#define SYM_HUD_ARROWS_L3         0x1A4 // 420 3 arrows left
+#define SYM_HUD_ARROWS_R1         0x1A5 // 421 1 arrow right
+#define SYM_HUD_ARROWS_R2         0x1A6 // 422 2 arrows right
+#define SYM_HUD_ARROWS_R3         0x1A7 // 423 3 arrows right
+#define SYM_HUD_ARROWS_U1         0x1A8 // 424 1 arrow up
+#define SYM_HUD_ARROWS_U2         0x1A9 // 425 2 arrows up
+#define SYM_HUD_ARROWS_U3         0x1AA // 426 3 arrows up
+#define SYM_HUD_ARROWS_D1         0x1AB // 427 1 arrow down
+#define SYM_HUD_ARROWS_D2         0x1AC // 428 2 arrows down
+#define SYM_HUD_ARROWS_D3         0x1AD // 429 3 arrows down
+
+#else
+
+#define TEMP_SENSOR_SYM_COUNT 0
+
+#endif // USE_OSD

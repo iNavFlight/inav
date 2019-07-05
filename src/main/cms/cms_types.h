@@ -46,6 +46,7 @@ typedef enum
     //wlasciwosci elementow
     OME_TAB,
     OME_END,
+    OME_BACK_AND_END,
 
     // Debug aid
     OME_MENU,
@@ -60,7 +61,6 @@ typedef char * (*CMSMenuOptFuncPtr)(void);
 typedef struct
 {
     const char * const text;
-    const OSD_MenuElement type;
     union
     {
         const CMSEntryFuncPtr func;
@@ -68,8 +68,9 @@ typedef struct
         int itemId;
     };
     const void * const data;
+    const uint8_t type; // from OSD_MenuElement
     uint8_t flags;
-} OSD_Entry;
+} __attribute__((packed)) OSD_Entry;
 
 // Bits in flags
 #define PRINT_VALUE    (1 << 0)  // Value has been changed, need to redraw
@@ -78,30 +79,33 @@ typedef struct
 #define OPTSTRING      (1 << 3)  // (Temporary) Flag for OME_Submenu, indicating func should be called to get a string to display.
 #define READONLY       (1 << 4)  // Indicates that the value is read-only and p->data points directly to it - applies to [U]INT(8|16)
 
-#define OSD_LABEL_ENTRY(label)                  ((OSD_Entry){ label, OME_Label, {.func = NULL}, NULL, 0 })
-#define OSD_LABEL_DATA_ENTRY(label, data)       ((OSD_Entry){ label, OME_Label, {.func = NULL}, data, 0 })
-#define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, OME_Label, {.func = NULL}, data, DYNAMIC })
-#define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, OME_LabelFunc, {.func = NULL}, fn, DYNAMIC })
-#define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", OME_Back, {.func = NULL}, NULL, 0 })
-#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, OME_Submenu, {.func = NULL}, menu, 0 })
-#define OSD_FUNC_CALL_ENTRY(label, fn)          ((OSD_Entry){ label, OME_Funcall, {.func = fn}, NULL, 0 })
-#define OSD_BOOL_ENTRY(label, val)              ((OSD_Entry){ label, OME_Bool, {.func = NULL}, val, 0 })
-#define OSD_BOOL_CALLBACK_ENTRY(label, cb, val) ((OSD_Entry){ label, OME_Bool, {.func = cb}, val, 0 })
-#define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, OME_BoolFunc, {.func = NULL}, fn, 0 })
-#define OSD_INT8_ENTRY(label, val)              ((OSD_Entry){ label, OME_INT8, {.func = NULL}, val, 0 })
-#define OSD_UINT8_ENTRY(label, val)             ((OSD_Entry){ label, OME_UINT8, {.func = NULL}, val, 0 })
-#define OSD_UINT8_CALLBACK_ENTRY(label, cb, val)((OSD_Entry){ label, OME_UINT8, {.func = cb}, val, 0 })
-#define OSD_UINT16_ENTRY(label, val)            ((OSD_Entry){ label, OME_UINT16, {.func = NULL}, val, 0 })
-#define OSD_UINT16_DYN_ENTRY(label, val)        ((OSD_Entry){ label, OME_UINT16, {.func = NULL}, val, DYNAMIC })
-#define OSD_UINT16_RO_ENTRY(label, val)         ((OSD_Entry){ label, OME_UINT16, {.func = NULL}, val, DYNAMIC | READONLY })
-#define OSD_INT16_DYN_ENTRY(label, val)         ((OSD_Entry){ label, OME_INT16, {.func = NULL}, val, DYNAMIC })
-#define OSD_INT16_RO_ENTRY(label, val)          ((OSD_Entry){ label, OME_INT16, {.func = NULL}, val, DYNAMIC | READONLY })
-#define OSD_STRING_ENTRY(label, str)            ((OSD_Entry){ label, OME_String, {.func = NULL}, str, 0 })
-#define OSD_TAB_ENTRY(label, val)               ((OSD_Entry){ label, OME_TAB, {.func = NULL}, val, 0 })
-#define OSD_TAB_DYN_ENTRY(label, val)           ((OSD_Entry){ label, OME_TAB, {.func = NULL}, val, DYNAMIC })
-#define OSD_TAB_CALLBACK_ENTRY(label, cb, val)  ((OSD_Entry){ label, OME_TAB, {.func = cb}, val, 0 })
+define OSD_LABEL_ENTRY(label)                  ((OSD_Entry){ label, {.func = NULL}, NULL, OME_Label, 0 })
+#define OSD_LABEL_DATA_ENTRY(label, data)       ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, 0 })
+#define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, DYNAMIC })
+#define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, {.func = NULL}, fn, OME_LabelFunc, DYNAMIC })
+#define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", {.func = NULL}, NULL, OME_Back, 0 })
+#define OSD_BACK_AND_END_ENTRY                  ((OSD_Entry){ "BACK", {.func = NULL}, NULL, OME_BACK_AND_END, 0 })
+#define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, {.func = NULL}, menu, OME_Submenu, 0 })
+#define OSD_FUNC_CALL_ENTRY(label, fn)          ((OSD_Entry){ label, {.func = fn}, NULL, OME_Funcall, 0 })
+#define OSD_BOOL_ENTRY(label, val)              ((OSD_Entry){ label, {.func = NULL}, val, OME_Bool, 0 })
+#define OSD_BOOL_CALLBACK_ENTRY(label, cb, val) ((OSD_Entry){ label, {.func = cb}, val, OME_Bool, 0 })
+#define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, {.func = NULL}, fn, OME_BoolFunc, 0 })
+#define OSD_INT8_DYN_ENTRY(label, val)          ((OSD_Entry){ label, {.func = NULL}, val, OME_INT8, DYNAMIC })
+#define OSD_UINT8_ENTRY(label, val)             ((OSD_Entry){ label, {.func = NULL}, val, OME_UINT8, 0 })
+#define OSD_UINT8_DYN_ENTRY(label, val)         ((OSD_Entry){ label, {.func = NULL}, val, OME_UINT8, DYNAMIC })
+#define OSD_UINT8_CALLBACK_ENTRY(label, cb, val)((OSD_Entry){ label, {.func = cb}, val, OME_UINT8, 0 })
+#define OSD_UINT16_ENTRY(label, val)            ((OSD_Entry){ label, {.func = NULL}, val, OME_UINT16, 0 })
+#define OSD_UINT16_DYN_ENTRY(label, val)        ((OSD_Entry){ label, {.func = NULL}, val, OME_UINT16, DYNAMIC })
+#define OSD_UINT16_RO_ENTRY(label, val)         ((OSD_Entry){ label, {.func = NULL}, val, OME_UINT16, DYNAMIC | READONLY })
+#define OSD_INT16_ENTRY(label, val)             ((OSD_Entry){ label, {.func = NULL}, val, OME_INT16, 0 })
+#define OSD_INT16_DYN_ENTRY(label, val)         ((OSD_Entry){ label, {.func = NULL}, val, OME_INT16, DYNAMIC })
+#define OSD_INT16_RO_ENTRY(label, val)          ((OSD_Entry){ label, {.func = NULL}, val, OME_INT16, DYNAMIC | READONLY })
+#define OSD_STRING_ENTRY(label, str)            ((OSD_Entry){ label, {.func = NULL}, str, OME_String, 0 })
+#define OSD_TAB_ENTRY(label, val)               ((OSD_Entry){ label, {.func = NULL}, val, OME_TAB, 0 })
+#define OSD_TAB_DYN_ENTRY(label, val)           ((OSD_Entry){ label, {.func = NULL}, val, OME_TAB, DYNAMIC })
+#define OSD_TAB_CALLBACK_ENTRY(label, cb, val)  ((OSD_Entry){ label, {.func = cb}, val, OME_TAB, 0 })
 
-#define OSD_END_ENTRY                           ((OSD_Entry){ NULL, OME_END, {.func = NULL}, NULL, 0 })
+#define OSD_END_ENTRY                           ((OSD_Entry){ NULL, {.func = NULL}, NULL, OME_END, 0 })
 
 // Data type for OME_Setting. Uses upper 4 bits
 // of flags, leaving 16 data types.
@@ -186,7 +190,7 @@ typedef struct OSD_SETTING_s {
     const uint8_t step;
 } __attribute__((packed)) OSD_SETTING_t;
 
-#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, OME_Setting, NULL, &(const OSD_SETTING_t){ setting, step }, type }
+#define OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, type)  { name, NULL, &(const OSD_SETTING_t){ setting, step }, OME_Setting, type }
 #define OSD_SETTING_ENTRY_TYPE(name, setting, type)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, 0, type)
 #define OSD_SETTING_ENTRY_STEP(name, setting, step)             OSD_SETTING_ENTRY_STEP_TYPE(name, setting, step, 0)
 #define OSD_SETTING_ENTRY(name, setting)                        OSD_SETTING_ENTRY_STEP(name, setting, 0)

@@ -175,7 +175,8 @@
     #if !defined(IST8310_I2C_BUS)
         #define IST8310_I2C_BUS MAG_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ist8310,     DEVHW_IST8310,      IST8310_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_ist8310_0,   DEVHW_IST8310_0,    IST8310_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE);
+    BUSDEV_REGISTER_I2C(busdev_ist8310_1,   DEVHW_IST8310_1,    IST8310_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE);
 #endif
 
 #if defined(USE_MAG_IST8308)
@@ -231,7 +232,7 @@
     #endif
 #endif
 
-#if defined(USE_RANGEFINDER_HCSR04_I2C)
+#if defined(USE_RANGEFINDER_HCSR04_I2C) && (defined(HCSR04_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
     #if !defined(HCSR04_I2C_BUS)
         #define HCSR04_I2C_BUS RANGEFINDER_I2C_BUS
     #endif

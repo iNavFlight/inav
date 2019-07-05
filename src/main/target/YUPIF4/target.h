@@ -38,7 +38,7 @@
 #endif
 
 #if defined(YUPIF4MINI)
-#define BEEPER_INVERTED
+// #define BEEPER_INVERTED
 #else
 #define BEEPER_PWM
 #define BEEPER_INVERTED
@@ -139,7 +139,6 @@
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
-#define SPI3_CLOCK_LEADING_EDGE
 
 // ADC inputs
 #define BOARD_HAS_VOLTAGE_DIVIDER

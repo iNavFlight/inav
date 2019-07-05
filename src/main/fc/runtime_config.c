@@ -24,18 +24,18 @@
 
 #include "io/beeper.h"
 
-uint32_t armingFlags = 0;
-uint32_t stateFlags = 0;
-uint32_t flightModeFlags = 0;
+EXTENDED_FASTRAM uint32_t armingFlags = 0;
+EXTENDED_FASTRAM uint32_t stateFlags = 0;
+EXTENDED_FASTRAM uint32_t flightModeFlags = 0;
 
-static uint32_t enabledSensors = 0;
+static EXTENDED_FASTRAM uint32_t enabledSensors = 0;
 
 #if !defined(CLI_MINIMAL_VERBOSITY)
 const char *armingDisableFlagNames[]= {
     "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
     "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
     "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
-    "SETTINGFAIL",
+    "SETTINGFAIL", "PWMOUT"
 };
 #endif
 
@@ -80,7 +80,7 @@ uint32_t disableFlightMode(flightModeFlags_e mask)
     return flightModeFlags;
 }
 
-bool sensors(uint32_t mask)
+bool FAST_CODE NOINLINE sensors(uint32_t mask)
 {
     return enabledSensors & mask;
 }
