@@ -349,6 +349,7 @@ void init(void)
     busInit();
 
 #ifdef USE_BRAINFPV_FPGA
+    spiInitDevice(SPIDEV_3, false);
     BRAINFPVFPGA_Init(true);
 #endif
 
