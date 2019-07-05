@@ -57,12 +57,12 @@ struct video_type_cfg {
 };
 
 
-extern void Video_Init();
-extern void Video_SetLevels(uint8_t, uint8_t, uint8_t, uint8_t);
-extern void Video_SetXOffset(int8_t);
-extern void Video_SetYOffset(int8_t);
-extern void Video_SetXScale(uint8_t pal_x_scale, uint8_t ntsc_x_scale);
-extern void Video_Set3DConfig(enum video_3d_mode mode, uint8_t right_eye_x_shift);
+void Video_Init(void);
+//void Video_SetLevels(uint8_t, uint8_t, uint8_t, uint8_t);
+//void Video_SetXOffset(int8_t);
+//void Video_SetYOffset(int8_t);
+//void Video_SetXScale(uint8_t pal_x_scale, uint8_t ntsc_x_scale);
+//void Video_Set3DConfig(enum video_3d_mode mode, uint8_t right_eye_x_shift);
 
 uint16_t Video_GetLines(void);
 uint16_t Video_GetType(void);

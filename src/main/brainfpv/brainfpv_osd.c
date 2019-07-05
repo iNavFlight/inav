@@ -58,8 +58,8 @@
 #include "drivers/light_ws2811strip.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/max7456.h"
-#include "drivers/max7456_symbols.h"
-#include "drivers/vcd.h"
+#include "drivers/osd.h"
+#include "drivers/display.h"
 
 #include "sensors/sensors.h"
 #include "sensors/boardalignment.h"
@@ -160,13 +160,6 @@ void max7456Update(void)
 {
 }
 
-void max7456ReadNvm(uint16_t char_address, max7456Character_t *chr)
-{
-    (void)char_address;
-    (void)chr;
-}
-
-
 void max7456Invert(bool invert)
 {
     (void)invert;
@@ -186,7 +179,13 @@ bool max7456DmaInProgress(void)
 void max7456DrawScreenPartial(void)
 {}
 
-void max7456WriteNvm(uint16_t char_address, const max7456Character_t *chr)
+
+void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr)
+{
+    (void)char_address; (void)chr;
+}
+
+void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
 {
     (void)char_address; (void)chr;
 }
@@ -332,7 +331,7 @@ static float getVelocity(void)
     return -1.0f;
 }
 
-void osdUpdateLocal()
+void osdUpdateLocal(void)
 {
     if (bfOsdConfig()->altitude_scale) {
         float altitude = getAltitude() / 100.f;
@@ -348,21 +347,19 @@ void osdUpdateLocal()
 
     if (bfOsdConfig()->sticks_display == 1) {
         // Mode 2
-        draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rcData[YAW], rcData[THROTTLE]);
-        draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rcData[ROLL], rcData[PITCH]);
+        draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rxGetChannelValue(YAW), rxGetChannelValue(THROTTLE));
+        draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rxGetChannelValue(ROLL), rxGetChannelValue(PITCH));
     }
     else if (bfOsdConfig()->sticks_display == 2) {
         // Mode 1
-        draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rcData[YAW], rcData[PITCH]);
-        draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rcData[ROLL], rcData[THROTTLE]);
+        draw_stick(GRAPHICS_LEFT + 30, GRAPHICS_BOTTOM - 30, rxGetChannelValue(YAW), rxGetChannelValue(PITCH));
+        draw_stick(GRAPHICS_RIGHT - 30, GRAPHICS_BOTTOM - 30, rxGetChannelValue(ROLL), rxGetChannelValue(THROTTLE));
     }
 }
 
-
-
-#define IS_HI(X)  (rcData[X] > 1750)
-#define IS_LO(X)  (rcData[X] < 1250)
-#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+#define IS_HI(X)  (rxGetChannelValue(X) > 1750)
+#define IS_LO(X)  (rxGetChannelValue(X) < 1250)
+#define IS_MID(X) (rxGetChannelValue(X) > 1250 && rxGetChannelValue(X) < 1750)
 
 void osdRefresh(timeUs_t currentTimeUs);
 
@@ -586,7 +583,7 @@ void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y)
 }
 
 #define MAP_MAX_DIST_PX 70
-void brainFpvRadarMap()
+void brainFpvRadarMap(void)
 {
     uint16_t x, y;
 

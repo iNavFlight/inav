@@ -38,10 +38,14 @@
 
 #ifdef USE_ITCM_RAM
 #define FAST_CODE                   __attribute__((section(".tcm_code")))
+#ifndef NOINLINE
 #define NOINLINE                    __NOINLINE
+#endif
 #else
 #define FAST_CODE
+#ifndef NOINLINE
 #define NOINLINE
+#endif
 #endif
 
 #ifdef STM32F3

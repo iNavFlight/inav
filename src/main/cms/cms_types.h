@@ -79,7 +79,7 @@ typedef struct
 #define OPTSTRING      (1 << 3)  // (Temporary) Flag for OME_Submenu, indicating func should be called to get a string to display.
 #define READONLY       (1 << 4)  // Indicates that the value is read-only and p->data points directly to it - applies to [U]INT(8|16)
 
-define OSD_LABEL_ENTRY(label)                  ((OSD_Entry){ label, {.func = NULL}, NULL, OME_Label, 0 })
+#define OSD_LABEL_ENTRY(label)                  ((OSD_Entry){ label, {.func = NULL}, NULL, OME_Label, 0 })
 #define OSD_LABEL_DATA_ENTRY(label, data)       ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, 0 })
 #define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, DYNAMIC })
 #define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, {.func = NULL}, fn, OME_LabelFunc, DYNAMIC })
@@ -91,6 +91,7 @@ define OSD_LABEL_ENTRY(label)                  ((OSD_Entry){ label, {.func = NUL
 #define OSD_BOOL_CALLBACK_ENTRY(label, cb, val) ((OSD_Entry){ label, {.func = cb}, val, OME_Bool, 0 })
 #define OSD_BOOL_FUNC_ENTRY(label, fn)          ((OSD_Entry){ label, {.func = NULL}, fn, OME_BoolFunc, 0 })
 #define OSD_INT8_DYN_ENTRY(label, val)          ((OSD_Entry){ label, {.func = NULL}, val, OME_INT8, DYNAMIC })
+#define OSD_INT8_ENTRY(label, val)              ((OSD_Entry){ label, {.func = NULL}, val, OME_INT8, 0 })
 #define OSD_UINT8_ENTRY(label, val)             ((OSD_Entry){ label, {.func = NULL}, val, OME_UINT8, 0 })
 #define OSD_UINT8_DYN_ENTRY(label, val)         ((OSD_Entry){ label, {.func = NULL}, val, OME_UINT8, DYNAMIC })
 #define OSD_UINT8_CALLBACK_ENTRY(label, cb, val)((OSD_Entry){ label, {.func = cb}, val, OME_UINT8, 0 })

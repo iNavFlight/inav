@@ -129,7 +129,7 @@ uint8_t black_ntsc = 10;
 uint8_t white_ntsc = 110;
 
 // Private functions
-static void swap_buffers();
+static void swap_buffers(void);
 
 // Re-enable the video if it has been disabled
 void video_qspi_enable(void)
@@ -253,7 +253,7 @@ void Hsync_ISR(extiCallbackRec_t *cb)
  * buffer is seen on the output and the display buffer becomes
  * the new draw buffer.
  */
-static void swap_buffers()
+static void swap_buffers(void)
 {
     // While we could use XOR swap this is more reliable and
     // dependable and it's only called a few times per second.
@@ -266,7 +266,7 @@ static void swap_buffers()
 /**
  * Init
  */
-void Video_Init()
+void Video_Init(void)
 {
     chBSemObjectInit(&onScreenDisplaySemaphore, FALSE);
 

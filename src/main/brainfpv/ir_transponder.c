@@ -97,11 +97,11 @@ void ir_generate_ilap_packet(uint32_t ilap_id, uint8_t * data, uint8_t data_len)
     uint32_t decimal = 10000000;
 
     for (int pos=3; pos>=0; pos--) {
-        digit = MIN(9, (ilap_id / decimal));
+        digit = MIN(9u, (ilap_id / decimal));
         ilap_id -= digit * decimal;
         crc_data[pos] |= (digit << 4) & 0xF0;
         decimal /= 10;
-        digit = MIN(9, (ilap_id / decimal));
+        digit = MIN(9u, (ilap_id / decimal));
         ilap_id -= digit * decimal;
         crc_data[pos] |= digit & 0x0F;
         decimal /= 10;

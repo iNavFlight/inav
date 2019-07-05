@@ -3266,9 +3266,9 @@ void osdRefresh(timeUs_t currentTimeUs)
     }
 
 #if defined(USE_BRAINFPV_OSD)
-#define IS_HI(X)  (rcData[X] > 1750)
-#define IS_LO(X)  (rcData[X] < 1250)
-#define IS_MID(X) (rcData[X] > 1250 && rcData[X] < 1750)
+#define IS_HI(X)  (rxGetChannelValue(X) > 1750)
+#define IS_LO(X)  (rxGetChannelValue(X) < 1250)
+#define IS_MID(X) (rxGetChannelValue(X) > 1250 && rxGetChannelValue(X) < 1750)
     osd_arming_or_stats = false;
     uint32_t now = millis();
     if (ARMING_FLAG(ARMED)) {

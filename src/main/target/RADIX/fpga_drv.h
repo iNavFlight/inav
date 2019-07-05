@@ -55,15 +55,15 @@ enum re1fpga_buzzer_types {
 
 
 int32_t BRAINFPVFPGA_Init(bool load_config);
-uint8_t BRAINFPVFPGA_GetHWRevision();
+uint8_t BRAINFPVFPGA_GetHWRevision(void);
 int32_t BRAINFPVFPGA_SerialRxInvert(bool invert);
 int32_t BRAINFPVFPGA_MPTxPinMode(bool bidrectional, bool invert);
 int32_t BRAINFPVFPGA_MPTxPinPullUpDown(bool enable, bool pullup);
 int32_t BRAINFPVFPGA_SetBuzzerType(enum re1fpga_buzzer_types type);
 int32_t BRAINFPVFPGA_Buzzer(bool enable);
-int32_t BRAINFPVFPGA_BuzzerToggle();
+int32_t BRAINFPVFPGA_BuzzerToggle(void);
 int32_t BRAINFPVFPGA_AlarmLED(bool enable);
-int32_t BRAINFPVFPGA_AlarmLEDToggle();
+int32_t BRAINFPVFPGA_AlarmLEDToggle(void);
 int32_t BRAINFPVFPGA_SetNotificationLedColor(enum re1fpga_led_colors led_colors);
 void BRAINFPVFPGA_SetBwLevels(uint8_t black, uint8_t white);
 int32_t BRAINFPVFPGA_SetSyncThreshold(uint8_t threshold);

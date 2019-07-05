@@ -57,7 +57,7 @@ extern uint8_t *disp_buffer;
 #endif /* defined(VIDEO_SPLITBUFFER) */
 
 
-void clearGraphics()
+void clearGraphics(void)
 {
 #if defined(VIDEO_SPLITBUFFER)
 	memset((uint8_t *)draw_buffer_mask, 0, BUFFER_HEIGHT * BUFFER_WIDTH);

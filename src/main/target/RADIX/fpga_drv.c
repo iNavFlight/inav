@@ -214,7 +214,7 @@ int32_t BRAINFPVFPGA_Init(bool load_config)
  * @brief Claim the SPI bus for the communications and select this chip
  * @return 0 if successful, -1 for invalid device, -2 if unable to claim bus
  */
-static int32_t BRAINFPVFPGA_ClaimBus()
+static int32_t BRAINFPVFPGA_ClaimBus(void)
 {
     IOLo(re1FPGACsPin);
 
@@ -226,7 +226,7 @@ static int32_t BRAINFPVFPGA_ClaimBus()
  * @brief Release the SPI bus for the communications and end the transaction
  * @return 0 if successful
  */
-static int32_t BRAINFPVFPGA_ReleaseBus()
+static int32_t BRAINFPVFPGA_ReleaseBus(void)
 {
     // wait for SPI to be done
     while (spiIsBusBusy(BRAINFPVFPGA_SPI_INSTANCE)) {};
@@ -339,7 +339,7 @@ static int32_t BRAINFPVFPGA_WriteRegDirect(enum re1fpga_register reg, uint8_t da
 /**
  * @brief Get the Hardware
  */
-uint8_t BRAINFPVFPGA_GetHWRevision()
+uint8_t BRAINFPVFPGA_GetHWRevision(void)
 {
     return shadow_reg.reg_hwrev;
 }
@@ -509,7 +509,7 @@ int32_t BRAINFPVFPGA_Buzzer(bool enable)
 /**
  * @brief Toggle buzzer
  */
-int32_t BRAINFPVFPGA_BuzzerToggle()
+int32_t BRAINFPVFPGA_BuzzerToggle(void)
 {
     uint8_t data = shadow_reg.reg_ctl ^ 0x01;
     return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x01);
@@ -531,7 +531,7 @@ int32_t BRAINFPVFPGA_AlarmLED(bool enable)
 /**
  * @brief Toggle Alarm LED
  */
-int32_t BRAINFPVFPGA_AlarmLEDToggle()
+int32_t BRAINFPVFPGA_AlarmLEDToggle(void)
 {
     uint8_t data = shadow_reg.reg_ctl ^ 0x04;
     return BRAINFPVFPGA_WriteReg(BRAINFPVFPGA_REG_CTL, data, 0x04);
