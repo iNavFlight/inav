@@ -282,6 +282,8 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  imu_dcm_ki  | 50 | Inertial Measurement Unit KI Gain for accelerometer measurements |
 |  imu_dcm_kp_mag  | 10000 | Inertial Measurement Unit KP Gain for compass measurements |
 |  imu_dcm_ki_mag  | 0 | Inertial Measurement Unit KI Gain for compass measurements |
+|  imu_acc_ignore_rate  | 0 | Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes |
+|  imu_acc_ignore_slope | 0 | Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight) |
 |  pos_hold_deadband  | 20 | Stick deadband in [r/c points], applied after r/c deadband and expo |
 |  alt_hold_deadband  | 50 | Defines the deadband of throttle during alt_hold [r/c points] |
 |  yaw_motor_direction  | 1 | Use if you need to inverse yaw motor direction. |
