@@ -25,10 +25,12 @@
 #include "fc/config.h"
 #include "sensors/gyro.h"
 #include "blackbox/blackbox.h"
+#include "io/osd.h"
 
 void targetConfiguration(void)
 {
     gyroConfigMutable()->looptime = 1000;
     //blackboxConfigMutable()->p_denom = 128;
+    osdConfigMutable()->rssi_alarm = 70; // for CRSF
 }
 #endif
