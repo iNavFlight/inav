@@ -1006,3 +1006,21 @@ void FAST_CODE pidController(void)
         }
     }
 }
+
+pidType_e pidIndexGetType(pidIndex_e pidIndex)
+{
+    if (STATE(FIXED_WING)) {
+        // FW specific
+        if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
+            return PID_TYPE_PIFF;
+        }
+        if (pidIndex == PID_VEL_XY || pidIndex == PID_VEL_Z) {
+            return PID_TYPE_NONE;
+        }
+    }
+    // Common
+    if (pidIndex == PID_SURFACE) {
+        return PID_TYPE_NONE;
+    }
+    return PID_TYPE_PID;
+}

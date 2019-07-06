@@ -38,7 +38,7 @@
 #endif
 
 #if defined(YUPIF4MINI)
-#define BEEPER_INVERTED
+// #define BEEPER_INVERTED
 #else
 #define BEEPER_PWM
 #define BEEPER_INVERTED
