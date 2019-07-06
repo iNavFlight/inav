@@ -82,7 +82,6 @@ const timerHardware_t timerHardware[] = {
 	
 	DEF_TIM(TIM4, CH3, PB8, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,    0, 0),	// S12 SCL
 	DEF_TIM(TIM4, CH4, PB9, TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,    0, 0),	// S13 SDA
-//	DEF_TIM(TIM3, CH1, PC6,                    TIM_USE_FW_SERVO,    0, 0),	// S14 TX6
 
 	DEF_TIM(TIM5, CH2, PA1,                    TIM_USE_FW_MOTOR,    0, 0),  // S9_OUT RX4
 	

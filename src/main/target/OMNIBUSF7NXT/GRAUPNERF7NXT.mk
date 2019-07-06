@@ -1,1 +1,1 @@
-# GRAUPNERF7NXT, without UART3, but with 8 PWM outputs
+# GRAUPNERF7NXT, like OMNIBUSF7NXT, but without UART4, but airplane for 1 Motor with 7 Servos

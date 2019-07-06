@@ -94,11 +94,9 @@
 #define UART2_TX_PIN            PA2
 #endif
 
-//#ifndef GRAUPNERF7NXT
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
-//#endif
 
 #ifndef GRAUPNERF7NXT
 #define USE_UART4
@@ -184,7 +182,6 @@
 
 #define TELEMETRY_UART                  SERIAL_PORT_SOFTSERIAL1
 #define SERIALRX_UART                   SERIAL_PORT_USART1
-// #define SMARTAUDIO_UART                 SERIAL_PORT_USART4
 
 #define VBAT_SCALE_DEFAULT              1090
 
@@ -195,7 +192,7 @@
 // Number of available PWM outputs
 
 #ifdef GRAUPNERF7NXT
-#define MAX_PWM_OUTPUT_PORTS    8
+#define MAX_PWM_OUTPUT_PORTS    7
 #define TARGET_MOTOR_COUNT      6
 #else
 #define MAX_PWM_OUTPUT_PORTS    6
