@@ -127,7 +127,7 @@ PG_RESET_TEMPLATE(bfOsdConfig_t, bfOsdConfig,
   .show_pilot_logo = 1,
   .invert = 0,
   .crsf_link_stats = 1,
-  .crsf_link_stats_power = CRSF_ON,
+  .crsf_link_stats_power = 1,
   .crsf_link_stats_rssi = CRSF_LQ_LOW,
   .crsf_link_stats_snr = CRSF_SNR_LOW,
   .crsf_link_stats_snr_threshold = -2
