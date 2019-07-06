@@ -645,6 +645,18 @@ void setRSSIFromMSP(uint8_t newMspRssi)
     }
 }
 
+
+void setRssiCrsfLq(uint16_t crsf_lq)
+{
+    // If LQ is above 100, set RSSI to max
+    if (crsf_lq > 100) {
+        rssi = 1023;
+    }
+    else {
+        rssi = ((uint32_t)crsf_lq * 1023) / 100;
+    }
+}
+
 #ifdef USE_RX_ELERES
 static void updateRSSIeleres(uint32_t currentTime)
 {

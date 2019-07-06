@@ -177,6 +177,7 @@ void parseRcChannels(const char *input);
 // filtering and no further filtering should be performed in the value.
 void setRSSI(uint16_t newRssi, rssiSource_e source, bool filtered);
 void setRSSIFromMSP(uint8_t newMspRssi);
+void setRssiCrsfLq(uint16_t crsf_lq);
 void updateRSSI(timeUs_t currentTimeUs);
 // Returns RSSI in [0, RSSI_MAX_VALUE] range.
 uint16_t getRSSI(void);

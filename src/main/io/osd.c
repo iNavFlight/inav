@@ -1270,11 +1270,16 @@ static bool osdDrawSingleElement(uint8_t item)
     switch (item) {
     case OSD_RSSI_VALUE:
         {
-            uint16_t osdRssi = osdConvertRSSI();
-            buff[0] = SYM_RSSI;
-            tfp_sprintf(buff + 1, "%2d", osdRssi);
-            if (osdRssi < osdConfig()->rssi_alarm) {
-                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            if (osdElementRssi_BrainFPV(elemPosX, elemPosY)) {
+                brainfpv_item = true;
+            }
+            else {
+                uint16_t osdRssi = osdConvertRSSI();
+                buff[0] = SYM_RSSI;
+                tfp_sprintf(buff + 1, "%2d", osdRssi);
+                if (osdRssi < osdConfig()->rssi_alarm) {
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
             }
             break;
         }

@@ -26,7 +26,19 @@ typedef struct bfOsdConfig_s {
     uint8_t show_logo_on_arm;
     uint8_t show_pilot_logo;
     uint8_t invert;
+    uint8_t crsf_link_stats;
+    uint8_t crsf_link_stats_power;
+    uint8_t crsf_link_stats_rssi;
+    uint8_t crsf_link_stats_snr;
+    int8_t crsf_link_stats_snr_threshold;
 } bfOsdConfig_t;
+
+typedef enum {
+    CRSF_OFF = 0,
+    CRSF_LQ_LOW = 1,
+    CRSF_SNR_LOW = 2,
+    CRSF_ON = 3,
+} CrsfMode_t;
 
 PG_DECLARE(bfOsdConfig_t, bfOsdConfig);
 
@@ -41,6 +53,6 @@ void brainFpvOsdMainLogo(uint16_t x, uint16_t y);
 void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y);
 void brainFpvRadarMap(void);
 void brainFpvOsdHeadingGraph(uint16_t x, uint16_t y);
-
+bool osdElementRssi_BrainFPV(uint16_t x, uint16_t y);
 
 #endif /* BRAINFPV_OSD */

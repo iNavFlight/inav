@@ -48,6 +48,8 @@
 #define CRSF_DIGITAL_CHANNEL_MAX 1811
 #define CRSF_PAYLOAD_OFFSET offsetof(crsfFrameDef_t, type)
 
+#define CRSF_LINK_TIMEOUT_US 3000000
+
 STATIC_UNIT_TESTED bool crsfFrameDone = false;
 STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
 
@@ -58,6 +60,7 @@ static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
+crsfLinkInfo_t crsf_link_info;
 
 /*
  * CRSF protocol
@@ -189,7 +192,16 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
 
 STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
+    static bool link_stats_received = false;
     UNUSED(rxRuntimeConfig);
+
+    if (link_stats_received) {
+        if (micros() - crsf_link_info.updated_us > CRSF_LINK_TIMEOUT_US) {
+            memset(&crsf_link_info, 0, sizeof(crsf_link_info));
+            crsf_link_info.snr = -20;
+            link_stats_received = true;
+        }
+    }
 
     if (crsfFrameDone) {
         crsfFrameDone = false;
@@ -232,6 +244,55 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             // Inject link quality into channel 17
             const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
             crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range
+
+            crsf_link_info.lq = linkStats->uplinkLQ;
+            if (linkStats->rfMode == 2) {
+                crsf_link_info.lq *= 3;
+            }
+
+            switch (linkStats->uplinkTXPower) {
+                case 0:
+                    crsf_link_info.tx_power = 0;
+                    break;
+                case 1:
+                    crsf_link_info.tx_power = 10;
+                    break;
+                case 2:
+                    crsf_link_info.tx_power = 25;
+                    break;
+                case 3:
+                    crsf_link_info.tx_power = 100;
+                    break;
+                case 4:
+                    crsf_link_info.tx_power = 500;
+                    break;
+                case 5:
+                    crsf_link_info.tx_power = 1000;
+                    break;
+                case 6:
+                    crsf_link_info.tx_power = 2000;
+                    break;
+                case 7:
+                    crsf_link_info.tx_power = 250;
+                    break;
+                default:
+                    crsf_link_info.tx_power = 0;
+                    break;
+            }
+
+            if (linkStats->uplinkRSSIAnt1 == 0) {
+                crsf_link_info.rssi = linkStats->uplinkRSSIAnt2;
+            }
+            else if (linkStats->uplinkRSSIAnt2 == 0) {
+                crsf_link_info.rssi = linkStats->uplinkRSSIAnt1;
+            }
+            else {
+                crsf_link_info.rssi = MIN(linkStats->uplinkRSSIAnt1, linkStats->uplinkRSSIAnt2);
+            }
+
+            crsf_link_info.snr = linkStats->uplinkSNR;
+            crsf_link_info.updated_us = micros();
+            link_stats_received = true;
 
             // This is not RC channels frame, update channel value but don't indicate frame completion
             return RX_FRAME_PENDING;
