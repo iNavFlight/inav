@@ -69,6 +69,9 @@ INCLUDE_DIRS    := $(SRC_DIR) \
                    $(ROOT)/src/main/target
 LINKER_DIR      := $(ROOT)/src/main/target/link
 
+# import macros common to all supported build systems
+include $(ROOT)/make/system-id.mk
+
 # default xtal value for F4 targets
 HSE_VALUE       = 8000000
 MHZ_VALUE      ?=
@@ -194,19 +197,21 @@ include $(ROOT)/make/source.mk
 include $(ROOT)/make/release.mk
 
 ###############################################################################
-# Things that might need changing to use different tools
+#
+# Toolchain installer
 #
 
+TOOLS_DIR := $(ROOT)/tools
+DL_DIR    := $(ROOT)/downloads
+
+include $(ROOT)/make/tools.mk
+
+#
 # Tool names
-ifneq ($(TOOLCHAINPATH),)
-CROSS_CC    = $(TOOLCHAINPATH)/arm-none-eabi-gcc
-OBJCOPY     = $(TOOLCHAINPATH)/arm-none-eabi-objcopy
-SIZE        = $(TOOLCHAINPATH)/arm-none-eabi-size
-else
-CROSS_CC    = arm-none-eabi-gcc
-OBJCOPY     = arm-none-eabi-objcopy
-SIZE        = arm-none-eabi-size
-endif
+#
+CROSS_CC    = $(ARM_SDK_PREFIX)gcc
+OBJCOPY     = $(ARM_SDK_PREFIX)objcopy
+SIZE        = $(ARM_SDK_PREFIX)size
 
 #
 # Tool options.
@@ -372,6 +377,14 @@ $(TARGET_OBJ_DIR)/%.o: %.S
 	$(V1) mkdir -p $(dir $@)
 	$(V1) echo %% $(notdir $<) "$(STDOUT)"
 	$(V1) $(CROSS_CC) -c -o $@ $(ASFLAGS) $<
+
+
+# mkdirs
+$(DL_DIR):
+	mkdir -p $@
+
+$(TOOLS_DIR):
+	mkdir -p $@
 
 
 ## all               : Build all valid targets
