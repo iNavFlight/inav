@@ -95,7 +95,8 @@ enum {
     ALIGN_MAG = 2
 };
 
-#define GYRO_WATCHDOG_DELAY 100  // Watchdog for boards without interrupt for gyro
+#define GYRO_WATCHDOG_DELAY                 100 // Watchdog for boards without interrupt for gyro
+#define GYRO_SYNC_MAX_CONSECUTIVE_FAILURES  100 // After this many consecutive missed interrupts disable gyro sync and fall back to scheduled updates
 
 #define EMERGENCY_ARMING_TIME_WINDOW_MS 10000
 #define EMERGENCY_ARMING_COUNTER_STEP_MS 100
@@ -122,6 +123,7 @@ int16_t headFreeModeHold;
 uint8_t motorControlEnable = false;
 
 static bool isRXDataNew;
+static uint32_t gyroSyncFailureCount;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 static emergencyArmingState_t emergencyArming;
 
@@ -698,9 +700,19 @@ void FAST_CODE NOINLINE taskGyro(timeUs_t currentTimeUs) {
     if (gyroConfig()->gyroSync) {
         while (true) {
             gyroUpdateUs = micros();
-            if (gyroSyncCheckUpdate() || ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (timeDelta_t)(getLooptime() + GYRO_WATCHDOG_DELAY))) {
+            if (gyroSyncCheckUpdate()) {
+                gyroSyncFailureCount = 0;
                 break;
             }
+            else if ((currentDeltaTime + cmpTimeUs(gyroUpdateUs, currentTimeUs)) >= (timeDelta_t)(getLooptime() + GYRO_WATCHDOG_DELAY)) {
+                gyroSyncFailureCount++;
+                break;
+            }
+        }
+
+        // If we detect gyro sync failure - disable gyro sync
+        if (gyroSyncFailureCount > GYRO_SYNC_MAX_CONSECUTIVE_FAILURES) {
+            gyroConfigMutable()->gyroSync = false;
         }
     }
 
