@@ -121,28 +121,16 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-/*
-
-#define USE_BARO
-#define USE_BARO_BMP280
-
+#define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_INSTANCE    SPI3
-#define MAX7456_SPI_CS_PIN      SPI3_NSS_PIN
+#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_CS_PIN          SPI3_NSS_PIN
+
+#define USE_LED_STRIP
+#define WS2811_PIN              PB6
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#define M25P16_CS_PIN           SPI2_NSS_PIN
+#define M25P16_SPI_BUS          BUS_SPI2
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-#define FLASH_CS_PIN            SPI2_NSS_PIN
-#define FLASH_SPI_INSTANCE      SPI2
-
-#define USE_ESCSERIAL
-#define ESCSERIAL_TIMER_TX_PIN  PB6  // (HARDARE=0,PPM)
-
-#define USE_I2C
-#define USE_I2C_DEVICE_1
-#define I2C_DEVICE              (I2CDEV_1)
-#define I2C1_SCL                PB8
-#define I2C1_SDA                PB9
-
-*/
