@@ -81,9 +81,7 @@ FASTRAM gyro_t gyro; // gyro sensor object
 
 STATIC_UNIT_TESTED gyroDev_t gyroDev0;  // Not in FASTRAM since it may hold DMA buffers
 STATIC_FASTRAM int16_t gyroTemperature0;
-
-STATIC_FASTRAM_UNIT_TESTED zeroCalibrationVector_t gyroCalibration;
-STATIC_FASTRAM int32_t gyroADC[XYZ_AXIS_COUNT];
+STATIC_FASTRAM_UNIT_TESTED zeroCalibrationVector_t gyroCalibration0;
 
 STATIC_FASTRAM filterApplyFnPtr gyroLpfApplyFn;
 STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
@@ -256,10 +254,6 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
         gyroHardware = GYRO_NONE;
     }
 
-    if (gyroHardware != GYRO_NONE) {
-        detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
-        sensorsSet(SENSOR_GYRO);
-    }
     return gyroHardware;
 }
 
@@ -274,9 +268,15 @@ bool gyroInit(void)
     gyroDev0.imuSensorToUse = 0;
 #endif
 
-    if (gyroDetect(&gyroDev0, GYRO_AUTODETECT) == GYRO_NONE) {
+    // Detecting gyro0
+    gyroSensor_e gyroHardware0 = gyroDetect(&gyroDev0, GYRO_AUTODETECT);
+
+    if (gyroHardware0 == GYRO_NONE) {
         return false;
     }
+
+    detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware0;
+    sensorsSet(SENSOR_GYRO);
 
     // Driver initialisation
     gyroDev0.lpf = gyroConfig()->gyro_lpf;
@@ -356,15 +356,15 @@ void gyroInitFilters(void)
 
 void gyroStartCalibration(void)
 {
-    zeroCalibrationStartV(&gyroCalibration, CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
+    zeroCalibrationStartV(&gyroCalibration0, CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
 }
 
 bool gyroIsCalibrationComplete(void)
 {
-    return zeroCalibrationIsCompleteV(&gyroCalibration) && zeroCalibrationIsSuccessfulV(&gyroCalibration);
+    return zeroCalibrationIsCompleteV(&gyroCalibration0) && zeroCalibrationIsSuccessfulV(&gyroCalibration0);
 }
 
-STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration)
+STATIC_UNIT_TESTED void performgyroCalibration0(gyroDev_t *dev, zeroCalibrationVector_t *gyroCalibration0)
 {
     fpVector3_t v;
 
@@ -373,11 +373,11 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
     v.v[1] = dev->gyroADCRaw[1];
     v.v[2] = dev->gyroADCRaw[2];
 
-    zeroCalibrationAddValueV(gyroCalibration, &v);
+    zeroCalibrationAddValueV(gyroCalibration0, &v);
 
     // Check if calibration is complete after this cycle
-    if (zeroCalibrationIsCompleteV(gyroCalibration)) {
-        zeroCalibrationGetZeroV(gyroCalibration, &v);
+    if (zeroCalibrationIsCompleteV(gyroCalibration0)) {
+        zeroCalibrationGetZeroV(gyroCalibration0, &v);
         dev->gyroZero[0] = v.v[0];
         dev->gyroZero[1] = v.v[1];
         dev->gyroZero[2] = v.v[2];
@@ -402,33 +402,53 @@ void gyroGetMeasuredRotationRate(fpVector3_t *measuredRotationRate)
     }
 }
 
-void gyroUpdate()
+static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroCalibrationVector_t * gyroCal, float * gyroADCf)
 {
     // range: +/- 8192; +/- 2000 deg/sec
-    if (gyroDev0.readFn(&gyroDev0)) {
-        if (zeroCalibrationIsCompleteV(&gyroCalibration)) {
+    if (gyroDev->readFn(gyroDev)) {
+        if (zeroCalibrationIsCompleteV(gyroCal)) {
+            int32_t gyroADCtmp[XYZ_AXIS_COUNT];
+
             // Copy gyro value into int32_t (to prevent overflow) and then apply calibration and alignment
-            gyroADC[X] = (int32_t)gyroDev0.gyroADCRaw[X] - (int32_t)gyroDev0.gyroZero[X];
-            gyroADC[Y] = (int32_t)gyroDev0.gyroADCRaw[Y] - (int32_t)gyroDev0.gyroZero[Y];
-            gyroADC[Z] = (int32_t)gyroDev0.gyroADCRaw[Z] - (int32_t)gyroDev0.gyroZero[Z];
-            applySensorAlignment(gyroADC, gyroADC, gyroDev0.gyroAlign);
-            applyBoardAlignment(gyroADC);
+            gyroADCtmp[X] = (int32_t)gyroDev->gyroADCRaw[X] - (int32_t)gyroDev->gyroZero[X];
+            gyroADCtmp[Y] = (int32_t)gyroDev->gyroADCRaw[Y] - (int32_t)gyroDev->gyroZero[Y];
+            gyroADCtmp[Z] = (int32_t)gyroDev->gyroADCRaw[Z] - (int32_t)gyroDev->gyroZero[Z];
+
+            // Apply sensor alignment
+            applySensorAlignment(gyroADCtmp, gyroADCtmp, gyroDev->gyroAlign);
+            applyBoardAlignment(gyroADCtmp);
+
+            // Convert to deg/s and store in unified data
+            gyroADCf[X] = (float)gyroADCtmp[X] * gyroDev->scale;
+            gyroADCf[Y] = (float)gyroADCtmp[Y] * gyroDev->scale;
+            gyroADCf[Z] = (float)gyroADCtmp[Z] * gyroDev->scale;
+
+            return true;
         } else {
-            performGyroCalibration(&gyroDev0, &gyroCalibration);
+            performgyroCalibration0(gyroDev, gyroCal);
+
             // Reset gyro values to zero to prevent other code from using uncalibrated data
-            gyro.gyroADCf[X] = 0.0f;
-            gyro.gyroADCf[Y] = 0.0f;
-            gyro.gyroADCf[Z] = 0.0f;
-            // still calibrating, so no need to further process gyro data
-            return;
+            gyroADCf[X] = 0.0f;
+            gyroADCf[Y] = 0.0f;
+            gyroADCf[Z] = 0.0f;
+
+            return false;
         }
     } else {
         // no gyro reading to process
+        return false;
+    }
+}
+
+void FAST_CODE NOINLINE gyroUpdate()
+{
+    if (!gyroUpdateAndCalibrate(&gyroDev0, &gyroCalibration0, gyro.gyroADCf)) {
         return;
     }
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        float gyroADCf = (float)gyroADC[axis] * gyroDev0.scale;
+        // At this point gyro.gyroADCf contains unfiltered gyro value
+        float gyroADCf = gyro.gyroADCf[axis];
 
         DEBUG_SET(DEBUG_GYRO, axis, lrintf(gyroADCf));
 
