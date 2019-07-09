@@ -23,3 +23,6 @@ README.pdf
 
 # build generated files
 /settings.json
+
+# local changes only
+make/local.mk
