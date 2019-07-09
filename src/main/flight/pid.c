@@ -738,7 +738,9 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
     applyItermRelax(axis, pidState->gyroRate, pidState->rateTarget, &itermErrorRate);
 
 #ifdef USE_ANTIGRAVITY
-    itermErrorRate *= scaleRangef(fabsf(antigravityThrottleHpf), 0.0f, 1000.0f, 1.0f, antigravityGain);
+    const float iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf), 0.0f, 1000.0f, 1.0f, antigravityGain);    
+    DEBUG_SET(DEBUG_ANTIGRAVITY, 0, iTermAntigravityGain * 100);
+    itermErrorRate *= iTermAntigravityGain;
 #endif
 
     pidState->errorGyroIf += (itermErrorRate * pidState->kI * antiWindupScaler * dT)
