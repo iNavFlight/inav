@@ -80,6 +80,36 @@
 #define SOFTSERIAL_2_RX_PIN     PA1
 #define SOFTSERIAL_2_TX_PIN     PA1
 
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB9
+
+#define DEFAULT_I2C_BUS         BUS_I2C1
+#define EXTERNAL_I2C_BUS        DEFAULT_I2C_BUS
+
+#define USE_BARO
+#define BARO_I2C_BUS            DEFAULT_I2C_BUS
+#define USE_BARO_BMP280
+#define USE_BARO_MS5611
+#define USE_BARO_BMP085
+
+#define USE_MAG
+#define MAG_I2C_BUS             DEFAULT_I2C_BUS
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
+#define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_IST8308
+#define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
+
+#define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
+#define TEMPERATURE_I2C_BUS     DEFAULT_I2C_BUS
+#define PITOT_I2C_BUS           DEFAULT_I2C_BUS
+#define PCA9685_I2C_BUS         DEFAULT_I2C_BUS
+
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART1
