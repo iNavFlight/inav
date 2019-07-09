@@ -121,6 +121,12 @@ static EXTENDED_FASTRAM uint8_t itermRelax;
 static EXTENDED_FASTRAM uint8_t itermRelaxType;
 static EXTENDED_FASTRAM float itermRelaxSetpointThreshold;
 
+#ifdef USE_ANTIGRAVITY
+static EXTENDED_FASTRAM pt1Filter_t antigravityThrottleLpf;
+static EXTENDED_FASTRAM float antigravityThrottleHpf;
+static EXTENDED_FASTRAM float antigravityGain;
+#endif
+
 #define D_BOOST_GYRO_LPF_HZ 80    // Biquad lowpass input cutoff to peak D around propwash frequencies
 #define D_BOOST_LPF_HZ 10         // PT1 lowpass cutoff to smooth the boost effect
 
@@ -231,6 +237,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dBoostFactor = 1.0f,
         .dBoostMaxAtAlleceleration = 7500.0f,
         .dBoostGyroDeltaLpfHz = D_BOOST_GYRO_LPF_HZ,
+        .antigravityGain = 1.0f,
 );
 
 void pidInit(void)
@@ -252,6 +259,9 @@ void pidInit(void)
     dBoostMaxAtAlleceleration = pidProfile()->dBoostMaxAtAlleceleration;
 #endif
 
+#ifdef USE_ANTIGRAVITY
+    antigravityGain = pidProfile()->antigravityGain;
+#endif
 }
 
 bool pidInitFilters(void)
@@ -304,6 +314,10 @@ bool pidInitFilters(void)
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, refreshRate * 1e-6f);
     }
+
+#ifdef USE_ANTIGRAVITY
+    pt1FilterInit(&antigravityThrottleLpf, ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF, refreshRate * 1e-6f);
+#endif
 
 #ifdef USE_D_BOOST
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -429,6 +443,12 @@ void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
             pidGainsUpdateRequired = true;
         }
     }
+
+#ifdef USE_ANTIGRAVITY
+    if (!STATE(FIXED_WING)) {
+        antigravityThrottleHpf = rcCommand[THROTTLE] - pt1FilterApply(&antigravityThrottleLpf, rcCommand[THROTTLE]);
+    }
+#endif
 
     /*
      * Compute stick position in range of [-1.0f : 1.0f] without deadband and expo
@@ -716,6 +736,10 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
 
     float itermErrorRate = rateError;
     applyItermRelax(axis, pidState->gyroRate, pidState->rateTarget, &itermErrorRate);
+
+#ifdef USE_ANTIGRAVITY
+    itermErrorRate *= scaleRangef(fabsf(antigravityThrottleHpf), 0.0f, 1000.0f, 1.0f, antigravityGain);
+#endif
 
     pidState->errorGyroIf += (itermErrorRate * pidState->kI * antiWindupScaler * dT)
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);

@@ -1181,6 +1181,11 @@ groups:
         condition: USE_D_BOOST
         min: 10
         max: 250
+      - name: antigravity_gain
+        field: antigravityGain
+        condition: USE_ANTIGRAVITY
+        min: 1
+        max: 30
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t

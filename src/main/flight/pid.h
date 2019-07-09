@@ -53,6 +53,8 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define MC_ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
 #define MC_ITERM_RELAX_CUTOFF_DEFAULT 20
 
+#define ANTI_GRAVITY_THROTTLE_FILTER_CUTOFF 15  // The anti gravity throttle highpass filter cutoff
+
 typedef enum {
     /* PID              MC      FW  */
     PID_ROLL,       //   +       +
@@ -138,6 +140,7 @@ typedef struct pidProfile_s {
     float dBoostFactor;
     float dBoostMaxAtAlleceleration;
     uint8_t dBoostGyroDeltaLpfHz;
+    float antigravityGain;
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
