@@ -34,7 +34,7 @@ class Compiler
         # Look for the compiler in PATH manually, since there
         # are some issues with the built-in search by spawn()
         # on Windows if PATH contains spaces.
-        dirs = (ENV["PATH"] || "").split(File::PATH_SEPARATOR)
+        dirs = (ENV["CPP_PATH"] || "").split(File::PATH_SEPARATOR)
         bin = "arm-none-eabi-g++"
         dirs.each do |dir|
             p = File.join(dir, bin)

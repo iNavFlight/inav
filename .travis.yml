@@ -22,6 +22,7 @@ addons:
       - build-essential
       - git
       - libc6-i386
+      - time
 
 # We use cpp for unit tests, and c for the main project.
 language: cpp
@@ -30,21 +31,20 @@ compiler: clang
 before_install:
 
 install:
-  - ./install-toolchain.sh
-  - export TOOLCHAINPATH=$PWD/gcc-arm-none-eabi-8-2018-q4-major/bin
-  - export PATH=$TOOLCHAINPATH:$PATH
+  - make arm_sdk_install
 
 before_script:
-  - $TOOLCHAINPATH/arm-none-eabi-gcc --version
+  - make arm_sdk_version
   - clang --version
   - clang++ --version
 
 script: ./.travis.sh
 
 cache: 
-  apt: true
+  timeout: 1000
   directories:
-  - $PWD/gcc-arm-none-eabi-8-2018-q4-major
+  - downloads
+  - tools
 
 notifications:
   #slack: inavflight:UWRoWFJ4cbbpHXT8HJJlAPXa
