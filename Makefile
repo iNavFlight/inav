@@ -72,6 +72,9 @@ LINKER_DIR      := $(ROOT)/src/main/target/link
 # import macros common to all supported build systems
 include $(ROOT)/make/system-id.mk
 
+# developer preferences, edit these at will, they'll be gitignored
+-include $(ROOT)/make/local.mk
+
 # default xtal value for F4 targets
 HSE_VALUE       = 8000000
 MHZ_VALUE      ?=
