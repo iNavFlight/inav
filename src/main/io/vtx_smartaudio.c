@@ -289,6 +289,14 @@ static void saProcessResponse(uint8_t *buf, int len)
         break;
 
     case SA_CMD_SET_POWER: // Set Power
+        if (len == 5) {
+            // Improperly implemented S.Audio devices that
+            // omit the channel
+            saDevice.power = buf[2];
+        } else if (len >= 6) {
+            // S.Audio v2 spec
+            saDevice.power = buf[3];
+        }
         break;
 
     case SA_CMD_SET_CHAN: // Set Channel
