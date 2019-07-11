@@ -632,23 +632,26 @@ static void saDevSetPowerByIndex(uint8_t index)
 
     LOG_D(VTX, "saSetPowerByIndex: index %d", index);
 
+    if (index == 0) {
+        // SmartAudio doesn't support power off.
+        return;
+    }
+
+    if (index > VTX_SMARTAUDIO_POWER_COUNT) {
+        // Invalid power level
+        return;
+    }
+
     if (saDevice.version == 0) {
         // Unknown or yet unknown version.
         return;
     }
 
-    if (index >= VTX_SMARTAUDIO_POWER_COUNT) {
-        return;
-    }
+    unsigned entry = index - 1;
 
-    buf[4] = (saDevice.version == 1) ? saPowerTable[index].valueV1 : saPowerTable[index].valueV2;
+    buf[4] = (saDevice.version == 1) ? saPowerTable[entry].valueV1 : saPowerTable[entry].valueV2;
     buf[5] = CRC8(buf, 5);
     saQueueCmd(buf, 6);
-}
-
-void saSetPowerByIndex(uint8_t index)
-{
-    saDevSetPowerByIndex(index);
 }
 
 bool vtxSmartAudioInit(void)
@@ -770,12 +773,7 @@ static void vtxSASetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t
 static void vtxSASetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 {
     UNUSED(vtxDevice);
-    if (index == 0) {
-        // SmartAudio doesn't support power off.
-        return;
-    }
-
-    saSetPowerByIndex(index - 1);
+    saDevSetPowerByIndex(index);
 }
 
 static void vtxSASetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
