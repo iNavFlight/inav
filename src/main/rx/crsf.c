@@ -58,7 +58,7 @@ static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
-crsfPayloadLinkStatistics_t crsfLinkStatistics;
+// The power levels represented by uplinkTXPower above in mW
 const uint16_t crsfPowerStates[] = {0, 10, 25, 100, 500, 1000, 2000};
 
 /*
@@ -109,6 +109,19 @@ struct crsfPayloadRcChannelsPacked_s {
 } __attribute__ ((__packed__));
 
 typedef struct crsfPayloadRcChannelsPacked_s crsfPayloadRcChannelsPacked_t;
+
+typedef struct crsfPayloadLinkStatistics_s {
+    uint8_t     uplinkRSSIAnt1;
+    uint8_t     uplinkRSSIAnt2;
+    uint8_t     uplinkLQ;
+    int8_t      uplinkSNR;
+    uint8_t     activeAntenna;
+    uint8_t     rfMode;
+    uint8_t     uplinkTXPower;
+    uint8_t     downlinkRSSI;
+    uint8_t     downlinkLQ;
+    int8_t      downlinkSNR;
+} __attribute__ ((__packed__)) crsfPayloadLinkStatistics_t;
 
 STATIC_UNIT_TESTED uint8_t crsfFrameCRC(void)
 {
@@ -217,7 +230,16 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             crsfFrame.frame.frameLength = CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC;
 
             const crsfPayloadLinkStatistics_t* linkStats = (crsfPayloadLinkStatistics_t*)&crsfFrame.frame.payload;
-            memcpy(&crsfLinkStatistics, linkStats, sizeof(crsfPayloadLinkStatistics_t));
+            rxLinkStatistics.uplinkRSSIAnt1 = linkStats->uplinkRSSIAnt1;
+            rxLinkStatistics.uplinkRSSIAnt2 = linkStats->uplinkRSSIAnt2;
+            rxLinkStatistics.uplinkLQ = linkStats->uplinkLQ;
+            rxLinkStatistics.uplinkSNR = linkStats->uplinkSNR;
+            rxLinkStatistics.activeAntenna = linkStats->activeAntenna;
+            rxLinkStatistics.rfMode = linkStats->rfMode;
+            rxLinkStatistics.uplinkTXPower = crsfPowerStates[linkStats->uplinkTXPower];
+            rxLinkStatistics.downlinkRSSI = linkStats->downlinkRSSI;
+            rxLinkStatistics.downlinkLQ = linkStats->downlinkLQ;
+            rxLinkStatistics.downlinkSNR = linkStats->downlinkSNR;
 
             // Inject link quality into channel 17
             crsfChannelData[16] = scaleRange(constrain(linkStats->uplinkLQ, 0, 100), 0, 100, 191, 1791);    // will map to [1000;2000] range

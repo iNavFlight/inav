@@ -104,6 +104,8 @@ static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
+rxLinkStatistics_t rxLinkStatistics;
+
 PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 8);
 
 #ifndef RX_SPI_DEFAULT_PROTOCOL
