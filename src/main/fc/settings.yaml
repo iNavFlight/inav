@@ -1196,6 +1196,9 @@ groups:
     type: positionEstimationConfig_t
     condition: USE_NAV
     members:
+      - name: inav_avoid_acc_clipping
+        field: avoid_accel_clipping
+        type: bool
       - name: inav_auto_mag_decl
         field: automatic_mag_declination
         type: bool

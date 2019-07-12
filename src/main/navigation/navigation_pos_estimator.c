@@ -54,7 +54,7 @@
 
 navigationPosEstimator_t posEstimator;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 5);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
@@ -64,6 +64,7 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .gravity_calibration_tolerance = 5,     // 5 cm/s/s calibration error accepted (0.5% of gravity)
         .use_gps_velned = 1,         // "Disabled" is mandatory with gps_dyn_model = Pedestrian
         .allow_dead_reckoning = 0,
+        .avoid_accel_clipping = 1,
 
         .max_surface_altitude = 200,
 
@@ -375,10 +376,14 @@ static void updateIMUEstimationWeight(const float dt)
 
 float navGetAccelerometerWeight(void)
 {
-    const float accWeightScaled = posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
-    DEBUG_SET(DEBUG_VIBE, 5, accWeightScaled * 1000);
-
-    return accWeightScaled;
+    if (positionEstimationConfig()->avoid_accel_clipping) {
+        const float accWeightScaled = posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
+        DEBUG_SET(DEBUG_VIBE, 5, accWeightScaled * 1000);
+        return accWeightScaled;
+    }
+    else {
+        return positionEstimationConfig()->w_xyz_acc_p;
+    }
 }
 
 static void updateIMUTopic(timeUs_t currentTimeUs)
