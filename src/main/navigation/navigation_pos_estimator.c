@@ -362,6 +362,7 @@ static void updateIMUEstimationWeight(const float dt)
     // and gradually restore weight back to 1.0 over time
     if (isAccClipped) {
         posEstimator.imu.accWeightFactor = 0.0f;
+        posEstimator.imu.lastClippingTimeMs = millis();
     }
     else {
         const float relAlpha = dt / (dt + INAV_ACC_CLIPPING_RC_CONSTANT);
@@ -806,6 +807,7 @@ void initializePositionEstimator(void)
     posEstimator.est.flowCoordinates[Y] = 0;
 
     posEstimator.imu.accWeightFactor = 0;
+    posEstimator.imu.lastClippingTimeMs = 0;
 
     restartGravityCalibration();
 
@@ -847,6 +849,21 @@ void FAST_CODE NOINLINE updatePositionEstimator(void)
 bool navIsCalibrationComplete(void)
 {
     return gravityCalibrationComplete();
+}
+
+uint32_t navGetPositionEstimatorWarnings(void)
+{
+    uint32_t warningBits = 0;
+
+    if (!navIsAccelerationUsable() || (millis() - posEstimator.imu.lastClippingTimeMs < INAV_ACC_CLIPPING_WARNING_TIMEOUT_MS)) {
+        warningBits |= NAV_WARNING_ACCELEROMETER_HEALTH;
+    }
+
+    if (!navIsHeadingUsable()) {
+        warningBits |= NAV_WARNING_HEADING_UNKNOWN;
+    }
+
+    return warningBits;
 }
 
 #endif

@@ -488,6 +488,14 @@ bool isAdjustingHeading(void);
  */
 int32_t navigationGetHomeHeading(void);
 
+/* Notify navigation system that accelerometer is not healthy (navigation modes may misbehave) */
+uint32_t navGetPositionEstimatorWarnings(void);
+
+typedef enum {
+    NAV_WARNING_ACCELEROMETER_HEALTH    = (1 << 0),
+    NAV_WARNING_HEADING_UNKNOWN         = (1 << 1),
+} navGetPositionEstimatorWarnings_e;
+
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
 
