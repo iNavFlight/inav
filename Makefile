@@ -89,8 +89,9 @@ VALID_TARGETS  := $(subst /,, $(subst ./src/main/target/,, $(VALID_TARGETS)))
 VALID_TARGETS  := $(VALID_TARGETS) $(ALT_TARGETS)
 VALID_TARGETS  := $(sort $(VALID_TARGETS))
 
-CLEAN_TARGETS = $(addprefix clean_,$(VALID_TARGETS) )
-TARGETS_CLEAN = $(addsuffix _clean,$(VALID_TARGETS) )
+CLEAN_TARGETS   = $(addprefix clean_,$(VALID_TARGETS) )
+TARGETS_CLEAN   = $(addsuffix _clean,$(VALID_TARGETS) )
+STFLASH_TARGETS = $(addprefix st-flash_,$(VALID_TARGETS) )
 
 ifeq ($(filter $(TARGET),$(ALT_TARGETS)), $(TARGET))
 BASE_TARGET    := $(firstword $(subst /,, $(subst ./src/main/target/,, $(dir $(wildcard $(ROOT)/src/main/target/*/$(TARGET).mk)))))
@@ -459,11 +460,12 @@ flash_$(TARGET): $(TARGET_HEX)
 ## flash             : flash firmware (.hex) onto flight controller
 flash: flash_$(TARGET)
 
-st-flash_$(TARGET): $(TARGET_BIN)
-	$(V0) st-flash --reset write $< 0x08000000
+$(STFLASH_TARGETS) :
+	$(V0) $(MAKE) -j 8 TARGET=$(subst st-flash_,,$@) st-flash
 
 ## st-flash          : flash firmware (.bin) onto flight controller
-st-flash: st-flash_$(TARGET)
+st-flash: $(TARGET_BIN)
+	$(V0) st-flash --reset write $< 0x08000000
 
 binary: $(TARGET_BIN)
 hex:    $(TARGET_HEX)
