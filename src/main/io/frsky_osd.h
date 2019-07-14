@@ -42,6 +42,7 @@ void frskyOSDSetPixelToFillColor(int x, int y);
 void frskyOSDClearRect(int x, int y, int w, int h);
 void frskyOSDResetDrawingContext(void);
 void frskyOSDDrawCharacter(int x, int y, uint16_t chr, uint8_t opts);
+void frskyOSDDrawCharacterMask(int x, int y, uint16_t chr, frskyOSDColor_e color, uint8_t opts);
 void frskyOSDMoveToPoint(int x, int y);
 void frskyOSDStrokeLineToPoint(int x, int y);
 void frskyOSDStrokeTriangle(int x1, int y1, int x2, int y2, int x3, int y3);

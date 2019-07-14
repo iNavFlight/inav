@@ -1243,6 +1243,162 @@ static void osdDisplayAdjustableDecimalValue(uint8_t elemPosX, uint8_t elemPosY,
     displayWriteWithAttr(osdDisplayPort, elemPosX + strlen(str) + 1 + valueOffset, elemPosY, buff, elemAttr);
 }
 
+static void osdDrawArtificialHorizonGrid(uint8_t elemPosX, uint8_t elemPosY, float pitchAngle, float rollAngle)
+{
+    osdCrosshairPosition(&elemPosX, &elemPosY);
+
+    // Store the positions we draw over to erase only these at the next iteration
+    static int8_t previous_written[AH_PREV_SIZE];
+    static int8_t previous_orient = -1;
+
+    float pitch_rad_to_char = (float)(AH_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
+
+    float ky = sin_approx(rollAngle);
+    float kx = cos_approx(rollAngle);
+
+    if (previous_orient != -1) {
+        for (int i = 0; i < AH_PREV_SIZE; ++i) {
+            if (previous_written[i] > -1) {
+                int8_t dx = (previous_orient ? previous_written[i] : i) - AH_PREV_SIZE / 2;
+                int8_t dy = (previous_orient ? i : previous_written[i]) - AH_PREV_SIZE / 2;
+                displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, SYM_BLANK);
+                previous_written[i] = -1;
+            }
+        }
+    }
+
+    if (fabsf(ky) < fabsf(kx)) {
+
+        previous_orient = 0;
+
+        for (int8_t dx = -AH_WIDTH / 2; dx <= AH_WIDTH / 2; dx++) {
+            float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
+            int8_t dy = floorf(fy);
+            const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
+            uint16_t c;
+
+            if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
+                displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, c);
+                previous_written[dx + AH_PREV_SIZE / 2] = dy + AH_PREV_SIZE / 2;
+            }
+        }
+
+    } else {
+
+        previous_orient = 1;
+
+        for (int8_t dy = -AH_HEIGHT / 2; dy <= AH_HEIGHT / 2; dy++) {
+            const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
+            const int8_t dx = floorf(fx);
+            const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
+            uint16_t c;
+
+            if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
+                c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
+                displayWriteChar(osdDisplayPort, chX, chY, c);
+                previous_written[dy + AH_PREV_SIZE / 2] = dx + AH_PREV_SIZE / 2;
+            }
+        }
+    }
+}
+
+static void osdDrawArtificialHorizonLevelLine(int width, int pos)
+{
+    displayCanvasFillStrokeRect(&osdCanvas, -width / 2, -pos - 1, 3, 10);
+    displayCanvasFillStrokeRect(&osdCanvas, width / 2 + 1, -pos - 1, 3, 10);
+    displayCanvasFillStrokeRect(&osdCanvas, -width / 2 + 1, -pos - 1, width / 2 - 6, 3);
+    displayCanvasFillStrokeRect(&osdCanvas, width / 2 + 1, -pos - 1, -width / 2 + 6, 3);
+}
+
+static void osdDrawArtificialHorizonShapes(float pitchAngle, float rollAngle, bool erase)
+{
+    displayCanvasContextPush(&osdCanvas);
+    if (erase) {
+        displayCanvasSetFillColor(&osdCanvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
+        displayCanvasSetStrokeColor(&osdCanvas, DISPLAY_CANVAS_COLOR_TRANSPARENT);
+    } else {
+        displayCanvasSetFillColor(&osdCanvas, DISPLAY_CANVAS_COLOR_WHITE);
+        displayCanvasSetStrokeColor(&osdCanvas, DISPLAY_CANVAS_COLOR_BLACK);
+    }
+
+    int width = 10 * 12;
+    int levelWidth = width * (3.0/4);
+    int crosshairMargin = 6;
+    float pixelsDegreeLevel = 3.5f;
+
+    displayCanvasCtmTranslate(&osdCanvas, 0, RADIANS_TO_DEGREES(pitchAngle) * pixelsDegreeLevel);
+    displayCanvasCtmRotate(&osdCanvas, -rollAngle);
+    displayCanvasCtmTranslate(&osdCanvas, osdCanvas.widthPixels / 2, osdCanvas.heightPixels / 2);
+    displayCanvasFillStrokeRect(&osdCanvas, -width / 2, -1, width / 2 - crosshairMargin, 3);
+    displayCanvasFillStrokeRect(&osdCanvas, width / 2, -1, -width / 2 + crosshairMargin, 3);
+
+    static const uint8_t pitchLevels[] = {10, 20, 30};
+    for (unsigned ii = 0; ii < ARRAYLEN(pitchLevels); ii++) {
+        displayCanvasContextPush(&osdCanvas);
+        int pos = pitchLevels[ii] * pixelsDegreeLevel;
+        osdDrawArtificialHorizonLevelLine(levelWidth, pos);
+        displayCanvasContextPush(&osdCanvas);
+        displayCanvasCtmScale(&osdCanvas, 1, -1);
+        osdDrawArtificialHorizonLevelLine(levelWidth, pos);
+        displayCanvasContextPop(&osdCanvas);
+
+        displayCanvasCtmScale(&osdCanvas, 0.5f, 0.5f);
+
+        char c1 = pitchLevels[ii] / 10;
+        char c2 = pitchLevels[ii] % 10;
+        int topCharY = -9 - pos * 2;
+        int bottomCharY = -9 + pos * 2;
+
+        if (erase) {
+            displayCanvasDrawCharacterMask(&osdCanvas, -12, topCharY, '0' + c1, DISPLAY_CANVAS_COLOR_TRANSPARENT, 0);
+            displayCanvasDrawCharacterMask(&osdCanvas, 0, topCharY, '0' + c2, DISPLAY_CANVAS_COLOR_TRANSPARENT, 0);
+            displayCanvasDrawCharacterMask(&osdCanvas, -12, bottomCharY, '0' + c1, DISPLAY_CANVAS_COLOR_TRANSPARENT, 0);
+            displayCanvasDrawCharacterMask(&osdCanvas, 0, bottomCharY, '0' + c2, DISPLAY_CANVAS_COLOR_TRANSPARENT, 0);
+        } else {
+            displayCanvasDrawCharacter(&osdCanvas, -12, topCharY, '0' + c1, 0);
+            displayCanvasDrawCharacter(&osdCanvas, 0, topCharY, '0' + c2, 0);
+            displayCanvasDrawCharacter(&osdCanvas, -12, bottomCharY, '0' + c1, 0);
+            displayCanvasDrawCharacter(&osdCanvas, 0, bottomCharY, '0' + c2, 0);
+        }
+        displayCanvasContextPop(&osdCanvas);
+    }
+
+    displayCanvasContextPop(&osdCanvas);
+}
+
+static void osdDrawArtificialHorizonCanvas(uint8_t elemPosX, uint8_t elemPosY, float pitchAngle, float rollAngle)
+{
+    UNUSED(elemPosX);
+    UNUSED(elemPosY);
+
+    static float prevPitchAngle = 9999;
+    static float prevRollAngle = 9999;
+
+    if (fabsf(prevPitchAngle - pitchAngle) > 0.01f || fabsf(prevRollAngle - rollAngle) > 0.01f) {
+        osdDrawArtificialHorizonShapes(prevPitchAngle, prevRollAngle, true);
+        osdDrawArtificialHorizonShapes(pitchAngle, rollAngle, false);
+        prevPitchAngle = pitchAngle;
+        prevRollAngle = rollAngle;
+    }
+}
+
+static void osdDrawArtificialHorizon(uint8_t elemPosX, uint8_t elemPosY)
+{
+    float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+    float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
+
+    if (osdConfig()->ahi_reverse_roll) {
+        rollAngle = -rollAngle;
+    }
+
+    if (osdDisplayHasCanvas) {
+        osdDrawArtificialHorizonCanvas(elemPosX, elemPosY, pitchAngle, rollAngle);
+    } else {
+        osdDrawArtificialHorizonGrid(elemPosX, elemPosY, pitchAngle, rollAngle);
+    }
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdConfig()->item_pos[currentLayout][item];
@@ -1765,71 +1921,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            osdCrosshairPosition(&elemPosX, &elemPosY);
-
-            // Store the positions we draw over to erase only these at the next iteration
-            static int8_t previous_written[AH_PREV_SIZE];
-            static int8_t previous_orient = -1;
-
-            float pitch_rad_to_char = (float)(AH_HEIGHT / 2 + 0.5) / DEGREES_TO_RADIANS(osdConfig()->ahi_max_pitch);
-
-            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
-
-            if (osdConfig()->ahi_reverse_roll) {
-                rollAngle = -rollAngle;
-            }
-
-            float ky = sin_approx(rollAngle);
-            float kx = cos_approx(rollAngle);
-
-            if (previous_orient != -1) {
-                for (int i = 0; i < AH_PREV_SIZE; ++i) {
-                    if (previous_written[i] > -1) {
-                        int8_t dx = (previous_orient ? previous_written[i] : i) - AH_PREV_SIZE / 2;
-                        int8_t dy = (previous_orient ? i : previous_written[i]) - AH_PREV_SIZE / 2;
-                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, SYM_BLANK);
-                        previous_written[i] = -1;
-                    }
-                }
-            }
-
-            if (fabsf(ky) < fabsf(kx)) {
-
-                previous_orient = 0;
-
-                for (int8_t dx = -AH_WIDTH / 2; dx <= AH_WIDTH / 2; dx++) {
-                    float fy = dx * (ky / kx) + pitchAngle * pitch_rad_to_char + 0.49f;
-                    int8_t dy = floorf(fy);
-                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint16_t c;
-
-                    if ((dy >= -AH_HEIGHT / 2) && (dy <= AH_HEIGHT / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
-                        c = SYM_AH_H_START + ((AH_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * AH_H_SYM_COUNT));
-                        displayWriteChar(osdDisplayPort, elemPosX + dx, elemPosY - dy, c);
-                        previous_written[dx + AH_PREV_SIZE / 2] = dy + AH_PREV_SIZE / 2;
-                    }
-                }
-
-            } else {
-
-                previous_orient = 1;
-
-                for (int8_t dy = -AH_HEIGHT / 2; dy <= AH_HEIGHT / 2; dy++) {
-                    const float fx = (dy - pitchAngle * pitch_rad_to_char) * (kx / ky) + 0.5f;
-                    const int8_t dx = floorf(fx);
-                    const uint8_t chX = elemPosX + dx, chY = elemPosY - dy;
-                    uint16_t c;
-
-                    if ((dx >= -AH_WIDTH / 2) && (dx <= AH_WIDTH / 2) && displayReadCharWithAttr(osdDisplayPort, chX, chY, &c, NULL) && (c == SYM_BLANK)) {
-                        c = SYM_AH_V_START + (fx - dx) * AH_V_SYM_COUNT;
-                        displayWriteChar(osdDisplayPort, chX, chY, c);
-                        previous_written[dy + AH_PREV_SIZE / 2] = dx + AH_PREV_SIZE / 2;
-                    }
-                }
-
-            }
-
+            osdDrawArtificialHorizon(elemPosX, elemPosY);
             osdDrawSingleElement(OSD_HORIZON_SIDEBARS);
             osdDrawSingleElement(OSD_CROSSHAIRS);
 

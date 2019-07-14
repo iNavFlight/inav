@@ -72,31 +72,33 @@ typedef enum
     OSD_CMD_DRAWING_CLEAR_RECT = 33,
     OSD_CMD_DRAWING_RESET = 34,
     OSD_CMD_DRAWING_DRAW_BITMAP = 35,
-    OSD_CMD_DRAWING_DRAW_CHAR = 36,
-    OSD_CMD_DRAWING_MOVE_TO_POINT = 37,
-    OSD_CMD_DRAWING_STROKE_LINE_TO_POINT = 38,
-    OSD_CMD_DRAWING_STROKE_TRIANGLE = 39,
-    OSD_CMD_DRAWING_FILL_TRIANGLE = 40,
-    OSD_CMD_DRAWING_FILL_STROKE_TRIANGLE = 41,
-    OSD_CMD_DRAWING_STROKE_RECT = 42,
-    OSD_CMD_DRAWING_FILL_RECT = 43,
-    OSD_CMD_DRAWING_FILL_STROKE_RECT = 44,
-    OSD_CMD_DRAWING_STROKE_ELLIPSE_IN_RECT = 45,
-    OSD_CMD_DRAWING_FILL_ELLIPSE_IN_RECT = 46,
-    OSD_CMD_DRAWING_FILL_STROKE_ELLIPSE_IN_RECT = 47,
+    OSD_CMD_DRAWING_DRAW_BITMAP_MASK = 36,
+    OSD_CMD_DRAWING_DRAW_CHAR = 37,
+    OSD_CMD_DRAWING_DRAW_CHAR_MASK = 38,
+    OSD_CMD_DRAWING_MOVE_TO_POINT = 39,
+    OSD_CMD_DRAWING_STROKE_LINE_TO_POINT = 40,
+    OSD_CMD_DRAWING_STROKE_TRIANGLE = 41,
+    OSD_CMD_DRAWING_FILL_TRIANGLE = 42,
+    OSD_CMD_DRAWING_FILL_STROKE_TRIANGLE = 43,
+    OSD_CMD_DRAWING_STROKE_RECT = 44,
+    OSD_CMD_DRAWING_FILL_RECT = 45,
+    OSD_CMD_DRAWING_FILL_STROKE_RECT = 46,
+    OSD_CMD_DRAWING_STROKE_ELLIPSE_IN_RECT = 47,
+    OSD_CMD_DRAWING_FILL_ELLIPSE_IN_RECT = 48,
+    OSD_CMD_DRAWING_FILL_STROKE_ELLIPSE_IN_RECT = 49,
 
-    OSD_CMD_CTM_RESET = 50,
-    OSD_CMD_CTM_SET = 51,
-    OSD_CMD_CTM_TRANSLATE = 52,
-    OSD_CMD_CTM_SCALE = 53,
-    OSD_CMD_CTM_ROTATE = 54,
+    OSD_CMD_CTM_RESET = 60,
+    OSD_CMD_CTM_SET = 61,
+    OSD_CMD_CTM_TRANSLATE = 62,
+    OSD_CMD_CTM_SCALE = 63,
+    OSD_CMD_CTM_ROTATE = 64,
 
-    OSD_CMD_CONTEXT_PUSH = 60,
-    OSD_CMD_CONTEXT_POP = 61,
+    OSD_CMD_CONTEXT_PUSH = 70,
+    OSD_CMD_CONTEXT_POP = 71,
 
     // MAX7456 emulation commands
-    OSD_CMD_DRAW_GRID_CHR = 64,
-    OSD_CMD_DRAW_GRID_STR = 65,
+    OSD_CMD_DRAW_GRID_CHR = 80,
+    OSD_CMD_DRAW_GRID_STR = 81,
 
 } osdCommand_e;
 
@@ -168,6 +170,13 @@ typedef struct frskyOSDDrawCharacter_s {
     uint16_t chr;
     uint8_t opts;
 }  __attribute__((packed)) frskyOSDDrawCharacter_t;
+
+
+typedef struct frskyOSDDrawCharacterMask_s {
+    frskyOSDDrawCharacter_t dc;
+    uint8_t maskColor;
+}  __attribute__((packed)) frskyOSDDrawCharacterMask_t;
+
 
 typedef struct frskyOSDState_s {
     struct {
@@ -709,6 +718,12 @@ void frskyOSDDrawCharacter(int x, int y, uint16_t chr, uint8_t opts)
 {
     frskyOSDDrawCharacter_t dc = { .p = {.x = x, .y = y}, .chr = chr, .opts = opts};
     frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_DRAW_CHAR, &dc, sizeof(dc));
+}
+
+void frskyOSDDrawCharacterMask(int x, int y, uint16_t chr, frskyOSDColor_e color, uint8_t opts)
+{
+    frskyOSDDrawCharacterMask_t dc = { .dc = { .p = {.x = x, .y = y}, .chr = chr, .opts = opts}, .maskColor = color};
+    frskyOSDSendAsyncCommand(OSD_CMD_DRAWING_DRAW_CHAR_MASK, &dc, sizeof(dc));
 }
 
 void frskyOSDMoveToPoint(int x, int y)

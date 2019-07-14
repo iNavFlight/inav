@@ -248,6 +248,13 @@ static void drawCharacter(displayCanvas_t *displayCanvas, int x, int y, uint16_t
     frskyOSDDrawCharacter(x, y, chr, opts);
 }
 
+static void drawCharacterMask(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasColor_e color, displayCanvasBitmapOption_t opts)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDDrawCharacterMask(x, y, chr, frskyOSDGetColor(color), opts);
+}
+
 static void moveToPoint(displayCanvas_t *displayCanvas, int x, int y)
 {
     UNUSED(displayCanvas);
@@ -386,6 +393,7 @@ static const displayCanvasVTable_t frskyOSDCanvasVTable = {
     .clearRect = clearRect,
     .resetDrawingContext = resetDrawingContext,
     .drawCharacter = drawCharacter,
+    .drawCharacterMask = drawCharacterMask,
     .moveToPoint = moveToPoint,
     .strokeLineToPoint = strokeLineToPoint,
     .strokeTriangle = strokeTriangle,

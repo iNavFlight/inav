@@ -89,6 +89,15 @@ void displayCanvasDrawCharacter(displayCanvas_t *displayCanvas, int x, int y, ui
         displayCanvas->vTable->drawCharacter(displayCanvas, x, y, chr, opts);
     }
 }
+
+void displayCanvasDrawCharacterMask(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasColor_e color, displayCanvasBitmapOption_t opts)
+{
+    if (displayCanvas->vTable->drawCharacterMask) {
+        displayCanvas->vTable->drawCharacterMask(displayCanvas, x, y, chr, color, opts);
+    }
+}
+
+
 void displayCanvasMoveToPoint(displayCanvas_t *displayCanvas, int x, int y)
 {
     if (displayCanvas->vTable->moveToPoint) {
