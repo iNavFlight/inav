@@ -56,6 +56,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "drivers/display.h"
+#include "drivers/display_canvas.h"
 #include "drivers/display_font_metadata.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
@@ -182,6 +183,8 @@ static osdMapData_t osdMapData;
 
 static displayPort_t *osdDisplayPort;
 static bool osdDisplayIsReady = false;
+static displayCanvas_t osdCanvas;
+static bool osdDisplayHasCanvas = false;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 #define AH_HEIGHT 9
@@ -2844,6 +2847,8 @@ static void osdCompleteAsyncInitialization(void)
 
     osdDisplayIsReady = true;
 
+    osdDisplayHasCanvas = displayGetCanvas(&osdCanvas, osdDisplayPort);
+
     displayClearScreen(osdDisplayPort);
 
     uint8_t y = 1;
@@ -3204,12 +3209,14 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
+        displayBeginTransaction(osdDisplayPort);
         if (fullRedraw) {
             displayClearScreen(osdDisplayPort);
             fullRedraw = false;
         }
         osdDrawNextElement();
         displayHeartbeat(osdDisplayPort);
+        displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
     } else {
         cmsUpdate(currentTimeUs);

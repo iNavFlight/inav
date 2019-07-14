@@ -37,6 +37,7 @@ COMMON_SRC = \
             drivers/bus_i2c_soft.c \
             drivers/bus_spi.c \
             drivers/display.c \
+            drivers/display_canvas.c \
             drivers/display_font_metadata.c \
             drivers/exti.c \
             drivers/io.c \

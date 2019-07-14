@@ -56,6 +56,7 @@ typedef uint8_t textAttributes_t;
 
 static inline void TEXT_ATTRIBUTES_COPY(textAttributes_t *dst, textAttributes_t *src) { *dst = *src; }
 
+typedef struct displayCanvas_s displayCanvas_t;
 typedef struct displayFontMetadata_s displayFontMetadata_t;
 typedef struct displayPortVTable_s displayPortVTable_t;
 
@@ -93,6 +94,9 @@ typedef struct displayPortVTable_s {
     bool (*getFontMetadata)(displayFontMetadata_t *metadata, const displayPort_t *displayPort);
     int (*writeFontCharacter)(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
     bool (*isReady)(const displayPort_t *displayPort);
+    void (*beginTransaction)(displayPort_t *displayPort);
+    void (*commitTransaction)(displayPort_t *displayPort);
+    bool (*getCanvas)(displayCanvas_t *canvas, const displayPort_t *displayPort);
 } displayPortVTable_t;
 
 typedef struct displayPortProfile_s {
@@ -123,4 +127,7 @@ uint16_t displayTxBytesFree(const displayPort_t *instance);
 bool displayGetFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *instance);
 int displayWriteFontCharacter(displayPort_t *instance, uint16_t addr, const osdCharacter_t *chr);
 bool displayIsReady(const displayPort_t *instance);
+void displayBeginTransaction(displayPort_t *instance);
+void displayCommitTransaction(displayPort_t *instance);
+bool displayGetCanvas(displayCanvas_t *canvas, const displayPort_t *instance);
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable);

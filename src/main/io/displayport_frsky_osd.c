@@ -25,6 +25,7 @@
 #include "common/utils.h"
 
 #include "drivers/display.h"
+#include "drivers/display_canvas.h"
 #include "drivers/display_font_metadata.h"
 
 #include "io/displayport_frsky_osd.h"
@@ -154,6 +155,269 @@ static bool isReady(const displayPort_t *instance)
     return frskyOSDIsReady();
 }
 
+static void beginTransaction(displayPort_t *instance)
+{
+    UNUSED(instance);
+
+    frskyOSDBeginTransaction();
+}
+
+static void commitTransaction(displayPort_t *instance)
+{
+    UNUSED(instance);
+
+    frskyOSDCommitTransaction();
+}
+
+static frskyOSDColor_e frskyOSDGetColor(displayCanvasColor_e color)
+{
+    switch (color)
+    {
+        case DISPLAY_CANVAS_COLOR_BLACK:
+            return FRSKY_OSD_COLOR_BLACK;
+        case DISPLAY_CANVAS_COLOR_TRANSPARENT:
+            return FRSKY_OSD_COLOR_TRANSPARENT;
+        case DISPLAY_CANVAS_COLOR_WHITE:
+            return FRSKY_OSD_COLOR_WHITE;
+        case DISPLAY_CANVAS_COLOR_GRAY:
+            return FRSKY_OSD_COLOR_GRAY;
+    }
+    return FRSKY_OSD_COLOR_BLACK;
+}
+
+static void setStrokeColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetStrokeColor(frskyOSDGetColor(color));
+}
+
+static void setFillColor(displayCanvas_t *displayCanvas, displayCanvasColor_e color)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetFillColor(frskyOSDGetColor(color));
+}
+
+static void setColorInversion(displayCanvas_t *displayCanvas, bool inverted)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetColorInversion(inverted);
+}
+
+static void setPixel(displayCanvas_t *displayCanvas, int x, int y, displayCanvasColor_e color)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetPixel(x, y, frskyOSDGetColor(color));
+}
+
+static void setPixelToStrokeColor(displayCanvas_t *displayCanvas, int x, int y)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetPixelToStrokeColor(x, y);
+}
+
+static void setPixelToFillColor(displayCanvas_t *displayCanvas, int x, int y)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDSetPixelToFillColor(x, y);
+}
+
+static void clearRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDClearRect(x, y, w, h);
+}
+
+static void resetDrawingContext(displayCanvas_t *displayCanvas)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDResetDrawingContext();
+}
+
+static void drawCharacter(displayCanvas_t *displayCanvas, int x, int y, uint16_t chr, displayCanvasBitmapOption_t opts)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDDrawCharacter(x, y, chr, opts);
+}
+
+static void moveToPoint(displayCanvas_t *displayCanvas, int x, int y)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDMoveToPoint(x, y);
+}
+
+static void strokeLineToPoint(displayCanvas_t *displayCanvas, int x, int y)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDStrokeLineToPoint(x, y);
+}
+
+static void strokeTriangle(displayCanvas_t *displayCanvas, int x1, int y1, int x2, int y2, int x3, int y3)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDStrokeTriangle(x1, y1, x2, y2, x3, y3);
+}
+
+static void fillTriangle(displayCanvas_t *displayCanvas, int x1, int y1, int x2, int y2, int x3, int y3)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDFillTriangle(x1, y1, x2, y2, x3, y3);
+}
+
+static void fillStrokeTriangle(displayCanvas_t *displayCanvas, int x1, int y1, int x2, int y2, int x3, int y3)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDFillStrokeTriangle(x1, y1, x2, y2, x3, y3);
+}
+
+static void strokeRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDStrokeRect(x, y, w, h);
+}
+
+static void fillRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDFillRect(x, y, w, h);
+}
+
+static void fillStrokeRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDFillStrokeRect(x, y, w, h);
+}
+
+static void strokeEllipseInRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDStrokeEllipseInRect(x, y, w, h);
+}
+
+static void fillEllipseInRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDFillEllipseInRect(x, y, w, h);
+}
+
+static void fillStrokeEllipseInRect(displayCanvas_t *displayCanvas, int x, int y, int w, int h)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDFillStrokeEllipseInRect(x, y, w, h);
+}
+
+static void ctmReset(displayCanvas_t *displayCanvas)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDCtmReset();
+}
+
+static void ctmSet(displayCanvas_t *displayCanvas, float m11, float m12, float m21, float m22, float m31, float m32)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDCtmSet(m11, m12, m21, m22, m31, m32);
+}
+
+static void ctmTranslate(displayCanvas_t *displayCanvas, float tx, float ty)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDCtmTranslate(tx, ty);
+}
+
+static void ctmScale(displayCanvas_t *displayCanvas, float sx, float sy)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDCtmScale(sx, sy);
+}
+
+static void ctmRotate(displayCanvas_t *displayCanvas, float r)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDCtmRotate(r);
+}
+
+static void contextPush(displayCanvas_t *displayCanvas)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDContextPush();
+}
+
+static void contextPop(displayCanvas_t *displayCanvas)
+{
+    UNUSED(displayCanvas);
+
+    frskyOSDContextPop();
+}
+
+
+static const displayCanvasVTable_t frskyOSDCanvasVTable = {
+    .setStrokeColor = setStrokeColor,
+    .setFillColor = setFillColor,
+    .setColorInversion = setColorInversion,
+    .setPixel = setPixel,
+    .setPixelToStrokeColor = setPixelToStrokeColor,
+    .setPixelToFillColor = setPixelToFillColor,
+
+    .clearRect = clearRect,
+    .resetDrawingContext = resetDrawingContext,
+    .drawCharacter = drawCharacter,
+    .moveToPoint = moveToPoint,
+    .strokeLineToPoint = strokeLineToPoint,
+    .strokeTriangle = strokeTriangle,
+    .fillTriangle = fillTriangle,
+    .fillStrokeTriangle = fillStrokeTriangle,
+    .strokeRect = strokeRect,
+    .fillRect = fillRect,
+    .fillStrokeRect = fillStrokeRect,
+    .strokeEllipseInRect = strokeEllipseInRect,
+    .fillEllipseInRect = fillEllipseInRect,
+    .fillStrokeEllipseInRect = fillStrokeEllipseInRect,
+
+    .ctmReset = ctmReset,
+    .ctmSet = ctmSet,
+    .ctmTranslate = ctmTranslate,
+    .ctmScale = ctmScale,
+    .ctmRotate = ctmRotate,
+
+    .contextPush = contextPush,
+    .contextPop = contextPop,
+};
+
+static bool getCanvas(displayCanvas_t *canvas, const displayPort_t *instance)
+{
+    UNUSED(instance);
+
+    canvas->vTable = &frskyOSDCanvasVTable;
+    canvas->widthPixels = frskyOSDGetPixelWidth();
+    canvas->heightPixels = frskyOSDGetPixelHeight();
+    return true;
+}
+
 static const displayPortVTable_t frskyOSDVTable = {
     .grab = grab,
     .release = release,
@@ -171,6 +435,9 @@ static const displayPortVTable_t frskyOSDVTable = {
     .getFontMetadata = getFontMetadata,
     .writeFontCharacter = writeFontCharacter,
     .isReady = isReady,
+    .beginTransaction = beginTransaction,
+    .commitTransaction = commitTransaction,
+    .getCanvas = getCanvas,
 };
 
 displayPort_t *frskyOSDDisplayPortInit(const videoSystem_e videoSystem)

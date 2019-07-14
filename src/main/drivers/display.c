@@ -268,6 +268,25 @@ bool displayIsReady(const displayPort_t *instance)
     return true;
 }
 
+void displayBeginTransaction(displayPort_t *instance)
+{
+    if (instance->vTable->beginTransaction) {
+        instance->vTable->beginTransaction(instance);
+    }
+}
+
+void displayCommitTransaction(displayPort_t *instance)
+{
+    if (instance->vTable->commitTransaction) {
+        instance->vTable->commitTransaction(instance);
+    }
+}
+
+bool displayGetCanvas(displayCanvas_t *canvas, const displayPort_t *instance)
+{
+    return instance->vTable->getCanvas ? instance->vTable->getCanvas(canvas, instance) : false;
+}
+
 void displayInit(displayPort_t *instance, const displayPortVTable_t *vTable)
 {
     instance->vTable = vTable;
