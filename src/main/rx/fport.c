@@ -133,7 +133,6 @@ typedef struct fportBuffer_s {
     uint8_t length;
 } fportBuffer_t;
 
-static uint16_t rxLinkQuality;
 static fportBuffer_t rxBuffer[NUM_RX_BUFFERS];
 
 static volatile uint8_t rxBufferWriteIndex = 0;
@@ -279,7 +278,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                         reportFrameError(DEBUG_FPORT_ERROR_TYPE_SIZE);
                     } else {
                         result = sbusChannelsDecode(rxRuntimeConfig, &frame->data.controlData.channels);
-                        rxLinkQuality = scaleRange(frame->data.controlData.rssi, 0, 100, 0, RSSI_MAX_VALUE);
+                        lqTrackerSet(rxRuntimeConfig->lqTracker, scaleRange(frame->data.controlData.rssi, 0, 100, 0, RSSI_MAX_VALUE));
                         lastRcFrameReceivedMs = millis();
                     }
 
@@ -346,7 +345,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     }
 
     if (lastRcFrameReceivedMs && ((millis() - lastRcFrameReceivedMs) > FPORT_MAX_TELEMETRY_AGE_MS)) {
-        rxLinkQuality = 0;
+        lqTrackerSet(rxRuntimeConfig->lqTracker, 0);
         lastRcFrameReceivedMs = 0;
     }
 
@@ -384,12 +383,6 @@ static bool fportProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
     return true;
 }
 
-static uint16_t fportGetLinkQuality(const rxRuntimeConfig_t *rxRuntimeConfig)
-{
-    UNUSED(rxRuntimeConfig);
-    return rxLinkQuality;
-}
-
 bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
@@ -401,7 +394,6 @@ bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 
     rxRuntimeConfig->rcFrameStatusFn = fportFrameStatus;
     rxRuntimeConfig->rcProcessFrameFn = fportProcessFrame;
-    rxRuntimeConfig->rcGetLinkQuality = fportGetLinkQuality;
 
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
     if (!portConfig) {

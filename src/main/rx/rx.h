@@ -137,6 +137,13 @@ typedef uint8_t (*rcFrameStatusFnPtr)(rxRuntimeConfig_t *rxRuntimeConfig);
 typedef bool (*rcProcessFrameFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
 typedef uint16_t (*rcGetLinkQualityPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
 
+typedef struct rxLinkQualityTracker_s {
+    timeMs_t lastUpdatedMs;
+    uint32_t lqAccumulator;
+    uint32_t lqCount;
+    uint32_t lqValue;
+} rxLinkQualityTracker_e;
+
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
     timeUs_t rxRefreshRate;
@@ -145,7 +152,7 @@ typedef struct rxRuntimeConfig_s {
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
     rcProcessFrameFnPtr rcProcessFrameFn;
-    rcGetLinkQualityPtr rcGetLinkQuality;   // Function to get link quality as calculated by protocol driver
+    rxLinkQualityTracker_e * lqTracker;     // Pointer to a 
     uint16_t *channelData;
     void *frameData;
 } rxRuntimeConfig_t;
@@ -166,6 +173,11 @@ typedef enum {
 } rssiSource_e;
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+
+void lqTrackerReset(rxLinkQualityTracker_e * lqTracker);
+void lqTrackerAccumulate(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
+void lqTrackerSet(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
+uint16_t lqTrackerGet(rxLinkQualityTracker_e * lqTracker);
 
 void rxInit(void);
 void rxUpdateRSSISource(void);

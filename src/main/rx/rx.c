@@ -73,8 +73,11 @@ const char rcChannelLetters[] = "AERT";
 static uint16_t rssi = 0;                  // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
 
-#define MSP_RSSI_TIMEOUT_US 1500000   // 1.5 sec
+#define MSP_RSSI_TIMEOUT_US     1500000   // 1.5 sec
+#define RX_LQ_INTERVAL_MS       200
+#define RX_LQ_TIMEOUT_MS        1000
 
+static rxLinkQualityTracker_e rxLQTracker;
 static rssiSource_e activeRssiSource;
 
 static bool rxDataProcessingRequired = false;
@@ -171,12 +174,6 @@ static uint8_t nullFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     return RX_FRAME_PENDING;
 }
 
-static uint16_t nullLinkQuality(const rxRuntimeConfig_t *rxRuntimeConfig)
-{
-    UNUSED(rxRuntimeConfig);
-    return RSSI_MAX_VALUE;
-}
-
 bool isRxPulseValid(uint16_t pulseDuration)
 {
     return  pulseDuration >= rxConfig()->rx_min_usec &&
@@ -245,14 +242,16 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 
 void rxInit(void)
 {
+    lqTrackerReset(&rxLQTracker);
+
+    rxRuntimeConfig.lqTracker = &rxLQTracker;
     rxRuntimeConfig.rcReadRawFn = nullReadRawRC;
     rxRuntimeConfig.rcFrameStatusFn = nullFrameStatus;
-    rxRuntimeConfig.rcGetLinkQuality = nullLinkQuality;
     rxRuntimeConfig.rxSignalTimeout = DELAY_10_HZ;
     rxRuntimeConfig.requireFiltering = false;
     rcSampleIndex = 0;
 
-      timeMs_t nowMs = millis();
+    timeMs_t nowMs = millis();
 
     for (int i = 0; i < MAX_SUPPORTED_RC_CHANNEL_COUNT; i++) {
         rcChannels[i].raw = PWM_RANGE_MIDDLE;
@@ -369,44 +368,6 @@ void rxUpdateRSSISource(void)
         activeRssiSource = RSSI_SOURCE_RX_PROTOCOL;
         return;
     }
-
-
-/*
-    bool serialProtocolSupportsRSSI = false;
-    switch (rxConfig()->receiverType) {
-#if defined(USE_SERIAL_RX)
-    case RX_TYPE_SERIAL:
-        switch (rxConfig()->serialrx_provider) {
-#if defined(USE_SERIALRX_FPORT)
-        case SERIALRX_FPORT:
-            serialProtocolSupportsRSSI = true;
-            break;
-#endif
-        default:
-            break;
-        }
-        break;
-#endif
-#if defined(USE_RX_SPI)
-    case RX_TYPE_SPI:
-        switch (rxConfig()->rx_spi_protocol) {
-#if defined(USE_RX_ELERES)
-        case RFM22_ELERES:
-            serialProtocolSupportsRSSI = true;
-            break;
-        break;
-#endif
-        default:
-            break;
-        }
-#endif
-        break;
-    }
-    if (serialProtocolSupportsRSSI) {
-        rssiSource = RSSI_SOURCE_RX_PROTOCOL;
-        return;
-    }
-*/
 }
 
 uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap)
@@ -688,13 +649,7 @@ static void updateRSSIFromADC(void)
 
 static void updateRSSIFromProtocol(void)
 {
-    if (rxRuntimeConfig.rcGetLinkQuality) {
-        const uint16_t protocolLQ = rxRuntimeConfig.rcGetLinkQuality(&rxRuntimeConfig);
-        setRSSIValue(protocolLQ, RSSI_SOURCE_RX_PROTOCOL, false);
-    }
-    else {
-        setRSSIValue(0, RSSI_SOURCE_RX_PROTOCOL, false);
-    }
+    setRSSIValue(lqTrackerGet(&rxLQTracker), RSSI_SOURCE_RX_PROTOCOL, false);
 }
 
 void updateRSSI(timeUs_t currentTimeUs)
@@ -744,4 +699,41 @@ int16_t rxGetChannelValue(unsigned channelNumber)
 int16_t rxGetRawChannelValue(unsigned channelNumber)
 {
     return rcChannels[channelNumber].raw;
+}
+
+void lqTrackerReset(rxLinkQualityTracker_e * lqTracker)
+{
+    lqTracker->lastUpdatedMs = millis();
+    lqTracker->lqAccumulator = 0;
+    lqTracker->lqCount = 0;
+    lqTracker->lqValue = 0;
+}
+
+void lqTrackerAccumulate(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue)
+{
+    const timeMs_t currentTimeMs = millis();
+
+    if (((currentTimeMs - lqTracker->lastUpdatedMs) > RX_LQ_INTERVAL_MS) && lqTracker->lqCount) {
+        lqTrackerSet(lqTracker, lqTracker->lqAccumulator / lqTracker->lqCount);
+        lqTracker->lqAccumulator = 0;
+        lqTracker->lqCount = 0;
+    }
+
+    lqTracker->lqAccumulator += rawValue;
+    lqTracker->lqCount += 1;
+}
+
+void lqTrackerSet(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue)
+{
+    lqTracker->lqValue = rawValue;
+    lqTracker->lastUpdatedMs = millis();
+}
+
+uint16_t lqTrackerGet(rxLinkQualityTracker_e * lqTracker)
+{
+    if ((millis() - lqTracker->lastUpdatedMs) > RX_LQ_TIMEOUT_MS) {
+        lqTracker->lqValue = 0;
+    }
+
+    return lqTracker->lqValue;
 }
