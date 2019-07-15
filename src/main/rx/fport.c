@@ -133,6 +133,7 @@ typedef struct fportBuffer_s {
     uint8_t length;
 } fportBuffer_t;
 
+static uint16_t rxLinkQuality;
 static fportBuffer_t rxBuffer[NUM_RX_BUFFERS];
 
 static volatile uint8_t rxBufferWriteIndex = 0;
@@ -278,9 +279,7 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                         reportFrameError(DEBUG_FPORT_ERROR_TYPE_SIZE);
                     } else {
                         result = sbusChannelsDecode(rxRuntimeConfig, &frame->data.controlData.channels);
-
-                        setRSSI(scaleRange(frame->data.controlData.rssi, 0, 100, 0, RSSI_MAX_VALUE), RSSI_SOURCE_RX_PROTOCOL, false);
-
+                        rxLinkQuality = scaleRange(frame->data.controlData.rssi, 0, 100, 0, RSSI_MAX_VALUE);
                         lastRcFrameReceivedMs = millis();
                     }
 
@@ -343,12 +342,11 @@ static uint8_t fportFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
     if ((mspPayload || hasTelemetryRequest) && cmpTimeUs(micros(), lastTelemetryFrameReceivedUs) >= FPORT_MIN_TELEMETRY_RESPONSE_DELAY_US) {
         hasTelemetryRequest = false;
-
         result = (result & ~RX_FRAME_PENDING) | RX_FRAME_PROCESSING_REQUIRED;
     }
 
     if (lastRcFrameReceivedMs && ((millis() - lastRcFrameReceivedMs) > FPORT_MAX_TELEMETRY_AGE_MS)) {
-        setRSSI(0, RSSI_SOURCE_RX_PROTOCOL, true);
+        rxLinkQuality = 0;
         lastRcFrameReceivedMs = 0;
     }
 
@@ -386,6 +384,12 @@ static bool fportProcessFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
     return true;
 }
 
+static uint16_t fportGetLinkQuality(const rxRuntimeConfig_t *rxRuntimeConfig)
+{
+    UNUSED(rxRuntimeConfig);
+    return rxLinkQuality;
+}
+
 bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
@@ -397,6 +401,7 @@ bool fportRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 
     rxRuntimeConfig->rcFrameStatusFn = fportFrameStatus;
     rxRuntimeConfig->rcProcessFrameFn = fportProcessFrame;
+    rxRuntimeConfig->rcGetLinkQuality = fportGetLinkQuality;
 
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
     if (!portConfig) {

@@ -65,6 +65,9 @@
 #define SBUS_DIGITAL_CHANNEL_MIN 173
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
 
+#define SBUS_LQ_INTERVAL_MS      200
+
+
 enum {
     DEBUG_SBUS_INTERFRAME_TIME = 0,
     DEBUG_SBUS_FRAME_FLAGS = 1,
@@ -97,6 +100,10 @@ typedef struct sbusFrameData_s {
     uint8_t buffer[SBUS_FRAME_SIZE];
     uint8_t position;
     timeUs_t lastActivityTimeUs;
+    uint16_t lqValue;
+    uint32_t lqTotalFrames;
+    uint32_t lqGoodFrames;
+    timeMs_t lqLastUpdateMs;
 } sbusFrameData_t;
 
 STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_match_sbusFrame_t);
@@ -171,6 +178,16 @@ static void sbusDataReceive(uint16_t c, void *data)
 static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     sbusFrameData_t *sbusFrameData = rxRuntimeConfig->frameData;
+
+    // Re-calculate "virtual link quality"
+    const timeMs_t currentTimeMs = millis();
+    if ((currentTimeMs - sbusFrameData->lqLastUpdateMs) > SBUS_LQ_INTERVAL_MS) {
+        sbusFrameData->lqValue = (sbusFrameData->lqTotalFrames > 0) ? RSSI_MAX_VALUE * sbusFrameData->lqGoodFrames / sbusFrameData->lqTotalFrames : 0;
+        sbusFrameData->lqTotalFrames = 0;
+        sbusFrameData->lqGoodFrames = 0;
+        sbusFrameData->lqLastUpdateMs = currentTimeMs;
+    }
+
     if (!sbusFrameData->frameDone) {
         return RX_FRAME_PENDING;
     }
@@ -181,7 +198,19 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     // Reset the frameDone flag - tell ISR that we're ready to receive next frame
     sbusFrameData->frameDone = false;
 
+    // Calculate "virtual link quality based on packet loss metric"
+    if (retValue & RX_FRAME_COMPLETE) {
+        sbusFrameData->lqTotalFrames++;
+        sbusFrameData->lqGoodFrames += ((retValue & RX_FRAME_DROPPED) || (retValue & RX_FRAME_FAILSAFE)) ? 0 : 1;
+    }
+
     return retValue;
+}
+
+static uint16_t sbusGetLinkQuality(const rxRuntimeConfig_t *rxRuntimeConfig)
+{
+    sbusFrameData_t *sbusFrameData = rxRuntimeConfig->frameData;
+    return sbusFrameData->lqValue;
 }
 
 bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
@@ -189,14 +218,21 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
     static sbusFrameData_t sbusFrameData;
 
+    sbusFrameData.lqValue = 0;
+    sbusFrameData.lqTotalFrames = 0;
+    sbusFrameData.lqGoodFrames = 0;
+    sbusFrameData.lqLastUpdateMs = 0;
+
     rxRuntimeConfig->channelData = sbusChannelData;
     rxRuntimeConfig->frameData = &sbusFrameData;
+
     sbusChannelsInit(rxRuntimeConfig);
 
     rxRuntimeConfig->channelCount = SBUS_MAX_CHANNEL;
     rxRuntimeConfig->rxRefreshRate = 11000;
 
     rxRuntimeConfig->rcFrameStatusFn = sbusFrameStatus;
+    rxRuntimeConfig->rcGetLinkQuality = sbusGetLinkQuality;
 
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
     if (!portConfig) {
