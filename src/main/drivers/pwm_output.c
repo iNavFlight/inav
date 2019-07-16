@@ -83,11 +83,11 @@ typedef struct {
 
 static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
-static pwmOutputMotor_t        motors[MAX_PWM_MOTORS];
+static pwmOutputMotor_t        motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
 static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write value to motors
 
-static pwmOutputPort_t *       servos[MAX_PWM_SERVOS];
+static pwmOutputPort_t *       servos[MAX_SERVOS];
 static pwmWriteFuncPtr         servoWritePtr = NULL;    // Function to write value to motors
 
 #if defined(USE_DSHOT) || defined(USE_SERIALSHOT)
