@@ -50,10 +50,11 @@
 #define RSSI_MAX_VALUE 1023
 
 typedef enum {
-    RX_FRAME_PENDING = 0,               // No new data available from receiver
-    RX_FRAME_COMPLETE = (1 << 0),       // There is new data available
-    RX_FRAME_FAILSAFE = (1 << 1),       // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
+    RX_FRAME_PENDING = 0,                       // No new data available from receiver
+    RX_FRAME_COMPLETE = (1 << 0),               // There is new data available
+    RX_FRAME_FAILSAFE = (1 << 1),               // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
     RX_FRAME_PROCESSING_REQUIRED = (1 << 2),
+    RX_FRAME_DROPPED = (1 << 3),                // Receiver detected dropped frame. Not loss of link yet.
 } rxFrameState_e;
 
 typedef enum {
@@ -123,6 +124,7 @@ typedef struct rxConfig_s {
     uint16_t rx_max_usec;
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
     uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
+    uint8_t rssi_source;
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);
@@ -133,6 +135,14 @@ typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
 typedef uint8_t (*rcFrameStatusFnPtr)(rxRuntimeConfig_t *rxRuntimeConfig);
 typedef bool (*rcProcessFrameFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
+typedef uint16_t (*rcGetLinkQualityPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
+
+typedef struct rxLinkQualityTracker_s {
+    timeMs_t lastUpdatedMs;
+    uint32_t lqAccumulator;
+    uint32_t lqCount;
+    uint32_t lqValue;
+} rxLinkQualityTracker_e;
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
@@ -142,6 +152,7 @@ typedef struct rxRuntimeConfig_s {
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
     rcProcessFrameFnPtr rcProcessFrameFn;
+    rxLinkQualityTracker_e * lqTracker;     // Pointer to a 
     uint16_t *channelData;
     void *frameData;
 } rxRuntimeConfig_t;
@@ -154,6 +165,7 @@ typedef struct rcChannel_s {
 
 typedef enum {
     RSSI_SOURCE_NONE = 0,
+    RSSI_SOURCE_AUTO,
     RSSI_SOURCE_ADC,
     RSSI_SOURCE_RX_CHANNEL,
     RSSI_SOURCE_RX_PROTOCOL,
@@ -161,6 +173,11 @@ typedef enum {
 } rssiSource_e;
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
+
+void lqTrackerReset(rxLinkQualityTracker_e * lqTracker);
+void lqTrackerAccumulate(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
+void lqTrackerSet(rxLinkQualityTracker_e * lqTracker, uint16_t rawValue);
+uint16_t lqTrackerGet(rxLinkQualityTracker_e * lqTracker);
 
 void rxInit(void);
 void rxUpdateRSSISource(void);
@@ -173,9 +190,6 @@ bool isRxPulseValid(uint16_t pulseDuration);
 uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap);
 void parseRcChannels(const char *input);
 
-// filtered = true indicates that newRssi comes from a source which already does
-// filtering and no further filtering should be performed in the value.
-void setRSSI(uint16_t newRssi, rssiSource_e source, bool filtered);
 void setRSSIFromMSP(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
 // Returns RSSI in [0, RSSI_MAX_VALUE] range.

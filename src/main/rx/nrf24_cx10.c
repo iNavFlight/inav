@@ -196,7 +196,7 @@ static bool cx10ReadPayloadIfAvailable(uint8_t *payload)
  * This is called periodically by the scheduler.
  * Returns RX_SPI_RECEIVED_DATA if a data packet was received.
  */
-rx_spi_received_e cx10Nrf24DataReceived(uint8_t *payload)
+rx_spi_received_e cx10Nrf24DataReceived(uint8_t *payload, uint16_t *linkQuality)
 {
     static uint8_t ackCount;
     rx_spi_received_e ret = RX_SPI_RECEIVED_NONE;
