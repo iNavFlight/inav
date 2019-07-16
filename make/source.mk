@@ -21,9 +21,10 @@ COMMON_SRC = \
             common/olc.c \
             common/printf.c \
             common/streambuf.c \
+            common/string_light.c \
             common/time.c \
             common/typeconversion.c \
-            common/string_light.c \
+            common/uvarint.c \
             config/config_eeprom.c \
             config/config_streamer.c \
             config/feature.c \
