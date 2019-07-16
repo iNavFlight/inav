@@ -133,7 +133,11 @@ LoopMarkHeapStack:
 
 /* Call the clock system intitialization function.*/
   bl  SystemInit
-/* Call the application's entry point.*/
+
+/* Call static constructors */
+  bl  __libc_init_array
+
+/* Call the application entry point */
   bl  main
   bx  lr
 

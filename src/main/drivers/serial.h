@@ -23,6 +23,8 @@ typedef struct {
     ioTag_t txPin;
 } serialPortPins_t;
 
+#include <common/base.h>
+
 typedef enum portMode_t {
     MODE_RX = 1 << 0,
     MODE_TX = 1 << 1,
@@ -100,19 +102,19 @@ struct serialPortVTable {
     void (*endWrite)(serialPort_t *instance);
 };
 
-void serialWrite(serialPort_t *instance, uint8_t ch);
-uint32_t serialRxBytesWaiting(const serialPort_t *instance);
-uint32_t serialTxBytesFree(const serialPort_t *instance);
-void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count);
-uint8_t serialRead(serialPort_t *instance);
-void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate);
-void serialSetMode(serialPort_t *instance, portMode_t mode);
-bool isSerialTransmitBufferEmpty(const serialPort_t *instance);
-void serialPrint(serialPort_t *instance, const char *str);
-uint32_t serialGetBaudRate(serialPort_t *instance);
-bool serialIsConnected(const serialPort_t *instance);
+EXTERN_C void serialWrite(serialPort_t *instance, uint8_t ch);
+EXTERN_C uint32_t serialRxBytesWaiting(const serialPort_t *instance);
+EXTERN_C uint32_t serialTxBytesFree(const serialPort_t *instance);
+EXTERN_C void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count);
+EXTERN_C uint8_t serialRead(serialPort_t *instance);
+EXTERN_C void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate);
+EXTERN_C void serialSetMode(serialPort_t *instance, portMode_t mode);
+EXTERN_C bool isSerialTransmitBufferEmpty(const serialPort_t *instance);
+EXTERN_C void serialPrint(serialPort_t *instance, const char *str);
+EXTERN_C uint32_t serialGetBaudRate(serialPort_t *instance);
+EXTERN_C bool serialIsConnected(const serialPort_t *instance);
 
 // A shim that adapts the bufWriter API to the serialWriteBuf() API.
-void serialWriteBufShim(void *instance, const uint8_t *data, int count);
-void serialBeginWrite(serialPort_t *instance);
-void serialEndWrite(serialPort_t *instance);
+EXTERN_C void serialWriteBufShim(void *instance, const uint8_t *data, int count);
+EXTERN_C void serialBeginWrite(serialPort_t *instance);
+EXTERN_C void serialEndWrite(serialPort_t *instance);

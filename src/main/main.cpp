@@ -18,7 +18,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform.h"
+#include <platform.h>
+#include <common/base.h>
+
 #include "build/debug.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
@@ -30,7 +32,6 @@
 #ifdef SOFTSERIAL_LOOPBACK
 serialPort_t *loopbackPort;
 #endif
-
 
 static void loopbackInit(void)
 {
@@ -53,7 +54,19 @@ static void processLoopback(void)
 #endif
 }
 
-int main(void)
+/* CRT init function, called by __libc_init_array() before passing control to main */
+extern "C" void __attribute__ ((weak)) _init(void)
+{
+}
+
+/* Prevent demangle from being pulled in */
+extern "C" void __cxa_pure_virtual(void)
+{
+    // FIXME: Crash safely here
+    while (true);
+}
+
+extern "C" int main(void)
 {
     init();
     loopbackInit();
