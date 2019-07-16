@@ -390,11 +390,6 @@ static bool sdcardSdio_poll(void)
  */
 static sdcardOperationStatus_e sdcardSdio_writeBlock(uint32_t blockIndex, uint8_t *buffer, sdcard_operationCompleteCallback_c callback, uint32_t callbackData)
 {
-
-#ifdef SDCARD_PROFILING
-    sdcard.pendingOperation.profileStartTime = micros();
-#endif
-
     doMore:
     switch (sdcard.state) {
         case SDCARD_STATE_WRITING_MULTIPLE_BLOCKS:

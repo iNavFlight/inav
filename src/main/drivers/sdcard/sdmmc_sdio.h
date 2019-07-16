@@ -28,7 +28,10 @@
 
 #include <stdint.h>
 
+#if defined(USE_SDCARD_SDIO)
+
 #include "platform.h"
+
 #ifdef STM32F4
 #include "stm32f4xx.h"
 #endif
@@ -181,7 +184,6 @@ typedef struct
     uint16_t ManufactDate;              // Manufacturing Date
     uint8_t  CID_CRC;                   // CID CRC
     uint8_t  Reserved2;                 // Always 1
-
 } SD_CID_t;
 
 typedef enum
@@ -223,3 +225,5 @@ SD_Error_t SD_CheckWrite(void);
 
 SD_Error_t SD_Erase(uint64_t StartAddress, uint64_t EndAddress);
 SD_Error_t SD_GetCardStatus(SD_CardStatus_t* pCardStatus);
+
+#endif
