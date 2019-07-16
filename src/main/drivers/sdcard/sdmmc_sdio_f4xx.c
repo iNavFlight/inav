@@ -20,8 +20,11 @@
 
 /*
  * Original author: Alain (https://github.com/aroyer-qc)
- * Modified for BF source: Chris Hockuba (https://github.com/conkerkh)
+ * Modified for F4 and BF source: Chris Hockuba (https://github.com/conkerkh)
  * Modified for INAV: Konstantin (https://github.com/digitalentity)
+ *
+ * Note: On F4 due to DMA issues it is recommended that motor timers don't run on DMA2.
+ *         Therefore avoid using TIM1/TIM8, use TIM2/TIM3/TIM4/TIM5/TIM6/TIM7
  */
 
 /* Include(s) -------------------------------------------------------------------------------------------------------*/
@@ -34,7 +37,7 @@
 #ifdef USE_SDCARD_SDIO
 
 #include "sdmmc_sdio.h"
-#include "stm32f7xx.h"
+#include "stm32f4xx_gpio.h"
 
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
@@ -48,17 +51,15 @@
 
 /* Define(s) --------------------------------------------------------------------------------------------------------*/
 
-//#define DMA_CHANNEL_4                   ((uint32_t)0x08000000)
+#define DMA_CHANNEL_4                   ((uint32_t)0x08000000)
 #define DMA_MEMORY_TO_PERIPH            ((uint32_t)DMA_SxCR_DIR_0)
-
-//#define DMA_PERIPH_TO_MEMORY            ((uint32_t)0x00)
+#define DMA_PERIPH_TO_MEMORY            ((uint32_t)0x00)
 #define DMA_MINC_ENABLE                 ((uint32_t)DMA_SxCR_MINC)
 #define DMA_MDATAALIGN_WORD             ((uint32_t)DMA_SxCR_MSIZE_1)
 #define DMA_PDATAALIGN_WORD             ((uint32_t)DMA_SxCR_PSIZE_1)
-#define DMA_PRIORITY_LOW                ((uint32_t)0x00000000U)
-#define DMA_PRIORITY_MEDIUM             ((uint32_t)DMA_SxCR_PL_0)
-#define DMA_PRIORITY_HIGH               ((uint32_t)DMA_SxCR_PL_1)
-#define DMA_PRIORITY_VERY_HIGH          ((uint32_t)DMA_SxCR_PL)
+#define DMA_PRIORITY_MEDIUM             ((uint32_t)DMA_Priority_Medium)
+#define DMA_PRIORITY_HIGH               ((uint32_t)DMA_Priority_High)
+#define DMA_PRIORITY_VERY_HIGH          ((uint32_t)DMA_Priority_VeryHigh)
 #define DMA_MBURST_INC4                 ((uint32_t)DMA_SxCR_MBURST_0)
 #define DMA_PBURST_INC4                 ((uint32_t)DMA_SxCR_PBURST_0)
 
@@ -67,10 +68,10 @@
 #define IFCR_CLEAR_MASK_STREAM3         (DMA_LIFCR_CTCIF3 | DMA_LIFCR_CHTIF3 | DMA_LIFCR_CTEIF3 | DMA_LIFCR_CDMEIF3 | DMA_LIFCR_CFEIF3)
 #define IFCR_CLEAR_MASK_STREAM6         (DMA_HIFCR_CTCIF6 | DMA_HIFCR_CHTIF6 | DMA_HIFCR_CTEIF6 | DMA_HIFCR_CDMEIF6 | DMA_HIFCR_CFEIF6)
 
-#define SDMMC_ICR_STATIC_FLAGS          ((uint32_t)(SDMMC_ICR_CCRCFAILC | SDMMC_ICR_DCRCFAILC | SDMMC_ICR_CTIMEOUTC |\
-                                                    SDMMC_ICR_DTIMEOUTC | SDMMC_ICR_TXUNDERRC | SDMMC_ICR_RXOVERRC  |\
-                                                    SDMMC_ICR_CMDRENDC  | SDMMC_ICR_CMDSENTC  | SDMMC_ICR_DATAENDC  |\
-                                                    SDMMC_ICR_DBCKENDC))
+#define SDIO_ICR_STATIC_FLAGS          ((uint32_t)(SDIO_ICR_CCRCFAILC | SDIO_ICR_DCRCFAILC | SDIO_ICR_CTIMEOUTC |\
+                                                    SDIO_ICR_DTIMEOUTC | SDIO_ICR_TXUNDERRC | SDIO_ICR_RXOVERRC  |\
+                                                    SDIO_ICR_CMDRENDC  | SDIO_ICR_CMDSENTC  | SDIO_ICR_DATAENDC  |\
+                                                    SDIO_ICR_DBCKENDC))
 
 #define SD_SOFTWARE_COMMAND_TIMEOUT     ((uint32_t)0x00020000)
 
@@ -119,34 +120,34 @@
 
 #define SD_CCCC_ERASE                   ((uint32_t)0x00000020)
 
-#define SD_SDMMC_SEND_IF_COND           ((uint32_t)SD_CMD_HS_SEND_EXT_CSD)
+#define SD_SDIO_SEND_IF_COND           ((uint32_t)SD_CMD_HS_SEND_EXT_CSD)
 
 
 
 #define SD_BUS_WIDE_1B                  ((uint32_t)0x00000000)
-#define SD_BUS_WIDE_4B                  SDMMC_CLKCR_WIDBUS_0
-#define SD_BUS_WIDE_8B                  SDMMC_CLKCR_WIDBUS_1
+#define SD_BUS_WIDE_4B                  SDIO_CLKCR_WIDBUS_0
+#define SD_BUS_WIDE_8B                  SDIO_CLKCR_WIDBUS_1
 
-#define SD_CMD_RESPONSE_SHORT           SDMMC_CMD_WAITRESP_0
-#define SD_CMD_RESPONSE_LONG            SDMMC_CMD_WAITRESP
+#define SD_CMD_RESPONSE_SHORT           SDIO_CMD_WAITRESP_0
+#define SD_CMD_RESPONSE_LONG            SDIO_CMD_WAITRESP
 
-#define SD_DATABLOCK_SIZE_8B            (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_1)
-#define SD_DATABLOCK_SIZE_64B           (SDMMC_DCTRL_DBLOCKSIZE_1|SDMMC_DCTRL_DBLOCKSIZE_2)
-#define SD_DATABLOCK_SIZE_512B          (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_3)
+#define SD_DATABLOCK_SIZE_8B            (SDIO_DCTRL_DBLOCKSIZE_0|SDIO_DCTRL_DBLOCKSIZE_1)
+#define SD_DATABLOCK_SIZE_64B           (SDIO_DCTRL_DBLOCKSIZE_1|SDIO_DCTRL_DBLOCKSIZE_2)
+#define SD_DATABLOCK_SIZE_512B          (SDIO_DCTRL_DBLOCKSIZE_0|SDIO_DCTRL_DBLOCKSIZE_3)
 
-#define CLKCR_CLEAR_MASK                ((uint32_t)(SDMMC_CLKCR_CLKDIV  | SDMMC_CLKCR_PWRSAV |\
-                                                    SDMMC_CLKCR_BYPASS  | SDMMC_CLKCR_WIDBUS |\
-                                                    SDMMC_CLKCR_NEGEDGE | SDMMC_CLKCR_HWFC_EN))
+#define CLKCR_CLEAR_MASK                ((uint32_t)(SDIO_CLKCR_CLKDIV  | SDIO_CLKCR_PWRSAV |\
+                                                    SDIO_CLKCR_BYPASS  | SDIO_CLKCR_WIDBUS |\
+                                                    SDIO_CLKCR_NEGEDGE | SDIO_CLKCR_HWFC_EN))
 
-#define DCTRL_CLEAR_MASK                ((uint32_t)(SDMMC_DCTRL_DTEN    | SDMMC_DCTRL_DTDIR |\
-                                                    SDMMC_DCTRL_DTMODE  | SDMMC_DCTRL_DBLOCKSIZE))
+#define DCTRL_CLEAR_MASK                ((uint32_t)(SDIO_DCTRL_DTEN    | SDIO_DCTRL_DTDIR |\
+                                                    SDIO_DCTRL_DTMODE  | SDIO_DCTRL_DBLOCKSIZE))
 
-#define CMD_CLEAR_MASK                  ((uint32_t)(SDMMC_CMD_CMDINDEX | SDMMC_CMD_WAITRESP |\
-                                                    SDMMC_CMD_WAITINT  | SDMMC_CMD_WAITPEND |\
-                                                    SDMMC_CMD_CPSMEN   | SDMMC_CMD_SDMMC1SUSPEND))
+#define CMD_CLEAR_MASK                  ((uint32_t)(SDIO_CMD_CMDINDEX | SDIO_CMD_WAITRESP |\
+                                                    SDIO_CMD_WAITINT  | SDIO_CMD_WAITPEND |\
+                                                    SDIO_CMD_CPSMEN   | SDIO_CMD_SDIOSUSPEND))
 
-#define SDMMC_INIT_CLK_DIV              ((uint8_t)0x76)
-#define SDMMC_CLK_DIV                   ((uint8_t)0x00)
+#define SDIO_INIT_CLK_DIV              ((uint8_t)0x76)
+#define SDIO_CLK_DIV                   ((uint8_t)0x00)
 
 
 #define SD_CMD_GO_IDLE_STATE            ((uint8_t)0)   // Resets the SD memory card.
@@ -180,7 +181,7 @@
                                                        // than a standard command.
 
 /* Following commands are SD Card Specific commands.
-   SDMMC_APP_CMD should be sent before sending these commands. */
+   SDIO_APP_CMD should be sent before sending these commands. */
 #define SD_CMD_APP_SD_SET_BUSWIDTH      ((uint8_t)6)   // (ACMD6) Defines the data bus width to be used for data transfer. The allowed data bus
                                                        // widths are given in SCR register.
 #define SD_CMD_SD_APP_STATUS            ((uint8_t)13)  // (ACMD13) Sends the SD status.
@@ -188,10 +189,10 @@
                                                        // send its operating condition register (OCR) content in the response on the CMD line.
 #define SD_CMD_SD_APP_SEND_SCR          ((uint8_t)51)  // Reads the SD Configuration Register (SCR).
 
-#define SDMMC_DIR_TX 1
-#define SDMMC_DIR_RX 0
+#define SDIO_DIR_TX 1
+#define SDIO_DIR_RX 0
 
-#define SDMMC_DMA_ST3 1
+#define SDIO_DMA_ST3 1
 
 
 /* Typedef(s) -------------------------------------------------------------------------------------------------------*/
@@ -250,11 +251,11 @@ static SD_Error_t       SD_PowerON                  (void);
 static SD_Error_t       SD_WideBusOperationConfig   (uint32_t WideMode);
 static SD_Error_t       SD_FindSCR                  (uint32_t *pSCR);
 
-void SDMMC_DMA_ST3_IRQHandler(dmaChannelDescriptor_t *dma);
-void SDMMC_DMA_ST6_IRQHandler(dmaChannelDescriptor_t *dma);
+void SDIO_DMA_ST3_IRQHandler(dmaChannelDescriptor_t *dma);
+void SDIO_DMA_ST6_IRQHandler(dmaChannelDescriptor_t *dma);
 
 /** -----------------------------------------------------------------------------------------------------------------*/
-/**     DataTransferInit
+/**   DataTransferInit
   *
   * @brief  Prepare the state machine for transfer
   * @param  SD_TransferType_e   TransfertDir
@@ -264,18 +265,17 @@ static void SD_DataTransferInit(uint32_t Size, uint32_t DataBlockSize, bool IsIt
 {
     uint32_t Direction;
 
-    SDMMC1->DTIMER = SD_DATATIMEOUT;       // Set the SDMMC1 Data TimeOut value
-    SDMMC1->DLEN   = Size;                  // Set the SDMMC1 DataLength value
-    Direction      = (IsItReadFromCard == true) ? SDMMC_DCTRL_DTDIR : 0;
-    SDMMC1->DCTRL |=  (uint32_t)(DataBlockSize | Direction | SDMMC_DCTRL_DTEN | 0x01);
+    SDIO->DTIMER = SD_DATATIMEOUT;       // Set the SDIO Data TimeOut value
+    SDIO->DLEN   = Size;                  // Set the SDIO DataLength value
+    Direction      = (IsItReadFromCard == true) ? SDIO_DCTRL_DTDIR : 0;
+    SDIO->DCTRL |=  (uint32_t)(DataBlockSize | Direction | SDIO_DCTRL_DTEN | 0x01);
     return;
 }
 
-
 /** -----------------------------------------------------------------------------------------------------------------*/
-/**     SD_TransmitCommand
+/**   SD_TransmitCommand
   *
-  * @brief  Send the commande to SDMMC1
+  * @brief  Send the commande to SDIO
   * @param  uint32_t Command
   * @param  uint32_t Argument              Must provide the response size
   * @param  uint8_t ResponseType
@@ -285,20 +285,19 @@ static SD_Error_t SD_TransmitCommand(uint32_t Command, uint32_t Argument, int8_t
 {
     SD_Error_t ErrorState;
 
-    WRITE_REG(SDMMC1->ICR, SDMMC_ICR_STATIC_FLAGS);                               // Clear the Command Flags
-    WRITE_REG(SDMMC1->ARG, (uint32_t)Argument);                                   // Set the SDMMC1 Argument value
-    WRITE_REG(SDMMC1->CMD, (uint32_t)(Command | SDMMC_CMD_CPSMEN));               // Set SDMMC1 command parameters
+    WRITE_REG(SDIO->ICR, SDIO_ICR_STATIC_FLAGS);                               // Clear the Command Flags
+    WRITE_REG(SDIO->ARG, (uint32_t)Argument);                                   // Set the SDIO Argument value
+    WRITE_REG(SDIO->CMD, (uint32_t)(Command | SDIO_CMD_CPSMEN));               // Set SDIO command parameters
 
     if ((Argument == 0) && (ResponseType == 0)) {
        ResponseType = -1;                                                         // Go idle command
     }
 
-    ErrorState  = SD_CmdResponse(Command & SDMMC_CMD_CMDINDEX, ResponseType);
-    WRITE_REG(SDMMC1->ICR, SDMMC_ICR_STATIC_FLAGS);                               // Clear the Command Flags
+    ErrorState  = SD_CmdResponse(Command & SDIO_CMD_CMDINDEX, ResponseType);
+    WRITE_REG(SDIO->ICR, SDIO_ICR_STATIC_FLAGS);                               // Clear the Command Flags
 
     return ErrorState;
 }
-
 
 /** -----------------------------------------------------------------------------------------------------------------*/
 /**
@@ -316,20 +315,19 @@ static SD_Error_t SD_CmdResponse(uint8_t SD_CMD, int8_t ResponseType)
     uint32_t Flag;
 
     if (ResponseType == -1) {
-        Flag = SDMMC_STA_CMDSENT;
-    }
-    else {
-        Flag = SDMMC_STA_CCRCFAIL | SDMMC_STA_CMDREND | SDMMC_STA_CTIMEOUT;
+        Flag = SDIO_STA_CMDSENT;
+    } else {
+        Flag = SDIO_STA_CCRCFAIL | SDIO_STA_CMDREND | SDIO_STA_CTIMEOUT;
     }
 
     TimeOut = SD_SOFTWARE_COMMAND_TIMEOUT;
     do {
-        SD_Status = SDMMC1->STA;
+        SD_Status = SDIO->STA;
         TimeOut--;
     } while (((SD_Status & Flag) == 0) && (TimeOut > 0));
 
     if (ResponseType <= 0) {
-        if (TimeOut == 0){
+        if (TimeOut == 0) {
             return SD_CMD_RSP_TIMEOUT;
         }
         else {
@@ -337,9 +335,10 @@ static SD_Error_t SD_CmdResponse(uint8_t SD_CMD, int8_t ResponseType)
         }
     }
 
-    if ((SDMMC1->STA & SDMMC_STA_CTIMEOUT) != 0) {
+    if ((SDIO->STA & SDIO_STA_CTIMEOUT) != 0) {
         return SD_CMD_RSP_TIMEOUT;
     }
+
     if (ResponseType == 3) {
         if (TimeOut == 0) {
             return SD_CMD_RSP_TIMEOUT;  // Card is not V2.0 compliant or card does not support the set voltage range
@@ -349,17 +348,19 @@ static SD_Error_t SD_CmdResponse(uint8_t SD_CMD, int8_t ResponseType)
         }
     }
 
-    if ((SDMMC1->STA & SDMMC_STA_CCRCFAIL) != 0) {
+    if ((SDIO->STA & SDIO_STA_CCRCFAIL) != 0) {
         return SD_CMD_CRC_FAIL;
     }
+
     if (ResponseType == 2) {
         return SD_OK;
     }
-    if ((uint8_t)SDMMC1->RESPCMD != SD_CMD) {
+
+    if ((uint8_t)SDIO->RESPCMD != SD_CMD) {
         return SD_ILLEGAL_CMD;      // Check if response is of desired command
     }
 
-    Response_R1 = SDMMC1->RESP1;                    // We have received response, retrieve it for analysis
+    Response_R1 = SDIO->RESP1;                    // We have received response, retrieve it for analysis
 
     if (ResponseType == 1) {
         return CheckOCR_Response(Response_R1);
@@ -368,13 +369,16 @@ static SD_Error_t SD_CmdResponse(uint8_t SD_CMD, int8_t ResponseType)
         if ((Response_R1 & (SD_R6_GENERAL_UNKNOWN_ERROR | SD_R6_ILLEGAL_CMD | SD_R6_COM_CRC_FAILED)) == SD_ALLZERO) {
             SD_CardRCA = Response_R1;
         }
+
         if ((Response_R1 & SD_R6_GENERAL_UNKNOWN_ERROR) == SD_R6_GENERAL_UNKNOWN_ERROR) {
             return SD_GENERAL_UNKNOWN_ERROR;
         }
-        if ((Response_R1 & SD_R6_ILLEGAL_CMD)           == SD_R6_ILLEGAL_CMD) {
+
+        if ((Response_R1 & SD_R6_ILLEGAL_CMD) == SD_R6_ILLEGAL_CMD) {
             return SD_ILLEGAL_CMD;
         }
-        if ((Response_R1 & SD_R6_COM_CRC_FAILED)        == SD_R6_COM_CRC_FAILED) {
+
+        if ((Response_R1 & SD_R6_COM_CRC_FAILED) == SD_R6_COM_CRC_FAILED) {
             return SD_COM_CRC_FAILED;
         }
     }
@@ -417,17 +421,17 @@ static SD_Error_t CheckOCR_Response(uint32_t Response_R1)
 
 
 /** -----------------------------------------------------------------------------------------------------------------*/
-/**     GetResponse
+/**   GetResponse
   *
   * @brief  Get response from SD device
   * @param  uint32_t*       pResponse
   */
 static void SD_GetResponse(uint32_t* pResponse)
 {
-    pResponse[0] = SDMMC1->RESP1;
-    pResponse[1] = SDMMC1->RESP2;
-    pResponse[2] = SDMMC1->RESP3;
-    pResponse[3] = SDMMC1->RESP4;
+    pResponse[0] = SDIO->RESP1;
+    pResponse[1] = SDIO->RESP2;
+    pResponse[2] = SDIO->RESP3;
+    pResponse[3] = SDIO->RESP4;
 }
 
 
@@ -439,17 +443,17 @@ static void SD_GetResponse(uint32_t* pResponse)
 static void SD_DMA_Complete(DMA_Stream_TypeDef* pDMA_Stream)
 {
     if (SD_Handle.RXCplt) {
-        if (SD_Handle.Operation == ((SDMMC_DIR_RX << 1) | SD_MULTIPLE_BLOCK)) {
+        if (SD_Handle.Operation == ((SDIO_DIR_RX << 1) | SD_MULTIPLE_BLOCK)) {
             /* Send stop command in multiblock write */
             SD_TransmitCommand((SD_CMD_STOP_TRANSMISSION | SD_CMD_RESPONSE_SHORT), 0, 1);
         }
 
         /* Disable the DMA transfer for transmit request by setting the DMAEN bit
         in the SD DCTRL register */
-        SDMMC1->DCTRL &= (uint32_t)~((uint32_t)SDMMC_DCTRL_DMAEN);
+        SDIO->DCTRL &= (uint32_t)~((uint32_t)SDIO_DCTRL_DMAEN);
 
         /* Clear all the static flags */
-        SDMMC1->ICR = SDMMC_ICR_STATIC_FLAGS;
+        SDIO->ICR = SDIO_ICR_STATIC_FLAGS;
 
         /* Clear flag */
         SD_Handle.RXCplt = 0;
@@ -459,7 +463,7 @@ static void SD_DMA_Complete(DMA_Stream_TypeDef* pDMA_Stream)
     }
     else {
         /* Enable Dataend IE */
-        SDMMC1->MASK |= SDMMC_MASK_DATAENDIE;
+        SDIO->MASK |= SDIO_MASK_DATAENDIE;
     }
 }
 
@@ -474,7 +478,7 @@ static SD_Error_t SD_InitializeCard(void)
 {
     SD_Error_t ErrorState = SD_OK;
 
-    if ((SDMMC1->POWER & SDMMC_POWER_PWRCTRL) != 0) { // Power off
+    if ((SDIO->POWER & SDIO_POWER_PWRCTRL) != 0) {
         if (SD_CardType != SD_SECURE_DIGITAL_IO) {
             // Send CMD2 ALL_SEND_CID
             if ((ErrorState = SD_TransmitCommand((SD_CMD_ALL_SEND_CID | SD_CMD_RESPONSE_LONG), 0, 2)) != SD_OK) {
@@ -485,8 +489,8 @@ static SD_Error_t SD_InitializeCard(void)
             SD_GetResponse(SD_Handle.CID);
         }
 
-        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) || 
-            (SD_CardType == SD_SECURE_DIGITAL_IO_COMBO) || (SD_CardType == SD_HIGH_CAPACITY)) {
+        if ((SD_CardType == SD_STD_CAPACITY_V1_1) || (SD_CardType == SD_STD_CAPACITY_V2_0) ||
+           (SD_CardType == SD_SECURE_DIGITAL_IO_COMBO) || (SD_CardType == SD_HIGH_CAPACITY)) {
             // Send CMD3 SET_REL_ADDR with argument 0
             // SD Card publishes its RCA.
             if ((ErrorState = SD_TransmitCommand((SD_CMD_SET_REL_ADDR | SD_CMD_RESPONSE_SHORT), 0, 6)) != SD_OK) {
@@ -524,53 +528,51 @@ static void SD_StartBlockTransfert(uint32_t* pBuffer, uint32_t BlockSize, uint32
 {
     DMA_Stream_TypeDef *pDMA = dma_stream;
 
-    SDMMC1->DCTRL = 0;                                                                      // Initialize data control register
-    SD_Handle.TransferComplete = 0;                                                         // Initialize handle flags
-    SD_Handle.TransferError = SD_OK;
-    SD_Handle.Operation = (NumberOfBlocks > 1) ? SD_MULTIPLE_BLOCK : SD_SINGLE_BLOCK;       // Initialize SD Read operation
-    SD_Handle.Operation |= dir << 1;
-    SDMMC1->MASK = 0;
+    SDIO->DCTRL                = 0;                                                                 // Initialize data control register
+    SD_Handle.TransferComplete = 0;                                                                 // Initialize handle flags
+    SD_Handle.TransferError    = SD_OK;
+    SD_Handle.Operation        = (NumberOfBlocks > 1) ? SD_MULTIPLE_BLOCK : SD_SINGLE_BLOCK;        // Initialize SD Read operation
+    SD_Handle.Operation       |= dir << 1;
+    SDIO->MASK                 = 0;
 
-    if (dir == SDMMC_DIR_RX) {
-        SDMMC1->MASK |= (SDMMC_MASK_DCRCFAILIE | SDMMC_MASK_DTIMEOUTIE |                     // Enable transfer interrupts
-                         SDMMC_MASK_DATAENDIE  | SDMMC_MASK_RXOVERRIE);
+    if (dir == SDIO_DIR_RX) {
+        SDIO->MASK |= (SDIO_MASK_DCRCFAILIE | SDIO_MASK_DTIMEOUTIE |                                // Enable transfer interrupts
+                       SDIO_MASK_DATAENDIE  | SDIO_MASK_RXOVERRIE);
     }
     else {
-        SDMMC1->MASK |= (SDMMC_MASK_DCRCFAILIE | SDMMC_MASK_DTIMEOUTIE |                     // Enable transfer interrupts
-                         SDMMC_MASK_TXUNDERRIE);
+        SDIO->MASK |= (SDIO_MASK_DCRCFAILIE | SDIO_MASK_DTIMEOUTIE |                                // Enable transfer interrupts
+                       SDIO_MASK_TXUNDERRIE);
     }
 
-    if (dir == SDMMC_DIR_TX) {
-        SDMMC1->DCTRL |= SDMMC_DCTRL_DMAEN;                                                 // Enable SDMMC1 DMA transfer
+    if (dir == SDIO_DIR_TX) {
+        SDIO->DCTRL               |= SDIO_DCTRL_DMAEN;                                              // Enable SDIO DMA transfer
     }
 
-    pDMA->CR &= ~DMA_SxCR_EN;                                                               // Disable the Peripheral
+    pDMA->CR &= ~DMA_SxCR_EN;                                                                       // Disable the Peripheral
     while (pDMA->CR & DMA_SxCR_EN);
 
-    pDMA->NDTR = (uint32_t) (BlockSize * NumberOfBlocks) / 4;                               // Configure DMA Stream data length
-    pDMA->M0AR = (uint32_t) pBuffer;                                                        // Configure DMA Stream memory address
+    pDMA->NDTR = (uint32_t) (BlockSize * NumberOfBlocks) / 4;                                       // Configure DMA Stream data length
+    pDMA->M0AR = (uint32_t) pBuffer;                                                                // Configure DMA Stream memory address
 
-    if (dir == SDMMC_DIR_RX) {
-        pDMA->CR &= ~(0x01U << 6U);                                                         // Sets peripheral to memory
-    }
-    else {
-        pDMA->CR |= DMA_MEMORY_TO_PERIPH;                                                   // Sets memory to peripheral
+    if (dir == SDIO_DIR_RX) {
+        pDMA->CR   &= ~(0x01U << 6U);                                                               // Sets peripheral to memory
+    } else {
+        pDMA->CR   |= DMA_MEMORY_TO_PERIPH;                                                         // Sets memory to peripheral
     }
 
     // Clear the transfer error flag
     if (dma_stream == DMA2_Stream3) {
         DMA2->LIFCR = DMA_LIFCR_CTEIF3 | DMA_LIFCR_CDMEIF3 | DMA_LIFCR_CFEIF3 | DMA_LIFCR_CHTIF3 | DMA_LIFCR_CTCIF3;
-    }
-    else {
+    } else {
         DMA2->HIFCR = DMA_HIFCR_CTEIF6 | DMA_HIFCR_CDMEIF6 | DMA_HIFCR_CFEIF6 | DMA_HIFCR_CHTIF6 | DMA_HIFCR_CTCIF6;
     }
 
-    pDMA->CR |= DMA_SxCR_TCIE | DMA_SxCR_HTIE | DMA_SxCR_TEIE | DMA_SxCR_DMEIE;             // Enable all interrupts
+    pDMA->CR |= DMA_SxCR_TCIE | DMA_SxCR_HTIE | DMA_SxCR_TEIE | DMA_SxCR_DMEIE;    // Enable all interrupts
     pDMA->FCR |= DMA_SxFCR_FEIE;
-    pDMA->CR |= DMA_SxCR_EN;                                                                // Enable the Peripheral
+    pDMA->CR |= DMA_SxCR_EN;                                                       // Enable the Peripheral
 
-    if (dir == SDMMC_DIR_RX) {
-        SDMMC1->DCTRL |= SDMMC_DCTRL_DMAEN;                                                 // Enable SDMMC1 DMA transfer
+    if (dir == SDIO_DIR_RX) {
+        SDIO->DCTRL |= SDIO_DCTRL_DMAEN;
     }
 }
 
@@ -600,7 +602,7 @@ SD_Error_t SD_ReadBlocks_DMA(uint64_t ReadAddress, uint32_t *buffer, uint32_t Bl
         ReadAddress *= 512;
     }
 
-    SD_StartBlockTransfert(buffer, BlockSize, NumberOfBlocks, SDMMC_DIR_RX);
+    SD_StartBlockTransfert(buffer, BlockSize, NumberOfBlocks, SDIO_DIR_RX);
 
     // Configure the SD DPSM (Data Path State Machine)
     SD_DataTransferInit(BlockSize * NumberOfBlocks, SD_DATABLOCK_SIZE_512B, true);
@@ -611,8 +613,7 @@ SD_Error_t SD_ReadBlocks_DMA(uint64_t ReadAddress, uint32_t *buffer, uint32_t Bl
     // Send CMD18 READ_MULT_BLOCK with argument data address
     // or send CMD17 READ_SINGLE_BLOCK depending on number of block
     uint8_t retries = 10;
-    CmdIndex = (NumberOfBlocks > 1) ? SD_CMD_READ_MULT_BLOCK : SD_CMD_READ_SINGLE_BLOCK;
-
+    CmdIndex   = (NumberOfBlocks > 1) ? SD_CMD_READ_MULT_BLOCK : SD_CMD_READ_SINGLE_BLOCK;
     do {
         ErrorState = SD_TransmitCommand((CmdIndex | SD_CMD_RESPONSE_SHORT), (uint32_t)ReadAddress, 1);
         if (ErrorState != SD_OK && retries--) {
@@ -621,7 +622,7 @@ SD_Error_t SD_ReadBlocks_DMA(uint64_t ReadAddress, uint32_t *buffer, uint32_t Bl
     } while (ErrorState != SD_OK && retries);
 
     if (ErrorState != SD_OK) {
-        SD_Handle.RXCplt = 0;
+            SD_Handle.RXCplt = 0;
     }
 
     // Update the SD transfer error in SD handle
@@ -650,6 +651,8 @@ SD_Error_t SD_WriteBlocks_DMA(uint64_t WriteAddress, uint32_t *buffer, uint32_t 
     uint32_t   CmdIndex;
     SD_Handle.TXCplt = 1;
 
+    //printf("Reading at %ld into %p %ld blocks\n", (uint32_t)WriteAddress, (void*)buffer, NumberOfBlocks);
+
     if (SD_CardType != SD_HIGH_CAPACITY) {
         WriteAddress *= 512;
     }
@@ -662,18 +665,18 @@ SD_Error_t SD_WriteBlocks_DMA(uint64_t WriteAddress, uint32_t *buffer, uint32_t 
     // Set Block Size for Card
     uint8_t retries = 10;
     do {
-        ErrorState = SD_TransmitCommand((CmdIndex | SD_CMD_RESPONSE_SHORT), (uint32_t)WriteAddress, 1);
-        if (ErrorState != SD_OK && retries--) {
-            ErrorState = SD_TransmitCommand((SD_CMD_APP_CMD | SD_CMD_RESPONSE_SHORT), 0, 1);
-        }
+            ErrorState = SD_TransmitCommand((CmdIndex | SD_CMD_RESPONSE_SHORT), (uint32_t)WriteAddress, 1);
+            if (ErrorState != SD_OK && retries--) {
+                ErrorState = SD_TransmitCommand((SD_CMD_APP_CMD | SD_CMD_RESPONSE_SHORT), 0, 1);
+            }
     } while (ErrorState != SD_OK && retries);
 
     if (ErrorState != SD_OK) {
-        SD_Handle.TXCplt = 0;
-        return ErrorState;
+            SD_Handle.TXCplt = 0;
+            return ErrorState;
     }
 
-    SD_StartBlockTransfert(buffer, BlockSize, NumberOfBlocks, SDMMC_DIR_TX);
+    SD_StartBlockTransfert(buffer, BlockSize, NumberOfBlocks, SDIO_DIR_TX);
 
     // Configure the SD DPSM (Data Path State Machine)
     SD_DataTransferInit(BlockSize * NumberOfBlocks, SD_DATABLOCK_SIZE_512B, false);
@@ -694,6 +697,7 @@ SD_Error_t SD_CheckRead(void)
     if (SD_Handle.RXCplt != 0) return SD_BUSY;
     return SD_OK;
 }
+
 
 /** -----------------------------------------------------------------------------------------------------------------*/
 /**
@@ -924,10 +928,9 @@ static SD_Error_t SD_WideBusOperationConfig(uint32_t WideMode)
             ErrorState = SD_UNSUPPORTED_FEATURE;
         }
         else if ((WideMode == SD_BUS_WIDE_4B) || (WideMode == SD_BUS_WIDE_1B)) {
-            if ((SDMMC1->RESP1 & SD_CARD_LOCKED) != SD_CARD_LOCKED) {
+            if ((SDIO->RESP1 & SD_CARD_LOCKED) != SD_CARD_LOCKED) {
                 // Get SCR Register
                 ErrorState = SD_FindSCR(SCR);
-
                 if (ErrorState == SD_OK) {
                     Temp = (WideMode == SD_BUS_WIDE_4B) ? SD_WIDE_BUS_SUPPORT : SD_SINGLE_BUS_SUPPORT;
 
@@ -956,9 +959,9 @@ static SD_Error_t SD_WideBusOperationConfig(uint32_t WideMode)
         }
 
         if (ErrorState == SD_OK) {
-            // Configure the SDMMC1 peripheral, we need this delay for some reason...
-            while ((READ_REG(SDMMC1->CLKCR) & 0x800) != WideMode) {
-                    MODIFY_REG(SDMMC1->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) WideMode);
+            // Configure the SDIO peripheral, we need this delay for some reason...
+            while ((READ_REG(SDIO->CLKCR) & 0x800) != WideMode) {
+                MODIFY_REG(SDIO->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) WideMode);
             }
         }
     }
@@ -966,6 +969,84 @@ static SD_Error_t SD_WideBusOperationConfig(uint32_t WideMode)
         ErrorState = SD_UNSUPPORTED_FEATURE;
     }
 
+
+    return ErrorState;
+}
+
+
+/** -----------------------------------------------------------------------------------------------------------------*/
+/**
+  * @brief  Switches the SD card to High Speed mode.
+  *         This API must be used after "Transfer State"
+  * @retval SD Card error state
+  */
+SD_Error_t SD_HighSpeed(void)
+{
+    SD_Error_t  ErrorState;
+    uint8_t     SD_hs[64]  = {0};
+    uint32_t    SD_scr[2]  = {0, 0};
+    uint32_t    SD_SPEC    = 0;
+    uint32_t    Count      = 0;
+    uint32_t*   Buffer     = (uint32_t *)SD_hs;
+
+    // Initialize the Data control register
+    SDIO->DCTRL = 0;
+
+    // Get SCR Register
+    if ((ErrorState = SD_FindSCR(SD_scr)) != SD_OK) {
+        return ErrorState;
+    }
+
+    // Test the Version supported by the card
+    SD_SPEC = (SD_scr[1]  & 0x01000000) | (SD_scr[1]  & 0x02000000);
+
+    if (SD_SPEC != SD_ALLZERO) {
+        // Set Block Size for Card
+        if ((ErrorState = SD_TransmitCommand((SD_CMD_SET_BLOCKLEN | SD_CMD_RESPONSE_SHORT), 64, 1)) != SD_OK) {
+            return ErrorState;
+        }
+
+        // Configure the SD DPSM (Data Path State Machine)
+        SD_DataTransferInit(64, SD_DATABLOCK_SIZE_64B, true);
+
+        // Send CMD6 switch mode
+        if ((ErrorState =SD_TransmitCommand((SD_CMD_HS_SWITCH | SD_CMD_RESPONSE_SHORT), 0x80FFFF01, 1)) != SD_OK) {
+            return ErrorState;
+        }
+
+        while ((SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DBCKEND)) == 0) {
+            if ((SDIO->STA & SDIO_STA_RXFIFOHF) != 0) {
+                for(Count = 0; Count < 8; Count++) {
+                    *(Buffer + Count) = SDIO->FIFO;
+                }
+
+                Buffer += 8;
+            }
+        }
+
+        if ((SDIO->STA & SDIO_STA_DTIMEOUT) != 0) {
+            return SD_DATA_TIMEOUT;
+        }
+        else if ((SDIO->STA & SDIO_STA_DCRCFAIL) != 0) {
+            return SD_DATA_CRC_FAIL;
+        }
+        else if ((SDIO->STA & SDIO_STA_RXOVERR) != 0) {
+            return SD_RX_OVERRUN;
+        }
+
+        Count = SD_DATATIMEOUT;
+
+        while (((SDIO->STA & SDIO_STA_RXDAVL) != 0) && (Count > 0)) {
+            *Buffer = SDIO->FIFO;
+            Buffer++;
+            Count--;
+        }
+
+        // Test if the switch mode HS is ok
+        if ((SD_hs[13] & 2) != 2) {
+            ErrorState = SD_UNSUPPORTED_FEATURE;
+        }
+    }
 
     return ErrorState;
 }
@@ -985,11 +1066,11 @@ SD_Error_t SD_GetStatus(void)
 
     // Send Status command
     if ((ErrorState = SD_TransmitCommand((SD_CMD_SEND_STATUS | SD_CMD_RESPONSE_SHORT), SD_CardRCA, 1)) == SD_OK) {
-        Response1 = SDMMC1->RESP1;
+        Response1 = SDIO->RESP1;
         CardState = (SD_CardState_t)((Response1 >> 9) & 0x0F);
 
         // Find SD status according to card state
-        if (CardState == SD_CARD_TRANSFER)  {
+        if (CardState == SD_CARD_TRANSFER) {
             ErrorState = SD_OK;
         }
         else if (CardState == SD_CARD_ERROR) {
@@ -1020,7 +1101,7 @@ SD_Error_t SD_GetCardStatus(SD_CardStatus_t* pCardStatus)
     uint32_t   Count;
 
     // Check SD response
-    if ((SDMMC1->RESP1 & SD_CARD_LOCKED) == SD_CARD_LOCKED) {
+    if ((SDIO->RESP1 & SD_CARD_LOCKED) == SD_CARD_LOCKED) {
         return SD_LOCK_UNLOCK_FAILED;
     }
 
@@ -1043,27 +1124,27 @@ SD_Error_t SD_GetCardStatus(SD_CardStatus_t* pCardStatus)
     }
 
     // Get status data
-    while ((SDMMC1->STA & (SDMMC_STA_RXOVERR | SDMMC_STA_DCRCFAIL | SDMMC_STA_DTIMEOUT | SDMMC_STA_DBCKEND)) == 0) {
-        if ((SDMMC1->STA & SDMMC_STA_RXFIFOHF) != 0) {
+    while ((SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DBCKEND)) == 0) {
+        if ((SDIO->STA & SDIO_STA_RXFIFOHF) != 0) {
             for(Count = 0; Count < 8; Count++) {
-                Status[Count] = SDMMC1->FIFO;
+                Status[Count] = SDIO->FIFO;
             }
         }
     }
 
-    if ((SDMMC1->STA & SDMMC_STA_DTIMEOUT) != 0) {
+    if ((SDIO->STA & SDIO_STA_DTIMEOUT) != 0) {
         return SD_DATA_TIMEOUT;
     }
-    else if ((SDMMC1->STA & SDMMC_STA_DCRCFAIL) != 0) {
+    else if ((SDIO->STA & SDIO_STA_DCRCFAIL) != 0) {
         return SD_DATA_CRC_FAIL;
     }
-    else if ((SDMMC1->STA & SDMMC_STA_RXOVERR) != 0) {
+    else if ((SDIO->STA & SDIO_STA_RXOVERR) != 0) {
         return SD_RX_OVERRUN;
     }
     else {
         Count = SD_DATATIMEOUT;
-        while (((SDMMC1->STA & SDMMC_STA_RXDAVL) != 0) && (Count > 0)) {
-            volatile uint8_t tmp = SDMMC1->FIFO;
+        while (((SDIO->STA & SDIO_STA_RXDAVL) != 0) && (Count > 0)) {
+            volatile uint8_t tmp = SDIO->FIFO;
             (void)tmp;
             Count--;
         }
@@ -1154,13 +1235,13 @@ static SD_Error_t SD_PowerON(void)
     SD_Type      = SD_RESP_STD_CAPACITY;
 
     // Power ON Sequence -------------------------------------------------------
-    SDMMC1->CLKCR &= ~SDMMC_CLKCR_CLKEN;        // Disable SDMMC1 Clock
-    SDMMC1->POWER  = SDMMC_POWER_PWRCTRL;       // Set Power State to ON
+    SDIO->CLKCR &= ~SDIO_CLKCR_CLKEN;        // Disable SDIO Clock
+    SDIO->POWER  = SDIO_POWER_PWRCTRL;       // Set Power State to ON
 
     // 1ms: required power up waiting time before starting the SD initialization sequence (make it 2 to be safe)
     delay(2);
 
-    SDMMC1->CLKCR |= SDMMC_CLKCR_CLKEN;           // Enable SDMMC1 Clock
+    SDIO->CLKCR |= SDIO_CLKCR_CLKEN;           // Enable SDIO Clock
 
     // CMD0: GO_IDLE_STATE -----------------------------------------------------
     // No CMD response required
@@ -1175,7 +1256,7 @@ static SD_Error_t SD_PowerON(void)
     //- [11:8]: Supply Voltage (VHS) 0x1 (Range: 2.7-3.6 V)
     //- [7:0]: Check Pattern (recommended 0xAA)
     // CMD Response: R7 */
-    if ((ErrorState = SD_TransmitCommand((SD_SDMMC_SEND_IF_COND | SD_CMD_RESPONSE_SHORT), SD_CHECK_PATTERN, 7)) == SD_OK) {
+    if ((ErrorState = SD_TransmitCommand((SD_SDIO_SEND_IF_COND | SD_CMD_RESPONSE_SHORT), SD_CHECK_PATTERN, 7)) == SD_OK) {
         // SD Card 2.0
         SD_CardType = SD_STD_CAPACITY_V2_0;
         SD_Type     = SD_RESP_HIGH_CAPACITY;
@@ -1198,7 +1279,7 @@ static SD_Error_t SD_PowerON(void)
                 return ErrorState;
             }
 
-            Response = SDMMC1->RESP1;                               // Get command response
+            Response = SDIO->RESP1;                               // Get command response
             ValidVoltage = (((Response >> 31) == 1) ? 1 : 0);       // Get operating voltage
             Count++;
         }
@@ -1237,23 +1318,23 @@ static SD_Error_t SD_FindSCR(uint32_t *pSCR)
 
             // Send ACMD51 SD_APP_SEND_SCR with argument as 0
             if ((ErrorState = SD_TransmitCommand((SD_CMD_SD_APP_SEND_SCR | SD_CMD_RESPONSE_SHORT), 0, 1)) == SD_OK) {
-                while ((SDMMC1->STA & (SDMMC_STA_RXOVERR | SDMMC_STA_DCRCFAIL | SDMMC_STA_DTIMEOUT | SDMMC_STA_DBCKEND)) == 0) {
-                    if ((SDMMC1->STA & SDMMC_STA_RXDAVL) != 0) {
-                        *(tempscr + Index) = SDMMC1->FIFO;
+                while ((SDIO->STA & (SDIO_STA_RXOVERR | SDIO_STA_DCRCFAIL | SDIO_STA_DTIMEOUT | SDIO_STA_DBCKEND)) == 0) {
+                    if ((SDIO->STA & SDIO_STA_RXDAVL) != 0) {
+                        *(tempscr + Index) = SDIO->FIFO;
                         Index++;
                     }
                 }
 
-                if ((SDMMC1->STA & SDMMC_STA_DTIMEOUT) != 0) {
+                if ((SDIO->STA & SDIO_STA_DTIMEOUT) != 0) {
                     ErrorState = SD_DATA_TIMEOUT;
                 }
-                else if ((SDMMC1->STA & SDMMC_STA_DCRCFAIL) != 0) {
+                else if ((SDIO->STA & SDIO_STA_DCRCFAIL) != 0) {
                     ErrorState = SD_DATA_CRC_FAIL;
                 }
-                else if ((SDMMC1->STA & SDMMC_STA_RXOVERR) != 0) {
+                else if ((SDIO->STA & SDIO_STA_RXOVERR) != 0) {
                     ErrorState = SD_RX_OVERRUN;
                 }
-                else if ((SDMMC1->STA & SDMMC_STA_RXDAVL) != 0) {
+                else if ((SDIO->STA & SDIO_STA_RXDAVL) != 0) {
                     ErrorState = SD_OUT_OF_BOUND;
                 }
                 else {
@@ -1273,23 +1354,23 @@ static SD_Error_t SD_FindSCR(uint32_t *pSCR)
 
 /** -----------------------------------------------------------------------------------------------------------------*/
 /**
-  * @brief  Initialize the SDMMC1 module, DMA, and IO
+  * @brief  Initialize the SDIO module, DMA, and IO
   */
-bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef)
+bool SD_Initialize_LL(DMA_Stream_TypeDef *dmaRef)
 {
     // Sanity check DMA stread - we only support two possible
     if (((uint32_t)dmaRef != (uint32_t)DMA2_Stream3) && ((uint32_t)dmaRef != (uint32_t)DMA2_Stream6)) {
         return false;
     }
 
-    // Reset SDMMC1 Module
-    RCC->APB2RSTR |=  RCC_APB2RSTR_SDMMC1RST;
+    // Reset SDIO Module
+    RCC->APB2RSTR |=  RCC_APB2RSTR_SDIORST;
     delay(1);
-    RCC->APB2RSTR &= ~RCC_APB2RSTR_SDMMC1RST;
+    RCC->APB2RSTR &= ~RCC_APB2RSTR_SDIORST;
     delay(1);
 
-    // Enable SDMMC1 clock
-    RCC->APB2ENR |= RCC_APB2ENR_SDMMC1EN;
+    // Enable SDIO clock
+    RCC->APB2ENR |= RCC_APB2ENR_SDIOEN;
 
     // Enable DMA2 clocks
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
@@ -1301,12 +1382,12 @@ bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef)
     const IO_t clk = IOGetByTag(IO_TAG(PC12));
     const IO_t cmd = IOGetByTag(IO_TAG(PD2));
 
-#define SDMMC_DATA       IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
-#define SDMMC_CMD        IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
-#define SDMMC_CLK        IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+#define SDIO_DATA       IO_CONFIG(GPIO_Mode_AF, GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL)
+#define SDIO_CMD        IO_CONFIG(GPIO_Mode_AF, GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL)
+#define SDIO_CLK        IO_CONFIG(GPIO_Mode_AF, GPIO_Speed_100MHz, GPIO_OType_PP, GPIO_PuPd_NOPULL)
 
     IOInit(d0, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOConfigGPIOAF(d0, SDMMC_DATA, GPIO_AF12_SDMMC1);
+    IOConfigGPIOAF(d0, SDIO_DATA, GPIO_AF_SDIO);
 
 #ifdef SDCARD_SDIO_4BIT
     const IO_t d1 = IOGetByTag(IO_TAG(PC9));
@@ -1314,33 +1395,35 @@ bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef)
     const IO_t d3 = IOGetByTag(IO_TAG(PC11));
 
     IOInit(d1, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOConfigGPIOAF(d1, SDMMC_DATA, GPIO_AF12_SDMMC1);
+    IOConfigGPIOAF(d1, SDIO_DATA, GPIO_AF_SDIO);
 
     IOInit(d2, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOConfigGPIOAF(d2, SDMMC_DATA, GPIO_AF12_SDMMC1);
+    IOConfigGPIOAF(d2, SDIO_DATA, GPIO_AF_SDIO);
 
     IOInit(d3, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOConfigGPIOAF(d3, SDMMC_DATA, GPIO_AF12_SDMMC1);
+    IOConfigGPIOAF(d3, SDIO_DATA, GPIO_AF_SDIO);
 #endif
 
     IOInit(clk, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOConfigGPIOAF(clk, SDMMC_CLK, GPIO_AF12_SDMMC1);
+    IOConfigGPIOAF(clk, SDIO_CLK, GPIO_AF_SDIO);
 
     IOInit(cmd, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOConfigGPIOAF(cmd, SDMMC_CMD, GPIO_AF12_SDMMC1);
-
-    uint32_t PriorityGroup = NVIC_GetPriorityGrouping();
+    IOConfigGPIOAF(cmd, SDIO_CMD, GPIO_AF_SDIO);
 
     // NVIC configuration for SDIO interrupts
-    NVIC_SetPriority(SDMMC1_IRQn, NVIC_EncodePriority(PriorityGroup, 1, 0));
-    NVIC_EnableIRQ(SDMMC1_IRQn);
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = NVIC_PRIORITY_BASE(1);
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = NVIC_PRIORITY_SUB(0);
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
 
     dma_stream = dmaRef;
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
     if ((uint32_t)dma_stream == (uint32_t)DMA2_Stream3) {
         // Initialize DMA2 channel 3
         DMA2_Stream3->CR   = 0;                                                 // Reset DMA Stream control register
-        DMA2_Stream3->PAR  = (uint32_t)&SDMMC1->FIFO;
+        DMA2_Stream3->PAR  = (uint32_t)&SDIO->FIFO;
         DMA2->LIFCR        = IFCR_CLEAR_MASK_STREAM3;                           // Clear all interrupt flags
         DMA2_Stream3->CR   = (DMA_CHANNEL_4        | DMA_SxCR_PFCTRL        |   // Prepare the DMA Stream configuration
                               DMA_MINC_ENABLE      | DMA_PDATAALIGN_WORD    |   // And write to DMA Stream CR register
@@ -1349,12 +1432,11 @@ bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef)
                               DMA_MEMORY_TO_PERIPH);
         DMA2_Stream3->FCR  = (DMA_SxFCR_DMDIS | DMA_SxFCR_FTH);                 // Configuration FIFO control register
         dmaInit(dmaGetByRef(DMA2_Stream3), OWNER_SDCARD, 0);
-        dmaSetHandler(dmaGetByRef(DMA2_Stream3), SDMMC_DMA_ST3_IRQHandler, 1, 0);
-    }
-    else {
+        dmaSetHandler(dmaGetByRef(DMA2_Stream3), SDIO_DMA_ST3_IRQHandler, 1, 0);
+    } else {
         // Initialize DMA2 channel 6
         DMA2_Stream6->CR   = 0;                                                 // Reset DMA Stream control register
-        DMA2_Stream6->PAR  = (uint32_t)&SDMMC1->FIFO;
+        DMA2_Stream6->PAR  = (uint32_t)&SDIO->FIFO;
         DMA2->HIFCR        = IFCR_CLEAR_MASK_STREAM6;                           // Clear all interrupt flags
         DMA2_Stream6->CR   = (DMA_CHANNEL_4        | DMA_SxCR_PFCTRL        |   // Prepare the DMA Stream configuration
                               DMA_MINC_ENABLE      | DMA_PDATAALIGN_WORD    |   // And write to DMA Stream CR register
@@ -1363,7 +1445,7 @@ bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef)
                               DMA_MEMORY_TO_PERIPH);
         DMA2_Stream6->FCR  = (DMA_SxFCR_DMDIS | DMA_SxFCR_FTH);                 // Configuration FIFO control register
         dmaInit(dmaGetByRef(DMA2_Stream6), OWNER_SDCARD, 0);
-        dmaSetHandler(dmaGetByRef(DMA2_Stream6), SDMMC_DMA_ST6_IRQHandler, 1, 0);
+        dmaSetHandler(dmaGetByRef(DMA2_Stream6), SDIO_DMA_ST6_IRQHandler, 1, 0);
     }
 
     return true;
@@ -1384,8 +1466,8 @@ bool SD_Init(void)
 {
     SD_Error_t ErrorState;
 
-    // Initialize SDMMC1 peripheral interface with default configuration for SD card initialization
-    MODIFY_REG(SDMMC1->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) SDMMC_INIT_CLK_DIV);
+    // Initialize SDIO peripheral interface with default configuration for SD card initialization
+    MODIFY_REG(SDIO->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) SDIO_INIT_CLK_DIV);
 
     // Identify card operating voltage
     if ((ErrorState = SD_PowerON()) == SD_OK) {
@@ -1395,7 +1477,7 @@ bool SD_Init(void)
             if ((ErrorState = SD_GetCardInfo()) == SD_OK) {
                 // Select the Card - Send CMD7 SDMMC_SEL_DESEL_CARD
                 ErrorState = SD_TransmitCommand((SD_CMD_SEL_DESEL_CARD | SD_CMD_RESPONSE_SHORT), SD_CardRCA, 1);
-                MODIFY_REG(SDMMC1->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) SDMMC_CLK_DIV); // Configure SDMMC1 peripheral interface
+                MODIFY_REG(SDIO->CLKCR, CLKCR_CLEAR_MASK, (uint32_t) SDIO_CLK_DIV); // Configure SDIO peripheral interface
             }
         }
     }
@@ -1408,6 +1490,15 @@ bool SD_Init(void)
 #else
         ErrorState = SD_WideBusOperationConfig(SD_BUS_WIDE_1B);
 #endif
+
+/*
+        if (ErrorState == SD_OK && sdioConfig()->clockBypass) {
+            if (SD_HighSpeed()) {
+                SDIO->CLKCR |= SDIO_CLKCR_BYPASS;
+                SDIO->CLKCR |= SDIO_CLKCR_NEGEDGE;
+            }
+        }
+*/
     }
 
     // Configure the SDCARD device
@@ -1418,20 +1509,20 @@ bool SD_Init(void)
 /**
   * @brief  This function handles SD card interrupt request.
   */
-void SDMMC1_IRQHandler(void)
+void SDIO_IRQHandler(void)
 {
-    // Check for SDMMC1 interrupt flags
-    if ((SDMMC1->STA & SDMMC_STA_DATAEND) != 0) {
-        SDMMC1->ICR = SDMMC_ICR_DATAENDC;
-        SDMMC1->ICR = SDMMC_ICR_STATIC_FLAGS;
-        SDMMC1->MASK &= ~(SDMMC_MASK_DATAENDIE | SDMMC_MASK_DCRCFAILIE | SDMMC_MASK_DTIMEOUTIE |
-                          SDMMC_MASK_TXUNDERRIE | SDMMC_MASK_RXOVERRIE | SDMMC_MASK_TXFIFOHEIE | SDMMC_MASK_RXFIFOHFIE);
+    // Check for SDIO interrupt flags
+    if ((SDIO->STA & SDIO_STA_DATAEND) != 0) {
+        SDIO->ICR = SDIO_ICR_DATAENDC;
+        SDIO->ICR = SDIO_ICR_STATIC_FLAGS;
+        SDIO->MASK &= ~(SDIO_MASK_DATAENDIE | SDIO_MASK_DCRCFAILIE | SDIO_MASK_DTIMEOUTIE |
+                        SDIO_MASK_TXUNDERRIE | SDIO_MASK_RXOVERRIE | SDIO_MASK_TXFIFOHEIE | SDIO_MASK_RXFIFOHFIE);
 
         /* Currently doesn't implement multiple block write handling */
-        if ((SD_Handle.Operation & 0x02) == (SDMMC_DIR_TX << 1)) {
+        if ((SD_Handle.Operation & 0x02) == (SDIO_DIR_TX << 1)) {
             /* Disable the stream */
             dma_stream->CR &= ~DMA_SxCR_EN;
-            SDMMC1->DCTRL &= ~(SDMMC_DCTRL_DMAEN);
+            SDIO->DCTRL &= ~(SDIO_DCTRL_DMAEN);
             /* Transfer is complete */
             SD_Handle.TXCplt = 0;
             if ((SD_Handle.Operation & 0x01) == SD_MULTIPLE_BLOCK) {
@@ -1442,32 +1533,32 @@ void SDMMC1_IRQHandler(void)
         SD_Handle.TransferComplete = 1;
         SD_Handle.TransferError = SD_OK;       // No transfer error
     }
-    else if ((SDMMC1->STA & SDMMC_STA_DCRCFAIL) != 0) {
+    else if ((SDIO->STA & SDIO_STA_DCRCFAIL) != 0) {
         SD_Handle.TransferError = SD_DATA_CRC_FAIL;
     }
-    else if ((SDMMC1->STA & SDMMC_STA_DTIMEOUT) != 0) {
+    else if ((SDIO->STA & SDIO_STA_DTIMEOUT) != 0) {
         SD_Handle.TransferError = SD_DATA_TIMEOUT;
     }
-    else if ((SDMMC1->STA & SDMMC_STA_RXOVERR) != 0) {
+    else if ((SDIO->STA & SDIO_STA_RXOVERR) != 0) {
         SD_Handle.TransferError = SD_RX_OVERRUN;
     }
-    else if ((SDMMC1->STA & SDMMC_STA_TXUNDERR) != 0) {
+    else if ((SDIO->STA & SDIO_STA_TXUNDERR) != 0) {
         SD_Handle.TransferError = SD_TX_UNDERRUN;
     }
 
-    SDMMC1->ICR = SDMMC_ICR_STATIC_FLAGS;
+    SDIO->ICR = SDIO_ICR_STATIC_FLAGS;
 
-    // Disable all SDMMC1 peripheral interrupt sources
-    SDMMC1->MASK &= ~(SDMMC_MASK_DCRCFAILIE | SDMMC_MASK_DTIMEOUTIE | SDMMC_MASK_DATAENDIE |
-                      SDMMC_MASK_TXFIFOHEIE | SDMMC_MASK_RXFIFOHFIE | SDMMC_MASK_TXUNDERRIE |
-                      SDMMC_MASK_RXOVERRIE);
+    // Disable all SDIO peripheral interrupt sources
+    SDIO->MASK &= ~(SDIO_MASK_DCRCFAILIE | SDIO_MASK_DTIMEOUTIE | SDIO_MASK_DATAENDIE |
+                    SDIO_MASK_TXFIFOHEIE | SDIO_MASK_RXFIFOHFIE | SDIO_MASK_TXUNDERRIE |
+                    SDIO_MASK_RXOVERRIE);
 }
 
 /** -----------------------------------------------------------------------------------------------------------------*/
 /**
   * @brief  This function handles DMA2 Stream 3 interrupt request.
   */
-void SDMMC_DMA_ST3_IRQHandler(dmaChannelDescriptor_t *dma)
+void SDIO_DMA_ST3_IRQHandler(dmaChannelDescriptor_t *dma)
 {
     UNUSED(dma);
     // Transfer Error Interrupt management
@@ -1533,7 +1624,7 @@ void SDMMC_DMA_ST3_IRQHandler(dmaChannelDescriptor_t *dma)
 /**
   * @brief  This function handles DMA2 Stream 6 interrupt request.
   */
-void SDMMC_DMA_ST6_IRQHandler(dmaChannelDescriptor_t *dma)
+void SDIO_DMA_ST6_IRQHandler(dmaChannelDescriptor_t *dma)
 {
     UNUSED(dma);
     // Transfer Error Interrupt management
