@@ -25,6 +25,7 @@
 #include "common/utils.h"
 #include "drivers/nvic.h"
 #include "drivers/dma.h"
+#include "drivers/rcc.h"
 
 /*
  * DMA descriptors.
@@ -75,7 +76,12 @@ DMA_t dmaGetByTag(dmaTag_t tag)
 
 void dmaEnableClock(DMA_t dma)
 {
-    RCC_AHBPeriphClockCmd(dma->rcc, ENABLE);
+    if (dma->dma == DMA1) {
+        RCC_ClockCmd(RCC_AHB(DMA1), ENABLE);
+    }
+    else {
+        RCC_ClockCmd(RCC_AHB(DMA2), ENABLE);
+    }
 }
 
 resourceOwner_e dmaGetOwner(DMA_t dma)
@@ -106,10 +112,10 @@ void dmaSetHandler(DMA_t dma, dmaCallbackHandlerFuncPtr callback, uint32_t prior
     NVIC_Init(&NVIC_InitStructure);
 }
 
-DMA_t dmaFindHandlerIdentifier(DMA_Channel_TypeDef* channel)
+DMA_t dmaGetByRef(const DMA_Channel_TypeDef * ref)
 {
     for (unsigned i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
-        if (channel == dmaDescriptors[i].ref) {
+        if (ref == dmaDescriptors[i].ref) {
             return &dmaDescriptors[i];
         }
     }

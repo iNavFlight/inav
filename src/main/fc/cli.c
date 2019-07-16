@@ -58,7 +58,7 @@ extern uint8_t __config_end;
 #include "drivers/io_impl.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/rx_pwm.h"
-#include "drivers/sdcard.h"
+#include "drivers/sdcard/sdcard.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"

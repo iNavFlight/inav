@@ -163,10 +163,11 @@
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
 // *************** SPI3 SD BLACKBOX*******************
-//#define USE_SDCARD
-//#define USE_SDCARD_SDIO
-#define SDCARD_SDIO_DMA_OPT     0   // D(2,3,4)
-//#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define USE_SDCARD
+#define USE_SDCARD_SDIO
+#define SDCARD_SDIO_DMA         DMA_TAG(2,3,4)
+#define SDCARD_SDIO_4BIT
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** ADC *****************************
 #define USE_ADC

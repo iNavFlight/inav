@@ -159,7 +159,8 @@ MCU_COMMON_SRC = \
             drivers/system_stm32f7xx.c \
             drivers/serial_uart_stm32f7xx.c \
             drivers/serial_softserial.c \
-            drivers/serial_uart_hal.c
+            drivers/serial_uart_hal.c \
+            drivers/sdcard/sdmmc_sdio_f7xx.c
 
 MCU_EXCLUDES = \
             drivers/bus_spi.c \
