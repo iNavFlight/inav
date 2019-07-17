@@ -2,16 +2,10 @@
 
 A receiver is used to receive radio control signals from your transmitter and convert them into signals that the flight controller can understand.
 
-There are 3 basic types of receivers:
+There are 2 basic types of receivers:
 
-1. Parallel PWM Receivers
-2. PPM Receivers
-3. Serial Receivers
-
-## Parallel PWM Receivers
-
-8 channel support, 1 channel per input pin.  On some platforms using parallel input will disable the use of serial ports
-and SoftSerial making it hard to use telemetry or GPS features.
+1. PPM Receivers
+2. Serial Receivers
 
 ## PPM Receivers
 
@@ -128,7 +122,7 @@ SUMH is a legacy Graupner protocol.  Graupner have issued a firmware updates for
 
 10 channels via serial currently supported.
 
-IBUS is the FlySky digital serial protocol and is available with the FS-IA6B, FS-X6B and FS-IA10 receivers. 
+IBUS is the FlySky digital serial protocol and is available with the FS-IA6B, FS-X6B and FS-IA10 receivers.
 The Turnigy TGY-IA6B and TGY-IA10 are the same devices with a different label, therefore they also work.
 
 IBUS can provide up to 120Hz refresh rate, more than double compared to standard 50Hz of PPM.
@@ -160,7 +154,6 @@ There are 3 features that control receiver mode:
 ```
 RX_PPM
 RX_SERIAL
-RX_PARALLEL_PWM
 RX_MSP
 ```
 
