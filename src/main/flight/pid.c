@@ -783,6 +783,7 @@ static uint8_t getHeadingHoldState(void)
         bigangledisabledmag = false;
         return HEADING_HOLD_UPDATE_HEADING;
     }
+    return HEADING_HOLD_UPDATE_HEADING;
 }
 
 /*
