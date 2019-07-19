@@ -41,5 +41,3 @@ Under CLI :
 
 
 FrSky D4R-II and X8R supported.
-
-The feature can not be used when RX_PARALLEL_PWM is enabled.
