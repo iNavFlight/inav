@@ -17,18 +17,28 @@
 
 #include <stdint.h>
 
-#include <platform.h>
+#include "platform.h"
+
+#include "drivers/bus.h"
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
+// Board hardware definitions
+BUSDEV_REGISTER_SPI_TAG(busdev_imu0,    DEVHW_MPU6500,  MPU6500_0_SPI_BUS,  MPU6500_0_CS_PIN,   MPU6500_0_EXTI_PIN,     0,  DEVFLAGS_NONE);
+BUSDEV_REGISTER_SPI_TAG(busdev_imu1,    DEVHW_MPU6500,  MPU6500_1_SPI_BUS,  MPU6500_1_CS_PIN,   MPU6500_1_EXTI_PIN,     1,  DEVFLAGS_NONE);
+
 const timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 1, 0 ), // S1_OUT - DMA1_ST7
-    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 1, 0 ), // S2_OUT - DMA1_ST2
-    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 1, 1 ), // S3_OUT - DMA1_ST6
-    DEF_TIM(TIM2, CH3, PA2, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 1, 0 ), // S4_OUT - DMA1_ST1
-    DEF_TIM(TIM4, CH4, PB9, TIM_USE_PPM,   0, 0 ),                       // PPM IN
-    DEF_TIM(TIM4, CH2, PB7, TIM_USE_LED,   0, 0),                        // LED    - DMA1_ST3
+    DEF_TIM(TIM9, CH2, PA3, TIM_USE_PPM, 0, 0), // PPM
+
+    // Motors
+    DEF_TIM(TIM1, CH2N, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S1_OUT D2_ST6
+    DEF_TIM(TIM3, CH4,  PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S2_OUT D1_ST2
+    DEF_TIM(TIM8, CH4,  PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S3_OUT D1_ST6
+    DEF_TIM(TIM8, CH3,  PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S4_OUT D1_ST1
+
+    // LED strip
+    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                              0, 0), // D1_ST0
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

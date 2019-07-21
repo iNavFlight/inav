@@ -34,7 +34,7 @@ Due to differences on the board (I2C - see below), there are two firmware varian
 * Current Sensor: Yes (AIO, CTR), otherwise FCHUB-6S option
 * Integrated Power Distribution Board: Yes (AIO, CTR), otherwise FCHUB-6S option
 * Integrated Voltage Regulator: 5V 2A & 9V 2A (AIO), 5V 2A (CTR), otherwise FCHUB-6S option
-* 6 PWM / DSHOT capable outputs (iNav does not implement DSHOT)
+* 6 PWM / DSHOT capable outputs
 * WS2812 Led Strip : Yes
 * Beeper: Yes
 * RSSI: Yes
@@ -108,5 +108,3 @@ Rcgroups Thread Matek F405: https://www.rcgroups.com/forums/showthread.php?28892
 Rcgroups Thread Matek F405-AIO: https://www.rcgroups.com/forums/showthread.php?2912273-Matek-Flight-Controller-F405-AIO
 
 This board doesn't have hardware inverters for UART pins. This page explains getting SmartPort telemetry working on F4 board:  https://github.com/iNavFlight/inav/blob/master/docs/Telemetry.md
-
-

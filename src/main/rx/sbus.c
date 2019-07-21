@@ -65,6 +65,7 @@
 #define SBUS_DIGITAL_CHANNEL_MIN 173
 #define SBUS_DIGITAL_CHANNEL_MAX 1812
 
+
 enum {
     DEBUG_SBUS_INTERFRAME_TIME = 0,
     DEBUG_SBUS_FRAME_FLAGS = 1,
@@ -171,6 +172,7 @@ static void sbusDataReceive(uint16_t c, void *data)
 static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 {
     sbusFrameData_t *sbusFrameData = rxRuntimeConfig->frameData;
+
     if (!sbusFrameData->frameDone) {
         return RX_FRAME_PENDING;
     }
@@ -180,6 +182,11 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
     // Reset the frameDone flag - tell ISR that we're ready to receive next frame
     sbusFrameData->frameDone = false;
+
+    // Calculate "virtual link quality based on packet loss metric"
+    if (retValue & RX_FRAME_COMPLETE) {
+        lqTrackerAccumulate(rxRuntimeConfig->lqTracker, ((retValue & RX_FRAME_DROPPED) || (retValue & RX_FRAME_FAILSAFE)) ? 0 : RSSI_MAX_VALUE);
+    }
 
     return retValue;
 }
@@ -191,6 +198,7 @@ bool sbusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
 
     rxRuntimeConfig->channelData = sbusChannelData;
     rxRuntimeConfig->frameData = &sbusFrameData;
+
     sbusChannelsInit(rxRuntimeConfig);
 
     rxRuntimeConfig->channelCount = SBUS_MAX_CHANNEL;

@@ -100,6 +100,7 @@ uint16_t adcGetChannel(uint8_t function)
     }
 }
 
+#if defined(ADC_CHANNEL_1_PIN) || defined(ADC_CHANNEL_2_PIN) || defined(ADC_CHANNEL_3_PIN) || defined(ADC_CHANNEL_4_PIN)
 static bool isChannelInUse(int channel)
 {
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -109,6 +110,7 @@ static bool isChannelInUse(int channel)
 
     return false;
 }
+#endif
 
 #if !defined(ADC_CHANNEL_1_PIN) || !defined(ADC_CHANNEL_2_PIN) || !defined(ADC_CHANNEL_3_PIN) || !defined(ADC_CHANNEL_4_PIN)
 static void disableChannelMapping(int channel)
