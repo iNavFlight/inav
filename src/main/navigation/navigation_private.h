@@ -121,6 +121,14 @@ typedef struct {
     int32_t     yaw;
 } navigationDesiredState_t;
 
+typedef struct {
+    float posX;
+    float posY;
+    float errorX;
+    float errorY;
+    float distance;
+} loiter_t;
+
 typedef enum {
     NAV_FSM_EVENT_NONE = 0,
     NAV_FSM_EVENT_TIMEOUT,

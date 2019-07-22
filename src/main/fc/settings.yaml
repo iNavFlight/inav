@@ -90,7 +90,7 @@ tables:
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
   - name: nav_rth_allow_landing
-    values: ["NEVER", "ALWAYS", "FS_ONLY"]
+    values: ["NEVER", "ALWAYS", "APROACH", "FS_ONLY", "FS_ONLY_APR", "FS_NO_APR"]
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]
@@ -1337,11 +1337,11 @@ groups:
       - name: nav_land_slowdown_minalt
         field: general.land_slowdown_minalt
         min: 50
-        max: 1000
+        max: 2000
       - name: nav_land_slowdown_maxalt
         field: general.land_slowdown_maxalt
         min: 500
-        max: 4000
+        max: 5000
       - name: nav_emerg_landing_speed
         field: general.emerg_descent_rate
         min: 100
@@ -1485,6 +1485,21 @@ groups:
         condition: NAV_FIXED_WING_LANDING
         min: -20
         max: 20
+      - name: nav_fw_land_safe_alt
+        field: fw.land_safe_alt
+        condition: NAV_FIXED_WING_LANDING
+        min: 50
+        max: 4000
+      - name: nav_fw_land_motor_off_alt
+        field: fw.land_motor_off_alt
+        condition: NAV_FIXED_WING_LANDING
+        min: 50
+        max: 2000
+      - name: nav_fw_land_aproach_distance
+        field: fw.land_aproach_distance
+        condition: NAV_FIXED_WING_LANDING
+        min: 0
+        max: 10000
 
       - name: nav_fw_launch_velocity
         field: fw.launch_velocity_thresh

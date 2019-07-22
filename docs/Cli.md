@@ -227,6 +227,9 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  nav_fw_launch_min_time | 0 | Allow launch mode to execute at least this time (ms) and ignore stick movements [0-60000]. |
 |  nav_fw_launch_max_altitude | 0 | Altitude (centimeters) at which LAUNCH mode will be turned off and regular flight mode will take over [0-60000]. |
 |  nav_fw_land_dive_angle  | 2 | Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees |
+|  nav_fw_land_safe_alt  | 1500 | When landing with aproach is enabled, height from which the last approach is made. [cm] |
+|  nav_fw_land_motor_off_alt  | 500 | When landing is enabled, height of engine shutdown or idle. [cm] |
+|  nav_fw_land_aproach_distance  | 7500 | When landing with aproach is enabled, distance of final aproach. [cm] |
 |  nav_fw_cruise_yaw_rate  | 20 | Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]|
 |  serialrx_provider  | SPEK1024 | When feature SERIALRX is enabled, this allows connection to several receivers which output data via digital interface resembling serial. See RX section. |
 |  serialrx_halfduplex  | OFF | Allow serial receiver to operate on UART TX pin. With some receivers will allow control and telemetry over a single wire |
