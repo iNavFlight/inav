@@ -1952,7 +1952,7 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
             int32_t fakeToRealYawOffset = newHeading - posControl.actualState.yaw;
             posControl.rthState.homePosition.yaw += fakeToRealYawOffset;
         } else {
-            posControl.rthState.homePosition.yaw += fakeToRealYawOffset;
+            posControl.rthState.homePosition.yaw = DEGREES_TO_CENTIDEGREES(ABS(pidProfile()->land_direction) % 360);
         }
         if (posControl.rthState.homePosition.yaw < 0) {
             posControl.rthState.homePosition.yaw += DEGREES_TO_CENTIDEGREES(360);
