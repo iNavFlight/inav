@@ -90,7 +90,7 @@ tables:
     values: ["NONE", "ALTITUDE", "GROUND_SPEED", "HOME_DISTANCE"]
     enum: osd_sidebar_scroll_e
   - name: nav_rth_allow_landing
-    values: ["NEVER", "ALWAYS", "APROACH", "FS_ONLY", "FS_ONLY_APR", "FS_NO_APR"]
+    values: ["NEVER", "ALWAYS", "FS_ONLY", "APROACH", "FS_ONLY_APR", "FS_NO_APR"]
     enum: navRTHAllowLanding_e
   - name: bat_capacity_unit
     values: ["MAH", "MWH"]

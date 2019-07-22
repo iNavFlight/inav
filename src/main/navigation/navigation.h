@@ -87,8 +87,8 @@ typedef enum {
 typedef enum {
     NAV_RTH_ALLOW_LANDING_NEVER = 0,
     NAV_RTH_ALLOW_LANDING_ALWAYS = 1,
-    NAV_RTH_ALLOW_LANDING_APROACH = 2,
-    NAV_RTH_ALLOW_LANDING_FS_ONLY = 3,     // Allow landing only if RTH was triggered by failsafe
+    NAV_RTH_ALLOW_LANDING_FS_ONLY = 2,     // Allow landing only if RTH was triggered by failsafe
+    NAV_RTH_ALLOW_LANDING_APROACH = 3,     // Always landing with aproach
     NAV_RTH_ALLOW_LANDING_FS_ONLY_APR = 4, // Allow landing with aproach only if RTH was triggered by failsafe
     NAV_RTH_ALLOW_LANDING_FS_NO_APR = 5,   // Allow landing with aproach, but if RTH was triggered by failsafe land without aproach
 } navRTHAllowLanding_e;
