@@ -408,6 +408,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 | fw_p_level | 20 | Fixed-wing attitude stabilisation P-gain                      |
 | fw_i_level | 5 | Fixed-wing attitude stabilisation low-pass filter cutoff      |
 | fw_d_level | 75 | Fixed-wing attitude stabilisation HORIZON transition point    |
+|  nav_land_direction  | 0 | Predefined landing direction in deg (1-360), 0-not use, <0-can change by homeReset |
 |  max_angle_inclination_rll  | 300 | Maximum inclination in level (angle) mode (ROLL axis). 100=10° |
 |  max_angle_inclination_pit  | 300 | Maximum inclination in level (angle) mode (PITCH axis). 100=10° |
 |  fw_iterm_limit_stick_position  | 0.5 | Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side |

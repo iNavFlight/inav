@@ -1058,6 +1058,11 @@ groups:
         min: HEADING_HOLD_RATE_LIMIT_MIN
         max: HEADING_HOLD_RATE_LIMIT_MAX
 
+      - name: nav_land_direction
+        field: land_direction
+        condition: USE_NAV
+        min: -360
+        max: 360
       - name: nav_mc_pos_z_p
         field: bank_mc.pid[PID_POS_Z].P
         condition: USE_NAV

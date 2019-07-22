@@ -214,6 +214,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .heading_hold_rate_limit = HEADING_HOLD_RATE_LIMIT_DEFAULT,
 
+        .land_direction = 0,
+
         .max_angle_inclination[FD_ROLL] = 300,    // 30 degrees
         .max_angle_inclination[FD_PITCH] = 300,    // 30 degrees
         .pidSumLimit = PID_SUM_LIMIT_DEFAULT,

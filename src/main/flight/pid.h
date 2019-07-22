@@ -119,6 +119,8 @@ typedef struct pidProfile_s {
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
 
+    int16_t land_direction;                 // predefined landing direction in deg, 0-not use, <0-can change by homeReset
+
     float dterm_setpoint_weight;
     uint16_t pidSumLimit;
 
