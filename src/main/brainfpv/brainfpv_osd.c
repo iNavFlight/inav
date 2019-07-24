@@ -144,6 +144,8 @@ extern uint8_t *disp_buffer;
 extern bool cmsInMenu;
 bool brainfpv_user_avatar_set = false;
 bool osd_arming_or_stats = false;
+uint32_t osd_draw_time_ms;
+bool hide_blinking_items;
 
 extern crsfLinkInfo_t crsf_link_info;
 static bool show_crsf_link_info;
@@ -248,13 +250,18 @@ uint8_t max7456GetRowsCount(void)
 
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
 {
-    (void)mode; //XXX
+    if (hide_blinking_items && (mode & MAX7456_MODE_BLINK)) {
+        return;
+    }
+
     write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bfOsdConfig()->font);
 }
 
 void max7456WriteChar(uint8_t x, uint8_t y, uint16_t c, uint8_t mode)
 {
-    (void)mode; //XXX
+    if (hide_blinking_items && (mode & MAX7456_MODE_BLINK)) {
+        return;
+    }
     char buff[2] = {c, 0};
     write_string(buff, MAX_X(x), MAX_Y(y), 0, 0, TEXT_VA_TOP, TEXT_HA_LEFT, bfOsdConfig()->font);
 }
@@ -402,13 +409,15 @@ void brainFpvOsdMain(void) {
             video_qspi_enable();
         }
 
+        osd_draw_time_ms = millis();
+        hide_blinking_items = (((osd_draw_time_ms / SW_BLINK_CYCLE_MS) % 2) == 0);
         clearGraphics();
 
         /* Hide OSD when OSDSW mode is active */
         if (IS_RC_MODE_ACTIVE(BOXOSD))
           continue;
 
-        if (millis() < 5000) {
+        if (osd_draw_time_ms < 5000) {
             brainFpvOsdWelcome();
         }
         else {
@@ -741,7 +750,7 @@ bool osdElementRssi_BrainFPV(uint16_t x_pos, uint16_t y_pos)
         setRssiCrsfLq(crsf_link_info.lq);
 
         // Blink if LQ is low
-        if ((((millis() / SW_BLINK_CYCLE_MS) % 2) == 0) && (crsf_link_info.lq <= osdConfig()->rssi_alarm)) {
+        if (hide_blinking_items && (crsf_link_info.lq <= osdConfig()->rssi_alarm)) {
             return true;
         }
 
