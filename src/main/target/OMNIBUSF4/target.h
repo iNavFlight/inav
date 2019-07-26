@@ -110,7 +110,7 @@
 
 #define USE_BARO
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2)
+#if defined(DYSF4PRO) || defined(DYSF4PROV2) || defined(OMNIBUSF4)
   #define BARO_I2C_BUS          I2C_EXT_BUS
   #define USE_BARO_BMP085
   #define USE_BARO_BMP280
