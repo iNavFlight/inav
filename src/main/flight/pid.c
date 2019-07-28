@@ -125,6 +125,7 @@ static EXTENDED_FASTRAM float itermRelaxSetpointThreshold;
 static EXTENDED_FASTRAM pt1Filter_t antigravityThrottleLpf;
 static EXTENDED_FASTRAM float antigravityThrottleHpf;
 static EXTENDED_FASTRAM float antigravityGain;
+static EXTENDED_FASTRAM float antigravityAccelerator;
 #endif
 
 #define D_BOOST_GYRO_LPF_HZ 80    // Biquad lowpass input cutoff to peak D around propwash frequencies
@@ -135,7 +136,7 @@ static EXTENDED_FASTRAM float dBoostFactor;
 static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 #endif
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 10);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -238,6 +239,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .dBoostMaxAtAlleceleration = 7500.0f,
         .dBoostGyroDeltaLpfHz = D_BOOST_GYRO_LPF_HZ,
         .antigravityGain = 1.0f,
+        .antigravityAccelerator = 1.0f,
 );
 
 void pidInit(void)
@@ -261,6 +263,7 @@ void pidInit(void)
 
 #ifdef USE_ANTIGRAVITY
     antigravityGain = pidProfile()->antigravityGain;
+    antigravityAccelerator = pidProfile()->antigravityAccelerator;
 #endif
 }
 
@@ -738,8 +741,9 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
     applyItermRelax(axis, pidState->gyroRate, pidState->rateTarget, &itermErrorRate);
 
 #ifdef USE_ANTIGRAVITY
-    const float iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf), 0.0f, 1000.0f, 1.0f, antigravityGain);    
+    const float iTermAntigravityGain = scaleRangef(fabsf(antigravityThrottleHpf) * antigravityAccelerator, 0.0f, 1000.0f, 1.0f, antigravityGain);    
     DEBUG_SET(DEBUG_ANTIGRAVITY, 0, iTermAntigravityGain * 100);
+    DEBUG_SET(DEBUG_ANTIGRAVITY, 1, antigravityThrottleHpf);
     itermErrorRate *= iTermAntigravityGain;
 #endif
 
