@@ -71,6 +71,7 @@
 #include "sensors/battery.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -621,32 +622,103 @@ void brainFfpvOsdHomeArrow(int16_t home_dir, uint16_t x, uint16_t y)
     draw_polygon(x, y, home_dir, HOME_ARROW, 7, 0, 1);
 }
 
+
+const point_t UAV_SYM[] = {
+    {
+        .x = 0,
+        .y = -3,
+    },
+    {
+        .x = 7,
+        .y = 3,
+    },
+    {
+        .x = 0,
+        .y = -1,
+    },
+    {
+        .x = -7,
+        .y = 3,
+    }
+};
+
+
 #define MAP_MAX_DIST_PX 70
 void brainFpvRadarMap(void)
 {
     uint16_t x, y;
 
-    uint16_t dist_to_home_m = GPS_distanceToHome;
+    //===========================================================================================
+    // Draw Home location on map
 
-    if (dist_to_home_m > bfOsdConfig()->radar_max_dist_m) {
-        dist_to_home_m = bfOsdConfig()->radar_max_dist_m;
+    uint32_t distance = GPS_distanceToHome;
+
+    if (distance > bfOsdConfig()->radar_max_dist_m) {
+        distance = bfOsdConfig()->radar_max_dist_m;
     }
 
-    float dist_to_home_px = MAP_MAX_DIST_PX * (float)dist_to_home_m / (float)bfOsdConfig()->radar_max_dist_m;
+    float distance_px = MAP_MAX_DIST_PX * (float)distance / (float)bfOsdConfig()->radar_max_dist_m;
 
-    // don't draw map if we are very close to home
-    if (dist_to_home_px < 1.0f) {
-        return;
+    // don't draw home if we are very close to home
+    if (distance_px >= 1.0f) {
+        // Get home direction relative to UAV
+        int16_t home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+
+        x = GRAPHICS_X_MIDDLE + roundf(distance_px * sin_approx(DEGREES_TO_RADIANS(home_dir)));
+        y = GRAPHICS_Y_MIDDLE - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(home_dir)));
+
+        // draw H to indicate home
+        write_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
     }
 
-    // Get home direction relative to UAV
-    int16_t home_dir = GPS_directionToHome - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+    //===========================================================================================
+    for (uint8_t i = 0; i < RADAR_MAX_POIS; i++) {
+        if (radar_pois[i].gps.lat == 0 || radar_pois[i].gps.lon == 0 || radar_pois[i].state >= 2) {
+            // skip
+            continue;
+        }
+        // Get NED of other UAV relative to Home
+        fpVector3_t poi;
+        geoConvertGeodeticToLocalOrigin(&poi, &radar_pois[i].gps, GEO_ALT_ABSOLUTE);
 
-    x = GRAPHICS_X_MIDDLE + roundf(dist_to_home_px * sinf(home_dir * (float)(M_PI / 180)));
-    y = GRAPHICS_Y_MIDDLE - roundf(dist_to_home_px * cosf(home_dir * (float)(M_PI / 180)));
+        distance = calculateDistanceToDestination(&poi) / 100; // In meters
 
-    // draw H to indicate home
-    write_string("H", x + 1, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+//        if (hide_blinking_items && (distance >= bfOsdConfig()->radar_max_dist_m)) {
+//            // too far away, blink it
+//            continue;
+//        }
+
+        if (distance > (float)bfOsdConfig()->radar_max_dist_m) {
+            distance = bfOsdConfig()->radar_max_dist_m;
+        }
+
+        int16_t direction = CENTIDEGREES_TO_DEGREES(calculateBearingToDestination(&poi)) - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+        distance_px = MAP_MAX_DIST_PX * (float)distance / (float)bfOsdConfig()->radar_max_dist_m;
+
+        x = GRAPHICS_X_MIDDLE + roundf(distance_px * sin_approx(DEGREES_TO_RADIANS(direction)));
+        y = GRAPHICS_Y_MIDDLE - roundf(distance_px * cos_approx(DEGREES_TO_RADIANS(direction)));
+
+        // Toggle between showing UAV with heading and name / alt difference
+        if ((osd_draw_time_ms / 1000) % 2 == 0) {
+            const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+            int16_t delta_alt = poi.z - posvel->pos.z;
+
+            if ((osd_unit_e)osdConfig()->units == OSD_UNIT_IMPERIAL) {
+                delta_alt = CENTIMETERS_TO_FEET(delta_alt);
+            }
+            else {
+                delta_alt = CENTIMETERS_TO_METERS(delta_alt);
+            }
+
+            char buff[20];
+            tfp_sprintf(buff, "%c %d", 'A' + i, delta_alt);
+            write_string(buff, x, y - 3, 0, 0, TEXT_VA_TOP, TEXT_HA_CENTER, FONT_OUTLINED8X8);
+        }
+        else {
+            direction = radar_pois[i].direction - DECIDEGREES_TO_DEGREES(attitude.values.yaw);
+            draw_polygon_simple(x, y, direction, UAV_SYM, 4, 1);
+        }
+    }
 }
 
 
