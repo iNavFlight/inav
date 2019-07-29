@@ -422,8 +422,9 @@ static const OSD_Entry menuOsdEntries[] = {
     OSD_SUBMENU_ENTRY("LAYOUTS", &cmsx_menuOsdLayout),
     OSD_SUBMENU_ENTRY("SETTINGS", &cmsx_menuOsdSettings),
     OSD_SUBMENU_ENTRY("ALARMS", &cmsx_menuAlarms),
+#ifndef USE_BRAINFPV_OSD
     OSD_SUBMENU_ENTRY("HUD", &cmsx_menuOsdHud),
-
+#endif
     OSD_BACK_AND_END_ENTRY,
 };
 
