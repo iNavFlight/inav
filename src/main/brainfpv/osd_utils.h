@@ -195,6 +195,7 @@ const struct FontEntry* get_font_info(int font);
 void calc_text_dimensions(const char *str, const struct FontEntry *font, int xs, int ys, struct FontDimensions *dim);
 void write_string(const char *str, int x, int y, int xs, int ys, int va, int ha, int font);
 void draw_polygon(int16_t x, int16_t y, float angle, const point_t * points, uint8_t n_points, int mode, int mmode);
+void draw_polygon_simple(int16_t x, int16_t y, float angle, const point_t * points, uint8_t n_points, uint8_t color);
 
 void osd_draw_vertical_scale(int v, int range, int halign, int x, int y, int height, int mintick_step, int majtick_step, int mintick_len,
                              int majtick_len, int boundtick_len, int flags);

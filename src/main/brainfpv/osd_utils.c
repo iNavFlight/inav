@@ -1410,6 +1410,35 @@ void draw_polygon(int16_t x, int16_t y, float angle, const point_t * points, uin
 }
 
 
+void draw_polygon_simple(int16_t x, int16_t y, float angle, const point_t * points, uint8_t n_points, uint8_t color)
+{
+    float sin_angle, cos_angle;
+    int16_t x1, y1, x2, y2;
+
+    sin_angle    = sinf(angle * (float)(M_PI / 180));
+    cos_angle    = cosf(angle * (float)(M_PI / 180));
+
+    x1 = roundf(cos_angle * points[0].x - sin_angle * points[0].y);
+    y1 = roundf(sin_angle * points[0].x + cos_angle * points[0].y);
+    x2 = 0; // so compiler doesn't give a warning
+    y2 = 0;
+
+    for (int i=0; i<n_points-1; i++)
+    {
+        x2 = roundf(cos_angle * points[i + 1].x - sin_angle * points[i + 1].y);
+        y2 = roundf(sin_angle * points[i + 1].x + cos_angle * points[i + 1].y);
+
+        write_line_lm(x + x1, y + y1, x + x2, y + y2, 1, color);
+        x1 = x2;
+        y1 = y2;
+    }
+
+    x1 = roundf(cos_angle * points[0].x - sin_angle * points[0].y);
+    y1 = roundf(sin_angle * points[0].x + cos_angle * points[0].y);
+    write_line_lm(x + x1, y + y1, x + x2, y + y2, 1, color);
+}
+
+
 /**
  * hud_draw_vertical_scale: Draw a vertical scale.
  *
