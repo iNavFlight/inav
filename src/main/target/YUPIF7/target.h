@@ -42,8 +42,6 @@
 
 #define USE_GYRO_MPU6500
 #define USE_ACC_MPU6500
-#define ICM20689_CS_PIN         SPI1_NSS_PIN
-#define ICM20689_EXTI_PIN       PC4
 
 #define USE_ACC
 #define USE_ACC_SPI_MPU6500
@@ -151,6 +149,9 @@
 // LED Strip can run off Pin 5 (PB1) of the motor outputs
 #define USE_LED_STRIP
 #define WS2811_PIN                      PB1
+
+// DSHOT
+#define USE_DSHOT
 
 // Default configuration
 #define SERIALRX_PROVIDER       SERIALRX_SBUS

@@ -63,6 +63,10 @@
         #endif
     #endif
 
+    #if defined(USE_GYRO_ICM20689)
+        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE);
+    #endif
+
     #if defined(USE_GYRO_BMI160)
         #if defined(BMI160_SPI_BUS)
         BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE);

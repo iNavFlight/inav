@@ -100,8 +100,6 @@ typedef struct {
 STATIC_FASTRAM filterApplyFnPtr notchFilterApplyFn;
 #endif
 
-extern float dT;
-
 STATIC_FASTRAM bool pidFiltersConfigured = false;
 FASTRAM float headingHoldCosZLimit;
 FASTRAM int16_t headingHoldTarget;
@@ -413,7 +411,7 @@ void schedulePidGainsUpdate(void)
     pidGainsUpdateRequired = true;
 }
 
-void FAST_CODE NOINLINE updatePIDCoefficients(void)
+void FAST_CODE NOINLINE updatePIDCoefficients(float dT)
 {
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
@@ -497,7 +495,7 @@ static float calcHorizonRateMagnitude(void)
     return horizonRateMagnitude;
 }
 
-static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude)
+static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
 {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
@@ -535,7 +533,7 @@ static void pidLevel(pidState_t *pidState, flight_dynamics_index_t axis, float h
 }
 
 /* Apply angular acceleration limit to rate target to limit extreme stick inputs to respect physical capabilities of the machine */
-static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const uint32_t axisAccelLimit = (axis == FD_YAW) ? pidProfile()->axisAccelerationLimitYaw : pidProfile()->axisAccelerationLimitRollPitch;
 
@@ -557,7 +555,7 @@ bool isFixedWingItermLimitActive(float stickPosition)
     return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
 }
 
-static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
@@ -626,7 +624,7 @@ static void FAST_CODE applyItermRelax(const int axis, const float gyroRate, floa
     }
 }
 #ifdef USE_D_BOOST
-static float FAST_CODE applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis) {
+static float FAST_CODE applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis, float dT) {
     
     float dBoost = 1.0f;
     
@@ -655,14 +653,15 @@ static float FAST_CODE applyDBoost(pidState_t *pidState, flight_dynamics_index_t
     return dBoost;
 }
 #else 
-static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis) {
+static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis, float dT) {
     UNUSED(pidState);
     UNUSED(axis);
+    UNUSED(dT);
     return 1.0f;
 }
 #endif
 
-static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
+static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT)
 {
     const float rateError = pidState->rateTarget - pidState->gyroRate;
 
@@ -701,7 +700,7 @@ static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, fl
         newDTerm = firFilterApply(&pidState->gyroRateFilter);
 
         // Calculate derivative
-        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, axis);
+        newDTerm =  newDTerm * (pidState->kD / dT) * applyDBoost(pidState, axis, dT);
 
         // Additionally constrain D
         newDTerm = constrainf(newDTerm, -300.0f, 300.0f);
@@ -783,7 +782,7 @@ static uint8_t getHeadingHoldState(void)
 /*
  * HEADING_HOLD P Controller returns desired rotation rate in dps to be fed to Rate controller
  */
-float pidHeadingHold(void)
+float pidHeadingHold(float dT)
 {
     float headingHoldRate;
 
@@ -918,7 +917,7 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-void FAST_CODE pidController(void)
+void FAST_CODE pidController(float dT)
 {
     if (!pidFiltersConfigured) {
         return;
@@ -939,7 +938,7 @@ void FAST_CODE pidController(void)
         float rateTarget;
 
         if (axis == FD_YAW && headingHoldState == HEADING_HOLD_ENABLED) {
-            rateTarget = pidHeadingHold();
+            rateTarget = pidHeadingHold(dT);
         } else {
             rateTarget = pidRcCommandToRate(rcCommand[axis], currentControlRateProfile->stabilized.rates[axis]);
         }
@@ -951,8 +950,8 @@ void FAST_CODE pidController(void)
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
     if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
         const float horizonRateMagnitude = calcHorizonRateMagnitude();
-        pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude);
-        pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonRateMagnitude);
+        pidLevel(&pidState[FD_ROLL], FD_ROLL, horizonRateMagnitude, dT);
+        pidLevel(&pidState[FD_PITCH], FD_PITCH, horizonRateMagnitude, dT);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
     }
 
@@ -967,17 +966,35 @@ void FAST_CODE pidController(void)
 
     // Apply setpoint rate of change limits
     for (int axis = 0; axis < 3; axis++) {
-        pidApplySetpointRateLimiting(&pidState[axis], axis);
+        pidApplySetpointRateLimiting(&pidState[axis], axis, dT);
     }
 
     // Step 4: Run gyro-driven control
     for (int axis = 0; axis < 3; axis++) {
         // Apply PID setpoint controller
         if (STATE(FIXED_WING)) {
-            pidApplyFixedWingRateController(&pidState[axis], axis);
+            pidApplyFixedWingRateController(&pidState[axis], axis, dT);
         }
         else {
-            pidApplyMulticopterRateController(&pidState[axis], axis);
+            pidApplyMulticopterRateController(&pidState[axis], axis, dT);
         }
     }
+}
+
+pidType_e pidIndexGetType(pidIndex_e pidIndex)
+{
+    if (STATE(FIXED_WING)) {
+        // FW specific
+        if (pidIndex == PID_ROLL || pidIndex == PID_PITCH || pidIndex == PID_YAW) {
+            return PID_TYPE_PIFF;
+        }
+        if (pidIndex == PID_VEL_XY || pidIndex == PID_VEL_Z) {
+            return PID_TYPE_NONE;
+        }
+    }
+    // Common
+    if (pidIndex == PID_SURFACE) {
+        return PID_TYPE_NONE;
+    }
+    return PID_TYPE_PID;
 }

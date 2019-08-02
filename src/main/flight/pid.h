@@ -68,6 +68,13 @@ typedef enum {
     PID_ITEM_COUNT
 } pidIndex_e;
 
+// TODO(agh): PIDFF
+typedef enum {
+    PID_TYPE_NONE,  // Not used in the current platform/mixer/configuration
+    PID_TYPE_PID,   // Uses P, I and D terms
+    PID_TYPE_PIFF,  // Uses P, I and FF, ignoring D
+} pidType_e;
+
 typedef struct pid8_s {
     uint8_t P;
     uint8_t I;
@@ -164,8 +171,8 @@ struct motorConfig_s;
 struct rxConfig_s;
 
 void schedulePidGainsUpdate(void);
-void updatePIDCoefficients(void);
-void pidController(void);
+void updatePIDCoefficients(float dT);
+void pidController(float dT);
 
 float pidRateToRcCommand(float rateDPS, uint8_t rate);
 int16_t pidAngleToRcCommand(float angleDeciDegrees, int16_t maxInclination);
@@ -182,3 +189,5 @@ int16_t getHeadingHoldTarget(void);
 
 void autotuneUpdateState(void);
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput);
+
+pidType_e pidIndexGetType(pidIndex_e pidIndex);
