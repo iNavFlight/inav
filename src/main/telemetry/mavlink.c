@@ -477,7 +477,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     if (flm != FLM_MANUAL) {
         mavModes |= MAV_MODE_FLAG_STABILIZE_ENABLED;
     }
-    else if (flm == FLM_POSITION_HOLD || flm == FLM_RTH || flm == FLM_MISSION) {
+    if (flm == FLM_POSITION_HOLD || flm == FLM_RTH || flm == FLM_MISSION) {
         mavModes |= MAV_MODE_FLAG_GUIDED_ENABLED;
     }
 

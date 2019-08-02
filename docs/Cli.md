@@ -146,7 +146,7 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  3d_deadband_throttle  | 50 | Throttle signal will be held to a fixed value when throttle is centered with an error margin defined in this parameter. |
 |  motor_pwm_rate  | 400 | Output frequency (in Hz) for motor pins. Default is 400Hz for motor with motor_pwm_protocol set to STANDARD. For *SHOT (e.g. ONESHOT125) values of 1000 and 2000 have been tested by the development team and are supported. It may be possible to use higher values. For BRUSHED values of 8000 and above should be used. Setting to 8000 will use brushed mode at 8kHz switching frequency. Up to 32kHz is supported for brushed. Default is 16000 for boards with brushed motors. Note, that in brushed mode, minthrottle is offset to zero. For brushed mode, set max_throttle to 2000. |
 |  motor_pwm_protocol  | STANDARD | Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED |
-|  fixed_wing_auto_arm  | OFF | Auto-arm fixed wing aircraft on throttle above min_throttle, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
+|  fixed_wing_auto_arm  | OFF | Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured. |
 |  disarm_kill_switch  | ON | Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel. |
 |  switch_disarm_delay | 250 | Delay before disarming when requested by switch (ms) [0-1000] |
 |  small_angle  | 25 | If the aircraft tilt angle exceed this value the copter will refuse to arm.  |
@@ -282,6 +282,8 @@ A shorter form is also supported to enable and disable functions using `serial <
 |  imu_dcm_ki  | 50 | Inertial Measurement Unit KI Gain for accelerometer measurements |
 |  imu_dcm_kp_mag  | 10000 | Inertial Measurement Unit KP Gain for compass measurements |
 |  imu_dcm_ki_mag  | 0 | Inertial Measurement Unit KI Gain for compass measurements |
+|  imu_acc_ignore_rate  | 0 | Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes |
+|  imu_acc_ignore_slope | 0 | Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight) |
 |  pos_hold_deadband  | 20 | Stick deadband in [r/c points], applied after r/c deadband and expo |
 |  alt_hold_deadband  | 50 | Defines the deadband of throttle during alt_hold [r/c points] |
 |  yaw_motor_direction  | 1 | Use if you need to inverse yaw motor direction. |
