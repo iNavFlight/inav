@@ -291,7 +291,7 @@ static void crsfFrameAttitude(sbuf_t *dst)
      crsfSerialize8(dst, CRSF_FRAMETYPE_ATTITUDE);
      crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
      crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw));
+     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw > 180 ? attitude.values.yaw - 360.0f : attitude.values.yaw));
 }
 
 /*
