@@ -921,12 +921,12 @@ static void writeInterframe(void)
         arraySubInt32(deltas, blackboxCurrent->fwAltPID, blackboxLast->fwAltPID, 3);
         blackboxWriteSignedVBArray(deltas, 3);
 
-        blackboxWriteSignedVB(blackboxCurrent->fwAltPIDOutput);
+        blackboxWriteSignedVB(blackboxCurrent->fwAltPIDOutput - blackboxLast->fwAltPIDOutput);
 
         arraySubInt32(deltas, blackboxCurrent->fwPosPID, blackboxLast->fwPosPID, 3);
         blackboxWriteSignedVBArray(deltas, 3);
 
-        blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput);
+        blackboxWriteSignedVB(blackboxCurrent->fwPosPIDOutput - blackboxLast->fwPosPIDOutput);
 
     }
 
@@ -945,7 +945,7 @@ static void writeInterframe(void)
         arraySubInt32(deltas, blackboxCurrent->mcSurfacePID, blackboxLast->mcSurfacePID, 3);
         blackboxWriteSignedVBArray(deltas, 3);
 
-        blackboxWriteSignedVB(blackboxCurrent->mcSurfacePIDOutput);
+        blackboxWriteSignedVB(blackboxCurrent->mcSurfacePIDOutput - blackboxLast->mcSurfacePIDOutput);
     }
 
     /*
