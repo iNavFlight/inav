@@ -213,7 +213,7 @@ static void crsfFrameGps(sbuf_t *dst)
     crsfSerialize32(dst, gpsSol.llh.lat); // CRSF and betaflight use same units for degrees
     crsfSerialize32(dst, gpsSol.llh.lon);
     crsfSerialize16(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
-    crsfSerialize16(dst, DECIDEGREES_TO_CENTIDEGREES(gpsSol.groundCourse)); // gpsSol.groundCourse is 0.1 degrees, need 0.01 deg
+    crsfSerialize16(dst, gpsSol.groundCourse); // Removed DECIDEGREES_TO_CENTIDEGREES due to Crossfire protocol rollover bug
     const uint16_t altitude = (getEstimatedActualPosition(Z) / 100) + 1000;
     crsfSerialize16(dst, altitude);
     crsfSerialize8(dst, gpsSol.numSat);
@@ -291,7 +291,9 @@ static void crsfFrameAttitude(sbuf_t *dst)
      crsfSerialize8(dst, CRSF_FRAMETYPE_ATTITUDE);
      crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
      crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw));
+     // The following conditional ternary operator is done due to a Crossfire protocol rollover bug
+     // 1809 is used to accomidate rounding error so 180 degrees is possible
+     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw > 1809 ? attitude.values.yaw - 3600 : attitude.values.yaw));
 }
 
 /*
