@@ -30,7 +30,7 @@
 #include "asyncfatfs.h"
 
 #include "fat_standard.h"
-#include "drivers/sdcard.h"
+#include "drivers/sdcard/sdcard.h"
 
 #ifdef AFATFS_DEBUG
     #define ONLY_EXPOSE_FOR_TESTING
