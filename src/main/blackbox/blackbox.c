@@ -636,6 +636,8 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_RSSI:
+        // Assumes blackboxStart() is called after rxInit(), which should be true since
+        // logging can't be started until after all the arming checks take place
         return getRSSISource() != RSSI_SOURCE_NONE;
 
     case FLIGHT_LOG_FIELD_CONDITION_NOT_LOGGING_EVERY_FRAME:
