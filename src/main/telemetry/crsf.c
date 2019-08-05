@@ -291,7 +291,7 @@ static void crsfFrameAttitude(sbuf_t *dst)
      crsfSerialize8(dst, CRSF_FRAMETYPE_ATTITUDE);
      crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
      crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
-     // The following conditional ternary operator is done due to a Crossfire protocol rollover bug
+     // The following conditional ternary operator is done due to a Crossfire protocol int overflow bug
      // 1809 is used to accomidate rounding error so 180 degrees is possible
      crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw > 1809 ? attitude.values.yaw - 3600 : attitude.values.yaw));
 }
